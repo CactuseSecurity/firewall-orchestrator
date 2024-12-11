@@ -67,7 +67,14 @@ namespace FWO.Middleware.Server
 						if(request.ExtRequestState == ExtStates.ExtReqInitialized.ToString() ||
 							request.ExtRequestState == ExtStates.ExtReqFailed.ToString()) // try again
 						{
-							await SendRequest(request);
+							if(request.WaitCycles > 0)
+							{
+								await CountDownWaitCycle(request);
+							}
+							else
+							{
+								await SendRequest(request);
+							}
 						}
 						else
 						{
@@ -127,10 +134,11 @@ namespace FWO.Middleware.Server
 			}
 		}
 
-		private bool AnalyseForRejected(RestResponse<int> ticketIdResponse)
+		private static bool AnalyseForRejected(RestResponse<int> ticketIdResponse)
 		{
 			return ticketIdResponse.Content != null && 
 				(ticketIdResponse.Content.Contains("GENERAL_ERROR") ||
+				ticketIdResponse.Content.Contains("ILLEGAL_ARGUMENT_ERROR") ||
 				ticketIdResponse.Content.Contains("FIELD_VALIDATION_ERROR") ||
 				ticketIdResponse.Content.Contains("WEB_APPLICATION_ERROR") ||
 				ticketIdResponse.Content.Contains("implementation failure"));
@@ -213,5 +221,23 @@ namespace FWO.Middleware.Server
 				Log.WriteError("External Request Sender", $"State update failed: ", exception);
 			}
 		}
+
+		private async Task CountDownWaitCycle(ExternalRequest request)
+		{
+			try
+			{
+				var Variables = new
+				{
+					id = request.Id,
+					waitCycles = --request.WaitCycles
+				};
+				await apiConnection.SendQueryAsync<ReturnId>(ExtRequestQueries.updateExternalRequestWaitCycles, Variables);
+			}
+			catch(Exception exception)
+			{
+				Log.WriteError(userConfig.GetText("External Request Sender"), $"WaitCycle update failed: ", exception);
+			}
+		}
+
 	}
 }

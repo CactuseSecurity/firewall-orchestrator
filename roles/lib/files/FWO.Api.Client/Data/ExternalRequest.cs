@@ -14,14 +14,17 @@ namespace FWO.Api.Data
         [JsonProperty("id"), JsonPropertyName("id")]
         public long Id { get; set; }
 
-        [JsonProperty("owner_id"), JsonPropertyName("owner_id")]
-        public int OwnerId { get; set; }
+        [JsonProperty("owner"), JsonPropertyName("owner")]
+        public FwoOwner Owner { get; set; } = new();
 
         [JsonProperty("ticket_id"), JsonPropertyName("ticket_id")]
         public long TicketId { get; set; }
 
         [JsonProperty("task_number"), JsonPropertyName("task_number")]
         public int TaskNumber { get; set; }
+
+        [JsonProperty("wait_cycles"), JsonPropertyName("wait_cycles")]
+        public int WaitCycles { get; set; }
 
         [JsonProperty("ext_ticket_system"), JsonPropertyName("ext_ticket_system")]
         public string ExtTicketSystem { get; set; } = "";
@@ -46,6 +49,9 @@ namespace FWO.Api.Data
 
         [JsonProperty("last_processing_response"), JsonPropertyName("last_processing_response")]
         public string? LastProcessingResponse { get; set; }
+
+        [JsonProperty("create_date"), JsonPropertyName("create_date")]
+        public DateTime CreationDate { get; set; }
 
         public string? LastMessage { get; set; }
     }

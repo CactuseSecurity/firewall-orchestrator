@@ -297,7 +297,7 @@ namespace FWO.Services
                 {
                     wfHandler.SetReqTaskEnv(reqTask);
                 }
-                FwoOwner? owner = wfHandler.ActReqTask.Owners?.First()?.Owner;
+                FwoOwner? owner = wfHandler.ActReqTask.Owners?.FirstOrDefault()?.Owner;
                 if(owner != null && wfHandler.ActReqTask.GetAddInfoIntValue(AdditionalInfoKeys.ConnId) != null)
                 {
                     apiConnection.SetProperRole(wfHandler.AuthUser, [Roles.Modeller, Roles.Admin, Roles.Auditor]);

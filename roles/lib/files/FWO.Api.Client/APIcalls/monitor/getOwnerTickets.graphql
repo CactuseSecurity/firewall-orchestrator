@@ -1,0 +1,14 @@
+
+query getOwnerTickets ($ownerId: Int!) {
+  owner_ticket (where: {owner_id: {_eq: $ownerId}} order_by: { ticket_id: desc }){
+    owner: owner {
+      id
+      name
+      app_id_external
+      common_service_possible
+    }
+    ticket: ticket {
+      ...ticketDetails
+    }
+  }
+}

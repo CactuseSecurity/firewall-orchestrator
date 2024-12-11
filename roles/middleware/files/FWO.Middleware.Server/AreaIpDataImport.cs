@@ -61,7 +61,7 @@ namespace FWO.Middleware.Server
             // merge all data into a single list of areas
             ModellingImportNwData mergedNwData = MergeNetworkData(AllNwData);
 
-            if (mergedNwData != null && mergedNwData.Areas != null)
+            if (mergedNwData != null)
             {
                 await SaveMergedNwData(mergedNwData);
             }
@@ -95,7 +95,7 @@ namespace FWO.Middleware.Server
             }
             foreach (ModellingNetworkArea existingArea in existingAreas)
             {
-                if (mergedNwData.Areas.FirstOrDefault(x => x.Name == existingArea.Name) == null)
+                if (mergedNwData.Areas.FirstOrDefault(x => x.IdString == existingArea.IdString) == null)
                 {
                     if (await DeleteArea(existingArea))
                     {
@@ -119,6 +119,7 @@ namespace FWO.Middleware.Server
             {
                 result.Areas.Add(ConvertAreaToRanges(area));
             }
+
             return result;
         }
 
@@ -163,7 +164,7 @@ namespace FWO.Middleware.Server
             return ipData;
         }
 
-        private ModellingImportAreaData MergeArea(ModellingImportAreaData area1, ModellingImportAreaData area2)
+        private static ModellingImportAreaData MergeArea(ModellingImportAreaData area1, ModellingImportAreaData area2)
         {
             List<ModellingImportAreaIpData> deepCopyIpData = area1.IpData.Select(item => item.Clone()).ToList();
             ModellingImportAreaData resultArea = new(area1.Name, area1.IdString, deepCopyIpData); // make a copy of area1 including all IP data in the list
@@ -187,7 +188,7 @@ namespace FWO.Middleware.Server
             return resultArea;
         }
 
-        private ModellingImportNwData MergeNetworkData(List<ModellingImportNwData> AllNwData)
+        private static ModellingImportNwData MergeNetworkData(List<ModellingImportNwData> AllNwData)
         {
             ModellingImportNwData mergedNwData = new();
 
@@ -296,11 +297,11 @@ namespace FWO.Middleware.Server
             {
                 foreach (var incomingSubnet in incomingArea.IpData)
                 {
-                    if (incomingSubnet.Name == existingSubnet.Content.Name && incomingSubnet.Ip == existingSubnet.Content.Ip.StripOffNetmask() &&
-                        (incomingSubnet.IpEnd == existingSubnet.Content.IpEnd.StripOffNetmask()))
+                    if (incomingSubnet.Name == existingSubnet.Content.Name && incomingSubnet.Ip == existingSubnet.Content.Ip?.StripOffNetmask() &&
+                        (incomingSubnet.IpEnd == existingSubnet.Content.IpEnd?.StripOffNetmask()))
                     {
                         existingSubnet.Content.Ip = existingSubnet.Content.Ip.StripOffNetmask();
-                        existingSubnet.Content.IpEnd = existingSubnet.Content.IpEnd.StripOffNetmask();
+                        existingSubnet.Content.IpEnd = existingSubnet.Content.IpEnd?.StripOffNetmask();
                         ipDataToAdd.Remove(incomingSubnet);
                         ipDataToDelete.Remove(existingSubnet);
                     }

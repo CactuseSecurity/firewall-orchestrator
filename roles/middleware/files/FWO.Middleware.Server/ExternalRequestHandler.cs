@@ -11,6 +11,9 @@ using FWO.Middleware.RequestParameters;
 
 namespace FWO.Middleware.Server
 {
+	/// <summary>
+	/// Class to execute handling of external requests
+	/// </summary>
 	public class ExternalRequestHandler
 	{
 		private readonly ApiConnection ApiConnection;
@@ -36,35 +39,17 @@ namespace FWO.Middleware.Server
 			wfHandler = new (LogMessage, userConfig, apiConnection, WorkflowPhases.request, ownerGroups);
 		}
 
-		private async Task GetInternalGroups()
+		/// <summary>
+		/// constructor only for unit testing
+		/// </summary>
+		public ExternalRequestHandler(UserConfig userConfig)
 		{
-			List<Ldap> connectedLdaps = await ApiConnection.SendQueryAsync<List<Ldap>>(AuthQueries.getLdapConnections);
-			Ldap internalLdap = connectedLdaps.FirstOrDefault(x => x.IsInternal() && x.HasGroupHandling()) ?? throw new Exception("No internal Ldap with group handling found.");
-
-			List<GroupGetReturnParameters> allGroups = internalLdap.GetAllInternalGroups();
-			ownerGroups = [];
-			foreach (var ldapUserGroup in allGroups)
-			{
-				if(ldapUserGroup.OwnerGroup)
-				{
-					UserGroup group = new ()
-					{ 
-						Dn = ldapUserGroup.GroupDn,
-						Name = new DistName(ldapUserGroup.GroupDn).Group,
-						OwnerGroup = ldapUserGroup.OwnerGroup
-					};
-					foreach (var userDn in ldapUserGroup.Members)
-					{
-						UiUser newUser = new () { Dn = userDn, Name = new DistName(userDn).UserName };
-						group.Users.Add(newUser);
-					}
-					ownerGroups.Add(group);
-				}
-			}
+			UserConfig = userConfig;
 		}
 
 		/// <summary>
 		/// send the first request from ticket (called by UI via middleware client)
+		/// may also be a higher task number in case of a reinit
 		/// </summary>
 		public async Task<bool> SendFirstRequest(long ticketId)
 		{
@@ -75,7 +60,15 @@ namespace FWO.Middleware.Server
 				{
 					return false;
 				}
-				return await SendNextRequest(intTicket, 0);
+				int lastFinishedTask = 0;
+				foreach(var task in intTicket.Tasks.OrderBy(t => t.TaskNumber))
+				{
+					if(task.StateId > wfHandler.StateMatrix(task.TaskType).LowestEndState)
+					{
+						lastFinishedTask = task.TaskNumber;
+					}
+				}
+				return await CreateNextRequest(intTicket, lastFinishedTask);
 			}
 			catch(Exception exception)
 			{
@@ -110,7 +103,7 @@ namespace FWO.Middleware.Server
 						}
 						else
 						{
-							await SendNextRequest(intTicket, externalRequest.TaskNumber, externalRequest.ExtQueryVariables);
+							await CreateNextRequest(intTicket, externalRequest.TaskNumber, externalRequest);
 						}
 					}
 				}
@@ -118,6 +111,45 @@ namespace FWO.Middleware.Server
 			catch(Exception exception)
 			{
 				Log.WriteError("External Request Update", $"Runs into exception: ", exception);
+			}
+		}
+
+		/// <summary>
+		/// patch the external request state (called by admin in UI via middleware client)
+		/// </summary>
+		public async Task<bool> PatchState(ExternalRequest externalRequest)
+		{
+			try
+			{
+				await UpdateRequestState(externalRequest);
+				if(externalRequest.ExtRequestState == ExtStates.ExtReqRejected.ToString() ||
+					externalRequest.ExtRequestState == ExtStates.ExtReqDone.ToString())
+				{
+					await HandleStateChange(externalRequest);
+				}
+				return true;
+			}
+			catch(Exception exception)
+			{
+				Log.WriteError("Patch External Request State", $"Runs into exception: ", exception);
+				return false;
+			}
+		}
+
+		private async Task UpdateRequestState(ExternalRequest request)
+		{
+			try
+			{
+				var Variables = new
+				{
+					id = request.Id,
+					extRequestState = request.ExtRequestState
+				};
+				await ApiConnection.SendQueryAsync<ReturnId>(ExtRequestQueries.updateExtRequestProcess, Variables);
+			}
+			catch(Exception exception)
+			{
+				Log.WriteError("External Request Handler", $"State update failed: ", exception);
 			}
 		}
 
@@ -130,7 +162,40 @@ namespace FWO.Middleware.Server
 			return await wfHandler.ResolveTicket(ticketId);
 		}
 
-		private static int GetLastTaskNumber(string extQueryVars, int oldTaskNumber)
+		private async Task GetInternalGroups()
+		{
+			List<Ldap> connectedLdaps = await ApiConnection.SendQueryAsync<List<Ldap>>(AuthQueries.getLdapConnections);
+			Ldap internalLdap = connectedLdaps.FirstOrDefault(x => x.IsInternal() && x.HasGroupHandling()) ?? throw new Exception("No internal Ldap with group handling found.");
+
+			List<GroupGetReturnParameters> allGroups = internalLdap.GetAllInternalGroups();
+			ownerGroups = [];
+			foreach (var ldapUserGroup in allGroups)
+			{
+				if(ldapUserGroup.OwnerGroup)
+				{
+					UserGroup group = new ()
+					{ 
+						Dn = ldapUserGroup.GroupDn,
+						Name = new DistName(ldapUserGroup.GroupDn).Group,
+						OwnerGroup = ldapUserGroup.OwnerGroup
+					};
+					foreach (var userDn in ldapUserGroup.Members)
+					{
+						UiUser newUser = new () { Dn = userDn, Name = new DistName(userDn).UserName };
+						group.Users.Add(newUser);
+					}
+					ownerGroups.Add(group);
+				}
+			}
+		}
+
+		/// <summary>
+		/// get number of last processed request task (public only for unit testing)
+		/// </summary>
+		/// <param name="extQueryVars"></param>
+		/// <param name="oldTaskNumber"></param>
+		/// <returns></returns>
+		public static int GetLastTaskNumber(string extQueryVars, int oldTaskNumber)
 		{
 			List<int>? taskNumbers = null;
 			Dictionary<string, List<int>>? extQueryVarDict = JsonSerializer.Deserialize<Dictionary<string, List<int>>?>(extQueryVars);
@@ -145,28 +210,29 @@ namespace FWO.Middleware.Server
 			}
 		}
 
-		private async Task<bool> SendNextRequest(WfTicket ticket, int oldTaskNumber, string extQueryVars = "")
+		private async Task<bool> CreateNextRequest(WfTicket ticket, int oldTaskNumber, ExternalRequest? oldRequest = null)
 		{
-			int lastTaskNumber = UserConfig.ModRolloutBundleTasks && extQueryVars != null && extQueryVars != "" ? GetLastTaskNumber(extQueryVars, oldTaskNumber) : oldTaskNumber;
+			int lastTaskNumber = UserConfig.ModRolloutBundleTasks && oldRequest != null && oldRequest.ExtQueryVariables != "" ?
+				GetLastTaskNumber(oldRequest.ExtQueryVariables, oldTaskNumber) : oldTaskNumber;
 			WfReqTask? nextTask = ticket.Tasks.FirstOrDefault(ta => ta.TaskNumber == lastTaskNumber + 1);
 			if(nextTask == null)
 			{
-				Log.WriteDebug("SendNextRequest", "No more task found.");
+				Log.WriteDebug("CreateNextRequest", "No more task found.");
 				return false;
 			}
 			else
 			{
+				int waitCycles = GetWaitCycles(oldRequest);
 				if(UserConfig.ModRolloutBundleTasks && nextTask.TaskType == WfTaskType.access.ToString())
 				{
 					// todo: bundle also other task types?
 					// If the API is called to open a ticket for a SecureApp application with more than 100 ARs,
 					// it must be split into multiple tickets of up to 100 ARs each.
-					// The count parameter specifies the number of tickets to be opened.
 
 					List<WfReqTask> bundledTasks = [nextTask];
 					int actTaskNumber = lastTaskNumber + 2;
 					bool taskFound = true;
-					while(taskFound)
+					while(taskFound && bundledTasks.Count < 100)
 					{
 						WfReqTask? furtherTask = ticket.Tasks.FirstOrDefault(ta => ta.TaskNumber == actTaskNumber);
 						if(furtherTask != null && furtherTask.TaskType == WfTaskType.access.ToString())
@@ -179,19 +245,37 @@ namespace FWO.Middleware.Server
 							taskFound = false;
 						}
 					}
-					await CreateExtRequest(ticket, bundledTasks);
+					await CreateExtRequest(ticket, bundledTasks, waitCycles);
 				}
 				else
 				{
-					await CreateExtRequest(ticket, [nextTask]);
+					await CreateExtRequest(ticket, [nextTask], waitCycles);
 				}
 			}
 			return true;
 		}
 
-		private async Task CreateExtRequest( WfTicket ticket, List<WfReqTask> tasks)
+		/// <summary>
+		/// qad heuristic for Tufin SC (public only for unit testing)
+		/// </summary>
+		/// <param name="oldRequest"></param>
+		/// <returns></returns>
+		public int GetWaitCycles(ExternalRequest? oldRequest)
 		{
-			string taskContent = ConstructContent(tasks, ticket.Requester);
+			// TODO: to be refined
+			if(oldRequest != null && UserConfig.ExternalRequestWaitCycles > 0 &&
+				(oldRequest.ExtRequestType == "(NetworkObjectModify, CREATE)" || oldRequest.ExtRequestType == "(NetworkObjectModify, UPDATE)") &&
+				(oldRequest.ExtRequestContent.Contains("\"object_updated_status\": \"NEW\"") || oldRequest.ExtRequestContent.Contains("object_updated_status\\u0022: \\u0022NEW\\u0022") ||
+				oldRequest.ExtRequestContent.Contains("\"object_updated_status\":\"NEW\"") || oldRequest.ExtRequestContent.Contains("object_updated_status\\u0022:\\u0022NEW\\u0022")))
+			{
+				return UserConfig.ExternalRequestWaitCycles;
+			}
+			return 0;
+		}
+
+		private async Task CreateExtRequest( WfTicket ticket, List<WfReqTask> tasks, int waitCycles)
+		{
+			string taskContent = await ConstructContent(tasks, ticket.Requester);
 			Dictionary<string, List<int>>? bundledTasks;
 			string? extQueryVars = null;
 			if(tasks.Count > 1)
@@ -202,16 +286,18 @@ namespace FWO.Middleware.Server
 			
 			var Variables = new
 			{
-				ownerId = ticket.Tasks.First()?.Owners.First()?.Owner.Id,
+				ownerId = ticket.Tasks.FirstOrDefault()?.Owners.FirstOrDefault()?.Owner.Id,
   				ticketId = ticket.Id,
-				taskNumber = tasks.First()?.TaskNumber ?? 0,
+				taskNumber = tasks.FirstOrDefault()?.TaskNumber ?? 0,
 				extTicketSystem = JsonSerializer.Serialize(actSystem),
 				extTaskType = actTaskType,
 				extTaskContent = taskContent,
-				extQueryVariables = extQueryVars,
-				extRequestState = ExtStates.ExtReqInitialized.ToString()
+				extQueryVariables = extQueryVars ?? "",
+				extRequestState = ExtStates.ExtReqInitialized.ToString(),
+				waitCycles = waitCycles
 			};
 			await ApiConnection.SendQueryAsync<NewReturning>(ExtRequestQueries.addExtRequest, Variables);
+			await LogRequestTasks(tasks, ticket.Requester?.Name, ModellingTypes.ChangeType.Request);
 		}
 
 		private async Task RejectFollowingTasks(WfTicket ticket, int lastTaskNumber)
@@ -248,7 +334,7 @@ namespace FWO.Middleware.Server
 			}
 		}
 
-		private string ConstructContent(List<WfReqTask> reqTasks, UiUser? requester)
+		private async Task<string> ConstructContent(List<WfReqTask> reqTasks, UiUser? requester)
 		{
 			ExternalTicket? ticket;
 			if(extSystemType == ExternalTicketSystemType.TufinSecureChange)
@@ -267,7 +353,7 @@ namespace FWO.Middleware.Server
 			if(ticket != null)
 			{
 				ModellingNamingConvention? namingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(UserConfig.ModNamingConvention);
-				ticket.CreateRequestString(reqTasks, ipProtos, namingConvention);
+				await ticket.CreateRequestString(reqTasks, ipProtos, namingConvention);
 				actTaskType = ticket.GetTaskTypeAsString(reqTasks.First());
 				return JsonSerializer.Serialize(ticket);
 			}
@@ -276,10 +362,10 @@ namespace FWO.Middleware.Server
 
 		private string ConstructSubject(WfReqTask reqTask)
 		{
-			string appId = reqTask != null && reqTask?.Owners.Count > 0 ? reqTask?.Owners.First()?.Owner.ExtAppId + ": " ?? "" : "";
+			string appId = reqTask != null && reqTask?.Owners.Count > 0 ? reqTask?.Owners.FirstOrDefault()?.Owner.ExtAppId + ": " ?? "" : "";
 			string onMgt = UserConfig.GetText("on") + reqTask?.OnManagement?.Name + "(" + reqTask?.OnManagement?.Id + ")";
-			string grpName = " " + reqTask.GetAddInfoValue(AdditionalInfoKeys.GrpName);
-            return appId + reqTask.TaskType switch
+			string grpName = " " + reqTask?.GetAddInfoValue(AdditionalInfoKeys.GrpName);
+            return appId + reqTask?.TaskType switch
             {
                 nameof(WfTaskType.access) => UserConfig.GetText("create_rule") + onMgt,
                 nameof(WfTaskType.group_create) => UserConfig.GetText("create_group") + grpName + onMgt,
@@ -309,6 +395,15 @@ namespace FWO.Middleware.Server
 						await wfHandler.SetAddInfoInReqTask(updatedTask, AdditionalInfoKeys.ExtIcketId, extReq.ExtTicketId);
 					}
 					await UpdateTaskState(updatedTask, extReq.ExtRequestState);
+
+					if(extReq.ExtRequestState == ExtStates.ExtReqDone.ToString())
+					{
+						await LogRequestTasks([updatedTask], actSystem.Name, ModellingTypes.ChangeType.Implement);
+					}
+					else if(extReq.ExtRequestState == ExtStates.ExtReqRejected.ToString())
+					{
+						await LogRequestTasks([updatedTask], actSystem.Name, ModellingTypes.ChangeType.Reject, extReq.LastProcessingResponse ?? extReq.LastCreationResponse ?? "");
+					}
 				}
 			}
 		}
@@ -342,6 +437,45 @@ namespace FWO.Middleware.Server
 				Log.WriteError("Acknowledge External Request", $"Runs into exception: ", exception);
 			}
 		}
+
+		private async Task LogRequestTasks(List<WfReqTask> tasks, string? requester, ModellingTypes.ChangeType changeType, string? comment = null)
+		{
+			foreach(var task in tasks)
+			{
+				(long objId, ModellingTypes.ModObjectType objType) = GetObject(task);
+				await ModellingHandlerBase.LogChange(changeType, objType, objId,
+                	$"{ConstructLogMessageText(changeType)} {task.Title} on {task.OnManagement?.Name}{(comment != null ? ", " + comment : "")}", 
+					ApiConnection, UserConfig, task.Owners.FirstOrDefault()?.Owner.Id, DefaultInit.DoNothing, requester);
+			}
+		}
+
+		private static (long, ModellingTypes.ModObjectType) GetObject(WfReqTask task)
+		{
+			if(task.GetAddInfoLongValue(AdditionalInfoKeys.ConnId) != null)
+			{
+				return (task.GetAddInfoIntValue(AdditionalInfoKeys.ConnId) ?? 0, ModellingTypes.ModObjectType.Connection);
+			}
+			else if(task.GetAddInfoLongValue(AdditionalInfoKeys.AppRoleId) != null)
+			{
+				return (task.GetAddInfoIntValue(AdditionalInfoKeys.AppRoleId) ?? 0, ModellingTypes.ModObjectType.AppRole);
+			}
+			else if(task.GetAddInfoIntValue(AdditionalInfoKeys.SvcGrpId) != null)
+			{
+				return (task.GetAddInfoIntValue(AdditionalInfoKeys.SvcGrpId) ?? 0, ModellingTypes.ModObjectType.ServiceGroup);
+			}
+			return (0, ModellingTypes.ModObjectType.Connection);
+		}
+
+		private static string ConstructLogMessageText(ModellingTypes.ChangeType changeType)
+		{
+            return changeType switch
+            {
+                ModellingTypes.ChangeType.Request => "Requested",
+                ModellingTypes.ChangeType.Implement => "Implemented",
+                ModellingTypes.ChangeType.Reject => "Rejected",
+                _ => "",
+            };
+        }
 
 		private void LogMessage(Exception? exception = null, string title = "", string message = "", bool ErrorFlag = false)
         {

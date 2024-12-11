@@ -1,0 +1,300 @@
+﻿@using BlazorTable
+@using FWO.Basics
+@using FWO.Api.Data
+@using FWO.Api.Client
+@using FWO.Config.Api
+@using FWO.Ui.Shared
+@using FWO.Services
+@using FWO.Middleware.Client
+@using FWO.Middleware.RequestParameters
+@using System.Net
+@using RestSharp
+
+
+@page "/monitoring/external_requests"
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.FwAdmin}")]
+
+@inject ApiConnection apiConnection
+@inject UserConfig userConfig
+@inject MiddlewareClient middlewareClient
+
+
+<h3>@(userConfig.GetText("external_requests"))</h3>
+@(userConfig.GetText("U5118"))
+<hr />
+
+@if(InitComplete)
+{
+    <div class="m-2 vheight75">
+        <div class="form-group row">
+            <div class="col-sm-2">
+                <input class="form-check-input" type="checkbox" value="displayAll" @onchange="@ChangeDisplay">
+                <label class="form-check-label">@(userConfig.GetText("show_all"))</label>
+            </div>
+        </div>
+        <PageSizeComponent PageSizeCallback="UpdatePageSize" PageSize="PageSize"></PageSizeComponent>
+        <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="ExternalRequest" Items="openRequests" PageSize="PageSize" ColumnReorder="true">
+            <Column TableItem="ExternalRequest" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
+                <Template>
+                    <div class="btn-group" data-toggle="tooltip" title="@(userConfig.PureLine("H9071"))">
+                        <button type="button" class="btn btn-sm btn-primary" @onclick="() => Details(context)">@(userConfig.GetText("details"))</button>
+                        @if(context.ExtRequestState != ExtStates.ExtReqDiscarded.ToString() &&
+                            context.ExtRequestState != ExtStates.ExtReqAcknowledged.ToString() &&
+                            context.ExtRequestState != ExtStates.ExtReqAckRejected.ToString())
+                        {
+                            <button type="button" class="btn btn-sm btn-warning" @onclick="() => RequestChangeState(context)">@(userConfig.GetText("change_state"))</button>
+                        }
+                    </div>
+                </Template>
+            </Column>
+            <Column TableItem="ExternalRequest" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
+            <Column TableItem="ExternalRequest" Title="@(userConfig.GetText("owner"))" Field="@(x => x.Owner.Name)" Sortable="true" Filterable="true" >
+                <Template Context="request">
+                    @request.Owner.Display(userConfig.GetText("common_service"))
+                </Template>
+            </Column>
+            <Column TableItem="ExternalRequest" Title="@(userConfig.GetText("ticket"))" Field="@(x => x.TicketId)" Sortable="true" Filterable="true" />
+            <Column TableItem="ExternalRequest" Title="@(userConfig.GetText("number"))" Field="@(x => x.TaskNumber)" Sortable="true" Filterable="true" />
+            <Column TableItem="ExternalRequest" Title="@(userConfig.GetText("task_type"))" Field="@(x => x.ExtRequestType)" Sortable="true" Filterable="true" />
+            <Column TableItem="ExternalRequest" Title="@(userConfig.GetText("wait_cycles"))" Field="@(x => x.WaitCycles)" Sortable="true" Filterable="true" />
+            <Column TableItem="ExternalRequest" Title="@(userConfig.GetText("state"))" Field="@(x => x.ExtRequestState)" Sortable="true" Filterable="true" />
+            <Column TableItem="ExternalRequest" Title="@(userConfig.GetText("ext_ticket_number"))" Field="@(x => x.ExtTicketId)" Sortable="true" Filterable="true" />
+            <Column TableItem="ExternalRequest" Title="@(userConfig.GetText("creation_date"))" Field="@(x => x.CreationDate)" Sortable="true" Filterable="true" />
+	        <Pager ShowPageNumber="true" ShowTotalCount="true" />
+        </Table>
+    </div>
+}
+else
+{
+    <div class="spinner-border" role="status">
+        <span class="visually-hidden">@(userConfig.GetText("loading"))</span>
+    </div>
+}
+
+<PopUp Title="@(userConfig.GetText("external_request") + ": " + actRequest.Id)" Show="@DetailsMode" Size=PopupSize.XLarge OnClose="() => DetailsMode = false">
+    <Body>
+        @if (DetailsMode)
+        {
+            <form>
+                <div class="form-group row">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("owner")):</label>
+                    <label class="col-sm-8">@actRequest.Owner.Display(userConfig.GetText("common_service"))</label>
+                </div>
+                <div class="form-group row">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ticket")):</label>
+                    <label class="col-sm-8">@actRequest.TicketId</label>
+                </div>
+                <div class="form-group row">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("number")):</label>
+                    <label class="col-sm-8">@actRequest.TaskNumber</label>
+                </div>
+                <div class="form-group row">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("task_type")):</label>
+                    <label class="col-sm-8">@actRequest.ExtRequestType</label>
+                </div>
+                <div class="form-group row">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("wait_cycles")):</label>
+                    <label class="col-sm-8">@actRequest.WaitCycles</label>
+                </div>
+                <div class="form-group row">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("state")):</label>
+                    <label class="col-sm-8">@actRequest.ExtRequestState</label>
+                </div>
+                <div class="form-group row">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ext_ticket_number")):</label>
+                    <label class="col-sm-8">@actRequest.ExtTicketId</label>
+                </div>
+                <div class="form-group row">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("bundled_tasks")):</label>
+                    <label class="col-sm-8">@actRequest.ExtQueryVariables</label>
+                </div>
+                <div class="form-group row">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("creation_date")):</label>
+                    <label class="col-sm-8">@actRequest.CreationDate</label>
+                </div>
+                <div class="form-group row">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("last_creation_response")):</label>
+                    <label class="col-sm-8">@actRequest.LastCreationResponse</label>
+                </div>
+                <div class="form-group row">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("last_process_response")):</label>
+                    <label class="col-sm-8">@actRequest.LastProcessingResponse</label>
+                </div>
+                <div class="form-group row">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("request_content")):</label>
+                    <label class="col-sm-8">@ConvertQuotes(actRequest.ExtRequestContent)</label>
+                </div>
+                <div class="form-group row">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ext_ticket_system")):</label>
+                    <label class="col-sm-8">@ConvertQuotes(actRequest.ExtTicketSystem)</label>
+                </div>
+            </form>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <button type="button" class="btn btn-sm btn-primary" @onclick="() => DetailsMode = false">@(userConfig.GetText("ok"))</button>
+        </div>
+    </Footer>
+</PopUp>
+
+<PopUp Title="@(userConfig.GetText("change_state") + ": " + actRequest.Id)" Show="@ChangeStateMode" Size=PopupSize.Small OnClose="() => ChangeStateMode = false">
+    <Body>
+        @if (ChangeStateMode)
+        {
+            <form>
+                <Dropdown ElementType="ExtStates" ElementToString="@(s => s.ToString())" @bind-SelectedElement="actState" Elements="availableStates">
+                    <ElementTemplate Context="state">
+                        @state.ToString()
+                    </ElementTemplate>
+                </Dropdown>
+            </form>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="() => ChangeStateMode = false">@(userConfig.GetText("cancel"))</button>
+            <AuthorizeView Roles="@($"{Roles.Admin}")">
+                <Authorized>
+                    <button type="button" class="btn btn-sm btn-danger" @onclick="PatchState">@(userConfig.GetText("change_state"))</button>
+                </Authorized>
+                <NotAuthorized>
+                    <button type="button" class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("change_state"))</button>
+                </NotAuthorized> 
+            </AuthorizeView>
+        </div>
+    </Footer>
+</PopUp>
+<InProgress Display="workInProgress" />
+
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+	private List<ExternalRequest> openRequests = [];
+    private ExternalRequest actRequest = new();
+    private bool InitComplete = false;
+    private bool DetailsMode = false;
+    private bool ChangeStateMode = false;
+
+    private int PageSize { get; set; } = 10;
+    private bool workInProgress = false;
+    private bool displayAll = false;
+
+    private List<ExtStates> availableStates = [];
+    private ExtStates actState = ExtStates.ExtReqRejected;
+
+    private static readonly Dictionary<string, List<ExtStates>> availableStatesDict = new()
+    {
+        {ExtStates.ExtReqInitialized.ToString(), [ExtStates.ExtReqRejected, ExtStates.ExtReqAckRejected, ExtStates.ExtReqDiscarded]},
+        {ExtStates.ExtReqFailed.ToString(), [ExtStates.ExtReqRejected, ExtStates.ExtReqAckRejected, ExtStates.ExtReqDiscarded]},
+        {ExtStates.ExtReqRequested.ToString(), [ExtStates.ExtReqRejected, ExtStates.ExtReqDone, ExtStates.ExtReqAckRejected, ExtStates.ExtReqAcknowledged]},
+        {ExtStates.ExtReqInProgress.ToString(), [ExtStates.ExtReqRejected, ExtStates.ExtReqDone, ExtStates.ExtReqAckRejected, ExtStates.ExtReqAcknowledged]},
+        {ExtStates.ExtReqRejected.ToString(), [ExtStates.ExtReqAckRejected]},
+        {ExtStates.ExtReqDone.ToString(), [ExtStates.ExtReqAcknowledged]},
+    };
+
+    private static readonly List<string> relevantRequestStates =
+    [
+        ExtStates.ExtReqInitialized.ToString(),
+        ExtStates.ExtReqFailed.ToString(),
+        ExtStates.ExtReqRequested.ToString(),
+        ExtStates.ExtReqInProgress.ToString(),
+        ExtStates.ExtReqRejected.ToString(),
+        ExtStates.ExtReqDone.ToString(),
+        ExtStates.ExtReqDiscarded.ToString()
+    ];
+
+    private static readonly List<string> allRequestStates =
+    [
+        ExtStates.ExtReqInitialized.ToString(),
+        ExtStates.ExtReqFailed.ToString(),
+        ExtStates.ExtReqRequested.ToString(),
+        ExtStates.ExtReqInProgress.ToString(),
+        ExtStates.ExtReqRejected.ToString(),
+        ExtStates.ExtReqDone.ToString(),
+        ExtStates.ExtReqAcknowledged.ToString(),
+        ExtStates.ExtReqAckRejected.ToString(),
+        ExtStates.ExtReqDiscarded.ToString()
+    ];
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        await FetchData();
+    }
+
+    private async Task FetchData()
+    {
+        try
+        {
+            workInProgress = true;
+            List<string> displayedStates = displayAll ? allRequestStates : relevantRequestStates;
+            openRequests = (await apiConnection.SendQueryAsync<List<ExternalRequest>>(ExtRequestQueries.getOpenRequests, new {states = displayedStates})).OrderByDescending(x => x.Id).ToList();
+            workInProgress = false;
+            InitComplete = true;
+        }
+        catch (System.Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
+        }
+    }
+
+    private async Task ChangeDisplay()
+    {
+        displayAll = !displayAll; 
+        await FetchData(); 
+    }
+
+    private void Details(ExternalRequest request)
+    {
+        actRequest = request;
+        DetailsMode = true;
+    }
+
+    private void RequestChangeState(ExternalRequest request)
+    {
+        actRequest = request;
+        availableStates = availableStatesDict[request.ExtRequestState];
+        actState = availableStates.First();
+        ChangeStateMode = true;
+    }
+
+    private async Task PatchState()
+    {
+        workInProgress = true;
+        actRequest.ExtRequestState = actState.ToString();
+        ExternalRequestPatchStateParameters patchParams = new()
+        {
+            ExtRequestId = actRequest.Id,
+            TicketId = actRequest.TicketId,
+            TaskNumber = actRequest.TaskNumber,
+            ExtQueryVariables = actRequest.ExtQueryVariables,
+            ExtRequestState = actRequest.ExtRequestState
+        };
+        RestResponse<bool> middlewareServerResponse = await middlewareClient.PatchExternalRequestState(patchParams);
+        if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)
+        {
+            DisplayMessageInUi(null, userConfig.GetText("change_state"), userConfig.GetText("E9102"), true);
+            Log.WriteError("PatchExtRequestState", $"Could not patch External Request state for Request {actRequest.Id.ToString()}.");
+        }
+        else
+        {
+            Log.WriteDebug("PatchExtRequestState", $"External Request state for Request {actRequest.Id.ToString()} changed.");
+        }
+        await FetchData();
+        workInProgress = false;
+        ChangeStateMode = false;
+    }
+
+    private string ConvertQuotes(string textIn)
+    {
+        return textIn.Replace(@"\u0022", "\"");
+    }
+
+    private void UpdatePageSize(int pageSize)
+    {
+        PageSize = pageSize;
+    }
+}

@@ -1312,7 +1312,7 @@ namespace FWO.Services
 
         public async Task UpdateActTicketState()
         {
-            if (MasterStateMatrix.IsLastActivePhase && ActTicket.StateId >= MasterStateMatrix.LowestEndState)
+            if (ActTicket.StateId >= MasterStateMatrix.MinTicketCompleted)
             {
                 ActTicket.CompletionDate = DateTime.Now;
             }

@@ -12,6 +12,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string updateExtRequestCreation;
         public static readonly string updateExtRequestProcess;
         public static readonly string updateExtRequestFinal;
+        public static readonly string updateExternalRequestWaitCycles;
 
         public static readonly string subscribeExtRequestStateUpdate;
 
@@ -28,6 +29,7 @@ namespace FWO.Api.Client.Queries
                 updateExtRequestCreation = File.ReadAllText(QueryPath + "extRequest/updateExtRequestCreation.graphql");
                 updateExtRequestProcess = File.ReadAllText(QueryPath + "extRequest/updateExtRequestProcess.graphql");
                 updateExtRequestFinal = File.ReadAllText(QueryPath + "extRequest/updateExtRequestFinal.graphql");
+                updateExternalRequestWaitCycles = File.ReadAllText(QueryPath + "extRequest/updateExternalRequestWaitCycles.graphql");
 
                 subscribeExtRequestStateUpdate = File.ReadAllText(QueryPath + "extRequest/subscribeExtRequestStateUpdate.graphql");
             }

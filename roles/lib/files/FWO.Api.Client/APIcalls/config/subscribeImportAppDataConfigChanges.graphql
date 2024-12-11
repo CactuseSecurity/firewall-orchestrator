@@ -1,6 +1,15 @@
 ﻿subscription subscribeImportAppDataConfigChanges {
-  config (where: { _or: [{config_key: {_eq: "importAppDataSleepTime"}}, {config_key: {_eq: "importAppDataStartAt"}} , {config_key: {_eq: "importAppDataPath"}}]}, limit: 3){
-    config_key
-    config_value
+  config (where: { _or: [
+    {config_key: {_eq: "importAppDataSleepTime"}}, 
+    {config_key: {_eq: "importAppDataStartAt"}}, 
+    {config_key: {_eq: "importAppDataPath"}}, 
+    {config_key: {_eq: "manageOwnerLdapGroups"}}, 
+    {config_key: {_eq: "ownerLdapGroupNames"}}, 
+    {config_key: {_eq: "ownerLdapId"}},
+    {config_key: {_eq: "modNamingConvention"}}
+    ]}){
+      config_key
+      config_value
   }
 }
+ 

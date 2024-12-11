@@ -857,6 +857,23 @@
               ],
               "insert_permissions": [
                 {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "id",
+                      "object_id",
+                      "changer",
+                      "change_text",
+                      "app_id",
+                      "change_type",
+                      "object_type",
+                      "change_time"
+                    ]
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "modeller",
                   "permission": {
                     "check": {},
@@ -887,6 +904,16 @@
                       "change_type",
                       "object_type",
                       "change_time"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "id"
                     ],
                     "filter": {}
                   },
@@ -5171,6 +5198,7 @@
                       "last_processing_response",
                       "owner_id",
                       "task_number",
+                      "wait_cycles",
                       "create_date",
                       "finish_date"
                     ]
@@ -5182,17 +5210,18 @@
                   "permission": {
                     "check": {},
                     "columns": [
-                      "id",
-                      "ticket_id",
+                      "create_date",
                       "ext_query_variables",
                       "ext_request_content",
                       "ext_request_state",
                       "ext_request_type",
                       "ext_ticket_system",
+                      "finish_date",
+                      "id",
                       "owner_id",
                       "task_number",
-                      "create_date",
-                      "finish_date"
+                      "ticket_id",
+                      "wait_cycles"
                     ]
                   },
                   "comment": ""
@@ -5215,6 +5244,7 @@
                       "last_processing_response",
                       "owner_id",
                       "task_number",
+                      "wait_cycles",
                       "create_date",
                       "finish_date"
                     ],
@@ -5238,6 +5268,7 @@
                       "last_processing_response",
                       "owner_id",
                       "task_number",
+                      "wait_cycles",
                       "create_date",
                       "finish_date"
                     ],
@@ -5249,20 +5280,21 @@
                   "role": "modeller",
                   "permission": {
                     "columns": [
-                      "create_date",
+                      "id",
+                      "ticket_id",
                       "ext_query_variables",
                       "ext_request_content",
                       "ext_request_state",
                       "ext_request_type",
                       "ext_ticket_id",
                       "ext_ticket_system",
-                      "finish_date",
-                      "id",
                       "last_creation_response",
                       "last_processing_response",
                       "owner_id",
                       "task_number",
-                      "ticket_id"
+                      "wait_cycles",
+                      "create_date",
+                      "finish_date"
                     ],
                     "filter": {}
                   },
@@ -5286,6 +5318,7 @@
                       "last_processing_response",
                       "owner_id",
                       "task_number",
+                      "wait_cycles",
                       "create_date",
                       "finish_date"
                     ],

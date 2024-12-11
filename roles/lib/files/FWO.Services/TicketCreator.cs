@@ -75,6 +75,7 @@ namespace FWO.Services
             return wfHandler.ActTicket;
         }
 
+        // for readonly use the direct api call getTicketById is much more efficient
         public async Task<WfTicket?> GetTicket(int ownerId, long ticketId)
         {
             await wfHandler.Init([ownerId]);

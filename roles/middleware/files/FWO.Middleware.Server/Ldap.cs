@@ -80,13 +80,13 @@ namespace FWO.Middleware.Server
 		public void TestConnection()
 		{
             using LdapConnection connection = Connect();
-            if (!string.IsNullOrEmpty(SearchUser))
+            if (!string.IsNullOrEmpty(SearchUser) && !string.IsNullOrEmpty(SearchUserPwd))
             {
-                if (!TryBind(connection, SearchUser, SearchUserPwd)) throw new Exception("Binding failed for search user");
+                if (!TryBind(connection, SearchUser, SearchUserPwd!)) throw new Exception("Binding failed for search user");
             }
-            if (!string.IsNullOrEmpty(WriteUser))
+            if (!string.IsNullOrEmpty(WriteUser) && !string.IsNullOrEmpty(WriteUserPwd))
             {
-                if (!TryBind(connection, WriteUser, WriteUserPwd)) throw new Exception("Binding failed for write user");
+                if (!TryBind(connection, WriteUser, WriteUserPwd!)) throw new Exception("Binding failed for write user");
             }
         }
 
@@ -610,6 +610,68 @@ namespace FWO.Middleware.Server
 		}
 
 		/// <summary>
+		/// Get all groups of an LDAP server matching a specific pattern
+		/// </summary>
+		/// <returns>list of groups</returns>
+		public List<GroupGetReturnParameters> GetAllGroupObjects(string groupPattern, LdapType ldapType)
+		{
+			List<GroupGetReturnParameters> allGroups = [];
+
+			try
+			{
+                using LdapConnection connection = Connect();
+                // Authenticate as search user
+                TryBind(connection, SearchUser, SearchUserPwd);
+
+                // Search for Ldap groups in given directory          
+                int searchScope = LdapConnection.ScopeSub;
+				string searchFilter = GetGroupSearchFilter(groupPattern);
+                LdapSearchResults searchResults = (LdapSearchResults)connection.Search(GroupSearchPath, searchScope, searchFilter, null, false);
+
+                foreach (LdapEntry entry in searchResults)
+                {
+                    List<string> members = [];
+					if (entry.GetAttributeSet().ContainsKey(GetMemberKey(ldapType)))
+					{
+						string[] groupMemberDn = entry.GetAttribute(GetMemberKey(ldapType)).StringValueArray;
+						foreach (string currentDn in groupMemberDn)
+						{
+							if (currentDn != "")
+							{
+								members.Add(currentDn);
+							}
+						}
+					}
+                    allGroups.Add(new GroupGetReturnParameters()
+                    {
+                        GroupDn = entry.Dn,
+                        Members = members,
+                        OwnerGroup = entry.GetAttributeSet().ContainsKey("businessCategory") && entry.GetAttribute("businessCategory").StringValue.Equals("ownergroup", StringComparison.CurrentCultureIgnoreCase)
+                    });
+                }
+            }
+			catch (Exception exception)
+			{
+				Log.WriteError($"Non-LDAP exception {Address}:{Port}", "Unexpected error while trying to get all internal groups", exception);
+			}
+			return allGroups;
+		}
+
+		/// <summary>
+		/// Get member key depending on the LDAP type
+		/// </summary>
+		/// <returns>string with member key</returns>
+		public static string GetMemberKey(LdapType ldapType)
+		{
+			string memberKey = "uniqueMember";
+			if (ldapType == LdapType.ActiveDirectory)
+			{
+				memberKey = "member";
+			}
+			return memberKey;
+		}
+
+		/// <summary>
 		/// Get members of an ldap group
 		/// </summary>
 		/// <returns>list of members</returns>
@@ -628,7 +690,7 @@ namespace FWO.Middleware.Server
 
                     if (entry != null)
                     {
-                        string[] groupMemberDn = entry.GetAttribute("uniqueMember").StringValueArray;
+                        string[] groupMemberDn = entry.GetAttribute(GetMemberKey((LdapType) Type)).StringValueArray;
                         foreach (string currentDn in groupMemberDn)
                         {
                             if (currentDn != "")

@@ -349,7 +349,7 @@ def resolveRefFromObjectDictionary(id, objDict, nativeConfig={}, sid='', base_ur
     else:
         # there are some objects (at least CpmiVoipSipDomain) which are not API-gettable with show-objects (only with show-object "UID")
         # these must be added to the (network) objects tables
-        if matchedObj['type'] == 'CpmiVoipSipDomain':
+        if matchedObj['type'] in ['CpmiVoipSipDomain', 'CpmiVoipMgcpDomain']:
             logger.info(f"adding voip domain '{matchedObj['name']}' object manually, because it is not retrieved by show objects API command")
             if 'object_tables' in nativeConfig:
                 nativeConfig['object_tables'].append({ 
@@ -440,7 +440,7 @@ def getObjectDetailsFromApi(uid_missing_obj, sid='', apiurl=''):
                         'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],
                         'comments': obj['comments'], 'type': 'host', 'ipv4-address': '0.0.0.0/0',
                         } ] } ] }
-                elif (obj['type'] in [ 'updatable-object', 'CpmiVoipSipDomain' ]):
+                elif (obj['type'] in [ 'updatable-object', 'CpmiVoipSipDomain', 'CpmiVoipMgcpDomain' ]):
                     return {"object_type": "hosts", "object_chunks": [ {
                         "objects": [ {
                         'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],

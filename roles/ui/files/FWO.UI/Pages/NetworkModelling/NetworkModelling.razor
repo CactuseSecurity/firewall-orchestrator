@@ -10,6 +10,8 @@
 @using System.Net
 @using RestSharp
 
+@implements IDisposable
+
 @page "/networkmodelling/{appId?}/{connId?}"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Modeller}, {Roles.Auditor}")]
 
@@ -24,7 +26,7 @@
     @if(appHandler != null && appHandler.overviewConnHandler != null && appSelected)
     {
         <EditConnLeftSide @bind-Width="sidebarLeftWidth" @bind-ConnHandler="appHandler.overviewConnHandler" OverviewMode="true"/>
-        <RequestFwChangePopup @bind-Display="showFwChange" SelectedApp="@selectedApp" Connections="appHandler.GetRegularConnections(true)" RefreshParent="SetStatusFromTicket"/>
+        <RequestFwChangePopup @bind-Display="showFwChange" SelectedApp="@selectedApp" Connections="appHandler.GetConnectionsToRequest()" RefreshParent="SubscribeAndSetStatusFromTicket"/>
     }
     <div style="margin-left: @($"{sidebarLeftWidth + 10}px");">
         <div class="input-group">
@@ -172,6 +174,7 @@ else
     private string ChangeStatus = "";
     private GraphQlApiSubscription<List<WfTicket>>? actTicketSubscription;
     private ExtStateHandler extStateHandler;
+    private WfStateDict states = new();
     private bool firstErrorMessage = true;
     private bool workInProgress = false;
 
@@ -181,6 +184,7 @@ else
         apiConnection.SetBestRole(authenticationStateTask!.Result.User, [ Roles.Modeller, Roles.Admin, Roles.Auditor ]);
         extStateHandler = new(apiConnection);
         await extStateHandler.Init();
+        await states.Init(apiConnection);
         await InitAppList();
     }
 
@@ -337,15 +341,19 @@ else
         }
         else
         {
-            TicketCreator ticketCreator = new (apiConnection, userConfig, authenticationStateTask!.Result.User, middlewareClient);
-            WfTicket? intTicket = await ticketCreator.GetTicket(selectedApp.Id, ticketIds.First().Id);
+            WfTicket? intTicket = await apiConnection.SendQueryAsync<WfTicket>(RequestQueries.getTicketById, new { ticketIds.First().Id });
             apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Modeller, Roles.Admin, Roles.Auditor ]);
             if(intTicket != null)
             {
-                actTicketSubscription = apiConnection.GetSubscription<List<WfTicket>>(HandleSubscriptionError, OnTicketUpdate, RequestQueries.subscribeTicketStateChanges, new {id = intTicket.Id});
-                await SetStatusFromTicket(intTicket);
+                await SubscribeAndSetStatusFromTicket(intTicket);
             }
         }
+    }
+
+    private async Task SubscribeAndSetStatusFromTicket(WfTicket intTicket)
+    {
+        await SetStatusFromTicket(intTicket);
+        actTicketSubscription = apiConnection.GetSubscription<List<WfTicket>>(HandleSubscriptionError, OnTicketUpdate, RequestQueries.subscribeTicketStateChanges, new {intTicket.Id});
     }
 
     private async Task SetStatusFromTicket(WfTicket intTicket)
@@ -365,7 +373,10 @@ else
             List<ExternalRequest> lastRequests = await apiConnection.SendQueryAsync<List<ExternalRequest>>(ExtRequestQueries.getLastRequest, new{ticketId = intTicket.Id});
             if(lastRequests.Count > 0)
             {
-                string tooltip = lastRequests.First().LastProcessingResponse ?? lastRequests.First().LastCreationResponse ?? "";
+                
+                bool shortened = false;
+                string tooltip = states.Name[intTicket.StateId] + ": " + Sanitizer.SanitizeCommentOpt(lastRequests.First().LastProcessingResponse, ref shortened)
+                    ?? Sanitizer.SanitizeCommentOpt(lastRequests.First().LastCreationResponse, ref shortened) ?? "";
                 ChangeStatus = $"<div data-toggle=\"tooltip\" title=\"{tooltip}\">{userConfig.GetText("implementation_error")}</div>";
             }
             else

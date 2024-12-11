@@ -52,6 +52,12 @@ else if(Template.TaskType == SCTaskType.AccessRequest.ToString())
             <textarea rows="3" cols="60" name="text" class="form-control form-control-sm" @bind="Template.ServiceTemplate"></textarea>   
         </div>
     </div>
+    <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5596f"))">
+        <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ext_icmp_template")):</label>
+        <div class="col-sm-8">
+            <textarea rows="3" cols="60" name="text" class="form-control form-control-sm" @bind="Template.IcmpTemplate"></textarea>   
+        </div>
+    </div>
 }
 
 @code

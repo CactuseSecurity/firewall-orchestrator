@@ -14,7 +14,7 @@ namespace FWO.Middleware.Server
         /// </summary>
         // [JsonProperty("areas"), JsonPropertyName("areas")]
         [JsonPropertyName("areas")]
-        public List<ModellingImportAreaData>? Areas { get; set; } = [];
+        public List<ModellingImportAreaData> Areas { get; set; } = [];
     }
 
     /// <summary>
@@ -45,7 +45,7 @@ namespace FWO.Middleware.Server
         /// Overloaded constructor with an empty list as default
         /// </summary>
         public ModellingImportAreaData(string name, string idString)
-            : this(name, idString, new List<ModellingImportAreaIpData>()) { }
+            : this(name, idString, []) { }
 
 
         /// <summary>

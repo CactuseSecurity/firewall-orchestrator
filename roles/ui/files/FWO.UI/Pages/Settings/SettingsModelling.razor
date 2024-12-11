@@ -22,11 +22,12 @@
 
 @if (configData != null)
 {
-    <button type="button" class="btn btn-sm btn-dark ms-5" data-toggle="tooltip" title="@(userConfig.PureLine("H5602"))"
-            @onclick="PredefServices">
-        @(userConfig.GetText("predef_services"))
-    </button>
     <form onsubmit="return false">
+        <button type="button" class="btn btn-sm btn-dark ms-5" data-toggle="tooltip" title="@(userConfig.PureLine("H5602"))"
+                @onclick="PredefServices">
+            @(userConfig.GetText("predef_services"))
+        </button>
+        <hr />
         <div class="form-group row mt-2">
             <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5603"))">
                 <label class="col-form-label col-sm-8">@(userConfig.GetText("allowServerInConn")):</label>
@@ -86,7 +87,7 @@
         <div class="form-group row mt-4" data-toggle="tooltip" title="@(userConfig.PureLine("H9055"))">
             <label class="col-form-label col-sm-4">@userConfig.GetText("import_app_server"):</label>
             <div class="row col-sm-6">
-                <CSVFileUpload ApiConnection="apiConnection" OnAddAppServerError="OnAddAppServerError" OnAddAppServerWarning="OnAddAppServerWarning" OnImportSuccess="OnAppServerImportSuccess"></CSVFileUpload>
+                <CSVFileUpload AuthorizedRoles="@Roles.Admin" OnAddAppServerError="OnAddAppServerError" OnAddAppServerWarning="OnAddAppServerWarning" OnImportSuccess="OnAppServerImportSuccess"></CSVFileUpload>
             </div>
         </div>
         <hr />
@@ -177,12 +178,12 @@
             <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5636"))">
                 <label class="col-form-label col-sm-8">@(userConfig.GetText("app_zone_creation")):</label>
                 <div class="col-sm-2">
-                    <input type="checkbox" @bind="namingConvention.CreateAppZones">
+                    <input type="checkbox" @bind="configData!.CreateAppZones">
                 </div>
             </div>
             <div class="row col-sm-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5635"))">
                 <label class="col-form-label col-sm-5">@userConfig.GetText("app_zone_pattern"):</label>
-                <input disabled="@(!namingConvention.CreateAppZones)" type="text" class="col-sm-4" @bind="namingConvention.AppZone" />               
+                <input disabled="@(!configData.CreateAppZones)" type="text" class="col-sm-4" @bind="namingConvention.AppZone" />               
             </div>
             <div class="row col-sm-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5633"))">
                 <label class="col-form-label col-sm-5">@userConfig.GetText("appServerPrefix"):</label>
@@ -215,6 +216,28 @@
             <input type="time" step="60" class="col-sm-2" @bind="appDataTime" />
             <input type="date" class="col-sm-2" @bind="appDataDate" />
         </div>
+
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5640"))">
+            <label class="col-sm-4 col-form-label col-form-label">@(userConfig.GetText("ownerGroupLdap")):</label>
+            <div class="col-sm-2">
+                <Dropdown ElementType="UiLdapConnection" ElementToString="@(l => l.Name)" @bind-SelectedElement="selectedLdap" Elements="connectedLdaps">
+                    <ElementTemplate Context="ldap">
+                        @ldap.Name
+                    </ElementTemplate>
+                </Dropdown>
+            </div>
+        </div>
+        <div class="form-group row mt-2">
+            <div class="row mt-2 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5642"))">
+                <label class="col-form-label col-sm-4">@(userConfig.GetText("manageGroupsInLdap")):</label>
+                <input type="checkbox" class="col-sm-2" @bind="configData!.ManageOwnerLdapGroups">
+            </div>
+            <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5641"))">
+                <label class="col-form-label col-sm-4">@(userConfig.GetText("ownerGroupPattern")):</label>
+                <input type="input" class="col-sm-4" @bind="configData!.OwnerLdapGroupNames" />
+            </div>
+        </div>
+
         <hr />
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5614"))">
             <label class="col-form-label col-sm-4">@userConfig.GetText("importSubnetDataPath"):</label>
@@ -365,6 +388,14 @@ else
     private List<EmailRecipientOption> selectableRecipientOptions = [ EmailRecipientOption.OwnerGroupOnly,
     EmailRecipientOption.AllOwnerResponsibles, EmailRecipientOption.OwnerMainResponsible, EmailRecipientOption.FallbackToMainResponsibleIfOwnerGroupEmpty ];
 
+    private List<UiLdapConnection> connectedLdaps = new List<UiLdapConnection>();
+    private UiLdapConnection selectedLdap = new();
+
+    private int ownerLdapId = GlobalConst.kLdapInternalId;
+    private string ownerLdapGroupNames = GlobalConst.kLdapGroupPattern;
+    private bool manageOwnerLdapGroups = true;
+
+
     private void OnAddAppServerError((Exception Exception, string Message) error)
     {
         DisplayMessageInUi(error.Exception, userConfig.GetText("add_app_server"), error.Message, false);
@@ -407,6 +438,21 @@ else
             RefreshAreas();
             appDataDate = appDataTime = configData.ImportAppDataStartAt;
             subnetDataDate = subnetDataTime = configData.ImportSubnetDataStartAt;
+
+            // get all ldap connections for dropdown
+            connectedLdaps = await apiConnection.SendQueryAsync<List<UiLdapConnection>>(AuthQueries.getAllLdapConnections);
+
+            // get config value of selected ldap connection for owner data (both groups and main responsible user), default value = 1 = internal ldap
+            ownerLdapId = configData.OwnerLdapId;
+
+            selectedLdap = connectedLdaps.FirstOrDefault(x => x.Id == ownerLdapId);
+
+            // get naming schema for groups: all groups follow a naming convention, e.g. ext-app-id,groups,example,com
+            ownerLdapGroupNames = configData.OwnerLdapGroupNames ?? GlobalConst.kLdapGroupPattern;
+
+            // whether or not to create owner groups in LDAP
+            manageOwnerLdapGroups = configData.ManageOwnerLdapGroups;
+
         }
         catch (Exception exception)
         {
@@ -528,6 +574,7 @@ else
         PrepareCommonAreas();
         configData.ImportAppDataStartAt = appDataDate.Date.Add(appDataTime.TimeOfDay);
         configData.ImportSubnetDataStartAt = subnetDataDate.Date.Add(subnetDataTime.TimeOfDay);
+        configData.OwnerLdapId = selectedLdap.Id;
     }
 
     private void PrepareAppDataPaths()

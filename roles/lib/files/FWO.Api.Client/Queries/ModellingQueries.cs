@@ -6,9 +6,11 @@ namespace FWO.Api.Client.Queries
     {
         public static readonly string appServerDetailsFragment;
         public static readonly string appRoleDetailsFragment;
+        public static readonly string areaDetailsFragment;
         public static readonly string serviceDetailsFragment;
         public static readonly string serviceGroupDetailsFragment;
         public static readonly string connectionDetailsFragment;
+        public static readonly string connectionResolvedDetailsFragment;
 
         public static readonly string getAreas;
         public static readonly string newArea;
@@ -22,6 +24,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string updateAppServer;
         public static readonly string setAppServerDeletedState;
         public static readonly string setAppServerType;
+        public static readonly string setAppServerName;
         public static readonly string deleteAppServer;
         public static readonly string getAppRolesForAppServer;
         public static readonly string getConnectionIdsForAppServer;
@@ -29,6 +32,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string getPublishedInterfaces;
         public static readonly string getInterfaceById;
         public static readonly string getConnections;
+        public static readonly string getConnectionsResolved;
         public static readonly string getConnectionsByTicketId;
         public static readonly string getInterfaceUsers;
         public static readonly string getCommonServices;
@@ -100,12 +104,15 @@ namespace FWO.Api.Client.Queries
             {
                 appServerDetailsFragment = File.ReadAllText(QueryPath + "modelling/fragments/appServerDetails.graphql");
                 appRoleDetailsFragment = File.ReadAllText(QueryPath + "modelling/fragments/appRoleDetails.graphql");
+                areaDetailsFragment = File.ReadAllText(QueryPath + "modelling/fragments/areaDetails.graphql");
                 serviceDetailsFragment = File.ReadAllText(QueryPath + "modelling/fragments/serviceDetails.graphql");
                 serviceGroupDetailsFragment = File.ReadAllText(QueryPath + "modelling/fragments/serviceGroupDetails.graphql");
                 connectionDetailsFragment = appServerDetailsFragment + appRoleDetailsFragment + serviceDetailsFragment + serviceGroupDetailsFragment +
                     File.ReadAllText(QueryPath + "modelling/fragments/connectionDetails.graphql");
+                connectionResolvedDetailsFragment = appServerDetailsFragment + appRoleDetailsFragment + areaDetailsFragment + serviceDetailsFragment + serviceGroupDetailsFragment +
+                    File.ReadAllText(QueryPath + "modelling/fragments/connectionResolvedDetails.graphql");
 
-                getAreas = File.ReadAllText(QueryPath + "modelling/getAreas.graphql");
+                getAreas = areaDetailsFragment + File.ReadAllText(QueryPath + "modelling/getAreas.graphql");
                 newArea = File.ReadAllText(QueryPath + "modelling/newArea.graphql");
                 setAreaDeletedState = File.ReadAllText(QueryPath + "modelling/setAreaDeletedState.graphql");
                 newAreaIpData = File.ReadAllText(QueryPath + "modelling/newAreaIpData.graphql");
@@ -116,6 +123,7 @@ namespace FWO.Api.Client.Queries
                 newAppServer = File.ReadAllText(QueryPath + "modelling/newAppServer.graphql");
                 updateAppServer = File.ReadAllText(QueryPath + "modelling/updateAppServer.graphql");
                 setAppServerDeletedState = File.ReadAllText(QueryPath + "modelling/setAppServerDeletedState.graphql");
+                setAppServerName = File.ReadAllText(QueryPath + "modelling/setAppServerName.graphql");
                 setAppServerType = File.ReadAllText(QueryPath + "modelling/setAppServerType.graphql");
                 deleteAppServer = File.ReadAllText(QueryPath + "modelling/deleteAppServer.graphql");
                 getAppRolesForAppServer = File.ReadAllText(QueryPath + "modelling/getAppRolesForAppServer.graphql");
@@ -124,6 +132,7 @@ namespace FWO.Api.Client.Queries
                 getPublishedInterfaces = connectionDetailsFragment + File.ReadAllText(QueryPath + "modelling/getPublishedInterfaces.graphql");
                 getInterfaceById = connectionDetailsFragment + File.ReadAllText(QueryPath + "modelling/getInterfaceById.graphql");                
                 getConnections = connectionDetailsFragment + File.ReadAllText(QueryPath + "modelling/getConnections.graphql");
+                getConnectionsResolved = connectionResolvedDetailsFragment + File.ReadAllText(QueryPath + "modelling/getConnectionsResolved.graphql");
                 getConnectionsByTicketId = connectionDetailsFragment + File.ReadAllText(QueryPath + "modelling/getConnectionsByTicketId.graphql");
                 getInterfaceUsers = File.ReadAllText(QueryPath + "modelling/getInterfaceUsers.graphql");
                 getCommonServices = connectionDetailsFragment + File.ReadAllText(QueryPath + "modelling/getCommonServices.graphql");

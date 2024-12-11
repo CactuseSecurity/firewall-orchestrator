@@ -45,7 +45,7 @@ namespace FWO.Middleware.Server
         /// Overloaded constructor with an empty list as default
         /// </summary>
         public ModellingImportAreaData(string name, string idString)
-            : this(name, idString, new List<ModellingImportAreaIpData>()) { }
+            : this(name, idString, []) { }
 
 
         /// <summary>

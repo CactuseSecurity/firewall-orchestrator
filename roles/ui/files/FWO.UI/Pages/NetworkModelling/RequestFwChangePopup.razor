@@ -10,6 +10,8 @@
 @using System.Net
 @using RestSharp
 
+@implements IDisposable
+
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 @inject MiddlewareClient middlewareClient
@@ -101,6 +103,7 @@
     private bool RequestInProcess = false;
     private WfStateDict states = new();
     private ExtStateHandler extStateHandler;
+    private List<GraphQlApiSubscription<List<WfReqTask>>> actTaskSubscriptions = [];
 
 
     protected override async Task OnInitializedAsync()
@@ -126,11 +129,10 @@
     {
         try
         {
-            ModellingAppZoneHandler appZoneHandler = new(apiConnection, userConfig, DisplayMessageInUi, SelectedApp);
-            await appZoneHandler.UpsertAppZone();
-
             if (!await GetActTicketStatus())
             {
+                ModellingAppZoneHandler appZoneHandler = new(apiConnection, userConfig, DisplayMessageInUi, SelectedApp);
+                await appZoneHandler.UpsertAppZone();
                 ModellingVarianceAnalysis varianceAnalysis = new(apiConnection, extStateHandler, userConfig, SelectedApp, DisplayMessageInUi);       
                 TaskList = await varianceAnalysis.AnalyseModelledConnections(Connections);
             }
@@ -149,14 +151,27 @@
             WfTicket? intTicket = await apiConnection.SendQueryAsync<WfTicket>(RequestQueries.getTicketById, new { ticketIds.First().Id });
             if (intTicket != null)
             {
-                intTicket.UpdateCidrsInTaskElements();
-                TaskList = intTicket.Tasks.OrderBy(t => t.TaskNumber).ToList();
-                int doneStateId = (int)(extStateHandler.GetInternalStateId(ExtStates.ExtReqDone) ?? 999);
-                int rejectedStateId = (int)(extStateHandler.GetInternalStateId(ExtStates.ExtReqRejected) ?? 999);
-                RequestInProcess = (TaskList.FirstOrDefault(t => t.StateId < doneStateId && t.StateId < rejectedStateId) != null);
+                SetActTicketStatus(intTicket);
+                if(RequestInProcess)
+                {
+                    SubscribeTaskChanges();
+                }
+            }
+            else
+            {
+                Dispose();
             }
         }
         return RequestInProcess;
+    }
+
+    private void SetActTicketStatus(WfTicket intTicket)
+    {
+        intTicket.UpdateCidrsInTaskElements();
+        TaskList = intTicket.Tasks.OrderBy(t => t.TaskNumber).ToList();
+        int doneStateId = (int)(extStateHandler.GetInternalStateId(ExtStates.ExtReqDone) ?? 999);
+        int rejectedStateId = (int)(extStateHandler.GetInternalStateId(ExtStates.ExtReqRejected) ?? 999);
+        RequestInProcess = (TaskList.FirstOrDefault(t => t.StateId < doneStateId && t.StateId < rejectedStateId) != null);
     }
 
     private string DisplayTaskDetails(WfReqTask task)
@@ -262,6 +277,10 @@
                 RequestInProcess = true;
                 TaskList = intTicket.Tasks;
                 await SaveTicketId(intTicket.Id);
+                await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.InitRequests, ModellingTypes.ModObjectType.CommunicationProfile,
+                    0, $"Initialized Rollout Requests", apiConnection, userConfig, 
+                    intTicket.Tasks.FirstOrDefault()?.Owners.FirstOrDefault()?.Owner.Id, DefaultInit.DoNothing, intTicket.Requester?.Name);
+                SubscribeTaskChanges();
                 await CreateExtRequests(intTicket);
                 await RefreshParent(intTicket);
                 DisplayMessageInUi(null, userConfig.GetText("U9020"), userConfig.GetText("U0016"), false);
@@ -303,7 +322,7 @@
 
             await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.InitRequests, ModellingTypes.ModObjectType.CommunicationProfile,
                 0, $"Initialized Rollout Requests", apiConnection, userConfig,
-                intTicket.Tasks.First()?.Owners.First()?.Owner.Id, DefaultInit.DoNothing, intTicket.Requester?.Name);
+                intTicket.Tasks.FirstOrDefault()?.Owners.FirstOrDefault()?.Owner.Id, DefaultInit.DoNothing, intTicket.Requester?.Name);
         }
         catch (Exception exception)
         {
@@ -311,9 +330,57 @@
         }
     }
 
+    private void SubscribeTaskChanges()
+    {
+        foreach(var task in TaskList)
+        {
+            actTaskSubscriptions.Add(apiConnection.GetSubscription<List<WfReqTask>>(HandleSubscriptionError, OnTaskUpdate, RequestQueries.subscribeTaskChanges, new {task.Id}));
+        }
+    }
+
+    private async void HandleSubscriptionError(Exception exception)
+    {
+        await InvokeAsync(() => DisplayMessageInUi(exception, userConfig.GetText("task"), userConfig.GetText("update_subscription_error"), true));
+    }
+
+    public void Dispose()
+    {
+        try
+        {
+            foreach(var sub in actTaskSubscriptions)
+            {
+                sub.Dispose();
+            }
+            actTaskSubscriptions = [];
+        }
+        catch (Exception exception)
+        {
+            Log.WriteDebug("Dispose subscriptions", exception.Message);
+        }
+    }
+
+    private async void OnTaskUpdate(List<WfReqTask> tasks)
+    {
+        try
+        {
+            SetActTaskStatus(tasks.First());
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("request_fw_change"), "", true);
+        }
+    }
+
+    private void SetActTaskStatus(WfReqTask task)
+    {
+        TaskList[TaskList.FindIndex(t => t.Id == task.Id)] = task;
+    }
+
     private void Close()
     {
         FirstTry = true;
+        Dispose();
         Display = false;
         DisplayChanged.InvokeAsync(Display);
     }

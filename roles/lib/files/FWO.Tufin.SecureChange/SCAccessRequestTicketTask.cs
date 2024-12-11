@@ -69,7 +69,14 @@ namespace FWO.Tufin.SecureChange
 			List<string> convertedObjects = [];
 			foreach(var svc in nwServiceElements)
 			{
-				convertedObjects.Add(FillServiceTemplate(template, IpProtos.FirstOrDefault(x => x.Id == svc.ProtoId)?.Name ?? svc.ProtoId.ToString(), DisplayPortRange(svc.Port, svc.PortEnd), svc.Name ?? ""));
+				if(svc.ProtoId == 1) // ICMP
+				{
+					convertedObjects.Add(FillIcmpTemplate(template, svc.Name ?? ""));
+				}
+				else
+				{
+					convertedObjects.Add(FillServiceTemplate(template, IpProtos.FirstOrDefault(x => x.Id == svc.ProtoId)?.Name ?? svc.ProtoId.ToString(), DisplayPortRange(svc.Port, svc.PortEnd), svc.Name ?? ""));
+				}
 			}
 			return "[" + string.Join(",", convertedObjects) + "]";
 		}

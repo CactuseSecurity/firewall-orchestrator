@@ -10,7 +10,7 @@ namespace FWO.Services
     public class ModellingVarianceAnalysis(ApiConnection apiConnection, ExtStateHandler extStateHandler, UserConfig userConfig, FwoOwner owner, Action<Exception?, string, string, bool> displayMessageInUi)
     {
         private readonly ModellingNamingConvention namingConvention = System.Text.Json.JsonSerializer.Deserialize<ModellingNamingConvention>(userConfig.ModNamingConvention) ?? new();
-        private readonly ModellingAppZoneHandler AppZoneHandler = new(apiConnection, userConfig, displayMessageInUi, owner);
+        private readonly ModellingAppZoneHandler AppZoneHandler = new(apiConnection, userConfig, owner, displayMessageInUi);
         private AppServerComparer appServerComparer = new(new());
         private List<Management> managements = [];
 
@@ -333,20 +333,15 @@ namespace FWO.Services
         private void RequestNewNwGroup(ModellingNwGroup nwGroup, Management mgt)
         {
             string title = "";
-            string additionalInfoKeys = "";
             string groupName = "";
 
             if (nwGroup.GetType() == typeof(ModellingAppRole))
             {
                 title = userConfig.GetText("new_app_role");
-                additionalInfoKeys = AdditionalInfoKeys.AppRoleId;
-                groupName = app.IdString;
             }
             else if (nwGroup.GetType() == typeof(ModellingAppZone))
             {
                 title = userConfig.GetText("new_app_zone");
-                additionalInfoKeys = AdditionalInfoKeys.AppZoneId;
-                groupName = app.Name;
             }
 
             List<WfReqElement> groupMembers = [];
@@ -380,20 +375,15 @@ namespace FWO.Services
         private void RequestUpdateNwGroup(ModellingNwGroup nwGroup, Management mgt)
         {
             string title = "";
-            string additionalInfoKeys = "";
             string groupName = "";
 
             if (nwGroup.GetType() == typeof(ModellingAppRole))
             {
                 title = userConfig.GetText("update_app_role");
-                additionalInfoKeys = AdditionalInfoKeys.AppRoleId;
-                groupName = app.IdString;
             }
             else if (nwGroup.GetType() == typeof(ModellingAppZone))
             {
                 title = userConfig.GetText("update_app_zone");
-                additionalInfoKeys = AdditionalInfoKeys.AppZoneId;
-                groupName = app.Name;
             }
 
             FillGroupMembers(nwGroup.IdString, mgt);

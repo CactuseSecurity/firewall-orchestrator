@@ -87,7 +87,7 @@
         <div class="form-group row mt-4" data-toggle="tooltip" title="@(userConfig.PureLine("H9055"))">
             <label class="col-form-label col-sm-4">@userConfig.GetText("import_app_server"):</label>
             <div class="row col-sm-6">
-                <CSVFileUpload OnAddAppServerError="OnAddAppServerError" OnAddAppServerWarning="OnAddAppServerWarning" OnImportSuccess="OnAppServerImportSuccess"></CSVFileUpload>
+                <CSVFileUpload AuthorizedRoles="@Roles.Admin" OnAddAppServerError="OnAddAppServerError" OnAddAppServerWarning="OnAddAppServerWarning" OnImportSuccess="OnAppServerImportSuccess"></CSVFileUpload>
             </div>
         </div>
         <hr />

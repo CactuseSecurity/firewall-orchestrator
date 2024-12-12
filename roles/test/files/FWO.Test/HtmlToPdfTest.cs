@@ -57,8 +57,8 @@ namespace FWO.Test
             {
                 ExecutablePath = brw.GetExecutablePath(),
                 Headless = true,
-                HeadlessMode = HeadlessMode.True,
-                Args = ["--no-sandbox"] //, "--disable-setuid-sandbox"
+                HeadlessMode = HeadlessMode.Shell,
+                Args = ["--no-sandbox", "--disable-setuid-sandbox"] //, "--disable-setuid-sandbox"
             });
 
             Log.WriteInfo("Test Log", "Browser started...");

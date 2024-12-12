@@ -26,8 +26,8 @@ namespace FWO.Test
 
             BrowserFetcher? browserFetcher = new(SupportedBrowser.Chrome);
 
-            InstalledBrowser? brw = await browserFetcher.DownloadAsync();
-
+            InstalledBrowser? brw = await browserFetcher.DownloadAsync(BrowserTag.Latest);
+            
             if (brw.PermissionsFixed == false)
             {
                 throw new Exception("Sandbox permissions were not applied. You need to run your application as an administrator.");

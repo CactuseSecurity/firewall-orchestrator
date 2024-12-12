@@ -1133,6 +1133,17 @@ Create table IF NOT EXISTS "rulebase"
 	"deleted" BIGINT
 );
 
+Create table IF NOT EXISTS "rulebase_link"
+(
+	"id" SERIAL primary key,
+	"gw_id" Integer,
+	"from_rule_id" Integer,
+	"to_rulebase_id" Integer NOT NULL,
+	"link_type" Integer,
+	"created" BIGINT,
+	"deleted" BIGINT
+);
+
 Create table IF NOT EXISTS "rulebase_on_gateway" 
 (
 	"dev_id" Integer,

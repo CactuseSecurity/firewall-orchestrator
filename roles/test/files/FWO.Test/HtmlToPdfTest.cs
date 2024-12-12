@@ -28,10 +28,10 @@ namespace FWO.Test
             string path;
 
             switch (os.Platform)
-            {              
+            {
                 case PlatformID.Win32NT:
                     path = ChromeBinPathWin;
-                    break;              
+                    break;
                 case PlatformID.Unix:
                     path = ChromeBinPathLinux;
                     break;
@@ -39,7 +39,7 @@ namespace FWO.Test
                     return;
             }
 
-            BrowserFetcher? browserFetcher = new(new BrowserFetcherOptions { Path = path  });
+            BrowserFetcher? browserFetcher = new(new BrowserFetcherOptions { Path = path });
             Log.WriteInfo("Test Log", $"Downloading chrome to: {path}");
 
             InstalledBrowser? brw = await browserFetcher.DownloadAsync();
@@ -51,21 +51,14 @@ namespace FWO.Test
                 throw new Exception("Sandbox permissions were not applied. You need to run your application as an administrator.");
             }
 
-            bool runHeadless;
 
-#if DEBUG
-            runHeadless = false;
-#else
-            runHeadless = true;
-#endif
-            Log.WriteInfo("test log", $"running headless: {runHeadless}");
             Log.WriteInfo("Test Log", "Starting Browser...");
             IBrowser? browser = await Puppeteer.LaunchAsync(new LaunchOptions
             {
                 ExecutablePath = brw.GetExecutablePath(),
-                Headless = runHeadless,
-                HeadlessMode = runHeadless ? HeadlessMode.True : HeadlessMode.False,
-               Args = ["--no-sandbox"] //, "--disable-setuid-sandbox"
+                Headless = true,
+                HeadlessMode = HeadlessMode.True,
+                Args = ["--no-sandbox"] //, "--disable-setuid-sandbox"
             });
 
             Log.WriteInfo("Test Log", "Browser started...");

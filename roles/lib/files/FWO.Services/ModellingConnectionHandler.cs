@@ -1096,7 +1096,7 @@ namespace FWO.Services
                     {
                         SyncSvcChanges();
                     }
-                    ActConn.SyncState();
+                    ActConn.SyncState(DummyAppRole.Id);
                     if(AddMode)
                     {
                         await AddConnectionToDb();                        

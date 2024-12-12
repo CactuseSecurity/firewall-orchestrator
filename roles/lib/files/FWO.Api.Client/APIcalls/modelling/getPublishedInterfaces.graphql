@@ -1,5 +1,9 @@
 query getPublishedInterfaces{
   modelling_connection (where: { is_interface: { _eq: true }, is_published: { _eq: true }} order_by: { name: asc }){
     ...connectionDetails
+    owner{
+      name
+      app_id_external
+    }
   }
 }

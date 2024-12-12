@@ -435,3 +435,25 @@ Network Modelling feature update
 Fixes
 - various small UI fixes
 - importer (CP: handle None objects)
+
+# 8.6 - 11.12.2024 MAIN
+Features
+- Modelling 
+  - Create Application Zones
+  - Add monitoring for external requests for admins 
+  - Add re-initialization for external requests
+  - consolidation modelling external requests
+  - adding optional access requst on behalf of UI user
+  - adding live update of external task/ticket status
+  - app server name handling rework (NONAME --> <prefix>_<IP address>)
+  - owner groups can now also be external LDAP groups
+
+- Reporting
+  - refining connection report (adding Common service, app role, network area details)
+Fixes
+- Importer
+  - adding missing colors in Check Point importer
+  - new VOIP service object and Internet object
+
+- UI
+  - SECURITY: updating System.Text.Encodings.Web v4.5.0 --> v8.0.0

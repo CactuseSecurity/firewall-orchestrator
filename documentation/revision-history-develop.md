@@ -249,6 +249,9 @@ bugfix release:
 - owner import - make ldap selectable (internal/external)
 - small fixes regarding missing config data for two schedulers (daily, app data import)
 
+# 8.5.4 - 04.12.2024 DEVELOP
+- external request: introduce wait cycles
+
 # 9.0 - 31.07.2024 DEVELOP
 - rule to gateway mapping 1:n
 - add report output for rule to gw mapping

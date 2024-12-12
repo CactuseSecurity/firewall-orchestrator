@@ -1202,6 +1202,8 @@ INSERT INTO txt VALUES ('ext_nwgroup_template', 'German',	'Template Netzwerkgrup
 INSERT INTO txt VALUES ('ext_nwgroup_template', 'English',	'Template network group');
 INSERT INTO txt VALUES ('ext_service_template', 'German',	'Template Dienst');
 INSERT INTO txt VALUES ('ext_service_template', 'English',	'Template service');
+INSERT INTO txt VALUES ('ext_icmp_template',    'German',	'Template ICMP');
+INSERT INTO txt VALUES ('ext_icmp_template',    'English',	'Template ICMP');
 INSERT INTO txt VALUES ('ext_ticket_template_ph','German',	'Ticket Template im JSON-Format, Bspw. f&uuml;r Tufin Secure Change:
 {
 	"ticket": {
@@ -1445,6 +1447,8 @@ INSERT INTO txt VALUES ('request_fw_change',    'German', 	'Firewall-&Auml;nderu
 INSERT INTO txt VALUES ('request_fw_change',    'English', 	'Request firewall changes');
 INSERT INTO txt VALUES ('ext_ticket_auth',      'German', 	'Authorization-Header-String');
 INSERT INTO txt VALUES ('ext_ticket_auth',      'English', 	'Authorization header string');
+INSERT INTO txt VALUES ('ext_ticket_lookup_id', 'German', 	'Externe Nutzer Id ermitteln');
+INSERT INTO txt VALUES ('ext_ticket_lookup_id', 'English', 	'Lookup external user Id');
 INSERT INTO txt VALUES ('ext_ticket_fail',      'German', 	'Fehler beim Erzeugen des externen Tickets');
 INSERT INTO txt VALUES ('ext_ticket_fail',      'English', 	'Error while creating external ticket');
 INSERT INTO txt VALUES ('ext_ticket_success',   'German', 	'Externes Ticket erfolgreich erzeugt');
@@ -1545,6 +1549,8 @@ INSERT INTO txt VALUES ('modify_group',         'German',   'Gruppe &auml;ndern'
 INSERT INTO txt VALUES ('modify_group',         'English',  'Modify Group');
 INSERT INTO txt VALUES ('new_connection',       'German',   'Neue Verbindung');
 INSERT INTO txt VALUES ('new_connection',       'English',  'New Connection');
+INSERT INTO txt VALUES ('new_common_service',   'German',   'Neuer Common Service');
+INSERT INTO txt VALUES ('new_common_service',   'English',  'New Common Service');
 INSERT INTO txt VALUES ('new_app_role',         'German',   'Neue AppRolle: ');
 INSERT INTO txt VALUES ('new_app_role',         'English',  'New AppRole: ');
 INSERT INTO txt VALUES ('update_app_role',      'German',   'Ge&auml;nderte AppRolle: ');
@@ -1555,6 +1561,10 @@ INSERT INTO txt VALUES ('add_members',          'German',   ': Mitglieder hinzuf
 INSERT INTO txt VALUES ('add_members',          'English',  ': Add Members');
 INSERT INTO txt VALUES ('remove_members',       'German',   ': Mitglieder entfernen');
 INSERT INTO txt VALUES ('remove_members',       'English',  ': Remove Members');
+INSERT INTO txt VALUES ('app_owner_not_found',  'German',   'Keinen Eigent&uuml;mer für diese App gefunden');
+INSERT INTO txt VALUES ('app_owner_not_found',  'English',  'No owner found for this app');
+INSERT INTO txt VALUES ('delete_app_zone', 	    'German',	'App Zone l&ouml;schen');
+INSERT INTO txt VALUES ('delete_app_zone', 	    'English',	'Delete App Zone');
 INSERT INTO txt VALUES ('extra_params',         'German',   'Sonderkonfigurationen');
 INSERT INTO txt VALUES ('extra_params',         'English',  'Extra configurations');
 INSERT INTO txt VALUES ('add_extra_config',     'German',   'Sonderkonfiguration hinzuf&uuml;gen');
@@ -1573,6 +1583,10 @@ INSERT INTO txt VALUES ('implementation_error', 'German',   'Fehler bei der Umse
 INSERT INTO txt VALUES ('implementation_error', 'English',  'Implementation error');
 INSERT INTO txt VALUES ('update_subscription_error','German','Fehler beim Aktualisieren');
 INSERT INTO txt VALUES ('update_subscription_error','English','Update subscription error');
+INSERT INTO txt VALUES ('new_app_zone',         'German',   'Neue AppZone: ');
+INSERT INTO txt VALUES ('new_app_zone',         'English',  'New AppZone: ');
+INSERT INTO txt VALUES ('update_app_zone',      'German',   'Ge&auml;nderte AppZone: ');
+INSERT INTO txt VALUES ('update_app_zone',      'English',  'Update AppZone: ');
 INSERT INTO txt VALUES ('nwareachange_clear_app_servers',    'German',   'Sind Sie sicher, dass Sie die Netzwerk Area wechseln wollen?<br><br>Es werden alle hinzugef&uuml;gten App Server entfernt!');
 INSERT INTO txt VALUES ('nwareachange_clear_app_servers',    'English',  'Are you sure you want to change the network area?<br><br>All added app servers will be removed!');
 
@@ -1631,8 +1645,10 @@ INSERT INTO txt VALUES ('owner_appservertype_notfound','German', 'App-Server Typ
 INSERT INTO txt VALUES ('owner_appservertype_notfound','English', 'App server type for App server not found.');
 INSERT INTO txt VALUES ('import_finished_witherrors','German', 	'Import wurde mit Fehlern abgeschlossen');
 INSERT INTO txt VALUES ('import_finished_witherrors','English', 'Import succeeded with errors');
-INSERT INTO txt VALUES ('file_upload_failed',    'German', 	'Datei hochladen ist fehlgeschlagen.');
-INSERT INTO txt VALUES ('file_upload_failed',    'English', 'File upload failed.');
+INSERT INTO txt VALUES ('file_upload_failed',   'German', 	'Datei hochladen ist fehlgeschlagen.');
+INSERT INTO txt VALUES ('file_upload_failed',   'English',  'File upload failed.');
+INSERT INTO txt VALUES ('wrong_input_data',     'German',   'Falsche Eingabedaten');
+INSERT INTO txt VALUES ('wrong_input_data',     'English',  'Wrong input data');
 
 -- settings
 INSERT INTO txt VALUES ('devices',				'German', 	'Ger&auml;te');
@@ -1859,7 +1875,7 @@ INSERT INTO txt VALUES ('add_new_ldap',         'German', 	'Neue LDAP-Verbindung
 INSERT INTO txt VALUES ('add_new_ldap',         'English', 	'Add new LDAP connection');
 INSERT INTO txt VALUES ('edit_ldap',            'German', 	'LDAP-Verbindung bearbeiten');
 INSERT INTO txt VALUES ('edit_ldap',            'English', 	'Edit LDAP connection');
-INSERT INTO txt VALUES ('edit_ldap_message',    'German', 	'Diese Einstellungen m&uuml;ssen normalerweise nicht angepasst werden. &uuml;ndern Sie diese Einstellungen nur wenn Sie wirklich wissen was Sie tun.');
+INSERT INTO txt VALUES ('edit_ldap_message',    'German', 	'Diese Einstellungen m&uuml;ssen normalerweise nicht angepasst werden. &Auml;ndern Sie diese Einstellungen nur wenn Sie wirklich wissen was Sie tun.');
 INSERT INTO txt VALUES ('edit_ldap_message',    'English', 	'These settings do not normally need to be adjusted. Only change these settings if you really know what you are doing.');
 INSERT INTO txt VALUES ('test_connection',      'German', 	'Verbindung testen');
 INSERT INTO txt VALUES ('test_connection',      'English', 	'Test connection');
@@ -1961,6 +1977,8 @@ INSERT INTO txt VALUES ('externalRequestSleepTime','German','Externes Auftrags-I
 INSERT INTO txt VALUES ('externalRequestSleepTime','English','External Request sleep time (in seconds)');
 INSERT INTO txt VALUES ('externalRequestStartAt',  'German','Externer Auftrags-Start');
 INSERT INTO txt VALUES ('externalRequestStartAt',  'English','External Request start at');
+INSERT INTO txt VALUES ('externalRequestWaitCycles','German','Anzahl Wartezyklen');
+INSERT INTO txt VALUES ('externalRequestWaitCycles','English','Number wait cycles');
 INSERT INTO txt VALUES ('autoDiscoverSleepTime','German', 	'Autodiscover-Intervall (in Stunden)');
 INSERT INTO txt VALUES ('autoDiscoverSleepTime','English', 	'Auto-discovery sleep time (in hours)');
 INSERT INTO txt VALUES ('autoDiscoverStartAt',  'German', 	'Autodiscover-Start');
@@ -2457,6 +2475,8 @@ INSERT INTO txt VALUES ('ext_request_tickets',  'German',   'Tickets f&uuml;r Ex
 INSERT INTO txt VALUES ('ext_request_tickets',  'English',  'Tickets for External Requests');
 INSERT INTO txt VALUES ('reinit_ext_request',   'German',   'Externe Auftr&auml;ge neu anstossen');
 INSERT INTO txt VALUES ('reinit_ext_request',   'English',  'Reinit External Requests');
+INSERT INTO txt VALUES ('wait_cycles',          'German',   'Wartezyklen');
+INSERT INTO txt VALUES ('wait_cycles',          'English',  'Wait cycles');
 
 -- help pages
 INSERT INTO txt VALUES ('report_types',         'German', 	'Report-Typen');
@@ -3130,6 +3150,15 @@ INSERT INTO txt VALUES ('E9101', 'English', 'Error at external ticket creation.'
 INSERT INTO txt VALUES ('E9102', 'German',  'Fehler beim &Auml;ndern des externen Auftragsstatus.');
 INSERT INTO txt VALUES ('E9102', 'English', 'Error at changing the external ticket state.');
 
+INSERT INTO txt VALUES ('E9201', 'German',  'Fehler beim L&ouml;schen der existierenden App Zonen Objekte');
+INSERT INTO txt VALUES ('E9201', 'English', 'Error deleting existing app zone objects');
+INSERT INTO txt VALUES ('E9202', 'German',  'Fehler beim Erzeugen der App Zonen Objekte');
+INSERT INTO txt VALUES ('E9202', 'English', 'Error creating app zone objects');
+INSERT INTO txt VALUES ('E9203', 'German',  'Fehler beim Abrufen der existierenden App Zonen Objekte');
+INSERT INTO txt VALUES ('E9203', 'English', 'Error retrieving the existing app zone objects');
+INSERT INTO txt VALUES ('E9204', 'German',  'Fehler beim Hinzuf&uuml;gen des App Servers zum App Zonen Objekt');
+INSERT INTO txt VALUES ('E9204', 'English', 'Error adding the App Server to the App Zone object');
+
 -- errors from Api
 INSERT INTO txt VALUES ('A0001', 'German',  'Ung&uuml;ltige Anmeldedaten. Nutzername darf nicht leer sein');
 INSERT INTO txt VALUES ('A0001', 'English', 'Invalid credentials. Username must not be empty');
@@ -3221,8 +3250,14 @@ INSERT INTO txt VALUES ('C9011', 'German',  'Angefrage Schnittstelle wurde abgel
 INSERT INTO txt VALUES ('C9011', 'English', 'Requested interface was rejected.');
 INSERT INTO txt VALUES ('C9012', 'German',  'Sie haben keine der Rollen: requester, implementer, admin, auditor.');
 INSERT INTO txt VALUES ('C9012', 'English', 'You do not have one of the following roles: requester, implementer, admin, auditor.');
-INSERT INTO txt VALUES ('C9013', 'German',  'Leere Rolle. Diese Verbindung wird nicht beantragt.');
-INSERT INTO txt VALUES ('C9013', 'English', 'Empty App Role. This connection will not be requested.');
+INSERT INTO txt VALUES ('C9013', 'German',  'Leere App Rolle enthalten. Diese Verbindung wird nicht beantragt.');
+INSERT INTO txt VALUES ('C9013', 'English', 'Contains empty App Role. This connection will not be requested.');
+INSERT INTO txt VALUES ('C9014', 'German',  'Gel&ouml;schtes Objekt enthalten. Diese Verbindung wird nicht beantragt.');
+INSERT INTO txt VALUES ('C9014', 'English', 'Contains deleted object. This connection will not be requested.');
+INSERT INTO txt VALUES ('C9015', 'German',  'Leere App Rolle enthalten. Nutzende Verbindungen dieser Schnittstelle werden nicht beantragt.');
+INSERT INTO txt VALUES ('C9015', 'English', 'Contains empty App Role. Connections using this interface will not be requested.');
+INSERT INTO txt VALUES ('C9016', 'German',  'Gel&ouml;schtes Objekt enthalten. Nutzende Verbindungen dieser Schnittstelle werden nicht beantragt.');
+INSERT INTO txt VALUES ('C9016', 'English', 'Contains deleted object. Connections using this interface will not be requested.');
 
 -- help pages
 INSERT INTO txt VALUES ('H0001', 'German',  'Firewall Orchestrator ist eine Anwendung zum Erzeugen und Verwalten von verschiedenen Reports aus Konfigurationsdaten verteilter Firewallsysteme.
@@ -4604,6 +4639,8 @@ INSERT INTO txt VALUES ('H5426', 'German',  'Autodiscover-Intervall (in Stunden)
 INSERT INTO txt VALUES ('H5426', 'English', 'Auto-discovery sleep time (in hours): defines the interval in which the autodiscovery should be performed.');
 INSERT INTO txt VALUES ('H5426a', 'German',  'Externes Auftrags-Intervall (in Sekunden): legt das Intervall fest, in dem die externen Auftr&auml;ge durchgef&uuml;hrt werden sollen.');
 INSERT INTO txt VALUES ('H5426a', 'English', 'External Request sleep time (in seconds): defines the interval in which the external requests should be performed.');
+INSERT INTO txt VALUES ('H5426b', 'German',  'Anzahl Wartezyklen: legt fest, wie viele Zyklen des Auftrags-Intervalls bei bestimmten Auftr&auml;gen gewartet werden soll (z.B. nach Neuanlegen von Netzwerkobjekten).');
+INSERT INTO txt VALUES ('H5426b', 'English', 'Number wait cycles: defines how many cycles of the external request interval are to be waited in case of some requests (e.g. after creation of new network objects).');
 INSERT INTO txt VALUES ('H5427', 'German',  'Autodiscover-Start: legt eine Bezugszeit fest, ab dem die Intervalle f&uuml;r die Autodiscovery gerechnet werden.');
 INSERT INTO txt VALUES ('H5427', 'English', 'Auto-discovery start at: defines a referential time from which the autodiscovery intervals are calculated.');
 INSERT INTO txt VALUES ('H5427a', 'German',  'Externer Auftrags-Start: legt eine Bezugszeit fest, ab dem die Intervalle f&uuml;r die externen Auftr&auml;ge gerechnet werden.');
@@ -5007,6 +5044,8 @@ INSERT INTO txt VALUES ('H5596d', 'German', 'Template Netzwerkgruppe: Template p
 INSERT INTO txt VALUES ('H5596d', 'English','Template network group: Template for network group. Available placeholders: @@GROUPNAME@@, @@MANAGEMENT_ID@@, @@MANAGEMENT_NAME@@.');
 INSERT INTO txt VALUES ('H5596e', 'German', 'Template Dienst: Template pro Dienst. Verf&uuml;gbare Platzhalter: @@PROTOCOLNAME@@, @@PORT@@, @@SERVICENAME@@.');
 INSERT INTO txt VALUES ('H5596e', 'English','Template service: Template for service. Available placeholders: @@PROTOCOLNAME@@, @@PORT@@, @@SERVICENAME@@.');
+INSERT INTO txt VALUES ('H5596f', 'German', 'Template ICMP: spezielles Template f&uuml;r den Protokolltyp ICMP. Verf&uuml;gbare Platzhalter: @@SERVICENAME@@.');
+INSERT INTO txt VALUES ('H5596f', 'English','Template ICMP: Special template for protocol type ICMP. Available placeholders: @@SERVICENAME@@.');
 INSERT INTO txt VALUES ('H5597', 'German',  'Typ des externen Ticketing Systems: Aktuell wird nur TufinSecureChange unterst&uuml;tzt.');
 INSERT INTO txt VALUES ('H5597', 'English', 'Type of external ticketing system: Currently only TufinSecureChange is supported.');
 INSERT INTO txt VALUES ('H5598', 'German',  'Hier werden die Einstellungen f&uuml;r die Anbindung an externe Ticket-Systeme verwaltet.');
@@ -6512,6 +6551,7 @@ INSERT INTO txt VALUES ('H9080', 'German',  'F&uuml;r das Kommunikationsprofil k
     <ul>
         <li>Es sind keine beantragten und noch nicht freigegebenen Schnittstellen enthalten.</li>
         <li>Es wurde keine leere App Rolle verwendet.</li>
+        <li>Es sind keine gel&ouml;schten Netzwerkobjekte enthalten.</li>
     </ul>
     Im ersten Schritt werden anhand der Produktionsdaten alle zu beauftragenden Einzelposten ermittelt und in der erforderlichen Reihenfolge aufgelistet:
     <ul>
@@ -6529,8 +6569,9 @@ INSERT INTO txt VALUES ('H9080', 'German',  'F&uuml;r das Kommunikationsprofil k
 INSERT INTO txt VALUES ('H9080', 'English', 'For the Communication Profile the rollout on the firewalls can be requested via an external ticket system.
     Included are all Connections or Common Services satisfying the following conditions:
     <ul>
-        <li>They contain no requested and not published interfaces.</li>
+        <li>They contain no requested but unpublished interfaces.</li>
         <li>They do not use any empty App Role.</li>
+        <li>They do not contain any deleted network object.</li>
     </ul>
     In the first step all tasks to request are calculated by comparing to production data and listed in the necessary order:
     <ul>

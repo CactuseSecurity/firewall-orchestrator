@@ -10,6 +10,8 @@
 @using System.Net
 @using RestSharp
 
+@implements IDisposable
+
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 @inject MiddlewareClient middlewareClient
@@ -22,19 +24,19 @@
             <div class="m-2">
                 <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="WfReqTask" Items="TaskList" PageSize="0" ColumnReorder="true">
                     <Column TableItem="WfReqTask" Title="@(userConfig.GetText("number"))" Field="@(x => x.TaskNumber)" Sortable="true" Filterable="false" />
-                    <Column TableItem="WfReqTask" Title="@(userConfig.GetText("type"))" Field="@(x => x.Id)" Sortable="true" Filterable="false" >
+                    <Column TableItem="WfReqTask" Title="@(userConfig.GetText("type"))" Field="@(x => x.Id)" Sortable="true" Filterable="false">
                         <Template>
                             @(userConfig.GetText(context.TaskType))
                         </Template>
                     </Column>
                     <Column TableItem="WfReqTask" Title="@(userConfig.GetText("management"))" Field="@(x => x.OnManagement.Name)" Sortable="false" Filterable="false" />
                     <Column TableItem="WfReqTask" Title="@(userConfig.GetText("title"))" Field="@(x => x.Title)" Sortable="true" Filterable="false" />
-                    <Column TableItem="WfReqTask" Title="@(userConfig.GetText("state"))" Field="@(x => x.StateId)" Sortable="true" Filterable="false" >
+                    <Column TableItem="WfReqTask" Title="@(userConfig.GetText("state"))" Field="@(x => x.StateId)" Sortable="true" Filterable="false">
                         <Template>
                             @(RequestInProcess ? states.Name[context.StateId] : "")
                         </Template>
                     </Column>
-                    <Column TableItem="WfReqTask" Title="@(userConfig.GetText("ext_ticket_number"))" Field="@(x => x.Id)" Sortable="false" Filterable="false" >
+                    <Column TableItem="WfReqTask" Title="@(userConfig.GetText("ext_ticket_number"))" Field="@(x => x.Id)" Sortable="false" Filterable="false">
                         <Template>
                             @(context.GetAddInfoValue(AdditionalInfoKeys.ExtIcketId) ?? "")
                         </Template>
@@ -51,7 +53,7 @@
     <Footer>
         <AuthorizeView Roles="@Roles.Modeller">
             <Authorized>
-                @if(SelectedApp.Id > 0 && !WorkInProgress && !RequestInProcess)
+                @if (SelectedApp.Id > 0 && !WorkInProgress && !RequestInProcess)
                 {
                     <button type="button" class="btn btn-sm btn-primary" @onclick="StartRequests">@(userConfig.GetText("request_fw_change"))</button>
                 }
@@ -62,12 +64,12 @@
             </Authorized>
             <NotAuthorized>
                 <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("request_fw_change"))</button>
-            </NotAuthorized> 
+            </NotAuthorized>
         </AuthorizeView>
         <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(userConfig.GetText("cancel"))</button>
     </Footer>
 </PopUp>
-<InProgress Display="WorkInProgress"/>
+<InProgress Display="WorkInProgress" />
 
 
 @code
@@ -101,6 +103,7 @@
     private bool RequestInProcess = false;
     private WfStateDict states = new();
     private ExtStateHandler extStateHandler;
+    private List<GraphQlApiSubscription<List<WfReqTask>>> actTaskSubscriptions = [];
 
 
     protected override async Task OnInitializedAsync()
@@ -126,10 +129,12 @@
     {
         try
         {
-            if(!await GetActTicketStatus())
+            if (!await GetActTicketStatus())
             {
-                ModellingVarianceAnalysis varianceAnalysis = new(apiConnection, extStateHandler, userConfig);
-                TaskList = await varianceAnalysis.AnalyseModelledConnections(Connections, SelectedApp);
+                ModellingAppZoneHandler appZoneHandler = new(apiConnection, userConfig, DisplayMessageInUi, SelectedApp);
+                await appZoneHandler.UpsertAppZone();
+                ModellingVarianceAnalysis varianceAnalysis = new(apiConnection, extStateHandler, userConfig, SelectedApp, DisplayMessageInUi);       
+                TaskList = await varianceAnalysis.AnalyseModelledConnections(Connections);
             }
         }
         catch (Exception exception)
@@ -140,32 +145,45 @@
 
     private async Task<bool> GetActTicketStatus()
     {
-        List<TicketId> ticketIds = await apiConnection.SendQueryAsync<List<TicketId>>(ExtRequestQueries.getLatestTicketId, new{ownerId = SelectedApp.Id});
-        if(ticketIds.Count > 0)
+        List<TicketId> ticketIds = await apiConnection.SendQueryAsync<List<TicketId>>(ExtRequestQueries.getLatestTicketId, new { ownerId = SelectedApp.Id });
+        if (ticketIds.Count > 0)
         {
             WfTicket? intTicket = await apiConnection.SendQueryAsync<WfTicket>(RequestQueries.getTicketById, new { ticketIds.First().Id });
-            if(intTicket != null)
+            if (intTicket != null)
             {
-                intTicket.UpdateCidrsInTaskElements();
-                TaskList = intTicket.Tasks.OrderBy(t => t.TaskNumber).ToList();
-                int doneStateId = (int)(extStateHandler.GetInternalStateId(ExtStates.ExtReqDone) ?? 999);
-                int rejectedStateId = (int)(extStateHandler.GetInternalStateId(ExtStates.ExtReqRejected) ?? 999);
-                RequestInProcess = (TaskList.FirstOrDefault(t => t.StateId < doneStateId && t.StateId < rejectedStateId) != null);
+                SetActTicketStatus(intTicket);
+                if(RequestInProcess)
+                {
+                    SubscribeTaskChanges();
+                }
+            }
+            else
+            {
+                Dispose();
             }
         }
         return RequestInProcess;
     }
 
+    private void SetActTicketStatus(WfTicket intTicket)
+    {
+        intTicket.UpdateCidrsInTaskElements();
+        TaskList = intTicket.Tasks.OrderBy(t => t.TaskNumber).ToList();
+        int doneStateId = (int)(extStateHandler.GetInternalStateId(ExtStates.ExtReqDone) ?? 999);
+        int rejectedStateId = (int)(extStateHandler.GetInternalStateId(ExtStates.ExtReqRejected) ?? 999);
+        RequestInProcess = (TaskList.FirstOrDefault(t => t.StateId < doneStateId && t.StateId < rejectedStateId) != null);
+    }
+
     private string DisplayTaskDetails(WfReqTask task)
     {
-        if(task.TaskType == WfTaskType.access.ToString())
+        if (task.TaskType == WfTaskType.access.ToString())
         {
             return userConfig.GetText("source") + ": " + DisplayNwObjects(task, ElemFieldType.source.ToString()) +
                 "<br>" + userConfig.GetText("service") + ": " + DisplayServices(task) +
                 "<br>" + userConfig.GetText("destination") + ": " + DisplayNwObjects(task, ElemFieldType.destination.ToString()) +
                 (task.Comments.Count > 0 ? "<br>" + userConfig.GetText("comment") + ": " + task.Comments.First().Comment.CommentText : "");
         }
-        else if(task.TaskType == WfTaskType.group_create.ToString() || task.TaskType == WfTaskType.group_modify.ToString())
+        else if (task.TaskType == WfTaskType.group_create.ToString() || task.TaskType == WfTaskType.group_modify.ToString())
         {
             return DisplayMembers(task);
         }
@@ -178,9 +196,9 @@
     private string DisplayNwObjects(WfReqTask task, string fieldType)
     {
         List<string> nwObjects = [];
-        foreach(var elem in task.Elements.Where(e => e.Field == fieldType))
+        foreach (var elem in task.Elements.Where(e => e.Field == fieldType))
         {
-            if(elem.GroupName != null)
+            if (elem.GroupName != null)
             {
                 nwObjects.Add(elem.GroupName);
             }
@@ -195,9 +213,9 @@
     private string DisplayServices(WfReqTask task)
     {
         List<string> services = [];
-        foreach(var elem in task.Elements.Where(e => e.Field == ElemFieldType.service.ToString()))
+        foreach (var elem in task.Elements.Where(e => e.Field == ElemFieldType.service.ToString()))
         {
-            if(elem.GroupName != null)
+            if (elem.GroupName != null)
             {
                 services.Add(elem.GroupName);
             }
@@ -211,17 +229,17 @@
 
     private string DisplayMembers(WfReqTask task)
     {
-        List<string> members =[];
-        if(task.IsNetworkFlavor())
+        List<string> members = [];
+        if (task.IsNetworkFlavor())
         {
-            foreach(var elem in task.Elements)
+            foreach (var elem in task.Elements)
             {
                 members.Add($"<span class=\"{CssClass(elem)}\" >{DisplayBase.DisplayIpWithName(WfElementBase.ToNetworkObject(elem))}</span>");
             }
         }
         else
         {
-            foreach(var elem in task.Elements)
+            foreach (var elem in task.Elements)
             {
                 members.Add($"<span class=\"{CssClass(elem)}\" >{elem.Port + "/" + ipProtos.Find(x => x.Id == elem.ProtoId)?.Name}</span>");
             }
@@ -231,15 +249,15 @@
 
     private string CssClass(WfReqElement elem)
     {
-        if(elem.RequestAction == RequestAction.create.ToString())
+        if (elem.RequestAction == RequestAction.create.ToString())
         {
             return "text-success";
         }
-        else if(elem.RequestAction == RequestAction.addAfterCreation.ToString())
+        else if (elem.RequestAction == RequestAction.addAfterCreation.ToString())
         {
             return "text-info";
         }
-        else if(elem.RequestAction == RequestAction.delete.ToString())
+        else if (elem.RequestAction == RequestAction.delete.ToString())
         {
             return "text-danger";
         }
@@ -251,14 +269,18 @@
         WorkInProgress = true;
         try
         {
-            TicketCreator ticketCreator = new (apiConnection, userConfig, authenticationStateTask!.Result.User, middlewareClient);
+            TicketCreator ticketCreator = new(apiConnection, userConfig, authenticationStateTask!.Result.User, middlewareClient);
             WfTicket intTicket = await ticketCreator.CreateTicket(SelectedApp, TaskList,
                 "Rollout modelled connections for: " + SelectedApp.Name, extStateHandler.GetInternalStateId(ExtStates.ExtReqInitialized), "");
-            if(intTicket != null)
+            if (intTicket != null)
             {
                 RequestInProcess = true;
                 TaskList = intTicket.Tasks;
                 await SaveTicketId(intTicket.Id);
+                await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.InitRequests, ModellingTypes.ModObjectType.CommunicationProfile,
+                    0, $"Initialized Rollout Requests", apiConnection, userConfig, 
+                    intTicket.Tasks.FirstOrDefault()?.Owners.FirstOrDefault()?.Owner.Id, DefaultInit.DoNothing, intTicket.Requester?.Name);
+                SubscribeTaskChanges();
                 await CreateExtRequests(intTicket);
                 await RefreshParent(intTicket);
                 DisplayMessageInUi(null, userConfig.GetText("U9020"), userConfig.GetText("U0016"), false);
@@ -275,7 +297,7 @@
     {
         try
         {
-            await apiConnection.SendQueryAsync<NewReturning>(ExtRequestQueries.addTicketId, new{ownerId = SelectedApp.Id, ticketId = ticketId});
+            await apiConnection.SendQueryAsync<NewReturning>(ExtRequestQueries.addTicketId, new { ownerId = SelectedApp.Id, ticketId = ticketId });
         }
         catch (Exception exception)
         {
@@ -287,7 +309,7 @@
     {
         try
         {
-            RestResponse<bool> middlewareServerResponse = await middlewareClient.AddExternalRequest(new ExternalRequestAddParameters(){ TicketId = intTicket.Id });
+            RestResponse<bool> middlewareServerResponse = await middlewareClient.AddExternalRequest(new ExternalRequestAddParameters() { TicketId = intTicket.Id });
             if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)
             {
                 DisplayMessageInUi(null, userConfig.GetText("request_fw_change"), userConfig.GetText("E9101"), true);
@@ -299,8 +321,8 @@
             }
 
             await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.InitRequests, ModellingTypes.ModObjectType.CommunicationProfile,
-                0, $"Initialized Rollout Requests", apiConnection, userConfig, 
-				intTicket.Tasks.First()?.Owners.First()?.Owner.Id, DefaultInit.DoNothing, intTicket.Requester?.Name);
+                0, $"Initialized Rollout Requests", apiConnection, userConfig,
+                intTicket.Tasks.FirstOrDefault()?.Owners.FirstOrDefault()?.Owner.Id, DefaultInit.DoNothing, intTicket.Requester?.Name);
         }
         catch (Exception exception)
         {
@@ -308,9 +330,57 @@
         }
     }
 
+    private void SubscribeTaskChanges()
+    {
+        foreach(var task in TaskList)
+        {
+            actTaskSubscriptions.Add(apiConnection.GetSubscription<List<WfReqTask>>(HandleSubscriptionError, OnTaskUpdate, RequestQueries.subscribeTaskChanges, new {task.Id}));
+        }
+    }
+
+    private async void HandleSubscriptionError(Exception exception)
+    {
+        await InvokeAsync(() => DisplayMessageInUi(exception, userConfig.GetText("task"), userConfig.GetText("update_subscription_error"), true));
+    }
+
+    public void Dispose()
+    {
+        try
+        {
+            foreach(var sub in actTaskSubscriptions)
+            {
+                sub.Dispose();
+            }
+            actTaskSubscriptions = [];
+        }
+        catch (Exception exception)
+        {
+            Log.WriteDebug("Dispose subscriptions", exception.Message);
+        }
+    }
+
+    private async void OnTaskUpdate(List<WfReqTask> tasks)
+    {
+        try
+        {
+            SetActTaskStatus(tasks.First());
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("request_fw_change"), "", true);
+        }
+    }
+
+    private void SetActTaskStatus(WfReqTask task)
+    {
+        TaskList[TaskList.FindIndex(t => t.Id == task.Id)] = task;
+    }
+
     private void Close()
     {
         FirstTry = true;
+        Dispose();
         Display = false;
         DisplayChanged.InvokeAsync(Display);
     }

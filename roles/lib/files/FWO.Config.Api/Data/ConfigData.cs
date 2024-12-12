@@ -250,7 +250,10 @@ namespace FWO.Config.Api.Data
 		[JsonProperty("reducedProtocolSet"), JsonPropertyName("reducedProtocolSet")]
 		public bool ReducedProtocolSet { get; set; } = true;
 
-		[JsonProperty("importAppDataPath"), JsonPropertyName("importAppDataPath")]
+        [JsonProperty("createApplicationZones"), JsonPropertyName("createApplicationZones")]
+        public bool CreateAppZones { get; set; }
+
+        [JsonProperty("importAppDataPath"), JsonPropertyName("importAppDataPath")]
 		public string ImportAppDataPath { get; set; } = "";
 
 		[JsonProperty("importAppDataSleepTime"), JsonPropertyName("importAppDataSleepTime")]
@@ -321,6 +324,9 @@ namespace FWO.Config.Api.Data
 
 		[JsonProperty("modRolloutErrorText"), JsonPropertyName("modRolloutErrorText")]
 		public string ModRolloutErrorText { get; set; } = "";
+
+		[JsonProperty("externalRequestWaitCycles"), JsonPropertyName("externalRequestWaitCycles")]
+		public int ExternalRequestWaitCycles { get; set; } = 0;
 
 		[JsonProperty("extTicketSystems"), JsonPropertyName("extTicketSystems")]
 		public string ExtTicketSystems { get; set; } = "";

@@ -76,6 +76,7 @@ namespace FWO.Test
             catch (Exception ex)
             {
                 Log.WriteError(ex.ToString());
+                Log.WriteError(ex.InnerException!.ToString());
                 throw new Exception(ex.Message);
             }
             finally

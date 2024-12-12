@@ -24,7 +24,7 @@ namespace FWO.Test
 
             Log.WriteInfo("Test Log", $"OS: {os}");
 
-            BrowserFetcher? browserFetcher = new(SupportedBrowser.Chrome);
+            BrowserFetcher? browserFetcher = new();
 
             InstalledBrowser? brw = await browserFetcher.DownloadAsync(BrowserTag.Latest);
             
@@ -40,13 +40,12 @@ namespace FWO.Test
 #else
             runHeadless = true;
 #endif
-            Log.WriteInfo("Test Log", $"Runnung headless: {runHeadless}");
+           // Log.WriteInfo("Test Log", $"Runnung headless: {runHeadless}");
             Log.WriteInfo("Test Log", "Starting Browser...");
             IBrowser? browser = await Puppeteer.LaunchAsync(new LaunchOptions
             {
-                Headless = runHeadless,
-                HeadlessMode = runHeadless ? HeadlessMode.True : HeadlessMode.False,
-                Browser = SupportedBrowser.Chrome,
+               // Headless = runHeadless,
+                //HeadlessMode = runHeadless ? HeadlessMode.True : HeadlessMode.False,              
                 Args = ["--no-sandbox"] //, "--disable-setuid-sandbox"
             });
 

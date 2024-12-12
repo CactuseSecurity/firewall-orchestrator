@@ -46,6 +46,7 @@ namespace FWO.Test
             {
                 Headless = runHeadless,
                 HeadlessMode = runHeadless ? HeadlessMode.True : HeadlessMode.False,
+                Browser = SupportedBrowser.Chrome,
                 Args = ["--no-sandbox"] //, "--disable-setuid-sandbox"
             });
 

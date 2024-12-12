@@ -36,7 +36,7 @@ namespace FWO.Test
                     Log.WriteInfo("Test Log", $"Downloading headless Browser...");
                     break;
                 case PlatformID.Unix:
-                    browserFetcher = new(SupportedBrowser.ChromeHeadlessShell);
+                    browserFetcher = new();
                     Log.WriteInfo("Test Log", $"Downloading headless Browser {nameof(SupportedBrowser.ChromeHeadlessShell)}");
                     break;
                 default:
@@ -62,7 +62,7 @@ namespace FWO.Test
             IBrowser? browser = await Puppeteer.LaunchAsync(new LaunchOptions
             {
                 Headless = true,
-                Browser = browserFetcher.Browser,
+               // Browser = browserFetcher.Browser,
                 Args = ["--no-sandbox"] //, "--disable-setuid-sandbox"
             });
 

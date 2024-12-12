@@ -17,24 +17,34 @@ namespace FWO.Test
         [Parallelizable]
         public async Task GeneratePdf()
         {
-           // Log.WriteInfo("Test Log", "Removing installed browsers...");
-            BrowserFetcher? browserFetcher = new();
+            OperatingSystem? os = Environment.OSVersion;
 
-            //foreach (PuppeteerSharp.BrowserData.InstalledBrowser installedBrowser in browserFetcher.GetInstalledBrowsers())
-            //{
-              
-            //    try
-            //    {
-            //        browserFetcher.Uninstall(installedBrowser.BuildId);
-            //    }
-            //    catch (Exception ex)
-            //    {
-            //        throw new Exception("Browser couldn't be uninstalled. Try rebooting the system, the browser may be in use. ");
-            //    }
-                
-            //}
+            Log.WriteInfo("Test Log", $"OS: {os}");
 
-            Log.WriteInfo("Test Log", "Downloading headless Browser...");
+            BrowserFetcher? browserFetcher;
+
+            switch (os.Platform)
+            {
+                case PlatformID.Win32S:
+                case PlatformID.Win32Windows:
+                case PlatformID.Win32NT:
+                case PlatformID.WinCE:
+                case PlatformID.Xbox:
+                case PlatformID.MacOSX:
+                case PlatformID.Other:
+                    browserFetcher = new();
+                    Log.WriteInfo("Test Log", $"Downloading headless Browser...");
+                    break;
+                case PlatformID.Unix:
+                    browserFetcher = new(SupportedBrowser.ChromeHeadlessShell);
+                    Log.WriteInfo("Test Log", $"Downloading headless Browser {nameof(SupportedBrowser.ChromeHeadlessShell)}");
+                    break;
+                default:
+                    browserFetcher = new();
+                    Log.WriteInfo("Test Log", $"Downloading headless Browser...");
+                    break;
+            }
+
             InstalledBrowser? brw = await browserFetcher.DownloadAsync();
 
             if (brw.PermissionsFixed == false)
@@ -42,35 +52,29 @@ namespace FWO.Test
                 throw new Exception("Sandbox permissions were not applied. You need to run your application as an administrator.");
             }
 
-            OperatingSystem? os = Environment.OSVersion;
-
-            Log.WriteInfo("Test Log", $"OS: {os}");
-
             Log.WriteInfo("Test Log", "starting PDF generation");
             // HTML
             string html = "<html> <body> <h1>test<h1> test </body> </html>";
-            
+
             if (File.Exists(FilePath))
                 File.Delete(FilePath);
 
             IBrowser? browser = await Puppeteer.LaunchAsync(new LaunchOptions
             {
-                //Headless = true,
-                // Browser = SupportedBrowser.ChromeHeadlessShell,
+                Headless = true,
+                Browser = browserFetcher.Browser,
                 Args = ["--no-sandbox"] //, "--disable-setuid-sandbox"
             });
 
             try
-            {                
+            {
                 IPage page = await browser.NewPageAsync();
                 await page.SetContentAsync(html);
-                
+
                 PdfOptions pdfOptions = new() { DisplayHeaderFooter = true, Landscape = true, PrintBackground = true, Format = PaperFormat.A4, MarginOptions = new MarginOptions { Top = "1cm", Bottom = "1cm", Left = "1cm", Right = "1cm" } };
-                
-                await page.PdfAsync(FilePath);
 
                 Log.WriteInfo("Test Log", "Writing data to pdf");
-               // File.WriteAllBytes(FilePath, pdfData);
+                await page.PdfAsync(FilePath);               
             }
             catch (Exception ex)
             {

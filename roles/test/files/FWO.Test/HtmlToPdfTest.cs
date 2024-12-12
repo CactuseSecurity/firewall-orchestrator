@@ -8,15 +8,17 @@ using PuppeteerSharp.BrowserData;
 namespace FWO.Test
 {
     [TestFixture]
-    [Parallelizable]
     internal class HtmlToPdfTest
     {
         private const string FilePath = "pdffile.pdf";
+        private const string Html = "<html> <body> <h1>test<h1> test </body> </html>";
 
         [Test]
-        [Parallelizable]
         public async Task GeneratePdf()
         {
+            if (File.Exists(FilePath))
+                File.Delete(FilePath);
+
             OperatingSystem? os = Environment.OSVersion;
 
             Log.WriteInfo("Test Log", $"OS: {os}");
@@ -52,32 +54,33 @@ namespace FWO.Test
                 throw new Exception("Sandbox permissions were not applied. You need to run your application as an administrator.");
             }
 
-            Log.WriteInfo("Test Log", "starting PDF generation");
-            // HTML
-            string html = "<html> <body> <h1>test<h1> test </body> </html>";
-
-            if (File.Exists(FilePath))
-                File.Delete(FilePath);
-
+            Log.WriteInfo("Test Log", "Starting Browser...");
             IBrowser? browser = await Puppeteer.LaunchAsync(new LaunchOptions
             {
                 Headless = true,
-               // Browser = browserFetcher.Browser,
+                // Browser = browserFetcher.Browser,
                 Args = ["--no-sandbox"] //, "--disable-setuid-sandbox"
             });
+
+            Log.WriteInfo("Test Log", "Browser started...");
 
             try
             {
                 IPage page = await browser.NewPageAsync();
-                await page.SetContentAsync(html);
+                Log.WriteInfo("Test Log", "Browser new page...");
 
-                PdfOptions pdfOptions = new() { DisplayHeaderFooter = true, Landscape = true, PrintBackground = true, Format = PaperFormat.A4, MarginOptions = new MarginOptions { Top = "1cm", Bottom = "1cm", Left = "1cm", Right = "1cm" } };
+                await page.SetContentAsync(Html);
+                Log.WriteInfo("Test Log", "Browser set html content...");
 
-                Log.WriteInfo("Test Log", "Writing data to pdf");
-                await page.PdfAsync(FilePath);               
+                //PdfOptions pdfOptions = new() { DisplayHeaderFooter = true, Landscape = true, PrintBackground = true, Format = PaperFormat.A4, MarginOptions = new MarginOptions { Top = "1cm", Bottom = "1cm", Left = "1cm", Right = "1cm" } };
+
+                Log.WriteInfo("Test Log", $"Writing data to pdf at: {Path.GetFullPath(FilePath)})");
+                await page.PdfAsync(FilePath);
+                Log.WriteInfo("Test Log", "PDF created...");
             }
             catch (Exception ex)
             {
+                Log.WriteError(ex.ToString());
                 throw new Exception(ex.Message);
             }
             finally

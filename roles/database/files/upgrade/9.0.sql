@@ -252,12 +252,10 @@ Create table IF NOT EXISTS "rulebase_link"
 	"deleted" BIGINT
 );
 
--- todo check update and delete cases
-ALTER TABLE "rulebase_link" DROP CONSTRAINT IF EXISTS "rulebase_link_to_rulebase_id_fkey" CASCADE;
-Alter table "rulebase_link" add CONSTRAINT "rulebase_link_to_rulebase_id_fkey" ("to_rulebase_id") references "rulebase" ("id") on update restrict on delete cascade;
-
-ALTER TABLE "rule" DROP CONSTRAINT IF EXISTS "rule_from_rule_id_fkey" CASCADE;
-Alter table "rule" add CONSTRAINT "rule_from_rule_id_fkey" ("rule_id") references "rulebase_link" ("from_rule_id") on update restrict on delete cascade;
+Alter table "rulebase_link" drop constraint IF EXISTS "fk_rulebase_link_to_rulebase_id";
+Alter table "rulebase_link" drop constraint IF EXISTS "fk_rulebase_link_from_rule_id";
+Alter table "rulebase_link" add foreign key "fk_rulebase_link_to_rulebase_id" ("to_rulebase_id") references "rulebase" ("id") on update restrict on delete cascade;
+Alter table "rulebase_link" add foreign key "fk_rulebase_link_from_rule_id" ("from_rule_id") references "rule" ("rule_id") on update restrict on delete cascade;
 
 -- TODO delete all rule.parent_rule_id and rule.parent_rule_type, always = None so far
 

@@ -4,7 +4,6 @@ using FWO.Logging;
 using PuppeteerSharp.Media;
 using PuppeteerSharp;
 using PuppeteerSharp.BrowserData;
-using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace FWO.Test
 {
@@ -13,6 +12,8 @@ namespace FWO.Test
     {
         private const string FilePath = "pdffile.pdf";
         private const string Html = "<html> <body> <h1>test<h1> test </body> </html>";
+        private const string ChromeBinPathWin = "C:\\chrome";
+        private const string ChromeBinPathLinux = "/tmp/chrome";
 
         [Test]
         public async Task GeneratePdf()
@@ -24,7 +25,22 @@ namespace FWO.Test
 
             Log.WriteInfo("Test Log", $"OS: {os}");
 
-            BrowserFetcher? browserFetcher = new();
+            string path;
+
+            switch (os.Platform)
+            {              
+                case PlatformID.Win32NT:
+                    path = ChromeBinPathWin;
+                    break;              
+                case PlatformID.Unix:
+                    path = ChromeBinPathLinux;
+                    break;
+                default:
+                    return;
+            }
+
+            BrowserFetcher? browserFetcher = new(new BrowserFetcherOptions { Path = path  });
+            Log.WriteInfo("Test Log", $"Downloading chrome to: {path}");
 
             InstalledBrowser? brw = await browserFetcher.DownloadAsync();
 
@@ -35,21 +51,21 @@ namespace FWO.Test
                 throw new Exception("Sandbox permissions were not applied. You need to run your application as an administrator.");
             }
 
-           // bool runHeadless;
+            bool runHeadless;
 
-//#if DEBUG
-//            runHeadless = false;
-//#else
-//            runHeadless = true;
-//#endif
-//            Log.WriteInfo("Test Log", $"Runnung headless: {runHeadless}");
+#if DEBUG
+            runHeadless = false;
+#else
+            runHeadless = true;
+#endif
+            Log.WriteInfo("test log", $"running headless: {runHeadless}");
             Log.WriteInfo("Test Log", "Starting Browser...");
             IBrowser? browser = await Puppeteer.LaunchAsync(new LaunchOptions
             {
-               // ExecutablePath = brw.GetExecutablePath(),
-                //Headless = runHeadless,
-                //HeadlessMode = runHeadless ? HeadlessMode.True : HeadlessMode.False,
-               // Args = ["--no-sandbox"] //, "--disable-setuid-sandbox"
+                ExecutablePath = brw.GetExecutablePath(),
+                Headless = runHeadless,
+                HeadlessMode = runHeadless ? HeadlessMode.True : HeadlessMode.False,
+               Args = ["--no-sandbox"] //, "--disable-setuid-sandbox"
             });
 
             Log.WriteInfo("Test Log", "Browser started...");

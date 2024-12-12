@@ -51,7 +51,7 @@
     }
     @if(ShowAppName)
     {
-        <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("owner"))" Field="@(x => x.App)" Sortable="true" Filterable="true">
+        <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("owner"))" Field="@(x => x.App.Name)" Sortable="true" Filterable="true">
             <Template>
                 @(context.App?.Display(userConfig.GetText("common_service")))
             </Template>

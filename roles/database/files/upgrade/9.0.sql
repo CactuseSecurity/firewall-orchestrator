@@ -238,13 +238,26 @@ Alter table "rule" add constraint "rule_metadata_dev_id_rule_uid_f_key"
 --   that means recertifications, last hit info, owner, ... are all linked to a gateway
 
 -----------------------------------------------
--- bulid rule-rulebase tree
--- rules may spawn rulebase children with new field rule.child_rulebase_id
+-- bulid rule-rulebase graph
+-- rules may spawn rulebase children with new link table rulebase_link
 
-ALTER TABLE "rule" ADD COLUMN IF NOT EXISTS "child_rulebase_id" INTEGER NULL;
+Create table IF NOT EXISTS "rulebase_link"
+(
+	"id" SERIAL primary key,
+	"gw_id" Integer,
+	"from_rule_id" Integer,
+	"to_rulebase_id" Integer NOT NULL,
+	"link_type" Integer,
+	"created" BIGINT,
+	"deleted" BIGINT
+);
 
-ALTER TABLE "rule" DROP CONSTRAINT IF EXISTS "rule_child_rulebase_id_fkey" CASCADE;
-Alter table "rule" add CONSTRAINT rule_child_rulebase_id_fkey foreign key ("child_rulebase_id") references "rulebase" ("id") on update restrict on delete cascade;
+-- todo check update and delete cases
+ALTER TABLE "rulebase_link" DROP CONSTRAINT IF EXISTS "rulebase_link_to_rulebase_id_fkey" CASCADE;
+Alter table "rulebase_link" add CONSTRAINT "rulebase_link_to_rulebase_id_fkey" ("to_rulebase_id") references "rulebase" ("id") on update restrict on delete cascade;
+
+ALTER TABLE "rule" DROP CONSTRAINT IF EXISTS "rule_from_rule_id_fkey" CASCADE;
+Alter table "rule" add CONSTRAINT "rule_from_rule_id_fkey" ("rule_id") references "rulebase_link" ("from_rule_id") on update restrict on delete cascade;
 
 -- TODO delete all rule.parent_rule_id and rule.parent_rule_type, always = None so far
 

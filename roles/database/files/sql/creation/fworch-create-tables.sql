@@ -186,7 +186,6 @@ Create table "rule"
 	"xlate_rule" BIGINT,
 	"is_global" BOOLEAN DEFAULT FALSE NOT NULL,
 	"rulebase_id" Integer NOT NULL,
-	"child_rulebase_id" INTEGER,
 	primary key ("rule_id")
 );
 
@@ -1130,6 +1129,17 @@ Create table IF NOT EXISTS "rulebase"
 	"name" Varchar NOT NULL,
 	"mgm_id" Integer NOT NULL,
 	"is_global" BOOLEAN DEFAULT FALSE NOT NULL,
+	"created" BIGINT,
+	"deleted" BIGINT
+);
+
+Create table IF NOT EXISTS "rulebase_link"
+(
+	"id" SERIAL primary key,
+	"gw_id" Integer,
+	"from_rule_id" Integer,
+	"to_rulebase_id" Integer NOT NULL,
+	"link_type" Integer,
 	"created" BIGINT,
 	"deleted" BIGINT
 );

@@ -42,7 +42,7 @@ namespace FWO.Test
 #else
             runHeadless = true;
 #endif
-            // Log.WriteInfo("Test Log", $"Runnung headless: {runHeadless}");
+            Log.WriteInfo("Test Log", $"Runnung headless: {runHeadless}");
             Log.WriteInfo("Test Log", "Starting Browser...");
             IBrowser? browser = await Puppeteer.LaunchAsync(new LaunchOptions
             {

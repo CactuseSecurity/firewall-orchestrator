@@ -4,6 +4,7 @@ using FWO.Logging;
 using PuppeteerSharp.Media;
 using PuppeteerSharp;
 using PuppeteerSharp.BrowserData;
+using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace FWO.Test
 {
@@ -23,29 +24,7 @@ namespace FWO.Test
 
             Log.WriteInfo("Test Log", $"OS: {os}");
 
-            BrowserFetcher? browserFetcher;
-
-            switch (os.Platform)
-            {
-                case PlatformID.Win32S:
-                case PlatformID.Win32Windows:
-                case PlatformID.Win32NT:
-                case PlatformID.WinCE:
-                case PlatformID.Xbox:
-                case PlatformID.MacOSX:
-                case PlatformID.Other:
-                    browserFetcher = new();
-                    Log.WriteInfo("Test Log", $"Downloading headless Browser...");
-                    break;
-                case PlatformID.Unix:
-                    browserFetcher = new();
-                    Log.WriteInfo("Test Log", $"Downloading headless Browser {nameof(SupportedBrowser.ChromeHeadlessShell)}");
-                    break;
-                default:
-                    browserFetcher = new();
-                    Log.WriteInfo("Test Log", $"Downloading headless Browser...");
-                    break;
-            }
+            BrowserFetcher? browserFetcher = new();
 
             InstalledBrowser? brw = await browserFetcher.DownloadAsync();
 
@@ -57,26 +36,30 @@ namespace FWO.Test
             Log.WriteInfo("Test Log", "Starting Browser...");
             IBrowser? browser = await Puppeteer.LaunchAsync(new LaunchOptions
             {
-                Headless = true,
-                // Browser = browserFetcher.Browser,
                 Args = ["--no-sandbox"] //, "--disable-setuid-sandbox"
             });
 
             Log.WriteInfo("Test Log", "Browser started...");
 
+            IPage page = await browser.NewPageAsync();
+            await page.BringToFrontAsync();
+            await page.GoToAsync("https://google.com");
+            await page.WaitForNavigationAsync();
+            Log.WriteInfo("Test Log", "Browser navigated...");
+
             try
             {
-                IPage page = await browser.NewPageAsync();
-                Log.WriteInfo("Test Log", "Browser new page...");
+                //Log.WriteInfo("Test Log", "Browser new page...");
+                //page = await browser.NewPageAsync();
 
-                await page.SetContentAsync(Html);
-                Log.WriteInfo("Test Log", "Browser set html content...");
+                //Log.WriteInfo("Test Log", "Browser set html content...");
+                //await page.SetContentAsync(Html);
 
                 //PdfOptions pdfOptions = new() { DisplayHeaderFooter = true, Landscape = true, PrintBackground = true, Format = PaperFormat.A4, MarginOptions = new MarginOptions { Top = "1cm", Bottom = "1cm", Left = "1cm", Right = "1cm" } };
 
-                Log.WriteInfo("Test Log", $"Writing data to pdf at: {Path.GetFullPath(FilePath)})");
-                await page.PdfAsync(FilePath);
-                Log.WriteInfo("Test Log", "PDF created...");
+                //Log.WriteInfo("Test Log", $"Writing data to pdf at: {Path.GetFullPath(FilePath)})");
+                //await page.PdfAsync(FilePath);
+                //Log.WriteInfo("Test Log", "PDF created...");
             }
             catch (Exception ex)
             {

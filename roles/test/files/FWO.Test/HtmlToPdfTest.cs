@@ -35,21 +35,21 @@ namespace FWO.Test
                 throw new Exception("Sandbox permissions were not applied. You need to run your application as an administrator.");
             }
 
-            bool runHeadless;
+           // bool runHeadless;
 
-#if DEBUG
-            runHeadless = false;
-#else
-            runHeadless = true;
-#endif
-            Log.WriteInfo("Test Log", $"Runnung headless: {runHeadless}");
+//#if DEBUG
+//            runHeadless = false;
+//#else
+//            runHeadless = true;
+//#endif
+//            Log.WriteInfo("Test Log", $"Runnung headless: {runHeadless}");
             Log.WriteInfo("Test Log", "Starting Browser...");
             IBrowser? browser = await Puppeteer.LaunchAsync(new LaunchOptions
             {
-                ExecutablePath = brw.GetExecutablePath(),
-                Headless = runHeadless,
-                HeadlessMode = runHeadless ? HeadlessMode.True : HeadlessMode.False,
-                Args = ["--no-sandbox"] //, "--disable-setuid-sandbox"
+               // ExecutablePath = brw.GetExecutablePath(),
+                //Headless = runHeadless,
+                //HeadlessMode = runHeadless ? HeadlessMode.True : HeadlessMode.False,
+               // Args = ["--no-sandbox"] //, "--disable-setuid-sandbox"
             });
 
             Log.WriteInfo("Test Log", "Browser started...");

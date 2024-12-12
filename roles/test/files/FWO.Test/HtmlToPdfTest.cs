@@ -26,8 +26,10 @@ namespace FWO.Test
 
             BrowserFetcher? browserFetcher = new();
 
-            InstalledBrowser? brw = await browserFetcher.DownloadAsync(BrowserTag.Latest);
-            
+            InstalledBrowser? brw = await browserFetcher.DownloadAsync();
+
+            Log.WriteInfo("Test Log", $"Browser Path: {brw.GetExecutablePath()}");
+
             if (brw.PermissionsFixed == false)
             {
                 throw new Exception("Sandbox permissions were not applied. You need to run your application as an administrator.");
@@ -40,12 +42,13 @@ namespace FWO.Test
 #else
             runHeadless = true;
 #endif
-           // Log.WriteInfo("Test Log", $"Runnung headless: {runHeadless}");
+            // Log.WriteInfo("Test Log", $"Runnung headless: {runHeadless}");
             Log.WriteInfo("Test Log", "Starting Browser...");
             IBrowser? browser = await Puppeteer.LaunchAsync(new LaunchOptions
             {
-               // Headless = runHeadless,
-                //HeadlessMode = runHeadless ? HeadlessMode.True : HeadlessMode.False,              
+                ExecutablePath = brw.GetExecutablePath(),
+                Headless = runHeadless,
+                HeadlessMode = runHeadless ? HeadlessMode.True : HeadlessMode.False,
                 Args = ["--no-sandbox"] //, "--disable-setuid-sandbox"
             });
 
@@ -53,7 +56,7 @@ namespace FWO.Test
 
             IPage page = await browser.NewPageAsync();
             await page.BringToFrontAsync();
-            await page.GoToAsync("https://google.com");            
+            await page.GoToAsync("https://google.com");
             Log.WriteInfo("Test Log", "Browser navigated...");
 
             try

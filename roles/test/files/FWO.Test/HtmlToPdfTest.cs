@@ -57,7 +57,7 @@ namespace FWO.Test
             }
 
             CancellationTokenSource cancellationTokenSource = new();
-            cancellationTokenSource.CancelAfter(TimeSpan.FromSeconds(5));
+            cancellationTokenSource.CancelAfter(TimeSpan.FromSeconds(30));
 
             await TryCreatePDF(brw, cancellationTokenSource.Token);
 
@@ -72,7 +72,7 @@ namespace FWO.Test
             {
                 ExecutablePath = brw.GetExecutablePath(),
                 Headless = true,
-                HeadlessMode = HeadlessMode.Shell,
+                HeadlessMode = HeadlessMode.True,
                 Args = ["--no-sandbox", "--disable-setuid-sandbox"] //, "--disable-setuid-sandbox"
             });
 

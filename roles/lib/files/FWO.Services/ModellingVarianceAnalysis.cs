@@ -56,7 +56,7 @@ namespace FWO.Services
             foreach (Management mgt in managements)
             {
                 await AnalyseAppZone(mgt);
-                foreach(var conn in connections.Where(c => !c.IsRequested))
+                foreach(var conn in connections.Where(c => !c.IsRequested).OrderBy(c => c.Id))
                 {
                     elements = [];
                     AnalyseNetworkAreas(conn);

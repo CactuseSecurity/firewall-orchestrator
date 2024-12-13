@@ -1276,6 +1276,7 @@ namespace FWO.Services
                     isInterface = ActConn.IsInterface,
                     usedInterfaceId = ActConn.UsedInterfaceId,
                     isRequested = ActConn.IsRequested,
+                    isPublished = ActConn.IsPublished,
                     ticketId = ActConn.TicketId,
                     creator = userConfig.User.Name,
                     commonSvc = ActConn.IsCommonService,

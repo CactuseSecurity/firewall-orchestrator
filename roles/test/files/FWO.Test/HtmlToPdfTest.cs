@@ -13,7 +13,7 @@ namespace FWO.Test
         private const string FilePath = "pdffile.pdf";
         private const string Html = "<html> <body> <h1>test<h1> test </body> </html>";
         private const string ChromeBinPathWin = "C:\\chrome";
-        private const string ChromeBinPathLinux = "/tmp/chrome";
+        private const string ChromeBinPathLinux = "/usr/bin";
 
         [Test]
         public async Task GeneratePdf()
@@ -50,7 +50,6 @@ namespace FWO.Test
             {
                 throw new Exception("Sandbox permissions were not applied. You need to run your application as an administrator.");
             }
-
 
             Log.WriteInfo("Test Log", "Starting Browser...");
             IBrowser? browser = await Puppeteer.LaunchAsync(new LaunchOptions

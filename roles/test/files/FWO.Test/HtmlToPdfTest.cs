@@ -121,7 +121,7 @@ namespace FWO.Test
         [OneTimeTearDown]
         public void OnFinished()
         {
-            File.Delete(FilePath);
+            //File.Delete(FilePath);
         }
     }
 }

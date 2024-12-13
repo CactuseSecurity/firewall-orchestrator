@@ -59,7 +59,16 @@ namespace FWO.Test
             CancellationTokenSource cancellationTokenSource = new();
             cancellationTokenSource.CancelAfter(TimeSpan.FromSeconds(30));
 
-            await TryCreatePDF(brw, cancellationTokenSource.Token);
+            try
+            {
+                await TryCreatePDF(brw, cancellationTokenSource.Token);
+            }
+            catch (Exception ex)
+            {
+                Log.WriteError(ex.ToString());
+                Log.WriteError(ex.InnerException!.ToString());
+                throw new Exception(ex.Message);
+            }            
 
             Assert.That(FilePath, Does.Exist);
             ClassicAssert.Greater(new FileInfo(FilePath).Length, 5000);

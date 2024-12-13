@@ -13,7 +13,7 @@ namespace FWO.Test
         private const string FilePath = "pdffile.pdf";
         private const string Html = "<html> <body> <h1>test<h1> test </body> </html>";
         private const string ChromeBinPathWin = "C:\\chrome";
-        private const string ChromeBinPathLinux = "/tmp";
+        private const string ChromeBinPathLinux = "/tmp/fworch";
 
         [Test]
         public async Task GeneratePdf()

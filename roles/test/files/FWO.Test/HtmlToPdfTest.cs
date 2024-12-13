@@ -56,6 +56,17 @@ namespace FWO.Test
                 throw new Exception("Sandbox permissions were not applied. You need to run your application as an administrator.");
             }
 
+            CancellationTokenSource cancellationTokenSource = new();
+            cancellationTokenSource.CancelAfter(TimeSpan.FromSeconds(5));
+
+            await TryCreatePDF(brw, cancellationTokenSource.Token);
+
+            Assert.That(FilePath, Does.Exist);
+            ClassicAssert.Greater(new FileInfo(FilePath).Length, 5000);
+        }
+
+        private async Task TryCreatePDF(InstalledBrowser brw, CancellationToken ct)
+        {
             Log.WriteInfo("Test Log", "Starting Browser...");
             IBrowser? browser = await Puppeteer.LaunchAsync(new LaunchOptions
             {
@@ -96,9 +107,6 @@ namespace FWO.Test
             {
                 await browser.CloseAsync();
             }
-
-            Assert.That(FilePath, Does.Exist);
-            ClassicAssert.Greater(new FileInfo(FilePath).Length, 5000);
         }
 
         [OneTimeTearDown]

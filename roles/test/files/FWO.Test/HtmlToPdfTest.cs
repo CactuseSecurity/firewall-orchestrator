@@ -13,7 +13,7 @@ namespace FWO.Test
         private const string FilePath = "pdffile.pdf";
         private const string Html = "<html> <body> <h1>test<h1> test </body> </html>";
         private const string ChromeBinPathWin = "C:\\chrome";
-        private const string ChromeBinPathLinux = "/usr/bin";
+        private const string ChromeBinPathLinux = "/usr/bin/fworch";
 
         [Test]
         public async Task GeneratePdf()
@@ -30,13 +30,18 @@ namespace FWO.Test
             switch (os.Platform)
             {
                 case PlatformID.Win32NT:
-                    path = ChromeBinPathWin;
+                    path = ChromeBinPathWin;                    
                     break;
                 case PlatformID.Unix:
                     path = ChromeBinPathLinux;
                     break;
                 default:
                     return;
+            }
+
+            if (!Directory.Exists(path))
+            {
+                Directory.CreateDirectory(path);
             }
 
             BrowserFetcher? browserFetcher = new(new BrowserFetcherOptions { Path = path });

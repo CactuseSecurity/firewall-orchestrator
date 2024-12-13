@@ -223,6 +223,8 @@ namespace FWO.Report
 
             try
             {
+                html += "<p>Generated via Puppeteer</p>";
+
                 using IPage page = await browser.NewPageAsync();
                 await page.SetContentAsync(html);
 

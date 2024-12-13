@@ -11,7 +11,7 @@ namespace FWO.Test
     internal class HtmlToPdfTest
     {
         private const string FilePath = "pdffile.pdf";
-        private const string Html = "<html> <body> <h1>test<h1> test </body> </html>";
+        private const string Html = "<html> <body> <h1>test<h1> test mit puppteer </body> </html>";
         private const string ChromeBinPathWin = "C:\\chrome";
         private const string ChromeBinPathLinux = "/tmp/fworch";
 

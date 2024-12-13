@@ -17,10 +17,6 @@ using PuppeteerSharp;
 // (static constructor is only called after class is used in any way)
 Log.WriteInfo("Startup", "Starting FWO UI Server...");
 
-Log.WriteInfo("Startup", "Downloading headless Browser...");
-BrowserFetcher? browserFetcher = new();
-await browserFetcher.DownloadAsync();    
-
 var builder = WebApplication.CreateBuilder(args);
 builder.WebHost.UseWebRoot("wwwroot").UseStaticWebAssets();
 

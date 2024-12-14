@@ -2471,12 +2471,16 @@ INSERT INTO txt VALUES ('last_process_response','German',   'Letzte Abwicklungsn
 INSERT INTO txt VALUES ('last_process_response','English',  'Last processing response');
 INSERT INTO txt VALUES ('ext_ticket_system',    'German',	'Externes Ticketing System');
 INSERT INTO txt VALUES ('ext_ticket_system',    'English',	'External ticketing system');
-INSERT INTO txt VALUES ('ext_request_tickets',  'German',   'Tickets f&uuml;r Externe Auftr&auml;ge');
-INSERT INTO txt VALUES ('ext_request_tickets',  'English',  'Tickets for External Requests');
+INSERT INTO txt VALUES ('ext_request_tickets',  'German',   'Interne Tickets f&uuml;r Ext. Auftr.');
+INSERT INTO txt VALUES ('ext_request_tickets',  'English',  'Internal Tickets for Ext. Req.');
 INSERT INTO txt VALUES ('reinit_ext_request',   'German',   'Externe Auftr&auml;ge neu anstossen');
 INSERT INTO txt VALUES ('reinit_ext_request',   'English',  'Reinit External Requests');
 INSERT INTO txt VALUES ('wait_cycles',          'German',   'Wartezyklen');
 INSERT INTO txt VALUES ('wait_cycles',          'English',  'Wait cycles');
+INSERT INTO txt VALUES ('locked',               'German', 	'Gesperrt');
+INSERT INTO txt VALUES ('locked',               'English', 	'Locked');
+INSERT INTO txt VALUES ('unlock',               'German', 	'Entsperren');
+INSERT INTO txt VALUES ('unlock',               'English', 	'Unlock');
 
 -- help pages
 INSERT INTO txt VALUES ('report_types',         'German', 	'Report-Typen');

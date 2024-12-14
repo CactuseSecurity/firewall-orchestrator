@@ -269,7 +269,7 @@ namespace FWO.Services
             AddExtraConfigMode = true;
         }
 
-        public async Task<bool> SaveExtraConfig(ModellingExtraConfig extraConfig)
+        public bool SaveExtraConfig(ModellingExtraConfig extraConfig)
         {
             extraConfig.Id = ActConn.ExtraConfigs.Count > 0 ? ActConn.ExtraConfigs.OrderByDescending(x => x.Id).First().Id + 1 : 1;
             List<ModellingExtraConfig> actList = ActConn.ExtraConfigs;
@@ -278,18 +278,19 @@ namespace FWO.Services
             return true;
         }
 
-        public async Task UpdateExtraConfig(ChangeEventArgs e, ModellingExtraConfig extraConfig)
+        public void UpdateExtraConfig(ChangeEventArgs e, ModellingExtraConfig extraConfig)
         {
             List<ModellingExtraConfig> actList = ActConn.ExtraConfigs;
             ModellingExtraConfig? actConfig = actList.FirstOrDefault(x => x.Id == extraConfig.Id);
             if(actConfig != null)
             {
-                actConfig.ExtraConfigText = e.Value.ToString();
+                actConfig.ExtraConfigText = e.Value?.ToString() ?? "";
+                actConfig.Sanitize();
             }
             ActConn.ExtraConfigs = actList;
         }
 
-        public async Task<bool> DeleteExtraConfig(ModellingExtraConfig extraConfig)
+        public bool DeleteExtraConfig(ModellingExtraConfig extraConfig)
         {
             List<ModellingExtraConfig> actList = ActConn.ExtraConfigs;
             actList.Remove(actList.FirstOrDefault(x => x.Id == extraConfig.Id) ?? throw new Exception("Did not find service group."));

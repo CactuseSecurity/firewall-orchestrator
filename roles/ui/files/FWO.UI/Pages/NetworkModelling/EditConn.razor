@@ -84,7 +84,8 @@
                                     </div>
                                     <input type="text" class="col-sm-9" data-toggle="@("tooltip")"
                                         title="@(userConfig.PureLine("H5638"))" value="@param.ExtraConfigText" @onchange="@((e) => {ConnHandler.UpdateExtraConfig(e, param);})"/>
-                                    <button type="button" class="btn btn-sm btn-danger col-sm-1" @onclick="() => {ConnHandler.DeleteExtraConfig(param); ConnHandlerChanged.InvokeAsync(ConnHandler);}">
+                                    <button type="button" class="btn btn-sm btn-danger col-sm-1" @onclick="() =>
+                                        {ConnHandler.DeleteExtraConfig(param); ConnHandlerChanged.InvokeAsync(ConnHandler);}">
                                         @(ConnHandler.DisplayButton("delete_extra_config", Icons.Delete))</button>
                                 </div>
                             }
@@ -619,7 +620,7 @@
 
     private async Task ReplaceInterface()
     {
-        await ConnHandler.ReplaceInterface(authenticationStateTask, middlewareClient);
+        await ConnHandler.ReplaceInterface(authenticationStateTask!, middlewareClient);
         Close();
     }
 

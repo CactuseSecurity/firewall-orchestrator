@@ -897,11 +897,9 @@ namespace FWO.Middleware.Server
 				{
 					groupDn = $"cn={groupName},{GroupSearchPath}";
 				}
-				LdapAttributeSet attributeSet =
-                [
-                    new LdapAttribute("objectclass", "groupofuniquenames"),
-                    new LdapAttribute("uniqueMember", ""),
-                ];
+				LdapAttributeSet attributeSet = new ();
+				attributeSet.Add(new LdapAttribute("objectclass", "groupofuniquenames"));
+				attributeSet.Add(new LdapAttribute("uniqueMember", ""));
 				if (ownerGroup)
 				{
 					attributeSet.Add(new LdapAttribute("businessCategory", "ownergroup"));

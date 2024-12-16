@@ -57,19 +57,27 @@ namespace FWO.Middleware.Server
 		/// try an ldap bind, decrypting pwd before bind; using pwd as is if it cannot be decrypted
 		/// false if bind fails
 		/// </summary>
-		private static bool TryBind(LdapConnection connection, string user, string password)
+		private static bool TryBind(LdapConnection connection, string? user, string? password)
 		{
-			string decryptedPassword = password;
-			try
+			if (string.IsNullOrEmpty(user) || string.IsNullOrEmpty(password))
 			{
-				decryptedPassword = AesEnc.Decrypt(password, AesEnc.GetMainKey());
+				Log.WriteDebug("TryBind", $"found empty ldap user name or password");
+				return false;
 			}
-			catch
+			else
 			{
-				Log.WriteDebug("TryBind", $"Could not decrypt password");
-				// assuming we already have an unencrypted password, trying this
+				string decryptedPassword = password;
+				try
+				{
+					decryptedPassword = AesEnc.Decrypt(password, AesEnc.GetMainKey());
+				}
+				catch
+				{
+					Log.WriteDebug("TryBind", $"Could not decrypt password");
+					// assuming we already have an unencrypted password, trying this
+				}
+				connection.Bind(user, decryptedPassword);
 			}
-			connection.Bind(user, decryptedPassword);
 			return connection.Bound;
 		}
 
@@ -863,6 +871,13 @@ namespace FWO.Middleware.Server
 			return userDeleted;
 		}
 
+
+		private bool IsFullyQualifiedDn(string name)
+		{
+			name = name.ToLower();
+			return name.Contains(',') && (name.StartsWith("cn=") || name.StartsWith("uid="));
+		}
+
 		/// <summary>
 		/// Add new group
 		/// </summary>
@@ -871,14 +886,17 @@ namespace FWO.Middleware.Server
 		{
 			Log.WriteInfo("Add Group", $"Trying to add Group: \"{groupName}\"");
 			bool groupAdded = false;
-			string groupDn = "";
+			string groupDn = groupName;
 			try
 			{
                 using LdapConnection connection = Connect();
                 // Authenticate as write user
                 TryBind(connection, WriteUser, WriteUserPwd);
 
-				groupDn = $"cn={groupName},{GroupSearchPath}";
+				if (!IsFullyQualifiedDn(groupDn))
+				{
+					groupDn = $"cn={groupName},{GroupSearchPath}";
+				}
 				LdapAttributeSet attributeSet = new ();
 				attributeSet.Add(new LdapAttribute("objectclass", "groupofuniquenames"));
 				attributeSet.Add(new LdapAttribute("uniqueMember", ""));

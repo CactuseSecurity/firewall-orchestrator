@@ -50,7 +50,7 @@ namespace FWO.Test
             else if(responseType == typeof(List<ModellingConnection>))
             {
                 List<ModellingConnection>? interfaces = [];
-                string intId = variables.GetType().GetProperties().First(o => o.Name == "intId").GetValue(variables, null).ToString();
+                string intId = variables.GetType().GetProperties().First(o => o.Name == "id").GetValue(variables, null).ToString();
                 if(intId == "1")
                 {
                     interfaces = [ new()

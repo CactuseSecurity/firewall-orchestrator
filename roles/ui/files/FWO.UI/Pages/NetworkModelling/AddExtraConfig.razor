@@ -78,7 +78,11 @@
 
     private async Task Save()
     {
-        if(await ConnectionHandler.SaveExtraConfig(ExtraConfig))
+        if (ExtraConfig.Sanitize())
+        {
+            DisplayMessageInUi(null, userConfig.GetText("save"), userConfig.GetText("U0001"), true);
+        }
+        if(ConnectionHandler != null && ConnectionHandler.SaveExtraConfig(ExtraConfig))
         {
             await ConnectionHandlerChanged.InvokeAsync(ConnectionHandler);
             Close();

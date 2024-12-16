@@ -222,7 +222,7 @@ namespace FWO.Middleware.Server
 			}
 			else
 			{
-				int waitCycles = GetWaitCycles(oldRequest);
+				int waitCycles = GetWaitCycles(nextTask.TaskType, oldRequest);
 				if(UserConfig.ModRolloutBundleTasks && nextTask.TaskType == WfTaskType.access.ToString())
 				{
 					// todo: bundle also other task types?
@@ -258,19 +258,29 @@ namespace FWO.Middleware.Server
 		/// <summary>
 		/// qad heuristic for Tufin SC (public only for unit testing)
 		/// </summary>
+		/// <param name="taskType"></param>
 		/// <param name="oldRequest"></param>
 		/// <returns></returns>
-		public int GetWaitCycles(ExternalRequest? oldRequest)
+		public int GetWaitCycles(string taskType, ExternalRequest? oldRequest)
 		{
 			// TODO: to be refined
 			if(oldRequest != null && UserConfig.ExternalRequestWaitCycles > 0 &&
+				// last request handled group
 				(oldRequest.ExtRequestType == "(NetworkObjectModify, CREATE)" || oldRequest.ExtRequestType == "(NetworkObjectModify, UPDATE)") &&
-				(oldRequest.ExtRequestContent.Contains("\"object_updated_status\": \"NEW\"") || oldRequest.ExtRequestContent.Contains("object_updated_status\\u0022: \\u0022NEW\\u0022") ||
-				oldRequest.ExtRequestContent.Contains("\"object_updated_status\":\"NEW\"") || oldRequest.ExtRequestContent.Contains("object_updated_status\\u0022:\\u0022NEW\\u0022")))
+					// now access request
+					(taskType == WfTaskType.access.ToString() ||
+					// or last request created new objects in group
+					ContainsNewObj(oldRequest.ExtRequestContent)))
 			{
 				return UserConfig.ExternalRequestWaitCycles;
 			}
 			return 0;
+		}
+
+		private static bool ContainsNewObj(string contentString)
+		{
+			return contentString.Contains("\"object_updated_status\": \"NEW\"") || contentString.Contains("object_updated_status\\u0022: \\u0022NEW\\u0022") ||
+				contentString.Contains("\"object_updated_status\":\"NEW\"") || contentString.Contains("object_updated_status\\u0022:\\u0022NEW\\u0022");
 		}
 
 		private async Task CreateExtRequest( WfTicket ticket, List<WfReqTask> tasks, int waitCycles)

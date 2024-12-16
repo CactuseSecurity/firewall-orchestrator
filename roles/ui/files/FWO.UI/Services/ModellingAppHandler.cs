@@ -21,6 +21,7 @@ namespace FWO.Ui.Services
         public Shared.Tab? actTab;
         public int ActWidth = 0;
         public bool StartCollapsed = true;
+        private long dummyAppRoleId = 0;
 
 
         public ModellingAppHandler(ApiConnection apiConnection, UserConfig userConfig, FwoOwner application, 
@@ -45,10 +46,16 @@ namespace FWO.Ui.Services
                     Connections = connections;
                 }
                 
+                List<ModellingAppRole> dummyAppRoles = await apiConnection.SendQueryAsync<List<ModellingAppRole>>(ModellingQueries.getDummyAppRole);
+                if (dummyAppRoles.Count > 0)
+                {
+                    dummyAppRoleId = dummyAppRoles.First().Id;
+                }
+
                 foreach(var conn in Connections)
                 {
                     await ExtractUsedInterface(conn);
-                    conn.SyncState();
+                    conn.SyncState(dummyAppRoleId);
                 }
                 ConnToDelete = Connections.FirstOrDefault() ?? new ModellingConnection();
                 overviewConnHandler = new ModellingConnectionHandler(apiConnection, userConfig, Application, Connections, new(), true,
@@ -143,7 +150,7 @@ namespace FWO.Ui.Services
             return [.. Connections.Where(x => !(x.IsInterface ||
                 x.GetBoolProperty(ConState.InterfaceRequested.ToString()) ||
                 x.GetBoolProperty(ConState.InterfaceRejected.ToString()) || 
-                x.EmptyAppRolesFound() ||
+                x.EmptyAppRolesFound(dummyAppRoleId) ||
                 x.DeletedObjectsFound()
                 )).OrderByDescending(y => y.IsCommonService)];
         }

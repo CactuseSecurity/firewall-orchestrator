@@ -6,6 +6,7 @@ mutation newConnection(
   $isInterface: Boolean
   $usedInterfaceId: Int
   $isRequested: Boolean
+  $isPublished: Boolean
   $ticketId: bigint
   $creator: String
   $commonSvc: Boolean
@@ -20,6 +21,7 @@ mutation newConnection(
     is_interface: $isInterface
     used_interface_id: $usedInterfaceId
     is_requested: $isRequested
+    is_published: $isPublished
     ticket_id: $ticketId
     creator: $creator
     common_service: $commonSvc

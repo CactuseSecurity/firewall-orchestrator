@@ -6,12 +6,13 @@
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
-<PopUp Title="@(userConfig.GetText("search_interface"))" Size=PopupSize.XLarge Show="@Display" OnClose="Close">
+<PopUp Title="@(userConfig.GetText("search_interface"))" Size="PopupSize.FullScreenWidth" Show="@Display" OnClose="Close">
     <Body>
         @if (Display && InitComplete)
         {
-            <div class="min-height">
-                <ConnectionTable Connections="@selectableInterfaces" SelectInterfaceView="true" ShowAppName="true" @bind-SelectedConns="SelectedInterfaces" />
+            <div class="min-height me-5">
+                <PageSizeComponent PageSizeCallback="UpdatePageSize" PageSize="PageSize"></PageSizeComponent>
+                <ConnectionTable PageSize="PageSize" Connections="@selectableInterfaces" SelectInterfaceView="true" ShowAppName="true" @bind-SelectedConns="SelectedInterfaces" />
             </div>
         }
     </Body>
@@ -32,7 +33,6 @@
         </div>
     </Footer>
 </PopUp>
-
 
 @code
 {
@@ -57,6 +57,12 @@
     [Parameter]
     public FwoOwner Application { get; set; } = new();
 
+    private int PageSize { get; set; } = 10;
+
+    private void UpdatePageSize(int pageSize)
+    {
+        PageSize = pageSize;
+    }
 
     private List<ModellingConnection> selectableInterfaces { get; set; } = new();
     private List<ModellingConnection> allPublishedInterfaces { get; set; } = new();

@@ -1,0 +1,3 @@
+.show-horizontal-scrollbar .table-responsive {
+    overflow-x: scroll;
+}

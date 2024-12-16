@@ -1445,6 +1445,8 @@ INSERT INTO txt VALUES ('show_history',		    'German', 	'&Auml;nderungshistorie'
 INSERT INTO txt VALUES ('show_history',		    'English', 	'Show History');
 INSERT INTO txt VALUES ('request_fw_change',    'German', 	'Firewall-&Auml;nderungen beantragen');
 INSERT INTO txt VALUES ('request_fw_change',    'English', 	'Request firewall changes');
+INSERT INTO txt VALUES ('send_ext_request',     'German', 	'Versende externen Auftrag');
+INSERT INTO txt VALUES ('send_ext_request',     'English', 	'Send external request');
 INSERT INTO txt VALUES ('ext_ticket_auth',      'German', 	'Authorization-Header-String');
 INSERT INTO txt VALUES ('ext_ticket_auth',      'English', 	'Authorization header string');
 INSERT INTO txt VALUES ('ext_ticket_lookup_id', 'German', 	'Externe Nutzer Id ermitteln');

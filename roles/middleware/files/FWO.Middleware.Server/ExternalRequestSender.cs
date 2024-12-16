@@ -111,6 +111,7 @@ namespace FWO.Middleware.Server
 			{
 				ExternalTicket ticket = JsonSerializer.Deserialize<ExternalTicket>(request.ExtRequestContent) ?? throw new Exception("No Ticket Content");
 				ticket.TicketSystem = JsonSerializer.Deserialize<ExternalTicketSystem>(request.ExtTicketSystem) ?? throw new Exception("No Ticket System");
+				Log.WriteInfo(userConfig.GetText("send_ext_request"), $"Id: {request.Id}, Internal TicketId: {request.TicketId}, TaskNo: {request.TaskNumber}");
                 RestResponse<int> ticketIdResponse = await ticket.CreateExternalTicket();
 				request.LastMessage = ticketIdResponse.Content;
 				if (ticketIdResponse.StatusCode == HttpStatusCode.OK || ticketIdResponse.StatusCode == HttpStatusCode.Created)

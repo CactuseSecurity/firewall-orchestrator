@@ -458,7 +458,7 @@ Fixes
 - UI
   - SECURITY: updating System.Text.Encodings.Web v4.5.0 --> v8.0.0
 
-# 8.6.1 17.12.2024 MAIN
+# 8.6.1 16.12.2024 MAIN
 Fixes network modelling
 - lock external requests to avoid multiple external tickets
 - fix missing comments

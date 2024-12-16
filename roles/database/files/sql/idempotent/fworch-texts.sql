@@ -1445,6 +1445,8 @@ INSERT INTO txt VALUES ('show_history',		    'German', 	'&Auml;nderungshistorie'
 INSERT INTO txt VALUES ('show_history',		    'English', 	'Show History');
 INSERT INTO txt VALUES ('request_fw_change',    'German', 	'Firewall-&Auml;nderungen beantragen');
 INSERT INTO txt VALUES ('request_fw_change',    'English', 	'Request firewall changes');
+INSERT INTO txt VALUES ('send_ext_request',     'German', 	'Versende externen Auftrag');
+INSERT INTO txt VALUES ('send_ext_request',     'English', 	'Send external request');
 INSERT INTO txt VALUES ('ext_ticket_auth',      'German', 	'Authorization-Header-String');
 INSERT INTO txt VALUES ('ext_ticket_auth',      'English', 	'Authorization header string');
 INSERT INTO txt VALUES ('ext_ticket_lookup_id', 'German', 	'Externe Nutzer Id ermitteln');
@@ -2471,12 +2473,16 @@ INSERT INTO txt VALUES ('last_process_response','German',   'Letzte Abwicklungsn
 INSERT INTO txt VALUES ('last_process_response','English',  'Last processing response');
 INSERT INTO txt VALUES ('ext_ticket_system',    'German',	'Externes Ticketing System');
 INSERT INTO txt VALUES ('ext_ticket_system',    'English',	'External ticketing system');
-INSERT INTO txt VALUES ('ext_request_tickets',  'German',   'Tickets f&uuml;r Externe Auftr&auml;ge');
-INSERT INTO txt VALUES ('ext_request_tickets',  'English',  'Tickets for External Requests');
+INSERT INTO txt VALUES ('ext_request_tickets',  'German',   'Interne Tickets f&uuml;r Ext. Auftr.');
+INSERT INTO txt VALUES ('ext_request_tickets',  'English',  'Internal Tickets for Ext. Req.');
 INSERT INTO txt VALUES ('reinit_ext_request',   'German',   'Externe Auftr&auml;ge neu anstossen');
 INSERT INTO txt VALUES ('reinit_ext_request',   'English',  'Reinit External Requests');
 INSERT INTO txt VALUES ('wait_cycles',          'German',   'Wartezyklen');
 INSERT INTO txt VALUES ('wait_cycles',          'English',  'Wait cycles');
+INSERT INTO txt VALUES ('locked',               'German', 	'Gesperrt');
+INSERT INTO txt VALUES ('locked',               'English', 	'Locked');
+INSERT INTO txt VALUES ('unlock',               'German', 	'Entsperren');
+INSERT INTO txt VALUES ('unlock',               'English', 	'Unlock');
 
 -- help pages
 INSERT INTO txt VALUES ('report_types',         'German', 	'Report-Typen');

@@ -25,6 +25,7 @@ namespace FWO.Api.Data
 
         [JsonProperty("applicationZone"), JsonPropertyName("applicationZone")]
         public string AppZone { get; set; } = "";
+        
         [JsonProperty("appServerPrefix"), JsonPropertyName("appServerPrefix")]
         public string? AppServerPrefix { get; set; } = "";
     }

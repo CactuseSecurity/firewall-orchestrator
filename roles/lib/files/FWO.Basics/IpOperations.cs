@@ -1,7 +1,6 @@
 using System.Net.Sockets;
 using System.Net;
 using System.Numerics;
-using System.Text.RegularExpressions;
 using NetTools;
 
 namespace FWO.Basics
@@ -38,6 +37,7 @@ namespace FWO.Basics
                 throw new NotSupportedException("Only IPv4 and IPv6 are supported.");
             }
         }
+        
         private static bool IsIPv4InSubnet(IPAddress address, IPAddress networkAddress, int prefixLength)
         {
             uint ipAddress = BitConverter.ToUInt32(address.GetAddressBytes().Reverse().ToArray(), 0);
@@ -47,6 +47,7 @@ namespace FWO.Basics
 
             return (ipAddress & mask) == (networkIpAddress & mask);
         }
+
         private static bool IsIPv6InSubnet(IPAddress address, IPAddress networkAddress, int prefixLength)
         {
             BigInteger ipAddressBigInt = new(address.GetAddressBytes().Reverse().ToArray().Concat(new byte[] { 0 }).ToArray());
@@ -93,10 +94,12 @@ namespace FWO.Basics
             }
             return cidr_str;
         }
+
         public static bool OverlapExists(IPAddressRange a, IPAddressRange b)
         {
             return IpToUint(a.Begin) <= IpToUint(b.End) && IpToUint(b.Begin) <= IpToUint(a.End);
         }
+
         public static uint IpToUint(IPAddress ipAddress)
         {
             byte[] bytes = ipAddress.GetAddressBytes();
@@ -109,6 +112,7 @@ namespace FWO.Basics
 
             return BitConverter.ToUInt32(bytes, 0);
         }
+
         public static bool CheckOverlap(string ip1, string ip2)
         {
             IPAddressRange range1 = GetIPAdressRange(ip1);
@@ -117,9 +121,9 @@ namespace FWO.Basics
             if (range1.Begin.AddressFamily != range2.Begin.AddressFamily)
                 return false;
 
-
             return OverlapExists(range1, range2);
         }
+
         public static IPAddressRange GetIPAdressRange(string ip)
         {
             IPAddressRange ipAddressRange;
@@ -140,15 +144,14 @@ namespace FWO.Basics
 
             return ipAddressRange;
         }
+
         public static string ToDotNotation(string startIp, string endIp)
         {
-            IPAddress start;
-            IPAddress end;
-            if (!IPAddress.TryParse(startIp.StripOffNetmask(), out start))
+            if (!IPAddress.TryParse(startIp.StripOffNetmask(), out IPAddress? start))
             {
                 throw new ArgumentException($"IP {startIp} is not valid");
             }
-            if (!IPAddress.TryParse(endIp.StripOffNetmask(), out end))
+            if (!IPAddress.TryParse(endIp.StripOffNetmask(), out IPAddress? end))
             {
                 throw new ArgumentException($"IP {endIp} is not valid");
             }
@@ -159,7 +162,7 @@ namespace FWO.Basics
             }
 
             // Start from the largest possible prefix length and decrease to find the exact network match
-            int maxPrefixLength = start.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork ? 32 : 128;
+            int maxPrefixLength = start.AddressFamily == AddressFamily.InterNetwork ? 32 : 128;
 
             for (int prefixLength = maxPrefixLength; prefixLength >= 0; prefixLength--)
             {
@@ -171,7 +174,7 @@ namespace FWO.Basics
                 if (network.Contains(start) && network.Contains(end))
                 {
                     // Get subnet mask for IPv4
-                    string subnetMask = start.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork
+                    string subnetMask = start.AddressFamily == AddressFamily.InterNetwork
                         ? GetIPv4SubnetMask(network.PrefixLength)  // Convert PrefixLength to Subnet Mask for IPv4
                         : $"(IPv6) /{network.PrefixLength}"; // IPv6 uses CIDR notation directly
 
@@ -180,25 +183,15 @@ namespace FWO.Basics
                 }
             }
 
-            return null; // No exact network match found
+            return ""; // No exact network match found
         }
 
         // Convert a prefix length to an IPv4 subnet mask
         private static string GetIPv4SubnetMask(int prefixLength)
         {
             uint mask = 0xffffffff << (32 - prefixLength);
-            uint[] bytes = new uint[4];
-
-            bytes[0] = (mask >> 24) & 0xff;
-            bytes[1] = (mask >> 16) & 0xff;
-            bytes[2] = (mask >> 8) & 0xff;
-            bytes[3] = mask & 0xff;
-
+            uint[] bytes = [(mask >> 24) & 0xff, (mask >> 16) & 0xff, (mask >> 8) & 0xff, mask & 0xff];
             return string.Join(".", bytes);
         }
-
     }
-
 }
-
-

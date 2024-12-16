@@ -193,6 +193,7 @@ else
         await FetchOwnerData(actOwner);
         relevantRequests = await apiConnection.SendQueryAsync<List<ExternalRequest>>(ExtRequestQueries.getOpenRequests, new {states = relevantRequestStates});
         workInProgress = false;
+        await InvokeAsync(StateHasChanged);
         ReInitMode = false;
     }
 

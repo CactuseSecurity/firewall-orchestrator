@@ -472,3 +472,5 @@ Fixes network modelling
 - some cleanup + removal of compiler warnings
 - fix ldap group creation regression
 - restrict owner_network uniqness constraint to same import source
+
+Upgrade Hasura API to v2.45.1

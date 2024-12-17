@@ -8,7 +8,7 @@
 @inject UserConfig userConfig
 
 
-<Table class="table table-bordered th-bg-secondary sticky-header show-horizontal table-responsive" TableItem="ModellingConnection"
+<Table class="table table-bordered th-bg-secondary sticky-header show-scrollbar table-responsive" TableItem="ModellingConnection"
        Items="Connections" PageSize="8" ColumnReorder="true" TableRowClass="@(con => getTableRowClass(con))"
        SelectedItems="SelectedConns" RowClickAction="@(conn => ToggleSelection(conn))">   
     @if (!Readonly && !SelectInterfaceView && AppHandler != null)

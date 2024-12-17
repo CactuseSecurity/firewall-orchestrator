@@ -184,9 +184,15 @@ namespace FWO.Test
             SCTicket ticket = new (ticketSystem);
             await ticket.CreateRequestString(grpCreateReqTasks, ipProtos, NamingConvention);
             ExternalRequestHandler extReqHandler = new(userConfig);
-            ExternalRequest request = new(){ ExtRequestType = ticket.GetTaskTypeAsString(grpCreateReqTasks.First()), ExtRequestContent = ticket.TicketText};
+            ExternalRequest oldRquestGrp = new(){ ExtRequestType = ticket.GetTaskTypeAsString(grpCreateReqTasks.First()), ExtRequestContent = ticket.TicketText};
+            ExternalRequest oldRquestAcc = new(){ ExtRequestType = ticket.GetTaskTypeAsString(accessReqTasks.First()), ExtRequestContent = ticket.TicketText};
 
-            ClassicAssert.AreEqual(3, extReqHandler.GetWaitCycles(request));
+            ClassicAssert.AreEqual(0, extReqHandler.GetWaitCycles(WfTaskType.access.ToString(), oldRquestAcc));
+            ClassicAssert.AreEqual(0, extReqHandler.GetWaitCycles(WfTaskType.group_modify.ToString(), oldRquestAcc));
+            ClassicAssert.AreEqual(0, extReqHandler.GetWaitCycles("any", oldRquestAcc));
+            ClassicAssert.AreEqual(3, extReqHandler.GetWaitCycles(WfTaskType.access.ToString(), oldRquestGrp));
+            ClassicAssert.AreEqual(3, extReqHandler.GetWaitCycles(WfTaskType.group_modify.ToString(), oldRquestGrp));
+            ClassicAssert.AreEqual(3, extReqHandler.GetWaitCycles("any", oldRquestGrp));
         }
 
         [Test]

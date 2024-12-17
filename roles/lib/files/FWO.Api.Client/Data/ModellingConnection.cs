@@ -116,6 +116,7 @@ namespace FWO.Api.Data
                 }
             }
         }
+        public List<ModellingExtraConfig> ExtraConfigsFromInterface = [];
 
 
         public ModellingConnection()
@@ -153,6 +154,7 @@ namespace FWO.Api.Data
             DstFromInterface = conn.DstFromInterface;
             InterfaceIsRequested = conn.InterfaceIsRequested;
             InterfaceIsRejected = conn.InterfaceIsRejected;
+            ExtraConfigsFromInterface = conn.ExtraConfigsFromInterface;
         }
 
         public int CompareTo(ModellingConnection secondConnection)
@@ -229,7 +231,7 @@ namespace FWO.Api.Data
         }
 
 
-        public void SyncState()
+        public void SyncState(long dummyAppRoleId)
         {
             if(IsInterface)
             {
@@ -261,7 +263,7 @@ namespace FWO.Api.Data
                     RemoveProperty(ConState.InterfaceRequested.ToString());
                 }
             }
-            if(EmptyAppRolesFound())
+            if(EmptyAppRolesFound(dummyAppRoleId))
             {
                 AddProperty(ConState.EmptyAppRoles.ToString());
             }
@@ -279,18 +281,18 @@ namespace FWO.Api.Data
             }
         }
 
-        public bool EmptyAppRolesFound()
+        public bool EmptyAppRolesFound(long dummyAppRoleId)
         {
             foreach(var appRole in SourceAppRoles)
             {
-                if(appRole.Content.AppServers.Count == 0)
+                if(appRole.Content.Id != dummyAppRoleId && appRole.Content.AppServers.Count == 0)
                 {
                     return true;
                 }
             }
             foreach(var appRole in DestinationAppRoles)
             {
-                if(appRole.Content.AppServers.Count == 0)
+                if(appRole.Content.Id != dummyAppRoleId && appRole.Content.AppServers.Count == 0)
                 {
                     return true;
                 }

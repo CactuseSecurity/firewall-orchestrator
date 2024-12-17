@@ -10,7 +10,7 @@
 
 <Table class="table table-bordered th-bg-secondary sticky-header show-scrollbar table-responsive" TableItem="ModellingConnection"
        Items="Connections" PageSize="8" ColumnReorder="true" TableRowClass="@(con => getTableRowClass(con))"
-       SelectedItems="SelectedConns" RowClickAction="@(conn => ToggleSelection(conn))">   
+       SelectedItems="SelectedConns" RowClickAction="@(conn => ToggleSelection(conn))">
     @if (!Readonly && !SelectInterfaceView && AppHandler != null)
     {
         <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
@@ -38,6 +38,11 @@
             </Template>
         </Column>
     }
+    <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("select"))" Sortable="false" Filterable="false">
+        <Template>
+            <input type="radio" checked="@(SelectedConns.Contains(context))" />
+        </Template>
+    </Column>
     <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
     @if (!SelectInterfaceView)
     {

@@ -8,8 +8,8 @@
 @inject UserConfig userConfig
 
 
-<Table class="table table-bordered th-bg-secondary sticky-header show-horizontal-scrollbar table-responsive" TableItem="ModellingConnection"
-       Items="Connections" PageSize="PageSize" ColumnReorder="true" TableRowClass="@(con => getTableRowClass(con))"
+<Table class="table table-bordered th-bg-secondary sticky-header show-horizontal table-responsive" TableItem="ModellingConnection"
+       Items="Connections" PageSize="8" ColumnReorder="true" TableRowClass="@(con => getTableRowClass(con))"
        SelectedItems="SelectedConns" RowClickAction="@(conn => ToggleSelection(conn))">   
     @if (!Readonly && !SelectInterfaceView && AppHandler != null)
     {
@@ -133,10 +133,6 @@
 
     [Parameter]
     public EventCallback<List<ModellingConnection>> SelectedConnsChanged { get; set; }
-
-    [Parameter]
-    public int PageSize { get; set; } = 8;
-
 
     private void ToggleSelection(ModellingConnection conn)
     {

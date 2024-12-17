@@ -61,6 +61,12 @@
                 <div class="form-group row mt-2 me-auto" data-toggle="tooltip" title="@(userConfig.PureLine("H9081"))">
                     <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("extra_params")):</label>
                     <div class="col-sm-9">
+                        <span class="text-secondary">
+                            @foreach(var intconf in ConnHandler.ActConn.ExtraConfigsFromInterface)
+                            {
+                                <label>@(intconf.Display())</label><br>
+                            }
+                        </span>
                         @if(ConnHandler.ReadOnly)
                         {
                             foreach(var param in ConnHandler.ActConn.ExtraConfigs)
@@ -78,7 +84,8 @@
                                     </div>
                                     <input type="text" class="col-sm-9" data-toggle="@("tooltip")"
                                         title="@(userConfig.PureLine("H5638"))" value="@param.ExtraConfigText" @onchange="@((e) => {ConnHandler.UpdateExtraConfig(e, param);})"/>
-                                    <button type="button" class="btn btn-sm btn-danger col-sm-1" @onclick="() => {ConnHandler.DeleteExtraConfig(param); ConnHandlerChanged.InvokeAsync(ConnHandler);}">
+                                    <button type="button" class="btn btn-sm btn-danger col-sm-1" @onclick="() =>
+                                        {ConnHandler.DeleteExtraConfig(param); ConnHandlerChanged.InvokeAsync(ConnHandler);}">
                                         @(ConnHandler.DisplayButton("delete_extra_config", Icons.Delete))</button>
                                 </div>
                             }
@@ -613,7 +620,7 @@
 
     private async Task ReplaceInterface()
     {
-        await ConnHandler.ReplaceInterface(authenticationStateTask, middlewareClient);
+        await ConnHandler.ReplaceInterface(authenticationStateTask!, middlewareClient);
         Close();
     }
 

@@ -5323,21 +5323,22 @@
                   "permission": {
                     "check": {},
                     "columns": [
-                      "id",
-                      "ticket_id",
+                      "create_date",
                       "ext_query_variables",
                       "ext_request_content",
                       "ext_request_state",
                       "ext_request_type",
                       "ext_ticket_id",
                       "ext_ticket_system",
+                      "finish_date",
+                      "id",
                       "last_creation_response",
                       "last_processing_response",
+                      "locked",
                       "owner_id",
                       "task_number",
-                      "wait_cycles",
-                      "create_date",
-                      "finish_date"
+                      "ticket_id",
+                      "wait_cycles"
                     ]
                   },
                   "comment": ""
@@ -5355,6 +5356,7 @@
                       "ext_ticket_system",
                       "finish_date",
                       "id",
+                      "locked",
                       "owner_id",
                       "task_number",
                       "ticket_id",
@@ -5371,6 +5373,7 @@
                     "columns": [
                       "id",
                       "ticket_id",
+                      "locked",
                       "ext_query_variables",
                       "ext_request_content",
                       "ext_request_state",
@@ -5395,6 +5398,7 @@
                     "columns": [
                       "id",
                       "ticket_id",
+                      "locked",
                       "ext_query_variables",
                       "ext_request_content",
                       "ext_request_state",
@@ -5419,6 +5423,7 @@
                     "columns": [
                       "id",
                       "ticket_id",
+                      "locked",
                       "ext_query_variables",
                       "ext_request_content",
                       "ext_request_state",
@@ -5445,6 +5450,7 @@
                     "columns": [
                       "id",
                       "ticket_id",
+                      "locked",
                       "ext_query_variables",
                       "ext_request_content",
                       "ext_request_state",
@@ -5469,7 +5475,8 @@
                   "permission": {
                     "columns": [
                       "ext_request_state",
-                      "finish_date"
+                      "finish_date",
+                      "locked"
                     ],
                     "filter": {},
                     "check": null

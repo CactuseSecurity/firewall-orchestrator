@@ -652,21 +652,24 @@ namespace FWO.Middleware.Server
 
 		private async Task<bool> UpdateAppServerName(ModellingAppServer appServer, string newName)
 		{
-			try
+			if (appServer.Name != newName)
 			{
-				var Variables = new
+				try
 				{
-                    newName,
-					id = appServer.Id,
-				};
-				await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.setAppServerName, Variables);
-				Log.WriteWarning("Import App Server Data", $"Name of App Server changed from {appServer.Name} changed to {newName}");
-				
-			}
-			catch (Exception exc)
-			{
-				Log.WriteError("Import App Server Data", $"Name of App Server {appServer.Name} could not be set to {newName}.", exc);
-				return false;
+					var Variables = new
+					{
+						newName,
+						id = appServer.Id,
+					};
+					await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.setAppServerName, Variables);
+					Log.WriteWarning("Import App Server Data", $"Name of App Server changed from {appServer.Name} changed to {newName}");
+					
+				}
+				catch (Exception exc)
+				{
+					Log.WriteError("Import App Server Data", $"Name of App Server {appServer.Name} could not be set to {newName}.", exc);
+					return false;
+				}
 			}
 			return true;
 		}

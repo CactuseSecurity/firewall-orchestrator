@@ -185,7 +185,8 @@ namespace FWO.Tufin.SecureChange
 
         private static string ConstructObjectName(NwObjectElement nwObj, ModellingNamingConvention? namingConvention)
         {
-        	return string.IsNullOrEmpty(nwObj.Name) ? namingConvention?.AppServerPrefix + nwObj.IpString :
+			// shouldn't be necessary here anymore?
+        	return string.IsNullOrEmpty(nwObj.Name) ? namingConvention?.AppServerPrefix + DisplayBase.DisplayIp(nwObj.IpString, nwObj.IpEndString) :
                 char.IsLetter(nwObj.Name[0]) ? nwObj.Name : namingConvention?.AppServerPrefix + nwObj.Name;
 		}
 

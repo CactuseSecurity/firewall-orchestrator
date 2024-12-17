@@ -252,6 +252,9 @@ bugfix release:
 # 8.5.4 - 04.12.2024 DEVELOP
 - external request: introduce wait cycles
 
+# 8.6.1 - 12.12.2024 DEVELOP
+- external request: introduce locks
+
 # 9.0 - 31.07.2024 DEVELOP
 - rule to gateway mapping 1:n
 - add report output for rule to gw mapping

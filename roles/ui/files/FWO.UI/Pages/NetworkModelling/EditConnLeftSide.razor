@@ -289,7 +289,7 @@
     private async Task ReplaceInterface()
     {
         await ConnHandler.RequestReplaceInterface(selectedInterfaces[0]);
-        ConnHandlerChanged.InvokeAsync(ConnHandler);
+        await ConnHandlerChanged.InvokeAsync(ConnHandler);
     }
 
     private bool InterfaceToConn(ModellingConnection interf)

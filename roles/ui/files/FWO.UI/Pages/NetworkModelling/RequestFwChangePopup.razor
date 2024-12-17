@@ -22,7 +22,7 @@
         @if (Display)
         {
             <div class="m-2">
-                <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="WfReqTask" Items="TaskList" PageSize="0" ColumnReorder="true">
+                <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="WfReqTask" Items="TaskList.OrderBy(t => t.TaskNumber).ToList()" PageSize="0" ColumnReorder="true">
                     <Column TableItem="WfReqTask" Title="@(userConfig.GetText("number"))" Field="@(x => x.TaskNumber)" Sortable="true" Filterable="false" />
                     <Column TableItem="WfReqTask" Title="@(userConfig.GetText("type"))" Field="@(x => x.Id)" Sortable="true" Filterable="false">
                         <Template>
@@ -131,7 +131,7 @@
         {
             if (!await GetActTicketStatus())
             {
-                ModellingAppZoneHandler appZoneHandler = new(apiConnection, userConfig, DisplayMessageInUi, SelectedApp);
+                ModellingAppZoneHandler appZoneHandler = new(apiConnection, userConfig, SelectedApp, DisplayMessageInUi);
                 await appZoneHandler.UpsertAppZone();
                 ModellingVarianceAnalysis varianceAnalysis = new(apiConnection, extStateHandler, userConfig, SelectedApp, DisplayMessageInUi);       
                 TaskList = await varianceAnalysis.AnalyseModelledConnections(Connections);

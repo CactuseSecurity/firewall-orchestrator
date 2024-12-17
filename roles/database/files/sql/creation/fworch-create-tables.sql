@@ -1174,7 +1174,8 @@ create table ext_request
 	last_processing_response varchar,
 	create_date Timestamp default now(),
 	finish_date Timestamp,
-	wait_cycles int default 0
+	wait_cycles int default 0,
+	locked boolean default false
 );
 
 -- workflow -------------------------------------------------------

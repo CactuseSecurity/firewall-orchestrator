@@ -26,10 +26,8 @@ namespace FWO.Middleware.Server
 		/// </summary>
 		protected GlobalConfig globalConfig;
 
-
-		private bool WorkInProgress = false;
 		private readonly UserConfig userConfig;
-		private List<ExternalRequest> openRequests = [];
+		private ExternalRequestDataHelper openRequests = new();
 
 		// todo: map to internal states to use "lowest_end_state" setting ?
 		private static readonly List<string> openRequestStates =
@@ -58,39 +56,53 @@ namespace FWO.Middleware.Server
 		{
 			try
 			{
-				if(!WorkInProgress)
+				openRequests = await apiConnection.SendQueryAsync<ExternalRequestDataHelper>(ExtRequestQueries.getAndLockOpenRequests, new {states = openRequestStates});
+				foreach(var request in openRequests.ExternalRequests)
 				{
-					WorkInProgress = true;
-					openRequests = await apiConnection.SendQueryAsync<List<ExternalRequest>>(ExtRequestQueries.getOpenRequests, new {states = openRequestStates});
-					foreach(var request in openRequests)
+					if(request.ExtRequestState == ExtStates.ExtReqInitialized.ToString() ||
+						request.ExtRequestState == ExtStates.ExtReqFailed.ToString()) // try again
 					{
-						if(request.ExtRequestState == ExtStates.ExtReqInitialized.ToString() ||
-							request.ExtRequestState == ExtStates.ExtReqFailed.ToString()) // try again
+						if(request.WaitCycles > 0)
 						{
-							if(request.WaitCycles > 0)
-							{
-								await CountDownWaitCycle(request);
-							}
-							else
-							{
-								await SendRequest(request);
-							}
+							await CountDownWaitCycle(request);
 						}
 						else
 						{
-							await RefreshState(request);
+							await SendRequest(request);
 						}
 					}
-					WorkInProgress = false;
+					else
+					{
+						await RefreshState(request);
+					}
+					if ((await apiConnection.SendQueryAsync<ReturnId>(ExtRequestQueries.updateExternalRequestLock, new {id = request.Id, locked = false})).UpdatedId == request.Id)
+					{
+						request.Locked = false;
+					}
 				}
 			}
 			catch(Exception exception)
 			{
 				Log.WriteError("External Request Sender", $"Runs into exception: ", exception);
-				WorkInProgress = false;
+				await ReleaseRemainingLocks(openRequests.ExternalRequests);
 				return false;
 			}
 			return true;
+		}
+
+		private async Task ReleaseRemainingLocks(List<ExternalRequest> requests)
+		{
+			try
+			{
+				foreach(var request in requests.Where(r => r.Locked))
+				{
+					await apiConnection.SendQueryAsync<ReturnId>(ExtRequestQueries.updateExternalRequestLock, new {id = request.Id, locked = false});
+				}
+			}
+			catch(Exception exception)
+			{
+				Log.WriteError("Release Lock", $"Runs into exception: ", exception);
+			}
 		}
 
 		private async Task SendRequest(ExternalRequest request)
@@ -99,6 +111,7 @@ namespace FWO.Middleware.Server
 			{
 				ExternalTicket ticket = JsonSerializer.Deserialize<ExternalTicket>(request.ExtRequestContent) ?? throw new Exception("No Ticket Content");
 				ticket.TicketSystem = JsonSerializer.Deserialize<ExternalTicketSystem>(request.ExtTicketSystem) ?? throw new Exception("No Ticket System");
+				Log.WriteInfo(userConfig.GetText("send_ext_request"), $"Id: {request.Id}, Internal TicketId: {request.TicketId}, TaskNo: {request.TaskNumber}");
                 RestResponse<int> ticketIdResponse = await ticket.CreateExternalTicket();
 				request.LastMessage = ticketIdResponse.Content;
 				if (ticketIdResponse.StatusCode == HttpStatusCode.OK || ticketIdResponse.StatusCode == HttpStatusCode.Created)

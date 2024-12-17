@@ -371,12 +371,12 @@ else
         else
         {
             List<ExternalRequest> lastRequests = await apiConnection.SendQueryAsync<List<ExternalRequest>>(ExtRequestQueries.getLastRequest, new{ticketId = intTicket.Id});
-            if(lastRequests.Count > 0)
+            if(lastRequests != null && lastRequests.Count > 0)
             {
-                
+                string? lastResponse = !string.IsNullOrEmpty(lastRequests.First().LastProcessingResponse) ? 
+                    lastRequests.First().LastProcessingResponse : lastRequests.First().LastCreationResponse;
                 bool shortened = false;
-                string tooltip = states.Name[intTicket.StateId] + ": " + Sanitizer.SanitizeCommentOpt(lastRequests.First().LastProcessingResponse, ref shortened)
-                    ?? Sanitizer.SanitizeCommentOpt(lastRequests.First().LastCreationResponse, ref shortened) ?? "";
+                string tooltip = states.Name[intTicket.StateId] + ": " + Sanitizer.SanitizeCommentOpt(lastResponse, ref shortened);
                 ChangeStatus = $"<div data-toggle=\"tooltip\" title=\"{tooltip}\">{userConfig.GetText("implementation_error")}</div>";
             }
             else

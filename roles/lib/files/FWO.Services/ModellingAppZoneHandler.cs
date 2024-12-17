@@ -7,7 +7,7 @@ using System.Text.Json;
 
 namespace FWO.Services
 {
-    public class ModellingAppZoneHandler(ApiConnection apiConnection, UserConfig userConfig, Action<Exception?, string, string, bool> displayMessageInUi, FwoOwner owner) : ModellingHandlerBase(apiConnection, userConfig, displayMessageInUi)
+    public class ModellingAppZoneHandler(ApiConnection apiConnection, UserConfig userConfig, FwoOwner owner, Action<Exception?, string, string, bool>? displayMessageInUi = default) : ModellingHandlerBase(apiConnection, userConfig, displayMessageInUi)
     {
         private ModellingNamingConvention NamingConvention = new();
 

@@ -124,7 +124,7 @@
                                    @onchange="@(_ => reportScheduleInEdit.OutputFormat.AddOrRemove(GlobalConst.kJson))">
                             <label class="form-check-label" for="outputFormatJson">JSON</label>
                         </div>
-                        @if (((ReportType)reportScheduleInEdit.Template.ReportParams?.ReportType).IsResolvedReport())
+                        @if (reportScheduleInEdit.Template.ReportParams != null && ((ReportType)reportScheduleInEdit.Template.ReportParams.ReportType).IsResolvedReport())
                         {
                             <div class="form-check">
                                 <input class="form-check-input" type="checkbox" id="outputFormatCsv" value="Csv"

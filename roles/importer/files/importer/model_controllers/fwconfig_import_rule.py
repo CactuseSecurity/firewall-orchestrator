@@ -577,7 +577,7 @@ class FwConfigImportRule(FwConfigImportBase):
                 # 'rule_num': 1   # TODO: need to fix this!!!!!!!!!!!!!!!
                     
                 newRules.append(newEnrichedRule.dict())
-            
+           
         return newRules
 
     # def prepareNewRulebases(self, newRuleUids):

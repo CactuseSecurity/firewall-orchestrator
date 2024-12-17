@@ -237,6 +237,30 @@ Alter table "rule" add constraint "rule_metadata_dev_id_rule_uid_f_key"
 -- decision: the rule_metadata always refers to the a rule(_uid) on a specific gateway
 --   that means recertifications, last hit info, owner, ... are all linked to a gateway
 
+-----------------------------------------------
+-- bulid rule-rulebase graph
+-- rules may spawn rulebase children with new link table rulebase_link
+
+Create table IF NOT EXISTS "rulebase_link"
+(
+	"id" SERIAL primary key,
+	"gw_id" Integer,
+	"from_rule_id" Integer,
+	"to_rulebase_id" Integer NOT NULL,
+	"link_type" Integer,
+	"created" BIGINT,
+	"deleted" BIGINT
+);
+
+Alter table "rulebase_link" drop constraint IF EXISTS "fk_rulebase_link_to_rulebase_id";
+Alter table "rulebase_link" drop constraint IF EXISTS "fk_rulebase_link_from_rule_id";
+Alter table "rulebase_link" add foreign key "fk_rulebase_link_to_rulebase_id" ("to_rulebase_id") references "rulebase" ("id") on update restrict on delete cascade;
+Alter table "rulebase_link" add foreign key "fk_rulebase_link_from_rule_id" ("from_rule_id") references "rule" ("rule_id") on update restrict on delete cascade;
+
+-- TODO delete all rule.parent_rule_id and rule.parent_rule_type, always = None so far
+
+-----------------------------------------------
+
 /*
     migration plan:
     1) create rulebases without rules (derive from device table)

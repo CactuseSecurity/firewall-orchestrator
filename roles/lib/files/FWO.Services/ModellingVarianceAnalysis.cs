@@ -56,7 +56,7 @@ namespace FWO.Services
             foreach (Management mgt in managements)
             {
                 await AnalyseAppZone(mgt);
-                foreach(var conn in connections.Where(c => !c.IsRequested))
+                foreach(var conn in connections.Where(c => !c.IsRequested).OrderBy(c => c.Id))
                 {
                     elements = [];
                     AnalyseNetworkAreas(conn);
@@ -101,9 +101,10 @@ namespace FWO.Services
             {
                 comment += ", ComSvc";
             }
-            if(conn.ExtraConfigs.Count > 0)
+            if(conn.ExtraConfigs.Count > 0 || conn.ExtraConfigsFromInterface.Count > 0)
             {
-                comment += ", " + userConfig.GetText("impl_instructions") + ": " + string.Join(", ", conn.ExtraConfigs.ConvertAll(x => x.Display()));
+                comment += ", " + userConfig.GetText("impl_instructions") + ": " + 
+                    string.Join(", ", conn.ExtraConfigs.ConvertAll(x => x.Display()).Concat(conn.ExtraConfigsFromInterface.ConvertAll(x => x.Display())));
             }
             return comment;
         }
@@ -351,7 +352,7 @@ namespace FWO.Services
                 {
                     RequestAction = alreadyRequested ? RequestAction.addAfterCreation.ToString() : RequestAction.create.ToString(),
                     Field = ElemFieldType.source.ToString(),
-                    Name = appServer.Name,
+                    Name = AppServerComparer.ConstructAppServerName(appServer, namingConvention),
                     IpString = appServer.Ip,
                     IpEnd = appServer.IpEnd,
                     GroupName = nwGroup.IdString,
@@ -432,7 +433,7 @@ namespace FWO.Services
                 {
                     RequestAction = alreadyRequested ? RequestAction.addAfterCreation.ToString() : RequestAction.create.ToString(),
                     Field = ElemFieldType.source.ToString(),
-                    Name = appServer.Content.Name,
+                    Name = AppServerComparer.ConstructAppServerName(appServer.Content, namingConvention),
                     IpString = appServer.Content.Ip,
                     IpEnd = appServer.Content.IpEnd,
                     GroupName = idString,

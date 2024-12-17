@@ -177,6 +177,9 @@
                     case nameof(ConState.InterfaceRejected):
                         relevantProps.Add($"<span style=\"color:red\" data-toggle=\"tooltip\" title=\"{userConfig.PureLine("C9011")}\">{false.ShowAsHtml()}</span>");
                         break;
+                    case nameof(ConState.Requested):
+                        relevantProps.Add($"<span class=\"text-warning\" data-toggle=\"tooltip\" title=\"{userConfig.PureLine("C9008")}\">!</span>");
+                        break;
                     case nameof(ConState.EmptyAppRoles):
                         relevantProps.Add($"<span class=\"text-warning\" data-toggle=\"tooltip\" title=\"{(connection.IsInterface ? userConfig.PureLine("C9015") : userConfig.PureLine("C9013"))}\">!</span>");
                         break;

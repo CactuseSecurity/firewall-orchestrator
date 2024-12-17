@@ -65,7 +65,7 @@ namespace FWO.Services
             foreach(var reqtask in reqTasks.Where(t => t.Comments.Count > 0))
             {
                 WfReqTask? reqTaskToChange = wfHandler.ActTicket.Tasks.FirstOrDefault(x => x.TaskType == reqtask.TaskType &&
-                    x.ManagementId == reqtask.ManagementId && x.Title == reqtask.Title);
+                    x.ManagementId == reqtask.ManagementId && x.Title == reqtask.Title && x.TaskNumber == reqtask.TaskNumber);
                 if(reqTaskToChange != null)
                 {
                     wfHandler.SetReqTaskEnv(reqTaskToChange);

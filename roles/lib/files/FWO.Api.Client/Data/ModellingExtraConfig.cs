@@ -28,5 +28,13 @@ namespace FWO.Api.Data
         {
             return $"{ExtraConfigType}: {ExtraConfigText}";
         }
+
+        public bool Sanitize()
+        {
+            bool shortened = false;
+            ExtraConfigType = Sanitizer.SanitizeMand(ExtraConfigType, ref shortened);
+            ExtraConfigText = Sanitizer.SanitizeMand(ExtraConfigText, ref shortened);
+            return shortened;
+        }
     }
 }

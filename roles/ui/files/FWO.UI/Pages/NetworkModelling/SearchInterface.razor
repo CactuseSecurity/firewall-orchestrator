@@ -11,7 +11,7 @@
         @if (Display && InitComplete)
         {
             <div class="min-height me-5">               
-                <ConnectionTable Connections="@selectableInterfaces" SelectInterfaceView="true" ShowAppName="true" @bind-SelectedConns="SelectedInterfaces" />
+                <ConnectionTable Selectable="true" Connections="@selectableInterfaces" SelectInterfaceView="true" ShowAppName="true" @bind-SelectedConns="SelectedInterfaces" />
             </div>
         }
     </Body>

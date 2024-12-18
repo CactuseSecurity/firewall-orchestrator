@@ -98,15 +98,15 @@
             @if(ConnHandler.ActConn.IsInterface)
             {
                 <div class="form-group row mt-2 me-auto" data-toggle="tooltip" title="@(userConfig.PureLine("C9009"))">
-                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("publish")):</label>
+                    <label for="cbx_publish" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("publish")):</label>
                     <div class="col-sm-1">
                         @if(ConnHandler.ReadOnly)
                         {
-                            <input type="checkbox" class="w-100" disabled @bind="ConnHandler.ActConn.IsPublished">
+                            <input id="cbx_publish" type="checkbox" class="w-100" disabled @bind="ConnHandler.ActConn.IsPublished">
                         }
                         else
                         {
-                            <input type="checkbox" class="w-100" @bind="ConnHandler.ActConn.IsPublished">
+                            <input id="cbx_publish" type="checkbox" class="w-100" @bind="ConnHandler.ActConn.IsPublished">
                         }
                     </div>
                 </div>

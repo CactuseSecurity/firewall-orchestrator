@@ -27,6 +27,7 @@
 {
     <div class="m-2 vheight75">
         <div class="form-group row">
+            <button type="button" class="btn btn-info col-sm-2" @onclick="FetchData">@(userConfig.GetText("refresh"))</button>
             <div class="col-sm-2">
                 <input id="cbx_show_all" class="form-check-input" type="checkbox" value="displayAll" @onchange="@ChangeDisplay">
                 <label for="cbx_show_all" class="form-check-label">@(userConfig.GetText("show_all"))</label>
@@ -35,14 +36,27 @@
         <PageSizeComponent PageSizeCallback="UpdatePageSize" PageSize="PageSize"></PageSizeComponent>
         <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="ExternalRequest" Items="openRequests" PageSize="PageSize" ColumnReorder="true">
             <Column TableItem="ExternalRequest" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
-                <Template>
-                    <div class="btn-group" data-toggle="tooltip" title="@(userConfig.PureLine("H9071"))">
-                        <button type="button" class="btn btn-sm btn-primary" @onclick="() => Details(context)">@(userConfig.GetText("details"))</button>
-                        @if(context.ExtRequestState != ExtStates.ExtReqDiscarded.ToString() &&
-                            context.ExtRequestState != ExtStates.ExtReqAcknowledged.ToString() &&
-                            context.ExtRequestState != ExtStates.ExtReqAckRejected.ToString())
+                <Template Context="request">
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-sm btn-primary" @onclick="() => Details(request)">@(userConfig.GetText("details"))</button>
+                        @if(request.ExtRequestState != ExtStates.ExtReqDiscarded.ToString() &&
+                            request.ExtRequestState != ExtStates.ExtReqAcknowledged.ToString() &&
+                            request.ExtRequestState != ExtStates.ExtReqAckRejected.ToString())
                         {
-                            <button type="button" class="btn btn-sm btn-warning" @onclick="() => RequestChangeState(context)">@(userConfig.GetText("change_state"))</button>
+                            <div data-toggle="tooltip" title="@(userConfig.PureLine("H9071"))">
+                                <button type="button" class="btn btn-sm btn-warning" @onclick="() => RequestChangeState(request)">@(userConfig.GetText("change_state"))</button>
+                            </div>
+                        }
+                        @if(request.Locked)
+                        {
+                            <AuthorizeView Roles="@($"{Roles.Admin}")">
+                                <Authorized>
+                                    <button type="button" class="btn btn-sm btn-danger" @onclick="async () => {await Unlock(request);}">@(userConfig.GetText("unlock"))</button>
+                                </Authorized>
+                                <NotAuthorized>
+                                    <button type="button" class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("unlock"))</button>
+                                </NotAuthorized> 
+                            </AuthorizeView>
                         }
                     </div>
                 </Template>
@@ -51,6 +65,11 @@
             <Column TableItem="ExternalRequest" Title="@(userConfig.GetText("owner"))" Field="@(x => x.Owner.Name)" Sortable="true" Filterable="true" >
                 <Template Context="request">
                     @request.Owner.Display(userConfig.GetText("common_service"))
+                </Template>
+            </Column>
+            <Column TableItem="ExternalRequest" Title="@(userConfig.GetText("locked"))" Field="@(x => x.Locked)" Sortable="true" Filterable="true" >
+                <Template Context="request">
+                    @request.Locked.ShowAsHtml()
                 </Template>
             </Column>
             <Column TableItem="ExternalRequest" Title="@(userConfig.GetText("ticket"))" Field="@(x => x.TicketId)" Sortable="true" Filterable="true" />
@@ -286,6 +305,19 @@ else
         await FetchData();
         workInProgress = false;
         ChangeStateMode = false;
+    }
+
+    private async Task Unlock(ExternalRequest request)
+    {
+        try
+        {
+            await apiConnection.SendQueryAsync<ReturnId>(ExtRequestQueries.updateExternalRequestLock, new {id = request.Id, locked = false});
+            await FetchData();
+        }
+        catch (System.Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("unlock"), "", true);
+        }
     }
 
     private string ConvertQuotes(string textIn)

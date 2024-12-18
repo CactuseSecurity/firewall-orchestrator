@@ -1,0 +1,12 @@
+mutation updateExternalRequestLock(
+  $id: bigint!
+  $locked: Boolean!
+  ) {
+  update_ext_request_by_pk(
+    pk_columns: { id: $id }
+    _set: {
+      locked: $locked
+  }) {
+    UpdatedId: id
+  }
+}

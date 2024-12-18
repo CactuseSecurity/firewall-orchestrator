@@ -4,7 +4,7 @@
 <form class="my-1">
     <div class="d-flex justify-content-end">
         <label for="pagesize" class="p-2 d-inline-flex">@UserConfig.GetText("PagerPagesize")</label>
-        <input id="pagesize" type="text" class="w-25 d-inline-flex form-control form-control-sm me-2" @bind="PageSize" />
+        <input id="pagesize" type="text" class="cwidth-70 d-inline-flex form-control form-control-sm me-2" @bind="PageSize" />
         <button type="submit" class="btn btn-sm btn-primary" @onclick:preventDefault="true" @onclick="SubmitPageSize">@UserConfig.GetText("PagerSubmit")</button>
     </div>
 </form>
@@ -17,5 +17,4 @@
     {
         await PageSizeCallback.InvokeAsync(PageSize);
     }
-
 }

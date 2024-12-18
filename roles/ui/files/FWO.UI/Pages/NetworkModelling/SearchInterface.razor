@@ -6,16 +6,18 @@
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
-<PopUp Title="@(userConfig.GetText("search_interface"))" Size=PopupSize.XLarge Show="@Display" OnClose="Close">
+<PopUp Title="@(userConfig.GetText("search_interface"))" Size="PopupSize.FullScreenWidth" Show="@Display" OnClose="Close">
     <Body>
         @if (Display && InitComplete)
         {
-            <ConnectionTable Connections="@selectableInterfaces" SelectInterfaceView="true" ShowAppName="true" @bind-SelectedConns="SelectedInterfaces"/>
+            <div class="min-height me-5">               
+                <ConnectionTable Connections="@selectableInterfaces" SelectInterfaceView="true" ShowAppName="true" @bind-SelectedConns="SelectedInterfaces" />
+            </div>
         }
     </Body>
     <Footer>
         <div class="btn-group">
-            @if(SelectedInterfaces.Count == 1)
+            @if (SelectedInterfaces.Count == 1)
             {
                 <AuthorizeView Roles="@Roles.Modeller">
                     <Authorized>
@@ -23,14 +25,13 @@
                     </Authorized>
                     <NotAuthorized>
                         <button type="button" class="btn btn-sm btn-success" disabled>@(userConfig.GetText("select"))</button>
-                    </NotAuthorized> 
+                    </NotAuthorized>
                 </AuthorizeView>
             }
             <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(userConfig.GetText("cancel"))</button>
         </div>
     </Footer>
 </PopUp>
-
 
 @code
 {
@@ -55,7 +56,6 @@
     [Parameter]
     public FwoOwner Application { get; set; } = new();
 
-
     private List<ModellingConnection> selectableInterfaces { get; set; } = new();
     private List<ModellingConnection> allPublishedInterfaces { get; set; } = new();
     private List<ModellingConnection> SelectedInterfaces { get; set; } = [];
@@ -65,7 +65,7 @@
 
     protected override async Task OnParametersSetAsync()
     {
-        if(Display && FirstTry)
+        if (Display && FirstTry)
         {
             try
             {
@@ -84,7 +84,7 @@
     private void RefreshSelectionList()
     {
         selectableInterfaces = new();
-        if(allPublishedInterfaces != null && allPublishedInterfaces.Count > 0)
+        if (allPublishedInterfaces != null && allPublishedInterfaces.Count > 0)
         {
             selectableInterfaces = PreselectedInterfaces != null && PreselectedInterfaces.Count > 0 ?
                 allPublishedInterfaces.Where(i => PreselectedInterfaces.FirstOrDefault(sel => sel.Id == i.Id) == null)?.ToList() ?? new() : allPublishedInterfaces;
@@ -94,7 +94,7 @@
     private async Task SelectInterface()
     {
         await AddInterface();
-        // SelectAction(selectedInterface); 
+        // SelectAction(selectedInterface);
         Close();
     }
 
@@ -102,7 +102,7 @@
     {
         try
         {
-            if(SelectedInterfaces.Count == 1)
+            if (SelectedInterfaces.Count == 1)
             {
                 var Variables = new
                 {
@@ -110,7 +110,7 @@
                     connectionId = SelectedInterfaces.First().Id
                 };
                 await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.addSelectedConnection, Variables);
-                if(PreselectedInterfaces == null)
+                if (PreselectedInterfaces == null)
                 {
                     PreselectedInterfaces = new();
                 }

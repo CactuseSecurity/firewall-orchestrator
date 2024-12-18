@@ -179,7 +179,7 @@ namespace FWO.Services
         {
             try
             {
-                List<ModellingConnection> conns = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getInterfaceById, new {intId = ActConn.Id});
+                List<ModellingConnection> conns = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnectionById, new {id = ActConn.Id});
                 if(conns.Count > 0)
                 {
                     ActConn = conns.First();
@@ -269,7 +269,7 @@ namespace FWO.Services
             AddExtraConfigMode = true;
         }
 
-        public async Task<bool> SaveExtraConfig(ModellingExtraConfig extraConfig)
+        public bool SaveExtraConfig(ModellingExtraConfig extraConfig)
         {
             extraConfig.Id = ActConn.ExtraConfigs.Count > 0 ? ActConn.ExtraConfigs.OrderByDescending(x => x.Id).First().Id + 1 : 1;
             List<ModellingExtraConfig> actList = ActConn.ExtraConfigs;
@@ -278,18 +278,19 @@ namespace FWO.Services
             return true;
         }
 
-        public async Task UpdateExtraConfig(ChangeEventArgs e, ModellingExtraConfig extraConfig)
+        public void UpdateExtraConfig(ChangeEventArgs e, ModellingExtraConfig extraConfig)
         {
             List<ModellingExtraConfig> actList = ActConn.ExtraConfigs;
             ModellingExtraConfig? actConfig = actList.FirstOrDefault(x => x.Id == extraConfig.Id);
             if(actConfig != null)
             {
-                actConfig.ExtraConfigText = e.Value.ToString();
+                actConfig.ExtraConfigText = e.Value?.ToString() ?? "";
+                actConfig.Sanitize();
             }
             ActConn.ExtraConfigs = actList;
         }
 
-        public async Task<bool> DeleteExtraConfig(ModellingExtraConfig extraConfig)
+        public bool DeleteExtraConfig(ModellingExtraConfig extraConfig)
         {
             List<ModellingExtraConfig> actList = ActConn.ExtraConfigs;
             actList.Remove(actList.FirstOrDefault(x => x.Id == extraConfig.Id) ?? throw new Exception("Did not find service group."));
@@ -477,6 +478,7 @@ namespace FWO.Services
             }
             ActConn.Services = [.. interf.Services];
             ActConn.ServiceGroups = [.. interf.ServiceGroups];
+            ActConn.ExtraConfigsFromInterface = interf.ExtraConfigs;
         }
 
         public void RemoveInterf()
@@ -507,6 +509,7 @@ namespace FWO.Services
             SrcReadOnly = false;
             DstReadOnly = false;
             SvcReadOnly = false;
+            ActConn.ExtraConfigsFromInterface = [];
         }
 
         public void RequestRemovePreselectedInterface(ModellingConnection interf)
@@ -1094,7 +1097,7 @@ namespace FWO.Services
                     {
                         SyncSvcChanges();
                     }
-                    ActConn.SyncState();
+                    ActConn.SyncState(DummyAppRole.Id);
                     if(AddMode)
                     {
                         await AddConnectionToDb();                        
@@ -1274,6 +1277,7 @@ namespace FWO.Services
                     isInterface = ActConn.IsInterface,
                     usedInterfaceId = ActConn.UsedInterfaceId,
                     isRequested = ActConn.IsRequested,
+                    isPublished = ActConn.IsPublished,
                     ticketId = ActConn.TicketId,
                     creator = userConfig.User.Name,
                     commonSvc = ActConn.IsCommonService,

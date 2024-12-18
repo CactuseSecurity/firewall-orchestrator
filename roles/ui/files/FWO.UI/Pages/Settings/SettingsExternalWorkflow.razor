@@ -85,9 +85,9 @@
             </div>
             @if(actExtTicketSystemType == ExternalTicketSystemType.TufinSecureChange)
             {
-                <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ext_ticket_lookup_id")):</label>
+                <label for="cbx_ext_ticket_lookup_id" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ext_ticket_lookup_id")):</label>
                 <div class="col-sm-2">
-                    <input type="checkbox" class="w-100" @bind="extTicketingSystemLookup">
+                    <input id="cbx_ext_ticket_lookup_id" type="checkbox" class="w-100" @bind="extTicketingSystemLookup">
                 </div>
             }
             <TabSet WholeWidth="false" DarkMode="false" KeepPanelsAlive="false">

@@ -66,7 +66,7 @@ SelectedItems="SelectedConns" RowClickAction="@(conn => ToggleSelection(conn))">
     {
         <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("owner"))" Field="@(x => x.App.Name)" Sortable="true" Filterable="true">
             <Template>
-                @(context.App?.Name)
+                @(context.App?.DisplayWithoutAppId(userConfig.GetText("common_service")))
             </Template>
         </Column>
     }

@@ -15,9 +15,9 @@
                 <SelectOwner @bind-SelectedOwner="SelectedOwner" Apps="Apps" />
             </div>
             <div class="row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("C9006"))">
-                <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("as_source")):</label>
+                <label for="cbx_as_source" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("as_source")):</label>
                 <div class="col-sm-1">
-                    <input type="checkbox" class="w-100" @bind="AsSource">
+                    <input id="cbx_as_source" type="checkbox" class="w-100" @bind="AsSource">
                 </div>
             </div>
             <div class="row mt-2 me-auto">

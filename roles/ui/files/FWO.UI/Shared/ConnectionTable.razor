@@ -9,8 +9,8 @@
 
 
 <Table class="table table-bordered th-bg-secondary sticky-header show-scrollbar table-responsive" TableItem="ModellingConnection"
-       Items="Connections" PageSize="8" ColumnReorder="true" TableRowClass="@(con => getTableRowClass(con))"
-       SelectedItems="SelectedConns" RowClickAction="@(conn => ToggleSelection(conn))">   
+Items="Connections" PageSize="10" ColumnReorder="true" TableRowClass="@(con => getTableRowClass(con))"
+SelectedItems="SelectedConns" RowClickAction="@(conn => ToggleSelection(conn))">
     @if (!Readonly && !SelectInterfaceView && AppHandler != null)
     {
         <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
@@ -38,6 +38,13 @@
             </Template>
         </Column>
     }
+    @if(Selectable){
+        <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("select"))" Sortable="false" Filterable="false">
+            <Template>
+                <input type="radio" checked="@(SelectedConns.Contains(context))" />
+            </Template>
+        </Column>
+    }
     <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
     @if (!SelectInterfaceView)
     {
@@ -59,17 +66,22 @@
     {
         <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("owner"))" Field="@(x => x.App.Name)" Sortable="true" Filterable="true">
             <Template>
-                @(context.App?.Display(userConfig.GetText("common_service")))
+                @(context.App?.DisplayWithoutAppId(userConfig.GetText("common_service")))
             </Template>
         </Column>
     }
+    <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("ext_app_id"))" Field="@(x => x.App.ExtAppId)" Sortable="true" Filterable="true">
+        <Template>
+            @(context.App.ExtAppId)
+        </Template>
+    </Column>
     <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true">
         <Template>
             @((MarkupString)DisplayConditional(context, context.Name ?? ""))
         </Template>
     </Column>
     <Column TableItem="ModellingConnection" Title="@(Connections.Count > 0 && Connections.First().IsInterface ? userConfig.GetText("interface_description") : userConfig.GetText("func_reason"))"
-            Field="@(x => x.Reason)" Sortable="true" Filterable="true">
+    Field="@(x => x.Reason)" Sortable="true" Filterable="true">
         <Template>
             @((MarkupString)DisplayConditional(context, context.Reason ?? ""))
         </Template>
@@ -133,6 +145,9 @@
 
     [Parameter]
     public EventCallback<List<ModellingConnection>> SelectedConnsChanged { get; set; }
+
+    [Parameter]
+    public bool Selectable { get; set; } = false;
 
     private void ToggleSelection(ModellingConnection conn)
     {

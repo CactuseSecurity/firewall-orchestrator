@@ -187,13 +187,13 @@
                         <div class="form-check form-check-inline col-sm-3" data-toggle="tooltip" title="@(userConfig.PureLine("H5591"))">
                             @if(Readonly && userConfig.AllowManualOwnerAdmin)
                             {
-                                <input disabled class="form-check-input" type="checkbox" @bind="actOwner.CommSvcPossible">
+                                <input id="cbx_comm_svc_possible" disabled class="form-check-input" type="checkbox" @bind="actOwner.CommSvcPossible">
                             }
                             else
                             {
-                                <input class="form-check-input" type="checkbox" @bind="actOwner.CommSvcPossible">
+                                <input id="cbx_comm_svc_possible" class="form-check-input" type="checkbox" @bind="actOwner.CommSvcPossible">
                             }
-                            <label class="form-check-label"><small>@(userConfig.GetText("comm_svc_possible"))</small></label>
+                            <label for="cbx_comm_svc_possible" class="form-check-label"><small>@(userConfig.GetText("comm_svc_possible"))</small></label>
                         </div>
                     </div>
                     <div class="form-group row mt-2">

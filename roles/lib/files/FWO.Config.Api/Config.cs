@@ -70,21 +70,6 @@ namespace FWO.Config.Api
 
         protected void Update(ConfigItem[] configItems)
         {
-            //TODO: REMOVE
-#if DEBUG
-            Delegate[] invocations = OnChange?.GetInvocationList() ?? Array.Empty<Delegate>();
-            List<string> methodeNames = new List<string>();
-            List<object?> target = new List<object?>();
-
-            foreach (Delegate invocation in invocations)
-            {
-                target.Add(invocation.Target);
-                methodeNames.Add(invocation.Method.Name);
-            }
-
-            int a;
-#endif
-
             List<string> remainingConfigItemNames = Array.ConvertAll(configItems, c => c.Key).ToList();
             foreach (PropertyInfo property in GetType().GetProperties())
             {

@@ -2,103 +2,128 @@
 @using FWO.Ui.Display
 @using FWO.Basics
 @using FWO.Api.Data
+@using FWO.Services
 @using BlazorTable
 
 @inject UserConfig userConfig
 
 
-<Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="ModellingConnection"
-        Items="Connections" PageSize="0" ColumnReorder="true" TableRowClass="@(con => getTableRowClass(con))">
-    @if(!Readonly)
+<Table class="table table-bordered th-bg-secondary sticky-header show-scrollbar table-responsive" TableItem="ModellingConnection"
+Items="Connections" PageSize="10" ColumnReorder="true" TableRowClass="@(con => getTableRowClass(con))"
+SelectedItems="SelectedConns" RowClickAction="@(conn => ToggleSelection(conn))">
+    @if (!Readonly && !SelectInterfaceView && AppHandler != null)
     {
         <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
             <Template>
                 <div class="btn-group">
-                    <button type="button" class="btn btn-sm btn-primary" @onclick="async () => 
-                        { await AppHandler.ShowDetails(context); await AppHandlerChanged.InvokeAsync(AppHandler); }">@(AppHandler.DisplayButton("details", Icons.Display))</button>
-                    @if(AppActive)
+                    <button type="button" class="btn btn-sm btn-primary" @onclick="async () =>
+                        { await AppHandler.ShowDetails(context); await AppHandlerChanged.InvokeAsync(AppHandler); }">
+                        @(AppHandler.DisplayButton("details", Icons.Display))
+                    </button>
+                    @if (AppActive)
                     {
-                        @if(!context.GetBoolProperty(ConState.InterfaceRejected.ToString()) && !context.GetBoolProperty(ConState.Rejected.ToString()))
+                        @if (!context.GetBoolProperty(ConState.InterfaceRejected.ToString()) && !context.GetBoolProperty(ConState.Rejected.ToString()))
                         {
-                            <button type="button" class="btn btn-sm btn-warning" @onclick="async () => 
-                                { await AppHandler.EditConn(context); await AppHandlerChanged.InvokeAsync(AppHandler); }">@(AppHandler.DisplayButton("edit", Icons.Edit))</button>
+                            <button type="button" class="btn btn-sm btn-warning" @onclick="async () =>
+                                { await AppHandler.EditConn(context); await AppHandlerChanged.InvokeAsync(AppHandler); }">
+                                @(AppHandler.DisplayButton("edit", Icons.Edit))
+                            </button>
                         }
-                        <button type="button" class="btn btn-sm btn-danger" @onclick="async () => 
-                            { await AppHandler.RequestDeleteConnection(context); await AppHandlerChanged.InvokeAsync(AppHandler); }">@(AppHandler.DisplayButton("delete", Icons.Delete))</button>
+                        <button type="button" class="btn btn-sm btn-danger" @onclick="async () =>
+                            { await AppHandler.RequestDeleteConnection(context); await AppHandlerChanged.InvokeAsync(AppHandler); }">
+                            @(AppHandler.DisplayButton("delete", Icons.Delete))
+                        </button>
                     }
                 </div>
             </Template>
         </Column>
     }
-    <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
-    @if(Connections.Count > 0 && Connections.First().IsInterface)
-    {
-        <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("published"))" Field="@(x => x.IsPublished)" Sortable="true" Filterable="true">
+    @if(Selectable){
+        <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("select"))" Sortable="false" Filterable="false">
             <Template>
-                @(context.IsPublished.ShowAsHtml())
+                <input type="radio" checked="@(SelectedConns.Contains(context))" />
             </Template>
         </Column>
     }
-    else
+    <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
+    @if (!SelectInterfaceView)
     {
-        <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("state"))" Field="@(x => x.Id)" Sortable="true" Filterable="false" >
+        @if (Connections.Count > 0 && Connections.First().IsInterface)
+        {
+            <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("published"))" Field="@(x => x.IsPublished)" Sortable="true" Filterable="true">
+                <Template>
+                    @(context.IsPublished.ShowAsHtml())
+                </Template>
+            </Column>
+        }
+        <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("state"))" Field="@(x => x.Id)" Sortable="true" Filterable="false">
             <Template>
                 @((MarkupString)DisplayState(context))
             </Template>
         </Column>
-    }       
-    @if(ShowAppName)
+    }
+    @if (ShowAppName)
     {
-        <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("owner"))" Field="@(x => x.App.Name)" Sortable="true" Filterable="true" />
-    }        
-    <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" >
+        <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("owner"))" Field="@(x => x.App.Name)" Sortable="true" Filterable="true">
+            <Template>
+                @(context.App?.DisplayWithoutAppId(userConfig.GetText("common_service")))
+            </Template>
+        </Column>
+    }
+    <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("ext_app_id"))" Field="@(x => x.App.ExtAppId)" Sortable="true" Filterable="true">
         <Template>
-            @((MarkupString)DisplayConditional(context, context.Name))
+            @(context.App.ExtAppId)
+        </Template>
+    </Column>
+    <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true">
+        <Template>
+            @((MarkupString)DisplayConditional(context, context.Name ?? ""))
         </Template>
     </Column>
     <Column TableItem="ModellingConnection" Title="@(Connections.Count > 0 && Connections.First().IsInterface ? userConfig.GetText("interface_description") : userConfig.GetText("func_reason"))"
-            Field="@(x => x.Reason)" Sortable="true" Filterable="true" >
+    Field="@(x => x.Reason)" Sortable="true" Filterable="true">
         <Template>
-            @((MarkupString)DisplayConditional(context, context.Reason))
+            @((MarkupString)DisplayConditional(context, context.Reason ?? ""))
         </Template>
     </Column>
-    <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("source"))" Field="@(x => x.Id)" Sortable="true" Filterable="false" >
+    <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("source"))" Field="@(x => x.Id)" Sortable="true" Filterable="false">
         <Template>
-            <ExpandableList2 Elements="AppHandler.GetSrcNames(context)" Context="src" AlwaysShowElements="@userConfig.OverviewDisplayLines">
+            <ExpandableList2 Elements="ModellingHandlerBase.GetSrcNames(context, userConfig)" Context="src" AlwaysShowElements="@userConfig.OverviewDisplayLines">
                 <ElementTemplate>
                     @((MarkupString)src)
                 </ElementTemplate>
             </ExpandableList2>
         </Template>
     </Column>
-    <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("service"))" Field="@(x => x.Id)" Sortable="true" Filterable="false" >
+    <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("service"))" Field="@(x => x.Id)" Sortable="true" Filterable="false">
         <Template>
-            <ExpandableList2 Elements="AppHandler.GetSvcNames(context)" Context="svc" AlwaysShowElements="@userConfig.OverviewDisplayLines">
+            <ExpandableList2 Elements="ModellingHandlerBase.GetSvcNames(context, userConfig)" Context="svc" AlwaysShowElements="@userConfig.OverviewDisplayLines">
                 <ElementTemplate>
                     @((MarkupString)svc)
                 </ElementTemplate>
             </ExpandableList2>
         </Template>
     </Column>
-    <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("destination"))" Field="@(x => x.Id)" Sortable="true" Filterable="false" >
+    <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("destination"))" Field="@(x => x.Id)" Sortable="true" Filterable="false">
         <Template>
-            <ExpandableList2 Elements="AppHandler.GetDstNames(context)" Context="dest" AlwaysShowElements="@userConfig.OverviewDisplayLines">
+            <ExpandableList2 Elements="ModellingHandlerBase.GetDstNames(context, userConfig)" Context="dest" AlwaysShowElements="@userConfig.OverviewDisplayLines">
                 <ElementTemplate>
                     @((MarkupString)dest)
                 </ElementTemplate>
             </ExpandableList2>
         </Template>
     </Column>
+    <Pager ShowPageNumber="true" ShowTotalCount="true" />
 </Table>
 
 
 @code
 {
     [Parameter]
-    public List<ModellingConnection> Connections { get; set; } = new();
+    public List<ModellingConnection> Connections { get; set; } = [];
 
     [Parameter]
-    public ModellingAppHandler AppHandler { get; set; }
+    public ModellingAppHandler? AppHandler { get; set; }
 
     [Parameter]
     public EventCallback<ModellingAppHandler> AppHandlerChanged { get; set; }
@@ -110,7 +135,32 @@
     public bool Readonly { get; set; } = false;
 
     [Parameter]
+    public bool SelectInterfaceView { get; set; } = false;
+
+    [Parameter]
     public bool ShowAppName { get; set; } = false;
+
+    [Parameter]
+    public List<ModellingConnection> SelectedConns { get; set; } = [];
+
+    [Parameter]
+    public EventCallback<List<ModellingConnection>> SelectedConnsChanged { get; set; }
+
+    [Parameter]
+    public bool Selectable { get; set; } = false;
+
+    private void ToggleSelection(ModellingConnection conn)
+    {
+        if (SelectInterfaceView)
+        {
+            if (!SelectedConns.Remove(conn))
+            {
+                SelectedConns = [];
+                SelectedConns.Add(conn);
+            }
+            SelectedConnsChanged.InvokeAsync(SelectedConns);
+        }
+    }
 
     private string getTableRowClass(ModellingConnection conn)
     {
@@ -123,7 +173,7 @@
 
     private string DisplayConditional(ModellingConnection conn, string content)
     {
-        if(conn.IsRequested)
+        if (conn.IsRequested)
         {
             return $"<span class=\"text-secondary\">{content}</span>";
         }
@@ -133,14 +183,14 @@
     public string DisplayState(ModellingConnection connection)
     {
         List<string> relevantProps = [];
-        if(connection.Props != null)
+        if (connection.Props != null)
         {
-            foreach(var prop in connection.Props)
+            foreach (var prop in connection.Props)
             {
                 switch (prop.Key)
                 {
                     case nameof(ConState.InterfaceRequested):
-                        if(!connection.Props.ContainsKey(ConState.InterfaceRejected.ToString()))
+                        if (!connection.Props.ContainsKey(ConState.InterfaceRejected.ToString()))
                         {
                             relevantProps.Add($"<span class=\"text-warning\" data-toggle=\"tooltip\" title=\"{userConfig.PureLine("C9007")}\">!</span>");
                         }
@@ -148,8 +198,14 @@
                     case nameof(ConState.InterfaceRejected):
                         relevantProps.Add($"<span style=\"color:red\" data-toggle=\"tooltip\" title=\"{userConfig.PureLine("C9011")}\">{false.ShowAsHtml()}</span>");
                         break;
+                    case nameof(ConState.Requested):
+                        relevantProps.Add($"<span class=\"text-warning\" data-toggle=\"tooltip\" title=\"{userConfig.PureLine("C9008")}\">!</span>");
+                        break;
                     case nameof(ConState.EmptyAppRoles):
-                        relevantProps.Add($"<span class=\"text-warning\" data-toggle=\"tooltip\" title=\"{userConfig.PureLine("C9013")}\">!</span>");
+                        relevantProps.Add($"<span class=\"text-warning\" data-toggle=\"tooltip\" title=\"{(connection.IsInterface ? userConfig.PureLine("C9015") : userConfig.PureLine("C9013"))}\">!</span>");
+                        break;
+                    case nameof(ConState.DeletedObjects):
+                        relevantProps.Add($"<span class=\"text-warning\" data-toggle=\"tooltip\" title=\"{(connection.IsInterface ? userConfig.PureLine("C9016") : userConfig.PureLine("C9014"))}\">!</span>");
                         break;
                     default:
                         break;

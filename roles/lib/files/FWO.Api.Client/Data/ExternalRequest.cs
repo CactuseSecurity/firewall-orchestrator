@@ -23,6 +23,9 @@ namespace FWO.Api.Data
         [JsonProperty("task_number"), JsonPropertyName("task_number")]
         public int TaskNumber { get; set; }
 
+        [JsonProperty("wait_cycles"), JsonPropertyName("wait_cycles")]
+        public int WaitCycles { get; set; }
+
         [JsonProperty("ext_ticket_system"), JsonPropertyName("ext_ticket_system")]
         public string ExtTicketSystem { get; set; } = "";
 
@@ -50,6 +53,16 @@ namespace FWO.Api.Data
         [JsonProperty("create_date"), JsonPropertyName("create_date")]
         public DateTime CreationDate { get; set; }
 
+        [JsonProperty("locked"), JsonPropertyName("locked")]
+        public bool Locked { get; set; } = false;
+
         public string? LastMessage { get; set; }
     }
+
+    public class ExternalRequestDataHelper
+    {
+        [JsonProperty("returning"), JsonPropertyName("returning")]
+        public List<ExternalRequest> ExternalRequests { get; set; } = [];
+    }
+
 }

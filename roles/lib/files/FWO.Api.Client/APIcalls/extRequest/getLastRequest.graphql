@@ -1,19 +1,6 @@
 
 query getLastRequest ($ticketId: bigint! ){
   ext_request (where: { ticket_id: {_eq: $ticketId} } order_by: { id: desc }, limit: 1){
-    id
-    owner_id
-    ticket_id
-    ext_ticket_system
-    ext_query_variables
-    ext_request_content
-    task_number
-    ext_request_type
-    ext_request_state
-    ext_ticket_id
-	  last_creation_response
-	  last_processing_response
-	  create_date
-	  finish_date
+    ...extRequestDetails
   }
 }

@@ -39,7 +39,15 @@ namespace FWO.Services
             ReadOnly = readOnly;
             IsOwner = isOwner;
         }
-        
+
+        public ModellingHandlerBase(ApiConnection apiConnection, UserConfig userConfig, Action<Exception?, string, string, bool> displayMessageInUi, bool addMode = false)
+        {
+            this.apiConnection = apiConnection;
+            this.userConfig = userConfig;
+            this.DisplayMessageInUi = displayMessageInUi;
+            this.AddMode = addMode;
+        }
+
         public MarkupString DisplayButton(string text, string icon, string iconText = "", string objIcon = "")
         {
             return DisplayButton(userConfig, text, icon, iconText, objIcon);
@@ -178,7 +186,7 @@ namespace FWO.Services
             {
                 if(conn.UsedInterfaceId != null)
                 {
-                    List<ModellingConnection> interf = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getInterfaceById, new {intId = conn.UsedInterfaceId});
+                    List<ModellingConnection> interf = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnectionById, new {id = conn.UsedInterfaceId});
                     if(interf.Count > 0)
                     {
                         conn.SrcFromInterface = interf[0].SourceFilled();
@@ -196,16 +204,19 @@ namespace FWO.Services
                             {
                                 conn.SourceAppServers = interf[0].SourceAppServers;
                                 conn.SourceAppRoles = interf[0].SourceAppRoles;
-                                conn.SourceNwGroups = interf[0].SourceNwGroups;
+                                conn.SourceAreas = interf[0].SourceAreas;
+                                conn.SourceOtherGroups = interf[0].SourceOtherGroups;
                             }
                             if(interf[0].DestinationFilled())
                             {
                                 conn.DestinationAppServers = interf[0].DestinationAppServers;
                                 conn.DestinationAppRoles = interf[0].DestinationAppRoles;
-                                conn.DestinationNwGroups = interf[0].DestinationNwGroups;
+                                conn.DestinationAreas = interf[0].DestinationAreas;
+                                conn.DestinationOtherGroups = interf[0].DestinationOtherGroups;
                             }
                             conn.Services = interf[0].Services;
                             conn.ServiceGroups = interf[0].ServiceGroups;
+                            conn.ExtraConfigsFromInterface = interf[0].ExtraConfigs;
                         }
                         if(interf[0].GetBoolProperty(ConState.Rejected.ToString()))
                         {
@@ -231,7 +242,7 @@ namespace FWO.Services
             {
                 if(conn.UsedInterfaceId != null)
                 {
-                    List<ModellingConnection> interf = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getInterfaceById, new {intId = conn.UsedInterfaceId});
+                    List<ModellingConnection> interf = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnectionById, new {id = conn.UsedInterfaceId});
                     if(interf.Count > 0)
                     {
                         return interf[0];
@@ -283,6 +294,84 @@ namespace FWO.Services
                 DisplayMessageInUi(exception, userConfig.GetText("is_in_use"), "", true);
                 return true;
             }
+        }
+
+        public static List<string> GetSrcNames(ModellingConnection conn, UserConfig userConfig)
+        {
+            if((conn.InterfaceIsRequested && conn.SrcFromInterface) || (conn.IsRequested && conn.SourceFilled()))
+            {
+                return [DisplayReqInt(userConfig, conn.TicketId, conn.InterfaceIsRequested,
+                    conn.GetBoolProperty(ConState.Rejected.ToString()) || conn.GetBoolProperty(ConState.InterfaceRejected.ToString()))];
+            }
+
+            List<ModellingNetworkArea> areas = [.. ModellingNetworkAreaWrapper.Resolve(conn.SourceAreas)];
+            foreach(var area in areas)
+            {
+                area.TooltipText = userConfig.GetText("C9001");
+            }
+            List<string> names = areas.ConvertAll(s => s.DisplayWithIcon(conn.SrcFromInterface));
+
+            List<ModellingNwGroup> nwGroups = [.. ModellingNwGroupWrapper.Resolve(conn.SourceOtherGroups)];
+            foreach(var nwGroup in nwGroups)
+            {
+                nwGroup.TooltipText = userConfig.GetText("C9001");
+            }
+            names.AddRange(nwGroups.ConvertAll(s => s.DisplayWithIcon(conn.SrcFromInterface)));
+
+            names.AddRange(ModellingAppRoleWrapper.Resolve(conn.SourceAppRoles).ToList().ConvertAll(s => s.DisplayWithIcon(conn.SrcFromInterface)));
+
+            List<ModellingAppServer> appServers = [.. ModellingAppServerWrapper.Resolve(conn.SourceAppServers)];
+            foreach(var appServer in appServers)
+            {
+                appServer.TooltipText = userConfig.GetText("C9001");
+            }
+            names.AddRange(appServers.ConvertAll(s => s.DisplayWithIcon(conn.SrcFromInterface)));
+            return names;
+        }
+
+        public static List<string> GetDstNames(ModellingConnection conn, UserConfig userConfig)
+        {
+            if((conn.InterfaceIsRequested && conn.DstFromInterface) || (conn.IsRequested && conn.DestinationFilled()))
+            {
+                return [DisplayReqInt(userConfig, conn.TicketId, conn.InterfaceIsRequested, 
+                    conn.GetBoolProperty(ConState.Rejected.ToString()) || conn.GetBoolProperty(ConState.InterfaceRejected.ToString()))];
+            }
+
+            List<ModellingNetworkArea> areas = [.. ModellingNetworkAreaWrapper.Resolve(conn.DestinationAreas)];
+            foreach(var area in areas)
+            {
+                area.TooltipText = userConfig.GetText("C9001");
+            }
+            List<string> names = areas.ConvertAll(s => s.DisplayWithIcon(conn.DstFromInterface));
+
+            List<ModellingNwGroup> nwGroups = [.. ModellingNwGroupWrapper.Resolve(conn.DestinationOtherGroups)];
+            foreach(var nwGroup in nwGroups)
+            {
+                nwGroup.TooltipText = userConfig.GetText("C9001");
+            }
+            names.AddRange(nwGroups.ConvertAll(s => s.DisplayWithIcon(conn.DstFromInterface)));
+
+            names.AddRange(ModellingAppRoleWrapper.Resolve(conn.DestinationAppRoles).ToList().ConvertAll(s => s.DisplayWithIcon(conn.DstFromInterface)));
+
+            List<ModellingAppServer> appServers = [.. ModellingAppServerWrapper.Resolve(conn.DestinationAppServers)];
+            foreach(var appServer in appServers)
+            {
+                appServer.TooltipText = userConfig.GetText("C9001");
+            }
+            names.AddRange(appServers.ConvertAll(s => s.DisplayWithIcon(conn.DstFromInterface)));
+            return names;
+        }
+
+        public static List<string> GetSvcNames(ModellingConnection conn, UserConfig userConfig)
+        {
+            if(conn.InterfaceIsRequested || conn.IsRequested)
+            {
+                return [DisplayReqInt(userConfig, conn.TicketId, conn.InterfaceIsRequested, 
+                    conn.GetBoolProperty(ConState.Rejected.ToString()) || conn.GetBoolProperty(ConState.InterfaceRejected.ToString()))];
+            }
+            List<string> names = ModellingServiceGroupWrapper.Resolve(conn.ServiceGroups).ToList().ConvertAll(s => s.DisplayWithIcon(conn.UsedInterfaceId != null));
+            names.AddRange(ModellingServiceWrapper.Resolve(conn.Services).ToList().ConvertAll(s => s.DisplayWithIcon(conn.UsedInterfaceId != null)));
+            return names;
         }
 
         public static async Task<List<FwoOwner>> GetOwnApps(Task<AuthenticationState> authenticationStateTask, UserConfig userConfig,

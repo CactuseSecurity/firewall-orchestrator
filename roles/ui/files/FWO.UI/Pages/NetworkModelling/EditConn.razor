@@ -61,6 +61,12 @@
                 <div class="form-group row mt-2 me-auto" data-toggle="tooltip" title="@(userConfig.PureLine("H9081"))">
                     <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("extra_params")):</label>
                     <div class="col-sm-9">
+                        <span class="text-secondary">
+                            @foreach(var intconf in ConnHandler.ActConn.ExtraConfigsFromInterface)
+                            {
+                                <label>@(intconf.Display())</label><br>
+                            }
+                        </span>
                         @if(ConnHandler.ReadOnly)
                         {
                             foreach(var param in ConnHandler.ActConn.ExtraConfigs)
@@ -78,7 +84,8 @@
                                     </div>
                                     <input type="text" class="col-sm-9" data-toggle="@("tooltip")"
                                         title="@(userConfig.PureLine("H5638"))" value="@param.ExtraConfigText" @onchange="@((e) => {ConnHandler.UpdateExtraConfig(e, param);})"/>
-                                    <button type="button" class="btn btn-sm btn-danger col-sm-1" @onclick="() => {ConnHandler.DeleteExtraConfig(param); ConnHandlerChanged.InvokeAsync(ConnHandler);}">
+                                    <button type="button" class="btn btn-sm btn-danger col-sm-1" @onclick="() =>
+                                        {ConnHandler.DeleteExtraConfig(param); ConnHandlerChanged.InvokeAsync(ConnHandler);}">
                                         @(ConnHandler.DisplayButton("delete_extra_config", Icons.Delete))</button>
                                 </div>
                             }
@@ -91,15 +98,15 @@
             @if(ConnHandler.ActConn.IsInterface)
             {
                 <div class="form-group row mt-2 me-auto" data-toggle="tooltip" title="@(userConfig.PureLine("C9009"))">
-                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("publish")):</label>
+                    <label for="cbx_publish" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("publish")):</label>
                     <div class="col-sm-1">
                         @if(ConnHandler.ReadOnly)
                         {
-                            <input type="checkbox" class="w-100" disabled @bind="ConnHandler.ActConn.IsPublished">
+                            <input id="cbx_publish" type="checkbox" class="w-100" disabled @bind="ConnHandler.ActConn.IsPublished">
                         }
                         else
                         {
-                            <input type="checkbox" class="w-100" @bind="ConnHandler.ActConn.IsPublished">
+                            <input id="cbx_publish" type="checkbox" class="w-100" @bind="ConnHandler.ActConn.IsPublished">
                         }
                     </div>
                 </div>
@@ -117,7 +124,13 @@
                         }
                         else
                         {
-                            foreach(var src in ModellingNwGroupWrapper.Resolve(ConnHandler.ActConn.SourceNwGroups))
+                            foreach(var src in ModellingNwGroupWrapper.Resolve(ConnHandler.ActConn.SourceOtherGroups))
+                            {
+                                <div class="col-sm-10">
+                                    <div class="ml-13 border form-control form-control-sm bg-transparent">@((MarkupString)src.DisplayWithIcon(ConnHandler.ActConn.SrcFromInterface))</div>
+                                </div>
+                            }
+                            foreach(var src in ModellingNetworkAreaWrapper.Resolve(ConnHandler.ActConn.SourceAreas))
                             {
                                 <div class="col-sm-10">
                                     <div class="ml-13 border form-control form-control-sm bg-transparent">@((MarkupString)src.DisplayWithIcon(ConnHandler.ActConn.SrcFromInterface))</div>
@@ -159,7 +172,16 @@
                             ondragover="event.preventDefault();"
                             ondragstart="event.dataTransfer.setData('', event.target.id);"
                             @ondrop="HandleSrcDrop">
-                            <EditList ElementType="ModellingNwGroup" Elements="ModellingNwGroupWrapper.Resolve(ConnHandler.ActConn.SourceNwGroups)"
+                            <EditList ElementType="ModellingNetworkArea" Elements="ModellingNetworkAreaWrapper.Resolve(ConnHandler.ActConn.SourceAreas)"
+                                    ElementsToAdd="ConnHandler.SrcAreasToAdd" ElementsToDelete="ConnHandler.SrcAreasToDelete" StdLayout="false" 
+                                    AfterRemoveAction="() => {ConnHandler.CalcVisibility(); StateHasChanged(); return true;}">
+                                <Display>
+                                    <div class="row">
+                                        <div class="ml-13 col-sm-12 border form-control form-control-sm bg-transparent">@((MarkupString)context.DisplayWithIcon())</div>
+                                    </div>
+                                </Display>
+                            </EditList>
+                            <EditList ElementType="ModellingNwGroup" Elements="ModellingNwGroupWrapper.Resolve(ConnHandler.ActConn.SourceOtherGroups)"
                                     ElementsToAdd="ConnHandler.SrcNwGroupsToAdd" ElementsToDelete="ConnHandler.SrcNwGroupsToDelete" StdLayout="false" 
                                     AfterRemoveAction="() => {ConnHandler.CalcVisibility(); StateHasChanged(); return true;}">
                                 <Display>
@@ -260,7 +282,13 @@
                         }
                         else
                         {
-                            foreach(var dst in ModellingNwGroupWrapper.Resolve(ConnHandler.ActConn.DestinationNwGroups))
+                            foreach(var dst in ModellingNwGroupWrapper.Resolve(ConnHandler.ActConn.DestinationOtherGroups))
+                            {
+                                <div class="col-sm-10">
+                                    <div class="ml-13 border form-control form-control-sm bg-transparent">@((MarkupString)dst.DisplayWithIcon(ConnHandler.ActConn.DstFromInterface))</div>
+                                </div>
+                            }
+                            foreach(var dst in ModellingNetworkAreaWrapper.Resolve(ConnHandler.ActConn.DestinationAreas))
                             {
                                 <div class="col-sm-10">
                                     <div class="ml-13 border form-control form-control-sm bg-transparent">@((MarkupString)dst.DisplayWithIcon(ConnHandler.ActConn.DstFromInterface))</div>
@@ -302,8 +330,17 @@
                             ondragover="event.preventDefault();"
                             ondragstart="event.dataTransfer.setData('', event.target.id);"
                             @ondrop="HandleDstDrop">
-                            <EditList ElementType="ModellingNwGroup" Elements="ModellingNwGroupWrapper.Resolve(ConnHandler.ActConn.DestinationNwGroups)" 
+                            <EditList ElementType="ModellingNwGroup" Elements="ModellingNwGroupWrapper.Resolve(ConnHandler.ActConn.DestinationOtherGroups)" 
                                     ElementsToAdd="ConnHandler.DstNwGroupsToAdd" ElementsToDelete="ConnHandler.DstNwGroupsToDelete" StdLayout="false"
+                                    AfterRemoveAction="() => {ConnHandler.CalcVisibility(); StateHasChanged(); return true;}">
+                                <Display>
+                                    <div class="row">
+                                        <div class="ml-13 col-sm-12 border form-control form-control-sm bg-transparent">@((MarkupString)context.DisplayWithIcon())</div>
+                                    </div>
+                                </Display>
+                            </EditList>
+                            <EditList ElementType="ModellingNetworkArea" Elements="ModellingNetworkAreaWrapper.Resolve(ConnHandler.ActConn.DestinationAreas)" 
+                                    ElementsToAdd="ConnHandler.DstAreasToAdd" ElementsToDelete="ConnHandler.DstAreasToDelete" StdLayout="false"
                                     AfterRemoveAction="() => {ConnHandler.CalcVisibility(); StateHasChanged(); return true;}">
                                 <Display>
                                     <div class="row">
@@ -469,6 +506,10 @@
             {
                 ConnHandler.AppRolesToSource(Container.AppRoleElements);
             }
+            if(Container.AreaElements.Count > 0)
+            {
+                ConnHandler.AreasToSource(Container.AreaElements);
+            }
             if(Container.NwGroupElements.Count > 0)
             {
                 ConnHandler.NwGroupToSource(Container.NwGroupElements);
@@ -499,6 +540,10 @@
             if(Container.AppRoleElements.Count > 0)
             {
                 ConnHandler.AppRolesToDestination(Container.AppRoleElements);
+            }
+            if(Container.AreaElements.Count > 0)
+            {
+                ConnHandler.AreasToDestination(Container.AreaElements);
             }
             if(Container.NwGroupElements.Count > 0)
             {
@@ -575,7 +620,7 @@
 
     private async Task ReplaceInterface()
     {
-        await ConnHandler.ReplaceInterface(authenticationStateTask, middlewareClient);
+        await ConnHandler.ReplaceInterface(authenticationStateTask!, middlewareClient);
         Close();
     }
 

@@ -32,14 +32,22 @@
 @if (configData != null)
 {
     <form onsubmit="return false">
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5426a"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("externalRequestSleepTime")):</label>
-            <div class="col-sm-2">
-                <input type="number" min="0" @bind="configData!.ExternalRequestSleepTime" />
+        <div class="form-group row">
+            <div class="form-group row col-sm-6" data-toggle="tooltip" title="@(userConfig.PureLine("H5426a"))">
+                <label class="col-form-label col-sm-6">@(userConfig.GetText("externalRequestSleepTime")):</label>
+                <div class="col-sm-4">
+                    <input type="number" min="0" @bind="configData!.ExternalRequestSleepTime" />
+                </div>
+            </div>
+            <div class="form-group row col-sm-6" data-toggle="tooltip" title="@(userConfig.PureLine("H5426b"))">
+                <label class="col-form-label col-sm-6">@(userConfig.GetText("externalRequestWaitCycles")):</label>
+                <div class="col-sm-4">
+                    <input type="number" min="0" @bind="configData!.ExternalRequestWaitCycles" />
+                </div>
             </div>
         </div>
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5427a"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("externalRequestStartAt")):</label>
+            <label class="col-form-label col-sm-3">@(userConfig.GetText("externalRequestStartAt")):</label>
             <div class="col-sm-4">
                 <div class="row">
                     <input type="time" step="60" class="ml-13 col-sm-5" @bind="extReqStartTime" />
@@ -75,6 +83,13 @@
                     <input type="text" class="col-sm-8" @bind="extTicketingSystemAuth" />
                 </div>
             </div>
+            @if(actExtTicketSystemType == ExternalTicketSystemType.TufinSecureChange)
+            {
+                <label for="cbx_ext_ticket_lookup_id" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ext_ticket_lookup_id")):</label>
+                <div class="col-sm-2">
+                    <input id="cbx_ext_ticket_lookup_id" type="checkbox" class="w-100" @bind="extTicketingSystemLookup">
+                </div>
+            }
             <TabSet WholeWidth="false" DarkMode="false" KeepPanelsAlive="false">
                 @{int pos = 0;}
                 @foreach(var template in extTicketingSystemTemplates)
@@ -122,6 +137,7 @@ else
     private ExternalTicketSystemType actExtTicketSystemType = ExternalTicketSystemType.Generic;
     private string extTicketingSystemUrl = "";
     private string extTicketingSystemAuth = "";
+    private bool extTicketingSystemLookup = false;
     private List<ExternalTicketSystem> extTicketSystems = [];
     private List<ExternalTicketTemplate> extTicketingSystemTemplates = [];
     private DateTime extReqStartDate = DateTime.Today;
@@ -144,6 +160,7 @@ else
                 InitTaskTypeList(actExtTicketSystemType);
                 extTicketingSystemUrl = extTicketSystems.First().Url;
                 extTicketingSystemAuth = extTicketSystems.First().Authorization;
+                extTicketingSystemLookup = extTicketSystems.First().LookupRequesterId;
                 if(extTicketSystems.First().Templates.Count == 0 && 
                     (extTicketSystems.First().TicketTemplate != "" || extTicketSystems.First().TasksTemplate != ""))
                 {
@@ -213,6 +230,7 @@ else
                     Type = actExtTicketSystemType,
                     Url = extTicketingSystemUrl,
                     Authorization = extTicketingSystemAuth,
+                    LookupRequesterId = extTicketingSystemLookup,
                     Templates = extTicketingSystemTemplates
                 };
                 newSystem.Sanitize();

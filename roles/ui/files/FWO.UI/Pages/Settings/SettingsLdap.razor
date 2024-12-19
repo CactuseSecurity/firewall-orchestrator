@@ -106,8 +106,8 @@
                         <input type="text" class="form-control form-control-sm" @bind="actLdapConnection.Port" />
                     </div>
                     <div class="col-sm-1">
-                        <input type="checkbox" @bind="actLdapConnection.Tls">
-                        <label class="col-form-label col-form-label-sm" data-toggle="tooltip" title="@(userConfig.PureLine("H5213"))"><small>Tls</small></label>
+                        <input id="cbx_tls" type="checkbox" @bind="actLdapConnection.Tls">
+                        <label for="cbx_tls" class="col-form-label col-form-label-sm" data-toggle="tooltip" title="@(userConfig.PureLine("H5213"))"><small>Tls</small></label>
                     </div>
                     <label class="col-sm-3 col-form-label col-form-label-sm" data-toggle="tooltip" title="@(userConfig.PureLine("H5214"))">@(userConfig.GetText("tenant_level")):</label>
                     <div class="col-sm-2">
@@ -183,9 +183,9 @@
                     </div>
                 </div>
                 <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5226"))">
-                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("active")):</label>
+                    <label for="cbx_active" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("active")):</label>
                     <div class="col-sm-8">
-                        <input type="checkbox" @bind="actLdapConnection.Active">
+                        <input id="cbx_active" type="checkbox" @bind="actLdapConnection.Active">
                     </div>
                 </div>
             </form>

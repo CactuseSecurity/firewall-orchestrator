@@ -57,19 +57,27 @@ namespace FWO.Middleware.Server
 		/// try an ldap bind, decrypting pwd before bind; using pwd as is if it cannot be decrypted
 		/// false if bind fails
 		/// </summary>
-		private static bool TryBind(LdapConnection connection, string user, string password)
+		private static bool TryBind(LdapConnection connection, string? user, string? password)
 		{
-			string decryptedPassword = password;
-			try
+			if (string.IsNullOrEmpty(user) || string.IsNullOrEmpty(password))
 			{
-				decryptedPassword = AesEnc.Decrypt(password, AesEnc.GetMainKey());
+				Log.WriteDebug("TryBind", $"found empty ldap user name or password");
+				return false;
 			}
-			catch
+			else
 			{
-				Log.WriteDebug("TryBind", $"Could not decrypt password");
-				// assuming we already have an unencrypted password, trying this
+				string decryptedPassword = password;
+				try
+				{
+					decryptedPassword = AesEnc.Decrypt(password, AesEnc.GetMainKey());
+				}
+				catch
+				{
+					Log.WriteDebug("TryBind", $"Could not decrypt password");
+					// assuming we already have an unencrypted password, trying this
+				}
+				connection.Bind(user, decryptedPassword);
 			}
-			connection.Bind(user, decryptedPassword);
 			return connection.Bound;
 		}
 
@@ -80,13 +88,13 @@ namespace FWO.Middleware.Server
 		public void TestConnection()
 		{
             using LdapConnection connection = Connect();
-            if (!string.IsNullOrEmpty(SearchUser))
+            if (!string.IsNullOrEmpty(SearchUser) && !string.IsNullOrEmpty(SearchUserPwd))
             {
-                if (!TryBind(connection, SearchUser, SearchUserPwd)) throw new Exception("Binding failed for search user");
+                if (!TryBind(connection, SearchUser, SearchUserPwd!)) throw new Exception("Binding failed for search user");
             }
-            if (!string.IsNullOrEmpty(WriteUser))
+            if (!string.IsNullOrEmpty(WriteUser) && !string.IsNullOrEmpty(WriteUserPwd))
             {
-                if (!TryBind(connection, WriteUser, WriteUserPwd)) throw new Exception("Binding failed for write user");
+                if (!TryBind(connection, WriteUser, WriteUserPwd!)) throw new Exception("Binding failed for write user");
             }
         }
 
@@ -610,6 +618,68 @@ namespace FWO.Middleware.Server
 		}
 
 		/// <summary>
+		/// Get all groups of an LDAP server matching a specific pattern
+		/// </summary>
+		/// <returns>list of groups</returns>
+		public List<GroupGetReturnParameters> GetAllGroupObjects(string groupPattern, LdapType ldapType)
+		{
+			List<GroupGetReturnParameters> allGroups = [];
+
+			try
+			{
+                using LdapConnection connection = Connect();
+                // Authenticate as search user
+                TryBind(connection, SearchUser, SearchUserPwd);
+
+                // Search for Ldap groups in given directory          
+                int searchScope = LdapConnection.ScopeSub;
+				string searchFilter = GetGroupSearchFilter(groupPattern);
+                LdapSearchResults searchResults = (LdapSearchResults)connection.Search(GroupSearchPath, searchScope, searchFilter, null, false);
+
+                foreach (LdapEntry entry in searchResults)
+                {
+                    List<string> members = [];
+					if (entry.GetAttributeSet().ContainsKey(GetMemberKey(ldapType)))
+					{
+						string[] groupMemberDn = entry.GetAttribute(GetMemberKey(ldapType)).StringValueArray;
+						foreach (string currentDn in groupMemberDn)
+						{
+							if (currentDn != "")
+							{
+								members.Add(currentDn);
+							}
+						}
+					}
+                    allGroups.Add(new GroupGetReturnParameters()
+                    {
+                        GroupDn = entry.Dn,
+                        Members = members,
+                        OwnerGroup = entry.GetAttributeSet().ContainsKey("businessCategory") && entry.GetAttribute("businessCategory").StringValue.Equals("ownergroup", StringComparison.CurrentCultureIgnoreCase)
+                    });
+                }
+            }
+			catch (Exception exception)
+			{
+				Log.WriteError($"Non-LDAP exception {Address}:{Port}", "Unexpected error while trying to get all internal groups", exception);
+			}
+			return allGroups;
+		}
+
+		/// <summary>
+		/// Get member key depending on the LDAP type
+		/// </summary>
+		/// <returns>string with member key</returns>
+		public static string GetMemberKey(LdapType ldapType)
+		{
+			string memberKey = "uniqueMember";
+			if (ldapType == LdapType.ActiveDirectory)
+			{
+				memberKey = "member";
+			}
+			return memberKey;
+		}
+
+		/// <summary>
 		/// Get members of an ldap group
 		/// </summary>
 		/// <returns>list of members</returns>
@@ -628,7 +698,7 @@ namespace FWO.Middleware.Server
 
                     if (entry != null)
                     {
-                        string[] groupMemberDn = entry.GetAttribute("uniqueMember").StringValueArray;
+                        string[] groupMemberDn = entry.GetAttribute(GetMemberKey((LdapType) Type)).StringValueArray;
                         foreach (string currentDn in groupMemberDn)
                         {
                             if (currentDn != "")
@@ -801,6 +871,13 @@ namespace FWO.Middleware.Server
 			return userDeleted;
 		}
 
+
+		private bool IsFullyQualifiedDn(string name)
+		{
+			name = name.ToLower();
+			return name.Contains(',') && (name.StartsWith("cn=") || name.StartsWith("uid="));
+		}
+
 		/// <summary>
 		/// Add new group
 		/// </summary>
@@ -809,14 +886,17 @@ namespace FWO.Middleware.Server
 		{
 			Log.WriteInfo("Add Group", $"Trying to add Group: \"{groupName}\"");
 			bool groupAdded = false;
-			string groupDn = "";
+			string groupDn = groupName;
 			try
 			{
                 using LdapConnection connection = Connect();
                 // Authenticate as write user
                 TryBind(connection, WriteUser, WriteUserPwd);
 
-				groupDn = $"cn={groupName},{GroupSearchPath}";
+				if (!IsFullyQualifiedDn(groupDn))
+				{
+					groupDn = $"cn={groupName},{GroupSearchPath}";
+				}
 				LdapAttributeSet attributeSet = new ();
 				attributeSet.Add(new LdapAttribute("objectclass", "groupofuniquenames"));
 				attributeSet.Add(new LdapAttribute("uniqueMember", ""));

@@ -145,6 +145,11 @@ namespace FWO.Tufin.SecureChange
 			return template.ServiceTemplate.Replace("@@PROTOCOLNAME@@", protocolName).Replace("@@PORT@@", port).Replace("@@SERVICENAME@@", serviceName);
 		}
 
+		protected static string FillIcmpTemplate(ExternalTicketTemplate template, string serviceName)
+		{
+			return template.IcmpTemplate.Replace("@@SERVICENAME@@", serviceName);
+		}
+
 		protected static string FillNwObjGroupTemplate(ExternalTicketTemplate template, string groupName, string mgtName)
 		{
 			return template.NwObjGroupTemplate.Replace("@@GROUPNAME@@", groupName).Replace("@@MANAGEMENT_NAME@@", mgtName);
@@ -180,7 +185,8 @@ namespace FWO.Tufin.SecureChange
 
         private static string ConstructObjectName(NwObjectElement nwObj, ModellingNamingConvention? namingConvention)
         {
-        	return string.IsNullOrEmpty(nwObj.Name) ? namingConvention?.AppServerPrefix + nwObj.IpString :
+			// shouldn't be necessary here anymore?
+        	return string.IsNullOrEmpty(nwObj.Name) ? namingConvention?.AppServerPrefix + DisplayBase.DisplayIp(nwObj.IpString, nwObj.IpEndString) :
                 char.IsLetter(nwObj.Name[0]) ? nwObj.Name : namingConvention?.AppServerPrefix + nwObj.Name;
 		}
 

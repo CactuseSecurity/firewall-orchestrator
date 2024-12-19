@@ -26,9 +26,22 @@ from model_controllers.fwconfig_normalized_controller import FwConfigNormalizedC
 def getConfig(nativeConfig:json, importState:ImportState, managerSet:FwConfigManagerList) -> tuple[int, FwConfigManagerList]:
     logger = getFwoLogger()
     logger.debug ( "starting checkpointR8x/get_config" )
-    managers = FwConfigManagerList()
-    managers.ManagerSet.append(FwConfigManager(ManagerUid=importState.MgmDetails.Name, ManagerName=importState.MgmDetails.Name))
-    
+
+    #managers = FwConfigManagerList()
+    #managers.ManagerSet.append(FwConfigManager(ManagerUid=importState.MgmDetails.Name, ManagerName=importState.MgmDetails.Name))
+
+    ### Build Manager Structure
+    # given: manager url, secret und aus db supermanager, manager, gateways mit rulebase(s)
+    # find out about packages
+    showParams = {
+        'limit': importState.FwoConfig.ApiFetchSize,
+        'details-level': 'full'
+    }
+    packages = cp_getter.cp_api_call(importState.FwoConfig.FwoApiUri, 'show-package', importState.MgmDetails.Secret, showParams)
+
+    managerStructure = buildManagerStructure(packages)
+
+
     policies = []
     if importState.MgmDetails.IsSuperManager:
         # parse all global objects and policies
@@ -48,9 +61,32 @@ def getConfig(nativeConfig:json, importState:ImportState, managerSet:FwConfigMan
                     normalizedConfig.ManagerSet[mgrSet].Configs.gateways[device].append(policy.name )
 
 
-def getGatewayDetails(importState, normalizedConfig):
+def buildManagerStructure(packages):
+    managerStructure = {
+        'name': '',
+        'uid': '',
+        'package_name': '',
+        'package_uid': '',
+        'access_layers': [],
+        'managers': []
+    }
+
+    if 'packages' in packages:
+        for package in packages['packages']:
+            if globalCondition:
+                if 'name' and 'uid' in package:
+                    managerStructure.update({'package_name': package['name'], 'package_uid': package['uid']})
+                else:
+                    raise
+
+
+
+
+
+
+def getPackageDetails(apiUrl, sid, showParams):
     #run show-package for package-name to get all relevant policies
-    package = cp_api_call(api_v_url, 'show-package', showParams, sid)
+    package = cp_api_call(apiUrl, 'show-package', showParams, sid)
 
 
 def has_config_changed (full_config, mgm_details, force=False):
@@ -78,6 +114,29 @@ def has_config_changed (full_config, mgm_details, force=False):
 
 
 def getRules (nativeConfig: dict, importState: ImportState, sid: str, cpManagerApiBaseUrl: str) -> int:
+# delete_v: diese funktion sollte komplett umgeschrieben werden
+# 1. global 2. local 3. ordered 4. inline
+# in der output strucktur müssen die namen der policies mitgeliefert werden,
+# damit in rulebase_link darauf verwiesen werden kann
+# dafür brauche ich cp mds output
+# mgmt_cli show packages limit 500 details-level "full" --format json
+# wir sollten als Plan global holen, dann local holen, dann alle ordered, dann deren inline
+# nativeConfig = {'rulebases': [], 'nat_rulebases': [] } natürlich kommt später mehr dazu
+# nativeConfig['rulebases'] = Liste von current_layer_json = { "layername": layerName, "layerchunks": [] }
+# dazu sollte ich links hinzufügen, z.B.
+# current_layer_json = { "layername": layerName, "layerchunks": [], "rulebase_links": [] }
+# mit bsp rulebase_links[0] = {"from_rule_uid": "a", "to_rulebase_name": "b", "link_type": "local|ordered|inline"}
+# offene fragen/Probleme:
+# 1) so bekommen wir für jedes Gateway einen einzelnen Import und müssen beim Import evtl immer wieder die gleichen layer hohlen
+#    wie bekommen wir das dann sauber in die DB
+# 1b) neue Annahme, wir importieren nur einen Manager egal ob mds oder normaler mgr
+# 2) ich kann aus der global nicht rauslesen, welche local rulebases und damit welche Gateways relevant sind
+# 3) wenn local rulebases gleich heißen können müssen wir "layeruid" statt "layername" ermitteln
+# 4) die sections stecken in den "layerchunks", muss am ende rausgeparsed werden, "rulebase_links" wird damit aufgebohrt
+# 5) nocht nicht ganz verstanden warum bei global importState.FwoConfig.FwoApiUri und bei local cpManagerApiBaseUrl -> wegen domain namen
+# 6) gibt es noch einen anderen hinweis auf den Einsprung der local als rule["type"] == "place-holder"? Ist das wohldefiniert?
+# 7) was muss ich bei den domain Dicts im Return von CP beachten?
+
     logger = getFwoLogger()
     nativeConfig.update({'rulebases': [], 'nat_rulebases': [] })
     show_params_rules = {
@@ -102,6 +161,10 @@ def getRules (nativeConfig: dict, importState: ImportState, sid: str, cpManagerA
                 return 1
             # now also get domain rules 
             show_params_rules.update({'name': device['local_rulebase_name']})
+            # delete_v fehlt hier ein .update?
+            # current_layer_json = { "layerid": layerUid, "layerchunks": [] } oder
+            # current_layer_json = { "layername": layerName, "layerchunks": [] }
+            # wenns update ist wird hier entweder der globale durch den lokalen namen ersetzt oder man hat globale uid und lokalen namen
             current_layer_json({'layername': device['local_rulebase_name']})
             logger.debug ( "getting domain rule layer: " + show_params_rules['name'] )
             domain_rules = cp_getter.get_layer_from_api_as_dict (cpManagerApiBaseUrl, 
@@ -114,6 +177,7 @@ def getRules (nativeConfig: dict, importState: ImportState, sid: str, cpManagerA
 
             # now handling possible reference to domain rules within global rules
             # if we find the reference, replace it with the domain rules
+            # delete_v das kann komplett weg, wir linken die rulebases anders
             if 'layerchunks' in current_layer_json:
                 for chunk in current_layer_json["layerchunks"]:
                     for rule in chunk['rulebase']:

@@ -240,10 +240,11 @@ def add_inline_layers (rulebase, api_v_url, sid, show_params_rules, access_type=
         if 'rulebase' in rulebase:
             rulebase_idx = 0
             for rule in rulebase['rulebase']:
-                if 'inline-layer' in rule:
+                if 'inline-layer' in rule:          # delete_v: rule['inline-layer'] ist uid des inline layers
                     inline_layer_uid = rule['inline-layer']
                     if fwo_globals.debug_level>5:
                         logger.debug ( "found inline layer " + inline_layer_uid )
+                    # delete_v: inline_layer={ "layername": layerName, "layerchunks": [...] }
                     inline_layer = get_layer_from_api_as_dict (api_v_url, sid, show_params_rules, layerUid=inline_layer_uid, access_type=access_type, collection_type=collection_type, nativeConfig=nativeConfig)
                     rulebase['rulebase'][rulebase_idx+1:rulebase_idx+1] = inline_layer['layerchunks']  #### insert inline layer here
                     rulebase_idx += len(inline_layer['layerchunks'])

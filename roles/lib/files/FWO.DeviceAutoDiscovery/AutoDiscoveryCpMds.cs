@@ -18,7 +18,7 @@ namespace FWO.DeviceAutoDiscovery
                 return null!;
             else
             {
-                List<Management> discoveredDevices = new List<Management>();
+                List<Management> discoveredDevices = [];
                 string ManagementType = "";
                 Log.WriteAudit("Autodiscovery", $"starting discovery for {superManagement.Name} (id={superManagement.Id})");
 

@@ -83,6 +83,14 @@ CREATE TRIGGER import_config_insert
 ---------------------------------------------------------------------------------------------
 -- new import
 
+ALTER TABLE management ADD COLUMN IF NOT EXISTS "mgm_uid" Varchar NOT NULL DEFAULT '';
+ALTER TABLE management ADD COLUMN IF NOT EXISTS "rulebase_name" Varchar NOT NULL DEFAULT '';
+ALTER TABLE management ADD COLUMN IF NOT EXISTS "rulebase_uid" Varchar NOT NULL DEFAULT '';
+ALTER TABLE management ADD COLUMN IF NOT EXISTS "super_manager_id" Integer;
+
+ALTER TABLE "management" DROP CONSTRAINT IF EXISTS "fk_management_management_super_manager" CASCADE;
+ALTER TABLE "management" ADD CONSTRAINT fk_management_management_super_manager foreign key ("mgm_id") references "management" ("mgm_id") on update restrict on delete cascade;
+
 Create table IF NOT EXISTS "rulebase" 
 (
 	"id" SERIAL primary key,
@@ -254,8 +262,8 @@ Create table IF NOT EXISTS "rulebase_link"
 
 Alter table "rulebase_link" drop constraint IF EXISTS "fk_rulebase_link_to_rulebase_id";
 Alter table "rulebase_link" drop constraint IF EXISTS "fk_rulebase_link_from_rule_id";
-Alter table "rulebase_link" add foreign key "fk_rulebase_link_to_rulebase_id" ("to_rulebase_id") references "rulebase" ("id") on update restrict on delete cascade;
-Alter table "rulebase_link" add foreign key "fk_rulebase_link_from_rule_id" ("from_rule_id") references "rule" ("rule_id") on update restrict on delete cascade;
+Alter table "rulebase_link" add constraint "fk_rulebase_link_to_rulebase_id" foreign key ("to_rulebase_id") references "rulebase" ("id") on update restrict on delete cascade;
+Alter table "rulebase_link" add constraint "fk_rulebase_link_from_rule_id" foreign key ("from_rule_id") references "rule" ("rule_id") on update restrict on delete cascade;
 
 -- TODO delete all rule.parent_rule_id and rule.parent_rule_type, always = None so far
 

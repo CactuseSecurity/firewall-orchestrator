@@ -10,10 +10,10 @@ namespace FWO.DeviceAutoDiscovery
 {
     public class AutoDiscoveryBase
     {
-        public Management superManagement = new Management();
+        public Management superManagement = new();
         private readonly ApiConnection apiConnection;
 
-        List<Management> existingManagements = new List<Management>();
+        List<Management> existingManagements = [];
 
 
         public AutoDiscoveryBase(Management mgm, ApiConnection apiConn)

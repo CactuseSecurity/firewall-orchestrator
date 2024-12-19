@@ -49,7 +49,18 @@ namespace FWO.Api.Data
         {
             string comSvcAppendix = CommSvcPossible && comSvcTxt != "" ? $", {comSvcTxt}" : "";
             string appIdPart = ExtAppId != "" ? $" ({ExtAppId}{comSvcAppendix})" : "";
+
             return $"{Name}{appIdPart}";
+        }
+        
+        public string DisplayWithoutAppId(string comSvcTxt)
+        {
+            if (CommSvcPossible)
+            {
+                return $"{Name} ({comSvcTxt})";
+            }
+
+            return $"{Name}";
         }
 
         public override bool Sanitize()

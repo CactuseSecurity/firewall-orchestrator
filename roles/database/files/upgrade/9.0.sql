@@ -83,6 +83,14 @@ CREATE TRIGGER import_config_insert
 ---------------------------------------------------------------------------------------------
 -- new import
 
+ALTER management ADD COLUMN "mgm_uid" Varchar NOT NULL DEFAULT "";
+ALTER management ADD COLUMN "rulebase_name": Varchar NOT NULL DEFAULT "";
+ALTER management ADD COLUMN "rulebase_uid": Varchar NOT NULL DEFAULT "";
+ALTER management ADD COLUMN "super_manager": Integer NOT NULL DEFAULT "";
+
+ALTER TABLE "management" DROP CONSTRAINT IF EXISTS "fk_management_management_super_manager" CASCADE;
+ALTER TABLE "management" ADD CONSTRAINT fk_management_management_super_manager foreign key ("mgm_id") references "management" ("mgm_id") on update restrict on delete cascade;
+
 Create table IF NOT EXISTS "rulebase" 
 (
 	"id" SERIAL primary key,

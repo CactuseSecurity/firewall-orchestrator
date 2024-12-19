@@ -8298,6 +8298,24 @@
                   }
                 },
                 {
+                  "name": "managementByMgmId",
+                  "using": {
+                    "foreign_key_constraint_on": "mgm_id"
+                  }
+                },
+                {
+                  "name": "managementByMgmId1",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "mgm_id",
+                      "table": {
+                        "name": "management",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                },
+                {
                   "name": "stm_dev_typ",
                   "using": {
                     "foreign_key_constraint_on": "dev_typ_id"
@@ -13444,6 +13462,23 @@
                   }
                 },
                 {
+                  "name": "ruleMetadatumByDevIdRuleUidRulebaseId",
+                  "using": {
+                    "manual_configuration": {
+                      "column_mapping": {
+                        "dev_id": "dev_id",
+                        "rule_uid": "rule_uid",
+                        "rulebase_id": "rulebase_id"
+                      },
+                      "insertion_order": null,
+                      "remote_table": {
+                        "name": "rule_metadata",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                },
+                {
                   "name": "rule_metadatum",
                   "using": {
                     "manual_configuration": {
@@ -13600,6 +13635,30 @@
                       "column": "rule_id",
                       "table": {
                         "name": "rule_user_resolved",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "rulebase_links",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "from_rule_id",
+                      "table": {
+                        "name": "rulebase_link",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "rulebase_on_gateways",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "layer_guard_rule",
+                      "table": {
+                        "name": "rulebase_on_gateway",
                         "schema": "public"
                       }
                     }
@@ -14627,6 +14686,23 @@
                   "using": {
                     "manual_configuration": {
                       "column_mapping": {
+                        "rule_uid": "rule_uid",
+                        "rulebase_id": "rulebase_id"
+                      },
+                      "insertion_order": null,
+                      "remote_table": {
+                        "name": "rule",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "rulesByDevIdRuleUidRulebaseId",
+                  "using": {
+                    "manual_configuration": {
+                      "column_mapping": {
+                        "dev_id": "dev_id",
                         "rule_uid": "rule_uid",
                         "rulebase_id": "rulebase_id"
                       },
@@ -16042,6 +16118,18 @@
                   }
                 },
                 {
+                  "name": "rulebase_links",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "to_rulebase_id",
+                      "table": {
+                        "name": "rulebase_link",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                },
+                {
                   "name": "rulebase_on_gateways",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -16139,6 +16227,26 @@
             },
             {
               "table": {
+                "name": "rulebase_link",
+                "schema": "public"
+              },
+              "object_relationships": [
+                {
+                  "name": "rule",
+                  "using": {
+                    "foreign_key_constraint_on": "from_rule_id"
+                  }
+                },
+                {
+                  "name": "rulebase",
+                  "using": {
+                    "foreign_key_constraint_on": "to_rulebase_id"
+                  }
+                }
+              ]
+            },
+            {
+              "table": {
                 "name": "rulebase_on_gateway",
                 "schema": "public"
               },
@@ -16147,6 +16255,12 @@
                   "name": "device",
                   "using": {
                     "foreign_key_constraint_on": "dev_id"
+                  }
+                },
+                {
+                  "name": "rule",
+                  "using": {
+                    "foreign_key_constraint_on": "layer_guard_rule"
                   }
                 },
                 {

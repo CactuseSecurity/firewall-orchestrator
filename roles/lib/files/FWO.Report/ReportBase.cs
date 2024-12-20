@@ -247,7 +247,7 @@ namespace FWO.Report
                 browserFetcher = new();
             }
 
-            InstalledBrowser? brw = await browserFetcher.DownloadAsync()
+            InstalledBrowser? brw = await browserFetcher.DownloadAsync();
 
 
             using IBrowser? browser = await Puppeteer.LaunchAsync(new LaunchOptions

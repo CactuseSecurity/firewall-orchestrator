@@ -304,6 +304,9 @@ AS $function$
                     END LOOP;
                 ELSE
                     -- need to deal with entries separately - split rule_installon field by '|'
+                    IF r_rule.rule_installon IS NULL THEN
+                        r_rule.rule_installon := 'Policy Targets';
+                    END IF;
                     SELECT ARRAY(
                         SELECT string_to_array(r_rule.rule_installon, '|')
                     ) INTO a_target_gateways;

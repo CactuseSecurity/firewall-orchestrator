@@ -48,6 +48,25 @@ namespace FWO.Services
             return tickets;
         }
 
+        public async Task<WfTicket?> FetchTicket(long ticketId, List<int> ownerIds, bool ignoreOwners = false)
+        {
+            WfTicket? ticket = null;
+            try
+            {
+                ticket = await ApiConnection.SendQueryAsync<WfTicket>(RequestQueries.getTicketById, new { id = ticketId });
+                if(UserConfig.ReqOwnerBased && ! ignoreOwners)
+                {
+                    ticket = FilterWrongOwnersOut([ticket], ownerIds).FirstOrDefault();
+                }
+                ticket?.UpdateCidrsInTaskElements();
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, UserConfig.GetText("fetch_requests"), "", true);
+            }
+            return ticket;
+        }
+
         private static List<WfTicket> FilterWrongOwnersOut(List<WfTicket> ticketsIn, List<int> ownerIds)
         {
             List<WfTicket> ticketsOut = [];

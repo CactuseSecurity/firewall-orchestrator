@@ -1,23 +1,14 @@
 ﻿using System.Diagnostics;
-using FWO.Basics;
 using FWO.Api.Data;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
-using FWO.Api.Data;
 using FWO.Logging;
 
 namespace FWO.Recert
 {
-    public class RecertRefresh
+    public static class RecertRefresh
     {
-        private readonly ApiConnection apiConnection;
-
-        public RecertRefresh (ApiConnection apiConnectionIn)
-        {
-            apiConnection = apiConnectionIn;
-        }
-
-        public async Task<bool> RecalcRecerts()
+        public static async Task<bool> RecalcRecerts(ApiConnection apiConnection)
         {
             Stopwatch watch = new ();
 
@@ -33,7 +24,9 @@ namespace FWO.Recert
                 Log.WriteDebug("Refresh materialized view view_rule_with_owner", $"refresh took {(watch.ElapsedMilliseconds / 1000.0).ToString("0.00")} seconds");
 
                 foreach (FwoOwner owner in owners)
-                    await RecalcRecertsOfOwner(owner, managements);
+                {
+                    await RecalcRecertsOfOwner(owner, managements, apiConnection);
+                }
             }
             catch (Exception)
             {
@@ -42,7 +35,7 @@ namespace FWO.Recert
             return false;
         }
 
-        private async Task RecalcRecertsOfOwner(FwoOwner owner, List<Management> managements)
+        private static async Task RecalcRecertsOfOwner(FwoOwner owner, List<Management> managements, ApiConnection apiConnection)
         {
             Stopwatch watch = new ();
             watch.Start();
@@ -63,4 +56,3 @@ namespace FWO.Recert
         }
     }
 }
-

@@ -16,7 +16,6 @@ namespace FWO.Api.Client
 
         private GraphQLHttpClient graphQlClient;
 
-        private string? jwt;
         private string prevRole = "";
 
         private void Initialize(string ApiServerUri)
@@ -55,7 +54,6 @@ namespace FWO.Api.Client
 
         public override void SetAuthHeader(string jwt)
         {
-            this.jwt = jwt;
             graphQlClient.HttpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", jwt); // Change jwt in auth header
             graphQlClient.Options.ConfigureWebSocketConnectionInitPayload = httpClientOptions => new { headers = new { authorization = $"Bearer {jwt}" } };
             InvokeOnAuthHeaderChanged(this, jwt);
@@ -164,11 +162,11 @@ namespace FWO.Api.Client
 
                     if (ApiConstants.UseSystemTextJsonSerializer)
                     {
-                        JsonElement.ObjectEnumerator responseObjectEnumerator = response.Data.EnumerateObject();
-                        responseObjectEnumerator.MoveNext();
-                        QueryResponseType returnValue = JsonSerializer.Deserialize<QueryResponseType>(responseObjectEnumerator.Current.Value.GetRawText()) ??
-                        throw new Exception($"Could not convert result from Json to {typeof(QueryResponseType)}.\nJson: {responseObjectEnumerator.Current.Value.GetRawText()}");
-                        return returnValue;
+                        // JsonElement.ObjectEnumerator responseObjectEnumerator = response.Data.EnumerateObject();
+                        // responseObjectEnumerator.MoveNext();
+                        // QueryResponseType returnValue = JsonSerializer.Deserialize<QueryResponseType>(responseObjectEnumerator.Current.Value.GetRawText()) ??
+                        // throw new Exception($"Could not convert result from Json to {typeof(QueryResponseType)}.\nJson: {responseObjectEnumerator.Current.Value.GetRawText()}");
+                        // return returnValue;
                     }
                     else
                     {

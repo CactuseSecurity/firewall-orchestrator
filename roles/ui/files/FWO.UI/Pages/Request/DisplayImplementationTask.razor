@@ -452,9 +452,10 @@
         firstParamSet = true;
     }
 
-    private async Task CancelPromote()
+    private bool CancelPromote()
     {
         WfHandler.DisplayPromoteImplTaskMode = false;
+        return true;
     }
 
     private async Task PerformAction(WfStateAction action)

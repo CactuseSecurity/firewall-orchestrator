@@ -220,10 +220,11 @@
         await ResetParent();
     }
 
-    private async Task Cancel()
+    private bool Cancel()
     {
         WfHandler.DisplaySaveTicketMode = false;
         WfHandler.DisplayPromoteTicketMode = false;
+        return true;
     }
 
     private async Task Reset()

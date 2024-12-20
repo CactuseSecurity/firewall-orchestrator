@@ -572,10 +572,11 @@
         await ResetParent();
     }
 
-    private async Task Cancel()
+    private bool Cancel()
     {
         WfHandler.DisplayPromoteReqTaskMode = false;
         WfHandler.DisplayApproveMode = false;
+        return true;
     }
 
     private async Task Reset()

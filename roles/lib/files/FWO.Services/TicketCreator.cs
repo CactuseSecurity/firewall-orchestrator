@@ -227,7 +227,6 @@ namespace FWO.Services
             WfTicket? ticket = await wfHandler.ResolveTicket(ticketId);
             if(ticket != null)
             {
-                wfHandler.SetTicketEnv(ticket);
                 WfReqTask? reqTask = ticket.Tasks.FirstOrDefault(x => x.TaskType == WfTaskType.new_interface.ToString());
                 if(reqTask != null)
                 {

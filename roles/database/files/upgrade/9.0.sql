@@ -86,10 +86,6 @@ CREATE TRIGGER import_config_insert
 ALTER TABLE management ADD COLUMN IF NOT EXISTS "mgm_uid" Varchar NOT NULL DEFAULT '';
 ALTER TABLE management ADD COLUMN IF NOT EXISTS "rulebase_name" Varchar NOT NULL DEFAULT '';
 ALTER TABLE management ADD COLUMN IF NOT EXISTS "rulebase_uid" Varchar NOT NULL DEFAULT '';
-ALTER TABLE management ADD COLUMN IF NOT EXISTS "super_manager_id" Integer;
-
-ALTER TABLE "management" DROP CONSTRAINT IF EXISTS "fk_management_management_super_manager" CASCADE;
-ALTER TABLE "management" ADD CONSTRAINT fk_management_management_super_manager foreign key ("mgm_id") references "management" ("mgm_id") on update restrict on delete cascade;
 
 Create table IF NOT EXISTS "rulebase" 
 (
@@ -233,7 +229,7 @@ ALTER table "svcgrp_flat" ALTER COLUMN "import_last_seen" TYPE BIGINT;
 
 alter table "rule" add column if not exists "rulebase_id" Integer; -- NOT NULL;
 ALTER TABLE "rule" DROP CONSTRAINT IF EXISTS "fk_rule_rulebase_id" CASCADE;
-Alter table "rule" add CONSTRAINT fk_rule_rulebase_id foreign key ("rulebase_id") references "rulebase" ("id") on update restrict on delete cascade;
+ALTER TABLE "rule" ADD CONSTRAINT fk_rule_rulebase_id FOREIGN KEY ("rulebase_id") REFERENCES "rulebase" ("id") ON UPDATE RESTRICT ON DELETE CASCADE;
 
 Alter table "rule" drop constraint IF EXISTS "rule_metadata_dev_id_rule_uid_f_key";
 Alter Table "rule_metadata" DROP Constraint IF EXISTS "rule_metadata_alt_key";

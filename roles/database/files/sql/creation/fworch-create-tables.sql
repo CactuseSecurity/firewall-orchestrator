@@ -81,7 +81,6 @@ Create table "management" -- contains an entry for each firewall management syst
 	"mgm_uid" Varchar NOT NULL DEFAULT '',
 	"rulebase_name" Varchar NOT NULL DEFAULT '',
 	"rulebase_uid" Varchar NOT NULL DEFAULT '',
-	"super_manager_id" Integer,
  primary key ("mgm_id")
 );
 

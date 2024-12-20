@@ -52,4 +52,28 @@
 
   become: true
   environment: "{{ proxy_env }}"
-  
+
+# get google chrome for pdf generation
+- name: get last known good versions of chrome to download
+  uri:
+    url: https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions-with-downloads.json
+  register: chrome_versions
+
+- name: parse latest stable versions for chrome
+  set_fact:
+    stable_chrome_versions: "{{ chrome_versions['json']['channels']['Stable']['downloads']['chrome'] }}"
+
+- block:
+  - name: install unzip
+    package:
+      name: unzip
+      state: present
+
+  - name: download google chrome and unpack
+    unarchive:
+      src: "{{ stable_chrome_versions | selectattr('platform', 'match', 'linux64') | map(attribute='url') | first }}"
+      dest: /usr/local/bin
+      remote_src: yes
+
+  become: true
+  environment: "{{ proxy_env }}"

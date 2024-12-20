@@ -7,6 +7,8 @@ using System.Text;
 using PuppeteerSharp.Media;
 using PuppeteerSharp;
 using System.Reflection;
+using System.IO;
+using PuppeteerSharp.BrowserData;
 
 namespace FWO.Report
 {
@@ -92,6 +94,8 @@ namespace FWO.Report
         public int CustomHeight = 0;
 
         protected string htmlExport = "";
+
+        private const string ChromeBinPathLinux = "/usr/local/bin";
 
         public bool GotObjectsInReport { get; protected set; } = false;
 
@@ -216,6 +220,35 @@ namespace FWO.Report
 
         private async Task<string?> CreatePDFViaPuppeteer(string html, PaperFormat format)
         {
+            OperatingSystem? os = Environment.OSVersion;
+
+            string path = "";
+
+            switch (os.Platform)
+            {
+                case PlatformID.Win32NT:
+                    //path = ChromeBinPathWin;
+                    break;
+                case PlatformID.Unix:
+                    path = ChromeBinPathLinux;
+                    break;
+                default:
+                    return default;
+            }
+
+            BrowserFetcher? browserFetcher;
+
+            if (!string.IsNullOrEmpty(path))
+            {
+                browserFetcher = new(new BrowserFetcherOptions { Path = path });
+            }
+            else
+            {
+                browserFetcher = new();
+            }
+
+            await browserFetcher.DownloadAsync();
+
             using IBrowser? browser = await Puppeteer.LaunchAsync(new LaunchOptions
             {
                 Headless = true

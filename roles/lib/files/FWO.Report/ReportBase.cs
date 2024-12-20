@@ -240,17 +240,19 @@ namespace FWO.Report
 
             if (!string.IsNullOrEmpty(path))
             {
-                browserFetcher = new(new BrowserFetcherOptions { Path = path });
+                browserFetcher = new(new BrowserFetcherOptions { Path = path, Platform = Platform.Linux, Browser = SupportedBrowser.Chrome });
             }
             else
             {
                 browserFetcher = new();
             }
 
-            await browserFetcher.DownloadAsync();
+            InstalledBrowser? brw = await browserFetcher.DownloadAsync()
+
 
             using IBrowser? browser = await Puppeteer.LaunchAsync(new LaunchOptions
             {
+                ExecutablePath = brw.GetExecutablePath(),
                 Headless = true
             });
 

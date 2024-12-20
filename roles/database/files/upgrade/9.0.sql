@@ -144,7 +144,6 @@ CREATE TABLE IF NOT EXISTS "latest_config" (
 ALTER TABLE "latest_config" DROP CONSTRAINT IF EXISTS "unique_latest_config_mgm_id" CASCADE;
 Alter table "latest_config" add CONSTRAINT unique_latest_config_mgm_id UNIQUE ("mgm_id");
 
-
 ALTER table "import_control" ADD COLUMN IF NOT EXISTS "is_full_import" BOOLEAN DEFAULT FALSE;
 
 -----------------------------------------------
@@ -224,7 +223,7 @@ Create table IF NOT EXISTS "rulebase_link"
 	"to_rulebase_id" Integer NOT NULL,
 	"link_type" Integer,
 	"created" BIGINT,
-	"deleted" BIGINT
+	"removed" BIGINT
 );
 
 Alter table "rulebase_link" drop constraint IF EXISTS "fk_rulebase_link_to_rulebase_id";

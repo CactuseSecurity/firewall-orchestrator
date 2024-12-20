@@ -95,7 +95,7 @@ namespace FWO.Report
 
         protected string htmlExport = "";
 
-        private const string ChromeBinPathLinux = "/usr/local/bin/chrome";
+        private const string ChromeBinPathLinux = "/usr/local/bin";
 
         public bool GotObjectsInReport { get; protected set; } = false;
 
@@ -247,8 +247,7 @@ namespace FWO.Report
                 browserFetcher = new();
             }
 
-            InstalledBrowser? brw = await browserFetcher.DownloadAsync("131.0.6778.204");
-
+            InstalledBrowser? brw = await browserFetcher.DownloadAsync(BrowserTag.Stable);
 
             using IBrowser? browser = await Puppeteer.LaunchAsync(new LaunchOptions
             {

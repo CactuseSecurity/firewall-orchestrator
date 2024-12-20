@@ -205,8 +205,10 @@ Alter table "rule" drop constraint IF EXISTS "rule_metadata_dev_id_rule_uid_f_ke
 Alter Table "rule_metadata" DROP Constraint IF EXISTS "rule_metadata_alt_key";
 
 Alter Table "rule_metadata" ADD Constraint "rule_metadata_alt_key" UNIQUE ("rule_uid", "dev_id", "rulebase_id");
-Alter table "rule" add constraint "rule_metadata_dev_id_rule_uid_f_key"
-  foreign key ("dev_id", "rule_uid", "rulebase_id") references "rule_metadata" ("dev_id", "rule_uid", "rulebase_id") on update restrict on delete cascade;
+
+-- TODO: this needs to analysed (as dev_id will be removed from rule):
+-- Alter table "rule" add constraint "rule_metadata_dev_id_rule_uid_f_key"
+--   foreign key ("dev_id", "rule_uid", "rulebase_id") references "rule_metadata" ("dev_id", "rule_uid", "rulebase_id") on update restrict on delete cascade;
 
 -- decision: the rule_metadata always refers to the a rule(_uid) on a specific gateway
 --   that means recertifications, last hit info, owner, ... are all linked to a gateway

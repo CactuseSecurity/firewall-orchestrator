@@ -95,7 +95,7 @@ namespace FWO.Report
 
         protected string htmlExport = "";
 
-        private const string ChromeBinPathLinux = "/usr/local/bin";
+        private const string ChromeBinPathLinux = "/usr/local/bin/chrome";
 
         public bool GotObjectsInReport { get; protected set; } = false;
 

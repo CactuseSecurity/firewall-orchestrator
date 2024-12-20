@@ -86,6 +86,7 @@ CREATE TRIGGER import_config_insert
 ALTER TABLE management ADD COLUMN IF NOT EXISTS "mgm_uid" Varchar NOT NULL DEFAULT '';
 ALTER TABLE management ADD COLUMN IF NOT EXISTS "rulebase_name" Varchar NOT NULL DEFAULT '';
 ALTER TABLE management ADD COLUMN IF NOT EXISTS "rulebase_uid" Varchar NOT NULL DEFAULT '';
+Alter table rule_metadata add column if not exists rulebase_id integer; -- not null;
 
 Create table IF NOT EXISTS "rulebase" 
 (
@@ -492,8 +493,6 @@ $function$;
 -- drop only after migration
 
 ALTER TABLE rule DROP CONSTRAINT IF EXISTS rule_dev_id_fkey;
-
-Alter table rule_metadata add column if not exists rulebase_id integer; -- not null;
 
 ALTER TABLE "rule_metadata" DROP CONSTRAINT IF EXISTS "rule_metadata_rulebase_id_f_key" CASCADE;
 Alter table "rule_metadata" add constraint "rule_metadata_rulebase_id_f_key"

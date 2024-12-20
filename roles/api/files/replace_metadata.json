@@ -5997,10 +5997,10 @@
                   }
                 },
                 {
-                  "name": "ruleEnforcedOnGatewaysByDeleted",
+                  "name": "ruleEnforcedOnGatewaysByRemoved",
                   "using": {
                     "foreign_key_constraint_on": {
-                      "column": "deleted",
+                      "column": "removed",
                       "table": {
                         "name": "rule_enforced_on_gateway",
                         "schema": "public"
@@ -14279,9 +14279,9 @@
                   }
                 },
                 {
-                  "name": "importControlByDeleted",
+                  "name": "importControlByRemoved",
                   "using": {
-                    "foreign_key_constraint_on": "deleted"
+                    "foreign_key_constraint_on": "removed"
                   }
                 },
                 {

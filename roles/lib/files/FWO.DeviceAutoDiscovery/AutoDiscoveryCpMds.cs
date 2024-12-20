@@ -42,6 +42,18 @@ namespace FWO.DeviceAutoDiscovery
                         Log.WriteDebug("Autodiscovery", $"successful CP Manager login, got SessionID: {sessionId}");
                         // need to use @ verbatim identifier for special chars in sessionId
                         RestResponse<CpDomainHelper> domainResponse = await restClientCP.GetDomains(@sessionId);
+
+                        (superManagement.RulebaseName, superManagement.RulebaseUid) = await restClientCP.GetGlobalRulebase(@sessionId);
+
+                        if (superManagement.RulebaseName == null || superManagement.RulebaseUid == null)
+                        {
+                            Log.WriteDebug("Autodiscovery", $"could not get global rulebase name/uid for {superManagement.Name} (id={superManagement.Id}, probably no MDS)");
+                        }
+                        else
+                        {
+                            Log.WriteDebug("Autodiscovery", $"found global rulebase name/uid for {superManagement.Name} (id={superManagement.Id}: {superManagement.RulebaseName}/{superManagement.RulebaseUid}");
+                        }
+
                         if (domainResponse.StatusCode == HttpStatusCode.OK && domainResponse.IsSuccessful && domainResponse.Data?.DomainList != null)
                         {
                             List<Domain> domainList = domainResponse.Data.DomainList;

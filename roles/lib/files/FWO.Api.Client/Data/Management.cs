@@ -74,6 +74,14 @@ namespace FWO.Api.Data
         [JsonProperty("extMgtData"), JsonPropertyName("extMgtData")]
         public string? ExtMgtData { get; set; }
 
+        // only relevant for super managers, normal managers do not have rulebases
+        [JsonProperty("rulebase_name"), JsonPropertyName("rulebase_name")]
+        public string? RulebaseName { get; set; }
+
+        // only relevant for super managers, normal managers do not have rulebases
+        [JsonProperty("rulebase_uid"), JsonPropertyName("rulebase_uid")]
+        public string? RulebaseUid { get; set; }
+
         public long? RelevantImportId { get; set; }
         public bool Ignore { get; set; }
         public bool AwaitDevice { get; set; }

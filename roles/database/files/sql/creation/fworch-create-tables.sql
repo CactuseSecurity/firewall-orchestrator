@@ -81,7 +81,6 @@ Create table "management" -- contains an entry for each firewall management syst
 	"mgm_uid" Varchar NOT NULL DEFAULT '',
 	"rulebase_name" Varchar NOT NULL DEFAULT '',
 	"rulebase_uid" Varchar NOT NULL DEFAULT '',
-	"super_manager_id" Integer,
  primary key ("mgm_id")
 );
 
@@ -1124,7 +1123,7 @@ Create Table IF NOT EXISTS "rule_enforced_on_gateway"
 	"rule_id" Integer NOT NULL,
 	"dev_id" Integer,  --  NULL if rule is available for all gateways of its management
 	"created" BIGINT,
-	"deleted" BIGINT
+	"removed" BIGINT
 );
 
 Create table IF NOT EXISTS "rulebase"
@@ -1134,7 +1133,7 @@ Create table IF NOT EXISTS "rulebase"
 	"mgm_id" Integer NOT NULL,
 	"is_global" BOOLEAN DEFAULT FALSE NOT NULL,
 	"created" BIGINT,
-	"deleted" BIGINT
+	"removed" BIGINT
 );
 
 Create table IF NOT EXISTS "rulebase_link"
@@ -1145,7 +1144,7 @@ Create table IF NOT EXISTS "rulebase_link"
 	"to_rulebase_id" Integer NOT NULL,
 	"link_type" Integer,
 	"created" BIGINT,
-	"deleted" BIGINT
+	"removed" BIGINT
 );
 
 Create table IF NOT EXISTS "rulebase_on_gateway" 

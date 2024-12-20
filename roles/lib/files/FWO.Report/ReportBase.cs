@@ -223,28 +223,19 @@ namespace FWO.Report
             OperatingSystem? os = Environment.OSVersion;
 
             string path = "";
+            BrowserFetcher? browserFetcher;
 
             switch (os.Platform)
             {
                 case PlatformID.Win32NT:
-                    //path = ChromeBinPathWin;
+                    browserFetcher = new();
                     break;
                 case PlatformID.Unix:
                     path = ChromeBinPathLinux;
+                    browserFetcher = new(new BrowserFetcherOptions { Path = path, Platform = Platform.Linux, Browser = SupportedBrowser.Chrome });
                     break;
                 default:
                     return default;
-            }
-
-            BrowserFetcher? browserFetcher;
-
-            if (!string.IsNullOrEmpty(path))
-            {
-                browserFetcher = new(new BrowserFetcherOptions { Path = path, Platform = Platform.Linux, Browser = SupportedBrowser.Chrome });
-            }
-            else
-            {
-                browserFetcher = new();
             }
 
             InstalledBrowser? brw = await browserFetcher.DownloadAsync(BrowserTag.Stable);

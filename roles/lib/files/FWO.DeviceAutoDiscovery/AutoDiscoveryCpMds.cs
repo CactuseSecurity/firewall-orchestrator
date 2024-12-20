@@ -45,6 +45,15 @@ namespace FWO.DeviceAutoDiscovery
 
                         (superManagement.RulebaseName, superManagement.RulebaseUid) = await restClientCP.GetGlobalRulebase(@sessionId);
 
+                        if (superManagement.RulebaseName == null || superManagement.RulebaseUid == null)
+                        {
+                            Log.WriteWarning("Autodiscovery", $"could not get global rulebase name/uid for {superManagement.Name} (id={superManagement.Id})");
+                        }
+                        else
+                        {
+                            Log.WriteDebug("Autodiscovery", $"found global rulebase name/uid for {superManagement.Name} (id={superManagement.Id}: {superManagement.RulebaseName}/{superManagement.RulebaseUid}");
+                        }
+
                         if (domainResponse.StatusCode == HttpStatusCode.OK && domainResponse.IsSuccessful && domainResponse.Data?.DomainList != null)
                         {
                             List<Domain> domainList = domainResponse.Data.DomainList;

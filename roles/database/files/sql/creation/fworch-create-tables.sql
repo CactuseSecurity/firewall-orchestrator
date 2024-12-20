@@ -188,7 +188,7 @@ Create table "rule"
 	"nat_rule" BOOLEAN Default FALSE,
 	"xlate_rule" BIGINT,
 	"is_global" BOOLEAN DEFAULT FALSE NOT NULL,
-	"rulebase_id" Integer NOT NULL,
+	"rulebase_id" Integer, --  NOT NULL, keep this nullable until fully migrated
 	primary key ("rule_id")
 );
 

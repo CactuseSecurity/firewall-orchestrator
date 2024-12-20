@@ -127,6 +127,7 @@ Alter table "rulebase_on_gateway" add CONSTRAINT unique_rulebase_on_gateway_dev_
 
 ALTER TABLE "management" ADD COLUMN IF NOT EXISTS "is_super_manager" BOOLEAN DEFAULT FALSE;
 ALTER TABLE "rule" ADD COLUMN IF NOT EXISTS "is_global" BOOLEAN DEFAULT FALSE NOT NULL;
+ALTER TABLE "rule" ADD COLUMN IF NOT EXISTS "rulebase_id" INTEGER;
 
 -- ALTER TABLE "rule" DROP CONSTRAINT IF EXISTS "unique_rule_rule_uid_rule_create" CASCADE;
 -- Alter table "rule" add CONSTRAINT "unique_rule_rule_uid_rule_create" UNIQUE ("rule_uid", "rule_create");

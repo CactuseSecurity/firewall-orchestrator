@@ -434,7 +434,7 @@ AS $function$
             SELECT * FROM rule WHERE rulebase_id IS NULL
             -- how do we deal with this? we simply pick the smallest rulebase id for now
         LOOP
-            SELECT INTO i_new_rulebase_id id FROM rulebase LIMIT 1 ORDER BY id;
+            SELECT INTO i_new_rulebase_id id FROM rulebase ORDER BY id LIMIT 1;
             UPDATE rule SET rulebase_id=i_new_rulebase_id WHERE rule_id=r_rule.rule_id;
         END LOOP;
 

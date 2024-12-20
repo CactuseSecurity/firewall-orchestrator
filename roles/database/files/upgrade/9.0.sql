@@ -210,7 +210,7 @@ Alter Table "rule_metadata" ADD Constraint "rule_metadata_alt_key" UNIQUE ("rule
 -- Alter table "rule" add constraint "rule_metadata_dev_id_rule_uid_f_key"
 --   foreign key ("dev_id", "rule_uid", "rulebase_id") references "rule_metadata" ("dev_id", "rule_uid", "rulebase_id") on update restrict on delete cascade;
 
--- decision: the rule_metadata always refers to the a rule(_uid) on a specific gateway
+-- decision?!: the rule_metadata always refers to the a rule(_uid) on a specific gateway
 --   that means recertifications, last hit info, owner, ... are all linked to a gateway
 
 -----------------------------------------------
@@ -398,6 +398,7 @@ CREATE OR REPLACE FUNCTION addRulebaseEntriesAndItsRuleRefs() RETURNS VOID
 AS $function$
     DECLARE
         r_dev RECORD;
+        r_rule RECORD;
         r_dev_null RECORD;
         i_new_rulebase_id INTEGER;
     BEGIN
@@ -425,6 +426,16 @@ AS $function$
                 UPDATE rule SET rulebase_id=i_new_rulebase_id WHERE dev_id=r_dev.dev_id;
                 -- add entries in rule_enforced_on_gateway
             END IF;
+        END LOOP;
+
+        -- now check for remaining rules without rulebase_id 
+        -- TODO: decide how to deal with this - ONLY DUMMY SOLUTION FOR NOW
+        FOR r_rule IN 
+            SELECT * FROM rule WHERE rulebase_id IS NULL
+            -- how do we deal with this? we simply pick the smallest rulebase id for now
+        LOOP
+            SELECT INTO i_new_rulebase_id id FROM rulebase LIMIT 1 ORDER BY id;
+            UPDATE rule SET rulebase_id=i_new_rulebase_id WHERE rule_id=r_rule.rule_id;
         END LOOP;
 
         -- now we can add the "not null" constraint for rule.rulebase_id

@@ -142,36 +142,6 @@ CREATE TABLE IF NOT EXISTS "latest_config" (
 ALTER TABLE "latest_config" DROP CONSTRAINT IF EXISTS "unique_latest_config_mgm_id" CASCADE;
 Alter table "latest_config" add CONSTRAINT unique_latest_config_mgm_id UNIQUE ("mgm_id");
 
--- reverse last_seen / removed logic for objects
-ALTER TABLE "object" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
-ALTER TABLE "objgrp" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
-ALTER TABLE "objgrp_flat" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
-ALTER TABLE "service" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
-ALTER TABLE "svcgrp" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
-ALTER TABLE "svcgrp_flat" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
-ALTER TABLE "zone" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
-ALTER TABLE "usr" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
-ALTER TABLE "usergrp" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
-ALTER TABLE "usergrp_flat" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
-ALTER TABLE "rule" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
-ALTER TABLE "rule_from" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
-ALTER TABLE "rule_to" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
-ALTER TABLE "rule_service" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
-
--- ALTER TABLE "object" DROP COLUMN IF EXISTS "deleted" ;
--- ALTER TABLE "objgrp" DROP COLUMN IF  EXISTS "deleted" ;
--- ALTER TABLE "objgrp_flat" DROP COLUMN IF EXISTS "deleted" ;
--- ALTER TABLE "service" DROP COLUMN IF EXISTS "deleted" ;
--- ALTER TABLE "svcgrp" DROP COLUMN IF  EXISTS "deleted" ;
--- ALTER TABLE "svcgrp_flat" DROP  COLUMN IF EXISTS "deleted" ;
--- ALTER TABLE "zone" DROP COLUMN IF EXISTS "deleted" ;
--- ALTER TABLE "usr" DROP COLUMN IF EXISTS  "deleted" ;
--- ALTER TABLE "usergrp" DROP COLUMN IF EXISTS "deleted" ;
--- ALTER TABLE "usergrp_flat" DROP COLUMN IF EXISTS "deleted" ;
--- ALTER TABLE "rule" DROP COLUMN IF EXISTS "deleted" ;
--- ALTER TABLE "rule_from" DROP COLUMN IF EXISTS "deleted" ;
--- ALTER TABLE "rule_to" DROP COLUMN IF EXISTS "deleted" ;
--- ALTER TABLE "rule_service" DROP COLUMN IF EXISTS "deleted" ;
 
 ALTER table "import_control" ADD COLUMN IF NOT EXISTS "is_full_import" BOOLEAN DEFAULT FALSE;
 
@@ -195,14 +165,13 @@ Alter table "rule_enforced_on_gateway" add CONSTRAINT fk_rule_enforced_on_gatewa
 
 ALTER TABLE "rule_enforced_on_gateway"
     DROP CONSTRAINT IF EXISTS "fk_rule_enforced_on_gateway_created_import_control_control_id" CASCADE;
-
 Alter table "rule_enforced_on_gateway" add CONSTRAINT fk_rule_enforced_on_gateway_created_import_control_control_id 
 	foreign key ("created") references "import_control" ("control_id") on update restrict on delete cascade;
 
 ALTER TABLE "rule_enforced_on_gateway"
     DROP CONSTRAINT IF EXISTS "fk_rule_enforced_on_gateway_deleted_import_control_control_id" CASCADE;
-Alter table "rule_enforced_on_gateway" add CONSTRAINT fk_rule_enforced_on_gateway_deleted_import_control_control_id 
-	foreign key ("deleted") references "import_control" ("control_id") on update restrict on delete cascade;
+Alter table "rule_enforced_on_gateway" add CONSTRAINT fk_rule_enforced_on_gateway_removed_import_control_control_id 
+	foreign key ("removed") references "import_control" ("control_id") on update restrict on delete cascade;
 
 -----------------------------------------------
 
@@ -260,6 +229,15 @@ Alter table "rulebase_link" drop constraint IF EXISTS "fk_rulebase_link_to_ruleb
 Alter table "rulebase_link" drop constraint IF EXISTS "fk_rulebase_link_from_rule_id";
 Alter table "rulebase_link" add constraint "fk_rulebase_link_to_rulebase_id" foreign key ("to_rulebase_id") references "rulebase" ("id") on update restrict on delete cascade;
 Alter table "rulebase_link" add constraint "fk_rulebase_link_from_rule_id" foreign key ("from_rule_id") references "rule" ("rule_id") on update restrict on delete cascade;
+
+ALTER TABLE "rulebase_link"
+    DROP CONSTRAINT IF EXISTS "fk_rulebase_link_created_import_control_control_id" CASCADE;
+Alter table "rulebase_link" add CONSTRAINT fk_rulebase_link_created_import_control_control_id 
+	foreign key ("created") references "import_control" ("control_id") on update restrict on delete cascade;
+ALTER TABLE "rulebase_link"
+    DROP CONSTRAINT IF EXISTS "fk_rulebase_link_created_import_control_control_id" CASCADE;
+Alter table "rulebase_link" add CONSTRAINT fk_rulebase_link_removed_import_control_control_id 
+	foreign key ("removed") references "import_control" ("control_id") on update restrict on delete cascade;
 
 -- TODO delete all rule.parent_rule_id and rule.parent_rule_type, always = None so far
 
@@ -522,7 +500,42 @@ Alter table "rule_metadata" add constraint "rule_metadata_rulebase_id_f_key"
 ALTER TABLE "rule_metadata" DROP CONSTRAINT IF EXISTS "rule_metadata_alt_key" CASCADE;
 Alter Table "rule_metadata" add Constraint "rule_metadata_alt_key" UNIQUE ("rule_uid","dev_id","rulebase_id");
 
+-- reverse last_seen / removed logic for objects
+ALTER TABLE "object" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
+ALTER TABLE "objgrp" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
+ALTER TABLE "objgrp_flat" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
+ALTER TABLE "service" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
+ALTER TABLE "svcgrp" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
+ALTER TABLE "svcgrp_flat" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
+ALTER TABLE "zone" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
+ALTER TABLE "usr" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
+ALTER TABLE "usergrp" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
+ALTER TABLE "usergrp_flat" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
+ALTER TABLE "rule" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
+ALTER TABLE "rule_from" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
+ALTER TABLE "rule_to" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
+ALTER TABLE "rule_service" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
+ALTER TABLE "rule_enforced_on_gateway" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
+ALTER TABLE "rulebase" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
+ALTER TABLE "rulebase_link" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
 
+-- ALTER TABLE "object" DROP COLUMN IF EXISTS "deleted" ;
+-- ALTER TABLE "objgrp" DROP COLUMN IF  EXISTS "deleted" ;
+-- ALTER TABLE "objgrp_flat" DROP COLUMN IF EXISTS "deleted" ;
+-- ALTER TABLE "service" DROP COLUMN IF EXISTS "deleted" ;
+-- ALTER TABLE "svcgrp" DROP COLUMN IF  EXISTS "deleted" ;
+-- ALTER TABLE "svcgrp_flat" DROP  COLUMN IF EXISTS "deleted" ;
+-- ALTER TABLE "zone" DROP COLUMN IF EXISTS "deleted" ;
+-- ALTER TABLE "usr" DROP COLUMN IF EXISTS  "deleted" ;
+-- ALTER TABLE "usergrp" DROP COLUMN IF EXISTS "deleted" ;
+-- ALTER TABLE "usergrp_flat" DROP COLUMN IF EXISTS "deleted" ;
+-- ALTER TABLE "rule" DROP COLUMN IF EXISTS "deleted" ;
+-- ALTER TABLE "rule_from" DROP COLUMN IF EXISTS "deleted" ;
+-- ALTER TABLE "rule_to" DROP COLUMN IF EXISTS "deleted" ;
+-- ALTER TABLE "rule_service" DROP COLUMN IF EXISTS "deleted" ;
+-- ALTER TABLE "rule_enforced_on_gateway" DROP COLUMN IF EXISTS "deleted";
+-- ALTER TABLE "rulebase" DROP COLUMN IF EXISTS "deleted";
+-- ALTER TABLE "rulebase_link" DROP COLUMN IF EXISTS "deleted";
 -- TODO: fill all rulebase_id s and then add not null constraint
 
 /*  TODOs 

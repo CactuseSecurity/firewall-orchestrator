@@ -47,7 +47,7 @@ namespace FWO.DeviceAutoDiscovery
 
                         if (superManagement.RulebaseName == null || superManagement.RulebaseUid == null)
                         {
-                            Log.WriteWarning("Autodiscovery", $"could not get global rulebase name/uid for {superManagement.Name} (id={superManagement.Id})");
+                            Log.WriteDebug("Autodiscovery", $"could not get global rulebase name/uid for {superManagement.Name} (id={superManagement.Id}, probably no MDS)");
                         }
                         else
                         {

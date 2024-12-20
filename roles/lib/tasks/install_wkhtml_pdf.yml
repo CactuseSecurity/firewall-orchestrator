@@ -69,10 +69,16 @@
       name: unzip
       state: present
 
+  - name: create chrome install path
+    file:
+      path: "/usr/local/bin/Chrome/Linux-{{ chrome_versions['json']['channels']['Stable']['version'] }}"
+      state: directory
+      mode: '0755'
+
   - name: download google chrome and unpack
     unarchive:
       src: "{{ stable_chrome_versions | selectattr('platform', 'match', 'linux64') | map(attribute='url') | first }}"
-      dest: /usr/local/bin
+      dest: "/usr/local/bin/Chrome/Linux-{{ chrome_versions['json']['channels']['Stable']['version'] }}"
       remote_src: yes
 
   become: true

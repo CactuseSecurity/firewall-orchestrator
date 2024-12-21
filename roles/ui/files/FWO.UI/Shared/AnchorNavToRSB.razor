@@ -6,6 +6,9 @@
     [Parameter]
     public FWO.Ui.Shared.TabSet TabSet { get; set; } = default!;
 
+    [Parameter]
+    public FWO.Ui.Data.CollapseState CollapseState { get; set; } = default!;
+
     protected override void OnInitialized()
     {
         NavigationManager.LocationChanged += OnLocationChanged;
@@ -67,6 +70,8 @@
                 TabSet?.SetActiveTab(recertPage ? 1 : 2);
             else
                 return;
+
+            CollapseState.Collapse(elementId);
             
             bool foundObj = await JSRuntime.InvokeAsync<bool>("scrollIntoRSBView", elementId);
 

@@ -22,7 +22,7 @@
 @code
 {
     [CascadingParameter]
-    public CollapseState collapseState { get; set; } = new CollapseState();
+    public CollapseState? collapseState { get; set; }
 
     [Parameter]
     public string Title { get; set; } = "";
@@ -48,6 +48,9 @@
     [Parameter]
     public EventCallback<bool> OnOpen { get; set; }
 
+    [Parameter]
+    public string? RSBLocation { get; set; }
+
     private bool show;
     private bool invokeOnOpenAfterRender;
 
@@ -61,8 +64,8 @@
                 invokeOnOpenAfterRender = true;
             if (collapseState != null)
             {
-                collapseState.OnCollapseAll += ForceCollapse;
-                collapseState.OnExpandAll += ForceExpand;
+                collapseState.OnCollapse += onCollapse;
+                collapseState.OnExpand += onExpand;
             }
             StateHasChanged();
         }
@@ -92,9 +95,25 @@
             invokeOnOpenAfterRender = true;
     }
 
+    private void onCollapse(string? location)
+    {
+        if (RSBLocation == null || location != null && location.StartsWith(RSBLocation))
+            ForceCollapse();
+    }
+
+    private void onExpand(string? location)
+    {
+        if (RSBLocation == null || location != null && location.StartsWith(RSBLocation))
+            ForceExpand();
+    }
+
     void IDisposable.Dispose()
     {
-        if (collapseState != null)
-            collapseState.OnCollapseAll -= ForceCollapse;
+        if (collapseState != null && RSBLocation != null)
+        {
+            collapseState.OnExpand -= onExpand;
+            collapseState.OnCollapse -= onCollapse;
+        }
+
     }
 }

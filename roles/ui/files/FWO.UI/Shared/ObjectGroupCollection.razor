@@ -17,6 +17,19 @@
 
 @code
 {
+    private ObjectGroup<InputDataType>? objectGroupRef;
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender && objectGroupRef != null && !ObjectGroups.Contains(objectGroupRef))
+        {
+            ObjectGroups.Add(objectGroupRef);
+        }
+    }
+
+    public List<ObjectGroup<InputDataType>> ObjectGroups { get; set; } = new List<ObjectGroup<InputDataType>>();
+
+
     [Parameter]
     public Func<RsbTab, ObjCategory, Func<ReportData, Task>, long, bool, Task>? FetchObjects { get; set; }
 
@@ -52,4 +65,5 @@
     
     [Parameter]
     public bool Reload { get; set; } = false;
+
 }

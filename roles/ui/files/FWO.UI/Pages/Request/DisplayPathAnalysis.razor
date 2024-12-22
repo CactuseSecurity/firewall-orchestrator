@@ -8,7 +8,7 @@
 @inject UserConfig userConfig
 
 
-<PopUp Title="@(userConfig.GetText("path_analysis") + ": " + ReqTask.Title)" Show="@Display" Size=PopupSize.Large OnClose="async () => await Close()">
+<PopUp Title="@(userConfig.GetText("path_analysis") + ": " + ReqTask.Title)" Show="@Display" Size=PopupSize.Large OnClose="() => Close()">
     <Body>
         @if (Display)
         {
@@ -44,9 +44,6 @@
     public EventCallback<bool> DisplayChanged { get; set; }
 
     [Parameter]
-    public Func<Task> ResetParent { get; set; } = DefaultInit.DoNothing;
-
-    [Parameter]
     public WfReqTask ReqTask { get; set; } = new ();
 
     private List<Device> deviceList = new ();
@@ -58,7 +55,7 @@
         {
             if (Display)
             {
-                deviceList = await (new PathAnalysis(apiConnection)).getAllDevices(ReqTask.Elements);
+                deviceList = await PathAnalysis.GetAllDevices(ReqTask.Elements, apiConnection);
             }
         }
         catch (Exception exception)
@@ -67,9 +64,8 @@
         }
     }
 
-    private async Task Close()
+    private void Close()
     {
         Display = false;
-        await ResetParent();
     }
 }

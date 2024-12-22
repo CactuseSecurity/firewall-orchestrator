@@ -730,7 +730,7 @@ namespace FWO.Services
                     case PathAnalysisOptions.WriteToDeviceList:
                         if(apiConnection != null)
                         {
-                            ActReqTask.SetDeviceList(await new PathAnalysis(apiConnection).getAllDevices(ActReqTask.Elements));
+                            ActReqTask.SetDeviceList(await PathAnalysis.GetAllDevices(ActReqTask.Elements, apiConnection));
                         }
                         break;
                     case PathAnalysisOptions.DisplayFoundDevices:
@@ -1261,7 +1261,7 @@ namespace FWO.Services
         {
             if(apiConnection != null)
             {
-                foreach(var device in await new PathAnalysis(apiConnection).getAllDevices(reqTask.Elements))
+                foreach(var device in await PathAnalysis.GetAllDevices(reqTask.Elements, apiConnection))
                 {
                     if(reqTask.ImplementationTasks.FirstOrDefault(x => x.DeviceId == device.Id) == null)
                     {

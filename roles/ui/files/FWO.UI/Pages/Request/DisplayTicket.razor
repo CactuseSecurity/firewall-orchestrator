@@ -232,9 +232,12 @@
         try
         {
             Log.WriteDebug("DisplayTicket", "Reset");
-            offeredActions = WfHandler.ActionHandler.GetOfferedActions(WfHandler.ActTicket, WfObjectScopes.Ticket, WfHandler.Phase);
+            if(WfHandler.ActionHandler != null)
+            {
+                offeredActions = WfHandler.ActionHandler.GetOfferedActions(WfHandler.ActTicket, WfObjectScopes.Ticket, WfHandler.Phase);
+            }
             selectedPriority = WfHandler.PrioList.FirstOrDefault(p => p.NumPrio == WfHandler.ActTicket.Priority);
-            StateHasChanged();
+            await InvokeAsync(StateHasChanged);
         }
         catch (Exception exception)
         {
@@ -262,7 +265,10 @@
 
     private async Task PerformAction(WfStateAction action)
     {
-        await WfHandler.ActionHandler.PerformAction(action, WfHandler.ActTicket, WfObjectScopes.Ticket, null, WfHandler.ActTicket.Id);
+        if(WfHandler.ActionHandler != null)
+        {
+            await WfHandler.ActionHandler.PerformAction(action, WfHandler.ActTicket, WfObjectScopes.Ticket, null, WfHandler.ActTicket.Id);
+        }
         await ResetParent();
     }
 

@@ -411,7 +411,7 @@
                 firstParamSet = false;
                 InitElements();
                 await InitComments();
-                if(IncludePopups)
+                if(IncludePopups && WfHandler.ActionHandler != null)
                 {
                     offeredActions = WfHandler.ActionHandler.GetOfferedActions(WfHandler.ActImplTask, WfObjectScopes.ImplementationTask, WfHandler.Phase);
                 }
@@ -440,7 +440,7 @@
 
     private async Task InitComments()
     {
-        allComments = WfHandler.ActImplTask.GetAllComments();
+        allComments = WfStatefulObject.DisplayAllComments(WfHandler.ActImplTask.Comments);
         WfHandler.DisplayImplTaskCommentMode = false;
     }
 
@@ -460,7 +460,10 @@
 
     private async Task PerformAction(WfStateAction action)
     {
-        await WfHandler.ActionHandler.PerformAction(action, WfHandler.ActImplTask, WfObjectScopes.ImplementationTask, actOwner, WfHandler.ActReqTask.TicketId);
+        if(WfHandler.ActionHandler != null)
+        {
+            await WfHandler.ActionHandler.PerformAction(action, WfHandler.ActImplTask, WfObjectScopes.ImplementationTask, actOwner, WfHandler.ActReqTask.TicketId);
+        }
     }
 
     private void RequestAssignOwner()

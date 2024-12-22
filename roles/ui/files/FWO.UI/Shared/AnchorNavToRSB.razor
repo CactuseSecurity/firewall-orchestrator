@@ -18,7 +18,7 @@
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
-            await ScrollToFragment(GetIdFromURI());
+            await ScrollToFragment();
     }
 
     public void Dispose()
@@ -28,7 +28,7 @@
 
     private async void OnLocationChanged(object? sender, LocationChangedEventArgs e)
     {
-        await ScrollToFragment(GetIdFromURI());
+        await ScrollToFragment();
     }
 
     /// <returns>The html element id to an object in the right side bar.</returns>
@@ -54,8 +54,10 @@
         return "";
     }
 
-    private async Task ScrollToFragment(string elementId)
+    public async Task ScrollToFragment()
     {
+        string elementId = GetIdFromURI();
+
         if (!string.IsNullOrEmpty(elementId))
         {
             var uri = new Uri(NavigationManager.Uri, UriKind.Absolute);
@@ -87,16 +89,6 @@
                 ub.Fragment = "";
                 NavigationManager.NavigateTo(ub.Uri.AbsoluteUri);
             }
-        }
-    }
-
-    public async Task ScrollToFragmentIfMatch(string idPrefixMatch)
-    {
-        string elementId = GetIdFromURI();
-
-        if (elementId.StartsWith(idPrefixMatch))
-        {
-            await ScrollToFragment(elementId);
         }
     }
 }

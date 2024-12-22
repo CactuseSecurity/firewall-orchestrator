@@ -247,6 +247,9 @@
     [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
+    [CascadingParameter]
+    AnchorNavToRSB? AnchorNavToRSB { get; set; }
+
     [Parameter]
     public Func<RsbTab, ObjCategory, Func<ReportData, Task>, long, bool, Task>? FetchObjects { get; set; }
 
@@ -426,6 +429,7 @@
                                         }
                                         Content = (InputDataType)(Object)mgt;
                                     }
+                                    AnchorNavToRSB?.ScrollToFragment();
                                     return InvokeAsync(StateHasChanged);
                                 }, mgt.Id, false);
                             break;
@@ -440,6 +444,7 @@
                                         ruleUpdated.DeviceName = rule.DeviceName;
                                         Content = (InputDataType)(Object)ruleUpdated;
                                     }
+                                    AnchorNavToRSB?.ScrollToFragment();
                                     return InvokeAsync(StateHasChanged);
                                  }, rule.Id, !string.IsNullOrEmpty(rule.NatData?.TranslatedSource));
                             break;

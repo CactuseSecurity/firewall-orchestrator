@@ -1,4 +1,4 @@
-@using FWO.Ui.Data
+﻿@using FWO.Ui.Data
 @using FWO.Basics
 @using FWO.Api.Data
 
@@ -98,13 +98,13 @@
 
     private void onCollapse(string? location)
     {
-        if (RSBLocation == null || location != null && location.StartsWith(RSBLocation))
+        if (RSBLocation == null || location != null && (location.StartsWith(RSBLocation) || RSBLocation.StartsWith(location)))
             ForceCollapse();
     }
 
     private void onExpand(string? location)
     {
-        if (RSBLocation == null || location != null && location.StartsWith(RSBLocation))
+        if (RSBLocation == null || location != null && (location.StartsWith(RSBLocation) || RSBLocation.StartsWith(location)))
             ForceExpand();
     }
 

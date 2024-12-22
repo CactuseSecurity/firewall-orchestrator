@@ -118,8 +118,10 @@
                             Items="@NetworkServiceExtractor(Content)" PageSize="PageSize" ColumnReorder="true">
                         <Column TableItem="NetworkService" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Class="word-break">
                             <Template>
-                                <span class="@ReportBase.GetIconClass(ObjCategory.nsrv, context.Type.Name)">&nbsp;</span>
-                                <b id="@(GetID(ObjCategory.nsrv, context.Id))">@(context.Name)</b>
+                                <div> @* need same offset to parent html for link highlight *@
+                                    <span class="@ReportBase.GetIconClass(ObjCategory.nsrv, context.Type.Name)">&nbsp;</span>
+                                    <b id="@(GetID(ObjCategory.nsrv, context.Id))">@(context.Name)</b>
+                                </div>
                             </Template>
                         </Column>
                         <DetailTemplate TableItem="NetworkService">
@@ -194,8 +196,10 @@
                             TableItem="NetworkUser" Items="@NetworkUserExtractor(Content)" PageSize="PageSize" ColumnReorder="true">
                         <Column TableItem="NetworkUser" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Class="word-break">
                             <Template>
-                                <span class="@ReportBase.GetIconClass(ObjCategory.user, context.Type.Name)">&nbsp;</span>
-                                <b id="@(GetID(ObjCategory.user, context.Id))">@(context.Name)</b>
+                                <div> @* need same offset to parent html for link highlight *@
+                                    <span class="@ReportBase.GetIconClass(ObjCategory.user, context.Type.Name)">&nbsp;</span>
+                                    <b id="@(GetID(ObjCategory.user, context.Id))">@(context.Name)</b>
+                                </div>
                             </Template>
                         </Column>
                         <DetailTemplate TableItem="NetworkUser">

@@ -85,9 +85,7 @@
             if (foundObj)
             {
                 // remove #goto-{obj-link} fragment from uri
-                UriBuilder ub = new(uri);
-                ub.Fragment = "";
-                NavigationManager.NavigateTo(ub.Uri.AbsoluteUri);
+                await JSRuntime.InvokeVoidAsync("removeUrlFragment");
             }
         }
     }

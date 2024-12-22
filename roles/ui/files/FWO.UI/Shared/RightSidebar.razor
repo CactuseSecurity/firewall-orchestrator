@@ -26,7 +26,7 @@
                                 <div class="btn btn-secondary btn-sm w-50" @onclick="@(() => collapseInRSB.Collapse("all"))">@(userConfig.GetText("collapse_all"))</div>
                             </div>
                             <div class="mt-2">
-                                    <ObjectGroupCollection FetchObjects="FetchContent" Recert="false" Tab="RsbTab.all" InputDataType="ManagementReport" Data="managementsAllObjects"
+                                    <ObjectGroupCollection FetchObjects="FetchContent" Recert="Recert" Tab="RsbTab.all" InputDataType="ManagementReport" Data="managementsAllObjects"
                                         NameExtractor="man => man.Name" NetworkObjectExtractor="man => man.Objects"
                                         NetworkServiceExtractor="man => man.Services" NetworkUserExtractor="man => man.Users" />
                             </div>
@@ -39,7 +39,7 @@
                                 <div class="btn btn-secondary btn-sm w-50" @onclick="@(() => collapseInRSB.Collapse("report"))">@(userConfig.GetText("collapse_all"))</div>
                             </div>
                             <div class="mt-2">
-                                <ObjectGroupCollection FetchObjects="FetchContent" Recert="false" Tab="RsbTab.report" InputDataType="ManagementReport" 
+                                <ObjectGroupCollection FetchObjects="FetchContent" Recert="Recert" Tab="RsbTab.report" InputDataType="ManagementReport" 
                                     Data="CurrentReport.ReportData.ManagementData.Where(m => (m.Devices.Where(d => d.Rules != null && d.Rules.Count() > 0).Count() > 0))"
                                     NameExtractor="man => man.Name"
                                     NetworkObjectExtractor="man => man.ReportObjects"
@@ -54,7 +54,7 @@
                                 <div class="btn btn-secondary btn-sm w-50" @onclick="@(() => collapseInRSB.Collapse("rule"))">@(userConfig.GetText("collapse_all"))</div>
                             </div>
                             <div class="mt-2">
-                                <ObjectGroupCollection FetchObjects="FetchContent" Recert="false" Tab="RsbTab.rule" StartContentDetailed="true" StartCollapsed="false" InputDataType="Rule" Data="SelectedRules"
+                                <ObjectGroupCollection FetchObjects="FetchContent" Recert="Recert" Tab="RsbTab.rule" StartContentDetailed="true" StartCollapsed="false" InputDataType="Rule" Data="SelectedRules"
                                     NameExtractor=@(rule => $"{rule.DeviceName} - Rule {rule.Id} {rule.Name}")
                                     NetworkObjectExtractor="rule => rule.Froms.Select(nl => nl.Object)
                                         .Union(rule.Tos.Select(nl => nl.Object))
@@ -73,13 +73,13 @@
                                 <div class="btn btn-secondary btn-sm w-50" @onclick="@(() => collapseInRSB.Collapse("report"))">@(userConfig.GetText("collapse_all"))</div>
                             </div>
                             <div class="mt-2">
-                                <ObjectGroupCollection FetchObjects="FetchContent" Recert="false" Tab="RsbTab.usedObj" StartCollapsed="false" InputDataType="OwnerReport" 
+                                <ObjectGroupCollection FetchObjects="FetchContent" Recert="Recert" Tab="RsbTab.usedObj" StartCollapsed="false" InputDataType="OwnerReport" 
                                     Data="CurrentReport.ReportData.OwnerData"
                                     NameExtractor="own => own.Name" 
                                     NetworkObjectExtractor="own => own.GetAllNetworkObjects(true)"
                                     NetworkServiceExtractor="own => own.GetAllServices(true)"
                                     Reload="true"/>
-                                <ObjectGroupCollection FetchObjects="FetchContent" Recert="false" Tab="RsbTab.usedObj" StartCollapsed="false" InputDataType="GlobalCommonSvcReport" 
+                                <ObjectGroupCollection FetchObjects="FetchContent" Recert="Recert" Tab="RsbTab.usedObj" StartCollapsed="false" InputDataType="GlobalCommonSvcReport" 
                                     Data="CurrentReport.ReportData.GlobalComSvc"
                                     NameExtractor="glbComSvc => glbComSvc.Name"
                                     NetworkObjectExtractor="glbComSvc => glbComSvc.GetAllNetworkObjects(true)"
@@ -120,6 +120,9 @@
 
     [Parameter]
     public ReportType SelectedReportType  { get; set; } = ReportType.Rules;
+
+    [Parameter]
+    public bool Recert { get; set; } = false;
         
     private FWO.Ui.Shared.TabSet tabset = new ();
     private FWO.Ui.Shared.AnchorNavToRSB anchorNavToRSB = new ();

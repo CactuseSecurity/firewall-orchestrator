@@ -155,7 +155,7 @@
     </div>
 
     @* ==== RIGHT SIDEBAR ==== *@
-    <RightSidebar @bind-Width="sidebarRightWidth" currentReport"
+    <RightSidebar @bind-Width="sidebarRightWidth" CurrentReport="currentReport"
         @bind-SelectedRules="selectedItemsRuleReportTable" 
         AllTabVisible="(tenantFilteringAllowed && actReportFilters.SelectedTenant == null)"
         SelectedReportType = "actReportFilters.ReportType"/>

@@ -1,4 +1,4 @@
-﻿@using FWO.Ui.Data
+@using FWO.Ui.Data
 @using FWO.Basics
 @using FWO.Api.Data
 
@@ -22,7 +22,7 @@
 @code
 {
     [CascadingParameter]
-    public CollapseState? collapseState { get; set; }
+    public CollapseState? CollapseState { get; set; }
 
     [Parameter]
     public string Title { get; set; } = "";
@@ -62,10 +62,11 @@
             invokeOnOpenAfterRender = false;
             if (!StartToggled)
                 invokeOnOpenAfterRender = true;
-            if (collapseState != null)
+            if (CollapseState != null)
             {
-                collapseState.OnCollapse += onCollapse;
-                collapseState.OnExpand += onExpand;
+                CollapseState.OnCollapse += onCollapse;
+                CollapseState.OnExpand += onExpand;
+                Log.WriteDebug($"Collapse {Title}", $"Subscribed to collapseState {CollapseState.GetHashCode()}");
             }
             StateHasChanged();
         }
@@ -109,10 +110,10 @@
 
     void IDisposable.Dispose()
     {
-        if (collapseState != null && RSBLocation != null)
+        if (CollapseState != null && RSBLocation != null)
         {
-            collapseState.OnExpand -= onExpand;
-            collapseState.OnCollapse -= onCollapse;
+            CollapseState.OnExpand -= onExpand;
+            CollapseState.OnCollapse -= onCollapse;
         }
 
     }

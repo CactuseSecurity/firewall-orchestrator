@@ -1,4 +1,5 @@
 @using FWO.Basics
+@using System.Text.RegularExpressions
 @inject IJSRuntime JSRuntime
 @inject NavigationManager NavigationManager
 @implements IDisposable
@@ -59,7 +60,7 @@
         {
             var uri = new Uri(NavigationManager.Uri, UriKind.Absolute);
 
-            // check if current page is certification page
+            // need to check if recert page since tabs are different
             bool recertPage = uri.AbsolutePath == $"/{PageName.Certification}";
 
             if (elementId.StartsWith("all"))
@@ -71,7 +72,11 @@
             else
                 return;
 
-            CollapseState.Collapse(elementId);
+            // remove chapternum from #goto-report-{reportId}-{type}{chapterNumber}x{id} in report html export
+            if (elementId.StartsWith("report"))
+                elementId = Regex.Replace(elementId, @"(nwobj|svc|user)\d+x(\d+)", "$1$2");
+
+            CollapseState.Expand(elementId);
             
             bool foundObj = await JSRuntime.InvokeAsync<bool>("scrollIntoRSBView", elementId);
 

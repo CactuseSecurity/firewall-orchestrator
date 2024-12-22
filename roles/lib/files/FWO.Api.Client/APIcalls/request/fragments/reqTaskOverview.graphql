@@ -1,0 +1,24 @@
+fragment reqTaskOverview on request_reqtask {
+  id
+  ticket_id
+  title
+  task_number
+  state_id
+  task_type
+  request_action
+  rule_action
+  rule_tracking
+  start
+  stop
+  reason
+  additional_info
+  on_management: management {
+    id: mgm_id
+    name: mgm_name
+  }
+  comments: reqtask_comments {
+    comment: comment {
+      comment_text
+    }
+  }
+}

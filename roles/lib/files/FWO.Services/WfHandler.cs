@@ -3,6 +3,7 @@ using FWO.Config.Api;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Middleware.Client;
+using FWO.Logging;
 
 namespace FWO.Services
 {
@@ -92,6 +93,7 @@ namespace FWO.Services
         private bool InitOngoing = false;
         private readonly bool usedInMwServer = false;
         private readonly List<UserGroup>? UserGroups = null;
+        private bool ReloadTasks = false;
 
 
         public WfHandler()
@@ -128,12 +130,13 @@ namespace FWO.Services
         }
 
 
-        public async Task Init(List<int> ownerIds, bool allStates = false, bool ignoreOwners = false)
+        public async Task Init(List<int> ownerIds, bool allStates = false, bool ignoreOwners = false, bool fullTickets = false)
         {
             try
             {
                 if(!InitOngoing && apiConnection != null)
                 {
+                    Log.WriteDebug("Init start:  ", $"{DateTime.Now:hh:mm:ss,fff}");
                     InitOngoing = true;
                     if(usedInMwServer)
                     {
@@ -154,9 +157,11 @@ namespace FWO.Services
                     AllOwners = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
                     await stateMatrixDict.Init(Phase, apiConnection);
                     MasterStateMatrix = stateMatrixDict.Matrices[WfTaskType.master.ToString()];
-                    TicketList = await dbAcc.FetchTickets(MasterStateMatrix, ownerIds, allStates, ignoreOwners);
+                    TicketList = await dbAcc.FetchTickets(MasterStateMatrix, ownerIds, allStates, ignoreOwners, fullTickets);
+                    ReloadTasks = !fullTickets;
                     PrioList = System.Text.Json.JsonSerializer.Deserialize<List<WfPriority>>(userConfig.ReqPriorities) ?? throw new Exception("Config data could not be parsed.");
                     apiConnection.SwitchBack();
+                    Log.WriteDebug("Init stop:   ", $"{DateTime.Now:hh:mm:ss,fff}");
                     InitOngoing = false;
                     InitDone = true;
                 }
@@ -266,15 +271,6 @@ namespace FWO.Services
             return ticket;
         }
 
-        public async Task<WfTicket?> GetFullTicket(long ticketId)
-        {
-            if(dbAcc != null)
-            {
-                return await dbAcc.GetTicket(ticketId);
-            }
-            return null;
-        }
-
         public async Task<string> HandleInjectedTicketId(WorkflowPhases phase, long ticketId)
         {
             WfTicket? ticket = await ResolveTicket(ticketId);
@@ -282,11 +278,11 @@ namespace FWO.Services
             {
                 if(ticket.StateId < MasterStateMatrix.LowestEndState)
                 {
-                    SelectTicket(ticket, ObjAction.edit);
+                    await SelectTicket(ticket, ObjAction.edit, true);
                 }
                 else if(MasterStateMatrix.IsLastActivePhase)
                 {
-                    SelectTicket(ticket, ObjAction.display);
+                    await SelectTicket(ticket, ObjAction.display, true);
                 }
                 else
                 {
@@ -321,8 +317,13 @@ namespace FWO.Services
             return (phase, foundNewPhase);
         }
 
-        public void SelectTicket(WfTicket ticket, ObjAction action)
+        public async Task SelectTicket(WfTicket ticket, ObjAction action, bool reload = false)
         {
+            if(ReloadTasks && reload && dbAcc != null)
+            {
+                ticket = await dbAcc.FetchTicket(ticket.Id, [], true) ?? ticket;
+                TicketList[TicketList.FindIndex(x => x.Id == ticket.Id)] = ticket;
+            }
             SetTicketEnv(ticket);
             SetTicketOpt(action);
         }
@@ -1224,19 +1225,19 @@ namespace FWO.Services
                     case AutoCreateImplTaskOptions.onlyForOneDevice:
                         if(Devices.Count > 0)
                         {
-                            await createAccessImplTask(reqTask, Devices[0].Id, false);
+                            await CreateAccessImplTask(reqTask, Devices[0].Id, false);
                         }
                         break;
                     case AutoCreateImplTaskOptions.forEachDevice:
                         foreach(var device in Devices)
                         {
-                            await createAccessImplTask(reqTask, device.Id);
+                            await CreateAccessImplTask(reqTask, device.Id);
                         }
                         break;
                     case AutoCreateImplTaskOptions.enterInReqTask:
                         foreach(var deviceId in reqTask.GetDeviceList())
                         {
-                            await createAccessImplTask(reqTask, deviceId);
+                            await CreateAccessImplTask(reqTask, deviceId);
                         }
                         break;
                     case AutoCreateImplTaskOptions.afterPathAnalysis:
@@ -1265,13 +1266,13 @@ namespace FWO.Services
                 {
                     if(reqTask.ImplementationTasks.FirstOrDefault(x => x.DeviceId == device.Id) == null)
                     {
-                        await createAccessImplTask(reqTask, device.Id);
+                        await CreateAccessImplTask(reqTask, device.Id);
                     }
                 }
             }
         }
 
-        private async Task createAccessImplTask(WfReqTask reqTask, int deviceId, bool adaptTitle=true)
+        private async Task CreateAccessImplTask(WfReqTask reqTask, int deviceId, bool adaptTitle=true)
         {
             WfImplTask newImplTask;
             newImplTask = new WfImplTask(reqTask)

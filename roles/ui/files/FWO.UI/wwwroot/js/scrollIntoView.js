@@ -12,6 +12,10 @@ function scrollIntoRSBView(htmlObjId) {
   return obj.offsetParent !== null; // element visible?
 }
 
+function getCurrentUrl() {
+  return window.location.href;
+}
+
 function removeUrlFragment() {
   history.replaceState(null, document.title, window.location.pathname + window.location.search);
 }

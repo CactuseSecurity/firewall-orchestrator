@@ -76,9 +76,12 @@
         StateHasChanged();
     }
 
-    public void SetActiveTab(Tab tab)
+    public void SetActiveTab(Tab? tab)
     {
-        if (ActiveTab == null || ActiveTab != tab)
+        if (tab == null)
+            return;
+
+        if (Tabs.Contains(tab) && (ActiveTab == null || ActiveTab != tab))
         {
             ActiveTab = tab;
             StateHasChanged();
@@ -87,7 +90,7 @@
 
     public void SetActiveTab(int index)
     {
-        if (Tabs.Count > 0 && (ActiveTab == null || ActiveTab != Tabs[index]))
+        if (Tabs.Count > index && (ActiveTab == null || ActiveTab != Tabs[index]))
         {
             ActiveTab = Tabs[index];
             StateHasChanged();

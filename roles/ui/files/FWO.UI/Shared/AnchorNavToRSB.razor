@@ -2,7 +2,10 @@
 @using System.Text.RegularExpressions
 @inject IJSRuntime JSRuntime
 @inject NavigationManager NavigationManager
+@inject UserConfig userConfig
+
 @implements IDisposable
+
 @code {
     [Parameter]
     public FWO.Ui.Shared.TabSet TabSet { get; set; } = default!;
@@ -35,9 +38,10 @@
     /// <summary>
     /// Expects the URI to contain link to rsb object in form of #goto-{obj-link}. Example URI: localhost/report#goto-report-m8-nwobj31473
     /// </summary>
-    private string GetIdFromURI()
+    private async Task<string> GetIdFromURI()
     {
-        var uri = new Uri(NavigationManager.Uri, UriKind.Absolute);
+        var currentUrl = await JSRuntime.InvokeAsync<string>("getCurrentUrl");
+        var uri = new Uri(currentUrl, UriKind.Absolute);
         var fragment = uri.Fragment;
         if (fragment.StartsWith("#goto-"))
         {
@@ -52,11 +56,13 @@
             return elementId.Substring(5);
         }
         return "";
+        //NOTE: cannot use NavigationManager.GetUri() since it does not reflect change made by JS (removing the fragment)
+        //      cannot remove fragment in URI with NavigationManager since it will result in a scroll to top
     }
 
     public async Task ScrollToFragment()
     {
-        string elementId = GetIdFromURI();
+        string elementId = await GetIdFromURI();
 
         if (!string.IsNullOrEmpty(elementId))
         {
@@ -66,11 +72,11 @@
             bool recertPage = uri.AbsolutePath == $"/{PageName.Certification}";
 
             if (elementId.StartsWith("all"))
-                TabSet?.SetActiveTab(0);
+                TabSet?.SetActiveTab(TabSet.Tabs.Where(t => t.Title == userConfig.GetText("all")).FirstOrDefault());
             else if (elementId.StartsWith("report"))
-                TabSet?.SetActiveTab(recertPage ? 0 : 1);
+                TabSet?.SetActiveTab(TabSet.Tabs.Where(t => t.Title == userConfig.GetText("report")).FirstOrDefault());
             else if (elementId.StartsWith("rule"))
-                TabSet?.SetActiveTab(recertPage ? 1 : 2);
+                TabSet?.SetActiveTab(TabSet.Tabs.Where(t => t.Title == userConfig.GetText("rule")).FirstOrDefault());
             else
                 return;
 

@@ -1,4 +1,4 @@
-﻿@using FWO.Ui.Data
+@using FWO.Ui.Data
 @using FWO.Basics
 @using FWO.Api.Data
 
@@ -66,7 +66,6 @@
             {
                 CollapseState.OnCollapse += onCollapse;
                 CollapseState.OnExpand += onExpand;
-                Log.WriteDebug($"Collapse {Title}", $"Subscribed to collapseState {CollapseState.GetHashCode()}");
             }
             StateHasChanged();
         }

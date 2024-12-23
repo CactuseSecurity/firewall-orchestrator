@@ -188,3 +188,7 @@ CREATE MATERIALIZED VIEW view_rule_with_owner AS
 -- execute procedure refresh_view_rule_with_owner();
 
 GRANT SELECT ON TABLE view_rule_with_owner TO GROUP secuadmins, reporters, configimporters;
+
+-- Create indexes on the materialized view
+CREATE INDEX IF NOT EXISTS idx_view_rule_with_owner_rule_id ON view_rule_with_owner (rule_id);
+CREATE INDEX IF NOT EXISTS idx_view_rule_with_owner_owner_id ON view_rule_with_owner (owner_id);

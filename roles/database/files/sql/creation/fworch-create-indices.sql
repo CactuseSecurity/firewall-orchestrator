@@ -34,9 +34,6 @@ Create index IF NOT EXISTS idx_usergrp_flat01 on usergrp_flat (usergrp_flat_id);
 Create index IF NOT EXISTS idx_usergrp_flat02 on usergrp_flat (usergrp_flat_member_id);
 Create index IF NOT EXISTS idx_zone01 on zone (zone_name,mgm_id);
 Create index IF NOT EXISTS idx_zone02 on zone (mgm_id); -- needed as mgm_id is not first column on above composite index
--- Create indexes on the materialized view
-CREATE INDEX IF NOT EXISTS idx_view_rule_with_owner_rule_id ON view_rule_with_owner (rule_id);
-CREATE INDEX IF NOT EXISTS idx_view_rule_with_owner_owner_id ON view_rule_with_owner (owner_id);
 
 -- make sure a maximum of one stop_time=null entry exists per mgm_id (only one running import per mgm):
 CREATE UNIQUE INDEX uidx_import_control_only_one_null_stop_time_per_mgm_when_null ON import_control (mgm_id) WHERE stop_time IS NULL;

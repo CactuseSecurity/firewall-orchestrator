@@ -73,8 +73,10 @@ namespace FWO.Test
             }
         }
 
-        private async Task TryCreatePDF(IBrowser browser, PuppeteerSharp.Media.PaperFormat paperFormat)
+        private async Task TryCreatePDF(IBrowser browser, PaperFormat paperFormat)
         {
+            Log.WriteInfo("Test Log", $"Test creating PDF {paperFormat}");
+
             try
             {
                 using IPage page = await browser.NewPageAsync();

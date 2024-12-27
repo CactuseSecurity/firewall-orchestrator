@@ -59,10 +59,11 @@
     url: https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions-with-downloads.json
   register: chrome_versions
 
-- name: parse latest stable versions for chrome
+- name: parse latest stable versions for chrome and headless shell
   set_fact:
-    stable_chrome_versions: "{{ chrome_versions['json']['channels']['Stable']['downloads']['chrome'] }}"
-    chrome_dest: "/usr/local/bin/ChromeHeadlessShell/Linux-{{ chrome_versions['json']['channels']['Stable']['version'] }}"
+    stable_chrome_versions: "{{ chrome_versions['json']['channels']['Stable']['downloads'] }}"
+    chrome_dest: "/usr/local/bin/Chrome/Linux-{{ chrome_versions['json']['channels']['Stable']['version'] }}"
+    headless_shell_dest: "/usr/local/bin/ChromeHeadlessShell/Linux-{{ chrome_versions['json']['channels']['Stable']['version'] }}"
 
 - block:
   - name: install unzip
@@ -76,21 +77,23 @@
       state: directory
       mode: '0755'
 
+  - name: create chrome headless shell install path
+    file:
+      path: "{{ headless_shell_dest }}"
+      state: directory
+      mode: '0755'
+
   - name: download google chrome and unpack
     unarchive:
-      src: "{{ stable_chrome_versions | selectattr('platform', 'match', 'linux64') | map(attribute='url') | first }}"
+      src: "{{ stable_chrome_versions['chrome'] | selectattr('platform', 'match', 'linux64') | map(attribute='url') | first }}"
       dest: "{{ chrome_dest }}"
       remote_src: yes
 
-  - name: rename chrome directory
-    synchronize:
-      src: "{{ chrome_dest }}/chrome-linux64"
-      dest: "{{ chrome_dest }}/chrome-headless-shell-linux64"
-
-  - name: remove old chrome directory
-    file:
-      path: "{{ chrome_dest }}/chrome-linux64"
-      state: absent
+  - name: download google chrome headless shell and unpack
+    unarchive:
+      src: "{{ stable_chrome_versions['chrome-headless-shell'] | selectattr('platform', 'match', 'linux64') | map(attribute='url') | first }}"
+      dest: "{{ headless_shell_dest }}"
+      remote_src: yes
 
   become: true
   environment: "{{ proxy_env }}"

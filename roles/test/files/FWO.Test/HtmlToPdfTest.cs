@@ -4,6 +4,9 @@ using FWO.Logging;
 using PuppeteerSharp.Media;
 using PuppeteerSharp;
 using PuppeteerSharp.BrowserData;
+using FWO.Ui.Pages.Reporting;
+using FWO.Report;
+using static Org.BouncyCastle.Bcpg.Attr.ImageAttrib;
 
 namespace FWO.Test
 {
@@ -12,8 +15,7 @@ namespace FWO.Test
     {
         private const string FilePath = "pdffile.pdf";
         private const string Html = "<html> <body> <h1>test<h1> test mit puppteer </body> </html>";
-        private const string ChromeBinPathWin = "C:\\chrome";
-        private const string ChromeBinPathLinux = "/tmp/fworch";
+        private const string ChromeBinPathLinux = "/usr/local/bin";
 
         [Test]
         public async Task GeneratePdf()
@@ -25,98 +27,99 @@ namespace FWO.Test
 
             Log.WriteInfo("Test Log", $"OS: {os}");
 
-            string path;
+            string path = "";
+            BrowserFetcher? browserFetcher = default;
 
             switch (os.Platform)
             {
                 case PlatformID.Win32NT:
-                    path = ChromeBinPathWin;                    
+                    browserFetcher = new();
                     break;
                 case PlatformID.Unix:
                     path = ChromeBinPathLinux;
+                    browserFetcher = new(new BrowserFetcherOptions { Path = path, Platform = Platform.Linux, Browser = SupportedBrowser.Chrome });
                     break;
                 default:
-                    return;
+                   break;
             }
 
-            if (!Directory.Exists(path))
-            {
-                Directory.CreateDirectory(path);
-            }
+            InstalledBrowser? brw = await browserFetcher.DownloadAsync(BrowserTag.Stable);
 
-            BrowserFetcher? browserFetcher = new(new BrowserFetcherOptions { Path = path });
-            Log.WriteInfo("Test Log", $"Downloading chrome to: {path}");
-
-            InstalledBrowser? brw = await browserFetcher.DownloadAsync();
-
-            Log.WriteInfo("Test Log", $"Browser Path: {brw.GetExecutablePath()}");
-
-            if (brw.PermissionsFixed == false)
-            {
-                throw new Exception("Sandbox permissions were not applied. You need to run your application as an administrator.");
-            }
-
-            CancellationTokenSource cancellationTokenSource = new();
-            cancellationTokenSource.CancelAfter(TimeSpan.FromSeconds(30));
-
-            try
-            {
-                await TryCreatePDF(brw, cancellationTokenSource.Token);
-            }
-            catch (Exception ex)
-            {
-                Log.WriteError(ex.ToString());
-                Log.WriteError(ex.InnerException!.ToString());
-                throw new Exception(ex.Message);
-            }            
-
-            Assert.That(FilePath, Does.Exist);
-            ClassicAssert.Greater(new FileInfo(FilePath).Length, 5000);
-        }
-
-        private async Task TryCreatePDF(InstalledBrowser brw, CancellationToken ct)
-        {
-            Log.WriteInfo("Test Log", "Starting Browser...");
-            IBrowser? browser = await Puppeteer.LaunchAsync(new LaunchOptions
+            using IBrowser? browser = await Puppeteer.LaunchAsync(new LaunchOptions
             {
                 ExecutablePath = brw.GetExecutablePath(),
-                Headless = false,
-                //HeadlessMode = HeadlessMode.True,
-                Args = ["--no-sandbox", "--disable-setuid-sandbox"] //, "--disable-setuid-sandbox"
+                Headless = true
             });
-
-            Log.WriteInfo("Test Log", "Browser started...");
-
-            IPage page = await browser.NewPageAsync();
-            await page.BringToFrontAsync();
-            await page.GoToAsync("https://google.com");
-            Log.WriteInfo("Test Log", "Browser navigated...");
 
             try
             {
-                Log.WriteInfo("Test Log", "Browser new page...");
-                page = await browser.NewPageAsync();
-
-                Log.WriteInfo("Test Log", "Browser set html content...");
+                using IPage page = await browser.NewPageAsync();
                 await page.SetContentAsync(Html);
 
-                PdfOptions pdfOptions = new() { DisplayHeaderFooter = true, Landscape = true, PrintBackground = true, Format = PaperFormat.A4, MarginOptions = new MarginOptions { Top = "1cm", Bottom = "1cm", Left = "1cm", Right = "1cm" } };
+                PuppeteerSharp.Media.PaperFormat? pupformat = PuppeteerSharp.Media.PaperFormat.A4;
 
-                Log.WriteInfo("Test Log", $"Writing data to pdf at: {Path.GetFullPath(FilePath)})");
-                await page.PdfAsync(FilePath);
-                Log.WriteInfo("Test Log", "PDF created...");
+                PdfOptions pdfOptions = new() { DisplayHeaderFooter = true, Landscape = true, PrintBackground = true, Format = pupformat, MarginOptions = new MarginOptions { Top = "1cm", Bottom = "1cm", Left = "1cm", Right = "1cm" } };
+                byte[] pdfData = await page.PdfDataAsync(pdfOptions);
+
+                string html = Convert.ToBase64String(pdfData);
+                File.WriteAllText(FilePath, html);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                Log.WriteError(ex.ToString());
-                Log.WriteError(ex.InnerException!.ToString());
-                throw new Exception(ex.Message);
+                throw new Exception("This paper kind is currently not supported. Please choose another one or \"Custom\" for a custom size.");
             }
             finally
             {
                 await browser.CloseAsync();
             }
+
+            Assert.That(FilePath, Does.Exist);
+            ClassicAssert.Greater(new FileInfo(FilePath).Length, 5000);
         }
+
+        //private async Task TryCreatePDF(InstalledBrowser brw, CancellationToken ct)
+        //{
+        //    Log.WriteInfo("Test Log", "Starting Browser...");
+        //    IBrowser? browser = await Puppeteer.LaunchAsync(new LaunchOptions
+        //    {
+        //        ExecutablePath = brw.GetExecutablePath(),
+        //        Headless = false,
+        //        //HeadlessMode = HeadlessMode.True,
+        //        Args = ["--no-sandbox", "--disable-setuid-sandbox"] //, "--disable-setuid-sandbox"
+        //    });
+
+        //    Log.WriteInfo("Test Log", "Browser started...");
+
+        //    IPage page = await browser.NewPageAsync();
+        //    await page.BringToFrontAsync();
+        //    await page.GoToAsync("https://google.com");
+        //    Log.WriteInfo("Test Log", "Browser navigated...");
+
+        //    try
+        //    {
+        //        Log.WriteInfo("Test Log", "Browser new page...");
+        //        page = await browser.NewPageAsync();
+
+        //        Log.WriteInfo("Test Log", "Browser set html content...");
+        //        await page.SetContentAsync(Html);
+
+        //        PdfOptions pdfOptions = new() { DisplayHeaderFooter = true, Landscape = true, PrintBackground = true, Format = PaperFormat.A4, MarginOptions = new MarginOptions { Top = "1cm", Bottom = "1cm", Left = "1cm", Right = "1cm" } };
+
+        //        Log.WriteInfo("Test Log", $"Writing data to pdf at: {Path.GetFullPath(FilePath)})");
+        //        await page.PdfAsync(FilePath);
+        //        Log.WriteInfo("Test Log", "PDF created...");
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        Log.WriteError(ex.ToString());
+        //        Log.WriteError(ex.InnerException!.ToString());
+        //        throw new Exception(ex.Message);
+        //    }
+        //    finally
+        //    {
+        //        await browser.CloseAsync();
+        //    }
+        //}
 
         [OneTimeTearDown]
         public void OnFinished()

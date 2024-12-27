@@ -61,8 +61,11 @@ namespace FWO.Test
                 PdfOptions pdfOptions = new() { DisplayHeaderFooter = true, Landscape = true, PrintBackground = true, Format = pupformat, MarginOptions = new MarginOptions { Top = "1cm", Bottom = "1cm", Left = "1cm", Right = "1cm" } };
                 byte[] pdfData = await page.PdfDataAsync(pdfOptions);
 
-                string html = Convert.ToBase64String(pdfData);
-                File.WriteAllText(FilePath, html);
+                await File.WriteAllBytesAsync(FilePath, pdfData);
+
+                Assert.That(FilePath, Does.Exist);
+                FileAssert.Exists(FilePath);
+                ClassicAssert.AreEqual(new FileInfo(FilePath).Length, pdfData.Length);
             }
             catch (Exception)
             {
@@ -71,10 +74,7 @@ namespace FWO.Test
             finally
             {
                 await browser.CloseAsync();
-            }
-
-            Assert.That(FilePath, Does.Exist);
-            ClassicAssert.Greater(new FileInfo(FilePath).Length, 5000);
+            }            
         }
 
         //private async Task TryCreatePDF(InstalledBrowser brw, CancellationToken ct)

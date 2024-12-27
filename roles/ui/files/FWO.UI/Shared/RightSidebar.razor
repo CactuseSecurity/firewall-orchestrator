@@ -1,12 +1,13 @@
 ﻿@using System
 @using FWO.Config.Api
-@using FWO.GlobalConstants
+@using FWO.Basics
 @using FWO.Api.Data
 @using FWO.Api.Client
 @using FWO.Api.Client.Queries
 @using FWO.Report
 @using FWO.Report.Filter
 @using FWO.Ui.Data
+@using FWO.Services
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
@@ -80,8 +81,14 @@
                                 <ObjectGroupCollection FetchObjects="FetchContent" Recert="false" Tab="RsbTab.usedObj" StartCollapsed="false" InputDataType="OwnerReport" 
                                     Data="CurrentReport.ReportData.OwnerData"
                                     NameExtractor="own => own.Name" 
-                                    NetworkObjectExtractor="own => own.GetAllNetworkObjects()"
-                                    NetworkServiceExtractor="own => own.GetAllServices()"
+                                    NetworkObjectExtractor="own => own.GetAllNetworkObjects(true)"
+                                    NetworkServiceExtractor="own => own.GetAllServices(true)"
+                                    Reload="true"/>
+                                <ObjectGroupCollection FetchObjects="FetchContent" Recert="false" Tab="RsbTab.usedObj" StartCollapsed="false" InputDataType="GlobalCommonSvcReport" 
+                                    Data="CurrentReport.ReportData.GlobalComSvc"
+                                    NameExtractor="glbComSvc => glbComSvc.Name"
+                                    NetworkObjectExtractor="glbComSvc => glbComSvc.GetAllNetworkObjects(true)"
+                                    NetworkServiceExtractor="glbComSvc => glbComSvc.GetAllServices(true)"
                                     Reload="true"/>
                             </CascadingValue>
                         </div>

@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization; 
 using Newtonsoft.Json;
-using FWO.GlobalConstants;
+using FWO.Basics;
 
 namespace FWO.Api.Data
 {
@@ -33,6 +33,24 @@ namespace FWO.Api.Data
             Area = appRole.Area;
         }
 
+        public ModellingAppRole(NetworkObject nwObj, ModellingNamingConvention? namCon = null) : base(nwObj, namCon)
+        {
+            Comment = nwObj.Comment;
+            CreationDate = nwObj.CreateTime.Time;
+            AppServers = ConvertNwObjectsToAppServers(nwObj.ObjectGroupFlats);
+            // Todo: Fill Area + AppId from IdString (-> Naming Convention)?
+        }
+
+        protected static List<ModellingAppServerWrapper> ConvertNwObjectsToAppServers(GroupFlat<NetworkObject>[] groupFlats)
+        {
+            List<ModellingAppServerWrapper> appServers = [];
+            foreach(var obj in groupFlats.Where(x => x.Object?.IP != null && x.Object?.IP != "").ToList())
+            {
+                appServers.Add(new ModellingAppServerWrapper(){ Content = obj.Object != null ? new(obj.Object) : new() });
+            }
+            return appServers;
+        }
+
         public ModellingNwGroup ToBase()
         {
             return new ModellingNwGroup()
@@ -54,12 +72,12 @@ namespace FWO.Api.Data
 
         public override NetworkObject ToNetworkObjectGroup()
         {
-            Group<NetworkObject>[] objectGroups = ModellingAppRoleWrapper.ResolveAppServersAsNetworkObjectGroup(AppServers ?? new List<ModellingAppServerWrapper>());
+            Group<NetworkObject>[] objectGroups = ModellingAppRoleWrapper.ResolveAppServersAsNetworkObjectGroup(AppServers ?? []);
             return new()
             {
                 Id = Id,
                 Number = Number,
-                Name = Name ?? "",
+                Name = Name + " (" + IdString + ")" ?? IdString ?? "",
                 Comment = Comment ?? "",
                 Type = new NetworkObjectType(){ Name = ObjectType.Group },
                 ObjectGroups = objectGroups,
@@ -76,10 +94,10 @@ namespace FWO.Api.Data
         }
     }
     
-    public class ModellingAppRoleWrapper : ModellingNwGroupWrapper
+    public class ModellingAppRoleWrapper
     {
         [JsonProperty("nwgroup"), JsonPropertyName("nwgroup")]
-        public new ModellingAppRole Content { get; set; } = new();
+        public ModellingAppRole Content { get; set; } = new();
 
         public static ModellingAppRole[] Resolve(List<ModellingAppRoleWrapper> wrappedList)
         {

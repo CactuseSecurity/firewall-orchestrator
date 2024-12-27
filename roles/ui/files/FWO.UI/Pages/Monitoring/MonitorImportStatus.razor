@@ -1,8 +1,10 @@
 ﻿@using BlazorTable
-@using FWO.GlobalConstants
+@using FWO.Basics
 @using FWO.Api.Data
 @using FWO.Api.Client
 @using FWO.Config.Api
+@using FWO.Ui.Shared
+@using FWO.Services
 
 @page "/monitoring/import_status"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Importer}, {Roles.Auditor}, {Roles.FwAdmin}")]
@@ -19,7 +21,8 @@
 @if(InitComplete)
 {
     <div class="m-2 vheight75">
-        <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="ImportStatus" Items="sortedImportStati" PageSize="0" ColumnReorder="true" TableRowClass="@(stat => getTableRowClass(stat))">
+        <PageSizeComponent PageSizeCallback="UpdatePageSize" PageSize="PageSize"></PageSizeComponent>
+        <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="ImportStatus" Items="sortedImportStati" PageSize="PageSize" ColumnReorder="true" TableRowClass="@(stat => getTableRowClass(stat))">
             <Column TableItem="ImportStatus" Title="@(userConfig.GetText("actions"))" Field="(x => x.MgmId)" Sortable="false" Filterable="false">
                 <Template>
                     <div class="btn-group">
@@ -68,7 +71,7 @@
                 <Template>
                     @if (context.LastImport != null && context.LastImport.Length > 0)
                     {
-                        @(GlobalFunc.ShowBool(context.LastImport[0].SuccessfulImport));
+                        @(context.LastImport[0].SuccessfulImport.ShowAsHtml());
                     }
                 </Template>
             </Column>
@@ -105,6 +108,8 @@ else
     private bool rollbackMode = false;
     private ImportStatus actStatus = new ImportStatus();
     private bool InitComplete = false;
+
+    private int PageSize { get; set; } = 10;
 
     protected override async Task OnInitializedAsync()
     {
@@ -206,5 +211,10 @@ else
             default:
                 return "";
         }
+    }
+
+    private void UpdatePageSize(int pageSize)
+    {
+        PageSize = pageSize;
     }
 }

@@ -1,10 +1,12 @@
 @using FWO.Api.Client
 @using FWO.Api.Client.Queries
-@using FWO.GlobalConstants
+@using FWO.Basics
 @using FWO.Api.Data
 @using FWO.Config.Api
+@using FWO.Services
 @using FWO.Ui.Services
 @using FWO.Ui.Pages.NetworkModelling
+@using FWO.Ui.Display
 
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Requester}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}, {Roles.Auditor}, {Roles.FwAdmin}, {Roles.Modeller}")]
 
@@ -52,7 +54,7 @@
                             </div>
                         </div>
                     </div>
-                    @if(WfHandler.ActImplTask.TaskType == TaskType.access.ToString() || WfHandler.ActImplTask.TaskType == TaskType.rule_delete.ToString())
+                    @if(WfHandler.ActImplTask.TaskType == WfTaskType.access.ToString() || WfHandler.ActImplTask.TaskType == WfTaskType.rule_delete.ToString())
                     {
                         <div class="col-sm-3">
                             <div class="form-group row">
@@ -60,7 +62,7 @@
                                 <div class="col-sm-8">
                                     @if (WfHandler.EditImplTaskMode)
                                     {
-                                        <Dropdown ElementType="Device" @bind-SelectedElement="actDevice" ElementToString="@(d => d.Name)" Elements="WfHandler.Devices">
+                                        <Dropdown ElementType="Device" @bind-SelectedElement="actDevice" ElementToString="@(d => d.Name)" Elements="WfHandler.Devices" Nullable="true">
                                             <ElementTemplate Context="device">
                                                 @device.Name
                                             </ElementTemplate>
@@ -74,7 +76,7 @@
                             </div>
                         </div>
                     }
-                    else if(WfHandler.ActImplTask.TaskType == TaskType.new_interface.ToString())
+                    else if(WfHandler.ActImplTask.TaskType == WfTaskType.new_interface.ToString())
                     {
                         <div class="col-sm-8">
                             <div class="form-group row">
@@ -93,7 +95,7 @@
                                 }
                                 else
                                 {
-                                    @if(WfHandler.GetAddInfoValue(AdditionalInfoKeys.ReqOwner) == "")
+                                    @if(WfHandler.ActReqTask.GetAddInfoValue(AdditionalInfoKeys.ReqOwner) == "")
                                     {
                                         <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("owner"))*:</label>
                                         <label class="col-sm-8 border bg-secondary">@actOwner?.Display()</label>
@@ -117,8 +119,17 @@
                             </div>
                         </div>
                     }
+                    else if(WfHandler.ActImplTask.TaskType == WfTaskType.group_create.ToString())
+                    {
+                        <div class="col-sm-6">
+                            <div class="form-group row">
+                                <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
+                                <label class="col-sm-10 border bg-secondary">@actGrpName</label>
+                            </div>
+                        </div>
+                    }
                 </div>
-                @if(WfHandler.ActImplTask.TaskType == TaskType.generic.ToString())
+                @if(WfHandler.ActImplTask.TaskType == WfTaskType.generic.ToString())
                 {
                     <div class="form-group row mt-2">
                         <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("free_text")):</label>
@@ -128,7 +139,7 @@
                     </div>
                 }
 
-                @if(WfHandler.ActImplTask.TaskType == TaskType.access.ToString())
+                @if(WfHandler.ActImplTask.TaskType == WfTaskType.access.ToString())
                 {
                     <div class="form-group row mt-2">
                         <div class="col-sm-3">
@@ -137,7 +148,7 @@
                                 <div class="col-sm-8">
                                     @if (WfHandler.EditImplTaskMode)
                                     {
-                                        <Dropdown ElementType="RuleAction" @bind-SelectedElement="actRuleAction" ElementToString="@(a => a.Name)" Elements="ruleActions">
+                                        <Dropdown ElementType="RuleAction" @bind-SelectedElement="actRuleAction" ElementToString="@(a => a.Name)" Elements="ruleActions" Nullable="true">
                                             <ElementTemplate Context="action">
                                                 @action.Name
                                             </ElementTemplate>
@@ -156,7 +167,7 @@
                                 <div class="col-sm-8">
                                     @if (WfHandler.EditImplTaskMode)
                                     {
-                                        <Dropdown ElementType="Tracking" @bind-SelectedElement="actTracking" ElementToString="@(t => t.Name)" Elements="trackings">
+                                        <Dropdown ElementType="Tracking" @bind-SelectedElement="actTracking" ElementToString="@(t => t.Name)" Elements="trackings" Nullable="true">
                                             <ElementTemplate Context="track">
                                                 @track.Name
                                             </ElementTemplate>
@@ -203,12 +214,47 @@
                     <DisplayAccessElements Sources="actSources" @bind-SourcesToAdd="sourcesToAdd" @bind-SourcesToDelete="sourcesToDelete"
                         Destinations="actDestinations" @bind-DestinationsToAdd="destinationsToAdd" @bind-DestinationsToDelete="destinationsToDelete"
                         Services="actServices" @bind-ServicesToAdd="servicesToAdd" @bind-ServicesToDelete="servicesToDelete"
-                        TaskId="WfHandler.ActImplTask.Id" EditMode="WfHandler.EditImplTaskMode" />
+                        IpProtos="ipProtos" TaskId="WfHandler.ActImplTask.Id" EditMode="WfHandler.EditImplTaskMode" />
                 }
-                else if(WfHandler.ActImplTask.TaskType == TaskType.rule_delete.ToString())
+                else if(WfHandler.ActImplTask.TaskType == WfTaskType.rule_delete.ToString())
                 {
                     <DisplayRules @bind-Rules="actRules" TaskId="WfHandler.ActImplTask.Id" EditMode="WfHandler.EditImplTaskMode" />
                 }
+                else if(WfHandler.ActImplTask.TaskType == WfTaskType.group_create.ToString())
+                {
+                    <div class="col-sm-4 mt-2">
+                        @if (WfHandler.EditImplTaskMode)
+                        {
+                            @if(actSources.Count > 0)
+                            {
+                                <IpSelector IpAddresses="actSources" @bind-IpsToAdd="sourcesToAdd" @bind-IpsToDelete="sourcesToDelete" WithLabel="false"/>
+                            }
+                            else
+                            {
+                                <ServiceSelector Services="actServices" @bind-ServicesToAdd="servicesToAdd" @bind-ServicesToDelete="servicesToDelete"
+                                    IpProtos="ipProtos" TaskId="WfHandler.ActReqTask.Id" WithLabel="false"/>
+                            }
+                        }
+                        else
+                        {
+                            <div class="list-group">
+                                @foreach(var source in actSources)
+                                {
+                                    <div class="list-group-item border bg-secondary">
+                                        <label>@NwObjDisplay.DisplayIp(source.IpString, source.IpEndString)</label>
+                                    </div>
+                                }
+                                @foreach(var service in actServices)
+                                {
+                                    <div class="list-group-item border bg-secondary">
+                                        <label>@DisplayBase.DisplayService(service, ipProtos)</label>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                }
+
                 <div class="form-group row mt-2">
                     <div class="col-sm-1">
                         <label class="col-form-label col-form-label-sm">@(userConfig.GetText("comments")):</label>
@@ -281,6 +327,7 @@
         Title="@userConfig.GetText("assign_owner")" Message="@message" AllowedRoles="@($"{Roles.Admin}, {Roles.Implementer}")"/>
     <EditConnPopup @bind-Display="WfHandler.ActionHandler.DisplayConnectionMode" ConnHandler="WfHandler.ActionHandler.ConnHandler"/>
 }
+<InProgress Display="WorkInProgress"/>
 
 @code
 {
@@ -311,6 +358,7 @@
 
     private List<RuleAction> ruleActions = [];
     private List<Tracking> trackings = [];
+    private List<IpProtocol> ipProtos = [];
     
     private List<NwObjectElement> actSources = [];
     private List<NwObjectElement> actDestinations = [];
@@ -330,13 +378,14 @@
     private FwoOwner? actOwner;
     private FwoOwner? oldOwner;
     private bool newOwnerAssigned = false;
+    private string? actGrpName;
     private bool firstParamSet = false;
 
     private List<WfStateAction> offeredActions = new ();
     private string allComments = "";
     private string message = "";
     private bool assignOwnerMode = false;
-
+    private bool WorkInProgress = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -344,6 +393,7 @@
         {
             ruleActions = await apiConnection.SendQueryAsync<List<RuleAction>>(StmQueries.getRuleActions);
             trackings = await apiConnection.SendQueryAsync<List<Tracking>>(StmQueries.getTracking);
+            ipProtos = DisplayBase.CustomSortProtocols(await apiConnection.SendQueryAsync<List<IpProtocol>>(StmQueries.getIpProtocols));
             firstParamSet = true;
         }
         catch (Exception exception)
@@ -371,6 +421,7 @@
                 actOwner = WfHandler.ActReqTask.Owners.FirstOrDefault()?.Owner;
                 oldOwner = actOwner;
                 newOwnerAssigned = false;
+                actGrpName = WfHandler.ActReqTask.GetAddInfoValue(AdditionalInfoKeys.GrpName);
             }
         }
         catch (Exception exception)
@@ -419,11 +470,14 @@
 
     private async Task AssignOwner()
     {
+        WorkInProgress = true;
+        await InvokeAsync(StateHasChanged);
         SetChangedOwner();
         await WfHandler.ChangeOwner();
         actOwner = WfHandler.ActReqTask.Owners.FirstOrDefault()?.Owner;
         newOwnerAssigned = true;
         assignOwnerMode = false;
+        WorkInProgress = false;
     }
 
     private void InitAddComment()
@@ -506,6 +560,8 @@
 
     private async Task SaveImplTask()
     {
+        WorkInProgress = true;
+        await InvokeAsync(StateHasChanged);
         try
         {
             if (WfHandler.ActImplTask.Sanitize())
@@ -515,7 +571,7 @@
             WfHandler.ActImplTask.DeviceId = actDevice?.Id;
             WfHandler.ActImplTask.RuleAction = actRuleAction?.Id;
             WfHandler.ActImplTask.Tracking = actTracking?.Id;
-            if(WfHandler.ActImplTask.TaskType == TaskType.rule_delete.ToString())
+            if(WfHandler.ActImplTask.TaskType == WfTaskType.rule_delete.ToString())
             {
                 WfHandler.ActImplTask.ImplAction = RequestAction.delete.ToString();
             }
@@ -538,6 +594,7 @@
         {
             DisplayMessageInUi(exception, userConfig.GetText("save_task"), "", true);
         }
+        WorkInProgress = false;
     }
 
     private void SetChangedOwner()
@@ -561,7 +618,7 @@
         {
             if (implElem.Field == ElemFieldType.service.ToString() && implElem.ServiceId == null)
             {
-                if (implElem.Port < 1 || implElem.Port > 65535)
+                if (implElem.Port < 1 || implElem.Port > GlobalConst.kMaxPortNumber)
                 {
                     DisplayMessageInUi(null, userConfig.GetText("save_element"), userConfig.GetText("E5103"), true);
                     return false;

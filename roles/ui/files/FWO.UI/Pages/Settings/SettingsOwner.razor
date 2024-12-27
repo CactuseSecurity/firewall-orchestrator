@@ -6,10 +6,11 @@
 @using FWO.Middleware.Client
 @using FWO.Middleware.RequestParameters
 @using RestSharp
-@using FWO.GlobalConstants
+@using FWO.Basics
 @using FWO.Api.Data
 @using FWO.Logging
 @using FWO.Recert
+@using FWO.Services
 
 @page "/settings/owners"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
@@ -47,7 +48,7 @@
                 }
                 else
                 {
-                    <div class="spinner-border" role="status"><span class="sr-only">@(userConfig.GetText("loading"))</span></div>
+                    <div class="spinner-border" role="status"><span class="visually-hidden">@(userConfig.GetText("loading"))</span></div>
                 }
             </Authorized>
             <NotAuthorized>
@@ -186,13 +187,13 @@
                         <div class="form-check form-check-inline col-sm-3" data-toggle="tooltip" title="@(userConfig.PureLine("H5591"))">
                             @if(Readonly && userConfig.AllowManualOwnerAdmin)
                             {
-                                <input disabled class="form-check-input" type="checkbox" @bind="actOwner.CommSvcPossible">
+                                <input id="cbx_comm_svc_possible" disabled class="form-check-input" type="checkbox" @bind="actOwner.CommSvcPossible">
                             }
                             else
                             {
-                                <input class="form-check-input" type="checkbox" @bind="actOwner.CommSvcPossible">
+                                <input id="cbx_comm_svc_possible" class="form-check-input" type="checkbox" @bind="actOwner.CommSvcPossible">
                             }
-                            <label class="form-check-label"><small>@(userConfig.GetText("comm_svc_possible"))</small></label>
+                            <label for="cbx_comm_svc_possible" class="form-check-label"><small>@(userConfig.GetText("comm_svc_possible"))</small></label>
                         </div>
                     </div>
                     <div class="form-group row mt-2">
@@ -340,7 +341,6 @@ else
     private Tenant? selectedTenant;
     private DayOfWeek? selectedDayOfWeek;
     private RecertRefresh recertRefresh;
-    private List<Management> managements = [];
     private List<Tenant> tenants = [];
 
     private bool showCleanupButton = false;
@@ -370,7 +370,6 @@ else
         {
             owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
             AnalyseSampleOwners();
-            managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementDetailsWithoutSecrets);
             recertRefresh = new(apiConnection);
 
             RestResponse<List<TenantGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetTenants();
@@ -487,7 +486,7 @@ else
 
     private async Task AddOwnerInDb()
     {
-        var Variables = new
+        var variables = new
         {
             name = actOwner.Name,
             dn = actOwner.Dn,
@@ -498,7 +497,7 @@ else
             recertCheckParams = actOwner.RecertCheckParamString,
             commSvcPossible = actOwner.CommSvcPossible
         };
-        ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(OwnerQueries.newOwner, Variables)).ReturnIds;
+        ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(OwnerQueries.newOwner, variables)).ReturnIds;
         if (returnIds == null)
         {
             DisplayMessageInUi(null, userConfig.GetText("add_owner"), userConfig.GetText("E5291"), true);

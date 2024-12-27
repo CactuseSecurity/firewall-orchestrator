@@ -1,5 +1,5 @@
 ﻿using System.Net;
-using FWO.GlobalConstants;
+using FWO.Basics;
 using FWO.Api.Data;
 using FWO.Middleware.Client;
 using FWO.Middleware.RequestParameters;

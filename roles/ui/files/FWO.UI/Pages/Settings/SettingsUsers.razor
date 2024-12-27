@@ -1,6 +1,6 @@
 @using BlazorTable
 @using System.Net
-@using FWO.GlobalConstants
+@using FWO.Basics
 @using FWO.Api.Data
 @using FWO.Api.Client
 @using FWO.Api.Client.Queries
@@ -8,6 +8,7 @@
 @using FWO.Config.Api
 @using FWO.Middleware.RequestParameters
 @using FWO.Ui.Services
+@using FWO.Services
 @using RestSharp
 
 @page "/settings/users"
@@ -94,7 +95,7 @@
         <Column TableItem="UiUser" Title="@(userConfig.GetText("pwd_chg_req"))" Field="@(x => x.PasswordMustBeChanged)" Sortable="true" Filterable="true" >
             <Template>
                 <div data-toggle="tooltip" title="@(userConfig.PureLine("H5278"))">
-                    @(GlobalFunc.ShowBool(context.PasswordMustBeChanged))
+                    @(context.PasswordMustBeChanged.ShowAsHtml())
                 </div>
             </Template>
         </Column>
@@ -166,18 +167,32 @@
                         </div>
                     </div>
                 }
-                <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5281"))">
-                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("firstname")):</label>
-                    <div class="col-sm-8">
-                        <input type="text" class="form-control form-control-sm" @bind="actUser.Firstname" />
+                @if (AddMode)
+                {
+                    <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5281"))">
+                        <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("firstname")):</label>
+                        <div class="col-sm-8">
+                            <input type="text" class="form-control form-control-sm" @bind="actUser.Firstname" />
+                        </div>
                     </div>
-                </div>
-                <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5282"))">
-                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("lastname")):</label>
-                    <div class="col-sm-8">
-                        <input type="text" class="form-control form-control-sm" @bind="actUser.Lastname" />
+                    <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5282"))">
+                        <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("lastname")):</label>
+                        <div class="col-sm-8">
+                            <input type="text" class="form-control form-control-sm" @bind="actUser.Lastname" />
+                        </div>
                     </div>
-                </div>
+                }
+                else
+                {
+                    <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5281"))">
+                        <label class="col-sm-3 col-form-label col-form-label-sm">"@(userConfig.GetText("firstname"))":</label>
+                        <label class="col-sm-8">@actUser.Firstname</label>
+                    </div>
+                    <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5282"))">
+                        <label class="col-sm-3 col-form-label col-form-label-sm">"@(userConfig.GetText("lastname"))":</label>
+                        <label class="col-sm-8">@actUser.Lastname</label>
+                    </div>
+                }
                 <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5274"))">
                     <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("email")):</label>
                     <div class="col-sm-8">
@@ -561,9 +576,10 @@
             var Variables = new
             {
                 id = user.DbId,
-                email = user.Email,
+                email = user.Email
+                @* ,
                 uiuser_first_name = user.Firstname,
-                uiuser_last_name = user.Lastname
+                uiuser_last_name = user.Lastname *@
             };
             await apiConnection.SendQueryAsync<ReturnId>(AuthQueries.updateUserEmail, Variables);
         }

@@ -1,9 +1,10 @@
-@using FWO.GlobalConstants
+@using FWO.Basics
 @using FWO.Api.Data
 @using FWO.Api.Client
 @using FWO.Api.Client.Queries
 @using FWO.Config.Api
 @using FWO.Middleware.Client
+@using FWO.Services
 
 @page "/settings/gateways"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.FwAdmin}")]
@@ -49,7 +50,7 @@
         </Column>
         <Column TableItem="Device" Title="@(userConfig.GetText("import_enabled"))" Field="@(x => x.ImportDisabled)" Sortable="true">
             <Template>
-                @(GlobalFunc.ShowBool(!context.ImportDisabled))
+                @((!context.ImportDisabled).ShowAsHtml())
             </Template>
         </Column>
     </Table>
@@ -230,7 +231,7 @@
             y => y.Id == managements.Find(z => z.Id == actDevice.Management.Id)?.DeviceType.Id)?.Manufacturer);
         if(matchingDeviceTypes.FirstOrDefault(x => x.Id == actDevice.DeviceType.Id) == null)
         {
-            actDevice.DeviceType = matchingDeviceTypes.First() ?? new DeviceType();
+            actDevice.DeviceType = matchingDeviceTypes.FirstOrDefault() ?? new DeviceType();
         }
     }
 

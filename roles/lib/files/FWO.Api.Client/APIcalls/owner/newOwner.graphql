@@ -4,7 +4,7 @@ mutation newOwner(
   $groupDn: String!
   $tenantId: Int
   $recertInterval: Int
-  $appIdExternal: String!
+  $appIdExternal: String
   $recertCheckParams: String
   $criticality: String
   $importSource: String

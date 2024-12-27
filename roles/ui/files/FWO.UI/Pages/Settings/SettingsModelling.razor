@@ -4,6 +4,7 @@
 @using FWO.Config.Api.Data
 @using System.Text.Json
 @using FWO.Ui.Pages.NetworkModelling
+@using FWO.Services
 
 @page "/settings/modelling"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
@@ -14,45 +15,49 @@
 
 <div class="input-group">
     <h3>@(userConfig.GetText("modelling_settings"))</h3>
-    <HelpLink Page="settings/modelling"/>
+    <HelpLink Page="settings/modelling" />
 </div>
 @(userConfig.GetText("U5322"))
 <hr />
 
 @if (configData != null)
 {
-    <button type="button" class="btn btn-sm btn-dark ms-5" data-toggle="tooltip" title="@(userConfig.PureLine("H5602"))"
-        @onclick="PredefServices">@(userConfig.GetText("predef_services"))</button>
     <form onsubmit="return false">
+        <button type="button" class="btn btn-sm btn-dark ms-5" data-toggle="tooltip" title="@(userConfig.PureLine("H5602"))"
+                @onclick="PredefServices">
+            @(userConfig.GetText("predef_services"))
+        </button>
+        <hr />
         <div class="form-group row mt-2">
             <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5603"))">
-                <label class="col-form-label col-sm-8">@(userConfig.GetText("allowServerInConn")):</label>
+                <label for="cbx_allow_server_in_conn" class="col-form-label col-sm-8">@(userConfig.GetText("allowServerInConn")):</label>
                 <div class="col-sm-2">
-                    <input type="checkbox" class="w-100" @bind="configData!.AllowServerInConn">
+                    <input id="cbx_allow_server_in_conn" type="checkbox" class="w-100" @bind="configData!.AllowServerInConn">
                 </div>
             </div>
             <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5604"))">
-                <label class="col-form-label col-sm-8">@(userConfig.GetText("allowServiceInConn")):</label>
+                <label for="cbx_allow_service_in_conn" class="col-form-label col-sm-8">@(userConfig.GetText("allowServiceInConn")):</label>
                 <div class="col-sm-2">
-                    <input type="checkbox" class="w-100" @bind="configData!.AllowServiceInConn">
+                    <input id="cbx_allow_service_in_conn" type="checkbox" class="w-100" @bind="configData!.AllowServiceInConn">
                 </div>
             </div>
         </div>
+        <hr />
         <div class="form-group row mt-2">
             <div class="row col-sm-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5605"))">
                 <label class="col-form-label col-sm-8">@(userConfig.GetText("overviewDisplayLines"))*:</label>
                 <input type="number" min="0" class="col-sm-3" @bind="configData!.OverviewDisplayLines" />
             </div>
             <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5618"))">
-                <label class="col-form-label col-sm-8">@(userConfig.GetText("modIconify"))*:</label>
+                <label for="cbx_iconify" class="col-form-label col-sm-8">@(userConfig.GetText("modIconify"))*:</label>
                 <div class="col-sm-2">
-                    <input type="checkbox" class="w-100" @bind="configData!.ModIconify">
+                    <input id="cbx_iconify" type="checkbox" class="w-100" @bind="configData!.ModIconify">
                 </div>
             </div>
             <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5617"))">
-                <label class="col-form-label col-sm-8">@(userConfig.GetText("reducedProtocolSet")):</label>
+                <label for="cbx_reduced_protocol_set" class="col-form-label col-sm-8">@(userConfig.GetText("reducedProtocolSet")):</label>
                 <div class="col-sm-2">
-                    <input type="checkbox" class="w-100" @bind="configData!.ReducedProtocolSet">
+                    <input id="cbx_reduced_protocol_set" type="checkbox" class="w-100" @bind="configData!.ReducedProtocolSet">
                 </div>
             </div>
         </div>
@@ -79,6 +84,12 @@
                 </div>
             </div>
         </div>
+        <div class="form-group row mt-4" data-toggle="tooltip" title="@(userConfig.PureLine("H9055"))">
+            <label class="col-form-label col-sm-4">@userConfig.GetText("import_app_server"):</label>
+            <div class="row col-sm-6">
+                <CSVFileUpload AuthorizedRoles="@Roles.Admin" OnAddAppServerError="OnAddAppServerError" OnAddAppServerWarning="OnAddAppServerWarning" OnImportSuccess="OnAppServerImportSuccess"></CSVFileUpload>
+            </div>
+        </div>
         <hr />
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5620"))">
             <label class="col-form-label col-sm-4">@userConfig.GetText("common_areas"):</label>
@@ -89,17 +100,17 @@
                             <div class="col-sm-4 border bg-transparent">@((MarkupString)context.Area.Content.DisplayHtml())</div>
                             <div class="col-sm-4">
                                 <div class="row align-items-center">
-                                    <div class="col-form-label col-sm-8">@(userConfig.GetText("use_in_src")):</div>
+                                    <div class="col-form-label col-sm-8" @onclick="() => context.UseInSrc = !context.UseInSrc">@(userConfig.GetText("use_in_src")):</div>
                                     <div class="col-sm-3">
-                                        <input type="checkbox" class="w-100" @bind="context.UseInSrc">
+                                        <input id="cbx_use_in_src" type="checkbox" class="w-100" @bind="context.UseInSrc">
                                     </div>
                                 </div>
                             </div>
                             <div class="col-sm-4">
                                 <div class="row align-items-center">
-                                    <div class="col-form-label col-sm-8">@(userConfig.GetText("use_in_dst")):</div>
+                                    <div class="col-form-label col-sm-8" @onclick="() => context.UseInDst = !context.UseInDst">@(userConfig.GetText("use_in_dst")):</div>
                                     <div class="col-sm-3">
-                                        <input type="checkbox" class="w-100" @bind="context.UseInDst">
+                                        <input id="cbx_use_in_dst" type="checkbox" class="w-100" @bind="context.UseInDst">
                                     </div>
                                 </div>
                             </div>
@@ -108,16 +119,34 @@
                 </EditList>
                 <div class="row col-sm-12 mt-1">
                     <button type="button" class="col-sm-2 btn btn-sm btn-primary" @onclick="SearchArea" @onclick:preventDefault>
-                        @(ModellingHandlerBase.DisplayButton(userConfig, "add", Icons.Add))</button>
+                        @(ModellingHandlerBase.DisplayButton(userConfig, "add", Icons.Add))
+                    </button>
+                </div>
+            </div>
+        </div>
+        <hr />
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5637"))">
+            <label class="col-form-label col-sm-4">@userConfig.GetText("extra_params"):</label>
+            <div class="col-sm-3">
+                <EditList ElementType="string" Elements="ExtraConfigs.ToArray()" ElementsToAdd="ExtraConfigsToAdd" ElementsToDelete="ExtraConfigsToDelete" StdLayout="false">
+                    <Display>
+                        <div class="row">
+                            <div class="col-sm-12 border bg-transparent">@context</div>
+                        </div>
+                    </Display>
+                </EditList>
+                <div class="row col-sm-12 mt-1">
+                    <input type="text" class="col-sm-10" @bind="actExtraConfig" />
+                    <button type="button" class="col-sm-2 btn btn-sm btn-primary" @onclick="AddExtraConfig" @onclick:preventDefault>@(ModellingHandlerBase.DisplayButton(userConfig, "add", Icons.Add))</button>
                 </div>
             </div>
         </div>
         <hr />
         <div class="form-group row">
             <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5606"))">
-                <label class="col-form-label col-sm-8">@(userConfig.GetText("networkAreaRequired")):</label>
+                <label for="cbx_network_area_required" class="col-form-label col-sm-8">@(userConfig.GetText("networkAreaRequired")):</label>
                 <div class="col-sm-2">
-                    <input type="checkbox" @bind="namingConvention.NetworkAreaRequired">
+                    <input id="cbx_network_area_required" type="checkbox" @bind="namingConvention.NetworkAreaRequired">
                 </div>
             </div>
             <div class="row col-sm-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5609"))">
@@ -133,16 +162,32 @@
             <div class="row col-sm-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5607"))">
                 <label class="col-form-label col-sm-5">@userConfig.GetText("fixedPartLength"):</label>
                 <input type="number" min="0" class="col-sm-4" @bind="namingConvention.FixedPartLength" />
-             </div>
+            </div>
             <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5619"))">
-                <label class="col-form-label col-sm-8">@(userConfig.GetText("useAppPart")):</label>
+                <label for="cbx_use_app_part" class="col-form-label col-sm-8">@(userConfig.GetText("useAppPart")):</label>
                 <div class="col-sm-2">
-                    <input type="checkbox" @bind="namingConvention.UseAppPart">
+                    <input id="cbx_use_app_part" type="checkbox" @bind="namingConvention.UseAppPart">
                 </div>
             </div>
             <div class="row col-sm-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5608"))">
                 <label class="col-form-label col-sm-5">@userConfig.GetText("freePartLength"):</label>
                 <input type="number" min="0" class="col-sm-4" @bind="namingConvention.FreePartLength" />
+            </div>
+        </div>
+        <div class="form-group row mt-2">
+            <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5636"))">
+                <label for="cbx_create_app_zones" class="col-form-label col-sm-8">@(userConfig.GetText("app_zone_creation")):</label>
+                <div class="col-sm-2">
+                    <input id="cbx_create_app_zones" type="checkbox" @bind="configData!.CreateAppZones">
+                </div>
+            </div>
+            <div class="row col-sm-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5635"))">
+                <label class="col-form-label col-sm-5">@userConfig.GetText("app_zone_pattern"):</label>
+                <input disabled="@(!configData.CreateAppZones)" type="text" class="col-sm-4" @bind="namingConvention.AppZone" />               
+            </div>
+            <div class="row col-sm-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5633"))">
+                <label class="col-form-label col-sm-5">@userConfig.GetText("appServerPrefix"):</label>
+                <input type="text" class="col-sm-4" @bind="namingConvention.AppServerPrefix" />
             </div>
         </div>
         <hr />
@@ -171,10 +216,44 @@
             <input type="time" step="60" class="col-sm-2" @bind="appDataTime" />
             <input type="date" class="col-sm-2" @bind="appDataDate" />
         </div>
+
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5640"))">
+            <label class="col-sm-4 col-form-label col-form-label">@(userConfig.GetText("ownerGroupLdap")):</label>
+            <div class="col-sm-2">
+                <Dropdown ElementType="UiLdapConnection" ElementToString="@(l => l.Name)" @bind-SelectedElement="selectedLdap" Elements="connectedLdaps">
+                    <ElementTemplate Context="ldap">
+                        @ldap.Name
+                    </ElementTemplate>
+                </Dropdown>
+            </div>
+        </div>
+        <div class="form-group row mt-2">
+            <div class="row mt-2 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5642"))">
+                <label for="cbx_manage_owner_ldap_groups" class="col-form-label col-sm-4">@(userConfig.GetText("manageGroupsInLdap")):</label>
+                <input id="cbx_manage_owner_ldap_groups" type="checkbox" class="col-sm-2" @bind="configData!.ManageOwnerLdapGroups">
+            </div>
+            <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5641"))">
+                <label class="col-form-label col-sm-4">@(userConfig.GetText("ownerGroupPattern")):</label>
+                <input type="input" class="col-sm-4" @bind="configData!.OwnerLdapGroupNames" />
+            </div>
+        </div>
+
         <hr />
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5614"))">
             <label class="col-form-label col-sm-4">@userConfig.GetText("importSubnetDataPath"):</label>
-            <input type="text" class="col-sm-6" @bind="configData!.ImportSubnetDataPath" />
+            <div class="col-sm-6">
+                <EditList ElementType="string" Elements="SubnetDataPaths.ToArray()" ElementsToAdd="PathsToAddSubnet" ElementsToDelete="PathsToDeleteSubnet" StdLayout="false">
+                    <Display>
+                        <div class="row">
+                            <div class="col-sm-12 border bg-transparent">@context</div>
+                        </div>
+                    </Display>
+                </EditList>
+                <div class="row col-sm-12 mt-1">
+                    <input type="text" class="col-sm-10" @bind="SubnetActPath" />
+                    <button type="button" class="col-sm-2 btn btn-sm btn-primary" @onclick="AddPathSubnet" @onclick:preventDefault>@(ModellingHandlerBase.DisplayButton(userConfig, "add", Icons.Add))</button>
+                </div>
+            </div>
         </div>
         <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5615"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("importSubnetDataSleepTime")):</label>
@@ -193,15 +272,15 @@
         <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5630"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("modReqEmailReceiver")):</label>
             <div class="col-sm-3">
-                <Dropdown @bind-SelectedElement="configData!.ModReqEmailReceiver" ElementToString="@(o => userConfig.GetText(o.ToString()))" Elements="selectableRecipientOptions" >
+                <Dropdown @bind-SelectedElement="configData!.ModReqEmailReceiver" ElementToString="@(o => userConfig.GetText(o.ToString()))" Elements="selectableRecipientOptions">
                     <ElementTemplate Context="opt">
                         @(userConfig.GetText(opt.ToString()))
                     </ElementTemplate>
                 </Dropdown>
             </div>
-            <label class="col-form-label col-sm-2">@(userConfig.GetText("modReqEmailRequesterInCc")):</label>
+            <label for="cbx_email_requester_in_cc" class="col-form-label col-sm-2">@(userConfig.GetText("modReqEmailRequesterInCc")):</label>
             <div class="col-sm-1">
-                <input type="checkbox" @bind="configData!.ModReqEmailRequesterInCc">
+                <input id="cbx_email_requester_in_cc" type="checkbox" @bind="configData!.ModReqEmailRequesterInCc">
             </div>
         </div>
         <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5623"))">
@@ -212,7 +291,6 @@
             <label class="col-form-label col-sm-4">@(userConfig.GetText("modReqEmailBody")):</label>
             <textarea class="col-sm-7 mt-2" rows="4" name="text" @bind="configData!.ModReqEmailBody"></textarea>
         </div>
-    </form>
         <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5625"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("modReqTicketTitle")):</label>
             <input type="text" class="col-sm-6" @bind="configData!.ModReqTicketTitle" />
@@ -221,16 +299,43 @@
             <label class="col-form-label col-sm-4">@(userConfig.GetText("modReqTaskTitle")):</label>
             <input type="text" class="col-sm-6" @bind="configData!.ModReqTaskTitle" />
         </div>
-    <hr />
+        <hr />
+        <div class="form-group row mt-2">
+            <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5634"))">
+                <label for="cbx_rollout_active" class="col-form-label col-sm-8">@(userConfig.GetText("modRolloutActive")):</label>
+                <div class="col-sm-2">
+                    <input id="cbx_rollout_active" type="checkbox" class="w-100" @bind="configData!.ModRolloutActive">
+                </div>
+            </div>
+            <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5631"))">
+                <label for="cbx_rollout_resolve_service_groups" class="col-form-label col-sm-8">@(userConfig.GetText("modRolloutResolveServiceGroups")):</label>
+                <div class="col-sm-2">
+                    <input id="cbx_rollout_resolve_service_groups" type="checkbox" class="w-100" @bind="configData!.ModRolloutResolveServiceGroups">
+                </div>
+            </div>
+            <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5632"))">
+                <label for="cbx_rollout_bundle_tasks" class="col-form-label col-sm-8">@(userConfig.GetText("modRolloutBundleTasks")):</label>
+                <div class="col-sm-2">
+                    <input id="cbx_rollout_bundle_tasks" type="checkbox" class="w-100" @bind="configData!.ModRolloutBundleTasks">
+                </div>
+            </div>
+        </div>
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5639"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("modRolloutErrorText")):</label>
+            <input type="text" class="col-sm-6" @bind="configData!.ModRolloutErrorText" />
+        </div>
+        <hr />
+    </form>
     <AuthorizeView Roles="@Roles.Admin">
         <Authorized>
             <button type="button" class="btn btn-sm btn-primary" @onclick="Save" @onclick:preventDefault>@(userConfig.GetText("save"))</button>
         </Authorized>
         <NotAuthorized>
             <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
-        </NotAuthorized> 
+        </NotAuthorized>
     </AuthorizeView>
-    <br><br>
+    <br>
+    <br>
     <p>@(userConfig.GetText("U5303"))</p>
 }
 else
@@ -239,9 +344,8 @@ else
         <span class="visually-hidden">@(userConfig.GetText("loading"))</span>
     </div>
 }
-<PredefServices @bind-Display="predefServices"/>
-<SearchNwObject @bind-Display="searchArea" ObjectList="pureAreaList" Add="AddArea" CommonAreaMode="true"/>
-
+<PredefServices @bind-Display="predefServices" />
+<SearchNwObject @bind-Display="searchArea" ObjectList="pureAreaList" Add="AddArea" CommonAreaMode="true" />
 
 @code
 {
@@ -250,16 +354,25 @@ else
 
     private ConfigData? configData;
     private List<string> appDataPaths = [];
+    private List<string> SubnetDataPaths = [];
     private List<string> PathsToAdd = [];
     private List<string> PathsToDelete = [];
+    private List<string> PathsToAddSubnet = [];
+    private List<string> PathsToDeleteSubnet = [];
     private string actPath = "";
-    
+    private string SubnetActPath = "";
+
     private List<AppServerType> appServerTypes = [];
     private List<AppServerType> appServerTypesToAdd = [];
     private List<AppServerType> appServerTypesToDelete = [];
     private AppServerType actAppServerType = new();
     private string appServerDefaultTypeName = "";
-    
+
+    private List<string> ExtraConfigs = [];
+    private List<string> ExtraConfigsToAdd = [];
+    private List<string> ExtraConfigsToDelete = [];
+    private string actExtraConfig = "";
+
     private List<ModellingNwGroup> allAreas = [];
     private List<ModellingNwGroupWrapper> pureAreaList = [];
     private List<CommonAreaConfig> commAreaConfigItems = [];
@@ -272,8 +385,36 @@ else
     private DateTime appDataTime = DateTime.Now.AddSeconds(-DateTime.Now.Second);
     private DateTime subnetDataDate = DateTime.Today;
     private DateTime subnetDataTime = DateTime.Now.AddSeconds(-DateTime.Now.Second);
-    private List<EmailRecipientOption> selectableRecipientOptions = [ EmailRecipientOption.OwnerGroupOnly, 
-        EmailRecipientOption.AllOwnerResponsibles, EmailRecipientOption.OwnerMainResponsible ];
+    private List<EmailRecipientOption> selectableRecipientOptions = [ EmailRecipientOption.OwnerGroupOnly,
+    EmailRecipientOption.AllOwnerResponsibles, EmailRecipientOption.OwnerMainResponsible, EmailRecipientOption.FallbackToMainResponsibleIfOwnerGroupEmpty ];
+
+    private List<UiLdapConnection> connectedLdaps = new List<UiLdapConnection>();
+    private UiLdapConnection selectedLdap = new();
+
+    private int ownerLdapId = GlobalConst.kLdapInternalId;
+    private string ownerLdapGroupNames = GlobalConst.kLdapGroupPattern;
+    private bool manageOwnerLdapGroups = true;
+
+
+    private void OnAddAppServerError((Exception Exception, string Message) error)
+    {
+        DisplayMessageInUi(error.Exception, userConfig.GetText("add_app_server"), error.Message, false);
+    }
+
+    private void OnAddAppServerWarning(string errorMessage)
+    {
+        DisplayMessageInUi(null, userConfig.GetText("add_app_server"), errorMessage, true);
+    }
+
+    private void OnAddAppServerWarning(Exception ex)
+    {
+        DisplayMessageInUi(ex, userConfig.GetText("add_app_server"), ex.Message, false);
+    }
+
+    private void OnAppServerImportSuccess()
+    {
+        DisplayMessageInUi(null, userConfig.GetText("import_app_server"), userConfig.GetText("importAppServerDataSuccess"), false);
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -281,11 +422,13 @@ else
         {
             configData = await globalConfig.GetEditableConfig();
             appDataPaths = JsonSerializer.Deserialize<List<string>>(configData.ImportAppDataPath) ?? new();
+            SubnetDataPaths = JsonSerializer.Deserialize<List<string>>(configData.ImportSubnetDataPath) ?? new();
+            ExtraConfigs = JsonSerializer.Deserialize<List<string>>(configData.ModExtraConfigs) ?? new();
             namingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(configData.ModNamingConvention) ?? new();
-            if(configData.ModAppServerTypes != "")
+            if (configData.ModAppServerTypes != "")
             {
                 appServerTypes = JsonSerializer.Deserialize<List<AppServerType>>(configData.ModAppServerTypes) ?? new();
-                if(appServerTypes.Count > 0)
+                if (appServerTypes.Count > 0)
                 {
                     appServerDefaultTypeName = appServerTypes.FirstOrDefault(x => x.Id == 0)?.Name ?? "";
                 }
@@ -295,6 +438,21 @@ else
             RefreshAreas();
             appDataDate = appDataTime = configData.ImportAppDataStartAt;
             subnetDataDate = subnetDataTime = configData.ImportSubnetDataStartAt;
+
+            // get all ldap connections for dropdown
+            connectedLdaps = await apiConnection.SendQueryAsync<List<UiLdapConnection>>(AuthQueries.getAllLdapConnections);
+
+            // get config value of selected ldap connection for owner data (both groups and main responsible user), default value = 1 = internal ldap
+            ownerLdapId = configData.OwnerLdapId;
+
+            selectedLdap = connectedLdaps.FirstOrDefault(x => x.Id == ownerLdapId);
+
+            // get naming schema for groups: all groups follow a naming convention, e.g. ext-app-id,groups,example,com
+            ownerLdapGroupNames = configData.OwnerLdapGroupNames ?? GlobalConst.kLdapGroupPattern;
+
+            // whether or not to create owner groups in LDAP
+            manageOwnerLdapGroups = configData.ManageOwnerLdapGroups;
+
         }
         catch (Exception exception)
         {
@@ -304,17 +462,17 @@ else
 
     private void RefreshAreas()
     {
-        if(configData.ModCommonAreas != "")
+        if (configData.ModCommonAreas != "")
         {
             commAreaConfigItems = JsonSerializer.Deserialize<List<CommonAreaConfig>>(configData.ModCommonAreas) ?? new();
         }
         commonAreas = new();
-        foreach(var areaInfo in commAreaConfigItems)
+        foreach (var areaInfo in commAreaConfigItems)
         {
             ModellingNwGroup? area = allAreas.FirstOrDefault(a => a.Id == areaInfo.AreaId);
-            if(area != null)
+            if (area != null)
             {
-                commonAreas.Add(new () { Area = new() {Content = area}, UseInSrc = areaInfo.UseInSrc, UseInDst = areaInfo.UseInDst });
+                commonAreas.Add(new() { Area = new() { Content = area }, UseInSrc = areaInfo.UseInSrc, UseInDst = areaInfo.UseInDst });
             }
         }
         pureAreaList = commonAreas.ConvertAll(x => x.Area);
@@ -322,24 +480,42 @@ else
 
     public bool AddArea(ModellingNwGroup area)
     {
-        commonAreas.Add(new () { Area = new() {Content = area} });
+        commonAreas.Add(new() { Area = new() { Content = area } });
         return true;
+    }
+
+    private void AddExtraConfig()
+    {
+        if (actExtraConfig != "")
+        {
+            ExtraConfigsToAdd.Add(actExtraConfig);
+            actExtraConfig = "";
+        }
     }
 
     private void AddPath()
     {
-        if(actPath != "")
+        if (actPath != "")
         {
             PathsToAdd.Add(actPath);
             actPath = "";
         }
     }
 
+    private void AddPathSubnet()
+    {
+        if (!string.IsNullOrWhiteSpace(SubnetActPath))
+        {
+            PathsToAddSubnet.Add(SubnetActPath);
+            SubnetActPath = "";
+        }
+    }
+
     private void AddAppServerType()
     {
-        if(actAppServerType.Id > 0 && actAppServerType.Name != "" 
-            && (appServerTypesToAdd.FirstOrDefault(a => a.Id == actAppServerType.Id) == null)
-            && (appServerTypes.FirstOrDefault(a => a.Id == actAppServerType.Id) == null))
+        if (actAppServerType.Id > 0 && actAppServerType.Name != ""
+            && ( appServerTypesToAdd.FirstOrDefault(a => a.Id == actAppServerType.Id) == null )
+            && ( appServerTypes.FirstOrDefault(a => a.Id == actAppServerType.Id) == null ))
         {
             appServerTypesToAdd.Add(actAppServerType);
             actAppServerType = new();
@@ -367,9 +543,13 @@ else
 
                 PathsToDelete = [];
                 PathsToAdd = [];
+                PathsToDeleteSubnet = [];
+                PathsToAddSubnet = [];
                 AreasToDelete = [];
                 appServerTypesToAdd = [];
                 appServerTypesToDelete = [];
+                ExtraConfigsToAdd = [];
+                ExtraConfigsToDelete = [];
                 RefreshAreas();
                 DisplayMessageInUi(null, userConfig.GetText("modelling_settings"), userConfig.GetText("U5301"), false);
             }
@@ -387,30 +567,46 @@ else
     private void PrepareConfigData()
     {
         PrepareAppDataPaths();
+        PrepareSubnetDataPaths();
+        PrepareExtraConfigs();
         configData.ModNamingConvention = JsonSerializer.Serialize(namingConvention);
         PrepareAppServerTypes();
         PrepareCommonAreas();
         configData.ImportAppDataStartAt = appDataDate.Date.Add(appDataTime.TimeOfDay);
         configData.ImportSubnetDataStartAt = subnetDataDate.Date.Add(subnetDataTime.TimeOfDay);
+        configData.OwnerLdapId = selectedLdap.Id;
     }
 
     private void PrepareAppDataPaths()
     {
-        foreach(var path in PathsToDelete)
+        foreach (var path in PathsToDelete)
         {
             appDataPaths.Remove(path);
         }
-        foreach(var path in PathsToAdd)
+        foreach (var path in PathsToAdd)
         {
             appDataPaths.Add(path);
         }
         configData.ImportAppDataPath = JsonSerializer.Serialize(appDataPaths);
     }
 
+    private void PrepareSubnetDataPaths()
+    {
+        foreach (string path in PathsToDeleteSubnet)
+        {
+            SubnetDataPaths.Remove(path);
+        }
+        foreach (string path in PathsToAddSubnet)
+        {
+            SubnetDataPaths.Add(path);
+        }
+        configData.ImportSubnetDataPath = JsonSerializer.Serialize(SubnetDataPaths);
+    }
+
     private void PrepareCommonAreas()
     {
         commAreaConfigItems = commonAreas.ConvertAll(x => x.ToConfigItem());
-        foreach(var area in AreasToDelete)
+        foreach (var area in AreasToDelete)
         {
             CommonAreaConfig? existingItem = commAreaConfigItems.FirstOrDefault(x => x.AreaId == area.Area.Content.Id);
             if (existingItem != null)
@@ -424,22 +620,35 @@ else
     private void PrepareAppServerTypes()
     {
         AppServerType? defaultType = appServerTypes.FirstOrDefault(x => x.Id == 0);
-        if(defaultType != null)
+        if (defaultType != null)
         {
             defaultType.Name = appServerDefaultTypeName;
         }
         else
         {
-            appServerTypes.Add(new (){ Id = 0, Name = appServerDefaultTypeName });
+            appServerTypes.Add(new() { Id = 0, Name = appServerDefaultTypeName });
         }
-        foreach(var appServerType in appServerTypesToDelete)
+        foreach (var appServerType in appServerTypesToDelete)
         {
             appServerTypes.Remove(appServerType);
         }
-        foreach(var appServerType in appServerTypesToAdd)
+        foreach (var appServerType in appServerTypesToAdd)
         {
             appServerTypes.Add(appServerType);
         }
         configData.ModAppServerTypes = JsonSerializer.Serialize(appServerTypes);
+    }
+
+    private void PrepareExtraConfigs()
+    {
+        foreach (var config in ExtraConfigsToDelete)
+        {
+            ExtraConfigs.Remove(config);
+        }
+        foreach (var config in ExtraConfigsToAdd)
+        {
+            ExtraConfigs.Add(config);
+        }
+        configData.ModExtraConfigs = JsonSerializer.Serialize(ExtraConfigs);
     }
 }

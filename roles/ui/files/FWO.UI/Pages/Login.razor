@@ -10,6 +10,7 @@
 @using FWO.Ui.Services
 @using RestSharp
 @using System.Security.Authentication
+@using System.Web
 
 @inject MiddlewareClient middlewareClient
 @inject ProtectedSessionStorage sessionStorage
@@ -22,8 +23,8 @@
 @if (showLoginForm)
 {    
     <div class="row text-center">
-        <div class="col-lg-4 col-md-3 col-sm-2"></div>
-        <div class="col-lg-4 col-md-6 col-sm-8 col-xs-12">
+        <div class="col-xl col-lg col-md-3 col-sm-2"></div>
+        <div class="col-xl-2 col-lg-3 col-md-6 col-sm-8 col-xs-12">
             <img src="images/FWO_logo.png">
             <br><br>            
         @* <h2 class="text-center"> @(userConfig.GetText("login")) </h2> *@
@@ -51,7 +52,7 @@
                 </form>  
             </div>
         </div> 
-        <div class="col-lg-4 col-md-3 col-sm-2"></div>       
+        <div class="col-xl col-lg col-md-3 col-sm-2"></div>       
     </div>
     @if(ShowWelcomeMessage)
     {
@@ -60,7 +61,7 @@
             </div>
             <div class="col-lg-4 col-md-6 col-sm-8 col-xs-12">
                 <div class="alert alert-primary" role="alert">
-                    <span>@((MarkupString)@globalConfig.WelcomeMessage)</span>
+                    <span>@((MarkupString)@SanitizedWelcomeMessage)</span>
                 </div>
             </div>
             <div class="col-lg-4 col-md-3 col-sm-2">
@@ -123,6 +124,7 @@
     private string chgPwErrorMessage = "";
 
     private bool ShowWelcomeMessage { get; set; }
+    private string? SanitizedWelcomeMessage { get; set; }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -144,9 +146,12 @@
                 }
                 catch (Exception ex) { Log.WriteError("Session Restore", "Session restore unsuccessful.", ex); }
             }
-              
+
             if(!string.IsNullOrWhiteSpace(globalConfig.WelcomeMessage))
+            {
+                SanitizedWelcomeMessage = globalConfig.WelcomeMessage.StripDangerousHtmlTags().Replace("\n", "<br>");
                 ShowWelcomeMessage = true;
+            }            
 
             // else no reconnect / reconnect unsuccessful
             showLoginForm = true;

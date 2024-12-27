@@ -182,14 +182,18 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
                     else:
                         configObj = FwConfig(configFromFile['config-format'], configFromFile)
                 else:   # assuming native config
-                    # config2import = configFromFile
-                    configObj = FwConfig('native', configFromFile)
+                    if 'network_objects' in configFromFile and 'service_objects' in configFromFile:
+                        configObj = FwConfig('normalized', configFromFile) # assuming plain old normalized config
+                        config2import = configFromFile  # TODO: switch to objects
+                    else:
+                        configObj = FwConfig('native', configFromFile) # assuming old native config
+                        # need to normalize config (actually not reading from API but already read from file)
+                        config_changed_since_last_import = get_config_from_api(importState, configObj.Config, config2import)
 
-            if configObj.ConfigFormat != 'normalized':
-                # before importing from normalized config file, we need to replace the import id:
-                if importState.ImportFileName is not None:
+                if configObj.ConfigFormat == 'normalized':
+                    # before importing from normalized config file, we need to replace the import id:
                     replace_import_id(configObj.Config, importState.ImportId)
-
+            else:
                 ### geting config from firewall manager ######################
                 # note: we need to run get_config_from_api in any case (even when importing from a file) as this function 
                 # also contains the conversion from native to config2import (parsing)

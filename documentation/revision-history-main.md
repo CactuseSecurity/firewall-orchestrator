@@ -391,3 +391,87 @@ Maintenance release
 - owner-filtering for new report type
 - new setting for email recipients
 - owner-import custom script improvements#
+
+# 8.3.1 - 14.08.24 MAIN
+Hotfix:
+- in CheckPoint importer: fix missing group members
+
+# 8.4 - 30.09.24 MAIN
+Stability release
+- various small bug fixes
+  - installer (redundant code deleting test user)
+  - importer (switching from full details to standard, re-adding VSX gateway support, voip domain handling in cp parser)
+  - reporting (app-rule report containing multiple objects)
+  - middleware (config subscriptions)
+  - reporting (temporarily highlight linked to object in rsb)
+  - modelling (sync connections - not always part of overview table after creation)
+  - RBA (role picking when user has multiple roles)
+  - UI various: adding missing pager control
+  - UI various: spinner clean-up
+- features/upgrades
+  - Added login page welcome message and settings
+  - Added last hit information in app-rule report
+  - API - upgrading to 2.43.0
+  - various security upgrades dotnet (restsharp, jwt, ...)
+
+# 8.4.1 - 30.10.24 MAIN
+Network Modelling feature update
+- import of app server IP addresses via CSV upload
+- import of multiple sources for area IP data 
+- new option email notification: fall-back to main owner if group is empty
+Fixes
+- corrections in displaying UI messages
+- converting owner network ip data to standard format "range"
+- importer 
+  - check point - fix import of all VSX instances
+  - fortinet - add hit counts and install on information
+
+# 8.5 - 13.11.24 MAIN
+Network Modelling feature update
+- modelling can be requested as firewall change via external ticketing tool
+- includes all approle handling
+- simple form of rule change request (always request all connections as rules)
+- api hasura upgrade to 2.44.0
+Fixes
+- various small UI fixes
+- importer (CP: handle None objects)
+
+# 8.6 - 11.12.2024 MAIN
+Features
+- Modelling 
+  - Create Application Zones
+  - Add monitoring for external requests for admins 
+  - Add re-initialization for external requests
+  - consolidation modelling external requests
+  - adding optional access requst on behalf of UI user
+  - adding live update of external task/ticket status
+  - app server name handling rework (NONAME --> <prefix>_<IP address>)
+  - owner groups can now also be external LDAP groups
+
+- Reporting
+  - refining connection report (adding Common service, app role, network area details)
+Fixes
+- Importer
+  - adding missing colors in Check Point importer
+  - new VOIP service object and Internet object
+
+- UI
+  - SECURITY: updating System.Text.Encodings.Web v4.5.0 --> v8.0.0
+
+# 8.6.1 17.12.2024 MAIN
+Fixes network modelling
+- lock external requests to avoid multiple external tickets
+- fix missing comments
+- wait cycles for access request after group changes
+- save publish flag at interface creation
+- disregard dummyAppRole for status determination
+- inherit extra configs from interface
+- sanitize extra configs
+- sort tasks for connection Id and show already adapted name of new members
+- small monitoring adaptations
+- some cleanup + removal of compiler warnings
+- fix ldap group creation regression
+- restrict owner_network uniqness constraint to same import source
+- UI interface search pop-up transformed into filterable table
+
+Upgrade Hasura API to v2.45.1

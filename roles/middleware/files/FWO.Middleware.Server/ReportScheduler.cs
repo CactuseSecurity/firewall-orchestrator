@@ -1,15 +1,16 @@
-﻿using FWO.GlobalConstants;
+﻿using FWO.Basics;
 using FWO.Api.Data;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Config.Api;
 using FWO.Logging;
-using FWO.Middleware.Controllers;
+using FWO.Middleware.Server.Controllers;
 using FWO.Report;
 using FWO.Report.Filter;
 using System.Timers;
 using FWO.Config.File;
 using PuppeteerSharp.Media;
+using FWO.Services;
 
 namespace FWO.Middleware.Server
 {
@@ -194,7 +195,7 @@ namespace FWO.Middleware.Server
             return true;
         }
 
-        private static async Task GenerateConnectionsReport(ReportSchedule reportSchedule, ReportBase report, ApiConnection apiConnectionUser, CancellationToken token)
+        private async Task GenerateConnectionsReport(ReportSchedule reportSchedule, ReportBase report, ApiConnection apiConnectionUser, CancellationToken token)
         {
             ModellingAppRole dummyAppRole = new();
             List<ModellingAppRole> dummyAppRoles = await apiConnectionUser.SendQueryAsync<List<ModellingAppRole>>(ModellingQueries.getDummyAppRole);
@@ -214,17 +215,21 @@ namespace FWO.Middleware.Server
                 }, token);
             }
             await PrepareConnReportData(reportSchedule, report, apiConnectionUser);
-            report.ReportData.GlobalComSvc = await apiConnectionUser.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getCommonServices);
+            List<ModellingConnection> comSvcs = await apiConnectionUser.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getCommonServices);
+            if(comSvcs.Count > 0)
+            {
+                report.ReportData.GlobalComSvc = [new(){GlobalComSvcs = comSvcs, Name = userConfig.GetText("global_common_services")}];
+            }
         }
 
-        private static async Task PrepareConnReportData(ReportSchedule reportSchedule, ReportBase report, ApiConnection apiConnectionUser)
+        private async Task PrepareConnReportData(ReportSchedule reportSchedule, ReportBase report, ApiConnection apiConnectionUser)
         {
+            ModellingHandlerBase handlerBase = new(apiConnectionUser, userConfig, new(), false, DefaultInit.DoNothing);
             foreach(var ownerReport in report.ReportData.OwnerData)
             {
                 foreach(var conn in ownerReport.Connections)
                 {
-                    //conn.ExtractNwGroups();
-                    await ExtractUsedInterface(conn, apiConnectionUser);
+                    await handlerBase.ExtractUsedInterface(conn);
                 }
                 ownerReport.Name = reportSchedule.Template.ReportParams.ModellingFilter.SelectedOwner.Name;
                 ownerReport.RegularConnections = ownerReport.Connections.Where(x => !x.IsInterface && !x.IsCommonService).ToList();
@@ -327,61 +332,6 @@ namespace FWO.Middleware.Server
         {
             long delta = dateTime.Ticks % roundInterval.Ticks;
             return new DateTime(dateTime.Ticks - delta);
-        }
-
-        // reimplemented from UI.Services as not reachable from here. ToDo: redesign
-        private static async Task<string> ExtractUsedInterface(ModellingConnection conn, ApiConnection apiConnectionUser)
-        {
-            string interfaceName = "";
-            try
-            {
-                if(conn.UsedInterfaceId != null)
-                {
-                    List<ModellingConnection> interf = await apiConnectionUser.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getInterfaceById, new {intId = conn.UsedInterfaceId});
-                    if(interf.Count > 0)
-                    {
-                        conn.SrcFromInterface = interf[0].SourceFilled();
-                        conn.DstFromInterface = interf[0].DestinationFilled();
-                        if(interf[0].IsRequested)
-                        {
-                            conn.InterfaceIsRequested = true;
-                            conn.InterfaceIsRejected = interf[0].GetBoolProperty(ConState.Rejected.ToString());
-                            conn.TicketId = interf[0].TicketId;
-                        }
-                        else
-                        {
-                            interfaceName = interf[0].Name ?? "";
-                            if(interf[0].SourceFilled())
-                            {
-                                conn.SourceAppServers = interf[0].SourceAppServers;
-                                conn.SourceAppRoles = interf[0].SourceAppRoles;
-                                conn.SourceNwGroups = interf[0].SourceNwGroups;
-                            }
-                            if(interf[0].DestinationFilled())
-                            {
-                                conn.DestinationAppServers = interf[0].DestinationAppServers;
-                                conn.DestinationAppRoles = interf[0].DestinationAppRoles;
-                                conn.DestinationNwGroups = interf[0].DestinationNwGroups;
-                            }
-                            conn.Services = interf[0].Services;
-                            conn.ServiceGroups = interf[0].ServiceGroups;
-                        }
-                        if(interf[0].GetBoolProperty(ConState.Rejected.ToString()))
-                        {
-                            conn.AddProperty(ConState.InterfaceRejected.ToString());
-                        }
-                        else if(interf[0].GetBoolProperty(ConState.Requested.ToString()))
-                        {
-                            conn.AddProperty(ConState.InterfaceRequested.ToString());
-                        }
-                    }
-                }
-            }
-            catch (Exception)
-            {
-                Log.WriteError("Extract Used Interface", $"Could not extract.");
-            }
-            return interfaceName;
         }
     }
 }

@@ -1,0 +1,67 @@
+﻿@using FWO.Basics
+@using FWO.Api.Data
+@using FWO.Config.Api
+@using FWO.Tufin.SecureChange
+
+@inject UserConfig userConfig
+
+<div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5595") + "\r\n" + userConfig.GetText("ext_ticket_template_ph"))">
+    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ext_ticket_template")):</label>
+    <div class="col-sm-8">
+        <textarea rows="8" cols="60" name="text" class="form-control form-control-sm" @bind="Template.TicketTemplate"></textarea>   
+    </div>
+</div>
+<div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5596") + "\r\n" + userConfig.GetText("ext_task_template_ph"))">
+    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ext_task_template")):</label>
+    <div class="col-sm-8">
+        <textarea rows="5" cols="60" name="text" class="form-control form-control-sm" @bind="Template.TasksTemplate"></textarea>   
+    </div>
+</div>
+@if(Template.TaskType == SCTaskType.NetworkObjectModify.ToString())
+{
+    <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5596a"))">
+        <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ext_obj_template")):</label>
+        <div class="col-sm-8">
+            <textarea rows="3" cols="60" name="text" class="form-control form-control-sm" @bind="Template.ObjectTemplate"></textarea>   
+        </div>
+    </div>
+    <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5596b"))">
+        <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ext_obj_short_template")):</label>
+        <div class="col-sm-8">
+            <textarea rows="3" cols="60" name="text" class="form-control form-control-sm" @bind="Template.ObjectTemplateShort"></textarea>   
+        </div>
+    </div>
+}
+else if(Template.TaskType == SCTaskType.AccessRequest.ToString())
+{
+    <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5596c"))">
+        <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ext_ip_template")):</label>
+        <div class="col-sm-8">
+            <textarea rows="3" cols="60" name="text" class="form-control form-control-sm" @bind="Template.IpTemplate"></textarea>   
+        </div>
+    </div>
+    <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5596d"))">
+        <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ext_nwgroup_template")):</label>
+        <div class="col-sm-8">
+            <textarea rows="3" cols="60" name="text" class="form-control form-control-sm" @bind="Template.NwObjGroupTemplate"></textarea>   
+        </div>
+    </div>
+    <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5596e"))">
+        <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ext_service_template")):</label>
+        <div class="col-sm-8">
+            <textarea rows="3" cols="60" name="text" class="form-control form-control-sm" @bind="Template.ServiceTemplate"></textarea>   
+        </div>
+    </div>
+    <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5596f"))">
+        <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ext_icmp_template")):</label>
+        <div class="col-sm-8">
+            <textarea rows="3" cols="60" name="text" class="form-control form-control-sm" @bind="Template.IcmpTemplate"></textarea>   
+        </div>
+    </div>
+}
+
+@code
+{
+    [Parameter]
+    public ExternalTicketTemplate Template { get; set; } = new();
+}

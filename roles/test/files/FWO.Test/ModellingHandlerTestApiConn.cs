@@ -4,7 +4,7 @@ using FWO.Api.Data;
 
 namespace FWO.Test
 {
-internal class ModellingHandlerTestApiConn : SimulatedApiConnection
+    internal class ModellingHandlerTestApiConn : SimulatedApiConnection
     {
         const string AppRoleId1 = "AR5000001";
         const string AppRoleId2 = "AR9101234-002";
@@ -50,14 +50,14 @@ internal class ModellingHandlerTestApiConn : SimulatedApiConnection
             else if(responseType == typeof(List<ModellingConnection>))
             {
                 List<ModellingConnection>? interfaces = [];
-                string intId = variables.GetType().GetProperties().First(o => o.Name == "intId").GetValue(variables, null).ToString();
+                string intId = variables.GetType().GetProperties().First(o => o.Name == "id").GetValue(variables, null).ToString();
                 if(intId == "1")
                 {
                     interfaces = [ new()
                     {
                         Name = "Interf1",
                         SourceAppRoles = [new(){ Content = new(){ Name = "AppRole1" } }],
-                        SourceNwGroups = [new(){ Content = new(){ Name = "NwGroup1" } }],
+                        SourceOtherGroups = [new(){ Content = new(){ Name = "NwGroup1" } }],
                         ServiceGroups = [new(){ Content = new(){ Name = "ServiceGrp1" } }]
                     }];
                 }

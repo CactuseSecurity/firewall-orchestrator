@@ -80,6 +80,7 @@
       if $programname startswith '{{ product_name }}' and $msg contains "Audit" then action(type="omfile" file="{{ fworch_log_dir }}/audit.log" template="fworch")
       if $programname startswith '{{ product_name }}' and $msg contains "FWORCHAlert" then action(type="omfile" file="{{ fworch_log_dir }}/alert.log" template="fworch")
       if $programname == '{{ product_name }}-webhook' then action(type="omfile" file="{{ fworch_log_dir }}/webhook.log" template="fworch")
+      if $programname == 'import-fworch-app-data' then action(type="omfile" file="{{ fworch_log_dir }}/import-fworch-app-data.log" template="fworch")
   become: true
 
 - name: edit logrotate

@@ -2,12 +2,13 @@
 @using FWO.Report
 @using FWO.Report.Filter
 @using FWO.Report.Filter.Exceptions
-@using FWO.GlobalConstants
+@using FWO.Basics
 @using FWO.Api.Data
 @using FWO.Api.Client.Queries
 @using FWO.Ui.Data
 @using FWO.Ui.Pages.Reporting.Reports
 @using System.Diagnostics
+@using FWO.Services
 
 @page "/report/generation/{appId?}"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Auditor}, {Roles.Modeller}")]
@@ -99,7 +100,7 @@
         <hr />
 
         @* ==== Templates ==== *@
-        <ReportTemplateComponent OnTemplateLoad="async template => { SyncFiltersFromTemplate(template); StateHasChanged(); }" @ref="reportTemplateControl" />
+        <ReportTemplateComponent OnTemplateLoad="async template => { await SyncFiltersFromTemplate(template); }" @ref="reportTemplateControl" />
 
         @* ==== Report main div ==== *@
         <div class="card me-1 ms-1 mb-1 shadow">
@@ -131,7 +132,7 @@
                             break;
 
                         case ReportType.Connections:
-                            <ConnectionsReport AppHandlers="appHandlers" AllCommonServices="currentReport.ReportData.GlobalComSvc"/>
+                            <ConnectionsReport AppHandlers="appHandlers" AllCommonServices="currentReport.ReportData.GlobalComSvc?.FirstOrDefault()?.GlobalComSvcs"/>
                             break;
 
                         default:
@@ -187,7 +188,7 @@
 
     private List<ModellingAppHandler> appHandlers = [];
     List<int> relevantManagementIds = [];
-    
+
     private ReportFilters actReportFilters = new();
     private bool InitDone = false;
     private int? injectedAppId = null;
@@ -347,6 +348,7 @@
 
     private async Task SyncFiltersFromTemplate(ReportTemplate template)
     {
+        template.ReportParams.ModellingFilter.SelectedOwner = template.ReportParams.ModellingFilter.SelectedTemplateOwner;
         filterInput = template.Filter;
         Tenant? tenantFromTemplate = null;
         if (template.ReportParams.TenantFilter.IsActive)
@@ -471,7 +473,7 @@
         }
         foreach(var selectedOwner in actReportFilters.ModellingFilter.SelectedOwners)
         {
-            OwnerReport actOwnerData = new(dummyAppRole.Id){ Name = selectedOwner.Name };
+            OwnerReport actOwnerData = new(dummyAppRole.Id){ Name = selectedOwner.Display("") };
             currentReport.ReportData.OwnerData.Add(actOwnerData);
             await currentReport.Generate(userConfig.ElementsPerFetch, apiConnection,
             connIntermediate =>
@@ -482,7 +484,11 @@
 
             await PrepareConnReportData(selectedOwner, actOwnerData);
         }
-        currentReport.ReportData.GlobalComSvc = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getCommonServices);
+        List<ModellingConnection> comSvcs = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getCommonServices);
+        if(comSvcs.Count > 0)
+        {
+            currentReport.ReportData.GlobalComSvc = [new(){GlobalComSvcs = comSvcs, Name = userConfig.GetText("global_common_services")}];
+        }
     }
 
     async Task PrepareConnReportData(FwoOwner selectedOwner, OwnerReport ownerData)

@@ -13,6 +13,7 @@ mutation updateRequestTask(
   $additionalInfo: String
   $freeText: String
   $devices: String
+  $managementId: Int
   ) {
   update_request_reqtask_by_pk(
     pk_columns: { id: $id }
@@ -30,6 +31,7 @@ mutation updateRequestTask(
     additional_info: $additionalInfo
     free_text: $freeText
     devices: $devices
+    mgm_id: $managementId
   }) {
     UpdatedId: id
   }

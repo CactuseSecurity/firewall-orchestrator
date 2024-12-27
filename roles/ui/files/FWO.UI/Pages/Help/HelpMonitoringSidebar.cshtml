@@ -32,6 +32,14 @@
                     <span class="@Icons.Import"></span> @(userConfig.GetText("import_logs"))
                 </a>
                 <p></p>
+                <h5>@(userConfig.GetText("external_requests"))</h5>
+                <a class="nav-link" href="/help/monitoring/external_request_tickets/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="@Icons.Tickets"></span> @(userConfig.GetText("ext_request_tickets"))
+                </a>
+                <a class="nav-link" href="/help/monitoring/external_requests/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="@Icons.Export"></span> @(userConfig.GetText("external_requests"))
+                </a>
+                <p></p>
                 <h5>@(userConfig.GetText("personal"))</h5>
                 <a class="nav-link" href="/help/monitoring/ui_messages/?lang=@($"{userConfig.GetUserLanguage()}")">
                     <span class="@Icons.UiMessages"></span> @(userConfig.GetText("ui_messages"))

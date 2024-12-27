@@ -1,18 +1,23 @@
 @using FWO.Config.Api
 @using FWO.Config.Api.Data
 @using FWO.Ui.Display
+@using FWO.Services
 @using FWO.Tufin.SecureChange
 @using FWO.Rest.Client
+@using FWO.Middleware.Client
 @using System.Text.Json
 @using System.Text.Json.Serialization
 @using System.Net
 @using RestSharp
+
+@implements IDisposable
 
 @page "/networkmodelling/{appId?}/{connId?}"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Modeller}, {Roles.Auditor}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
+@inject MiddlewareClient middlewareClient
 @inject NavigationManager NavigationManager
 @inject GlobalConfig globalConfig
 
@@ -21,6 +26,7 @@
     @if(appHandler != null && appHandler.overviewConnHandler != null && appSelected)
     {
         <EditConnLeftSide @bind-Width="sidebarLeftWidth" @bind-ConnHandler="appHandler.overviewConnHandler" OverviewMode="true"/>
+        <RequestFwChangePopup @bind-Display="showFwChange" SelectedApp="@selectedApp" Connections="appHandler.GetConnectionsToRequest()" RefreshParent="SubscribeAndSetStatusFromTicket"/>
     }
     <div style="margin-left: @($"{sidebarLeftWidth + 10}px");">
         <div class="input-group">
@@ -40,9 +46,23 @@
                     <button type="button" class="btn btn-sm btn-dark" @onclick="ShowHistory">
                         @(userConfig.GetText("show_history"))
                     </button>
-                    <button type="button" class="ms-5 btn btn-sm btn-primary" @onclick="RequestFwChange">
-                        @(userConfig.GetText("request_fw_change"))
-                    </button>
+                    <AuthorizeView Roles="@($"{Roles.Requester}, {Roles.Implementer}, {Roles.Admin}, {Roles.Auditor}")">
+                        <Authorized>
+                            <button type="button" class="ms-5 btn btn-sm btn-primary" disabled=@(!userConfig.ModRolloutActive) @onclick="RequestFwChange">
+                                @(userConfig.GetText("request_fw_change"))
+                            </button>
+                        </Authorized>
+                        <NotAuthorized>
+                            <div data-toggle="tooltip" title="@(userConfig.PureLine("C9012"))">
+                                <button type="button" class="ms-5 btn btn-sm btn-primary" disabled>
+                                    @(userConfig.GetText("request_fw_change"))
+                                </button>
+                            </div>
+                        </NotAuthorized>
+                    </AuthorizeView>
+                    <div class="ms-2">
+                        <label>@((MarkupString)ChangeStatus)</label>
+                    </div>
                 </div>
             </div>
         </div>
@@ -86,8 +106,8 @@
                             <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}")">
                                 <Authorized>
                                     <div>
-                                        <input type="checkbox" @bind="showRejected">
-                                        <label class="col-form-label">@(userConfig.GetText("displayRejected")):</label>
+                                        <input id="cbx_show_rejected" type="checkbox" @bind="showRejected">
+                                        <label for="cbx_show_rejected" class="col-form-label">@(userConfig.GetText("displayRejected")):</label>
                                     </div>
                                 </Authorized>
                             </AuthorizeView>
@@ -119,6 +139,7 @@ else
 <ManualAppServer @bind-Display="manualAppServer" Application="@selectedApp" />
 <ShowHistory @bind-Display="showHistory" Applications="apps" SelectedApp="selectedApp" />
 <ShareLink @bind-Display="shareLink" Application="selectedApp" />
+<InProgress Display="workInProgress"/>
 
 @code
 {
@@ -147,13 +168,23 @@ else
     private bool appActive = false;
     private bool showHistory = false;
     private bool shareLink = false;
+    private bool showFwChange = false;
     private int sidebarLeftWidth = GlobalConst.kGlobLibraryWidth;
     private bool firstInit = true;
-    
+    private string ChangeStatus = "";
+    private GraphQlApiSubscription<List<WfTicket>>? actTicketSubscription;
+    private ExtStateHandler extStateHandler;
+    private WfStateDict states = new();
+    private bool firstErrorMessage = true;
+    private bool workInProgress = false;
+
     protected override async Task OnInitializedAsync()
     {
         // if use has modeller role, choose it before all others for this menu
-        apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Modeller, Roles.Admin, Roles.Auditor ]);
+        apiConnection.SetBestRole(authenticationStateTask!.Result.User, [ Roles.Modeller, Roles.Admin, Roles.Auditor ]);
+        extStateHandler = new(apiConnection);
+        await extStateHandler.Init();
+        await states.Init(apiConnection);
         await InitAppList();
     }
 
@@ -226,12 +257,21 @@ else
 
     private async Task InitApp(FwoOwner newApp)
     {
+        workInProgress = true;
         try
         {
             appSelected = false;
             selectedApp = newApp;
             bool isOwner = authenticationStateTask!.Result.User.IsInRole(Roles.Modeller) &&
-            userConfig.User.Ownerships.Contains(selectedApp.Id);
+                userConfig.User.Ownerships.Contains(selectedApp.Id);
+            if (isOwner)
+            {
+                apiConnection.SetRole(Roles.Modeller);
+            }
+            else
+            {
+                apiConnection.SetBestRole(authenticationStateTask!.Result.User, new List<string> { Roles.Admin, Roles.Auditor, Roles.Modeller });
+            }
             appHandler = new ModellingAppHandler(apiConnection, userConfig, selectedApp, DisplayMessageInUi, isOwner)
             {
                 ActWidth = sidebarLeftWidth,
@@ -240,27 +280,21 @@ else
             firstInit = false;
             await appHandler.Init();
             appActive = selectedApp.Active;
-            if (isOwner)
-            {
-                apiConnection.SetRole(Roles.Modeller);
-            }
-            else
-            {
-                apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { Roles.Admin, Roles.Auditor });
-            }
             appSelected = true;
             tabSelected = false;
+            await SetChangeStatus();
             await InitConn();
         }
         catch (Exception exception)
         {
             DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
         }
+        workInProgress = false;
     }
 
     private async Task InitConn()
     {
-        if (ConnId != null && int.TryParse(ConnId, out int connectionId))
+        if (appHandler != null && ConnId != null && int.TryParse(ConnId, out int connectionId))
         {
             ModellingConnection? selectedConn = appHandler?.Connections.FirstOrDefault(c => c.Id == connectionId);
             if (selectedConn != null)
@@ -294,54 +328,83 @@ else
 
     private async Task RequestFwChange()
     {
+        showFwChange = true;
+    }
 
-        DisplayMessageInUi(null, "Coming soon", "...", true);
-        return;
-
-        // read external ticketing system information from config
-        List<ExternalTicketSystem> extTicketSystems = [];
-
-        try
+    private async Task SetChangeStatus()
+    {
+        apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Modeller, Roles.Admin, Roles.Auditor ]);
+        List<TicketId> ticketIds = await apiConnection.SendQueryAsync<List<TicketId>>(ExtRequestQueries.getLatestTicketId, new{ownerId = selectedApp.Id});
+        if(ticketIds.Count == 0)
         {
-            extTicketSystems = System.Text.Json.JsonSerializer.Deserialize<List<ExternalTicketSystem>>(userConfig.ExtTicketSystems) ?? new();
+            ChangeStatus = userConfig.GetText("never_requested");
         }
-        catch (Exception exception)
+        else
         {
-            DisplayMessageInUi(exception, userConfig.GetText("read_config"), userConfig.GetText("E5301"), false);
-        }
-
-        // build ticket
-        SCTicket ticket = new(appHandler.Connections, "test ticket 1", TicketPriority.High);
-
-        // create external ticket
-        if (extTicketSystems.Count() > 0)
-        {
-            try
+            WfTicket? intTicket = await apiConnection.SendQueryAsync<WfTicket>(RequestQueries.getTicketById, new { ticketIds.First().Id });
+            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Modeller, Roles.Admin, Roles.Auditor ]);
+            if(intTicket != null)
             {
-                RestResponse<int> ticketIdResponse = await ticket.CreateTicketInTufin(extTicketSystems.First());
-                if (ticketIdResponse.StatusCode != HttpStatusCode.OK)
-                {
-                    DisplayMessageInUi(null, userConfig.GetText("ext_ticket_fail"), "Error Message: " + ticketIdResponse.StatusDescription + ", " + ticketIdResponse.ErrorMessage, true);
-                }
-                else
-                {
-                    DisplayMessageInUi(null, userConfig.GetText("ext_ticket_success"), userConfig.GetText("ext_ticket_number") + ": " + ticketIdResponse.Data, true);                    
-                }
-            }
-            catch (Exception exception)
-            {
-                DisplayMessageInUi(exception, userConfig.GetText("ext_ticket_fail"), userConfig.GetText("E9101"), false);
+                await SubscribeAndSetStatusFromTicket(intTicket);
             }
         }
+    }
 
-        // TODO: 
-        // create object tickets
-        // prevent Admins from requesting tickets
-        // hide button fore requesting tickets?
-        // store ticketNumber 
-        // in MW: create scheduler to check each ticket if they have been closed
-        // ceate internal ticket for each ext ticket
-        // mark closed tickets as "implemented" in internal tickets
+    private async Task SubscribeAndSetStatusFromTicket(WfTicket intTicket)
+    {
+        await SetStatusFromTicket(intTicket);
+        actTicketSubscription = apiConnection.GetSubscription<List<WfTicket>>(HandleSubscriptionError, OnTicketUpdate, RequestQueries.subscribeTicketStateChanges, new {intTicket.Id});
+    }
 
+    private async Task SetStatusFromTicket(WfTicket intTicket)
+    {
+        int doneStateId = (int)(extStateHandler.GetInternalStateId(ExtStates.ExtReqDone) ?? 999);
+        int rejectedStateId = (int)(extStateHandler.GetInternalStateId(ExtStates.ExtReqRejected) ?? 999);
+        if(intTicket.StateId < doneStateId && intTicket.StateId < rejectedStateId)
+        {
+            ChangeStatus = userConfig.GetText("in_process");
+        }
+        else if(intTicket.StateId == doneStateId)
+        {
+            ChangeStatus = userConfig.GetText("last_successful") + intTicket.CompletionDate?.ToString("yyyy-MM-dd HH:mm:ss") + " " + intTicket.Requester?.Name;
+        }
+        else
+        {
+            List<ExternalRequest> lastRequests = await apiConnection.SendQueryAsync<List<ExternalRequest>>(ExtRequestQueries.getLastRequest, new{ticketId = intTicket.Id});
+            if(lastRequests != null && lastRequests.Count > 0)
+            {
+                string? lastResponse = !string.IsNullOrEmpty(lastRequests.First().LastProcessingResponse) ? 
+                    lastRequests.First().LastProcessingResponse : lastRequests.First().LastCreationResponse;
+                bool shortened = false;
+                string tooltip = states.Name[intTicket.StateId] + ": " + Sanitizer.SanitizeCommentOpt(lastResponse, ref shortened);
+                ChangeStatus = $"<div data-toggle=\"tooltip\" title=\"{tooltip}\">{userConfig.GetText("implementation_error")}</div>";
+            }
+            else
+            {
+                ChangeStatus = userConfig.GetText("implementation_error");
+            }
+            await InvokeAsync(StateHasChanged);
+            if(firstErrorMessage)
+            {
+                firstErrorMessage = false;
+                DisplayMessageInUi(null, userConfig.GetText("implementation_error"), userConfig.ModRolloutErrorText, true);
+            }
+        }
+    }
+
+    private async void HandleSubscriptionError(Exception exception)
+    {
+        await InvokeAsync(() => DisplayMessageInUi(exception, userConfig.GetText("ticket"), userConfig.GetText("update_subscription_error"), true));
+    }
+
+    public void Dispose()
+    {
+        actTicketSubscription?.Dispose();
+    }
+
+    private async void OnTicketUpdate(List<WfTicket> tickets)
+    {
+        await SetStatusFromTicket(tickets.First());
+        await InvokeAsync(StateHasChanged);
     }
 }

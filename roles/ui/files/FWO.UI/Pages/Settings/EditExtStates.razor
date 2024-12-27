@@ -1,5 +1,6 @@
 ﻿@using FWO.Api.Client
 @using FWO.Api.Client.Queries
+@using FWO.Services
 
 @inject UserConfig userConfig
 @inject ApiConnection apiConnection
@@ -139,7 +140,7 @@
                         actExtState.Id = returnIds[0].NewId;
                     }
                 }
-                RefreshExtStates();
+                await RefreshExtStates();
             }
             CloseSelect();
         }

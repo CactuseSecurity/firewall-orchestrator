@@ -12,23 +12,26 @@ namespace FWO.Api.Data
         public long TicketId { get; set; }
 
         [JsonProperty("elements"), JsonPropertyName("elements")]
-        public List<WfReqElement> Elements { get; set; } = new ();
+        public List<WfReqElement> Elements { get; set; } = [];
 
         [JsonProperty("implementation_tasks"), JsonPropertyName("implementation_tasks")]
-        public List<WfImplTask> ImplementationTasks { get; set; } = new ();
+        public List<WfImplTask> ImplementationTasks { get; set; } = [];
 
         [JsonProperty("request_approvals"), JsonPropertyName("request_approvals")]
-        public List<WfApproval> Approvals { get; set; } = new ();
+        public List<WfApproval> Approvals { get; set; } = [];
 
         [JsonProperty("owners"), JsonPropertyName("owners")]
-        public List<FwoOwnerDataHelper> Owners { get; set; } = new ();
+        public List<FwoOwnerDataHelper> Owners { get; set; } = [];
 
         [JsonProperty("comments"), JsonPropertyName("comments")]
-        public List<WfCommentDataHelper> Comments { get; set; } = new ();
+        public List<WfCommentDataHelper> Comments { get; set; } = [];
 
-        public List<WfReqElement> RemovedElements { get; set; } = new ();
-        public List<FwoOwner> NewOwners { get; set; } = new ();
-        public List<FwoOwner> RemovedOwners { get; set; } = new ();
+        [JsonProperty("on_management"), JsonPropertyName("on_management")]
+        public Management? OnManagement { get; set; }
+
+        public List<WfReqElement> RemovedElements { get; set; } = [];
+        public List<FwoOwner> NewOwners { get; set; } = [];
+        public List<FwoOwner> RemovedOwners { get; set; } = [];
 
         public WfReqTask()
         { }
@@ -45,11 +48,12 @@ namespace FWO.Api.Data
             RemovedElements = reqtask.RemovedElements;
             NewOwners = reqtask.NewOwners;
             RemovedOwners = reqtask.RemovedOwners;
+            OnManagement = reqtask.OnManagement;
         }
 
         public string OwnerList()
         {
-            List<string> ownerNames = new ();
+            List<string> ownerNames = [];
             foreach(var owner in Owners)
             {
                 ownerNames.Add(owner.Owner.Name);
@@ -72,7 +76,7 @@ namespace FWO.Api.Data
 
         public List<NwObjectElement> GetNwObjectElements(ElemFieldType field)
         {
-            List<NwObjectElement> elements = new ();
+            List<NwObjectElement> elements = [];
             foreach(var reqElem in Elements)
             {
                 if (reqElem.Field == field.ToString())
@@ -82,7 +86,12 @@ namespace FWO.Api.Data
                         ElemId = reqElem.Id,
                         TaskId = reqElem.TaskId,
                         Cidr = new Cidr(reqElem.Cidr != null ? reqElem.Cidr.CidrString : ""),
-                        NetworkId = reqElem.NetworkId
+                        CidrEnd = new Cidr(reqElem.CidrEnd != null ? reqElem.CidrEnd.CidrString : ""),
+                        IpString = reqElem.IpString ?? "",
+                        NetworkId = reqElem.NetworkId,
+                        RequestAction = reqElem.RequestAction,
+                        Name = reqElem.Name,
+                        GroupName = reqElem.GroupName ?? ""
                     });
                 }
             }
@@ -91,7 +100,7 @@ namespace FWO.Api.Data
 
         public List<NwServiceElement> GetServiceElements()
         {
-            List<NwServiceElement> elements = new ();
+            List<NwServiceElement> elements = [];
             foreach(var reqElem in Elements)
             {
                 if (reqElem.Field == ElemFieldType.service.ToString())
@@ -101,8 +110,11 @@ namespace FWO.Api.Data
                         ElemId = reqElem.Id,
                         TaskId = reqElem.TaskId,
                         Port = reqElem.Port ?? 0,
+                        PortEnd = reqElem.PortEnd,
                         ProtoId = reqElem.ProtoId ?? 0,
-                        ServiceId = reqElem.ServiceId
+                        ServiceId = reqElem.ServiceId,
+                        Name = reqElem.Name,
+                        RequestAction = reqElem.RequestAction
                     });
                 }
             }
@@ -111,7 +123,7 @@ namespace FWO.Api.Data
 
         public List<NwRuleElement> GetRuleElements()
         {
-            List<NwRuleElement> elements = new ();
+            List<NwRuleElement> elements = [];
             foreach(var reqElem in Elements)
             {
                 if (reqElem.Field == ElemFieldType.rule.ToString())
@@ -125,6 +137,15 @@ namespace FWO.Api.Data
                 }
             }
             return elements;
+        }
+
+        public string GetFirstCommentText()
+        {
+            if(Comments.Count > 0)
+            {
+                return Comments.First().Comment.CommentText;
+            }
+            return "";
         }
 
         public string GetAllComments()
@@ -149,6 +170,11 @@ namespace FWO.Api.Data
                 }
             }
             return 0;
+        }
+
+        public bool IsNetworkFlavor()
+        {
+            return Elements.FirstOrDefault(e => e.IpString != null) != null;
         }
     }
 }

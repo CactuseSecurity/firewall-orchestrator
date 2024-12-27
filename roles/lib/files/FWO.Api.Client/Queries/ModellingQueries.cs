@@ -6,14 +6,16 @@ namespace FWO.Api.Client.Queries
     {
         public static readonly string appServerDetailsFragment;
         public static readonly string appRoleDetailsFragment;
+        public static readonly string areaDetailsFragment;
         public static readonly string serviceDetailsFragment;
         public static readonly string serviceGroupDetailsFragment;
         public static readonly string connectionDetailsFragment;
+        public static readonly string connectionResolvedDetailsFragment;
 
         public static readonly string getAreas;
         public static readonly string newArea;
         public static readonly string setAreaDeletedState;
-        public static readonly string newAreaSubnet;
+        public static readonly string newAreaIpData;
         public static readonly string getConnectionIdsForNwGroup;
 
         public static readonly string getAppServers;
@@ -22,19 +24,21 @@ namespace FWO.Api.Client.Queries
         public static readonly string updateAppServer;
         public static readonly string setAppServerDeletedState;
         public static readonly string setAppServerType;
+        public static readonly string setAppServerName;
         public static readonly string deleteAppServer;
         public static readonly string getAppRolesForAppServer;
         public static readonly string getConnectionIdsForAppServer;
 
         public static readonly string getPublishedInterfaces;
-        public static readonly string getInterfaceById;
+        public static readonly string getConnectionById;
         public static readonly string getConnections;
+        public static readonly string getConnectionsResolved;
         public static readonly string getConnectionsByTicketId;
         public static readonly string getInterfaceUsers;
         public static readonly string getCommonServices;
         public static readonly string newConnection;
         public static readonly string updateConnection;
-        public static readonly string updateConnectionOwner;
+        public static readonly string updateProposedConnectionOwner;
         public static readonly string updateConnectionPublish;
         public static readonly string updateConnectionProperties;
         public static readonly string replaceUsedInterface;
@@ -91,6 +95,8 @@ namespace FWO.Api.Client.Queries
         public static readonly string getHistoryForApp;
         public static readonly string addHistoryEntry;
 
+        public static readonly string newAppZone;
+        public static readonly string getAppZonesByAppId;
 
         static ModellingQueries()
         {
@@ -98,15 +104,18 @@ namespace FWO.Api.Client.Queries
             {
                 appServerDetailsFragment = File.ReadAllText(QueryPath + "modelling/fragments/appServerDetails.graphql");
                 appRoleDetailsFragment = File.ReadAllText(QueryPath + "modelling/fragments/appRoleDetails.graphql");
+                areaDetailsFragment = File.ReadAllText(QueryPath + "modelling/fragments/areaDetails.graphql");
                 serviceDetailsFragment = File.ReadAllText(QueryPath + "modelling/fragments/serviceDetails.graphql");
                 serviceGroupDetailsFragment = File.ReadAllText(QueryPath + "modelling/fragments/serviceGroupDetails.graphql");
                 connectionDetailsFragment = appServerDetailsFragment + appRoleDetailsFragment + serviceDetailsFragment + serviceGroupDetailsFragment +
                     File.ReadAllText(QueryPath + "modelling/fragments/connectionDetails.graphql");
+                connectionResolvedDetailsFragment = appServerDetailsFragment + appRoleDetailsFragment + areaDetailsFragment + serviceDetailsFragment + serviceGroupDetailsFragment +
+                    File.ReadAllText(QueryPath + "modelling/fragments/connectionResolvedDetails.graphql");
 
-                getAreas = File.ReadAllText(QueryPath + "modelling/getAreas.graphql");
+                getAreas = areaDetailsFragment + File.ReadAllText(QueryPath + "modelling/getAreas.graphql");
                 newArea = File.ReadAllText(QueryPath + "modelling/newArea.graphql");
                 setAreaDeletedState = File.ReadAllText(QueryPath + "modelling/setAreaDeletedState.graphql");
-                newAreaSubnet = File.ReadAllText(QueryPath + "modelling/newAreaSubnet.graphql");
+                newAreaIpData = File.ReadAllText(QueryPath + "modelling/newAreaIpData.graphql");
                 getConnectionIdsForNwGroup = File.ReadAllText(QueryPath + "modelling/getConnectionIdsForNwGroup.graphql");
 
                 getAppServers = appServerDetailsFragment + File.ReadAllText(QueryPath + "modelling/getAppServers.graphql");
@@ -114,20 +123,22 @@ namespace FWO.Api.Client.Queries
                 newAppServer = File.ReadAllText(QueryPath + "modelling/newAppServer.graphql");
                 updateAppServer = File.ReadAllText(QueryPath + "modelling/updateAppServer.graphql");
                 setAppServerDeletedState = File.ReadAllText(QueryPath + "modelling/setAppServerDeletedState.graphql");
+                setAppServerName = File.ReadAllText(QueryPath + "modelling/setAppServerName.graphql");
                 setAppServerType = File.ReadAllText(QueryPath + "modelling/setAppServerType.graphql");
                 deleteAppServer = File.ReadAllText(QueryPath + "modelling/deleteAppServer.graphql");
                 getAppRolesForAppServer = File.ReadAllText(QueryPath + "modelling/getAppRolesForAppServer.graphql");
                 getConnectionIdsForAppServer = File.ReadAllText(QueryPath + "modelling/getConnectionIdsForAppServer.graphql");
 
                 getPublishedInterfaces = connectionDetailsFragment + File.ReadAllText(QueryPath + "modelling/getPublishedInterfaces.graphql");
-                getInterfaceById = connectionDetailsFragment + File.ReadAllText(QueryPath + "modelling/getInterfaceById.graphql");                
+                getConnectionById = connectionDetailsFragment + File.ReadAllText(QueryPath + "modelling/getConnectionById.graphql");                
                 getConnections = connectionDetailsFragment + File.ReadAllText(QueryPath + "modelling/getConnections.graphql");
+                getConnectionsResolved = connectionResolvedDetailsFragment + File.ReadAllText(QueryPath + "modelling/getConnectionsResolved.graphql");
                 getConnectionsByTicketId = connectionDetailsFragment + File.ReadAllText(QueryPath + "modelling/getConnectionsByTicketId.graphql");
                 getInterfaceUsers = File.ReadAllText(QueryPath + "modelling/getInterfaceUsers.graphql");
                 getCommonServices = connectionDetailsFragment + File.ReadAllText(QueryPath + "modelling/getCommonServices.graphql");
                 newConnection = File.ReadAllText(QueryPath + "modelling/newConnection.graphql");
                 updateConnection = File.ReadAllText(QueryPath + "modelling/updateConnection.graphql");
-                updateConnectionOwner = File.ReadAllText(QueryPath + "modelling/updateConnectionOwner.graphql");
+                updateProposedConnectionOwner = File.ReadAllText(QueryPath + "modelling/updateProposedConnectionOwner.graphql");
                 updateConnectionPublish = File.ReadAllText(QueryPath + "modelling/updateConnectionPublish.graphql");
                 updateConnectionProperties = File.ReadAllText(QueryPath + "modelling/updateConnectionProperties.graphql");
                 replaceUsedInterface = File.ReadAllText(QueryPath + "modelling/replaceUsedInterface.graphql");
@@ -183,6 +194,9 @@ namespace FWO.Api.Client.Queries
                 getHistory = File.ReadAllText(QueryPath + "modelling/getHistory.graphql");
                 getHistoryForApp = File.ReadAllText(QueryPath + "modelling/getHistoryForApp.graphql");
                 addHistoryEntry = File.ReadAllText(QueryPath + "modelling/addHistoryEntry.graphql");
+
+                newAppZone = File.ReadAllText(QueryPath + "modelling/addNwAppZone.graphql");
+                getAppZonesByAppId = appServerDetailsFragment + File.ReadAllText(QueryPath + "modelling/getAppZonesByAppId.graphql");
             }
             catch (Exception exception)
             {

@@ -1,5 +1,6 @@
-﻿@using FWO.GlobalConstants
+﻿@using FWO.Basics
 @using FWO.Api.Data
+@using FWO.Services
 
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.Implementer}")]
 
@@ -10,14 +11,21 @@
     <Body>
         @if (Display)
         {
-            <p>@(Message)</p>
+            @if (RenderMessageAsHtml)
+            {
+                <p>@((MarkupString)Message)</p>
+            }
+            else
+            {
+                <p>@(Message)</p>
+            }
         }
     </Body>
     <Footer>
         <div class="btn-group">
             <AuthorizeView Roles="@AllowedRoles">
                 <Authorized>
-                    <button type="button" class="btn btn-sm btn-danger" @onclick="() => {PerformAction(); Display = false;}">@(userConfig.GetText("confirm"))</button>
+                    <button type="button" class="btn btn-sm btn-danger" @onclick="async () => {await PerformAction(); Display = false;}">@(userConfig.GetText("confirm"))</button>
                 </Authorized>
                 <NotAuthorized>
                     <button type="button" class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("confirm"))</button>
@@ -48,6 +56,9 @@
 
     [Parameter]
     public string AllowedRoles { get; set; } = Roles.Admin;
+
+    [Parameter]
+    public bool RenderMessageAsHtml { get; set; }
 
     private void Cancel()
     {

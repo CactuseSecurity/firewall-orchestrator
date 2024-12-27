@@ -7,14 +7,16 @@
   </PropertyGroup>
 
   <ItemGroup>
-	<PackageReference Include="PuppeteerSharp" Version="20.0.5" />	  
+	  <PackageReference Include="PuppeteerSharp" Version="20.0.5" />	  
+    <PackageReference Include="Haukcode.WkHtmlToPdfDotNet" Version="1.5.95" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\FWO.Config.Api\FWO.Config.Api.csproj" />
     <ProjectReference Include="..\FWO.Report.Filter\FWO.Report.Filter.csproj" />
-    <ProjectReference Include="..\FWO.GlobalConstants\FWO.GlobalConstants.csproj" />
+    <ProjectReference Include="..\FWO.Basics\FWO.Basics.csproj" />
     <ProjectReference Include="..\FWO.Api.Client\FWO.Api.Client.csproj" />
+    <ProjectReference Include="..\FWO.Services\FWO.Services.csproj" />
   </ItemGroup>
 
 </Project>

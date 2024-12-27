@@ -349,7 +349,7 @@ def resolveRefFromObjectDictionary(id, objDict, nativeConfig={}, sid='', base_ur
     else:
         # there are some objects (at least CpmiVoipSipDomain) which are not API-gettable with show-objects (only with show-object "UID")
         # these must be added to the (network) objects tables
-        if matchedObj['type'] == 'CpmiVoipSipDomain':
+        if matchedObj['type'] in ['CpmiVoipSipDomain', 'CpmiVoipMgcpDomain']:
             logger.info(f"adding voip domain '{matchedObj['name']}' object manually, because it is not retrieved by show objects API command")
             if 'object_tables' in nativeConfig:
                 nativeConfig['object_tables'].append({ 
@@ -402,12 +402,20 @@ def getObjectDetailsFromApi(uid_missing_obj, sid='', apiurl=''):
             if 'object' in obj:
                 obj = obj['object']
                 if (obj['type'] == 'CpmiAnyObject'):
-                    return  { "object_type": "hosts", "object_chunks": [ {
-                        "objects": [ {
-                        'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],
-                        'comments': 'any nw object checkpoint (hard coded)',
-                        'type': 'network', 'ipv4-address': '0.0.0.0/0',
-                        } ] } ] }
+                    if (obj['name'] == 'Any'):
+                        return  { "object_type": "hosts", "object_chunks": [ {
+                            "objects": [ {
+                            'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],
+                            'comments': 'any nw object checkpoint (hard coded)',
+                            'type': 'network', 'ipv4-address': '0.0.0.0/0'
+                            } ] } ] }
+                    elif (obj['name'] == 'None'):
+                        return  { "object_type": "hosts", "object_chunks": [ {
+                            "objects": [ {
+                            'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],
+                            'comments': 'any nw object checkpoint (hard coded)',
+                            'type': 'group'
+                            } ] } ] }
                 elif (obj['type'] in [ 'simple-gateway', obj['type'], 'CpmiGatewayPlain', obj['type'] == 'interop' ]):
                     return { "object_type": "hosts", "object_chunks": [ {
                         "objects": [ {
@@ -432,11 +440,11 @@ def getObjectDetailsFromApi(uid_missing_obj, sid='', apiurl=''):
                         'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],
                         'comments': obj['comments'], 'type': 'host', 'ipv4-address': '0.0.0.0/0',
                         } ] } ] }
-                elif (obj['type'] in [ 'updatable-object', 'CpmiVoipSipDomain' ]):
+                elif (obj['type'] in [ 'updatable-object', 'CpmiVoipSipDomain', 'CpmiVoipMgcpDomain' ]):
                     return {"object_type": "hosts", "object_chunks": [ {
                         "objects": [ {
                         'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],
-                        'comments': obj['comments'], 'type': 'group' #, 'ipv4-address': '0.0.0.0/0',
+                        'comments': obj['comments'], 'type': 'group'
                         } ] } ] }
                 elif (obj['type'] in ['Internet', 'security-zone']):
                     return {"object_type": "hosts", "object_chunks": [ {

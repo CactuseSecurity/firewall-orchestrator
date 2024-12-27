@@ -17,6 +17,9 @@ namespace FWO.Api.Data
         public const string ConnId = "ConnId";
         public const string ReqOwner = "ReqOwner";
         public const string GrpName = "GrpName";
+        public const string ExtIcketId = "ExtIcketId";
+        public const string AppRoleId = "AppRoleId";
+        public const string SvcGrpId = "SvcGrpId";
     }
 
     public class WfReqTaskBase : WfTaskBase
@@ -33,20 +36,23 @@ namespace FWO.Api.Data
         [JsonProperty("last_recert_date"), JsonPropertyName("last_recert_date")]
         public DateTime? LastRecertDate { get; set; }
 
+        [JsonProperty("mgm_id"), JsonPropertyName("mgm_id")]
+        public int? ManagementId { get; set; }
+
         [JsonProperty("devices"), JsonPropertyName("devices")]
         public string SelectedDevices 
         {  
-            get => System.Text.Json.JsonSerializer.Serialize<List<int>>(deviceList) ?? throw new Exception("DeviceList could not be parsed.");
+            get => System.Text.Json.JsonSerializer.Serialize<List<int>>(DeviceList) ?? throw new Exception("DeviceList could not be parsed.");
             set
             {
                 if(value != null && value != "")
                 {
-                    deviceList = System.Text.Json.JsonSerializer.Deserialize<List<int>>(value) ?? throw new Exception("value could not be parsed.");
+                    DeviceList = System.Text.Json.JsonSerializer.Deserialize<List<int>>(value) ?? throw new Exception("value could not be parsed.");
                 }
             }
         }
 
-        private List<int> deviceList { get; set; } = new ();
+        private List<int> DeviceList { get; set; } = [];
 
 
         public WfReqTaskBase()
@@ -59,20 +65,75 @@ namespace FWO.Api.Data
             AdditionalInfo = reqtask.AdditionalInfo;
             LastRecertDate = reqtask.LastRecertDate;
             SelectedDevices = reqtask.SelectedDevices;
+            ManagementId = reqtask.ManagementId;
         }
 
-        public List<int> getDeviceList()
+        public List<int> GetDeviceList()
         {
-            return deviceList;
+            return DeviceList;
         }
 
         public void SetDeviceList(List<Device> devList)
         {
-            deviceList = new ();
+            DeviceList = [];
             foreach(var dev in devList)
             {
-                deviceList.Add(dev.Id);
+                DeviceList.Add(dev.Id);
             }
+        }
+
+        public int? GetAddInfoIntValue(string key)
+        {
+            if(int.TryParse(GetAddInfoValue(key), out int value))
+            {
+                return value;
+            }
+            return null;
+        }
+
+        public long? GetAddInfoLongValue(string key)
+        {
+            if(long.TryParse(GetAddInfoValue(key), out long value))
+            {
+                return value;
+            }
+            return null;
+        }
+
+        public string GetAddInfoValue(string key)
+        {
+            Dictionary<string, string>? addInfo = GetAddInfos();
+            if (addInfo != null && addInfo.TryGetValue(key, out string? value))
+            {
+                return value;
+            }
+            return "";
+        }
+
+        public void SetAddInfo(string key, string newValue)
+        {
+            Dictionary<string, string>? addInfo = GetAddInfos();
+            if(addInfo == null)
+            {
+                addInfo = new() { {key, newValue} };
+            }
+            else
+            {
+                if(!addInfo.TryAdd(key, newValue))
+                {
+                    addInfo[key] = newValue;
+                }
+            }
+            AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(addInfo);
+        }
+
+        private Dictionary<string, string>? GetAddInfos()
+        {
+            if(AdditionalInfo != null && AdditionalInfo != "")
+            {
+                return System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(AdditionalInfo);
+            }
+            return null;
         }
 
         public override bool Sanitize()

@@ -1,0 +1,38 @@
+mutation newAppServer(
+  $name: String
+  $appId: Int
+  $ip: cidr
+  $ipEnd: cidr
+  $importSource: String
+  $customType: Int
+  ) {
+  insert_owner_network(objects: {
+    name: $name
+    owner_id: $appId
+    ip: $ip
+    ip_end: $ipEnd
+    import_source: $importSource
+    is_deleted: false
+    nw_type: 10
+    custom_type: $customType
+  }
+  on_conflict: {
+      constraint: owner_network_ip_unique
+      update_columns: 
+      [
+        name
+        owner_id
+        ip
+        ip_end
+        import_source
+        is_deleted
+        nw_type
+        custom_type
+      ]
+    }
+  ) {
+    returning {
+      newId: id
+    }
+  }
+}

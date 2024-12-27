@@ -1,7 +1,7 @@
 ﻿using Newtonsoft.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using FWO.GlobalConstants;
+using FWO.Basics;
 using FWO.Api.Data;
 using FWO.Mail;
 
@@ -29,8 +29,8 @@ namespace FWO.Config.Api.Data
 		[JsonProperty("welcomeMessage"), JsonPropertyName("welcomeMessage")]
 		public string WelcomeMessage { get; set; } = "";
 
-		//        [JsonProperty("maxMessages"), JsonPropertyName("maxMessages"), UserConfigData]
-		//        public int MaxMessages { get; set; } = 3;
+		[JsonProperty("maxMessages"), JsonPropertyName("maxMessages"), UserConfigData]
+		public int MaxMessages { get; set; } = 3;
 
 		[JsonProperty("elementsPerFetch"), JsonPropertyName("elementsPerFetch"), UserConfigData]
 		public int ElementsPerFetch { get; set; } = 100;
@@ -63,7 +63,7 @@ namespace FWO.Config.Api.Data
 		public int AutoDiscoverSleepTime { get; set; } = 24;
 
 		[JsonProperty("autoDiscoverStartAt"), JsonPropertyName("autoDiscoverStartAt")]
-		public DateTime AutoDiscoverStartAt { get; set; } = new DateTime();
+		public DateTime AutoDiscoverStartAt { get; set; } = new();
 
 		[JsonProperty("fwApiElementsPerFetch"), JsonPropertyName("fwApiElementsPerFetch")]
 		public int FwApiElementsPerFetch { get; set; } = 150;
@@ -87,7 +87,13 @@ namespace FWO.Config.Api.Data
 		public int ImpChangeNotifySleepTime { get; set; } = 60;
 
 		[JsonProperty("impChangeNotifyStartAt"), JsonPropertyName("impChangeNotifyStartAt")]
-		public DateTime ImpChangeNotifyStartAt { get; set; } = new DateTime();
+		public DateTime ImpChangeNotifyStartAt { get; set; } = new();
+
+		[JsonProperty("externalRequestSleepTime"), JsonPropertyName("externalRequestSleepTime")]
+		public int ExternalRequestSleepTime { get; set; } = 60;
+
+		[JsonProperty("externalRequestStartAt"), JsonPropertyName("externalRequestStartAt")]
+		public DateTime ExternalRequestStartAt { get; set; } = new();
 
 
 		[JsonProperty("recertificationPeriod"), JsonPropertyName("recertificationPeriod")]
@@ -193,7 +199,7 @@ namespace FWO.Config.Api.Data
 		public int MessageViewTime { get; set; } = 7;
 
 		[JsonProperty("dailyCheckStartAt"), JsonPropertyName("dailyCheckStartAt")]
-		public DateTime DailyCheckStartAt { get; set; } = new DateTime();
+		public DateTime DailyCheckStartAt { get; set; } = new();
 
 		[JsonProperty("maxImportDuration"), JsonPropertyName("maxImportDuration")]
 		public int MaxImportDuration { get; set; } = 4;
@@ -244,7 +250,10 @@ namespace FWO.Config.Api.Data
 		[JsonProperty("reducedProtocolSet"), JsonPropertyName("reducedProtocolSet")]
 		public bool ReducedProtocolSet { get; set; } = true;
 
-		[JsonProperty("importAppDataPath"), JsonPropertyName("importAppDataPath")]
+        [JsonProperty("createApplicationZones"), JsonPropertyName("createApplicationZones")]
+        public bool CreateAppZones { get; set; }
+
+        [JsonProperty("importAppDataPath"), JsonPropertyName("importAppDataPath")]
 		public string ImportAppDataPath { get; set; } = "";
 
 		[JsonProperty("importAppDataSleepTime"), JsonPropertyName("importAppDataSleepTime")]
@@ -253,6 +262,15 @@ namespace FWO.Config.Api.Data
 		[JsonProperty("importAppDataStartAt"), JsonPropertyName("importAppDataStartAt")]
 		public DateTime ImportAppDataStartAt { get; set; } = new DateTime();
 
+		[JsonProperty("ownerLdapId"), JsonPropertyName("ownerLdapId")]
+		public int OwnerLdapId { get; set; } = GlobalConst.kLdapInternalId;
+
+		[JsonProperty("manageOwnerLdapGroups"), JsonPropertyName("manageOwnerLdapGroups")]
+		public bool ManageOwnerLdapGroups { get; set; } = true;
+
+		[JsonProperty("ownerLdapGroupNames"), JsonPropertyName("ownerLdapGroupNames")]
+		public string OwnerLdapGroupNames { get; set; } = "";
+        
 		[JsonProperty("importSubnetDataPath"), JsonPropertyName("importSubnetDataPath")]
 		public string ImportSubnetDataPath { get; set; } = "";
 
@@ -278,7 +296,7 @@ namespace FWO.Config.Api.Data
 		public string ModReqInterfaceName { get; set; } = "";
 
 		[JsonProperty("modReqEmailReceiver"), JsonPropertyName("modReqEmailReceiver")]
-		public EmailRecipientOption ModReqEmailReceiver { get; set; } = EmailRecipientOption.OwnerGroupOnly;
+		public EmailRecipientOption ModReqEmailReceiver { get; set; } = EmailRecipientOption.FallbackToMainResponsibleIfOwnerGroupEmpty;
 
 		[JsonProperty("modReqEmailRequesterInCc"), JsonPropertyName("modReqEmailRequesterInCc")]
 		public bool ModReqEmailRequesterInCc { get; set; } = true;
@@ -295,9 +313,26 @@ namespace FWO.Config.Api.Data
 		[JsonProperty("modReqTaskTitle"), JsonPropertyName("modReqTaskTitle")]
 		public string ModReqTaskTitle { get; set; } = "";
 
+		[JsonProperty("modRolloutActive"), JsonPropertyName("modRolloutActive")]
+		public bool ModRolloutActive { get; set; } = true;
+
+		[JsonProperty("modRolloutResolveServiceGroups"), JsonPropertyName("modRolloutResolveServiceGroups")]
+		public bool ModRolloutResolveServiceGroups { get; set; } = true;
+
+		[JsonProperty("modRolloutBundleTasks"), JsonPropertyName("modRolloutBundleTasks")]
+		public bool ModRolloutBundleTasks { get; set; } = false;
+
+		[JsonProperty("modRolloutErrorText"), JsonPropertyName("modRolloutErrorText")]
+		public string ModRolloutErrorText { get; set; } = "";
+
+		[JsonProperty("externalRequestWaitCycles"), JsonPropertyName("externalRequestWaitCycles")]
+		public int ExternalRequestWaitCycles { get; set; } = 0;
 
 		[JsonProperty("extTicketSystems"), JsonPropertyName("extTicketSystems")]
 		public string ExtTicketSystems { get; set; } = "";
+
+		[JsonProperty("modExtraConfigs"), JsonPropertyName("modExtraConfigs")]
+		public string ModExtraConfigs { get; set; } = "";
 
 		public ConfigData(bool editable = false)
 		{

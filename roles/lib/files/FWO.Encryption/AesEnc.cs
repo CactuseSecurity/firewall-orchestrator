@@ -1,6 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
-using FWO.GlobalConstants;
+using FWO.Basics;
 
 namespace FWO.Encryption
 {

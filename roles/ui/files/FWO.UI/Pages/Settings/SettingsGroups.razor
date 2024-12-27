@@ -1,6 +1,6 @@
 ﻿@using BlazorTable
 @using System.Net
-@using FWO.GlobalConstants
+@using FWO.Basics
 @using FWO.Api.Data
 @using FWO.Api.Client
 @using FWO.Ui.Services
@@ -8,6 +8,7 @@
 @using FWO.Config.Api
 @using FWO.Middleware.RequestParameters
 @using RestSharp
+@using FWO.Services
 
 @page "/settings/groups"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
@@ -59,7 +60,7 @@
         <Column TableItem="UserGroup" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
         <Column TableItem="UserGroup" Title="@(userConfig.GetText("owner_group"))" Field="@(x => x.OwnerGroup)" Sortable="true" Filterable="true">
             <Template>
-                @(GlobalFunc.ShowBool(context.OwnerGroup))
+                @(context.OwnerGroup.ShowAsHtml())
             </Template>
         </Column>
         <Column TableItem="UserGroup" Title="@(userConfig.GetText("users"))" Field="@(x => x.Users)" Sortable="false" Filterable="false">
@@ -82,15 +83,15 @@
                     </div>
                 </div>
                 <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5315"))">
-                    <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("owner_group")):</label>
+                    <label for="cbx_owner_group" class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("owner_group")):</label>
                     <div class="col-sm-2">
                         @if (AddGroupMode)
                         {
-                            <input type="checkbox" @bind="actGroup.OwnerGroup">
+                            <input id="cbx_owner_group" type="checkbox" @bind="actGroup.OwnerGroup">
                         }
                         else
                         {
-                            @(GlobalFunc.ShowBool(actGroup.OwnerGroup))
+                            @(actGroup.OwnerGroup.ShowAsHtml())
                         }
                     </div>
                 </div>

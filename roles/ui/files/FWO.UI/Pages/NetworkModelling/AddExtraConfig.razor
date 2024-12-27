@@ -1,0 +1,97 @@
+﻿@using FWO.Config.Api
+@using FWO.Services
+@using System.Text.Json
+
+@attribute [Authorize(Roles = $"{Roles.Modeller}, {Roles.Admin}, {Roles.Auditor}")]
+
+@inject ApiConnection apiConnection
+@inject UserConfig userConfig
+
+@if(ConnectionHandler != null)
+{
+    <PopUp Title="@(userConfig.GetText("extra_params"))" Size=PopupSize.Small Show="@Display" OnClose="Cancel">
+        <Body>
+            @if(Display)
+            {
+                <div class="col-sm-6">
+                    <Dropdown ElementType="string" @bind-SelectedElement="ExtraConfig.ExtraConfigType" Elements="AvailableExtraConfigTypes" Nullable="false">
+                        <ElementTemplate Context="conf">
+                            @conf
+                        </ElementTemplate>
+                    </Dropdown>
+                </div>
+                <textarea rows="2" type="text" class="col-sm-12 mt-2" data-toggle="@("tooltip")"
+                    title="@(userConfig.PureLine("H5638"))" @bind="ExtraConfig.ExtraConfigText" />
+            }
+        </Body>
+        <Footer>
+            <div class="btn-group">
+                <AuthorizeView Roles="@Roles.Modeller">
+                    <Authorized>
+                        <button type="button" class="btn btn-sm btn-danger" @onclick="Save">@(userConfig.GetText("add"))</button>
+                    </Authorized>
+                    <NotAuthorized>
+                        <button type="button" class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("add"))</button>
+                    </NotAuthorized> 
+                </AuthorizeView>
+                <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
+            </div>
+        </Footer>
+    </PopUp>
+}
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    [Parameter]
+    public bool Display { get; set; } = false;
+
+    [Parameter]
+    public EventCallback<bool> DisplayChanged { get; set; }
+
+    [Parameter]
+    public ModellingConnectionHandler? ConnectionHandler { get; set; }
+
+    [Parameter]
+    public EventCallback<ModellingConnectionHandler> ConnectionHandlerChanged { get; set; }
+
+    [Parameter]
+    public List<string> AvailableExtraConfigTypes { get; set; } = [];
+
+
+    private ModellingExtraConfig ExtraConfig { get; set; } = new();
+
+    protected override void OnParametersSet()
+    {
+        if(Display && AvailableExtraConfigTypes.Count > 0)
+        {
+            ExtraConfig.ExtraConfigType = AvailableExtraConfigTypes.First();
+        }
+    }
+
+    private void Cancel()
+    {
+        Close();
+    }
+
+    private async Task Save()
+    {
+        if (ExtraConfig.Sanitize())
+        {
+            DisplayMessageInUi(null, userConfig.GetText("save"), userConfig.GetText("U0001"), true);
+        }
+        if(ConnectionHandler != null && ConnectionHandler.SaveExtraConfig(ExtraConfig))
+        {
+            await ConnectionHandlerChanged.InvokeAsync(ConnectionHandler);
+            Close();
+        }
+    }
+
+    private void Close()
+    {
+        Display = false;
+        DisplayChanged.InvokeAsync(Display);
+    }
+}

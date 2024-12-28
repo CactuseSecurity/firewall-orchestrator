@@ -25,7 +25,7 @@ namespace FWO.Test
         static readonly ReportBase currentReport = SimulatedReport.DetailedReport();
 
         [Test]
-        public async Task RSBComponentRenders()
+        public void ObjShouldBeVisibleAfterNavigation()
         {
             // Arrange
             Services.AddSingleton(userConfig);

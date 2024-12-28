@@ -189,6 +189,38 @@ CREATE MATERIALIZED VIEW view_rule_with_owner AS
 
 GRANT SELECT ON TABLE view_rule_with_owner TO GROUP secuadmins, reporters, configimporters;
 
+
+CREATE TABLE refresh_log (
+    id SERIAL PRIMARY KEY,
+    view_name TEXT NOT NULL,
+    refreshed_at TIMESTAMPTZ DEFAULT now(),
+    status TEXT
+);
+
+CREATE OR REPLACE FUNCTION refresh_view_rule_with_owner()
+RETURNS SETOF refresh_log AS $$
+DECLARE
+    status_message TEXT;
+BEGIN
+    -- Attempt to refresh the materialized view
+    BEGIN
+        REFRESH MATERIALIZED VIEW view_rule_with_owner;
+        status_message := 'Materialized view refreshed successfully';
+    EXCEPTION
+        WHEN OTHERS THEN
+            status_message := format('Failed to refresh view: %s', SQLERRM);
+    END;
+
+    -- Log the operation
+    INSERT INTO refresh_log (view_name, status)
+    VALUES ('view_rule_with_owner', status_message);
+
+    -- Return the log entry
+    RETURN QUERY SELECT * FROM refresh_log WHERE view_name = 'view_rule_with_owner' ORDER BY refreshed_at DESC LIMIT 1;
+END;
+$$ LANGUAGE plpgsql VOLATILE;
+
+
 -- Create indexes on the materialized view
 CREATE INDEX IF NOT EXISTS idx_view_rule_with_owner_rule_id ON view_rule_with_owner (rule_id);
 CREATE INDEX IF NOT EXISTS idx_view_rule_with_owner_owner_id ON view_rule_with_owner (owner_id);

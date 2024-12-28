@@ -167,6 +167,7 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
 
         if clearManagementData:
             logger.info('this import run will reset the configuration of this management to "empty"')
+            config2import = importState.Config2import
         else:
             configObj = FwConfig()            
             if in_file is None: # if the host name is an URI, do not connect to an API but simply read the config from this URI

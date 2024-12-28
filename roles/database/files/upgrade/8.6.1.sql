@@ -75,7 +75,7 @@ DROP FUNCTION IF EXISTS owner_network_change_triggered ();
 DROP TRIGGER IF EXISTS owner_change ON owner CASCADE;
 DROP FUNCTION IF EXISTS owner_change_triggered ();
 
-CREATE TABLE refresh_log (
+CREATE TABLE IF NOT EXISTS refresh_log (
     id SERIAL PRIMARY KEY,
     view_name TEXT NOT NULL,
     refreshed_at TIMESTAMPTZ DEFAULT now(),

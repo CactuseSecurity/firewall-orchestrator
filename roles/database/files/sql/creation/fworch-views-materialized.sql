@@ -190,7 +190,7 @@ CREATE MATERIALIZED VIEW view_rule_with_owner AS
 GRANT SELECT ON TABLE view_rule_with_owner TO GROUP secuadmins, reporters, configimporters;
 
 
-CREATE TABLE refresh_log (
+CREATE TABLE IF NOT EXISTS refresh_log (
     id SERIAL PRIMARY KEY,
     view_name TEXT NOT NULL,
     refreshed_at TIMESTAMPTZ DEFAULT now(),

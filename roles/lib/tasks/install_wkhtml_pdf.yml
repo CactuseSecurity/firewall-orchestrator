@@ -52,4 +52,48 @@
 
   become: true
   environment: "{{ proxy_env }}"
-  
+
+# get google chrome for pdf generation
+- name: get last known good versions of chrome to download
+  uri:
+    url: https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions-with-downloads.json
+  register: chrome_versions
+
+- name: parse latest stable versions for chrome and headless shell
+  set_fact:
+    stable_chrome_versions: "{{ chrome_versions['json']['channels']['Stable']['downloads'] }}"
+    chrome_dest: "/usr/local/bin/Chrome/Linux-{{ chrome_versions['json']['channels']['Stable']['version'] }}"
+    headless_shell_dest: "/usr/local/bin/ChromeHeadlessShell/Linux-{{ chrome_versions['json']['channels']['Stable']['version'] }}"
+
+- block:
+  - name: install unzip
+    package:
+      name: unzip
+      state: present
+
+  - name: create chrome install path
+    file:
+      path: "{{ chrome_dest }}"
+      state: directory
+      mode: '0755'
+
+  - name: create chrome headless shell install path
+    file:
+      path: "{{ headless_shell_dest }}"
+      state: directory
+      mode: '0755'
+
+  - name: download google chrome and unpack
+    unarchive:
+      src: "{{ stable_chrome_versions['chrome'] | selectattr('platform', 'match', 'linux64') | map(attribute='url') | first }}"
+      dest: "{{ chrome_dest }}"
+      remote_src: yes
+
+  - name: download google chrome headless shell and unpack
+    unarchive:
+      src: "{{ stable_chrome_versions['chrome-headless-shell'] | selectattr('platform', 'match', 'linux64') | map(attribute='url') | first }}"
+      dest: "{{ headless_shell_dest }}"
+      remote_src: yes
+
+  become: true
+  environment: "{{ proxy_env }}"

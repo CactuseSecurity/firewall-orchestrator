@@ -15,8 +15,8 @@
 <Sidebar Collapsible="true" Resizeable="true" PositionLeft="false" @bind-Width="intWidth">
     <div class="p-3 mt-2">
         <h5 class="text-center">@(userConfig.GetText("objects"))</h5>
-        <AnchorNavToRSB @ref="anchorNavToRSB" TabSet="tabset" CollapseState="collapseInRSB" />
         <TabSet DarkMode="true" KeepPanelsAlive="true" @ref="tabset">
+        <AnchorNavToRSB @ref="anchorNavToRSB" TabSet="tabset" CollapseState="collapseInRSB" />
             <CascadingValue Value="collapseInRSB">
                 <CascadingValue Value="anchorNavToRSB">
                     @if(SelectedReportType.IsDeviceRelatedReport() && AllTabVisible)

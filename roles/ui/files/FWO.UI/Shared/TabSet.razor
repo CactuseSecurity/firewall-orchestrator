@@ -1,19 +1,12 @@
 ﻿@implements IDisposable
 
 <!-- Display the tab headers -->
-<ul class="nav nav-tabs  @(WholeWidth ? "nav-fill" : "") sticky-marker @(DarkMode ? "bg-transparent" : "")" style="@(DarkMode ? "--bs-nav-tabs-border-color: transparent;" : "")">
+<ul class="@GetNavClasses()">
     @foreach (Tab tab in Tabs)
     {
         <li class="nav-item">
-            <a href="" @onclick="() => SetActiveTab(tab)" @onclick:preventDefault class="nav-link @(DarkMode ? "text-white" : "text-dark")
-                @(ActiveTab == tab ? (DarkMode ? "bg-transparent active" : "active") : "")"
-               style="@(DarkMode ? (ActiveTab == tab ? "border-color: #0d6efd;  border-bottom-style: none;" : "border-color: #0d6efd; border-right-style:none; border-top-style:none; border-left-style: none;") : "")">
-
+            <a href="" @onclick="() => SetActiveTab(tab)" @onclick:preventDefault class="@GetTabLinkClasses(tab)">
                 @tab.Title
-                @*@if (Closeable)
-                    {
-                        <div class="ms-1 @(Icons.Close)"></div>
-                    }*@
             </a>
         </li>
     }
@@ -25,7 +18,6 @@
         @ChildContent
     </div>
 </CascadingValue>
-
 
 @code {
     [Parameter]
@@ -40,11 +32,44 @@
     [Parameter]
     public bool WholeWidth { get; set; } = true;
 
+    [Parameter]
+    public bool RsbStyle { get; set; } = false;
+
     public List<Tab> Tabs = new List<Tab>();
 
     public Tab? ActiveTab { get; private set; }
 
     private bool _isDisposed;
+
+    private string GetNavClasses()
+    {
+        var classes = new List<string> { "nav", "nav-tabs" };
+        if (WholeWidth) classes.Add("nav-fill");
+        classes.Add("sticky-marker");
+        if (DarkMode) classes.Add("nav-tabs-dark");
+        if (DarkMode) classes.Add("nav-tabs-border-transparent");
+        if (RsbStyle) classes.Add("nav-tabs-rsb");
+        return string.Join(" ", classes);
+    }
+
+    private string GetTabLinkClasses(Tab tab)
+    {
+        var classes = new List<string> { "nav-link" };
+        if (DarkMode) classes.Add("text-white");
+        else          classes.Add("text-dark");
+        if (ActiveTab == tab)
+        {
+            classes.Add("nav-link-active");
+            if (RsbStyle) classes.Add("nav-link-active-rsb");
+        }
+        else
+        {
+            classes.Add("nav-link-inactive");
+            if (RsbStyle) classes.Add("nav-link-inactive-rsb");
+        }
+        if (RsbStyle) classes.Add("nav-link-rsb-hover");
+        return string.Join(" ", classes);
+    }
 
     internal void AddTab(Tab tab, int pos = -1)
     {

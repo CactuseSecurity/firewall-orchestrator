@@ -15,7 +15,7 @@
 <Sidebar Collapsible="true" Resizeable="true" PositionLeft="false" @bind-Width="intWidth">
     <div class="p-3 mt-2">
         <h5 class="text-center">@(userConfig.GetText("objects"))</h5>
-        <TabSet DarkMode="true" KeepPanelsAlive="true" @ref="tabset">
+        <TabSet @ref="tabset" DarkMode="true" KeepPanelsAlive="true" RsbStyle="true">
         <AnchorNavToRSB @ref="anchorNavToRSB" TabSet="tabset" CollapseState="collapseInRSB" />
             <CascadingValue Value="collapseInRSB">
                 <CascadingValue Value="anchorNavToRSB">

@@ -244,7 +244,6 @@ namespace FWO.Report
             {
                 ExecutablePath = brw.GetExecutablePath(),
                 Headless = true
-                // Args = ["--no-sandbox"]
             });
 
             try

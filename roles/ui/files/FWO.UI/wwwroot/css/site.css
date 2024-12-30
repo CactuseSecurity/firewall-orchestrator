@@ -257,6 +257,10 @@ h5 {
     text-overflow: ellipsis;
 }
 
+.navbar-height {
+    height: 56px;
+}
+
 .navbar-brand {
     padding: 8px;
 }

@@ -1,0 +1,81 @@
+- block:
+
+  - name: install libs needed for nuget package PuppeteerSharp
+    package:
+      name: "{{ item }}"
+      state: present
+    loop:
+    - ca-certificates
+    - fonts-liberation
+    - libappindicator3-1
+    - libasound2
+    - libatk1.0-0
+    - libatk-bridge2.0-0
+    - libcups2
+    - libdbus-1-3
+    - libdrm2
+    - libgbm1
+    - libglib2.0-0
+    - libnspr4
+    - libnss3
+    - libx11-xcb1
+    - libxcomposite1
+    - libxcursor1
+    - libxdamage1
+    - libxext6
+    - libxfixes3
+    - libxi6
+    - libxrandr2
+    - libxrender1
+    - libxtst6
+    - lsb-release
+    - wget
+    - xdg-utils
+
+  become: true
+  environment: "{{ proxy_env }}"
+
+# get google chrome for pdf generation
+- name: get last known good versions of chrome to download
+  uri:
+    url: https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions-with-downloads.json
+  register: chrome_versions
+
+- name: parse latest stable versions for chrome and headless shell
+  set_fact:
+    stable_chrome_versions: "{{ chrome_versions['json']['channels']['Stable']['downloads'] }}"
+    chrome_dest: "/usr/local/bin/Chrome/Linux-{{ chrome_versions['json']['channels']['Stable']['version'] }}"
+    headless_shell_dest: "/usr/local/bin/ChromeHeadlessShell/Linux-{{ chrome_versions['json']['channels']['Stable']['version'] }}"
+
+- block:
+  - name: install unzip
+    package:
+      name: unzip
+      state: present
+
+  # - name: create chrome install path
+  #   file:
+  #     path: "{{ chrome_dest }}"
+  #     state: directory
+  #     mode: '0755'
+
+  - name: create chrome headless shell install path
+    file:
+      path: "{{ headless_shell_dest }}"
+      state: directory
+      mode: '0755'
+
+  # - name: download google chrome and unpack
+  #   unarchive:
+  #     src: "{{ stable_chrome_versions['chrome'] | selectattr('platform', 'match', 'linux64') | map(attribute='url') | first }}"
+  #     dest: "{{ chrome_dest }}"
+  #     remote_src: yes
+
+  - name: download google chrome headless shell and unpack
+    unarchive:
+      src: "{{ stable_chrome_versions['chrome-headless-shell'] | selectattr('platform', 'match', 'linux64') | map(attribute='url') | first }}"
+      dest: "{{ headless_shell_dest }}"
+      remote_src: yes
+
+  become: true
+  environment: "{{ proxy_env }}"

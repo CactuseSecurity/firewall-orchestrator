@@ -53,11 +53,11 @@
       name: unzip
       state: present
 
-  # - name: create chrome install path
-  #   file:
-  #     path: "{{ chrome_dest }}"
-  #     state: directory
-  #     mode: '0755'
+  - name: create chrome install path
+    file:
+      path: "{{ chrome_dest }}"
+      state: directory
+      mode: '0755'
 
   - name: create chrome headless shell install path
     file:
@@ -65,11 +65,11 @@
       state: directory
       mode: '0755'
 
-  # - name: download google chrome and unpack
-  #   unarchive:
-  #     src: "{{ stable_chrome_versions['chrome'] | selectattr('platform', 'match', 'linux64') | map(attribute='url') | first }}"
-  #     dest: "{{ chrome_dest }}"
-  #     remote_src: yes
+  - name: download google chrome and unpack
+    unarchive:
+      src: "{{ stable_chrome_versions['chrome'] | selectattr('platform', 'match', 'linux64') | map(attribute='url') | first }}"
+      dest: "{{ chrome_dest }}"
+      remote_src: yes
 
   - name: download google chrome headless shell and unpack
     unarchive:

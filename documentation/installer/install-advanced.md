@@ -75,6 +75,7 @@ Note that the following domains must be reachable through the proxy:
     postgresql.org
     microsoft.com     
     nuget.org
+    storage.googleapis.com
   
   Only for the initial setup of python venv
   

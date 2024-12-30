@@ -243,7 +243,8 @@ namespace FWO.Report
             using IBrowser? browser = await Puppeteer.LaunchAsync(new LaunchOptions
             {
                 ExecutablePath = brw.GetExecutablePath(),
-                Headless = true
+                Headless = true,
+                Args = ["--no-sandbox"]
             });
 
             try

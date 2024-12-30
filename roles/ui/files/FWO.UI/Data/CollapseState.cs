@@ -5,20 +5,20 @@ using System.Threading.Tasks;
 
 namespace FWO.Ui.Data
 {
-    public delegate void NotifyCollapse();
+    public delegate void NotifyCollapse(string? location); // optional location in rsb {tab}-{mgm/rule id}-{objtype} e.g. "report-m2-nwobj"
     public class CollapseState
     {
-        public event NotifyCollapse? OnCollapseAll;
-        public event NotifyCollapse? OnExpandAll;
+        public event NotifyCollapse? OnCollapse;
+        public event NotifyCollapse? OnExpand;
 
-        public void CollapseAll()
+        public void Collapse(string? location = null)
         {
-            OnCollapseAll?.Invoke();
+            OnCollapse?.Invoke(location);
         }
 
-        public void ExpandAll()
+        public void Expand(string? location = null)
         {
-            OnExpandAll?.Invoke();
+            OnExpand?.Invoke(location);
         }
     }
 }

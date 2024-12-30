@@ -117,7 +117,7 @@
                         case ReportType.NatRules:
                         case ReportType.AppRules:
                             <RulesReport Managements="currentReport.ReportData.ManagementData" SelectedReportType="actReportFilters.ReportType" RulesPerPage="rulesPerPage" 
-                                @bind-SelectedRules="selectedItemsRuleReportTable" />
+                                @bind-SelectedRules="selectedItemsRuleReportTable.FirstOrDefault(new Rule())" />
                             break;
 
                         case ReportType.Changes:

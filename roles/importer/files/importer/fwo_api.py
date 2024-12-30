@@ -66,7 +66,7 @@ def call(url, jwt, query, query_variables="", role="reporter", show_progress=Fal
             print(f"Other error occurred: {err}")
 
         if int(fwo_globals.debug_level) > 4:
-            logger.debug (showApiCallInfo(url, full_query, request_headers, type='debug'))
+            logger.debug (showApiCallInfo(url, full_query, request_headers, typ='debug'))
         if show_progress:
             pass
             # print('.', end='', flush=True)
@@ -160,8 +160,12 @@ def get_config_values(fwo_api_base_url, jwt, keyFilter='limit'):
         return None
 
 
+def removeSpecialCharsFromGraphqlQuery(queryString):
+    return queryString.replace('\n', ' ').replace('\r', ' ')
+
+
 def get_mgm_details(fwo_api_base_url, jwt, query_variables, debug_level=0):
-    mgm_query = """
+    mgm_query = removeSpecialCharsFromGraphqlQuery("""
         query getManagementDetails($mgmId: Int!) {
             management(where:{mgm_id:{_eq:$mgmId}} order_by: {mgm_name: asc}) {
                 id: mgm_id
@@ -207,7 +211,7 @@ def get_mgm_details(fwo_api_base_url, jwt, query_variables, debug_level=0):
                 }
             }  
         }
-    """
+    """)
     api_call_result = call(fwo_api_base_url, jwt, mgm_query, query_variables=query_variables, role='importer')
     if 'data' in api_call_result and 'management' in api_call_result['data'] and len(api_call_result['data']['management'])>=1:
         if not '://' in api_call_result['data']['management'][0]['hostname']:

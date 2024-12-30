@@ -204,7 +204,7 @@ def importFromFile(importState: ImportState, fileName: str = None, gateways: Lis
     config_changed_since_last_import = True
     
     # set file name in importState
-    if fileName == '': 
+    if fileName == '' or fileName is None: 
         # if the host name is an URI, do not connect to an API but simply read the config from this URI
         if stringIsUri(importState.MgmDetails.Hostname):
             importState.setImportFileName(importState.MgmDetails.Hostname)

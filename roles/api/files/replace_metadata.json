@@ -11098,6 +11098,28 @@
             },
             {
               "table": {
+                "name": "refresh_log",
+                "schema": "public"
+              },
+              "select_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "status",
+                      "view_name",
+                      "refreshed_at"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  },
+                  "comment": ""
+                }
+              ]
+            },
+            {
+              "table": {
                 "name": "report",
                 "schema": "public"
               },
@@ -27201,6 +27223,16 @@
               "function": {
                 "name": "recert_get_one_owner_one_mgm",
                 "schema": "public"
+              }
+            },
+            {
+              "function": {
+                "name": "refresh_view_rule_with_owner",
+                "schema": "public"
+              },
+              "configuration": {
+                "custom_root_fields": {},
+                "exposed_as": "query"
               }
             }
           ],

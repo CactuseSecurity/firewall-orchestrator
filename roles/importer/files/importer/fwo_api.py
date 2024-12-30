@@ -53,21 +53,24 @@ def call(url, jwt, query, query_variables="", role="reporter", show_progress=Fal
         try:
             r = session.post(url, data=json.dumps(full_query), timeout=int(fwo_api_http_import_timeout))
             r.raise_for_status()
-        except requests.exceptions.RequestException:
-            logger.error(showApiCallInfo(full_query, request_headers, typ='error') + ":\n" + str(traceback.format_exc()))
-            if r != None:
-                if r.status_code == 503:
-                    raise FwoApiServiceUnavailable("FWO API HTTP error 503 (FWO API died?)" )
-                if r.status_code == 502:
-                    raise FwoApiTimeout("FWO API HTTP error 502 (might have reached timeout of " + str(int(fwo_api_http_import_timeout)/60) + " minutes)" )
+        except requests.exceptions.HTTPError as http_err:
+            logger.error(showApiCallInfo(url, full_query, request_headers, type='error') + ":\n" + str(traceback.format_exc()))
+            print(f"HTTP error occurred: {http_err}")  
+            if http_err.errno == 503:
+                raise FwoApiServiceUnavailable("FWO API HTTP error 503 (FWO API died?)" )
+            if http_err.errno == 502:
+                raise FwoApiTimeout("FWO API HTTP error 502 (might have reached timeout of " + str(int(fwo_api_http_import_timeout)/60) + " minutes)" )
             else:
                 raise
-        if int(fwo_globals.debug_level) > 8:
-            logger.debug (showApiCallInfo(full_query, request_headers, typ='debug'))
+        except Exception as err:
+            print(f"Other error occurred: {err}")
+
+        if int(fwo_globals.debug_level) > 4:
+            logger.debug (showApiCallInfo(url, full_query, request_headers, type='debug'))
         if show_progress:
             pass
             # print('.', end='', flush=True)
-        if r != None:
+        if r is not None:
             return r.json()
         else:
             return None

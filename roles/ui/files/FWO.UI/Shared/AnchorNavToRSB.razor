@@ -1,10 +1,17 @@
 @using FWO.Basics
+@using System.Text.RegularExpressions
 @inject IJSRuntime JSRuntime
 @inject NavigationManager NavigationManager
+@inject UserConfig userConfig
+
 @implements IDisposable
+
 @code {
     [Parameter]
     public FWO.Ui.Shared.TabSet TabSet { get; set; } = default!;
+
+    [Parameter]
+    public FWO.Ui.Data.CollapseState CollapseState { get; set; } = default!;
 
     protected override void OnInitialized()
     {
@@ -14,7 +21,7 @@
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
-            await ScrollToFragment(GetIdFromURI());
+            await ScrollToFragment();
     }
 
     public void Dispose()
@@ -24,16 +31,17 @@
 
     private async void OnLocationChanged(object? sender, LocationChangedEventArgs e)
     {
-        await ScrollToFragment(GetIdFromURI());
+        await ScrollToFragment();
     }
 
     /// <returns>The html element id to an object in the right side bar.</returns>
     /// <summary>
     /// Expects the URI to contain link to rsb object in form of #goto-{obj-link}. Example URI: localhost/report#goto-report-m8-nwobj31473
     /// </summary>
-    private string GetIdFromURI()
+    private async Task<string> GetIdFromURI()
     {
-        var uri = new Uri(NavigationManager.Uri, UriKind.Absolute);
+        var currentUrl = await JSRuntime.InvokeAsync<string>("getCurrentUrl");
+        var uri = new Uri(currentUrl, UriKind.Absolute);
         var fragment = uri.Fragment;
         if (fragment.StartsWith("#goto-"))
         {
@@ -48,45 +56,43 @@
             return elementId.Substring(5);
         }
         return "";
+        //NOTE: cannot use NavigationManager.GetUri() since it does not reflect change made by JS (removing the fragment)
+        //      cannot remove fragment in URI with NavigationManager since it will result in a scroll to top
     }
 
-    private async Task ScrollToFragment(string elementId)
+    public async Task ScrollToFragment()
     {
+        string elementId = await GetIdFromURI();
+
         if (!string.IsNullOrEmpty(elementId))
         {
             var uri = new Uri(NavigationManager.Uri, UriKind.Absolute);
 
-            // check if current page is certification page
+            // need to check if recert page since tabs are different
             bool recertPage = uri.AbsolutePath == $"/{PageName.Certification}";
 
             if (elementId.StartsWith("all"))
-                TabSet?.SetActiveTab(0);
+                TabSet?.SetActiveTab(TabSet.Tabs.Where(t => t.Title == userConfig.GetText("all")).FirstOrDefault());
             else if (elementId.StartsWith("report"))
-                TabSet?.SetActiveTab(recertPage ? 0 : 1);
+                TabSet?.SetActiveTab(TabSet.Tabs.Where(t => t.Title == userConfig.GetText("report")).FirstOrDefault());
             else if (elementId.StartsWith("rule"))
-                TabSet?.SetActiveTab(recertPage ? 1 : 2);
+                TabSet?.SetActiveTab(TabSet.Tabs.Where(t => t.Title == userConfig.GetText("rule")).FirstOrDefault());
             else
                 return;
+
+            // remove chapternum from #goto-report-{reportId}-{type}{chapterNumber}x{id} in report html export
+            if (elementId.StartsWith("report"))
+                elementId = Regex.Replace(elementId, @"(nwobj|svc|user)\d+x(\d+)", "$1$2");
+
+            CollapseState.Expand(elementId);
             
             bool foundObj = await JSRuntime.InvokeAsync<bool>("scrollIntoRSBView", elementId);
 
             if (foundObj)
             {
                 // remove #goto-{obj-link} fragment from uri
-                UriBuilder ub = new(uri);
-                ub.Fragment = "";
-                NavigationManager.NavigateTo(ub.Uri.AbsoluteUri);
+                await JSRuntime.InvokeVoidAsync("removeUrlFragment");
             }
-        }
-    }
-
-    public async Task ScrollToFragmentIfMatch(string idPrefixMatch)
-    {
-        string elementId = GetIdFromURI();
-
-        if (elementId.StartsWith(idPrefixMatch))
-        {
-            await ScrollToFragment(elementId);
         }
     }
 }

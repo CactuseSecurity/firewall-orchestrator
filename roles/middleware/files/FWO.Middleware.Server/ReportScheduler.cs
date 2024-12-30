@@ -8,8 +8,8 @@ using FWO.Middleware.Server.Controllers;
 using FWO.Report;
 using FWO.Report.Filter;
 using System.Timers;
-using WkHtmlToPdfDotNet;
 using FWO.Config.File;
+using PuppeteerSharp.Media;
 using FWO.Services;
 
 namespace FWO.Middleware.Server
@@ -260,7 +260,7 @@ namespace FWO.Middleware.Server
             }
         }
 
-        private static void WriteReportFile(ReportBase report, List<FileFormat> fileFormats, ReportFile reportFile)
+        private static async Task WriteReportFile(ReportBase report, List<FileFormat> fileFormats, ReportFile reportFile)
         {
             reportFile.Json = report.ExportToJson();
             foreach (FileFormat format in fileFormats)
@@ -276,7 +276,7 @@ namespace FWO.Middleware.Server
                         break;
 
                     case GlobalConst.kPdf:
-                        reportFile.Pdf = Convert.ToBase64String(report.ToPdf(PaperKind.A4));
+                        reportFile.Pdf = await report.ToPdf(Report.PaperFormat.A4);
                         break;
 
                     case GlobalConst.kJson:

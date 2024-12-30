@@ -16268,12 +16268,6 @@
                   }
                 },
                 {
-                  "name": "rule",
-                  "using": {
-                    "foreign_key_constraint_on": "layer_guard_rule"
-                  }
-                },
-                {
                   "name": "rulebase",
                   "using": {
                     "foreign_key_constraint_on": "rulebase_id"

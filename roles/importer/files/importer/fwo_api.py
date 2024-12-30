@@ -12,7 +12,7 @@ from fwo_log import getFwoLogger
 import fwo_globals
 import fwo_const
 from fwo_const import fwo_api_http_import_timeout
-from fwo_exception import FwoApiTServiceUnavailable, FwoApiTimeout, FwoApiLoginFailed, SecretDecryptionFailed
+from fwo_exception import FwoApiServiceUnavailable, FwoApiTimeout, FwoApiLoginFailed, SecretDecryptionFailed
 from fwo_base import writeAlertToLogFile
 from fwo_encrypt import decrypt
 
@@ -56,7 +56,7 @@ def call(url, jwt, query, query_variables="", role="reporter", show_progress=Fal
             logger.error(showApiCallInfo(url, full_query, request_headers, type='error') + ":\n" + str(traceback.format_exc()))
             print(f"HTTP error occurred: {http_err}")  
             if http_err.errno == 503:
-                raise FwoApiTServiceUnavailable("FWO API HTTP error 503 (FWO API died?)" )
+                raise FwoApiServiceUnavailable("FWO API HTTP error 503 (FWO API died?)" )
             if http_err.errno == 502:
                 raise FwoApiTimeout("FWO API HTTP error 502 (might have reached timeout of " + str(int(fwo_api_http_import_timeout)/60) + " minutes)" )
             else:

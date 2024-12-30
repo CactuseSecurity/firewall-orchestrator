@@ -1,7 +1,5 @@
 - block:
-
 # install libs needed for nuget package PuppeteerSharp
-
   - name: Define core packages
     set_fact:
       core_packages:
@@ -22,10 +20,10 @@
         - libxrandr2
         - xdg-utils
 
-  - name: Define platform-specific libraries
+  - name: Define platform-specific GLib library
     set_fact:
-      optional_packages: >
-        {% if ansible_facts['distribution'] == "Debian" and ansible_facts['distribution_version'] | int >= 12 %}
+      glib_library: >
+        {% if ansible_facts['distribution'] == "Debian" and ansible_facts['distribution_version'] == "13" %}
           libglib-2.0
         {% elif ansible_facts['distribution'] == "Ubuntu" and ansible_facts['distribution_version'] | float >= 24.04 %}
           glib2.0
@@ -54,13 +52,14 @@
 
   - name: Combine all packages
     set_fact:
-      platform_packages: "{{ core_packages + [sound_library, optional_packages] }}"
+      platform_packages: "{{ core_packages + [sound_library, glib_library] }}"
 
   - name: Install all combined dependencies
     apt:
       name: "{{ platform_packages }}"
       state: present
       update_cache: yes
+
 
   become: true
   environment: "{{ proxy_env }}"

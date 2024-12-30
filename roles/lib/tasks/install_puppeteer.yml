@@ -15,7 +15,7 @@
     - libdbus-1-3
     - libdrm2
     - libgbm1
-    - libglib2.0-0
+    #- libglib2.0-0
     - libnspr4
     - libnss3
     - libx11-xcb1

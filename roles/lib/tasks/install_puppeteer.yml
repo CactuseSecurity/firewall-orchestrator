@@ -1,70 +1,66 @@
 - block:
 
-  - name: install libs needed for nuget package PuppeteerSharp
----
-- name: Install PuppeteerSharp dependencies
-  hosts: all
-  become: yes
-  tasks:
-    - name: Define core packages
-      set_fact:
-        core_packages:
-          - ca-certificates
-          - fonts-liberation
-          - libappindicator3-1
-          - libatk-bridge2.0-0
-          - libatk1.0-0
-          - libcups2
-          - libdbus-1-3
-          - libdrm2
-          - libgbm1
-          - libnspr4
-          - libnss3
-          - libx11-xcb1
-          - libxcomposite1
-          - libxdamage1
-          - libxrandr2
-          - xdg-utils
+# install libs needed for nuget package PuppeteerSharp
 
-    - name: Define platform-specific libraries
-      set_fact:
-        optional_packages: >
-          {% if ansible_facts['distribution'] == "Debian" and ansible_facts['distribution_version'] | int >= 12 %}
-            libglib-2.0
-          {% elif ansible_facts['distribution'] == "Ubuntu" and ansible_facts['distribution_version'] | float >= 24.04 %}
-            glib2.0
-          {% else %}
-            libglib2.0-0
-          {% endif %}
+  - name: Define core packages
+    set_fact:
+      core_packages:
+        - ca-certificates
+        - fonts-liberation
+        - libappindicator3-1
+        - libatk-bridge2.0-0
+        - libatk1.0-0
+        - libcups2
+        - libdbus-1-3
+        - libdrm2
+        - libgbm1
+        - libnspr4
+        - libnss3
+        - libx11-xcb1
+        - libxcomposite1
+        - libxdamage1
+        - libxrandr2
+        - xdg-utils
 
-    - name: Define sound library based on OS version
-      set_fact:
-        sound_library: >
-          {% if (ansible_facts['distribution'] == 'Debian' and ansible_facts['distribution_version'] in ['11', '12']) or 
-                (ansible_facts['distribution'] == 'Ubuntu' and ansible_facts['distribution_version'] in ['20.04', '22.04']) %}
-            libasound2
-          {% else %}
-            libasound2t64
-          {% endif %}
+  - name: Define platform-specific libraries
+    set_fact:
+      optional_packages: >
+        {% if ansible_facts['distribution'] == "Debian" and ansible_facts['distribution_version'] | int >= 12 %}
+          libglib-2.0
+        {% elif ansible_facts['distribution'] == "Ubuntu" and ansible_facts['distribution_version'] | float >= 24.04 %}
+          glib2.0
+        {% else %}
+          libglib2.0-0
+        {% endif %}
 
-    - name: Install additional libraries for Debian 11
-      apt:
-        name:
-          - libpangocairo-1.0-0
-          - libpangoft2-1.0-0
-        state: present
-        update_cache: yes
-      when: ansible_facts['distribution'] == "Debian" and ansible_facts['distribution_version'] == "11"
+  - name: Define sound library based on OS version
+    set_fact:
+      sound_library: >
+        {% if (ansible_facts['distribution'] == 'Debian' and ansible_facts['distribution_version'] in ['11', '12']) or 
+              (ansible_facts['distribution'] == 'Ubuntu' and ansible_facts['distribution_version'] in ['20.04', '22.04']) %}
+          libasound2
+        {% else %}
+          libasound2t64
+        {% endif %}
 
-    - name: Combine all packages
-      set_fact:
-        platform_packages: "{{ core_packages + [sound_library, optional_packages] }}"
+  - name: Install additional libraries for Debian 11
+    apt:
+      name:
+        - libpangocairo-1.0-0
+        - libpangoft2-1.0-0
+      state: present
+      update_cache: yes
+    when: ansible_facts['distribution'] == "Debian" and ansible_facts['distribution_version'] == "11"
 
-    - name: Install all combined dependencies
-      apt:
-        name: "{{ platform_packages }}"
-        state: present
-        update_cache: yes
+  - name: Combine all packages
+    set_fact:
+      platform_packages: "{{ core_packages + [sound_library, optional_packages] }}"
+
+  - name: Install all combined dependencies
+    apt:
+      name: "{{ platform_packages }}"
+      state: present
+      update_cache: yes
 
   become: true
   environment: "{{ proxy_env }}"

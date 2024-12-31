@@ -115,7 +115,7 @@
       state: directory
       mode: '0755'
 
-  - name: Create /etc/apparmor.d/chrome-dev-builds with specified content
+  - name: Create /etc/apparmor.d/chrome-dev-builds for Chrome
     copy:
       dest: /etc/apparmor.d/chrome-dev-builds
       content: |

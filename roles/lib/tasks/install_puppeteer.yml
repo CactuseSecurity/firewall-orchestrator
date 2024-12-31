@@ -116,14 +116,16 @@
     copy:
       dest: /etc/apparmor.d/chrome-dev-builds
       content: |
-        abi <abi/4.0>
+        abi <abi/4.0>,
         include <tunables/global>
 
-        profile chrome /usr/local/bin/**/chrome flags=(unconfined) {
-          userns,
+        profile /usr/local/bin/**/chrome flags=(unconfined) {
+            userns,
 
-          # Site-specific additions and overrides. See local/README for details.
-          include if exists <local/chrome>
+            # Site-specific additions and overrides. See local/README for details.
+            # Include the local overrides only if the file exists.
+            # This is a common best practice to avoid parser errors.
+            include if exists <local/chrome>
         }
       mode: '0644'
     notify:

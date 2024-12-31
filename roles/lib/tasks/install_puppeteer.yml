@@ -106,9 +106,6 @@
       dest: "{{ headless_shell_dest }}"
       remote_src: yes
 
-  - name: add app armor for chrome
-    /etc/apparmor.d/chrome-dev-builds
-
   - name: Ensure the /etc/apparmor.d directory exists
     file:
       path: /etc/apparmor.d

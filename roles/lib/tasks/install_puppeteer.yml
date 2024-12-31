@@ -20,28 +20,49 @@
         - libxrandr2
         - xdg-utils
 
-  - name: Define platform-specific GLib library
+  - name: Define default platform-specific library names
     set_fact:
-      glib_library: >
-        {% if ansible_facts['distribution'] == "Debian" and ansible_facts['distribution_version'] == "13" %}
-          libglib-2.0
-        {% elif ansible_facts['distribution'] == "Ubuntu" and ansible_facts['distribution_version'] | float >= 24.04 %}
-          libglib2.0-0t64
-        {% else %}
-          libglib2.0-0
-        {% endif %}
+      glib_library: libglib2.0-0
+      sound_library: libasound2
 
-  - name: Define sound library based on OS version
+  - name: Define new library names based on newer OS versions
     set_fact:
-      sound_library: >
-        {% if (ansible_facts['distribution'] == 'Debian' and ansible_facts['distribution_version'] in ['11', '12']) or 
-              (ansible_facts['distribution'] == 'Ubuntu' and ansible_facts['distribution_version'] in ['20.04', '22.04']) %}
-          libasound2
-        {% else %}
-          libasound2t64
-        {% endif %}
+      glib_library: libglib2.0-0t64
+      sound_library: libasound2t64
+    when: >
+      ansible_facts['distribution'] == "Ubuntu" and ansible_facts['distribution_version'] | float >= 24.04
+      or ansible_facts['distribution'] == "Debian" and ansible_facts['distribution_version'] | float >= 13
+      or ansible_facts['distribution'] == "Debian" and ansible_lsb.codename == "trixie"
 
-  - name: Install additional libraries for Debian 11
+  - block: # only use apparmor for ubuntu 24.04ff
+    - name: Ensure the /etc/apparmor.d directory exists
+      file:
+        path: /etc/apparmor.d
+        state: directory
+        mode: '0755'
+
+    - name: Create /etc/apparmor.d/chrome-dev-builds for Chrome
+      copy:
+        dest: /etc/apparmor.d/chrome-dev-builds
+        content: |
+          abi <abi/{{ abi_version }}>,
+          include <tunables/global>
+
+          profile /usr/local/bin/**/chrome flags=(unconfined) {
+              userns,
+
+              # Site-specific additions and overrides. See local/README for details.
+              # Include the local overrides only if the file exists.
+              # This is a common best practice to avoid parser errors.
+              include if exists <local/chrome>
+          }
+        mode: '0644'
+      notify:
+        - Reload and Restart AppArmor
+
+    when: ansible_facts['distribution'] == "Ubuntu" and ansible_facts['distribution_version'] | float >= 24.04
+
+  - name: Install additional libraries for old Debian 11
     apt:
       name:
         - libpangocairo-1.0-0
@@ -59,7 +80,6 @@
       name: "{{ platform_packages }}"
       state: present
       update_cache: yes
-
 
   become: true
   environment: "{{ proxy_env }}"
@@ -105,31 +125,6 @@
       src: "{{ stable_chrome_versions['chrome-headless-shell'] | selectattr('platform', 'match', 'linux64') | map(attribute='url') | first }}"
       dest: "{{ headless_shell_dest }}"
       remote_src: yes
-
-  - name: Ensure the /etc/apparmor.d directory exists
-    file:
-      path: /etc/apparmor.d
-      state: directory
-      mode: '0755'
-
-  - name: Create /etc/apparmor.d/chrome-dev-builds for Chrome
-    copy:
-      dest: /etc/apparmor.d/chrome-dev-builds
-      content: |
-        abi <abi/4.0>,
-        include <tunables/global>
-
-        profile /usr/local/bin/**/chrome flags=(unconfined) {
-            userns,
-
-            # Site-specific additions and overrides. See local/README for details.
-            # Include the local overrides only if the file exists.
-            # This is a common best practice to avoid parser errors.
-            include if exists <local/chrome>
-        }
-      mode: '0644'
-    notify:
-      - Reload and Restart AppArmor
 
   become: true
   environment: "{{ proxy_env }}"

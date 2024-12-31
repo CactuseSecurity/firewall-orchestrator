@@ -129,6 +129,8 @@
           include if exists <local/chrome>
         }
       mode: '0644'
+    notify:
+      - Reload and Restart AppArmor
 
   become: true
   environment: "{{ proxy_env }}"

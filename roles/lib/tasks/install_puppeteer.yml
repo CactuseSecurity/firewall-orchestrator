@@ -106,5 +106,29 @@
       dest: "{{ headless_shell_dest }}"
       remote_src: yes
 
+  - name: add app armor for chrome
+    /etc/apparmor.d/chrome-dev-builds
+
+  - name: Ensure the /etc/apparmor.d directory exists
+    file:
+      path: /etc/apparmor.d
+      state: directory
+      mode: '0755'
+
+  - name: Create /etc/apparmor.d/chrome-dev-builds with specified content
+    copy:
+      dest: /etc/apparmor.d/chrome-dev-builds
+      content: |
+        abi <abi/4.0>
+        include <tunables/global>
+
+        profile chrome /usr/local/bin/**/chrome flags=(unconfined) {
+          userns,
+
+          # Site-specific additions and overrides. See local/README for details.
+          include if exists <local/chrome>
+        }
+      mode: '0644'
+
   become: true
   environment: "{{ proxy_env }}"

@@ -240,10 +240,14 @@ namespace FWO.Report
 
             InstalledBrowser? brw = await browserFetcher.DownloadAsync(BrowserTag.Stable);
 
+            var isGitHubActions = Environment.GetEnvironmentVariable("GITHUB_ACTIONS") == "true";
             using IBrowser? browser = await Puppeteer.LaunchAsync(new LaunchOptions
             {
                 ExecutablePath = brw.GetExecutablePath(),
-                Headless = true
+                Headless = true,
+                Args = isGitHubActions 
+                    ? new[] { "--no-sandbox", "--disable-setuid-sandbox" }
+                    : new string[0] // No additional arguments locally
             });
 
             try

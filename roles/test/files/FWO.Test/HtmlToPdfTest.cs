@@ -47,6 +47,7 @@ namespace FWO.Test
             {
                 ExecutablePath = brw.GetExecutablePath(),
                 Headless = true,
+                DumpIO = isGitHubActions? true : false, // Enables debug logs
                 Args = isGitHubActions?
                     new[] { "--no-sandbox", "--database=/tmp", "--disable-setuid-sandbox" }
                     : [] // No additional arguments locally

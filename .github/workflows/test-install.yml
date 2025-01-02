@@ -64,8 +64,18 @@ jobs:
           libxcomposite1 \
           libxrandr2
 
+    - name: Check pre-installed Chromium
+      run: which chromium-browser || which google-chrome
+
+    - name: Chromium version
+      run: chromium-browser --version          
+
     # - name: Set up Puppeteer
-    #   uses: googlechrome/puppeteer@v2
+    #   uses: googlechrome/puppeteer
+
+    - name: Check missing libraries
+      run: ldd $(which chromium-browser)
+  
 
     - name: do test install in case of merged pull request
       run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator && ansible-playbook -e force_install=true site.yml -K

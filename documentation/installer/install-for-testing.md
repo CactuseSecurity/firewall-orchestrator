@@ -59,7 +59,7 @@ ansible-playbook site.yml --tags integrationtests -K
 ## Running installation without any tests
 
 ```console
-ansible-playbook site.yml -K --skip-tags unittests,integration-tests
+ansible-playbook site.yml -K --skip-tags unittests,integrationtests
 ```
 
 ## Parameter "api_no_metadata" to prevent meta data import

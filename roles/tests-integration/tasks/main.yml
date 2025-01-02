@@ -1,5 +1,3 @@
-# this playbook sets up some sample devices with configs to play around with
-# postgresql-client
 
 - name: install packages necessary for testing
   package:
@@ -88,4 +86,3 @@
     state: absent
   become: true
   when: "'middlewareserver' in group_names"
-

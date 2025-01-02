@@ -243,7 +243,7 @@ namespace FWO.Report
             var isGitHubActions = Environment.GetEnvironmentVariable("GITHUB_ACTIONS") == "true";
             using IBrowser? browser = await Puppeteer.LaunchAsync(new LaunchOptions
             {
-                ExecutablePath = isGitHubActions? "/usr/bin/google-chrome" : brw.GetExecutablePath(),
+                ExecutablePath = isGitHubActions? "/usr/bin/chromium-browser" : brw.GetExecutablePath(),
                 Headless = true,
                 DumpIO = isGitHubActions? true : false, // Enables debug logs
                 Args = isGitHubActions?

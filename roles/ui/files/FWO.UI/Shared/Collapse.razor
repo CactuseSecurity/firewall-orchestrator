@@ -1,4 +1,4 @@
-﻿@using FWO.Ui.Data
+@using FWO.Ui.Data
 @using FWO.Basics
 @using FWO.Api.Data
 
@@ -22,7 +22,7 @@
 @code
 {
     [CascadingParameter]
-    public CollapseState collapseState { get; set; } = new CollapseState();
+    public CollapseState? CollapseState { get; set; }
 
     [Parameter]
     public string Title { get; set; } = "";
@@ -48,6 +48,9 @@
     [Parameter]
     public EventCallback<bool> OnOpen { get; set; }
 
+    [Parameter]
+    public string? RSBLocation { get; set; }
+
     private bool show;
     private bool invokeOnOpenAfterRender;
 
@@ -59,10 +62,10 @@
             invokeOnOpenAfterRender = false;
             if (!StartToggled)
                 invokeOnOpenAfterRender = true;
-            if (collapseState != null)
+            if (CollapseState != null)
             {
-                collapseState.OnCollapseAll += ForceCollapse;
-                collapseState.OnExpandAll += ForceExpand;
+                CollapseState.OnCollapse += onCollapse;
+                CollapseState.OnExpand += onExpand;
             }
             StateHasChanged();
         }
@@ -92,9 +95,25 @@
             invokeOnOpenAfterRender = true;
     }
 
+    private void onCollapse(string? location)
+    {
+        if (RSBLocation == null || location != null && (location.StartsWith(RSBLocation) || RSBLocation.StartsWith(location)))
+            ForceCollapse();
+    }
+
+    private void onExpand(string? location)
+    {
+        if (RSBLocation == null || location != null && (location.StartsWith(RSBLocation) || RSBLocation.StartsWith(location)))
+            ForceExpand();
+    }
+
     void IDisposable.Dispose()
     {
-        if (collapseState != null)
-            collapseState.OnCollapseAll -= ForceCollapse;
+        if (CollapseState != null && RSBLocation != null)
+        {
+            CollapseState.OnExpand -= onExpand;
+            CollapseState.OnCollapse -= onCollapse;
+        }
+
     }
 }

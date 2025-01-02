@@ -103,10 +103,17 @@
 
 - hosts: all
   roles:
-    - { role: test, when: not installation_mode == 'uninstall' }
+    - { role: tests-integration, when: not installation_mode == 'uninstall' }
   tags:
     - test
-    - quicktest
+    - integrationtests
+
+- hosts: all
+  roles:
+    - { role: tests-unit, when: not installation_mode == 'uninstall' }
+  tags:
+    - test
+    - unittests
 
 - hosts: all
   tasks:

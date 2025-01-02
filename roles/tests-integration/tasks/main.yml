@@ -69,9 +69,9 @@
   import_tasks: test-api.yml
   when: "'apiserver' in group_names"
   
-- name: csharp testing
-  import_tasks: test-csharp.yml
-  when: "'frontends' in group_names"
+# - name: csharp testing
+#   import_tasks: test-csharp.yml
+#   when: "'frontends' in group_names"
 
 - name: imorter testing
   import_tasks: test-importer.yml

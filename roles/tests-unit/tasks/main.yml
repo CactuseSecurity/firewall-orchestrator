@@ -1,0 +1,28 @@
+- block:
+
+  - name: copy test files to frontend target
+    copy:
+      src: FWO.Test
+      dest: "{{ test_dir }}/csharp"
+      owner: "{{ fworch_user }}"
+      group: "{{ fworch_group }}"
+    become: true
+
+  - name: csharp tests
+    command: dotnet test
+    args:
+      chdir: "{{ csharp_test_start_dir }}"
+    become: true
+    become_user: "{{ fworch_user }}"
+    register: csharp_tests
+    ignore_errors: false
+    environment: "{{ proxy_env }}"
+
+  - name: show csharp test results in case of errors
+    debug:
+      var: csharp_tests
+    when: csharp_tests.rc != 0
+
+  when: "'frontends' in group_names"
+  # run only on once (on frontends)
+  

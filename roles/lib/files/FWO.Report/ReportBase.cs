@@ -4,10 +4,9 @@ using FWO.Api.Data;
 using FWO.Report.Filter;
 using FWO.Config.Api;
 using System.Text;
-using PuppeteerSharp.Media;
-using PuppeteerSharp;
 using System.Reflection;
-using System.IO;
+using PuppeteerSharp;
+using PuppeteerSharp.Media;
 using PuppeteerSharp.BrowserData;
 
 namespace FWO.Report
@@ -240,11 +239,14 @@ namespace FWO.Report
 
             InstalledBrowser? brw = await browserFetcher.DownloadAsync(BrowserTag.Stable);
 
+            var isGitHubActions = Environment.GetEnvironmentVariable("GITHUB_ACTIONS") == "true";
             using IBrowser? browser = await Puppeteer.LaunchAsync(new LaunchOptions
             {
-                ExecutablePath = brw.GetExecutablePath(),
+                ExecutablePath = isGitHubActions? "/usr/bin/chromium-browser" : brw.GetExecutablePath(),
                 Headless = true,
-                Args = ["--no-sandbox"]
+                Args = isGitHubActions?
+                    new[] { "--no-sandbox", "--database=/tmp", "--disable-setuid-sandbox" }
+                    : new string[0] // No additional arguments locally
             });
 
             try

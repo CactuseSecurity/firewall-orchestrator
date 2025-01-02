@@ -4,10 +4,9 @@ using FWO.Api.Data;
 using FWO.Report.Filter;
 using FWO.Config.Api;
 using System.Text;
-using PuppeteerSharp.Media;
-using PuppeteerSharp;
 using System.Reflection;
-using System.IO;
+using PuppeteerSharp;
+using PuppeteerSharp.Media;
 using PuppeteerSharp.BrowserData;
 
 namespace FWO.Report

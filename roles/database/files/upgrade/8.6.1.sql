@@ -70,6 +70,7 @@ $$ LANGUAGE plpgsql;
 --     EXECUTE PROCEDURE owner_network_change_triggered ();
 
 DROP FUNCTION IF EXISTS recert_refresh_per_owner(INTEGER);
+DROP FUNCTION IF EXISTS refresh_view_rule_with_owner();
 DROP TRIGGER IF EXISTS owner_network_change ON owner_network CASCADE;
 DROP FUNCTION IF EXISTS owner_network_change_triggered ();
 DROP TRIGGER IF EXISTS owner_change ON owner CASCADE;

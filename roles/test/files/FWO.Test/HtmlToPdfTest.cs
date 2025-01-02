@@ -48,7 +48,7 @@ namespace FWO.Test
                 ExecutablePath = brw.GetExecutablePath(),
                 Headless = true,
                 Args = isGitHubActions
-                    ? new[] { "--no-sandbox", "--disable-setuid-sandbox" }
+                    ? new[] { "--no-sandbox", "--database" }
                     : [] // No additional arguments locally
             });
 

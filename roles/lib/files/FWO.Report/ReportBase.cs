@@ -246,7 +246,7 @@ namespace FWO.Report
                 ExecutablePath = brw.GetExecutablePath(),
                 Headless = true,
                 Args = isGitHubActions 
-                    ? new[] { "--no-sandbox", "--database" }
+                    ? new[] { "--no-sandbox", "--database=/tmp/crashpad" }
                     : new string[0] // No additional arguments locally
             });
 

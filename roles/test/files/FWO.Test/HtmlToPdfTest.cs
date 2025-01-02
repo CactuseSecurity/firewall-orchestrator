@@ -48,7 +48,7 @@ namespace FWO.Test
                 ExecutablePath = brw.GetExecutablePath(),
                 Headless = true,
                 Args = isGitHubActions
-                    ? new[] { "--no-sandbox", "--database" }
+                    ? new[] { "--no-sandbox", "--database=/tmp/crashpad" }
                     : [] // No additional arguments locally
             });
 

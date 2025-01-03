@@ -21,7 +21,7 @@ namespace FWO.Services
             ActionHandler = actionHandler;
         }
 
-        public async Task<List<WfTicket>> FetchTickets(StateMatrix stateMatrix, List<int> ownerIds, bool allStates = false, bool ignoreOwners = false)
+        public async Task<List<WfTicket>> FetchTickets(StateMatrix stateMatrix, List<int> ownerIds, bool allStates = false, bool ignoreOwners = false, bool fullTickets = false)
         {
             List<WfTicket> tickets = [];
             try
@@ -31,14 +31,17 @@ namespace FWO.Services
                 int toState = allStates ? 999 : stateMatrix.LowestEndState;
 
                 var Variables = new { fromState, toState };
-                tickets = await ApiConnection.SendQueryAsync<List<WfTicket>>(RequestQueries.getTickets, Variables);
-                if(UserConfig.ReqOwnerBased && ! ignoreOwners)
+                tickets = await ApiConnection.SendQueryAsync<List<WfTicket>>(fullTickets ? RequestQueries.getFullTickets : RequestQueries.getTickets, Variables);
+                if(UserConfig.ReqOwnerBased && !ignoreOwners)
                 {
                     tickets = FilterWrongOwnersOut(tickets, ownerIds);
                 }
-                foreach (var ticket in tickets)
+                if(fullTickets)
                 {
-                    ticket.UpdateCidrsInTaskElements();
+                    foreach (var ticket in tickets)
+                    {
+                        ticket.UpdateCidrsInTaskElements();
+                    }
                 }
             }
             catch (Exception exception)
@@ -46,6 +49,24 @@ namespace FWO.Services
                 DisplayMessageInUi(exception, UserConfig.GetText("fetch_requests"), "", true);
             }
             return tickets;
+        }
+
+        public async Task<WfTicket?> FetchTicket(long ticketId, List<int> ownerIds, bool ignoreOwners = false)
+        {
+            WfTicket? ticket = null;
+            try
+            {
+                ticket = await GetTicket(ticketId);
+                if(UserConfig.ReqOwnerBased && !ignoreOwners)
+                {
+                    ticket = FilterWrongOwnersOut([ticket], ownerIds).FirstOrDefault();
+                }
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, UserConfig.GetText("fetch_requests"), "", true);
+            }
+            return ticket;
         }
 
         private static List<WfTicket> FilterWrongOwnersOut(List<WfTicket> ticketsIn, List<int> ownerIds)

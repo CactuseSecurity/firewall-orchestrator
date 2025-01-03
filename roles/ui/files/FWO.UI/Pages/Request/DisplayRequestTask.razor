@@ -440,8 +440,11 @@
 <PromoteObject @bind-Promote="WfHandler.DisplayPromoteReqTaskMode" CloseParent="Close" CancelParent="Cancel" ObjectName="@WfHandler.ActReqTask.Title" Save="ConfPromoteReqTask" StatefulObject="WfHandler.ActReqTask" StateMatrix="WfHandler.ActStateMatrix" States="States"/>
 <PromoteObject @bind-Promote="WfHandler.DisplayApproveMode" CloseParent="Close" CancelParent="Cancel" ObjectName="@userConfig.GetText("approval")" WithComment="true" Save="ConfApproveTask" StatefulObject="WfHandler.ActApproval" StateMatrix="WfHandler.ActStateMatrix" States="States"/>
 <CommentObject @bind-Display="WfHandler.DisplayReqTaskCommentMode" ResetParent="InitComments" ObjectName="@WfHandler.ActReqTask.Title" Save="ConfAddComment"/>
-<DisplayPathAnalysis @bind-Display="WfHandler.DisplayPathAnalysisMode" ResetParent="ResetPathAnalysis" ReqTask="WfHandler.ActReqTask"/>
-<EditConnPopup @bind-Display="WfHandler.ActionHandler.DisplayConnectionMode" ConnHandler="WfHandler.ActionHandler.ConnHandler"/>
+<DisplayPathAnalysis @bind-Display="WfHandler.DisplayPathAnalysisMode" ReqTask="WfHandler.ActReqTask"/>
+@if(WfHandler.ActionHandler != null)
+{
+    <EditConnPopup @bind-Display="WfHandler.ActionHandler.DisplayConnectionMode" ConnHandler="WfHandler.ActionHandler.ConnHandler"/>
+}
 
 
 @code
@@ -563,7 +566,7 @@
 
     private async Task InitComments()
     {
-        allComments = WfHandler.ActReqTask.GetAllComments();
+        allComments = WfStatefulObject.DisplayAllComments(WfHandler.ActReqTask.Comments);
     }
 
     private async Task Close()
@@ -572,10 +575,11 @@
         await ResetParent();
     }
 
-    private async Task Cancel()
+    private bool Cancel()
     {
         WfHandler.DisplayPromoteReqTaskMode = false;
         WfHandler.DisplayApproveMode = false;
+        return true;
     }
 
     private async Task Reset()
@@ -596,13 +600,13 @@
         actTracking = trackings.FirstOrDefault(x => x.Id == WfHandler.ActReqTask.Tracking);
         actManagement = WfHandler.ActReqTask.ManagementId != null ? managements.FirstOrDefault(x => x.Id == WfHandler.ActReqTask.ManagementId) : managements.FirstOrDefault();
         actOwner = WfHandler.ActReqTask.Owners.FirstOrDefault()?.Owner;
-        StateHasChanged();
+        await InvokeAsync(StateHasChanged);
     }
 
-    private async Task ResetPathAnalysis()
+    @* private async Task ResetPathAnalysis()
     {
         WfHandler.DisplayPathAnalysisMode = false;
-    }
+    } *@
 
     private string DisplayDevices()
     {
@@ -616,7 +620,10 @@
 
     private async Task PerformAction(WfStateAction action)
     {
-        await WfHandler.ActionHandler.PerformAction(action, WfHandler.ActReqTask, WfObjectScopes.RequestTask, actOwner, WfHandler.ActReqTask.TicketId);
+        if(WfHandler.ActionHandler != null)
+        {
+            await WfHandler.ActionHandler.PerformAction(action, WfHandler.ActReqTask, WfObjectScopes.RequestTask, actOwner, WfHandler.ActReqTask.TicketId);
+        }
         await Reset();
     }
 

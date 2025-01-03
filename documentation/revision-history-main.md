@@ -475,3 +475,7 @@ Fixes network modelling
 - UI interface search pop-up transformed into filterable table
 
 Upgrade Hasura API to v2.45.1
+
+# 8.6.2 17.12.2024 MAIN
+Hotfix for network modelling:
+- fix: when visiting the library for the second time, app servers were missing due to uninitialized area data.

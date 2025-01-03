@@ -180,7 +180,7 @@
                         {
                             <button type="button" class="btn btn-sm btn-info" @onclick:preventDefault="true" @onclick="@( async () => { 
                                 recertCalcInProgress = true; 
-                                if (await recertRefresh.RecalcRecerts())
+                                if (await RecertRefresh.RecalcRecerts(apiConnection))
                                 {
                                     DisplayMessageInUi(null, userConfig.GetText("fetch_data"), "Error during recertification refresh", true);
                                 }
@@ -234,14 +234,12 @@ else
     private WfPriority? selectedPriority;
     private WfState? selectedState;
     private bool recertCalcInProgress = false;
-    private RecertRefresh recertRefresh;
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
             configData = await globalConfig.GetEditableConfig();
-            recertRefresh = new RecertRefresh(apiConnection);
             PrioList = System.Text.Json.JsonSerializer.Deserialize<List<WfPriority>>(userConfig.ReqPriorities) ?? throw new Exception("Config data could not be parsed.");
             recCheckParams = System.Text.Json.JsonSerializer.Deserialize<RecertCheckParams>(userConfig.RecCheckParams) ?? throw new Exception("Config data could not be parsed.");
             states = await apiConnection.SendQueryAsync<List<WfState>>(FWO.Api.Client.Queries.RequestQueries.getStates);

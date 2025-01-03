@@ -148,18 +148,6 @@ namespace FWO.Api.Data
             return "";
         }
 
-        public string GetAllComments()
-        {
-            string allComments = "";
-            foreach(var comment in Comments)
-            {
-                allComments += comment.Comment.CreationDate.ToShortDateString() + " "
-                            + comment.Comment.Creator.Name + ": "
-                            + comment.Comment.CommentText + "\n";
-            }
-            return allComments;
-        }
-
         public int GetRuleDeviceId()
         {
             foreach(var reqElem in Elements)

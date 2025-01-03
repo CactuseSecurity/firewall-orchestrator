@@ -10,7 +10,7 @@ namespace FWO.Services
     {
         private List<WfState> states = [];
         private readonly ApiConnection apiConnection;
-        private readonly WfHandler wfHandler = new ();
+        private readonly WfHandler wfHandler;
         private readonly bool useInMwServer = false;
         private string? ScopedUserTo { get; set; } = "";
         private string? ScopedUserCc { get; set; } = "";
@@ -112,7 +112,7 @@ namespace FWO.Services
                     await wfHandler.HandlePathAnalysisAction(action.ExternalParams);
                     break;
                 case nameof(StateActionTypes.ExternalCall):
-                    await CallExternal(action);
+                    // await CallExternal(action);
                     break;
                 case nameof(StateActionTypes.SendEmail):
                     await SendEmail(action, statefulObject, scope, owner, userGrpDn);
@@ -137,10 +137,10 @@ namespace FWO.Services
             }
         }
 
-        public async Task CallExternal(WfStateAction action)
-        {
-            // call external APIs with ExternalParams, e.g. for Compliance Check
-        }
+        // public async Task CallExternal(WfStateAction action)
+        // {
+        //     // call external APIs with ExternalParams, e.g. for Compliance Check
+        // }
 
         public async Task SendEmail(WfStateAction action, WfStatefulObject statefulObject, WfObjectScopes scope, FwoOwner? owner, string? userGrpDn = null)
         {
@@ -166,22 +166,22 @@ namespace FWO.Services
             }
         }
 
-        public async Task CreateConnection(WfStateAction action, FwoOwner? owner)
-        {
-            Log.WriteDebug("CreateConnection", "Perform Action");
-            // try
-            // {
-            //     ModellingConnection proposedInterface = new(){ IsInterface = true, IsRequested = true, TicketId = wfHandler.ActTicket.Id };
-            //     ModellingConnectionHandler ConnHandler = new (apiConnection, wfHandler.userConfig, wfHandler.ActReqTask.Owners.First().Owner, new(), proposedInterface, true, false, DefaultInit.DoNothing, false);
-            //     apiConnection.SetProperRole(user, [Roles.Modeller, Roles.Admin]);
-            //     await ConnHandler.CreateNewRequestedInterface();
-            //     apiConnection.SwitchBack());
-            // }
-            // catch(Exception exc)
-            // {
-            //     Log.WriteError("Create Connection", $"Could not create connection externally from Workflow: ", exc);
-            // }
-        }
+        // public async Task CreateConnection(WfStateAction action, FwoOwner? owner)
+        // {
+        //     Log.WriteDebug("CreateConnection", "Perform Action");
+        //     try
+        //     {
+        //         ModellingConnection proposedInterface = new(){ IsInterface = true, IsRequested = true, TicketId = wfHandler.ActTicket.Id };
+        //         ModellingConnectionHandler ConnHandler = new (apiConnection, wfHandler.userConfig, wfHandler.ActReqTask.Owners.First().Owner, new(), proposedInterface, true, false, DefaultInit.DoNothing, false);
+        //         apiConnection.SetProperRole(user, [Roles.Modeller, Roles.Admin]);
+        //         await ConnHandler.CreateNewRequestedInterface();
+        //         apiConnection.SwitchBack());
+        //     }
+        //     catch(Exception exc)
+        //     {
+        //         Log.WriteError("Create Connection", $"Could not create connection externally from Workflow: ", exc);
+        //     }
+        // }
 
         public async Task UpdateConnectionOwner(FwoOwner? owner, long? ticketId)
         {
@@ -190,7 +190,7 @@ namespace FWO.Services
             {
                 if(owner != null && ticketId != null) // todo: role check
                 {
-                    apiConnection.SetProperRole(wfHandler.AuthUser, [Roles.Modeller, Roles.Admin]);
+                    apiConnection.SetProperRole(wfHandler.AuthUser ?? throw new Exception("No Auth User"), [Roles.Modeller, Roles.Admin]);
                     List<ModellingConnection> Connections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnectionsByTicketId, new { ticketId });
                     foreach(var conn in Connections)
                     {
@@ -222,7 +222,7 @@ namespace FWO.Services
             {
                 if(owner != null && ticketId != null) // todo: role check
                 {
-                    apiConnection.SetProperRole(wfHandler.AuthUser, [Roles.Modeller, Roles.Admin]);
+                    apiConnection.SetProperRole(wfHandler.AuthUser ?? throw new Exception("No Auth User"), [Roles.Modeller, Roles.Admin]);
                     List<ModellingConnection> Connections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnectionsByTicketId, new { ticketId });
                     foreach(var conn in Connections)
                     {
@@ -260,7 +260,7 @@ namespace FWO.Services
             {
                 if(owner != null && ticketId != null)
                 {
-                    apiConnection.SetProperRole(wfHandler.AuthUser, [Roles.Modeller, Roles.Admin]);
+                    apiConnection.SetProperRole(wfHandler.AuthUser ?? throw new Exception("No Auth User"), [Roles.Modeller, Roles.Admin]);
                     List<ModellingConnection> Connections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnectionsByTicketId, new { ticketId });
                     foreach(var conn in Connections)
                     {
@@ -300,7 +300,7 @@ namespace FWO.Services
                 FwoOwner? owner = wfHandler.ActReqTask.Owners?.FirstOrDefault()?.Owner;
                 if(owner != null && wfHandler.ActReqTask.GetAddInfoIntValue(AdditionalInfoKeys.ConnId) != null)
                 {
-                    apiConnection.SetProperRole(wfHandler.AuthUser, [Roles.Modeller, Roles.Admin, Roles.Auditor]);
+                    apiConnection.SetProperRole(wfHandler.AuthUser ?? throw new Exception("No Auth User"), [Roles.Modeller, Roles.Admin, Roles.Auditor]);
                     List<ModellingConnection> Connections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnections, new { appId = owner?.Id });
                     ModellingConnection? conn = Connections.FirstOrDefault(c => c.Id == wfHandler.ActReqTask.GetAddInfoIntValue(AdditionalInfoKeys.ConnId));
                     if(conn != null)

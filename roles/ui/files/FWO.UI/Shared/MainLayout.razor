@@ -94,10 +94,6 @@
 
     private GraphQlApiSubscription<List<Alert>>? alertSubscription;
     private bool showAlert = false;
-    private bool messageDialogShow = false;
-    private string dialogTitle = "";
-    private string dialogMessage = "";
-    private string cssClass = "";
     private object errorLock = new object();
 
     private string reloginErrorMessage = "";
@@ -198,11 +194,8 @@
                 password = "";
                 return;
             }
-            else
-            {
-                // There was an error trying to authenticate the user. Probably invalid credentials
-                errorMessage = ( authResponse.Data != null ? userConfig.GetApiText(authResponse.Data) : "Middleware Api Error: " + authResponse.Content );
-            }
+            // There was an error trying to authenticate the user. Probably invalid credentials
+            errorMessage = ( authResponse.Data != null ? userConfig.GetApiText(authResponse.Data) : "Middleware Api Error: " + authResponse.Content );
         }
         catch (Exception ex)
         {
@@ -342,7 +335,7 @@
                 try
                 {
                     JwtReader jwtReader = new JwtReader(userConfig.User.Jwt);
-                    jwtReader.Validate();
+                    Task.Run(async () => await jwtReader.Validate());
                     role = jwtReader.GetRole();
                 }
                 catch (Exception) { }

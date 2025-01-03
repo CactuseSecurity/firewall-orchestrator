@@ -53,21 +53,24 @@ def call(url, jwt, query, query_variables="", role="reporter", show_progress=Fal
         try:
             r = session.post(url, data=json.dumps(full_query), timeout=int(fwo_api_http_import_timeout))
             r.raise_for_status()
-        except requests.exceptions.RequestException:
-            logger.error(showApiCallInfo(full_query, request_headers, typ='error') + ":\n" + str(traceback.format_exc()))
-            if r != None:
-                if r.status_code == 503:
-                    raise FwoApiServiceUnavailable("FWO API HTTP error 503 (FWO API died?)" )
-                if r.status_code == 502:
-                    raise FwoApiTimeout("FWO API HTTP error 502 (might have reached timeout of " + str(int(fwo_api_http_import_timeout)/60) + " minutes)" )
+        except requests.exceptions.HTTPError as http_err:
+            logger.error(showApiCallInfo(url, full_query, request_headers, type='error') + ":\n" + str(traceback.format_exc()))
+            print(f"HTTP error occurred: {http_err}")  
+            if http_err.errno == 503:
+                raise FwoApiServiceUnavailable("FWO API HTTP error 503 (FWO API died?)" )
+            if http_err.errno == 502:
+                raise FwoApiTimeout("FWO API HTTP error 502 (might have reached timeout of " + str(int(fwo_api_http_import_timeout)/60) + " minutes)" )
             else:
                 raise
-        if int(fwo_globals.debug_level) > 8:
-            logger.debug (showApiCallInfo(full_query, request_headers, typ='debug'))
+        except Exception as err:
+            print(f"Other error occurred: {err}")
+
+        if int(fwo_globals.debug_level) > 4:
+            logger.debug (showApiCallInfo(url, full_query, request_headers, typ='debug'))
         if show_progress:
             pass
             # print('.', end='', flush=True)
-        if r != None:
+        if r is not None:
             return r.json()
         else:
             return None
@@ -157,8 +160,12 @@ def get_config_values(fwo_api_base_url, jwt, keyFilter='limit'):
         return None
 
 
+def removeSpecialCharsFromGraphqlQuery(queryString):
+    return queryString.replace('\n', ' ').replace('\r', ' ')
+
+
 def get_mgm_details(fwo_api_base_url, jwt, query_variables, debug_level=0):
-    mgm_query = """
+    mgm_query = removeSpecialCharsFromGraphqlQuery("""
         query getManagementDetails($mgmId: Int!) {
             management(where:{mgm_id:{_eq:$mgmId}} order_by: {mgm_name: asc}) {
                 id: mgm_id
@@ -204,7 +211,7 @@ def get_mgm_details(fwo_api_base_url, jwt, query_variables, debug_level=0):
                 }
             }  
         }
-    """
+    """)
     api_call_result = call(fwo_api_base_url, jwt, mgm_query, query_variables=query_variables, role='importer')
     if 'data' in api_call_result and 'management' in api_call_result['data'] and len(api_call_result['data']['management'])>=1:
         if not '://' in api_call_result['data']['management'][0]['hostname']:

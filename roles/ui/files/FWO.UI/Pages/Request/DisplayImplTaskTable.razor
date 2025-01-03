@@ -213,7 +213,7 @@
 
     static List<string> validRoles = new (){ Roles.Implementer, Roles.FwAdmin };
     private bool DisplayInfo = false;
-    private List<KeyValuePair<string, bool>> deviceCheck = new ();
+    private List<KeyValuePair<string, bool>> deviceCheck = [];
 
 
     private async Task Reset()
@@ -300,8 +300,8 @@
 
     private async Task CheckImplTasks()
     {
-        List<Device> foundDevices = await (new PathAnalysis(apiConnection)).getAllDevices(WfHandler.ActReqTask.Elements);
-        deviceCheck = new List<KeyValuePair<string, bool>>();
+        List<Device> foundDevices = await PathAnalysis.GetAllDevices(WfHandler.ActReqTask.Elements, apiConnection);
+        deviceCheck = [];
         foreach(var dev in foundDevices)
         {
             deviceCheck.Add(new KeyValuePair<string, bool>(dev.Name ?? "", WfHandler.ActReqTask.ImplementationTasks.FirstOrDefault(x => x.DeviceId == dev.Id) != null));

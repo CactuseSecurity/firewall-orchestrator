@@ -298,7 +298,7 @@ class FwConfigImportRule(FwConfigImportBase):
                 }
             }
         """
-        # newRulebases = self.prepareNewRulebases(newRuleUids)
+        newRulebases = self.prepareNewRulebases(newRuleUids)
         newRules = self.prepareNewRules(newRuleUids)
 
         queryVariables = { 'rules': newRules }

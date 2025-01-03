@@ -113,8 +113,8 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
                 if importState.ImportVersion>8:
                     configNormalized.ConfigFormat = ConfFormat.NORMALIZED
 
-        time_get_config = int(time.time()) - importState.StartTime
-        logger.debug("import_management - getting config total duration " + str(int(time.time()) - importState.StartTime) + "s")
+            time_get_config = int(time.time()) - importState.StartTime
+            logger.debug("import_management - getting config total duration " + str(int(time.time()) - importState.StartTime) + "s")
 
         if config_changed_since_last_import or importState.ForceImport:
             try: # now we import the config via API chunk by chunk:
@@ -204,7 +204,7 @@ def importFromFile(importState: ImportState, fileName: str = None, gateways: Lis
     config_changed_since_last_import = True
     
     # set file name in importState
-    if fileName == '': 
+    if fileName == '' or fileName is None: 
         # if the host name is an URI, do not connect to an API but simply read the config from this URI
         if stringIsUri(importState.MgmDetails.Hostname):
             importState.setImportFileName(importState.MgmDetails.Hostname)

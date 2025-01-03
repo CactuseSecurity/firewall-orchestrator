@@ -45,6 +45,7 @@ class RuleTrack(CaseInsensitiveEnum):
     LOG = 'log'
     ALERT = 'alert'
 
+# Rule is the model for a normalized rule (containing no DB IDs)
 class Rule(BaseModel):
     rule_num: int
     rule_disabled: bool
@@ -122,6 +123,7 @@ class Rule(BaseModel):
 	"rulebase_id" Integer NOT NULL,
 """
 
+# Rule is the model for a rule to be imported into the DB (containing IDs)
 class RuleForImport(BaseModel):
     access_rule: bool = True
     action_id: int
@@ -156,11 +158,11 @@ class RuleForImport(BaseModel):
     rule_svc_refs: str
     rule_time: str
     rule_to_zone: Optional[str] = None
+    track_id: int
+    xlate_rule: Optional[int] = None
     rule_track: str
     rule_uid: str
     rulebase_id: int
-    track_id: int
-    xlate_rule: Optional[int] = None
 
     # def __init__(self, rule: Rule, mgmId: int, importId: int, access_rule: bool, nat_rule: bool, rulebase_id: str):
     #     self.rule_uid = rule.rule_uid

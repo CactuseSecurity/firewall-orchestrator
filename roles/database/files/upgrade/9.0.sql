@@ -304,6 +304,9 @@ AS $function$
                     END LOOP;
                 ELSE
                     -- need to deal with entries separately - split rule_installon field by '|'
+                    IF r_rule.rule_installon IS NULL THEN
+                        r_rule.rule_installon := 'Policy Targets';
+                    END IF;
                     SELECT ARRAY(
                         SELECT string_to_array(r_rule.rule_installon, '|')
                     ) INTO a_target_gateways;
@@ -434,7 +437,7 @@ AS $function$
             SELECT * FROM rule WHERE rulebase_id IS NULL
             -- how do we deal with this? we simply pick the smallest rulebase id for now
         LOOP
-            SELECT INTO i_new_rulebase_id id FROM rulebase LIMIT 1 ORDER BY id;
+            SELECT INTO i_new_rulebase_id id FROM rulebase ORDER BY id LIMIT 1;
             UPDATE rule SET rulebase_id=i_new_rulebase_id WHERE rule_id=r_rule.rule_id;
         END LOOP;
 

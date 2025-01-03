@@ -11098,6 +11098,28 @@
             },
             {
               "table": {
+                "name": "refresh_log",
+                "schema": "public"
+              },
+              "select_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "status",
+                      "view_name",
+                      "refreshed_at"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  },
+                  "comment": ""
+                }
+              ]
+            },
+            {
+              "table": {
                 "name": "report",
                 "schema": "public"
               },
@@ -13647,18 +13669,6 @@
                       "column": "from_rule_id",
                       "table": {
                         "name": "rulebase_link",
-                        "schema": "public"
-                      }
-                    }
-                  }
-                },
-                {
-                  "name": "rulebase_on_gateways",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "layer_guard_rule",
-                      "table": {
-                        "name": "rulebase_on_gateway",
                         "schema": "public"
                       }
                     }
@@ -16255,12 +16265,6 @@
                   "name": "device",
                   "using": {
                     "foreign_key_constraint_on": "dev_id"
-                  }
-                },
-                {
-                  "name": "rule",
-                  "using": {
-                    "foreign_key_constraint_on": "layer_guard_rule"
                   }
                 },
                 {
@@ -27201,6 +27205,16 @@
               "function": {
                 "name": "recert_get_one_owner_one_mgm",
                 "schema": "public"
+              }
+            },
+            {
+              "function": {
+                "name": "refresh_view_rule_with_owner",
+                "schema": "public"
+              },
+              "configuration": {
+                "custom_root_fields": {},
+                "exposed_as": "query"
               }
             }
           ],

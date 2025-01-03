@@ -18,11 +18,11 @@
                 <div class="btn-group">
                     @if (Phase == WorkflowPhases.request && context.StateId < WfHandler.MasterStateMatrix.LowestEndState && !WfHandler.ReadOnlyMode)
                     {
-                        <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditTicket(context)">@(ModellingHandlerBase.DisplayButton(userConfig, "edit", Icons.Edit))</button>
+                        <button type="button" class="btn btn-sm btn-warning" @onclick="async () => await EditTicket(context)">@(ModellingHandlerBase.DisplayButton(userConfig, "edit", Icons.Edit))</button>
                     }
                     else
                     {
-                        <button type="button" class="btn btn-sm btn-primary" @onclick="() => ShowTicketDetails(context)">@(ModellingHandlerBase.DisplayButton(userConfig, "details", Icons.Display))</button>
+                        <button type="button" class="btn btn-sm btn-primary" @onclick="async () => await ShowTicketDetails(context)">@(ModellingHandlerBase.DisplayButton(userConfig, "details", Icons.Display))</button>
                     }
                 </div>
             </Template>
@@ -97,18 +97,18 @@
         StateHasChanged();
     }
 
-    private void ShowTicketDetails(WfTicket ticket)
+    private async Task ShowTicketDetails(WfTicket ticket)
     {
-        WfHandler.SelectTicket(ticket, ObjAction.display);
+        await WfHandler.SelectTicket(ticket, ObjAction.display, true);
     }
 
-    private void AddTicket()
+    private async Task AddTicket()
     {
-        WfHandler.SelectTicket(new (){ Requester = userConfig.User }, ObjAction.add);
+        await WfHandler.SelectTicket(new (){ Requester = userConfig.User }, ObjAction.add);
     }
 
-    private void EditTicket(WfTicket ticket)
+    private async Task EditTicket(WfTicket ticket)
     {
-        WfHandler.SelectTicket(ticket, ObjAction.edit);
+        await WfHandler.SelectTicket(ticket, ObjAction.edit, true);
     }
 }

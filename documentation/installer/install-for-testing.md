@@ -39,20 +39,27 @@ Set dotnet installation mode to "debug" as follows (default = Release)
 ```console
 ansible-playbook/ site.yml -e "dotnet_mode=Debug" -K
 ```
-## Running integration tests after installation/upgrade
 
-To only run tests (for an existing installation) use tags as follows:
+## Running unit tests after installation/upgrade
+
+To only run unit tests (for an existing installation only to be used in comination with installation_mode=upgrade) use tags as follows:
 
 ```console
-ansible-playbook site.yml --tags test -K
+ansible-playbook site.yml --tags unittests -K
 ```
 
-## Running unit tests only
+## Running integration tests after installation/upgrade
 
-To only run tests (for an existing installation, can only be combined with installation_mode=upgrade) use tags as follows:
+To only run integration tests (for an existing installation only to be used in comination with installation_mode=upgrade) use tags as follows:
 
 ```console
-ansible-playbook site.yml --tags unittest -e "installation_mode=upgrade" -K
+ansible-playbook site.yml --tags integrationtests -K
+```
+
+## Running installation without any tests
+
+```console
+ansible-playbook site.yml -K --skip-tags unittests,integrationtests
 ```
 
 ## Parameter "api_no_metadata" to prevent meta data import

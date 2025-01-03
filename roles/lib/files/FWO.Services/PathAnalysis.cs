@@ -1,5 +1,4 @@
-﻿using FWO.Basics;
-using FWO.Api.Data;
+﻿using FWO.Api.Data;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Logging;
@@ -25,20 +24,11 @@ namespace FWO.Services
 
     public class PathAnalysis
     {
-        private List<WfState> states = new List<WfState>();
-        private ApiConnection apiConnection;
-
-        public PathAnalysis(ApiConnection apiConnection)
+        public static async Task<string> GetDeviceNamesForSinglePath(string source, string destination, ApiConnection apiConnection)
         {
-            this.apiConnection = apiConnection;
-        }
+            List<Device> deviceList = await AnalyzeSinglePath(source, destination, apiConnection);
 
-
-        public async Task<string> getDeviceNamesForSinglePath(string source, string destination)
-        {
-            List<Device> deviceList = await analyzeSinglePath(source, destination);
-
-            List<string> devNames = new List<string>();
+            List<string> devNames = [];
             foreach(Device dev in deviceList)
             {
                 devNames.Add(dev.Name ?? "");
@@ -46,16 +36,16 @@ namespace FWO.Services
             return string.Join(", ", devNames);
         }
 
-        public async Task<List<Device>> getAllDevices(List<WfReqElement> elements)
+        public static async Task<List<Device>> GetAllDevices(List<WfReqElement> elements, ApiConnection apiConnection)
         {
-            List<Device> DevList = new List<Device>();
+            List<Device> DevList = [];
 
             try
             {
-                foreach(var elemPair in analyseElements(elements))
+                foreach(var elemPair in AnalyseElements(elements))
                 {
-                    List<Device> actDevList = new List<Device>();
-                    actDevList = await analyzeSinglePath(elemPair.Key, elemPair.Value);
+                    List<Device> actDevList = [];
+                    actDevList = await AnalyzeSinglePath(elemPair.Key, elemPair.Value, apiConnection);
                     foreach(var dev in actDevList)
                     {
                         if(DevList.FirstOrDefault(x => x.Id == dev.Id) == null)
@@ -72,11 +62,11 @@ namespace FWO.Services
             return DevList;
         }
 
-        private List<KeyValuePair<string, string>> analyseElements(List<WfReqElement> elements)
+        private static List<KeyValuePair<string, string>> AnalyseElements(List<WfReqElement> elements)
         {
-            List<KeyValuePair<string, string>> elementPairs = new List<KeyValuePair<string, string>>();
-            List<string> sources = new List<string>();
-            List<string> destinations = new List<string>();
+            List<KeyValuePair<string, string>> elementPairs = [];
+            List<string> sources = [];
+            List<string> destinations = [];
 
             foreach(var elem in elements)
             {
@@ -100,16 +90,13 @@ namespace FWO.Services
             return elementPairs;
         }
 
-        private async Task<List<Device>> analyzeSinglePath(string source, string destination)
+        private static async Task<List<Device>> AnalyzeSinglePath(string source, string destination, ApiConnection apiConnection)
         {
-            IPAddressRange routingSource = new IPAddressRange();
-            IPAddressRange routingDestination = new IPAddressRange();
-            List<Device> DevList = new List<Device>();
-
+            List<Device> DevList = [];
             try
             {
-                routingSource = IPAddressRange.Parse(source);
-                routingDestination = IPAddressRange.Parse(destination);
+                IPAddressRange routingSource = IPAddressRange.Parse(source);
+                IPAddressRange routingDestination = IPAddressRange.Parse(destination);
                 // we only want cidr
                 try
                 {

@@ -231,22 +231,22 @@ namespace FWO.Report
                     break;
                 case PlatformID.Unix:
                     path = ChromeBinPathLinux;
-                    browserFetcher = new(new BrowserFetcherOptions { Path = path, Platform = Platform.Linux, Browser = SupportedBrowser.Chrome });
+                    browserFetcher = new(new BrowserFetcherOptions { Path = path, Platform = Platform.Linux, Browser = SupportedBrowser.Chrome });                    
                     break;
                 default:
                     return default;
             }
 
-            InstalledBrowser? brw = await browserFetcher.DownloadAsync(BrowserTag.Stable);
+            InstalledBrowser? brw = browserFetcher.GetInstalledBrowsers().FirstOrDefault() ?? await browserFetcher.DownloadAsync(BrowserTag.Latest);
 
             var isGitHubActions = Environment.GetEnvironmentVariable("GITHUB_ACTIONS") == "true";
             using IBrowser? browser = await Puppeteer.LaunchAsync(new LaunchOptions
             {
-                ExecutablePath = isGitHubActions? "/usr/bin/chromium-browser" : brw.GetExecutablePath(),
+                ExecutablePath = isGitHubActions ? "/usr/bin/chromium-browser" : brw.GetExecutablePath(),
                 Headless = true,
-                Args = isGitHubActions?
-                    new[] { "--no-sandbox", "--database=/tmp", "--disable-setuid-sandbox" }
-                    : new string[0] // No additional arguments locally
+                Args = isGitHubActions ?
+                    ["--no-sandbox", "--database=/tmp", "--disable-setuid-sandbox"]
+                    : [] // No additional arguments locally
             });
 
             try

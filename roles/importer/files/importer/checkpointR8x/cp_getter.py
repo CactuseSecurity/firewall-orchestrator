@@ -229,6 +229,119 @@ def get_layer_from_api_as_dict (api_v_url, sid, show_params_rules, layerUid=None
     return current_layer_json
 
 
+# neu von V
+def getRulebases (api_v_url, sid, show_params_rules, rulebaseUid=None, rulebaseName=None, access_type='access', nativeConfig={'rulebases':[],'nat_rulebases':[]}):
+    # access_type: access / nat
+    logger = getFwoLogger()
+
+    # wir lesen das aus der response
+    #if layerUid is not None:
+    #    current_layer_json = { "layerid": layerUid, "layerchunks": [] }
+    #elif layerName is not None:
+    #    current_layer_json = { "layername": layerName, "layerchunks": [] }
+    #else:
+    #    logger.exception('must provide either layerUid or layerName')
+
+    # get uid of rulebase
+    if rulebaseUid is not None:
+        show_params_rules.update({'uid': rulebaseUid})
+    elif rulebaseName is not None:
+        get_rulebase_uid_params = {
+            'name': rulebaseName,
+            'limit': 1,
+            'use-object-dictionary': False,
+            'details-level': 'uid',
+            'show-hits': False
+        }
+        try:
+            rulebaseForUid = cp_api_call(api_v_url, 'show-' + access_type + '-rulebase', get_rulebase_uid_params, sid)
+            # delete_v hier nochmal genau das return format ansehen
+            show_params_rules.update({'uid': rulebaseForUid['uid']})
+        except:
+            logger.error("could not find uid for rulebase name=" + rulebaseName)
+            return 1
+    else:
+        logger.error('must provide either rulebaseUid or rulebaseName')
+        return 1
+
+
+    current=0
+    total=current+1
+    while (current<total) :
+
+        show_params_rules['offset']=current
+        if rulebaseUid is not None:
+            rulebaseIdentifyerKey = 'uid'
+            rulebaseIdentifyerValue = rulebaseUid
+        elif rulebaseName is not None:
+            rulebaseIdentifyerKey = 'name'
+            rulebaseIdentifyerValue = rulebaseName
+        else:
+            logger.error('must provide either layerUid or layerName')
+            return 1
+        
+        if 'uid' in show_params_rules:
+            del show_params_rules['uid']
+        if 'name' in show_params_rules:
+            del show_params_rules['name']
+        show_params_rules.update({rulebaseIdentifyerKey: rulebaseIdentifyerValue})
+
+        # delte_v evtl ist das overkill mit namen und uid unsicher
+        # besser immer erst uid rauskriegen und nur damit arbeiten
+        # kann sein, dass auf mds manche policies gleich heißen aber verschieden sind?
+
+        # search all rulebases in nativeConfig and import if rulebase is not already fetched
+        fetchedRulebaseList = []
+        for fetchedRulebase in nativeConfig['rulebases'][rulebaseIdentifyerKey]:
+            fetchedRulebaseList.append(fetchedRulebase)
+        if rulebaseIdentifyerValue not in fetchedRulebaseList:
+            try:
+                rulebase = cp_api_call(api_v_url, 'show-' + access_type + '-rulebase', show_params_rules, sid)
+            except:
+                if layerUid is not None:
+                    logger.error("could not find layer uid=" + layerUid)
+                elif layerName is not None:
+                    logger.error("could not find layer name=" + layerName)
+                else:
+                    logger.error("strange exception here, neither uid nor name for layer known")
+                # todo: need to get FWO API jwt here somehow:
+                # create_data_issue(fwo_api_base_url, jwt, severity=2, description="failed to get show-access-rulebase  " + layername)
+                return 1
+
+        try:
+            for ruleField in ['source', 'destination', 'service', 'action', 'track', 'install-on', 'time']:
+                resolveRefListFromObjectDictionary(rulebase, ruleField, nativeConfig=nativeConfig, sid=sid, base_url=api_v_url)
+            nativeConfig['rulebases']['layerchunks'].append(rulebase)
+        except:
+            logger.error("error while getting field " + ruleField + " of layer " + layerName + ", params: " + str(show_params_rules))
+            return 1
+
+        if 'total' in rulebase:
+            total=rulebase['total']
+        else:
+            logger.error ( "rulebase does not contain total field, get_rulebase_chunk_from_api found garbled json " + str(current_layer_json))
+            logger.warning ( "sid: " + sid)
+            logger.warning ( "api_v_url: " + api_v_url)
+            logger.warning ( "access_type: " + access_type)
+            for key, value in show_params_rules.items():
+                logger.warning("show_params_rules " + key + ": " + str(value))
+            for key, value in rulebase.items():
+                logger.warning("rulebase " + key + ": " + str(value))
+            return None
+        
+        if total==0:
+            current=0
+        else:
+            if 'to' in rulebase:
+                current=rulebase['to']
+            else:
+                raise Exception ( "get_nat_rules_from_api - rulebase does not contain to field, get_rulebase_chunk_from_api found garbled json " + str(rulebase))
+
+    # adding inline and domain layers (if they exist)
+    add_inline_layers (current_layer_json, api_v_url, sid, show_params_rules, nativeConfig=nativeConfig)    
+
+    return current_layer_json
+
 def add_inline_layers (rulebase, api_v_url, sid, show_params_rules, access_type='access', collection_type='layer', nativeConfig={}):
 
     if 'layerchunks' in rulebase:

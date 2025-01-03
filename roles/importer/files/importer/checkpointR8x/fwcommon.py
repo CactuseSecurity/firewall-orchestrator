@@ -27,20 +27,12 @@ def getConfig(nativeConfig:json, importState:ImportState, managerSet:FwConfigMan
     logger = getFwoLogger()
     logger.debug ( "starting checkpointR8x/get_config" )
 
-    #managers = FwConfigManagerList()
-    #managers.ManagerSet.append(FwConfigManager(ManagerUid=importState.MgmDetails.Name, ManagerName=importState.MgmDetails.Name))
+    # get list of managers for import
+    managers = FwConfigManagerList()
+    managers.ManagerSet.append(FwConfigManager(ManagerUid=importState.MgmDetails.Name, ManagerName=importState.MgmDetails.Name))
 
-    ### Build Manager Structure
-    # given: manager url, secret und aus db supermanager, manager, gateways mit rulebase(s)
-    # find out about packages
-    showParams = {
-        'limit': importState.FwoConfig.ApiFetchSize,
-        'details-level': 'full'
-    }
-    packages = cp_getter.cp_api_call(importState.FwoConfig.FwoApiUri, 'show-package', importState.MgmDetails.Secret, showParams)
-
-    managerStructure = buildManagerStructure(packages)
-
+    for manager in managers:
+        
 
     policies = []
     if importState.MgmDetails.IsSuperManager:
@@ -59,6 +51,85 @@ def getConfig(nativeConfig:json, importState:ImportState, managerSet:FwConfigMan
                     if policy not in policies:
                         normalizedConfig.rules.append(getPolicy(policy))
                     normalizedConfig.ManagerSet[mgrSet].Configs.gateways[device].append(policy.name )
+
+# Old function to compare
+def get_config(nativeConfig: json, importState: ImportState) -> tuple[int, FwConfigManagerList]:
+    logger = getFwoLogger()
+    normalizedConfig = fwo_const.emptyNormalizedFwConfigJsonDict
+    logger.debug ( "starting checkpointR8x/get_config" )
+
+    if nativeConfig == {}:   # no native config was passed in, so getting it from FW-Manager
+        parsing_config_only = False
+    else:
+        parsing_config_only = True
+
+    if not parsing_config_only: # get config from cp fw mgr
+        starttime = int(time.time())
+
+        if 'users' not in nativeConfig:
+            nativeConfig.update({'users': {}})
+
+        domain, cpManagerApiBaseUrl = prepare_get_vars(importState.FullMgmDetails)
+
+        sid = login_cp(importState.FullMgmDetails, domain)
+
+        starttimeTemp = int(time.time())
+        logger.debug ( "checkpointR8x/get_config/getting objects ...")
+
+        result_get_objects = get_objects (nativeConfig, importState.FullMgmDetails, cpManagerApiBaseUrl, sid, force=importState.ForceImport, limit=str(importState.FwoConfig.ApiFetchSize), details_level=cp_const.details_level_objects, test_version='off')
+        if result_get_objects>0:
+            return result_get_objects
+        logger.debug ( "checkpointR8x/get_config/fetched objects in " + str(int(time.time()) - starttimeTemp) + "s")
+
+        starttimeTemp = int(time.time())
+        logger.debug ( "checkpointR8x/get_config/getting rules ...")
+        result_get_rules = getRules (nativeConfig, importState, sid, cpManagerApiBaseUrl)
+        if result_get_rules>0:
+            return result_get_rules
+        logger.debug ( "checkpointR8x/get_config/fetched rules in " + str(int(time.time()) - starttimeTemp) + "s")
+
+        duration = int(time.time()) - starttime
+        logger.debug ( "checkpointR8x/get_config - fetch duration: " + str(duration) + "s" )
+
+    cp_network.normalize_network_objects(nativeConfig, normalizedConfig, importState.ImportId, mgm_id=importState.MgmDetails.Id)
+    logger.info("completed normalizing network objects")
+    cp_service.normalize_service_objects(nativeConfig, normalizedConfig, importState.ImportId)
+    logger.info("completed normalizing service objects")
+
+    # TODO: re-add user import
+    # parse_users_from_rulebases(full_config, full_config['rulebases'], full_config['users'], config2import, current_import_id)
+    if importState.ImportVersion>8:
+        cp_rule.normalizeRulebases(nativeConfig, importState, normalizedConfig)
+    else:
+        normalizedConfig.update({'rules':  cp_rule.normalize_rulebases_top_level(nativeConfig, importState.ImportId, normalizedConfig) })
+    if not parsing_config_only: # get config from cp fw mgr
+        logout_cp("https://" + importState.MgmDetails.Hostname + ":" + str(importState.FullMgmDetails['port']) + "/web_api/", sid)
+    logger.info("completed normalizing rulebases")
+    
+    # put dicts into object of class FwConfigManager
+    normalizedConfig = FwConfigNormalized(action=ConfigAction.INSERT, 
+                            network_objects=FwConfigNormalizedController.convertListToDict(normalizedConfig['network_objects'], 'obj_uid'),
+                            service_objects=FwConfigNormalizedController.convertListToDict(normalizedConfig['service_objects'], 'svc_uid'),
+                            users=normalizedConfig['users'],
+                            zone_objects=normalizedConfig['zone_objects'],
+                            # decide between old (rules) and new (policies) format
+                            # rules=normalizedConfig['rules'] if len(normalizedConfig['rules'])>0 else normalizedConfig['policies'],    
+                            rules=normalizedConfig['policies'],
+                            gateways=normalizedConfig['gateways']
+                            )
+    manager = FwConfigManager(ManagerUid=calcManagerUidHash(importState.FullMgmDetails),
+                              ManagerName=importState.MgmDetails.Name,
+                              IsGlobal=False, 
+                              DependantManagerUids=[], 
+                              Configs=[normalizedConfig])
+    # listOfManagers = FwConfigManagerList()
+    listOfManagers = FwConfigManagerListController()
+
+    listOfManagers.addManager(manager)
+    logger.info("completed getting config")
+    
+    return 0, listOfManagers
+
 
 
 def buildManagerStructure(packages):
@@ -134,7 +205,7 @@ def getRules (nativeConfig: dict, importState: ImportState, sid: str, cpManagerA
 # 3) wenn local rulebases gleich heißen können müssen wir "layeruid" statt "layername" ermitteln
 # 4) die sections stecken in den "layerchunks", muss am ende rausgeparsed werden, "rulebase_links" wird damit aufgebohrt
 # 5) nocht nicht ganz verstanden warum bei global importState.FwoConfig.FwoApiUri und bei local cpManagerApiBaseUrl -> wegen domain namen
-# 6) gibt es noch einen anderen hinweis auf den Einsprung der local als rule["type"] == "place-holder"? Ist das wohldefiniert?
+# 6) gibt es noch einen anderen hinweis auf den Einsprung der local als rule["type"] == "place-holder"? Ist das wohldefiniert? Ist wohldefiniert
 # 7) was muss ich bei den domain Dicts im Return von CP beachten?
 
     logger = getFwoLogger()
@@ -152,20 +223,22 @@ def getRules (nativeConfig: dict, importState: ImportState, sid: str, cpManagerA
             show_params_rules.update({'name': device['global_rulebase_name']})
             # get global layer rulebase
             logger.debug ( "getting layer: " + show_params_rules['name'] )
-            current_layer_json = cp_getter.get_layer_from_api_as_dict (importState.FwoConfig.FwoApiUri, 
+            # delete_v funktion get_layer_from_api_as_dict hat folgenden input
+            # (api_v_url, sid, show_params_rules, layerUid=None, layerName=None, access_type='access', collection_type='rulebase', nativeConfig={}):
+            # importState.MgmDetails.Secret ist nicht die sid, kann einfach zur sid geändert werden? Wahrscheinlich nicht
+            current_global_rulebases = cp_getter.getRulebases (importState.FwoConfig.FwoApiUri, 
                                                                        importState.MgmDetails.Secret, 
                                                                        show_params_rules, 
                                                                        layername=device['global_rulebase_name'],
                                                                        nativeConfig=nativeConfig)
-            if current_layer_json is None:
+            if current_global_layer_json is None:
                 return 1
+
             # now also get domain rules 
             show_params_rules.update({'name': device['local_rulebase_name']})
-            # delete_v fehlt hier ein .update?
-            # current_layer_json = { "layerid": layerUid, "layerchunks": [] } oder
-            # current_layer_json = { "layername": layerName, "layerchunks": [] }
-            # wenns update ist wird hier entweder der globale durch den lokalen namen ersetzt oder man hat globale uid und lokalen namen
-            current_layer_json({'layername': device['local_rulebase_name']})
+            # delete_v nochmal die strukturen fürs gedächtnis
+            # nativeConfig['rulebases'] = Liste von current_global_layer_json = { "layername": layerName, "layerchunks": [] }
+            # current_global_layer_json = { "layername": layerName, "layerchunks": [], "rulebase_links": [] }
             logger.debug ( "getting domain rule layer: " + show_params_rules['name'] )
             domain_rules = cp_getter.get_layer_from_api_as_dict (cpManagerApiBaseUrl, 
                                                                  sid, 

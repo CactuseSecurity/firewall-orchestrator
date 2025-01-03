@@ -1,6 +1,6 @@
 ﻿using FWO.Api.Client;
 using FWO.Api.Client.Queries;
-using FWO.GlobalConstants;
+using FWO.Basics;
 using FWO.Api.Data;
 using FWO.Config.Api;
 using FWO.Config.Api.Data;
@@ -48,7 +48,7 @@ namespace FWO.Middleware.Server
         protected override void OnGlobalConfigChange(List<ConfigItem> config)
         {
             DailyCheckScheduleTimer.Stop();
-            globalConfig.SubscriptionPartialUpdateHandler(config.ToArray());
+            globalConfig.SubscriptionUpdateHandler(config.ToArray());
             DailyCheckTimer.Interval = DailyCheckSleepTime;
             StartScheduleTimer();
         }

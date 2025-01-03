@@ -1,7 +1,7 @@
 ﻿using FWO.Logging;
 using NetTools;
 using FWO.Api.Client;
-using FWO.GlobalConstants;
+using FWO.Basics;
 using FWO.Api.Data;
 using FWO.Config.Api;
 using System.Text.Json;
@@ -23,6 +23,7 @@ namespace FWO.Middleware.Server
 		private List<ModellingAppServer> existingAppServers = [];
 
 		private Ldap internalLdap = new();
+		private Ldap ownerGroupLdap = new();
 
 		private List<Ldap> connectedLdaps = [];
 		private string modellerRoleDn = "";
@@ -30,6 +31,8 @@ namespace FWO.Middleware.Server
 		private string implementerRoleDn = "";
 		private string reviewerRoleDn = "";
 		List<GroupGetReturnParameters> allGroups = [];
+		List<GroupGetReturnParameters> allInternalGroups = [];
+		List<GroupGetReturnParameters> allExternalGroups = [];
 
 
 		/// <summary>
@@ -68,11 +71,41 @@ namespace FWO.Middleware.Server
 		{
 			connectedLdaps = await apiConnection.SendQueryAsync<List<Ldap>>(AuthQueries.getLdapConnections);
 			internalLdap = connectedLdaps.FirstOrDefault(x => x.IsInternal() && x.HasGroupHandling()) ?? throw new Exception("No internal Ldap with group handling found.");
+			ownerGroupLdap = connectedLdaps.FirstOrDefault(x => x.Id == globalConfig.OwnerLdapId) ?? throw new Exception("Ldap with group handling not found.");
 			modellerRoleDn = $"cn=modeller,{internalLdap.RoleSearchPath}";
 			requesterRoleDn = $"cn=requester,{internalLdap.RoleSearchPath}";
 			implementerRoleDn = $"cn=implementer,{internalLdap.RoleSearchPath}";
 			reviewerRoleDn = $"cn=reviewer,{internalLdap.RoleSearchPath}";
-			allGroups = internalLdap.GetAllInternalGroups();
+			allInternalGroups = internalLdap.GetAllInternalGroups();
+			if (globalConfig.OwnerLdapId == GlobalConst.kLdapInternalId)
+			{
+				allGroups = allInternalGroups;	// TODO: check if ref is ok here
+			}
+			else
+			{
+				allGroups = ownerGroupLdap.GetAllGroupObjects(GetLdapSearchPattern(globalConfig.OwnerLdapGroupNames), 
+					(LdapType) connectedLdaps.FirstOrDefault(x => x.Id==globalConfig.OwnerLdapId).Type);
+			}
+		}
+
+		private static string GetLdapSearchPattern(string ownerGroupNamePattern)
+		{
+			// allGroups = ownerGroupLdap.GetAllGroupObjects(globalConfig.OwnerLdapGroupNames);
+			string searchPattern = ownerGroupNamePattern;
+			// assuming that we remove everything after the kAppIdPlaceholder
+			int index = ownerGroupNamePattern.IndexOf(GlobalConst.kAppIdPlaceholder);
+			if (index != -1)
+			{
+				// Keep text up to the substring
+				searchPattern = ownerGroupNamePattern.Substring(0, index + GlobalConst.kAppIdPlaceholder.Length);
+			}
+			// now remove CN= from pattern
+			index = searchPattern.IndexOf("=");
+			if (index != -1)
+			{
+				searchPattern = searchPattern.Substring(index + 1);
+			}
+			return searchPattern.Replace(GlobalConst.kAppIdPlaceholder, "*");
 		}
 
 		private async Task<bool> ImportSingleSource(string importfileName)
@@ -102,33 +135,43 @@ namespace FWO.Middleware.Server
 			int deleteCounter = 0;
 			int deleteFailCounter = 0;
 
-			existingApps = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
-			foreach (var incomingApp in importedApps)
+			if (!globalConfig.OwnerLdapGroupNames.Contains(GlobalConst.kAppIdPlaceholder))
 			{
-				if (await SaveApp(incomingApp))
+                Log.WriteWarning("Import App Data", $"Owner group pattern does not contain placeholder {GlobalConst.kAppIdPlaceholder}");
+                Log.WriteAlert($"source: \"{GlobalConst.kImportAppData}\"",
+                    $"userId: \"0\", title: \"Error encountered while trying to import App Data\", description: \"Owner group name does not contain placeholder {GlobalConst.kAppIdPlaceholder}\", alertCode: \"{AlertCode.ImportAppData}\"");
+			}
+			else
+			{
+				existingApps = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
+				foreach (var incomingApp in importedApps)
 				{
-					++successCounter;
-				}
-				else
-				{
-					++failCounter;
-				}
-				foreach (var existingApp in existingApps.Where(x => x.ImportSource == incomingApp.ImportSource && x.Active))
-				{
-					if (importedApps.FirstOrDefault(x => x.ExtAppId == existingApp.ExtAppId) == null)
+					if (await SaveApp(incomingApp))
 					{
-						if (await DeactivateApp(existingApp))
+						++successCounter;
+					}
+					else
+					{
+						++failCounter;
+					}
+					foreach (var existingApp in existingApps.Where(x => x.ImportSource == incomingApp.ImportSource && x.Active))
+					{
+						if (importedApps.FirstOrDefault(x => x.ExtAppId == existingApp.ExtAppId) == null)
 						{
-							++deleteCounter;
-						}
-						else
-						{
-							++deleteFailCounter;
+							if (await DeactivateApp(existingApp))
+							{
+								++deleteCounter;
+							}
+							else
+							{
+								++deleteFailCounter;
+							}
 						}
 					}
 				}
+				Log.WriteInfo("Import App Data", $"Imported from {importfileName}: {successCounter} apps, {failCounter} failed. Deactivated {deleteCounter} apps, {deleteFailCounter} failed.");
 			}
-			Log.WriteInfo("Import App Data", $"Imported from {importfileName}: {successCounter} apps, {failCounter} failed. Deactivated {deleteCounter} apps, {deleteFailCounter} failed.");
+
 		}
 
 		private async Task<bool> SaveApp(ModellingImportAppData incomingApp)
@@ -137,6 +180,7 @@ namespace FWO.Middleware.Server
 			{
 				string userGroupDn;
 				FwoOwner? existingApp = existingApps.FirstOrDefault(x => x.ExtAppId == incomingApp.ExtAppId);
+
 				if (existingApp == null)
 				{
 					userGroupDn = await NewApp(incomingApp);
@@ -145,7 +189,6 @@ namespace FWO.Middleware.Server
 				{
 					userGroupDn = await UpdateApp(incomingApp, existingApp);
 				}
-
 				// in order to store email addresses of users in the group in UiUser for email notification:
 				await AddAllGroupMembersToUiUser(userGroupDn);
 
@@ -161,18 +204,16 @@ namespace FWO.Middleware.Server
 		private async Task<string> NewApp(ModellingImportAppData incomingApp)
 		{
 			string userGroupDn;
-			if (true)
+			if (globalConfig.ManageOwnerLdapGroups)
 			{
 				userGroupDn = CreateUserGroup(incomingApp);
 			}
 			else
 			{
-				// alternatively: simply use an existing usergroup from external LDAP
-				// TODO: needs to be implemented
-				// userGroupDn = incomingApp.Name + "external-ldap-path";
+				userGroupDn = GetGroupName(incomingApp.ExtAppId);
 			}
 
-			var Variables = new
+			var variables = new
 			{
 				name = incomingApp.Name,
 				dn = incomingApp.MainUser ?? "",
@@ -182,7 +223,7 @@ namespace FWO.Middleware.Server
 				importSource = incomingApp.ImportSource,
 				commSvcPossible = false
 			};
-			ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(OwnerQueries.newOwner, Variables)).ReturnIds;
+			ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(OwnerQueries.newOwner, variables)).ReturnIds;
 			if (returnIds != null)
 			{
 				if(incomingApp.MainUser != null && incomingApp.MainUser != "")
@@ -200,26 +241,36 @@ namespace FWO.Middleware.Server
 
 		private async Task<string> UpdateApp(ModellingImportAppData incomingApp, FwoOwner existingApp)
 		{
-			string userGroupDn = existingApp.GroupDn;
+			string userGroupDn = GetGroupName(incomingApp.ExtAppId);
+
 			if (existingApp.GroupDn == null || existingApp.GroupDn == "")
 			{
-				GroupGetReturnParameters? groupWithSameName = allGroups.FirstOrDefault(x => new DistName(x.GroupDn).Group == GroupName(incomingApp.ExtAppId));
+				GroupGetReturnParameters? groupWithSameName = allGroups.FirstOrDefault(x => new DistName(x.GroupDn).Group == GetGroupName(incomingApp.ExtAppId));
 				if (groupWithSameName != null)
 				{
 					if (userGroupDn == "")
 					{
 						userGroupDn = groupWithSameName.GroupDn;
 					}
-					UpdateUserGroup(incomingApp, groupWithSameName.GroupDn);
+					if (globalConfig.ManageOwnerLdapGroups)
+					{
+						UpdateUserGroup(incomingApp, groupWithSameName.GroupDn);
+					}
 				}
 				else
 				{
-					userGroupDn = CreateUserGroup(incomingApp);
+					if (globalConfig.ManageOwnerLdapGroups)
+					{
+						userGroupDn = CreateUserGroup(incomingApp);
+					}
 				}
 			}
 			else
 			{
-				UpdateUserGroup(incomingApp, userGroupDn);
+				if (globalConfig.ManageOwnerLdapGroups)
+				{
+					UpdateUserGroup(incomingApp, userGroupDn);
+				}
 			}
 
 			var Variables = new
@@ -255,9 +306,9 @@ namespace FWO.Middleware.Server
 			return true;
 		}
 
-		private static string GroupName(string appName)
+		private string GetGroupName(string extAppIdString)
 		{
-			return GlobalConst.kModellerGroup + appName;
+			return globalConfig.OwnerLdapGroupNames.Replace(GlobalConst.kAppIdPlaceholder, extAppIdString);
 		}
 
 		/// <summary>
@@ -286,7 +337,7 @@ namespace FWO.Middleware.Server
 			// find the user in all connected ldaps
 			foreach (Ldap ldap in connectedLdaps)
 			{
-				if (!ldap.UserSearchPath.IsNullOrEmpty() && userDn.ToLower().Contains(ldap.UserSearchPath!.ToLower()))
+				if (!string.IsNullOrEmpty(ldap.UserSearchPath) && userDn.ToLower().Contains(ldap.UserSearchPath!.ToLower()))
 				{
 					LdapEntry? ldapUser = ldap.GetUserDetailsFromLdap(userDn);
 					
@@ -320,7 +371,7 @@ namespace FWO.Middleware.Server
 			string tenantName = "";
 
 			// can we derive the users tenant purely from its ldap?
-			if (!ldap.GlobalTenantName.IsNullOrEmpty() || ldap.TenantLevel > 0)
+			if (!string.IsNullOrEmpty(ldap.GlobalTenantName) || ldap.TenantLevel > 0)
 			{
 				if (ldap.TenantLevel > 0)
 				{
@@ -329,7 +380,7 @@ namespace FWO.Middleware.Server
 				}
 				else
 				{
-					if (!ldap.GlobalTenantName.IsNullOrEmpty())
+					if (!string.IsNullOrEmpty(ldap.GlobalTenantName))
 					{
 						tenantName = ldap.GlobalTenantName ?? "";
 					}
@@ -351,7 +402,7 @@ namespace FWO.Middleware.Server
 			if (incomingApp.Modellers != null && incomingApp.Modellers.Count > 0
 				|| incomingApp.ModellerGroups != null && incomingApp.ModellerGroups.Count > 0)
 			{
-				string groupName = GroupName(incomingApp.ExtAppId);
+				string groupName = GetGroupName(incomingApp.ExtAppId);
 				groupDn = internalLdap.AddGroup(groupName, true);
 				if (incomingApp.Modellers != null)
 				{
@@ -383,7 +434,7 @@ namespace FWO.Middleware.Server
 			{
 				foreach (var modeller in incomingApp.Modellers)
 				{
-					if (existingMembers.FirstOrDefault(x => x.ToLower() == modeller.ToLower()) == null)
+					if (existingMembers.FirstOrDefault(x => x.Equals(modeller, StringComparison.CurrentCultureIgnoreCase)) == null)
 					{
 						internalLdap.AddUserToEntry(modeller, groupDn);
 					}
@@ -393,7 +444,7 @@ namespace FWO.Middleware.Server
 			{
 				foreach (var modellerGrp in incomingApp.ModellerGroups)
 				{
-					if (existingMembers.FirstOrDefault(x => x.ToLower() == modellerGrp.ToLower()) == null)
+					if (existingMembers.FirstOrDefault(x => x.Equals(modellerGrp, StringComparison.CurrentCultureIgnoreCase)) == null)
 					{
 						internalLdap.AddUserToEntry(modellerGrp, groupDn);
 					}
@@ -401,8 +452,8 @@ namespace FWO.Middleware.Server
 			}
 			foreach (var member in existingMembers)
 			{
-				if ((incomingApp.Modellers == null || incomingApp.Modellers.FirstOrDefault(x => x.ToLower() == member.ToLower()) == null)
-					&& (incomingApp.ModellerGroups == null || incomingApp.ModellerGroups.FirstOrDefault(x => x.ToLower() == member.ToLower()) == null))
+				if ((incomingApp.Modellers == null || incomingApp.Modellers.FirstOrDefault(x => x.Equals(member, StringComparison.CurrentCultureIgnoreCase)) == null)
+					&& (incomingApp.ModellerGroups == null || incomingApp.ModellerGroups.FirstOrDefault(x => x.Equals(member, StringComparison.CurrentCultureIgnoreCase)) == null))
 				{
 					internalLdap.RemoveUserFromEntry(member, groupDn);
 				}
@@ -486,11 +537,24 @@ namespace FWO.Middleware.Server
 				{
 					if (existingAppServer.IsDeleted)
 					{
-						return await ReactivateAppServer(existingAppServer);
+						if (!await ReactivateAppServer(existingAppServer))
+						{	
+							return false;
+						}
+					}
+					if (!existingAppServer.Name.Equals(incomingAppServer.Name))
+					{
+						if (!await UpdateAppServerName(existingAppServer, buildAppServerName(incomingAppServer)))
+						{	
+							return false;
+						}
 					}
 					if (existingAppServer.CustomType == null)
 					{
-						return await UpdateAppServerType(existingAppServer);
+						if (!await UpdateAppServerType(existingAppServer))
+						{	
+							return false;
+						}
 					}
 				}
 				return true;
@@ -502,13 +566,36 @@ namespace FWO.Middleware.Server
 			}
 		}
 
+		private string buildAppServerName(ModellingImportAppServer appServer)
+		{
+			bool changed = false;
+			try
+			{
+				if (string.IsNullOrEmpty(appServer.Name))
+				{
+					Log.WriteWarning("Import App Server Data", $"Found empty (unresolvable) IP {appServer.Ip}");
+					ModellingNamingConvention NamingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(globalConfig.ModNamingConvention) ?? new();
+					return Sanitizer.SanitizeJsonFieldMand(NamingConvention.AppServerPrefix + DisplayBase.DisplayIp(appServer.Ip, appServer.IpEnd), ref changed);
+				}
+				else
+				{
+					return appServer.Name;
+				}
+			}
+			catch (Exception exc)
+			{
+				Log.WriteError("Import App Server Data", $"App Server name {appServer.Name} could not be set according to naming conventions.", exc);
+				return appServer.Name;
+			}
+		}
+
 		private async Task<bool> NewAppServer(ModellingImportAppServer incomingAppServer, int appID, string impSource)
 		{
 			try
 			{
 				var Variables = new
 				{
-					name = incomingAppServer.Name,
+					name = buildAppServerName(incomingAppServer),
 					appId = appID,
 					ip = IpAsCidr(incomingAppServer.Ip),
 					ipEnd = incomingAppServer.IpEnd != "" ? IpAsCidr(incomingAppServer.IpEnd) : IpAsCidr(incomingAppServer.Ip),
@@ -559,6 +646,30 @@ namespace FWO.Middleware.Server
 			{
 				Log.WriteError("Import App Server Data", $"Type of App Server {appServer.Name} could not be set.", exc);
 				return false;
+			}
+			return true;
+		}
+
+		private async Task<bool> UpdateAppServerName(ModellingAppServer appServer, string newName)
+		{
+			if (appServer.Name != newName)
+			{
+				try
+				{
+					var Variables = new
+					{
+						newName,
+						id = appServer.Id,
+					};
+					await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.setAppServerName, Variables);
+					Log.WriteWarning("Import App Server Data", $"Name of App Server changed from {appServer.Name} changed to {newName}");
+					
+				}
+				catch (Exception exc)
+				{
+					Log.WriteError("Import App Server Data", $"Name of App Server {appServer.Name} could not be set to {newName}.", exc);
+					return false;
+				}
 			}
 			return true;
 		}

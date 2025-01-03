@@ -8,6 +8,8 @@ with_hits = True
 # cannot fetch the Any object via API (<=1.7) at the moment
 # therefore we have a workaround adding the object manually (as svc and nw)
 any_obj_uid = "97aeb369-9aea-11d5-bd16-0090272ccb30"
+none_obj_uid = "97aeb36a-9aea-11d5-bd16-0090272ccb30"
+internet_obj_uid = 'f99b1488-7510-11e2-8668-87656188709b'
 # todo: read this from config (from API 1.6 on it is fetched)
 
 original_obj_uid = "85c0f50f-6d8a-4528-88ab-5fb11d8fe16c"
@@ -28,12 +30,14 @@ group_svc_obj_types = ['service-groups', 'application-site-categories', 'applica
 svc_obj_table_names = group_svc_obj_types + simple_svc_obj_types + [ 'CpmiAnyObject' ]
 # usr_obj_table_names : do not exist yet - not fetchable via API
 
-api_obj_types = nw_obj_table_names + svc_obj_table_names  # all obj table names to look at during import
+simple_user_obj_types = ['users']
+
+api_obj_types = nw_obj_table_names + svc_obj_table_names + simple_user_obj_types # all obj table names to look at during import
 
 obj_types_full_fetch_needed = ['groups', 'groups-with-exclusion', 'updatable-objects'] + group_svc_obj_types
 
 cp_specific_object_types = [    # used for fetching enrichment data via "get object" separately (no specific API call)
     'simple-gateway', 'simple-cluster', 'CpmiVsClusterNetobj', 'CpmiVsxClusterNetobj', 'CpmiVsxClusterMember', 'CpmiVsNetobj',
     'CpmiAnyObject', 'CpmiVsxNetobj', 'CpmiClusterMember', 'CpmiGatewayPlain', 'CpmiHostCkp', 'CpmiGatewayCluster', 'checkpoint-host',
-    'cluster-member', 'CpmiVoipSipDomain'
+    'cluster-member', 'CpmiVoipSipDomain', 'CpmiVoipMgcpDomain'
 ]

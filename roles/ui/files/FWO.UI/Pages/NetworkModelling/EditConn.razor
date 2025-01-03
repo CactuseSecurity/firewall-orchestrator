@@ -2,6 +2,8 @@
 @using FWO.Ui.Display
 @using FWO.Middleware.Client
 @using FWO.Ui.Pages.Request
+@using FWO.Services
+@using System.Text.Json
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
@@ -54,18 +56,57 @@
                         title="@(ConnHandler.ActConn.IsRequested ? userConfig.PureLine("U9012") : "")" @bind="ConnHandler.ActConn.Reason" />
                 }
             </div>
-            @if(ConnHandler.ActConn.IsInterface)
+            @if(availableExtraConfigs.Count > 0)
             {
-                <div class="form-group row mt-2 me-auto" data-toggle="tooltip" title="@(userConfig.PureLine("C9009"))">
-                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("publish")):</label>
-                    <div class="col-sm-1">
+                <div class="form-group row mt-2 me-auto" data-toggle="tooltip" title="@(userConfig.PureLine("H9081"))">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("extra_params")):</label>
+                    <div class="col-sm-9">
+                        <span class="text-secondary">
+                            @foreach(var intconf in ConnHandler.ActConn.ExtraConfigsFromInterface)
+                            {
+                                <label>@(intconf.Display())</label><br>
+                            }
+                        </span>
                         @if(ConnHandler.ReadOnly)
                         {
-                            <input type="checkbox" class="w-100" disabled @bind="ConnHandler.ActConn.IsPublished">
+                            foreach(var param in ConnHandler.ActConn.ExtraConfigs)
+                            {
+                                <label>@(param.Display())</label><br>
+                            }
                         }
                         else
                         {
-                            <input type="checkbox" class="w-100" @bind="ConnHandler.ActConn.IsPublished">
+                            foreach(var param in ConnHandler.ActConn.ExtraConfigs)
+                            {
+                                <div class="form-group row">
+                                    <div class="col-sm-1">
+                                        <label>@(param.ExtraConfigType)</label>
+                                    </div>
+                                    <input type="text" class="col-sm-9" data-toggle="@("tooltip")"
+                                        title="@(userConfig.PureLine("H5638"))" value="@param.ExtraConfigText" @onchange="@((e) => {ConnHandler.UpdateExtraConfig(e, param);})"/>
+                                    <button type="button" class="btn btn-sm btn-danger col-sm-1" @onclick="() =>
+                                        {ConnHandler.DeleteExtraConfig(param); ConnHandlerChanged.InvokeAsync(ConnHandler);}">
+                                        @(ConnHandler.DisplayButton("delete_extra_config", Icons.Delete))</button>
+                                </div>
+                            }
+                            <button type="button" class="btn btn-sm btn-success" @onclick="() => {ConnHandler.AddExtraConfig(); ConnHandlerChanged.InvokeAsync(ConnHandler);}">
+                                @(ConnHandler.DisplayButton("add_extra_config", Icons.Add))</button>
+                        }
+                    </div>
+                </div>
+            }
+            @if(ConnHandler.ActConn.IsInterface)
+            {
+                <div class="form-group row mt-2 me-auto" data-toggle="tooltip" title="@(userConfig.PureLine("C9009"))">
+                    <label for="cbx_publish" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("publish")):</label>
+                    <div class="col-sm-1">
+                        @if(ConnHandler.ReadOnly)
+                        {
+                            <input id="cbx_publish" type="checkbox" class="w-100" disabled @bind="ConnHandler.ActConn.IsPublished">
+                        }
+                        else
+                        {
+                            <input id="cbx_publish" type="checkbox" class="w-100" @bind="ConnHandler.ActConn.IsPublished">
                         }
                     </div>
                 </div>
@@ -78,11 +119,18 @@
                     {
                         @if((ConnHandler.ActConn.InterfaceIsRequested && ConnHandler.ActConn.SrcFromInterface) || (ConnHandler.ActConn.IsRequested && ConnHandler.ActConn.SourceFilled()))
                         {
-                            @((MarkupString)ModellingHandlerBase.DisplayReqInt(userConfig, ConnHandler.ActConn.TicketId, ConnHandler.ActConn.InterfaceIsRequested, ConnHandler.ActConn.GetBoolProperty(ConState.Rejected.ToString())))
+                            @((MarkupString)ModellingHandlerBase.DisplayReqInt(userConfig, ConnHandler.ActConn.TicketId, ConnHandler.ActConn.InterfaceIsRequested,
+                                ConnHandler.ActConn.GetBoolProperty(ConState.InterfaceRejected.ToString()) || ConnHandler.ActConn.GetBoolProperty(ConState.Rejected.ToString())))
                         }
                         else
                         {
-                            foreach(var src in ModellingNwGroupWrapper.Resolve(ConnHandler.ActConn.SourceNwGroups))
+                            foreach(var src in ModellingNwGroupWrapper.Resolve(ConnHandler.ActConn.SourceOtherGroups))
+                            {
+                                <div class="col-sm-10">
+                                    <div class="ml-13 border form-control form-control-sm bg-transparent">@((MarkupString)src.DisplayWithIcon(ConnHandler.ActConn.SrcFromInterface))</div>
+                                </div>
+                            }
+                            foreach(var src in ModellingNetworkAreaWrapper.Resolve(ConnHandler.ActConn.SourceAreas))
                             {
                                 <div class="col-sm-10">
                                     <div class="ml-13 border form-control form-control-sm bg-transparent">@((MarkupString)src.DisplayWithIcon(ConnHandler.ActConn.SrcFromInterface))</div>
@@ -124,7 +172,16 @@
                             ondragover="event.preventDefault();"
                             ondragstart="event.dataTransfer.setData('', event.target.id);"
                             @ondrop="HandleSrcDrop">
-                            <EditList ElementType="ModellingNwGroup" Elements="ModellingNwGroupWrapper.Resolve(ConnHandler.ActConn.SourceNwGroups)"
+                            <EditList ElementType="ModellingNetworkArea" Elements="ModellingNetworkAreaWrapper.Resolve(ConnHandler.ActConn.SourceAreas)"
+                                    ElementsToAdd="ConnHandler.SrcAreasToAdd" ElementsToDelete="ConnHandler.SrcAreasToDelete" StdLayout="false" 
+                                    AfterRemoveAction="() => {ConnHandler.CalcVisibility(); StateHasChanged(); return true;}">
+                                <Display>
+                                    <div class="row">
+                                        <div class="ml-13 col-sm-12 border form-control form-control-sm bg-transparent">@((MarkupString)context.DisplayWithIcon())</div>
+                                    </div>
+                                </Display>
+                            </EditList>
+                            <EditList ElementType="ModellingNwGroup" Elements="ModellingNwGroupWrapper.Resolve(ConnHandler.ActConn.SourceOtherGroups)"
                                     ElementsToAdd="ConnHandler.SrcNwGroupsToAdd" ElementsToDelete="ConnHandler.SrcNwGroupsToDelete" StdLayout="false" 
                                     AfterRemoveAction="() => {ConnHandler.CalcVisibility(); StateHasChanged(); return true;}">
                                 <Display>
@@ -160,7 +217,8 @@
                     {
                         @if(ConnHandler.ActConn.InterfaceIsRequested || ConnHandler.ActConn.IsRequested)
                         {
-                            @((MarkupString)ModellingHandlerBase.DisplayReqInt(userConfig, ConnHandler.ActConn.TicketId, ConnHandler.ActConn.InterfaceIsRequested, ConnHandler.ActConn.GetBoolProperty(ConState.Rejected.ToString())))
+                            @((MarkupString)ModellingHandlerBase.DisplayReqInt(userConfig, ConnHandler.ActConn.TicketId, ConnHandler.ActConn.InterfaceIsRequested,
+                                ConnHandler.ActConn.GetBoolProperty(ConState.InterfaceRejected.ToString()) || ConnHandler.ActConn.GetBoolProperty(ConState.Rejected.ToString())))
                         }
                         else
                         {
@@ -219,11 +277,18 @@
                     {
                         @if((ConnHandler.ActConn.InterfaceIsRequested && ConnHandler.ActConn.DstFromInterface) || (ConnHandler.ActConn.IsRequested && ConnHandler.ActConn.DestinationFilled()))
                         {
-                            @((MarkupString)ModellingHandlerBase.DisplayReqInt(userConfig, ConnHandler.ActConn.TicketId, ConnHandler.ActConn.InterfaceIsRequested, ConnHandler.ActConn.GetBoolProperty(ConState.Rejected.ToString())))
+                            @((MarkupString)ModellingHandlerBase.DisplayReqInt(userConfig, ConnHandler.ActConn.TicketId, ConnHandler.ActConn.InterfaceIsRequested,
+                                ConnHandler.ActConn.GetBoolProperty(ConState.InterfaceRejected.ToString()) || ConnHandler.ActConn.GetBoolProperty(ConState.Rejected.ToString())))
                         }
                         else
                         {
-                            foreach(var dst in ModellingNwGroupWrapper.Resolve(ConnHandler.ActConn.DestinationNwGroups))
+                            foreach(var dst in ModellingNwGroupWrapper.Resolve(ConnHandler.ActConn.DestinationOtherGroups))
+                            {
+                                <div class="col-sm-10">
+                                    <div class="ml-13 border form-control form-control-sm bg-transparent">@((MarkupString)dst.DisplayWithIcon(ConnHandler.ActConn.DstFromInterface))</div>
+                                </div>
+                            }
+                            foreach(var dst in ModellingNetworkAreaWrapper.Resolve(ConnHandler.ActConn.DestinationAreas))
                             {
                                 <div class="col-sm-10">
                                     <div class="ml-13 border form-control form-control-sm bg-transparent">@((MarkupString)dst.DisplayWithIcon(ConnHandler.ActConn.DstFromInterface))</div>
@@ -265,8 +330,17 @@
                             ondragover="event.preventDefault();"
                             ondragstart="event.dataTransfer.setData('', event.target.id);"
                             @ondrop="HandleDstDrop">
-                            <EditList ElementType="ModellingNwGroup" Elements="ModellingNwGroupWrapper.Resolve(ConnHandler.ActConn.DestinationNwGroups)" 
+                            <EditList ElementType="ModellingNwGroup" Elements="ModellingNwGroupWrapper.Resolve(ConnHandler.ActConn.DestinationOtherGroups)" 
                                     ElementsToAdd="ConnHandler.DstNwGroupsToAdd" ElementsToDelete="ConnHandler.DstNwGroupsToDelete" StdLayout="false"
+                                    AfterRemoveAction="() => {ConnHandler.CalcVisibility(); StateHasChanged(); return true;}">
+                                <Display>
+                                    <div class="row">
+                                        <div class="ml-13 col-sm-12 border form-control form-control-sm bg-transparent">@((MarkupString)context.DisplayWithIcon())</div>
+                                    </div>
+                                </Display>
+                            </EditList>
+                            <EditList ElementType="ModellingNetworkArea" Elements="ModellingNetworkAreaWrapper.Resolve(ConnHandler.ActConn.DestinationAreas)" 
+                                    ElementsToAdd="ConnHandler.DstAreasToAdd" ElementsToDelete="ConnHandler.DstAreasToDelete" StdLayout="false"
                                     AfterRemoveAction="() => {ConnHandler.CalcVisibility(); StateHasChanged(); return true;}">
                                 <Display>
                                     <div class="row">
@@ -319,7 +393,7 @@
                 }
                 else
                 {
-                    @if(ConnHandler.IsOwner || ConnHandler.ActConn.IsRequested)
+                    @if((ConnHandler.IsOwner || ConnHandler.ActConn.IsRequested) && !ConnHandler.ActConn.GetBoolProperty(ConState.Rejected.ToString()))
                     {
                         <button type="button" class="btn btn-sm btn-primary" @onclick="Save">@(userConfig.GetText("save"))</button>
                     }
@@ -332,17 +406,23 @@
                     {
                         <button type="button" class="btn btn-sm btn-danger" @onclick="() => ConnHandler.RemoveInterf()">@(ConnHandler.DisplayButton("remove_interface", Icons.Unuse, "interface"))</button>
                     }
+                    @if(ConnHandler.ActConn.IsRequested && !ConnHandler.ActConn.GetBoolProperty(ConState.Rejected.ToString()))
+                    {
+                        <button type="button" class="btn btn-sm btn-danger" @onclick="Reject">@(userConfig.GetText("reject"))</button>
+                    }
                 }
             }
         </div>
-    </div>
+    </div>    
     <InProgress Display="workInProgress"/>
+    <AddExtraConfig @bind-Display="ConnHandler.AddExtraConfigMode" @bind-ConnectionHandler="ConnHandler" AvailableExtraConfigTypes="availableExtraConfigs"/>
     <EditServiceGroup @bind-Display="ConnHandler.EditSvcGrpMode" @bind-SvcGroupHandler="ConnHandler.SvcGrpHandler"/>
     <EditAppRole @bind-Display="ConnHandler.DisplayAppRoleMode" @bind-AppRoleHandler="ConnHandler.AppRoleHandler"/>
     <EditAppServer @bind-Display="ConnHandler.DisplayAppServerMode" AppServerHandler="ConnHandler.AppServerHandler"/>
     <EditConnPopup @bind-Display="ConnHandler.DisplaySelectedInterfaceMode" ConnHandler="ConnHandler.IntConnHandler"
         ReplaceMode="ConnHandler.ReplaceMode" Replace="ReplaceInterface"/>
-    <DisplayImplementationTask ReqHandler="reqHandler" States="states" IncludePopups="false"/>
+    <DisplayImplementationTask WfHandler="wfHandler" States="states" IncludePopups="false"/>
+    <RejectInterfacePopup @bind-Display="RejectInterfaceMode" ConnHandler="ConnHandler" RefreshParent="async () => {await ConnHandler.ReInit(); Close();}"/>
 }
 
 @code
@@ -383,14 +463,19 @@
     private static string forbiddenDropzoneClass = "minheight-dropzone bg-white";
     private bool workInProgress = false;
 
-    private RequestHandler reqHandler = new ();
-    private RequestStateDict states = new ();
+    private WfHandler wfHandler = new ();
+    private WfStateDict states = new ();
     private List<int> OwnerIds = new ();
     private ModellingConnection unchangedConn = new();
+    private bool RejectInterfaceMode = false;
+
+    private List<string> availableExtraConfigs = [];
+    
 
     protected override void OnInitialized()
     {
         sidebarLeftWidth = sidebarInitWidth;
+        availableExtraConfigs = JsonSerializer.Deserialize<List<string>>(userConfig.ModExtraConfigs) ?? new();
     }
 
     protected override void OnParametersSet()
@@ -420,6 +505,10 @@
             if(Container.AppRoleElements.Count > 0)
             {
                 ConnHandler.AppRolesToSource(Container.AppRoleElements);
+            }
+            if(Container.AreaElements.Count > 0)
+            {
+                ConnHandler.AreasToSource(Container.AreaElements);
             }
             if(Container.NwGroupElements.Count > 0)
             {
@@ -452,9 +541,13 @@
             {
                 ConnHandler.AppRolesToDestination(Container.AppRoleElements);
             }
+            if(Container.AreaElements.Count > 0)
+            {
+                ConnHandler.AreasToDestination(Container.AreaElements);
+            }
             if(Container.NwGroupElements.Count > 0)
             {
-                ConnHandler.NwGroupToDestination(Container.NwGroupElements);
+                ConnHandler.NwGroupToDestination(Container.NwGroupElements);                
             }
             if(Container.AppServerElements.Count > 0)
             {
@@ -512,7 +605,7 @@
             unchangedConn = new(ConnHandler.ActConn);
             if(publishRequested)
             {
-                await PromoteTicket();
+                await PromoteTicketToDone();
             }
             Close();
             return true;
@@ -527,23 +620,26 @@
 
     private async Task ReplaceInterface()
     {
-        await ConnHandler.ReplaceInterface(authenticationStateTask, middlewareClient);
+        await ConnHandler.ReplaceInterface(authenticationStateTask!, middlewareClient);
         Close();
     }
 
-    private async Task PromoteTicket()
+    private void Reject()
+    {
+        RejectInterfaceMode = true;
+    }
+
+    private async Task PromoteTicketToDone()
     {
         if(ConnHandler.ActConn.TicketId != null)
         {
             try
             {
-                apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Implementer, Roles.Requester, Roles.Admin, Roles.Auditor ]);
                 TicketCreator ticketCreator = new (apiConnection, userConfig, authenticationStateTask!.Result.User, middlewareClient, WorkflowPhases.implementation);
-                if(await ticketCreator.PromoteTicket(ConnHandler.Application, (long)(ConnHandler.ActConn.TicketId)))
+                if(await ticketCreator.PromoteNewInterfaceImplTask(ConnHandler.Application, (long)(ConnHandler.ActConn.TicketId), ExtStates.Done))
                 {
                     DisplayMessageInUi(null, userConfig.GetText("publish"), userConfig.GetText("U9013"), false);
                 }
-                apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Modeller, Roles.Admin, Roles.Auditor ]);
             }
             catch(Exception exception)
             {
@@ -591,29 +687,29 @@
     {
         if(ConnHandler.ActConn.TicketId != null)
         {
-            apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { Roles.Implementer, Roles.Requester, Roles.Admin, Roles.Auditor });
+            workInProgress = true;
             await states.Init(apiConnection);
             OwnerIds = (await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners)).ConvertAll(x => x.Id);
-            reqHandler = new (DisplayMessageInUi, userConfig, authenticationStateTask!.Result.User, apiConnection, middlewareClient, WorkflowPhases.request){};
-            reqHandler.ReadOnlyMode = true;
-            await reqHandler.Init(OwnerIds, true, true);
-            RequestTicket? ticket = await reqHandler.ResolveTicket((long)ConnHandler.ActConn.TicketId);
+            wfHandler = new (DisplayMessageInUi, userConfig, authenticationStateTask!.Result.User, apiConnection, middlewareClient, WorkflowPhases.request){};
+            wfHandler.ReadOnlyMode = true;
+            await wfHandler.Init(OwnerIds, true, true);
+            WfTicket? ticket = await wfHandler.ResolveTicket((long)ConnHandler.ActConn.TicketId);
             if(ticket != null)
             {
-                reqHandler.SetTicketEnv(ticket);
-                RequestReqTask? reqTask = ticket.Tasks.FirstOrDefault(x => x.TaskType == TaskType.new_interface.ToString());
+                wfHandler.SetTicketEnv(ticket);
+                WfReqTask? reqTask = ticket.Tasks.FirstOrDefault(x => x.TaskType == WfTaskType.new_interface.ToString());
                 if(reqTask != null)
                 {
-                    reqHandler.SetReqTaskEnv(reqTask);
-                    RequestImplTask? implTask = reqTask.ImplementationTasks.FirstOrDefault(x => x.ReqTaskId == reqTask.Id);
+                    wfHandler.SetReqTaskEnv(reqTask);
+                    WfImplTask? implTask = reqTask.ImplementationTasks.FirstOrDefault(x => x.ReqTaskId == reqTask.Id);
                     if(implTask != null)
                     {
-                        reqHandler.SelectImplTask(implTask, ObjAction.display);
+                        wfHandler.SelectImplTask(implTask, ObjAction.display);
                     }
                 }
             }
+            workInProgress = false;
             StateHasChanged();
-            apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { Roles.Modeller, Roles.Admin, Roles.Auditor });
         }
     }
 
@@ -628,6 +724,7 @@
         ConnHandler.Close();
         ClosingAction();
         workInProgress = false;
+        RejectInterfaceMode = false;
         Display = false;
         DisplayChanged.InvokeAsync(Display);
     }

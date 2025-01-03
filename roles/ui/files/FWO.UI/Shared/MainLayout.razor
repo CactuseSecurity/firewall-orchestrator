@@ -1,17 +1,19 @@
 ﻿@inherits LayoutComponentBase
 @using FWO.Config.Api
 @using FWO.Api.Client
-@using FWO.GlobalConstants
+@using FWO.Basics
 @using FWO.Api.Data
 @using FWO.Api.Client.Queries
 @using FWO.Middleware.Client
 @using FWO.Ui.Auth
+@using FWO.Ui.Data
 @using FWO.Ui.Services
 @using System.Timers
 @using System.Security.Claims;
 @using Microsoft.AspNetCore.Components.Server.Circuits;
 @using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
 @using RestSharp
+@using FWO.Services
 
 @inject ApiConnection apiConnection
 @inject GlobalConfig globalConfig
@@ -23,33 +25,43 @@
 @inject CircuitHandler circuitHandler
 
 <div style="z-index:15; top:0px;" class="position-sticky">
-    <NavigationMenu @bind-ShowAlert="showAlert"/>
+    <NavigationMenu @bind-ShowAlert="showAlert" />
 </div>
 
 <div class="main">
     <div class="content p-4">
+        @* DON'T DELETE THESE BUTTONS / They might be needed for testing *@
+        @*         <button type="button" @onclick="@(() => ShowMessage("info", "info", MessageType.Info))">info</button>
+        <button type="button" @onclick="@(() => ShowMessage("warning", "warning", MessageType.Warning))">warning</button>
+        <button type="button" @onclick="@(() => ShowMessage("error", "error", MessageType.Error))">error</button>
+        <button type="button" @onclick="@(() => ShowMessage("success", "success", MessageType.Success))">success</button>
+        <button type="button" @onclick="@(() => {  UIMessageQue.Clear(); UIMessages.Clear(); })">clear</button> *@       
         <CascadingValue Value="@DisplayMessageInUiFunction">
             @Body
         </CascadingValue>
     </div>
 </div>
 
-@if (messageDialogShow)
-{
-    <div class="@cssClass">
-        <div class="d-flex flex-row justify-content-between">
-            <div>@dialogTitle - @dialogMessage</div>
-            <div class="@Icons.Close" @onclick="@(() => { messageDialogShow = false; StateHasChanged();})"></div>
-        </div>
+<div class="footer">
+    <div class="mx-2">
+        @foreach (UIMessage uiMessage in UIMessages)
+        {
+            <div class="@uiMessage.CSSClass">
+                <div class="d-flex flex-row justify-content-between">
+                    <div>@uiMessage.Title - @uiMessage.Message</div>
+                    <div class="@Icons.Close cursor-pointer" @onclick="@(() => HideUIMessage(uiMessage.Id))"></div>
+                </div>
+            </div>
+        }
     </div>
-}
+</div>
 
 <PopUp Title="@(reloginDialogTitle)" Show="@(showReloginDialog)" Size=PopupSize.Small>
     <Body>
         <p>@(reloginDialogText)</p>
         <div class="input-group">
             <div class="input-group-prepend">
-                <span class="input-group-text"><span class="@Icons.Locked"></span></span>               
+                <span class="input-group-text"><span class="@Icons.Locked"></span></span>
             </div>
             <input type="password" class="form-control @reloginCssClass" @bind="password" placeholder="@(userConfig.GetText("password"))" @bind:event="oninput" @onkeypress="@KeyHandler">
         </div>
@@ -66,7 +78,7 @@
             }
             else
             {
-                <a class="btn btn-danger" href="/logout">@(userConfig.GetText("logout"))</a>                
+                <a class="btn btn-danger" href="/logout">@(userConfig.GetText("logout"))</a>
             }
             <button type="button" class="btn btn-primary" @onclick="Relogin">@(userConfig.GetText("relogin"))</button>
         </div>
@@ -97,13 +109,10 @@
     private string? password;
     private ClaimsPrincipal? user;
 
-    public enum MessageType
-    {
-        Info,
-        Success,
-        Warning,
-        Error
-    }
+    private List<UIMessage> UIMessages = [];
+    private Queue<UIMessage> UIMessageQue = [];
+
+    private Timer? UIMessageQueTimer;
 
     protected override void OnInitialized()
     {
@@ -115,7 +124,17 @@
         JwtEventService.OnJwtExpired += OnJwtExpired;
 
         alertSubscription = apiConnection.GetSubscription<List<Alert>>(ApiExceptionHandler, OnAlertUpdate, MonitorQueries.subscribeAlertChanges);
+
+        UIMessageQueTimer = new()
+            {
+                AutoReset = true,
+                Enabled = true,
+                Interval = 150
+            };
+
+        UIMessageQueTimer.Elapsed += OnUIMessageTimerTick;
     }
+
 
     private async Task KeyHandler(KeyboardEventArgs ev)
     {
@@ -170,10 +189,10 @@
         }
         try
         {
-            RestResponse<string> authResponse = await ((AuthStateProvider)authenticationProvider).Authenticate(userConfig.User.Name,
-                password, apiConnection, middlewareClient, globalConfig, userConfig, sessionStorage, ((CircuitHandlerService)circuitHandler));
-            if (authResponse.StatusCode == System.Net.HttpStatusCode.OK) 
-            { 
+            RestResponse<string> authResponse = await ( (AuthStateProvider)authenticationProvider ).Authenticate(userConfig.User.Name,
+                password, apiConnection, middlewareClient, globalConfig, userConfig, sessionStorage, ( (CircuitHandlerService)circuitHandler ));
+            if (authResponse.StatusCode == System.Net.HttpStatusCode.OK)
+            {
                 showReloginDialog = false;
                 reloginErrorMessage = "";
                 password = "";
@@ -182,7 +201,7 @@
             else
             {
                 // There was an error trying to authenticate the user. Probably invalid credentials
-                errorMessage = (authResponse.Data != null ? userConfig.GetApiText(authResponse.Data) : "Middleware Api Error: " + authResponse.Content);
+                errorMessage = ( authResponse.Data != null ? userConfig.GetApiText(authResponse.Data) : "Middleware Api Error: " + authResponse.Content );
             }
         }
         catch (Exception ex)
@@ -197,7 +216,7 @@
     private void OnAlertUpdate(List<Alert> alerts)
     {
         user = authenticationStateTask!.Result.User;
-        showAlert = (user.IsInRole(Roles.Admin) || user.IsInRole(Roles.FwAdmin) || user.IsInRole(Roles.Auditor)) && alerts.Count() > 0;
+        showAlert = ( user.IsInRole(Roles.Admin) || user.IsInRole(Roles.FwAdmin) || user.IsInRole(Roles.Auditor) ) && alerts.Count() > 0;
         InvokeAsync(StateHasChanged);
     }
 
@@ -206,48 +225,67 @@
         // Needed so there is no chance an error is announced by 2 threads at the same time.
         lock (errorLock)
         {
-            if (showtime == null)
+            if (showtime == null || showtime == 0)
             {
                 showtime = userConfig.MessageViewTime * 1000; // convert to milliseconds
             }
 
-            switch(type)
+            switch (type)
             {
-                case MessageType.Info:
-                    cssClass = "footer alert alert-info fly-in-animation";
-                    break;
-                case MessageType.Success:
-                    cssClass = "footer alert alert-success fly-in-animation";
-                    break;
-                case MessageType.Warning:
-                    cssClass = "footer alert alert-warning-override  fly-in-animation";
-                    break;
                 case MessageType.Error:
                     Task.Run(async () => await setAlert(title, message));
-                    cssClass = "footer alert alert-danger fly-in-animation";
                     showtime = showtime * 3; // show errors a bit longer
+                    break;
+                default:
                     break;
             }
 
-            dialogTitle = title;
-            dialogMessage = message;
-            messageDialogShow = true;
+            UIMessage uiMessage = new()
+                {
+                    Message = message,
+                    Title = title,
+                    Type = type
+                };
 
-            if (showtime > 0)
+            Timer messageTimer = new Timer(showtime.Value);
+            messageTimer.Elapsed += (sender, e) => HideMessage(sender, e, uiMessage.Id);
+            messageTimer.AutoReset = false;
+
+            uiMessage.ShowTimer = messageTimer;
+
+            if (UIMessages.Count < userConfig.MaxMessages)
             {
-                Timer messageTimer = new Timer(showtime.Value);
-                messageTimer.Elapsed += HideMessage;
-                messageTimer.AutoReset = false;
                 messageTimer.Start();
+                UIMessages.Add(uiMessage);
+                InvokeAsync(StateHasChanged);
             }
+            else
+            {
+                UIMessageQue.Enqueue(uiMessage);
+            }
+        }
+    }
 
+    private void HideMessage(object? _, ElapsedEventArgs __, string messageId)
+    {
+        HideUIMessage(messageId);
+    }
+
+    private void OnUIMessageTimerTick(object? _, ElapsedEventArgs __)
+    {
+        if (UIMessageQue.Count > 0 && UIMessages.Count < userConfig.MaxMessages)
+        {
+            UIMessage uiMessage = UIMessageQue.Dequeue();
+            uiMessage.ShowTimer!.Start();
+            UIMessages.Add(uiMessage);
             InvokeAsync(StateHasChanged);
         }
     }
 
-    private void HideMessage(object? _, ElapsedEventArgs __)
+    private void HideUIMessage(string messageId)
     {
-        messageDialogShow = false;
+        UIMessages.RemoveAll(_ => _.Id == messageId);
+
         InvokeAsync(StateHasChanged);
     }
 
@@ -307,11 +345,11 @@
                     jwtReader.Validate();
                     role = jwtReader.GetRole();
                 }
-                catch(Exception){}
-                Log.WriteError((title != "" ? title : "Unspecified Error"), (message != "" ? message : "Unspecified error occured: "), exception, userConfig.User.Name, role);
+                catch (Exception) { }
+                Log.WriteError(( title != "" ? title : "Unspecified Error" ), ( message != "" ? message : "Unspecified error occured: " ), exception, userConfig.User.Name, role);
                 severity = 2;
-                cause = (title != "" ? title : userConfig.GetText("unspecified_error"));
-                description = $"{(message != "" ? message : userConfig.GetText("E0001"))}" + (ErrorFlag ? $": {exception.Message}" : "") + " . " + userConfig.GetText("E0002");
+                cause = ( title != "" ? title : userConfig.GetText("unspecified_error") );
+                description = $"{( message != "" ? message : userConfig.GetText("E0001") )}" + ( ErrorFlag ? $": {exception.Message}" : "" ) + " . " + userConfig.GetText("E0002");
             }
         }
         ShowMessage(cause, description, messageType);
@@ -329,13 +367,13 @@
                 suspectedCause = cause,
                 description = description,
             };
-            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(MonitorQueries.addUiLogEntry, Variables)).ReturnIds;
+            ReturnId[]? returnIds = ( await apiConnection.SendQueryAsync<NewReturning>(MonitorQueries.addUiLogEntry, Variables) ).ReturnIds;
             if (returnIds == null)
             {
                 Log.WriteError("Write Log", "Log could not be written to database");
             }
         }
-        catch(Exception exc)
+        catch (Exception exc)
         {
             Log.WriteError("Write Log", $"Could not write log for user {userConfig.User.DbId}: ", exc);
         }
@@ -351,11 +389,11 @@
     {
         try
         {
-            Log.WriteAlert ($"source: \"{GlobalConst.kUi}\"",
+            Log.WriteAlert($"source: \"{GlobalConst.kUi}\"",
                 $"userId: \"{userConfig.User.DbId}\", title: \"{title}\", description: \"{message}\", alertCode: \"{AlertCode.UiError}\"");
-            
+
             List<Alert> openAlerts = await apiConnection.SendQueryAsync<List<Alert>>(MonitorQueries.getOpenAlerts);
-            
+
             var Variables = new
             {
                 source = GlobalConst.kUi,
@@ -364,19 +402,19 @@
                 description = message,
                 alertCode = (int)AlertCode.UiError
             };
-            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.MonitorQueries.addAlert, Variables)).ReturnIds;
+            ReturnId[]? returnIds = ( await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.MonitorQueries.addAlert, Variables) ).ReturnIds;
             if (returnIds != null)
             {
                 try
                 {
                     // Acknowledge older alert for same problem
                     Alert? existingAlert = openAlerts.FirstOrDefault(x => x.AlertCode == AlertCode.UiError && x.UserId == userConfig.User.DbId && x.Title == title);
-                    if(existingAlert != null)
+                    if (existingAlert != null)
                     {
                         await AcknowledgeAlert(existingAlert.Id);
                     }
                 }
-                catch(Exception exc)
+                catch (Exception exc)
                 {
                     Log.WriteError("Acknowledge Alert", $"Could not auto acknowledge existing alert for user {userConfig.User.DbId}: ", exc);
                 }
@@ -386,7 +424,7 @@
                 Log.WriteError("Write Alert", "Log could not be written to database");
             }
         }
-        catch(Exception exc)
+        catch (Exception exc)
         {
             Log.WriteError("Write Alert", $"Could not write alert for user {userConfig.User.DbId}: ", exc);
         }

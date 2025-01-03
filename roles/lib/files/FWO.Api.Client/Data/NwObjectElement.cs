@@ -6,7 +6,6 @@ namespace FWO.Api.Data
 {
     public class NwObjectElement
     {
-
         [JsonProperty("id"), JsonPropertyName("id")]
         public long ElemId { get; set; }
 
@@ -16,7 +15,7 @@ namespace FWO.Api.Data
             get { return Cidr.CidrString; }
             set { Cidr = new Cidr(value); }
         }
-        public Cidr Cidr { get; set; } = new Cidr();
+        public Cidr Cidr { get; set; } = new();
 
         [JsonProperty("ip_end"), JsonPropertyName("ip_end")]
         public string IpEndString
@@ -24,7 +23,7 @@ namespace FWO.Api.Data
             get { return CidrEnd.CidrString; } // ?? Cidr.CidrString; }
             set { CidrEnd = new Cidr(value ?? Cidr.CidrString); }   // if End value is not set, asume host and set start ip as end ip
         }
-        public Cidr CidrEnd { get; set; } = new Cidr();
+        public Cidr CidrEnd { get; set; } = new();
 
         [JsonProperty("name"), JsonPropertyName("name")]
         public string? Name { get; set; }
@@ -33,8 +32,9 @@ namespace FWO.Api.Data
         public string? Comment { get; set; }
 
         public long TaskId { get; set; }
-
         public long? NetworkId { get; set; }
+        public string GroupName { get; set; } = "";
+        public string RequestAction { get; set; } = Data.RequestAction.create.ToString();
 
         public NwObjectElement()
         {}
@@ -55,28 +55,35 @@ namespace FWO.Api.Data
             TaskId = taskId;
         }
 
-        public RequestReqElement ToReqElement(ElemFieldType field)
+        public WfReqElement ToReqElement(ElemFieldType field)
         {
-            RequestReqElement element = new RequestReqElement()
+            WfReqElement element = new()
             {
                 Id = ElemId,
                 TaskId = TaskId,
                 Field = field.ToString(),
                 Cidr = new Cidr(Cidr.CidrString),
-                NetworkId = NetworkId
+                CidrEnd = new Cidr(CidrEnd.CidrString),
+                NetworkId = NetworkId,
+                GroupName = GroupName,
+                RequestAction = RequestAction,
+                Name = Name
             };
             return element;
         }
 
-        public RequestImplElement ToImplElement(ElemFieldType field)
+        public WfImplElement ToImplElement(ElemFieldType field)
         {
-            RequestImplElement element = new RequestImplElement()
+            WfImplElement element = new()
             {
                 Id = ElemId,
                 ImplTaskId = TaskId,
                 Field = field.ToString(),
                 Cidr = new Cidr(Cidr.CidrString),
+                CidrEnd = new Cidr(CidrEnd.CidrString),
                 NetworkId = NetworkId,
+                GroupName = GroupName,
+                Name = Name
             };
             return element;
         }

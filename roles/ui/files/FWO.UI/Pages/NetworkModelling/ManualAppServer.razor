@@ -1,6 +1,8 @@
 ﻿@using FWO.Config.Api
+@using FWO.Basics
 @using FWO.Ui.Display
 @using System.Text.Json
+@using FWO.Services
 
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
 
@@ -13,43 +15,51 @@
         @if (Display)
         {
             <button type="button" class="btn btn-sm btn-success mb-2" @onclick="appServerListHandler.CreateAppServer">
-                @(appServerListHandler.DisplayButton("add_app_server", Icons.Add))</button>
+                @(appServerListHandler.DisplayButton("add_app_server", Icons.Add))
+            </button>
             <div class="vheight75">
                 <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="ModellingAppServer"
-                        Items="appServerListHandler.ManualAppServers" PageSize="0" ColumnReorder="true">
+                       Items="appServerListHandler.ManualAppServers" PageSize="0" ColumnReorder="true">
                     <Column TableItem="ModellingAppServer" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
                         <Template>
                             <div class="btn-group">
-                                @if(context.IsDeleted)
+                                @if (context.IsDeleted)
                                 {
                                     <button type="button" class="btn btn-sm btn-success" @onclick="() => appServerListHandler.RequestReactivateAppServer(context)">
-                                        @(appServerListHandler.DisplayButton("reactivate", Icons.Add))</button>
+                                        @(appServerListHandler.DisplayButton("reactivate", Icons.Add))
+                                    </button>
                                 }
                                 else
                                 {
                                     <button type="button" class="btn btn-sm btn-warning" @onclick="() => appServerListHandler.EditAppServer(context)">
-                                        @(appServerListHandler.DisplayButton("edit", Icons.Edit))</button>
+                                        @(appServerListHandler.DisplayButton("edit", Icons.Edit))
+                                    </button>
                                     <button type="button" class="btn btn-sm btn-danger" @onclick="() => appServerListHandler.RequestDeleteAppServer(context)">
-                                        @(appServerListHandler.DisplayButton(context.InUse ? "deactivate" : "delete", Icons.Delete))</button>
+                                        @(appServerListHandler.DisplayButton(context.InUse ? "deactivate" : "delete", Icons.Delete))
+                                    </button>
                                 }
                             </div>
                         </Template>
                     </Column>
                     <Column TableItem="ModellingAppServer" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
-                    <Column TableItem="ModellingAppServer" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" >
+                    <Column TableItem="ModellingAppServer" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true">
                         <Template>
                             @((MarkupString)context.DisplayHtml())
                         </Template>
                     </Column>
-                    <Column TableItem="ModellingAppServer" Title="@(userConfig.GetText("type"))" Field="@(x => x.CustomType)" Sortable="true" Filterable="true" >
+                    <Column TableItem="ModellingAppServer" Title="@(userConfig.GetText("type"))" Field="@(x => x.CustomType)" Sortable="true" Filterable="true">
                         <Template>
                             @(appServerTypes.FirstOrDefault(a => a.Id == context.CustomType)?.Name)
                         </Template>
                     </Column>
-                    <Column TableItem="ModellingAppServer" Title="@(userConfig.GetText("ip"))" Field="@(x => x.Ip)" Sortable="true" Filterable="true" />
-                    <Column TableItem="ModellingAppServer" Title="@(userConfig.GetText("is_in_use"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" >
+                    <Column TableItem="ModellingAppServer" Title="@(userConfig.GetText("ip"))" Field="@(x => x.Ip)" Sortable="true" Filterable="true">
                         <Template>
-                            @(GlobalConfig.ShowBool(context.InUse))
+                            @(DisplayBase.DisplayIp(context.Ip, context.IpEnd))
+                        </Template>
+                    </Column>
+                    <Column TableItem="ModellingAppServer" Title="@(userConfig.GetText("is_in_use"))" Field="@(x => x.Id)" Sortable="true" Filterable="true">
+                        <Template>
+                            @(context.InUse.ShowAsHtml())
                         </Template>
                     </Column>
                     <Pager ShowPageNumber="true" ShowTotalCount="true" />
@@ -61,13 +71,12 @@
         <button type="button" class="btn btn-sm btn-primary" @onclick="Close">@(userConfig.GetText("ok"))</button>
     </Footer>
 </PopUp>
-<EditAppServer @bind-Display="appServerListHandler.EditAppServerMode" @bind-AppServerHandler="appServerListHandler.AppServerHandler"/>
+<EditAppServer @bind-Display="appServerListHandler.EditAppServerMode" @bind-AppServerHandler="appServerListHandler.AppServerHandler" />
 <ConfirmDelete @bind-Display="appServerListHandler.DeleteAppServerMode" PerformAction="async () => {await appServerListHandler.DeleteAppServer(); StateHasChanged();}"
-    Title="@userConfig.GetText("delete_app_server")" DeleteMessage="@appServerListHandler.Message"/>
+               Title="@userConfig.GetText("delete_app_server")" DeleteMessage="@appServerListHandler.Message" />
 <Confirm @bind-Display="appServerListHandler.ReactivateAppServerMode" PerformAction="async () => {await appServerListHandler.ReactivateAppServer(); StateHasChanged();}"
-    Title="@userConfig.GetText("reactivate")" Message="@appServerListHandler.Message"/>
-<InProgress Display="workInProgress"/>
-
+         Title="@userConfig.GetText("reactivate")" Message="@appServerListHandler.Message" />
+<InProgress Display="workInProgress" />
 
 @code
 {
@@ -94,7 +103,7 @@
         try
         {
             appServerListHandler = new ModellingAppServerListHandler(apiConnection, userConfig, DisplayMessageInUi);
-            if(userConfig.ModAppServerTypes != "")
+            if (userConfig.ModAppServerTypes != "")
             {
                 appServerTypes = JsonSerializer.Deserialize<List<AppServerType>>(userConfig.ModAppServerTypes) ?? new();
             }

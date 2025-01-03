@@ -22,5 +22,11 @@ namespace FWO.Api.Data
 
         [JsonProperty("appRolePattern"), JsonPropertyName("appRolePattern")]
         public string AppRolePattern { get; set; } = "";
+
+        [JsonProperty("applicationZone"), JsonPropertyName("applicationZone")]
+        public string AppZone { get; set; } = "";
+        
+        [JsonProperty("appServerPrefix"), JsonPropertyName("appServerPrefix")]
+        public string? AppServerPrefix { get; set; } = "";
     }
 }

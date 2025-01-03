@@ -1,3 +1,4 @@
+@using FWO.Basics
 @inject IJSRuntime JSRuntime
 @inject NavigationManager NavigationManager
 @implements IDisposable
@@ -56,7 +57,7 @@
             var uri = new Uri(NavigationManager.Uri, UriKind.Absolute);
 
             // check if current page is certification page
-            bool recertPage = uri.AbsolutePath == "/certification";
+            bool recertPage = uri.AbsolutePath == $"/{PageName.Certification}";
 
             if (elementId.StartsWith("all"))
                 TabSet?.SetActiveTab(0);

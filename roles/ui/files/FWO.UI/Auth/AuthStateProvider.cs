@@ -17,7 +17,7 @@ namespace FWO.Ui.Auth
 {
 	public class AuthStateProvider : AuthenticationStateProvider
 	{
-		private ClaimsPrincipal user = new ClaimsPrincipal(new ClaimsIdentity());
+		private ClaimsPrincipal user = new(new ClaimsIdentity());
 
 		public override Task<AuthenticationState> GetAuthenticationStateAsync()
 		{
@@ -28,7 +28,7 @@ namespace FWO.Ui.Auth
 			GlobalConfig globalConfig, UserConfig userConfig, ProtectedSessionStorage sessionStorage, CircuitHandlerService circuitHandler)
 		{
 			// There is no jwt in session storage. Get one from auth module.
-			AuthenticationTokenGetParameters authenticationParameters = new AuthenticationTokenGetParameters { Username = username, Password = password };
+			AuthenticationTokenGetParameters authenticationParameters = new() { Username = username, Password = password };
 			RestResponse<string> apiAuthResponse = await middlewareClient.AuthenticateUser(authenticationParameters);
 
 			if (apiAuthResponse.StatusCode == HttpStatusCode.OK)
@@ -45,7 +45,7 @@ namespace FWO.Ui.Auth
 			GlobalConfig globalConfig, UserConfig userConfig, CircuitHandlerService circuitHandler, ProtectedSessionStorage sessionStorage)
 		{
 			// Try to auth with jwt (validates it and creates user context on UI side).
-			JwtReader jwtReader = new JwtReader(jwtString);
+			JwtReader jwtReader = new(jwtString);
 
 			if (await jwtReader.Validate())
 			{
@@ -84,9 +84,9 @@ namespace FWO.Ui.Auth
 				string userDn = user.FindFirstValue("x-hasura-uuid");
 				await userConfig.SetUserInformation(userDn, apiConnection);
 				userConfig.User.Jwt = jwtString;
-				userConfig.User.Tenant = await getTenantFromJwt(userConfig.User.Jwt, apiConnection);
-				userConfig.User.Roles = await getAllowedRoles(userConfig.User.Jwt);
-				userConfig.User.Ownerships = await getAssignedOwners(userConfig.User.Jwt);
+				userConfig.User.Tenant = await GetTenantFromJwt(userConfig.User.Jwt, apiConnection);
+				userConfig.User.Roles = await GetAllowedRoles(userConfig.User.Jwt);
+				userConfig.User.Ownerships = await GetAssignedOwners(userConfig.User.Jwt);
 				circuitHandler.User = userConfig.User;
 
 				// Add jwt expiry timer
@@ -114,40 +114,40 @@ namespace FWO.Ui.Auth
 			NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(user ?? throw new Exception("Password cannot be changed because user was not authenticated"))));
 		}
 
-		public async Task<int> getTenantId(string jwtString)
+		// public async Task<int> GetTenantId(string jwtString)
+		// {
+		// 	JwtReader jwtReader = new(jwtString);
+		// 	int tenantId = 0;
+
+		// 	if (await jwtReader.Validate())
+		// 	{
+		// 		ClaimsIdentity identity = new
+		// 		(
+		// 			claims: jwtReader.GetClaims(),
+		// 			authenticationType: "ldap",
+		// 			nameType: JwtRegisteredClaimNames.UniqueName,
+		// 			roleType: "role"
+		// 		);
+
+		// 		// Set user information
+		// 		user = new ClaimsPrincipal(identity);
+
+		// 		if (!int.TryParse(user.FindFirstValue("x-hasura-tenant-id"), out tenantId))
+		// 		{
+		// 			// TODO: log warning
+		// 		}
+		// 	}
+		// 	return tenantId;
+		// }
+
+		private async Task<Tenant> GetTenantFromJwt(string jwtString, ApiConnection apiConnection)
 		{
-			JwtReader jwtReader = new JwtReader(jwtString);
-			int tenantId = 0;
-
-			if (await jwtReader.Validate())
-			{
-				ClaimsIdentity identity = new ClaimsIdentity
-				(
-					claims: jwtReader.GetClaims(),
-					authenticationType: "ldap",
-					nameType: JwtRegisteredClaimNames.UniqueName,
-					roleType: "role"
-				);
-
-				// Set user information
-				user = new ClaimsPrincipal(identity);
-
-				if (!int.TryParse(user.FindFirstValue("x-hasura-tenant-id"), out tenantId))
-				{
-					// TODO: log warning
-				}
-			}
-			return tenantId;
-		}
-
-		public async Task<Tenant> getTenantFromJwt(string jwtString, ApiConnection apiConnection)
-		{
-			JwtReader jwtReader = new JwtReader(jwtString);
+			JwtReader jwtReader = new(jwtString);
 			Tenant tenant = new();
 
 			if (await jwtReader.Validate())
 			{
-				ClaimsIdentity identity = new ClaimsIdentity
+				ClaimsIdentity identity = new
 				(
 					claims: jwtReader.GetClaims(),
 					authenticationType: "ldap",
@@ -170,31 +170,31 @@ namespace FWO.Ui.Auth
 			return tenant;
 		}
 
-		public async Task<List<string>> getAllowedRoles(string jwtString)
+		private static async Task<List<string>> GetAllowedRoles(string jwtString)
 		{
 			return await GetClaimList(jwtString, "x-hasura-allowed-roles");
 		}
 
-		public async Task<List<int>> getAssignedOwners(string jwtString)
+		private static async Task<List<int>> GetAssignedOwners(string jwtString)
 		{
-			List<int> ownerIds = new();
+			List<int> ownerIds = [];
 			List<string> ownerClaims = await GetClaimList(jwtString, "x-hasura-editable-owners");
 			if (ownerClaims.Count > 0)
 			{
-				string[] separatingStrings = { ",", "{", "}" };
+				string[] separatingStrings = [",", "{", "}"];
 				string[] owners = ownerClaims[0].Split(separatingStrings, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
 				ownerIds = Array.ConvertAll(owners, x => int.Parse(x)).ToList();
 			}
 			return ownerIds;
 		}
 
-		private async Task<List<string>> GetClaimList(string jwtString, string claimType)
+		private static async Task<List<string>> GetClaimList(string jwtString, string claimType)
 		{
-			List<string> claimList = new List<string>();
-			JwtReader jwtReader = new JwtReader(jwtString);
+			List<string> claimList = [];
+			JwtReader jwtReader = new(jwtString);
 			if (await jwtReader.Validate())
 			{
-				ClaimsIdentity identity = new ClaimsIdentity
+				ClaimsIdentity identity = new				
 				(
 					claims: jwtReader.GetClaims(),
 					authenticationType: "ldap",

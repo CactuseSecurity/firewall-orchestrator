@@ -1,5 +1,6 @@
 @using FWO.Api.Client
 @using FWO.Config.Api
+@using FWO.Services
 
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Requester}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}, {Roles.Auditor}, {Roles.FwAdmin}")]
 
@@ -72,16 +73,16 @@
     public bool WithComment { get; set; } = false;
 
     [Parameter]
-    public Func<RequestStatefulObject, Task> Save { get; set; } = _ => throw new Exception("Save function undefined");
+    public Func<WfStatefulObject, Task> Save { get; set; } = _ => throw new Exception("Save function undefined");
 
     [Parameter]
-    public RequestStatefulObject StatefulObject { get; set; } = new ();
+    public WfStatefulObject StatefulObject { get; set; } = new ();
 
     [Parameter]
     public StateMatrix StateMatrix { get; set; } = new ();
 
     [Parameter]
-    public RequestStateDict States { get; set; } = new ();
+    public WfStateDict States { get; set; } = new ();
 
 
     private bool Display { get; set; } = false;

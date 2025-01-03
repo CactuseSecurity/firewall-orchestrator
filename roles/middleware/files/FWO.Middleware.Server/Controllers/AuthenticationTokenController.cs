@@ -2,15 +2,14 @@
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Logging;
-using FWO.GlobalConstants;
-using FWO.Middleware.Server;
+using FWO.Basics;
 using Microsoft.AspNetCore.Mvc;
 using FWO.Middleware.RequestParameters;
 using System.Security.Authentication;
 using Novell.Directory.Ldap;
 using System.Data;
 
-namespace FWO.Middleware.Controllers
+namespace FWO.Middleware.Server.Controllers
 {
 	/// <summary>
 	/// Authentication token generation. Token is of type JSON web token (JWT).
@@ -225,8 +224,8 @@ namespace FWO.Middleware.Controllers
 			{
 				LdapEntry? ldapEntry = null;
 				Ldap? ldap = null;
-				List<Task> ldapValidationRequests = new List<Task>();
-				object dnLock = new object();
+				List<Task> ldapValidationRequests = [];
+				object dnLock = new();
 				bool ldapFound = false;
 
 				foreach (Ldap currentLdap in ldaps.Where(x => x.Active))
@@ -289,14 +288,16 @@ namespace FWO.Middleware.Controllers
 
 		public async Task<List<string>> GetRoles(UiUser user)
 		{
-			List<string> dnList = new() { user.Dn };
-			// search all groups where user is member for group associated roles
-			dnList.AddRange(user.Groups);
+			List<string> dnList =
+            [
+                user.Dn,
+                .. user.Groups, // search all groups where user is member for group associated roles
+            ];
 
-			List<string> userRoles = new List<string>();
-			object rolesLock = new object();
+			List<string> userRoles = [];
+			object rolesLock = new();
 
-			List<Task> ldapRoleRequests = new List<Task>();
+			List<Task> ldapRoleRequests = [];
 
 			foreach (Ldap currentLdap in ldaps)
 			{
@@ -331,7 +332,7 @@ namespace FWO.Middleware.Controllers
 
 		public async Task<Tenant?> GetTenantAsync(LdapEntry user, Ldap ldap)
 		{
-			Tenant tenant = new Tenant();
+			Tenant tenant = new();
 			if (ldap.TenantId != null)
 			{
 				Log.WriteDebug("Get Tenant", $"This LDAP has the fixed tenant {ldap.TenantId.Value}");

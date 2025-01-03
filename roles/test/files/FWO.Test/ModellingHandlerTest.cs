@@ -2,6 +2,7 @@
 using NUnit.Framework.Legacy;
 using FWO.Api.Data;
 using FWO.Ui.Services;
+using FWO.Services;
 
 namespace FWO.Test
 {
@@ -22,9 +23,9 @@ namespace FWO.Test
         static readonly bool AddAppRoleMode = false;
         static readonly bool IsOwner = true;
 
-        static readonly ModellingAppServer AppServerInside1 = new(){ Name = "AppServerInside1", Ip = "10.0.0.0" };
-        static readonly ModellingAppServer AppServerInside2 = new(){ Name = "AppServerInside2", Ip = "10.0.0.5" };
-        static readonly ModellingAppServer AppServerInside3 = new(){ Name = "AppServerInside3", Ip = "11.0.0.1" };
+        static readonly ModellingAppServer AppServerInside1 = new(){ Name = "AppServerInside1", Ip = "10.0.0.0", IpEnd = "10.0.0.0" };
+        static readonly ModellingAppServer AppServerInside2 = new(){ Name = "AppServerInside2", Ip = "10.0.0.5", IpEnd = "10.0.0.5"  };
+        static readonly ModellingAppServer AppServerInside3 = new(){ Name = "AppServerInside3", Ip = "11.0.0.1", IpEnd = "11.0.0.1" };
         static readonly List<ModellingAppServer> AvailableAppServers =
         [
             AppServerInside1,
@@ -37,10 +38,10 @@ namespace FWO.Test
             new(){ Ip = "255.255.255.255" }
         ];
 
-        static readonly ModellingNetworkArea TestArea = new(){ Name = "Area1", IdString = "NA50", Subnets =
+        static readonly ModellingNetworkArea TestArea = new(){ Name = "Area1", IdString = "NA50", IpData =
         [
-            new(){ Content = new(){ Name = "Testsubnet1", Ip = "10.0.0.0/24", IpEnd = "10.0.0.0/24" }},
-            new(){ Content = new(){ Name = "Testsubnet2", Ip = "11.0.0.0/30", IpEnd = "11.0.0.0/30" }}
+            new(){ Content = new(){ Name = "TestRange1", Ip = "10.0.0.0", IpEnd = "10.0.0.255" }},
+            new(){ Content = new(){ Name = "TestRange2", Ip = "11.0.0.0", IpEnd = "11.0.0.3" }}
         ]};
 
         static readonly ModellingNamingConvention NamingConvention1 = new()
@@ -75,10 +76,10 @@ namespace FWO.Test
             ClassicAssert.AreEqual(false, conn.DstFromInterface);
             ClassicAssert.AreEqual(0, conn.SourceAppServers.Count);
             ClassicAssert.AreEqual("AppRole1", conn.SourceAppRoles[0].Content.Name);
-            ClassicAssert.AreEqual("NwGroup1", conn.SourceNwGroups[0].Content.Name);
+            ClassicAssert.AreEqual("NwGroup1", conn.SourceOtherGroups[0].Content.Name);
             ClassicAssert.AreEqual(0, conn.DestinationAppServers.Count);
             ClassicAssert.AreEqual(0, conn.DestinationAppRoles.Count);
-            ClassicAssert.AreEqual(0, conn.DestinationNwGroups.Count);
+            ClassicAssert.AreEqual(0, conn.DestinationOtherGroups.Count);
             ClassicAssert.AreEqual("ServiceGrp1", conn.ServiceGroups[0].Content.Name);
             ClassicAssert.AreEqual(0, conn.Services.Count);
         }
@@ -92,15 +93,14 @@ namespace FWO.Test
             ClassicAssert.AreEqual(true, conn.DstFromInterface);
             ClassicAssert.AreEqual(0, conn.SourceAppServers.Count);
             ClassicAssert.AreEqual(0, conn.SourceAppRoles.Count);
-            ClassicAssert.AreEqual(0, conn.SourceNwGroups.Count);
+            ClassicAssert.AreEqual(0, conn.SourceOtherGroups.Count);
             ClassicAssert.AreEqual("AppServer2", conn.DestinationAppServers[0].Content.Name);
             ClassicAssert.AreEqual("AppRole2", conn.DestinationAppRoles[0].Content.Name);
-            ClassicAssert.AreEqual(0, conn.DestinationNwGroups.Count);
+            ClassicAssert.AreEqual(0, conn.DestinationOtherGroups.Count);
             ClassicAssert.AreEqual(0, conn.ServiceGroups.Count);
             ClassicAssert.AreEqual("Service2", conn.Services[0].Content.Name);
         }
 
-        // AppHandler
         [Test]
         public void TestGetSrcDstSvcNames()
         {
@@ -110,24 +110,24 @@ namespace FWO.Test
                 SrcFromInterface = false,
                 SourceAppServers = [new(){ Content = AppServerInside1 }, new(){ Content = AppServerInside2 }],
                 SourceAppRoles = [new(){ Content = new(){ Name = "AppRole1", IdString = "AR5000001", IsDeleted = true }}],
-                SourceNwGroups = [new(){ Content = TestArea }],
+                SourceOtherGroups = [new(){ Content = TestArea }],
                 DstFromInterface = true,
                 DestinationAppServers = [new(){ Content = AppServerInside3 }],
                 DestinationAppRoles = [],
-                DestinationNwGroups = [],
+                DestinationOtherGroups = [],
                 ServiceGroups = [new(){ Content = new(){ Name = "SvcGroup1", IsGlobal = true}}],
                 Services = [new(){ Content = new(){ Name = "Svc1", Port = 1111, Protocol = new(){ Name = "UDP"}} }]
             };
-            List<string> expectedSrc = new(){$"<span class=\"\"><span class=\"{Icons.NwGroup}\"></span> <span><b><span class=\"\" ><span class=\"\">Area1 (NA50)</span></span></b></span></span>",
-                                             $"<span class=\"\"><span class=\"{Icons.AppRole}\"></span> <span><b><span class=\"text-danger\" ><i><span class=\"\">!AppRole1 (AR5000001)</span></i></span></b></span></span>",
-                                             $"<span class=\"\"><span class=\"{Icons.Host}\"></span> <span class=\"\" ><span class=\"\" ><span class=\"\">AppServerInside1 (10.0.0.0)</span></span></span></span>",
-                                             $"<span class=\"\"><span class=\"{Icons.Host}\"></span> <span class=\"\" ><span class=\"\" ><span class=\"\">AppServerInside2 (10.0.0.5)</span></span></span></span>"};
-            List<string> expectedDst = new(){$"<span class=\"text-secondary\"><span class=\"{Icons.Host}\"></span> <span class=\"\" ><span class=\"\" ><span class=\"\">AppServerInside3 (11.0.0.1)</span></span></span></span>"};
-            List<string> expectedSvc = new(){$"<span class=\"text-secondary\"><span class=\"{Icons.ServiceGroup}\"></span> <span><b>SvcGroup1</b></span></span>",
-                                             $"<span class=\"text-secondary\"><span class=\"{Icons.Service}\"></span> <span>Svc1 (1111/UDP)</span></span>"};
-            ClassicAssert.AreEqual(expectedSrc, AppHandler.GetSrcNames(conn));
-            ClassicAssert.AreEqual(expectedDst, AppHandler.GetDstNames(conn));
-            ClassicAssert.AreEqual(expectedSvc, AppHandler.GetSvcNames(conn));
+            List<string> expectedSrc = [$"<span class=\"\"><span class=\"{Icons.NwGroup}\"></span> <span><b><span class=\"\" ><span class=\"\">Area1 (NA50)</span></span></b></span></span>",
+                                        $"<span class=\"\"><span class=\"{Icons.AppRole}\"></span> <span><b><span class=\"text-danger\" ><i><span class=\"\">!AppRole1 (AR5000001)</span></i></span></b></span></span>",
+                                        $"<span class=\"\"><span class=\"{Icons.Host}\"></span> <span class=\"\" ><span class=\"\" ><span class=\"\">AppServerInside1 (10.0.0.0)</span></span></span></span>",
+                                        $"<span class=\"\"><span class=\"{Icons.Host}\"></span> <span class=\"\" ><span class=\"\" ><span class=\"\">AppServerInside2 (10.0.0.5)</span></span></span></span>"];
+            List<string> expectedDst = [$"<span class=\"text-secondary\"><span class=\"{Icons.Host}\"></span> <span class=\"\" ><span class=\"\" ><span class=\"\">AppServerInside3 (11.0.0.1)</span></span></span></span>"];
+            List<string> expectedSvc = [$"<span class=\"text-secondary\"><span class=\"{Icons.ServiceGroup}\"></span> <span><b>SvcGroup1</b></span></span>",
+                                        $"<span class=\"text-secondary\"><span class=\"{Icons.Service}\"></span> <span>Svc1 (1111/UDP)</span></span>"];
+            ClassicAssert.AreEqual(expectedSrc, ModellingHandlerBase.GetSrcNames(conn, userConfig));
+            ClassicAssert.AreEqual(expectedDst, ModellingHandlerBase.GetDstNames(conn, userConfig));
+            ClassicAssert.AreEqual(expectedSvc, ModellingHandlerBase.GetSvcNames(conn, userConfig));
         }
 
 

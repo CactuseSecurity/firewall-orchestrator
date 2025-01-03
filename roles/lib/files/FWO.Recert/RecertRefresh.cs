@@ -1,7 +1,9 @@
 ﻿using System.Diagnostics;
-using FWO.GlobalConstants;
+using FWO.Basics;
 using FWO.Api.Data;
 using FWO.Api.Client;
+using FWO.Api.Client.Queries;
+using FWO.Api.Data;
 using FWO.Logging;
 
 namespace FWO.Recert
@@ -22,9 +24,9 @@ namespace FWO.Recert
             try
             {
                 watch.Start();
-                List<FwoOwner> owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(Api.Client.Queries.OwnerQueries.getOwners);
-                List<Management> managements = await apiConnection.SendQueryAsync<List<Management>>(Api.Client.Queries.DeviceQueries.getManagementDetailsWithoutSecrets);
-                ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(Api.Client.Queries.RecertQueries.clearOpenRecerts)).ReturnIds;
+                List<FwoOwner> owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
+                List<Management> managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementDetailsWithoutSecrets);
+                ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(RecertQueries.clearOpenRecerts)).ReturnIds;
                 Log.WriteDebug("Delete open recerts", $"deleted Ids: {(returnIds != null ? string.Join(",", Array.ConvertAll(returnIds, Id => Id.DeletedId)) : "")}");
                 // the clearOpenRecerts refreshes materialized view view_rule_with_owner as a side-effect
                 watch.Stop();
@@ -48,11 +50,11 @@ namespace FWO.Recert
             foreach (Management mgm in managements)
             {
                 List<RecertificationBase> currentRecerts =
-                    await apiConnection.SendQueryAsync<List<RecertificationBase>>(Api.Client.Queries.RecertQueries.getOpenRecerts, new { ownerId = owner.Id, mgmId = mgm.Id });
+                    await apiConnection.SendQueryAsync<List<RecertificationBase>>(RecertQueries.getOpenRecerts, new { ownerId = owner.Id, mgmId = mgm.Id });
 
                 if (currentRecerts.Count > 0)
                 {
-                    await apiConnection.SendQueryAsync<NewReturning>(Api.Client.Queries.RecertQueries.addRecertEntries, new { recerts = currentRecerts });
+                    await apiConnection.SendQueryAsync<NewReturning>(RecertQueries.addRecertEntries, new { recerts = currentRecerts });
                 }
             }
 

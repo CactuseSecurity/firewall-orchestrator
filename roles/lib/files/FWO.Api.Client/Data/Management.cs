@@ -3,6 +3,15 @@ using System.Text.Json.Serialization;
 
 namespace FWO.Api.Data
 {
+    public struct ExtMgtData
+    {
+        [JsonProperty("id"), JsonPropertyName("id")]
+        public string? ExtId { get; set; }
+
+        [JsonProperty("name"), JsonPropertyName("name")]
+        public string? ExtName { get; set; }
+    }
+
     public class Management
     {
         [JsonProperty("id"), JsonPropertyName("id")]
@@ -15,7 +24,7 @@ namespace FWO.Api.Data
         public string Hostname { get; set; } = "";
 
         [JsonProperty("import_credential"), JsonPropertyName("import_credential")]
-        public ImportCredential ImportCredential { get; set; } = new ImportCredential();
+        public ImportCredential ImportCredential { get; set; } = new();
 
         [JsonProperty("configPath"), JsonPropertyName("configPath")]
         public string? ConfigPath { get; set; } = "";
@@ -54,20 +63,22 @@ namespace FWO.Api.Data
         public int? DebugLevel { get; set; }
 
         [JsonProperty("devices"), JsonPropertyName("devices")]
-        public Device[] Devices { get; set; } = new Device[]{};
+        public Device[] Devices { get; set; } = [];
 
         [JsonProperty("deviceType"), JsonPropertyName("deviceType")]
-        public DeviceType DeviceType { get; set; } = new DeviceType();
+        public DeviceType DeviceType { get; set; } = new();
 
         [JsonProperty("import"), JsonPropertyName("import")]
-        public Import Import { get; set; } = new Import();
+        public Import Import { get; set; } = new();
+
+        [JsonProperty("extMgtData"), JsonPropertyName("extMgtData")]
+        public string? ExtMgtData { get; set; }
 
         public long? RelevantImportId { get; set; }
         public bool Ignore { get; set; }
         public bool AwaitDevice { get; set; }
         public bool Delete { get; set; }
         public long ActionId { get; set; }
-
 
         public Management()
         {}
@@ -107,6 +118,7 @@ namespace FWO.Api.Data
             AwaitDevice = management.AwaitDevice;
             Delete = management.Delete;
             ActionId = management.ActionId;
+            ExtMgtData = management.ExtMgtData;
         }
 
         public string Host()

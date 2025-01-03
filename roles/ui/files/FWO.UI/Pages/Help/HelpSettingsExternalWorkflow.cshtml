@@ -1,0 +1,40 @@
+﻿@page "/help/settings/extticketing"
+@model FWO.Ui.Pages.Help.MainModel
+@{
+    Layout = "HelpLayout";
+}
+@section sidebar{
+    @{ 
+        await Html.RenderPartialAsync("HelpSettingsSidebar.cshtml"); 
+    }
+}
+@using FWO.Config.Api
+@inject UserConfig userConfig
+
+<div class="p-2">
+    <h3>@(userConfig.GetText("ext_ticket_settings"))</h3>
+    @(Html.Raw(userConfig.GetText("H5598")))
+    <br><br>
+    <ul>
+        <li>@(Html.Raw(userConfig.GetText("H5426a")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5426b")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5427a")))</li>
+    </ul>
+    <br>
+    <ul>
+        <li>@(Html.Raw(userConfig.GetText("H5597")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5593")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5594")))</li>
+    </ul>
+    <br>
+    <ul>
+        <li>@(Html.Raw(userConfig.GetText("H5595")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5596")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5596a")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5596b")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5596c")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5596d")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5596e")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5596f")))</li>
+    </ul>
+</div>

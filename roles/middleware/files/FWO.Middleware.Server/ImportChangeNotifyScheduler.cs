@@ -1,6 +1,6 @@
 ﻿using FWO.Api.Client;
 using FWO.Api.Client.Queries;
-using FWO.GlobalConstants;
+using FWO.Basics;
 using FWO.Api.Data;
 using FWO.Config.Api;
 using FWO.Config.Api.Data;
@@ -36,7 +36,7 @@ namespace FWO.Middleware.Server
         protected override void OnGlobalConfigChange(List<ConfigItem> config)
         {
             ScheduleTimer.Stop();
-            globalConfig.SubscriptionPartialUpdateHandler(config.ToArray());
+            globalConfig.SubscriptionUpdateHandler(config.ToArray());
             if(globalConfig.ImpChangeNotifyActive && globalConfig.ImpChangeNotifySleepTime > 0)
             {
                 ImportChangeNotifyTimer.Interval = globalConfig.ImpChangeNotifySleepTime * 1000; // convert seconds to milliseconds
@@ -91,7 +91,7 @@ namespace FWO.Middleware.Server
         {
             try
             {
-                ImportChangeNotifier notifyImportChanges = new ImportChangeNotifier(apiConnection, globalConfig);
+                ImportChangeNotifier notifyImportChanges = new(apiConnection, globalConfig);
                 if(!await notifyImportChanges.Run())
                 {
                     throw new Exception("Import Change Notify failed.");

@@ -140,7 +140,8 @@ here we describe a single rule:
     "rule_head_text": null,                                 // string: for section headers this is the field to use
     "rule_from_zone": null,                                 // string: source zone (if applicable) of the rule
     "rule_to_zone": null,                                   // string: destination zone (if applicable) of the rule
-    "rule_type": "access"                                   // string: type of the nat rule: "access|combined|original|xlate", default "access"
+    "rule_type": "access",                                  // string: type of the nat rule: "access|combined|original|xlate", default "access"
+    "rule_custom_fields": "{\"field1\": \"value1\"}"        // string: json serialized user defined fields
 }
 ```
 - rule_track can be any of log, none, alert, userdefined, mail, account, userdefined 1, userdefined 2, userdefined 3, snmptrap, log count, count, log alert, log alert count, log alert count alarm, log count alarm, count alarm, all, all start, utm, utm start, network log

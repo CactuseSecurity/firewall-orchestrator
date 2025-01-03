@@ -18,8 +18,9 @@ ReportScheduler reportScheduler;
 AutoDiscoverScheduler autoDiscoverScheduler;
 DailyCheckScheduler dailyCheckScheduler;
 ImportAppDataScheduler importAppDataScheduler;
-ImportSubnetDataScheduler importSubnetDataScheduler;
+ImportIpDataScheduler importSubnetDataScheduler;
 ImportChangeNotifyScheduler importChangeNotifyScheduler;
+ExternalRequestScheduler externalRequestScheduler;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 builder.WebHost.UseUrls(ConfigFile.MiddlewareServerNativeUri ?? throw new Exception("Missing middleware server url on startup."));
@@ -80,13 +81,19 @@ Task.Factory.StartNew(async() =>
 // Create and start import subnet data scheduler
 Task.Factory.StartNew(async() =>
 {
-    importSubnetDataScheduler = await ImportSubnetDataScheduler.CreateAsync(apiConnection);
+    importSubnetDataScheduler = await ImportIpDataScheduler.CreateAsync(apiConnection);
 }, TaskCreationOptions.LongRunning);
 
 // Create and start import change notify scheduler
 Task.Factory.StartNew(async() =>
 {
     importChangeNotifyScheduler = await ImportChangeNotifyScheduler.CreateAsync(apiConnection);
+}, TaskCreationOptions.LongRunning);
+
+// Create and start external request scheduler
+Task.Factory.StartNew(async() =>
+{
+    externalRequestScheduler = await ExternalRequestScheduler.CreateAsync(apiConnection);
 }, TaskCreationOptions.LongRunning);
 
 

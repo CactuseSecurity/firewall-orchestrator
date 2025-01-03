@@ -2,6 +2,7 @@
 @using FWO.Config.Api.Data;
 @using FWO.Api.Client
 @using FWO.Ui.Services
+@using FWO.Services
 
 @page "/settings/customtexts"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
@@ -40,12 +41,12 @@
             <button type="button" class="btn btn-sm btn-primary" @onclick="async () => { await Search(); StateHasChanged(); }" @onclick:preventDefault>@(userConfig.GetText("search"))</button>
         </div>
         <div class="col-sm-2">
-            <input class="form-check-input" type="checkbox" @bind="caseSensitive">
-            <label class="form-check-label">@(userConfig.GetText("case_sensitive"))</label>
+            <input id="cbx_case_sensitive" class="form-check-input" type="checkbox" @bind="caseSensitive">
+            <label for="cbx_case_sensitive" class="form-check-label">@(userConfig.GetText("case_sensitive"))</label>
         </div>
         <div class="col-sm-2">
-            <input class="form-check-input" type="checkbox" @bind="ignoreHelpTexts">
-            <label class="form-check-label">@(userConfig.GetText("ignore_helptexts"))</label>
+            <input id="cbx_ignore_helptexts" class="form-check-input" type="checkbox" @bind="ignoreHelpTexts">
+            <label for="cbx_ignore_helptexts" class="form-check-label">@(userConfig.GetText("ignore_helptexts"))</label>
         </div>
     </div>
 }

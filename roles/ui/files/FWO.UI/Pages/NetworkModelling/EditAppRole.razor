@@ -1,4 +1,5 @@
 @using FWO.Config.Api
+@using FWO.Services
 @using FWO.Ui.Display
 
 @inject ApiConnection apiConnection
@@ -7,26 +8,26 @@
 @if (Display)
 {
     <PopUp Title="@(AppRoleHandler.ReadOnly ? "" : (AppRoleHandler.AddMode ? userConfig.GetText("add_app_role") : userConfig.GetText("edit_app_role")))"
-            Size="@(AppRoleHandler.ReadOnly ? PopupSize.Small : PopupSize.XLarge)" Show="@Display" OnClose="Close">
+           Size="@(AppRoleHandler.ReadOnly ? PopupSize.Small : PopupSize.XLarge)" Show="@Display" OnClose="Close">
         <Body>
             <div class="row">
-                @if(!AppRoleHandler.ReadOnly)
+                @if (!AppRoleHandler.ReadOnly)
                 {
                     <div class="col-sm-6">
-                        <EditAppRoleLeftSide @bind-Container="Container" @bind-Width="sidebarLeftWidth" @bind-AppRoleHandler="AppRoleHandler"/>
+                        <EditAppRoleLeftSide @bind-Container="Container" @bind-Width="sidebarLeftWidth" @bind-AppRoleHandler="AppRoleHandler" />
                     </div>
                 }
                 <div class="@(AppRoleHandler.ReadOnly ? "col-sm-12" : "col-sm-6")">
                     <h3>@(userConfig.GetText("app_role"))</h3>
                     <div class="col-sm-11 border rounded m-2 p-2">
-                        @if(AppRoleHandler.NamingConvention.NetworkAreaRequired)
+                        @if (AppRoleHandler.NamingConvention.NetworkAreaRequired)
                         {
                             <div class="form-group row">
                                 <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("area"))*:</label>
-                                @if(AppRoleHandler.AddMode && !AppRoleHandler.ReadOnly)
+                                @if (AppRoleHandler.AddMode && !AppRoleHandler.ReadOnly)
                                 {
                                     <div class="col-sm-8">
-                                        <Dropdown ElementType="ModellingNetworkArea" SelectedElement="AppRoleHandler.ActAppRole.Area" ElementToString="@(a => a.Display() + DisplayObjectCount(a))" 
+                                        <Dropdown ElementType="ModellingNetworkArea" SelectedElement="AppRoleHandler.ActAppRole.Area" ElementToString="@(a => a.Display() + DisplayObjectCount(a))"
                                                 SelectedElementChanged="OnSelectedAreaChanged" Elements="areas" Nullable="true">
                                             <ElementTemplate Context="area">
                                                 @((MarkupString)DisplayAreaWithObjectCount(area))
@@ -42,11 +43,11 @@
                         }
                         <div class="form-group row mt-2">
                             <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("id"))*:</label>
-                            @if(AppRoleHandler.ReadOnly)
+                            @if (AppRoleHandler.ReadOnly)
                             {
                                 <label class="col-sm-8">@AppRoleHandler.ActAppRole.IdString</label>
                             }
-                            else if(AppRoleHandler.NamingConvention.NetworkAreaRequired)
+                            else if (AppRoleHandler.NamingConvention.NetworkAreaRequired)
                             {
                                 <input type="text" class="col-sm-4" readonly @bind="AppRoleHandler.ActAppRole.ManagedIdString.CombinedFixPart" />
                                 <span class="col-sm-1">@AppRoleHandler.ActAppRole.ManagedIdString.Separator</span>
@@ -59,7 +60,7 @@
                         </div>
                         <div class="form-group row mt-2">
                             <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
-                            @if(AppRoleHandler.ReadOnly)
+                            @if (AppRoleHandler.ReadOnly)
                             {
                                 <label class="col-sm-8">@AppRoleHandler.ActAppRole.Name</label>
                             }
@@ -70,7 +71,7 @@
                         </div>
                         <div class="form-group row mt-2">
                             <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("comment")):</label>
-                            @if(AppRoleHandler.ReadOnly)
+                            @if (AppRoleHandler.ReadOnly)
                             {
                                 <label class="col-sm-8">@AppRoleHandler.ActAppRole.Comment</label>
                             }
@@ -82,19 +83,19 @@
                         <br>
                         <div class="col-sm-12">
                             <h6>@(userConfig.GetText("app_server"))</h6>
-                            @if(AppRoleHandler.ReadOnly)
+                            @if (AppRoleHandler.ReadOnly)
                             {
-                                foreach(var appserver in ModellingAppServerWrapper.Resolve(AppRoleHandler.ActAppRole.AppServers))
+                                foreach (var appserver in ModellingAppServerWrapper.Resolve(AppRoleHandler.ActAppRole.AppServers))
                                 {
                                     <div class="mh-13 col-sm-11 mt-1 border bg-transparent">@((MarkupString)appserver.DisplayWithIcon())</div>
                                 }
                             }
                             else
                             {
-                                <div class="minheight-dropzone bg-secondary dropzone" 
-                                    ondragover="event.preventDefault();"
-                                    ondragstart="event.dataTransfer.setData('', event.target.id);"
-                                    @ondrop="HandleServerDrop">
+                                <div class="minheight-dropzone bg-secondary dropzone"
+                                     ondragover="event.preventDefault();"
+                                     ondragstart="event.dataTransfer.setData('', event.target.id);"
+                                     @ondrop="HandleServerDrop">
                                     <EditList ElementType="ModellingAppServer" Elements="ModellingAppServerWrapper.Resolve(AppRoleHandler.ActAppRole.AppServers)" ElementsToAdd="AppRoleHandler.AppServerToAdd" ElementsToDelete="AppRoleHandler.AppServerToDelete" StdLayout="false">
                                         <Display>
                                             <div class="row">
@@ -105,7 +106,7 @@
                                 </div>
                             }
                         </div>
-                        @if(!AppRoleHandler.AddMode)
+                        @if (!AppRoleHandler.AddMode)
                         {
                             <label class="col-sm-12 small mt-2">@(userConfig.GetText("created_by")): @(AppRoleHandler.ActAppRole.Creator), @(userConfig.GetText("creation_date")): @(AppRoleHandler.ActAppRole.CreationDate)</label>
                         }
@@ -115,13 +116,13 @@
         </Body>
         <Footer>
             <div class="btn-group">
-                @if(AppRoleHandler.ReadOnly)
+                @if (AppRoleHandler.ReadOnly)
                 {
                     <button type="button" class="btn btn-sm btn-primary" @onclick="Close">@(userConfig.GetText("ok"))</button>
                 }
                 else
                 {
-                    @if(AppRoleHandler.IsOwner)
+                    @if (AppRoleHandler.IsOwner)
                     {
                         <button type="button" class="btn btn-sm btn-primary" @onclick="Save">@(userConfig.GetText("save"))</button>
                     }
@@ -134,9 +135,10 @@
             </div>
         </Footer>
     </PopUp>
-    <InProgress Display="workInProgress"/>
+    <InProgress Display="workInProgress" />
+    <Confirm @bind-Display="ShowAreaChangeConfirmation" AllowedRoles="@Roles.Modeller" RenderMessageAsHtml="true"
+        Message="@(userConfig.GetText("nwareachange_clear_app_servers"))" PerformAction="async () => await AreaChangeConfirmation()" Title="@(userConfig.GetText("confirm"))" />
 }
-
 @code
 {
     [CascadingParameter]
@@ -147,7 +149,7 @@
 
     [Parameter]
     public bool Display { get; set; } = false;
-        
+
     [Parameter]
     public EventCallback<bool> DisplayChanged { get; set; }
 
@@ -164,10 +166,12 @@
     private ModellingDnDContainer Container { get; set; } = new();
     int sidebarLeftWidth = GlobalConst.kObjLibraryWidth;
 
-    private List<ModellingNetworkArea> areas = new();
-    private ModellingAppRole unchangedAppRole = new();
+    private List<ModellingNetworkArea> areas = [];
     private bool firstTry = true;
     private bool workInProgress = false;
+    private bool ShowAreaChangeConfirmation { get; set; }
+
+    private ModellingNetworkArea? LastSelectedNetworkArea;
 
     protected override async Task OnInitializedAsync()
     {
@@ -186,24 +190,24 @@
 
     protected override async Task OnParametersSetAsync()
     {
-        if(Display && firstTry)
+        if (Display && firstTry)
         {
             firstTry = false;
             if (AppRoleHandler.NamingConvention.NetworkAreaRequired)
             {
-                if(areas.Count == 0)
+                if (areas.Count == 0)
                 {
                     DisplayMessageInUi(null, userConfig.GetText("E9002"), "", true);
                 }
                 else
                 {
-                    foreach(var area in areas)
+                    foreach (var area in areas)
                     {
                         AppRoleHandler.CountMembers(area);
                     }
                     CustomSortAreas();
                     ModellingNetworkArea? existArea = areas.FirstOrDefault(a => a.IdString == AppRoleHandler.ActAppRole.Area?.IdString);
-                    if(existArea != null)
+                    if (existArea != null)
                     {
                         AppRoleHandler.ActAppRole.Area = existArea;
                     }
@@ -214,13 +218,12 @@
             {
                 AppRoleHandler.AppServersInArea = AppRoleHandler.AvailableAppServers.Where(x => !x.IsDeleted).ToList();
             }
-            unchangedAppRole = new(AppRoleHandler.ActAppRole);
         }
     }
 
     private string DisplayAreaWithObjectCount(ModellingNetworkArea area)
     {
-        return $"<span class=\"{(area.MemberCount == 0 ? "text-secondary" : "")}\">{area.DisplayHtml() + DisplayObjectCount(area)}</span>";
+        return $"<span class=\"{( area.MemberCount == 0 ? "text-secondary" : "" )}\">{area.DisplayHtml() + DisplayObjectCount(area)}</span>";
     }
 
     private string DisplayObjectCount(ModellingNetworkArea area)
@@ -230,7 +233,7 @@
 
     private void HandleServerDrop()
     {
-        if(Container.AppServerElements.Count > 0)
+        if (Container.AppServerElements.Count > 0)
         {
             AppRoleHandler.AppServerToAppRole(Container.AppServerElements);
         }
@@ -239,15 +242,19 @@
 
     private async Task Save()
     {
-        if(await AppRoleHandler.Save())
+        if (await AppRoleHandler.Save())
         {
-            if(unchangedAppRole.Name != AppRoleHandler.ActAppRole.Name || unchangedAppRole.IdString != AppRoleHandler.ActAppRole.IdString)
-            {
-                await RefreshParent();
-            }
-            unchangedAppRole = new(AppRoleHandler.ActAppRole);
+            await RefreshParent();
             Close();
         }
+    }
+
+    private async Task AreaChangeConfirmation()
+    {
+        AppRoleHandler.Close();
+        await AppRoleHandler.InitAppRole(LastSelectedNetworkArea);
+        ShowAreaChangeConfirmation = false;
+        StateHasChanged();
     }
 
     private void Close()
@@ -257,12 +264,27 @@
         DisplayChanged.InvokeAsync(Display);
     }
 
+
     private async Task OnSelectedAreaChanged(ModellingNetworkArea? newArea)
     {
         try
         {
-            if(!workInProgress)
+            if (!workInProgress && !ShowAreaChangeConfirmation)
             {
+                if (newArea is null)
+                    return;
+
+                if (LastSelectedNetworkArea is not null && LastSelectedNetworkArea.Equals(newArea))
+                    return;
+
+                LastSelectedNetworkArea = newArea;
+
+                if (AppRoleHandler.AppServerToAdd.Count > 0)
+                {
+                    ShowAreaChangeConfirmation = true;
+                    return;
+                }
+
                 workInProgress = true;
                 await AppRoleHandler.InitAppRole(newArea);
                 workInProgress = false;

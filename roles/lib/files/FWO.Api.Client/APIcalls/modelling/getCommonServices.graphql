@@ -3,6 +3,7 @@ query getCommonServices{
     ...connectionDetails
     owner{
       name
+      app_id_external
     }
   }
 }

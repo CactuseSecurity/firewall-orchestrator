@@ -1,0 +1,6 @@
+
+query getLastRequest ($ticketId: bigint! ){
+  ext_request (where: { ticket_id: {_eq: $ticketId} } order_by: { id: desc }, limit: 1){
+    ...extRequestDetails
+  }
+}

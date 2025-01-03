@@ -6,7 +6,7 @@
 <nav class="bg-gray fixed sidebar-help shadow">
     <div class="sidebar-help d-flex flex-row" style="left:0px;">
         <div class="sidebar-help" style="width:250px; overflow-x:scroll;">
-            <ul class="sidebar-help me-auto">
+            <ul class="me-auto">
                 <p></p>
                 <h5>@(userConfig.GetText("alerts"))</h5>
                 <a class="nav-link" href="/help/monitoring/open_alerts/?lang=@($"{userConfig.GetUserLanguage()}")">
@@ -30,6 +30,14 @@
                 </a>
                 <a class="nav-link" href="/help/monitoring/import_logs/?lang=@($"{userConfig.GetUserLanguage()}")">
                     <span class="@Icons.Import"></span> @(userConfig.GetText("import_logs"))
+                </a>
+                <p></p>
+                <h5>@(userConfig.GetText("external_requests"))</h5>
+                <a class="nav-link" href="/help/monitoring/external_request_tickets/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="@Icons.Tickets"></span> @(userConfig.GetText("ext_request_tickets"))
+                </a>
+                <a class="nav-link" href="/help/monitoring/external_requests/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="@Icons.Export"></span> @(userConfig.GetText("external_requests"))
                 </a>
                 <p></p>
                 <h5>@(userConfig.GetText("personal"))</h5>

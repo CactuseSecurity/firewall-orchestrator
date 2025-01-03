@@ -1,7 +1,0 @@
-
-query getOwnerIdsForUser ($userDn: String!) {
-  owner (where: {dn: {_eq: $userDn}} order_by: { id: asc }){
-    id
-    recert_interval
-  }
-}

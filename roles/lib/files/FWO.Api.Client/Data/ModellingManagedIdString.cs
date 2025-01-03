@@ -9,7 +9,7 @@ namespace FWO.Api.Data
 
 
         public ModellingManagedIdString()
-        {}
+        { }
 
         public ModellingManagedIdString(string idstring)
         {
@@ -60,11 +60,11 @@ namespace FWO.Api.Data
         {
             get
             {
-                return NamingConvention.UseAppPart ? (AppPartExisting() ? IdString.Substring(NamingConvention.FixedPartLength, AppPartEnd() - NamingConvention.FixedPartLength + 1): "") : "";
+                return NamingConvention.UseAppPart ? ( AppPartExisting() ? IdString.Substring(NamingConvention.FixedPartLength, AppPartEnd() - NamingConvention.FixedPartLength + 1) : "" ) : "";
             }
             set
             {
-                if(NamingConvention.UseAppPart)
+                if (NamingConvention.UseAppPart)
                 {
                     IdString = FillFixedIfNecessary(IdString);
                     IdString = IdString.Substring(0, NamingConvention.FixedPartLength) + value + FreePart;
@@ -76,7 +76,7 @@ namespace FWO.Api.Data
         {
             get
             {
-                return FixedPart + (AppPart.EndsWith(separator) ? AppPart.Substring(0, AppPart.Length - 1) : AppPart);
+                return FixedPart + ( AppPart.EndsWith(separator) ? AppPart.Substring(0, AppPart.Length - 1) : AppPart );
             }
             set
             {
@@ -92,7 +92,7 @@ namespace FWO.Api.Data
             }
             set
             {
-                if(NamingConvention.UseAppPart)
+                if (NamingConvention.UseAppPart)
                 {
                     AppPart += value;
                 }
@@ -114,30 +114,39 @@ namespace FWO.Api.Data
 
         public void SetAppPartFromExtId(string extAppId)
         {
-            string zoneType = extAppId.StartsWith("APP") ? "0" : (extAppId.StartsWith("COM") ? "1" :  "?");
+            string zoneType = extAppId.StartsWith("APP") ? "0" : ( extAppId.StartsWith("COM") ? "1" : "?" );
             int idx = extAppId.IndexOf(separator);
             string appNumber = idx > 0 ? extAppId.Substring(idx + 1, extAppId.Length - idx - 1) : "";
             AppPart = zoneType + appNumber + separator;
         }
 
-        public void ConvertAreaToAppRoleFixedPart (string areaIdString)
+        public void SetAppPartFromExtIdAZ(string extAppId)
+        {
+            string zoneType = extAppId.StartsWith("APP") ? "0" : ( extAppId.StartsWith("COM") ? "1" : "?" );
+            int idx = extAppId.IndexOf("-");
+            string appNumber = idx > 0 ? extAppId.Substring(idx + 1, extAppId.Length - idx - 1) : "";
+            AppPart = zoneType + appNumber;
+            IdString = $"{NamingConvention.AppZone}{zoneType}{appNumber}";
+        }
+
+        public void ConvertAreaToAppRoleFixedPart(string areaIdString)
         {
             FixedPart = ConvertAreaToAppRole(areaIdString, NamingConvention);
         }
 
-        public static string ConvertAreaToAppRole (string areaIdString, ModellingNamingConvention namingConvention)
+        public static string ConvertAreaToAppRole(string areaIdString, ModellingNamingConvention namingConvention)
         {
-            if(areaIdString.Length >= namingConvention.FixedPartLength)
+            if (areaIdString.Length >= namingConvention.FixedPartLength)
             {
                 return areaIdString.Substring(0, namingConvention.FixedPartLength).Remove(0, namingConvention.NetworkAreaPattern.Length).Insert(0, namingConvention.AppRolePattern);
             }
             return areaIdString;
         }
 
-        public static string ConvertAppRoleToArea (string appRoleIdString, ModellingNamingConvention namingConvention)
+        public static string ConvertAppRoleToArea(string appRoleIdString, ModellingNamingConvention namingConvention)
         {
             int convLength = namingConvention.AppRolePattern.Length > namingConvention.FixedPartLength ? namingConvention.FixedPartLength : namingConvention.AppRolePattern.Length;
-            if(appRoleIdString.Length >= namingConvention.FixedPartLength)
+            if (appRoleIdString.Length >= namingConvention.FixedPartLength)
             {
                 return appRoleIdString.Substring(0, namingConvention.FixedPartLength).Remove(0, convLength).Insert(0, namingConvention.NetworkAreaPattern);
             }
@@ -145,7 +154,7 @@ namespace FWO.Api.Data
         }
 
 
-        private int AppPartEnd() 
+        private int AppPartEnd()
         {
             return IdString.IndexOf(separator);
         }

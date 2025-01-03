@@ -1,12 +1,4 @@
 ---
-- name: delete test user and dir
-  user:
-    name: test
-    state: absent
-    remove: true
-  become: true
-  listen: "test importer handler"
-
 - name: delete test user cred config file
   file:
     path: "{{ fworch_secrets_dir }}/TestUserCreds.json"

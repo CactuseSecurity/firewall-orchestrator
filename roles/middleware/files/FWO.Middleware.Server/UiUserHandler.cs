@@ -2,7 +2,7 @@
 using FWO.Api.Client.Queries;
 using FWO.Logging;
 using FWO.Config.File;
-using FWO.GlobalConstants;
+using FWO.Basics;
 using FWO.Api.Data;
 using System.Text.Json.Serialization;
 using Newtonsoft.Json;
@@ -106,7 +106,7 @@ namespace FWO.Middleware.Server
 		{
 			try
 			{
-				List<FwoOwner> dirOwnerships = await apiConn.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnerIdsForUser, new { userDn = user.Dn });
+				List<FwoOwner> dirOwnerships = await apiConn.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnersForUser, new { userDn = user.Dn });
 				foreach (var owner in dirOwnerships)
 				{
 					user.Ownerships.Add(owner.Id);
@@ -118,9 +118,9 @@ namespace FWO.Middleware.Server
 					foreach (var grp in user.Groups)
 					{
 						string grpName = new DistName(grp).Group;
-						if (grpName.StartsWith(GlobalConst.kModellerGroup))
+						if (grpName.Contains(GlobalConst.kModellerGroup))
 						{
-							FwoOwner? owner = apps.FirstOrDefault(x => x.ExtAppId == grpName.Substring(GlobalConst.kModellerGroup.Length));
+							FwoOwner? owner = apps.FirstOrDefault(x => x.ExtAppId == grpName.Substring(GlobalConst.kModellerGroup.Length));	// TODO: use pattern matching
 							if (owner != null)
 							{
 								user.Ownerships.Add(owner.Id);

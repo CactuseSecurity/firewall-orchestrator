@@ -5,7 +5,6 @@ using System.Security.Cryptography.X509Certificates;
 using FWO.Encryption;
 using FWO.Api.Data;
 using FWO.Middleware.RequestParameters;
-using Microsoft.IdentityModel.Tokens;
 
 namespace FWO.Middleware.Server
 {
@@ -621,7 +620,7 @@ namespace FWO.Middleware.Server
 		/// Get all groups of an LDAP server matching a specific pattern
 		/// </summary>
 		/// <returns>list of groups</returns>
-		public List<GroupGetReturnParameters> GetAllGroupObjects(string groupPattern, LdapType ldapType)
+		public List<GroupGetReturnParameters> GetAllGroupObjects(string groupPattern)
 		{
 			List<GroupGetReturnParameters> allGroups = [];
 
@@ -639,9 +638,9 @@ namespace FWO.Middleware.Server
                 foreach (LdapEntry entry in searchResults)
                 {
                     List<string> members = [];
-					if (entry.GetAttributeSet().ContainsKey(GetMemberKey(ldapType)))
+					if (entry.GetAttributeSet().ContainsKey(GetMemberKey()))
 					{
-						string[] groupMemberDn = entry.GetAttribute(GetMemberKey(ldapType)).StringValueArray;
+						string[] groupMemberDn = entry.GetAttribute(GetMemberKey()).StringValueArray;
 						foreach (string currentDn in groupMemberDn)
 						{
 							if (currentDn != "")
@@ -669,10 +668,10 @@ namespace FWO.Middleware.Server
 		/// Get member key depending on the LDAP type
 		/// </summary>
 		/// <returns>string with member key</returns>
-		public static string GetMemberKey(LdapType ldapType)
+		private string GetMemberKey()
 		{
 			string memberKey = "uniqueMember";
-			if (ldapType == LdapType.ActiveDirectory)
+			if ((LdapType)Type == LdapType.ActiveDirectory)
 			{
 				memberKey = "member";
 			}
@@ -687,7 +686,7 @@ namespace FWO.Middleware.Server
 		{
 			List<string> allMembers = [];
 
-			if (groupDn.Contains(GroupSearchPath))
+			if (!string.IsNullOrEmpty(GroupSearchPath) && groupDn.Contains(GroupSearchPath))
 			{
 				try
 				{
@@ -698,7 +697,7 @@ namespace FWO.Middleware.Server
 
                     if (entry != null)
                     {
-                        string[] groupMemberDn = entry.GetAttribute(GetMemberKey((LdapType) Type)).StringValueArray;
+                        string[] groupMemberDn = entry.GetAttribute(GetMemberKey()).StringValueArray;
                         foreach (string currentDn in groupMemberDn)
                         {
                             if (currentDn != "")

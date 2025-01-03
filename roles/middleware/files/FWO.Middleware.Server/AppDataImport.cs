@@ -9,7 +9,6 @@ using FWO.Middleware.RequestParameters;
 using FWO.Api.Client.Queries;
 using Novell.Directory.Ldap;
 using System.Data;
-using Microsoft.IdentityModel.Tokens;
 
 namespace FWO.Middleware.Server
 {
@@ -32,8 +31,7 @@ namespace FWO.Middleware.Server
 		private string reviewerRoleDn = "";
 		List<GroupGetReturnParameters> allGroups = [];
 		List<GroupGetReturnParameters> allInternalGroups = [];
-		List<GroupGetReturnParameters> allExternalGroups = [];
-
+	
 
 		/// <summary>
 		/// Constructor for App Data Import
@@ -83,14 +81,12 @@ namespace FWO.Middleware.Server
 			}
 			else
 			{
-				allGroups = ownerGroupLdap.GetAllGroupObjects(GetLdapSearchPattern(globalConfig.OwnerLdapGroupNames), 
-					(LdapType) connectedLdaps.FirstOrDefault(x => x.Id==globalConfig.OwnerLdapId).Type);
+				allGroups = ownerGroupLdap.GetAllGroupObjects(GetLdapSearchPattern(globalConfig.OwnerLdapGroupNames));
 			}
 		}
 
 		private static string GetLdapSearchPattern(string ownerGroupNamePattern)
 		{
-			// allGroups = ownerGroupLdap.GetAllGroupObjects(globalConfig.OwnerLdapGroupNames);
 			string searchPattern = ownerGroupNamePattern;
 			// assuming that we remove everything after the kAppIdPlaceholder
 			int index = ownerGroupNamePattern.IndexOf(GlobalConst.kAppIdPlaceholder);
@@ -100,7 +96,7 @@ namespace FWO.Middleware.Server
 				searchPattern = ownerGroupNamePattern.Substring(0, index + GlobalConst.kAppIdPlaceholder.Length);
 			}
 			// now remove CN= from pattern
-			index = searchPattern.IndexOf("=");
+			index = searchPattern.IndexOf('=');
 			if (index != -1)
 			{
 				searchPattern = searchPattern.Substring(index + 1);
@@ -154,7 +150,11 @@ namespace FWO.Middleware.Server
 					{
 						++failCounter;
 					}
-					foreach (var existingApp in existingApps.Where(x => x.ImportSource == incomingApp.ImportSource && x.Active))
+				}
+				string? importSource = importedApps.FirstOrDefault()?.ImportSource;
+				if(importSource != null)
+				{
+					foreach (var existingApp in existingApps.Where(x => x.ImportSource == importSource && x.Active))
 					{
 						if (importedApps.FirstOrDefault(x => x.ExtAppId == existingApp.ExtAppId) == null)
 						{
@@ -171,7 +171,6 @@ namespace FWO.Middleware.Server
 				}
 				Log.WriteInfo("Import App Data", $"Imported from {importfileName}: {successCounter} apps, {failCounter} failed. Deactivated {deleteCounter} apps, {deleteFailCounter} failed.");
 			}
-
 		}
 
 		private async Task<bool> SaveApp(ModellingImportAppData incomingApp)
@@ -191,7 +190,6 @@ namespace FWO.Middleware.Server
 				}
 				// in order to store email addresses of users in the group in UiUser for email notification:
 				await AddAllGroupMembersToUiUser(userGroupDn);
-
 			}
 			catch (Exception exc)
 			{
@@ -328,7 +326,7 @@ namespace FWO.Middleware.Server
 						await UiUserHandler.UpsertUiUser(apiConnection, uiUser, false);
 					}
 				}
-			 }
+			}
 		}
 
 		private async Task<UiUser?> ConvertLdapToUiUser(ApiConnection apiConnection, string userDn)
@@ -544,7 +542,7 @@ namespace FWO.Middleware.Server
 					}
 					if (!existingAppServer.Name.Equals(incomingAppServer.Name))
 					{
-						if (!await UpdateAppServerName(existingAppServer, buildAppServerName(incomingAppServer)))
+						if (!await UpdateAppServerName(existingAppServer, BuildAppServerName(incomingAppServer)))
 						{	
 							return false;
 						}
@@ -566,7 +564,7 @@ namespace FWO.Middleware.Server
 			}
 		}
 
-		private string buildAppServerName(ModellingImportAppServer appServer)
+		private string BuildAppServerName(ModellingImportAppServer appServer)
 		{
 			bool changed = false;
 			try
@@ -577,16 +575,12 @@ namespace FWO.Middleware.Server
 					ModellingNamingConvention NamingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(globalConfig.ModNamingConvention) ?? new();
 					return Sanitizer.SanitizeJsonFieldMand(NamingConvention.AppServerPrefix + DisplayBase.DisplayIp(appServer.Ip, appServer.IpEnd), ref changed);
 				}
-				else
-				{
-					return appServer.Name;
-				}
 			}
 			catch (Exception exc)
 			{
 				Log.WriteError("Import App Server Data", $"App Server name {appServer.Name} could not be set according to naming conventions.", exc);
-				return appServer.Name;
 			}
+			return appServer.Name;
 		}
 
 		private async Task<bool> NewAppServer(ModellingImportAppServer incomingAppServer, int appID, string impSource)
@@ -595,7 +589,7 @@ namespace FWO.Middleware.Server
 			{
 				var Variables = new
 				{
-					name = buildAppServerName(incomingAppServer),
+					name = BuildAppServerName(incomingAppServer),
 					appId = appID,
 					ip = IpAsCidr(incomingAppServer.Ip),
 					ipEnd = incomingAppServer.IpEnd != "" ? IpAsCidr(incomingAppServer.IpEnd) : IpAsCidr(incomingAppServer.Ip),

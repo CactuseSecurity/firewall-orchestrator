@@ -1026,6 +1026,10 @@ INSERT INTO txt VALUES ('requesting_owner',     'German',   'Beantragender Eigen
 INSERT INTO txt VALUES ('requesting_owner',     'English',  'Requesting Owner');
 INSERT INTO txt VALUES ('port_range',		    'German', 	'Port(bereich)');
 INSERT INTO txt VALUES ('port_range',		    'English', 	'Port (range)');
+INSERT INTO txt VALUES ('network_group',		'German', 	'Netzwerkgruppe');
+INSERT INTO txt VALUES ('network_group',		'English', 	'Network Group');
+INSERT INTO txt VALUES ('service_group',		'German', 	'Servicegruppe');
+INSERT INTO txt VALUES ('service_group',		'English', 	'Service Group');
 
 -- network analysis
 INSERT INTO txt VALUES ('network_analysis', 	'German',	'Netzanalyse');

@@ -154,17 +154,5 @@ namespace FWO.Api.Data
             }
             return elements;
         }
-
-        public string GetAllComments()
-        {
-            string allComments = "";
-            foreach(var comment in Comments)
-            {
-                allComments += comment.Comment.CreationDate.ToShortDateString() + " "
-                            + comment.Comment.Creator.Name + ": "
-                            + comment.Comment.CommentText + "\n";
-            }
-            return allComments;
-        }
     }
 }

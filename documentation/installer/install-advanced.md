@@ -76,6 +76,7 @@ Note that the following domains must be reachable through the proxy:
     microsoft.com     
     nuget.org
     storage.googleapis.com
+    googlechromelabs.github.io
   
   Only for the initial setup of python venv
   

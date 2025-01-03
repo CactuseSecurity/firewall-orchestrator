@@ -8,6 +8,14 @@ using System.Reflection;
 using PuppeteerSharp;
 using PuppeteerSharp.Media;
 using PuppeteerSharp.BrowserData;
+using HtmlAgilityPack;
+using PdfSharp.Pdf;
+using PdfSharp.Drawing;
+using PdfSharp.Pdf.Actions;
+using PdfSharp.Pdf.Annotations;
+using PdfSharp.Pdf.IO;
+using System.Diagnostics;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace FWO.Report
 {
@@ -219,6 +227,8 @@ namespace FWO.Report
 
         private async Task<string?> CreatePDFViaPuppeteer(string html, PaperFormat format)
         {
+            List<string>? toc = CreateTOC(html);
+
             OperatingSystem? os = Environment.OSVersion;
 
             string path = "";
@@ -231,7 +241,7 @@ namespace FWO.Report
                     break;
                 case PlatformID.Unix:
                     path = ChromeBinPathLinux;
-                    browserFetcher = new(new BrowserFetcherOptions { Path = path, Platform = Platform.Linux, Browser = SupportedBrowser.Chrome });                    
+                    browserFetcher = new(new BrowserFetcherOptions { Path = path, Platform = Platform.Linux, Browser = SupportedBrowser.Chrome });
                     break;
                 default:
                     return default;
@@ -254,12 +264,14 @@ namespace FWO.Report
                 using IPage page = await browser.NewPageAsync();
                 await page.SetContentAsync(html);
 
-                PuppeteerSharp.Media.PaperFormat? pupformat =  GetPuppeteerPaperFormat(format)  ?? throw new Exception();
+                PuppeteerSharp.Media.PaperFormat? pupformat = GetPuppeteerPaperFormat(format) ?? throw new Exception();
 
                 PdfOptions pdfOptions = new() { DisplayHeaderFooter = true, Landscape = true, PrintBackground = true, Format = pupformat, MarginOptions = new MarginOptions { Top = "1cm", Bottom = "1cm", Left = "1cm", Right = "1cm" } };
-                byte[] pdfData = await page.PdfDataAsync(pdfOptions);
+                using Stream? pdfData = await page.PdfStreamAsync(pdfOptions);
+                                
+                byte[]? pdfWithToCData = CreatePDFWithTOC(pdfData, toc);
 
-                return Convert.ToBase64String(pdfData);
+                return Convert.ToBase64String(pdfWithToCData);
             }
             catch (Exception)
             {
@@ -269,6 +281,54 @@ namespace FWO.Report
             {
                 await browser.CloseAsync();
             }
+        }
+
+        private List<string> CreateTOC(string html)
+        {
+            HtmlDocument doc = new();
+            doc.LoadHtml(html);
+
+            List<HtmlNode>? headings = doc.DocumentNode.Descendants()
+                            .Where(n => n.Name.StartsWith('h') && n.Name.Length == 2 && !n.Name.EndsWith('r'))
+                            .ToList();
+
+            List<string> tocItems = [];
+            foreach (HtmlNode heading in headings)
+            {
+                string headingText = heading.InnerText.Trim();
+                string headingId = headingText.ToLower().Replace(" ", "-").Replace(",", "").Replace(".", "");
+
+                if (string.IsNullOrEmpty(heading.GetAttributeValue("id", "")))
+                {
+                    heading.SetAttributeValue("id", headingId);
+                }
+
+                tocItems.Add(heading.InnerText);
+
+            }
+            return tocItems;
+        }
+
+        private byte[] CreatePDFWithTOC(Stream pdfData, List<string> toc)
+        {
+            PdfDocument document = PdfReader.Open(pdfData, PdfDocumentOpenMode.Modify);
+            XFont font = new("Verdana", 16);
+
+            PdfPage page = document.Pages[0];          
+
+            PdfOutline outline = document.Outlines.Add("ToC", page, true, PdfOutlineStyle.Bold, XColors.Red);
+
+            foreach (string item in toc)
+            {
+                outline.Outlines.Add(item, page, true);
+            }
+
+            using MemoryStream stream = new();
+            document.Save(stream, true);
+
+            byte[] pdfWithToCData = stream.ToArray();
+
+            return pdfWithToCData;
         }
 
         private PuppeteerSharp.Media.PaperFormat? GetPuppeteerPaperFormat(PaperFormat format)

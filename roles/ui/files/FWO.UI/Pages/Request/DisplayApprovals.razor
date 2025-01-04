@@ -49,7 +49,7 @@
                     </Column>
                     <Column TableItem="WfApproval" Title="@(userConfig.GetText("comments"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" >
                         <Template>
-                            @(context.GetAllComments())
+                            @(WfStatefulObject.DisplayAllComments(context.Comments))
                         </Template>
                     </Column>
                 </Table>
@@ -101,7 +101,7 @@
     private async Task Reset()
     {
         WfHandler.ResetApprovalActions();
-        StateHasChanged();
+        await InvokeAsync(StateHasChanged);
     }
 
     private async Task AssignApproval(WfApproval approval)
@@ -118,5 +118,4 @@
         await WfHandler.ConfAddCommentToApproval(commentText);
         StateHasChanged();
     }
-
 }

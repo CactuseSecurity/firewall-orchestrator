@@ -15,10 +15,10 @@ namespace FWO.Config.Api
     /// </summary>
     public class UserConfig : Config, IDisposable
     {
-        private readonly GlobalConfig globalConfig;
+        private readonly GlobalConfig? globalConfig;
         private bool disposedValue;
 
-        public Dictionary<string, string> Translate { get; set; }
+        public Dictionary<string, string> Translate { get; set; } = [];
         public Dictionary<string, string> Overwrite { get; set; } = [];
 
         public UiUser User { private set; get; }
@@ -52,9 +52,10 @@ namespace FWO.Config.Api
             globalConfig.OnChange += OnGlobalConfigChange;
         }
 
-        // only for unit tests
-        protected UserConfig() : base()
-        {}
+        public UserConfig() : base()
+        {
+            User = new UiUser();
+        }
         
         private void OnGlobalConfigChange(Config config, ConfigItem[] changedItems)
         {
@@ -72,7 +73,10 @@ namespace FWO.Config.Api
 
         public async Task SetUserInformation(string userDn, ApiConnection apiConnection)
         {
-            OnGlobalConfigChange(globalConfig, globalConfig.RawConfigItems);
+            if(globalConfig != null)
+            {
+                OnGlobalConfigChange(globalConfig, globalConfig.RawConfigItems);
+            }
             Log.WriteDebug("Get User Data", $"Get user data from user with DN: \"{userDn}\"");
             UiUser[]? users = await apiConnection.SendQueryAsync<UiUser[]>(AuthQueries.getUserByDn, new { dn = userDn });
             if (users.Length > 0)
@@ -90,11 +94,14 @@ namespace FWO.Config.Api
 
         public async Task ChangeLanguage(string languageName, ApiConnection apiConnection)
         {
-            await apiConnection.SendQueryAsync<ReturnId>(AuthQueries.updateUserLanguage, new { id = User.DbId, language = languageName });
-            Translate = globalConfig.LangDict[languageName];
-            Overwrite = apiConnection != null ? await GetCustomDict(languageName): globalConfig.OverDict[languageName];
-            User.Language = languageName;
-            InvokeOnChange(this, null);
+            if(globalConfig != null)
+            {
+                await apiConnection.SendQueryAsync<ReturnId>(AuthQueries.updateUserLanguage, new { id = User.DbId, language = languageName });
+                Translate = globalConfig.LangDict[languageName];
+                Overwrite = apiConnection != null ? await GetCustomDict(languageName): globalConfig.OverDict[languageName];
+                User.Language = languageName;
+                InvokeOnChange(this, []);
+            }
         }
 
         public string GetUserLanguage()
@@ -104,12 +111,9 @@ namespace FWO.Config.Api
 
         public void SetLanguage(string languageName)
         {
-            User = new UiUser() { Language = globalConfig.DefaultLanguage };
-            if (languageName != null && languageName != "")
-            {
-                User.Language = languageName;
-            }
-            if (globalConfig.LangDict.TryGetValue(User.Language, out Dictionary<string, string>? langDict))
+            User = new UiUser(){ Language = languageName != null && languageName != "" ? languageName : 
+                globalConfig != null ? globalConfig.DefaultLanguage : GlobalConst.kEnglish};
+            if (globalConfig != null && globalConfig.LangDict.TryGetValue(User.Language, out Dictionary<string, string>? langDict))
             {
                 Translate = langDict;
                 Overwrite = globalConfig.OverDict[User.Language];
@@ -128,23 +132,23 @@ namespace FWO.Config.Api
             }
             else
             {
-                string defaultLanguage = globalConfig.DefaultLanguage;
-                if (defaultLanguage == "")
+                if(globalConfig != null)
                 {
-                    defaultLanguage = GlobalConst.kEnglish;
+                    string defaultLanguage = globalConfig.DefaultLanguage;
+                    if (defaultLanguage == "")
+                    {
+                        defaultLanguage = GlobalConst.kEnglish;
+                    }
+                    if (globalConfig.LangDict[defaultLanguage].TryGetValue(key, out string? defaultLangValue))
+                    {
+                        return Convert(defaultLangValue);
+                    }
+                    else if (defaultLanguage != GlobalConst.kEnglish && globalConfig.LangDict[GlobalConst.kEnglish].TryGetValue(key, out string? englValue))
+                    {
+                        return Convert(englValue);
+                    }
                 }
-                if (globalConfig.LangDict[defaultLanguage].TryGetValue(key, out string? defaultLangValue))
-                {
-                    return Convert(defaultLangValue);
-                }
-                else if (defaultLanguage != GlobalConst.kEnglish && globalConfig.LangDict[GlobalConst.kEnglish].TryGetValue(key, out string? englValue))
-                {
-                    return Convert(englValue);
-                }
-                else
-                {
-                    return GlobalConst.kUndefinedText;
-                }
+                return GlobalConst.kUndefinedText;
             }
         }
 
@@ -172,7 +176,7 @@ namespace FWO.Config.Api
             Match m = Regex.Match(key, pattern);
             if (m.Success)
             {
-                string msg = GetText(key.Substring(0, 5));
+                string msg = GetText(key[..5]);
                 if (msg != GlobalConst.kUndefinedText)
                 {
                     text = msg;
@@ -288,7 +292,7 @@ namespace FWO.Config.Api
         {
             if (!disposedValue)
             {
-                if (disposing)
+                if (disposing && globalConfig != null)
                 {
                     globalConfig.OnChange -= OnGlobalConfigChange;
                 }

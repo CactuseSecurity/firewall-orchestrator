@@ -116,8 +116,7 @@ namespace FWO.Middleware.Server
         private async Task RefreshRecert()
         {
             Log.WriteDebug("DailyCheck scheduler", "Refresh recert ownerships");
-            RecertRefresh recertRefresh = new RecertRefresh(apiConnection);
-            await recertRefresh.RecalcRecerts();
+            await RecertRefresh.RecalcRecerts(apiConnection);
         }
 
         private async Task CheckRecerts()

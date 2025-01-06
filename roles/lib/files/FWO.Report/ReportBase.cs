@@ -279,7 +279,7 @@ namespace FWO.Report
             }
         }
 
-        private List<ToCHeader> CreateTOCContent(string html)
+        private static List<ToCHeader> CreateTOCContent(string html)
         {
             HtmlDocument doc = new();
             doc.LoadHtml(html);
@@ -309,7 +309,7 @@ namespace FWO.Report
             return tocs;
         }
 
-        private byte[] CreatePDFWithTOC(Stream pdfData, List<ToCHeader> tocHeaders)
+        private static byte[] CreatePDFWithTOC(Stream pdfData, List<ToCHeader> tocHeaders)
         {
             PdfDocument document = PdfReader.Open(pdfData, PdfDocumentOpenMode.Modify);
             XFont font = new("Verdana", 16);

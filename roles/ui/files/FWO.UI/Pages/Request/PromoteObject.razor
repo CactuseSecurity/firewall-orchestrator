@@ -8,7 +8,7 @@
 @inject UserConfig userConfig
 
 
-<PopUp Title="@(userConfig.GetText("change_state") + ": " + ObjectName)" Show="@Display" Size=PopupSize.Small OnClose="async () => await Cancel()">
+<PopUp Title="@(userConfig.GetText("change_state") + ": " + ObjectName)" Show="@Display" Size=PopupSize.Small OnClose="() => Cancel()">
     <Body>
         @if (Display)
         {
@@ -61,10 +61,10 @@
     public EventCallback<bool> PromoteChanged { get; set; }
 
     [Parameter]
-    public Func<Task> CloseParent { get; set; } = () => throw new Exception("CloseParent function undefined");
+    public Func<Task> CloseParent { get; set; } = DefaultInit.DoNothing;
 
     [Parameter]
-    public Func<Task> CancelParent { get; set; } = () => throw new Exception("CancelParent function undefined");
+    public Func<bool> CancelParent { get; set; } = DefaultInit.DoNothingSync;
 
     [Parameter]
     public string ObjectName { get; set; } = "";
@@ -73,7 +73,7 @@
     public bool WithComment { get; set; } = false;
 
     [Parameter]
-    public Func<WfStatefulObject, Task> Save { get; set; } = _ => throw new Exception("Save function undefined");
+    public Func<WfStatefulObject, Task> Save { get; set; } = DefaultInit.DoNothing;
 
     [Parameter]
     public WfStatefulObject StatefulObject { get; set; } = new ();
@@ -119,15 +119,15 @@
 
     private async Task Close()
     {
-        Display = false;
-        Promote = false;
         await CloseParent();
+        Promote = false;
+        Display = false;
     }
 
-    private async Task Cancel()
+    private void Cancel()
     {
-        Display = false;
+        CancelParent();
         Promote = false;
-        await CancelParent();
+        Display = false;
     }
 }

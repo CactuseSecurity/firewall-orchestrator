@@ -1,0 +1,18 @@
+fragment ticketOverview on request_ticket {
+  id
+  title
+  date_created
+  date_completed
+  state_id
+  requester: uiuser {
+    uiuser_username
+  }
+  reason
+  external_ticket_id
+  external_ticket_source
+  ticket_deadline
+  ticket_priority
+  reqtasks: reqtasks {
+    ...reqTaskOverview
+  }
+}

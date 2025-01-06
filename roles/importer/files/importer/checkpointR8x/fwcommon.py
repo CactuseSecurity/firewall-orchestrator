@@ -193,9 +193,9 @@ def getRules (nativeConfig: dict, importState: ImportState, sid: str, cpManagerA
 # mgmt_cli show packages limit 500 details-level "full" --format json
 # wir sollten als Plan global holen, dann local holen, dann alle ordered, dann deren inline
 # nativeConfig = {'rulebases': [], 'nat_rulebases': [] } natürlich kommt später mehr dazu
-# nativeConfig['rulebases'] = Liste von current_layer_json = { "layername": layerName, "layerchunks": [] }
+# nativeConfig['rulebases'] = Liste von current_layer_json = { "layername": layerName, "rulebase_chunks": [] }
 # dazu sollte ich links hinzufügen, z.B.
-# current_layer_json = { "layername": layerName, "layerchunks": [], "rulebase_links": [] }
+# current_layer_json = { "layername": layerName, "rulebase_chunks": [], "rulebase_links": [] }
 # mit bsp rulebase_links[0] = {"from_rule_uid": "a", "to_rulebase_name": "b", "link_type": "local|ordered|inline"}
 # offene fragen/Probleme:
 # 1) so bekommen wir für jedes Gateway einen einzelnen Import und müssen beim Import evtl immer wieder die gleichen layer hohlen
@@ -203,7 +203,7 @@ def getRules (nativeConfig: dict, importState: ImportState, sid: str, cpManagerA
 # 1b) neue Annahme, wir importieren nur einen Manager egal ob mds oder normaler mgr
 # 2) ich kann aus der global nicht rauslesen, welche local rulebases und damit welche Gateways relevant sind
 # 3) wenn local rulebases gleich heißen können müssen wir "layeruid" statt "layername" ermitteln
-# 4) die sections stecken in den "layerchunks", muss am ende rausgeparsed werden, "rulebase_links" wird damit aufgebohrt
+# 4) die sections stecken in den "rulebase_chunks", muss am ende rausgeparsed werden, "rulebase_links" wird damit aufgebohrt
 # 5) nocht nicht ganz verstanden warum bei global importState.FwoConfig.FwoApiUri und bei local cpManagerApiBaseUrl -> wegen domain namen
 # 6) gibt es noch einen anderen hinweis auf den Einsprung der local als rule["type"] == "place-holder"? Ist das wohldefiniert? Ist wohldefiniert
 # 7) was muss ich bei den domain Dicts im Return von CP beachten?
@@ -237,8 +237,8 @@ def getRules (nativeConfig: dict, importState: ImportState, sid: str, cpManagerA
             # now also get domain rules 
             show_params_rules.update({'name': device['local_rulebase_name']})
             # delete_v nochmal die strukturen fürs gedächtnis
-            # nativeConfig['rulebases'] = Liste von current_global_layer_json = { "layername": layerName, "layerchunks": [] }
-            # current_global_layer_json = { "layername": layerName, "layerchunks": [], "rulebase_links": [] }
+            # nativeConfig['rulebases'] = Liste von current_global_layer_json = { "layername": layerName, "rulebase_chunks": [] }
+            # current_global_layer_json = { "layername": layerName, "rulebase_chunks": [], "rulebase_links": [] }
             logger.debug ( "getting domain rule layer: " + show_params_rules['name'] )
             domain_rules = cp_getter.get_layer_from_api_as_dict (cpManagerApiBaseUrl, 
                                                                  sid, 
@@ -251,8 +251,8 @@ def getRules (nativeConfig: dict, importState: ImportState, sid: str, cpManagerA
             # now handling possible reference to domain rules within global rules
             # if we find the reference, replace it with the domain rules
             # delete_v das kann komplett weg, wir linken die rulebases anders
-            if 'layerchunks' in current_layer_json:
-                for chunk in current_layer_json["layerchunks"]:
+            if 'rulebase_chunks' in current_layer_json:
+                for chunk in current_layer_json["rulebase_chunks"]:
                     for rule in chunk['rulebase']:
                         if "type" in rule and rule["type"] == "place-holder":
                             logger.debug ("found domain rules place-holder: " + str(rule) + "\n\n")

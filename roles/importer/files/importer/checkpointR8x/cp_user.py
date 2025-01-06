@@ -46,8 +46,8 @@ def collect_users_from_rule(rule, users): #, objDict):
 
 # collect_users writes user info into global users dict
 def collect_users_from_rulebase(rulebase, users):
-    if 'layerchunks' in rulebase:
-        for chunk in rulebase['layerchunks']:
+    if 'rulebase_chunks' in rulebase:
+        for chunk in rulebase['rulebase_chunks']:
             if 'rulebase' in chunk:
                 for rule in chunk['rulebase']:
                     collect_users_from_rule(rule, users)

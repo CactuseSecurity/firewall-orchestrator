@@ -424,8 +424,8 @@ def parseAccessRulebase(src_rulebase, target_rulebase, layer_name, import_id, ru
         raise ImportRecursionLimitReached("parse_rulebase") from None
 
     # parse chunks
-    if 'layerchunks' in src_rulebase:   # found chunks of layers which need to be parsed separately
-        for chunk in src_rulebase['layerchunks']:
+    if 'rulebase_chunks' in src_rulebase:   # found chunks of layers which need to be parsed separately
+        for chunk in src_rulebase['rulebase_chunks']:
             if 'rulebase' in chunk:
                 for rules_chunk in chunk['rulebase']:
                     rule_num = parseAccessRulebase(rules_chunk, target_rulebase, layer_name, import_id, rule_num,
@@ -473,8 +473,8 @@ def parse_rulebase(src_rulebase, target_rulebase, layer_name, import_id, rule_nu
         raise ImportRecursionLimitReached("parse_rulebase") from None
 
     # parse chunks
-    if 'layerchunks' in src_rulebase:   # found chunks of layers which need to be parsed separately
-        for chunk in src_rulebase['layerchunks']:
+    if 'rulebase_chunks' in src_rulebase:   # found chunks of layers which need to be parsed separately
+        for chunk in src_rulebase['rulebase_chunks']:
             if 'rulebase' in chunk:
                 for rules_chunk in chunk['rulebase']:
                     rule_num = parse_rulebase(rules_chunk, target_rulebase, layer_name, import_id, rule_num,

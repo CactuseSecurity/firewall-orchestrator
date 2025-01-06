@@ -265,7 +265,7 @@ namespace FWO.Report
                 using Stream? pdfData = await page.PdfStreamAsync(pdfOptions);
 
                 List<ToCHeader>? toc = CreateTOCContent(html);
-                byte[]? pdfWithToCData = CreatePDFWithTOC(pdfData, toc);
+                byte[]? pdfWithToCData = AddToCToPDF(pdfData, toc);
 
                 return Convert.ToBase64String(pdfWithToCData);
             }
@@ -309,7 +309,7 @@ namespace FWO.Report
             return tocs;
         }
 
-        private static byte[] CreatePDFWithTOC(Stream pdfData, List<ToCHeader> tocHeaders)
+        private static byte[] AddToCToPDF(Stream pdfData, List<ToCHeader> tocHeaders)
         {
             PdfDocument document = PdfReader.Open(pdfData, PdfDocumentOpenMode.Modify);
             XFont font = new("Verdana", 16);
@@ -324,7 +324,7 @@ namespace FWO.Report
 
                 foreach (ToCItem tocItem in toCHeader.Items)
                 {
-                    headOutline.Outlines.Add(tocItem.Title, page, false);
+                    headOutline.Outlines.Add(tocItem.Title, document.Pages[1], false);
                 }
             }
 
@@ -335,6 +335,7 @@ namespace FWO.Report
 
             return pdfWithToCData;
         }
+
 
         private PuppeteerSharp.Media.PaperFormat? GetPuppeteerPaperFormat(PaperFormat format)
         {

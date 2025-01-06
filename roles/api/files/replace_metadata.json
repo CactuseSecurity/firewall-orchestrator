@@ -16182,8 +16182,10 @@
                     "check": {},
                     "columns": [
                       "created",
+                      "removed",
                       "is_global",
                       "name",
+                      "uid",
                       "id",
                       "mgm_id"
                     ]
@@ -16197,8 +16199,10 @@
                   "permission": {
                     "columns": [
                       "created",
+                      "removed",
                       "is_global",
                       "name",
+                      "uid",
                       "id",
                       "mgm_id"
                     ],
@@ -16214,8 +16218,10 @@
                   "permission": {
                     "columns": [
                       "created",
+                      "removed",
                       "is_global",
                       "name",
+                      "uid",
                       "id",
                       "mgm_id"
                     ],

@@ -7,7 +7,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Lib", "Lib", "{CE55F125-0CD
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FWO.Middleware.Client", "lib\files\FWO.Middleware.Client\FWO.Middleware.Client.csproj", "{ECB165CE-BE81-4C5C-B27A-D73177D73E28}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FWO.Test", "test\files\FWO.Test\FWO.Test.csproj", "{9C66B86B-FFB2-44A9-A944-54B33D31D413}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FWO.Test", "tests-unit\files\FWO.Test\FWO.Test.csproj", "{9C66B86B-FFB2-44A9-A944-54B33D31D413}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FWO.Report", "lib\files\FWO.Report\FWO.Report.csproj", "{84CA4892-7C35-4F1F-AF25-2A379112DFCA}"
 EndProject

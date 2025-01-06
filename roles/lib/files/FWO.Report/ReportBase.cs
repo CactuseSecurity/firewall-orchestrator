@@ -11,11 +11,8 @@ using PuppeteerSharp.BrowserData;
 using HtmlAgilityPack;
 using PdfSharp.Pdf;
 using PdfSharp.Drawing;
-using PdfSharp.Pdf.Actions;
-using PdfSharp.Pdf.Annotations;
 using PdfSharp.Pdf.IO;
-using System.Diagnostics;
-using static System.Net.Mime.MediaTypeNames;
+using FWO.Report.Data;
 
 namespace FWO.Report
 {
@@ -227,8 +224,6 @@ namespace FWO.Report
 
         private async Task<string?> CreatePDFViaPuppeteer(string html, PaperFormat format)
         {
-            List<string>? toc = CreateTOC(html);
-
             OperatingSystem? os = Environment.OSVersion;
 
             string path = "";
@@ -268,7 +263,8 @@ namespace FWO.Report
 
                 PdfOptions pdfOptions = new() { DisplayHeaderFooter = true, Landscape = true, PrintBackground = true, Format = pupformat, MarginOptions = new MarginOptions { Top = "1cm", Bottom = "1cm", Left = "1cm", Right = "1cm" } };
                 using Stream? pdfData = await page.PdfStreamAsync(pdfOptions);
-                                
+
+                List<ToCHeader>? toc = CreateTOCContent(html);
                 byte[]? pdfWithToCData = CreatePDFWithTOC(pdfData, toc);
 
                 return Convert.ToBase64String(pdfWithToCData);
@@ -283,44 +279,53 @@ namespace FWO.Report
             }
         }
 
-        private List<string> CreateTOC(string html)
+        private List<ToCHeader> CreateTOCContent(string html)
         {
             HtmlDocument doc = new();
             doc.LoadHtml(html);
 
             List<HtmlNode>? headings = doc.DocumentNode.Descendants()
-                            .Where(n => n.Name.StartsWith('h') && n.Name.Length == 2 && !n.Name.EndsWith('r'))
+                            .Where(n => n.Name.StartsWith('h') && n.Name.Length == 2 && n.Name != "hr")
                             .ToList();
 
-            List<string> tocItems = [];
+            List<ToCHeader> tocs = [];
+
+            int i = 0;
+
             foreach (HtmlNode heading in headings)
             {
-                string headingText = heading.InnerText.Trim();
-                string headingId = headingText.ToLower().Replace(" ", "-").Replace(",", "").Replace(".", "");
+                string headText = heading.InnerText.Trim();
 
-                if (string.IsNullOrEmpty(heading.GetAttributeValue("id", "")))
+                if (heading.Name == "h4")
                 {
-                    heading.SetAttributeValue("id", headingId);
+                    tocs[i - 1].Items.Add(new ToCItem(headText));
                 }
-
-                tocItems.Add(heading.InnerText);
-
+                else
+                {
+                    tocs.Add(new(headText));
+                    i++;
+                }
             }
-            return tocItems;
+            return tocs;
         }
 
-        private byte[] CreatePDFWithTOC(Stream pdfData, List<string> toc)
+        private byte[] CreatePDFWithTOC(Stream pdfData, List<ToCHeader> tocHeaders)
         {
             PdfDocument document = PdfReader.Open(pdfData, PdfDocumentOpenMode.Modify);
             XFont font = new("Verdana", 16);
 
-            PdfPage page = document.Pages[0];          
+            PdfPage page = document.Pages[0];
 
             PdfOutline outline = document.Outlines.Add("ToC", page, true, PdfOutlineStyle.Bold, XColors.Red);
 
-            foreach (string item in toc)
+            foreach (ToCHeader toCHeader in tocHeaders)
             {
-                outline.Outlines.Add(item, page, true);
+                PdfOutline headOutline = outline.Outlines.Add(toCHeader.Title, page, false);
+
+                foreach (ToCItem tocItem in toCHeader.Items)
+                {
+                    headOutline.Outlines.Add(tocItem.Title, page, false);
+                }
             }
 
             using MemoryStream stream = new();

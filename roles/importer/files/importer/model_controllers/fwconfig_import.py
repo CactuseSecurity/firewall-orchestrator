@@ -4,7 +4,7 @@ import traceback
 
 from fwo_log import getFwoLogger
 from fwoBaseImport import ImportState
-from models.policy import Policy
+from roles.importer.files.importer.models.rulebase import Rulebase
 from models.gateway import Gateway
 from models.fwconfig_normalized import FwConfigNormalized
 from model_controllers.fwconfig_normalized_controller import FwConfigNormalizedController

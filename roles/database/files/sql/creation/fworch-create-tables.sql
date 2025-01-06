@@ -1130,6 +1130,7 @@ Create table IF NOT EXISTS "rulebase"
 (
 	"id" SERIAL primary key,
 	"name" Varchar NOT NULL,
+	"uid" Varchar NOT NULL,
 	"mgm_id" Integer NOT NULL,
 	"is_global" BOOLEAN DEFAULT FALSE NOT NULL,
 	"created" BIGINT,

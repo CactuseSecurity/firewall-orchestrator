@@ -2,7 +2,7 @@ from typing import List, Dict
 from pydantic import BaseModel
 
 from fwo_base import ConfigAction, ConfFormat
-from models.policy import Policy
+from roles.importer.files.importer.models.rulebase import Rulebase
 from models.networkobject import NetworkObject
 from models.serviceobject import ServiceObject
 
@@ -50,7 +50,7 @@ class FwConfigNormalized(FwConfig):
     service_objects: Dict[str, ServiceObject] = {}
     users: dict = {}
     zone_objects: dict = {}
-    rules: List[Policy] = []
+    rules: List[Rulebase] = []
     gateways: List[dict] = []
     # gateways: List[Gateway]
     ConfigFormat: ConfFormat = ConfFormat.NORMALIZED_LEGACY
@@ -59,16 +59,16 @@ class FwConfigNormalized(FwConfig):
         arbitrary_types_allowed = True
 
 
-    def getPolicy(self, policyUid: str) -> Policy:
+    def getPolicy(self, policyUid: str) -> Rulebase:
         """
         get the policy with a specific uid  
         :param policyUid: The UID of the relevant policy.
         :return: Returns the policy with a specific uid, otherwise returns empty policy.
         """
         for pol in self.rules:
-            if pol.Uid == policyUid:
+            if pol.uid == policyUid:
                 return pol
-        return Policy(Uid='', Name='')
+        return Rulebase(uid='', name='')
 
         # currentPolicy = [pol for pol in self.NormalizedConfig.rules if pol.Uid == policyUid][0]
         # previousPolicy = [pol for pol in prevConfig.rules if pol.Uid == policyUid][0]

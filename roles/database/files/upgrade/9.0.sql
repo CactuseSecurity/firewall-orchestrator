@@ -92,11 +92,14 @@ Create table IF NOT EXISTS "rulebase"
 (
 	"id" SERIAL primary key,
 	"name" Varchar NOT NULL,
+	"uid" Varchar NOT NULL,
 	"mgm_id" Integer NOT NULL,
 	"is_global" BOOLEAN DEFAULT FALSE NOT NULL,
 	"created" BIGINT,
 	"removed" BIGINT
 );
+
+-- ALTER TABLE "rulebase" ADD COLUMN IF NOT EXISTS "uid" Varchar NOT NULL;
 
 ALTER TABLE "rulebase" DROP CONSTRAINT IF EXISTS "fk_rulebase_mgm_id" CASCADE;
 Alter table "rulebase" add CONSTRAINT fk_rulebase_mgm_id foreign key ("mgm_id") references "management" ("mgm_id") on update restrict on delete cascade;

@@ -19,6 +19,8 @@ namespace FWO.Test
         {
             var isGitHubActions = Environment.GetEnvironmentVariable("GITHUB_ACTIONS") == "true";
 
+            Log.WriteInfo("Test Log", $"Is githib actions: {isGitHubActions}");
+
             // the PDF generation with puppeteer is currently not working in GitHub Actions
             if (!isGitHubActions)
             {
@@ -53,7 +55,7 @@ namespace FWO.Test
                     Headless = true,
                     DumpIO = isGitHubActions? true : false, // Enables debug logs
                     Args = isGitHubActions?
-                        new[] { "--no-sandbox", "--database=/tmp", "--disable-setuid-sandbox" }
+                        new[] { "--no-sandbox", "--disable-setuid-sandbox" }
                         : [] // No additional arguments locally
                 });
 

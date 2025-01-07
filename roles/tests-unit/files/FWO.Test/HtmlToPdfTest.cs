@@ -19,8 +19,13 @@ namespace FWO.Test
         {
             var isGitHubActions = Environment.GetEnvironmentVariable("GITHUB_ACTIONS") == "true";
 
-            Log.WriteInfo("Test Log", $"Is Github Actions: {isGitHubActions}");
+            if (Environment.GetEnvironmentVariable("GITHUB_ACTIONS") is null || string.IsNullOrEmpty(Environment.GetEnvironmentVariable("GITHUB_ACTIONS")))
+            {
+                Log.WriteError("Test Log", "Env null or empty!");
+            }
 
+            Log.WriteInfo("Test Log", $"Is Github Actions: {isGitHubActions}");
+            
             // the PDF generation with puppeteer is currently not working in GitHub Actions
             if (!isGitHubActions)
             {

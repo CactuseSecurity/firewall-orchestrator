@@ -421,8 +421,8 @@ AS $function$
             SELECT INTO r_dev_null * FROM rulebase WHERE name=r_dev.local_rulebase_name;
             IF NOT FOUND THEN
                 -- first create rulebase entries
-                INSERT INTO rulebase (name, mgm_id, is_global, created) 
-                VALUES (r_dev.local_rulebase_name, r_dev.mgm_id, FALSE, 1) 
+                INSERT INTO rulebase (name, uid, mgm_id, is_global, created) 
+                VALUES (r_dev.local_rulebase_name, r_dev.local_rulebase_name, r_dev.mgm_id, FALSE, 1) 
                 RETURNING id INTO i_new_rulebase_id;
                 -- now update references in all rules to the newly created rulebase
                 UPDATE rule SET rulebase_id=i_new_rulebase_id WHERE dev_id=r_dev.dev_id;

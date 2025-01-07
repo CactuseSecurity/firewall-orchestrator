@@ -4,6 +4,7 @@ using FWO.Logging;
 using PuppeteerSharp.Media;
 using PuppeteerSharp;
 using PuppeteerSharp.BrowserData;
+using System.Collections;
 
 namespace FWO.Test
 {
@@ -17,8 +18,12 @@ namespace FWO.Test
         [Test]
         public async Task GeneratePdf()
         {
-            var isGitHubActions = Environment.GetEnvironmentVariable("GITHUB_ACTIONS") == "true";
+            foreach (DictionaryEntry entry in Environment.GetEnvironmentVariables())
+            {
+                Log.WriteInfo("Test Log", $"$\"Key: {{entry.Key}}, Value: {{entry.Value}}\"");
+            }
 
+            var isGitHubActions = Environment.GetEnvironmentVariable("GITHUB_ACTIONS") == "true";
             Log.WriteInfo("Test Log", $"Is Github Actions: {isGitHubActions}");
 
             // the PDF generation with puppeteer is currently not working in GitHub Actions

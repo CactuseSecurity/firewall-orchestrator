@@ -246,7 +246,7 @@ ALTER TABLE "rulebase_link"
 Alter table "rulebase_link" add CONSTRAINT fk_rulebase_link_created_import_control_control_id 
 	foreign key ("created") references "import_control" ("control_id") on update restrict on delete cascade;
 ALTER TABLE "rulebase_link"
-    DROP CONSTRAINT IF EXISTS "fk_rulebase_link_created_import_control_control_id" CASCADE;
+    DROP CONSTRAINT IF EXISTS "fk_rulebase_link_removed_import_control_control_id" CASCADE;
 Alter table "rulebase_link" add CONSTRAINT fk_rulebase_link_removed_import_control_control_id 
 	foreign key ("removed") references "import_control" ("control_id") on update restrict on delete cascade;
 

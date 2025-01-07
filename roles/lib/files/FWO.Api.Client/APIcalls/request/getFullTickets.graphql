@@ -1,5 +1,5 @@
-query getTickets($fromState: Int!, $toState: Int!) {
+query getFullTickets($fromState: Int!, $toState: Int!) {
   request_ticket(where: {_or: [{_and: [{state_id: {_gte: $fromState}}, {state_id: {_lt: $toState}}]}, {reqtasks: {_and: [{state_id: {_gte: $fromState}}, {state_id: {_lt: $toState}}]}}]}, order_by: {id: desc}) {
-    ...ticketDetailsReqTaskOverview
+    ...ticketDetails
   }
 }

@@ -142,7 +142,7 @@ else
         try
         {
             wfHandler.ReadOnlyMode = !(authenticationStateTask!.Result.User.IsInRole(Roles.Reviewer) || authenticationStateTask!.Result.User.IsInRole(Roles.Admin));
-            await wfHandler.Init(Owners.ConvertAll(x => x.Id), false, true);
+            await wfHandler.Init(Owners.ConvertAll(x => x.Id), false, true, true);
             wfHandler.FilterForRequester();
         }
         catch (Exception exception)

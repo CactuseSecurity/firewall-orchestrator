@@ -173,7 +173,12 @@ Alter table "rule_enforced_on_gateway" add CONSTRAINT fk_rule_enforced_on_gatewa
 	foreign key ("created") references "import_control" ("control_id") on update restrict on delete cascade;
 
 ALTER TABLE "rule_enforced_on_gateway"
+    DROP CONSTRAINT IF EXISTS "fk_rule_enforced_on_gateway_removed_import_control_control_id" CASCADE;
+
+-- just temp for migration purposes - will be removed later
+ALTER TABLE "rule_enforced_on_gateway"
     DROP CONSTRAINT IF EXISTS "fk_rule_enforced_on_gateway_deleted_import_control_control_id" CASCADE;
+
 Alter table "rule_enforced_on_gateway" add CONSTRAINT fk_rule_enforced_on_gateway_removed_import_control_control_id 
 	foreign key ("removed") references "import_control" ("control_id") on update restrict on delete cascade;
 

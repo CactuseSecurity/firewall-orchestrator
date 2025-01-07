@@ -19,7 +19,14 @@ namespace FWO.Test
         {
             var isGitHubActions = Environment.GetEnvironmentVariable("GITHUB_ACTIONS") == "true";
 
-            if(Environment.GetEnvironmentVariable("GITHUB_ACTIONS") is null || string.IsNullOrEmpty(Environment.GetEnvironmentVariable("GITHUB_ACTIONS")))
+            var environmentVariables = Environment.GetEnvironmentVariables();
+
+            foreach (var key in environmentVariables.Keys)
+            {
+                Log.WriteError("Test Log", $"{key} = {environmentVariables[key]}");
+            }
+
+            if (Environment.GetEnvironmentVariable("GITHUB_ACTIONS") is null || string.IsNullOrEmpty(Environment.GetEnvironmentVariable("GITHUB_ACTIONS")))
             {
                 Log.WriteError("Test Log", "GITHUB_ACTIONS is null or empty!");
             }

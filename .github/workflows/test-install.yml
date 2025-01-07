@@ -7,14 +7,12 @@ name: Build
 
 on:
   push:
-    branches: [ main, develop ]
     paths-ignore:
     - 'documentation/**'
     - 'design/**'
 
   pull_request:
     types: [ ready_for_review, review_requested ]
-    branches: [ main, develop ]
     paths-ignore:
     - 'documentation/**'
     - 'design/**'

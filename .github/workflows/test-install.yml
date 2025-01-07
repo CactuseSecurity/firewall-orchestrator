@@ -4,6 +4,8 @@ name: Build
 # Controls when the action will run. Triggers the workflow on push or pull request
 # events but only for the master branch
 # test change
+env:
+  GITHUB_ACTIONS: 'true'
 
 on:
   push:
@@ -46,8 +48,7 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
-    - name: do test install in case of merged pull request
-      env:
-        GITHUB_ACTIONS: 'true'
+    - name: do test install in case of merged pull request      
+      run: echo ${env:GITHUB_ACTIONS}
       run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator && ansible-playbook -e force_install=true site.yml -K
 

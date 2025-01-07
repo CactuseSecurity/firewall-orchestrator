@@ -47,8 +47,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
-
-    - name: do test install in case of merged pull request      
-      run: echo ${env:GITHUB_ACTIONS}
+    - name: set env vars
+      run: echo ${env:GITHUB_ACTIONS} && echo "{name}={value}" >> $GITHUB_ACTIONS
+    - name: do test install in case of merged pull request
       run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator && ansible-playbook -e force_install=true site.yml -K
 

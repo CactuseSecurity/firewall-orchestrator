@@ -5,6 +5,9 @@ name: Build
 # events but only for the master branch
 # test change
 
+env:
+  GITHUB_ACTIONS: 'true'
+
 on:
   push:
     branches: [ main, develop ]

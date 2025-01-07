@@ -20,7 +20,7 @@ namespace FWO.Test
         {
             foreach (DictionaryEntry entry in Environment.GetEnvironmentVariables())
             {
-                Log.WriteInfo("Test Log", $"$\"Key: {{entry.Key}}, Value: {{entry.Value}}\"");
+                Log.WriteInfo("Test Log", $"Key: {entry.Key}, Value: {entry.Value}");
             }
 
             var isGitHubActions = Environment.GetEnvironmentVariable("GITHUB_ACTIONS") == "true";

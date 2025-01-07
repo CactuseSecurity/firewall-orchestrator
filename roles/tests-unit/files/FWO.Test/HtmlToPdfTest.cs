@@ -24,11 +24,6 @@ namespace FWO.Test
                 Log.WriteError("Test Log", "GITHUB_ACTIONS is null or empty!");
             }
 
-             foreach (var entry in Environment.GetEnvironmentVariables())
-             {
-                Log.WriteInfo("Test Log", $"Key: {entry.Key}, Value: {entry.Value}");
-             }
-
             // the PDF generation with puppeteer is currently not working in GitHub Actions
             if (!isGitHubActions)
             {

@@ -36,7 +36,8 @@
         }
         else
         {
-            <div class="vheight75">                  
+            <div class="vheight75">
+                <PageSizeComponent PageSizeCallback="UpdatePageSize" PageSize="PageSize"></PageSizeComponent>
                 <Table TableClass="table table-bordered table-sm th-bg-secondary sticky-header" TableItem="Alert" Items="alertEntrys" PageSize="PageSize">
                     <Column Context="alert" TableItem="Alert" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)">
                         <Template>
@@ -86,7 +87,6 @@
                     </Column>
                     <Column TableItem="Alert" Title="@(userConfig.GetText("description"))" Field="@(x => x.Description)" Sortable="true" Filterable="true" />
                     <Pager ShowPageNumber="true" ShowTotalCount="true" />
-                    <PageSizeComponent PageSizeCallback="UpdatePageSize" PageSize="PageSize"></PageSizeComponent>
                 </Table>
             </div>
         }

@@ -43,5 +43,10 @@ namespace FWO.Test
         {
             throw new NotImplementedException();
         }
+
+        public override void DisposeSubscriptions<T>()
+        {
+            throw new NotImplementedException();
+        }
     }
 }

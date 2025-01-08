@@ -24,3 +24,9 @@
     - "Try to upgrade {{ product_name }} later or contact the support support@cactus.de"
   listen: "lib handler"
   when: lib_handler_guard == "start"
+
+- name: Reload and Restart AppArmor
+  service:
+    name: apparmor
+    state: restarted
+  become: true

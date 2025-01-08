@@ -169,11 +169,11 @@
         CollapseAll = !CollapseAll;
         if(CollapseAll)
         {
-            collapseDevices.CollapseAll();
+            collapseDevices.Collapse();
         }
         else
         {
-            collapseDevices.ExpandAll();
+            collapseDevices.Expand();
         }
         await InvokeAsync(StateHasChanged);
     }

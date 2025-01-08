@@ -8,8 +8,13 @@ namespace FWO.Api.Client.Queries
         public static readonly string implTaskDetailsFragment;
         public static readonly string reqTaskDetailsFragment;
         public static readonly string ticketDetailsFragment;
+        public static readonly string reqTaskOverviewFragment;
+        public static readonly string ticketOverviewFragment;
+        public static readonly string ticketDetailsReqTaskOverviewFragment;
+
         public static readonly string getTickets;
-        public static readonly string getTicketsByOwners;
+        public static readonly string getFullTickets;
+        // public static readonly string getTicketsByOwners;
         public static readonly string getTicketById;
         public static readonly string newTicket;
         public static readonly string updateTicket;
@@ -62,9 +67,13 @@ namespace FWO.Api.Client.Queries
                 implTaskDetailsFragment = commentDetailsFragment + File.ReadAllText(QueryPath + "request/fragments/implTaskDetails.graphql");
                 reqTaskDetailsFragment = OwnerQueries.ownerDetailsFragment + implTaskDetailsFragment + File.ReadAllText(QueryPath + "request/fragments/reqTaskDetails.graphql");
                 ticketDetailsFragment = reqTaskDetailsFragment + File.ReadAllText(QueryPath + "request/fragments/ticketDetails.graphql");
+                reqTaskOverviewFragment = OwnerQueries.ownerDetailsFragment + File.ReadAllText(QueryPath + "request/fragments/reqTaskOverview.graphql");
+                ticketOverviewFragment = reqTaskOverviewFragment + File.ReadAllText(QueryPath + "request/fragments/ticketOverview.graphql");
+                ticketDetailsReqTaskOverviewFragment = commentDetailsFragment + reqTaskOverviewFragment + File.ReadAllText(QueryPath + "request/fragments/ticketDetailsReqTaskOverview.graphql");
 
-                getTickets = ticketDetailsFragment + File.ReadAllText(QueryPath + "request/getTickets.graphql");
-                getTicketsByOwners = ticketDetailsFragment + File.ReadAllText(QueryPath + "request/getTicketsByOwners.graphql");
+                getTickets = ticketDetailsReqTaskOverviewFragment + File.ReadAllText(QueryPath + "request/getTickets.graphql");
+                getFullTickets = ticketDetailsFragment + File.ReadAllText(QueryPath + "request/getFullTickets.graphql");
+                // getTicketsByOwners = ticketDetailsFragment + File.ReadAllText(QueryPath + "request/getTicketsByOwners.graphql");
                 getTicketById = ticketDetailsFragment + File.ReadAllText(QueryPath + "request/getTicketById.graphql");
                 newTicket = File.ReadAllText(QueryPath + "request/newTicket.graphql");
                 updateTicket = File.ReadAllText(QueryPath + "request/updateTicket.graphql");

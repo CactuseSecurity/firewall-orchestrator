@@ -31,7 +31,7 @@ namespace FWO.Services
         {
             await wfHandler.Init([owner.Id]);
             stateId ??= wfHandler.MasterStateMatrix.LowestEndState;
-            wfHandler.SelectTicket(new WfTicket()
+            await wfHandler.SelectTicket(new WfTicket()
                 {
                     StateId = (int)stateId,
                     Title = title,
@@ -75,18 +75,11 @@ namespace FWO.Services
             return wfHandler.ActTicket;
         }
 
-        // for readonly use the direct api call getTicketById is much more efficient
-        public async Task<WfTicket?> GetTicket(int ownerId, long ticketId)
-        {
-            await wfHandler.Init([ownerId]);
-            return await wfHandler.GetFullTicket(ticketId);
-        }
-
         public async Task<long> CreateRequestNewInterfaceTicket(FwoOwner owner, FwoOwner requestingOwner, string reason = "")
         {
             await wfHandler.Init([owner.Id]);
             stateId = wfHandler.MasterStateMatrix.LowestEndState;
-            wfHandler.SelectTicket(new WfTicket()
+            await wfHandler.SelectTicket(new WfTicket()
                 {
                     StateId = stateId,
                     Title = userConfig.ModReqTicketTitle,
@@ -227,7 +220,6 @@ namespace FWO.Services
             WfTicket? ticket = await wfHandler.ResolveTicket(ticketId);
             if(ticket != null)
             {
-                wfHandler.SetTicketEnv(ticket);
                 WfReqTask? reqTask = ticket.Tasks.FirstOrDefault(x => x.TaskType == WfTaskType.new_interface.ToString());
                 if(reqTask != null)
                 {

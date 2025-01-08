@@ -19,7 +19,7 @@
     {
         Content = InitialContent;
     }
-    <Collapse Title="@(NameExtractor != null ? NameExtractor(Content) : "")" UseHtmlTitle="@(Tab == RsbTab.rule)" Style="@("primary")" StartToggled="StartCollapsed">
+    <Collapse Title="@(NameExtractor != null ? NameExtractor(Content) : "")" UseHtmlTitle="@(Tab == RsbTab.rule)" Style="@("primary")" StartToggled="StartCollapsed" RSBLocation="@GetRSBLocation()">
         <TitleWithHtml>
             @if (typeof(InputDataType) == typeof(Rule))
             {
@@ -43,7 +43,7 @@
         <ChildContent>
             @if(NetworkObjectExtractor != null)
             {
-                <Collapse Title="@(userConfig.GetText("network_objects"))" StartToggled="StartCollapsed"  OnOpen="() => HandleUncollapse(ObjCategory.nobj)">
+                <Collapse Title="@(userConfig.GetText("network_objects"))" StartToggled="StartCollapsed"  OnOpen="() => HandleUncollapse(ObjCategory.nobj)" RSBLocation=@($"{GetIDPrefix(ObjCategory.nobj)}")>
                     <Table style="font-size:small" class="table table-bordered table-sm th-bg-secondary table-responsive" TableItem="NetworkObject"
                             Items="@NetworkObjectExtractor(Content)" PageSize="PageSize" ColumnReorder="true">
                         <Column TableItem="NetworkObject" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Class="word-break">
@@ -113,13 +113,15 @@
             }
             @if(NetworkServiceExtractor != null)
             {
-                <Collapse Title="@(userConfig.GetText("services"))" StartToggled="StartCollapsed" OnOpen="() => HandleUncollapse(ObjCategory.nsrv)">
+                <Collapse Title="@(userConfig.GetText("services"))" StartToggled="StartCollapsed" OnOpen="() => HandleUncollapse(ObjCategory.nsrv)" RSBLocation=@($"{GetIDPrefix(ObjCategory.nsrv)}")>
                     <Table style="font-size:small" class="table table-bordered table-sm th-bg-secondary table-responsive" TableItem="NetworkService"
                             Items="@NetworkServiceExtractor(Content)" PageSize="PageSize" ColumnReorder="true">
                         <Column TableItem="NetworkService" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Class="word-break">
                             <Template>
-                                <span class="@ReportBase.GetIconClass(ObjCategory.nsrv, context.Type.Name)">&nbsp;</span>
-                                <b id="@(GetID(ObjCategory.nsrv, context.Id))">@(context.Name)</b>
+                                <div> @* need same offset to parent html for link highlight *@
+                                    <span class="@ReportBase.GetIconClass(ObjCategory.nsrv, context.Type.Name)">&nbsp;</span>
+                                    <b id="@(GetID(ObjCategory.nsrv, context.Id))">@(context.Name)</b>
+                                </div>
                             </Template>
                         </Column>
                         <DetailTemplate TableItem="NetworkService">
@@ -189,13 +191,15 @@
             }
             @if(NetworkUserExtractor != null)
             {
-                <Collapse Title="@(userConfig.GetText("users"))" StartToggled="StartCollapsed" OnOpen="() => HandleUncollapse(ObjCategory.user)">
+                <Collapse Title="@(userConfig.GetText("users"))" StartToggled="StartCollapsed" OnOpen="() => HandleUncollapse(ObjCategory.user)" RSBLocation=@($"{GetIDPrefix(ObjCategory.user)}")>
                     <Table style="font-size:small" class="table table-bordered table-sm th-bg-secondary table-responsive"
                             TableItem="NetworkUser" Items="@NetworkUserExtractor(Content)" PageSize="PageSize" ColumnReorder="true">
                         <Column TableItem="NetworkUser" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Class="word-break">
                             <Template>
-                                <span class="@ReportBase.GetIconClass(ObjCategory.user, context.Type.Name)">&nbsp;</span>
-                                <b id="@(GetID(ObjCategory.user, context.Id))">@(context.Name)</b>
+                                <div> @* need same offset to parent html for link highlight *@
+                                    <span class="@ReportBase.GetIconClass(ObjCategory.user, context.Type.Name)">&nbsp;</span>
+                                    <b id="@(GetID(ObjCategory.user, context.Id))">@(context.Name)</b>
+                                </div>
                             </Template>
                         </Column>
                         <DetailTemplate TableItem="NetworkUser">
@@ -248,7 +252,7 @@
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     [CascadingParameter]
-    AnchorNavToRSB? anchorNavToRSB { get; set; }
+    AnchorNavToRSB? AnchorNavToRSB { get; set; }
 
     [Parameter]
     public Func<RsbTab, ObjCategory, Func<ReportData, Task>, long, bool, Task>? FetchObjects { get; set; }
@@ -311,33 +315,42 @@
         }
     }
 
-    private string GetIDPrefix(ObjCategory objCategory, RsbTab? tab = null, bool toMgmtObj = false)
+    private string GetRSBLocation(RsbTab? tab = null, bool toMgmtObj = false)
     {
-        string idPref = "";
+        string location = "";
         switch (tab ?? Tab)
         {
             case RsbTab.all:
-                idPref += "all-";
+                location += "all-";
                 break;
             case RsbTab.report:
-                idPref += "report-";
+                location += "report-";
                 break;
             case RsbTab.rule:
-                idPref += "rule-";
+                location += "rule-";
                 break;
         }
         switch (Content)
         {
             case ManagementReport m:
-                idPref += "m" + m.Id + "-";
+                location += "m" + m.Id;
                 break;
             case Rule r:
                 if (!toMgmtObj)
-                    idPref += "r" + r.Id + "-";
+                    location += "r" + r.Id;
                 else
-                    idPref += "m" + r.MgmtId + "-";
+                    location += "m" + r.MgmtId;
                 break;
         }
+        return location;
+    }
+
+    private string GetIDPrefix(ObjCategory objCategory, RsbTab? tab = null, bool toMgmtObj = false)
+    {
+        string idPref = "";
+
+        idPref += GetRSBLocation(tab, toMgmtObj) + "-";
+
         switch (objCategory)
         {
             case ObjCategory.nobj:
@@ -377,7 +390,6 @@
     {
         if (Tab != RsbTab.rule)
             await FetchContent(objCategory);
-        anchorNavToRSB?.ScrollToFragmentIfMatch(GetIDPrefix(objCategory));
     }
 
     private async Task FetchContent(ObjCategory objCategory)
@@ -421,6 +433,7 @@
                                         }
                                         Content = (InputDataType)(Object)mgt;
                                     }
+                                    AnchorNavToRSB?.ScrollToFragment();
                                     return InvokeAsync(StateHasChanged);
                                 }, mgt.Id, false);
                             break;
@@ -435,6 +448,7 @@
                                         ruleUpdated.DeviceName = rule.DeviceName;
                                         Content = (InputDataType)(Object)ruleUpdated;
                                     }
+                                    AnchorNavToRSB?.ScrollToFragment();
                                     return InvokeAsync(StateHasChanged);
                                  }, rule.Id, !string.IsNullOrEmpty(rule.NatData?.TranslatedSource));
                             break;

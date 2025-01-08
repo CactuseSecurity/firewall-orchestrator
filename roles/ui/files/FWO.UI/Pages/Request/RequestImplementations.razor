@@ -147,7 +147,7 @@ else
         try
         {
             wfHandler.ReadOnlyMode = !(authenticationStateTask!.Result.User.IsInRole(Roles.Implementer) || authenticationStateTask!.Result.User.IsInRole(Roles.FwAdmin) || authenticationStateTask!.Result.User.IsInRole(Roles.Admin));
-            await wfHandler.Init(Owners.ConvertAll(x => x.Id));
+            await wfHandler.Init(Owners.ConvertAll(x => x.Id), false, false, true);
         }
         catch (Exception exception)
         {

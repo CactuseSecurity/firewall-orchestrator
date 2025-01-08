@@ -28,7 +28,7 @@ namespace FWO.Services
     public class EmailHelper
     {
         private readonly ApiConnection apiConnection;
-        private readonly MiddlewareClient middlewareClient;
+        private readonly MiddlewareClient? middlewareClient;
         private readonly UserConfig userConfig;
         private readonly Action<Exception?, string, string, bool> displayMessageInUi;
         private readonly bool useInMwServer = false;
@@ -38,7 +38,7 @@ namespace FWO.Services
         private string? ScopedUserCc;
 
 
-        public EmailHelper(ApiConnection apiConnection, MiddlewareClient middlewareClient, UserConfig userConfig, Action<Exception?, string, string, bool> displayMessageInUi, List<UserGroup>? ownerGroups = null, bool useInMwServer = false)
+        public EmailHelper(ApiConnection apiConnection, MiddlewareClient? middlewareClient, UserConfig userConfig, Action<Exception?, string, string, bool> displayMessageInUi, List<UserGroup>? ownerGroups = null, bool useInMwServer = false)
         {
             this.apiConnection = apiConnection;
             this.middlewareClient = middlewareClient;
@@ -50,7 +50,7 @@ namespace FWO.Services
 
         public async Task Init(string? scopedUserTo = null, string? scopedUserCc = null)
         {
-            if(!useInMwServer)
+            if(!useInMwServer && middlewareClient != null)
             {
                 ownerGroups = await GroupAccess.GetGroupsFromInternalLdap(middlewareClient, userConfig, displayMessageInUi, true);
             }

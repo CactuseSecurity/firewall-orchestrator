@@ -8,6 +8,20 @@
   - api handler
   when: installation_mode == "upgrade"
 
+- name: stop MW for upgrading
+  ansible.builtin.systemd:
+    name: "{{ product_name }}-middleware"
+    state: stopped
+  become: true
+  when: "'middlewareserver' in group_names" and installation_mode == "upgrade"
+
+- name: stop UI for upgrading
+  ansible.builtin.systemd:
+    name: "{{ product_name }}-ui"
+    state: stopped
+  become: true
+  when: "'frontends' in group_names" and installation_mode == "upgrade"
+
 - name: check for api dir
   stat:
     path: "{{ fworch_home }}/api"

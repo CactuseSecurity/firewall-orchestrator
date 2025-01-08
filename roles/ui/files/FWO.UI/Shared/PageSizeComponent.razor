@@ -14,9 +14,11 @@
 
     private int PageSize { get; set; }
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         PageSize = UserConfig.OverviewDisplayLines;
+
+        await SubmitPageSize();
 
         base.OnInitialized();
     }

@@ -25,7 +25,8 @@
     lineinfile:
       path: "/etc/apt/sources.list.d/docker.list"
       create: true
-      line: "deb [arch=amd64] https://download.docker.com/linux/{{ ansible_distribution }} {{ ansible_lsb.codename }} stable"
+      regexp: 'download.docker.com'
+      line: "deb [arch=amd64] https://download.docker.com/linux/{{ ansible_distribution | lower }} {{ ansible_lsb.codename | lower }} stable"
 
   - name: apt update
     apt: update_cache=true

@@ -1,4 +1,5 @@
 ﻿@using FWO.Config.Api
+@using FWO.Services
 
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
 
@@ -13,9 +14,9 @@
             <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}")">
                 <Authorized>
                     <div class="form-group row">
-                        <label class="col-form-label col-sm-2">@(userConfig.GetText("show_all")):</label>
+                        <label for="cbx_show_all" class="col-form-label col-sm-2">@(userConfig.GetText("show_all")):</label>
                         <div class="col-sm-1">
-                            <input type="checkbox" value="SelectAll" @onchange="async () => { SelectAll = !SelectAll; await GetHistory(); }"/>
+                            <input id="cbx_show_all" type="checkbox" value="SelectAll" @onchange="async () => { SelectAll = !SelectAll; await GetHistory(); }"/>
                         </div>
                     </div>
                 </Authorized>
@@ -47,7 +48,7 @@
         }
     </Body>
     <Footer>
-        <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(userConfig.GetText("cancel"))</button>
+        <button type="button" class="btn btn-sm btn-primary" @onclick="Close">@(userConfig.GetText("ok"))</button>
     </Footer>
 </PopUp>
 

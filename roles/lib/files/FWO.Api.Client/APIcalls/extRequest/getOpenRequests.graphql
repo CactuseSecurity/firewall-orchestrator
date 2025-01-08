@@ -1,0 +1,12 @@
+
+query getOpenRequests ($states: [String!] ){
+  ext_request (where: { ext_request_state: {_in: $states} } order_by: { id: asc }){
+    ...extRequestDetails
+    owner: owner {
+      id
+      name
+      app_id_external
+      common_service_possible
+    }
+  }
+}

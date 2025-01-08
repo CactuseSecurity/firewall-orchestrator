@@ -2,6 +2,7 @@
 using FWO.Api.Data;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
+using FWO.Services;
 
 
 namespace FWO.Ui.Services
@@ -20,6 +21,7 @@ namespace FWO.Ui.Services
         public Shared.Tab? actTab;
         public int ActWidth = 0;
         public bool StartCollapsed = true;
+        private long dummyAppRoleId = 0;
 
 
         public ModellingAppHandler(ApiConnection apiConnection, UserConfig userConfig, FwoOwner application, 
@@ -37,18 +39,23 @@ namespace FWO.Ui.Services
                     {
                         appId = Application.Id
                     };
-                    Connections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnections, queryParam);
+                    Connections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnectionsResolved, queryParam);
                 }
                 else
                 {
                     Connections = connections;
                 }
                 
+                List<ModellingAppRole> dummyAppRoles = await apiConnection.SendQueryAsync<List<ModellingAppRole>>(ModellingQueries.getDummyAppRole);
+                if (dummyAppRoles.Count > 0)
+                {
+                    dummyAppRoleId = dummyAppRoles.First().Id;
+                }
+
                 foreach(var conn in Connections)
                 {
-                    conn.ExtractNwGroups();
                     await ExtractUsedInterface(conn);
-                    conn.SyncState();
+                    conn.SyncState(dummyAppRoleId);
                 }
                 ConnToDelete = Connections.FirstOrDefault() ?? new ModellingConnection();
                 overviewConnHandler = new ModellingConnectionHandler(apiConnection, userConfig, Application, Connections, new(), true,
@@ -121,9 +128,9 @@ namespace FWO.Ui.Services
             return 0;
         }
 
-        public List<ModellingConnection> GetInterfaces()
+        public List<ModellingConnection> GetInterfaces(bool showRejected = false)
         {
-            List<ModellingConnection> tmpList = Connections.Where(x => x.IsInterface).ToList();
+            List<ModellingConnection> tmpList = Connections.Where(x => x.IsInterface && (showRejected || !x.GetBoolProperty(ConState.Rejected.ToString()))).ToList();
             tmpList.Sort((ModellingConnection a, ModellingConnection b) => a.CompareTo(b));
             return tmpList;
         }
@@ -138,67 +145,14 @@ namespace FWO.Ui.Services
             return Connections.Where(x => !x.IsInterface && !x.IsCommonService).ToList();
         }
 
-        public List<string> GetSrcNames(ModellingConnection conn)
+        public List<ModellingConnection> GetConnectionsToRequest()
         {
-            if((conn.InterfaceIsRequested && conn.SrcFromInterface) || (conn.IsRequested && conn.SourceFilled()))
-            {
-                return [DisplayReqInt(userConfig, conn.TicketId, conn.InterfaceIsRequested,
-                    conn.GetBoolProperty(ConState.Rejected.ToString()) || conn.GetBoolProperty(ConState.InterfaceRejected.ToString()))];
-            }
-
-            List<ModellingNwGroup> nwGroups = ModellingNwGroupWrapper.Resolve(conn.SourceNwGroups).ToList();
-            foreach(var nwGroup in nwGroups)
-            {
-                nwGroup.TooltipText = userConfig.GetText("C9001");
-            }
-            List<string> names = nwGroups.ConvertAll(s => s.DisplayWithIcon(conn.SrcFromInterface));
-
-            names.AddRange(ModellingAppRoleWrapper.Resolve(conn.SourceAppRoles).ToList().ConvertAll(s => s.DisplayWithIcon(conn.SrcFromInterface)));
-
-            List<ModellingAppServer> appServers = ModellingAppServerWrapper.Resolve(conn.SourceAppServers).ToList();
-            foreach(var appServer in appServers)
-            {
-                appServer.TooltipText = userConfig.GetText("C9001");
-            }
-            names.AddRange(appServers.ConvertAll(s => s.DisplayWithIcon(conn.SrcFromInterface)));
-            return names;
-        }
-        
-        public List<string> GetDstNames(ModellingConnection conn)
-        {
-            if((conn.InterfaceIsRequested && conn.DstFromInterface) || (conn.IsRequested && conn.DestinationFilled()))
-            {
-                return [DisplayReqInt(userConfig, conn.TicketId, conn.InterfaceIsRequested, 
-                    conn.GetBoolProperty(ConState.Rejected.ToString()) || conn.GetBoolProperty(ConState.InterfaceRejected.ToString()))];
-            }
-            List<ModellingNwGroup> nwGroups = ModellingNwGroupWrapper.Resolve(conn.DestinationNwGroups).ToList();
-            foreach(var nwGroup in nwGroups)
-            {
-                nwGroup.TooltipText = userConfig.GetText("C9001");
-            }
-            List<string> names = nwGroups.ConvertAll(s => s.DisplayWithIcon(conn.DstFromInterface));
-
-            names.AddRange(ModellingAppRoleWrapper.Resolve(conn.DestinationAppRoles).ToList().ConvertAll(s => s.DisplayWithIcon(conn.DstFromInterface)));
-
-            List<ModellingAppServer> appServers = ModellingAppServerWrapper.Resolve(conn.DestinationAppServers).ToList();
-            foreach(var appServer in appServers)
-            {
-                appServer.TooltipText = userConfig.GetText("C9001");
-            }
-            names.AddRange(appServers.ConvertAll(s => s.DisplayWithIcon(conn.DstFromInterface)));
-            return names;
-        }
-
-        public List<string> GetSvcNames(ModellingConnection conn)
-        {
-            if(conn.InterfaceIsRequested || conn.IsRequested)
-            {
-                return [DisplayReqInt(userConfig, conn.TicketId, conn.InterfaceIsRequested, 
-                    conn.GetBoolProperty(ConState.Rejected.ToString()) || conn.GetBoolProperty(ConState.InterfaceRejected.ToString()))];
-            }
-            List<string> names = ModellingServiceGroupWrapper.Resolve(conn.ServiceGroups).ToList().ConvertAll(s => s.DisplayWithIcon(conn.UsedInterfaceId != null));
-            names.AddRange(ModellingServiceWrapper.Resolve(conn.Services).ToList().ConvertAll(s => s.DisplayWithIcon(conn.UsedInterfaceId != null)));
-            return names;
+            return [.. Connections.Where(x => !(x.IsInterface ||
+                x.GetBoolProperty(ConState.InterfaceRequested.ToString()) ||
+                x.GetBoolProperty(ConState.InterfaceRejected.ToString()) || 
+                x.EmptyAppRolesFound(dummyAppRoleId) ||
+                x.DeletedObjectsFound()
+                )).OrderByDescending(y => y.IsCommonService)];
         }
 
         public async Task AddConnection()

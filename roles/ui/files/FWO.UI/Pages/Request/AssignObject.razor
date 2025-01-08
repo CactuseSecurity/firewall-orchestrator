@@ -1,6 +1,7 @@
 @using FWO.Api.Client
 @using FWO.Config.Api
 @using FWO.Ui.Services
+@using FWO.Services
 @using FWO.Middleware.Client
 @using FWO.Middleware.RequestParameters
 @using System.Net
@@ -90,10 +91,10 @@
     public Func<Task> ResetParent { get; set; } = DefaultInit.DoNothing;
 
     [Parameter]
-    public RequestStatefulObject StatefulObject { get; set; } = new RequestStatefulObject();
+    public WfStatefulObject StatefulObject { get; set; } = new WfStatefulObject();
 
     [Parameter]
-    public Func<RequestStatefulObject, Task> Assign { get; set; } = DefaultInit.DoNothing;
+    public Func<WfStatefulObject, Task> Assign { get; set; } = DefaultInit.DoNothing;
 
     [Parameter]
     public Func<Task>? AssignBack { get; set; }

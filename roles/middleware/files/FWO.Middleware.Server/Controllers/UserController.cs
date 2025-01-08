@@ -1,15 +1,12 @@
-﻿using FWO.Config.Api;
-using FWO.GlobalConstants;
 using FWO.Api.Data;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Logging;
 using FWO.Middleware.RequestParameters;
-using FWO.Middleware.Server;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace FWO.Middleware.Controllers
+namespace FWO.Middleware.Server.Controllers
 {
 	/// <summary>
 	/// Controller class for user api
@@ -42,7 +39,7 @@ namespace FWO.Middleware.Controllers
 		public async Task<List<UserGetReturnParameters>> Get()
 		{
 			List<UiUser> users = (await apiConnection.SendQueryAsync<UiUser[]>(AuthQueries.getUsers)).ToList();
-			List<UserGetReturnParameters> userList = new List<UserGetReturnParameters>();
+			List<UserGetReturnParameters> userList = [];
 			foreach (UiUser user in users)
 			{
 				if (user.DbId != 0)
@@ -67,7 +64,7 @@ namespace FWO.Middleware.Controllers
 		[Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
 		public async Task<List<LdapUserGetReturnParameters>> Get([FromBody] LdapUserGetParameters parameters)
 		{
-			List<LdapUserGetReturnParameters> allUsers = new List<LdapUserGetReturnParameters>();
+			List<LdapUserGetReturnParameters> allUsers = [];
 
 			foreach (Ldap currentLdap in ldaps)
 			{
@@ -131,7 +128,7 @@ namespace FWO.Middleware.Controllers
 					var Variables = new
 					{
 						uuid = parameters.UserDn,
-						uiuser_username = (new FWO.Api.Data.DistName(parameters.UserDn)).UserName,
+						uiuser_username = new DistName(parameters.UserDn).UserName,
 						email = email,
 						uiuser_first_name = parameters.Firstname,
 						uiuser_last_name = parameters.Lastname,
@@ -198,7 +195,7 @@ namespace FWO.Middleware.Controllers
 						id = parameters.UserId,
 						email = email
 					};
-					await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.AuthQueries.updateUserEmail, Variables);
+					await apiConnection.SendQueryAsync<ReturnId>(AuthQueries.updateUserEmail, Variables);
 				}
 				catch (Exception exception)
 				{
@@ -282,8 +279,8 @@ namespace FWO.Middleware.Controllers
 						errorMsg = currentLdap.SetPassword(user.Dn, parameters.NewPassword);
 						if (errorMsg == "")
 						{
-							List<string> roles = currentLdap.GetRoles(new List<string>() { user.Dn }).ToList(); // TODO: Group roles are not included
-																												// the demo user (currently auditor) can't be forced to change password as he is not allowed to do it. Everyone else has to change it though
+							List<string> roles = [.. currentLdap.GetRoles([user.Dn])]; // TODO: Group roles are not included
+							// the demo user (currently auditor) can't be forced to change password as he is not allowed to do it. Everyone else has to change it though
 							bool passwordMustBeChanged = !roles.Contains(Roles.Auditor);
 							await UiUserHandler.UpdateUserPasswordChanged(apiConnection, user.Dn, passwordMustBeChanged);
 						}
@@ -311,7 +308,7 @@ namespace FWO.Middleware.Controllers
 			UiUser user = await resolveUser(parameters.UserId) ?? throw new Exception("Wrong UserId");
 
 			bool userRemoved = false;
-			List<Task> ldapRoleRequests = new List<Task>();
+			List<Task> ldapRoleRequests = [];
 
 			foreach (Ldap currentLdap in ldaps)
 			{
@@ -380,7 +377,7 @@ namespace FWO.Middleware.Controllers
 				try
 				{
 					var Variables = new { id = user.DbId };
-					await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.AuthQueries.deleteUser, Variables);
+					await apiConnection.SendQueryAsync<ReturnId>(AuthQueries.deleteUser, Variables);
 				}
 				catch (Exception exception)
 				{
@@ -396,7 +393,7 @@ namespace FWO.Middleware.Controllers
 			List<UiUser> uiUsers;
 			try
 			{
-				uiUsers = (await apiConnection.SendQueryAsync<UiUser[]>(AuthQueries.getUsers)).ToList();
+				uiUsers = [.. (await apiConnection.SendQueryAsync<UiUser[]>(AuthQueries.getUsers))];
 				return uiUsers.FirstOrDefault(x => x.DbId == id);
 			}
 			catch (Exception exception)

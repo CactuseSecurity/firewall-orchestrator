@@ -1,8 +1,9 @@
-﻿@inject UserConfig userConfig
+﻿@using FWO.Basics
+@inject UserConfig userConfig
 
 <ul class="nav nav-tabs sticky-marker mb-3">
 	<li class="nav-item">
-		<NavLink href="/report/generation" class="nav-link text-dark">
+		<NavLink href="@("/" + PageName.ReportGeneration)" class="nav-link text-dark">
 			<div class="input-group">
     			@userConfig.GetText("generation")
     			<sup><HelpLink Page="reporting"/></sup>

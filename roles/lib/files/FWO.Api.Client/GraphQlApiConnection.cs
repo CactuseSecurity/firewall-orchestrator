@@ -63,33 +63,32 @@ namespace FWO.Api.Client
 
         public override void SetRole(string role)
         {
+            prevRole = GetActRole();
             graphQlClient.HttpClient.DefaultRequestHeaders.Remove("x-hasura-role");
             graphQlClient.HttpClient.DefaultRequestHeaders.Add("x-hasura-role", role);
+        }
+
+        public bool IsActRole(string role)
+        {
+            return role == GetActRole();
         }
 
         public string GetActRole()
         {
             if(graphQlClient.HttpClient.DefaultRequestHeaders.TryGetValues("x-hasura-role", out IEnumerable<string>? roles))
             {
+                if(roles.Count() > 1)
+                {
+                    Log.WriteDebug("API call", $"More than one role in x-hasura-role: {roles}");
+                }
                 return roles.First();
             }
             return "";
         }
 
-        public override void SetProperRole(System.Security.Claims.ClaimsPrincipal user, List<string> targetRoleList)
+        public override void SetBestRole(System.Security.Claims.ClaimsPrincipal user, List<string> targetRoleList)
         {
             prevRole = GetActRole();
-
-            // first look if user is already in one of the target roles 
-            foreach(string role in targetRoleList)
-            {
-                if (user.IsInRole(role))
-                {
-                    SetRole(role);
-                    return;
-                }
-            }
-            // now look if user has a target role as allowed role
             foreach(string role in targetRoleList)
             {
                 if(user.Claims.FirstOrDefault(claim => claim.Type == "x-hasura-allowed-roles" && claim.Value == role) != null)
@@ -100,9 +99,25 @@ namespace FWO.Api.Client
             }
         }
 
+        public override void SetProperRole(System.Security.Claims.ClaimsPrincipal user, List<string> targetRoleList)
+        {
+            prevRole = GetActRole();
+
+            // first look if user is already in one of the target roles 
+            if(targetRoleList.Contains(prevRole))
+            {
+                return;
+            }
+            // now look if user has a target role as allowed role
+            SetBestRole(user, targetRoleList);
+        }
+
         public override void SwitchBack()
         {
-            SetRole(prevRole);
+            if(prevRole != "")
+            {
+                SetRole(prevRole);
+            }
         }
 
         /// <summary>
@@ -179,7 +194,10 @@ namespace FWO.Api.Client
             try
             {
                 GraphQLRequest request = new GraphQLRequest(subscription, variables, operationName);
-                return new GraphQlApiSubscription<SubscriptionResponseType>(this, graphQlClient, request, exceptionHandler, subscriptionUpdateHandler);
+                GraphQlApiSubscription<SubscriptionResponseType> newSub = 
+                    new GraphQlApiSubscription<SubscriptionResponseType>(this, graphQlClient, request, exceptionHandler, subscriptionUpdateHandler);
+                subscriptions.Add(newSub);
+                return newSub;
             }
             catch (Exception exception)
             {
@@ -193,6 +211,10 @@ namespace FWO.Api.Client
             if (disposing)
             {
                 graphQlClient.Dispose();
+                foreach (ApiSubscription subscription in subscriptions)
+                {
+                    subscription.Dispose();
+                }
             }
         }
     }

@@ -1,6 +1,6 @@
 ﻿@using FWO.Config.Api
 @using FWO.Config.Api.Data
-@using FWO.GlobalConstants
+@using FWO.Basics
 @using FWO.Api.Data
 
 @inherits LayoutComponentBase
@@ -51,6 +51,20 @@
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="monitoring/import_logs">
                         <span class="@Icons.Import"></span> @(userConfig.GetText("import_logs"))
+                    </NavLink>
+                </li>
+                <hr />
+                <li class="nav-item px-2" data-toggle="tooltip" title="@(userConfig.GetText("U5016"))">
+                    <h5>@(userConfig.GetText("external_requests"))</h5>
+                </li>
+                <li class="nav-item px-2">
+                    <NavLink class="nav-link" href="monitoring/external_requests">
+                        <span class="@Icons.Export"></span> @(userConfig.GetText("external_requests"))
+                    </NavLink>
+                </li>
+                <li class="nav-item px-2">
+                    <NavLink class="nav-link" href="monitoring/external_request_tickets">
+                        <span class="@Icons.Tickets"></span> @(userConfig.GetText("ext_request_tickets"))
                     </NavLink>
                 </li>
                 <hr />

@@ -4,7 +4,7 @@ namespace FWO.Test
 {
     internal class SimulatedUserConfig : UserConfig
     {
-        public Dictionary<string, string> DummyTranslate = new Dictionary<string, string>()
+        public Dictionary<string, string> DummyTranslate = new()
         {
             {"Rules","Rules Report"},
             {"ResolvedRules","Rules Report (resolved)"},
@@ -73,7 +73,16 @@ namespace FWO.Test
             {"global_common_services","Global Common Services"},
             {"func_reason","Functional Reason"},
             {"interface_description","Interface Description"},
-            {"published","Published"}
+            {"published","Published"},
+            {"fetch_data","Fetch data"},
+            {"new_connection","New Connection"},
+            {"new_app_role","New AppRole: "},
+            {"update_app_role","Update AppRole: "},
+            {"new_svc_grp","New Servicegroup: "},
+            {"add_members",": Add Members"},
+            {"remove_members",": Remove Members"},
+            {"new_app_zone", "New AppZone: " },
+            {"update_app_zone", "Update AppZone: " }
         };
 
         public override string GetText(string key)

@@ -1,5 +1,8 @@
 ﻿@using FWO.Config.Api
 @using FWO.Middleware.Client
+@using FWO.Ui.Shared
+@using FWO.Services
+
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
@@ -13,7 +16,8 @@
 @if(InitComplete)
 {
     <div class="vheight75">
-        <Table TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="LogEntry" Items="logEntrys" PageSize="100">
+        <PageSizeComponent PageSizeCallback="UpdatePageSize" PageSize="PageSize"></PageSizeComponent>
+        <Table TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="LogEntry" Items="logEntrys" PageSize="PageSize">
             <Column TableItem="LogEntry" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true"/>
             <Column TableItem="LogEntry" Title="@(userConfig.GetText("timestamp"))" Field="@(x => x.Timestamp)" Sortable="true" Filterable="true"/>
             <Column TableItem="LogEntry" Title="@(userConfig.GetText("found_by"))" Field="@(x => x.UserId)" Sortable="true">
@@ -36,7 +40,7 @@
 else
 {
     <div class="spinner-border" role="status">
-        <span class="sr-only">@(userConfig.GetText("loading"))</span>
+        <span class="visually-hidden">@(userConfig.GetText("loading"))</span>
     </div>
 }
 
@@ -46,31 +50,30 @@ else
     [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
-    private List<LogEntry> logEntrys = new List<LogEntry>();
-    private List<UiUser> uiUsers = new List<UiUser>();
-    private List<Management> managements = new List<Management>();
+    private List<LogEntry> logEntrys = [];
+    private List<UiUser> uiUsers = [];
+    private List<Management> managements = [];
     private bool InitComplete = false;
+
+    private int PageSize { get; set; } = 10;
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
             logEntrys = await apiConnection.SendQueryAsync<List<LogEntry>>(MonitorQueries.getAutodiscoveryLogEntrys);
-            uiUsers = await apiConnection.SendQueryAsync<List<UiUser>>(FWO.Api.Client.Queries.AuthQueries.getUsers);
-
-            JwtReader jwt = new JwtReader(userConfig.User.Jwt);
-            jwt.Validate();
-            if (jwt.ContainsAllowedRole(Roles.Admin) || jwt.ContainsAllowedRole(Roles.FwAdmin))
-                managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementsDetails);
-            else
-                managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementDetailsWithoutSecrets);
-
-            // managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementsDetails);
+            uiUsers = await apiConnection.SendQueryAsync<List<UiUser>>(AuthQueries.getUsers);
+            managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames);
             InitComplete = true;
         }
         catch (Exception exception)
         {
             DisplayMessageInUi(exception, userConfig.GetText("fetch_log_entrys"), "", true);
         }
+    }
+
+    private void UpdatePageSize(int pageSize)
+    {
+        PageSize = pageSize;
     }
 }

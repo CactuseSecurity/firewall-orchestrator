@@ -1,0 +1,9 @@
+subscription subscribeExtRequestStateUpdate ($id: bigint!){
+  ext_request(where: { id: {_eq: $id} }, limit: 1) {
+    id
+    owner_id
+    ticket_id
+    task_number
+    ext_request_state
+  }
+}

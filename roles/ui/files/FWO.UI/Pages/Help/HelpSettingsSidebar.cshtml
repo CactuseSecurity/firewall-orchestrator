@@ -6,7 +6,7 @@
 <nav class="sidebar fixed sidebar-help shadow">
     <div class="sidebar-help d-flex flex-row" style="left:0px;">
         <div class="sidebar-help" style="width:250px; overflow-x:scroll;">
-            <ul class="sidebar-help me-auto">
+            <ul class="me-auto">
                 <p></p>
                 <h5>@(userConfig.GetText("devices"))</h5>
                 <a class="nav-link" href="/help/settings/credentials/?lang=@($"{userConfig.GetUserLanguage()}")">
@@ -54,6 +54,9 @@
                 </a>
                 <a class="nav-link" href="/help/settings/modelling/?lang=@($"{userConfig.GetUserLanguage()}")">
                     <span class="@Icons.Modelling"></span> @(userConfig.GetText("modelling"))
+                </a>
+                <a class="nav-link" href="/help/settings/extticketing/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="@Icons.Tickets"></span> @(userConfig.GetText("ext_ticketing"))
                 </a>
                 <a class="nav-link" href="/help/settings/passwordpolicy/?lang=@($"{userConfig.GetUserLanguage()}")">
                     <span class="@Icons.Policy"></span> @(userConfig.GetText("password_policy"))

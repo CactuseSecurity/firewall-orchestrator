@@ -1,9 +1,10 @@
 ﻿@using BlazorTable
 @using FWO.Config.Api
-@using FWO.GlobalConstants
+@using FWO.Basics
 @using FWO.Api.Data
 @using FWO.Report
 @using FWO.Ui.Display
+@using FWO.Services
 
 @inject UserConfig userConfig
 @inject IJSRuntime jsRuntime
@@ -160,7 +161,7 @@
                                             }
                                         </Content1>
                                         <Content2>
-                                            @{ List<long> shownMemberIds = new List<long>(); }
+                                            @{ List<long> shownMemberIds = []; }
                                             @foreach (GroupFlat<NetworkService> member in context.ServiceGroupFlats)
                                             {
                                                 if(member.Object != null)
@@ -215,7 +216,7 @@
                                         }
                                     </Content1>
                                     <Content2>
-                                        @{ List<long> shownMemberIds = new List<long>(); }
+                                        @{ List<long> shownMemberIds = []; }
                                         @foreach (GroupFlat<NetworkUser> member in context.UserGroupFlats)
                                         {
                                             if(member.Object != null)
@@ -352,6 +353,7 @@
 
         return idPref;
     }
+    
     private string GetID(ObjCategory objCategory, long objId)
     {
         return GetIDPrefix(objCategory) + objId;
@@ -366,7 +368,7 @@
         RsbTab targetTab = Tab == RsbTab.all ? RsbTab.all : RsbTab.report;
         string htmlObjRefPrefix = GetIDPrefix(objCategory, targetTab, true);
 
-        string page = Recert ? "certification" : "report/generation";
+        string page = Recert ? PageName.Certification : PageName.ReportGeneration;
         
         return @<a style="@(highlighted ? GlobalConst.kStyleHighlighted : "")" href="@(page)#goto-@(htmlObjRefPrefix + objId)" target="_top"><span class="@ReportBase.GetIconClass(objCategory, type)">&nbsp;</span>@(name)</a>;
     }

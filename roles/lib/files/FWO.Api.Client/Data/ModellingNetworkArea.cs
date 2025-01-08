@@ -1,28 +1,34 @@
 using System.Text.Json.Serialization; 
 using Newtonsoft.Json;
+using FWO.Basics;
 
 namespace FWO.Api.Data
 {
     public class ModellingNetworkArea : ModellingNwGroup
     {
-        [JsonProperty("subnets"), JsonPropertyName("subnets")]
-        public List<NetworkSubnetWrapper> Subnets { get; set; } = [];
+        [JsonProperty("ip_data"), JsonPropertyName("ip_data")]
+        public List<NetworkDataWrapper> IpData { get; set; } = [];
 
         public int MemberCount = 0;
+
+        public ModellingNetworkArea(){}
+
+        public ModellingNetworkArea(ModellingNwGroup nwgroup) : base(nwgroup)
+        {}
         
-        // public override NetworkObject ToNetworkObjectGroup()
-        // {
-        //     Group<NetworkObject>[] objectGroups = NetworkSubnetWrapper.ResolveAsNetworkObjectGroup(Subnets ?? new List<NetworkSubnetWrapper>());
-        //     return new()
-        //     {
-        //         Id = Id,
-        //         Number = Number,
-        //         Name = Name ?? "",
-        //         Type = new NetworkObjectType(){ Name = ObjectType.Group },
-        //         ObjectGroups = objectGroups,
-        //         MemberNames = string.Join("|", Array.ConvertAll(objectGroups, o => o.Object?.Name))
-        //     };
-        // }
+        public override NetworkObject ToNetworkObjectGroup()
+        {
+            Group<NetworkObject>[] objectGroups = NetworkDataWrapper.ResolveIpDataAsNetworkObjectGroup(IpData ?? []);
+            return new()
+            {
+                Id = Id,
+                Number = Number,
+                Name = Name + " (" + IdString + ")" ?? IdString ?? "",
+                Type = new NetworkObjectType(){ Name = ObjectType.Group },
+                ObjectGroups = objectGroups,
+                MemberNames = string.Join("|", Array.ConvertAll(objectGroups, o => o.Object?.Name))
+            };
+        }
 
         public int CompareTo(ModellingNetworkArea secondArea)
         {
@@ -40,24 +46,24 @@ namespace FWO.Api.Data
         public override bool Sanitize()
         {
             bool shortened = base.Sanitize();
-            foreach(var subnet in Subnets)
+            foreach(var ip in IpData)
             {
-                shortened |= subnet.Content.Sanitize();
+                shortened |= ip.Content.Sanitize();
             }
             return shortened;
         }
     }
 
-    // public class ModellingNetworkAreaWrapper : ModellingNwGroupWrapper
-    // {
-    //     [JsonProperty("nwgroup"), JsonPropertyName("nwgroup")]
-    //     public new ModellingNetworkArea Content { get; set; } = new();
+    public class ModellingNetworkAreaWrapper
+    {
+        [JsonProperty("nwgroup"), JsonPropertyName("nwgroup")]
+        public ModellingNetworkArea Content { get; set; } = new();
 
-    //     public static ModellingNetworkArea[] Resolve(List<ModellingNetworkAreaWrapper> wrappedList)
-    //     {
-    //         return Array.ConvertAll(wrappedList.ToArray(), wrapper => wrapper.Content);
-    //     }
-    // }
+        public static ModellingNetworkArea[] Resolve(List<ModellingNetworkAreaWrapper> wrappedList)
+        {
+            return Array.ConvertAll(wrappedList.ToArray(), wrapper => wrapper.Content);
+        }
+    }
 
 
     public class NetworkSubnet
@@ -75,20 +81,16 @@ namespace FWO.Api.Data
        [JsonProperty("ip_end"), JsonPropertyName("ip_end")]
         public string? IpEnd { get; set; }
 
-        // public long Number;
-
-
-        // public static NetworkObject ToNetworkObject(NetworkSubnet subnet)
-        // {
-        //     return new NetworkObject()
-        //     {
-        //         Id = subnet.Id,
-        //         Number = subnet.Number,
-        //         Name = subnet.Name,
-        //         IP = subnet.Ip ?? "",
-        //         IpEnd = subnet.IpEnd ?? ""
-        //     };
-        // }
+        public static NetworkObject ToNetworkObject(NetworkSubnet subnet)
+        {
+            return new NetworkObject()
+            {
+                Id = subnet.Id,
+                Name = subnet.Name,
+                IP = subnet.Ip ?? "",
+                IpEnd = subnet.IpEnd ?? ""
+            };
+        }
 
         public bool Sanitize()
         {
@@ -100,19 +102,20 @@ namespace FWO.Api.Data
         }
     }
 
-    public class NetworkSubnetWrapper
+    public class NetworkDataWrapper
     {
         [JsonProperty("owner_network"), JsonPropertyName("owner_network")]
         public NetworkSubnet Content { get; set; } = new();
 
-        public static NetworkSubnet[] Resolve(List<NetworkSubnetWrapper> wrappedList)
+        public static NetworkSubnet[] Resolve(List<NetworkDataWrapper> wrappedList)
         {
             return Array.ConvertAll(wrappedList.ToArray(), wrapper => wrapper.Content);
         }
 
-        // public static Group<NetworkObject>[] ResolveAsNetworkObjectGroup(List<NetworkSubnetWrapper> wrappedList)
-        // {
-        //     return Array.ConvertAll(wrappedList.ToArray(), wrapper => new Group<NetworkObject> {Id = wrapper.Content.Id, Object = NetworkSubnet.ToNetworkObject(wrapper.Content)});
-        // }
+        public static Group<NetworkObject>[] ResolveIpDataAsNetworkObjectGroup(List<NetworkDataWrapper> wrappedList)
+        {
+            return Array.ConvertAll(wrappedList.ToArray(), wrapper => new Group<NetworkObject> 
+                {Id = wrapper.Content.Id, Object = NetworkSubnet.ToNetworkObject(wrapper.Content)});
+        }
     }
 }

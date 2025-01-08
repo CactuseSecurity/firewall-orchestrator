@@ -84,10 +84,10 @@ insert into config (config_key, config_value, config_user) VALUES ('importAppDat
 insert into config (config_key, config_value, config_user) VALUES ('importSubnetDataStartAt', '00:00:00', 0);
 insert into config (config_key, config_value, config_user) VALUES ('importSubnetDataSleepTime', '0', 0);
 insert into config (config_key, config_value, config_user) VALUES ('importAppDataPath', '[]', 0);
-insert into config (config_key, config_value, config_user) VALUES ('importSubnetDataPath', '', 0);
+insert into config (config_key, config_value, config_user) VALUES ('importSubnetDataPath', '[]', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modNamingConvention', '{"networkAreaRequired":false,"useAppPart":false,"fixedPartLength":0,"freePartLength":0,"networkAreaPattern":"","appRolePattern":""}', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modCommonAreas', '[]', 0);
-insert into config (config_key, config_value, config_user) VALUES ('ModAppServerTypes', '[{"Id":0,"Name":"Default"}]', 0);
+insert into config (config_key, config_value, config_user) VALUES ('modAppServerTypes', '[{"Id":0,"Name":"Default"}]', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modReqInterfaceName', '', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modReqEmailReceiver', 'OwnerGroupOnly', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modReqEmailRequesterInCc', 'true', 0);
@@ -95,6 +95,10 @@ insert into config (config_key, config_value, config_user) VALUES ('modReqEmailS
 insert into config (config_key, config_value, config_user) VALUES ('modReqEmailBody', '', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modReqTicketTitle', '', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modReqTaskTitle', '', 0);
+insert into config (config_key, config_value, config_user) VALUES ('modRolloutActive', 'true', 0);
+insert into config (config_key, config_value, config_user) VALUES ('modRolloutResolveServiceGroups', 'true', 0);
+insert into config (config_key, config_value, config_user) VALUES ('modRolloutBundleTasks', 'false', 0);
+insert into config (config_key, config_value, config_user) VALUES ('modRolloutErrorText', 'Error during external request', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modIconify', 'True', 0);
 insert into config (config_key, config_value, config_user) VALUES ('reducedProtocolSet', 'True', 0);
 insert into config (config_key, config_value, config_user) VALUES ('overviewDisplayLines', '3', 0);
@@ -111,8 +115,12 @@ insert into config (config_key, config_value, config_user) VALUES ('impChangeNot
 insert into config (config_key, config_value, config_user) VALUES ('impChangeNotifyType', '0', 0);
 insert into config (config_key, config_value, config_user) VALUES ('impChangeNotifySleepTime', '0', 0);
 insert into config (config_key, config_value, config_user) VALUES ('impChangeNotifyStartAt', '00:00:00', 0);
-
+insert into config (config_key, config_value, config_user) VALUES ('externalRequestSleepTime', '0', 0);
+insert into config (config_key, config_value, config_user) VALUES ('externalRequestStartAt', '00:00:00', 0);
+insert into config (config_key, config_value, config_user) VALUES ('externalRequestWaitCycles', '0', 0);
+insert into config (config_key, config_value, config_user) VALUES ('modExtraConfigs', '[]', 0);
 insert into config (config_key, config_value, config_user) VALUES ('extTicketSystems', '[{"Url":"","TicketTemplate":"{\"ticket\":{\"subject\":\"@@TICKET_SUBJECT@@\",\"priority\":\"@@PRIORITY@@\",\"requester\":\"@@ONBEHALF@@\",\"domain_name\":\"\",\"workflow\":{\"name\":\"@@WORKFLOW_NAME@@\"},\"steps\":{\"step\":[{\"name\":\"Erfassung des Antrags\",\"tasks\":{\"task\":{\"fields\":{\"field\":[@@TASKS@@]}}}}]}}}","TasksTemplate":"{\"@xsi.type\":\"multi_access_request\",\"name\":\"GewünschterZugang\",\"read_only\":false,\"access_request\":{\"order\":\"AR1\",\"verifier_result\":{\"status\":\"notrun\"},\"use_topology\":true,\"targets\":{\"target\":{\"@type\":\"ANY\"}},\"users\":{\"user\":@@USERS@@},\"sources\":{\"source\":@@SOURCES@@},\"destinations\":{\"destination\":@@DESTINATIONS@@},\"services\":{\"service\":@@SERVICES@@},\"action\":\"@@ACTION@@\",\"labels\":\"\"}},{\"@xsi.type\":\"text_area\",\"name\":\"Grund für den Antrag\",\"read_only\":false,\"text\":\"@@REASON@@\"},{\"@xsi.type\":\"drop_down_list\",\"name\":\"Regel Log aktivieren?\",\"selection\":\"@@LOGGING@@\"},{\"@xsi.type\":\"date\",\"name\":\"Regel befristen bis:\"},{\"@xsi.type\":\"text_field\",\"name\":\"Anwendungs-ID\",\"text\":\"@@APPID@@\"},{\"@xsi.type\":\"checkbox\",\"name\":\"Die benötigte Kommunikationsverbindung ist im Kommunikationsprofil nach IT-Sicherheitsstandard hinterlegt\",\"value\":@@COM_DOCUMENTED@@},{\"@xsi.type\":\"drop_down_list\",\"name\":\"Expertenmodus: Exakt wie beantragt implementieren (Designervorschlag ignorieren)\",\"selection\":\"Nein\"}"}]', 0);
+insert into config (config_key, config_value, config_user) VALUES ('welcomeMessage', '', 0);
 
 INSERT INTO "report_format" ("report_format_name") VALUES ('json');
 INSERT INTO "report_format" ("report_format_name") VALUES ('pdf');
@@ -268,6 +276,7 @@ insert into stm_obj_typ (obj_typ_id,obj_typ_name) VALUES (16,'gsn_handover_group
 insert into stm_obj_typ (obj_typ_id,obj_typ_name) VALUES (17,'voip_sip');
 insert into stm_obj_typ (obj_typ_id,obj_typ_name) VALUES (18,'simple-gateway');
 insert into stm_obj_typ (obj_typ_id,obj_typ_name) VALUES (19,'external-gateway');
+insert into stm_obj_typ (obj_typ_id,obj_typ_name) VALUES (20,'voip');   -- general voip object replacing old specific ones and including CpmiVoipSipDomain
 
 insert into stm_action (action_id,action_name) VALUES (1,'accept'); -- cp, fortinet
 insert into stm_action (action_id,action_name) VALUES (2,'drop'); -- cp

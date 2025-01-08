@@ -217,3 +217,40 @@ bugfix release:
 # 8.2.4 - 19.06.2024 DEVELOP
 - owner-filtering for new report type
 - new setting for email recipients
+
+# 8.3.1 - 08.07.2024 DEVELOP
+- workflow: external state handling
+- fix config value
+- remove uniqueness of owner names
+
+# 8.3.2 - 09.09.2024 DEVELOP
+- Added welcome message and settings
+
+# 8.4.1 - 15.10.24 DEVELOP
+- Add missing FK connection.proposed_app_id #2591
+
+# 8.4.2 - 17.10.2024 DEVELOP
+- external request
+
+# 8.4.3 - 05.11.2024 DEVELOP
+- extra parameters in modelling connection
+
+# 8.5.1 - 18.11.2024 DEVELOP
+- reporting - fixing PDF generation on various platforms
+- modelling - fixing AR editing: strict prevention of all area mixing
+
+# 8.5.2 - 27.11.2024 DEVELOP
+- some check point importer fixes
+  - 4 new colors
+  - added Internet object
+  - added voip one more object
+
+# 8.5.3 - 27.11.2024 DEVELOP
+- owner import - make ldap selectable (internal/external)
+- small fixes regarding missing config data for two schedulers (daily, app data import)
+
+# 8.5.4 - 04.12.2024 DEVELOP
+- external request: introduce wait cycles
+
+# 8.6.1 - 12.12.2024 DEVELOP
+- external request: introduce locks

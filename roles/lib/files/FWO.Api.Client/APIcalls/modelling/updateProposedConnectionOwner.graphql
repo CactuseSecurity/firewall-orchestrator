@@ -1,0 +1,12 @@
+mutation updateProposedConnectionOwner(
+  $id: Int!
+  $propAppId: Int
+  ) {
+  update_modelling_connection_by_pk(
+    pk_columns: { id: $id }
+    _set: {
+      proposed_app_id: $propAppId
+  }) {
+    UpdatedId: id
+  }
+}

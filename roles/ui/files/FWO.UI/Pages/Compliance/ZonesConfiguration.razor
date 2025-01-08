@@ -1,5 +1,6 @@
 ﻿@using NetTools;
 @using System.Diagnostics;
+@using FWO.Services
 
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Auditor}")]
 
@@ -284,7 +285,7 @@
 
 				await apiConnection.SendQueryAsync<dynamic>(ComplianceQueries.addNetworkZone, variables);
 
-				DisplayMessageInUi(null, userConfig.GetText("S_add_title"), userConfig.GetText("S_add_message"), false);
+				DisplayMessageInUi(null, userConfig.GetText("U0010"), userConfig.GetText("U0011"), false);
 			}
 			else
 			{
@@ -358,7 +359,7 @@
 
 				await apiConnection.SendQueryAsync<dynamic>(ComplianceQueries.updateNetworkZones, variables);
 
-				DisplayMessageInUi(null, userConfig.GetText("S_modify_title"), userConfig.GetText("S_modify_message"), false);
+				DisplayMessageInUi(null, userConfig.GetText("U0012"), userConfig.GetText("U0013"), false);
 			}
 
 			editMode = false;
@@ -370,12 +371,12 @@
 			if (networkZoneInEdit.Id == -1)
 			{
 				// Add case
-				DisplayMessageInUi(exception, userConfig.GetText("E_add_title"), userConfig.GetText("E_add_message"), true);
+				DisplayMessageInUi(exception, userConfig.GetText("E0032"), userConfig.GetText("E0033"), true);
 			}
 			else
 			{
 				// Edit case
-				DisplayMessageInUi(exception, userConfig.GetText("E_modify_title"), userConfig.GetText("E_modify_message"), true);
+				DisplayMessageInUi(exception, userConfig.GetText("E0034"), userConfig.GetText("E0035"), true);
 			}
 		}
 	}
@@ -393,11 +394,11 @@
 
 			networkZoneService.NetworkZones = await apiConnection.SendQueryAsync<ComplianceNetworkZone[]>(ComplianceQueries.getNetworkZones);
 
-			DisplayMessageInUi(null, userConfig.GetText("S_delete_title"), userConfig.GetText("S_delete_message"), false);
+			DisplayMessageInUi(null, userConfig.GetText("U0014"), userConfig.GetText("U0015"), false);
 		}
 		catch (Exception exception)
 		{
-			DisplayMessageInUi(exception, userConfig.GetText("E_delete_title"), userConfig.GetText("E_delete_message"), true);
+			DisplayMessageInUi(exception, userConfig.GetText("E0036"), userConfig.GetText("E0037"), true);
 		}
 		deleteMode = false;
 		StateHasChanged();

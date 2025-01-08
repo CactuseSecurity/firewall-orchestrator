@@ -1,0 +1,1 @@
+insert into config (config_key, config_value, config_user) VALUES ('welcomeMessage', '', 0) ON CONFLICT DO NOTHING;

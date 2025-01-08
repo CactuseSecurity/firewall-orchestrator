@@ -1,4 +1,4 @@
-﻿using FWO.GlobalConstants;
+﻿using FWO.Basics;
 using FWO.Api.Client;
 using FWO.Api.Data;
 using FWO.Report.Filter;
@@ -145,10 +145,11 @@ namespace FWO.Report
             };
         }
 
-        public static string ConstructLink(string type, string symbol, long id, string name, OutputLocation location, string reportId, string style)
+        public static string ConstructLink(string type, string symbol, int chapterNumber, long id, string name, OutputLocation location, string reportId, string style)
         {
-            string link = location == OutputLocation.export ? $"#" : $"{location}/generation#goto-report-{reportId}-";
-            return $"<span class=\"{symbol}\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"{link}{type}{id}\" target=\"_top\" style=\"{style}\">{name}</a>";
+            string page = location == OutputLocation.report ? PageName.ReportGeneration : PageName.Certification;
+            string link = location == OutputLocation.export ? $"#" : $"{page}#goto-report-{reportId}-";
+            return $"<span class=\"{symbol}\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"{link}{type}{chapterNumber}x{id}\" target=\"_top\" style=\"{style}\">{name}</a>";
         }
 
         protected string GenerateHtmlFrameBase(string title, string filter, DateTime date, StringBuilder htmlReport, string? deviceFilter = null, string? ownerFilter = null)

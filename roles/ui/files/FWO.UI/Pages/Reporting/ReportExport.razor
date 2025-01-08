@@ -4,6 +4,7 @@
 @using WkHtmlToPdfDotNet
 @using System.Linq
 @using FWO.Report.Filter
+@using FWO.Services
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
@@ -98,7 +99,7 @@
         }
         else {
             <div class="spinner-border" role="status">
-                <span class="sr-only">Exporting...</span>
+                <span class="visually-hidden">Exporting...</span>
             </div>
         }
     </Footer>

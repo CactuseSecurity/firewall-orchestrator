@@ -3,6 +3,7 @@
 @using FWO.Config.Api.Data
 @using FWO.Ui.Services
 @using System.Text.Json
+@using FWO.Services
 
 @page "/settings/statematrix"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
@@ -23,7 +24,7 @@
     <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5541"))">
         <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("type")):</label>
         <div class="col-sm-3">
-            <Dropdown ElementType="TaskType" @bind-SelectedElement="actTaskType" ElementToString="@(t => userConfig.GetText(t.ToString()))" Elements="availableTaskTypes" >
+            <Dropdown ElementType="WfTaskType" @bind-SelectedElement="actTaskType" ElementToString="@(t => userConfig.GetText(t.ToString()))" Elements="availableTaskTypes" >
                 <ElementTemplate Context="type">
                     @(userConfig.GetText(type.ToString()))
                 </ElementTemplate>
@@ -39,9 +40,9 @@
         <hr />
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5542"))">
             <div class="col-sm-1">
-                <input type="checkbox" @bind="actStateMatrix.GlobalMatrix[phase].Active" />
+                <input id="@("cbx_is_active_workflow_phase_" + phase.ToString())" type="checkbox" @bind="actStateMatrix.GlobalMatrix[phase].Active" />
             </div>
-            <label class="col-form-label col-sm-3"><h4>@(userConfig.GetText(phase.ToString()))</h4></label>
+            <label for="@("cbx_is_active_workflow_phase_" + phase.ToString())" sf class="col-form-label col-sm-3"><h4>@(userConfig.GetText(phase.ToString()))</h4></label>
         </div>
         @if(actStateMatrix.GlobalMatrix[phase].Active)
         {
@@ -230,7 +231,7 @@
 else
 {
     <div class="spinner-border" role="status">
-        <span class="sr-only">@(userConfig.GetText("loading"))</span>
+        <span class="visually-hidden">@(userConfig.GetText("loading"))</span>
     </div>
 }
 
@@ -239,12 +240,12 @@ else
     [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
-    private List<RequestState> states = new ();
-    private List<int> stateIds = new ();
-    private Dictionary<int,string> stateNames = new ();
-    private List<int> actToStateIds = new List<int>();
-    private List<RequestState> availableStates = new ();
-    private RequestStateDict statesDict = new ();
+    private List<WfState> states = [];
+    private List<int> stateIds = [];
+    private Dictionary<int,string> stateNames = [];
+    private List<int> actToStateIds = [];
+    private List<WfState> availableStates = [];
+    private WfStateDict statesDict = new ();
 
     private GlobalStateMatrix actStateMatrix = new ();
 
@@ -256,15 +257,15 @@ else
     private bool SaveMatrixMode = false;
     private bool ResetMatrixMode = false;
     private bool EditTargetStatesMode = false;
-    private TaskType actTaskType = TaskType.master;
-    private List<TaskType> availableTaskTypes { get; set; } = new ();
+    private WfTaskType actTaskType = WfTaskType.master;
+    private List<WfTaskType> availableTaskTypes { get; set; } = [];
     private bool InitComplete = false;
 
     protected override async Task OnInitializedAsync()
     {
         await RefreshStates();
         await InitMatrix();
-        availableTaskTypes = System.Text.Json.JsonSerializer.Deserialize<List<TaskType>>(userConfig.ReqAvailableTaskTypes) ?? throw new Exception("Config data could not be parsed.");
+        availableTaskTypes = System.Text.Json.JsonSerializer.Deserialize<List<WfTaskType>>(userConfig.ReqAvailableTaskTypes) ?? throw new Exception("Config data could not be parsed.");
         InitComplete = true;
     }
 
@@ -272,7 +273,7 @@ else
     {
         try
         {
-            states = await apiConnection.SendQueryAsync<List<RequestState>>(FWO.Api.Client.Queries.RequestQueries.getStates);
+            states = await apiConnection.SendQueryAsync<List<WfState>>(RequestQueries.getStates);
             foreach(var state in states)
             {
                 stateIds.Add(state.Id);
@@ -301,7 +302,7 @@ else
 
     public string TargetStateList(List<int> statesIn)
     {
-        List<string> statesOut = new List<string>();
+        List<string> statesOut = [];
         foreach(int state in statesIn)
         {
             statesOut.Add(statesDict.Name[state]);
@@ -312,7 +313,7 @@ else
     private void AddStateToPhase(WorkflowPhases phase)
     {
         actPhase = phase;
-        availableStates = new List<RequestState>();
+        availableStates = [];
         foreach(var state in states.Where(x => !actStateMatrix.GlobalMatrix[actPhase].Matrix.ContainsKey(x.Id)))
         {
             availableStates.Add(state);
@@ -345,7 +346,7 @@ else
     
     private void AddStateToTargetStates()
     {
-        availableStates = new List<RequestState>();
+        availableStates = [];
         foreach(var state in states.Where(x => !actStateMatrix.GlobalMatrix[actPhase].Matrix[actStateId].Contains(x.Id)))
         {
             availableStates.Add(state);
@@ -388,15 +389,15 @@ else
             SaveMatrixMode = false;
             string matrixKey = actTaskType switch
             {
-                TaskType.master => "reqMasterStateMatrix",
-                TaskType.generic => "reqGenStateMatrix",
-                TaskType.access => "reqAccStateMatrix",
-                TaskType.rule_delete => "reqRulDelStateMatrix",
-                TaskType.rule_modify => "reqRulModStateMatrix",
-                TaskType.group_create => "reqGrpCreStateMatrix",
-                TaskType.group_modify => "reqGrpModStateMatrix",
-                TaskType.group_delete => "reqGrpDelStateMatrix",
-                TaskType.new_interface => "reqNewIntStateMatrix",
+                WfTaskType.master => "reqMasterStateMatrix",
+                WfTaskType.generic => "reqGenStateMatrix",
+                WfTaskType.access => "reqAccStateMatrix",
+                WfTaskType.rule_delete => "reqRulDelStateMatrix",
+                WfTaskType.rule_modify => "reqRulModStateMatrix",
+                WfTaskType.group_create => "reqGrpCreStateMatrix",
+                WfTaskType.group_modify => "reqGrpModStateMatrix",
+                WfTaskType.group_delete => "reqGrpDelStateMatrix",
+                WfTaskType.new_interface => "reqNewIntStateMatrix",
                 _ => throw new Exception($"Error: wrong task type:" + actTaskType.ToString()),
             };
 

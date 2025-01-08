@@ -1,6 +1,7 @@
 ﻿@using FWO.Api.Client
 @using FWO.Config.Api
 @using FWO.Config.Api.Data
+@using FWO.Services
 
 @page "/settings/defaults"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
@@ -41,12 +42,12 @@
                 <input type="number" min="0" @bind="configData!.SessionTimeoutNoticePeriod" />
             </div>
         </div>
-        @* <div class="form-group row">
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("maxMessages"))">
             <label for="maxMessages" class="col-form-label col-sm-4">@(userConfig.GetText("maxMessages"))*:</label>
             <div class="col-sm-2">
                 <input id="maxMessages" type="number" @bind="configData!.MaxMessages">
             </div>
-        </div> *@
+        </div>
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5423"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("messageViewTime"))*:</label>
             <div class="col-sm-2">
@@ -59,6 +60,12 @@
                 <input type="text" class="col-sm-12" @bind="configData!.UiHostName" />
             </div>
         </div>
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5466"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("welcomeMessage")):</label>
+            <div class="col-sm-4">
+                <textarea type="text" rows="10" @bind="@configData!.WelcomeMessage" class="col-sm-12" placeholder="@(userConfig.GetText("welcomeMessage"))" />
+            </div>
+        </div>
         <hr />
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5412"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("elementsPerFetch"))*:</label>
@@ -67,9 +74,9 @@
             </div>
         </div>
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5414"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("autoFillRightSidebar")):</label>
+            <label for="cbx_auto_fill_right_sidebar" class="col-form-label col-sm-4">@(userConfig.GetText("autoFillRightSidebar")):</label>
             <div class="col-sm-1">
-                <input type="checkbox" class="w-100" @bind="configData!.AutoFillRightSidebar">
+                <input id="cbx_auto_fill_right_sidebar" type="checkbox" class="w-100" @bind="configData!.AutoFillRightSidebar">
             </div>
         </div>
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5413"))">
@@ -122,8 +129,8 @@
             <label class="col-form-label col-sm-4">@(userConfig.GetText("autoDiscoverStartAt")):</label>
             <div class="col-sm-4">
                 <div class="row">
-                    <input type="time" step="60" class="ml-13 col-sm-5" @bind="startTime" />
-                    <input type="date" class="col-sm-5" @bind="startDate" />
+                    <input type="time" step="60" class="ml-13 col-sm-5" @bind="autoDiscStartTime" />
+                    <input type="date" class="col-sm-5" @bind="autoDiscStartDate" />
                 </div>
             </div>
         </div>
@@ -148,9 +155,9 @@
         </div>
         <hr />
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5565"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("reqAllowManualOwnerAdmin")):</label>
+            <label for="cbx_allow_manual_owner_admin" class="col-form-label col-sm-4">@(userConfig.GetText("reqAllowManualOwnerAdmin")):</label>
             <div class="col-sm-1">
-                <input type="checkbox" class="w-100" @bind="configData!.AllowManualOwnerAdmin">
+                <input id="cbx_allow_manual_owner_admin" type="checkbox" class="w-100" @bind="configData!.AllowManualOwnerAdmin">
             </div>
         </div>
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5454"))">
@@ -179,7 +186,7 @@
 else
 {
     <div class="spinner-border" role="status">
-        <span class="sr-only">@(userConfig.GetText("loading"))</span>
+        <span class="visually-hidden">@(userConfig.GetText("loading"))</span>
     </div>
 }
 
@@ -192,8 +199,8 @@ else
 
     private ConfigData? configData;
     private Language selectedLanguage = new Language();
-    private DateTime startDate = DateTime.Today;
-    private DateTime startTime = DateTime.Now.AddSeconds(-DateTime.Now.Second);
+    private DateTime autoDiscStartDate = DateTime.Today;
+    private DateTime autoDiscStartTime = DateTime.Now.AddSeconds(-DateTime.Now.Second);
 
     protected override async Task OnInitializedAsync()
     {
@@ -201,7 +208,7 @@ else
         {
             configData = await globalConfig.GetEditableConfig();
             selectedLanguage = globalConfig.UiLanguages.FirstOrDefault(l => l.Name == configData.DefaultLanguage) ?? new Language();
-            startDate = startTime = configData.AutoDiscoverStartAt;
+            autoDiscStartDate = autoDiscStartTime = configData.AutoDiscoverStartAt;
         }
         catch (Exception exception)
         {
@@ -216,7 +223,7 @@ else
             if (configData != null)
             {
                 configData.DefaultLanguage = selectedLanguage.Name;
-                configData.AutoDiscoverStartAt = startDate.Date.Add(startTime.TimeOfDay);
+                configData.AutoDiscoverStartAt = autoDiscStartDate.Date.Add(autoDiscStartTime.TimeOfDay);
                 await globalConfig.WriteToDatabase(configData, apiConnection);
                 DisplayMessageInUi(null, userConfig.GetText("change_default"), userConfig.GetText("U5301"), false);
             }

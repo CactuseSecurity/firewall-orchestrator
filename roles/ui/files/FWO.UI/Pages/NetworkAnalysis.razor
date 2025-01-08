@@ -2,8 +2,8 @@
 @using NetTools
 @using System.Net
 @using FWO.Api.Client.Queries
-
-@using FWO.GlobalConstants
+@using FWO.Services
+@using FWO.Basics
 @using FWO.Api.Data
 
 @inject ApiConnection apiConnection
@@ -19,15 +19,15 @@
         <label for="routingSource" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("source")):</label>
         <input id="routingSource" type="text" class="col-sm-9" @bind="routingSourceString">
     </div>
-    <div class="form-group row">
+    <div class="form-group row mt-2">
         <label for="routingDestination" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("destination")):</label>
         <input id="routingDestination" type="text" class="col-sm-9" @bind="routingDestinationString">
     </div>
-    <div class="form-group row">
+    <div class="form-group row mt-2">
         <label for="service" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("service")):</label>
         <input readonly id="service" type="text" class="col-sm-9" @bind="serviceString">
     </div>
-    <div class="form-group row">
+    <div class="form-group row mt-2">
         <label for="gwsFound" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("gws_found")):</label>
         @if (gwsInPath == "")
         {
@@ -61,14 +61,16 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // try
-        // {
-        //    archivedReports = (await apiConnection.SendQueryAsync<ReportFile[]>(ReportQueries.getGeneratedReports)).ToList();
-        // }
-        // catch (Exception exception)
-        // {
-        //    DisplayMessageInUi(exception, userConfig.GetText("archive_fetch"), "", true);
-        // }
+        try
+        {
+            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Admin, Roles.FwAdmin, Roles.Planner, Roles.Auditor ]);
+
+            // archivedReports = (await apiConnection.SendQueryAsync<ReportFile[]>(ReportQueries.getGeneratedReports)).ToList();
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("init_environment"), "", true);
+        }
     }
 
     protected async Task<string> analyzePath(string source, string destination)

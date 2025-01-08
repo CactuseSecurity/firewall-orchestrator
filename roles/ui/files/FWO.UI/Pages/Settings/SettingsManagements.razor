@@ -1,10 +1,15 @@
 ﻿@using BlazorTable
-@using FWO.GlobalConstants
+@using FWO.Basics
 @using FWO.Api.Data
 @using FWO.Api.Client
+@using FWO.Api.Client.Queries
 @using FWO.Config.Api
 @using FWO.DeviceAutoDiscovery
 @using FWO.Middleware.Client
+@using System.Text.Json.Serialization
+@using Newtonsoft.Json
+@using FWO.Services
+
 
 @page "/settings/managements"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.FwAdmin}")]
@@ -91,7 +96,7 @@
         <Column TableItem="Management" Title="@(userConfig.GetText("importer_host"))" Field="@(x => x.ImporterHostname)" Sortable="true" Filterable="true" />
         <Column TableItem="Management" Title="@(userConfig.GetText("import_enabled"))" Field="@(x => x.ImportDisabled)" Sortable="true">
             <Template>
-                @(GlobalConfig.ShowBool(!context.ImportDisabled))
+                @((!context.ImportDisabled).ShowAsHtml())
             </Template>
         </Column>
         <Column TableItem="Management" Title="@(userConfig.GetText("debug_level"))" Field="@(x => x.DebugLevel)" Sortable="true" Filterable="true" />
@@ -216,6 +221,18 @@
                     </div>
                 </div>
 
+                <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5124"))">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ext_mgt_data")):</label>
+                    <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("id")):</label>
+                    <div class="col-sm-3">
+                        <input type="text" class="form-control form-control-sm" @bind="actExtMgtData.ExtId" />
+                    </div>
+                    <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("name")):</label>
+                    <div class="col-sm-3">
+                        <input type="text" class="form-control form-control-sm" @bind="actExtMgtData.ExtName" />
+                    </div>
+                </div>
+
                 <div class="form-check form-check-inline mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5122"))">
                     <input class="form-check-input" id="managementImportDisabled" type="checkbox" @bind="actManagement.ImportDisabled">
                     <label class="form-check-label" for="managementImportDisabled"><small>@(userConfig.GetText("import_disabled"))</small></label>
@@ -253,13 +270,13 @@
     [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
-    private List<ActionItem> actActions = new List<ActionItem>();
-    private List<Management> managements = new List<Management>();
-    private List<Management> sampleManagements = new List<Management>();
-    private List<Management> discoveredManagements = new List<Management>();
-    private List<DeviceType> deviceTypes = new List<DeviceType>();
-    private List<Device> devices = new List<Device>();
-    private List<ImportCredential> credentials = new List<ImportCredential>();
+    private List<ActionItem> actActions = [];
+    private List<Management> managements = [];
+    private List<Management> sampleManagements = [];
+    private List<Management> discoveredManagements = [];
+    private List<DeviceType> deviceTypes = [];
+    private List<Device> devices = [];
+    private List<ImportCredential> credentials = [];
 
     private ITable<Management>? table;
 
@@ -271,14 +288,16 @@
     private bool showCleanupButton = false;
     private bool workInProgress = false;
 
-    private Management newManagement = new Management();
-    private Management actManagement = new Management();
+    private Management newManagement = new();
+    private Management actManagement = new();
     private Management? selectedSuperManagement;
 
     private AutoDiscovery? autoDiscovery;
 
     private string deleteMessage = "";
     private string cleanupMessage = "";
+
+    private ExtMgtData actExtMgtData = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -293,18 +312,26 @@
             jwt.Validate();
 
             if (jwt.ContainsAllowedRole(Roles.Admin) || jwt.ContainsAllowedRole(Roles.FwAdmin))
-                managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementsDetails);
+            {
+                managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementsDetails);
+            }
             else
-                managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementDetailsWithoutSecrets);
+            {
+                managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementDetailsWithoutSecrets);
+            }
 
             AnalyseSampleManagements();
 
-            deviceTypes = await apiConnection.SendQueryAsync<List<DeviceType>>(FWO.Api.Client.Queries.DeviceQueries.getDeviceTypeDetails);
+            deviceTypes = await apiConnection.SendQueryAsync<List<DeviceType>>(DeviceQueries.getDeviceTypeDetails);
 
             if (jwt.ContainsAllowedRole(Roles.Admin) || jwt.ContainsAllowedRole(Roles.FwAdmin))
-                credentials = await apiConnection.SendQueryAsync<List<ImportCredential>>(FWO.Api.Client.Queries.DeviceQueries.getCredentials);
+            {
+                credentials = await apiConnection.SendQueryAsync<List<ImportCredential>>(DeviceQueries.getCredentials);
+            }
             else
-                credentials = await apiConnection.SendQueryAsync<List<ImportCredential>>(FWO.Api.Client.Queries.DeviceQueries.getCredentialsWithoutSecrets);
+            {
+                credentials = await apiConnection.SendQueryAsync<List<ImportCredential>>(DeviceQueries.getCredentialsWithoutSecrets);
+            }
         }
         catch (System.Exception exception)
         {
@@ -328,6 +355,7 @@
     {
         actManagement = new Management(management);
         selectedSuperManagement = actManagement.SuperManagerId != null ? managements.FirstOrDefault(m => m.Id == actManagement.SuperManagerId) : null;
+        actExtMgtData = actManagement.ExtMgtData != null ? System.Text.Json.JsonSerializer.Deserialize<ExtMgtData>(actManagement.ExtMgtData) : new();
         EditMode = true;
     }
 
@@ -354,7 +382,7 @@
             workInProgress = true;
             StateHasChanged();
             var Variables = new { id = actManagement.Id };
-            int delId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.DeviceQueries.deleteManagement, Variables)).DeletedId;
+            int delId = (await apiConnection.SendQueryAsync<ReturnId>(DeviceQueries.deleteManagement, Variables)).DeletedId;
             if (delId == actManagement.Id)
             {
                 managements.Remove(actManagement);
@@ -412,6 +440,7 @@
         try
         {
             actManagement.SuperManagerId = selectedSuperManagement?.Id;
+            actManagement.ExtMgtData = actExtMgtData.ExtId != null || actExtMgtData.ExtName != null ? System.Text.Json.JsonSerializer.Serialize(actExtMgtData) : null;
             if (actManagement.Sanitize())
             {
                 DisplayMessageInUi(null, userConfig.GetText("save_management"), userConfig.GetText("U0001"), true);
@@ -438,9 +467,10 @@
                         superManager = actManagement.SuperManagerId,
                         importerHostname = actManagement.ImporterHostname,
                         debugLevel = actManagement.DebugLevel,
-                        comment = actManagement.Comment
+                        comment = actManagement.Comment,
+                        extMgtData = actManagement.ExtMgtData
                     };
-                    ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.DeviceQueries.newManagement, Variables)).ReturnIds;
+                    ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(DeviceQueries.newManagement, Variables)).ReturnIds;
                     if (returnIds != null)
                     {
                         actManagement.Id = returnIds[0].NewId;
@@ -470,9 +500,10 @@
                         superManager = actManagement.SuperManagerId,
                         importerHostname = actManagement.ImporterHostname,
                         debugLevel = actManagement.DebugLevel,
-                        comment = actManagement.Comment
+                        comment = actManagement.Comment,
+                        extMgtData = actManagement.ExtMgtData
                     };
-                    int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.DeviceQueries.updateManagement, Variables)).UpdatedId;
+                    int udId = (await apiConnection.SendQueryAsync<ReturnId>(DeviceQueries.updateManagement, Variables)).UpdatedId;
                     EditMode = (udId == actManagement.Id ? false : true);
                     managements[managements.FindIndex(x => x.Id == actManagement.Id)] = actManagement;
                 }
@@ -499,7 +530,7 @@
             DisplayMessageInUi(null, checkCause, userConfig.GetText("E5109"), true);
             return false;
         }
-        if (mgm.DeviceType.Manufacturer != "DummyRouter" && (mgm.Port < 1 || mgm.Port > 65535))
+        if (mgm.DeviceType.Manufacturer != "DummyRouter" && (mgm.Port < 1 || mgm.Port > GlobalConst.kMaxPortNumber))
         {
             DisplayMessageInUi(null, checkCause, userConfig.GetText("E5103"), true);
             return false;

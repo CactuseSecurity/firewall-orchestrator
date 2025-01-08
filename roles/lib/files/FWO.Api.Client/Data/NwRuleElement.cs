@@ -7,9 +7,9 @@
         public string RuleUid { get; set; } = "";
 
 
-        public RequestReqElement ToReqElement()
+        public WfReqElement ToReqElement()
         {
-            RequestReqElement element = new RequestReqElement()
+            WfReqElement element = new()
             {
                 Id = ElemId,
                 TaskId = TaskId,
@@ -19,9 +19,9 @@
             return element;
         }
 
-        public RequestImplElement ToImplElement()
+        public WfImplElement ToImplElement()
         {
-            RequestImplElement element = new RequestImplElement()
+            WfImplElement element = new()
             {
                 Id = ElemId,
                 ImplTaskId = TaskId,

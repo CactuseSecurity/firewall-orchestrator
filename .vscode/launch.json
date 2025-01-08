@@ -102,11 +102,11 @@
             },
             "args": [
                 "-m6",
-                "-d7",
+                "-d1",
                 "-f",
                 "-s",
                 // "-c",
-                //"-ifile:///home/tim/tmp/k1/cp-native-new.json",
+                "-ifile:///home/tim/tmp/mgm_id_6_config_normalized.json",
                 // "-ifile:///home/tim/Downloads/b1_imp_nor.json",
                 // "-ifile:///home/tim/Downloads/b1_imp_norm_old.json",
                 // "-ifile:///home/tim/tmp/mgm_id_26_1.json",

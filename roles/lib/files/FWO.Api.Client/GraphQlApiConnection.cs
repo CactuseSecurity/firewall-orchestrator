@@ -16,7 +16,6 @@ namespace FWO.Api.Client
 
         private GraphQLHttpClient graphQlClient;
 
-        private string? jwt;
         private string prevRole = "";
 
         private void Initialize(string ApiServerUri)
@@ -33,7 +32,7 @@ namespace FWO.Api.Client
             graphQlClient = new GraphQLHttpClient(new GraphQLHttpClientOptions()
             {
                 EndPoint = new Uri(this.ApiServerUri),
-                HttpMessageHandler = Handler, 
+                HttpMessageHandler = Handler,
                 UseWebSocketForQueriesAndMutations = false, // TODO: Use websockets for performance reasons          
                 ConfigureWebsocketOptions = webSocketOptions => webSocketOptions.RemoteCertificateValidationCallback += (message, cert, chain, errors) => true
             }, ApiConstants.UseSystemTextJsonSerializer ? new SystemTextJsonSerializer() : new NewtonsoftJsonSerializer());
@@ -55,7 +54,6 @@ namespace FWO.Api.Client
 
         public override void SetAuthHeader(string jwt)
         {
-            this.jwt = jwt;
             graphQlClient.HttpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", jwt); // Change jwt in auth header
             graphQlClient.Options.ConfigureWebSocketConnectionInitPayload = httpClientOptions => new { headers = new { authorization = $"Bearer {jwt}" } };
             InvokeOnAuthHeaderChanged(this, jwt);
@@ -75,9 +73,9 @@ namespace FWO.Api.Client
 
         public string GetActRole()
         {
-            if(graphQlClient.HttpClient.DefaultRequestHeaders.TryGetValues("x-hasura-role", out IEnumerable<string>? roles))
+            if (graphQlClient.HttpClient.DefaultRequestHeaders.TryGetValues("x-hasura-role", out IEnumerable<string>? roles))
             {
-                if(roles.Count() > 1)
+                if (roles.Count() > 1)
                 {
                     Log.WriteDebug("API call", $"More than one role in x-hasura-role: {roles}");
                 }
@@ -89,9 +87,9 @@ namespace FWO.Api.Client
         public override void SetBestRole(System.Security.Claims.ClaimsPrincipal user, List<string> targetRoleList)
         {
             prevRole = GetActRole();
-            foreach(string role in targetRoleList)
+            foreach (string role in targetRoleList)
             {
-                if(user.Claims.FirstOrDefault(claim => claim.Type == "x-hasura-allowed-roles" && claim.Value == role) != null)
+                if (user.Claims.FirstOrDefault(claim => claim.Type == "x-hasura-allowed-roles" && claim.Value == role) != null)
                 {
                     SetRole(role);
                     return;
@@ -104,7 +102,7 @@ namespace FWO.Api.Client
             prevRole = GetActRole();
 
             // first look if user is already in one of the target roles 
-            if(targetRoleList.Contains(prevRole))
+            if (targetRoleList.Contains(prevRole))
             {
                 return;
             }
@@ -114,7 +112,7 @@ namespace FWO.Api.Client
 
         public override void SwitchBack()
         {
-            if(prevRole != "")
+            if (prevRole != "")
             {
                 SetRole(prevRole);
             }
@@ -134,7 +132,7 @@ namespace FWO.Api.Client
             try
             {
                 Log.WriteDebug("API call", $"Sending API call {operationName} in role {GetActRole()}: {query.Substring(0, Math.Min(query.Length, 70)).Replace(Environment.NewLine, "")}... " +
-                    (variables != null ? $"with variables: { JsonSerializer.Serialize(variables).Substring(0, Math.Min(JsonSerializer.Serialize(variables).Length, 50)).Replace(Environment.NewLine, "")}..." : ""));
+                    ( variables != null ? $"with variables: {JsonSerializer.Serialize(variables).Substring(0, Math.Min(JsonSerializer.Serialize(variables).Length, 50)).Replace(Environment.NewLine, "")}..." : "" ));
                 GraphQLResponse<dynamic> response = await graphQlClient.SendQueryAsync<dynamic>(query, variables, operationName);
                 // Log.WriteDebug("API call", "API response received.");
 
@@ -164,16 +162,16 @@ namespace FWO.Api.Client
 
                     if (ApiConstants.UseSystemTextJsonSerializer)
                     {
-                        JsonElement.ObjectEnumerator responseObjectEnumerator = response.Data.EnumerateObject();
-                        responseObjectEnumerator.MoveNext();
-                        QueryResponseType returnValue = JsonSerializer.Deserialize<QueryResponseType>(responseObjectEnumerator.Current.Value.GetRawText()) ??
-                        throw new Exception($"Could not convert result from Json to {typeof(QueryResponseType)}.\nJson: {responseObjectEnumerator.Current.Value.GetRawText()}");
-                        return returnValue;
+                        // JsonElement.ObjectEnumerator responseObjectEnumerator = response.Data.EnumerateObject();
+                        // responseObjectEnumerator.MoveNext();
+                        // QueryResponseType returnValue = JsonSerializer.Deserialize<QueryResponseType>(responseObjectEnumerator.Current.Value.GetRawText()) ??
+                        // throw new Exception($"Could not convert result from Json to {typeof(QueryResponseType)}.\nJson: {responseObjectEnumerator.Current.Value.GetRawText()}");
+                        // return returnValue;
                     }
                     else
                     {
                         JObject data = (JObject)response.Data;
-                        JProperty prop = (JProperty)(data.First ?? throw new Exception($"Could not retrieve unique result attribute from Json.\nJson: {response.Data}"));
+                        JProperty prop = (JProperty)( data.First ?? throw new Exception($"Could not retrieve unique result attribute from Json.\nJson: {response.Data}") );
                         JToken result = prop.Value;
                         QueryResponseType returnValue = result.ToObject<QueryResponseType>() ??
                             throw new Exception($"Could not convert result from Json to {typeof(QueryResponseType)}.\nJson: {response.Data}");
@@ -184,7 +182,7 @@ namespace FWO.Api.Client
 
             catch (Exception exception)
             {
-                Log.WriteError("API Connection", $"Error while sending query to GraphQL API. Query: {(query != null ? query : "")}, variables: {(variables != null ? JsonSerializer.Serialize(variables) : "")}", exception);
+                Log.WriteError("API Connection", $"Error while sending query to GraphQL API. Query: {( query != null ? query : "" )}, variables: {( variables != null ? JsonSerializer.Serialize(variables) : "" )}", exception);
                 throw;
             }
         }
@@ -194,9 +192,10 @@ namespace FWO.Api.Client
             try
             {
                 GraphQLRequest request = new GraphQLRequest(subscription, variables, operationName);
-                GraphQlApiSubscription<SubscriptionResponseType> newSub = 
+                GraphQlApiSubscription<SubscriptionResponseType> newSub =
                     new GraphQlApiSubscription<SubscriptionResponseType>(this, graphQlClient, request, exceptionHandler, subscriptionUpdateHandler);
                 subscriptions.Add(newSub);
+
                 return newSub;
             }
             catch (Exception exception)
@@ -216,6 +215,16 @@ namespace FWO.Api.Client
                     subscription.Dispose();
                 }
             }
+        }
+
+        public override void DisposeSubscriptions<T>()
+        {
+            foreach (ApiSubscription subscription in subscriptions.Where(_ => _.GetType() == typeof(T)))
+            {
+                subscription.Dispose();
+            }
+
+            subscriptions.RemoveAll(_ => _.GetType() == typeof(T));
         }
     }
 }

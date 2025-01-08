@@ -1,9 +1,11 @@
 ﻿@page "/"
 @namespace FWO.Ui.Pages
+@using FWO.Config.Api
 @addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
 @{
     Layout = null;
 }
+@inject GlobalConfig globalConfig
 
 <!DOCTYPE html>
 <html lang="en">
@@ -12,8 +14,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>FWO</title>
     <base href="~/" />
-    <link rel="stylesheet" href="css/bootstrap/bootstrap.min.css" />
-    <link rel="stylesheet" href="css/site.css" />
+    <link rel="stylesheet" href="@VersionedLink("/css/bootstrap/bootstrap.min.css")" />
+    <link rel="stylesheet" href="@VersionedLink("/css/site.css")" />
     <link href="FWO.Ui.styles.css" rel="stylesheet" /> <!-- needed for css isolation (e.g. in compliance matrix) -->
 </head>
 <body class="sticky-group sticky-group-35 sticky-group-40 sticky-group-60 vheight100">
@@ -32,12 +34,17 @@
         <a class="dismiss">🗙</a>
     </div>
     
-    <script src="_framework/blazor.server.js" autostart="false"></script>
-    <script src="_content/BlazorTable/BlazorTable.min.js"></script>
-    <script src="~/js/window.js"></script>
-    <script src="~/js/scrollIntoView.js"></script>
-    <script src="~/js/downloadFile.js"></script>
-    <script src="~/js/clipboardCopy.js"></script>
+    <script src="@VersionedLink("_framework/blazor.server.js")" autostart="false"></script>
+    <script src="@VersionedLink("_content/BlazorTable/BlazorTable.min.js")"></script>
+    <script src="@VersionedLink("/js/window.js")"></script>
+    <script src="@VersionedLink("/js/scrollIntoView.js")"></script>
+    <script src="@VersionedLink("/js/downloadFile.js")"></script>
+    <script src="@VersionedLink("/js/clipboardCopy.js")"></script>
     <script>Blazor.start();</script>
 </body>
 </html>
+
+@functions {
+    // Needed to prevent browser from caching files from previous versions
+    string VersionedLink(string path) => $"{path}?v={globalConfig.ProductVersion}";
+}

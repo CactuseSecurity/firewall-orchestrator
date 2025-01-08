@@ -37,8 +37,8 @@
         else
         {
             <div class="vheight75">
-                <PageSizeComponent PageSizeCallback="UpdatePageSize" PageSize="PageSize"></PageSizeComponent>
-                <Table TableClass="table table-bordered table-sm th-bg-secondary sticky-header" TableItem="Alert" Items="alertEntrys" PageSize="PageSize">
+                <PageSizeComponent PageSizeCallback="UpdatePageSize"></PageSizeComponent>
+                <Table PageSize="PageSize" TableClass="table table-bordered table-sm th-bg-secondary sticky-header" TableItem="Alert" Items="alertEntrys">
                     <Column Context="alert" TableItem="Alert" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)">
                         <Template>
                             <div class="btn-group">
@@ -113,7 +113,7 @@
     [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
-    private int PageSize = 10;
+    private int PageSize { get; set; }
 
     private List<Alert> alertEntrys = [];
     private List<ActionItem> actActions = [];

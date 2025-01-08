@@ -19,8 +19,8 @@
 @if(InitComplete)
 {
     <div class="vheight75">
-        <PageSizeComponent PageSizeCallback="UpdatePageSize" PageSize="PageSize"></PageSizeComponent>
-        <Table TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="Alert" Items="alertEntrys" PageSize="PageSize">
+        <PageSizeComponent PageSizeCallback="UpdatePageSize"></PageSizeComponent>
+        <Table PageSize="PageSize" TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="Alert" Items="alertEntrys">
             <Column TableItem="Alert" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)"  Sortable="true" Filterable="true"/>
             <Column TableItem="Alert" Title="@(userConfig.GetText("timestamp"))" Field="@(x => x.Timestamp)"  Sortable="true" Filterable="true"/>
             <Column TableItem="Alert" Title="@(userConfig.GetText("source"))" Field="@(x => x.Source)" Sortable="true" Filterable="true"/>
@@ -55,7 +55,7 @@ else
     [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
-    private int PageSize { get; set; } = 10;
+    private int PageSize { get; set; }
 
     private List<Alert> alertEntrys = [];
     private List<UiUser> uiUsers = [];

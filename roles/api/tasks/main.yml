@@ -20,7 +20,7 @@
     name: "{{ product_name }}-ui"
     state: stopped
   become: true
-  when: "'frontends' in in group_names and installation_mode == 'upgrade'"
+  when: "'frontends' in group_names and installation_mode == 'upgrade'"
 
 - name: check for api dir
   stat:

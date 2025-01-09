@@ -82,7 +82,9 @@ namespace FWO.Test
             {"add_members",": Add Members"},
             {"remove_members",": Remove Members"},
             {"new_app_zone", "New AppZone: " },
-            {"update_app_zone", "Update AppZone: " }
+            {"update_app_zone", "Update AppZone: " },
+            { "E9301", "Template File not found!" },
+            { "E9302", "HTML is invalid!" }
         };
 
         public override string GetText(string key)

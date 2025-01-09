@@ -21,14 +21,14 @@ namespace FWO.Report
             foreach (var managementReport in ReportData.ManagementData.Where(mgt => !mgt.Ignore))
             {
                 chapterNumber++;
-                report.AppendLine($"<h3>{managementReport.Name}</h3>");
+                report.AppendLine($"<h3 id=\"{Guid.NewGuid()}\">{managementReport.Name}</h3>");
                 report.AppendLine("<hr>");
 
                 foreach (var device in managementReport.Devices)
                 {
                     if (device.Rules != null && device.Rules.Length > 0)
                     {
-                        report.AppendLine($"<h4>{device.Name}</h4>");
+                        report.AppendLine($"<h4 id=\"{Guid.NewGuid()}\">{device.Name}</h4>");
                         report.AppendLine("<table>");
                         report.AppendLine("<tr>");
                         report.AppendLine($"<th>{userConfig.GetText("number")}</th>");
@@ -83,7 +83,7 @@ namespace FWO.Report
                 int objNumber = 1;
                 if (managementReport.ReportObjects != null)
                 {
-                    report.AppendLine($"<h4>{userConfig.GetText("network_objects")}</h4>");
+                    report.AppendLine($"<h4 id=\"{Guid.NewGuid()}\">{userConfig.GetText("network_objects")}</h4>");
                     report.AppendLine("<table>");
                     report.AppendLine("<tr>");
                     report.AppendLine($"<th>{userConfig.GetText("number")}</th>");
@@ -112,7 +112,7 @@ namespace FWO.Report
 
                 if (managementReport.ReportServices != null)
                 {
-                    report.AppendLine($"<h4>{userConfig.GetText("network_services")}</h4>");
+                    report.AppendLine($"<h4 id=\"{Guid.NewGuid()}\">{userConfig.GetText("network_services")}</h4>");
                     report.AppendLine("<table>");
                     report.AppendLine("<tr>");
                     report.AppendLine($"<th>{userConfig.GetText("number")}</th>");
@@ -147,7 +147,7 @@ namespace FWO.Report
 
                 if (managementReport.ReportUsers != null)
                 {
-                    report.AppendLine($"<h4>{userConfig.GetText("users")}</h4>");
+                    report.AppendLine($"<h4 id=\"{Guid.NewGuid()}\">{userConfig.GetText("users")}</h4>");
                     report.AppendLine("<table>");
                     report.AppendLine("<tr>");
                     report.AppendLine($"<th>{userConfig.GetText("number")}</th>");

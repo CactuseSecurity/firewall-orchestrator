@@ -319,7 +319,7 @@ namespace FWO.Report
         private string BuildHTMLToC(string html)
         {
             //The Template gets copied on build
-            string tocTemplatePath = Path.Combine(AppContext.BaseDirectory, ToCHTMLTemplateFileName);
+            string tocTemplatePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "templates", ToCHTMLTemplateFileName);
 
             if (!File.Exists(tocTemplatePath))
             {

@@ -4,6 +4,7 @@ using FWO.Logging;
 using PuppeteerSharp.Media;
 using PuppeteerSharp;
 using PuppeteerSharp.BrowserData;
+using HtmlAgilityPack;
 
 namespace FWO.Test
 {
@@ -17,6 +18,8 @@ namespace FWO.Test
         [Test]
         public async Task GeneratePdf()
         {
+            Assert.That(IsValidHTML(Html));
+
             string? isGitHubActions = Environment.GetEnvironmentVariable("RUNNING_ON_GITHUB_ACTIONS");
 
             // the PDF generation with puppeteer is currently not working in GitHub Actions
@@ -80,6 +83,21 @@ namespace FWO.Test
                 {
                     await browser.CloseAsync();
                 }
+            }
+
+        }
+
+        private static bool IsValidHTML(string html)
+        {
+            try
+            {
+                HtmlDocument? doc = new();
+                doc.LoadHtml(html);
+                return !doc.ParseErrors.Any();
+            }
+            catch (Exception)
+            {
+                return false;
             }
 
         }

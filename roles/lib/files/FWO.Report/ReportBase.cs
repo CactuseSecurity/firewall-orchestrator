@@ -358,6 +358,13 @@ namespace FWO.Report
 
             tocHTMLTemplate = tocHTMLTemplate.Replace("##ToCList##", sb.ToString());
 
+            bool tocValidHTML = IsValidHTML(tocHTMLTemplate);
+
+            if (!tocValidHTML)
+            {
+                throw new Exception($"{nameof(tocHTMLTemplate)} doesn't contain valid HTML after creation!");
+            }
+
             return tocHTMLTemplate;
         }
 

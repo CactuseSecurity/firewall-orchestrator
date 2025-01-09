@@ -55,21 +55,21 @@ namespace FWO.Report
             {
                 chapterNumber++;
                 ownerReport.PrepareObjectData();
-                report.AppendLine($"<h3>{ownerReport.Name}</h3>");
+                report.AppendLine($"<h3 id=\"{Guid.NewGuid()}\">{ownerReport.Name}</h3>");
                 if(ownerReport.RegularConnections.Count > 0)
                 {
-                    report.AppendLine($"<h4>{userConfig.GetText("connections")}</h4>");
+                    report.AppendLine($"<h4 id=\"{Guid.NewGuid()}\">{userConfig.GetText("connections")}</h4>");
                     AppendConnectionsGroupHtml(ownerReport.RegularConnections, ownerReport, chapterNumber, ref report);
                 }
                 if(ownerReport.Interfaces.Count > 0)
                 {
-                    report.AppendLine($"<h4>{userConfig.GetText("interfaces")}</h4>");
+                    report.AppendLine($"<h4 id=\"{Guid.NewGuid()}\">{userConfig.GetText("interfaces")}</h4>");
                     ownerReport.Interfaces.Sort((ModellingConnection a, ModellingConnection b) => a.CompareTo(b));
                     AppendConnectionsGroupHtml(ownerReport.Interfaces, ownerReport, chapterNumber, ref report, true);
                 }
                 if(ownerReport.CommonServices.Count > 0)
                 {
-                    report.AppendLine($"<h4>{userConfig.GetText("own_common_services")}</h4>");
+                    report.AppendLine($"<h4 id=\"{Guid.NewGuid()}\">{userConfig.GetText("own_common_services")}</h4>");
                     AppendConnectionsGroupHtml(ownerReport.CommonServices, ownerReport, chapterNumber, ref report);
                 }
                 AppendNetworkObjectsHtml(ownerReport.AllObjects, chapterNumber, ref report);
@@ -79,7 +79,7 @@ namespace FWO.Report
             {
                 chapterNumber++;
                 ReportData.GlobalComSvc.First().PrepareObjectData();
-                report.AppendLine($"<h3>{userConfig.GetText("global_common_services")}</h3>");
+                report.AppendLine($"<h3 id=\"{Guid.NewGuid()}\">{userConfig.GetText("global_common_services")}</h3>");
                 AppendConnectionsGroupHtml(ReportData.GlobalComSvc.First().GlobalComSvcs, ReportData.GlobalComSvc.First(), chapterNumber, ref report, false, true);
                 AppendNetworkObjectsHtml(ReportData.GlobalComSvc.First().AllObjects, chapterNumber, ref report);
                 AppendNetworkServicesHtml(ReportData.GlobalComSvc.First().AllServices, chapterNumber, ref report);
@@ -162,7 +162,7 @@ namespace FWO.Report
 
         private void AppendNetworkObjectsHtml(List<NetworkObject> networkObjects, int chapterNumber, ref StringBuilder report)
         {
-            report.AppendLine($"<h4>{userConfig.GetText("network_objects")}</h4>");
+            report.AppendLine($"<h4 id=\"{Guid.NewGuid()}\">{userConfig.GetText("network_objects")}</h4>");
             report.AppendLine("<table>");
             if(networkObjects.Count > 0)
             {
@@ -194,7 +194,7 @@ namespace FWO.Report
 
         private void AppendNetworkServicesHtml(List<NetworkService> networkServices, int chapterNumber, ref StringBuilder report)
         {
-            report.AppendLine($"<h4>{userConfig.GetText("network_services")}</h4>");
+            report.AppendLine($"<h4 id=\"{Guid.NewGuid()}\">{userConfig.GetText("network_services")}</h4>");
             report.AppendLine("<table>");
             if(networkServices.Count > 0)
             {

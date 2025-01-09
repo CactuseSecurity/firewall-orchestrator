@@ -337,6 +337,8 @@ namespace FWO.Report
 
             List<ToCHeader>? tocHeaders = CreateTOCContent(html);
 
+            tocHTMLTemplate = tocHTMLTemplate.Replace("##ToCHeader##", userConfig.GetText("tableofcontent"));
+
             StringBuilder sb = new();
 
             foreach (ToCHeader toCHeader in tocHeaders)

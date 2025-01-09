@@ -7,7 +7,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-	  <Content Remove="wwwroot\templates\ToCHTMLTemplate.html" />
+	  <Content Remove="wwwroot\html\ToCHTMLTemplate.html" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -34,7 +34,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <None Include="wwwroot\templates\ToCHTMLTemplate.html">
+	  <None Include="wwwroot\html\ToCHTMLTemplate.html">
 	    <CopyToOutputDirectory>Never</CopyToOutputDirectory>
 	  </None>
 	</ItemGroup>

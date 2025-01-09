@@ -45,7 +45,7 @@
       copy:
         dest: /etc/apparmor.d/chrome-dev-builds
         content: |
-          abi <abi/{{ abi_version }}>,
+          abi <abi/4.0>,
           include <tunables/global>
 
           profile /usr/local/bin/**/chrome flags=(unconfined) {

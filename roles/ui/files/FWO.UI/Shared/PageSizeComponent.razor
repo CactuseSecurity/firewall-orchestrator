@@ -16,14 +16,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        try
-        {
-            PageSize = UserConfig.OverviewDisplayLines;
-        }
-        catch (Exception)
-        {
-            PageSize = 10;
-        }
+        PageSize = UserConfig.MaxModellingTableRows;
 
         await SubmitPageSize();
 

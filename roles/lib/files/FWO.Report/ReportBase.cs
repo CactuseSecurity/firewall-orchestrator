@@ -349,7 +349,7 @@ namespace FWO.Report
 
                     foreach (ToCItem tocItem in toCHeader.Items)
                     {
-                        sb.AppendLine($"<li><a href=\"#{tocItem.Id}\">{tocItem.Title}</a></li>");
+                        sb.AppendLine($"<li class=\"subli\"><a href=\"#{tocItem.Id}\">{tocItem.Title}</a></li>");
                     }
 
                     sb.AppendLine("</ul>");

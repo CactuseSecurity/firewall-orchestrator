@@ -123,12 +123,12 @@ namespace FWO.Report
             foreach (var management in ReportData.ManagementData.Where(mgt => !mgt.Ignore && mgt.Devices != null &&
                     Array.Exists(mgt.Devices, device => device.RuleChanges != null && device.RuleChanges.Length > 0)))
             {
-                report.AppendLine($"<h3>{management.Name}</h3>");
+                report.AppendLine($"<h3 id=\"{Guid.NewGuid()}\">{management.Name}</h3>");
                 report.AppendLine("<hr>");
 
                 foreach (var device in management.Devices)
                 {
-                    report.AppendLine($"<h4>{device.Name}</h4>");
+                    report.AppendLine($"<h4 id=\"{Guid.NewGuid()}\">{device.Name}</h4>");
                     report.AppendLine("<table>");
                     report.AppendLine("<tr>");
                     report.AppendLine($"<th>{userConfig.GetText("change_time")}</th>");

@@ -16,7 +16,14 @@
 
     protected override async Task OnInitializedAsync()
     {
-        PageSize = UserConfig.OverviewDisplayLines;
+        try
+        {
+            PageSize = UserConfig.OverviewDisplayLines;
+        }
+        catch (Exception)
+        {
+            PageSize = 10;
+        }
 
         await SubmitPageSize();
 

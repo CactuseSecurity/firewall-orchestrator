@@ -279,12 +279,12 @@ insert into stm_obj_typ (obj_typ_id,obj_typ_name) VALUES (19,'external-gateway')
 insert into stm_obj_typ (obj_typ_id,obj_typ_name) VALUES (20,'voip');   -- general voip object replacing old specific ones and including CpmiVoipSipDomain
 
 insert into stm_action (action_id,action_name) VALUES (1,'accept'); -- cp, fortinet
-insert into stm_action (action_id,action_name) VALUES (2,'drop'); -- cp
-insert into stm_action (action_id,action_name) VALUES (3,'deny'); -- netscreen, fortinet
+insert into stm_action (action_id,action_name, allowed) VALUES (2,'drop', FALSE); -- cp
+insert into stm_action (action_id,action_name, allowed) VALUES (3,'deny', FALSE); -- netscreen, fortinet
 insert into stm_action (action_id,action_name) VALUES (4,'access'); -- netscreen
 insert into stm_action (action_id,action_name) VALUES (5,'client encrypt'); -- cp
 insert into stm_action (action_id,action_name) VALUES (6,'client auth'); -- cp
-insert into stm_action (action_id,action_name) VALUES (7,'reject'); -- cp
+insert into stm_action (action_id,action_name, allowed) VALUES (7,'reject', FALSE); -- cp
 insert into stm_action (action_id,action_name) VALUES (8,'encrypt'); -- cp
 insert into stm_action (action_id,action_name) VALUES (9,'user auth'); -- cp
 insert into stm_action (action_id,action_name) VALUES (10,'session auth'); -- cp

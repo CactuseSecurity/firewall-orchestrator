@@ -88,6 +88,10 @@ ALTER TABLE management ADD COLUMN IF NOT EXISTS "rulebase_name" Varchar NOT NULL
 ALTER TABLE management ADD COLUMN IF NOT EXISTS "rulebase_uid" Varchar NOT NULL DEFAULT '';
 Alter table rule_metadata add column if not exists rulebase_id integer; -- not null;
 
+Alter table stm_action add column if not exists allowed BOOLEAN NOT NULL DEFAULT TRUE;
+
+UPDATE stm_action SET allowed = FALSE WHERE action_name = 'deny' OR action_name = 'drop' OR action_name = 'reject';
+
 Create table IF NOT EXISTS "rulebase" 
 (
 	"id" SERIAL primary key,

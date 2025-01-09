@@ -86,6 +86,8 @@ namespace FWO.Report
         <p>##OtherFilters##</p>
         <p>##Filter##</p>
         <hr>
+        ##ToC##
+        <hr>
         ##Body##
     </body>
 </html>");
@@ -100,6 +102,8 @@ namespace FWO.Report
         protected string htmlExport = "";
 
         private const string ChromeBinPathLinux = "/usr/local/bin";
+
+        private const string ToCHTMLTemplateFileName = "ToCHTMLTemplate.html";
 
         public bool GotObjectsInReport { get; protected set; } = false;
 
@@ -204,6 +208,10 @@ namespace FWO.Report
                 {
                     HtmlTemplate = HtmlTemplate.Replace("<p>##OtherFilters##</p>", "");
                 }
+
+                string htmlToC = BuildHTMLToC(htmlReport.ToString());
+
+                HtmlTemplate = HtmlTemplate.Replace("##ToC##", htmlToC);
                 HtmlTemplate = HtmlTemplate.Replace("##Body##", htmlReport.ToString());
                 htmlExport = HtmlTemplate.ToString();
             }
@@ -264,8 +272,7 @@ namespace FWO.Report
                 PdfOptions pdfOptions = new() { DisplayHeaderFooter = true, Landscape = true, PrintBackground = true, Format = pupformat, MarginOptions = new MarginOptions { Top = "1cm", Bottom = "1cm", Left = "1cm", Right = "1cm" } };
                 using Stream? pdfData = await page.PdfStreamAsync(pdfOptions);
 
-                List<ToCHeader>? toc = CreateTOCContent(html);
-                byte[]? pdfWithToCData = AddToCToPDF(pdfData, toc);
+                byte[]? pdfWithToCData = AddToCBookmarksToPDF(pdfData, html);
 
                 return Convert.ToBase64String(pdfWithToCData);
             }
@@ -298,18 +305,78 @@ namespace FWO.Report
 
                 if (heading.Name == "h4")
                 {
-                    tocs[i - 1].Items.Add(new ToCItem(headText));
+                    tocs[i - 1].Items.Add(new ToCItem(headText, heading.Id));
                 }
                 else
                 {
-                    tocs.Add(new(headText));
+                    tocs.Add(new(headText, heading.Id));
                     i++;
                 }
             }
             return tocs;
         }
 
-        private static byte[] AddToCToPDF(Stream pdfData, List<ToCHeader> tocHeaders)
+        private static string BuildHTMLToC(string html)
+        {
+            //The Template gets copied on build
+            string tocTemplatePath = Path.Combine(AppContext.BaseDirectory, ToCHTMLTemplateFileName);
+
+            if (!File.Exists(tocTemplatePath))
+            {
+                throw new Exception($"{ToCHTMLTemplateFileName} not found!");
+            }
+
+            string tocHTMLTemplate = File.ReadAllText(tocTemplatePath);
+
+            bool tocTemplateValid = IsValidHTML(tocHTMLTemplate);
+
+            if (!tocTemplateValid)
+            {
+                throw new Exception($"{ToCHTMLTemplateFileName} is not valid HTML!");
+            }
+
+            List<ToCHeader>? tocHeaders = CreateTOCContent(html);
+
+            StringBuilder sb = new();
+
+            foreach (ToCHeader toCHeader in tocHeaders)
+            {
+                sb.AppendLine($"<li><a href=\"#{toCHeader.Id}\">{toCHeader.Title}</a></li>");
+
+                if (toCHeader.Items.Count > 0)
+                {
+                    sb.AppendLine("<ul>");
+
+                    foreach (ToCItem tocItem in toCHeader.Items)
+                    {
+                        sb.AppendLine($"<li><a href=\"#{tocItem.Id}\">{tocItem.Title}</a></li>");
+                    }
+
+                    sb.AppendLine("</ul>");
+                }
+            }
+
+            tocHTMLTemplate = tocHTMLTemplate.Replace("##ToCList##", sb.ToString());
+
+            return tocHTMLTemplate;
+        }
+
+        private static bool IsValidHTML(string html)
+        {
+            try
+            {
+                HtmlDocument? doc = new();
+                doc.LoadHtml(html);
+                return !doc.ParseErrors.Any();
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+
+        }
+
+        private static byte[] AddToCBookmarksToPDF(Stream pdfData, string html)
         {
             PdfDocument document = PdfReader.Open(pdfData, PdfDocumentOpenMode.Modify);
             XFont font = new("Verdana", 16);
@@ -318,13 +385,15 @@ namespace FWO.Report
 
             PdfOutline outline = document.Outlines.Add("ToC", page, true, PdfOutlineStyle.Bold, XColors.Red);
 
+            List<ToCHeader>? tocHeaders = CreateTOCContent(html);
+
             foreach (ToCHeader toCHeader in tocHeaders)
             {
-                PdfOutline headOutline = outline.Outlines.Add(toCHeader.Title, page, false);
+                PdfOutline headOutline = outline.Outlines.Add(toCHeader.Title, page, true);
 
                 foreach (ToCItem tocItem in toCHeader.Items)
                 {
-                    headOutline.Outlines.Add(tocItem.Title, document.Pages[1], false);
+                    headOutline.Outlines.Add(tocItem.Title, page, false);
                 }
             }
 
@@ -335,7 +404,6 @@ namespace FWO.Report
 
             return pdfWithToCData;
         }
-
 
         private PuppeteerSharp.Media.PaperFormat? GetPuppeteerPaperFormat(PaperFormat format)
         {

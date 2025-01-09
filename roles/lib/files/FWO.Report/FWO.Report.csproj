@@ -20,4 +20,10 @@
     <ProjectReference Include="..\FWO.Services\FWO.Services.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="ToCHTMLTemplate.html">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

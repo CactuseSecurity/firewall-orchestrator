@@ -316,14 +316,14 @@ namespace FWO.Report
             return tocs;
         }
 
-        private static string BuildHTMLToC(string html)
+        private string BuildHTMLToC(string html)
         {
             //The Template gets copied on build
             string tocTemplatePath = Path.Combine(AppContext.BaseDirectory, ToCHTMLTemplateFileName);
 
             if (!File.Exists(tocTemplatePath))
             {
-                throw new Exception($"{ToCHTMLTemplateFileName} not found!");
+                throw new Exception(userConfig.GetText("E9301"));
             }
 
             string tocHTMLTemplate = File.ReadAllText(tocTemplatePath);
@@ -332,7 +332,7 @@ namespace FWO.Report
 
             if (!tocTemplateValid)
             {
-                throw new Exception($"{ToCHTMLTemplateFileName} is not valid HTML!");
+                throw new Exception(userConfig.GetText("E9302"));
             }
 
             List<ToCHeader>? tocHeaders = CreateTOCContent(html);
@@ -362,7 +362,7 @@ namespace FWO.Report
 
             if (!tocValidHTML)
             {
-                throw new Exception($"{nameof(tocHTMLTemplate)} doesn't contain valid HTML after creation!");
+                throw new Exception(userConfig.GetText("E9302"));
             }
 
             return tocHTMLTemplate;

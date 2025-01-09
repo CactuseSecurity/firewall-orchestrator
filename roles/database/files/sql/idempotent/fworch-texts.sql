@@ -3169,6 +3169,11 @@ INSERT INTO txt VALUES ('E9203', 'English', 'Error retrieving the existing app z
 INSERT INTO txt VALUES ('E9204', 'German',  'Fehler beim Hinzuf&uuml;gen des App Servers zum App Zonen Objekt');
 INSERT INTO txt VALUES ('E9204', 'English', 'Error adding the App Server to the App Zone object');
 
+INSERT INTO txt VALUES ('E9301', 'German',  'Template Datei nicht gefunden!');
+INSERT INTO txt VALUES ('E9301', 'English', 'Template File not found!');
+INSERT INTO txt VALUES ('E9302', 'German',  'HTML ist nicht valide!');
+INSERT INTO txt VALUES ('E9302', 'English', 'HTML is invalid!');
+
 -- errors from Api
 INSERT INTO txt VALUES ('A0001', 'German',  'Ung&uuml;ltige Anmeldedaten. Nutzername darf nicht leer sein');
 INSERT INTO txt VALUES ('A0001', 'English', 'Invalid credentials. Username must not be empty');

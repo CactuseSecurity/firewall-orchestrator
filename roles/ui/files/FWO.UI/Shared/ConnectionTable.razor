@@ -7,9 +7,9 @@
 
 @inject UserConfig userConfig
 
-
+<PageSizeComponent PageSizeCallback="UpdatePageSize"></PageSizeComponent>
 <Table class="table table-bordered th-bg-secondary sticky-header show-scrollbar table-responsive" TableItem="ModellingConnection"
-       Items="Connections" PageSize="10" ColumnReorder="true" TableRowClass="@(con => getTableRowClass(con))"
+       Items="Connections" PageSize="PageSize" ColumnReorder="true" TableRowClass="@(con => getTableRowClass(con))"
        SelectedItems="SelectedConns" RowClickAction="@(conn => ToggleSelection(conn))">
     @if (!Readonly && !SelectInterfaceView && AppHandler != null)
     {
@@ -159,6 +159,13 @@
 
     [Parameter]
     public SelectionType SelectionType { get; set; } = SelectionType.Single;
+
+    private int PageSize { get; set; }
+
+    private void UpdatePageSize(int pageSize)
+    {
+        PageSize = pageSize;
+    }
 
     private void ToggleSelection(ModellingConnection conn)
     {

@@ -336,7 +336,7 @@ class FwConfigImportRule(FwConfigImportBase):
         newRulebasesForImport: List[RulebaseForImport] = self.PrepareNewRulebases(newRules, includeRules=False)
         queryVariables = { 'rulebases': newRulebasesForImport }
         
-        querVarJson = json.dumps(queryVariables)    # just for debugging purposes, remove in prod
+        # querVarJson = json.dumps(queryVariables)    # just for debugging purposes, remove in prod
 
         try:
             import_result = self.ImportDetails.call(addRulebasesWithoutRulesMutation, queryVariables=queryVariables)
@@ -353,6 +353,8 @@ class FwConfigImportRule(FwConfigImportBase):
             logger.exception(f"failed to write new rules: {str(traceback.format_exc())}")
             return 1, 0, newRulebaseIds
         
+        # TODO: need to update the RulebaseMap here?!
+
         upsertRulebaseWithRules = """mutation upsertRulebaseWithRules($rulebases: [rulebase_insert_input!]!) {
                 insert_rulebase(
                     objects: $rulebases,
@@ -366,7 +368,7 @@ class FwConfigImportRule(FwConfigImportBase):
                         id
                         name
                         rules {
-                            id
+                            rule_id
                             rule_uid
                         }
                     }
@@ -377,7 +379,7 @@ class FwConfigImportRule(FwConfigImportBase):
         newRulesForImport: List[RulebaseForImport] = self.PrepareNewRulebases(newRules)
         queryVariables = { 'rulebases': newRulesForImport }
         
-        querVarJson = json.dumps(queryVariables)
+        # querVarJson = json.dumps(queryVariables)
 
         try:
             import_result = self.ImportDetails.call(upsertRulebaseWithRules, queryVariables=queryVariables)
@@ -388,8 +390,9 @@ class FwConfigImportRule(FwConfigImportBase):
                 # reduce change number by number of rulebases
                 changes = import_result['data']['insert_rulebase']['affected_rows']
                 if changes>0:
-                    for rule in import_result['data']['insert_rulebase']['returning']:
-                        newRuleIds.append(rule['rulebase_id'])
+                    for rulebase in import_result['data']['insert_rulebase']['returning']:
+                        for rule in rulebase['rules']:
+                            newRuleIds.append(rule['rule_id'])
         except:
             logger.exception(f"failed to write new rules: {str(traceback.format_exc())}")
             return 1, 0, []
@@ -414,7 +417,7 @@ class FwConfigImportRule(FwConfigImportBase):
                 uid=rulebase.uid,
                 is_global=self.ImportDetails.MgmDetails.IsSuperManager,
                 created=self.ImportDetails.ImportId,
-                rules= self.PrepareForImport(self.ImportDetails, rulebase.Rules) if includeRules else { "data": [] }
+                rules= self.PrepareForImport(self.ImportDetails, rulebase.Rules, rulebaseUid=rulebase.uid) if includeRules else { "data": [] }
             )
             newRulesForImport.append(rb4import.dict())
         # TODO: see where to get real UIDs (both for rulebase and manager)
@@ -749,8 +752,9 @@ class FwConfigImportRule(FwConfigImportBase):
         return self.ImportDetails.call(mutation, queryVariables=query_variables)
 
 
-    def PrepareForImport(self, importDetails: ImportState, Rules) -> List[RuleForImport]:
+    def PrepareForImport(self, importDetails: ImportState, Rules, rulebaseUid: str) -> List[RuleForImport]:
         prepared_rules = []
+        
         for rule in Rules:
 
             rule_for_import = RuleForImport(
@@ -781,7 +785,7 @@ class FwConfigImportRule(FwConfigImportBase):
                 access_rule=True,
                 nat_rule=False,
                 is_global=False,
-                rulebase_id=importDetails.lookupRulebaseId(rule.rulebase_name), ## this needs to be fixed: need lookup criteria for rulebase of a rule
+                # rulebase_id=importDetails.lookupRulebaseId(rulebaseUid),
                 rule_create=importDetails.ImportId,
                 rule_last_seen=importDetails.ImportId,
                 rule_num_numeric=1,

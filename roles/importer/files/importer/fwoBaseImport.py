@@ -125,6 +125,7 @@ class ImportState(FwoApi):
     IsFullImport: bool
     Actions: Dict[str, Action]
     Tracks: Dict[str, Track]
+    RulebaseMap: Dict[str, int]
 
 
     def __init__(self, debugLevel, configChangedSinceLastImport, fwoConfig, mgmDetails, jwt, force, version=8, isFullImport=False, isClearingImport=False):
@@ -144,8 +145,6 @@ class ImportState(FwoApi):
         self.ImportVersion = int(version)
         self.IsFullImport = isFullImport
         self.IsClearingImport = isClearingImport
-        # self.FwoApiUrl = fwoConfig.FwoApiUri,
-        # self.FwoJwt = jwt
         super().__init__(fwoConfig.FwoApiUri, jwt)
 
     def __str__(self):
@@ -257,6 +256,7 @@ class ImportState(FwoApi):
         # logger = getFwoLogger()
         self.SetTrackMap()
         self.SetActionMap()
+        self.SetRulebaseMap()
         
 
     def SetActionMap(self):
@@ -292,17 +292,18 @@ class ImportState(FwoApi):
     def SetRulebaseMap(self):
         query = """query getRulebaseMap($mgmId: Int) { rulebase(where:{mgm_id: {_eq: $mgmId}}) { id name uid } }"""
         try:
-            result = self.ImportDetails.call(query=query, queryVariables= {"mgmId": self.ImportDetails.MgmDetails.Id})
+            result = self.call(query=query, queryVariables= {"mgmId": self.MgmDetails.Id})
         except:
             logger = getFwoLogger()
             logger.error(f'Error while getting rulebases')
-            return {}
+            self.RulebaseMap = {}
+            return
         
         map = {}
         for rulebase in result['data']['rulebase']:
             map.update({rulebase['name']: rulebase['id']})
-            map.update({rulebase['uid']: rulebase['uid']})
-        return map
+            map.update({rulebase['uid']: rulebase['id']})
+        self.RulebaseMap = map
 
 
     def lookupAction(self, actionStr):
@@ -311,8 +312,8 @@ class ImportState(FwoApi):
     def lookupTrack(self, trackStr):
         return self.Tracks.get(trackStr.lower(), None)
 
-    def lookupRulebaseId(self, rulebaseName):
-        if rulebaseName in self.RulebaseMap:
-            return self.RulebaseMap[rulebaseName]
+    def lookupRulebaseId(self, rulebase):
+        if rulebase in self.RulebaseMap:
+            return self.RulebaseMap[rulebase]
         else:
             return None

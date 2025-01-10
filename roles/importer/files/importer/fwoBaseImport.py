@@ -287,6 +287,23 @@ class ImportState(FwoApi):
             map.update({track['track_name']: track['track_id']})
         self.Tracks = map
 
+    # limited to the current mgm_id
+    # creats a dict with key = rulebase.name and value = rulebase.id
+    def SetRulebaseMap(self):
+        query = """query getRulebaseMap($mgmId: Int) { rulebase(where:{mgm_id: {_eq: $mgmId}}) { id name uid } }"""
+        try:
+            result = self.ImportDetails.call(query=query, queryVariables= {"mgmId": self.ImportDetails.MgmDetails.Id})
+        except:
+            logger = getFwoLogger()
+            logger.error(f'Error while getting rulebases')
+            return {}
+        
+        map = {}
+        for rulebase in result['data']['rulebase']:
+            map.update({rulebase['name']: rulebase['id']})
+            map.update({rulebase['uid']: rulebase['uid']})
+        return map
+
 
     def lookupAction(self, actionStr):
         return self.Actions.get(actionStr.lower(), None)
@@ -294,3 +311,8 @@ class ImportState(FwoApi):
     def lookupTrack(self, trackStr):
         return self.Tracks.get(trackStr.lower(), None)
 
+    def lookupRulebaseId(self, rulebaseName):
+        if rulebaseName in self.RulebaseMap:
+            return self.RulebaseMap[rulebaseName]
+        else:
+            return None

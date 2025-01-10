@@ -3,12 +3,15 @@ from datetime import datetime
 from typing import List, Dict
 import requests, requests.packages
 
+from fwo_api_oo import FwoApi
 from fwo_log import getFwoLogger
 from fwo_config import readConfig
 from fwo_const import fwo_config_filename, importer_user_name
 import fwo_api
 from fwo_exception import FwoApiLoginFailed
 import fwo_globals
+from models.action import Action
+from models.track import Track
 
 """
     the configuraton of a firewall orchestrator itself
@@ -102,7 +105,7 @@ class ManagementDetails():
 
 
 """Used for storing state during import process per management"""
-class ImportState():
+class ImportState(FwoApi):
     ErrorCount: int
     ChangeCount: int
     ErrorString: str
@@ -113,7 +116,6 @@ class ImportState():
     MgmDetails: ManagementDetails
     FullMgmDetails: dict
     ImportId: int
-    Jwt: str
     ImportFileName: str
     ForceImport: str
     ImportVersion: int
@@ -121,6 +123,10 @@ class ImportState():
     DaysSinceLastFullImport: int
     LastFullImportId: int
     IsFullImport: bool
+    Actions: Dict[str, Action]
+    Tracks: Dict[str, Track]
+    RulebaseMap: Dict[str, int]
+
 
     def __init__(self, debugLevel, configChangedSinceLastImport, fwoConfig, mgmDetails, jwt, force, version=8, isFullImport=False, isClearingImport=False):
         self.ErrorCount = 0
@@ -139,6 +145,7 @@ class ImportState():
         self.ImportVersion = int(version)
         self.IsFullImport = isFullImport
         self.IsClearingImport = isClearingImport
+        super().__init__(fwoConfig.FwoApiUri, jwt)
 
     def __str__(self):
         return f"{str(self.ManagementDetails)}({self.age})"
@@ -216,6 +223,10 @@ class ImportState():
             isClearingImport=isClearingImport,
             isFullImport=isFullImport
         )
+
+        result.setPastImportInfos()
+        result.setCoreData()
+
         if type(result) is str:
             logger.error("error while getting import state")
             raise
@@ -240,3 +251,69 @@ class ImportState():
             self.DaysSinceLastFullImport = difference.days
         else:
             self.DaysSinceLastFullImport = 0
+
+    def setCoreData(self):        
+        # logger = getFwoLogger()
+        self.SetTrackMap()
+        self.SetActionMap()
+        self.SetRulebaseMap()
+        
+
+    def SetActionMap(self):
+        query = "query getActionMap { stm_action { action_name action_id allowed } }"
+        try:
+            result = self.call(query=query, queryVariables={})
+        except:
+            logger = getFwoLogger()
+            logger.error(f'Error while getting stm_action')
+            return {}
+        
+        map = {}
+        for action in result['data']['stm_action']:
+            map.update({action['action_name']: action['action_id']})
+        self.Actions = map
+
+    def SetTrackMap(self):
+        query = "query getTrackMap { stm_track { track_name track_id } }"
+        try:
+            result = self.call(query=query, queryVariables={})
+        except:
+            logger = getFwoLogger()
+            logger.error(f'Error while getting stm_track')
+            return {}
+        
+        map = {}
+        for track in result['data']['stm_track']:
+            map.update({track['track_name']: track['track_id']})
+        self.Tracks = map
+
+    # limited to the current mgm_id
+    # creats a dict with key = rulebase.name and value = rulebase.id
+    def SetRulebaseMap(self):
+        query = """query getRulebaseMap($mgmId: Int) { rulebase(where:{mgm_id: {_eq: $mgmId}}) { id name uid } }"""
+        try:
+            result = self.call(query=query, queryVariables= {"mgmId": self.MgmDetails.Id})
+        except:
+            logger = getFwoLogger()
+            logger.error(f'Error while getting rulebases')
+            self.RulebaseMap = {}
+            return
+        
+        map = {}
+        for rulebase in result['data']['rulebase']:
+            map.update({rulebase['name']: rulebase['id']})
+            map.update({rulebase['uid']: rulebase['id']})
+        self.RulebaseMap = map
+
+
+    def lookupAction(self, actionStr):
+        return self.Actions.get(actionStr.lower(), None)
+
+    def lookupTrack(self, trackStr):
+        return self.Tracks.get(trackStr.lower(), None)
+
+    def lookupRulebaseId(self, rulebase):
+        if rulebase in self.RulebaseMap:
+            return self.RulebaseMap[rulebase]
+        else:
+            return None

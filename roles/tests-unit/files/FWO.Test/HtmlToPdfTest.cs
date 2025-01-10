@@ -17,10 +17,10 @@ namespace FWO.Test
         [Test]
         public async Task GeneratePdf()
         {
-            var isGitHubActions = Environment.GetEnvironmentVariable("GITHUB_ACTIONS") == "true";
+            string? isGitHubActions = Environment.GetEnvironmentVariable("RUNNING_ON_GITHUB_ACTIONS");
 
             // the PDF generation with puppeteer is currently not working in GitHub Actions
-            if (!isGitHubActions)
+            if (isGitHubActions != null)
             {
                 if (File.Exists(FilePath))
                     File.Delete(FilePath);
@@ -49,10 +49,10 @@ namespace FWO.Test
 
                 using IBrowser? browser = await Puppeteer.LaunchAsync(new LaunchOptions
                 {
-                    ExecutablePath = isGitHubActions? "/usr/bin/chromium-browser" : brw.GetExecutablePath(),
+                    ExecutablePath = isGitHubActions!=null ? "/usr/bin/chromium-browser" : brw.GetExecutablePath(),
                     Headless = true,
-                    DumpIO = isGitHubActions? true : false, // Enables debug logs
-                    Args = isGitHubActions?
+                    DumpIO = isGitHubActions!=null ? true : false, // Enables debug logs
+                    Args = isGitHubActions!=null ?
                         new[] { "--no-sandbox", "--database=/tmp", "--disable-setuid-sandbox" }
                         : [] // No additional arguments locally
                 });

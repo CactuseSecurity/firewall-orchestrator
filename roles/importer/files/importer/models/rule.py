@@ -139,7 +139,7 @@ class RuleForImport(BaseModel):
     xlate_rule: Optional[int] = None
     rule_track: str
     rule_uid: str
-    rulebase_id: Optional[int] = None
+    # rulebase_id: Optional[int] # = None
 
     # def __init__(self, rule: Rule, mgmId: int, importId: int, access_rule: bool, nat_rule: bool, rulebase_id: str):
     #     self.rule_uid = rule.rule_uid

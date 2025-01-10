@@ -88,6 +88,10 @@ ALTER TABLE management ADD COLUMN IF NOT EXISTS "rulebase_name" Varchar NOT NULL
 ALTER TABLE management ADD COLUMN IF NOT EXISTS "rulebase_uid" Varchar NOT NULL DEFAULT '';
 Alter table rule_metadata add column if not exists rulebase_id integer; -- not null;
 
+Alter table stm_action add column if not exists allowed BOOLEAN NOT NULL DEFAULT TRUE;
+
+UPDATE stm_action SET allowed = FALSE WHERE action_name = 'deny' OR action_name = 'drop' OR action_name = 'reject';
+
 Create table IF NOT EXISTS "rulebase" 
 (
 	"id" SERIAL primary key,
@@ -173,7 +177,12 @@ Alter table "rule_enforced_on_gateway" add CONSTRAINT fk_rule_enforced_on_gatewa
 	foreign key ("created") references "import_control" ("control_id") on update restrict on delete cascade;
 
 ALTER TABLE "rule_enforced_on_gateway"
+    DROP CONSTRAINT IF EXISTS "fk_rule_enforced_on_gateway_removed_import_control_control_id" CASCADE;
+
+-- just temp for migration purposes - will be removed later
+ALTER TABLE "rule_enforced_on_gateway"
     DROP CONSTRAINT IF EXISTS "fk_rule_enforced_on_gateway_deleted_import_control_control_id" CASCADE;
+
 Alter table "rule_enforced_on_gateway" add CONSTRAINT fk_rule_enforced_on_gateway_removed_import_control_control_id 
 	foreign key ("removed") references "import_control" ("control_id") on update restrict on delete cascade;
 
@@ -241,7 +250,7 @@ ALTER TABLE "rulebase_link"
 Alter table "rulebase_link" add CONSTRAINT fk_rulebase_link_created_import_control_control_id 
 	foreign key ("created") references "import_control" ("control_id") on update restrict on delete cascade;
 ALTER TABLE "rulebase_link"
-    DROP CONSTRAINT IF EXISTS "fk_rulebase_link_created_import_control_control_id" CASCADE;
+    DROP CONSTRAINT IF EXISTS "fk_rulebase_link_removed_import_control_control_id" CASCADE;
 Alter table "rulebase_link" add CONSTRAINT fk_rulebase_link_removed_import_control_control_id 
 	foreign key ("removed") references "import_control" ("control_id") on update restrict on delete cascade;
 
@@ -416,8 +425,8 @@ AS $function$
             SELECT INTO r_dev_null * FROM rulebase WHERE name=r_dev.local_rulebase_name;
             IF NOT FOUND THEN
                 -- first create rulebase entries
-                INSERT INTO rulebase (name, mgm_id, is_global, created) 
-                VALUES (r_dev.local_rulebase_name, r_dev.mgm_id, FALSE, 1) 
+                INSERT INTO rulebase (name, uid, mgm_id, is_global, created) 
+                VALUES (r_dev.local_rulebase_name, r_dev.local_rulebase_name, r_dev.mgm_id, FALSE, 1) 
                 RETURNING id INTO i_new_rulebase_id;
                 -- now update references in all rules to the newly created rulebase
                 UPDATE rule SET rulebase_id=i_new_rulebase_id WHERE dev_id=r_dev.dev_id;

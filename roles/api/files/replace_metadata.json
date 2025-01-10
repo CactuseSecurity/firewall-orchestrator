@@ -17015,7 +17015,8 @@
                   "permission": {
                     "columns": [
                       "action_id",
-                      "action_name"
+                      "action_name",
+                      "allowed"
                     ],
                     "filter": {}
                   }
@@ -17025,7 +17026,8 @@
                   "permission": {
                     "columns": [
                       "action_id",
-                      "action_name"
+                      "action_name",
+                      "allowed"
                     ],
                     "filter": {}
                   }
@@ -17034,6 +17036,7 @@
                   "role": "fw-admin",
                   "permission": {
                     "columns": [
+                      "allowed",
                       "action_name",
                       "action_id"
                     ],
@@ -17046,7 +17049,8 @@
                   "permission": {
                     "columns": [
                       "action_id",
-                      "action_name"
+                      "action_name",
+                      "allowed"
                     ],
                     "filter": {}
                   }
@@ -17055,6 +17059,7 @@
                   "role": "importer",
                   "permission": {
                     "columns": [
+                      "allowed",
                       "action_name",
                       "action_id"
                     ],
@@ -17066,8 +17071,9 @@
                   "role": "modeller",
                   "permission": {
                     "columns": [
+                      "action_id",
                       "action_name",
-                      "action_id"
+                      "allowed"
                     ],
                     "filter": {}
                   },
@@ -17078,7 +17084,8 @@
                   "permission": {
                     "columns": [
                       "action_id",
-                      "action_name"
+                      "action_name",
+                      "allowed"
                     ],
                     "filter": {}
                   }
@@ -17088,7 +17095,8 @@
                   "permission": {
                     "columns": [
                       "action_id",
-                      "action_name"
+                      "action_name",
+                      "allowed"
                     ],
                     "filter": {}
                   }
@@ -17098,7 +17106,8 @@
                   "permission": {
                     "columns": [
                       "action_id",
-                      "action_name"
+                      "action_name",
+                      "allowed"
                     ],
                     "filter": {}
                   }
@@ -17108,7 +17117,8 @@
                   "permission": {
                     "columns": [
                       "action_id",
-                      "action_name"
+                      "action_name",
+                      "allowed"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -17119,7 +17129,8 @@
                   "permission": {
                     "columns": [
                       "action_id",
-                      "action_name"
+                      "action_name",
+                      "allowed"
                     ],
                     "filter": {}
                   }
@@ -17129,7 +17140,8 @@
                   "permission": {
                     "columns": [
                       "action_id",
-                      "action_name"
+                      "action_name",
+                      "allowed"
                     ],
                     "filter": {}
                   }

@@ -26,7 +26,8 @@
       path: "/etc/apt/sources.list.d/docker.list"
       regexp: '.*https://download.docker.com/linux/.*'
       create: true
-      line: "deb [arch={{ linux_architecture }}] https://download.docker.com/linux/{{ ansible_facts['distribution']|lower }} {{ os_codename }} stable"
+      regexp: 'download.docker.com'
+      line: "deb [arch=amd64] https://download.docker.com/linux/{{ ansible_distribution | lower }} {{ ansible_lsb.codename | lower }} stable"
 
   - name: apt update
     apt: update_cache=true

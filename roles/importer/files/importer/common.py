@@ -46,7 +46,6 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
                                                force=force, version=version, 
                                                isClearingImport=clearManagementData, isFullImport=False)
 
-    importState.setPastImportInfos()    # last full import, data retention, ...
     if not clearManagementData and importState.DataRetentionDays<importState.DaysSinceLastFullImport:
         # run clear import; this makes sure the following import is a full one
         import_management(mgmId=mgmId, ssl_verification=ssl_verification, debug_level_in=debug_level_in, 

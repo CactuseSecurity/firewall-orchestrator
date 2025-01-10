@@ -45,7 +45,7 @@
             {
                 <Collapse Title="@(userConfig.GetText("network_objects"))" StartToggled="StartCollapsed"  OnOpen="() => HandleUncollapse(ObjCategory.nobj)" RSBLocation=@($"{GetIDPrefix(ObjCategory.nobj)}")>
                     <Table style="font-size:small" class="table table-bordered table-sm th-bg-secondary table-responsive" TableItem="NetworkObject"
-                            Items="@NetworkObjectExtractor(Content)" PageSize="PageSize" ColumnReorder="true">
+                            Items="@NetworkObjectExtractor(Content)" ColumnReorder="true">
                         <Column TableItem="NetworkObject" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Class="word-break">
                             <Template>
                                 <div style="@(context.Highlighted ? GlobalConst.kStyleHighlighted : "")">
@@ -115,7 +115,7 @@
             {
                 <Collapse Title="@(userConfig.GetText("services"))" StartToggled="StartCollapsed" OnOpen="() => HandleUncollapse(ObjCategory.nsrv)" RSBLocation=@($"{GetIDPrefix(ObjCategory.nsrv)}")>
                     <Table style="font-size:small" class="table table-bordered table-sm th-bg-secondary table-responsive" TableItem="NetworkService"
-                            Items="@NetworkServiceExtractor(Content)" PageSize="PageSize" ColumnReorder="true">
+                            Items="@NetworkServiceExtractor(Content)" ColumnReorder="true">
                         <Column TableItem="NetworkService" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Class="word-break">
                             <Template>
                                 <div> @* need same offset to parent html for link highlight *@
@@ -193,7 +193,7 @@
             {
                 <Collapse Title="@(userConfig.GetText("users"))" StartToggled="StartCollapsed" OnOpen="() => HandleUncollapse(ObjCategory.user)" RSBLocation=@($"{GetIDPrefix(ObjCategory.user)}")>
                     <Table style="font-size:small" class="table table-bordered table-sm th-bg-secondary table-responsive"
-                            TableItem="NetworkUser" Items="@NetworkUserExtractor(Content)" PageSize="PageSize" ColumnReorder="true">
+                            TableItem="NetworkUser" Items="@NetworkUserExtractor(Content)" ColumnReorder="true">
                         <Column TableItem="NetworkUser" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Class="word-break">
                             <Template>
                                 <div> @* need same offset to parent html for link highlight *@

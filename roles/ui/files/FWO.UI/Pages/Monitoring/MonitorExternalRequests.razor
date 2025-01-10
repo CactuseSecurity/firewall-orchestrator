@@ -33,8 +33,8 @@
                 <label for="cbx_show_all" class="form-check-label">@(userConfig.GetText("show_all"))</label>
             </div>
         </div>
-        <PageSizeComponent PageSizeCallback="UpdatePageSize" PageSize="PageSize"></PageSizeComponent>
-        <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="ExternalRequest" Items="openRequests" PageSize="PageSize" ColumnReorder="true">
+        <PageSizeComponent PageSizeCallback="UpdatePageSize"></PageSizeComponent>
+        <Table PageSize="PageSize" class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="ExternalRequest" Items="openRequests" ColumnReorder="true">
             <Column TableItem="ExternalRequest" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
                 <Template Context="request">
                     <div class="btn-group">
@@ -197,7 +197,7 @@ else
     private bool DetailsMode = false;
     private bool ChangeStateMode = false;
 
-    private int PageSize { get; set; } = 10;
+    private int PageSize { get; set; }
     private bool workInProgress = false;
     private bool displayAll = false;
 

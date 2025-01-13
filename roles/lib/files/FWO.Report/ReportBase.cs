@@ -318,7 +318,20 @@ namespace FWO.Report
 
         private string BuildHTMLToC(string html)
         {
-            string tocTemplatePath = "C:\\Users\\luca\\source\\repos\\SolidProgramming\\fworch\\firewall-orchestrator\\roles\\ui\\files\\FWO.UI\\wwwroot\\html\\ToCHTMLTemplate.html";//Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "html", ToCHTMLTemplateFileName);
+            string location = Assembly.GetExecutingAssembly().Location;
+
+            string baseDir = "";
+
+            if (location.Contains("FWO.Test"))
+            {
+                baseDir = Path.GetFullPath("..\\..\\..\\..\\..\\..\\");
+            }
+            else
+            {
+                baseDir = Path.GetFullPath("..\\..\\..\\");
+            }
+
+            string tocTemplatePath = Path.Combine(baseDir, "ui", "files", "FWO.UI", "wwwroot", "html", ToCHTMLTemplateFileName);
 
             if (!File.Exists(tocTemplatePath))
             {

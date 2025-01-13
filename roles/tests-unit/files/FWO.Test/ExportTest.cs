@@ -217,58 +217,14 @@ namespace FWO.Test
                 ReportData = ConstructChangeReport(true)
             };
 
-            string expectedHtmlResult = "<!DOCTYPE html><html><head><meta charset=\"utf-8\"/><title>Changes Report (technical)</title>" +
-            "<style>table {font-family: arial, sans-serif;font-size: 10px;border-collapse: collapse;width: 100 %;}td {border: 1px solid #000000;text-align: left;padding: 3px;}th {border: 1px solid #000000;text-align: left;padding: 3px;background-color: #dddddd;}</style></head>" +
-            "<body>" +
-            "<h2>Changes Report (technical)</h2>" +
-            "<p>Change Time: from: 2023-04-19T15:00:04Z, until: 2023-04-20T15:00:04Z (UTC)</p>" +
-            "<p>Generated on: Z (UTC)</p>" +
-            "<p>Devices: TestMgt [TestDev]</p>" +
-            "<p>Filter: TestFilter</p><hr>" +
-            "<h3>TestMgt</h3><hr>" +
-            "<h4>TestDev</h4>" +
-            "<table><tr><th>Change Time</th><th>Change Type</th><th>Name</th><th>Source Zone</th><th>Source</th><th>Destination Zone</th><th>Destination</th><th>Services</th><th>Action</th><th>Track</th><th>Enabled</th><th>Uid</th><th>Comment</th></tr>" +
-            "<tr><td>05.04.2023 12:00:00</td><td>Rule added</td>" +
-            "<td><p style=\"color: green; text-decoration: bold;\">TestRule1</p></td>" +
-            "<td><p style=\"color: green; text-decoration: bold;\">srczn</p></td>" +
-            "<td><p style=\"color: green; text-decoration: bold;\">1.2.3.4/32<br>127.0.0.1/32</p></td>" +
-            "<td><p style=\"color: green; text-decoration: bold;\">dstzn</p></td>" +
-            "<td><p style=\"color: green; text-decoration: bold;\">1.2.3.4-1.2.3.5</p></td>" +
-            "<td><p style=\"color: green; text-decoration: bold;\">443/TCP</p></td>" +
-            "<td><p style=\"color: green; text-decoration: bold;\">accept</p></td>" +
-            "<td><p style=\"color: green; text-decoration: bold;\">none</p></td>" +
-            "<td><p style=\"color: green; text-decoration: bold;\"><b>Y</b></p></td>" +
-            "<td><p style=\"color: green; text-decoration: bold;\">uid1</p></td>" +
-            "<td><p style=\"color: green; text-decoration: bold;\">comment1</p></td></tr>" +
-            "<tr><td>05.04.2023 12:00:00</td><td>Rule modified</td><td>TestRule1</td><td>srczn</td>" +
-            "<td><p>127.0.0.1/32<br></p>" +
-            "deleted: <p style=\"color: red; text-decoration: line-through red;\">1.2.3.4/32<br></p>" +
-            "added: <p style=\"color: green; text-decoration: bold;\">2.3.4.5</p></td>" +
-            "<td>dstzn</td>" +
-            "<td><p>1.2.3.4-1.2.3.5<br></p>added: <p style=\"color: green; text-decoration: bold;\">10.0.6.0/24</p></td>" +
-            "<td>deleted: <p style=\"color: red; text-decoration: line-through red;\">443/TCP<br></p>" +
-            "added: <p style=\"color: green; text-decoration: bold;\">not<br>443/TCP</p></td>" +
-            "<td>accept</td><td>none</td><td><b>Y</b></td><td>deleted: <p style=\"color: red; text-decoration: line-through red;\">uid1<br></p></td>" +
-            "<td>deleted: <p style=\"color: red; text-decoration: line-through red;\">comment1<br></p>added: <p style=\"color: green; text-decoration: bold;\">new comment</p></td></tr>" +
-            "<tr><td>05.04.2023 12:00:00</td><td>Rule modified</td><td>TestRule2</td><td></td>" +
-            "<td>not<br>TestUser1@1.2.3.4/32<br>TestUser1@127.0.0.1/32</td>" +
-            "<td></td>" +
-            "<td>deleted: <p style=\"color: red; text-decoration: line-through red;\">not<br>TestUser2@1.2.3.4-1.2.3.5<br></p>added: <p style=\"color: green; text-decoration: bold;\">TestUser2@1.2.3.4-1.2.3.5</p></td>" +
-            "<td>deleted: <p style=\"color: red; text-decoration: line-through red;\">not<br>6666-7777/UDP<br></p>added: <p style=\"color: green; text-decoration: bold;\">6666-7777/UDP</p></td>" +
-            "<td>deny</td><td>none</td><td>deleted: <p style=\"color: red; text-decoration: line-through red;\"><b>Y</b><br></p>added: <p style=\"color: green; text-decoration: bold;\"><b>N</b></p></td><td>uid2:123</td><td>comment2</td></tr>" +
-            "<tr><td>05.04.2023 12:00:00</td><td>Rule deleted</td>" +
-            "<td><p style=\"color: red; text-decoration: line-through red;\">TestRule2</p></td><td></td>" +
-            "<td><p style=\"color: red; text-decoration: line-through red;\">not<br>TestUser1@1.2.3.4/32<br>TestUser1@127.0.0.1/32</p></td>" +
-            "<td></td>" +
-            "<td><p style=\"color: red; text-decoration: line-through red;\">not<br>TestUser2@1.2.3.4-1.2.3.5</p></td>" +
-            "<td><p style=\"color: red; text-decoration: line-through red;\">not<br>6666-7777/UDP</p></td>" +
-            "<td><p style=\"color: red; text-decoration: line-through red;\">deny</p></td>" +
-            "<td><p style=\"color: red; text-decoration: line-through red;\">none</p></td>" +
-            "<td><p style=\"color: red; text-decoration: line-through red;\"><b>Y</b></p></td>" +
-            "<td><p style=\"color: red; text-decoration: line-through red;\">uid2:123</p></td>" +
-            "<td><p style=\"color: red; text-decoration: line-through red;\">comment2</p></td></tr></table><hr>" +
-            "</body></html>";
-            ClassicAssert.AreEqual(expectedHtmlResult, RemoveLinebreaks(RemoveGenDate(reportChanges.ExportToHtml(), true)));
+            string expectedHtmlResult = "<!DOCTYPE html><html><head><meta charset=\"utf-8\"/><title>Changes Report (technical)</title><style>table {font-family: arial, sans-serif;font-size: 10px;border-collapse: collapse;width: 100 %;}td {border: 1px solid #000000;text-align: left;padding: 3px;}th {border: 1px solid #000000;text-align: left;padding: 3px;background-color: #dddddd;}</style></head><body><h2>Changes Report (technical)</h2><p>Change Time: from: 2023-04-19T15:00:04Z, until: 2023-04-20T15:00:04Z (UTC)</p><p>Generated on: Z (UTC)</p><p>Devices: TestMgt [TestDev]</p><p>Filter: TestFilter</p><hr><div id=\"toc_container\"><h2>Table of content</h2><ul class=\"toc_list\"><li><a href=\"#" + StaticAnkerId + "\">TestMgt</a></li><ul><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">TestDev</a></li></ul></ul></div><style>#toc_container {background: #f9f9f9 none repeat scroll 0 0;border: 1px solid #aaa;display: table;font-size: 95%;margin-bottom: 1em;padding: 10px;width: 100%;}#toc_container ul{list-style-type: none;}.subli {list-style-type: square;}.toc_list ul li {margin-bottom: 4px;}.toc_list a {color: black;font-family: 'Arial';font-size: 12pt;}</style><hr><h3 id=\"" + StaticAnkerId + "\">TestMgt</h3><hr><h4 id=\"" + StaticAnkerId + "\">TestDev</h4><table><tr><th>Change Time</th><th>Change Type</th><th>Name</th><th>Source Zone</th><th>Source</th><th>Destination Zone</th><th>Destination</th><th>Services</th><th>Action</th><th>Track</th><th>Enabled</th><th>Uid</th><th>Comment</th></tr><tr><td>05.04.2023 12:00:00</td><td>Rule added</td><td><p style=\"color: green; text-decoration: bold;\">TestRule1</p></td><td><p style=\"color: green; text-decoration: bold;\">srczn</p></td><td><p style=\"color: green; text-decoration: bold;\">1.2.3.4/32<br>127.0.0.1/32</p></td><td><p style=\"color: green; text-decoration: bold;\">dstzn</p></td><td><p style=\"color: green; text-decoration: bold;\">1.2.3.4-1.2.3.5</p></td><td><p style=\"color: green; text-decoration: bold;\">443/TCP</p></td><td><p style=\"color: green; text-decoration: bold;\">accept</p></td><td><p style=\"color: green; text-decoration: bold;\">none</p></td><td><p style=\"color: green; text-decoration: bold;\"><b>Y</b></p></td><td><p style=\"color: green; text-decoration: bold;\">uid1</p></td><td><p style=\"color: green; text-decoration: bold;\">comment1</p></td></tr><tr><td>05.04.2023 12:00:00</td><td>Rule modified</td><td>TestRule1</td><td>srczn</td><td><p>127.0.0.1/32<br></p>deleted: <p style=\"color: red; text-decoration: line-through red;\">1.2.3.4/32<br></p>added: <p style=\"color: green; text-decoration: bold;\">2.3.4.5</p></td><td>dstzn</td><td><p>1.2.3.4-1.2.3.5<br></p>added: <p style=\"color: green; text-decoration: bold;\">10.0.6.0/24</p></td><td>deleted: <p style=\"color: red; text-decoration: line-through red;\">443/TCP<br></p>added: <p style=\"color: green; text-decoration: bold;\">not<br>443/TCP</p></td><td>accept</td><td>none</td><td><b>Y</b></td><td>deleted: <p style=\"color: red; text-decoration: line-through red;\">uid1<br></p></td><td>deleted: <p style=\"color: red; text-decoration: line-through red;\">comment1<br></p>added: <p style=\"color: green; text-decoration: bold;\">new comment</p></td></tr><tr><td>05.04.2023 12:00:00</td><td>Rule modified</td><td>TestRule2</td><td></td><td>not<br>TestUser1@1.2.3.4/32<br>TestUser1@127.0.0.1/32</td><td></td><td>deleted: <p style=\"color: red; text-decoration: line-through red;\">not<br>TestUser2@1.2.3.4-1.2.3.5<br></p>added: <p style=\"color: green; text-decoration: bold;\">TestUser2@1.2.3.4-1.2.3.5</p></td><td>deleted: <p style=\"color: red; text-decoration: line-through red;\">not<br>6666-7777/UDP<br></p>added: <p style=\"color: green; text-decoration: bold;\">6666-7777/UDP</p></td><td>deny</td><td>none</td><td>deleted: <p style=\"color: red; text-decoration: line-through red;\"><b>Y</b><br></p>added: <p style=\"color: green; text-decoration: bold;\"><b>N</b></p></td><td>uid2:123</td><td>comment2</td></tr><tr><td>05.04.2023 12:00:00</td><td>Rule deleted</td><td><p style=\"color: red; text-decoration: line-through red;\">TestRule2</p></td><td></td><td><p style=\"color: red; text-decoration: line-through red;\">not<br>TestUser1@1.2.3.4/32<br>TestUser1@127.0.0.1/32</p></td><td></td><td><p style=\"color: red; text-decoration: line-through red;\">not<br>TestUser2@1.2.3.4-1.2.3.5</p></td><td><p style=\"color: red; text-decoration: line-through red;\">not<br>6666-7777/UDP</p></td><td><p style=\"color: red; text-decoration: line-through red;\">deny</p></td><td><p style=\"color: red; text-decoration: line-through red;\">none</p></td><td><p style=\"color: red; text-decoration: line-through red;\"><b>Y</b></p></td><td><p style=\"color: red; text-decoration: line-through red;\">uid2:123</p></td><td><p style=\"color: red; text-decoration: line-through red;\">comment2</p></td></tr></table><hr></body></html>";
+
+            string reportHtml = RemoveLinebreaks(RemoveGenDate(reportChanges.ExportToHtml(), true));
+
+            IEnumerable<string> matches = reportHtml.GetMatches(ToCRegexPattern, ToCAnkerIdGroupName);
+            reportHtml = reportHtml.ReplaceAll(matches, StaticAnkerId);
+
+            ClassicAssert.AreEqual(expectedHtmlResult, reportHtml);
         }
 
         [Test]

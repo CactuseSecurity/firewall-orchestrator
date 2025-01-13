@@ -29,17 +29,17 @@ namespace FWO.Api.Data
 			{
 				while (lastValue == false)
 				{
-					int IndexPrefixDelim = dn.IndexOf("=");
+					int IndexPrefixDelim = dn.IndexOf('=');
 					if(IndexPrefixDelim > 0)
 					{
-						string Name = dn.Substring(0, IndexPrefixDelim);
+						string Name = dn[..IndexPrefixDelim];
 						string Value;
-						dn = dn.Substring (IndexPrefixDelim + 1);
-						int IndexValueDelim = dn.IndexOf(",");
+						dn = dn[(IndexPrefixDelim + 1)..];
+						int IndexValueDelim = dn.IndexOf(',');
 						if(IndexValueDelim > 0)
 						{
-							Value = dn.Substring(0, IndexValueDelim);
-							dn = dn.Substring (IndexValueDelim + 1);
+							Value = dn[..IndexValueDelim];
+							dn = dn[(IndexValueDelim + 1)..];
 						}
 						else
 						{
@@ -99,8 +99,7 @@ namespace FWO.Api.Data
 
 		public string GetTenantNameViaLdapTenantLevel (int tenantLevel = 1)
 		{
-			return (tenantLevel > 0 && Path.Count >= tenantLevel) ? Path[Path.Count - tenantLevel] : "";
+			return (tenantLevel > 0 && Path.Count >= tenantLevel) ? Path[^tenantLevel] : "";
 		}
-
 	}
 }

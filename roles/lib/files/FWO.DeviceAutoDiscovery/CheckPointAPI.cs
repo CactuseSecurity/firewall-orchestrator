@@ -1,6 +1,5 @@
 using RestSharp;
 using System.Text.Json;
-using FWO.Basics;
 using FWO.Api.Data;
 using System.Text.Json.Serialization;
 using Newtonsoft.Json;
@@ -26,7 +25,7 @@ namespace FWO.Rest.Client
         {
             JsonNetSerializer serializer = new(); // Case insensivitive is enabled by default
             config.UseSerializer(() => serializer);
-        } 
+        }
 
         public async Task<RestResponse<CpSessionAuthInfo>> AuthenticateUser(string? user, string? pwd, string? domain)
         {
@@ -72,6 +71,59 @@ namespace FWO.Rest.Client
             return await restClient.ExecuteAsync<CpDomainHelper>(request);
         }
 
+        public async Task<(string?, string?)> GetGlobalRulebase(string sessionId)
+        {
+            RestResponse<CpPackagesHelper> packagesResponse = await GetPackages(@sessionId);
+            if (packagesResponse.Data != null && packagesResponse.Data.PackageList != null && packagesResponse.Data.PackageList.Count > 0)
+            {
+                // TODO: this needs to be checked in MDS environment
+                // need to decide which package and which access layer to choose (always the first (global) one?)
+                // currently we pick the very first global rulebase found
+
+                List<CpPackage> packageList = packagesResponse.Data.PackageList;
+                foreach (CpPackage p in packageList)
+                {
+                    if (p.Domain.DomainType == "global domain")
+                    {
+                        return (p.CpAccessLayers.FirstOrDefault(new CpAccessLayer())?.Name, p.CpAccessLayers.FirstOrDefault(new CpAccessLayer())?.Uid);
+                    }
+                }
+            }
+            return (null, null);
+        }
+
+        public async Task<RestResponse<CpPackagesHelper>> GetPackages(string session)
+        {
+            // Log.WriteDebug("Autodiscovery", $"found management '{dev.Name}' with access policy '{dev.Policy.AccessPolicyName}'");
+            RestRequest requestPackage = new("show-packages", Method.Post);
+            requestPackage.AddHeader("X-chkp-sid", @session);
+            requestPackage.AddHeader("Content-Type", "application/json");
+            Dictionary<string, string> showPackagesBody = new()
+            {
+                // { "name", dev.Policy.AccessPolicyName },
+                { "details-level", "full" }
+            };
+            requestPackage.AddJsonBody(showPackagesBody);
+            RestResponse<CpPackagesHelper> packages = await restClient.ExecuteAsync<CpPackagesHelper>(requestPackage);
+            return packages;
+        }
+
+        public async Task<RestResponse<CpPackage>> GetPackage(string session, CpDevice dev)
+        {
+            Log.WriteDebug("Autodiscovery", $"found gateway '{dev.Name}' with access policy '{dev.Policy.AccessPolicyName}'");
+            RestRequest requestPackage = new("show-package", Method.Post);
+            requestPackage.AddHeader("X-chkp-sid", session);
+            requestPackage.AddHeader("Content-Type", "application/json");
+            Dictionary<string, string> packageBody = new()
+            {
+                { "name", dev.Policy.AccessPolicyName },
+                { "details-level", "full" }
+            };
+            requestPackage.AddJsonBody(packageBody);
+            RestResponse<CpPackage> package = await restClient.ExecuteAsync<CpPackage>(requestPackage);
+            return package;
+        }
+
         private static bool ContainsDomainLayer(List<CpAccessLayer> layers)
         {
             foreach (CpAccessLayer layer in layers)
@@ -98,7 +150,7 @@ namespace FWO.Rest.Client
 
             // getting all gateways of this management 
             RestResponse<CpDeviceHelper> devices = await restClient.ExecuteAsync<CpDeviceHelper>(request);
-            if(devices.Data != null)
+            if (devices.Data != null)
             {
                 foreach (CpDevice dev in devices.Data.DeviceList)
                 {
@@ -106,17 +158,8 @@ namespace FWO.Rest.Client
                     {
                         if (dev.Policy.AccessPolicyInstalled)   // get package info
                         {
-                            Log.WriteDebug("Autodiscovery", $"found gateway '{dev.Name}' with access policy '{dev.Policy.AccessPolicyName}'");
-                            RestRequest requestPackage = new("show-package", Method.Post);
-                            requestPackage.AddHeader("X-chkp-sid", session);
-                            requestPackage.AddHeader("Content-Type", "application/json");
-                            Dictionary<string, string> packageBody = new()
-                            {
-                                { "name", dev.Policy.AccessPolicyName },
-                                { "details-level", "full" }
-                            };
-                            requestPackage.AddJsonBody(packageBody);
-                            RestResponse<CpPackage> package = await restClient.ExecuteAsync<CpPackage>(requestPackage);
+                            RestResponse<CpPackage> package = await GetPackage(session, dev);
+
                             if (dev != null && package != null && package.Data != null)
                             {
                                 dev.Package = package.Data;
@@ -215,7 +258,6 @@ namespace FWO.Rest.Client
 
         [JsonProperty("total"), JsonPropertyName("total")]
         public int Total { get; set; }
-
     }
 
     public class Domain
@@ -230,6 +272,12 @@ namespace FWO.Rest.Client
         public string DomainType { get; set; } = "";
 
         // public List<Assignment> Assignments = new List<Assignment>();
+    }
+
+    public class CpPackagesHelper
+    {
+        [JsonProperty("packages"), JsonPropertyName("packages")]
+        public List<CpPackage> PackageList { get; set; } = [];
     }
 
     public class CpDeviceHelper

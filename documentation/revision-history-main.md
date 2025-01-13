@@ -457,3 +457,25 @@ Fixes
 
 - UI
   - SECURITY: updating System.Text.Encodings.Web v4.5.0 --> v8.0.0
+
+# 8.6.1 17.12.2024 MAIN
+Fixes network modelling
+- lock external requests to avoid multiple external tickets
+- fix missing comments
+- wait cycles for access request after group changes
+- save publish flag at interface creation
+- disregard dummyAppRole for status determination
+- inherit extra configs from interface
+- sanitize extra configs
+- sort tasks for connection Id and show already adapted name of new members
+- small monitoring adaptations
+- some cleanup + removal of compiler warnings
+- fix ldap group creation regression
+- restrict owner_network uniqness constraint to same import source
+- UI interface search pop-up transformed into filterable table
+
+Upgrade Hasura API to v2.45.1
+
+# 8.6.2 03.01.2025 MAIN
+Hotfix for network modelling:
+- fix: when visiting the library for the second time, app servers were missing due to uninitialized area data.

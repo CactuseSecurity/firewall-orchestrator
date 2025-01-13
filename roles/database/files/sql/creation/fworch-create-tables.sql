@@ -78,6 +78,9 @@ Create table "management" -- contains an entry for each firewall management syst
 	"multi_device_manager_id" integer,		-- if this manager belongs to another multi_device_manager, then this id points to it
 	"is_super_manager" BOOLEAN DEFAULT FALSE,
 	"ext_mgm_data" Varchar,
+	"mgm_uid" Varchar NOT NULL DEFAULT '',
+	"rulebase_name" Varchar NOT NULL DEFAULT '',
+	"rulebase_uid" Varchar NOT NULL DEFAULT '',
  primary key ("mgm_id")
 );
 
@@ -529,6 +532,7 @@ Create table "stm_action"
 (
 	"action_id" SERIAL,
 	"action_name" Varchar NOT NULL,
+	"allowed": BOOLEAN NOT NULL DEFAULT TRUE,
  primary key ("action_id")
 );
 
@@ -1120,17 +1124,18 @@ Create Table IF NOT EXISTS "rule_enforced_on_gateway"
 	"rule_id" Integer NOT NULL,
 	"dev_id" Integer,  --  NULL if rule is available for all gateways of its management
 	"created" BIGINT,
-	"deleted" BIGINT
+	"removed" BIGINT
 );
 
 Create table IF NOT EXISTS "rulebase"
 (
 	"id" SERIAL primary key,
 	"name" Varchar NOT NULL,
+	"uid" Varchar NOT NULL,
 	"mgm_id" Integer NOT NULL,
 	"is_global" BOOLEAN DEFAULT FALSE NOT NULL,
 	"created" BIGINT,
-	"deleted" BIGINT
+	"removed" BIGINT
 );
 
 Create table IF NOT EXISTS "rulebase_link"
@@ -1141,7 +1146,7 @@ Create table IF NOT EXISTS "rulebase_link"
 	"to_rulebase_id" Integer NOT NULL,
 	"link_type" Integer,
 	"created" BIGINT,
-	"deleted" BIGINT
+	"removed" BIGINT
 );
 
 Create table IF NOT EXISTS "rulebase_on_gateway" 
@@ -1174,7 +1179,8 @@ create table ext_request
 	last_processing_response varchar,
 	create_date Timestamp default now(),
 	finish_date Timestamp,
-	wait_cycles int default 0
+	wait_cycles int default 0,
+	locked boolean default false
 );
 
 -- workflow -------------------------------------------------------

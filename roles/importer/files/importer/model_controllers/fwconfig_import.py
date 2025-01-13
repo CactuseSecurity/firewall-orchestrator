@@ -4,7 +4,8 @@ import traceback
 
 from fwo_log import getFwoLogger
 from fwoBaseImport import ImportState
-from models.policy import Policy
+from fwo_api_oo import FwoApi
+from roles.importer.files.importer.models.rulebase import Rulebase
 from models.gateway import Gateway
 from models.fwconfig_normalized import FwConfigNormalized
 from model_controllers.fwconfig_normalized_controller import FwConfigNormalizedController
@@ -24,15 +25,15 @@ Class hierachy:
 """
 
 # this class is used for importing a config into the FWO API
-class FwConfigImport(FwConfigImportObject, FwConfigImportRule):
+class FwConfigImport(FwConfigImportObject, FwConfigImportRule, FwoApi):
     ImportDetails: ImportState
-    FwoApiUrl: str
-    FwoJwt: str
+    # FwoApiUrl: str
+    # FwoJwt: str
     NormalizedConfig: FwConfigNormalized
     
     def __init__(self, importState: ImportState, config: FwConfigNormalized):
-        self.FwoApiUrl = importState.FwoConfig.FwoApiUri
-        self.FwoJwt = importState.Jwt
+        # self.FwoApiUrl = importState.FwoConfig.FwoApiUri
+        # self.FwoJwt = importState.Jwt
         self.ImportDetails = importState
         self.NormalizedConfig = config
         
@@ -76,7 +77,7 @@ class FwConfigImport(FwConfigImportObject, FwConfigImportRule):
                 'importId': self.ImportDetails.ImportId,
                 'config': config
             }
-            import_result = self.call(import_mutation, queryVariables=queryVariables)
+            import_result = self.ImportDetails.call(import_mutation, queryVariables=queryVariables)
             if 'errors' in import_result:
                 logger.exception("fwo_api:storeLatestConfig - error while writing importable config for mgm id " +
                                 str(self.ImportDetails.MgmDetails.Id) + ": " + str(import_result['errors']))
@@ -103,7 +104,7 @@ class FwConfigImport(FwConfigImportObject, FwConfigImportRule):
         """
         try:
             queryVariables = { 'mgmId': self.ImportDetails.MgmDetails.Id }
-            import_result = self.call(import_mutation, queryVariables=queryVariables)
+            import_result = self.ImportDetails.call(import_mutation, queryVariables=queryVariables)
             if 'errors' in import_result:
                 logger.exception("fwo_api:import_latest_config - error while deleting last config for mgm id " +
                                 str(self.ImportDetails.MgmDetails.Id) + ": " + str(import_result['errors']))
@@ -155,7 +156,7 @@ class FwConfigImport(FwConfigImportObject, FwConfigImportRule):
         """
 
         try:
-            deleteResult = self.call(deleteMutation, query_variables={"mgmId": mgmId, "is_full_import": self.ImportDetails.IsFullImport })
+            deleteResult = self.ImportDetails.call(deleteMutation, query_variables={"mgmId": mgmId, "is_full_import": self.ImportDetails.IsFullImport })
             if deleteResult['data']['delete_import_control']['returning']['control_id']:
                 importsDeleted = len(deleteResult['data']['delete_import_control']['returning']['control_id'])
                 if importsDeleted>0:
@@ -447,7 +448,7 @@ class FwConfigImport(FwConfigImportObject, FwConfigImportRule):
                 'mgmId': self.ImportDetails.MgmDetails.Id, 
                 'currentImportId': self.ImportDetails.ImportId
             }
-            rollbackResult = self.call(rollbackMutation, queryVariables=queryVariables)
+            rollbackResult = self.ImportDetails.call(rollbackMutation, queryVariables=queryVariables)
             if 'errors' in rollbackResult:
                 logger.exception("error while trying to roll back current import for mgm id " +
                                 str(self.ImportDetails.MgmDetails.Id) + ": " + str(rollbackResult['errors']))

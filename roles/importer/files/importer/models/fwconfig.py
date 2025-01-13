@@ -1,7 +1,7 @@
 import json
 from pydantic import BaseModel
 from fwo_base import ConfFormat, ConfigAction
-from models.policy import Policy
+from roles.importer.files.importer.models.rulebase import Rulebase
 
 # class FwoEncoder(json.JSONEncoder):
 

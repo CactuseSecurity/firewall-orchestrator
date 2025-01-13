@@ -1,7 +1,7 @@
 import json
 
 from fwo_base import ConfFormat, ConfigAction
-from models.policy import Policy
+from roles.importer.files.importer.models.rulebase import Rulebase
 
 class FwoEncoder(json.JSONEncoder):
 
@@ -10,7 +10,7 @@ class FwoEncoder(json.JSONEncoder):
         if isinstance(obj, ConfigAction) or isinstance(obj, ConfFormat):
             return obj.name
         
-        if isinstance(obj, Policy):
+        if isinstance(obj, Rulebase):
             return obj.toJson()
         
         return json.JSONEncoder.default(self, obj)

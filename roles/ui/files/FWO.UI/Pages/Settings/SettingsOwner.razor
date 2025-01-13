@@ -39,7 +39,7 @@
                 {
                     <button type="button" class="btn btn-sm btn-info" @onclick:preventDefault="true" @onclick="@( async () => { 
                         recertCalcInProgress = true; 
-                        if (await recertRefresh.RecalcRecerts())
+                        if (await RecertRefresh.RecalcRecerts(apiConnection))
                         {
                             DisplayMessageInUi(null, userConfig.GetText("fetch_data"), "Error during recertification refresh", true);
                         }
@@ -187,13 +187,13 @@
                         <div class="form-check form-check-inline col-sm-3" data-toggle="tooltip" title="@(userConfig.PureLine("H5591"))">
                             @if(Readonly && userConfig.AllowManualOwnerAdmin)
                             {
-                                <input disabled class="form-check-input" type="checkbox" @bind="actOwner.CommSvcPossible">
+                                <input id="cbx_comm_svc_possible" disabled class="form-check-input" type="checkbox" @bind="actOwner.CommSvcPossible">
                             }
                             else
                             {
-                                <input class="form-check-input" type="checkbox" @bind="actOwner.CommSvcPossible">
+                                <input id="cbx_comm_svc_possible" class="form-check-input" type="checkbox" @bind="actOwner.CommSvcPossible">
                             }
-                            <label class="form-check-label"><small>@(userConfig.GetText("comm_svc_possible"))</small></label>
+                            <label for="cbx_comm_svc_possible" class="form-check-label"><small>@(userConfig.GetText("comm_svc_possible"))</small></label>
                         </div>
                     </div>
                     <div class="form-group row mt-2">
@@ -340,7 +340,6 @@ else
     private FwoOwner actOwner = new();
     private Tenant? selectedTenant;
     private DayOfWeek? selectedDayOfWeek;
-    private RecertRefresh recertRefresh;
     private List<Tenant> tenants = [];
 
     private bool showCleanupButton = false;
@@ -370,7 +369,6 @@ else
         {
             owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
             AnalyseSampleOwners();
-            recertRefresh = new(apiConnection);
 
             RestResponse<List<TenantGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetTenants();
             if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == null)

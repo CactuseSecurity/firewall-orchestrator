@@ -7,7 +7,7 @@ import fwo_globals
 from fwo_const import list_delimiter, default_section_header_text
 from fwo_base import sanitize
 from fwo_exception import ImportRecursionLimitReached
-from models.policy import Policy
+from roles.importer.files.importer.models.rulebase import Rulebase
 from models.rule import Rule
 
 uid_to_name_map = {}
@@ -37,8 +37,8 @@ def normalizeRulebases (nativeConfig, importState, normalizedConfig):
     for rb_id in rb_range:
 
         rulebaseUid = nativeConfig['rulebases'][rb_id]['layername']
-        accessPolicy = Policy(Uid=rulebaseUid, Name=rulebaseUid, Rules=[])
-        natPolicy = Policy(Uid=rulebaseUid, Name=rulebaseUid, Rules=[])
+        accessPolicy = Rulebase(uid=rulebaseUid, name=rulebaseUid, mgm_uid=importState.MgmDetails.Name, Rules=[])
+        natPolicy = Rulebase(uid=rulebaseUid, name=rulebaseUid, mgm_uid=importState.MgmDetails.Name, Rules=[])
 
         if fwo_globals.debug_level>3:
             logger.debug("parsing layer " + rulebaseUid)

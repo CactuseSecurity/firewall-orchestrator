@@ -29,8 +29,8 @@
                 @if(type != WfTaskType.master)
                 {
                     <div class="form-group col-sm-1">
-                        <input type="checkbox" @bind="taskTypesActiveDict[type]" />
-                        <label class="col-form-label">@(userConfig.GetText(type.ToString()))</label>
+                        <input id="cbx_workflow_task_type" type="checkbox" @bind="taskTypesActiveDict[type]" />
+                        <label for="cbx_workflow_task_type" class="col-form-label">@(userConfig.GetText(type.ToString()))</label>
                     </div>
                 }
             }
@@ -61,34 +61,34 @@
             </div>
         </div>
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5568"))">
-            <label class="col-form-label col-sm-3">@(userConfig.GetText("reqOwnerBased")):</label>
+            <label for="cbx_owner_based" class="col-form-label col-sm-3">@(userConfig.GetText("reqOwnerBased")):</label>
             <div class="col-sm-2">
-                <input type="checkbox" @bind="configData!.ReqOwnerBased">
+                <input id="cbx_owner_based" type="checkbox" @bind="configData!.ReqOwnerBased">
             </div>
         </div>
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5570"))">
-            <label class="col-form-label col-sm-3">@(userConfig.GetText("reqReducedView")):</label>
+            <label for="cbx_reduced_view" class="col-form-label col-sm-3">@(userConfig.GetText("reqReducedView")):</label>
             <div class="col-sm-2">
-                <input type="checkbox" @bind="configData!.ReqReducedView">
+                <input id="cbx_reduced_view" type="checkbox" @bind="configData!.ReqReducedView">
             </div>
         </div>
 
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5569"))">
-            <label class="col-form-label col-sm-3">@(userConfig.GetText("reqShowCompliance")):</label>
+            <label for="cbx_show_compliance" class="col-form-label col-sm-3">@(userConfig.GetText("reqShowCompliance")):</label>
             <div class="col-sm-2">
-                <input type="checkbox" @bind="configData!.ReqShowCompliance">
+                <input id="cbx_show_compliance" type="checkbox" @bind="configData!.ReqShowCompliance">
             </div>
         </div>
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5564"))">
-            <label class="col-form-label col-sm-3">@(userConfig.GetText("reqAllowObjectSearch")):</label>
+            <label for="cbx_allow_object_search" class="col-form-label col-sm-3">@(userConfig.GetText("reqAllowObjectSearch")):</label>
             <div class="col-sm-2">
-                <input type="checkbox" @bind="configData!.ReqAllowObjectSearch">
+                <input id="cbx_allow_object_search" type="checkbox" @bind="configData!.ReqAllowObjectSearch">
             </div>
         </div>
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5567"))">
-            <label class="col-form-label col-sm-3">@(userConfig.GetText("reqActivatePathAnalysis")):</label>
+            <label for="cbx_activate_path_analysis" class="col-form-label col-sm-3">@(userConfig.GetText("reqActivatePathAnalysis")):</label>
             <div class="col-sm-2">
-                <input type="checkbox" @bind="configData!.ReqActivatePathAnalysis">
+                <input id="cbx_activate_path_analysis" type="checkbox" @bind="configData!.ReqActivatePathAnalysis">
             </div>
         </div>
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5566") + "\r\n" + userConfig.PureLine("H5571") + "\r\n" +

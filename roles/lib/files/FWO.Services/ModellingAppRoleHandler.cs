@@ -30,7 +30,7 @@ namespace FWO.Services
             AvailableAppServers = availableAppServers;
             AvailableNwElems = availableNwElems;
             ActAppRole = appRole;
-            ApplyNamingConvention(application.ExtAppId);
+            ApplyNamingConvention(application.ExtAppId ?? "");
         }
 
         private void ApplyNamingConvention(string extAppId)
@@ -116,7 +116,7 @@ namespace FWO.Services
                     {
                         await UpdateAppRoleInDb();
                     }
-                    Close();
+                    CleanUp();
                     return true;
                 }
             }
@@ -283,7 +283,7 @@ namespace FWO.Services
             }
         }
 
-        public void Close()
+        public void CleanUp()
         {
             AppServerToAdd = [];
             AppServerToDelete = [];
@@ -358,6 +358,7 @@ namespace FWO.Services
         {
             return IpToUint(a.Begin) <= IpToUint(b.End) && IpToUint(b.Begin) <= IpToUint(a.End);
         }
+
         private static uint IpToUint(IPAddress ipAddress)
         {
             byte[] bytes = ipAddress.GetAddressBytes();

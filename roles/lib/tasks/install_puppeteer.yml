@@ -1,0 +1,130 @@
+- block:
+# install libs needed for nuget package PuppeteerSharp
+  - name: Define core packages
+    set_fact:
+      core_packages:
+        - ca-certificates
+        - fonts-liberation
+        - libappindicator3-1
+        - libatk-bridge2.0-0
+        - libatk1.0-0
+        - libcups2
+        - libdbus-1-3
+        - libdrm2
+        - libgbm1
+        - libnspr4
+        - libnss3
+        - libx11-xcb1
+        - libxcomposite1
+        - libxdamage1
+        - libxrandr2
+        - xdg-utils
+
+  - name: Define default platform-specific library names
+    set_fact:
+      glib_library: libglib2.0-0
+      sound_library: libasound2
+
+  - name: Define new library names based on newer OS versions
+    set_fact:
+      glib_library: libglib2.0-0t64
+      sound_library: libasound2t64
+    when: >
+      ansible_facts['distribution'] == "Ubuntu" and ansible_facts['distribution_version'] | float >= 24.04
+      or ansible_facts['distribution'] == "Debian" and ansible_facts['distribution_version'] | float >= 13
+      or ansible_facts['distribution'] == "Debian" and ansible_lsb.codename == "trixie"
+
+  - block: # only use apparmor for ubuntu 24.04ff
+    - name: Ensure the /etc/apparmor.d directory exists
+      file:
+        path: /etc/apparmor.d
+        state: directory
+        mode: '0755'
+
+    - name: Create /etc/apparmor.d/chrome-dev-builds for Chrome
+      copy:
+        dest: /etc/apparmor.d/chrome-dev-builds
+        content: |
+          abi <abi/4.0>,
+          include <tunables/global>
+
+          profile /usr/local/bin/**/chrome flags=(unconfined) {
+              userns,
+
+              # Site-specific additions and overrides. See local/README for details.
+              # Include the local overrides only if the file exists.
+              # This is a common best practice to avoid parser errors.
+              include if exists <local/chrome>
+          }
+        mode: '0644'
+      notify:
+        - Reload and Restart AppArmor
+
+    when: ansible_facts['distribution'] == "Ubuntu" and ansible_facts['distribution_version'] | float >= 24.04
+
+  - name: Install additional libraries for old Debian 11
+    apt:
+      name:
+        - libpangocairo-1.0-0
+        - libpangoft2-1.0-0
+      state: present
+      update_cache: yes
+    when: ansible_facts['distribution'] == "Debian" and ansible_facts['distribution_version'] == "11"
+
+  - name: Combine all packages
+    set_fact:
+      platform_packages: "{{ core_packages + [sound_library, glib_library] }}"
+
+  - name: Install all combined dependencies
+    apt:
+      name: "{{ platform_packages }}"
+      state: present
+      update_cache: yes
+
+  become: true
+  environment: "{{ proxy_env }}"
+
+# get google chrome for pdf generation
+- name: get last known good versions of chrome to download
+  uri:
+    url: https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions-with-downloads.json
+  register: chrome_versions
+
+- name: parse latest stable versions for chrome and headless shell
+  set_fact:
+    stable_chrome_versions: "{{ chrome_versions['json']['channels']['Stable']['downloads'] }}"
+    chrome_dest: "/usr/local/bin/Chrome/Linux-{{ chrome_versions['json']['channels']['Stable']['version'] }}"
+    headless_shell_dest: "/usr/local/bin/ChromeHeadlessShell/Linux-{{ chrome_versions['json']['channels']['Stable']['version'] }}"
+
+- block:
+  - name: install unzip
+    package:
+      name: unzip
+      state: present
+
+  - name: create chrome install path
+    file:
+      path: "{{ chrome_dest }}"
+      state: directory
+      mode: '0755'
+
+  - name: create chrome headless shell install path
+    file:
+      path: "{{ headless_shell_dest }}"
+      state: directory
+      mode: '0755'
+
+  - name: download google chrome and unpack
+    unarchive:
+      src: "{{ stable_chrome_versions['chrome'] | selectattr('platform', 'match', 'linux64') | map(attribute='url') | first }}"
+      dest: "{{ chrome_dest }}"
+      remote_src: yes
+
+  - name: download google chrome headless shell and unpack
+    unarchive:
+      src: "{{ stable_chrome_versions['chrome-headless-shell'] | selectattr('platform', 'match', 'linux64') | map(attribute='url') | first }}"
+      dest: "{{ headless_shell_dest }}"
+      remote_src: yes
+
+  become: true
+  environment: "{{ proxy_env }}"

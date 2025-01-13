@@ -1,6 +1,5 @@
 ﻿using System.Net;
 using RestSharp;
-using FWO.Basics;
 using FWO.Api.Data;
 using FWO.Api.Client;
 using FWO.Logging;
@@ -13,18 +12,18 @@ namespace FWO.DeviceAutoDiscovery
         public AutoDiscoveryFortiManager(Management superManagement, ApiConnection apiConn) : base(superManagement, apiConn) { }
         public override async Task<List<Management>> Run()
         {
-            List<Management> discoveredDevices = new List<Management>();
+            List<Management> discoveredDevices = [];
             Log.WriteAudit("Autodiscovery", $"starting discovery for {superManagement.Name} (id={superManagement.Id})");
             // #if DEBUG
             //            discoveredDevices = fillTestDevices();
             // #endif
             if (superManagement.DeviceType.Name == "FortiManager")
             {
-                List<Adom> customAdoms = new List<Adom>() { };
+                List<Adom> customAdoms = [];
                 List<string> predefinedAdoms = // TODO: move this to config file
-                    new List<string> {"FortiAnalyzer", "FortiAuthenticator", "FortiCache", "FortiCarrier", "FortiClient",
+                    ["FortiAnalyzer", "FortiAuthenticator", "FortiCache", "FortiCarrier", "FortiClient",
                         "FortiDDoS", "FortiDeceptor", "FortiFirewall", "FortiMail", "FortiManager", "FortiNAC", "FortiProxy",
-                        "FortiSandbox", "FortiWeb", "Syslog", "Unmanaged_Devices", "others", "rootp"};
+                        "FortiSandbox", "FortiWeb", "Syslog", "Unmanaged_Devices", "others", "rootp"];
                 Log.WriteDebug("Autodiscovery", $"discovering FortiManager adoms, vdoms, devices");
                 FortiManagerClient restClientFM = new FortiManagerClient(superManagement);
 
@@ -90,7 +89,7 @@ namespace FWO.DeviceAutoDiscovery
                                 DebugLevel = superManagement.DebugLevel,
                                 SuperManagerId = superManagement.Id,
                                 DeviceType = new DeviceType { Id = 11 },
-                                Devices = new Device[] { }
+                                Devices = []
                             };
 
                             RestResponse<FmApiTopLevelHelperAssign> assignResponse = await restClientFM.GetPackageAssignmentsPerAdom(@sessionId, adom.Name);

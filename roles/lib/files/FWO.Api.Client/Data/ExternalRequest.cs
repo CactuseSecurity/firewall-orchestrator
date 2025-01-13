@@ -53,6 +53,16 @@ namespace FWO.Api.Data
         [JsonProperty("create_date"), JsonPropertyName("create_date")]
         public DateTime CreationDate { get; set; }
 
+        [JsonProperty("locked"), JsonPropertyName("locked")]
+        public bool Locked { get; set; } = false;
+
         public string? LastMessage { get; set; }
     }
+
+    public class ExternalRequestDataHelper
+    {
+        [JsonProperty("returning"), JsonPropertyName("returning")]
+        public List<ExternalRequest> ExternalRequests { get; set; } = [];
+    }
+
 }

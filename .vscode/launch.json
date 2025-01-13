@@ -101,12 +101,12 @@
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
             },
             "args": [
-                "-m26",
-                "-d7",
+                "-m6",
+                "-d1",
                 "-f",
                 "-s",
                 // "-c",
-                //"-ifile:///home/tim/tmp/k1/cp-native-new.json",
+                "-ifile:///home/tim/tmp/mgm_id_6_config_normalized.json",
                 // "-ifile:///home/tim/Downloads/b1_imp_nor.json",
                 // "-ifile:///home/tim/Downloads/b1_imp_norm_old.json",
                 // "-ifile:///home/tim/tmp/mgm_id_26_1.json",
@@ -181,7 +181,7 @@
             "name": "py-generate-tenant-data",
             "type": "debugpy",
             "request": "launch",
-            "program": "${workspaceFolder}/roles/test/files/tenant_networks/create_tenant_network_data.py",
+            "program": "${workspaceFolder}/roles/tests-unit/files/tenant_networks/create_tenant_network_data.py",
             "console": "integratedTerminal",
             "env": {
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
@@ -388,7 +388,7 @@
             "args": [
                 "test"
             ],
-            "cwd": "${workspaceFolder}/roles/test/files/FWO.Test",
+            "cwd": "${workspaceFolder}/roles/tests-unit/files/FWO.Test",
             "stopAtEntry": false,
             "console": "integratedTerminal"
         },

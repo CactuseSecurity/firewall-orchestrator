@@ -29,6 +29,7 @@
             GraphQlApiSubscription<SubscriptionResponseType>.SubscriptionUpdate subscriptionUpdateHandler, string subscription, object? variables = null, string? operationName = null);
 
         protected abstract void Dispose(bool disposing);
+        public abstract void DisposeSubscriptions<T>();
 
         ~ ApiConnection()
         {

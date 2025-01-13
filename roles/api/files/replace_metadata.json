@@ -5323,21 +5323,22 @@
                   "permission": {
                     "check": {},
                     "columns": [
-                      "id",
-                      "ticket_id",
+                      "create_date",
                       "ext_query_variables",
                       "ext_request_content",
                       "ext_request_state",
                       "ext_request_type",
                       "ext_ticket_id",
                       "ext_ticket_system",
+                      "finish_date",
+                      "id",
                       "last_creation_response",
                       "last_processing_response",
+                      "locked",
                       "owner_id",
                       "task_number",
-                      "wait_cycles",
-                      "create_date",
-                      "finish_date"
+                      "ticket_id",
+                      "wait_cycles"
                     ]
                   },
                   "comment": ""
@@ -5355,6 +5356,7 @@
                       "ext_ticket_system",
                       "finish_date",
                       "id",
+                      "locked",
                       "owner_id",
                       "task_number",
                       "ticket_id",
@@ -5371,6 +5373,7 @@
                     "columns": [
                       "id",
                       "ticket_id",
+                      "locked",
                       "ext_query_variables",
                       "ext_request_content",
                       "ext_request_state",
@@ -5395,6 +5398,7 @@
                     "columns": [
                       "id",
                       "ticket_id",
+                      "locked",
                       "ext_query_variables",
                       "ext_request_content",
                       "ext_request_state",
@@ -5419,6 +5423,7 @@
                     "columns": [
                       "id",
                       "ticket_id",
+                      "locked",
                       "ext_query_variables",
                       "ext_request_content",
                       "ext_request_state",
@@ -5445,6 +5450,7 @@
                     "columns": [
                       "id",
                       "ticket_id",
+                      "locked",
                       "ext_query_variables",
                       "ext_request_content",
                       "ext_request_state",
@@ -5469,7 +5475,8 @@
                   "permission": {
                     "columns": [
                       "ext_request_state",
-                      "finish_date"
+                      "finish_date",
+                      "locked"
                     ],
                     "filter": {},
                     "check": null
@@ -5990,10 +5997,10 @@
                   }
                 },
                 {
-                  "name": "ruleEnforcedOnGatewaysByDeleted",
+                  "name": "ruleEnforcedOnGatewaysByRemoved",
                   "using": {
                     "foreign_key_constraint_on": {
-                      "column": "deleted",
+                      "column": "removed",
                       "table": {
                         "name": "rule_enforced_on_gateway",
                         "schema": "public"
@@ -8288,6 +8295,24 @@
                   "name": "management",
                   "using": {
                     "foreign_key_constraint_on": "multi_device_manager_id"
+                  }
+                },
+                {
+                  "name": "managementByMgmId",
+                  "using": {
+                    "foreign_key_constraint_on": "mgm_id"
+                  }
+                },
+                {
+                  "name": "managementByMgmId1",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "mgm_id",
+                      "table": {
+                        "name": "management",
+                        "schema": "public"
+                      }
+                    }
                   }
                 },
                 {
@@ -11073,6 +11098,28 @@
             },
             {
               "table": {
+                "name": "refresh_log",
+                "schema": "public"
+              },
+              "select_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "status",
+                      "view_name",
+                      "refreshed_at"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  },
+                  "comment": ""
+                }
+              ]
+            },
+            {
+              "table": {
                 "name": "report",
                 "schema": "public"
               },
@@ -13437,6 +13484,23 @@
                   }
                 },
                 {
+                  "name": "ruleMetadatumByDevIdRuleUidRulebaseId",
+                  "using": {
+                    "manual_configuration": {
+                      "column_mapping": {
+                        "dev_id": "dev_id",
+                        "rule_uid": "rule_uid",
+                        "rulebase_id": "rulebase_id"
+                      },
+                      "insertion_order": null,
+                      "remote_table": {
+                        "name": "rule_metadata",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                },
+                {
                   "name": "rule_metadatum",
                   "using": {
                     "manual_configuration": {
@@ -13593,6 +13657,18 @@
                       "column": "rule_id",
                       "table": {
                         "name": "rule_user_resolved",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "rulebase_links",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "from_rule_id",
+                      "table": {
+                        "name": "rulebase_link",
                         "schema": "public"
                       }
                     }
@@ -14213,9 +14289,9 @@
                   }
                 },
                 {
-                  "name": "importControlByDeleted",
+                  "name": "importControlByRemoved",
                   "using": {
-                    "foreign_key_constraint_on": "deleted"
+                    "foreign_key_constraint_on": "removed"
                   }
                 },
                 {
@@ -14620,6 +14696,23 @@
                   "using": {
                     "manual_configuration": {
                       "column_mapping": {
+                        "rule_uid": "rule_uid",
+                        "rulebase_id": "rulebase_id"
+                      },
+                      "insertion_order": null,
+                      "remote_table": {
+                        "name": "rule",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "rulesByDevIdRuleUidRulebaseId",
+                  "using": {
+                    "manual_configuration": {
+                      "column_mapping": {
+                        "dev_id": "dev_id",
                         "rule_uid": "rule_uid",
                         "rulebase_id": "rulebase_id"
                       },
@@ -16035,6 +16128,18 @@
                   }
                 },
                 {
+                  "name": "rulebase_links",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "to_rulebase_id",
+                      "table": {
+                        "name": "rulebase_link",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                },
+                {
                   "name": "rulebase_on_gateways",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -16077,8 +16182,10 @@
                     "check": {},
                     "columns": [
                       "created",
+                      "removed",
                       "is_global",
                       "name",
+                      "uid",
                       "id",
                       "mgm_id"
                     ]
@@ -16092,8 +16199,10 @@
                   "permission": {
                     "columns": [
                       "created",
+                      "removed",
                       "is_global",
                       "name",
+                      "uid",
                       "id",
                       "mgm_id"
                     ],
@@ -16109,8 +16218,10 @@
                   "permission": {
                     "columns": [
                       "created",
+                      "removed",
                       "is_global",
                       "name",
+                      "uid",
                       "id",
                       "mgm_id"
                     ],
@@ -16127,6 +16238,26 @@
                     "filter": {}
                   },
                   "comment": ""
+                }
+              ]
+            },
+            {
+              "table": {
+                "name": "rulebase_link",
+                "schema": "public"
+              },
+              "object_relationships": [
+                {
+                  "name": "rule",
+                  "using": {
+                    "foreign_key_constraint_on": "from_rule_id"
+                  }
+                },
+                {
+                  "name": "rulebase",
+                  "using": {
+                    "foreign_key_constraint_on": "to_rulebase_id"
+                  }
                 }
               ]
             },
@@ -16884,7 +17015,8 @@
                   "permission": {
                     "columns": [
                       "action_id",
-                      "action_name"
+                      "action_name",
+                      "allowed"
                     ],
                     "filter": {}
                   }
@@ -16894,7 +17026,8 @@
                   "permission": {
                     "columns": [
                       "action_id",
-                      "action_name"
+                      "action_name",
+                      "allowed"
                     ],
                     "filter": {}
                   }
@@ -16903,6 +17036,7 @@
                   "role": "fw-admin",
                   "permission": {
                     "columns": [
+                      "allowed",
                       "action_name",
                       "action_id"
                     ],
@@ -16915,7 +17049,8 @@
                   "permission": {
                     "columns": [
                       "action_id",
-                      "action_name"
+                      "action_name",
+                      "allowed"
                     ],
                     "filter": {}
                   }
@@ -16924,6 +17059,7 @@
                   "role": "importer",
                   "permission": {
                     "columns": [
+                      "allowed",
                       "action_name",
                       "action_id"
                     ],
@@ -16935,8 +17071,9 @@
                   "role": "modeller",
                   "permission": {
                     "columns": [
+                      "action_id",
                       "action_name",
-                      "action_id"
+                      "allowed"
                     ],
                     "filter": {}
                   },
@@ -16947,7 +17084,8 @@
                   "permission": {
                     "columns": [
                       "action_id",
-                      "action_name"
+                      "action_name",
+                      "allowed"
                     ],
                     "filter": {}
                   }
@@ -16957,7 +17095,8 @@
                   "permission": {
                     "columns": [
                       "action_id",
-                      "action_name"
+                      "action_name",
+                      "allowed"
                     ],
                     "filter": {}
                   }
@@ -16967,7 +17106,8 @@
                   "permission": {
                     "columns": [
                       "action_id",
-                      "action_name"
+                      "action_name",
+                      "allowed"
                     ],
                     "filter": {}
                   }
@@ -16977,7 +17117,8 @@
                   "permission": {
                     "columns": [
                       "action_id",
-                      "action_name"
+                      "action_name",
+                      "allowed"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -16988,7 +17129,8 @@
                   "permission": {
                     "columns": [
                       "action_id",
-                      "action_name"
+                      "action_name",
+                      "allowed"
                     ],
                     "filter": {}
                   }
@@ -16998,7 +17140,8 @@
                   "permission": {
                     "columns": [
                       "action_id",
-                      "action_name"
+                      "action_name",
+                      "allowed"
                     ],
                     "filter": {}
                   }
@@ -27080,6 +27223,16 @@
               "function": {
                 "name": "recert_get_one_owner_one_mgm",
                 "schema": "public"
+              }
+            },
+            {
+              "function": {
+                "name": "refresh_view_rule_with_owner",
+                "schema": "public"
+              },
+              "configuration": {
+                "custom_root_fields": {},
+                "exposed_as": "query"
               }
             }
           ],

@@ -131,7 +131,7 @@ class FwConfigImportObject(FwConfigImportBase):
         }
         
         try:
-            import_result = self.call(import_mutation, queryVariables=queryVariables)
+            import_result = self.ImportDetails.call(import_mutation, queryVariables=queryVariables)
             if 'errors' in import_result:
                 logger.exception(f"fwo_api:importNwObject - error in updateObjectsViaApi: {str(import_result['errors'])}")
                 errors = 1
@@ -152,7 +152,7 @@ class FwConfigImportObject(FwConfigImportBase):
     def GetNetworkObjTypeMap(self):
         query = "query getNetworkObjTypeMap { stm_obj_typ { obj_typ_name obj_typ_id } }"
         try:
-            result = self.call(query=query, queryVariables={})
+            result = self.ImportDetails.call(query=query, queryVariables={})
         except:
             logger = getFwoLogger()
             logger.error(f'Error while getting stm_obj_typ')
@@ -166,7 +166,7 @@ class FwConfigImportObject(FwConfigImportBase):
     def GetServiceObjTypeMap(self):
         query = "query getServiceObjTypeMap { stm_svc_typ { svc_typ_name svc_typ_id } }"
         try:
-            result = self.call(query=query, queryVariables={})
+            result = self.ImportDetails.call(query=query, queryVariables={})
         except:
             logger = getFwoLogger()
             logger.error(f'Error while getting stm_svc_typ')
@@ -180,7 +180,7 @@ class FwConfigImportObject(FwConfigImportBase):
     def GetUserObjTypeMap(self):
         query = "query getUserObjTypeMap { stm_usr_typ { usr_typ_name usr_typ_id } }"
         try:
-            result = self.call(query=query, queryVariables={})
+            result = self.ImportDetails.call(query=query, queryVariables={})
         except:
             logger = getFwoLogger()
             logger.error(f'Error while getting stm_usr_typ')
@@ -194,7 +194,7 @@ class FwConfigImportObject(FwConfigImportBase):
     def GetProtocolMap(self):
         query = "query getIpProtocols { stm_ip_proto { ip_proto_id ip_proto_name } }"
         try:
-            result = self.call(query=query, queryVariables={})
+            result = self.ImportDetails.call(query=query, queryVariables={})
         except:
             logger = getFwoLogger()
             logger.error(f'Error while getting stm_ip_proto')
@@ -208,7 +208,7 @@ class FwConfigImportObject(FwConfigImportBase):
     def GetColorMap(self):
         query = "query getColorMap { stm_color { color_name color_id } }"
         try:
-            result = self.call(query=query, queryVariables={})
+            result = self.ImportDetails.call(query=query, queryVariables={})
         except:
             logger = getFwoLogger()
             logger.error(f'Error while getting stm_color')
@@ -259,7 +259,7 @@ class FwConfigImportObject(FwConfigImportBase):
 
             queryVariables = {  'uids': uidList }
             try:
-                uidMapResult = self.call(buildQuery, queryVariables=queryVariables)
+                uidMapResult = self.ImportDetails.call(buildQuery, queryVariables=queryVariables)
                 if 'errors' in uidMapResult:
                     logger.exception(f"fwo_api:importNwObject - error in buildNwObjMemberUidToIdMap: {str(uidMapResult['errors'])}")
                     errors = 1
@@ -311,7 +311,7 @@ class FwConfigImportObject(FwConfigImportBase):
                 'nwGroups': newGroupMembers
             }
             try:
-                import_result = self.call(import_mutation, queryVariables=queryVariables)
+                import_result = self.ImportDetails.call(import_mutation, queryVariables=queryVariables)
                 if 'errors' in import_result:
                     logger.exception(f"fwo_api:importNwObject - error in addNwObjGroupMemberships: {str(import_result['errors'])}")
                     errors = 1
@@ -388,7 +388,7 @@ class FwConfigImportObject(FwConfigImportBase):
     #     }
         
     #     try:
-    #         removeResult = self.call(removeMutation, queryVariables=queryVariables)
+    #         removeResult = self.ImportDetails.call(removeMutation, queryVariables=queryVariables)
     #         if 'errors' in removeResult:
     #             logger.exception(f"error while marking objects as removed: {str(removeResult['errors'])}")
     #             errors = 1
@@ -456,7 +456,7 @@ class FwConfigImportObject(FwConfigImportBase):
         }
         
         try:
-            removeResult = self.call(removeMutation, queryVariables=queryVariables)
+            removeResult = self.ImportDetails.call(removeMutation, queryVariables=queryVariables)
             if 'errors' in removeResult:
                 logger.exception(f"error while marking objects as removed: {str(removeResult['errors'])}")
                 errors = 1
@@ -555,7 +555,7 @@ class FwConfigImportObject(FwConfigImportBase):
 
         if len(nwObjsChanged) + len(svcObjsChanged)>0:
             try:
-                changelogResult = self.call(changelogMutation, queryVariables=queryVariables)
+                changelogResult = self.ImportDetails.call(changelogMutation, queryVariables=queryVariables)
                 if 'errors' in changelogResult:
                     logger.exception(f"error while adding changelog entries for objects: {str(changelogResult['errors'])}")
                     errors = 1

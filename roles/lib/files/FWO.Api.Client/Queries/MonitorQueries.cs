@@ -49,7 +49,7 @@ namespace FWO.Api.Client.Queries
                 getAutodiscoveryLogEntrys = File.ReadAllText(QueryPath + "monitor/getAutodiscoveryLogEntrys.graphql");
                 getDailyCheckLogEntrys = File.ReadAllText(QueryPath + "monitor/getDailyCheckLogEntrys.graphql");
 
-                getOwnerTickets = RequestQueries.ticketDetailsFragment + File.ReadAllText(QueryPath + "monitor/getOwnerTickets.graphql");
+                getOwnerTickets = RequestQueries.ticketOverviewFragment + File.ReadAllText(QueryPath + "monitor/getOwnerTickets.graphql");
             }
             catch (Exception exception)
             {

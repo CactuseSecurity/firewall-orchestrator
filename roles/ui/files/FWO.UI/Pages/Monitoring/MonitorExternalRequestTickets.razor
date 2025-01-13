@@ -39,8 +39,8 @@
                 </Template>
             </Column>
             <Column TableItem="OwnerTicket" Title="@(userConfig.GetText("owner"))" Field="@(x => x.Owner.Name)" Sortable="true" Filterable="true" >
-                <Template Context="ownwerTicket">
-                    @ownwerTicket.Owner.Display(userConfig.GetText("common_service"))
+                <Template Context="ownerTicket">
+                    @ownerTicket.Owner.Display(userConfig.GetText("common_service"))
                 </Template>
             </Column>
             <Column TableItem="OwnerTicket" Title="@(userConfig.GetText("ticket"))" Field="@(x => x.Ticket.Id)" Sortable="true" Filterable="true" />
@@ -86,7 +86,11 @@ else
                     <Column TableItem="WfReqTask" Title="@(userConfig.GetText("number"))" Field="@(x => x.TaskNumber)" Sortable="true" Filterable="true" />
                     <Column TableItem="WfReqTask" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
                     <Column TableItem="WfReqTask" Title="@(userConfig.GetText("title"))" Field="@(x => x.Title)" Sortable="true" Filterable="true" />
-                    <Column TableItem="WfReqTask" Title="@(userConfig.GetText("management"))" Field="@(x => x.OnManagement.Name)" Sortable="true" Filterable="true" />
+                    <Column TableItem="WfReqTask" Title="@(userConfig.GetText("management"))" Field="@(x => x.Id)" Sortable="false" Filterable="false" >
+                        <Template>
+                            @(context.OnManagement?.Name)
+                        </Template>
+                    </Column>
                     <Column TableItem="WfReqTask" Title="@(userConfig.GetText("state"))" Field="@(x => x.StateId)" Sortable="true" Filterable="true" >
                         <Template>
                             @(statesDict.Name[context.StateId] ?? context.StateId.ToString())
@@ -193,6 +197,7 @@ else
         await FetchOwnerData(actOwner);
         relevantRequests = await apiConnection.SendQueryAsync<List<ExternalRequest>>(ExtRequestQueries.getOpenRequests, new {states = relevantRequestStates});
         workInProgress = false;
+        await InvokeAsync(StateHasChanged);
         ReInitMode = false;
     }
 

@@ -46,16 +46,16 @@
             </div>
         </div>
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5421"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("commentRequired")):</label>
+            <label for="cbx_comment_required" class="col-form-label col-sm-4">@(userConfig.GetText("commentRequired")):</label>
             <div class="col-sm-2">
-                <input type="checkbox" class="w-100" @bind="configData!.CommentRequired" />
+                <input id="cbx_comment_required" type="checkbox" class="w-100" @bind="configData!.CommentRequired" />
             </div>
         </div>
         <hr />
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5428"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("recCheckActive")):</label>
+            <label for="cbx_rec_check_active" class="col-form-label col-sm-4">@(userConfig.GetText("recCheckActive")):</label>
             <div class="col-sm-2">
-                <input type="checkbox" class="w-100" @bind="configData!.RecCheckActive" />
+                <input id="cbx_rec_check_active" type="checkbox" class="w-100" @bind="configData!.RecCheckActive" />
             </div>
         </div>
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5429"))">
@@ -113,9 +113,9 @@
         </div>
         <hr />
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5433"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("recAutocreateDeleteTicket")):</label>
+            <label for="cbx_rec_auto_create_delete_ticket" class="col-form-label col-sm-4">@(userConfig.GetText("recAutocreateDeleteTicket")):</label>
             <div class="col-sm-2">
-                <input type="checkbox" class="w-100" @bind="configData!.RecAutoCreateDeleteTicket" />
+                <input id="cbx_rec_auto_create_delete_ticket" type="checkbox" class="w-100" @bind="configData!.RecAutoCreateDeleteTicket" />
             </div>
         </div>
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5434"))">
@@ -166,12 +166,12 @@
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5440"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("recalc_recerts")):</label>
             <div class="form-group col-sm-3">
-                <input type="checkbox" @bind="configData!.RecRefreshStartup" />
-                <label class="col-form-label-marg7">@(userConfig.GetText("at_startup"))</label>
+                <input id="cbx_rec_refresh_startup" type="checkbox" @bind="configData!.RecRefreshStartup" />
+                <label for="cbx_rec_refresh_startup" class="col-form-label-marg7">@(userConfig.GetText("at_startup"))</label>
             </div>
             <div class="form-group col-sm-3">
-                <input type="checkbox" @bind="configData!.RecRefreshDaily" />
-                <label class="col-form-label-marg7">@(userConfig.GetText("daily"))</label>
+                <input id="cbx_rec_refresh_daily" type="checkbox" @bind="configData!.RecRefreshDaily" />
+                <label for="cbx_rec_refresh_daily" class="col-form-label-marg7">@(userConfig.GetText("daily"))</label>
             </div>
             <div class="form-group col-sm-2">
                 <AuthorizeView Roles="@Roles.Admin">
@@ -180,7 +180,7 @@
                         {
                             <button type="button" class="btn btn-sm btn-info" @onclick:preventDefault="true" @onclick="@( async () => { 
                                 recertCalcInProgress = true; 
-                                if (await recertRefresh.RecalcRecerts())
+                                if (await RecertRefresh.RecalcRecerts(apiConnection))
                                 {
                                     DisplayMessageInUi(null, userConfig.GetText("fetch_data"), "Error during recertification refresh", true);
                                 }
@@ -189,7 +189,7 @@
                         }
                         else
                         {
-                            <div class="spinner-border" role="status"><span class="sr-only">@(userConfig.GetText("loading"))</span></div>
+                            <div class="spinner-border" role="status"><span class="visually-hidden">@(userConfig.GetText("loading"))</span></div>
                         }
                         <br>
                     </Authorized>
@@ -234,14 +234,12 @@ else
     private WfPriority? selectedPriority;
     private WfState? selectedState;
     private bool recertCalcInProgress = false;
-    private RecertRefresh recertRefresh;
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
             configData = await globalConfig.GetEditableConfig();
-            recertRefresh = new RecertRefresh(apiConnection);
             PrioList = System.Text.Json.JsonSerializer.Deserialize<List<WfPriority>>(userConfig.ReqPriorities) ?? throw new Exception("Config data could not be parsed.");
             recCheckParams = System.Text.Json.JsonSerializer.Deserialize<RecertCheckParams>(userConfig.RecCheckParams) ?? throw new Exception("Config data could not be parsed.");
             states = await apiConnection.SendQueryAsync<List<WfState>>(FWO.Api.Client.Queries.RequestQueries.getStates);

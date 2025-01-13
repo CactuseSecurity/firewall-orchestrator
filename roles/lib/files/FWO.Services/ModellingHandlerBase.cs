@@ -186,7 +186,7 @@ namespace FWO.Services
             {
                 if(conn.UsedInterfaceId != null)
                 {
-                    List<ModellingConnection> interf = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getInterfaceById, new {intId = conn.UsedInterfaceId});
+                    List<ModellingConnection> interf = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnectionById, new {id = conn.UsedInterfaceId});
                     if(interf.Count > 0)
                     {
                         conn.SrcFromInterface = interf[0].SourceFilled();
@@ -216,6 +216,7 @@ namespace FWO.Services
                             }
                             conn.Services = interf[0].Services;
                             conn.ServiceGroups = interf[0].ServiceGroups;
+                            conn.ExtraConfigsFromInterface = interf[0].ExtraConfigs;
                         }
                         if(interf[0].GetBoolProperty(ConState.Rejected.ToString()))
                         {
@@ -241,7 +242,7 @@ namespace FWO.Services
             {
                 if(conn.UsedInterfaceId != null)
                 {
-                    List<ModellingConnection> interf = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getInterfaceById, new {intId = conn.UsedInterfaceId});
+                    List<ModellingConnection> interf = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnectionById, new {id = conn.UsedInterfaceId});
                     if(interf.Count > 0)
                     {
                         return interf[0];

@@ -5,7 +5,6 @@ using System.Security.Cryptography.X509Certificates;
 using FWO.Encryption;
 using FWO.Api.Data;
 using FWO.Middleware.RequestParameters;
-using Microsoft.IdentityModel.Tokens;
 
 namespace FWO.Middleware.Server
 {
@@ -57,19 +56,27 @@ namespace FWO.Middleware.Server
 		/// try an ldap bind, decrypting pwd before bind; using pwd as is if it cannot be decrypted
 		/// false if bind fails
 		/// </summary>
-		private static bool TryBind(LdapConnection connection, string user, string password)
+		private static bool TryBind(LdapConnection connection, string? user, string? password)
 		{
-			string decryptedPassword = password;
-			try
+			if (string.IsNullOrEmpty(user) || string.IsNullOrEmpty(password))
 			{
-				decryptedPassword = AesEnc.Decrypt(password, AesEnc.GetMainKey());
+				Log.WriteDebug("TryBind", $"found empty ldap user name or password");
+				return false;
 			}
-			catch
+			else
 			{
-				Log.WriteDebug("TryBind", $"Could not decrypt password");
-				// assuming we already have an unencrypted password, trying this
+				string decryptedPassword = password;
+				try
+				{
+					decryptedPassword = AesEnc.Decrypt(password, AesEnc.GetMainKey());
+				}
+				catch
+				{
+					Log.WriteDebug("TryBind", $"Could not decrypt password");
+					// assuming we already have an unencrypted password, trying this
+				}
+				connection.Bind(user, decryptedPassword);
 			}
-			connection.Bind(user, decryptedPassword);
 			return connection.Bound;
 		}
 
@@ -613,7 +620,7 @@ namespace FWO.Middleware.Server
 		/// Get all groups of an LDAP server matching a specific pattern
 		/// </summary>
 		/// <returns>list of groups</returns>
-		public List<GroupGetReturnParameters> GetAllGroupObjects(string groupPattern, LdapType ldapType)
+		public List<GroupGetReturnParameters> GetAllGroupObjects(string groupPattern)
 		{
 			List<GroupGetReturnParameters> allGroups = [];
 
@@ -631,9 +638,9 @@ namespace FWO.Middleware.Server
                 foreach (LdapEntry entry in searchResults)
                 {
                     List<string> members = [];
-					if (entry.GetAttributeSet().ContainsKey(GetMemberKey(ldapType)))
+					if (entry.GetAttributeSet().ContainsKey(GetMemberKey()))
 					{
-						string[] groupMemberDn = entry.GetAttribute(GetMemberKey(ldapType)).StringValueArray;
+						string[] groupMemberDn = entry.GetAttribute(GetMemberKey()).StringValueArray;
 						foreach (string currentDn in groupMemberDn)
 						{
 							if (currentDn != "")
@@ -661,10 +668,10 @@ namespace FWO.Middleware.Server
 		/// Get member key depending on the LDAP type
 		/// </summary>
 		/// <returns>string with member key</returns>
-		public static string GetMemberKey(LdapType ldapType)
+		private string GetMemberKey()
 		{
 			string memberKey = "uniqueMember";
-			if (ldapType == LdapType.ActiveDirectory)
+			if ((LdapType)Type == LdapType.ActiveDirectory)
 			{
 				memberKey = "member";
 			}
@@ -679,7 +686,7 @@ namespace FWO.Middleware.Server
 		{
 			List<string> allMembers = [];
 
-			if (groupDn.Contains(GroupSearchPath))
+			if (!string.IsNullOrEmpty(GroupSearchPath) && groupDn.Contains(GroupSearchPath))
 			{
 				try
 				{
@@ -690,7 +697,7 @@ namespace FWO.Middleware.Server
 
                     if (entry != null)
                     {
-                        string[] groupMemberDn = entry.GetAttribute(GetMemberKey((LdapType) Type)).StringValueArray;
+                        string[] groupMemberDn = entry.GetAttribute(GetMemberKey()).StringValueArray;
                         foreach (string currentDn in groupMemberDn)
                         {
                             if (currentDn != "")
@@ -863,6 +870,13 @@ namespace FWO.Middleware.Server
 			return userDeleted;
 		}
 
+
+		private bool IsFullyQualifiedDn(string name)
+		{
+			name = name.ToLower();
+			return name.Contains(',') && (name.StartsWith("cn=") || name.StartsWith("uid="));
+		}
+
 		/// <summary>
 		/// Add new group
 		/// </summary>
@@ -871,14 +885,17 @@ namespace FWO.Middleware.Server
 		{
 			Log.WriteInfo("Add Group", $"Trying to add Group: \"{groupName}\"");
 			bool groupAdded = false;
-			string groupDn = "";
+			string groupDn = groupName;
 			try
 			{
                 using LdapConnection connection = Connect();
                 // Authenticate as write user
                 TryBind(connection, WriteUser, WriteUserPwd);
 
-				groupDn = $"cn={groupName},{GroupSearchPath}";
+				if (!IsFullyQualifiedDn(groupDn))
+				{
+					groupDn = $"cn={groupName},{GroupSearchPath}";
+				}
 				LdapAttributeSet attributeSet = new ();
 				attributeSet.Add(new LdapAttribute("objectclass", "groupofuniquenames"));
 				attributeSet.Add(new LdapAttribute("uniqueMember", ""));

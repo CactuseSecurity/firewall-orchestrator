@@ -43,7 +43,7 @@ namespace FWO.Services
         public List<WfImplTask> AllVisibleImplTasks = [];
         public StateMatrix ActStateMatrix = new ();
         public StateMatrix MasterStateMatrix = new ();
-        public ActionHandler ActionHandler;
+        public ActionHandler? ActionHandler;
         public bool ReadOnlyMode = false;
 
         public bool DisplayTicketMode = false;
@@ -83,20 +83,23 @@ namespace FWO.Services
         public bool InitDone = false;
         private Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
         public UserConfig userConfig;
-        public System.Security.Claims.ClaimsPrincipal AuthUser;
-        private readonly ApiConnection apiConnection;
-        public readonly MiddlewareClient MiddlewareClient;
+        public System.Security.Claims.ClaimsPrincipal? AuthUser;
+        private readonly ApiConnection? apiConnection;
+        public readonly MiddlewareClient? MiddlewareClient;
         private readonly StateMatrixDict stateMatrixDict = new ();
-        private WfDbAccess dbAcc;
+        private WfDbAccess? dbAcc;
 
         private ObjAction contOption = ObjAction.display;
         private bool InitOngoing = false;
         private readonly bool usedInMwServer = false;
         private readonly List<UserGroup>? UserGroups = null;
+        private bool ReloadTasks = false;
 
 
         public WfHandler()
-        {}
+        {
+            userConfig = new();
+        }
 
 		/// <summary>
 		/// constructor for use in UI
@@ -127,31 +130,38 @@ namespace FWO.Services
         }
 
 
-        public async Task Init(List<int> ownerIds, bool allStates = false, bool ignoreOwners = false)
+        public async Task Init(List<int> ownerIds, bool allStates = false, bool ignoreOwners = false, bool fullTickets = false)
         {
             try
             {
-                if(!InitOngoing)
+                if(!InitOngoing && apiConnection != null)
                 {
+                    Log.WriteDebug("Init start:  ", $"{DateTime.Now:hh:mm:ss,fff}");
                     InitOngoing = true;
-                    ActionHandler = new (apiConnection, this, UserGroups, usedInMwServer);
                     if(usedInMwServer)
                     {
                         apiConnection.SetRole(Roles.MiddlewareServer);
                     }
-                    else
+                    else if(AuthUser != null)
                     {
                         apiConnection.SetProperRole(AuthUser, [Roles.Admin, Roles.FwAdmin, Roles.Requester, Roles.Approver, Roles.Planner, Roles.Implementer, Roles.Reviewer, Roles.Modeller, Roles.Auditor]);
                     }
+                    else
+                    {
+                        throw new Exception("No AuthUser set");
+                    }
+                    ActionHandler = new (apiConnection, this, UserGroups, usedInMwServer);
                     await ActionHandler.Init();
                     dbAcc = new WfDbAccess(DisplayMessageInUi, userConfig, apiConnection, ActionHandler){};
                     Devices = await apiConnection.SendQueryAsync<List<Device>>(DeviceQueries.getDeviceDetails);
                     AllOwners = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
                     await stateMatrixDict.Init(Phase, apiConnection);
                     MasterStateMatrix = stateMatrixDict.Matrices[WfTaskType.master.ToString()];
-                    TicketList = await dbAcc.FetchTickets(MasterStateMatrix, ownerIds, allStates, ignoreOwners);
+                    TicketList = await dbAcc.FetchTickets(MasterStateMatrix, ownerIds, allStates, ignoreOwners, fullTickets);
+                    ReloadTasks = !fullTickets;
                     PrioList = System.Text.Json.JsonSerializer.Deserialize<List<WfPriority>>(userConfig.ReqPriorities) ?? throw new Exception("Config data could not be parsed.");
                     apiConnection.SwitchBack();
+                    Log.WriteDebug("Init stop:   ", $"{DateTime.Now:hh:mm:ss,fff}");
                     InitOngoing = false;
                     InitDone = true;
                 }
@@ -249,13 +259,16 @@ namespace FWO.Services
 
         public async Task<WfTicket?> ResolveTicket(long ticketId)
         {
-            List<WfTicket> AllTicketList = await dbAcc.FetchTickets(MasterStateMatrix, AllOwners.ConvertAll(x => x.Id), true, true);
-            return AllTicketList.FirstOrDefault(x => x.Id == ticketId);
-        }
-
-        public async Task<WfTicket?> GetFullTicket(long ticketId)
-        {
-            return await dbAcc.GetTicket(ticketId);
+            WfTicket? ticket = null;
+            if(dbAcc != null)
+            {
+                ticket = await dbAcc.FetchTicket(ticketId, AllOwners.ConvertAll(x => x.Id), true);
+                if(ticket != null)
+                {
+                    SetTicketEnv(ticket);
+                }
+            }
+            return ticket;
         }
 
         public async Task<string> HandleInjectedTicketId(WorkflowPhases phase, long ticketId)
@@ -265,11 +278,11 @@ namespace FWO.Services
             {
                 if(ticket.StateId < MasterStateMatrix.LowestEndState)
                 {
-                    SelectTicket(ticket, ObjAction.edit);
+                    await SelectTicket(ticket, ObjAction.edit, true);
                 }
                 else if(MasterStateMatrix.IsLastActivePhase)
                 {
-                    SelectTicket(ticket, ObjAction.display);
+                    await SelectTicket(ticket, ObjAction.display, true);
                 }
                 else
                 {
@@ -286,23 +299,31 @@ namespace FWO.Services
         private async Task<(WorkflowPhases, bool)> FindNewPhase(WorkflowPhases phase, int stateId)
         {
             bool foundNewPhase = false;
-            GlobalStateMatrix glbStateMatrix = new ();
-            await glbStateMatrix.Init(apiConnection, WfTaskType.master);
-            bool cont = true;
-            while(cont)
+            if(apiConnection != null)
             {
-                bool newPhase = MasterStateMatrix.getNextActivePhase(ref phase);
-                if(newPhase)
+                GlobalStateMatrix glbStateMatrix = new ();
+                await glbStateMatrix.Init(apiConnection, WfTaskType.master);
+                bool cont = true;
+                while(cont)
                 {
-                    foundNewPhase = true;
+                    bool newPhase = MasterStateMatrix.getNextActivePhase(ref phase);
+                    if(newPhase)
+                    {
+                        foundNewPhase = true;
+                    }
+                    cont = stateId >= glbStateMatrix.GlobalMatrix[phase].LowestEndState && newPhase;
                 }
-                cont = stateId >= glbStateMatrix.GlobalMatrix[phase].LowestEndState && newPhase;
             }
             return (phase, foundNewPhase);
         }
 
-        public void SelectTicket(WfTicket ticket, ObjAction action)
+        public async Task SelectTicket(WfTicket ticket, ObjAction action, bool reload = false)
         {
+            if(ReloadTasks && reload && dbAcc != null)
+            {
+                ticket = await dbAcc.FetchTicket(ticket.Id, [], true) ?? ticket;
+                TicketList[TicketList.FindIndex(x => x.Id == ticket.Id)] = ticket;
+            }
             SetTicketEnv(ticket);
             SetTicketOpt(action);
         }
@@ -355,61 +376,64 @@ namespace FWO.Services
         {
             try
             {
-                ActTicket.StateId = ticket.StateId;
-                if (ActTicket.Sanitize())
+                if(dbAcc != null)
                 {
-                    DisplayMessageInUi(null, userConfig.GetText("save_request"), userConfig.GetText("U0001"), true);
-                }
-                foreach(WfReqTask reqTask in ActTicket.Tasks)
-                {
-                    if(reqTask.StateId < ActTicket.StateId)
+                    ActTicket.StateId = ticket.StateId;
+                    if (ActTicket.Sanitize())
                     {
-                        reqTask.StateId = ActTicket.StateId;
+                        DisplayMessageInUi(null, userConfig.GetText("save_request"), userConfig.GetText("U0001"), true);
                     }
-                }
-
-                if(ActTicket.Deadline == null)
-                {
-                    int? tickDeadline = PrioList.FirstOrDefault(x => x.NumPrio == ActTicket.Priority)?.TicketDeadline;
-                    ActTicket.Deadline = tickDeadline != null && tickDeadline > 0 ? DateTime.Now.AddDays((int)tickDeadline) : null;
-                }
-
-                if (AddTicketMode)
-                {
-                    // insert new ticket
-                    ActTicket.CreationDate = DateTime.Now;
-                    ActTicket.Requester = userConfig.User;
-                    ActTicket = await dbAcc.AddTicketToDb(ActTicket);
-                    TicketList.Add(ActTicket);
-                }
-                else
-                {
-                    // Update existing ticket
-                    ActTicket = await dbAcc.UpdateTicketInDb(ActTicket);
-                    TicketList[TicketList.FindIndex(x => x.Id == ActTicket.Id)] = ActTicket;
-                }
-
-                // update of request tasks and creation of impl tasks may be necessary
-                foreach(WfReqTask reqtask in ActTicket.Tasks)
-                {
-                    if(reqtask.StateId <= ActTicket.StateId)
+                    foreach(WfReqTask reqTask in ActTicket.Tasks)
                     {
-                        List<int> ticketStateList = [ActTicket.StateId];
-                        reqtask.StateId = stateMatrixDict.Matrices[reqtask.TaskType].getDerivedStateFromSubStates(ticketStateList);
-                        await dbAcc.UpdateReqTaskStateInDb(reqtask);
+                        if(reqTask.StateId < ActTicket.StateId)
+                        {
+                            reqTask.StateId = ActTicket.StateId;
+                        }
                     }
-                    if( reqtask.ImplementationTasks.Count == 0 && !stateMatrixDict.Matrices[reqtask.TaskType].PhaseActive[WorkflowPhases.planning] 
-                        && reqtask.StateId >= stateMatrixDict.Matrices[reqtask.TaskType].MinImplTasksNeeded)
+
+                    if(ActTicket.Deadline == null)
                     {
-                        await AutoCreateImplTasks(reqtask);
+                        int? tickDeadline = PrioList.FirstOrDefault(x => x.NumPrio == ActTicket.Priority)?.TicketDeadline;
+                        ActTicket.Deadline = tickDeadline != null && tickDeadline > 0 ? DateTime.Now.AddDays((int)tickDeadline) : null;
                     }
+
+                    if (AddTicketMode)
+                    {
+                        // insert new ticket
+                        ActTicket.CreationDate = DateTime.Now;
+                        ActTicket.Requester = userConfig.User;
+                        ActTicket = await dbAcc.AddTicketToDb(ActTicket);
+                        TicketList.Add(ActTicket);
+                    }
+                    else
+                    {
+                        // Update existing ticket
+                        ActTicket = await dbAcc.UpdateTicketInDb(ActTicket);
+                        TicketList[TicketList.FindIndex(x => x.Id == ActTicket.Id)] = ActTicket;
+                    }
+
+                    // update of request tasks and creation of impl tasks may be necessary
+                    foreach(WfReqTask reqtask in ActTicket.Tasks)
+                    {
+                        if(reqtask.StateId <= ActTicket.StateId)
+                        {
+                            List<int> ticketStateList = [ActTicket.StateId];
+                            reqtask.StateId = stateMatrixDict.Matrices[reqtask.TaskType].getDerivedStateFromSubStates(ticketStateList);
+                            await dbAcc.UpdateReqTaskStateInDb(reqtask);
+                        }
+                        if( reqtask.ImplementationTasks.Count == 0 && !stateMatrixDict.Matrices[reqtask.TaskType].PhaseActive[WorkflowPhases.planning] 
+                            && reqtask.StateId >= stateMatrixDict.Matrices[reqtask.TaskType].MinImplTasksNeeded)
+                        {
+                            await AutoCreateImplTasks(reqtask);
+                        }
+                    }
+
+                    //check for further promotion (req tasks may be promoted)
+                    await UpdateActTicketStateFromReqTasks();
+
+                    ResetTicketActions();
+                    return ActTicket.Id;
                 }
-
-                //check for further promotion (req tasks may be promoted)
-                await UpdateActTicketStateFromReqTasks();
-
-                ResetTicketActions();
-                return ActTicket.Id;
             }
             catch (Exception exception)
             {
@@ -549,7 +573,7 @@ namespace FWO.Services
         {
             ActReqTask.AssignedGroup = statefulObject.AssignedGroup;
             ActReqTask.RecentHandler = ActReqTask.CurrentHandler ?? userConfig.User;
-            if(CheckAssignValues(ActReqTask))
+            if(ActionHandler != null && CheckAssignValues(ActReqTask))
             {
                 await UpdateActReqTaskState();
                 await ActionHandler.DoOnAssignmentActions(statefulObject, ActReqTask.AssignedGroup);
@@ -562,7 +586,10 @@ namespace FWO.Services
             ActReqTask.AssignedGroup = ActReqTask.RecentHandler?.Dn;
             ActReqTask.RecentHandler = ActReqTask.CurrentHandler ?? userConfig.User;
             await UpdateActReqTaskState();
-            await ActionHandler.DoOnAssignmentActions(ActReqTask, ActReqTask.AssignedGroup);
+            if(ActionHandler != null)
+            {
+                await ActionHandler.DoOnAssignmentActions(ActReqTask, ActReqTask.AssignedGroup);
+            }
             DisplayAssignReqTaskMode = false;
         }
 
@@ -571,14 +598,17 @@ namespace FWO.Services
             if (ActTicket.Id > 0) // ticket already created -> write directly to db
             {
                 ActReqTask.TicketId = ActTicket.Id;
-                ActReqTask.Id = await dbAcc.AddReqTaskToDb(ActReqTask);
+                if(dbAcc != null)
+                {
+                    ActReqTask.Id = await dbAcc.AddReqTaskToDb(ActReqTask);
+                }
             }
             ActTicket.Tasks.Add(ActReqTask);
         }
 
         public async Task ChangeReqTask()
         {
-            if(ActReqTask.Id > 0)
+            if(ActReqTask.Id > 0 && dbAcc != null)
             {
                 await dbAcc.UpdateReqTaskInDb(ActReqTask);
             }
@@ -587,7 +617,7 @@ namespace FWO.Services
 
         public async Task ChangeOwner()
         {
-            if(ActReqTask.Id > 0)
+            if(ActReqTask.Id > 0 && dbAcc != null)
             {
                 await dbAcc.UpdateOwnersInDb(ActReqTask);
             }
@@ -596,7 +626,7 @@ namespace FWO.Services
 
         public async Task ConfDeleteReqTask()
         {
-            if(ActReqTask.Id > 0)
+            if(ActReqTask.Id > 0 && dbAcc != null)
             {
                 await dbAcc.DeleteReqTaskFromDb(ActReqTask);
             }
@@ -615,10 +645,13 @@ namespace FWO.Services
                 Creator = userConfig.User,
                 CommentText = commentText
             };
-            long commentId = await dbAcc.AddCommentToDb(comment);
-            if(commentId != 0)
+            if(dbAcc != null)
             {
-                await dbAcc.AssignCommentToReqTaskInDb(ActReqTask.Id, commentId);
+                long commentId = await dbAcc.AddCommentToDb(comment);
+                if(commentId != 0)
+                {
+                    await dbAcc.AssignCommentToReqTaskInDb(ActReqTask.Id, commentId);
+                }
             }
             ActReqTask.Comments.Add(new WfCommentDataHelper(comment){});
             DisplayReqTaskCommentMode = false;
@@ -639,7 +672,10 @@ namespace FWO.Services
             try
             {
                 reqTask.SetAddInfo(key, newValue);
-                await dbAcc.UpdateReqTaskAdditionalInfo(reqTask);
+                if(dbAcc != null)
+                {
+                    await dbAcc.UpdateReqTaskAdditionalInfo(reqTask);
+                }
             }
             catch (Exception exception)
             {
@@ -664,7 +700,10 @@ namespace FWO.Services
                     foreach(WfImplTask implTask in ActReqTask.ImplementationTasks)
                     {
                         implTask.StateId = ActReqTask.StateId;
-                        await dbAcc.UpdateImplTaskStateInDb(implTask);
+                        if(dbAcc != null)
+                        {
+                            await dbAcc.UpdateImplTaskStateInDb(implTask);
+                        }
                     }
                 }
                 
@@ -690,7 +729,10 @@ namespace FWO.Services
                 switch(pathAnalysisParams.Option)
                 {
                     case PathAnalysisOptions.WriteToDeviceList:
-                        ActReqTask.SetDeviceList(await new PathAnalysis(apiConnection).getAllDevices(ActReqTask.Elements));
+                        if(apiConnection != null)
+                        {
+                            ActReqTask.SetDeviceList(await PathAnalysis.GetAllDevices(ActReqTask.Elements, apiConnection));
+                        }
                         break;
                     case PathAnalysisOptions.DisplayFoundDevices:
                         SetReqTaskPopUpOpt(ObjAction.displayPathAnalysis);
@@ -769,7 +811,7 @@ namespace FWO.Services
                 Deadline = deadline,
                 InitialApproval = ActReqTask.Approvals.Count == 0
             };
-            if(!approval.InitialApproval)
+            if(!approval.InitialApproval && dbAcc != null)
             {
                 // todo: checks if new approval allowed (only one open per group?, ...)
                 approval.Id = await dbAcc.AddApprovalToDb(approval);
@@ -814,7 +856,7 @@ namespace FWO.Services
         {
             ActApproval.AssignedGroup = statefulObject.AssignedGroup;
             // ActApproval.RecentHandler = ActApproval.CurrentHandler;
-            if(CheckAssignValues(ActApproval))
+            if(ActionHandler != null && CheckAssignValues(ActApproval))
             {
                 await UpdateActApproval();
                 await ActionHandler.DoOnAssignmentActions(statefulObject, ActApproval.AssignedGroup);
@@ -827,7 +869,10 @@ namespace FWO.Services
         //     ActApproval.AssignedGroup = ActApproval.RecentHandler?.Dn;
         //     ActApproval.RecentHandler = ActApproval.CurrentHandler;
         //     await UpdateActApproval();
-        //     await ActionHandler.DoOnAssignmentActions(ActApproval, ActApproval.AssignedGroup);
+        //    if(ActionHandler != null)
+        //    {
+        //       await ActionHandler.DoOnAssignmentActions(ActApproval, ActApproval.AssignedGroup);
+        //    }
         //     DisplayAssignApprovalMode = false;
         // }
 
@@ -840,10 +885,13 @@ namespace FWO.Services
                 Creator = userConfig.User,
                 CommentText = commentText
             };
-            long commentId = await dbAcc.AddCommentToDb(comment);
-            if(commentId != 0)
+            if(dbAcc != null)
             {
-                await dbAcc.AssignCommentToApprovalInDb(ActApproval.Id, commentId);
+                long commentId = await dbAcc.AddCommentToDb(comment);
+                if(commentId != 0)
+                {
+                    await dbAcc.AssignCommentToApprovalInDb(ActApproval.Id, commentId);
+                }
             }
             ActApproval.Comments.Add(new WfCommentDataHelper(comment){});
             DisplayApprovalCommentMode = false;
@@ -1013,7 +1061,7 @@ namespace FWO.Services
         public async Task AssignImplTaskGroup(WfStatefulObject statefulObject)
         {
             ActImplTask.RecentHandler = ActImplTask.CurrentHandler ?? userConfig.User;
-            if(CheckAssignValues(ActImplTask))
+            if(ActionHandler != null && CheckAssignValues(ActImplTask))
             {
                 await UpdateActImplTaskState();
                 await ActionHandler.DoOnAssignmentActions(statefulObject, ActImplTask.AssignedGroup);
@@ -1026,19 +1074,28 @@ namespace FWO.Services
             ActImplTask.AssignedGroup = ActImplTask.RecentHandler?.Dn;
             ActImplTask.RecentHandler = ActImplTask.CurrentHandler ?? userConfig.User;
             await UpdateActImplTaskState();
-            await ActionHandler.DoOnAssignmentActions(ActImplTask, ActImplTask.AssignedGroup);
+            if(ActionHandler != null)
+            {
+                await ActionHandler.DoOnAssignmentActions(ActImplTask, ActImplTask.AssignedGroup);
+            }
             DisplayAssignImplTaskMode = false;
         }
 
         public async Task AddImplTask()
         {
-            ActImplTask.Id = await dbAcc.AddImplTaskToDb(ActImplTask);
+            if(dbAcc != null)
+            {
+                ActImplTask.Id = await dbAcc.AddImplTaskToDb(ActImplTask);
+            }
             ActReqTask.ImplementationTasks.Add(ActImplTask);
         }
 
         public async Task ChangeImplTask()
         {
-            await dbAcc.UpdateImplTaskInDb(ActImplTask, ActReqTask);
+            if(dbAcc != null)
+            {
+                await dbAcc.UpdateImplTaskInDb(ActImplTask, ActReqTask);
+            }
             ActReqTask.ImplementationTasks[ActReqTask.ImplementationTasks.FindIndex(x => x.TaskNumber == ActImplTask.TaskNumber)] = ActImplTask;
         }
 
@@ -1051,10 +1108,13 @@ namespace FWO.Services
                 Creator = userConfig.User,
                 CommentText = commentText
             };
-            long commentId = await dbAcc.AddCommentToDb(comment);
-            if(commentId != 0)
+            if(dbAcc != null)
             {
-                await dbAcc.AssignCommentToImplTaskInDb(ActImplTask.Id, commentId);
+                long commentId = await dbAcc.AddCommentToDb(comment);
+                if(commentId != 0)
+                {
+                    await dbAcc.AssignCommentToImplTaskInDb(ActImplTask.Id, commentId);
+                }
             }
             ActImplTask.Comments.Add(new WfCommentDataHelper(comment){});
             DisplayImplTaskCommentMode = false;
@@ -1101,16 +1161,22 @@ namespace FWO.Services
 
         public async Task ConfDeleteImplTask()
         {
-            await dbAcc.DeleteImplTaskFromDb(ActImplTask);
+            if(dbAcc != null)
+            {
+                await dbAcc.DeleteImplTaskFromDb(ActImplTask);
+            }
             ActReqTask.ImplementationTasks.RemoveAt(ActReqTask.ImplementationTasks.FindIndex(x => x.Id == ActImplTask.Id));
             DisplayDeleteImplTaskMode = false;
         }
 
         public async Task ConfCleanupImplTasks()
         {
-            foreach(var impltask in ActReqTask.ImplementationTasks)
+            if(dbAcc != null)
             {
-                await dbAcc.DeleteImplTaskFromDb(impltask);
+                foreach(var impltask in ActReqTask.ImplementationTasks)
+                {
+                    await dbAcc.DeleteImplTaskFromDb(impltask);
+                }
             }
             ActReqTask.ImplementationTasks.Clear();
             DisplayCleanupMode = false;
@@ -1131,12 +1197,15 @@ namespace FWO.Services
                     }
                     else
                     {
-                        foreach(var impltask in reqTask.ImplementationTasks)
+                        if(dbAcc != null)
                         {
-                            if (impltask.StateId < reqTask.StateId)
+                            foreach(var impltask in reqTask.ImplementationTasks)
                             {
-                                impltask.StateId = reqTask.StateId;
-                                await dbAcc.UpdateImplTaskStateInDb(impltask);
+                                if (impltask.StateId < reqTask.StateId)
+                                {
+                                    impltask.StateId = reqTask.StateId;
+                                    await dbAcc.UpdateImplTaskStateInDb(impltask);
+                                }
                             }
                         }
                     }
@@ -1156,19 +1225,19 @@ namespace FWO.Services
                     case AutoCreateImplTaskOptions.onlyForOneDevice:
                         if(Devices.Count > 0)
                         {
-                            await createAccessImplTask(reqTask, Devices[0].Id, false);
+                            await CreateAccessImplTask(reqTask, Devices[0].Id, false);
                         }
                         break;
                     case AutoCreateImplTaskOptions.forEachDevice:
                         foreach(var device in Devices)
                         {
-                            await createAccessImplTask(reqTask, device.Id);
+                            await CreateAccessImplTask(reqTask, device.Id);
                         }
                         break;
                     case AutoCreateImplTaskOptions.enterInReqTask:
                         foreach(var deviceId in reqTask.GetDeviceList())
                         {
-                            await createAccessImplTask(reqTask, deviceId);
+                            await CreateAccessImplTask(reqTask, deviceId);
                         }
                         break;
                     case AutoCreateImplTaskOptions.afterPathAnalysis:
@@ -1180,25 +1249,30 @@ namespace FWO.Services
             }
             else
             {
-                newImplTask = new WfImplTask(reqTask)
-                    { TaskNumber = reqTask.HighestImplTaskNumber() + 1, StateId = reqTask.StateId };
-                newImplTask.Id = await dbAcc.AddImplTaskToDb(newImplTask);
+                newImplTask = new WfImplTask(reqTask){ TaskNumber = reqTask.HighestImplTaskNumber() + 1, StateId = reqTask.StateId };
+                if(dbAcc != null)
+                {
+                    newImplTask.Id = await dbAcc.AddImplTaskToDb(newImplTask);
+                }
                 reqTask.ImplementationTasks.Add(newImplTask);
             }
         }
 
         public async Task CreateAccessImplTasksFromPathAnalysis(WfReqTask reqTask)
         {
-            foreach(var device in await new PathAnalysis(apiConnection).getAllDevices(reqTask.Elements))
+            if(apiConnection != null)
             {
-                if(reqTask.ImplementationTasks.FirstOrDefault(x => x.DeviceId == device.Id) == null)
+                foreach(var device in await PathAnalysis.GetAllDevices(reqTask.Elements, apiConnection))
                 {
-                    await createAccessImplTask(reqTask, device.Id);
+                    if(reqTask.ImplementationTasks.FirstOrDefault(x => x.DeviceId == device.Id) == null)
+                    {
+                        await CreateAccessImplTask(reqTask, device.Id);
+                    }
                 }
             }
         }
 
-        private async Task createAccessImplTask(WfReqTask reqTask, int deviceId, bool adaptTitle=true)
+        private async Task CreateAccessImplTask(WfReqTask reqTask, int deviceId, bool adaptTitle=true)
         {
             WfImplTask newImplTask;
             newImplTask = new WfImplTask(reqTask)
@@ -1207,7 +1281,10 @@ namespace FWO.Services
             {
                 newImplTask.Title += ": "+ Devices[Devices.FindIndex(x => x.Id == deviceId)].Name;
             }
-            newImplTask.Id = await dbAcc.AddImplTaskToDb(newImplTask);
+            if(dbAcc != null)
+            {
+                newImplTask.Id = await dbAcc.AddImplTaskToDb(newImplTask);
+            }
             reqTask.ImplementationTasks.Add(newImplTask);
         }
 
@@ -1216,7 +1293,10 @@ namespace FWO.Services
 
         public async Task UpdateActImplTaskState()
         {
-            await dbAcc.UpdateImplTaskStateInDb(ActImplTask);
+            if(dbAcc != null)
+            {
+                await dbAcc.UpdateImplTaskStateInDb(ActImplTask);
+            }
             int index = ActReqTask.ImplementationTasks.FindIndex(x => x.Id == ActImplTask.Id);
             if(index >= 0)
             {
@@ -1231,7 +1311,10 @@ namespace FWO.Services
 
         public async Task UpdateActApproval()
         {
-            await dbAcc.UpdateApprovalInDb(ActApproval);
+            if(dbAcc != null)
+            {
+                await dbAcc.UpdateApprovalInDb(ActApproval);
+            }
             ActReqTask.Approvals[ActReqTask.Approvals.FindIndex(x => x.Id == ActApproval.Id)] = ActApproval;
         }
 
@@ -1252,7 +1335,10 @@ namespace FWO.Services
             foreach(var implTask in ActReqTask.ImplementationTasks)
             {
                 implTask.StateId = ActReqTask.StateId;
-                await dbAcc.UpdateImplTaskInDb(implTask, ActReqTask);
+                if(dbAcc != null)
+                {
+                    await dbAcc.UpdateImplTaskInDb(implTask, ActReqTask);
+                }
             }
         }
 
@@ -1267,13 +1353,19 @@ namespace FWO.Services
                 }
                 reqTask.StateId = ActStateMatrix.getDerivedStateFromSubStates(implTaskStates);
             }
-            await dbAcc.UpdateReqTaskStateInDb(reqTask);
+            if(dbAcc != null)
+            {
+                await dbAcc.UpdateReqTaskStateInDb(reqTask);
+            }
             SyncActTicketFromReqTask(reqTask);
         }
 
         public async Task UpdateActReqTaskState()
         {
-            await dbAcc.UpdateReqTaskStateInDb(ActReqTask);
+            if(dbAcc != null)
+            {
+                await dbAcc.UpdateReqTaskStateInDb(ActReqTask);
+            }
             SyncActTicketFromReqTask(ActReqTask);
         }
 
@@ -1317,7 +1409,10 @@ namespace FWO.Services
                 ActTicket.CompletionDate = DateTime.Now;
             }
             await AutoCreateOrUpdateImplTasks();
-            await dbAcc.UpdateTicketStateInDb(ActTicket);
+            if(dbAcc != null)
+            {
+                await dbAcc.UpdateTicketStateInDb(ActTicket);
+            }
             int idx = TicketList.FindIndex(x => x.Id == ActTicket.Id);
             if(idx >= 0)
             {
@@ -1330,7 +1425,11 @@ namespace FWO.Services
 
         public async Task<bool> CheckRuleUid(int? deviceId, string? ruleUid)
         {
-            return await dbAcc.FindRuleUid(deviceId, ruleUid);
+            if(dbAcc != null)
+            {
+                return await dbAcc.FindRuleUid(deviceId, ruleUid);
+            }
+            return false;
         }
 
         private bool CheckAssignValues(WfStatefulObject statefulObject)

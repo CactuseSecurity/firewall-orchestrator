@@ -160,45 +160,14 @@ namespace FWO.Test
                 ReportData = ConstructNatRuleReport()
             };
 
-            string expectedHtmlResult = "<!DOCTYPE html><html><head><meta charset=\"utf-8\"/><title>NAT Rules Report</title>" +
-            "<style>table {font-family: arial, sans-serif;font-size: 10px;border-collapse: collapse;width: 100 %;}td {border: 1px solid #000000;text-align: left;padding: 3px;}th {border: 1px solid #000000;text-align: left;padding: 3px;background-color: #dddddd;}</style></head>" +
-            "<body>" +
-            "<h2>NAT Rules Report</h2>" +
-            "<p>Time of configuration: 2023-04-20T15:50:04Z (UTC)</p>" +
-            "<p>Generated on: Z (UTC)</p>" +
-            "<p>Devices: TestMgt [TestDev]</p>" +
-            "<p>Filter: TestFilter</p><hr>" +
-            "<h3>TestMgt</h3><hr>" +
-            "<h4>TestDev</h4>" +
-            "<table><tr><th>No.</th><th>Name</th><th>Source Zone</th><th>Source</th><th>Destination Zone</th><th>Destination</th><th>Services</th><th>Translated Source</th><th>Translated Destination</th><th>Translated Services</th><th>Enabled</th><th>Uid</th><th>Comment</th></tr>" +
-            "<tr><td>1</td>" +
-            "<td>TestRule1</td>" +
-            "<td>srczn</td>" +
-            "<td><span style=\"\"><span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1x1\" target=\"_top\" style=\"\">TestIp1</a> (1.2.3.4/32)</span><br><span style=\"\"><span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1x2\" target=\"_top\" style=\"\">TestIp2</a> (127.0.0.1/32)</span></td>" +
-            "<td>dstzn</td>" +
-            "<td><span style=\"\"><span class=\"oi oi-resize-width\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1x3\" target=\"_top\" style=\"\">TestIpRange</a> (1.2.3.4-1.2.3.5)</span></td>" +
-            "<td><span class=\"oi oi-wrench\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc1x1\" target=\"_top\" style=\"\">TestService1</a> (443/TCP)</td>" +
-            "<td><span style=\"\"><span class=\"oi oi-people\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#user1x2\" target=\"_top\" style=\"\">TestUser2</a>@<span class=\"oi oi-laptop\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1x5\" target=\"_top\" style=\"\">TestIp1Changed</a> (2.3.4.5)</span></td>" +
-            "<td>not<br><span style=\"\"><span class=\"oi oi-laptop\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1x5\" target=\"_top\" style=\"\">TestIp1Changed</a> (2.3.4.5)</span><br><span style=\"\"><span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1x4\" target=\"_top\" style=\"\">TestIpNew</a> (10.0.6.0/24)</span></td>" +
-            "<td><span class=\"oi oi-wrench\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc1x1\" target=\"_top\" style=\"\">TestService1</a> (443/TCP)<br><span class=\"oi oi-wrench\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc1x2\" target=\"_top\" style=\"\">TestService2</a> (6666-7777/UDP)</td>" +
-            "<td><b>Y</b></td>" +
-            "<td>uid1</td>" +
-            "<td>comment1</td></tr></table><hr>" +
-            "<h4>Network Objects</h4><table><tr><th>No.</th><th>Name</th><th>Type</th><th>IP Address</th><th>Members</th><th>Uid</th><th>Comment</th></tr>" +
-            "<tr><td>1</td><td><a name=nwobj1x1>TestIp1</a></td><td>Network</td><td>1.2.3.4/32</td><td></td><td></td><td></td></tr>" +
-            "<tr><td>2</td><td><a name=nwobj1x2>TestIp2</a></td><td>Network</td><td>127.0.0.1/32</td><td></td><td></td><td></td></tr>" +
-            "<tr><td>3</td><td><a name=nwobj1x3>TestIpRange</a></td><td>IP Range</td><td>1.2.3.4-1.2.3.5</td><td></td><td></td><td></td></tr>" +
-            "<tr><td>4</td><td><a name=nwobj1x4>TestIpNew</a></td><td>Network</td><td>10.0.6.0/24</td><td></td><td></td><td></td></tr>" +
-            "<tr><td>5</td><td><a name=nwobj1x5>TestIp1Changed</a></td><td>Host</td><td>2.3.4.5</td><td></td><td></td><td></td></tr>" +
-            "</table><hr>" +
-            "<h4>Network Services</h4><table><tr><th>No.</th><th>Name</th><th>Type</th><th>Protocol</th><th>Port</th><th>Members</th><th>Uid</th><th>Comment</th></tr>" +
-            "<tr><td>1</td><td><a name=svc1x1>TestService1</a></td><td></td><td>TCP</td><td>443</td><td></td><td></td><td></td></tr>" +
-            "<tr><td>2</td><td><a name=svc1x2>TestService2</a></td><td></td><td>UDP</td><td>6666-7777</td><td></td><td></td><td></td></tr>" +
-            "</table><hr>" +
-            "<h4>Users</h4><table><tr><th>No.</th><th>Name</th><th>Type</th><th>Members</th><th>Uid</th><th>Comment</th></tr>" +
-            "<tr><td>1</td><td><a name=user1x2>TestUser2</a></td><td>Group</td><td></td><td></td><td></td></tr>" +
-            "</table><hr></table></body></html>";
-            ClassicAssert.AreEqual(expectedHtmlResult, RemoveLinebreaks(RemoveGenDate(reportNatRules.ExportToHtml(), true)));
+            string expectedHtmlResult = "<!DOCTYPE html><html><head><meta charset=\"utf-8\"/><title>NAT Rules Report</title><style>table {font-family: arial, sans-serif;font-size: 10px;border-collapse: collapse;width: 100 %;}td {border: 1px solid #000000;text-align: left;padding: 3px;}th {border: 1px solid #000000;text-align: left;padding: 3px;background-color: #dddddd;}</style></head><body><h2>NAT Rules Report</h2><p>Time of configuration: 2023-04-20T15:50:04Z (UTC)</p><p>Generated on: Z (UTC)</p><p>Devices: TestMgt [TestDev]</p><p>Filter: TestFilter</p><hr><div id=\"toc_container\"><h2>Table of content</h2><ul class=\"toc_list\"><li><a href=\"#" + StaticAnkerId + "\">TestMgt</a></li><ul><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">TestDev</a></li><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">Network Objects</a></li><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">Network Services</a></li><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">Users</a></li></ul></ul></div><style>#toc_container {background: #f9f9f9 none repeat scroll 0 0;border: 1px solid #aaa;display: table;font-size: 95%;margin-bottom: 1em;padding: 10px;width: 100%;}#toc_container ul{list-style-type: none;}.subli {list-style-type: square;}.toc_list ul li {margin-bottom: 4px;}.toc_list a {color: black;font-family: 'Arial';font-size: 12pt;}</style><hr><h3 id=\"" + StaticAnkerId + "\">TestMgt</h3><hr><h4 id=\"" + StaticAnkerId + "\">TestDev</h4><table><tr><th>No.</th><th>Name</th><th>Source Zone</th><th>Source</th><th>Destination Zone</th><th>Destination</th><th>Services</th><th>Translated Source</th><th>Translated Destination</th><th>Translated Services</th><th>Enabled</th><th>Uid</th><th>Comment</th></tr><tr><td>1</td><td>TestRule1</td><td>srczn</td><td><span style=\"\"><span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1x1\" target=\"_top\" style=\"\">TestIp1</a> (1.2.3.4/32)</span><br><span style=\"\"><span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1x2\" target=\"_top\" style=\"\">TestIp2</a> (127.0.0.1/32)</span></td><td>dstzn</td><td><span style=\"\"><span class=\"oi oi-resize-width\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1x3\" target=\"_top\" style=\"\">TestIpRange</a> (1.2.3.4-1.2.3.5)</span></td><td><span class=\"oi oi-wrench\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc1x1\" target=\"_top\" style=\"\">TestService1</a> (443/TCP)</td><td><span style=\"\"><span class=\"oi oi-people\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#user1x2\" target=\"_top\" style=\"\">TestUser2</a>@<span class=\"oi oi-laptop\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1x5\" target=\"_top\" style=\"\">TestIp1Changed</a> (2.3.4.5)</span></td><td>not<br><span style=\"\"><span class=\"oi oi-laptop\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1x5\" target=\"_top\" style=\"\">TestIp1Changed</a> (2.3.4.5)</span><br><span style=\"\"><span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1x4\" target=\"_top\" style=\"\">TestIpNew</a> (10.0.6.0/24)</span></td><td><span class=\"oi oi-wrench\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc1x1\" target=\"_top\" style=\"\">TestService1</a> (443/TCP)<br><span class=\"oi oi-wrench\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc1x2\" target=\"_top\" style=\"\">TestService2</a> (6666-7777/UDP)</td><td><b>Y</b></td><td>uid1</td><td>comment1</td></tr></table><hr><h4 id=\"" + StaticAnkerId + "\">Network Objects</h4><table><tr><th>No.</th><th>Name</th><th>Type</th><th>IP Address</th><th>Members</th><th>Uid</th><th>Comment</th></tr><tr><td>1</td><td><a name=nwobj1x1>TestIp1</a></td><td>Network</td><td>1.2.3.4/32</td><td></td><td></td><td></td></tr><tr><td>2</td><td><a name=nwobj1x2>TestIp2</a></td><td>Network</td><td>127.0.0.1/32</td><td></td><td></td><td></td></tr><tr><td>3</td><td><a name=nwobj1x3>TestIpRange</a></td><td>IP Range</td><td>1.2.3.4-1.2.3.5</td><td></td><td></td><td></td></tr><tr><td>4</td><td><a name=nwobj1x4>TestIpNew</a></td><td>Network</td><td>10.0.6.0/24</td><td></td><td></td><td></td></tr><tr><td>5</td><td><a name=nwobj1x5>TestIp1Changed</a></td><td>Host</td><td>2.3.4.5</td><td></td><td></td><td></td></tr></table><hr><h4 id=\"" + StaticAnkerId + "\">Network Services</h4><table><tr><th>No.</th><th>Name</th><th>Type</th><th>Protocol</th><th>Port</th><th>Members</th><th>Uid</th><th>Comment</th></tr><tr><td>1</td><td><a name=svc1x1>TestService1</a></td><td></td><td>TCP</td><td>443</td><td></td><td></td><td></td></tr><tr><td>2</td><td><a name=svc1x2>TestService2</a></td><td></td><td>UDP</td><td>6666-7777</td><td></td><td></td><td></td></tr></table><hr><h4 id=\"" + StaticAnkerId + "\">Users</h4><table><tr><th>No.</th><th>Name</th><th>Type</th><th>Members</th><th>Uid</th><th>Comment</th></tr><tr><td>1</td><td><a name=user1x2>TestUser2</a></td><td>Group</td><td></td><td></td><td></td></tr></table><hr></table></body></html>";
+
+            string reportHtml = RemoveLinebreaks(RemoveGenDate(reportNatRules.ExportToHtml(), true));
+
+            IEnumerable<string> matches = reportHtml.GetMatches(ToCRegexPattern, ToCAnkerIdGroupName);
+            reportHtml = reportHtml.ReplaceAll(matches, StaticAnkerId);
+
+            ClassicAssert.AreEqual(expectedHtmlResult, reportHtml);
         }
 
         [Test]

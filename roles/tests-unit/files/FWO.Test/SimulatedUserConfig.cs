@@ -84,7 +84,8 @@ namespace FWO.Test
             {"new_app_zone", "New AppZone: " },
             {"update_app_zone", "Update AppZone: " },
             { "E9301", "Template File not found!" },
-            { "E9302", "HTML is invalid!" }
+            { "E9302", "HTML is invalid!" },
+            { "tableofcontent", "Table of content" }
         };
 
         public override string GetText(string key)

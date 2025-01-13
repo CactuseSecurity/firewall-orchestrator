@@ -5,6 +5,7 @@ using FWO.Report;
 using FWO.Report.Filter;
 using FWO.Basics;
 using FWO.Api.Data;
+using System.Text.RegularExpressions;
 
 
 namespace FWO.Test
@@ -13,17 +14,17 @@ namespace FWO.Test
     [Parallelizable]
     internal class ExportTest
     {
-        static readonly NetworkObject TestIp1 = new(){ Id = 1, Name = "TestIp1", IP = "1.2.3.4/32", IpEnd = "1.2.3.4/32", Type = new NetworkObjectType(){ Name = ObjectType.Network }};
-        static readonly NetworkObject TestIp2 = new(){ Id = 2, Name = "TestIp2", IP = "127.0.0.1/32", IpEnd = "127.0.0.1/32", Type = new NetworkObjectType(){ Name = ObjectType.Network }};
-        static readonly NetworkObject TestIpRange = new(){ Id = 3, Name = "TestIpRange", IP = "1.2.3.4/32", IpEnd = "1.2.3.5/32", Type = new NetworkObjectType(){ Name = ObjectType.IPRange }};
-        static readonly NetworkObject TestIpNew = new(){ Id = 4, Name = "TestIpNew", IP = "10.0.6.0/32", IpEnd = "10.0.6.255/32", Type = new NetworkObjectType(){ Name = ObjectType.Network }};
-        static readonly NetworkObject TestIp1Changed = new(){ Id = 5, Name = "TestIp1Changed", IP = "2.3.4.5/32", IpEnd = "2.3.4.5/32", Type = new NetworkObjectType(){ Name = ObjectType.Host }};
+        static readonly NetworkObject TestIp1 = new() { Id = 1, Name = "TestIp1", IP = "1.2.3.4/32", IpEnd = "1.2.3.4/32", Type = new NetworkObjectType() { Name = ObjectType.Network } };
+        static readonly NetworkObject TestIp2 = new() { Id = 2, Name = "TestIp2", IP = "127.0.0.1/32", IpEnd = "127.0.0.1/32", Type = new NetworkObjectType() { Name = ObjectType.Network } };
+        static readonly NetworkObject TestIpRange = new() { Id = 3, Name = "TestIpRange", IP = "1.2.3.4/32", IpEnd = "1.2.3.5/32", Type = new NetworkObjectType() { Name = ObjectType.IPRange } };
+        static readonly NetworkObject TestIpNew = new() { Id = 4, Name = "TestIpNew", IP = "10.0.6.0/32", IpEnd = "10.0.6.255/32", Type = new NetworkObjectType() { Name = ObjectType.Network } };
+        static readonly NetworkObject TestIp1Changed = new() { Id = 5, Name = "TestIp1Changed", IP = "2.3.4.5/32", IpEnd = "2.3.4.5/32", Type = new NetworkObjectType() { Name = ObjectType.Host } };
 
-        static readonly NetworkService TestService1 = new(){  Id = 1, DestinationPort = 443, DestinationPortEnd = 443, Name = "TestService1", Protocol = new NetworkProtocol { Name = "TCP" }};
-        static readonly NetworkService TestService2 = new(){  Id = 2, DestinationPort = 6666, DestinationPortEnd = 7777, Name = "TestService2", Protocol = new NetworkProtocol { Name = "UDP" }};
+        static readonly NetworkService TestService1 = new() { Id = 1, DestinationPort = 443, DestinationPortEnd = 443, Name = "TestService1", Protocol = new NetworkProtocol { Name = "TCP" } };
+        static readonly NetworkService TestService2 = new() { Id = 2, DestinationPort = 6666, DestinationPortEnd = 7777, Name = "TestService2", Protocol = new NetworkProtocol { Name = "UDP" } };
 
-        static readonly NetworkUser TestUser1 = new(){ Id = 1, Name = "TestUser1" };
-        static readonly NetworkUser TestUser2 = new(){ Id = 2, Name = "TestUser2", Type = new NetworkUserType() { Name = ObjectType.Group} };
+        static readonly NetworkUser TestUser1 = new() { Id = 1, Name = "TestUser1" };
+        static readonly NetworkUser TestUser2 = new() { Id = 2, Name = "TestUser2", Type = new NetworkUserType() { Name = ObjectType.Group } };
 
         static Rule Rule1 = new();
         static Rule Rule1Changed = new();
@@ -33,9 +34,14 @@ namespace FWO.Test
         static Rule RecertRule1 = new();
         static Rule RecertRule2 = new();
 
+        private const string ToCAnkerIdGroupName = "ToCAnkerId";
+        private readonly string ToCRegexPattern = $"<a href=\"#(?'{ToCAnkerIdGroupName}'.*?)\">(.*?)<\\/a>";
+
+        private const string StaticAnkerId = "1234-1234-1234-1234";
+
         readonly SimulatedUserConfig userConfig = new();
         readonly DynGraphqlQuery query = new("TestFilter")
-        { 
+        {
             ReportTimeString = "2023-04-20T17:50:04",
             QueryVariables = new Dictionary<string, object>()
             {
@@ -54,7 +60,7 @@ namespace FWO.Test
         public void RulesGenerateHtml()
         {
             Log.WriteInfo("Test Log", "starting rules report html generation");
-            ReportRules reportRules = new (query, userConfig, ReportType.Rules)
+            ReportRules reportRules = new(query, userConfig, ReportType.Rules)
             {
                 ReportData = ConstructRuleReport(false)
             };
@@ -105,7 +111,7 @@ namespace FWO.Test
         public void ResolvedRulesGenerateHtml()
         {
             Log.WriteInfo("Test Log", "starting rules report resolved html generation");
-            ReportRules reportRules = new (query, userConfig, ReportType.ResolvedRules)
+            ReportRules reportRules = new(query, userConfig, ReportType.ResolvedRules)
             {
                 ReportData = ConstructRuleReport(true)
             };
@@ -141,7 +147,7 @@ namespace FWO.Test
         public void ResolvedRulesTechGenerateHtml()
         {
             Log.WriteInfo("Test Log", "starting rules report resolved html generation");
-            ReportRules reportRules = new (query, userConfig, ReportType.ResolvedRulesTech)
+            ReportRules reportRules = new(query, userConfig, ReportType.ResolvedRulesTech)
             {
                 ReportData = ConstructRuleReport(true)
             };
@@ -177,7 +183,7 @@ namespace FWO.Test
         public void UnusedRulesGenerateHtml()
         {
             Log.WriteInfo("Test Log", "starting unused rules report html generation");
-            ReportRules reportRules = new (query, userConfig, ReportType.UnusedRules)
+            ReportRules reportRules = new(query, userConfig, ReportType.UnusedRules)
             {
                 ReportData = ConstructRuleReport(false)
             };
@@ -228,7 +234,7 @@ namespace FWO.Test
         public void RecertReportGenerateHtml()
         {
             Log.WriteInfo("Test Log", "starting recert report html generation");
-            ReportRules reportRecerts = new (query, userConfig, ReportType.Recertification)
+            ReportRules reportRecerts = new(query, userConfig, ReportType.Recertification)
             {
                 ReportData = ConstructRecertReport()
             };
@@ -296,7 +302,7 @@ namespace FWO.Test
         public void NatRulesGenerateHtml()
         {
             Log.WriteInfo("Test Log", "starting nat rules report html generation");
-            ReportNatRules reportNatRules = new (query, userConfig, ReportType.NatRules)
+            ReportNatRules reportNatRules = new(query, userConfig, ReportType.NatRules)
             {
                 ReportData = ConstructNatRuleReport()
             };
@@ -346,73 +352,26 @@ namespace FWO.Test
         public void ChangesGenerateHtml()
         {
             Log.WriteInfo("Test Log", "starting changes report html generation");
-            ReportChanges reportChanges = new (query, userConfig, ReportType.Changes)
+            ReportChanges reportChanges = new(query, userConfig, ReportType.Changes)
             {
                 ReportData = ConstructChangeReport(false)
             };
 
-            string expectedHtmlResult = "<!DOCTYPE html><html><head><meta charset=\"utf-8\"/><title>Changes Report</title>" +
-            "<style>table {font-family: arial, sans-serif;font-size: 10px;border-collapse: collapse;width: 100 %;}td {border: 1px solid #000000;text-align: left;padding: 3px;}th {border: 1px solid #000000;text-align: left;padding: 3px;background-color: #dddddd;}</style></head>" +
-            "<body>" +
-            "<h2>Changes Report</h2>" +
-            "<p>Change Time: from: 2023-04-19T15:00:04Z, until: 2023-04-20T15:00:04Z (UTC)</p>" +
-            "<p>Generated on: Z (UTC)</p>" +
-            "<p>Devices: TestMgt [TestDev]</p>" +
-            "<p>Filter: TestFilter</p><hr>" +
-            "<h3>TestMgt</h3><hr>" +
-            "<h4>TestDev</h4>" +
-            "<table><tr><th>Change Time</th><th>Change Type</th><th>Name</th><th>Source Zone</th><th>Source</th><th>Destination Zone</th><th>Destination</th><th>Services</th><th>Action</th><th>Track</th><th>Enabled</th><th>Uid</th><th>Comment</th></tr>" +
-            "<tr><td>05.04.2023 12:00:00</td><td>Rule added</td><td><p style=\"color: green; text-decoration: bold;\">TestRule1</p></td>" +
-            "<td><p style=\"color: green; text-decoration: bold;\">srczn</p></td>" +
-            "<td><p style=\"color: green; text-decoration: bold;\"><span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj0x1\" target=\"_top\" style=\"color: green; text-decoration: bold;\">TestIp1</a> (1.2.3.4/32)<br><span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj0x2\" target=\"_top\" style=\"color: green; text-decoration: bold;\">TestIp2</a> (127.0.0.1/32)</p></td>" +
-            "<td><p style=\"color: green; text-decoration: bold;\">dstzn</p></td>" +
-            "<td><p style=\"color: green; text-decoration: bold;\"><span class=\"oi oi-resize-width\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj0x3\" target=\"_top\" style=\"color: green; text-decoration: bold;\">TestIpRange</a> (1.2.3.4-1.2.3.5)</p></td>" +
-            "<td><p style=\"color: green; text-decoration: bold;\"><span class=\"oi oi-wrench\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc0x1\" target=\"_top\" style=\"color: green; text-decoration: bold;\">TestService1</a> (443/TCP)</p></td>" +
-            "<td><p style=\"color: green; text-decoration: bold;\">accept</p></td>" +
-            "<td><p style=\"color: green; text-decoration: bold;\">none</p></td>" +
-            "<td><p style=\"color: green; text-decoration: bold;\"><b>Y</b></p></td>" +
-            "<td><p style=\"color: green; text-decoration: bold;\">uid1</p></td>" +
-            "<td><p style=\"color: green; text-decoration: bold;\">comment1</p></td></tr>" +
-            "<tr><td>05.04.2023 12:00:00</td><td>Rule modified</td><td>TestRule1</td><td>srczn</td>" +
-            "<td><p><span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj0x2\" target=\"_top\" style=\"\">TestIp2</a> (127.0.0.1/32)<br></p>" +
-            "deleted: <p style=\"color: red; text-decoration: line-through red;\"><span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj0x1\" target=\"_top\" style=\"color: red; text-decoration: line-through red;\">TestIp1</a> (1.2.3.4/32)<br></p>" +
-            "added: <p style=\"color: green; text-decoration: bold;\"><span class=\"oi oi-laptop\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj0x5\" target=\"_top\" style=\"color: green; text-decoration: bold;\">TestIp1Changed</a> (2.3.4.5)</p></td>" +
-            "<td>dstzn</td>" +
-            "<td><p><span class=\"oi oi-resize-width\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj0x3\" target=\"_top\" style=\"\">TestIpRange</a> (1.2.3.4-1.2.3.5)<br></p>" +
-            "added: <p style=\"color: green; text-decoration: bold;\"><span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj0x4\" target=\"_top\" style=\"color: green; text-decoration: bold;\">TestIpNew</a> (10.0.6.0/24)</p></td>" +
-            "<td>deleted: <p style=\"color: red; text-decoration: line-through red;\"><span class=\"oi oi-wrench\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc0x1\" target=\"_top\" style=\"color: red; text-decoration: line-through red;\">TestService1</a> (443/TCP)<br></p>" +
-            "added: <p style=\"color: green; text-decoration: bold;\">not<br><span class=\"oi oi-wrench\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc0x1\" target=\"_top\" style=\"color: green; text-decoration: bold;\">TestService1</a> (443/TCP)</p></td>" +
-            "<td>accept</td><td>none</td><td><b>Y</b></td><td>deleted: <p style=\"color: red; text-decoration: line-through red;\">uid1<br></p></td>" +
-            "<td>deleted: <p style=\"color: red; text-decoration: line-through red;\">comment1<br></p>added: <p style=\"color: green; text-decoration: bold;\">new comment</p></td></tr>" +
-            "<tr><td>05.04.2023 12:00:00</td><td>Rule modified</td><td>TestRule2</td><td></td>" +
-            "<td>not<br><span class=\"oi oi-person\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#user0x1\" target=\"_top\" style=\"\">TestUser1</a>@<span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj0x1\" target=\"_top\" style=\"\">TestIp1</a> (1.2.3.4/32)<br>" +
-            "<span class=\"oi oi-person\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#user0x1\" target=\"_top\" style=\"\">TestUser1</a>@<span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj0x2\" target=\"_top\" style=\"\">TestIp2</a> (127.0.0.1/32)</td>" +
-            "<td></td>" +
-            "<td>deleted: <p style=\"color: red; text-decoration: line-through red;\">not<br><span class=\"oi oi-people\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#user0x2\" target=\"_top\" style=\"color: red; text-decoration: line-through red;\">TestUser2</a>@<span class=\"oi oi-resize-width\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj0x3\" target=\"_top\" style=\"color: red; text-decoration: line-through red;\">TestIpRange</a> (1.2.3.4-1.2.3.5)<br></p>" +
-            "added: <p style=\"color: green; text-decoration: bold;\"><span class=\"oi oi-people\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#user0x2\" target=\"_top\" style=\"color: green; text-decoration: bold;\">TestUser2</a>@<span class=\"oi oi-resize-width\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj0x3\" target=\"_top\" style=\"color: green; text-decoration: bold;\">TestIpRange</a> (1.2.3.4-1.2.3.5)</p></td>" +
-            "<td>deleted: <p style=\"color: red; text-decoration: line-through red;\">not<br><span class=\"oi oi-wrench\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc0x2\" target=\"_top\" style=\"color: red; text-decoration: line-through red;\">TestService2</a> (6666-7777/UDP)<br></p>" +
-            "added: <p style=\"color: green; text-decoration: bold;\"><span class=\"oi oi-wrench\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc0x2\" target=\"_top\" style=\"color: green; text-decoration: bold;\">TestService2</a> (6666-7777/UDP)</p></td>" +
-            "<td>deny</td><td>none</td><td>deleted: <p style=\"color: red; text-decoration: line-through red;\"><b>Y</b><br></p>added: <p style=\"color: green; text-decoration: bold;\"><b>N</b></p></td><td>uid2:123</td><td>comment2</td></tr>" +
-            "<tr><td>05.04.2023 12:00:00</td><td>Rule deleted</td><td><p style=\"color: red; text-decoration: line-through red;\">TestRule2</p></td><td></td>" +
-            "<td><p style=\"color: red; text-decoration: line-through red;\">not<br><span class=\"oi oi-person\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#user0x1\" target=\"_top\" style=\"color: red; text-decoration: line-through red;\">TestUser1</a>@<span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj0x1\" target=\"_top\" style=\"color: red; text-decoration: line-through red;\">TestIp1</a> (1.2.3.4/32)<br>" +
-            "<span class=\"oi oi-person\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#user0x1\" target=\"_top\" style=\"color: red; text-decoration: line-through red;\">TestUser1</a>@<span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj0x2\" target=\"_top\" style=\"color: red; text-decoration: line-through red;\">TestIp2</a> (127.0.0.1/32)</p></td>" +
-            "<td></td>" +
-            "<td><p style=\"color: red; text-decoration: line-through red;\">not<br><span class=\"oi oi-people\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#user0x2\" target=\"_top\" style=\"color: red; text-decoration: line-through red;\">TestUser2</a>@<span class=\"oi oi-resize-width\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj0x3\" target=\"_top\" style=\"color: red; text-decoration: line-through red;\">TestIpRange</a> (1.2.3.4-1.2.3.5)</p></td>" +
-            "<td><p style=\"color: red; text-decoration: line-through red;\">not<br><span class=\"oi oi-wrench\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc0x2\" target=\"_top\" style=\"color: red; text-decoration: line-through red;\">TestService2</a> (6666-7777/UDP)</p></td>" +
-            "<td><p style=\"color: red; text-decoration: line-through red;\">deny</p></td>" +
-            "<td><p style=\"color: red; text-decoration: line-through red;\">none</p></td>" +
-            "<td><p style=\"color: red; text-decoration: line-through red;\"><b>Y</b></p></td>" +
-            "<td><p style=\"color: red; text-decoration: line-through red;\">uid2:123</p></td>" +
-            "<td><p style=\"color: red; text-decoration: line-through red;\">comment2</p></td></tr></table><hr>" +
-            "</body></html>";
-            ClassicAssert.AreEqual(expectedHtmlResult, RemoveLinebreaks(RemoveGenDate(reportChanges.ExportToHtml(), true)));
+            string expectedHtmlResult = "<!DOCTYPE html><html><head><meta charset=\"utf-8\"/><title>Changes Report</title><style>table {font-family: arial, sans-serif;font-size: 10px;border-collapse: collapse;width: 100 %;}td {border: 1px solid #000000;text-align: left;padding: 3px;}th {border: 1px solid #000000;text-align: left;padding: 3px;background-color: #dddddd;}</style></head><body><h2>Changes Report</h2><p>Change Time: from: 2023-04-19T15:00:04Z, until: 2023-04-20T15:00:04Z (UTC)</p><p>Generated on: Z (UTC)</p><p>Devices: TestMgt [TestDev]</p><p>Filter: TestFilter</p><hr><div id=\"toc_container\"><h2>Table of content</h2><ul class=\"toc_list\"><li><a href=\"#1234-1234-1234-1234\">TestMgt</a></li><ul><li class=\"subli\"><a href=\"#1234-1234-1234-1234\">TestDev</a></li></ul></ul></div><style>#toc_container {background: #f9f9f9 none repeat scroll 0 0;border: 1px solid #aaa;display: table;font-size: 95%;margin-bottom: 1em;padding: 10px;width: 100%;}#toc_container ul{list-style-type: none;}.subli {list-style-type: square;}.toc_list ul li {margin-bottom: 4px;}.toc_list a {color: black;font-family: 'Arial';font-size: 12pt;}</style><hr><h3 id=\"1234-1234-1234-1234\">TestMgt</h3><hr><h4 id=\"1234-1234-1234-1234\">TestDev</h4><table><tr><th>Change Time</th><th>Change Type</th><th>Name</th><th>Source Zone</th><th>Source</th><th>Destination Zone</th><th>Destination</th><th>Services</th><th>Action</th><th>Track</th><th>Enabled</th><th>Uid</th><th>Comment</th></tr><tr><td>05.04.2023 12:00:00</td><td>Rule added</td><td><p style=\"color: green; text-decoration: bold;\">TestRule1</p></td><td><p style=\"color: green; text-decoration: bold;\">srczn</p></td><td><p style=\"color: green; text-decoration: bold;\"><span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj0x1\" target=\"_top\" style=\"color: green; text-decoration: bold;\">TestIp1</a> (1.2.3.4/32)<br><span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj0x2\" target=\"_top\" style=\"color: green; text-decoration: bold;\">TestIp2</a> (127.0.0.1/32)</p></td><td><p style=\"color: green; text-decoration: bold;\">dstzn</p></td><td><p style=\"color: green; text-decoration: bold;\"><span class=\"oi oi-resize-width\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj0x3\" target=\"_top\" style=\"color: green; text-decoration: bold;\">TestIpRange</a> (1.2.3.4-1.2.3.5)</p></td><td><p style=\"color: green; text-decoration: bold;\"><span class=\"oi oi-wrench\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc0x1\" target=\"_top\" style=\"color: green; text-decoration: bold;\">TestService1</a> (443/TCP)</p></td><td><p style=\"color: green; text-decoration: bold;\">accept</p></td><td><p style=\"color: green; text-decoration: bold;\">none</p></td><td><p style=\"color: green; text-decoration: bold;\"><b>Y</b></p></td><td><p style=\"color: green; text-decoration: bold;\">uid1</p></td><td><p style=\"color: green; text-decoration: bold;\">comment1</p></td></tr><tr><td>05.04.2023 12:00:00</td><td>Rule modified</td><td>TestRule1</td><td>srczn</td><td><p><span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj0x2\" target=\"_top\" style=\"\">TestIp2</a> (127.0.0.1/32)<br></p>deleted: <p style=\"color: red; text-decoration: line-through red;\"><span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj0x1\" target=\"_top\" style=\"color: red; text-decoration: line-through red;\">TestIp1</a> (1.2.3.4/32)<br></p>added: <p style=\"color: green; text-decoration: bold;\"><span class=\"oi oi-laptop\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj0x5\" target=\"_top\" style=\"color: green; text-decoration: bold;\">TestIp1Changed</a> (2.3.4.5)</p></td><td>dstzn</td><td><p><span class=\"oi oi-resize-width\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj0x3\" target=\"_top\" style=\"\">TestIpRange</a> (1.2.3.4-1.2.3.5)<br></p>added: <p style=\"color: green; text-decoration: bold;\"><span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj0x4\" target=\"_top\" style=\"color: green; text-decoration: bold;\">TestIpNew</a> (10.0.6.0/24)</p></td><td>deleted: <p style=\"color: red; text-decoration: line-through red;\"><span class=\"oi oi-wrench\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc0x1\" target=\"_top\" style=\"color: red; text-decoration: line-through red;\">TestService1</a> (443/TCP)<br></p>added: <p style=\"color: green; text-decoration: bold;\">not<br><span class=\"oi oi-wrench\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc0x1\" target=\"_top\" style=\"color: green; text-decoration: bold;\">TestService1</a> (443/TCP)</p></td><td>accept</td><td>none</td><td><b>Y</b></td><td>deleted: <p style=\"color: red; text-decoration: line-through red;\">uid1<br></p></td><td>deleted: <p style=\"color: red; text-decoration: line-through red;\">comment1<br></p>added: <p style=\"color: green; text-decoration: bold;\">new comment</p></td></tr><tr><td>05.04.2023 12:00:00</td><td>Rule modified</td><td>TestRule2</td><td></td><td>not<br><span class=\"oi oi-person\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#user0x1\" target=\"_top\" style=\"\">TestUser1</a>@<span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj0x1\" target=\"_top\" style=\"\">TestIp1</a> (1.2.3.4/32)<br><span class=\"oi oi-person\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#user0x1\" target=\"_top\" style=\"\">TestUser1</a>@<span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj0x2\" target=\"_top\" style=\"\">TestIp2</a> (127.0.0.1/32)</td><td></td><td>deleted: <p style=\"color: red; text-decoration: line-through red;\">not<br><span class=\"oi oi-people\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#user0x2\" target=\"_top\" style=\"color: red; text-decoration: line-through red;\">TestUser2</a>@<span class=\"oi oi-resize-width\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj0x3\" target=\"_top\" style=\"color: red; text-decoration: line-through red;\">TestIpRange</a> (1.2.3.4-1.2.3.5)<br></p>added: <p style=\"color: green; text-decoration: bold;\"><span class=\"oi oi-people\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#user0x2\" target=\"_top\" style=\"color: green; text-decoration: bold;\">TestUser2</a>@<span class=\"oi oi-resize-width\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj0x3\" target=\"_top\" style=\"color: green; text-decoration: bold;\">TestIpRange</a> (1.2.3.4-1.2.3.5)</p></td><td>deleted: <p style=\"color: red; text-decoration: line-through red;\">not<br><span class=\"oi oi-wrench\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc0x2\" target=\"_top\" style=\"color: red; text-decoration: line-through red;\">TestService2</a> (6666-7777/UDP)<br></p>added: <p style=\"color: green; text-decoration: bold;\"><span class=\"oi oi-wrench\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc0x2\" target=\"_top\" style=\"color: green; text-decoration: bold;\">TestService2</a> (6666-7777/UDP)</p></td><td>deny</td><td>none</td><td>deleted: <p style=\"color: red; text-decoration: line-through red;\"><b>Y</b><br></p>added: <p style=\"color: green; text-decoration: bold;\"><b>N</b></p></td><td>uid2:123</td><td>comment2</td></tr><tr><td>05.04.2023 12:00:00</td><td>Rule deleted</td><td><p style=\"color: red; text-decoration: line-through red;\">TestRule2</p></td><td></td><td><p style=\"color: red; text-decoration: line-through red;\">not<br><span class=\"oi oi-person\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#user0x1\" target=\"_top\" style=\"color: red; text-decoration: line-through red;\">TestUser1</a>@<span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj0x1\" target=\"_top\" style=\"color: red; text-decoration: line-through red;\">TestIp1</a> (1.2.3.4/32)<br><span class=\"oi oi-person\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#user0x1\" target=\"_top\" style=\"color: red; text-decoration: line-through red;\">TestUser1</a>@<span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj0x2\" target=\"_top\" style=\"color: red; text-decoration: line-through red;\">TestIp2</a> (127.0.0.1/32)</p></td><td></td><td><p style=\"color: red; text-decoration: line-through red;\">not<br><span class=\"oi oi-people\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#user0x2\" target=\"_top\" style=\"color: red; text-decoration: line-through red;\">TestUser2</a>@<span class=\"oi oi-resize-width\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj0x3\" target=\"_top\" style=\"color: red; text-decoration: line-through red;\">TestIpRange</a> (1.2.3.4-1.2.3.5)</p></td><td><p style=\"color: red; text-decoration: line-through red;\">not<br><span class=\"oi oi-wrench\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc0x2\" target=\"_top\" style=\"color: red; text-decoration: line-through red;\">TestService2</a> (6666-7777/UDP)</p></td><td><p style=\"color: red; text-decoration: line-through red;\">deny</p></td><td><p style=\"color: red; text-decoration: line-through red;\">none</p></td><td><p style=\"color: red; text-decoration: line-through red;\"><b>Y</b></p></td><td><p style=\"color: red; text-decoration: line-through red;\">uid2:123</p></td><td><p style=\"color: red; text-decoration: line-through red;\">comment2</p></td></tr></table><hr></body></html>";
+
+            string reportHtml = RemoveLinebreaks(RemoveGenDate(reportChanges.ExportToHtml(), true));
+
+            IEnumerable<string> matches = reportHtml.GetMatches(ToCRegexPattern, ToCAnkerIdGroupName);
+            reportHtml = reportHtml.ReplaceAll(matches, StaticAnkerId);
+
+            ClassicAssert.AreEqual(expectedHtmlResult, reportHtml);
         }
 
         [Test]
         public void ResolvedChangesGenerateHtml()
         {
             Log.WriteInfo("Test Log", "starting changes report resolved html generation");
-            ReportChanges reportChanges = new (query, userConfig, ReportType.ResolvedChanges)
+            ReportChanges reportChanges = new(query, userConfig, ReportType.ResolvedChanges)
             {
                 ReportData = ConstructChangeReport(true)
             };
@@ -474,7 +433,7 @@ namespace FWO.Test
         public void ResolvedChangesTechGenerateHtml()
         {
             Log.WriteInfo("Test Log", "starting changes report tech html generation");
-            ReportChanges reportChanges = new (query, userConfig, ReportType.ResolvedChangesTech)
+            ReportChanges reportChanges = new(query, userConfig, ReportType.ResolvedChangesTech)
             {
                 ReportData = ConstructChangeReport(true)
             };
@@ -537,7 +496,7 @@ namespace FWO.Test
         public void ConnectionsGenerateHtml()
         {
             Log.WriteInfo("Test Log", "starting connection report html generation");
-            ReportConnections reportConnections = new (query, userConfig, ReportType.Connections)
+            ReportConnections reportConnections = new(query, userConfig, ReportType.Connections)
             {
                 ReportData = ConstructConnectionReport(false)
             };
@@ -613,7 +572,7 @@ namespace FWO.Test
         public void ResolvedRulesGenerateCsv()
         {
             Log.WriteInfo("Test Log", "starting rules report resolved csv generation");
-            ReportRules reportRules = new (query, userConfig, ReportType.ResolvedRules)
+            ReportRules reportRules = new(query, userConfig, ReportType.ResolvedRules)
             {
                 ReportData = ConstructRuleReport(true)
             };
@@ -635,7 +594,7 @@ namespace FWO.Test
         public void ResolvedRulesTechGenerateCsv()
         {
             Log.WriteInfo("Test Log", "starting rules report tech csv generation");
-            ReportRules reportRules = new (query, userConfig, ReportType.ResolvedRulesTech)
+            ReportRules reportRules = new(query, userConfig, ReportType.ResolvedRulesTech)
             {
                 ReportData = ConstructRuleReport(true)
             };
@@ -657,7 +616,7 @@ namespace FWO.Test
         public void ResolvedChangesGenerateCsv()
         {
             Log.WriteInfo("Test Log", "starting changes report resolved csv generation");
-            ReportChanges reportChanges = new (query, userConfig, ReportType.ResolvedChanges)
+            ReportChanges reportChanges = new(query, userConfig, ReportType.ResolvedChanges)
             {
                 ReportData = ConstructChangeReport(true)
             };
@@ -686,7 +645,7 @@ namespace FWO.Test
         public void ResolvedChangesTechGenerateCsv()
         {
             Log.WriteInfo("Test Log", "starting changes report tech csv generation");
-            ReportChanges reportChanges = new (query, userConfig, ReportType.ResolvedChangesTech)
+            ReportChanges reportChanges = new(query, userConfig, ReportType.ResolvedChangesTech)
             {
                 ReportData = ConstructChangeReport(true)
             };
@@ -710,12 +669,12 @@ namespace FWO.Test
         public void RulesGenerateJson()
         {
             Log.WriteInfo("Test Log", "starting rules report json generation");
-            ReportRules reportRules = new (query, userConfig, ReportType.Rules)
+            ReportRules reportRules = new(query, userConfig, ReportType.Rules)
             {
                 ReportData = ConstructRuleReport(false)
             };
 
-            string expectedJsonResult = 
+            string expectedJsonResult =
             "[{\"id\": 0,\"name\": \"TestMgt\"," +
             "\"devices\": [{\"id\": 0,\"name\": \"TestDev\"," +
             "\"rules\": [{\"rule_id\": 0,\"rule_uid\": \"uid1\",\"mgm_id\": 0,\"rule_num_numeric\": 0,\"rule_name\": \"TestRule1\",\"rule_comment\": \"comment1\",\"rule_disabled\": false," +
@@ -768,12 +727,12 @@ namespace FWO.Test
         public void ResolvedRulesGenerateJson()
         {
             Log.WriteInfo("Test Log", "starting resolved rules report json generation");
-            ReportRules reportRules = new (query, userConfig, ReportType.ResolvedRules)
+            ReportRules reportRules = new(query, userConfig, ReportType.ResolvedRules)
             {
                 ReportData = ConstructRuleReport(true)
             };
 
-            string expectedJsonResult = 
+            string expectedJsonResult =
             "{\"report type\": \"Rules Report (resolved)\",\"report generation date\": \"Z (UTC)\"," +
             "\"date of configuration shown\": \"2023-04-20T15:50:04Z (UTC)\",\"device filter\": \"TestMgt [TestDev]\",\"other filters\": \"TestFilter\"," +
             "\"report generator\": \"Firewall Orchestrator - https://fwo.cactus.de/en\",\"data protection level\": \"For internal use only\"," +
@@ -789,16 +748,16 @@ namespace FWO.Test
             ClassicAssert.AreEqual(expectedJsonResult, RemoveLinebreaks(RemoveGenDate(reportRules.ExportToJson(), false, true)));
         }
 
-       [Test]
+        [Test]
         public void ResolvedRulesTechGenerateJson()
         {
             Log.WriteInfo("Test Log", "starting resolved rules report tech json generation");
-            ReportRules reportRules = new (query, userConfig, ReportType.ResolvedRulesTech)
+            ReportRules reportRules = new(query, userConfig, ReportType.ResolvedRulesTech)
             {
                 ReportData = ConstructRuleReport(true)
             };
 
-            string expectedJsonResult = 
+            string expectedJsonResult =
             "{\"report type\": \"Rules Report (technical)\",\"report generation date\": \"Z (UTC)\"," +
             "\"date of configuration shown\": \"2023-04-20T15:50:04Z (UTC)\"," +
             "\"device filter\": \"TestMgt [TestDev]\",\"other filters\": \"TestFilter\"," +
@@ -819,12 +778,12 @@ namespace FWO.Test
         public void ChangesGenerateJson()
         {
             Log.WriteInfo("Test Log", "starting changes report json generation");
-            ReportChanges reportChanges = new (query, userConfig, ReportType.Changes)
+            ReportChanges reportChanges = new(query, userConfig, ReportType.Changes)
             {
                 ReportData = ConstructChangeReport(false)
             };
 
-            string expectedJsonResult = 
+            string expectedJsonResult =
             "[{\"id\": 0,\"name\": \"TestMgt\"," +
             "\"devices\": [{\"id\": 0,\"name\": \"TestDev\"," +
             "\"rules\": null," +
@@ -913,12 +872,12 @@ namespace FWO.Test
         public void ResolvedChangesGenerateJson()
         {
             Log.WriteInfo("Test Log", "starting resolved changes report json generation");
-            ReportChanges reportChanges = new (query, userConfig, ReportType.ResolvedChanges)
+            ReportChanges reportChanges = new(query, userConfig, ReportType.ResolvedChanges)
             {
                 ReportData = ConstructChangeReport(true)
             };
 
-            string expectedJsonResult = 
+            string expectedJsonResult =
             "{\"report type\": \"Changes Report (resolved)\",\"report generation date\": \"Z (UTC)\",\"device filter\": \"TestMgt [TestDev]\",\"other filters\": \"TestFilter\",\"report generator\": \"Firewall Orchestrator - https://fwo.cactus.de/en\",\"data protection level\": \"For internal use only\"," +
             "\"managements\": [{\"TestMgt\": {\"gateways\": [{\"TestDev\": {\"rule changes\": [" +
             "{\"change time\": \"05.04.2023 12:00:00\",\"change action\": \"Rule added\",\"name\": \"TestRule1\"," +
@@ -945,12 +904,12 @@ namespace FWO.Test
         public void ResolvedChangesTechGenerateJson()
         {
             Log.WriteInfo("Test Log", "starting resolved changes report json generation");
-            ReportChanges reportChanges = new (query, userConfig, ReportType.ResolvedChangesTech)
+            ReportChanges reportChanges = new(query, userConfig, ReportType.ResolvedChangesTech)
             {
                 ReportData = ConstructChangeReport(true)
             };
 
-            string expectedJsonResult = 
+            string expectedJsonResult =
             "{\"report type\": \"Changes Report (technical)\",\"report generation date\": \"Z (UTC)\",\"device filter\": \"TestMgt [TestDev]\",\"other filters\": \"TestFilter\",\"report generator\": \"Firewall Orchestrator - https://fwo.cactus.de/en\",\"data protection level\": \"For internal use only\"," +
             "\"managements\": [{\"TestMgt\": {\"gateways\": [{\"TestDev\": {\"rule changes\": [" +
             "{\"change time\": \"05.04.2023 12:00:00\",\"change action\": \"Rule added\",\"name\": \"TestRule1\"," +
@@ -975,7 +934,7 @@ namespace FWO.Test
 
         private static NetworkLocation[] InitFroms(bool resolved, bool user = false)
         {
-            if(resolved)
+            if (resolved)
             {
                 return [ new NetworkLocation(user ? TestUser1 : new NetworkUser(), new NetworkObject(){ ObjectGroupFlats =
                 [
@@ -995,7 +954,7 @@ namespace FWO.Test
 
         private static NetworkLocation[] InitTos(bool resolved, bool user = false)
         {
-            if(resolved)
+            if (resolved)
             {
                 return [ new NetworkLocation(user ? TestUser2 : new NetworkUser(), new NetworkObject(){ ObjectGroupFlats =
                 [
@@ -1013,7 +972,7 @@ namespace FWO.Test
 
         private static ServiceWrapper[] InitServices(NetworkService service, bool resolved)
         {
-            if(resolved)
+            if (resolved)
             {
                 return [new ServiceWrapper(){ Content = new NetworkService(){ServiceGroupFlats =
                 [
@@ -1040,15 +999,15 @@ namespace FWO.Test
                 DisplayOrderNumber = 1,
                 Track = "none",
                 Uid = "uid1",
-                SourceZone = new NetworkZone(){ Name = "srczn" },
+                SourceZone = new NetworkZone() { Name = "srczn" },
                 SourceNegated = false,
                 Froms = InitFroms(resolved),
-                DestinationZone = new NetworkZone(){ Name = "dstzn" },
+                DestinationZone = new NetworkZone() { Name = "dstzn" },
                 DestinationNegated = false,
                 Tos = InitTos(resolved),
                 ServiceNegated = false,
                 Services = InitServices(TestService1, resolved),
-                Metadata = new RuleMetadata(){ LastHit = new DateTime(2022,04,19) }
+                Metadata = new RuleMetadata() { LastHit = new DateTime(2022, 04, 19) }
             };
         }
 
@@ -1132,7 +1091,7 @@ namespace FWO.Test
                 ManagementData =
                 [
                     new ()
-                    { 
+                    {
                         Name = "TestMgt",
                         ReportObjects = [TestIp1, TestIp2, TestIpRange],
                         ReportServices = [TestService1, TestService2],
@@ -1140,10 +1099,10 @@ namespace FWO.Test
                         Devices =
                         [
                             new ()
-                            { 
-                                Name = "TestDev", 
+                            {
+                                Name = "TestDev",
                                 Rules = [RecertRule1, RecertRule2]
-                            } 
+                            }
                         ]
                     }
                 ]
@@ -1178,14 +1137,14 @@ namespace FWO.Test
                 ManagementData =
                 [
                     new ()
-                    { 
+                    {
                         Name = "TestMgt",
                         ReportObjects = [TestIp1, TestIp2, TestIpRange, TestIpNew, TestIp1Changed],
                         ReportServices = [TestService1, TestService2],
                         ReportUsers = [TestUser2],
                         Devices =
                         [
-                            new (){ Name = "TestDev", Rules = [NatRule]} 
+                            new (){ Name = "TestDev", Rules = [NatRule]}
                         ]
                     }
                 ]
@@ -1198,14 +1157,14 @@ namespace FWO.Test
             Rule1Changed = InitRule1(resolved);
             Rule2 = InitRule2(resolved);
             Rule2Changed = InitRule2(resolved);
-            if(resolved)
+            if (resolved)
             {
                 Rule1Changed.Froms[0].Object.ObjectGroupFlats[0].Object = TestIp1Changed;
                 Rule1Changed.Tos = [new (new NetworkUser(), new NetworkObject(){ObjectGroupFlats =
                 [
                     new (){ Object = TestIpRange },
                     new (){ Object = TestIpNew }
-                ]})];  
+                ]})];
             }
             else
             {
@@ -1224,30 +1183,30 @@ namespace FWO.Test
             Rule2Changed.ServiceNegated = false;
             Rule2Changed.Disabled = true;
 
-            RuleChange ruleChange1 = new ()
+            RuleChange ruleChange1 = new()
             {
                 ChangeAction = 'I',
-                ChangeImport = new ChangeImport(){ Time = new DateTime(2023,04,05,12,0,0) },
+                ChangeImport = new ChangeImport() { Time = new DateTime(2023, 04, 05, 12, 0, 0) },
                 NewRule = Rule1
             };
-            RuleChange ruleChange2 = new ()
+            RuleChange ruleChange2 = new()
             {
                 ChangeAction = 'C',
-                ChangeImport = new ChangeImport(){ Time = new DateTime(2023,04,05,12,0,0) },
+                ChangeImport = new ChangeImport() { Time = new DateTime(2023, 04, 05, 12, 0, 0) },
                 OldRule = Rule1,
                 NewRule = Rule1Changed
             };
-            RuleChange ruleChange3 = new ()
+            RuleChange ruleChange3 = new()
             {
                 ChangeAction = 'C',
-                ChangeImport = new ChangeImport(){ Time = new DateTime(2023,04,05,12,0,0) },
+                ChangeImport = new ChangeImport() { Time = new DateTime(2023, 04, 05, 12, 0, 0) },
                 OldRule = Rule2,
                 NewRule = Rule2Changed
             };
-            RuleChange ruleChange4 = new ()
+            RuleChange ruleChange4 = new()
             {
                 ChangeAction = 'D',
-                ChangeImport = new ChangeImport(){ Time = new DateTime(2023,04,05,12,0,0) },
+                ChangeImport = new ChangeImport() { Time = new DateTime(2023, 04, 05, 12, 0, 0) },
                 OldRule = Rule2
             };
             return new ReportData()
@@ -1255,12 +1214,12 @@ namespace FWO.Test
                 ManagementData =
                 [
                     new ()
-                    { 
+                    {
                         Name = "TestMgt",
                         Devices =
                         [
                             new ()
-                            { 
+                            {
                                 Name = "TestDev",
                                 RuleChanges = [ruleChange1, ruleChange2, ruleChange3, ruleChange4]
                             }
@@ -1272,38 +1231,42 @@ namespace FWO.Test
 
         private static ReportData ConstructConnectionReport(bool resolved)
         {
-            ModellingAppServer AppServer1 = new() {Id = 11, Number = 1, Name = "AppServer1", Ip = "1.0.0.0"};
-            ModellingAppServer AppServer2 = new() {Id = 12, Number = 2, Name = "AppServer2", Ip = "2.0.0.0"};
-            ModellingAppRole AppRole1 = new() { Id = 21, Number = 3, Name = "AppRole1", IdString="AR1", Comment = "CommAR1", AppServers = [new() { Content = AppServer1 }] };
+            ModellingAppServer AppServer1 = new() { Id = 11, Number = 1, Name = "AppServer1", Ip = "1.0.0.0" };
+            ModellingAppServer AppServer2 = new() { Id = 12, Number = 2, Name = "AppServer2", Ip = "2.0.0.0" };
+            ModellingAppRole AppRole1 = new() { Id = 21, Number = 3, Name = "AppRole1", IdString = "AR1", Comment = "CommAR1", AppServers = [new() { Content = AppServer1 }] };
             ModellingService Service1 = new() { Id = 31, Number = 1, Name = "Service1", Port = 1234, Protocol = new() { Name = "TCP" } };
             ModellingService Service2 = new() { Id = 32, Number = 2, Name = "Service2", Port = 2345, Protocol = new() { Name = "UDP" } };
             ModellingServiceGroup ServiceGroup1 = new() { Id = 41, Number = 3, Name = "ServiceGroup1", Comment = "CommSG1", Services = [new() { Content = Service1 }] };
-            ModellingConnection Conn1 = new() 
-            { 
-                Id = 101, Name = "Conn1", 
+            ModellingConnection Conn1 = new()
+            {
+                Id = 101,
+                Name = "Conn1",
                 SourceAppServers = [new() { Content = AppServer1 }],
                 DestinationAppRoles = [new() { Content = AppRole1 }],
                 Services = [new() { Content = Service1 }],
                 ServiceGroups = [new() { Content = ServiceGroup1 }]
             };
-            ModellingConnection Inter2 = new() 
-            { 
-                Id = 102, Name = "Inter2", 
+            ModellingConnection Inter2 = new()
+            {
+                Id = 102,
+                Name = "Inter2",
                 DestinationAppServers = [new() { Content = AppServer2 }],
-                DestinationAppRoles = [new() { Content = new() { Name = "noRole" }}],
+                DestinationAppRoles = [new() { Content = new() { Name = "noRole" } }],
                 Services = [new() { Content = Service2 }],
-                ServiceGroups = [new() {}]
+                ServiceGroups = [new() { }]
             };
-            ModellingConnection ComSvc3 = new() 
-            { 
-                Id = 103, Name = "ComSvc3", App = new(){ Name = "App1" },
+            ModellingConnection ComSvc3 = new()
+            {
+                Id = 103,
+                Name = "ComSvc3",
+                App = new() { Name = "App1" },
                 SourceAppServers = [new() { Content = AppServer1 }],
                 DestinationAppServers = [new() { Content = AppServer2 }],
                 Services = [new() { Content = Service2 }],
-                ServiceGroups = [new() {}]
+                ServiceGroups = [new() { }]
             };
 
-            ReportData reportData = new ()
+            ReportData reportData = new()
             {
                 OwnerData =
                 [
@@ -1316,7 +1279,7 @@ namespace FWO.Test
                         CommonServices = [ComSvc3],
                     }
                 ],
-                GlobalComSvc = [new(){GlobalComSvcs = [ComSvc3]}]
+                GlobalComSvc = [new() { GlobalComSvcs = [ComSvc3] }]
             };
             reportData.OwnerData.First().PrepareObjectData();
             return reportData;
@@ -1324,9 +1287,9 @@ namespace FWO.Test
 
         private static string RemoveGenDate(string exportString, bool html = false, bool json = false)
         {
-            string dateText = html ? "<p>Generated on: " : "report generation date" + (json ? "\"" : "") + ": " + (json ? "\"" : "");
+            string dateText = html ? "<p>Generated on: " : "report generation date" + ( json ? "\"" : "" ) + ": " + ( json ? "\"" : "" );
             int startGenTime = exportString.IndexOf(dateText);
-            if(startGenTime > 0)
+            if (startGenTime > 0)
             {
                 return exportString.Remove(startGenTime + dateText.Length, 19);
             }
@@ -1335,20 +1298,20 @@ namespace FWO.Test
 
         private static string RemoveLinebreaks(string exportString)
         {
-            while(exportString.Contains("\n "))
+            while (exportString.Contains("\n "))
             {
-                exportString = exportString.Replace("\n ","\n");
+                exportString = exportString.Replace("\n ", "\n");
             }
-            while(exportString.Contains(" \n"))
+            while (exportString.Contains(" \n"))
             {
-                exportString = exportString.Replace(" \n","\n");
+                exportString = exportString.Replace(" \n", "\n");
             }
-            while(exportString.Contains(" \r"))
+            while (exportString.Contains(" \r"))
             {
-                exportString = exportString.Replace(" \r","\r");
+                exportString = exportString.Replace(" \r", "\r");
             }
-            exportString = exportString.Replace("\r","");
-            return exportString.Replace("\n","");
+            exportString = exportString.Replace("\r", "");
+            return exportString.Replace("\n", "");
         }
     }
 }

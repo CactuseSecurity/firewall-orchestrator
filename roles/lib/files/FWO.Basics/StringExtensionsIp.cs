@@ -196,6 +196,29 @@ namespace FWO.Basics
             return bytes.Take(targetLength).ToArray();  // Ensure it's exactly targetLength bytes
         }
 
+        public static IEnumerable<string> GetMatches(this string input, string pattern, string groupName)
+        {
+            return Regex.Matches(input, pattern)
+                 .Cast<Match>()
+                 .Select(m => m.Groups[groupName].Value);
+        }
+
+        public static IEnumerable<string> GetMatches(this string input, string pattern, int groupIndex)
+        {
+            return Regex.Matches(input, pattern)
+                 .Cast<Match>()
+                 .Select(m => m.Groups[groupIndex].Value);
+        }
+
+        public static string ReplaceAll(this string input, IEnumerable<string> values, string replacement)
+        {
+            foreach (string value in values)
+            {
+                input = input.Replace(value, replacement);
+            }
+
+            return input;
+        }
     }
 }
 

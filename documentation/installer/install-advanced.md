@@ -61,6 +61,20 @@ Use the following syntax for authenticated proxy access:
 
     export http_proxy=http://USERNAME:PASSWORD@proxy.int:8080/
 
+If you use Debian you need to additionally specify the proxy for apt in:
+
+    sudo vim.tiny /etc/apt/apt.conf.d/proxy.conf
+
+Add the following lines with your proxy and port:
+```console
+Acquire::http::Proxy "http://proxy_server:port/";
+Acquire::https::Proxy "http://proxy_server:port/";
+```
+
+If you use authentication:
+
+    Acquire::http::Proxy "http://user:password@proxy_server:port/";
+
 Note that the following domains must be reachable through the proxy:
 
     cactus.de (only for downloading test data, not needed if run with "--skip-tags test")

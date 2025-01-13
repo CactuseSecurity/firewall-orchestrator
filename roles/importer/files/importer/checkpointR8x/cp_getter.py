@@ -168,7 +168,9 @@ def getRulebases (api_v_url, sid, show_params_rules, rulebaseUid=None, rulebaseN
         logger.error('access_type is neither "access" nor "nat", but ' + access_type)
 
     # get uid of rulebase
-    if (rulebaseUid is None) and (rulebaseName is not None):
+    if rulebaseUid is not None:
+        pass
+    elif rulebaseName is not None:
         get_rulebase_uid_params = {
             'name': rulebaseName,
             'limit': 1,
@@ -202,7 +204,7 @@ def getRulebases (api_v_url, sid, show_params_rules, rulebaseUid=None, rulebaseN
         # get rulebase in chunks
         while (current<total):
 
-            show_params_rules['offset']=current
+            show_params_rules.update({'offset': current})
         
             try:
                 rulebase = cp_api_call(api_v_url, 'show-' + access_type + '-rulebase', show_params_rules, sid)

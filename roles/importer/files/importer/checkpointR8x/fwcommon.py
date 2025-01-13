@@ -184,7 +184,7 @@ def has_config_changed (full_config, mgm_details, force=False):
     return result
 
 
-def getRules (nativeConfig: dict, importState: ImportState, sid: str, cpManagerApiBaseUrl: str) -> int:
+def getRules (nativeConfig: dict, importState: ImportState, sid: str) -> int:
 # delete_v: diese funktion sollte komplett umgeschrieben werden
 # 1. global 2. local 3. ordered 4. inline
 # in der output strucktur müssen die namen der policies mitgeliefert werden,
@@ -223,16 +223,12 @@ def getRules (nativeConfig: dict, importState: ImportState, sid: str, cpManagerA
             show_params_rules.update({'name': device['global_rulebase_name']})
             # get global layer rulebase
             logger.debug ( "getting layer: " + show_params_rules['name'] )
-            # delete_v funktion get_layer_from_api_as_dict hat folgenden input
-            # (api_v_url, sid, show_params_rules, layerUid=None, layerName=None, access_type='access', collection_type='rulebase', nativeConfig={}):
-            # importState.MgmDetails.Secret ist nicht die sid, kann einfach zur sid geändert werden? Wahrscheinlich nicht
-            current_global_rulebases = cp_getter.getRulebases (importState.FwoConfig.FwoApiUri, 
-                                                                       importState.MgmDetails.Secret, 
-                                                                       show_params_rules, 
-                                                                       layername=device['global_rulebase_name'],
-                                                                       nativeConfig=nativeConfig)
-            if current_global_layer_json is None:
-                return 1
+            cp_getter.getRulebases (importState.FwoConfig.FwoApiUri, 
+                                    sid, 
+                                    show_params_rules, 
+                                    rulebaseName=device['global_rulebase_name'],
+                                    access_type='access',
+                                    nativeConfig=nativeConfig)
 
             # now also get domain rules 
             show_params_rules.update({'name': device['local_rulebase_name']})
@@ -240,13 +236,17 @@ def getRules (nativeConfig: dict, importState: ImportState, sid: str, cpManagerA
             # nativeConfig['rulebases'] = Liste von current_global_layer_json = { "layername": layerName, "rulebase_chunks": [] }
             # current_global_layer_json = { "layername": layerName, "rulebase_chunks": [], "rulebase_links": [] }
             logger.debug ( "getting domain rule layer: " + show_params_rules['name'] )
-            domain_rules = cp_getter.get_layer_from_api_as_dict (cpManagerApiBaseUrl, 
-                                                                 sid, 
-                                                                 show_params_rules, 
-                                                                 layername=device['local_rulebase_name'], 
-                                                                 nativeConfig=nativeConfig)
-            if current_layer_json is None:
-                return 1
+            cp_getter.getRulebases (importState.FwoConfig.FwoApiUri, 
+                                    sid, 
+                                    show_params_rules, 
+                                    rulebaseName=device['local_rulebase_name'],
+                                    access_type='access',
+                                    nativeConfig=nativeConfig)
+            
+            # link domain rules to global rules
+            for rulebase in nativeConfig['rulebases']:
+                if rulebase['name'] == 
+                nativeConfig.update({'rulebases': []})
 
             # now handling possible reference to domain rules within global rules
             # if we find the reference, replace it with the domain rules

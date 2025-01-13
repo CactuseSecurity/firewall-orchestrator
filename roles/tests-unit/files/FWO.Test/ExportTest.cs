@@ -323,71 +323,14 @@ namespace FWO.Test
                 ReportData = ConstructConnectionReport(false)
             };
 
-            string expectedHtmlResult = "<!DOCTYPE html><html><head><meta charset=\"utf-8\"/><title>Connections Report</title>" +
-            "<style>table {font-family: arial, sans-serif;font-size: 10px;border-collapse: collapse;width: 100 %;}td {border: 1px solid #000000;text-align: left;padding: 3px;}th {border: 1px solid #000000;text-align: left;padding: 3px;background-color: #dddddd;}</style></head>" +
-            "<body>" +
-            "<h2>Connections Report</h2>" +
-            "<p>Generated on: Z (UTC)</p>" +
-            "<p>Owners: TestOwner</p>" +
-            "<p>Filter: TestFilter</p><hr>" +
-            "<h3>TestOwner</h3>" +
-            "<h4>Connections</h4><table>" +
-            "<tr><th>No.</th><th>Id</th><th>Name</th><th>Functional Reason</th><th>Source</th><th>Services</th><th>Destination</th></tr>" +
-            "<tr><td>1</td><td>101</td><td>Conn1</td><td></td>" +
-            "<td><span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1x11\" target=\"_top\" style=\"\">AppServer1 (1.0.0.0)</a></td>" +
-            "<td><span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc1x41\" target=\"_top\" style=\"\">ServiceGroup1</a><br>" +
-            "<span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc1x31\" target=\"_top\" style=\"\">Service1 (1234/TCP)</a></td>" +
-            "<td><span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1x21\" target=\"_top\" style=\"\">AppRole1 (AR1)</a></td></table><hr>" +
-            "<h4>Interfaces</h4><table>" +
-            "<tr><th>No.</th><th>Id</th><th>Published</th><th>Name</th><th>Interface Description</th><th>Source</th><th>Services</th><th>Destination</th></tr>" +
-            "<tr><td>1</td><td>102</td><td>✖</td><td>Inter2</td><td></td><td></td>" +
-            "<td><span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc1x0\" target=\"_top\" style=\"\"></a><br>" +
-            "<span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc1x32\" target=\"_top\" style=\"\">Service2 (2345/UDP)</a></td>" +
-            "<td><span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1x0\" target=\"_top\" style=\"\">noRole ()</a><br>" +
-            "<span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1x12\" target=\"_top\" style=\"\">AppServer2 (2.0.0.0)</a></td></table><hr>" +
-            "<h4>Own Common Services</h4><table>" +
-            "<tr><th>No.</th><th>Id</th><th>Name</th><th>Functional Reason</th><th>Source</th><th>Services</th><th>Destination</th></tr>" +
-            "<tr><td>1</td><td>103</td><td>ComSvc3</td><td></td>" +
-            "<td><span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1x11\" target=\"_top\" style=\"\">AppServer1 (1.0.0.0)</a></td>" +
-            "<td><span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc1x0\" target=\"_top\" style=\"\"></a><br>" +
-            "<span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc1x32\" target=\"_top\" style=\"\">Service2 (2345/UDP)</a></td>" +
-            "<td><span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1x12\" target=\"_top\" style=\"\">AppServer2 (2.0.0.0)</a></td></table><hr>" +
+            string expectedHtmlResult = "<!DOCTYPE html><html><head><meta charset=\"utf-8\"/><title>Connections Report</title><style>table {font-family: arial, sans-serif;font-size: 10px;border-collapse: collapse;width: 100 %;}td {border: 1px solid #000000;text-align: left;padding: 3px;}th {border: 1px solid #000000;text-align: left;padding: 3px;background-color: #dddddd;}</style></head><body><h2>Connections Report</h2><p>Generated on: Z (UTC)</p><p>Owners: TestOwner</p><p>Filter: TestFilter</p><hr><div id=\"toc_container\"><h2>Table of content</h2><ul class=\"toc_list\"><li><a href=\"#" + StaticAnkerId + "\">TestOwner</a></li><ul><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">Connections</a></li><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">Interfaces</a></li><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">Own Common Services</a></li><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">Network Objects</a></li><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">Network Services</a></li></ul><li><a href=\"#" + StaticAnkerId + "\">Global Common Services</a></li><ul><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">Network Objects</a></li><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">Network Services</a></li></ul></ul></div><style>#toc_container {background: #f9f9f9 none repeat scroll 0 0;border: 1px solid #aaa;display: table;font-size: 95%;margin-bottom: 1em;padding: 10px;width: 100%;}#toc_container ul{list-style-type: none;}.subli {list-style-type: square;}.toc_list ul li {margin-bottom: 4px;}.toc_list a {color: black;font-family: 'Arial';font-size: 12pt;}</style><hr><h3 id=\"" + StaticAnkerId + "\">TestOwner</h3><h4 id=\"" + StaticAnkerId + "\">Connections</h4><table><tr><th>No.</th><th>Id</th><th>Name</th><th>Functional Reason</th><th>Source</th><th>Services</th><th>Destination</th></tr><tr><td>1</td><td>101</td><td>Conn1</td><td></td><td><span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1x11\" target=\"_top\" style=\"\">AppServer1 (1.0.0.0)</a></td><td><span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc1x41\" target=\"_top\" style=\"\">ServiceGroup1</a><br><span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc1x31\" target=\"_top\" style=\"\">Service1 (1234/TCP)</a></td><td><span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1x21\" target=\"_top\" style=\"\">AppRole1 (AR1)</a></td></table><hr><h4 id=\"" + StaticAnkerId + "\">Interfaces</h4><table><tr><th>No.</th><th>Id</th><th>Published</th><th>Name</th><th>Interface Description</th><th>Source</th><th>Services</th><th>Destination</th></tr><tr><td>1</td><td>102</td><td>✖</td><td>Inter2</td><td></td><td></td><td><span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc1x0\" target=\"_top\" style=\"\"></a><br><span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc1x32\" target=\"_top\" style=\"\">Service2 (2345/UDP)</a></td><td><span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1x0\" target=\"_top\" style=\"\">noRole ()</a><br><span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1x12\" target=\"_top\" style=\"\">AppServer2 (2.0.0.0)</a></td></table><hr><h4 id=\"" + StaticAnkerId + "\">Own Common Services</h4><table><tr><th>No.</th><th>Id</th><th>Name</th><th>Functional Reason</th><th>Source</th><th>Services</th><th>Destination</th></tr><tr><td>1</td><td>103</td><td>ComSvc3</td><td></td><td><span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1x11\" target=\"_top\" style=\"\">AppServer1 (1.0.0.0)</a></td><td><span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc1x0\" target=\"_top\" style=\"\"></a><br><span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc1x32\" target=\"_top\" style=\"\">Service2 (2345/UDP)</a></td><td><span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1x12\" target=\"_top\" style=\"\">AppServer2 (2.0.0.0)</a></td></table><hr><h4 id=\"" + StaticAnkerId + "\">Network Objects</h4><table><tr><th>No.</th><th>Id</th><th>Name</th><th>Ip</th><th>Members</th></tr><tr><td>1</td><td>21</td><td><a name=nwobj1x21>AppRole1 (AR1)</a></td><td></td><td>AppServer1</td><tr><td>2</td><td>11</td><td><a name=nwobj1x11>AppServer1</a></td><td>1.0.0.0</td><td></td><tr><td>3</td><td>0</td><td><a name=nwobj1x0>noRole ()</a></td><td></td><td></td><tr><td>4</td><td>12</td><td><a name=nwobj1x12>AppServer2</a></td><td>2.0.0.0</td><td></td></table><hr><h4 id=\"" + StaticAnkerId + "\">Network Services</h4><table><tr><th>No.</th><th>Id</th><th>Name</th><th>Protocol</th><th>Port</th><th>Members</th></tr><tr><td>1</td><td>41</td><td><a name=svc1x41>ServiceGroup1</a></td><td></td><td></td><td>Service1</td><tr><td>2</td><td>31</td><td><a name=svc1x31>Service1</a></td><td>TCP</td><td>1234</td><td></td><tr><td>3</td><td>0</td><td><a name=svc1x0></a></td><td></td><td></td><td></td><tr><td>4</td><td>32</td><td><a name=svc1x32>Service2</a></td><td>UDP</td><td>2345</td><td></td></table><hr><h3 id=\"" + StaticAnkerId + "\">Global Common Services</h3><table><tr><th>No.</th><th>Id</th><th>Owner</th><th>Name</th><th>Functional Reason</th><th>Source</th><th>Services</th><th>Destination</th></tr><tr><td>1</td><td>103</td><td>App1</td><td>ComSvc3</td><td></td><td><span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj2x11\" target=\"_top\" style=\"\">AppServer1 (1.0.0.0)</a></td><td><span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc2x0\" target=\"_top\" style=\"\"></a><br><span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc2x32\" target=\"_top\" style=\"\">Service2 (2345/UDP)</a></td><td><span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj2x12\" target=\"_top\" style=\"\">AppServer2 (2.0.0.0)</a></td></table><hr><h4 id=\"" + StaticAnkerId + "\">Network Objects</h4><table><tr><th>No.</th><th>Id</th><th>Name</th><th>Ip</th><th>Members</th></tr><tr><td>1</td><td>11</td><td><a name=nwobj2x11>AppServer1</a></td><td>1.0.0.0</td><td></td><tr><td>2</td><td>12</td><td><a name=nwobj2x12>AppServer2</a></td><td>2.0.0.0</td><td></td></table><hr><h4 id=\"" + StaticAnkerId + "\">Network Services</h4><table><tr><th>No.</th><th>Id</th><th>Name</th><th>Protocol</th><th>Port</th><th>Members</th></tr><tr><td>1</td><td>0</td><td><a name=svc2x0></a></td><td></td><td></td><td></td><tr><td>2</td><td>32</td><td><a name=svc2x32>Service2</a></td><td>UDP</td><td>2345</td><td></td></table><hr></body></html>";
 
-            "<h4>Network Objects</h4>" +
-            "<table><tr><th>No.</th><th>Id</th><th>Name</th><th>Ip</th><th>Members</th></tr>" +
-            "<tr><td>1</td><td>21</td><td><a name=nwobj1x21>AppRole1 (AR1)</a></td><td></td><td>AppServer1</td>" +
-            "<tr><td>2</td><td>11</td><td><a name=nwobj1x11>AppServer1</a></td><td>1.0.0.0</td><td></td>" +
-            "<tr><td>3</td><td>0</td><td><a name=nwobj1x0>noRole ()</a></td><td></td><td></td>" +
-            "<tr><td>4</td><td>12</td><td><a name=nwobj1x12>AppServer2</a></td><td>2.0.0.0</td><td></td>" +
-            "</table><hr>" +
-            "<h4>Network Services</h4>" +
-            "<table><tr><th>No.</th><th>Id</th><th>Name</th><th>Protocol</th><th>Port</th><th>Members</th></tr>" +
-            "<tr><td>1</td><td>41</td><td><a name=svc1x41>ServiceGroup1</a></td><td></td><td></td><td>Service1</td>" +
-            "<tr><td>2</td><td>31</td><td><a name=svc1x31>Service1</a></td><td>TCP</td><td>1234</td><td></td>" +
-            "<tr><td>3</td><td>0</td><td><a name=svc1x0></a></td><td></td><td></td><td></td>" +
-            "<tr><td>4</td><td>32</td><td><a name=svc1x32>Service2</a></td><td>UDP</td><td>2345</td><td></td>" +
-            "</table><hr>" +
+            string reportHtml = RemoveLinebreaks(RemoveGenDate(reportConnections.ExportToHtml(), true));
 
-            "<h3>Global Common Services</h3><table>" +
-            "<tr><th>No.</th><th>Id</th><th>Owner</th><th>Name</th><th>Functional Reason</th><th>Source</th><th>Services</th><th>Destination</th></tr>" +
-            "<tr><td>1</td><td>103</td><td>App1</td><td>ComSvc3</td><td></td>" +
-            "<td><span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj2x11\" target=\"_top\" style=\"\">AppServer1 (1.0.0.0)</a></td>" +
-            "<td><span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc2x0\" target=\"_top\" style=\"\"></a><br>" +
-            "<span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc2x32\" target=\"_top\" style=\"\">Service2 (2345/UDP)</a></td>" +
-            "<td><span class=\"\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj2x12\" target=\"_top\" style=\"\">AppServer2 (2.0.0.0)</a></td></table><hr>" +
+            IEnumerable<string> matches = reportHtml.GetMatches(ToCRegexPattern, ToCAnkerIdGroupName);
+            reportHtml = reportHtml.ReplaceAll(matches, StaticAnkerId);
 
-            "<h4>Network Objects</h4>" +
-            "<table><tr><th>No.</th><th>Id</th><th>Name</th><th>Ip</th><th>Members</th></tr>" +
-            "<tr><td>1</td><td>11</td><td><a name=nwobj2x11>AppServer1</a></td><td>1.0.0.0</td><td></td>" +
-            "<tr><td>2</td><td>12</td><td><a name=nwobj2x12>AppServer2</a></td><td>2.0.0.0</td><td></td>" +
-            "</table><hr>" +
-            "<h4>Network Services</h4>" +
-            "<table><tr><th>No.</th><th>Id</th><th>Name</th><th>Protocol</th><th>Port</th><th>Members</th></tr>" +
-            "<tr><td>1</td><td>0</td><td><a name=svc2x0></a></td><td></td><td></td><td></td>" +
-            "<tr><td>2</td><td>32</td><td><a name=svc2x32>Service2</a></td><td>UDP</td><td>2345</td><td></td>" +
-            "</table><hr>" +
-            "</body></html>";
-            ClassicAssert.AreEqual(expectedHtmlResult, RemoveLinebreaks(RemoveGenDate(reportConnections.ExportToHtml(), true)));
+            ClassicAssert.AreEqual(expectedHtmlResult, reportHtml);
         }
 
         [Test]

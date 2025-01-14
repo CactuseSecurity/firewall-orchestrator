@@ -7,9 +7,9 @@
 
 @inject UserConfig userConfig
 
-
+<PageSizeComponent PageSizeCallback="UpdatePageSize"></PageSizeComponent>
 <Table class="table table-bordered th-bg-secondary sticky-header show-scrollbar table-responsive" TableItem="ModellingConnection"
-       Items="Connections" PageSize="10" ColumnReorder="true" TableRowClass="@(con => getTableRowClass(con))"
+       Items="Connections" PageSize="PageSize" ColumnReorder="true" TableRowClass="@(con => getTableRowClass(con))"
        SelectedItems="SelectedConns" RowClickAction="@(conn => ToggleSelection(conn))">
     @if (!Readonly && !SelectInterfaceView && AppHandler != null)
     {
@@ -77,12 +77,12 @@
                 @(context.App?.DisplayWithoutAppId(userConfig.GetText("common_service")))
             </Template>
         </Column>
-    }
-    <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("ext_app_id"))" Field="@(x => x.App.ExtAppId)" Sortable="true" Filterable="true">
-        <Template>
-            @(context.App.ExtAppId)
-        </Template>
-    </Column>
+        <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("ext_app_id"))" Field="@(x => x.App.ExtAppId)" Sortable="true" Filterable="true">
+            <Template>
+                @(context.App.ExtAppId)
+            </Template>
+        </Column>
+    }    
     <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true">
         <Template>
             @((MarkupString)DisplayConditional(context, context.Name ?? ""))
@@ -159,6 +159,13 @@
 
     [Parameter]
     public SelectionType SelectionType { get; set; } = SelectionType.Single;
+
+    private int PageSize { get; set; }
+
+    private void UpdatePageSize(int pageSize)
+    {
+        PageSize = pageSize;
+    }
 
     private void ToggleSelection(ModellingConnection conn)
     {

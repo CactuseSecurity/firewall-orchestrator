@@ -130,3 +130,18 @@
     name: "{{ webserver_package_name }}"
     state: restarted
   become: true
+
+- name: finally restart MW
+  ansible.builtin.systemd:
+    name: "{{ product_name }}-middleware"
+    state: restarted
+  become: true
+  when: "'middlewareserver' in group_names"
+
+# TODO - find out why UI sometimes crashes during upgrade of heavy data installations
+- name: finally restart UI
+  ansible.builtin.systemd:
+    name: "{{ product_name }}-ui"
+    state: restarted
+  become: true
+  when: "'frontends' in group_names"

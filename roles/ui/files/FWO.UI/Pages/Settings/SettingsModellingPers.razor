@@ -34,6 +34,12 @@
                 </div>
             </div>
         </div>
+        <div class="form-group row mt-2">
+            <div class="row col-sm-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5605"))">
+                <label class="col-form-label col-sm-8">@(userConfig.GetText("maxModellingTableRows")):</label>
+                <input type="number" min="0" class="col-sm-3" @bind="configData!.MaxModellingTableRows" />
+            </div>           
+        </div>
     </form>
     <hr />
     <button type="button" class="btn btn-sm btn-primary" @onclick="Save" @onclick:preventDefault>@(userConfig.GetText("save"))</button>

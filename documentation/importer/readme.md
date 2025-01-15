@@ -50,3 +50,85 @@ optional arguments:
                         if set, the config will not be fetched from firewall but read from normalized json config file specified here; may also be an url.
 user@test:~$ 
 ```
+
+# rework 2025
+
+## data collected from autodiscovery (sync per management)
+
+```json
+{
+  "management": {
+    "uid": "xxxx",  # either name or uid can be fetched from API
+    "name": "xxx", 
+    "type": "cpr8x, fortimanager, fortiOS, ...", # not read from sync but can be configured in UI/DB
+    "do_not_import": false,   # not read from sync but can be configured in UI/DB
+    "hide_in_ui": false,      # not read from sync but can be configured in UI/DB
+    "gateways": [
+      "uid": "xxx",
+      "name": "abc",
+      "type": "cp-gw|fortigate|...",
+      "do_not_import": false,   # not read from sync but can be configured in UI/DB
+      "hide_in_ui": false       # not read from sync but can be configured in UI/DB
+    ],
+    "managements": [] # for sub managements, content: see above
+} 
+```
+- auto discovery does not store any information about rulebases!
+- this is the only data stored (by initial sync of a management) in the database
+- this means we cannot identify any rulebase changes, pro: these changes will be ignored
+- if we cannot sync a firewall, e.g. palo, we need more fields like policy name, ...
+
+## interface for file import (json data structure, normalized config)
+
+```json
+{
+  "global_rulebases": [],
+  "global_network_objects": [],
+  "global_network_services": [],
+  "global_users": [],
+  "sub-managements": [
+    {
+      "uid": "xxx",
+      "name": "abc",
+      # type is not imported because we always assume normalized format, 
+      "gateways": [
+        {
+          "uid": "xxx",
+          "name": "xxx",
+          "type": "",
+          "initial_rulebase_uid": "uidxy",
+          "routing": [],
+          "interfaces": [],
+        }
+      ],
+      "rulebases": [
+        {
+          "uid": "xxx",
+          "name": "xxx",
+          "type": "access|nat",
+          "rb_order_no": 1,
+          "rules": [
+            ...       
+            "src_ref": "uid1234"
+          ]
+        }
+      ],
+      "rulebase_link": [
+        {
+          "rule_from_uid": "xxx",     # when null, this is the initial rulebase for a gateway
+          "rulebase_to_uid": "xxx",
+          "link_type": "layer|ordered|...",
+          "gateway-uid": "xxx"
+        },
+        ...more links
+      ]
+      "network_objects": []
+      "network_services": []
+      "users": []
+    },
+    ...more managements
+      ]
+
+  ],
+]
+```

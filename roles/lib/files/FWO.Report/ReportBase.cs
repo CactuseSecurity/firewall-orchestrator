@@ -102,8 +102,7 @@ namespace FWO.Report
         protected string htmlExport = "";
 
         private const string ChromeBinPathLinux = "/usr/local/bin";
-
-        private const string ToCHTMLTemplateFileName = "ToCHTMLTemplate.html";
+        private string TocHTMLTemplate = "<div id=\"toc_container\"><h2>##ToCHeader##</h2><ul class=\"toc_list\">##ToCList##</ul></div><style>#toc_container {background: #f9f9f9 none repeat scroll 0 0;border: 1px solid #aaa;display: table;font-size: 95%;margin-bottom: 1em;padding: 10px;width: 100%;}#toc_container ul{list-style-type: none;}.subli {list-style-type: square;}.toc_list ul li {margin-bottom: 4px;}.toc_list a {color: black;font-family: 'Arial';font-size: 12pt;}</style>";
 
         public bool GotObjectsInReport { get; protected set; } = false;
 
@@ -318,9 +317,7 @@ namespace FWO.Report
 
         private string BuildHTMLToC(string html)
         {
-            string tocHTMLTemplate = "<div id=\"toc_container\"><h2>##ToCHeader##</h2><ul class=\"toc_list\">##ToCList##</ul></div><style>#toc_container {background: #f9f9f9 none repeat scroll 0 0;border: 1px solid #aaa;display: table;font-size: 95%;margin-bottom: 1em;padding: 10px;width: 100%;}#toc_container ul{list-style-type: none;}.subli {list-style-type: square;}.toc_list ul li {margin-bottom: 4px;}.toc_list a {color: black;font-family: 'Arial';font-size: 12pt;}</style>"
-
-            bool tocTemplateValid = IsValidHTML(tocHTMLTemplate);
+            bool tocTemplateValid = IsValidHTML(TocHTMLTemplate);
 
             if (!tocTemplateValid)
             {
@@ -329,7 +326,7 @@ namespace FWO.Report
 
             List<ToCHeader>? tocHeaders = CreateTOCContent(html);
 
-            tocHTMLTemplate = tocHTMLTemplate.Replace("##ToCHeader##", userConfig.GetText("tableofcontent"));
+            TocHTMLTemplate = TocHTMLTemplate.Replace("##ToCHeader##", userConfig.GetText("tableofcontent"));
 
             StringBuilder sb = new();
 
@@ -350,16 +347,16 @@ namespace FWO.Report
                 }
             }
 
-            tocHTMLTemplate = tocHTMLTemplate.Replace("##ToCList##", sb.ToString());
+            TocHTMLTemplate = TocHTMLTemplate.Replace("##ToCList##", sb.ToString());
 
-            bool tocValidHTML = IsValidHTML(tocHTMLTemplate);
+            bool tocValidHTML = IsValidHTML(TocHTMLTemplate);
 
             if (!tocValidHTML)
             {
                 throw new Exception(userConfig.GetText("E9302"));
             }
 
-            return tocHTMLTemplate;
+            return TocHTMLTemplate;
         }
 
         private static bool IsValidHTML(string html)

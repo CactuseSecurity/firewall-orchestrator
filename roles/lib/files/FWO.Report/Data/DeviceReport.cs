@@ -17,8 +17,8 @@ namespace FWO.Report
         [JsonProperty("rulebase_on_gateways"), JsonPropertyName("rulebase_on_gateways")]
         public RulebaseOnGateway[] OrderedRulebases { get; set; } = [];
 
-        // [JsonProperty("rules"), JsonPropertyName("rules")]
-        // public Rule[]? Rules { get; set; }
+        [JsonProperty("rules"), JsonPropertyName("rules")]
+        public Rule[]? Rules { get; set; }
 
         [JsonProperty("changelog_rules"), JsonPropertyName("changelog_rules")]
         public RuleChange[]? RuleChanges { get; set; }

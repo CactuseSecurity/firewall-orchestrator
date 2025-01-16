@@ -15,6 +15,11 @@ namespace FWO.Basics
         private const string HtmlTagPattern = "<.*?>";
         private static readonly string[] AllowedTags = ["br?", "i", "hr"];
 
+        public static bool GenerousCompare(this string? string1, string? string2)
+        {
+            return string.IsNullOrEmpty(string1) && string.IsNullOrEmpty(string2) || string1 == string2;
+        }
+
         public static bool TrySplit(this string text, char separator, int index, out string output)
         {
             string[] splits = text.Split(separator);

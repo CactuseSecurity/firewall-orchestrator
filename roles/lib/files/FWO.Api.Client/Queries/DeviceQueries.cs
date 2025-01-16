@@ -11,6 +11,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string getDeviceTypeDetails;
         public static readonly string newManagement;
         public static readonly string updateManagement;
+        public static readonly string updateManagementUid;
         public static readonly string changeManagementState;
         public static readonly string deleteManagement;
         public static readonly string getDeviceDetails;
@@ -44,6 +45,7 @@ namespace FWO.Api.Client.Queries
                                         + File.ReadAllText(QueryPath + "device/fragments/deviceTypeDetails.graphql");
                 newManagement = File.ReadAllText(QueryPath + "device/newManagement.graphql");
                 updateManagement = File.ReadAllText(QueryPath + "device/updateManagement.graphql");
+                updateManagementUid = File.ReadAllText(QueryPath + "device/updateManagementUid.graphql");
                 changeManagementState = File.ReadAllText(QueryPath + "device/changeManagementState.graphql");
                 deleteManagement = File.ReadAllText(QueryPath + "device/deleteManagement.graphql");
                 getDeviceDetails = File.ReadAllText(QueryPath + "device/getDeviceDetails.graphql") + " " 

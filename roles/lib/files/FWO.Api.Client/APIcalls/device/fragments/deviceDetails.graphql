@@ -3,6 +3,7 @@ fragment deviceDetails on device
 {
     id: dev_id
     name: dev_name
+    uid: dev_uid
     deviceType: stm_dev_typ { ...deviceTypeDetails }
     management {
       id: mgm_id

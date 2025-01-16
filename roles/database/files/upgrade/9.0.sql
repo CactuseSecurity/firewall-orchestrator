@@ -88,6 +88,8 @@ ALTER TABLE management ADD COLUMN IF NOT EXISTS "rulebase_name" Varchar NOT NULL
 ALTER TABLE management ADD COLUMN IF NOT EXISTS "rulebase_uid" Varchar NOT NULL DEFAULT '';
 Alter table rule_metadata add column if not exists rulebase_id integer; -- not null;
 
+ALTER TABLE device ADD COLUMN IF NOT EXISTS "dev_uid" Varchar NOT NULL DEFAULT '';
+
 Alter table stm_action add column if not exists allowed BOOLEAN NOT NULL DEFAULT TRUE;
 
 UPDATE stm_action SET allowed = FALSE WHERE action_name = 'deny' OR action_name = 'drop' OR action_name = 'reject';
@@ -118,7 +120,6 @@ Create table IF NOT EXISTS "rulebase_on_gateway"
 	"dev_id" Integer,
 	"rulebase_id" Integer NOT NULL,
 	"order_no" Integer
---	"layer_guard_rule" bigint -- if no layer: null --> will be implemented by direct link from layer guard rule to rulebase table
 );
 
 ALTER TABLE "rulebase_on_gateway" DROP CONSTRAINT IF EXISTS "fk_rulebase_on_gateway_dev_id" CASCADE;

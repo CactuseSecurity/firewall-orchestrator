@@ -13,6 +13,7 @@ using PdfSharp.Pdf;
 using PdfSharp.Drawing;
 using PdfSharp.Pdf.IO;
 using FWO.Report.Data;
+using System.IO;
 
 namespace FWO.Report
 {
@@ -322,13 +323,30 @@ namespace FWO.Report
 
             string baseDir = "";
 
-            if (location.Contains("FWO.Test"))
+            switch (Environment.OSVersion.Platform)
             {
-                baseDir = Path.GetFullPath("..\\..\\..\\..\\..\\..\\");
-            }
-            else
-            {
-                baseDir = Path.GetFullPath("..\\..\\..\\");
+                case PlatformID.Win32NT:
+                    if (location.Contains("FWO.Test"))
+                    {
+                        baseDir = Path.GetFullPath("..\\..\\..\\..\\..\\..\\");
+                    }
+                    else
+                    {
+                        baseDir = Path.GetFullPath("..\\..\\..\\");
+                    }
+                    break;
+                case PlatformID.Unix:
+                    if (location.Contains("FWO.Test"))
+                    {
+                        baseDir = Path.GetFullPath("../../../../../../");
+                    }
+                    else
+                    {
+                        baseDir = Path.GetFullPath("../../../");
+                    }
+                    break;
+                default:
+                    break;
             }
 
             string tocTemplatePath = Path.Combine(baseDir, "ui", "files", "FWO.UI", "wwwroot", "html", ToCHTMLTemplateFileName);

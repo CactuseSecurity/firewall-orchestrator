@@ -86,6 +86,14 @@ namespace FWO.Test
             { "E9301", "Template File not found!" },
             { "E9302", "HTML is invalid!" },
             { "tableofcontent", "Table of content" }
+            {"objects","Objects"},
+            {"all","All"},
+            {"report","Report"},
+            {"rule", "Rule"},
+            {"collapse_all","Collapse All"},
+            {"clear_all", "Clear All"},
+            {"used_objects", "Used Objects"},
+            {"object_fetch", "Object Fetch"},
         };
 
         public override string GetText(string key)

@@ -15,8 +15,8 @@
 @if(InitComplete)
 {
     <div class="vheight75">
-        <PageSizeComponent PageSizeCallback="UpdatePageSize" PageSize="PageSize"></PageSizeComponent>
-        <Table TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="LogEntry" Items="logEntrys" PageSize="PageSize">
+        <PageSizeComponent PageSizeCallback="UpdatePageSize"></PageSizeComponent>
+        <Table PageSize="PageSize" TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="LogEntry" Items="logEntrys">
             <Column TableItem="LogEntry" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true"/>
             <Column TableItem="LogEntry" Title="@(userConfig.GetText("severity"))" Field="@(x => x.Severity)" Sortable="true" Filterable="true"/>
             <Column TableItem="LogEntry" Title="@(userConfig.GetText("description"))" Field="@(x => x.Description)" Sortable="true" Filterable="true"/>
@@ -49,7 +49,7 @@ else
     private List<LogEntry> logEntrys = new List<LogEntry>();
     private bool InitComplete = false;
 
-    private int PageSize { get; set; } = 10;
+    private int PageSize { get; set; }
 
     protected override async Task OnInitializedAsync()
     {

@@ -255,10 +255,7 @@ namespace FWO.Report
             using IBrowser? browser = await Puppeteer.LaunchAsync(new LaunchOptions
             {
                 ExecutablePath = isGitHubActions ? "/usr/bin/chromium-browser" : brw.GetExecutablePath(),
-                Headless = true,
-                Args = isGitHubActions ?
-                    ["--no-sandbox", "--database=/tmp", "--disable-setuid-sandbox"]
-                    : [] // No additional arguments locally
+                Headless = true
             });
 
             try

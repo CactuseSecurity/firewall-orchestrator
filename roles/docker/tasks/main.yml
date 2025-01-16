@@ -7,7 +7,7 @@
   # for trixie there is no docker image yet
   - set_fact: 
       os_codename: bookworm
-    when: os_codename == "trixie"
+    when: "os_codename == 'trixie'"
  
   - name: Install packages for docker download n installation
     package:
@@ -33,7 +33,7 @@
       path: "/etc/apt/sources.list.d/docker.list"
       create: true
       regexp: 'download.docker.com'
-      line: "deb [arch=amd64] https://download.docker.com/linux/{{ ansible_distribution | lower }} {{ ansible_lsb.codename | lower }} stable"
+      line: "deb [arch=amd64] https://download.docker.com/linux/{{ ansible_distribution | lower }} {{ os_codename }} stable"
 
   - name: apt update
     apt: update_cache=true

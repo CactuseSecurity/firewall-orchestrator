@@ -13,7 +13,6 @@ using PdfSharp.Pdf;
 using PdfSharp.Drawing;
 using PdfSharp.Pdf.IO;
 using FWO.Report.Data;
-using System.IO;
 
 namespace FWO.Report
 {
@@ -319,44 +318,7 @@ namespace FWO.Report
 
         private string BuildHTMLToC(string html)
         {
-            string location = Assembly.GetExecutingAssembly().Location;
-
-            string baseDir = "";
-
-            switch (Environment.OSVersion.Platform)
-            {
-                case PlatformID.Win32NT:
-                    if (location.Contains("FWO.Test"))
-                    {
-                        baseDir = Path.GetFullPath("..\\..\\..\\..\\..\\..\\");
-                    }
-                    else
-                    {
-                        baseDir = Path.GetFullPath("..\\..\\..\\");
-                    }
-                    break;
-                case PlatformID.Unix:
-                    if (location.Contains("FWO.Test"))
-                    {
-                        baseDir = Path.GetFullPath("../../../../../../");
-                    }
-                    else
-                    {
-                        baseDir = Path.GetFullPath("../../../");
-                    }
-                    break;
-                default:
-                    break;
-            }
-
-            string tocTemplatePath = Path.Combine(baseDir, "ui", "files", "FWO.UI", "wwwroot", "html", ToCHTMLTemplateFileName);
-
-            if (!File.Exists(tocTemplatePath))
-            {
-                throw new Exception(userConfig.GetText("E9301"));
-            }
-
-            string tocHTMLTemplate = File.ReadAllText(tocTemplatePath);
+            string tocHTMLTemplate = "<div id=\"toc_container\"><h2>##ToCHeader##</h2><ul class=\"toc_list\">##ToCList##</ul></div><style>#toc_container {background: #f9f9f9 none repeat scroll 0 0;border: 1px solid #aaa;display: table;font-size: 95%;margin-bottom: 1em;padding: 10px;width: 100%;}#toc_container ul{list-style-type: none;}.subli {list-style-type: square;}.toc_list ul li {margin-bottom: 4px;}.toc_list a {color: black;font-family: 'Arial';font-size: 12pt;}</style>"
 
             bool tocTemplateValid = IsValidHTML(tocHTMLTemplate);
 

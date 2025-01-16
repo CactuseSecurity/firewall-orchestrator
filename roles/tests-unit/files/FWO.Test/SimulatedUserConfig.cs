@@ -85,7 +85,7 @@ namespace FWO.Test
             {"update_app_zone", "Update AppZone: " },
             { "E9301", "Template File not found!" },
             { "E9302", "HTML is invalid!" },
-            { "tableofcontent", "Table of content" }
+            { "tableofcontent", "Table of content" },
             {"objects","Objects"},
             {"all","All"},
             {"report","Report"},

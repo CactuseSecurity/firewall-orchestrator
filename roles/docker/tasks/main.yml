@@ -7,7 +7,7 @@
   # for trixie there is no docker image yet
   - set_fact: 
       os_codename: bookworm
-    when: ansible_distribution == "Debian" and ansible_distribution_version == "13"
+    when: os_codename == "trixie"
  
   - name: Install packages for docker download n installation
     package:

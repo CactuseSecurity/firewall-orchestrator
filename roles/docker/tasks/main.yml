@@ -1,8 +1,8 @@
 ---
 - block:  
-  - set_fact: 
-    ansible_user: "{{ lookup('env','USER') }}"
-    os_codename: "{{ ansible_lsb.codename | lower }}"
+  - set_fact:
+      ansible_user: "{{ lookup('env','USER') }}"
+      os_codename: "{{ ansible_lsb.codename | lower }}"
   
   # for trixie there is no docker image yet
   - set_fact: 

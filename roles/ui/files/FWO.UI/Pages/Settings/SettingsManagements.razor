@@ -57,6 +57,7 @@
         </Column>
         <Column TableItem="Management" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
         <Column TableItem="Management" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
+        <Column TableItem="Management" Title="@(userConfig.GetText("uid"))" Field="@(x => x.Uid)" Sortable="true" Filterable="true" />
         <Column TableItem="Management" Title="@(userConfig.GetText("type"))" Field="@(x => x.DeviceType.Id)" Sortable="true">
             <Template>
                 @(context.DeviceType.NameVersion())
@@ -116,6 +117,12 @@
                     <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
                     <div class="col-sm-8">
                         <input type="text" class="form-control form-control-sm" @bind="actManagement.Name" />
+                    </div>
+                </div>
+                <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5110"))">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("uid")):</label>
+                    <div class="col-sm-8">
+                        <input type="text" class="form-control form-control-sm" @bind="actManagement.Uid" />
                     </div>
                 </div>
                 <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5112"))">
@@ -453,6 +460,7 @@
                     var Variables = new
                     {
                         name = actManagement.Name,
+                        uid = actManagement.Uid,
                         devTypeId = actManagement.DeviceType.Id,
                         hostname = actManagement.Hostname,
                         importCredentialId = actManagement.ImportCredential.Id,
@@ -486,6 +494,7 @@
                     {
                         id = actManagement.Id,
                         name = actManagement.Name,
+                        uid = actManagement.Uid,
                         devTypeId = actManagement.DeviceType.Id,
                         hostname = actManagement.Hostname,
                         importCredentialId = actManagement.ImportCredential.Id,
@@ -525,6 +534,11 @@
             DisplayMessageInUi(null, checkCause, userConfig.GetText("E5102"), true);
             return false;
         }
+        // if (mgm.Uid == null && mgm.DeviceType.Manufacturer == "Check Point")
+        // {
+        //    DisplayMessageInUi(null, checkCause, userConfig.GetText("E5110"), true);
+        //    return false;
+        //}
         if(mgm.DeviceType.IsLegacyDevType() && mgm.Name.Contains(" "))
         {
             DisplayMessageInUi(null, checkCause, userConfig.GetText("E5109"), true);

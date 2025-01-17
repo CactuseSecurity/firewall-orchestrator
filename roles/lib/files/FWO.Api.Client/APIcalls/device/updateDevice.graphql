@@ -1,11 +1,12 @@
 mutation updateDevice(
   $id: Int!
+  $uid: String
   $name: String!
   $managementId: Int!
   $devTypeId: Int!
   $importDisabled: Boolean!
   $hideInUi: Boolean!
-  $localRulebase: String!
+  $localRulebase: String
   $globalRulebase: String
   $package: String
   $comment: String
@@ -14,6 +15,7 @@ mutation updateDevice(
     pk_columns: { dev_id: $id }
     _set: {
       dev_name: $name
+      dev_uid: $uid
       dev_typ_id: $devTypeId
       mgm_id: $managementId
       local_rulebase_name: $localRulebase
@@ -32,6 +34,7 @@ mutation updateDevice(
 # { 
 #   "id": 17,
 #   "name": "huhu",
+#   "uid": "huhu",
 #   "devTypeId": 10,
 #   "managementId": 2,
 #   "rulebase": "layer1",

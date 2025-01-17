@@ -1,5 +1,6 @@
 mutation newManagementWithExistingCredentials(
   $name: String!
+  $uid: String
   $devTypeId: Int!
   $importCredentialId: Int!
   $hostname: String!
@@ -20,6 +21,7 @@ mutation newManagementWithExistingCredentials(
   insert_management(
     objects: {
       mgm_name: $name
+      mgm_uid: $uid
       dev_typ_id: $devTypeId
       ssh_hostname: $hostname
       import_credential_id: $importCredentialId

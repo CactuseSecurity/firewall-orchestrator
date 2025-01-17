@@ -1,6 +1,8 @@
 ﻿using System.Text.Json.Serialization; 
 using Newtonsoft.Json;
 
+using FWO.Basics;
+
 namespace FWO.Api.Data
 {
     public class Device
@@ -8,6 +10,9 @@ namespace FWO.Api.Data
         [JsonProperty("id"), JsonPropertyName("id")]
         public int Id { get; set; }
 
+        [JsonProperty("uid"), JsonPropertyName("uid")]
+        public string? Uid { get; set; }
+        
         [JsonProperty("name"), JsonPropertyName("name")]
         public string? Name { get; set; }
 
@@ -51,6 +56,7 @@ namespace FWO.Api.Data
         {
             Id = device.Id;
             Name = device.Name;
+            Uid = device.Uid;
             DeviceType = new DeviceType(device.DeviceType);
             Management = new Management(device.Management);
             LocalRulebase = device.LocalRulebase;
@@ -63,13 +69,18 @@ namespace FWO.Api.Data
             AwaitMgmt = device.AwaitMgmt;
             Delete = device.Delete;
             ActionId = device.ActionId;
-            // OrderedRulebases = [];
+        }
+
+        public bool Equals(Device device)
+        {
+            return Name.GenerousCompare(device.Name) && Uid.GenerousCompare(device.Uid);
         }
 
         public bool Sanitize()
         {
             bool shortened = false;
             Name = Sanitizer.SanitizeOpt(Name, ref shortened);
+            Uid = Sanitizer.SanitizeOpt(Uid, ref shortened);
             LocalRulebase = Sanitizer.SanitizeOpt(LocalRulebase, ref shortened);
             GlobalRulebase = Sanitizer.SanitizeOpt(GlobalRulebase, ref shortened);
             Package = Sanitizer.SanitizeOpt(Package, ref shortened);

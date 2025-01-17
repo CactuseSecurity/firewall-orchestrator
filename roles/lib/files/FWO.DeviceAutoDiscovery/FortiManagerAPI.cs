@@ -30,10 +30,9 @@ namespace FWO.Rest.Client
             config.UseSerializer(() => serializer);
         }
 
-
-        public async Task<RestResponse<SessionAuthInfo>> AuthenticateUser(string? user, string pwd)
+        public async Task<RestResponse<SessionAuthInfo>> AuthenticateUser(string? user, string pwd, string domainString = "")
         {
-            List<object> dataList = new List<object>();
+            List<object> dataList = [];
             dataList.Add(new { passwd = pwd, user = user });
 
             List<object> paramList = new List<object>();

@@ -32,12 +32,12 @@ namespace FWO.DeviceAutoDiscovery
                     // when passing sessionId, we always need to use @ verbatim identifier for special chars in sessionId
                     if (string.IsNullOrEmpty(superManagement.Uid))  // pre v9 managements might not have a UID
                     {
-                        superManagement.Uid = await GetMgmUid(restClientCP, sessionId, ManagementType, superManagement.Name);
-
                         // update manager UID in existing management; typically triggered in daily scheduler
                         // this update happens only once when AutoDiscovery v9.0 is run for the first time
+                        superManagement.Uid = await GetMgmUid(restClientCP, sessionId, ManagementType, superManagement.Name);
                         var vars = new { id = superManagement.Id, uid = superManagement.Uid };
                         _ = (await apiConnection.SendQueryAsync<ReturnId>(DeviceQueries.updateManagementUid, vars)).UpdatedId;
+                        // TODO: also add UIDs in gateways?
                     }
                     RestResponse<CpDomainHelper> domainResponse = await restClientCP.GetDomains(@sessionId);
 
@@ -56,7 +56,7 @@ namespace FWO.DeviceAutoDiscovery
                         foreach (Domain domain in domainList)
                         {
                             Log.WriteDebug("Autodiscovery", $"found domain '{domain.Name}'");
-                            Management currentManagement = CreateManagement(superManagement, domain);
+                            Management currentManagement = CreateManagement(superManagement, domain.Name, domain.Uid);
 
                             // session id pins this session to a specific domain (if domain is given during login)
                             string sessionIdPerDomain = await LoginCp(currentManagement, restClientCP);
@@ -80,11 +80,11 @@ namespace FWO.DeviceAutoDiscovery
             }
         }
 
-        private static Management CreateManagement(Management superManagement, Domain domain)
+        override protected Management CreateManagement(Management superManagement, string domainName, string domainUid)
         {
             Management currentManagement = new()
             {
-                Name = superManagement.Name + "__" + domain.Name,
+                Name = superManagement.Name + "__" + domainName,
                 Uid = superManagement.Uid,
                 ImporterHostname = superManagement.ImporterHostname,
                 Hostname = superManagement.Hostname,
@@ -93,15 +93,15 @@ namespace FWO.DeviceAutoDiscovery
                 ImportDisabled = false,
                 ForceInitialImport = true,
                 HideInUi = false,
-                ConfigPath = domain.Name,
-                DomainUid = domain.Uid,
+                ConfigPath = domainName,
+                DomainUid = domainUid,
                 DebugLevel = superManagement.DebugLevel,
                 SuperManagerId = superManagement.Id,
                 DeviceType = new DeviceType { Id = 9 },
                 Devices = []
             };
             // if super manager is just a simple management, overwrite the default (supermanager) values
-            if (domain.Name == "")
+            if (domainName == "")
             {
                 currentManagement.Name = superManagement.Name;
                 currentManagement.ConfigPath = "";
@@ -170,7 +170,7 @@ namespace FWO.DeviceAutoDiscovery
             // add devices to currentManagement
             foreach (CpDevice cpDev in devList)
             {
-                if (cpDev.CpDevType != "checkpoint-host")   // leave out the management host?!
+                if (cpDev.CpDevType != "checkpoint-host")   // leave out the management host
                 {
                     Device dev = new()
                     {
@@ -179,12 +179,39 @@ namespace FWO.DeviceAutoDiscovery
                         DeviceType = new DeviceType { Id = 9 } // CheckPoint GW
                     };
                     devices.Add(dev);
+                     // pre v9 discovered devices might not have a UID, so setting it here
+                    int? gwId = await GetIdOfGateway(dev);
+                    if (gwId != null) 
+                    {
+                        // update UID in existing gateway; typically triggered in daily scheduler
+                        // this update happens only once when AutoDiscovery v9.0 is run for the first time
+                        var vars = new { id = gwId, uid = dev.Uid };
+                        await apiConnection.SendQueryAsync<ReturnId>(DeviceQueries.updateGatewayUid, vars);
+                        // TODO: also add UIDs in gateways?
+                    }
+
                 }
             }
             return devices.ToArray();
         }
 
-        private static async Task<string> GetMgmUid(CheckPointClient restClientCP, string sessionIdPerDomain, string ManagementType, string mgmName)
+        private async Task<int?> GetIdOfGateway(Device dev)
+        {
+            // Device knownGateway = Management.FirstOrDefault(d => d.Name == dev.Name);
+            var vars = new { gwName = dev.Name, mgmUid = superManagement.Uid };
+            int? gwId = (await apiConnection.SendQueryAsync<List<Device>>(DeviceQueries.getGatewayId, vars))[0]?.Id;
+            if (gwId == null)
+            {
+                Log.WriteDebug("Autodiscovery", $"Did not find gateway {dev.Name} in device list - could not set UID");
+                return null;
+            }
+            else
+            {
+                return gwId;
+            }
+        }
+
+        protected static async Task<string> GetMgmUid(CheckPointClient restClientCP, string sessionIdPerDomain, string ManagementType, string mgmName)
         {
             List<CpDevice> devList = await restClientCP.GetGateways(@sessionIdPerDomain, ManagementType);
             foreach (CpDevice cpDev in devList)

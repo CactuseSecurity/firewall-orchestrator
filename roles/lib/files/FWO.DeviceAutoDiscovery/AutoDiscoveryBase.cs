@@ -1,6 +1,5 @@
 ﻿using System.Text.Json;
 
-using FWO.Basics;
 using FWO.Api.Data;
 using FWO.Api.Client;
 using FWO.Logging;
@@ -9,7 +8,7 @@ using FWO.Encryption;
 namespace FWO.DeviceAutoDiscovery
 {
     public class AutoDiscoveryBase
-    {
+{
         public Management superManagement = new();
         protected readonly ApiConnection apiConnection;
 
@@ -60,7 +59,7 @@ namespace FWO.DeviceAutoDiscovery
                 foreach (Management discoveredMgmt in discoveredManagements.Where(x => x.ConfigPath != "global"))
                 {
                     // Management? existMgmt = FindManagementIfExist(discoveredMgmt, existingManagements);
-                    Management? existMgmtDisregardingUid = FindManagementIfExistDisregardingUid(discoveredMgmt, existingManagements);
+                    Management? existMgmtDisregardingUid = FindManagementIfExist(discoveredMgmt, existingManagements);
                     if (existMgmtDisregardingUid == null)
                     {
                         // new management
@@ -129,15 +128,6 @@ namespace FWO.DeviceAutoDiscovery
             }
             return null;
         }
-        private static Management? FindManagementIfExistDisregardingUid(Management mgm, List<Management> mgmtList)
-        {
-            Management? existingManagement = mgmtList.FirstOrDefault(m => m.EqualsDisregardingUid(mgm));
-            if (existingManagement != null)
-            {
-                return existingManagement;
-            }
-            return null;
-        }
 
         private static bool CheckDeviceNotInMgmt(Device dev, Management mgmt)
         {
@@ -148,7 +138,7 @@ namespace FWO.DeviceAutoDiscovery
             return true;
         }
 
-        virtual Management CreateManagement(Management superManagement, Domain domain) {}
+        protected virtual Management CreateManagement(Management superManagement, string domainName, string domainUid) { return new(); }
 
 
         public List<ActionItem> ConvertToActions(List<Management> diffList)

@@ -181,8 +181,6 @@ namespace FWO.Rest.Client
 
         [JsonProperty("domain-type"), JsonPropertyName("domain-type")]
         public string DomainType { get; set; } = "";
-
-        // public List<Assignment> Assignments = new List<Assignment>();
     }
 
     public class CpPackagesHelper

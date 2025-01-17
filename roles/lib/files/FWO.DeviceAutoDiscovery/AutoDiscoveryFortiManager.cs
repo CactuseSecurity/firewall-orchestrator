@@ -10,12 +10,13 @@ namespace FWO.DeviceAutoDiscovery
     public class AutoDiscoveryFortiManager : AutoDiscoveryBase
     {
         public AutoDiscoveryFortiManager(Management superManagement, ApiConnection apiConn) : base(superManagement, apiConn) { }
+        
         public override async Task<List<Management>> Run()
         {
             List<Management> discoveredDevices = [];
             Log.WriteAudit("Autodiscovery", $"starting discovery for {superManagement.Name} (id={superManagement.Id})");
             // #if DEBUG
-            //            discoveredDevices = fillTestDevices();
+            //      discoveredDevices = fillTestDevices();
             // #endif
             if (superManagement.DeviceType.Name == "FortiManager")
             {
@@ -25,7 +26,7 @@ namespace FWO.DeviceAutoDiscovery
                         "FortiDDoS", "FortiDeceptor", "FortiFirewall", "FortiMail", "FortiManager", "FortiNAC", "FortiProxy",
                         "FortiSandbox", "FortiWeb", "Syslog", "Unmanaged_Devices", "others", "rootp"];
                 Log.WriteDebug("Autodiscovery", $"discovering FortiManager adoms, vdoms, devices");
-                FortiManagerClient restClientFM = new FortiManagerClient(superManagement);
+                FortiManagerClient restClientFM = new (superManagement);
 
                 RestResponse<SessionAuthInfo> sessionResponse = await restClientFM.AuthenticateUser(superManagement.ImportCredential.ImportUser, superManagement.ImportCredential.Secret);
                 if (sessionResponse.StatusCode == HttpStatusCode.OK && sessionResponse.IsSuccessful && !string.IsNullOrEmpty(sessionResponse?.Data?.SessionId))
@@ -74,24 +75,7 @@ namespace FWO.DeviceAutoDiscovery
                         }
                         foreach (Adom adom in customAdoms)
                         {
-                            // create object from discovered adom
-                            Management currentManagement = new Management
-                            {
-                                Name = superManagement.Name + "__" + adom.Name,
-                                ImporterHostname = superManagement.ImporterHostname,
-                                Hostname = superManagement.Hostname,
-                                ImportCredential = superManagement.ImportCredential,
-                                Port = superManagement.Port,
-                                ImportDisabled = false,
-                                ForceInitialImport = true,
-                                HideInUi = false,
-                                ConfigPath = adom.Name,
-                                DebugLevel = superManagement.DebugLevel,
-                                SuperManagerId = superManagement.Id,
-                                DeviceType = new DeviceType { Id = 11 },
-                                Devices = []
-                            };
-
+                            Management currentManagement = CreateManagement(superManagement, adom.Name, adom.Uid);
                             RestResponse<FmApiTopLevelHelperAssign> assignResponse = await restClientFM.GetPackageAssignmentsPerAdom(@sessionId, adom.Name);
                             if (assignResponse.StatusCode == HttpStatusCode.OK && assignResponse.IsSuccessful)
                             {
@@ -100,8 +84,7 @@ namespace FWO.DeviceAutoDiscovery
                                     List<Assignment> assignmentList = assignResponse.Data.Result[0].AssignmentList;
                                     foreach (Assignment assign in assignmentList)
                                     {
-                                        Device devFound = new Device();
-                                        // assign.PackageName = assign.PackageName.Replace("/", "\\/");    // replace / in package name with \/
+                                        Device devFound = new();
                                         Log.WriteDebug("Autodiscovery", $"found assignment1 in ADOM {adom.Name}: package {assign.PackageName} assigned to device {assign.RulebaseName}, vdom: {assign.VdomName} ");
                                         if (assign.RulebaseName != null)
                                         {
@@ -115,8 +98,8 @@ namespace FWO.DeviceAutoDiscovery
                                                 devFound = new Device
                                                 {
                                                     Name = devName,
-                                                    LocalRulebase = assign.PackageName,
-                                                    Package = assign.PackageName,
+                                                    // LocalRulebase = assign.PackageName,
+                                                    // Package = assign.PackageName,
                                                     DeviceType = new DeviceType { Id = 10 } // fortiGate
                                                 };
                                                 // handle global vs. local based on VdomName?
@@ -152,6 +135,29 @@ namespace FWO.DeviceAutoDiscovery
                 }
             }
             return await GetDeltas(discoveredDevices);
+        }
+
+        override protected Management CreateManagement(Management superManagement, string domainName, string domainUid)
+        {
+            // create object from discovered adom
+            Management currentManagement = new Management
+            {
+                Name = superManagement.Name + "__" + domainName,
+                Uid = domainUid,
+                ImporterHostname = superManagement.ImporterHostname,
+                Hostname = superManagement.Hostname,
+                ImportCredential = superManagement.ImportCredential,
+                Port = superManagement.Port,
+                ImportDisabled = false,
+                ForceInitialImport = true,
+                HideInUi = false,
+                ConfigPath = domainName,
+                DebugLevel = superManagement.DebugLevel,
+                SuperManagerId = superManagement.Id,
+                DeviceType = new DeviceType { Id = 11 },
+                Devices = []
+            };
+            return currentManagement;
         }
 
         // #if DEBUG

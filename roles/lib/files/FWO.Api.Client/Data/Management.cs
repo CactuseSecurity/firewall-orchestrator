@@ -144,12 +144,8 @@ namespace FWO.Api.Data
 
         public bool Equals(Management management)
         {
-            return EqualsDisregardingUid(management) &&
-                   Uid.GenerousCompare(management.Uid);
-        }
-        public bool EqualsDisregardingUid(Management management)
-        {
-            return Name.GenerousCompare(management.Name) &&
+            return Uid.GenerousCompare(management.Uid) &&
+                   Name.GenerousCompare(management.Name) &&
                    Hostname.GenerousCompare(management.Hostname) &&
                    Uid.GenerousCompare(management.Uid) &&
                    ConfigPath.GenerousCompare(management.ConfigPath) &&

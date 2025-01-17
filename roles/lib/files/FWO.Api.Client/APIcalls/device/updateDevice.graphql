@@ -1,12 +1,12 @@
 mutation updateDevice(
   $id: Int!
-  $uid: String!
+  $uid: String
   $name: String!
   $managementId: Int!
   $devTypeId: Int!
   $importDisabled: Boolean!
   $hideInUi: Boolean!
-  $localRulebase: String!
+  $localRulebase: String
   $globalRulebase: String
   $package: String
   $comment: String

@@ -74,14 +74,13 @@ namespace FWO.Api.Data
         public bool Equals(Device device)
         {
             return Name.GenerousCompare(device.Name) && Uid.GenerousCompare(device.Uid);
-                   // Management.Equals(device.Management) &&
         }
 
         public bool Sanitize()
         {
             bool shortened = false;
             Name = Sanitizer.SanitizeOpt(Name, ref shortened);
-            Name = Sanitizer.SanitizeOpt(Uid, ref shortened);
+            Uid = Sanitizer.SanitizeOpt(Uid, ref shortened);
             LocalRulebase = Sanitizer.SanitizeOpt(LocalRulebase, ref shortened);
             GlobalRulebase = Sanitizer.SanitizeOpt(GlobalRulebase, ref shortened);
             Package = Sanitizer.SanitizeOpt(Package, ref shortened);

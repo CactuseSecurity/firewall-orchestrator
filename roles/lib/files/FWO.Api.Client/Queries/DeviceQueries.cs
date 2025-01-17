@@ -16,7 +16,9 @@ namespace FWO.Api.Client.Queries
         public static readonly string deleteManagement;
         public static readonly string getDeviceDetails;
         public static readonly string newDevice;
+        public static readonly string getGatewayId;
         public static readonly string updateDevice;
+        public static readonly string updateGatewayUid;
         public static readonly string changeDeviceState;
         public static readonly string deleteDevice;
         public static readonly string deleteImport;
@@ -54,6 +56,8 @@ namespace FWO.Api.Client.Queries
 
                 newDevice = File.ReadAllText(QueryPath + "device/newDevice.graphql");
                 updateDevice = File.ReadAllText(QueryPath + "device/updateDevice.graphql");
+                updateGatewayUid = File.ReadAllText(QueryPath + "device/updateGatewayUid.graphql");
+                getGatewayId = File.ReadAllText(QueryPath + "device/getGatewayId.graphql");
                 changeDeviceState = File.ReadAllText(QueryPath + "device/changeDeviceState.graphql");
                 deleteDevice = File.ReadAllText(QueryPath + "device/deleteDevice.graphql");
                 deleteImport = File.ReadAllText(QueryPath + "device/deleteImport.graphql");

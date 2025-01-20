@@ -172,7 +172,7 @@
                         ReportToExport.CustomWidth = PaperSizeWidth;
 
                         string html = ReportToExport.ExportToHtml();
-                        reportExportFile.Pdf = ReportToExport.ToPdf(html, (PeachPDF.PdfSharpCore.PageSize)SelectedPaperFormat);
+                        reportExportFile.Pdf = ReportToExport.ToPdf(html, SelectedPaperFormat);
                     }
 
                     if (ExportCsv)

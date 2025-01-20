@@ -228,7 +228,10 @@ namespace FWO.Report
 
         private string? CreatePDFViaPeachPDF(string html, PeachPDF.PdfSharpCore.PageSize pageSize)
         {
-            OperatingSystem? os = Environment.OSVersion;
+            if (pageSize == PeachPDF.PdfSharpCore.PageSize.Undefined)
+            {
+                throw new Exception("This paper kind is currently not supported. Please choose another one or \"Custom\" for a custom size.");
+            }
 
             try
             {
@@ -250,6 +253,39 @@ namespace FWO.Report
             catch (Exception)
             {
                 throw new Exception("This paper kind is currently not supported. Please choose another one or \"Custom\" for a custom size.");
+            }
+        }
+
+        private static PeachPDF.PdfSharpCore.PageSize GetPeachPDFPageSize(PaperFormat format)
+        {           
+            switch (format)
+            {
+                case PaperFormat.A0:
+                    return PeachPDF.PdfSharpCore.PageSize.A0;
+                case PaperFormat.A1:
+                    return PeachPDF.PdfSharpCore.PageSize.A1;
+                case PaperFormat.A2:
+                     return PeachPDF.PdfSharpCore.PageSize.A2;
+                case PaperFormat.A3:
+                     return PeachPDF.PdfSharpCore.PageSize.A3;
+                case PaperFormat.A4:
+                     return PeachPDF.PdfSharpCore.PageSize.A4;
+                case PaperFormat.A5:
+                     return PeachPDF.PdfSharpCore.PageSize.A5;
+                case PaperFormat.A6:
+                     return PeachPDF.PdfSharpCore.PageSize.A6;
+                case PaperFormat.Letter:
+                     return PeachPDF.PdfSharpCore.PageSize.Letter;
+                case PaperFormat.Legal:
+                     return PeachPDF.PdfSharpCore.PageSize.Legal;
+                case PaperFormat.Tabloid:
+                     return PeachPDF.PdfSharpCore.PageSize.Tabloid;
+                case PaperFormat.Ledger:
+                     return PeachPDF.PdfSharpCore.PageSize.Ledger;
+                case PaperFormat.Custom:
+                    return PeachPDF.PdfSharpCore.PageSize.Undefined;
+                default:
+                     return PeachPDF.PdfSharpCore.PageSize.A4;
             }
         }
 
@@ -369,6 +405,13 @@ namespace FWO.Report
             byte[] pdfWithToCData = stream.ToArray();
 
             return pdfWithToCData;
+        }
+
+        public virtual string? ToPdf(string html, PaperFormat paperFormat)
+        {
+            PeachPDF.PdfSharpCore.PageSize pageSize = GetPeachPDFPageSize(paperFormat);
+
+            return CreatePDFViaPeachPDF(html, pageSize);
         }
 
         public virtual string? ToPdf(string html, PeachPDF.PdfSharpCore.PageSize pageSize)

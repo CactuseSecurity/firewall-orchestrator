@@ -226,7 +226,7 @@ namespace FWO.Report
             }
         }
 
-        private string? CreatePDFViaPeachPDF(string html, PeachPDF.PdfSharpCore.PageSize pageSize)
+        private static string? CreatePDFViaPeachPDF(string html, PeachPDF.PdfSharpCore.PageSize pageSize)
         {
             if (pageSize == PeachPDF.PdfSharpCore.PageSize.Undefined)
             {

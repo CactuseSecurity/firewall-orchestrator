@@ -11,7 +11,6 @@ using FWO.Report.Filter;
 using Newtonsoft.Json;
 using System.Text.Json.Serialization; 
 using System.Text.RegularExpressions;
-using PuppeteerSharp.Media;
 
 namespace FWO.Middleware.Server
 {
@@ -195,7 +194,7 @@ namespace FWO.Middleware.Server
 						body += changeReport?.ExportToHtml();
 						break;
 					case (int)ImpChangeNotificationType.PdfAsAttachment:
-						string? pdfData = await changeReport.ToPdf(Report.PaperFormat.A4);
+						string? pdfData = changeReport.ToPdf(PeachPDF.PdfSharpCore.PageSize.A4);
 
 						if (string.IsNullOrWhiteSpace(pdfData))
 							throw new Exception("No Pdf generated.");

@@ -5,14 +5,12 @@ using FWO.Report.Filter;
 using FWO.Config.Api;
 using System.Text;
 using System.Reflection;
-using PuppeteerSharp;
-using PuppeteerSharp.Media;
-using PuppeteerSharp.BrowserData;
 using HtmlAgilityPack;
 using PdfSharp.Pdf;
 using PdfSharp.Drawing;
 using PdfSharp.Pdf.IO;
 using FWO.Report.Data;
+using PeachPDF;
 
 namespace FWO.Report
 {
@@ -101,7 +99,6 @@ namespace FWO.Report
 
         protected string htmlExport = "";
 
-        private const string ChromeBinPathLinux = "/usr/local/bin";
         private string TocHTMLTemplate = "<div id=\"toc_container\"><h2>##ToCHeader##</h2><ul class=\"toc_list\">##ToCList##</ul></div><style>#toc_container {background: #f9f9f9 none repeat scroll 0 0;border: 1px solid #aaa;display: table;font-size: 95%;margin-bottom: 1em;padding: 10px;width: 100%;}#toc_container ul{list-style-type: none;}.subli {list-style-type: square;}.toc_list ul li {margin-bottom: 4px;}.toc_list a {color: black;font-family: 'Arial';font-size: 12pt;}</style>";
 
         public bool GotObjectsInReport { get; protected set; } = false;
@@ -229,56 +226,30 @@ namespace FWO.Report
             }
         }
 
-        private async Task<string?> CreatePDFViaPuppeteer(string html, PaperFormat format)
+        private string? CreatePDFViaPeachPDF(string html, PeachPDF.PdfSharpCore.PageSize pageSize)
         {
             OperatingSystem? os = Environment.OSVersion;
 
-            string path = "";
-            BrowserFetcher? browserFetcher;
-
-            switch (os.Platform)
-            {
-                case PlatformID.Win32NT:
-                    browserFetcher = new();
-                    break;
-                case PlatformID.Unix:
-                    path = ChromeBinPathLinux;
-                    browserFetcher = new(new BrowserFetcherOptions { Path = path, Platform = Platform.Linux, Browser = SupportedBrowser.Chrome });
-                    break;
-                default:
-                    return default;
-            }
-
-            InstalledBrowser? brw = browserFetcher.GetInstalledBrowsers().FirstOrDefault() ?? await browserFetcher.DownloadAsync(BrowserTag.Latest);
-
-            var isGitHubActions = Environment.GetEnvironmentVariable("GITHUB_ACTIONS") == "true";
-            using IBrowser? browser = await Puppeteer.LaunchAsync(new LaunchOptions
-            {
-                ExecutablePath = isGitHubActions ? "/usr/bin/chromium-browser" : brw.GetExecutablePath(),
-                Headless = true
-            });
-
             try
             {
-                using IPage page = await browser.NewPageAsync();
-                await page.SetContentAsync(html);
+                PdfGenerateConfig pdfConfig = new()
+                {
+                    PageSize = pageSize,
+                    PageOrientation = PeachPDF.PdfSharpCore.PageOrientation.Landscape
+                };
 
-                PuppeteerSharp.Media.PaperFormat? pupformat = GetPuppeteerPaperFormat(format) ?? throw new Exception();
+                using MemoryStream stream = new();
 
-                PdfOptions pdfOptions = new() { DisplayHeaderFooter = true, Landscape = true, PrintBackground = true, Format = pupformat, MarginOptions = new MarginOptions { Top = "1cm", Bottom = "1cm", Left = "1cm", Right = "1cm" } };
-                using Stream? pdfData = await page.PdfStreamAsync(pdfOptions);
+                var document = PdfGenerator.GeneratePdf(html, pdfConfig);
+                document.Save(stream);
 
-                byte[]? pdfWithToCData = AddToCBookmarksToPDF(pdfData, html);
+                byte[]? pdfWithToCData = AddToCBookmarksToPDF(stream, html);
 
                 return Convert.ToBase64String(pdfWithToCData);
             }
             catch (Exception)
             {
                 throw new Exception("This paper kind is currently not supported. Please choose another one or \"Custom\" for a custom size.");
-            }
-            finally
-            {
-                await browser.CloseAsync();
             }
         }
 
@@ -400,39 +371,19 @@ namespace FWO.Report
             return pdfWithToCData;
         }
 
-        private PuppeteerSharp.Media.PaperFormat? GetPuppeteerPaperFormat(PaperFormat format)
+        public virtual string? ToPdf(string html, PeachPDF.PdfSharpCore.PageSize pageSize)
         {
-            if (format == PaperFormat.Custom)
-                return new PuppeteerSharp.Media.PaperFormat(CustomWidth, CustomHeight);
-
-            PropertyInfo[] propertyInfos = typeof(PuppeteerSharp.Media.PaperFormat).GetProperties(BindingFlags.Public | BindingFlags.Static | BindingFlags.Instance | BindingFlags.NonPublic);
-
-            PropertyInfo? prop = propertyInfos.SingleOrDefault(_ => _.Name == format.ToString());
-
-            if (prop == null)
-                return default;
-
-            PuppeteerSharp.Media.PaperFormat? propFormat = (PuppeteerSharp.Media.PaperFormat)prop.GetValue(null);
-
-            if (propFormat is null)
-                return default;
-
-            return propFormat;
+            return CreatePDFViaPeachPDF(html, pageSize);
         }
 
-        public virtual async Task<string?> ToPdf(string html, PaperFormat format)
+        public virtual string? ToPdf(string html)
         {
-            return await CreatePDFViaPuppeteer(html, format);
+            return CreatePDFViaPeachPDF(html, PeachPDF.PdfSharpCore.PageSize.A4);
         }
 
-        public virtual async Task<string?> ToPdf(string html)
+        public virtual string? ToPdf(PeachPDF.PdfSharpCore.PageSize pageSize)
         {
-            return await CreatePDFViaPuppeteer(html, PaperFormat.A4);
-        }
-
-        public virtual async Task<string?> ToPdf(PaperFormat format)
-        {
-            return await CreatePDFViaPuppeteer(htmlExport, format);
+            return CreatePDFViaPeachPDF(htmlExport, pageSize);
         }
 
         public static string GetIconClass(ObjCategory? objCategory, string? objType)

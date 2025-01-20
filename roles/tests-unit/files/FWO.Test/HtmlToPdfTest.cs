@@ -21,12 +21,6 @@ namespace FWO.Test
         {
             Assert.That(IsValidHTML(Html));
 
-            PdfGenerateConfig pdfConfig = new()
-            {
-                PageSize = PeachPDF.PdfSharpCore.PageSize.Letter,
-                PageOrientation = PeachPDF.PdfSharpCore.PageOrientation.Portrait 
-            };
-
             try
             {
                 TryCreatePDF(PeachPDF.PdfSharpCore.PageSize.A0);
@@ -66,7 +60,7 @@ namespace FWO.Test
 
         }
 
-        private void TryCreatePDF(PeachPDF.PdfSharpCore.PageSize pageSize)
+        private static void TryCreatePDF(PeachPDF.PdfSharpCore.PageSize pageSize)
         {
             Log.WriteInfo("Test Log", $"Test creating PDF {pageSize}");
 
@@ -75,10 +69,8 @@ namespace FWO.Test
                 PdfGenerateConfig pdfConfig = new()
                 {
                     PageSize = pageSize,
-                    PageOrientation = PeachPDF.PdfSharpCore.PageOrientation.Portrait
+                    PageOrientation = PeachPDF.PdfSharpCore.PageOrientation.Landscape
                 };
-
-                MemoryStream? stream = new MemoryStream();
 
                 var document = PdfGenerator.GeneratePdf(Html, pdfConfig);
                 document.Save(FilePath);

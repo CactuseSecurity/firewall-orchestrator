@@ -9,8 +9,6 @@ using FWO.Ui.Services;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server.Circuits;
 using RestSharp;
-using System.Diagnostics;
-using PuppeteerSharp;
 
 
 // Implicitly call static constructor so background lock process is started

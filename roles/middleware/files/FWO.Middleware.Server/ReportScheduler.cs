@@ -9,7 +9,6 @@ using FWO.Report;
 using FWO.Report.Filter;
 using System.Timers;
 using FWO.Config.File;
-using PuppeteerSharp.Media;
 using FWO.Services;
 
 namespace FWO.Middleware.Server
@@ -276,7 +275,7 @@ namespace FWO.Middleware.Server
                         break;
 
                     case GlobalConst.kPdf:
-                        reportFile.Pdf = await report.ToPdf(Report.PaperFormat.A4);
+                        reportFile.Pdf = report.ToPdf(PeachPDF.PdfSharpCore.PageSize.A4);
                         break;
 
                     case GlobalConst.kJson:

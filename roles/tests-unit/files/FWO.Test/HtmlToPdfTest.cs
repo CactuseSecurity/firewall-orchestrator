@@ -29,7 +29,21 @@ namespace FWO.Test
 
             try
             {
+                TryCreatePDF(PeachPDF.PdfSharpCore.PageSize.A0);
+                TryCreatePDF(PeachPDF.PdfSharpCore.PageSize.A1);
+                TryCreatePDF(PeachPDF.PdfSharpCore.PageSize.A2);
+                TryCreatePDF(PeachPDF.PdfSharpCore.PageSize.A3);
                 TryCreatePDF(PeachPDF.PdfSharpCore.PageSize.A4);
+                TryCreatePDF(PeachPDF.PdfSharpCore.PageSize.A5);
+                TryCreatePDF(PeachPDF.PdfSharpCore.PageSize.A6);
+                TryCreatePDF(PeachPDF.PdfSharpCore.PageSize.B0);
+                TryCreatePDF(PeachPDF.PdfSharpCore.PageSize.B1);
+                TryCreatePDF(PeachPDF.PdfSharpCore.PageSize.B2);
+                TryCreatePDF(PeachPDF.PdfSharpCore.PageSize.B3);
+                TryCreatePDF(PeachPDF.PdfSharpCore.PageSize.B4);
+                TryCreatePDF(PeachPDF.PdfSharpCore.PageSize.B5);
+                TryCreatePDF(PeachPDF.PdfSharpCore.PageSize.Letter);
+                TryCreatePDF(PeachPDF.PdfSharpCore.PageSize.Tabloid);
             }
             catch (Exception)
             {
@@ -72,6 +86,10 @@ namespace FWO.Test
                 Assert.That(FilePath, Does.Exist);
                 FileAssert.Exists(FilePath);
 
+                if (File.Exists(FilePath))
+                {
+                    File.Delete(FilePath);
+                }
             }
             catch (Exception)
             {

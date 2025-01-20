@@ -9,7 +9,7 @@
 
   <ItemGroup>
     <PackageReference Include="bunit" Version="1.37.7" />
-    <PackageReference Include="PuppeteerSharp" Version="20.0.5" />
+    <PackageReference Include="PeachPDF" Version="0.6.3" />
     <PackageReference Include="NUnit" Version="4.3.2" />
     <PackageReference Include="NUnit3TestAdapter" Version="4.6.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />

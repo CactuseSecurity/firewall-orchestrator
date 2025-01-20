@@ -1,10 +1,12 @@
 ﻿using NUnit.Framework;
-using NUnit.Framework.Legacy;
 using FWO.Logging;
-using PuppeteerSharp.Media;
-using PuppeteerSharp;
-using PuppeteerSharp.BrowserData;
 using HtmlAgilityPack;
+using PeachPDF;
+using PdfSharp;
+using PdfSharp.Pdf;
+using PeachPDF.PdfSharpCore;
+using NUnit.Framework.Legacy;
+using PeachPDF.PdfSharpCore.Pdf;
 
 namespace FWO.Test
 {
@@ -12,79 +14,27 @@ namespace FWO.Test
     internal class HtmlToPdfTest
     {
         private const string FilePath = "pdffile.pdf";
-        private const string Html = "<html> <body> <h1>test<h1> test mit puppteer </body> </html>";
-        private const string ChromeBinPathLinux = "/usr/local/bin";
+        private const string Html = "<html><body><h1>test<h1>test</body></html>";
 
         [Test]
-        public async Task GeneratePdf()
+        public void GeneratePdf()
         {
             Assert.That(IsValidHTML(Html));
 
-            string? isGitHubActions = Environment.GetEnvironmentVariable("RUNNING_ON_GITHUB_ACTIONS");
-
-            // the PDF generation with puppeteer is currently not working in GitHub Actions
-            if (isGitHubActions != null)
+            PdfGenerateConfig pdfConfig = new()
             {
-                if (File.Exists(FilePath))
-                    File.Delete(FilePath);
+                PageSize = PeachPDF.PdfSharpCore.PageSize.Letter,
+                PageOrientation = PeachPDF.PdfSharpCore.PageOrientation.Portrait 
+            };
 
-                OperatingSystem? os = Environment.OSVersion;
-
-                Log.WriteInfo("Test Log", $"OS: {os}");
-
-                string path = "";
-                BrowserFetcher? browserFetcher = default;
-
-                switch (os.Platform)
-                {
-                    case PlatformID.Win32NT:
-                        browserFetcher = new();
-                        break;
-                    case PlatformID.Unix:
-                        path = ChromeBinPathLinux;
-                        browserFetcher = new(new BrowserFetcherOptions { Path = path, Platform = Platform.Linux, Browser = SupportedBrowser.Chrome });
-                        break;
-                    default:
-                    break;
-                }
-
-                InstalledBrowser? brw = await browserFetcher.DownloadAsync(BrowserTag.Stable);
-
-                using IBrowser? browser = await Puppeteer.LaunchAsync(new LaunchOptions
-                {
-                    ExecutablePath = isGitHubActions!=null ? "/usr/bin/chromium-browser" : brw.GetExecutablePath(),
-                    Headless = true,
-                    DumpIO = isGitHubActions!=null ? true : false, // Enables debug logs
-                    Args = isGitHubActions!=null ?
-                        new[] { "--no-sandbox", "--database=/tmp", "--disable-setuid-sandbox" }
-                        : [] // No additional arguments locally
-                });
-
-                try
-                {
-                    await TryCreatePDF(browser, PaperFormat.A0);
-                    await TryCreatePDF(browser, PaperFormat.A1);
-                    await TryCreatePDF(browser, PaperFormat.A2);
-                    await TryCreatePDF(browser, PaperFormat.A3);
-                    await TryCreatePDF(browser, PaperFormat.A4);
-                    await TryCreatePDF(browser, PaperFormat.A5);
-                    await TryCreatePDF(browser, PaperFormat.A6);
-
-                    await TryCreatePDF(browser, PaperFormat.Ledger);
-                    await TryCreatePDF(browser, PaperFormat.Legal);
-                    await TryCreatePDF(browser, PaperFormat.Letter);
-                    await TryCreatePDF(browser, PaperFormat.Tabloid);
-                }
-                catch (Exception)
-                {
-                    throw;
-                }
-                finally
-                {
-                    await browser.CloseAsync();
-                }
+            try
+            {
+                TryCreatePDF(PeachPDF.PdfSharpCore.PageSize.A4);
             }
-
+            catch (Exception)
+            {
+                throw;
+            }
         }
 
         private static bool IsValidHTML(string html)
@@ -102,23 +52,26 @@ namespace FWO.Test
 
         }
 
-        private async Task TryCreatePDF(IBrowser browser, PaperFormat paperFormat)
+        private void TryCreatePDF(PeachPDF.PdfSharpCore.PageSize pageSize)
         {
-            Log.WriteInfo("Test Log", $"Test creating PDF {paperFormat}");
+            Log.WriteInfo("Test Log", $"Test creating PDF {pageSize}");
 
             try
             {
-                using IPage page = await browser.NewPageAsync();
-                await page.SetContentAsync(Html);
+                PdfGenerateConfig pdfConfig = new()
+                {
+                    PageSize = pageSize,
+                    PageOrientation = PeachPDF.PdfSharpCore.PageOrientation.Portrait
+                };
 
-                PdfOptions pdfOptions = new() { DisplayHeaderFooter = true, Landscape = true, PrintBackground = true, Format = paperFormat, MarginOptions = new MarginOptions { Top = "1cm", Bottom = "1cm", Left = "1cm", Right = "1cm" } };
-                byte[] pdfData = await page.PdfDataAsync(pdfOptions);
+                MemoryStream? stream = new MemoryStream();
 
-                await File.WriteAllBytesAsync(FilePath, pdfData);
+                var document = PdfGenerator.GeneratePdf(Html, pdfConfig);
+                document.Save(FilePath);
 
                 Assert.That(FilePath, Does.Exist);
                 FileAssert.Exists(FilePath);
-                ClassicAssert.AreEqual(new FileInfo(FilePath).Length, pdfData.Length);
+
             }
             catch (Exception)
             {

@@ -275,7 +275,7 @@ namespace FWO.Middleware.Server
                         break;
 
                     case GlobalConst.kPdf:
-                        reportFile.Pdf = report.ToPdf(PeachPDF.PdfSharpCore.PageSize.A4);
+                        reportFile.Pdf = await report.ToPdf(PeachPDF.PdfSharpCore.PageSize.A4);
                         break;
 
                     case GlobalConst.kJson:

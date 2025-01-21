@@ -194,7 +194,7 @@ namespace FWO.Middleware.Server
 						body += changeReport?.ExportToHtml();
 						break;
 					case (int)ImpChangeNotificationType.PdfAsAttachment:
-						string? pdfData = changeReport.ToPdf(PeachPDF.PdfSharpCore.PageSize.A4);
+						string? pdfData = await changeReport.ToPdf(PeachPDF.PdfSharpCore.PageSize.A4);
 
 						if (string.IsNullOrWhiteSpace(pdfData))
 							throw new Exception("No Pdf generated.");

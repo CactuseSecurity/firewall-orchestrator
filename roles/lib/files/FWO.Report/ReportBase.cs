@@ -226,7 +226,7 @@ namespace FWO.Report
             }
         }
 
-        private static string? CreatePDFViaPeachPDF(string html, PeachPDF.PdfSharpCore.PageSize pageSize)
+        private static async Task<string?> CreatePDFViaPeachPDF(string html, PeachPDF.PdfSharpCore.PageSize pageSize)
         {
             if (pageSize == PeachPDF.PdfSharpCore.PageSize.Undefined)
             {
@@ -243,12 +243,14 @@ namespace FWO.Report
 
                 using MemoryStream stream = new();
 
-                var document = PdfGenerator.GeneratePdf(html, pdfConfig);
+                PdfGenerator generator = new();
+
+                var document = await generator.GeneratePdf(html, pdfConfig);
                 document.Save(stream);
 
                 byte[]? pdfWithToCData = AddToCBookmarksToPDF(stream, html);
 
-                return Convert.ToBase64String(pdfWithToCData);
+                return Convert.ToBase64String(stream.ToArray());
             }
             catch (Exception)
             {
@@ -407,26 +409,26 @@ namespace FWO.Report
             return pdfWithToCData;
         }
 
-        public virtual string? ToPdf(string html, PaperFormat paperFormat)
+        public virtual async Task<string?> ToPdf(string html, PaperFormat paperFormat)
         {
             PeachPDF.PdfSharpCore.PageSize pageSize = GetPeachPDFPageSize(paperFormat);
 
-            return CreatePDFViaPeachPDF(html, pageSize);
+            return await CreatePDFViaPeachPDF(html, pageSize);
         }
 
-        public virtual string? ToPdf(string html, PeachPDF.PdfSharpCore.PageSize pageSize)
+        public virtual async Task<string?> ToPdf(string html, PeachPDF.PdfSharpCore.PageSize pageSize)
         {
-            return CreatePDFViaPeachPDF(html, pageSize);
+            return await CreatePDFViaPeachPDF(html, pageSize);
         }
 
-        public virtual string? ToPdf(string html)
+        public virtual async Task<string?> ToPdf(string html)
         {
-            return CreatePDFViaPeachPDF(html, PeachPDF.PdfSharpCore.PageSize.A4);
+            return await CreatePDFViaPeachPDF(html, PeachPDF.PdfSharpCore.PageSize.A4);
         }
 
-        public virtual string? ToPdf(PeachPDF.PdfSharpCore.PageSize pageSize)
+        public virtual async Task<string?> ToPdf(PeachPDF.PdfSharpCore.PageSize pageSize)
         {
-            return CreatePDFViaPeachPDF(htmlExport, pageSize);
+            return await CreatePDFViaPeachPDF(htmlExport, pageSize);
         }
 
         public static string GetIconClass(ObjCategory? objCategory, string? objType)

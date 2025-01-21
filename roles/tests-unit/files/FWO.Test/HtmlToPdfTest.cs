@@ -60,7 +60,7 @@ namespace FWO.Test
 
         }
 
-        private static void TryCreatePDF(PeachPDF.PdfSharpCore.PageSize pageSize)
+        private static async Task TryCreatePDF(PeachPDF.PdfSharpCore.PageSize pageSize)
         {
             Log.WriteInfo("Test Log", $"Test creating PDF {pageSize}");
 
@@ -72,7 +72,9 @@ namespace FWO.Test
                     PageOrientation = PeachPDF.PdfSharpCore.PageOrientation.Landscape
                 };
 
-                var document = PdfGenerator.GeneratePdf(Html, pdfConfig);
+                PdfGenerator generator = new();
+
+                var document = await generator.GeneratePdf(Html, pdfConfig);
                 document.Save(FilePath);
 
                 Assert.That(FilePath, Does.Exist);

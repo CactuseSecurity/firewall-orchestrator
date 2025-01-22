@@ -547,6 +547,23 @@ ALTER TABLE "rule_enforced_on_gateway" ADD COLUMN IF NOT EXISTS "removed" BIGINT
 ALTER TABLE "rulebase" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
 ALTER TABLE "rulebase_link" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
 
+
+-- adding labels (simple version without mapping tables and without foreign keys)
+
+/*
+
+CREATE TABLE label (
+    id SERIAL PRIMARY KEY,
+    name TEXT NOT NULL
+);
+
+ALTER TABLE "rule" ADD COLUMN IF NOT EXISTS "labels" INT[];
+ALTER TABLE "service" ADD COLUMN IF NOT EXISTS "labels" INT[];
+ALTER TABLE "object" ADD COLUMN IF NOT EXISTS "labels" INT[];
+ALTER TABLE "usr" ADD COLUMN IF NOT EXISTS "labels" INT[];
+
+*/
+
 -- ALTER TABLE "object" DROP COLUMN IF EXISTS "deleted" ;
 -- ALTER TABLE "objgrp" DROP COLUMN IF  EXISTS "deleted" ;
 -- ALTER TABLE "objgrp_flat" DROP COLUMN IF EXISTS "deleted" ;

@@ -4,6 +4,7 @@ using FWO.Api.Data;
 using FWO.Api.Client;
 using FWO.Logging;
 using FWO.Rest.Client;
+using FWO.Api.Client.Queries;
 
 namespace FWO.DeviceAutoDiscovery
 {
@@ -33,12 +34,26 @@ namespace FWO.DeviceAutoDiscovery
                 {
                     string sessionId = sessionResponse.Data.SessionId;
                     Log.WriteDebug("Autodiscovery", $"successful FortiManager login, got SessionID: {sessionId}");
-                    // need to use @ verbatim identifier for special chars in sessionId
+
+
+                    // when passing sessionId, we always need to use @ verbatim identifier for special chars in sessionId
+                    if (string.IsNullOrEmpty(superManagement.Uid))  // pre v9 managements might not have a UID
+                    {
+                        // update manager UID in existing management; typically triggered in daily scheduler
+                        // this update happens only once when AutoDiscovery v9.0 is run for the first time
+                        superManagement.Uid = await GetFortiManagerUid(restClientFM, sessionId, superManagement.Name);
+                        var vars = new { id = superManagement.Id, uid = superManagement.Uid };
+                        _ = (await apiConnection.SendQueryAsync<ReturnId>(DeviceQueries.updateManagementUid, vars)).UpdatedId;
+                        // TODO: also add UIDs in gateways?
+                    }
+
+
                     RestResponse<FmApiTopLevelHelper> adomResponse = await restClientFM.GetAdoms(sessionId);
                     if (adomResponse.StatusCode == HttpStatusCode.OK && adomResponse.IsSuccessful)
                     {
                         List<Adom>? adomList = adomResponse?.Data?.Result[0]?.AdomList;
                         if (adomList?.Count > 0)
+
                         {
                             Log.WriteDebug("Autodiscovery", $"found a total of {adomList.Count} adoms");
                             foreach (Adom adom in adomList)
@@ -158,6 +173,12 @@ namespace FWO.DeviceAutoDiscovery
                 Devices = []
             };
             return currentManagement;
+        }
+
+        protected static async Task<string> GetFortiManagerUid(FortiManagerClient restClient, string sessionIdPerDomain, string mgmName)
+        {
+            return mgmName; // fortiManager does not have a real UID
+            // return await restClient.GetFortiManagerDetails(@sessionIdPerDomain);
         }
 
         // #if DEBUG

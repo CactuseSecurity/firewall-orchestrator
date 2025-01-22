@@ -261,7 +261,7 @@
                                 <div class="col-sm-4">
                                     @if(Readonly)
                                     {
-                                        <label>@userConfig.GetText(((DayOfWeek?)actRecCheckParams?.RecertCheckWeekday).ToString())</label>
+                                        <label>@userConfig.GetText(((DayOfWeek?)actRecCheckParams?.RecertCheckWeekday)?.ToString() ?? "undefined")</label>
                                     }
                                     else
                                     {

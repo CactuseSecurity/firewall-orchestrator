@@ -7,7 +7,7 @@
 
 @foreach(var appHandler in AppHandlers)
 {
-    <H5>@appHandler.Application.Display(userConfig.GetText("common_service"))</H5>
+    <h5>@appHandler.Application.Display(userConfig.GetText("common_service"))</h5>
 
     @if(appHandler.GetRegularConnections().Count > 0)
     {

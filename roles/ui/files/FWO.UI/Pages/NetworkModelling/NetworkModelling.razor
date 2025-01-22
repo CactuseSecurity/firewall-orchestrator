@@ -75,12 +75,12 @@
                 {
                     <div class="btn-group ms-5">
                         <button type="button" class="btn btn-sm btn-dark" @onclick="ShareLink">
-                            @(appHandler.DisplayButton("share_link", Icons.Share))
+                            @(appHandler!.DisplayButton("share_link", Icons.Share))
                         </button>&nbsp;
                         <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}")">
                             <Authorized>
                                 <button type="button" class="btn btn-sm btn-dark" @onclick="ManualAppServer">
-                                    @(appHandler.DisplayButton("edit_app_server", Icons.Edit, "app_server"))
+                                    @(appHandler!.DisplayButton("edit_app_server", Icons.Edit, "app_server"))
                                 </button>
                             </Authorized>
                         </AuthorizeView>
@@ -89,18 +89,18 @@
                 </h5>
             </div>
             <div class="m-2 vheight75">
-                <TabSet WholeWidth="false" DarkMode="false" KeepPanelsAlive="false" @ref="appHandler.tabset">
+                <TabSet WholeWidth="false" DarkMode="false" KeepPanelsAlive="false" @ref="appHandler!.tabset">
                     <Tab Title="@(userConfig.GetText("connections"))" Position=0>
-                        <button type="button" class="btn btn-sm btn-success mb-2" @onclick="appHandler.AddConnection">
-                            @(appHandler.DisplayButton("add_connection", Icons.Add))
+                        <button type="button" class="btn btn-sm btn-success mb-2" @onclick="appHandler!.AddConnection">
+                            @(appHandler!.DisplayButton("add_connection", Icons.Add))
                         </button>
-                        <ConnectionTable Connections="@appHandler.GetRegularConnections()" @bind-AppHandler="appHandler" AppActive="appActive" />
+                        <ConnectionTable Connections="@appHandler!.GetRegularConnections()" @bind-AppHandler="appHandler" AppActive="appActive" />
                     </Tab>
                     <Tab Title="@(userConfig.GetText("provided_interfaces"))" Position=1>
                         <div class="d-flex justify-content-between">
                             <div>
-                                <button type="button" class="btn btn-sm btn-success mb-2" @onclick="appHandler.AddInterface">
-                                    @(appHandler.DisplayButton("add_interface", Icons.Add))
+                                <button type="button" class="btn btn-sm btn-success mb-2" @onclick="appHandler!.AddInterface">
+                                    @(appHandler!.DisplayButton("add_interface", Icons.Add))
                                 </button>
                             </div>
                             <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}")">
@@ -112,27 +112,27 @@
                                 </Authorized>
                             </AuthorizeView>
                         </div>
-                        <ConnectionTable Connections="@appHandler.GetInterfaces(showRejected)" @bind-AppHandler="appHandler" AppActive="appActive" />
+                        <ConnectionTable Connections="@appHandler!.GetInterfaces(showRejected)" @bind-AppHandler="appHandler" AppActive="appActive" />
                     </Tab>
                     @if (selectedApp.CommSvcPossible)
                     {
                         <Tab Title="@(userConfig.GetText("common_services"))" Position=2>
                             <button type="button" class="btn btn-sm btn-success mb-2"
-                                @onclick="appHandler.AddCommonService">@(appHandler.DisplayButton("add_common_service", Icons.Add))
+                                @onclick="appHandler!.AddCommonService">@(appHandler!.DisplayButton("add_common_service", Icons.Add))
                             </button>
-                            <ConnectionTable Connections="@appHandler.GetCommonServices()" @bind-AppHandler="appHandler" AppActive="appActive" />
+                            <ConnectionTable Connections="@appHandler!.GetCommonServices()" @bind-AppHandler="appHandler" AppActive="appActive" />
                         </Tab>
                     }
                 </TabSet>
             </div>
-            <ConfirmDelete @bind-Display="appHandler.DeleteConnMode"
-                PerformAction="async () => {await appHandler.DeleteConnection(); appHandler.RestoreTab(); StateHasChanged();}"
-                Title="@userConfig.GetText(appHandler.ConnToDelete.IsInterface ? "delete_interface" : "delete_connection")"
-                DeleteMessage="@appHandler.Message" DeleteAllowed="appHandler.DeleteAllowed" AllowedRoles="@Roles.Modeller" />
+            <ConfirmDelete @bind-Display="appHandler!.DeleteConnMode"
+                PerformAction="async () => {await appHandler!.DeleteConnection(); appHandler!.RestoreTab(); StateHasChanged();}"
+                Title="@userConfig.GetText(appHandler!.ConnToDelete.IsInterface ? "delete_interface" : "delete_connection")"
+                DeleteMessage="@appHandler!.Message" DeleteAllowed="appHandler!.DeleteAllowed" AllowedRoles="@Roles.Modeller" />
         }
     </div>
 }
-else
+else if(appHandler != null)
 {
     <EditConn @bind-Display="appHandler.EditConnMode" ConnHandler="appHandler.connHandler" ClosingAction="PrepareRestore" />
 }
@@ -173,7 +173,7 @@ else
     private bool firstInit = true;
     private string ChangeStatus = "";
     private GraphQlApiSubscription<List<WfTicket>>? actTicketSubscription;
-    private ExtStateHandler extStateHandler;
+    private ExtStateHandler? extStateHandler;
     private WfStateDict states = new();
     private bool firstErrorMessage = true;
     private bool workInProgress = false;
@@ -188,7 +188,7 @@ else
         await InitAppList();
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    protected override void OnAfterRender(bool firstRender)
     {
         if (appSelected && appHandler != null)
         {
@@ -217,7 +217,7 @@ else
     {
         try
         {
-            apps = await ModellingHandlerBase.GetOwnApps(authenticationStateTask, userConfig, apiConnection, DisplayMessageInUi,
+            apps = await ModellingHandlerBase.GetOwnApps(authenticationStateTask!, userConfig, apiConnection, DisplayMessageInUi,
             true);
             if (apps.Count == 0)
             {
@@ -227,7 +227,7 @@ else
             {
                 if (AppId != null)
                 {
-                    await HandleLink();
+                    HandleLink();
                 }
                 else
                 {
@@ -242,7 +242,7 @@ else
         }
     }
 
-    private async Task HandleLink()
+    private void HandleLink()
     {
         FwoOwner? existingApp = apps.FirstOrDefault(a => a.ExtAppId == AppId);
         if (existingApp != null)
@@ -301,7 +301,7 @@ else
             {
                 tabSelected = true;
                 appHandler?.InitActiveTab(selectedConn);
-                await appHandler?.EditConn(selectedConn);
+                await appHandler!.EditConn(selectedConn);
             }
         }
     }
@@ -321,12 +321,12 @@ else
         showHistory = true;
     }
 
-    private async Task Report()
+    private void Report()
     {
         NavigationManager.NavigateTo($"/{PageName.ReportGeneration}/{selectedApp.Id}");
     }
 
-    private async Task RequestFwChange()
+    private void RequestFwChange()
     {
         showFwChange = true;
     }
@@ -358,8 +358,8 @@ else
 
     private async Task SetStatusFromTicket(WfTicket intTicket)
     {
-        int doneStateId = (int)(extStateHandler.GetInternalStateId(ExtStates.ExtReqDone) ?? 999);
-        int rejectedStateId = (int)(extStateHandler.GetInternalStateId(ExtStates.ExtReqRejected) ?? 999);
+        int doneStateId = extStateHandler != null ? (int)(extStateHandler.GetInternalStateId(ExtStates.ExtReqDone) ?? 999) : 999;
+        int rejectedStateId = extStateHandler != null ? (int)(extStateHandler.GetInternalStateId(ExtStates.ExtReqRejected) ?? 999) : 999;
         if(intTicket.StateId < doneStateId && intTicket.StateId < rejectedStateId)
         {
             ChangeStatus = userConfig.GetText("in_process");

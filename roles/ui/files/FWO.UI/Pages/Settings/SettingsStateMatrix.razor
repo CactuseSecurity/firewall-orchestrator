@@ -170,7 +170,7 @@
         <Body>
             @if (EditTargetStatesMode)
             {
-                <H6 data-toggle="tooltip" title="@(userConfig.PureLine("H5543"))"><b>@(userConfig.GetText("allowed_transitions"))</b></H6>
+                <h6 data-toggle="tooltip" title="@(userConfig.PureLine("H5543"))"><b>@(userConfig.GetText("allowed_transitions"))</b></h6>
                 <button type="button" class="btn btn-sm btn-success" @onclick="AddStateToTargetStates">@(userConfig.GetText("add_state"))</button>
                 <br><br>
                 @foreach(var stateId in actToStateIds)
@@ -183,7 +183,7 @@
                     </div>
                 }
                 <hr />
-                <H6 data-toggle="tooltip" title="@(userConfig.PureLine("H5544"))"><b>@(userConfig.GetText("derived_state"))</b></H6>
+                <h6 data-toggle="tooltip" title="@(userConfig.PureLine("H5544"))"><b>@(userConfig.GetText("derived_state"))</b></h6>
                 <div class="col-sm-9">
                     <Dropdown ElementType="int" @bind-SelectedElement="actStateMatrix.GlobalMatrix[actPhase].DerivedStates[actStateId]" ElementToString="@(s => stateNames[s])" Elements="stateIds" >
                         <ElementTemplate Context="stateId">

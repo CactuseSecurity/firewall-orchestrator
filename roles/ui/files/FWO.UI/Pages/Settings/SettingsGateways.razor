@@ -211,8 +211,8 @@
             devices = await apiConnection.SendQueryAsync<List<Device>>(DeviceQueries.getDeviceDetails);
             deviceTypes = await apiConnection.SendQueryAsync<List<DeviceType>>(DeviceQueries.getDeviceTypeDetails);
 
-            JwtReader jwt = new JwtReader(userConfig.User.Jwt);
-            jwt.Validate();
+            JwtReader jwt = new (userConfig.User.Jwt);
+            await jwt.Validate();
             if (jwt.ContainsAllowedRole(Roles.Admin) || jwt.ContainsAllowedRole(Roles.FwAdmin))
                 managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementsDetails);
             else

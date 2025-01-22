@@ -308,8 +308,8 @@
     {
         try
         {
-            JwtReader jwt = new JwtReader(userConfig.User.Jwt);
-            jwt.Validate();
+            JwtReader jwt = new (userConfig.User.Jwt);
+            await jwt.Validate();
 
             if (jwt.ContainsAllowedRole(Roles.Admin) || jwt.ContainsAllowedRole(Roles.FwAdmin))
             {
@@ -351,6 +351,7 @@
         }
         showCleanupButton = (sampleManagements.Count > 0);
     }
+
     private void Edit(Management management)
     {
         actManagement = new Management(management);

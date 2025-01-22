@@ -29,7 +29,11 @@
                             @(userConfig.GetText(context.TaskType))
                         </Template>
                     </Column>
-                    <Column TableItem="WfReqTask" Title="@(userConfig.GetText("management"))" Field="@(x => x.OnManagement.Name)" Sortable="false" Filterable="false" />
+                    <Column TableItem="WfReqTask" Title="@(userConfig.GetText("management"))" Field="@(x => x.Id)" Sortable="false" Filterable="false">
+                        <Template>
+                            @(context.OnManagement?.Name)
+                        </Template>
+                    </Column>
                     <Column TableItem="WfReqTask" Title="@(userConfig.GetText("title"))" Field="@(x => x.Title)" Sortable="true" Filterable="false" />
                     <Column TableItem="WfReqTask" Title="@(userConfig.GetText("state"))" Field="@(x => x.StateId)" Sortable="true" Filterable="false">
                         <Template>

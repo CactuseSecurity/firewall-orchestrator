@@ -291,10 +291,13 @@
 
     private void UpdateImplTaskInList()
     {
-        int? idx = AllImplTasks?.FindIndex(x => x.Id == WfHandler.ActImplTask.Id);
-        if(idx != null && idx >= 0)
+        if(AllImplTasks != null)
         {
-            AllImplTasks[(int)idx] = WfHandler.ActImplTask;
+            int? idx = AllImplTasks?.FindIndex(x => x.Id == WfHandler.ActImplTask.Id);
+            if(idx != null && idx >= 0)
+            {
+                AllImplTasks[(int)idx] = WfHandler.ActImplTask;
+            }
         }
     }
 

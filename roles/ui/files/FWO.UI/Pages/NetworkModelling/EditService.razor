@@ -23,7 +23,7 @@
                         </ElementTemplate>
                     </Dropdown>
                 </div>
-                @if(!(bool)ServiceHandler.ActService.Protocol?.Name.ToLower().StartsWith("esp"))
+                @if(!(bool)(ServiceHandler.ActService.Protocol?.Name.ToLower().StartsWith("esp") ?? false))
                 {
                     <div class="form-group row col-sm-6">
                         <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("port"))*:</label>

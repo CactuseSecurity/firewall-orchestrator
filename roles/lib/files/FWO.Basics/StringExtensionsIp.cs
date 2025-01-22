@@ -1,11 +1,7 @@
 
-using System;
 using System.Net;
 using System.Numerics;
-using System.Linq;
 using System.Net.Sockets;
-using System.Collections;
-using FWO.Basics;
 using System.Text.RegularExpressions;
 
 namespace FWO.Basics
@@ -40,6 +36,7 @@ namespace FWO.Basics
 
             return match.Success;
         }
+
         public static bool TrySplit(this string text, char separator, out int length)
         {
             string[] splits = text.Split(separator);
@@ -83,6 +80,7 @@ namespace FWO.Basics
             string pattern = BuildDangerousHtmlTagPattern();
             return Regex.Replace(text, pattern, string.Empty, options);
         }
+
         public static bool IsIPv4(this string ipAddress)
         {
             if (IPAddress.TryParse(ipAddress, out IPAddress? addr))
@@ -95,6 +93,7 @@ namespace FWO.Basics
 
             return false;
         }
+
         public static bool IsIPv6(this string ipAddress)
         {
             if (IPAddress.TryParse(ipAddress, out IPAddress? addr))
@@ -107,6 +106,7 @@ namespace FWO.Basics
 
             return false;
         }
+
         public static (string start, string end) CidrToRangeString(this string cidr)
         {
             IPAddress ipStart;
@@ -116,6 +116,7 @@ namespace FWO.Basics
 
             return (ipStart.ToString(), ipEnd.ToString());
         }
+
         public static (IPAddress start, IPAddress end) CidrToRange(this string cidr)
         {
             string[] parts = cidr.Split('/');
@@ -144,6 +145,7 @@ namespace FWO.Basics
                 throw new FormatException("Invalid IP address format.");
             }
         }
+
         private static (IPAddress start, IPAddress end) IPv4CidrToRange(byte[] addressBytes, int prefixLength)
         {
             uint ipAddress = BitConverter.ToUInt32(addressBytes.Reverse().ToArray(), 0);
@@ -184,6 +186,7 @@ namespace FWO.Basics
 
             return (new IPAddress(startIpBytes), new IPAddress(endIpBytes));
         }
+
         private static byte[] NormalizeBytes(byte[] bytes, int targetLength)
         {
             if (bytes.Length < targetLength)
@@ -195,7 +198,6 @@ namespace FWO.Basics
             }
             return bytes.Take(targetLength).ToArray();  // Ensure it's exactly targetLength bytes
         }
-
     }
 }
 

@@ -325,7 +325,10 @@
     <CommentObject @bind-Display="WfHandler.DisplayImplTaskCommentMode" ResetParent="InitComments" ObjectName="@WfHandler.ActImplTask.Title" Save="ConfAddComment"/>
     <Confirm @bind-Display="assignOwnerMode" PerformAction="async () => {await AssignOwner(); StateHasChanged();}"
         Title="@userConfig.GetText("assign_owner")" Message="@message" AllowedRoles="@($"{Roles.Admin}, {Roles.Implementer}")"/>
-    <EditConnPopup @bind-Display="WfHandler.ActionHandler.DisplayConnectionMode" ConnHandler="WfHandler.ActionHandler.ConnHandler"/>
+    @if(WfHandler.ActionHandler != null)
+    {
+        <EditConnPopup @bind-Display="WfHandler.ActionHandler.DisplayConnectionMode" ConnHandler="WfHandler.ActionHandler.ConnHandler"/>
+    }
 }
 <InProgress Display="WorkInProgress"/>
 

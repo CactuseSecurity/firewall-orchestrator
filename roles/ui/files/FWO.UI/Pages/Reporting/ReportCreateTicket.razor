@@ -28,7 +28,7 @@
         <div class="btn-group">
             <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Requester}")">
                 <Authorized>
-                    <button type="button" class="btn btn-sm btn-danger" @onclick="() => {CreateTicket(); Close();}">@(userConfig.GetText("create_ticket"))</button>
+                    <button type="button" class="btn btn-sm btn-danger" @onclick="CreateTicket">@(userConfig.GetText("create_ticket"))</button>
                 </Authorized>
                 <NotAuthorized>
                     <button type="button" class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("create_ticket"))</button>

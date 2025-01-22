@@ -57,9 +57,9 @@
                         <DetailTemplate TableItem="NetworkObject">
                             <Detail Title="@(userConfig.GetText("type"))" Data=@(context.Type != null ? context.Type.Name : "") />
                             <Detail Title="@(userConfig.GetText("uid"))" Data=@context.Uid />
-                            <Detail Title="@(userConfig.GetText("ip"))" Data=@NwObjDisplay.DisplayIp(context.IP, context.IpEnd, context.Type.Name) />
+                            <Detail Title="@(userConfig.GetText("ip"))" Data=@NwObjDisplay.DisplayIp(context.IP, context.IpEnd, context.Type != null ? context.Type.Name : "") />
                             <Detail Title="@(userConfig.GetText("zone"))" Data=@context.Zone?.Name />
-                            @if (context.Type.Name == ObjectType.Group && context.ObjectGroups != null && context.ObjectGroupFlats != null)
+                            @if (context.Type != null && context.Type.Name == ObjectType.Group && context.ObjectGroups != null && context.ObjectGroupFlats != null)
                             {
                                 if(Tab == RsbTab.usedObj || Tab == RsbTab.unusedObj)
                                 {
@@ -127,7 +127,7 @@
                         <DetailTemplate TableItem="NetworkService">
                             <Detail Title="@(userConfig.GetText("type"))" Data=@(context.Type != null ? context.Type.Name : "") />
                             <Detail Title="@(userConfig.GetText("uid"))" Data=@context.Uid />
-                            @if (context.Type.Name != ServiceType.Group)
+                            @if (context.Type == null || context.Type.Name != ServiceType.Group)
                             {
                                 <Detail Title="@(userConfig.GetText("source_port"))" Data=@(context.SourcePort == context.SourcePortEnd || context.SourcePortEnd.ToString() == "" ? 
                                     context.SourcePort.ToString() : $"{context.SourcePort.ToString()}-{context.SourcePortEnd.ToString()}") />
@@ -137,7 +137,7 @@
                                 <Detail Title="@(userConfig.GetText("code"))" Data=@context.Code />
                                 <Detail Title="@(userConfig.GetText("timeout"))" Data=@context.Timeout.ToString() />
                             }
-                            @if (context.Type.Name == ServiceType.Group && context.ServiceGroups != null && context.ServiceGroupFlats != null)
+                            @if (context.Type != null && context.Type.Name == ServiceType.Group && context.ServiceGroups != null && context.ServiceGroupFlats != null)
                             {
                                 if(Tab == RsbTab.usedObj || Tab == RsbTab.unusedObj)
                                 {
@@ -307,7 +307,7 @@
         }
     }
 
-    protected override async Task OnParametersSetAsync()
+    protected override void OnParametersSet()
     {
         if(Reload)
         {

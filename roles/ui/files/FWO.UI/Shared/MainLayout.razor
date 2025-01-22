@@ -334,7 +334,7 @@
                 string role = "";
                 try
                 {
-                    JwtReader jwtReader = new JwtReader(userConfig.User.Jwt);
+                    JwtReader jwtReader = new (userConfig.User.Jwt);
                     Task.Run(async () => await jwtReader.Validate());
                     role = jwtReader.GetRole();
                 }

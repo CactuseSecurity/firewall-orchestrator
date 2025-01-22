@@ -149,7 +149,7 @@
     </Footer>
 </PopUp>
 
-<PopUp Title="@(userConfig.GetText("edit_vis_devices") + ": " + actTenant.Name)" Show="@EditDevicesSelectedForTenantMode" Size=PopupSize.Large OnClose="() => LeaveEditDevicesSelectedForTenantMode(cancel:true)">
+<PopUp Title="@(userConfig.GetText("edit_vis_devices") + ": " + actTenant.Name)" Show="@EditDevicesSelectedForTenantMode" Size=PopupSize.Large OnClose="async () => await LeaveEditDevicesSelectedForTenantMode(cancel:true)">
     <Body>
         @if (EditDevicesSelectedForTenantMode)
         {
@@ -160,13 +160,13 @@
         <div class="btn-group">
             <AuthorizeView Roles="admin">
                 <Authorized>
-                    <button type="button" class="btn btn-sm btn-success" @onclick="() => LeaveEditDevicesSelectedForTenantMode(cancel:false)" @onclick:preventDefault>@(userConfig.GetText("save"))</button>
+                    <button type="button" class="btn btn-sm btn-success" @onclick="async () => await LeaveEditDevicesSelectedForTenantMode(cancel:false)" @onclick:preventDefault>@(userConfig.GetText("save"))</button>
                 </Authorized>
                 <NotAuthorized>
                     <button type="button" class="btn btn-sm btn-success" disabled>@(userConfig.GetText("save"))</button>
                 </NotAuthorized>
             </AuthorizeView>
-            <button type="button" class="btn btn-sm btn-secondary" @onclick="() => LeaveEditDevicesSelectedForTenantMode(cancel:true)">
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="async () => await LeaveEditDevicesSelectedForTenantMode(cancel:true)">
                 @(userConfig.GetText("cancel"))
             </button>
         </div>

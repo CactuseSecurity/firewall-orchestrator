@@ -180,7 +180,7 @@
                         @(ConnHandler.DisplayButton("display_interface", Icons.Display))</button>
                 }
                 <button type="button" class="btn btn-sm btn-dark" @onclick="async () =>
-                    {await RequestNewInterface(); await ResetInt();}">
+                    {RequestNewInterface(); await ResetInt();}">
                     @(ConnHandler.DisplayButton("request_interface", Icons.Workflow))</button>
             </div>
             <br>
@@ -614,14 +614,9 @@
         SearchNwObjectMode = true;
     }
 
-    public async Task RequestNewInterface()
+    public void RequestNewInterface()
     {
         SelectAppMode = true;
-    }
-
-    private async Task DataInconsistent()
-    {
-
     }
 
     private async Task ResetNw()

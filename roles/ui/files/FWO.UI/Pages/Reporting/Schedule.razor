@@ -208,7 +208,7 @@
             uiUserDbId = userConfig.User.DbId;
             if(showModellingReports)
             {
-                modOwnerList = await ModellingHandlerBase.GetOwnApps(authenticationStateTask, userConfig, apiConnection, DisplayMessageInUi);
+                modOwnerList = await ModellingHandlerBase.GetOwnApps(authenticationStateTask!, userConfig, apiConnection, DisplayMessageInUi);
             }
 
             // Initial fetch to speed up loading before subscription is established

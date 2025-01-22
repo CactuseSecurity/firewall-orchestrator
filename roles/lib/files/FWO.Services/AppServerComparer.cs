@@ -3,7 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace FWO.Services
 {
-    class AppServerComparer(ModellingNamingConvention namingConvention) : IEqualityComparer<ModellingAppServerWrapper>, IEqualityComparer<ModellingAppServer>
+    public class AppServerComparer(ModellingNamingConvention namingConvention) : IEqualityComparer<ModellingAppServerWrapper>, IEqualityComparer<ModellingAppServer>
     {
         readonly ModellingNamingConvention NamingConvention = namingConvention;
 

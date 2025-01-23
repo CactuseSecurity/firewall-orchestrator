@@ -124,6 +124,7 @@
   command: "a2dissite {{ product_name }}-maintenance"
   ignore_errors: true
   become: true
+  when: "installation_mode == 'upgrade' and 'frontends' in group_names"
 
 - name: restart apache without maintenance site
   service:

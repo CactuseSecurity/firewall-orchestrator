@@ -277,7 +277,7 @@ namespace FWO.Middleware.Server
 				name = incomingApp.Name,
 				dn = incomingApp.MainUser ?? "",
 				groupDn = userGroupDn,
-				appIdExternal = incomingApp.ExtAppId,
+			    appIdExternal = string.IsNullOrEmpty(incomingApp.ExtAppId) ? null : incomingApp.ExtAppId,
 				criticality = incomingApp.Criticality,
 				commSvcPossible = existingApp.CommSvcPossible
 			};

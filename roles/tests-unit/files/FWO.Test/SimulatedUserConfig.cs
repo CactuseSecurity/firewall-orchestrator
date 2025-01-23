@@ -82,7 +82,15 @@ namespace FWO.Test
             {"add_members",": Add Members"},
             {"remove_members",": Remove Members"},
             {"new_app_zone", "New AppZone: " },
-            {"update_app_zone", "Update AppZone: " }
+            {"update_app_zone", "Update AppZone: " },
+            {"objects","Objects"},
+            {"all","All"},
+            {"report","Report"},
+            {"rule", "Rule"},
+            {"collapse_all","Collapse All"},
+            {"clear_all", "Clear All"},
+            {"used_objects", "Used Objects"},
+            {"object_fetch", "Object Fetch"},
         };
 
         public override string GetText(string key)

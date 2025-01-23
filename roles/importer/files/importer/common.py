@@ -347,6 +347,7 @@ def setImportLock(importState):
 
 def get_config_from_api(importState, full_config_json, config2import, import_tmp_path='.', limit=150):
     logger = getFwoLogger()
+    errors_found = 1
 
     try: # pick product-specific importer:
         pkg_name = importState.MgmDetails.DeviceTypeName.lower().replace(' ', '') + importState.MgmDetails.DeviceTypeVersion
@@ -364,7 +365,7 @@ def get_config_from_api(importState, full_config_json, config2import, import_tmp
             logger.info ( "has_config_changed: no new changes found")
 
         if config_changed_since_last_import or importState.ForceImport:
-            fw_module.get_config( # get config from product-specific FW API
+            errors_found = fw_module.get_config( # get config from product-specific FW API
                 config2import, full_config_json,  importState.ImportId, importState.FullMgmDetails, 
                 limit=limit, force=importState.ForceImport, jwt=importState.Jwt)
     except (FwLoginFailed) as e:
@@ -390,6 +391,9 @@ def get_config_from_api(importState, full_config_json, config2import, import_tmp
 
     logger.debug("import_management: get_config completed (including normalization), duration: " + str(int(time.time()) - importState.StartTime) + "s") 
 
+    if errors_found>0:
+        raise BaseException("error while getting config from API")
+    
     if config_changed_since_last_import and fwo_globals.debug_level>2:   # debugging: writing config to json file
         debug_start_time = int(time.time())
         try:

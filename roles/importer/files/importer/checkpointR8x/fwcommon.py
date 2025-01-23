@@ -184,6 +184,7 @@ def get_config(nativeConfig: json, importState: ImportState) -> tuple[int, FwCon
 
         result_get_objects = get_objects (nativeConfig, importState.FullMgmDetails, cpManagerApiBaseUrl, sid, force=importState.ForceImport, limit=str(importState.FwoConfig.ApiFetchSize), details_level=cp_const.details_level_objects, test_version='off')
         if result_get_objects>0:
+            logger.warning ( "checkpointR8x/get_config/error while gettings objects")
             return result_get_objects
         logger.debug ( "checkpointR8x/get_config/fetched objects in " + str(int(time.time()) - starttimeTemp) + "s")
 
@@ -191,6 +192,7 @@ def get_config(nativeConfig: json, importState: ImportState) -> tuple[int, FwCon
         logger.debug ( "checkpointR8x/get_config/getting rules ...")
         result_get_rules = getRules (nativeConfig, importState, sid, cpManagerApiBaseUrl)
         if result_get_rules>0:
+            logger.warning ( "checkpointR8x/get_config/error while gettings rules")
             return result_get_rules
         logger.debug ( "checkpointR8x/get_config/fetched rules in " + str(int(time.time()) - starttimeTemp) + "s")
 

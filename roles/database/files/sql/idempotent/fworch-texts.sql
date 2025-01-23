@@ -2255,8 +2255,6 @@ INSERT INTO txt VALUES ('allowServiceInConn',   'German', 	'Einfache Dienste in 
 INSERT INTO txt VALUES ('allowServiceInConn',   'English', 	'Allow Simple Services in Connection');
 INSERT INTO txt VALUES ('overviewDisplayLines', 'German', 	'Max. Anzahl Zeilen in &Uuml;bersicht');
 INSERT INTO txt VALUES ('overviewDisplayLines', 'English', 	'Max. Number of Rows in Overview');
-INSERT INTO txt VALUES ('maxModellingTableRows', 'German', 	'Max. Anzahl Zeilen in Tabellen');
-INSERT INTO txt VALUES ('maxModellingTableRows', 'English', 'Max. Number of Rows in Tables');
 INSERT INTO txt VALUES ('reducedProtocolSet',   'German',   'Reduzierten Protokollset darstellen');
 INSERT INTO txt VALUES ('reducedProtocolSet',   'English',  'Display reduced Protocol set');
 INSERT INTO txt VALUES ('importAppDataPath',    'German', 	'Pfad und Name von Appdaten-Import (ohne Endung)');

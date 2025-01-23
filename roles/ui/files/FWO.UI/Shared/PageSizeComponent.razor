@@ -12,12 +12,10 @@
 @code {
     [Parameter] public EventCallback<int> PageSizeCallback { get; set; }
 
-    private int PageSize { get; set; }
+    private int PageSize { get; set; } = 0;
 
     protected override async Task OnInitializedAsync()
     {
-        PageSize = UserConfig.MaxModellingTableRows;
-
         await SubmitPageSize();
 
         base.OnInitialized();

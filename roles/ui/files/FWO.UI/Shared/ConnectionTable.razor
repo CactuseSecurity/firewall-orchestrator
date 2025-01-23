@@ -7,81 +7,84 @@
 
 @inject UserConfig userConfig
 
-<PageSizeComponent PageSizeCallback="UpdatePageSize"></PageSizeComponent>
+@if (ShowPageSizeInput)
+{
+        <PageSizeComponent PageSizeCallback="UpdatePageSize"></PageSizeComponent>
+}
 <Table class="table table-bordered th-bg-secondary sticky-header show-scrollbar table-responsive" TableItem="ModellingConnection"
        Items="Connections" PageSize="PageSize" ColumnReorder="true" TableRowClass="@(con => getTableRowClass(con))"
        SelectedItems="SelectedConns" RowClickAction="@(conn => ToggleSelection(conn))">
     @if (!Readonly && !SelectInterfaceView && AppHandler != null)
     {
-        <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
-            <Template>
-                <div class="btn-group">
-                    <button type="button" class="btn btn-sm btn-primary" @onclick="async () =>
+            <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
+                <Template>
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-sm btn-primary" @onclick="async () =>
                         { await AppHandler.ShowDetails(context); await AppHandlerChanged.InvokeAsync(AppHandler); }">
                         @(AppHandler.DisplayButton("details", Icons.Display))
-                    </button>
+                        </button>
                     @if (AppActive)
                     {
                         @if (!context.GetBoolProperty(ConState.InterfaceRejected.ToString()) && !context.GetBoolProperty(ConState.Rejected.ToString()))
                         {
-                            <button type="button" class="btn btn-sm btn-warning" @onclick="async () =>
+                                        <button type="button" class="btn btn-sm btn-warning" @onclick="async () =>
                                 { await AppHandler.EditConn(context); await AppHandlerChanged.InvokeAsync(AppHandler); }">
                                 @(AppHandler.DisplayButton("edit", Icons.Edit))
-                            </button>
+                                        </button>
                         }
-                        <button type="button" class="btn btn-sm btn-danger" @onclick="async () =>
+                                <button type="button" class="btn btn-sm btn-danger" @onclick="async () =>
                             { await AppHandler.RequestDeleteConnection(context); await AppHandlerChanged.InvokeAsync(AppHandler); }">
                             @(AppHandler.DisplayButton("delete", Icons.Delete))
-                        </button>
+                                </button>
                     }
-                </div>
-            </Template>
-        </Column>
+                    </div>
+                </Template>
+            </Column>
     }
     @if (ShowSelectionColumn)
     {
-        <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("select"))" Sortable="false" Filterable="false">
-            <Template>
+            <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("select"))" Sortable="false" Filterable="false">
+                <Template>
                 @if (SelectionType == SelectionType.Single)
                 {
-                    <input type="radio" checked="@(SelectedConns.Contains(context))" />
+                            <input type="radio" checked="@(SelectedConns.Contains(context))" />
                 }
                 else if (SelectionType == SelectionType.Multiple)
                 {
-                    <input type="checkbox" checked="@(SelectedConns.Contains(context))" />
+                            <input type="checkbox" checked="@(SelectedConns.Contains(context))" />
                 }
-            </Template>
-        </Column>
+                </Template>
+            </Column>
     }
     <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
     @if (!SelectInterfaceView)
     {
         @if (Connections.Count > 0 && Connections.First().IsInterface)
         {
-            <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("published"))" Field="@(x => x.IsPublished)" Sortable="true" Filterable="true">
-                <Template>
+                    <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("published"))" Field="@(x => x.IsPublished)" Sortable="true" Filterable="true">
+                        <Template>
                     @(context.IsPublished.ShowAsHtml())
+                        </Template>
+                    </Column>
+        }
+            <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("state"))" Field="@(x => x.Id)" Sortable="true" Filterable="false">
+                <Template>
+                @((MarkupString)DisplayState(context))
                 </Template>
             </Column>
-        }
-        <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("state"))" Field="@(x => x.Id)" Sortable="true" Filterable="false">
-            <Template>
-                @((MarkupString)DisplayState(context))
-            </Template>
-        </Column>
     }
     @if (ShowAppName)
     {
-        <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("owner"))" Field="@(x => x.App.Name)" Sortable="true" Filterable="true">
-            <Template>
+            <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("owner"))" Field="@(x => x.App.Name)" Sortable="true" Filterable="true">
+                <Template>
                 @(context.App?.DisplayWithoutAppId(userConfig.GetText("common_service")))
-            </Template>
-        </Column>
-        <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("ext_app_id"))" Field="@(x => x.App.ExtAppId)" Sortable="true" Filterable="true">
-            <Template>
+                </Template>
+            </Column>
+            <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("ext_app_id"))" Field="@(x => x.App.ExtAppId)" Sortable="true" Filterable="true">
+                <Template>
                 @(context.App.ExtAppId)
-            </Template>
-        </Column>
+                </Template>
+            </Column>
     }    
     <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true">
         <Template>
@@ -159,6 +162,9 @@
 
     [Parameter]
     public SelectionType SelectionType { get; set; } = SelectionType.Single;
+
+    [Parameter]
+    public bool ShowPageSizeInput { get; set; } = false;
 
     private int PageSize { get; set; }
 

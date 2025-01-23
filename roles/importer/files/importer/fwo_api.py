@@ -198,6 +198,7 @@ def get_mgm_details(fwo_api_base_url, jwt, query_variables, debug_level=0):
                 lastConfigHash: last_import_md5_complete_config
                 devices(where:{do_not_import:{_eq:false}}) {
                     id: dev_id
+                    uid: dev_uid
                     name: dev_name
                     local_rulebase_name
                     global_rulebase_name

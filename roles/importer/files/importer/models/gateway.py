@@ -18,5 +18,5 @@ class Gateway(BaseModel):
     Routing: List[dict] = []
     Interfaces: List[dict]  = []
     GlobalPolicyUid: Optional[str] = None
-    EnforcedPolicyUids: List[str] = []
-    EnforcedNatPolicyUids: List[str] = []
+    EnforcedPolicyUids: Optional[List[str]] = []
+    EnforcedNatPolicyUids: Optional[List[str]] = []

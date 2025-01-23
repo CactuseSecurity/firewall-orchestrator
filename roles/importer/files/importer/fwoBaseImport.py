@@ -192,10 +192,8 @@ class ImportState(FwoApi):
         except FwoApiLoginFailed as e:
             logger.error(e.message)
             raise
-            return e.message
         except:
             raise
-            return "unspecified error during FWO API login"
 
         # set global https connection values
         fwo_globals.setGlobalValues (suppress_cert_warnings_in=suppressCertWarnings, verify_certs_in=sslVerification, debug_level_in=debugLevel)

@@ -461,12 +461,13 @@ class FwConfigImport(FwConfigImportObject, FwConfigImportRule, FwoApi):
 
     def fillGateways(self, importState: ImportState):      
         for dev in importState.MgmDetails.Devices:
-            gw = Gateway(Uid = f"{dev['name']}_{dev['local_rulebase_name']}",
+            gw = Gateway(Uid = dev['uid'],
+                         # Uid = f"{dev['name']}_{dev['local_rulebase_name']}",
                          Name = dev['name'],
                          Routing=[],    # TODO: routing
                          Interfaces=[],    # TODO: interfaces
-                         EnforcedPolicyUids=[dev['local_rulebase_name']],
-                         EnforcedNatPolicyUids=[dev['package_name']],
+                         EnforcedPolicyUids=[dev['local_rulebase_name']] if dev['local_rulebase_name'] is not None else [],
+                         EnforcedNatPolicyUids=[dev['package_name']] if dev['package_name'] is not None else [],
                          GlobalPolicyUid=None  # TODO: global policy UID
                          )
             self.NormalizedConfig.gateways.append(gw)

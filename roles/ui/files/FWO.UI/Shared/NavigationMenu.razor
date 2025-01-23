@@ -11,9 +11,9 @@
 @inject IJSRuntime jsRuntime
 @inject NavigationManager navigationManager
 
-@if(InitComplete)
+@if (InitComplete)
 {
-    <nav class="navbar navbar-expand-xl navbar-dark bg-blue shadow w-100 navbar-height">
+    <nav class="navbar navbar-expand-xl navbar-dark bg-blue shadow w-100">
         <a class="navbar-brand pad-10" href="#">
             <img src="/images/FWO_logo_navbar.png">&nbsp;@userConfig.GetText("fworch_long")&nbsp;v@(globalConfig.ProductVersion)
         </a>
@@ -22,8 +22,8 @@
             <span class="navbar-toggler-icon"></span>
         </button>
 
-        <div class="navbar-collapse me-auto nav-main-left @NavMenuCollapseClass">
-            <ul class="navbar-nav me-auto">
+        <div class="navbar-collapse @NavMenuCollapseClass">
+            <ul class="@NavPaddingCollapseClass navbar-nav flex-row">
                 <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Auditor}, {Roles.Modeller}")">
                     <li class="nav-item px-2">
                         <a href="@("/" + PageName.ReportGeneration)" class="nav-link @(navigationManager.Uri.Contains("/report/") ? "active" : "")">
@@ -65,37 +65,35 @@
                             <span class="@Icons.Compliance"></span> @(userConfig.GetText("compliance"))
                         </NavLink>
                     </li>
-                </AuthorizeView>
+                </AuthorizeView>                
             </ul>
-            <div class="nav-right">
-                <ul class="navbar-nav">
-                    <li class="nav-item px-2">
-                        @* d-flex align-items-center *@
-                        <NavLink class="nav-link" href="/monitoring">
-                            <span class="@Icons.Monitoring">
-                                @if (ShowAlert)
-                                {
-                                    <span class="@Icons.Alarm" style="color: red; margin-left: 5px; width: 15px; height: 10px;"></span>
-                                }
-                            </span>
-                            @(userConfig.GetText("monitoring"))
-                        </NavLink>
-                    </li>
-                    <li class="nav-item px-2">
-                        <NavLink class="nav-link" href="/settings">
-                            <span class="@Icons.Settings"></span> @(userConfig.GetText("settings"))
-                        </NavLink>
-                    </li>
-                    <li class="nav-item px-2">
-                        <HelpLink> @userConfig.GetText("help")</HelpLink>
-                    </li>
-                    <li class="nav-item px-2">
-                        <NavLink class="nav-link" href="/settings/user">
-                            <span class="@Icons.User"></span> @(userConfig.User.Name.ToUpper())
-                        </NavLink>
-                    </li>
-                </ul>
-            </div>
+            <ul class="@NavPaddingCollapseClass navbar-nav flex-row">
+                <li class="nav-item px-2">
+                    @* d-flex align-items-center *@
+                    <NavLink class="nav-link" href="/monitoring">
+                        <span class="@Icons.Monitoring">
+                            @if (ShowAlert)
+                            {
+                                <span class="@Icons.Alarm" style="color: red; margin-left: 5px; width: 15px; height: 10px;"></span>
+                            }
+                        </span>
+                        @(userConfig.GetText("monitoring"))
+                    </NavLink>
+                </li>
+                <li class="nav-item px-2">
+                    <NavLink class="nav-link" href="/settings">
+                        <span class="@Icons.Settings"></span> @(userConfig.GetText("settings"))
+                    </NavLink>
+                </li>
+                <li class="nav-item px-2">
+                    <HelpLink> @userConfig.GetText("help")</HelpLink>
+                </li>
+                <li class="nav-item px-2">
+                    <NavLink class="nav-link" href="/settings/user">
+                        <span class="@Icons.User"></span> @(userConfig.User.Name.ToUpper())
+                    </NavLink>
+                </li>
+            </ul>
         </div>
     </nav>
 }
@@ -117,6 +115,7 @@
     bool collapseNavMenu = true;
 
     string NavMenuCollapseClass => (collapseNavMenu ? " collapse" : "");
+    string NavPaddingCollapseClass => (collapseNavMenu ? "" : " px-3 py-1");
 
     string firstWorkflowPage = "";
     private StateMatrix stateMatrix = new StateMatrix();
@@ -130,34 +129,34 @@
         {
             await stateMatrix.Init(WorkflowPhases.request, apiConnection);
 
-            if(authenticationStateTask!.Result.User.IsInRole(Roles.Admin) || 
+            if (authenticationStateTask!.Result.User.IsInRole(Roles.Admin) ||
                 authenticationStateTask!.Result.User.IsInRole(Roles.FwAdmin) ||
                 authenticationStateTask!.Result.User.IsInRole(Roles.Auditor))
             {
                 firstWorkflowPage = "/request/ticketsoverview";
             }
-            else if(stateMatrix.PhaseActive[WorkflowPhases.request] && authenticationStateTask!.Result.User.IsInRole(Roles.Requester))
+            else if (stateMatrix.PhaseActive[WorkflowPhases.request] && authenticationStateTask!.Result.User.IsInRole(Roles.Requester))
             {
                 firstWorkflowPage = "/request/tickets";
             }
-            else if(stateMatrix.PhaseActive[WorkflowPhases.approval] && authenticationStateTask!.Result.User.IsInRole(Roles.Approver))
+            else if (stateMatrix.PhaseActive[WorkflowPhases.approval] && authenticationStateTask!.Result.User.IsInRole(Roles.Approver))
             {
                 firstWorkflowPage = "/request/approvals";
             }
-            else if(stateMatrix.PhaseActive[WorkflowPhases.planning] && authenticationStateTask!.Result.User.IsInRole(Roles.Planner))
+            else if (stateMatrix.PhaseActive[WorkflowPhases.planning] && authenticationStateTask!.Result.User.IsInRole(Roles.Planner))
             {
                 firstWorkflowPage = "/request/plannings";
             }
-            else if(stateMatrix.PhaseActive[WorkflowPhases.implementation] && authenticationStateTask!.Result.User.IsInRole(Roles.Implementer))
+            else if (stateMatrix.PhaseActive[WorkflowPhases.implementation] && authenticationStateTask!.Result.User.IsInRole(Roles.Implementer))
             {
                 firstWorkflowPage = "/request/implementations";
             }
-            else if(stateMatrix.PhaseActive[WorkflowPhases.review] && authenticationStateTask!.Result.User.IsInRole(Roles.Reviewer))
+            else if (stateMatrix.PhaseActive[WorkflowPhases.review] && authenticationStateTask!.Result.User.IsInRole(Roles.Reviewer))
             {
                 firstWorkflowPage = "/request/reviews";
             }
         }
-        catch(Exception exception)
+        catch (Exception exception)
         {
             DisplayMessageInUi(exception, userConfig.GetText("init_environment"), "", true);
         }
@@ -171,7 +170,7 @@
 
     private void OnChange(Config _, ConfigItem[] __)
     {
-        Task.Run(async() => await InvokeAsync(StateHasChanged));
+        Task.Run(async () => await InvokeAsync(StateHasChanged));
     }
 
     private string WorkflowRoles()

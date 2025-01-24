@@ -17,27 +17,27 @@ namespace FWO.Test
         private const string Html = "<html><body><h1>test<h1>test</body></html>";
 
         [Test]
-        public void GeneratePdf()
+        public async Task GeneratePdf()
         {
             Assert.That(IsValidHTML(Html));
 
             try
             {
-                TryCreatePDF(PeachPDF.PdfSharpCore.PageSize.A0);
-                TryCreatePDF(PeachPDF.PdfSharpCore.PageSize.A1);
-                TryCreatePDF(PeachPDF.PdfSharpCore.PageSize.A2);
-                TryCreatePDF(PeachPDF.PdfSharpCore.PageSize.A3);
-                TryCreatePDF(PeachPDF.PdfSharpCore.PageSize.A4);
-                TryCreatePDF(PeachPDF.PdfSharpCore.PageSize.A5);
-                TryCreatePDF(PeachPDF.PdfSharpCore.PageSize.A6);
-                TryCreatePDF(PeachPDF.PdfSharpCore.PageSize.B0);
-                TryCreatePDF(PeachPDF.PdfSharpCore.PageSize.B1);
-                TryCreatePDF(PeachPDF.PdfSharpCore.PageSize.B2);
-                TryCreatePDF(PeachPDF.PdfSharpCore.PageSize.B3);
-                TryCreatePDF(PeachPDF.PdfSharpCore.PageSize.B4);
-                TryCreatePDF(PeachPDF.PdfSharpCore.PageSize.B5);
-                TryCreatePDF(PeachPDF.PdfSharpCore.PageSize.Letter);
-                TryCreatePDF(PeachPDF.PdfSharpCore.PageSize.Tabloid);
+                await TryCreatePDF(PeachPDF.PdfSharpCore.PageSize.A0);
+                await TryCreatePDF(PeachPDF.PdfSharpCore.PageSize.A1);
+                await TryCreatePDF(PeachPDF.PdfSharpCore.PageSize.A2);
+                await TryCreatePDF(PeachPDF.PdfSharpCore.PageSize.A3);
+                await TryCreatePDF(PeachPDF.PdfSharpCore.PageSize.A4);
+                await TryCreatePDF(PeachPDF.PdfSharpCore.PageSize.A5);
+                await TryCreatePDF(PeachPDF.PdfSharpCore.PageSize.A6);
+                await TryCreatePDF(PeachPDF.PdfSharpCore.PageSize.B0);
+                await TryCreatePDF(PeachPDF.PdfSharpCore.PageSize.B1);
+                await TryCreatePDF(PeachPDF.PdfSharpCore.PageSize.B2);
+                await TryCreatePDF(PeachPDF.PdfSharpCore.PageSize.B3);
+                await TryCreatePDF(PeachPDF.PdfSharpCore.PageSize.B4);
+                await TryCreatePDF(PeachPDF.PdfSharpCore.PageSize.B5);
+                await TryCreatePDF(PeachPDF.PdfSharpCore.PageSize.Letter);
+                await TryCreatePDF(PeachPDF.PdfSharpCore.PageSize.Tabloid);
             }
             catch (Exception)
             {

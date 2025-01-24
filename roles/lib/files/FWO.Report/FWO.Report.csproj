@@ -9,7 +9,7 @@
   <ItemGroup>
 	  <PackageReference Include="HtmlAgilityPack" Version="1.11.72" />
 	  <PackageReference Include="PDFsharp" Version="6.1.1" />
-	  <PackageReference Include="PeachPDF" Version="0.7.0" />
+	  <PackageReference Include="PeachPDF" Version="0.7.2" />
   </ItemGroup>
 
   <ItemGroup>

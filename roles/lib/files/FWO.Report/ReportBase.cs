@@ -11,6 +11,7 @@ using PdfSharp.Drawing;
 using PdfSharp.Pdf.IO;
 using FWO.Report.Data;
 using PeachPDF;
+using System.IO;
 
 namespace FWO.Report
 {
@@ -259,36 +260,23 @@ namespace FWO.Report
         }
 
         private static PeachPDF.PdfSharpCore.PageSize GetPeachPDFPageSize(PaperFormat format)
-        {           
-            switch (format)
+        {
+            return format switch
             {
-                case PaperFormat.A0:
-                    return PeachPDF.PdfSharpCore.PageSize.A0;
-                case PaperFormat.A1:
-                    return PeachPDF.PdfSharpCore.PageSize.A1;
-                case PaperFormat.A2:
-                     return PeachPDF.PdfSharpCore.PageSize.A2;
-                case PaperFormat.A3:
-                     return PeachPDF.PdfSharpCore.PageSize.A3;
-                case PaperFormat.A4:
-                     return PeachPDF.PdfSharpCore.PageSize.A4;
-                case PaperFormat.A5:
-                     return PeachPDF.PdfSharpCore.PageSize.A5;
-                case PaperFormat.A6:
-                     return PeachPDF.PdfSharpCore.PageSize.A6;
-                case PaperFormat.Letter:
-                     return PeachPDF.PdfSharpCore.PageSize.Letter;
-                case PaperFormat.Legal:
-                     return PeachPDF.PdfSharpCore.PageSize.Legal;
-                case PaperFormat.Tabloid:
-                     return PeachPDF.PdfSharpCore.PageSize.Tabloid;
-                case PaperFormat.Ledger:
-                     return PeachPDF.PdfSharpCore.PageSize.Ledger;
-                case PaperFormat.Custom:
-                    return PeachPDF.PdfSharpCore.PageSize.Undefined;
-                default:
-                     return PeachPDF.PdfSharpCore.PageSize.A4;
-            }
+                PaperFormat.A0 => PeachPDF.PdfSharpCore.PageSize.A0,
+                PaperFormat.A1 => PeachPDF.PdfSharpCore.PageSize.A1,
+                PaperFormat.A2 => PeachPDF.PdfSharpCore.PageSize.A2,
+                PaperFormat.A3 => PeachPDF.PdfSharpCore.PageSize.A3,
+                PaperFormat.A4 => PeachPDF.PdfSharpCore.PageSize.A4,
+                PaperFormat.A5 => PeachPDF.PdfSharpCore.PageSize.A5,
+                PaperFormat.A6 => PeachPDF.PdfSharpCore.PageSize.A6,
+                PaperFormat.Letter => PeachPDF.PdfSharpCore.PageSize.Letter,
+                PaperFormat.Legal => PeachPDF.PdfSharpCore.PageSize.Legal,
+                PaperFormat.Tabloid => PeachPDF.PdfSharpCore.PageSize.Tabloid,
+                PaperFormat.Ledger => PeachPDF.PdfSharpCore.PageSize.Ledger,
+                PaperFormat.Custom => PeachPDF.PdfSharpCore.PageSize.Undefined,
+                _ => PeachPDF.PdfSharpCore.PageSize.A4,
+            };
         }
 
         private static List<ToCHeader> CreateTOCContent(string html)

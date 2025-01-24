@@ -251,7 +251,7 @@ namespace FWO.Report
 
                 byte[]? pdfWithToCData = AddToCBookmarksToPDF(stream, html);
 
-                return Convert.ToBase64String(stream.ToArray());
+                return Convert.ToBase64String(pdfWithToCData.ToArray());
             }
             catch (Exception)
             {
@@ -326,7 +326,7 @@ namespace FWO.Report
 
             foreach (ToCHeader toCHeader in tocHeaders)
             {
-                sb.AppendLine($"<li><a href=\"#{toCHeader.Id}\">{toCHeader.Title}</a></li>");
+                sb.AppendLine($"<li><a href=\"{toCHeader.Id}\">{toCHeader.Title}</a></li>");
 
                 if (toCHeader.Items.Count > 0)
                 {
@@ -334,7 +334,7 @@ namespace FWO.Report
 
                     foreach (ToCItem tocItem in toCHeader.Items)
                     {
-                        sb.AppendLine($"<li class=\"subli\"><a href=\"#{tocItem.Id}\">{tocItem.Title}</a></li>");
+                        sb.AppendLine($"<li class=\"subli\"><a href=\"{tocItem.Id}\">{tocItem.Title}</a></li>");
                     }
 
                     sb.AppendLine("</ul>");

@@ -8,7 +8,7 @@ import time
 import cp_rule
 import cp_const, cp_network, cp_service
 import cp_getter
-from fwo_exception import FwLoginFailed, FwLogoutFailed
+from fwo_exception import FwLoginFailed
 from cp_user import parse_user_objects_from_rulebase
 from fwconfig_base import calcManagerUidHash
 from models.fwconfigmanagerlist import FwConfigManagerList, FwConfigManager
@@ -42,10 +42,10 @@ def getConfig(nativeConfig:json, importState:ImportState, managerSet:FwConfigMan
         for device in importState.FullMgmDetails['devices']:
             if not device.do_not_import:
 
-                for policy in package:
-                    if policy not in policies:
-                        normalizedConfig.rules.append(getPolicy(policy))
-                    normalizedConfig.ManagerSet[mgrSet].Configs.gateways[device].append(policy.name )
+                for rulebase in package:
+                    if rulebase not in policies:
+                        normalizedConfig.rules.append(getRulebase(rulebase))
+                    normalizedConfig.ManagerSet[mgrSet].Configs.gateways[device].append(rulebase.name )
 
 
 def getGatewayDetails(importState, normalizedConfig):

@@ -234,6 +234,7 @@ Create table IF NOT EXISTS "rulebase_link"
 (
 	"id" SERIAL primary key,
 	"gw_id" Integer,
+	-- "from_rulebase_id" Integer NOT NULL,
 	"from_rule_id" Integer,
 	"to_rulebase_id" Integer NOT NULL,
 	"link_type" Integer,

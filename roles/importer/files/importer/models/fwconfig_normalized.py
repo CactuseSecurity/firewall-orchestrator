@@ -59,7 +59,7 @@ class FwConfigNormalized(FwConfig):
         arbitrary_types_allowed = True
 
 
-    def getPolicy(self, policyUid: str) -> Rulebase:
+    def getRulebase(self, policyUid: str) -> Rulebase:
         """
         get the policy with a specific uid  
         :param policyUid: The UID of the relevant policy.
@@ -80,5 +80,5 @@ class FwConfigNormalized(FwConfig):
         :param policyUid: The UID of the relevant policy.
         :return: Returns the policy with a specific uid as an ordered list [ruleUid, rule_num].
         """
-        ruleList = [{'Uid': rule_uid, 'rule_num': details['rule_num']} for rule_uid, details in self.getPolicy(policyUid).items()]
+        ruleList = [{'Uid': rule_uid, 'rule_num': details['rule_num']} for rule_uid, details in self.getRulebase(policyUid).items()]
         return sorted(ruleList, key=lambda x: x['rule_num'])

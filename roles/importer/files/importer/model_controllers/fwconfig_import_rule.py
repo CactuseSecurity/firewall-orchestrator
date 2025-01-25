@@ -42,11 +42,11 @@ class FwConfigImportRule(FwConfigImportBase):
         currentRulebaseUids = []
 
         # collect rulebase UIDs of previous config
-        for rulebase in prevConfig.rules:
+        for rulebase in prevConfig.rulebases:
             previousRulebaseUids.append(rulebase.uid)
 
         # collect rulebase UIDs of current (just imported) config
-        for rulebase in self.NormalizedConfig.rules:
+        for rulebase in self.NormalizedConfig.rulebases:
             currentRulebaseUids.append(rulebase.uid)
 
         for rulebaseId in previousRulebaseUids:
@@ -63,7 +63,7 @@ class FwConfigImportRule(FwConfigImportBase):
                 deletedRuleUids.update({ rulebaseId: list(currentRulebase.Rules.keys()) })
 
         # now deal with new rulebases (not contained in previous config)
-        for rulebase in self.NormalizedConfig.rules:
+        for rulebase in self.NormalizedConfig.rulebases:
             if rulebase.uid not in previousRulebaseUids:
                 newRuleUids.update({ rulebase.uid: list(rulebase.Rules.keys()) })
 
@@ -71,7 +71,7 @@ class FwConfigImportRule(FwConfigImportBase):
         # TODO: need to ignore last_hit! 
         for rulebaseId in ruleUidsInBoth:
             changedRuleUids.update({ rulebaseId: [] })
-            currentRulebase = self.NormalizedConfig.getRulebase(rulebaseId) # [pol for pol in self.NormalizedConfig.rules if pol.Uid == rulebaseId]
+            currentRulebase = self.NormalizedConfig.getRulebase(rulebaseId) # [pol for pol in self.NormalizedConfig.rulebases if pol.Uid == rulebaseId]
             previousRulebase = prevConfig.getRulebase(rulebaseId)
             for ruleUid in ruleUidsInBoth[rulebaseId]:
                 if self.ruleChanged(rulebaseId, ruleUid, currentRulebase, previousRulebase):
@@ -106,7 +106,7 @@ class FwConfigImportRule(FwConfigImportBase):
 
     def getRules(self, ruleUids) -> List[Rulebase]:
         rulebases = []
-        for rb in self.NormalizedConfig.rules:
+        for rb in self.NormalizedConfig.rulebases:
             if rb.uid in ruleUids:
                 filtered_rules = {uid: rule for uid, rule in rb.Rules.items() if uid in ruleUids[rb.uid]}
                 rulebase = Rulebase(
@@ -122,8 +122,8 @@ class FwConfigImportRule(FwConfigImportBase):
     def ruleChanged(self, rulebaseId, ruleUid, currentRulebase: Rulebase, prevRulebase: Rulebase):
         # TODO: need to ignore rule_num, last_hit, ...?
         return prevRulebase.Rules[ruleUid] != currentRulebase.Rules[ruleUid]
-        # return prevConfig.rules[rulebaseId].Rules[ruleUid] != self.NormalizedConfig.rules[rulebaseId].Rules[ruleUid]
-        # return prevConfig['rules'][rulebaseId]['Rules'][ruleUid] != self.rules[rulebaseId]['Rules'][ruleUid]
+        # return prevConfig.rulebases[rulebaseId].Rules[ruleUid] != self.NormalizedConfig.rulebases[rulebaseId].Rules[ruleUid]
+        # return prevConfig['rules'][rulebaseId]['Rules'][ruleUid] != self.rulebases[rulebaseId]['Rules'][ruleUid]
 
     # assuming input of form:
     # {'rule-uid1': {'rule_num': 17', ... }, 'rule-uid2': {'rule_num': 8, ...}, ... }
@@ -166,11 +166,11 @@ class FwConfigImportRule(FwConfigImportBase):
         :param conn: Connection to the PostgreSQL database.
         """
 
-        for rulebase in self.NormalizedConfig.rules:
+        for rulebase in self.NormalizedConfig.rulebases:
             # Step 1: Identify the old and new rule IDs
             oldRuleUids  = {}
-            if rulebase.uid in previousConfig.rules:
-                oldRuleUids = previousConfig.rules[rulebase.uid].Rules.keys()
+            if rulebase.uid in previousConfig.rulebases:
+                oldRuleUids = previousConfig.rulebases[rulebase.uid].Rules.keys()
             newRuleUids = self.NormalizedConfig.getRulebase(rulebase.uid).Rules.keys()
 
             # Rules to delete and add
@@ -178,7 +178,7 @@ class FwConfigImportRule(FwConfigImportBase):
             added_rules = newRuleUids - oldRuleUids
 
             # Map existing rules to their current rule numbers for quick lookup
-            if rulebase.uid in previousConfig.rules:
+            if rulebase.uid in previousConfig.rulebases:
                 existing_rule_numbers = previousConfig.getRulebase(rulebase.uid).Rules
             else:
                 existing_rule_numbers = {}
@@ -249,12 +249,12 @@ class FwConfigImportRule(FwConfigImportBase):
 
 
         # first deal with new rulebases
-        for newRbName in self.NormalizedConfig.rules:
+        for newRbName in self.NormalizedConfig.rulebases:
             if newRbName not in previousRules:
                 # if rulebase is new, simply for all rules: set rule_num_numeric to 1000*rule_num
-                for ruleUid in self.rules[newRbName]['Rules']:
-                    self.rules[newRbName].Rules[ruleUid].update({'rule_num_numeric': self.rules[newRbName].Rules[ruleUid]['rule_num']*1000.0})
-                    # self.rules[newRbName]['Rules'][ruleUid].update({'rule_num_numeric': self.rules[newRbName]['Rules'][ruleUid]['rule_num']*1000.0})
+                for ruleUid in self.rulebases[newRbName]['Rules']:
+                    self.rulebases[newRbName].Rules[ruleUid].update({'rule_num_numeric': self.rulebases[newRbName].Rules[ruleUid]['rule_num']*1000.0})
+                    # self.rulebases[newRbName]['Rules'][ruleUid].update({'rule_num_numeric': self.rulebases[newRbName]['Rules'][ruleUid]['rule_num']*1000.0})
         
         # now handle new rules in existing rulebases
         for rulebaseName in previousRules:
@@ -262,9 +262,9 @@ class FwConfigImportRule(FwConfigImportBase):
             currentUidList = []
             previousUidList = FwConfigImportRule.ruleDictToOrderedListOfRuleUids(previousRules[rulebaseName]['Rules'])
 
-            if rulebaseName in self.rules:  # ignore rulebases that have been deleted
-                currentUidList = FwConfigImportRule.ruleDictToOrderedListOfRuleUids(self.rules[rulebaseName].Rules)
-                # currentUidList = FwConfigImportRule.ruleDictToOrderedListOfRuleUids(self.rules[rulebaseName]['Rules'])
+            if rulebaseName in self.rulebases:  # ignore rulebases that have been deleted
+                currentUidList = FwConfigImportRule.ruleDictToOrderedListOfRuleUids(self.rulebases[rulebaseName].Rules)
+                # currentUidList = FwConfigImportRule.ruleDictToOrderedListOfRuleUids(self.rulebases[rulebaseName]['Rules'])
 
                 # Calculate the rules differences
                 changes = FwConfigImportRule.listDiff(previousUidList, currentUidList)
@@ -299,7 +299,7 @@ class FwConfigImportRule(FwConfigImportBase):
                         # Insert the new uid with the calculated order number
                         # cursor.execute("INSERT INTO list_items (order_number, uid) VALUES (?, ?)", 
                         #             (new_order_number, uid))
-                        self.rules[rulebaseName]['Rules'][uid].update( { 'rule_num_numeric': new_order_number })
+                        self.rulebases[rulebaseName]['Rules'][uid].update( { 'rule_num_numeric': new_order_number })
                         # Add to current_db_list to keep track of new state
                         current_db_list.insert(db_index, (None, new_order_number, uid))
 
@@ -557,7 +557,7 @@ class FwConfigImportRule(FwConfigImportBase):
     # def prepareNewRules(self, newRuleUids, newRulebaseForImport: RulebaseForImport):
     #     newRules = []
     #     for rulebaseUid in newRuleUids:
-    #         currentRulebase = [pol for pol in self.NormalizedConfig.rules if pol.uid == rulebaseUid]
+    #         currentRulebase = [pol for pol in self.NormalizedConfig.rulebases if pol.uid == rulebaseUid]
     #         if len(currentRulebase)==1:
     #             currentRulebase = currentRulebase.pop()
     #         else:

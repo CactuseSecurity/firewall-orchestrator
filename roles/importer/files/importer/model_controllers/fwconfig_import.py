@@ -8,6 +8,8 @@ from fwo_api_oo import FwoApi
 from roles.importer.files.importer.models.rulebase import Rulebase
 from models.gateway import Gateway
 from models.fwconfig_normalized import FwConfigNormalized
+from models.rulebase_link import RulebaseLinkUidBased
+from model_controllers.rulebase_link_controller import RulebaseLinkUidBasedController
 from model_controllers.fwconfig_normalized_controller import FwConfigNormalizedController
 from model_controllers.fwconfig_import_object import FwConfigImportObject
 from model_controllers.fwconfig_import_rule import FwConfigImportRule
@@ -46,6 +48,7 @@ class FwConfigImport(FwConfigImportObject, FwConfigImportRule, FwoApi):
         # assuming we always get the full config (only inserts) from API
         previousConfig = self.getPreviousConfig()
         # calculate differences and write them to the database via API
+        # self.getRulebaseLinks()
         self.updateDiffs(previousConfig)
         # TODO: deal with networking later
         return
@@ -128,7 +131,7 @@ class FwConfigImport(FwConfigImportObject, FwConfigImportRule, FwoApi):
                                   service_objects=self.NormalizedConfig.service_objects, 
                                   users=self.NormalizedConfig.users,
                                   zone_objects=self.NormalizedConfig.zone_objects,
-                                  rules=self.NormalizedConfig.rules,
+                                  rulebases=self.NormalizedConfig.rulebases,
                                   gateways=self.NormalizedConfig.gateways,
                                   ConfigFormat=self.NormalizedConfig.ConfigFormat)
         
@@ -189,10 +192,10 @@ class FwConfigImport(FwConfigImportObject, FwConfigImportRule, FwoApi):
         # check if all uid refs are valid
         allUsedObjRefs = []
         # add all new obj refs from all rules
-        for policy in self.NormalizedConfig.rules:
-            for ruleId in policy.Rules:
-                allUsedObjRefs += policy.Rules[ruleId].rule_src_refs.split(fwo_const.list_delimiter)
-                allUsedObjRefs += policy.Rules[ruleId].rule_dst_refs.split(fwo_const.list_delimiter)
+        for rb in self.NormalizedConfig.rulebases:
+            for ruleId in rb.Rules:
+                allUsedObjRefs += rb.Rules[ruleId].rule_src_refs.split(fwo_const.list_delimiter)
+                allUsedObjRefs += rb.Rules[ruleId].rule_dst_refs.split(fwo_const.list_delimiter)
 
         # add all nw obj refs from groups
         for objId in self.NormalizedConfig.network_objects:
@@ -236,9 +239,9 @@ class FwConfigImport(FwConfigImportObject, FwConfigImportRule, FwoApi):
         # check if all uid refs are valid
         allUsedObjRefs = []
         # add all new obj refs from all rules
-        for policy in self.NormalizedConfig.rules:
-            for ruleId in policy.Rules:
-                allUsedObjRefs += policy.Rules[ruleId].rule_svc_refs.split(fwo_const.list_delimiter)
+        for rb in self.NormalizedConfig.rulebases:
+            for ruleId in rb.Rules:
+                allUsedObjRefs += rb.Rules[ruleId].rule_svc_refs.split(fwo_const.list_delimiter)
 
         # add all svc obj refs from groups
         for objId in self.NormalizedConfig.service_objects:
@@ -277,11 +280,11 @@ class FwConfigImport(FwConfigImportObject, FwConfigImportRule, FwoApi):
         # check if all uid refs are valid
         allUsedObjRefs = []
         # add all user refs from all rules
-        for policy in self.NormalizedConfig.rules:
-            for ruleId in policy.Rules:
-                if fwo_const.user_delimiter in policy.Rules[ruleId].rule_src_refs:
-                    allUsedObjRefs += collectUsersFromRule(policy.Rules[ruleId].rule_src_refs.split(fwo_const.list_delimiter))
-                    allUsedObjRefs += collectUsersFromRule(policy.Rules[ruleId].rule_dst_refs.split(fwo_const.list_delimiter))
+        for rb in self.NormalizedConfig.rulebases:
+            for ruleId in rb.Rules:
+                if fwo_const.user_delimiter in rb.Rules[ruleId].rule_src_refs:
+                    allUsedObjRefs += collectUsersFromRule(rb.Rules[ruleId].rule_src_refs.split(fwo_const.list_delimiter))
+                    allUsedObjRefs += collectUsersFromRule(rb.Rules[ruleId].rule_dst_refs.split(fwo_const.list_delimiter))
 
         # add all user obj refs from groups
         for objId in self.NormalizedConfig.users:
@@ -311,12 +314,12 @@ class FwConfigImport(FwConfigImportObject, FwConfigImportRule, FwoApi):
         # check if all uid refs are valid
         allUsedObjRefs = []
         # add all zone refs from all rules
-        for policy in self.NormalizedConfig.rules:
-            for ruleId in policy.Rules:
-                if policy.Rules[ruleId].rule_src_zone is not None:
-                    allUsedObjRefs += policy.Rules[ruleId].rule_src_zone
-                if policy.Rules[ruleId].rule_dst_zone is not None:
-                    allUsedObjRefs += policy.Rules[ruleId].rule_dst_zone
+        for rb in self.NormalizedConfig.rulebases:
+            for ruleId in rb.Rules:
+                if rb.Rules[ruleId].rule_src_zone is not None:
+                    allUsedObjRefs += rb.Rules[ruleId].rule_src_zone
+                if rb.Rules[ruleId].rule_dst_zone is not None:
+                    allUsedObjRefs += rb.Rules[ruleId].rule_dst_zone
 
         # we currently do not have zone groups - skipping group ref handling
 
@@ -466,6 +469,7 @@ class FwConfigImport(FwConfigImportObject, FwConfigImportRule, FwoApi):
                          Name = dev['name'],
                          Routing=[],    # TODO: routing
                          Interfaces=[],    # TODO: interfaces
+                         RulebaseLinks=[],    # TODO: rulebase links
                          EnforcedPolicyUids=[dev['local_rulebase_name']] if dev['local_rulebase_name'] is not None else [],
                          EnforcedNatPolicyUids=[dev['package_name']] if dev['package_name'] is not None else [],
                          GlobalPolicyUid=None  # TODO: global policy UID

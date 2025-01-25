@@ -5,6 +5,7 @@ from fwo_base import ConfigAction, ConfFormat
 from roles.importer.files.importer.models.rulebase import Rulebase
 from models.networkobject import NetworkObject
 from models.serviceobject import ServiceObject
+from models.gateway import Gateway
 
 
 class FwConfig(BaseModel):
@@ -50,9 +51,8 @@ class FwConfigNormalized(FwConfig):
     service_objects: Dict[str, ServiceObject] = {}
     users: dict = {}
     zone_objects: dict = {}
-    rules: List[Rulebase] = []
-    gateways: List[dict] = []
-    # gateways: List[Gateway]
+    rulebases: List[Rulebase] = []
+    gateways: List[Gateway]
     ConfigFormat: ConfFormat = ConfFormat.NORMALIZED_LEGACY
 
     class Config:
@@ -65,13 +65,13 @@ class FwConfigNormalized(FwConfig):
         :param policyUid: The UID of the relevant policy.
         :return: Returns the policy with a specific uid, otherwise returns empty policy.
         """
-        for pol in self.rules:
+        for pol in self.rulebases:
             if pol.uid == policyUid:
                 return pol
         return Rulebase(uid='', name='')
 
-        # currentPolicy = [pol for pol in self.NormalizedConfig.rules if pol.Uid == policyUid][0]
-        # previousPolicy = [pol for pol in prevConfig.rules if pol.Uid == policyUid][0]
+        # currentPolicy = [pol for pol in self.NormalizedConfig.rulebases if pol.Uid == policyUid][0]
+        # previousPolicy = [pol for pol in prevConfig.rulebases if pol.Uid == policyUid][0]
 
 
     def getOrderedRuleList(self, policyUid: str) -> List[dict]:

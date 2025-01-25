@@ -106,7 +106,7 @@
                 "-f",
                 "-s",
                 // "-c",
-                "-ifile:///home/tim/tmp/mgm_id_6_config_normalized.json",
+                "-ifile:///home/tim/tmp/mgm_id_12_config_normalized_with_links.json",
                 // "-ifile:///home/tim/Downloads/b1_imp_nor.json",
                 // "-ifile:///home/tim/Downloads/b1_imp_norm_old.json",
                 // "-ifile:///home/tim/tmp/mgm_id_26_1.json",

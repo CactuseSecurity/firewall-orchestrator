@@ -27,10 +27,11 @@ namespace FWO.Services
         {
             try
             {
-                //if (ActAppServer.Sanitize())
-                //{
-                //    DisplayMessageInUi(null, userConfig.GetText("save_app_server"), userConfig.GetText("U0001"), true);
-                //}
+                (ActAppServer.Ip, ActAppServer.IpEnd) = IpOperations.SplitIpToRange(ActAppServer.Ip);
+                if (ActAppServer.Sanitize())
+                {
+                   DisplayMessageInUi(null, userConfig.GetText("save_app_server"), userConfig.GetText("U0001"), true);
+                }
                 if (CheckAppServer())
                 {
                     bool saveOk = true;
@@ -65,22 +66,6 @@ namespace FWO.Services
 
         private bool CheckAppServer()
         {
-            if (ActAppServer.Ip.TryGetNetmask(out string netmask))
-            {
-                (string Start, string End) = ActAppServer.Ip.CidrToRangeString();
-                ActAppServer.Ip = Start;
-                ActAppServer.IpEnd = End;
-            }
-            else if (ActAppServer.Ip.TrySplit('-', 1, out string ipEnd) && IPAddressRange.TryParse(ActAppServer.Ip, out IPAddressRange ipRange))
-            {
-                ActAppServer.Ip = ipRange.Begin.ToString();
-                ActAppServer.IpEnd = ipRange.End.ToString();
-            }
-            else
-            {
-                ActAppServer.IpEnd = ActAppServer.Ip;
-            }
-
             if (ActAppServer.Ip == null || ActAppServer.Ip == "" || ActAppServer.CustomType == null || ActAppServer.CustomType == 0)
             {
                 DisplayMessageInUi(null, userConfig.GetText("edit_app_server"), userConfig.GetText("E5102"), true);
@@ -126,7 +111,7 @@ namespace FWO.Services
             {
                 if (exception.Message.Contains("Uniqueness violation"))
                 {
-                    DisplayMessageInUi(null, userConfig.GetText("E9010"), "", true);
+                    DisplayMessageInUi(null, userConfig.GetText("E9010"), $" {ActAppServer.Ip}", true);
                 }
                 else
                 {
@@ -159,7 +144,7 @@ namespace FWO.Services
             {
                 if (exception.Message.Contains("Uniqueness violation"))
                 {
-                    DisplayMessageInUi(null, userConfig.GetText("E9010"), "", true);
+                    DisplayMessageInUi(null, userConfig.GetText("E9010"), $" {ActAppServer.Ip}", true);
                 }
                 else
                 {

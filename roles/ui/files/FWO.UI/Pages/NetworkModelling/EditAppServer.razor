@@ -158,11 +158,14 @@
 
     private async Task Save()
     {
+        await Lookup();
+        workInProgress = true;
         if (AppServerHandler != null && await AppServerHandler.Save())
         {
             await AppServerHandlerChanged.InvokeAsync(AppServerHandler);
             Close();
         }
+        workInProgress = false;
     }
 
     public async Task Lookup()
@@ -170,7 +173,7 @@
         workInProgress = true;
         if (AppServerHandler != null)
         {
-            AppServerHandler.ActAppServer.Name = await AppServerHelper.ConstructAppServerNameFromDns(AppServerHandler.ActAppServer, namingConvention);
+            AppServerHandler.ActAppServer.Name = await AppServerHelper.ConstructAppServerNameFromDns(AppServerHandler.ActAppServer, namingConvention, userConfig.OverwriteExistingNames);
         }
         workInProgress = false;
     }

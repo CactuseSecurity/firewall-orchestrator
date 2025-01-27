@@ -20,8 +20,10 @@ namespace FWO.Api.Client.Queries
 
         public static readonly string getAppServers;
         public static readonly string getImportedAppServers;
+        public static readonly string getAllAppServers;
         public static readonly string newAppServer;
         public static readonly string updateAppServer;
+        public static readonly string updateAppServerName;
         public static readonly string setAppServerDeletedState;
         public static readonly string setAppServerType;
         public static readonly string setAppServerName;
@@ -120,8 +122,10 @@ namespace FWO.Api.Client.Queries
 
                 getAppServers = appServerDetailsFragment + File.ReadAllText(QueryPath + "modelling/getAppServers.graphql");
                 getImportedAppServers = appServerDetailsFragment + File.ReadAllText(QueryPath + "modelling/getImportedAppServers.graphql");
+                getAllAppServers = appServerDetailsFragment + File.ReadAllText(QueryPath + "modelling/getAllAppServers.graphql");
                 newAppServer = File.ReadAllText(QueryPath + "modelling/newAppServer.graphql");
                 updateAppServer = File.ReadAllText(QueryPath + "modelling/updateAppServer.graphql");
+                updateAppServerName = File.ReadAllText(QueryPath + "modelling/updateAppServerName.graphql");
                 setAppServerDeletedState = File.ReadAllText(QueryPath + "modelling/setAppServerDeletedState.graphql");
                 setAppServerName = File.ReadAllText(QueryPath + "modelling/setAppServerName.graphql");
                 setAppServerType = File.ReadAllText(QueryPath + "modelling/setAppServerType.graphql");

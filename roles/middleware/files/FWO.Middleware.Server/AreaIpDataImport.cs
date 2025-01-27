@@ -134,32 +134,15 @@ namespace FWO.Middleware.Server
         }
 
         // convert arbitrary IP data contained in .Ip (1.2.3.4/32 | 1.2.3.0/24) to a range
-        private ModellingImportAreaIpData ConvertIpDataToRange(ModellingImportAreaIpData importAreaIpData)
+        private static ModellingImportAreaIpData ConvertIpDataToRange(ModellingImportAreaIpData importAreaIpData)
         {
             ModellingImportAreaIpData ipData = new()
             {
                 Name = importAreaIpData.Name,
             };
 
-            if (importAreaIpData.Ip.TryGetNetmask(out _))
-            {
-                (string Start, string End) ip = importAreaIpData.Ip.CidrToRangeString();
-                ipData.Ip = ip.Start;
-                ipData.IpEnd = ip.End;
-            }
-            else if (importAreaIpData.Ip.TrySplit('-', 1, out _) && IPAddressRange.TryParse(importAreaIpData.Ip, out IPAddressRange ipRange))
-            {
-                ipData.Ip = ipRange.Begin.ToString();
-                ipData.IpEnd = ipRange.End.ToString();
-            }
-            else
-            {
-                ipData.Ip = importAreaIpData.Ip;
-                ipData.IpEnd = importAreaIpData.Ip;
-            }
+            (ipData.Ip, ipData.IpEnd) = IpOperations.SplitIpToRange(importAreaIpData.Ip);
 
-            ipData.Ip = ipData.Ip.StripOffNetmask();
-            ipData.IpEnd = ipData.IpEnd.StripOffNetmask();
 
             return ipData;
         }

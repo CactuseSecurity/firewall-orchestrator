@@ -1,0 +1,12 @@
+mutation updateAppServerName(
+  $id: bigint!
+  $name: String
+  ) {
+  update_owner_network_by_pk(
+    pk_columns: { id: $id }
+    _set: {
+      name: $name
+  }) {
+    UpdatedId: id
+  }
+}

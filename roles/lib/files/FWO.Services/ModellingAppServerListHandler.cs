@@ -9,7 +9,7 @@ namespace FWO.Services
 {
     public class ModellingAppServerListHandler : ModellingHandlerBase
     {
-        public List<ModellingAppServer> ManualAppServers { get; set; } = new();
+        public List<ModellingAppServer> ManualAppServers { get; set; } = [];
         public ModellingAppServerHandler AppServerHandler;
         private ModellingAppServer actAppServer = new();
         public bool AddAppServerMode = false;

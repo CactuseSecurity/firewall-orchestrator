@@ -3,11 +3,10 @@ using FWO.Api.Client.Queries;
 using FWO.Api.Client;
 using FWO.Api.Data;
 using FWO.Basics;
+using FWO.Services;
 using FWO.Config.Api;
 using FWO.Ui.Data;
 using Microsoft.AspNetCore.Components.Forms;
-using NetTools;
-using Org.BouncyCastle.Utilities;
 using System.Text.Json;
 
 namespace FWO.Ui.Services
@@ -17,162 +16,122 @@ namespace FWO.Ui.Services
         /// <summary>
         /// Uploaded data as bytes.
         /// </summary>
-        private byte[]? UploadedData { get; set; }
+        private byte[] UploadedData { get; set; } = [];
         /// <summary>
         /// Errors that occured while trying to write file data in database.
         /// </summary>
-        private List<Exception> importErrors { get; set; }
+        private List<Exception> ImportErrors { get; set; } = [];
 
-        private UserConfig userConfig { get; set; }
-        private ApiConnection apiConnection { get; set; }
+        private UserConfig UserConfig { get; set; }
+        private ApiConnection ApiConnection { get; set; }
+        private readonly ModellingNamingConvention NamingConvention = new();
+        private readonly List<AppServerType> AppServerTypes = [];
 
-        public FileUploadService(IServiceProvider services)
+        // public FileUploadService(IServiceProvider services)
+        // {
+        //     UserConfig = services.GetRequiredService<UserConfig>();
+        //     ApiConnection = services.GetRequiredService<ApiConnection>();
+        // }
+
+        public FileUploadService(ApiConnection apiConnection, UserConfig userConfig)
         {
-            userConfig = services.GetRequiredService<UserConfig>();
-            apiConnection = services.GetRequiredService<ApiConnection>();
-
-            importErrors = new List<Exception>();
+            UserConfig = userConfig;
+            ApiConnection = apiConnection;
+            NamingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(userConfig.ModNamingConvention) ?? new();
+            AppServerTypes = JsonSerializer.Deserialize<List<AppServerType>>(UserConfig.ModAppServerTypes) ?? [];
         }
 
         public async Task ReadFileToBytes(InputFileChangeEventArgs args)
         {
-            using MemoryStream ms = new MemoryStream();
+            using MemoryStream ms = new();
             await args.File.OpenReadStream().CopyToAsync(ms);
             UploadedData = ms.ToArray();
         }
 
         public async Task<List<Exception>> ImportUploadedData(FileUploadCase fileUploadCase)
         {
-            importErrors.Clear();
+            ImportErrors.Clear();
 
             if (fileUploadCase == FileUploadCase.ImportAppServerFromCSV)
             {
-                await ImportAppServerFromCSV(importErrors);
+                await ImportAppServersFromCSV();
             }
 
-            return importErrors;
+            return ImportErrors;
         }
 
-        public async Task ImportAppServerFromCSV(List<Exception> importErrors)
+        private async Task ImportAppServersFromCSV()
         {
             string text = System.Text.Encoding.UTF8.GetString(UploadedData);
             string[] lines = text.Split('\r');
 
-            foreach (string tmpLine in lines)
+            foreach (string line in lines)
             {
-                string line = tmpLine;
-
-                string[]? entries;
-
                 // create import model
-
-                if (IsHeader(line))
+                if (!TryGetEntries(line, ';', out string[] entries) && !TryGetEntries(line, ',', out entries))
                     continue;
 
-                if (!TryGetEntries(line, ';', out entries) && !TryGetEntries(line, ',', out entries))
+                if (IsHeader(entries))
                     continue;
 
-                CSVAppServerImportModel appServer = new()
+                CSVAppServerImportModel appServer = new(entries[3])
                 {
-                    AppServerName = entries[0],
                     AppID = entries[1],
-                    AppServerTyp = entries[2],
-                    AppIPRangeStart = entries[3]
+                    AppServerTyp = entries[2]
                 };
-
-                // get IP range
-
-                if (appServer.AppIPRangeStart.TryGetNetmask(out string netmask))
-                {
-                    (string Start, string End) ip = appServer.AppIPRangeStart.CidrToRangeString();
-                    appServer.AppIPRangeStart = ip.Start;
-                    appServer.AppIPRangeEnd = ip.End;
-                }
-                else if (appServer.AppIPRangeStart.TrySplit('-', 1, out string ipEnd) && IPAddressRange.TryParse(appServer.AppIPRangeStart, out IPAddressRange ipRange))
-                {
-                    appServer.AppIPRangeStart = ipRange.Begin.ToString();
-                    appServer.AppIPRangeEnd = ipRange.End.ToString();
-                }
-                else
-                {
-                    appServer.AppIPRangeEnd = appServer.AppIPRangeStart;
-                }
-
+                appServer.AppServerName = UserConfig.DnsLookup ? 
+                    await AppServerHelper.ConstructAppServerNameFromDns(appServer.ToModellingAppServer(), NamingConvention, UserConfig.OverwriteExistingNames) :
+                    entries[0];
+                
                 // write to db
-
                 (bool importSuccess, Exception? error) = await AddAppServerToDb(appServer);
 
                 if (!importSuccess && error is not null)
-                    importErrors.Add(error);
+                    ImportErrors.Add(error);
             }
         }
 
-        private bool TryGetEntries(string line, char separator, out string[]? entries)
+        private static bool TryGetEntries(string line, char separator, out string[] entries)
         {
-            entries = null;
-
-            if (line.StartsWith("\n"))
-                line = line.Remove(0, 1);
+            if (line.StartsWith('\n'))
+                line = line[1..];
 
             entries = line.Split(separator);
 
-            if (entries.Length < 3)
+            if (entries.Length < 4)
                 return false;
 
             for (int i = 0; i < entries.Length; i++)
             {
-                string entry = entries[i].Trim('"');
-                entries[i] = entry;
+                entries[i] = entries[i].Trim('"');
             }
 
             return true;
         }
 
-        private bool IsHeader(string lineText)
+        private static bool IsHeader(string[] columns)
         {
-            bool splitOnSemicolon = lineText.TrySplit(';', out int splitLength);
-
-            string[] columns;
-
-            if (!splitOnSemicolon)
-            {
-                bool splitOnComma = lineText.TrySplit(',', out splitLength);
-
-                if (!splitOnComma)
-                    return false;
-
-                columns = lineText.Split(',');
-            }
-            else
-            {
-                columns = lineText.Split(';');
-            }
-
-            return (columns.Length == 4
+            return columns.Length == 4
                    && columns[0].Trim('"') == "App-Server-Name"
                    && columns[1].Trim('"') == "External-App-ID"
                    && columns[2].Trim('"') == "App-Server-Typ"
-                   && columns[3].Trim('"') == "App-IP-Address-Range");
-
+                   && columns[3].Trim('"') == "App-IP-Address-Range";
         }
 
         private async Task<(bool, Exception?)> AddAppServerToDb(CSVAppServerImportModel appServer)
         {
             try
             {
-                var appServerTypes = JsonSerializer.Deserialize<List<AppServerType>>(userConfig.ModAppServerTypes) ?? new();
-                AppServerType? appServerType = appServerTypes.FirstOrDefault(_ => _.Name == appServer.AppServerTyp);
-
+                AppServerType? appServerType = AppServerTypes.FirstOrDefault(_ => _.Name == appServer.AppServerTyp);
                 if (appServerType is null)
                 {
-                    return new(false, new Exception($"{userConfig.GetText("owner_appservertype_notfound")} At: {appServer.AppServerName}/{appServer.AppID}"));
+                    return new(false, new Exception($"{UserConfig.GetText("owner_appservertype_notfound")} At: {appServer.AppServerName}/{appServer.AppID}"));
                 }
 
-                List<OwnerIdModel> ownerIds = await apiConnection.SendQueryAsync<List<OwnerIdModel>>(OwnerQueries.getOwnerId, new { externalAppId = appServer.AppID });
-
-                if (ownerIds is null || !ownerIds.Any())
+                List<OwnerIdModel> ownerIds = await ApiConnection.SendQueryAsync<List<OwnerIdModel>>(OwnerQueries.getOwnerId, new { externalAppId = appServer.AppID });
+                if (ownerIds is null || ownerIds.Count == 0)
                 {
-                    return new(false, new Exception($"{userConfig.GetText("owner_appserver_notfound")} At: {appServer.AppServerName}/{appServer.AppID}"));
+                    return new(false, new Exception($"{UserConfig.GetText("owner_appserver_notfound")} At: {appServer.AppServerName}/{appServer.AppID}"));
                 }
 
                 var Variables = new
@@ -184,8 +143,9 @@ namespace FWO.Ui.Services
                     importSource = GlobalConst.kManual,
                     customType = appServerType.Id
                 };
+                ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<NewReturning>(ModellingQueries.newAppServer, Variables)).ReturnIds;
 
-                ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.newAppServer, Variables)).ReturnIds;
+                return (returnIds != null && returnIds.Length > 0, default);
             }
             catch (Exception exception)
             {
@@ -195,8 +155,6 @@ namespace FWO.Ui.Services
 
                 return (false, exception);
             }
-
-            return (true, default);
         }
     }
 }

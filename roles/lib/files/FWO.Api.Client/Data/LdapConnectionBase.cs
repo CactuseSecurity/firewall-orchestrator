@@ -1,9 +1,6 @@
 using System.Text.Json.Serialization; 
 using Newtonsoft.Json; 
-using System.Reflection.Metadata.Ecma335;
-
 using FWO.Middleware.RequestParameters;
-using FWO.Encryption;
 
 namespace FWO.Api.Data
 {
@@ -77,10 +74,10 @@ namespace FWO.Api.Data
             Port = ldapGetUpdateParameters.Port;
             Type = ldapGetUpdateParameters.Type;
             PatternLength = ldapGetUpdateParameters.PatternLength;
-            SearchUser = ldapGetUpdateParameters.SearchUser;
+            SearchUser = ldapGetUpdateParameters.SearchUser ?? "";
             Tls = ldapGetUpdateParameters.Tls;
             TenantLevel = ldapGetUpdateParameters.TenantLevel;
-            SearchUserPwd = ldapGetUpdateParameters.SearchUserPwd;
+            SearchUserPwd = ldapGetUpdateParameters.SearchUserPwd ?? "";
             UserSearchPath = ldapGetUpdateParameters.SearchpathForUsers;
             RoleSearchPath = ldapGetUpdateParameters.SearchpathForRoles;
             GroupSearchPath = ldapGetUpdateParameters.SearchpathForGroups;

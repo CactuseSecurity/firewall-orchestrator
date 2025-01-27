@@ -2,6 +2,7 @@
 using NetTools;
 using FWO.Api.Client;
 using FWO.Basics;
+using FWO.Services;
 using FWO.Api.Data;
 using FWO.Config.Api;
 using System.Text.Json;
@@ -9,6 +10,7 @@ using FWO.Middleware.RequestParameters;
 using FWO.Api.Client.Queries;
 using Novell.Directory.Ldap;
 using System.Data;
+using System.Net;
 
 namespace FWO.Middleware.Server
 {
@@ -29,8 +31,9 @@ namespace FWO.Middleware.Server
 		private string requesterRoleDn = "";
 		private string implementerRoleDn = "";
 		private string reviewerRoleDn = "";
-		List<GroupGetReturnParameters> allGroups = [];
-		List<GroupGetReturnParameters> allInternalGroups = [];
+		private List<GroupGetReturnParameters> allGroups = [];
+		private List<GroupGetReturnParameters> allInternalGroups = [];
+		private ModellingNamingConvention NamingConvention = new();
 	
 
 		/// <summary>
@@ -46,6 +49,7 @@ namespace FWO.Middleware.Server
 		{
 			try
 			{
+				NamingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(globalConfig.ModNamingConvention) ?? new();
 				List<string> importfilePathAndNames = JsonSerializer.Deserialize<List<string>>(globalConfig.ImportAppDataPath) ?? throw new Exception("Config Data could not be deserialized.");
 				await InitLdap();
 				foreach (var importfilePathAndName in importfilePathAndNames)
@@ -542,7 +546,7 @@ namespace FWO.Middleware.Server
 					}
 					if (!existingAppServer.Name.Equals(incomingAppServer.Name))
 					{
-						if (!await UpdateAppServerName(existingAppServer, BuildAppServerName(incomingAppServer)))
+						if (!await UpdateAppServerName(existingAppServer, await BuildAppServerName(incomingAppServer)))
 						{	
 							return false;
 						}
@@ -564,16 +568,21 @@ namespace FWO.Middleware.Server
 			}
 		}
 
-		private string BuildAppServerName(ModellingImportAppServer appServer)
+		private async Task<string> BuildAppServerName(ModellingImportAppServer appServer)
 		{
-			bool changed = false;
 			try
 			{
+				if(globalConfig.DnsLookup)
+				{
+					if (IPAddress.TryParse(appServer.Ip, out IPAddress? ip))
+					{
+						appServer.Name = await IpOperations.DnsReverseLookUp(ip);
+					}
+				}
 				if (string.IsNullOrEmpty(appServer.Name))
 				{
 					Log.WriteWarning("Import App Server Data", $"Found empty (unresolvable) IP {appServer.Ip}");
-					ModellingNamingConvention NamingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(globalConfig.ModNamingConvention) ?? new();
-					return Sanitizer.SanitizeJsonFieldMand(NamingConvention.AppServerPrefix + DisplayBase.DisplayIp(appServer.Ip, appServer.IpEnd), ref changed);
+					return AppServerHelper.ConstructAppServerName(appServer.ToModellingAppServer(), NamingConvention);
 				}
 			}
 			catch (Exception exc)
@@ -589,7 +598,7 @@ namespace FWO.Middleware.Server
 			{
 				var Variables = new
 				{
-					name = BuildAppServerName(incomingAppServer),
+					name = await BuildAppServerName(incomingAppServer),
 					appId = appID,
 					ip = IpAsCidr(incomingAppServer.Ip),
 					ipEnd = incomingAppServer.IpEnd != "" ? IpAsCidr(incomingAppServer.IpEnd) : IpAsCidr(incomingAppServer.Ip),

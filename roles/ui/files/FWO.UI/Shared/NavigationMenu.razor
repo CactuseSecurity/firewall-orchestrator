@@ -23,7 +23,7 @@
         </button>
 
         <div class="navbar-collapse @NavMenuCollapseClass">
-            <ul class="@NavPaddingCollapseClass navbar-nav flex-row">
+            <ul class="@NavPaddingCollapseClass d-flex flex-wrap navbar-nav align-items-start flex-row">
                 <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Auditor}, {Roles.Modeller}")">
                     <li class="nav-item px-2">
                         <a href="@("/" + PageName.ReportGeneration)" class="nav-link @(navigationManager.Uri.Contains("/report/") ? "active" : "")">
@@ -67,7 +67,7 @@
                     </li>
                 </AuthorizeView>                
             </ul>
-            <ul class="@NavPaddingCollapseClass navbar-nav flex-row">
+            <ul class="@NavPaddingCollapseClass d-flex flex-wrap navbar-nav align-items-end ms-auto flex-row">
                 <li class="nav-item px-2">
                     @* d-flex align-items-center *@
                     <NavLink class="nav-link" href="/monitoring">

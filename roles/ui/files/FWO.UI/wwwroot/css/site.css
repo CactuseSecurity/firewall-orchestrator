@@ -220,6 +220,7 @@ h5 {
     flex: 1;
 }
 
+
 .me-auto {
     margin-right: auto !important;
 }
@@ -253,7 +254,7 @@ h5 {
 }
 
 .navbar-height {
-    height: 56px;
+    min-height: 56px;
 }
 
 .navbar-brand {

@@ -209,7 +209,19 @@ def getRules (nativeConfig: dict, importState: ImportState, sid: str) -> int:
 # 7) was muss ich bei den domain Dicts im Return von CP beachten?
 
     logger = getFwoLogger()
-    nativeConfig.update({'rulebases': [], 'nat_rulebases': [] })
+    nativeConfig.update({'rulebases': [], 'nat_rulebases': [], 'gateways': [] })
+    show_params_ordered_layers = {
+        'limit': importState.FwoConfig.ApiFetchSize,
+        'details-level': 'full'
+    }
+
+    # get ordered layer uids of local rulebase
+    # delete_v hier ordered layer rausbekommen
+    orderedLayerUids = cp_getter.getOrderedLayers(importState.FwoConfig.FwoApiUri,
+                                                  sid,
+                                                  show_params_ordered_layers)
+    orderedLayerUids = ['dummy']
+
     show_params_rules = {
         'limit': importState.FwoConfig.ApiFetchSize,
         'use-object-dictionary': cp_const.use_object_dictionary,
@@ -219,48 +231,115 @@ def getRules (nativeConfig: dict, importState: ImportState, sid: str) -> int:
 
     # read all rulebases: handle per device details
     for device in importState.FullMgmDetails['devices']:
+        if 'dev_name' in device:
+            # delete_v: brauchen wir hier auch uid von gateway? Wo wird das jemals genutzt? 
+            deviceConfig = {'name': device['dev_name'], 'rulebase_links': []}
+        else:
+            logger.error ( "found device without name: " + str(device) )
+
+        # get ordered layer uids for current device
+        # delete_v hier ordered layer rausbekommen
+        orderedLayerUids = ['dummy']
+
+        # decide if mds or stand alone manager
         if device['global_rulebase_name'] != None and device['global_rulebase_name']!='':
+            
             show_params_rules.update({'name': device['global_rulebase_name']})
-            # get global layer rulebase
+
+            # get global rulebase
             logger.debug ( "getting layer: " + show_params_rules['name'] )
-            cp_getter.getRulebases (importState.FwoConfig.FwoApiUri, 
-                                    sid, 
-                                    show_params_rules, 
+            cp_getter.getRulebases (importState.FwoConfig.FwoApiUri,
+                                    sid,
+                                    show_params_rules,
                                     rulebaseName=device['global_rulebase_name'],
                                     access_type='access',
-                                    nativeConfig=nativeConfig)
+                                    nativeConfig=nativeConfig,
+                                    deviceConfig=deviceConfig)
+            
+            # get uid of global rulebase
+            for rulebase in nativeConfig['rulebases']:
+                if rulebase['name'] == device['global_rulebase_name']:
+                    globalRulebaseUid = rulebase['uid']
+            
+            # delete_v: 'global_rulebase_uid' evtl nicht befüllt in datenbank
+            # define initial rulebase for device in case of mds
+            deviceConfig['rulebase_links'].append({
+                'from_rulebase_uid': '',
+                'from_rule_uid': '',
+                'to_rulebase_uid': globalRulebaseUid,
+                'type': 'initial'})
+            
+            # parse global rulebase, find place-holder and link local rulebase (first ordered layer)
+            for rulebase in nativeConfig['rulebases']:
+                if rulebase['uid'] == globalRulebaseUid:
+                    placeholderRuleUid = cp_getter.getRuleUid(rulebase, 'place-holder')
+                    break
+            deviceConfig['rulebase_links'].append({
+                'from_rulebase_uid': globalRulebaseUid,
+                'from_rule_uid': placeholderRuleUid,
+                'to_rulebase_uid': orderedLayerUids[0],
+                'type': 'local'})
 
-            # now also get domain rules 
-            show_params_rules.update({'name': device['local_rulebase_name']})
+        else:
+            # define initial rulebase for device in case of stand alone manager
+            deviceConfig['rulebase_links'].append({
+                'from_rulebase_uid': '',
+                'from_rule_uid': '',
+                'to_rulebase_uid': orderedLayerUids[0],
+                'type': 'initial'})
+
+        # get local rulebases (ordered layers)
+        orderedLayerIndex = 0
+        for orderedLayerUid in orderedLayerUids:
+
+            show_params_rules.update({'uid': orderedLayerUid, 'name': ''})
             # delete_v nochmal die strukturen fürs gedächtnis
-            # nativeConfig['rulebases'] = Liste von current_global_layer_json = { "layername": layerName, "rulebase_chunks": [] }
-            # current_global_layer_json = { "layername": layerName, "rulebase_chunks": [], "rulebase_links": [] }
-            logger.debug ( "getting domain rule layer: " + show_params_rules['name'] )
+            # nativeConfig['rulebases'] = Liste von currentRulebase = { "uid": '', "name": layerName, "chunks": [] }
+            logger.debug ( "getting domain rule layer: " + show_params_rules['uid'] )
             cp_getter.getRulebases (importState.FwoConfig.FwoApiUri, 
                                     sid, 
                                     show_params_rules, 
-                                    rulebaseName=device['local_rulebase_name'],
+                                    rulebaseUid=orderedLayerUid,
                                     access_type='access',
-                                    nativeConfig=nativeConfig)
+                                    nativeConfig=nativeConfig,
+                                    deviceConfig=deviceConfig)
             
-            # link domain rules to global rules
+            # parse ordered layer and get last rule uid
             for rulebase in nativeConfig['rulebases']:
-                if rulebase['name'] == 
-                nativeConfig.update({'rulebases': []})
+                if rulebase['uid'] == orderedLayerUid:
+                    lastRuleUid = cp_getter.getRuleUid(rulebase, 'last')
+                    break
+            
+            # link to next ordered layer
+            if orderedLayerIndex < len(orderedLayerUids) - 1:
+                deviceConfig['rulebase_links'].append({
+                    'from_rulebase_uid': orderedLayerUid,
+                    'from_rule_uid': lastRuleUid,
+                    'to_rulebase_uid': orderedLayerUids[orderedLayerIndex + 1],
+                    'type': 'ordered'})
+            
+            orderedLayerIndex += 1
+        
+        # link domain rules to global rules
+        for rulebase in nativeConfig['rulebases']:
+            if rulebase['name'] == 
+            nativeConfig.update({'rulebases': []})
 
-            # now handling possible reference to domain rules within global rules
-            # if we find the reference, replace it with the domain rules
-            # delete_v das kann komplett weg, wir linken die rulebases anders
-            if 'rulebase_chunks' in current_layer_json:
-                for chunk in current_layer_json["rulebase_chunks"]:
-                    for rule in chunk['rulebase']:
-                        if "type" in rule and rule["type"] == "place-holder":
-                            logger.debug ("found domain rules place-holder: " + str(rule) + "\n\n")
-                            current_layer_json = cp_getter.insert_layer_after_place_holder(current_layer_json, 
-                                                                                           domain_rules, 
-                                                                                           rule['uid'], 
-                                                                                           nativeConfig=nativeConfig)
+        # now handling possible reference to domain rules within global rules
+        # if we find the reference, replace it with the domain rules
+        # delete_v das kann komplett weg, wir linken die rulebases anders
+        if 'rulebase_chunks' in current_layer_json:
+            for chunk in current_layer_json["rulebase_chunks"]:
+                for rule in chunk['rulebase']:
+                    if "type" in rule and rule["type"] == "place-holder":
+                        logger.debug ("found domain rules place-holder: " + str(rule) + "\n\n")
+                        current_layer_json = cp_getter.insert_layer_after_place_holder(current_layer_json, 
+                                                                                        domain_rules, 
+                                                                                        rule['uid'], 
+                                                                                        nativeConfig=nativeConfig)
         else:   # no global rules, just get local ones
+            getOrderdLayers()
+
             show_params_rules.update({'name': device['local_rulebase_name']})
             logger.debug ( "getting layer: " + show_params_rules['name'] )
             current_layer_json = cp_getter.get_layer_from_api_as_dict (cpManagerApiBaseUrl, 

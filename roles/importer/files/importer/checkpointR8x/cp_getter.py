@@ -156,14 +156,33 @@ def get_changes(sid,api_host,api_port,fromdate):
     return 0
 
 
-def getRulebases (api_v_url, sid, show_params_rules, rulebaseUid=None, rulebaseName=None, access_type='access', nativeConfig={'rulebases':[],'nat_rulebases':[]}):
+def getOrderedLayers(api_v_url, sid, show_params_ordered_layers):
+    logger = getFwoLogger()
+
+    #delete_v hier fehlt paging
+    try:
+        packages = cp_api_call(api_v_url, 'show-packages', show_params_ordered_layers, sid)
+    except:
+        logger.error("could not return 'show-packages'")
+
+    # parse devices with ordered layers
+
+
+
+def getRulebases (api_v_url, sid, show_params_rules,
+                  rulebaseUid=None,
+                  rulebaseName=None,
+                  access_type='access',
+                  nativeConfig={'rulebases':[],'nat_rulebases':[]},
+                  deviceConfig={'rulebae_links': []}):
+    
     # access_type: access / nat
     logger = getFwoLogger()
 
     if access_type == 'access':
         nativeConfigRulebaseKey = 'rulebases'
     elif access_type == 'nat':
-        nativeConfigRulebaseKey = 'nat'
+        nativeConfigRulebaseKey = 'nat_rulebases'
     else:
         logger.error('access_type is neither "access" nor "nat", but ' + access_type)
 
@@ -189,14 +208,16 @@ def getRulebases (api_v_url, sid, show_params_rules, rulebaseUid=None, rulebaseN
         logger.error('must provide either rulebaseUid or rulebaseName')
         return 1
     
-    currentRulebase = {'uid': rulebaseUid, 'name': '', 'rulebase_chunks': [], 'rulebase_links': []}
-    
     # search all rulebases in nativeConfig and import if rulebase is not already fetched
     fetchedRulebaseList = []
-    for fetchedRulebaseUid in nativeConfig[nativeConfigRulebaseKey]['uid']:
-        fetchedRulebaseList.append(fetchedRulebaseUid)
+    for fetchedRulebase in nativeConfig[nativeConfigRulebaseKey]:
+        fetchedRulebaseList.append(fetchedRulebase['uid'])
+        if fetchedRulebase['uid'] == rulebaseUid:
+            currentRulebase = fetchedRulebase
+            break
 
     if rulebaseUid not in fetchedRulebaseList:
+        currentRulebase = {'uid': rulebaseUid, 'name': '', 'chunks': []}
         show_params_rules.update({'uid': rulebaseUid})
         current=0
         total=current+1
@@ -208,7 +229,7 @@ def getRulebases (api_v_url, sid, show_params_rules, rulebaseUid=None, rulebaseN
         
             try:
                 rulebase = cp_api_call(api_v_url, 'show-' + access_type + '-rulebase', show_params_rules, sid)
-                if 'name' in rulebase:
+                if currentRulebase['name'] == '' and 'name' in rulebase:
                     currentRulebase.update({'name': rulebase['name']})
             except:
                 logger.error("could not find rulebase uid=" + rulebaseUid)
@@ -220,7 +241,7 @@ def getRulebases (api_v_url, sid, show_params_rules, rulebaseUid=None, rulebaseN
             try:
                 for ruleField in ['source', 'destination', 'service', 'action', 'track', 'install-on', 'time']:
                     resolveRefListFromObjectDictionary(rulebase, ruleField, nativeConfig=nativeConfig, sid=sid, base_url=api_v_url)
-                currentRulebase['rulebase_chunks'].append(rulebase)
+                currentRulebase['chunks'].append(rulebase)
             except:
                 logger.error("error while getting field " + ruleField + " of layer " + rulebaseUid + ", params: " + str(show_params_rules))
                 return 1
@@ -246,8 +267,10 @@ def getRulebases (api_v_url, sid, show_params_rules, rulebaseUid=None, rulebaseN
                 else:
                     raise Exception ( "get_nat_rules_from_api - rulebase does not contain to field, get_rulebase_chunk_from_api found garbled json " + str(rulebase))
 
+        nativeConfig[nativeConfigRulebaseKey].append(currentRulebase)
+
     # use recursion to get inline layers
-    for rulebaseChunk in currentRulebase['rulebase_chunks']:
+    for rulebaseChunk in currentRulebase['chunks']:
         # search in case of access rulebase only
         if 'rulebase' in rulebaseChunk:
             for section in rulebaseChunk['rulebase']:
@@ -262,12 +285,48 @@ def getRulebases (api_v_url, sid, show_params_rules, rulebaseUid=None, rulebaseN
                 if section['type'] == 'access-section':
                     for rule in section['rulebase']:
                         if 'inline-layer' in rule:
-                            currentRulebase['rulebase_links'].append({'from_rule_uid': rule['uid'], 'to_rulebase_uid': rule['inline-layer'], 'link_type': 'inline'})
-                            getRulebases(api_v_url, sid, show_params_rules, rulebaseUid=rule['inline-layer'], access_type='access', nativeConfig=nativeConfig)
-
-    nativeConfig[nativeConfigRulebaseKey].update(currentRulebase)
+                            # add link to inline layer for current device
+                            deviceConfig['rulebase_links'].append({
+                                'from_rulebase_uid': currentRulebase['uid'],
+                                'from_rule_uid': rule['uid'],
+                                'to_rulebase_uid': rule['inline-layer'],
+                                'type': 'inline'})
+                            
+                            # get inline layer
+                            getRulebases(api_v_url, sid, show_params_rules,
+                                         rulebaseUid=rule['inline-layer'],
+                                         access_type='access',
+                                         nativeConfig=nativeConfig,
+                                         deviceConfig=deviceConfig)
     
     return 0
+
+
+def getRuleUid(rulebase, mode):
+    # mode: last/place-holder
+
+    for rulebaseChunk in rulebase['chunks']:
+        # search in case of access rulebase only
+        if 'rulebase' in rulebaseChunk:
+            for section in rulebaseChunk['rulebase']:
+
+                # if no section is used, use dummy section
+                if section['type'] == 'access-rule':
+                    section = {
+                        'type': 'access-section',
+                        'rulebase': [section]
+                        }
+
+                if section['type'] == 'access-section':
+                    for rule in section['rulebase']:
+                        if mode == 'last':
+                            returnUid = rule['uid']
+                        elif mode == 'place-holder':
+                            if rule['type'] == 'place-holder':
+                                returnUid = rule['uid']
+
+    return returnUid
+                            
 
 
 def get_nat_rules_from_api_as_dict (api_v_url, sid, show_params_rules, nativeConfig={}):

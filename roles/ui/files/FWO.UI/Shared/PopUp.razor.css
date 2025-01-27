@@ -6,10 +6,11 @@
 }
 
 .mod-xl {
-    --bs-modal-width: 1000px;
-    height: 100vh;
+    --bs-modal-width: 90vw;
+    height: 90vh;
     padding: 15px;
     align-items: normal;
+    margin-top: 2em;
 }
 
 .mod-lg {
@@ -21,7 +22,7 @@
 }
 
 .mod-md {
-    --bs-modal-width: 650px;
+    --bs-modal-width: 700px;
     height: 80vh;
     padding: 15px;
     align-items: normal;

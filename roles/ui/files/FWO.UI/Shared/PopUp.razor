@@ -4,8 +4,8 @@
 {
     <div class="modal-backdrop popup-outer">
         <div class="modal-open" tabindex="-1">
-            <div class="modal-dialog modal-dialog-centered @(SizeClass())">
-                <div class="modal-content mod-popup">
+            <div class="modal-dialog modal-dialog-centered modal-dialog-padding @(SizeClass())">
+                <div class="modal-content custom-modal-popup">
                     <div class="modal-header justify-content-between">
                         <h5 class="modal-title">@Title</h5>
                         <button type="button" class="modern-close" @onclick="Close">
@@ -52,12 +52,17 @@
     {
         switch (Size)
         {
-            case PopupSize.FullScreenWidth: return "mod-fs";
-            case PopupSize.XLarge: return "mod-xl";
-            case PopupSize.Large: return "mod-lg";
-            case PopupSize.Medium: return "mod-md";
-            case PopupSize.Small: return "mod-sm";
-            default: return "mod-sm";
+            case PopupSize.FullScreen: return "modal-fullscreen";
+            case PopupSize.XLarge: return "modal-xl mt-5";
+            case PopupSize.Large: return "modal-lg mt-5";
+            case PopupSize.Medium: return "mt-5";
+            case PopupSize.Small: return "modal-sm mt-5";
+            case PopupSize.CustomFullScreen: return "custom-modal-fs modal-dialog-padding";
+            case PopupSize.CustomXLarge: return "custom-modal-xl modal-dialog-padding";
+            case PopupSize.CustomLarge: return "custom-modal-lg modal-dialog-padding";
+            case PopupSize.CustomMedium: return "custom-modal-md modal-dialog-padding";
+            case PopupSize.CustomSmall: return "custom-modal-sm modal-dialog-padding";
+            default: return "custom-modal-sm modal-dialog-padding";
         };
     }
 

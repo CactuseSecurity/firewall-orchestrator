@@ -6,7 +6,7 @@
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
-<PopUp Title="@(userConfig.GetText("search_interface"))" Size="PopupSize.FullScreenWidth" Show="@Display" OnClose="Close">
+<PopUp Title="@(userConfig.GetText("search_interface"))" Size="PopupSize.FullScreen" Show="@Display" OnClose="Close">
     <Body>
         @if (Display && InitComplete)
         {

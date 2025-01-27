@@ -178,12 +178,7 @@ h5 {
 }
 
 .popup-body {
-    width: 100%;
     height: fit-content;
-    max-height: 60svh;
-    margin: 2%;
-    overflow-y: scroll;
-    padding-right: 17px;
     /* Increase/decrease this value for cross-browser compatibility */
     box-sizing: content-box;
     /* So the width will be 100% + 17px */
@@ -225,6 +220,7 @@ h5 {
     flex: 1;
 }
 
+
 .me-auto {
     margin-right: auto !important;
 }
@@ -258,7 +254,7 @@ h5 {
 }
 
 .navbar-height {
-    height: 56px;
+    min-height: 56px;
 }
 
 .navbar-brand {

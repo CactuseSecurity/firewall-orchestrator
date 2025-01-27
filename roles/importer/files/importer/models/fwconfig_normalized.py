@@ -5,6 +5,7 @@ from fwo_base import ConfigAction, ConfFormat
 from roles.importer.files.importer.models.rulebase import Rulebase
 from models.networkobject import NetworkObject
 from models.serviceobject import ServiceObject
+from models.gateway import Gateway
 
 
 class FwConfig(BaseModel):
@@ -50,28 +51,24 @@ class FwConfigNormalized(FwConfig):
     service_objects: Dict[str, ServiceObject] = {}
     users: dict = {}
     zone_objects: dict = {}
-    rules: List[Rulebase] = []
-    gateways: List[dict] = []
-    # gateways: List[Gateway]
+    rulebases: List[Rulebase] = []
+    gateways: List[Gateway]
     ConfigFormat: ConfFormat = ConfFormat.NORMALIZED_LEGACY
 
     class Config:
         arbitrary_types_allowed = True
 
 
-    def getPolicy(self, policyUid: str) -> Rulebase:
+    def getRulebase(self, rulebaseUid: str) -> Rulebase:
         """
         get the policy with a specific uid  
         :param policyUid: The UID of the relevant policy.
         :return: Returns the policy with a specific uid, otherwise returns empty policy.
         """
-        for pol in self.rules:
-            if pol.uid == policyUid:
-                return pol
-        return Rulebase(uid='', name='')
-
-        # currentPolicy = [pol for pol in self.NormalizedConfig.rules if pol.Uid == policyUid][0]
-        # previousPolicy = [pol for pol in prevConfig.rules if pol.Uid == policyUid][0]
+        for rb in self.rulebases:
+            if rb.uid == rulebaseUid:
+                return rb
+        return Rulebase(uid='', name='', mgm_uid='')
 
 
     def getOrderedRuleList(self, policyUid: str) -> List[dict]:
@@ -80,5 +77,5 @@ class FwConfigNormalized(FwConfig):
         :param policyUid: The UID of the relevant policy.
         :return: Returns the policy with a specific uid as an ordered list [ruleUid, rule_num].
         """
-        ruleList = [{'Uid': rule_uid, 'rule_num': details['rule_num']} for rule_uid, details in self.getPolicy(policyUid).items()]
+        ruleList = [{'Uid': rule_uid, 'rule_num': details['rule_num']} for rule_uid, details in self.getRulebase(policyUid).items()]
         return sorted(ruleList, key=lambda x: x['rule_num'])

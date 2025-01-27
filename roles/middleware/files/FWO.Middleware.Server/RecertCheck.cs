@@ -200,7 +200,7 @@ namespace FWO.Middleware.Server
                     {
                         if (device.ContainsRules())
                         {
-                            foreach (var rb in device.OrderedRulebases)
+                            foreach (var rb in device.Rulebases)
                             {
                                 foreach (var rule in rb.Rulebase.RuleMetadata[0].Rules!)
                                 {

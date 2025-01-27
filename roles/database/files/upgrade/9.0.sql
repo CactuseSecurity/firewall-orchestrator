@@ -115,25 +115,6 @@ Alter table "rulebase" add CONSTRAINT unique_rulebase_mgm_id_name UNIQUE ("mgm_i
 
 -----------------------------------------------
 
-Create table IF NOT EXISTS "rulebase_on_gateway" 
-(
-	"dev_id" Integer,
-	"rulebase_id" Integer NOT NULL,
-	"order_no" Integer
-);
-
-ALTER TABLE "rulebase_on_gateway" DROP CONSTRAINT IF EXISTS "fk_rulebase_on_gateway_dev_id" CASCADE;
-Alter table "rulebase_on_gateway" add CONSTRAINT fk_rulebase_on_gateway_dev_id foreign key ("dev_id") references "device" ("dev_id") on update restrict on delete cascade;
-
-ALTER TABLE "rulebase_on_gateway" DROP CONSTRAINT IF EXISTS "fk_rulebase_on_gateway_rulebase_id" CASCADE;
-Alter TABLE "rulebase_on_gateway" add CONSTRAINT fk_rulebase_on_gateway_rulebase_id foreign key ("rulebase_id") references "rulebase" ("id") on update restrict on delete cascade;
-
--- ALTER TABLE "rulebase_on_gateway" DROP CONSTRAINT IF EXISTS "fk_rulebase_on_gateway_layer_guard_rule" CASCADE;
--- Alter TABLE "rulebase_on_gateway" add CONSTRAINT fk_rulebase_on_gateway_layer_guard_rule foreign key ("layer_guard_rule") references "rule" ("rule_id") on update restrict on delete cascade;
-
-ALTER TABLE "rulebase_on_gateway" DROP CONSTRAINT IF EXISTS "unique_rulebase_on_gateway_dev_id_order_no" CASCADE;
-Alter table "rulebase_on_gateway" add CONSTRAINT unique_rulebase_on_gateway_dev_id_order_no UNIQUE ("dev_id", "order_no");
-
 ALTER TABLE "management" ADD COLUMN IF NOT EXISTS "is_super_manager" BOOLEAN DEFAULT FALSE;
 ALTER TABLE "rule" ADD COLUMN IF NOT EXISTS "is_global" BOOLEAN DEFAULT FALSE NOT NULL;
 ALTER TABLE "rule" ADD COLUMN IF NOT EXISTS "rulebase_id" INTEGER;
@@ -230,10 +211,17 @@ Alter Table "rule_metadata" ADD Constraint "rule_metadata_alt_key" UNIQUE ("rule
 -- bulid rule-rulebase graph
 -- rules may spawn rulebase children with new link table rulebase_link
 
+Create table IF NOT EXISTS "stm_link_type"
+(
+	"id" SERIAL primary key,
+	"name" Varchar NOT NULL
+);
+
 Create table IF NOT EXISTS "rulebase_link"
 (
 	"id" SERIAL primary key,
 	"gw_id" Integer,
+	-- "from_rulebase_id" Integer NOT NULL,
 	"from_rule_id" Integer,
 	"to_rulebase_id" Integer NOT NULL,
 	"link_type" Integer,
@@ -243,6 +231,8 @@ Create table IF NOT EXISTS "rulebase_link"
 
 Alter table "rulebase_link" drop constraint IF EXISTS "fk_rulebase_link_to_rulebase_id";
 Alter table "rulebase_link" drop constraint IF EXISTS "fk_rulebase_link_from_rule_id";
+Alter table "rulebase_link" drop constraint IF EXISTS "fk_rulebase_link_link_type";
+Alter table "rulebase_link" add constraint "fk_rulebase_link_link_type" foreign key ("link_type") references "stm_link_type" ("id") on update restrict on delete cascade;
 Alter table "rulebase_link" add constraint "fk_rulebase_link_to_rulebase_id" foreign key ("to_rulebase_id") references "rulebase" ("id") on update restrict on delete cascade;
 Alter table "rulebase_link" add constraint "fk_rulebase_link_from_rule_id" foreign key ("from_rule_id") references "rule" ("rule_id") on update restrict on delete cascade;
 
@@ -254,6 +244,13 @@ ALTER TABLE "rulebase_link"
     DROP CONSTRAINT IF EXISTS "fk_rulebase_link_removed_import_control_control_id" CASCADE;
 Alter table "rulebase_link" add CONSTRAINT fk_rulebase_link_removed_import_control_control_id 
 	foreign key ("removed") references "import_control" ("control_id") on update restrict on delete cascade;
+
+insert into stm_link_type (id, name) VALUES (0, 'initial') ON CONFLICT DO NOTHING;
+insert into stm_link_type (id, name) VALUES (1, 'section') ON CONFLICT DO NOTHING;
+insert into stm_link_type (id, name) VALUES (2, 'ordered') ON CONFLICT DO NOTHING;
+insert into stm_link_type (id, name) VALUES (3, 'inline') ON CONFLICT DO NOTHING;
+insert into stm_link_type (id, name) VALUES (4, 'global') ON CONFLICT DO NOTHING;
+insert into stm_link_type (id, name) VALUES (5, 'local') ON CONFLICT DO NOTHING;
 
 -- TODO delete all rule.parent_rule_id and rule.parent_rule_type, always = None so far
 
@@ -280,6 +277,9 @@ AS $function$
     END;
 $function$;
 
+-- get latest import id for this management
+
+-- needs to be rewritten to rulebase_link
 CREATE OR REPLACE FUNCTION addRuleEnforcedOnGatewayEntries() RETURNS VOID
     LANGUAGE plpgsql
     VOLATILE
@@ -298,8 +298,8 @@ AS $function$
         LOOP
             -- collect all device ids for this rulebase
             SELECT ARRAY(
-                SELECT dev_id FROM rulebase_on_gateway 
-                WHERE rulebase_id=r_rulebase.id
+                SELECT gw_id FROM rulebase_link
+                WHERE to_rulebase_id=r_rulebase.id
             ) INTO a_all_dev_ids_of_rulebase;
 
             FOR r_rule IN 
@@ -313,7 +313,7 @@ AS $function$
                     FOREACH i_dev_id IN ARRAY a_all_dev_ids_of_rulebase 
                     LOOP
                         INSERT INTO rule_enforced_on_gateway (rule_id, dev_id, created) 
-                        VALUES (r_rule.rule_id, i_dev_id, 1); -- TODO: importId 1 is not clean here!
+                        VALUES (r_rule.rule_id, i_dev_id, (SELECT * FROM get_last_import_id_for_mgmt(r_rulebase.mgm_id)));
                     END LOOP;
                 ELSE
                     -- need to deal with entries separately - split rule_installon field by '|'
@@ -329,7 +329,7 @@ AS $function$
                         SELECT INTO i_dev_id dev_id FROM device WHERE dev_name=v_gw_name;
                         IF FOUND THEN
                             INSERT INTO rule_enforced_on_gateway (rule_id, dev_id, created) 
-                            VALUES (r_rule.rule_id, i_dev_id, 1); -- TODO: importId 1 is not clean here!
+                            VALUES (r_rule.rule_id, i_dev_id, (SELECT * FROM get_last_import_id_for_mgmt(r_rulebase.mgm_id))); 
                         ELSE
                             -- decide what to do with misses
                         END IF;
@@ -367,7 +367,8 @@ AS $function$
     END;
 $function$;
 
-CREATE OR REPLACE FUNCTION addRulebaseOnGatewayEntries() RETURNS VOID
+-- TODO: set created to current import id
+CREATE OR REPLACE FUNCTION addRulebaseLinkEntries() RETURNS VOID
     LANGUAGE plpgsql
     VOLATILE
 AS $function$
@@ -375,19 +376,20 @@ AS $function$
         r_dev RECORD;
         r_dev_null RECORD;
         i_rulebase_id INTEGER;
+        i_initial_rulebase_id INTEGER;
     BEGIN
         FOR r_dev IN 
             SELECT * FROM device
         LOOP
-            -- local rulebase:
             -- find the id of the matching rulebase
             SELECT INTO i_rulebase_id id FROM rulebase WHERE name=r_dev.local_rulebase_name AND mgm_id=r_dev.mgm_id;
-            -- check if rulebase_on_gateway already exists
+            -- check if rulebase_link already exists
             IF i_rulebase_id IS NOT NULL THEN
-                SELECT INTO r_dev_null * FROM rulebase_on_gateway WHERE rulebase_id=i_rulebase_id AND dev_id=r_dev.dev_id;
+                SELECT INTO r_dev_null * FROM rulebase_link WHERE to_rulebase_id=i_rulebase_id AND gw_id=r_dev.dev_id AND removed IS NULL;
                 IF NOT FOUND THEN
-                    INSERT INTO rulebase_on_gateway (dev_id, rulebase_id, order_no) 
-                    VALUES (r_dev.dev_id, i_rulebase_id, 0); -- when migrating, there cannot be more than one rb per device
+                    INSERT INTO rulebase_link (gw_id, from_rule_id, to_rulebase_id, created, link_type) 
+                    VALUES (r_dev.dev_id, NULL, i_rulebase_id, (SELECT * FROM get_last_import_id_for_mgmt(r_dev.mgm_id)), 0)
+                    RETURNING id INTO i_initial_rulebase_id; -- when migrating, there cannot be more than one (the initial) rb per device
                 END IF;
             END IF;
 
@@ -395,12 +397,12 @@ AS $function$
             -- find the id of the matching rulebase
             IF r_dev.global_rulebase_name IS NOT NULL THEN
                 SELECT INTO i_rulebase_id id FROM rulebase WHERE name=r_dev.global_rulebase_name AND mgm_id=r_dev.mgm_id;
-                -- check if rulebase_on_gateway already exists
+                -- check if rulebase_link already exists
                 IF i_rulebase_id IS NOT NULL THEN
-                    SELECT INTO r_dev_null * FROM rulebase_on_gateway WHERE rulebase_id=i_rulebase_id AND dev_id=r_dev.dev_id;
+                    SELECT INTO r_dev_null * FROM rulebase_link WHERE to_rulebase_id=i_rulebase_id AND gw_id=r_dev.dev_id;
                     IF NOT FOUND THEN
-                        INSERT INTO rulebase_on_gateway (dev_id, rulebase_id, order_no) 
-                        VALUES (r_dev.dev_id, i_rulebase_id, 1); -- when migrating, the global rulebase must be the second one
+                        INSERT INTO rulebase_link (gw_id, from_rule_id, to_rulebase_id, created, link_type)
+                        VALUES (r_dev.dev_id, NULL, i_rulebase_id, (SELECT * FROM get_last_import_id_for_mgmt(r_dev.mgm_id)), 0); 
                     END IF;
                 END IF;
             END IF;
@@ -424,7 +426,7 @@ AS $function$
         LOOP
             -- if rulebase does not exist yet: insert it
             SELECT INTO r_dev_null * FROM rulebase WHERE name=r_dev.local_rulebase_name;
-            IF NOT FOUND THEN
+            IF NOT FOUND AND r_dev.local_rulebase_name IS NOT NULL THEN
                 -- first create rulebase entries
                 INSERT INTO rulebase (name, uid, mgm_id, is_global, created) 
                 VALUES (r_dev.local_rulebase_name, r_dev.local_rulebase_name, r_dev.mgm_id, FALSE, 1) 
@@ -435,8 +437,8 @@ AS $function$
 
             SELECT INTO r_dev_null * FROM rulebase WHERE name=r_dev.global_rulebase_name;
             IF NOT FOUND AND r_dev.global_rulebase_name IS NOT NULL THEN
-                INSERT INTO rulebase (name, mgm_id, is_global, created) 
-                VALUES (r_dev.global_rulebase_name, r_dev.mgm_id, TRUE, 1) 
+                INSERT INTO rulebase (name, uid, mgm_id, is_global, created) 
+                VALUES (r_dev.global_rulebase_name, r_dev.global_rulebase_name, r_dev.mgm_id, TRUE, 1) 
                 RETURNING id INTO i_new_rulebase_id;
                 -- now update references in all rules to the newly created rulebase
                 UPDATE rule SET rulebase_id=i_new_rulebase_id WHERE dev_id=r_dev.dev_id;
@@ -477,7 +479,7 @@ AS $function$
     BEGIN
 
         PERFORM addRulebaseEntriesAndItsRuleRefs();
-        PERFORM addRulebaseOnGatewayEntries();
+        PERFORM addRulebaseLinkEntries();
         -- danger zone: delete all rules that have no rulebase_id
         -- the deletion might take some time
         PERFORM deleteDuplicateRulebases();
@@ -547,6 +549,23 @@ ALTER TABLE "rule_enforced_on_gateway" ADD COLUMN IF NOT EXISTS "removed" BIGINT
 ALTER TABLE "rulebase" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
 ALTER TABLE "rulebase_link" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
 
+
+-- adding labels (simple version without mapping tables and without foreign keys)
+
+/*
+
+CREATE TABLE label (
+    id SERIAL PRIMARY KEY,
+    name TEXT NOT NULL
+);
+
+ALTER TABLE "rule" ADD COLUMN IF NOT EXISTS "labels" INT[];
+ALTER TABLE "service" ADD COLUMN IF NOT EXISTS "labels" INT[];
+ALTER TABLE "object" ADD COLUMN IF NOT EXISTS "labels" INT[];
+ALTER TABLE "usr" ADD COLUMN IF NOT EXISTS "labels" INT[];
+
+*/
+
 -- ALTER TABLE "object" DROP COLUMN IF EXISTS "deleted" ;
 -- ALTER TABLE "objgrp" DROP COLUMN IF  EXISTS "deleted" ;
 -- ALTER TABLE "objgrp_flat" DROP COLUMN IF EXISTS "deleted" ;
@@ -574,7 +593,7 @@ REPORTING:
     - RulesReportRazor line 23: deal with multiple ordered rulebases (later)
         style="font-size:small" TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="Rule" Items="device.Rules" ShowSearchBar="false"
     - ObjectGroup.Razor line 431:
-        Rule? ruleUpdated = managementsUpdate.ManagementData.SelectMany(m => m.Devices).SelectMany(d => d.OrderedRulebases[0].Rulebase.Rules ?? new Rule[0]).FirstOrDefault();
+        Rule? ruleUpdated = managementsUpdate.ManagementData.SelectMany(m => m.Devices).SelectMany(d => d.Rulebases[0].Rulebase.Rules ?? new Rule[0]).FirstOrDefault();
     - Statistics Report #rules per device are 0 (device report is null)
     - recertification: without rule.dev_id we have lost all rule information in report!!!
       - certification information should be aimed at a rule on a gateway

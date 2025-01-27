@@ -2,13 +2,12 @@ import json
 from copy import deepcopy
 import re
 from enum import Enum
-from typing import List, Any, get_type_hints
+from typing import Any, get_type_hints
 import ipaddress 
 
 import fwo_globals
-from fwo_const import max_objs_per_chunk, csv_delimiter, apostrophe, line_delimiter
+from fwo_const import csv_delimiter, apostrophe, line_delimiter
 from fwo_log import getFwoLogger, getFwoAlertLogger
-# from fwconfig_base import Policy
 
 
 class ConfigAction(Enum):

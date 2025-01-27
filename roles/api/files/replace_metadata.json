@@ -4604,18 +4604,6 @@
                   }
                 },
                 {
-                  "name": "rulebase_on_gateways",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "dev_id",
-                      "table": {
-                        "name": "rulebase_on_gateway",
-                        "schema": "public"
-                      }
-                    }
-                  }
-                },
-                {
                   "name": "rules_with_owner",
                   "using": {
                     "manual_configuration": {
@@ -6173,6 +6161,30 @@
                       "column": "created",
                       "table": {
                         "name": "rule_user_resolved",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "rulebaseLinksByRemoved",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "removed",
+                      "table": {
+                        "name": "rulebase_link",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "rulebase_links",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "created",
+                      "table": {
+                        "name": "rulebase_link",
                         "schema": "public"
                       }
                     }
@@ -16174,18 +16186,6 @@
                   }
                 },
                 {
-                  "name": "rulebase_on_gateways",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "rulebase_id",
-                      "table": {
-                        "name": "rulebase_on_gateway",
-                        "schema": "public"
-                      }
-                    }
-                  }
-                },
-                {
                   "name": "rules",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -16282,6 +16282,18 @@
               },
               "object_relationships": [
                 {
+                  "name": "importControlByRemoved",
+                  "using": {
+                    "foreign_key_constraint_on": "removed"
+                  }
+                },
+                {
+                  "name": "import_control",
+                  "using": {
+                    "foreign_key_constraint_on": "created"
+                  }
+                },
+                {
                   "name": "rule",
                   "using": {
                     "foreign_key_constraint_on": "from_rule_id"
@@ -16292,25 +16304,11 @@
                   "using": {
                     "foreign_key_constraint_on": "to_rulebase_id"
                   }
-                }
-              ]
-            },
-            {
-              "table": {
-                "name": "rulebase_on_gateway",
-                "schema": "public"
-              },
-              "object_relationships": [
-                {
-                  "name": "device",
-                  "using": {
-                    "foreign_key_constraint_on": "dev_id"
-                  }
                 },
                 {
-                  "name": "rulebase",
+                  "name": "stm_link_type",
                   "using": {
-                    "foreign_key_constraint_on": "rulebase_id"
+                    "foreign_key_constraint_on": "link_type"
                   }
                 }
               ],
@@ -16320,9 +16318,13 @@
                   "permission": {
                     "check": {},
                     "columns": [
-                      "dev_id",
-                      "order_no",
-                      "rulebase_id"
+                      "created",
+                      "removed",
+                      "from_rule_id",
+                      "gw_id",
+                      "id",
+                      "link_type",
+                      "to_rulebase_id"
                     ]
                   },
                   "comment": ""
@@ -16333,9 +16335,13 @@
                   "role": "importer",
                   "permission": {
                     "columns": [
-                      "dev_id",
-                      "order_no",
-                      "rulebase_id"
+                      "created",
+                      "removed",
+                      "from_rule_id",
+                      "gw_id",
+                      "id",
+                      "link_type",
+                      "to_rulebase_id"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -16343,11 +16349,15 @@
                   "comment": ""
                 }
               ],
-              "delete_permissions": [
+              "update_permissions": [
                 {
                   "role": "importer",
                   "permission": {
-                    "filter": {}
+                    "columns": [
+                      "removed"
+                    ],
+                    "filter": {},
+                    "check": {}
                   },
                   "comment": ""
                 }
@@ -17945,6 +17955,128 @@
                     ],
                     "filter": {}
                   }
+                }
+              ]
+            },
+            {
+              "table": {
+                "name": "stm_link_type",
+                "schema": "public"
+              },
+              "array_relationships": [
+                {
+                  "name": "rulebase_links",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "link_type",
+                      "table": {
+                        "name": "rulebase_link",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "name",
+                      "id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "name",
+                      "id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "importer",
+                  "permission": {
+                    "columns": [
+                      "name",
+                      "id"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "name",
+                      "id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "name",
+                      "id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [
+                      "name",
+                      "id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reporter",
+                  "permission": {
+                    "columns": [
+                      "name",
+                      "id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reporter-viewall",
+                  "permission": {
+                    "columns": [
+                      "name",
+                      "id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reviewer",
+                  "permission": {
+                    "columns": [
+                      "name",
+                      "id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
                 }
               ]
             },

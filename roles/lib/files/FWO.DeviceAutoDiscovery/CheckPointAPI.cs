@@ -102,49 +102,6 @@ namespace FWO.Rest.Client
             return [];
         }
 
-
-        /// <summary>
-        /// Retrieves the UID of the management server using the Check Point API.
-        /// </summary>
-        /// <param name="mgm">The management object containing the necessary information for the API call.</param>
-        /// <param name="session">The session ID that pins this session to a specific domain (if domain was given during login).</param>
-        /// <returns>A task that represents the asynchronous operation. The task result contains the UID of the management server as a string.</returns>
-        /// <remarks>
-        /// This method uses the Check Point REST API call 'show-gateways-and-servers' to retrieve the management UID.
-        /// </remarks>
-        // public async Task<string> GetManagementUid(Management mgm, string session)
-        // {
-        //     RestRequest request = new("show-gateways-and-servers", Method.Post);
-        //     request.AddHeader("X-chkp-sid", session);
-        //     request.AddHeader("Content-Type", "application/json");
-        //     Dictionary<string, string> body = new()
-        //     {
-        //         { "details-level", "full" }
-        //     };
-        //     request.AddJsonBody(body);
-        //     Log.WriteDebug("Autodiscovery", $"using CP REST API call 'show-gateways-and-servers'");
-        //     List<string> gwTypes = ["simple-gateway", "simple-cluster", "CpmiVsNetobj", "CpmiVsClusterNetobj", "CpmiGatewayPlain", "CpmiGatewayCluster", "CpmiVsxClusterNetobj", "CpmiVsxNetobj"];
-
-        //     // getting management
-        //     RestResponse<CpDeviceHelper> devices = await restClient.ExecuteAsync<CpDeviceHelper>(request);
-        //     // add devices to currentManagement
-        //     foreach (CpDevice cpDev in devices)
-        //     {
-        //         if (cpDev.CpDevType != "checkpoint-host")   // leave out the management host?!
-        //         {
-        //             Device dev = new()
-        //             {
-        //                 Name = cpDev.Name,
-        //                 Uid = cpDev.Uid,
-        //                 DeviceType = new DeviceType { Id = 9 } // CheckPoint GW
-        //             };
-        //             devices.Add(dev);
-        //         }
-        //     }
-        //     return devices.ToArray();
-        //     return "";
-        // }
-
     }
 
     public class CpSessionAuthInfo

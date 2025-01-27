@@ -41,6 +41,7 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
 
     logger = getFwoLogger()
     config_changed_since_last_import = True
+    time_get_config = 0
 
     importState = ImportState.initializeImport(mgmId, debugLevel=debug_level_in, 
                                                force=force, version=version, 
@@ -86,7 +87,7 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
                     service_objects=[], 
                     users=[], 
                     zone_objects=[], 
-                    rules=[],
+                    rulebases=[],
                     gateways=[]
             ))
             
@@ -244,6 +245,7 @@ def importFromFile(importState: ImportState, fileName: str = None, gateways: Lis
 
 def get_config_from_api(importState, configNative, import_tmp_path=import_tmp_path, limit=150) -> FwConfigManagerList:
     logger = getFwoLogger()
+    errors_found = 1
 
     try: # pick product-specific importer:
         pkg_name = importState.MgmDetails.DeviceTypeName.lower().replace(' ', '') + importState.MgmDetails.DeviceTypeVersion
@@ -257,9 +259,9 @@ def get_config_from_api(importState, configNative, import_tmp_path=import_tmp_pa
         config_changed_since_last_import = importState.ImportFileName != None or \
             fw_module.has_config_changed(configNative, importState.FullMgmDetails, force=importState.ForceImport)
         if config_changed_since_last_import:
-            logger.debug ( "has_config_changed: changes found or forced mode -> go ahead with getting config, Force = " + str(importState.ForceImport))
+            logger.info ( "has_config_changed: changes found or forced mode -> go ahead with getting config, Force = " + str(importState.ForceImport))
         else:
-            logger.debug ( "has_config_changed: no new changes found")
+            logger.info ( "has_config_changed: no new changes found")
 
         if config_changed_since_last_import or importState.ForceImport:
             # get config from product-specific FW API

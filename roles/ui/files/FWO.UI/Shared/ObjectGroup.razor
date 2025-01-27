@@ -44,7 +44,7 @@
             @if(NetworkObjectExtractor != null)
             {
                 <Collapse Title="@(userConfig.GetText("network_objects"))" StartToggled="StartCollapsed"  OnOpen="() => HandleUncollapse(ObjCategory.nobj)" RSBLocation=@($"{GetIDPrefix(ObjCategory.nobj)}")>
-                    <Table style="font-size:small" class="table table-bordered table-sm th-bg-secondary table-responsive" TableItem="NetworkObject"
+                    <Table PageSize="PageSize" style="font-size:small" class="table table-bordered table-sm th-bg-secondary table-responsive" TableItem="NetworkObject"
                             Items="@NetworkObjectExtractor(Content)" ColumnReorder="true">
                         <Column TableItem="NetworkObject" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Class="word-break">
                             <Template>
@@ -114,7 +114,7 @@
             @if(NetworkServiceExtractor != null)
             {
                 <Collapse Title="@(userConfig.GetText("services"))" StartToggled="StartCollapsed" OnOpen="() => HandleUncollapse(ObjCategory.nsrv)" RSBLocation=@($"{GetIDPrefix(ObjCategory.nsrv)}")>
-                    <Table style="font-size:small" class="table table-bordered table-sm th-bg-secondary table-responsive" TableItem="NetworkService"
+                    <Table PageSize="PageSize" style="font-size:small" class="table table-bordered table-sm th-bg-secondary table-responsive" TableItem="NetworkService"
                             Items="@NetworkServiceExtractor(Content)" ColumnReorder="true">
                         <Column TableItem="NetworkService" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Class="word-break">
                             <Template>
@@ -192,7 +192,7 @@
             @if(NetworkUserExtractor != null)
             {
                 <Collapse Title="@(userConfig.GetText("users"))" StartToggled="StartCollapsed" OnOpen="() => HandleUncollapse(ObjCategory.user)" RSBLocation=@($"{GetIDPrefix(ObjCategory.user)}")>
-                    <Table style="font-size:small" class="table table-bordered table-sm th-bg-secondary table-responsive"
+                    <Table PageSize="PageSize" style="font-size:small" class="table table-bordered table-sm th-bg-secondary table-responsive"
                             TableItem="NetworkUser" Items="@NetworkUserExtractor(Content)" ColumnReorder="true">
                         <Column TableItem="NetworkUser" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Class="word-break">
                             <Template>
@@ -263,6 +263,7 @@
     [Parameter]
     public RsbTab Tab { get; set; }
 
+    [EditorRequired]
     [Parameter]
     public int PageSize { get; set; }
 
@@ -444,7 +445,7 @@
                                 {
                                     Rule? ruleUpdated = managementsUpdate.ManagementData.SelectMany(
                                         m => m.Devices).SelectMany(
-                                            d => d.OrderedRulebases.Length>0? d.OrderedRulebases[0].Rulebase.RuleMetadata[0].Rules ?? new Rule[0]: []).FirstOrDefault();
+                                            d => d.Rulebases.Length>0? d.Rulebases[0].Rulebase.RuleMetadata[0].Rules ?? new Rule[0]: []).FirstOrDefault();
                                     if (ruleUpdated != null)
                                     {
                                         ruleUpdated.RulebaseName = rule.RulebaseName;

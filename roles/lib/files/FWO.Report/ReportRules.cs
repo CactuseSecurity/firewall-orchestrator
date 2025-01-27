@@ -178,7 +178,7 @@ namespace FWO.Report
                 foreach (var device in managementReport.Devices.Where(dev => dev.ContainsRules()))
                 {
                     deviceCounter++;
-                    foreach (var rb in device.OrderedRulebases)
+                    foreach (var rb in device.Rulebases)
                     {
                         ruleCounter += rb.Rulebase.RuleMetadata[0].Rules!.Length;
                     }
@@ -193,7 +193,7 @@ namespace FWO.Report
             {
                 foreach (var dev in mgt.Devices.Where(d => d.ContainsRules()))
                 {
-                    foreach (var orderedRulebase in dev.OrderedRulebases)
+                    foreach (var orderedRulebase in dev.Rulebases)
                     {
                         foreach (RuleMetadata metaRule in orderedRulebase.Rulebase.RuleMetadata)
                         {
@@ -228,7 +228,7 @@ namespace FWO.Report
                     {
                         if (gateway.ContainsRules())
                         {
-                            foreach (var rb in gateway.OrderedRulebases)
+                            foreach (var rb in gateway.Rulebases)
                             {
                                 foreach (var rule in rb.Rulebase.RuleMetadata[0].Rules)
                                 {
@@ -303,7 +303,7 @@ namespace FWO.Report
                     if (gateway.ContainsRules())
                     {
                         report.Append($"{{\"{gateway.Name}\": {{\n\"rules\": [");
-                        foreach (var rb in gateway.OrderedRulebases)
+                        foreach (var rb in gateway.Rulebases)
                         {
                             foreach (var rule in rb.Rulebase.RuleMetadata[0].Rules)
                             {
@@ -364,7 +364,7 @@ namespace FWO.Report
             int chapterNumber = 0;
 
             foreach (var managementReport in ReportData.ManagementData.Where(mgt => !mgt.Ignore && mgt.Devices != null &&
-                    Array.Exists(mgt.Devices, device => device.OrderedRulebases != null && device.OrderedRulebases.Length > 0)))
+                    Array.Exists(mgt.Devices, device => device.Rulebases != null && device.Rulebases.Length > 0)))
             {
                 chapterNumber++;
                 managementReport.AssignRuleNumbers();
@@ -373,7 +373,7 @@ namespace FWO.Report
 
                 foreach (var device in managementReport.Devices)
                 {
-                    if (device.OrderedRulebases != null && device.OrderedRulebases.Length > 0)
+                    if (device.Rulebases != null && device.Rulebases.Length > 0)
                     {
                         AppendRulesForDeviceHtml(ref report, device, chapterNumber, ruleDisplayHtml);
                     }
@@ -422,7 +422,7 @@ namespace FWO.Report
                 report.AppendLine($"<h4>{device.Name}</h4>");
                 report.AppendLine("<table>");
                 appendRuleHeadlineHtml(ref report);
-                foreach (var rulebase in device.OrderedRulebases!)
+                foreach (var rulebase in device.Rulebases!)
                 {
                     foreach (var rule in rulebase.Rulebase.RuleMetadata[0].Rules)
                     {

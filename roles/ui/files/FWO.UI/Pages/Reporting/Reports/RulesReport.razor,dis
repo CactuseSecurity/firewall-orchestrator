@@ -20,7 +20,7 @@
                     <Collapse Title="@device.Name" Style="@("secondary")" StartToggled="true">
                         <Table SelectedItems="SelectedRules"
                             RowClickAction="@(async rule => { if (!SelectedRules.Remove(rule)) SelectedRules.Add(rule); await SelectedRulesChanged.InvokeAsync(SelectedRules); })"
-                            style="font-size:small" TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="Rule" Items="device.OrderedRulebases[0].Rulebase.rule" ShowSearchBar="false"
+                            style="font-size:small" TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="Rule" Items="device.Rulebases[0].Rulebase.rule" ShowSearchBar="false"
                             PageSize="RulesPerPage" ColumnReorder="true" TableRowClass="@(rule => getTableRowClasses(rule))"
                             @ref="reportTable">
 

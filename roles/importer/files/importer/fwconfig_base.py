@@ -10,32 +10,7 @@ class FwoEncoder(json.JSONEncoder):
         if isinstance(obj, ConfigAction) or isinstance(obj, ConfFormat):
             return obj.name
         
-        if isinstance(obj, Policy):
-            return obj.toJson()
-        
         return json.JSONEncoder.default(self, obj)
-
-# class FwConfig(BaseModel):
-#     ConfigFormat: ConfFormat
-#     FwConf: dict
-
-#     # def __init__(self, configFormat: ConfFormat=ConfFormat.NORMALIZED, config={}):
-#     #     self.ConfigFormat = configFormat
-#     #     self.FwConf = config
-
-#     @classmethod
-#     def fromJson(cls, jsonDict):
-#         ConfigFormat = jsonDict['ConfigFormat']
-#         Config = jsonDict['config']
-#         return cls(ConfigFormat, Config)
-
-#     def __str__(self):
-#         return f"{self.ConfigType}({str(self.Config)})"
-
-#     def IsLegacy(self):
-#         return self.ConfigFormat in [ConfFormat.NORMALIZED_LEGACY, ConfFormat.CHECKPOINT_LEGACY, 
-#                                     ConfFormat.CISCOFIREPOWER_LEGACY, ConfFormat.FORTINET_LEGACY, 
-#                                     ConfFormat.PALOALTO_LEGACY]
 
 def calcManagerUidHash(mgm_details):
     combination = f"""

@@ -187,7 +187,6 @@ namespace FWO.DeviceAutoDiscovery
                         // this update happens only once when AutoDiscovery v9.0 is run for the first time
                         var vars = new { id = gwId, uid = dev.Uid };
                         await apiConnection.SendQueryAsync<ReturnId>(DeviceQueries.updateGatewayUid, vars);
-                        // TODO: also add UIDs in gateways?
                     }
 
                 }

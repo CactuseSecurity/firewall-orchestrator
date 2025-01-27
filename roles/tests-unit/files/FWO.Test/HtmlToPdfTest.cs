@@ -11,12 +11,14 @@ using PeachPDF.PdfSharpCore.Pdf;
 namespace FWO.Test
 {
     [TestFixture]
+    [Parallelizable]
     internal class HtmlToPdfTest
     {
         private const string FilePath = "pdffile.pdf";
         private const string Html = "<html><body><h1>test<h1>test</body></html>";
 
         [Test]
+        [Parallelizable]
         public async Task GeneratePdf()
         {
             Assert.That(IsValidHTML(Html));

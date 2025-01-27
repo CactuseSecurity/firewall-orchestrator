@@ -277,6 +277,8 @@ AS $function$
     END;
 $function$;
 
+-- get latest import id for this management
+
 -- needs to be rewritten to rulebase_link
 CREATE OR REPLACE FUNCTION addRuleEnforcedOnGatewayEntries() RETURNS VOID
     LANGUAGE plpgsql
@@ -296,8 +298,8 @@ AS $function$
         LOOP
             -- collect all device ids for this rulebase
             SELECT ARRAY(
-                SELECT dev_id FROM rulebase_on_gateway 
-                WHERE rulebase_id=r_rulebase.id
+                SELECT gw_id FROM rulebase_link
+                WHERE to_rulebase_id=r_rulebase.id
             ) INTO a_all_dev_ids_of_rulebase;
 
             FOR r_rule IN 
@@ -311,7 +313,7 @@ AS $function$
                     FOREACH i_dev_id IN ARRAY a_all_dev_ids_of_rulebase 
                     LOOP
                         INSERT INTO rule_enforced_on_gateway (rule_id, dev_id, created) 
-                        VALUES (r_rule.rule_id, i_dev_id, 1); -- TODO: importId 1 is not clean here!
+                        VALUES (r_rule.rule_id, i_dev_id, (SELECT * FROM get_last_import_id_for_mgmt(r_rulebase.mgm_id)));
                     END LOOP;
                 ELSE
                     -- need to deal with entries separately - split rule_installon field by '|'
@@ -327,7 +329,7 @@ AS $function$
                         SELECT INTO i_dev_id dev_id FROM device WHERE dev_name=v_gw_name;
                         IF FOUND THEN
                             INSERT INTO rule_enforced_on_gateway (rule_id, dev_id, created) 
-                            VALUES (r_rule.rule_id, i_dev_id, 1); -- TODO: importId 1 is not clean here!
+                            VALUES (r_rule.rule_id, i_dev_id, (SELECT * FROM get_last_import_id_for_mgmt(r_rulebase.mgm_id))); 
                         ELSE
                             -- decide what to do with misses
                         END IF;
@@ -365,7 +367,8 @@ AS $function$
     END;
 $function$;
 
-CREATE OR REPLACE FUNCTION addRulebaseOnGatewayEntries() RETURNS VOID
+-- TODO: set created to current import id
+CREATE OR REPLACE FUNCTION addRulebaseLinkEntries() RETURNS VOID
     LANGUAGE plpgsql
     VOLATILE
 AS $function$
@@ -373,19 +376,20 @@ AS $function$
         r_dev RECORD;
         r_dev_null RECORD;
         i_rulebase_id INTEGER;
+        i_initial_rulebase_id INTEGER;
     BEGIN
         FOR r_dev IN 
             SELECT * FROM device
         LOOP
-            -- local rulebase:
             -- find the id of the matching rulebase
             SELECT INTO i_rulebase_id id FROM rulebase WHERE name=r_dev.local_rulebase_name AND mgm_id=r_dev.mgm_id;
-            -- check if rulebase_on_gateway already exists
+            -- check if rulebase_link already exists
             IF i_rulebase_id IS NOT NULL THEN
-                SELECT INTO r_dev_null * FROM rulebase_on_gateway WHERE rulebase_id=i_rulebase_id AND dev_id=r_dev.dev_id;
+                SELECT INTO r_dev_null * FROM rulebase_link WHERE to_rulebase_id=i_rulebase_id AND gw_id=r_dev.dev_id AND removed IS NULL;
                 IF NOT FOUND THEN
-                    INSERT INTO rulebase_on_gateway (dev_id, rulebase_id, order_no) 
-                    VALUES (r_dev.dev_id, i_rulebase_id, 0); -- when migrating, there cannot be more than one rb per device
+                    INSERT INTO rulebase_link (gw_id, from_rule_id, to_rulebase_id, created, link_type) 
+                    VALUES (r_dev.dev_id, NULL, i_rulebase_id, (SELECT * FROM get_last_import_id_for_mgmt(r_dev.mgm_id)), 0)
+                    RETURNING id INTO i_initial_rulebase_id; -- when migrating, there cannot be more than one (the initial) rb per device
                 END IF;
             END IF;
 
@@ -393,12 +397,12 @@ AS $function$
             -- find the id of the matching rulebase
             IF r_dev.global_rulebase_name IS NOT NULL THEN
                 SELECT INTO i_rulebase_id id FROM rulebase WHERE name=r_dev.global_rulebase_name AND mgm_id=r_dev.mgm_id;
-                -- check if rulebase_on_gateway already exists
+                -- check if rulebase_link already exists
                 IF i_rulebase_id IS NOT NULL THEN
-                    SELECT INTO r_dev_null * FROM rulebase_on_gateway WHERE rulebase_id=i_rulebase_id AND dev_id=r_dev.dev_id;
+                    SELECT INTO r_dev_null * FROM rulebase_link WHERE to_rulebase_id=i_rulebase_id AND gw_id=r_dev.dev_id;
                     IF NOT FOUND THEN
-                        INSERT INTO rulebase_on_gateway (dev_id, rulebase_id, order_no) 
-                        VALUES (r_dev.dev_id, i_rulebase_id, 1); -- when migrating, the global rulebase must be the second one
+                        INSERT INTO rulebase_link (gw_id, from_rule_id, to_rulebase_id, created, link_type)
+                        VALUES (r_dev.dev_id, NULL, i_rulebase_id, (SELECT * FROM get_last_import_id_for_mgmt(r_dev.mgm_id)), 0); 
                     END IF;
                 END IF;
             END IF;
@@ -422,7 +426,7 @@ AS $function$
         LOOP
             -- if rulebase does not exist yet: insert it
             SELECT INTO r_dev_null * FROM rulebase WHERE name=r_dev.local_rulebase_name;
-            IF NOT FOUND THEN
+            IF NOT FOUND AND r_dev.local_rulebase_name IS NOT NULL THEN
                 -- first create rulebase entries
                 INSERT INTO rulebase (name, uid, mgm_id, is_global, created) 
                 VALUES (r_dev.local_rulebase_name, r_dev.local_rulebase_name, r_dev.mgm_id, FALSE, 1) 
@@ -433,8 +437,8 @@ AS $function$
 
             SELECT INTO r_dev_null * FROM rulebase WHERE name=r_dev.global_rulebase_name;
             IF NOT FOUND AND r_dev.global_rulebase_name IS NOT NULL THEN
-                INSERT INTO rulebase (name, mgm_id, is_global, created) 
-                VALUES (r_dev.global_rulebase_name, r_dev.mgm_id, TRUE, 1) 
+                INSERT INTO rulebase (name, uid, mgm_id, is_global, created) 
+                VALUES (r_dev.global_rulebase_name, r_dev.global_rulebase_name, r_dev.mgm_id, TRUE, 1) 
                 RETURNING id INTO i_new_rulebase_id;
                 -- now update references in all rules to the newly created rulebase
                 UPDATE rule SET rulebase_id=i_new_rulebase_id WHERE dev_id=r_dev.dev_id;
@@ -475,7 +479,7 @@ AS $function$
     BEGIN
 
         PERFORM addRulebaseEntriesAndItsRuleRefs();
-        PERFORM addRulebaseOnGatewayEntries();
+        PERFORM addRulebaseLinkEntries();
         -- danger zone: delete all rules that have no rulebase_id
         -- the deletion might take some time
         PERFORM deleteDuplicateRulebases();

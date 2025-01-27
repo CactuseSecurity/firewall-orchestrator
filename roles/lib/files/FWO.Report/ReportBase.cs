@@ -227,20 +227,21 @@ namespace FWO.Report
             }
         }
 
-        private static async Task<string?> CreatePDFViaPeachPDF(string html, PeachPDF.PdfSharpCore.PageSize pageSize)
+        private async Task<string?> CreatePDFViaPeachPDF(string html, PeachPDF.PdfSharpCore.PageSize pageSize, bool isCustom = false)
         {
-            if (pageSize == PeachPDF.PdfSharpCore.PageSize.Undefined)
-            {
-                throw new Exception("This paper kind is currently not supported. Please choose another one or \"Custom\" for a custom size.");
-            }
-
             try
             {
+                
                 PdfGenerateConfig pdfConfig = new()
                 {
                     PageSize = pageSize,
                     PageOrientation = PeachPDF.PdfSharpCore.PageOrientation.Landscape
                 };
+
+                if (isCustom)
+                {
+                    pdfConfig.ManualPageSize = new(CustomWidth, CustomHeight);
+                }
 
                 using MemoryStream stream = new();
 
@@ -399,9 +400,17 @@ namespace FWO.Report
 
         public virtual async Task<string?> ToPdf(string html, PaperFormat paperFormat)
         {
-            PeachPDF.PdfSharpCore.PageSize pageSize = GetPeachPDFPageSize(paperFormat);
+            PeachPDF.PdfSharpCore.PageSize pageSize;
+            bool isCustom = false;
 
-            return await CreatePDFViaPeachPDF(html, pageSize);
+            if (paperFormat == PaperFormat.Custom)
+            {
+                isCustom = true;
+            }
+
+            pageSize = GetPeachPDFPageSize(paperFormat);
+
+            return await CreatePDFViaPeachPDF(html, pageSize, isCustom);
         }
 
         public virtual async Task<string?> ToPdf(string html, PeachPDF.PdfSharpCore.PageSize pageSize)

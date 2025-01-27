@@ -13,7 +13,7 @@
 	<ItemGroup>
 		<PackageReference Include="IPAddressRange" Version="6.1.0" />
 		<PackageReference Include="BlazorTable" Version="1.17.0" />
-		<PackageReference Include="PeachPDF" Version="0.7.2" />
+		<PackageReference Include="PeachPDF" Version="0.7.4" />
 	</ItemGroup>
 
 	<ItemGroup>

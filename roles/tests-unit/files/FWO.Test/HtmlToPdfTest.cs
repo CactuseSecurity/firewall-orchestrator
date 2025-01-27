@@ -1,45 +1,40 @@
 ﻿using NUnit.Framework;
 using FWO.Logging;
 using HtmlAgilityPack;
-using PeachPDF;
-using PdfSharp;
-using PdfSharp.Pdf;
 using PeachPDF.PdfSharpCore;
 using NUnit.Framework.Legacy;
-using PeachPDF.PdfSharpCore.Pdf;
+using PeachPDF;
 
 namespace FWO.Test
 {
     [TestFixture]
-    [Parallelizable]
     internal class HtmlToPdfTest
     {
         private const string FilePath = "pdffile.pdf";
         private const string Html = "<html><body><h1>test<h1>test</body></html>";
 
         [Test]
-        [Parallelizable]
         public async Task GeneratePdf()
         {
             Assert.That(IsValidHTML(Html));
 
             try
             {
-                await TryCreatePDF(PeachPDF.PdfSharpCore.PageSize.A0);
-                await TryCreatePDF(PeachPDF.PdfSharpCore.PageSize.A1);
-                await TryCreatePDF(PeachPDF.PdfSharpCore.PageSize.A2);
-                await TryCreatePDF(PeachPDF.PdfSharpCore.PageSize.A3);
-                await TryCreatePDF(PeachPDF.PdfSharpCore.PageSize.A4);
-                await TryCreatePDF(PeachPDF.PdfSharpCore.PageSize.A5);
-                await TryCreatePDF(PeachPDF.PdfSharpCore.PageSize.A6);
-                await TryCreatePDF(PeachPDF.PdfSharpCore.PageSize.B0);
-                await TryCreatePDF(PeachPDF.PdfSharpCore.PageSize.B1);
-                await TryCreatePDF(PeachPDF.PdfSharpCore.PageSize.B2);
-                await TryCreatePDF(PeachPDF.PdfSharpCore.PageSize.B3);
-                await TryCreatePDF(PeachPDF.PdfSharpCore.PageSize.B4);
-                await TryCreatePDF(PeachPDF.PdfSharpCore.PageSize.B5);
-                await TryCreatePDF(PeachPDF.PdfSharpCore.PageSize.Letter);
-                await TryCreatePDF(PeachPDF.PdfSharpCore.PageSize.Tabloid);
+                await TryCreatePDF(PageSize.A0);
+                await TryCreatePDF(PageSize.A1);
+                await TryCreatePDF(PageSize.A2);
+                await TryCreatePDF(PageSize.A3);
+                await TryCreatePDF(PageSize.A4);
+                await TryCreatePDF(PageSize.A5);
+                await TryCreatePDF(PageSize.A6);
+                await TryCreatePDF(PageSize.B0);
+                await TryCreatePDF(PageSize.B1);
+                await TryCreatePDF(PageSize.B2);
+                await TryCreatePDF(PageSize.B3);
+                await TryCreatePDF(PageSize.B4);
+                await TryCreatePDF(PageSize.B5);
+                await TryCreatePDF(PageSize.Letter);
+                await TryCreatePDF(PageSize.Tabloid);
             }
             catch (Exception)
             {
@@ -62,7 +57,7 @@ namespace FWO.Test
 
         }
 
-        private static async Task TryCreatePDF(PeachPDF.PdfSharpCore.PageSize pageSize)
+        private static async Task TryCreatePDF(PageSize pageSize)
         {
             Log.WriteInfo("Test Log", $"Test creating PDF {pageSize}");
 
@@ -71,7 +66,7 @@ namespace FWO.Test
                 PdfGenerateConfig pdfConfig = new()
                 {
                     PageSize = pageSize,
-                    PageOrientation = PeachPDF.PdfSharpCore.PageOrientation.Landscape
+                    PageOrientation = PageOrientation.Landscape
                 };
 
                 PdfGenerator generator = new();
@@ -89,7 +84,7 @@ namespace FWO.Test
             }
             catch (Exception)
             {
-                throw new Exception("This paper kind is currently not supported. Please choose another one or \"Custom\" for a custom size.");
+                throw;
             }            
         }
 

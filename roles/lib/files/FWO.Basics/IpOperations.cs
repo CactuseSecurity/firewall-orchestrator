@@ -7,6 +7,18 @@ namespace FWO.Basics
 {
     public static class IpOperations
     {
+        public static async Task<string> DnsReverseLookUp(IPAddress address)
+        {
+            try
+            {
+                return (await Dns.GetHostEntryAsync(address)).HostName;
+            }
+            catch(Exception)
+            {
+                return "";
+            }
+        }
+
         public static bool IsInSubnet(IPAddress address, string cidrString)
         {
             string[] parts = cidrString.Split('/');

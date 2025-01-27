@@ -1,7 +1,8 @@
 ﻿@using FWO.Config.Api
-@using FWO.Services
-@using System.Text.Json
 @using FWO.Basics
+@using System.Text.Json
+@using FWO.Services
+@using System.Net
 
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
 
@@ -14,15 +15,15 @@
         <Body>
             @if (Display)
             {
-                <div class="form-group row">
-                    <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("name")):</label>
+                <div class="form-group row mt-2">
+                    <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("ip"))*:</label>
                     @if (AppServerHandler.ReadOnly)
                     {
-                        <label class="col-sm-9">@AppServerHandler.ActAppServer.Name</label>
+                        <label class="col-sm-9">@AppServerHandler.ActAppServer.Ip</label>
                     }
                     else
                     {
-                        <input type="text" class="col-sm-9" @bind="AppServerHandler.ActAppServer.Name" />
+                        <input type="text" class="col-sm-9" @bind="AppServerHandler.ActAppServer.Ip" />
                     }
                 </div>
                 <div class="form-group row mt-2">
@@ -43,16 +44,23 @@
                     </div>
                 </div>
                 <div class="form-group row mt-2">
-                    <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("ip"))*:</label>
-                    @if (AppServerHandler.ReadOnly)
+                    <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("name")):</label>
+                    @if (AppServerHandler.ReadOnly || userConfig.DnsLookup)
                     {
-                        <label class="col-sm-9">@AppServerHandler.ActAppServer.Ip</label>
+                        <label class="col-sm-9">@AppServerHandler.ActAppServer.Name</label>
                     }
                     else
                     {
-                        <input type="text" class="col-sm-9" @bind="AppServerHandler.ActAppServer.Ip" />
+                        <input type="text" class="col-sm-9" @bind="AppServerHandler.ActAppServer.Name" />
                     }
                 </div>
+                @if (userConfig.DnsLookup)
+                {
+                    <div class="form-group row mt-2">
+                        <label class="col-sm-2 col-form-label col-form-label-sm" />
+                        <button type="button" class="btn btn-sm btn-primary col-sm-6" @onclick="Lookup">@(userConfig.GetText("generate_name"))</button>
+                    </div>
+                }
             }
         </Body>
         <Footer>
@@ -77,6 +85,7 @@
         </Footer>
     </PopUp>
 }
+<InProgress Display="workInProgress" />
 
 
 @code
@@ -91,22 +100,25 @@
     public EventCallback<bool> DisplayChanged { get; set; }
 
     [Parameter]
-    public ModellingAppServerHandler AppServerHandler { get; set; }
+    public ModellingAppServerHandler? AppServerHandler { get; set; }
 
     [Parameter]
     public EventCallback<ModellingAppServerHandler> AppServerHandlerChanged { get; set; }
 
-    private List<AppServerType> appServerTypes = new();
+    private List<AppServerType> appServerTypes = [];
     private AppServerType actAppServerType = new();
+    private ModellingNamingConvention namingConvention = new();
     private bool firstTry = true;
+    private bool workInProgress = false;
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
         try
         {
             if (userConfig.ModAppServerTypes != "")
             {
                 appServerTypes = JsonSerializer.Deserialize<List<AppServerType>>(userConfig.ModAppServerTypes) ?? new();
+                namingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(userConfig.ModNamingConvention) ?? new();
             }
         }
         catch (Exception exception)
@@ -117,7 +129,7 @@
 
     protected override void OnParametersSet()
     {
-        if (Display && firstTry)
+        if (Display && firstTry && AppServerHandler != null)
         {
             firstTry = false;
             actAppServerType = appServerTypes.FirstOrDefault(a => a.Id == AppServerHandler.ActAppServer.CustomType) ?? new();
@@ -132,22 +144,35 @@
     private void SetAppServerType(AppServerType newAppServerType)
     {
         actAppServerType = newAppServerType;
-        AppServerHandler.ActAppServer.CustomType = newAppServerType.Id;
+        if(AppServerHandler != null)
+        {
+            AppServerHandler.ActAppServer.CustomType = newAppServerType.Id;
+        }
     }
 
     private void Cancel()
     {
-        AppServerHandler.Reset();
+        AppServerHandler?.Reset();
         Close();
     }
 
     private async Task Save()
     {
-        if (await AppServerHandler.Save())
+        if (AppServerHandler != null && await AppServerHandler.Save())
         {
             await AppServerHandlerChanged.InvokeAsync(AppServerHandler);
             Close();
         }
+    }
+
+    public async Task Lookup()
+    {
+        workInProgress = true;
+        if (AppServerHandler != null)
+        {
+            AppServerHandler.ActAppServer.Name = await AppServerHelper.ConstructAppServerNameFromDns(AppServerHandler.ActAppServer, namingConvention);
+        }
+        workInProgress = false;
     }
 
     private void Close()
@@ -155,5 +180,6 @@
         Display = false;
         DisplayChanged.InvokeAsync(Display);
         firstTry = true;
+        workInProgress = false;
     }
 }

@@ -250,6 +250,7 @@ insert into stm_link_type (id, name) VALUES (1, 'section') ON CONFLICT DO NOTHIN
 insert into stm_link_type (id, name) VALUES (2, 'ordered') ON CONFLICT DO NOTHING;
 insert into stm_link_type (id, name) VALUES (3, 'inline') ON CONFLICT DO NOTHING;
 insert into stm_link_type (id, name) VALUES (4, 'global') ON CONFLICT DO NOTHING;
+insert into stm_link_type (id, name) VALUES (5, 'local') ON CONFLICT DO NOTHING;
 
 -- TODO delete all rule.parent_rule_id and rule.parent_rule_type, always = None so far
 

@@ -179,6 +179,7 @@ h5 {
 
 .popup-body {
     height: fit-content;
+    overflow-y: scroll;
     /* Increase/decrease this value for cross-browser compatibility */
     box-sizing: content-box;
     /* So the width will be 100% + 17px */

@@ -4,14 +4,12 @@ using FWO.Api.Data;
 using FWO.Report.Filter;
 using FWO.Config.Api;
 using System.Text;
-using System.Reflection;
 using HtmlAgilityPack;
 using PdfSharp.Pdf;
 using PdfSharp.Drawing;
 using PdfSharp.Pdf.IO;
 using FWO.Report.Data;
 using PeachPDF;
-using System.IO;
 
 namespace FWO.Report
 {

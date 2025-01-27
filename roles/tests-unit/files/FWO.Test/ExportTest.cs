@@ -5,7 +5,6 @@ using FWO.Report;
 using FWO.Report.Filter;
 using FWO.Basics;
 using FWO.Api.Data;
-using System.Text.RegularExpressions;
 
 
 namespace FWO.Test

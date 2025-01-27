@@ -31,7 +31,7 @@ class FwConfigImportRule(FwConfigImportBase):
       self.NextRuleNumLookup = self.GetNextRuleNumMap()     # TODO: needs to be updated with each insert
       # self.RulebaseMap = self.GetRulebaseMap()     # limited to the current mgm_id
 
-    def updateRuleDiffs(self, prevConfig: FwConfigNormalized):
+    def updateRulebaseDiffs(self, prevConfig: FwConfigNormalized):
         logger = getFwoLogger()
         # calculate rule diffs
         changedRuleUids = {}
@@ -710,26 +710,26 @@ class FwConfigImportRule(FwConfigImportBase):
         """
         return self.ImportDetails.call(mutation, queryVariables=query_variables)
 
-    def insertRulesEnforcedOnGateway(self, ruleIds, devId):
-        rulesEnforcedOnGateway = []
-        for ruleId in ruleIds:
-            rulesEnforcedOnGateway.append({
-                "rule_id": ruleId,
-                "dev_id": devId,
-                "created": self.ImportDetails.ImportId
-            })
+    # def insertRulesEnforcedOnGateway(self, ruleIds, devId):
+    #     rulesEnforcedOnGateway = []
+    #     for ruleId in ruleIds:
+    #         rulesEnforcedOnGateway.append({
+    #             "rule_id": ruleId,
+    #             "dev_id": devId,
+    #             "created": self.ImportDetails.ImportId
+    #         })
 
-        query_variables = {
-            "ruleEnforcedOnGateway": rulesEnforcedOnGateway
-        }
-        mutation = """
-            mutation importInsertRulesEnforcedOnGateway($rulesEnforcedOnGateway: [rule_enforced_on_gateway_insert_input!]!) {
-                insert_rule_enforced_on_gateway(objects: $rulesEnforcedOnGateway) {
-                    affected_rows
-                }
-            }"""
+    #     query_variables = {
+    #         "ruleEnforcedOnGateway": rulesEnforcedOnGateway
+    #     }
+    #     mutation = """
+    #         mutation importInsertRulesEnforcedOnGateway($rulesEnforcedOnGateway: [rule_enforced_on_gateway_insert_input!]!) {
+    #             insert_rule_enforced_on_gateway(objects: $rulesEnforcedOnGateway) {
+    #                 affected_rows
+    #             }
+    #         }"""
         
-        return self.ImportDetails.call(mutation, queryVariables=query_variables)
+    #     return self.ImportDetails.call(mutation, queryVariables=query_variables)
 
 
     def importInsertRulebaseOnGateway(self, rulebaseId, devId, orderNo=0):
@@ -785,7 +785,7 @@ class FwConfigImportRule(FwConfigImportBase):
                 access_rule=True,
                 nat_rule=False,
                 is_global=False,
-                # rulebase_id=importDetails.lookupRulebaseId(rulebaseUid),
+                rulebase_id=importDetails.lookupRulebaseId(rulebaseUid),
                 rule_create=importDetails.ImportId,
                 rule_last_seen=importDetails.ImportId,
                 rule_num_numeric=1,
@@ -795,3 +795,5 @@ class FwConfigImportRule(FwConfigImportBase):
             ).dict()
             prepared_rules.append(rule_for_import)
         return { "data": prepared_rules }
+    
+

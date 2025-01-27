@@ -64,7 +64,7 @@ namespace FWO.Report
             {
                 foreach(var dev in mgmt.Devices)
                 {
-                    foreach (var rulebase in dev.OrderedRulebases) 
+                    foreach (var rulebase in dev.Rulebases) 
                     {
                         if(rulebase.Rulebase.RuleMetadata[0].Rules != null && rulebase.Rulebase.RuleMetadata[0].Rules.Length > 0)
                         {

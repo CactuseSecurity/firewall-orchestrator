@@ -4604,18 +4604,6 @@
                   }
                 },
                 {
-                  "name": "rulebase_on_gateways",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "dev_id",
-                      "table": {
-                        "name": "rulebase_on_gateway",
-                        "schema": "public"
-                      }
-                    }
-                  }
-                },
-                {
                   "name": "rules_with_owner",
                   "using": {
                     "manual_configuration": {
@@ -16174,18 +16162,6 @@
                   }
                 },
                 {
-                  "name": "rulebase_on_gateways",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "rulebase_id",
-                      "table": {
-                        "name": "rulebase_on_gateway",
-                        "schema": "public"
-                      }
-                    }
-                  }
-                },
-                {
                   "name": "rules",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -16292,64 +16268,6 @@
                   "using": {
                     "foreign_key_constraint_on": "to_rulebase_id"
                   }
-                }
-              ]
-            },
-            {
-              "table": {
-                "name": "rulebase_on_gateway",
-                "schema": "public"
-              },
-              "object_relationships": [
-                {
-                  "name": "device",
-                  "using": {
-                    "foreign_key_constraint_on": "dev_id"
-                  }
-                },
-                {
-                  "name": "rulebase",
-                  "using": {
-                    "foreign_key_constraint_on": "rulebase_id"
-                  }
-                }
-              ],
-              "insert_permissions": [
-                {
-                  "role": "importer",
-                  "permission": {
-                    "check": {},
-                    "columns": [
-                      "dev_id",
-                      "order_no",
-                      "rulebase_id"
-                    ]
-                  },
-                  "comment": ""
-                }
-              ],
-              "select_permissions": [
-                {
-                  "role": "importer",
-                  "permission": {
-                    "columns": [
-                      "dev_id",
-                      "order_no",
-                      "rulebase_id"
-                    ],
-                    "filter": {},
-                    "allow_aggregations": true
-                  },
-                  "comment": ""
-                }
-              ],
-              "delete_permissions": [
-                {
-                  "role": "importer",
-                  "permission": {
-                    "filter": {}
-                  },
-                  "comment": ""
                 }
               ]
             },
@@ -17945,6 +17863,114 @@
                     ],
                     "filter": {}
                   }
+                }
+              ]
+            },
+            {
+              "table": {
+                "name": "stm_link_type",
+                "schema": "public"
+              },
+              "select_permissions": [
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "name",
+                      "id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "name",
+                      "id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "importer",
+                  "permission": {
+                    "columns": [
+                      "name",
+                      "id"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "name",
+                      "id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "name",
+                      "id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [
+                      "name",
+                      "id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reporter",
+                  "permission": {
+                    "columns": [
+                      "name",
+                      "id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reporter-viewall",
+                  "permission": {
+                    "columns": [
+                      "name",
+                      "id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reviewer",
+                  "permission": {
+                    "columns": [
+                      "name",
+                      "id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
                 }
               ]
             },

@@ -2,20 +2,23 @@ from typing import List
 import json
 import traceback
 
+import fwo_const
 from fwo_log import getFwoLogger
 from fwoBaseImport import ImportState
 from fwo_api_oo import FwoApi
-from roles.importer.files.importer.models.rulebase import Rulebase
-from models.gateway import Gateway
 from models.fwconfig_normalized import FwConfigNormalized
-from models.rulebase_link import RulebaseLinkUidBased
-from model_controllers.rulebase_link_controller import RulebaseLinkUidBasedController
 from model_controllers.fwconfig_normalized_controller import FwConfigNormalizedController
 from model_controllers.fwconfig_import_object import FwConfigImportObject
 from model_controllers.fwconfig_import_rule import FwConfigImportRule
 from model_controllers.fwconfig_import_object import FwConfigImportObject
 from model_controllers.fwconfig_import_rule import FwConfigImportRule
-import fwo_const
+
+
+# from models.gateway import Gateway
+# from models.rulebase_link import RulebaseLinkUidBased
+# from model_controllers.rulebase_link_uid_based_controller import RulebaseLinkUidBasedController
+# from model_controllers.rulebase_link_controller import RulebaseLinkController
+from model_controllers.fwconfig_import_gateway import FwConfigImportGateway
 
 
 """
@@ -23,42 +26,37 @@ Class hierachy:
     FwConfigImport(FwConfigImportObject, FwconfigImportRule)
     FwconfigImportObject(FwConfigImportBase)
     FwConfigImportRule(FwConfigImportBase)
+    FwConfigImportGateway(FwConfigImportBase)
     FwConfigImportBase(FwConfigNormalized)
 """
 
 # this class is used for importing a config into the FWO API
-class FwConfigImport(FwConfigImportObject, FwConfigImportRule, FwoApi):
+class FwConfigImport(FwConfigImportObject, FwConfigImportRule, FwConfigImportGateway, FwoApi):
     ImportDetails: ImportState
-    # FwoApiUrl: str
-    # FwoJwt: str
     NormalizedConfig: FwConfigNormalized
     
     def __init__(self, importState: ImportState, config: FwConfigNormalized):
-        # self.FwoApiUrl = importState.FwoConfig.FwoApiUri
-        # self.FwoJwt = importState.Jwt
         self.ImportDetails = importState
         self.NormalizedConfig = config
         
         FwConfigNormalizedController.__init__(self, importState, config)
         FwConfigImportObject.__init__(self, importState, config)
         FwConfigImportRule.__init__(self, importState, config)
+        FwConfigImportGateway.__init__(self, importState, config)
         
     def importConfig(self):
-        self.fillGateways(self.ImportDetails)
         # assuming we always get the full config (only inserts) from API
         previousConfig = self.getPreviousConfig()
+        self.updateDiffs(previousConfig)
         # calculate differences and write them to the database via API
         # self.getRulebaseLinks()
-        self.updateDiffs(previousConfig)
         # TODO: deal with networking later
         return
 
     def updateDiffs(self, previousConfig: FwConfigNormalized):
-        # prevConfigDict = json.loads(previousConfig)
-        # prevConfigAsObjects = FwConfigNormalized(previousConfig)
-
         objectErrorCount, objectChangeCount = self.updateObjectDiffs(previousConfig)
-        ruleErrorCount, ruleChangeCount = self.updateRuleDiffs(previousConfig)
+        ruleErrorCount, ruleChangeCount = self.updateRulebaseDiffs(previousConfig)
+        gwErrorCount, gwChangeCount = self.updateGatewayDiffs(previousConfig)
 
         # update error and change counters
         self.ImportDetails.increaseErrorCounter(objectErrorCount + ruleErrorCount)
@@ -180,6 +178,7 @@ class FwConfigImport(FwConfigImportObject, FwConfigImportRule, FwoApi):
         issues.update(self.checkUserObjectConsistency())
         issues.update(self.checkZoneObjectConsistency())
         issues.update(self.checkRuleConsistency())
+        issues.update(self.checkGatewayConsistency())
         if len(issues)>0:
             logger = getFwoLogger()
             logger.warning(f'config not imported due to the following inconsistencies: {json.dumps(issues, indent=3)}')
@@ -336,6 +335,13 @@ class FwConfigImport(FwConfigImportObject, FwConfigImportRule, FwoApi):
     # e.g. check rule to rule refs
     def checkRuleConsistency(self):
         issues = {}
+        # TODO: implement
+        return issues
+
+    # e.g. check rule to rule refs
+    def checkGatewayConsistency(self):
+        issues = {}
+        # TODO: implement
         return issues
 
     def rollbackCurrentImport(self) -> None:
@@ -462,16 +468,16 @@ class FwConfigImport(FwConfigImportObject, FwConfigImportRule, FwoApi):
         
         return 0
 
-    def fillGateways(self, importState: ImportState):      
-        for dev in importState.MgmDetails.Devices:
-            gw = Gateway(Uid = dev['uid'],
-                         # Uid = f"{dev['name']}_{dev['local_rulebase_name']}",
-                         Name = dev['name'],
-                         Routing=[],    # TODO: routing
-                         Interfaces=[],    # TODO: interfaces
-                         RulebaseLinks=[],    # TODO: rulebase links
-                         EnforcedPolicyUids=[dev['local_rulebase_name']] if dev['local_rulebase_name'] is not None else [],
-                         EnforcedNatPolicyUids=[dev['package_name']] if dev['package_name'] is not None else [],
-                         GlobalPolicyUid=None  # TODO: global policy UID
-                         )
-            self.NormalizedConfig.gateways.append(gw)
+    # def fillGateways(self, importState: ImportState):      
+    #     for dev in importState.MgmDetails.Devices:
+    #         gw = Gateway(Uid = dev['uid'],
+    #                      # Uid = f"{dev['name']}_{dev['local_rulebase_name']}",
+    #                      Name = dev['name'],
+    #                      Routing=[],    # TODO: routing
+    #                      Interfaces=[],    # TODO: interfaces
+    #                      RulebaseLinks=[],    # TODO: rulebase links
+    #                      EnforcedPolicyUids=[dev['local_rulebase_name']] if dev['local_rulebase_name'] is not None else [],
+    #                      EnforcedNatPolicyUids=[dev['package_name']] if dev['package_name'] is not None else [],
+    #                      GlobalPolicyUid=None  # TODO: global policy UID
+    #                      )
+    #         self.NormalizedConfig.gateways.append(gw)

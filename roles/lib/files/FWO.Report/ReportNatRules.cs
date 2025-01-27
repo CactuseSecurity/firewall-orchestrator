@@ -26,7 +26,7 @@ namespace FWO.Report
 
                 foreach (var device in managementReport.Devices)
                 {
-                    foreach (var rb in device.OrderedRulebases)
+                    foreach (var rb in device.Rulebases)
                     {
                         if (rb.Rulebase.RuleMetadata[0].Rules != null && rb.Rulebase.RuleMetadata[0].Rules.Length > 0)
                         {

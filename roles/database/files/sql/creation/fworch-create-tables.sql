@@ -529,6 +529,12 @@ Create table "parent_rule_type"
  primary key ("id")
 );
 
+Create table IF NOT EXISTS "stm_link_type"
+(
+	"id" SERIAL primary key,
+	"name" Varchar NOT NULL
+);
+
 Create table "stm_action"
 (
 	"action_id" SERIAL,
@@ -1149,14 +1155,6 @@ Create table IF NOT EXISTS "rulebase_link"
 	"created" BIGINT,
 	"removed" BIGINT
 );
-
-Create table IF NOT EXISTS "rulebase_on_gateway" 
-(
-	"dev_id" Integer,
-	"rulebase_id" Integer NOT NULL,
-	"order_no" Integer
-);
-
 
 create table owner_ticket
 (

@@ -203,6 +203,7 @@ def get_mgm_details(fwo_api_base_url, jwt, query_variables, debug_level=0):
                     local_rulebase_name
                     global_rulebase_name
                     package_name
+                    do_not_import
                 }
                 subManager: managementByMultiDeviceManagerId {
                 mgm_id

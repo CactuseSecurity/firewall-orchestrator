@@ -115,25 +115,6 @@ Alter table "rulebase" add CONSTRAINT unique_rulebase_mgm_id_name UNIQUE ("mgm_i
 
 -----------------------------------------------
 
-Create table IF NOT EXISTS "rulebase_on_gateway" 
-(
-	"dev_id" Integer,
-	"rulebase_id" Integer NOT NULL,
-	"order_no" Integer
-);
-
-ALTER TABLE "rulebase_on_gateway" DROP CONSTRAINT IF EXISTS "fk_rulebase_on_gateway_dev_id" CASCADE;
-Alter table "rulebase_on_gateway" add CONSTRAINT fk_rulebase_on_gateway_dev_id foreign key ("dev_id") references "device" ("dev_id") on update restrict on delete cascade;
-
-ALTER TABLE "rulebase_on_gateway" DROP CONSTRAINT IF EXISTS "fk_rulebase_on_gateway_rulebase_id" CASCADE;
-Alter TABLE "rulebase_on_gateway" add CONSTRAINT fk_rulebase_on_gateway_rulebase_id foreign key ("rulebase_id") references "rulebase" ("id") on update restrict on delete cascade;
-
--- ALTER TABLE "rulebase_on_gateway" DROP CONSTRAINT IF EXISTS "fk_rulebase_on_gateway_layer_guard_rule" CASCADE;
--- Alter TABLE "rulebase_on_gateway" add CONSTRAINT fk_rulebase_on_gateway_layer_guard_rule foreign key ("layer_guard_rule") references "rule" ("rule_id") on update restrict on delete cascade;
-
-ALTER TABLE "rulebase_on_gateway" DROP CONSTRAINT IF EXISTS "unique_rulebase_on_gateway_dev_id_order_no" CASCADE;
-Alter table "rulebase_on_gateway" add CONSTRAINT unique_rulebase_on_gateway_dev_id_order_no UNIQUE ("dev_id", "order_no");
-
 ALTER TABLE "management" ADD COLUMN IF NOT EXISTS "is_super_manager" BOOLEAN DEFAULT FALSE;
 ALTER TABLE "rule" ADD COLUMN IF NOT EXISTS "is_global" BOOLEAN DEFAULT FALSE NOT NULL;
 ALTER TABLE "rule" ADD COLUMN IF NOT EXISTS "rulebase_id" INTEGER;
@@ -230,6 +211,12 @@ Alter Table "rule_metadata" ADD Constraint "rule_metadata_alt_key" UNIQUE ("rule
 -- bulid rule-rulebase graph
 -- rules may spawn rulebase children with new link table rulebase_link
 
+Create table IF NOT EXISTS "stm_link_type"
+(
+	"id" SERIAL primary key,
+	"name" Varchar NOT NULL
+);
+
 Create table IF NOT EXISTS "rulebase_link"
 (
 	"id" SERIAL primary key,
@@ -244,6 +231,8 @@ Create table IF NOT EXISTS "rulebase_link"
 
 Alter table "rulebase_link" drop constraint IF EXISTS "fk_rulebase_link_to_rulebase_id";
 Alter table "rulebase_link" drop constraint IF EXISTS "fk_rulebase_link_from_rule_id";
+Alter table "rulebase_link" drop constraint IF EXISTS "fk_rulebase_link_link_type";
+Alter table "rulebase_link" add constraint "fk_rulebase_link_link_type" foreign key ("link_type") references "stm_link_type" ("id") on update restrict on delete cascade;
 Alter table "rulebase_link" add constraint "fk_rulebase_link_to_rulebase_id" foreign key ("to_rulebase_id") references "rulebase" ("id") on update restrict on delete cascade;
 Alter table "rulebase_link" add constraint "fk_rulebase_link_from_rule_id" foreign key ("from_rule_id") references "rule" ("rule_id") on update restrict on delete cascade;
 
@@ -255,6 +244,12 @@ ALTER TABLE "rulebase_link"
     DROP CONSTRAINT IF EXISTS "fk_rulebase_link_removed_import_control_control_id" CASCADE;
 Alter table "rulebase_link" add CONSTRAINT fk_rulebase_link_removed_import_control_control_id 
 	foreign key ("removed") references "import_control" ("control_id") on update restrict on delete cascade;
+
+insert into stm_link_type (id, name) VALUES (0, 'initial') ON CONFLICT DO NOTHING;
+insert into stm_link_type (id, name) VALUES (1, 'section') ON CONFLICT DO NOTHING;
+insert into stm_link_type (id, name) VALUES (2, 'ordered') ON CONFLICT DO NOTHING;
+insert into stm_link_type (id, name) VALUES (3, 'inline') ON CONFLICT DO NOTHING;
+insert into stm_link_type (id, name) VALUES (4, 'global') ON CONFLICT DO NOTHING;
 
 -- TODO delete all rule.parent_rule_id and rule.parent_rule_type, always = None so far
 
@@ -281,6 +276,7 @@ AS $function$
     END;
 $function$;
 
+-- needs to be rewritten to rulebase_link
 CREATE OR REPLACE FUNCTION addRuleEnforcedOnGatewayEntries() RETURNS VOID
     LANGUAGE plpgsql
     VOLATILE
@@ -592,7 +588,7 @@ REPORTING:
     - RulesReportRazor line 23: deal with multiple ordered rulebases (later)
         style="font-size:small" TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="Rule" Items="device.Rules" ShowSearchBar="false"
     - ObjectGroup.Razor line 431:
-        Rule? ruleUpdated = managementsUpdate.ManagementData.SelectMany(m => m.Devices).SelectMany(d => d.OrderedRulebases[0].Rulebase.Rules ?? new Rule[0]).FirstOrDefault();
+        Rule? ruleUpdated = managementsUpdate.ManagementData.SelectMany(m => m.Devices).SelectMany(d => d.Rulebases[0].Rulebase.Rules ?? new Rule[0]).FirstOrDefault();
     - Statistics Report #rules per device are 0 (device report is null)
     - recertification: without rule.dev_id we have lost all rule information in report!!!
       - certification information should be aimed at a rule on a gateway

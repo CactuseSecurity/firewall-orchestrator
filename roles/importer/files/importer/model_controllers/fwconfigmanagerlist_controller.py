@@ -112,24 +112,7 @@ class FwConfigManagerListController(FwConfigManagerList):
     @classmethod
     def ConvertFromLegacyNormalizedConfig(cls, legacyConfig: dict, mgmDetails: ManagementDetails) -> 'FwConfigManagerList':
         if 'ConfigFormat' in legacyConfig and legacyConfig['ConfigFormat'] == 'NORMALIZED':
-            # mgr = FwConfigManager(ManagerUid=calcManagerUidHash(mgmDetails.FullMgmDetails),
-            #                       IsGlobal=False,
-            #                       DependantManagerUids = [],
-            #                       Configs=[])
             legacyConfig['ManagerSet'][0]['Configs']= [ FwConfigNormalized.fromJson(legacyConfig) ]
-            # policies = {}
-            # rulebase_names = []
-
-            # # now we need to convert rulebases, routing and interfaces to match the device structure
-            # for rule in legacyConfig['rules']:
-            #     rb_name = rule['rulebase_name']
-            #     policyUid = cls.getPolicyUidFromRulebaseName(rb_name)
-            #     if rb_name not in rulebase_names:   # add new policy
-            #         rulebase_names.append(rb_name)
-            #         policy = Policy(Uid=rb_name, Name=rb_name, EnforcingGatewayUids=[cls.getDevUidFromRulebaseName()], Rules=[])
-            #         policies.update( { policyUid: policy } )
-            #     policies[policyUid].Rules.append(rule)
-            # mgr.Configs.append(convertedConfig)
             return FwConfigManagerList.FromJson(legacyConfig)
         else:
             logger = getFwoLogger()

@@ -103,7 +103,7 @@ namespace FWO.Report.Filter
                                 {{
                                     name: dev_name
                                     id: dev_id
-                                    rulebase_on_gateways {{
+                                    rulebase_link {{
                                         rulebase {{
                                             rules_aggregate(where: {{ {query.RuleWhereStatement} }}) {{ aggregate {{ count }} }}
                                         }}
@@ -132,7 +132,7 @@ namespace FWO.Report.Filter
                                     id: dev_id
                                     name: dev_name
 
-                                    rulebase_on_gateways(order_by: {{order_no: asc}}) {{
+                                    rulebase_links(order_by: {{order_no: asc}}) {{
                                             rulebase_id
                                             order_no
                                             rulebase {{
@@ -532,7 +532,7 @@ namespace FWO.Report.Filter
                 // currently overruling tenant filter!!
                 // query.OpenRulesTable = $"rules: get_rules_for_owner(args: {{ownerid: {modellingFilter.SelectedOwner.Id} }}, ";
                 query.OpenRulesTable =  $@"
-                                        rulebase_on_gateways(order_by: {{order_no: asc}}) {{
+                                        rulebase_links(order_by: {{order_no: asc}}) {{
                                             rulebase_id
                                             order_no
                                             rulebase {{

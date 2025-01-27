@@ -59,19 +59,16 @@ class FwConfigNormalized(FwConfig):
         arbitrary_types_allowed = True
 
 
-    def getRulebase(self, policyUid: str) -> Rulebase:
+    def getRulebase(self, rulebaseUid: str) -> Rulebase:
         """
         get the policy with a specific uid  
         :param policyUid: The UID of the relevant policy.
         :return: Returns the policy with a specific uid, otherwise returns empty policy.
         """
-        for pol in self.rulebases:
-            if pol.uid == policyUid:
-                return pol
-        return Rulebase(uid='', name='')
-
-        # currentPolicy = [pol for pol in self.NormalizedConfig.rulebases if pol.Uid == policyUid][0]
-        # previousPolicy = [pol for pol in prevConfig.rulebases if pol.Uid == policyUid][0]
+        for rb in self.rulebases:
+            if rb.uid == rulebaseUid:
+                return rb
+        return Rulebase(uid='', name='', mgm_uid='')
 
 
     def getOrderedRuleList(self, policyUid: str) -> List[dict]:

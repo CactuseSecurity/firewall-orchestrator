@@ -41,6 +41,7 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
 
     logger = getFwoLogger()
     config_changed_since_last_import = True
+    time_get_config = 0
 
     importState = ImportState.initializeImport(mgmId, debugLevel=debug_level_in, 
                                                force=force, version=version, 
@@ -86,7 +87,7 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
                     service_objects=[], 
                     users=[], 
                     zone_objects=[], 
-                    rules=[],
+                    rulebases=[],
                     gateways=[]
             ))
             

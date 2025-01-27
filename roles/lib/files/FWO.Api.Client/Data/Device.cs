@@ -40,8 +40,8 @@ namespace FWO.Api.Data
         [JsonProperty("comment"), JsonPropertyName("comment")]
         public string? Comment { get; set; }
 
-        // [JsonProperty("rulebase_on_gateways"), JsonPropertyName("rulebase_on_gateways")]
-        // public RulebaseOnGateway[] OrderedRulebases { get; set; } = [];
+        // [JsonProperty("rulebase_links"), JsonPropertyName("rulebase_links")]
+        // public RulebasePerGateway[] Rulebases { get; set; } = [];
 
         public bool Selected { get; set; } = false;
         public bool Relevant { get; set; }

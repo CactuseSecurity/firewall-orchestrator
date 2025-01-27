@@ -125,7 +125,9 @@ class ImportState(FwoApi):
     IsFullImport: bool
     Actions: Dict[str, Action]
     Tracks: Dict[str, Track]
+    LinkTypes: Dict[str, int]
     RulebaseMap: Dict[str, int]
+    RuleMap: Dict[str, int]
 
 
     def __init__(self, debugLevel, configChangedSinceLastImport, fwoConfig, mgmDetails, jwt, force, version=8, isFullImport=False, isClearingImport=False):
@@ -255,7 +257,9 @@ class ImportState(FwoApi):
         self.SetTrackMap()
         self.SetActionMap()
         self.SetRulebaseMap()
-        
+        self.SetRuleMap()
+        self.SetGatewayMap()
+        self.SetLinkTypeMap()
 
     def SetActionMap(self):
         query = "query getActionMap { stm_action { action_name action_id allowed } }"
@@ -285,10 +289,24 @@ class ImportState(FwoApi):
             map.update({track['track_name']: track['track_id']})
         self.Tracks = map
 
+    def SetLinkTypeMap(self):
+        query = "query getLinkType { stm_link_type { id name } }"
+        try:
+            result = self.call(query=query, queryVariables={})
+        except:
+            logger = getFwoLogger()
+            logger.error(f'Error while getting stm_link_type')
+            return {}
+        
+        map = {}
+        for track in result['data']['stm_link_type']:
+            map.update({track['name']: track['id']})
+        self.LinkTypes = map
+
     # limited to the current mgm_id
     # creats a dict with key = rulebase.name and value = rulebase.id
     def SetRulebaseMap(self):
-        query = """query getRulebaseMap($mgmId: Int) { rulebase(where:{mgm_id: {_eq: $mgmId}}) { id name uid } }"""
+        query = """query getRulebaseMap($mgmId: Int) { rulebase(where:{mgm_id: {_eq: $mgmId}, removed:{_is_null:true }}) { id name uid } }"""
         try:
             result = self.call(query=query, queryVariables= {"mgmId": self.MgmDetails.Id})
         except:
@@ -299,10 +317,57 @@ class ImportState(FwoApi):
         
         map = {}
         for rulebase in result['data']['rulebase']:
-            map.update({rulebase['name']: rulebase['id']})
-            map.update({rulebase['uid']: rulebase['id']})
+            rbid = rulebase['id']
+            map.update({rulebase['name']: rbid})
+            map.update({rulebase['uid']: rbid})
         self.RulebaseMap = map
 
+    # limited to the current mgm_id
+    # creats a dict with key = rule.uid and value = rule.id 
+    # should be called sparsely, as there might be a lot of rules for a mgmt
+    def SetRuleMap(self):
+        query = """query getRuleMap($mgmId: Int) { rule(where:{mgm_id: {_eq: $mgmId}, removed:{_is_null:true }}) { id: rule_id uid: rule_uid } }"""
+        try:
+            result = self.call(query=query, queryVariables= {"mgmId": self.MgmDetails.Id})
+        except:
+            logger = getFwoLogger()
+            logger.error(f'Error while getting rulebases')
+            self.RuleMap = {}
+            return
+        
+        map = {}
+        for rule in result['data']['rule']:
+            map.update({rule['uid']: rule['id']})
+        self.RuleMap = map
+
+    # limited to the current mgm_id
+    # creats a dict with key = rulebase.name and value = rulebase.id
+    def SetGatewayMap(self):
+        query = """
+            query getGatewayMap($mgmId: Int) {
+                device(where: {mgm_id: {_eq: $mgmId}}) {
+                    id:dev_id
+                    name:dev_name
+                    uid: dev_uid
+                }
+            }
+    """
+        try:
+            result = self.call(query=query, queryVariables= {"mgmId": self.MgmDetails.Id})
+        except:
+            logger = getFwoLogger()
+            logger.error(f'Error while getting gateways')
+            self.GatewayMap = {}
+            return
+        
+        map = {}
+        for gw in result['data']['device']:
+            map.update({gw['name']: gw['id']})
+            map.update({gw['uid']: gw['id']})
+        self.GatewayMap = map
+    
+    def lookupRule(self, ruleUid):
+        return self.RuleMap.get(ruleUid, None)
 
     def lookupAction(self, actionStr):
         return self.Actions.get(actionStr.lower(), None)
@@ -310,8 +375,11 @@ class ImportState(FwoApi):
     def lookupTrack(self, trackStr):
         return self.Tracks.get(trackStr.lower(), None)
 
-    def lookupRulebaseId(self, rulebase):
-        if rulebase in self.RulebaseMap:
-            return self.RulebaseMap[rulebase]
-        else:
-            return None
+    def lookupRulebaseId(self, rulebaseUid):
+        return self.RulebaseMap.get(rulebaseUid, None)
+
+    def lookupLinkType(self, linkUid):
+        return self.LinkTypes.get(linkUid, None)
+
+    def lookupGatewayId(self, gwUid):
+        return self.GatewayMap.get(gwUid, None)

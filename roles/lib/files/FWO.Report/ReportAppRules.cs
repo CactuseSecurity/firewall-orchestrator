@@ -50,14 +50,14 @@ namespace FWO.Report
                 foreach (var dev in mgt.Devices)
                 {
                     DeviceReport relevantDevice = new() { Name = dev.Name, Id = dev.Id };
-                    foreach (var rb in dev.OrderedRulebases)
+                    foreach (var rb in dev.Rulebases)
                     {
                         if (rb.Rulebase.RuleMetadata[0].Rules != null)
                         {
                             // relevantDevice.Rules = [];
                             foreach (var rule in rb.Rulebase.RuleMetadata[0].Rules)
                             {
-                                RulebaseOnGateway relevantRulebase = new();
+                                RulebaseLink relevantRulebase = new();
                                 if (modellingFilter.ShowDropRules || !rule.IsDropRule())
                                 {
                                     List<NetworkLocation> relevantFroms = [];
@@ -82,7 +82,7 @@ namespace FWO.Report
                                         rule.ShowDisregarded = modellingFilter.ShowFullRules;
                                         relevantRulebase.Rulebase.RuleMetadata[0].Rules = [.. relevantRulebase.Rulebase.RuleMetadata[0].Rules, rule];
                                         relevantMgt.ReportedRuleIds.Add(rule.Id);
-                                        relevantDevice.OrderedRulebases = [.. relevantDevice.OrderedRulebases, relevantRulebase];
+                                        relevantDevice.Rulebases = [.. relevantDevice.Rulebases, relevantRulebase];
                                     }
                                 }
                             }
@@ -181,7 +181,7 @@ namespace FWO.Report
                 //     foreach(var rule in dev.Rules)
                 //     {
                 //         foreach(var from in rule.Froms)
-                foreach (var rb in dev.OrderedRulebases)
+                foreach (var rb in dev.Rulebases)
                 {
                     if (rb.Rulebase.RuleMetadata[0].Rules != null)
                     {

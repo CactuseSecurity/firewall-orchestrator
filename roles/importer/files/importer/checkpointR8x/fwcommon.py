@@ -44,7 +44,7 @@ def getConfig(nativeConfig:json, importState:ImportState, managerSet:FwConfigMan
 
                 for rulebase in package:
                     if rulebase not in policies:
-                        normalizedConfig.rules.append(getRulebase(rulebase))
+                        normalizedConfig.rulebases.append(getRulebase(rulebase))
                     normalizedConfig.ManagerSet[mgrSet].Configs.gateways[device].append(rulebase.name )
 
 
@@ -222,7 +222,7 @@ def get_config(nativeConfig: json, importState: ImportState) -> tuple[int, FwCon
                             zone_objects=normalizedConfig['zone_objects'],
                             # decide between old (rules) and new (policies) format
                             # rules=normalizedConfig['rules'] if len(normalizedConfig['rules'])>0 else normalizedConfig['policies'],    
-                            rules=normalizedConfig['policies'],
+                            rulbases=normalizedConfig['policies'],
                             gateways=normalizedConfig['gateways']
                             )
     manager = FwConfigManager(ManagerUid=calcManagerUidHash(importState.FullMgmDetails),

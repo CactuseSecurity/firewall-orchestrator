@@ -19,6 +19,9 @@ class FwConfigImportGateway(FwConfigImportBase):
 
     def updateGatewayDiffs(self, prevConfig: FwConfigNormalized):
         logger = getFwoLogger()
+        errors = 0
+        changes = 0
+        totalChanges = 0
         # changedRuleUids = {}
         # deletedRuleUids = {}
         # newRuleUids = {}
@@ -51,9 +54,10 @@ class FwConfigImportGateway(FwConfigImportBase):
                                          to_rulebase_id=toRulebaseId,
                                          link_type=linkTypeId,
                                          created=self.ImportDetails.ImportId)
-                    rbLink.importInsertRulebaseLink(self.ImportDetails) 
+                    (errors, changes) = rbLink.importInsertRulebaseLink(self.ImportDetails)
+                    totalChanges += changes
 
-        return (0,0)    # errors
+        return errors, totalChanges
 
     # this should not be confused with the rulebase_link model - it refers to the check point "install on" feature
     def insertRulesEnforcedOnGateway(self, ruleIds, devId):

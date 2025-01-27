@@ -6,13 +6,11 @@
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
-<PopUp Title="@(userConfig.GetText("search_interface"))" Size="PopupSize.FullScreenWidth" Show="@Display" OnClose="Close">
+<PopUp Title="@(userConfig.GetText("search_interface"))" Size="PopupSize.FullScreen" Show="@Display" OnClose="Close">
     <Body>
         @if (Display && InitComplete)
         {
-            <div class="min-height me-5">
-                <ConnectionTable ShowPageSizeInput="true" ShowSelectionColumn="true" SelectionType="SelectionType.Multiple" Connections="@selectableInterfaces" SelectInterfaceView="true" ShowAppName="true" @bind-SelectedConns="SelectedInterfaces" />
-            </div>
+            <ConnectionTable PageSizeCallback="UpdatePageSize" ShowPageSizeInput="true" ShowSelectionColumn="true" SelectionType="SelectionType.Multiple" Connections="@selectableInterfaces" SelectInterfaceView="true" ShowAppName="true" @bind-SelectedConns="SelectedInterfaces" />
         }
     </Body>
     <Footer>
@@ -62,6 +60,12 @@
     private bool FirstTry = true;
     private bool InitComplete = false;
 
+    private int PageSize { get; set; }
+
+    private void UpdatePageSize(int pageSize)
+    {
+        PageSize = pageSize;
+    }
 
     protected override async Task OnParametersSetAsync()
     {
@@ -117,9 +121,9 @@
                         connectionId = @interface.Id
                     };
 
-                    await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.addSelectedConnection, Variables);    
+                    await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.addSelectedConnection, Variables);
                     PreselectedInterfaces.Add(@interface ?? throw new Exception("No Interface selected."));
-                }                                          
+                }
 
                 RefreshSelectionList();
                 await PreselectedInterfacesChanged.InvokeAsync(PreselectedInterfaces);

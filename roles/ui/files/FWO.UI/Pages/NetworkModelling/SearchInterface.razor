@@ -6,11 +6,11 @@
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
-<PopUp PageSize="PageSize" Title="@(userConfig.GetText("search_interface"))" Size="PopupSize.FullScreenWidth" Show="@Display" OnClose="Close">
+<PopUp Title="@(userConfig.GetText("search_interface"))" Size="PopupSize.FullScreenWidth" Show="@Display" OnClose="Close">
     <Body>
         @if (Display && InitComplete)
         {
-            <ConnectionTable  PageSizeCallback="UpdatePageSize" ShowPageSizeInput="true" ShowSelectionColumn="true" SelectionType="SelectionType.Multiple" Connections="@selectableInterfaces" SelectInterfaceView="true" ShowAppName="true" @bind-SelectedConns="SelectedInterfaces" />
+            <ConnectionTable PageSizeCallback="UpdatePageSize" ShowPageSizeInput="true" ShowSelectionColumn="true" SelectionType="SelectionType.Multiple" Connections="@selectableInterfaces" SelectInterfaceView="true" ShowAppName="true" @bind-SelectedConns="SelectedInterfaces" />
         }
     </Body>
     <Footer>

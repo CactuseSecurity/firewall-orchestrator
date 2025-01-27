@@ -48,9 +48,6 @@
     [Parameter]
     public Action OnClose { get; set; } = new Action(() => { });
 
-    [Parameter]
-    public int PageSize { get; set; }
-
     private string SizeClass()
     {
         switch (Size)

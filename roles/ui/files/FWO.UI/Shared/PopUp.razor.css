@@ -6,34 +6,35 @@
 }
 
 .mod-xl {
-    --bs-modal-width: 1000px;
-    height: 100vh;
-    padding: 15px;
-    align-items: normal;
-}
-
-.mod-lg {
-    --bs-modal-width: 800px;
-    height: 90vh;
-    padding: 15px;
-    align-items: normal;
-    margin-top: 2em;
-}
-
-.mod-md {
-    --bs-modal-width: 650px;
+    --bs-modal-width: 70vw;
     height: 80vh;
     padding: 15px;
     align-items: normal;
-    margin-top: 4em;
+    margin-top: 6em;
 }
 
-.mod-sm {
-    --bs-modal-width: 500px;
-    height: 55vh;
+.mod-lg {
+    --bs-modal-width: 60vw;
+    height: 70vh;
     padding: 15px;
     align-items: normal;
     margin-top: 8em;
+}
+
+.mod-md {
+    --bs-modal-width: 50vw;
+    height: 60vh;
+    padding: 15px;
+    align-items: normal;
+    margin-top: 10em;
+}
+
+.mod-sm {
+    --bs-modal-width: 40vw;
+    height: 50vh;
+    padding: 15px;
+    align-items: normal;
+    margin-top: 12em;
 }
 
 .mod-popup {

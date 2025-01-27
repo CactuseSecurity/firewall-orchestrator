@@ -27,46 +27,6 @@
     margin-top: 12em;
 }
 
-.custom-modal-10000w {
-    --bs-modal-width: 1000px;
-}
-
-.custom-modal-800w {
-    --bs-modal-width: 800px;
-}
-
-.custom-modal-600w {
-    --bs-modal-width: 600px;
-}
-
-.custom-modal-400w {
-    --bs-modal-width: 400px;
-}
-
-.custom-modal-200w {
-    --bs-modal-width: 200px;
-}
-
-.custom-modal-10000h {
-    height: 1000px;
-}
-
-.custom-modal-800h {
-    height: 800px;
-}
-
-.custom-modal-600h {
-    height: 600px;
-}
-
-.custom-modal-400h {
-    height: 400px;
-}
-
-.custom-modal-200h {
-    height: 200px;
-}
-
 .modal-dialog-padding {
     padding: 15px;
     align-items: normal;

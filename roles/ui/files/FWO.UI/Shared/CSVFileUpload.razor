@@ -144,7 +144,7 @@
             return;
         }
 
-        List<Exception>? importErrors = await fileUploadService.ImportUploadedData(FileUploadCase.ImportAppServerFromCSV);
+        List<Exception>? importErrors = await fileUploadService.ImportUploadedData(FileUploadCase.ImportAppServerFromCSV, InputFileChangeEventArgs.File.Name ?? "noName");
 
         if (importErrors.Count > 0)
         {

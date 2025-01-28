@@ -14,7 +14,7 @@ namespace FWO.Services
         public async Task<ModellingAppZone?> UpsertAppZone()
         {
             NamingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(userConfig.ModNamingConvention) ?? new();
-            List<ModellingAppServer> tempAppServers = await apiConnection.SendQueryAsync<List<ModellingAppServer>>(ModellingQueries.getAppServers, new { appId = owner.Id });
+            List<ModellingAppServer> tempAppServers = await apiConnection.SendQueryAsync<List<ModellingAppServer>>(ModellingQueries.getAppServersForOwner, new { appId = owner.Id });
             List<ModellingAppServerWrapper> allAppServers = [];
 
             foreach (ModellingAppServer appServer in tempAppServers.Where(a => !a.IsDeleted))

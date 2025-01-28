@@ -17,6 +17,7 @@ namespace FWO.Ui.Services
         /// Uploaded data as bytes.
         /// </summary>
         private byte[] UploadedData { get; set; } = [];
+
         /// <summary>
         /// Errors that occured while trying to write file data in database.
         /// </summary>
@@ -26,6 +27,7 @@ namespace FWO.Ui.Services
         private ApiConnection ApiConnection { get; set; }
         private readonly ModellingNamingConvention NamingConvention = new();
         private readonly List<AppServerType> AppServerTypes = [];
+        private string ImportSource = "";
 
         // public FileUploadService(IServiceProvider services)
         // {
@@ -48,12 +50,13 @@ namespace FWO.Ui.Services
             UploadedData = ms.ToArray();
         }
 
-        public async Task<List<Exception>> ImportUploadedData(FileUploadCase fileUploadCase)
+        public async Task<List<Exception>> ImportUploadedData(FileUploadCase fileUploadCase, string filename = "")
         {
             ImportErrors.Clear();
 
             if (fileUploadCase == FileUploadCase.ImportAppServerFromCSV)
             {
+                ImportSource = GlobalConst.kCSV_ + filename;
                 await ImportAppServersFromCSV();
             }
 
@@ -74,17 +77,17 @@ namespace FWO.Ui.Services
                 if (IsHeader(entries))
                     continue;
 
-                CSVAppServerImportModel appServer = new(entries[3])
+                CSVAppServerImportModel importAppServer = new(entries[3])
                 {
                     AppID = entries[1],
                     AppServerTyp = entries[2]
                 };
-                appServer.AppServerName = UserConfig.DnsLookup ? 
-                    await AppServerHelper.ConstructAppServerNameFromDns(appServer.ToModellingAppServer(), NamingConvention, UserConfig.OverwriteExistingNames) :
+                importAppServer.AppServerName = UserConfig.DnsLookup ? 
+                    await AppServerHelper.ConstructAppServerNameFromDns(importAppServer.ToModellingAppServer(), NamingConvention, UserConfig.OverwriteExistingNames) :
                     entries[0];
                 
                 // write to db
-                (bool importSuccess, Exception? error) = await AddAppServerToDb(appServer);
+                (bool importSuccess, Exception? error) = await AddAppServerToDb(importAppServer);
 
                 if (!importSuccess && error is not null)
                     ImportErrors.Add(error);
@@ -118,34 +121,41 @@ namespace FWO.Ui.Services
                    && columns[3].Trim('"') == "App-IP-Address-Range";
         }
 
-        private async Task<(bool, Exception?)> AddAppServerToDb(CSVAppServerImportModel appServer)
+        private async Task<(bool, Exception?)> AddAppServerToDb(CSVAppServerImportModel importAppServer)
         {
             try
             {
-                AppServerType? appServerType = AppServerTypes.FirstOrDefault(_ => _.Name == appServer.AppServerTyp);
+                AppServerType? appServerType = AppServerTypes.FirstOrDefault(_ => _.Name == importAppServer.AppServerTyp);
                 if (appServerType is null)
                 {
-                    return new(false, new Exception($"{UserConfig.GetText("owner_appservertype_notfound")} At: {appServer.AppServerName}/{appServer.AppID}"));
+                    return new(false, new Exception($"{UserConfig.GetText("owner_appservertype_notfound")} At: {importAppServer.AppServerName}/{importAppServer.AppID}"));
                 }
 
-                List<OwnerIdModel> ownerIds = await ApiConnection.SendQueryAsync<List<OwnerIdModel>>(OwnerQueries.getOwnerId, new { externalAppId = appServer.AppID });
+                List<OwnerIdModel> ownerIds = await ApiConnection.SendQueryAsync<List<OwnerIdModel>>(OwnerQueries.getOwnerId, new { externalAppId = importAppServer.AppID });
                 if (ownerIds is null || ownerIds.Count == 0)
                 {
-                    return new(false, new Exception($"{UserConfig.GetText("owner_appserver_notfound")} At: {appServer.AppServerName}/{appServer.AppID}"));
+                    return new(false, new Exception($"{UserConfig.GetText("owner_appserver_notfound")} At: {importAppServer.AppServerName}/{importAppServer.AppID}"));
                 }
 
-                var Variables = new
+                ModellingAppServer modAppServer = new(importAppServer.ToModellingAppServer()){ ImportSource = ImportSource, AppId = ownerIds.First().Id};
+                if(await AppServerHelper.CheckAppServerCanBeWritten(ApiConnection, modAppServer))
                 {
-                    name = appServer.AppServerName,
-                    appId = ownerIds.First().Id,
-                    ip = appServer.AppIPRangeStart,
-                    ipEnd = appServer.AppIPRangeEnd,
-                    importSource = GlobalConst.kManual,
-                    customType = appServerType.Id
-                };
-                ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<NewReturning>(ModellingQueries.newAppServer, Variables)).ReturnIds;
-
-                return (returnIds != null && returnIds.Length > 0, default);
+                    var Variables = new
+                    {
+                        name = importAppServer.AppServerName,
+                        appId = ownerIds.First().Id,
+                        ip = importAppServer.AppIPRangeStart,
+                        ipEnd = importAppServer.AppIPRangeEnd,
+                        importSource = ImportSource,
+                        customType = appServerType.Id
+                    };
+                    ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<NewReturning>(ModellingQueries.newAppServer, Variables)).ReturnIds;
+                    return (returnIds != null && returnIds.Length > 0, default);
+                }
+                else
+                {
+                    return (true, default);
+                }
             }
             catch (Exception exception)
             {

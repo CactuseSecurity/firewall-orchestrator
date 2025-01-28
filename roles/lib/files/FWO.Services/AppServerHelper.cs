@@ -43,6 +43,23 @@ namespace FWO.Services
                 ( char.IsLetter(appServer.Name[0]) ? appServer.Name : namingConvention.AppServerPrefix + appServer.Name );
         }
 
+        public static async Task<bool> CheckAppServerCanBeWritten(ApiConnection apiConnection, ModellingAppServer appServer)
+        {
+            var Variables = new
+            {
+                appId = appServer.AppId,
+                ip = appServer.Ip,
+                ipEnd = appServer.IpEnd
+            };
+            List<ModellingAppServer> ExistingAppServers = await apiConnection.SendQueryAsync<List<ModellingAppServer>>(ModellingQueries.getAppServer, Variables);
+            return ExistingAppServers == null || ExistingAppServers.Count == 0 || Prio(appServer.ImportSource) >= Prio(ExistingAppServers.First().ImportSource);
+        }
+
+        private static int Prio(string importSource)
+        {
+            return (importSource == GlobalConst.kManual || importSource.StartsWith(GlobalConst.kCSV_)) ? 0 : 1;
+        }
+
         public static async Task CheckAppServerNames(ApiConnection apiConnection, GlobalConfig globalConfig)
         {
             try

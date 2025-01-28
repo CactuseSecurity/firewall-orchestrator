@@ -1,6 +1,7 @@
 ﻿using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
+using FWO.Services;
 using FWO.Api.Data;
 using FWO.Config.Api;
 using FWO.Config.Api.Data;
@@ -68,6 +69,7 @@ namespace FWO.Middleware.Server
 
                 ScheduleTimer = new();
                 ScheduleTimer.Elapsed += ImportAppData;
+                ScheduleTimer.Elapsed += CheckAppServerNames;
                 ScheduleTimer.Elapsed += StartImportAppDataTimer;
                 ScheduleTimer.Interval = interval.TotalMilliseconds;
                 ScheduleTimer.AutoReset = false;
@@ -81,6 +83,7 @@ namespace FWO.Middleware.Server
             ImportAppDataTimer.Stop();
             ImportAppDataTimer = new();
             ImportAppDataTimer.Elapsed += ImportAppData;
+            ImportAppDataTimer.Elapsed += CheckAppServerNames;
             ImportAppDataTimer.Interval = globalConfig.ImportAppDataSleepTime * GlobalConst.kHoursToMilliseconds;
             ImportAppDataTimer.AutoReset = true;
             ImportAppDataTimer.Start();
@@ -105,6 +108,21 @@ namespace FWO.Middleware.Server
                     $"userId: \"0\", title: \"{titletext}\", description: \"{exc}\", alertCode: \"{AlertCode.ImportAppData}\"");
                 await AddLogEntry(1, globalConfig.GetText("scheduled_app_import"), globalConfig.GetText("ran_into_exception") + exc.Message, GlobalConst.kImportAppData);
                 await SetAlert(globalConfig.GetText("scheduled_app_import"), titletext, GlobalConst.kImportAppData, AlertCode.ImportAppData);
+            }
+        }
+
+        private async void CheckAppServerNames(object? _, ElapsedEventArgs __)
+        {
+            try
+            {
+                if(globalConfig.DnsLookup)
+                {
+                    await AppServerHelper.CheckAppServerNames(apiConnection, globalConfig);
+                }
+            }
+            catch (Exception exc)
+            {
+                Log.WriteError("Check App Server Names", $"Ran into exception: ", exc);
             }
         }
     }

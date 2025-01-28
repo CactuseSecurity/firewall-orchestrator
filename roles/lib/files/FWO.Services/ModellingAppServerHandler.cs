@@ -32,7 +32,7 @@ namespace FWO.Services
                 {
                    DisplayMessageInUi(null, userConfig.GetText("save_app_server"), userConfig.GetText("U0001"), true);
                 }
-                if (CheckAppServer())
+                if (await CheckAppServer())
                 {
                     bool saveOk = true;
                     apiConnection.SetRole(Roles.Admin);
@@ -64,7 +64,7 @@ namespace FWO.Services
             }
         }
 
-        private bool CheckAppServer()
+        private async Task<bool> CheckAppServer()
         {
             if (ActAppServer.Ip == null || ActAppServer.Ip == "" || ActAppServer.CustomType == null || ActAppServer.CustomType == 0)
             {
@@ -74,6 +74,12 @@ namespace FWO.Services
             if (!CheckIpAdress(ActAppServer.Ip))
             {
                 DisplayMessageInUi(null, userConfig.GetText("edit_app_server"), userConfig.GetText("wrong_ip_address"), true);
+                return false;
+            }
+            
+            if (!await AppServerHelper.CheckAppServerCanBeWritten(apiConnection, ActAppServer))
+            {
+                DisplayMessageInUi(null, userConfig.GetText("edit_app_server"), userConfig.GetText("E9010"), true);
                 return false;
             }
             return true;

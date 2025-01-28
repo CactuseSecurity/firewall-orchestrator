@@ -178,7 +178,7 @@ namespace FWO.Report.Filter
 
         private void SetDeviceVisibility(Tenant tenantView)
         {
-            if ((userConfig.User.Tenant.Id==null || userConfig.User.Tenant.Id==1) && tenantView.Id!=1)
+            if ((userConfig.User.Tenant==null || userConfig.User.Tenant.Id==1) && tenantView.Id!=1)
             {
                 // filtering for tenant simulation only done by a tenant0 user
                 foreach (TenantGateway gw in tenantView.TenantGateways)

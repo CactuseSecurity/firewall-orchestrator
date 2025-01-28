@@ -3,44 +3,39 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace FWO.Services
 {
-    class AppServerComparer(ModellingNamingConvention namingConvention) : IEqualityComparer<ModellingAppServerWrapper>, IEqualityComparer<ModellingAppServer>
+    class AppServerComparer(ModellingNamingConvention namingConvention) : IEqualityComparer<ModellingAppServerWrapper>
     {
         readonly ModellingNamingConvention NamingConvention = namingConvention;
 
-        public bool Equals(ModellingAppServerWrapper? appServerWrapper1, ModellingAppServerWrapper? appServerWrapper2)
+        public bool Equals(ModellingAppServerWrapper x, ModellingAppServerWrapper y)
         {
-            return appServerWrapper1 is not null && appServerWrapper2 is not null && Equals(appServerWrapper1.Content, appServerWrapper2.Content);
-        }
+            if (ReferenceEquals(x, y)) return true;
 
-        public bool Equals(ModellingAppServer? appServer1, ModellingAppServer? appServer2)
-        {
-            if (ReferenceEquals(appServer1, appServer2))
-            {
-                return true;
-            }
-
-            if (appServer1 is null || appServer2 is null)
-            {
+            if (x is null || y is null)
                 return false;
-            }
 
-            string appServer2Name = ConstructAppServerName(appServer2, NamingConvention);
-            bool shortened = false;
-            string sanitizedAS2Name = Sanitizer.SanitizeJsonFieldMand(new(appServer2Name), ref shortened);
-            return appServer1.Name.Trim() == appServer2Name.Trim() || appServer1.Name.Trim() == sanitizedAS2Name.Trim();
+            return x.Content.Id == y.Content.Id &&
+                x.Content.Ip == y.Content.Ip &&
+                x.Content.IpEnd == y.Content.IpEnd;
+        }
+        public bool Equals(ModellingAppServer x, ModellingAppServer y)
+        {
+            if (ReferenceEquals(x, y)) return true;
+
+            if (x is null || y is null)
+                return false;
+
+            return x.Id == y.Id &&
+                x.Ip == y.Ip &&
+                x.IpEnd == y.IpEnd;
         }
 
         public int GetHashCode(ModellingAppServerWrapper appServerWrapper)
         {
             if (appServerWrapper is null) return 0;
             int hash = appServerWrapper == null ? 0 : appServerWrapper.GetHashCode();
-            int hashContent = appServerWrapper?.Content == null ? 0 : appServerWrapper.Content.GetHashCode();
-            return hash ^ hashContent;
-        }
-
-        public int GetHashCode([DisallowNull] ModellingAppServer obj)
-        {
-            throw new NotImplementedException();
+            int hashContent = appServerWrapper.Content == null ? 0 : appServerWrapper.Content.GetHashCode();
+            return hashContent ^ hashContent;
         }
 
         public static string ConstructAppServerName(ModellingAppServer appServer, ModellingNamingConvention namingConvention)

@@ -11,12 +11,20 @@ namespace FWO.Services
 {
     public static class AppServerHelper
     {
-        public static async Task<string> ConstructAppServerNameFromDns(ModellingAppServer appServer, ModellingNamingConvention namingConvention, bool overwriteExistingNames=false)
+        public static async Task<string> ConstructAppServerNameFromDns(ModellingAppServer appServer, ModellingNamingConvention namingConvention,
+            bool overwriteExistingNames=false, bool logUnresolvable=false)
         {
             if (IPAddress.TryParse(appServer.Ip, out IPAddress? ip))
             {
                 string dnsName = await IpOperations.DnsReverseLookUp(ip);
-                if(!string.IsNullOrEmpty(dnsName))
+                if(string.IsNullOrEmpty(dnsName))
+                {
+                    if(logUnresolvable)
+                    {
+                        Log.WriteWarning("Import App Server Data", $"Found empty (unresolvable) IP {appServer.Ip}");
+                    }
+                }
+                else
                 {
                     appServer.Name = dnsName;
                     return dnsName;
@@ -73,9 +81,9 @@ namespace FWO.Services
                 var Variables = new
                 {
                     id = appServer.Id,
-                    name = appServer.Name
+                    newName = appServer.Name
                 };
-                await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateAppServerName, Variables);
+                await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.setAppServerName, Variables);
                 Log.WriteDebug($"Correct App Server Name", $"Changed {oldName} to {appServer.Name}.");
                 return true;
             }

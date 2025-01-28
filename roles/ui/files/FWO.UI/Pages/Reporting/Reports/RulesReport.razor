@@ -205,7 +205,7 @@
                                     <Detail Title="@(userConfig.GetText("decert_date"))" Data="@context.Metadata?.DecertificationDate?.ToString()" />
                                     <Detail Title="@(userConfig.GetText("recert_comment"))" Data="@context.Metadata?.Comment?.ToString()" />
                                     <Detail Title="@(userConfig.GetText("recert_history"))" Data="@(context.Metadata?.RecertHistory.Count > 0 ? ":" : "")" />
-                                    @foreach(var recert in context.Metadata?.RecertHistory)
+                                    @foreach(var recert in context.Metadata!.RecertHistory)
                                     {
                                         <Detail Title="@(recert.RecertDate.ToString())" Data="@(getHistoryString(recert))" />
                                     }

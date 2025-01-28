@@ -163,7 +163,7 @@ namespace FWO.Middleware.Server
                         await GenerateConnectionsReport(reportSchedule, report, apiConnectionUserContext, token);
                     }
                     await report.GetObjectsInReport(int.MaxValue, apiConnectionUserContext, _ => Task.CompletedTask);
-                    WriteReportFile(report, reportSchedule.OutputFormat, reportFile);
+                    await WriteReportFile(report, reportSchedule.OutputFormat, reportFile);
                     await SaveReport(reportFile, report.SetDescription(), apiConnectionUserContext);
                     Log.WriteInfo("Report Scheduling", $"Scheduled report \"{reportSchedule.Name}\" with id \"{reportSchedule.Id}\" for user \"{reportSchedule.ScheduleOwningUser.Name}\" with id \"{reportSchedule.ScheduleOwningUser.DbId}\" successfully generated.");
                 }

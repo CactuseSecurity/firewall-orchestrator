@@ -572,18 +572,7 @@ namespace FWO.Middleware.Server
 		{
 			try
 			{
-				if(globalConfig.DnsLookup)
-				{
-					if (IPAddress.TryParse(appServer.Ip, out IPAddress? ip))
-					{
-						appServer.Name = await IpOperations.DnsReverseLookUp(ip);
-					}
-				}
-				if (string.IsNullOrEmpty(appServer.Name))
-				{
-					Log.WriteWarning("Import App Server Data", $"Found empty (unresolvable) IP {appServer.Ip}");
-					return AppServerHelper.ConstructAppServerName(appServer.ToModellingAppServer(), NamingConvention);
-				}
+				return await AppServerHelper.ConstructAppServerNameFromDns(appServer.ToModellingAppServer(), NamingConvention, globalConfig.OverwriteExistingNames, true);
 			}
 			catch (Exception exc)
 			{
@@ -664,7 +653,7 @@ namespace FWO.Middleware.Server
 						newName,
 						id = appServer.Id,
 					};
-					await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.setAppServerName, Variables);
+					await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.setAppServerName, Variables);
 					Log.WriteWarning("Import App Server Data", $"Name of App Server changed from {appServer.Name} changed to {newName}");
 					
 				}

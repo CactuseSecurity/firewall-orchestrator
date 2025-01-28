@@ -48,12 +48,11 @@
 
     [Parameter]
     public Action OnClose { get; set; } = new Action(() => { });
-
+        
     private string SizeClass()
     {
         switch (Size)
         {
-            //The not *custom* popupsizes will be deprecated soon
             case PopupSize.FullScreen: return "modal-fullscreen";
             case PopupSize.XLarge: return "modal-xl popup";
             case PopupSize.Large: return "modal-lg popup";

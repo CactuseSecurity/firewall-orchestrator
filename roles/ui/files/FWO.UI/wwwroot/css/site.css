@@ -181,6 +181,8 @@ h5 {
     height: fit-content;
     /* Increase/decrease this value for cross-browser compatibility */
     box-sizing: content-box;
+    max-height: 60svh;
+    overflow-y: scroll;
     /* So the width will be 100% + 17px */
 }
 

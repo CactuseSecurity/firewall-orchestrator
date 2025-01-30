@@ -183,7 +183,6 @@ else if(appHandler != null)
         // if use has modeller role, choose it before all others for this menu
         apiConnection.SetBestRole(authenticationStateTask!.Result.User, [ Roles.Modeller, Roles.Admin, Roles.Auditor ]);
         extStateHandler = new(apiConnection);
-        await extStateHandler.Init();
         await states.Init(apiConnection);
         await InitAppList();
     }

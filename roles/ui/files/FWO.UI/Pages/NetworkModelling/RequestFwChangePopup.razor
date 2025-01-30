@@ -107,13 +107,12 @@
     private bool RequestInProcess = false;
     private bool SubscriptionsSetupComplete = false;
     private WfStateDict states = new();
-    private ExtStateHandler extStateHandler;
+    private ExtStateHandler? extStateHandler;
     private List<GraphQlApiSubscription<List<WfReqTask>>> actTaskSubscriptions = [];
 
     protected override async Task OnInitializedAsync()
     {
         extStateHandler = new(apiConnection);
-        await extStateHandler.Init();
         ipProtos = await apiConnection.SendQueryAsync<List<IpProtocol>>(StmQueries.getIpProtocols);
     }
 

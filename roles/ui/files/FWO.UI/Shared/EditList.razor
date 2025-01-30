@@ -43,7 +43,7 @@
 	{
 		return __builder =>
 		{
-			@(e.ToString())
+			@(e?.ToString() ?? "")
 		};
 	};
 

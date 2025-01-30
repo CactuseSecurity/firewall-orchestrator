@@ -296,7 +296,7 @@
             int? idx = AllImplTasks?.FindIndex(x => x.Id == WfHandler.ActImplTask.Id);
             if(idx != null && idx >= 0)
             {
-                AllImplTasks[(int)idx] = WfHandler.ActImplTask;
+                AllImplTasks![(int)idx] = WfHandler.ActImplTask;
             }
         }
     }

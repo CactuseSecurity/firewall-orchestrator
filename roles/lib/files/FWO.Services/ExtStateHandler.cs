@@ -12,6 +12,7 @@ namespace FWO.Services
         public ExtStateHandler(ApiConnection apiConnection)
         {
             this.apiConnection = apiConnection;
+            Init().Wait();
         }
 
         public async Task Init()

@@ -17,7 +17,7 @@ namespace FWO.Middleware.Server
 	public class ExternalRequestHandler
 	{
 		private readonly ApiConnection ApiConnection;
-		private readonly ExtStateHandler extStateHandler;
+		private readonly ExtStateHandler? extStateHandler;
 		private readonly WfHandler wfHandler;
 		private readonly UserConfig UserConfig;
 		private ExternalTicketSystemType extSystemType = ExternalTicketSystemType.Generic;
@@ -94,7 +94,7 @@ namespace FWO.Middleware.Server
 				{
 					wfHandler.SetTicketEnv(intTicket);
 					await UpdateTicket(intTicket, externalRequest);
-					if(extStateHandler.GetInternalStateId(externalRequest.ExtRequestState) >= wfHandler.ActStateMatrix.LowestEndState)
+					if(extStateHandler != null && extStateHandler.GetInternalStateId(externalRequest.ExtRequestState) >= wfHandler.ActStateMatrix.LowestEndState)
 					{
 						await Acknowledge(externalRequest);
 						if(externalRequest.ExtRequestState == ExtStates.ExtReqRejected.ToString())
@@ -156,7 +156,6 @@ namespace FWO.Middleware.Server
 		private async Task<WfTicket?> InitAndResolve(long ticketId)
 		{
 			GetExtSystemFromConfig();
-			await extStateHandler.Init();
 			ipProtos = await ApiConnection.SendQueryAsync<List<IpProtocol>>(StmQueries.getIpProtocols);
 			await wfHandler.Init([], false, true);
 			return await wfHandler.ResolveTicket(ticketId);
@@ -420,7 +419,7 @@ namespace FWO.Middleware.Server
 
 		private async Task UpdateTaskState(WfReqTask reqTask, string extReqState)
 		{
-			if(reqTask.StateId != extStateHandler.GetInternalStateId(extReqState))
+			if(extStateHandler != null && reqTask.StateId != extStateHandler.GetInternalStateId(extReqState))
 			{
 				wfHandler.SetReqTaskEnv(reqTask);
 				reqTask.StateId = extStateHandler.GetInternalStateId(extReqState) ?? throw new Exception("No translation defined for external state.");

@@ -163,15 +163,12 @@
     private List<Rule> Certifications = [];
     private Dictionary<int, List<string>> deleteList = [];
 
-    private TicketCreator ticketCreator;
-
     protected override async Task OnInitializedAsync()
     {
         try
         {
             apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Recertifier, Roles.Admin, Roles.Auditor ]);
             rulesFound = false;
-            ticketCreator = new (apiConnection, userConfig, authenticationStateTask!.Result.User, middlewareClient);
 
             ownerList = await apiConnection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwners);
             await CollectOwnerships();
@@ -360,6 +357,7 @@
             // create delete tickets
             if(userConfig.RecAutoCreateDeleteTicket)
             {
+                TicketCreator ticketCreator = new (apiConnection, userConfig, authenticationStateTask!.Result.User, middlewareClient);
                 foreach(var device in deleteList)
                 {
                     await ticketCreator.CreateDecertRuleDeleteTicket(device.Key, device.Value, actComment, DateTime.Now.AddDays(userConfig.RuleRemovalGracePeriod));

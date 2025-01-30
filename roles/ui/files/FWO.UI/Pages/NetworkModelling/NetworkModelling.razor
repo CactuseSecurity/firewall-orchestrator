@@ -94,7 +94,7 @@
                         <button type="button" class="btn btn-sm btn-success mb-2" @onclick="appHandler!.AddConnection">
                             @(appHandler!.DisplayButton("add_connection", Icons.Add))
                         </button>
-                        <ConnectionTable Connections="@appHandler!.GetRegularConnections()" @bind-AppHandler="appHandler" AppActive="appActive" />
+                        <ConnectionTable ShowPageSizeInput="true" Connections="@appHandler!.GetRegularConnections()" @bind-AppHandler="appHandler" AppActive="appActive" />
                     </Tab>
                     <Tab Title="@(userConfig.GetText("provided_interfaces"))" Position=1>
                         <div class="d-flex justify-content-between">
@@ -112,7 +112,7 @@
                                 </Authorized>
                             </AuthorizeView>
                         </div>
-                        <ConnectionTable Connections="@appHandler!.GetInterfaces(showRejected)" @bind-AppHandler="appHandler" AppActive="appActive" />
+                        <ConnectionTable ShowPageSizeInput="true" Connections="@appHandler!.GetInterfaces(showRejected)" @bind-AppHandler="appHandler" AppActive="appActive" />
                     </Tab>
                     @if (selectedApp.CommSvcPossible)
                     {

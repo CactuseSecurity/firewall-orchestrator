@@ -484,6 +484,7 @@ else
 
     private async Task AddOwnerInDb()
     {
+        // make sure we do not add multiple owners with empty string external app id
         var variables = new
         {
             name = actOwner.Name,
@@ -491,7 +492,7 @@ else
             groupDn = actOwner.GroupDn,
             tenantId = actOwner.TenantId,
             recertInterval = actOwner.RecertInterval,
-            appIdExternal = actOwner.ExtAppId,
+            appIdExternal = string.IsNullOrEmpty(actOwner.ExtAppId) ? null : actOwner.ExtAppId,
             recertCheckParams = actOwner.RecertCheckParamString,
             commSvcPossible = actOwner.CommSvcPossible
         };
@@ -511,6 +512,7 @@ else
 
     private async Task UpdateOwnerInDb()
     {
+        // make sure we do not add multiple owners with empty string external app id
         var Variables = new
         {
             id = actOwner.Id,
@@ -519,7 +521,7 @@ else
             groupDn = actOwner.GroupDn,
             tenantId = actOwner.TenantId,
             recertInterval = actOwner.RecertInterval,
-            appIdExternal = actOwner.ExtAppId,
+            appIdExternal = string.IsNullOrEmpty(actOwner.ExtAppId) ? null : actOwner.ExtAppId,
             recertCheckParams = actOwner.RecertCheckParamString,
             commSvcPossible = actOwner.CommSvcPossible
         };

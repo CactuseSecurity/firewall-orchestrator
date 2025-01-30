@@ -56,11 +56,41 @@ namespace FWO.Basics
             return IpOperations.CheckOverlap(ip1, ip2);
         }
 
+        public static string GetNetmask(this string ip)
+        {
+            int pos = ip.LastIndexOf('/');
+            if (pos > -1 && ip.Length > pos + 1)
+            {
+                return ip[(pos + 1)..];
+            }
+            return "";
+        }
+
+        public static bool IsV6Address(this string ip)
+        {
+            return ip.Contains(':');
+        }
+
+        public static bool IsV4Address(this string ip)
+        {
+            return ip.Contains('.');
+        }
+
         public static string StripOffNetmask(this string ip)
         {
             if (ip.TryGetNetmask(out string netmask))
                 return ip.Replace(netmask, "");
 
+            return ip;
+        }
+
+        public static string StripOffUnnecessaryNetmask(this string ip)
+        {
+            string netmask = ip.GetNetmask();
+            if (ip.IsV4Address() && netmask == "32" || ip.IsV6Address() && netmask == "128")
+            {
+                return ip.StripOffNetmask();
+            }
             return ip;
         }
 

@@ -40,93 +40,38 @@ namespace FWO.Basics
             return (ipStart, ipEnd);
         }
 
-        // public static bool IsInSubnet(IPAddress address, string cidrString)
-        // {
-        //     string[] parts = cidrString.Split('/');
-        //     if (parts.Length != 2)
-        //     {
-        //         throw new FormatException("Invalid CIDR format.");
-        //     }
+        public static string GetObjectType(string ip1, string ip2)
+        {
+            ip1 = ip1.StripOffUnnecessaryNetmask();
+            ip2 = ip2.StripOffUnnecessaryNetmask();
+            if (ip1 == ip2 || ip2 == "")
+            {
+                if (ip1.TryGetNetmask(out _))
+                {
+                    return ObjectType.Network;
+                }
+                return ObjectType.Host;
+            }
+            if (SpanSingleNetwork(ip1, ip2))
+            {
+                return ObjectType.Network;
+            }
+            return ObjectType.IPRange;
+        }
 
-        //     var networkAddress = IPAddress.Parse(parts[0]);
-        //     int prefixLength = int.Parse(parts[1]);
-
-        //     if (address.AddressFamily != networkAddress.AddressFamily)
-        //     {
-        //         // The IP versions must match (IPv4 vs IPv6)
-        //         return false;
-        //     }
-
-        //     if (address.AddressFamily == AddressFamily.InterNetwork)  // IPv4
-        //     {
-        //         return IsIPv4InSubnet(address, networkAddress, prefixLength);
-        //     }
-        //     else if (address.AddressFamily == AddressFamily.InterNetworkV6)  // IPv6
-        //     {
-        //         return IsIPv6InSubnet(address, networkAddress, prefixLength);
-        //     }
-        //     else
-        //     {
-        //         throw new NotSupportedException("Only IPv4 and IPv6 are supported.");
-        //     }
-        // }
-        
-        // private static bool IsIPv4InSubnet(IPAddress address, IPAddress networkAddress, int prefixLength)
-        // {
-        //     uint ipAddress = BitConverter.ToUInt32(address.GetAddressBytes().Reverse().ToArray(), 0);
-        //     uint networkIpAddress = BitConverter.ToUInt32(networkAddress.GetAddressBytes().Reverse().ToArray(), 0);
-
-        //     uint mask = (uint.MaxValue << (32 - prefixLength)) & uint.MaxValue;
-
-        //     return (ipAddress & mask) == (networkIpAddress & mask);
-        // }
-
-        // private static bool IsIPv6InSubnet(IPAddress address, IPAddress networkAddress, int prefixLength)
-        // {
-        //     BigInteger ipAddressBigInt = new(address.GetAddressBytes().Reverse().ToArray().Concat(new byte[] { 0 }).ToArray());
-        //     BigInteger networkIpAddressBigInt = new(networkAddress.GetAddressBytes().Reverse().ToArray().Concat(new byte[] { 0 }).ToArray());
-
-        //     BigInteger mask = BigInteger.Pow(2, 128) - BigInteger.Pow(2, 128 - prefixLength);
-
-        //     return (ipAddressBigInt & mask) == (networkIpAddressBigInt & mask);
-        // }
-
-        // public static string SanitizeIp(string cidr_str)
-        // {
-        //     cidr_str = cidr_str.StripOffNetmask();
-
-        //     if (IPAddress.TryParse(cidr_str, out IPAddress? ip))
-        //     {
-        //         if (ip != null)
-        //         {
-        //             if (ip.AddressFamily == AddressFamily.InterNetworkV6)
-        //             {
-        //                 cidr_str = ip.ToString();
-        //                 if (cidr_str.IndexOf('/') < 0) // a single ip without mask
-        //                 {
-        //                     cidr_str += "/128";
-        //                 }
-        //                 if (cidr_str.IndexOf('/') == cidr_str.Length - 1) // wrong format (/ at the end, fixing this by adding 128 mask)
-        //                 {
-        //                     cidr_str += "128";
-        //                 }
-        //             }
-        //             else if (ip.AddressFamily == AddressFamily.InterNetwork)
-        //             {
-        //                 cidr_str = ip.ToString();
-        //                 if (cidr_str.IndexOf('/') < 0) // a single ip without mask
-        //                 {
-        //                     cidr_str += "/32";
-        //                 }
-        //                 if (cidr_str.IndexOf('/') == cidr_str.Length - 1) // wrong format (/ at the end, fixing this by adding 32 mask)
-        //                 {
-        //                     cidr_str += "32";
-        //                 }
-        //             }
-        //         }
-        //     }
-        //     return cidr_str;
-        // }
+        private static bool SpanSingleNetwork(string ipStart, string ipEnd)
+        {
+            IPAddressRange range = IPAddressRange.Parse(ipStart.StripOffNetmask() + "-" + ipEnd.StripOffNetmask());
+            try
+            {
+                range.ToCidrString();
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+            return true;
+        }
 
         /// <summary>
         /// Checks if IP range a and b overlap.
@@ -148,7 +93,6 @@ namespace FWO.Basics
             {
                 Array.Reverse(bytes);
             }
-
             return BitConverter.ToUInt32(bytes, 0);
         }
 
@@ -161,7 +105,6 @@ namespace FWO.Basics
             {
                 Array.Reverse(bytes);
             }
-
             return new IPAddress(bytes);
         }
 
@@ -230,11 +173,9 @@ namespace FWO.Basics
                         ? GetIPv4SubnetMask(network.PrefixLength)  // Convert PrefixLength to Subnet Mask for IPv4
                         : $"(IPv6) /{network.PrefixLength}"; // IPv6 uses CIDR notation directly
 
-                    string resultingIpString = $"{network.ToString().StripOffNetmask()}/{subnetMask}";
-                    return resultingIpString;
+                    return $"{network.ToString().StripOffNetmask()}/{subnetMask}";
                 }
             }
-
             return ""; // No exact network match found
         }
 
@@ -245,5 +186,93 @@ namespace FWO.Basics
             uint[] bytes = [(mask >> 24) & 0xff, (mask >> 16) & 0xff, (mask >> 8) & 0xff, mask & 0xff];
             return string.Join(".", bytes);
         }
+
+        // public static bool IsInSubnet(IPAddress address, string cidrString)
+        // {
+        //     string[] parts = cidrString.Split('/');
+        //     if (parts.Length != 2)
+        //     {
+        //         throw new FormatException("Invalid CIDR format.");
+        //     }
+
+        //     var networkAddress = IPAddress.Parse(parts[0]);
+        //     int prefixLength = int.Parse(parts[1]);
+
+        //     if (address.AddressFamily != networkAddress.AddressFamily)
+        //     {
+        //         // The IP versions must match (IPv4 vs IPv6)
+        //         return false;
+        //     }
+
+        //     if (address.AddressFamily == AddressFamily.InterNetwork)  // IPv4
+        //     {
+        //         return IsIPv4InSubnet(address, networkAddress, prefixLength);
+        //     }
+        //     else if (address.AddressFamily == AddressFamily.InterNetworkV6)  // IPv6
+        //     {
+        //         return IsIPv6InSubnet(address, networkAddress, prefixLength);
+        //     }
+        //     else
+        //     {
+        //         throw new NotSupportedException("Only IPv4 and IPv6 are supported.");
+        //     }
+        // }
+        
+        // private static bool IsIPv4InSubnet(IPAddress address, IPAddress networkAddress, int prefixLength)
+        // {
+        //     uint ipAddress = BitConverter.ToUInt32(address.GetAddressBytes().Reverse().ToArray(), 0);
+        //     uint networkIpAddress = BitConverter.ToUInt32(networkAddress.GetAddressBytes().Reverse().ToArray(), 0);
+
+        //     uint mask = (uint.MaxValue << (32 - prefixLength)) & uint.MaxValue;
+
+        //     return (ipAddress & mask) == (networkIpAddress & mask);
+        // }
+
+        // private static bool IsIPv6InSubnet(IPAddress address, IPAddress networkAddress, int prefixLength)
+        // {
+        //     BigInteger ipAddressBigInt = new(address.GetAddressBytes().Reverse().ToArray().Concat(new byte[] { 0 }).ToArray());
+        //     BigInteger networkIpAddressBigInt = new(networkAddress.GetAddressBytes().Reverse().ToArray().Concat(new byte[] { 0 }).ToArray());
+
+        //     BigInteger mask = BigInteger.Pow(2, 128) - BigInteger.Pow(2, 128 - prefixLength);
+
+        //     return (ipAddressBigInt & mask) == (networkIpAddressBigInt & mask);
+        // }
+
+        // public static string SanitizeIp(string cidrStr)
+        // {
+        //     cidrStr = cidrStr.StripOffNetmask();
+
+        //     if (IPAddress.TryParse(cidrStr, out IPAddress? ip))
+        //     {
+        //         if (ip != null)
+        //         {
+        //             if (ip.AddressFamily == AddressFamily.InterNetworkV6)
+        //             {
+        //                 cidrStr = ip.ToString();
+        //                 if (cidrStr.IndexOf('/') < 0) // a single ip without mask
+        //                 {
+        //                     cidrStr += "/128";
+        //                 }
+        //                 if (cidrStr.IndexOf('/') == cidrStr.Length - 1) // wrong format (/ at the end, fixing this by adding 128 mask)
+        //                 {
+        //                     cidrStr += "128";
+        //                 }
+        //             }
+        //             else if (ip.AddressFamily == AddressFamily.InterNetwork)
+        //             {
+        //                 cidrStr = ip.ToString();
+        //                 if (cidrStr.IndexOf('/') < 0) // a single ip without mask
+        //                 {
+        //                     cidrStr += "/32";
+        //                 }
+        //                 if (cidrStr.IndexOf('/') == cidrStr.Length - 1) // wrong format (/ at the end, fixing this by adding 32 mask)
+        //                 {
+        //                     cidrStr += "32";
+        //                 }
+        //             }
+        //         }
+        //     }
+        //     return cidrStr;
+        // }
     }
 }

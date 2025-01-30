@@ -191,6 +191,16 @@
                 <label class="col-form-label col-sm-5">@userConfig.GetText("appServerPrefix"):</label>
                 <input type="text" class="col-sm-4" @bind="namingConvention.AppServerPrefix" />
             </div>
+            <div class="row col-sm-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5645"))">
+                <label class="col-form-label col-sm-5">@userConfig.GetText("networkPrefix"):</label>
+                <input type="text" class="col-sm-4" @bind="namingConvention.NetworkPrefix" />
+            </div>
+            <div class="row col-sm-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5646"))">
+                <label class="col-form-label col-sm-5">@userConfig.GetText("ipRangePrefix"):</label>
+                <input type="text" class="col-sm-4" @bind="namingConvention.IpRangePrefix" />
+            </div>
+        </div>
+        <div class="form-group row mt-2">
             <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5643"))">
                 <label for="cbx_dns_lookup" class="col-form-label col-sm-8">@(userConfig.GetText("dns_lookup")):</label>
                 <div class="col-sm-2">

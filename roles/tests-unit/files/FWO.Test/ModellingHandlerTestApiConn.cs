@@ -1,6 +1,7 @@
 ﻿using FWO.Api.Client.Queries;
 using GraphQL;
 using FWO.Api.Data;
+using FWO.Services;
 
 namespace FWO.Test
 {
@@ -16,6 +17,7 @@ namespace FWO.Test
 
         public override async Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
         {
+            await DefaultInit.DoNothing(); // qad avoid compiler warning
             Type responseType = typeof(QueryResponseType);
             if(responseType == typeof(List<ModellingAppRole>))
             {
@@ -24,7 +26,7 @@ namespace FWO.Test
                 {
                     if(variables != null)
                     {
-                        string pattern = variables.GetType().GetProperties().First(o => o.Name == "pattern").GetValue(variables, null)?.ToString();
+                        string pattern = variables?.GetType().GetProperties().First(o => o.Name == "pattern").GetValue(variables, null)?.ToString() ?? "";
                         if(pattern == AppRoleId1 || pattern == "AR50%")
                         {
                             appRoles = [AppRole1];
@@ -50,7 +52,7 @@ namespace FWO.Test
             else if(responseType == typeof(List<ModellingConnection>))
             {
                 List<ModellingConnection>? interfaces = [];
-                string intId = variables.GetType().GetProperties().First(o => o.Name == "id").GetValue(variables, null).ToString();
+                string intId = variables?.GetType().GetProperties().First(o => o.Name == "id").GetValue(variables, null)?.ToString() ?? "";
                 if(intId == "1")
                 {
                     interfaces = [ new()

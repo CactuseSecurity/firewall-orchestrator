@@ -28,5 +28,11 @@ namespace FWO.Api.Data
         
         [JsonProperty("appServerPrefix"), JsonPropertyName("appServerPrefix")]
         public string? AppServerPrefix { get; set; } = "";
+
+        [JsonProperty("networkPrefix"), JsonPropertyName("networkPrefix")]
+        public string? NetworkPrefix { get; set; } = "";
+
+        [JsonProperty("ipRangePrefix"), JsonPropertyName("ipRangePrefix")]
+        public string? IpRangePrefix { get; set; } = "";
     }
 }

@@ -45,7 +45,7 @@ namespace FWO.Services
         public List<ModellingAppServer> SrcAppServerToDelete { get; set; } = [];
         public List<ModellingAppServer> DstAppServerToAdd { get; set; } = [];
         public List<ModellingAppServer> DstAppServerToDelete { get; set; } = [];
-        public ModellingAppServerHandler AppServerHandler;
+        public ModellingAppServerHandler? AppServerHandler;
         public bool DisplayAppServerMode = false;
 
         public ModellingAppRoleHandler? AppRoleHandler;

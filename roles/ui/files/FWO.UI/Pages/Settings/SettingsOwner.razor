@@ -680,10 +680,12 @@ else
     private async Task AddUser(UiUser user)
     {
         actOwner.Dn = user.Dn;
+        await DefaultInit.DoNothing(); // qad avoid compiler warning
     }
 
     private async Task AddGroup(string groupDn)
     {
         actOwner.GroupDn = groupDn;
+        await DefaultInit.DoNothing(); // qad avoid compiler warning
     }
 }

@@ -567,6 +567,7 @@
     private async Task InitComments()
     {
         allComments = WfStatefulObject.DisplayAllComments(WfHandler.ActReqTask.Comments);
+        await DefaultInit.DoNothing(); // qad avoid compiler warning
     }
 
     private async Task Close()

@@ -10,7 +10,7 @@
 @inject NavigationManager NavigationManager
 @inject MiddlewareClient middlewareClient
 
-@if (Display)
+@if (Display && ConnHandler != null)
 {
     @if(!ConnHandler.ReadOnly)
     {
@@ -440,7 +440,7 @@
     public EventCallback<bool> DisplayChanged { get; set; }
 
     [Parameter] 
-    public ModellingConnectionHandler ConnHandler { get; set; }
+    public ModellingConnectionHandler? ConnHandler { get; set; }
 
     [Parameter]
     public EventCallback<ModellingConnectionHandler> ConnHandlerChanged { get; set; }
@@ -480,7 +480,7 @@
 
     protected override void OnParametersSet()
     {
-        if(Display)
+        if(Display && ConnHandler != null)
         {
             ConnHandler.CalcVisibility();
             unchangedConn = new(ConnHandler.ActConn);
@@ -491,32 +491,32 @@
     {
         if(Container.ConnElement != null)
         {
-            if(ConnHandler.ActConn.IsInterface)
+            if(ConnHandler!.ActConn.IsInterface)
             {
-                await ConnHandler.RequestReplaceInterface(Container.ConnElement);
+                await ConnHandler!.RequestReplaceInterface(Container.ConnElement);
             }
             else
             {
-                ConnHandler.InterfaceToConn(Container.ConnElement);
+                ConnHandler!.InterfaceToConn(Container.ConnElement);
             }  
         }
-        else if(!ConnHandler.SrcDropForbidden())
+        else if(!ConnHandler!.SrcDropForbidden())
         {
             if(Container.AppRoleElements.Count > 0)
             {
-                ConnHandler.AppRolesToSource(Container.AppRoleElements);
+                ConnHandler!.AppRolesToSource(Container.AppRoleElements);
             }
             if(Container.AreaElements.Count > 0)
             {
-                ConnHandler.AreasToSource(Container.AreaElements);
+                ConnHandler!.AreasToSource(Container.AreaElements);
             }
             if(Container.NwGroupElements.Count > 0)
             {
-                ConnHandler.NwGroupToSource(Container.NwGroupElements);
+                ConnHandler!.NwGroupToSource(Container.NwGroupElements);
             }
             if(Container.AppServerElements.Count > 0)
             {
-                ConnHandler.AppServerToSource(Container.AppServerElements);
+                ConnHandler!.AppServerToSource(Container.AppServerElements);
             }
         }
         Container.Clear();
@@ -526,32 +526,32 @@
     {
         if(Container.ConnElement != null)
         {
-            if(ConnHandler.ActConn.IsInterface)
+            if(ConnHandler!.ActConn.IsInterface)
             {
-                await ConnHandler.RequestReplaceInterface(Container.ConnElement);
+                await ConnHandler!.RequestReplaceInterface(Container.ConnElement);
             }
             else
             {
-                ConnHandler.InterfaceToConn(Container.ConnElement);
+                ConnHandler!.InterfaceToConn(Container.ConnElement);
             }
         }
-        else if(!ConnHandler.DstDropForbidden())
+        else if(!ConnHandler!.DstDropForbidden())
         {
             if(Container.AppRoleElements.Count > 0)
             {
-                ConnHandler.AppRolesToDestination(Container.AppRoleElements);
+                ConnHandler!.AppRolesToDestination(Container.AppRoleElements);
             }
             if(Container.AreaElements.Count > 0)
             {
-                ConnHandler.AreasToDestination(Container.AreaElements);
+                ConnHandler!.AreasToDestination(Container.AreaElements);
             }
             if(Container.NwGroupElements.Count > 0)
             {
-                ConnHandler.NwGroupToDestination(Container.NwGroupElements);                
+                ConnHandler!.NwGroupToDestination(Container.NwGroupElements);                
             }
             if(Container.AppServerElements.Count > 0)
             {
-                ConnHandler.AppServerToDestination(Container.AppServerElements);
+                ConnHandler!.AppServerToDestination(Container.AppServerElements);
             }
         }
         Container.Clear();
@@ -561,24 +561,24 @@
     {
         if(Container.ConnElement != null)
         {
-            if(ConnHandler.ActConn.IsInterface)
+            if(ConnHandler!.ActConn.IsInterface)
             {
-                await ConnHandler.RequestReplaceInterface(Container.ConnElement);
+                await ConnHandler!.RequestReplaceInterface(Container.ConnElement);
             }
             else
             {
-                ConnHandler.InterfaceToConn(Container.ConnElement);
+                ConnHandler!.InterfaceToConn(Container.ConnElement);
             }
         }
         else 
         {
             if(Container.SvcElements.Count > 0)
             {
-                ConnHandler.ServicesToConn(Container.SvcElements);
+                ConnHandler!.ServicesToConn(Container.SvcElements);
             }
             if(Container.SvcGrpElements.Count > 0)
             {
-                ConnHandler.ServiceGrpsToConn(Container.SvcGrpElements);
+                ConnHandler!.ServiceGrpsToConn(Container.SvcGrpElements);
             }
         }
         Container.Clear();
@@ -587,22 +587,22 @@
     private async Task<bool> Save()
     {
         workInProgress = true;
-        ModellingConnection connBeforeSave = new(ConnHandler.ActConn);
+        ModellingConnection connBeforeSave = new(ConnHandler!.ActConn);
 
-        bool publishRequested = ConnHandler.ActConn.IsRequested && ConnHandler.ActConn.IsPublished;
+        bool publishRequested = ConnHandler!.ActConn.IsRequested && ConnHandler!.ActConn.IsPublished;
         if(publishRequested)
         {
-            ConnHandler.ActConn.Creator = userConfig.User.Name;
-            ConnHandler.ActConn.IsRequested = false;
-            if(ConnHandler.ActConn.AppId == null)
+            ConnHandler!.ActConn.Creator = userConfig.User.Name;
+            ConnHandler!.ActConn.IsRequested = false;
+            if(ConnHandler!.ActConn.AppId == null)
             {
-                ConnHandler.ActConn.AppId = ConnHandler.ActConn.ProposedAppId;
-                ConnHandler.ActConn.ProposedAppId = null;
+                ConnHandler!.ActConn.AppId = ConnHandler!.ActConn.ProposedAppId;
+                ConnHandler!.ActConn.ProposedAppId = null;
             }
         }
-        if(await ConnHandler.Save())
+        if(await ConnHandler!.Save())
         {
-            unchangedConn = new(ConnHandler.ActConn);
+            unchangedConn = new(ConnHandler!.ActConn);
             if(publishRequested)
             {
                 await PromoteTicketToDone();
@@ -612,7 +612,7 @@
         }
         else
         {
-            ConnHandler.ActConn = connBeforeSave;
+            ConnHandler!.ActConn = connBeforeSave;
             workInProgress = false;
             return false;
         }
@@ -620,7 +620,7 @@
 
     private async Task ReplaceInterface()
     {
-        await ConnHandler.ReplaceInterface(authenticationStateTask!, middlewareClient);
+        await ConnHandler!.ReplaceInterface(authenticationStateTask!, middlewareClient);
         Close();
     }
 
@@ -631,12 +631,12 @@
 
     private async Task PromoteTicketToDone()
     {
-        if(ConnHandler.ActConn.TicketId != null)
+        if(ConnHandler!.ActConn.TicketId != null)
         {
             try
             {
                 TicketCreator ticketCreator = new (apiConnection, userConfig, authenticationStateTask!.Result.User, middlewareClient, WorkflowPhases.implementation);
-                if(await ticketCreator.PromoteNewInterfaceImplTask(ConnHandler.Application, (long)(ConnHandler.ActConn.TicketId), ExtStates.Done))
+                if(await ticketCreator.PromoteNewInterfaceImplTask(ConnHandler!.Application, (long)(ConnHandler!.ActConn.TicketId), ExtStates.Done))
                 {
                     DisplayMessageInUi(null, userConfig.GetText("publish"), userConfig.GetText("U9013"), false);
                 }
@@ -656,36 +656,36 @@
         }
         else
         {
-            NavigationManager.NavigateTo($"/request/tickets/{ConnHandler.ActConn.TicketId}");
+            NavigationManager.NavigateTo($"/request/tickets/{ConnHandler!.ActConn.TicketId}");
         }
     }
 
     private bool UnsavedChangesMade()
     {
-        return unchangedConn.Name != ConnHandler.ActConn.Name
-            || unchangedConn.Reason != ConnHandler.ActConn.Reason 
-            || unchangedConn.IsPublished != ConnHandler.ActConn.IsPublished
-            || ConnHandler.SrcAppServerToAdd.Count > 0
-            || ConnHandler.SrcAppServerToDelete.Count > 0
-            || ConnHandler.DstAppServerToAdd.Count > 0
-            || ConnHandler.DstAppServerToDelete.Count > 0
-            || ConnHandler.SrcAppRolesToAdd.Count > 0
-            || ConnHandler.SrcAppRolesToDelete.Count > 0
-            || ConnHandler.DstAppRolesToAdd.Count > 0
-            || ConnHandler.DstAppRolesToDelete.Count > 0
-            || ConnHandler.SrcNwGroupsToAdd.Count > 0
-            || ConnHandler.SrcNwGroupsToDelete.Count > 0
-            || ConnHandler.DstNwGroupsToAdd.Count > 0
-            || ConnHandler.DstNwGroupsToDelete.Count > 0
-            || ConnHandler.SvcToAdd.Count > 0
-            || ConnHandler.SvcToDelete.Count > 0
-            || ConnHandler.SvcGrpToAdd.Count > 0
-            || ConnHandler.SvcGrpToDelete.Count > 0;
+        return unchangedConn.Name != ConnHandler!.ActConn.Name
+            || unchangedConn.Reason != ConnHandler!.ActConn.Reason 
+            || unchangedConn.IsPublished != ConnHandler!.ActConn.IsPublished
+            || ConnHandler!.SrcAppServerToAdd.Count > 0
+            || ConnHandler!.SrcAppServerToDelete.Count > 0
+            || ConnHandler!.DstAppServerToAdd.Count > 0
+            || ConnHandler!.DstAppServerToDelete.Count > 0
+            || ConnHandler!.SrcAppRolesToAdd.Count > 0
+            || ConnHandler!.SrcAppRolesToDelete.Count > 0
+            || ConnHandler!.DstAppRolesToAdd.Count > 0
+            || ConnHandler!.DstAppRolesToDelete.Count > 0
+            || ConnHandler!.SrcNwGroupsToAdd.Count > 0
+            || ConnHandler!.SrcNwGroupsToDelete.Count > 0
+            || ConnHandler!.DstNwGroupsToAdd.Count > 0
+            || ConnHandler!.DstNwGroupsToDelete.Count > 0
+            || ConnHandler!.SvcToAdd.Count > 0
+            || ConnHandler!.SvcToDelete.Count > 0
+            || ConnHandler!.SvcGrpToAdd.Count > 0
+            || ConnHandler!.SvcGrpToDelete.Count > 0;
     }
 
     private async Task DisplayTicket()
     {
-        if(ConnHandler.ActConn.TicketId != null)
+        if(ConnHandler!.ActConn.TicketId != null)
         {
             workInProgress = true;
             await states.Init(apiConnection);
@@ -693,7 +693,7 @@
             wfHandler = new (DisplayMessageInUi, userConfig, authenticationStateTask!.Result.User, apiConnection, middlewareClient, WorkflowPhases.request){};
             wfHandler.ReadOnlyMode = true;
             await wfHandler.Init(OwnerIds, true, true);
-            WfTicket? ticket = await wfHandler.ResolveTicket((long)ConnHandler.ActConn.TicketId);
+            WfTicket? ticket = await wfHandler.ResolveTicket((long)ConnHandler!.ActConn.TicketId);
             if(ticket != null)
             {
                 WfReqTask? reqTask = ticket.Tasks.FirstOrDefault(x => x.TaskType == WfTaskType.new_interface.ToString());
@@ -714,13 +714,13 @@
 
     private void Cancel()
     {
-        ConnHandler.Reset();
+        ConnHandler?.Reset();
         Close();
     }
 
     private void Close()
     {
-        ConnHandler.Close();
+        ConnHandler?.Close();
         ClosingAction();
         workInProgress = false;
         RejectInterfaceMode = false;
@@ -730,7 +730,7 @@
     
     private string SrcClass()
     {
-        if(ConnHandler.SrcDropForbidden())
+        if(ConnHandler!.SrcDropForbidden())
         {
             return forbiddenDropzoneClass;
         }
@@ -739,7 +739,7 @@
 
     private string DestClass()
     {
-        if(ConnHandler.DstDropForbidden())
+        if(ConnHandler!.DstDropForbidden())
         {
             return forbiddenDropzoneClass;
         }
@@ -749,15 +749,15 @@
     private string GetTitle()
     {
         string title = userConfig.GetText("connection");
-        if(ConnHandler.ActConn.IsCommonService)
+        if(ConnHandler!.ActConn.IsCommonService)
         {
             title = userConfig.GetText("common_service");
         }
-        else if (ConnHandler.ActConn.IsRequested)
+        else if (ConnHandler!.ActConn.IsRequested)
         {
             title = userConfig.GetText("requested_interface");
         }
-        else if (ConnHandler.ActConn.IsInterface)
+        else if (ConnHandler!.ActConn.IsInterface)
         {
             title = userConfig.GetText("interface");
         }
@@ -766,7 +766,7 @@
 
     private string CreationInfo()
     {
-        return $"{(ConnHandler.ActConn.IsRequested ? userConfig.GetText("requested_by") : userConfig.GetText("created_by"))}: {ConnHandler.ActConn.Creator}, " +
-            $"{userConfig.GetText("creation_date")}: {ConnHandler.ActConn.CreationDate}";
+        return $"{(ConnHandler!.ActConn.IsRequested ? userConfig.GetText("requested_by") : userConfig.GetText("created_by"))}: {ConnHandler!.ActConn.Creator}, " +
+            $"{userConfig.GetText("creation_date")}: {ConnHandler!.ActConn.CreationDate}";
     }
 }

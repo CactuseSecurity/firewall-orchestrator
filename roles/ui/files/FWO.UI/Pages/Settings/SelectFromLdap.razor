@@ -87,7 +87,7 @@
     private UiUser selectedLdapUser = new();
     private string selectedLdapGroup = "";
 
-    protected override async Task OnParametersSetAsync()
+    protected override void OnParametersSet()
     {
         if(Display)
         {

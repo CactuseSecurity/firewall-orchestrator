@@ -445,6 +445,7 @@
     {
         allComments = WfStatefulObject.DisplayAllComments(WfHandler.ActImplTask.Comments);
         WfHandler.DisplayImplTaskCommentMode = false;
+        await DefaultInit.DoNothing(); // qad avoid compiler warning
     }
 
     private async Task Close()

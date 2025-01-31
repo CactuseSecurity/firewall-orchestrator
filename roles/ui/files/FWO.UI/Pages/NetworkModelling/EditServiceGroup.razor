@@ -5,7 +5,7 @@
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
-@if (Display)
+@if (Display && SvcGroupHandler != null)
 {
     <PopUp Title="@(SvcGroupHandler.ReadOnly ? "" : (SvcGroupHandler.AddMode ? userConfig.GetText("add_service_group") : userConfig.GetText("edit_service_group")))"
             Size="@(SvcGroupHandler.ReadOnly ? PopupSize.Small : PopupSize.XLarge)" Show="@Display" OnClose="Close">
@@ -119,7 +119,7 @@
     public EventCallback<bool> DisplayChanged { get; set; }
 
     [Parameter]
-    public ModellingServiceGroupHandler SvcGroupHandler { get; set; }
+    public ModellingServiceGroupHandler? SvcGroupHandler { get; set; }
 
     [Parameter]
     public EventCallback<ModellingServiceGroupHandler> SvcGroupHandlerChanged { get; set; }
@@ -136,7 +136,7 @@
 
     protected override void OnParametersSet()
     {
-        if(Display && firstTry)
+        if(Display && firstTry && SvcGroupHandler != null)
         {
             firstTry = false;
             unchangedServiceGroup = new(SvcGroupHandler.ActServiceGroup);
@@ -145,7 +145,7 @@
 
     private void HandleSvcDrop()
     {
-        if(Container.SvcElements.Count > 0)
+        if(Container.SvcElements.Count > 0 && SvcGroupHandler != null)
         {
             SvcGroupHandler.ServicesToSvcGroup(Container.SvcElements);
         }
@@ -154,19 +154,22 @@
 
     private async Task Save()
     {
-        workInProgress = true;
-        if(await SvcGroupHandler.Save())
+        if(SvcGroupHandler != null)
         {
-            if(unchangedServiceGroup.Name != SvcGroupHandler.ActServiceGroup.Name)
+            workInProgress = true;
+            if(await SvcGroupHandler.Save())
             {
-                await SvcGroupHandler.RefreshParent();
+                if(unchangedServiceGroup.Name != SvcGroupHandler.ActServiceGroup.Name)
+                {
+                    await SvcGroupHandler.RefreshParent();
+                }
+                unchangedServiceGroup = new(SvcGroupHandler.ActServiceGroup);
+                Close();
             }
-            unchangedServiceGroup = new(SvcGroupHandler.ActServiceGroup);
-            Close();
-        }
-        else
-        {
-            workInProgress = false;
+            else
+            {
+                workInProgress = false;
+            }
         }
     }
 

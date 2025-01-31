@@ -138,7 +138,7 @@ namespace FWO.Ui.Services
                 }
 
                 ModellingAppServer modAppServer = new(importAppServer.ToModellingAppServer()){ ImportSource = ImportSource, AppId = ownerIds.First().Id};
-                if(await AppServerHelper.CheckAppServerCanBeWritten(ApiConnection, modAppServer))
+                if((await AppServerHelper.CheckAppServerCanBeWritten(ApiConnection, modAppServer)).Item1)
                 {
                     var Variables = new
                     {

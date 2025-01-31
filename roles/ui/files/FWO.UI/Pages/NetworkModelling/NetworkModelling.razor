@@ -357,36 +357,37 @@ else if(appHandler != null)
 
     private async Task SetStatusFromTicket(WfTicket intTicket)
     {
-        int doneStateId = extStateHandler != null ? (int)(extStateHandler.GetInternalStateId(ExtStates.ExtReqDone) ?? 999) : 999;
-        int rejectedStateId = extStateHandler != null ? (int)(extStateHandler.GetInternalStateId(ExtStates.ExtReqRejected) ?? 999) : 999;
-        if(intTicket.StateId < doneStateId && intTicket.StateId < rejectedStateId)
+        if(extStateHandler!= null)
         {
-            ChangeStatus = userConfig.GetText("in_process");
-        }
-        else if(intTicket.StateId == doneStateId)
-        {
-            ChangeStatus = userConfig.GetText("last_successful") + intTicket.CompletionDate?.ToString("yyyy-MM-dd HH:mm:ss") + " " + intTicket.Requester?.Name;
-        }
-        else
-        {
-            List<ExternalRequest> lastRequests = await apiConnection.SendQueryAsync<List<ExternalRequest>>(ExtRequestQueries.getLastRequest, new{ticketId = intTicket.Id});
-            if(lastRequests != null && lastRequests.Count > 0)
+            if(extStateHandler.IsInProgress(intTicket.StateId))
             {
-                string? lastResponse = !string.IsNullOrEmpty(lastRequests.First().LastProcessingResponse) ? 
-                    lastRequests.First().LastProcessingResponse : lastRequests.First().LastCreationResponse;
-                bool shortened = false;
-                string tooltip = states.Name[intTicket.StateId] + ": " + Sanitizer.SanitizeCommentOpt(lastResponse, ref shortened);
-                ChangeStatus = $"<div data-toggle=\"tooltip\" title=\"{tooltip}\">{userConfig.GetText("implementation_error")}</div>";
+                ChangeStatus = userConfig.GetText("in_process");
+            }
+            else if(extStateHandler.IsDone(intTicket.StateId))
+            {
+                ChangeStatus = userConfig.GetText("last_successful") + intTicket.CompletionDate?.ToString("yyyy-MM-dd HH:mm:ss") + " " + intTicket.Requester?.Name;
             }
             else
             {
-                ChangeStatus = userConfig.GetText("implementation_error");
-            }
-            await InvokeAsync(StateHasChanged);
-            if(firstErrorMessage)
-            {
-                firstErrorMessage = false;
-                DisplayMessageInUi(null, userConfig.GetText("implementation_error"), userConfig.ModRolloutErrorText, true);
+                List<ExternalRequest> lastRequests = await apiConnection.SendQueryAsync<List<ExternalRequest>>(ExtRequestQueries.getLastRequest, new{ticketId = intTicket.Id});
+                if(lastRequests != null && lastRequests.Count > 0)
+                {
+                    string? lastResponse = !string.IsNullOrEmpty(lastRequests.First().LastProcessingResponse) ? 
+                        lastRequests.First().LastProcessingResponse : lastRequests.First().LastCreationResponse;
+                    bool shortened = false;
+                    string tooltip = states.Name[intTicket.StateId] + ": " + Sanitizer.SanitizeCommentOpt(lastResponse, ref shortened);
+                    ChangeStatus = $"<div data-toggle=\"tooltip\" title=\"{tooltip}\">{userConfig.GetText("implementation_error")}</div>";
+                }
+                else
+                {
+                    ChangeStatus = userConfig.GetText("implementation_error");
+                }
+                await InvokeAsync(StateHasChanged);
+                if(firstErrorMessage)
+                {
+                    firstErrorMessage = false;
+                    DisplayMessageInUi(null, userConfig.GetText("implementation_error"), userConfig.ModRolloutErrorText, true);
+                }
             }
         }
     }

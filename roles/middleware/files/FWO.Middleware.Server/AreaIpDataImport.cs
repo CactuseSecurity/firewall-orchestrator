@@ -5,24 +5,15 @@ using FWO.Api.Client.Queries;
 using FWO.Api.Data;
 using FWO.Config.Api;
 using System.Text.Json;
-using NetTools;
-using System.Reactive.Subjects;
 
 namespace FWO.Middleware.Server
 {
     /// <summary>
     /// Class handling the Area IP Data Import
     /// </summary>
-    public class AreaIpDataImport : DataImportBase
+    public class AreaIpDataImport(ApiConnection apiConnection, GlobalConfig globalConfig) : DataImportBase(apiConnection, globalConfig)
     {
         private List<ModellingNetworkArea> existingAreas = [];
-
-
-        /// <summary>
-        /// Constructor for Area IP Data Import
-        /// </summary>
-        public AreaIpDataImport(ApiConnection apiConnection, GlobalConfig globalConfig) : base(apiConnection, globalConfig)
-        { }
 
         /// <summary>
         /// Run the Area IP Data Import
@@ -111,7 +102,7 @@ namespace FWO.Middleware.Server
             Log.WriteInfo("Import Area IP Data", $"Imported {successCounter} areas successfully, {failCounter} areas failed. Deleted {deleteCounter} areas, {deleteFailCounter} failed.");
         }
 
-        private ModellingImportNwData ConvertNwDataToRanges(ModellingImportNwData nwData)
+        private static ModellingImportNwData ConvertNwDataToRanges(ModellingImportNwData nwData)
         {
             ModellingImportNwData result = new();
 
@@ -123,7 +114,7 @@ namespace FWO.Middleware.Server
             return result;
         }
 
-        private ModellingImportAreaData ConvertAreaToRanges(ModellingImportAreaData area)
+        private static ModellingImportAreaData ConvertAreaToRanges(ModellingImportAreaData area)
         {
             ModellingImportAreaData newArea = new(area.Name, area.IdString);
             foreach (ModellingImportAreaIpData ipData in area.IpData)
@@ -140,10 +131,7 @@ namespace FWO.Middleware.Server
             {
                 Name = importAreaIpData.Name,
             };
-
             (ipData.Ip, ipData.IpEnd) = IpOperations.SplitIpToRange(importAreaIpData.Ip);
-
-
             return ipData;
         }
 

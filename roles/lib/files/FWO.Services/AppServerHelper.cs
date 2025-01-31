@@ -32,27 +32,40 @@ namespace FWO.Services
             }
             if (string.IsNullOrEmpty(appServer.Name) || overwriteExistingNames)
             {
-                appServer.Name = ConstructAppServerName(appServer, namingConvention);
+                appServer.Name = ConstructAppServerName(appServer, namingConvention, overwriteExistingNames);
             }
             return appServer.Name;
         }
 
-        public static string ConstructAppServerName(ModellingAppServer appServer, ModellingNamingConvention namingConvention)
+        public static string ConstructAppServerName(ModellingAppServer appServer, ModellingNamingConvention namingConvention, bool overwriteExistingNames=false)
         {
-            return string.IsNullOrEmpty(appServer.Name) ? namingConvention.AppServerPrefix + DisplayBase.DisplayIp(appServer.Ip, appServer.IpEnd) :
-                ( char.IsLetter(appServer.Name[0]) ? appServer.Name : namingConvention.AppServerPrefix + appServer.Name );
+            return string.IsNullOrEmpty(appServer.Name) || overwriteExistingNames ? GetPrefix(appServer, namingConvention) + DisplayBase.DisplayIp(appServer.Ip, appServer.IpEnd) :
+                ( char.IsLetter(appServer.Name[0]) ? appServer.Name : GetPrefix(appServer, namingConvention) + appServer.Name );
         }
 
-        public static async Task<bool> CheckAppServerCanBeWritten(ApiConnection apiConnection, ModellingAppServer appServer)
+        private static string GetPrefix(ModellingAppServer appServer, ModellingNamingConvention namingConvention)
+        {
+            return IpOperations.GetObjectType(appServer.Ip, appServer.IpEnd) switch
+            {
+                ObjectType.Host => namingConvention.AppServerPrefix ?? "",
+                ObjectType.Network => namingConvention.NetworkPrefix ?? "",
+                ObjectType.IPRange => namingConvention.IpRangePrefix ?? "",
+                _ => ""
+            };
+        }
+
+        public static async Task<(bool, string)> CheckAppServerCanBeWritten(ApiConnection apiConnection, ModellingAppServer appServer)
         {
             var Variables = new
             {
                 appId = appServer.AppId,
-                ip = appServer.Ip,
-                ipEnd = appServer.IpEnd
+                ip = appServer.Ip.IpAsCidr(),
+                ipEnd = appServer.IpEnd.IpAsCidr()
             };
             List<ModellingAppServer> ExistingAppServers = await apiConnection.SendQueryAsync<List<ModellingAppServer>>(ModellingQueries.getAppServer, Variables);
-            return ExistingAppServers == null || ExistingAppServers.Count == 0 || Prio(appServer.ImportSource) >= Prio(ExistingAppServers.First().ImportSource);
+            bool canBeWritten = ExistingAppServers == null || ExistingAppServers.Count == 0 || 
+                (appServer.ImportSource != ExistingAppServers.First().ImportSource && Prio(appServer.ImportSource) >= Prio(ExistingAppServers.First().ImportSource));
+            return (canBeWritten, canBeWritten ? "" : ExistingAppServers!.First().Name);
         }
 
         private static int Prio(string importSource)

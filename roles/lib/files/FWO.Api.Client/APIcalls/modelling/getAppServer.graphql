@@ -1,7 +1,7 @@
 query getAppServer (
   $appId: Int!
-  $ip: String!
-  $ipEnd: String!
+  $ip: cidr!
+  $ipEnd: cidr!
   ){
   owner_network (where: { owner_id: { _eq: $appId }, nw_type: { _eq: 10 }, ip: { _eq: $ip }, ip_end: { _eq: $ipEnd } } order_by: { name: asc }){
     ...appServerDetails

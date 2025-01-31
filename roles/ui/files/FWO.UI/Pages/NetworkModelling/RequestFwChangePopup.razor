@@ -132,7 +132,7 @@
     {
         try
         {
-            if (!await GetActTicketStatus())
+            if (!await GetActTicketStatus() && extStateHandler != null)
             {
                 ModellingAppZoneHandler appZoneHandler = new(apiConnection, userConfig, SelectedApp, DisplayMessageInUi);
                 await appZoneHandler.UpsertAppZone();
@@ -170,11 +170,12 @@
 
     private void SetActTicketStatus(WfTicket intTicket)
     {
-        intTicket.UpdateCidrsInTaskElements();
-        TaskList = intTicket.Tasks.OrderBy(t => t.TaskNumber).ToList();
-        int doneStateId = (int)(extStateHandler.GetInternalStateId(ExtStates.ExtReqDone) ?? 999);
-        int rejectedStateId = (int)(extStateHandler.GetInternalStateId(ExtStates.ExtReqRejected) ?? 999);
-        RequestInProcess = (TaskList.FirstOrDefault(t => t.StateId < doneStateId && t.StateId < rejectedStateId) != null);
+        if(extStateHandler!= null)
+        {
+            intTicket.UpdateCidrsInTaskElements();
+            TaskList = intTicket.Tasks.OrderBy(t => t.TaskNumber).ToList();
+            RequestInProcess = (TaskList.FirstOrDefault(t => extStateHandler.IsInProgress(t.StateId)) != null);
+        }
     }
 
     private string DisplayTaskDetails(WfReqTask task)
@@ -274,7 +275,7 @@
         {
             TicketCreator ticketCreator = new(apiConnection, userConfig, authenticationStateTask!.Result.User, middlewareClient);
             WfTicket intTicket = await ticketCreator.CreateTicket(SelectedApp, TaskList,
-                "Rollout modelled connections for: " + SelectedApp.Name, extStateHandler.GetInternalStateId(ExtStates.ExtReqInitialized), "");
+                "Rollout modelled connections for: " + SelectedApp.Name, extStateHandler?.GetInternalStateId(ExtStates.ExtReqInitialized), "");
             if (intTicket != null)
             {
                 RequestInProcess = true;

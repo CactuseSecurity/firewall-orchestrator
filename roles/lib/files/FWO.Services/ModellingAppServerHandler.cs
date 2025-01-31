@@ -28,6 +28,7 @@ namespace FWO.Services
             try
             {
                 (ActAppServer.Ip, ActAppServer.IpEnd) = IpOperations.SplitIpToRange(ActAppServer.Ip);
+                ActAppServer.AppId = Application.Id;
                 if (ActAppServer.Sanitize())
                 {
                    DisplayMessageInUi(null, userConfig.GetText("save_app_server"), userConfig.GetText("U0001"), true);
@@ -77,9 +78,10 @@ namespace FWO.Services
                 return false;
             }
             
-            if (!await AppServerHelper.CheckAppServerCanBeWritten(apiConnection, ActAppServer))
+            (bool canBeWritten, string ExistingAppServerName) = await AppServerHelper.CheckAppServerCanBeWritten(apiConnection, ActAppServer);
+            if (!canBeWritten)
             {
-                DisplayMessageInUi(null, userConfig.GetText("edit_app_server"), userConfig.GetText("E9010"), true);
+                DisplayMessageInUi(null, userConfig.GetText("edit_app_server"), $"{userConfig.GetText("E9010")} {ExistingAppServerName}", true);
                 return false;
             }
             return true;

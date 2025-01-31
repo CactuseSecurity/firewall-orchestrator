@@ -5240,9 +5240,9 @@ INSERT INTO txt VALUES ('H5643', 'German',  'DNS-Suche: Wenn gesetzt, werden App
 INSERT INTO txt VALUES ('H5643', 'English', 'DNS Look-up: When set, App Server names are resolved from DNS and are not manually editable. If no name can be resolved, it is constructed from prefix and IP address.');
 INSERT INTO txt VALUES ('H5644', 'German',  'Existierende Namen &uuml;berschreiben: Wenn gesetzt, werden bereits existierende Namen auch &uuml;berschrieben, wenn sie nicht im DNS aufgel&ouml;st werden k&ouml;nnen.');
 INSERT INTO txt VALUES ('H5644', 'English', 'Overwrite Existing Names: When set, existing App Server names are overwritten, even if they cannot be resolved from DNS.');
-INSERT INTO txt VALUES ('H5645', 'German',  'Namenspr&auml;fix IP-Netzwerk: Der Name der IP-Netzwerke wird er aus Namenspr&auml;fix + Ip-Netzwerkadresse zusammengesetzt.');
+INSERT INTO txt VALUES ('H5645', 'German',  'Namenspr&auml;fix IP-Netzwerk: Der Name der IP-Netzwerke wird aus diesem Namenspr&auml;fix + Ip-Netzwerkadresse zusammengesetzt.');
 INSERT INTO txt VALUES ('H5645', 'English', 'Network Name Prefix: The name of IP networks will be constructed by this prefix + network address.');
-INSERT INTO txt VALUES ('H5646', 'German',  'Namenspr&auml;fix IP-Bereich: Der Name der IP-Bereiche wird er aus Namenspr&auml;fix + Ip-Bereich zusammengesetzt.');
+INSERT INTO txt VALUES ('H5646', 'German',  'Namenspr&auml;fix IP-Bereich: Der Name der IP-Bereiche wird aus diesem Namenspr&auml;fix + Ip-Bereich zusammengesetzt.');
 INSERT INTO txt VALUES ('H5646', 'English', 'IP Range Name Prefix: The name of IP ranges will be constructed by this prefix + Ip address range.');
 
 INSERT INTO txt VALUES ('H5701', 'German',  'Die in der Datenbank hinterlegten sprachabh&auml;ngigen Texte k&ouml;nnen individuell &uuml;berschrieben werden.

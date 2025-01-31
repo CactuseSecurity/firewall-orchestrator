@@ -173,7 +173,19 @@
         workInProgress = true;
         if (AppServerHandler != null)
         {
-            AppServerHandler.ActAppServer.Name = await AppServerHelper.ConstructAppServerNameFromDns(AppServerHandler.ActAppServer, namingConvention, userConfig.OverwriteExistingNames);
+            try
+            {
+                ModellingAppServer tmpAppServer = new(AppServerHandler.ActAppServer);
+                if(tmpAppServer.IpEnd == "")
+                {
+                    (tmpAppServer.Ip, tmpAppServer.IpEnd) = IpOperations.SplitIpToRange(AppServerHandler.ActAppServer.Ip);
+                }
+                AppServerHandler.ActAppServer.Name = await AppServerHelper.ConstructAppServerNameFromDns(tmpAppServer, namingConvention, true);
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("dns_lookup"), "", true);
+            }
         }
         workInProgress = false;
     }

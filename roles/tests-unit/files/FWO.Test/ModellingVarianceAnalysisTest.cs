@@ -54,7 +54,6 @@ namespace FWO.Test
         [SetUp]
         public void Initialize()
         {
-            extStateHandler.Init().Wait();
             varianceAnalysis = new (varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
         }
 

@@ -3,6 +3,7 @@ using System.Net;
 using System.Numerics;
 using System.Net.Sockets;
 using System.Text.RegularExpressions;
+using NetTools;
 
 namespace FWO.Basics
 {
@@ -136,6 +137,11 @@ namespace FWO.Basics
 
             return false;
         }
+
+        public static string IpAsCidr(this string ip)
+		{
+			return IPAddressRange.Parse(ip).ToCidrString();
+		}
 
         public static (string start, string end) CidrToRangeString(this string cidr)
         {

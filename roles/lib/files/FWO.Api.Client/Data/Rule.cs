@@ -92,6 +92,9 @@ namespace FWO.Api.Data
         [JsonProperty("rulebase_id"), JsonPropertyName("rulebase_id")]
         public int RulebaseId { get; set; }
 
+        [JsonProperty("rulebase_links"), JsonPropertyName("rulebase_links")]
+        public RulebaseLink? NextRulebase { get; set; }
+
         public int DisplayOrderNumber { get; set; }
         public bool Certified { get; set; }
         public string DeviceName { get; set; } = "";

@@ -1,5 +1,6 @@
 ﻿using System.Text.Json.Serialization; 
 using Newtonsoft.Json; 
+using FWO.Api.Data;
 
 namespace FWO.Api.Client
 {
@@ -34,8 +35,8 @@ namespace FWO.Api.Client
     // }
     // public class DeviceLastHit
     {
-        [JsonProperty("rulebase_on_gateways"), JsonPropertyName("rulebase_on_gateways")]
-        public List<RulebaseOnGatewaysLastHit> RulebasesOnGateway {get; set;} = [];
+        [JsonProperty("rulebase_link"), JsonPropertyName("rulebase_link")]
+        public List<RulebaseLink> RulebasesOnGateway {get; set;} = [];
     }
     public class RulebaseOnGatewaysLastHit
     {

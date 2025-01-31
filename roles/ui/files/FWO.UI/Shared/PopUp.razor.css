@@ -38,3 +38,10 @@
     overflow-x: hidden;
     
 }
+
+.popup-body-fs {
+    height: fit-content;
+    box-sizing: content-box;
+    height: calc(100vh - 150px);
+    overflow-y: scroll;
+}

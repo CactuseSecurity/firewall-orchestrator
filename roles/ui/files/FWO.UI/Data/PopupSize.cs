@@ -2,6 +2,7 @@
 
 namespace FWO.Ui.Services
 {
+    [Obsolete("The Enum that do not have the *custom* name prefix will be deprecated soon!")]
     public enum PopupSize
     {
         FullScreen,

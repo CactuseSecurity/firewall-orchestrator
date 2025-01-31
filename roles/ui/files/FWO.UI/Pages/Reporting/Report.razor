@@ -108,7 +108,7 @@
                 @if (currentReport != null)
                 {
                     @switch (currentReport.ReportType)
-                    {
+                    {   // removing @bind-SelectedRules="selectedItemsRuleReportTable" from the RulesReport component
                         case ReportType.Rules:
                         case ReportType.ResolvedRules:
                         case ReportType.ResolvedRulesTech:
@@ -116,8 +116,7 @@
                         case ReportType.UnusedRules:
                         case ReportType.NatRules:
                         case ReportType.AppRules:
-                            <RulesReport Managements="currentReport.ReportData.ManagementData" SelectedReportType="actReportFilters.ReportType" RulesPerPage="rulesPerPage" 
-                                @bind-SelectedRules="selectedItemsRuleReportTable" />
+                            <RulesReport Managements="currentReport.ReportData.ManagementData" SelectedReportType="actReportFilters.ReportType" RulesPerPage="rulesPerPage" />
                             break;
 
                         case ReportType.Changes:
@@ -155,11 +154,11 @@
     </div>
 
     @* ==== RIGHT SIDEBAR ==== *@
-    <RightSidebar @bind-Width="sidebarRightWidth" Tabset="rsbTabset" AnchorNavToRSB="anchorNavToRSB" CurrentReport="currentReport"
+    @* <RightSidebar @bind-Width="sidebarRightWidth" TabSet="rsbTabset" AnchorNavToRSB="anchorNavToRSB" CurrentReport="currentReport"
         @bind-SelectedRules="selectedItemsRuleReportTable" 
         AllTabVisible="(tenantFilteringAllowed && actReportFilters.SelectedTenant == null)"
         SelectedReportType = "actReportFilters.ReportType"/>
-    <AnchorNavToRSB @ref="anchorNavToRSB" TabSet="rsbTabset" />
+    <AnchorNavToRSB @ref="anchorNavToRSB" TabSet="rsbTabset" /> *@
 }
 
 @* ==== POPUPS ==== *@

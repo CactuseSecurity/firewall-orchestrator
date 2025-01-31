@@ -1,0 +1,55 @@
+fragment rulebaseOverview on rulebase {
+  id
+  uid
+  name
+}
+fragment rulebaseLinkRecursive on rulebase_link {
+  rulebase {
+    ...rulebaseOverview
+    rules(order_by: {rule_num_numeric: asc}) {
+      ...ruleOverview
+      rulebase_links {
+        rulebase {
+          ...rulebaseOverview
+          rules(order_by: {rule_num_numeric: asc}) {
+            ...ruleOverview
+            rulebase_links {
+              rulebase {
+                ...rulebaseOverview
+                rules(order_by: {rule_num_numeric: asc}) {
+                  ...ruleOverview
+                  rulebase_links {
+                    rulebase {
+                      ...rulebaseOverview
+                      rules(order_by: {rule_num_numeric: asc}) {
+                        ...ruleOverview
+                        rulebase_links {
+                          rulebase {
+                            ...rulebaseOverview
+                            rules(order_by: {rule_num_numeric: asc}) {
+                              ...ruleOverview
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+
+{query.OpenRulesTable}
+                                                    {limitOffsetString}
+                                                    where: {{ access_rule: {{_eq: true}} {query.RuleWhereStatement} }} 
+                                                    order_by: {{ rule_num_numeric: asc }} )
+                                                    {{
+                                                        mgm_id: mgm_id
+                                                        ...{(filter.Detailed ? "ruleDetails" : "ruleOverview")}
+                                                }}

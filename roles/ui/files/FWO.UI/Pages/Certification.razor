@@ -23,7 +23,7 @@
     <div class="btn-group sticky-marker p-3 w-100">
         @if (processing == false)
         {
-            <button type="button" class="btn btn-sm btn-primary" @onclick="() => GenerateRecertificationReport()">@(userConfig.GetText("load_rules"))</button>
+            <button type="button" class="btn btn-sm btn-primary" @onclick="GenerateRecertificationReport">@userConfig.GetText("load_rules")</button>
         }
         else
         {
@@ -93,8 +93,8 @@
         }
     </div>
     <hr />
-    <RulesReport Recertification="true" ReadonlyMode="readonlyMode" Managements="managementsReport" RulesPerPage="rulesPerPage" 
-        @bind-SelectedRules="selectedRules" SelectedReportType="ReportType.Recertification"/>
+    @* <RulesReport Recertification="true" ReadonlyMode="readonlyMode" Managements="managementsReport" RulesPerPage="rulesPerPage" 
+        @bind-SelectedRules="selectedRules" SelectedReportType="ReportType.Recertification"/> *@
 </div>
 
 <PopUp Title="@(userConfig.GetText("add_comment"))" Show="@AddCommentMode" Size=PopupSize.Large OnClose="() => AddCommentMode = false">
@@ -319,13 +319,14 @@
                 if (device.ContainsRules())
                 {
                     rulesFound = true;
-                    foreach (var rb in device.Rulebases)
-                    {
-                        foreach (var rule in rb.Rulebase.RuleMetadata[0].Rules!)
-                        {
-                            rule.Metadata.UpdateRecertPeriods(userConfig.RecertificationPeriod, userConfig.RecertificationNoticePeriod);
-                        }
-                    }
+                    // TODO: implement recertification logic
+                    // foreach (var rb in device.Rulebases)
+                    // {
+                    //    foreach (var rule in rb.Rulebase.RuleMetadata[0].Rules!)
+                    //    {
+                    //        rule.Metadata.UpdateRecertPeriods(userConfig.RecertificationPeriod, userConfig.RecertificationNoticePeriod);
+                    //    }
+                    // }
                 }
             }
         }
@@ -389,17 +390,18 @@
             {
                 if(device.ContainsRules())
                 {
-                    foreach (var rb in device.Rulebases)
-                    {
-                        foreach (var rule in rb.Rulebase.RuleMetadata[0].Rules)
-                        {
-                            if(rule.Metadata.Recert || rule.Metadata.ToBeRemoved)
-                            {
-                                // rule.RulebaseId = Rulebase.Id;
-                                Certifications.Add(rule);
-                            }
-                        }
-                    }
+                    // TODO: implement recertification logic
+                    // foreach (var rb in device.Rulebases)
+                    // {
+                    //     foreach (var rule in rb.Rulebase.RuleMetadata[0].Rules)
+                    //     {
+                    //         if(rule.Metadata.Recert || rule.Metadata.ToBeRemoved)
+                    //         {
+                    //             // rule.RulebaseId = Rulebase.Id;
+                    //             Certifications.Add(rule);
+                    //         }
+                    //     }
+                    // }
                 }
             }
         }

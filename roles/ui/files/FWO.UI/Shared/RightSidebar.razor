@@ -40,12 +40,12 @@
                             </div>
                             <div class="mt-2">
                                 <ObjectGroupCollection PageSize="PageSize" FetchObjects="FetchContent" Recert="Recert" Tab="RsbTab.report" InputDataType="ManagementReport"
-                                Data="CurrentReport.ReportData.ManagementData.Where(m => (m.Devices.Where(d => d.Rules != null && d.Rules.Count() > 0).Count() > 0))"
-                                NameExtractor="man => man.Name"
-                                NetworkObjectExtractor="man => man.ReportObjects"
-                                NetworkServiceExtractor="man => man.ReportServices"
-                                NetworkUserExtractor="man => man.ReportUsers"
-                                Reload="CurrentReport.ReportType.IsModellingReport()" />
+                                    Data="CurrentReport.ReportData.ManagementData.Where(m => (m.Devices.Where(d => d.RbLink.NextRulebase.Rules != null && d.RbLink.NextRulebase.Rules.Count() > 0).Count() > 0))"
+                                    NameExtractor="man => man.Name"
+                                    NetworkObjectExtractor="man => man.ReportObjects"
+                                    NetworkServiceExtractor="man => man.ReportServices"
+                                    NetworkUserExtractor="man => man.ReportUsers"
+                                    Reload="CurrentReport.ReportType.IsModellingReport()" />
                             </div>
                         </Tab>
                         <Tab Title="@(userConfig.GetText("rule"))">
@@ -104,7 +104,6 @@
 
     [Parameter]
     public EventCallback<int> WidthChanged { get; set; }
-
 
     [Parameter]
     public ReportBase? CurrentReport { get; set; }

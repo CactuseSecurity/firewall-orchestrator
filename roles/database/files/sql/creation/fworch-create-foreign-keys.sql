@@ -99,9 +99,11 @@ ALTER TABLE "rule"
 Alter table "rule" add constraint "rule_metadata_dev_id_rule_uid_f_key"
   foreign key ("dev_id", "rule_uid", "rulebase_id") references "rule_metadata" ("dev_id", "rule_uid", "rulebase_id") on update restrict on delete cascade;
 Alter table "rule" add constraint "fk_rule_rulebase_id" foreign key ("rulebase_id") references "rulebase" ("id") on update restrict on delete cascade;
+Alter table "rulebase" add CONSTRAINT fk_rulebase_mgm_id foreign key ("mgm_id") references "management" ("mgm_id") on update restrict on delete cascade;
 Alter table "rulebase_link" add constraint "fk_rulebase_link_to_rulebase_id" foreign key ("to_rulebase_id") references "rulebase" ("id") on update restrict on delete cascade;
 Alter table "rulebase_link" add constraint "fk_rulebase_link_from_rule_id" foreign key ("from_rule_id") references "rule" ("rule_id") on update restrict on delete cascade;
 Alter table "rulebase_link" add constraint "fk_rulebase_link_link_type" foreign key ("link_type") references "stm_link_type" ("id") on update restrict on delete cascade;
+Alter table "rulebase_link" add constraint "fk_rulebase_link_gw_id" foreign key ("gw_id") references "device" ("dev_id") on update restrict on delete cascade;
 
 -- Alter table "rule" add constraint "rule_metadata_rulebase_id_rule_uid_f_key"
 --   foreign key ("rulebase_id", "rule_uid", "rulebase_id") references "rule_metadata" ("rulebase_id", "rule_uid", "rulebase_id") on update restrict on delete cascade;
@@ -125,7 +127,6 @@ Alter table "rule_enforced_on_gateway" add CONSTRAINT fk_rule_enforced_on_gatewa
 Alter table "rule_enforced_on_gateway" add CONSTRAINT fk_rule_enforced_on_gateway_device_dev_id foreign key ("dev_id") references "device" ("dev_id") on update restrict on delete cascade;
 Alter table "rule_enforced_on_gateway" add CONSTRAINT fk_rule_enforced_on_gateway_created_import_control_control_id 	foreign key ("created") references "import_control" ("control_id") on update restrict on delete cascade;
 Alter table "rule_enforced_on_gateway" add CONSTRAINT fk_rule_enforced_on_gateway_removed_import_control_control_id foreign key ("removed") references "import_control" ("control_id") on update restrict on delete cascade;
-Alter table "rulebase" add CONSTRAINT fk_rulebase_mgm_id foreign key ("mgm_id") references "management" ("mgm_id") on update restrict on delete cascade;
 
 Alter table "rule_nwobj_resolved" add foreign key ("obj_id") references "object" ("obj_id") on update restrict on delete cascade;
 Alter table "rule_nwobj_resolved" add foreign key ("rule_id") references "rule" ("rule_id") on update restrict on delete cascade;

@@ -128,6 +128,23 @@ namespace FWO.Report
 
         public abstract string SetDescription();
 
+        // public abstract int GetRuleCount(RulebaseLink rbLink);
+
+        public int GetRuleCount (RulebaseLink? rbLink) {
+            if (rbLink != null)
+            {
+                foreach (var rule in rbLink.NextRulebase.Rules)
+                {
+                    if (string.IsNullOrEmpty(rule.SectionHeader))
+                    {
+                        return 1 + GetRuleCount(rule.NextRulebase);
+                    }
+                }
+                return rbLink.NextRulebase.Rules.Length;
+            }
+            return 0;
+        }
+
         public static ReportBase ConstructReport(ReportTemplate reportFilter, UserConfig userConfig)
         {
             DynGraphqlQuery query = Compiler.Compile(reportFilter);

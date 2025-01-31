@@ -230,11 +230,13 @@ Create table IF NOT EXISTS "rulebase_link"
 );
 
 Alter table "rulebase_link" drop constraint IF EXISTS "fk_rulebase_link_to_rulebase_id";
+Alter table "rulebase_link" add constraint "fk_rulebase_link_to_rulebase_id" foreign key ("to_rulebase_id") references "rulebase" ("id") on update restrict on delete cascade;
 Alter table "rulebase_link" drop constraint IF EXISTS "fk_rulebase_link_from_rule_id";
+Alter table "rulebase_link" add constraint "fk_rulebase_link_from_rule_id" foreign key ("from_rule_id") references "rule" ("rule_id") on update restrict on delete cascade;
 Alter table "rulebase_link" drop constraint IF EXISTS "fk_rulebase_link_link_type";
 Alter table "rulebase_link" add constraint "fk_rulebase_link_link_type" foreign key ("link_type") references "stm_link_type" ("id") on update restrict on delete cascade;
-Alter table "rulebase_link" add constraint "fk_rulebase_link_to_rulebase_id" foreign key ("to_rulebase_id") references "rulebase" ("id") on update restrict on delete cascade;
-Alter table "rulebase_link" add constraint "fk_rulebase_link_from_rule_id" foreign key ("from_rule_id") references "rule" ("rule_id") on update restrict on delete cascade;
+Alter table "rulebase_link" drop constraint IF EXISTS "fk_rulebase_gw_id";
+Alter table "rulebase_link" add constraint "fk_rulebase_link_gw_id" foreign key ("gw_id") references "device" ("dev_id") on update restrict on delete cascade;
 
 ALTER TABLE "rulebase_link"
     DROP CONSTRAINT IF EXISTS "fk_rulebase_link_created_import_control_control_id" CASCADE;
@@ -548,6 +550,14 @@ ALTER TABLE "rule_service" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
 ALTER TABLE "rule_enforced_on_gateway" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
 ALTER TABLE "rulebase" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
 ALTER TABLE "rulebase_link" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
+
+
+-- adding indices
+
+Create index IF NOT EXISTS idx_rulebase_link01 on rulebase_link (to_rulebase_id);
+Create index IF NOT EXISTS idx_rulebase_link02 on rulebase_link (from_rule_id);
+Create index IF NOT EXISTS idx_rulebase_link03 on rulebase_link (gw_id);
+Create index IF NOT EXISTS idx_rule_08 on rule (rulebase_id);
 
 
 -- adding labels (simple version without mapping tables and without foreign keys)

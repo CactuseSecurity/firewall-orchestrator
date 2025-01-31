@@ -94,7 +94,7 @@ namespace FWO.Report
 
         public void AssignRuleNumbers()
         {
-            foreach (var device in Devices)
+            foreach (DeviceReport device in Devices)
             {
                 device.AssignRuleNumbers();
             }

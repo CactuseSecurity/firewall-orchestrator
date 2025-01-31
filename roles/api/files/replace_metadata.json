@@ -4604,6 +4604,18 @@
                   }
                 },
                 {
+                  "name": "rulebase_links",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "gw_id",
+                      "table": {
+                        "name": "rulebase_link",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                },
+                {
                   "name": "rules_with_owner",
                   "using": {
                     "manual_configuration": {
@@ -16281,6 +16293,12 @@
                 "schema": "public"
               },
               "object_relationships": [
+                {
+                  "name": "device",
+                  "using": {
+                    "foreign_key_constraint_on": "gw_id"
+                  }
+                },
                 {
                   "name": "importControlByRemoved",
                   "using": {

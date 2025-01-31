@@ -26,58 +26,55 @@ namespace FWO.Report
 
                 foreach (var device in managementReport.Devices)
                 {
-                    foreach (var rb in device.Rulebases)
+                    if (device.RbLink != null && device.RbLink.NextRulebase != null && device.RbLink.NextRulebase.Rules.Length > 0)
                     {
-                        if (rb.Rulebase.RuleMetadata[0].Rules != null && rb.Rulebase.RuleMetadata[0].Rules.Length > 0)
-                        {
-                            report.AppendLine($"<h4>{device.Name}</h4>");
-                            report.AppendLine("<table>");
-                            report.AppendLine("<tr>");
-                            report.AppendLine($"<th>{userConfig.GetText("number")}</th>");
-                            report.AppendLine($"<th>{userConfig.GetText("name")}</th>");
-                            report.AppendLine($"<th>{userConfig.GetText("source_zone")}</th>");
-                            report.AppendLine($"<th>{userConfig.GetText("source")}</th>");
-                            report.AppendLine($"<th>{userConfig.GetText("destination_zone")}</th>");
-                            report.AppendLine($"<th>{userConfig.GetText("destination")}</th>");
-                            report.AppendLine($"<th>{userConfig.GetText("services")}</th>");
-                            report.AppendLine($"<th>{userConfig.GetText("trans_source")}</th>");
-                            report.AppendLine($"<th>{userConfig.GetText("trans_destination")}</th>");
-                            report.AppendLine($"<th>{userConfig.GetText("trans_services")}</th>");
-                            report.AppendLine($"<th>{userConfig.GetText("enabled")}</th>");
-                            report.AppendLine($"<th>{userConfig.GetText("uid")}</th>");
-                            report.AppendLine($"<th>{userConfig.GetText("comment")}</th>");
-                            report.AppendLine("</tr>");
+                        report.AppendLine($"<h4>{device.Name}</h4>");
+                        report.AppendLine("<table>");
+                        report.AppendLine("<tr>");
+                        report.AppendLine($"<th>{userConfig.GetText("number")}</th>");
+                        report.AppendLine($"<th>{userConfig.GetText("name")}</th>");
+                        report.AppendLine($"<th>{userConfig.GetText("source_zone")}</th>");
+                        report.AppendLine($"<th>{userConfig.GetText("source")}</th>");
+                        report.AppendLine($"<th>{userConfig.GetText("destination_zone")}</th>");
+                        report.AppendLine($"<th>{userConfig.GetText("destination")}</th>");
+                        report.AppendLine($"<th>{userConfig.GetText("services")}</th>");
+                        report.AppendLine($"<th>{userConfig.GetText("trans_source")}</th>");
+                        report.AppendLine($"<th>{userConfig.GetText("trans_destination")}</th>");
+                        report.AppendLine($"<th>{userConfig.GetText("trans_services")}</th>");
+                        report.AppendLine($"<th>{userConfig.GetText("enabled")}</th>");
+                        report.AppendLine($"<th>{userConfig.GetText("uid")}</th>");
+                        report.AppendLine($"<th>{userConfig.GetText("comment")}</th>");
+                        report.AppendLine("</tr>");
 
-                            foreach (var rule in rb.Rulebase.RuleMetadata[0].Rules)
+                        foreach (var rule in device.RbLink.NextRulebase.Rules)
+                        {
+                            if (string.IsNullOrEmpty(rule.SectionHeader))
                             {
-                                if (string.IsNullOrEmpty(rule.SectionHeader))
-                                {
-                                    report.AppendLine("<tr>");
-                                    report.AppendLine($"<td>{RuleDisplayBase.DisplayNumber(rule)}</td>");
-                                    report.AppendLine($"<td>{RuleDisplayBase.DisplayName(rule)}</td>");
-                                    report.AppendLine($"<td>{RuleDisplayBase.DisplaySourceZone(rule)}</td>");
-                                    report.AppendLine($"<td>{ruleDisplay.DisplaySource(rule, OutputLocation.export, ReportType, chapterNumber)}</td>");
-                                    report.AppendLine($"<td>{RuleDisplayBase.DisplayDestinationZone(rule)}</td>");
-                                    report.AppendLine($"<td>{ruleDisplay.DisplayDestination(rule, OutputLocation.export, ReportType, chapterNumber)}</td>");
-                                    report.AppendLine($"<td>{ruleDisplay.DisplayServices(rule, OutputLocation.export, ReportType, chapterNumber)}</td>");
-                                    report.AppendLine($"<td>{ruleDisplay.DisplayTranslatedSource(rule, OutputLocation.export, chapterNumber)}</td>");
-                                    report.AppendLine($"<td>{ruleDisplay.DisplayTranslatedDestination(rule, OutputLocation.export, chapterNumber)}</td>");
-                                    report.AppendLine($"<td>{ruleDisplay.DisplayTranslatedService(rule, OutputLocation.export, chapterNumber)}</td>");
-                                    report.AppendLine($"<td>{NatRuleDisplayHtml.DisplayEnabled(rule, OutputLocation.export)}</td>");
-                                    report.AppendLine($"<td>{RuleDisplayBase.DisplayUid(rule)}</td>");
-                                    report.AppendLine($"<td>{RuleDisplayBase.DisplayComment(rule)}</td>");
-                                    report.AppendLine("</tr>");
-                                }
-                                else
-                                {
-                                    report.AppendLine("<tr>");
-                                    report.AppendLine($"<td style=\"background-color: #f0f0f0;\" colspan=\"{ColumnCount}\">{rule.SectionHeader}</td>");
-                                    report.AppendLine("</tr>");
-                                }
+                                report.AppendLine("<tr>");
+                                report.AppendLine($"<td>{RuleDisplayBase.DisplayNumber(rule)}</td>");
+                                report.AppendLine($"<td>{RuleDisplayBase.DisplayName(rule)}</td>");
+                                report.AppendLine($"<td>{RuleDisplayBase.DisplaySourceZone(rule)}</td>");
+                                report.AppendLine($"<td>{ruleDisplay.DisplaySource(rule, OutputLocation.export, ReportType, chapterNumber)}</td>");
+                                report.AppendLine($"<td>{RuleDisplayBase.DisplayDestinationZone(rule)}</td>");
+                                report.AppendLine($"<td>{ruleDisplay.DisplayDestination(rule, OutputLocation.export, ReportType, chapterNumber)}</td>");
+                                report.AppendLine($"<td>{ruleDisplay.DisplayServices(rule, OutputLocation.export, ReportType, chapterNumber)}</td>");
+                                report.AppendLine($"<td>{ruleDisplay.DisplayTranslatedSource(rule, OutputLocation.export, chapterNumber)}</td>");
+                                report.AppendLine($"<td>{ruleDisplay.DisplayTranslatedDestination(rule, OutputLocation.export, chapterNumber)}</td>");
+                                report.AppendLine($"<td>{ruleDisplay.DisplayTranslatedService(rule, OutputLocation.export, chapterNumber)}</td>");
+                                report.AppendLine($"<td>{NatRuleDisplayHtml.DisplayEnabled(rule, OutputLocation.export)}</td>");
+                                report.AppendLine($"<td>{RuleDisplayBase.DisplayUid(rule)}</td>");
+                                report.AppendLine($"<td>{RuleDisplayBase.DisplayComment(rule)}</td>");
+                                report.AppendLine("</tr>");
                             }
-                            report.AppendLine("</table>");
-                            report.AppendLine("<hr>");
+                            else
+                            {
+                                report.AppendLine("<tr>");
+                                report.AppendLine($"<td style=\"background-color: #f0f0f0;\" colspan=\"{ColumnCount}\">{rule.SectionHeader}</td>");
+                                report.AppendLine("</tr>");
+                            }
                         }
+                        report.AppendLine("</table>");
+                        report.AppendLine("<hr>");
                     }
                 }
                 // show all objects used in this management's rules

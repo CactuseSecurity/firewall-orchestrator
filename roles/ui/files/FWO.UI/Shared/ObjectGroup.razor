@@ -445,7 +445,7 @@
                                 {
                                     Rule? ruleUpdated = managementsUpdate.ManagementData.SelectMany(
                                         m => m.Devices).SelectMany(
-                                            d => d.Rulebases.Length>0? d.Rulebases[0].Rulebase.RuleMetadata[0].Rules ?? new Rule[0]: []).FirstOrDefault();
+                                            d => d.RbLink.NextRulebase.Rules.Length>0? d.RbLink.NextRulebase.Rules ?? new Rule[0]: []).FirstOrDefault();
                                     if (ruleUpdated != null)
                                     {
                                         ruleUpdated.RulebaseName = rule.RulebaseName;

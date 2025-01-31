@@ -1,12 +1,10 @@
 ﻿using System.Text.Json.Serialization; 
 using Newtonsoft.Json;
-using FWO.Basics;
 using FWO.Api.Data;
-using Org.BouncyCastle.Crypto.Engines;
 
 namespace FWO.Report
 {
-    public class DeviceReport // : Device
+    public class DeviceReport
     {
         [JsonProperty("id"), JsonPropertyName("id")]
         public int Id { get; set; }
@@ -14,18 +12,14 @@ namespace FWO.Report
         [JsonProperty("name"), JsonPropertyName("name")]
         public string? Name { get; set; }
 
-        [JsonProperty("rulebase_links"), JsonPropertyName("rulebase_links")]
-        public RulebaseLink[] Rulebases { get; set; } = [];
-
-        [JsonProperty("rules"), JsonPropertyName("rules")]
-        public Rule[]? Rules { get; set; }
+        [JsonProperty("rulebase_link"), JsonPropertyName("rulebase_link")]
+        public RulebaseLink? RbLink { get; set; }
 
         [JsonProperty("changelog_rules"), JsonPropertyName("changelog_rules")]
         public RuleChange[]? RuleChanges { get; set; }
 
         [JsonProperty("rules_aggregate"), JsonPropertyName("rules_aggregate")]
         public ObjectStatistics RuleStatistics { get; set; } = new ObjectStatistics();
-
 
         public DeviceReport()
         { }
@@ -34,23 +28,27 @@ namespace FWO.Report
         {
             Id = device.Id;
             Name = device.Name;
-            Rulebases = device.Rulebases;
+            RbLink = device.RbLink;
             RuleChanges = device.RuleChanges;
             RuleStatistics = device.RuleStatistics;
         }
 
-        public void AssignRuleNumbers()
+        public void AssignRuleNumbers(RulebaseLink? rbLinkIn = null, int ruleNumber = 1)
         {
-            if (Rulebases != null)
+            rbLinkIn ??= RbLink;
+            if (rbLinkIn != null)
             {
-                foreach (RulebaseLink rulebase in Rulebases)
+                if (rbLinkIn.LinkType == 0)   // TODO: use enum here
                 {
-                    int ruleNumber = 1; // each rulebase will now start with number 1
-                    foreach (RuleMetadata rule in rulebase.Rulebase.RuleMetadata) // only on rule per rule_metadata
+                    foreach (Rule rule in rbLinkIn.NextRulebase.Rules) // only on rule per rule_metadata
                     {
-                        if (string.IsNullOrEmpty(rule.Rules[0].SectionHeader)) // Not a section header
+                        if (string.IsNullOrEmpty(rule.SectionHeader)) // Not a section header
                         {
-                            rule.Rules[0].DisplayOrderNumber = ruleNumber++;
+                            rule.DisplayOrderNumber = ruleNumber++;
+                        }
+                        if (rule.NextRulebase != null)
+                        {
+                            AssignRuleNumbers(rule.NextRulebase, ruleNumber);
                         }
                     }
                 }
@@ -59,12 +57,9 @@ namespace FWO.Report
 
         public bool ContainsRules()
         {
-            foreach (var rb in Rulebases)
+            if (RbLink?.NextRulebase.Rules.Length>0)
             {
-                if (rb.Rulebase.RuleMetadata[0].Rules.Length>0)
-                {
-                    return true;
-                }
+                return true;
             }
             return false;
         }
@@ -84,16 +79,16 @@ namespace FWO.Report
                 {
                     try
                     {
-                        if (devices[i].Rulebases != null && devicesToMerge[i].Rulebases != null && devicesToMerge[i].Rulebases?.Length > 0)
+                        if (devices[i].RbLink != null && devicesToMerge[i].RbLink != null)
                         {
-                            for (int rb = 0; rb < devices[i].Rulebases.Length && rb < devicesToMerge[i].Rulebases.Length; rb++)
-                            {
-                                if (devices[i].Rulebases[rb].Rulebase.RuleMetadata[0].Rules != null && devicesToMerge[i].Rulebases[rb] != null && devicesToMerge[i].Rulebases[rb]?.Rulebase.RuleMetadata[0].Rules.Length > 0)
-                                {
-                                    devices[i].Rulebases[rb].Rulebase.RuleMetadata[0].Rules = devices[i].Rulebases[rb]?.Rulebase.RuleMetadata[0].Rules?.Concat(devicesToMerge[i].Rulebases[rb].Rulebase.RuleMetadata[0].Rules!).ToArray();
-                                    newObjects = true;
-                                }
-                            }
+                            // for (int rb = 0; rb < devices[i].RbLink.Length && rb < devicesToMerge[i].RbLink.Length; rb++)
+                            // {
+                                // if (devices[i].RulebaseLinks[rb].NextRuleBase.Rules != null && devicesToMerge[i].RbLink[rb] != null && devicesToMerge[i].RbLink[rb]?.NextRuleBase.Rules.Length > 0)
+                                // {
+                                //     devices[i].RbLink[rb].NextRuleBase.Rules = devices[i].RbLink[rb]?.NextRuleBase.Rules?.Concat(devicesToMerge[i].RbLink[rb].NextRuleBase.Rules!).ToArray();
+                                //     newObjects = true;
+                                // }
+                            // }
                         }
                         if (devices[i].RuleChanges != null && devicesToMerge[i].RuleChanges != null && devicesToMerge[i].RuleChanges?.Length > 0)
                         {

@@ -29,9 +29,9 @@ namespace FWO.Tufin.SecureChange
 			return "";
 		}
 
-		public virtual async Task<(string, string?)> GetNewState(string oldState)
+		public virtual Task<(string, string?)> GetNewState(string oldState)
 		{
-			return ("","");
+			throw new NotImplementedException();
 		}
 
 		public async Task<RestResponse<int>> CreateExternalTicket()

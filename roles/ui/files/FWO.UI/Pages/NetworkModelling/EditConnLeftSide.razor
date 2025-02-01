@@ -285,7 +285,7 @@
     
     private string DisplayInterfaceWithIcon(ModellingConnection interf)
     {
-        return $"<span class=\"{Icons.Interface}\"></span> " + ConnHandler!.DisplayInterface(interf);
+        return $"<span class=\"{Icons.Interface}\"></span> " + ConnHandler?.DisplayInterface(interf);
     }
 
     private async Task ReplaceInterface()
@@ -296,7 +296,7 @@
 
     private bool InterfaceToConn(ModellingConnection interf)
     {
-        ConnHandler!.InterfaceToConn(interf);
+        ConnHandler?.InterfaceToConn(interf);
         ConnHandlerChanged.InvokeAsync(ConnHandler);
         return true;
     }
@@ -346,44 +346,44 @@
         {
             if(toSource)
             {
-                ConnHandler!.AppRolesToSource(appRoles);
+                ConnHandler?.AppRolesToSource(appRoles);
             }
             else
             {
-                ConnHandler!.AppRolesToDestination(appRoles);
+                ConnHandler?.AppRolesToDestination(appRoles);
             }
         }
         if(areas.Count > 0)
         {
             if(toSource)
             {
-                ConnHandler!.AreasToSource(areas);
+                ConnHandler?.AreasToSource(areas);
             }
             else
             {
-                ConnHandler!.AreasToDestination(areas);
+                ConnHandler?.AreasToDestination(areas);
             }
         }
         if(nwGroups.Count > 0)
         {
             if(toSource)
             {
-                ConnHandler!.NwGroupToSource(nwGroups);
+                ConnHandler?.NwGroupToSource(nwGroups);
             }
             else
             {
-                ConnHandler!.NwGroupToDestination(nwGroups);
+                ConnHandler?.NwGroupToDestination(nwGroups);
             }
         }
         if(appServers.Count > 0)
         {
             if(toSource)
             {
-                ConnHandler!.AppServerToSource(appServers);
+                ConnHandler?.AppServerToSource(appServers);
             }
             else
             {
-                ConnHandler!.AppServerToDestination(appServers);
+                ConnHandler?.AppServerToDestination(appServers);
             }
         }
         selectedNwElems = new();
@@ -414,11 +414,11 @@
         }
         if(serviceGroups.Count > 0)
         {
-            ConnHandler!.ServiceGrpsToConn(serviceGroups);
+            ConnHandler?.ServiceGrpsToConn(serviceGroups);
         }
         if(services.Count > 0)
         {
-            ConnHandler!.ServicesToConn(services);
+            ConnHandler?.ServicesToConn(services);
         }
         selectedSvcElems = new();
     }
@@ -543,12 +543,12 @@
 
     private ModellingAppServer? ResolveAppServer(long selectedId)
     {
-        return ConnHandler!.AvailableAppServers.FirstOrDefault(x => x.Id == selectedId);
+        return ConnHandler?.AvailableAppServers.FirstOrDefault(x => x.Id == selectedId);
     }
 
     private ModellingAppRole? ResolveAppRole(long selectedId)
     {
-        ModellingAppRole? appRole = ConnHandler!.AvailableAppRoles.FirstOrDefault(x => x.Id == selectedId);
+        ModellingAppRole? appRole = ConnHandler?.AvailableAppRoles.FirstOrDefault(x => x.Id == selectedId);
         if(appRole != null)
         {
             foreach (var appServerWrapper in appRole.AppServers)
@@ -561,23 +561,23 @@
 
     private ModellingNetworkArea? ResolveArea(long selectedId)
     {
-        ModellingNetworkAreaWrapper? comArea = ConnHandler!.AvailableCommonAreas.FirstOrDefault(x => x.Content.Id == selectedId);
+        ModellingNetworkAreaWrapper? comArea = ConnHandler?.AvailableCommonAreas.FirstOrDefault(x => x.Content.Id == selectedId);
         if(comArea != null)
         {
             return comArea.Content;
         }
-        ModellingNwGroup? nwGroup = ConnHandler!.AvailableSelectedObjects.FirstOrDefault(x => x.Content.Id == selectedId)?.Content;
+        ModellingNwGroup? nwGroup = ConnHandler?.AvailableSelectedObjects.FirstOrDefault(x => x.Content.Id == selectedId)?.Content;
         return nwGroup != null ? new ModellingNetworkArea(nwGroup) : null;
     }
 
     private ModellingNwGroup? ResolveNwGroupObject(long selectedId)
     {
-        ModellingNwGroupWrapper? nwgrp = ConnHandler!.AvailableNwGroups.FirstOrDefault(x => x.Content.Id == selectedId);
+        ModellingNwGroupWrapper? nwgrp = ConnHandler?.AvailableNwGroups.FirstOrDefault(x => x.Content.Id == selectedId);
         if(nwgrp != null)
         {
             return nwgrp.Content;
         }
-        return ConnHandler!.AvailableSelectedObjects.FirstOrDefault(x => x.Content.Id == selectedId)?.Content;
+        return ConnHandler?.AvailableSelectedObjects.FirstOrDefault(x => x.Content.Id == selectedId)?.Content;
     }
 
     private ModellingSvcObject? ResolveSvcObject(KeyValuePair<int, int> selectedObj)
@@ -598,12 +598,12 @@
 
     private ModellingService? ResolveSvc(int selectedId)
     {
-        return ConnHandler!.AvailableServices.FirstOrDefault(x => x.Id == selectedId);
+        return ConnHandler?.AvailableServices.FirstOrDefault(x => x.Id == selectedId);
     }
 
     private ModellingServiceGroup? ResolveSvcGrp(int selectedId)
     {
-        return ConnHandler!.AvailableServiceGroups.FirstOrDefault(x => x.Id == selectedId);
+        return ConnHandler?.AvailableServiceGroups.FirstOrDefault(x => x.Id == selectedId);
     }
 
     private void SearchInterface()

@@ -25,8 +25,8 @@ namespace FWO.Middleware.Server
 
         private readonly string apiServerUri;
         private readonly ApiConnection apiConnectionScheduler;
-        private ApiConnection apiConnectionUserContext;
-        private UserConfig userConfig;
+        private ApiConnection? apiConnectionUserContext;
+        private UserConfig? userConfig;
         private readonly GraphQlApiSubscription<ReportSchedule[]> scheduledReportsSubscription;
         private readonly JwtWriter jwtWriter;
 
@@ -130,7 +130,7 @@ namespace FWO.Middleware.Server
                 {
                     Log.WriteInfo("Report Scheduling", $"Generating scheduled report \"{reportSchedule.Name}\" with id \"{reportSchedule.Id}\" for user \"{reportSchedule.ScheduleOwningUser.Name}\" with id \"{reportSchedule.ScheduleOwningUser.DbId}\" ...");
 
-                    if(!await InitUserEnvironment(reportSchedule))
+                    if(!await InitUserEnvironment(reportSchedule) || apiConnectionUserContext == null || userConfig == null)
                     {
                         return;
                     }
@@ -216,7 +216,7 @@ namespace FWO.Middleware.Server
             }
             await PrepareConnReportData(reportSchedule, report, apiConnectionUser);
             List<ModellingConnection> comSvcs = await apiConnectionUser.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getCommonServices);
-            if(comSvcs.Count > 0)
+            if(comSvcs.Count > 0 && userConfig != null)
             {
                 report.ReportData.GlobalComSvc = [new(){GlobalComSvcs = comSvcs, Name = userConfig.GetText("global_common_services")}];
             }
@@ -224,17 +224,20 @@ namespace FWO.Middleware.Server
 
         private async Task PrepareConnReportData(ReportSchedule reportSchedule, ReportBase report, ApiConnection apiConnectionUser)
         {
-            ModellingHandlerBase handlerBase = new(apiConnectionUser, userConfig, new(), false, DefaultInit.DoNothing);
-            foreach(var ownerReport in report.ReportData.OwnerData)
+            if(userConfig != null)
             {
-                foreach(var conn in ownerReport.Connections)
+                ModellingHandlerBase handlerBase = new(apiConnectionUser, userConfig, new(), false, DefaultInit.DoNothing);
+                foreach(var ownerReport in report.ReportData.OwnerData)
                 {
-                    await handlerBase.ExtractUsedInterface(conn);
+                    foreach(var conn in ownerReport.Connections)
+                    {
+                        await handlerBase.ExtractUsedInterface(conn);
+                    }
+                    ownerReport.Name = reportSchedule.Template.ReportParams.ModellingFilter.SelectedOwner.Name;
+                    ownerReport.RegularConnections = ownerReport.Connections.Where(x => !x.IsInterface && !x.IsCommonService).ToList();
+                    ownerReport.Interfaces = ownerReport.Connections.Where(x => x.IsInterface).ToList();
+                    ownerReport.CommonServices = ownerReport.Connections.Where(x => !x.IsInterface && x.IsCommonService).ToList();
                 }
-                ownerReport.Name = reportSchedule.Template.ReportParams.ModellingFilter.SelectedOwner.Name;
-                ownerReport.RegularConnections = ownerReport.Connections.Where(x => !x.IsInterface && !x.IsCommonService).ToList();
-                ownerReport.Interfaces = ownerReport.Connections.Where(x => x.IsInterface).ToList();
-                ownerReport.CommonServices = ownerReport.Connections.Where(x => !x.IsInterface && x.IsCommonService).ToList();
             }
         }
 

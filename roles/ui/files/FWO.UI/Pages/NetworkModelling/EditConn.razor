@@ -497,26 +497,26 @@
             }
             else
             {
-                ConnHandler!.InterfaceToConn(Container.ConnElement);
+                ConnHandler?.InterfaceToConn(Container.ConnElement);
             }  
         }
         else if(!ConnHandler!.SrcDropForbidden())
         {
             if(Container.AppRoleElements.Count > 0)
             {
-                ConnHandler!.AppRolesToSource(Container.AppRoleElements);
+                ConnHandler?.AppRolesToSource(Container.AppRoleElements);
             }
             if(Container.AreaElements.Count > 0)
             {
-                ConnHandler!.AreasToSource(Container.AreaElements);
+                ConnHandler?.AreasToSource(Container.AreaElements);
             }
             if(Container.NwGroupElements.Count > 0)
             {
-                ConnHandler!.NwGroupToSource(Container.NwGroupElements);
+                ConnHandler?.NwGroupToSource(Container.NwGroupElements);
             }
             if(Container.AppServerElements.Count > 0)
             {
-                ConnHandler!.AppServerToSource(Container.AppServerElements);
+                ConnHandler?.AppServerToSource(Container.AppServerElements);
             }
         }
         Container.Clear();
@@ -532,26 +532,26 @@
             }
             else
             {
-                ConnHandler!.InterfaceToConn(Container.ConnElement);
+                ConnHandler?.InterfaceToConn(Container.ConnElement);
             }
         }
         else if(!ConnHandler!.DstDropForbidden())
         {
             if(Container.AppRoleElements.Count > 0)
             {
-                ConnHandler!.AppRolesToDestination(Container.AppRoleElements);
+                ConnHandler?.AppRolesToDestination(Container.AppRoleElements);
             }
             if(Container.AreaElements.Count > 0)
             {
-                ConnHandler!.AreasToDestination(Container.AreaElements);
+                ConnHandler?.AreasToDestination(Container.AreaElements);
             }
             if(Container.NwGroupElements.Count > 0)
             {
-                ConnHandler!.NwGroupToDestination(Container.NwGroupElements);                
+                ConnHandler?.NwGroupToDestination(Container.NwGroupElements);                
             }
             if(Container.AppServerElements.Count > 0)
             {
-                ConnHandler!.AppServerToDestination(Container.AppServerElements);
+                ConnHandler?.AppServerToDestination(Container.AppServerElements);
             }
         }
         Container.Clear();
@@ -567,18 +567,18 @@
             }
             else
             {
-                ConnHandler!.InterfaceToConn(Container.ConnElement);
+                ConnHandler?.InterfaceToConn(Container.ConnElement);
             }
         }
         else 
         {
             if(Container.SvcElements.Count > 0)
             {
-                ConnHandler!.ServicesToConn(Container.SvcElements);
+                ConnHandler?.ServicesToConn(Container.SvcElements);
             }
             if(Container.SvcGrpElements.Count > 0)
             {
-                ConnHandler!.ServiceGrpsToConn(Container.SvcGrpElements);
+                ConnHandler?.ServiceGrpsToConn(Container.SvcGrpElements);
             }
         }
         Container.Clear();
@@ -631,7 +631,7 @@
 
     private async Task PromoteTicketToDone()
     {
-        if(ConnHandler!.ActConn.TicketId != null)
+        if(ConnHandler?.ActConn.TicketId != null)
         {
             try
             {
@@ -656,36 +656,36 @@
         }
         else
         {
-            NavigationManager.NavigateTo($"/request/tickets/{ConnHandler!.ActConn.TicketId}");
+            NavigationManager.NavigateTo($"/request/tickets/{ConnHandler?.ActConn.TicketId}");
         }
     }
 
     private bool UnsavedChangesMade()
     {
-        return unchangedConn.Name != ConnHandler!.ActConn.Name
-            || unchangedConn.Reason != ConnHandler!.ActConn.Reason 
-            || unchangedConn.IsPublished != ConnHandler!.ActConn.IsPublished
-            || ConnHandler!.SrcAppServerToAdd.Count > 0
-            || ConnHandler!.SrcAppServerToDelete.Count > 0
-            || ConnHandler!.DstAppServerToAdd.Count > 0
-            || ConnHandler!.DstAppServerToDelete.Count > 0
-            || ConnHandler!.SrcAppRolesToAdd.Count > 0
-            || ConnHandler!.SrcAppRolesToDelete.Count > 0
-            || ConnHandler!.DstAppRolesToAdd.Count > 0
-            || ConnHandler!.DstAppRolesToDelete.Count > 0
-            || ConnHandler!.SrcNwGroupsToAdd.Count > 0
-            || ConnHandler!.SrcNwGroupsToDelete.Count > 0
-            || ConnHandler!.DstNwGroupsToAdd.Count > 0
-            || ConnHandler!.DstNwGroupsToDelete.Count > 0
-            || ConnHandler!.SvcToAdd.Count > 0
-            || ConnHandler!.SvcToDelete.Count > 0
-            || ConnHandler!.SvcGrpToAdd.Count > 0
-            || ConnHandler!.SvcGrpToDelete.Count > 0;
+        return unchangedConn.Name != ConnHandler?.ActConn.Name
+            || unchangedConn.Reason != ConnHandler?.ActConn.Reason 
+            || unchangedConn.IsPublished != ConnHandler?.ActConn.IsPublished
+            || ConnHandler?.SrcAppServerToAdd.Count > 0
+            || ConnHandler?.SrcAppServerToDelete.Count > 0
+            || ConnHandler?.DstAppServerToAdd.Count > 0
+            || ConnHandler?.DstAppServerToDelete.Count > 0
+            || ConnHandler?.SrcAppRolesToAdd.Count > 0
+            || ConnHandler?.SrcAppRolesToDelete.Count > 0
+            || ConnHandler?.DstAppRolesToAdd.Count > 0
+            || ConnHandler?.DstAppRolesToDelete.Count > 0
+            || ConnHandler?.SrcNwGroupsToAdd.Count > 0
+            || ConnHandler?.SrcNwGroupsToDelete.Count > 0
+            || ConnHandler?.DstNwGroupsToAdd.Count > 0
+            || ConnHandler?.DstNwGroupsToDelete.Count > 0
+            || ConnHandler?.SvcToAdd.Count > 0
+            || ConnHandler?.SvcToDelete.Count > 0
+            || ConnHandler?.SvcGrpToAdd.Count > 0
+            || ConnHandler?.SvcGrpToDelete.Count > 0;
     }
 
     private async Task DisplayTicket()
     {
-        if(ConnHandler!.ActConn.TicketId != null)
+        if(ConnHandler?.ActConn.TicketId != null)
         {
             workInProgress = true;
             await states.Init(apiConnection);

@@ -18,13 +18,13 @@
 .custom-modal-md {
     --bs-modal-width: 40vw;
     height: 50vh;
-    margin-top: 10em;
+    margin-top: 12em;
 }
 
 .custom-modal-sm {
     --bs-modal-width: 30vw;
     height: 40vh;
-    margin-top: 12em;
+    margin-top: 16em;
 }
 
 .modal-dialog-padding {

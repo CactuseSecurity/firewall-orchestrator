@@ -37,7 +37,7 @@ namespace FWO.Services
         public async Task<List<WfReqTask>> AnalyseModelledConnections(List<ModellingConnection> connections)
         {
             // later: get rules + compare, bundle requests
-            appServerComparer = new (namingConvention);
+            appServerComparer = new(namingConvention);
             managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames);
             managements = managements.Where(m => !string.IsNullOrEmpty(m.ExtMgtData)).ToList();
             foreach (Management mgt in managements)
@@ -56,7 +56,7 @@ namespace FWO.Services
             foreach (Management mgt in managements)
             {
                 await AnalyseAppZone(mgt);
-                foreach(var conn in connections.Where(c => !c.IsRequested).OrderBy(c => c.Id))
+                foreach (var conn in connections.Where(c => !c.IsRequested).OrderBy(c => c.Id))
                 {
                     elements = [];
                     AnalyseNetworkAreas(conn);
@@ -69,7 +69,7 @@ namespace FWO.Services
                         Dictionary<string, string>? addInfo = new() { { AdditionalInfoKeys.ConnId, conn.Id.ToString() } };
                         AccessTaskList.Add(new()
                         {
-                            Title = (conn.IsCommonService ? userConfig.GetText("new_common_service") : userConfig.GetText("new_connection")) + ": " + conn.Name ?? "",
+                            Title = ( conn.IsCommonService ? userConfig.GetText("new_common_service") : userConfig.GetText("new_connection") ) + ": " + conn.Name ?? "",
                             TaskType = WfTaskType.access.ToString(),
                             ManagementId = mgt.Id,
                             OnManagement = mgt,
@@ -97,13 +97,13 @@ namespace FWO.Services
         private string ConstructComment(ModellingConnection conn)
         {
             string comment = "FWOC" + conn.Id.ToString();
-            if(conn.IsCommonService)
+            if (conn.IsCommonService)
             {
                 comment += ", ComSvc";
             }
-            if(conn.ExtraConfigs.Count > 0 || conn.ExtraConfigsFromInterface.Count > 0)
+            if (conn.ExtraConfigs.Count > 0 || conn.ExtraConfigsFromInterface.Count > 0)
             {
-                comment += ", " + userConfig.GetText("impl_instructions") + ": " + 
+                comment += ", " + userConfig.GetText("impl_instructions") + ": " +
                     string.Join(", ", conn.ExtraConfigs.ConvertAll(x => x.Display()).Concat(conn.ExtraConfigsFromInterface.ConvertAll(x => x.Display())));
             }
             return comment;
@@ -181,7 +181,7 @@ namespace FWO.Services
 
         private void AnalyseNetworkAreas(ModellingConnection conn)
         {
-            foreach(var area in ModellingNetworkAreaWrapper.Resolve(conn.SourceAreas))
+            foreach (var area in ModellingNetworkAreaWrapper.Resolve(conn.SourceAreas))
             {
                 elements.Add(new()
                 {
@@ -190,7 +190,7 @@ namespace FWO.Services
                     GroupName = area.IdString
                 });
             }
-            foreach(var area in ModellingNetworkAreaWrapper.Resolve(conn.DestinationAreas))
+            foreach (var area in ModellingNetworkAreaWrapper.Resolve(conn.DestinationAreas))
             {
                 elements.Add(new()
                 {
@@ -247,12 +247,12 @@ namespace FWO.Services
             ModellingAppZone? existingAppZone = await AppZoneHandler.PlanAppZoneUpsert();
 
             if (existingAppZone is not null)
-            {               
+            {
                 if (!ResolveExistingNwGroup(existingAppZone, mgt))
                 {
                     RequestNewNwGroup(existingAppZone, mgt);
                 }
-                else if (NwGroupChanged(existingAppZone) )
+                else if (NwGroupChanged(existingAppZone))
                 {
                     RequestUpdateNwGroup(existingAppZone, mgt);
                 }
@@ -261,7 +261,7 @@ namespace FWO.Services
 
         private bool ResolveExistingNwGroup(ModellingNwGroup nwGroup, Management mgt)
         {
-            string nwGroupType = nwGroup.GetType() == typeof(ModellingAppRole) ? "AppRole" : "AppZone"; 
+            string nwGroupType = nwGroup.GetType() == typeof(ModellingAppRole) ? "AppRole" : "AppZone";
             Log.WriteDebug($"Search {nwGroupType}", $"Name: {nwGroup.Name}, IdString: {nwGroup.IdString}, Management: {mgt.Name}");
 
             bool shortened = false;
@@ -308,6 +308,11 @@ namespace FWO.Services
             if (existingAppRole is null)
             {
                 return false;
+            }
+
+            if (nwGroup is ModellingAppZone appZone)
+            {
+                return appZone.AppServersNew.Count > 0 || appZone.AppServersRemoved.Count > 0;
             }
 
             foreach (ModellingAppServerWrapper appserver in ( (ModellingAppRole)nwGroup ).AppServers)

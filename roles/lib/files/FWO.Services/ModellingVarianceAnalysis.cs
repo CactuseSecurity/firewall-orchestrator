@@ -243,7 +243,7 @@ namespace FWO.Services
             {
                 return;
             }
-
+            //prod abgleich zwischen fworch az und prod az
             ModellingAppZone? existingAppZone = await AppZoneHandler.PlanAppZoneUpsert();
 
             if (existingAppZone is not null)

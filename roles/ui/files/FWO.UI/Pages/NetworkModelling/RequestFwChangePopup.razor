@@ -134,10 +134,10 @@
         {
             if (!await GetActTicketStatus())
             {
-                ModellingAppZoneHandler appZoneHandler = new(apiConnection, userConfig, SelectedApp, DisplayMessageInUi);
-                PlannedAppZone = await appZoneHandler.PlanAppZoneUpsert();
+                ModellingAppZoneHandler appZoneHandler = new(apiConnection, userConfig, SelectedApp, DisplayMessageInUi);                
                 ModellingVarianceAnalysis varianceAnalysis = new(apiConnection, extStateHandler, userConfig, SelectedApp, DisplayMessageInUi);
                 TaskList = await varianceAnalysis.AnalyseModelledConnections(Connections);
+                PlannedAppZone = varianceAnalysis.PlannedAppZone;
             }
         }
         catch (Exception exception)
@@ -272,8 +272,7 @@
         WorkInProgress = true;
         try
         {
-            ModellingAppZoneHandler appZoneHandler = new(apiConnection, userConfig, SelectedApp, DisplayMessageInUi);
-            await appZoneHandler.UpsertAppZone(PlannedAppZone);
+            ModellingAppZoneHandler appZoneHandler = new(apiConnection, userConfig, SelectedApp, DisplayMessageInUi);            
             TicketCreator ticketCreator = new(apiConnection, userConfig, authenticationStateTask!.Result.User, middlewareClient);
             WfTicket intTicket = await ticketCreator.CreateTicket(SelectedApp, TaskList,
                 "Rollout modelled connections for: " + SelectedApp.Name, extStateHandler.GetInternalStateId(ExtStates.ExtReqInitialized), "");

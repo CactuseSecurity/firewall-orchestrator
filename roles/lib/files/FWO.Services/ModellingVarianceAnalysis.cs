@@ -34,6 +34,8 @@ namespace FWO.Services
         private List<WfReqElement> unchangedGroupMembersDuringCreate = [];
         private List<WfReqElement> unchangedGroupMembers = [];
 
+        public ModellingAppZone? PlannedAppZone = default;
+
         public async Task<List<WfReqTask>> AnalyseModelledConnections(List<ModellingConnection> connections)
         {
             // later: get rules + compare, bundle requests
@@ -243,19 +245,29 @@ namespace FWO.Services
             {
                 return;
             }
-            //prod abgleich zwischen fworch az und prod az
+
             ModellingAppZone? existingAppZone = await AppZoneHandler.PlanAppZoneUpsert();
 
-            if (existingAppZone is not null)
+            if (existingAppZone is null)
+                return;
+
+            if (!ResolveExistingNwGroup(existingAppZone, mgt))
             {
-                if (!ResolveExistingNwGroup(existingAppZone, mgt))
-                {
-                    RequestNewNwGroup(existingAppZone, mgt);
-                }
-                else if (NwGroupChanged(existingAppZone))
-                {
-                    RequestUpdateNwGroup(existingAppZone, mgt);
-                }
+                RequestNewNwGroup(existingAppZone, mgt);
+                PlannedAppZone = existingAppZone;
+                return;
+            }
+
+            //Check tufin prod AZ diff against current DB AZ
+            existingAppZone = await AppZoneHandler.PlanAppZoneUpsert(existingAppRole.AppServers);
+
+            PlannedAppZone = existingAppZone;
+
+            if (existingAppZone.AppServersNew.Count > 0 || existingAppZone.AppServersRemoved.Count > 0)
+            {            
+                newAppServers = existingAppZone.AppServersNew;
+                deletedAppServers = existingAppZone.AppServersRemoved;
+                RequestUpdateNwGroup(existingAppZone, mgt);
             }
         }
 

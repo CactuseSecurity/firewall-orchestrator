@@ -11,7 +11,7 @@ namespace FWO.Services
     {
         private ModellingNamingConvention NamingConvention = new();
 
-        public async Task<ModellingAppZone?> PlanAppZoneUpsert()
+        public async Task<ModellingAppZone?> PlanAppZoneUpsert(List<ModellingAppServerWrapper>? diffAppServers = default)
         {
             NamingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(userConfig.ModNamingConvention) ?? new();
             List<ModellingAppServer> tempAppServers = await apiConnection.SendQueryAsync<List<ModellingAppServer>>(ModellingQueries.getAppServers, new { appId = owner.Id });
@@ -49,6 +49,26 @@ namespace FWO.Services
                 }
 
                 List<ModellingAppServerWrapper>? newAppServers = FindNewAppServers(appZone, allAppServers);
+
+                if (newAppServers.Count > 0)
+                {
+                    appZone.AppServersNew = newAppServers;
+                }
+
+                appZone.AppServers.RemoveAll(_ => removedAppServers.Contains(_));
+                appZone.AppServers.AddRange(newAppServers);
+            }
+
+            if (diffAppServers is not null)
+            {
+                List<ModellingAppServerWrapper>? removedAppServers = FindRemovedAppServers(new ModellingAppZone() { AppServers = diffAppServers}, appZone.AppServers);
+
+                if (removedAppServers.Count > 0)
+                {
+                    appZone.AppServersRemoved = removedAppServers;
+                }
+
+                List<ModellingAppServerWrapper>? newAppServers = FindNewAppServers(new ModellingAppZone() { AppServers = diffAppServers }, appZone.AppServers);
 
                 if (newAppServers.Count > 0)
                 {

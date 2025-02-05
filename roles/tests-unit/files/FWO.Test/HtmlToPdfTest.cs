@@ -9,6 +9,7 @@ using HtmlAgilityPack;
 namespace FWO.Test
 {
     [TestFixture]
+    [Parallelizable]
     internal class HtmlToPdfTest
     {
         private const string FilePath = "pdffile.pdf";

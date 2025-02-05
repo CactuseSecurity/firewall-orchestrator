@@ -278,11 +278,24 @@ h5 {
     overflow: auto;
 }
 
+
+@media (min-width: 1200px) {
+    .sidebar-top {
+        top: 90px !important;
+    }
+}
+
+@media (min-width: 1590px) {
+    .sidebar-top {
+        top: 56px !important;
+    }
+}
+
 .sidebar-main {
     position: fixed;
-    top: 56px;
     height: 95%;
     z-index: 10;
+    top: 56px;
 }
 
 .sidebar-sizer {

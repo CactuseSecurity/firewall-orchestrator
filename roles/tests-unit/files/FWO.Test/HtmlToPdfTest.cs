@@ -56,9 +56,9 @@ namespace FWO.Test
                     ExecutablePath = isGitHubActions!=null ? "/usr/bin/chromium-browser" : brw.GetExecutablePath(),
                     Headless = true,
                     DumpIO = isGitHubActions!=null ? true : false, // Enables debug logs
-                    Args = isGitHubActions!=null ?
-                        new[] { "--no-sandbox", "--database=/tmp", "--disable-setuid-sandbox" }
-                        : [] // No additional arguments locally
+                    //Args = isGitHubActions!=null ?
+                    //    new[] { "--no-sandbox", "--database=/tmp", "--disable-setuid-sandbox" }
+                    //    : [] // No additional arguments locally
                 });
 
                 try

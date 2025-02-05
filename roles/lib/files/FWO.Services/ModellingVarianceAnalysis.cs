@@ -258,7 +258,7 @@ namespace FWO.Services
                 return;
             }
 
-            //Check tufin prod AZ diff against current DB AZ
+            //Check prod AZ diff against current DB AZ
             existingAppZone = await AppZoneHandler.PlanAppZoneUpsert(existingAppRole.AppServers);
 
             PlannedAppZone = existingAppZone;

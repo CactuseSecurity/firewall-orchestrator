@@ -10,7 +10,7 @@
 		int j = i;
 		<li class="@(StdLayout ? StdClass : AltClass) d-flex justify-content-between">
 			<div class="@(StdLayout ? "" : AltElemClass)">@(Display(ElementsToAdd[i]))</div>
-			<span @onclick="() => {ElementsToAdd.Remove(ElementsToAdd[j]);AfterRemoveAction();}" class="@(StdLayout ? "" : AltButtonClass) badge bg-danger">
+			<span @onclick="() => {ElementsToAdd.Remove(ElementsToAdd[j]);AfterRemoveAction();ElementsRemoved.InvokeAsync();}" class="@(StdLayout ? "" : AltButtonClass) badge bg-danger">
 				<i class="@(Icons.Close) text-light"></i>
 			</span>
 		</li>
@@ -52,6 +52,12 @@
 
     [Parameter]
     public Func<bool> AfterRemoveAction { get; set; } = DefaultInit.DoNothingSync;
+
+	/// <summary>
+	/// Gets invoked after user removes elemnent from the ElementsToAdd collection via button.
+	/// </summary>
+	[Parameter]
+    public EventCallback ElementsRemoved { get; set; }
 
 	private string StdClass = "bg-success-subtle list-group-item pb-2 pt-2";
 	private string AltClass = "draggable-selected pb-0 pt-0";

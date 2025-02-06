@@ -51,9 +51,8 @@ namespace FWO.Test
 
             using IBrowser? browser = await Puppeteer.LaunchAsync(new LaunchOptions
             {
-                ExecutablePath = brw.GetExecutablePath(),
-                Headless = true,
-                Args = new[] { "CHROME_DEVEL_SANDBOX=/usr/local/sbin/chrome-devel-sandbox" }
+                ExecutablePath = path,
+                Headless = true
             });
 
             try

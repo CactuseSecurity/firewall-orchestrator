@@ -62,7 +62,7 @@ namespace FWO.Test
             {
                 ExecutablePath = installedBrowser.GetExecutablePath(),
                 Headless = true,
-                HeadlessMode = HeadlessMode.True
+                HeadlessMode = HeadlessMode.Shell
             });
 
             try

@@ -47,12 +47,18 @@ namespace FWO.Test
                     break;
             }
 
-            Log.WriteInfo("Test Log", $"Browser: {browserFetcher.Browser}");
-            Log.WriteInfo("Test Log", $"Browser Path: {browserFetcher.Browser)}");
+            foreach (var browser_installed in browserFetcher.GetInstalledBrowsers())
+            {
+                Log.WriteInfo("Test Log", $"Browser: {browser_installed.GetExecutablePath()}");
+            }
+
+            InstalledBrowser? brw = browserFetcher.GetInstalledBrowsers().FirstOrDefault() ?? await browserFetcher.DownloadAsync(BrowserTag.Latest);
 
             using IBrowser? browser = await Puppeteer.LaunchAsync(new LaunchOptions
             {
-                ExecutablePath = browserFetcher.GetExecutablePath()
+                ExecutablePath = brw.GetExecutablePath(),
+                Headless = true,
+                Args = new[] { "--disable-setuid-sandbox" }
             });
 
             try

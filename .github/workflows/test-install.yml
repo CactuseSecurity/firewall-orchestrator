@@ -2,27 +2,34 @@
 name: Build
 
 on:
+  workflow_dispatch:
+
   push:
     paths-ignore:
     - 'documentation/**'
     - 'design/**'
 
   pull_request:
-    types: [ ready_for_review, review_requested ]
+    types: [ ready_for_review, review_requested, sad ]
     paths-ignore:
     - 'documentation/**'
     - 'design/**'
-
+    
 jobs:
-  run_dotnet_test:
-    name: run dotnet test
+  test_puppeteer_pdf_ubuntu_latest:
+    name: run puppeteer pdf test on ubuntu latest
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
-
+    - uses: actions/checkout@v4
+    - name: Set environment variable
+      run: echo "RUNNING_ON_GITHUB=1" >> $GITHUB_ENV
+    - name: Setup dotnet
+      uses: actions/setup-dotnet@v4
     - name: exec dotnet test
-      run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator/roles/tests-unit/files/FWO.Test && dotnet test --filter "Name=HtmlToPdfTest"
-
+      run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator/roles/tests-unit/files/FWO.Test && dotnet restore && dotnet build && dotnet test --filter "Name=HtmlToPdfTest"
+      env:
+        RUNNING_ON_GITHUB_ACTIONS: ${{ env.RUNNING_ON_GITHUB }}
+        
   test_ubuntu_latest:
     name: test build on ubuntu latest
     runs-on: ubuntu-latest

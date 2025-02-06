@@ -539,7 +539,7 @@ Create table "stm_action"
 (
 	"action_id" SERIAL,
 	"action_name" Varchar NOT NULL,
-	"allowed": BOOLEAN NOT NULL DEFAULT TRUE,
+	"allowed" BOOLEAN NOT NULL DEFAULT TRUE,
  primary key ("action_id")
 );
 

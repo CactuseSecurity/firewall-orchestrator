@@ -83,6 +83,8 @@ CREATE TRIGGER import_config_insert
 ---------------------------------------------------------------------------------------------
 -- new import
 
+Alter table "stm_action" ADD COLUMN IF NOT EXISTS "allowed" BOOLEAN NOT NULL DEFAULT TRUE;
+
 ALTER TABLE management ADD COLUMN IF NOT EXISTS "mgm_uid" Varchar NOT NULL DEFAULT '';
 ALTER TABLE management ADD COLUMN IF NOT EXISTS "rulebase_name" Varchar NOT NULL DEFAULT '';
 ALTER TABLE management ADD COLUMN IF NOT EXISTS "rulebase_uid" Varchar NOT NULL DEFAULT '';

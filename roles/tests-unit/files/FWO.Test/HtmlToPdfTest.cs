@@ -49,6 +49,8 @@ namespace FWO.Test
 
             InstalledBrowser? brw = browserFetcher.GetInstalledBrowsers().FirstOrDefault() ?? await browserFetcher.DownloadAsync(BrowserTag.Latest);
 
+            Log.WriteInfo("Test Log", $"Browser: {browserFetcher.GetExecutablePath()});
+
             using IBrowser? browser = await Puppeteer.LaunchAsync(new LaunchOptions
             {
                 ExecutablePath = path,

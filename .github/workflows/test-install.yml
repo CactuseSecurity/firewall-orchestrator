@@ -20,11 +20,15 @@ jobs:
     name: run puppeteer pdf test on ubuntu latest
     runs-on: ubuntu-latest
     steps:
+    - name: Set environment variable
+      run: echo "RUNNING_ON_GITHUB=1" >> $GITHUB_ENV
     - uses: actions/checkout@v4
     - name: Setup dotnet
       uses: actions/setup-dotnet@v4
     - name: exec dotnet test
       run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator/roles/tests-unit/files/FWO.Test && dotnet restore && dotnet build && dotnet test --filter "Name=HtmlToPdfTest"
+      env:
+        RUNNING_ON_GITHUB_ACTIONS: ${{ env.RUNNING_ON_GITHUB }}
       
   test_ubuntu_latest:
     name: test build on ubuntu latest

@@ -14,7 +14,7 @@
     {
         <div class="form-group row">
             <div class="col-sm-10">
-                <DraggableList AllElements="AppRoleHandler.AppServersInArea" @bind-SelectedElements="selectedAppServers" 
+                <DraggableList AllElements="selectableAppServers" @bind-SelectedElements="selectedAppServers" 
                     HandleDragStart="HandleDragStart" Display="@(x => x.DisplayWithIcon())" MaxHeight="50"/>
             </div>
             @if(selectedAppServers.Count > 0)
@@ -55,6 +55,11 @@
 
     private List<ModellingAppServer> selectedAppServers = [];
     private int sidebarLeftWidth { get { return Width; } set { Width = value; WidthChanged.InvokeAsync(Width);}}
+
+    /// <summary>
+    /// The app servers which are available for adding (i.e. which are not already in the AppServerToAdd collection).
+    /// </summary>
+    private List<ModellingAppServer> selectableAppServers => AppRoleHandler.AppServersInArea.Except(AppRoleHandler.AppServerToAdd).ToList();
 
 
     private bool HandleDragStart(DragEventArgs e, ModellingAppServer appServer)

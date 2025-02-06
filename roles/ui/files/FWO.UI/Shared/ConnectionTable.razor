@@ -12,8 +12,8 @@
         <PageSizeComponent PageSizeCallback="UpdatePageSize"></PageSizeComponent>
 }
 <Table class="table table-bordered th-bg-secondary sticky-header show-scrollbar table-responsive" TableItem="ModellingConnection"
-       Items="Connections" PageSize="PageSize" ColumnReorder="true" TableRowClass="@(con => getTableRowClass(con))"
-       SelectedItems="SelectedConns" RowClickAction="@(conn => ToggleSelection(conn))">
+Items="Connections" PageSize="PageSize" ColumnReorder="true" TableRowClass="@(con => getTableRowClass(con))"
+SelectedItems="SelectedConns" RowClickAction="@(conn => ToggleSelection(conn))">
     @if (!Readonly && !SelectInterfaceView && AppHandler != null)
     {
             <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
@@ -92,7 +92,7 @@
         </Template>
     </Column>
     <Column TableItem="ModellingConnection" Title="@(Connections.Count > 0 && Connections.First().IsInterface ? userConfig.GetText("interface_description") : userConfig.GetText("func_reason"))"
-            Field="@(x => x.Reason)" Sortable="true" Filterable="true">
+    Field="@(x => x.Reason)" Sortable="true" Filterable="true">
         <Template>
             @((MarkupString)DisplayConditional(context, context.Reason ?? ""))
         </Template>
@@ -163,6 +163,9 @@
     [Parameter]
     public SelectionType SelectionType { get; set; } = SelectionType.Single;
 
+    [Parameter] 
+    public EventCallback<int> PageSizeCallback { get; set; }
+    
     [Parameter]
     public bool ShowPageSizeInput { get; set; } = false;
 
@@ -171,6 +174,7 @@
     private void UpdatePageSize(int pageSize)
     {
         PageSize = pageSize;
+        PageSizeCallback.InvokeAsync(pageSize);
     }
 
     private void ToggleSelection(ModellingConnection conn)

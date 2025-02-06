@@ -26,16 +26,6 @@ jobs:
     - name: exec dotnet test
       run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator/roles/tests-unit/files/FWO.Test && dotnet restore && dotnet build && dotnet test --filter "Name=HtmlToPdfTest"
 
-  test_puppeteer_pdf_windows:
-    name: run puppeteer pdf test on windows latest
-    runs-on: windows-latest
-    steps:
-    - uses: actions/checkout@v4
-    - name: Setup dotnet
-      uses: actions/setup-dotnet@v4
-    - name: exec dotnet test
-      run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator/roles/tests-unit/files/FWO.Test && dotnet restore && dotnet build && dotnet test --filter "Name=HtmlToPdfTest"
-
   test_ubuntu_latest:
     name: test build on ubuntu latest
     runs-on: ubuntu-latest

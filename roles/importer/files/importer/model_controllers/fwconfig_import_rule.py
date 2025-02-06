@@ -3,7 +3,7 @@ from difflib import ndiff
 import json
 
 from models.rule import RuleForImport, RuleType
-from roles.importer.files.importer.models.rulebase import Rulebase
+from models.rulebase import Rulebase
 from models.rulebase import Rulebase, RulebaseForImport
 from fwoBaseImport import ImportState
 from model_controllers.fwconfig_normalized_controller import FwConfigNormalized

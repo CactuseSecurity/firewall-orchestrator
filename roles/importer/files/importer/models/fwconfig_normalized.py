@@ -2,7 +2,7 @@ from typing import List, Dict
 from pydantic import BaseModel
 
 from fwo_base import ConfigAction, ConfFormat
-from roles.importer.files.importer.models.rulebase import Rulebase
+from models.rulebase import Rulebase
 from models.networkobject import NetworkObject
 from models.serviceobject import ServiceObject
 from models.gateway import Gateway

@@ -4,7 +4,7 @@ import traceback
 #from fwo_globals import verify_certs, suppress_cert_warnings, debug_level
 from fwo_log import getFwoLogger
 from fwoBaseImport import ImportState
-from roles.importer.files.importer.model_controllers.fwconfig_normalized_controller import FwConfigNormalized
+from model_controllers.fwconfig_normalized_controller import FwConfigNormalized
 from fwo_base import ConfigAction, ConfFormat
 
 # this class is used for importing a config into the FWO API

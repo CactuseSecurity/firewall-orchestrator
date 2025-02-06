@@ -1,7 +1,7 @@
 import json
 
 from fwo_base import ConfFormat, ConfigAction
-from roles.importer.files.importer.models.rulebase import Rulebase
+from models.rulebase import Rulebase
 
 class FwoEncoder(json.JSONEncoder):
 

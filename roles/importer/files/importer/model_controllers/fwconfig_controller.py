@@ -1,6 +1,6 @@
 import json
 from fwo_base import ConfFormat, ConfigAction
-from roles.importer.files.importer.models.rulebase import Rulebase
+from models.rulebase import Rulebase
 from models.fwconfig import FwConfig
 from netaddr import IPNetwork
 

@@ -717,7 +717,7 @@ namespace FWO.Test
 
             string expectedJsonResult = 
             "[{\"id\": 0,\"name\": \"TestMgt\"," +
-            "\"devices\": [{\"id\": 0,\"name\": \"TestDev\"," +
+            "\"devices\": [{\"id\": 0,\"name\": \"TestDev\",\"rulebase_links\": []," +
             "\"rules\": [{\"rule_id\": 0,\"rule_uid\": \"uid1\",\"mgm_id\": 0,\"rule_num_numeric\": 0,\"rule_name\": \"TestRule1\",\"rule_comment\": \"comment1\",\"rule_disabled\": false," +
             "\"rule_services\": [{\"service\": {\"svc_id\": 1,\"svc_name\": \"TestService1\",\"svc_uid\": \"\",\"svc_port\": 443,\"svc_port_end\": 443,\"svc_source_port\": null,\"svc_source_port_end\": null,\"svc_code\": \"\",\"svc_timeout\": null,\"svc_typ_id\": null,\"active\": false,\"svc_create\": 0," +
             "\"svc_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"svc_last_seen\": 0," +
@@ -827,7 +827,7 @@ namespace FWO.Test
             string expectedJsonResult = 
             "[{\"id\": 0,\"name\": \"TestMgt\"," +
             "\"devices\": [{\"id\": 0,\"name\": \"TestDev\"," +
-            "\"rules\": null," +
+            "\"rulebase_links\": [],\"rules\": null," +
             "\"changelog_rules\": [{\"import\": {\"time\": \"2023-04-05T12:00:00\"},\"change_action\": \"I\"," +
             "\"old\": {\"rule_id\": 0,\"rule_uid\": \"\",\"mgm_id\": 0,\"rule_num_numeric\": 0,\"rule_name\": \"\",\"rule_comment\": \"\",\"rule_disabled\": false," +
             "\"rule_services\": [],\"rule_svc_neg\": false,\"rule_svc\": \"\",\"rule_src_neg\": false,\"rule_src\": \"\",\"src_zone\": {\"zone_id\": 0,\"zone_name\": \"\"},\"rule_froms\": [],\"rule_dst_neg\": false,\"rule_dst\": \"\",\"dst_zone\": {\"zone_id\": 0,\"zone_name\": \"\"},\"rule_tos\": [],\"rule_action\": \"\",\"rule_track\": \"\",\"section_header\": \"\"," +

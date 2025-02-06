@@ -289,10 +289,6 @@ def parse_single_rule(nativeRule, rulebase, layer_name, import_id, rule_num, par
             if comments is not None:
                 rule['rule_comment'] = sanitize(comments)
             rulebase.Rules.update({ rule['rule_uid']: Rule(**rule)})
-            # if isinstance(rulebase, Policy):
-                # rulebase.Rules.append(rule)
-            # else:
-            #     # rulebase.append(rule)
 
             return rule_num + 1
     return rule_num

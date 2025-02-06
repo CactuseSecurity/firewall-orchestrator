@@ -1,8 +1,9 @@
 mutation newDevice(
   $name: String!
+  $uid: String!
   $devTypeId: Int!
   $managementId: Int!
-  $localRulebase: String!
+  $localRulebase: String
   $globalRulebase: String
   $package: String
   $importDisabled: Boolean!
@@ -12,6 +13,7 @@ mutation newDevice(
   insert_device(
     objects: {
       dev_name: $name
+      dev_uid: $uid
       dev_typ_id: $devTypeId
       mgm_id: $managementId
       local_rulebase_name: $localRulebase
@@ -31,6 +33,7 @@ mutation newDevice(
 # example variables (at least the following)
 # { 
 #   "name": "huhu",
+#   "uid": "huhu",
 #   "devTypeId": 10,
 #   "managementId": 2,
 #   "rulebase": "layer1",

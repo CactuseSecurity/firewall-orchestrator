@@ -38,8 +38,8 @@ class FwConfigNormalizedController():
         return f"{self.action}({str(self.network_objects)})"
 
     def stripUnusedElements(self):
-        for policyName in self.rules:
-            deleteDictElements(self.rules[policyName].Rules, ['control_id', 'rulebase_name'])
+        for rb in self.rulebases:
+            deleteDictElements(self.rulebases[rb].Rules, ['control_id', 'rulebase_name'])
 
         FwConfigNormalized.deleteControlIdFromDictList(self.network_objects)
         FwConfigNormalized.deleteControlIdFromDictList(self.service_objects)
@@ -69,7 +69,7 @@ class FwConfigNormalizedController():
         self.service_objects += config.Services
         self.users += config.Users
         self.zone_objects += config.Zones
-        self.rules += config.Policies
+        self.rulebases += config.Policies
         self.gateways += config.Gateways
 
     def fillGateways(self, importState: ImportState, gateways:List[Gateway]):      

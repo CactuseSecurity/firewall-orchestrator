@@ -33,6 +33,7 @@ Create table "device" -- contains an entry for each firewall gateway
 	"dev_id" SERIAL,
 	"mgm_id" Integer NOT NULL,
 	"dev_name" Varchar,
+	"dev_uid" Varchar,
 	"local_rulebase_name" Varchar,
 	"local_rulebase_uid" Varchar,
 	"global_rulebase_name" Varchar,
@@ -526,6 +527,12 @@ Create table "parent_rule_type"
 	"id" smallserial NOT NULL,
 	"name" Varchar NOT NULL,
  primary key ("id")
+);
+
+Create table IF NOT EXISTS "stm_link_type"
+(
+	"id" SERIAL primary key,
+	"name" Varchar NOT NULL
 );
 
 Create table "stm_action"
@@ -1148,14 +1155,6 @@ Create table IF NOT EXISTS "rulebase_link"
 	"created" BIGINT,
 	"removed" BIGINT
 );
-
-Create table IF NOT EXISTS "rulebase_on_gateway" 
-(
-	"dev_id" Integer,
-	"rulebase_id" Integer NOT NULL,
-	"order_no" Integer
-);
-
 
 create table owner_ticket
 (

@@ -334,7 +334,7 @@ namespace FWO.Config.Api.Data
 		[JsonProperty("modExtraConfigs"), JsonPropertyName("modExtraConfigs")]
 		public string ModExtraConfigs { get; set; } = "";
 
-		public ConfigData(bool editable = false)
+        public ConfigData(bool editable = false)
 		{
 			Editable = editable;
 		}

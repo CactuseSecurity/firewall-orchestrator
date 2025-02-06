@@ -1,0 +1,83 @@
+from pydantic import BaseModel
+from models.rulebase_link import RulebaseLinkUidBased, RulebaseLink
+# from model.Rule import Rule
+from fwoBaseImport import ImportState
+
+class RulebaseLinkUidBasedController(RulebaseLinkUidBased, ImportState):
+
+    def __init__(self):
+        super().__init__(self)
+
+    #     self.from_rulebase_uid = rulebaseLink.from_rulebase_uid
+    #     self.from_rule_uid = rulebaseLink.from_rule_uid
+    #     self.to_rulebase_uid = rulebaseLink.to_rulebase_uid
+    #     self.link_type = rulebaseLink.link_type
+
+    # def convertToRulebaseLink(self, devId: int) -> RulebaseLink:
+    #     return RulebaseLink(
+    #         gw_id=devId,
+    #         from_rule_id=self.ImportDetails.lookupRuleId(self.from_rule_uid),
+    #         to_rulebase_id=self.ImportDetails.lookupRulebaseId(self.to_rulebase_uid),
+    #         link_type=self.lookupLinkType(self.link_type)
+    #     )
+
+    # def importInsertRulebaseLink(self,):
+    #     query_variables = { "rule_link": [
+    #         {
+    #             "dev_id": self.gw_id,
+    #             # "from_rulebase_id": rblink.from_rule_id,
+    #             "to_rulebase_id": self.to_rulebase_id,
+    #             "from_rule_id": self.from_rule_id,
+    #             "link_type": self.link_type
+    #         }
+    #     ] }
+
+    #     mutation = """
+    #         mutation importInsertRulebaseOnGateway($rulebaseLinks: [rulebase_link_insert_input!]!) {
+    #             insert_rulebase_link(objects: $rulebaseLinks) {
+    #                 affected_rows
+    #             }
+    #         }"""
+        
+    #     return self.ImportDetails.call(mutation, queryVariables=query_variables)
+
+    # def getDiffs(importState: ImportState, previousConfig: FwConfigNormalized, rulebaseLinks: RulebaseLinkUidBased) -> RulebaseLink:
+
+    #     # compare with previous config
+    #     # if previous config does not exist, create all links
+    #     if previousConfig is None:
+    #         #  
+    #         return rulebaseLinks
+    #     # rbLinks = RulebaseLink()
+
+    #     logger = getFwoLogger()
+    #     query = "query getRulebaseLinks($mgmId: Int!) { rulebase_link (where: {mgm_id: {_eq: $mgmId}}) { xxx } }"
+    #     queryVariables = { 'mgmId': importState.MgmDetails.Id }
+    #     try:
+    #         queryResult = importState.call(query, queryVariables=queryVariables)
+    #         if 'errors' in queryResult:
+    #             logger.exception("fwo_api:import_latest_config - error while deleting last config for mgm id " +
+    #                             str(importState.MgmDetails.Id) + ": " + str(queryResult['errors']))
+    #             return 1 # error
+    #         else:
+    #             if len(queryResult['data']['latest_config'])>0: # do we have a prev config?
+    #                 # prevConfigDict = json.loads(queryResult['data']['latest_config'][0]['config'])
+    #                 prevConfig = FwConfigNormalized.parse_raw(queryResult['data']['latest_config'][0]['config'])
+    #             else:
+    #                 prevConfigDict = {
+    #                     'action': ConfigAction.INSERT,
+    #                     'network_objects': {},
+    #                     'service_objects': {},
+    #                     'users': {},
+    #                     'zone_objects': {},
+    #                     'rules': [],
+    #                     'gateways': [],
+    #                     'ConfigFormat': ConfFormat.NORMALIZED_LEGACY
+    #                 }
+    #                 prevConfig = FwConfigNormalized(**prevConfigDict)
+    #             return prevConfig
+    #     except:
+    #         logger.exception(f"failed to get latest normalized config for mgm id {str(self.ImportDetails.MgmDetails.Id)}: {str(traceback.format_exc())}")
+    #         raise Exception(f"error while trying to get the previous config")
+
+

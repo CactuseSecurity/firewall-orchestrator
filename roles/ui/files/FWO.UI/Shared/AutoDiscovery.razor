@@ -496,6 +496,7 @@
                 var Variables = new
                 {
                     name = discMgmt.Name,
+                    uid = discMgmt.Uid,
                     devTypeId = discMgmt.DeviceType.Id,
                     hostname = discMgmt.Hostname,
                     importCredentialId = discMgmt.ImportCredential.Id,
@@ -515,7 +516,7 @@
                 if (returnIds != null)
                 {
                     discMgmt.Id = returnIds[0].NewId;
-                    // As we know now the ManagementId we can activate following device inserts
+                    // As we now know the ManagementId we can activate the following device inserts
                     devCounter = activateDeviceChanges(discMgmt);
                     existingManagements.Add(discMgmt);
                 }
@@ -588,6 +589,7 @@
                 var Variables = new
                 {
                     name = discoveredDevice.Name,
+                    uid = discoveredDevice.Uid,
                     devTypeId = discoveredDevice.DeviceType.Id,
                     managementId = discoveredDevice.Management.Id,
                     localRulebase = discoveredDevice.LocalRulebase,

@@ -1,0 +1,13 @@
+mutation updateDevice(
+  $id: Int!
+  $uid: String!
+) {
+  update_device_by_pk(
+    pk_columns: { dev_id: $id }
+    _set: {
+      dev_uid: $uid
+    }
+  ) {
+    UpdatedId: dev_id
+  }
+}

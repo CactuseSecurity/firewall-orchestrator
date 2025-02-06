@@ -12,6 +12,7 @@ query getDevicesByManagement($devIds:[Int!]) {
   ) {
     id: mgm_id
     name: mgm_name
+    uid: mgm_uid
     devices(
       where: {
         dev_id:{_in:$devIds}
@@ -22,6 +23,7 @@ query getDevicesByManagement($devIds:[Int!]) {
     ) {
       id: dev_id
       name: dev_name
+      uid: dev_uid
     }
   }
 }

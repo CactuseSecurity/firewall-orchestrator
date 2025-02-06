@@ -11,7 +11,7 @@ from fwo_exception import ConfigFileNotFound
 from fwo_api import complete_import
 from models.fwconfigmanagerlist import FwConfigManagerList
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
-from model_controllers.fwconfig_controller import FwConfigController
+from roles.importer.files.importer.model_controllers.fwconfig_controller import FwConfigController
 from models.fwconfig import FwConfig
 from fwconfig_base import ConfFormat
 

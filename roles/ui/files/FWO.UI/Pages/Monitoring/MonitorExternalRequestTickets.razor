@@ -25,8 +25,8 @@
 {
     <SelectOwner SelectedOwner="actOwner" SelectedOwnerChanged="FetchOwnerData" Apps="allOwners" />
     <div class="m-2 vheight75">
-        <PageSizeComponent PageSizeCallback="UpdatePageSize" PageSize="PageSize"></PageSizeComponent>
-        <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="OwnerTicket" Items="ownerTickets" PageSize="PageSize" ColumnReorder="true">
+        <PageSizeComponent PageSizeCallback="UpdatePageSize"></PageSizeComponent>
+        <Table PageSize="PageSize" class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="OwnerTicket" Items="ownerTickets" ColumnReorder="true">
             <Column TableItem="OwnerTicket" Title="@(userConfig.GetText("actions"))" Field="(x => x.Ticket.Id)" Sortable="false" Filterable="false">
                 <Template>
                     <div class="btn-group">
@@ -82,7 +82,7 @@ else
                     <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("creation_date")):</label>
                     <label class="col-sm-8">@actOwnerTicket.Ticket.CreationDate</label>
                 </div>
-                <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="WfReqTask" Items="actOwnerTicket.Ticket.Tasks.OrderBy(x => x.TaskNumber).ToList()" PageSize="PageSize" ColumnReorder="true">
+                <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="WfReqTask" Items="actOwnerTicket.Ticket.Tasks.OrderBy(x => x.TaskNumber).ToList()" ColumnReorder="true">
                     <Column TableItem="WfReqTask" Title="@(userConfig.GetText("number"))" Field="@(x => x.TaskNumber)" Sortable="true" Filterable="true" />
                     <Column TableItem="WfReqTask" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
                     <Column TableItem="WfReqTask" Title="@(userConfig.GetText("title"))" Field="@(x => x.Title)" Sortable="true" Filterable="true" />
@@ -130,7 +130,7 @@ else
     private bool DetailsMode = false;
     private bool ReInitMode = false;
 
-    private int PageSize { get; set; } = 10;
+    private int PageSize { get; set; }
     private bool workInProgress = false;
 
     private static readonly List<string> relevantRequestStates =

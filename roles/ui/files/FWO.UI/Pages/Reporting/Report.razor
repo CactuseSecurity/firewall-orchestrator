@@ -108,7 +108,7 @@
                 @if (currentReport != null)
                 {
                     @switch (currentReport.ReportType)
-                    {
+                    {   // removing @bind-SelectedRules="selectedItemsRuleReportTable" from the RulesReport component
                         case ReportType.Rules:
                         case ReportType.ResolvedRules:
                         case ReportType.ResolvedRulesTech:
@@ -116,8 +116,7 @@
                         case ReportType.UnusedRules:
                         case ReportType.NatRules:
                         case ReportType.AppRules:
-                            <RulesReport Managements="currentReport.ReportData.ManagementData" SelectedReportType="actReportFilters.ReportType" RulesPerPage="rulesPerPage" 
-                                @bind-SelectedRules="selectedItemsRuleReportTable.FirstOrDefault(new Rule())" />
+                            <RulesReport Managements="currentReport.ReportData.ManagementData" SelectedReportType="actReportFilters.ReportType" RulesPerPage="rulesPerPage" />
                             break;
 
                         case ReportType.Changes:
@@ -155,16 +154,18 @@
     </div>
 
     @* ==== RIGHT SIDEBAR ==== *@
-    <RightSidebar @bind-Width="sidebarRightWidth" CurrentReport="currentReport"
+    @* <RightSidebar @bind-Width="sidebarRightWidth" TabSet="rsbTabset" AnchorNavToRSB="anchorNavToRSB" CurrentReport="currentReport"
         @bind-SelectedRules="selectedItemsRuleReportTable" 
         AllTabVisible="(tenantFilteringAllowed && actReportFilters.SelectedTenant == null)"
         SelectedReportType = "actReportFilters.ReportType"/>
+    <AnchorNavToRSB @ref="anchorNavToRSB" TabSet="rsbTabset" /> *@
 }
 
 @* ==== POPUPS ==== *@
 <ReportSelectTime @bind-Display="ShowSelectTimeDialog" SelectedReportType="actReportFilters.ReportType"@bind-ActTimeFilter="actReportFilters.TimeFilter"
     @bind-SavedTimeFilter="actReportFilters.SavedTimeFilter" DisplayTime="actReportFilters.SetDisplayedTimeSelection"/>
-@* <ReportCreateTicket @bind-Display="ShowCreateTicketDialog" SelectedRules="selectedItemsRuleReportTable"/> *@
+<ReportCreateTicket @bind-Display="ShowCreateTicketDialog" SelectedRules="selectedItemsRuleReportTable"/>
+
 
 @code
 {
@@ -181,7 +182,7 @@
     private bool processing = false;
     private CancellationTokenSource tokenSource = new();
 
-    private List<RuleMetadata> selectedItemsRuleReportTable = [];
+    private List<Rule> selectedItemsRuleReportTable = [];
     private List<RuleChange> selectedItemsChangeReportTable = [];
 
     private List<ModellingAppHandler> appHandlers = [];
@@ -205,7 +206,9 @@
 
     private ReportBase? currentReport;
 
+    private FWO.Ui.Shared.TabSet rsbTabset;
     private Sidebar? deviceSelectionSidebar;
+    private FWO.Ui.Shared.AnchorNavToRSB anchorNavToRSB;
 
     private string filterFeedbackStart = "";
     private string filterFeedbackError = "";
@@ -529,13 +532,10 @@
                 if (device.ContainsRules())
                 {
                     rulesFound = true;
-                    foreach (var rb in device.OrderedRulebases)
+                    @* foreach (var rule in device.Rules!)
                     {
-                        foreach (var rule in rb.Rulebase.RuleMetadata[0].Rules!)
-                        {
-                            rule.Metadata.UpdateRecertPeriods(userConfig.RecertificationPeriod, userConfig.RecertificationNoticePeriod);
-                        }
-                    }
+                        rule.Metadata.UpdateRecertPeriods(userConfig.RecertificationPeriod, userConfig.RecertificationNoticePeriod);
+                    } *@
                 }
             }
         }

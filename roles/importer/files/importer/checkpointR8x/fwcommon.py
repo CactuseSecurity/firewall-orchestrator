@@ -8,7 +8,7 @@ import time
 import cp_rule
 import cp_const, cp_network, cp_service
 import cp_getter
-from fwo_exception import FwLoginFailed, FwLogoutFailed
+from fwo_exception import FwLoginFailed
 from cp_user import parse_user_objects_from_rulebase
 from fwconfig_base import calcManagerUidHash
 from models.fwconfigmanagerlist import FwConfigManagerList, FwConfigManager
@@ -47,10 +47,10 @@ def getConfig(nativeConfig:json, importState:ImportState, managerSet:FwConfigMan
         for device in importState.FullMgmDetails['devices']:
             if not device.do_not_import:
 
-                for policy in package:
-                    if policy not in policies:
-                        normalizedConfig.rules.append(getPolicy(policy))
-                    normalizedConfig.ManagerSet[mgrSet].Configs.gateways[device].append(policy.name )
+                for rulebase in package:
+                    if rulebase not in policies:
+                        normalizedConfig.rulebases.append(getRulebase(rulebase))
+                    normalizedConfig.ManagerSet[mgrSet].Configs.gateways[device].append(rulebase.name )
 
 # Old function to compare
 def get_config(nativeConfig: json, importState: ImportState) -> tuple[int, FwConfigManagerList]:
@@ -353,6 +353,7 @@ def get_config(nativeConfig: json, importState: ImportState) -> tuple[int, FwCon
 
         result_get_objects = get_objects (nativeConfig, importState.FullMgmDetails, cpManagerApiBaseUrl, sid, force=importState.ForceImport, limit=str(importState.FwoConfig.ApiFetchSize), details_level=cp_const.details_level_objects, test_version='off')
         if result_get_objects>0:
+            logger.warning ( "checkpointR8x/get_config/error while gettings objects")
             return result_get_objects
         logger.debug ( "checkpointR8x/get_config/fetched objects in " + str(int(time.time()) - starttimeTemp) + "s")
 
@@ -360,6 +361,7 @@ def get_config(nativeConfig: json, importState: ImportState) -> tuple[int, FwCon
         logger.debug ( "checkpointR8x/get_config/getting rules ...")
         result_get_rules = getRules (nativeConfig, importState, sid, cpManagerApiBaseUrl)
         if result_get_rules>0:
+            logger.warning ( "checkpointR8x/get_config/error while gettings rules")
             return result_get_rules
         logger.debug ( "checkpointR8x/get_config/fetched rules in " + str(int(time.time()) - starttimeTemp) + "s")
 
@@ -389,7 +391,7 @@ def get_config(nativeConfig: json, importState: ImportState) -> tuple[int, FwCon
                             zone_objects=normalizedConfig['zone_objects'],
                             # decide between old (rules) and new (policies) format
                             # rules=normalizedConfig['rules'] if len(normalizedConfig['rules'])>0 else normalizedConfig['policies'],    
-                            rules=normalizedConfig['policies'],
+                            rulbases=normalizedConfig['policies'],
                             gateways=normalizedConfig['gateways']
                             )
     manager = FwConfigManager(ManagerUid=calcManagerUidHash(importState.FullMgmDetails),

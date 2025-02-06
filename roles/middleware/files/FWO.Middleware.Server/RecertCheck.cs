@@ -200,15 +200,16 @@ namespace FWO.Middleware.Server
                     {
                         if (device.ContainsRules())
                         {
-                            foreach (var rb in device.OrderedRulebases)
-                            {
-                                foreach (var rule in rb.Rulebase.RuleMetadata[0].Rules!)
-                                {
-                                    rule.Metadata.UpdateRecertPeriods(owner.RecertInterval ?? globalConfig.RecertificationPeriod, 0);
-                                    rule.RulebaseName = rb.Rulebase.Name ?? "";
-                                    rules.Add(rule);
-                                }
-                            }
+                            // TODO: implement
+                            // foreach (var rb in device.Rulebases)
+                            // {
+                            //     foreach (var rule in rb.Rulebase.RuleMetadata[0].Rules!)
+                            //     {
+                            //         rule.Metadata.UpdateRecertPeriods(owner.RecertInterval ?? globalConfig.RecertificationPeriod, 0);
+                            //         rule.RulebaseName = rb.Rulebase.Name ?? "";
+                            //         rules.Add(rule);
+                            //     }
+                            // }
                         }
                     }
                 }

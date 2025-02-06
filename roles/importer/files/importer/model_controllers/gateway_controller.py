@@ -15,6 +15,9 @@ class GatewayController():
     def buildGatewayList(cls, mgmDetails: dict) -> List['Gateway']:
         gws = []
         for gw in mgmDetails['devices']:
+            # check if gateway import is enabled
+            if 'do_not_import' in gw and gw['do_not_import']:
+                continue
             gws.append(Gateway(Name = gw['name'], Uid = f"{gw['name']}/{cls.calcManagerUidHash(mgmDetails)}"))
         return gws
 
@@ -36,3 +39,7 @@ class GatewayController():
         else:
             return str(s)
 
+    def __eq__(self, other):
+        if isinstance(other, Gateway):
+            return self. gateway == other
+        return False

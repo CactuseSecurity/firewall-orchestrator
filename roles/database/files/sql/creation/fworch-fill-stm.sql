@@ -604,3 +604,10 @@ insert into request.state (id,name) VALUES (620,'Discarded');
 INSERT INTO owner (id, name, dn, group_dn, is_default, recert_interval, app_id_external) 
 VALUES    (0, 'super-owner', 'uid=admin,ou=tenant0,ou=operator,ou=user,dc=fworch,dc=internal', 'group-dn-for-super-owner', true, 365, 'NONE')
 ON CONFLICT DO NOTHING; 
+
+insert into stm_link_type (id, name) VALUES (0, 'initial');
+insert into stm_link_type (id, name) VALUES (1, 'section');
+insert into stm_link_type (id, name) VALUES (2, 'ordered');
+insert into stm_link_type (id, name) VALUES (3, 'inline');
+insert into stm_link_type (id, name) VALUES (4, 'global');
+insert into stm_link_type (id, name) VALUES (5, 'local');

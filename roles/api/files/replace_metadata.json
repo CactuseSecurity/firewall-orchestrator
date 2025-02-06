@@ -4604,12 +4604,12 @@
                   }
                 },
                 {
-                  "name": "rulebase_on_gateways",
+                  "name": "rulebase_links",
                   "using": {
                     "foreign_key_constraint_on": {
-                      "column": "dev_id",
+                      "column": "gw_id",
                       "table": {
-                        "name": "rulebase_on_gateway",
+                        "name": "rulebase_link",
                         "schema": "public"
                       }
                     }
@@ -4686,6 +4686,7 @@
                       "force_initial_import",
                       "hide_in_gui",
                       "dev_name",
+                      "dev_uid",
                       "global_rulebase_name",
                       "global_rulebase_uid",
                       "local_rulebase_name",
@@ -4713,6 +4714,7 @@
                       "force_initial_import",
                       "hide_in_gui",
                       "dev_name",
+                      "dev_uid",
                       "global_rulebase_name",
                       "global_rulebase_uid",
                       "local_rulebase_name",
@@ -4747,24 +4749,25 @@
                   "role": "auditor",
                   "permission": {
                     "columns": [
-                      "dev_id",
-                      "mgm_id",
-                      "dev_name",
-                      "dev_typ_id",
-                      "dev_active",
-                      "dev_comment",
-                      "dev_create",
-                      "dev_update",
-                      "do_not_import",
                       "clearing_import_ran",
+                      "dev_active",
+                      "do_not_import",
                       "force_initial_import",
                       "hide_in_gui",
+                      "dev_name",
+                      "dev_uid",
                       "global_rulebase_name",
                       "global_rulebase_uid",
+                      "local_rulebase_name",
+                      "local_rulebase_uid",
                       "package_name",
                       "package_uid",
-                      "local_rulebase_uid",
-                      "local_rulebase_name"
+                      "dev_id",
+                      "dev_typ_id",
+                      "mgm_id",
+                      "dev_comment",
+                      "dev_create",
+                      "dev_update"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -4807,6 +4810,7 @@
                       "force_initial_import",
                       "hide_in_gui",
                       "dev_name",
+                      "dev_uid",
                       "global_rulebase_name",
                       "global_rulebase_uid",
                       "local_rulebase_name",
@@ -4841,24 +4845,25 @@
                   "role": "importer",
                   "permission": {
                     "columns": [
-                      "dev_id",
-                      "mgm_id",
-                      "dev_name",
-                      "dev_typ_id",
-                      "dev_active",
-                      "dev_comment",
-                      "dev_create",
-                      "dev_update",
-                      "do_not_import",
                       "clearing_import_ran",
+                      "dev_active",
+                      "do_not_import",
                       "force_initial_import",
                       "hide_in_gui",
+                      "dev_name",
+                      "dev_uid",
                       "global_rulebase_name",
                       "global_rulebase_uid",
+                      "local_rulebase_name",
+                      "local_rulebase_uid",
                       "package_name",
                       "package_uid",
-                      "local_rulebase_uid",
-                      "local_rulebase_name"
+                      "dev_id",
+                      "dev_typ_id",
+                      "mgm_id",
+                      "dev_comment",
+                      "dev_create",
+                      "dev_update"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -4868,24 +4873,25 @@
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
-                      "dev_id",
-                      "mgm_id",
+                      "clearing_import_ran",
+                      "dev_active",
+                      "do_not_import",
+                      "force_initial_import",
+                      "hide_in_gui",
                       "dev_name",
-                      "local_rulebase_name",
-                      "local_rulebase_uid",
+                      "dev_uid",
                       "global_rulebase_name",
                       "global_rulebase_uid",
+                      "local_rulebase_name",
+                      "local_rulebase_uid",
                       "package_name",
                       "package_uid",
+                      "dev_id",
                       "dev_typ_id",
-                      "dev_active",
+                      "mgm_id",
                       "dev_comment",
                       "dev_create",
-                      "dev_update",
-                      "do_not_import",
-                      "clearing_import_ran",
-                      "force_initial_import",
-                      "hide_in_gui"
+                      "dev_update"
                     ],
                     "filter": {}
                   }
@@ -4900,6 +4906,7 @@
                       "force_initial_import",
                       "hide_in_gui",
                       "dev_name",
+                      "dev_uid",
                       "global_rulebase_name",
                       "global_rulebase_uid",
                       "local_rulebase_name",
@@ -4940,6 +4947,7 @@
                       "force_initial_import",
                       "hide_in_gui",
                       "dev_name",
+                      "dev_uid",
                       "global_rulebase_name",
                       "global_rulebase_uid",
                       "local_rulebase_name",
@@ -4980,6 +4988,7 @@
                       "force_initial_import",
                       "hide_in_gui",
                       "dev_name",
+                      "dev_uid",
                       "global_rulebase_name",
                       "global_rulebase_uid",
                       "local_rulebase_name",
@@ -5020,6 +5029,7 @@
                       "force_initial_import",
                       "hide_in_gui",
                       "dev_name",
+                      "dev_uid",
                       "global_rulebase_name",
                       "global_rulebase_uid",
                       "local_rulebase_name",
@@ -5054,24 +5064,25 @@
                   "role": "reporter-viewall",
                   "permission": {
                     "columns": [
-                      "dev_id",
-                      "mgm_id",
-                      "dev_name",
-                      "dev_typ_id",
-                      "dev_active",
-                      "dev_comment",
-                      "dev_create",
-                      "dev_update",
-                      "do_not_import",
                       "clearing_import_ran",
+                      "dev_active",
+                      "do_not_import",
                       "force_initial_import",
                       "hide_in_gui",
+                      "dev_name",
+                      "dev_uid",
                       "global_rulebase_name",
                       "global_rulebase_uid",
+                      "local_rulebase_name",
+                      "local_rulebase_uid",
                       "package_name",
                       "package_uid",
-                      "local_rulebase_uid",
-                      "local_rulebase_name"
+                      "dev_id",
+                      "dev_typ_id",
+                      "mgm_id",
+                      "dev_comment",
+                      "dev_create",
+                      "dev_update"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -5087,6 +5098,7 @@
                       "force_initial_import",
                       "hide_in_gui",
                       "dev_name",
+                      "dev_uid",
                       "global_rulebase_name",
                       "global_rulebase_uid",
                       "local_rulebase_name",
@@ -5127,6 +5139,7 @@
                       "force_initial_import",
                       "hide_in_gui",
                       "dev_name",
+                      "dev_uid",
                       "global_rulebase_name",
                       "global_rulebase_uid",
                       "local_rulebase_name",
@@ -5169,6 +5182,7 @@
                       "force_initial_import",
                       "hide_in_gui",
                       "dev_name",
+                      "dev_uid",
                       "global_rulebase_name",
                       "global_rulebase_uid",
                       "local_rulebase_name",
@@ -6159,6 +6173,30 @@
                       "column": "created",
                       "table": {
                         "name": "rule_user_resolved",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "rulebaseLinksByRemoved",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "removed",
+                      "table": {
+                        "name": "rulebase_link",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "rulebase_links",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "created",
+                      "table": {
+                        "name": "rulebase_link",
                         "schema": "public"
                       }
                     }
@@ -8678,29 +8716,33 @@
                   "permission": {
                     "columns": [
                       "clearing_import_ran",
+                      "do_not_import",
+                      "force_initial_import",
+                      "hide_in_gui",
+                      "is_super_manager",
+                      "last_import_attempt_successful",
                       "cloud_subscription_id",
                       "cloud_tenant_id",
                       "config_path",
-                      "debug_level",
-                      "dev_typ_id",
-                      "do_not_import",
                       "domain_uid",
                       "ext_mgm_data",
-                      "force_initial_import",
-                      "hide_in_gui",
-                      "import_credential_id",
                       "importer_hostname",
-                      "last_import_attempt",
-                      "last_import_attempt_successful",
                       "last_import_md5_complete_config",
-                      "mgm_comment",
-                      "mgm_create",
-                      "mgm_id",
                       "mgm_name",
-                      "mgm_update",
-                      "multi_device_manager_id",
+                      "mgm_uid",
+                      "rulebase_name",
+                      "rulebase_uid",
                       "ssh_hostname",
-                      "ssh_port"
+                      "debug_level",
+                      "dev_typ_id",
+                      "import_credential_id",
+                      "mgm_id",
+                      "multi_device_manager_id",
+                      "ssh_port",
+                      "mgm_comment",
+                      "last_import_attempt",
+                      "mgm_create",
+                      "mgm_update"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -8711,29 +8753,33 @@
                   "permission": {
                     "columns": [
                       "clearing_import_ran",
+                      "do_not_import",
+                      "force_initial_import",
+                      "hide_in_gui",
+                      "is_super_manager",
+                      "last_import_attempt_successful",
                       "cloud_subscription_id",
                       "cloud_tenant_id",
                       "config_path",
-                      "debug_level",
-                      "dev_typ_id",
-                      "do_not_import",
                       "domain_uid",
                       "ext_mgm_data",
-                      "force_initial_import",
-                      "hide_in_gui",
-                      "import_credential_id",
                       "importer_hostname",
-                      "last_import_attempt",
-                      "last_import_attempt_successful",
                       "last_import_md5_complete_config",
-                      "mgm_comment",
-                      "mgm_create",
-                      "mgm_id",
                       "mgm_name",
-                      "mgm_update",
-                      "multi_device_manager_id",
+                      "mgm_uid",
+                      "rulebase_name",
+                      "rulebase_uid",
                       "ssh_hostname",
-                      "ssh_port"
+                      "debug_level",
+                      "dev_typ_id",
+                      "import_credential_id",
+                      "mgm_id",
+                      "multi_device_manager_id",
+                      "ssh_port",
+                      "mgm_comment",
+                      "last_import_attempt",
+                      "mgm_create",
+                      "mgm_update"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -8751,6 +8797,7 @@
                       "hide_in_gui",
                       "mgm_id",
                       "mgm_name",
+                      "mgm_uid",
                       "multi_device_manager_id"
                     ],
                     "filter": {
@@ -8774,26 +8821,25 @@
                       "cloud_subscription_id",
                       "cloud_tenant_id",
                       "config_path",
-                      "debug_level",
-                      "dev_typ_id",
-                      "do_not_import",
                       "domain_uid",
                       "ext_mgm_data",
-                      "force_initial_import",
-                      "hide_in_gui",
-                      "import_credential_id",
                       "importer_hostname",
-                      "last_import_attempt",
-                      "last_import_attempt_successful",
                       "last_import_md5_complete_config",
-                      "mgm_comment",
-                      "mgm_create",
-                      "mgm_id",
                       "mgm_name",
-                      "mgm_update",
-                      "multi_device_manager_id",
+                      "mgm_uid",
+                      "rulebase_name",
+                      "rulebase_uid",
                       "ssh_hostname",
-                      "ssh_port"
+                      "debug_level",
+                      "dev_typ_id",
+                      "import_credential_id",
+                      "mgm_id",
+                      "multi_device_manager_id",
+                      "ssh_port",
+                      "mgm_comment",
+                      "last_import_attempt",
+                      "mgm_create",
+                      "mgm_update"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -8804,29 +8850,33 @@
                   "permission": {
                     "columns": [
                       "clearing_import_ran",
+                      "do_not_import",
+                      "force_initial_import",
+                      "hide_in_gui",
+                      "is_super_manager",
+                      "last_import_attempt_successful",
                       "cloud_subscription_id",
                       "cloud_tenant_id",
                       "config_path",
-                      "debug_level",
-                      "dev_typ_id",
-                      "do_not_import",
                       "domain_uid",
                       "ext_mgm_data",
-                      "force_initial_import",
-                      "hide_in_gui",
-                      "import_credential_id",
                       "importer_hostname",
-                      "last_import_attempt",
-                      "last_import_attempt_successful",
                       "last_import_md5_complete_config",
-                      "mgm_comment",
-                      "mgm_create",
-                      "mgm_id",
                       "mgm_name",
-                      "mgm_update",
-                      "multi_device_manager_id",
+                      "mgm_uid",
+                      "rulebase_name",
+                      "rulebase_uid",
                       "ssh_hostname",
-                      "ssh_port"
+                      "debug_level",
+                      "dev_typ_id",
+                      "import_credential_id",
+                      "mgm_id",
+                      "multi_device_manager_id",
+                      "ssh_port",
+                      "mgm_comment",
+                      "last_import_attempt",
+                      "mgm_create",
+                      "mgm_update"
                     ],
                     "filter": {}
                   }
@@ -8843,6 +8893,7 @@
                       "hide_in_gui",
                       "mgm_id",
                       "mgm_name",
+                      "mgm_uid",
                       "multi_device_manager_id"
                     ],
                     "filter": {
@@ -8865,6 +8916,7 @@
                       "hide_in_gui",
                       "mgm_id",
                       "mgm_name",
+                      "mgm_uid",
                       "multi_device_manager_id"
                     ],
                     "filter": {
@@ -8962,6 +9014,7 @@
                       "hide_in_gui",
                       "mgm_id",
                       "mgm_name",
+                      "mgm_uid",
                       "multi_device_manager_id"
                     ],
                     "filter": {
@@ -8984,6 +9037,7 @@
                       "hide_in_gui",
                       "mgm_id",
                       "mgm_name",
+                      "mgm_uid",
                       "multi_device_manager_id"
                     ],
                     "filter": {
@@ -9001,29 +9055,33 @@
                   "permission": {
                     "columns": [
                       "clearing_import_ran",
+                      "do_not_import",
+                      "force_initial_import",
+                      "hide_in_gui",
+                      "is_super_manager",
+                      "last_import_attempt_successful",
                       "cloud_subscription_id",
                       "cloud_tenant_id",
                       "config_path",
-                      "debug_level",
-                      "dev_typ_id",
-                      "do_not_import",
                       "domain_uid",
                       "ext_mgm_data",
-                      "force_initial_import",
-                      "hide_in_gui",
-                      "import_credential_id",
                       "importer_hostname",
-                      "last_import_attempt",
-                      "last_import_attempt_successful",
                       "last_import_md5_complete_config",
-                      "mgm_comment",
-                      "mgm_create",
-                      "mgm_id",
                       "mgm_name",
-                      "mgm_update",
-                      "multi_device_manager_id",
+                      "mgm_uid",
+                      "rulebase_name",
+                      "rulebase_uid",
                       "ssh_hostname",
-                      "ssh_port"
+                      "debug_level",
+                      "dev_typ_id",
+                      "import_credential_id",
+                      "mgm_id",
+                      "multi_device_manager_id",
+                      "ssh_port",
+                      "mgm_comment",
+                      "last_import_attempt",
+                      "mgm_create",
+                      "mgm_update"
                     ],
                     "filter": {},
                     "check": {}
@@ -16140,18 +16198,6 @@
                   }
                 },
                 {
-                  "name": "rulebase_on_gateways",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "rulebase_id",
-                      "table": {
-                        "name": "rulebase_on_gateway",
-                        "schema": "public"
-                      }
-                    }
-                  }
-                },
-                {
                   "name": "rules",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -16248,6 +16294,24 @@
               },
               "object_relationships": [
                 {
+                  "name": "device",
+                  "using": {
+                    "foreign_key_constraint_on": "gw_id"
+                  }
+                },
+                {
+                  "name": "importControlByRemoved",
+                  "using": {
+                    "foreign_key_constraint_on": "removed"
+                  }
+                },
+                {
+                  "name": "import_control",
+                  "using": {
+                    "foreign_key_constraint_on": "created"
+                  }
+                },
+                {
                   "name": "rule",
                   "using": {
                     "foreign_key_constraint_on": "from_rule_id"
@@ -16258,25 +16322,11 @@
                   "using": {
                     "foreign_key_constraint_on": "to_rulebase_id"
                   }
-                }
-              ]
-            },
-            {
-              "table": {
-                "name": "rulebase_on_gateway",
-                "schema": "public"
-              },
-              "object_relationships": [
-                {
-                  "name": "device",
-                  "using": {
-                    "foreign_key_constraint_on": "dev_id"
-                  }
                 },
                 {
-                  "name": "rulebase",
+                  "name": "stm_link_type",
                   "using": {
-                    "foreign_key_constraint_on": "rulebase_id"
+                    "foreign_key_constraint_on": "link_type"
                   }
                 }
               ],
@@ -16286,9 +16336,13 @@
                   "permission": {
                     "check": {},
                     "columns": [
-                      "dev_id",
-                      "order_no",
-                      "rulebase_id"
+                      "created",
+                      "removed",
+                      "from_rule_id",
+                      "gw_id",
+                      "id",
+                      "link_type",
+                      "to_rulebase_id"
                     ]
                   },
                   "comment": ""
@@ -16299,9 +16353,13 @@
                   "role": "importer",
                   "permission": {
                     "columns": [
-                      "dev_id",
-                      "order_no",
-                      "rulebase_id"
+                      "created",
+                      "removed",
+                      "from_rule_id",
+                      "gw_id",
+                      "id",
+                      "link_type",
+                      "to_rulebase_id"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -16309,11 +16367,15 @@
                   "comment": ""
                 }
               ],
-              "delete_permissions": [
+              "update_permissions": [
                 {
                   "role": "importer",
                   "permission": {
-                    "filter": {}
+                    "columns": [
+                      "removed"
+                    ],
+                    "filter": {},
+                    "check": {}
                   },
                   "comment": ""
                 }
@@ -17911,6 +17973,128 @@
                     ],
                     "filter": {}
                   }
+                }
+              ]
+            },
+            {
+              "table": {
+                "name": "stm_link_type",
+                "schema": "public"
+              },
+              "array_relationships": [
+                {
+                  "name": "rulebase_links",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "link_type",
+                      "table": {
+                        "name": "rulebase_link",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "name",
+                      "id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "name",
+                      "id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "importer",
+                  "permission": {
+                    "columns": [
+                      "name",
+                      "id"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "name",
+                      "id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "name",
+                      "id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [
+                      "name",
+                      "id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reporter",
+                  "permission": {
+                    "columns": [
+                      "name",
+                      "id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reporter-viewall",
+                  "permission": {
+                    "columns": [
+                      "name",
+                      "id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reviewer",
+                  "permission": {
+                    "columns": [
+                      "name",
+                      "id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
                 }
               ]
             },

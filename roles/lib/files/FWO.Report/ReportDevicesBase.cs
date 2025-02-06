@@ -49,8 +49,9 @@ namespace FWO.Report
             try
             {
                 // TODO: the following only deals with first rulebase of a gateway:
-                return (await apiConnection.SendQueryAsync<List<AggregateCountLastHit>>(ReportQueries.getUsageDataCount, new { devId })
-                    )[0].RulebasesOnGateway[0].Rulebase.RulesWithHits.Aggregate.Count > 0;
+                // return (await apiConnection.SendQueryAsync<List<AggregateCountLastHit>>(ReportQueries.getUsageDataCount, new { devId })
+                //     )[0].RulebasesOnGateway[0].Rulebase.RulesWithHits.Aggregate.Count > 0;
+                return false;   // TODO: implement
            }
             catch(Exception)
             {
@@ -64,13 +65,9 @@ namespace FWO.Report
             {
                 foreach(var dev in mgmt.Devices)
                 {
-                    foreach (var rulebase in dev.OrderedRulebases) 
+                    if (dev != null && dev.RbLink != null && dev.RbLink.NextRulebase != null) 
                     {
-                        if(rulebase.Rulebase.RuleMetadata[0].Rules != null && rulebase.Rulebase.RuleMetadata[0].Rules.Length > 0)
-                        {
-                            return false;
-                        }
-                        if(dev.RuleChanges != null && dev.RuleChanges.Length > 0)
+                        if(dev.RbLink.NextRulebase.Rules.Length > 0)
                         {
                             return false;
                         }

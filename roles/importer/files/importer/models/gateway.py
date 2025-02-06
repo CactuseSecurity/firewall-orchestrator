@@ -1,5 +1,6 @@
 from typing import List, Optional
 from pydantic import BaseModel
+from models.rulebase_link import RulebaseLinkUidBased
 
 """
 Gateway
@@ -17,6 +18,20 @@ class Gateway(BaseModel):
     Name: str
     Routing: List[dict] = []
     Interfaces: List[dict]  = []
+    RulebaseLinks: List[RulebaseLinkUidBased] = []
     GlobalPolicyUid: Optional[str] = None
-    EnforcedPolicyUids: List[str] = []
-    EnforcedNatPolicyUids: List[str] = []
+    EnforcedPolicyUids: Optional[List[str]] = []
+    EnforcedNatPolicyUids: Optional[List[str]] = []
+
+
+    def __eq__(self, other):
+        if isinstance(other, Gateway):
+            return self.Uid == other.Uid \
+                and self.Name == other.Name \
+                and self.Routing == other.Routing \
+                and self.Interfaces == other.Interfaces \
+                and self.RulebaseLinks == other.RulebaseLinks \
+                and self.GlobalPolicyUid == other.GlobalPolicyUid \
+                and self.EnforcedPolicyUids == other.EnforcedPolicyUids \
+                and self.EnforcedNatPolicyUids == other.EnforcedNatPolicyUids
+        return False

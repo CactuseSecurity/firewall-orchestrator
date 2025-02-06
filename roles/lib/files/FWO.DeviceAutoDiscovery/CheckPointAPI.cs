@@ -34,16 +34,16 @@ namespace FWO.Rest.Client
                 Log.WriteWarning("Autodiscovery", $"GetDomains got empty user string, aborting");
                 return new RestResponse<CpSessionAuthInfo>(new RestRequest());
             }
-            if (pwd == null)
-                pwd = "";
-            if (domain == null)
-                domain = "";
-            Dictionary<string, string> body = new Dictionary<string, string>();
-            body.Add("user", user);
-            body.Add("password", pwd);
+            pwd ??= "";
+            domain ??= "";
+            Dictionary<string, string> body = new()
+            {
+                { "user", user },
+                { "password", pwd }
+            };
             if (domain != "")
                 body.Add("domain", domain);
-            RestRequest request = new RestRequest("login", Method.Post);
+            RestRequest request = new("login", Method.Post);
             request.AddJsonBody(body);
             request.AddHeader("Content-Type", "application/json");
             return await restClient.ExecuteAsync<CpSessionAuthInfo>(request);
@@ -51,7 +51,7 @@ namespace FWO.Rest.Client
 
         public async Task<RestResponse<CpSessionAuthInfo>> DeAuthenticateUser(string session)
         {
-            RestRequest request = new RestRequest("logout", Method.Post);
+            RestRequest request = new("logout", Method.Post);
             request.AddHeader("Content-Type", "application/json");
             request.AddHeader("X-chkp-sid", session);
             request.AddJsonBody(new { });
@@ -60,7 +60,7 @@ namespace FWO.Rest.Client
 
         public async Task<RestResponse<CpDomainHelper>> GetDomains(string session)
         {
-            RestRequest request = new RestRequest("show-domains", Method.Post);
+            RestRequest request = new("show-domains", Method.Post);
             request.AddHeader("X-chkp-sid", session);
             request.AddHeader("Content-Type", "application/json");
             Dictionary<string, string> body = new()
@@ -69,69 +69,6 @@ namespace FWO.Rest.Client
             };
             request.AddJsonBody(body);
             return await restClient.ExecuteAsync<CpDomainHelper>(request);
-        }
-
-        public async Task<(string?, string?)> GetGlobalRulebase(string sessionId)
-        {
-            RestResponse<CpPackagesHelper> packagesResponse = await GetPackages(@sessionId);
-            if (packagesResponse.Data != null && packagesResponse.Data.PackageList != null && packagesResponse.Data.PackageList.Count > 0)
-            {
-                // TODO: this needs to be checked in MDS environment
-                // need to decide which package and which access layer to choose (always the first (global) one?)
-                // currently we pick the very first global rulebase found
-
-                List<CpPackage> packageList = packagesResponse.Data.PackageList;
-                foreach (CpPackage p in packageList)
-                {
-                    if (p.Domain.DomainType == "global domain")
-                    {
-                        return (p.CpAccessLayers.FirstOrDefault(new CpAccessLayer())?.Name, p.CpAccessLayers.FirstOrDefault(new CpAccessLayer())?.Uid);
-                    }
-                }
-            }
-            return (null, null);
-        }
-
-        public async Task<RestResponse<CpPackagesHelper>> GetPackages(string session)
-        {
-            // Log.WriteDebug("Autodiscovery", $"found management '{dev.Name}' with access policy '{dev.Policy.AccessPolicyName}'");
-            RestRequest requestPackage = new("show-packages", Method.Post);
-            requestPackage.AddHeader("X-chkp-sid", @session);
-            requestPackage.AddHeader("Content-Type", "application/json");
-            Dictionary<string, string> showPackagesBody = new()
-            {
-                // { "name", dev.Policy.AccessPolicyName },
-                { "details-level", "full" }
-            };
-            requestPackage.AddJsonBody(showPackagesBody);
-            RestResponse<CpPackagesHelper> packages = await restClient.ExecuteAsync<CpPackagesHelper>(requestPackage);
-            return packages;
-        }
-
-        public async Task<RestResponse<CpPackage>> GetPackage(string session, CpDevice dev)
-        {
-            Log.WriteDebug("Autodiscovery", $"found gateway '{dev.Name}' with access policy '{dev.Policy.AccessPolicyName}'");
-            RestRequest requestPackage = new("show-package", Method.Post);
-            requestPackage.AddHeader("X-chkp-sid", session);
-            requestPackage.AddHeader("Content-Type", "application/json");
-            Dictionary<string, string> packageBody = new()
-            {
-                { "name", dev.Policy.AccessPolicyName },
-                { "details-level", "full" }
-            };
-            requestPackage.AddJsonBody(packageBody);
-            RestResponse<CpPackage> package = await restClient.ExecuteAsync<CpPackage>(requestPackage);
-            return package;
-        }
-
-        private static bool ContainsDomainLayer(List<CpAccessLayer> layers)
-        {
-            foreach (CpAccessLayer layer in layers)
-            {
-                if (layer.ParentLayer != "")
-                    return true;
-            }
-            return false;
         }
 
         public async Task<List<CpDevice>> GetGateways(string session, string ManagementType)
@@ -156,21 +93,7 @@ namespace FWO.Rest.Client
                 {
                     if (gwTypes.Contains(dev.CpDevType))
                     {
-                        if (dev.Policy.AccessPolicyInstalled)   // get package info
-                        {
-                            RestResponse<CpPackage> package = await GetPackage(session, dev);
-
-                            if (dev != null && package != null && package.Data != null)
-                            {
-                                dev.Package = package.Data;
-                                Log.WriteDebug("Autodiscovery", $"for gateway '{dev.Name}' we found a package '{dev?.Package?.Name}' with {dev?.Package?.CpAccessLayers.Count} layers");
-
-                                ExtractLayerNames(dev!.Package, dev.Name, ManagementType, out string localLayerName, out string globalLayerName);
-                                dev.LocalLayerName = localLayerName;
-                                dev.GlobalLayerName = globalLayerName;
-                            }
-                        }
-                        else
+                        if (!dev.Policy.AccessPolicyInstalled)
                             Log.WriteWarning("Autodiscovery", $"found gateway '{dev.Name}' without access policy");
                     }
                 }
@@ -179,61 +102,6 @@ namespace FWO.Rest.Client
             return [];
         }
 
-        private static void ExtractLayerNames(CpPackage package, string devName, string managementType, out string localLayerName, out string globalLayerName)
-        {
-            localLayerName = "";
-            globalLayerName = "";
-            // getting rid of unneccessary layers (eg. url filtering, application, ...)
-            List<CpAccessLayer> relevantLayers = [];
-            if (package.CpAccessLayers.Count == 1) // default: pick the first layer found (if any)
-                relevantLayers.Add(package.CpAccessLayers[0]);
-            else if (package.CpAccessLayers.Count > 1)
-            {
-                Log.WriteWarning("Autodiscovery", $"for gateway '{devName}'/ package '{package.Name}' we found multiple ({package.CpAccessLayers.Count}) layers");
-                // for now: pick the layer which the most "firewall-ish" - TODO: deal with layer chaining
-                foreach (CpAccessLayer layer in package.CpAccessLayers)
-                {
-                    if (layer.IsFirewallEnabled && !layer.IsApplicationsAndUrlFilteringEnabled && !layer.IsContentAwarenessEnabled && !layer.IsMobileAccessEnabled)
-                        relevantLayers.Add(layer);
-                }
-            }
-
-            foreach (CpAccessLayer layer in relevantLayers)
-            {
-                if (layer.Type != "access-layer") // only dealing with access layers, ignore the rest
-                    continue;
-
-                if (layer.ParentLayer != "")      // this is a domain layer
-                {
-                    localLayerName = layer.Name;
-                    layer.LayerType = "domain-layer";
-                    Log.WriteDebug("Autodiscovery", $"found domain layer with link to parent layer '{layer.ParentLayer}'");
-                }
-                else if (managementType == "stand-alone")
-                {
-                    localLayerName = layer.Name;
-                    layer.LayerType = "local-layer";
-                    Log.WriteDebug("Autodiscovery", $"found stand-alone layer '{layer.Name}'");
-                }
-                else if (ContainsDomainLayer(package.CpAccessLayers))
-                {   // this must the be global layer
-                    layer.LayerType = "global-layer";
-                    globalLayerName = layer.Name;
-                    Log.WriteDebug("Autodiscovery", $"found global layer '{layer.Name}'");
-                }
-                else
-                { // in domain context, but no global layer exists
-                    layer.LayerType = "stand-alone-layer";
-                    localLayerName = layer.Name;
-                    Log.WriteDebug("Autodiscovery", $"found stand-alone layer in domain context '{layer.Name}'");
-                }
-                // TODO: this will contstantly overwrite local layer name if more than one exists, the last one wins!
-            }
-
-            package.CpAccessLayers = relevantLayers;
-            if (relevantLayers.Count == 0)
-                Log.WriteWarning("Autodiscovery", $"found gateway '{devName}' without access layers");
-        }
     }
 
     public class CpSessionAuthInfo
@@ -270,8 +138,6 @@ namespace FWO.Rest.Client
 
         [JsonProperty("domain-type"), JsonPropertyName("domain-type")]
         public string DomainType { get; set; } = "";
-
-        // public List<Assignment> Assignments = new List<Assignment>();
     }
 
     public class CpPackagesHelper
@@ -307,6 +173,8 @@ namespace FWO.Rest.Client
 
         public string LocalLayerName { get; set; } = "";
         public string GlobalLayerName { get; set; } = "";
+
+        public List<CpAccessLayer> Layers { get; set; } = [];
 
     }
 

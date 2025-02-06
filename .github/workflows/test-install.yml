@@ -26,6 +26,6 @@ jobs:
       run: echo "RUNNING_ON_GITHUB=1" >> $GITHUB_ENV
 
     - name: do test install in case of merged pull request
-      run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator && ansible-playbook -e force_install=true site.yml -K
+      run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator && sudo ansible-playbook -e force_install=true site.yml -K
       env:
         RUNNING_ON_GITHUB_ACTIONS: ${{ env.RUNNING_ON_GITHUB }}

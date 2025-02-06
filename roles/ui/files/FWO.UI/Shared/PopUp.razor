@@ -13,7 +13,7 @@
                             <span>&times;</span>
                         </button>
                     </div>
-                    <div class="modal-body popup-body m-2">
+                    <div class="modal-body @(PopUpBodyClass()) p-2">
                         @Body
                     </div>
                     <hr>
@@ -48,12 +48,11 @@
 
     [Parameter]
     public Action OnClose { get; set; } = new Action(() => { });
-
+        
     private string SizeClass()
     {
         switch (Size)
         {
-            //The not *custom* popupsizes will be deprecated soon
             case PopupSize.FullScreen: return "modal-fullscreen";
             case PopupSize.XLarge: return "modal-xl popup";
             case PopupSize.Large: return "modal-lg popup";
@@ -65,6 +64,23 @@
             case PopupSize.CustomMedium: return "custom-modal-md modal-dialog-padding";
             case PopupSize.CustomSmall: return "custom-modal-sm modal-dialog-padding";
             default: return "custom-modal-sm modal-dialog-padding";
+        };
+    }
+
+    private string PopUpBodyClass()
+    {
+        switch (Size)
+        {
+            //The not *custom* popupsizes will be deprecated soon
+            case PopupSize.FullScreen:
+                return "popup-body-fs";
+            case PopupSize.XLarge: 
+            case PopupSize.Large:
+            case PopupSize.Medium:
+            case PopupSize.Small:
+                return "popup-body";
+            default:
+                return "";
         };
     }
 

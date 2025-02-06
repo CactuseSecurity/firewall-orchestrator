@@ -5,26 +5,26 @@
 
 .custom-modal-xl {
     --bs-modal-width: 80vw;
-    height: 80vh;
-    margin-top: 6em;
+    height: 90vh;
+    margin-top: 3em;
 }
 
 .custom-modal-lg {
     --bs-modal-width: 60vw;
-    height: 60vh;
+    height: 70vh;
     margin-top: 8em;
 }
 
 .custom-modal-md {
     --bs-modal-width: 40vw;
-    height: 40vh;
-    margin-top: 10em;
+    height: 50vh;
+    margin-top: 12em;
 }
 
 .custom-modal-sm {
     --bs-modal-width: 30vw;
-    height: 30vh;
-    margin-top: 12em;
+    height: 40vh;
+    margin-top: 16em;
 }
 
 .modal-dialog-padding {
@@ -35,8 +35,7 @@
 .custom-modal-popup {
     padding: 2em;
     background-color: rgba(255, 255, 255, 1);
-    overflow-x: hidden;
-    
+    overflow-x: hidden;    
 }
 
 .popup-body-fs {

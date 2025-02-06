@@ -41,20 +41,20 @@ namespace FWO.Test
                     break;
                 case PlatformID.Unix:
                     path = ChromeBinPathLinux;
-                    browserFetcher = new(new BrowserFetcherOptions { Path = path, Platform = Platform.Linux, Browser = SupportedBrowser.Chrome });
+                    browserFetcher = new(new BrowserFetcherOptions { Path = path, Platform = Platform.Linux, Browser = SupportedBrowser.ChromeHeadlessShell });
                     break;
                 default:
                     break;
             }
 
-            InstalledBrowser? brw = browserFetcher.GetInstalledBrowsers().FirstOrDefault() ?? await browserFetcher.DownloadAsync(BrowserTag.Latest);
+            InstalledBrowser? brw = browserFetcher.GetInstalledBrowsers().FirstOrDefault();
 
             Log.WriteInfo("Test Log", $"Browser: {brw.GetExecutablePath()}");
 
             using IBrowser? browser = await Puppeteer.LaunchAsync(new LaunchOptions
             {
-                Headless = false,
-                Browser = SupportedBrowser.Chrome
+                Headless = true,
+                Browser = SupportedBrowser.ChromeHeadlessShell
             });
 
             try

@@ -52,8 +52,7 @@ namespace FWO.Test
             using IBrowser? browser = await Puppeteer.LaunchAsync(new LaunchOptions
             {
                 ExecutablePath = brw.GetExecutablePath(),
-                Headless = true,
-                Args = new[] { "--disable-setuid-sandbox" }
+                Headless = true
             });
 
             try

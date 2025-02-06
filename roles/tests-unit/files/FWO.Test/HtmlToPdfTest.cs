@@ -67,7 +67,7 @@ namespace FWO.Test
                 Headless = true,
                 DumpIO = isGitHubActions != null ? true : false, // Enables debug logs
                 Args = isGitHubActions != null ?
-                  new[] { "--database=/tmp" }
+                  new[] { "--database=/tmp", "--no-sandbox" }
                   : [] // No additional arguments locally
             });
 

@@ -334,9 +334,6 @@ namespace FWO.Config.Api.Data
 		[JsonProperty("modExtraConfigs"), JsonPropertyName("modExtraConfigs")]
 		public string ModExtraConfigs { get; set; } = "";
 
-        [JsonProperty("maxModellingTableRows"), JsonPropertyName("maxModellingTableRows")]
-        public int MaxModellingTableRows { get; set; } = 10;
-
         public ConfigData(bool editable = false)
 		{
 			Editable = editable;

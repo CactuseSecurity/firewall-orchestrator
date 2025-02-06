@@ -32,33 +32,34 @@ namespace FWO.Test
             Log.WriteInfo("Test Log", $"OS: {os}");
 
             string path = "";
-            BrowserFetcher? browserFetcher = default;
+            Platform platform = Platform.Unknown;
 
             switch (os.Platform)
             {
                 case PlatformID.Win32NT:
-                    browserFetcher = new();
+                    platform = Platform.Win32;
                     break;
                 case PlatformID.Unix:
                     path = ChromeBinPathLinux;
-                    browserFetcher = new(new BrowserFetcherOptions { Path = path, Platform = Platform.Linux, Browser = SupportedBrowser.ChromeHeadlessShell });
+                    platform = Platform.Linux;
                     break;
                 default:
                     break;
             }
 
-            foreach (var browser_installed in browserFetcher.GetInstalledBrowsers())
+            InstalledBrowser? installedBrowser = new BrowserFetcher(new BrowserFetcherOptions() { Platform = platform, Browser = SupportedBrowser.Chrome , Path = path}).GetInstalledBrowsers()
+                      .FirstOrDefault(_ => _.Platform == platform && _.Browser == SupportedBrowser.Chrome);
+
+            foreach (var brw in new BrowserFetcher(new BrowserFetcherOptions() { Platform = platform, Browser = SupportedBrowser.Chrome, Path = path }).GetInstalledBrowsers())
             {
-                Log.WriteInfo("Test Log", $"Browser: {browser_installed.GetExecutablePath()}");
+                Log.WriteInfo("Test Log", $"Browser: {brw.GetExecutablePath()}");
             }
 
-            InstalledBrowser? brw = browserFetcher.GetInstalledBrowsers().FirstOrDefault(_ => _.Platform == Platform.Linux && _.Browser == SupportedBrowser.ChromeHeadlessShell) ?? await browserFetcher.DownloadAsync(BrowserTag.Latest);
-
-            Log.WriteInfo("Test Log", $"Browser Path: {brw.GetExecutablePath()}");
+            Log.WriteInfo("Test Log", $"Browser Path: {installedBrowser.GetExecutablePath()}");
 
             using IBrowser? browser = await Puppeteer.LaunchAsync(new LaunchOptions
             {
-                ExecutablePath = brw.GetExecutablePath(),
+                ExecutablePath = installedBrowser.GetExecutablePath(),
                 Headless = true
             });
 

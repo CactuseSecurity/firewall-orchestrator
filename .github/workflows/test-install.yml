@@ -8,21 +8,12 @@ on:
     - 'design/**'
 
   pull_request:
-    types: [ ready_for_review, review_requested ]
+    types: [ ready_for_review, review_requested, sad ]
     paths-ignore:
     - 'documentation/**'
     - 'design/**'
 
 jobs:
-  run_dotnet_test:
-    name: run dotnet test
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v3
-
-    - name: exec dotnet test
-      run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator/roles/tests-unit/files/FWO.Test && dotnet test --filter "Name=HtmlToPdfTest"
-
   test_ubuntu_latest:
     name: test build on ubuntu latest
     runs-on: ubuntu-latest

@@ -156,18 +156,81 @@ def get_changes(sid,api_host,api_port,fromdate):
     return 0
 
 
-def getOrderedLayers(api_v_url, sid, show_params_ordered_layers):
+def getPolicyStructure(api_v_url, sid, show_params_policy_structure, policyStructure = []):
+    # delete_v: return:
+    # [{'name':'policy1', 'uid':'bla', 'targets':[{'name':'gateway1', 'uid':'bla'}], 'access-layers':[{'name':'ord1', 'uid':'ord1'}]}]
     logger = getFwoLogger()
 
-    #delete_v hier fehlt paging
-    try:
-        packages = cp_api_call(api_v_url, 'show-packages', show_params_ordered_layers, sid)
-    except:
-        logger.error("could not return 'show-packages'")
+    current=0
+    total=current+1
 
-    # parse devices with ordered layers
+    show_params_policy_structure.update({'offset': current})
 
+    while (current<total):
 
+        try:
+            packages = cp_api_call(api_v_url, 'show-packages', show_params_policy_structure, sid)
+        except:
+            logger.error("could not return 'show-packages'")
+            return 1
+
+        if 'total' in packages:
+            total=packages['total']
+        else:
+            logger.error ( 'packages do not contain total field')
+            logger.warning ( 'sid: ' + sid)
+            logger.warning ( 'api_v_url: ' + api_v_url)
+            for key, value in show_params_policy_structure.items():
+                logger.warning('show_params_policy_structure ' + key + ': ' + str(value))
+            for key, value in packages.items():
+                logger.warning('packages ' + key + ': ' + str(value))
+            return 1
+        
+        if total==0:
+            current=0
+        else:
+            if 'to' in packages:
+                current=packages['to']
+            else:
+                raise Exception ( 'packages do not contain to field')
+            return 1
+        
+# [{'name':'policy1', 'uid':'bla', 'targets':[{'name':'gateway1', 'uid':'bla'}], 'access-layers':[{'name':'ord1', 'uid':'ord1'}]}]
+        # parse devices with ordered layers
+        for package in packages:
+            alreadyFetchedPackage = False
+
+            # parse package if at least one installation target exists
+            if 'installation-targets-revision' in package:
+                for installationTarget in package['installation-targets-revision']:
+                    if 'target-name' in installationTarget and 'target-uid' in installationTarget:
+
+                        if not alreadyFetchedPackage:
+                            currentPacakage = { 'name': package['name'],
+                                                'uid': package['uid'],
+                                                'targets': [],
+                                                'access-layers': []}
+                            alreadyFetchedPackage = True
+
+                        currentPacakage['targets'].append({ 'name': installationTarget['target-name'],
+                                                            'uid': installationTarget['target-uid']})
+                    else:
+                        logger.warning ( 'installation target in package: ' + package['uid'] + ' is missing name or uid')
+                
+                if alreadyFetchedPackage:
+                    if 'access-layers' in package:
+                        for accessLayer in package['access-layers']:
+                            if 'name' in accessLayer and 'uid' in accessLayer:
+                                currentPacakage['access-layers'].append({ 'name': accessLayer['name'],
+                                                                          'uid': accessLayer['uid']})
+                            else:
+                                logger.warning ( 'access layer in package: ' + package['uid'] + ' is missing name or uid')
+                    # in future threat-layers may be fetched the same way as access-layers
+                    
+                    policyStructure.append(currentPacakage)
+
+    return 0
+                        
 
 def getRulebases (api_v_url, sid, show_params_rules,
                   rulebaseUid=None,

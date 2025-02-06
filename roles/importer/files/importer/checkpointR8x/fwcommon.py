@@ -131,35 +131,6 @@ def get_config(nativeConfig: json, importState: ImportState) -> tuple[int, FwCon
     return 0, listOfManagers
 
 
-
-def buildManagerStructure(packages):
-    managerStructure = {
-        'name': '',
-        'uid': '',
-        'package_name': '',
-        'package_uid': '',
-        'access_layers': [],
-        'managers': []
-    }
-
-    if 'packages' in packages:
-        for package in packages['packages']:
-            if globalCondition:
-                if 'name' and 'uid' in package:
-                    managerStructure.update({'package_name': package['name'], 'package_uid': package['uid']})
-                else:
-                    raise
-
-
-
-
-
-
-def getPackageDetails(apiUrl, sid, showParams):
-    #run show-package for package-name to get all relevant policies
-    package = cp_api_call(apiUrl, 'show-package', showParams, sid)
-
-
 def has_config_changed (full_config, mgm_details, force=False):
 
     if full_config != {}:   # a config was passed in (read from file), so we assume that an import has to be done (simulating changes here)
@@ -184,7 +155,7 @@ def has_config_changed (full_config, mgm_details, force=False):
     return result
 
 
-def getRules (nativeConfig: dict, importState: ImportState, sid: str) -> int:
+def getRules (nativeConfig: dict, importState: ImportState) -> int:
 # delete_v: diese funktion sollte komplett umgeschrieben werden
 # 1. global 2. local 3. ordered 4. inline
 # in der output strucktur müssen die namen der policies mitgeliefert werden,
@@ -210,17 +181,20 @@ def getRules (nativeConfig: dict, importState: ImportState, sid: str) -> int:
 
     logger = getFwoLogger()
     nativeConfig.update({'rulebases': [], 'nat_rulebases': [], 'gateways': [] })
-    show_params_ordered_layers = {
+    show_params_policy_structure = {
         'limit': importState.FwoConfig.ApiFetchSize,
         'details-level': 'full'
     }
 
-    # get ordered layer uids of local rulebase
-    # delete_v hier ordered layer rausbekommen
-    orderedLayerUids = cp_getter.getOrderedLayers(importState.FwoConfig.FwoApiUri,
-                                                  sid,
-                                                  show_params_ordered_layers)
-    orderedLayerUids = ['dummy']
+    domain, cpManagerApiBaseUrl = prepare_get_vars(importState.FullMgmDetails)
+    sid = login_cp(importState.FullMgmDetails, domain)
+
+    # get all access (ordered) layers for each policy
+    policyStructure = []
+    cp_getter.getPolicyStructure(importState.FwoConfig.FwoApiUri,
+                                 sid,
+                                 show_params_policy_structure,
+                                 policyStructure = policyStructure)
 
     show_params_rules = {
         'limit': importState.FwoConfig.ApiFetchSize,
@@ -232,14 +206,24 @@ def getRules (nativeConfig: dict, importState: ImportState, sid: str) -> int:
     # read all rulebases: handle per device details
     for device in importState.FullMgmDetails['devices']:
         if 'dev_name' in device:
-            # delete_v: brauchen wir hier auch uid von gateway? Wo wird das jemals genutzt? 
+            # delete_v: brauchen wir hier auch uid von gateway? Wo wird das jemals genutzt? Ja wenn wir in der policy struc suchen
             deviceConfig = {'name': device['dev_name'], 'rulebase_links': []}
         else:
             logger.error ( "found device without name: " + str(device) )
 
         # get ordered layer uids for current device
-        # delete_v hier ordered layer rausbekommen
-        orderedLayerUids = ['dummy']
+        orderedLayerUids = []
+        for policy in policyStructure:
+            for target in policy['targets']:
+                # delete_v das klappt nicht bis wir uns nicht auf gateway uids einigen
+                if target['uid'] == deviceConfig['uid']:
+                    break
+            for accessLayer in policy['access-layers']:
+                orderedLayerUids.append(accessLayer['uid'])
+
+        if len(orderedLayerUids) == 0:
+            logger.warning ( "found no ordered layers for device: " + deviceConfig['name'] )
+            continue
 
         # decide if mds or stand alone manager
         if device['global_rulebase_name'] != None and device['global_rulebase_name']!='':
@@ -261,7 +245,6 @@ def getRules (nativeConfig: dict, importState: ImportState, sid: str) -> int:
                 if rulebase['name'] == device['global_rulebase_name']:
                     globalRulebaseUid = rulebase['uid']
             
-            # delete_v: 'global_rulebase_uid' evtl nicht befüllt in datenbank
             # define initial rulebase for device in case of mds
             deviceConfig['rulebase_links'].append({
                 'from_rulebase_uid': '',
@@ -292,6 +275,8 @@ def getRules (nativeConfig: dict, importState: ImportState, sid: str) -> int:
         orderedLayerIndex = 0
         for orderedLayerUid in orderedLayerUids:
 
+            # get sid for local domain
+
             show_params_rules.update({'uid': orderedLayerUid, 'name': ''})
             # delete_v nochmal die strukturen fürs gedächtnis
             # nativeConfig['rulebases'] = Liste von currentRulebase = { "uid": '', "name": layerName, "chunks": [] }
@@ -319,38 +304,6 @@ def getRules (nativeConfig: dict, importState: ImportState, sid: str) -> int:
                     'type': 'ordered'})
             
             orderedLayerIndex += 1
-        
-        # link domain rules to global rules
-        for rulebase in nativeConfig['rulebases']:
-            if rulebase['name'] == 
-            nativeConfig.update({'rulebases': []})
-
-        # now handling possible reference to domain rules within global rules
-        # if we find the reference, replace it with the domain rules
-        # delete_v das kann komplett weg, wir linken die rulebases anders
-        if 'rulebase_chunks' in current_layer_json:
-            for chunk in current_layer_json["rulebase_chunks"]:
-                for rule in chunk['rulebase']:
-                    if "type" in rule and rule["type"] == "place-holder":
-                        logger.debug ("found domain rules place-holder: " + str(rule) + "\n\n")
-                        current_layer_json = cp_getter.insert_layer_after_place_holder(current_layer_json, 
-                                                                                        domain_rules, 
-                                                                                        rule['uid'], 
-                                                                                        nativeConfig=nativeConfig)
-        else:   # no global rules, just get local ones
-            getOrderdLayers()
-
-            show_params_rules.update({'name': device['local_rulebase_name']})
-            logger.debug ( "getting layer: " + show_params_rules['name'] )
-            current_layer_json = cp_getter.get_layer_from_api_as_dict (cpManagerApiBaseUrl, 
-                                                                       sid, 
-                                                                       show_params_rules, 
-                                                                       layerName=device['local_rulebase_name'], 
-                                                                       nativeConfig=nativeConfig)
-            if current_layer_json is None:
-                return 1
-
-        nativeConfig['rulebases'].append(current_layer_json)
 
         # getting NAT rules - need package name for nat rule retrieval
         # todo: each gateway/layer should have its own package name (pass management details instead of single data?)

@@ -5,11 +5,6 @@
 		<Nullable>enable</Nullable>
 		<ImplicitUsings>enable</ImplicitUsings>
 	</PropertyGroup>
-
-	<ItemGroup>
-	  <Content Remove="wwwroot\html\ToCHTMLTemplate.html" />
-	</ItemGroup>
-
 	<ItemGroup>
 		<PackageReference Include="IPAddressRange" Version="6.1.0" />
 		<PackageReference Include="BlazorTable" Version="1.17.0" />
@@ -32,11 +27,4 @@
 		<ProjectReference Include="..\..\..\lib\files\FWO.DeviceAutoDiscovery\FWO.DeviceAutoDiscovery.csproj" />
 		<ProjectReference Include="..\..\..\lib\files\FWO.Services\FWO.Services.csproj" />
 	</ItemGroup>
-
-	<ItemGroup>
-	  <None Include="wwwroot\html\ToCHTMLTemplate.html">
-	    <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-	  </None>
-	</ItemGroup>
-
 </Project>

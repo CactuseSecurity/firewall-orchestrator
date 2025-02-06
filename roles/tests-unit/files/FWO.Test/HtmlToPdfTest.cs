@@ -63,8 +63,12 @@ namespace FWO.Test
 
             using IBrowser? browser = await Puppeteer.LaunchAsync(new LaunchOptions
             {
-                ExecutablePath = installedBrowser.GetExecutablePath(),
-                Headless = true
+                ExecutablePath = isGitHubActions != null ? "/usr/bin/chromium-browser" : installedBrowser.GetExecutablePath(),
+                Headless = true,
+                DumpIO = isGitHubActions != null ? true : false, // Enables debug logs
+                Args = isGitHubActions != null ?
+                  new[] { "--database=/tmp" }
+                  : [] // No additional arguments locally
             });
 
             try

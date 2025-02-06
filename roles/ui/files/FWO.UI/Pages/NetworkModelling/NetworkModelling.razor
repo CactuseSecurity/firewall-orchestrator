@@ -180,11 +180,13 @@ else if(appHandler != null)
 
     protected override async Task OnInitializedAsync()
     {
+        workInProgress = true;
         // if use has modeller role, choose it before all others for this menu
         apiConnection.SetBestRole(authenticationStateTask!.Result.User, [ Roles.Modeller, Roles.Admin, Roles.Auditor ]);
         extStateHandler = new(apiConnection);
         await states.Init(apiConnection);
         await InitAppList();
+        workInProgress = false;
     }
 
     protected override void OnAfterRender(bool firstRender)

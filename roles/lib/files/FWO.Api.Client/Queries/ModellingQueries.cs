@@ -18,7 +18,8 @@ namespace FWO.Api.Client.Queries
         public static readonly string newAreaIpData;
         public static readonly string getConnectionIdsForNwGroup;
 
-        public static readonly string getAppServer;
+        public static readonly string getAppServersByIp;
+        public static readonly string getAppServersByName;
         public static readonly string getAppServersForOwner;
         public static readonly string getImportedAppServers;
         public static readonly string getAllAppServers;
@@ -120,7 +121,8 @@ namespace FWO.Api.Client.Queries
                 newAreaIpData = File.ReadAllText(QueryPath + "modelling/newAreaIpData.graphql");
                 getConnectionIdsForNwGroup = File.ReadAllText(QueryPath + "modelling/getConnectionIdsForNwGroup.graphql");
 
-                getAppServer = appServerDetailsFragment + File.ReadAllText(QueryPath + "modelling/getAppServer.graphql");
+                getAppServersByIp = appServerDetailsFragment + File.ReadAllText(QueryPath + "modelling/getAppServersByIp.graphql");
+                getAppServersByName = appServerDetailsFragment + File.ReadAllText(QueryPath + "modelling/getAppServersByName.graphql");
                 getAppServersForOwner = appServerDetailsFragment + File.ReadAllText(QueryPath + "modelling/getAppServersForOwner.graphql");
                 getImportedAppServers = appServerDetailsFragment + File.ReadAllText(QueryPath + "modelling/getImportedAppServers.graphql");
                 getAllAppServers = appServerDetailsFragment + File.ReadAllText(QueryPath + "modelling/getAllAppServers.graphql");

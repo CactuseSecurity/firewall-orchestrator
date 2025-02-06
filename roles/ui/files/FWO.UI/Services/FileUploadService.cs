@@ -29,12 +29,6 @@ namespace FWO.Ui.Services
         private readonly List<AppServerType> AppServerTypes = [];
         private string ImportSource = "";
 
-        // public FileUploadService(IServiceProvider services)
-        // {
-        //     UserConfig = services.GetRequiredService<UserConfig>();
-        //     ApiConnection = services.GetRequiredService<ApiConnection>();
-        // }
-
         public FileUploadService(ApiConnection apiConnection, UserConfig userConfig)
         {
             UserConfig = userConfig;
@@ -137,32 +131,13 @@ namespace FWO.Ui.Services
                     return new(false, new Exception($"{UserConfig.GetText("owner_appserver_notfound")} At: {importAppServer.AppServerName}/{importAppServer.AppID}"));
                 }
 
-                ModellingAppServer modAppServer = new(importAppServer.ToModellingAppServer()){ ImportSource = ImportSource, AppId = ownerIds.First().Id};
-                if((await AppServerHelper.CheckAppServerCanBeWritten(ApiConnection, modAppServer)).Item1)
-                {
-                    var Variables = new
-                    {
-                        name = importAppServer.AppServerName,
-                        appId = ownerIds.First().Id,
-                        ip = importAppServer.AppIPRangeStart,
-                        ipEnd = importAppServer.AppIPRangeEnd,
-                        importSource = ImportSource,
-                        customType = appServerType.Id
-                    };
-                    ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<NewReturning>(ModellingQueries.newAppServer, Variables)).ReturnIds;
-                    return (returnIds != null && returnIds.Length > 0, default);
-                }
-                else
-                {
-                    return (true, default);
-                }
+                return ((await AppServerHelper.UpsertAppServer(ApiConnection,
+                            new(importAppServer.ToModellingAppServer()){ ImportSource = ImportSource, AppId = ownerIds.First().Id},
+                            !UserConfig.DnsLookup
+                    )).Item1 != null, default);
             }
             catch (Exception exception)
             {
-                //if IP already exists, skip displaying error message
-                if (exception.Message.Contains("Uniqueness violation"))
-                    return (true, exception);
-
                 return (false, exception);
             }
         }

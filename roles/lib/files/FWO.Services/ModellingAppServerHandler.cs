@@ -3,7 +3,6 @@ using FWO.Config.Api;
 using FWO.Basics;
 using FWO.Api.Data;
 using FWO.Api.Client;
-using FWO.Api.Client.Queries;
 
 
 namespace FWO.Services
@@ -27,26 +26,47 @@ namespace FWO.Services
         {
             try
             {
-                (ActAppServer.Ip, ActAppServer.IpEnd) = IpOperations.SplitIpToRange(ActAppServer.Ip);
                 ActAppServer.AppId = Application.Id;
+                ActAppServer.ImportSource = GlobalConst.kManual;
                 if (ActAppServer.Sanitize())
                 {
                    DisplayMessageInUi(null, userConfig.GetText("save_app_server"), userConfig.GetText("U0001"), true);
                 }
-                if (await CheckAppServer())
+                if (CheckAppServer())
                 {
-                    bool saveOk = true;
-                    apiConnection.SetRole(Roles.Admin);
-                    if (AddMode)
+                    (long? appServerId, string? ExistingAppServerName) = await AppServerHelper.UpsertAppServer(apiConnection, ActAppServer, !userConfig.DnsLookup, true, AddMode);
+                    if (appServerId != null)
                     {
-                        saveOk &= await AddAppServerToDb();
+                        if (AddMode)
+                        {
+                            ActAppServer.Id = (long)appServerId;
+                            AvailableAppServers.Add(ActAppServer);
+                            await LogChange(ModellingTypes.ChangeType.Insert, ModellingTypes.ModObjectType.AppServer, ActAppServer.Id,
+                                $"New App Server: {ActAppServer.Display()}", Application.Id);
+                        }
+                        else
+                        {
+                            await LogChange(ModellingTypes.ChangeType.Update, ModellingTypes.ModObjectType.AppServer, ActAppServer.Id,
+                                $"Updated App Server: {ActAppServer.Display()}", Application.Id);
+                        }
+                        return true;
+                    }
+                    else if (!string.IsNullOrEmpty(ExistingAppServerName))
+                    {
+                        if(ExistingAppServerName == ActAppServer.Name)
+                        {
+                            DisplayMessageInUi(null, userConfig.GetText("edit_app_server"), userConfig.GetText("E9018"), true);
+                        }
+                        else
+                        {
+                            DisplayMessageInUi(null, userConfig.GetText("edit_app_server"), $"{userConfig.GetText("E9010")} {DisplayBase.DisplayIp(ActAppServer.Ip, ActAppServer.IpEnd)} in {ExistingAppServerName}", true);
+                        }
+                        return false;
                     }
                     else
                     {
-                        saveOk &= await UpdateAppServerInDb();
+                        DisplayMessageInUi(null, userConfig.GetText("edit_app_server"), userConfig.GetText("E0034"), true);
                     }
-                    apiConnection.SwitchBack();
-                    return saveOk;
                 }
             }
             catch (Exception exception)
@@ -65,7 +85,7 @@ namespace FWO.Services
             }
         }
 
-        private async Task<bool> CheckAppServer()
+        private bool CheckAppServer()
         {
             if (ActAppServer.Ip == null || ActAppServer.Ip == "" || ActAppServer.CustomType == null || ActAppServer.CustomType == 0)
             {
@@ -77,89 +97,12 @@ namespace FWO.Services
                 DisplayMessageInUi(null, userConfig.GetText("edit_app_server"), userConfig.GetText("wrong_ip_address"), true);
                 return false;
             }
-            
-            (bool canBeWritten, string ExistingAppServerName) = await AppServerHelper.CheckAppServerCanBeWritten(apiConnection, ActAppServer);
-            if (!canBeWritten)
-            {
-                DisplayMessageInUi(null, userConfig.GetText("edit_app_server"), $"{userConfig.GetText("E9010")} {ExistingAppServerName}", true);
-                return false;
-            }
             return true;
         }
 
         private static bool CheckIpAdress(string ip)
         {
             return IPAddressRange.TryParse(ip, out _);
-        }
-
-        private async Task<bool> AddAppServerToDb()
-        {
-            try
-            {
-                var Variables = new
-                {
-                    name = ActAppServer.Name,
-                    appId = Application.Id,
-                    ip = ActAppServer.Ip,
-                    ipEnd = ActAppServer.IpEnd,
-                    importSource = GlobalConst.kManual,  // todo
-                    customType = ActAppServer.CustomType
-                };
-                ReturnId[]? returnIds = ( await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.newAppServer, Variables) ).ReturnIds;
-                if (returnIds != null)
-                {
-                    ActAppServer.Id = returnIds[0].NewId;
-                    await LogChange(ModellingTypes.ChangeType.Insert, ModellingTypes.ModObjectType.AppServer, ActAppServer.Id,
-                        $"New App Server: {ActAppServer.Display()}", Application.Id);
-                    AvailableAppServers.Add(ActAppServer);
-                }
-                return true;
-            }
-            catch (Exception exception)
-            {
-                if (exception.Message.Contains("Uniqueness violation"))
-                {
-                    DisplayMessageInUi(null, userConfig.GetText("E9010"), $" {ActAppServer.Ip}", true);
-                }
-                else
-                {
-                    DisplayMessageInUi(exception, userConfig.GetText("add_app_server"), "", true);
-                }
-                return false;
-            }
-        }
-
-        private async Task<bool> UpdateAppServerInDb()
-        {
-            try
-            {
-                var Variables = new
-                {
-                    id = ActAppServer.Id,
-                    name = ActAppServer.Name,
-                    appId = Application.Id,
-                    ip = ActAppServer.Ip,
-                    ipEnd = ActAppServer.IpEnd,
-                    importSource = GlobalConst.kManual,
-                    customType = ActAppServer.CustomType
-                };
-                await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateAppServer, Variables);
-                await LogChange(ModellingTypes.ChangeType.Update, ModellingTypes.ModObjectType.AppServer, ActAppServer.Id,
-                    $"Updated App Server: {ActAppServer.Display()}", Application.Id);
-                return true;
-            }
-            catch (Exception exception)
-            {
-                if (exception.Message.Contains("Uniqueness violation"))
-                {
-                    DisplayMessageInUi(null, userConfig.GetText("E9010"), $" {ActAppServer.Ip}", true);
-                }
-                else
-                {
-                    DisplayMessageInUi(exception, userConfig.GetText("edit_app_server"), "", true);
-                }
-                return false;
-            }
         }
     }
 }

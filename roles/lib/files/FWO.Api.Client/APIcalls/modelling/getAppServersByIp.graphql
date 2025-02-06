@@ -1,4 +1,4 @@
-query getAppServer (
+query getAppServersByIp (
   $appId: Int!
   $ip: cidr!
   $ipEnd: cidr!

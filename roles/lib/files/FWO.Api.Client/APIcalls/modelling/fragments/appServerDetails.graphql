@@ -6,4 +6,5 @@ fragment appServerDetails on owner_network {
   import_source
   is_deleted
   custom_type
+  app_id: owner_id
 }

@@ -1,4 +1,4 @@
-mutation newAppServer(
+mutation upsertAppServer(
   $name: String
   $appId: Int
   $ip: cidr

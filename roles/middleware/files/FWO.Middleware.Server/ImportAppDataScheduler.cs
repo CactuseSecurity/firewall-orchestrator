@@ -69,7 +69,7 @@ namespace FWO.Middleware.Server
 
                 ScheduleTimer = new();
                 ScheduleTimer.Elapsed += ImportAppData;
-                ScheduleTimer.Elapsed += CheckAppServerNames;
+                ScheduleTimer.Elapsed += AdjustAppServerNames;
                 ScheduleTimer.Elapsed += StartImportAppDataTimer;
                 ScheduleTimer.Interval = interval.TotalMilliseconds;
                 ScheduleTimer.AutoReset = false;
@@ -83,7 +83,7 @@ namespace FWO.Middleware.Server
             ImportAppDataTimer.Stop();
             ImportAppDataTimer = new();
             ImportAppDataTimer.Elapsed += ImportAppData;
-            ImportAppDataTimer.Elapsed += CheckAppServerNames;
+            ImportAppDataTimer.Elapsed += AdjustAppServerNames;
             ImportAppDataTimer.Interval = globalConfig.ImportAppDataSleepTime * GlobalConst.kHoursToMilliseconds;
             ImportAppDataTimer.AutoReset = true;
             ImportAppDataTimer.Start();
@@ -111,13 +111,13 @@ namespace FWO.Middleware.Server
             }
         }
 
-        private async void CheckAppServerNames(object? _, ElapsedEventArgs __)
+        private async void AdjustAppServerNames(object? _, ElapsedEventArgs __)
         {
             try
             {
                 if(globalConfig.DnsLookup)
                 {
-                    await AppServerHelper.CheckAppServerNames(apiConnection, globalConfig);
+                    await AppServerHelper.AdjustAppServerNames(apiConnection, globalConfig);
                 }
             }
             catch (Exception exc)

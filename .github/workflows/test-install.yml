@@ -29,16 +29,3 @@ jobs:
       run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator && ansible-playbook -e force_install=true site.yml -K
       env:
         RUNNING_ON_GITHUB_ACTIONS: ${{ env.RUNNING_ON_GITHUB }}
-
-    - name: alter sandbox permission for chrome
-      run: cd /usr/local/bin/Chrome/Linux-133.0.6943.53/chrome-linux64/ && sudo chown root:root chrome_sandbox && sudo chmod 4755 chrome_sandbox   
-
-    - name: alter sandbox permission for chromeheadlessshell
-      run: cd /usr/local/bin/ChromeHeadlessShell/Linux-133.0.6943.53/chrome-headless-shell-linux64/ && sudo chown root:root chrome_sandbox && sudo chmod 4755 chrome_sandbox   
-      
-    - name: Setup dotnet
-      uses: actions/setup-dotnet@v4    
-    - name: exec dotnet test
-      run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator/roles/tests-unit/files/FWO.Test && dotnet restore && dotnet build && dotnet test --filter "Name=HtmlToPdfTest"
-      env:
-        RUNNING_ON_GITHUB_ACTIONS: ${{ env.RUNNING_ON_GITHUB }}

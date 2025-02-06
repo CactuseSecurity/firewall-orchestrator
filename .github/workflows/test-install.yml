@@ -25,6 +25,8 @@ jobs:
       run: echo "RUNNING_ON_GITHUB=1" >> $GITHUB_ENV
     - name: Setup dotnet
       uses: actions/setup-dotnet@v4
+    - name: alter sandbox permission for chrome
+      run: cd /usr/local/bin/ && sudo chmod -R 755 Chrome && sudo chmod -R ChromeHeadlessShell
     - name: exec dotnet test
       run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator/roles/tests-unit/files/FWO.Test && dotnet restore && dotnet build && dotnet test --filter "Name=HtmlToPdfTest"
       env:

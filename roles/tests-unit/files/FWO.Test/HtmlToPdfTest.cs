@@ -51,7 +51,7 @@ namespace FWO.Test
 
             using IBrowser? browser = await Puppeteer.LaunchAsync(new LaunchOptions
             {
-                ExecutablePath = isGitHubActions != null ? "/usr/bin/chromium-browser" : brw.GetExecutablePath(),
+                ExecutablePath = brw.GetExecutablePath(),
                 Headless = true,
                 DumpIO = isGitHubActions != null ? true : false, // Enables debug logs
                 Args = isGitHubActions != null ?

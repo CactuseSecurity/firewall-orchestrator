@@ -10,7 +10,7 @@ on:
     - 'design/**'
 
   pull_request:
-    types: [ ready_for_review, review_requested, sad ]
+    types: [ ready_for_review, review_requested ]
     paths-ignore:
     - 'documentation/**'
     - 'design/**'

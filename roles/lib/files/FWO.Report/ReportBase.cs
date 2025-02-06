@@ -250,11 +250,10 @@ namespace FWO.Report
             }
 
             InstalledBrowser? brw = browserFetcher.GetInstalledBrowsers().FirstOrDefault() ?? await browserFetcher.DownloadAsync(BrowserTag.Latest);
-
-            var isGitHubActions = Environment.GetEnvironmentVariable("GITHUB_ACTIONS") == "true";
+                        
             using IBrowser? browser = await Puppeteer.LaunchAsync(new LaunchOptions
             {
-                ExecutablePath = isGitHubActions ? "/usr/bin/chromium-browser" : brw.GetExecutablePath(),
+                ExecutablePath = brw.GetExecutablePath(),
                 Headless = true
             });
 

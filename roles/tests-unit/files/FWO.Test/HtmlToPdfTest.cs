@@ -47,16 +47,12 @@ namespace FWO.Test
                     break;
             }
 
-            InstalledBrowser? brw = await browserFetcher.DownloadAsync(BrowserTag.Stable);
+            InstalledBrowser? brw = browserFetcher.GetInstalledBrowsers().FirstOrDefault() ?? await browserFetcher.DownloadAsync(BrowserTag.Latest);
 
             using IBrowser? browser = await Puppeteer.LaunchAsync(new LaunchOptions
             {
                 ExecutablePath = brw.GetExecutablePath(),
-                Headless = true,
-                DumpIO = isGitHubActions != null ? true : false, // Enables debug logs
-                Args = isGitHubActions != null ?
-                  new[] { "--database=/tmp" }
-                  : [] // No additional arguments locally
+                Headless = true
             });
 
             try

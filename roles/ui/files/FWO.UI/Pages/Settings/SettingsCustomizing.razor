@@ -29,8 +29,8 @@
                 @if(type != WfTaskType.master)
                 {
                     <div class="form-group col-sm-1">
-                        <input id="cbx_workflow_task_type" type="checkbox" @bind="taskTypesActiveDict[type]" />
-                        <label for="cbx_workflow_task_type" class="col-form-label">@(userConfig.GetText(type.ToString()))</label>
+                        <input id="cbx_@type.ToString()" type="checkbox" @bind="taskTypesActiveDict[type]" />
+                        <label for="cbx_@type.ToString()" class="col-form-label">@(userConfig.GetText(type.ToString()))</label>
                     </div>
                 }
             }

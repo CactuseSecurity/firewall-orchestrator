@@ -33,6 +33,7 @@ namespace FWO.Test
 
             string path = "";
             Platform platform = Platform.Unknown;
+            const SupportedBrowser wantedBrowser = SupportedBrowser.ChromeHeadlessShell;
 
             switch (os.Platform)
             {
@@ -47,12 +48,12 @@ namespace FWO.Test
                     break;
             }
 
-            InstalledBrowser? installedBrowser = new BrowserFetcher(new BrowserFetcherOptions() { Platform = platform, Browser = SupportedBrowser.Chrome , Path = path}).GetInstalledBrowsers()
-                      .FirstOrDefault(_ => _.Platform == platform && _.Browser == SupportedBrowser.Chrome);
+            InstalledBrowser? installedBrowser = new BrowserFetcher(new BrowserFetcherOptions() { Platform = platform, Browser = wantedBrowser, Path = path }).GetInstalledBrowsers()
+                      .FirstOrDefault(_ => _.Platform == platform && _.Browser == wantedBrowser);
 
-            foreach (var brw in new BrowserFetcher(new BrowserFetcherOptions() { Platform = platform, Browser = SupportedBrowser.Chrome, Path = path }).GetInstalledBrowsers())
+            if (installedBrowser == null)
             {
-                Log.WriteInfo("Test Log", $"Browser: {brw.GetExecutablePath()}");
+                throw new Exception($"Browser: {wantedBrowser} is not installed!");
             }
 
             Log.WriteInfo("Test Log", $"Browser Path: {installedBrowser.GetExecutablePath()}");
@@ -60,7 +61,8 @@ namespace FWO.Test
             using IBrowser? browser = await Puppeteer.LaunchAsync(new LaunchOptions
             {
                 ExecutablePath = installedBrowser.GetExecutablePath(),
-                Headless = true
+                Headless = true,
+                HeadlessMode = HeadlessMode.True
             });
 
             try

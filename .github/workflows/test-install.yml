@@ -20,6 +20,13 @@ jobs:
     name: test build on ubuntu latest
     runs-on: ubuntu-latest
     steps:
+    - name: Setup dotnet
+      uses: actions/setup-dotnet@v4    
+    - name: exec dotnet test
+      run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator/roles/tests-unit/files/FWO.Test && dotnet restore && dotnet build && dotnet test --filter "Name=HtmlToPdfTest"
+      env:
+        RUNNING_ON_GITHUB_ACTIONS: ${{ env.RUNNING_ON_GITHUB }}
+        
     - uses: actions/checkout@v3
 
     - name: Set environment variable

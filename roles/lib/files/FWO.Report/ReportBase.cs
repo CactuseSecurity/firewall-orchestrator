@@ -13,6 +13,7 @@ using PdfSharp.Pdf;
 using PdfSharp.Drawing;
 using PdfSharp.Pdf.IO;
 using FWO.Report.Data;
+using FWO.Logging;
 
 namespace FWO.Report
 {
@@ -234,26 +235,35 @@ namespace FWO.Report
             OperatingSystem? os = Environment.OSVersion;
 
             string path = "";
-            BrowserFetcher? browserFetcher;
+            Platform platform = Platform.Unknown;
+            const SupportedBrowser wantedBrowser = SupportedBrowser.Chrome;
 
             switch (os.Platform)
             {
                 case PlatformID.Win32NT:
-                    browserFetcher = new();
+                    platform = Platform.Win32;
                     break;
                 case PlatformID.Unix:
                     path = ChromeBinPathLinux;
-                    browserFetcher = new(new BrowserFetcherOptions { Path = path, Platform = Platform.Linux, Browser = SupportedBrowser.Chrome });
+                    platform = Platform.Linux;
                     break;
                 default:
-                    return default;
+                    break;
             }
 
-            InstalledBrowser? brw = browserFetcher.GetInstalledBrowsers().FirstOrDefault() ?? await browserFetcher.DownloadAsync(BrowserTag.Latest);
-                        
+            BrowserFetcher browserFetcher = new(new BrowserFetcherOptions() { Platform = platform, Browser = wantedBrowser, Path = path });
+
+            InstalledBrowser? installedBrowser = browserFetcher.GetInstalledBrowsers()
+                      .FirstOrDefault(_ => _.Platform == platform && _.Browser == wantedBrowser);
+
+            if (installedBrowser == null)
+            {
+                throw new Exception($"Browser {wantedBrowser} is not installed!");              
+            }
+
             using IBrowser? browser = await Puppeteer.LaunchAsync(new LaunchOptions
             {
-                ExecutablePath = path,
+                ExecutablePath = installedBrowser.GetExecutablePath(),
                 Headless = true
             });
 

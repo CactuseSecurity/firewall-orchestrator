@@ -53,7 +53,6 @@ namespace FWO.Test
 
             using IBrowser? browser = await Puppeteer.LaunchAsync(new LaunchOptions
             {
-                ExecutablePath = brw.GetExecutablePath(),
                 Headless = false,
                 Browser = SupportedBrowser.Chrome
             });

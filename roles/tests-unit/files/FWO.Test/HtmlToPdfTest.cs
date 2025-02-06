@@ -52,13 +52,14 @@ namespace FWO.Test
                 Log.WriteInfo("Test Log", $"Browser: {browser_installed.GetExecutablePath()}");
             }
 
-            InstalledBrowser? brw = browserFetcher.GetInstalledBrowsers().FirstOrDefault() ?? await browserFetcher.DownloadAsync(BrowserTag.Latest);
+            InstalledBrowser? brw = browserFetcher.GetInstalledBrowsers().FirstOrDefault(_ => _.Platform == Platform.Linux && _.Browser == SupportedBrowser.ChromeHeadlessShell) ?? await browserFetcher.DownloadAsync(BrowserTag.Latest);
+
+            Log.WriteInfo("Test Log", $"Browser Path: {brw.GetExecutablePath()}");
 
             using IBrowser? browser = await Puppeteer.LaunchAsync(new LaunchOptions
             {
                 ExecutablePath = brw.GetExecutablePath(),
-                Headless = true,
-                Args = new[] { "--disable-setuid-sandbox" }
+                Headless = true
             });
 
             try

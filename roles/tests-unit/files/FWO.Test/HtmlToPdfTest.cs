@@ -33,7 +33,7 @@ namespace FWO.Test
 
             string path = "";
             Platform platform = Platform.Unknown;
-            const SupportedBrowser wantedBrowser = SupportedBrowser.ChromeHeadlessShell;
+            const SupportedBrowser wantedBrowser = SupportedBrowser.Chrome;
 
             switch (os.Platform)
             {
@@ -48,12 +48,15 @@ namespace FWO.Test
                     break;
             }
 
-            InstalledBrowser? installedBrowser = new BrowserFetcher(new BrowserFetcherOptions() { Platform = platform, Browser = wantedBrowser, Path = path }).GetInstalledBrowsers()
+            BrowserFetcher browserFetcher = new(new BrowserFetcherOptions() { Platform = platform, Browser = wantedBrowser, Path = path });
+
+            InstalledBrowser? installedBrowser = browserFetcher.GetInstalledBrowsers()
                       .FirstOrDefault(_ => _.Platform == platform && _.Browser == wantedBrowser);
 
             if (installedBrowser == null)
             {
-                throw new Exception($"Browser: {wantedBrowser} is not installed!");
+                Log.WriteWarning("Test Log", $"Browser {wantedBrowser} is not installed! Trying to download latest version...");
+                installedBrowser = await browserFetcher.DownloadAsync(BrowserTag.Latest);
             }
 
             Log.WriteInfo("Test Log", $"Browser Path: {installedBrowser.GetExecutablePath()}");
@@ -61,8 +64,7 @@ namespace FWO.Test
             using IBrowser? browser = await Puppeteer.LaunchAsync(new LaunchOptions
             {
                 ExecutablePath = installedBrowser.GetExecutablePath(),
-                Headless = true,
-                HeadlessMode = HeadlessMode.Shell
+                Headless = true
             });
 
             try

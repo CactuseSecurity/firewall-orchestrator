@@ -10,25 +10,23 @@
 </div>
 <div class="col-sm-11 border rounded m-2 p-2">
     <h5>@(userConfig.GetText("app_server"))</h5>
-    <div class="form-group row">
-        <div class="col-sm-10">
-            <DraggableList AllElements="AppRoleHandler.AppServersInArea" @bind-SelectedElements="selectedAppServers" 
-                HandleDragStart="HandleDragStart" Display="@(x => x.DisplayWithIcon())" MaxHeight="50"/>
-        </div>
-        @if(selectedAppServers.Count > 0)
-        {
-            <div class="col-sm-2">
-                <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() =>
-                    {AppRoleHandler.AppServerToAppRole(selectedAppServers); selectedAppServers = new();
-                    AppRoleHandlerChanged.InvokeAsync(AppRoleHandler);}">@(AppRoleHandler.DisplayButton("to_app_role", Icons.Use))</button>
+    @if(AppRoleHandler != null)
+    {
+        <div class="form-group row">
+            <div class="col-sm-10">
+                <DraggableList AllElements="selectableAppServers" @bind-SelectedElements="selectedAppServers" 
+                    HandleDragStart="HandleDragStart" Display="@(x => x.DisplayWithIcon())" MaxHeight="50"/>
             </div>
-        }
-    </div>
-    @* <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}")">
-        <NotAuthorized>
-            <button type="button" class="btn btn-sm btn-danger" @onclick="DataInconsistent">@(userConfig.GetText("data_inconsistent"))</button>
-        </NotAuthorized> 
-    </AuthorizeView> *@
+            @if(selectedAppServers.Count > 0)
+            {
+                <div class="col-sm-2">
+                    <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() =>
+                        {AppRoleHandler.AppServerToAppRole(selectedAppServers); selectedAppServers = [];
+                        AppRoleHandlerChanged.InvokeAsync(AppRoleHandler);}">@(AppRoleHandler.DisplayButton("to_app_role", Icons.Use))</button>
+                </div>
+            }
+        </div>
+    }
 </div>
 
 
@@ -50,13 +48,18 @@
     public EventCallback<int> WidthChanged { get; set; }
 
     [Parameter]
-    public ModellingAppRoleHandler AppRoleHandler { get; set; }
+    public ModellingAppRoleHandler? AppRoleHandler { get; set; }
 
     [Parameter]
     public EventCallback<ModellingAppRoleHandler> AppRoleHandlerChanged { get; set; }
 
-    private List<ModellingAppServer> selectedAppServers = new();
+    private List<ModellingAppServer> selectedAppServers = [];
     private int sidebarLeftWidth { get { return Width; } set { Width = value; WidthChanged.InvokeAsync(Width);}}
+
+    /// <summary>
+    /// The app servers which are available for adding (i.e. which are not already in the AppServerToAdd collection).
+    /// </summary>
+    private List<ModellingAppServer> selectableAppServers => AppRoleHandler.AppServersInArea.Except(AppRoleHandler.AppServerToAdd).ToList();
 
 
     private bool HandleDragStart(DragEventArgs e, ModellingAppServer appServer)
@@ -69,10 +72,5 @@
         Container.AppServerElements = selectedAppServers;
         selectedAppServers = new();
         return true;
-    }
-
-    private async Task DataInconsistent()
-    {
-
     }
 }

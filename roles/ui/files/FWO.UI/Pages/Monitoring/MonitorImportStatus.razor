@@ -21,8 +21,8 @@
 @if(InitComplete)
 {
     <div class="m-2 vheight75">
-        <PageSizeComponent PageSizeCallback="UpdatePageSize" PageSize="PageSize"></PageSizeComponent>
-        <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="ImportStatus" Items="sortedImportStati" PageSize="PageSize" ColumnReorder="true" TableRowClass="@(stat => getTableRowClass(stat))">
+        <PageSizeComponent PageSizeCallback="UpdatePageSize"></PageSizeComponent>
+        <Table PageSize="PageSize" class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="ImportStatus" Items="sortedImportStati" ColumnReorder="true" TableRowClass="@(stat => getTableRowClass(stat))">
             <Column TableItem="ImportStatus" Title="@(userConfig.GetText("actions"))" Field="(x => x.MgmId)" Sortable="false" Filterable="false">
                 <Template>
                     <div class="btn-group">
@@ -109,7 +109,7 @@ else
     private ImportStatus actStatus = new ImportStatus();
     private bool InitComplete = false;
 
-    private int PageSize { get; set; } = 10;
+    private int PageSize { get; set; }
 
     protected override async Task OnInitializedAsync()
     {

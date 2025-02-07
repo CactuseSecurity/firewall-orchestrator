@@ -141,10 +141,7 @@ BEGIN
     SELECT INTO i_farbe color_id FROM stm_color WHERE color_name = LOWER(remove_spaces(to_import.obj_color));
 	RAISE DEBUG 'processing import_nwobj_single 4';
     IF NOT FOUND THEN -- TODO: Fehlerbehandlung bzw. automat. Neuanlegen einer Farbe?
-		SELECT INTO i_farbe color_id FROM stm_color WHERE color_name = 'black';
-		IF NOT FOUND THEN
-			i_farbe := NULL;
-		END IF;
+		i_farbe := NULL;
 		-- IF to_import.obj_color IS NOT NULL THEN
         -- 	-- PERFORM add_data_issue(i_control_id, to_import.obj_color, NULL, NULL, NULL, NULL, 'nw obj color', 'undefined color in network object: ' || to_import.obj_color, NULL);
 		-- END IF;

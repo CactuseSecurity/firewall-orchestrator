@@ -160,10 +160,7 @@ BEGIN
 	END IF; 
 	SELECT INTO i_color_id color_id FROM stm_color WHERE color_name LIKE v_farbe;
 	IF NOT FOUND THEN
-		SELECT INTO i_farbe color_id FROM stm_color WHERE color_name = 'blackOld';
-		IF NOT FOUND THEN
-			RAISE NOTICE 'user color not found: %', v_user_name || ' color ' || v_farbe;
-		END IF;
+		RAISE NOTICE 'user color not found: %', v_user_name || ' color ' || v_farbe;
 	END IF;
 	IF NOT FOUND THEN PERFORM error_handling('ERR_COLOR_MISS', r_to_import.user_color);	END IF;
 	SELECT INTO existing_usr * FROM usr WHERE user_name=v_user_name AND mgm_id=i_mgm_id AND active;

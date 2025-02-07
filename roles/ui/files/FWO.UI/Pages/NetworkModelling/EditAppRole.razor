@@ -5,7 +5,7 @@
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
-@if (Display)
+@if (AppRoleHandler != null && Display)
 {
     <PopUp Title="@(AppRoleHandler.ReadOnly ? "" : (AppRoleHandler.AddMode ? userConfig.GetText("add_app_role") : userConfig.GetText("edit_app_role")))"
            Size="@(AppRoleHandler.ReadOnly ? PopupSize.Small : PopupSize.XLarge)" Show="@Display" OnClose="Close">
@@ -37,7 +37,7 @@
                                 }
                                 else
                                 {
-                                    <label class="col-sm-8 bg-secondary">@AppRoleHandler.ActAppRole.Area.Display()</label>
+                                    <label class="col-sm-8 bg-secondary">@AppRoleHandler.ActAppRole.Area?.Display()</label>
                                 }
                             </div>
                         }
@@ -96,7 +96,7 @@
                                      ondragover="event.preventDefault();"
                                      ondragstart="event.dataTransfer.setData('', event.target.id);"
                                      @ondrop="HandleServerDrop">
-                                    <EditList ElementType="ModellingAppServer" Elements="ModellingAppServerWrapper.Resolve(AppRoleHandler.ActAppRole.AppServers)" ElementsToAdd="AppRoleHandler.AppServerToAdd" ElementsToDelete="AppRoleHandler.AppServerToDelete" StdLayout="false">
+                                    <EditList ElementType="ModellingAppServer" Elements="ModellingAppServerWrapper.Resolve(AppRoleHandler.ActAppRole.AppServers)" ElementsToAdd="AppRoleHandler.AppServerToAdd" ElementsToDelete="AppRoleHandler.AppServerToDelete" StdLayout="false" ElementsRemoved="OnAppServerRemovedFromEditList">
                                         <Display>
                                             <div class="row">
                                                 <div class="col-sm-12 ms-2 bg-transparent">@((MarkupString)context.DisplayWithIcon())</div>
@@ -137,7 +137,7 @@
     </PopUp>
     <InProgress Display="workInProgress" />
     <Confirm @bind-Display="ShowAreaChangeConfirmation" AllowedRoles="@Roles.Modeller" RenderMessageAsHtml="true"
-        Message="@(userConfig.GetText("nwareachange_clear_app_servers"))" PerformAction="async () => await AreaChangeConfirmation()" Title="@(userConfig.GetText("confirm"))" />
+        Message="@(userConfig.GetText("nwareachange_clear_app_servers"))" PerformAction="AreaChangeConfirmation" Title="@(userConfig.GetText("confirm"))" />
 }
 @code
 {
@@ -154,7 +154,7 @@
     public EventCallback<bool> DisplayChanged { get; set; }
 
     [Parameter]
-    public ModellingAppRoleHandler AppRoleHandler { get; set; }
+    public ModellingAppRoleHandler? AppRoleHandler { get; set; }
 
     [Parameter]
     public EventCallback<ModellingAppRoleHandler> AppRoleHandlerChanged { get; set; }
@@ -169,7 +169,7 @@
     private List<ModellingNetworkArea> areas = [];
     private bool firstTry = true;
     private bool workInProgress = false;
-    private bool ShowAreaChangeConfirmation { get; set; }
+    private bool ShowAreaChangeConfirmation { get; set; } = false;
 
     private ModellingNetworkArea? LastSelectedNetworkArea;
 
@@ -190,7 +190,7 @@
 
     protected override async Task OnParametersSetAsync()
     {
-        if (Display && firstTry)
+        if (AppRoleHandler != null && Display && firstTry)
         {
             firstTry = false;
             if (AppRoleHandler.NamingConvention.NetworkAreaRequired)
@@ -233,7 +233,7 @@
 
     private void HandleServerDrop()
     {
-        if (Container.AppServerElements.Count > 0)
+        if (AppRoleHandler != null && Container.AppServerElements.Count > 0)
         {
             AppRoleHandler.AppServerToAppRole(Container.AppServerElements);
         }
@@ -242,7 +242,7 @@
 
     private async Task Save()
     {
-        if (await AppRoleHandler.Save())
+        if (AppRoleHandler != null && await AppRoleHandler.Save())
         {
             await RefreshParent();
             Close();
@@ -251,8 +251,11 @@
 
     private async Task AreaChangeConfirmation()
     {
-        AppRoleHandler.Close();
-        await AppRoleHandler.InitAppRole(LastSelectedNetworkArea);
+        if(AppRoleHandler != null)
+        {
+            AppRoleHandler.CleanUp();
+            await AppRoleHandler.InitAppRole(LastSelectedNetworkArea);
+        }
         ShowAreaChangeConfirmation = false;
         StateHasChanged();
     }
@@ -269,16 +272,9 @@
     {
         try
         {
-            if (!workInProgress && !ShowAreaChangeConfirmation)
+            if (AppRoleHandler != null && !workInProgress && !ShowAreaChangeConfirmation && newArea != null)
             {
-                if (newArea is null)
-                    return;
-
-                if (LastSelectedNetworkArea is not null && LastSelectedNetworkArea.Equals(newArea))
-                    return;
-
                 LastSelectedNetworkArea = newArea;
-
                 if (AppRoleHandler.AppServerToAdd.Count > 0)
                 {
                     ShowAreaChangeConfirmation = true;
@@ -299,5 +295,13 @@
     private void CustomSortAreas()
     {
         areas.Sort((ModellingNetworkArea a, ModellingNetworkArea b) => a?.CompareTo(b) ?? -1);
+    }
+
+    /// <summary>
+    /// Updates the view after removing an app server from the list of app role's app servers.
+    /// </summary>
+    private void OnAppServerRemovedFromEditList()
+    {
+        InvokeAsync(StateHasChanged);
     }
 }

@@ -39,7 +39,7 @@
                 {
                     <button type="button" class="btn btn-sm btn-info" @onclick:preventDefault="true" @onclick="@( async () => { 
                         recertCalcInProgress = true; 
-                        if (await recertRefresh.RecalcRecerts())
+                        if (await RecertRefresh.RecalcRecerts(apiConnection))
                         {
                             DisplayMessageInUi(null, userConfig.GetText("fetch_data"), "Error during recertification refresh", true);
                         }
@@ -340,7 +340,6 @@ else
     private FwoOwner actOwner = new();
     private Tenant? selectedTenant;
     private DayOfWeek? selectedDayOfWeek;
-    private RecertRefresh recertRefresh;
     private List<Tenant> tenants = [];
 
     private bool showCleanupButton = false;
@@ -370,7 +369,6 @@ else
         {
             owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
             AnalyseSampleOwners();
-            recertRefresh = new(apiConnection);
 
             RestResponse<List<TenantGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetTenants();
             if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == null)
@@ -486,6 +484,7 @@ else
 
     private async Task AddOwnerInDb()
     {
+        // make sure we do not add multiple owners with empty string external app id
         var variables = new
         {
             name = actOwner.Name,
@@ -493,7 +492,7 @@ else
             groupDn = actOwner.GroupDn,
             tenantId = actOwner.TenantId,
             recertInterval = actOwner.RecertInterval,
-            appIdExternal = actOwner.ExtAppId,
+            appIdExternal = string.IsNullOrEmpty(actOwner.ExtAppId) ? null : actOwner.ExtAppId,
             recertCheckParams = actOwner.RecertCheckParamString,
             commSvcPossible = actOwner.CommSvcPossible
         };
@@ -513,6 +512,7 @@ else
 
     private async Task UpdateOwnerInDb()
     {
+        // make sure we do not add multiple owners with empty string external app id
         var Variables = new
         {
             id = actOwner.Id,
@@ -521,7 +521,7 @@ else
             groupDn = actOwner.GroupDn,
             tenantId = actOwner.TenantId,
             recertInterval = actOwner.RecertInterval,
-            appIdExternal = actOwner.ExtAppId,
+            appIdExternal = string.IsNullOrEmpty(actOwner.ExtAppId) ? null : actOwner.ExtAppId,
             recertCheckParams = actOwner.RecertCheckParamString,
             commSvcPossible = actOwner.CommSvcPossible
         };

@@ -1,7 +1,7 @@
 ﻿@inject UserConfig UserConfig
 
 
-<form class="my-1">
+<form class="my-1" onsubmit="SubmitPageSize">
     <div class="d-flex justify-content-end">
         <label for="pagesize" class="p-2 d-inline-flex">@UserConfig.GetText("PagerPagesize")</label>
         <input id="pagesize" type="text" class="cwidth-70 d-inline-flex form-control form-control-sm me-2" @bind="PageSize" />
@@ -10,8 +10,16 @@
 </form>
 
 @code {
-    [Parameter] public int PageSize { get; set; }
     [Parameter] public EventCallback<int> PageSizeCallback { get; set; }
+
+    private int PageSize { get; set; } = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await SubmitPageSize();
+
+        base.OnInitialized();
+    }
 
     private async Task SubmitPageSize()
     {

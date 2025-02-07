@@ -155,11 +155,10 @@
     </div>
 
     @* ==== RIGHT SIDEBAR ==== *@
-    <RightSidebar @bind-Width="sidebarRightWidth" Tabset="rsbTabset" AnchorNavToRSB="anchorNavToRSB" CurrentReport="currentReport"
+    <RightSidebar @bind-Width="sidebarRightWidth" CurrentReport="currentReport"
         @bind-SelectedRules="selectedItemsRuleReportTable" 
         AllTabVisible="(tenantFilteringAllowed && actReportFilters.SelectedTenant == null)"
         SelectedReportType = "actReportFilters.ReportType"/>
-    <AnchorNavToRSB @ref="anchorNavToRSB" TabSet="rsbTabset" />
 }
 
 @* ==== POPUPS ==== *@
@@ -207,9 +206,7 @@
 
     private ReportBase? currentReport;
 
-    private FWO.Ui.Shared.TabSet rsbTabset;
     private Sidebar? deviceSelectionSidebar;
-    private FWO.Ui.Shared.AnchorNavToRSB anchorNavToRSB;
 
     private string filterFeedbackStart = "";
     private string filterFeedbackError = "";

@@ -178,14 +178,11 @@ h5 {
 }
 
 .popup-body {
-    width: 100%;
     height: fit-content;
-    max-height: 60svh;
-    margin: 2%;
-    overflow-y: scroll;
-    padding-right: 17px;
     /* Increase/decrease this value for cross-browser compatibility */
     box-sizing: content-box;
+    max-height: 60svh;
+    overflow-y: scroll;
     /* So the width will be 100% + 17px */
 }
 
@@ -225,6 +222,7 @@ h5 {
     flex: 1;
 }
 
+
 .me-auto {
     margin-right: auto !important;
 }
@@ -257,6 +255,10 @@ h5 {
     text-overflow: ellipsis;
 }
 
+.navbar-height {
+    min-height: 56px;
+}
+
 .navbar-brand {
     padding: 8px;
 }
@@ -273,11 +275,24 @@ h5 {
     overflow: auto;
 }
 
+
+@media (min-width: 1200px) {
+    .sidebar-top {
+        top: 90px !important;
+    }
+}
+
+@media (min-width: 1590px) {
+    .sidebar-top {
+        top: 56px !important;
+    }
+}
+
 .sidebar-main {
     position: fixed;
-    top: 56px;
     height: 95%;
     z-index: 10;
+    top: 56px;
 }
 
 .sidebar-sizer {

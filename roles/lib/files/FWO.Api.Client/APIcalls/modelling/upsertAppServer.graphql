@@ -32,7 +32,7 @@ mutation upsertAppServer(
     }
   ) {
     returning {
-      newId: id
+      newIdLong: id
     }
   }
 }

@@ -383,7 +383,7 @@
                 name = ipAdd.Name,
                 comment = ipAdd.Comment
             };
-            await apiConnection.SendQueryAsync<NewReturning>(AuthQueries.addTenantNetwork, Variables);
+            await apiConnection.SendQueryAsync<ReturnIdWrapper>(AuthQueries.addTenantNetwork, Variables);
         }
     }
 
@@ -588,8 +588,8 @@
         try
         {
             // delete all tenant to device and management mappings for the current tenant
-            await apiConnection.SendQueryAsync<NewReturning>(AuthQueries.deleteAllGatewaysOfTenant, new { tenantId = actTenant.Id });
-            await apiConnection.SendQueryAsync<NewReturning>(AuthQueries.deleteAllManagementsOfTenant, new { tenantId = actTenant.Id });
+            await apiConnection.SendQueryAsync<ReturnIdWrapper>(AuthQueries.deleteAllGatewaysOfTenant, new { tenantId = actTenant.Id });
+            await apiConnection.SendQueryAsync<ReturnIdWrapper>(AuthQueries.deleteAllManagementsOfTenant, new { tenantId = actTenant.Id });
         }
         catch (System.Exception exception)
         {
@@ -606,12 +606,12 @@
             {
                 if (mgm.Visible)
                 {
-                    await apiConnection.SendQueryAsync<NewReturning>(AuthQueries.addTenantToManagement, new { tenantId = actTenant.Id, mgmId = mgm.Id, shared = mgm.Shared });
+                    await apiConnection.SendQueryAsync<ReturnIdWrapper>(AuthQueries.addTenantToManagement, new { tenantId = actTenant.Id, mgmId = mgm.Id, shared = mgm.Shared });
                     foreach (DeviceSelect gw in mgm.Devices)
                     {
                         if (gw.Visible)
                         {
-                            await apiConnection.SendQueryAsync<NewReturning>(AuthQueries.addTenantToGateway, new { tenantId = actTenant.Id, gwId = gw.Id, shared = gw.Shared });
+                            await apiConnection.SendQueryAsync<ReturnIdWrapper>(AuthQueries.addTenantToGateway, new { tenantId = actTenant.Id, gwId = gw.Id, shared = gw.Shared });
                         }
                     }
                 }

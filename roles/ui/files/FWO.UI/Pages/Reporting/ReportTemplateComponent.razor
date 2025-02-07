@@ -345,7 +345,7 @@
                 reportParameters = reportTemplateInEdit.ReportParams
             };
 
-            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(ReportQueries.addReportTemplate, queryVariables)).ReturnIds;
+            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(ReportQueries.addReportTemplate, queryVariables)).ReturnIds;
             if (returnIds != null)
             {
                 reportTemplateInEdit.Id = returnIds[0].NewId;

@@ -360,7 +360,7 @@
                 suspectedCause = cause,
                 description = description,
             };
-            ReturnId[]? returnIds = ( await apiConnection.SendQueryAsync<NewReturning>(MonitorQueries.addUiLogEntry, Variables) ).ReturnIds;
+            ReturnId[]? returnIds = ( await apiConnection.SendQueryAsync<ReturnIdWrapper>(MonitorQueries.addUiLogEntry, Variables) ).ReturnIds;
             if (returnIds == null)
             {
                 Log.WriteError("Write Log", "Log could not be written to database");
@@ -395,7 +395,7 @@
                 description = message,
                 alertCode = (int)AlertCode.UiError
             };
-            ReturnId[]? returnIds = ( await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.MonitorQueries.addAlert, Variables) ).ReturnIds;
+            ReturnId[]? returnIds = ( await apiConnection.SendQueryAsync<ReturnIdWrapper>(FWO.Api.Client.Queries.MonitorQueries.addAlert, Variables) ).ReturnIds;
             if (returnIds != null)
             {
                 try

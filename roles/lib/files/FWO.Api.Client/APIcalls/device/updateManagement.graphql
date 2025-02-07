@@ -40,6 +40,6 @@ mutation updateManagement(
       ext_mgm_data: $extMgtData
     }
   ) {
-    UpdatedId: mgm_id
+    updatedId: mgm_id
   }
 }

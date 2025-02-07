@@ -2,6 +2,6 @@ mutation delete_management_by_pk ($id: Int!) {
   delete_management_by_pk (
     mgm_id: $id
   ) {
-    DeletedId: mgm_id
+    deletedId: mgm_id
   }
 }

@@ -316,7 +316,7 @@
                         hideInUi = actDevice.HideInUi,
                         comment = actDevice.Comment
                     };
-                    ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(DeviceQueries.newDevice, Variables)).ReturnIds;
+                    ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(DeviceQueries.newDevice, Variables)).ReturnIds;
                     if (returnIds == null)
                     {
                         DisplayMessageInUi(null, userConfig.GetText("save_gateway"), userConfig.GetText("E5112"), true);
@@ -379,7 +379,7 @@
         try
         {
             var Variables = new { tenantId = GlobalConst.kTenant0Id, deviceId = deviceId };
-            await apiConnection.SendQueryAsync<NewReturning>(AuthQueries.addDeviceToTenant, Variables);
+            await apiConnection.SendQueryAsync<ReturnIdWrapper>(AuthQueries.addDeviceToTenant, Variables);
         }
         catch (System.Exception exception)
         {

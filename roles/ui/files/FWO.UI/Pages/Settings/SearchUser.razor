@@ -243,7 +243,7 @@
                     viewAllDevices = false,
                     create = DateTime.Now
                 };
-                await apiConnection.SendQueryAsync<NewReturning>(AuthQueries.addTenant, Variables);
+                await apiConnection.SendQueryAsync<ReturnIdWrapper>(AuthQueries.addTenant, Variables);
             }
         }
         catch (Exception exception)

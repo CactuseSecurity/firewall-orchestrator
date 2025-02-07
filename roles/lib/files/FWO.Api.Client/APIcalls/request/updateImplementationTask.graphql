@@ -31,6 +31,6 @@ mutation updateImplementationTask(
 	  target_end_date: $validTo
     free_text: $freeText
   }) {
-    UpdatedId: id
+    UpdatedIdLong: id
   }
 }

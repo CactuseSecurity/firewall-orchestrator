@@ -225,7 +225,7 @@ namespace FWO.Middleware.Server
 				importSource = incomingApp.ImportSource,
 				commSvcPossible = false
 			};
-			ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(OwnerQueries.newOwner, variables)).ReturnIds;
+			ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(OwnerQueries.newOwner, variables)).ReturnIds;
 			if (returnIds != null)
 			{
 				if(incomingApp.MainUser != null && incomingApp.MainUser != "")
@@ -285,7 +285,7 @@ namespace FWO.Middleware.Server
 				criticality = incomingApp.Criticality,
 				commSvcPossible = existingApp.CommSvcPossible
 			};
-			await apiConnection.SendQueryAsync<NewReturning>(OwnerQueries.updateOwner, Variables);
+			await apiConnection.SendQueryAsync<ReturnIdWrapper>(OwnerQueries.updateOwner, Variables);
 			if(incomingApp.MainUser != null && incomingApp.MainUser != "")
 			{
 				UpdateRoles(incomingApp.MainUser);
@@ -298,7 +298,7 @@ namespace FWO.Middleware.Server
 		{
 			try
 			{
-				await apiConnection.SendQueryAsync<NewReturning>(OwnerQueries.deactivateOwner, new { id = app.Id });
+				await apiConnection.SendQueryAsync<ReturnIdWrapper>(OwnerQueries.deactivateOwner, new { id = app.Id });
 			}
 			catch (Exception exc)
 			{
@@ -594,7 +594,7 @@ namespace FWO.Middleware.Server
 					importSource = impSource,
 					customType = 0
 				};
-				await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.newAppServer, Variables);
+				await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.newAppServer, Variables);
 			}
 			catch (Exception exc)
 			{
@@ -613,7 +613,7 @@ namespace FWO.Middleware.Server
 					id = appServer.Id,
 					deleted = false
 				};
-				await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.setAppServerDeletedState, Variables);
+				await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.setAppServerDeletedState, Variables);
 			}
 			catch (Exception exc)
 			{
@@ -632,7 +632,7 @@ namespace FWO.Middleware.Server
 					id = appServer.Id,
 					customType = 0
 				};
-				await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.setAppServerType, Variables);
+				await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.setAppServerType, Variables);
 			}
 			catch (Exception exc)
 			{
@@ -675,7 +675,7 @@ namespace FWO.Middleware.Server
 					id = appServer.Id,
 					deleted = true
 				};
-				await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.setAppServerDeletedState, Variables);
+				await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.setAppServerDeletedState, Variables);
 			}
 			catch (Exception exc)
 			{

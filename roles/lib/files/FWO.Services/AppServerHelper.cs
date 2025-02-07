@@ -209,7 +209,7 @@ namespace FWO.Services
                     importSource = appServer.ImportSource,
                     customType = appServer.CustomType
                 };
-                ReturnId[]? returnIds = ( await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.newAppServer, Variables) ).ReturnIds;
+                ReturnId[]? returnIds = ( await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.newAppServer, Variables) ).ReturnIds;
                 return returnIds != null && returnIds.Length > 0 ? returnIds[0].NewIdLong : null;
             }
             catch (Exception exception)

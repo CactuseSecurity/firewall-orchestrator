@@ -31,7 +31,7 @@ mutation addLogEntry(
     }
   ) {
     returning {
-       newId: data_issue_id
+      newIdLong: data_issue_id
     }
   }
 }

@@ -96,7 +96,7 @@ namespace FWO.Middleware.Server.Controllers
                         viewAllDevices = tenant.ViewAllDevices,
                         create = DateTime.Now
                     };
-                    ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(AuthQueries.addTenant, Variables)).ReturnIds;
+                    ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(AuthQueries.addTenant, Variables)).ReturnIds;
                     if (returnIds != null)
                     {
                         tenantId = returnIds[0].NewId;

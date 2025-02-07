@@ -9,6 +9,6 @@ mutation updateExtRequestProcess(
       ext_request_state: $extRequestState
       last_processing_response: $processingResponse
   }) {
-    UpdatedId: id
+    updatedIdLong: id
   }
 }

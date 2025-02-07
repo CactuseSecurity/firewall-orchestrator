@@ -9,15 +9,6 @@ namespace FWO.Api.Data
         public string Name { get; set; } = "";
     }
 
-    //public class FileFormatReportSchedule
-    //{
-    //    [JsonProperty("file_format_name"), JsonPropertyName("file_format_name")]
-    //    public string FileFormatName { get; set; }
-
-    //    [JsonProperty("report_schedule_id"), JsonPropertyName("report_schedule_id")]
-    //    public string ReportScheduleId { get; set; }
-    //}
-
     public static class FileFormatUtil
     {
         public static FileFormat Find(this IEnumerable<FileFormat> fileFormats, string name)

@@ -13,7 +13,7 @@ mutation addTenantNetwork(
     tenant_net_comment: $comment
   }) {
     returning {
-      newId: tenant_net_id
+      newIdLong: tenant_net_id
     }
   }
 }

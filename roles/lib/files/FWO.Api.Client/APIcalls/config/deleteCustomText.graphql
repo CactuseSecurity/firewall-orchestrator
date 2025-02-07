@@ -3,6 +3,6 @@ mutation delete_customtxt_by_pk ($id: String!, $lang: String!) {
     id: $id
     language: $lang
   ) {
-    DeletedId: id
+    deletedId: id
   }
 }

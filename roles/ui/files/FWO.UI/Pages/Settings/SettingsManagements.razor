@@ -471,7 +471,7 @@
                         comment = actManagement.Comment,
                         extMgtData = actManagement.ExtMgtData
                     };
-                    ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(DeviceQueries.newManagement, Variables)).ReturnIds;
+                    ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(DeviceQueries.newManagement, Variables)).ReturnIds;
                     if (returnIds != null)
                     {
                         actManagement.Id = returnIds[0].NewId;
@@ -593,7 +593,7 @@
                 description = description,
                 mgmId = mgmtId
             };
-            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(MonitorQueries.addAutodiscoveryLogEntry, Variables)).ReturnIds;
+            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(MonitorQueries.addAutodiscoveryLogEntry, Variables)).ReturnIds;
             if (returnIds == null)
             {
                 Log.WriteError("Write Log", "Log could not be written to database");

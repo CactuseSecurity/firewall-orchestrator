@@ -171,7 +171,7 @@
 @code
 {
     private GraphQlApiSubscription<List<ReportSchedule>>? reportSchedulesSubscription;
-    private List<ReportSchedule> reportSchedules = new ();
+    private List<ReportSchedule> reportSchedules = [];
     private ReportSchedule reportScheduleInEdit = new ();
     private DateTime actDate = DateTime.Today;
     private DateTime actTime = DateTime.Now.AddSeconds(-DateTime.Now.Second);
@@ -269,7 +269,7 @@
                     report_schedule_active = reportScheduleInEdit.Active,
                     report_schedule_formats = new { data = reportScheduleInEdit.OutputFormat }
                 };
-                reportScheduleInEdit.Id = (await apiConnection.SendQueryAsync<NewReturning>(ReportQueries.addReportSchedule, queryVariablesReportSchedule)).ReturnIds[0].NewId;
+                reportScheduleInEdit.Id = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(ReportQueries.addReportSchedule, queryVariablesReportSchedule)).ReturnIds[0].NewId;
 
                 ShowAddReportScheduleDialog = false;
             }

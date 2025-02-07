@@ -301,7 +301,7 @@
     {
         try
         {
-            await apiConnection.SendQueryAsync<NewReturning>(ExtRequestQueries.addTicketId, new { ownerId = SelectedApp.Id, ticketId = ticketId });
+            await apiConnection.SendQueryAsync<ReturnIdWrapper>(ExtRequestQueries.addTicketId, new { ownerId = SelectedApp.Id, ticketId = ticketId });
         }
         catch (Exception exception)
         {

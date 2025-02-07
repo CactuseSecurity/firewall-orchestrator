@@ -11,7 +11,7 @@ mutation addConfigItem(
     }
   ) {
     returning {
-       newId: config_key
+      newId: config_key
     }
   }
 }

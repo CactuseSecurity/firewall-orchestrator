@@ -35,7 +35,7 @@ mutation newRequestElement(
     name: $name
   }) {
     returning {
-      newId: id
+      newIdLong: id
     }
   }
 }

@@ -610,7 +610,7 @@
                 passwordMustBeChanged = user.PasswordMustBeChanged,
                 ldapConnectionId = user.LdapConnection.Id
             };
-            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(AuthQueries.upsertUiUser, Variables)).ReturnIds;
+            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(AuthQueries.upsertUiUser, Variables)).ReturnIds;
             if(returnIds != null)
             {
                 user.DbId = returnIds[0].NewId;

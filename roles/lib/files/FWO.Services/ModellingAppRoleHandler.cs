@@ -210,10 +210,10 @@ namespace FWO.Services
                     comment = ActAppRole.Comment,
                     creator = userConfig.User.Name
                 };
-                ReturnId[]? returnIds = ( await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.newAppRole, Variables) ).ReturnIds;
+                ReturnId[]? returnIds = ( await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.newAppRole, Variables) ).ReturnIds;
                 if (returnIds != null)
                 {
-                    ActAppRole.Id = returnIds[0].NewId;
+                    ActAppRole.Id = returnIds[0].NewIdLong;
                     await LogChange(ModellingTypes.ChangeType.Insert, ModellingTypes.ModObjectType.AppRole, ActAppRole.Id,
                         $"New App Role: {ActAppRole.Display()}", Application.Id);
                     foreach (ModellingAppServerWrapper appServer in ActAppRole.AppServers)

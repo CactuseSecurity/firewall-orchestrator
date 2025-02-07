@@ -13,6 +13,6 @@ mutation updateAppRole(
       app_id: $appId
       comment: $comment
   }) {
-    UpdatedId: id
+    UpdatedIdLong: id
   }
 }

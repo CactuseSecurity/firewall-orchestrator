@@ -305,7 +305,7 @@ namespace FWO.Middleware.Server
 				extRequestState = ExtStates.ExtReqInitialized.ToString(),
 				waitCycles = waitCycles
 			};
-			await ApiConnection.SendQueryAsync<NewReturning>(ExtRequestQueries.addExtRequest, Variables);
+			await ApiConnection.SendQueryAsync<ReturnIdWrapper>(ExtRequestQueries.addExtRequest, Variables);
 			await LogRequestTasks(tasks, ticket.Requester?.Name, ModellingTypes.ChangeType.Request);
 		}
 

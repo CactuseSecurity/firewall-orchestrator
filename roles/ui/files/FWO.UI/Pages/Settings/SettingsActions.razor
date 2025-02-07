@@ -456,7 +456,7 @@ else
                     buttonText = actAction.ButtonText,
                     externalParameters = actAction.ExternalParams
                 };
-                ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(RequestQueries.newAction, Variables)).ReturnIds;
+                ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(RequestQueries.newAction, Variables)).ReturnIds;
                 if (returnIds == null)
                 {
                     DisplayMessageInUi(null, userConfig.GetText("save_action"), userConfig.GetText("E8011"), true);

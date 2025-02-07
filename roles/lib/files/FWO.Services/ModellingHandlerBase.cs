@@ -97,7 +97,7 @@ namespace FWO.Services
                     changeText = text,
                     changer = userConfig.User.Name
                 };
-                await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.addHistoryEntry, Variables);
+                await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.addHistoryEntry, Variables);
             }
             catch (Exception exception)
             {
@@ -119,7 +119,7 @@ namespace FWO.Services
                     changeText = text,
                     changer = requester ?? userConfig.User.Name
                 };
-                await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.addHistoryEntry, Variables);
+                await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.addHistoryEntry, Variables);
             }
             catch (Exception exception)
             {

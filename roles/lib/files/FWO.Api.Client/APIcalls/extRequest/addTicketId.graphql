@@ -7,7 +7,7 @@ mutation addTicketId(
     ticket_id: $ticketId
   }) {
     returning {
-      ticket_id
+      insertedIdLong: ticket_id
     }
   }
 }

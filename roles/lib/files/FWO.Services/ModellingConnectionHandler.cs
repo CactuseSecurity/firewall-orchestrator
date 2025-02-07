@@ -1065,7 +1065,7 @@ namespace FWO.Services
                         appId = requestedInterface.AppId,
                         connectionId = requestedInterface.Id
                     };
-                    await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.addSelectedConnection, Variables);
+                    await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.addSelectedConnection, Variables);
                     PreselectedInterfaces.Add(requestedInterface);
                 }
             }
@@ -1284,7 +1284,7 @@ namespace FWO.Services
                     connProp = ActConn.Properties,
                     extraParams = ActConn.ExtraParams
                 };
-                ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.newConnection, Variables)).ReturnIds;
+                ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.newConnection, Variables)).ReturnIds;
                 if (returnIds != null)
                 {
                     ActConn.Id = returnIds[0].NewId;

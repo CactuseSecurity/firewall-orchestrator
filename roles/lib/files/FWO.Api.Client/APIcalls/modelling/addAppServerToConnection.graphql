@@ -9,7 +9,7 @@ mutation addAppServerToConnection(
     connection_field: $connectionField
   }) {
     returning {
-      newId: nwobject_id
+      insertedIdLong: nwobject_id
     }
   }
 }

@@ -12,6 +12,6 @@ mutation updateTenant(
       tenant_can_view_all_devices: $viewAllDevices
     }
   ) {
-    UpdatedId: tenant_id
+    updatedId: tenant_id
   }
 }

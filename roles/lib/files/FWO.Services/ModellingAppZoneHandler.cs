@@ -87,7 +87,7 @@ namespace FWO.Services
             }
         }
 
-        private async Task<int> AddAppZoneToDb(ModellingAppZone appZone)
+        private async Task<long> AddAppZoneToDb(ModellingAppZone appZone)
         {
             var azVars = new
             {
@@ -99,12 +99,12 @@ namespace FWO.Services
 
             try
             {
-                ReturnId[]? returnIds = ( await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.newAppZone, azVars) ).ReturnIds;
+                ReturnId[]? returnIds = ( await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.newAppZone, azVars) ).ReturnIds;
 
                 await LogChange(ModellingTypes.ChangeType.Insert, ModellingTypes.ModObjectType.AppZone, appZone.Id, $"New App Zone: {appZone.Display()}", null);
 
                 if (returnIds != null && returnIds.Length > 0)
-                    return returnIds[0].NewId;
+                    return returnIds[0].NewIdLong;
             }
             catch (Exception ex)
             {

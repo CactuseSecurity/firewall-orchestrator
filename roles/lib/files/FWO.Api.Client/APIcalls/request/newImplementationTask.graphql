@@ -29,7 +29,7 @@ mutation newImplementationTask(
     free_text: $freeText
   }) {
     returning {
-      newId: id
+      newIdLong: id
     }
   }
 }

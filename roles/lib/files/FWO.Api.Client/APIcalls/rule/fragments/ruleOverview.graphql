@@ -3,6 +3,7 @@ fragment ruleOverview on rule {
   rule_uid
   dev_id
   rule_action
+  rulebase_id
   section_header: rule_head_text
   rule_comment
   rule_track

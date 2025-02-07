@@ -91,7 +91,6 @@ Alter table rule_metadata add column if not exists rulebase_id integer; -- not n
 ALTER TABLE device ADD COLUMN IF NOT EXISTS "dev_uid" Varchar NOT NULL DEFAULT '';
 
 Alter table stm_action add column if not exists allowed BOOLEAN NOT NULL DEFAULT TRUE;
-
 UPDATE stm_action SET allowed = FALSE WHERE action_name = 'deny' OR action_name = 'drop' OR action_name = 'reject';
 
 Create table IF NOT EXISTS "rulebase" 

@@ -17,7 +17,7 @@ on:
     
 jobs:        
   test_puppeteer_pdf:
-    name: Run puppeteer pdf test on ${{ matrix.os }}
+    name: Puppeteer test on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -35,7 +35,7 @@ jobs:
       
   test_ubuntu_latest:
     name: test build on ${{ matrix.os }}
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [ubuntu-latest, ubuntu-20.04, ubuntu-22.04]

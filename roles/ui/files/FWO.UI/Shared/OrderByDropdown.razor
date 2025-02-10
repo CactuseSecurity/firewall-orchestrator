@@ -1,0 +1,150 @@
+@using FWO.Api.Data
+@using FWO.Services
+@using System.Linq.Expressions
+@using System.Net
+
+@typeparam TCollectionItem
+
+@inject UserConfig userConfig
+
+<div class="d-flex gap-2">
+    <label class="text-nowrap">@(userConfig.GetText("order_by")): </label>
+    <Dropdown   @ref="propertyDropdown"
+                ElementType="string"
+                @bind-SelectedElement="SelectedProperty"
+                Elements="ElementProperties"
+                ElementToString="@(a => a)">
+                    <ElementTemplate Context="property">
+                        @((MarkupString) property)
+                    </ElementTemplate>
+    </Dropdown>
+    <Dropdown   @ref="orderModeDropdown"
+                ElementType="string"
+                @bind-SelectedElement="SelectedOrderMode"
+                Elements="orderModes"
+                ElementToString="@(a => a)">
+                    <ElementTemplate Context="orderMode">
+                        @((MarkupString) orderMode)
+                    </ElementTemplate>
+    </Dropdown>
+</div> 
+
+@code
+{
+    /// <summary>
+    /// List of the properties, that the user can order the collection by.
+    /// </summary>
+    [Parameter]
+    public List<string> ElementProperties { get; set; }
+    /// <summary>
+    /// Collection of items, that the user can order by the selected property and order mode.
+    /// </summary>
+    [Parameter]
+    public List<TCollectionItem> Collection { get; set; }
+    /// <summary>
+    /// Callback to communicate that the reordering process has been completed.
+    /// </summary>
+    [Parameter]
+    public EventCallback CollectionReordered { get; set; }
+
+    /// <summary>
+    /// Backing field of property 'SelectedProperty'.
+    /// </summary> 
+    private string selectedProperty = "";
+    /// <summary>
+    /// Binds the visual representation of the selected property.
+    /// </summary>   
+    public string SelectedProperty 
+    {
+        get => selectedProperty;
+        set
+        {
+            if(!selectedProperty.Equals(value))
+            {
+                selectedProperty = value;
+                ReorderCollection();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Backing field of property 'SelectedOrderMode'.
+    /// </summary> 
+    private string selectedOrderMode = "Asc";
+    /// <summary>
+    /// The mode of the rerordering process (i.e. ascending or descending).
+    /// </summary> 
+    public string SelectedOrderMode
+    {
+        get => selectedOrderMode;
+        set
+        {
+            if(!selectedOrderMode.Equals(value))
+            {
+                selectedOrderMode = value;
+                ReorderCollection();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Reference to the dropdown component for the selected property.
+    /// </summary>
+    private Dropdown<string>? propertyDropdown;
+    /// <summary>
+    /// Reference to the dropdown component for the order mode.
+    /// </summary>
+    private Dropdown<string>? orderModeDropdown;
+    /// <summary>
+    /// The visual elements for the implemented order modes.
+    /// </summary>
+    private List<string> orderModes = new List<string> {"Asc", "Desc"};
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender)
+        {
+            if(propertyDropdown != null)
+            {
+                selectedOrderMode = "Asc";
+                selectedProperty = propertyDropdown.Elements.First(); 
+            }
+            
+            StateHasChanged();
+        }
+    }
+
+    /// <summary>
+    /// Reordering the collection by the selected property and in the selected mode.
+    /// </summary>
+    private void ReorderCollection()
+    {
+        var param = Expression.Parameter(typeof(TCollectionItem), "x");
+        var propertyInfo = typeof(TCollectionItem).GetProperty(propertyDropdown.SelectedElement);
+        if (propertyInfo == null)
+        {
+            throw new InvalidOperationException($"Property '{propertyDropdown.SelectedElement}' existiert nicht auf Typ '{typeof(TCollectionItem).Name}'.");
+        }
+        
+        var propertyAccess = Expression.Property(param, propertyInfo);
+        var converted = Expression.Convert(propertyAccess, typeof(object));
+        var keySelector = Expression.Lambda<Func<TCollectionItem, object>>(converted, param).Compile();
+        
+        if(SelectedProperty.Equals("Ip"))
+        {
+            Collection = Collection.OrderBy(keySelector, new ObjectWithIpAsStringComparer()).ToList();  
+        }
+        else
+        {
+            Collection = Collection.OrderBy(keySelector).ToList();  
+        }
+
+        if (SelectedOrderMode.Equals("Desc"))
+        {
+            Collection.Reverse();   
+        }
+
+        InvokeAsync(StateHasChanged);
+        CollectionReordered.InvokeAsync();
+    }
+}

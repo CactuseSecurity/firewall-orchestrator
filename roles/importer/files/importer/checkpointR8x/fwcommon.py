@@ -124,16 +124,22 @@ def getRules (nativeConfig: dict, importState: ImportState, sid: str, cpManagerA
                                                                                            rule['uid'], 
                                                                                            nativeConfig=nativeConfig)
         else:   # no global rules, just get local ones
-            show_params_rules.update({'name': device['local_rulebase_name']})
-            logger.debug ( "getting layer: " + show_params_rules['name'] )
-            current_layer_json = cp_getter.get_layer_from_api_as_dict (cpManagerApiBaseUrl, 
-                                                                       sid, 
-                                                                       show_params_rules, 
-                                                                       layerName=device['local_rulebase_name'], 
-                                                                       nativeConfig=nativeConfig)
-            if current_layer_json is None:
+            #  we do not have local rulebase name any more
+            # show_params_rules.update({'name': device['local_rulebase_name']})
+            # need to get rulebase id instead of device id here:
+            if device['uid'] != None and device['uid'] != '':
+                show_params_rules.update({'uid': device['uid']})
+                logger.debug ( "getting layer: " + show_params_rules['uid'] )
+                current_layer_json = cp_getter.get_layer_from_api_as_dict (cpManagerApiBaseUrl, 
+                                                                        sid, 
+                                                                        show_params_rules, 
+                                                                        layerUid=device['uid'], 
+                                                                        nativeConfig=nativeConfig)
+                if current_layer_json is None:
+                    return 1
+            else:
+                logger.warning ( "no rulebase name or uid given for device: " + device['name'] )
                 return 1
-
         nativeConfig['rulebases'].append(current_layer_json)
 
         # getting NAT rules - need package name for nat rule retrieval

@@ -65,12 +65,14 @@ namespace FWO.Report
             {
                 foreach(var dev in mgmt.Devices)
                 {
-                    if (dev != null && dev.RbLink != null && dev.RbLink.NextRulebase != null) 
+                    if (dev != null && dev.RulebaseLinks != null && dev.RulebaseLinks.Length > 0) 
                     {
-                        if(dev.RbLink.NextRulebase.Rules.Length > 0)
+                        int? nextRulebaseId = dev.RulebaseLinks.FirstOrDefault(_ => _.IsInitialRulebase())?.NextRulebaseId;
+                        if (nextRulebaseId != null && mgmt.Rulebases.FirstOrDefault(_ => _.Id == nextRulebaseId)?.Rules.Length > 0)
                         {
                             return false;
                         }
+                        return true;
                     }
                 }
             }

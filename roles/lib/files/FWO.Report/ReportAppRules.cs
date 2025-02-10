@@ -51,10 +51,11 @@ namespace FWO.Report
                 foreach (var dev in mgt.Devices)
                 {
                     DeviceReport relevantDevice = new() { Name = dev.Name, Id = dev.Id };
-                    var rb = dev.RbLink;
-                    if (rb?.NextRulebase.Rules != null)
+                    var rbLink = dev.RulebaseLinks.FirstOrDefault(r => r.IsInitialRulebase());
+                    RulebaseReport? rb = mgt.Rulebases.FirstOrDefault(r => r.Id == rbLink?.NextRulebaseId);
+                    if (rb?.Rules != null)
                     {
-                        foreach (var rule in rb.NextRulebase.Rules)
+                        foreach (var rule in rb.Rules)
                         {
                             RulebaseLink relevantRulebase = new();
                             if (modellingFilter.ShowDropRules || !rule.IsDropRule())
@@ -79,12 +80,12 @@ namespace FWO.Report
                                     rule.DisregardedFroms = [.. disregardedFroms];
                                     rule.DisregardedTos = [.. disregardedTos];
                                     rule.ShowDisregarded = modellingFilter.ShowFullRules;
-                                    if (relevantRulebase.NextRulebase != null)
-                                    {
-                                        relevantRulebase.NextRulebase.Rules = [.. relevantRulebase.NextRulebase.Rules, rule];
-                                        relevantMgt.ReportedRuleIds.Add(rule.Id);
-                                        // relevantDevice.Rulebases = [.. relevantDevice.Rulebases, relevantRulebase];
-                                    }
+                                    // if (relevantRulebase.NextRulebase != null)
+                                    // {
+                                    //     relevantRulebase.NextRulebase.Rules = [.. relevantRulebase.NextRulebase.Rules, rule];
+                                    //     relevantMgt.ReportedRuleIds.Add(rule.Id);
+                                    //     // relevantDevice.Rulebases = [.. relevantDevice.Rulebases, relevantRulebase];
+                                    // }
                                 }
                             }
                         }
@@ -171,64 +172,65 @@ namespace FWO.Report
             return false;
         }
 
-        private void PrepareFilterRecursive(ManagementReport mgt, RulebaseLink rbLink)
+        private void PrepareFilterRecursive(ManagementReport mgt, DeviceReport dev, RulebaseLink rbLink)
         {
-            if (rbLink.NextRulebase.Rules != null)
-            {
-                foreach (var rule in rbLink.NextRulebase.Rules)
-                {
-                    if (rule.NextRulebase != null)
-                    {
-                        PrepareFilterRecursive(mgt, rule.NextRulebase);
-                    }
-                    foreach (var from in rule.Froms)
-                    {
-                        mgt.RelevantObjectIds.Add(from.Object.Id);
-                        mgt.HighlightedObjectIds.Add(from.Object.Id);
-                        if (from.Object.Type.Name == ObjectType.Group)
-                        {
-                            foreach (var grpobj in from.Object.ObjectGroupFlats)
-                            {
-                                if (grpobj.Object != null && CheckObj(grpobj.Object))
-                                {
-                                    mgt.HighlightedObjectIds.Add(grpobj.Object.Id);
-                                }
-                            }
-                        }
-                    }
-                    if (rule.Froms.Length == 0)
-                    {
-                        foreach (var from in rule.DisregardedFroms)
-                        {
-                            mgt.RelevantObjectIds.Add(from.Object.Id);
-                        }
-                    }
+            // if (rbLink.NextRulebase.Rules != null)
+            // {
+            //     foreach (var rule in rbLink.NextRulebase.Rules)
+            //     {
+            //         RulebaseLink? nextRulebaseLink = dev.RulebaseLinks.FirstOrDefault(r => r.FromRuleId == rule.Id);
+            //         if (nextRulebaseLink != null)
+            //         {
+            //             PrepareFilterRecursive(mgt, dev, nextRulebaseLink);
+            //         }
+            //         foreach (var from in rule.Froms)
+            //         {
+            //             mgt.RelevantObjectIds.Add(from.Object.Id);
+            //             mgt.HighlightedObjectIds.Add(from.Object.Id);
+            //             if (from.Object.Type.Name == ObjectType.Group)
+            //             {
+            //                 foreach (var grpobj in from.Object.ObjectGroupFlats)
+            //                 {
+            //                     if (grpobj.Object != null && CheckObj(grpobj.Object))
+            //                     {
+            //                         mgt.HighlightedObjectIds.Add(grpobj.Object.Id);
+            //                     }
+            //                 }
+            //             }
+            //         }
+            //         if (rule.Froms.Length == 0)
+            //         {
+            //             foreach (var from in rule.DisregardedFroms)
+            //             {
+            //                 mgt.RelevantObjectIds.Add(from.Object.Id);
+            //             }
+            //         }
 
 
-                    foreach (var to in rule.Tos)
-                    {
-                        mgt.RelevantObjectIds.Add(to.Object.Id);
-                        mgt.HighlightedObjectIds.Add(to.Object.Id);
-                        if (to.Object.Type.Name == ObjectType.Group)
-                        {
-                            foreach (var grpobj in to.Object.ObjectGroupFlats)
-                            {
-                                if (grpobj.Object != null && CheckObj(grpobj.Object))
-                                {
-                                    mgt.HighlightedObjectIds.Add(grpobj.Object.Id);
-                                }
-                            }
-                        }
-                    }
-                    if (rule.Tos.Length == 0)
-                    {
-                        foreach (var to in rule.DisregardedTos)
-                        {
-                            mgt.RelevantObjectIds.Add(to.Object.Id);
-                        }
-                    }
-                }
-            }
+            //         foreach (var to in rule.Tos)
+            //         {
+            //             mgt.RelevantObjectIds.Add(to.Object.Id);
+            //             mgt.HighlightedObjectIds.Add(to.Object.Id);
+            //             if (to.Object.Type.Name == ObjectType.Group)
+            //             {
+            //                 foreach (var grpobj in to.Object.ObjectGroupFlats)
+            //                 {
+            //                     if (grpobj.Object != null && CheckObj(grpobj.Object))
+            //                     {
+            //                         mgt.HighlightedObjectIds.Add(grpobj.Object.Id);
+            //                     }
+            //                 }
+            //             }
+            //         }
+            //         if (rule.Tos.Length == 0)
+            //         {
+            //             foreach (var to in rule.DisregardedTos)
+            //             {
+            //                 mgt.RelevantObjectIds.Add(to.Object.Id);
+            //             }
+            //         }
+            //     }
+            // }
         
         }
         private void PrepareFilter(ManagementReport mgt)
@@ -237,7 +239,7 @@ namespace FWO.Report
             mgt.HighlightedObjectIds = [];
             foreach (var dev in mgt.Devices)
             {
-                PrepareFilterRecursive(mgt, dev.RbLink);
+                PrepareFilterRecursive(mgt, dev, dev.RulebaseLinks.FirstOrDefault(r => r.IsInitialRulebase()));
 
             }
             mgt.RelevantObjectIds = mgt.RelevantObjectIds.Distinct().ToList();

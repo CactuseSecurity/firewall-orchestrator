@@ -48,6 +48,10 @@ class FwConfigImportGateway(FwConfigImportBase):
                 for link in gw.RulebaseLinks:
                     fromRuleId = self.ImportDetails.lookupRule(link.from_rule_uid)
                     toRulebaseId = self.ImportDetails.lookupRulebaseId(link.to_rulebase_uid)
+                    if toRulebaseId is None:
+                        logger.error(f"toRulebaseId is None for link {link}")
+                        errors += 1
+                        continue
                     linkTypeId = self.ImportDetails.lookupLinkType(link.link_type)
                     rbLink = RulebaseLinkController(gw_id=gwId, 
                                          from_rule_id=fromRuleId,

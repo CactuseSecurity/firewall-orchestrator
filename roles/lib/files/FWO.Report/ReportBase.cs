@@ -258,7 +258,7 @@ namespace FWO.Report
 
             if (installedBrowser == null)
             {
-                throw new Exception($"Browser {wantedBrowser} is not installed!");              
+                throw new Exception($"Browser {wantedBrowser} is not installed!");
             }
 
             using IBrowser? browser = await Puppeteer.LaunchAsync(new LaunchOptions
@@ -267,28 +267,28 @@ namespace FWO.Report
                 Headless = true
             });
 
-            try
-            {
-                using IPage page = await browser.NewPageAsync();
-                await page.SetContentAsync(html);
+            //try
+            //{
+            using IPage page = await browser.NewPageAsync();
+            await page.SetContentAsync(html);
 
-                PuppeteerSharp.Media.PaperFormat? pupformat = GetPuppeteerPaperFormat(format) ?? throw new Exception();
+            //PuppeteerSharp.Media.PaperFormat? pupformat = GetPuppeteerPaperFormat(format) ?? throw new Exception();
+            PdfOptions pdfOptions = new() { DisplayHeaderFooter = true, Landscape = true, PrintBackground = true, Format = PuppeteerSharp.Media.PaperFormat.A4, MarginOptions = new MarginOptions { Top = "1cm", Bottom = "1cm", Left = "1cm", Right = "1cm" } };
+            //PdfOptions pdfOptions = new() { DisplayHeaderFooter = true, Landscape = true, PrintBackground = true, Format = pupformat, MarginOptions = new MarginOptions { Top = "1cm", Bottom = "1cm", Left = "1cm", Right = "1cm" } };
+            using Stream? pdfData = await page.PdfStreamAsync(pdfOptions);
 
-                PdfOptions pdfOptions = new() { DisplayHeaderFooter = true, Landscape = true, PrintBackground = true, Format = pupformat, MarginOptions = new MarginOptions { Top = "1cm", Bottom = "1cm", Left = "1cm", Right = "1cm" } };
-                using Stream? pdfData = await page.PdfStreamAsync(pdfOptions);
+            byte[]? pdfWithToCData = AddToCBookmarksToPDF(pdfData, html);
 
-                byte[]? pdfWithToCData = AddToCBookmarksToPDF(pdfData, html);
-
-                return Convert.ToBase64String(pdfWithToCData);
-            }
-            catch (Exception)
-            {
-                throw new Exception("This paper kind is currently not supported. Please choose another one or \"Custom\" for a custom size.");
-            }
-            finally
-            {
-                await browser.CloseAsync();
-            }
+            return Convert.ToBase64String(pdfWithToCData);
+            //}
+            //catch (Exception)
+            //{
+            //    throw new Exception("This paper kind is currently not supported. Please choose another one or \"Custom\" for a custom size.");
+            //}
+            //finally
+            //{
+            //    await browser.CloseAsync();
+            //}
         }
 
         private static List<ToCHeader> CreateTOCContent(string html)

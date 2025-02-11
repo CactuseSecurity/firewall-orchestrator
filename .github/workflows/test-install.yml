@@ -47,17 +47,3 @@ jobs:
       run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator && ansible-playbook -e force_install=true site.yml -K
       env:
         RUNNING_ON_GITHUB_ACTIONS: ${{ env.RUNNING_ON_GITHUB }}
-
-  test_ubuntu_latest_selfhosted:
-    name: test build on ubuntu-latest_selfhosted
-    runs-on: self-hosted
-    steps:
-    - name: Set environment variable
-      run: echo "RUNNING_ON_GITHUB=1" >> $GITHUB_ENV      
-    - uses: actions/checkout@v4   
-    - name: clone repo    
-      run: git clone https://github.com/SolidProgramming/firewall-orchestrator.git -b puppeteer
-    - name: do test install in case of merged pull request
-      run: cd firewall-orchestrator && ansible-playbook -e force_install=true site.yml -K
-      env:
-        RUNNING_ON_GITHUB_ACTIONS: ${{ env.RUNNING_ON_GITHUB }}

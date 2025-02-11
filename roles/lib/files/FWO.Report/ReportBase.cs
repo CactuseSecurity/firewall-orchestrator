@@ -277,9 +277,9 @@ namespace FWO.Report
             //PdfOptions pdfOptions = new() { DisplayHeaderFooter = true, Landscape = true, PrintBackground = true, Format = pupformat, MarginOptions = new MarginOptions { Top = "1cm", Bottom = "1cm", Left = "1cm", Right = "1cm" } };
             using Stream? pdfData = await page.PdfStreamAsync(pdfOptions);
 
-            byte[]? pdfWithToCData = AddToCBookmarksToPDF(pdfData, html);
+            //byte[]? pdfWithToCData = AddToCBookmarksToPDF(pdfData, html);
 
-            return Convert.ToBase64String(pdfWithToCData);
+            return "";
             //}
             //catch (Exception)
             //{
@@ -383,7 +383,7 @@ namespace FWO.Report
         private static byte[] AddToCBookmarksToPDF(Stream pdfData, string html)
         {
             PdfDocument document = PdfReader.Open(pdfData, PdfDocumentOpenMode.Modify);
-            XFont font = new("Verdana", 16);
+            //XFont font = new("Verdana", 16);
 
             PdfPage page = document.Pages[0];
 

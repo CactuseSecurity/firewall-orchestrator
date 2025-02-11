@@ -62,15 +62,28 @@ namespace FWO.Basics
         private static bool SpanSingleNetwork(string ipStart, string ipEnd)
         {
             IPAddressRange range = IPAddressRange.Parse(ipStart.StripOffNetmask() + "-" + ipEnd.StripOffNetmask());
-            try
+            return HasValidNetmask(range);
+        }
+
+        private static bool HasValidNetmask(IPAddressRange range)
+        {
+            // code adapted (without exception) from IPAddressRange.getPrefixLength()
+            byte[] addressBytes = range.Begin.GetAddressBytes();
+            if (range.Begin.Equals(range.End))
             {
-                range.ToCidrString();
+                return true;
             }
-            catch (Exception)
+
+            int num = addressBytes.Length * 8;
+            for (int i = 0; i < num; i++)
             {
-                return false;
+                byte[] bitMask = Bits.GetBitMask(addressBytes.Length, i);
+                if (new IPAddress(Bits.And(addressBytes, bitMask)).Equals(range.Begin) && new IPAddress(Bits.Or(addressBytes, Bits.Not(bitMask))).Equals(range.End))
+                {
+                    return true;
+                }
             }
-            return true;
+            return false;
         }
 
         /// <summary>

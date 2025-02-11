@@ -28,10 +28,13 @@ namespace FWO.Services
             try
             {
                 Application = application;
-                ManualAppServers = await apiConnection.SendQueryAsync<List<ModellingAppServer>>(ModellingQueries.getImportedAppServers, new { importSource = GlobalConst.kManual, appId = Application.Id });
+                ManualAppServers = await apiConnection.SendQueryAsync<List<ModellingAppServer>>(ModellingQueries.getAppServersBySource, new { importSource = GlobalConst.kManual, appId = Application.Id });
+                List<ModellingAppServer> CsvImportedAppServers = await apiConnection.SendQueryAsync<List<ModellingAppServer>>(ModellingQueries.getAppServersBySource, new { importSource = GlobalConst.kCSV_ + "%", appId = Application.Id });
+                ManualAppServers.AddRange(CsvImportedAppServers);
                 foreach(var appServer in ManualAppServers)
                 {
                     appServer.InUse = await CheckAppServerInUse(appServer);
+                    appServer.HighestPrio = await AppServerHelper.NoHigherPrioActive(apiConnection, appServer);
                 }
             }
             catch (Exception exception)
@@ -82,15 +85,14 @@ namespace FWO.Services
                     await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.setAppServerDeletedState, new { id = actAppServer.Id, deleted = true });
                     await LogChange(ModellingTypes.ChangeType.MarkDeleted, ModellingTypes.ModObjectType.AppServer, actAppServer.Id,
                         $"Mark App Server as deleted: {actAppServer.Display()}", Application.Id);
-                    actAppServer.IsDeleted = true;
-                    ManualAppServers[ManualAppServers.FindIndex(x => x.Id == actAppServer.Id)] = actAppServer;
                 }
                 else if((await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.deleteAppServer, new { id = actAppServer.Id })).AffectedRows > 0)
                 {
                     await LogChange(ModellingTypes.ChangeType.Delete, ModellingTypes.ModObjectType.AppServer, actAppServer.Id,
                         $"Deleted App Server: {actAppServer.Display()}", Application.Id);
-                    ManualAppServers.Remove(actAppServer);
                 }
+                await AppServerHelper.ReactivateOtherSource(apiConnection, actAppServer);
+                await Init(Application);
                 apiConnection.SwitchBack();
                 DeleteAppServerMode = false;
             }
@@ -116,8 +118,8 @@ namespace FWO.Services
                     await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.setAppServerDeletedState, new { id = actAppServer.Id, deleted = false });
                     await LogChange(ModellingTypes.ChangeType.Reactivate, ModellingTypes.ModObjectType.AppServer, actAppServer.Id,
                         $"Reactivate App Server: {actAppServer.Display()}", Application.Id);
-                    actAppServer.IsDeleted = false;
-                    ManualAppServers[ManualAppServers.FindIndex(x => x.Id == actAppServer.Id)] = actAppServer;
+                    await AppServerHelper.DeactivateOtherSources(apiConnection, actAppServer);
+                    await Init(Application);
                 }
                 ReactivateAppServerMode = false;
             }

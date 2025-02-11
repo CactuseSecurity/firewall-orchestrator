@@ -26,15 +26,21 @@
                                 <div class="btn-group">
                                     @if (context.IsDeleted)
                                     {
-                                        <button type="button" class="btn btn-sm btn-success" @onclick="() => appServerListHandler.RequestReactivateAppServer(context)">
-                                            @(appServerListHandler.DisplayButton("reactivate", Icons.Add))
-                                        </button>
+                                        @if(context.HighestPrio)
+                                        {
+                                            <button type="button" class="btn btn-sm btn-success" @onclick="() => appServerListHandler.RequestReactivateAppServer(context)">
+                                                @(appServerListHandler.DisplayButton("reactivate", Icons.Add))
+                                            </button>
+                                        }
                                     }
                                     else
                                     {
-                                        <button type="button" class="btn btn-sm btn-warning" @onclick="() => appServerListHandler.EditAppServer(context)">
-                                            @(appServerListHandler.DisplayButton("edit", Icons.Edit))
-                                        </button>
+                                        @if(!context.ImportSource.StartsWith(GlobalConst.kCSV_))
+                                        {
+                                            <button type="button" class="btn btn-sm btn-warning" @onclick="() => appServerListHandler.EditAppServer(context)">
+                                                @(appServerListHandler.DisplayButton("edit", Icons.Edit))
+                                            </button>
+                                        }
                                         <button type="button" class="btn btn-sm btn-danger" @onclick="() => appServerListHandler.RequestDeleteAppServer(context)">
                                             @(appServerListHandler.DisplayButton(context.InUse ? "deactivate" : "delete", Icons.Delete))
                                         </button>
@@ -63,6 +69,7 @@
                                 @(context.InUse.ShowAsHtml())
                             </Template>
                         </Column>
+                        <Column TableItem="ModellingAppServer" Title="@(userConfig.GetText("import_source"))" Field="@(x => x.ImportSource)" Sortable="true" Filterable="true" />
                         <Pager ShowPageNumber="true" ShowTotalCount="true" />
                     </Table>
                 </div>
@@ -73,9 +80,9 @@
         </Footer>
     </PopUp>
     <EditAppServer @bind-Display="appServerListHandler.EditAppServerMode" @bind-AppServerHandler="appServerListHandler.AppServerHandler" />
-    <ConfirmDelete @bind-Display="appServerListHandler.DeleteAppServerMode" PerformAction="async () => {await appServerListHandler.DeleteAppServer(); StateHasChanged();}"
+    <ConfirmDelete @bind-Display="appServerListHandler.DeleteAppServerMode" PerformAction="Delete"
         Title="@userConfig.GetText("delete_app_server")" DeleteMessage="@appServerListHandler.Message" />
-    <Confirm @bind-Display="appServerListHandler.ReactivateAppServerMode" PerformAction="async () => {await appServerListHandler.ReactivateAppServer(); StateHasChanged();}"
+    <Confirm @bind-Display="appServerListHandler.ReactivateAppServerMode" PerformAction="Reactivate"
         Title="@userConfig.GetText("reactivate")" Message="@appServerListHandler.Message" />
 }
 <InProgress Display="workInProgress" />
@@ -125,6 +132,22 @@
             firstTry = false;
             workInProgress = false;
         }
+    }
+
+    private async Task Delete()
+    {
+        workInProgress = true;
+        await appServerListHandler!.DeleteAppServer();
+        workInProgress = false;
+        StateHasChanged();
+    }
+
+    private async Task Reactivate()
+    {
+        workInProgress = true;
+        await appServerListHandler!.ReactivateAppServer();
+        workInProgress = false;
+        StateHasChanged();
     }
 
     private void Close()

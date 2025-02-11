@@ -59,7 +59,7 @@
     /// <summary>
     /// The app servers which are available for adding (i.e. which are not already in the AppServerToAdd collection).
     /// </summary>
-    private List<ModellingAppServer> selectableAppServers => AppRoleHandler.AppServersInArea.Except(AppRoleHandler.AppServerToAdd).ToList();
+    private List<ModellingAppServer> selectableAppServers => AppRoleHandler?.AppServersInArea.Except(AppRoleHandler.AppServerToAdd).ToList() ?? [];
 
 
     private bool HandleDragStart(DragEventArgs e, ModellingAppServer appServer)

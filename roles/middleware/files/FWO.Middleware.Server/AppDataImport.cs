@@ -497,7 +497,7 @@ namespace FWO.Middleware.Server
 				importSource = incomingApp.ImportSource,
 				appId = applId
 			};
-			existingAppServers = await apiConnection.SendQueryAsync<List<ModellingAppServer>>(ModellingQueries.getImportedAppServers, Variables);
+			existingAppServers = await apiConnection.SendQueryAsync<List<ModellingAppServer>>(ModellingQueries.getAppServersBySource, Variables);
 			foreach (var incomingAppServer in incomingApp.AppServers)
 			{
 				if (await SaveAppServer(incomingAppServer, applId, incomingApp.ImportSource))
@@ -511,7 +511,7 @@ namespace FWO.Middleware.Server
 			}
 			foreach (var existingAppServer in existingAppServers)
 			{
-				if (incomingApp.AppServers.FirstOrDefault(x => IpAsCidr(x.Ip) == IpAsCidr(existingAppServer.Ip)) == null)
+				if (incomingApp.AppServers.FirstOrDefault(x => x.Ip.IpAsCidr() == existingAppServer.Ip.IpAsCidr()) == null)
 				{
 					if (await MarkDeletedAppServer(existingAppServer))
 					{
@@ -530,7 +530,7 @@ namespace FWO.Middleware.Server
 		{
 			try
 			{
-				ModellingAppServer? existingAppServer = existingAppServers.FirstOrDefault(x => IpAsCidr(x.Ip) == IpAsCidr(incomingAppServer.Ip));
+				ModellingAppServer? existingAppServer = existingAppServers.FirstOrDefault(x => x.Ip.IpAsCidr() == incomingAppServer.Ip.IpAsCidr());
 				if (existingAppServer == null)
 				{
 					return await NewAppServer(incomingAppServer, appID, impSource);
@@ -589,8 +589,8 @@ namespace FWO.Middleware.Server
 				{
 					name = await BuildAppServerName(incomingAppServer),
 					appId = appID,
-					ip = IpAsCidr(incomingAppServer.Ip),
-					ipEnd = incomingAppServer.IpEnd != "" ? IpAsCidr(incomingAppServer.IpEnd) : IpAsCidr(incomingAppServer.Ip),
+					ip = incomingAppServer.Ip.IpAsCidr(),
+					ipEnd = incomingAppServer.IpEnd != "" ? incomingAppServer.IpEnd.IpAsCidr() : incomingAppServer.Ip.IpAsCidr(),
 					importSource = impSource,
 					customType = 0
 				};
@@ -683,11 +683,6 @@ namespace FWO.Middleware.Server
 				return false;
 			}
 			return true;
-		}
-
-		private static string IpAsCidr(string ip)
-		{
-			return IPAddressRange.Parse(ip).ToCidrString();
 		}
 	}
 }

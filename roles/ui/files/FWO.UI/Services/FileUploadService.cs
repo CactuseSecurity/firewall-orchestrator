@@ -109,10 +109,10 @@ namespace FWO.Ui.Services
         private static bool IsHeader(string[] columns)
         {
             return columns.Length == 4
-                   && columns[0].Trim('"') == "App-Server-Name"
-                   && columns[1].Trim('"') == "External-App-ID"
-                   && columns[2].Trim('"') == "App-Server-Typ"
-                   && columns[3].Trim('"') == "App-IP-Address-Range";
+                   && columns[0].Trim('"').Trim() == "App-Server-Name"
+                   && columns[1].Trim('"').Trim() == "External-App-ID"
+                   && columns[2].Trim('"').Trim() == "App-Server-Typ"
+                   && columns[3].Trim('"').Trim() == "App-IP-Address-Range";
         }
 
         private async Task<(bool, Exception?)> AddAppServerToDb(CSVAppServerImportModel importAppServer)
@@ -132,7 +132,7 @@ namespace FWO.Ui.Services
                 }
 
                 return ((await AppServerHelper.UpsertAppServer(ApiConnection,
-                            new(importAppServer.ToModellingAppServer()){ ImportSource = ImportSource, AppId = ownerIds.First().Id},
+                            new(importAppServer.ToModellingAppServer()){ ImportSource = ImportSource, AppId = ownerIds.First().Id, CustomType = appServerType.Id},
                             !UserConfig.DnsLookup
                     )).Item1 != null, default);
             }

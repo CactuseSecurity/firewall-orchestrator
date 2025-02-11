@@ -21,7 +21,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string getAppServersByIp;
         public static readonly string getAppServersByName;
         public static readonly string getAppServersForOwner;
-        public static readonly string getImportedAppServers;
+        public static readonly string getAppServersBySource;
         public static readonly string getAllAppServers;
         public static readonly string newAppServer;
         public static readonly string updateAppServer;
@@ -124,7 +124,7 @@ namespace FWO.Api.Client.Queries
                 getAppServersByIp = appServerDetailsFragment + File.ReadAllText(QueryPath + "modelling/getAppServersByIp.graphql");
                 getAppServersByName = appServerDetailsFragment + File.ReadAllText(QueryPath + "modelling/getAppServersByName.graphql");
                 getAppServersForOwner = appServerDetailsFragment + File.ReadAllText(QueryPath + "modelling/getAppServersForOwner.graphql");
-                getImportedAppServers = appServerDetailsFragment + File.ReadAllText(QueryPath + "modelling/getImportedAppServers.graphql");
+                getAppServersBySource = appServerDetailsFragment + File.ReadAllText(QueryPath + "modelling/getAppServersBySource.graphql");
                 getAllAppServers = appServerDetailsFragment + File.ReadAllText(QueryPath + "modelling/getAllAppServers.graphql");
                 newAppServer = File.ReadAllText(QueryPath + "modelling/newAppServer.graphql");
                 updateAppServer = File.ReadAllText(QueryPath + "modelling/updateAppServer.graphql");

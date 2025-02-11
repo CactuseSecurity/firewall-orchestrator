@@ -10,10 +10,20 @@
 su -
 apt-get install git sudo ansible
 ```
-if not already configured, add your current user to sudo group (make sure to activate this change by starting new shell or even rebooting):
+if not already configured, add your current user to sudo group (**_make sure to activate this change by rebooting_**):
 
 ```console
-usermod -a -G sudo `whoami`
+usermod -a -G sudo <user>
+```
+
+To check if the user is in the sudoers file, you can check with following command:
+```console
+grep sudo /etc/group
+```
+
+**_Exit to normal user with:_**
+```console
+exit
 ```
 
 Also make sure your packages are up to date before FWORCH installation using e.g.
@@ -24,7 +34,7 @@ possibly followed by a reboot.
 
 2) Getting Firewall Orchestrator
 
-with the following command (as normal user)
+with the following command:
 
 ```console
 git clone https://github.com/CactuseSecurity/firewall-orchestrator.git

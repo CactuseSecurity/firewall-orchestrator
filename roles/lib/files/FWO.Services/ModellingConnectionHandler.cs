@@ -1085,18 +1085,6 @@ namespace FWO.Services
                 }
                 if(noCheck || CheckConn())
                 {
-                    if(!SrcReadOnly)
-                    {
-                        SyncSrcChanges();
-                    }
-                    if(!DstReadOnly)
-                    {
-                        SyncDstChanges();
-                    }
-                    if(!SvcReadOnly)
-                    {
-                        SyncSvcChanges();
-                    }
                     ActConn.SyncState(DummyAppRole.Id);
                     if(AddMode)
                     {
@@ -1292,24 +1280,23 @@ namespace FWO.Services
                         $"New {(ActConn.IsInterface? "Interface" : "Connection")}: {ActConn.Name}", AppId);
                     if(ActConn.UsedInterfaceId == null || ActConn.DstFromInterface)
                     {
-                        await AddNwObjects(ModellingAppServerWrapper.Resolve(ActConn.SourceAppServers).ToList(), 
-                            ModellingAppRoleWrapper.Resolve(ActConn.SourceAppRoles).ToList(),
-                            ModellingNetworkAreaWrapper.Resolve(ActConn.SourceAreas).ToList(),
-                            ModellingNwGroupWrapper.Resolve(ActConn.SourceOtherGroups).ToList(),
-                            ModellingTypes.ConnectionField.Source);
+                        await AddNwObjects(SrcAppServerToAdd,
+                                            SrcAppRolesToAdd,
+                                            SrcAreasToAdd,
+                                            SrcNwGroupsToAdd,
+                                            ModellingTypes.ConnectionField.Source);
                     }
                     if(ActConn.UsedInterfaceId == null || ActConn.SrcFromInterface)
                     {
-                        await AddNwObjects(ModellingAppServerWrapper.Resolve(ActConn.DestinationAppServers).ToList(),
-                            ModellingAppRoleWrapper.Resolve(ActConn.DestinationAppRoles).ToList(),
-                            ModellingNetworkAreaWrapper.Resolve(ActConn.DestinationAreas).ToList(),
-                            ModellingNwGroupWrapper.Resolve(ActConn.DestinationOtherGroups).ToList(),
-                            ModellingTypes.ConnectionField.Destination); 
+                        await AddNwObjects(DstAppServerToAdd,
+                                            DstAppRolesToAdd,
+                                            DstAreasToAdd,
+                                            DstNwGroupsToAdd,
+                                            ModellingTypes.ConnectionField.Destination);
                     }
                     if(ActConn.UsedInterfaceId == null)
                     {
-                        await AddSvcObjects(ModellingServiceWrapper.Resolve(ActConn.Services).ToList(),
-                            ModellingServiceGroupWrapper.Resolve(ActConn.ServiceGroups).ToList());          
+                        await AddSvcObjects(SvcToAdd, SvcGrpToAdd);         
                     }
                     ActConn.Creator = userConfig.User.Name;
                     ActConn.CreationDate = DateTime.Now;

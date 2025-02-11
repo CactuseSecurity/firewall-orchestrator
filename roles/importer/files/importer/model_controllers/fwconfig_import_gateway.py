@@ -29,6 +29,7 @@ class FwConfigImportGateway(FwConfigImportBase):
         # previousRulebaseUids = []
         # currentRulebaseUids = []
 
+
         for gw in self.NormalizedConfig.gateways:
             # check interface changes
             # check routing changes

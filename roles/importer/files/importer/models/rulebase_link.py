@@ -24,7 +24,7 @@ class RulebaseLinkUidBased(BaseModel, ImportState):
 class RulebaseLink(BaseModel):
     id: Optional[int] = None    # will be created during db import
     gw_id: int
-    from_rule_id: Optional[int] = None
+    from_rule_id: Optional[int] = None  # null for initial rulebase
     to_rulebase_id: int
     link_type: int = 0
     created: int

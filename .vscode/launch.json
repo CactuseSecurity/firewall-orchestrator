@@ -1,5 +1,14 @@
 {
     "version": "0.2.0",
+    "compounds": [
+        {
+            "name": "Launch MW and UI",
+            "configurations": [
+                "c#-MiddlewareServer",
+                "c#-Blazor UI"
+            ]
+        }
+    ],
     "configurations": [
         {
             "name": ".NET Core SSH Attach ubu20",
@@ -8,7 +17,11 @@
             "processId": "${command:pickRemoteProcess}",
             "pipeTransport": {
                 "pipeProgram": "ssh",
-                "pipeArgs": [ "-T", "-p 22006", "tim@localhost" ],
+                "pipeArgs": [
+                    "-T",
+                    "-p 22006",
+                    "tim@localhost"
+                ],
                 "debuggerPath": "~/vsdbg-root/vsdbg",
                 "pipeCwd": "${workspaceRoot}",
                 "quoteArgs": true
@@ -17,7 +30,7 @@
                 "/home/tim/firewall-orchestrator/roles": "${workspaceRoot}"
             },
             "logging": {
-              "logging.diagnosticsLog.protocolMessages": true
+                "logging.diagnosticsLog.protocolMessages": true
             }
         },
         {

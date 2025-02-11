@@ -401,7 +401,7 @@ class FwConfigImportRule(FwConfigImportBase):
             logger.exception(f"failed to write new rules: {str(traceback.format_exc())}")
             return 1, 0, newRulebaseIds
         
-        self.ImportDetails.SetRulebaseMap() # update the rulebase map
+        # TODO: need to update the RulebaseMap here?!
 
         upsertRulebaseWithRules = """mutation upsertRulebaseWithRules($rulebases: [rulebase_insert_input!]!) {
                 insert_rulebase(

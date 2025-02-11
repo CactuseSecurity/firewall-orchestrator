@@ -188,15 +188,53 @@ namespace FWO.Report
             }
             return [];
         }
+        public static Rule[] GetAllRulesOfGateway(DeviceReport deviceReport, ManagementReport managementReport)
+        {
+            int? initialRulebaseId = deviceReport.GetInitialRulebaseId(managementReport);
+            if (initialRulebaseId != null)
+            {
+                List<Rule> initialRules = GetRulesByRulebaseId((int)initialRulebaseId, managementReport).ToList();
+                if (initialRules != null)
+                {
+                    return GetAllRulesOfGatewayRecursively(deviceReport, managementReport, [], initialRules).ToArray();
+                }
+            }
+            return [];
+        }
 
-        public static int GetRuleCount (ManagementReport mgmReport, RulebaseLink? currentRbLink, RulebaseLink[] rulebaseLinks) {
+        public static List<Rule> GetAllRulesOfGatewayRecursively(DeviceReport deviceReport, ManagementReport managementReport, List<Rule> rulesSoFar, List<Rule> newRules)
+        {
+            if (newRules == null)
+            {
+                return rulesSoFar;
+            }
+            List<Rule> allRules = new(rulesSoFar);
+            foreach (Rule rule in newRules)
+            {
+                allRules.Add(rule);
+                RulebaseLink? nextRbLink = deviceReport.RulebaseLinks.FirstOrDefault(_ => _.FromRuleId == rule.Id);
+                if (nextRbLink != null)
+                {
+                    List<Rule> subRules = GetRulesByRulebaseId(nextRbLink.NextRulebaseId, managementReport).ToList();
+                    if (subRules != null && subRules.Count > 0)
+                    {
+                        allRules.AddRange(GetAllRulesOfGatewayRecursively(deviceReport, managementReport, allRules, subRules));
+                    }
+                }
+            }
+            return allRules;
+        }
+
+
+        public static int GetRuleCount(ManagementReport mgmReport, RulebaseLink? currentRbLink, RulebaseLink[] rulebaseLinks)
+        {
             if (currentRbLink != null)
             {
                 int ruleCount = 0;
                 if (currentRbLink != null)
                 {
                     int nextRulebaseId = currentRbLink.NextRulebaseId;
-                    RulebaseReport? nextRulebase = mgmReport.Rulebases.FirstOrDefault( _ => _.Id == nextRulebaseId);
+                    RulebaseReport? nextRulebase = mgmReport.Rulebases.FirstOrDefault(_ => _.Id == nextRulebaseId);
                     if (nextRulebase != null)
                     {
                         foreach (var rule in nextRulebase.Rules)
@@ -233,7 +271,7 @@ namespace FWO.Report
                 foreach (var device in managementReport.Devices.Where(dev => dev.ContainsRules()))
                 {
                     deviceCounter++;
-                    ruleCounter += GetRuleCount(managementReport, device.RulebaseLinks.FirstOrDefault( _ => _.IsInitialRulebase()), device.RulebaseLinks);
+                    ruleCounter += GetRuleCount(managementReport, device.RulebaseLinks.FirstOrDefault(_ => _.IsInitialRulebase()), device.RulebaseLinks);
                 }
             }
             return $"{managementCounter} {userConfig.GetText("managements")}, {deviceCounter} {userConfig.GetText("gateways")}, {ruleCounter} {userConfig.GetText("rules")}";

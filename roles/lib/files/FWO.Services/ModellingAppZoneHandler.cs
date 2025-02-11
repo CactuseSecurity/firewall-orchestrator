@@ -46,6 +46,7 @@ namespace FWO.Services
                 if (removedAppServers.Count > 0)
                 {
                     appZone.AppServersRemoved = removedAppServers;
+                    appZone.AppServers.RemoveAll(_ => removedAppServers.Contains(_));
                 }
 
                 List<ModellingAppServerWrapper>? newAppServers = FindNewAppServers(appZone, allAppServers);
@@ -53,10 +54,8 @@ namespace FWO.Services
                 if (newAppServers.Count > 0)
                 {
                     appZone.AppServersNew = newAppServers;
+                    appZone.AppServers.AddRange(newAppServers);
                 }
-
-                appZone.AppServers.RemoveAll(_ => removedAppServers.Contains(_));
-                appZone.AppServers.AddRange(newAppServers);
             }
 
             if (diffAppServers is not null)
@@ -66,6 +65,7 @@ namespace FWO.Services
                 if (removedAppServers.Count > 0)
                 {
                     appZone.AppServersRemoved = removedAppServers;
+                    appZone.AppServers.RemoveAll(_ => removedAppServers.Contains(_));
                 }
 
                 List<ModellingAppServerWrapper>? newAppServers = FindNewAppServers(new ModellingAppZone() { AppServers = diffAppServers }, appZone.AppServers);
@@ -73,10 +73,8 @@ namespace FWO.Services
                 if (newAppServers.Count > 0)
                 {
                     appZone.AppServersNew = newAppServers;
+                    appZone.AppServers.AddRange(newAppServers);
                 }
-
-                appZone.AppServers.RemoveAll(_ => removedAppServers.Contains(_));
-                appZone.AppServers.AddRange(newAppServers);
             }
 
             return appZone;

@@ -149,7 +149,7 @@
     }
 }
 
-<PopUp Title="@(userConfig.GetText("check_impltasks"))" Show="@DisplayInfo" Size=PopupSize.Large OnClose="() => DisplayInfo = false">
+<PopUp Title="@(userConfig.GetText("check_impltasks"))" Show="@DisplayInfo" Size=PopupSize.CustomLarge OnClose="() => DisplayInfo = false">
     <Body>
         @if (DisplayInfo)
         {

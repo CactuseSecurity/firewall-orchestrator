@@ -13,7 +13,7 @@
 @inject UserConfig userConfig
 
 
-<PopUp Title="@(userConfig.GetText("request") + ": " + WfHandler.ActTicket.Title)" Show="@WfHandler.DisplayTicketMode" Size=PopupSize.XLarge OnClose="async () => await Close()">
+<PopUp Title="@(userConfig.GetText("request") + ": " + WfHandler.ActTicket.Title)" Show="@WfHandler.DisplayTicketMode" Size=PopupSize.CustomXLarge OnClose="async () => await Close()">
     <Body>
         @if (WfHandler.DisplayTicketMode)
         {

@@ -8,7 +8,7 @@
 @inject UserConfig userConfig
 
 
-<PopUp Title="@(userConfig.GetText("delete"))" Show="@Display" Size=PopupSize.Small OnClose="async () => await Close()">
+<PopUp Title="@(userConfig.GetText("delete"))" Show="@Display" Size=PopupSize.CustomSmall OnClose="async () => await Close()">
     <Body>
         @if (Display)
         {
@@ -19,7 +19,7 @@
         <div class="btn-group">
             <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Requester}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.FwAdmin}")">
                 <Authorized>
-                    <button type="button" class="btn btn-sm btn-danger" @onclick:preventDefault @onclick="async () => { await Delete(); await Close();}">@(userConfig.GetText("delete"))</button>
+                    <button type="button" class="btn btn-sm btn-danger" @onclick:preventDefault @onclick="Perform">@(userConfig.GetText("delete"))</button>
                 </Authorized>
                 <NotAuthorized>
                     <button type="button" class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("delete"))</button>
@@ -29,6 +29,7 @@
         </div>
     </Footer>
 </PopUp>
+<InProgress Display="workInProgress" />
 
 
 @code
@@ -51,9 +52,19 @@
     [Parameter]
     public string ObjectName { get; set; } = "";
 
+    private bool workInProgress = false;
+
+
+    private async Task Perform()
+    {
+        workInProgress = true;
+        await Delete();
+        await Close();
+    }
 
     private async Task Close()
     {
+        workInProgress = false;
         Display = false;
         await ResetParent();
     }

@@ -8,7 +8,7 @@
 @inject UserConfig userConfig
 
 
-<PopUp Title="@(userConfig.GetText("add_comment") + ": " + ObjectName)" Show="@Display" Size=PopupSize.Small OnClose="async () => await Close()">
+<PopUp Title="@(userConfig.GetText("add_comment") + ": " + ObjectName)" Show="@Display" Size=PopupSize.CustomSmall OnClose="async () => await Close()">
     <Body>
         @if (Display)
         {

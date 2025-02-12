@@ -36,7 +36,7 @@ CREATE OR REPLACE VIEW v_rule_with_rule_owner AS
 	SELECT r.rule_id, ow.id as owner_id, ow.name as owner_name, 'rule' AS matches,
 		ow.recert_interval, met.rule_last_certified, met.rule_last_certifier
 	FROM v_active_access_allow_rules r
-	LEFT JOIN rule_metadata met ON (r.rule_uid=met.rule_uid AND r.dev_id=met.dev_id)
+	LEFT JOIN rule_metadata met ON (r.rule_uid=met.rule_uid)
 	LEFT JOIN rule_owner ro ON (ro.rule_metadata_id=met.rule_metadata_id)
 	LEFT JOIN owner ow ON (ro.owner_id=ow.id)
 	WHERE NOT ow.id IS NULL
@@ -89,7 +89,7 @@ CREATE OR REPLACE VIEW v_rule_with_src_owner AS
 	LEFT JOIN object o ON (of.objgrp_flat_member_id=o.obj_id)
 	LEFT JOIN owner_network onw ON (onw.ip_end >= o.obj_ip AND onw.ip <= o.obj_ip_end)
 	LEFT JOIN owner ow ON (onw.owner_id=ow.id)
-	LEFT JOIN rule_metadata met ON (r.rule_uid=met.rule_uid AND r.dev_id=met.dev_id)
+	LEFT JOIN rule_metadata met ON (r.rule_uid=met.rule_uid)
 	WHERE r.rule_id NOT IN (SELECT distinct rwo.rule_id FROM v_rule_with_rule_owner rwo) AND
 	CASE
 		when (select mode from v_rule_ownership_mode) = 'exclusive' then (NOT o.obj_ip IS NULL) AND o.obj_ip NOT IN (select * from v_excluded_src_ips)
@@ -121,7 +121,7 @@ CREATE OR REPLACE VIEW v_rule_with_dst_owner AS
 	LEFT JOIN object o ON (of.objgrp_flat_member_id=o.obj_id)
 	LEFT JOIN owner_network onw ON (onw.ip_end >= o.obj_ip AND onw.ip <= o.obj_ip_end)
 	LEFT JOIN owner ow ON (onw.owner_id=ow.id)
-	LEFT JOIN rule_metadata met ON (r.rule_uid=met.rule_uid AND r.dev_id=met.dev_id)
+	LEFT JOIN rule_metadata met ON (r.rule_uid=met.rule_uid)
 	WHERE r.rule_id NOT IN (SELECT distinct rwo.rule_id FROM v_rule_with_rule_owner rwo) AND
 	CASE
 		when (select mode from v_rule_ownership_mode) = 'exclusive' then (NOT o.obj_ip IS NULL) AND o.obj_ip NOT IN (select * from v_excluded_dst_ips)

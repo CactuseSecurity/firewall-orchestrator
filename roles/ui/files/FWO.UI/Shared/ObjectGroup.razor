@@ -439,13 +439,11 @@
                                 }, mgt.Id, false);
                             break;
 
-                        case Rule rule:
+                        @* case Rule rule:
                             await FetchObjects(Tab, objCategory,
                                 managementsUpdate =>
                                 {
-                                    Rule? ruleUpdated = managementsUpdate.ManagementData.SelectMany(
-                                        m => m.Devices).SelectMany(
-                                            d => d.RbLink.NextRulebase.Rules.Length>0? d.RbLink.NextRulebase.Rules ?? new Rule[0]: []).FirstOrDefault();
+                                    Rule? ruleUpdated = managementsUpdate.ManagementData.SelectMany(m => m.Devices).FirstOrDefault();  // TODO: fix this later!
                                     if (ruleUpdated != null)
                                     {
                                         ruleUpdated.RulebaseName = rule.RulebaseName;
@@ -453,7 +451,7 @@
                                     }
                                     AnchorNavToRSB?.ScrollToFragment();
                                     return InvokeAsync(StateHasChanged);
-                                 }, rule.Id, !string.IsNullOrEmpty(rule.NatData?.TranslatedSource));
+                                 }, rule.Id, !string.IsNullOrEmpty(rule.NatData?.TranslatedSource)); *@
                             break;
                     }
                 }

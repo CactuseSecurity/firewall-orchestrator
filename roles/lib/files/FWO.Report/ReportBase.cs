@@ -128,23 +128,6 @@ namespace FWO.Report
 
         public abstract string SetDescription();
 
-        // public abstract int GetRuleCount(RulebaseLink rbLink);
-
-        public int GetRuleCount (RulebaseLink? rbLink) {
-            if (rbLink != null)
-            {
-                foreach (var rule in rbLink.NextRulebase.Rules)
-                {
-                    if (string.IsNullOrEmpty(rule.SectionHeader))
-                    {
-                        return 1 + GetRuleCount(rule.NextRulebase);
-                    }
-                }
-                return rbLink.NextRulebase.Rules.Length;
-            }
-            return 0;
-        }
-
         public static ReportBase ConstructReport(ReportTemplate reportFilter, UserConfig userConfig)
         {
             DynGraphqlQuery query = Compiler.Compile(reportFilter);
@@ -262,7 +245,7 @@ namespace FWO.Report
                 ExecutablePath = isGitHubActions? "/usr/bin/chromium-browser" : brw.GetExecutablePath(),
                 Headless = true,
                 Args = isGitHubActions?
-                    new[] { "--no-sandbox", "--database=/tmp", "--disable-setuid-sandbox" }
+                    ["--no-sandbox", "--database=/tmp", "--disable-setuid-sandbox"]
                     : new string[0] // No additional arguments locally
             });
 

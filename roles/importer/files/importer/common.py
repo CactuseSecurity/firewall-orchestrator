@@ -23,7 +23,8 @@ from fwconfig_base import calcManagerUidHash
 from model_controllers.fwconfig_import import FwConfigImport
 from model_controllers.gateway_controller import GatewayController
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
-
+from model_controllers.check_consistency import FwConfigImportCheckConsistency
+from model_controllers.rollback import FwConfigImportRollback
 
 """  
     import_management: import a single management (if no import for it is running)
@@ -126,7 +127,8 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
                         # if len(config)>0:
                             if importState.ImportVersion>8:
                                 configImporter = FwConfigImport(importState, config)
-                                if len(configImporter.checkConfigConsistency())==0:
+                                configChecker = FwConfigImportCheckConsistency(configImporter)
+                                if len(configChecker.checkConfigConsistency())==0:
                                     try:
                                         configImporter.importConfig()
                                     except:
@@ -134,7 +136,7 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
                                         importState.increaseErrorCounterByOne()
                                     if importState.ErrorCount>0:
                                         importState.increaseErrorCounter(fwo_api.complete_import(importState))
-                                        configImporter.rollbackCurrentImport()
+                                        FwConfigImportRollback(configImporter).rollbackCurrentImport()
                                     else:
                                         configImporter.storeConfigToApi() # to file (for debugging) and to database
                             else:

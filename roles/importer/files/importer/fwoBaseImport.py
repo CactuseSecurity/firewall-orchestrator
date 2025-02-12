@@ -306,6 +306,8 @@ class ImportState(FwoApi):
     # limited to the current mgm_id
     # creats a dict with key = rulebase.name and value = rulebase.id
     def SetRulebaseMap(self):
+
+        # TODO: maps need to be updated directly after data changes
         query = """query getRulebaseMap($mgmId: Int) { rulebase(where:{mgm_id: {_eq: $mgmId}, removed:{_is_null:true }}) { id name uid } }"""
         try:
             result = self.call(query=query, queryVariables= {"mgmId": self.MgmDetails.Id})
@@ -331,7 +333,7 @@ class ImportState(FwoApi):
             result = self.call(query=query, queryVariables= {"mgmId": self.MgmDetails.Id})
         except:
             logger = getFwoLogger()
-            logger.error(f'Error while getting rulebases')
+            logger.error(f'Error while getting rules')
             self.RuleMap = {}
             return
         

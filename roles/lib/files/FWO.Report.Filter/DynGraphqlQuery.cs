@@ -39,64 +39,6 @@ namespace FWO.Report.Filter
         public const string dateFormat = "yyyy-MM-dd";
         public const int layerRecursionLevel = 2;
 
-
-        private static string BuildRulesQuery(ReportTemplate filter, string paramString, string mgmtWhereString, string devWhereString, string limitOffsetString, string rulesWhereStatement, int recursionLevel = 5)
-        {
-            string startQuery = $@"
-                {( filter.Detailed ? RuleQueries.ruleDetailsForReportFragments : RuleQueries.ruleOverviewFragments )}
-                query rulesReport ({paramString}) 
-                {{ 
-                    management({mgmtWhereString}) 
-                    {{
-                        id: mgm_id
-                        uid: mgm_uid
-                        name: mgm_name
-                        devices ({devWhereString}) 
-                        {{
-                            name: dev_name
-                            id: dev_id
-                            uid: dev_uid
-                            rulebase_links (where: {{link_type: {{_eq: 0}} }}) {{
-                                rulebase {{
-                                    ...rulebaseOverview
-                                    rules({limitOffsetString} 
-                        where: {{ access_rule: {{_eq: true}} {rulesWhereStatement} }} 
-                        order_by: {{ rule_num_numeric: asc }} ) {{
-                                    ...ruleOverview
-            ";
-
-            string closing = $@"
-                                    }}
-                                }}                               
-                            }}
-                        }}
-                    }}
-                }}
-            ";
-
-            string extraLevel = $@"
-                rulebase_links {{
-                rulebase {{
-                    ...rulebaseOverview
-                    rules( 
-                        {limitOffsetString} 
-                        where: {{ access_rule: {{_eq: true}} {rulesWhereStatement} }} 
-                        order_by: {{ rule_num_numeric: asc }} ) {{
-                        ...ruleOverview
-            ";
-
-            string layers = "";
-            for (int i = 0; i < recursionLevel; i++)
-            {
-                layers += extraLevel;
-            }
-            for (int i = 0; i < recursionLevel; i++)
-            {
-                layers += $@"}} }} }}";    // add all layer closing brackets
-            }
-            return Queries.compact($@"{startQuery} {layers} {closing}");
-        }
-
         public static DynGraphqlQuery GenerateQuery(ReportTemplate filter, AstNode? ast)
         {
             DynGraphqlQuery query = new(filter.Filter);
@@ -170,8 +112,44 @@ namespace FWO.Report.Filter
                 case ReportType.ResolvedRulesTech:
                 case ReportType.UnusedRules:
                 case ReportType.AppRules:
-                    query.FullQuery = BuildRulesQuery(filter, paramString, mgmtWhereString, devWhereString, limitOffsetString, query.RuleWhereStatement, recursionLevel: layerRecursionLevel);
-                    break;
+                    query.FullQuery = Queries.compact($@"
+                {( filter.Detailed ? RuleQueries.ruleDetailsForReportFragments : RuleQueries.ruleOverviewFragments )}
+                query rulesReport ({paramString}) 
+                {{ 
+                    management({mgmtWhereString}) 
+                    {{
+                        id: mgm_id
+                        uid: mgm_uid
+                        name: mgm_name
+                        devices ({devWhereString}) 
+                        {{
+                            name: dev_name
+                            id: dev_id
+                            uid: dev_uid
+                            rulebase_links {{
+                                linkType: stm_link_type  {{
+                                    name
+                                    id
+                                }}
+                                link_type
+                                gw_id
+                                from_rule_id
+                                to_rulebase_id
+                                created
+                                removed
+                            }}
+                        }}
+                        rulebases {{
+                            name
+                            uid
+                            id
+                            rules ({limitOffsetString} where: {{access_rule: {{_eq: true}} }}, order_by: {{rule_num_numeric: asc}}) {{
+                                ...ruleOverview
+                            }}
+                        }}
+                    }}
+                }}");
+                break;
 
                 case ReportType.Recertification:
                     query.FullQuery = Queries.compact($@"
@@ -320,7 +298,6 @@ namespace FWO.Report.Filter
             //     queryVars += $"\"{k}\": {o.ToString()}, ";
             // }
             // Log.WriteDebug("Filter", $"Variables = {queryVars}");
-
 
             return query;
         }

@@ -179,15 +179,17 @@ namespace FWO.DeviceAutoDiscovery
                         DeviceType = new DeviceType { Id = 9 } // CheckPoint GW
                     };
                     devices.Add(dev);
-                     // pre v9 discovered devices might not have a UID, so setting it here
-                    int? gwId = await GetIdOfGateway(dev);
-                    if (gwId != null) 
-                    {
-                        // update UID in existing gateway; typically triggered in daily scheduler
-                        // this update happens only once when AutoDiscovery v9.0 is run for the first time
-                        var vars = new { id = gwId, uid = dev.Uid };
-                        await apiConnection.SendQueryAsync<ReturnId>(DeviceQueries.updateGatewayUid, vars);
-                    }
+                    // pre v9 discovered devices might not have a UID, so setting it here
+
+                    // the following does not work for managements whose devices have not been discovered yet
+                    // int? gwId = await GetIdOfGateway(dev);
+                    // if (gwId != null) 
+                    // {
+                    //     // update UID in existing gateway; typically triggered in daily scheduler
+                    //     // this update happens only once when AutoDiscovery v9.0 is run for the first time
+                    //     var vars = new { id = gwId, uid = dev.Uid };
+                    //     await apiConnection.SendQueryAsync<ReturnId>(DeviceQueries.updateGatewayUid, vars);
+                    // }
 
                 }
             }
@@ -198,7 +200,7 @@ namespace FWO.DeviceAutoDiscovery
         {
             // Device knownGateway = Management.FirstOrDefault(d => d.Name == dev.Name);
             var vars = new { gwName = dev.Name, mgmUid = superManagement.Uid };
-            int? gwId = (await apiConnection.SendQueryAsync<List<Device>>(DeviceQueries.getGatewayId, vars))[0]?.Id;
+            int? gwId = (await apiConnection.SendQueryAsync<List<Device>>(DeviceQueries.getGatewayId, vars))?[0]?.Id;
             if (gwId == null)
             {
                 Log.WriteDebug("Autodiscovery", $"Did not find gateway {dev.Name} in device list - could not set UID");

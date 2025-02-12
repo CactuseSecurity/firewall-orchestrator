@@ -1,3 +1,7 @@
+-- next steps:
+   -- 1) add rule_to, rule_from, rule_service to importer
+   -- 2) in UI also show more rulebases (not just initial one)
+
 --- pre 9.0 changes (old import)
 
 DROP TRIGGER IF EXISTS gw_route_add ON gw_route CASCADE;
@@ -184,7 +188,6 @@ RETURNS NUMERIC AS $$
   LIMIT 1;
 $$ LANGUAGE sql;
 
-
 ALTER table "svcgrp_flat" ALTER COLUMN "svcgrp_flat_id" TYPE BIGINT;
 ALTER table "svcgrp_flat" ALTER COLUMN "svcgrp_flat_member_id" TYPE BIGINT;
 ALTER table "svcgrp_flat" ALTER COLUMN "import_created" TYPE BIGINT;
@@ -194,17 +197,119 @@ alter table "rule" add column if not exists "rulebase_id" Integer; -- NOT NULL;
 ALTER TABLE "rule" DROP CONSTRAINT IF EXISTS "fk_rule_rulebase_id" CASCADE;
 ALTER TABLE "rule" ADD CONSTRAINT fk_rule_rulebase_id FOREIGN KEY ("rulebase_id") REFERENCES "rulebase" ("id") ON UPDATE RESTRICT ON DELETE CASCADE;
 
-Alter table "rule" drop constraint IF EXISTS "rule_metadata_dev_id_rule_uid_f_key";
-Alter Table "rule_metadata" DROP Constraint IF EXISTS "rule_metadata_alt_key";
-
-Alter Table "rule_metadata" ADD Constraint "rule_metadata_alt_key" UNIQUE ("rule_uid", "dev_id", "rulebase_id");
-
+-- Alter Table "rule_metadata" ADD Constraint "rule_metadata_alt_key" UNIQUE ("rule_uid", "dev_id", "rulebase_id");
 -- TODO: this needs to analysed (as dev_id will be removed from rule):
 -- Alter table "rule" add constraint "rule_metadata_dev_id_rule_uid_f_key"
 --   foreign key ("dev_id", "rule_uid", "rulebase_id") references "rule_metadata" ("dev_id", "rule_uid", "rulebase_id") on update restrict on delete cascade;
 
--- decision?!: the rule_metadata always refers to the a rule(_uid) on a specific gateway
---   that means recertifications, last hit info, owner, ... are all linked to a gateway
+-- Create table IF NOT EXISTS "rule_hit" 
+-- (
+--     "rule_id" BIGINT NOT NULL,
+--     "rule_uid" VARCHAR NOT NULL,
+--     "gw_id" INTEGER NOT NULL,
+--     "metadata_id" BIGINT NOT NULL,
+-- 	"rule_first_hit" Timestamp,
+-- 	"rule_last_hit" Timestamp,
+-- 	"rule_hit_counter" BIGINT
+-- );
+-- Alter table "rule_hit" DROP CONSTRAINT IF EXISTS fk_rule_hit_rule_id;
+-- Alter table "rule_hit" DROP CONSTRAINT IF EXISTS fk_hit_gw_id;
+-- Alter table "rule_hit" DROP CONSTRAINT IF EXISTS fk_hit_metadata_id;
+-- Alter table "rule_hit" add CONSTRAINT fk_hit_rule_id foreign key ("rule_id") references "rule" ("rule_id") on update restrict on delete cascade; 
+-- Alter table "rule_hit" add CONSTRAINT fk_hit_gw_id foreign key ("gw_id") references "device" ("dev_id") on update restrict on delete cascade; 
+-- Alter table "rule_hit" add CONSTRAINT fk_hit_metadata_id foreign key ("metadata_id") references "rule_metadata" ("dev_id") on update restrict on delete cascade; 
+
+-----------------------------------------------
+-- METADATA part
+-- we are removing dev_id and rulebase_id from rule_metadata
+-- even CP API does not provide this information regarding hits (the target parameter is ignored, so hits are returned per rule not per rule per gw)
+
+Alter table "rule" drop constraint IF EXISTS "rule_metadata_dev_id_rule_uid_f_key";
+Alter Table "rule_metadata" drop Constraint IF EXISTS "rule_metadata_alt_key";
+ALTER TABLE rule_metadata DROP Constraint IF EXISTS "rule_metadata_rule_uid_unique";
+ALTER TABLE rule_metadata ADD Constraint "rule_metadata_rule_uid_unique" unique ("rule_uid");
+
+Alter table "rule" DROP constraint IF EXISTS "rule_rule_metadata_rule_uid_f_key";
+Alter table "rule" add constraint "rule_rule_metadata_rule_uid_f_key"
+  foreign key ("rule_uid") references "rule_metadata" ("rule_uid") on update restrict on delete cascade;
+
+CREATE OR REPLACE VIEW v_rule_with_rule_owner AS
+	SELECT r.rule_id, ow.id as owner_id, ow.name as owner_name, 'rule' AS matches,
+		ow.recert_interval, met.rule_last_certified, met.rule_last_certifier
+	FROM v_active_access_allow_rules r
+	LEFT JOIN rule_metadata met ON (r.rule_uid=met.rule_uid)
+	LEFT JOIN rule_owner ro ON (ro.rule_metadata_id=met.rule_metadata_id)
+	LEFT JOIN owner ow ON (ro.owner_id=ow.id)
+	WHERE NOT ow.id IS NULL
+	GROUP BY r.rule_id, ow.id, ow.name, met.rule_last_certified, met.rule_last_certifier;
+
+CREATE OR REPLACE VIEW v_rule_with_src_owner AS 
+	SELECT
+		r.rule_id, ow.id as owner_id, ow.name as owner_name, 
+		CASE
+			WHEN onw.ip = onw.ip_end
+			THEN SPLIT_PART(CAST(onw.ip AS VARCHAR), '/', 1) -- Single IP overlap, removing netmask
+			ELSE
+				CASE WHEN	-- range is a single network
+					host(broadcast(inet_merge(onw.ip, onw.ip_end))) = host (onw.ip_end) AND
+					host(inet_merge(onw.ip, onw.ip_end)) = host (onw.ip)
+				THEN
+					text(inet_merge(onw.ip, onw.ip_end))
+				ELSE
+					CONCAT(SPLIT_PART(onw.ip::VARCHAR,'/', 1), '-', SPLIT_PART(onw.ip_end::VARCHAR, '/', 1))
+				END
+		END AS matching_ip,
+		'source' AS match_in,
+		ow.recert_interval, met.rule_last_certified, met.rule_last_certifier
+	FROM v_active_access_allow_rules r
+	LEFT JOIN rule_from ON (r.rule_id=rule_from.rule_id)
+	LEFT JOIN objgrp_flat of ON (rule_from.obj_id=of.objgrp_flat_id)
+	LEFT JOIN object o ON (of.objgrp_flat_member_id=o.obj_id)
+	LEFT JOIN owner_network onw ON (onw.ip_end >= o.obj_ip AND onw.ip <= o.obj_ip_end)
+	LEFT JOIN owner ow ON (onw.owner_id=ow.id)
+	LEFT JOIN rule_metadata met ON (r.rule_uid=met.rule_uid)
+	WHERE r.rule_id NOT IN (SELECT distinct rwo.rule_id FROM v_rule_with_rule_owner rwo) AND
+	CASE
+		when (select mode from v_rule_ownership_mode) = 'exclusive' then (NOT o.obj_ip IS NULL) AND o.obj_ip NOT IN (select * from v_excluded_src_ips)
+		else NOT o.obj_ip IS NULL
+	END
+	GROUP BY r.rule_id, o.obj_ip, o.obj_ip_end, onw.ip, onw.ip_end, ow.id, ow.name, met.rule_last_certified, met.rule_last_certifier;
+
+CREATE OR REPLACE VIEW v_rule_with_dst_owner AS 
+	SELECT 
+		r.rule_id, ow.id as owner_id, ow.name as owner_name, 
+		CASE
+			WHEN onw.ip = onw.ip_end
+			THEN SPLIT_PART(CAST(onw.ip AS VARCHAR), '/', 1) -- Single IP overlap, removing netmask
+			ELSE
+				CASE WHEN	-- range is a single network
+					host(broadcast(inet_merge(onw.ip, onw.ip_end))) = host (onw.ip_end) AND
+					host(inet_merge(onw.ip, onw.ip_end)) = host (onw.ip)
+				THEN
+					text(inet_merge(onw.ip, onw.ip_end))
+				ELSE
+					CONCAT(SPLIT_PART(onw.ip::VARCHAR,'/', 1), '-', SPLIT_PART(onw.ip_end::VARCHAR, '/', 1))
+				END
+		END AS matching_ip,
+		'destination' AS match_in,
+		ow.recert_interval, met.rule_last_certified, met.rule_last_certifier
+	FROM v_active_access_allow_rules r
+	LEFT JOIN rule_to rt ON (r.rule_id=rt.rule_id)
+	LEFT JOIN objgrp_flat of ON (rt.obj_id=of.objgrp_flat_id)
+	LEFT JOIN object o ON (of.objgrp_flat_member_id=o.obj_id)
+	LEFT JOIN owner_network onw ON (onw.ip_end >= o.obj_ip AND onw.ip <= o.obj_ip_end)
+	LEFT JOIN owner ow ON (onw.owner_id=ow.id)
+	LEFT JOIN rule_metadata met ON (r.rule_uid=met.rule_uid)
+	WHERE r.rule_id NOT IN (SELECT distinct rwo.rule_id FROM v_rule_with_rule_owner rwo) AND
+	CASE
+		when (select mode from v_rule_ownership_mode) = 'exclusive' then (NOT o.obj_ip IS NULL) AND o.obj_ip NOT IN (select * from v_excluded_dst_ips)
+		else NOT o.obj_ip IS NULL
+	END
+	GROUP BY r.rule_id, o.obj_ip, o.obj_ip_end, onw.ip, onw.ip_end, ow.id, ow.name, met.rule_last_certified, met.rule_last_certifier;
+
+
+ALTER TABLE rule_metadata DROP COLUMN IF EXISTS "rulebase_id";
+ALTER TABLE rule_metadata DROP COLUMN IF EXISTS "dev_id";
 
 -----------------------------------------------
 -- bulid rule-rulebase graph
@@ -220,7 +325,6 @@ Create table IF NOT EXISTS "rulebase_link"
 (
 	"id" SERIAL primary key,
 	"gw_id" Integer,
-	-- "from_rulebase_id" Integer NOT NULL,
 	"from_rule_id" Integer,
 	"to_rulebase_id" Integer NOT NULL,
 	"link_type" Integer,
@@ -484,8 +588,7 @@ AS $function$
         -- danger zone: delete all rules that have no rulebase_id
         -- the deletion might take some time
         PERFORM deleteDuplicateRulebases();
-        PERFORM addMetadataRulebaseEntries();
-
+        -- PERFORM addMetadataRulebaseEntries(); -- this does not work as we just removed the dev_id column from rule_metadata
         -- add entries in rule_enforced_on_gateway
         PERFORM addRuleEnforcedOnGatewayEntries();
     END;
@@ -525,11 +628,11 @@ $function$;
 
 ALTER TABLE rule DROP CONSTRAINT IF EXISTS rule_dev_id_fkey;
 
-ALTER TABLE "rule_metadata" DROP CONSTRAINT IF EXISTS "rule_metadata_rulebase_id_f_key" CASCADE;
-Alter table "rule_metadata" add constraint "rule_metadata_rulebase_id_f_key"
-  foreign key ("rulebase_id") references "rulebase" ("id") on update restrict on delete cascade;
-ALTER TABLE "rule_metadata" DROP CONSTRAINT IF EXISTS "rule_metadata_alt_key" CASCADE;
-Alter Table "rule_metadata" add Constraint "rule_metadata_alt_key" UNIQUE ("rule_uid","dev_id","rulebase_id");
+-- ALTER TABLE "rule_metadata" DROP CONSTRAINT IF EXISTS "rule_metadata_rulebase_id_f_key" CASCADE;
+-- Alter table "rule_metadata" add constraint "rule_metadata_rulebase_id_f_key"
+--   foreign key ("rulebase_id") references "rulebase" ("id") on update restrict on delete cascade;
+-- ALTER TABLE "rule_metadata" DROP CONSTRAINT IF EXISTS "rule_metadata_alt_key" CASCADE;
+-- Alter Table "rule_metadata" add Constraint "rule_metadata_alt_key" UNIQUE ("rule_uid","dev_id","rulebase_id");
 
 -- reverse last_seen / removed logic for objects
 ALTER TABLE "object" ADD COLUMN IF NOT EXISTS "removed" BIGINT;

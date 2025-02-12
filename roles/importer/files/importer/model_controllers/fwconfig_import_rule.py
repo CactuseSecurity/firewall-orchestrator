@@ -3,6 +3,7 @@ from difflib import ndiff
 import json
 
 from models.rule import RuleForImport, RuleType
+from models.rule_metadatum import RuleMetadatum, RuleMetadatumForImport
 from roles.importer.files.importer.models.rulebase import Rulebase
 from models.rulebase import Rulebase, RulebaseForImport
 from fwoBaseImport import ImportState
@@ -10,6 +11,7 @@ from model_controllers.fwconfig_normalized_controller import FwConfigNormalized
 from model_controllers.fwconfig_import_base import FwConfigImportBase
 from fwo_log import getFwoLogger
 from typing import List
+from datetime import datetime
 
 # this class is used for importing a config into the FWO API
 class FwConfigImportRule(FwConfigImportBase):
@@ -88,6 +90,11 @@ class FwConfigImportRule(FwConfigImportBase):
         # transform rule from dict (key=uid) to list, also adding a data: layer
         for rb in newRulebases:
             rb.Rules = list(rb.Rules.values())
+
+        # update rule_metadata before adding rules
+        errorCountAdd, numberOfAddedRules, newRuleIds = self.addNewRuleMetadata(newRulebases)
+
+
         # now update the database
         errorCountAdd, numberOfAddedRules, newRuleIds = self.addNewRules(newRulebases)
         # if errorCountAdd>0:
@@ -307,6 +314,47 @@ class FwConfigImportRule(FwConfigImportBase):
                         db_index += 1  # Move to the next uid in the current_db_list
     """
 
+
+    # adds new rule_metadatum to the database
+    def addNewRuleMetadata(self, newRules: List[Rulebase]):
+        logger = getFwoLogger()
+        errors = 0
+        changes = 0
+        newRuleMetaDataIds = []
+        newRuleIds = []
+        
+        addNewRuleMetadataMutation = """mutation upsertRuleMetadata($ruleMetadata: [rule_metadata_insert_input!]!) {
+             insert_rule_metadata(objects: $ruleMetadata, on_conflict: {constraint: rule_metadata_rule_uid_unique, update_columns: [rule_last_modified]}) {
+                affected_rows
+                returning {
+                    rule_metadata_id
+                }
+            }
+        }
+        """
+
+        addNewRuleMetadata: List[RuleMetadatum] = self.PrepareNewRuleMetadata(newRules)
+        queryVariables = { 'ruleMetadata': addNewRuleMetadata }
+        
+        # queryVarJson = json.dumps(queryVariables)    # just for debugging purposes, remove in prod
+
+        try:
+            import_result = self.ImportDetails.call(addNewRuleMetadataMutation, queryVariables=queryVariables)
+            if 'errors' in import_result:
+                logger.exception(f"fwo_api:importNwObject - error in addNewRuleMetadata: {str(import_result['errors'])}")
+                return 1, 0, newRuleMetaDataIds
+            else:
+                # reduce change number by number of rulebases
+                changes = import_result['data']['insert_rule_metadata']['affected_rows']
+                if changes>0:
+                    for rule_metadata_id in import_result['data']['insert_rule_metadata']['returning']:
+                        newRuleMetaDataIds.append(rule_metadata_id)
+        except:
+            logger.exception(f"failed to write new rules: {str(traceback.format_exc())}")
+            return 1, 0, newRuleMetaDataIds
+        
+        return errors, changes, newRuleIds
+
     # adds only new rules to the database
     # unchanged or deleted rules are not touched here
     def addNewRules(self, newRules: List[Rulebase]):
@@ -398,6 +446,40 @@ class FwConfigImportRule(FwConfigImportBase):
             return 1, 0, []
         
         return errors, changes, newRuleIds
+
+
+    # creates a structure of rulebases optinally including rules for import
+    def PrepareNewRuleMetadata(self, newRules: List[Rulebase], includeRules: bool = True) -> List[RulebaseForImport]:
+        newRuleMetadata: List[RuleMetadatum] = []
+
+	# "rule_metadata_id" BIGSERIAL,
+	# "rule_uid" Text NOT NULL,
+	# "rule_created" Timestamp NOT NULL Default now(),
+	# "rule_last_modified" Timestamp NOT NULL Default now(),
+	# "rule_first_hit" Timestamp,
+	# "rule_last_hit" Timestamp,
+	# "rule_hit_counter" BIGINT,
+	# "rule_last_certified" Timestamp,
+	# "rule_last_certifier" Integer,
+	# "rule_last_certifier_dn" VARCHAR,
+	# "rule_owner" Integer, -- points to a uiuser (not an owner)
+	# "rule_owner_dn" Varchar, -- distinguished name pointing to ldap group, path or user
+	# "rule_to_be_removed" Boolean NOT NULL Default FALSE,
+	# "last_change_admin" Integer,
+	# "rule_decert_date" Timestamp,
+	# "rule_recertification_comment" Varchar,
+
+        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        for rulebase in newRules:
+            for rule in rulebase.Rules:
+                rm4import = RuleMetadatum(
+                    rule_uid=rule.rule_uid,
+                    rule_last_modified=now,
+                    rule_created=now
+                )
+                newRuleMetadata.append(rm4import.dict())
+        # TODO: add other fields
+        return newRuleMetadata    
 
     # creates a structure of rulebases optinally including rules for import
     def PrepareNewRulebases(self, newRules: List[Rulebase], includeRules: bool = True) -> List[RulebaseForImport]:

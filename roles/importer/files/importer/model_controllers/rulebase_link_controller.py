@@ -5,6 +5,12 @@ from fwo_log import getFwoLogger
 
 class RulebaseLinkController(RulebaseLink):
 
+    # def __init__(self, importState: ImportState, config: RulebaseLink):
+    #     super().__init__(gw_id=gwId, 
+    #                                      from_rule_id=fromRuleId,
+    #                                      to_rulebase_id=toRulebaseId,
+    #                                      link_type=linkTypeId,
+    #                                      created=self.ImportDetails.ImportId
 
     def importInsertRulebaseLink(self, importState: ImportState):
         errors = 0
@@ -13,7 +19,6 @@ class RulebaseLinkController(RulebaseLink):
         query_variables = { "rulebaseLinks": [
             {
                 "gw_id": self.gw_id,
-                # "from_rulebase_id": rblink.from_rule_id,
                 "to_rulebase_id": self.to_rulebase_id,
                 "from_rule_id": self.from_rule_id,
                 "link_type": self.link_type

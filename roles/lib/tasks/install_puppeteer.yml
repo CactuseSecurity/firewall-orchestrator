@@ -1,4 +1,4 @@
-- block:
+# - block:
 # install libs needed for nuget package PuppeteerSharp
   # - name: Define core packages
   #   set_fact:

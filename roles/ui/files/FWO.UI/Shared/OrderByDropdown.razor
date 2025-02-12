@@ -1,7 +1,8 @@
 @using FWO.Api.Data
-@using FWO.Services
+@using FWO.Basics
 @using System.Linq.Expressions
 @using System.Net
+@using FWO.Ui.Data
 
 @typeparam TCollectionItem
 
@@ -19,12 +20,12 @@
                     </ElementTemplate>
     </Dropdown>
     <Dropdown   @ref="orderModeDropdown"
-                ElementType="string"
+                ElementType="OrderMode"
                 @bind-SelectedElement="SelectedOrderMode"
                 Elements="orderModes"
-                ElementToString="@(a => a)">
+                ElementToString="@(a => a.ToString())">
                     <ElementTemplate Context="orderMode">
-                        @((MarkupString) orderMode)
+                        @((MarkupString) orderMode.ToString())
                     </ElementTemplate>
     </Dropdown>
 </div> 
@@ -70,11 +71,11 @@
     /// <summary>
     /// Backing field of property 'SelectedOrderMode'.
     /// </summary> 
-    private string selectedOrderMode = "Asc";
+    private OrderMode selectedOrderMode = OrderMode.Asc;
     /// <summary>
     /// The mode of the rerordering process (i.e. ascending or descending).
     /// </summary> 
-    public string SelectedOrderMode
+    public OrderMode SelectedOrderMode
     {
         get => selectedOrderMode;
         set
@@ -94,11 +95,11 @@
     /// <summary>
     /// Reference to the dropdown component for the order mode.
     /// </summary>
-    private Dropdown<string>? orderModeDropdown;
+    private Dropdown<OrderMode>? orderModeDropdown;
     /// <summary>
     /// The visual elements for the implemented order modes.
     /// </summary>
-    private List<string> orderModes = new List<string> {"Asc", "Desc"};
+    private List<OrderMode> orderModes = new List<OrderMode> {OrderMode.Asc, OrderMode.Desc};
 
     protected override void OnAfterRender(bool firstRender)
     {
@@ -106,7 +107,7 @@
         {
             if(propertyDropdown != null)
             {
-                selectedOrderMode = "Asc";
+                selectedOrderMode = OrderMode.Asc; // TODO: admissiable because of l. 74?
                 selectedProperty = propertyDropdown.Elements.First(); 
             }
             
@@ -139,7 +140,7 @@
             Collection = Collection.OrderBy(keySelector).ToList();  
         }
 
-        if (SelectedOrderMode.Equals("Desc"))
+        if (SelectedOrderMode == OrderMode.Desc)
         {
             Collection.Reverse();   
         }

@@ -1,8 +1,11 @@
 @using FWO.Api.Data
 @using FWO.Basics
+@using FWO.Basics.Comparer
+@using FWO.Ui.Data
+@using NetTools
 @using System.Linq.Expressions
 @using System.Net
-@using FWO.Ui.Data
+@using System.Reflection
 
 @typeparam TCollectionItem
 
@@ -35,17 +38,17 @@
     /// <summary>
     /// List of the properties, that the user can order the collection by.
     /// </summary>
-    [Parameter]
+    [Parameter, EditorRequired]
     public List<string> ElementProperties { get; set; }
     /// <summary>
     /// Collection of items, that the user can order by the selected property and order mode.
     /// </summary>
-    [Parameter]
+    [Parameter, EditorRequired]
     public List<TCollectionItem> Collection { get; set; }
     /// <summary>
     /// Callback to communicate that the reordering process has been completed.
     /// </summary>
-    [Parameter]
+    [Parameter, EditorRequired]
     public EventCallback CollectionReordered { get; set; }
 
     /// <summary>
@@ -107,7 +110,7 @@
         {
             if(propertyDropdown != null)
             {
-                selectedOrderMode = OrderMode.Asc; // TODO: admissiable because of l. 74?
+                //selectedOrderMode = OrderMode.Asc; // TODO: admissiable because of l. 74?
                 selectedProperty = propertyDropdown.Elements.First(); 
             }
             
@@ -120,23 +123,13 @@
     /// </summary>
     private void ReorderCollection()
     {
-        var param = Expression.Parameter(typeof(TCollectionItem), "x");
-        var propertyInfo = typeof(TCollectionItem).GetProperty(propertyDropdown.SelectedElement);
-        if (propertyInfo == null)
+        if(SelectedProperty.Equals("Ip") && typeof(TCollectionItem) == typeof(ModellingAppServer))
         {
-            throw new InvalidOperationException($"Property '{propertyDropdown.SelectedElement}' existiert nicht auf Typ '{typeof(TCollectionItem).Name}'.");
-        }
-        
-        var propertyAccess = Expression.Property(param, propertyInfo);
-        var converted = Expression.Convert(propertyAccess, typeof(object));
-        var keySelector = Expression.Lambda<Func<TCollectionItem, object>>(converted, param).Compile();
-        
-        if(SelectedProperty.Equals("Ip"))
-        {
-            Collection = Collection.OrderBy(keySelector, new ObjectWithIpAsStringComparer()).ToList();  
+            Collection = Collection.OrderBy(GetIPAddressRange, new IPAddressRangeComparer()).ToList<TCollectionItem>();  
         }
         else
         {
+            Func<TCollectionItem, object> keySelector = GetGenericOrderByExpression<TCollectionItem>(propertyDropdown.SelectedElement);
             Collection = Collection.OrderBy(keySelector).ToList();  
         }
 
@@ -147,5 +140,42 @@
 
         InvokeAsync(StateHasChanged);
         CollectionReordered.InvokeAsync();
+    }
+
+    /// <summary>
+    /// Creates an IPAddressRange Object.
+    /// </summary>
+    private IPAddressRange GetIPAddressRange(TCollectionItem item)
+    {
+        if (item is ModellingAppServer server)
+        {
+            return new IPAddressRange(
+                IPAddress.Parse(server.Ip.StripOffNetmask()),
+                IPAddress.Parse(server.IpEnd.StripOffNetmask())
+            );
+        }
+        else
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+    /// <summary>
+    /// Creates lamba function that works as a key selector for OrderBy.
+    /// </summary>
+    private Func<T, object> GetGenericOrderByExpression<T>(string propertyName)
+    {
+        ParameterExpression param = Expression.Parameter(typeof(T), "x");
+        PropertyInfo propertyInfo = typeof(T).GetProperty(propertyName);
+
+        if (propertyInfo == null)
+        {
+            throw new InvalidOperationException(); 
+        }
+        
+        MemberExpression propertyAccess = Expression.Property(param, propertyInfo);
+        UnaryExpression converted = Expression.Convert(propertyAccess, typeof(object));
+
+        return Expression.Lambda<Func<T, object>>(converted, param).Compile();
     }
 }

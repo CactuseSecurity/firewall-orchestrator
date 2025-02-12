@@ -246,15 +246,12 @@ namespace FWO.Services
                 return;
             }
 
-            ModellingAppZone? existingAppZone = await AppZoneHandler.PlanAppZoneUpsert();
-
-            if (existingAppZone is null)
-                return;
+            ModellingAppZone existingAppZone = await AppZoneHandler.PlanAppZoneUpsert();
 
             if (!ResolveExistingNwGroup(existingAppZone, mgt))
             {
-                RequestNewNwGroup(existingAppZone, mgt);
                 PlannedAppZone = existingAppZone;
+                RequestNewNwGroup(existingAppZone, mgt);
                 return;
             }
 

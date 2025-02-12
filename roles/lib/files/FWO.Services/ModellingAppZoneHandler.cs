@@ -11,7 +11,7 @@ namespace FWO.Services
     {
         private ModellingNamingConvention NamingConvention = new();
 
-        public async Task<ModellingAppZone?> PlanAppZoneUpsert(List<ModellingAppServerWrapper>? diffAppServers = default)
+        public async Task<ModellingAppZone> PlanAppZoneUpsert(List<ModellingAppServerWrapper>? diffAppServers = default)
         {
             NamingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(userConfig.ModNamingConvention) ?? new();
             List<ModellingAppServer> tempAppServers = await apiConnection.SendQueryAsync<List<ModellingAppServer>>(ModellingQueries.getAppServers, new { appId = owner.Id });

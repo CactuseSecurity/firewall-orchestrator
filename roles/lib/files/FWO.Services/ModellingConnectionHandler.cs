@@ -83,6 +83,7 @@ namespace FWO.Services
         public ModellingAppRole DummyAppRole = new();
         public int LastWidth = GlobalConst.kGlobLibraryWidth;
         public bool LastCollapsed = false;
+        public bool ActConnNeedsRefresh = true;
 
         private bool SrcFix = false;
         private bool DstFix = false;
@@ -156,7 +157,12 @@ namespace FWO.Services
         {
             try
             {
-                await RefreshActConn();
+                // exclude the cases where ActConn has to be held (e.g. if there is an ui binding)
+                if(ActConnNeedsRefresh)
+                {
+                    await RefreshActConn();
+                }
+                
                 await RefreshObjects();
                 await RefreshParent();
             }

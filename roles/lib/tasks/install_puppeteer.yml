@@ -120,11 +120,5 @@
       dest: "{{ chrome_dest }}"
       remote_src: yes
 
-  - name: download google chrome headless shell and unpack
-    unarchive:
-      src: "{{ stable_chrome_versions['chrome-headless-shell'] | selectattr('platform', 'match', 'linux64') | map(attribute='url') | first }}"
-      dest: "{{ headless_shell_dest }}"
-      remote_src: yes
-
   become: true
   environment: "{{ proxy_env }}"

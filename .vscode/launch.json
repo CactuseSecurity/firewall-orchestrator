@@ -114,7 +114,7 @@
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
             },
             "args": [
-                "-m16",
+                "-m3",
                 "-d1",
                 "-f",
                 "-s",

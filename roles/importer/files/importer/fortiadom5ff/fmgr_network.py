@@ -258,6 +258,7 @@ def resolve_raw_objects (obj_name_string_list, delimiter, obj_dict, name_key, ui
                             if obj[name_key] == el:
                                 if uid_key in obj:
                                     ref_list.append(obj[uid_key])
+                                # in case of internet-service-object we find no uid field, but custom q_origin_key_
                                 elif 'q_origin_key' in obj:
                                     ref_list.append('q_origin_key_' + str(obj['q_origin_key']))
                                 else:

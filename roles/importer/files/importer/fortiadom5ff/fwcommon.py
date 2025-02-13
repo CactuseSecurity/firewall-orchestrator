@@ -139,7 +139,8 @@ def getObjects(sid, fm_api_url, raw_config, adom_name, limit, scope, nw_obj_type
             fmgr_getter.update_config_with_fortinet_api_call(
                 raw_config, sid, fm_api_url, "/pm/config/"+adom_scope+"/obj/" + object_type, "user_obj_" + s + "_" + object_type, limit=limit)
             
-    # get one arbitrary device and vdom
+    # get one arbitrary device and vdom to get dynamic objects
+    # they are equal across all adoms, vdoms, devices
     devices = fmgr_getter.fortinet_api_call(sid, fm_api_url, '/dvmdb/adom/' + adom_name + '/device')
     if len(devices)>0 and 'name' in devices[0] and 'vdom' in devices[0] and 'name' in devices[0]['vdom'][0]:
         arbitraryDevice = devices[0]['name']

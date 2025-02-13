@@ -9,7 +9,7 @@
 @inject MiddlewareClient middlewareClient
 
 
-<PopUp Title="@(userConfig.GetText("create_ticket"))" Show="@Display" Size=PopupSize.Large OnClose="Close">
+<PopUp Title="@(userConfig.GetText("create_ticket"))" Show="@Display" Size=PopupSize.CustomMedium OnClose="Close">
     <Body>
         @if (Display)
         {

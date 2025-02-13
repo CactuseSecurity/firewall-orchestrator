@@ -97,7 +97,7 @@
         @bind-SelectedRules="selectedRules" SelectedReportType="ReportType.Recertification"/>
 </div>
 
-<PopUp Title="@(userConfig.GetText("add_comment"))" Show="@AddCommentMode" Size=PopupSize.Large OnClose="() => AddCommentMode = false">
+<PopUp Title="@(userConfig.GetText("add_comment"))" Show="@AddCommentMode" Size=PopupSize.CustomLarge OnClose="() => AddCommentMode = false">
     <Body>
         @if (AddCommentMode)
         {

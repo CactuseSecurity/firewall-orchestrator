@@ -5,7 +5,7 @@
 @inject UserConfig userConfig
 
 
-<PopUp Title="@(ReplaceMode ? userConfig.GetText("U9015") : ConnHandler?.Application.Name)" Show="@Display" Size=PopupSize.XLarge OnClose="Close">
+<PopUp Title="@(ReplaceMode ? userConfig.GetText("U9015") : ConnHandler?.Application.Name)" Show="@Display" Size=PopupSize.CustomXLarge OnClose="Close">
     <Body>
         @if (Display)
         {

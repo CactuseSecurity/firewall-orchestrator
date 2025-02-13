@@ -8,7 +8,7 @@
 @inject UserConfig userConfig
 
 
-<PopUp Title="@(userConfig.GetText("path_analysis") + ": " + ReqTask.Title)" Show="@Display" Size=PopupSize.Large OnClose="() => Close()">
+<PopUp Title="@(userConfig.GetText("path_analysis") + ": " + ReqTask.Title)" Show="@Display" Size=PopupSize.CustomLarge OnClose="() => Close()">
     <Body>
         @if (Display)
         {

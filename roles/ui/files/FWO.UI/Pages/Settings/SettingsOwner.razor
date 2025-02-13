@@ -110,7 +110,7 @@
         </Table>
     </div>
 
-    <PopUp Title="@(userConfig.GetText(Readonly ? "owner" : "edit_owner"))" Show="@EditOwnerMode" Size=PopupSize.XLarge OnClose="() => EditOwnerMode = false">
+    <PopUp Title="@(userConfig.GetText(Readonly ? "owner" : "edit_owner"))" Show="@EditOwnerMode" Size=PopupSize.CustomLarge OnClose="() => EditOwnerMode = false">
         <Body>
             @if (EditOwnerMode)
             {

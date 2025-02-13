@@ -56,7 +56,7 @@
     </Table>
 </div>
 
-<PopUp Size=PopupSize.Large Title="@(userConfig.GetText("report_schedule"))" Show="@(ShowAddReportScheduleDialog || ShowEditReportScheduleDialog)">
+<PopUp Size=PopupSize.CustomMedium Title="@(userConfig.GetText("report_schedule"))" Show="@(ShowAddReportScheduleDialog || ShowEditReportScheduleDialog)">
     <Body>
         <div>
             <div class="form-group row">
@@ -156,7 +156,7 @@
     </Footer>
 </PopUp>
 
-<PopUp Title="Report Schedule" Size=PopupSize.Small Show="@ShowDeleteReportScheduleDialog">
+<PopUp Title="Report Schedule" Size=PopupSize.CustomSmall Show="@ShowDeleteReportScheduleDialog">
     <Body>
         <p>@(userConfig.GetText("U2002")) "@reportScheduleInEdit.Name" ?</p>
     </Body>

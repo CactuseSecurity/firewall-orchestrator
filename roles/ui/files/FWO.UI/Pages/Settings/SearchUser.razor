@@ -15,7 +15,7 @@
 @inject MiddlewareClient middlewareClient
 
 
-<PopUp Title="@(userConfig.GetText(UserSearchMode ? "assign_user": "assign_group") + ": " + Title)" Show="@Display" Size=PopupSize.Large OnClose="Close">
+<PopUp Title="@(userConfig.GetText(UserSearchMode ? "assign_user": "assign_group") + ": " + Title)" Show="@Display" Size=PopupSize.CustomLarge OnClose="Close">
     <Body>
         @if (Display)
         {

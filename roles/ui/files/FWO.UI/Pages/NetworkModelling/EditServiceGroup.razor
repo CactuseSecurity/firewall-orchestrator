@@ -8,7 +8,7 @@
 @if (Display && SvcGroupHandler != null)
 {
     <PopUp Title="@(SvcGroupHandler.ReadOnly ? "" : (SvcGroupHandler.AddMode ? userConfig.GetText("add_service_group") : userConfig.GetText("edit_service_group")))"
-            Size="@(SvcGroupHandler.ReadOnly ? PopupSize.Small : PopupSize.XLarge)" Show="@Display" OnClose="Close">
+            Size="@(SvcGroupHandler.ReadOnly ? PopupSize.CustomMedium : PopupSize.CustomLarge)" Show="@Display" OnClose="Close">
         <Body>
             <div class="row">
                 @if(!SvcGroupHandler.ReadOnly)

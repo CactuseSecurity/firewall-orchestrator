@@ -73,7 +73,7 @@
 </div>
 
 <PopUp Title="@(AddTenantMode ? userConfig.GetText("add_tenant"): userConfig.GetText("edit_tenant"))"
-    Show="@EditTenantMode" Size=PopupSize.Large OnClose="() => EditTenantMode = false">
+    Show="@EditTenantMode" Size=PopupSize.CustomLarge OnClose="() => EditTenantMode = false">
 
     <Body>
         @if (EditTenantMode)
@@ -149,7 +149,7 @@
     </Footer>
 </PopUp>
 
-<PopUp Title="@(userConfig.GetText("edit_vis_devices") + ": " + actTenant.Name)" Show="@EditDevicesSelectedForTenantMode" Size=PopupSize.Large OnClose="async () => await LeaveEditDevicesSelectedForTenantMode(cancel:true)">
+<PopUp Title="@(userConfig.GetText("edit_vis_devices") + ": " + actTenant.Name)" Show="@EditDevicesSelectedForTenantMode" Size=PopupSize.CustomLarge OnClose="async () => await LeaveEditDevicesSelectedForTenantMode(cancel:true)">
     <Body>
         @if (EditDevicesSelectedForTenantMode)
         {

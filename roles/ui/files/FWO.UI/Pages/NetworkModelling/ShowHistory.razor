@@ -7,7 +7,7 @@
 @inject UserConfig userConfig
 
 
-<PopUp Title="@(userConfig.GetText("show_history") )" Show="@Display" Size=PopupSize.XLarge OnClose="Close">
+<PopUp Title="@(userConfig.GetText("show_history") )" Show="@Display" Size=PopupSize.CustomXLarge OnClose="Close">
     <Body>
         @if (Display)
         {

@@ -8,7 +8,7 @@
 @if (AppRoleHandler != null && Display)
 {
     <PopUp Title="@(AppRoleHandler.ReadOnly ? "" : (AppRoleHandler.AddMode ? userConfig.GetText("add_app_role") : userConfig.GetText("edit_app_role")))"
-           Size="@(AppRoleHandler.ReadOnly ? PopupSize.Small : PopupSize.XLarge)" Show="@Display" OnClose="Close">
+           Size="@(AppRoleHandler.ReadOnly ? PopupSize.CustomMedium : PopupSize.CustomLarge)" Show="@Display" OnClose="Close">
         <Body>
             <div class="row">
                 @if (!AppRoleHandler.ReadOnly)

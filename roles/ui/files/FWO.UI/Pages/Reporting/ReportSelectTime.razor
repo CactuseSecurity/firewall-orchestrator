@@ -6,7 +6,7 @@
 @inject UserConfig userConfig
 
 
-<PopUp Size=PopupSize.Large Title="@(userConfig.GetText("report_time"))" Show="@Display">
+<PopUp Size=PopupSize.CustomMedium Title="@(userConfig.GetText("report_time"))" Show="@Display">
     <Body>
         <div>
             @if (SelectedReportType.IsChangeReport())

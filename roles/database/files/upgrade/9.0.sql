@@ -1,6 +1,101 @@
 -- next steps:
-   -- 1) add rule_to, rule_from, rule_service to importer
-   -- 2) in UI also show more rulebases (not just initial one)
+   -- add rule_to, rule_from, rule_service to importer
+   -- improve rollback - currently if import stops in the middle, the rollback is not automatically called
+   /* 
+
+-- main script ---
+
+import os
+import time
+import subprocess
+import uuid
+from datetime import datetime
+import psutil
+
+LOCK_DIR = "locks"
+REPAIR_SCRIPT = "repair_script.py"
+
+# Stelle sicher, dass das Lock-Verzeichnis existiert
+os.makedirs(LOCK_DIR, exist_ok=True)
+
+def get_lockfile(instance_id):
+    return os.path.join(LOCK_DIR, f"lock_{instance_id}.lock")
+
+def create_lock(instance_id):
+    lockfile = get_lockfile(instance_id)
+    instance_info = {
+        "instance_id": instance_id,
+        "start_time": datetime.now().isoformat(),
+        "pid": os.getpid()
+    }
+    with open(lockfile, "w") as f:
+        f.write(str(instance_info))
+    print(f"Lockfile für Instanz {instance_id} erstellt: {lockfile}")
+
+def remove_lock(instance_id):
+    lockfile = get_lockfile(instance_id)
+    if os.path.exists(lockfile):
+        os.remove(lockfile)
+        print(f"Lockfile für Instanz {instance_id} entfernt.")
+
+def read_lock(instance_id):
+    lockfile = get_lockfile(instance_id)
+    if os.path.exists(lockfile):
+        with open(lockfile, "r") as f:
+            return eval(f.read())
+    return None
+
+def start_repair(instance_info):
+    print(f"🛠️ Unsauberer Abbruch erkannt für Instanz-ID {instance_info['instance_id']}. Starte Reparatur...")
+    subprocess.Popen(["python", REPAIR_SCRIPT, instance_info["instance_id"]])
+
+def main(instance_id):
+    lock_info = read_lock(instance_id)
+    if lock_info:
+        pid = lock_info.get("pid")
+        if psutil.pid_exists(pid):
+            print(f"⚠️ Instanz {instance_id} läuft bereits mit PID {pid}. Kein Neustart erforderlich.")
+            return
+        else:
+            # Prozess nicht mehr aktiv, also Reparatur starten
+            start_repair(lock_info)
+
+    # Erstelle Lockfile für die neue Instanz
+    create_lock(instance_id)
+
+    try:
+        print(f"🚀 Instanz {instance_id} läuft (PID: {os.getpid()})...")
+        time.sleep(5)  # Simuliert Arbeit
+        print(f"✅ Instanz {instance_id} erfolgreich beendet.")
+    finally:
+        remove_lock(instance_id)
+
+
+----- repair_script.py -----
+
+# Starte das Skript mit einer eindeutigen Management-ID
+if __name__ == "__main__":
+    instance_id = str(uuid.uuid4())[:8]  # Kürzere ID für bessere Lesbarkeit
+    main(instance_id)
+
+import sys
+from datetime import datetime
+
+if len(sys.argv) != 2:
+    print("❌ Fehlende Instanz-ID!")
+    sys.exit(1)
+
+instance_id = sys.argv[1]
+
+print(f"🔧 Reparatur-Skript gestartet für Instanz-ID: {instance_id}")
+print(f"🕒 Reparaturzeitpunkt: {datetime.now().isoformat()}")
+rollbackImport(instance_id)
+time.sleep(3)
+print(f"✅ Reparatur für Instanz {instance_id} abgeschlossen.")
+
+   */
+
+
 
 --- pre 9.0 changes (old import)
 

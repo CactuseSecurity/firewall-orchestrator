@@ -31,15 +31,8 @@ class FwConfigImportGateway(FwConfigImportBase):
 
 
         for gw in self.NormalizedConfig.gateways:
-            # check interface changes
-            # check routing changes
-            # check rulebase link changes
-            if gw in prevConfig.gateways:
+            if gw in prevConfig.gateways:   # this check finds all changes in gateway (e.g. rulebase link changes)
                 logger.debug(f"gateway {str(gw)} found in previous config")
-                # check if rulebase links have changed
-                # check if interfaces have changed
-                # check if routing has changed
-                pass
             else:
                 logger.debug(f"gateway {str(gw)} NOT found in previous config")
                 # add gateway details:

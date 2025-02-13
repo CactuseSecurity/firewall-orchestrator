@@ -141,7 +141,7 @@ def getObjects(sid, fm_api_url, raw_config, adom_name, limit, scope, nw_obj_type
             
     # get one arbitrary device and vdom
     devices = fmgr_getter.fortinet_api_call(sid, fm_api_url, '/dvmdb/adom/' + adom_name + '/device')
-    if 'name' in devices[0] and 'vdom' in devices[0] and 'name' in devices[0]['vdom'][0]:
+    if len(devices)>0 and 'name' in devices[0] and 'vdom' in devices[0] and 'name' in devices[0]['vdom'][0]:
         arbitraryDevice = devices[0]['name']
         arbitraryVdom = devices[0]['vdom'][0]['name']
     else:

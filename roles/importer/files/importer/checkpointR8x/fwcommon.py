@@ -127,17 +127,17 @@ def getRules (nativeConfig: dict, importState: ImportState) -> int:
 
     # read all rulebases: handle per device details
     for device in importState.FullMgmDetails['devices']:
-        if 'dev_name' in device:
+        if 'name' in device:
 
             # find device uid in policy structure
             deviceConfigUid = ''
             for policy in policyStructure:
                 for target in policy['targets']:
-                    if device['dev_name'] == target['name']:
+                    if device['name'] == target['name']:
                         deviceConfigUid = target['uid']
             
             if deviceConfigUid != '':
-                deviceConfig = {'name': device['dev_name'],
+                deviceConfig = {'name': device['name'],
                                 'uid': deviceConfigUid,
                                 'rulebase_links': []}
             else:
@@ -297,7 +297,7 @@ def get_config(nativeConfig: json, importState: ImportState) -> tuple[int, FwCon
 
         starttimeTemp = int(time.time())
         logger.debug ( "checkpointR8x/get_config/getting rules ...")
-        result_get_rules = getRules (nativeConfig, importState, sid, cpManagerApiBaseUrl)
+        result_get_rules = getRules (nativeConfig, importState)
         if result_get_rules>0:
             logger.warning ( "checkpointR8x/get_config/error while gettings rules")
             return result_get_rules

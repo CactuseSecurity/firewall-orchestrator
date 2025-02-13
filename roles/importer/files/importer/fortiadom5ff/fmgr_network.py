@@ -103,6 +103,22 @@ def normalize_nwobjects(full_config, config2import, import_id, nw_obj_types, jwt
             obj.update({'control_id': import_id})
             nw_objects.append(obj)
 
+    # dynamic objects have different return structure
+    if 'response' in full_config['nw_obj_global_firewall/internet-service-basic'][0] and 'results' in full_config['nw_obj_global_firewall/internet-service-basic'][0]['response']:
+        for obj_orig in full_config['nw_obj_global_firewall/internet-service-basic'][0]['response']['results']:
+            if 'name' in obj_orig and 'q_origin_key' in obj_orig:
+                obj = {
+                    'obj_name': obj_orig['name'],
+                    'obj_typ': 'network',
+                    'obj_ip': '0.0.0.0/0',
+                    'obj_uid': 'q_origin_key_' + str(obj_orig['q_origin_key']),
+                    'control_id': import_id,
+                    'obj_zone': 'global'
+                    }
+                nw_objects.append(obj)
+    else:
+        logger.warning("internet service objects return format broken")
+
     # finally add "Original" network object for natting
     original_obj_name = 'Original'
     original_obj_uid = 'Original'
@@ -189,7 +205,11 @@ def get_first_ip_of_destination(obj_ref, config2import):
 
     for obj in config2import['network_objects']:
         if 'obj_uid' in obj and obj['obj_uid']==obj_ref:
-            return obj['obj_ip']
+            if 'obj_type' in obj and obj['obj_type']=='group':
+                if 'obj_member_refs' in obj and list_delimiter in obj['obj_member_refs']:
+                    return get_first_ip_of_destination(obj['obj_member_refs'].split(list_delimiter)[0], config2import)
+            elif 'obj_ip' in obj:
+                return obj['obj_ip']
     logger.warning('src nat behind interface: found no IP info for destination object ' + obj_ref)
     return None
 
@@ -210,13 +230,14 @@ def resolve_raw_objects (obj_name_string_list, delimiter, obj_dict, name_key, ui
         if rule_type is not None:
             if obj_type == 'network':
                 if 'v4' in rule_type and 'global' in rule_type:
-                    object_tables = [obj_dict['nw_obj_global_firewall/address'], obj_dict['nw_obj_global_firewall/addrgrp']]
+                    object_tables = [obj_dict['nw_obj_global_firewall/address'], obj_dict['nw_obj_global_firewall/addrgrp'], obj_dict['nw_obj_global_firewall/internet-service-basic'][0]['response']['results']]
                 elif 'v6' in rule_type and 'global' in rule_type:
                     object_tables = [obj_dict['nw_obj_global_firewall/address6'], obj_dict['nw_obj_global_firewall/addrgrp6']]
                 elif 'v4' in rule_type and 'adom' in rule_type:
                     object_tables = [obj_dict['nw_obj_adom_firewall/address'], obj_dict['nw_obj_adom_firewall/addrgrp'], \
                         obj_dict['nw_obj_global_firewall/address'], obj_dict['nw_obj_global_firewall/addrgrp'], \
-                        obj_dict['nw_obj_adom_firewall/vip'] ]
+                        obj_dict['nw_obj_adom_firewall/vip'], obj_dict['nw_obj_adom_system/external-resource'], \
+                        obj_dict['nw_obj_global_firewall/internet-service-basic'][0]['response']['results'] ]
                 elif 'v6' in rule_type and 'adom' in rule_type:
                     object_tables = [obj_dict['nw_obj_adom_firewall/address6'], obj_dict['nw_obj_adom_firewall/addrgrp6'], \
                         obj_dict['nw_obj_global_firewall/address6'], obj_dict['nw_obj_global_firewall/addrgrp6']]
@@ -235,7 +256,12 @@ def resolve_raw_objects (obj_name_string_list, delimiter, obj_dict, name_key, ui
                     else:
                         for obj in tab:
                             if obj[name_key] == el:
-                                ref_list.append(obj[uid_key])
+                                if uid_key in obj:
+                                    ref_list.append(obj[uid_key])
+                                elif 'q_origin_key' in obj:
+                                    ref_list.append('q_origin_key_' + str(obj['q_origin_key']))
+                                else:
+                                    logger.error('found object without expected uid')
                                 break_flag = True
                                 found = True
                                 break

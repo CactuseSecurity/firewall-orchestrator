@@ -36,13 +36,17 @@ namespace FWO.Basics.Comparer
             return 0;
         }
 
-        private BigInteger GetIPRangeSize(IPAddressRange range)
+        public BigInteger GetIPRangeSize(IPAddressRange range)
         {
             byte[] startBytes = range.Begin.GetAddressBytes();
             byte[] endBytes = range.End.GetAddressBytes();
 
-            BigInteger startValue = new BigInteger(startBytes.Reverse().ToArray());
-            BigInteger endValue = new BigInteger(endBytes.Reverse().ToArray());
+            // prevents overflow problem
+            byte[] startBytesPadded = startBytes.Reverse().Concat(new byte[] { 0 }).ToArray();
+            byte[] endBytesPadded = endBytes.Reverse().Concat(new byte[] { 0 }).ToArray();
+
+            BigInteger startValue = new BigInteger(startBytesPadded);
+            BigInteger endValue = new BigInteger(endBytesPadded);
 
             return endValue - startValue;
         }

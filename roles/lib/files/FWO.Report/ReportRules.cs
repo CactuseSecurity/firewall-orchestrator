@@ -204,26 +204,30 @@ namespace FWO.Report
 
         public static List<Rule> GetAllRulesOfGatewayRecursively(DeviceReport deviceReport, ManagementReport managementReport, List<Rule> rulesSoFar, List<Rule> newRules)
         {
-            if (newRules == null)
+            if (newRules == null || newRules.Count == 0)
             {
                 return rulesSoFar;
             }
+
             List<Rule> allRules = new(rulesSoFar);
+            HashSet<long> visitedRuleIds = new(rulesSoFar.Select(r => r.Id)); // Track visited rules to prevent duplication
+
             foreach (Rule rule in newRules)
             {
-                allRules.Add(rule);
-                RulebaseLink? nextRbLink = deviceReport.RulebaseLinks.FirstOrDefault(_ => _.FromRuleId == rule.Id);
-                if (nextRbLink != null)
+                if (visitedRuleIds.Add(rule.Id))
                 {
-                    List<Rule> subRules = GetRulesByRulebaseId(nextRbLink.NextRulebaseId, managementReport).ToList();
-                    if (subRules != null && subRules.Count > 0)
+                    allRules.Add(rule);
+                    RulebaseLink? nextRbLink = deviceReport.RulebaseLinks.FirstOrDefault(_ => _.FromRuleId == rule.Id);
+                    if (nextRbLink != null)
                     {
-                        allRules.AddRange(GetAllRulesOfGatewayRecursively(deviceReport, managementReport, allRules, subRules));
+                        List<Rule> subRules = GetRulesByRulebaseId(nextRbLink.NextRulebaseId, managementReport).ToList();
+                        allRules = GetAllRulesOfGatewayRecursively(deviceReport, managementReport, allRules, subRules);
                     }
                 }
             }
             return allRules;
         }
+
 
 
         public static int GetRuleCount(ManagementReport mgmReport, RulebaseLink? currentRbLink, RulebaseLink[] rulebaseLinks)

@@ -22,15 +22,17 @@
                         @((MarkupString) property)
                     </ElementTemplate>
     </Dropdown>
-    <Dropdown   @ref="orderModeDropdown"
-                ElementType="OrderMode"
-                @bind-SelectedElement="SelectedOrderMode"
-                Elements="orderModes"
-                ElementToString="@(a => a.ToString())">
-                    <ElementTemplate Context="orderMode">
-                        @((MarkupString) orderMode.ToString())
-                    </ElementTemplate>
-    </Dropdown>
+    <div class="unicode-icons">
+        <Dropdown   @ref="orderModeDropdown"
+                    ElementType="OrderMode"
+                    @bind-SelectedElement="SelectedOrderMode"
+                    Elements="orderModes"
+                    ElementToString="@(a => DisplayOrderMode(a))">
+                        <ElementTemplate Context="orderMode">
+                            @((MarkupString) DisplayOrderMode(orderMode))
+                        </ElementTemplate>
+        </Dropdown>
+    </div>
 </div> 
 
 @code
@@ -177,5 +179,26 @@
         UnaryExpression converted = Expression.Convert(propertyAccess, typeof(object));
 
         return Expression.Lambda<Func<T, object>>(converted, param).Compile();
+    }
+
+    /// <summary>
+    /// Converts OrderMode to symbol.
+    /// </summary>
+    private string DisplayOrderMode(OrderMode orderMode)
+    {
+        switch (orderMode)
+        {
+            case (OrderMode.Asc):
+                return "⯅";
+                break;
+
+            case (OrderMode.Desc):
+                return "⯆";
+                break;
+
+            default:
+                throw new NotImplementedException();
+                break;
+        }
     }
 }

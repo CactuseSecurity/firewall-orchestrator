@@ -96,6 +96,7 @@
                                      ondragover="event.preventDefault();"
                                      ondragstart="event.dataTransfer.setData('', event.target.id);"
                                      @ondrop="HandleServerDrop">
+                                    <OrderByDropdown @ref="orderByDropdown" TCollectionItem="ModellingAppServer" Collection="AppRoleHandler.AppServerToAdd" CollectionReordered="OnCollectionReordered" ElementProperties="orderByDropdownProperties"/>
                                     <EditList ElementType="ModellingAppServer" Elements="ModellingAppServerWrapper.Resolve(AppRoleHandler.ActAppRole.AppServers)" ElementsToAdd="AppRoleHandler.AppServerToAdd" ElementsToDelete="AppRoleHandler.AppServerToDelete" StdLayout="false" ElementsRemoved="OnAppServerRemovedFromEditList">
                                         <Display>
                                             <div class="row">
@@ -172,6 +173,15 @@
     private bool ShowAreaChangeConfirmation { get; set; } = false;
 
     private ModellingNetworkArea? LastSelectedNetworkArea;
+
+    /// <summary>
+    /// Reference to the order by component.
+    /// </summary>
+    private OrderByDropdown<ModellingAppServer>? orderByDropdown;
+    /// <summary>
+    /// Properties to sort the app server's visual elements by.
+    /// </summary>
+    private List<string> orderByDropdownProperties => new List<string> {"Ip", "Name"};
 
     protected override async Task OnInitializedAsync()
     {
@@ -302,6 +312,15 @@
     /// </summary>
     private void OnAppServerRemovedFromEditList()
     {
+        InvokeAsync(StateHasChanged);
+    }
+
+    /// <summary>
+    /// Updates the app server's visual elements after reordering the collection.
+    /// </summary>
+    private void OnCollectionReordered()
+    {
+        AppRoleHandler.AppServerToAdd = orderByDropdown.Collection;
         InvokeAsync(StateHasChanged);
     }
 }

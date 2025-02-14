@@ -29,8 +29,7 @@ namespace FWO.Services
             {
                 Application = application;
                 ManualAppServers = await apiConnection.SendQueryAsync<List<ModellingAppServer>>(ModellingQueries.getAppServersBySource, new { importSource = GlobalConst.kManual, appId = Application.Id });
-                List<ModellingAppServer> CsvImportedAppServers = await apiConnection.SendQueryAsync<List<ModellingAppServer>>(ModellingQueries.getAppServersBySource, new { importSource = GlobalConst.kCSV_ + "%", appId = Application.Id });
-                ManualAppServers.AddRange(CsvImportedAppServers);
+                ManualAppServers.AddRange(await apiConnection.SendQueryAsync<List<ModellingAppServer>>(ModellingQueries.getAppServersBySource, new { importSource = GlobalConst.kCSV_ + "%", appId = Application.Id }));
                 foreach(var appServer in ManualAppServers)
                 {
                     appServer.InUse = await CheckAppServerInUse(appServer);

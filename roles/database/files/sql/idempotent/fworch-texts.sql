@@ -2325,6 +2325,8 @@ INSERT INTO txt VALUES ('dns_lookup',           'German',   'DNS-Suche');
 INSERT INTO txt VALUES ('dns_lookup',           'English',  'DNS Look-up');
 INSERT INTO txt VALUES ('overwrite_exiting_names','German', 'Existierende Namen &uuml;berschreiben');
 INSERT INTO txt VALUES ('overwrite_exiting_names','English','Overwrite Existing Names');
+INSERT INTO txt VALUES ('auto_replace_app_server','German', 'App Server umh&auml;ngen');
+INSERT INTO txt VALUES ('auto_replace_app_server','English','Replace App Servers');
 INSERT INTO txt VALUES ('import_source',        'German',   'Importquelle');
 INSERT INTO txt VALUES ('import_source',        'English',  'Import Source');
 INSERT INTO txt VALUES ('modelling_settings',   'German', 	'Modellierungseinstellungen');
@@ -5246,6 +5248,8 @@ INSERT INTO txt VALUES ('H5645', 'German',  'Namenspr&auml;fix IP-Netzwerk: Der 
 INSERT INTO txt VALUES ('H5645', 'English', 'Network Name Prefix: The name of IP networks will be constructed by this prefix + network address.');
 INSERT INTO txt VALUES ('H5646', 'German',  'Namenspr&auml;fix IP-Bereich: Der Name der IP-Bereiche wird aus diesem Namenspr&auml;fix + Ip-Bereich zusammengesetzt.');
 INSERT INTO txt VALUES ('H5646', 'English', 'IP Range Name Prefix: The name of IP ranges will be constructed by this prefix + Ip address range.');
+INSERT INTO txt VALUES ('H5647', 'German',  'App Server umh&auml;ngen: Neu angelegte oder reaktivierte App Server ersetzen vorher vorhandene gleichen Namens auch in App Rollen und Verbindungen/Schnittstellen.');
+INSERT INTO txt VALUES ('H5647', 'English', 'Replace App Servers: New or reactivated App Servers replace existing ones of same name also in App Roles and Connections/Interfaces.');
 
 INSERT INTO txt VALUES ('H5701', 'German',  'Die in der Datenbank hinterlegten sprachabh&auml;ngigen Texte k&ouml;nnen individuell &uuml;berschrieben werden.
     Dabei werden die vom System vorgegebenen Texte nicht ge&auml;ndert, sondern nur durch die hier definierten Texte - falls vorhanden - &uuml;berblendet.

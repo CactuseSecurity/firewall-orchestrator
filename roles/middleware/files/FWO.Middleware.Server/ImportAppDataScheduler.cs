@@ -68,8 +68,7 @@ namespace FWO.Middleware.Server
                 TimeSpan interval = startTime - DateTime.Now;
 
                 ScheduleTimer = new();
-                ScheduleTimer.Elapsed += ImportAppData;
-                ScheduleTimer.Elapsed += AdjustAppServerNames;
+                ScheduleTimer.Elapsed += Process;
                 ScheduleTimer.Elapsed += StartImportAppDataTimer;
                 ScheduleTimer.Interval = interval.TotalMilliseconds;
                 ScheduleTimer.AutoReset = false;
@@ -82,15 +81,20 @@ namespace FWO.Middleware.Server
         {
             ImportAppDataTimer.Stop();
             ImportAppDataTimer = new();
-            ImportAppDataTimer.Elapsed += ImportAppData;
-            ImportAppDataTimer.Elapsed += AdjustAppServerNames;
+            ImportAppDataTimer.Elapsed += Process;
             ImportAppDataTimer.Interval = globalConfig.ImportAppDataSleepTime * GlobalConst.kHoursToMilliseconds;
             ImportAppDataTimer.AutoReset = true;
             ImportAppDataTimer.Start();
             Log.WriteDebug("Import App Data scheduler", "ImportAppDataTimer started.");
         }
 
-        private async void ImportAppData(object? _, ElapsedEventArgs __)
+        private async void Process(object? _, ElapsedEventArgs __)
+        {
+            await ImportAppData();
+            await AdjustAppServerNames();
+        }
+
+        private async Task ImportAppData()
         {
             try
             {
@@ -111,7 +115,7 @@ namespace FWO.Middleware.Server
             }
         }
 
-        private async void AdjustAppServerNames(object? _, ElapsedEventArgs __)
+        private async Task AdjustAppServerNames()
         {
             try
             {

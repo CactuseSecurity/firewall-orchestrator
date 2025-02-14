@@ -208,9 +208,15 @@
                 </div>
             </div>
             <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5644"))">
-                <label for="cbx_dns_lookup" class="col-form-label col-sm-8">@(userConfig.GetText("overwrite_exiting_names")):</label>
+                <label for="cbx_overwrite_names" class="col-form-label col-sm-8">@(userConfig.GetText("overwrite_exiting_names")):</label>
                 <div class="col-sm-2">
-                    <input id="cbx_dns_lookup" type="checkbox" @bind="configData!.OverwriteExistingNames">
+                    <input id="cbx_overwrite_names" type="checkbox" @bind="configData!.OverwriteExistingNames">
+                </div>
+            </div>
+            <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5647"))">
+                <label for="cbx_replace_appserver" class="col-form-label col-sm-8">@(userConfig.GetText("auto_replace_app_server")):</label>
+                <div class="col-sm-2">
+                    <input id="cbx_replace_appserver" type="checkbox" @bind="configData!.AutoReplaceAppServer">
                 </div>
             </div>
         </div>

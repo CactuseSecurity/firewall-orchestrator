@@ -205,9 +205,9 @@
     {
         if (Display && firstCall)
         {
+            firstCall = false;
             await AnalyzeActions();
             await InvokeAsync(StateHasChanged);
-            firstCall = false;
         }
     }
 

@@ -259,6 +259,9 @@ namespace FWO.Config.Api.Data
         [JsonProperty("overwriteExistingNames"), JsonPropertyName("overwriteExistingNames")]
         public bool OverwriteExistingNames { get; set; } = false;
 
+        [JsonProperty("autoReplaceAppServer"), JsonPropertyName("autoReplaceAppServer")]
+        public bool AutoReplaceAppServer { get; set; } = false;
+
         [JsonProperty("importAppDataPath"), JsonPropertyName("importAppDataPath")]
 		public string ImportAppDataPath { get; set; } = "";
 

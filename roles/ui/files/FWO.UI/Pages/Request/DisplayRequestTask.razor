@@ -530,6 +530,7 @@
         {
             if (WfHandler.DisplayReqTaskMode && firstParamSet)
             {
+                firstParamSet = false;
                 InitElements();
                 await InitComments();
                 await Reset();
@@ -546,7 +547,6 @@
                     }
                     actGrpName = WfHandler.ActReqTask.GetAddInfoValue(AdditionalInfoKeys.GrpName);
                 }
-                firstParamSet = false;
              }
         }
         catch (Exception exception)

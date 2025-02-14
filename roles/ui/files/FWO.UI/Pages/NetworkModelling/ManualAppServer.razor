@@ -127,9 +127,9 @@
     {
         if (Display && firstTry && appServerListHandler != null)
         {
+            firstTry = false;
             workInProgress = true;
             await appServerListHandler.Init(Application);
-            firstTry = false;
             workInProgress = false;
         }
     }

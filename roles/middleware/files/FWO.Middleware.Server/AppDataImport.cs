@@ -511,7 +511,7 @@ namespace FWO.Middleware.Server
 			}
 			foreach (var existingAppServer in existingAppServers)
 			{
-				if (incomingApp.AppServers.FirstOrDefault(x => x.Ip.IpAsCidr() == existingAppServer.Ip.IpAsCidr()) == null)
+				if (incomingApp.AppServers.FirstOrDefault(x => x.Ip.IpAsCidr() == existingAppServer.Ip.IpAsCidr() && x.IpEnd.IpAsCidr() == existingAppServer.IpEnd.IpAsCidr()) == null)
 				{
 					if (await MarkDeletedAppServer(existingAppServer))
 					{
@@ -530,7 +530,15 @@ namespace FWO.Middleware.Server
 		{
 			try
 			{
-				ModellingAppServer? existingAppServer = existingAppServers.FirstOrDefault(x => x.Ip.IpAsCidr() == incomingAppServer.Ip.IpAsCidr());
+				if(incomingAppServer.IpEnd == "")
+				{
+					incomingAppServer.IpEnd = incomingAppServer.Ip;
+				}
+				if(globalConfig.DnsLookup)
+				{
+					incomingAppServer.Name = await BuildAppServerName(incomingAppServer);
+				}
+				ModellingAppServer? existingAppServer = existingAppServers.FirstOrDefault(x => x.Ip.IpAsCidr() == incomingAppServer.Ip.IpAsCidr() && x.IpEnd.IpAsCidr() == incomingAppServer.IpEnd.IpAsCidr());
 				if (existingAppServer == null)
 				{
 					return await NewAppServer(incomingAppServer, appID, impSource);
@@ -546,7 +554,7 @@ namespace FWO.Middleware.Server
 					}
 					if (!existingAppServer.Name.Equals(incomingAppServer.Name))
 					{
-						if (!await UpdateAppServerName(existingAppServer, await BuildAppServerName(incomingAppServer)))
+						if (!await UpdateAppServerName(existingAppServer, incomingAppServer.Name))
 						{	
 							return false;
 						}
@@ -587,14 +595,19 @@ namespace FWO.Middleware.Server
 			{
 				var Variables = new
 				{
-					name = await BuildAppServerName(incomingAppServer),
+					name = incomingAppServer.Name,
 					appId = appID,
 					ip = incomingAppServer.Ip.IpAsCidr(),
 					ipEnd = incomingAppServer.IpEnd != "" ? incomingAppServer.IpEnd.IpAsCidr() : incomingAppServer.Ip.IpAsCidr(),
 					importSource = impSource,
 					customType = 0
 				};
-				await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.newAppServer, Variables);
+				ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.newAppServer, Variables)).ReturnIds;
+				if(returnIds != null && returnIds.Length > 0)
+				{
+					ModellingAppServer newModAppServer = new(incomingAppServer.ToModellingAppServer()){ Id = returnIds[0].NewIdLong, ImportSource = impSource, AppId = appID};
+					await AppServerHelper.DeactivateOtherSources(apiConnection, newModAppServer, globalConfig.AutoReplaceAppServer);
+				}
 			}
 			catch (Exception exc)
 			{
@@ -614,6 +627,7 @@ namespace FWO.Middleware.Server
 					deleted = false
 				};
 				await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.setAppServerDeletedState, Variables);
+				await AppServerHelper.DeactivateOtherSources(apiConnection, appServer);
 			}
 			catch (Exception exc)
 			{
@@ -676,6 +690,7 @@ namespace FWO.Middleware.Server
 					deleted = true
 				};
 				await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.setAppServerDeletedState, Variables);
+				await AppServerHelper.ReactivateOtherSource(apiConnection, appServer);
 			}
 			catch (Exception exc)
 			{

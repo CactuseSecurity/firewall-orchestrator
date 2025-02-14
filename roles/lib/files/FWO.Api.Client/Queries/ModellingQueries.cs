@@ -48,6 +48,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string deleteConnection;
         public static readonly string addAppServerToConnection;
         public static readonly string removeAppServerFromConnection;
+        public static readonly string updateNwObjectInConnection;
         public static readonly string addNwGroupToConnection;
         public static readonly string removeNwGroupFromConnection;
         public static readonly string addServiceToConnection;
@@ -77,6 +78,7 @@ namespace FWO.Api.Client.Queries
         // public static readonly string getAppServerForAppRole;
         public static readonly string addNwObjectToNwGroup;
         public static readonly string removeNwObjectFromNwGroup;
+        public static readonly string updateNwObjectInNwGroup;
 
         public static readonly string getServicesForApp;
         public static readonly string getGlobalServices;
@@ -151,6 +153,7 @@ namespace FWO.Api.Client.Queries
                 deleteConnection = File.ReadAllText(QueryPath + "modelling/deleteConnection.graphql");
                 addAppServerToConnection = File.ReadAllText(QueryPath + "modelling/addAppServerToConnection.graphql");
                 removeAppServerFromConnection = File.ReadAllText(QueryPath + "modelling/removeAppServerFromConnection.graphql");
+                updateNwObjectInConnection = File.ReadAllText(QueryPath + "modelling/updateNwObjectInConnection.graphql");
                 addNwGroupToConnection = File.ReadAllText(QueryPath + "modelling/addNwGroupToConnection.graphql");
                 removeNwGroupFromConnection = File.ReadAllText(QueryPath + "modelling/removeNwGroupFromConnection.graphql");
                 addServiceToConnection = File.ReadAllText(QueryPath + "modelling/addServiceToConnection.graphql");
@@ -180,6 +183,7 @@ namespace FWO.Api.Client.Queries
                 // getAppServerForAppRole = appServerDetailsFragment + File.ReadAllText(QueryPath + "modelling/getAppServerForAppRole.graphql");
                 addNwObjectToNwGroup = File.ReadAllText(QueryPath + "modelling/addNwObjectToNwGroup.graphql");
                 removeNwObjectFromNwGroup = File.ReadAllText(QueryPath + "modelling/removeNwObjectFromNwGroup.graphql");
+                updateNwObjectInNwGroup = File.ReadAllText(QueryPath + "modelling/updateNwObjectInNwGroup.graphql");
 
                 getServicesForApp = serviceDetailsFragment + File.ReadAllText(QueryPath + "modelling/getServicesForApp.graphql");
                 getGlobalServices = serviceDetailsFragment + File.ReadAllText(QueryPath + "modelling/getGlobalServices.graphql");

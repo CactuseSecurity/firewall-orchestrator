@@ -83,7 +83,7 @@ namespace FWO.Services
             }
             catch(Exception exception)
             {
-                Log.WriteError("Check App Server Prio", $"leads to exception:", exception);
+                Log.WriteError("Check App Server Prio", $" Check of {incomingAppServer.Name} from {incomingAppServer.ImportSource} to exception:", exception);
             }
             return true;
         }
@@ -107,11 +107,11 @@ namespace FWO.Services
             }
             catch(Exception exception)
             {
-                Log.WriteError("Reactivate App Server", $"leads to exception:", exception);
+                Log.WriteError("Reactivate App Server", $"Reactivation of other than {deletedAppServer.Name} from {deletedAppServer.ImportSource} leads to exception:", exception);
             }
         }
 
-        public static async Task DeactivateOtherSources(ApiConnection apiConnection, ModellingAppServer incomingAppServer)
+        public static async Task DeactivateOtherSources(ApiConnection apiConnection, ModellingAppServer incomingAppServer, bool replace = false)
         {
             try
             {
@@ -121,12 +121,29 @@ namespace FWO.Services
                     foreach(var activeAppServer in ExistingActiveAppServersSameIp)
                     {
                         await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.setAppServerDeletedState, new { id = activeAppServer.Id, deleted = true });
+                        if(replace)
+                        {
+                            await ReplaceAppServer(apiConnection, activeAppServer.Id, incomingAppServer.Id);
+                        }
                     }
                 }
             }
             catch(Exception exception)
             {
-                Log.WriteError("Deactivate App Servers", $"leads to exception:", exception);
+                Log.WriteError("Deactivate App Servers", $"Deactivation of {incomingAppServer.Name} from {incomingAppServer.ImportSource} leads to exception:", exception);
+            }
+        }
+
+        private static async Task ReplaceAppServer(ApiConnection apiConnection, long oldAppServerId, long newAppServerId)
+        {
+            try
+            {
+                await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.updateNwObjectInNwGroup, new { oldObjectId = oldAppServerId, newObjectId = newAppServerId });
+                await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.updateNwObjectInConnection, new { oldObjectId = oldAppServerId, newObjectId = newAppServerId });
+            }
+            catch(Exception exception)
+            {
+                Log.WriteError("Replace App Server", $"Replacing {oldAppServerId} by {newAppServerId} leads to exception:", exception);
             }
         }
 

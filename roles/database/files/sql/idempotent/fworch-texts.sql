@@ -3286,6 +3286,12 @@ INSERT INTO txt VALUES ('C9015', 'German',  'Leere App Rolle enthalten. Nutzende
 INSERT INTO txt VALUES ('C9015', 'English', 'Contains empty App Role. Connections using this interface will not be requested.');
 INSERT INTO txt VALUES ('C9016', 'German',  'Gel&ouml;schtes Objekt enthalten. Nutzende Verbindungen dieser Schnittstelle werden nicht beantragt.');
 INSERT INTO txt VALUES ('C9016', 'English', 'Contains deleted object. Connections using this interface will not be requested.');
+INSERT INTO txt VALUES ('C9017', 'German',  'Hier kann der Name des App-Servers, der beim Speichern ohnehin automatisch erzeugt wird, im voraus zur Ansicht generiert werden.
+    Dabei wird der Name zur IP-Adresse im DNS nachgeschlagen. Wenn keiner gefunden wird, so wird er entsprechend der Namenskonvention konstruiert.
+');
+INSERT INTO txt VALUES ('C9017', 'English', 'Here the name of the App Server, which is created on saving anyway, can be generated for display in advance.
+    The name is searched in the DNS. If not found, it is constructed according to the naming convention.
+');
 
 -- help pages
 INSERT INTO txt VALUES ('H0001', 'German',  'Firewall Orchestrator ist eine Anwendung zum Erzeugen und Verwalten von verschiedenen Reports aus Konfigurationsdaten verteilter Firewallsysteme.
@@ -6400,12 +6406,12 @@ INSERT INTO txt VALUES ('H9024', 'English', 'Common Services: Can only be define
 ');
 INSERT INTO txt VALUES ('H9031', 'German',  'Netzwerkobjekte werden zur Definition von Quelle und Ziel der Verbindungen ben&ouml;tigt. Es wird zwischen verschiedenen Arten von Netzwerkobjekten unterschieden:');
 INSERT INTO txt VALUES ('H9031', 'English', 'Network objects are used to define source and destination of the connections. There are different types of network objects:');
-INSERT INTO txt VALUES ('H9032', 'German',  'App-Server: Die elementaren Bausteine (Host-Adressen), die der Applikation zugeordnet sind. Sie werden in der Regel mit den Applikationen importiert
-    (<a href="/help/settings/modelling">Import-Einstellungen</a>, <a href="/help/API/appdataimport">Import-Schnittstelle</a>), k&ouml;nnen aber auch manuell vom Administrator angelegt werden.
+INSERT INTO txt VALUES ('H9032', 'German',  'App-Server: Die elementaren Bausteine (Host-Adressen, Netzwerke, IP-Bereiche), die der Applikation zugeordnet sind. Sie werden in der Regel mit den Applikationen importiert
+    (<a href="/help/settings/modelling">Import-Einstellungen</a>, <a href="/help/API/appdataimport">Import-Schnittstelle</a>), k&ouml;nnen aber auch manuell oder per CSV-Import vom Administrator angelegt werden.
     Je nach Einstellung (abh&auml;ngig von den jeweiligen Vorgaben des Unternehmens) k&ouml;nnen die App-Server direkt in die Verbindungen &uuml;bernommen werden oder m&uuml;ssen zuerst in App-Rollen geb&uuml;ndelt werden.
 ');
-INSERT INTO txt VALUES ('H9032', 'English', 'App Server: Elementary components (host addresses) associated to the application. Usually they are imported with the applications
-    (<a href="/help/settings/modelling">Import Settings</a>, <a href="/help/API/appdataimport">Import Interface</a>), but can also be created manually by the administrator.
+INSERT INTO txt VALUES ('H9032', 'English', 'App Server: Elementary components (host addresses, networks, IP ranges) associated to the application. Usually they are imported with the applications
+    (<a href="/help/settings/modelling">Import Settings</a>, <a href="/help/API/appdataimport">Import Interface</a>), but can also be created manually or imported via CSV by the administrator.
     Depending on the settings (according to company requirements) App Servers can be used directly in the connections or have to be bundled in App Roles first.
 ');
 INSERT INTO txt VALUES ('H9033', 'German',  'App-Rollen: Dienen der B&uuml;ndelung von App-Servern. Falls in den <a href="/help/settings/modelling">Modellierungseinstellungen</a> so vorgesehen,

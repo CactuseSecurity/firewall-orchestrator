@@ -1,6 +1,5 @@
 using System.Net.Sockets;
 using System.Net;
-// using System.Numerics;
 using NetTools;
 
 namespace FWO.Basics
@@ -200,93 +199,6 @@ namespace FWO.Basics
             return string.Join(".", bytes);
         }
 
-        // public static bool IsInSubnet(IPAddress address, string cidrString)
-        // {
-        //     string[] parts = cidrString.Split('/');
-        //     if (parts.Length != 2)
-        //     {
-        //         throw new FormatException("Invalid CIDR format.");
-        //     }
-
-        //     var networkAddress = IPAddress.Parse(parts[0]);
-        //     int prefixLength = int.Parse(parts[1]);
-
-        //     if (address.AddressFamily != networkAddress.AddressFamily)
-        //     {
-        //         // The IP versions must match (IPv4 vs IPv6)
-        //         return false;
-        //     }
-
-        //     if (address.AddressFamily == AddressFamily.InterNetwork)  // IPv4
-        //     {
-        //         return IsIPv4InSubnet(address, networkAddress, prefixLength);
-        //     }
-        //     else if (address.AddressFamily == AddressFamily.InterNetworkV6)  // IPv6
-        //     {
-        //         return IsIPv6InSubnet(address, networkAddress, prefixLength);
-        //     }
-        //     else
-        //     {
-        //         throw new NotSupportedException("Only IPv4 and IPv6 are supported.");
-        //     }
-        // }
-        
-        // private static bool IsIPv4InSubnet(IPAddress address, IPAddress networkAddress, int prefixLength)
-        // {
-        //     uint ipAddress = BitConverter.ToUInt32(address.GetAddressBytes().Reverse().ToArray(), 0);
-        //     uint networkIpAddress = BitConverter.ToUInt32(networkAddress.GetAddressBytes().Reverse().ToArray(), 0);
-
-        //     uint mask = (uint.MaxValue << (32 - prefixLength)) & uint.MaxValue;
-
-        //     return (ipAddress & mask) == (networkIpAddress & mask);
-        // }
-
-        // private static bool IsIPv6InSubnet(IPAddress address, IPAddress networkAddress, int prefixLength)
-        // {
-        //     BigInteger ipAddressBigInt = new(address.GetAddressBytes().Reverse().ToArray().Concat(new byte[] { 0 }).ToArray());
-        //     BigInteger networkIpAddressBigInt = new(networkAddress.GetAddressBytes().Reverse().ToArray().Concat(new byte[] { 0 }).ToArray());
-
-        //     BigInteger mask = BigInteger.Pow(2, 128) - BigInteger.Pow(2, 128 - prefixLength);
-
-        //     return (ipAddressBigInt & mask) == (networkIpAddressBigInt & mask);
-        // }
-
-        // public static string SanitizeIp(string cidrStr)
-        // {
-        //     cidrStr = cidrStr.StripOffNetmask();
-
-        //     if (IPAddress.TryParse(cidrStr, out IPAddress? ip))
-        //     {
-        //         if (ip != null)
-        //         {
-        //             if (ip.AddressFamily == AddressFamily.InterNetworkV6)
-        //             {
-        //                 cidrStr = ip.ToString();
-        //                 if (cidrStr.IndexOf('/') < 0) // a single ip without mask
-        //                 {
-        //                     cidrStr += "/128";
-        //                 }
-        //                 if (cidrStr.IndexOf('/') == cidrStr.Length - 1) // wrong format (/ at the end, fixing this by adding 128 mask)
-        //                 {
-        //                     cidrStr += "128";
-        //                 }
-        //             }
-        //             else if (ip.AddressFamily == AddressFamily.InterNetwork)
-        //             {
-        //                 cidrStr = ip.ToString();
-        //                 if (cidrStr.IndexOf('/') < 0) // a single ip without mask
-        //                 {
-        //                     cidrStr += "/32";
-        //                 }
-        //                 if (cidrStr.IndexOf('/') == cidrStr.Length - 1) // wrong format (/ at the end, fixing this by adding 32 mask)
-        //                 {
-        //                     cidrStr += "32";
-        //                 }
-        //             }
-        //         }
-        //     }
-        //     return cidrStr;
-        // }
         /// <summary>
         /// Compares the values of two IP adresses byte by byte.
         /// </summary>
@@ -315,8 +227,8 @@ namespace FWO.Basics
         /// </summary>
         public static int CompareSubnetMasks(string subnetMask1, string subnetMask2)
         {
-            if (subnetMask1.StartsWith(@"\")) subnetMask1 = subnetMask1.Substring(1);
-            if (subnetMask2.StartsWith(@"\")) subnetMask2 = subnetMask2.Substring(1);
+            if (subnetMask1.StartsWith(@"\")) subnetMask1 = subnetMask1[1..];
+            if (subnetMask2.StartsWith(@"\")) subnetMask2 = subnetMask2[1..];
 
             if(subnetMask1 != subnetMask2)
             {
@@ -325,10 +237,8 @@ namespace FWO.Basics
                 if (subnetMask2 == "") return 1;
 
                 // then cidr
-                int subnet1CIDR;
-                int subnet2CIDR;
-                bool subnet1IsInt = int.TryParse(subnetMask1, out subnet1CIDR);
-                bool subnet2IsInt = int.TryParse(subnetMask2, out subnet2CIDR);
+                bool subnet1IsInt = int.TryParse(subnetMask1, out int subnet1CIDR);
+                bool subnet2IsInt = int.TryParse(subnetMask2, out int subnet2CIDR);
                 if (subnet1IsInt && subnet2IsInt)
                 {
                     if (subnet1CIDR < subnet2CIDR) return -1;
@@ -337,12 +247,9 @@ namespace FWO.Basics
                 if (subnet1IsInt) return -1;
                 if (subnet2IsInt) return 1;
 
-                
-                IPAddress subnet1IP;
-                IPAddress subnet2IP;
-                bool subnet1IsIp = IPAddress.TryParse(subnetMask1, out subnet1IP);
-                bool subnet2IsIp = IPAddress.TryParse(subnetMask2, out subnet2IP);
-                if (subnet1IsIp && subnet2IsIp)
+                bool subnet1IsIp = IPAddress.TryParse(subnetMask1, out IPAddress? subnet1IP);
+                bool subnet2IsIp = IPAddress.TryParse(subnetMask2, out IPAddress? subnet2IP);
+                if (subnet1IsIp && subnet2IsIp && subnet1IP != null && subnet2IP != null)
                 {
                     // if both in ip format order by value
                     int compareIpValuesResult = CompareIpValues(subnet1IP, subnet2IP);

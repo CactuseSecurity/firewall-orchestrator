@@ -48,9 +48,10 @@
                     @if (AppServerHandler.ReadOnly || userConfig.DnsLookup)
                     {
                         <label class="col-sm-6">@AppServerHandler.ActAppServer.Name</label>
-                        @if (userConfig.DnsLookup)
+                        @if (!AppServerHandler.ReadOnly)
                         {
-                            <button type="button" class="btn btn-sm btn-primary col-sm-3" @onclick="Lookup">@(userConfig.GetText("generate_name"))</button>
+                            <button type="button" class="btn btn-sm btn-primary col-sm-3" data-toggle="@("tooltip")"
+                                title="@(userConfig.PureLine("C9017"))"@onclick="Lookup">@(userConfig.GetText("generate_name"))</button>
                         }
                     }
                     else

@@ -7,10 +7,14 @@ using NetTools;
 
 namespace FWO.Basics
 {
-    public static class StringExtensions
+    public static partial class StringExtensions
     {
         private const string HtmlTagPattern = "<.*?>";
         private static readonly string[] AllowedTags = ["br?", "i", "hr"];
+
+        [GeneratedRegex(@"(\/[\d\.\:]+)\D?")]
+        private static partial Regex NetmaskRegex();
+
 
         public static bool TrySplit(this string text, char separator, int index, out string output)
         {
@@ -30,7 +34,7 @@ namespace FWO.Basics
         {
             netmask = "";
 
-            Match match = Regex.Match(ip, @"(\/[\d\.\:]+)\D?");
+            Match match = NetmaskRegex().Match(ip);
 
             if (match.Success)
                 netmask = match.Groups[1].Value;
@@ -184,21 +188,21 @@ namespace FWO.Basics
 
         private static (IPAddress start, IPAddress end) IPv4CidrToRange(byte[] addressBytes, int prefixLength)
         {
-            uint ipAddress = BitConverter.ToUInt32(addressBytes.Reverse().ToArray(), 0);
+            uint ipAddress = BitConverter.ToUInt32([.. addressBytes.Reverse()], 0);
             uint mask = (uint.MaxValue << (32 - prefixLength)) & uint.MaxValue;
 
             uint startIp = ipAddress & mask;
             uint endIp = startIp | ~mask;
 
-            return (new IPAddress(BitConverter.GetBytes(startIp).Reverse().ToArray()),
-                    new IPAddress(BitConverter.GetBytes(endIp).Reverse().ToArray()));
+            return (new IPAddress([.. BitConverter.GetBytes(startIp).Reverse()]),
+                    new IPAddress([.. BitConverter.GetBytes(endIp).Reverse()]));
         }
 
         private static (IPAddress start, IPAddress end) IPv6CidrToRange(byte[] addressBytes, int prefixLength)
         {
             if (BitConverter.IsLittleEndian)
             {
-                addressBytes = addressBytes.Reverse().ToArray();  // Reverse byte array for BigInteger compatibility
+                addressBytes = [.. addressBytes.Reverse()];  // Reverse byte array for BigInteger compatibility
             }
 
             var addressBigInt = new BigInteger(addressBytes.Concat(new byte[] { 0 }).ToArray());  // Treat as unsigned
@@ -216,8 +220,8 @@ namespace FWO.Basics
 
             if (BitConverter.IsLittleEndian)
             {
-                startIpBytes = startIpBytes.Reverse().ToArray();
-                endIpBytes = endIpBytes.Reverse().ToArray();
+                startIpBytes = [.. startIpBytes.Reverse()];
+                endIpBytes = [.. endIpBytes.Reverse()];
             }
 
             return (new IPAddress(startIpBytes), new IPAddress(endIpBytes));
@@ -232,7 +236,7 @@ namespace FWO.Basics
                 Array.Copy(bytes, padded, bytes.Length);
                 return padded;
             }
-            return bytes.Take(targetLength).ToArray();  // Ensure it's exactly targetLength bytes
+            return [.. bytes.Take(targetLength)];  // Ensure it's exactly targetLength bytes
         }
 
         /// <summary>

@@ -70,10 +70,9 @@
     private string minMaxButtonSymbol = Icons.CollapseRight;
     private string overflowSidebar = "auto";
 
-    private bool firstTry = true;
     protected override void OnParametersSet()
     {
-        if(firstTry && !Collapsed && StartCollapsed)
+        if(!Collapsed && StartCollapsed)
         {
             ToggleCollapse(true);
         }

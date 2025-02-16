@@ -1,5 +1,6 @@
 ﻿@using FWO.Config.Api
 @using FWO.Services
+@using FWO.Api.Client.Queries
 
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.Modeller}")]
 
@@ -90,7 +91,7 @@
     {
         try
         {
-            List<IpProtocol> ipProtosOrig = await apiConnection.SendQueryAsync<List<IpProtocol>>(FWO.Api.Client.Queries.StmQueries.getIpProtocols);
+            List<IpProtocol> ipProtosOrig = await apiConnection.SendQueryAsync<List<IpProtocol>>(StmQueries.getIpProtocols);
             ipProtos = CustomSort(ipProtosOrig);
             InitComplete = true;
         }

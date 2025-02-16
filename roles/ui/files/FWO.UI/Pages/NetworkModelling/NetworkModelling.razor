@@ -36,7 +36,7 @@
         <hr />
         <div class="form-group row">
             <div class="col-sm-4">
-                <SelectOwner SelectedOwner="selectedApp" SelectedOwnerChanged="InitApp" Apps="apps" />
+                <SelectOwner SelectedOwner="selectedApp" SelectedOwnerChanged="ReInitApp" Apps="apps" />
             </div>
             <div class="col-sm-6">
                 <div class="btn-group">
@@ -253,6 +253,14 @@ else if(appHandler != null)
         else
         {
             selectedApp = apps.First();
+        }
+    }
+
+    private async Task ReInitApp(FwoOwner newApp)
+    {
+        if(newApp.Id != selectedApp.Id)
+        {
+            await InitApp(newApp);
         }
     }
 

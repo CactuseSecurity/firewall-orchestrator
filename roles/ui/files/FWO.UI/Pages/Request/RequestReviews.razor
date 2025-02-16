@@ -113,8 +113,7 @@ else
         {
             selectedOwnerOpt = newOwnerOpt;
             DisplayTickets = wfHandler.SelectOwnerImplTasks(selectedOwnerOpt);
-            await Reset();
-            StateHasChanged();
+            await InvokeAsync(StateHasChanged);
         }
         catch (Exception exception)
         {
@@ -128,8 +127,7 @@ else
         {
             selectedDeviceOpt = newDeviceOpt;
             DisplayTickets = wfHandler.SelectDeviceImplTasks(selectedDeviceOpt);
-            await Reset();
-            StateHasChanged();
+            await InvokeAsync(StateHasChanged);
         }
         catch (Exception exception)
         {

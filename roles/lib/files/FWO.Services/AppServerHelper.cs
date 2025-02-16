@@ -185,7 +185,7 @@ namespace FWO.Services
             }
             catch(Exception exception)
             {
-                Log.WriteError("Upsert App Server", $"leads to exception:", exception);
+                Log.WriteError("Upsert App Server", $"Upsert of {incomingAppServer.Name} leads to exception:", exception);
                 return (null, null);
             }
         }

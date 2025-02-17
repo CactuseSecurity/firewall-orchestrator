@@ -5,6 +5,7 @@ using PuppeteerSharp.Media;
 using PuppeteerSharp;
 using PuppeteerSharp.BrowserData;
 using HtmlAgilityPack;
+using System.Diagnostics;
 
 namespace FWO.Test
 {
@@ -22,6 +23,9 @@ namespace FWO.Test
             Assert.That(IsValidHTML(Html));
 
             string? isGitHubActions = Environment.GetEnvironmentVariable("RUNNING_ON_GITHUB");
+
+            Console.WriteLine(isGitHubActions);
+            Debug.WriteLine(isGitHubActions);
 
             if(isGitHubActions == "1")
             {

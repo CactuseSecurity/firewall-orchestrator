@@ -245,11 +245,11 @@ namespace FWO.Basics
                 if (subnet2IsInt) return 1;
 
                 
-                IPAddress subnet1IP;
-                IPAddress subnet2IP;
+                IPAddress? subnet1IP;
+                IPAddress? subnet2IP;
                 bool subnet1IsIp = IPAddress.TryParse(subnetMask1, out subnet1IP);
                 bool subnet2IsIp = IPAddress.TryParse(subnetMask2, out subnet2IP);
-                if (subnet1IsIp && subnet2IsIp)
+                if (subnet1IP != null && subnet2IP != null && subnet1IsIp && subnet2IsIp)
                 {
                     // if both in ip format order by value
                     int compareIpValuesResult = CompareIpValues(subnet1IP, subnet2IP);

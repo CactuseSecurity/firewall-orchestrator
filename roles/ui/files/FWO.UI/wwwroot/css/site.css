@@ -14,12 +14,6 @@ body {
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
 }
 
-/* makes sure that element uses font that can display unicode signs*/
-.unicode-icons {
-    font-family: 'Segoe UI Symbol', 'Arial Unicode MS', sans-serif !important;
-}
-
-
 a,
 .btn-link {
     color: #0366d6;

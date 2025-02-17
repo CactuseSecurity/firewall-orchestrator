@@ -21,7 +21,7 @@ namespace FWO.Test
         {
             Assert.That(IsValidHTML(Html));
 
-            string? isGitHubActions = Environment.GetEnvironmentVariable("RUNNING_ON_GITHUB_ACTIONS");
+            string? isGitHubActions = Environment.GetEnvironmentVariable("RUNNING_ON_GITHUB");
 
             if(isGitHubActions == "1")
             {

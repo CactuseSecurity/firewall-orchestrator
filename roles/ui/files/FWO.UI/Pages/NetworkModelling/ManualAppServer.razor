@@ -32,6 +32,12 @@
                                                 @(appServerListHandler.DisplayButton("reactivate", Icons.Add))
                                             </button>
                                         }
+                                        @if(!context.InUse)
+                                        {
+                                            <button type="button" class="btn btn-sm btn-danger" @onclick="() => appServerListHandler.RequestDeleteAppServer(context)">
+                                                @(appServerListHandler.DisplayButton("delete", Icons.Delete))
+                                            </button>
+                                        }
                                     }
                                     else
                                     {

@@ -627,7 +627,7 @@ namespace FWO.Middleware.Server
 					deleted = false
 				};
 				await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.setAppServerDeletedState, Variables);
-				await AppServerHelper.DeactivateOtherSources(apiConnection, appServer);
+				await AppServerHelper.DeactivateOtherSources(apiConnection, appServer, globalConfig.AutoReplaceAppServer);
 			}
 			catch (Exception exc)
 			{
@@ -690,7 +690,7 @@ namespace FWO.Middleware.Server
 					deleted = true
 				};
 				await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.setAppServerDeletedState, Variables);
-				await AppServerHelper.ReactivateOtherSource(apiConnection, appServer);
+				await AppServerHelper.ReactivateOtherSource(apiConnection, appServer, globalConfig.AutoReplaceAppServer);
 			}
 			catch (Exception exc)
 			{

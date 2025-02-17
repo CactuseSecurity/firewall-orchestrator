@@ -88,7 +88,7 @@ namespace FWO.Services
             return true;
         }
 
-        public static async Task ReactivateOtherSource(ApiConnection apiConnection, ModellingAppServer deletedAppServer)
+        public static async Task ReactivateOtherSource(ApiConnection apiConnection, ModellingAppServer deletedAppServer, bool replace = false)
         {
             try
             {
@@ -97,12 +97,17 @@ namespace FWO.Services
                 {
                     int maxPrio = ExistingOtherAppServersSameIp.Max(x => Prio(x.ImportSource));
                     List<ModellingAppServer> ExistingOtherAppServersMaxPrio = [.. ExistingOtherAppServersSameIp.Where(x => Prio(x.ImportSource) == maxPrio)];
+                    long reactivatedId = ExistingOtherAppServersMaxPrio.Max(x => x.Id);
                     var Variables = new
                     {
-                        id = ExistingOtherAppServersMaxPrio.Max(x => x.Id),
+                        id = reactivatedId,
                         deleted = false
                     };
                     await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.setAppServerDeletedState, Variables);
+                    if(replace)
+                    {
+                        await ReplaceAppServer(apiConnection, deletedAppServer.Id, reactivatedId);
+                    }
                 }
             }
             catch(Exception exception)

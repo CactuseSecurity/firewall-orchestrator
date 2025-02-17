@@ -23,6 +23,10 @@ namespace FWO.Test
 
             string? isGitHubActions = Environment.GetEnvironmentVariable("RUNNING_ON_GITHUB_ACTIONS");
 
+            if(isGitHubActions == "1")
+            {
+                return;
+            }
 
             if (File.Exists(FilePath))
                 File.Delete(FilePath);

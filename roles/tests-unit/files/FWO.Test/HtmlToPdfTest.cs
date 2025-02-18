@@ -18,7 +18,7 @@ namespace FWO.Test
         private const string FilePath = "pdffile.pdf";
         private const string Html = "<html> <body> <h1>test</h1> <h2>test mit puppteer</h2> </body> </html>";
         private const string ChromeBinPathLinux = "/usr/local/bin";
-        
+
 
         [Test]
         public async Task GeneratePdf()
@@ -75,9 +75,7 @@ namespace FWO.Test
                 ExecutablePath = installedBrowser.GetExecutablePath(),
                 Headless = true,
                 DumpIO = isGitHubActions != null ? true : false, // Enables debug logs
-                Args = isGitHubActions != null ?
-                  new[] { "--database=/tmp", "--no-sandbox", "--no-zygote" }
-                  : [] // No additional arguments locally
+                Args = new[] { "--database=/tmp", "--no-sandbox", "--no-zygote" }
             });
 
             try

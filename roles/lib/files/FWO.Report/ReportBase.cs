@@ -264,7 +264,8 @@ namespace FWO.Report
             using IBrowser? browser = await Puppeteer.LaunchAsync(new LaunchOptions
             {
                 ExecutablePath = installedBrowser.GetExecutablePath(),
-                Headless = true
+                Headless = true,
+                Args = new[] {"--no-zygote"}
             });
 
             try

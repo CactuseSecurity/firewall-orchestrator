@@ -38,7 +38,7 @@ jobs:
       run: echo "RUNNING_ON_GITHUB=1" >> $GITHUB_ENV      
     - uses: actions/checkout@v4   
     - name: do test install in case of merged pull request
-      run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator && ansible-playbook -e force_install=true site.yml -K --skip-tags test
+      run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator && ansible-playbook -e force_install=true site.yml -K -e --skip-tags test
       env:
         RUNNING_ON_GITHUB_ACTIONS: ${{ env.RUNNING_ON_GITHUB }}
     - name: Set environment variable

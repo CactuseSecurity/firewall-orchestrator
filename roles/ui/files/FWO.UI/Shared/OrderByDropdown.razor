@@ -43,7 +43,7 @@
     /// Callback to communicate that the reordering process has been completed.
     /// </summary>
     [Parameter, EditorRequired]
-    public EventCallback CollectionReordered { get; set; }
+    public EventCallback<List<TCollectionItem>> CollectionReordered { get; set; }
 
     /// <summary>
     /// Backing field of property 'SelectedProperty'.
@@ -93,18 +93,15 @@
     /// The visual elements for the implemented order modes.
     /// </summary>
     private List<OrderMode> orderModes = new List<OrderMode> {OrderMode.Asc, OrderMode.Desc};
+    
+    private bool initialized = false;
 
-
-    protected override void OnAfterRender(bool firstRender)
+    protected override void OnParametersSet()
     {
-        if (firstRender)
+        if (!initialized && ElementProperties != null && ElementProperties.Any())
         {
-            if(propertyDropdown != null && propertyDropdown.Elements != null && propertyDropdown.Elements.Any())
-            {
-                SelectedProperty = propertyDropdown.Elements.First();
-            }
-            
-            StateHasChanged();
+            SelectedProperty = ElementProperties.First();
+            initialized = true;
         }
     }
 
@@ -113,7 +110,7 @@
     /// </summary>
     private void ReorderCollection()
     {
-        if(propertyDropdown != null && Collection != null && !string.IsNullOrEmpty(propertyDropdown.SelectedElement))
+        if(Collection != null && !string.IsNullOrEmpty(SelectedProperty))
         {
             if(SelectedProperty.Equals("Ip") && typeof(TCollectionItem) == typeof(ModellingAppServer))
             {
@@ -121,8 +118,7 @@
             }
             else
             {
-                string keySelectorProperty = propertyDropdown.SelectedElement;
-                Func<TCollectionItem, object> keySelector = GetGenericOrderByExpression<TCollectionItem>(keySelectorProperty);
+                Func<TCollectionItem, object> keySelector = GetGenericOrderByExpression<TCollectionItem>(SelectedProperty);
                 Collection = Collection.OrderBy(keySelector).ToList();  
             }
 
@@ -131,8 +127,13 @@
                 Collection.Reverse();   
             }
 
-            InvokeAsync(StateHasChanged);
-            CollectionReordered.InvokeAsync();
+            if (initialized)
+            {
+                InvokeAsync(StateHasChanged);
+                              
+            }
+
+            CollectionReordered.InvokeAsync(Collection);  
         }
         else
         {

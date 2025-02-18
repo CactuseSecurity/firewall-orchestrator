@@ -1601,6 +1601,8 @@ INSERT INTO txt VALUES ('lookup',               'German',   'Nachschlagen');
 INSERT INTO txt VALUES ('lookup',               'English',  'Look-up');
 INSERT INTO txt VALUES ('generate_name',        'German',   'Name generieren');
 INSERT INTO txt VALUES ('generate_name',        'English',  'Generate Name');
+INSERT INTO txt VALUES ('change_source',        'German',   '&Auml;nderungsquelle');
+INSERT INTO txt VALUES ('change_source',        'English',  'Change Source');
 
 -- compliance
 INSERT INTO txt VALUES ('compliance',			'German', 	'Compliance');

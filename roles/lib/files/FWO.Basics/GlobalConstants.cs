@@ -29,6 +29,7 @@ namespace FWO.Basics
         public const string kUi = "ui";
         public const string kCertification = "Certification";
         public const string kImportAppData = "importAppData";
+        public const string kAdjustAppServerNames = "adjustAppServerNames";
         public const string kImportAreaSubnetData = "importAreaSubnetData";
         public const string kManual = "manual";
         public const string kCSV_ = "CSV_";

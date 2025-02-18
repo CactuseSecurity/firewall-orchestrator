@@ -42,6 +42,7 @@
                     <Column TableItem="ModellingHistoryEntry" Title="@(userConfig.GetText("object_id"))" Field="@(x => x.ObjectId)" Sortable="true" Filterable="true" />
                     <Column TableItem="ModellingHistoryEntry" Title="@(userConfig.GetText("text"))" Field="@(x => x.ChangeText)" Sortable="true" Filterable="true" />
                     <Column TableItem="ModellingHistoryEntry" Title="@(userConfig.GetText("changed_by"))" Field="@(x => x.Changer)" Sortable="true" Filterable="true" />
+                    <Column TableItem="ModellingHistoryEntry" Title="@(userConfig.GetText("change_source"))" Field="@(x => x.ChangeSource)" Sortable="true" Filterable="true" />
                     <Column TableItem="ModellingHistoryEntry" Title="@(userConfig.GetText("change_time"))" Field="@(x => x.ChangeTime)" Sortable="true" Filterable="true" />
                     <Pager ShowPageNumber="true" ShowTotalCount="true" />
                 </Table>

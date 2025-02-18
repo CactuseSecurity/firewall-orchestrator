@@ -34,7 +34,7 @@ namespace FWO.Services
                 }
                 if (CheckAppServer())
                 {
-                    (long? appServerId, string? ExistingAppServerName) = await AppServerHelper.UpsertAppServer(apiConnection, ActAppServer, !userConfig.DnsLookup, true, AddMode);
+                    (long? appServerId, string? ExistingAppServerName) = await AppServerHelper.UpsertAppServer(apiConnection, userConfig, ActAppServer, !userConfig.DnsLookup, true, AddMode);
                     if (appServerId != null)
                     {
                         if (AddMode)

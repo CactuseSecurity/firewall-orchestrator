@@ -1,4 +1,5 @@
-using System.Text.Json.Serialization; 
+using System.Text.Json.Serialization;
+using FWO.Basics;
 using Newtonsoft.Json;
 
 namespace FWO.Api.Data
@@ -28,5 +29,8 @@ namespace FWO.Api.Data
 
         [JsonProperty("change_time"), JsonPropertyName("change_time")]
         public DateTime? ChangeTime { get; set; }
+
+        [JsonProperty("change_source"), JsonPropertyName("change_source")]
+        public string ChangeSource { get; set; } = GlobalConst.kManual;
     }
 }

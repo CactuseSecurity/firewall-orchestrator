@@ -5,6 +5,7 @@ mutation addHistoryEntry(
   $objectId: bigint!
   $changeText: String
   $changer: String!
+  $changeSource: String
 ) {
   insert_modelling_change_history(
     objects: {
@@ -14,6 +15,7 @@ mutation addHistoryEntry(
       object_id: $objectId
       change_text: $changeText
       changer: $changer
+      change_source: $changeSource
     }
   ) {
     returning {

@@ -90,7 +90,7 @@ namespace FWO.Services
                     await LogChange(ModellingTypes.ChangeType.Delete, ModellingTypes.ModObjectType.AppServer, actAppServer.Id,
                         $"Deleted App Server: {actAppServer.Display()}", Application.Id);
                 }
-                await AppServerHelper.ReactivateOtherSource(apiConnection, actAppServer, userConfig.AutoReplaceAppServer);
+                await AppServerHelper.ReactivateOtherSource(apiConnection, userConfig, actAppServer);
                 await Init(Application);
                 apiConnection.SwitchBack();
                 DeleteAppServerMode = false;
@@ -117,7 +117,7 @@ namespace FWO.Services
                     await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.setAppServerDeletedState, new { id = actAppServer.Id, deleted = false });
                     await LogChange(ModellingTypes.ChangeType.Reactivate, ModellingTypes.ModObjectType.AppServer, actAppServer.Id,
                         $"Reactivate App Server: {actAppServer.Display()}", Application.Id);
-                    await AppServerHelper.DeactivateOtherSources(apiConnection, actAppServer, userConfig.AutoReplaceAppServer);
+                    await AppServerHelper.DeactivateOtherSources(apiConnection, userConfig, actAppServer);
                     await Init(Application);
                 }
                 ReactivateAppServerMode = false;

@@ -8,5 +8,6 @@ query getHistoryForApp ($appId: Int!){
     change_text
     changer
     change_time
+    change_source
   }
 }

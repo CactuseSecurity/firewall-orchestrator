@@ -131,7 +131,7 @@ namespace FWO.Ui.Services
                     return new(false, new Exception($"{UserConfig.GetText("owner_appserver_notfound")} At: {importAppServer.AppServerName}/{importAppServer.AppID}"));
                 }
 
-                return ((await AppServerHelper.UpsertAppServer(ApiConnection,
+                return ((await AppServerHelper.UpsertAppServer(ApiConnection, UserConfig,
                             new(importAppServer.ToModellingAppServer()){ ImportSource = ImportSource, AppId = ownerIds.First().Id, CustomType = appServerType.Id},
                             !UserConfig.DnsLookup
                     )).Item1 != null, default);

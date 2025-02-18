@@ -121,7 +121,9 @@ namespace FWO.Middleware.Server
             {
                 if(globalConfig.DnsLookup)
                 {
-                    await AppServerHelper.AdjustAppServerNames(apiConnection, globalConfig);
+                    UserConfig userConfig = new (globalConfig);
+                    userConfig.User.Name = Roles.MiddlewareServer;
+                    await AppServerHelper.AdjustAppServerNames(apiConnection, userConfig);
                 }
             }
             catch (Exception exc)

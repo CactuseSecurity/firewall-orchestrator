@@ -14,7 +14,7 @@ from fwo_data_networking import get_ip_of_interface_obj
 
 scope = ['global', 'adom']
 nw_obj_types = ['firewall/address', 'firewall/address6', 'firewall/addrgrp',
-                'firewall/addrgrp6', 'firewall/ippool', 'firewall/vip']
+                'firewall/addrgrp6', 'firewall/ippool', 'firewall/vip', 'system/external-resource']
 svc_obj_types = ['application/list', 'application/group', 'application/categories',
                  'application/custom', 'firewall/service/custom', 'firewall/service/group']
 
@@ -107,6 +107,7 @@ def get_config(config2import, full_config, current_import_id, mgm_details, limit
 
 
 def getObjects(sid, fm_api_url, raw_config, adom_name, limit, scope, nw_obj_types, svc_obj_types):
+    logger = getFwoLogger()
     # get those objects that exist globally and on adom level
     for s in scope:
         # get network objects:
@@ -137,6 +138,35 @@ def getObjects(sid, fm_api_url, raw_config, adom_name, limit, scope, nw_obj_type
                 adom_scope = s
             fmgr_getter.update_config_with_fortinet_api_call(
                 raw_config, sid, fm_api_url, "/pm/config/"+adom_scope+"/obj/" + object_type, "user_obj_" + s + "_" + object_type, limit=limit)
+            
+    # get one arbitrary device and vdom to get dynamic objects
+    # they are equal across all adoms, vdoms, devices
+    devices = fmgr_getter.fortinet_api_call(sid, fm_api_url, '/dvmdb/adom/' + adom_name + '/device')
+    if len(devices)>0 and 'name' in devices[0] and 'vdom' in devices[0] and 'name' in devices[0]['vdom'][0]:
+        arbitraryDevice = devices[0]['name']
+        arbitraryVdom = devices[0]['vdom'][0]['name']
+    else:
+        logger.error('no device or vdom info for adom: ' + adom_name)
+
+    # get dynamic objects
+    payload = {
+        'params': [
+            {
+                'data': {
+                    'action': 'get',
+                    'resource': '/api/v2/monitor/firewall/internet-service-basic?vdom=' + arbitraryVdom,
+                    'target': [
+                        'adom/' + adom_name + '/device/' + arbitraryDevice
+                    ]
+                }
+            }
+        ]
+    }
+    fmgr_getter.update_config_with_fortinet_api_call(
+        raw_config, sid, fm_api_url, "sys/proxy/json", "nw_obj_global_firewall/internet-service-basic", limit=limit, payload=payload, method='exec')
+
+
+
 
 
 # def getZones(sid, fm_api_url, raw_config, adom_name, limit, debug_level):

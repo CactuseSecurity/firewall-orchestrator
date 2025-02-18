@@ -204,17 +204,24 @@
                         }
                     </div>
                 </div>
+                <div class="col-sm-2">
+                    @if(selectedInterfaces.Count  == 1)
+                    {
+                        <button type="button" class="btn btn-sm btn-primary w-100" @onclick="ReplaceInterface">
+                            @(ConnHandler.DisplayButton("replace", Icons.Use))</button>
+                    }
+                </div>
                 <br>
             }
         </div>
     </Sidebar>
-    <EditAppRole @bind-Display="ConnHandler.EditAppRoleMode" @bind-AppRoleHandler="ConnHandler.AppRoleHandler" RefreshParent="async () => await WrapAsync(ConnHandler.ReInit)"/>
+    <EditAppRole @bind-Display="ConnHandler.EditAppRoleMode" @bind-AppRoleHandler="ConnHandler.AppRoleHandler" RefreshParent="RefreshParentWithoutRefreshingActConn"/>
     <ConfirmDelete @bind-Display="ConnHandler.DeleteAppRoleMode" PerformAction="async () => await WrapAsync(ConnHandler.DeleteAppRole)"
         Title="@userConfig.GetText("delete_app_role")" DeleteMessage="@ConnHandler.Message" AllowedRoles="@Roles.Modeller" DeleteAllowed="ConnHandler.DeleteAllowed" Enabled="ConnHandler.IsOwner"/>
     <EditServiceGroup @bind-Display="ConnHandler.EditSvcGrpMode" @bind-SvcGroupHandler="ConnHandler.SvcGrpHandler"/>
     <ConfirmDelete @bind-Display="ConnHandler.DeleteSvcGrpMode" PerformAction="async () => await WrapAsync(ConnHandler.DeleteServiceGroup)"
         Title="@userConfig.GetText("delete_service_group")" DeleteMessage="@ConnHandler.Message" AllowedRoles="@Roles.Modeller" DeleteAllowed="ConnHandler.DeleteAllowed" Enabled="ConnHandler.IsOwner"/>
-    <EditService @bind-Display="ConnHandler.EditServiceMode" ServiceHandler="ConnHandler.ServiceHandler" RefreshParent="async () => await WrapAsync(ConnHandler.ReInit)"/>
+    <EditService @bind-Display="ConnHandler.EditServiceMode" ServiceHandler="ConnHandler.ServiceHandler" RefreshParent="RefreshParentWithoutRefreshingActConn"/>
     <ConfirmDelete @bind-Display="ConnHandler.DeleteServiceMode" PerformAction="async () => await WrapAsync(ConnHandler.DeleteService)"
         Title="@userConfig.GetText("delete_service")" DeleteMessage="@ConnHandler.Message" AllowedRoles="@Roles.Modeller" DeleteAllowed="ConnHandler.DeleteAllowed" Enabled="ConnHandler.IsOwner"/>
     <SearchInterface @bind-Display="SearchInterfaceMode" @bind-PreselectedInterfaces="ConnHandler.PreselectedInterfaces" Application="ConnHandler.Application"/>
@@ -643,6 +650,16 @@
     {
         await calledFunc();
         await ConnHandlerChanged.InvokeAsync(ConnHandler);
+    }
+
+    /// <summary>
+    /// Executes ReInit without dropping ActConn
+    /// </summary>
+    private async Task RefreshParentWithoutRefreshingActConn()
+    {
+        ConnHandler.ActConnNeedsRefresh = false;
+        await WrapAsync(ConnHandler.ReInit);
+        ConnHandler.ActConnNeedsRefresh = true;
     }
 
     private string ColWidthClass()

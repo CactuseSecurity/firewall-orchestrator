@@ -27,12 +27,15 @@ namespace FWO.Encryption
 				decryptedText = CustomAesCbcDecryptBase64(encryptedDataString, key);
 				return decryptedText;
 			}
-            catch (Exception decryptException)
+			catch
 			{
-				// throw new ArgumentException("Could not decrypt.");
-				Log.WriteWarning("AesEnc", $"Could not decrypt.");
+				throw new ArgumentException("Could not decrypt.");
+            // catch (Exception decryptException)
+			// {
+			// 	// throw new ArgumentException("Could not decrypt.");
+			// 	Log.WriteWarning("AesEnc", $"Could not decrypt.");
 			}
-			return encryptedDataString;
+			// return encryptedDataString;
 		}
 		
 		public static string CustomAesCbcEncryptBase64(string plaintext, string key)

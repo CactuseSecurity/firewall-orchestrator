@@ -291,7 +291,7 @@ namespace FWO.Report
             }
         }
 
-        private static List<ToCHeader> CreateTOCContent(string html)
+        public static List<ToCHeader> CreateTOCContent(string html)
         {
             HtmlDocument doc = new();
             doc.LoadHtml(html);
@@ -321,7 +321,7 @@ namespace FWO.Report
             return tocs;
         }
 
-        private string BuildHTMLToC(string html)
+        public string BuildHTMLToC(string html)
         {
             bool tocTemplateValid = IsValidHTML(TocHTMLTemplate);
 
@@ -365,7 +365,7 @@ namespace FWO.Report
             return TocHTMLTemplate;
         }
 
-        private static bool IsValidHTML(string html)
+        public static bool IsValidHTML(string html)
         {
             try
             {
@@ -380,7 +380,7 @@ namespace FWO.Report
 
         }
 
-        private static byte[] AddToCBookmarksToPDF(Stream pdfData, string html)
+        public static byte[] AddToCBookmarksToPDF(Stream pdfData, string html)
         {
             PdfDocument document = PdfReader.Open(pdfData, PdfDocumentOpenMode.Modify);
 
@@ -408,7 +408,7 @@ namespace FWO.Report
             return pdfWithToCData;
         }
 
-        private PuppeteerSharp.Media.PaperFormat? GetPuppeteerPaperFormat(PaperFormat format)
+        public PuppeteerSharp.Media.PaperFormat? GetPuppeteerPaperFormat(PaperFormat format)
         {
             if (format == PaperFormat.Custom)
                 return new PuppeteerSharp.Media.PaperFormat(CustomWidth, CustomHeight);

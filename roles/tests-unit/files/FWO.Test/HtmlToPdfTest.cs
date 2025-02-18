@@ -6,6 +6,8 @@ using PuppeteerSharp;
 using PuppeteerSharp.BrowserData;
 using HtmlAgilityPack;
 using System.Diagnostics;
+using FWO.Report;
+using FWO.Report.Data;
 
 namespace FWO.Test
 {
@@ -14,17 +16,19 @@ namespace FWO.Test
     internal class HtmlToPdfTest
     {
         private const string FilePath = "pdffile.pdf";
-        private const string Html = "<html> <body> <h1>test<h1> test mit puppteer </body> </html>";
+        private const string Html = "<html> <body> <h1>test</h1> <h2>test mit puppteer</h2> </body> </html>";
         private const string ChromeBinPathLinux = "/usr/local/bin";
+        
 
         [Test]
         public async Task GeneratePdf()
         {
-            Assert.That(IsValidHTML(Html));
+            bool isValidHtml = ReportBase.IsValidHTML(Html);
+            ClassicAssert.IsTrue(isValidHtml);
 
             string? isGitHubActions = Environment.GetEnvironmentVariable("RUNNING_ON_GITHUB");
 
-            if(!string.IsNullOrEmpty(isGitHubActions))
+            if (!string.IsNullOrEmpty(isGitHubActions))
             {
                 return;
             }
@@ -78,18 +82,18 @@ namespace FWO.Test
 
             try
             {
-                await TryCreatePDF(browser, PaperFormat.A0);
-                await TryCreatePDF(browser, PaperFormat.A1);
-                await TryCreatePDF(browser, PaperFormat.A2);
-                await TryCreatePDF(browser, PaperFormat.A3);
-                await TryCreatePDF(browser, PaperFormat.A4);
-                await TryCreatePDF(browser, PaperFormat.A5);
-                await TryCreatePDF(browser, PaperFormat.A6);
+                await TryCreatePDF(browser, PuppeteerSharp.Media.PaperFormat.A0);
+                await TryCreatePDF(browser, PuppeteerSharp.Media.PaperFormat.A1);
+                await TryCreatePDF(browser, PuppeteerSharp.Media.PaperFormat.A2);
+                await TryCreatePDF(browser, PuppeteerSharp.Media.PaperFormat.A3);
+                await TryCreatePDF(browser, PuppeteerSharp.Media.PaperFormat.A4);
+                await TryCreatePDF(browser, PuppeteerSharp.Media.PaperFormat.A5);
+                await TryCreatePDF(browser, PuppeteerSharp.Media.PaperFormat.A6);
 
-                await TryCreatePDF(browser, PaperFormat.Ledger);
-                await TryCreatePDF(browser, PaperFormat.Legal);
-                await TryCreatePDF(browser, PaperFormat.Letter);
-                await TryCreatePDF(browser, PaperFormat.Tabloid);
+                await TryCreatePDF(browser, PuppeteerSharp.Media.PaperFormat.Ledger);
+                await TryCreatePDF(browser, PuppeteerSharp.Media.PaperFormat.Legal);
+                await TryCreatePDF(browser, PuppeteerSharp.Media.PaperFormat.Letter);
+                await TryCreatePDF(browser, PuppeteerSharp.Media.PaperFormat.Tabloid);
             }
             catch (Exception)
             {
@@ -101,22 +105,20 @@ namespace FWO.Test
             }
         }
 
-        private static bool IsValidHTML(string html)
+        [Test]
+        public void TryCreateToC()
         {
-            try
-            {
-                HtmlDocument? doc = new();
-                doc.LoadHtml(html);
-                return !doc.ParseErrors.Any();
-            }
-            catch (Exception)
-            {
-                return false;
-            }
+            bool isValidHtml = ReportBase.IsValidHTML(Html);
+            ClassicAssert.IsTrue(isValidHtml);
 
+            List<ToCHeader>? tocContent = ReportBase.CreateTOCContent(Html);
+
+            ClassicAssert.AreEqual(tocContent.Count, 2);
+            ClassicAssert.AreEqual(tocContent[0].Title, "test");
+            ClassicAssert.AreEqual(tocContent[1].Title, "test mit puppteer");
         }
 
-        private async Task TryCreatePDF(IBrowser browser, PaperFormat paperFormat)
+        private async Task TryCreatePDF(IBrowser browser, PuppeteerSharp.Media.PaperFormat paperFormat)
         {
             Log.WriteInfo("Test Log", $"Test creating PDF {paperFormat}");
 
@@ -126,13 +128,15 @@ namespace FWO.Test
                 await page.SetContentAsync(Html);
 
                 PdfOptions pdfOptions = new() { DisplayHeaderFooter = true, Landscape = true, PrintBackground = true, Format = paperFormat, MarginOptions = new MarginOptions { Top = "1cm", Bottom = "1cm", Left = "1cm", Right = "1cm" } };
-                byte[] pdfData = await page.PdfDataAsync(pdfOptions);
+                using Stream? pdfData = await page.PdfStreamAsync(pdfOptions);
 
-                await File.WriteAllBytesAsync(FilePath, pdfData);
+                byte[]? pdfWithToCData = ReportBase.AddToCBookmarksToPDF(pdfData, Html);
+
+                await File.WriteAllBytesAsync(FilePath, pdfWithToCData);
 
                 Assert.That(FilePath, Does.Exist);
                 FileAssert.Exists(FilePath);
-                ClassicAssert.AreEqual(new FileInfo(FilePath).Length, pdfData.Length);
+                ClassicAssert.AreEqual(new FileInfo(FilePath).Length, pdfWithToCData.Length);
             }
             catch (Exception)
             {

@@ -1,0 +1,181 @@
+@using FWO.Api.Data
+@using FWO.Basics
+@using FWO.Basics.Comparer
+@using FWO.Ui.Data
+@using NetTools
+@using System.Linq.Expressions
+@using System.Net
+@using System.Reflection
+
+@typeparam TCollectionItem
+
+@inject UserConfig userConfig
+
+<div class="d-flex gap-2">
+    <label class="text-nowrap">@(userConfig.GetText("order_by")): </label>
+    <Dropdown   @ref="propertyDropdown"
+                ElementType="string"
+                @bind-SelectedElement="SelectedProperty"
+                Elements="ElementProperties"
+                ElementToString="@(a => a)">
+                    <ElementTemplate Context="property">
+                        @((MarkupString) property)
+                    </ElementTemplate>
+    </Dropdown>
+    <Dropdown   @ref="orderModeDropdown"
+                ElementType="OrderMode"
+                @bind-SelectedElement="SelectedOrderMode"
+                Elements="orderModes"
+                ElementToString="@(a => a.ToString())">
+                    <ElementTemplate Context="orderMode">
+                        @((MarkupString) orderMode.ToString())
+                    </ElementTemplate>
+    </Dropdown>
+</div> 
+
+@code
+{
+    /// <summary>
+    /// List of the properties, that the user can order the collection by.
+    /// </summary>
+    [Parameter, EditorRequired]
+    public List<string> ElementProperties { get; set; }
+    /// <summary>
+    /// Collection of items, that the user can order by the selected property and order mode.
+    /// </summary>
+    [Parameter, EditorRequired]
+    public List<TCollectionItem> Collection { get; set; }
+    /// <summary>
+    /// Callback to communicate that the reordering process has been completed.
+    /// </summary>
+    [Parameter, EditorRequired]
+    public EventCallback CollectionReordered { get; set; }
+
+    /// <summary>
+    /// Backing field of property 'SelectedProperty'.
+    /// </summary> 
+    private string selectedProperty = "";
+    /// <summary>
+    /// Binds the visual representation of the selected property.
+    /// </summary>   
+    public string SelectedProperty 
+    {
+        get => selectedProperty;
+        set
+        {
+            if(!selectedProperty.Equals(value))
+            {
+                selectedProperty = value;
+                ReorderCollection();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Backing field of property 'SelectedOrderMode'.
+    /// </summary> 
+    private OrderMode selectedOrderMode = OrderMode.Asc;
+    /// <summary>
+    /// The mode of the rerordering process (i.e. ascending or descending).
+    /// </summary> 
+    public OrderMode SelectedOrderMode
+    {
+        get => selectedOrderMode;
+        set
+        {
+            if(!selectedOrderMode.Equals(value))
+            {
+                selectedOrderMode = value;
+                ReorderCollection();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Reference to the dropdown component for the selected property.
+    /// </summary>
+    private Dropdown<string>? propertyDropdown;
+    /// <summary>
+    /// Reference to the dropdown component for the order mode.
+    /// </summary>
+    private Dropdown<OrderMode>? orderModeDropdown;
+    /// <summary>
+    /// The visual elements for the implemented order modes.
+    /// </summary>
+    private List<OrderMode> orderModes = new List<OrderMode> {OrderMode.Asc, OrderMode.Desc};
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender)
+        {
+            if(propertyDropdown != null)
+            {
+                //selectedOrderMode = OrderMode.Asc; // TODO: admissiable because of l. 74?
+                selectedProperty = propertyDropdown.Elements.First(); 
+            }
+            
+            StateHasChanged();
+        }
+    }
+
+    /// <summary>
+    /// Reordering the collection by the selected property and in the selected mode.
+    /// </summary>
+    private void ReorderCollection()
+    {
+        if(SelectedProperty.Equals("Ip") && typeof(TCollectionItem) == typeof(ModellingAppServer))
+        {
+            Collection = Collection.OrderBy(GetIPAddressRange, new IPAddressRangeComparer()).ToList<TCollectionItem>();  
+        }
+        else
+        {
+            Func<TCollectionItem, object> keySelector = GetGenericOrderByExpression<TCollectionItem>(propertyDropdown.SelectedElement);
+            Collection = Collection.OrderBy(keySelector).ToList();  
+        }
+
+        if (SelectedOrderMode == OrderMode.Desc)
+        {
+            Collection.Reverse();   
+        }
+
+        InvokeAsync(StateHasChanged);
+        CollectionReordered.InvokeAsync();
+    }
+
+    /// <summary>
+    /// Creates an IPAddressRange Object.
+    /// </summary>
+    private IPAddressRange GetIPAddressRange(TCollectionItem item)
+    {
+        if (item is ModellingAppServer server)
+        {
+            return new IPAddressRange(
+                IPAddress.Parse(server.Ip.StripOffNetmask()),
+                IPAddress.Parse(server.IpEnd.StripOffNetmask())
+            );
+        }
+        else
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+    /// <summary>
+    /// Creates lamba function that works as a key selector for OrderBy.
+    /// </summary>
+    private Func<T, object> GetGenericOrderByExpression<T>(string propertyName)
+    {
+        ParameterExpression param = Expression.Parameter(typeof(T), "x");
+        PropertyInfo propertyInfo = typeof(T).GetProperty(propertyName);
+
+        if (propertyInfo == null)
+        {
+            throw new InvalidOperationException(); 
+        }
+        
+        MemberExpression propertyAccess = Expression.Property(param, propertyInfo);
+        UnaryExpression converted = Expression.Convert(propertyAccess, typeof(object));
+
+        return Expression.Lambda<Func<T, object>>(converted, param).Compile();
+    }
+}

@@ -108,12 +108,6 @@
       state: directory
       mode: '0755'
 
-  - name: create chrome headless shell install path
-    file:
-      path: "{{ headless_shell_dest }}"
-      state: directory
-      mode: '0755'
-
   - name: download google chrome and unpack
     unarchive:
       src: "{{ stable_chrome_versions['chrome'] | selectattr('platform', 'match', 'linux64') | map(attribute='url') | first }}"

@@ -94,10 +94,12 @@ class FwConfigImportRule(FwConfigImportBase):
         # update rule_metadata before adding rules
         errorCountAdd, numberOfAddedRules, newRuleIds = self.addNewRuleMetadata(newRulebases)
 
+
         # now update the database
         errorCountAdd, numberOfAddedRules, newRuleIds = self.addNewRules(newRulebases)
-        self.addNewRuleSvcRefs(newRulebases, newRuleIds)
-        self.addNewRuleNwObjRefs(newRulebases, newRuleIds)
+        # self.addNewRuleSvcRefs(newRulebases, newRuleIds)
+        # self.addNewRuleNwObjRefs(newRulebases, newRuleIds)
+
         # if errorCountAdd>0:
         #     self.ImportDetails.increaseErrorCounter(errorCountAdd)
         # if numberOfAddedRules>0:
@@ -132,15 +134,6 @@ class FwConfigImportRule(FwConfigImportBase):
         return prevRulebase.Rules[ruleUid] != currentRulebase.Rules[ruleUid]
         # return prevConfig.rulebases[rulebaseId].Rules[ruleUid] != self.NormalizedConfig.rulebases[rulebaseId].Rules[ruleUid]
         # return prevConfig['rules'][rulebaseId]['Rules'][ruleUid] != self.rulebases[rulebaseId]['Rules'][ruleUid]
-
-
-    def addNewRuleSvcRefs(newRulebases, newRuleIds):
-        
-        pass
-
-    def addNewRuleNwObjRefs(newRulebases, newRuleIds):
-        pass
-
 
     # assuming input of form:
     # {'rule-uid1': {'rule_num': 17', ... }, 'rule-uid2': {'rule_num': 8, ...}, ... }

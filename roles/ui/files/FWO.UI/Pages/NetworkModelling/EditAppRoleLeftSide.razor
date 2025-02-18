@@ -14,6 +14,7 @@
     {
         <div class="form-group row">
             <div class="col-sm-10">
+                <OrderByDropdown @ref="orderByDropdown" TCollectionItem="ModellingAppServer" Collection="AppRoleHandler.AppServersInArea" CollectionReordered="OnCollectionReordered" ElementProperties="orderByDropdownProperties"/>
                 <DraggableList AllElements="selectableAppServers" @bind-SelectedElements="selectedAppServers" 
                     HandleDragStart="HandleDragStart" Display="@(x => x.DisplayWithIcon())" MaxHeight="50"/>
             </div>
@@ -59,8 +60,15 @@
     /// <summary>
     /// The app servers which are available for adding (i.e. which are not already in the AppServerToAdd collection).
     /// </summary>
-    private List<ModellingAppServer> selectableAppServers => AppRoleHandler.AppServersInArea.Except(AppRoleHandler.AppServerToAdd).ToList();
-
+    private List<ModellingAppServer> selectableAppServers => AppRoleHandler.AppServersInArea.Except(AppRoleHandler.AppServerToAdd).ToList();  
+    /// <summary>
+    /// Reference to the order by component.
+    /// </summary>
+    private OrderByDropdown<ModellingAppServer>? orderByDropdown;
+    /// <summary>
+    /// Properties to sort the app server's visual elements by.
+    /// </summary>
+    private List<string> orderByDropdownProperties => new List<string> {"Ip", "Name"};
 
     private bool HandleDragStart(DragEventArgs e, ModellingAppServer appServer)
     {
@@ -72,5 +80,14 @@
         Container.AppServerElements = selectedAppServers;
         selectedAppServers = new();
         return true;
+    }
+
+    /// <summary>
+    /// Updates the app server's visual elements after reordering the collection.
+    /// </summary>
+    private void OnCollectionReordered()
+    {
+        AppRoleHandler.AppServersInArea = orderByDropdown.Collection;
+        InvokeAsync(StateHasChanged);
     }
 }

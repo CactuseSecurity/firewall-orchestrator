@@ -283,6 +283,8 @@ INSERT INTO txt VALUES ('PagerPagesize',        'German', 	'Seitengr&ouml;sse');
 INSERT INTO txt VALUES ('PagerPagesize',        'English',  'Page size');
 INSERT INTO txt VALUES ('PagerSubmit',          'German', 	'Speichern');
 INSERT INTO txt VALUES ('PagerSubmit',          'English',  'Save');
+INSERT INTO txt VALUES ('order_by',          'German',  'Sortieren nach');
+INSERT INTO txt VALUES ('order_by',          'English',  'Order by');
 
 -- (re)login
 INSERT INTO txt VALUES ('login', 				'German',	'Anmelden');

@@ -219,6 +219,17 @@ namespace FWO.Basics
 
             return input;
         }
+        /// <summary>
+        /// Parses a string to an IPAdress object and a string that represents the subnet mask (empty if there is no subnet mask).
+        /// </summary>
+        public static (IPAddress, string) ToIPAdressAndSubnetMask(this string str)
+        {
+            IPAddress ipAdress = IPAddress.Parse(str.StripOffNetmask());
+            string subnetMask = "";
+            var hasSubnetMask = str.TryGetNetmask(out subnetMask);
+
+            return (ipAdress, hasSubnetMask ? subnetMask.Substring(1) : "");
+        }
+
     }
 }
-

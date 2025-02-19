@@ -318,9 +318,13 @@
     /// <summary>
     /// Updates the app server's visual elements after reordering the collection.
     /// </summary>
-    private void OnCollectionReordered()
+    private void OnCollectionReordered(List<ModellingAppServer> orderedCollection)
     {
-        AppRoleHandler.AppServerToAdd = orderByDropdown.Collection;
+        if (AppRoleHandler != null && orderedCollection != null)
+        {
+            AppRoleHandler.AppServerToAdd = orderedCollection;
+        }
+        
         InvokeAsync(StateHasChanged);
     }
 }

@@ -85,9 +85,13 @@
     /// <summary>
     /// Updates the app server's visual elements after reordering the collection.
     /// </summary>
-    private void OnCollectionReordered()
+    private void OnCollectionReordered(List<ModellingAppServer> orderedCollection)
     {
-        AppRoleHandler.AppServersInArea = orderByDropdown.Collection;
+        if (AppRoleHandler != null && orderedCollection != null)
+        {
+            AppRoleHandler.AppServersInArea = orderedCollection;
+        }
+        
         InvokeAsync(StateHasChanged);
     }
 }

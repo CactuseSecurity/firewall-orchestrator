@@ -22,15 +22,9 @@
                         @((MarkupString) property)
                     </ElementTemplate>
     </Dropdown>
-    <Dropdown   @ref="orderModeDropdown"
-                ElementType="OrderMode"
-                @bind-SelectedElement="SelectedOrderMode"
-                Elements="orderModes"
-                ElementToString="@(a => a.ToString())">
-                    <ElementTemplate Context="orderMode">
-                        @((MarkupString) orderMode.ToString())
-                    </ElementTemplate>
-    </Dropdown>
+    <button id="toggle-order-mode-button" type="button" class="btn btn-sm" @onclick="OnToggleOrderModeButtonClick">
+        <span class="@DisplayOrderModeButton()"/>
+    </button>
 </div> 
 
 @code
@@ -39,17 +33,17 @@
     /// List of the properties, that the user can order the collection by.
     /// </summary>
     [Parameter, EditorRequired]
-    public List<string> ElementProperties { get; set; }
+    public List<string>? ElementProperties { get; set; }
     /// <summary>
     /// Collection of items, that the user can order by the selected property and order mode.
     /// </summary>
     [Parameter, EditorRequired]
-    public List<TCollectionItem> Collection { get; set; }
+    public List<TCollectionItem>? Collection { get; set; }
     /// <summary>
     /// Callback to communicate that the reordering process has been completed.
     /// </summary>
     [Parameter, EditorRequired]
-    public EventCallback CollectionReordered { get; set; }
+    public EventCallback<List<TCollectionItem>> CollectionReordered { get; set; }
 
     /// <summary>
     /// Backing field of property 'SelectedProperty'.
@@ -96,25 +90,20 @@
     /// </summary>
     private Dropdown<string>? propertyDropdown;
     /// <summary>
-    /// Reference to the dropdown component for the order mode.
-    /// </summary>
-    private Dropdown<OrderMode>? orderModeDropdown;
-    /// <summary>
     /// The visual elements for the implemented order modes.
     /// </summary>
     private List<OrderMode> orderModes = new List<OrderMode> {OrderMode.Asc, OrderMode.Desc};
+    /// <summary>
+    /// Flag to check whether the component was initialized successfully.
+    /// </summary> 
+    private bool initialized = false;
 
-    protected override void OnAfterRender(bool firstRender)
+    protected override void OnParametersSet()
     {
-        if (firstRender)
+        if (!initialized && ElementProperties != null && ElementProperties.Any())
         {
-            if(propertyDropdown != null)
-            {
-                //selectedOrderMode = OrderMode.Asc; // TODO: admissiable because of l. 74?
-                selectedProperty = propertyDropdown.Elements.First(); 
-            }
-            
-            StateHasChanged();
+            SelectedProperty = ElementProperties.First();
+            initialized = true;
         }
     }
 
@@ -123,23 +112,35 @@
     /// </summary>
     private void ReorderCollection()
     {
-        if(SelectedProperty.Equals("Ip") && typeof(TCollectionItem) == typeof(ModellingAppServer))
+        if(Collection != null && !string.IsNullOrEmpty(SelectedProperty))
         {
-            Collection = Collection.OrderBy(GetIPAddressRange, new IPAddressRangeComparer()).ToList<TCollectionItem>();  
+            if(SelectedProperty.Equals("Ip") && typeof(TCollectionItem) == typeof(ModellingAppServer))
+            {
+                Collection = Collection.OrderBy(GetIPAddressRange, new IPAddressRangeComparer()).ToList<TCollectionItem>();  
+            }
+            else
+            {
+                Func<TCollectionItem, object> keySelector = GetGenericOrderByExpression<TCollectionItem>(SelectedProperty);
+                Collection = Collection.OrderBy(keySelector).ToList();  
+            }
+
+            if (SelectedOrderMode == OrderMode.Desc)
+            {
+                Collection.Reverse();   
+            }
+
+            if (initialized)
+            {
+                InvokeAsync(StateHasChanged);
+                              
+            }
+
+            CollectionReordered.InvokeAsync(Collection);  
         }
         else
         {
-            Func<TCollectionItem, object> keySelector = GetGenericOrderByExpression<TCollectionItem>(propertyDropdown.SelectedElement);
-            Collection = Collection.OrderBy(keySelector).ToList();  
+            throw new NullReferenceException();
         }
-
-        if (SelectedOrderMode == OrderMode.Desc)
-        {
-            Collection.Reverse();   
-        }
-
-        InvokeAsync(StateHasChanged);
-        CollectionReordered.InvokeAsync();
     }
 
     /// <summary>
@@ -166,7 +167,13 @@
     private Func<T, object> GetGenericOrderByExpression<T>(string propertyName)
     {
         ParameterExpression param = Expression.Parameter(typeof(T), "x");
-        PropertyInfo propertyInfo = typeof(T).GetProperty(propertyName);
+
+        if (string.IsNullOrWhiteSpace(propertyName))
+        {
+            throw new ArgumentException();
+        }
+
+        PropertyInfo? propertyInfo = typeof(T).GetProperty(propertyName);
 
         if (propertyInfo == null)
         {
@@ -177,5 +184,43 @@
         UnaryExpression converted = Expression.Convert(propertyAccess, typeof(object));
 
         return Expression.Lambda<Func<T, object>>(converted, param).Compile();
+    }
+
+    /// <summary>
+    /// Displays icon of selected order mode.
+    /// </summary>
+    private string DisplayOrderModeButton()
+    {
+        switch (SelectedOrderMode)
+        {
+            case (OrderMode.Asc):
+                return Icons.OrderByAsc;
+
+            case (OrderMode.Desc):
+                return Icons.OrderByDesc;
+
+            default:
+                throw new NotImplementedException();
+        }
+    }
+
+    /// <summary>
+    /// Handles the click event of the 'toggle-order-mode-button'
+    /// </summary>
+    private void OnToggleOrderModeButtonClick()
+    {
+        switch (SelectedOrderMode)
+        {
+            case (OrderMode.Asc):
+                SelectedOrderMode = OrderMode.Desc;
+                break;
+
+            case (OrderMode.Desc):
+                SelectedOrderMode = OrderMode.Asc;
+                break;
+
+            default:
+                throw new NotImplementedException();
+        }
     }
 }

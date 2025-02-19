@@ -41,13 +41,6 @@ namespace FWO.Services
                         {
                             ActAppServer.Id = (long)appServerId;
                             AvailableAppServers.Add(ActAppServer);
-                            await LogChange(ModellingTypes.ChangeType.Insert, ModellingTypes.ModObjectType.AppServer, ActAppServer.Id,
-                                $"New App Server: {ActAppServer.Display()}", Application.Id);
-                        }
-                        else
-                        {
-                            await LogChange(ModellingTypes.ChangeType.Update, ModellingTypes.ModObjectType.AppServer, ActAppServer.Id,
-                                $"Updated App Server: {ActAppServer.Display()}", Application.Id);
                         }
                         return true;
                     }

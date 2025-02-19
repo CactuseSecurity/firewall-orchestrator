@@ -166,7 +166,7 @@ namespace FWO.Services
 
                 if (manual)
                 {
-                    ModellingAppServer? otherAppServerSameIp = ExistingAppServersSameIp.FirstOrDefault(x => x.Id != incomingAppServer.Id);
+                    ModellingAppServer? otherAppServerSameIp = ExistingAppServersSameIp.FirstOrDefault(x => x.Id != incomingAppServer.Id && !x.IsDeleted);
                     if(otherAppServerSameIp != null)
                     {
                         return (null, otherAppServerSameIp.Name);
@@ -217,7 +217,7 @@ namespace FWO.Services
             {
                 AppServerId = await AddAppServerToDb(apiConnection, userConfig, incomingAppServer);
             }
-            
+
             foreach(var existAppServerOtherSource in existingAppServersSameIp.Where(x => x.ImportSource != incomingAppServer.ImportSource))
             {
                 if(!existAppServerOtherSource.IsDeleted)
@@ -269,7 +269,7 @@ namespace FWO.Services
                     name = incomingAppServer.Name
                 };
                 List<ModellingAppServer> ExistingAppServersSameIp = await apiConnection.SendQueryAsync<List<ModellingAppServer>>(ModellingQueries.getAppServersByName, Variables);
-                return ExistingAppServersSameIp != null && ExistingAppServersSameIp.Count > 0 && ExistingAppServersSameIp.FirstOrDefault(x => x.Id == incomingAppServer.Id) == null;
+                return ExistingAppServersSameIp != null && ExistingAppServersSameIp.Count > 0 && ExistingAppServersSameIp.FirstOrDefault(x => x.Id == incomingAppServer.Id && !x.IsDeleted) == null;
             }
             catch(Exception exception)
             {
@@ -332,9 +332,10 @@ namespace FWO.Services
                 ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.newAppServer, Variables)).ReturnIds;
                 if(returnIds != null && returnIds.Length > 0)
                 {
+                    appServer.Id = returnIds[0].NewIdLong;
                     await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.Insert, ModellingTypes.ModObjectType.AppServer, appServer.Id,
                         $"New App Server: {appServer.Display()}", apiConnection, userConfig, appServer.AppId, DefaultInit.DoNothing, null, appServer.ImportSource);
-                    return returnIds[0].NewIdLong;
+                    return appServer.Id;
                 }
                 return null;
             }

@@ -24,9 +24,9 @@ namespace FWO.Test
             bool isValidHtml = ReportBase.IsValidHTML(Html);
             ClassicAssert.IsTrue(isValidHtml);
 
-            string? isGitHubActions = Environment.GetEnvironmentVariable("RUNNING_ON_GITHUB");
+            string? isGitHubActions = Environment.GetEnvironmentVariable("RUNNING_ON_GITHUB_ACTIONS");
 
-            if (string.IsNullOrEmpty(isGitHubActions))
+            if (!string.IsNullOrEmpty(isGitHubActions))
             {
                 return;
             }

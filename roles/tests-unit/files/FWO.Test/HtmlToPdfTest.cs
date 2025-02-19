@@ -4,8 +4,6 @@ using FWO.Logging;
 using PuppeteerSharp.Media;
 using PuppeteerSharp;
 using PuppeteerSharp.BrowserData;
-using HtmlAgilityPack;
-using System.Diagnostics;
 using FWO.Report;
 using FWO.Report.Data;
 

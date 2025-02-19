@@ -17,10 +17,10 @@ on:
     
 jobs:        
   test_puppeteer_pdf:
-    name: Puppeteer test on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
     env:
         RUNNING_ON_GITHUB_ACTIONS: 'true'
+    name: Puppeteer test on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [ubuntu-latest, ubuntu-20.04, ubuntu-22.04]
@@ -32,10 +32,10 @@ jobs:
       run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator/roles/tests-unit/files/FWO.Test && dotnet restore && dotnet build && dotnet test --filter "Name=HtmlToPdfTest"
       
   test_ubuntu_latest:
-    name: test build on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
     env:
         RUNNING_ON_GITHUB_ACTIONS: 'true'
+    name: test build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [ubuntu-latest, ubuntu-20.04, ubuntu-22.04]

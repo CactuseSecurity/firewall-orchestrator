@@ -6,7 +6,6 @@ using PuppeteerSharp;
 using PuppeteerSharp.BrowserData;
 using FWO.Report;
 using FWO.Report.Data;
-using System.Diagnostics;
 
 namespace FWO.Test
 {

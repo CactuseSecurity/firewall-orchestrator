@@ -6,7 +6,9 @@
     {config_key: {_eq: "manageOwnerLdapGroups"}}, 
     {config_key: {_eq: "ownerLdapGroupNames"}}, 
     {config_key: {_eq: "ownerLdapId"}},
-    {config_key: {_eq: "modNamingConvention"}}
+    {config_key: {_eq: "modNamingConvention"}},
+    {config_key: {_eq: "dnsLookup"}},
+    {config_key: {_eq: "overwriteExistingNames"}}
     ]}){
       config_key
       config_value

@@ -16,7 +16,7 @@ on:
     - 'design/**'
     
 jobs:        
-  test_puppeteer_pdf:   
+  unit_tests:   
     name: Puppeteer test on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     env:

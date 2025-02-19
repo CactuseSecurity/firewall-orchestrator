@@ -14,7 +14,7 @@ namespace FWO.Services
         public static async Task<string> ConstructAppServerNameFromDns(ModellingAppServer appServer, ModellingNamingConvention namingConvention,
             bool overwriteExistingNames=false, bool logUnresolvable=false)
         {
-            if ((string.IsNullOrEmpty(appServer.IpEnd) || appServer.IpEnd == appServer.Ip) && IPAddress.TryParse(appServer.Ip, out IPAddress? ip))
+            if ((string.IsNullOrEmpty(appServer.IpEnd) || appServer.IpEnd == appServer.Ip) && IPAddress.TryParse(appServer.Ip.StripOffNetmask(), out IPAddress? ip))
             {
                 string dnsName = await IpOperations.DnsReverseLookUp(ip);
                 if(string.IsNullOrEmpty(dnsName))
@@ -47,6 +47,7 @@ namespace FWO.Services
         {
             try
             {
+                Log.WriteDebug($"Start adjusting App Server Names", "");
                 ModellingNamingConvention namingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(userConfig.ModNamingConvention) ?? new();
                 List<ModellingAppServer> AppServers = await apiConnection.SendQueryAsync<List<ModellingAppServer>>(ModellingQueries.getAllAppServers);
                 int correctedCounter = 0;
@@ -67,7 +68,7 @@ namespace FWO.Services
                         }
                     }
                 }
-                Log.WriteDebug($"Adjusted App Server Names", $"{correctedCounter} out of {AppServers.Count} App Servers have been corrected, {failCounter} failed");
+                Log.WriteInfo($"Adjusted App Server Names", $"{correctedCounter} out of {AppServers.Count} App Servers have been corrected, {failCounter} failed");
             }
             catch(Exception exception)
             {

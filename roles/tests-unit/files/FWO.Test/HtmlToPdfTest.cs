@@ -6,6 +6,7 @@ using PuppeteerSharp;
 using PuppeteerSharp.BrowserData;
 using FWO.Report;
 using FWO.Report.Data;
+using System.Diagnostics;
 
 namespace FWO.Test
 {
@@ -25,6 +26,10 @@ namespace FWO.Test
             ClassicAssert.IsTrue(isValidHtml);
 
             string? isGitHubActions = Environment.GetEnvironmentVariable("RUNNING_ON_GITHUB_ACTIONS");
+
+            Console.WriteLine(isGitHubActions);
+            Debug.WriteLine(isGitHubActions);
+            Log.WriteWarning("is github actions", isGitHubActions);
 
             if (!string.IsNullOrEmpty(isGitHubActions))
             {

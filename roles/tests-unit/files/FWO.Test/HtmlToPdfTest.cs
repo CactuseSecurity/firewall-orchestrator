@@ -6,6 +6,7 @@ using PuppeteerSharp;
 using PuppeteerSharp.BrowserData;
 using FWO.Report;
 using FWO.Report.Data;
+using System.Collections;
 
 namespace FWO.Test
 {
@@ -24,7 +25,12 @@ namespace FWO.Test
             bool isValidHtml = ReportBase.IsValidHTML(Html);
             ClassicAssert.IsTrue(isValidHtml);
 
-            Log.WriteInfo("Test Log", $"env: {Environment.GetEnvironmentVariable("proxy_env")}");
+            var bla = Environment.GetEnvironmentVariables();
+
+            foreach (DictionaryEntry key in bla) {
+                Log.WriteInfo("Test Log", $"env: {key.Key}:{key.Value}");
+            }
+                        
 
             //string? isGitHubActions = Environment.GetEnvironmentVariable("GITHUB_ACTIONS");
             //string? isGitHubActions2 = Environment.GetEnvironmentVariable("RUNNING_ON_GITHUB_ACTIONS");

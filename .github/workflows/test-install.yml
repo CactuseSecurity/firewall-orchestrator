@@ -21,14 +21,13 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
         RUNNING_ON_GITHUB_ACTIONS: true
-    environment: actions
     strategy:
       matrix:
         os: [ubuntu-latest, ubuntu-20.04, ubuntu-22.04]
     steps:
     - name: Set environment variable
       run: | 
-        echo "RUNNING_ON_GITHUB_ACTIONS=${{ vars.RUNNING_ON_GITHUB_ACTIONS }}" >> $GITHUB_ENV
+        echo "RUNNING_ON_GITHUB_ACTIONS=${{ env.RUNNING_ON_GITHUB_ACTIONS }}" >> $GITHUB_ENV
     - uses: actions/checkout@v4
     - name: do test install in case of merged pull request
       run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator && ansible-playbook -e force_install=true site.yml -K

@@ -24,19 +24,21 @@ namespace FWO.Test
             bool isValidHtml = ReportBase.IsValidHTML(Html);
             ClassicAssert.IsTrue(isValidHtml);
 
-            string? isGitHubActions = Environment.GetEnvironmentVariable("GITHUB_ACTIONS");
-            string? isGitHubActions2 = Environment.GetEnvironmentVariable("RUNNING_ON_GITHUB_ACTIONS");
-            string? isGitHubActions3 = Environment.GetEnvironmentVariable("RUNNING_ON_GITHUB");
+            Log.WriteInfo("Test Log", $"env: {Environment.GetEnvironmentVariable("proxy_env")}");
 
-            Log.WriteInfo("Test Log", $"GITHUB_ACTIONS? {isGitHubActions}");
-            Log.WriteInfo("Test Log", $"RUNNING_ON_GITHUB_ACTIONS? {isGitHubActions2}");
-            Log.WriteInfo("Test Log", $"RUNNING_ON_GITHUB? {isGitHubActions3}");
-            Log.WriteInfo("Test Log", $"GITHUB_ENV {Environment.GetEnvironmentVariable("GITHUB_ENV")}");
+            //string? isGitHubActions = Environment.GetEnvironmentVariable("GITHUB_ACTIONS");
+            //string? isGitHubActions2 = Environment.GetEnvironmentVariable("RUNNING_ON_GITHUB_ACTIONS");
+            //string? isGitHubActions3 = Environment.GetEnvironmentVariable("RUNNING_ON_GITHUB");
 
-            if (!string.IsNullOrEmpty(isGitHubActions))
-            {
-                return;
-            }
+            //Log.WriteInfo("Test Log", $"GITHUB_ACTIONS? {isGitHubActions}");
+            //Log.WriteInfo("Test Log", $"RUNNING_ON_GITHUB_ACTIONS? {isGitHubActions2}");
+            //Log.WriteInfo("Test Log", $"RUNNING_ON_GITHUB? {isGitHubActions3}");
+            //Log.WriteInfo("Test Log", $"GITHUB_ENV {Environment.GetEnvironmentVariable("GITHUB_ENV")}");
+
+            //if (!string.IsNullOrEmpty(isGitHubActions))
+            //{
+            //    return;
+            //}
 
             if (File.Exists(FilePath))
                 File.Delete(FilePath);
@@ -79,7 +81,7 @@ namespace FWO.Test
             {
                 ExecutablePath = installedBrowser.GetExecutablePath(),
                 Headless = true,
-                DumpIO = isGitHubActions != null ? true : false, // Enables debug logs
+                //DumpIO = isGitHubActions != null ? true : false, // Enables debug logs
                 Args = new[] { "--database=/tmp", "--no-sandbox" }
             });
 

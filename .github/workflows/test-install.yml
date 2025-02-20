@@ -13,9 +13,7 @@ on:
     paths-ignore:
     - 'documentation/**'
     - 'design/**'
-   
-env:
-    RUNNING_ON_GITHUB_ACTIONS: ${{ env.RUNNING_ON_GITHUB }}
+
 
 jobs:  
   test_install:    
@@ -30,5 +28,7 @@ jobs:
       run: echo "RUNNING_ON_GITHUB=1" >> $GITHUB_ENV  
     - name: do test install in case of merged pull request
       run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator && ansible-playbook -e force_install=true site.yml -K
+      env:
+        RUNNING_ON_GITHUB_ACTIONS: ${{ env.RUNNING_ON_GITHUB }}
     - name: switch to fworch user for c# unit tests
       run: sudo su -l fworch && cd ~/test/csharp/FWO.Test && dotnet test

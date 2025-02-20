@@ -90,11 +90,11 @@
     url: https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions-with-downloads.json
   register: chrome_versions
 
-- name: parse latest stable versions for chrome and headless shell
+- name: parse latest stable versions for chrome #and headless shell
   set_fact:
     stable_chrome_versions: "{{ chrome_versions['json']['channels']['Stable']['downloads'] }}"
     chrome_dest: "/usr/local/bin/Chrome/Linux-{{ chrome_versions['json']['channels']['Stable']['version'] }}"
-    headless_shell_dest: "/usr/local/bin/ChromeHeadlessShell/Linux-{{ chrome_versions['json']['channels']['Stable']['version'] }}"
+    # headless_shell_dest: "/usr/local/bin/ChromeHeadlessShell/Linux-{{ chrome_versions['json']['channels']['Stable']['version'] }}"
 
 - block:
   - name: install unzip

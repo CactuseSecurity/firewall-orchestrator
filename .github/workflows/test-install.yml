@@ -14,6 +14,9 @@ on:
     - 'documentation/**'
     - 'design/**'
    
+env:
+    RUNNING_ON_GITHUB_ACTIONS: ${{ env.RUNNING_ON_GITHUB }}
+
 jobs:  
   test_install:    
     name: test build on ${{ matrix.os }}
@@ -22,10 +25,9 @@ jobs:
       matrix:
         os: [ubuntu-latest, ubuntu-20.04, ubuntu-22.04]
     steps:
-    - name: set env
-      run: |
-        echo "Running on github actions? $GITHUB_ACTIONS" >> $RUNNING_ON_GITHUB_ACTIONS
-    - uses: actions/checkout@v4   
+    - uses: actions/checkout@v4 
+    - name: Set environment variable
+      run: echo "RUNNING_ON_GITHUB=1" >> $GITHUB_ENV  
     - name: do test install in case of merged pull request
       run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator && ansible-playbook -e force_install=true site.yml -K
     - name: switch to fworch user for c# unit tests

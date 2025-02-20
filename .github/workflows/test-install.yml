@@ -24,7 +24,7 @@ jobs:
     steps:
     - name: set env
       run: |
-        echo "Running on github actions? $GITHUB_ACTIONS "
+        echo "Running on github actions? $GITHUB_ACTIONS" >> $RUNNING_ON_GITHUB_ACTIONS
     - uses: actions/checkout@v4   
     - name: do test install in case of merged pull request
       run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator && ansible-playbook -e force_install=true site.yml -K

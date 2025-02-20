@@ -25,5 +25,9 @@ jobs:
     - uses: actions/checkout@v4   
     - name: do test install in case of merged pull request
       run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator && ansible-playbook -e force_install=true site.yml -K --skip-tags unittests
+    - name: switch to fworch user for c# unit tests
+      run: sudo su -l fworch
+    - name: opening test files location
+      run: cd /test/csharp/FWO.Test
     - name: exec dotnet test
-      run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator/roles/tests-unit/files/FWO.Test && dotnet restore && dotnet build && dotnet test
+      run: dotnet restore && dotnet build && dotnet test

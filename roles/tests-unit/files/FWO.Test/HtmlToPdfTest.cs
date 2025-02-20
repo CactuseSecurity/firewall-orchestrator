@@ -73,7 +73,7 @@ namespace FWO.Test
                 ExecutablePath = installedBrowser.GetExecutablePath(),
                 Headless = true,
                 DumpIO = isGitHubActions != null ? true : false, // Enables debug logs
-                Args = new[] { "--database=/tmp", "--no-sandbox", "--no-zygote" }
+                Args = new[] { "--database=/tmp", "--no-sandbox" }
             });
 
             try

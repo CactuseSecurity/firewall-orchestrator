@@ -26,6 +26,8 @@ namespace FWO.Test
 
             string? isGitHubActions = Environment.GetEnvironmentVariable("RUNNING_ON_GITHUB_ACTIONS");
 
+            Log.WriteInfo("Test Log", $"Running in github actions? {isGitHubActions}");
+
             if (!string.IsNullOrEmpty(isGitHubActions))
             {
                 return;

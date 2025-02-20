@@ -13,6 +13,9 @@ on:
     paths-ignore:
     - 'documentation/**'
     - 'design/**'
+ 
+env:
+    RUNNING_ON_GITHUB_ACTIONS: true
     
 jobs:  
   test_install:    

@@ -16,7 +16,7 @@
     become_user: "{{ fworch_user }}"
     register: csharp_tests
     ignore_errors: false
-    environment: "{{ proxy_env }}"
+    environment: "{{ github_actions_env }}"
 
   - name: show csharp test results in case of errors
     debug:

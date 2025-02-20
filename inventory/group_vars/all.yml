@@ -37,6 +37,8 @@ fworch_conf_dir: "{{ fworch_home }}/etc"
 fworch_conf_file: "{{ fworch_conf_dir }}/fworch.json"
 fworch_secrets_dir: "{{ fworch_conf_dir }}/secrets"
 
+github_actions_env: "{{ GITHUB_ACTIONS=true }}"
+
 # setting default proxy (may be overwritten via --extra-vars)
 http_proxy: "{{ lookup('env','http_proxy') }}"
 https_proxy: "{{ lookup('env','https_proxy') }}"

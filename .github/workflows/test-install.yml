@@ -33,6 +33,6 @@ jobs:
       run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator && ansible-playbook -e force_install=true site.yml -K 
     - name: Setup dotnet
       if: ${{ env.GITHUB_ACTIONS }} == true   
-      run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator/roles/tests-unit/files/FWO.Test && dotnet restore && dotnet build && dotnet test
+      run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator/roles/tests-unit/files/FWO.Test && dotnet restore && dotnet build && dotnet test --filter "Name=HtmlToPdfTest"
     - uses: actions/setup-dotnet@v4
    

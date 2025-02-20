@@ -19,17 +19,19 @@ namespace FWO.Tufin.SecureChange
 
 		public ExternalTicket(){}
 
-		public virtual async Task CreateRequestString(List<WfReqTask> tasks, List<IpProtocol> ipProtos, ModellingNamingConvention? namingConvention)
-		{}
+		public virtual Task CreateRequestString(List<WfReqTask> tasks, List<IpProtocol> ipProtos, ModellingNamingConvention? namingConvention)
+		{
+			throw new NotImplementedException();
+		}
 
 		public virtual string GetTaskTypeAsString(WfReqTask task)
 		{
 			return "";
 		}
 
-		public virtual async Task<(string, string?)> GetNewState(string oldState)
+		public virtual Task<(string, string?)> GetNewState(string oldState)
 		{
-			return ("","");
+			throw new NotImplementedException();
 		}
 
 		public async Task<RestResponse<int>> CreateExternalTicket()

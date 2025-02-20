@@ -8,6 +8,6 @@ mutation updateUserEmail(
       uiuser_email: $email
     }
   ) {
-    UpdatedId: uiuser_id
+    updatedId: uiuser_id
   }
 }

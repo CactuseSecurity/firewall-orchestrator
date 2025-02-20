@@ -9,6 +9,6 @@ mutation updateServiceGroup(
       name: $name
       comment: $comment
   }) {
-    UpdatedId: id
+    updatedId: id
   }
 }

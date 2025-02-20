@@ -201,10 +201,10 @@ namespace FWO.Mail
                 if (emailConn.User != null && emailConn.User != "")
                 {
                     string mainKey = AesEnc.GetMainKey();
-                    string decryptedSecret = emailConn.Password;
+                    string decryptedSecret = emailConn.Password ?? "";
                     try
                     {
-                        decryptedSecret = AesEnc.Decrypt(emailConn.Password, mainKey);
+                        decryptedSecret = AesEnc.Decrypt(emailConn.Password ?? "", mainKey);
                     }
                     catch (Exception)
                     {

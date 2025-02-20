@@ -3,7 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace FWO.Services
 {
-    class AppServerComparer(ModellingNamingConvention namingConvention) : IEqualityComparer<ModellingAppServerWrapper>, IEqualityComparer<ModellingAppServer>
+    public class AppServerComparer(ModellingNamingConvention namingConvention) : IEqualityComparer<ModellingAppServerWrapper>, IEqualityComparer<ModellingAppServer>
     {
         readonly ModellingNamingConvention NamingConvention = namingConvention;
 
@@ -24,7 +24,7 @@ namespace FWO.Services
                 return false;
             }
 
-            string appServer2Name = ConstructAppServerName(appServer2, NamingConvention);
+            string appServer2Name = AppServerHelper.ConstructAppServerName(appServer2, NamingConvention);
             bool shortened = false;
             string sanitizedAS2Name = Sanitizer.SanitizeJsonFieldMand(new(appServer2Name), ref shortened);
             return appServer1.Name.Trim() == appServer2Name.Trim() || appServer1.Name.Trim() == sanitizedAS2Name.Trim();
@@ -41,12 +41,6 @@ namespace FWO.Services
         public int GetHashCode([DisallowNull] ModellingAppServer obj)
         {
             throw new NotImplementedException();
-        }
-
-        public static string ConstructAppServerName(ModellingAppServer appServer, ModellingNamingConvention namingConvention)
-        {
-            return string.IsNullOrEmpty(appServer.Name) ? namingConvention.AppServerPrefix + DisplayBase.DisplayIp(appServer.Ip, appServer.IpEnd) :
-                ( char.IsLetter(appServer.Name[0]) ? appServer.Name : namingConvention.AppServerPrefix + appServer.Name );
         }
     }
 }

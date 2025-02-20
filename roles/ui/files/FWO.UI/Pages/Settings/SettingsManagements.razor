@@ -103,7 +103,7 @@
     </Table>
 </div>
 
-<PopUp Title="@(userConfig.GetText("edit_management"))" Show="@EditMode" Size=PopupSize.Large OnClose="() => EditMode = false">
+<PopUp Title="@(userConfig.GetText("edit_management"))" Show="@EditMode" Size=PopupSize.CustomLarge OnClose="() => EditMode = false">
     <Body>
         @if (EditMode)
         {
@@ -308,8 +308,8 @@
     {
         try
         {
-            JwtReader jwt = new JwtReader(userConfig.User.Jwt);
-            jwt.Validate();
+            JwtReader jwt = new (userConfig.User.Jwt);
+            await jwt.Validate();
 
             if (jwt.ContainsAllowedRole(Roles.Admin) || jwt.ContainsAllowedRole(Roles.FwAdmin))
             {
@@ -351,6 +351,7 @@
         }
         showCleanupButton = (sampleManagements.Count > 0);
     }
+
     private void Edit(Management management)
     {
         actManagement = new Management(management);
@@ -470,7 +471,7 @@
                         comment = actManagement.Comment,
                         extMgtData = actManagement.ExtMgtData
                     };
-                    ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(DeviceQueries.newManagement, Variables)).ReturnIds;
+                    ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(DeviceQueries.newManagement, Variables)).ReturnIds;
                     if (returnIds != null)
                     {
                         actManagement.Id = returnIds[0].NewId;
@@ -592,7 +593,7 @@
                 description = description,
                 mgmId = mgmtId
             };
-            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(MonitorQueries.addAutodiscoveryLogEntry, Variables)).ReturnIds;
+            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(MonitorQueries.addAutodiscoveryLogEntry, Variables)).ReturnIds;
             if (returnIds == null)
             {
                 Log.WriteError("Write Log", "Log could not be written to database");

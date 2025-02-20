@@ -9,7 +9,7 @@ mutation addDeviceToTenant(
     }
   ) {
     returning {
-       newId: device_id
+      insertedId: device_id
     }
   }
 }

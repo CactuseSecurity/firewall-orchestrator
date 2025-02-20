@@ -7,7 +7,7 @@ mutation addServiceGroupToConnection(
     connection_id: $connectionId
   }) {
     returning {
-      newId: service_group_id
+      insertedId: service_group_id
     }
   }
 }

@@ -55,43 +55,43 @@ GraphQlApiSubscription<List<Ldap>> connectedLdapsSubscription = apiConnection.Ge
 Log.WriteInfo("Found ldap connection to server", string.Join("\n", connectedLdaps.ConvertAll(ldap => $"{ldap.Address}:{ldap.Port}")));
 
 // Create and start report scheduler
-Task.Factory.StartNew(() =>
+await Task.Factory.StartNew(() =>
 {
     reportScheduler = new ReportScheduler(apiConnection, jwtWriter, connectedLdapsSubscription);
 }, TaskCreationOptions.LongRunning);
 
 // Create and start auto disovery scheduler
-Task.Factory.StartNew(async() =>
+await Task.Factory.StartNew(async() =>
 {
     autoDiscoverScheduler = await AutoDiscoverScheduler.CreateAsync(apiConnection);
 }, TaskCreationOptions.LongRunning);
 
 // Create and start daily check scheduler
-Task.Factory.StartNew(async() =>
+await Task.Factory.StartNew(async() =>
 {
     dailyCheckScheduler = await DailyCheckScheduler.CreateAsync(apiConnection);
 }, TaskCreationOptions.LongRunning);
 
 // Create and start import app data scheduler
-Task.Factory.StartNew(async() =>
+await Task.Factory.StartNew(async() =>
 {
     importAppDataScheduler = await ImportAppDataScheduler.CreateAsync(apiConnection);
 }, TaskCreationOptions.LongRunning);
 
 // Create and start import subnet data scheduler
-Task.Factory.StartNew(async() =>
+await Task.Factory.StartNew(async() =>
 {
     importSubnetDataScheduler = await ImportIpDataScheduler.CreateAsync(apiConnection);
 }, TaskCreationOptions.LongRunning);
 
 // Create and start import change notify scheduler
-Task.Factory.StartNew(async() =>
+await Task.Factory.StartNew(async() =>
 {
     importChangeNotifyScheduler = await ImportChangeNotifyScheduler.CreateAsync(apiConnection);
 }, TaskCreationOptions.LongRunning);
 
 // Create and start external request scheduler
-Task.Factory.StartNew(async() =>
+await Task.Factory.StartNew(async() =>
 {
     externalRequestScheduler = await ExternalRequestScheduler.CreateAsync(apiConnection);
 }, TaskCreationOptions.LongRunning);

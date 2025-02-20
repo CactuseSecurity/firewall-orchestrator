@@ -25,10 +25,10 @@ namespace FWO.Api.Data
         public string Comment { get; set; } = "";
 
         [JsonProperty("rule_id"), JsonPropertyName("rule_id")]
-        public int RuleId { get; set; }
+        public long RuleId { get; set; }
 
         [JsonProperty("rule_metadata_id"), JsonPropertyName("rule_metadata_id")]
-        public int RuleMetadataId { get; set; }
+        public long RuleMetadataId { get; set; }
     }
 
 }

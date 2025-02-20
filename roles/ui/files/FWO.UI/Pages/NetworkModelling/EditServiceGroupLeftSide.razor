@@ -5,43 +5,45 @@
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
-<div class="ms-2">
-    <h3>@(userConfig.GetText("library"))</h3>
-</div>
-<div class="col-sm-11 border rounded m-2 p-2">
-    <h5>@(userConfig.GetText("services"))</h5>
-    <div class="form-group row">
-        <div class="col-sm-9">
-            <DraggableList AllElements="SvcGroupHandler.AvailableServices" @bind-SelectedElements="selectedServices" 
-                HandleDragStart="HandleDragStart" Display="@(x => x.DisplayWithIcon())" MaxHeight="50"/>
-        </div>
-        @if(selectedServices.Count > 0)
-        {
-            <div class="col-sm-2">
-                <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() =>
-                    {SvcGroupHandler.ServicesToSvcGroup(selectedServices); selectedServices = new();
-                    SvcGroupHandlerChanged.InvokeAsync(SvcGroupHandler);}">@(SvcGroupHandler.DisplayButton("to_services_group", Icons.Use))</button>
+@if(SvcGroupHandler != null)
+{
+    <div class="ms-2">
+        <h3>@(userConfig.GetText("library"))</h3>
+    </div>
+    <div class="col-sm-11 border rounded m-2 p-2">
+        <h5>@(userConfig.GetText("services"))</h5>
+        <div class="form-group row">
+            <div class="col-sm-9">
+                <DraggableList AllElements="SvcGroupHandler.AvailableServices" @bind-SelectedElements="selectedServices" 
+                    HandleDragStart="HandleDragStart" Display="@(x => x.DisplayWithIcon())" MaxHeight="50"/>
             </div>
-        }
+            @if(selectedServices.Count > 0)
+            {
+                <div class="col-sm-2">
+                    <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() =>
+                        {SvcGroupHandler.ServicesToSvcGroup(selectedServices); selectedServices = new();
+                        SvcGroupHandlerChanged.InvokeAsync(SvcGroupHandler);}">@(SvcGroupHandler.DisplayButton("to_services_group", Icons.Use))</button>
+                </div>
+            }
+        </div>
+        <div class="btn-group mt-2">
+            <button type="button" class="btn btn-sm btn-success" @onclick="() =>
+                {SvcGroupHandler.CreateService(); SvcGroupHandlerChanged.InvokeAsync(SvcGroupHandler);}">@(SvcGroupHandler.DisplayButton("add_service", Icons.Add))</button>
+            @if(selectedServices.Count == 1)
+            {
+                <button type="button" class="btn btn-sm btn-warning" @onclick="() =>
+                    {SvcGroupHandler.EditService(selectedServices.First()); selectedServices = new(); SvcGroupHandlerChanged.InvokeAsync(SvcGroupHandler);}">@(SvcGroupHandler.DisplayButton("edit_service", Icons.Edit))</button>
+                <button type="button" class="btn btn-sm btn-danger" @onclick="async () =>
+                    {await SvcGroupHandler.RequestDeleteService(selectedServices.First()); selectedServices = new();
+                    await SvcGroupHandlerChanged.InvokeAsync(SvcGroupHandler);}">@(SvcGroupHandler.DisplayButton("delete", Icons.Delete))</button>
+            }
+        </div>
     </div>
-    <div class="btn-group mt-2">
-        <button type="button" class="btn btn-sm btn-success" @onclick="() =>
-            {SvcGroupHandler.CreateService(); SvcGroupHandlerChanged.InvokeAsync(SvcGroupHandler);}">@(SvcGroupHandler.DisplayButton("add_service", Icons.Add))</button>
-        @if(selectedServices.Count == 1)
-        {
-            <button type="button" class="btn btn-sm btn-warning" @onclick="() =>
-                {SvcGroupHandler.EditService(selectedServices.First()); selectedServices = new(); SvcGroupHandlerChanged.InvokeAsync(SvcGroupHandler);}">@(SvcGroupHandler.DisplayButton("edit_service", Icons.Edit))</button>
-            <button type="button" class="btn btn-sm btn-danger" @onclick="async () =>
-                {await SvcGroupHandler.RequestDeleteService(selectedServices.First()); selectedServices = new();
-                await SvcGroupHandlerChanged.InvokeAsync(SvcGroupHandler);}">@(SvcGroupHandler.DisplayButton("delete", Icons.Delete))</button>
-        }
-    </div>
-</div>
-<EditService @bind-Display="SvcGroupHandler.EditServiceMode" ServiceHandler="SvcGroupHandler.ServiceHandler" AsAdmin="AsAdmin" RefreshParent="async () => { await SvcGroupHandler.RefreshActServiceGroup(); await SvcGroupHandlerChanged.InvokeAsync(SvcGroupHandler);}"/>
-<ConfirmDelete @bind-Display="SvcGroupHandler.DeleteServiceMode" PerformAction="async () => { await SvcGroupHandler.DeleteService(); await SvcGroupHandlerChanged.InvokeAsync(SvcGroupHandler);}"
-    Title="@userConfig.GetText("delete_service")" DeleteMessage="@SvcGroupHandler.Message" AllowedRoles="@(AsAdmin? Roles.Admin : Roles.Modeller)"
-    DeleteAllowed="SvcGroupHandler.DeleteAllowed" Enabled="SvcGroupHandler.IsOwner"/>
-
+    <EditService @bind-Display="SvcGroupHandler.EditServiceMode" ServiceHandler="SvcGroupHandler.ServiceHandler" AsAdmin="AsAdmin" RefreshParent="async () => { await SvcGroupHandler.RefreshActServiceGroup(); await SvcGroupHandlerChanged.InvokeAsync(SvcGroupHandler);}"/>
+    <ConfirmDelete @bind-Display="SvcGroupHandler.DeleteServiceMode" PerformAction="async () => { await SvcGroupHandler.DeleteService(); await SvcGroupHandlerChanged.InvokeAsync(SvcGroupHandler);}"
+        Title="@userConfig.GetText("delete_service")" DeleteMessage="@SvcGroupHandler.Message" AllowedRoles="@(AsAdmin? Roles.Admin : Roles.Modeller)"
+        DeleteAllowed="SvcGroupHandler.DeleteAllowed" Enabled="SvcGroupHandler.IsOwner"/>
+}
 
 @code
 {
@@ -61,7 +63,7 @@
     public EventCallback<int> WidthChanged { get; set; }
 
     [Parameter]
-    public ModellingServiceGroupHandler SvcGroupHandler { get; set; }
+    public ModellingServiceGroupHandler? SvcGroupHandler { get; set; }
 
     [Parameter]
     public EventCallback<ModellingServiceGroupHandler> SvcGroupHandlerChanged { get; set; }

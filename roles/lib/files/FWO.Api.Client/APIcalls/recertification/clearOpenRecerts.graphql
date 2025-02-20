@@ -7,7 +7,7 @@ mutation clearOpenRecerts($ownerId: Int, $mgmId: Int) {
     }
   ) {
     returning {
-      DeletedId: id
+      deletedIdLong: id
     }
   }
 }

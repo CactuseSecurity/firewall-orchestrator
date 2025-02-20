@@ -1,4 +1,4 @@
-query listNatRulesDetails(
+query getNatRuleDetails(
   $management_id: [Int!]
   $device_id: [Int!]
   $rule_id: [bigint!]

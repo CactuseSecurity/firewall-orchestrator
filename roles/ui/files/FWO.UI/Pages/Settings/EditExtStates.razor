@@ -6,7 +6,7 @@
 @inject ApiConnection apiConnection
 
 
-<PopUp Title="@(userConfig.GetText("ext_states"))" Show="@Display" Size=PopupSize.Large OnClose="Close">
+<PopUp Title="@(userConfig.GetText("ext_states"))" Show="@Display" Size=PopupSize.CustomMedium OnClose="Close">
     <Body>
         @if (Display)
         {
@@ -38,7 +38,7 @@
     </Footer>
 </PopUp>
 
-<PopUp Title="@(userConfig.GetText("assign_state_to") + actExtState.Name)" Show="@SelectStateMode" Size=PopupSize.Small OnClose="CloseSelect">
+<PopUp Title="@(userConfig.GetText("assign_state_to") + actExtState.Name)" Show="@SelectStateMode" Size=PopupSize.CustomSmall OnClose="CloseSelect">
     <Body>
         @if (SelectStateMode)
         {
@@ -133,7 +133,7 @@
                 }
                 if(selectedState != null)
                 {
-                    ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(RequestQueries.addExtState,
+                    ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(RequestQueries.addExtState,
                         new { name = actExtState.Name, stateId = selectedState.Id })).ReturnIds;
                     if (returnIds != null)
                     {

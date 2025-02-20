@@ -1,4 +1,5 @@
 ﻿using FWO.Api.Client;
+using FWO.Basics;
 using NetTools;
 using Newtonsoft.Json;
 using System.Net;
@@ -53,7 +54,7 @@ namespace FWO.Api.Data
             {
                 for (int j = 0; j < ipRanges.Count; j++)
                 {
-                    if (OverlapExists(IPRanges[i], ipRanges[j]))
+                    if (IpOperations.RangeOverlapExists(IPRanges[i], ipRanges[j]))
                     {
                         result = true;
                         RemoveOverlap(unseenIpRanges[j], IPRanges[i]);
@@ -63,77 +64,40 @@ namespace FWO.Api.Data
             return result;
         }
 
-        /// <summary>
-        /// Checks if IP range a and b overlap.
-        /// </summary>
-        /// <param name="a">First IP range</param>
-        /// <param name="b">Second IP range</param>
-        /// <returns>True, if IP ranges overlap, false otherwise.</returns>
-        public static bool OverlapExists(IPAddressRange a, IPAddressRange b)
-        {
-            return IpToUint(a.Begin) <= IpToUint(b.End) && IpToUint(b.Begin) <= IpToUint(a.End);
-        }
-
         private static void RemoveOverlap(List<IPAddressRange> ranges, IPAddressRange toRemove)
         {
             for (int i = 0; i < ranges.Count; i++)
             {
-                if (OverlapExists(ranges[i], toRemove))
+                if (IpOperations.RangeOverlapExists(ranges[i], toRemove))
                 {
-                    if (IpToUint(toRemove.Begin) <= IpToUint(ranges[i].Begin) && IpToUint(toRemove.End) >= IpToUint(ranges[i].End))
+                    if (IpOperations.IpToUint(toRemove.Begin) <= IpOperations.IpToUint(ranges[i].Begin) && IpOperations.IpToUint(toRemove.End) >= IpOperations.IpToUint(ranges[i].End))
                     {
                         // Complete overlap, remove the entire range
                         ranges.RemoveAt(i);
                         i--;
                     }
-                    else if (IpToUint(toRemove.Begin) <= IpToUint(ranges[i].Begin))
+                    else if (IpOperations.IpToUint(toRemove.Begin) <= IpOperations.IpToUint(ranges[i].Begin))
                     {
                         // Overlap on the left side, update the start
-                        ranges[i].Begin = UintToIp(IpToUint(toRemove.End) + 1);
+                        ranges[i].Begin = IpOperations.UintToIp(IpOperations.IpToUint(toRemove.End) + 1);
                     }
-                    else if (IpToUint(toRemove.End) >= IpToUint(ranges[i].End))
+                    else if (IpOperations.IpToUint(toRemove.End) >= IpOperations.IpToUint(ranges[i].End))
                     {
                         // Overlap on the right side, update the end
-                        ranges[i].End = UintToIp(IpToUint(toRemove.Begin) - 1);
+                        ranges[i].End = IpOperations.UintToIp(IpOperations.IpToUint(toRemove.Begin) - 1);
                     }
                     else
                     {
                         // Overlap in the middle, split the range
                         // begin..remove.begin-1
                         IPAddress end = ranges[i].End;
-                        ranges[i].End = UintToIp(IpToUint(toRemove.Begin) - 1);
+                        ranges[i].End = IpOperations.UintToIp(IpOperations.IpToUint(toRemove.Begin) - 1);
                         // remove.end+1..end
-                        ranges.Insert(i, new IPAddressRange(UintToIp(IpToUint(toRemove.End) + 1), end));
+                        ranges.Insert(i, new IPAddressRange(IpOperations.UintToIp(IpOperations.IpToUint(toRemove.End) + 1), end));
                         i++;
                     }
                 }
             }
-        }
-
-        private static uint IpToUint(IPAddress ipAddress)
-        {
-            byte[] bytes = ipAddress.GetAddressBytes();
-
-            // flip big-endian(network order) to little-endian
-            if (BitConverter.IsLittleEndian)
-            {
-                Array.Reverse(bytes);
-            }
-
-            return BitConverter.ToUInt32(bytes, 0);
-        }
-
-        private static IPAddress UintToIp(uint ipAddress)
-        {
-            byte[] bytes = BitConverter.GetBytes(ipAddress);
-
-            // flip big-endian(network order) to little-endian
-            if (BitConverter.IsLittleEndian)
-            {
-                Array.Reverse(bytes);
-            }
-
-            return new IPAddress(bytes);
         }
 
         public object Clone()

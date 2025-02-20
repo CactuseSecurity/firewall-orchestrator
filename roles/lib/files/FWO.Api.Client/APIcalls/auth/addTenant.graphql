@@ -15,7 +15,7 @@ mutation addTenant(
     }
   ) {
     returning {
-       newId: tenant_id
+      newId: tenant_id
     }
   }
 }

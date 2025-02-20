@@ -17,7 +17,7 @@ mutation newTicket(
     reqtasks: $requestTasks
   }) {
     returning {
-      newId: id
+      newIdLong: id
     }
   }
 }

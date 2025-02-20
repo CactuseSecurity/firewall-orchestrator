@@ -7,6 +7,6 @@ mutation setAppServerName(
     _set: {
       name: $newName
   }) {
-    UpdatedId: id
+    UpdatedIdLong: id
   }
 }

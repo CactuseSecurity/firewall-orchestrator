@@ -36,7 +36,7 @@
         <hr />
         <div class="form-group row">
             <div class="col-sm-4">
-                <SelectOwner SelectedOwner="selectedApp" SelectedOwnerChanged="InitApp" Apps="apps" />
+                <SelectOwner SelectedOwner="selectedApp" SelectedOwnerChanged="ReInitApp" Apps="apps" />
             </div>
             <div class="col-sm-6">
                 <div class="btn-group">
@@ -75,12 +75,12 @@
                 {
                     <div class="btn-group ms-5">
                         <button type="button" class="btn btn-sm btn-dark" @onclick="ShareLink">
-                            @(appHandler.DisplayButton("share_link", Icons.Share))
+                            @(appHandler!.DisplayButton("share_link", Icons.Share))
                         </button>&nbsp;
                         <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}")">
                             <Authorized>
                                 <button type="button" class="btn btn-sm btn-dark" @onclick="ManualAppServer">
-                                    @(appHandler.DisplayButton("edit_app_server", Icons.Edit, "app_server"))
+                                    @(appHandler!.DisplayButton("edit_app_server", Icons.Edit, "app_server"))
                                 </button>
                             </Authorized>
                         </AuthorizeView>
@@ -89,18 +89,18 @@
                 </h5>
             </div>
             <div class="m-2 vheight75">
-                <TabSet WholeWidth="false" DarkMode="false" KeepPanelsAlive="false" @ref="appHandler.tabset">
+                <TabSet WholeWidth="false" DarkMode="false" KeepPanelsAlive="false" @ref="appHandler!.tabset">
                     <Tab Title="@(userConfig.GetText("connections"))" Position=0>
-                        <button type="button" class="btn btn-sm btn-success mb-2" @onclick="appHandler.AddConnection">
-                            @(appHandler.DisplayButton("add_connection", Icons.Add))
+                        <button type="button" class="btn btn-sm btn-success mb-2" @onclick="appHandler!.AddConnection">
+                            @(appHandler!.DisplayButton("add_connection", Icons.Add))
                         </button>
-                        <ConnectionTable ShowPageSizeInput="true" Connections="@appHandler.GetRegularConnections()" @bind-AppHandler="appHandler" AppActive="appActive" />
+                        <ConnectionTable ShowPageSizeInput="true" Connections="@appHandler!.GetRegularConnections()" @bind-AppHandler="appHandler" AppActive="appActive" />
                     </Tab>
                     <Tab Title="@(userConfig.GetText("provided_interfaces"))" Position=1>
                         <div class="d-flex justify-content-between">
                             <div>
-                                <button type="button" class="btn btn-sm btn-success mb-2" @onclick="appHandler.AddInterface">
-                                    @(appHandler.DisplayButton("add_interface", Icons.Add))
+                                <button type="button" class="btn btn-sm btn-success mb-2" @onclick="appHandler!.AddInterface">
+                                    @(appHandler!.DisplayButton("add_interface", Icons.Add))
                                 </button>
                             </div>
                             <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}")">
@@ -112,27 +112,27 @@
                                 </Authorized>
                             </AuthorizeView>
                         </div>
-                        <ConnectionTable ShowPageSizeInput="true" Connections="@appHandler.GetInterfaces(showRejected)" @bind-AppHandler="appHandler" AppActive="appActive" />
+                        <ConnectionTable ShowPageSizeInput="true" Connections="@appHandler!.GetInterfaces(showRejected)" @bind-AppHandler="appHandler" AppActive="appActive" />
                     </Tab>
                     @if (selectedApp.CommSvcPossible)
                     {
                         <Tab Title="@(userConfig.GetText("common_services"))" Position=2>
                             <button type="button" class="btn btn-sm btn-success mb-2"
-                                @onclick="appHandler.AddCommonService">@(appHandler.DisplayButton("add_common_service", Icons.Add))
+                                @onclick="appHandler!.AddCommonService">@(appHandler!.DisplayButton("add_common_service", Icons.Add))
                             </button>
-                            <ConnectionTable Connections="@appHandler.GetCommonServices()" @bind-AppHandler="appHandler" AppActive="appActive" />
+                            <ConnectionTable Connections="@appHandler!.GetCommonServices()" @bind-AppHandler="appHandler" AppActive="appActive" />
                         </Tab>
                     }
                 </TabSet>
             </div>
-            <ConfirmDelete @bind-Display="appHandler.DeleteConnMode"
-                PerformAction="async () => {await appHandler.DeleteConnection(); appHandler.RestoreTab(); StateHasChanged();}"
-                Title="@userConfig.GetText(appHandler.ConnToDelete.IsInterface ? "delete_interface" : "delete_connection")"
-                DeleteMessage="@appHandler.Message" DeleteAllowed="appHandler.DeleteAllowed" AllowedRoles="@Roles.Modeller" />
+            <ConfirmDelete @bind-Display="appHandler!.DeleteConnMode"
+                PerformAction="async () => {await appHandler!.DeleteConnection(); appHandler!.RestoreTab(); StateHasChanged();}"
+                Title="@userConfig.GetText(appHandler!.ConnToDelete.IsInterface ? "delete_interface" : "delete_connection")"
+                DeleteMessage="@appHandler!.Message" DeleteAllowed="appHandler!.DeleteAllowed" AllowedRoles="@Roles.Modeller" />
         }
     </div>
 }
-else
+else if(appHandler != null)
 {
     <EditConn @bind-Display="appHandler.EditConnMode" ConnHandler="appHandler.connHandler" ClosingAction="PrepareRestore" />
 }
@@ -173,22 +173,23 @@ else
     private bool firstInit = true;
     private string ChangeStatus = "";
     private GraphQlApiSubscription<List<WfTicket>>? actTicketSubscription;
-    private ExtStateHandler extStateHandler;
+    private ExtStateHandler? extStateHandler;
     private WfStateDict states = new();
     private bool firstErrorMessage = true;
     private bool workInProgress = false;
 
     protected override async Task OnInitializedAsync()
     {
+        workInProgress = true;
         // if use has modeller role, choose it before all others for this menu
         apiConnection.SetBestRole(authenticationStateTask!.Result.User, [ Roles.Modeller, Roles.Admin, Roles.Auditor ]);
         extStateHandler = new(apiConnection);
-        await extStateHandler.Init();
         await states.Init(apiConnection);
         await InitAppList();
+        workInProgress = false;
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    protected override void OnAfterRender(bool firstRender)
     {
         if (appSelected && appHandler != null)
         {
@@ -217,7 +218,7 @@ else
     {
         try
         {
-            apps = await ModellingHandlerBase.GetOwnApps(authenticationStateTask, userConfig, apiConnection, DisplayMessageInUi,
+            apps = await ModellingHandlerBase.GetOwnApps(authenticationStateTask!, userConfig, apiConnection, DisplayMessageInUi,
             true);
             if (apps.Count == 0)
             {
@@ -227,7 +228,7 @@ else
             {
                 if (AppId != null)
                 {
-                    await HandleLink();
+                    HandleLink();
                 }
                 else
                 {
@@ -242,7 +243,7 @@ else
         }
     }
 
-    private async Task HandleLink()
+    private void HandleLink()
     {
         FwoOwner? existingApp = apps.FirstOrDefault(a => a.ExtAppId == AppId);
         if (existingApp != null)
@@ -252,6 +253,14 @@ else
         else
         {
             selectedApp = apps.First();
+        }
+    }
+
+    private async Task ReInitApp(FwoOwner newApp)
+    {
+        if(newApp.Id != selectedApp.Id)
+        {
+            await InitApp(newApp);
         }
     }
 
@@ -301,7 +310,7 @@ else
             {
                 tabSelected = true;
                 appHandler?.InitActiveTab(selectedConn);
-                await appHandler?.EditConn(selectedConn);
+                await appHandler!.EditConn(selectedConn);
             }
         }
     }
@@ -321,12 +330,12 @@ else
         showHistory = true;
     }
 
-    private async Task Report()
+    private void Report()
     {
         NavigationManager.NavigateTo($"/{PageName.ReportGeneration}/{selectedApp.Id}");
     }
 
-    private async Task RequestFwChange()
+    private void RequestFwChange()
     {
         showFwChange = true;
     }
@@ -358,36 +367,37 @@ else
 
     private async Task SetStatusFromTicket(WfTicket intTicket)
     {
-        int doneStateId = (int)(extStateHandler.GetInternalStateId(ExtStates.ExtReqDone) ?? 999);
-        int rejectedStateId = (int)(extStateHandler.GetInternalStateId(ExtStates.ExtReqRejected) ?? 999);
-        if(intTicket.StateId < doneStateId && intTicket.StateId < rejectedStateId)
+        if(extStateHandler!= null)
         {
-            ChangeStatus = userConfig.GetText("in_process");
-        }
-        else if(intTicket.StateId == doneStateId)
-        {
-            ChangeStatus = userConfig.GetText("last_successful") + intTicket.CompletionDate?.ToString("yyyy-MM-dd HH:mm:ss") + " " + intTicket.Requester?.Name;
-        }
-        else
-        {
-            List<ExternalRequest> lastRequests = await apiConnection.SendQueryAsync<List<ExternalRequest>>(ExtRequestQueries.getLastRequest, new{ticketId = intTicket.Id});
-            if(lastRequests != null && lastRequests.Count > 0)
+            if(extStateHandler.IsInProgress(intTicket.StateId))
             {
-                string? lastResponse = !string.IsNullOrEmpty(lastRequests.First().LastProcessingResponse) ? 
-                    lastRequests.First().LastProcessingResponse : lastRequests.First().LastCreationResponse;
-                bool shortened = false;
-                string tooltip = states.Name[intTicket.StateId] + ": " + Sanitizer.SanitizeCommentOpt(lastResponse, ref shortened);
-                ChangeStatus = $"<div data-toggle=\"tooltip\" title=\"{tooltip}\">{userConfig.GetText("implementation_error")}</div>";
+                ChangeStatus = userConfig.GetText("in_process");
+            }
+            else if(extStateHandler.IsDone(intTicket.StateId))
+            {
+                ChangeStatus = userConfig.GetText("last_successful") + intTicket.CompletionDate?.ToString("yyyy-MM-dd HH:mm:ss") + " " + intTicket.Requester?.Name;
             }
             else
             {
-                ChangeStatus = userConfig.GetText("implementation_error");
-            }
-            await InvokeAsync(StateHasChanged);
-            if(firstErrorMessage)
-            {
-                firstErrorMessage = false;
-                DisplayMessageInUi(null, userConfig.GetText("implementation_error"), userConfig.ModRolloutErrorText, true);
+                List<ExternalRequest> lastRequests = await apiConnection.SendQueryAsync<List<ExternalRequest>>(ExtRequestQueries.getLastRequest, new{ticketId = intTicket.Id});
+                if(lastRequests != null && lastRequests.Count > 0)
+                {
+                    string? lastResponse = !string.IsNullOrEmpty(lastRequests.First().LastProcessingResponse) ? 
+                        lastRequests.First().LastProcessingResponse : lastRequests.First().LastCreationResponse;
+                    bool shortened = false;
+                    string tooltip = states.Name[intTicket.StateId] + ": " + Sanitizer.SanitizeCommentOpt(lastResponse, ref shortened);
+                    ChangeStatus = $"<div data-toggle=\"tooltip\" title=\"{tooltip}\">{userConfig.GetText("implementation_error")}</div>";
+                }
+                else
+                {
+                    ChangeStatus = userConfig.GetText("implementation_error");
+                }
+                await InvokeAsync(StateHasChanged);
+                if(firstErrorMessage)
+                {
+                    firstErrorMessage = false;
+                    DisplayMessageInUi(null, userConfig.GetText("implementation_error"), userConfig.ModRolloutErrorText, true);
+                }
             }
         }
     }

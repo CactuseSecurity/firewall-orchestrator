@@ -7,7 +7,7 @@ mutation addSelectedNwGroupObject(
     nwgroup_id: $nwGroupId
   }) {
     returning {
-      newId: nwgroup_id
+      insertedIdLong: nwgroup_id
     }
   }
 }

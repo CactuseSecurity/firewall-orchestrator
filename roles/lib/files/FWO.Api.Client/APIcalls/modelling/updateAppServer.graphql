@@ -18,6 +18,6 @@ mutation updateAppServer(
       is_deleted: false
       custom_type: $customType
   }) {
-    UpdatedId: id
+    updatedIdLong: id
   }
 }

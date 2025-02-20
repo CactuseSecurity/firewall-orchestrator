@@ -18,6 +18,7 @@ namespace FWO.Api.Data
         public int? CustomType { get; set; }
 
         public bool InUse { get; set; } = true;
+        public bool HighestPrio { get; set; } = true;
 
 
         public override string Display()
@@ -67,6 +68,7 @@ namespace FWO.Api.Data
             ImportSource = appServer.ImportSource;
             InUse = appServer.InUse;
             CustomType = appServer.CustomType;
+            HighestPrio = appServer.HighestPrio;
         }
 
         public ModellingAppServer(NetworkObject nwObj)  : base(nwObj)

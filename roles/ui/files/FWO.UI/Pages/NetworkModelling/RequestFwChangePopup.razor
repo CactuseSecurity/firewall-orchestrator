@@ -17,7 +17,7 @@
 @inject MiddlewareClient middlewareClient
 
 
-<PopUp Title="@(userConfig.GetText("request_fw_change"))" Show="@Display" Size=PopupSize.XLarge OnClose="Close">
+<PopUp Title="@(userConfig.GetText("request_fw_change"))" Show="@Display" Size=PopupSize.CustomXLarge OnClose="Close">
     <Body>
         @if (Display)
         {
@@ -29,7 +29,11 @@
                             @(userConfig.GetText(context.TaskType))
                         </Template>
                     </Column>
-                    <Column TableItem="WfReqTask" Title="@(userConfig.GetText("management"))" Field="@(x => x.OnManagement.Name)" Sortable="false" Filterable="false" />
+                    <Column TableItem="WfReqTask" Title="@(userConfig.GetText("management"))" Field="@(x => x.Id)" Sortable="false" Filterable="false">
+                        <Template>
+                            @(context.OnManagement?.Name)
+                        </Template>
+                    </Column>
                     <Column TableItem="WfReqTask" Title="@(userConfig.GetText("title"))" Field="@(x => x.Title)" Sortable="true" Filterable="false" />
                     <Column TableItem="WfReqTask" Title="@(userConfig.GetText("state"))" Field="@(x => x.StateId)" Sortable="true" Filterable="false">
                         <Template>
@@ -103,13 +107,12 @@
     private bool RequestInProcess = false;
     private bool SubscriptionsSetupComplete = false;
     private WfStateDict states = new();
-    private ExtStateHandler extStateHandler;
+    private ExtStateHandler? extStateHandler;
     private List<GraphQlApiSubscription<List<WfReqTask>>> actTaskSubscriptions = [];
 
     protected override async Task OnInitializedAsync()
     {
         extStateHandler = new(apiConnection);
-        await extStateHandler.Init();
         ipProtos = await apiConnection.SendQueryAsync<List<IpProtocol>>(StmQueries.getIpProtocols);
     }
 
@@ -129,7 +132,7 @@
     {
         try
         {
-            if (!await GetActTicketStatus())
+            if (!await GetActTicketStatus() && extStateHandler != null)
             {
                 ModellingAppZoneHandler appZoneHandler = new(apiConnection, userConfig, SelectedApp, DisplayMessageInUi);
                 await appZoneHandler.UpsertAppZone();
@@ -167,11 +170,12 @@
 
     private void SetActTicketStatus(WfTicket intTicket)
     {
-        intTicket.UpdateCidrsInTaskElements();
-        TaskList = intTicket.Tasks.OrderBy(t => t.TaskNumber).ToList();
-        int doneStateId = (int)(extStateHandler.GetInternalStateId(ExtStates.ExtReqDone) ?? 999);
-        int rejectedStateId = (int)(extStateHandler.GetInternalStateId(ExtStates.ExtReqRejected) ?? 999);
-        RequestInProcess = (TaskList.FirstOrDefault(t => t.StateId < doneStateId && t.StateId < rejectedStateId) != null);
+        if(extStateHandler!= null)
+        {
+            intTicket.UpdateCidrsInTaskElements();
+            TaskList = intTicket.Tasks.OrderBy(t => t.TaskNumber).ToList();
+            RequestInProcess = (TaskList.FirstOrDefault(t => extStateHandler.IsInProgress(t.StateId)) != null);
+        }
     }
 
     private string DisplayTaskDetails(WfReqTask task)
@@ -271,7 +275,7 @@
         {
             TicketCreator ticketCreator = new(apiConnection, userConfig, authenticationStateTask!.Result.User, middlewareClient);
             WfTicket intTicket = await ticketCreator.CreateTicket(SelectedApp, TaskList,
-                "Rollout modelled connections for: " + SelectedApp.Name, extStateHandler.GetInternalStateId(ExtStates.ExtReqInitialized), "");
+                "Rollout modelled connections for: " + SelectedApp.Name, extStateHandler?.GetInternalStateId(ExtStates.ExtReqInitialized), "");
             if (intTicket != null)
             {
                 RequestInProcess = true;
@@ -297,7 +301,7 @@
     {
         try
         {
-            await apiConnection.SendQueryAsync<NewReturning>(ExtRequestQueries.addTicketId, new { ownerId = SelectedApp.Id, ticketId = ticketId });
+            await apiConnection.SendQueryAsync<ReturnIdWrapper>(ExtRequestQueries.addTicketId, new { ownerId = SelectedApp.Id, ticketId = ticketId });
         }
         catch (Exception exception)
         {

@@ -20,7 +20,7 @@ namespace FWO.Test
         static readonly ModellingVarianceAnalysisTestApiConn varianceAnalysisApiConnection = new();
         static readonly ExtStateTestApiConn extStateApiConnection = new();
         readonly ExtStateHandler extStateHandler = new(extStateApiConnection);
-        ModellingVarianceAnalysis varianceAnalysis;
+        ModellingVarianceAnalysis? varianceAnalysis;
 
         static readonly FwoOwner Application = new() { Id = 1, Name = "App1" };
 
@@ -54,14 +54,13 @@ namespace FWO.Test
         [SetUp]
         public void Initialize()
         {
-            extStateHandler.Init().Wait();
             varianceAnalysis = new (varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
         }
 
         [Test]
         public async Task TestAnalyseModelledConnections()
         {
-            List<WfReqTask> TaskList = await varianceAnalysis.AnalyseModelledConnections(Connections);
+            List<WfReqTask> TaskList = await varianceAnalysis!.AnalyseModelledConnections(Connections);
 
             ClassicAssert.AreEqual(5, TaskList.Count);
 
@@ -182,7 +181,7 @@ namespace FWO.Test
             ClassicAssert.AreEqual("unchanged", TaskList[4].Elements[2].RequestAction);
 
             userConfig.ModRolloutResolveServiceGroups = false;
-            TaskList = await varianceAnalysis.AnalyseModelledConnections(Connections);
+            TaskList = await varianceAnalysis!.AnalyseModelledConnections(Connections);
             ClassicAssert.AreEqual(6, TaskList.Count);
             ClassicAssert.AreEqual(WfTaskType.group_modify.ToString(), TaskList[0].TaskType);
             ClassicAssert.AreEqual(WfTaskType.group_modify.ToString(), TaskList[1].TaskType);

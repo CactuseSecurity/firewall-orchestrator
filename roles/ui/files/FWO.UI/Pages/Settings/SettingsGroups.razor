@@ -71,7 +71,7 @@
     </Table>
 </div>
 
-<PopUp Title="@((AddGroupMode ? userConfig.GetText("add_new_group") : userConfig.GetText("edit_group")))" Show="@EditGroupMode" Size=PopupSize.Small OnClose="() => EditGroupMode = false">
+<PopUp Title="@((AddGroupMode ? userConfig.GetText("add_new_group") : userConfig.GetText("edit_group")))" Show="@EditGroupMode" Size=PopupSize.CustomSmall OnClose="() => EditGroupMode = false">
     <Body>
         @if (EditGroupMode)
         {

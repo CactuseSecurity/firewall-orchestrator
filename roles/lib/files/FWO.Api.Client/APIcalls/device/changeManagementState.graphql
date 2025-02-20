@@ -8,6 +8,6 @@ mutation changeManagementState(
       do_not_import: $importDisabled
     }
   ) {
-    UpdatedId: mgm_id
+    updatedId: mgm_id
   }
 }

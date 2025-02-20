@@ -106,7 +106,7 @@ namespace FWO.Api.Data
                 {
                     ip2 = ip1;
                 }
-                string nwObjType = AutoDetectType(ip1, ip2);
+                string nwObjType = IpOperations.GetObjectType(ip1, ip2);
                 return DisplayIp(ip1, ip2, nwObjType, inBrackets);
             }
             catch(Exception exc)
@@ -130,25 +130,25 @@ namespace FWO.Api.Data
                 if (string.IsNullOrEmpty(ip1))
                 {
                     Log.WriteDebug("Ip displaying", $"Nessessary parameter {nameof(ip1)} is empty.");
-                }else if (!IsV4Address(ip1) && !IsV6Address(ip1))
+                }else if (!ip1.IsV4Address() && !ip1.IsV6Address())
                 {
                     Log.WriteError("Ip displaying", $"Found undefined IP family: {ip1} - {ip2}");
                 }
-                else if (IsV4Address(ip1) == IsV6Address(ip2))
+                else if (ip1.IsV4Address() == ip2.IsV6Address())
                 {
                     Log.WriteError("Ip displaying", $"Found mixed IP family: {ip1} - {ip2}");
                 }
                 else
                 {                    
-                    string IpStart = StripOffUnnecessaryNetmask(ip1);
-                    string IpEnd = StripOffUnnecessaryNetmask(ip2);
+                    string IpStart = ip1.StripOffUnnecessaryNetmask();
+                    string IpEnd = ip2.StripOffUnnecessaryNetmask();
 
                     try
                     {
                         result = inBrackets ? " (" : "";
                         if (nwObjType == ObjectType.Network)
                         {
-                            if(GetNetmask(IpStart) == "")
+                            if(IpStart.GetNetmask() == "")
                             {
                                 IPAddressRange ipRange = new (IPAddress.Parse(IpStart), IPAddress.Parse(IpEnd));
                                 if (ipRange != null)
@@ -183,14 +183,14 @@ namespace FWO.Api.Data
         public static string DisplayIpRange(string ip1, string ip2, bool inBrackets = false)
         {
             string result = "";
-            string nwObjType = AutoDetectType(ip1, ip2);
+            string nwObjType = IpOperations.GetObjectType(ip1, ip2);
             if (nwObjType != ObjectType.Group)
             {
-                if (!IsV4Address(ip1) && !IsV6Address(ip1))
+                if (!ip1.IsV4Address() && !ip1.IsV6Address())
                 {
                     Log.WriteError("Ip displaying", $"Found undefined IP family: {ip1} - {ip2}");
                 }
-                else if (IsV4Address(ip1) == IsV6Address(ip2))
+                else if (ip1.IsV4Address() == ip2.IsV6Address())
                 {
                     Log.WriteError("Ip displaying", $"Found mixed IP family: {ip1} - {ip2}");
                 }
@@ -200,15 +200,15 @@ namespace FWO.Api.Data
                     {
                         ip2 = ip1;
                     }
-                    string IpStart = StripOffUnnecessaryNetmask(ip1);
-                    string IpEnd = StripOffUnnecessaryNetmask(ip2);
+                    string IpStart = ip1.StripOffUnnecessaryNetmask();
+                    string IpEnd = ip2.StripOffUnnecessaryNetmask();
 
                     try
                     {
                         result = inBrackets ? " (" : "";
                         if (nwObjType == ObjectType.Network)
                         {
-                            if (GetNetmask(IpStart) == "")
+                            if (IpStart.GetNetmask() == "")
                             {
                                 IPAddressRange ipRange = new(IPAddress.Parse(IpStart), IPAddress.Parse(IpEnd));
                                 if (ipRange != null)
@@ -238,82 +238,6 @@ namespace FWO.Api.Data
                 }
             }
             return result;
-        }
-
-        public static string GetNetmask(string ip)
-        {
-            int pos = ip.LastIndexOf('/');
-            if (pos > -1 && ip.Length > pos + 1)
-            {
-                return ip[(pos + 1)..];
-            }
-            return "";
-        }
-
-        // public static string StripOffNetmask(this string ip)
-        // {
-        //     int pos = ip.LastIndexOf('/');
-        //     if (pos > -1 && ip.Length > pos + 1)
-        //     {
-        //         return ip[..pos];
-        //     }
-        //     return ip;
-        // }
-
-        private static string StripOffUnnecessaryNetmask(string ip)
-        {
-            string netmask = GetNetmask(ip);
-            if (IsV4Address(ip) && netmask == "32" || IsV6Address(ip) && netmask == "128")
-            {
-                return ip.StripOffNetmask();
-            }
-            return ip;
-        }
-
-        private static bool SpanSingleNetwork(string ipInStart, string ipInEnd)
-        {
-            // IPAddressRange range = IPAddressRange.Parse(IPAddress.Parse(ipInStart), IPAddress.Parse(ipInEnd));
-
-            IPAddressRange range = IPAddressRange.Parse(ipInStart.StripOffNetmask() + "-" + ipInEnd.StripOffNetmask());
-            try
-            {
-                range.ToCidrString();
-            }
-            catch (Exception)
-            {
-                return false;
-            }
-            return true;
-        }
-
-        public static string AutoDetectType(string ip1, string ip2)
-        {
-            ip1 = StripOffUnnecessaryNetmask(ip1);
-            ip2 = StripOffUnnecessaryNetmask(ip2);
-            if (ip1 == ip2 || ip2 == "")
-            {
-                string netmask = GetNetmask(ip1);
-                if(netmask != "")
-                {
-                    return ObjectType.Network;
-                }
-                return ObjectType.Host;
-            }
-            if (SpanSingleNetwork(ip1, ip2))
-            {
-                return ObjectType.Network;
-            }
-            return ObjectType.IPRange;
-        }
-
-        private static bool IsV6Address(string ip)
-        {
-            return ip.Contains(':');
-        }
-
-        private static bool IsV4Address(string ip)
-        {
-            return ip.Contains('.');
         }
     }
 }

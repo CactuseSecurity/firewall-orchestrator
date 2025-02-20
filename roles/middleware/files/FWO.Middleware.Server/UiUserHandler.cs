@@ -158,7 +158,7 @@ namespace FWO.Middleware.Server
 						ldapConnectionId = user.LdapConnection.Id,
 						loginTime = DateTime.UtcNow
 					};
-					ReturnId[]? returnIds = (await apiConn.SendQueryAsync<NewReturning>(AuthQueries.upsertUiUser, VariablesWithLogin)).ReturnIds;
+					ReturnId[]? returnIds = (await apiConn.SendQueryAsync<ReturnIdWrapper>(AuthQueries.upsertUiUser, VariablesWithLogin)).ReturnIds;
 					if (returnIds != null)
 					{
 						user.DbId = returnIds[0].NewId;
@@ -177,7 +177,7 @@ namespace FWO.Middleware.Server
 						passwordMustBeChanged = false,
 						ldapConnectionId = user.LdapConnection.Id
 					};
-					ReturnId[]? returnIds = (await apiConn.SendQueryAsync<NewReturning>(AuthQueries.upsertUiUser, VariablesWithoutLogin)).ReturnIds;
+					ReturnId[]? returnIds = (await apiConn.SendQueryAsync<ReturnIdWrapper>(AuthQueries.upsertUiUser, VariablesWithoutLogin)).ReturnIds;
 					if (returnIds != null)
 					{
 						user.DbId = returnIds[0].NewId;

@@ -2,6 +2,7 @@
 using GraphQL;
 using FWO.Api.Data;
 using FWO.Basics;
+using FWO.Services;
 using FWO.Api.Client.Data;
 
 namespace FWO.Test
@@ -19,6 +20,7 @@ namespace FWO.Test
         
         public override async Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
         {
+            await DefaultInit.DoNothing(); // qad avoid compiler warning
             Type responseType = typeof(QueryResponseType);
             if (responseType == typeof(List<Management>))
             {
@@ -37,7 +39,7 @@ namespace FWO.Test
                     if (variables != null)
                     {
                         var objTypeIds = variables.GetType().GetProperties().First(o => o.Name == "objTypeIds").GetValue(variables, null);
-                        if (( (int[])objTypeIds )[0] == 2)
+                        if (objTypeIds != null && ( (int[])objTypeIds )[0] == 2)
                         {
                             nwObjects =
                             [

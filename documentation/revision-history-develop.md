@@ -255,5 +255,5 @@ bugfix release:
 # 8.6.1 - 12.12.2024 DEVELOP
 - external request: introduce locks
 
-# 8.6.3 - 22.01.2025 DEVELOP
+# 8.6.3 - 20.02.2025 DEVELOP
 - dns lookup for app server names

@@ -265,7 +265,6 @@ namespace FWO.Report
             {
                 ExecutablePath = installedBrowser.GetExecutablePath(),
                 Headless = true,
-                Args = new[] {"--no-zygote"}
             });
 
             try

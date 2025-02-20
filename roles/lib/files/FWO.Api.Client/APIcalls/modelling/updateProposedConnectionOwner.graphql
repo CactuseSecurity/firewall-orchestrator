@@ -7,6 +7,6 @@ mutation updateProposedConnectionOwner(
     _set: {
       proposed_app_id: $propAppId
   }) {
-    UpdatedId: id
+    updatedId: id
   }
 }

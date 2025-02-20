@@ -9,7 +9,7 @@ mutation newNetworkOwnership(
     ip_end: $ip_end
   }) {
     returning {
-      newId: id
+      newIdLong: id
     }
   }
 }

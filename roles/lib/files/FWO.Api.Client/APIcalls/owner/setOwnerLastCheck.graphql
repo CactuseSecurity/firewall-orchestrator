@@ -7,6 +7,6 @@ mutation setOwnerLastCheck(
     _set: {
       last_recert_check: $lastRecertCheck
   }) {
-    UpdatedId: id
+    updatedId: id
   }
 }

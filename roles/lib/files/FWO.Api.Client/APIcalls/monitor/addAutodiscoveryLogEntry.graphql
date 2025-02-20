@@ -1,4 +1,4 @@
-mutation addAutodiscoveryLog(
+mutation addAutodiscoveryLogEntry(
   $discoverUser: Int!
   $severity: Int!
   $suspectedCause: String
@@ -18,7 +18,7 @@ mutation addAutodiscoveryLog(
     }
   ) {
     returning {
-       newId: data_issue_id
+      newIdLong: data_issue_id
     }
   }
 }

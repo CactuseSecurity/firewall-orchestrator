@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Serialization; 
+﻿using System.Text.Json.Serialization;
+using FWO.Api.Data;
 using Newtonsoft.Json;
 
 
@@ -98,5 +99,18 @@ namespace FWO.Middleware.Server
         /// </summary>
         [JsonProperty("ip_end"), JsonPropertyName("ip_end")]
         public string IpEnd { get; set; } = "";
+
+        /// <summary>
+        /// Conversion to ModellingAppServer
+        /// </summary>
+        public ModellingAppServer ToModellingAppServer()
+        {
+            return new ModellingAppServer()
+            {
+                Name = Name,
+                Ip = Ip,
+                IpEnd = IpEnd
+            };
+        }
     }
 }

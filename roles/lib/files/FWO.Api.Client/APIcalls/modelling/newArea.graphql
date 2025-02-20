@@ -10,7 +10,7 @@ mutation newArea(
     group_type: 23
   }) {
     returning {
-      newId: id
+      newIdLong: id
     }
   }
 }

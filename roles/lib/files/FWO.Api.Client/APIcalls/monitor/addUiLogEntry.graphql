@@ -1,4 +1,4 @@
-mutation addUiLog(
+mutation addUiLogEntry(
   $user: Int!
   $severity: Int!
   $suspectedCause: String
@@ -14,7 +14,7 @@ mutation addUiLog(
     }
   ) {
     returning {
-       newId: data_issue_id
+      newIdLong: data_issue_id
     }
   }
 }

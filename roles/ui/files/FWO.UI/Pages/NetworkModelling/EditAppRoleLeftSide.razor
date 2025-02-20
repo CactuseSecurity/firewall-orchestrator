@@ -60,11 +60,13 @@
     /// <summary>
     /// The app servers which are available for adding (i.e. which are not already in the AppServerToAdd collection).
     /// </summary>
-    private List<ModellingAppServer> selectableAppServers => AppRoleHandler.AppServersInArea.Except(AppRoleHandler.AppServerToAdd).ToList();  
+    private List<ModellingAppServer> selectableAppServers => AppRoleHandler?.AppServersInArea.Except(AppRoleHandler.AppServerToAdd).ToList() ?? [];
+
     /// <summary>
     /// Reference to the order by component.
     /// </summary>
     private OrderByDropdown<ModellingAppServer>? orderByDropdown;
+        
     /// <summary>
     /// Properties to sort the app server's visual elements by.
     /// </summary>

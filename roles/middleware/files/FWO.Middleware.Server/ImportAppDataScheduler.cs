@@ -1,6 +1,7 @@
 ﻿using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
+using FWO.Services;
 using FWO.Api.Data;
 using FWO.Config.Api;
 using FWO.Config.Api.Data;
@@ -67,7 +68,7 @@ namespace FWO.Middleware.Server
                 TimeSpan interval = startTime - DateTime.Now;
 
                 ScheduleTimer = new();
-                ScheduleTimer.Elapsed += ImportAppData;
+                ScheduleTimer.Elapsed += Process;
                 ScheduleTimer.Elapsed += StartImportAppDataTimer;
                 ScheduleTimer.Interval = interval.TotalMilliseconds;
                 ScheduleTimer.AutoReset = false;
@@ -80,14 +81,20 @@ namespace FWO.Middleware.Server
         {
             ImportAppDataTimer.Stop();
             ImportAppDataTimer = new();
-            ImportAppDataTimer.Elapsed += ImportAppData;
+            ImportAppDataTimer.Elapsed += Process;
             ImportAppDataTimer.Interval = globalConfig.ImportAppDataSleepTime * GlobalConst.kHoursToMilliseconds;
             ImportAppDataTimer.AutoReset = true;
             ImportAppDataTimer.Start();
             Log.WriteDebug("Import App Data scheduler", "ImportAppDataTimer started.");
         }
 
-        private async void ImportAppData(object? _, ElapsedEventArgs __)
+        private async void Process(object? _, ElapsedEventArgs __)
+        {
+            await ImportAppData();
+            await AdjustAppServerNames();
+        }
+
+        private async Task ImportAppData()
         {
             try
             {
@@ -105,6 +112,23 @@ namespace FWO.Middleware.Server
                     $"userId: \"0\", title: \"{titletext}\", description: \"{exc}\", alertCode: \"{AlertCode.ImportAppData}\"");
                 await AddLogEntry(1, globalConfig.GetText("scheduled_app_import"), globalConfig.GetText("ran_into_exception") + exc.Message, GlobalConst.kImportAppData);
                 await SetAlert(globalConfig.GetText("scheduled_app_import"), titletext, GlobalConst.kImportAppData, AlertCode.ImportAppData);
+            }
+        }
+
+        private async Task AdjustAppServerNames()
+        {
+            try
+            {
+                if(globalConfig.DnsLookup)
+                {
+                    UserConfig userConfig = new (globalConfig, apiConnection, new(){ Language = GlobalConst.kEnglish });
+                    userConfig.User.Name = Roles.MiddlewareServer;
+                    await AppServerHelper.AdjustAppServerNames(apiConnection, userConfig);
+                }
+            }
+            catch (Exception exc)
+            {
+                Log.WriteError("Check App Server Names", $"Ran into exception: ", exc);
             }
         }
     }

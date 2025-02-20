@@ -2,6 +2,6 @@ mutation delete_device_by_pk ($id: Int!) {
   delete_device_by_pk (
     dev_id: $id
   ) {
-    DeletedId: dev_id
+    deletedId: dev_id
   }
 }

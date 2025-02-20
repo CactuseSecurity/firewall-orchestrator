@@ -64,7 +64,7 @@ else
     {
         try
         {
-            apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { Roles.Admin, Roles.Implementer, Roles.FwAdmin, Roles.Auditor});
+            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Admin, Roles.Implementer, Roles.FwAdmin, Roles.Auditor ]);
             await states.Init(apiConnection);
 
             if(userConfig.ReqOwnerBased)
@@ -118,8 +118,7 @@ else
         {
             selectedOwnerOpt = newOwnerOpt;
             DisplayTickets = wfHandler.SelectOwnerImplTasks(selectedOwnerOpt);
-            await Reset();
-            StateHasChanged();
+            await InvokeAsync(StateHasChanged);
         }
         catch (Exception exception)
         {
@@ -133,8 +132,7 @@ else
         {
             selectedDeviceOpt = newDeviceOpt;
             DisplayTickets = wfHandler.SelectDeviceImplTasks(selectedDeviceOpt);
-            await Reset();
-            StateHasChanged();
+            await InvokeAsync(StateHasChanged);
         }
         catch (Exception exception)
         {

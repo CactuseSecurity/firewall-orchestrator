@@ -10,7 +10,7 @@
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
-<PopUp Title="@(userConfig.GetText("autodiscovery") + headerText)" Show="@Display" Size=PopupSize.XLarge  OnClose="async () => await Close()">
+<PopUp Title="@(userConfig.GetText("autodiscovery") + headerText)" Show="@Display" Size=PopupSize.CustomXLarge  OnClose="async () => await Close()">
     <Body>
         @if (Display)
         {
@@ -205,9 +205,9 @@
     {
         if (Display && firstCall)
         {
+            firstCall = false;
             await AnalyzeActions();
             await InvokeAsync(StateHasChanged);
-            firstCall = false;
         }
     }
 
@@ -511,7 +511,7 @@
                     comment = discMgmt.Comment,
                     extMgtData = actManagement.ExtMgtData
                 };
-                ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(DeviceQueries.newManagement, Variables)).ReturnIds;
+                ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(DeviceQueries.newManagement, Variables)).ReturnIds;
                 if (returnIds != null)
                 {
                     discMgmt.Id = returnIds[0].NewId;
@@ -597,7 +597,7 @@
                     hideInUi = discoveredDevice.HideInUi,
                     comment = discoveredDevice.Comment
                 };
-                ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(DeviceQueries.newDevice, Variables)).ReturnIds;
+                ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(DeviceQueries.newDevice, Variables)).ReturnIds;
                 if (returnIds == null)
                 {
                     DisplayMessageInUi(null, userConfig.GetText("save_gateway"), userConfig.GetText("E5112"), true);
@@ -842,7 +842,7 @@
         try
         {
             var Variables = new { tenantId = 1, deviceId = deviceId };
-            await apiConnection.SendQueryAsync<NewReturning>(AuthQueries.addDeviceToTenant, Variables);
+            await apiConnection.SendQueryAsync<ReturnIdWrapper>(AuthQueries.addDeviceToTenant, Variables);
         }
         catch (System.Exception exception)
         {

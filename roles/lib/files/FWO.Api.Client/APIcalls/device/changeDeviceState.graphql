@@ -8,6 +8,6 @@ mutation changeDeviceState(
       do_not_import: $importDisabled
     }
   ) {
-    UpdatedId: dev_id
+    updatedId: dev_id
   }
 }

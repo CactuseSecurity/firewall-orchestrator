@@ -56,7 +56,7 @@
     </div>
 </div>
 
-<PopUp Title="@(reloginDialogTitle)" Show="@(showReloginDialog)" Size=PopupSize.Small>
+<PopUp Title="@(reloginDialogTitle)" Show="@(showReloginDialog)" Size=PopupSize.CustomSmall>
     <Body>
         <p>@(reloginDialogText)</p>
         <div class="input-group">
@@ -334,7 +334,7 @@
                 string role = "";
                 try
                 {
-                    JwtReader jwtReader = new JwtReader(userConfig.User.Jwt);
+                    JwtReader jwtReader = new (userConfig.User.Jwt);
                     Task.Run(async () => await jwtReader.Validate());
                     role = jwtReader.GetRole();
                 }
@@ -360,7 +360,7 @@
                 suspectedCause = cause,
                 description = description,
             };
-            ReturnId[]? returnIds = ( await apiConnection.SendQueryAsync<NewReturning>(MonitorQueries.addUiLogEntry, Variables) ).ReturnIds;
+            ReturnId[]? returnIds = ( await apiConnection.SendQueryAsync<ReturnIdWrapper>(MonitorQueries.addUiLogEntry, Variables) ).ReturnIds;
             if (returnIds == null)
             {
                 Log.WriteError("Write Log", "Log could not be written to database");
@@ -395,7 +395,7 @@
                 description = message,
                 alertCode = (int)AlertCode.UiError
             };
-            ReturnId[]? returnIds = ( await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.MonitorQueries.addAlert, Variables) ).ReturnIds;
+            ReturnId[]? returnIds = ( await apiConnection.SendQueryAsync<ReturnIdWrapper>(FWO.Api.Client.Queries.MonitorQueries.addAlert, Variables) ).ReturnIds;
             if (returnIds != null)
             {
                 try

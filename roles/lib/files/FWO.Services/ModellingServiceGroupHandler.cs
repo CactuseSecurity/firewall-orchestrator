@@ -165,7 +165,7 @@ namespace FWO.Services
                     isGlobal = ActServiceGroup.IsGlobal,
                     creator = userConfig.User.Name
                 };
-                ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.newServiceGroup, svcGrpParams)).ReturnIds;
+                ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.newServiceGroup, svcGrpParams)).ReturnIds;
                 if (returnIds != null)
                 {
                     ActServiceGroup.Id = returnIds[0].NewId;

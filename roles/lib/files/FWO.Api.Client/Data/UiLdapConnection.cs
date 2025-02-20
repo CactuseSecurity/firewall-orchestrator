@@ -58,13 +58,13 @@ namespace FWO.Api.Data
             bool shortened = false;
             Name = Sanitizer.SanitizeMand(Name, ref shortened);
             Address = Sanitizer.SanitizeMand(Address, ref shortened);
-            SearchUser = Sanitizer.SanitizeLdapPathOpt(SearchUser, ref shortened);
+            SearchUser = Sanitizer.SanitizeLdapPathOpt(SearchUser, ref shortened) ?? "";
             UserSearchPath = Sanitizer.SanitizeLdapPathOpt(UserSearchPath, ref shortened);
             RoleSearchPath = Sanitizer.SanitizeLdapPathOpt(RoleSearchPath, ref shortened);
             GroupSearchPath = Sanitizer.SanitizeLdapPathOpt(GroupSearchPath, ref shortened);
             WriteUser = Sanitizer.SanitizeLdapPathOpt(WriteUser, ref shortened);
             GlobalTenantName = Sanitizer.SanitizeOpt(GlobalTenantName, ref shortened);
-            SearchUserPwd = Sanitizer.SanitizePasswOpt(SearchUserPwd, ref shortened);
+            SearchUserPwd = Sanitizer.SanitizePasswOpt(SearchUserPwd, ref shortened) ?? "";
             WriteUserPwd = Sanitizer.SanitizePasswOpt(WriteUserPwd, ref shortened);
             return shortened;
         }

@@ -7,6 +7,6 @@ mutation setAppServerType(
     _set: {
       custom_type: $customType
   }) {
-    UpdatedId: id
+    UpdatedIdLong: id
   }
 }

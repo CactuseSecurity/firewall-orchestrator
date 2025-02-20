@@ -12,7 +12,7 @@ mutation newAppZone(
     group_type: 21
   }) {
     returning {
-      newId: id
+      newIdLong: id
     }
   }
 }

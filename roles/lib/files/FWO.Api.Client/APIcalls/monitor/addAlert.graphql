@@ -23,7 +23,7 @@ mutation addAlert(
     }
   ) {
     returning {
-       newId: alert_id
+      newIdLong: alert_id
     }
   }
 }

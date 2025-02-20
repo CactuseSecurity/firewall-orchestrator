@@ -17,6 +17,6 @@ mutation updateRequestTaskState(
     recent_handler: $recentHandler
     assigned_group: $assignedGroup
   }) {
-    UpdatedId: id
+    UpdatedIdLong: id
   }
 }

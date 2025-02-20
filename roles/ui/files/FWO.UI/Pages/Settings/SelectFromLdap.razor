@@ -2,7 +2,7 @@
 
 @inject UserConfig userConfig
 
-<PopUp Title="@(userConfig.GetText("select_from_ldap") + ": " + LdapName)" Show="@Display" Size=PopupSize.Large OnClose="Close">
+<PopUp Title="@(userConfig.GetText("select_from_ldap") + ": " + LdapName)" Show="@Display" Size=PopupSize.CustomLarge OnClose="Close">
     <Body>
         @if (Display)
         {
@@ -87,7 +87,7 @@
     private UiUser selectedLdapUser = new();
     private string selectedLdapGroup = "";
 
-    protected override async Task OnParametersSetAsync()
+    protected override void OnParametersSet()
     {
         if(Display)
         {

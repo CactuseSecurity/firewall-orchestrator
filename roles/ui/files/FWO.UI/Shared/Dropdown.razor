@@ -68,7 +68,7 @@
 	[Parameter]
 	public int AppendWidth { get; set; } = 0;
 
-	private Func<ElementType, string> _elementToString = (o => o.ToString() ?? "");
+	private Func<ElementType, string> _elementToString = (o => o?.ToString() ?? "");
 
 	[Parameter]
 	public Func<ElementType, string> ElementToString 

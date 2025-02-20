@@ -462,29 +462,32 @@
 
     private async Task GenerateConnectionsReport(CancellationToken token)
     {
-        ModellingAppRole dummyAppRole = new();
-        List<ModellingAppRole> dummyAppRoles = await apiConnection.SendQueryAsync<List<ModellingAppRole>>(ModellingQueries.getDummyAppRole);
-        if(dummyAppRoles.Count > 0)
+        if(currentReport != null)
         {
-            dummyAppRole = dummyAppRoles.First();
-        }
-        foreach(var selectedOwner in actReportFilters.ModellingFilter.SelectedOwners)
-        {
-            OwnerReport actOwnerData = new(dummyAppRole.Id){ Name = selectedOwner.Display("") };
-            currentReport.ReportData.OwnerData.Add(actOwnerData);
-            await currentReport.Generate(userConfig.ElementsPerFetch, apiConnection,
-            connIntermediate =>
+            ModellingAppRole dummyAppRole = new();
+            List<ModellingAppRole> dummyAppRoles = await apiConnection.SendQueryAsync<List<ModellingAppRole>>(ModellingQueries.getDummyAppRole);
+            if(dummyAppRoles.Count > 0)
             {
-                actOwnerData.Connections = connIntermediate.OwnerData.First().Connections;
-                return InvokeAsync(StateHasChanged);
-            }, token);
+                dummyAppRole = dummyAppRoles.First();
+            }
+            foreach(var selectedOwner in actReportFilters.ModellingFilter.SelectedOwners)
+            {
+                OwnerReport actOwnerData = new(dummyAppRole.Id){ Name = selectedOwner.Display("") };
+                currentReport.ReportData.OwnerData.Add(actOwnerData);
+                await currentReport.Generate(userConfig.ElementsPerFetch, apiConnection,
+                connIntermediate =>
+                {
+                    actOwnerData.Connections = connIntermediate.OwnerData.First().Connections;
+                    return InvokeAsync(StateHasChanged);
+                }, token);
 
-            await PrepareConnReportData(selectedOwner, actOwnerData);
-        }
-        List<ModellingConnection> comSvcs = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getCommonServices);
-        if(comSvcs.Count > 0)
-        {
-            currentReport.ReportData.GlobalComSvc = [new(){GlobalComSvcs = comSvcs, Name = userConfig.GetText("global_common_services")}];
+                await PrepareConnReportData(selectedOwner, actOwnerData);
+            }
+            List<ModellingConnection> comSvcs = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getCommonServices);
+            if(comSvcs.Count > 0)
+            {
+                currentReport.ReportData.GlobalComSvc = [new(){GlobalComSvcs = comSvcs, Name = userConfig.GetText("global_common_services")}];
+            }
         }
     }
 
@@ -500,24 +503,27 @@
 
     private async Task GenerateStatisticsReport(CancellationToken token)
     {
-        currentReport.ReportData.GlobalStats = new ();
-        await currentReport.Generate(0, apiConnection,
-            managementsReportIntermediate =>
-            {
-                currentReport.ReportData.ManagementData = managementsReportIntermediate.ManagementData;
-                setRelevantManagements();
-                return InvokeAsync(() =>
+        if(currentReport != null)
+        {
+            currentReport.ReportData.GlobalStats = new ();
+            await currentReport.Generate(0, apiConnection,
+                managementsReportIntermediate =>
                 {
-                    foreach (var mgm in currentReport.ReportData.ManagementData.Where(mgt => !mgt.Ignore))
+                    currentReport.ReportData.ManagementData = managementsReportIntermediate.ManagementData;
+                    setRelevantManagements();
+                    return InvokeAsync(() =>
                     {
-                        currentReport.ReportData.GlobalStats.RuleStatistics.ObjectAggregate.ObjectCount += mgm.RuleStatistics.ObjectAggregate.ObjectCount;
-                        currentReport.ReportData.GlobalStats.NetworkObjectStatistics.ObjectAggregate.ObjectCount += mgm.NetworkObjectStatistics.ObjectAggregate.ObjectCount;
-                        currentReport.ReportData.GlobalStats.ServiceObjectStatistics.ObjectAggregate.ObjectCount += mgm.ServiceObjectStatistics.ObjectAggregate.ObjectCount;
-                        currentReport.ReportData.GlobalStats.UserObjectStatistics.ObjectAggregate.ObjectCount += mgm.UserObjectStatistics.ObjectAggregate.ObjectCount;
-                    }
-                    StateHasChanged();
-                });
-            }, token);
+                        foreach (var mgm in currentReport.ReportData.ManagementData.Where(mgt => !mgt.Ignore))
+                        {
+                            currentReport.ReportData.GlobalStats.RuleStatistics.ObjectAggregate.ObjectCount += mgm.RuleStatistics.ObjectAggregate.ObjectCount;
+                            currentReport.ReportData.GlobalStats.NetworkObjectStatistics.ObjectAggregate.ObjectCount += mgm.NetworkObjectStatistics.ObjectAggregate.ObjectCount;
+                            currentReport.ReportData.GlobalStats.ServiceObjectStatistics.ObjectAggregate.ObjectCount += mgm.ServiceObjectStatistics.ObjectAggregate.ObjectCount;
+                            currentReport.ReportData.GlobalStats.UserObjectStatistics.ObjectAggregate.ObjectCount += mgm.UserObjectStatistics.ObjectAggregate.ObjectCount;
+                        }
+                        StateHasChanged();
+                    });
+                }, token);
+        }
     }
 
     private bool PrepareMetadata(List<ManagementReport> ManagementReports)
@@ -542,17 +548,20 @@
 
     private void PostProcess()
     {
-        reportTemplateControl.Collapse();
-
-        if(actReportFilters.ReportType.IsDeviceRelatedReport() && currentReport.NoRuleFound())
+        if(currentReport != null)
         {
-            if(currentReport is ReportRules || currentReport is ReportNatRules)
+            reportTemplateControl.Collapse();
+
+            if(actReportFilters.ReportType.IsDeviceRelatedReport() && currentReport.NoRuleFound())
             {
-                DisplayMessageInUi(null, userConfig.GetText("generate_report"), userConfig.GetText("E4002"), true);
-            }
-            else if (actReportFilters.ReportType.IsChangeReport())
-            {
-                DisplayMessageInUi(null, userConfig.GetText("generate_report"), userConfig.GetText("E4003"), true);
+                if(currentReport is ReportRules || currentReport is ReportNatRules)
+                {
+                    DisplayMessageInUi(null, userConfig.GetText("generate_report"), userConfig.GetText("E4002"), true);
+                }
+                else if (actReportFilters.ReportType.IsChangeReport())
+                {
+                    DisplayMessageInUi(null, userConfig.GetText("generate_report"), userConfig.GetText("E4003"), true);
+                }
             }
         }
     }
@@ -565,9 +574,12 @@
 
     private void setRelevantManagements()
     {
-        foreach (var mgm in currentReport.ReportData.ManagementData)
+        if(currentReport != null)
         {
-            mgm.Ignore = !relevantManagementIds.Contains(mgm.Id);
+            foreach (var mgm in currentReport.ReportData.ManagementData)
+            {
+                mgm.Ignore = !relevantManagementIds.Contains(mgm.Id);
+            }
         }
     }
 

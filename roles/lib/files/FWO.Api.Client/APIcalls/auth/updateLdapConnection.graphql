@@ -40,7 +40,7 @@ mutation updateLdapConnection(
       active: $active
     }
   ) {
-    UpdatedId: ldap_connection_id
+    updatedId: ldap_connection_id
   }
 }
 

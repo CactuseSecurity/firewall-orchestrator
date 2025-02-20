@@ -4,6 +4,6 @@ mutation delete_old_objects ($retentionInMonths: Int!) {
   delete_ldap_connection_by_pk (
     ldap_connection_id: $id
   ) {
-    DeletedId: ldap_connection_id
+    deletedId: ldap_connection_id
   }
 }

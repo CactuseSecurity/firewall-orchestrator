@@ -12,7 +12,7 @@
 @inject UserConfig userConfig
 
 
-<PopUp Title="@(userConfig.GetText("task") + ": " + WfHandler.ActReqTask.Title)" Show="@WfHandler.DisplayReqTaskMode" Size=PopupSize.XLarge OnClose="async () => await Close()">
+<PopUp Title="@(userConfig.GetText("task") + ": " + WfHandler.ActReqTask.Title)" Show="@WfHandler.DisplayReqTaskMode" Size=PopupSize.CustomXLarge OnClose="async () => await Close()">
     <Body>
         @if (WfHandler.DisplayReqTaskMode)
         {
@@ -530,6 +530,7 @@
         {
             if (WfHandler.DisplayReqTaskMode && firstParamSet)
             {
+                firstParamSet = false;
                 InitElements();
                 await InitComments();
                 await Reset();
@@ -546,7 +547,6 @@
                     }
                     actGrpName = WfHandler.ActReqTask.GetAddInfoValue(AdditionalInfoKeys.GrpName);
                 }
-                firstParamSet = false;
              }
         }
         catch (Exception exception)
@@ -567,6 +567,7 @@
     private async Task InitComments()
     {
         allComments = WfStatefulObject.DisplayAllComments(WfHandler.ActReqTask.Comments);
+        await DefaultInit.DoNothing(); // qad avoid compiler warning
     }
 
     private async Task Close()
@@ -585,7 +586,10 @@
     private async Task Reset()
     {
         Log.WriteDebug("DisplayRequestTask", "Reset");
-        offeredActions = WfHandler.ActionHandler.GetOfferedActions(WfHandler.ActReqTask, WfObjectScopes.RequestTask, WfHandler.Phase);
+        if(WfHandler.ActionHandler != null)
+        {
+            offeredActions = WfHandler.ActionHandler.GetOfferedActions(WfHandler.ActReqTask, WfObjectScopes.RequestTask, WfHandler.Phase);
+        }
         selectedDevices = new List<Device>();
         foreach(int devId in WfHandler.ActReqTask.GetDeviceList().ToArray())
         {

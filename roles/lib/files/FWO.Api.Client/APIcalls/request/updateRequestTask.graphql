@@ -33,6 +33,6 @@ mutation updateRequestTask(
     devices: $devices
     mgm_id: $managementId
   }) {
-    UpdatedId: id
+    UpdatedIdLong: id
   }
 }

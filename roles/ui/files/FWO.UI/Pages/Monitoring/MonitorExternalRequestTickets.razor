@@ -61,7 +61,7 @@ else
     </div>
 }
 
-<PopUp Title="@(userConfig.GetText("ticket") + ": " + actOwnerTicket.Ticket.Id)" Show="@DetailsMode" Size=PopupSize.XLarge OnClose="Close">
+<PopUp Title="@(userConfig.GetText("ticket") + ": " + actOwnerTicket.Ticket.Id)" Show="@DetailsMode" Size=PopupSize.CustomXLarge OnClose="Close">
     <Body>
         @if (DetailsMode)
         {

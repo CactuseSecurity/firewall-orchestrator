@@ -2,6 +2,6 @@ mutation delete_tenant_by_pk ($id: Int!) {
   delete_tenant_by_pk (
     tenant_id: $id
   ) {
-    DeletedId: tenant_id
+    deletedId: tenant_id
   }
 }

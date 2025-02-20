@@ -30,7 +30,7 @@ namespace FWO.Test
 
             Log.WriteInfo("Test Log", $"GITHUB_ACTIONS? {isGitHubActions}");
             Log.WriteInfo("Test Log", $"RUNNING_ON_GITHUB_ACTIONS? {isGitHubActions2}");
-            Log.WriteInfo("Test Log", $"RUNNING_ON_GITHUB? {isGitHubActions2}");
+            Log.WriteInfo("Test Log", $"RUNNING_ON_GITHUB? {isGitHubActions3}");
 
             if (!string.IsNullOrEmpty(isGitHubActions))
             {

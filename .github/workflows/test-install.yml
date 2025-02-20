@@ -26,4 +26,4 @@ jobs:
     - name: do test install in case of merged pull request
       run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator && ansible-playbook -e force_install=true site.yml -K --skip-tags unittests
     - name: switch to fworch user for c# unit tests
-      run: sudo su -l fworch && cd /home/runner/work/test/csharp/FWO.Test && dotnet test
+      run: sudo su -l fworch && cd ~/test/csharp/FWO.Test && dotnet test

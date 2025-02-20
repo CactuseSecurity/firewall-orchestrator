@@ -8,26 +8,31 @@
 <div class="ms-2">
     <h3>@(userConfig.GetText("library"))</h3>
 </div>
-<div class="col-sm-11 border rounded m-2 p-2">
-    <h5>@(userConfig.GetText("app_server"))</h5>
-    @if(AppRoleHandler != null)
-    {
-        <div class="form-group row">
-            <div class="col-sm-10">
-                <OrderByDropdown @ref="orderByDropdown" TCollectionItem="ModellingAppServer" Collection="AppRoleHandler.AppServersInArea" CollectionReordered="OnCollectionReordered" ElementProperties="orderByDropdownProperties"/>
-                <DraggableList AllElements="selectableAppServers" @bind-SelectedElements="selectedAppServers" 
-                    HandleDragStart="HandleDragStart" Display="@(x => x.DisplayWithIcon())" MaxHeight="50"/>
-            </div>
-            @if(selectedAppServers.Count > 0)
-            {
-                <div class="col-sm-2">
-                    <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() =>
-                        {AppRoleHandler.AppServerToAppRole(selectedAppServers); selectedAppServers = [];
-                        AppRoleHandlerChanged.InvokeAsync(AppRoleHandler);}">@(AppRoleHandler.DisplayButton("to_app_role", Icons.Use))</button>
+<div class="col-sm-12  border rounded m-2 p-2">
+    <div class="col-sm-12">
+        <h5>@(userConfig.GetText("app_server"))</h5>
+        @if(AppRoleHandler != null)
+        {
+            <div class="bg-secondary">
+                <div id="app-role-library-ordered-draggable-list" class="col-sm-12 ">
+                    <div class="d-flex align-items-center">
+                        <OrderByDropdown CssClass="@(orderByDropdownWidthClass)" @ref="orderByDropdown" TCollectionItem="ModellingAppServer" Collection="AppRoleHandler.AppServersInArea" CollectionReordered="OnCollectionReordered" ElementProperties="orderByDropdownProperties"/>
+                        @if(selectedAppServers.Count > 0)
+                        {
+                            <div class="col-sm-2 p-2">
+                                <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() =>
+                                    {AppRoleHandler.AppServerToAppRole(selectedAppServers); selectedAppServers = [];
+                                    AppRoleHandlerChanged.InvokeAsync(AppRoleHandler);}">@(AppRoleHandler.DisplayButton("to_app_role", Icons.Use))</button>
+                            </div>
+                        }
+                    </div>
+                    <DraggableList AllElements="selectableAppServers" @bind-SelectedElements="selectedAppServers" 
+                        HandleDragStart="HandleDragStart" Display="@(x => x.DisplayWithIcon())" MaxHeight="50"/>
                 </div>
-            }
-        </div>
-    }
+
+            </div>
+        }
+    </div>
 </div>
 
 
@@ -69,6 +74,9 @@
     /// Properties to sort the app server's visual elements by.
     /// </summary>
     private List<string> orderByDropdownProperties => new List<string> {"Ip", "Name"};
+
+        private string orderByDropdownWidthClass => selectedAppServers.Count > 0 ? "col-sm-10" : "col-sm-12";
+
 
     private bool HandleDragStart(DragEventArgs e, ModellingAppServer appServer)
     {

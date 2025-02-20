@@ -510,3 +510,17 @@ thead {
 .cursor-pointer{
     cursor: pointer;
 }
+
+/* EditAppRoleLeftSide.razor */
+
+#app-role-library-ordered-draggable-list .draggable-item{
+    background-color: #a4d7f5;
+}
+
+#app-role-library-ordered-draggable-list .draggable-item.draggable-selected{
+    background-color: transparent;
+}
+
+#app-role-library-ordered-draggable-list .border{
+    border: none !important;
+}

@@ -21,6 +21,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
         RUNNING_ON_GITHUB_ACTIONS: true
+    environment: actions
     strategy:
       matrix:
         os: [ubuntu-latest, ubuntu-20.04, ubuntu-22.04]

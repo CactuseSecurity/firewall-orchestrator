@@ -16,10 +16,8 @@ on:
     
 jobs:        
   unit_tests:   
-    name: Puppeteer test on ${{ matrix.os }}
+    name: Unit-Tests on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
-    env:
-       RUNNING_ON_GITHUB_ACTIONS: 'true'
     strategy:
       matrix:
         os: [ubuntu-latest, ubuntu-20.04, ubuntu-22.04]
@@ -30,11 +28,9 @@ jobs:
     - name: exec dotnet test
       run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator/roles/tests-unit/files/FWO.Test && dotnet restore && dotnet build && dotnet test
       
-  test_ubuntu_latest:    
+  test_install:    
     name: test build on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
-    env:
-       RUNNING_ON_GITHUB_ACTIONS: 'true'
     strategy:
       matrix:
         os: [ubuntu-latest, ubuntu-20.04, ubuntu-22.04]

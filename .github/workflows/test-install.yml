@@ -27,11 +27,10 @@ jobs:
     steps:
     - name: Set environment variable
       run: echo "RUNNING_ON_GITHUB=${{ env.RUNNING_ON_GITHUB_ACTIONS }}" >> $GITHUB_ACTIONS
-    - uses: actions/checkout@v4   
+    - uses: actions/setup-dotnet@v4
     - name: do test install in case of merged pull request  
       run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator && ansible-playbook -e force_install=true site.yml -K
       with:
         extraVars: 'RUNNING_ON_GITHUB=${{ env.RUNNING_ON_GITHUB_ACTIONS }}'
-    - uses: actions/setup-dotnet@v4 
     - name: switch to fworch user for c# unit tests
       run: sudo su -l fworch && cd ~/test/csharp/FWO.Test && dotnet test

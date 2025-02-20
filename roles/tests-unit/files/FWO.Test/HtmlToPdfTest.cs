@@ -25,26 +25,16 @@ namespace FWO.Test
             bool isValidHtml = ReportBase.IsValidHTML(Html);
             ClassicAssert.IsTrue(isValidHtml);
 
-            var bla = Environment.GetEnvironmentVariables();
+            string? sudoUser = Environment.GetEnvironmentVariable("SUDO_USER");
+            string? runnerUser = Environment.GetEnvironmentVariable("RUNNER_USER");
 
-            foreach (DictionaryEntry key in bla) {
-                Log.WriteInfo("Test Log", $"env: {key.Key}:{key.Value}");
+            bool isGitHubActions = sudoUser is not null && runnerUser is not null && sudoUser.Equals("runner") && runnerUser.Equals("runner");
+
+            if (isGitHubActions)
+            {
+                Log.WriteInfo("Test Log", $"PDF Test skipping: Test is running on Github actions.");
+                return;
             }
-                        
-
-            //string? isGitHubActions = Environment.GetEnvironmentVariable("GITHUB_ACTIONS");
-            //string? isGitHubActions2 = Environment.GetEnvironmentVariable("RUNNING_ON_GITHUB_ACTIONS");
-            //string? isGitHubActions3 = Environment.GetEnvironmentVariable("RUNNING_ON_GITHUB");
-
-            //Log.WriteInfo("Test Log", $"GITHUB_ACTIONS? {isGitHubActions}");
-            //Log.WriteInfo("Test Log", $"RUNNING_ON_GITHUB_ACTIONS? {isGitHubActions2}");
-            //Log.WriteInfo("Test Log", $"RUNNING_ON_GITHUB? {isGitHubActions3}");
-            //Log.WriteInfo("Test Log", $"GITHUB_ENV {Environment.GetEnvironmentVariable("GITHUB_ENV")}");
-
-            //if (!string.IsNullOrEmpty(isGitHubActions))
-            //{
-            //    return;
-            //}
 
             if (File.Exists(FilePath))
                 File.Delete(FilePath);
@@ -87,7 +77,7 @@ namespace FWO.Test
             {
                 ExecutablePath = installedBrowser.GetExecutablePath(),
                 Headless = true,
-                //DumpIO = isGitHubActions != null ? true : false, // Enables debug logs
+                DumpIO = isGitHubActions , // Enables debug logs
                 Args = new[] { "--database=/tmp", "--no-sandbox" }
             });
 

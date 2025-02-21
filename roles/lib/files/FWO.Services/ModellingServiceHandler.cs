@@ -110,7 +110,7 @@ namespace FWO.Services
                     portEnd = ActService.PortEnd,
                     protoId = ActService.Protocol?.Id
                 };
-                ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.newService, Variables)).ReturnIds;
+                ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.newService, Variables)).ReturnIds;
                 if (returnIds != null)
                 {
                     ActService.Id = returnIds[0].NewId;

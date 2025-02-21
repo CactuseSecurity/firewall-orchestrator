@@ -50,7 +50,7 @@
         </Table>
     </div>
 
-    <PopUp Title="@(userConfig.GetText("edit_state"))" Show="@EditStateMode" Size=PopupSize.Large OnClose="() => EditStateMode = false">
+    <PopUp Title="@(userConfig.GetText("edit_state"))" Show="@EditStateMode" Size=PopupSize.CustomMedium OnClose="() => EditStateMode = false">
         <Body>
             @if (EditStateMode)
             {
@@ -106,7 +106,7 @@
 
     <ConfirmDelete @bind-Display="DeleteStateMode" PerformAction="DeleteState" Title="@userConfig.GetText("delete_state")" DeleteMessage="@(userConfig.GetText("U5501") + actState.Name + "?")"/>
 
-    <PopUp Title="@(userConfig.GetText("select_action"))" Show="@SelectActionMode" Size=PopupSize.Small OnClose="() => SelectActionMode = false">
+    <PopUp Title="@(userConfig.GetText("select_action"))" Show="@SelectActionMode" Size=PopupSize.CustomSmall OnClose="() => SelectActionMode = false">
         <Body>
             @if (SelectActionMode)
             {

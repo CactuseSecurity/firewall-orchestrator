@@ -56,7 +56,7 @@
     </Table>
 </div>
 
-<PopUp Size=PopupSize.Large Title="@(userConfig.GetText("report_schedule"))" Show="@(ShowAddReportScheduleDialog || ShowEditReportScheduleDialog)">
+<PopUp Size=PopupSize.CustomMedium Title="@(userConfig.GetText("report_schedule"))" Show="@(ShowAddReportScheduleDialog || ShowEditReportScheduleDialog)">
     <Body>
         <div>
             <div class="form-group row">
@@ -156,7 +156,7 @@
     </Footer>
 </PopUp>
 
-<PopUp Title="Report Schedule" Size=PopupSize.Small Show="@ShowDeleteReportScheduleDialog">
+<PopUp Title="Report Schedule" Size=PopupSize.CustomSmall Show="@ShowDeleteReportScheduleDialog">
     <Body>
         <p>@(userConfig.GetText("U2002")) "@reportScheduleInEdit.Name" ?</p>
     </Body>
@@ -171,7 +171,7 @@
 @code
 {
     private GraphQlApiSubscription<List<ReportSchedule>>? reportSchedulesSubscription;
-    private List<ReportSchedule> reportSchedules = new ();
+    private List<ReportSchedule> reportSchedules = [];
     private ReportSchedule reportScheduleInEdit = new ();
     private DateTime actDate = DateTime.Today;
     private DateTime actTime = DateTime.Now.AddSeconds(-DateTime.Now.Second);
@@ -208,7 +208,7 @@
             uiUserDbId = userConfig.User.DbId;
             if(showModellingReports)
             {
-                modOwnerList = await ModellingHandlerBase.GetOwnApps(authenticationStateTask, userConfig, apiConnection, DisplayMessageInUi);
+                modOwnerList = await ModellingHandlerBase.GetOwnApps(authenticationStateTask!, userConfig, apiConnection, DisplayMessageInUi);
             }
 
             // Initial fetch to speed up loading before subscription is established
@@ -269,7 +269,7 @@
                     report_schedule_active = reportScheduleInEdit.Active,
                     report_schedule_formats = new { data = reportScheduleInEdit.OutputFormat }
                 };
-                reportScheduleInEdit.Id = (await apiConnection.SendQueryAsync<NewReturning>(ReportQueries.addReportSchedule, queryVariablesReportSchedule)).ReturnIds[0].NewId;
+                reportScheduleInEdit.Id = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(ReportQueries.addReportSchedule, queryVariablesReportSchedule)).ReturnIds[0].NewId;
 
                 ShowAddReportScheduleDialog = false;
             }

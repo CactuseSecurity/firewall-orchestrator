@@ -13,6 +13,6 @@ mutation updateService(
       port_end: $portEnd
       proto_id: $protoId
   }) {
-    UpdatedId: id
+    updatedId: id
   }
 }

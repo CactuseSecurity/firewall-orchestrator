@@ -105,7 +105,7 @@ namespace FWO.Middleware.Server.Controllers
         public async Task<int> PostAsync([FromBody] LdapAddParameters ldapData)//, [FromHeader] string bearer)
         {
             // Add ldap to DB and to middleware ldap list
-            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(AuthQueries.newLdapConnection, ldapData)).ReturnIds;
+            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(AuthQueries.newLdapConnection, ldapData)).ReturnIds;
             int ldapId = 0;
             if (returnIds != null)
             {

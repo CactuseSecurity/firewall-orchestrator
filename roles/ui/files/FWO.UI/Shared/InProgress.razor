@@ -1,6 +1,6 @@
 ﻿@inject UserConfig userConfig
 
-<PopUp Title="@(userConfig.GetText("in_progress"))" Size=PopupSize.Small Show="@Display" OnClose="() => Display = false">
+<PopUp Title="@(userConfig.GetText("in_progress"))" Size=PopupSize.CustomSmall Show="@Display" OnClose="() => Display = false">
     <Body>
         @if (Display)
         {

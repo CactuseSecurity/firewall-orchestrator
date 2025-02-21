@@ -185,9 +185,39 @@
                 <label class="col-form-label col-sm-5">@userConfig.GetText("app_zone_pattern"):</label>
                 <input disabled="@(!configData.CreateAppZones)" type="text" class="col-sm-4" @bind="namingConvention.AppZone" />               
             </div>
+        </div>
+        <div class="form-group row mt-2">
             <div class="row col-sm-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5633"))">
                 <label class="col-form-label col-sm-5">@userConfig.GetText("appServerPrefix"):</label>
                 <input type="text" class="col-sm-4" @bind="namingConvention.AppServerPrefix" />
+            </div>
+            <div class="row col-sm-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5645"))">
+                <label class="col-form-label col-sm-5">@userConfig.GetText("networkPrefix"):</label>
+                <input type="text" class="col-sm-4" @bind="namingConvention.NetworkPrefix" />
+            </div>
+            <div class="row col-sm-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5646"))">
+                <label class="col-form-label col-sm-5">@userConfig.GetText("ipRangePrefix"):</label>
+                <input type="text" class="col-sm-4" @bind="namingConvention.IpRangePrefix" />
+            </div>
+        </div>
+        <div class="form-group row mt-2">
+            <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5643"))">
+                <label for="cbx_dns_lookup" class="col-form-label col-sm-8">@(userConfig.GetText("dns_lookup")):</label>
+                <div class="col-sm-2">
+                    <input id="cbx_dns_lookup" type="checkbox" @bind="configData!.DnsLookup">
+                </div>
+            </div>
+            <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5644"))">
+                <label for="cbx_overwrite_names" class="col-form-label col-sm-8">@(userConfig.GetText("overwrite_exiting_names")):</label>
+                <div class="col-sm-2">
+                    <input id="cbx_overwrite_names" type="checkbox" @bind="configData!.OverwriteExistingNames">
+                </div>
+            </div>
+            <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5647"))">
+                <label for="cbx_replace_appserver" class="col-form-label col-sm-8">@(userConfig.GetText("auto_replace_app_server")):</label>
+                <div class="col-sm-2">
+                    <input id="cbx_replace_appserver" type="checkbox" @bind="configData!.AutoReplaceAppServer">
+                </div>
             </div>
         </div>
         <hr />
@@ -445,7 +475,7 @@ else
             // get config value of selected ldap connection for owner data (both groups and main responsible user), default value = 1 = internal ldap
             ownerLdapId = configData.OwnerLdapId;
 
-            selectedLdap = connectedLdaps.FirstOrDefault(x => x.Id == ownerLdapId);
+            selectedLdap = connectedLdaps.FirstOrDefault(x => x.Id == ownerLdapId) ?? new();
 
             // get naming schema for groups: all groups follow a naming convention, e.g. ext-app-id,groups,example,com
             ownerLdapGroupNames = configData.OwnerLdapGroupNames ?? GlobalConst.kLdapGroupPattern;
@@ -462,7 +492,7 @@ else
 
     private void RefreshAreas()
     {
-        if (configData.ModCommonAreas != "")
+        if (configData != null && configData.ModCommonAreas != "")
         {
             commAreaConfigItems = JsonSerializer.Deserialize<List<CommonAreaConfig>>(configData.ModCommonAreas) ?? new();
         }
@@ -569,12 +599,12 @@ else
         PrepareAppDataPaths();
         PrepareSubnetDataPaths();
         PrepareExtraConfigs();
-        configData.ModNamingConvention = JsonSerializer.Serialize(namingConvention);
+        configData!.ModNamingConvention = JsonSerializer.Serialize(namingConvention);
         PrepareAppServerTypes();
         PrepareCommonAreas();
-        configData.ImportAppDataStartAt = appDataDate.Date.Add(appDataTime.TimeOfDay);
-        configData.ImportSubnetDataStartAt = subnetDataDate.Date.Add(subnetDataTime.TimeOfDay);
-        configData.OwnerLdapId = selectedLdap.Id;
+        configData!.ImportAppDataStartAt = appDataDate.Date.Add(appDataTime.TimeOfDay);
+        configData!.ImportSubnetDataStartAt = subnetDataDate.Date.Add(subnetDataTime.TimeOfDay);
+        configData!.OwnerLdapId = selectedLdap.Id;
     }
 
     private void PrepareAppDataPaths()
@@ -587,7 +617,7 @@ else
         {
             appDataPaths.Add(path);
         }
-        configData.ImportAppDataPath = JsonSerializer.Serialize(appDataPaths);
+        configData!.ImportAppDataPath = JsonSerializer.Serialize(appDataPaths);
     }
 
     private void PrepareSubnetDataPaths()
@@ -600,7 +630,7 @@ else
         {
             SubnetDataPaths.Add(path);
         }
-        configData.ImportSubnetDataPath = JsonSerializer.Serialize(SubnetDataPaths);
+        configData!.ImportSubnetDataPath = JsonSerializer.Serialize(SubnetDataPaths);
     }
 
     private void PrepareCommonAreas()
@@ -614,7 +644,7 @@ else
                 commAreaConfigItems.Remove(existingItem);
             }
         }
-        configData.ModCommonAreas = JsonSerializer.Serialize(commAreaConfigItems);
+        configData!.ModCommonAreas = JsonSerializer.Serialize(commAreaConfigItems);
     }
 
     private void PrepareAppServerTypes()
@@ -636,7 +666,7 @@ else
         {
             appServerTypes.Add(appServerType);
         }
-        configData.ModAppServerTypes = JsonSerializer.Serialize(appServerTypes);
+        configData!.ModAppServerTypes = JsonSerializer.Serialize(appServerTypes);
     }
 
     private void PrepareExtraConfigs()
@@ -649,6 +679,6 @@ else
         {
             ExtraConfigs.Add(config);
         }
-        configData.ModExtraConfigs = JsonSerializer.Serialize(ExtraConfigs);
+        configData!.ModExtraConfigs = JsonSerializer.Serialize(ExtraConfigs);
     }
 }

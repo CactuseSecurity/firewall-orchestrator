@@ -575,7 +575,7 @@ def setAlert(fwo_api_base_url, jwt, import_id=None, title=None, mgm_id=None, dev
                 }
             ) 
             {
-                returning { newId: alert_id }
+                returning { newIdLong: alert_id }
             }
         }
     """
@@ -631,7 +631,7 @@ def setAlert(fwo_api_base_url, jwt, import_id=None, title=None, mgm_id=None, dev
     
     try:
         import_result = call(fwo_api_base_url, jwt, addAlert_mutation, query_variables=query_variables, role=role)
-        newAlertId = import_result['data']['insert_alert']['returning'][0]['newId']
+        newAlertId = import_result['data']['insert_alert']['returning'][0]['newIdLong']
         if alertCode is not None and mgm_id is not None:
             # Acknowledge older alert for same problem on same management
             query_variables = { "mgmId": mgm_id, "alertCode": alertCode, "currentAlertId": newAlertId }

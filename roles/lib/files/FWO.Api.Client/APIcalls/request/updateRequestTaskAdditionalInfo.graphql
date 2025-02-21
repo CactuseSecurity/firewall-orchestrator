@@ -7,6 +7,6 @@ mutation updateRequestTaskAdditionalInfo(
     _set: {
     additional_info: $additionalInfo
   }) {
-    UpdatedId: id
+    UpdatedIdLong: id
   }
 }

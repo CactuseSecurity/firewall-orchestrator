@@ -93,14 +93,14 @@ namespace FWO.Api.Data
             return shortened;
         }
 
-        public static string DisplayAllComments(List<WfCommentDataHelper> Comments)
+        public static string DisplayAllComments(List<WfCommentDataHelper> Comments, bool asMarkup = false)
         {
             string allComments = "";
             foreach(var comment in Comments)
             {
                 allComments += comment.Comment.CreationDate.ToShortDateString() + " "
                             + comment.Comment.Creator.Name + ": "
-                            + comment.Comment.CommentText + "\n";
+                            + comment.Comment.CommentText + (asMarkup ? "<br>" : "\r\n");
             }
             return allComments;
         }

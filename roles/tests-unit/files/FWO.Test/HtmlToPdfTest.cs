@@ -45,15 +45,15 @@ namespace FWO.Test
                     break;
                 }
 
-                InstalledBrowser? brw = await browserFetcher.DownloadAsync(BrowserTag.Stable);
+                InstalledBrowser? brw = browserFetcher != null ? await browserFetcher.DownloadAsync(BrowserTag.Stable) : default;
 
                 using IBrowser? browser = await Puppeteer.LaunchAsync(new LaunchOptions
                 {
-                    ExecutablePath = isGitHubActions!=null ? "/usr/bin/chromium-browser" : brw.GetExecutablePath(),
+                    ExecutablePath = isGitHubActions!=null ? "/usr/bin/chromium-browser" : brw?.GetExecutablePath(),
                     Headless = true,
-                    DumpIO = isGitHubActions!=null ? true : false, // Enables debug logs
+                    DumpIO = isGitHubActions != null, // Enables debug logs
                     Args = isGitHubActions!=null ?
-                        new[] { "--no-sandbox", "--database=/tmp", "--disable-setuid-sandbox" }
+                        ["--no-sandbox", "--database=/tmp", "--disable-setuid-sandbox"]
                         : [] // No additional arguments locally
                 });
 
@@ -84,7 +84,7 @@ namespace FWO.Test
 
         }
 
-        private async Task TryCreatePDF(IBrowser browser, PaperFormat paperFormat)
+        private static async Task TryCreatePDF(IBrowser browser, PaperFormat paperFormat)
         {
             Log.WriteInfo("Test Log", $"Test creating PDF {paperFormat}");
 

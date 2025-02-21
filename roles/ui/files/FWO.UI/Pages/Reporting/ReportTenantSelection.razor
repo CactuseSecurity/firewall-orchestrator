@@ -20,7 +20,7 @@
 else
 {
     <div class="p-3">
-        <h5 class="text-left">@(userConfig.GetText("tenant")) @userConfig.User.Tenant.Name</h5>
+        <h5 class="text-left">@(userConfig.GetText("tenant")) @userConfig.User.Tenant?.Name</h5>
     </div>
 }
 

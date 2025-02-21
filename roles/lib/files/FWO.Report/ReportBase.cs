@@ -9,11 +9,7 @@ using PuppeteerSharp;
 using PuppeteerSharp.Media;
 using PuppeteerSharp.BrowserData;
 using HtmlAgilityPack;
-using PdfSharp.Pdf;
-using PdfSharp.Drawing;
-using PdfSharp.Pdf.IO;
 using FWO.Report.Data;
-using FWO.Logging;
 
 namespace FWO.Report
 {
@@ -273,13 +269,11 @@ namespace FWO.Report
                 await page.SetContentAsync(html);
 
                 PuppeteerSharp.Media.PaperFormat? pupformat = GetPuppeteerPaperFormat(format) ?? throw new Exception();
-                
-                PdfOptions pdfOptions = new() { DisplayHeaderFooter = false, Landscape = true, PrintBackground = true, Format = pupformat, MarginOptions = new MarginOptions { Top = "1cm", Bottom = "1cm", Left = "1cm", Right = "1cm" } };
-                using Stream? pdfData = await page.PdfStreamAsync(pdfOptions);
 
-                byte[]? pdfWithToCData = AddToCBookmarksToPDF(pdfData, html);
+                PdfOptions pdfOptions = new() { Outline = true, DisplayHeaderFooter = false, Landscape = true, PrintBackground = true, Format = pupformat, MarginOptions = new MarginOptions { Top = "1cm", Bottom = "1cm", Left = "1cm", Right = "1cm" } };
+                byte[]? pdfData = await page.PdfDataAsync(pdfOptions);
 
-                return Convert.ToBase64String(pdfWithToCData);
+                return Convert.ToBase64String(pdfData);
             }
             catch (Exception)
             {
@@ -378,35 +372,7 @@ namespace FWO.Report
                 return false;
             }
 
-        }
-
-        public static byte[] AddToCBookmarksToPDF(Stream pdfData, string html)
-        {
-            PdfDocument document = PdfReader.Open(pdfData, PdfDocumentOpenMode.Modify);
-
-            PdfPage page = document.Pages[0];
-
-            PdfOutline outline = document.Outlines.Add("ToC", page, true, PdfOutlineStyle.Bold, XColors.Red);
-
-            List<ToCHeader>? tocHeaders = CreateTOCContent(html);
-
-            foreach (ToCHeader toCHeader in tocHeaders)
-            {
-                PdfOutline headOutline = outline.Outlines.Add(toCHeader.Title, page, true);
-
-                foreach (ToCItem tocItem in toCHeader.Items)
-                {
-                    headOutline.Outlines.Add(tocItem.Title, page, false);
-                }
-            }
-
-            using MemoryStream stream = new();
-            document.Save(stream, true);
-
-            byte[] pdfWithToCData = stream.ToArray();
-
-            return pdfWithToCData;
-        }
+        }        
 
         public PuppeteerSharp.Media.PaperFormat? GetPuppeteerPaperFormat(PaperFormat format)
         {

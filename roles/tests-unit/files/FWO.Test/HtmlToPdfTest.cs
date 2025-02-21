@@ -128,16 +128,14 @@ namespace FWO.Test
                 using IPage page = await browser.NewPageAsync();
                 await page.SetContentAsync(Html);
 
-                PdfOptions pdfOptions = new() { DisplayHeaderFooter = true, Landscape = true, PrintBackground = true, Format = paperFormat, MarginOptions = new MarginOptions { Top = "1cm", Bottom = "1cm", Left = "1cm", Right = "1cm" } };
-                using Stream? pdfData = await page.PdfStreamAsync(pdfOptions);
+                PdfOptions pdfOptions = new() {Outline = true, DisplayHeaderFooter = false, Landscape = true, PrintBackground = true, Format = paperFormat, MarginOptions = new MarginOptions { Top = "1cm", Bottom = "1cm", Left = "1cm", Right = "1cm" } };
+                byte[]? pdfData = await page.PdfDataAsync(pdfOptions);
 
-                byte[]? pdfWithToCData = ReportBase.AddToCBookmarksToPDF(pdfData, Html);
-
-                await File.WriteAllBytesAsync(FilePath, pdfWithToCData);
+                await File.WriteAllBytesAsync(FilePath, pdfData);
 
                 Assert.That(FilePath, Does.Exist);
                 FileAssert.Exists(FilePath);
-                ClassicAssert.AreEqual(new FileInfo(FilePath).Length, pdfWithToCData.Length);
+                ClassicAssert.AreEqual(new FileInfo(FilePath).Length, pdfData.Length);
             }
             catch (Exception)
             {

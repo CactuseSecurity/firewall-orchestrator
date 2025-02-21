@@ -58,7 +58,7 @@
     </Collapse>
 </div>
 
-<PopUp Size=PopupSize.Large Title="@(userConfig.GetText("report_template"))" Show="@(ShowUpdateTemplateDialog || ShowAddTemplateDialog)">
+<PopUp Size=PopupSize.CustomMedium Title="@(userConfig.GetText("report_template"))" Show="@(ShowUpdateTemplateDialog || ShowAddTemplateDialog)">
     <Body>
         <form>
             <div class="form-group row">
@@ -195,7 +195,7 @@
         recertOwnerList = await apiConnection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwners);
         if(showModellingReports)
         {
-            modOwnerList = await ModellingHandlerBase.GetOwnApps(authenticationStateTask, userConfig, apiConnection, DisplayMessageInUi);
+            modOwnerList = await ModellingHandlerBase.GetOwnApps(authenticationStateTask!, userConfig, apiConnection, DisplayMessageInUi);
         }
         await RefreshTemplates();
     }
@@ -345,7 +345,7 @@
                 reportParameters = reportTemplateInEdit.ReportParams
             };
 
-            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(ReportQueries.addReportTemplate, queryVariables)).ReturnIds;
+            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(ReportQueries.addReportTemplate, queryVariables)).ReturnIds;
             if (returnIds != null)
             {
                 reportTemplateInEdit.Id = returnIds[0].NewId;

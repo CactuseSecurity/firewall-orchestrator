@@ -7,6 +7,6 @@ mutation setAreaDeletedState(
     _set: {
       is_deleted: $deleted
   }) {
-    UpdatedId: id
+    UpdatedIdLong: id
   }
 }

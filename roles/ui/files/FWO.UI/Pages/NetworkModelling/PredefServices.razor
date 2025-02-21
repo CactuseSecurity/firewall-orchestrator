@@ -8,7 +8,7 @@
 @inject UserConfig userConfig
 
 
-<PopUp Title="@(userConfig.GetText("predef_services") )" Show="@Display" Size=PopupSize.XLarge OnClose="Close">
+<PopUp Title="@(userConfig.GetText("predef_services") )" Show="@Display" Size=PopupSize.CustomXLarge OnClose="Close">
     <Body>
         @if (Display)
         {
@@ -78,8 +78,8 @@
     {
         if (Display && firstTry)
         {
-            await Refresh();
             firstTry = false;
+            await Refresh();
         }
     }
 

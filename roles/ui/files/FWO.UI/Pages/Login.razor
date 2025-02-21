@@ -124,7 +124,7 @@
     private string chgPwErrorMessage = "";
 
     private bool ShowWelcomeMessage { get; set; }
-    private string? SanitizedWelcomeMessage { get; set; }
+    private string SanitizedWelcomeMessage { get; set; } = "";
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {

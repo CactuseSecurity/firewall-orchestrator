@@ -1,5 +1,6 @@
 ﻿@using FWO.Config.Api
 @using FWO.Config.Api.Data
+@using FWO.Api.Client.Queries
 @using System.Text.Json
 @using FWO.Services
 
@@ -8,7 +9,7 @@
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
-<PopUp Title="@(userConfig.GetText("search_nw_object"))" Size=PopupSize.Small Show="@Display" OnClose="Close">
+<PopUp Title="@(userConfig.GetText("search_nw_object"))" Size=PopupSize.CustomSmall Show="@Display" OnClose="Close">
     <Body>
         @if(Display)
         {
@@ -130,7 +131,7 @@
             {
                 grpType = (int)selectedType
             };
-            List<ModellingNwGroup> allNwObjects = await apiConnection.SendQueryAsync<List<ModellingNwGroup>>(FWO.Api.Client.Queries.ModellingQueries.getNwGroupObjects, Variables);
+            List<ModellingNwGroup> allNwObjects = await apiConnection.SendQueryAsync<List<ModellingNwGroup>>(ModellingQueries.getNwGroupObjects, Variables);
             if(userConfig.ModCommonAreas != "")
             {
                 List<long> commonAreaIds = JsonSerializer.Deserialize<List<CommonAreaConfig>>(userConfig.ModCommonAreas)?.ConvertAll(x => x.AreaId) ?? new();
@@ -158,7 +159,7 @@
                         appId = Application.Id,
                         nwGroupId = selectedObject?.Id
                     };
-                    await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.ModellingQueries.addSelectedNwGroupObject, Variables);
+                    await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.addSelectedNwGroupObject, Variables);
                 }
                 ObjectList.Add(new ModellingNwGroupWrapper(){ Content = selectedObject ?? throw new Exception("No Object selected.") });
                 await ObjectListChanged.InvokeAsync(ObjectList);

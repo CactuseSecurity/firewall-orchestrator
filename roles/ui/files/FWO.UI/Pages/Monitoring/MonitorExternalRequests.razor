@@ -90,7 +90,7 @@ else
     </div>
 }
 
-<PopUp Title="@(userConfig.GetText("external_request") + ": " + actRequest.Id)" Show="@DetailsMode" Size=PopupSize.XLarge OnClose="() => DetailsMode = false">
+<PopUp Title="@(userConfig.GetText("external_request") + ": " + actRequest.Id)" Show="@DetailsMode" Size=PopupSize.CustomXLarge OnClose="() => DetailsMode = false">
     <Body>
         @if (DetailsMode)
         {
@@ -157,7 +157,7 @@ else
     </Footer>
 </PopUp>
 
-<PopUp Title="@(userConfig.GetText("change_state") + ": " + actRequest.Id)" Show="@ChangeStateMode" Size=PopupSize.Small OnClose="() => ChangeStateMode = false">
+<PopUp Title="@(userConfig.GetText("change_state") + ": " + actRequest.Id)" Show="@ChangeStateMode" Size=PopupSize.CustomSmall OnClose="() => ChangeStateMode = false">
     <Body>
         @if (ChangeStateMode)
         {

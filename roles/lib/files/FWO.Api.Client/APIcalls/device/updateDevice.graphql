@@ -24,7 +24,7 @@ mutation updateDevice(
       dev_comment: $comment
     }
   ) {
-    UpdatedId: dev_id
+    updatedId: dev_id
   }
 }
 

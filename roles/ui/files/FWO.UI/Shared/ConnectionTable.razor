@@ -82,7 +82,7 @@ SelectedItems="SelectedConns" RowClickAction="@(conn => ToggleSelection(conn))">
             </Column>
             <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("ext_app_id"))" Field="@(x => x.App.ExtAppId)" Sortable="true" Filterable="true">
                 <Template>
-                @(context.App.ExtAppId)
+                @(context.App?.ExtAppId)
                 </Template>
             </Column>
     }    

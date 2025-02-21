@@ -13,6 +13,6 @@ mutation updateTicketState(
     ticket_deadline: $deadline
     ticket_priority: $priority
   }) {
-    UpdatedId: id
+    UpdatedIdLong: id
   }
 }

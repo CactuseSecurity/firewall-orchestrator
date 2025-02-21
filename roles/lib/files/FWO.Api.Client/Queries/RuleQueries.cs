@@ -9,7 +9,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string ruleDetailsForReportFragments;
         public static readonly string getRuleOverview;
         public static readonly string getRuleDetails;
-        public static readonly string getRuleDetailsForReport;
+        // public static readonly string getRuleDetailsForReport;
         public static readonly string getRuleByUid;
         public static readonly string getRuleNetworkObjectDetails;
         public static readonly string getRuleIdsOfImport;
@@ -20,7 +20,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string natRuleDetailsForReportFragments;
         public static readonly string getNatRuleOverview;
         public static readonly string getNatRuleDetails;
-        public static readonly string getNatRuleDetailsForReport;
+        // public static readonly string getNatRuleDetailsForReport;
 
     
         static RuleQueries()
@@ -51,9 +51,9 @@ namespace FWO.Api.Client.Queries
                     ruleDetailsFragments +
                     File.ReadAllText(QueryPath + "rule/getRuleDetails.graphql");
 
-                getRuleDetailsForReport =
-                    ruleDetailsForReportFragments +
-                    File.ReadAllText(QueryPath + "rule/getRuleDetails.graphql");
+                // getRuleDetailsForReport =
+                //     ruleDetailsForReportFragments +
+                //     File.ReadAllText(QueryPath + "rule/getRuleDetails.graphql");
 
                 getRuleByUid = File.ReadAllText(QueryPath + "rule/getRuleByUid.graphql");
 
@@ -83,9 +83,9 @@ namespace FWO.Api.Client.Queries
                     natRuleDetailsFragments +
                     File.ReadAllText(QueryPath + "rule/getNatRuleDetails.graphql");
 
-                getNatRuleDetailsForReport =
-                    natRuleDetailsForReportFragments +
-                    File.ReadAllText(QueryPath + "rule/getNatRuleDetails.graphql");
+                // getNatRuleDetailsForReport =
+                //     natRuleDetailsForReportFragments +
+                //     File.ReadAllText(QueryPath + "rule/getNatRuleDetails.graphql");
 
             }
             catch (Exception exception)

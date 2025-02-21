@@ -45,7 +45,7 @@ namespace FWO.Services
         public List<ModellingAppServer> SrcAppServerToDelete { get; set; } = [];
         public List<ModellingAppServer> DstAppServerToAdd { get; set; } = [];
         public List<ModellingAppServer> DstAppServerToDelete { get; set; } = [];
-        public ModellingAppServerHandler AppServerHandler;
+        public ModellingAppServerHandler? AppServerHandler;
         public bool DisplayAppServerMode = false;
 
         public ModellingAppRoleHandler? AppRoleHandler;
@@ -214,7 +214,7 @@ namespace FWO.Services
         {
             try
             {
-                AvailableAppServers = await apiConnection.SendQueryAsync<List<ModellingAppServer>>(ModellingQueries.getAppServers, new { appId = Application.Id });
+                AvailableAppServers = await apiConnection.SendQueryAsync<List<ModellingAppServer>>(ModellingQueries.getAppServersForOwner, new { appId = Application.Id });
                 AvailableAppRoles = await apiConnection.SendQueryAsync<List<ModellingAppRole>>(ModellingQueries.getAppRoles, new { appId = Application.Id });
 
                 List<ModellingNetworkArea> allAreas = await apiConnection.SendQueryAsync<List<ModellingNetworkArea>>(ModellingQueries.getNwGroupObjects, new { grpType = (int)ModellingTypes.ModObjectType.NetworkArea });
@@ -1071,7 +1071,7 @@ namespace FWO.Services
                         appId = requestedInterface.AppId,
                         connectionId = requestedInterface.Id
                     };
-                    await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.addSelectedConnection, Variables);
+                    await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.addSelectedConnection, Variables);
                     PreselectedInterfaces.Add(requestedInterface);
                 }
             }
@@ -1278,7 +1278,7 @@ namespace FWO.Services
                     connProp = ActConn.Properties,
                     extraParams = ActConn.ExtraParams
                 };
-                ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.newConnection, Variables)).ReturnIds;
+                ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.newConnection, Variables)).ReturnIds;
                 if (returnIds != null)
                 {
                     ActConn.Id = returnIds[0].NewId;

@@ -27,11 +27,7 @@ namespace FWO.Report.Filter
 
         public string DisplayedTimeSelection = "";
 
-        private UserConfig userConfig;
-
-
-        public ReportFilters()
-        {}
+        private UserConfig? userConfig;
 
         public void Init(UserConfig userConfigIn, bool showRuleRelatedReports)
         {
@@ -74,14 +70,14 @@ namespace FWO.Report.Filter
                 UnusedFilter = new UnusedFilter() 
                 {
                     UnusedForDays = UnusedDays, 
-                    CreationTolerance = userConfig.CreationTolerance
+                    CreationTolerance = userConfig?.CreationTolerance ?? 0
                 },
                 ModellingFilter = new ModellingFilter(ModellingFilter)
             };
             if (ReportType != ReportType.Statistics)
             {
                 // also make sure the report a user belonging to a tenant <> 1 sees, gets the additional filters in DynGraphqlQuery.cs
-                if (SelectedTenant == null && userConfig.User.Tenant?.Id > 1)
+                if (SelectedTenant == null && userConfig?.User.Tenant?.Id > 1)
                 {
                     SelectedTenant = userConfig.User.Tenant;
                     // TODO: when admin selects a tenant filter, add the corresponding device filter to make sure only those devices are reported that the tenant is allowed to see
@@ -98,24 +94,24 @@ namespace FWO.Report.Filter
                 switch (TimeFilter.TimeRangeType)
                 {
                     case TimeRangeType.Shortcut:
-                        DisplayedTimeSelection = userConfig.GetText(TimeFilter.TimeRangeShortcut);
+                        DisplayedTimeSelection = userConfig?.GetText(TimeFilter.TimeRangeShortcut) ?? TimeFilter.TimeRangeShortcut;
                         break;
                     case TimeRangeType.Interval:
-                        DisplayedTimeSelection = userConfig.GetText("last") + " " + 
-                            TimeFilter.Offset + " " + userConfig.GetText(TimeFilter.Interval.ToString());
+                        DisplayedTimeSelection = userConfig?.GetText("last") + " " + 
+                            TimeFilter.Offset + " " + userConfig?.GetText(TimeFilter.Interval.ToString());
                         break;
                     case TimeRangeType.Fixeddates:
                         if(TimeFilter.OpenStart && TimeFilter.OpenEnd)
                         {
-                            DisplayedTimeSelection = userConfig.GetText("open");
+                            DisplayedTimeSelection = userConfig?.GetText("open") ?? "open";
                         }
                         else if(TimeFilter.OpenStart)
                         {
-                            DisplayedTimeSelection = userConfig.GetText("until") + " " + TimeFilter.EndTime.ToString();
+                            DisplayedTimeSelection = userConfig?.GetText("until") + " " + TimeFilter.EndTime.ToString();
                         }
                         else if(TimeFilter.OpenEnd)
                         {
-                            DisplayedTimeSelection = userConfig.GetText("from") + " " + TimeFilter.StartTime.ToString();
+                            DisplayedTimeSelection = userConfig?.GetText("from") + " " + TimeFilter.StartTime.ToString();
                         }
                         else
                         {
@@ -131,7 +127,7 @@ namespace FWO.Report.Filter
             {
                 if (TimeFilter.IsShortcut)
                 {
-                    DisplayedTimeSelection = userConfig.GetText(TimeFilter.TimeShortcut);
+                    DisplayedTimeSelection = userConfig?.GetText(TimeFilter.TimeShortcut) ?? TimeFilter.TimeShortcut;
                 }
                 else
                 {
@@ -178,15 +174,14 @@ namespace FWO.Report.Filter
 
         private void SetDeviceVisibility(Tenant tenantView)
         {
-            if ((userConfig.User.Tenant.Id==null || userConfig.User.Tenant.Id==1) && tenantView.Id!=1)
+            if ((userConfig == null || userConfig.User.Tenant==null || userConfig.User.Tenant.Id==1) && tenantView.Id!=1)
             {
                 // filtering for tenant simulation only done by a tenant0 user
                 foreach (TenantGateway gw in tenantView.TenantGateways)
                 {
                     if (!tenantView.VisibleGatewayIds.Contains(gw.VisibleGateway.Id))
                     {
-                        tenantView.VisibleGatewayIds.Append(gw.VisibleGateway.Id);
-                        tenantView.VisibleGatewayIds = tenantView.VisibleGatewayIds.Concat([gw.VisibleGateway.Id]).ToArray();
+                        tenantView.VisibleGatewayIds = [.. tenantView.VisibleGatewayIds, gw.VisibleGateway.Id];
                     }
                 }
 
@@ -199,8 +194,7 @@ namespace FWO.Report.Filter
                         {
                             if (!tenantView.VisibleGatewayIds.Contains(gw.Id))
                             {
-                                tenantView.VisibleGatewayIds.Append(gw.Id);
-                                tenantView.VisibleGatewayIds = tenantView.VisibleGatewayIds.Concat([gw.Id]).ToArray();
+                                tenantView.VisibleGatewayIds = [.. tenantView.VisibleGatewayIds, gw.Id];
                             }
                         }
                     }

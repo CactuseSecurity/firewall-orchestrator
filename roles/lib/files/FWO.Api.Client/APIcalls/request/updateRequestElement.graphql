@@ -37,6 +37,6 @@ mutation updateRequestElement(
       group_name: $groupName
       name: $name
   }) {
-    UpdatedId: id
+    UpdatedIdLong: id
   }
 }

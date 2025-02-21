@@ -7,6 +7,6 @@ mutation updateExternalRequestLock(
     _set: {
       locked: $locked
   }) {
-    UpdatedId: id
+    updatedIdLong: id
   }
 }

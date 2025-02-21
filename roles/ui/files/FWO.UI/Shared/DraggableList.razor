@@ -37,6 +37,8 @@
 
 	private int? lastSelected;
 	private bool shiftPressed = false;
+	private bool ctrlPressed = false;
+	private List<int> lastSelectedRange = new();
 
 
     private void KeyDown(KeyboardEventArgs ev)
@@ -45,50 +47,132 @@
 		{
         	shiftPressed = true;
 		}
+
+		if(ev.CtrlKey)
+		{
+			ctrlPressed = true;
+		}
+
+
     }
 
 	private void KeyUp(KeyboardEventArgs ev)
     {
-		if(ev.ShiftKey)
+		// has to be Key because ShiftKey and CtrlKey are already false when KeyUp gets invoked
+
+		if(ev.Key == "Shift")
 		{
         	shiftPressed = false;
+		}
+
+		if(ev.Key == "Control")
+		{
+        	ctrlPressed = false;
 		}
     }
 
 	private void ToggleSelect(int index)
 	{
-		if (SelectedElements.Contains(AllElements[index]))
+		// if no multiselect treat as if no multiselect key is pressed
+		if (!Multiselect || (!shiftPressed && !ctrlPressed))
 		{
-			SelectedElements.Remove(AllElements[index]);
-			lastSelected = null;
-		}
-		else
-		{
-			if(!Multiselect)
+			// if only one is selected deselect on click
+			if (SelectedElements.Contains(AllElements[index]) && SelectedElements.Count() == 1)
 			{
-				SelectedElements = new();
-				SelectedElements.Add(AllElements[index]);
-			}
-			else if(lastSelected == null)
-			{
-				lastSelected = index;
-				SelectedElements.Add(AllElements[index]);
-			}
-			else if(shiftPressed && index > lastSelected)
-			{
-				for(int idx = (int)lastSelected + 1; idx <= index; ++idx)
-				{
-					SelectedElements.Add(AllElements[idx]);
-				}
-				lastSelected = null;
+				Deselect(index);
 			}
 			else
 			{
-				SelectedElements.Add(AllElements[index]);
-				lastSelected = index;
+				Select(index);
 			}
 		}
-		SelectedElementsChanged.InvokeAsync(SelectedElements);
+
+		if (shiftPressed)
+		{
+			if (!SelectedElements.Any())
+			{
+				Select(index);
+			}
+			else
+			{
+				if (SelectedElements.Contains(AllElements[index]) && SelectedElements.Count() == 1)
+				{
+					Deselect(index);
+				}
+				else
+				{
+					SelectRange(index);
+				}
+			}
+		}
+
+		if (ctrlPressed)
+		{
+			// if only one is selected deselect on click
+			if (SelectedElements.Contains(AllElements[index]))
+			{
+				Deselect(index);
+			}
+			else
+			{
+				Select(index, true);
+			}
+		}
+	}
+
+	private void Select(int index, bool multiSelect = false)
+	{
+		if (!multiSelect)
+		{
+			SelectedElements.Clear();
+		}
+
+		SelectedElements.Add(AllElements[index]);
+		lastSelected = index;
+		lastSelectedRange.Clear();
+	}
+
+	private void SelectRange(int index)
+	{
+		foreach (ElementType element in AllElements.Where((item, index) => lastSelectedRange.Contains(index)).ToList())
+		{
+			if(SelectedElements.Contains(element))
+			{
+				SelectedElements.Remove(element);
+			}
+		}
+
+		lastSelectedRange.Clear();
+
+		if(index > lastSelected)
+		{
+			for(int idx = (int)lastSelected; idx <= index; ++idx)
+			{
+				SelectedElements.Add(AllElements[idx]);
+				lastSelectedRange.Add(idx);
+			}
+		}
+
+		if(index < lastSelected)
+		{
+			for(int idx = (int)lastSelected; idx >= index; --idx)
+			{
+				SelectedElements.Add(AllElements[idx]);
+				lastSelectedRange.Add(idx);
+			}
+		}
+	}
+
+	private void Deselect(int index)
+	{
+		SelectedElements.Remove(AllElements[index]);			
+		lastSelected = null;
+	}
+
+	private void DeselectRange()
+	{
+		SelectedElements.Clear();
+		lastSelected = null;
 	}
 
 	private static bool DoNothingSync(DragEventArgs e, ElementType elem) { return false; }

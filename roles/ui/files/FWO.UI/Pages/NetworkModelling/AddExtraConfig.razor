@@ -9,7 +9,7 @@
 
 @if(ConnectionHandler != null)
 {
-    <PopUp Title="@(userConfig.GetText("extra_params"))" Size=PopupSize.Small Show="@Display" OnClose="Cancel">
+    <PopUp Title="@(userConfig.GetText("extra_params"))" Size=PopupSize.CustomSmall Show="@Display" OnClose="Cancel">
         <Body>
             @if(Display)
             {

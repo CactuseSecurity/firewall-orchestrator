@@ -7,7 +7,7 @@
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
-<PopUp Title="@(userConfig.GetText("import_status_details") + ImportStatus.MgmName)" Show="@DetailsMode" Size=PopupSize.Large OnClose="async () => await CloseDetails()">
+<PopUp Title="@(userConfig.GetText("import_status_details") + ImportStatus.MgmName)" Show="@DetailsMode" Size=PopupSize.CustomLarge OnClose="async () => await CloseDetails()">
     <Body>
         @if (DetailsMode)
         {

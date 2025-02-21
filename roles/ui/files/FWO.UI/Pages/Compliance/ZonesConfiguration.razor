@@ -22,7 +22,7 @@
 
 @if (networkZoneInEdit != null)
 {
-	<PopUp Title="@userConfig.GetText("edit_zone_title")" Show="editMode" Size=PopupSize.XLarge OnClose="() => editMode = false">
+	<PopUp Title="@userConfig.GetText("edit_zone_title")" Show="editMode" Size=PopupSize.CustomXLarge OnClose="() => editMode = false">
 		<Body>
 			<form>
 				<div class="row mb-3">
@@ -147,7 +147,7 @@
 
 @if (networkZoneInEdit != null)
 {
-	<PopUp Title="@userConfig.GetText("delete_zone_title")" Show="deleteMode" Size=PopupSize.Small OnClose="() => deleteMode = false">
+	<PopUp Title="@userConfig.GetText("delete_zone_title")" Show="deleteMode" Size=PopupSize.CustomSmall OnClose="() => deleteMode = false">
 		<Body>
 			@(userConfig.GetText("delete_zone_text").Replace("%", $"\"{networkZoneInEdit.Name}\""))
 		</Body>

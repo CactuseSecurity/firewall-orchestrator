@@ -2,7 +2,7 @@
 
 @inject UserConfig userConfig
 
-<PopUp Title="@Title" Show="@Display" Size=PopupSize.Large OnClose="Close">
+<PopUp Title="@Title" Show="@Display" Size=PopupSize.CustomMedium OnClose="Close">
     <Body>
         @if (Display)
         {
@@ -59,7 +59,7 @@
 
     private UiUser selectedUser = new();
 
-    protected override async Task OnParametersSetAsync()
+    protected override void OnParametersSet()
     {
         if(Display)
         {

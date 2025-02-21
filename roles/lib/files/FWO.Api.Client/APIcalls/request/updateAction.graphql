@@ -21,6 +21,6 @@ mutation updateAction(
       button_text: $buttonText
       external_parameters: $externalParameters
   }) {
-    UpdatedId: id
+    updatedId: id
   }
 }

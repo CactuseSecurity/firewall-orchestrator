@@ -6,7 +6,7 @@ namespace FWO.Api.Data
     public class WfComment : WfCommentBase
     {
         [JsonProperty("id"), JsonPropertyName("id")]
-        public int Id { get; set; }
+        public long Id { get; set; }
 
 
         public WfComment()

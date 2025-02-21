@@ -253,6 +253,15 @@ namespace FWO.Config.Api.Data
         [JsonProperty("createApplicationZones"), JsonPropertyName("createApplicationZones")]
         public bool CreateAppZones { get; set; }
 
+        [JsonProperty("dnsLookup"), JsonPropertyName("dnsLookup")]
+        public bool DnsLookup { get; set; } = false;
+
+        [JsonProperty("overwriteExistingNames"), JsonPropertyName("overwriteExistingNames")]
+        public bool OverwriteExistingNames { get; set; } = false;
+
+        [JsonProperty("autoReplaceAppServer"), JsonPropertyName("autoReplaceAppServer")]
+        public bool AutoReplaceAppServer { get; set; } = false;
+
         [JsonProperty("importAppDataPath"), JsonPropertyName("importAppDataPath")]
 		public string ImportAppDataPath { get; set; } = "";
 

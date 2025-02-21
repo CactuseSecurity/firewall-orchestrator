@@ -58,11 +58,11 @@ namespace FWO.Api.Client
             {
                 if (ApiConstants.UseSystemTextJsonSerializer)
                 {
-                    JsonElement.ObjectEnumerator responseObjectEnumerator = response.Data.EnumerateObject();
-                    responseObjectEnumerator.MoveNext();
-                    SubscriptionResponseType returnValue = JsonSerializer.Deserialize<SubscriptionResponseType>(responseObjectEnumerator.Current.Value.GetRawText()) ??
-                    throw new Exception($"Could not convert result from Json to {nameof(SubscriptionResponseType)}.\nJson: {responseObjectEnumerator.Current.Value.GetRawText()}"); ;
-                    OnUpdate(returnValue);
+                    // JsonElement.ObjectEnumerator responseObjectEnumerator = response.Data.EnumerateObject();
+                    // responseObjectEnumerator.MoveNext();
+                    // SubscriptionResponseType returnValue = JsonSerializer.Deserialize<SubscriptionResponseType>(responseObjectEnumerator.Current.Value.GetRawText()) ??
+                    // throw new Exception($"Could not convert result from Json to {nameof(SubscriptionResponseType)}.\nJson: {responseObjectEnumerator.Current.Value.GetRawText()}"); ;
+                    // OnUpdate(returnValue);
                 }
                 else
                 {

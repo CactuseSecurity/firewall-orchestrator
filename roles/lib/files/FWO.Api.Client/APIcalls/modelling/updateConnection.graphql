@@ -27,6 +27,6 @@ mutation updateConnection(
       conn_prop: $connProp
       extra_params: $extraParams
   }) {
-    UpdatedId: id
+    updatedId: id
   }
 }

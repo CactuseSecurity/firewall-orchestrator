@@ -18,8 +18,6 @@ namespace FWO.Api.Client.Queries
         public static readonly string deleteAllManagementsOfTenant;
         public static readonly string getVisibleDeviceIdsPerTenant;
         public static readonly string getVisibleManagementIdsPerTenant;
-        public static readonly string getUnfilteredDeviceIdsPerTenant;
-        public static readonly string getUnfilteredManagementIdsPerTenant;
         public static readonly string getTenantNetworks;
         public static readonly string addTenantNetwork;
         public static readonly string deleteTenantNetwork;

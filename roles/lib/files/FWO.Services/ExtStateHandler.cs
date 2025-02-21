@@ -12,6 +12,7 @@ namespace FWO.Services
         public ExtStateHandler(ApiConnection apiConnection)
         {
             this.apiConnection = apiConnection;
+            Task.Run(Init);
         }
 
         public async Task Init()
@@ -27,6 +28,18 @@ namespace FWO.Services
         public int? GetInternalStateId(string extState)
         {
             return extStates.FirstOrDefault(e => e.Name == extState)?.StateId;
+        }
+
+        public bool IsInProgress(int stateId)
+        {
+            int doneStateId = GetInternalStateId(ExtStates.ExtReqDone) ?? 999;
+            int rejectedStateId = GetInternalStateId(ExtStates.ExtReqRejected) ?? 999;
+            return stateId < doneStateId && stateId < rejectedStateId;
+        }
+
+        public bool IsDone(int stateId)
+        {
+            return stateId == GetInternalStateId(ExtStates.ExtReqDone);
         }
     }
 }

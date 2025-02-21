@@ -24,6 +24,6 @@ mutation updateOwner(
       common_service_possible: $commSvcPossible
       active: true
   }) {
-    UpdatedId: id
+    updatedId: id
   }
 }

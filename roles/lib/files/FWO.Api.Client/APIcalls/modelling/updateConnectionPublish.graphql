@@ -9,6 +9,6 @@ mutation updateConnectionPublish(
       is_requested: $isRequested
       is_published: $isPublished
   }) {
-    UpdatedId: id
+    updatedId: id
   }
 }

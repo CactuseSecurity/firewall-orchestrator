@@ -283,7 +283,7 @@ namespace FWO.Report
             if (prop == null)
                 return default;
 
-            PuppeteerSharp.Media.PaperFormat? propFormat = (PuppeteerSharp.Media.PaperFormat)prop.GetValue(null);
+            PuppeteerSharp.Media.PaperFormat? propFormat = (PuppeteerSharp.Media.PaperFormat?)prop.GetValue(null);
 
             if (propFormat is null)
                 return default;

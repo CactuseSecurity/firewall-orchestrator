@@ -20,7 +20,7 @@ namespace FWO.Api.Data
         private string ViewName { get; set; } = "";
 
         [JsonProperty("refreshed_at"), JsonPropertyName("refreshed_at")]
-        private string RefreshedAt { get; set; }
+        private string RefreshedAt { get; set; } = "";
 
         [JsonProperty("status"), JsonPropertyName("status")]
         private string Status { get; set; } = "";

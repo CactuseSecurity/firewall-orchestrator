@@ -13,7 +13,7 @@ mutation newAreaIpData(
     nw_type: 11
   }) {
     returning {
-      newId: id
+      newIdLong: id
     }
   }
 }

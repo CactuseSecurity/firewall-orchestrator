@@ -81,7 +81,7 @@ namespace FWO.Ui.Auth
 
 				// Set user information
 				user = new ClaimsPrincipal(identity);
-				string userDn = user.FindFirstValue("x-hasura-uuid");
+				string userDn = user.FindFirstValue("x-hasura-uuid") ?? "";
 				await userConfig.SetUserInformation(userDn, apiConnection);
 				userConfig.User.Jwt = jwtString;
 				userConfig.User.Tenant = await GetTenantFromJwt(userConfig.User.Jwt, apiConnection);

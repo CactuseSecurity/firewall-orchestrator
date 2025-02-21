@@ -15,7 +15,7 @@ mutation newApproval(
     initial_approval: $initialApproval
   }) {
     returning {
-      newId: id
+      newIdLong: id
     }
   }
 }

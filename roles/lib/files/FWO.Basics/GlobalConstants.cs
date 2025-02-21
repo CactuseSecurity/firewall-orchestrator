@@ -1,8 +1,3 @@
-using System.Net.Sockets;
-using System.Net;
-using System.Numerics;
-using System.Text.RegularExpressions;
-
 namespace FWO.Basics
 {
     /// <summary>
@@ -34,8 +29,10 @@ namespace FWO.Basics
         public const string kUi = "ui";
         public const string kCertification = "Certification";
         public const string kImportAppData = "importAppData";
+        public const string kAdjustAppServerNames = "adjustAppServerNames";
         public const string kImportAreaSubnetData = "importAreaSubnetData";
         public const string kManual = "manual";
+        public const string kCSV_ = "CSV_";
         public const string kModellerGroup = "ModellerGroup_";
         public const string kAppIdPlaceholder = "@@ExternalAppId@@";
         public const string kLdapGroupPattern = kModellerGroup + kAppIdPlaceholder;
@@ -69,6 +66,4 @@ namespace FWO.Basics
         public const string SimpleService = "simple";
         public const string Rpc = "rpc";
     }
-
 }
-

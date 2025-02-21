@@ -274,7 +274,7 @@ namespace FWO.Report
 
                 PuppeteerSharp.Media.PaperFormat? pupformat = GetPuppeteerPaperFormat(format) ?? throw new Exception();
                 
-                PdfOptions pdfOptions = new() { DisplayHeaderFooter = true, Landscape = true, PrintBackground = true, Format = pupformat, MarginOptions = new MarginOptions { Top = "1cm", Bottom = "1cm", Left = "1cm", Right = "1cm" } };
+                PdfOptions pdfOptions = new() { DisplayHeaderFooter = false, Landscape = true, PrintBackground = true, Format = pupformat, MarginOptions = new MarginOptions { Top = "1cm", Bottom = "1cm", Left = "1cm", Right = "1cm" } };
                 using Stream? pdfData = await page.PdfStreamAsync(pdfOptions);
 
                 byte[]? pdfWithToCData = AddToCBookmarksToPDF(pdfData, html);

@@ -1,6 +1,6 @@
 mutation deleteNetworkOwnership(
   $ownerId: Int!
-  $id: Int!
+  $id: bigint!
   ) {
   delete_owner_network(where: {owner_id: {_eq: $ownerId}, id: {_eq: $id}}) {
     affected_rows

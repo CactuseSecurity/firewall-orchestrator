@@ -96,7 +96,7 @@
                                      ondragover="event.preventDefault();"
                                      ondragstart="event.dataTransfer.setData('', event.target.id);"
                                      @ondrop="HandleServerDrop">
-                                    <EditList ElementType="ModellingAppServer" Elements="ModellingAppServerWrapper.Resolve(AppRoleHandler.ActAppRole.AppServers)" ElementsToAdd="AppRoleHandler.AppServerToAdd" ElementsToDelete="AppRoleHandler.AppServerToDelete" StdLayout="false">
+                                    <EditList ElementType="ModellingAppServer" Elements="ModellingAppServerWrapper.Resolve(AppRoleHandler.ActAppRole.AppServers)" ElementsToAdd="AppRoleHandler.AppServerToAdd" ElementsToDelete="AppRoleHandler.AppServerToDelete" StdLayout="false" ElementsRemoved="OnAppServerRemovedFromEditList">
                                         <Display>
                                             <div class="row">
                                                 <div class="col-sm-12 ms-2 bg-transparent">@((MarkupString)context.DisplayWithIcon())</div>
@@ -295,5 +295,13 @@
     private void CustomSortAreas()
     {
         areas.Sort((ModellingNetworkArea a, ModellingNetworkArea b) => a?.CompareTo(b) ?? -1);
+    }
+
+    /// <summary>
+    /// Updates the view after removing an app server from the list of app role's app servers.
+    /// </summary>
+    private void OnAppServerRemovedFromEditList()
+    {
+        InvokeAsync(StateHasChanged);
     }
 }

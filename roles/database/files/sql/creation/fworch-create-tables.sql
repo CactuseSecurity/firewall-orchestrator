@@ -197,8 +197,6 @@ Create table "rule"
 Create table "rule_metadata"
 (
 	"rule_metadata_id" BIGSERIAL,
-	"dev_id" Integer NOT NULL,
-	"rulebase_id" Integer NOT NULL,
 	"rule_uid" Text NOT NULL,
 	"rule_created" Timestamp NOT NULL Default now(),
 	"rule_last_modified" Timestamp NOT NULL Default now(),

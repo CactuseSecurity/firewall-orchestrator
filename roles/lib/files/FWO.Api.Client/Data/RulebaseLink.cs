@@ -9,16 +9,19 @@ namespace FWO.Api.Data
         public int GatewayId { get; set; }
 
         [JsonProperty("from_rule_id"), JsonPropertyName("from_rule_id")]
-        public int FromRuleId { get; set; }
+        public int? FromRuleId { get; set; }    // nullable for initial rulebase
 
         [JsonProperty("link_type"), JsonPropertyName("link_type")]
         public int LinkType { get; set; }
 
-        [JsonProperty("to_rulebase_id"), JsonPropertyName("rulebase")]
-        public int ToRulebaseId { get; set; }
+        [JsonProperty("to_rulebase_id"), JsonPropertyName("to_rulebase_id")]
+        public int NextRulebaseId = new();
 
-        [JsonProperty("to_rulebase_id"), JsonPropertyName("rulebase")]
-        public Rulebase NextRulebase = new();
+        public bool IsInitialRulebase()
+        {
+            return LinkType == 0;
+        }
 
     }
+
 }

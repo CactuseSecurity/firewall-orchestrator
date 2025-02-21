@@ -4592,18 +4592,6 @@
                   }
                 },
                 {
-                  "name": "rule_metadata",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "dev_id",
-                      "table": {
-                        "name": "rule_metadata",
-                        "schema": "public"
-                      }
-                    }
-                  }
-                },
-                {
                   "name": "rulebase_links",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -13542,36 +13530,9 @@
                   }
                 },
                 {
-                  "name": "ruleMetadatumByDevIdRuleUidRulebaseId",
-                  "using": {
-                    "manual_configuration": {
-                      "column_mapping": {
-                        "dev_id": "dev_id",
-                        "rule_uid": "rule_uid",
-                        "rulebase_id": "rulebase_id"
-                      },
-                      "insertion_order": null,
-                      "remote_table": {
-                        "name": "rule_metadata",
-                        "schema": "public"
-                      }
-                    }
-                  }
-                },
-                {
                   "name": "rule_metadatum",
                   "using": {
-                    "manual_configuration": {
-                      "column_mapping": {
-                        "dev_id": "dev_id",
-                        "rule_uid": "rule_uid"
-                      },
-                      "insertion_order": null,
-                      "remote_table": {
-                        "name": "rule_metadata",
-                        "schema": "public"
-                      }
-                    }
+                    "foreign_key_constraint_on": "rule_uid"
                   }
                 },
                 {
@@ -14700,18 +14661,6 @@
               },
               "object_relationships": [
                 {
-                  "name": "device",
-                  "using": {
-                    "foreign_key_constraint_on": "dev_id"
-                  }
-                },
-                {
-                  "name": "rulebase",
-                  "using": {
-                    "foreign_key_constraint_on": "rulebase_id"
-                  }
-                },
-                {
                   "name": "uiuser",
                   "using": {
                     "foreign_key_constraint_on": "rule_owner"
@@ -14752,30 +14701,9 @@
                 {
                   "name": "rules",
                   "using": {
-                    "manual_configuration": {
-                      "column_mapping": {
-                        "rule_uid": "rule_uid",
-                        "rulebase_id": "rulebase_id"
-                      },
-                      "insertion_order": null,
-                      "remote_table": {
-                        "name": "rule",
-                        "schema": "public"
-                      }
-                    }
-                  }
-                },
-                {
-                  "name": "rulesByDevIdRuleUidRulebaseId",
-                  "using": {
-                    "manual_configuration": {
-                      "column_mapping": {
-                        "dev_id": "dev_id",
-                        "rule_uid": "rule_uid",
-                        "rulebase_id": "rulebase_id"
-                      },
-                      "insertion_order": null,
-                      "remote_table": {
+                    "foreign_key_constraint_on": {
+                      "column": "rule_uid",
+                      "table": {
                         "name": "rule",
                         "schema": "public"
                       }
@@ -14789,23 +14717,22 @@
                   "permission": {
                     "check": {},
                     "columns": [
-                      "rule_to_be_removed",
-                      "dev_id",
                       "last_change_admin",
-                      "rule_last_certifier",
-                      "rule_owner",
-                      "rule_hit_counter",
-                      "rule_metadata_id",
-                      "rule_uid",
                       "rule_created",
                       "rule_decert_date",
                       "rule_first_hit",
+                      "rule_hit_counter",
                       "rule_last_certified",
+                      "rule_last_certifier",
+                      "rule_last_certifier_dn",
                       "rule_last_hit",
                       "rule_last_modified",
-                      "rule_last_certifier_dn",
+                      "rule_metadata_id",
+                      "rule_owner",
                       "rule_owner_dn",
-                      "rule_recertification_comment"
+                      "rule_recertification_comment",
+                      "rule_to_be_removed",
+                      "rule_uid"
                     ]
                   }
                 }
@@ -14815,23 +14742,22 @@
                   "role": "auditor",
                   "permission": {
                     "columns": [
-                      "rule_metadata_id",
-                      "dev_id",
-                      "rule_uid",
+                      "last_change_admin",
                       "rule_created",
-                      "rule_last_modified",
+                      "rule_decert_date",
                       "rule_first_hit",
-                      "rule_last_hit",
                       "rule_hit_counter",
                       "rule_last_certified",
                       "rule_last_certifier",
                       "rule_last_certifier_dn",
+                      "rule_last_hit",
+                      "rule_last_modified",
+                      "rule_metadata_id",
                       "rule_owner",
                       "rule_owner_dn",
+                      "rule_recertification_comment",
                       "rule_to_be_removed",
-                      "last_change_admin",
-                      "rule_decert_date",
-                      "rule_recertification_comment"
+                      "rule_uid"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -14841,23 +14767,22 @@
                   "role": "fw-admin",
                   "permission": {
                     "columns": [
-                      "rule_hit_counter",
-                      "rule_metadata_id",
-                      "rule_to_be_removed",
-                      "rule_last_certifier_dn",
-                      "rule_owner_dn",
-                      "rule_recertification_comment",
-                      "dev_id",
                       "last_change_admin",
-                      "rule_last_certifier",
-                      "rule_owner",
-                      "rule_uid",
                       "rule_created",
                       "rule_decert_date",
                       "rule_first_hit",
+                      "rule_hit_counter",
                       "rule_last_certified",
+                      "rule_last_certifier",
+                      "rule_last_certifier_dn",
                       "rule_last_hit",
-                      "rule_last_modified"
+                      "rule_last_modified",
+                      "rule_metadata_id",
+                      "rule_owner",
+                      "rule_owner_dn",
+                      "rule_recertification_comment",
+                      "rule_to_be_removed",
+                      "rule_uid"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -14867,23 +14792,22 @@
                   "role": "importer",
                   "permission": {
                     "columns": [
-                      "rule_to_be_removed",
-                      "dev_id",
                       "last_change_admin",
-                      "rule_last_certifier",
-                      "rule_owner",
-                      "rule_hit_counter",
-                      "rule_metadata_id",
-                      "rule_uid",
                       "rule_created",
                       "rule_decert_date",
                       "rule_first_hit",
+                      "rule_hit_counter",
                       "rule_last_certified",
+                      "rule_last_certifier",
+                      "rule_last_certifier_dn",
                       "rule_last_hit",
                       "rule_last_modified",
-                      "rule_last_certifier_dn",
+                      "rule_metadata_id",
+                      "rule_owner",
                       "rule_owner_dn",
-                      "rule_recertification_comment"
+                      "rule_recertification_comment",
+                      "rule_to_be_removed",
+                      "rule_uid"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -14893,23 +14817,22 @@
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
-                      "rule_to_be_removed",
-                      "dev_id",
                       "last_change_admin",
-                      "rule_last_certifier",
-                      "rule_owner",
-                      "rule_hit_counter",
-                      "rule_metadata_id",
-                      "rule_uid",
                       "rule_created",
                       "rule_decert_date",
                       "rule_first_hit",
+                      "rule_hit_counter",
                       "rule_last_certified",
+                      "rule_last_certifier",
+                      "rule_last_certifier_dn",
                       "rule_last_hit",
                       "rule_last_modified",
-                      "rule_last_certifier_dn",
+                      "rule_metadata_id",
+                      "rule_owner",
                       "rule_owner_dn",
-                      "rule_recertification_comment"
+                      "rule_recertification_comment",
+                      "rule_to_be_removed",
+                      "rule_uid"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -14919,29 +14842,24 @@
                   "role": "modeller",
                   "permission": {
                     "columns": [
-                      "rule_metadata_id",
-                      "dev_id",
-                      "rule_uid",
+                      "last_change_admin",
                       "rule_created",
-                      "rule_last_modified",
+                      "rule_decert_date",
                       "rule_first_hit",
-                      "rule_last_hit",
                       "rule_hit_counter",
                       "rule_last_certified",
                       "rule_last_certifier",
                       "rule_last_certifier_dn",
+                      "rule_last_hit",
+                      "rule_last_modified",
+                      "rule_metadata_id",
                       "rule_owner",
                       "rule_owner_dn",
+                      "rule_recertification_comment",
                       "rule_to_be_removed",
-                      "last_change_admin",
-                      "rule_decert_date",
-                      "rule_recertification_comment"
+                      "rule_uid"
                     ],
-                    "filter": {
-                      "dev_id": {
-                        "_in": "x-hasura-visible-devices"
-                      }
-                    },
+                    "filter": {},
                     "allow_aggregations": true
                   }
                 },
@@ -14949,23 +14867,22 @@
                   "role": "recertifier",
                   "permission": {
                     "columns": [
-                      "rule_to_be_removed",
-                      "dev_id",
                       "last_change_admin",
-                      "rule_last_certifier",
-                      "rule_owner",
-                      "rule_hit_counter",
-                      "rule_metadata_id",
-                      "rule_uid",
                       "rule_created",
                       "rule_decert_date",
                       "rule_first_hit",
+                      "rule_hit_counter",
                       "rule_last_certified",
+                      "rule_last_certifier",
+                      "rule_last_certifier_dn",
                       "rule_last_hit",
                       "rule_last_modified",
-                      "rule_last_certifier_dn",
+                      "rule_metadata_id",
+                      "rule_owner",
                       "rule_owner_dn",
-                      "rule_recertification_comment"
+                      "rule_recertification_comment",
+                      "rule_to_be_removed",
+                      "rule_uid"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -14975,29 +14892,24 @@
                   "role": "reporter",
                   "permission": {
                     "columns": [
-                      "rule_metadata_id",
-                      "dev_id",
-                      "rule_uid",
+                      "last_change_admin",
                       "rule_created",
-                      "rule_last_modified",
+                      "rule_decert_date",
                       "rule_first_hit",
-                      "rule_last_hit",
                       "rule_hit_counter",
                       "rule_last_certified",
                       "rule_last_certifier",
                       "rule_last_certifier_dn",
+                      "rule_last_hit",
+                      "rule_last_modified",
+                      "rule_metadata_id",
                       "rule_owner",
                       "rule_owner_dn",
+                      "rule_recertification_comment",
                       "rule_to_be_removed",
-                      "last_change_admin",
-                      "rule_decert_date",
-                      "rule_recertification_comment"
+                      "rule_uid"
                     ],
-                    "filter": {
-                      "dev_id": {
-                        "_in": "x-hasura-visible-devices"
-                      }
-                    },
+                    "filter": {},
                     "allow_aggregations": true
                   }
                 },
@@ -15005,23 +14917,22 @@
                   "role": "reporter-viewall",
                   "permission": {
                     "columns": [
-                      "rule_to_be_removed",
-                      "dev_id",
                       "last_change_admin",
-                      "rule_last_certifier",
-                      "rule_owner",
-                      "rule_hit_counter",
-                      "rule_metadata_id",
-                      "rule_uid",
                       "rule_created",
                       "rule_decert_date",
                       "rule_first_hit",
+                      "rule_hit_counter",
                       "rule_last_certified",
+                      "rule_last_certifier",
+                      "rule_last_certifier_dn",
                       "rule_last_hit",
                       "rule_last_modified",
-                      "rule_last_certifier_dn",
+                      "rule_metadata_id",
+                      "rule_owner",
                       "rule_owner_dn",
-                      "rule_recertification_comment"
+                      "rule_recertification_comment",
+                      "rule_to_be_removed",
+                      "rule_uid"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -15033,23 +14944,22 @@
                   "role": "importer",
                   "permission": {
                     "columns": [
-                      "rule_to_be_removed",
-                      "dev_id",
                       "last_change_admin",
-                      "rule_last_certifier",
-                      "rule_owner",
-                      "rule_hit_counter",
-                      "rule_metadata_id",
-                      "rule_uid",
                       "rule_created",
                       "rule_decert_date",
                       "rule_first_hit",
+                      "rule_hit_counter",
                       "rule_last_certified",
+                      "rule_last_certifier",
+                      "rule_last_certifier_dn",
                       "rule_last_hit",
                       "rule_last_modified",
-                      "rule_last_certifier_dn",
+                      "rule_metadata_id",
+                      "rule_owner",
                       "rule_owner_dn",
-                      "rule_recertification_comment"
+                      "rule_recertification_comment",
+                      "rule_to_be_removed",
+                      "rule_uid"
                     ],
                     "filter": {},
                     "check": null
@@ -16173,18 +16083,6 @@
                 }
               ],
               "array_relationships": [
-                {
-                  "name": "rule_metadata",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "rulebase_id",
-                      "table": {
-                        "name": "rule_metadata",
-                        "schema": "public"
-                      }
-                    }
-                  }
-                },
                 {
                   "name": "rulebase_links",
                   "using": {
@@ -22111,22 +22009,6 @@
                       "insertion_order": null,
                       "remote_table": {
                         "name": "zone",
-                        "schema": "public"
-                      }
-                    }
-                  }
-                },
-                {
-                  "name": "rule_metadatum",
-                  "using": {
-                    "manual_configuration": {
-                      "column_mapping": {
-                        "dev_id": "dev_id",
-                        "rule_uid": "rule_uid"
-                      },
-                      "insertion_order": null,
-                      "remote_table": {
-                        "name": "rule_metadata",
                         "schema": "public"
                       }
                     }

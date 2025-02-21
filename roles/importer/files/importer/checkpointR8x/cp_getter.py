@@ -193,11 +193,11 @@ def getPolicyStructure(api_v_url, sid, show_params_policy_structure, policyStruc
                 current=packages['to']
             else:
                 raise Exception ( 'packages do not contain to field')
-            return 1
+                return 1
         
 # [{'name':'policy1', 'uid':'bla', 'targets':[{'name':'gateway1', 'uid':'bla'}], 'access-layers':[{'name':'ord1', 'uid':'ord1'}]}]
         # parse devices with ordered layers
-        for package in packages:
+        for package in packages['packages']:
             alreadyFetchedPackage = False
 
             # parse package if at least one installation target exists

@@ -113,7 +113,7 @@ def getRules (nativeConfig: dict, importState: ImportState) -> int:
 
     # get all access (ordered) layers for each policy
     policyStructure = []
-    cp_getter.getPolicyStructure(importState.FwoConfig.FwoApiUri,
+    cp_getter.getPolicyStructure(cpManagerApiBaseUrl,
                                  sid,
                                  show_params_policy_structure,
                                  policyStructure = policyStructure)
@@ -163,12 +163,12 @@ def getRules (nativeConfig: dict, importState: ImportState) -> int:
 
         # decide if mds or stand alone manager
         if device['global_rulebase_name'] != None and device['global_rulebase_name']!='':
-            
+            # delete_v: ACHTUNG nie mehr namen in show_params_rules benutzen
             show_params_rules.update({'name': device['global_rulebase_name']})
 
             # get global rulebase
             logger.debug ( "getting layer: " + show_params_rules['name'] )
-            cp_getter.getRulebases (importState.FwoConfig.FwoApiUri,
+            cp_getter.getRulebases (cpManagerApiBaseUrl,
                                     sid,
                                     show_params_rules,
                                     rulebaseName=device['global_rulebase_name'],
@@ -213,11 +213,11 @@ def getRules (nativeConfig: dict, importState: ImportState) -> int:
 
             # get sid for local domain
 
-            show_params_rules.update({'uid': orderedLayerUid, 'name': ''})
+            show_params_rules.update({'uid': orderedLayerUid})
             # delete_v nochmal die strukturen fürs gedächtnis
             # nativeConfig['rulebases'] = Liste von currentRulebase = { "uid": '', "name": layerName, "chunks": [] }
             logger.debug ( "getting domain rule layer: " + show_params_rules['uid'] )
-            cp_getter.getRulebases (importState.FwoConfig.FwoApiUri, 
+            cp_getter.getRulebases (cpManagerApiBaseUrl, 
                                     sid, 
                                     show_params_rules, 
                                     rulebaseUid=orderedLayerUid,

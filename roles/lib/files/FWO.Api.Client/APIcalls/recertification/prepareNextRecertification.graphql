@@ -13,7 +13,7 @@ mutation prepareNextRecertification(
     next_recert_date: $nextRecertDate
   }) {
     returning {
-      newId: id
+      newIdLong: id
     }
   }
 }

@@ -6,7 +6,7 @@
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
-<PopUp Title="@(userConfig.GetText("search_interface"))" Size="PopupSize.FullScreen" Show="@Display" OnClose="Close">
+<PopUp Title="@(userConfig.GetText("search_interface"))" Size="PopupSize.CustomFullScreen" Show="@Display" OnClose="Close">
     <Body>
         @if (Display && InitComplete)
         {
@@ -121,7 +121,7 @@
                         connectionId = @interface.Id
                     };
 
-                    await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.addSelectedConnection, Variables);
+                    await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.addSelectedConnection, Variables);
                     PreselectedInterfaces.Add(@interface ?? throw new Exception("No Interface selected."));
                 }
 

@@ -7,7 +7,7 @@ mutation addCommentToTicket(
     comment_id: $commentId
   }) {
     returning {
-      newId: ticket_id
+      insertedIdLong: ticket_id
     }
   }
 }

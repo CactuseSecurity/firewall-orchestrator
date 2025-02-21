@@ -75,7 +75,7 @@ namespace FWO.Middleware.Server
 					{
 						await RefreshState(request);
 					}
-					if ((await apiConnection.SendQueryAsync<ReturnId>(ExtRequestQueries.updateExternalRequestLock, new {id = request.Id, locked = false})).UpdatedId == request.Id)
+					if ((await apiConnection.SendQueryAsync<ReturnId>(ExtRequestQueries.updateExternalRequestLock, new {id = request.Id, locked = false})).UpdatedIdLong == request.Id)
 					{
 						request.Locked = false;
 					}

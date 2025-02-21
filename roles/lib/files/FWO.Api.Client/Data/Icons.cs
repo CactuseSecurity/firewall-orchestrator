@@ -29,6 +29,8 @@ namespace FWO.Api.Data
         public const string CollapseLeft = "oi oi-collapse-left";
         public const string CollapseRight = "oi oi-collapse-right";
         public const string Share = "oi oi-fork"; // oi-share-boxed? oi-share?
+        public const string OrderByAsc = "oi oi-caret-top";
+        public const string OrderByDesc = "oi oi-caret-bottom";
 
         // Object types: General
         public const string Ldap = "oi oi-key";

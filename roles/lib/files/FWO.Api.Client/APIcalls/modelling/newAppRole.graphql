@@ -14,7 +14,7 @@ mutation newAppRole(
     group_type: 20
   }) {
     returning {
-      newId: id
+      newIdLong: id
     }
   }
 }

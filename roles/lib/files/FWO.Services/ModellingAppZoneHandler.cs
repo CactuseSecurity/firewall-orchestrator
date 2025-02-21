@@ -7,14 +7,14 @@ using System.Text.Json;
 
 namespace FWO.Services
 {
-    public class ModellingAppZoneHandler(ApiConnection apiConnection, UserConfig userConfig, FwoOwner owner, Action<Exception?, string, string, bool>? displayMessageInUi = default) : ModellingHandlerBase(apiConnection, userConfig, displayMessageInUi)
+    public class ModellingAppZoneHandler(ApiConnection apiConnection, UserConfig userConfig, FwoOwner owner, Action<Exception?, string, string, bool> displayMessageInUi) : ModellingHandlerBase(apiConnection, userConfig, displayMessageInUi)
     {
         private ModellingNamingConvention NamingConvention = new();
 
         public async Task<ModellingAppZone?> UpsertAppZone()
         {
             NamingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(userConfig.ModNamingConvention) ?? new();
-            List<ModellingAppServer> tempAppServers = await apiConnection.SendQueryAsync<List<ModellingAppServer>>(ModellingQueries.getAppServers, new { appId = owner.Id });
+            List<ModellingAppServer> tempAppServers = await apiConnection.SendQueryAsync<List<ModellingAppServer>>(ModellingQueries.getAppServersForOwner, new { appId = owner.Id });
             List<ModellingAppServerWrapper> allAppServers = [];
 
             foreach (ModellingAppServer appServer in tempAppServers.Where(a => !a.IsDeleted))
@@ -87,7 +87,7 @@ namespace FWO.Services
             }
         }
 
-        private async Task<int> AddAppZoneToDb(ModellingAppZone appZone)
+        private async Task<long> AddAppZoneToDb(ModellingAppZone appZone)
         {
             var azVars = new
             {
@@ -99,12 +99,12 @@ namespace FWO.Services
 
             try
             {
-                ReturnId[]? returnIds = ( await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.newAppZone, azVars) ).ReturnIds;
+                ReturnId[]? returnIds = ( await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.newAppZone, azVars) ).ReturnIds;
 
                 await LogChange(ModellingTypes.ChangeType.Insert, ModellingTypes.ModObjectType.AppZone, appZone.Id, $"New App Zone: {appZone.Display()}", null);
 
                 if (returnIds != null && returnIds.Length > 0)
-                    return returnIds[0].NewId;
+                    return returnIds[0].NewIdLong;
             }
             catch (Exception ex)
             {

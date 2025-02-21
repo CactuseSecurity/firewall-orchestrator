@@ -5,24 +5,15 @@ using FWO.Api.Client.Queries;
 using FWO.Api.Data;
 using FWO.Config.Api;
 using System.Text.Json;
-using NetTools;
-using System.Reactive.Subjects;
 
 namespace FWO.Middleware.Server
 {
     /// <summary>
     /// Class handling the Area IP Data Import
     /// </summary>
-    public class AreaIpDataImport : DataImportBase
+    public class AreaIpDataImport(ApiConnection apiConnection, GlobalConfig globalConfig) : DataImportBase(apiConnection, globalConfig)
     {
         private List<ModellingNetworkArea> existingAreas = [];
-
-
-        /// <summary>
-        /// Constructor for Area IP Data Import
-        /// </summary>
-        public AreaIpDataImport(ApiConnection apiConnection, GlobalConfig globalConfig) : base(apiConnection, globalConfig)
-        { }
 
         /// <summary>
         /// Run the Area IP Data Import
@@ -111,7 +102,7 @@ namespace FWO.Middleware.Server
             Log.WriteInfo("Import Area IP Data", $"Imported {successCounter} areas successfully, {failCounter} areas failed. Deleted {deleteCounter} areas, {deleteFailCounter} failed.");
         }
 
-        private ModellingImportNwData ConvertNwDataToRanges(ModellingImportNwData nwData)
+        private static ModellingImportNwData ConvertNwDataToRanges(ModellingImportNwData nwData)
         {
             ModellingImportNwData result = new();
 
@@ -123,7 +114,7 @@ namespace FWO.Middleware.Server
             return result;
         }
 
-        private ModellingImportAreaData ConvertAreaToRanges(ModellingImportAreaData area)
+        private static ModellingImportAreaData ConvertAreaToRanges(ModellingImportAreaData area)
         {
             ModellingImportAreaData newArea = new(area.Name, area.IdString);
             foreach (ModellingImportAreaIpData ipData in area.IpData)
@@ -134,33 +125,13 @@ namespace FWO.Middleware.Server
         }
 
         // convert arbitrary IP data contained in .Ip (1.2.3.4/32 | 1.2.3.0/24) to a range
-        private ModellingImportAreaIpData ConvertIpDataToRange(ModellingImportAreaIpData importAreaIpData)
+        private static ModellingImportAreaIpData ConvertIpDataToRange(ModellingImportAreaIpData importAreaIpData)
         {
             ModellingImportAreaIpData ipData = new()
             {
                 Name = importAreaIpData.Name,
             };
-
-            if (importAreaIpData.Ip.TryGetNetmask(out _))
-            {
-                (string Start, string End) ip = importAreaIpData.Ip.CidrToRangeString();
-                ipData.Ip = ip.Start;
-                ipData.IpEnd = ip.End;
-            }
-            else if (importAreaIpData.Ip.TrySplit('-', 1, out _) && IPAddressRange.TryParse(importAreaIpData.Ip, out IPAddressRange ipRange))
-            {
-                ipData.Ip = ipRange.Begin.ToString();
-                ipData.IpEnd = ipRange.End.ToString();
-            }
-            else
-            {
-                ipData.Ip = importAreaIpData.Ip;
-                ipData.IpEnd = importAreaIpData.Ip;
-            }
-
-            ipData.Ip = ipData.Ip.StripOffNetmask();
-            ipData.IpEnd = ipData.IpEnd.StripOffNetmask();
-
+            (ipData.Ip, ipData.IpEnd) = IpOperations.SplitIpToRange(importAreaIpData.Ip);
             return ipData;
         }
 
@@ -258,7 +229,7 @@ namespace FWO.Middleware.Server
                 idString = incomingArea.IdString,
                 creator = GlobalConst.kImportAreaSubnetData
             };
-            ReturnId[]? areaIds = (await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.newArea, AreaVar)).ReturnIds;
+            ReturnId[]? areaIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.newArea, AreaVar)).ReturnIds;
             if (areaIds != null)
             {
                 foreach (var ipData in incomingArea.IpData)
@@ -271,13 +242,13 @@ namespace FWO.Middleware.Server
                         importSource = GlobalConst.kImportAreaSubnetData
                     };
 
-                    ReturnId[]? ipDataIds = (await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.newAreaIpData, ipDataVar)).ReturnIds;
+                    ReturnId[]? ipDataIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.newAreaIpData, ipDataVar)).ReturnIds;
                     if (ipDataIds != null)
                     {
                         var Vars = new
                         {
-                            nwObjectId = ipDataIds[0].NewId,
-                            nwGroupId = areaIds[0].NewId
+                            nwObjectId = ipDataIds[0].NewIdLong,
+                            nwGroupId = areaIds[0].NewIdLong
                         };
                         await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addNwObjectToNwGroup, Vars);
                     }
@@ -291,8 +262,8 @@ namespace FWO.Middleware.Server
             {
                 await ReactivateArea(existingArea);
             }
-            List<ModellingImportAreaIpData> ipDataToAdd = new(incomingArea.IpData);
-            List<NetworkDataWrapper> ipDataToDelete = new(existingArea.IpData);
+            List<ModellingImportAreaIpData> ipDataToAdd = [.. incomingArea.IpData];
+            List<NetworkDataWrapper> ipDataToDelete = [.. existingArea.IpData];
             foreach (var existingSubnet in existingArea.IpData)
             {
                 foreach (var incomingSubnet in incomingArea.IpData)
@@ -309,7 +280,7 @@ namespace FWO.Middleware.Server
             }
             foreach (var ipData in ipDataToDelete)
             {
-                await apiConnection.SendQueryAsync<NewReturning>(OwnerQueries.deleteAreaIpData, new { id = ipData.Content.Id });
+                await apiConnection.SendQueryAsync<ReturnIdWrapper>(OwnerQueries.deleteAreaIpData, new { id = ipData.Content.Id });
             }
             foreach (var subnet in ipDataToAdd)
             {
@@ -320,12 +291,12 @@ namespace FWO.Middleware.Server
                     ipEnd = subnet.IpEnd,
                     importSource = GlobalConst.kImportAreaSubnetData
                 };
-                ReturnId[]? ipData = (await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.newAreaIpData, SubnetVar)).ReturnIds;
+                ReturnId[]? ipData = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.newAreaIpData, SubnetVar)).ReturnIds;
                 if (ipData != null)
                 {
                     var Vars = new
                     {
-                        nwObjectId = ipData[0].NewId,
+                        nwObjectId = ipData[0].NewIdLong,
                         nwGroupId = existingArea.Id,
                     };
                     await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addNwObjectToNwGroup, Vars);
@@ -337,8 +308,8 @@ namespace FWO.Middleware.Server
         {
             try
             {
-                await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.setAreaDeletedState, new { id = area.Id, deleted = true });
-                await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.removeSelectedNwGroupObjectFromAllApps, new { nwGroupId = area.Id });
+                await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.setAreaDeletedState, new { id = area.Id, deleted = true });
+                await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.removeSelectedNwGroupObjectFromAllApps, new { nwGroupId = area.Id });
             }
             catch (Exception exc)
             {
@@ -352,7 +323,7 @@ namespace FWO.Middleware.Server
         {
             try
             {
-                await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.setAreaDeletedState, new { id = area.Id, deleted = false });
+                await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.setAreaDeletedState, new { id = area.Id, deleted = false });
             }
             catch (Exception exc)
             {

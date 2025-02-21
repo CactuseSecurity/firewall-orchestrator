@@ -7,6 +7,6 @@ mutation updateConnectionProperties(
     _set: {
       conn_prop: $connProp
   }) {
-    UpdatedId: id
+    updatedId: id
   }
 }

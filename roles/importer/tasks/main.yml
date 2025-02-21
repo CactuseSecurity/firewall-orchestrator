@@ -36,13 +36,14 @@
       - libsys-syslog-perl 
       - libexpect-perl
       - libcgi-pm-perl
-      - python3-jsonpickle
-      - python3-gnupg
 
   - name: Install importer python modules
     package: name={{ item }} state=present
     loop:
       - python3-netaddr
+      - python3-jsonpickle
+      - python3-gnupg
+      - python3-pydantic
 
   - name: copy importer files
     synchronize:

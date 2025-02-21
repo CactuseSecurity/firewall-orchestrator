@@ -14,7 +14,7 @@ from models.fwconfig_normalized import FwConfig, FwConfigNormalized
 from fwo_base import ConfFormat
 from fwconfig_base import calcManagerUidHash
 from models.fwconfigmanagerlist import FwConfigManagerList
-from roles.importer.files.importer.model_controllers.fwconfig_controller import FwoEncoder
+from model_controllers.fwconfig_controller import FwoEncoder
 
 """
     a list of normalized configuratons of a firewall management to import

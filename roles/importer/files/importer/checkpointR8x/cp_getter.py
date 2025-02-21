@@ -156,101 +156,240 @@ def get_changes(sid,api_host,api_port,fromdate):
     return 0
 
 
-def get_layer_from_api_as_dict (api_v_url, sid, show_params_rules, layerUid=None, layerName=None, access_type='access', collection_type='rulebase', nativeConfig={}):
-    # access_type: access / nat
-    # collection_type: rulebase / layer
+def getPolicyStructure(api_v_url, sid, show_params_policy_structure, policyStructure = []):
+    # delete_v: return:
+    # [{'name':'policy1', 'uid':'bla', 'targets':[{'name':'gateway1', 'uid':'bla'}], 'access-layers':[{'name':'ord1', 'uid':'ord1'}]}]
     logger = getFwoLogger()
-    if layerUid is not None:
-        current_layer_json = { "layerid": layerUid, "layerchunks": [] }
-    elif layerName is not None:
-        current_layer_json = { "layername": layerName, "layerchunks": [] }
-    else:
-        logger.exception('must provide either layerUid or layerName')
 
     current=0
     total=current+1
-    while (current<total) :
 
-        show_params_rules['offset']=current
-        if collection_type=='layer':
-            if layerUid is not None:
-                show_params_rules['uid']=layerUid
-                # make sure we only have id set
-                if 'name' in show_params_rules:
-                    del show_params_rules['name']
-            else:
-                show_params_rules['name']=layerName
+    show_params_policy_structure.update({'offset': current})
+
+    while (current<total):
 
         try:
-            rulebase = cp_api_call(api_v_url, 'show-' + access_type + '-rulebase', show_params_rules, sid)
+            packages = cp_api_call(api_v_url, 'show-packages', show_params_policy_structure, sid)
         except:
-            if layerUid is not None:
-                logger.error("could not find layer uid=" + layerUid)
-            elif layerName is not None:
-                logger.error("could not find layer name=" + layerName)
-            else:
-                logger.error("strange exception here, neither uid nor name for layer known")
-            # todo: need to get FWO API jwt here somehow:
-            # create_data_issue(fwo_api_base_url, jwt, severity=2, description="failed to get show-access-rulebase  " + layername)
-            return None
+            logger.error("could not return 'show-packages'")
+            return 1
 
-        try:
-            for ruleField in ['source', 'destination', 'service', 'action', 'track', 'install-on', 'time']:
-                resolveRefListFromObjectDictionary(rulebase, ruleField, nativeConfig=nativeConfig, sid=sid, base_url=api_v_url)
-            current_layer_json['layerchunks'].append(rulebase)
-        except:
-            logger.error("error while getting field " + ruleField + " of layer " + layerName + ", params: " + str(show_params_rules))
-            return None
-
-        if 'total' in rulebase:
-            total=rulebase['total']
+        if 'total' in packages:
+            total=packages['total']
         else:
-            logger.error ( "rulebase does not contain total field, get_rulebase_chunk_from_api found garbled json " + str(current_layer_json))
-            logger.warning ( "sid: " + sid)
-            logger.warning ( "api_v_url: " + api_v_url)
-            logger.warning ( "access_type: " + access_type)
-            for key, value in show_params_rules.items():
-                logger.warning("show_params_rules " + key + ": " + str(value))
-            for key, value in rulebase.items():
-                logger.warning("rulebase " + key + ": " + str(value))
-            return None
+            logger.error ( 'packages do not contain total field')
+            logger.warning ( 'sid: ' + sid)
+            logger.warning ( 'api_v_url: ' + api_v_url)
+            for key, value in show_params_policy_structure.items():
+                logger.warning('show_params_policy_structure ' + key + ': ' + str(value))
+            for key, value in packages.items():
+                logger.warning('packages ' + key + ': ' + str(value))
+            return 1
         
         if total==0:
             current=0
         else:
-            if 'to' in rulebase:
-                current=rulebase['to']
+            if 'to' in packages:
+                current=packages['to']
             else:
-                raise Exception ( "get_nat_rules_from_api - rulebase does not contain to field, get_rulebase_chunk_from_api found garbled json " + str(rulebase))
+                raise Exception ( 'packages do not contain to field')
+                return 1
+        
+# [{'name':'policy1', 'uid':'bla', 'targets':[{'name':'gateway1', 'uid':'bla'}], 'access-layers':[{'name':'ord1', 'uid':'ord1'}]}]
+        # parse devices with ordered layers
+        for package in packages['packages']:
+            alreadyFetchedPackage = False
 
-    # adding inline and domain layers (if they exist)
-    add_inline_layers (current_layer_json, api_v_url, sid, show_params_rules, nativeConfig=nativeConfig)    
+            # parse package if at least one installation target exists
+            if 'installation-targets-revision' in package:
+                for installationTarget in package['installation-targets-revision']:
+                    if 'target-name' in installationTarget and 'target-uid' in installationTarget:
 
-    return current_layer_json
+                        if not alreadyFetchedPackage:
+                            currentPacakage = { 'name': package['name'],
+                                                'uid': package['uid'],
+                                                'targets': [],
+                                                'access-layers': []}
+                            alreadyFetchedPackage = True
 
+                        currentPacakage['targets'].append({ 'name': installationTarget['target-name'],
+                                                            'uid': installationTarget['target-uid']})
+                    else:
+                        logger.warning ( 'installation target in package: ' + package['uid'] + ' is missing name or uid')
+                
+                if alreadyFetchedPackage:
+                    if 'access-layers' in package:
+                        for accessLayer in package['access-layers']:
+                            if 'name' in accessLayer and 'uid' in accessLayer:
+                                currentPacakage['access-layers'].append({ 'name': accessLayer['name'],
+                                                                          'uid': accessLayer['uid']})
+                            else:
+                                logger.warning ( 'access layer in package: ' + package['uid'] + ' is missing name or uid')
+                    # in future threat-layers may be fetched the same way as access-layers
+                    
+                    policyStructure.append(currentPacakage)
 
-def add_inline_layers (rulebase, api_v_url, sid, show_params_rules, access_type='access', collection_type='layer', nativeConfig={}):
+    return 0
+                        
 
-    if 'layerchunks' in rulebase:
-        for chunk in rulebase['layerchunks']:
-            if 'rulebase' in chunk:
-                for rules_chunk in chunk['rulebase']:
-                    add_inline_layers(rules_chunk, api_v_url, sid, show_params_rules, nativeConfig=nativeConfig)
+def getRulebases (api_v_url, sid, show_params_rules,
+                  rulebaseUid=None,
+                  rulebaseName=None,
+                  access_type='access',
+                  nativeConfig={'rulebases':[],'nat_rulebases':[]},
+                  deviceConfig={'rulebae_links': []}):
+    
+    # access_type: access / nat
+    logger = getFwoLogger()
+
+    if access_type == 'access':
+        nativeConfigRulebaseKey = 'rulebases'
+    elif access_type == 'nat':
+        nativeConfigRulebaseKey = 'nat_rulebases'
     else:
-        if 'rulebase' in rulebase:
-            rulebase_idx = 0
-            for rule in rulebase['rulebase']:
-                if 'inline-layer' in rule:
-                    inline_layer_uid = rule['inline-layer']
-                    if fwo_globals.debug_level>5:
-                        logger.debug ( "found inline layer " + inline_layer_uid )
-                    inline_layer = get_layer_from_api_as_dict (api_v_url, sid, show_params_rules, layerUid=inline_layer_uid, access_type=access_type, collection_type=collection_type, nativeConfig=nativeConfig)
-                    rulebase['rulebase'][rulebase_idx+1:rulebase_idx+1] = inline_layer['layerchunks']  #### insert inline layer here
-                    rulebase_idx += len(inline_layer['layerchunks'])
+        logger.error('access_type is neither "access" nor "nat", but ' + access_type)
 
-                if 'name' in rule and rule['name'] == "Placeholder for domain rules":
-                    logger.debug ("getter - found domain rules reference with uid " + rule["uid"])
-                rulebase_idx += 1
+    # get uid of rulebase
+    if rulebaseUid is not None:
+        pass
+    elif rulebaseName is not None:
+        get_rulebase_uid_params = {
+            'name': rulebaseName,
+            'limit': 1,
+            'use-object-dictionary': False,
+            'details-level': 'uid',
+            'show-hits': False
+        }
+        try:
+            rulebaseForUid = cp_api_call(api_v_url, 'show-' + access_type + '-rulebase', get_rulebase_uid_params, sid)
+            # delete_v hier nochmal genau das return format ansehen
+            rulebaseUid = rulebaseForUid['uid']
+        except:
+            logger.error("could not find uid for rulebase name=" + rulebaseName)
+            return 1
+    else:
+        logger.error('must provide either rulebaseUid or rulebaseName')
+        return 1
+    
+    # search all rulebases in nativeConfig and import if rulebase is not already fetched
+    fetchedRulebaseList = []
+    for fetchedRulebase in nativeConfig[nativeConfigRulebaseKey]:
+        fetchedRulebaseList.append(fetchedRulebase['uid'])
+        if fetchedRulebase['uid'] == rulebaseUid:
+            currentRulebase = fetchedRulebase
+            break
+
+    if rulebaseUid not in fetchedRulebaseList:
+        currentRulebase = {'uid': rulebaseUid, 'name': '', 'chunks': []}
+        show_params_rules.update({'uid': rulebaseUid})
+        current=0
+        total=current+1
+
+        # get rulebase in chunks
+        while (current<total):
+
+            show_params_rules.update({'offset': current})
+        
+            try:
+                rulebase = cp_api_call(api_v_url, 'show-' + access_type + '-rulebase', show_params_rules, sid)
+                if currentRulebase['name'] == '' and 'name' in rulebase:
+                    currentRulebase.update({'name': rulebase['name']})
+            except:
+                logger.error("could not find rulebase uid=" + rulebaseUid)
+                # todo: need to get FWO API jwt here somehow:
+                # create_data_issue(fwo_api_base_url, jwt, severity=2, description="failed to get show-access-rulebase  " + rulebaseUid)
+                return 1
+
+            # resolve checkpoint uids via object dictionary
+            try:
+                for ruleField in ['source', 'destination', 'service', 'action', 'track', 'install-on', 'time']:
+                    resolveRefListFromObjectDictionary(rulebase, ruleField, nativeConfig=nativeConfig, sid=sid, base_url=api_v_url)
+                currentRulebase['chunks'].append(rulebase)
+            except:
+                logger.error("error while getting field " + ruleField + " of layer " + rulebaseUid + ", params: " + str(show_params_rules))
+                return 1
+
+            if 'total' in rulebase:
+                total=rulebase['total']
+            else:
+                logger.error ( "rulebase does not contain total field, get_rulebase_chunk_from_api found garbled json " + str(currentRulebase))
+                logger.warning ( "sid: " + sid)
+                logger.warning ( "api_v_url: " + api_v_url)
+                logger.warning ( "access_type: " + access_type)
+                for key, value in show_params_rules.items():
+                    logger.warning("show_params_rules " + key + ": " + str(value))
+                for key, value in rulebase.items():
+                    logger.warning("rulebase " + key + ": " + str(value))
+                return 1
+            
+            if total==0:
+                current=0
+            else:
+                if 'to' in rulebase:
+                    current=rulebase['to']
+                else:
+                    raise Exception ( "get_nat_rules_from_api - rulebase does not contain to field, get_rulebase_chunk_from_api found garbled json " + str(rulebase))
+
+        nativeConfig[nativeConfigRulebaseKey].append(currentRulebase)
+
+    # use recursion to get inline layers
+    for rulebaseChunk in currentRulebase['chunks']:
+        # search in case of access rulebase only
+        if 'rulebase' in rulebaseChunk:
+            for section in rulebaseChunk['rulebase']:
+
+                # if no section is used, use dummy section
+                if section['type'] == 'access-rule':
+                    section = {
+                        'type': 'access-section',
+                        'rulebase': [section]
+                        }
+
+                if section['type'] == 'access-section':
+                    for rule in section['rulebase']:
+                        if 'inline-layer' in rule:
+                            # add link to inline layer for current device
+                            deviceConfig['rulebase_links'].append({
+                                'from_rulebase_uid': currentRulebase['uid'],
+                                'from_rule_uid': rule['uid'],
+                                'to_rulebase_uid': rule['inline-layer'],
+                                'type': 'inline'})
+                            
+                            # get inline layer
+                            getRulebases(api_v_url, sid, show_params_rules,
+                                         rulebaseUid=rule['inline-layer'],
+                                         access_type='access',
+                                         nativeConfig=nativeConfig,
+                                         deviceConfig=deviceConfig)
+    
+    return 0
+
+
+def getRuleUid(rulebase, mode):
+    # mode: last/place-holder
+
+    for rulebaseChunk in rulebase['chunks']:
+        # search in case of access rulebase only
+        if 'rulebase' in rulebaseChunk:
+            for section in rulebaseChunk['rulebase']:
+
+                # if no section is used, use dummy section
+                if section['type'] == 'access-rule':
+                    section = {
+                        'type': 'access-section',
+                        'rulebase': [section]
+                        }
+
+                if section['type'] == 'access-section':
+                    for rule in section['rulebase']:
+                        if mode == 'last':
+                            returnUid = rule['uid']
+                        elif mode == 'place-holder':
+                            if rule['type'] == 'place-holder':
+                                returnUid = rule['uid']
+
+    return returnUid
+                            
 
 
 def get_nat_rules_from_api_as_dict (api_v_url, sid, show_params_rules, nativeConfig={}):
@@ -290,7 +429,7 @@ def insert_layer_after_place_holder (top_ruleset_json, domain_ruleset_json, plac
     logger = getFwoLogger()
     # serialize domain rule chunks
     domain_rules_serialized = []
-    for chunk in domain_ruleset_json['layerchunks']:
+    for chunk in domain_ruleset_json['rulebase_chunks']:
         domain_rules_serialized.extend(chunk['rulebase'])
 
     # set the upper (parent) rule uid for all domain rules:
@@ -300,14 +439,14 @@ def insert_layer_after_place_holder (top_ruleset_json, domain_ruleset_json, plac
 
     # find the reference (place-holder rule) and insert the domain rules behind it:
     chunk_idx = 0
-    while chunk_idx<len(top_ruleset_json['layerchunks']):
-        rules = top_ruleset_json['layerchunks'][chunk_idx]['rulebase']
+    while chunk_idx<len(top_ruleset_json['rulebase_chunks']):
+        rules = top_ruleset_json['rulebase_chunks'][chunk_idx]['rulebase']
         rule_idx = 0
         while rule_idx<len(rules):
             if rules[rule_idx]['uid'] == placeholder_uid:
                 logger.debug ("found matching rule uid, "  + placeholder_uid + " == " + rules[rule_idx]['uid'])
                 rules[rule_idx+1:rule_idx+1] = domain_rules_serialized
-                top_ruleset_json['layerchunks'][chunk_idx]['rulebase'] = rules
+                top_ruleset_json['rulebase_chunks'][chunk_idx]['rulebase'] = rules
             rule_idx += 1
         chunk_idx += 1
     if fwo_globals.debug_level>5:

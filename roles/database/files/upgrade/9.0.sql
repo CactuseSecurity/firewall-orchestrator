@@ -1,5 +1,6 @@
 -- next steps:
-   -- add rule_to, rule_from, rule_service to importer
+   -- add rule_to, rule_service to importer
+   -- consolidate: not only first import but also subsequent imports should work
    -- improve rollback - currently if import stops in the middle, the rollback is not automatically called
    /* 
 

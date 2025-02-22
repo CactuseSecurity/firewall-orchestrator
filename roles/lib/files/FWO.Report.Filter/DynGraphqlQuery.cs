@@ -143,7 +143,7 @@ namespace FWO.Report.Filter
                             name
                             uid
                             id
-                            rules ({limitOffsetString} where: {{access_rule: {{_eq: true}} }}, order_by: {{rule_num_numeric: asc}}) {{
+                            rules ({limitOffsetString} where: {{ rule_create: {{_lte: $relevantImportId}}, rule_last_seen: {{_gte: $relevantImportId}}, access_rule: {{_eq: true}} }}, order_by: {{rule_num_numeric: asc}}) {{
                                 ...ruleOverview
                             }}
                         }}
@@ -320,7 +320,7 @@ namespace FWO.Report.Filter
             SetTenantFilter(ref query, reportParams);
             if (( (ReportType)reportParams.ReportParams.ReportType ).IsDeviceRelatedReport())
             {
-                // SetDeviceFilter(ref query, reportParams.ReportParams.DeviceFilter);
+                SetDeviceFilter(ref query, reportParams.ReportParams.DeviceFilter);
                 SetTimeFilter(ref query, reportParams.ReportParams.TimeFilter, (ReportType)reportParams.ReportParams.ReportType, reportParams.ReportParams.RecertFilter);
             }
             if ((ReportType)reportParams.ReportParams.ReportType == ReportType.Recertification)
@@ -340,7 +340,31 @@ namespace FWO.Report.Filter
                 SetConnectionFilter(ref query, reportParams.ReportParams.ModellingFilter);
             }
         }
-
+        private static void SetDeviceFilter(ref DynGraphqlQuery query, DeviceFilter? deviceFilter)
+        {
+            bool first = true;
+            if (deviceFilter != null)
+            {
+                query.RelevantManagementIds = deviceFilter.getSelectedManagements();
+                query.RuleWhereStatement += "{_or: [{";
+                foreach (ManagementSelect mgmt in deviceFilter.Managements)
+                {
+                    foreach (DeviceSelect dev in mgmt.Devices)
+                    {
+                        if (dev.Selected == true)
+                        {
+                            if (first == false)
+                            {
+                                query.RuleWhereStatement += "}, {";
+                            }
+                            query.RuleWhereStatement += $" device: {{dev_id: {{_eq:{dev.Id}}} }}";
+                            first = false;
+                        }
+                    }
+                }
+                query.RuleWhereStatement += "}]}, ";
+            }
+        }
         private static string GetDevWhereFilter(ref DynGraphqlQuery query, DeviceFilter? deviceFilter)
         {
             string devWhereStatement = $@"where: {{ hide_in_gui: {{_eq: false }}, _or: [";
@@ -375,18 +399,19 @@ namespace FWO.Report.Filter
                     case ReportType.UnusedRules:
                     case ReportType.AppRules:
                         query.QueryParameters.Add("$relevantImportId: bigint ");
-                        query.RuleWhereStatement +=
-                            $"import_control: {{ control_id: {{_lte: $relevantImportId }} }}, " +
-                            $"importControlByRuleLastSeen: {{ control_id: {{_gte: $relevantImportId }} }}";
-                        query.NwObjWhereStatement +=
-                            $"import_control: {{ control_id: {{_lte: $relevantImportId }} }}, " +
-                            $"importControlByObjLastSeen: {{ control_id: {{_gte: $relevantImportId }} }}";
-                        query.SvcObjWhereStatement +=
-                            $"import_control: {{ control_id: {{_lte: $relevantImportId }} }}, " +
-                            $"importControlBySvcLastSeen: {{ control_id: {{_gte: $relevantImportId }} }}";
-                        query.UserObjWhereStatement +=
-                            $"import_control: {{ control_id: {{_lte: $relevantImportId }} }}, " +
-                            $"importControlByUserLastSeen: {{ control_id: {{_gte: $relevantImportId }} }}";
+                        // query.QueryVariables["relevantImportId"] = "";
+                        // query.RuleWhereStatement +=
+                        //     $"import_control: {{ control_id: {{_lte: $relevantImportId }} }}, " +
+                        //     $"importControlByRuleLastSeen: {{ control_id: {{_gte: $relevantImportId }} }}";
+                        // query.NwObjWhereStatement +=
+                        //     $"import_control: {{ control_id: {{_lte: $relevantImportId }} }}, " +
+                        //     $"importControlByObjLastSeen: {{ control_id: {{_gte: $relevantImportId }} }}";
+                        // query.SvcObjWhereStatement +=
+                        //     $"import_control: {{ control_id: {{_lte: $relevantImportId }} }}, " +
+                        //     $"importControlBySvcLastSeen: {{ control_id: {{_gte: $relevantImportId }} }}";
+                        // query.UserObjWhereStatement +=
+                        //     $"import_control: {{ control_id: {{_lte: $relevantImportId }} }}, " +
+                        //     $"importControlByUserLastSeen: {{ control_id: {{_gte: $relevantImportId }} }}";
                         query.ReportTimeString = timeFilter.IsShortcut ?
                             DateTime.Now.ToString(fullTimeFormat) : timeFilter.ReportTime.ToString(fullTimeFormat);
                         break;

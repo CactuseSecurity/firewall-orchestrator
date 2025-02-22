@@ -44,12 +44,9 @@ namespace FWO.Api.Data
         [JsonProperty("src_zone"), JsonPropertyName("src_zone")]
         public NetworkZone? SourceZone { get; set; } = new ();
 
-        [JsonProperty("a"), JsonPropertyName("a")]
+        [JsonProperty("rule_froms"), JsonPropertyName("rule_froms")]
         public NetworkLocation[] Froms { get; set; } = [];
 
-        [JsonProperty("rule_froms"), JsonPropertyName("rule_froms")]
-        public object[] Froms2 { get; set; } = [];
-      
         [JsonProperty("rule_dst_neg"), JsonPropertyName("rule_dst_neg")]
         public bool DestinationNegated { get; set; }
 

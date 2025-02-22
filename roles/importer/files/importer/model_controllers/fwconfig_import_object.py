@@ -15,6 +15,10 @@ import fwo_const
 # this class is used for importing a config into the FWO API
 class FwConfigImportObject(FwConfigImportBase):
 
+    NwObjUidToIdMap = {}
+    NwObjMemberUidToIdMap = {}  
+    SvcObjUidToIdMap = {}
+
     # @root_validator(pre=True)
     # def custom_initialization(cls, values):
     #     values['NetworkObjectTypeMap'] = cls.GetNetworkObjTypeMap()
@@ -236,17 +240,28 @@ class FwConfigImportObject(FwConfigImportBase):
             #                                         typId=self.lookupObjType(self.NormalizedConfig.network_objects[nwobjUid].obj_typ)).toJson())
         return newNwObjs
 
-    def buildNwObjMemberUidToIdMap(self, newIds):
+
+    def buildObjUidToIdMapFromApi(self, rules):
+        nwObjUids = self.extractNwObjUidsFromRules(rules)
+        # svcObjUids = self.extractSvcObjUidsFromRules(rules)
+        self.NwObjUidToIdMap = self.buildNwObjUidToIdMapFromApi(nwObjUids)
+        self.UserUidToIdMap = self.buildUserObjUidToIdMapFromApi(nwObjUids)
+        # self.SvcObjMemberUidToIdMap = self.buildSvcObjUidToIdMapFromApi(svcObjUids)
+
+    def extractNwObjUidsFromRules(self, rules):
+        nwObjUids = set()
+        for rule in rules:
+            if rule['rule_src_refs'] is not None:
+                nwObjUids.update(rule['rule_src_refs'].split(fwo_const.list_delimiter))
+            if rule['rule_dst_refs'] is not None:
+                nwObjUids.update(rule['rule_dst_refs'].split(fwo_const.list_delimiter))
+        return list(nwObjUids)
+
+    def buildNwObjUidToIdMapFromApi(self, nwObjUids: List[str]):
         logger = getFwoLogger()
-        uidList = []
-        nwObjMemberUidToIdMap = {}
+        nwObjUidToIdMap = {}
 
-        for addedObj in newIds:
-            if addedObj['obj_member_refs'] is not None:
-                for memberUid in addedObj['obj_member_refs'].split(fwo_const.list_delimiter):
-                    uidList.append(memberUid)
-
-        if len(uidList)>0:
+        if len(nwObjUids)>0:
             # TODO: remove active filter later
             buildQuery = """
                 query getMapOfUid2Id($uids: [String!]!) {
@@ -257,23 +272,40 @@ class FwConfigImportObject(FwConfigImportBase):
                 }
             """
 
-            queryVariables = {  'uids': uidList }
             try:
-                uidMapResult = self.ImportDetails.call(buildQuery, queryVariables=queryVariables)
+                uidMapResult = self.ImportDetails.call(buildQuery, queryVariables={ 'uids': nwObjUids })
                 if 'errors' in uidMapResult:
                     logger.exception(f"fwo_api:importNwObject - error in buildNwObjMemberUidToIdMap: {str(uidMapResult['errors'])}")
-                    errors = 1
+                    # TODO: add error to global import error counter
                 else:
                     uidMap = uidMapResult['data']['object']
+                    # now turn the list into a dict with key = uid
+                    for obj in uidMap:
+                        nwObjUidToIdMap.update({ obj['obj_uid']: obj['obj_id'] })
             except:
                 logger.exception(f"failed to write new objects: {str(traceback.format_exc())}")
-                errors = 1
-            
-            # now turn the list into a dict with key = uid
-            for obj in uidMap:
-                nwObjMemberUidToIdMap.update({ obj['obj_uid']: obj['obj_id'] })
-            
-        self.NwObjMemberUidToIdMap = nwObjMemberUidToIdMap
+                # TODO: add error to global import error counter
+
+        return nwObjUidToIdMap
+
+    def buildUserObjUidToIdMapFromApi(self, userObjUids: List[str]):
+        logger = getFwoLogger()
+        userObjUidToIdMap = {}
+
+        # TODO: impelment
+
+        return userObjUidToIdMap
+
+
+    def buildNwObjMemberUidToIdMap(self, newIds):
+        uidList = []
+        for addedObj in newIds:
+            if addedObj['obj_member_refs'] is not None:
+                for memberUid in addedObj['obj_member_refs'].split(fwo_const.list_delimiter):
+                    uidList.append(memberUid)
+
+        self.NwObjMemberUidToIdMap = self.buildNwObjUidToIdMapFromApi(uidList)
+
 
     def addNwObjGroupMemberships(self, newIds):
         newGroupMembers = []

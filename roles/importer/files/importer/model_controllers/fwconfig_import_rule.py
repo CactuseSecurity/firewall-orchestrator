@@ -2,6 +2,7 @@ import traceback
 from difflib import ndiff
 import json
 
+import fwo_const
 from models.rule import RuleForImport, RuleType
 from models.rule_metadatum import RuleMetadatum, RuleMetadatumForImport
 from roles.importer.files.importer.models.rulebase import Rulebase
@@ -12,6 +13,9 @@ from model_controllers.fwconfig_import_base import FwConfigImportBase
 from fwo_log import getFwoLogger
 from typing import List
 from datetime import datetime
+from model_controllers.fwconfig_import_object import FwConfigImportObject
+from models.rule_from import RuleFrom
+from models.rule_to import RuleTo
 
 # this class is used for importing a config into the FWO API
 class FwConfigImportRule(FwConfigImportBase):
@@ -97,8 +101,12 @@ class FwConfigImportRule(FwConfigImportBase):
 
         # now update the database
         errorCountAdd, numberOfAddedRules, newRuleIds = self.addNewRules(newRulebases)
+
+        # try to add the rule ids to the existing rulebase objects
+        # self.updateRuleIds(newRulebases, newRuleIds)
+
         # self.addNewRuleSvcRefs(newRulebases, newRuleIds)
-        # self.addNewRuleNwObjRefs(newRulebases, newRuleIds)
+        self.addNewRule2ObjRefs(newRulebases, newRuleIds)
 
         # if errorCountAdd>0:
         #     self.ImportDetails.increaseErrorCounter(errorCountAdd)
@@ -113,6 +121,139 @@ class FwConfigImportRule(FwConfigImportBase):
         # TODO: rule_nwobj_resolved fuellen (recert?)
 
         return errorCountAdd + errorCountDel, numberOfDeletedRules + numberOfAddedRules
+
+
+    def addNewRule2ObjRefs(self, newRulebases, newRuleIds):
+        # for each new rule: add refs in rule_to and rule_from
+        # assuming all nwobjs are already in the database
+
+        # TODO: need to make sure that the references do not already exist!
+
+        # first get all network objects via API that are used in the new rules
+        errors, changes, newRules = self.getRulesByIdWithRefUids(newRuleIds)
+        objectUid2IdMapper = FwConfigImportObject(self.ImportDetails, self.NormalizedConfig)
+        objectUid2IdMapper.buildObjUidToIdMapFromApi(newRules)  # creates a dict with all relevant mapping
+            # service, network objects, users, zones, ...
+            # (of the current management and possibly its super management)
+            # this will be limited to refs found in newRules
+
+        ruleRefs = {}
+        # now add the references to the rules
+        for rule in newRules:
+            ruleFromRefs = []
+            ruleToRefs = []
+            ruleSvcRefs = []
+            ruleFromUserRefs = []
+            ruleToUserRefs = []
+
+            for srcRef in rule['rule_src_refs'].split(fwo_const.list_delimiter):
+                if fwo_const.user_delimiter in srcRef:
+                    userRef, nwRef = srcRef.split(fwo_const.user_delimiter)
+                    ruleFromUserRefs.append(objectUid2IdMapper.UserObjUidToIdMap[userRef])
+                    srcRef = nwRef
+                if srcRef in objectUid2IdMapper.NwObjUidToIdMap:
+                    ruleFromRefs.append(objectUid2IdMapper.NwObjUidToIdMap[srcRef])
+            for dstRef in rule['rule_dst_refs'].split(fwo_const.list_delimiter):
+                if fwo_const.user_delimiter in dstRef:
+                    userRef, nwRef = dstRef.split(fwo_const.user_delimiter)
+                    ruleToUserRefs.append(objectUid2IdMapper.UserObjUidToIdMap[userRef])
+                    dstRef = nwRef
+                if dstRef in objectUid2IdMapper.NwObjUidToIdMap:
+                    ruleToRefs.append(objectUid2IdMapper.NwObjUidToIdMap[dstRef])
+            for svcRef in rule['rule_svc_refs'].split(fwo_const.list_delimiter):
+                if svcRef in objectUid2IdMapper.SvcObjUidToIdMap:
+                    ruleSvcRefs.append(objectUid2IdMapper.SvcObjUidToIdMap[dstRef])
+            ruleRefs.update({ rule['rule_id']: { 
+                'from': ruleFromRefs, 
+                'to': ruleToRefs, 
+                'svc': ruleSvcRefs, 
+                'from_negated': rule['rule_src_neg'], 
+                'to_negated': rule['rule_src_neg'],
+                'svc_negated': rule['rule_svc_neg']
+                } })
+
+        # TODO: we need to also add info on negation and user references!
+        self.addRuleNwObjRefs(ruleRefs)
+
+
+    def addRuleNwObjRefs(self, ruleRefs):
+        # mutation for writing all res to API 
+        logger = getFwoLogger()
+        errors = 0
+        changes = 0
+        ruleFroms = []
+        ruleTos = []
+        ruleSvcs = []
+
+        for ruleId in ruleRefs:
+            for srcObjId in ruleRefs[ruleId]['from']:
+                ruleFroms.append(RuleFrom(
+                    rule_id=ruleId, 
+                    obj_id=srcObjId,
+                    user_id=None,   # TODO: implement getting user information
+                    rf_create=self.ImportDetails.ImportId, 
+                    rf_last_seen=self.ImportDetails.ImportId,
+                    negated=ruleRefs[ruleId]['from_negated']
+                ).dict())
+        
+        addNewRuleFromNwObjRefsMutation = """mutation insertRuleFromRefs(
+            $ruleFroms: [rule_from_insert_input!]!) {
+            insert_rule_from(objects: $ruleFroms) {
+                affected_rows
+                returning {
+                rule_from_id
+                }
+            }
+        }
+        """
+
+        try:
+            import_result = self.ImportDetails.call(addNewRuleFromNwObjRefsMutation, queryVariables={ 'ruleFroms': ruleFroms })
+            if 'errors' in import_result:
+                logger.exception(f"fwo_api:importNwObject - error in addRuleNwObjRefs: {str(import_result['errors'])}")
+                errors = 1 
+                changes = 0
+            else:
+                errors = 0
+                changes = 1
+        except:
+            logger.exception(f"failed to write new rules: {str(traceback.format_exc())}")
+            errors = 1 
+            changes = 0
+        
+        return errors, changes
+            
+
+    def getRulesByIdWithRefUids(self, ruleIds: List[int]) -> List[RuleForImport]:
+        logger = getFwoLogger()
+        rulesToBeReferenced = {}
+        getRuleUidRefsQuery = """
+            query getRulesByIdWithRefUids ($ruleIds:[bigint!]!) {
+                rule (where:{rule_id:{_in:$ruleIds}}) {
+                    rule_id
+                    rule_src_refs
+                    rule_dst_refs
+                    rule_svc_refs
+                    rule_to_zone
+                    rule_from_zone
+                    rule_src_neg
+                    rule_dst_neg
+                    rule_svc_neg
+                }
+            }
+        """
+        queryVariables = { 'ruleIds': ruleIds }
+        
+        try:
+            import_result = self.ImportDetails.call(getRuleUidRefsQuery, queryVariables=queryVariables)
+            if 'errors' in import_result:
+                logger.exception(f"fwo_api:importNwObject - error in addNewRules: {str(import_result['errors'])}")
+                return 1, 0, rulesToBeReferenced
+            else:
+                return 0, 0, import_result['data']['rule']
+        except:
+            logger.exception(f"failed to get rules from API: {str(traceback.format_exc())}")
+
 
     def getRules(self, ruleUids) -> List[Rulebase]:
         rulebases = []
@@ -129,6 +270,7 @@ class FwConfigImportRule(FwConfigImportBase):
                 rulebases.append(rulebase)
         return rulebases
     
+
     def ruleChanged(self, rulebaseId, ruleUid, currentRulebase: Rulebase, prevRulebase: Rulebase):
         # TODO: need to ignore rule_num, last_hit, ...?
         return prevRulebase.Rules[ruleUid] != currentRulebase.Rules[ruleUid]

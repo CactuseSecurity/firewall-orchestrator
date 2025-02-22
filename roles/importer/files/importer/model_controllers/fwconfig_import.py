@@ -22,7 +22,7 @@ from model_controllers.fwconfig_import_gateway import FwConfigImportGateway
 
 
 """
-Class hierachy:
+Class hierarchy:
     FwConfigImport(FwConfigImportObject, FwconfigImportRule)
     FwconfigImportObject(FwConfigImportBase)
     FwConfigImportRule(FwConfigImportBase)

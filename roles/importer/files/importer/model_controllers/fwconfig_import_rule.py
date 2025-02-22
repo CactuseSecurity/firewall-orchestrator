@@ -5,7 +5,6 @@ import json
 import fwo_const
 from models.rule import RuleForImport, RuleType
 from models.rule_metadatum import RuleMetadatum, RuleMetadatumForImport
-from roles.importer.files.importer.models.rulebase import Rulebase
 from models.rulebase import Rulebase, RulebaseForImport
 from fwoBaseImport import ImportState
 from model_controllers.fwconfig_normalized_controller import FwConfigNormalized

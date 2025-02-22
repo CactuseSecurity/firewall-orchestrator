@@ -1,0 +1,5 @@
+- name: Install importer python modules
+  package: name={{ item }} state=present
+  loop:
+    - python3-pydantic
+  become: true

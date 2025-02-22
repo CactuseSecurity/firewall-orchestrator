@@ -7,6 +7,6 @@ mutation updateExternalRequestWaitCycles(
     _set: {
       wait_cycles: $waitCycles
   }) {
-    UpdatedId: id
+    updatedIdLong: id
   }
 }

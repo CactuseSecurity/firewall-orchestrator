@@ -44,6 +44,7 @@ namespace FWO.Config.Api
             globalConfig.OnChange += OnGlobalConfigChange;
         }
 
+        // Warning: only for Texts, ConfigItems contain Default content, correct ConfigItems are only in this.globalConfig
         public UserConfig(GlobalConfig globalConfig) : base()
         {
             User = new UiUser();

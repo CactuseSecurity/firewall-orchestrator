@@ -1540,5 +1540,6 @@ create table modelling.change_history
     object_id bigint,
 	change_text Varchar,
 	changer Varchar,
-	change_time Timestamp default now()
+	change_time Timestamp default now(),
+	change_source Varchar default 'manual'
 );

@@ -49,7 +49,7 @@ else
     {
         try
         {
-            apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { Roles.Admin, Roles.Requester, Roles.Auditor });
+            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Admin, Roles.Requester, Roles.Auditor ]);
             await states.Init(apiConnection);
 
             if(userConfig.ReqOwnerBased)

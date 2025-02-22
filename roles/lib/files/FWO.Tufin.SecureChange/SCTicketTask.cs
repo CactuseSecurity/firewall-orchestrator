@@ -1,7 +1,5 @@
 using FWO.Api.Data;
 using FWO.Basics;
-using Newtonsoft.Json.Linq;
-using System.Xml.Linq;
 
 namespace FWO.Tufin.SecureChange
 {
@@ -65,6 +63,7 @@ namespace FWO.Tufin.SecureChange
 		{
 			public const string Host = "host";
 			public const string Network = "network";
+			public const string Range = "range";
 		}
 
 		public SCTicketTask(WfReqTask reqTask, List<IpProtocol> ipProtos, ModellingNamingConvention? namingConvention) : base(reqTask, ipProtos, namingConvention)
@@ -168,7 +167,7 @@ namespace FWO.Tufin.SecureChange
 			{
 				if(nwObj.RequestAction == RequestAction.create.ToString() || nwObj.RequestAction == RequestAction.addAfterCreation.ToString())
 				{
-					string scObjType = GetSCObjectType(DisplayBase.AutoDetectType(nwObj.IpString, nwObj.IpEndString));
+					string scObjType = GetSCObjectType(IpOperations.GetObjectType(nwObj.IpString, nwObj.IpEndString));
 					string objUpdStatus = ObjUpdStatus(nwObj.RequestAction);
 					convertedObjects.Add(FillObjectTemplate(template, objUpdStatus == SCObjStatusValue.NEW.ToString() ? scObjType : "Object",
 						ConstructObjectName(nwObj, namingConvention), scObjType,
@@ -194,8 +193,8 @@ namespace FWO.Tufin.SecureChange
 		{
             return scObjType switch
             {
-                "network" => IpOperations.ToDotNotation(nwObj.IpString, nwObj.IpEndString),
-                "range" => $"{nwObj.IpString}-{nwObj.IpEndString}",// TODO: not really implemented yet
+                SCObjectType.Network => IpOperations.ToDotNotation(nwObj.IpString, nwObj.IpEndString),
+                SCObjectType.Range => $"{nwObj.IpString}-{nwObj.IpEndString}",// TODO: not really implemented yet
                 _ => nwObj.IpString, // single host
             };
         }

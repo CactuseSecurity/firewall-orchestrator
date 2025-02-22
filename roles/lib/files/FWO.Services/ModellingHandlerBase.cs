@@ -4,6 +4,7 @@ using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
+using FWO.Basics;
 
 
 namespace FWO.Services
@@ -84,29 +85,14 @@ namespace FWO.Services
             return $"<span class=\"{(rejected ? "text-danger" : "text-warning")}\" {tooltip}><i>{content}</i></span>";
         }
 
-        protected async Task LogChange(ModellingTypes.ChangeType changeType, ModellingTypes.ModObjectType objectType, long objId, string text, int? applicationId)
+        protected async Task LogChange(ModellingTypes.ChangeType changeType, ModellingTypes.ModObjectType objectType, long objId, string text, int? applicationId, string changeSource = GlobalConst.kManual)
         {
-            try
-            {
-                var Variables = new
-                {
-                    appId = applicationId,
-                    changeType = (int)changeType,
-                    objectType = (int)objectType,
-                    objectId = objId,
-                    changeText = text,
-                    changer = userConfig.User.Name
-                };
-                await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.addHistoryEntry, Variables);
-            }
-            catch (Exception exception)
-            {
-                DisplayMessageInUi(exception, userConfig.GetText("log_change"), "", true);
-            }
+            await LogChange(changeType, objectType, objId, text, apiConnection, userConfig, applicationId, DisplayMessageInUi, null, changeSource);
         }
 
         public static async Task LogChange(ModellingTypes.ChangeType changeType, ModellingTypes.ModObjectType objectType, long objId, string text,
-            ApiConnection apiConnection, UserConfig userConfig, int? applicationId, Action<Exception?, string, string, bool> displayMessageInUi, string? requester = null)
+            ApiConnection apiConnection, UserConfig userConfig, int? applicationId, Action<Exception?, string, string, bool> displayMessageInUi,
+            string? requester = null, string changeSource = GlobalConst.kManual)
         {
             try
             {
@@ -117,9 +103,10 @@ namespace FWO.Services
                     objectType = (int)objectType,
                     objectId = objId,
                     changeText = text,
-                    changer = requester ?? userConfig.User.Name
+                    changer = requester ?? userConfig.User.Name,
+                    changeSource
                 };
-                await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.addHistoryEntry, Variables);
+                await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.addHistoryEntry, Variables);
             }
             catch (Exception exception)
             {

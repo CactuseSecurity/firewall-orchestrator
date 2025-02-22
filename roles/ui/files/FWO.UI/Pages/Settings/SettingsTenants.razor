@@ -73,7 +73,7 @@
 </div>
 
 <PopUp Title="@(AddTenantMode ? userConfig.GetText("add_tenant"): userConfig.GetText("edit_tenant"))"
-    Show="@EditTenantMode" Size=PopupSize.Large OnClose="() => EditTenantMode = false">
+    Show="@EditTenantMode" Size=PopupSize.CustomLarge OnClose="() => EditTenantMode = false">
 
     <Body>
         @if (EditTenantMode)
@@ -149,7 +149,7 @@
     </Footer>
 </PopUp>
 
-<PopUp Title="@(userConfig.GetText("edit_vis_devices") + ": " + actTenant.Name)" Show="@EditDevicesSelectedForTenantMode" Size=PopupSize.Large OnClose="() => LeaveEditDevicesSelectedForTenantMode(cancel:true)">
+<PopUp Title="@(userConfig.GetText("edit_vis_devices") + ": " + actTenant.Name)" Show="@EditDevicesSelectedForTenantMode" Size=PopupSize.CustomLarge OnClose="async () => await LeaveEditDevicesSelectedForTenantMode(cancel:true)">
     <Body>
         @if (EditDevicesSelectedForTenantMode)
         {
@@ -160,13 +160,13 @@
         <div class="btn-group">
             <AuthorizeView Roles="admin">
                 <Authorized>
-                    <button type="button" class="btn btn-sm btn-success" @onclick="() => LeaveEditDevicesSelectedForTenantMode(cancel:false)" @onclick:preventDefault>@(userConfig.GetText("save"))</button>
+                    <button type="button" class="btn btn-sm btn-success" @onclick="async () => await LeaveEditDevicesSelectedForTenantMode(cancel:false)" @onclick:preventDefault>@(userConfig.GetText("save"))</button>
                 </Authorized>
                 <NotAuthorized>
                     <button type="button" class="btn btn-sm btn-success" disabled>@(userConfig.GetText("save"))</button>
                 </NotAuthorized>
             </AuthorizeView>
-            <button type="button" class="btn btn-sm btn-secondary" @onclick="() => LeaveEditDevicesSelectedForTenantMode(cancel:true)">
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="async () => await LeaveEditDevicesSelectedForTenantMode(cancel:true)">
                 @(userConfig.GetText("cancel"))
             </button>
         </div>
@@ -383,7 +383,7 @@
                 name = ipAdd.Name,
                 comment = ipAdd.Comment
             };
-            await apiConnection.SendQueryAsync<NewReturning>(AuthQueries.addTenantNetwork, Variables);
+            await apiConnection.SendQueryAsync<ReturnIdWrapper>(AuthQueries.addTenantNetwork, Variables);
         }
     }
 
@@ -588,8 +588,8 @@
         try
         {
             // delete all tenant to device and management mappings for the current tenant
-            await apiConnection.SendQueryAsync<NewReturning>(AuthQueries.deleteAllGatewaysOfTenant, new { tenantId = actTenant.Id });
-            await apiConnection.SendQueryAsync<NewReturning>(AuthQueries.deleteAllManagementsOfTenant, new { tenantId = actTenant.Id });
+            await apiConnection.SendQueryAsync<ReturnIdWrapper>(AuthQueries.deleteAllGatewaysOfTenant, new { tenantId = actTenant.Id });
+            await apiConnection.SendQueryAsync<ReturnIdWrapper>(AuthQueries.deleteAllManagementsOfTenant, new { tenantId = actTenant.Id });
         }
         catch (System.Exception exception)
         {
@@ -606,12 +606,12 @@
             {
                 if (mgm.Visible)
                 {
-                    await apiConnection.SendQueryAsync<NewReturning>(AuthQueries.addTenantToManagement, new { tenantId = actTenant.Id, mgmId = mgm.Id, shared = mgm.Shared });
+                    await apiConnection.SendQueryAsync<ReturnIdWrapper>(AuthQueries.addTenantToManagement, new { tenantId = actTenant.Id, mgmId = mgm.Id, shared = mgm.Shared });
                     foreach (DeviceSelect gw in mgm.Devices)
                     {
                         if (gw.Visible)
                         {
-                            await apiConnection.SendQueryAsync<NewReturning>(AuthQueries.addTenantToGateway, new { tenantId = actTenant.Id, gwId = gw.Id, shared = gw.Shared });
+                            await apiConnection.SendQueryAsync<ReturnIdWrapper>(AuthQueries.addTenantToGateway, new { tenantId = actTenant.Id, gwId = gw.Id, shared = gw.Shared });
                         }
                     }
                 }

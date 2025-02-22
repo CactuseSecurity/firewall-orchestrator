@@ -8,6 +8,6 @@ mutation updateUserLanguage(
       uiuser_language: $language
     }
   ) {
-    UpdatedId: uiuser_id
+    updatedId: uiuser_id
   }
 }

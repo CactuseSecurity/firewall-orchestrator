@@ -7,7 +7,7 @@ mutation addSelectedConnection(
     connection_id: $connectionId
   }) {
     returning {
-      newId: connection_id
+      insertedId: connection_id
     }
   }
 }

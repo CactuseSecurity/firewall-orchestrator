@@ -9,7 +9,7 @@ namespace FWO.Api.Data
             set { SelectedOwners = [value]; }
         }
 
-        public FwoOwner SelectedTemplateOwner { get; set; }
+        public FwoOwner SelectedTemplateOwner { get; set; } = new();
         public bool ShowSourceMatch {get; set;} = true;
         public bool ShowDestinationMatch {get; set;} = true;
         public bool ShowAnyMatch {get; set;} = false;

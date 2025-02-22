@@ -7,7 +7,7 @@ mutation newRuleOwnership(
     rule_metadata_id: $ruleMetadataId
   }) {
     returning {
-      newId: rule_metadata_id
+      insertedIdLong: rule_metadata_id
     }
   }
 }

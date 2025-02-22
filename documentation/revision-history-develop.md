@@ -255,6 +255,9 @@ bugfix release:
 # 8.6.1 - 12.12.2024 DEVELOP
 - external request: introduce locks
 
+# 8.6.3 - 20.02.2025 DEVELOP
+- dns lookup for app server names
+
 # 9.0 - 31.07.2024 DEVELOP
 - rule to gateway mapping 1:n
 - add report output for rule to gw mapping

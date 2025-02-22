@@ -14,7 +14,7 @@
 @inject MiddlewareClient middlewareClient
 @inject UserConfig userConfig
 
-<PopUp Title="@(userConfig.GetText("assign1") + ": " + ObjectName)" Show="@Display" Size=PopupSize.Large OnClose="async () => await Close()">
+<PopUp Title="@(userConfig.GetText("assign1") + ": " + ObjectName)" Show="@Display" Size=PopupSize.CustomLarge OnClose="async () => await Close()">
     <Body>
         @if (Display)
         {
@@ -33,7 +33,7 @@
                         <div class="col-sm-2">
                             <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Requester}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}")">
                                 <Authorized>
-                                    <button type="button" class="btn btn-sm btn-success" @onclick="async () => { PrepAssign(); await Assign(StatefulObject); await Close();}" @onclick:preventDefault>
+                                    <button type="button" class="btn btn-sm btn-success" @onclick="PerformAssign" @onclick:preventDefault>
                                         @(ModellingHandlerBase.DisplayButton(userConfig, "assign1", Icons.Assign))</button>
                                 </Authorized>
                                 <NotAuthorized>
@@ -54,7 +54,7 @@
                         <div class="col-sm-2">
                             <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Requester}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}")">
                                 <Authorized>
-                                    <button type="button" class="btn btn-sm btn-success" @onclick="async () => { await AssignBack(); await Close();}" @onclick:preventDefault>
+                                    <button type="button" class="btn btn-sm btn-success" @onclick="PerformAssignBack" @onclick:preventDefault>
                                         @(ModellingHandlerBase.DisplayButton(userConfig, "assign1", Icons.Assign))</button>
                                 </Authorized>
                                 <NotAuthorized>
@@ -74,6 +74,7 @@
         </div>
     </Footer>
 </PopUp>
+<InProgress Display="workInProgress" />
 
 
 @code
@@ -112,7 +113,7 @@
     private string origAssignedGroup = "";
     private UiUser? selectedUserGroup;
     private bool firstTry = true;
-
+    private bool workInProgress = false;
 
     protected override async Task OnParametersSetAsync()
     {
@@ -165,6 +166,24 @@
         }
     }
 
+    private async Task PerformAssign()
+    {
+        workInProgress = true;
+        PrepAssign();
+        await Assign(StatefulObject);
+        await Close();
+    }
+
+    private async Task PerformAssignBack()
+    {
+        workInProgress = true;
+        if(AssignBack != null)
+        {
+            await AssignBack();
+        }
+        await Close();
+    }
+
     private void PrepAssign()
     {
         StatefulObject.AssignedGroup = selectedUserGroup?.Dn ?? "";
@@ -172,7 +191,9 @@
 
     private async Task Close()
     {
+        workInProgress = true;
         await ResetParent();
+        workInProgress = false;
         Display = false;
         firstTry = true;
     }

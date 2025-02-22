@@ -1,16 +1,13 @@
 
-using System;
 using System.Net;
 using System.Numerics;
-using System.Linq;
 using System.Net.Sockets;
-using System.Collections;
-using FWO.Basics;
 using System.Text.RegularExpressions;
+using NetTools;
 
 namespace FWO.Basics
 {
-    public static class StringExtensions
+    public static partial class StringExtensions
     {
         private const string HtmlTagPattern = "<.*?>";
         private static readonly string[] AllowedTags = ["br?", "i", "hr"];
@@ -19,6 +16,9 @@ namespace FWO.Basics
         {
             return string.IsNullOrEmpty(string1) && string.IsNullOrEmpty(string2) || string1 == string2;
         }
+        [GeneratedRegex(@"(\/[\d\.\:]+)\D?")]
+        private static partial Regex NetmaskRegex();
+
 
         public static bool TrySplit(this string text, char separator, int index, out string output)
         {
@@ -38,13 +38,14 @@ namespace FWO.Basics
         {
             netmask = "";
 
-            Match match = Regex.Match(ip, @"(\/[\d\.\:]+)\D?");
+            Match match = NetmaskRegex().Match(ip);
 
             if (match.Success)
                 netmask = match.Groups[1].Value;
 
             return match.Success;
         }
+
         public static bool TrySplit(this string text, char separator, out int length)
         {
             string[] splits = text.Split(separator);
@@ -64,11 +65,41 @@ namespace FWO.Basics
             return IpOperations.CheckOverlap(ip1, ip2);
         }
 
+        public static string GetNetmask(this string ip)
+        {
+            int pos = ip.LastIndexOf('/');
+            if (pos > -1 && ip.Length > pos + 1)
+            {
+                return ip[(pos + 1)..];
+            }
+            return "";
+        }
+
+        public static bool IsV6Address(this string ip)
+        {
+            return ip.Contains(':');
+        }
+
+        public static bool IsV4Address(this string ip)
+        {
+            return ip.Contains('.');
+        }
+
         public static string StripOffNetmask(this string ip)
         {
             if (ip.TryGetNetmask(out string netmask))
                 return ip.Replace(netmask, "");
 
+            return ip;
+        }
+
+        public static string StripOffUnnecessaryNetmask(this string ip)
+        {
+            string netmask = ip.GetNetmask();
+            if (ip.IsV4Address() && netmask == "32" || ip.IsV6Address() && netmask == "128")
+            {
+                return ip.StripOffNetmask();
+            }
             return ip;
         }
 
@@ -88,6 +119,7 @@ namespace FWO.Basics
             string pattern = BuildDangerousHtmlTagPattern();
             return Regex.Replace(text, pattern, string.Empty, options);
         }
+
         public static bool IsIPv4(this string ipAddress)
         {
             if (IPAddress.TryParse(ipAddress, out IPAddress? addr))
@@ -100,6 +132,7 @@ namespace FWO.Basics
 
             return false;
         }
+
         public static bool IsIPv6(this string ipAddress)
         {
             if (IPAddress.TryParse(ipAddress, out IPAddress? addr))
@@ -112,6 +145,12 @@ namespace FWO.Basics
 
             return false;
         }
+
+        public static string IpAsCidr(this string ip)
+		{
+			return IPAddressRange.Parse(ip).ToCidrString();
+		}
+
         public static (string start, string end) CidrToRangeString(this string cidr)
         {
             IPAddress ipStart;
@@ -121,6 +160,7 @@ namespace FWO.Basics
 
             return (ipStart.ToString(), ipEnd.ToString());
         }
+
         public static (IPAddress start, IPAddress end) CidrToRange(this string cidr)
         {
             string[] parts = cidr.Split('/');
@@ -149,23 +189,24 @@ namespace FWO.Basics
                 throw new FormatException("Invalid IP address format.");
             }
         }
+
         private static (IPAddress start, IPAddress end) IPv4CidrToRange(byte[] addressBytes, int prefixLength)
         {
-            uint ipAddress = BitConverter.ToUInt32(addressBytes.Reverse().ToArray(), 0);
+            uint ipAddress = BitConverter.ToUInt32([.. addressBytes.Reverse()], 0);
             uint mask = (uint.MaxValue << (32 - prefixLength)) & uint.MaxValue;
 
             uint startIp = ipAddress & mask;
             uint endIp = startIp | ~mask;
 
-            return (new IPAddress(BitConverter.GetBytes(startIp).Reverse().ToArray()),
-                    new IPAddress(BitConverter.GetBytes(endIp).Reverse().ToArray()));
+            return (new IPAddress([.. BitConverter.GetBytes(startIp).Reverse()]),
+                    new IPAddress([.. BitConverter.GetBytes(endIp).Reverse()]));
         }
 
         private static (IPAddress start, IPAddress end) IPv6CidrToRange(byte[] addressBytes, int prefixLength)
         {
             if (BitConverter.IsLittleEndian)
             {
-                addressBytes = addressBytes.Reverse().ToArray();  // Reverse byte array for BigInteger compatibility
+                addressBytes = [.. addressBytes.Reverse()];  // Reverse byte array for BigInteger compatibility
             }
 
             var addressBigInt = new BigInteger(addressBytes.Concat(new byte[] { 0 }).ToArray());  // Treat as unsigned
@@ -183,12 +224,13 @@ namespace FWO.Basics
 
             if (BitConverter.IsLittleEndian)
             {
-                startIpBytes = startIpBytes.Reverse().ToArray();
-                endIpBytes = endIpBytes.Reverse().ToArray();
+                startIpBytes = [.. startIpBytes.Reverse()];
+                endIpBytes = [.. endIpBytes.Reverse()];
             }
 
             return (new IPAddress(startIpBytes), new IPAddress(endIpBytes));
         }
+
         private static byte[] NormalizeBytes(byte[] bytes, int targetLength)
         {
             if (bytes.Length < targetLength)
@@ -198,9 +240,18 @@ namespace FWO.Basics
                 Array.Copy(bytes, padded, bytes.Length);
                 return padded;
             }
-            return bytes.Take(targetLength).ToArray();  // Ensure it's exactly targetLength bytes
+            return [.. bytes.Take(targetLength)];  // Ensure it's exactly targetLength bytes
         }
 
+        /// <summary>
+        /// Parses a string to an IPAdress object and a string that represents the subnet mask (empty if there is no subnet mask).
+        /// </summary>
+        public static (IPAddress, string) ToIPAdressAndSubnetMask(this string str)
+        {
+            IPAddress ipAdress = IPAddress.Parse(str.StripOffNetmask());
+            var hasSubnetMask = str.TryGetNetmask(out string subnetMask);
+
+            return (ipAdress, hasSubnetMask ? subnetMask[1..] : "");
+        }
     }
 }
-

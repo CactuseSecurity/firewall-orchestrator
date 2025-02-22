@@ -7,7 +7,7 @@
 @inject UserConfig userConfig
 
 
-<PopUp Title="@(Title)" Show="@Display" Size=PopupSize.Small OnClose="Cancel">
+<PopUp Title="@(Title)" Show="@Display" Size=PopupSize.CustomSmall OnClose="Cancel">
     <Body>
         @if (Display)
         {
@@ -22,7 +22,7 @@
                 {
                     <AuthorizeView Roles="@AllowedRoles">
                         <Authorized>
-                            <button type="button" class="btn btn-sm btn-danger" @onclick="() => {PerformAction(); Display = false;}">@(Remove ? userConfig.GetText("remove") : userConfig.GetText("delete"))</button>
+                            <button type="button" class="btn btn-sm btn-danger" @onclick="Perform">@(Remove ? userConfig.GetText("remove") : userConfig.GetText("delete"))</button>
                         </Authorized>
                         <NotAuthorized>
                             <button type="button" class="btn btn-sm btn-danger" disabled>@(Remove ? userConfig.GetText("remove") : userConfig.GetText("delete"))</button>
@@ -38,6 +38,7 @@
         </div>
     </Footer>
 </PopUp>
+<InProgress Display="workInProgress" />
 
 
 @code
@@ -69,9 +70,19 @@
     [Parameter]
     public bool Enabled { get; set; } = true;
 
+    private bool workInProgress = false;
+
+    private async Task Perform()
+    {
+        workInProgress = true;
+        await PerformAction();
+        workInProgress = false;
+        Display = false;
+    }
 
     private void Cancel()
     {
+        workInProgress = false;
         Display = false;
         DisplayChanged.InvokeAsync(Display);
     }

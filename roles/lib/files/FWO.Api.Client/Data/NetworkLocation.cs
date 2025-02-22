@@ -3,30 +3,37 @@ using Newtonsoft.Json;
 
 namespace FWO.Api.Data
 {
-    public class NetworkLocation(NetworkUser user, NetworkObject network) : IComparable
+    public class NetworkLocation : IComparable
     {
         [JsonProperty("object"), JsonPropertyName("object")]
-        public NetworkObject Object { get; set; } = network;
+        public NetworkObject? Object { get; set; } = default!;
 
         [JsonProperty("usr"), JsonPropertyName("usr")]
-        public NetworkUser User { get; set; } = user;
+        public NetworkUser? User { get; set; } = default!;
+
+        public NetworkLocation(NetworkUser user, NetworkObject? networkObject)
+        {
+            Object = networkObject;
+            User = user;
+        }
 
         int IComparable.CompareTo(object? secondObject)
         {
             if (secondObject != null && secondObject is NetworkLocation)
             {
                 NetworkLocation secondNetworkLocation = (secondObject as NetworkLocation)!;
-                if (this.User != null && secondNetworkLocation.User != null)
+                if (this.User != null && secondNetworkLocation.User != null &&
+                    this.User?.Name.CompareTo(secondNetworkLocation.User?.Name) != 0)
                 {
-                    if (this.User?.Name.CompareTo(secondNetworkLocation.User?.Name) != 0)
-                        return this.User!.Name.CompareTo(secondNetworkLocation.User!.Name);
-                    else
-                        return this.Object.Name.CompareTo(secondNetworkLocation.Object.Name);
+                    return this.User!.Name.CompareTo(secondNetworkLocation.User!.Name);
                 }
-                else 
+                if (this.Object != null && secondNetworkLocation.Object != null)
                 {
                     return this.Object.Name.CompareTo(secondNetworkLocation.Object.Name);
                 }
+                else {
+                    return 0;
+                } 
             }
             else
             {

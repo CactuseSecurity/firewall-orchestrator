@@ -7,6 +7,6 @@ mutation setDefaultOwner(
     _set: {
       is_default: $isDefault
   }) {
-    UpdatedId: id
+    updatedId: id
   }
 }

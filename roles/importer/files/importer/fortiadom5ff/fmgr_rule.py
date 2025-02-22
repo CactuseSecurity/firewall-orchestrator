@@ -184,6 +184,7 @@ def normalize_access_rules(full_config, config2import, import_id, mgm_details={}
                     rule['rule_svc'] = extend_string_list(rule['rule_svc'], rule_orig, 'service', list_delimiter, jwt=jwt, import_id=import_id)
                     rule['rule_src'] = extend_string_list(rule['rule_src'], rule_orig, 'srcaddr6', list_delimiter, jwt=jwt, import_id=import_id)
                     rule['rule_dst'] = extend_string_list(rule['rule_dst'], rule_orig, 'dstaddr6', list_delimiter, jwt=jwt, import_id=import_id)
+                    rule['rule_src'] = extend_string_list(rule['rule_src'], rule_orig, 'internet-service-src-name', list_delimiter, jwt=jwt, import_id=import_id)
 
                     if len(rule_orig['srcintf'])>0:
                         src_obj_zone = fmgr_zone.add_zone_if_missing (config2import, rule_orig['srcintf'][0], import_id)
@@ -194,6 +195,8 @@ def normalize_access_rules(full_config, config2import, import_id, mgm_details={}
 
                     if 'srcaddr-negate' in rule_orig:
                         rule.update({ 'rule_src_neg': rule_orig['srcaddr-negate']=='disable'})
+                    elif 'internet-service-src-negate' in rule_orig:
+                        rule.update({ 'rule_src_neg': rule_orig['internet-service-src-negate']=='disable'})
                     if 'dstaddr-negate' in rule_orig:
                         rule.update({ 'rule_dst_neg': rule_orig['dstaddr-negate']=='disable'})
                     if 'service-negate' in rule_orig:
@@ -411,9 +414,9 @@ def handle_combined_nat_rule(rule, rule_orig, config2import, nat_rule_number, im
                 if hideInterface is not None:
                     obj_name = 'hide_IF_ip_' + str(hideInterface) + '_' + str(destination_interface_ip)
                     obj_comment = 'FWO auto-generated dummy object for source nat'
-                    if type(ipaddress.ip_address(str(destination_interface_ip))) is ipaddress.IPv6Address:
+                    if destination_interface_ip is not None and type(ipaddress.ip_address(str(destination_interface_ip))) is ipaddress.IPv6Address:
                         HideNatIp = str(destination_interface_ip) + '/128'
-                    elif type(ipaddress.ip_address(str(destination_interface_ip))) is ipaddress.IPv4Address:
+                    elif destination_interface_ip is not None and type(ipaddress.ip_address(str(destination_interface_ip))) is ipaddress.IPv4Address:
                         HideNatIp = str(destination_interface_ip) + '/32'
                     else:
                         HideNatIp = dummy_ip

@@ -14,7 +14,7 @@
 @inject UserConfig userConfig
 
 
-<PopUp Title="@(userConfig.GetText("implementation") + ": " + WfHandler.ActImplTask.Title)" Show="@WfHandler.DisplayImplTaskMode" Size=PopupSize.XLarge OnClose="async () => await Close()">
+<PopUp Title="@(userConfig.GetText("implementation") + ": " + WfHandler.ActImplTask.Title)" Show="@WfHandler.DisplayImplTaskMode" Size=PopupSize.CustomXLarge OnClose="async () => await Close()">
     <Body>
         @if (WfHandler.DisplayImplTaskMode)
         {
@@ -325,7 +325,10 @@
     <CommentObject @bind-Display="WfHandler.DisplayImplTaskCommentMode" ResetParent="InitComments" ObjectName="@WfHandler.ActImplTask.Title" Save="ConfAddComment"/>
     <Confirm @bind-Display="assignOwnerMode" PerformAction="async () => {await AssignOwner(); StateHasChanged();}"
         Title="@userConfig.GetText("assign_owner")" Message="@message" AllowedRoles="@($"{Roles.Admin}, {Roles.Implementer}")"/>
-    <EditConnPopup @bind-Display="WfHandler.ActionHandler.DisplayConnectionMode" ConnHandler="WfHandler.ActionHandler.ConnHandler"/>
+    @if(WfHandler.ActionHandler != null)
+    {
+        <EditConnPopup @bind-Display="WfHandler.ActionHandler.DisplayConnectionMode" ConnHandler="WfHandler.ActionHandler.ConnHandler"/>
+    }
 }
 <InProgress Display="WorkInProgress"/>
 
@@ -442,11 +445,14 @@
     {
         allComments = WfStatefulObject.DisplayAllComments(WfHandler.ActImplTask.Comments);
         WfHandler.DisplayImplTaskCommentMode = false;
+        await DefaultInit.DoNothing(); // qad avoid compiler warning
     }
 
     private async Task Close()
     {
+        WorkInProgress = true;
         await ResetParent();
+        WorkInProgress = false;
         WfHandler.DisplayPromoteImplTaskMode = false;
         WfHandler.DisplayImplTaskMode = false;
         firstParamSet = true;

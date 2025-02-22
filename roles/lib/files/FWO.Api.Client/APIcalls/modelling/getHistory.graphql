@@ -8,5 +8,6 @@ query getHistory {
     change_text
     changer
     change_time
+    change_source
   }
 }

@@ -7,7 +7,7 @@ mutation addCommentToApproval(
     comment_id: $commentId
   }) {
     returning {
-      newId: approval_id
+      insertedIdLong: approval_id
     }
   }
 }

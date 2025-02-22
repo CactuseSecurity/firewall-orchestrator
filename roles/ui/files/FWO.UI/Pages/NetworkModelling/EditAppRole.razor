@@ -8,7 +8,7 @@
 @if (AppRoleHandler != null && Display)
 {
     <PopUp Title="@(AppRoleHandler.ReadOnly ? "" : (AppRoleHandler.AddMode ? userConfig.GetText("add_app_role") : userConfig.GetText("edit_app_role")))"
-           Size="@(AppRoleHandler.ReadOnly ? PopupSize.Small : PopupSize.XLarge)" Show="@Display" OnClose="Close">
+           Size="@(AppRoleHandler.ReadOnly ? PopupSize.CustomMedium : PopupSize.CustomLarge)" Show="@Display" OnClose="Close">
         <Body>
             <div class="row">
                 @if (!AppRoleHandler.ReadOnly)
@@ -96,6 +96,7 @@
                                      ondragover="event.preventDefault();"
                                      ondragstart="event.dataTransfer.setData('', event.target.id);"
                                      @ondrop="HandleServerDrop">
+                                    <OrderByDropdown @ref="orderByDropdown" TCollectionItem="ModellingAppServer" Collection="AppRoleHandler.AppServerToAdd" CollectionReordered="OnCollectionReordered" ElementProperties="orderByDropdownProperties"/>
                                     <EditList ElementType="ModellingAppServer" Elements="ModellingAppServerWrapper.Resolve(AppRoleHandler.ActAppRole.AppServers)" ElementsToAdd="AppRoleHandler.AppServerToAdd" ElementsToDelete="AppRoleHandler.AppServerToDelete" StdLayout="false" ElementsRemoved="OnAppServerRemovedFromEditList">
                                         <Display>
                                             <div class="row">
@@ -173,11 +174,20 @@
 
     private ModellingNetworkArea? LastSelectedNetworkArea;
 
+    /// <summary>
+    /// Reference to the order by component.
+    /// </summary>
+    private OrderByDropdown<ModellingAppServer>? orderByDropdown;
+    /// <summary>
+    /// Properties to sort the app server's visual elements by.
+    /// </summary>
+    private List<string> orderByDropdownProperties => new List<string> {"Ip", "Name"};
+
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { Roles.Modeller, Roles.Admin, Roles.Auditor });
+            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Modeller, Roles.Admin, Roles.Auditor ]);
             areas = await apiConnection.SendQueryAsync<List<ModellingNetworkArea>>(FWO.Api.Client.Queries.ModellingQueries.getAreas);
             apiConnection.SwitchBack();
             // todo: select relevant areas for owner?
@@ -302,6 +312,19 @@
     /// </summary>
     private void OnAppServerRemovedFromEditList()
     {
+        InvokeAsync(StateHasChanged);
+    }
+
+    /// <summary>
+    /// Updates the app server's visual elements after reordering the collection.
+    /// </summary>
+    private void OnCollectionReordered(List<ModellingAppServer> orderedCollection)
+    {
+        if (AppRoleHandler != null && orderedCollection != null)
+        {
+            AppRoleHandler.AppServerToAdd = orderedCollection;
+        }
+        
         InvokeAsync(StateHasChanged);
     }
 }

@@ -31,7 +31,7 @@ mutation newRequestTask(
     mgm_id: $managementId
   }) {
     returning {
-      newId: id
+      newIdLong: id
     }
   }
 }

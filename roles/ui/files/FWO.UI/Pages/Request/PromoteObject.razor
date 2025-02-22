@@ -8,7 +8,7 @@
 @inject UserConfig userConfig
 
 
-<PopUp Title="@(userConfig.GetText("change_state") + ": " + ObjectName)" Show="@Display" Size=PopupSize.Small OnClose="() => Cancel()">
+<PopUp Title="@(userConfig.GetText("change_state") + ": " + ObjectName)" Show="@Display" Size=PopupSize.CustomSmall OnClose="() => Cancel()">
     <Body>
         @if (Display)
         {
@@ -24,7 +24,7 @@
             </div>
             @if(WithComment)
             {
-                <div class="form-group row">
+                <div class="form-group row mt-2">
                     <label for="optComment" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("comment")):</label>
                     <div class="col-sm-8">
                         <input id="optComment" type="text" class="form-control form-control-sm" @bind="optComm" />
@@ -37,7 +37,7 @@
         <div class="btn-group">
             <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Requester}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}, {Roles.FwAdmin}")">
                 <Authorized>
-                    <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="async () => {StatefulObject.SetOptComment(optComm); await Save(StatefulObject); await Close();}">@(userConfig.GetText("save"))</button>
+                    <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="Perform">@(userConfig.GetText("save"))</button>
                 </Authorized>
                 <NotAuthorized>
                     <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
@@ -47,6 +47,7 @@
         </div>
     </Footer>
 </PopUp>
+<InProgress Display="workInProgress" />
 
 
 @code
@@ -88,6 +89,7 @@
     private bool Display { get; set; } = false;
     private List<int> possibleStates = new ();
     private string? optComm;
+    private bool workInProgress = false;
 
     protected override async Task OnParametersSetAsync()
     {
@@ -117,9 +119,18 @@
         }
     }
 
+    private async Task Perform()
+    {
+        workInProgress = true;
+        StatefulObject.SetOptComment(optComm);
+        await Save(StatefulObject);
+        await Close();
+    }
+
     private async Task Close()
     {
         await CloseParent();
+        workInProgress = false;
         Promote = false;
         Display = false;
     }
@@ -127,6 +138,7 @@
     private void Cancel()
     {
         CancelParent();
+        workInProgress = false;
         Promote = false;
         Display = false;
     }

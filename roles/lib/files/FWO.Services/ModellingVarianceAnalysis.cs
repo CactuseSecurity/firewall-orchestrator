@@ -352,7 +352,7 @@ namespace FWO.Services
                 {
                     RequestAction = alreadyRequested ? RequestAction.addAfterCreation.ToString() : RequestAction.create.ToString(),
                     Field = ElemFieldType.source.ToString(),
-                    Name = AppServerComparer.ConstructAppServerName(appServer, namingConvention),
+                    Name = AppServerHelper.ConstructAppServerName(appServer, namingConvention),
                     IpString = appServer.Ip,
                     IpEnd = appServer.IpEnd,
                     GroupName = nwGroup.IdString,
@@ -433,7 +433,7 @@ namespace FWO.Services
                 {
                     RequestAction = alreadyRequested ? RequestAction.addAfterCreation.ToString() : RequestAction.create.ToString(),
                     Field = ElemFieldType.source.ToString(),
-                    Name = AppServerComparer.ConstructAppServerName(appServer.Content, namingConvention),
+                    Name = AppServerHelper.ConstructAppServerName(appServer.Content, namingConvention),
                     IpString = appServer.Content.Ip,
                     IpEnd = appServer.Content.IpEnd,
                     GroupName = idString,

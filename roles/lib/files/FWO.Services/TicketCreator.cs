@@ -126,7 +126,6 @@ namespace FWO.Services
         public async Task<bool> PromoteNewInterfaceImplTask(FwoOwner owner, long ticketId, ExtStates extState, string comment = "")
         {
             ExtStateHandler extStateHandler = new(apiConnection);
-            await extStateHandler.Init();
             await wfHandler.Init([owner.Id]);
             WfImplTask? implTask = await FindNewInterfaceImplTask(ticketId);
             if(implTask != null)

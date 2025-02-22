@@ -17,8 +17,8 @@ namespace FWO.Recert
                 watch.Start();
                 List<FwoOwner> owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
                 List<Management> managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementDetailsWithoutSecrets);
-                ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(RecertQueries.clearOpenRecerts)).ReturnIds;
-                Log.WriteDebug("Delete open recerts", $"deleted Ids: {(returnIds != null ? string.Join(",", Array.ConvertAll(returnIds, Id => Id.DeletedId)) : "")}");
+                ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(RecertQueries.clearOpenRecerts)).ReturnIds;
+                Log.WriteDebug("Delete open recerts", $"deleted Ids: {(returnIds != null ? string.Join(",", Array.ConvertAll(returnIds, Id => Id.DeletedIdLong)) : "")}");
                 OwnerRefresh? refreshResult = (await apiConnection.SendQueryAsync<List<OwnerRefresh>>(RecertQueries.refreshViewRuleWithOwner)).FirstOrDefault();
                 if (refreshResult == null || refreshResult.GetStatus() != "Materialized view refreshed successfully")
                 {
@@ -52,7 +52,7 @@ namespace FWO.Recert
 
                 if (currentRecerts.Count > 0)
                 {
-                    await apiConnection.SendQueryAsync<NewReturning>(RecertQueries.addRecertEntries, new { recerts = currentRecerts });
+                    await apiConnection.SendQueryAsync<ReturnIdWrapper>(RecertQueries.addRecertEntries, new { recerts = currentRecerts });
                 }
             }
 

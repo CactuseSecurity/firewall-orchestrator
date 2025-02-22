@@ -33,27 +33,28 @@ namespace FWO.Test
         [Test]
         public void TestGetNetmask()
         {
-            ClassicAssert.AreEqual("", DisplayBase.GetNetmask(ip1));
-            ClassicAssert.AreEqual("32", DisplayBase.GetNetmask(ip2));
-            ClassicAssert.AreEqual("24", DisplayBase.GetNetmask(ip5));
-            ClassicAssert.AreEqual("", DisplayBase.GetNetmask(ip11));
-            ClassicAssert.AreEqual("111", DisplayBase.GetNetmask(ip13));
+            ClassicAssert.AreEqual("", ip1.GetNetmask());
+            ClassicAssert.AreEqual("32", ip2.GetNetmask());
+            ClassicAssert.AreEqual("24", ip5.GetNetmask());
+            ClassicAssert.AreEqual("", ip11.GetNetmask());
+            ClassicAssert.AreEqual("111", ip13.GetNetmask());
         }
 
         [Test]
         public void TestAutoDetectType()
         {
-            ClassicAssert.AreEqual(ObjectType.Host, DisplayBase.AutoDetectType(ip1, ip1));
-            ClassicAssert.AreEqual(ObjectType.Host, DisplayBase.AutoDetectType(ip1, ip2));
-            ClassicAssert.AreEqual(ObjectType.Network, DisplayBase.AutoDetectType(ip2, ip3));
-            ClassicAssert.AreEqual(ObjectType.IPRange, DisplayBase.AutoDetectType(ip2, ip4));
-            ClassicAssert.AreEqual(ObjectType.Network, DisplayBase.AutoDetectType(ip5, ip5));
-            // ClassicAssert.AreEqual(ObjectType.Network, DisplayBase.AutoDetectType(ip6, ip7)); // should detect this?
-            ClassicAssert.AreEqual(ObjectType.IPRange, DisplayBase.AutoDetectType(ip6, ip7));
+            ClassicAssert.AreEqual(ObjectType.Host, IpOperations.GetObjectType(ip1, ip1));
+            ClassicAssert.AreEqual(ObjectType.Host, IpOperations.GetObjectType(ip1, ip2));
+            ClassicAssert.AreEqual(ObjectType.Host, IpOperations.GetObjectType(ip1, ""));
+            ClassicAssert.AreEqual(ObjectType.Network, IpOperations.GetObjectType(ip2, ip3));
+            ClassicAssert.AreEqual(ObjectType.IPRange, IpOperations.GetObjectType(ip2, ip4));
+            ClassicAssert.AreEqual(ObjectType.Network, IpOperations.GetObjectType(ip5, ip5));
+            // ClassicAssert.AreEqual(ObjectType.Network, IpOperations.GetObjectType(ip6, ip7)); // should detect this?
+            ClassicAssert.AreEqual(ObjectType.IPRange, IpOperations.GetObjectType(ip6, ip7));
 
-            ClassicAssert.AreEqual(ObjectType.Host, DisplayBase.AutoDetectType(ip11, ip11));
-            ClassicAssert.AreEqual(ObjectType.Host, DisplayBase.AutoDetectType(ip11, ip12));
-            ClassicAssert.AreEqual(ObjectType.Network, DisplayBase.AutoDetectType(ip13, ip13));
+            ClassicAssert.AreEqual(ObjectType.Host, IpOperations.GetObjectType(ip11, ip11));
+            ClassicAssert.AreEqual(ObjectType.Host, IpOperations.GetObjectType(ip11, ip12));
+            ClassicAssert.AreEqual(ObjectType.Network, IpOperations.GetObjectType(ip13, ip13));
         }
 
         [Test]

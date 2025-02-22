@@ -2,7 +2,7 @@
 {
     internal class AstNodeFilterDateTimeRange : AstNodeFilter
     {
-        DateTimeRange semanticValue;
+        DateTimeRange? semanticValue;
 
         public override void ConvertToSemanticType()
         {
@@ -17,18 +17,18 @@
             switch (Name.Kind)
             {
                 case TokenKind.LastHit:
-                    ExtractLastHitFilter(query, (ReportType)reportType);
+                    ExtractLastHitFilter(query, reportType);
                     break;
                 default:
                     break;
             }
         }
 
-        private DynGraphqlQuery ExtractLastHitFilter(DynGraphqlQuery query, ReportType reportType)
+        private DynGraphqlQuery ExtractLastHitFilter(DynGraphqlQuery query, ReportType? reportType)
         {
             string queryVarName = AddVariable<DateTimeRange>(query, "lastHitLimit", Operator.Kind, semanticValue!);
             
-            if (reportType.IsChangeReport())
+            if (reportType != null && ((ReportType)reportType).IsChangeReport())
             {
                 if (Operator.Kind==TokenKind.LSS) // only show rules which have a hit before a certain date (including no hit rules)
                 {

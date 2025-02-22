@@ -30,7 +30,7 @@ namespace FWO.Report
             ReportData.ManagementData = [];
             foreach (var management in managementsWithRelevantImportId)
             {
-                SetMgtQueryVars(management);
+                SetMgtQueryVars(management);    // this includes mgm_id AND relevant import ID!
                 ManagementReport managementReport = (await apiConnection.SendQueryAsync<List<ManagementReport>>(Query.FullQuery, Query.QueryVariables))[0];
                 managementReport.Import = management.Import;
                 ReportData.ManagementData.Add(managementReport);

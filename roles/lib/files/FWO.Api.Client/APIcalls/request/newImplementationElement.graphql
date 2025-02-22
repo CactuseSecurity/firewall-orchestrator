@@ -33,7 +33,7 @@ mutation newImplementationElement(
     name: $name
   }) {
     returning {
-      newId: id
+      newIdLong: id
     }
   }
 }

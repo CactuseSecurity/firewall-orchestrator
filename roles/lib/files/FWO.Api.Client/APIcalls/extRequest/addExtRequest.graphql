@@ -21,7 +21,7 @@ mutation addExtRequest(
     wait_cycles: $waitCycles
   }) {
     returning {
-      newId: id
+      newIdLong: id
     }
   }
 }

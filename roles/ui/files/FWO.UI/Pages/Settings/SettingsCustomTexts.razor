@@ -38,7 +38,7 @@
             <input type="text" class="form-control form-control-sm" @bind="searchString" />
         </div>
         <div class="col-sm-2">
-            <button type="button" class="btn btn-sm btn-primary" @onclick="async () => { await Search(); StateHasChanged(); }" @onclick:preventDefault>@(userConfig.GetText("search"))</button>
+            <button type="button" class="btn btn-sm btn-primary" @onclick="Search" @onclick:preventDefault>@(userConfig.GetText("search"))</button>
         </div>
         <div class="col-sm-2">
             <input id="cbx_case_sensitive" class="form-check-input" type="checkbox" @bind="caseSensitive">
@@ -129,7 +129,7 @@
         }
     }
 
-    private async Task Search()
+    private void Search()
     {
         results = new();
         foreach(var entry in actDict)

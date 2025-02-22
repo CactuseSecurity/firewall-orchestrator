@@ -106,7 +106,7 @@ namespace FWO.Report
 
         private async Task GetAppServers(ApiConnection apiConnection)
         {
-            List<ModellingAppServer> appServers = await apiConnection.SendQueryAsync<List<ModellingAppServer>>(ModellingQueries.getAppServers,
+            List<ModellingAppServer> appServers = await apiConnection.SendQueryAsync<List<ModellingAppServer>>(ModellingQueries.getAppServersForOwner,
                 new { appId = Query.SelectedOwner?.Id });
             ownerIps = [.. appServers.ConvertAll(s => new IPAddressRange(IPAddress.Parse(s.Ip.StripOffNetmask()),
                 IPAddress.Parse((s.IpEnd != "" ? s.IpEnd : s.Ip).StripOffNetmask())))];
@@ -162,8 +162,8 @@ namespace FWO.Report
         {
             foreach (var ownerIpRange in ownerIps)
             {
-                if (obj.IP != null &&
-                    ComplianceNetworkZone.OverlapExists(new IPAddressRange(IPAddress.Parse(obj.IP.StripOffNetmask()),
+                if(obj.IP != null &&
+                    IpOperations.RangeOverlapExists(new IPAddressRange(IPAddress.Parse(obj.IP.StripOffNetmask()),
                     IPAddress.Parse((obj.IpEnd != null && obj.IpEnd != "" ? obj.IpEnd : obj.IP).StripOffNetmask())), ownerIpRange))
                 {
                     return true;

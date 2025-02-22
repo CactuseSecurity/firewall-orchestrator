@@ -10,7 +10,7 @@
 @inject UserConfig userConfig
 
 
-<PopUp Title="@(userConfig.GetText("approvals"))" Show="@Display" Size=PopupSize.XLarge OnClose="async () => await Close()">
+<PopUp Title="@(userConfig.GetText("approvals"))" Show="@Display" Size=PopupSize.CustomXLarge OnClose="async () => await Close()">
     <Body>
         @if (Display)
         {
@@ -49,7 +49,7 @@
                     </Column>
                     <Column TableItem="WfApproval" Title="@(userConfig.GetText("comments"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" >
                         <Template>
-                            @(WfStatefulObject.DisplayAllComments(context.Comments))
+                            @((MarkupString)WfStatefulObject.DisplayAllComments(context.Comments, true))
                         </Template>
                     </Column>
                 </Table>
@@ -65,6 +65,7 @@
 
 <AssignObject @bind-Display="WfHandler.DisplayAssignApprovalMode" ResetParent="Reset" StatefulObject="WfHandler.ActApproval" Assign="WfHandler.AssignApprovalGroup" ObjectName="" RoleList="validRoles"/>
 <CommentObject @bind-Display="WfHandler.DisplayApprovalCommentMode" ResetParent="Reset" ObjectName="" Save="ConfAddComment"/>
+<InProgress Display="WorkInProgress"/>
 
 @code
 {
@@ -90,12 +91,15 @@
     public WfStateDict States { get; set; } = new ();
 
     static List<string> validRoles = new (){Roles.Approver};
+    private bool WorkInProgress = false;
 
 
     private async Task Close()
     {
-        Display = false;
+        WorkInProgress = true;
         await ResetParent();
+        WorkInProgress = false;
+        Display = false;
     }
 
     private async Task Reset()

@@ -150,6 +150,9 @@ namespace FWO.Report.Filter
                     }}
                 }}");
                 break;
+                            // rules ({limitOffsetString} where: {{ rule_create: {{_lte: $relevantImportId}}, 
+                            //     _or: [ {{ removed: {{_is_null: true}} }}, {{ removed: {{_gte: $relevantImportId}} }} ], 
+                            //     access_rule: {{_eq: true}} }}, order_by: {{rule_num_numeric: asc}}) {{
 
                 case ReportType.Recertification:
                     query.FullQuery = Queries.compact($@"

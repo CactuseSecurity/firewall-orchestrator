@@ -1603,6 +1603,8 @@ INSERT INTO txt VALUES ('generate_name',        'German',   'Name generieren');
 INSERT INTO txt VALUES ('generate_name',        'English',  'Generate Name');
 INSERT INTO txt VALUES ('change_source',        'German',   '&Auml;nderungsquelle');
 INSERT INTO txt VALUES ('change_source',        'English',  'Change Source');
+INSERT INTO txt VALUES ('tableofcontent',      'German',     'Inhaltsverzeichnis');
+INSERT INTO txt VALUES ('tableofcontent',      'English',    'Table of content');
 
 -- compliance
 INSERT INTO txt VALUES ('compliance',			'German', 	'Compliance');
@@ -3190,6 +3192,11 @@ INSERT INTO txt VALUES ('E9203', 'German',  'Fehler beim Abrufen der existierend
 INSERT INTO txt VALUES ('E9203', 'English', 'Error retrieving the existing app zone objects');
 INSERT INTO txt VALUES ('E9204', 'German',  'Fehler beim Hinzuf&uuml;gen des App Servers zum App Zonen Objekt');
 INSERT INTO txt VALUES ('E9204', 'English', 'Error adding the App Server to the App Zone object');
+
+INSERT INTO txt VALUES ('E9301', 'German',  'Template Datei nicht gefunden!');
+INSERT INTO txt VALUES ('E9301', 'English', 'Template File not found!');
+INSERT INTO txt VALUES ('E9302', 'German',  'HTML ist nicht valide!');
+INSERT INTO txt VALUES ('E9302', 'English', 'HTML is invalid!');
 
 -- errors from Api
 INSERT INTO txt VALUES ('A0001', 'German',  'Ung&uuml;ltige Anmeldedaten. Nutzername darf nicht leer sein');

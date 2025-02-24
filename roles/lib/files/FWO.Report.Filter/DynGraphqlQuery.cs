@@ -1,8 +1,11 @@
 using FWO.Report.Filter.Ast;
 using FWO.Api.Client.Queries;
-using FWO.Api.Data;
+using FWO.Data;
+using FWO.Data.Report;
 using System.Text.RegularExpressions;
 using FWO.Logging;
+using FWO.Basics;
+
 
 namespace FWO.Report.Filter
 {
@@ -150,6 +153,9 @@ namespace FWO.Report.Filter
                     }}
                 }}");
                 break;
+                            // rules ({limitOffsetString} where: {{ rule_create: {{_lte: $relevantImportId}}, 
+                            //     _or: [ {{ removed: {{_is_null: true}} }}, {{ removed: {{_gte: $relevantImportId}} }} ], 
+                            //     access_rule: {{_eq: true}} }}, order_by: {{rule_num_numeric: asc}}) {{
 
                 case ReportType.Recertification:
                     query.FullQuery = Queries.compact($@"

@@ -1,4 +1,4 @@
-﻿using FWO.Api.Data;
+﻿using FWO.Data;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Logging;
@@ -391,9 +391,21 @@ namespace FWO.Middleware.Server.Controllers
 					}
 				}
 			}
-			await tenant.AddDevices(apiConnection);
+			await AddDevices(apiConnection, tenant);
 
 			return tenant;
 		}
+
+		// the following method adds device visibility information to a tenant (fetched from API)
+        private async Task AddDevices(ApiConnection conn, Tenant tenant)
+        {
+            var tenIdObj = new { tenantId = tenant.Id };
+
+            Device[] deviceIds = await conn.SendQueryAsync<Device[]>(AuthQueries.getVisibleDeviceIdsPerTenant, tenIdObj, "getVisibleDeviceIdsPerTenant");
+            tenant.VisibleGatewayIds = Array.ConvertAll(deviceIds, device => device.Id);
+
+            Management[] managementIds = await conn.SendQueryAsync<Management[]>(AuthQueries.getVisibleManagementIdsPerTenant, tenIdObj, "getVisibleManagementIdsPerTenant");
+            tenant.VisibleManagementIds = Array.ConvertAll(managementIds, management => management.Id);
+        }
 	}
 }

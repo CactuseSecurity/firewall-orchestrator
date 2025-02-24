@@ -1,8 +1,8 @@
-﻿using FWO.Api.Data;
+﻿using FWO.Data;
 using FWO.Logging;
 using FWO.Config.Api;
 using FWO.Report;
-using FWO.Report.Filter;
+using FWO.Basics;
 
 namespace FWO.Ui.Display
 {

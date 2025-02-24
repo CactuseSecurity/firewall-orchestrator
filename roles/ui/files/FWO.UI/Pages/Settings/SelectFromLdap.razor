@@ -1,6 +1,4 @@
-﻿@using FWO.Services
-
-@inject UserConfig userConfig
+﻿@inject UserConfig userConfig
 
 <PopUp Title="@(userConfig.GetText("select_from_ldap") + ": " + LdapName)" Show="@Display" Size=PopupSize.CustomLarge OnClose="Close">
     <Body>

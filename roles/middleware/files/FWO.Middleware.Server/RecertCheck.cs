@@ -1,6 +1,7 @@
 ﻿using FWO.Api.Client;
 using FWO.Api.Client.Queries;
-using FWO.Api.Data;
+using FWO.Data;
+using FWO.Data.Report;
 using FWO.Config.File;
 using FWO.Config.Api;
 using FWO.Config.Api.Data;
@@ -9,7 +10,7 @@ using FWO.Mail;
 using FWO.Encryption;
 using FWO.Middleware.RequestParameters;
 using FWO.Report;
-using FWO.Report.Filter;
+using FWO.Basics;
 
 
 namespace FWO.Middleware.Server

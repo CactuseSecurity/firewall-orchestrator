@@ -1,6 +1,6 @@
 ﻿using Newtonsoft.Json;
 using System.Text.Json.Serialization;
-using FWO.Api.Data;
+using FWO.Data;
 
 namespace FWO.Report
 {

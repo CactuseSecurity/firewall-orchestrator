@@ -1,7 +1,10 @@
-using FWO.Api.Data;
+using FWO.Data.Report;
 using FWO.Config.Api;
+using FWO.Basics;
+using FWO.Data;
 
-namespace FWO.Report.Filter
+
+namespace FWO.Report.Filter.FilterTypes
 {
     public class ReportFilters
     {

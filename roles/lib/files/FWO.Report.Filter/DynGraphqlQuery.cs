@@ -1,8 +1,11 @@
 using FWO.Report.Filter.Ast;
 using FWO.Api.Client.Queries;
-using FWO.Api.Data;
+using FWO.Data;
+using FWO.Data.Report;
 using System.Text.RegularExpressions;
 using FWO.Logging;
+using FWO.Basics;
+
 
 namespace FWO.Report.Filter
 {

@@ -9,6 +9,7 @@
  <ItemGroup>
     <ProjectReference Include="..\FWO.Api.Client\FWO.Api.Client.csproj" />
     <ProjectReference Include="..\FWO.Logging\FWO.Logging.csproj" />
+    <ProjectReference Include="..\FWO.Data\FWO.Data.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1,12 +1,8 @@
-﻿@using FWO.Config.Api
-@using FWO.Basics
-@using System.Text.Json
-@using FWO.Services
+﻿@using System.Text.Json
 @using System.Net
 
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
 
-@inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
 @if (AppServerHandler != null)

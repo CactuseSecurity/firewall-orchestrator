@@ -3,7 +3,7 @@ using System.Text;
 using FWO.Report.Filter;
 using FWO.Ui.Display;
 using FWO.Config.Api;
-using FWO.Api.Data;
+using FWO.Data;
 
 namespace FWO.Report
 {
@@ -22,7 +22,7 @@ namespace FWO.Report
             foreach (var managementReport in ReportData.ManagementData.Where(mgt => !mgt.Ignore))
             {
                 chapterNumber++;
-                report.AppendLine($"<h3>{managementReport.Name}</h3>");
+                report.AppendLine($"<h3 id=\"{Guid.NewGuid()}\">{managementReport.Name}</h3>");
                 report.AppendLine("<hr>");
 
                 foreach (var device in managementReport.Devices)
@@ -30,30 +30,33 @@ namespace FWO.Report
                     if (device.RulebaseLinks != null)
                     {
                         RulebaseLink? initialRulebaseLink = device.RulebaseLinks.FirstOrDefault(_ => _.IsInitialRulebase());
-                        if (initialRulebaseLink != null)
+                        if (initialRulebaseLink != null) 
                         {
-                            report.AppendLine($"<h4>{device.Name}</h4>");
-                            report.AppendLine("<table>");
-                            report.AppendLine("<tr>");
-                            report.AppendLine($"<th>{userConfig.GetText("number")}</th>");
-                            report.AppendLine($"<th>{userConfig.GetText("name")}</th>");
-                            report.AppendLine($"<th>{userConfig.GetText("source_zone")}</th>");
-                            report.AppendLine($"<th>{userConfig.GetText("source")}</th>");
-                            report.AppendLine($"<th>{userConfig.GetText("destination_zone")}</th>");
-                            report.AppendLine($"<th>{userConfig.GetText("destination")}</th>");
-                            report.AppendLine($"<th>{userConfig.GetText("services")}</th>");
-                            report.AppendLine($"<th>{userConfig.GetText("trans_source")}</th>");
-                            report.AppendLine($"<th>{userConfig.GetText("trans_destination")}</th>");
-                            report.AppendLine($"<th>{userConfig.GetText("trans_services")}</th>");
-                            report.AppendLine($"<th>{userConfig.GetText("enabled")}</th>");
-                            report.AppendLine($"<th>{userConfig.GetText("uid")}</th>");
-                            report.AppendLine($"<th>{userConfig.GetText("comment")}</th>");
-                            report.AppendLine("</tr>");
-                            
-                            report.AppendLine(ExportSingleRulebaseToHtml(GetRulesByRulebaseId(initialRulebaseLink.NextRulebaseId, managementReport), ruleDisplay, chapterNumber));
+                            foreach (var rule in managementReport.Rulebases.FirstOrDefault(rb => rb.Id == initialRulebaseLink.NextRulebaseId)?.Rules)
+                            {
+                                report.AppendLine($"<h4>{device.Name}</h4>");
+                                report.AppendLine("<table>");
+                                report.AppendLine("<tr>");
+                                report.AppendLine($"<th>{userConfig.GetText("number")}</th>");
+                                report.AppendLine($"<th>{userConfig.GetText("name")}</th>");
+                                report.AppendLine($"<th>{userConfig.GetText("source_zone")}</th>");
+                                report.AppendLine($"<th>{userConfig.GetText("source")}</th>");
+                                report.AppendLine($"<th>{userConfig.GetText("destination_zone")}</th>");
+                                report.AppendLine($"<th>{userConfig.GetText("destination")}</th>");
+                                report.AppendLine($"<th>{userConfig.GetText("services")}</th>");
+                                report.AppendLine($"<th>{userConfig.GetText("trans_source")}</th>");
+                                report.AppendLine($"<th>{userConfig.GetText("trans_destination")}</th>");
+                                report.AppendLine($"<th>{userConfig.GetText("trans_services")}</th>");
+                                report.AppendLine($"<th>{userConfig.GetText("enabled")}</th>");
+                                report.AppendLine($"<th>{userConfig.GetText("uid")}</th>");
+                                report.AppendLine($"<th>{userConfig.GetText("comment")}</th>");
+                                report.AppendLine("</tr>");
+                                
+                                report.AppendLine(ExportSingleRulebaseToHtml(GetRulesByRulebaseId(initialRulebaseLink.NextRulebaseId, managementReport), ruleDisplay, chapterNumber));
 
-                            report.AppendLine("</table>");
-                            report.AppendLine("<hr>");
+                                report.AppendLine("</table>");
+                                report.AppendLine("<hr>");
+                            }
                         }
                     }
                 }
@@ -61,7 +64,7 @@ namespace FWO.Report
                 int objNumber = 1;
                 if (managementReport.ReportObjects != null)
                 {
-                    report.AppendLine($"<h4>{userConfig.GetText("network_objects")}</h4>");
+                    report.AppendLine($"<h4 id=\"{Guid.NewGuid()}\">{userConfig.GetText("network_objects")}</h4>");
                     report.AppendLine("<table>");
                     report.AppendLine("<tr>");
                     report.AppendLine($"<th>{userConfig.GetText("number")}</th>");
@@ -90,7 +93,7 @@ namespace FWO.Report
 
                 if (managementReport.ReportServices != null)
                 {
-                    report.AppendLine($"<h4>{userConfig.GetText("network_services")}</h4>");
+                    report.AppendLine($"<h4 id=\"{Guid.NewGuid()}\">{userConfig.GetText("network_services")}</h4>");
                     report.AppendLine("<table>");
                     report.AppendLine("<tr>");
                     report.AppendLine($"<th>{userConfig.GetText("number")}</th>");
@@ -125,7 +128,7 @@ namespace FWO.Report
 
                 if (managementReport.ReportUsers != null)
                 {
-                    report.AppendLine($"<h4>{userConfig.GetText("users")}</h4>");
+                    report.AppendLine($"<h4 id=\"{Guid.NewGuid()}\">{userConfig.GetText("users")}</h4>");
                     report.AppendLine("<table>");
                     report.AppendLine("<tr>");
                     report.AppendLine($"<th>{userConfig.GetText("number")}</th>");

@@ -3,7 +3,9 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Components.Authorization;
 using FWO.Config.Api;
 using FWO.Api.Client;
-using FWO.Api.Data;
+using FWO.Api.Client.Queries;
+using FWO.Data;
+using FWO.Basics;
 using FWO.Ui.Services;
 using FWO.Middleware.Client;
 using FWO.Middleware.RequestParameters;
@@ -160,7 +162,7 @@ namespace FWO.Ui.Auth
 
 				if (int.TryParse(user.FindFirstValue("x-hasura-tenant-id"), out int tenantId))
 				{
-					tenant = await Tenant.GetSingleTenant(apiConnection, tenantId) ?? new();
+					tenant = await GetSingleTenant(apiConnection, tenantId) ?? new();
 				}
 				// else
 				// {
@@ -169,6 +171,19 @@ namespace FWO.Ui.Auth
 			}
 			return tenant;
 		}
+
+        public static async Task<Tenant?> GetSingleTenant(ApiConnection conn, int tenantId)
+        {
+            Tenant[] tenants = await conn.SendQueryAsync<Tenant[]>(AuthQueries.getTenants, new { tenant_id = tenantId });
+            if (tenants.Length > 0)
+            {
+                return tenants[0];
+            }
+            else
+            {
+                return null;
+            }
+        }
 
 		private static async Task<List<string>> GetAllowedRoles(string jwtString)
 		{

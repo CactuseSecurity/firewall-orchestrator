@@ -1,7 +1,4 @@
-﻿@using FWO.Config.Api
-@using FWO.Services
-
-@inject IJSRuntime JSRuntime
+﻿@inject IJSRuntime JSRuntime
 @inject UserConfig userConfig
 
 <PopUp Title="@(userConfig.GetText("share_link"))" Size=PopupSize.CustomMedium Show="@Display" OnClose="Close">

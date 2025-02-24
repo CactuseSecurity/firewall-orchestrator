@@ -12,6 +12,7 @@
   
   <ItemGroup>
 	<ProjectReference Include="..\FWO.Logging\FWO.Logging.csproj" />
+  <ProjectReference Include="..\FWO.Basics\FWO.Basics.csproj" />
   </ItemGroup>  
 
 </Project>

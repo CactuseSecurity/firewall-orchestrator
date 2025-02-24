@@ -1,7 +1,7 @@
 using Newtonsoft.Json;
 using System.Text.Json.Serialization;
 using FWO.Basics;
-using FWO.Api.Data;
+using FWO.Data.Modelling;
 
 namespace FWO.Config.Api.Data
 {

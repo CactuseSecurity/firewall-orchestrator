@@ -1,4 +1,6 @@
-using FWO.Api.Data;
+using FWO.Data;
+using FWO.Data.Workflow;
+using FWO.Data.Modelling;
 
 namespace FWO.Tufin.SecureChange
 {

@@ -3,7 +3,7 @@ using Novell.Directory.Ldap;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 using FWO.Encryption;
-using FWO.Api.Data;
+using FWO.Data;
 using FWO.Middleware.RequestParameters;
 
 namespace FWO.Middleware.Server

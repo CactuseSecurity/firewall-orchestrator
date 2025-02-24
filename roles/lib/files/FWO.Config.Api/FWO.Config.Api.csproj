@@ -7,6 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\FWO.Data\FWO.Data.csproj" />
     <ProjectReference Include="..\FWO.Api.Client\FWO.Api.Client.csproj" />
     <ProjectReference Include="..\FWO.Config.File\FWO.Config.File.csproj" />
     <ProjectReference Include="..\FWO.Logging\FWO.Logging.csproj" />

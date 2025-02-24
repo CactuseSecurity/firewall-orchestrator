@@ -1,6 +1,6 @@
 using FWO.Report.Filter.Ast;
 using FWO.Basics;
-using FWO.Api.Data;
+using FWO.Data.Report;
 using FWO.Logging;
 
 namespace FWO.Report.Filter

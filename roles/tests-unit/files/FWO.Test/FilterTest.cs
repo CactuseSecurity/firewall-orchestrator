@@ -7,7 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using FWO.Basics;
-using FWO.Api.Data;
+using FWO.Data.Report;
 namespace FWO.Test
 {
     [TestFixture]

@@ -1,7 +1,8 @@
 ﻿using NUnit.Framework;
 using NUnit.Framework.Legacy;
 using FWO.Basics;
-using FWO.Api.Data;
+using FWO.Data;
+using FWO.Data.Modelling;
 
 namespace FWO.Test
 {

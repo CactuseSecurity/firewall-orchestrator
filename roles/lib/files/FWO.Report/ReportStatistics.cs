@@ -86,7 +86,7 @@ namespace FWO.Report
         {
             StringBuilder report = new ();
 
-            report.AppendLine($"<h3>{userConfig.GetText("glob_no_obj")}</h3>");
+            report.AppendLine($"<h3 id=\"{Guid.NewGuid()}\">{userConfig.GetText("glob_no_obj")}</h3>");
             report.AppendLine("<table>");
             report.AppendLine("<tr>");
             report.AppendLine($"<th>{userConfig.GetText("network_objects")}</th>");
@@ -105,7 +105,7 @@ namespace FWO.Report
 
             foreach (ManagementReport managementReport in ReportData.ManagementData.Where(mgt => !mgt.Ignore))
             {
-                report.AppendLine($"<h4>{userConfig.GetText("no_of_obj")} - {managementReport.Name}</h4>");
+                report.AppendLine($"<h4 id=\"{Guid.NewGuid()}\">{userConfig.GetText("no_of_obj")} - {managementReport.Name}</h4>");
                 report.AppendLine("<table>");
                 report.AppendLine("<tr>");
                 report.AppendLine($"<th>{userConfig.GetText("network_objects")}</th>");
@@ -122,7 +122,7 @@ namespace FWO.Report
                 report.AppendLine("</table>");
                 report.AppendLine("<br>");
 
-                report.AppendLine($"<h4>{userConfig.GetText("no_rules_gtw")}</h4>");
+                report.AppendLine($"<h4 id=\"{Guid.NewGuid()}\">{userConfig.GetText("no_rules_gtw")}</h4>");
                 report.AppendLine("<table>");
                 report.AppendLine("<tr>");
                 report.AppendLine($"<th>{userConfig.GetText("gateway")}</th>");

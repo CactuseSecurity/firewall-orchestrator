@@ -10,7 +10,7 @@
 
 @inject UserConfig userConfig
 
-<div class="d-flex gap-2">
+<div class="d-flex gap-2 p-2 @CssClass">
     <label class="text-nowrap">@(userConfig.GetText("order_by")): </label>
     <Dropdown   @ref="propertyDropdown"
                 ElementType="string"
@@ -43,6 +43,9 @@
     /// </summary>
     [Parameter, EditorRequired]
     public EventCallback<List<TCollectionItem>> CollectionReordered { get; set; }
+    
+    [Parameter]
+    public string? CssClass { get; set; } = "";
 
     /// <summary>
     /// Backing field of property 'SelectedProperty'.
@@ -99,9 +102,18 @@
 
     protected override void OnParametersSet()
     {
-        if (!initialized && ElementProperties != null && ElementProperties.Any())
+        if (!initialized)
         {
-            SelectedProperty = ElementProperties.First();
+            if(ElementProperties != null && ElementProperties.Any())
+            {
+                SelectedProperty = ElementProperties.First();
+            }
+            
+            if(string.IsNullOrEmpty(CssClass))
+            {
+                CssClass = "";
+            }
+
             initialized = true;
         }
     }

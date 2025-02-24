@@ -27,6 +27,7 @@ namespace FWO.Test
 
             // Implicitly call static constructor so backround lock process is started
             Log.WriteInfo("Startup", "Starting Lock Tests...");
+            Log.WriteInfo("Startup", $"LockFilePath is: {lockFilePath}");
         }
 
         [TearDown]

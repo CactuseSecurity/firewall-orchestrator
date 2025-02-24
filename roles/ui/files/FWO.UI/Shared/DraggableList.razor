@@ -118,6 +118,8 @@
 				Select(index, true);
 			}
 		}
+
+		SelectedElementsChanged.InvokeAsync(SelectedElements);
 	}
 
 	private void Select(int index, bool multiSelect = false)

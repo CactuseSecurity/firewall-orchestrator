@@ -1,0 +1,44 @@
+@using FWO.Ui.Data
+@inject IJSRuntime JSRuntime
+@inject KeyboardInputService KeyboardInputService
+
+@code {
+    private DotNetObjectReference<KeyboardInput> dotNetRef;
+    
+    /// <summary>
+    /// Adds event listeners for keyup and keydown events to the document.
+    /// </summary>
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            dotNetRef = DotNetObjectReference.Create(this);
+            await JSRuntime.InvokeVoidAsync("globalKeyboardListener.init", dotNetRef);
+        }
+    }
+
+    /// <summary>
+    /// Is invoked everytime a key on the keyboard is pressed, if FWO is the selected tab.
+    /// </summary>
+    [JSInvokable]
+    public Task OnKeyUp(KeyboardEventArgs e)
+    {
+        KeyboardInputService.NotifyKeyUp(e);
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Is invoked everytime a key on the keyboard is released, if FWO is the selected tab.
+    /// </summary>
+    [JSInvokable]
+    public Task OnKeyDown(KeyboardEventArgs e)
+    {
+        KeyboardInputService.NotifyKeyDown(e);
+        return Task.CompletedTask;
+    }
+
+    public void Dispose()
+    {
+        dotNetRef?.Dispose();
+    }
+}

@@ -1,12 +1,15 @@
-﻿@typeparam ElementType
+﻿@using FWO.Ui.Data
+@typeparam ElementType
+@inject KeyboardInputService keyboardInputService
 
-<div class="bg-secondary col-sm-12 border" style="overflow-x:clip; overflow-y:auto; max-height: calc( @(MaxHeight) * 1vh);">
+<div class="bg-secondary col-sm-12 border" style="overflow-x:clip; overflow-y:auto; max-height: calc( @(MaxHeight) * 1vh);"
+	 tabindex="0">
 	@for (int i = 0; i < AllElements.Count; i++)
 	{
 		int j = i;
 		<div class="draggable draggable-item @(SelectedElements.Contains(AllElements[j]) ? "draggable-selected" : "")" draggable="true"
 				@ondragstart="@((e) => { HandleDragStart(e, AllElements[j]); lastSelected = null; })"
-				@onclick="() => ToggleSelect(j)" tabindex="0" @onkeydown="(k) => KeyDown(k)" @onkeyup="(k) => KeyUp(k)">
+				@onclick="() => ToggleSelect(j)" >
 			<nobr>@((MarkupString)Display(AllElements[j]))</nobr>
 		</div>
 	}
@@ -40,6 +43,13 @@
 	private bool ctrlPressed = false;
 	private List<int> lastSelectedRange = new();
 
+    /// <summary>
+    /// Subscribes component methods KeyDown and KeyUp to the global keyboard listener.
+    /// </summary>
+    protected override void OnInitialized()
+    {
+        keyboardInputService.Register(KeyUp, KeyDown);
+    }
 
     private void KeyDown(KeyboardEventArgs ev)
     {
@@ -176,6 +186,14 @@
 		SelectedElements.Clear();
 		lastSelected = null;
 	}
+
+    /// <summary>
+    /// Disposes subscribed events to prevent memory leaks.
+    /// </summary>
+    public void Dispose()
+    {
+        keyboardInputService.Unregister(KeyUp, KeyDown);
+    }
 
 	private static bool DoNothingSync(DragEventArgs e, ElementType elem) { return false; }
 	private static string DoNothingSync(ElementType e) { return ""; }

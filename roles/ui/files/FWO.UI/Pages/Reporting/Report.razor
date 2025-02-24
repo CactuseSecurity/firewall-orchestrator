@@ -1,14 +1,11 @@
-@using FWO.Config.Api
 @using FWO.Report
 @using FWO.Report.Filter
+@using FWO.Report.Filter.FilterTypes
 @using FWO.Report.Filter.Exceptions
-@using FWO.Basics
-@using FWO.Api.Data
-@using FWO.Api.Client.Queries
+@using FWO.Data.Modelling
 @using FWO.Ui.Data
 @using FWO.Ui.Pages.Reporting.Reports
 @using System.Diagnostics
-@using FWO.Services
 
 @page "/report/generation/{appId?}"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Auditor}, {Roles.Modeller}")]
@@ -350,7 +347,7 @@
         Tenant? tenantFromTemplate = null;
         if (template.ReportParams.TenantFilter.IsActive)
         {
-            tenantFromTemplate = await Tenant.GetSingleTenant(apiConnection, template.ReportParams.TenantFilter.TenantId);
+            tenantFromTemplate = await FWO.Ui.Auth.AuthStateProvider.GetSingleTenant(apiConnection, template.ReportParams.TenantFilter.TenantId);
         }
         await TenantViewChanged(tenantFromTemplate);
         actReportFilters.SyncFiltersFromTemplate(template);

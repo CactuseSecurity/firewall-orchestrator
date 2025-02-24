@@ -1,8 +1,4 @@
-﻿@using FWO.Config.Api
-@using FWO.Services
-
-@inject ApiConnection apiConnection
-@inject UserConfig userConfig
+﻿@inject UserConfig userConfig
 
 
 <PopUp Title="@(ReplaceMode ? userConfig.GetText("U9015") : ConnHandler?.Application.Name)" Show="@Display" Size=PopupSize.CustomXLarge OnClose="Close">

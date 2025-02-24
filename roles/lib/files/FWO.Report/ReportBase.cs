@@ -1,6 +1,6 @@
 ﻿using FWO.Basics;
 using FWO.Api.Client;
-using FWO.Api.Data;
+using FWO.Data.Report;
 using FWO.Report.Filter;
 using FWO.Config.Api;
 using System.Text;

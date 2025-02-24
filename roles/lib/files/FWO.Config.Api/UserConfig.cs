@@ -3,7 +3,7 @@ using FWO.Basics;
 using FWO.Logging;
 using FWO.Config.Api.Data;
 using FWO.Api.Client;
-using FWO.Api.Data;
+using FWO.Data;
 using FWO.Api.Client.Queries;
 using System.Reflection;
 using System.Text.Json.Serialization;

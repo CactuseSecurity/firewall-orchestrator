@@ -1,4 +1,7 @@
-﻿namespace FWO.Report.Filter.Ast
+﻿using FWO.Basics;
+
+
+namespace FWO.Report.Filter.Ast
 {
     internal class AstNodeFilterString : AstNodeFilter
     {

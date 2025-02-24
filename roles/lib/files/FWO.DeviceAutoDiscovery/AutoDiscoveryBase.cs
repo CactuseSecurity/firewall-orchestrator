@@ -1,7 +1,7 @@
 ﻿using System.Text.Json;
 
 using FWO.Basics;
-using FWO.Api.Data;
+using FWO.Data;
 using FWO.Api.Client;
 using FWO.Logging;
 using FWO.Encryption;

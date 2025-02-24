@@ -17,6 +17,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\..\lib\files\FWO.Middleware\FWO.Middleware.csproj" />
     <ProjectReference Include="..\..\..\lib\files\FWO.Report\FWO.Report.csproj" />
+    <ProjectReference Include="..\..\..\lib\files\FWO.Data\FWO.Data.csproj" />
     <ProjectReference Include="..\..\..\lib\files\FWO.Api.Client\FWO.Api.Client.csproj" />
     <ProjectReference Include="..\..\..\lib\files\FWO.Config.File\FWO.Config.File.csproj" />
     <ProjectReference Include="..\..\..\lib\files\FWO.DeviceAutoDiscovery\FWO.DeviceAutoDiscovery.csproj" />

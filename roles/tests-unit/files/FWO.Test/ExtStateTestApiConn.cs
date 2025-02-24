@@ -1,5 +1,6 @@
 ﻿using GraphQL;
-using FWO.Api.Data;
+using FWO.Data;
+using FWO.Data.Workflow;
 using FWO.Services;
 
 namespace FWO.Test

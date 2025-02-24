@@ -1,12 +1,10 @@
-﻿@using FWO.Config.Api
-@using FWO.Middleware.Client
+﻿@using FWO.Middleware.Client
 @using FWO.Middleware.RequestParameters
-@using FWO.Api.Data
+@using FWO.Data.Workflow
 @using FWO.Tufin.SecureChange
 @using FWO.Report
 @using System.Text.Json.Serialization
 @using Newtonsoft.Json
-@using FWO.Services
 @using System.Net
 @using RestSharp
 
@@ -360,7 +358,7 @@
                 sub.Dispose();
             }
             actTaskSubscriptions = [];
-            apiConnection.DisposeSubscriptions<GraphQlApiSubscription<List<FWO.Api.Data.WfReqTask>>>();
+            apiConnection.DisposeSubscriptions<GraphQlApiSubscription<List<WfReqTask>>>();
         }
         catch (Exception exception)
         {

@@ -1,7 +1,4 @@
-﻿@using FWO.Config.Api
-@using FWO.Services
-
-@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
+﻿@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig

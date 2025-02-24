@@ -1,7 +1,3 @@
-@using FWO.Api.Client
-@using FWO.Config.Api
-@using FWO.Services
-
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Requester}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}, {Roles.Auditor}, {Roles.FwAdmin}")]
 
 @inject ApiConnection apiConnection

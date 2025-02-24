@@ -1,6 +1,4 @@
-﻿@using FWO.Ui.Services
-
-@if (Show)
+﻿@if (Show)
 {
     //The not *custom* popupsizes will be deprecated soon
     <div class="modal-backdrop popup-outer">
@@ -41,7 +39,7 @@
     public bool Show { get; set; } = false;
 
     [Parameter]
-    public PopupSize Size { get; set; } = PopupSize.Small;
+    public PopupSize Size { get; set; } = PopupSize.CustomSmall;
 
     [Parameter]
     public bool Scrollable { get; set; } = true;

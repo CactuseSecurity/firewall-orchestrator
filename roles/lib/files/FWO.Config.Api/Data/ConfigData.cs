@@ -2,7 +2,8 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using FWO.Basics;
-using FWO.Api.Data;
+using FWO.Data;
+using FWO.Data.Workflow;
 using FWO.Mail;
 
 namespace FWO.Config.Api.Data

@@ -1,9 +1,4 @@
-﻿@using FWO.Api.Client
-@using FWO.Api.Client.Queries
-@using FWO.Config.Api
-@using FWO.Services
-
-@page "/settings/statedefinitions"
+﻿@page "/settings/statedefinitions"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
 
 @inject ApiConnection apiConnection

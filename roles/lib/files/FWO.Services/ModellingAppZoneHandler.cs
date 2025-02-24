@@ -1,7 +1,7 @@
 ﻿using FWO.Api.Client;
-using FWO.Api.Client.Data;
 using FWO.Api.Client.Queries;
-using FWO.Api.Data;
+using FWO.Data;
+using FWO.Data.Modelling;
 using FWO.Config.Api;
 using System.Text.Json;
 

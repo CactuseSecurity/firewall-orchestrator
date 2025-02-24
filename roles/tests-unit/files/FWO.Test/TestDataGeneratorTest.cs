@@ -6,7 +6,7 @@ using System.Net;
 using System.Numerics;
 using NUnit.Framework;
 using NetTools;
-using FWO.Api.Data;
+using FWO.Data.Modelling;
 
 namespace FWO.Test
 {

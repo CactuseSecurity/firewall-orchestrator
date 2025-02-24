@@ -1,6 +1,7 @@
 ﻿using System.Text;
 using FWO.Api.Client;
 using FWO.Report.Filter;
+using FWO.Basics;
 using FWO.Ui.Display;
 using FWO.Config.Api;
 using FWO.Logging;

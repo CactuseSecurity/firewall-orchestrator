@@ -1,13 +1,13 @@
-﻿using FWO.Data;
-using FWO.Api.Client;
+﻿using FWO.Api.Client;
 using FWO.Api.Client.Queries;
-using FWO.Logging;
 using FWO.Basics;
+using FWO.Data;
+using FWO.Data.Middleware;
+using FWO.Logging;
 using Microsoft.AspNetCore.Mvc;
-using FWO.Middleware.RequestParameters;
-using System.Security.Authentication;
 using Novell.Directory.Ldap;
 using System.Data;
+using System.Security.Authentication;
 
 namespace FWO.Middleware.Server.Controllers
 {

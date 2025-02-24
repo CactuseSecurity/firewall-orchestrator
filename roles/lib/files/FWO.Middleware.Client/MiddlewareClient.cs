@@ -1,5 +1,5 @@
-﻿using RestSharp;
-using FWO.Middleware.RequestParameters;
+﻿using FWO.Data.Middleware;
+using RestSharp;
 using RestSharp.Authenticators;
 using RestSharp.Serializers.NewtonsoftJson;
 using RestSharp.Serializers;
@@ -251,6 +251,13 @@ namespace FWO.Middleware.Client
             RestRequest request = new ("ExternalRequest/PatchState", Method.Patch);
             request.AddJsonBody(parameters);
             return await restClient.ExecuteAsync<bool>(request);
+        }
+
+        public async Task<RestResponse<string>> GetReport(GetReportParameters parameters)
+        {
+            RestRequest request = new ("Report", Method.Post);
+            request.AddJsonBody(parameters);
+            return await restClient.ExecuteAsync<string>(request);
         }
 
         protected virtual void Dispose(bool disposing)

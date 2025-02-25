@@ -118,8 +118,8 @@ Alter table "rule_from" add  foreign key ("rf_last_seen") references "import_con
 Alter table "rule_from" add  foreign key ("rule_id") references "rule" ("rule_id") on update restrict on delete cascade;
 Alter table "rule_from" add  foreign key ("user_id") references "usr" ("user_id") on update restrict on delete cascade;
 
-Alter table "rule_metadata" add constraint "rule_metadata_device_dev_id_f_key"
-    foreign key ("dev_id") references "device" ("dev_id") on update restrict on delete cascade;
+-- Alter table "rule_metadata" add constraint "rule_metadata_device_dev_id_f_key"
+--     foreign key ("dev_id") references "device" ("dev_id") on update restrict on delete cascade;
 Alter table "rule_metadata" add constraint "rule_metadata_rule_last_certifier_uiuser_uiuser_id_f_key"
   foreign key ("rule_last_certifier") references "uiuser" ("uiuser_id") on update restrict on delete cascade;
 Alter table "rule_metadata" add constraint "rule_metadata_rule_owner_uiuser_uiuser_id_f_key"

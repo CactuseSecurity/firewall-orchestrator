@@ -124,5 +124,11 @@
       - chrome_crashpad_handler
       - chrome_sandbox
 
+  - name: add {{ fworch_home }}/bin to every users path
+    copy:
+      dest: /etc/profile.d/custom_path.sh
+      content: 'export PATH="{{ fworch_home }}/bin:$PATH"'
+      mode: '0644' 
+
   become: true
   environment: "{{ proxy_env }}"

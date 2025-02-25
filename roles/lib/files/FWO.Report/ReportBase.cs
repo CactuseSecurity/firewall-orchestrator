@@ -10,6 +10,7 @@ using PuppeteerSharp.Media;
 using PuppeteerSharp.BrowserData;
 using HtmlAgilityPack;
 using FWO.Report.Data;
+using FWO.Logging;
 
 namespace FWO.Report
 {
@@ -252,6 +253,15 @@ namespace FWO.Report
             InstalledBrowser? installedBrowser = browserFetcher.GetInstalledBrowsers()
                       .FirstOrDefault(_ => _.Platform == platform && _.Browser == wantedBrowser);
 
+            if (installedBrowser == null && os.Platform == PlatformID.Win32NT)
+            {
+                Log.WriteInfo("Browser", $"Browser not found for Windows! Trying to download...");
+                await browserFetcher.DownloadAsync();
+
+                installedBrowser = browserFetcher.GetInstalledBrowsers()
+                      .FirstOrDefault(_ => _.Platform == platform && _.Browser == wantedBrowser);
+            }
+
             if (installedBrowser == null)
             {
                 throw new Exception($"Browser {wantedBrowser} is not installed!");
@@ -372,7 +382,7 @@ namespace FWO.Report
                 return false;
             }
 
-        }        
+        }
 
         public PuppeteerSharp.Media.PaperFormat? GetPuppeteerPaperFormat(PaperFormat format)
         {

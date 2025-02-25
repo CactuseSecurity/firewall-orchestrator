@@ -13,7 +13,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\FWO.Basics\FWO.Basics.csproj" />
-    <ProjectReference Include="..\FWO.Middleware\FWO.Middleware.csproj" />
+    <ProjectReference Include="..\FWO.Logging\FWO.Logging.csproj" />
   </ItemGroup>
 
 </Project>

@@ -113,9 +113,9 @@
       dest: "{{ chrome_dest }}"
       remote_src: yes
 
-  - name: create symlink {{ chrome_dest }} to /usr/local/fworch/bin/Chrome
+  - name: create symlinks {{ chrome_dest }}/chrome-linux64 to /usr/local/fworch/bin/Chrome
     file:
-      src: "{{ chrome_dest }}/{{ item }}"
+      src: "{{ chrome_dest }}/chrome-linux64/{{ item }}"
       dest: "{{ fworch_home }}/bin/{{ item }}"
       state: link
     loop:

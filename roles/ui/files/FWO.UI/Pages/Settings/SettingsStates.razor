@@ -45,7 +45,7 @@
         </Table>
     </div>
 
-    <PopUp Title="@(userConfig.GetText("edit_state"))" Show="@EditStateMode" Size=PopupSize.CustomMedium OnClose="() => EditStateMode = false">
+    <PopUp Title="@(userConfig.GetText("edit_state"))" Show="@EditStateMode" Size=PopupSize.CustomLarge OnClose="() => EditStateMode = false">
         <Body>
             @if (EditStateMode)
             {

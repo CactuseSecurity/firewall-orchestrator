@@ -162,7 +162,7 @@
         </Footer>
     </PopUp>
 
-    <PopUp Title="@(userConfig.GetText("edit_state") + ": " + statesDict.Name[actStateId])" Show="@EditTargetStatesMode" Size=PopupSize.CustomSmall OnClose="() => EditTargetStatesMode = false">
+    <PopUp Title="@(userConfig.GetText("edit_state") + ": " + statesDict.Name[actStateId])" Show="@EditTargetStatesMode" Size=PopupSize.CustomMedium OnClose="() => EditTargetStatesMode = false">
         <Body>
             @if (EditTargetStatesMode)
             {

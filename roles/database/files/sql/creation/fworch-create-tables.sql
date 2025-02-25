@@ -212,7 +212,8 @@ Create table "rule_metadata"
 	"last_change_admin" Integer,
 	"rule_decert_date" Timestamp,
 	"rule_recertification_comment" Varchar,
- primary key ("rule_metadata_id")
+	"rulebase_id" Integer,
+ primary key ("rule_metadata_id") 
 );
 
 -- adding direct link tables rule_[svc|nwobj|user]_resolved to make report object export easier

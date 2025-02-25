@@ -36,7 +36,8 @@ def normalizeRulebases (nativeConfig, importState, normalizedConfig):
     rb_range = range(len(nativeConfig['rulebases']))
     for rb_id in rb_range:
 
-        rulebaseUid = nativeConfig['rulebases'][rb_id]['layername']
+        # rulebaseUid = nativeConfig['rulebases'][rb_id]['layername']
+        rulebaseUid = nativeConfig['rulebases'][rb_id]['uid']
         accessPolicy = Rulebase(uid=rulebaseUid, name=rulebaseUid, mgm_uid=importState.MgmDetails.Name, Rules=[])
         natPolicy = Rulebase(uid=rulebaseUid, name=rulebaseUid, mgm_uid=importState.MgmDetails.Name, Rules=[])
 
@@ -52,8 +53,9 @@ def normalizeRulebases (nativeConfig, importState, normalizedConfig):
         # parse nat rules
         if len(nativeConfig['nat_rulebases'])>0:
             if len(nativeConfig['nat_rulebases']) != len(rb_range):
-                logger.warning('get_config - found ' + str(len(nativeConfig['nat_rulebases'])) +
-                    ' nat rulebases and ' +  str(len(rb_range)) + ' access rulebases')
+                pass
+                # logger.warning('get_config - found ' + str(len(nativeConfig['nat_rulebases'])) +
+                #     ' nat rulebases and ' +  str(len(rb_range)) + ' access rulebases')
             else:
                 rule_num = parseNatRulebase(
                     nativeConfig['nat_rulebases'][rb_id], natPolicy, nativeConfig['rulebases'][rb_id]['layername'], 

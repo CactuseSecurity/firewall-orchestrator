@@ -1,12 +1,13 @@
-﻿using System;
-using System.IdentityModel.Tokens.Jwt;
-using Microsoft.IdentityModel.Tokens;
-using System.IO;
-using System.Linq;
-using System.Security.Claims;
+﻿using FWO.Basics;
 using FWO.Config.File;
 using FWO.Logging;
 using Microsoft.IdentityModel.JsonWebTokens;
+using Microsoft.IdentityModel.Tokens;
+using System;
+using System.IdentityModel.Tokens.Jwt;
+using System.IO;
+using System.Linq;
+using System.Security.Claims;
 
 namespace FWO.Middleware.Client
 {
@@ -68,8 +69,8 @@ namespace FWO.Middleware.Client
 					ValidateAudience = true,
 					ValidateIssuer = true,
 					ValidateLifetime = true,
-					ValidAudience = JwtConstants.Audience,
-					ValidIssuer = JwtConstants.Issuer,
+					ValidAudience = FWO.Basics.JwtConstants.Audience,
+					ValidIssuer = FWO.Basics.JwtConstants.Issuer,
 					IssuerSigningKey = jwtPublicKey,
 					
 				};

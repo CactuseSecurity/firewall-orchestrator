@@ -1,5 +1,5 @@
-﻿using RestSharp;
-using FWO.Middleware.RequestParameters;
+﻿using FWO.Data.Middleware;
+using RestSharp;
 using RestSharp.Authenticators;
 using RestSharp.Serializers.NewtonsoftJson;
 using RestSharp.Serializers;

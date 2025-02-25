@@ -1,4 +1,4 @@
-﻿namespace FWO.Middleware.RequestParameters
+﻿namespace FWO.Data.Middleware
 {
     public class ExternalRequestAddParameters
     {

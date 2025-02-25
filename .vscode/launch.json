@@ -121,7 +121,8 @@
                 // "-c",
                 // "-ifile:///home/tim/tmp/mgm_id_12_config_normalized_with_links.json",
                 // "-ifile:///home/tim/tmp/mgm_id_16_config_normalized_links_only.json",
-                "-ifile:///home/tim/tmp/mgm_id_16_config_normalized_links_changed.json",
+                // "-ifile:///home/tim/tmp/mgm_id_16_config_normalized_links_changed.json",
+                "-ifile:///home/tim/tmp/mgm_id_16_config_normalized_links_src_negated.json",
                 //"-l66",
                 // "-l500",
                 //  41 - lab fortimanager

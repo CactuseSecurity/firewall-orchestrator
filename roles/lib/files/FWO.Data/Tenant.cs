@@ -1,6 +1,6 @@
-﻿using System.Text.Json.Serialization; 
+﻿using FWO.Data.Middleware;
 using Newtonsoft.Json;
-using FWO.Middleware.RequestParameters;
+using System.Text.Json.Serialization; 
 
 
 namespace FWO.Data

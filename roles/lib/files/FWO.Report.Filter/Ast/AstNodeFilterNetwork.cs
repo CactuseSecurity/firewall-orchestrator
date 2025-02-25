@@ -1,6 +1,8 @@
 ﻿using NetTools;
 using System.Net;
 using FWO.Logging;
+using FWO.Basics;
+
 
 namespace FWO.Report.Filter.Ast
 {

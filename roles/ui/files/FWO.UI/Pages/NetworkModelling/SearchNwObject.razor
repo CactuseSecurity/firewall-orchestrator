@@ -1,8 +1,5 @@
-﻿@using FWO.Config.Api
+﻿@using System.Text.Json
 @using FWO.Config.Api.Data
-@using FWO.Api.Client.Queries
-@using System.Text.Json
-@using FWO.Services
 
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.Modeller}")]
 

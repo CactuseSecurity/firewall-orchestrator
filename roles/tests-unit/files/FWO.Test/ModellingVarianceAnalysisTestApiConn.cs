@@ -1,9 +1,9 @@
 ﻿using FWO.Api.Client.Queries;
 using GraphQL;
-using FWO.Api.Data;
 using FWO.Basics;
 using FWO.Services;
-using FWO.Api.Client.Data;
+using FWO.Data;
+using FWO.Data.Modelling;
 
 namespace FWO.Test
 {

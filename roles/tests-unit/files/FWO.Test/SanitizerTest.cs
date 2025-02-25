@@ -1,6 +1,6 @@
 ﻿using NUnit.Framework;
 using NUnit.Framework.Legacy;
-using FWO.Api.Data;
+using FWO.Data;
 
 namespace FWO.Test
 {

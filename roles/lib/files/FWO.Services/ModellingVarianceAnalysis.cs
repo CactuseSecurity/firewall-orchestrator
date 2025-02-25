@@ -92,6 +92,7 @@ namespace FWO.Services
             {
                 List<Management> managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames);
                 managements = managements.Where(m => !string.IsNullOrEmpty(m.ExtMgtData)).ToList();
+                relevantManagements = [];
                 foreach (Management mgt in managements)
                 {
                     ExtMgtData extMgtData = System.Text.Json.JsonSerializer.Deserialize<ExtMgtData>(mgt.ExtMgtData);

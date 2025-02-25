@@ -1,9 +1,9 @@
-﻿using System.Net;
+﻿using FWO.Config.Api;
 using FWO.Data;
-using FWO.Config.Api;
+using FWO.Data.Middleware;
 using FWO.Middleware.Client;
-using FWO.Middleware.RequestParameters;
 using RestSharp;
+using System.Net;
 
 namespace FWO.Services
 {

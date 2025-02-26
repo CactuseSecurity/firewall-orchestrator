@@ -12,7 +12,7 @@ namespace FWO.Basics.TestDataGeneration
 
             try
             {
-                T generatedInstance = DeserializeFromJson<T>(json);
+                T? generatedInstance = DeserializeFromJson<T>(json);
 
                 if (generatedInstance != null)
                 {
@@ -24,7 +24,7 @@ namespace FWO.Basics.TestDataGeneration
                     result.ProcessSuccessful = false;
                 }
             }
-            catch (Exception exception)
+            catch 
             {
                 result.ProcessSuccessful = false;
             }
@@ -82,13 +82,16 @@ namespace FWO.Basics.TestDataGeneration
 
                             foreach (var valueSetting in valueSettingsNode.AsObject())
                             {
-                                valuesWithProbabilities[valueSetting.Key] = valueSetting.Value.GetValue<double>(); 
+                                if (valueSetting.Value != null)
+                                {
+                                    valuesWithProbabilities[valueSetting.Key] = valueSetting.Value.GetValue<double>(); 
+                                }
                             }
 
                             string randomizedValue = GetRandomValueByProbability(valuesWithProbabilities);
 
                             // get property
-                            PropertyInfo property = typeof(T).GetProperty(propertyName);
+                            PropertyInfo? property = typeof(T).GetProperty(propertyName);
                             if (property == null)
                             {
                                 throw new ArgumentException($"Property '{propertyName}' not found on type '{typeof(T)}'.");
@@ -159,13 +162,13 @@ namespace FWO.Basics.TestDataGeneration
             }
         }
 
-        private T? DeserializeFromJson<T>(string json)
+        private TDeserializedObject? DeserializeFromJson<TDeserializedObject>(string json)
         {
             bool isValidated = ValidateJson(json);
             
             if (isValidated)
             {
-                T? generatedInstance = JsonSerializer.Deserialize<T>(json);
+                TDeserializedObject? generatedInstance = JsonSerializer.Deserialize<TDeserializedObject>(json);
 
                 if (generatedInstance != null)
                 {
@@ -185,7 +188,7 @@ namespace FWO.Basics.TestDataGeneration
                 
                 return true;
             }
-            catch (Exception exception)
+            catch
             {
                 return false;                
             }

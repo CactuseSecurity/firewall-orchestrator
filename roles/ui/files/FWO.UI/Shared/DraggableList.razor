@@ -39,50 +39,13 @@
 	public bool Multiselect { get; set; } = true;
 
 	private int? lastSelected;
-	private bool shiftPressed = false;
-	private bool ctrlPressed = false;
 	private List<int> lastSelectedRange = new();
-
-    /// <summary>
-    /// Subscribes component methods KeyDown and KeyUp to the global keyboard listener.
-    /// </summary>
-    protected override void OnInitialized()
-    {
-        keyboardInputService.Register(KeyUp, KeyDown);
-    }
-
-    private void KeyDown(KeyboardEventArgs ev)
-    {
-		if(ev.ShiftKey)
-		{
-        	shiftPressed = true;
-		}
-
-		if(ev.CtrlKey)
-		{
-			ctrlPressed = true;
-		}
-
-
-    }
-
-	private void KeyUp(KeyboardEventArgs ev)
-    {
-		// has to be Key because ShiftKey and CtrlKey are already false when KeyUp gets invoked
-
-		if(ev.Key == "Shift")
-		{
-        	shiftPressed = false;
-		}
-
-		if(ev.Key == "Control")
-		{
-        	ctrlPressed = false;
-		}
-    }
 
 	private void ToggleSelect(int index)
 	{
+		bool shiftPressed = keyboardInputService.ShiftPressed;
+		bool ctrlPressed = keyboardInputService.ControlPressed;
+
 		// if no multiselect treat as if no multiselect key is pressed
 		if (!Multiselect || (!shiftPressed && !ctrlPressed))
 		{
@@ -186,14 +149,6 @@
 		SelectedElements.Clear();
 		lastSelected = null;
 	}
-
-    /// <summary>
-    /// Disposes subscribed events to prevent memory leaks.
-    /// </summary>
-    public void Dispose()
-    {
-        keyboardInputService.Unregister(KeyUp, KeyDown);
-    }
 
 	private static bool DoNothingSync(DragEventArgs e, ElementType elem) { return false; }
 	private static string DoNothingSync(ElementType e) { return ""; }

@@ -1,7 +1,9 @@
 window.globalKeyboardListener = {
-    init: function(dotnetHelper) {
-        document.addEventListener('keydown', function(e) {
-            dotnetHelper.invokeMethodAsync('OnKeyDown', {
+    dotNetRef: null,
+    
+    onKeyDown: function (e) {
+        if (window.globalKeyboardListener.dotNetRef) {
+            window.globalKeyboardListener.dotNetRef.invokeMethodAsync('OnKeyDown', {
                 Key: e.key,
                 Code: e.code,
                 AltKey: e.altKey,
@@ -11,9 +13,12 @@ window.globalKeyboardListener = {
                 Location: e.location,
                 Repeat: e.repeat
             });
-        });
-        document.addEventListener('keyup', function(e) {
-            dotnetHelper.invokeMethodAsync('OnKeyUp', {
+        }
+    },
+
+    onKeyUp: function (e) {
+        if (window.globalKeyboardListener.dotNetRef) {
+            window.globalKeyboardListener.dotNetRef.invokeMethodAsync('OnKeyUp', {
                 Key: e.key,
                 Code: e.code,
                 AltKey: e.altKey,
@@ -23,6 +28,18 @@ window.globalKeyboardListener = {
                 Location: e.location,
                 Repeat: e.repeat
             });
-        });
+        }
+    },
+
+    init: function (dotNetHelper) {
+        this.dotNetRef = dotNetHelper;
+        document.addEventListener('keydown', this.onKeyDown);
+        document.addEventListener('keyup', this.onKeyUp);
+    },
+
+    dispose: function () {
+        document.removeEventListener("keydown", this.onKeyDown);
+        document.removeEventListener("keyup", this.onKeyUp);
+        this.dotNetRef = null; // Clear reference to prevent memory leaks
     }
 };

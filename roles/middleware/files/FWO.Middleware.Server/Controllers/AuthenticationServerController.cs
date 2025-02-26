@@ -1,11 +1,11 @@
-﻿using FWO.Api.Client.Queries;
-using FWO.Api.Client;
-using FWO.Data;
-using FWO.Logging;
+﻿using FWO.Api.Client;
+using FWO.Api.Client.Queries;
 using FWO.Basics;
+using FWO.Data;
+using FWO.Data.Middleware;
+using FWO.Logging;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using FWO.Middleware.RequestParameters;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 

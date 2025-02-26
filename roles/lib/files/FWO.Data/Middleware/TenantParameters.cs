@@ -1,4 +1,4 @@
-﻿namespace FWO.Middleware.RequestParameters
+﻿namespace FWO.Data.Middleware
 
 // used for accessing tenant data stored in LDAP via REST UserManagement API
 // but tenant to device mappings (not stored in LDAP but in DB) are also handled here

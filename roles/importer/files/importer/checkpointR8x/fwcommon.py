@@ -322,21 +322,21 @@ def get_config(nativeConfig: json, importState: ImportState) -> tuple[int, FwCon
     logger.info("completed normalizing rulebases")
     
     # put dicts into object of class FwConfigManager
-    normalizedConfig = FwConfigNormalized(action=ConfigAction.INSERT, 
+    normalizedConfig2 = FwConfigNormalized(action=ConfigAction.INSERT, 
                             network_objects=FwConfigNormalizedController.convertListToDict(normalizedConfig['network_objects'], 'obj_uid'),
                             service_objects=FwConfigNormalizedController.convertListToDict(normalizedConfig['service_objects'], 'svc_uid'),
                             users=normalizedConfig['users'],
                             zone_objects=normalizedConfig['zone_objects'],
                             # decide between old (rules) and new (policies) format
                             # rules=normalizedConfig['rules'] if len(normalizedConfig['rules'])>0 else normalizedConfig['policies'],    
-                            rulbases=normalizedConfig['policies'],
+                            rulebases=normalizedConfig['policies'],
                             gateways=normalizedConfig['gateways']
                             )
     manager = FwConfigManager(ManagerUid=calcManagerUidHash(importState.FullMgmDetails),
                               ManagerName=importState.MgmDetails.Name,
                               IsGlobal=False, 
                               DependantManagerUids=[], 
-                              Configs=[normalizedConfig])
+                              Configs=[normalizedConfig2])
     # listOfManagers = FwConfigManagerList()
     listOfManagers = FwConfigManagerListController()
 

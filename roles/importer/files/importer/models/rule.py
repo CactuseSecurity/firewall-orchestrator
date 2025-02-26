@@ -21,6 +21,14 @@ class RuleTrack(CaseInsensitiveEnum):
     NONE = 'none'
     LOG = 'log'
     ALERT = 'alert'
+    DETAILEDLOG = 'detailed log'
+    USERDEFINED = 'userdefined'
+    MAIL = 'mail'
+    ACCOUNT = 'account'
+    USERDEFINED1 = 'userdefined 1'
+    USERDEFINED2 = 'userdefined 2'
+    USERDEFINED3 = 'userdefined 3'
+    SNMPTRAP = 'snmptrap'
 
 # Rule is the model for a normalized rule (containing no DB IDs)
 class Rule(BaseModel):

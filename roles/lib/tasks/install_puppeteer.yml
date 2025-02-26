@@ -113,22 +113,22 @@
       dest: "{{ chrome_dest }}"
       remote_src: yes
 
-  # - name: create symlinks {{ chrome_dest }}/chrome-linux64 to /usr/local/fworch/bin/Chrome
-  #   file:
-  #     src: "{{ chrome_dest }}/chrome-linux64/{{ item }}"
-  #     dest: "{{ fworch_home }}/bin/{{ item }}"
-  #     state: link
-  #   loop:
-  #     - chrome
-  #     - chrome-wrapper
-  #     - chrome_crashpad_handler
-  #     - chrome_sandbox
+  - name: create symlinks {{ chrome_dest }}/chrome-linux64 to /usr/local/fworch/bin/Chrome
+    file:
+      src: "{{ chrome_dest }}/chrome-linux64/{{ item }}"
+      dest: "{{ fworch_home }}/bin/{{ item }}"
+      state: link
+    loop:
+      - chrome
+      - chrome-wrapper
+      - chrome_crashpad_handler
+      - chrome_sandbox
 
-  # - name: add {{ fworch_home }}/bin to every users path
-  #   copy:
-  #     dest: /etc/profile.d/custom_path.sh
-  #     content: 'export PATH="{{ fworch_home }}/bin:$PATH"'
-  #     mode: '0644' 
+  - name: add {{ fworch_home }}/bin to every users path
+    copy:
+      dest: /etc/profile.d/custom_path.sh
+      content: 'export PATH="{{ fworch_home }}/bin:$PATH"'
+      mode: '0644' 
 
   become: true
   environment: "{{ proxy_env }}"

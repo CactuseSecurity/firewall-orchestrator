@@ -519,7 +519,7 @@ thead {
 
 /* Popups */
 
-.modal-body {
+/* .modal-body {
     overflow: auto;
 }
 
@@ -534,4 +534,4 @@ max-width: 99%;
 .table-responsive:has(> .table.table-bordered.th-bg-secondary.table-responsive.overflow-auto.sticky-header)
 {
     padding-bottom: 30px;
-}
+} */

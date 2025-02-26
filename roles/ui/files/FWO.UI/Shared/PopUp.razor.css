@@ -4,27 +4,47 @@
 }
 
 .custom-modal-xl {
-    --bs-modal-width: 80vw;
-    height: 90vh;
+    max-width: 80vw;
     margin-top: 3em;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.custom-modal-content-xl {
+    max-height: 80vh;
 }
 
 .custom-modal-lg {
-    --bs-modal-width: 60vw;
-    height: 70vh;
+    max-width: 60vw;
     margin-top: 8em;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.custom-modal-content-lg {
+    max-height: 60vh;
 }
 
 .custom-modal-md {
-    --bs-modal-width: 40vw;
-    height: 50vh;
+    max-width: 40vw;
     margin-top: 12em;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.custom-modal-content-md {
+    max-height: 40vh;
 }
 
 .custom-modal-sm {
-    --bs-modal-width: 30vw;
-    height: 40vh;
+    max-width: 30vw;
     margin-top: 16em;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.custom-modal-content-sm {
+    max-height: 30vh;
 }
 
 .modal-dialog-padding {
@@ -32,15 +52,13 @@
     align-items: normal;
 }
 
-.custom-modal-popup {
-    padding: 2em;
+.custom-modal-footer {
     background-color: rgba(255, 255, 255, 1);
-    overflow-x: hidden;    
+    padding: 1em;
 }
-
-.popup-body-fs {
-    height: fit-content;
-    box-sizing: content-box;
-    height: calc(100vh - 150px);
-    overflow-y: scroll;
+.modal-content {
+    padding: 2em 2em 0 2em;
+    background-color: rgba(255, 255, 255, 1);
+    overflow-y: auto;
+    overflow-x: hidden;
 }

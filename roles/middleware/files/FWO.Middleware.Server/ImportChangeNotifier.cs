@@ -196,7 +196,8 @@ namespace FWO.Middleware.Server
 						body += changeReport?.ExportToHtml();
 						break;
 					case (int)ImpChangeNotificationType.PdfAsAttachment:
-						string? pdfData = await changeReport.ToPdf(Report.PaperFormat.A4);
+						string html = changeReport.ExportToHtml();
+                        string? pdfData = await changeReport.ToPdf(html);
 
 						if (string.IsNullOrWhiteSpace(pdfData))
 							throw new Exception("No Pdf generated.");

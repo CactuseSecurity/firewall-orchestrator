@@ -23,16 +23,16 @@ namespace FWO.Middleware.Server
         public static async Task<ImportChangeNotifyScheduler> CreateAsync(ApiConnection apiConnection)
         {
             GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(apiConnection, true);
+
             return new ImportChangeNotifyScheduler(apiConnection, globalConfig);
         }
     
         private ImportChangeNotifyScheduler(ApiConnection apiConnection, GlobalConfig globalConfig)
-            : base(apiConnection, globalConfig, ConfigQueries.subscribeImportNotifyConfigChanges)
+            : base(apiConnection, globalConfig, ConfigQueries.subscribeImportNotifyConfigChanges, ConfigQueries.subscribeConfigChangesByUser)
         {}
-
-		/// <summary>
-		/// set scheduling timer from config values
-		/// </summary>
+        /// <summary>
+        /// set scheduling timer from config values
+        /// </summary>
         protected override void OnGlobalConfigChange(List<ConfigItem> config)
         {
             ScheduleTimer.Stop();

@@ -261,7 +261,6 @@ def getRulebases (api_v_url, sid, show_params_rules,
         }
         try:
             rulebaseForUid = cp_api_call(api_v_url, 'show-' + access_type + '-rulebase', get_rulebase_uid_params, sid)
-            # delete_v hier nochmal genau das return format ansehen
             rulebaseUid = rulebaseForUid['uid']
         except:
             logger.error("could not find uid for rulebase name=" + rulebaseName)

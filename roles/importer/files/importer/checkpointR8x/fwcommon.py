@@ -82,6 +82,8 @@ def getRules (nativeConfig: dict, importState: ImportState) -> int:
     # 1. domain wird durch prepare_get_vars aus importState.FullMgmDetails ausgelesen,
     #    was muss für mds vs standalone beachtet werden
     # 2. importState.FullMgmDetails['devices'][x]['global_rulebase_name'] entscheidet ob mds oder nicht
+    # 3. ich mache nirgends logout
+    # 4. NAT noch nicht getestet
 
     logger = getFwoLogger()
     nativeConfig.update({'rulebases': [], 'nat_rulebases': [], 'gateways': [] })
@@ -196,7 +198,7 @@ def getRules (nativeConfig: dict, importState: ImportState) -> int:
         for orderedLayerUid in orderedLayerUids:
 
             # get sid for local domain
-            sid = login_cp(importState.FullMgmDetails, domain) # delete_v wie bekomme ich local domain
+            #sid = login_cp(importState.FullMgmDetails, domain) # delete_v wie bekomme ich local domain
 
             show_params_rules.update({'uid': orderedLayerUid})
             show_params_rules.pop('name', None) # delete_v das kann weg sobald show_params_rules nur noch uids verwendet

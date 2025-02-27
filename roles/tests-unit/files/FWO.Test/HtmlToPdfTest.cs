@@ -6,22 +6,18 @@ using PuppeteerSharp;
 using PuppeteerSharp.BrowserData;
 using FWO.Report;
 using FWO.Report.Data;
+using FWO.Basics;
 
 namespace FWO.Test
 {
     [TestFixture]
     [Parallelizable]
     internal class HtmlToPdfTest
-    {
-        private const string FilePath = "pdffile.pdf";
-        private const string Html = "<html><body><h1>test</h1><h2>test mit puppteer</h2></body></html>";
-        private const string ChromeBinPathLinux = "/usr/local/fworch/bin";
-
-
+    {    
         [Test]
         public async Task GeneratePdf()
         {
-            bool isValidHtml = ReportBase.IsValidHTML(Html);
+            bool isValidHtml = ReportBase.IsValidHTML(GlobalConst.TestPDFHtmlTemplate);
             ClassicAssert.IsTrue(isValidHtml);
 
             string? sudoUser = Environment.GetEnvironmentVariable("SUDO_USER");
@@ -35,8 +31,8 @@ namespace FWO.Test
                 return;
             }
 
-            if (File.Exists(FilePath))
-                File.Delete(FilePath);
+            if (File.Exists(GlobalConst.TestPDFFilePath))
+                File.Delete(GlobalConst.TestPDFFilePath);
 
             OperatingSystem? os = Environment.OSVersion;
 
@@ -52,7 +48,7 @@ namespace FWO.Test
                     platform = Platform.Win32;
                     break;
                 case PlatformID.Unix:
-                    path = ChromeBinPathLinux;
+                    path = GlobalConst.ChromeBinPathLinux;
                     platform = Platform.Linux;
                     break;
                 default:
@@ -108,10 +104,10 @@ namespace FWO.Test
         [Test]
         public void TryCreateToC()
         {
-            bool isValidHtml = ReportBase.IsValidHTML(Html);
+            bool isValidHtml = ReportBase.IsValidHTML(GlobalConst.TestPDFHtmlTemplate);
             ClassicAssert.IsTrue(isValidHtml);
 
-            List<ToCHeader>? tocContent = ReportBase.CreateTOCContent(Html);
+            List<ToCHeader>? tocContent = ReportBase.CreateTOCContent(GlobalConst.TestPDFHtmlTemplate);
 
             ClassicAssert.AreEqual(tocContent.Count, 2);
             ClassicAssert.AreEqual(tocContent[0].Title, "test");
@@ -125,16 +121,16 @@ namespace FWO.Test
             try
             {
                 using IPage page = await browser.NewPageAsync();
-                await page.SetContentAsync(Html);
+                await page.SetContentAsync(GlobalConst.TestPDFHtmlTemplate);
 
                 PdfOptions pdfOptions = new() {Outline = true, DisplayHeaderFooter = false, Landscape = true, PrintBackground = true, Format = paperFormat, MarginOptions = new MarginOptions { Top = "1cm", Bottom = "1cm", Left = "1cm", Right = "1cm" } };
                 byte[]? pdfData = await page.PdfDataAsync(pdfOptions);
 
-                await File.WriteAllBytesAsync(FilePath, pdfData);
+                await File.WriteAllBytesAsync(GlobalConst.TestPDFFilePath, pdfData);
 
-                Assert.That(FilePath, Does.Exist);
-                FileAssert.Exists(FilePath);
-                ClassicAssert.AreEqual(new FileInfo(FilePath).Length, pdfData.Length);
+                Assert.That(GlobalConst.TestPDFFilePath, Does.Exist);
+                FileAssert.Exists(GlobalConst.TestPDFFilePath);
+                ClassicAssert.AreEqual(new FileInfo(GlobalConst.TestPDFFilePath).Length, pdfData.Length);
             }
             catch (Exception)
             {
@@ -145,9 +141,9 @@ namespace FWO.Test
         [OneTimeTearDown]
         public void OnFinished()
         {
-            if (File.Exists(FilePath))
+            if (File.Exists(GlobalConst.TestPDFFilePath))
             {
-                File.Delete(FilePath);
+                File.Delete(GlobalConst.TestPDFFilePath);
             }
         }
     }

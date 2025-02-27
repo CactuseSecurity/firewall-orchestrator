@@ -57,9 +57,11 @@ def createNormalizedGateway(nativeConfig, gwId):
             
 
 def normalizeInterfaces (nativeConfig, importState, normalizedConfig):
+    # TODO: Implement this
     pass
 
 def normalizeRouting (nativeConfig, importState, normalizedConfig):
+    # TODO: Implement this
     pass
 
 def gwInNormalizedConfig(normalizedConfig, gwUid):

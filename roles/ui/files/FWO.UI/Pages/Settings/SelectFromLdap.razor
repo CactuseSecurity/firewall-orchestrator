@@ -1,6 +1,6 @@
 ﻿@inject UserConfig userConfig
 
-<PopUp Title="@(userConfig.GetText("select_from_ldap") + ": " + LdapName)" Show="@Display" Size=PopupSize.CustomMedium OnClose="Close">
+<PopUp Title="@(userConfig.GetText("select_from_ldap") + ": " + LdapName)" Show="@Display" Size=PopupSize.Medium OnClose="Close">
     <Body>
         @if (Display)
         {

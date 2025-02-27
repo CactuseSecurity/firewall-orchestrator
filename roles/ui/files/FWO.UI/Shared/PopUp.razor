@@ -41,7 +41,7 @@
     public bool Show { get; set; } = false;
 
     [Parameter]
-    public PopupSize Size { get; set; } = PopupSize.CustomSmall;
+    public PopupSize Size { get; set; } = PopupSize.Small;
 
     [Parameter]
     public bool Scrollable { get; set; } = true;
@@ -53,11 +53,11 @@
     {
         switch (Size)
         {
-            case PopupSize.CustomFullScreen: return "custom-modal-fs";
-            case PopupSize.CustomXLarge: return "custom-modal-xl";
-            case PopupSize.CustomLarge: return "custom-modal-lg";
-            case PopupSize.CustomMedium: return "custom-modal-md";
-            case PopupSize.CustomSmall: return "custom-modal-sm";
+            case PopupSize.FullScreen: return "custom-modal-fs";
+            case PopupSize.XLarge: return "custom-modal-xl";
+            case PopupSize.Large: return "custom-modal-lg";
+            case PopupSize.Medium: return "custom-modal-md";
+            case PopupSize.Small: return "custom-modal-sm";
             default: return "custom-modal-sm";
         };
     }
@@ -66,11 +66,11 @@
     {
         switch (Size)
         {
-            case PopupSize.CustomFullScreen: return "custom-modal-content-fs";
-            case PopupSize.CustomXLarge: return "custom-modal-content-xl";
-            case PopupSize.CustomLarge: return "custom-modal-content-lg ";
-            case PopupSize.CustomMedium: return "custom-modal-content-md";
-            case PopupSize.CustomSmall: return "custom-modal-content-sm";
+            case PopupSize.FullScreen: return "custom-modal-content-fs";
+            case PopupSize.XLarge: return "custom-modal-content-xl";
+            case PopupSize.Large: return "custom-modal-content-lg ";
+            case PopupSize.Medium: return "custom-modal-content-md";
+            case PopupSize.Small: return "custom-modal-content-sm";
 
             default: return "custom-modal-content-sm";
         };

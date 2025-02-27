@@ -95,7 +95,7 @@
     </Table>
 </div>
 
-<PopUp Title="@((AddMode ? userConfig.GetText("add_user") : userConfig.GetText("edit_user")))" Show="@EditMode" Size=PopupSize.CustomLarge OnClose="() => EditMode = false">
+<PopUp Title="@((AddMode ? userConfig.GetText("add_user") : userConfig.GetText("edit_user")))" Show="@EditMode" Size=PopupSize.Large OnClose="() => EditMode = false">
     <Body>
         @if (EditMode)
         {
@@ -244,7 +244,7 @@
     </Footer>
 </PopUp>
 
-<PopUp Title="@(userConfig.GetText("reset_password"))" Show="@ResetPasswordMode" Size=PopupSize.CustomSmall OnClose="() => ResetPasswordMode = false">
+<PopUp Title="@(userConfig.GetText("reset_password"))" Show="@ResetPasswordMode" Size=PopupSize.Small OnClose="() => ResetPasswordMode = false">
     <Body>
         @if (ResetPasswordMode)
         {

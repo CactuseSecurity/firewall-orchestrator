@@ -1,6 +1,6 @@
 
 from models.gateway import Gateway
-from  typing_extensions import List
+from typing import List
 import hashlib
 from models.gateway import Gateway
 

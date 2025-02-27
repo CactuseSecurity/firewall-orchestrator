@@ -78,28 +78,12 @@ def has_config_changed (full_config, mgm_details, force=False):
 
 
 def getRules (nativeConfig: dict, importState: ImportState) -> int:
-# delete_v: diese funktion sollte komplett umgeschrieben werden
-# 1. global 2. local 3. ordered 4. inline
-# in der output strucktur müssen die namen der policies mitgeliefert werden,
-# damit in rulebase_link darauf verwiesen werden kann
-# dafür brauche ich cp mds output
-# mgmt_cli show packages limit 500 details-level "full" --format json
-# wir sollten als Plan global holen, dann local holen, dann alle ordered, dann deren inline
-# nativeConfig = {'rulebases': [], 'nat_rulebases': [] } natürlich kommt später mehr dazu
-# nativeConfig['rulebases'] = Liste von current_layer_json = { "layername": layerName, "rulebase_chunks": [] }
-# dazu sollte ich links hinzufügen, z.B.
-# current_layer_json = { "layername": layerName, "rulebase_chunks": [], "rulebase_links": [] }
-# mit bsp rulebase_links[0] = {"from_rule_uid": "a", "to_rulebase_name": "b", "link_type": "local|ordered|inline"}
-# offene fragen/Probleme:
-# 1) so bekommen wir für jedes Gateway einen einzelnen Import und müssen beim Import evtl immer wieder die gleichen layer hohlen
-#    wie bekommen wir das dann sauber in die DB
-# 1b) neue Annahme, wir importieren nur einen Manager egal ob mds oder normaler mgr
-# 2) ich kann aus der global nicht rauslesen, welche local rulebases und damit welche Gateways relevant sind
-# 3) wenn local rulebases gleich heißen können müssen wir "layeruid" statt "layername" ermitteln
-# 4) die sections stecken in den "rulebase_chunks", muss am ende rausgeparsed werden, "rulebase_links" wird damit aufgebohrt
-# 5) nocht nicht ganz verstanden warum bei global importState.FwoConfig.FwoApiUri und bei local cpManagerApiBaseUrl -> wegen domain namen
-# 6) gibt es noch einen anderen hinweis auf den Einsprung der local als rule["type"] == "place-holder"? Ist das wohldefiniert? Ist wohldefiniert
-# 7) was muss ich bei den domain Dicts im Return von CP beachten?
+    # delete_v: Schnittstellen die zum Rest passen müssen
+    # 1. domain wird durch prepare_get_vars aus importState.FullMgmDetails ausgelesen,
+    #    was muss für mds vs standalone beachtet werden
+    # 2. importState.FullMgmDetails['devices'][x]['global_rulebase_name'] entscheidet ob mds oder nicht
+    # 3. ich mache nirgends logout
+    # 4. NAT noch nicht getestet
 
     logger = getFwoLogger()
     nativeConfig.update({'rulebases': [], 'nat_rulebases': [], 'gateways': [] })
@@ -142,6 +126,7 @@ def getRules (nativeConfig: dict, importState: ImportState) -> int:
                                 'rulebase_links': []}
             else:
                 logger.error ( "found device without active policy: " + str(device) )
+                return 1
 
         else:
             logger.error ( "found device without name: " + str(device) )
@@ -150,12 +135,13 @@ def getRules (nativeConfig: dict, importState: ImportState) -> int:
         # get ordered layer uids for current device
         orderedLayerUids = []
         for policy in policyStructure:
+            foundTargetInPolciy = False
             for target in policy['targets']:
-                # delete_v das klappt nicht bis wir uns nicht auf gateway uids einigen
                 if target['uid'] == deviceConfig['uid']:
-                    break
-            for accessLayer in policy['access-layers']:
-                orderedLayerUids.append(accessLayer['uid'])
+                    foundTargetInPolciy = True
+            if foundTargetInPolciy:
+                for accessLayer in policy['access-layers']:
+                    orderedLayerUids.append(accessLayer['uid'])
 
         if len(orderedLayerUids) == 0:
             logger.warning ( "found no ordered layers for device: " + deviceConfig['name'] )
@@ -163,7 +149,7 @@ def getRules (nativeConfig: dict, importState: ImportState) -> int:
 
         # decide if mds or stand alone manager
         if device['global_rulebase_name'] != None and device['global_rulebase_name']!='':
-            # delete_v: ACHTUNG nie mehr namen in show_params_rules benutzen
+            # delete_v: ACHTUNG hier werden namen in show_params_rules benutzt
             show_params_rules.update({'name': device['global_rulebase_name']})
 
             # get global rulebase
@@ -212,10 +198,11 @@ def getRules (nativeConfig: dict, importState: ImportState) -> int:
         for orderedLayerUid in orderedLayerUids:
 
             # get sid for local domain
+            #sid = login_cp(importState.FullMgmDetails, domain) # delete_v wie bekomme ich local domain
 
             show_params_rules.update({'uid': orderedLayerUid})
-            # delete_v nochmal die strukturen fürs gedächtnis
-            # nativeConfig['rulebases'] = Liste von currentRulebase = { "uid": '', "name": layerName, "chunks": [] }
+            show_params_rules.pop('name', None) # delete_v das kann weg sobald show_params_rules nur noch uids verwendet
+
             logger.debug ( "getting domain rule layer: " + show_params_rules['uid'] )
             cp_getter.getRulebases (cpManagerApiBaseUrl, 
                                     sid, 

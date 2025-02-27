@@ -37,6 +37,7 @@ builder.Services.AddServerSideBlazor();
 
 builder.Services.AddScoped<AuthenticationStateProvider, AuthStateProvider>();
 builder.Services.AddScoped<CircuitHandler, CircuitHandlerService>();
+builder.Services.AddScoped<KeyboardInputService, KeyboardInputService>();
 
 string ApiUri = ConfigFile.ApiServerUri;
 string MiddlewareUri = ConfigFile.MiddlewareServerUri;

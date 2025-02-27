@@ -7,5 +7,6 @@ namespace FWO.Ui.Services
         Large,
         Medium,
         Small,
+        XSmall
     }
 }

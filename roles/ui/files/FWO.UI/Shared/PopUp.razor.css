@@ -51,6 +51,20 @@
     height: 30vh;
 }
 
+.custom-modal-xs {
+    max-width: 30vw;
+    margin-top: 16em;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.custom-modal-content-xs {
+    min-height: 15vh;
+    max-height: 25vh;
+    min-width: 20vw;
+    max-width: 25vw;
+}
+
 .modal-dialog-padding {
     padding: 15px;
     align-items: normal;

@@ -201,7 +201,10 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
 #                                     startImport=True))
 
 
-def importFromFile(importState: ImportState, fileName: str = None, gateways: List[Gateway] = []):
+def importFromFile(importState: ImportState, fileName: str = "", gateways: List[Gateway] = []):
+
+    logger = getFwoLogger()
+    logger.debug("import_management - not getting config from API but from file: " + fileName)
 
     config_changed_since_last_import = True
     

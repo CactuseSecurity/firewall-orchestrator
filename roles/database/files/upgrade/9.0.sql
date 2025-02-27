@@ -218,8 +218,9 @@ ALTER TABLE "management" ADD COLUMN IF NOT EXISTS "is_super_manager" BOOLEAN DEF
 ALTER TABLE "rule" ADD COLUMN IF NOT EXISTS "is_global" BOOLEAN DEFAULT FALSE NOT NULL;
 ALTER TABLE "rule" ADD COLUMN IF NOT EXISTS "rulebase_id" INTEGER;
 
--- ALTER TABLE "rule" DROP CONSTRAINT IF EXISTS "unique_rule_rule_uid_rule_create" CASCADE;
--- Alter table "rule" add CONSTRAINT "unique_rule_rule_uid_rule_create" UNIQUE ("rule_uid", "rule_create");
+Alter Table "rule" DROP Constraint IF EXISTS "rule_altkey";
+Alter Table "rule" DROP Constraint IF EXISTS "rule_unique_mgm_id_rule_uid_rule_create_xlate_rule";
+Alter Table "rule" ADD Constraint "rule_unique_mgm_id_rule_uid_rule_create_xlate_rule" UNIQUE ("mgm_id", "rule_uid","rule_create","xlate_rule");
 
 -- permanent table for storing latest config to calc diffs
 CREATE TABLE IF NOT EXISTS "latest_config" (

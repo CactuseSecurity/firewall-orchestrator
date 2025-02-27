@@ -6,6 +6,7 @@ from fwo_log import getFwoLogger
 sys.path.append(importer_base_dir + '/checkpointR8x')
 import time
 import cp_rule
+import cp_gateway
 import cp_const, cp_network, cp_service
 import cp_getter
 from fwo_exception import FwLoginFailed
@@ -302,6 +303,7 @@ def get_config(nativeConfig: json, importState: ImportState) -> tuple[int, FwCon
     # parse_users_from_rulebases(full_config, full_config['rulebases'], full_config['users'], config2import, current_import_id)
     if importState.ImportVersion>8:
         cp_rule.normalizeRulebases(nativeConfig, importState, normalizedConfig)
+        cp_gateway.normalizeGateways(nativeConfig, importState, normalizedConfig)
     else:
         normalizedConfig.update({'rules':  cp_rule.normalize_rulebases_top_level(nativeConfig, importState.ImportId, normalizedConfig) })
     if not parsing_config_only: # get config from cp fw mgr
@@ -309,22 +311,21 @@ def get_config(nativeConfig: json, importState: ImportState) -> tuple[int, FwCon
     logger.info("completed normalizing rulebases")
     
     # put dicts into object of class FwConfigManager
-    normalizedConfig = FwConfigNormalized(action=ConfigAction.INSERT, 
+    normalizedConfig2 = FwConfigNormalized(action=ConfigAction.INSERT, 
                             network_objects=FwConfigNormalizedController.convertListToDict(normalizedConfig['network_objects'], 'obj_uid'),
                             service_objects=FwConfigNormalizedController.convertListToDict(normalizedConfig['service_objects'], 'svc_uid'),
                             users=normalizedConfig['users'],
                             zone_objects=normalizedConfig['zone_objects'],
                             # decide between old (rules) and new (policies) format
                             # rules=normalizedConfig['rules'] if len(normalizedConfig['rules'])>0 else normalizedConfig['policies'],    
-                            rulbases=normalizedConfig['policies'],
+                            rulebases=normalizedConfig['policies'],
                             gateways=normalizedConfig['gateways']
                             )
     manager = FwConfigManager(ManagerUid=calcManagerUidHash(importState.FullMgmDetails),
                               ManagerName=importState.MgmDetails.Name,
                               IsGlobal=False, 
                               DependantManagerUids=[], 
-                              Configs=[normalizedConfig])
-    # listOfManagers = FwConfigManagerList()
+                              Configs=[normalizedConfig2])
     listOfManagers = FwConfigManagerListController()
 
     listOfManagers.addManager(manager)
@@ -443,21 +444,21 @@ def get_objects(config_json, mgm_details, v_url, sid, force=False, config_filena
     return 0
 
 
-def parse_users_from_rulebases (full_config, rulebase, users, config2import, current_import_id):
-    if 'users' not in full_config:
-        full_config.update({'users': {}})
+# def parse_users_from_rulebases (full_config, rulebase, users, config2import, current_import_id):
+#     if 'users' not in full_config:
+#         full_config.update({'users': {}})
 
-    rb_range = range(len(full_config['rulebases']))
-    for rb_id in rb_range:
-        parse_user_objects_from_rulebase (full_config['rulebases'][rb_id], full_config['users'], current_import_id)
+#     rb_range = range(len(full_config['rulebases']))
+#     for rb_id in rb_range:
+#         parse_user_objects_from_rulebase (full_config['rulebases'][rb_id], full_config['users'], current_import_id)
 
-    # copy users from full_config to config2import
-    # also converting users from dict to array:
-    config2import.update({'user_objects': []})
-    for user_name in full_config['users'].keys():
-        user = copy.deepcopy(full_config['users'][user_name])
-        user.update({'user_name': user_name})
-        config2import['user_objects'].append(user)
+#     # copy users from full_config to config2import
+#     # also converting users from dict to array:
+#     config2import.update({'user_objects': []})
+#     for user_name in full_config['users'].keys():
+#         user = copy.deepcopy(full_config['users'][user_name])
+#         user.update({'user_name': user_name})
+#         config2import['user_objects'].append(user)
 
 
 def ParseUidToName(myUid, myObjectDictList):

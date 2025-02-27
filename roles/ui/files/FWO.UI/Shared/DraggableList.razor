@@ -1,12 +1,15 @@
-﻿@typeparam ElementType
+﻿@using FWO.Ui.Data
+@typeparam ElementType
+@inject KeyboardInputService keyboardInputService
 
-<div class="bg-secondary col-sm-12 border" style="overflow-x:clip; overflow-y:auto; max-height: calc( @(MaxHeight) * 1vh);">
+<div class="bg-secondary col-sm-12 border" style="overflow-x:clip; overflow-y:auto; max-height: calc( @(MaxHeight) * 1vh);"
+	 tabindex="0">
 	@for (int i = 0; i < AllElements.Count; i++)
 	{
 		int j = i;
 		<div class="draggable draggable-item @(SelectedElements.Contains(AllElements[j]) ? "draggable-selected" : "")" draggable="true"
 				@ondragstart="@((e) => { HandleDragStart(e, AllElements[j]); lastSelected = null; })"
-				@onclick="() => ToggleSelect(j)" tabindex="0" @onkeydown="(k) => KeyDown(k)" @onkeyup="(k) => KeyUp(k)">
+				@onclick="() => ToggleSelect(j)" >
 			<nobr>@((MarkupString)Display(AllElements[j]))</nobr>
 		</div>
 	}
@@ -36,59 +39,115 @@
 	public bool Multiselect { get; set; } = true;
 
 	private int? lastSelected;
-	private bool shiftPressed = false;
-
-
-    private void KeyDown(KeyboardEventArgs ev)
-    {
-		if(ev.ShiftKey)
-		{
-        	shiftPressed = true;
-		}
-    }
-
-	private void KeyUp(KeyboardEventArgs ev)
-    {
-		if(ev.ShiftKey)
-		{
-        	shiftPressed = false;
-		}
-    }
+	private List<int> lastSelectedRange = new();
 
 	private void ToggleSelect(int index)
 	{
-		if (SelectedElements.Contains(AllElements[index]))
+		bool shiftPressed = keyboardInputService.ShiftPressed;
+		bool ctrlPressed = keyboardInputService.ControlPressed;
+
+		// if no multiselect treat as if no multiselect key is pressed
+		if (!Multiselect || (!shiftPressed && !ctrlPressed))
 		{
-			SelectedElements.Remove(AllElements[index]);
-			lastSelected = null;
-		}
-		else
-		{
-			if(!Multiselect)
+			// if only one is selected deselect on click
+			if (SelectedElements.Contains(AllElements[index]) && SelectedElements.Count() == 1)
 			{
-				SelectedElements = new();
-				SelectedElements.Add(AllElements[index]);
-			}
-			else if(lastSelected == null)
-			{
-				lastSelected = index;
-				SelectedElements.Add(AllElements[index]);
-			}
-			else if(shiftPressed && index > lastSelected)
-			{
-				for(int idx = (int)lastSelected + 1; idx <= index; ++idx)
-				{
-					SelectedElements.Add(AllElements[idx]);
-				}
-				lastSelected = null;
+				Deselect(index);
 			}
 			else
 			{
-				SelectedElements.Add(AllElements[index]);
-				lastSelected = index;
+				Select(index);
 			}
 		}
+
+		if (shiftPressed)
+		{
+			if (!SelectedElements.Any())
+			{
+				Select(index);
+			}
+			else
+			{
+				if (SelectedElements.Contains(AllElements[index]) && SelectedElements.Count() == 1)
+				{
+					Deselect(index);
+				}
+				else
+				{
+					SelectRange(index);
+				}
+			}
+		}
+
+		if (ctrlPressed)
+		{
+			// if only one is selected deselect on click
+			if (SelectedElements.Contains(AllElements[index]))
+			{
+				Deselect(index);
+			}
+			else
+			{
+				Select(index, true);
+			}
+		}
+
 		SelectedElementsChanged.InvokeAsync(SelectedElements);
+	}
+
+	private void Select(int index, bool multiSelect = false)
+	{
+		if (!multiSelect)
+		{
+			SelectedElements.Clear();
+		}
+
+		SelectedElements.Add(AllElements[index]);
+		lastSelected = index;
+		lastSelectedRange.Clear();
+	}
+
+	private void SelectRange(int index)
+	{
+		foreach (ElementType element in AllElements.Where((item, index) => lastSelectedRange.Contains(index)).ToList())
+		{
+			if(SelectedElements.Contains(element))
+			{
+				SelectedElements.Remove(element);
+			}
+		}
+
+		lastSelectedRange.Clear();
+
+		if(index > lastSelected)
+		{
+			for(int idx = (int)lastSelected; idx <= index; ++idx)
+			{
+				SelectedElements.Add(AllElements[idx]);
+				lastSelectedRange.Add(idx);
+			}
+		}
+
+		if(index < lastSelected)
+		{
+			for(int idx = (int)lastSelected; idx >= index; --idx)
+			{
+				SelectedElements.Add(AllElements[idx]);
+				lastSelectedRange.Add(idx);
+			}
+		}
+	}
+
+	private void Deselect(int index)
+	{
+		SelectedElements.Remove(AllElements[index]);			
+		lastSelected = null;
+	}
+
+	private void DeselectRange()
+	{
+		SelectedElements.Clear();
+		lastSelected = null;
 	}
 
 	private static bool DoNothingSync(DragEventArgs e, ElementType elem) { return false; }

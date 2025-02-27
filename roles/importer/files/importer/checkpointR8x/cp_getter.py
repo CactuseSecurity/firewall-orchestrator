@@ -157,8 +157,7 @@ def get_changes(sid,api_host,api_port,fromdate):
 
 
 def getPolicyStructure(api_v_url, sid, show_params_policy_structure, policyStructure = []):
-    # delete_v: return:
-    # [{'name':'policy1', 'uid':'bla', 'targets':[{'name':'gateway1', 'uid':'bla'}], 'access-layers':[{'name':'ord1', 'uid':'ord1'}]}]
+
     logger = getFwoLogger()
 
     current=0
@@ -262,7 +261,6 @@ def getRulebases (api_v_url, sid, show_params_rules,
         }
         try:
             rulebaseForUid = cp_api_call(api_v_url, 'show-' + access_type + '-rulebase', get_rulebase_uid_params, sid)
-            # delete_v hier nochmal genau das return format ansehen
             rulebaseUid = rulebaseForUid['uid']
         except:
             logger.error("could not find uid for rulebase name=" + rulebaseName)

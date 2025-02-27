@@ -157,8 +157,7 @@ def get_changes(sid,api_host,api_port,fromdate):
 
 
 def getPolicyStructure(api_v_url, sid, show_params_policy_structure, policyStructure = []):
-    # delete_v: return:
-    # [{'name':'policy1', 'uid':'bla', 'targets':[{'name':'gateway1', 'uid':'bla'}], 'access-layers':[{'name':'ord1', 'uid':'ord1'}]}]
+
     logger = getFwoLogger()
 
     current=0

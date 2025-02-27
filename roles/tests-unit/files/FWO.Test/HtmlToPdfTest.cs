@@ -62,6 +62,7 @@ namespace FWO.Test
 
             if (installedBrowser == null)
             {
+                //This is only for testing purposes and should not be executed by customers machines
                 Log.WriteWarning("Test Log", $"Browser {wantedBrowser} is not installed! Trying to download latest version...");
                 installedBrowser = await browserFetcher.DownloadAsync(BrowserTag.Latest);
             }

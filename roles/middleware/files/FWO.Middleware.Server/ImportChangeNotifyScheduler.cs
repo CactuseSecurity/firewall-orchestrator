@@ -28,8 +28,9 @@ namespace FWO.Middleware.Server
         }
     
         private ImportChangeNotifyScheduler(ApiConnection apiConnection, GlobalConfig globalConfig)
-            : base(apiConnection, globalConfig, ConfigQueries.subscribeImportNotifyConfigChanges, ConfigQueries.subscribeConfigChangesByUser)
+            : base(apiConnection, globalConfig, ConfigQueries.subscribeImportNotifyConfigChanges)
         {}
+
         /// <summary>
         /// set scheduling timer from config values
         /// </summary>

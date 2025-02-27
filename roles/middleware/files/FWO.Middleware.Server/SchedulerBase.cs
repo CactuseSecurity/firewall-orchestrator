@@ -28,33 +28,16 @@ namespace FWO.Middleware.Server
 		/// </summary>
         protected GraphQlApiSubscription<List<ConfigItem>>? ConfigDataSubscription;
 
-        /// <summary>
-        /// Global config changed by user subscription
-        /// </summary>
-        protected GraphQlApiSubscription<List<ConfigItem>>? ConfigDataUserChangeSubscription;
-
         private List<Alert> openAlerts = [];
 
-    
-		/// <summary>
-		/// Constructor starting the Schedule timer
-		/// </summary>
+        /// <summary>
+        /// Constructor starting the Schedule timer
+        /// </summary>
         protected SchedulerBase(ApiConnection apiConnection, GlobalConfig globalConfig, string configDataSubscription)
         {
             this.apiConnection = apiConnection;
             this.globalConfig = globalConfig;
             ConfigDataSubscription = apiConnection.GetSubscription<List<ConfigItem>>(ApiExceptionHandler, OnGlobalConfigChange, configDataSubscription);
-        }
-
-        /// <summary>
-        /// Constructor starting the Schedule timer
-        /// </summary>
-        protected SchedulerBase(ApiConnection apiConnection, GlobalConfig globalConfig, string configDataSubscription, string configDataUserChangeSubscription)
-        {
-            this.apiConnection = apiConnection;
-            this.globalConfig = globalConfig;
-            ConfigDataSubscription = apiConnection.GetSubscription<List<ConfigItem>>(ApiExceptionHandler, OnGlobalConfigChange, configDataSubscription);
-            ConfigDataUserChangeSubscription = apiConnection.GetSubscription<List<ConfigItem>>(ApiExceptionHandler, OnGlobalConfigChange, configDataUserChangeSubscription);
         }
 
         /// <summary>

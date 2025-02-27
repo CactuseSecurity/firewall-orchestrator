@@ -517,6 +517,10 @@ thead {
     border: none !important;
 }
 
+
+.h-90{
+    height: 90%;
+}
 /* Popups */
 
 /* .modal-body {

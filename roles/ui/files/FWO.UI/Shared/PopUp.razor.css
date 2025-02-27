@@ -3,6 +3,10 @@
     height: 100vh;
 }
 
+.custom-modal-content-fs {
+    height: 100vh;
+}
+
 .custom-modal-xl {
     max-width: 80vw;
     margin-top: 3em;
@@ -11,7 +15,7 @@
 }
 
 .custom-modal-content-xl {
-    max-height: 80vh;
+    height: 80vh;
 }
 
 .custom-modal-lg {
@@ -22,7 +26,7 @@
 }
 
 .custom-modal-content-lg {
-    max-height: 60vh;
+    height: 60vh;
 }
 
 .custom-modal-md {
@@ -33,7 +37,7 @@
 }
 
 .custom-modal-content-md {
-    max-height: 40vh;
+    height: 40vh;
 }
 
 .custom-modal-sm {
@@ -44,7 +48,7 @@
 }
 
 .custom-modal-content-sm {
-    max-height: 30vh;
+    height: 30vh;
 }
 
 .modal-dialog-padding {

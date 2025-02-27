@@ -378,7 +378,11 @@ class ImportState(FwoApi):
         return self.Tracks.get(trackStr.lower(), None)
 
     def lookupRulebaseId(self, rulebaseUid):
-        return self.RulebaseMap.get(rulebaseUid, None)
+        rulebaseId = self.RulebaseMap.get(rulebaseUid, None)
+        if rulebaseId is None:
+            logger = getFwoLogger()
+            logger.error(f"Rulebase {rulebaseUid} not found")
+        return rulebaseId
 
     def lookupLinkType(self, linkUid):
         return self.LinkTypes.get(linkUid, None)

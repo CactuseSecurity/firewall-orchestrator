@@ -142,22 +142,21 @@ class FwConfigManagerListController(FwConfigManagerList):
         pass
 
     def storeFullNormalizedConfigToFile(self, importState: ImportState):
-        logger = getFwoLogger()
-        debug_start_time = int(time.time())
-        try:
-            if fwo_globals.debug_level>5:
+        if fwo_globals.debug_level>5:
+            logger = getFwoLogger()
+            debug_start_time = int(time.time())
+            try:
                 normalized_config_filename = f"{import_tmp_path}/mgm_id_{str(importState.MgmDetails.Id)}_config_normalized.json"
                 with open(normalized_config_filename, "w") as json_data:
                     if importState.ImportVersion>8:
                         json_data.write(self.toJsonString(prettyPrint=True))
                     else:
                         json_data.write(self.toJsonStringLegacy(prettyPrint=True))
-        except:
-            logger.error(f"import_management - unspecified error while dumping normalized config to json file: {str(traceback.format_exc())}")
-            raise
-
-        time_write_debug_json = int(time.time()) - debug_start_time
-        logger.debug(f"import_management - writing normalized config json files duration {str(time_write_debug_json)}s")
+                time_write_debug_json = int(time.time()) - debug_start_time
+                logger.debug(f"storeFullNormalizedConfigToFile - writing normalized config json files duration {str(time_write_debug_json)}s")
+            except:
+                logger.error(f"import_management - unspecified error while dumping normalized config to json file: {str(traceback.format_exc())}")
+                raise
 
 # split the config into chunks of max size "max_objs_per_chunk" to avoid 
 # timeout of import while writing data to import table

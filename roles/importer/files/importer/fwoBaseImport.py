@@ -55,6 +55,7 @@ class FworchConfig():
 class ManagementDetails():
     Id: int
     Name: str
+    Uid: str
     Hostname: str
     ImportDisabled: bool
     Devices: dict
@@ -67,11 +68,12 @@ class ManagementDetails():
     IsSuperManager: bool
     SubManager: List[int]
 
-    def __init__(self, hostname: str, id: int, importDisabled: bool, devices: Dict, 
+    def __init__(self, hostname: str, id: int, uid: str, importDisabled: bool, devices: Dict, 
                  importerHostname: str, name: str, deviceTypeName: str, deviceTypeVersion: str, 
                  port: int = 443, secret: str = '', importUser: str = '', isSuperManager: bool = False, SubManager: List[int] = []):
         self.Hostname = hostname
         self.Id = id
+        self.Uid = uid
         self.ImportDisabled = importDisabled
         self.Devices = devices
         self.ImporterHostname = importerHostname

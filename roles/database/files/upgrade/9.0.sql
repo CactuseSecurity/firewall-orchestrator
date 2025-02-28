@@ -96,7 +96,48 @@ print(f"✅ Reparatur für Instanz {instance_id} abgeschlossen.")
 
    */
 
+-- pre 9.0 upgrade scripts
 
+--- 8.6.3
+
+insert into config (config_key, config_value, config_user) VALUES ('dnsLookup', 'False', 0) ON CONFLICT DO NOTHING;
+insert into config (config_key, config_value, config_user) VALUES ('overwriteExistingNames', 'False', 0) ON CONFLICT DO NOTHING;
+insert into config (config_key, config_value, config_user) VALUES ('autoReplaceAppServer', 'False', 0) ON CONFLICT DO NOTHING;
+
+ALTER TABLE modelling.change_history ADD COLUMN IF NOT EXISTS change_source Varchar default 'manual';
+
+
+CREATE TABLE IF NOT EXISTS refresh_log (
+    id SERIAL PRIMARY KEY,
+    view_name TEXT NOT NULL,
+    refreshed_at TIMESTAMPTZ DEFAULT now(),
+    status TEXT
+);
+
+CREATE OR REPLACE FUNCTION refresh_view_rule_with_owner()
+RETURNS SETOF refresh_log AS $$
+DECLARE
+    status_message TEXT;
+BEGIN
+    -- Attempt to refresh the materialized view
+    BEGIN
+        REFRESH MATERIALIZED VIEW view_rule_with_owner;
+        status_message := 'Materialized view refreshed successfully';
+    EXCEPTION
+        WHEN OTHERS THEN
+            status_message := format('Failed to refresh view: %s', SQLERRM);
+    END;
+
+    -- Log the operation
+    INSERT INTO refresh_log (view_name, status)
+    VALUES ('view_rule_with_owner', status_message);
+
+    -- Return the log entry
+    RETURN QUERY SELECT * FROM refresh_log WHERE view_name = 'view_rule_with_owner' ORDER BY refreshed_at DESC LIMIT 1;
+END;
+$$ LANGUAGE plpgsql VOLATILE;
+
+---
 
 --- pre 9.0 changes (old import)
 
@@ -323,9 +364,17 @@ ALTER TABLE "rule" ADD CONSTRAINT fk_rule_rulebase_id FOREIGN KEY ("rulebase_id"
 
 Alter table "rule" drop constraint IF EXISTS "rule_metadata_dev_id_rule_uid_f_key";
 Alter Table "rule_metadata" drop Constraint IF EXISTS "rule_metadata_alt_key";
-ALTER TABLE rule_metadata DROP Constraint IF EXISTS "rule_metadata_rule_uid_unique";
-ALTER TABLE rule_metadata ADD Constraint "rule_metadata_rule_uid_unique" unique ("rule_uid");
+/*
+    TODO: fix this:
+        ALTER TABLE rule_metadata DROP Constraint IF EXISTS "rule_metadata_rule_uid_unique";
+        ALTER TABLE rule_metadata ADD Constraint "rule_metadata_rule_uid_unique" unique ("rule_uid");
+    causes error:
+        None: FEHLER:  kann Constraint rule_metadata_rule_uid_unique für Tabelle rule_metadata nicht löschen, weil andere Objekte davon abhängen\nDETAIL:  
+        Constraint rule_metadata_rule_uid_f_key für Tabelle rule hängt von Index rule_metadata_rule_uid_unique ab\nHINT:  Verwenden Sie DROP ... CASCADE, um die abhängigen Objekte ebenfalls zu löschen.\n"}
+*/
 
+ALTER TABLE rule_metadata DROP Constraint IF EXISTS "rule_metadata_rule_uid_unique" CASCADE;
+ALTER TABLE rule_metadata ADD Constraint "rule_metadata_rule_uid_unique" unique ("rule_uid");
 Alter table "rule" DROP constraint IF EXISTS "rule_rule_metadata_rule_uid_f_key";
 Alter table "rule" add constraint "rule_rule_metadata_rule_uid_f_key"
   foreign key ("rule_uid") references "rule_metadata" ("rule_uid") on update restrict on delete cascade;

@@ -169,6 +169,7 @@ def get_mgm_details(fwo_api_base_url, jwt, query_variables, debug_level=0):
         query getManagementDetails($mgmId: Int!) {
             management(where:{mgm_id:{_eq:$mgmId}} order_by: {mgm_name: asc}) {
                 id: mgm_id
+                uid: mgm_uid
                 name: mgm_name
                 hostname: ssh_hostname
                 port: ssh_port

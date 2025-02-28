@@ -23,7 +23,6 @@ uid_to_name_map = {}
 def normalizeRulebases (nativeConfig, importState, normalizedConfig):
     if fwo_globals.debug_level>0:
         logger = getFwoLogger()
-    policyList = []
     rule_num = 0
     parent_uid=None
     section_header_uids=[]
@@ -35,11 +34,9 @@ def normalizeRulebases (nativeConfig, importState, normalizedConfig):
 
     rb_range = range(len(nativeConfig['rulebases']))
     for rb_id in rb_range:
-
-        # rulebaseUid = nativeConfig['rulebases'][rb_id]['layername']
         rulebaseName = nativeConfig['rulebases'][rb_id]['name']
         rulebaseUid = nativeConfig['rulebases'][rb_id]['uid']
-        accessPolicy = Rulebase(uid=rulebaseUid, name=rulebaseName, mgm_uid=importState.MgmDetails.Name, Rules=[])
+        accessPolicy = Rulebase(uid=rulebaseUid, name=rulebaseName, mgm_uid=importState.MgmDetails.Uid, Rules=[])
 
         if fwo_globals.debug_level>3:
             logger.debug("parsing layer " + rulebaseUid)
@@ -633,4 +630,3 @@ def parse_nat_rule_transform(xlate_rule_in, rule_num):
         'rule_type': 'nat'
     }
     return (rule_match, rule_xlate)
-

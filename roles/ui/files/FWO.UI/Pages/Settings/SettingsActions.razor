@@ -63,7 +63,7 @@
         </Table>
     </div>
 
-    <PopUp Title="@(userConfig.GetText("edit_action"))" Show="@EditActionMode" Size=PopupSize.CustomLarge OnClose="() => EditActionMode = false">
+    <PopUp Title="@(userConfig.GetText("edit_action"))" Show="@EditActionMode" Size=PopupSize.Large OnClose="() => EditActionMode = false">
         <Body>
             @if (EditActionMode)
             {

@@ -6,7 +6,7 @@
 @inject UserConfig userConfig
 
 
-<PopUp Title="@(userConfig.GetText("approvals"))" Show="@Display" Size=PopupSize.CustomXLarge OnClose="async () => await Close()">
+<PopUp Title="@(userConfig.GetText("approvals"))" Show="@Display" Size=PopupSize.XLarge OnClose="async () => await Close()">
     <Body>
         @if (Display)
         {

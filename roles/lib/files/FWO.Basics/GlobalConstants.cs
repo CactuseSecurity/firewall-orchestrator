@@ -44,6 +44,10 @@ namespace FWO.Basics
         public const string kUndefinedText = "(undefined text)";
 
         public const string kStyleHighlighted = "color:red;";
+
+        public const string ChromeBinPathLinux = "/usr/local/fworch/bin";
+        public const string TestPDFFilePath = "pdffile.pdf";
+        public const string TestPDFHtmlTemplate = "<html><body><h1>test</h1><h2>test mit puppteer</h2></body></html>";
     }
 
     public struct PageName

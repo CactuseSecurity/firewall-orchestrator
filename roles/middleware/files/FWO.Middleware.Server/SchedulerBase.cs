@@ -30,10 +30,9 @@ namespace FWO.Middleware.Server
 
         private List<Alert> openAlerts = [];
 
-    
-		/// <summary>
-		/// Constructor starting the Schedule timer
-		/// </summary>
+        /// <summary>
+        /// Constructor starting the Schedule timer
+        /// </summary>
         protected SchedulerBase(ApiConnection apiConnection, GlobalConfig globalConfig, string configDataSubscription)
         {
             this.apiConnection = apiConnection;
@@ -41,9 +40,9 @@ namespace FWO.Middleware.Server
             ConfigDataSubscription = apiConnection.GetSubscription<List<ConfigItem>>(ApiExceptionHandler, OnGlobalConfigChange, configDataSubscription);
         }
 
-		/// <summary>
-		/// set scheduling timer from config values, to be overwritten for specific scheduler
-		/// </summary>
+        /// <summary>
+        /// set scheduling timer from config values, to be overwritten for specific scheduler
+        /// </summary>
         protected abstract void OnGlobalConfigChange(List<ConfigItem> _);
 
 		/// <summary>

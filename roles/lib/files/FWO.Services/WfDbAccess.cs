@@ -22,7 +22,7 @@ namespace FWO.Services
             ActionHandler = actionHandler;
         }
 
-        public async Task<List<WfTicket>> FetchTickets(StateMatrix stateMatrix, List<int> ownerIds, bool allStates = false, bool ignoreOwners = false, bool fullTickets = false)
+        public async Task<List<WfTicket>> FetchTickets(StateMatrix stateMatrix, List<int>? ownerIds = null, bool allStates = false, bool fullTickets = false)
         {
             List<WfTicket> tickets = [];
             try
@@ -33,7 +33,7 @@ namespace FWO.Services
 
                 var Variables = new { fromState, toState };
                 tickets = await ApiConnection.SendQueryAsync<List<WfTicket>>(fullTickets ? RequestQueries.getFullTickets : RequestQueries.getTickets, Variables);
-                if(UserConfig.ReqOwnerBased && !ignoreOwners)
+                if(UserConfig.ReqOwnerBased && ownerIds != null)
                 {
                     tickets = FilterWrongOwnersOut(tickets, ownerIds);
                 }
@@ -52,13 +52,13 @@ namespace FWO.Services
             return tickets;
         }
 
-        public async Task<WfTicket?> FetchTicket(long ticketId, List<int> ownerIds, bool ignoreOwners = false)
+        public async Task<WfTicket?> FetchTicket(long ticketId, List<int>? ownerIds = null)
         {
             WfTicket? ticket = null;
             try
             {
                 ticket = await GetTicket(ticketId);
-                if(UserConfig.ReqOwnerBased && !ignoreOwners)
+                if(UserConfig.ReqOwnerBased && ownerIds != null)
                 {
                     ticket = FilterWrongOwnersOut([ticket], ownerIds).FirstOrDefault();
                 }

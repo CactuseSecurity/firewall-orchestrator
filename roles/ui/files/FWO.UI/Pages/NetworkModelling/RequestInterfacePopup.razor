@@ -108,7 +108,7 @@
                     long connId = await ConnHandler.CreateNewRequestedInterface(ticketId, AsSource, InterfaceName, Reason);
                     await SendEmail(connId);
 
-                    await ticketCreator.SetInterfaceId(ticketId, connId, SelectedOwner);
+                    await ticketCreator.SetInterfaceId(ticketId, connId);
                 }
                 await RefreshParent();
                 Close();

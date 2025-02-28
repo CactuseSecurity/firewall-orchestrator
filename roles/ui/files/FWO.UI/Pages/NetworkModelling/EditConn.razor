@@ -464,7 +464,6 @@
 
     private WfHandler wfHandler = new ();
     private WfStateDict states = new ();
-    private List<int> OwnerIds = new ();
     private ModellingConnection unchangedConn = new();
     private bool RejectInterfaceMode = false;
 
@@ -635,7 +634,7 @@
             try
             {
                 TicketCreator ticketCreator = new (apiConnection, userConfig, authenticationStateTask!.Result.User, middlewareClient, WorkflowPhases.implementation);
-                if(await ticketCreator.PromoteNewInterfaceImplTask(ConnHandler!.Application, (long)(ConnHandler!.ActConn.TicketId), ExtStates.Done))
+                if(await ticketCreator.PromoteNewInterfaceImplTask((long)(ConnHandler!.ActConn.TicketId), ExtStates.Done))
                 {
                     DisplayMessageInUi(null, userConfig.GetText("publish"), userConfig.GetText("U9013"), false);
                 }
@@ -688,10 +687,9 @@
         {
             workInProgress = true;
             await states.Init(apiConnection);
-            OwnerIds = (await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners)).ConvertAll(x => x.Id);
             wfHandler = new (DisplayMessageInUi, userConfig, authenticationStateTask!.Result.User, apiConnection, middlewareClient, WorkflowPhases.request){};
             wfHandler.ReadOnlyMode = true;
-            await wfHandler.Init(OwnerIds, true, true);
+            await wfHandler.Init();
             WfTicket? ticket = await wfHandler.ResolveTicket((long)ConnHandler!.ActConn.TicketId);
             if(ticket != null)
             {

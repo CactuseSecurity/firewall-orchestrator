@@ -131,6 +131,7 @@ namespace FWO.Test
                     }
                 ]
             }";
+            ModellingConnection? generatedInstance;
             List<ModellingConnection> generatedInstances = new();
             int iterations = 100;
             List<string> validNames = new() { "testinstance1", "testinstance2", "testinstance3", "testinstance4" };
@@ -139,13 +140,19 @@ namespace FWO.Test
             // ACT
             for (int i = 1; i <= iterations; i++)
             {
-                generatedInstances.Add(testDataGenerator.GenerateInstance(json).SingleInstance);
+                generatedInstance = testDataGenerator.GenerateInstance(json).SingleInstance;
+
+                if (generatedInstance != null)
+                {
+                    generatedInstances.Add(generatedInstance);                    
+                }
+
             }
             
 
             // ASSERT
             Assert.That(generatedInstances, Has.Count.EqualTo(iterations), "Die Anzahl der generierten Instanzen stimmt nicht mit iterations überein.");
-            Assert.That(generatedInstances.All(instance => validNames.Contains(instance.Name)), Is.True, "Mindestens eine generierte Instanz hat einen ungültigen Namen.");
+            Assert.That(generatedInstances.All(instance => validNames.Contains(instance?.Name ?? "notinlist")), Is.True, "Mindestens eine generierte Instanz hat einen ungültigen Namen.");
         }
 
         [Test]

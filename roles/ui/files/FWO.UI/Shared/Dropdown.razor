@@ -73,15 +73,7 @@
     private bool _nullable = false;
 
     [Parameter]
-    public bool Nullable
-    {
-        get { return _nullable; }
-        set
-        {
-            Debug.Assert(!Nullable || default(ElementType) == null, "The Nullable option was enabled but the ElementType is not nullable.");
-            _nullable = value;
-        }
-    }
+    public bool Nullable { get; set; }
 
     [Parameter]
     public bool Multiselect { get; set; } = false;
@@ -126,6 +118,10 @@
         if (SelectedElements.Count() == 0)
         {
             searchValue = NoneSelectedText;
+        }
+        if(SelectedElement is not null)
+        {
+            await SelectElement(SelectedElement);
         }
 
         // Toggle on resize of Window / scroll outside of dropdown (to avoid positional problems)

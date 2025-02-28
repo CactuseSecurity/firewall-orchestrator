@@ -7,7 +7,7 @@
 
 @if (AppServerHandler != null)
 {
-    <PopUp Title="@(AppServerHandler.ReadOnly ? userConfig.GetText("app_server") : (AppServerHandler.AddMode ? userConfig.GetText("add_app_server") : userConfig.GetText("edit_app_server")))" Size=PopupSize.CustomMedium Show="@Display" OnClose="Cancel">
+    <PopUp Title="@(AppServerHandler.ReadOnly ? userConfig.GetText("app_server") : (AppServerHandler.AddMode ? userConfig.GetText("add_app_server") : userConfig.GetText("edit_app_server")))" Size=PopupSize.Medium Show="@Display" OnClose="Cancel">
         <Body>
             @if (Display)
             {

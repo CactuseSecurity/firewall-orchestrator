@@ -77,7 +77,7 @@
     </Table>
 </div>
 
-<PopUp Title="@(userConfig.GetText("edit_ldap"))" Show="@EditMode" Size=PopupSize.CustomLarge OnClose="() => EditMode = false">
+<PopUp Title="@(userConfig.GetText("edit_ldap"))" Show="@EditMode" Size=PopupSize.XLarge OnClose="() => EditMode = false">
     <Body>
         @if (EditMode)
         {
@@ -201,7 +201,7 @@
         </div>
     </Footer>
 </PopUp>
-<PopUp Title="@(userConfig.GetText("edit_ldap"))" Show="@ShowWarning" Size=PopupSize.CustomSmall OnClose="() => ShowWarning = false">
+<PopUp Title="@(userConfig.GetText("edit_ldap"))" Show="@ShowWarning" Size=PopupSize.Small OnClose="() => ShowWarning = false">
     <Body>
         <p>@userConfig.GetText("edit_ldap_message")</p>
     </Body>

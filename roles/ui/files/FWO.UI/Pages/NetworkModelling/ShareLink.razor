@@ -1,7 +1,7 @@
 ﻿@inject IJSRuntime JSRuntime
 @inject UserConfig userConfig
 
-<PopUp Title="@(userConfig.GetText("share_link"))" Size=PopupSize.CustomMedium Show="@Display" OnClose="Close">
+<PopUp Title="@(userConfig.GetText("share_link"))" Size=PopupSize.Medium Show="@Display" OnClose="Close">
     <Body>
         @if (Display)
         {

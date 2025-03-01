@@ -9,11 +9,13 @@ from fwo_data_networking import InterfaceSerializable, RouteSerializable
 from fwo_base import split_list, serializeDictToClassRecursively, deserializeClassToDictRecursively
 from fwo_const import max_objs_per_chunk, import_tmp_path
 
-from fwoBaseImport import ImportState, ManagementDetails
+from model_controllers.import_state_controller import ImportStateController
+from model_controllers.management_details_controller import ManagementDetails
 from models.fwconfig_normalized import FwConfig, FwConfigNormalized
 from fwo_base import ConfFormat
 from fwconfig_base import calcManagerUidHash
 from models.fwconfigmanagerlist import FwConfigManagerList
+from models.fwconfigmanager import FwConfigManager
 from model_controllers.fwconfig_controller import FwoEncoder
 
 """
@@ -141,7 +143,7 @@ class FwConfigManagerListController(FwConfigManagerList):
             logger.error(f"found malformed legacy config: {str(legacyConfig)}")
         pass
 
-    def storeFullNormalizedConfigToFile(self, importState: ImportState):
+    def storeFullNormalizedConfigToFile(self, importState: ImportStateController):
         if fwo_globals.debug_level>5:
             logger = getFwoLogger()
             debug_start_time = int(time.time())
@@ -161,7 +163,7 @@ class FwConfigManagerListController(FwConfigManagerList):
 # split the config into chunks of max size "max_objs_per_chunk" to avoid 
 # timeout of import while writing data to import table
 # each object table to import is handled here 
-def split_config(importState: ImportState, config2import: FwConfigManagerList):
+def split_config(importState: ImportStateController, config2import: FwConfigManagerList):
     # temp disable chunking of imports
     # config_split_with_metadata = [{
     #     "config": config2import,

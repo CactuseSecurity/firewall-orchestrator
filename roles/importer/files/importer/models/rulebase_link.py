@@ -1,10 +1,10 @@
 from typing import Optional
 from pydantic import BaseModel
-from fwoBaseImport import ImportState
+from model_controllers.import_state_controller import ImportStateController
 
 
 # RulebaseLinkUidBased is the model for a rulebase_link (containing no DB IDs)
-class RulebaseLinkUidBased(BaseModel, ImportState):
+class RulebaseLinkUidBased(BaseModel, ImportStateController):
     from_rulebase_uid: Optional[str] = None
     from_rule_uid: Optional[str] = None
     to_rulebase_uid: str

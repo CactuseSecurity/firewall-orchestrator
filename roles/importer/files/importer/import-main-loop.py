@@ -17,7 +17,7 @@ import fwo_globals, fwo_config
 from fwo_const import base_dir, importer_base_dir
 from fwo_exception import FwoApiLoginFailed, FwoApiFailedLockImport, FwLoginFailed
 from models.fwconfigmanagerlist import FwConfigManager, FwConfigManagerList
-from fwoBaseImport import ImportState
+from model_controllers.import_state_controller import ImportStateController
 
 
 # https://stackoverflow.com/questions/18499497/how-to-process-sigterm-signal-gracefully
@@ -154,7 +154,7 @@ if __name__ == '__main__':
                 for mgm_id in mgm_ids:
                     if killer.kill_now: break 
                     
-                    importState = ImportState.initializeImport(mgm_id, debugLevel=debug_level, version=fwo_major_version)
+                    importState = ImportStateController.initializeImport(mgm_id, debugLevel=debug_level, version=fwo_major_version)
                     # getting a new JWT in case the old one is not valid anymore after a long previous import
                     jwt, skipping = getFwoJwt(importer_user_name, importer_pwd, user_management_api_base_url)
                     if not skipping:

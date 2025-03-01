@@ -4,7 +4,7 @@ import time, datetime
 import json
 
 from fwo_log import getFwoLogger
-from fwoBaseImport import ImportState
+from model_controllers.import_state_controller import ImportStateController
 from model_controllers.fwconfig_normalized_controller import FwConfigNormalized
 from model_controllers.fwconfig_import_base import FwConfigImportBase
 from models.networkobject import NetworkObjectForImport
@@ -28,7 +28,7 @@ class FwConfigImportObject(FwConfigImportBase):
     #     values['ColorMap'] = cls.GetColorMap()
     #     return values
     
-    def __init__(self, importState: ImportState, config: FwConfigNormalized):
+    def __init__(self, importState: ImportStateController, config: FwConfigNormalized):
         super().__init__(importState, config)
 
         self.NetworkObjectTypeMap = self.GetNetworkObjTypeMap()

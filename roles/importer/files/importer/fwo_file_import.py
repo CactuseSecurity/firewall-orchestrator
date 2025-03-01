@@ -16,7 +16,7 @@ from models.fwconfig import FwConfig
 from fwconfig_base import ConfFormat
 
 import traceback
-from fwoBaseImport import ImportState
+from model_controllers.import_state_controller import ImportStateController
 
 """
     supported input formats:
@@ -81,7 +81,7 @@ from fwoBaseImport import ImportState
 
 
 ################# MAIN FUNC #########################
-def readJsonConfigFromFile(importState: ImportState) -> FwConfigController:
+def readJsonConfigFromFile(importState: ImportStateController) -> FwConfigController:
     configJson = readFile(importState)
     config = None
     logger = getFwoLogger()
@@ -138,7 +138,7 @@ def detectLegacyFormat(importState, configJson) -> ConfFormat:
     return result
 
 
-def readFile(importState: ImportState) -> dict:
+def readFile(importState: ImportStateController) -> dict:
     logger = getFwoLogger()
     try:
         if importState.ImportFileName is not None:
@@ -175,7 +175,7 @@ def readFile(importState: ImportState) -> dict:
     return configJson
 
 
-def handleErrorOnConfigFileSerialization(importState: ImportState, exception: Exception):
+def handleErrorOnConfigFileSerialization(importState: ImportStateController, exception: Exception):
     logger = getFwoLogger()
     importState.appendErrorString(f"Could not understand config file format in file {importState.ImportFileName}")
     importState.increaseErrorCounterByOne()
@@ -184,7 +184,7 @@ def handleErrorOnConfigFileSerialization(importState: ImportState, exception: Ex
     raise exception
 
 
-def replaceOldIdsInLegacyFormats(importState: ImportState, config):
+def replaceOldIdsInLegacyFormats(importState: ImportStateController, config):
 
     # when we read from a normalized config file, it contains non-matching import ids, so updating them
     # for native configs this function should do nothing
@@ -247,7 +247,7 @@ def addWrapperForLegacyConfig(confFormat: ConfFormat, config: dict) -> dict:
     }
 
 
-def convertFromLegacyNormalizedToNormalized(importState: ImportState, configJson: dict):
+def convertFromLegacyNormalizedToNormalized(importState: ImportStateController, configJson: dict):
     logger = getFwoLogger()
     
     logger.info("assuming legacy normalized config")

@@ -11,13 +11,11 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '../importer'))
 # Import the function to test
 
 from fwconfig_import_rule import FwConfigImportRule
-from fwoBaseImport import ImportState
+from model_controllers.import_state_controller import ImportStateController
 from fwo_base import ConfigAction
 from fwconfig_base import FwConfig
 from fwo_globals import setGlobalValues
 from fwo_const import dummy_ip
-
-
 
 
 class TestApiDatabaseIntegration(unittest.TestCase):

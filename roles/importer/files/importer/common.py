@@ -15,7 +15,7 @@ import fwo_globals
 from fwo_exception import FwLoginFailed, ImportRecursionLimitReached
 from fwo_base import stringIsUri, ConfigAction, ConfFormat
 import fwo_file_import
-from fwoBaseImport import ImportState
+from model_controllers.import_state_controller import ImportStateController
 from models.fwconfig_normalized import FwConfig, FwConfigNormalized
 from models.fwconfigmanagerlist import FwConfigManagerList, FwConfigManager
 from models.gateway import Gateway
@@ -25,6 +25,7 @@ from model_controllers.gateway_controller import GatewayController
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
 from model_controllers.check_consistency import FwConfigImportCheckConsistency
 from model_controllers.rollback import FwConfigImportRollback
+from model_controllers.import_state_controller import ImportStateController
 
 """  
     import_management: import a single management (if no import for it is running)
@@ -44,7 +45,7 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
     config_changed_since_last_import = True
     time_get_config = 0
 
-    importState = ImportState.initializeImport(mgmId, debugLevel=debug_level_in, 
+    importState = ImportStateController.initializeImport(mgmId, debugLevel=debug_level_in, 
                                                force=force, version=version, 
                                                isClearingImport=clearManagementData, isFullImport=False)
 
@@ -104,7 +105,7 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
 
                 # also import sub managers if they exist
                 for subManagerId in importState.MgmDetails.SubManager:
-                    subMgrImportState = ImportState.initializeImport(subManagerId, debugLevel=debug_level_in, 
+                    subMgrImportState = ImportStateController.initializeImport(subManagerId, debugLevel=debug_level_in, 
                                             force=force, version=version, 
                                             isClearingImport=clearManagementData, isFullImport=False)
                     config_changed_since_last_import, configNormalizedSub = get_config_from_api(subMgrImportState, {})
@@ -201,7 +202,7 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
 #                                     startImport=True))
 
 
-def importFromFile(importState: ImportState, fileName: str = "", gateways: List[Gateway] = []):
+def importFromFile(importState: ImportStateController, fileName: str = "", gateways: List[Gateway] = []):
 
     logger = getFwoLogger()
     logger.debug("import_management - not getting config from API but from file: " + fileName)

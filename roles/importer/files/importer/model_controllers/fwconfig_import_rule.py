@@ -6,7 +6,7 @@ import fwo_const
 from models.rule import RuleForImport, RuleType
 from models.rule_metadatum import RuleMetadatum, RuleMetadatumForImport
 from models.rulebase import Rulebase, RulebaseForImport
-from fwoBaseImport import ImportState
+from model_controllers.import_state_controller import ImportStateController
 from model_controllers.fwconfig_normalized_controller import FwConfigNormalized
 from model_controllers.fwconfig_import_base import FwConfigImportBase
 from fwo_log import getFwoLogger
@@ -28,7 +28,7 @@ class FwConfigImportRule(FwConfigImportBase):
     #     values['RulebaseMap'] = cls.GetRulebaseMap() # limited to the current mgm_id
     #     return values
 
-    def __init__(self, importState: ImportState, config: FwConfigNormalized):
+    def __init__(self, importState: ImportStateController, config: FwConfigNormalized):
       super().__init__(importState, config)
     #   self.ActionMap = self.GetActionMap()
     #   self.TrackMap = self.GetTrackMap()
@@ -975,7 +975,7 @@ class FwConfigImportRule(FwConfigImportBase):
         return self.ImportDetails.call(mutation, queryVariables=query_variables)
 
 
-    def PrepareForImport(self, importDetails: ImportState, Rules, rulebaseUid: str) -> List[RuleForImport]:
+    def PrepareForImport(self, importDetails: ImportStateController, Rules, rulebaseUid: str) -> List[RuleForImport]:
         prepared_rules = []
 
         # get rulebase_id for rulebaseUid

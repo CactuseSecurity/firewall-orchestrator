@@ -15,7 +15,7 @@ from fwconfig_base import calcManagerUidHash
 from models.fwconfigmanagerlist import FwConfigManagerList, FwConfigManager
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
 from models.fwconfig_normalized import FwConfigNormalized
-from fwoBaseImport import ImportState
+from model_controllers.import_state_controller import ImportStateController
 from fwo_base import ConfigAction
 import fwo_const
 from model_controllers.fwconfig_normalized_controller import FwConfigNormalizedController
@@ -24,7 +24,7 @@ from model_controllers.fwconfig_normalized_controller import FwConfigNormalizedC
 # objects as well as rules can now be either from super-amanager or from local manager!
 # TODO: decide if we still support importing native config from file
 #   might replace this with json config file (in case it is not deserializable into classes)
-#def getConfig(nativeConfig:json, importState:ImportState, managerSet:FwConfigManagerList) -> tuple[int, FwConfigManagerList]:
+#def getConfig(nativeConfig:json, importState:ImportStateController, managerSet:FwConfigManagerList) -> tuple[int, FwConfigManagerList]:
 #    logger = getFwoLogger()
 #    logger.debug ( "starting checkpointR8x/get_config" )
 #
@@ -78,7 +78,7 @@ def has_config_changed (full_config, mgm_details, force=False):
     return result
 
 
-def getRules (nativeConfig: dict, importState: ImportState) -> int:
+def getRules (nativeConfig: dict, importState: ImportStateController) -> int:
     # delete_v: Schnittstellen die zum Rest passen müssen
     # 1. domain wird durch prepare_get_vars aus importState.FullMgmDetails ausgelesen,
     #    was muss für mds vs standalone beachtet werden
@@ -254,7 +254,7 @@ def getRules (nativeConfig: dict, importState: ImportState) -> int:
     return 0
 
 
-def get_config(nativeConfig: json, importState: ImportState) -> tuple[int, FwConfigManagerList]:
+def get_config(nativeConfig: json, importState: ImportStateController) -> tuple[int, FwConfigManagerList]:
     logger = getFwoLogger()
     normalizedConfig = fwo_const.emptyNormalizedFwConfigJsonDict
     logger.debug ( "starting checkpointR8x/get_config" )

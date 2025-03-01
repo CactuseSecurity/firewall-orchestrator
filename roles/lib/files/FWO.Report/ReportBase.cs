@@ -10,6 +10,7 @@ using PuppeteerSharp.Media;
 using PuppeteerSharp.BrowserData;
 using HtmlAgilityPack;
 using FWO.Report.Data;
+using FWO.Logging;
 
 namespace FWO.Report
 {
@@ -98,7 +99,6 @@ namespace FWO.Report
 
         protected string htmlExport = "";
 
-        private const string ChromeBinPathLinux = "/usr/local/bin";
         private string TocHTMLTemplate = "<div id=\"toc_container\"><h2>##ToCHeader##</h2><ul class=\"toc_list\">##ToCList##</ul></div><style>#toc_container {background: #f9f9f9 none repeat scroll 0 0;border: 1px solid #aaa;display: table;font-size: 95%;margin-bottom: 1em;padding: 10px;width: 100%;}#toc_container ul{list-style-type: none;}.subli {list-style-type: square;}.toc_list ul li {margin-bottom: 4px;}.toc_list a {color: black;font-family: 'Arial';font-size: 12pt;}</style>";
 
         public bool GotObjectsInReport { get; protected set; } = false;
@@ -240,7 +240,7 @@ namespace FWO.Report
                     platform = Platform.Win32;
                     break;
                 case PlatformID.Unix:
-                    path = ChromeBinPathLinux;
+                    path = GlobalConst.ChromeBinPathLinux;
                     platform = Platform.Linux;
                     break;
                 default:
@@ -251,6 +251,15 @@ namespace FWO.Report
 
             InstalledBrowser? installedBrowser = browserFetcher.GetInstalledBrowsers()
                       .FirstOrDefault(_ => _.Platform == platform && _.Browser == wantedBrowser);
+
+            if (installedBrowser == null && os.Platform == PlatformID.Win32NT)
+            {
+                Log.WriteInfo("Browser", $"Browser not found for Windows! Trying to download...");
+                await browserFetcher.DownloadAsync();
+
+                installedBrowser = browserFetcher.GetInstalledBrowsers()
+                      .FirstOrDefault(_ => _.Platform == platform && _.Browser == wantedBrowser);
+            }
 
             if (installedBrowser == null)
             {
@@ -375,7 +384,7 @@ namespace FWO.Report
                 return false;
             }
 
-        }        
+        }
 
         public PuppeteerSharp.Media.PaperFormat? GetPuppeteerPaperFormat(PaperFormat format)
         {

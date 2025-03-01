@@ -1,6 +1,6 @@
 # from pydantic import BaseModel
 from models.rulebase_link import RulebaseLink
-from fwoBaseImport import ImportState
+from model_controllers.import_state_controller import ImportStateController
 from fwo_log import getFwoLogger
 
 class RulebaseLinkController(RulebaseLink):
@@ -12,7 +12,7 @@ class RulebaseLinkController(RulebaseLink):
     #                                      link_type=linkTypeId,
     #                                      created=self.ImportDetails.ImportId
 
-    def importInsertRulebaseLink(self, importState: ImportState):
+    def importInsertRulebaseLink(self, importState: ImportStateController):
         errors = 0
         changes = 0
         logger = getFwoLogger()

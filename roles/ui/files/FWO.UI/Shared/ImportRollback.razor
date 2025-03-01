@@ -1,7 +1,7 @@
 ﻿@inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
-<PopUp Title="@(userConfig.GetText("rollback_import") + ": " + ManagementId)" Show="@RollbackMode" Size=PopupSize.CustomSmall OnClose="() => RollbackMode = false">
+<PopUp Title="@(userConfig.GetText("rollback_import") + ": " + ManagementId)" Show="@RollbackMode" Size=PopupSize.Small OnClose="() => RollbackMode = false">
     <Body>
         @if (RollbackMode)
         {

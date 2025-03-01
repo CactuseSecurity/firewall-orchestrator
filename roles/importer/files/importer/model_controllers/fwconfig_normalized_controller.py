@@ -4,7 +4,7 @@ import time
 import traceback
 
 from fwo_log import getFwoLogger
-from fwoBaseImport import ImportState
+from model_controllers.import_state_controller import ImportStateController
 from models.gateway import Gateway
 from fwo_base import ConfFormat
 
@@ -72,7 +72,7 @@ class FwConfigNormalizedController():
         self.rulebases += config.Policies
         self.gateways += config.Gateways
 
-    def fillGateways(self, importState: ImportState, gateways:List[Gateway]):      
+    def fillGateways(self, importState: ImportStateController, gateways:List[Gateway]):      
         self.gateways = gateways
         # for dev in importState.MgmDetails.Devices:
         #     gw = Gateway(f"{dev['name']}_{dev['local_rulebase_name']}",

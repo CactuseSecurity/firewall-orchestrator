@@ -1,5 +1,5 @@
 ﻿subscription subscribeImportNotifyConfigChanges {
-  config (where: { _or: [{config_key: {_eq: "impChangeNotifySleepTime"}}, {config_key: {_eq: "impChangeNotifyStartAt"}}, {config_key: {_eq: "impChangeNotifyActive"}} ]}, limit: 3){
+  config(where: {_or: [{config_key: {_eq: "impChangeNotifySleepTime"}}, {config_key: {_eq: "impChangeNotifyStartAt"}}, {config_key: {_eq: "impChangeNotifyActive"}}, {config_key: {_eq: "impChangeNotifyRecipients"}}, {config_key: {_eq: "impChangeNotifySubject"}}, {config_key: {_eq: "emailSenderAddress"}}, {config_key: {_eq: "emailServerAddress"}}, {config_key: {_eq: "emailPort"}}, {config_key: {_eq: "emailTls"}}, {config_key: {_eq: "emailUser"}}, {config_key: {_eq: "emailPassword"}}, {config_key: {_eq: "impChangeNotifyBody"}}, {config_key: {_eq: "importSleepTime"}}, {config_key: {_eq: "importCheckCertificates"}}, {config_key: {_eq: "impChangeNotifyActive"}}, {config_key: {_eq: "importSuppressCertificateWarnings"}}]}, limit: 16) {
     config_key
     config_value
   }

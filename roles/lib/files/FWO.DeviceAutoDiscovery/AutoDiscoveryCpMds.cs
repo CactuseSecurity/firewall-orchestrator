@@ -107,7 +107,7 @@ namespace FWO.DeviceAutoDiscovery
                 currentManagement.SuperManagerId = null;
                 currentManagement.DomainUid = "";
             }
-            return currentManagement;        
+            return currentManagement;
         }
 
         private async Task<(string, CheckPointClient)> LoginCp(Management mgm)
@@ -216,6 +216,9 @@ namespace FWO.DeviceAutoDiscovery
             List<CpDevice> devList = await restClientCP.GetGateways(@sessionIdPerDomain, ManagementType);
             foreach (CpDevice cpDev in devList)
             {
+                // TODO: this is not clean - we are assuming that the mgmt host name is given as defined in the config
+                // alternatively we could simply drop the name check
+                // better: check for primary manager
                 if (cpDev.CpDevType == "checkpoint-host" && cpDev.Name == mgmName)
                     return cpDev.Uid;
             }

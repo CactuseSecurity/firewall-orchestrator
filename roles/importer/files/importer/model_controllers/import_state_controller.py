@@ -12,124 +12,13 @@ from fwo_exception import FwoApiLoginFailed
 import fwo_globals
 from models.action import Action
 from models.track import Track
-
-"""
-    the configuraton of a firewall orchestrator itself
-    as read from the global config file including FWO URI
-"""
-class FworchConfig():
-    FwoApiUri: str
-    FwoUserMgmtApiUri: str
-    ApiFetchSize: int
-    ImporterPassword: str
-    
-    def __init__(self, fwoApiUri, fwoUserMgmtApiUri, importerPwd, apiFetchSize=500):
-        if fwoApiUri is not None:
-            self.FwoApiUri = fwoApiUri
-        else:
-            self.FwoApiUFwoUserMgmtApiri = None
-        if fwoUserMgmtApiUri is not None:
-            self.FwoUserMgmtApiUri = fwoUserMgmtApiUri
-        else:
-            self.FwoUserMgmtApiUri = None
-        self.ImporterPassword = importerPwd
-        self.ApiFetchSize = apiFetchSize
-
-    @classmethod
-    def fromJson(cls, json_dict):
-        fwoApiUri = json_dict['fwo_api_base_url']
-        fwoUserMgmtApiUri = json_dict['user_management_api_base_url']
-        if 'importerPassword' in json_dict:
-            fwoImporterPwd = json_dict['importerPassword']
-        else:
-            fwoImporterPwd = None
-        
-        return cls(fwoApiUri, fwoUserMgmtApiUri, fwoImporterPwd)
-
-    def __str__(self):
-        return f"{self.FwoApiUri}, {self.FwoUserMgmtApi}, {self.ApiFetchSize}"
-
-    def setImporterPwd(self, importerPassword):
-        self.ImporterPassword = importerPassword        
-
-class ManagementDetails():
-    Id: int
-    Name: str
-    Uid: str
-    Hostname: str
-    ImportDisabled: bool
-    Devices: dict
-    ImporterHostname: str
-    DeviceTypeName: str
-    DeviceTypeVersion: str
-    Port: int
-    ImportUser: str
-    Secret: str
-    IsSuperManager: bool
-    SubManager: List[int]
-
-    def __init__(self, hostname: str, id: int, uid: str, importDisabled: bool, devices: Dict, 
-                 importerHostname: str, name: str, deviceTypeName: str, deviceTypeVersion: str, 
-                 port: int = 443, secret: str = '', importUser: str = '', isSuperManager: bool = False, SubManager: List[int] = []):
-        self.Hostname = hostname
-        self.Id = id
-        self.Uid = uid
-        self.ImportDisabled = importDisabled
-        self.Devices = devices
-        self.ImporterHostname = importerHostname
-        self.Name = name
-        self.DeviceTypeName = deviceTypeName
-        self.DeviceTypeVersion = deviceTypeVersion
-        self.Port = port
-        self.Secret = secret
-        self.ImportUser = importUser
-        self.IsSuperManager = isSuperManager
-        self.SubManager = SubManager
-
-    @classmethod
-    def fromJson(cls, json_dict: Dict):
-        Hostname = json_dict['hostname']
-        Id = json_dict['id']
-        ImportDisabled = json_dict['importDisabled']
-        Devices = json_dict['devices']
-        ImporterHostname = json_dict['importerHostname']
-        Name = json_dict['name']
-        DeviceTypeName = json_dict['deviceType']['name']
-        DeviceTypeVersion = json_dict['deviceType']['version']
-        Port = json_dict['port']
-        ImportUser = json_dict['import_credential']['user']
-        Secret = json_dict['import_credential']['secret']
-
-        return cls(Hostname, Id, ImportDisabled, Devices, ImporterHostname, Name, DeviceTypeName, DeviceTypeVersion, port=Port, importUser=ImportUser, secret=Secret)
-
-    def __str__(self):
-        return f"{self.Hostname}({self.Id})"
+from models.import_state import ImportState
+from model_controllers.fworch_config_controller import FworchConfigController
+from model_controllers.management_details_controller import ManagementDetailsController
 
 
 """Used for storing state during import process per management"""
-class ImportState(FwoApi):
-    ErrorCount: int
-    ChangeCount: int
-    ErrorString: str
-    StartTime: int
-    DebugLevel: int
-    ConfigChangedSinceLastImport: bool
-    FwoConfig: FworchConfig
-    MgmDetails: ManagementDetails
-    FullMgmDetails: dict
-    ImportId: int
-    ImportFileName: str
-    ForceImport: str
-    ImportVersion: int
-    DataRetentionDays: int
-    DaysSinceLastFullImport: int
-    LastFullImportId: int
-    IsFullImport: bool
-    Actions: Dict[str, Action]
-    Tracks: Dict[str, Track]
-    LinkTypes: Dict[str, int]
-    RulebaseMap: Dict[str, int]
-    RuleMap: Dict[str, int]
+class ImportStateController(ImportState):
 
 
     def __init__(self, debugLevel, configChangedSinceLastImport, fwoConfig, mgmDetails, jwt, force, version=8, isFullImport=False, isClearingImport=False):
@@ -140,7 +29,7 @@ class ImportState(FwoApi):
         self.DebugLevel = debugLevel
         self.ConfigChangedSinceLastImport = configChangedSinceLastImport
         self.FwoConfig = fwoConfig
-        self.MgmDetails = ManagementDetails.fromJson(mgmDetails)
+        self.MgmDetails = ManagementDetailsController.fromJson(mgmDetails)
         self.FullMgmDetails = mgmDetails
         self.ImportId = None
         self.Jwt = jwt
@@ -188,7 +77,7 @@ class ImportState(FwoApi):
         logger = getFwoLogger()
         _check_input_parameters(mgmId)
 
-        fwoConfig = FworchConfig.fromJson(readConfig(fwo_config_filename))
+        fwoConfig = FworchConfigController.fromJson(readConfig(fwo_config_filename))
 
         # authenticate to get JWT
         try:

@@ -1,7 +1,7 @@
 
 from typing import List
 
-from fwoBaseImport import ImportState
+from model_controllers.import_state_controller import ImportStateController
 from model_controllers.fwconfig_normalized_controller import FwConfigNormalized
 from model_controllers.fwconfig_import_base import FwConfigImportBase
 from fwo_log import getFwoLogger
@@ -11,9 +11,9 @@ from model_controllers.rulebase_link_controller import RulebaseLinkController
 # this class is used for importing a config into the FWO API
 class FwConfigImportGateway(FwConfigImportBase):
 
-    ImportDetails: ImportState
+    ImportDetails: ImportStateController
 
-    def __init__(self, importState: ImportState, config: FwConfigNormalized):
+    def __init__(self, importState: ImportStateController, config: FwConfigNormalized):
       # ImportDetails = importState
       super().__init__(importState, config)
 

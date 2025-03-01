@@ -8,7 +8,7 @@
 @inject UserConfig userConfig
 
 
-<PopUp Title="@(userConfig.GetText("implementation") + ": " + WfHandler.ActImplTask.Title)" Show="@WfHandler.DisplayImplTaskMode" Size=PopupSize.CustomXLarge OnClose="async () => await Close()">
+<PopUp Title="@(userConfig.GetText("implementation") + ": " + WfHandler.ActImplTask.Title)" Show="@WfHandler.DisplayImplTaskMode" Size=PopupSize.XLarge OnClose="async () => await Close()">
     <Body>
         @if (WfHandler.DisplayImplTaskMode)
         {

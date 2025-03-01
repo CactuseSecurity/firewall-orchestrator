@@ -14,3 +14,26 @@ we are using cycloneDx
     cd fwo-cactus
     git pull
     dotnet-CycloneDX -j roles/FWO.sln 
+
+## list of perl packages
+
+    libdbi-perl
+    libdbd-pg-perl
+    libdate-calc-perl
+    psmisc
+    libnet-cidr-perl
+    libsys-syslog-perl
+    libexpect-perl
+    libcgi-pm-perl
+    python3-jsonpickle
+    python3-gnupg
+    python3-pytest
+    python3-pydantic
+
+
+## list of python packages
+
+    python3-netaddr
+    python3-jsonpickle
+    python3-gnupg
+    python3-pydantic

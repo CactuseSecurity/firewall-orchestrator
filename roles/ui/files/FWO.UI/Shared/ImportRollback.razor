@@ -86,19 +86,32 @@
                         RollbackMode = false;
                         workInProgress = false;
                         var variablesRollback = new { mgmId = ManagementId, lastImportId = lastImportId };
-                        int affectedRows = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.DeviceQueries.rollbackLastImport, variablesRollback)).AffectedRows;
+                        var ReturnId = await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.DeviceQueries.rollbackLastImport, variablesRollback);
+                        // int affectedRows = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.DeviceQueries.rollbackLastImport, variablesRollback)).AffectedRows;
+                        
+                        // TODO: the following needs to be adopted
+                        // need to look into each part of the mutation and sum up the affected rows?!
+                        // or better limit this to affected_rows of delete_import_control
 
-                        if (affectedRows > 0)
-                        {
-                            Log.WriteDebug("Delete Import", $"deleted {affectedRows} rows from Management Id {ManagementId}");
-                            workInProgress = false;
-                            DisplayMessageInUi(null, userConfig.GetText("rollback_import"), userConfig.GetText("U5107"), false);
-                        }
-                        else
-                        {
-                            workInProgress = false;
-                            DisplayMessageInUi(null, userConfig.GetText("rollback_import"), userConfig.GetText("U5106"), false);
-                        }
+                        /* {
+                            "data": {
+                                "delete_rule": { "affected_rows": 0 },
+                                ...
+                                "update_rule_user_resolved": { "affected_rows": 0 },
+                                "delete_import_control": { "affected_rows": 0 }
+                            }
+                        } */
+                        // if (affectedRows > 0)
+                        // {
+                        Log.WriteDebug("Delete Import", $"rolled back last import (id={lastImportId}) of mangement with ID {ManagementId}");
+                        workInProgress = false;
+                        DisplayMessageInUi(null, userConfig.GetText("rollback_import"), userConfig.GetText("U5107"), false);
+                        // }
+                        // else
+                        // {
+                        //     workInProgress = false;
+                        //     DisplayMessageInUi(null, userConfig.GetText("rollback_import"), userConfig.GetText("U5106"), false);
+                        // }
                     }
                     catch (System.Exception exception)
                     {

@@ -21,7 +21,8 @@ class RulebaseLinkController(RulebaseLink):
                 "gw_id": self.gw_id,
                 "to_rulebase_id": self.to_rulebase_id,
                 "from_rule_id": self.from_rule_id,
-                "link_type": self.link_type
+                "link_type": self.link_type,
+                "created": importState.ImportId
             }
         ] }
 

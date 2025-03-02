@@ -12,11 +12,16 @@ class FwConfigImportRollback(FwConfigImport):
         self.ServiceObjectTypeMap = config.ServiceObjectTypeMap
         self.UserObjectTypeMap = config.UserObjectTypeMap
         
+    # this function deletes all new entries added in this import
+    # and also resets all entries that have been marked removed
     def rollbackCurrentImport(self) -> None:
         logger = getFwoLogger()
         rollbackMutation = """
             mutation rollbackCurrentImport($mgmId: Int!, $currentImportId: bigint!) {
                 delete_rule(where: {mgm_id: {_eq: $mgmId}, rule_create: {_eq: $currentImportId}}) {
+                    affected_rows
+                }
+                delete_rulebase(where: {mgm_id: {_eq: $mgmId}, created: {_eq: $currentImportId}}) {
                     affected_rows
                 }
                 delete_object(where: {mgm_id: {_eq: $mgmId}, obj_create: {_eq: $currentImportId}}) {
@@ -28,46 +33,50 @@ class FwConfigImportRollback(FwConfigImport):
                 delete_usr(where: {mgm_id: {_eq: $mgmId}, user_create: {_eq: $currentImportId}}) {
                     affected_rows
                 }
-                delete_zone(where: {mgm_id: {_eq: $mgmId}, removed: {_eq: $currentImportId}}) {
+                delete_zone(where: {mgm_id: {_eq: $mgmId}, zone_create: {_eq: $currentImportId}}) {
                     affected_rows
                 }
-                delete_objgrp(where: {removed: {_eq: $currentImportId}}) {
+                delete_objgrp(where: {import_created: {_eq: $currentImportId}}) {
                     affected_rows
                 }
-                delete_svcgrp(where: {removed: {_eq: $currentImportId}}) {
+                delete_svcgrp(where: {import_created: {_eq: $currentImportId}}) {
                     affected_rows
                 }
-                delete_usergrp(where: {removed: {_eq: $currentImportId}}) {
+                delete_usergrp(where: {import_created: {_eq: $currentImportId}}) {
                     affected_rows
                 }
-                delete_objgrp_flat(where: {removed: {_eq: $currentImportId}}) {
+                delete_objgrp_flat(where: {import_created: {_eq: $currentImportId}}) {
                     affected_rows
                 }
-                delete_svcgrp_flat(where: {removed: {_eq: $currentImportId}}) {
+                delete_svcgrp_flat(where: {import_created: {_eq: $currentImportId}}) {
                     affected_rows
                 }
-                delete_usergrp_flat(where: {removed: {_eq: $currentImportId}}) {
+                delete_usergrp_flat(where: {import_created: {_eq: $currentImportId}}) {
                     affected_rows
                 }
-                delete_rule_to(where: {removed: {_eq: $currentImportId}}) {
+                delete_rule_to(where: {rt_create: {_eq: $currentImportId}}) {
                     affected_rows
                 }
-                delete_rule_from(where: {removed: {_eq: $currentImportId}}) {
+                delete_rule_from(where: {rf_create: {_eq: $currentImportId}}) {
                     affected_rows
                 }
-                delete_rule_service(where: {removed: {_eq: $currentImportId}}) {
+                delete_rule_service(where: {rs_create: {_eq: $currentImportId}}) {
                     affected_rows
                 }
-                delete_rule_nwobj_resolved(where: {mgm_id: {_eq: $mgmId}, removed: {_eq: $currentImportId}}) {
+                delete_rule_nwobj_resolved(where: {mgm_id: {_eq: $mgmId}, created: {_eq: $currentImportId}}) {
                     affected_rows
                 }
-                delete_rule_svc_resolved(where: {mgm_id: {_eq: $mgmId}, removed: {_eq: $currentImportId}}) {
+                delete_rule_svc_resolved(where: {mgm_id: {_eq: $mgmId}, created: {_eq: $currentImportId}}) {
                     affected_rows
                 }
-                delete_rule_user_resolved(where: {mgm_id: {_eq: $mgmId}, removed: {_eq: $currentImportId}}) {
+                delete_rule_user_resolved(where: {mgm_id: {_eq: $mgmId}, created: {_eq: $currentImportId}}) {
                     affected_rows
                 }
+            
                 update_rule(where: {mgm_id: {_eq: $mgmId}, removed: {_eq: $currentImportId}}, _set: {removed: null}) {
+                    affected_rows
+                }
+                update_rulebase(where: {mgm_id: {_eq: $mgmId}, removed: {_eq: $currentImportId}}, _set: {removed: null}) {
                     affected_rows
                 }
                 update_object(where: {mgm_id: {_eq: $mgmId}, removed: {_eq: $currentImportId}}, _set: {removed: null}) {
@@ -130,6 +139,9 @@ class FwConfigImportRollback(FwConfigImport):
                 logger.exception("error while trying to roll back current import for mgm id " +
                                 str(self.ImportDetails.MgmDetails.Id) + ": " + str(rollbackResult['errors']))
                 return 1 # error
+            else:
+                logger.info("import " + str(self.ImportDetails.ImportId) + " has been rolled back successfully")
+
         except:
             logger.exception(f"failed to rollback current importfor mgm id {str(self.ImportDetails.MgmDetails.Id)}: {str(traceback.format_exc())}")
             return 1 # error

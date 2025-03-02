@@ -49,7 +49,7 @@ namespace FWO.Data
 
         public virtual string Display()
         {
-            return Name + " (" + ExtAppId + ")";
+            return Name + (!string.IsNullOrEmpty(ExtAppId) ? " (" + ExtAppId + ")" : "");
         }
 
         public virtual bool Sanitize()

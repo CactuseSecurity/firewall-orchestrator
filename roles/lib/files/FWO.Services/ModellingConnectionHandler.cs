@@ -444,7 +444,7 @@ namespace FWO.Services
                     // change referred connId ?
                     string comment = $"{userConfig.GetText("U9016")}: {IntConnHandler?.ActConn.Name}";
                    TicketCreator ticketCreator = new (apiConnection, userConfig, authenticationStateTask!.Result.User, middlewareClient, WorkflowPhases.implementation);
-                    if(await ticketCreator.PromoteNewInterfaceImplTask(Application, (long)ActConn.TicketId, ExtStates.Done, comment))
+                    if(await ticketCreator.PromoteNewInterfaceImplTask((long)ActConn.TicketId, ExtStates.Done, comment))
                     {
                         DisplayMessageInUi(null, comment, userConfig.GetText("U9013"), false);
                     }

@@ -212,7 +212,6 @@ Create table "rule_metadata"
 	"last_change_admin" Integer,
 	"rule_decert_date" Timestamp,
 	"rule_recertification_comment" Varchar,
-	"rulebase_id" Integer,
  primary key ("rule_metadata_id") 
 );
 

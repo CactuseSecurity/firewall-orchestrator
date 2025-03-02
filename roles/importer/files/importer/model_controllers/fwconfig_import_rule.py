@@ -535,6 +535,8 @@ class FwConfigImportRule(FwConfigImportBase):
                 if changes>0:
                     for rulebase in import_result['data']['insert_rulebase']['returning']:
                         newRulebaseIds.append(rulebase['id'])
+                    # finally, add the new rulebases to the map for next step (adding rulebase with rules)
+                    self.ImportDetails.SetRulebaseMap() 
                 return 0, changes, newRulebaseIds
         except:
             logger.exception(f"failed to write new rules: {str(traceback.format_exc())}")
@@ -632,7 +634,11 @@ class FwConfigImportRule(FwConfigImportBase):
 
         newRulesForImport: List[RulebaseForImport] = []
 
+
         for rulebase in newRules:
+            rules = {"data": []}
+            if includeRules:
+                rules = self.PrepareRuleForImport(self.ImportDetails, rulebase.Rules, rulebaseUid=rulebase.uid)
             rb4import = RulebaseForImport(
                 name=rulebase.name,
                 mgm_uid=self.ImportDetails.MgmDetails.Name,
@@ -640,7 +646,7 @@ class FwConfigImportRule(FwConfigImportBase):
                 uid=rulebase.uid,
                 is_global=self.ImportDetails.MgmDetails.IsSuperManager,
                 created=self.ImportDetails.ImportId,
-                rules= self.PrepareForImport(self.ImportDetails, rulebase.Rules, rulebaseUid=rulebase.uid) if includeRules else { "data": [] }
+                rules=rules
             )
             newRulesForImport.append(rb4import.dict())
         # TODO: see where to get real UIDs (both for rulebase and manager)
@@ -975,11 +981,12 @@ class FwConfigImportRule(FwConfigImportBase):
         return self.ImportDetails.call(mutation, queryVariables=query_variables)
 
 
-    def PrepareForImport(self, importDetails: ImportStateController, Rules, rulebaseUid: str) -> List[RuleForImport]:
+    def PrepareRuleForImport(self, importDetails: ImportStateController, Rules, rulebaseUid: str) -> List[RuleForImport]:
         prepared_rules = []
 
         # get rulebase_id for rulebaseUid
         rulebase_id = importDetails.lookupRulebaseId(rulebaseUid)
+
 
         for rule in Rules:
             rule_for_import = RuleForImport(

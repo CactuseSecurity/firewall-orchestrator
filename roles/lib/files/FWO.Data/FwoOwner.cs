@@ -48,7 +48,7 @@ namespace FWO.Data
         public string Display(string comSvcTxt)
         {
             string comSvcAppendix = CommSvcPossible && comSvcTxt != "" ? $", {comSvcTxt}" : "";
-            string appIdPart = ExtAppId != "" ? $" ({ExtAppId}{comSvcAppendix})" : "";
+            string appIdPart = !string.IsNullOrEmpty(ExtAppId) ? $" ({ExtAppId}{comSvcAppendix})" : "";
 
             return $"{Name}{appIdPart}";
         }

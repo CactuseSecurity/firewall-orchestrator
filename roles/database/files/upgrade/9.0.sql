@@ -227,7 +227,7 @@ CREATE TRIGGER import_config_insert
 ALTER TABLE management ADD COLUMN IF NOT EXISTS "mgm_uid" Varchar NOT NULL DEFAULT '';
 ALTER TABLE management ADD COLUMN IF NOT EXISTS "rulebase_name" Varchar NOT NULL DEFAULT '';
 ALTER TABLE management ADD COLUMN IF NOT EXISTS "rulebase_uid" Varchar NOT NULL DEFAULT '';
-Alter table rule_metadata add column if not exists rulebase_id integer; -- not null;
+-- Alter table rule_metadata add column if not exists rulebase_id integer; -- not null;
 
 ALTER TABLE device ADD COLUMN IF NOT EXISTS "dev_uid" Varchar NOT NULL DEFAULT '';
 
@@ -331,7 +331,6 @@ ALTER table "svcgrp_flat" ALTER COLUMN "svcgrp_flat_member_id" TYPE BIGINT;
 ALTER table "svcgrp_flat" ALTER COLUMN "import_created" TYPE BIGINT;
 ALTER table "svcgrp_flat" ALTER COLUMN "import_last_seen" TYPE BIGINT;
 
-alter table "rule" add column if not exists "rulebase_id" Integer; -- NOT NULL;
 ALTER TABLE "rule" DROP CONSTRAINT IF EXISTS "fk_rule_rulebase_id" CASCADE;
 ALTER TABLE "rule" ADD CONSTRAINT fk_rule_rulebase_id FOREIGN KEY ("rulebase_id") REFERENCES "rulebase" ("id") ON UPDATE RESTRICT ON DELETE CASCADE;
 
@@ -774,7 +773,7 @@ $function$;
 
 ALTER TABLE rule DROP CONSTRAINT IF EXISTS rule_dev_id_fkey;
 
--- ALTER TABLE "rule_metadata" DROP CONSTRAINT IF EXISTS "rule_metadata_rulebase_id_f_key" CASCADE;
+ALTER TABLE "rule_metadata" DROP CONSTRAINT IF EXISTS "rule_metadata_rulebase_id_f_key" CASCADE;
 -- Alter table "rule_metadata" add constraint "rule_metadata_rulebase_id_f_key"
 --   foreign key ("rulebase_id") references "rulebase" ("id") on update restrict on delete cascade;
 -- ALTER TABLE "rule_metadata" DROP CONSTRAINT IF EXISTS "rule_metadata_alt_key" CASCADE;

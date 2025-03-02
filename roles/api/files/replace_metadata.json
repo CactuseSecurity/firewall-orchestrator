@@ -14665,12 +14665,6 @@
                 },
                 "object_relationships": [
                   {
-                    "name": "rulebase",
-                    "using": {
-                      "foreign_key_constraint_on": "rulebase_id"
-                    }
-                  },
-                  {
                     "name": "uiuser",
                     "using": {
                       "foreign_key_constraint_on": "rule_owner"
@@ -16093,18 +16087,6 @@
                   }
                 ],
                 "array_relationships": [
-                  {
-                    "name": "rule_metadata",
-                    "using": {
-                      "foreign_key_constraint_on": {
-                        "column": "rulebase_id",
-                        "table": {
-                          "name": "rule_metadata",
-                          "schema": "public"
-                        }
-                      }
-                    }
-                  },
                   {
                     "name": "rulebase_links",
                     "using": {

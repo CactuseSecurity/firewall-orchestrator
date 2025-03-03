@@ -1,17 +1,19 @@
-﻿using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using Microsoft.AspNetCore.Components.Authorization;
+﻿using FWO.Api.Client;
+using FWO.Api.Client.Queries;
+using FWO.Basics;
 using FWO.Config.Api;
-using FWO.Api.Client;
-using FWO.Api.Data;
-using FWO.Ui.Services;
-using FWO.Middleware.Client;
-using FWO.Middleware.RequestParameters;
-using RestSharp;
-using System.Net;
+using FWO.Data;
+using FWO.Data.Middleware;
 using FWO.Logging;
+using FWO.Middleware.Client;
+using FWO.Ui.Services;
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
+using RestSharp;
+using System.IdentityModel.Tokens.Jwt;
+using System.Net;
 using System.Security.Authentication;
+using System.Security.Claims;
 
 namespace FWO.Ui.Auth
 {
@@ -81,7 +83,7 @@ namespace FWO.Ui.Auth
 
 				// Set user information
 				user = new ClaimsPrincipal(identity);
-				string userDn = user.FindFirstValue("x-hasura-uuid");
+				string userDn = user.FindFirstValue("x-hasura-uuid") ?? "";
 				await userConfig.SetUserInformation(userDn, apiConnection);
 				userConfig.User.Jwt = jwtString;
 				userConfig.User.Tenant = await GetTenantFromJwt(userConfig.User.Jwt, apiConnection);
@@ -160,7 +162,7 @@ namespace FWO.Ui.Auth
 
 				if (int.TryParse(user.FindFirstValue("x-hasura-tenant-id"), out int tenantId))
 				{
-					tenant = await Tenant.GetSingleTenant(apiConnection, tenantId) ?? new();
+					tenant = await GetSingleTenant(apiConnection, tenantId) ?? new();
 				}
 				// else
 				// {
@@ -169,6 +171,19 @@ namespace FWO.Ui.Auth
 			}
 			return tenant;
 		}
+
+        public static async Task<Tenant?> GetSingleTenant(ApiConnection conn, int tenantId)
+        {
+            Tenant[] tenants = await conn.SendQueryAsync<Tenant[]>(AuthQueries.getTenants, new { tenant_id = tenantId });
+            if (tenants.Length > 0)
+            {
+                return tenants[0];
+            }
+            else
+            {
+                return null;
+            }
+        }
 
 		private static async Task<List<string>> GetAllowedRoles(string jwtString)
 		{

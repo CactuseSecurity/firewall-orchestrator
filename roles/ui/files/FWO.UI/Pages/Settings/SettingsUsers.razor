@@ -1,15 +1,8 @@
-@using BlazorTable
-@using System.Net
-@using FWO.Basics
-@using FWO.Api.Data
-@using FWO.Api.Client
-@using FWO.Api.Client.Queries
+@using FWO.Data.Middleware
 @using FWO.Middleware.Client
-@using FWO.Config.Api
-@using FWO.Middleware.RequestParameters
 @using FWO.Ui.Services
-@using FWO.Services
 @using RestSharp
+@using System.Net
 
 @page "/settings/users"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
@@ -251,7 +244,7 @@
     </Footer>
 </PopUp>
 
-<PopUp Title="@(userConfig.GetText("reset_password"))" Show="@ResetPasswordMode" Size=PopupSize.Large OnClose="() => ResetPasswordMode = false">
+<PopUp Title="@(userConfig.GetText("reset_password"))" Show="@ResetPasswordMode" Size=PopupSize.Small OnClose="() => ResetPasswordMode = false">
     <Body>
         @if (ResetPasswordMode)
         {
@@ -610,7 +603,7 @@
                 passwordMustBeChanged = user.PasswordMustBeChanged,
                 ldapConnectionId = user.LdapConnection.Id
             };
-            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(AuthQueries.upsertUiUser, Variables)).ReturnIds;
+            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(AuthQueries.upsertUiUser, Variables)).ReturnIds;
             if(returnIds != null)
             {
                 user.DbId = returnIds[0].NewId;

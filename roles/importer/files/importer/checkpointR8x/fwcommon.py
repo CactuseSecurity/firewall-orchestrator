@@ -62,6 +62,7 @@ def get_config(config2import, full_config, current_import_id, mgm_details, limit
 
         result_get_objects = get_objects (full_config, mgm_details, base_url, sid, force=force, limit=str(limit), details_level=cp_const.details_level, test_version='off')
         if result_get_objects>0:
+            logger.warning ( "checkpointR8x/get_config/error while gettings objects")
             return result_get_objects
         logger.debug ( "checkpointR8x/get_config/fetched objects in " + str(int(time.time()) - starttimeTemp) + "s")
 
@@ -69,6 +70,7 @@ def get_config(config2import, full_config, current_import_id, mgm_details, limit
         logger.debug ( "checkpointR8x/get_config/getting rules ...")
         result_get_rules = get_rules (full_config, mgm_details, base_url, sid, force=force, limit=str(limit), details_level=cp_const.details_level, test_version='off')
         if result_get_rules>0:
+            logger.warning ( "checkpointR8x/get_config/error while gettings rules")
             return result_get_rules
         logger.debug ( "checkpointR8x/get_config/fetched rules in " + str(int(time.time()) - starttimeTemp) + "s")
 

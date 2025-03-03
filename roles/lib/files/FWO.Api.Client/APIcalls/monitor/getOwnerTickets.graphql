@@ -8,7 +8,7 @@ query getOwnerTickets ($ownerId: Int!) {
       common_service_possible
     }
     ticket: ticket {
-      ...ticketDetails
+      ...ticketOverview
     }
   }
 }

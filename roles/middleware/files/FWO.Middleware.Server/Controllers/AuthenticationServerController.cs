@@ -1,10 +1,11 @@
-﻿using FWO.Api.Client.Queries;
-using FWO.Api.Client;
-using FWO.Api.Data;
+﻿using FWO.Api.Client;
+using FWO.Api.Client.Queries;
+using FWO.Basics;
+using FWO.Data;
+using FWO.Data.Middleware;
 using FWO.Logging;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using FWO.Middleware.RequestParameters;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -105,7 +106,7 @@ namespace FWO.Middleware.Server.Controllers
         public async Task<int> PostAsync([FromBody] LdapAddParameters ldapData)//, [FromHeader] string bearer)
         {
             // Add ldap to DB and to middleware ldap list
-            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(AuthQueries.newLdapConnection, ldapData)).ReturnIds;
+            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(AuthQueries.newLdapConnection, ldapData)).ReturnIds;
             int ldapId = 0;
             if (returnIds != null)
             {

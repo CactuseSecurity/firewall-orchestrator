@@ -5,8 +5,7 @@
 @using FWO.Report
 @using FWO.Report.Filter
 @using FWO.Ui.Pages.Reporting.Reports
-@using FWO.Basics
-@using FWO.Api.Data
+@using FWO.Data.Report
 @using FWO.Middleware.Client
 @using FWO.Services
 
@@ -120,8 +119,7 @@
 </PopUp>
 
 @*==== RIGHT SIDEBAR ====*@
-<RightSidebar @bind-Width="sidebarRightWidth" Tabset="rsbTabset" AnchorNavToRSB="anchorNavToRSB" CurrentReport="currentReport" @bind-SelectedRules="selectedRules"/>
-<AnchorNavToRSB @ref="anchorNavToRSB" TabSet="rsbTabset" />
+<RightSidebar @bind-Width="sidebarRightWidth" CurrentReport="currentReport" @bind-SelectedRules="selectedRules" Recert="true" />
 
 @code
 {
@@ -130,9 +128,6 @@
 
     [CascadingParameter]
     private Task<AuthenticationState>? authenticationStateTask { get; set; }
-
-    private FWO.Ui.Shared.TabSet rsbTabset;
-    private FWO.Ui.Shared.AnchorNavToRSB anchorNavToRSB;
 
     private const int rulesPerPage = 0;
 
@@ -167,15 +162,12 @@
     private List<Rule> Certifications = [];
     private Dictionary<int, List<string>> deleteList = [];
 
-    private TicketCreator ticketCreator;
-
     protected override async Task OnInitializedAsync()
     {
         try
         {
             apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Recertifier, Roles.Admin, Roles.Auditor ]);
             rulesFound = false;
-            ticketCreator = new (apiConnection, userConfig, authenticationStateTask!.Result.User, middlewareClient);
 
             ownerList = await apiConnection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwners);
             await CollectOwnerships();
@@ -364,6 +356,7 @@
             // create delete tickets
             if(userConfig.RecAutoCreateDeleteTicket)
             {
+                TicketCreator ticketCreator = new (apiConnection, userConfig, authenticationStateTask!.Result.User, middlewareClient);
                 foreach(var device in deleteList)
                 {
                     await ticketCreator.CreateDecertRuleDeleteTicket(device.Key, device.Value, actComment, DateTime.Now.AddDays(userConfig.RuleRemovalGracePeriod));

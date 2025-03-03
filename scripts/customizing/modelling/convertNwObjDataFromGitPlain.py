@@ -16,6 +16,8 @@ import os
 from pathlib import Path
 import git  # apt install python3-git # or: pip install git
 import csv
+import urllib.parse
+
 
 defaultConfigFilename = "/usr/local/fworch/etc/secrets/customizingConfig.json"
 ipamGitRepoTargetDir = "/usr/local/fworch/etc/ipamRepo"
@@ -37,11 +39,11 @@ def getLogger(debug_level_in=0):
     logging.basicConfig(format=logformat, datefmt="%Y-%m-%dT%H:%M:%S%z", level=llevel)
     logger.setLevel(llevel)
 
-    #set log level for noisy requests/connectionpool module to WARNING: 
+    #set log level for noisy requests/connectionpool module to WARNING:
     connection_log = logging.getLogger("urllib3.connectionpool")
     connection_log.setLevel(logging.WARNING)
     connection_log.propagate = True
-    
+
     if debug_level>8:
         logger.debug ("debug_level=" + str(debug_level) )
     return logger
@@ -89,11 +91,11 @@ def extractSocketInfo(asset, services):
 
 
 def generatePublicIPv4NetworksAsInternetArea():
-    internetSubnets = ['0.0.0.0/5', '8.0.0.0/7', '11.0.0.0/8', '12.0.0.0/6', '16.0.0.0/4', '32.0.0.0/3', '64.0.0.0/2', 
-                       '128.0.0.0/3', '160.0.0.0/5', '168.0.0.0/6', '172.0.0.0/12', '172.32.0.0/11', '172.64.0.0/10', 
-                       '172.128.0.0/9', '173.0.0.0/8', '174.0.0.0/7', '176.0.0.0/4', '192.0.0.0/9', '192.128.0.0/11', 
-                       '192.160.0.0/13', '192.169.0.0/16', '192.170.0.0/15', '192.172.0.0/14', '192.176.0.0/12', 
-                       '192.192.0.0/10', '193.0.0.0/8', '194.0.0.0/7', '196.0.0.0/6', '200.0.0.0/5', '208.0.0.0/4', 
+    internetSubnets = ['0.0.0.0/5', '8.0.0.0/7', '11.0.0.0/8', '12.0.0.0/6', '16.0.0.0/4', '32.0.0.0/3', '64.0.0.0/2',
+                       '128.0.0.0/3', '160.0.0.0/5', '168.0.0.0/6', '172.0.0.0/12', '172.32.0.0/11', '172.64.0.0/10',
+                       '172.128.0.0/9', '173.0.0.0/8', '174.0.0.0/7', '176.0.0.0/4', '192.0.0.0/9', '192.128.0.0/11',
+                       '192.160.0.0/13', '192.169.0.0/16', '192.170.0.0/15', '192.172.0.0/14', '192.176.0.0/12',
+                       '192.192.0.0/10', '193.0.0.0/8', '194.0.0.0/7', '196.0.0.0/6', '200.0.0.0/5', '208.0.0.0/4',
                        '224.0.0.0/3']
     internetDicts = []
     for net in internetSubnets:
@@ -101,7 +103,7 @@ def generatePublicIPv4NetworksAsInternetArea():
     return internetDicts
 
 
-if __name__ == "__main__": 
+if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description='Read configuration from FW management via API calls')
     parser.add_argument('-c', '--config', default=defaultConfigFilename,
@@ -128,7 +130,7 @@ if __name__ == "__main__":
             origin = repo.remotes.origin
             origin.pull()
         else:
-            repoUrl = "https://" + ipamGitUser + ":" + ipamGitPassword + "@" + ipamGitRepo
+            repoUrl = "https://" + ipamGitUser + ":" + urllib.parse.quote(ipamGitPassword, safe='') + "@" + ipamGitRepo
             repo = git.Repo.clone_from(repoUrl, ipamGitRepoTargetDir)
     except:
         logger.error("error while trying to access git repo '" + ipamGitRepo + "', exception: " + str(traceback.format_exc()))
@@ -178,7 +180,7 @@ if __name__ == "__main__":
                 except:
                     logger.warning('found line with unparsable IP: ' + subnetIp + '/' + netmask)
                     continue
-                
+
                 nameParts = subnet[nameColumn].split('.')
                 if len(nameParts)>1:
                     zoneName = nameParts[1]
@@ -229,7 +231,7 @@ if __name__ == "__main__":
     transfSubnetData['areas'].append( {
         'name': 'Internet',
         'id_string': 'NA00',
-        'subnets': generatePublicIPv4NetworksAsInternetArea() } )        
+        'subnets': generatePublicIPv4NetworksAsInternetArea() } )
     # open: what about ipv6 addresses?
     # open: what about the companies own public ip addresses - should they be excluded here?
 

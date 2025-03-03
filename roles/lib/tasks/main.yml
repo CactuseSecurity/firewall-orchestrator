@@ -26,7 +26,6 @@
         state: absent
         path: "{{ fworch_home }}/lib"
 
-
     - name: create {{ lib_tmp_dir }} including lib dir
       file:
         dest: "{{ lib_tmp_dir }}"
@@ -37,8 +36,8 @@
     - name: install dotnet needed for both ui and middleware servers
       include_tasks: install_dot_net.yml
 
-    - name: install wkhtml pdf library needed for both ui and middleware servers
-      include_tasks: install_wkhtml_pdf.yml
+    - name: install puppeteer needed for both ui and middleware servers PDF creation
+      include_tasks: install_puppeteer.yml
 
     - name: copy {{ product_name }} dotnet lib files to lib target (localhost)
       synchronize:

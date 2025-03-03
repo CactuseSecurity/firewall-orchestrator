@@ -1,9 +1,10 @@
 ﻿using FWO.Config.Api;
-using FWO.Api.Data;
+using FWO.Data;
+using FWO.Data.Workflow;
+using FWO.Data.Modelling;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Logging;
-using FWO.Api.Client.Data;
 
 namespace FWO.Services
 {
@@ -12,7 +13,7 @@ namespace FWO.Services
         private readonly ModellingNamingConvention namingConvention = System.Text.Json.JsonSerializer.Deserialize<ModellingNamingConvention>(userConfig.ModNamingConvention) ?? new();
         private readonly ModellingAppZoneHandler AppZoneHandler = new(apiConnection, userConfig, owner, displayMessageInUi);
         private AppServerComparer appServerComparer = new(new());
-        private List<Management> managements = [];
+        private List<Management> relevantManagements = [];
 
         private List<WfReqTask> TaskList = [];
         private List<WfReqTask> AccessTaskList = [];
@@ -38,22 +39,13 @@ namespace FWO.Services
         {
             // later: get rules + compare, bundle requests
             appServerComparer = new (namingConvention);
-            managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames);
-            managements = managements.Where(m => !string.IsNullOrEmpty(m.ExtMgtData)).ToList();
-            foreach (Management mgt in managements)
-            {
-                if (!alreadyCreatedAppServers.ContainsKey(mgt.Id))
-                {
-                    alreadyCreatedAppServers.Add(mgt.Id, []);
-                }
-            }
-
+            await InitManagements();
             await GetProductionState();
 
             TaskList = [];
             AccessTaskList = [];
             DeleteTasksList = [];
-            foreach (Management mgt in managements)
+            foreach (Management mgt in relevantManagements)
             {
                 await AnalyseAppZone(mgt);
                 foreach(var conn in connections.Where(c => !c.IsRequested).OrderBy(c => c.Id))
@@ -94,6 +86,32 @@ namespace FWO.Services
             return TaskList;
         }
 
+        private async Task InitManagements()
+        {
+            try
+            {
+                List<Management> managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames);
+                managements = managements.Where(m => !string.IsNullOrEmpty(m.ExtMgtData)).ToList();
+                relevantManagements = [];
+                foreach (Management mgt in managements)
+                {
+                    ExtMgtData extMgtData = System.Text.Json.JsonSerializer.Deserialize<ExtMgtData>(mgt.ExtMgtData);
+                    if(!string.IsNullOrEmpty(extMgtData.ExtId) || !string.IsNullOrEmpty(extMgtData.ExtName))
+                    {
+                        relevantManagements.Add(mgt);
+                        if (!alreadyCreatedAppServers.ContainsKey(mgt.Id))
+                        {
+                            alreadyCreatedAppServers.Add(mgt.Id, []);
+                        }
+                    }
+                }
+            }
+            catch (Exception exception)
+            {
+                Log.WriteError(userConfig.GetText("fetch_data"), "Init Managements leads to error: ", exception);
+            }
+        }
+
         private string ConstructComment(ModellingConnection conn)
         {
             string comment = "FWOC" + conn.Id.ToString();
@@ -115,7 +133,7 @@ namespace FWO.Services
             {
                 int aRCount = 0;
                 int aSCount = 0;
-                foreach (Management mgt in managements)
+                foreach (Management mgt in relevantManagements)
                 {
                     List<NetworkObject>? objGrpByMgt = await GetObjects(mgt.Id, [2]);
                     if (objGrpByMgt != null)
@@ -352,7 +370,7 @@ namespace FWO.Services
                 {
                     RequestAction = alreadyRequested ? RequestAction.addAfterCreation.ToString() : RequestAction.create.ToString(),
                     Field = ElemFieldType.source.ToString(),
-                    Name = AppServerComparer.ConstructAppServerName(appServer, namingConvention),
+                    Name = AppServerHelper.ConstructAppServerName(appServer, namingConvention),
                     IpString = appServer.Ip,
                     IpEnd = appServer.IpEnd,
                     GroupName = nwGroup.IdString,
@@ -433,7 +451,7 @@ namespace FWO.Services
                 {
                     RequestAction = alreadyRequested ? RequestAction.addAfterCreation.ToString() : RequestAction.create.ToString(),
                     Field = ElemFieldType.source.ToString(),
-                    Name = AppServerComparer.ConstructAppServerName(appServer.Content, namingConvention),
+                    Name = AppServerHelper.ConstructAppServerName(appServer.Content, namingConvention),
                     IpString = appServer.Content.Ip,
                     IpEnd = appServer.Content.IpEnd,
                     GroupName = idString,

@@ -1,10 +1,7 @@
-﻿@using FWO.Config.Api
-@using FWO.Services
-
-@inject IJSRuntime JSRuntime
+﻿@inject IJSRuntime JSRuntime
 @inject UserConfig userConfig
 
-<PopUp Title="@(userConfig.GetText("share_link"))" Size=PopupSize.Large Show="@Display" OnClose="Close">
+<PopUp Title="@(userConfig.GetText("share_link"))" Size=PopupSize.Medium Show="@Display" OnClose="Close">
     <Body>
         @if (Display)
         {
@@ -43,7 +40,7 @@
     private bool FirstTry = true;
 
 
-    protected override async Task OnParametersSetAsync()
+    protected override void OnParametersSet()
     {
         if(Display && FirstTry)
         {

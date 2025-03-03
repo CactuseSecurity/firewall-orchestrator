@@ -1,17 +1,23 @@
 ﻿using FWO.Basics;
 using FWO.Api.Client;
-using FWO.Api.Data;
+using FWO.Data.Report;
 using FWO.Report.Filter;
 using FWO.Config.Api;
 using System.Text;
-using WkHtmlToPdfDotNet;
+using System.Reflection;
+using PuppeteerSharp;
+using PuppeteerSharp.Media;
+using PuppeteerSharp.BrowserData;
+using HtmlAgilityPack;
+using FWO.Report.Data;
+using FWO.Logging;
 
 namespace FWO.Report
 {
     public enum RsbTab
     {
-        all = 10, 
-        report = 20, 
+        all = 10,
+        report = 20,
         rule = 30,
 
         usedObj = 40,
@@ -21,8 +27,8 @@ namespace FWO.Report
     public enum ObjCategory
     {
         all = 0,
-        nobj = 1, 
-        nsrv = 2, 
+        nobj = 1,
+        nsrv = 2,
         user = 3
     }
 
@@ -42,7 +48,7 @@ namespace FWO.Report
 
     public abstract class ReportBase
     {
-        protected StringBuilder HtmlTemplate = new ($@"
+        protected StringBuilder HtmlTemplate = new($@"
 <!DOCTYPE html>
 <html>
 <head>
@@ -78,6 +84,8 @@ namespace FWO.Report
         <p>##OtherFilters##</p>
         <p>##Filter##</p>
         <hr>
+        ##ToC##
+        <hr>
         ##Body##
     </body>
 </html>");
@@ -86,11 +94,13 @@ namespace FWO.Report
         protected UserConfig userConfig;
         public ReportType ReportType;
         public ReportData ReportData = new();
+        public int CustomWidth = 0;
+        public int CustomHeight = 0;
 
         protected string htmlExport = "";
 
-        // Pdf converter
-        protected static readonly SynchronizedConverter converter = new (new PdfTools());
+        private string TocHTMLTemplate = "<div id=\"toc_container\"><h2>##ToCHeader##</h2><ul class=\"toc_list\">##ToCList##</ul></div><style>#toc_container {background: #f9f9f9 none repeat scroll 0 0;border: 1px solid #aaa;display: table;font-size: 95%;margin-bottom: 1em;padding: 10px;width: 100%;}#toc_container ul{list-style-type: none;}.subli {list-style-type: square;}.toc_list ul li {margin-bottom: 4px;}.toc_list a {color: black;font-family: 'Arial';font-size: 12pt;}</style>";
+
         public bool GotObjectsInReport { get; protected set; } = false;
 
 
@@ -160,14 +170,14 @@ namespace FWO.Report
                 HtmlTemplate = HtmlTemplate.Replace("##Filter##", userConfig.GetText("filter") + ": " + filter);
                 HtmlTemplate = HtmlTemplate.Replace("##GeneratedOn##", userConfig.GetText("generated_on"));
                 HtmlTemplate = HtmlTemplate.Replace("##Date##", date.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssK"));
-                if(ReportType.IsChangeReport())
+                if (ReportType.IsChangeReport())
                 {
                     string timeRange = $"{userConfig.GetText("change_time")}: " +
                         $"{userConfig.GetText("from")}: {ToUtcString(Query.QueryVariables["start"]?.ToString())}, " +
                         $"{userConfig.GetText("until")}: {ToUtcString(Query.QueryVariables["stop"]?.ToString())}";
                     HtmlTemplate = HtmlTemplate.Replace("##Date-of-Config##: ##GeneratedFor##", timeRange);
                 }
-                else if(ReportType.IsRuleReport() || ReportType == ReportType.Statistics)
+                else if (ReportType.IsRuleReport() || ReportType == ReportType.Statistics)
                 {
                     HtmlTemplate = HtmlTemplate.Replace("##Date-of-Config##", userConfig.GetText("date_of_config"));
                     HtmlTemplate = HtmlTemplate.Replace("##GeneratedFor##", ToUtcString(Query.ReportTimeString));
@@ -186,7 +196,7 @@ namespace FWO.Report
                     HtmlTemplate = HtmlTemplate.Replace("<p>##OwnerFilters##</p>", "");
                 }
 
-                if(deviceFilter != null)
+                if (deviceFilter != null)
                 {
                     HtmlTemplate = HtmlTemplate.Replace("##OtherFilters##", userConfig.GetText("devices") + ": " + deviceFilter);
                 }
@@ -194,6 +204,10 @@ namespace FWO.Report
                 {
                     HtmlTemplate = HtmlTemplate.Replace("<p>##OtherFilters##</p>", "");
                 }
+
+                string htmlToC = BuildHTMLToC(htmlReport.ToString());
+
+                HtmlTemplate = HtmlTemplate.Replace("##ToC##", htmlToC);
                 HtmlTemplate = HtmlTemplate.Replace("##Body##", htmlReport.ToString());
                 htmlExport = HtmlTemplate.ToString();
             }
@@ -206,58 +220,202 @@ namespace FWO.Report
             {
                 return timestring != null ? DateTime.Parse(timestring).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssK") : "";
             }
-            catch(Exception)
+            catch (Exception)
             {
                 return timestring ?? "";
             }
         }
 
-        public virtual byte[] ToPdf(PaperKind paperKind, int width = -1, int height = -1)
+        private async Task<string?> CreatePDFViaPuppeteer(string html, PaperFormat format)
         {
-            // HTML
-            if (string.IsNullOrEmpty(htmlExport))
+            OperatingSystem? os = Environment.OSVersion;
+
+            string path = "";
+            Platform platform = Platform.Unknown;
+            const SupportedBrowser wantedBrowser = SupportedBrowser.Chrome;
+
+            switch (os.Platform)
             {
-                htmlExport = ExportToHtml();
+                case PlatformID.Win32NT:
+                    platform = Platform.Win32;
+                    break;
+                case PlatformID.Unix:
+                    path = GlobalConst.ChromeBinPathLinux;
+                    platform = Platform.Linux;
+                    break;
+                default:
+                    break;
             }
 
-            GlobalSettings globalSettings = new ()
-            {
-                ColorMode = ColorMode.Color,
-                Orientation = Orientation.Landscape,
-            };
+            BrowserFetcher browserFetcher = new(new BrowserFetcherOptions() { Platform = platform, Browser = wantedBrowser, Path = path });
 
-            if (paperKind == PaperKind.Custom)
+            InstalledBrowser? installedBrowser = browserFetcher.GetInstalledBrowsers()
+                      .FirstOrDefault(_ => _.Platform == platform && _.Browser == wantedBrowser);
+
+            if (installedBrowser == null && os.Platform == PlatformID.Win32NT)
             {
-                if (width > 0 && height > 0)
+                Log.WriteInfo("Browser", $"Browser not found for Windows! Trying to download...");
+                await browserFetcher.DownloadAsync();
+
+                installedBrowser = browserFetcher.GetInstalledBrowsers()
+                      .FirstOrDefault(_ => _.Platform == platform && _.Browser == wantedBrowser);
+            }
+
+            if (installedBrowser == null)
+            {
+                throw new Exception($"Browser {wantedBrowser} is not installed!");
+            }
+
+            using IBrowser? browser = await Puppeteer.LaunchAsync(new LaunchOptions
+            {
+                ExecutablePath = installedBrowser.GetExecutablePath(),
+                Headless = true,
+            });
+
+            try
+            {
+                using IPage page = await browser.NewPageAsync();
+                await page.SetContentAsync(html);
+
+                PuppeteerSharp.Media.PaperFormat? pupformat = GetPuppeteerPaperFormat(format) ?? throw new Exception();
+
+                PdfOptions pdfOptions = new() { Outline = true, DisplayHeaderFooter = false, Landscape = true, PrintBackground = true, Format = pupformat, MarginOptions = new MarginOptions { Top = "1cm", Bottom = "1cm", Left = "1cm", Right = "1cm" } };
+                byte[]? pdfData = await page.PdfDataAsync(pdfOptions);
+
+                return Convert.ToBase64String(pdfData);
+            }
+            catch (Exception)
+            {
+                throw new Exception("This paper kind is currently not supported. Please choose another one or \"Custom\" for a custom size.");
+            }
+            finally
+            {
+                await browser.CloseAsync();
+            }
+        }
+
+        public static List<ToCHeader> CreateTOCContent(string html)
+        {
+            HtmlDocument doc = new();
+            doc.LoadHtml(html);
+
+            List<HtmlNode>? headings = doc.DocumentNode.Descendants()
+                            .Where(n => n.Name.StartsWith('h') && n.Name.Length == 2 && n.Name != "hr")
+                            .ToList();
+
+            List<ToCHeader> tocs = [];
+
+            int i = 0;
+
+            foreach (HtmlNode heading in headings)
+            {
+                string headText = heading.InnerText.Trim();
+
+                if (heading.Name == "h4")
                 {
-                    globalSettings.PaperSize = new PechkinPaperSize(width + "mm", height + "mm");
+                    tocs[i - 1].Items.Add(new ToCItem(headText, heading.Id));
                 }
                 else
                 {
-                    throw new Exception("Custom paper size: width or height <= 0");
+                    tocs.Add(new(headText, heading.Id));
+                    i++;
                 }
             }
-            else
+            return tocs;
+        }
+
+        public string BuildHTMLToC(string html)
+        {
+            bool tocTemplateValid = IsValidHTML(TocHTMLTemplate);
+
+            if (!tocTemplateValid)
             {
-                globalSettings.PaperSize = paperKind;
+                throw new Exception(userConfig.GetText("E9302"));
             }
 
-            HtmlToPdfDocument doc = new ()
+            List<ToCHeader>? tocHeaders = CreateTOCContent(html);
+
+            TocHTMLTemplate = TocHTMLTemplate.Replace("##ToCHeader##", userConfig.GetText("tableofcontent"));
+
+            StringBuilder sb = new();
+
+            foreach (ToCHeader toCHeader in tocHeaders)
             {
-                GlobalSettings = globalSettings,
-                Objects =
+                sb.AppendLine($"<li><a href=\"#{toCHeader.Id}\">{toCHeader.Title}</a></li>");
+
+                if (toCHeader.Items.Count > 0)
                 {
-                    new ObjectSettings()
-                    {
-                        PagesCount = true,
-                        HtmlContent = htmlExport,
-                        WebSettings = { DefaultEncoding = "utf-8" },
-                        HeaderSettings = { FontSize = 9, Right = "Page [page] of [toPage]", Line = true, Spacing = 2.812 }
-                    }
-                }
-            };
+                    sb.AppendLine("<ul>");
 
-            return converter.Convert(doc);
+                    foreach (ToCItem tocItem in toCHeader.Items)
+                    {
+                        sb.AppendLine($"<li class=\"subli\"><a href=\"#{tocItem.Id}\">{tocItem.Title}</a></li>");
+                    }
+
+                    sb.AppendLine("</ul>");
+                }
+            }
+
+            TocHTMLTemplate = TocHTMLTemplate.Replace("##ToCList##", sb.ToString());
+
+            bool tocValidHTML = IsValidHTML(TocHTMLTemplate);
+
+            if (!tocValidHTML)
+            {
+                throw new Exception(userConfig.GetText("E9302"));
+            }
+
+            return TocHTMLTemplate;
+        }
+
+        public static bool IsValidHTML(string html)
+        {
+            try
+            {
+                HtmlDocument? doc = new();
+                doc.LoadHtml(html);
+                return !doc.ParseErrors.Any();
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+
+        }
+
+        public PuppeteerSharp.Media.PaperFormat? GetPuppeteerPaperFormat(PaperFormat format)
+        {
+            if (format == PaperFormat.Custom)
+                return new PuppeteerSharp.Media.PaperFormat(CustomWidth, CustomHeight);
+
+            PropertyInfo[] propertyInfos = typeof(PuppeteerSharp.Media.PaperFormat).GetProperties(BindingFlags.Public | BindingFlags.Static | BindingFlags.Instance | BindingFlags.NonPublic);
+
+            PropertyInfo? prop = propertyInfos.SingleOrDefault(_ => _.Name == format.ToString());
+
+            if (prop == null)
+                return default;
+
+            PuppeteerSharp.Media.PaperFormat? propFormat = (PuppeteerSharp.Media.PaperFormat?)prop.GetValue(null);
+
+            if (propFormat is null)
+                return default;
+
+            return propFormat;
+        }
+
+        public virtual async Task<string?> ToPdf(string html, PaperFormat format)
+        {
+            return await CreatePDFViaPuppeteer(html, format);
+        }
+
+        public virtual async Task<string?> ToPdf(string html)
+        {
+            return await CreatePDFViaPuppeteer(html, PaperFormat.A4);
+        }
+
+        public virtual async Task<string?> ToPdf(PaperFormat format)
+        {
+            return await CreatePDFViaPuppeteer(htmlExport, format);
         }
 
         public static string GetIconClass(ObjCategory? objCategory, string? objType)

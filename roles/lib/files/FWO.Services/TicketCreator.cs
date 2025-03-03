@@ -1,5 +1,6 @@
 ﻿using System.Text.Json;
-using FWO.Api.Data;
+using FWO.Data;
+using FWO.Data.Workflow;
 using FWO.Config.Api;
 using FWO.Api.Client;
 using FWO.Logging;
@@ -29,9 +30,9 @@ namespace FWO.Services
 
         public async Task<WfTicket> CreateTicket(FwoOwner owner, List<WfReqTask> reqTasks, string title, int? stateId, string reason = "")
         {
-            await wfHandler.Init([owner.Id]);
+            await wfHandler.Init();
             stateId ??= wfHandler.MasterStateMatrix.LowestEndState;
-            wfHandler.SelectTicket(new WfTicket()
+            await wfHandler.SelectTicket(new WfTicket()
                 {
                     StateId = (int)stateId,
                     Title = title,
@@ -75,18 +76,11 @@ namespace FWO.Services
             return wfHandler.ActTicket;
         }
 
-        // for readonly use the direct api call getTicketById is much more efficient
-        public async Task<WfTicket?> GetTicket(int ownerId, long ticketId)
-        {
-            await wfHandler.Init([ownerId]);
-            return await wfHandler.GetFullTicket(ticketId);
-        }
-
         public async Task<long> CreateRequestNewInterfaceTicket(FwoOwner owner, FwoOwner requestingOwner, string reason = "")
         {
-            await wfHandler.Init([owner.Id]);
+            await wfHandler.Init();
             stateId = wfHandler.MasterStateMatrix.LowestEndState;
-            wfHandler.SelectTicket(new WfTicket()
+            await wfHandler.SelectTicket(new WfTicket()
                 {
                     StateId = stateId,
                     Title = userConfig.ModReqTicketTitle,
@@ -116,9 +110,9 @@ namespace FWO.Services
             return ticketId;
         }
 
-        public async Task SetInterfaceId(long ticketId, long connId, FwoOwner owner)
+        public async Task SetInterfaceId(long ticketId, long connId)
         {
-            await wfHandler.Init([owner.Id], true);
+            await wfHandler.Init();
             WfTicket? ticket = await wfHandler.ResolveTicket(ticketId);
             if(ticket != null)
             {
@@ -130,11 +124,10 @@ namespace FWO.Services
             }
         }
 
-        public async Task<bool> PromoteNewInterfaceImplTask(FwoOwner owner, long ticketId, ExtStates extState, string comment = "")
+        public async Task<bool> PromoteNewInterfaceImplTask(long ticketId, ExtStates extState, string comment = "")
         {
             ExtStateHandler extStateHandler = new(apiConnection);
-            await extStateHandler.Init();
-            await wfHandler.Init([owner.Id]);
+            await wfHandler.Init();
             WfImplTask? implTask = await FindNewInterfaceImplTask(ticketId);
             if(implTask != null)
             {
@@ -177,7 +170,7 @@ namespace FWO.Services
 
         private async Task CreateRuleDeleteTicket(int deviceId, List<string> ruleUids, string comment = "", DateTime? deadline = null)
         {
-            await wfHandler.Init([]);
+            await wfHandler.Init();
             wfHandler.ActTicket = new WfTicket()
             {
                 StateId = stateId,
@@ -227,7 +220,6 @@ namespace FWO.Services
             WfTicket? ticket = await wfHandler.ResolveTicket(ticketId);
             if(ticket != null)
             {
-                wfHandler.SetTicketEnv(ticket);
                 WfReqTask? reqTask = ticket.Tasks.FirstOrDefault(x => x.TaskType == WfTaskType.new_interface.ToString());
                 if(reqTask != null)
                 {

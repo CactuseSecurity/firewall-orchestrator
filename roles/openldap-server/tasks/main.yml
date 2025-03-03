@@ -6,7 +6,7 @@
     owner: "{{ fworch_user }}"
     group: "{{ fworch_group }}"
   become: true
-  tags: [ 'test', 'unittest' ]
+  tags: [ 'test', 'integrationtests' ]
 
 - block:
 ### OS basics

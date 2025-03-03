@@ -1,13 +1,13 @@
 ﻿using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
-using FWO.Api.Data;
 using FWO.Config.Api;
 using FWO.Config.Api.Data;
+using FWO.Data;
+using FWO.Data.Middleware;
 using FWO.Logging;
-using System.Timers;
-using FWO.Middleware.RequestParameters;
 using FWO.Recert;
+using System.Timers;
 
 namespace FWO.Middleware.Server
 {
@@ -116,8 +116,7 @@ namespace FWO.Middleware.Server
         private async Task RefreshRecert()
         {
             Log.WriteDebug("DailyCheck scheduler", "Refresh recert ownerships");
-            RecertRefresh recertRefresh = new RecertRefresh(apiConnection);
-            await recertRefresh.RecalcRecerts();
+            await RecertRefresh.RecalcRecerts(apiConnection);
         }
 
         private async Task CheckRecerts()

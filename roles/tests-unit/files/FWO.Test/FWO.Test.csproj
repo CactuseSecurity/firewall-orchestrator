@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="bunit" Version="1.38.5" />
+    <PackageReference Include="PuppeteerSharp" Version="20.1.3" />
+    <PackageReference Include="NUnit" Version="4.3.2" />
+    <PackageReference Include="NUnit3TestAdapter" Version="5.0.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.13.0" />
+    <PackageReference Include="Microsoft.IdentityModel.Tokens" Version="8.6.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\lib\files\FWO.Report\FWO.Report.csproj" />
+    <ProjectReference Include="..\..\..\lib\files\FWO.Report.Filter\FWO.Report.Filter.csproj" />
+    <ProjectReference Include="..\..\..\lib\files\FWO.Api.Client\FWO.Api.Client.csproj" />
+    <ProjectReference Include="..\..\..\lib\files\FWO.Config.File\FWO.Config.File.csproj" />
+    <ProjectReference Include="..\..\..\lib\files\FWO.Logging\FWO.Logging.csproj" />
+    <ProjectReference Include="..\..\..\lib\files\FWO.DeviceAutoDiscovery\FWO.DeviceAutoDiscovery.csproj" />
+    <ProjectReference Include="..\..\..\lib\files\FWO.Middleware.Client\FWO.Middleware.Client.csproj" />
+    <ProjectReference Include="..\..\..\ui\files\FWO.UI\FWO.Ui.csproj" />
+    <ProjectReference Include="..\..\..\lib\files\FWO.Encryption\FWO.Encryption.csproj" />
+    <ProjectReference Include="..\..\..\middleware\files\FWO.Middleware.Server\FWO.Middleware.Server.csproj" />
+  </ItemGroup>
+
+</Project>

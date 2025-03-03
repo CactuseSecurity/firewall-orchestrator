@@ -1,14 +1,11 @@
-﻿@using FWO.Config.Api
-@using FWO.Services
-
-@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.Modeller}")]
+﻿@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.Modeller}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
 @if(Display && InitComplete && ServiceHandler != null)
 {
-    <PopUp Title="@(ServiceHandler.AddMode ? userConfig.GetText("add_service") : userConfig.GetText("edit_service"))" Size=PopupSize.Large Show="@Display" OnClose="Cancel">
+    <PopUp Title="@(ServiceHandler.AddMode ? userConfig.GetText("add_service") : userConfig.GetText("edit_service"))" Size=PopupSize.Medium Show="@Display" OnClose="Cancel">
         <Body>
             <div class="form-group row">
                 <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("name")):</label>
@@ -23,7 +20,7 @@
                         </ElementTemplate>
                     </Dropdown>
                 </div>
-                @if(!(bool)ServiceHandler.ActService.Protocol?.Name.ToLower().StartsWith("esp"))
+                @if(!(bool)(ServiceHandler.ActService.Protocol?.Name.ToLower().StartsWith("esp") ?? false))
                 {
                     <div class="form-group row col-sm-6">
                         <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("port"))*:</label>
@@ -90,7 +87,7 @@
     {
         try
         {
-            List<IpProtocol> ipProtosOrig = await apiConnection.SendQueryAsync<List<IpProtocol>>(FWO.Api.Client.Queries.StmQueries.getIpProtocols);
+            List<IpProtocol> ipProtosOrig = await apiConnection.SendQueryAsync<List<IpProtocol>>(StmQueries.getIpProtocols);
             ipProtos = CustomSort(ipProtosOrig);
             InitComplete = true;
         }

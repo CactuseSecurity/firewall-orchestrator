@@ -1,7 +1,3 @@
-@using FWO.Api.Data
-@using FWO.Config.Api
-@using FWO.Services
-
 @inject UserConfig userConfig
 
 <div class="form-group row">
@@ -58,7 +54,7 @@
     private List<FwoOwner> ownerOptions = [];
     private FwoOwner selectedOwnerOpt = new ();
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
         try
         {

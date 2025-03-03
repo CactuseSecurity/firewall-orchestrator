@@ -1,15 +1,9 @@
-@using FWO.Api.Client
-@using FWO.Basics
-@using FWO.Api.Data
-@using FWO.Config.Api
 @using FWO.Ui.Services
-@using FWO.Services
 @using FWO.Ui.Data
 @using FWO.Ui.Pages.NetworkModelling
 
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Requester}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}, {Roles.Auditor}, {Roles.FwAdmin}")]
 
-@inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
 
@@ -220,10 +214,11 @@
         await ResetParent();
     }
 
-    private async Task Cancel()
+    private bool Cancel()
     {
         WfHandler.DisplaySaveTicketMode = false;
         WfHandler.DisplayPromoteTicketMode = false;
+        return true;
     }
 
     private async Task Reset()
@@ -231,9 +226,12 @@
         try
         {
             Log.WriteDebug("DisplayTicket", "Reset");
-            offeredActions = WfHandler.ActionHandler.GetOfferedActions(WfHandler.ActTicket, WfObjectScopes.Ticket, WfHandler.Phase);
+            if(WfHandler.ActionHandler != null)
+            {
+                offeredActions = WfHandler.ActionHandler.GetOfferedActions(WfHandler.ActTicket, WfObjectScopes.Ticket, WfHandler.Phase);
+            }
             selectedPriority = WfHandler.PrioList.FirstOrDefault(p => p.NumPrio == WfHandler.ActTicket.Priority);
-            StateHasChanged();
+            await InvokeAsync(StateHasChanged);
         }
         catch (Exception exception)
         {
@@ -261,7 +259,10 @@
 
     private async Task PerformAction(WfStateAction action)
     {
-        await WfHandler.ActionHandler.PerformAction(action, WfHandler.ActTicket, WfObjectScopes.Ticket, null, WfHandler.ActTicket.Id);
+        if(WfHandler.ActionHandler != null)
+        {
+            await WfHandler.ActionHandler.PerformAction(action, WfHandler.ActTicket, WfObjectScopes.Ticket, null, WfHandler.ActTicket.Id);
+        }
         await ResetParent();
     }
 

@@ -1,4 +1,5 @@
-﻿using FWO.Api.Data;
+﻿using FWO.Data;
+using FWO.Data.Workflow;
 using FWO.Config.Api;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
@@ -21,7 +22,7 @@ namespace FWO.Services
             ActionHandler = actionHandler;
         }
 
-        public async Task<List<WfTicket>> FetchTickets(StateMatrix stateMatrix, List<int> ownerIds, bool allStates = false, bool ignoreOwners = false)
+        public async Task<List<WfTicket>> FetchTickets(StateMatrix stateMatrix, List<int>? ownerIds = null, bool allStates = false, bool fullTickets = false)
         {
             List<WfTicket> tickets = [];
             try
@@ -31,14 +32,17 @@ namespace FWO.Services
                 int toState = allStates ? 999 : stateMatrix.LowestEndState;
 
                 var Variables = new { fromState, toState };
-                tickets = await ApiConnection.SendQueryAsync<List<WfTicket>>(RequestQueries.getTickets, Variables);
-                if(UserConfig.ReqOwnerBased && ! ignoreOwners)
+                tickets = await ApiConnection.SendQueryAsync<List<WfTicket>>(fullTickets ? RequestQueries.getFullTickets : RequestQueries.getTickets, Variables);
+                if(UserConfig.ReqOwnerBased && ownerIds != null)
                 {
                     tickets = FilterWrongOwnersOut(tickets, ownerIds);
                 }
-                foreach (var ticket in tickets)
+                if(fullTickets)
                 {
-                    ticket.UpdateCidrsInTaskElements();
+                    foreach (var ticket in tickets)
+                    {
+                        ticket.UpdateCidrsInTaskElements();
+                    }
                 }
             }
             catch (Exception exception)
@@ -46,6 +50,24 @@ namespace FWO.Services
                 DisplayMessageInUi(exception, UserConfig.GetText("fetch_requests"), "", true);
             }
             return tickets;
+        }
+
+        public async Task<WfTicket?> FetchTicket(long ticketId, List<int>? ownerIds = null)
+        {
+            WfTicket? ticket = null;
+            try
+            {
+                ticket = await GetTicket(ticketId);
+                if(UserConfig.ReqOwnerBased && ownerIds != null)
+                {
+                    ticket = FilterWrongOwnersOut([ticket], ownerIds).FirstOrDefault();
+                }
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, UserConfig.GetText("fetch_requests"), "", true);
+            }
+            return ticket;
         }
 
         private static List<WfTicket> FilterWrongOwnersOut(List<WfTicket> ticketsIn, List<int> ownerIds)
@@ -106,14 +128,14 @@ namespace FWO.Services
                     priority = ticket.Priority,
                     requestTasks = new WfTicketWriter(ticket)
                 };
-                ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<NewReturning>(RequestQueries.newTicket, Variables)).ReturnIds;
+                ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<ReturnIdWrapper>(RequestQueries.newTicket, Variables)).ReturnIds;
                 if (returnIds == null)
                 {
                     DisplayMessageInUi(null, UserConfig.GetText("save_request"), UserConfig.GetText("E8001"), true);
                 }
                 else
                 {
-                    ticket = await GetTicket(returnIds[0].NewId);
+                    ticket = await GetTicket(returnIds[0].NewIdLong);
                     await ActionHandler.DoStateChangeActions(ticket, WfObjectScopes.Ticket, null, ticket.Id, ticket.Requester?.Dn);
                 }
             }
@@ -137,7 +159,7 @@ namespace FWO.Services
                     deadline = ticket.Deadline,
                     priority = ticket.Priority
                 };
-                int udId = (await ApiConnection.SendQueryAsync<ReturnId>(RequestQueries.updateTicket, Variables)).UpdatedId;
+                long udId = (await ApiConnection.SendQueryAsync<ReturnId>(RequestQueries.updateTicket, Variables)).UpdatedIdLong;
                 if(udId != ticket.Id)
                 {
                     DisplayMessageInUi(null, UserConfig.GetText("save_request"), UserConfig.GetText("E8002"), true);
@@ -156,9 +178,9 @@ namespace FWO.Services
 
         // Request Tasks
 
-        public async Task<int> AddReqTaskToDb(WfReqTask reqtask)
+        public async Task<long> AddReqTaskToDb(WfReqTask reqtask)
         {
-            int returnId = 0;
+            long returnId = 0;
             try
             {
                 var Variables = new
@@ -178,14 +200,14 @@ namespace FWO.Services
                     freeText = reqtask.FreeText,
                     managementId = reqtask.ManagementId
                 };
-                ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<NewReturning>(RequestQueries.newRequestTask, Variables)).ReturnIds;
+                ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<ReturnIdWrapper>(RequestQueries.newRequestTask, Variables)).ReturnIds;
                 if (returnIds == null)
                 {
                     DisplayMessageInUi(null, UserConfig.GetText("add_task"), UserConfig.GetText("E8003"), true);
                 }
                 else
                 {
-                    returnId = returnIds[0].NewId;
+                    returnId = returnIds[0].NewIdLong;
                     reqtask.Id = returnId;
                     foreach(var element in reqtask.Elements)
                     {
@@ -233,7 +255,7 @@ namespace FWO.Services
                     devices = reqtask.SelectedDevices,
                     managementId = reqtask.ManagementId
                 };
-                int udId = (await ApiConnection.SendQueryAsync<ReturnId>(RequestQueries.updateRequestTask, Variables)).UpdatedId;
+                long udId = (await ApiConnection.SendQueryAsync<ReturnId>(RequestQueries.updateRequestTask, Variables)).UpdatedIdLong;
                 if(udId != reqtask.Id)
                 {
                     DisplayMessageInUi(null, UserConfig.GetText("save_task"), UserConfig.GetText("E8004"), true);
@@ -260,7 +282,7 @@ namespace FWO.Services
                     id = reqtask.Id,
                     additionalInfo = reqtask.AdditionalInfo
                 };
-                int udId = (await ApiConnection.SendQueryAsync<ReturnId>(RequestQueries.updateRequestTaskAdditionalInfo, Variables)).UpdatedId;
+                long udId = (await ApiConnection.SendQueryAsync<ReturnId>(RequestQueries.updateRequestTaskAdditionalInfo, Variables)).UpdatedIdLong;
                 if(udId != reqtask.Id)
                 {
                     DisplayMessageInUi(null, UserConfig.GetText("save_task"), UserConfig.GetText("E8004"), true);
@@ -276,7 +298,7 @@ namespace FWO.Services
         {
             try
             {
-                int delId = (await ApiConnection.SendQueryAsync<ReturnId>(RequestQueries.deleteRequestTask, new { id = reqtask.Id })).DeletedId;
+                long delId = (await ApiConnection.SendQueryAsync<ReturnId>(RequestQueries.deleteRequestTask, new { id = reqtask.Id })).DeletedIdLong;
                 if(delId != reqtask.Id)
                 {
                     DisplayMessageInUi(null, UserConfig.GetText("delete_task"), UserConfig.GetText("E8005"), true);
@@ -318,9 +340,9 @@ namespace FWO.Services
             }
         }
 
-        private async Task<int> AddReqElementToDb(WfReqElement element)
+        private async Task<long> AddReqElementToDb(WfReqElement element)
         {
-            int returnId = 0;
+            long returnId = 0;
             try
             {
                 var Variables = new
@@ -342,14 +364,14 @@ namespace FWO.Services
                     groupName = element.GroupName,
                     name = element.Name
                 };
-                ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<NewReturning>(RequestQueries.newRequestElement, Variables)).ReturnIds;
+                ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<ReturnIdWrapper>(RequestQueries.newRequestElement, Variables)).ReturnIds;
                 if (returnIds == null)
                 {
                     DisplayMessageInUi(null, UserConfig.GetText("add_element"), UserConfig.GetText("E8006"), true);
                 }
                 else
                 {
-                    returnId = returnIds[0].NewId;
+                    returnId = returnIds[0].NewIdLong;
                 }
             }
             catch (Exception exception)
@@ -383,7 +405,7 @@ namespace FWO.Services
                     groupName = element.GroupName,
                     name = element.Name
                 };
-                int udId = (await ApiConnection.SendQueryAsync<ReturnId>(RequestQueries.updateRequestElement, Variables)).UpdatedId;
+                long udId = (await ApiConnection.SendQueryAsync<ReturnId>(RequestQueries.updateRequestElement, Variables)).UpdatedIdLong;
                 if(udId != element.Id)
                 {
                     DisplayMessageInUi(null, UserConfig.GetText("save_element"), UserConfig.GetText("E8007"), true);
@@ -399,7 +421,7 @@ namespace FWO.Services
         {
             try
             {
-                long delId = (await ApiConnection.SendQueryAsync<ReturnId>(RequestQueries.deleteRequestElement, new { id = elementId })).DeletedId;
+                long delId = (await ApiConnection.SendQueryAsync<ReturnId>(RequestQueries.deleteRequestElement, new { id = elementId })).DeletedIdLong;
                 if(delId != elementId)
                 {
                     DisplayMessageInUi(null, UserConfig.GetText("delete_element"), UserConfig.GetText("E8008"), true);
@@ -413,9 +435,9 @@ namespace FWO.Services
 
         // Approvals
 
-        public async Task<int> AddApprovalToDb(WfApproval approval)
+        public async Task<long> AddApprovalToDb(WfApproval approval)
         {
-            int returnId = 0;
+            long returnId = 0;
             try
             {
                 var Variables = new
@@ -427,14 +449,14 @@ namespace FWO.Services
                     deadline = approval.Deadline,
                     initialApproval = approval.InitialApproval
                 };
-                ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<NewReturning>(RequestQueries.newApproval, Variables)).ReturnIds;
+                ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<ReturnIdWrapper>(RequestQueries.newApproval, Variables)).ReturnIds;
                 if (returnIds == null)
                 {
                     DisplayMessageInUi(null, UserConfig.GetText("add_approval"), UserConfig.GetText("E8009"), true);
                 }
                 else
                 {
-                    returnId = returnIds[0].NewId;
+                    returnId = returnIds[0].NewIdLong;
                     approval.Id = returnId;
                     await ActionHandler.DoStateChangeActions(approval, WfObjectScopes.Approval);
                 }
@@ -458,7 +480,7 @@ namespace FWO.Services
                     approver = approval.ApproverDn,  // todo: Dn or uiuser??
                     assignedGroup = approval.AssignedGroup
                 };
-                int udId = (await ApiConnection.SendQueryAsync<ReturnId>(RequestQueries.updateApproval, Variables)).UpdatedId;
+                long udId = (await ApiConnection.SendQueryAsync<ReturnId>(RequestQueries.updateApproval, Variables)).UpdatedIdLong;
                 if(udId != approval.Id)
                 {
                     DisplayMessageInUi(null, UserConfig.GetText("save_approval"), UserConfig.GetText("E8004"), true);
@@ -476,9 +498,9 @@ namespace FWO.Services
 
         // implementation tasks
 
-        public async Task<int> AddImplTaskToDb(WfImplTask impltask)
+        public async Task<long> AddImplTaskToDb(WfImplTask impltask)
         {
-            int returnId = 0;
+            long returnId = 0;
             try
             {
                 var Variables = new
@@ -497,14 +519,14 @@ namespace FWO.Services
                     validTo = impltask.TargetEndDate,
                     freeText = impltask.FreeText,
                 };
-                ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<NewReturning>(RequestQueries.newImplementationTask, Variables)).ReturnIds;
+                ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<ReturnIdWrapper>(RequestQueries.newImplementationTask, Variables)).ReturnIds;
                 if (returnIds == null)
                 {
                     DisplayMessageInUi(null, UserConfig.GetText("add_task"), UserConfig.GetText("E8003"), true);
                 }
                 else
                 {
-                    returnId = returnIds[0].NewId;
+                    returnId = returnIds[0].NewIdLong;
                     impltask.Id = returnId;
                     foreach(var element in impltask.ImplElements)
                     {
@@ -550,7 +572,7 @@ namespace FWO.Services
                     validTo = impltask.TargetEndDate,
                     freeText = impltask.FreeText,
                 };
-                int udId = (await ApiConnection.SendQueryAsync<ReturnId>(RequestQueries.updateImplementationTask, Variables)).UpdatedId;
+                long udId = (await ApiConnection.SendQueryAsync<ReturnId>(RequestQueries.updateImplementationTask, Variables)).UpdatedIdLong;
                 if(udId != impltask.Id)
                 {
                     DisplayMessageInUi(null, UserConfig.GetText("save_task"), UserConfig.GetText("E8004"), true);
@@ -572,7 +594,7 @@ namespace FWO.Services
         {
             try
             {
-                int delId = (await ApiConnection.SendQueryAsync<ReturnId>(RequestQueries.deleteImplementationTask, new { id = impltask.Id })).DeletedId;
+                long delId = (await ApiConnection.SendQueryAsync<ReturnId>(RequestQueries.deleteImplementationTask, new { id = impltask.Id })).DeletedIdLong;
                 if(delId != impltask.Id)
                 {
                     DisplayMessageInUi(null, UserConfig.GetText("delete_task"), UserConfig.GetText("E8005"), true);
@@ -615,9 +637,9 @@ namespace FWO.Services
             }
         }
 
-        private async Task<int> AddImplElementToDb(WfImplElement element)
+        private async Task<long> AddImplElementToDb(WfImplElement element)
         {
-            int returnId = 0;
+            long returnId = 0;
             try
             {
                 var Variables = new
@@ -638,14 +660,14 @@ namespace FWO.Services
                     groupName = element.GroupName,
                     name = element.Name
                 };
-                ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<NewReturning>(RequestQueries.newImplementationElement, Variables)).ReturnIds;
+                ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<ReturnIdWrapper>(RequestQueries.newImplementationElement, Variables)).ReturnIds;
                 if (returnIds == null)
                 {
                     DisplayMessageInUi(null, UserConfig.GetText("add_element"), UserConfig.GetText("E8006"), true);
                 }
                 else
                 {
-                    returnId = returnIds[0].NewId;
+                    returnId = returnIds[0].NewIdLong;
                 }
             }
             catch (Exception exception)
@@ -678,7 +700,7 @@ namespace FWO.Services
                     groupName = element.GroupName,
                     name = element.Name
                 };
-                int udId = (await ApiConnection.SendQueryAsync<ReturnId>(RequestQueries.updateImplementationElement, Variables)).UpdatedId;
+                long udId = (await ApiConnection.SendQueryAsync<ReturnId>(RequestQueries.updateImplementationElement, Variables)).UpdatedIdLong;
                 if(udId != element.Id)
                 {
                     DisplayMessageInUi(null, UserConfig.GetText("save_element"), UserConfig.GetText("E8007"), true);
@@ -694,7 +716,7 @@ namespace FWO.Services
         {
             try
             {
-                long delId = (await ApiConnection.SendQueryAsync<ReturnId>(RequestQueries.deleteImplementationElement, new { id = elementId })).DeletedId;
+                long delId = (await ApiConnection.SendQueryAsync<ReturnId>(RequestQueries.deleteImplementationElement, new { id = elementId })).DeletedIdLong;
                 if(delId != elementId)
                 {
                     DisplayMessageInUi(null, UserConfig.GetText("delete_element"), UserConfig.GetText("E8008"), true);
@@ -709,9 +731,9 @@ namespace FWO.Services
 
         // Comments
 
-        public async Task<int> AddCommentToDb(WfComment comment)
+        public async Task<long> AddCommentToDb(WfComment comment)
         {
-            int returnId = 0;
+            long returnId = 0;
             try
             {
                 var Variables = new
@@ -722,14 +744,14 @@ namespace FWO.Services
                     creator = comment.Creator.DbId,
                     text = comment.CommentText
                 };
-                ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<NewReturning>(RequestQueries.newComment, Variables)).ReturnIds;
+                ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<ReturnIdWrapper>(RequestQueries.newComment, Variables)).ReturnIds;
                 if (returnIds == null)
                 {
                     DisplayMessageInUi(null, UserConfig.GetText("add_comment"), UserConfig.GetText("E8012"), true);
                 }
                 else
                 {
-                    returnId = returnIds[0].NewId;
+                    returnId = returnIds[0].NewIdLong;
                 }
             }
             catch (Exception exception)
@@ -744,7 +766,7 @@ namespace FWO.Services
             try
             {
                 var Variables = new { ticketId, commentId };
-                ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<NewReturning>(RequestQueries.addCommentToTicket, Variables)).ReturnIds;
+                ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<ReturnIdWrapper>(RequestQueries.addCommentToTicket, Variables)).ReturnIds;
                 if (returnIds == null)
                 {
                     DisplayMessageInUi(null, UserConfig.GetText("add_comment"), UserConfig.GetText("E8012"), true);
@@ -761,7 +783,7 @@ namespace FWO.Services
             try
             {
                 var Variables = new { taskId, commentId };
-                ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<NewReturning>(RequestQueries.addCommentToReqTask, Variables)).ReturnIds;
+                ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<ReturnIdWrapper>(RequestQueries.addCommentToReqTask, Variables)).ReturnIds;
                 if (returnIds == null)
                 {
                     DisplayMessageInUi(null, UserConfig.GetText("add_comment"), UserConfig.GetText("E8012"), true);
@@ -778,7 +800,7 @@ namespace FWO.Services
             try
             {
                 var Variables = new { taskId, commentId };
-                ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<NewReturning>(RequestQueries.addCommentToImplTask, Variables)).ReturnIds;
+                ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<ReturnIdWrapper>(RequestQueries.addCommentToImplTask, Variables)).ReturnIds;
                 if (returnIds == null)
                 {
                     DisplayMessageInUi(null, UserConfig.GetText("add_comment"), UserConfig.GetText("E8012"), true);
@@ -795,7 +817,7 @@ namespace FWO.Services
             try
             {
                 var Variables = new { approvalId, commentId };
-                ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<NewReturning>(RequestQueries.addCommentToApproval, Variables)).ReturnIds;
+                ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<ReturnIdWrapper>(RequestQueries.addCommentToApproval, Variables)).ReturnIds;
                 if (returnIds == null)
                 {
                     DisplayMessageInUi(null, UserConfig.GetText("add_comment"), UserConfig.GetText("E8012"), true);
@@ -843,7 +865,7 @@ namespace FWO.Services
             try
             {
                 var Variables = new { reqTaskId, ownerId };
-                ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<NewReturning>(RequestQueries.addOwnerToReqTask, Variables)).ReturnIds;
+                ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<ReturnIdWrapper>(RequestQueries.addOwnerToReqTask, Variables)).ReturnIds;
                 if (returnIds == null)
                 {
                     DisplayMessageInUi(null, UserConfig.GetText("assign_owner"), UserConfig.GetText("E8015"), true);
@@ -886,7 +908,7 @@ namespace FWO.Services
                     deadline = ticket.Deadline,
                     priority = ticket.Priority
                 };
-                int udId = (await ApiConnection.SendQueryAsync<ReturnId>(RequestQueries.updateTicketState, Variables)).UpdatedId;
+                long udId = (await ApiConnection.SendQueryAsync<ReturnId>(RequestQueries.updateTicketState, Variables)).UpdatedIdLong;
                 if(udId != ticket.Id)
                 {
                     DisplayMessageInUi(null, UserConfig.GetText("save_request"), UserConfig.GetText("E8002"), true);
@@ -916,7 +938,7 @@ namespace FWO.Services
                     recentHandler = reqtask.RecentHandler?.DbId,
                     assignedGroup = reqtask.AssignedGroup
                 };
-                int udId = (await ApiConnection.SendQueryAsync<ReturnId>(RequestQueries.updateRequestTaskState, Variables)).UpdatedId;
+                long udId = (await ApiConnection.SendQueryAsync<ReturnId>(RequestQueries.updateRequestTaskState, Variables)).UpdatedIdLong;
                 if(udId != reqtask.Id)
                 {
                     DisplayMessageInUi(null, UserConfig.GetText("save_task"), UserConfig.GetText("E8004"), true);
@@ -946,7 +968,7 @@ namespace FWO.Services
                     recentHandler = impltask.RecentHandler?.DbId,
                     assignedGroup = impltask.AssignedGroup,
                 };
-                int udId = (await ApiConnection.SendQueryAsync<ReturnId>(RequestQueries.updateImplementationTaskState, Variables)).UpdatedId;
+                long udId = (await ApiConnection.SendQueryAsync<ReturnId>(RequestQueries.updateImplementationTaskState, Variables)).UpdatedIdLong;
                 if(udId != impltask.Id)
                 {
                     DisplayMessageInUi(null, UserConfig.GetText("save_task"), UserConfig.GetText("E8004"), true);

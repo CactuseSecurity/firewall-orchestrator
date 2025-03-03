@@ -1,9 +1,3 @@
-@using FWO.Api.Client
-@using FWO.Api.Client.Queries
-@using FWO.Basics
-@using FWO.Api.Data
-@using FWO.Config.Api
-@using FWO.Services
 @using FWO.Ui.Services
 @using FWO.Ui.Pages.NetworkModelling
 @using FWO.Ui.Display
@@ -325,7 +319,10 @@
     <CommentObject @bind-Display="WfHandler.DisplayImplTaskCommentMode" ResetParent="InitComments" ObjectName="@WfHandler.ActImplTask.Title" Save="ConfAddComment"/>
     <Confirm @bind-Display="assignOwnerMode" PerformAction="async () => {await AssignOwner(); StateHasChanged();}"
         Title="@userConfig.GetText("assign_owner")" Message="@message" AllowedRoles="@($"{Roles.Admin}, {Roles.Implementer}")"/>
-    <EditConnPopup @bind-Display="WfHandler.ActionHandler.DisplayConnectionMode" ConnHandler="WfHandler.ActionHandler.ConnHandler"/>
+    @if(WfHandler.ActionHandler != null)
+    {
+        <EditConnPopup @bind-Display="WfHandler.ActionHandler.DisplayConnectionMode" ConnHandler="WfHandler.ActionHandler.ConnHandler"/>
+    }
 }
 <InProgress Display="WorkInProgress"/>
 
@@ -411,7 +408,7 @@
                 firstParamSet = false;
                 InitElements();
                 await InitComments();
-                if(IncludePopups)
+                if(IncludePopups && WfHandler.ActionHandler != null)
                 {
                     offeredActions = WfHandler.ActionHandler.GetOfferedActions(WfHandler.ActImplTask, WfObjectScopes.ImplementationTask, WfHandler.Phase);
                 }
@@ -440,26 +437,33 @@
 
     private async Task InitComments()
     {
-        allComments = WfHandler.ActImplTask.GetAllComments();
+        allComments = WfStatefulObject.DisplayAllComments(WfHandler.ActImplTask.Comments);
         WfHandler.DisplayImplTaskCommentMode = false;
+        await DefaultInit.DoNothing(); // qad avoid compiler warning
     }
 
     private async Task Close()
     {
+        WorkInProgress = true;
         await ResetParent();
+        WorkInProgress = false;
         WfHandler.DisplayPromoteImplTaskMode = false;
         WfHandler.DisplayImplTaskMode = false;
         firstParamSet = true;
     }
 
-    private async Task CancelPromote()
+    private bool CancelPromote()
     {
         WfHandler.DisplayPromoteImplTaskMode = false;
+        return true;
     }
 
     private async Task PerformAction(WfStateAction action)
     {
-        await WfHandler.ActionHandler.PerformAction(action, WfHandler.ActImplTask, WfObjectScopes.ImplementationTask, actOwner, WfHandler.ActReqTask.TicketId);
+        if(WfHandler.ActionHandler != null)
+        {
+            await WfHandler.ActionHandler.PerformAction(action, WfHandler.ActImplTask, WfObjectScopes.ImplementationTask, actOwner, WfHandler.ActReqTask.TicketId);
+        }
     }
 
     private void RequestAssignOwner()

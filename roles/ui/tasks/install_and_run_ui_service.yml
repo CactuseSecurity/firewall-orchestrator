@@ -11,9 +11,6 @@
   become: true
   environment: "{{ proxy_env }}"
 
-# note:   command: "dotnet publish --no-self-contained -c {{ dotnet_mode }} -o {{ ui_start_dir }}/bin/{{ dotnet_mode }}/net{{ dotnet_version }} -p:PublishSingleFile=true -r linux-x64"
-# the above (-p:PublishSingleFile=true -r linux-x64) does not work for HakanL/WkHtmlToPdf-DotNet versions >1.5.59
-
 - name: publish blazor ui
   command: "dotnet publish --no-self-contained -c {{ dotnet_mode }} -o {{ ui_start_dir }}/bin/{{ dotnet_mode }}/net{{ dotnet_version }}"
   args:

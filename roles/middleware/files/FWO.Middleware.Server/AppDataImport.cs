@@ -1,15 +1,15 @@
-﻿using FWO.Logging;
-using NetTools;
-using FWO.Api.Client;
-using FWO.Basics;
-using FWO.Api.Data;
-using FWO.Config.Api;
-using System.Text.Json;
-using FWO.Middleware.RequestParameters;
+﻿using FWO.Api.Client;
 using FWO.Api.Client.Queries;
+using FWO.Basics;
+using FWO.Config.Api;
+using FWO.Data;
+using FWO.Data.Middleware;
+using FWO.Data.Modelling;
+using FWO.Logging;
+using FWO.Services;
 using Novell.Directory.Ldap;
 using System.Data;
-using Microsoft.IdentityModel.Tokens;
+using System.Text.Json;
 
 namespace FWO.Middleware.Server
 {
@@ -30,10 +30,11 @@ namespace FWO.Middleware.Server
 		private string requesterRoleDn = "";
 		private string implementerRoleDn = "";
 		private string reviewerRoleDn = "";
-		List<GroupGetReturnParameters> allGroups = [];
-		List<GroupGetReturnParameters> allInternalGroups = [];
-		List<GroupGetReturnParameters> allExternalGroups = [];
-
+		private List<GroupGetReturnParameters> allGroups = [];
+		private List<GroupGetReturnParameters> allInternalGroups = [];
+		private ModellingNamingConvention NamingConvention = new();
+		private UserConfig userConfig = new();
+	
 
 		/// <summary>
 		/// Constructor for App Data Import
@@ -48,7 +49,10 @@ namespace FWO.Middleware.Server
 		{
 			try
 			{
+				NamingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(globalConfig.ModNamingConvention) ?? new();
 				List<string> importfilePathAndNames = JsonSerializer.Deserialize<List<string>>(globalConfig.ImportAppDataPath) ?? throw new Exception("Config Data could not be deserialized.");
+				userConfig = new(globalConfig);
+				userConfig.User.Name = Roles.MiddlewareServer;
 				await InitLdap();
 				foreach (var importfilePathAndName in importfilePathAndNames)
 				{
@@ -83,14 +87,12 @@ namespace FWO.Middleware.Server
 			}
 			else
 			{
-				allGroups = ownerGroupLdap.GetAllGroupObjects(GetLdapSearchPattern(globalConfig.OwnerLdapGroupNames), 
-					(LdapType) connectedLdaps.FirstOrDefault(x => x.Id==globalConfig.OwnerLdapId).Type);
+				allGroups = ownerGroupLdap.GetAllGroupObjects(GetLdapSearchPattern(globalConfig.OwnerLdapGroupNames));
 			}
 		}
 
 		private static string GetLdapSearchPattern(string ownerGroupNamePattern)
 		{
-			// allGroups = ownerGroupLdap.GetAllGroupObjects(globalConfig.OwnerLdapGroupNames);
 			string searchPattern = ownerGroupNamePattern;
 			// assuming that we remove everything after the kAppIdPlaceholder
 			int index = ownerGroupNamePattern.IndexOf(GlobalConst.kAppIdPlaceholder);
@@ -100,7 +102,7 @@ namespace FWO.Middleware.Server
 				searchPattern = ownerGroupNamePattern.Substring(0, index + GlobalConst.kAppIdPlaceholder.Length);
 			}
 			// now remove CN= from pattern
-			index = searchPattern.IndexOf("=");
+			index = searchPattern.IndexOf('=');
 			if (index != -1)
 			{
 				searchPattern = searchPattern.Substring(index + 1);
@@ -154,7 +156,11 @@ namespace FWO.Middleware.Server
 					{
 						++failCounter;
 					}
-					foreach (var existingApp in existingApps.Where(x => x.ImportSource == incomingApp.ImportSource && x.Active))
+				}
+				string? importSource = importedApps.FirstOrDefault()?.ImportSource;
+				if(importSource != null)
+				{
+					foreach (var existingApp in existingApps.Where(x => x.ImportSource == importSource && x.Active))
 					{
 						if (importedApps.FirstOrDefault(x => x.ExtAppId == existingApp.ExtAppId) == null)
 						{
@@ -171,7 +177,6 @@ namespace FWO.Middleware.Server
 				}
 				Log.WriteInfo("Import App Data", $"Imported from {importfileName}: {successCounter} apps, {failCounter} failed. Deactivated {deleteCounter} apps, {deleteFailCounter} failed.");
 			}
-
 		}
 
 		private async Task<bool> SaveApp(ModellingImportAppData incomingApp)
@@ -191,7 +196,6 @@ namespace FWO.Middleware.Server
 				}
 				// in order to store email addresses of users in the group in UiUser for email notification:
 				await AddAllGroupMembersToUiUser(userGroupDn);
-
 			}
 			catch (Exception exc)
 			{
@@ -223,7 +227,7 @@ namespace FWO.Middleware.Server
 				importSource = incomingApp.ImportSource,
 				commSvcPossible = false
 			};
-			ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(OwnerQueries.newOwner, variables)).ReturnIds;
+			ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(OwnerQueries.newOwner, variables)).ReturnIds;
 			if (returnIds != null)
 			{
 				if(incomingApp.MainUser != null && incomingApp.MainUser != "")
@@ -279,11 +283,11 @@ namespace FWO.Middleware.Server
 				name = incomingApp.Name,
 				dn = incomingApp.MainUser ?? "",
 				groupDn = userGroupDn,
-				appIdExternal = incomingApp.ExtAppId,
+			    appIdExternal = string.IsNullOrEmpty(incomingApp.ExtAppId) ? null : incomingApp.ExtAppId,
 				criticality = incomingApp.Criticality,
 				commSvcPossible = existingApp.CommSvcPossible
 			};
-			await apiConnection.SendQueryAsync<NewReturning>(OwnerQueries.updateOwner, Variables);
+			await apiConnection.SendQueryAsync<ReturnIdWrapper>(OwnerQueries.updateOwner, Variables);
 			if(incomingApp.MainUser != null && incomingApp.MainUser != "")
 			{
 				UpdateRoles(incomingApp.MainUser);
@@ -296,7 +300,7 @@ namespace FWO.Middleware.Server
 		{
 			try
 			{
-				await apiConnection.SendQueryAsync<NewReturning>(OwnerQueries.deactivateOwner, new { id = app.Id });
+				await apiConnection.SendQueryAsync<ReturnIdWrapper>(OwnerQueries.deactivateOwner, new { id = app.Id });
 			}
 			catch (Exception exc)
 			{
@@ -328,7 +332,7 @@ namespace FWO.Middleware.Server
 						await UiUserHandler.UpsertUiUser(apiConnection, uiUser, false);
 					}
 				}
-			 }
+			}
 		}
 
 		private async Task<UiUser?> ConvertLdapToUiUser(ApiConnection apiConnection, string userDn)
@@ -495,7 +499,7 @@ namespace FWO.Middleware.Server
 				importSource = incomingApp.ImportSource,
 				appId = applId
 			};
-			existingAppServers = await apiConnection.SendQueryAsync<List<ModellingAppServer>>(ModellingQueries.getImportedAppServers, Variables);
+			existingAppServers = await apiConnection.SendQueryAsync<List<ModellingAppServer>>(ModellingQueries.getAppServersBySource, Variables);
 			foreach (var incomingAppServer in incomingApp.AppServers)
 			{
 				if (await SaveAppServer(incomingAppServer, applId, incomingApp.ImportSource))
@@ -509,7 +513,7 @@ namespace FWO.Middleware.Server
 			}
 			foreach (var existingAppServer in existingAppServers)
 			{
-				if (incomingApp.AppServers.FirstOrDefault(x => IpAsCidr(x.Ip) == IpAsCidr(existingAppServer.Ip)) == null)
+				if (incomingApp.AppServers.FirstOrDefault(x => x.Ip.IpAsCidr() == existingAppServer.Ip.IpAsCidr() && x.IpEnd.IpAsCidr() == existingAppServer.IpEnd.IpAsCidr()) == null)
 				{
 					if (await MarkDeletedAppServer(existingAppServer))
 					{
@@ -528,7 +532,15 @@ namespace FWO.Middleware.Server
 		{
 			try
 			{
-				ModellingAppServer? existingAppServer = existingAppServers.FirstOrDefault(x => IpAsCidr(x.Ip) == IpAsCidr(incomingAppServer.Ip));
+				if(incomingAppServer.IpEnd == "")
+				{
+					incomingAppServer.IpEnd = incomingAppServer.Ip;
+				}
+				if(globalConfig.DnsLookup)
+				{
+					incomingAppServer.Name = await BuildAppServerName(incomingAppServer);
+				}
+				ModellingAppServer? existingAppServer = existingAppServers.FirstOrDefault(x => x.Ip.IpAsCidr() == incomingAppServer.Ip.IpAsCidr() && x.IpEnd.IpAsCidr() == incomingAppServer.IpEnd.IpAsCidr());
 				if (existingAppServer == null)
 				{
 					return await NewAppServer(incomingAppServer, appID, impSource);
@@ -544,7 +556,7 @@ namespace FWO.Middleware.Server
 					}
 					if (!existingAppServer.Name.Equals(incomingAppServer.Name))
 					{
-						if (!await UpdateAppServerName(existingAppServer, buildAppServerName(incomingAppServer)))
+						if (!await UpdateAppServerName(existingAppServer, incomingAppServer.Name))
 						{	
 							return false;
 						}
@@ -566,27 +578,17 @@ namespace FWO.Middleware.Server
 			}
 		}
 
-		private string buildAppServerName(ModellingImportAppServer appServer)
+		private async Task<string> BuildAppServerName(ModellingImportAppServer appServer)
 		{
-			bool changed = false;
 			try
 			{
-				if (string.IsNullOrEmpty(appServer.Name))
-				{
-					Log.WriteWarning("Import App Server Data", $"Found empty (unresolvable) IP {appServer.Ip}");
-					ModellingNamingConvention NamingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(globalConfig.ModNamingConvention) ?? new();
-					return Sanitizer.SanitizeJsonFieldMand(NamingConvention.AppServerPrefix + DisplayBase.DisplayIp(appServer.Ip, appServer.IpEnd), ref changed);
-				}
-				else
-				{
-					return appServer.Name;
-				}
+				return await AppServerHelper.ConstructAppServerNameFromDns(appServer.ToModellingAppServer(), NamingConvention, globalConfig.OverwriteExistingNames, true);
 			}
 			catch (Exception exc)
 			{
 				Log.WriteError("Import App Server Data", $"App Server name {appServer.Name} could not be set according to naming conventions.", exc);
-				return appServer.Name;
 			}
+			return appServer.Name;
 		}
 
 		private async Task<bool> NewAppServer(ModellingImportAppServer incomingAppServer, int appID, string impSource)
@@ -595,14 +597,21 @@ namespace FWO.Middleware.Server
 			{
 				var Variables = new
 				{
-					name = buildAppServerName(incomingAppServer),
+					name = incomingAppServer.Name,
 					appId = appID,
-					ip = IpAsCidr(incomingAppServer.Ip),
-					ipEnd = incomingAppServer.IpEnd != "" ? IpAsCidr(incomingAppServer.IpEnd) : IpAsCidr(incomingAppServer.Ip),
+					ip = incomingAppServer.Ip.IpAsCidr(),
+					ipEnd = incomingAppServer.IpEnd != "" ? incomingAppServer.IpEnd.IpAsCidr() : incomingAppServer.Ip.IpAsCidr(),
 					importSource = impSource,
 					customType = 0
 				};
-				await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.newAppServer, Variables);
+				ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.newAppServer, Variables)).ReturnIds;
+				if(returnIds != null && returnIds.Length > 0)
+				{
+					ModellingAppServer newModAppServer = new(incomingAppServer.ToModellingAppServer()){ Id = returnIds[0].NewIdLong, ImportSource = impSource, AppId = appID};
+					await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.Insert, ModellingTypes.ModObjectType.AppServer, newModAppServer.Id,
+                        $"New App Server: {newModAppServer.Display()}", apiConnection, userConfig, newModAppServer.AppId, DefaultInit.DoNothing, null, newModAppServer.ImportSource);
+					await AppServerHelper.DeactivateOtherSources(apiConnection, userConfig, newModAppServer);
+				}
 			}
 			catch (Exception exc)
 			{
@@ -621,7 +630,10 @@ namespace FWO.Middleware.Server
 					id = appServer.Id,
 					deleted = false
 				};
-				await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.setAppServerDeletedState, Variables);
+				await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.setAppServerDeletedState, Variables);
+				await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.Reactivate, ModellingTypes.ModObjectType.AppServer, appServer.Id,
+                    $"Reactivate App Server: {appServer.Display()}", apiConnection, userConfig, appServer.AppId, DefaultInit.DoNothing, null, appServer.ImportSource);
+				await AppServerHelper.DeactivateOtherSources(apiConnection, userConfig, appServer);
 			}
 			catch (Exception exc)
 			{
@@ -640,7 +652,9 @@ namespace FWO.Middleware.Server
 					id = appServer.Id,
 					customType = 0
 				};
-				await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.setAppServerType, Variables);
+				await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.setAppServerType, Variables);
+				await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.Update, ModellingTypes.ModObjectType.AppServer, appServer.Id,
+                    $"Update App Server Type: {appServer.Display()}", apiConnection, userConfig, appServer.AppId, DefaultInit.DoNothing, null, appServer.ImportSource);
 			}
 			catch (Exception exc)
 			{
@@ -661,9 +675,10 @@ namespace FWO.Middleware.Server
 						newName,
 						id = appServer.Id,
 					};
-					await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.setAppServerName, Variables);
+					await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.setAppServerName, Variables);
+					await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.Update, ModellingTypes.ModObjectType.AppServer, appServer.Id,
+                    	$"Update App Server Name: {appServer.Display()}", apiConnection, userConfig, appServer.AppId, DefaultInit.DoNothing, null, appServer.ImportSource);
 					Log.WriteWarning("Import App Server Data", $"Name of App Server changed from {appServer.Name} changed to {newName}");
-					
 				}
 				catch (Exception exc)
 				{
@@ -683,7 +698,10 @@ namespace FWO.Middleware.Server
 					id = appServer.Id,
 					deleted = true
 				};
-				await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.setAppServerDeletedState, Variables);
+				await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.setAppServerDeletedState, Variables);
+				await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.Update, ModellingTypes.ModObjectType.AppServer, appServer.Id,
+                    $"Deactivate App Server: {appServer.Display()}", apiConnection, userConfig, appServer.AppId, DefaultInit.DoNothing, null, appServer.ImportSource);
+				await AppServerHelper.ReactivateOtherSource(apiConnection, userConfig, appServer);
 			}
 			catch (Exception exc)
 			{
@@ -691,11 +709,6 @@ namespace FWO.Middleware.Server
 				return false;
 			}
 			return true;
-		}
-
-		private static string IpAsCidr(string ip)
-		{
-			return IPAddressRange.Parse(ip).ToCidrString();
 		}
 	}
 }

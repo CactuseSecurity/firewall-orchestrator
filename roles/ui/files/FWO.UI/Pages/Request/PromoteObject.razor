@@ -1,14 +1,9 @@
-@using FWO.Api.Client
-@using FWO.Config.Api
-@using FWO.Services
-
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Requester}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}, {Roles.Auditor}, {Roles.FwAdmin}")]
 
-@inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
 
-<PopUp Title="@(userConfig.GetText("change_state") + ": " + ObjectName)" Show="@Display" Size=PopupSize.Small OnClose="async () => await Cancel()">
+<PopUp Title="@(userConfig.GetText("change_state") + ": " + ObjectName)" Show="@Display" Size=PopupSize.Small OnClose="() => Cancel()">
     <Body>
         @if (Display)
         {
@@ -24,7 +19,7 @@
             </div>
             @if(WithComment)
             {
-                <div class="form-group row">
+                <div class="form-group row mt-2">
                     <label for="optComment" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("comment")):</label>
                     <div class="col-sm-8">
                         <input id="optComment" type="text" class="form-control form-control-sm" @bind="optComm" />
@@ -37,7 +32,7 @@
         <div class="btn-group">
             <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Requester}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}, {Roles.FwAdmin}")">
                 <Authorized>
-                    <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="async () => {StatefulObject.SetOptComment(optComm); await Save(StatefulObject); await Close();}">@(userConfig.GetText("save"))</button>
+                    <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="Perform">@(userConfig.GetText("save"))</button>
                 </Authorized>
                 <NotAuthorized>
                     <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
@@ -47,6 +42,7 @@
         </div>
     </Footer>
 </PopUp>
+<InProgress Display="workInProgress" />
 
 
 @code
@@ -61,10 +57,10 @@
     public EventCallback<bool> PromoteChanged { get; set; }
 
     [Parameter]
-    public Func<Task> CloseParent { get; set; } = () => throw new Exception("CloseParent function undefined");
+    public Func<Task> CloseParent { get; set; } = DefaultInit.DoNothing;
 
     [Parameter]
-    public Func<Task> CancelParent { get; set; } = () => throw new Exception("CancelParent function undefined");
+    public Func<bool> CancelParent { get; set; } = DefaultInit.DoNothingSync;
 
     [Parameter]
     public string ObjectName { get; set; } = "";
@@ -73,7 +69,7 @@
     public bool WithComment { get; set; } = false;
 
     [Parameter]
-    public Func<WfStatefulObject, Task> Save { get; set; } = _ => throw new Exception("Save function undefined");
+    public Func<WfStatefulObject, Task> Save { get; set; } = DefaultInit.DoNothing;
 
     [Parameter]
     public WfStatefulObject StatefulObject { get; set; } = new ();
@@ -88,6 +84,7 @@
     private bool Display { get; set; } = false;
     private List<int> possibleStates = new ();
     private string? optComm;
+    private bool workInProgress = false;
 
     protected override async Task OnParametersSetAsync()
     {
@@ -117,17 +114,27 @@
         }
     }
 
-    private async Task Close()
+    private async Task Perform()
     {
-        Display = false;
-        Promote = false;
-        await CloseParent();
+        workInProgress = true;
+        StatefulObject.SetOptComment(optComm);
+        await Save(StatefulObject);
+        await Close();
     }
 
-    private async Task Cancel()
+    private async Task Close()
     {
-        Display = false;
+        await CloseParent();
+        workInProgress = false;
         Promote = false;
-        await CancelParent();
+        Display = false;
+    }
+
+    private void Cancel()
+    {
+        CancelParent();
+        workInProgress = false;
+        Promote = false;
+        Display = false;
     }
 }

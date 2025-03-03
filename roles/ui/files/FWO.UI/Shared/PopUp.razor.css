@@ -1,0 +1,82 @@
+.custom-modal-fs {
+    --bs-modal-width: 100vw;
+    height: 100vh;
+}
+
+.custom-modal-content-fs {
+    height: 100vh;
+}
+
+.custom-modal-xl {
+    max-width: 80vw;
+    margin-top: 3em;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.custom-modal-content-xl {
+    height: 80vh;
+}
+
+.custom-modal-lg {
+    max-width: 60vw;
+    margin-top: 8em;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.custom-modal-content-lg {
+    height: 60vh;
+}
+
+.custom-modal-md {
+    max-width: 40vw;
+    margin-top: 12em;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.custom-modal-content-md {
+    height: 40vh;
+}
+
+.custom-modal-sm {
+    max-width: 30vw;
+    margin-top: 16em;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.custom-modal-content-sm {
+    height: 30vh;
+}
+
+.custom-modal-xs {
+    max-width: 30vw;
+    margin-top: 16em;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.custom-modal-content-xs {
+    min-height: 15vh;
+    max-height: 25vh;
+    min-width: 20vw;
+    max-width: 25vw;
+}
+
+.modal-dialog-padding {
+    padding: 15px;
+    align-items: normal;
+}
+
+.custom-modal-footer {
+    background-color: rgba(255, 255, 255, 1);
+    padding: 1em;
+}
+.modal-content {
+    padding: 2em 2em 0 2em;
+    background-color: rgba(255, 255, 255, 1);
+    overflow-y: auto;
+    overflow-x: hidden;
+}

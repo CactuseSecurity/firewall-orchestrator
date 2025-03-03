@@ -13,7 +13,7 @@ mutation newComment(
     comment_text: $text
   }) {
     returning {
-      newId: id
+      newIdLong: id
     }
   }
 }

@@ -1,4 +1,4 @@
-﻿
+
 function scrollIntoRSBView(htmlObjId) {
   let obj =  document.getElementById(htmlObjId)?.parentElement?.parentElement; // gets the tr element containing the obj
   if (!obj)
@@ -10,4 +10,12 @@ function scrollIntoRSBView(htmlObjId) {
   // Remove highlight after 800ms
   setTimeout(() => obj.style.backgroundColor = "", 800);
   return obj.offsetParent !== null; // element visible?
+}
+
+function getCurrentUrl() {
+  return window.location.href;
+}
+
+function removeUrlFragment() {
+  history.replaceState(null, document.title, window.location.pathname + window.location.search);
 }

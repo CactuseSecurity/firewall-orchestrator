@@ -1,8 +1,9 @@
-using FWO.Api.Data;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
+using FWO.Basics;
+using FWO.Data;
+using FWO.Data.Middleware;
 using FWO.Logging;
-using FWO.Middleware.RequestParameters;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -136,7 +137,7 @@ namespace FWO.Middleware.Server.Controllers
 						passwordMustBeChanged = parameters.PwChangeRequired,
 						ldapConnectionId = parameters.LdapId != 0 ? parameters.LdapId : (int?)null
 					};
-					ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(AuthQueries.upsertUiUser, Variables)).ReturnIds;
+					ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(AuthQueries.upsertUiUser, Variables)).ReturnIds;
 					if (returnIds != null)
 					{
 						userId = returnIds[0].NewId;

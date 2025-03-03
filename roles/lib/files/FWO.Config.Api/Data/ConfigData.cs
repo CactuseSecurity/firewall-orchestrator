@@ -2,7 +2,8 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using FWO.Basics;
-using FWO.Api.Data;
+using FWO.Data;
+using FWO.Data.Workflow;
 using FWO.Mail;
 
 namespace FWO.Config.Api.Data
@@ -253,6 +254,15 @@ namespace FWO.Config.Api.Data
         [JsonProperty("createApplicationZones"), JsonPropertyName("createApplicationZones")]
         public bool CreateAppZones { get; set; }
 
+        [JsonProperty("dnsLookup"), JsonPropertyName("dnsLookup")]
+        public bool DnsLookup { get; set; } = false;
+
+        [JsonProperty("overwriteExistingNames"), JsonPropertyName("overwriteExistingNames")]
+        public bool OverwriteExistingNames { get; set; } = false;
+
+        [JsonProperty("autoReplaceAppServer"), JsonPropertyName("autoReplaceAppServer")]
+        public bool AutoReplaceAppServer { get; set; } = false;
+
         [JsonProperty("importAppDataPath"), JsonPropertyName("importAppDataPath")]
 		public string ImportAppDataPath { get; set; } = "";
 
@@ -334,7 +344,7 @@ namespace FWO.Config.Api.Data
 		[JsonProperty("modExtraConfigs"), JsonPropertyName("modExtraConfigs")]
 		public string ModExtraConfigs { get; set; } = "";
 
-		public ConfigData(bool editable = false)
+        public ConfigData(bool editable = false)
 		{
 			Editable = editable;
 		}

@@ -5,7 +5,7 @@ mutation updateOwner(
   $groupDn: String!
   $tenantId: Int
   $recertInterval: Int
-  $appIdExternal: String!
+  $appIdExternal: String
   $recertCheckParams: String
   $criticality: String
   $commSvcPossible: Boolean
@@ -24,6 +24,6 @@ mutation updateOwner(
       common_service_possible: $commSvcPossible
       active: true
   }) {
-    UpdatedId: id
+    updatedId: id
   }
 }

@@ -1,9 +1,4 @@
-@using FWO.Api.Client
-@using FWO.Basics
-@using FWO.Api.Data
-@using FWO.Config.Api
 @using FWO.Ui.Services
-@using FWO.Services
 
 
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Requester}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}, {Roles.Auditor}, {Roles.FwAdmin}")]
@@ -213,7 +208,7 @@
 
     static List<string> validRoles = new (){ Roles.Implementer, Roles.FwAdmin };
     private bool DisplayInfo = false;
-    private List<KeyValuePair<string, bool>> deviceCheck = new ();
+    private List<KeyValuePair<string, bool>> deviceCheck = [];
 
 
     private async Task Reset()
@@ -291,17 +286,20 @@
 
     private void UpdateImplTaskInList()
     {
-        int? idx = AllImplTasks?.FindIndex(x => x.Id == WfHandler.ActImplTask.Id);
-        if(idx != null && idx >= 0)
+        if(AllImplTasks != null)
         {
-            AllImplTasks[(int)idx] = WfHandler.ActImplTask;
+            int? idx = AllImplTasks?.FindIndex(x => x.Id == WfHandler.ActImplTask.Id);
+            if(idx != null && idx >= 0)
+            {
+                AllImplTasks![(int)idx] = WfHandler.ActImplTask;
+            }
         }
     }
 
     private async Task CheckImplTasks()
     {
-        List<Device> foundDevices = await (new PathAnalysis(apiConnection)).getAllDevices(WfHandler.ActReqTask.Elements);
-        deviceCheck = new List<KeyValuePair<string, bool>>();
+        List<Device> foundDevices = await PathAnalysis.GetAllDevices(WfHandler.ActReqTask.Elements, apiConnection);
+        deviceCheck = [];
         foreach(var dev in foundDevices)
         {
             deviceCheck.Add(new KeyValuePair<string, bool>(dev.Name ?? "", WfHandler.ActReqTask.ImplementationTasks.FirstOrDefault(x => x.DeviceId == dev.Id) != null));

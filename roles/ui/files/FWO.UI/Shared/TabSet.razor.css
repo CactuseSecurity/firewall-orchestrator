@@ -1,0 +1,36 @@
+.nav-tabs-rsb {
+    top: 0 !important;
+    background-color: #054887 !important;
+}
+
+.nav-tabs-dark {
+    background-color: transparent;
+}
+
+.nav-tabs-border-transparent {
+    --bs-nav-tabs-border-color: transparent;
+}
+
+.nav-link-active {
+    border-color: #0d6efd;
+    border-bottom-style: none;
+}
+
+.nav-link-inactive {
+    border-color: #0d6efd;
+    border-right-style: none;
+    border-top-style: none;
+    border-left-style: none;
+}
+
+.nav-link-active-rsb {
+    background-color: #054887;
+}
+
+.nav-link-inactive-rsb {
+    background-color: #03335E;
+}
+
+.nav-link-rsb-hover:hover {
+    background-color: #054887 !important;
+}

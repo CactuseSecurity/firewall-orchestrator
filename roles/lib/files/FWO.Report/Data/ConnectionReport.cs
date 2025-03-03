@@ -1,4 +1,5 @@
-﻿using FWO.Api.Data;
+﻿using FWO.Data;
+using FWO.Data.Modelling;
 
 namespace FWO.Report
 {

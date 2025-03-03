@@ -1,14 +1,7 @@
-﻿@using BlazorTable
-@using FWO.Basics
-@using FWO.Api.Data
-@using FWO.Api.Client
-@using FWO.Config.Api
-@using FWO.Ui.Shared
-@using FWO.Services
+﻿@using FWO.Data.Middleware
 @using FWO.Middleware.Client
-@using FWO.Middleware.RequestParameters
-@using System.Net
 @using RestSharp
+@using System.Net
 
 
 @page "/monitoring/external_requests"
@@ -33,8 +26,8 @@
                 <label for="cbx_show_all" class="form-check-label">@(userConfig.GetText("show_all"))</label>
             </div>
         </div>
-        <PageSizeComponent PageSizeCallback="UpdatePageSize" PageSize="PageSize"></PageSizeComponent>
-        <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="ExternalRequest" Items="openRequests" PageSize="PageSize" ColumnReorder="true">
+        <PageSizeComponent PageSizeCallback="UpdatePageSize"></PageSizeComponent>
+        <Table PageSize="PageSize" class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="ExternalRequest" Items="openRequests" ColumnReorder="true">
             <Column TableItem="ExternalRequest" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
                 <Template Context="request">
                     <div class="btn-group">
@@ -90,7 +83,7 @@ else
     </div>
 }
 
-<PopUp Title="@(userConfig.GetText("external_request") + ": " + actRequest.Id)" Show="@DetailsMode" Size=PopupSize.XLarge OnClose="() => DetailsMode = false">
+<PopUp Title="@(userConfig.GetText("external_request") + ": " + actRequest.Id)" Show="@DetailsMode" Size=PopupSize.Large OnClose="() => DetailsMode = false">
     <Body>
         @if (DetailsMode)
         {
@@ -197,7 +190,7 @@ else
     private bool DetailsMode = false;
     private bool ChangeStateMode = false;
 
-    private int PageSize { get; set; } = 10;
+    private int PageSize { get; set; }
     private bool workInProgress = false;
     private bool displayAll = false;
 

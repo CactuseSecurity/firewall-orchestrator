@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server.Circuits;
 using RestSharp;
 using System.Diagnostics;
+using PuppeteerSharp;
 
 
 // Implicitly call static constructor so background lock process is started
@@ -36,6 +37,7 @@ builder.Services.AddServerSideBlazor();
 
 builder.Services.AddScoped<AuthenticationStateProvider, AuthStateProvider>();
 builder.Services.AddScoped<CircuitHandler, CircuitHandlerService>();
+builder.Services.AddScoped<KeyboardInputService, KeyboardInputService>();
 
 string ApiUri = ConfigFile.ApiServerUri;
 string MiddlewareUri = ConfigFile.MiddlewareServerUri;

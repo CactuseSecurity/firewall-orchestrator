@@ -1,10 +1,11 @@
-﻿using FWO.Logging;
+﻿using FWO.Basics;
+using FWO.Data;
+using FWO.Logging;
+using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text.Json;
-using FWO.Api.Data;
-using Microsoft.IdentityModel.JsonWebTokens;
 
 namespace FWO.Middleware.Server
 {
@@ -51,8 +52,8 @@ namespace FWO.Middleware.Server
 			// Create JWToken
 			JwtSecurityToken token = tokenHandler.CreateJwtSecurityToken
 			(
-				issuer: JwtConstants.Issuer,
-				audience: JwtConstants.Audience,
+				issuer: FWO.Basics.JwtConstants.Issuer,
+				audience: FWO.Basics.JwtConstants.Audience,
 				subject: subject,
 				notBefore: DateTime.UtcNow.AddMinutes(-1), // we currently allow for some deviation in timing of the systems
 				issuedAt: DateTime.UtcNow.AddMinutes(-1),
@@ -99,8 +100,8 @@ namespace FWO.Middleware.Server
 
 			JwtSecurityToken token = tokenHandler.CreateJwtSecurityToken
 			(
-				issuer: JwtConstants.Issuer,
-				audience: JwtConstants.Audience,
+				issuer: FWO.Basics.JwtConstants.Issuer,
+				audience: FWO.Basics.JwtConstants.Audience,
 				subject: subject,
 				notBefore: DateTime.UtcNow.AddMinutes(-1), // we currently allow for some deviation in timing of the systems
 				issuedAt: DateTime.UtcNow.AddMinutes(-1),

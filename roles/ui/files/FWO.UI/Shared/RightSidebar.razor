@@ -218,6 +218,7 @@
             ReportData reportData = new();
             bool newObjects = true;
             int fetchCount = 0;
+            int elementsPerFetch = userConfig.ElementsPerFetch;
 
             while (newObjects && (++fetchCount <= userConfig.MaxInitialFetchesRightSidebar || userConfig.AutoFillRightSidebar))
             {
@@ -232,11 +233,11 @@
                 }
 
                 if (queryVars.ContainsKey("offset"))
-                    queryVars["offset"] = (int)queryVars["offset"] + userConfig.ElementsPerFetch;
+                    queryVars["offset"] = (int)queryVars["offset"] + elementsPerFetch;
                 await callback(reportData);
             }
 
-            Log.WriteDebug("Lazy Fetch", $"Fetched sidebar objects in {fetchCount - 1} cycle(s) ({userConfig.ElementsPerFetch} at a time)");
+            Log.WriteDebug("Lazy Fetch", $"Fetched sidebar objects in {fetchCount - 1} cycle(s) ({elementsPerFetch} at a time)");
 
             if (fetchCount > userConfig.MaxInitialFetchesRightSidebar && !userConfig.AutoFillRightSidebar)
                 DisplayMessageInUi(null, userConfig.GetText("object_fetch_warning"), userConfig.GetText("E0021"), true);

@@ -1,21 +1,14 @@
-﻿@using System.Net
-@using FWO.Api.Client
-@using FWO.Api.Client.Queries
-@using FWO.Config.Api
-@using FWO.Config.Api.Data
+﻿@using FWO.Data.Middleware
 @using FWO.Middleware.Client
-@using FWO.Middleware.RequestParameters
 @using RestSharp
-@using FWO.Basics
-@using FWO.Api.Data
-@using FWO.Services
+@using System.Net
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 @inject MiddlewareClient middlewareClient
 
 
-<PopUp Title="@(userConfig.GetText(UserSearchMode ? "assign_user": "assign_group") + ": " + Title)" Show="@Display" Size=PopupSize.Large OnClose="Close">
+<PopUp Title="@(userConfig.GetText(UserSearchMode ? "assign_user": "assign_group") + ": " + Title)" Show="@Display" Size=PopupSize.Medium OnClose="Close">
     <Body>
         @if (Display)
         {
@@ -243,7 +236,7 @@
                     viewAllDevices = false,
                     create = DateTime.Now
                 };
-                await apiConnection.SendQueryAsync<NewReturning>(AuthQueries.addTenant, Variables);
+                await apiConnection.SendQueryAsync<ReturnIdWrapper>(AuthQueries.addTenant, Variables);
             }
         }
         catch (Exception exception)

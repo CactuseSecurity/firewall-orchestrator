@@ -1,8 +1,4 @@
-﻿@using FWO.Basics
-@using FWO.Api.Data
-@using FWO.Services
-
-@typeparam ElementType
+﻿@typeparam ElementType
 
 <ul class="list-group @(StdLayout ? "mb-2" : "")">
 	@for (int i = 0; i < ElementsToAdd.Count; i++)
@@ -43,7 +39,7 @@
 	{
 		return __builder =>
 		{
-			@(e.ToString())
+			@(e?.ToString() ?? "")
 		};
 	};
 

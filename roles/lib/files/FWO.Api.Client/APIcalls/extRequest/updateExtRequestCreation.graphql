@@ -11,6 +11,6 @@ mutation updateExtRequestCreation(
       ext_ticket_id: $extTicketId
       last_creation_response: $creationResponse
   }) {
-    UpdatedId: id
+    updatedIdLong: id
   }
 }

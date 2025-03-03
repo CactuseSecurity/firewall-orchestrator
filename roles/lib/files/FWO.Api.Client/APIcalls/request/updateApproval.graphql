@@ -13,6 +13,6 @@ mutation updateApproval(
       approver: $approver
       assigned_group: $assignedGroup
   }) {
-    UpdatedId: id
+    UpdatedIdLong: id
   }
 }

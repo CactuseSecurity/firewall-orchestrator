@@ -1,9 +1,4 @@
-@using FWO.Api.Client
-@using FWO.Basics
-@using FWO.Api.Data
-@using FWO.Config.Api
 @using FWO.Ui.Services
-@using FWO.Services
 
 
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Requester}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}, {Roles.Auditor}, {Roles.FwAdmin}")]
@@ -291,10 +286,13 @@
 
     private void UpdateImplTaskInList()
     {
-        int? idx = AllImplTasks?.FindIndex(x => x.Id == WfHandler.ActImplTask.Id);
-        if(idx != null && idx >= 0)
+        if(AllImplTasks != null)
         {
-            AllImplTasks[(int)idx] = WfHandler.ActImplTask;
+            int? idx = AllImplTasks?.FindIndex(x => x.Id == WfHandler.ActImplTask.Id);
+            if(idx != null && idx >= 0)
+            {
+                AllImplTasks![(int)idx] = WfHandler.ActImplTask;
+            }
         }
     }
 

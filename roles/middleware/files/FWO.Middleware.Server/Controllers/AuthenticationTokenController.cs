@@ -1,13 +1,13 @@
-﻿using FWO.Api.Data;
-using FWO.Api.Client;
+﻿using FWO.Api.Client;
 using FWO.Api.Client.Queries;
-using FWO.Logging;
 using FWO.Basics;
+using FWO.Data;
+using FWO.Data.Middleware;
+using FWO.Logging;
 using Microsoft.AspNetCore.Mvc;
-using FWO.Middleware.RequestParameters;
-using System.Security.Authentication;
 using Novell.Directory.Ldap;
 using System.Data;
+using System.Security.Authentication;
 
 namespace FWO.Middleware.Server.Controllers
 {
@@ -371,7 +371,7 @@ namespace FWO.Middleware.Server.Controllers
 								viewAllDevices = false,
 								create = DateTime.Now
 							};
-							ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(AuthQueries.addTenant, Variables)).ReturnIds;
+							ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(AuthQueries.addTenant, Variables)).ReturnIds;
 							if (returnIds != null)
 							{
 								tenant.Id = returnIds[0].NewId;
@@ -391,9 +391,21 @@ namespace FWO.Middleware.Server.Controllers
 					}
 				}
 			}
-			await tenant.AddDevices(apiConnection);
+			await AddDevices(apiConnection, tenant);
 
 			return tenant;
 		}
+
+		// the following method adds device visibility information to a tenant (fetched from API)
+        private async Task AddDevices(ApiConnection conn, Tenant tenant)
+        {
+            var tenIdObj = new { tenantId = tenant.Id };
+
+            Device[] deviceIds = await conn.SendQueryAsync<Device[]>(AuthQueries.getVisibleDeviceIdsPerTenant, tenIdObj, "getVisibleDeviceIdsPerTenant");
+            tenant.VisibleGatewayIds = Array.ConvertAll(deviceIds, device => device.Id);
+
+            Management[] managementIds = await conn.SendQueryAsync<Management[]>(AuthQueries.getVisibleManagementIdsPerTenant, tenIdObj, "getVisibleManagementIdsPerTenant");
+            tenant.VisibleManagementIds = Array.ConvertAll(managementIds, management => management.Id);
+        }
 	}
 }

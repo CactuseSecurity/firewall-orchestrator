@@ -1,9 +1,4 @@
-@using FWO.Basics
-@using FWO.Api.Data
-@using FWO.Api.Client
-@using FWO.Config.Api
 @using FWO.Ui.Services
-@using FWO.Services
 @using FWO.Middleware.Client
 
 @page "/request/ticketsoverview"
@@ -37,7 +32,7 @@ else
 
     private WfHandler wfHandler = new ();
     private WfStateDict states = new ();
-    private List<int> OwnerIds = new ();
+    private List<int>? OwnerIds = null;
     private bool InitComplete = false;
 
 
@@ -45,7 +40,7 @@ else
     {
         try
         {
-            apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { Roles.Admin, Roles.FwAdmin, Roles.Requester, Roles.Auditor });
+            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Admin, Roles.FwAdmin, Roles.Requester, Roles.Auditor ]);
             await states.Init(apiConnection);
 
             if(userConfig.ReqOwnerBased)
@@ -67,16 +62,12 @@ else
         try
         {
             wfHandler.ReadOnlyMode = true;
-            if(userConfig.ReqOwnerBased)
+            await wfHandler.Init(true, OwnerIds, true);
+            if(!userConfig.ReqOwnerBased)
             {
-                await wfHandler.Init(OwnerIds, true, true);
-            }
-            else
-            {
-                await wfHandler.Init(OwnerIds, true);
-                
                 // Todo: put filtering into graphql query
-                if(authenticationStateTask!.Result.User.IsInRole(Roles.Requester) && !(authenticationStateTask!.Result.User.IsInRole(Roles.Admin) || authenticationStateTask!.Result.User.IsInRole(Roles.FwAdmin)))
+                if(authenticationStateTask!.Result.User.IsInRole(Roles.Requester) && 
+                    !(authenticationStateTask!.Result.User.IsInRole(Roles.Admin) || authenticationStateTask!.Result.User.IsInRole(Roles.FwAdmin)))
                 {
                     wfHandler.FilterForRequester();
                 }

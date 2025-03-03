@@ -1,4 +1,4 @@
-query listRulesDetails(
+query getRuleDetails(
   $management_id: [Int!]
   $device_id: [Int!]
   $rule_id: [bigint!]

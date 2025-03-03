@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Components.Server.Circuits;
 using FWO.Logging;
 using FWO.Basics;
-using FWO.Api.Data;
+using FWO.Data;
 using System.Collections.Concurrent;
 
 namespace FWO.Ui.Services

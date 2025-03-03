@@ -510,3 +510,32 @@ thead {
 .cursor-pointer{
     cursor: pointer;
 }
+
+/* EditAppRoleLeftSide.razor */
+
+#app-role-library-ordered-draggable-list .border {
+    border: none !important;
+}
+
+
+.h-90{
+    height: 90%;
+}
+/* Popups */
+
+/* .modal-body {
+    overflow: auto;
+}
+
+.modal-body:has(.table-responsive) {
+overflow: hidden;
+}
+
+.modal-body > * {
+max-width: 99%;
+}
+
+.table-responsive:has(> .table.table-bordered.th-bg-secondary.table-responsive.overflow-auto.sticky-header)
+{
+    padding-bottom: 30px;
+} */

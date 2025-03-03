@@ -6,6 +6,6 @@ mutation deactivateOwner(
     _set: {
       active: false
   }) {
-    UpdatedId: id
+    updatedId: id
   }
 }

@@ -1,7 +1,7 @@
 ﻿using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
-using FWO.Api.Data;
+using FWO.Data;
 using FWO.Config.Api;
 using FWO.Config.Api.Data;
 using FWO.Logging;
@@ -23,6 +23,7 @@ namespace FWO.Middleware.Server
         public static async Task<ImportChangeNotifyScheduler> CreateAsync(ApiConnection apiConnection)
         {
             GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(apiConnection, true);
+
             return new ImportChangeNotifyScheduler(apiConnection, globalConfig);
         }
     
@@ -30,9 +31,9 @@ namespace FWO.Middleware.Server
             : base(apiConnection, globalConfig, ConfigQueries.subscribeImportNotifyConfigChanges)
         {}
 
-		/// <summary>
-		/// set scheduling timer from config values
-		/// </summary>
+        /// <summary>
+        /// set scheduling timer from config values
+        /// </summary>
         protected override void OnGlobalConfigChange(List<ConfigItem> config)
         {
             ScheduleTimer.Stop();

@@ -1,13 +1,11 @@
-﻿@using FWO.Config.Api
-@using FWO.Middleware.Client
-@using FWO.Services
+﻿@using FWO.Middleware.Client
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 @inject MiddlewareClient middlewareClient
 
 
-<PopUp Title="@(userConfig.GetText("request_interface"))" Show="@Display" Size=PopupSize.Large OnClose="Close">
+<PopUp Title="@(userConfig.GetText("request_interface"))" Show="@Display" Size=PopupSize.Medium OnClose="Close">
     <Body>
         @if (Display)
         {
@@ -82,7 +80,7 @@
     private bool WorkInProgress = false;
 
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
         if(Apps.Count > 0)
         {
@@ -110,7 +108,7 @@
                     long connId = await ConnHandler.CreateNewRequestedInterface(ticketId, AsSource, InterfaceName, Reason);
                     await SendEmail(connId);
 
-                    await ticketCreator.SetInterfaceId(ticketId, connId, SelectedOwner);
+                    await ticketCreator.SetInterfaceId(ticketId, connId);
                 }
                 await RefreshParent();
                 Close();

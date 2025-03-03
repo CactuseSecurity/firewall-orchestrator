@@ -1,14 +1,7 @@
-﻿@using BlazorTable
-@using FWO.Basics
-@using FWO.Api.Data
-@using FWO.Api.Client
-@using FWO.Config.Api
-@using FWO.Ui.Shared
-@using FWO.Services
+﻿@using FWO.Data.Middleware
 @using FWO.Middleware.Client
-@using FWO.Middleware.RequestParameters
-@using System.Net
 @using RestSharp
+@using System.Net
 
 
 @page "/monitoring/external_requests"
@@ -90,7 +83,7 @@ else
     </div>
 }
 
-<PopUp Title="@(userConfig.GetText("external_request") + ": " + actRequest.Id)" Show="@DetailsMode" Size=PopupSize.XLarge OnClose="() => DetailsMode = false">
+<PopUp Title="@(userConfig.GetText("external_request") + ": " + actRequest.Id)" Show="@DetailsMode" Size=PopupSize.Large OnClose="() => DetailsMode = false">
     <Body>
         @if (DetailsMode)
         {

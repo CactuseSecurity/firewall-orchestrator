@@ -7,7 +7,7 @@ mutation addCommentToReqTask(
     comment_id: $commentId
   }) {
     returning {
-      newId: task_id
+      insertedIdLong: task_id
     }
   }
 }

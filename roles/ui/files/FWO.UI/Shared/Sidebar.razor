@@ -1,7 +1,4 @@
-﻿@using FWO.Basics
-@using FWO.Api.Data
-
-<div class="sidebar-main sidebar-top d-flex flex-row @SidebarContainerCssClass" style="@(PositionLeft ? "left: 0px;" : "right: 0px;")">
+﻿<div class="sidebar-main sidebar-top d-flex flex-row @SidebarContainerCssClass" style="@(PositionLeft ? "left: 0px;" : "right: 0px;")">
     @if (!PositionLeft)
     {
         if (Collapsible)
@@ -70,10 +67,9 @@
     private string minMaxButtonSymbol = Icons.CollapseRight;
     private string overflowSidebar = "auto";
 
-    private bool firstTry = true;
     protected override void OnParametersSet()
     {
-        if(firstTry && !Collapsed && StartCollapsed)
+        if(!Collapsed && StartCollapsed)
         {
             ToggleCollapse(true);
         }

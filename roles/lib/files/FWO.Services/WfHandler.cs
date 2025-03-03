@@ -1,9 +1,11 @@
-﻿using FWO.Api.Data;
+﻿using FWO.Data;
+using FWO.Data.Workflow;
 using FWO.Config.Api;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Middleware.Client;
 using FWO.Logging;
+using FWO.Basics;
 
 namespace FWO.Services
 {
@@ -130,7 +132,7 @@ namespace FWO.Services
         }
 
 
-        public async Task Init(List<int> ownerIds, bool allStates = false, bool ignoreOwners = false, bool fullTickets = false)
+        public async Task Init(bool fetchData = false, List<int>? ownerIds = null, bool allStates = false, bool fullTickets = false)
         {
             try
             {
@@ -157,7 +159,10 @@ namespace FWO.Services
                     AllOwners = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
                     await stateMatrixDict.Init(Phase, apiConnection);
                     MasterStateMatrix = stateMatrixDict.Matrices[WfTaskType.master.ToString()];
-                    TicketList = await dbAcc.FetchTickets(MasterStateMatrix, ownerIds, allStates, ignoreOwners, fullTickets);
+                    if(fetchData)
+                    {
+                        TicketList = await dbAcc.FetchTickets(MasterStateMatrix, ownerIds, allStates, fullTickets);
+                    }
                     ReloadTasks = !fullTickets;
                     PrioList = System.Text.Json.JsonSerializer.Deserialize<List<WfPriority>>(userConfig.ReqPriorities) ?? throw new Exception("Config data could not be parsed.");
                     apiConnection.SwitchBack();
@@ -257,12 +262,12 @@ namespace FWO.Services
 
         // Tickets
 
-        public async Task<WfTicket?> ResolveTicket(long ticketId)
+        public async Task<WfTicket?> ResolveTicket(long ticketId, bool checkOwner = false)
         {
             WfTicket? ticket = null;
             if(dbAcc != null)
             {
-                ticket = await dbAcc.FetchTicket(ticketId, AllOwners.ConvertAll(x => x.Id), true);
+                ticket = await dbAcc.FetchTicket(ticketId, checkOwner ? AllOwners.ConvertAll(x => x.Id) : null);
                 if(ticket != null)
                 {
                     SetTicketEnv(ticket);
@@ -321,7 +326,7 @@ namespace FWO.Services
         {
             if(ReloadTasks && reload && dbAcc != null)
             {
-                ticket = await dbAcc.FetchTicket(ticket.Id, [], true) ?? ticket;
+                ticket = await dbAcc.FetchTicket(ticket.Id) ?? ticket;
                 TicketList[TicketList.FindIndex(x => x.Id == ticket.Id)] = ticket;
             }
             SetTicketEnv(ticket);

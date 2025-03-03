@@ -9,6 +9,6 @@ mutation updateExtRequestFinal(
       ext_request_state: $extRequestState
       finish_date: $finishDate
   }) {
-    UpdatedId: id
+    updatedIdLong: id
   }
 }

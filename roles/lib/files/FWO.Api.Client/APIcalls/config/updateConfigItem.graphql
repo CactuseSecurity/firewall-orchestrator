@@ -9,6 +9,6 @@ mutation updateConfigItem(
       config_value: $value
     }
   ) {
-    UpdatedId: config_key
+    updatedId: config_key
   }
 }

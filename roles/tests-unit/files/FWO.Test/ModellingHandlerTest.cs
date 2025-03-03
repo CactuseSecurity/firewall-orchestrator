@@ -1,8 +1,10 @@
 ﻿using NUnit.Framework;
 using NUnit.Framework.Legacy;
-using FWO.Api.Data;
+using FWO.Data;
+using FWO.Data.Modelling;
 using FWO.Ui.Services;
 using FWO.Services;
+using FWO.Basics;
 
 namespace FWO.Test
 {
@@ -71,7 +73,7 @@ namespace FWO.Test
         public async Task TestExtractUsedSrcInterface()
         {
             ModellingConnection conn = new(){ Id = 3, UsedInterfaceId = 1 };
-            ClassicAssert.AreEqual("Interf1", await AppHandler.ExtractUsedInterface(conn));
+            ClassicAssert.AreEqual("Interf1", await AppHandler!.ExtractUsedInterface(conn));
             ClassicAssert.AreEqual(true, conn.SrcFromInterface);
             ClassicAssert.AreEqual(false, conn.DstFromInterface);
             ClassicAssert.AreEqual(0, conn.SourceAppServers.Count);
@@ -88,7 +90,7 @@ namespace FWO.Test
         public async Task TestExtractUsedDstInterface()
         {
             ModellingConnection conn = new(){ Id = 4, UsedInterfaceId = 2 };
-            ClassicAssert.AreEqual("Interf2", await AppHandler.ExtractUsedInterface(conn));
+            ClassicAssert.AreEqual("Interf2", await AppHandler!.ExtractUsedInterface(conn));
             ClassicAssert.AreEqual(false, conn.SrcFromInterface);
             ClassicAssert.AreEqual(true, conn.DstFromInterface);
             ClassicAssert.AreEqual(0, conn.SourceAppServers.Count);
@@ -141,7 +143,7 @@ namespace FWO.Test
                 new(AppServerInside2) { TooltipText = userConfig.GetText("C9002") },
                 new(AppServerInside3) { TooltipText = userConfig.GetText("C9002") }
             ];
-            await AppRoleHandler.SelectAppServersFromArea(TestArea);
+            await AppRoleHandler!.SelectAppServersFromArea(TestArea);
             ClassicAssert.AreEqual(expectedResult, AppRoleHandler.AppServersInArea);
         }
 
@@ -151,7 +153,7 @@ namespace FWO.Test
             ModellingManagedIdString idFixString = new() { NamingConvention = NamingConvention1 };
             idFixString.ConvertAreaToAppRoleFixedPart(TestArea.IdString);
             idFixString.SetAppPartFromExtId("APP-1234");
-            ClassicAssert.AreEqual("00002", await AppRoleHandler.ProposeFreeAppRoleNumber(idFixString));
+            ClassicAssert.AreEqual("00002", await AppRoleHandler!.ProposeFreeAppRoleNumber(idFixString));
 
             idFixString.NamingConvention = NamingConvention2;
             idFixString.ConvertAreaToAppRoleFixedPart("NA91");

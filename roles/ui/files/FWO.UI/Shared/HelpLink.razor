@@ -1,7 +1,4 @@
-﻿@using FWO.Basics
-@using FWO.Api.Data
-
-@inject UserConfig userConfig
+﻿@inject UserConfig userConfig
 @inject IJSRuntime jsRuntime
 
 <NavLink class="nav-link" target="_blank" rel="noopener noreferrer" href="@($"/help/{Page}?lang={userConfig.GetUserLanguage()}")">

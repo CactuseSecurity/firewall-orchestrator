@@ -1,8 +1,6 @@
-﻿@using FWO.Services
+﻿@inject UserConfig userConfig
 
-@inject UserConfig userConfig
-
-<PopUp Title="@(userConfig.GetText("select_from_ldap") + ": " + LdapName)" Show="@Display" Size=PopupSize.Large OnClose="Close">
+<PopUp Title="@(userConfig.GetText("select_from_ldap") + ": " + LdapName)" Show="@Display" Size=PopupSize.Medium OnClose="Close">
     <Body>
         @if (Display)
         {
@@ -87,7 +85,7 @@
     private UiUser selectedLdapUser = new();
     private string selectedLdapGroup = "";
 
-    protected override async Task OnParametersSetAsync()
+    protected override void OnParametersSet()
     {
         if(Display)
         {

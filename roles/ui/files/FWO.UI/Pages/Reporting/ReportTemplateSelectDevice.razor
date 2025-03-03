@@ -1,12 +1,10 @@
-﻿@using FWO.Config.Api
-@using FWO.Report.Filter
-@using FWO.Services
+﻿@using FWO.Report.Filter
 
 @inject UserConfig userConfig
 @inject ApiConnection apiConnection
 
 
-<PopUp Title="@(userConfig.GetText("select_device"))" Show="@Display" Size=PopupSize.Small OnClose="Cancel">
+<PopUp Title="@(userConfig.GetText("select_device"))" Show="@Display" Size=PopupSize.Medium OnClose="Cancel">
     <Body>
         <DeviceSelection @bind-DeviceFilter="DeviceFilter" @bind-CollapseAll="collapseDevices" ShowTitle="false"/>
     </Body>

@@ -1,6 +1,4 @@
-﻿@using FWO.Config.Api
-@using FWO.Report.Filter
-@using FWO.Services
+﻿@using FWO.Report.Filter
 
 @inject UserConfig userConfig
 @inject ApiConnection apiConnection
@@ -195,7 +193,7 @@
         recertOwnerList = await apiConnection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwners);
         if(showModellingReports)
         {
-            modOwnerList = await ModellingHandlerBase.GetOwnApps(authenticationStateTask, userConfig, apiConnection, DisplayMessageInUi);
+            modOwnerList = await ModellingHandlerBase.GetOwnApps(authenticationStateTask!, userConfig, apiConnection, DisplayMessageInUi);
         }
         await RefreshTemplates();
     }
@@ -345,7 +343,7 @@
                 reportParameters = reportTemplateInEdit.ReportParams
             };
 
-            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(ReportQueries.addReportTemplate, queryVariables)).ReturnIds;
+            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(ReportQueries.addReportTemplate, queryVariables)).ReturnIds;
             if (returnIds != null)
             {
                 reportTemplateInEdit.Id = returnIds[0].NewId;

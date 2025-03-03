@@ -1,14 +1,8 @@
-﻿@using BlazorTable
-@using System.Net
-@using FWO.Basics
-@using FWO.Api.Data
-@using FWO.Api.Client
-@using FWO.Ui.Services
+﻿@using FWO.Data.Middleware
 @using FWO.Middleware.Client
-@using FWO.Config.Api
-@using FWO.Middleware.RequestParameters
+@using FWO.Ui.Services
 @using RestSharp
-@using FWO.Services
+@using System.Net
 
 @page "/settings/roles"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
@@ -21,8 +15,8 @@
     <h3>@(userConfig.GetText("roles"))</h3>
     <HelpLink Page="settings/roles"/>
 </div>
-<H6 data-toggle="tooltip" title="@(userConfig.PureLine("H5332") + "\r\n" + userConfig.PureLine("H5361") + "\r\n"+ userConfig.PureLine("H5362") +
-    "\r\n" + userConfig.PureLine("H5363") + "\r\n" + userConfig.PureLine("H5364"))">@(userConfig.GetText("U5215"))</H6>
+<h6 data-toggle="tooltip" title="@(userConfig.PureLine("H5332") + "\r\n" + userConfig.PureLine("H5361") + "\r\n"+ userConfig.PureLine("H5362") +
+    "\r\n" + userConfig.PureLine("H5363") + "\r\n" + userConfig.PureLine("H5364"))">@(userConfig.GetText("U5215"))</h6>
 <hr />
 
 <div class="m-2 vheight75">
@@ -78,7 +72,6 @@
 
     private bool AddMode = false;
     private bool RemoveUserMode = false;
-    private bool SearchMode = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -145,7 +138,6 @@
                     actRole.Users.Add(user);
                     roles[roles.FindIndex(x => x.Name == actRole.Name)] = actRole;
                     AddMode = false;
-                    SearchMode = false;
                     JwtEventService.PermissionsChanged(user.Dn);
                 }
             }

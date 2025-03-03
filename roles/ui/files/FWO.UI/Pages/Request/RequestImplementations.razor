@@ -1,9 +1,4 @@
-@using FWO.Basics
-@using FWO.Api.Data
-@using FWO.Api.Client
-@using FWO.Config.Api
 @using FWO.Ui.Services
-@using FWO.Services
 @using FWO.Middleware.Client
 
 @page "/request/implementations/{ticketId?}"
@@ -64,7 +59,7 @@ else
     {
         try
         {
-            apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { Roles.Admin, Roles.Implementer, Roles.FwAdmin, Roles.Auditor});
+            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Admin, Roles.Implementer, Roles.FwAdmin, Roles.Auditor ]);
             await states.Init(apiConnection);
 
             if(userConfig.ReqOwnerBased)
@@ -118,8 +113,7 @@ else
         {
             selectedOwnerOpt = newOwnerOpt;
             DisplayTickets = wfHandler.SelectOwnerImplTasks(selectedOwnerOpt);
-            await Reset();
-            StateHasChanged();
+            await InvokeAsync(StateHasChanged);
         }
         catch (Exception exception)
         {
@@ -133,8 +127,7 @@ else
         {
             selectedDeviceOpt = newDeviceOpt;
             DisplayTickets = wfHandler.SelectDeviceImplTasks(selectedDeviceOpt);
-            await Reset();
-            StateHasChanged();
+            await InvokeAsync(StateHasChanged);
         }
         catch (Exception exception)
         {
@@ -147,7 +140,7 @@ else
         try
         {
             wfHandler.ReadOnlyMode = !(authenticationStateTask!.Result.User.IsInRole(Roles.Implementer) || authenticationStateTask!.Result.User.IsInRole(Roles.FwAdmin) || authenticationStateTask!.Result.User.IsInRole(Roles.Admin));
-            await wfHandler.Init(Owners.ConvertAll(x => x.Id), false, false, true);
+            await wfHandler.Init(true, userConfig.ReqOwnerBased ? Owners.ConvertAll(x => x.Id) : null, false, true);
         }
         catch (Exception exception)
         {

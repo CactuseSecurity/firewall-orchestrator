@@ -1,8 +1,4 @@
-﻿@using FWO.Api.Client
-@using FWO.Config.Api
-@using FWO.Config.Api.Data
-@using FWO.Ui.Services
-@using FWO.Services
+﻿@using FWO.Ui.Services
 
 @page "/settings/recertificationpersonal"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Recertifier}, {Roles.Auditor}")]

@@ -30,7 +30,7 @@ namespace FWO.Services
 
         public async Task<WfTicket> CreateTicket(FwoOwner owner, List<WfReqTask> reqTasks, string title, int? stateId, string reason = "")
         {
-            await wfHandler.Init([owner.Id]);
+            await wfHandler.Init();
             stateId ??= wfHandler.MasterStateMatrix.LowestEndState;
             await wfHandler.SelectTicket(new WfTicket()
                 {
@@ -78,7 +78,7 @@ namespace FWO.Services
 
         public async Task<long> CreateRequestNewInterfaceTicket(FwoOwner owner, FwoOwner requestingOwner, string reason = "")
         {
-            await wfHandler.Init([owner.Id]);
+            await wfHandler.Init();
             stateId = wfHandler.MasterStateMatrix.LowestEndState;
             await wfHandler.SelectTicket(new WfTicket()
                 {
@@ -110,9 +110,9 @@ namespace FWO.Services
             return ticketId;
         }
 
-        public async Task SetInterfaceId(long ticketId, long connId, FwoOwner owner)
+        public async Task SetInterfaceId(long ticketId, long connId)
         {
-            await wfHandler.Init([owner.Id], true);
+            await wfHandler.Init();
             WfTicket? ticket = await wfHandler.ResolveTicket(ticketId);
             if(ticket != null)
             {
@@ -124,10 +124,10 @@ namespace FWO.Services
             }
         }
 
-        public async Task<bool> PromoteNewInterfaceImplTask(FwoOwner owner, long ticketId, ExtStates extState, string comment = "")
+        public async Task<bool> PromoteNewInterfaceImplTask(long ticketId, ExtStates extState, string comment = "")
         {
             ExtStateHandler extStateHandler = new(apiConnection);
-            await wfHandler.Init([owner.Id]);
+            await wfHandler.Init();
             WfImplTask? implTask = await FindNewInterfaceImplTask(ticketId);
             if(implTask != null)
             {
@@ -170,7 +170,7 @@ namespace FWO.Services
 
         private async Task CreateRuleDeleteTicket(int deviceId, List<string> ruleUids, string comment = "", DateTime? deadline = null)
         {
-            await wfHandler.Init([]);
+            await wfHandler.Init();
             wfHandler.ActTicket = new WfTicket()
             {
                 StateId = stateId,

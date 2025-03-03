@@ -469,7 +469,7 @@ def parseAccessRulebase(src_rulebase, target_rulebase, layer_name, import_id, se
             if 'rulebase' in rule:
                 rule_num = parseAccessRulebase(rule['rulebase'], target_rulebase, layer_name, import_id, section_header_uids, parent_uid, config2import, rule_num, debug_level=debug_level, recursion_level=recursion_level+1)
         else:
-            parse_single_rule(rule, target_rulebase, layer_name, import_id, rule_num, parent_uid, config2import, rule_num, debug_level=debug_level, recursion_level=recursion_level+1)
+            parse_single_rule(rule, target_rulebase, layer_name, import_id, rule_num, parent_uid, config2import, debug_level=debug_level)
             rule_num += 1
 
     return rule_num

@@ -159,7 +159,7 @@ namespace FWO.Middleware.Server
 		{
 			GetExtSystemFromConfig();
 			ipProtos = await ApiConnection.SendQueryAsync<List<IpProtocol>>(StmQueries.getIpProtocols);
-			await wfHandler.Init([], false, true);
+			await wfHandler.Init();
 			return await wfHandler.ResolveTicket(ticketId);
 		}
 

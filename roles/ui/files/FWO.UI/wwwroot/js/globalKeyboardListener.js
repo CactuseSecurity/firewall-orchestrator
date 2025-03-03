@@ -31,15 +31,25 @@ window.globalKeyboardListener = {
         }
     },
 
+    onBlur: function(){
+        if (window.globalKeyboardListener.dotNetRef) {
+            window.globalKeyboardListener.dotNetRef.invokeMethodAsync('OnBlur') 
+        }
+    },
+
     init: function (dotNetHelper) {
         this.dotNetRef = dotNetHelper;
         document.addEventListener('keydown', this.onKeyDown);
         document.addEventListener('keyup', this.onKeyUp);
+        window.addEventListener("blur", this.onBlur);
+
     },
 
     dispose: function () {
         document.removeEventListener("keydown", this.onKeyDown);
         document.removeEventListener("keyup", this.onKeyUp);
+        window.removeEventListener("blur", this.onBlur);
+
         this.dotNetRef = null; // Clear reference to prevent memory leaks
     }
 };

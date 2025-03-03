@@ -479,3 +479,16 @@ Upgrade Hasura API to v2.45.1
 # 8.6.2 03.01.2025 MAIN
 Hotfix for network modelling:
 - fix: when visiting the library for the second time, app servers were missing due to uninitialized area data.
+
+
+# 8.7 03.03.2025 MAIN
+- General UI
+  - pop-up unification and clean-up
+  - removing unnecessary scroll-bars
+- PDF generation: replacing engine wkhtml with puppeteer
+- Modelling
+  - Edit application role (AR): make objects sortable by IP or name
+  - adding change requests to history
+  - adding option to name all application servers by reverse DNS and fall-back to prefix + ip 
+- API: upgrade Hasura to 2.45.2
+- Workflow: some performance improvements

@@ -17,6 +17,7 @@ class FwConfigImportRollback(FwConfigImport):
     # also deletes latest_config for this management
     # TODO: use mutation from file roles/lib/files/FWO.Api.Client/APIcalls/import/rollback.graphql
     #       but currently we cannot guarantee that lib is present on the importer machine!?
+    #       so we might have to move APIcalls to common role
     def rollbackCurrentImport(self) -> None:
         logger = getFwoLogger()
         rollbackMutation = """

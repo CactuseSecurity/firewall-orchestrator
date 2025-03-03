@@ -433,6 +433,7 @@ def parseAccessRulebase(src_rulebase, target_rulebase, layer_name, import_id, se
         for chunk in src_rulebase['chunks']:
             rule_num = parseAccessRulebase(chunk['rulebase'], target_rulebase, layer_name, import_id,
                                             section_header_uids, parent_uid, config2import, rule_num, debug_level=debug_level, recursion_level=recursion_level+1)
+        return rule_num
       
     checkAndAddSectionHeader(src_rulebase, target_rulebase, layer_name, import_id, rule_num, section_header_uids, parent_uid, config2import, debug_level=debug_level, recursion_level=recursion_level+1)
 
@@ -463,8 +464,13 @@ def parseAccessRulebase(src_rulebase, target_rulebase, layer_name, import_id, se
     #         target_rulebase, section_name, layer_name, import_id, src_rulebase['uid'], rule_num, section_header_uids, parent_uid)
 
     for rule in src_rulebase:   # rulebase is just a list of rules
-        parse_single_rule(rule, target_rulebase, layer_name, import_id, rule_num, parent_uid, config2import)
-        rule_num += 1
+        if rule['type'] == 'access-section':
+            # TODO: turn the section into another rulebase
+            if 'rulebase' in rule:
+                rule_num = parseAccessRulebase(rule['rulebase'], target_rulebase, layer_name, import_id, section_header_uids, parent_uid, config2import, rule_num, debug_level=debug_level, recursion_level=recursion_level+1)
+        else:
+            parse_single_rule(rule, target_rulebase, layer_name, import_id, rule_num, parent_uid, config2import, rule_num, debug_level=debug_level, recursion_level=recursion_level+1)
+            rule_num += 1
 
     return rule_num
 

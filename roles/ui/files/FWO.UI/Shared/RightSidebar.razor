@@ -232,6 +232,11 @@
                     newObjects = reportData.ManagementData.Merge(managementsCurrentFetch);
                 }
 
+                // make sure objects, services and users are unique
+                reportData.ManagementData.ForEach(m => m.Objects = m.Objects.Distinct().ToList());
+                reportData.ManagementData.ForEach(m => m.Services = m.Services.Distinct().ToList());
+                reportData.ManagementData.ForEach(m => m.Users = m.Users.Distinct().ToList());
+
                 if (queryVars.ContainsKey("offset"))
                     queryVars["offset"] = (int)queryVars["offset"] + elementsPerFetch;
                 await callback(reportData);

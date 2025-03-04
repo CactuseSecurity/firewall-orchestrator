@@ -171,7 +171,20 @@ class FwConfigImportRule(FwConfigImportBase):
 
 
     def addRuleNwObjRefs(self, ruleRefs):
-        # mutation for writing all res to API 
+        """
+        Adds network object references for firewall rules.
+
+        This method processes both source and destination objects and executes a mutation 
+        to insert the data into the API.
+
+        Args:
+            ruleRefs (dict): A dictionary containing rule IDs and associated network objects.
+
+        Returns:
+            tuple: (errors, changes), where errors is 1 if an error occurred, otherwise 0, 
+                   and changes is 1 if modifications were made, otherwise 0.
+        """
+
         logger = getFwoLogger()
         errors = 0
         changes = 0
@@ -179,30 +192,50 @@ class FwConfigImportRule(FwConfigImportBase):
         ruleTos = []
         ruleSvcs = []
 
-        for ruleId in ruleRefs:
-            for srcObjId in ruleRefs[ruleId]['from']:
-                ruleFroms.append(RuleFrom(
+        # loop over all ruleRefs items
+        for ruleId, ruleData in ruleRefs.items():
+            negatedFrom = ruleData['from_negated']
+            negatedTo = ruleData['to_negated']
+
+            # append rule froms
+            for srcObjId in ruleData['from']:
+                            ruleFroms.append(RuleFrom(
+                                rule_id=ruleId, 
+                                obj_id=srcObjId,
+                                user_id=None,   # TODO: implement getting user information
+                                rf_create=self.ImportDetails.ImportId, 
+                                rf_last_seen=self.ImportDetails.ImportId,
+                                negated=negatedFrom
+                            ).dict())
+
+            # append rule tos            
+            for dstObjId in ruleData['to']:
+                ruleTos.append(RuleTo(
                     rule_id=ruleId, 
-                    obj_id=srcObjId,
+                    obj_id=dstObjId,
                     user_id=None,   # TODO: implement getting user information
-                    rf_create=self.ImportDetails.ImportId, 
-                    rf_last_seen=self.ImportDetails.ImportId,
-                    negated=ruleRefs[ruleId]['from_negated']
+                    rt_create=self.ImportDetails.ImportId, 
+                    rt_last_seen=self.ImportDetails.ImportId,
+                    negated=negatedTo
                 ).dict())
         
-        addNewRuleFromNwObjRefsMutation = """mutation insertRuleFromRefs(
-            $ruleFroms: [rule_from_insert_input!]!) {
+        # build mutation
+        addNewRuleNwObjRefsMutation = """
+        mutation insertRuleRefs($ruleFroms: [rule_from_insert_input!]!, $ruleTos: [rule_to_insert_input!]!) {
             insert_rule_from(objects: $ruleFroms) {
                 affected_rows
-                returning {
-                rule_from_id
-                }
+                returning { rule_from_id }
+            }
+            insert_rule_to(objects: $ruleTos) {
+                affected_rows
+                returning { rule_to_id }
             }
         }
         """
 
+        # execute mutation
         try:
-            import_result = self.ImportDetails.call(addNewRuleFromNwObjRefsMutation, queryVariables={ 'ruleFroms': ruleFroms })
+            import_result = self.ImportDetails.call(addNewRuleNwObjRefsMutation, queryVariables={ 'ruleFroms': ruleFroms, 'ruleTos': ruleTos })
             if 'errors' in import_result:
                 logger.exception(f"fwo_api:importNwObject - error in addRuleNwObjRefs: {str(import_result['errors'])}")
                 errors = 1 

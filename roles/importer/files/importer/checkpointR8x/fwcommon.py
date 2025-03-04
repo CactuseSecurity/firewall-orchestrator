@@ -301,6 +301,8 @@ def get_config(nativeConfig: json, importState: ImportStateController) -> tuple[
 
     # TODO: re-add user import
     # parse_users_from_rulebases(full_config, full_config['rulebases'], full_config['users'], config2import, current_import_id)
+    # parseUsersFromRulebases(nativeConfig, normalizedConfig, importState.ImportId)
+
     if importState.ImportVersion>8:
         cp_rule.normalizeRulebases(nativeConfig, importState, normalizedConfig)
         cp_gateway.normalizeGateways(nativeConfig, importState, normalizedConfig)
@@ -460,6 +462,36 @@ def get_objects(config_json, mgm_details, v_url, sid, force=False, config_filena
 #         user.update({'user_name': user_name})
 #         config2import['user_objects'].append(user)
 
+def parseUsersFromRulebases(nativeConfig, normalizedConfig, current_import_id):
+        """
+        Extracts user objects from rulebases and normalizes them.
+
+        This function ensures that the `users` key exists in `nativeConfig`, 
+        extracts user objects from all rulebases, and stores them in `normalizedConfig`.
+
+        Args:
+            nativeConfig (dict): The raw configuration containing rulebases.
+            normalizedConfig (dict): The dictionary where normalized user objects will be stored.
+            current_import_id (int): The ID of the current import process.
+
+        Returns:
+            None: The function modifies `nativeConfig` and `normalizedConfig` in place.
+        """
+        # initialize nativeConfig.users if it does not exist
+        if 'users' not in nativeConfig:
+            nativeConfig.update({'users': {}})
+
+        # parse user objects
+        rb_range = range(len(nativeConfig['rulebases']))
+        for rb_id in rb_range:
+            parse_user_objects_from_rulebase (nativeConfig['rulebases'][rb_id], nativeConfig['users'], current_import_id)
+
+        # copy user objects to normalized config
+        normalizedConfig.update({'user_objects': []})
+        for user_name in nativeConfig['users'].keys():
+            user = copy.deepcopy(nativeConfig['users'][user_name])
+            user.update({'user_name': user_name})
+            normalizedConfig['user_objects'].append(user)
 
 def ParseUidToName(myUid, myObjectDictList):
     """Help function finds name to given UID in object dict 

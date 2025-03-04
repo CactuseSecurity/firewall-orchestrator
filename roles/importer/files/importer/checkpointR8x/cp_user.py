@@ -52,7 +52,8 @@ def collect_users_from_rulebase(rulebase, users):
                 for rule in chunk['rulebase']:
                     collect_users_from_rule(rule, users)
     else:
-        for rule in rulebase:
+        for rule in rulebase: # RS: iterates about rulebase properties (uid, name and chunks)
+                              # How do I get the rules from the rulebase?
             collect_users_from_rule(rule, users)
 
 

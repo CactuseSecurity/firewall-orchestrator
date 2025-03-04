@@ -243,10 +243,10 @@ class FwConfigImportObject(FwConfigImportBase):
 
     def buildObjUidToIdMapFromApi(self, rules):
         nwObjUids = self.extractNwObjUidsFromRules(rules)
-        # svcObjUids = self.extractSvcObjUidsFromRules(rules)
+        svcObjUids = self.extractSvcObjUidsFromRules(rules)
         self.NwObjUidToIdMap = self.buildNwObjUidToIdMapFromApi(nwObjUids)
         self.UserUidToIdMap = self.buildUserObjUidToIdMapFromApi(nwObjUids)
-        # self.SvcObjMemberUidToIdMap = self.buildSvcObjUidToIdMapFromApi(svcObjUids)
+        self.SvcObjUidToIdMap = self.buildSvcObjUidToIdMapFromApi(svcObjUids)
 
     def extractNwObjUidsFromRules(self, rules):
         nwObjUids = set()
@@ -256,6 +256,13 @@ class FwConfigImportObject(FwConfigImportBase):
             if rule['rule_dst_refs'] is not None:
                 nwObjUids.update(rule['rule_dst_refs'].split(fwo_const.list_delimiter))
         return list(nwObjUids)
+    
+    def extractSvcObjUidsFromRules(self, rules):
+        svcObjUids = set()
+        for rule in rules:
+            if rule['rule_svc_refs'] is not None:
+                svcObjUids.update(rule['rule_svc_refs'].split(fwo_const.list_delimiter))
+        return list(svcObjUids)
 
     def buildNwObjUidToIdMapFromApi(self, nwObjUids: List[str]):
         logger = getFwoLogger()
@@ -287,6 +294,37 @@ class FwConfigImportObject(FwConfigImportBase):
                 # TODO: add error to global import error counter
 
         return nwObjUidToIdMap
+
+    def buildSvcObjUidToIdMapFromApi(self, svcObjUids: List[str]):
+        logger = getFwoLogger()
+        svcObjUidToIdMap = {}
+
+        if len(svcObjUids)>0:
+            # TODO: remove active filter later
+            buildQuery = """
+                query getMapOfUid2Id($uids: [String!]!) {
+                    service(where: {svc_uid: {_in: $uids}, removed: {_is_null: true}, active: {_eq: true}}) {
+                        svc_id
+                        svc_uid
+                    }
+                }
+            """
+
+            try:
+                uidMapResult = self.ImportDetails.call(buildQuery, queryVariables={ 'uids': svcObjUids })
+                if 'errors' in uidMapResult:
+                    logger.exception(f"fwo_api:importService - error in buildNwObjMemberUidToIdMap: {str(uidMapResult['errors'])}")
+                    # TODO: add error to global import error counter
+                else:
+                    uidMap = uidMapResult['data']['service']
+                    # now turn the list into a dict with key = uid
+                    for obj in uidMap:
+                        svcObjUidToIdMap.update({ obj['svc_uid']: obj['svc_id'] })
+            except:
+                logger.exception(f"failed to write new objects: {str(traceback.format_exc())}")
+                # TODO: add error to global import error counter
+
+        return svcObjUidToIdMap
 
     def buildUserObjUidToIdMapFromApi(self, userObjUids: List[str]):
         logger = getFwoLogger()

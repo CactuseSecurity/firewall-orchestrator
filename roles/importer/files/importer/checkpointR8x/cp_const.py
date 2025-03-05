@@ -34,7 +34,7 @@ simple_user_obj_types = ['users']
 
 api_obj_types = nw_obj_table_names + svc_obj_table_names + simple_user_obj_types # all obj table names to look at during import
 
-obj_types_full_fetch_needed = ['groups', 'groups-with-exclusion', 'updatable-objects'] + group_svc_obj_types
+obj_types_full_fetch_needed = ['groups', 'groups-with-exclusion', 'updatable-objects', 'checkpoint-host'] + group_svc_obj_types
 
 cp_specific_object_types = [    # used for fetching enrichment data via "get object" separately (no specific API call)
     'simple-gateway', 'simple-cluster', 'CpmiVsClusterNetobj', 'CpmiVsxClusterNetobj', 'CpmiVsxClusterMember', 'CpmiVsNetobj',

@@ -1,5 +1,36 @@
 Alter table "ldap_connection" ADD COLUMN IF NOT EXISTS "ldap_writepath_for_groups" Varchar;
 
+CREATE OR REPLACE FUNCTION insertLocalLdapWithEncryptedPasswords(
+    serverName TEXT, 
+    port INTEGER,
+    userSearchPath TEXT,
+    roleSearchPath TEXT, 
+    groupSearchPath TEXT,
+    groupWritePath TEXT,
+    tenantLevel INTEGER,
+    searchUser TEXT,
+    searchUserPwd TEXT,
+    writeUser TEXT,
+    writeUserPwd TEXT,
+    ldapType INTEGER
+) RETURNS VOID AS $$
+DECLARE
+    t_key TEXT;
+    t_encryptedReadPwd TEXT;
+    t_encryptedWritePwd TEXT;
+BEGIN
+    IF NOT EXISTS (SELECT * FROM ldap_connection WHERE ldap_server = serverName)
+    THEN
+        SELECT INTO t_key * FROM getMainKey();
+        SELECT INTO t_encryptedReadPwd * FROM encryptText(searchUserPwd, t_key);
+        SELECT INTO t_encryptedWritePwd * FROM encryptText(writeUserPwd, t_key);
+        INSERT INTO ldap_connection
+            (ldap_server, ldap_port, ldap_searchpath_for_users, ldap_searchpath_for_roles, ldap_searchpath_for_groups, ldap_writepath_for_groups,
+            ldap_tenant_level, ldap_search_user, ldap_search_user_pwd, ldap_write_user, ldap_write_user_pwd, ldap_type)
+            VALUES (serverName, port, userSearchPath, roleSearchPath, groupSearchPath, groupWritePath, tenantLevel, searchUser, t_encryptedReadPwd, writeUser, t_encryptedWritePwd, ldapType);
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
 
 -- in preparation for performance optimization in march 2025
 

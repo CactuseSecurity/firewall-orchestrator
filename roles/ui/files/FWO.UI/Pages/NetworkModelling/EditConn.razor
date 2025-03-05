@@ -487,6 +487,11 @@
 
     private async Task HandleSrcDrop()
     {
+        if (ConnHandler.NetworkAreaUseForbidden(Container))
+        {
+            
+        }
+
         if(Container.ConnElement != null)
         {
             if(ConnHandler!.ActConn.IsInterface)

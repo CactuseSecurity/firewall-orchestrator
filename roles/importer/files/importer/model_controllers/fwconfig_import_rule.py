@@ -15,6 +15,7 @@ from datetime import datetime
 from model_controllers.fwconfig_import_object import FwConfigImportObject
 from models.rule_from import RuleFrom
 from models.rule_to import RuleTo
+from roles.importer.files.importer.models.rule_service import RuleService
 
 # this class is used for importing a config into the FWO API
 class FwConfigImportRule(FwConfigImportBase):
@@ -156,7 +157,7 @@ class FwConfigImportRule(FwConfigImportBase):
                     ruleToRefs.append(objectUid2IdMapper.NwObjUidToIdMap[dstRef])
             for svcRef in rule['rule_svc_refs'].split(fwo_const.list_delimiter):
                 if svcRef in objectUid2IdMapper.SvcObjUidToIdMap:
-                    ruleSvcRefs.append(objectUid2IdMapper.SvcObjUidToIdMap[dstRef])
+                    ruleSvcRefs.append(objectUid2IdMapper.SvcObjUidToIdMap[svcRef])
             ruleRefs.update({ rule['rule_id']: { 
                 'from': ruleFromRefs, 
                 'to': ruleToRefs, 
@@ -171,7 +172,20 @@ class FwConfigImportRule(FwConfigImportBase):
 
 
     def addRuleNwObjRefs(self, ruleRefs):
-        # mutation for writing all res to API 
+        """
+        Adds network object references for firewall rules.
+
+        This method processes source, destination and service objects and executes a mutation 
+        to insert the data into the API.
+
+        Args:
+            ruleRefs (dict): A dictionary containing rule IDs and associated network objects.
+
+        Returns:
+            tuple: (errors, changes), where errors is 1 if an error occurred, otherwise 0, 
+                   and changes is 1 if modifications were made, otherwise 0.
+        """
+
         logger = getFwoLogger()
         errors = 0
         changes = 0
@@ -179,30 +193,66 @@ class FwConfigImportRule(FwConfigImportBase):
         ruleTos = []
         ruleSvcs = []
 
-        for ruleId in ruleRefs:
-            for srcObjId in ruleRefs[ruleId]['from']:
-                ruleFroms.append(RuleFrom(
+        # loop over all ruleRefs items
+        for ruleId, ruleData in ruleRefs.items():
+            negatedFrom = ruleData['from_negated']
+            negatedTo = ruleData['to_negated']
+            negatedSvc = ruleData['svc_negated']
+
+            # append rule froms
+            for srcObjId in ruleData['from']:
+                            ruleFroms.append(RuleFrom(
+                                rule_id=ruleId, 
+                                obj_id=srcObjId,
+                                user_id=None,   # TODO: implement getting user information
+                                rf_create=self.ImportDetails.ImportId, 
+                                rf_last_seen=self.ImportDetails.ImportId,
+                                negated=negatedFrom
+                            ).dict())
+
+            # append rule tos            
+            for dstObjId in ruleData['to']:
+                ruleTos.append(RuleTo(
                     rule_id=ruleId, 
-                    obj_id=srcObjId,
+                    obj_id=dstObjId,
                     user_id=None,   # TODO: implement getting user information
-                    rf_create=self.ImportDetails.ImportId, 
-                    rf_last_seen=self.ImportDetails.ImportId,
-                    negated=ruleRefs[ruleId]['from_negated']
+                    rt_create=self.ImportDetails.ImportId, 
+                    rt_last_seen=self.ImportDetails.ImportId,
+                    negated=negatedTo
+                ).dict())
+
+            # append services         
+            for svcObjId in ruleData['svc']:
+                ruleSvcs.append(RuleService(
+                    rule_id=ruleId, 
+                    svc_id=svcObjId,
+                    user_id=None,   # TODO: implement getting user information
+                    rs_create=self.ImportDetails.ImportId, 
+                    rs_last_seen=self.ImportDetails.ImportId,
+                    negated=negatedSvc # TODO: Set properly
                 ).dict())
         
-        addNewRuleFromNwObjRefsMutation = """mutation insertRuleFromRefs(
-            $ruleFroms: [rule_from_insert_input!]!) {
+        # build mutation
+        addNewRuleNwObjAndSvcRefsMutation = """
+        mutation insertRuleRefs($ruleFroms: [rule_from_insert_input!]!, $ruleTos: [rule_to_insert_input!]!, $ruleServices: [rule_service_insert_input!]!) {
             insert_rule_from(objects: $ruleFroms) {
                 affected_rows
-                returning {
-                rule_from_id
-                }
+                returning { rule_from_id }
+            }
+            insert_rule_to(objects: $ruleTos) {
+                affected_rows
+                returning { rule_to_id }
+            }
+            insert_rule_service(objects: $ruleServices) {
+                affected_rows
+                returning { svc_id }
             }
         }
         """
 
+        # execute mutation
         try:
-            import_result = self.ImportDetails.call(addNewRuleFromNwObjRefsMutation, queryVariables={ 'ruleFroms': ruleFroms })
+            import_result = self.ImportDetails.call(addNewRuleNwObjAndSvcRefsMutation, queryVariables={ 'ruleFroms': ruleFroms, 'ruleTos': ruleTos, 'ruleServices':  ruleSvcs})
             if 'errors' in import_result:
                 logger.exception(f"fwo_api:importNwObject - error in addRuleNwObjRefs: {str(import_result['errors'])}")
                 errors = 1 

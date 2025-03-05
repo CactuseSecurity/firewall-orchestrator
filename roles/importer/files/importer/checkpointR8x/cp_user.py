@@ -1,6 +1,8 @@
 
 from fwo_log import getFwoLogger
 import json
+
+from roles.importer.files.importer.checkpointR8x.cp_rule import parseRulebaseToRules
 # from checkpointR8x.cp_getter import ParseUidToName
 
 def collect_users_from_rule(rule, users): #, objDict):
@@ -52,21 +54,21 @@ def collect_users_from_rulebase(rulebase, users):
                 for rule in chunk['rulebase']:
                     collect_users_from_rule(rule, users)
     else:
-        for rule in rulebase: # RS: iterates about rulebase properties (uid, name and chunks)
-                              # How do I get the rules from the rulebase?
+        for rule in rulebase:
             collect_users_from_rule(rule, users)
 
 
-# the following is only used within new python-only importer:
 def parse_user_objects_from_rulebase(rulebase, users, import_id):
-    collect_users_from_rulebase(rulebase, users)
+    # collects users from rule bases
+    rules = parseRulebaseToRules(rulebase)
+    for rule in rules.values():
+        collect_users_from_rule(rule, users)
+    
     for user_name in users.keys():
         # TODO: get user info via API
         userUid = getUserUidFromCpApi(user_name)
         # finally add the import id
         users[user_name]['control_id'] = import_id
-
-
 
 def getUserUidFromCpApi (userName):
     # show-object with UID

@@ -1,87 +1,92 @@
 -- in preparation for performance optimization in march 2025
 /* 
-DROP INDEX idx_owner01;
-DROP INDEX idx_reqtask_owner01;
-DROP INDEX idx_reqtask_owner02;
-DROP INDEX idx_request_ticket01;
-DROP INDEX idx_request_ticket02;
-DROP INDEX idx_request_ticket03;
-DROP INDEX idx_request_ticket04;
-DROP INDEX idx_request_ticket05;
-DROP INDEX idx_request_reqtask01;
-DROP INDEX idx_request_reqtask02;
-DROP INDEX idx_request_reqtask03;
-DROP INDEX idx_request_reqtask04;
-DROP INDEX idx_request_reqtask05;
-DROP INDEX idx_request_reqtask06;
-DROP INDEX idx_request_reqtask07;
-DROP INDEX idx_request_reqtask08;
-DROP INDEX idx_request_reqtask09;
-DROP INDEX idx_request_reqtask10;
-DROP INDEX idx_request_reqelement01;
-DROP INDEX idx_request_reqelement02;
-DROP INDEX idx_request_reqelement03;
-DROP INDEX idx_request_reqelement04;
-DROP INDEX idx_request_reqelement05;
-DROP INDEX idx_request_reqelement06;
-DROP INDEX idx_request_reqelement07;
-DROP INDEX idx_request_approval01;
-DROP INDEX idx_request_approval02;
-DROP INDEX idx_request_approval03;
-DROP INDEX idx_request_approval04;
-DROP INDEX idx_request_approval05;
-DROP INDEX idx_request_comment01;
-DROP INDEX idx_request_comment02;
-DROP INDEX idx_owner_network01;
-DROP INDEX idx_owner_network02;
-DROP INDEX idx_request_ticket_comment01;
-DROP INDEX idx_request_ticket_comment02;
-DROP INDEX idx_request_reqtask_comment01;
-DROP INDEX idx_request_reqtask_comment02;
-DROP INDEX idx_request_approval_comment01;
-DROP INDEX idx_request_approval_comment02;
-DROP INDEX idx_request_impltask_comment01;
-DROP INDEX idx_request_impltask_comment02;
-DROP INDEX idx_request_implelement01;
-DROP INDEX idx_request_implelement02;
-DROP INDEX idx_request_implelement03;
-DROP INDEX idx_request_implelement04;
-DROP INDEX idx_request_implelement05;
-DROP INDEX idx_request_implelement06;
-DROP INDEX idx_request_impltask01;
-DROP INDEX idx_request_impltask02;
-DROP INDEX idx_request_impltask03;
-DROP INDEX idx_request_impltask04;
-DROP INDEX idx_request_impltask05;
-DROP INDEX idx_request_impltask06;
-DROP INDEX idx_request_impltask07;
-DROP INDEX idx_request_impltask08;
-DROP INDEX idx_request_impltask09;
-DROP INDEX idx_modelling_nwgroup01;
-DROP INDEX idx_modelling_connection01;
-DROP INDEX idx_modelling_connection02;
-DROP INDEX idx_modelling_connection03;
-DROP INDEX idx_modelling_nwobject_nwgroup01;
-DROP INDEX idx_modelling_nwobject_nwgroup02;
-DROP INDEX idx_modelling_nwgroup_connection01;
-DROP INDEX idx_modelling_nwgroup_connection02;
-DROP INDEX idx_modelling_nwobject_connection01;
-DROP INDEX idx_modelling_nwobject_connection02;
-DROP INDEX idx_modelling_service01;
-DROP INDEX idx_modelling_service02;
-DROP INDEX idx_modelling_service_group01;
-DROP INDEX idx_modelling_service_service_group01;
-DROP INDEX idx_modelling_service_service_group02;
-DROP INDEX idx_modelling_service_group_connection01;
-DROP INDEX idx_modelling_service_group_connection02;
-DROP INDEX idx_modelling_service_connection01;
-DROP INDEX idx_modelling_service_connection02;
-DROP INDEX idx_modelling_change_history01;
-DROP INDEX idx_modelling_selected_objects01;
-DROP INDEX idx_modelling_selected_objects02;
-DROP INDEX idx_modelling_selected_connections01;
-DROP INDEX idx_modelling_selected_connections02;
-*/
+
+all indices have been tested with ~660 tickets and ~2000 tasks
+but did not really improve performance
+so we will not use them for now
+
+DROP INDEX IF EXISTS IF EXISTS idx_owner01;
+DROP INDEX IF EXISTS idx_owner_network01;
+DROP INDEX IF EXISTS idx_owner_network02;
+DROP INDEX IF EXISTS request.idx_reqtask_owner01;
+DROP INDEX IF EXISTS request.idx_reqtask_owner02;
+DROP INDEX IF EXISTS request.idx_request_ticket01;
+DROP INDEX IF EXISTS request.idx_request_ticket02;
+DROP INDEX IF EXISTS request.idx_request_ticket03;
+DROP INDEX IF EXISTS request.idx_request_ticket04;
+DROP INDEX IF EXISTS request.idx_request_ticket05;
+DROP INDEX IF EXISTS request.idx_request_reqtask01;
+DROP INDEX IF EXISTS request.idx_request_reqtask02;
+DROP INDEX IF EXISTS request.idx_request_reqtask03;
+DROP INDEX IF EXISTS request.idx_request_reqtask04;
+DROP INDEX IF EXISTS request.idx_request_reqtask05;
+DROP INDEX IF EXISTS request.idx_request_reqtask06;
+DROP INDEX IF EXISTS request.idx_request_reqtask07;
+DROP INDEX IF EXISTS request.idx_request_reqtask08;
+DROP INDEX IF EXISTS request.idx_request_reqtask09;
+DROP INDEX IF EXISTS request.idx_request_reqtask10;
+DROP INDEX IF EXISTS request.idx_request_reqelement01;
+DROP INDEX IF EXISTS request.idx_request_reqelement02;
+DROP INDEX IF EXISTS request.idx_request_reqelement03;
+DROP INDEX IF EXISTS request.idx_request_reqelement04;
+DROP INDEX IF EXISTS request.idx_request_reqelement05;
+DROP INDEX IF EXISTS request.idx_request_reqelement06;
+DROP INDEX IF EXISTS request.idx_request_reqelement07;
+DROP INDEX IF EXISTS request.idx_request_approval01;
+DROP INDEX IF EXISTS request.idx_request_approval02;
+DROP INDEX IF EXISTS request.idx_request_approval03;
+DROP INDEX IF EXISTS request.idx_request_approval04;
+DROP INDEX IF EXISTS request.idx_request_approval05;
+DROP INDEX IF EXISTS request.idx_request_comment01;
+DROP INDEX IF EXISTS request.idx_request_comment02;
+DROP INDEX IF EXISTS request.idx_request_ticket_comment01;
+DROP INDEX IF EXISTS request.idx_request_ticket_comment02;
+DROP INDEX IF EXISTS request.idx_request_reqtask_comment01;
+DROP INDEX IF EXISTS request.idx_request_reqtask_comment02;
+DROP INDEX IF EXISTS request.idx_request_approval_comment01;
+DROP INDEX IF EXISTS request.idx_request_approval_comment02;
+DROP INDEX IF EXISTS request.idx_request_impltask_comment01;
+DROP INDEX IF EXISTS request.idx_request_impltask_comment02;
+DROP INDEX IF EXISTS request.idx_request_implelement01;
+DROP INDEX IF EXISTS request.idx_request_implelement02;
+DROP INDEX IF EXISTS request.idx_request_implelement03;
+DROP INDEX IF EXISTS request.idx_request_implelement04;
+DROP INDEX IF EXISTS request.idx_request_implelement05;
+DROP INDEX IF EXISTS request.idx_request_implelement06;
+DROP INDEX IF EXISTS request.idx_request_impltask01;
+DROP INDEX IF EXISTS request.idx_request_impltask02;
+DROP INDEX IF EXISTS request.idx_request_impltask03;
+DROP INDEX IF EXISTS request.idx_request_impltask04;
+DROP INDEX IF EXISTS request.idx_request_impltask05;
+DROP INDEX IF EXISTS request.idx_request_impltask06;
+DROP INDEX IF EXISTS request.idx_request_impltask07;
+DROP INDEX IF EXISTS request.idx_request_impltask08;
+DROP INDEX IF EXISTS request.idx_request_impltask09;
+DROP INDEX IF EXISTS modelling.idx_modelling_nwgroup01;
+DROP INDEX IF EXISTS modelling.idx_modelling_connection01;
+DROP INDEX IF EXISTS modelling.idx_modelling_connection02;
+DROP INDEX IF EXISTS modelling.idx_modelling_connection03;
+DROP INDEX IF EXISTS modelling.idx_modelling_nwobject_nwgroup01;
+DROP INDEX IF EXISTS modelling.idx_modelling_nwobject_nwgroup02;
+DROP INDEX IF EXISTS modelling.idx_modelling_nwgroup_connection01;
+DROP INDEX IF EXISTS modelling.idx_modelling_nwgroup_connection02;
+DROP INDEX IF EXISTS modelling.idx_modelling_nwobject_connection01;
+DROP INDEX IF EXISTS modelling.idx_modelling_nwobject_connection02;
+DROP INDEX IF EXISTS modelling.idx_modelling_service01;
+DROP INDEX IF EXISTS modelling.idx_modelling_service02;
+DROP INDEX IF EXISTS modelling.idx_modelling_service_group01;
+DROP INDEX IF EXISTS modelling.idx_modelling_service_service_group01;
+DROP INDEX IF EXISTS modelling.idx_modelling_service_service_group02;
+DROP INDEX IF EXISTS modelling.idx_modelling_service_group_connection01;
+DROP INDEX IF EXISTS modelling.idx_modelling_service_group_connection02;
+DROP INDEX IF EXISTS modelling.idx_modelling_service_connection01;
+DROP INDEX IF EXISTS modelling.idx_modelling_service_connection02;
+DROP INDEX IF EXISTS modelling.idx_modelling_change_history01;
+DROP INDEX IF EXISTS modelling.idx_modelling_selected_objects01;
+DROP INDEX IF EXISTS modelling.idx_modelling_selected_objects02;
+DROP INDEX IF EXISTS modelling.idx_modelling_selected_connections01;
+DROP INDEX IF EXISTS modelling.idx_modelling_selected_connections02;
+
 --- create indices for owner & reqtask_owner ---
 CREATE index if not exists idx_owner01 on owner (tenant_id);
 
@@ -193,7 +198,6 @@ CREATE INDEX IF NOT EXISTS idx_modelling_selected_objects02 ON modelling.selecte
 CREATE INDEX IF NOT EXISTS idx_modelling_selected_connections01 ON modelling.selected_connections (app_id);
 CREATE INDEX IF NOT EXISTS idx_modelling_selected_connections02 ON modelling.selected_connections (connection_id);
 
-/*
     some other candidates:
     
     --- rule_owner ---

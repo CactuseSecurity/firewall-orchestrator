@@ -1,4 +1,5 @@
-﻿namespace FWO.Data
+﻿
+namespace FWO.Data
 {
     public class Role
     {
@@ -20,12 +21,33 @@
             Users = new (role.Users);
         }
 
+        private string LdapDnExtractName(string dn, string name)
+        {
+            string[] dnParts = dn.Split(',');
+            foreach(string part in dnParts)
+            {
+                if(part.StartsWith("cn=", StringComparison.CurrentCultureIgnoreCase))
+                {
+                    // also replace "\\2C" with ","
+                    if (part.Contains("\\2c", StringComparison.CurrentCultureIgnoreCase))
+                    {
+                       return $"[{part[3..].Replace("\\2c", ",", StringComparison.CurrentCultureIgnoreCase)}]";
+                    }
+                    else
+                    {
+                        return part[3..];
+                    }
+                }
+            }
+            return name;
+        }
+
         public string UserList()
         {
             List<string> userNames = [];
             foreach(UiUser user in Users)
             {
-                userNames.Add(user.Name);
+                userNames.Add(LdapDnExtractName(user.Dn, user.Name));
             }
             return string.Join(", ", userNames);
         }

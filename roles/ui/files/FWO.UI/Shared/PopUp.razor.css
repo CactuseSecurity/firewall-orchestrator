@@ -4,7 +4,7 @@
 }
 
 .custom-modal-content-fs {
-    height: 100vh;
+    height: calc(100vh - 95px);
 }
 
 .custom-modal-xl {

@@ -72,3 +72,10 @@ def getUserUidFromCpApi (userName):
     # dummy implementation returning the name as uid
     return userName
 
+def parseUsersApiResponseToDict(api_response):
+    user_dict = {}
+
+    for user in api_response['objects']:
+        user_dict[user['uid']] = user
+
+    return user_dict

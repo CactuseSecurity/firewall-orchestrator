@@ -422,14 +422,14 @@ def get_nat_rules_from_api_as_dict (api_v_url, sid, show_params_rules, nativeCon
     return nat_rules
 
 def getUsers(api_v_url,sid ):
-    users = None
+    show_users_response = None
 
     try:
-        users = cp_api_call(api_v_url, 'show-users', {}, sid)
+        show_users_response= cp_api_call(api_v_url, 'show-users', {}, sid)
     except:
         logger.error("show-user - something went wrong")
     
-    return users
+    return show_users_response
 
     
 

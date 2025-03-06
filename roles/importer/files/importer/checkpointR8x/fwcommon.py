@@ -3,6 +3,7 @@ import json
 import copy
 from common import importer_base_dir
 from fwo_log import getFwoLogger
+from roles.importer.files.importer.checkpointR8x import cp_user
 sys.path.append(importer_base_dir + '/checkpointR8x')
 import time
 import cp_rule
@@ -306,10 +307,11 @@ def get_config(nativeConfig: json, importState: ImportStateController) -> tuple[
 
     # import users
     if version_above_1_7:
-        users = cp_getter.getUsers(cpManagerApiBaseUrl, sid)
-
-        if (users is not None and 'objects' in users):
-            normalizedConfig['user_objects'] = users['objects']
+        get_users_response = cp_getter.getUsers(cpManagerApiBaseUrl, sid)
+        users = cp_user.parseUsersApiResponseToDict(get_users_response)
+        
+        if (type(users) is dict):
+            normalizedConfig['users'] = users
     else:
         # TODO: re-add user import
         # parse_users_from_rulebases(full_config, full_config['rulebases'], full_config['users'], config2import, current_import_id)

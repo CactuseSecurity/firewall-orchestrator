@@ -299,8 +299,22 @@ def get_config(nativeConfig: json, importState: ImportStateController) -> tuple[
     cp_service.normalize_service_objects(nativeConfig, normalizedConfig, importState.ImportId)
     logger.info("completed normalizing service objects")
 
-    # TODO: re-add user import
-    # parse_users_from_rulebases(full_config, full_config['rulebases'], full_config['users'], config2import, current_import_id)
+    # check if supported api versions contain version '1.7' or higher
+    api_versions = cp_getter.cp_api_call(cpManagerApiBaseUrl, 'show-api-versions', {}, sid)
+    api_supported = api_versions["supported-versions"]
+    version_above_1_7 = any(tuple(map(int, v.split("."))) > (1,7) for v in api_supported)
+
+    # import users
+    if version_above_1_7:
+        users = cp_getter.getUsers(cpManagerApiBaseUrl, sid)
+
+        if (users is not None and 'objects' in users):
+            normalizedConfig['user_objects'] = users['objects']
+    else:
+        # TODO: re-add user import
+        # parse_users_from_rulebases(full_config, full_config['rulebases'], full_config['users'], config2import, current_import_id)
+        pass
+
     if importState.ImportVersion>8:
         cp_rule.normalizeRulebases(nativeConfig, importState, normalizedConfig)
         cp_gateway.normalizeGateways(nativeConfig, importState, normalizedConfig)

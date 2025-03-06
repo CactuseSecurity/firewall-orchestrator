@@ -21,7 +21,7 @@ namespace FWO.Data
             Users = new (role.Users);
         }
 
-        private string LdapDnExtractName(string dn, string name)
+        private static string LdapDnExtractName(string dn, string name)
         {
             string[] dnParts = dn.Split(',');
             foreach(string part in dnParts)

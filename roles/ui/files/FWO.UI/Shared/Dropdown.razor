@@ -259,7 +259,8 @@
         {
             SelectedElements = SelectedElements.Where(e => !Object.Equals(e, element));
             await SelectedElementsChanged.InvokeAsync(SelectedElements);
-        }else if (!Multiselect)
+        }
+        else if (!Multiselect)
         {
             await SelectedElementChanged.InvokeAsync(element);
         }

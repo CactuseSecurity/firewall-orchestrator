@@ -279,7 +279,7 @@ namespace FWO.Config.Api.Data
 		public bool ManageOwnerLdapGroups { get; set; } = true;
 
 		[JsonProperty("ownerLdapGroupNames"), JsonPropertyName("ownerLdapGroupNames")]
-		public string OwnerLdapGroupNames { get; set; } = "";
+		public string OwnerLdapGroupNames { get; set; } = GlobalConst.kLdapGroupPattern;
         
 		[JsonProperty("importSubnetDataPath"), JsonPropertyName("importSubnetDataPath")]
 		public string ImportSubnetDataPath { get; set; } = "";

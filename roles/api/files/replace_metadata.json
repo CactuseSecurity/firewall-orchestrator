@@ -7454,6 +7454,7 @@
                         "ldap_type",
                         "ldap_write_user",
                         "ldap_write_user_pwd",
+                        "ldap_writepath_for_groups",
                         "tenant_id"
                       ]
                     }
@@ -7491,6 +7492,7 @@
                         "ldap_type",
                         "ldap_write_user",
                         "ldap_write_user_pwd",
+                        "ldap_writepath_for_groups",
                         "tenant_id"
                       ],
                       "filter": {}
@@ -7541,6 +7543,7 @@
                         "ldap_type",
                         "ldap_write_user",
                         "ldap_write_user_pwd",
+                        "ldap_writepath_for_groups",
                         "tenant_id"
                       ],
                       "filter": {}
@@ -7643,6 +7646,7 @@
                         "ldap_type",
                         "ldap_write_user",
                         "ldap_write_user_pwd",
+                        "ldap_writepath_for_groups",
                         "tenant_id"
                       ],
                       "filter": {},

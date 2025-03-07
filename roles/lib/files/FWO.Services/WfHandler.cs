@@ -132,7 +132,7 @@ namespace FWO.Services
         }
 
 
-        public async Task Init(bool fetchData = false, List<int>? ownerIds = null, bool allStates = false, bool fullTickets = false)
+        public async Task<bool> Init(bool fetchData = false, List<int>? ownerIds = null, bool allStates = false, bool fullTickets = false)
         {
             try
             {
@@ -169,12 +169,14 @@ namespace FWO.Services
                     Log.WriteDebug("Init stop:   ", $"{DateTime.Now:hh:mm:ss,fff}");
                     InitOngoing = false;
                     InitDone = true;
+                    return true;
                 }
             }
             catch (Exception exception)
             {
                 DisplayMessageInUi(exception, userConfig.GetText("init_environment"), "", true);
             }
+            return false;
         }
 
         public void FilterForRequester()

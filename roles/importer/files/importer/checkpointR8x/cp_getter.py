@@ -421,17 +421,6 @@ def get_nat_rules_from_api_as_dict (api_v_url, sid, show_params_rules, nativeCon
                 raise Exception ( "get_nat_rules_from_api - rulebase does not contain to field, get_rulebase_chunk_from_api found garbled json " + str(nat_rules))
     return nat_rules
 
-def getUsers(api_v_url,sid ):
-    show_users_response = None
-
-    try:
-        show_users_response= cp_api_call(api_v_url, 'show-users', {}, sid)
-    except:
-        logger.error("show-user - something went wrong")
-    
-    return show_users_response
-
-    
 
 # insert domain rule layer after rule_idx within top_ruleset
 def insert_layer_after_place_holder (top_ruleset_json, domain_ruleset_json, placeholder_uid, nativeConfig={}):

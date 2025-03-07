@@ -469,4 +469,3 @@ def ParseUidToName(myUid, myObjectDictList):
     if myReturnObject == '':
         logger.warning('The UID: ' + myUid + ' was not found in Object Dict')
 
-    return myReturnObject

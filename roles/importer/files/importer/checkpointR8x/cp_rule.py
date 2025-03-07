@@ -474,6 +474,76 @@ def parseAccessRulebase(src_rulebase, target_rulebase, layer_name, import_id, se
 
     return rule_num
 
+def parseRulebaseToRules(rulebase):
+    """
+    Parses a rule base and extracts all individual rules into a dictionary.
+    
+    The function recursively traverses a rulebase structure, which can be a single rule,
+    a layered rulebase, or a chunked rulebase, and collects all single rules.
+    
+    Args:
+        rulebase (dict): A dictionary representing a rulebase, which may contain
+                         single rules, layers, or chunks.
+
+    Returns:
+        dict: A dictionary mapping rule UIDs to their respective rule definitions.
+    """
+    rules = {}
+    parseRulebase(rulebase, rules)
+    return rules
+
+def parseRulebase(rulebase, rules):
+    """
+    Recursively traverses a rulebase and extracts single rules.
+    
+    Depending on the rulebase type, this function either adds a single rule
+    directly to the rules dictionary or continues to traverse layered or
+    chunked rulebases to extract single rules.
+
+    Args:
+        rulebase (dict): The current rulebase or rule to process.
+        rules (dict): A dictionary where extracted single rules are stored.
+    """
+    ruleBaseType = getRulebaseType(rulebase)
+    
+    match ruleBaseType:
+        case 'single_rule':
+            rules[rulebase['uid']] = rulebase
+        
+        case 'layered':
+            for rule in rulebase.get('rulebase', []):
+                parseRulebase(rule, rules)
+                
+        case 'chunked':
+            for chunk in rulebase.get('chunks', []):
+                for rule in chunk.get('rulebase', []):
+                    parseRulebase(rule, rules)
+
+def getRulebaseType(rulebase):
+    """
+    Determines the type of a given rulebase.
+    
+    A rulebase can be of type 'single_rule', 'layered', or 'chunked', based
+    on its structure and available keys.
+
+    Args:
+        rulebase (dict): The rulebase to analyze.
+
+    Returns:
+        str: The type of the rulebase ('single_rule', 'layered', 'chunked') or None.
+
+    Raises:
+        NotImplementedError: If the rulebase type cannot be determined.
+    """
+    if 'rule-number' in rulebase:
+        return 'single_rule'
+    if 'rulebase' in rulebase:
+        return 'layered'
+    if 'chunks' in rulebase:
+        return 'chunked'
+    
+    raise NotImplementedError("Unknown rulebase type")
+
 
 def parse_rulebase(src_rulebase, target_rulebase, layer_name, import_id, rule_num, section_header_uids, parent_uid, config2import, 
                     debug_level=0, recursion_level=1, layer_disabled=False):

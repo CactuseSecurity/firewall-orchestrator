@@ -140,7 +140,7 @@ class FwConfigImportCheckConsistency(FwConfigImport):
 
         # add all user obj refs from groups
         for objId in self.NormalizedConfig.users:
-             if self.users[objId].user_typ=='group':
+            if self.users[objId].user_typ=='group':
                 if self.users[objId].user_member_refs is not None:
                     allUsedObjRefs += self.users[objId].user_member_refs.split(fwo_const.list_delimiter)
 

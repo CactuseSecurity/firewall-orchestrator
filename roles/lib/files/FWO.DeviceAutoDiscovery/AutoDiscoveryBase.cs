@@ -32,7 +32,7 @@ namespace FWO.DeviceAutoDiscovery
             catch (Exception)
             {
                 // Log.WriteWarning("AutoDiscovery", $"Found unencrypted credential secret: {superManagement.ImportCredential.Name}.");
-                Log.WriteWarning("AutoDiscovery", $"Could not decrypt secret {superManagement.ImportCredential.Secret} in credential named: {superManagement.ImportCredential.Name}.");
+                Log.WriteWarning("AutoDiscovery", $"Could not decrypt secret in credential named '{superManagement.ImportCredential.Name}'.");
             }
 
             superManagement.ImportCredential.Secret = decryptedSecret;

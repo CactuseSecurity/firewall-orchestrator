@@ -89,6 +89,7 @@
   uri:
     url: https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions-with-downloads.json
   register: chrome_versions
+  become: false
 
 - name: parse latest stable versions for chrome #and headless shell
   set_fact:

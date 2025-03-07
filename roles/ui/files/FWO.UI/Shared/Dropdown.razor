@@ -1,4 +1,4 @@
-﻿@using System.Reflection
+@using System.Reflection
 @using System.Diagnostics;
 
 @typeparam ElementType
@@ -98,8 +98,44 @@
     [Parameter]
     public EventCallback<ElementType> SelectedElementChanged { get; set; }
 
+    private ElementType? _selectedElement
+    {
+        get
+        {
+            return SelectedElements.FirstOrDefault();
+        }
+        set
+        {
+            Debug.Assert(!Multiselect, "If the Multiselect option is enabled do not use the property SelectedElement but SelectedElements instead.");
+            if (( SelectedElements.Count() == 0 && value != null ) || !Object.Equals(value, SelectedElements.FirstOrDefault()))
+            {
+                if (value == null)
+                {
+                    Debug.Assert(Nullable == true, "The assigned value is null but the Nullable option is not enabled.");
+                    SelectedElements = Enumerable.Empty<ElementType>();
+                }
+                else
+                {
+                    SelectedElements = new ElementType[] { value };
+                }
+                DisplaySelection(SelectedElements);
+                SelectedElementChanged.InvokeAsync(value);
+            }
+        }
+    }
+
     [Parameter]
-    public ElementType? SelectedElement { get; set; }
+    public ElementType? SelectedElement
+    {
+        get
+        {
+            return _selectedElement;
+        }
+        set
+        {
+            _selectedElement = value;
+        }
+    }
 
     [Parameter]
     public string NoneSelectedText { get; set; } = "";
@@ -119,9 +155,13 @@
         {
             searchValue = NoneSelectedText;
         }
-        if(SelectedElement is not null)
+        if (!Multiselect && SelectedElement is not null)
         {
             await SelectElement(SelectedElement);
+        }
+        else if (Multiselect && SelectedElements is not null)
+        {
+            DisplaySelection(SelectedElements);
         }
 
         // Toggle on resize of Window / scroll outside of dropdown (to avoid positional problems)
@@ -218,6 +258,11 @@
         if (Multiselect || Nullable)
         {
             SelectedElements = SelectedElements.Where(e => !Object.Equals(e, element));
+            await SelectedElementsChanged.InvokeAsync(SelectedElements);
+        }
+        else if (!Multiselect)
+        {
+            await SelectedElementChanged.InvokeAsync(element);
         }
         await CompleteSelectionChange();
     }
@@ -234,18 +279,16 @@
             }
             else
             {
-                SelectedElements = new ElementType[] { element };
-            }
-            DisplaySelection(SelectedElements);
-            await SelectedElementChanged.InvokeAsync(element);
-
-            if (Multiselect)
-            {
-                SelectedElements = SelectedElements.Append(element);
-            }
-            else
-            {
-                SelectedElement = element;
+                if (Multiselect)
+                {
+                    SelectedElements = SelectedElements.Append(element);
+                    await SelectedElementsChanged.InvokeAsync(SelectedElements);
+                }
+                else
+                {
+                    SelectedElement = element;
+                    await SelectedElementChanged.InvokeAsync(element);
+                }
             }
             await CompleteSelectionChange();
         }

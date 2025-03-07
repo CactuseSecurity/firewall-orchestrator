@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 using NetTools;
 using FWO.Logging;
 using System.Net;
@@ -102,6 +102,10 @@ namespace FWO.Data
         {
             try
             {
+                if (string.IsNullOrEmpty(ip1) && !string.IsNullOrEmpty(ip2))
+                {
+                    ip1 = ip2;
+                }
                 if (ip2 == "")
                 {
                     ip2 = ip1;

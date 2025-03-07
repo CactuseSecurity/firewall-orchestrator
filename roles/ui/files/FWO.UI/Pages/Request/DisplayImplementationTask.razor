@@ -447,6 +447,7 @@
         WorkInProgress = true;
         await ResetParent();
         WorkInProgress = false;
+        await InvokeAsync(StateHasChanged);
         WfHandler.DisplayPromoteImplTaskMode = false;
         WfHandler.DisplayImplTaskMode = false;
         firstParamSet = true;

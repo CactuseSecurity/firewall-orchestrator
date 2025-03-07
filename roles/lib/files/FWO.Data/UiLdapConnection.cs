@@ -30,41 +30,15 @@ namespace FWO.Data
             Name = ldapGetUpdateParameters.Name ?? "";
         }
 
-        public UiLdapConnection(UiLdapConnection ldapConnection)
+        public UiLdapConnection(UiLdapConnection ldapConnection) : base(ldapConnection)
         {
-            Id = ldapConnection.Id;
             Name = ldapConnection.Name;
-            Address = ldapConnection.Address;
-            Port = ldapConnection.Port;
-            Type = ldapConnection.Type;
-            PatternLength = ldapConnection.PatternLength;
-            SearchUser = ldapConnection.SearchUser;
-            Tls = ldapConnection.Tls;
-            TenantLevel = ldapConnection.TenantLevel;
-            SearchUserPwd = ldapConnection.SearchUserPwd;
-            UserSearchPath = ldapConnection.UserSearchPath;
-            RoleSearchPath = ldapConnection.RoleSearchPath;
-            GroupSearchPath = ldapConnection.GroupSearchPath;
-            WriteUser = ldapConnection.WriteUser;
-            WriteUserPwd = ldapConnection.WriteUserPwd;
-            TenantId = ldapConnection.TenantId;
-            GlobalTenantName = ldapConnection.GlobalTenantName;
-            Active = ldapConnection.Active;
         }
 
-        public bool Sanitize()
+        public override bool Sanitize()
         {
-            bool shortened = false;
+            bool shortened = base.Sanitize();
             Name = Sanitizer.SanitizeMand(Name, ref shortened);
-            Address = Sanitizer.SanitizeMand(Address, ref shortened);
-            SearchUser = Sanitizer.SanitizeLdapPathOpt(SearchUser, ref shortened) ?? "";
-            UserSearchPath = Sanitizer.SanitizeLdapPathOpt(UserSearchPath, ref shortened);
-            RoleSearchPath = Sanitizer.SanitizeLdapPathOpt(RoleSearchPath, ref shortened);
-            GroupSearchPath = Sanitizer.SanitizeLdapPathOpt(GroupSearchPath, ref shortened);
-            WriteUser = Sanitizer.SanitizeLdapPathOpt(WriteUser, ref shortened);
-            GlobalTenantName = Sanitizer.SanitizeOpt(GlobalTenantName, ref shortened);
-            SearchUserPwd = Sanitizer.SanitizePasswOpt(SearchUserPwd, ref shortened) ?? "";
-            WriteUserPwd = Sanitizer.SanitizePasswOpt(WriteUserPwd, ref shortened);
             return shortened;
         }
 
@@ -85,6 +59,7 @@ namespace FWO.Data
                 SearchpathForUsers = this.UserSearchPath,
                 SearchpathForRoles = this.RoleSearchPath,
                 SearchpathForGroups = this.GroupSearchPath,
+                WritepathForGroups = this.GroupWritePath,
                 WriteUser = this.WriteUser,
                 WriteUserPwd = this.WriteUserPwd,
                 TenantId = this.TenantId,

@@ -618,7 +618,7 @@ namespace FWO.Middleware.Server
 			List<string> groups = GetGroups(dnList);
 			foreach (var group in groups)
 			{
-				allRemoved &= RemoveUserFromEntry(userDn, $"cn={group},{GroupSearchPath}");
+				allRemoved &= RemoveUserFromEntry(userDn, $"cn={group},{GroupWritePath}");
 			}
 			return allRemoved;
 		}

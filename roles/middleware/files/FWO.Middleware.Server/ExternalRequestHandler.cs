@@ -159,8 +159,7 @@ namespace FWO.Middleware.Server
 		{
 			GetExtSystemFromConfig();
 			ipProtos = await ApiConnection.SendQueryAsync<List<IpProtocol>>(StmQueries.getIpProtocols);
-			await wfHandler.Init();
-			return await wfHandler.ResolveTicket(ticketId);
+			return await wfHandler.Init() ? await wfHandler.ResolveTicket(ticketId) : null;
 		}
 
 		private async Task GetInternalGroups()

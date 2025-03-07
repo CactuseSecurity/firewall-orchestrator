@@ -13,6 +13,7 @@
     ldap_searchpath_for_users
     ldap_searchpath_for_roles
     ldap_searchpath_for_groups
+    ldap_writepath_for_groups
     ldap_write_user
     ldap_write_user_pwd
     tenant_id

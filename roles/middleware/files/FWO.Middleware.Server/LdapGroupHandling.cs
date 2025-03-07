@@ -344,7 +344,7 @@ namespace FWO.Middleware.Server
 
 				if (!IsFullyQualifiedDn(groupDn))
 				{
-					groupDn = $"cn={groupName},{GroupSearchPath}";
+					groupDn = $"cn={groupName},{GroupWritePath}";
 				}
 				LdapAttributeSet attributeSet = new ();
 				attributeSet.Add(new LdapAttribute("objectclass", "groupofuniquenames"));
@@ -383,7 +383,7 @@ namespace FWO.Middleware.Server
 		{
 			Log.WriteInfo("Update Group", $"Trying to update Group: \"{oldName}\"");
 			bool groupUpdated = false;
-			string oldGroupDn = $"cn={oldName},{GroupSearchPath}";
+			string oldGroupDn = $"cn={oldName},{GroupWritePath}";
 			string newGroupRdn = $"cn={newName}";
 
 			try
@@ -408,7 +408,7 @@ namespace FWO.Middleware.Server
 			{
 				Log.WriteError($"Non-LDAP exception {Address}:{Port}", "Unexpected error while trying to update group", exception);
 			}
-			return groupUpdated ? $"{newGroupRdn},{GroupSearchPath}" : "";
+			return groupUpdated ? $"{newGroupRdn},{GroupWritePath}" : "";
 		}
 
 		/// <summary>
@@ -428,7 +428,7 @@ namespace FWO.Middleware.Server
                 try
                 {
                     //Delete the entry in the directory
-                    string groupDn = $"cn={groupName},{GroupSearchPath}";
+                    string groupDn = $"cn={groupName},{GroupWritePath}";
                     connection.Delete(groupDn);
                     groupDeleted = true;
                     Log.WriteDebug("Delete group", $"Group {groupName} deleted in {Address}:{Port}");

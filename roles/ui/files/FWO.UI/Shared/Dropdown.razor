@@ -98,7 +98,7 @@
     [Parameter]
     public EventCallback<ElementType> SelectedElementChanged { get; set; }
 
-    private ElementType? _selectedElement 
+    private ElementType? _selectedElement
     {
         get
         {
@@ -155,9 +155,13 @@
         {
             searchValue = NoneSelectedText;
         }
-        if(SelectedElement is not null)
+        if (!Multiselect && SelectedElement is not null)
         {
             await SelectElement(SelectedElement);
+        }
+        else if (Multiselect && SelectedElements is not null)
+        {
+            DisplaySelection(SelectedElements);
         }
 
         // Toggle on resize of Window / scroll outside of dropdown (to avoid positional problems)
@@ -254,6 +258,10 @@
         if (Multiselect || Nullable)
         {
             SelectedElements = SelectedElements.Where(e => !Object.Equals(e, element));
+            await SelectedElementsChanged.InvokeAsync(SelectedElements);
+        }else if (!Multiselect)
+        {
+            await SelectedElementChanged.InvokeAsync(element);
         }
         await CompleteSelectionChange();
     }
@@ -270,18 +278,16 @@
             }
             else
             {
-                SelectedElements = new ElementType[] { element };
-            }
-            DisplaySelection(SelectedElements);
-            await SelectedElementChanged.InvokeAsync(element);
-
-            if (Multiselect)
-            {
-                SelectedElements = SelectedElements.Append(element);
-            }
-            else
-            {
-                SelectedElement = element;
+                if (Multiselect)
+                {
+                    SelectedElements = SelectedElements.Append(element);
+                    await SelectedElementsChanged.InvokeAsync(SelectedElements);
+                }
+                else
+                {
+                    SelectedElement = element;
+                    await SelectedElementChanged.InvokeAsync(element);
+                }
             }
             await CompleteSelectionChange();
         }

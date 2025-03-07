@@ -300,23 +300,6 @@ def get_config(nativeConfig: json, importState: ImportStateController) -> tuple[
     cp_service.normalize_service_objects(nativeConfig, normalizedConfig, importState.ImportId)
     logger.info("completed normalizing service objects")
 
-    # check if supported api versions contain version '1.7' or higher
-    api_versions = cp_getter.cp_api_call(cpManagerApiBaseUrl, 'show-api-versions', {}, sid)
-    api_supported = api_versions["supported-versions"]
-    version_above_1_7 = any(tuple(map(int, v.split("."))) > (1,7) for v in api_supported)
-
-    # import users
-    if version_above_1_7:
-        get_users_response = cp_getter.getUsers(cpManagerApiBaseUrl, sid)
-        users = cp_user.parseUsersApiResponseToDict(get_users_response)
-        
-        if (type(users) is dict):
-            normalizedConfig['users'] = users
-    else:
-        # TODO: re-add user import
-        # parse_users_from_rulebases(full_config, full_config['rulebases'], full_config['users'], config2import, current_import_id)
-        pass
-
     if importState.ImportVersion>8:
         cp_rule.normalizeRulebases(nativeConfig, importState, normalizedConfig)
         cp_gateway.normalizeGateways(nativeConfig, importState, normalizedConfig)
@@ -330,7 +313,7 @@ def get_config(nativeConfig: json, importState: ImportStateController) -> tuple[
     normalizedConfig2 = FwConfigNormalized(action=ConfigAction.INSERT, 
                             network_objects=FwConfigNormalizedController.convertListToDict(normalizedConfig['network_objects'], 'obj_uid'),
                             service_objects=FwConfigNormalizedController.convertListToDict(normalizedConfig['service_objects'], 'svc_uid'),
-                            users=normalizedConfig['users'],
+                            users=FwConfigNormalizedController.convertListToDict(normalizedConfig['users'], 'user_uid'),
                             zone_objects=normalizedConfig['zone_objects'],
                             # decide between old (rules) and new (policies) format
                             # rules=normalizedConfig['rules'] if len(normalizedConfig['rules'])>0 else normalizedConfig['policies'],    
@@ -458,24 +441,6 @@ def get_objects(config_json, mgm_details, v_url, sid, force=False, config_filena
         with open(config_filename, "w") as configfile_json:
             configfile_json.write(json.dumps(config_json))
     return 0
-
-
-# def parse_users_from_rulebases (full_config, rulebase, users, config2import, current_import_id):
-#     if 'users' not in full_config:
-#         full_config.update({'users': {}})
-
-#     rb_range = range(len(full_config['rulebases']))
-#     for rb_id in rb_range:
-#         parse_user_objects_from_rulebase (full_config['rulebases'][rb_id], full_config['users'], current_import_id)
-
-#     # copy users from full_config to config2import
-#     # also converting users from dict to array:
-#     config2import.update({'user_objects': []})
-#     for user_name in full_config['users'].keys():
-#         user = copy.deepcopy(full_config['users'][user_name])
-#         user.update({'user_name': user_name})
-#         config2import['user_objects'].append(user)
-
 
 def ParseUidToName(myUid, myObjectDictList):
     """Help function finds name to given UID in object dict 

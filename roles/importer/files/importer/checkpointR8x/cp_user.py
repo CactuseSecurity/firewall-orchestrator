@@ -33,12 +33,19 @@ def collect_users_from_rule(rule, users): #, objDict):
                             break
                         if user_comment == '':
                             user_comment = None
-                        users.update({user_name: {'user_uid': user_uid, 'user_typ': user_typ,
-                                     'user_comment': user_comment, 'user_color': user_color}})
+                        if not any(user.get('user_uid') == user_uid for user in users):
+                            users.append({  'user_uid': user_uid, 
+                                            'user_name':user_name, 
+                                            'user_typ': user_typ,
+                                            'user_comment': user_comment, 
+                                            'user_color': user_color})
                 else:
                     logger.warning("found src user without type field: " + json.dumps(src))
                     if 'name' in src and 'uid' in src:
-                        users.update({src["name"]: {'user_uid': src["uid"], 'user_typ': 'simple'}})
+                        if not any(user.get('user_uid') == src["uid"] for user in users):
+                            users.append({  'user_uid': src["uid"], 
+                                            'user_name': src["name"], 
+                                            'user_typ': 'simple'})
 
     else:  # section
         collect_users_from_rulebase(rule["rulebase"], users)

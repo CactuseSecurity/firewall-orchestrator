@@ -12,7 +12,7 @@ using System.Reflection;
 // (static constructor is only called after class is used in any way)
 Log.WriteInfo("Startup", "Starting FWO Middleware Server...");
 
-object changesLock = new object(); // LOCK
+object changesLock = new(); // LOCK
 
 ReportScheduler reportScheduler;
 AutoDiscoverScheduler autoDiscoverScheduler;
@@ -26,13 +26,13 @@ WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 builder.WebHost.UseUrls(ConfigFile.MiddlewareServerNativeUri ?? throw new Exception("Missing middleware server url on startup."));
 
 // Create Token Generator
-JwtWriter jwtWriter = new JwtWriter(ConfigFile.JwtPrivateKey);
+JwtWriter jwtWriter = new(ConfigFile.JwtPrivateKey);
 
 // Create JWT for middleware-server API calls (relevant part is the role middleware-server) and add it to the Api connection header. 
 ApiConnection apiConnection = new GraphQlApiConnection(ConfigFile.ApiServerUri ?? throw new Exception("Missing api server url on startup."), jwtWriter.CreateJWTMiddlewareServer());
 
 // Fetch all connectedLdaps via API (blocking).
-List<Ldap> connectedLdaps = new List<Ldap>();
+List<Ldap> connectedLdaps = [];
 int connectionAttemptsCount = 1;
 while (true)
 {

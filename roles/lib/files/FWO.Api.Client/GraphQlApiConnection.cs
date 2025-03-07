@@ -191,9 +191,9 @@ namespace FWO.Api.Client
         {
             try
             {
-                GraphQLRequest request = new GraphQLRequest(subscription, variables, operationName);
+                GraphQLRequest request = new(subscription, variables, operationName);
                 GraphQlApiSubscription<SubscriptionResponseType> newSub =
-                    new GraphQlApiSubscription<SubscriptionResponseType>(this, graphQlClient, request, exceptionHandler, subscriptionUpdateHandler);
+                    new(this, graphQlClient, request, exceptionHandler, subscriptionUpdateHandler);
                 subscriptions.Add(newSub);
 
                 return newSub;

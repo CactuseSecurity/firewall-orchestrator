@@ -21,23 +21,13 @@ namespace FWO.Data
             Users = new (role.Users);
         }
 
-        private static string LdapDnExtractName(string dn, string name)
+        private static string DisplayUserName(string name)
         {
-            string[] dnParts = dn.Split(',');
-            foreach(string part in dnParts)
+            // replace encoded comma with real comma for displaying
+            // also put name in square brackets if it contains commas
+            if (name.Contains("\\2c", StringComparison.CurrentCultureIgnoreCase))
             {
-                if(part.StartsWith("cn=", StringComparison.CurrentCultureIgnoreCase))
-                {
-                    // also replace "\\2C" with ","
-                    if (part.Contains("\\2c", StringComparison.CurrentCultureIgnoreCase))
-                    {
-                       return $"[{part[3..].Replace("\\2c", ",", StringComparison.CurrentCultureIgnoreCase)}]";
-                    }
-                    else
-                    {
-                        return part[3..];
-                    }
-                }
+                return $"[{name.Replace("\\2c", ",", StringComparison.CurrentCultureIgnoreCase)}]";
             }
             return name;
         }
@@ -47,7 +37,8 @@ namespace FWO.Data
             List<string> userNames = [];
             foreach(UiUser user in Users)
             {
-                userNames.Add(LdapDnExtractName(user.Dn, user.Name));
+                string userName = new DistName(user.Dn).UserName;
+                userNames.Add(DisplayUserName(userName));
             }
             return string.Join(", ", userNames);
         }

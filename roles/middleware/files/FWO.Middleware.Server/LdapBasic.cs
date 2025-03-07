@@ -5,7 +5,6 @@ using FWO.Logging;
 using Novell.Directory.Ldap;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
-using System.Text.RegularExpressions;
 
 namespace FWO.Middleware.Server
 {

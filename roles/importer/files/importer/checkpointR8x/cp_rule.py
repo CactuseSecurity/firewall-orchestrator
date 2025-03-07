@@ -2,6 +2,7 @@ from asyncio.log import logger
 from fwo_log import getFwoLogger
 import json
 import cp_const
+from checkpointR8x.cp_user import collect_users_from_rule
 import fwo_const
 import fwo_globals
 from fwo_const import list_delimiter, default_section_header_text
@@ -290,6 +291,13 @@ def parse_single_rule(nativeRule, rulebase, layer_name, import_id, rule_num, par
                 "parent_rule_uid":  sanitize(parent_rule_uid),
                 "last_hit":         sanitize(last_hit)
             }
+            
+
+            if 'users' not in config2import:
+                config2import.update({'users': []})
+
+            collect_users_from_rule(nativeRule, config2import['users'])
+
             if comments is not None:
                 rule['rule_comment'] = sanitize(comments)
             rulebase.Rules.update({ rule['rule_uid']: Rule(**rule)})

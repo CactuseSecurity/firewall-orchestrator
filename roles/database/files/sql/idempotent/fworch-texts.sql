@@ -1501,6 +1501,8 @@ INSERT INTO txt VALUES ('regular_connections', 	'German',	'Standard-Verbindungen
 INSERT INTO txt VALUES ('regular_connections', 	'English',	'Regular Connections');
 INSERT INTO txt VALUES ('show_all',             'German', 	'Alle darstellen');
 INSERT INTO txt VALUES ('show_all',             'English', 	'Show all');
+INSERT INTO txt VALUES ('fetch_limit',          'German', 	'Limit');
+INSERT INTO txt VALUES ('fetch_limit',          'English', 	'limit');
 INSERT INTO txt VALUES ('as_source',            'German', 	'Als Quelle');
 INSERT INTO txt VALUES ('as_source',            'English', 	'As Source');
 INSERT INTO txt VALUES ('send_email',           'German', 	'Email senden');

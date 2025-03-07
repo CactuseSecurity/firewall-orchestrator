@@ -1,5 +1,12 @@
-query getHistory {
-  modelling_change_history (order_by: { change_time: desc }){
+query getHistory (  
+  $limit: Int
+  $offset: Int
+){
+  modelling_change_history (
+    limit: $limit
+    offset: $offset
+    order_by: { change_time: desc }
+  ){
     id
     app_id
     change_type

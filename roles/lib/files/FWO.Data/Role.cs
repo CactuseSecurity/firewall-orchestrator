@@ -37,8 +37,7 @@ namespace FWO.Data
             List<string> userNames = [];
             foreach(UiUser user in Users)
             {
-                string userName = new DistName(user.Dn).UserName;
-                userNames.Add(DisplayUserName(userName));
+                userNames.Add(DisplayUserName(new DistName(user.Dn).UserName));
             }
             return string.Join(", ", userNames);
         }

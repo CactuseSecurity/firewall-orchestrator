@@ -68,7 +68,7 @@ namespace FWO.Middleware.Server.Controllers
         public async Task<List<LdapGetUpdateParameters>> Get()
         {
             UiLdapConnection[] ldapConnections = await apiConnection.SendQueryAsync<UiLdapConnection[]>(AuthQueries.getAllLdapConnections);
-            List<LdapGetUpdateParameters> ldapList = new();
+            List<LdapGetUpdateParameters> ldapList = [];
             foreach (UiLdapConnection conn in ldapConnections)
             {
                 ldapList.Add(conn.ToApiParams());
@@ -93,6 +93,7 @@ namespace FWO.Middleware.Server.Controllers
         /// SearchpathForUsers (required) &#xA;
         /// SearchpathForRoles (optional) &#xA;
         /// SearchpathForGroups (optional) &#xA;
+        /// WritepathForGroups (optional) &#xA;
         /// WriteUser (optional) &#xA;
         /// WriteUserPwd (optional) &#xA;
         /// TenantId (optional) &#xA;
@@ -137,6 +138,7 @@ namespace FWO.Middleware.Server.Controllers
         /// SearchpathForUsers (required) &#xA;
         /// SearchpathForRoles (optional) &#xA;
         /// SearchpathForGroups (optional) &#xA;
+        /// WritepathForGroups (optional) &#xA;
         /// WriteUser (optional) &#xA;
         /// WriteUserPwd (optional) &#xA;
         /// TenantId (optional) &#xA;

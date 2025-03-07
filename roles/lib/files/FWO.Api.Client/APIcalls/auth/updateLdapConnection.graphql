@@ -12,6 +12,7 @@ mutation updateLdapConnection(
   $searchpathForUsers: String!
   $searchpathForRoles: String
   $searchpathForGroups: String
+  $writepathForGroups: String
   $writeUser: String
   $writeUserPwd: String
   $tenantId: Int
@@ -33,6 +34,7 @@ mutation updateLdapConnection(
       ldap_searchpath_for_users: $searchpathForUsers
       ldap_searchpath_for_roles: $searchpathForRoles
       ldap_searchpath_for_groups: $searchpathForGroups
+      ldap_writepath_for_groups: $writepathForGroups
       ldap_write_user: $writeUser
       ldap_write_user_pwd: $writeUserPwd
       tenant_id: $tenantId

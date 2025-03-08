@@ -100,22 +100,16 @@ class FwConfigImportRule(FwConfigImportBase):
         # try to add the rule ids to the existing rulebase objects
         # self.updateRuleIds(newRulebases, newRuleIds)
 
-        # self.addNewRuleSvcRefs(newRulebases, newRuleIds)
+        # TODO: self.addNewRuleSvcRefs(newRulebases, newRuleIds)
         self.addNewRule2ObjRefs(newRulebases, newRuleIds)
-
-        # if errorCountAdd>0:
-        #     self.ImportDetails.increaseErrorCounter(errorCountAdd)
-        # if numberOfAddedRules>0:
-        #     self.ImportDetails.setChangeCounter(self.ImportDetails.ChangeCount+numberOfAddedRules)
         errorCountDel, numberOfDeletedRules, removedRuleIds = self.markRulesRemoved(deletedRuleUids)
-        # if errorCountAdd>0:
-        #     self.ImportDetails.increaseErrorCounter(errorCountAdd)
-        # if numberOfDeletedRules>0:
-        #     self.ImportDetails.setChangeCounter(self.ImportDetails.ChangeCount+numberOfDeletedRules)
+
+        self.ImportDetails.Stats.RuleAddCount += numberOfAddedRules
+        self.ImportDetails.Stats.RuleDeleteCount += numberOfDeletedRules
 
         # TODO: rule_nwobj_resolved fuellen (recert?)
 
-        return errorCountAdd + errorCountDel, numberOfDeletedRules + numberOfAddedRules + numberOfAddedMetaRules
+        return # errorCountAdd + errorCountDel, numberOfDeletedRules + numberOfAddedRules + numberOfAddedMetaRules
 
 
     def addNewRule2ObjRefs(self, newRulebases, newRuleIds):

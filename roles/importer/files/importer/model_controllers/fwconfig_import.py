@@ -54,14 +54,10 @@ class FwConfigImport(FwConfigImportObject, FwConfigImportRule, FwConfigImportGat
         return
 
     def updateDiffs(self, previousConfig: FwConfigNormalized):
-        objectErrorCount, objectChangeCount = self.updateObjectDiffs(previousConfig)
-        ruleErrorCount, ruleChangeCount = self.updateRulebaseDiffs(previousConfig)
+        self.updateObjectDiffs(previousConfig)
+        self.updateRulebaseDiffs(previousConfig)
         self.ImportDetails.SetRuleMap() # update all rule entries (from currently running import for rulebase_links)
-        gwErrorCount, gwChangeCount = self.updateGatewayDiffs(previousConfig)
-
-        # update error and change counters
-        self.ImportDetails.increaseErrorCounter(objectErrorCount + ruleErrorCount)
-        self.ImportDetails.setChangeCounter(objectChangeCount + ruleChangeCount)
+        self.updateGatewayDiffs(previousConfig)
         return 
 
     def storeLatestConfig(self, config):

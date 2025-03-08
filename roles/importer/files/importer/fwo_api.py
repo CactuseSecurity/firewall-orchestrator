@@ -7,7 +7,7 @@ import json
 import datetime
 import time
 
-from fwo_const import fwo_config_filename
+import model_controllers.import_statistics_controller as stats
 from fwo_log import getFwoLogger
 import fwo_globals
 import fwo_const
@@ -318,7 +318,9 @@ def unlock_import(importState):
     logger = getFwoLogger()
     error_during_import_unlock = 0
     query_variables = {"stopTime": datetime.datetime.now().isoformat(), "importId": importState.ImportId,
-                       "success": importState.ErrorCount == 0, "changesFound": importState.ChangeCount > 0, "changeNumber": importState.ChangeCount}
+                       "success": importState.Stats.ErrorCount == 0, 
+                       "changesFound": importState.Stats.getTotalChangeNumber() > 0, 
+                       "changeNumber": importState.Stats.getTotalChangeNumber() }
 
     unlock_mutation = """
         mutation unlockImport($importId: bigint!, $stopTime: timestamp!, $success: Boolean, $changesFound: Boolean!, $changeNumber: Int!) {
@@ -677,7 +679,7 @@ def setAlert(fwo_api_base_url, jwt, import_id=None, title=None, mgm_id=None, dev
 def complete_import(importState):
     logger = getFwoLogger()
     
-    success = (importState.ErrorCount==0)
+    success = (importState.Stats.ErrorCount==0)
     try:
         log_import_attempt(importState.FwoConfig.FwoApiUri, importState.Jwt, importState.MgmDetails.Id, successful=success)
     except:
@@ -702,20 +704,21 @@ def complete_import(importState):
 
     import_result = "import_management: import no. " + str(importState.ImportId) + \
             " for management " + importState.MgmDetails.Name + ' (id=' + str(importState.MgmDetails.Id) + ")" + \
-            str(" threw errors," if importState.ErrorCount else " successful,") + \
-            " change_count: " + str(importState.ChangeCount) + \
+            str(" threw errors," if importState.Stats.ErrorCount else " successful,") + \
+            " change_count: " + str(importState.Stats.getTotalChangeNumber()) + \
             ", duration: " + str(int(time.time()) - importState.StartTime) + "s" 
-    import_result += ", ERRORS: " + importState.ErrorString if len(importState.ErrorString) > 0 else ""
+    import_result += ", ERRORS: " + str(importState.Stats.ErrorDetails) if len(importState.Stats.ErrorDetails) > 0 else ""
+    import_result += ", change details: " + str(importState.Stats.getChangeDetails())
     # def lock_import(fwo_api_base_url, jwt, query_variables):
 
-    if importState.ErrorCount>0:
+    if importState.Stats.ErrorCount>0:
         create_data_issue(importState.FwoConfig.FwoApiUri, importState.Jwt, import_id=importState.ImportId, severity=1, description=importState.ErrorString)
         setAlert(importState.FwoConfig.FwoApiUri, importState.Jwt, import_id=importState.ImportId, title="import error", mgm_id=importState.MgmDetails.Id, severity=2, role='importer', \
-            description=importState.ErrorString, source='import', alertCode=14, mgm_details=importState.MgmDetails)
+            description=str(importState.Stats.ErrorDetails), source='import', alertCode=14, mgm_details=importState.MgmDetails)
 
     logger.info(import_result)
 
-    return importState.ErrorCount
+    return importState.Stats.ErrorCount
 
 def getLastImportDetails(fwo_api_base_url, jwt, queryVariables, debug_level=0):
     mgm_query = """

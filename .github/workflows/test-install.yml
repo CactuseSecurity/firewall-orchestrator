@@ -18,7 +18,7 @@ on:
 jobs:
   test_install:    
     name: test build on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }} self-hosted
     env:
         RUNNING_ON_GITHUB_ACTIONS: true
     strategy:

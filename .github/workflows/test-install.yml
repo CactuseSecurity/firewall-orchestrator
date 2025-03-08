@@ -18,12 +18,12 @@ on:
 jobs:
   test_install:    
     name: test build on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }} self-hosted
+    runs-on: ${{ matrix.os }}
     env:
         RUNNING_ON_GITHUB_ACTIONS: true
     strategy:
       matrix:
-        os: [ubuntu-latest, ubuntu-22.04]
+        os: [ubuntu-latest, ubuntu-22.04, self-hosted]
     steps:
     - uses: actions/checkout@v4
     - uses: actions/setup-dotnet@v4

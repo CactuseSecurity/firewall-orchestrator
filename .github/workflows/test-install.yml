@@ -24,7 +24,7 @@ jobs:
     steps:
     - name: install packages
       run: |
-        sudo apt-get update
+        sudo apt update && sudo apt upgrade -y
         sudo apt-get install ansible
     - name: verify ansible version
       run: cd /home/actions-runner/_work/firewall-orchestrator/firewall-orchestrator/scripts && install-ansible-from-venv.sh

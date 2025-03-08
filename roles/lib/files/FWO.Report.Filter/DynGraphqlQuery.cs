@@ -146,7 +146,11 @@ namespace FWO.Report.Filter
                             name
                             uid
                             id
-                            rules ({limitOffsetString} where: {{ rule_create: {{_lte: $relevantImportId}}, rule_last_seen: {{_gte: $relevantImportId}}, access_rule: {{_eq: true}} }}, order_by: {{rule_num_numeric: asc}}) {{
+                            rules ({limitOffsetString} where: {{ 
+                                    rule_create: {{_lte: $relevantImportId}}, 
+                                    _or: [{{removed: {{_gt: $relevantImportId}} }}, {{removed: {{_is_null: true}} }}],
+                                    access_rule: {{_eq: true}} 
+                                }}, order_by: {{rule_num_numeric: asc}}) {{
                                 ...ruleOverview
                             }}
                         }}

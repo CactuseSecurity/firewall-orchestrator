@@ -17,15 +17,21 @@ on:
 
 jobs:
   test_install_selfhosted:    
-    name: test build on ${{ matrix.os }}
+    name: test build on selfhosted
     runs-on: self-hosted
     env:
         RUNNING_ON_GITHUB_ACTIONS: true
     steps:
+    - name: install packages
+      run: |
+        sudo apt-get update
+        sudo apt-get install ansible
+    - name: verify ansible version
+      run: 
     - uses: actions/checkout@v4
     - uses: actions/setup-dotnet@v4
     - name: do test install in case of merged pull request
-      run: cd /home/actions-runner/_work/firewall-orchestrator/firewall-orchestrator && ansible-playbook -e force_install=true site.yml -K 
+      run: cd /home/actions-runner/_work/firewall-orchestrator/firewall-orchestrator/scripts && install-ansible-from-venv.sh
     - name: Running in GitHub actions requires testing puppeteer pdf creation separately 
       if: ${{ env.RUNNING_ON_GITHUB_ACTIONS }} == true   
       run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator/roles/tests-unit/files/FWO.Test && dotnet restore && dotnet build && dotnet test --filter "Name=HtmlToPdfTest"

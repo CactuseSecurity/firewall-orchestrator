@@ -1,30 +1,23 @@
 import time
 from datetime import datetime
-from typing import List, Dict
 import requests, requests.packages
 
-from fwo_api_oo import FwoApi
 from fwo_log import getFwoLogger
 from fwo_config import readConfig
 from fwo_const import fwo_config_filename, importer_user_name
 import fwo_api
 from fwo_exception import FwoApiLoginFailed
 import fwo_globals
-from models.action import Action
-from models.track import Track
 from models.import_state import ImportState
 from model_controllers.fworch_config_controller import FworchConfigController
 from model_controllers.management_details_controller import ManagementDetailsController
-
+from model_controllers.import_statistics_controller import ImportStatisticsController
 
 """Used for storing state during import process per management"""
 class ImportStateController(ImportState):
 
-
     def __init__(self, debugLevel, configChangedSinceLastImport, fwoConfig, mgmDetails, jwt, force, version=8, isFullImport=False, isClearingImport=False):
-        self.ErrorCount = 0
-        self.ChangeCount = 0
-        self.ErrorString = ''
+        self.Stats = ImportStatisticsController()
         self.StartTime = int(time.time())
         self.DebugLevel = debugLevel
         self.ConfigChangedSinceLastImport = configChangedSinceLastImport
@@ -50,10 +43,10 @@ class ImportStateController(ImportState):
         self.ImportId = importId
 
     def setChangeCounter(self, changeNo):
-        self.ChangeCount = changeNo
+        self.Stats.ChangeCount = changeNo
 
     def increaseErrorCounter(self, errorNo):
-        self.ErrorCount = self.ErrorCount + errorNo
+        self.Stats.ErrorCount = self.Stats.ErrorCount + errorNo
 
     def increaseErrorCounterByOne(self):
         self.increaseErrorCounter(1)

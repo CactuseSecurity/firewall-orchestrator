@@ -68,6 +68,7 @@ class FwConfigImportObject(FwConfigImportBase):
         errorCountUpdate, numberOfModifiedObjects, newNwObjIds, newNwSvcIds, removedNwObjIds, removedNwSvcIds = \
             self.updateObjectsViaApi(newNwobjUids, newSvcObjUids, deletedNwobjUids, deletedSvcObjUids)
 
+
         # update group memberships
         self.addNwObjGroupMemberships(newNwObjIds)
         # TODO: self.addSvcObjGroupMemberships(newSvcObjIds)
@@ -84,7 +85,13 @@ class FwConfigImportObject(FwConfigImportBase):
         # TODO: write changes to changelog_xxx tables
         self.addChangelogObjects(newNwObjIds, newNwSvcIds, removedNwObjIds, removedNwSvcIds)
 
-        return errorCountUpdate, numberOfModifiedObjects
+        # note changes:
+        self.ImportDetails.Stats.NetworkObjectAddCount = len(newNwObjIds)
+        self.ImportDetails.Stats.NetworkObjectDeleteCount = len(removedNwObjIds)
+        self.ImportDetails.Stats.ServiceObjectAddCount = len(newNwSvcIds)
+        self.ImportDetails.Stats.ServiceObjectDeleteCount = len(removedNwSvcIds)
+
+        return
 
     def updateObjectsViaApi(self, newNwObjectUids, newSvcObjectUids, removedNwObjectUids, removedSvcObjectUids):
         # here we also mark old objects removed before adding the new versions

@@ -16,6 +16,7 @@ from fwo_base import ConfigAction
 from fwconfig_base import FwConfig
 from fwo_globals import setGlobalValues
 from fwo_const import dummy_ip
+from model_controllers.import_statistics_controller import ImportStatisticsController
 
 
 class TestApiDatabaseIntegration(unittest.TestCase):
@@ -26,8 +27,7 @@ class TestApiDatabaseIntegration(unittest.TestCase):
         mock_import_state = MagicMock()
 
         # Set the default attribute values that the __init__ method would have initialized
-        mock_import_state.ErrorCount = 0
-        mock_import_state.ChangeCount = 0
+        mock_import_state.Stats = ImportStatisticsController()
         mock_import_state.ErrorString = ''
         mock_import_state.StartTime = int(time.time())
         mock_import_state.DebugLevel = 3  # Example debug level

@@ -26,6 +26,7 @@ from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerList
 from model_controllers.check_consistency import FwConfigImportCheckConsistency
 from model_controllers.rollback import FwConfigImportRollback
 from model_controllers.import_state_controller import ImportStateController
+from model_controllers.import_statistics_controller import ImportStatisticsController
 
 """  
     import_management: import a single management (if no import for it is running)
@@ -134,9 +135,9 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
                                         configImporter.importConfig()
                                     except:
                                         logger.error("importConfig - unspecified error: " + str(traceback.format_exc()))
-                                        importState.increaseErrorCounterByOne()
-                                    if importState.ErrorCount>0:
-                                        importState.increaseErrorCounter(fwo_api.complete_import(importState))
+                                        importState.Stats.ErrorCount += 1
+                                    if importState.Stats.ErrorCount>0:
+                                        importState.Stats.ErrorCount += fwo_api.complete_import(importState)
                                         FwConfigImportRollback(configImporter).rollbackCurrentImport()
                                     else:
                                         configImporter.storeConfigToApi() # to file (for debugging) and to database
@@ -174,32 +175,13 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
             #     logger.error("import_management - unspecified error while getting change count: " + str(traceback.format_exc()))
             #     raise
         
-        importState.increaseErrorCounter(fwo_api.complete_import(importState))
+        importState.Stats.ErrorCount += fwo_api.complete_import(importState)
 
     if not clearManagementData and importState.DataRetentionDays<importState.DaysSinceLastFullImport:
         # delete all imports of the current management before the last but one full import
         configImporter.deleteOldImports()
        
-    return importState.ErrorCount
-
-
-# def initiateImportStart(importState):
-#     # now start import by adding a dummy config with flag set
-#     emptyDummyConfig = FwConfigNormalized.fromJson( {
-#         'action': ConfigAction.INSERT,
-#         'network_objects': [],
-#         'service_objects': [],
-#         'users': [],
-#         'zone_objects': [], 
-#         'policies': [],
-#         'routing': [],
-#         'interfaces': []
-#     })
-
-#     importState.setChangeCounter (
-#         importState.ErrorCount + fwo_api.import_json_config(importState, 
-#                                     emptyDummyConfig.toJsonLegacy(withAction=False), 
-#                                     startImport=True))
+    return importState.Stats.ErrorCount
 
 
 def importFromFile(importState: ImportStateController, fileName: str = "", gateways: List[Gateway] = []):

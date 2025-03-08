@@ -15,7 +15,7 @@ from datetime import datetime
 from model_controllers.fwconfig_import_object import FwConfigImportObject
 from models.rule_from import RuleFrom
 from models.rule_to import RuleTo
-from roles.importer.files.importer.models.rule_service import RuleService
+from models.rule_service import RuleService
 
 # this class is used for importing a config into the FWO API
 class FwConfigImportRule(FwConfigImportBase):

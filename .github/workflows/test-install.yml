@@ -15,24 +15,7 @@ on:
     - 'design/**'
 
 
-jobs:
-  test_install_selfhosted:    
-    name: test build on selfhosted
-    runs-on: self-hosted
-    env:
-        RUNNING_ON_GITHUB_ACTIONS: true
-    steps:
-    - uses: actions/checkout@v4
-    - uses: actions/setup-dotnet@v4
-    - name: verify ansible version
-      run: bash && cd /home/github/actions-runner/_work/firewall-orchestrator/firewall-orchestrator/scripts && install-ansible-from-venv.sh
-    - name: do test install in case of merged pull request
-      run: cd /home/github/actions-runner/_work/firewall-orchestrator/firewall-orchestrator && ansible-playbook -e force_install=true site.yml -K 
-    - name: Running in GitHub actions requires testing puppeteer pdf creation separately 
-      if: ${{ env.RUNNING_ON_GITHUB_ACTIONS }} == true   
-      run: cd /home/github/actions-runner/_work/firewall-orchestrator/firewall-orchestrator/roles/tests-unit/files/FWO.Test && dotnet restore && dotnet build && dotnet test --filter "Name=HtmlToPdfTest"
-  
-  
+jobs:  
   test_install:    
     name: test build on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
@@ -40,7 +23,7 @@ jobs:
         RUNNING_ON_GITHUB_ACTIONS: true
     strategy:
       matrix:
-        os: [ubuntu-latest, ubuntu-22.04]
+        os: [ubuntu-latest, ubuntu-22.04, self-hosted]
     steps:
     - uses: actions/checkout@v4
     - uses: actions/setup-dotnet@v4

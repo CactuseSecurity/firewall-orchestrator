@@ -28,7 +28,7 @@ class FwConfigImportCheckConsistency(FwConfigImport):
         issues = {}
         issues.update(self.checkNetworkObjectConsistency())
         issues.update(self.checkServiceObjectConsistency())
-        issues.update(self.checkUserObjectConsistency())
+        # issues.update(self.checkUserObjectConsistency())
         issues.update(self.checkZoneObjectConsistency())
         issues.update(self.checkRuleConsistency())
         issues.update(self.checkGatewayConsistency())

@@ -88,7 +88,7 @@ class ImportState():
     Config2import: dict
     ConfigChangedSinceLastImport: bool
     FwoConfig: dict
-    MgmDetails: dict
+    MgmDetails: ManagementDetails
     FullMgmDetails: dict
     ImportId: int
     Jwt: str
@@ -113,7 +113,7 @@ class ImportState():
         self.ForceImport = force
 
     def __str__(self):
-        return f"{str(self.ManagementDetails)}({self.age})"
+        return f"{str(self.MgmDetails)}(ImportId: {self.ImportId})"
     
     def setImportFileName(self, importFileName):
         self.ImportFileName = importFileName

@@ -88,7 +88,7 @@ class ImportState():
     Config2import: dict
     ConfigChangedSinceLastImport: bool
     FwoConfig: dict
-    MgmDetails: dict
+    MgmDetails: ManagementDetails
     FullMgmDetails: dict
     ImportId: int
     Jwt: str
@@ -113,7 +113,7 @@ class ImportState():
         self.ForceImport = force
 
     def __str__(self):
-        return f"{str(self.ManagementDetails)}({self.age})"
+        return f"{str(self.MgmDetails)}(ImportId: {self.ImportId})"
     
     def setImportFileName(self, importFileName):
         self.ImportFileName = importFileName
@@ -347,7 +347,7 @@ def setImportLock(importState):
 
 def get_config_from_api(importState, full_config_json, config2import, import_tmp_path='.', limit=150):
     logger = getFwoLogger()
-    errors_found = 1
+    errors_found = 0
 
     try: # pick product-specific importer:
         pkg_name = importState.MgmDetails.DeviceTypeName.lower().replace(' ', '') + importState.MgmDetails.DeviceTypeVersion

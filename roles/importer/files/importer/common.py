@@ -233,7 +233,7 @@ def importFromFile(importState: ImportStateController, fileName: str = "", gatew
 
 def get_config_from_api(importState, configNative, import_tmp_path=import_tmp_path, limit=150) -> FwConfigManagerList:
     logger = getFwoLogger()
-    errors_found = 1
+    errors_found = 0
 
     try: # pick product-specific importer:
         pkg_name = importState.MgmDetails.DeviceTypeName.lower().replace(' ', '') + importState.MgmDetails.DeviceTypeVersion

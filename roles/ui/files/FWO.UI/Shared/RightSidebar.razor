@@ -157,7 +157,12 @@
             Dictionary<String, object> queryVars = new()
             {
                 { "limit", userConfig.ElementsPerFetch },
-                { "offset", 0 }
+                { "cursor_obj_name", "" },
+                { "cursor_obj_id", 0 },
+                { "cursor_svc_name", "" },
+                { "cursor_svc_id", 0 },
+                { "cursor_user_name", "" },
+                { "cursor_user_id", 0 },
             };
             bool gotAllObjects = true;
 
@@ -198,6 +203,7 @@
                     if (objType == ObjCategory.all)
                     {
                         queryVars.Add("rule_id", id);
+                        queryVars.Remove("limit"); // No pagination for rule details
                         query = nat ? RuleQueries.getNatRuleDetails : RuleQueries.getRuleDetails;
                         await FetchObjects(query, queryVars, callback);
                     }
@@ -232,13 +238,21 @@
                     newObjects = reportData.ManagementData.Merge(managementsCurrentFetch);
                 }
 
-                // make sure objects, services and users are unique
-                reportData.ManagementData.ForEach(m => m.Objects = m.Objects.Distinct().ToList());
-                reportData.ManagementData.ForEach(m => m.Services = m.Services.Distinct().ToList());
-                reportData.ManagementData.ForEach(m => m.Users = m.Users.Distinct().ToList());
-
-                if (queryVars.ContainsKey("offset"))
-                    queryVars["offset"] = (int)queryVars["offset"] + elementsPerFetch;
+                if (queryVars.ContainsKey("cursor_obj_name") && queryVars.ContainsKey("cursor_obj_id"))
+                {
+                    queryVars["cursor_obj_name"] = reportData.ManagementData.Last().Objects.Last().Name;
+                    queryVars["cursor_obj_id"] = reportData.ManagementData.Last().Objects.Last().Id;
+                }
+                if (queryVars.ContainsKey("cursor_svc_name") && queryVars.ContainsKey("cursor_svc_id"))
+                {
+                    queryVars["cursor_svc_name"] = reportData.ManagementData.Last().Services.Last().Name;
+                    queryVars["cursor_svc_id"] = reportData.ManagementData.Last().Services.Last().Id;
+                }
+                if (queryVars.ContainsKey("cursor_user_name") && queryVars.ContainsKey("cursor_user_id"))
+                {
+                    queryVars["cursor_user_name"] = reportData.ManagementData.Last().Users.Last().Name;
+                    queryVars["cursor_user_id"] = reportData.ManagementData.Last().Users.Last().Id;
+                }
                 await callback(reportData);
             }
 

@@ -347,7 +347,7 @@ def setImportLock(importState):
 
 def get_config_from_api(importState, full_config_json, config2import, import_tmp_path='.', limit=150):
     logger = getFwoLogger()
-    errors_found = 1
+    errors_found = 0
 
     try: # pick product-specific importer:
         pkg_name = importState.MgmDetails.DeviceTypeName.lower().replace(' ', '') + importState.MgmDetails.DeviceTypeVersion

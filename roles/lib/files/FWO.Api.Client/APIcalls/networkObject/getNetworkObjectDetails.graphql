@@ -2,33 +2,25 @@ query getNetworkObjectDetails(
   $management_id: [Int!]
   $nwObjTyp: [String!]
   $nwObjUid: [String!]
-  $time: String
+  $import_id: bigint
   $obj_name: [String!]
   $obj_ip: [cidr!]
   $limit: Int
-  $cursor_obj_name: String
-  $cursor_obj_id: Int
+  $offset: Int
 ) {
   management(where: { mgm_id: { _in: $management_id }, stm_dev_typ:{dev_typ_is_multi_mgmt:{_eq:false}} }) {
     id: mgm_id
     name: mgm_name
     networkObjects: objects(
       limit: $limit
+      offset: $offset
       where: {
         stm_obj_typ: { obj_typ_name: { _in: $nwObjTyp } }
-        active: { _eq: true }
+        obj_last_seen: { _gte: $import_id }
+        obj_create: { _lte: $import_id }
         obj_name: { _in: $obj_name }
         obj_ip: { _in: $obj_ip }
         obj_uid: { _in: $nwObjUid }
-        _or: [
-          { obj_name: { _gt: $cursor_obj_name } },
-          { 
-            _and: [
-              { obj_name: { _eq: $cursor_obj_name } },
-              { obj_id: { _gt: $cursor_obj_id } }
-            ]
-          }
-        ]
       }
       order_by: [{ obj_name: asc }, { obj_id: asc }]
     ) {

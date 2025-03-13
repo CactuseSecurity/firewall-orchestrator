@@ -2,7 +2,7 @@ query getAllObjectDetails (
   $management_id: [Int!]
   $type: [String!]
   $uid: [String!]
-  $time: String
+  $import_id: bigint
   $obj_name: [String!]
   $limit: Int
   $offset: Int
@@ -25,7 +25,8 @@ query getAllObjectDetails (
       offset: $offset
       where: {
         stm_obj_typ: { obj_typ_name: { _in: $type } }
-        active: { _eq: true }
+        obj_last_seen: { _gte: $import_id }
+        obj_create: { _lte: $import_id }
         obj_name: { _in: $obj_name }
         obj_uid: { _in: $uid }
       }
@@ -38,7 +39,8 @@ query getAllObjectDetails (
       offset: $offset
       where: {
         stm_svc_typ: { svc_typ_name: { _in: $type } }
-        active: { _eq: true }
+        svc_last_seen: { _gte: $import_id }
+        svc_create: { _lte: $import_id }
         svc_name: { _in: $obj_name }
         svc_uid: { _in: $uid }
       }
@@ -51,7 +53,8 @@ query getAllObjectDetails (
       offset: $offset
       where: {
         stm_usr_typ: { usr_typ_name: { _in: $type } }
-        active: { _eq: true }
+        user_last_seen: { _gte: $import_id }
+        user_create: { _lte: $import_id }
         user_name: { _in: $obj_name }
         user_uid: { _in: $uid }
       }

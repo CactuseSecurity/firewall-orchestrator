@@ -1,30 +1,22 @@
 query getNetworkServiceDetails(
   $management_id: [Int!]
-  $time: String
+  $import_id: bigint
   $svc_name: [String!]
   $svc_port: [Int!]
   $limit: Int
-  $cursor_svc_name: String
-  $cursor_svc_id: Int
+  $offset: Int
 ) {
   management(where: { mgm_id: { _in: $management_id }, stm_dev_typ:{dev_typ_is_multi_mgmt:{_eq:false}} }) {
     id: mgm_id
     name: mgm_name
     serviceObjects : services(
       limit: $limit
+      offset: $offset
       where: {
-        active: { _eq: true }
+        svc_last_seen: { _gte: $import_id }
+        svc_create: { _lte: $import_id }
         svc_name: { _in: $svc_name }
         svc_port: { _in: $svc_port }
-        _or: [
-          { svc_name: { _gt: $cursor_svc_name } },
-          { 
-            _and: [
-              { svc_name: { _eq: $cursor_svc_name } },
-              { svc_id: { _gt: $cursor_svc_id } }
-            ]
-          }
-        ]
       }
       order_by: [{ svc_name: asc }, { svc_id: asc }]
     ) {

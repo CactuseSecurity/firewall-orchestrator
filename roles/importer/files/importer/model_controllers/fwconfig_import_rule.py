@@ -1,6 +1,7 @@
 import traceback
 from difflib import ndiff
 import json
+from itertools import chain
 
 import fwo_const
 from models.rule import RuleForImport, RuleType
@@ -86,7 +87,7 @@ class FwConfigImportRule(FwConfigImportBase):
 
         # changed rules will get the same rule_num_numeric as their previous version?!
         # new rules will be fitted between the respective rules of the previous rulebase
-        self.setNewRulesNumbering(prevConfig)
+        self.setNewRulesNumbering(prevConfig) # obsolete?
 
         # add full rule details first
         newRulebases = self.getRules(newRuleUids)
@@ -96,6 +97,9 @@ class FwConfigImportRule(FwConfigImportBase):
 
         # now update the database with all rule diffs
         errorCountAdd, numberOfAddedRules, newRuleIds = self.addNewRules(newRulebases)
+
+        # resets order nrs in db on the basis of all rules in normalized config
+        self.resetOrderNumbers()
 
         # try to add the rule ids to the existing rulebase objects
         # self.updateRuleIds(newRulebases, newRuleIds)
@@ -1073,4 +1077,35 @@ class FwConfigImportRule(FwConfigImportBase):
             prepared_rules.append(rule_for_import)
         return { "data": prepared_rules }
     
+    def resetOrderNumbers(self):
+        logger = getFwoLogger()
+
+        rule_uids = []
+
+        rule_uids = list(chain.from_iterable(rulebase.Rules.keys() for rulebase in self.NormalizedConfig.rulebases))
+
+        updateRuleOrderNumbers = """mutation updateRuleOrderNumbers($uids: _text!) {
+            reset_rules_order_numbers(args: {uids: $uids}) {
+                rule_uid
+                rule_num_numeric
+            }
+        }
+        """
+
+        try:
+            if len(rule_uids) > 0:
+                postgre_text_array = self.convertListOfStringsToPostgreTextArray(rule_uids)
+                import_result = self.ImportDetails.call(updateRuleOrderNumbers, queryVariables={ "uids": postgre_text_array})
+            else:
+                logger.warning(f'"fwo_api:updateRuleOrderNumbers - warning in updateRuleOrderNumbers: found no rule uids')
+                return
+            
+            if 'errors' in import_result:
+                logger.exception(f"fwo_api:updateRuleOrderNumbers - error in updateRuleOrderNumbers: {str(import_result['errors'])}")
+
+        except:
+            logger.exception(f"failed to update rule order numbers: {str(traceback.format_exc())}")
+
+    def convertListOfStringsToPostgreTextArray(self, list_of_strings):
+        return "{ " + ", ".join(list_of_strings) + " }"
 

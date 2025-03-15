@@ -492,3 +492,8 @@ Hotfix for network modelling:
   - adding option to name all application servers by reverse DNS and fall-back to prefix + ip 
 - API: upgrade Hasura to 2.45.2
 - Workflow: some performance improvements
+
+# 8.7.1 07.03.2025 MAIN
+- fix modelling select existing interfac
+- fix modelling settings ldap selection
+- fix workflow ticket close spinner

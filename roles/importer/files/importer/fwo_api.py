@@ -137,7 +137,14 @@ def get_mgm_ids(fwo_api_base_url, jwt, query_variables):
 def get_config_value(fwo_api_base_url, jwt, key='limit'):
     query_variables = {'key': key}
     config_query = "query getConf($key: String) {  config(where: {config_key: {_eq: $key}}) { config_value } }"
-    result = call(fwo_api_base_url, jwt, config_query, query_variables=query_variables, role='importer')
+    
+    try:
+        result = call(fwo_api_base_url, jwt, config_query, query_variables=query_variables, role='importer')
+    except:
+        logger = getFwoLogger()
+        logger.error("fwo_api: failed to get config value for key " + key)
+        return None
+
     if 'data' in result and 'config' in result['data']:
         first_result = result['data']['config'][0]
         if 'config_value' in first_result:
@@ -151,7 +158,14 @@ def get_config_value(fwo_api_base_url, jwt, key='limit'):
 def get_config_values(fwo_api_base_url, jwt, keyFilter='limit'):
     query_variables = {'keyFilter': keyFilter+"%"}
     config_query = "query getConf($keyFilter: String) { config(where: {config_key: {_ilike: $keyFilter}}) { config_key config_value } }"
-    result = call(fwo_api_base_url, jwt, config_query, query_variables=query_variables, role='importer')
+    
+    try:
+        result = call(fwo_api_base_url, jwt, config_query, query_variables=query_variables, role='importer')
+    except:
+        logger = getFwoLogger()
+        logger.error("fwo_api: failed to get config values for key filter " + keyFilter)
+        return None
+
     if 'data' in result and 'config' in result['data']:
         resultArray = result['data']['config']
         dict1 = {v['config_key']: v['config_value'] for k,v in enumerate(resultArray)}
@@ -494,26 +508,6 @@ def delete_json_config_in_import_table(importState, query_variables):
         logger.exception("failed to delete config without changes")
         return -1  # indicating error
     return changes_in_delete_config
-
-
-# def store_full_json_config(importState, query_variables):
-#     logger = getFwoLogger()
-#     import_mutation = """
-#         mutation store_full_config($importId: bigint!, $mgmId: Int!, $config: jsonb!) {
-#             insert_import_full_config(objects: {import_id: $importId, mgm_id: $mgmId, config: $config}) {
-#                 affected_rows
-#             }
-#         }
-#     """
-
-#     try:
-#         import_result = call(importState.FwoConfig.FwoApiUri, importState.Jwt, import_mutation,
-#                              query_variables=query_variables, role='importer')
-#         changes_in_import_full_config = import_result['data']['insert_import_full_config']['affected_rows']
-#     except:
-#         logger.exception("failed to write full config for mgm id " + str(importState.MgmDetails.Id))
-#         return 2  # indicating 1 error because we are expecting exactly one change
-#     return changes_in_import_full_config-1
 
 
 def get_error_string_from_imp_control(importState, query_variables):

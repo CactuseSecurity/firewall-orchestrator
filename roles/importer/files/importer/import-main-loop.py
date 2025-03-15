@@ -140,15 +140,12 @@ if __name__ == '__main__':
                 logger.error("import-main-loop - error while getting FW management ids: " + str(traceback.format_exc()))
                 skipping = True
 
-            try:
-                api_fetch_limit = fwo_api.get_config_value(fwo_api_base_url, jwt, key='fwApiElementsPerFetch')
-                sleep_timer = fwo_api.get_config_value(fwo_api_base_url, jwt, key='importSleepTime')
-                if api_fetch_limit == None:
-                    api_fetch_limit = 150
-                if sleep_timer == None:
-                    sleep_timer = 90
-            except:
-                logger.debug("import-main-loop - could not get config values from FWO API - using default values")
+            api_fetch_limit = fwo_api.get_config_value(fwo_api_base_url, jwt, key='fwApiElementsPerFetch')
+            sleep_timer = fwo_api.get_config_value(fwo_api_base_url, jwt, key='importSleepTime')
+            if api_fetch_limit == None:
+                api_fetch_limit = 150
+            if sleep_timer == None:
+                sleep_timer = 90
 
             if not skipping:
                 for mgm_id in mgm_ids:

@@ -1,0 +1,15 @@
+
+- name: create common dir
+  file:
+        path: "{{ fwo_base_dir }}/files/common"
+        state: directory
+        mode: "0755"
+        owner: "{{ fworch_user }}"
+        group: "{{ fworch_group }}"
+  become: true
+
+- name: install the fwo api calls
+    synchronize:
+        src: "fwo-api-calls"
+        dest: "{{ fworch_home }}/fwo-api-calls"
+    become: true

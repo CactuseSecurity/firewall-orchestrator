@@ -2,7 +2,12 @@
    -- add rule_to, rule_service to importer
    -- consolidate: not only first import but also subsequent imports should work
    -- improve rollback - currently if import stops in the middle, the rollback is not automatically called
-   /* 
+
+/* 
+
+because of moving the graphql files, we need another link similar to the following for debugging (linux):
+
+    ln -s /opt/fworch/fworch-graphql/fworch-graphql /opt/fworch/fworch-graphql/fworch-graphql
 
 -- main script ---
 

@@ -26,6 +26,8 @@ import_tmp_path = base_dir + '/tmp/import'
 fwo_config_filename = base_dir + '/etc/fworch.json'
 max_recursion_level = 25 # do not call a function recursively more than this
 default_section_header_text = 'section without name'
+graphqlQueryPath = base_dir + "/common/files/fwo-api-calls/";
+
 # possible ConfigFormat values: normalized|checkpoint|fortimanager|fortioOS|azure|ciscoFirePower
 # legacy: barracuda|junos|netscreen
 

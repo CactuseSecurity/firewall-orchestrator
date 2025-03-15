@@ -6,6 +6,8 @@ import requests
 import json
 import datetime
 import time
+import string
+from typing import List
 
 import model_controllers.import_statistics_controller as stats
 from fwo_log import getFwoLogger
@@ -16,6 +18,28 @@ from fwo_exception import FwoApiServiceUnavailable, FwoApiTimeout, FwoApiLoginFa
     SecretDecryptionFailed, FwoApiFailedLockImport
 from fwo_base import writeAlertToLogFile
 from fwo_encrypt import decrypt
+
+
+def readClean_Text(filePath):
+    printable_chars = set(string.printable)
+    with open(filePath, "r", encoding="utf-8", errors="ignore") as f:
+        return "".join(filter(printable_chars.__contains__, f.read()))
+
+
+def getGraphqlCode(fileList: List[str]) -> str:
+    code = ""
+
+    for file in fileList:
+        try:
+            # read graphql code from file
+            code += readClean_Text(file) + " "
+        except FileNotFoundError as e:
+            logger = getFwoLogger()
+            logger.error("fwo_api: file not found: " + file)
+            raise
+
+    return removeSpecialCharsFromGraphqlQuery(code)
+
 
 def showApiCallInfo(url, query, headers, typ='debug'):
     max_query_size_to_display = 1000
@@ -179,57 +203,12 @@ def removeSpecialCharsFromGraphqlQuery(queryString):
 
 
 def get_mgm_details(fwo_api_base_url, jwt, query_variables, debug_level=0):
-    mgm_query = removeSpecialCharsFromGraphqlQuery("""
-        query getManagementDetails($mgmId: Int!) {
-            management(where:{mgm_id:{_eq:$mgmId}} order_by: {mgm_name: asc}) {
-                id: mgm_id
-                uid: mgm_uid
-                name: mgm_name
-                hostname: ssh_hostname
-                port: ssh_port
-                import_credential {
-                    id
-                    credential_name
-                    user: username
-                    secret
-                    sshPublicKey: public_key
-                    cloudClientId: cloud_client_id
-                    cloudClientSecret: cloud_client_secret
-                }
-                deviceType: stm_dev_typ {
-                    id: dev_typ_id
-                    name: dev_typ_name
-                    version: dev_typ_version
-                }
-                isSuperManager: is_super_manager
-                configPath: config_path
-                domainUid: domain_uid
-                cloudSubscriptionId: cloud_subscription_id
-                cloudTenantId: cloud_tenant_id
-                importDisabled: do_not_import
-                forceInitialImport: force_initial_import
-                importerHostname: importer_hostname
-                debugLevel: debug_level
-                lastConfigHash: last_import_md5_complete_config
-                devices(where:{do_not_import:{_eq:false}}) {
-                    id: dev_id
-                    uid: dev_uid
-                    name: dev_name
-                    local_rulebase_name
-                    global_rulebase_name
-                    package_name
-                    do_not_import
-                }
-                subManager: managementByMultiDeviceManagerId {
-                mgm_id
-                }
-                import_controls(where: { successful_import: {_eq: true} } order_by: {control_id: desc}, limit: 1) {
-                    starttime: start_time
-                }
-            }  
-        }
-    """)
-    api_call_result = call(fwo_api_base_url, jwt, mgm_query, query_variables=query_variables, role='importer')
+    getMgmDetailsQuery = getGraphqlCode([fwo_const.graphqlQueryPath + "device/getSingleManagementDetails.graphql",
+                        fwo_const.graphqlQueryPath + "device/fragments/managementDetails.graphql",
+                        fwo_const.graphqlQueryPath + "device/fragments/deviceTypeDetails.graphql",
+                        fwo_const.graphqlQueryPath + "device/fragments/importCredentials.graphql"])
+
+    api_call_result = call(fwo_api_base_url, jwt, getMgmDetailsQuery, query_variables=query_variables, role='importer')
     if 'data' in api_call_result and 'management' in api_call_result['data'] and len(api_call_result['data']['management'])>=1:
         if not '://' in api_call_result['data']['management'][0]['hostname']:
             # only decrypt if we have a real management and are not fetching the config from an URL

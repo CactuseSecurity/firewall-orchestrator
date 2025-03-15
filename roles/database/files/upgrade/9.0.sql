@@ -7,7 +7,8 @@
 
 because of moving the graphql files, we need another link similar to the following for debugging (linux):
 
-    ln -s /opt/fworch/fworch-graphql/fworch-graphql /opt/fworch/fworch-graphql/fworch-graphql
+    ln -s /home/tim/dev/firewall-orchestrator/roles/common/files/fwo-api-calls/ /usr/local/fworch/fwo-api-calls
+
 
 -- main script ---
 

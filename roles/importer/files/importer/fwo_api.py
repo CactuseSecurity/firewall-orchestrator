@@ -20,7 +20,7 @@ from fwo_base import writeAlertToLogFile
 from fwo_encrypt import decrypt
 
 
-def readClean_Text(filePath):
+def readCleanText(filePath):
     printable_chars = set(string.printable)
     with open(filePath, "r", encoding="utf-8", errors="ignore") as f:
         return "".join(filter(printable_chars.__contains__, f.read()))
@@ -32,7 +32,7 @@ def getGraphqlCode(fileList: List[str]) -> str:
     for file in fileList:
         try:
             # read graphql code from file
-            code += readClean_Text(file) + " "
+            code += readCleanText(file) + " "
         except FileNotFoundError as e:
             logger = getFwoLogger()
             logger.error("fwo_api: file not found: " + file)

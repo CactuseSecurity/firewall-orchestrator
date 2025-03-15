@@ -1,15 +1,8 @@
 
-- name: create common dir
-  file:
-    path: "{{ fworch_home }}/files/common"
-    state: directory
-    mode: "0755"
-    owner: "{{ fworch_user }}"
-    group: "{{ fworch_group }}"
-  become: true
-
+# this coppies all graphql queries and mutations to the server
+# for use with UI, MW and importer
 - name: install the fwo api calls
   synchronize:
     src: "fwo-api-calls"
-    dest: "{{ fworch_home }}/fwo-api-calls"
+    dest: "{{ fworch_home }}"
   become: true

@@ -549,37 +549,8 @@ def setAlert(fwo_api_base_url, jwt, import_id=None, title=None, mgm_id=None, dev
 
     logger = getFwoLogger()
 
-    addAlert_mutation = """
-        mutation addAlert(
-            $source: String!
-            $userId: Int
-            $title: String
-            $description: String
-            $mgmId: Int
-            $devId: Int
-            $jsonData: json
-            $refAlert: bigint
-            $alertCode: Int
-        ) 
-        {
-            insert_alert(
-                objects: {
-                    source: $source
-                    user_id: $userId
-                    title: $title
-                    description: $description
-                    alert_mgm_id: $mgmId
-                    alert_dev_id: $devId
-                    json_data: $jsonData
-                    ref_alert_id: $refAlert
-                    alert_code: $alertCode
-                }
-            ) 
-            {
-                returning { newIdLong: alert_id }
-            }
-        }
-    """
+    addAlert_mutation = getGraphqlCode([fwo_const.graphqlQueryPath + "monitoring/addAlert.graphql"])
+
     getAlert_query = """
         query getAlerts($mgmId: Int!, $alertCode: Int!, $currentAlertId: bigint!) {
             alert(where: {

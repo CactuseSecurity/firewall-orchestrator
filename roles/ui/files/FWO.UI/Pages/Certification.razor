@@ -236,7 +236,7 @@
             tokenSource = new CancellationTokenSource();
             var token = tokenSource.Token;
 
-            if (!deviceFilter.isAnyDeviceFilterSet())  // display pop-up with warning
+            if (!deviceFilter.IsAnyDeviceFilterSet())  // display pop-up with warning
             {
                 DisplayMessageInUi(null, userConfig.GetText("no_device_selected"), userConfig.GetText("E1001"), true);
                 processing = false;

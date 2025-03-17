@@ -126,8 +126,7 @@
                 // "-ifile:///home/tim/tmp/mgm_id_3_config_normalized.json",
                 // "-ifile:///home/tim/tmp/mgm_id_1_config_normalized.json",
                 // "-ifile:///home/tim/tmp/sting_1_norm.json",
-                // "-ifile:///home/tim/tmp/sting_2_plus_one_nwobj_norm.json",
-                "-ifile:///home/tim/tmp/sting_3_plus_one_rule_norm.json",
+                "-ifile:///home/tim/tmp/sting_2_plus_one_nwobj_norm.json",
                 //"-l66",
                 // "-l500",
                 //  41 - lab fortimanager

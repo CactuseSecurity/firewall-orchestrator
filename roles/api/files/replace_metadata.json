@@ -14333,62 +14333,6 @@
                       "foreign_key_constraint_on": "rule_id"
                     }
                   }
-                ],
-                "insert_permissions": [
-                  {
-                    "role": "importer",
-                    "permission": {
-                      "check": {},
-                      "columns": [
-                        "created",
-                        "removed",
-                        "dev_id",
-                        "rule_id"
-                      ]
-                    },
-                    "comment": ""
-                  }
-                ],
-                "select_permissions": [
-                  {
-                    "role": "importer",
-                    "permission": {
-                      "columns": [
-                        "created",
-                        "removed",
-                        "dev_id",
-                        "rule_id"
-                      ],
-                      "filter": {},
-                      "allow_aggregations": true
-                    },
-                    "comment": ""
-                  }
-                ],
-                "update_permissions": [
-                  {
-                    "role": "importer",
-                    "permission": {
-                      "columns": [
-                        "created",
-                        "removed",
-                        "dev_id",
-                        "rule_id"
-                      ],
-                      "filter": {},
-                      "check": {}
-                    },
-                    "comment": ""
-                  }
-                ],
-                "delete_permissions": [
-                  {
-                    "role": "importer",
-                    "permission": {
-                      "filter": {}
-                    },
-                    "comment": ""
-                  }
                 ]
               },
               {

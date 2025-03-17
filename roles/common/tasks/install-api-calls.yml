@@ -1,8 +1,0 @@
-
-# this coppies all graphql queries and mutations to the server
-# for use with UI, MW and importer
-- name: install the fwo api calls
-  synchronize:
-    src: "fwo-api-calls"
-    dest: "{{ fworch_home }}"
-  become: true

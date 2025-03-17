@@ -135,23 +135,26 @@ if __name__ == '__main__':
         
         if not skipping:
             try:
-                managerWithId = fwo_api.get_mgm_ids(fwo_api_base_url, jwt, {})
+                mgm_ids = fwo_api.get_mgm_ids(fwo_api_base_url, jwt, {})
             except:
                 logger.error("import-main-loop - error while getting FW management ids: " + str(traceback.format_exc()))
                 skipping = True
 
-            api_fetch_limit = fwo_api.get_config_value(fwo_api_base_url, jwt, key='fwApiElementsPerFetch')
-            sleep_timer = fwo_api.get_config_value(fwo_api_base_url, jwt, key='importSleepTime')
-            if api_fetch_limit == None:
-                api_fetch_limit = 150
-            if sleep_timer == None:
-                sleep_timer = 90
+            try:
+                api_fetch_limit = fwo_api.get_config_value(fwo_api_base_url, jwt, key='fwApiElementsPerFetch')
+                sleep_timer = fwo_api.get_config_value(fwo_api_base_url, jwt, key='importSleepTime')
+                if api_fetch_limit == None:
+                    api_fetch_limit = 150
+                if sleep_timer == None:
+                    sleep_timer = 90
+            except:
+                logger.debug("import-main-loop - could not get config values from FWO API - using default values")
 
             if not skipping:
-                for mgm in managerWithId:
+                for mgm_id in mgm_ids:
                     if killer.kill_now: break 
                     
-                    importState = ImportStateController.initializeImport(mgm['id'], debugLevel=debug_level, version=fwo_major_version)
+                    importState = ImportStateController.initializeImport(mgm_id, debugLevel=debug_level, version=fwo_major_version)
                     # getting a new JWT in case the old one is not valid anymore after a long previous import
                     jwt, skipping = getFwoJwt(importer_user_name, importer_pwd, user_management_api_base_url)
                     if not skipping:
@@ -161,14 +164,14 @@ if __name__ == '__main__':
                             logger.error("import-main-loop - error while getting FW management details for mgm_id=" + str(importState.MgmDetails.Id) + " - skipping: " + str(traceback.format_exc()))
                             skipping = True
                         if not skipping and mgm_details["deviceType"]["id"] in (9, 11, 17, 22, 23, 24):  # only handle CPR8x Manager, fortiManager, Cisco MgmCenter, Palo Panorama, Palo FW, FortiOS REST
-                            logger.debug("import-main-loop: starting import of mgm_id=" + str(importState.MgmDetails.Id))
+                            logger.debug("import-main-loop: starting import of mgm_id=" + id)
                             try:
                                 import_result = import_management(mgmId=importState.MgmDetails.Id, debug_level_in=debug_level, version=importState.ImportVersion,
                                     clearManagementData=args.clear, force=args.force, limit=str(api_fetch_limit))
                             except (FwoApiFailedLockImport, FwLoginFailed):
                                 pass # minor errors for a single mgm, go to next one
                             except: # all other exceptions are logged here
-                                logger.error("import-main-loop - unspecific error while importing mgm_id=" + str(importState.MgmDetails.Id) + ", " +  str(traceback.format_exc()))
+                                logger.error("import-main-loop - unspecific error while importing mgm_id=" + str(mgmId) + ", " +  str(traceback.format_exc()))
         if args.clear:
             break # while loop                                    
         if not killer.kill_now:

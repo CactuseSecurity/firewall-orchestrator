@@ -1,16 +1,16 @@
-﻿using FWO.Basics;
-using FWO.Api.Client;
-using FWO.Data.Report;
-using FWO.Report.Filter;
+﻿using FWO.Api.Client;
+using FWO.Basics;
 using FWO.Config.Api;
+using FWO.Data.Report;
+using FWO.Logging;
+using FWO.Report.Data;
+using FWO.Report.Filter;
 using System.Text;
 using System.Reflection;
 using PuppeteerSharp;
 using PuppeteerSharp.Media;
 using PuppeteerSharp.BrowserData;
 using HtmlAgilityPack;
-using FWO.Report.Data;
-using FWO.Logging;
 
 namespace FWO.Report
 {

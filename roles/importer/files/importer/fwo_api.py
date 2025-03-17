@@ -18,6 +18,7 @@ from fwo_exception import FwoApiServiceUnavailable, FwoApiTimeout, FwoApiLoginFa
     SecretDecryptionFailed, FwoApiFailedLockImport
 from fwo_base import writeAlertToLogFile
 from fwo_encrypt import decrypt
+from models.import_state import ImportState
 
 
 def readCleanText(filePath):
@@ -549,7 +550,7 @@ def setAlert(fwo_api_base_url, jwt, import_id=None, title=None, mgm_id=None, dev
 
     logger = getFwoLogger()
 
-    addAlert_mutation = getGraphqlCode([fwo_const.graphqlQueryPath + "monitoring/addAlert.graphql"])
+    addAlert_mutation = getGraphqlCode([fwo_const.graphqlQueryPath + "monitor/addAlert.graphql"])
 
     getAlert_query = """
         query getAlerts($mgmId: Int!, $alertCode: Int!, $currentAlertId: bigint!) {
@@ -620,7 +621,7 @@ def setAlert(fwo_api_base_url, jwt, import_id=None, title=None, mgm_id=None, dev
     return True
 
 
-def complete_import(importState):
+def complete_import(importState: ImportState):
     logger = getFwoLogger()
     
     success = (importState.Stats.ErrorCount==0)
@@ -656,7 +657,7 @@ def complete_import(importState):
     # def lock_import(fwo_api_base_url, jwt, query_variables):
 
     if importState.Stats.ErrorCount>0:
-        create_data_issue(importState.FwoConfig.FwoApiUri, importState.Jwt, import_id=importState.ImportId, severity=1, description=importState.ErrorString)
+        create_data_issue(importState.FwoConfig.FwoApiUri, importState.Jwt, import_id=importState.ImportId, severity=1, description=str(importState.Stats.ErrorDetails))
         setAlert(importState.FwoConfig.FwoApiUri, importState.Jwt, import_id=importState.ImportId, title="import error", mgm_id=importState.MgmDetails.Id, severity=2, role='importer', \
             description=str(importState.Stats.ErrorDetails), source='import', alertCode=14, mgm_details=importState.MgmDetails)
 

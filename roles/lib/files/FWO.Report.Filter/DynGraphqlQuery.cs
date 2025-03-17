@@ -81,7 +81,7 @@ namespace FWO.Report.Filter
             switch ((ReportType)filter.ReportParams.ReportType)
             {
                 case ReportType.Statistics:
-                    query.FullQuery = Queries.compact($@"
+                    query.FullQuery = Queries.Compact($@"
                         query statisticsReport ({paramString}) 
                         {{ 
                             management({mgmtWhereString}) 
@@ -112,7 +112,7 @@ namespace FWO.Report.Filter
                 case ReportType.ResolvedRulesTech:
                 case ReportType.UnusedRules:
                 case ReportType.AppRules:
-                    query.FullQuery = Queries.compact($@"
+                    query.FullQuery = Queries.Compact($@"
                 {( filter.Detailed ? RuleQueries.ruleDetailsForReportFragments : RuleQueries.ruleOverviewFragments )}
                 query rulesReport ({paramString}) 
                 {{ 
@@ -159,7 +159,7 @@ namespace FWO.Report.Filter
                             //     access_rule: {{_eq: true}} }}, order_by: {{rule_num_numeric: asc}}) {{
 
                 case ReportType.Recertification:
-                    query.FullQuery = Queries.compact($@"
+                    query.FullQuery = Queries.Compact($@"
                         {RecertQueries.ruleOpenRecertFragments}
                         query rulesCertReport({paramString}) 
                         {{
@@ -193,7 +193,7 @@ namespace FWO.Report.Filter
                 case ReportType.Changes:
                 case ReportType.ResolvedChanges:
                 case ReportType.ResolvedChangesTech:
-                    query.FullQuery = Queries.compact($@"
+                    query.FullQuery = Queries.Compact($@"
                         {( filter.Detailed ? RuleQueries.ruleDetailsForReportFragments : RuleQueries.ruleOverviewFragments )}
                         query changeReport({paramString}) 
                         {{
@@ -236,7 +236,7 @@ namespace FWO.Report.Filter
                     break;
 
                 case ReportType.NatRules:
-                    query.FullQuery = Queries.compact($@"
+                    query.FullQuery = Queries.Compact($@"
                         {( filter.Detailed ? RuleQueries.natRuleDetailsForReportFragments : RuleQueries.natRuleOverviewFragments )}
                         query natRulesReport ({paramString}) 
                         {{ 
@@ -265,7 +265,7 @@ namespace FWO.Report.Filter
 
                 case ReportType.Connections:
 
-                    query.FullQuery = Queries.compact($@"
+                    query.FullQuery = Queries.Compact($@"
                         {ModellingQueries.connectionResolvedDetailsFragment}
                         query getConnectionsResolved ({paramString})
                         {{

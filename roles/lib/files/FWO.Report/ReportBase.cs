@@ -270,6 +270,9 @@ namespace FWO.Report
             {
                 ExecutablePath = installedBrowser.GetExecutablePath(),
                 Headless = true,
+                // Args = isGitHubActions?
+                //     ["--no-sandbox", "--database=/tmp", "--disable-setuid-sandbox"]
+                //     : new string[0] // No additional arguments locally
             });
 
             try

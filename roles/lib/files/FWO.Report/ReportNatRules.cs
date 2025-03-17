@@ -3,7 +3,6 @@ using System.Text;
 using FWO.Report.Filter;
 using FWO.Ui.Display;
 using FWO.Config.Api;
-using FWO.Data;
 
 namespace FWO.Report
 {
@@ -15,8 +14,8 @@ namespace FWO.Report
 
         public override string ExportToHtml()
         {
-            StringBuilder report = new();
-            NatRuleDisplayHtml ruleDisplay = new(userConfig);
+            StringBuilder report = new ();
+            NatRuleDisplayHtml ruleDisplay = new (userConfig);
             int chapterNumber = 0;
 
             foreach (var managementReport in ReportData.ManagementData.Where(mgt => !mgt.Ignore))
@@ -27,40 +26,60 @@ namespace FWO.Report
 
                 foreach (var device in managementReport.Devices)
                 {
-                    if (device.RulebaseLinks != null)
+                    if (device.Rules != null && device.Rules.Length > 0)
                     {
-                        RulebaseLink? initialRulebaseLink = device.RulebaseLinks.FirstOrDefault(_ => _.IsInitialRulebase());
-                        if (initialRulebaseLink != null) 
-                        {
-                            foreach (var rule in managementReport.Rulebases.FirstOrDefault(rb => rb.Id == initialRulebaseLink.NextRulebaseId)?.Rules)
-                            {
-                                report.AppendLine($"<h4>{device.Name}</h4>");
-                                report.AppendLine("<table>");
-                                report.AppendLine("<tr>");
-                                report.AppendLine($"<th>{userConfig.GetText("number")}</th>");
-                                report.AppendLine($"<th>{userConfig.GetText("name")}</th>");
-                                report.AppendLine($"<th>{userConfig.GetText("source_zone")}</th>");
-                                report.AppendLine($"<th>{userConfig.GetText("source")}</th>");
-                                report.AppendLine($"<th>{userConfig.GetText("destination_zone")}</th>");
-                                report.AppendLine($"<th>{userConfig.GetText("destination")}</th>");
-                                report.AppendLine($"<th>{userConfig.GetText("services")}</th>");
-                                report.AppendLine($"<th>{userConfig.GetText("trans_source")}</th>");
-                                report.AppendLine($"<th>{userConfig.GetText("trans_destination")}</th>");
-                                report.AppendLine($"<th>{userConfig.GetText("trans_services")}</th>");
-                                report.AppendLine($"<th>{userConfig.GetText("enabled")}</th>");
-                                report.AppendLine($"<th>{userConfig.GetText("uid")}</th>");
-                                report.AppendLine($"<th>{userConfig.GetText("comment")}</th>");
-                                report.AppendLine("</tr>");
-                                
-                                report.AppendLine(ExportSingleRulebaseToHtml(GetRulesByRulebaseId(initialRulebaseLink.NextRulebaseId, managementReport), ruleDisplay, chapterNumber));
+                        report.AppendLine($"<h4 id=\"{Guid.NewGuid()}\">{device.Name}</h4>");
+                        report.AppendLine("<table>");
+                        report.AppendLine("<tr>");
+                        report.AppendLine($"<th>{userConfig.GetText("number")}</th>");
+                        report.AppendLine($"<th>{userConfig.GetText("name")}</th>");
+                        report.AppendLine($"<th>{userConfig.GetText("source_zone")}</th>");
+                        report.AppendLine($"<th>{userConfig.GetText("source")}</th>");
+                        report.AppendLine($"<th>{userConfig.GetText("destination_zone")}</th>");
+                        report.AppendLine($"<th>{userConfig.GetText("destination")}</th>");
+                        report.AppendLine($"<th>{userConfig.GetText("services")}</th>");
+                        report.AppendLine($"<th>{userConfig.GetText("trans_source")}</th>");
+                        report.AppendLine($"<th>{userConfig.GetText("trans_destination")}</th>");
+                        report.AppendLine($"<th>{userConfig.GetText("trans_services")}</th>");
+                        report.AppendLine($"<th>{userConfig.GetText("enabled")}</th>");
+                        report.AppendLine($"<th>{userConfig.GetText("uid")}</th>");
+                        report.AppendLine($"<th>{userConfig.GetText("comment")}</th>");
+                        report.AppendLine("</tr>");
 
-                                report.AppendLine("</table>");
-                                report.AppendLine("<hr>");
+                        foreach (var rule in device.Rules)
+                        {
+                            if (string.IsNullOrEmpty(rule.SectionHeader))
+                            {
+                                report.AppendLine("<tr>");
+                                report.AppendLine($"<td>{ruleDisplay.DisplayNumber(rule)}</td>");
+                                report.AppendLine($"<td>{ruleDisplay.DisplayName(rule)}</td>");
+                                report.AppendLine($"<td>{ruleDisplay.DisplaySourceZone(rule)}</td>");
+                                report.AppendLine($"<td>{ruleDisplay.DisplaySource(rule, OutputLocation.export, ReportType, chapterNumber)}</td>");
+                                report.AppendLine($"<td>{ruleDisplay.DisplayDestinationZone(rule)}</td>");
+                                report.AppendLine($"<td>{ruleDisplay.DisplayDestination(rule, OutputLocation.export, ReportType, chapterNumber)}</td>");
+                                report.AppendLine($"<td>{ruleDisplay.DisplayServices(rule, OutputLocation.export, ReportType, chapterNumber)}</td>");
+                                report.AppendLine($"<td>{ruleDisplay.DisplayTranslatedSource(rule, OutputLocation.export, chapterNumber)}</td>");
+                                report.AppendLine($"<td>{ruleDisplay.DisplayTranslatedDestination(rule, OutputLocation.export, chapterNumber)}</td>");
+                                report.AppendLine($"<td>{ruleDisplay.DisplayTranslatedService(rule, OutputLocation.export, chapterNumber)}</td>");
+                                report.AppendLine($"<td>{ruleDisplay.DisplayEnabled(rule, OutputLocation.export)}</td>");
+                                report.AppendLine($"<td>{RuleDisplayBase.DisplayUid(rule)}</td>");
+                                report.AppendLine($"<td>{RuleDisplayBase.DisplayComment(rule)}</td>");
+                                report.AppendLine("</tr>");
+                            }
+                            else
+                            {
+                                report.AppendLine("<tr>");
+                                report.AppendLine($"<td style=\"background-color: #f0f0f0;\" colspan=\"{ColumnCount}\">{rule.SectionHeader}</td>");
+                                report.AppendLine("</tr>");
                             }
                         }
+                        report.AppendLine("</table>");
+                        report.AppendLine("<hr>");
                     }
                 }
+
                 // show all objects used in this management's rules
+
                 int objNumber = 1;
                 if (managementReport.ReportObjects != null)
                 {
@@ -112,7 +131,7 @@ namespace FWO.Report
                         report.AppendLine($"<td>{objNumber++}</td>");
                         report.AppendLine($"<td><a name={ObjCatString.Svc}{chapterNumber}x{svcobj.Id}>{svcobj.Name}</a></td>");
                         report.AppendLine($"<td>{(svcobj.Type.Name != "" ? userConfig.GetText(svcobj.Type.Name) : "")}</td>");
-                        report.AppendLine($"<td>{((svcobj.Type.Name != ServiceType.Group && svcobj.Protocol != null) ? svcobj.Protocol.Name : "")}</td>");
+                        report.AppendLine($"<td>{((svcobj.Type.Name!=ServiceType.Group && svcobj.Protocol!=null)?svcobj.Protocol.Name:"")}</td>");
                         if (svcobj.DestinationPortEnd != null && svcobj.DestinationPortEnd != svcobj.DestinationPort)
                             report.AppendLine($"<td>{svcobj.DestinationPort}-{svcobj.DestinationPortEnd}</td>");
                         else
@@ -158,39 +177,6 @@ namespace FWO.Report
             }
 
             return GenerateHtmlFrame(userConfig.GetText(ReportType.ToString()), Query.RawFilter, DateTime.Now, report);
-        }
-
-        public string ExportSingleRulebaseToHtml(Rule[] rulebase, NatRuleDisplayHtml ruleDisplay, int chapterNumber)
-        {
-            StringBuilder report = new();
-            foreach (var rule in rulebase)
-            {
-                if (string.IsNullOrEmpty(rule.SectionHeader))
-                {
-                    report.AppendLine("<tr>");
-                    report.AppendLine($"<td>{RuleDisplayBase.DisplayNumber(rule)}</td>");
-                    report.AppendLine($"<td>{RuleDisplayBase.DisplayName(rule)}</td>");
-                    report.AppendLine($"<td>{RuleDisplayBase.DisplaySourceZone(rule)}</td>");
-                    report.AppendLine($"<td>{ruleDisplay.DisplaySource(rule, OutputLocation.export, ReportType, chapterNumber)}</td>");
-                    report.AppendLine($"<td>{RuleDisplayBase.DisplayDestinationZone(rule)}</td>");
-                    report.AppendLine($"<td>{ruleDisplay.DisplayDestination(rule, OutputLocation.export, ReportType, chapterNumber)}</td>");
-                    report.AppendLine($"<td>{ruleDisplay.DisplayServices(rule, OutputLocation.export, ReportType, chapterNumber)}</td>");
-                    report.AppendLine($"<td>{ruleDisplay.DisplayTranslatedSource(rule, OutputLocation.export, chapterNumber)}</td>");
-                    report.AppendLine($"<td>{ruleDisplay.DisplayTranslatedDestination(rule, OutputLocation.export, chapterNumber)}</td>");
-                    report.AppendLine($"<td>{ruleDisplay.DisplayTranslatedService(rule, OutputLocation.export, chapterNumber)}</td>");
-                    report.AppendLine($"<td>{NatRuleDisplayHtml.DisplayEnabled(rule, OutputLocation.export)}</td>");
-                    report.AppendLine($"<td>{RuleDisplayBase.DisplayUid(rule)}</td>");
-                    report.AppendLine($"<td>{RuleDisplayBase.DisplayComment(rule)}</td>");
-                    report.AppendLine("</tr>");
-                }
-                else
-                {
-                    report.AppendLine("<tr>");
-                    report.AppendLine($"<td style=\"background-color: #f0f0f0;\" colspan=\"{ColumnCount}\">{rule.SectionHeader}</td>");
-                    report.AppendLine("</tr>");
-                }
-            }
-            return report.ToString();
         }
     }
 }

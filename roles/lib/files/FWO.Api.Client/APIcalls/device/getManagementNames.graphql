@@ -1,0 +1,8 @@
+﻿query getManagementNames
+{
+  management(order_by: {mgm_name:asc}){
+    id: mgm_id
+    name: mgm_name
+    extMgtData: ext_mgm_data
+  }
+}

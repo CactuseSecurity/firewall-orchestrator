@@ -117,19 +117,19 @@ def extractSinglePortRange(port_range):
     port_end = port
 
     # open ranges (not found so far in data)
-    pattern = re.compile(r'^\>(\d+)$')
+    pattern = re.compile('^\>(\d+)$')
     match = pattern.match(port)
     if match:
         port = str(int(match.group()[1:]) + 1)
         port_end = str(65535)
-    pattern = re.compile(r'^\<(\d+)$')
+    pattern = re.compile('^\<(\d+)$')
     match = pattern.match(port)
     if match:
         port = str(1)
         port_end = str(int(match.group()[1:]) - 1)
 
     # split ranges
-    pattern = re.compile(r'^(\d+)\-(\d+)$')
+    pattern = re.compile('^(\d+)\-(\d+)$')
     match = pattern.match(port)
     if match:
         port, port_end = match.group().split('-')

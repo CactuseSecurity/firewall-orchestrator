@@ -100,6 +100,7 @@ namespace FWO.Middleware.Server
 
                         List<Management> diffList = await autodiscovery.Run();
                         List<ActionItem> actions = autodiscovery.ConvertToActions(diffList);
+                        // List<ActionItem> actions = autodiscovery.ConvertToActions(await autodiscovery.Run());
 
                         int ChangeCounter = 0;
 

@@ -119,7 +119,7 @@ namespace FWO.Tufin.SecureChange
 					return (GetInternalState(scResponse.Ticket.Status.ToUpper()), restResponse.Content);
 				}
 			}
-			Log.WriteDebug("Poll external ticket status failed", "Content: " + restResponse.Content + ", Error Message: " + restResponse.ErrorMessage);
+			Log.WriteError($"Poll status failed for external ticket {TicketId}.", "Content: " + restResponse.Content + ", Error Message: " + restResponse.ErrorMessage);
 			return (oldState, restResponse.ErrorMessage);
 		}
 

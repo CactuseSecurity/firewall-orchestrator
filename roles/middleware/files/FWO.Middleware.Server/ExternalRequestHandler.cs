@@ -102,6 +102,7 @@ namespace FWO.Middleware.Server
 						if(externalRequest.ExtRequestState == ExtStates.ExtReqRejected.ToString())
 						{
 							await RejectFollowingTasks(intTicket, externalRequest.TaskNumber);
+							Log.WriteInfo($"External Request {externalRequest.Id} rejected", $"Reject Following Tasks for internal ticket {intTicket.Id}");
 						}
 						else
 						{
@@ -252,6 +253,7 @@ namespace FWO.Middleware.Server
 					await CreateExtRequest(ticket, [nextTask], waitCycles);
 				}
 			}
+			Log.WriteInfo("CreateNextRequest", $"Created Request for ticket {ticket.Id}.");
 			return true;
 		}
 

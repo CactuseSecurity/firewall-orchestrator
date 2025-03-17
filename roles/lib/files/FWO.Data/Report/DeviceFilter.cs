@@ -89,26 +89,6 @@ namespace FWO.Data.Report
             Managements = [.. mgmSelect];
         }
       
-        public DeviceFilter(List<int> devIds)
-        {
-            ManagementSelect dummyManagement = new();
-            foreach(int id in devIds)
-            {
-                dummyManagement.Devices.Add(new DeviceSelect(){Id = id});
-            }
-            Managements.Add(dummyManagement);
-        }
-
-        public DeviceFilter(int[] devIds)
-        {
-            ManagementSelect dummyManagement = new();
-            foreach(int id in devIds)
-            {
-                dummyManagement.Devices.Add(new DeviceSelect(){Id = id});
-            }
-            Managements.Add(dummyManagement);
-        }
-
         public DeviceFilter Clone()
         {
             List<ManagementSelect> ClonedManagements = [];
@@ -123,7 +103,7 @@ namespace FWO.Data.Report
             };
         }
 
-        public bool areAllDevicesSelected()
+        public bool AreAllDevicesSelected()
         {
             foreach (ManagementSelect management in Managements)
                 foreach (DeviceSelect device in management.Devices)
@@ -132,7 +112,7 @@ namespace FWO.Data.Report
             return true;
         }
 
-        public bool isAnyDeviceFilterSet()
+        public bool IsAnyDeviceFilterSet()
         {
             foreach (ManagementSelect management in Managements)
                 foreach (DeviceSelect device in management.Devices)
@@ -141,7 +121,7 @@ namespace FWO.Data.Report
             return false;
         }
 
-        public void applyFullDeviceSelection(bool selectAll)
+        public void ApplyFullDeviceSelection(bool selectAll)
         {
             foreach (ManagementSelect management in Managements)
             {
@@ -167,7 +147,7 @@ namespace FWO.Data.Report
             return false;
         }
 
-        public List<int> getSelectedManagements()
+        public List<int> GetSelectedManagements()
         {
             List<int> selectedMgmts = [];
             foreach (ManagementSelect mgmt in Managements)
@@ -180,7 +160,7 @@ namespace FWO.Data.Report
             return selectedMgmts;
         }
 
-        public string listAllSelectedDevices()
+        public string ListAllSelectedDevices()
         {
             List<string> devs = [];
             foreach (ManagementSelect mgmt in Managements)

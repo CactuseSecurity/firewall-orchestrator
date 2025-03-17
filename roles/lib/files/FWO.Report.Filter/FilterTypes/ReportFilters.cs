@@ -52,7 +52,7 @@ namespace FWO.Report.Filter.FilterTypes
             {
                 DeviceFilter.SynchronizeDevFilter(template.ReportParams.DeviceFilter);
             }
-            SelectAll = !DeviceFilter.isAnyDeviceFilterSet();
+            SelectAll = !DeviceFilter.IsAnyDeviceFilterSet();
 
             if(template.ReportParams.TimeFilter != null)
             {
@@ -158,7 +158,7 @@ namespace FWO.Report.Filter.FilterTypes
                 // not all devices are visible
                 SetDeviceVisibility(SelectedTenant);
             }
-            SelectAll = !DeviceFilter.isAnyDeviceFilterSet();
+            SelectAll = !DeviceFilter.IsAnyDeviceFilterSet();
         }
         
         private static void MarkAllDevicesVisible(List<ManagementSelect> mgms)

@@ -1,0 +1,41 @@
+mutation updateDevice(
+  $id: Int!
+  $name: String!
+  $managementId: Int!
+  $devTypeId: Int!
+  $importDisabled: Boolean!
+  $hideInUi: Boolean!
+  $localRulebase: String!
+  $globalRulebase: String
+  $package: String
+  $comment: String
+) {
+  update_device_by_pk(
+    pk_columns: { dev_id: $id }
+    _set: {
+      dev_name: $name
+      dev_typ_id: $devTypeId
+      mgm_id: $managementId
+      local_rulebase_name: $localRulebase
+      global_rulebase_name: $globalRulebase
+      package_name: $package
+      do_not_import: $importDisabled
+      hide_in_gui: $hideInUi
+      dev_comment: $comment
+    }
+  ) {
+    updatedId: dev_id
+  }
+}
+
+# example variables (at least the following)
+# { 
+#   "id": 17,
+#   "name": "huhu",
+#   "devTypeId": 10,
+#   "managementId": 2,
+#   "rulebase": "layer1",
+#   "importDisabled": false,
+#   "hideInUi": false
+# }
+

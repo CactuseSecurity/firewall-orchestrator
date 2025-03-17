@@ -13,15 +13,9 @@ from fwo_log import getFwoLogger
 # from fOS_gw_networking import getInterfacesAndRouting, normalize_network_data
 from fwo_data_networking import get_ip_of_interface_obj
 
-from model_controllers.import_state_controller import ImportStateController
-from model_controllers.management_details_controller import ManagementDetailsController
-#from fwconfig import FwConfigManager, FwConfigManagerList, FwConfigNormalized
-from models.fwconfigmanagerlist import FwConfigManagerList
-from models.fwconfigmanager import FwConfigManager
-from models.fwconfig_normalized import FwConfigNormalized
-from fwo_base import calcManagerUidHash, ConfigAction
-
-import fwo_const
+from fwo_const import list_delimiter, nat_postfix, fwo_config_filename
+from fwo_config import readConfig
+from fwo_api import setAlert, create_data_issue
 
 
 nw_obj_types = ['firewall/address', 'firewall/address6', 'firewall/addrgrp',
@@ -48,11 +42,10 @@ user_scope = ['user_obj_' + s1 for s1 in user_obj_types]
 def has_config_changed(full_config, mgm_details, force=False):
     # dummy - may be filled with real check later on
     return True
- 
-def get_config(full_config: json, importState: ImportStateController) -> tuple[int, FwConfigManagerList]: # current_import_id, mgm_details, limit=150, force=False, jwt=None) 
-# def get_config(config2import, full_config, current_import_id, mgm_details, limit=100, force=False, jwt=''):
+
+
+def get_config(config2import, full_config, current_import_id, mgm_details, limit=100, force=False, jwt=''):
     logger = getFwoLogger()
-    config2import = fwo_const.emptyNormalizedFwConfigJsonDict
     if full_config == {}:   # no native config was passed in, so getting it from FortiManager
         parsing_config_only = False
     else:
@@ -60,21 +53,21 @@ def get_config(full_config: json, importState: ImportStateController) -> tuple[i
 
     # fmgr API login
     if not parsing_config_only:   # no native config was passed in, so getting it from FortiManager
-        fm_api_url = f'https://{importState.MgmDetails.Hostname}:{str(importState.MgmDetails.Port)}/api/v2'
-        sid = importState.MgmDetails.Secret
+        fm_api_url = 'https://' +  mgm_details['hostname'] + ':' +  str(mgm_details['port']) + '/api/v2'
+        sid = mgm_details['import_credential']['secret']
 
         if not parsing_config_only:   # no native config was passed in, so getting it from FortiManager
-            getObjects(sid, fm_api_url, full_config, importState.FwoConfig.ApiFetchSize, nw_obj_types, svc_obj_types)
+            getObjects(sid, fm_api_url, full_config, limit, nw_obj_types, svc_obj_types)
             # getInterfacesAndRouting(
             #     sid, fm_api_url, full_config, mgm_details['devices'], limit)
 
             # adding global zone first:
-            fOS_zone.add_zone_if_missing (config2import, 'global', importState.ImportId)
+            fOS_zone.add_zone_if_missing (config2import, 'global', current_import_id)
 
             # initialize all rule dicts
             fOS_rule.initializeRulebases(full_config)
-            for dev in importState.FullMgmDetails['devices']:
-                fOS_rule.getAccessPolicy(sid, fm_api_url, full_config, importState.FwoConfig.ApiFetchSize)
+            for dev in mgm_details['devices']:
+                fOS_rule.getAccessPolicy(sid, fm_api_url, full_config, limit)
                 # fOS_rule.getNatPolicy(sid, fm_api_url, full_config, limit)
 
     # now we normalize relevant parts of the raw config and write the results to config2import dict
@@ -89,37 +82,19 @@ def get_config(full_config: json, importState: ImportStateController) -> tuple[i
     # normalize_network_data(full_config, config2import, mgm_details)
 
     fOS_user.normalize_users(
-        full_config, config2import, importState.ImportId, user_scope)
+        full_config, config2import, current_import_id, user_scope)
     fOS_network.normalize_nwobjects(
-        full_config, config2import, importState.ImportId, nw_obj_scope, jwt=importState.Jwt, mgm_id=importState.ImportId)
+        full_config, config2import, current_import_id, nw_obj_scope, jwt=jwt, mgm_id=mgm_details['id'])
     fOS_service.normalize_svcobjects(
-        full_config, config2import, importState.ImportId, svc_obj_scope)
-    fOS_zone.add_zone_if_missing (config2import, 'global', importState.ImportId)
+        full_config, config2import, current_import_id, svc_obj_scope)
+    fOS_zone.add_zone_if_missing (config2import, 'global', current_import_id)
 
     fOS_rule.normalize_access_rules(
-        full_config, config2import, importState.ImportId, mgm_details=importState.FullMgmDetails, jwt=importState.Jwt)
+        full_config, config2import, current_import_id, mgm_details=mgm_details, jwt=jwt)
     # fOS_rule.normalize_nat_rules(
     #     full_config, config2import, current_import_id, jwt=jwt)
     # fOS_network.remove_nat_ip_entries(config2import)
-
-    # put dicts into object of class FwConfigManager
-    normalizedConfig = FwConfigNormalized(ConfigAction.INSERT, 
-                            config2import['network_objects'],
-                            config2import['service_objects'],
-                            config2import['users'],
-                            config2import['zone_objects'],
-                            config2import['rules'], stripFields=False
-                            )
-    manager = FwConfigManager(ManagerUid=calcManagerUidHash(importState.FullMgmDetails), 
-                              IsGlobal=False, 
-                              DependantManagerUids=[], 
-                              Configs=[normalizedConfig])
-
-    listOfManagers = FwConfigManagerList()
-
-    listOfManagers.addManager(manager)
-    
-    return 0, listOfManagers
+    return 0
 
 
 def getObjects(sid, fm_api_url, raw_config, limit, nw_obj_types, svc_obj_types):

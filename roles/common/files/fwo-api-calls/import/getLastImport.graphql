@@ -1,9 +1,0 @@
-query getLastImport($mgmId: Int!) {
-    import_control(
-        order_by: { control_id: desc }
-        limit: 1
-        where: { mgm_id: { _eq: $mgmId } }
-    ) {
-        control_id
-    }
-}

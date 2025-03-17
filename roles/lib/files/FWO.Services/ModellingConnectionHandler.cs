@@ -1019,18 +1019,39 @@ namespace FWO.Services
             return true;
         }
 
-        public bool NetworkAreaUseForbidden(ModellingDnDContainer modellingContainer)
+        public bool NetworkAreaUseAllowed(ModellingDnDContainer modellingContainer)
         {
-            if (modellingContainer.AreaElements.Count == 0)
+            if (ActConn.IsInterface)
             {
+                DisplayMessageInUi(default, "Add Network Area", "Interfaces must not contain network areas", true);
                 return false;
             }
+            bool hasCommonNetworkAreas = HasCommonNetworkAreas(modellingContainer.AreaElements);
 
-            if ((!ActConn.IsCommonService && !ActConn.IsInterface) || ActConn.IsCommonService)
+            //Uncommon network areas should only be selectable under “Common Services”
+            if (!hasCommonNetworkAreas && ActConn.IsCommonService)
             {
-                //Is Connection
-                //NAs should be selectable under Modelling -> “Connections” + “Common Services”
-                return false;
+                return true;
+            }
+            //Common network areas may be selected in “Common Services” + “Connections”
+            if (hasCommonNetworkAreas && ( ActConn.IsCommonService || ( !ActConn.IsInterface && !ActConn.IsCommonService ) ))
+            {
+                return true;
+            }
+
+            DisplayMessageInUi(default, "Add Network Area", "The reason why it's not allowed", true);
+            return false;
+        }
+        private bool HasCommonNetworkAreas(List<ModellingNetworkArea> networkAreas)
+        {
+            CommonAreaConfigItems.Add(new() { AreaId = 1 });
+
+            foreach (ModellingNetworkArea area in networkAreas)
+            {
+                if (CommonAreaConfigItems.Any(_ => _.AreaId == area.Id))
+                {
+                    return true;
+                }
             }
 
             return false;

@@ -105,7 +105,7 @@
                 @if (currentReport != null)
                 {
                     @switch (currentReport.ReportType)
-                    {
+                    {   // removing @bind-SelectedRules="selectedItemsRuleReportTable" from the RulesReport component
                         case ReportType.Rules:
                         case ReportType.ResolvedRules:
                         case ReportType.ResolvedRulesTech:
@@ -113,8 +113,7 @@
                         case ReportType.UnusedRules:
                         case ReportType.NatRules:
                         case ReportType.AppRules:
-                            <RulesReport Managements="currentReport.ReportData.ManagementData" SelectedReportType="actReportFilters.ReportType" RulesPerPage="rulesPerPage" 
-                                @bind-SelectedRules="selectedItemsRuleReportTable" />
+                            <RulesReport Managements="currentReport.ReportData.ManagementData" SelectedReportType="actReportFilters.ReportType" RulesPerPage="rulesPerPage" />
                             break;
 
                         case ReportType.Changes:
@@ -152,10 +151,11 @@
     </div>
 
     @* ==== RIGHT SIDEBAR ==== *@
-    <RightSidebar @bind-Width="sidebarRightWidth" CurrentReport="currentReport"
+    @* <RightSidebar @bind-Width="sidebarRightWidth" TabSet="rsbTabset" AnchorNavToRSB="anchorNavToRSB" CurrentReport="currentReport"
         @bind-SelectedRules="selectedItemsRuleReportTable" 
         AllTabVisible="(tenantFilteringAllowed && actReportFilters.SelectedTenant == null)"
         SelectedReportType = "actReportFilters.ReportType"/>
+    <AnchorNavToRSB @ref="anchorNavToRSB" TabSet="rsbTabset" /> *@
 }
 
 @* ==== POPUPS ==== *@
@@ -201,7 +201,9 @@
 
     private ReportBase? currentReport;
 
+    private FWO.Ui.Shared.TabSet rsbTabset;
     private Sidebar? deviceSelectionSidebar;
+    private FWO.Ui.Shared.AnchorNavToRSB anchorNavToRSB;
 
     private string filterFeedbackStart = "";
     private string filterFeedbackError = "";

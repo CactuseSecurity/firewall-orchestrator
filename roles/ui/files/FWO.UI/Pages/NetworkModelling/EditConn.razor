@@ -487,9 +487,10 @@
 
     private async Task HandleSrcDrop()
     {
-        if (ConnHandler.NetworkAreaUseAllowed(Container))
+        if (ConnHandler is null || !ConnHandler.NetworkAreaUseAllowed(Container))
         {
-            
+            Container.Clear();
+            return;
         }
 
         if(Container.ConnElement != null)
@@ -527,9 +528,10 @@
 
     private async Task HandleDstDrop()
     {
-        if (ConnHandler.NetworkAreaUseAllowed(Container))
+        if (ConnHandler is null || !ConnHandler.NetworkAreaUseAllowed(Container))
         {
-
+            Container.Clear();
+            return;
         }
 
         if(Container.ConnElement != null)

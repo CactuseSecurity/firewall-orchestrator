@@ -34,7 +34,7 @@ namespace FWO.Report.Filter
 
         public ReportType ReportType { get; set; } = ReportType.Rules;
         public FwoOwner? SelectedOwner { get; set; }
-        public DynGraphqlQuery(string rawInput) { RawFilter = rawInput; }
+        // public DynGraphqlQuery(string rawInput) { RawFilter = rawInput; }
         public const string fullTimeFormat = "yyyy-MM-dd HH:mm:ss";
         public const string dateFormat = "yyyy-MM-dd";
         public const int layerRecursionLevel = 2;
@@ -375,7 +375,7 @@ namespace FWO.Report.Filter
         private static string GetDevWhereFilter(ref DynGraphqlQuery query, DeviceFilter? deviceFilter)
         {
             string devWhereStatement = $@"where: {{ hide_in_gui: {{_eq: false }}, _or: [";
-            query.RelevantManagementIds = deviceFilter.getSelectedManagements();
+            // query.RelevantManagementIds = deviceFilter.getSelectedManagements();
             foreach (ManagementSelect mgmt in deviceFilter.Managements)
             {
                 foreach (DeviceSelect dev in mgmt.Devices)

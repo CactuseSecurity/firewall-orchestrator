@@ -130,9 +130,9 @@ namespace FWO.Report
                     if (device.ContainsRules())
                     {
                         rulesFound = true;
-                        foreach (var rule in device.Rules!)
+                        foreach (var rulebaseLink in device.RulebaseLinks)
                         {
-                            rule.Metadata.UpdateRecertPeriods(userConfig.RecertificationPeriod, userConfig.RecertificationNoticePeriod);
+                            // rule.Metadata.UpdateRecertPeriods(userConfig.RecertificationPeriod, userConfig.RecertificationNoticePeriod);
                         }
                     }
                 }

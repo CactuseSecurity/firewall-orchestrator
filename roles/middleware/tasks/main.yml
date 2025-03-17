@@ -187,7 +187,7 @@
     query: >
       DO $do$ BEGIN 
       PERFORM insertLocalLdapWithEncryptedPasswords ('{{ openldap_server }}', {{ openldap_port }},
-      '{{ openldap_std_user_dn }}', '{{ openldap_std_role_dn }}', '{{ openldap_std_group_dn }}',
+      '{{ openldap_std_user_dn }}', '{{ openldap_std_role_dn }}', '{{ openldap_std_group_dn }}', '{{ openldap_std_group_dn }}',
       5, '{{ openldap_readonly_user_dn }}', '{{ ldap_inspector_pw }}',
       '{{ openldap_writer_dn }}', '{{ ldap_writer_pw }}', 2);
       END $do$

@@ -6,8 +6,6 @@ import requests
 import json
 import datetime
 import time
-import string
-from typing import List
 
 import model_controllers.import_statistics_controller as stats
 from fwo_log import getFwoLogger
@@ -18,29 +16,6 @@ from fwo_exception import FwoApiServiceUnavailable, FwoApiTimeout, FwoApiLoginFa
     SecretDecryptionFailed, FwoApiFailedLockImport
 from fwo_base import writeAlertToLogFile
 from fwo_encrypt import decrypt
-from models.import_state import ImportState
-
-
-def readCleanText(filePath):
-    printable_chars = set(string.printable)
-    with open(filePath, "r", encoding="utf-8", errors="ignore") as f:
-        return "".join(filter(printable_chars.__contains__, f.read()))
-
-
-def getGraphqlCode(fileList: List[str]) -> str:
-    code = ""
-
-    for file in fileList:
-        try:
-            # read graphql code from file
-            code += readCleanText(file) + " "
-        except FileNotFoundError as e:
-            logger = getFwoLogger()
-            logger.error("fwo_api: file not found: " + file)
-            raise
-
-    return removeSpecialCharsFromGraphqlQuery(code)
-
 
 def showApiCallInfo(url, query, headers, typ='debug'):
     max_query_size_to_display = 1000
@@ -162,14 +137,7 @@ def get_mgm_ids(fwo_api_base_url, jwt, query_variables):
 def get_config_value(fwo_api_base_url, jwt, key='limit'):
     query_variables = {'key': key}
     config_query = "query getConf($key: String) {  config(where: {config_key: {_eq: $key}}) { config_value } }"
-    
-    try:
-        result = call(fwo_api_base_url, jwt, config_query, query_variables=query_variables, role='importer')
-    except:
-        logger = getFwoLogger()
-        logger.error("fwo_api: failed to get config value for key " + key)
-        return None
-
+    result = call(fwo_api_base_url, jwt, config_query, query_variables=query_variables, role='importer')
     if 'data' in result and 'config' in result['data']:
         first_result = result['data']['config'][0]
         if 'config_value' in first_result:
@@ -183,14 +151,7 @@ def get_config_value(fwo_api_base_url, jwt, key='limit'):
 def get_config_values(fwo_api_base_url, jwt, keyFilter='limit'):
     query_variables = {'keyFilter': keyFilter+"%"}
     config_query = "query getConf($keyFilter: String) { config(where: {config_key: {_ilike: $keyFilter}}) { config_key config_value } }"
-    
-    try:
-        result = call(fwo_api_base_url, jwt, config_query, query_variables=query_variables, role='importer')
-    except:
-        logger = getFwoLogger()
-        logger.error("fwo_api: failed to get config values for key filter " + keyFilter)
-        return None
-
+    result = call(fwo_api_base_url, jwt, config_query, query_variables=query_variables, role='importer')
     if 'data' in result and 'config' in result['data']:
         resultArray = result['data']['config']
         dict1 = {v['config_key']: v['config_value'] for k,v in enumerate(resultArray)}
@@ -204,12 +165,57 @@ def removeSpecialCharsFromGraphqlQuery(queryString):
 
 
 def get_mgm_details(fwo_api_base_url, jwt, query_variables, debug_level=0):
-    getMgmDetailsQuery = getGraphqlCode([fwo_const.graphqlQueryPath + "device/getSingleManagementDetails.graphql",
-                        fwo_const.graphqlQueryPath + "device/fragments/managementDetails.graphql",
-                        fwo_const.graphqlQueryPath + "device/fragments/deviceTypeDetails.graphql",
-                        fwo_const.graphqlQueryPath + "device/fragments/importCredentials.graphql"])
-
-    api_call_result = call(fwo_api_base_url, jwt, getMgmDetailsQuery, query_variables=query_variables, role='importer')
+    mgm_query = removeSpecialCharsFromGraphqlQuery("""
+        query getManagementDetails($mgmId: Int!) {
+            management(where:{mgm_id:{_eq:$mgmId}} order_by: {mgm_name: asc}) {
+                id: mgm_id
+                uid: mgm_uid
+                name: mgm_name
+                hostname: ssh_hostname
+                port: ssh_port
+                import_credential {
+                    id
+                    credential_name
+                    user: username
+                    secret
+                    sshPublicKey: public_key
+                    cloudClientId: cloud_client_id
+                    cloudClientSecret: cloud_client_secret
+                }
+                deviceType: stm_dev_typ {
+                    id: dev_typ_id
+                    name: dev_typ_name
+                    version: dev_typ_version
+                }
+                isSuperManager: is_super_manager
+                configPath: config_path
+                domainUid: domain_uid
+                cloudSubscriptionId: cloud_subscription_id
+                cloudTenantId: cloud_tenant_id
+                importDisabled: do_not_import
+                forceInitialImport: force_initial_import
+                importerHostname: importer_hostname
+                debugLevel: debug_level
+                lastConfigHash: last_import_md5_complete_config
+                devices(where:{do_not_import:{_eq:false}}) {
+                    id: dev_id
+                    uid: dev_uid
+                    name: dev_name
+                    local_rulebase_name
+                    global_rulebase_name
+                    package_name
+                    do_not_import
+                }
+                subManager: managementByMultiDeviceManagerId {
+                mgm_id
+                }
+                import_controls(where: { successful_import: {_eq: true} } order_by: {control_id: desc}, limit: 1) {
+                    starttime: start_time
+                }
+            }  
+        }
+    """)
+    api_call_result = call(fwo_api_base_url, jwt, mgm_query, query_variables=query_variables, role='importer')
     if 'data' in api_call_result and 'management' in api_call_result['data'] and len(api_call_result['data']['management'])>=1:
         if not '://' in api_call_result['data']['management'][0]['hostname']:
             # only decrypt if we have a real management and are not fetching the config from an URL
@@ -490,6 +496,26 @@ def delete_json_config_in_import_table(importState, query_variables):
     return changes_in_delete_config
 
 
+# def store_full_json_config(importState, query_variables):
+#     logger = getFwoLogger()
+#     import_mutation = """
+#         mutation store_full_config($importId: bigint!, $mgmId: Int!, $config: jsonb!) {
+#             insert_import_full_config(objects: {import_id: $importId, mgm_id: $mgmId, config: $config}) {
+#                 affected_rows
+#             }
+#         }
+#     """
+
+#     try:
+#         import_result = call(importState.FwoConfig.FwoApiUri, importState.Jwt, import_mutation,
+#                              query_variables=query_variables, role='importer')
+#         changes_in_import_full_config = import_result['data']['insert_import_full_config']['affected_rows']
+#     except:
+#         logger.exception("failed to write full config for mgm id " + str(importState.MgmDetails.Id))
+#         return 2  # indicating 1 error because we are expecting exactly one change
+#     return changes_in_import_full_config-1
+
+
 def get_error_string_from_imp_control(importState, query_variables):
     error_query = "query getErrors($importId:bigint) { import_control(where:{control_id:{_eq:$importId}}) { import_errors } }"
     return call(importState.FwoConfig.FwoApiUri, importState.Jwt, error_query, query_variables=query_variables, role='importer')['data']['import_control']
@@ -550,8 +576,37 @@ def setAlert(fwo_api_base_url, jwt, import_id=None, title=None, mgm_id=None, dev
 
     logger = getFwoLogger()
 
-    addAlert_mutation = getGraphqlCode([fwo_const.graphqlQueryPath + "monitor/addAlert.graphql"])
-
+    addAlert_mutation = """
+        mutation addAlert(
+            $source: String!
+            $userId: Int
+            $title: String
+            $description: String
+            $mgmId: Int
+            $devId: Int
+            $jsonData: json
+            $refAlert: bigint
+            $alertCode: Int
+        ) 
+        {
+            insert_alert(
+                objects: {
+                    source: $source
+                    user_id: $userId
+                    title: $title
+                    description: $description
+                    alert_mgm_id: $mgmId
+                    alert_dev_id: $devId
+                    json_data: $jsonData
+                    ref_alert_id: $refAlert
+                    alert_code: $alertCode
+                }
+            ) 
+            {
+                returning { newIdLong: alert_id }
+            }
+        }
+    """
     getAlert_query = """
         query getAlerts($mgmId: Int!, $alertCode: Int!, $currentAlertId: bigint!) {
             alert(where: {
@@ -621,7 +676,7 @@ def setAlert(fwo_api_base_url, jwt, import_id=None, title=None, mgm_id=None, dev
     return True
 
 
-def complete_import(importState: ImportState):
+def complete_import(importState):
     logger = getFwoLogger()
     
     success = (importState.Stats.ErrorCount==0)
@@ -657,7 +712,7 @@ def complete_import(importState: ImportState):
     # def lock_import(fwo_api_base_url, jwt, query_variables):
 
     if importState.Stats.ErrorCount>0:
-        create_data_issue(importState.FwoConfig.FwoApiUri, importState.Jwt, import_id=importState.ImportId, severity=1, description=str(importState.Stats.ErrorDetails))
+        create_data_issue(importState.FwoConfig.FwoApiUri, importState.Jwt, import_id=importState.ImportId, severity=1, description=importState.ErrorString)
         setAlert(importState.FwoConfig.FwoApiUri, importState.Jwt, import_id=importState.ImportId, title="import error", mgm_id=importState.MgmDetails.Id, severity=2, role='importer', \
             description=str(importState.Stats.ErrorDetails), source='import', alertCode=14, mgm_details=importState.MgmDetails)
 

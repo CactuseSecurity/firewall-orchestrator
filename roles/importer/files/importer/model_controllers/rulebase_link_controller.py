@@ -2,13 +2,19 @@
 from models.rulebase_link import RulebaseLink
 from model_controllers.import_state_controller import ImportStateController
 from fwo_log import getFwoLogger
-from models.import_state import ImportState
-from model_controllers.import_statistics_controller import ImportStatisticsController
 
 class RulebaseLinkController(RulebaseLink):
 
+    # def __init__(self, importState: ImportState, config: RulebaseLink):
+    #     super().__init__(gw_id=gwId, 
+    #                                      from_rule_id=fromRuleId,
+    #                                      to_rulebase_id=toRulebaseId,
+    #                                      link_type=linkTypeId,
+    #                                      created=self.ImportDetails.ImportId
+
     def importInsertRulebaseLink(self, importState: ImportStateController):
         errors = 0
+        changes = 0
         logger = getFwoLogger()
         query_variables = { "rulebaseLinks": [
             {
@@ -20,7 +26,6 @@ class RulebaseLinkController(RulebaseLink):
             }
         ] }
 
-        # TODO: add on_conflict do nothing to the mutation
         mutation = """
             mutation importInsertRulebaseOnGateway($rulebaseLinks: [rulebase_link_insert_input!]!) {
                 insert_rulebase_link(objects: $rulebaseLinks) {
@@ -31,9 +36,8 @@ class RulebaseLinkController(RulebaseLink):
         # return self.ImportDetails.call(mutation, queryVariables=query_variables)
         addResult = importState.call(mutation, queryVariables=query_variables)
         if 'errors' in addResult:
-            importState.Stats.addError(f"fwo_api:removeRules - error while removing rules: {str(addResult['errors'])}")
+            errors = 1
             logger.exception(f"fwo_api:removeRules - error while removing rules: {str(addResult['errors'])}")
         else:
             changes = addResult['data']['insert_rulebase_link']['affected_rows']
-            importState.Stats.RuleChangeCount += changes    # TODO: move this to separate category?!
-        return
+        return errors, changes

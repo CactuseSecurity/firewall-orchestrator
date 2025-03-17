@@ -52,7 +52,10 @@ class ImportStateController(ImportState):
         self.increaseErrorCounter(1)
 
     def appendErrorString(self, errorStr):
-        self.Stats.ErrorDetails.append(errorStr)
+        if len(self.ErrorString)>0:
+            self.ErrorString = f"{self.ErrorString}; {errorStr}"
+        else:
+            self.ErrorString = errorStr
 
     @classmethod
     def initializeImport(cls, mgmId, debugLevel=0, suppressCertWarnings=False, 

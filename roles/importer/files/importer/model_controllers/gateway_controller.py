@@ -4,7 +4,9 @@ from typing import List
 import hashlib
 from models.gateway import Gateway
 
-class GatewayController(Gateway):
+class GatewayController():
+
+    gateway: Gateway
 
     def __init__(self, gw: Gateway):
         self.Gateway = gw
@@ -39,14 +41,5 @@ class GatewayController(Gateway):
 
     def __eq__(self, other):
         if isinstance(other, Gateway):
-            return (
-                self.Name == other.Name and
-                self.Uid == other.Uid and
-                self.Routing == other.Routing and
-                self.Interfaces == other.Interfaces and
-                self.RulebaseLinks == other.RulebaseLinks and
-                self.EnforcedNatPolicyUids == other.EnforcedNatPolicyUids and
-                self.EnforcedPolicyUids == other.EnforcedPolicyUids and
-                self.GlobalPolicyUid == other.GlobalPolicyUid
-            )
-        return NotImplemented
+            return self. gateway == other
+        return False

@@ -1021,12 +1021,17 @@ namespace FWO.Services
 
         public bool NetworkAreaUseAllowed(ModellingDnDContainer modellingContainer)
         {
+            return NetworkAreaUseAllowed(modellingContainer.AreaElements);
+        }
+
+        public bool NetworkAreaUseAllowed(List<ModellingNetworkArea> networkAreas)
+        {
             if (ActConn.IsInterface)
             {
                 DisplayMessageInUi(default, "Add Network Area", "Interfaces must not contain network areas", true);
                 return false;
             }
-            bool hasCommonNetworkAreas = HasCommonNetworkAreas(modellingContainer.AreaElements);
+            bool hasCommonNetworkAreas = HasCommonNetworkAreas(networkAreas);
 
             //Uncommon network areas should only be selectable under “Common Services”
             if (!hasCommonNetworkAreas && ActConn.IsCommonService)
@@ -1042,6 +1047,7 @@ namespace FWO.Services
             DisplayMessageInUi(default, "Add Network Area", "The reason why it's not allowed", true);
             return false;
         }
+
         private bool HasCommonNetworkAreas(List<ModellingNetworkArea> networkAreas)
         {          
             foreach (ModellingNetworkArea area in networkAreas)

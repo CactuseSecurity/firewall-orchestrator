@@ -305,11 +305,6 @@
 
     private void NetworkElemsToConn(bool toSource)
     {
-        if (!ConnHandler.NetworkAreaUseAllowed(Container))
-        {
-            return;
-        }
-
         List<ModellingNwGroup> nwGroups = [];
         List<ModellingAppRole> appRoles = [];
         List<ModellingNetworkArea> areas = [];
@@ -349,6 +344,12 @@
                 }
             }
         }
+
+        if (areas.Count > 0 && !ConnHandler.NetworkAreaUseAllowed(areas))
+        {
+            return;
+        }
+
         if(appRoles.Count > 0)
         {
             if(toSource)

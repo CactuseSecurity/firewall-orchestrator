@@ -3,41 +3,34 @@ using FWO.Basics;
 using FWO.Data;
 using FWO.Config.Api;
 using FWO.Report.Filter;
-using FWO.Report;
 
 namespace FWO.Ui.Display
 {
-    public class RuleDisplayBase(UserConfig userConfig)
+    public class RuleDisplayBase
     {
-        protected UserConfig userConfig = userConfig;
+        protected UserConfig userConfig;
 
-        public static string DisplayNumber(Rule rule)
+        public RuleDisplayBase(UserConfig userConfig)
+        {
+            this.userConfig = userConfig;
+        }
+
+        public string DisplayNumber(Rule rule)
         {
             return rule.DisplayOrderNumber.ToString();
         }
 
-        public static string DisplayEnabled(Rule rule, OutputLocation location)
-        {
-            if (location == OutputLocation.export)
-            {
-                return $"<b>{(rule.Disabled ? "N" : "Y")}</b>";
-            }
-            else
-            {
-                return $"<div class=\"oi {(rule.Disabled ? "oi-x" : "oi-check")}\"></div>";
-            }
-        }
-        public static string DisplayName(Rule rule)
+        public string DisplayName(Rule rule)
         {
             return rule.Name ?? "";
         }
 
-        public static string DisplaySourceZone(Rule rule)
+        public string DisplaySourceZone(Rule rule)
         {
             return rule.SourceZone != null ? rule.SourceZone.Name : "";
         }
 
-        public static string DisplayDestinationZone(Rule rule)
+        public string DisplayDestinationZone(Rule rule)
         {
             return rule.DestinationZone != null ? rule.DestinationZone.Name : "";
         }

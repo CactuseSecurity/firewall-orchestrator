@@ -1,0 +1,8 @@
+
+query getUsageDataCount($devId: Int) {
+  rule_aggregate(where: {_and: [ {dev_id: {_eq: $devId } }, { rule_metadatum: {rule_last_hit: { _is_null: false } } } ] }) {
+    aggregate {
+      count
+    }
+  }
+}

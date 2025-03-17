@@ -48,30 +48,30 @@ def collect_svc_objects(object_table, svc_objects):
                     if 'port' in obj:
                         port = str(obj['port'])
                         port_end = port
-                        pattern = re.compile(r'^>(\d+)$')
+                        pattern = re.compile('^\>(\d+)$')
                         match = pattern.match(port)
                         if match:
                             port = str(int(match.group()[1:]) + 1)
                             port_end = str(65535)
                         else:
-                            pattern = re.compile(r'^<(\d+)$')
+                            pattern = re.compile('^\<(\d+)$')
                             match = pattern.match(port)
                             if match:
                                 port = str(1)
                                 port_end = str(int(match.group()[1:]) - 1)
                             else:
-                                pattern = re.compile(r'^(\d+)\-(\d+)$')
+                                pattern = re.compile('^(\d+)\-(\d+)$')
                                 match = pattern.match(port)
                                 if match:
                                     port, port_end = match.group().split('-')
                                 else: # standard port without "<>-"
-                                    pattern = re.compile(r'^(\d+)$')
+                                    pattern = re.compile('^(\d+)$')
                                     match = pattern.match(port)
                                     if match:
                                         # port stays unchanged
                                         port_end = port
                                     else:   # Any
-                                        pattern = re.compile(r'^(Any)$')
+                                        pattern = re.compile('^(Any)$')
                                         match = pattern.match(port)
                                         if match:
                                             port = str(1)

@@ -12,10 +12,6 @@ namespace FWO.Basics
         private const string HtmlTagPattern = "<.*?>";
         private static readonly string[] AllowedTags = ["br?", "i", "hr"];
 
-        public static bool GenerousCompare(this string? string1, string? string2)
-        {
-            return string.IsNullOrEmpty(string1) && string.IsNullOrEmpty(string2) || string1 == string2;
-        }
         [GeneratedRegex(@"(\/[\d\.\:]+)\D?")]
         private static partial Regex NetmaskRegex();
 

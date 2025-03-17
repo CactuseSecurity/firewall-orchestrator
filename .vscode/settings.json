@@ -3,8 +3,5 @@
     "editor.formatOnSave": false,
     "[csharp]": {
         "editor.defaultFormatter": "ms-dotnettools.csharp"
-    },
-    "[razor]": {
-      "editor.defaultFormatter": "ms-dotnettools.csharp"
     }
 }

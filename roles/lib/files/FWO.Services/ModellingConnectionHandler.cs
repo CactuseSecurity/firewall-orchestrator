@@ -1019,37 +1019,35 @@ namespace FWO.Services
             return true;
         }
 
-        public bool NetworkAreaUseAllowed(ModellingDnDContainer modellingContainer)
-        {
-            return NetworkAreaUseAllowed(modellingContainer.AreaElements);
-        }
-
-        public bool NetworkAreaUseAllowed(List<ModellingNetworkArea> networkAreas)
+        public bool NetworkAreaUseAllowed(List<ModellingNetworkArea> networkAreas, out string reason)
         {
             if (ActConn.IsInterface)
             {
-                DisplayMessageInUi(default, "Add Network Area", "Interfaces must not contain network areas", true);
+                reason = "Interfaces must not contain network areas";
                 return false;
             }
+
             bool hasCommonNetworkAreas = HasCommonNetworkAreas(networkAreas);
 
-            //Uncommon network areas should only be selectable under “Common Services”
             if (!hasCommonNetworkAreas && ActConn.IsCommonService)
             {
+                //Uncommon network areas should only be selectable under “Common Services”
+                reason = "";
                 return true;
             }
-            //Common network areas may be selected in “Common Services” + “Connections”
-            if (hasCommonNetworkAreas && ( ActConn.IsCommonService || ( !ActConn.IsInterface && !ActConn.IsCommonService ) ))
+            else if (hasCommonNetworkAreas && ( ActConn.IsCommonService || ( !ActConn.IsInterface && !ActConn.IsCommonService ) ))
             {
+                //Common network areas may be selected in “Common Services” + “Connections”
+                reason = "";
                 return true;
             }
 
-            DisplayMessageInUi(default, "Add Network Area", "The reason why it's not allowed", true);
+            reason = "The reason why it's not allowed";
             return false;
         }
 
         private bool HasCommonNetworkAreas(List<ModellingNetworkArea> networkAreas)
-        {          
+        {
             foreach (ModellingNetworkArea area in networkAreas)
             {
                 if (CommonAreaConfigItems.Any(_ => _.AreaId == area.Id))

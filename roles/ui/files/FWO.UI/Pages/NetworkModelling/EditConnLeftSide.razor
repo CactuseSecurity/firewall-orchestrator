@@ -345,8 +345,9 @@
             }
         }
 
-        if (areas.Count > 0 && !ConnHandler.NetworkAreaUseAllowed(areas))
+        if (areas.Count > 0 && ConnHandler is not null && !ConnHandler.NetworkAreaUseAllowed(areas, out string reason))
         {
+            DisplayMessageInUi(default, "Add Network Area", reason, true);
             return;
         }
 

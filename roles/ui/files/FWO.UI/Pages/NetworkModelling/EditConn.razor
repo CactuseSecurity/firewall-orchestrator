@@ -119,7 +119,7 @@
                         @if((ConnHandler.ActConn.InterfaceIsRequested && ConnHandler.ActConn.SrcFromInterface) || (ConnHandler.ActConn.IsRequested && ConnHandler.ActConn.SourceFilled()))
                         {
                             @((MarkupString)ModellingHandlerBase.DisplayReqInt(userConfig, ConnHandler.ActConn.TicketId, ConnHandler.ActConn.InterfaceIsRequested,
-                                    ConnHandler.ActConn.GetBoolProperty(ConState.InterfaceRejected.ToString()) || ConnHandler.ActConn.GetBoolProperty(ConState.Rejected.ToString())))
+                                            ConnHandler.ActConn.GetBoolProperty(ConState.InterfaceRejected.ToString()) || ConnHandler.ActConn.GetBoolProperty(ConState.Rejected.ToString())))
                         }
                         else
                         {
@@ -217,7 +217,7 @@
                         @if(ConnHandler.ActConn.InterfaceIsRequested || ConnHandler.ActConn.IsRequested)
                         {
                             @((MarkupString)ModellingHandlerBase.DisplayReqInt(userConfig, ConnHandler.ActConn.TicketId, ConnHandler.ActConn.InterfaceIsRequested,
-                                    ConnHandler.ActConn.GetBoolProperty(ConState.InterfaceRejected.ToString()) || ConnHandler.ActConn.GetBoolProperty(ConState.Rejected.ToString())))
+                                            ConnHandler.ActConn.GetBoolProperty(ConState.InterfaceRejected.ToString()) || ConnHandler.ActConn.GetBoolProperty(ConState.Rejected.ToString())))
                         }
                         else
                         {
@@ -277,7 +277,7 @@
                         @if((ConnHandler.ActConn.InterfaceIsRequested && ConnHandler.ActConn.DstFromInterface) || (ConnHandler.ActConn.IsRequested && ConnHandler.ActConn.DestinationFilled()))
                         {
                             @((MarkupString)ModellingHandlerBase.DisplayReqInt(userConfig, ConnHandler.ActConn.TicketId, ConnHandler.ActConn.InterfaceIsRequested,
-                                    ConnHandler.ActConn.GetBoolProperty(ConState.InterfaceRejected.ToString()) || ConnHandler.ActConn.GetBoolProperty(ConState.Rejected.ToString())))
+                                            ConnHandler.ActConn.GetBoolProperty(ConState.InterfaceRejected.ToString()) || ConnHandler.ActConn.GetBoolProperty(ConState.Rejected.ToString())))
                         }
                         else
                         {
@@ -487,12 +487,6 @@
 
     private async Task HandleSrcDrop()
     {
-        if (ConnHandler is null || !ConnHandler.NetworkAreaUseAllowed(Container))
-        {
-            Container.Clear();
-            return;
-        }
-
         if(Container.ConnElement != null)
         {
             if(ConnHandler!.ActConn.IsInterface)
@@ -512,7 +506,14 @@
             }
             if(Container.AreaElements.Count > 0)
             {
-                ConnHandler?.AreasToSource(Container.AreaElements);
+                if (ConnHandler is not null && !ConnHandler.NetworkAreaUseAllowed(Container.AreaElements, out string reason))
+                {
+                    DisplayMessageInUi(default, "Add Network Area", reason, true);
+                    Container.Clear();
+                    return;
+                }
+
+                ConnHandler?.AreasToSource(Container.AreaElements);                
             }
             if(Container.NwGroupElements.Count > 0)
             {
@@ -528,12 +529,6 @@
 
     private async Task HandleDstDrop()
     {
-        if (ConnHandler is null || !ConnHandler.NetworkAreaUseAllowed(Container))
-        {
-            Container.Clear();
-            return;
-        }
-
         if(Container.ConnElement != null)
         {
             if(ConnHandler!.ActConn.IsInterface)
@@ -553,6 +548,13 @@
             }
             if(Container.AreaElements.Count > 0)
             {
+                if (ConnHandler is not null && !ConnHandler.NetworkAreaUseAllowed(Container.AreaElements, out string reason))
+                {
+                    DisplayMessageInUi(default, "Add Network Area", reason, true);
+                    Container.Clear();
+                    return;
+                }
+
                 ConnHandler?.AreasToDestination(Container.AreaElements);
             }
             if(Container.NwGroupElements.Count > 0)

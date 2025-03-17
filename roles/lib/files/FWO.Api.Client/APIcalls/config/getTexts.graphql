@@ -1,8 +1,0 @@
-
-query getAllTexts {
-  txt {
-    id
-    language
-    txt
-  }
-}

@@ -1,9 +1,0 @@
-
-query getEditableOwnersWithConn ($appIds: [Int!]){
-  owner_list: owner (where: {id: {_in: $appIds}} order_by: { name: asc }){
-    ...ownerDetails
-    connections_aggregate {
-      aggregate { count }
-    }      
-  }
-}

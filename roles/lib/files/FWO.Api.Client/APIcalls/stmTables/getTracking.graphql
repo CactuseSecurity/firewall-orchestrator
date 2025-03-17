@@ -1,7 +1,0 @@
-
-query getTracking {
-  stm_track {
-    track_id
-    track_name
-  }
-}

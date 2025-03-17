@@ -1,6 +1,0 @@
-﻿query getManagementDetails
-{
-  management(order_by: {mgm_name:asc}){
-    ...ManagementDetails
-  }
-}

@@ -1,5 +1,0 @@
-query getConnectionById($id: Int!){
-  modelling_connection (where: { id: { _eq: $id } }){
-    ...connectionDetails
-  }
-}

@@ -1,5 +1,0 @@
-query getReport($reportId: bigint!) {
-  report(where: { report_id: { _eq: $reportId } }) {
-    report_document
-  }
-}

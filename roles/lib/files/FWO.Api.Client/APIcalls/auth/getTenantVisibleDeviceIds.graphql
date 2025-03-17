@@ -1,2 +1,0 @@
-query getVisibleDeviceIdsPerTenant($tenantId: Int!) {
-  visibleDevices: get_visible_devices_per_tenant(args: {arg_1: $tenantId}) { id } }

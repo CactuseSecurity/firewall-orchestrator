@@ -1,8 +1,0 @@
-query {
-  refresh_view_rule_with_owner {
-    id
-    view_name
-    refreshed_at
-    status
-  }
-}

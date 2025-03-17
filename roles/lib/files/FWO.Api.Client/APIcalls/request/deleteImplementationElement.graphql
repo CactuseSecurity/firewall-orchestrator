@@ -1,7 +1,0 @@
-mutation deleteImplementationElement ($id: bigint!) {
-  delete_request_implelement_by_pk (
-    id: $id
-  ) {
-    deletedIdLong: id
-  }
-}

@@ -1,5 +1,0 @@
-query getGlobalServices{
-  modelling_service (where: { is_global: { _eq: true } } order_by: { name: asc }){
-    ...serviceDetails
-  }
-}

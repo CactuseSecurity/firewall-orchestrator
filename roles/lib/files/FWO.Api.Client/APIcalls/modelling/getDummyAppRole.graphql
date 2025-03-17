@@ -1,5 +1,0 @@
-query getDummyAppRole {
-  modelling_nwgroup (where: { app_id: { _is_null: true }, group_type: { _eq: 20 } }){
-    ...appRoleDetails
-  }
-}

@@ -1,7 +1,0 @@
-
-query getRuleActions {
-  stm_action {
-    action_id
-    action_name
-  }
-}

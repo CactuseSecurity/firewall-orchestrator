@@ -1,6 +1,0 @@
-query getDeviceDetails
-{
-  device{
-    ...deviceDetails
-  }
-}

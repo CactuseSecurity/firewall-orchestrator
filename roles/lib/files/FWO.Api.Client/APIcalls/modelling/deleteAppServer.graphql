@@ -1,5 +1,0 @@
-mutation deleteAppServer($id: bigint!) {
-  delete_owner_network(where: {id: {_eq: $id}}) {
-    affected_rows
-  }
-}

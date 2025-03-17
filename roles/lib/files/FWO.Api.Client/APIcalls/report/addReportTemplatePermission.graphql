@@ -1,9 +1,0 @@
-mutation addReportTemplatePermission($reportTemplateId: Int!, $userid: Int!) {
-  insert_report_template_viewable_by_user(
-    objects: { report_id: $reportTemplateId, uiuser_id: $userid }
-  ) {
-    returning {
-      report_id
-    }
-  }
-}

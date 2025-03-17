@@ -1,5 +1,0 @@
-query getAllAppServers {
-  owner_network (where: { nw_type: { _eq: 10 } } order_by: { name: asc }){
-    ...appServerDetails
-  }
-}

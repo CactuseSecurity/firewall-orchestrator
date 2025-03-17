@@ -1019,11 +1019,26 @@ namespace FWO.Services
             return true;
         }
 
-        public bool NetworkAreaUseAllowed(List<ModellingNetworkArea> networkAreas, out string reason)
+        public bool NetworkAreaUseAllowed(List<ModellingNetworkArea> networkAreas, out (string Title, string Text) reason)
         {
+            reason.Text = "";
+
+            if (ActConn.IsCommonService)
+            {
+                reason.Title = userConfig.GetText("edit_service");
+            }
+            else if (ActConn.IsInterface)
+            {
+                reason.Title = userConfig.GetText("edit_interface");
+            }
+            else
+            {
+                reason.Title = userConfig.GetText("edit_connection");
+            }
+
             if (ActConn.IsInterface)
             {
-                reason = "Interfaces must not contain network areas";
+                reason.Text = userConfig.GetText("interface_contain_nwarea");
                 return false;
             }
 
@@ -1032,17 +1047,15 @@ namespace FWO.Services
             if (!hasCommonNetworkAreas && ActConn.IsCommonService)
             {
                 //Uncommon network areas should only be selectable under “Common Services”
-                reason = "";
                 return true;
             }
             else if (hasCommonNetworkAreas && ( ActConn.IsCommonService || ( !ActConn.IsInterface && !ActConn.IsCommonService ) ))
             {
                 //Common network areas may be selected in “Common Services” + “Connections”
-                reason = "";
                 return true;
             }
 
-            reason = "The reason why it's not allowed";
+            reason.Text = "This network area can only be used in 'common services tab'";
             return false;
         }
 

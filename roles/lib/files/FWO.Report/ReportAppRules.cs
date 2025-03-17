@@ -41,63 +41,56 @@ namespace FWO.Report
             }
             return gotAllObjects;
         }
-        
 
         private async Task PrepareAppRulesReport(ApiConnection apiConnection)
         {
             await GetAppServers(apiConnection);
             List<ManagementReport> relevantData = [];
-            foreach (var mgt in ReportData.ManagementData)
+            foreach(var mgt in ReportData.ManagementData)
             {
-                ManagementReport relevantMgt = new() { Name = mgt.Name, Id = mgt.Id, Import = mgt.Import };
-                foreach (var dev in mgt.Devices)
+                ManagementReport relevantMgt = new(){ Name = mgt.Name, Id = mgt.Id, Import = mgt.Import };
+                foreach(var dev in mgt.Devices)
                 {
-                    DeviceReport relevantDevice = new() { Name = dev.Name, Id = dev.Id };
-                    var rbLink = dev.RulebaseLinks.FirstOrDefault(r => r.IsInitialRulebase());
-                    RulebaseReport? rb = mgt.Rulebases.FirstOrDefault(r => r.Id == rbLink?.NextRulebaseId);
-                    if (rb?.Rules != null)
+                    DeviceReport relevantDevice = new(){ Name = dev.Name, Id = dev.Id };
+                    if(dev.Rules != null)
                     {
-                        foreach (var rule in rb.Rules)
+                        relevantDevice.Rules = [];
+                        foreach(var rule in dev.Rules)
                         {
-                            RulebaseLink relevantRulebase = new();
-                            if (modellingFilter.ShowDropRules || !rule.IsDropRule())
+                            if(modellingFilter.ShowDropRules || !rule.IsDropRule())
                             {
                                 List<NetworkLocation> relevantFroms = [];
                                 List<NetworkLocation> disregardedFroms = [.. rule.Froms];
-                                if (modellingFilter.ShowSourceMatch)
+                                if(modellingFilter.ShowSourceMatch)
                                 {
                                     (relevantFroms, disregardedFroms) = CheckNetworkObjects(rule.Froms);
                                 }
                                 List<NetworkLocation> relevantTos = [];
                                 List<NetworkLocation> disregardedTos = [.. rule.Tos];
-                                if (modellingFilter.ShowDestinationMatch)
+                                if(modellingFilter.ShowDestinationMatch)
                                 {
                                     (relevantTos, disregardedTos) = CheckNetworkObjects(rule.Tos);
                                 }
 
-                                if (relevantFroms.Count > 0 || relevantTos.Count > 0)
+                                if(relevantFroms.Count > 0 || relevantTos.Count > 0)
                                 {
                                     rule.Froms = [.. relevantFroms];
                                     rule.Tos = [.. relevantTos];
                                     rule.DisregardedFroms = [.. disregardedFroms];
                                     rule.DisregardedTos = [.. disregardedTos];
                                     rule.ShowDisregarded = modellingFilter.ShowFullRules;
-                                    // if (relevantRulebase.NextRulebase != null)
-                                    // {
-                                    //     relevantRulebase.NextRulebase.Rules = [.. relevantRulebase.NextRulebase.Rules, rule];
-                                    //     relevantMgt.ReportedRuleIds.Add(rule.Id);
-                                    //     // relevantDevice.Rulebases = [.. relevantDevice.Rulebases, relevantRulebase];
-                                    // }
+                                    relevantDevice.Rules = [.. relevantDevice.Rules, rule];
+                                    relevantMgt.ReportedRuleIds.Add(rule.Id);
                                 }
                             }
                         }
-                        if (relevantDevice.ContainsRules())
+                        if(relevantDevice.Rules.Length > 0)
                         {
                             relevantMgt.Devices = [.. relevantMgt.Devices, relevantDevice];
                         }
                     }
                 }
-                if (relevantMgt.Devices.Length > 0)
+                if(relevantMgt.Devices.Length > 0)
                 {
                     relevantMgt.ReportedRuleIds = relevantMgt.ReportedRuleIds.Distinct().ToList();
                     relevantData.Add(relevantMgt);
@@ -108,7 +101,7 @@ namespace FWO.Report
 
         private async Task GetAppServers(ApiConnection apiConnection)
         {
-            List<ModellingAppServer> appServers = await apiConnection.SendQueryAsync<List<ModellingAppServer>>(ModellingQueries.getAppServersForOwner,
+            List<ModellingAppServer> appServers = await apiConnection.SendQueryAsync<List<ModellingAppServer>>(ModellingQueries.getAppServersForOwner, 
                 new { appId = Query.SelectedOwner?.Id });
             ownerIps = [.. appServers.ConvertAll(s => new IPAddressRange(IPAddress.Parse(s.Ip.StripOffNetmask()),
                 IPAddress.Parse((s.IpEnd != "" ? s.IpEnd : s.Ip).StripOffNetmask())))];
@@ -118,11 +111,11 @@ namespace FWO.Report
         {
             List<NetworkLocation> relevantObjects = [];
             List<NetworkLocation> disregardedObjects = [];
-            foreach (var obj in objList)
+            foreach(var obj in objList)
             {
-                if (obj.Object.IsAnyObject())
+                if(obj.Object.IsAnyObject())
                 {
-                    if (modellingFilter.ShowAnyMatch)
+                    if(modellingFilter.ShowAnyMatch)
                     {
                         relevantObjects.Add(obj);
                     }
@@ -134,11 +127,11 @@ namespace FWO.Report
                 else
                 {
                     bool found = false;
-                    if (obj.Object.Type.Name == ObjectType.Group)
+                    if(obj.Object.Type.Name == ObjectType.Group)
                     {
-                        foreach (var grpobj in obj.Object.ObjectGroupFlats)
+                        foreach(var grpobj in obj.Object.ObjectGroupFlats)
                         {
-                            if (grpobj.Object != null && CheckObj(grpobj.Object))
+                            if(grpobj.Object != null && CheckObj(grpobj.Object))
                             {
                                 relevantObjects.Add(obj);
                                 found = true;
@@ -146,12 +139,12 @@ namespace FWO.Report
                             }
                         }
                     }
-                    else if (CheckObj(obj.Object))
+                    else if(CheckObj(obj.Object))
                     {
                         relevantObjects.Add(obj);
                         found = true;
                     }
-                    if (!found)
+                    if(!found)
                     {
                         disregardedObjects.Add(obj);
                     }
@@ -162,7 +155,7 @@ namespace FWO.Report
 
         private bool CheckObj(NetworkObject obj)
         {
-            foreach (var ownerIpRange in ownerIps)
+            foreach(var ownerIpRange in ownerIps)
             {
                 if(obj.IP != null &&
                     IpOperations.RangeOverlapExists(new IPAddressRange(IPAddress.Parse(obj.IP.StripOffNetmask()),
@@ -174,75 +167,62 @@ namespace FWO.Report
             return false;
         }
 
-        private void PrepareFilterRecursive(ManagementReport mgt, DeviceReport dev, RulebaseLink rbLink)
-        {
-            // if (rbLink.NextRulebase.Rules != null)
-            // {
-            //     foreach (var rule in rbLink.NextRulebase.Rules)
-            //     {
-            //         RulebaseLink? nextRulebaseLink = dev.RulebaseLinks.FirstOrDefault(r => r.FromRuleId == rule.Id);
-            //         if (nextRulebaseLink != null)
-            //         {
-            //             PrepareFilterRecursive(mgt, dev, nextRulebaseLink);
-            //         }
-            //         foreach (var from in rule.Froms)
-            //         {
-            //             mgt.RelevantObjectIds.Add(from.Object.Id);
-            //             mgt.HighlightedObjectIds.Add(from.Object.Id);
-            //             if (from.Object.Type.Name == ObjectType.Group)
-            //             {
-            //                 foreach (var grpobj in from.Object.ObjectGroupFlats)
-            //                 {
-            //                     if (grpobj.Object != null && CheckObj(grpobj.Object))
-            //                     {
-            //                         mgt.HighlightedObjectIds.Add(grpobj.Object.Id);
-            //                     }
-            //                 }
-            //             }
-            //         }
-            //         if (rule.Froms.Length == 0)
-            //         {
-            //             foreach (var from in rule.DisregardedFroms)
-            //             {
-            //                 mgt.RelevantObjectIds.Add(from.Object.Id);
-            //             }
-            //         }
-
-
-            //         foreach (var to in rule.Tos)
-            //         {
-            //             mgt.RelevantObjectIds.Add(to.Object.Id);
-            //             mgt.HighlightedObjectIds.Add(to.Object.Id);
-            //             if (to.Object.Type.Name == ObjectType.Group)
-            //             {
-            //                 foreach (var grpobj in to.Object.ObjectGroupFlats)
-            //                 {
-            //                     if (grpobj.Object != null && CheckObj(grpobj.Object))
-            //                     {
-            //                         mgt.HighlightedObjectIds.Add(grpobj.Object.Id);
-            //                     }
-            //                 }
-            //             }
-            //         }
-            //         if (rule.Tos.Length == 0)
-            //         {
-            //             foreach (var to in rule.DisregardedTos)
-            //             {
-            //                 mgt.RelevantObjectIds.Add(to.Object.Id);
-            //             }
-            //         }
-            //     }
-            // }
-        
-        }
         private void PrepareFilter(ManagementReport mgt)
         {
             mgt.RelevantObjectIds = [];
             mgt.HighlightedObjectIds = [];
-            foreach (var dev in mgt.Devices)
+            foreach(var dev in mgt.Devices)
             {
-                PrepareFilterRecursive(mgt, dev, dev.RulebaseLinks.FirstOrDefault(r => r.IsInitialRulebase()));
-
+                if(dev.Rules != null)
+                {
+                    foreach(var rule in dev.Rules)
+                    {
+                        foreach(var from in rule.Froms)
+                        {
+                            mgt.RelevantObjectIds.Add(from.Object.Id);
+                            mgt.HighlightedObjectIds.Add(from.Object.Id);
+                            if(from.Object.Type.Name == ObjectType.Group)
+                            {
+                                foreach(var grpobj in from.Object.ObjectGroupFlats)
+                                {
+                                    if(grpobj.Object != null && CheckObj(grpobj.Object))
+                                    {
+                                        mgt.HighlightedObjectIds.Add(grpobj.Object.Id);
+                                    }
+                                }
+                            }
+                        }
+                        if(rule.Froms.Length == 0)
+                        {
+                            foreach(var from in rule.DisregardedFroms)
+                            {
+                                mgt.RelevantObjectIds.Add(from.Object.Id);
+                            }
+                        }
+                        foreach(var to in rule.Tos)
+                        {
+                            mgt.RelevantObjectIds.Add(to.Object.Id);
+                            mgt.HighlightedObjectIds.Add(to.Object.Id);
+                            if(to.Object.Type.Name == ObjectType.Group)
+                            {
+                                foreach(var grpobj in to.Object.ObjectGroupFlats)
+                                {
+                                    if(grpobj.Object != null && CheckObj(grpobj.Object))
+                                    {
+                                        mgt.HighlightedObjectIds.Add(grpobj.Object.Id);
+                                    }
+                                }
+                            }
+                        }
+                        if(rule.Tos.Length == 0)
+                        {
+                            foreach(var to in rule.DisregardedTos)
+                            {
+                                mgt.RelevantObjectIds.Add(to.Object.Id);
+                            }
+                        }
+                    }
+                }
             }
             mgt.RelevantObjectIds = mgt.RelevantObjectIds.Distinct().ToList();
             mgt.HighlightedObjectIds = mgt.HighlightedObjectIds.Distinct().ToList();
@@ -250,19 +230,19 @@ namespace FWO.Report
 
         private static void PrepareRsbOutput(ManagementReport mgt)
         {
-            foreach (var obj in mgt.ReportObjects)
+            foreach(var obj in mgt.ReportObjects)
             {
                 obj.Highlighted = mgt.HighlightedObjectIds.Contains(obj.Id) || obj.IsAnyObject();
-                if (obj.Type.Name == ObjectType.Group)
+                if(obj.Type.Name == ObjectType.Group)
                 {
-                    foreach (var grpobj in obj.ObjectGroupFlats)
+                    foreach(var grpobj in obj.ObjectGroupFlats)
                     {
                         if (grpobj.Object != null)
                         {
                             grpobj.Object.Highlighted = mgt.HighlightedObjectIds.Contains(grpobj.Object.Id) || grpobj.Object.IsAnyObject();
                         }
                     }
-                    foreach (var grpobj in obj.ObjectGroups)
+                    foreach(var grpobj in obj.ObjectGroups)
                     {
                         if (grpobj.Object != null)
                         {

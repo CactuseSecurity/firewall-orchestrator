@@ -5,7 +5,7 @@
     <Body>
         @if (RollbackMode)
         {
-            if (LastIncompleteImport != null && LastIncompleteImport.Length > 0)
+            if(LastIncompleteImport != null && LastIncompleteImport.Length > 0)
             {
                 <p>@(userConfig.GetText("U5104") + (LastIncompleteImport[0].StartTime != null ? Math.Round(((TimeSpan)(DateTime.Now - LastIncompleteImport[0].StartTime!)).TotalMinutes).ToString() : "?") + userConfig.GetText("U5105"))</p>
             }
@@ -19,7 +19,7 @@
         <div class="btn-group">
             <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Importer}")" Context="xxx">
                 <Authorized>
-                    <button type="button" class="btn btn-sm btn-danger" @onclick="async () => { await Rollback(); RollbackMode = false; await Closing.InvokeAsync(RollbackMode); }">@(userConfig.GetText("rollback"))</button>
+                    <button type="button" class="btn btn-sm btn-danger" @onclick="async () => {await Rollback(); RollbackMode = false; await Closing.InvokeAsync(RollbackMode);}">@(userConfig.GetText("rollback"))</button>
                 </Authorized>
                 <NotAuthorized>
                     <button type="button" class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("rollback"))</button>
@@ -66,15 +66,13 @@
         {
             RollbackMode = false;
             workInProgress = false;
-            var variablesGetLastImportId = new { mgmId = ManagementId };
-
-            List<ImportControl> importList = await apiConnection.SendQueryAsync<List<ImportControl>>(FWO.Api.Client.Queries.DeviceQueries.getLastImport, variablesGetLastImportId);
-            if (importList.Count != 1)
+            var Variables = new { mgmId = ManagementId };
+            int affectedRows = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.DeviceQueries.deleteImport, Variables)).AffectedRows;
+            if (affectedRows > 0)
             {
-                // TODO: add a check if the python import for this mgmt is still running
+                Log.WriteDebug("Delete Import", $"deleted {affectedRows} rows from Management Id {ManagementId}");
                 workInProgress = false;
-                DisplayMessageInUi(null, userConfig.GetText("not_imported_yet"), userConfig.GetText("U51XX"), false);
-                return;
+                DisplayMessageInUi(null, userConfig.GetText("rollback_import"), userConfig.GetText("U5107"), false);
             }
             else
             {
@@ -127,6 +125,5 @@
             workInProgress = false;
             DisplayMessageInUi(exception, userConfig.GetText("rollback_import"), "", true);
         }
-
     }
 }

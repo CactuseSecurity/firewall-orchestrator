@@ -1043,9 +1043,7 @@ namespace FWO.Services
             return false;
         }
         private bool HasCommonNetworkAreas(List<ModellingNetworkArea> networkAreas)
-        {
-            CommonAreaConfigItems.Add(new() { AreaId = 1 });
-
+        {          
             foreach (ModellingNetworkArea area in networkAreas)
             {
                 if (CommonAreaConfigItems.Any(_ => _.AreaId == area.Id))

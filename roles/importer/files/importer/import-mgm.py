@@ -52,8 +52,16 @@ if __name__ == "__main__":
 
     try:
         error_count = import_management(
-            mgmId=args.mgmId, in_file=args.in_file, debug_level_in=args.debug, ssl_verification=args.verify_certificates,
-            force=args.force, limit=args.limit, clearManagementData=args.clear, suppress_cert_warnings_in=args.suppress_certificate_warnings)
+            mgmId=args.mgmId, 
+            in_file=args.in_file, 
+            debug_level_in=args.debug, 
+            ssl_verification=args.verify_certificates,
+            force=args.force, 
+            limit=args.limit, 
+            clearManagementData=args.clear, 
+            suppress_cert_warnings_in=args.suppress_certificate_warnings,
+            version=fwo_config['fwo_major_version']
+        )
     except SystemExit:
         logger.error("import-mgm - error while importing mgmId=" + str(args.mgmId)  + ": " + str(traceback.format_exc()))
         error_count = 1

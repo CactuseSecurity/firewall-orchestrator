@@ -4,7 +4,7 @@
 
 # dependencies: 
 #   a) package python3-git must be installed
-#   b) requires the following config items in /usr/local/orch/etc/secrets/customizingConfig.json
+#   b) requires the following config items in /usr/local/fworch/etc/secrets/customizingConfig.json
 #       Tufin RLM
 #           username
 #           password
@@ -39,7 +39,7 @@ baseDir = "/usr/local/fworch/"
 baseDirEtc = baseDir + "etc/"
 repoTargetDir = baseDirEtc + "cmdb-repo"
 defaultConfigFileName = baseDirEtc + "secrets/customizingConfig.json"
-defaultRlmImportFileName = baseDir + "scripts/customizing/modelling/getOwnersFromTufinRlm.json"
+defaultRlmImportFileName = baseDirEtc + "getOwnersFromTufinRlm.json"
 importSourceString = "tufinRlm"
 
 # TUFIN settings:

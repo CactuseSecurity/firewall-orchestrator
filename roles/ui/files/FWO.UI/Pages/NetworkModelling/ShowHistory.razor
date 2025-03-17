@@ -15,6 +15,10 @@
                         <div class="col-sm-1">
                             <input id="cbx_show_all" type="checkbox" value="SelectAll" @onchange="async () => { SelectAll = !SelectAll; await GetHistory(); }" />
                         </div>
+                        <label for="nmb_limit" class="col-form-label col-sm-2">@(userConfig.GetText("fetch_limit")):</label>
+                        <div class="col-sm-2">
+                            <input id="nmb_limit" type="number" min="0" @bind="fetchLimit" />
+                        </div>
                     </div>
                 </Authorized>
             </AuthorizeView>
@@ -71,6 +75,7 @@
     private bool SelectAll = false;
 
     private int PageSize { get; set; }
+    private int fetchLimit = 1000;
 
     protected override async Task OnParametersSetAsync()
     {
@@ -86,7 +91,7 @@
         {
             if (SelectAll)
             {
-                history = await apiConnection.SendQueryAsync<List<ModellingHistoryEntry>>(ModellingQueries.getHistory);
+                history = await apiConnection.SendQueryAsync<List<ModellingHistoryEntry>>(ModellingQueries.getHistory, new { limit = fetchLimit, offset = 0 });
             }
             else
             {

@@ -253,6 +253,13 @@ namespace FWO.Middleware.Client
             return await restClient.ExecuteAsync<bool>(request);
         }
 
+        public async Task<RestResponse<string>> GetReport(ReportGetParameters parameters)
+        {
+            RestRequest request = new ("Report", Method.Post);
+            request.AddJsonBody(parameters);
+            return await restClient.ExecuteAsync<string>(request);
+        }
+
         protected virtual void Dispose(bool disposing)
         {
             if (disposed) return;

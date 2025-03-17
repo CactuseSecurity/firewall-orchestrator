@@ -87,27 +87,8 @@ namespace FWO.Middleware.Server
 			}
 			else
 			{
-				allGroups = ownerGroupLdap.GetAllGroupObjects(GetLdapSearchPattern(globalConfig.OwnerLdapGroupNames));
+				allGroups = ownerGroupLdap.GetAllGroupObjects(globalConfig.OwnerLdapGroupNames.Replace(GlobalConst.kAppIdPlaceholder, "*"));
 			}
-		}
-
-		private static string GetLdapSearchPattern(string ownerGroupNamePattern)
-		{
-			string searchPattern = ownerGroupNamePattern;
-			// assuming that we remove everything after the kAppIdPlaceholder
-			int index = ownerGroupNamePattern.IndexOf(GlobalConst.kAppIdPlaceholder);
-			if (index != -1)
-			{
-				// Keep text up to the substring
-				searchPattern = ownerGroupNamePattern.Substring(0, index + GlobalConst.kAppIdPlaceholder.Length);
-			}
-			// now remove CN= from pattern
-			index = searchPattern.IndexOf('=');
-			if (index != -1)
-			{
-				searchPattern = searchPattern.Substring(index + 1);
-			}
-			return searchPattern.Replace(GlobalConst.kAppIdPlaceholder, "*");
 		}
 
 		private async Task<bool> ImportSingleSource(string importfileName)
@@ -208,14 +189,7 @@ namespace FWO.Middleware.Server
 		private async Task<string> NewApp(ModellingImportAppData incomingApp)
 		{
 			string userGroupDn;
-			if (globalConfig.ManageOwnerLdapGroups)
-			{
-				userGroupDn = CreateUserGroup(incomingApp);
-			}
-			else
-			{
-				userGroupDn = GetGroupName(incomingApp.ExtAppId);
-			}
+			userGroupDn = globalConfig.ManageOwnerLdapGroups ? CreateUserGroup(incomingApp) : GetGroupDn(incomingApp.ExtAppId);
 
 			var variables = new
 			{
@@ -245,33 +219,19 @@ namespace FWO.Middleware.Server
 
 		private async Task<string> UpdateApp(ModellingImportAppData incomingApp, FwoOwner existingApp)
 		{
-			string userGroupDn = GetGroupName(incomingApp.ExtAppId);
-
-			if (existingApp.GroupDn == null || existingApp.GroupDn == "")
+			string userGroupDn = GetGroupDn(incomingApp.ExtAppId);
+			if (globalConfig.ManageOwnerLdapGroups)
 			{
-				GroupGetReturnParameters? groupWithSameName = allGroups.FirstOrDefault(x => new DistName(x.GroupDn).Group == GetGroupName(incomingApp.ExtAppId));
-				if (groupWithSameName != null)
+				if (string.IsNullOrEmpty(existingApp.GroupDn) && allGroups.FirstOrDefault(x => x.GroupDn == userGroupDn) == null)
 				{
-					if (userGroupDn == "")
+					string newDn = CreateUserGroup(incomingApp);
+					if(newDn != userGroupDn) // may this happen?
 					{
-						userGroupDn = groupWithSameName.GroupDn;
-					}
-					if (globalConfig.ManageOwnerLdapGroups)
-					{
-						UpdateUserGroup(incomingApp, groupWithSameName.GroupDn);
+						Log.WriteInfo("Import App Data", $"New UserGroup DN {newDn} differs from settings value {userGroupDn}.");
+						userGroupDn = newDn;
 					}
 				}
 				else
-				{
-					if (globalConfig.ManageOwnerLdapGroups)
-					{
-						userGroupDn = CreateUserGroup(incomingApp);
-					}
-				}
-			}
-			else
-			{
-				if (globalConfig.ManageOwnerLdapGroups)
 				{
 					UpdateUserGroup(incomingApp, userGroupDn);
 				}
@@ -314,6 +274,12 @@ namespace FWO.Middleware.Server
 		{
 			return globalConfig.OwnerLdapGroupNames.Replace(GlobalConst.kAppIdPlaceholder, extAppIdString);
 		}
+
+		private string GetGroupDn(string extAppIdString)
+		{
+			return $"cn={GetGroupName(extAppIdString)},{internalLdap.GroupWritePath}";
+		}
+
 
 		/// <summary>
 		/// for each user of a remote ldap group create a user in uiuser

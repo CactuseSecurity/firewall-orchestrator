@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS refresh_log (
     status TEXT
 );
 
+DROP FUNCTION IF EXISTS refresh_view_rule_with_owner();
 CREATE OR REPLACE FUNCTION refresh_view_rule_with_owner()
 RETURNS SETOF refresh_log AS $$
 DECLARE

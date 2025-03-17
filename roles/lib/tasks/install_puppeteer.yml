@@ -48,7 +48,7 @@
           abi <abi/4.0>,
           include <tunables/global>
 
-          profile /usr/local/fworch/bin/**/chrome flags=(unconfined) {
+          profile {{ fworch_home }}/bin/**/chrome flags=(unconfined) {
               userns,
 
               # Site-specific additions and overrides. See local/README for details.
@@ -89,11 +89,12 @@
   uri:
     url: https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions-with-downloads.json
   register: chrome_versions
+  become: false
 
 - name: parse latest stable versions for chrome #and headless shell
   set_fact:
     stable_chrome_versions: "{{ chrome_versions['json']['channels']['Stable']['downloads'] }}"
-    chrome_dest: "/usr/local/fworch/bin/Chrome/Linux-{{ chrome_versions['json']['channels']['Stable']['version'] }}"
+    chrome_dest: "{{ fworch_home }}/bin/Chrome/Linux-{{ chrome_versions['json']['channels']['Stable']['version'] }}"
 
 - block:
   - name: install unzip

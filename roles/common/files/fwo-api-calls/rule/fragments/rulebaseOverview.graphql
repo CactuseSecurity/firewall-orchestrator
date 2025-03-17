@@ -1,0 +1,5 @@
+fragment rulebaseOverview on rulebase {
+  id
+  uid
+  name
+}

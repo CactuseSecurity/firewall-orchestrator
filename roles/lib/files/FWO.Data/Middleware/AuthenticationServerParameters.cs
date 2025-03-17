@@ -14,6 +14,7 @@
         public string? SearchpathForUsers { get; set; }
         public string? SearchpathForRoles { get; set; }
         public string? SearchpathForGroups { get; set; }
+        public string? WritepathForGroups { get; set; }
         public string? WriteUser { get; set; }
         public string? WriteUserPwd { get; set; }
         public int? TenantId { get; set; }
@@ -37,6 +38,7 @@
             SearchpathForUsers = ldapAddParameters.SearchpathForUsers;
             SearchpathForRoles = ldapAddParameters.SearchpathForRoles;
             SearchpathForGroups = ldapAddParameters.SearchpathForGroups;
+            WritepathForGroups = ldapAddParameters.WritepathForGroups;
             WriteUser = ldapAddParameters.WriteUser;
             WriteUserPwd = ldapAddParameters.WriteUserPwd;
             TenantId = ldapAddParameters.TenantId;

@@ -15,7 +15,7 @@
 @(userConfig.GetText("U5322"))
 <hr />
 
-@if (configData != null)
+@if (configData != null && initComplete)
 {
     <form onsubmit="return false">
         <button type="button" class="btn btn-sm btn-dark ms-5" data-toggle="tooltip" title="@(userConfig.PureLine("H5602"))"
@@ -253,13 +253,13 @@
             </div>
         </div>
         <div class="form-group row mt-2">
-            <div class="row mt-2 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5642"))">
-                <label for="cbx_manage_owner_ldap_groups" class="col-form-label col-sm-4">@(userConfig.GetText("manageGroupsInLdap")):</label>
+            <div class="row align-items-center col-sm-5" data-toggle="tooltip" title="@(userConfig.PureLine("H5642"))">
+                <label for="cbx_manage_owner_ldap_groups" class="col-form-label col-sm-10">@(userConfig.GetText("manageGroupsInLdap")):</label>
                 <input id="cbx_manage_owner_ldap_groups" type="checkbox" class="col-sm-2" @bind="configData!.ManageOwnerLdapGroups">
             </div>
-            <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5641"))">
-                <label class="col-form-label col-sm-4">@(userConfig.GetText("ownerGroupPattern")):</label>
-                <input type="input" class="col-sm-4" @bind="configData!.OwnerLdapGroupNames" />
+            <div class="form-group row col-sm-7" data-toggle="tooltip" title="@(userConfig.PureLine("H5641"))">
+                <label class="col-form-label col-sm-6">@(userConfig.GetText("ownerGroupPattern")):</label>
+                <input type="input" class="col-sm-6" @bind="configData!.OwnerLdapGroupNames" />
             </div>
         </div>
 
@@ -415,10 +415,7 @@ else
 
     private List<UiLdapConnection> connectedLdaps = new List<UiLdapConnection>();
     private UiLdapConnection selectedLdap = new();
-
-    private int ownerLdapId = GlobalConst.kLdapInternalId;
-    private string ownerLdapGroupNames = GlobalConst.kLdapGroupPattern;
-    private bool manageOwnerLdapGroups = true;
+    private bool initComplete = false;
 
 
     private void OnAddAppServerError((Exception Exception, string Message) error)
@@ -468,16 +465,8 @@ else
             connectedLdaps = await apiConnection.SendQueryAsync<List<UiLdapConnection>>(AuthQueries.getAllLdapConnections);
 
             // get config value of selected ldap connection for owner data (both groups and main responsible user), default value = 1 = internal ldap
-            ownerLdapId = configData.OwnerLdapId;
-
-            selectedLdap = connectedLdaps.FirstOrDefault(x => x.Id == ownerLdapId) ?? new();
-
-            // get naming schema for groups: all groups follow a naming convention, e.g. ext-app-id,groups,example,com
-            ownerLdapGroupNames = configData.OwnerLdapGroupNames ?? GlobalConst.kLdapGroupPattern;
-
-            // whether or not to create owner groups in LDAP
-            manageOwnerLdapGroups = configData.ManageOwnerLdapGroups;
-
+            selectedLdap = connectedLdaps.FirstOrDefault(x => x.Id == configData.OwnerLdapId) ?? new();
+            initComplete = true;
         }
         catch (Exception exception)
         {

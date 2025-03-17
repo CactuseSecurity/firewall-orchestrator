@@ -1,6 +1,5 @@
 ﻿using System.Text.Json.Serialization; 
 using Newtonsoft.Json;
-using FWO.Basics;
 
 namespace FWO.Data
 {
@@ -9,9 +8,6 @@ namespace FWO.Data
         [JsonProperty("id"), JsonPropertyName("id")]
         public int Id { get; set; }
 
-        [JsonProperty("uid"), JsonPropertyName("uid")]
-        public string? Uid { get; set; }
-        
         [JsonProperty("name"), JsonPropertyName("name")]
         public string? Name { get; set; }
 
@@ -39,9 +35,6 @@ namespace FWO.Data
         [JsonProperty("comment"), JsonPropertyName("comment")]
         public string? Comment { get; set; }
 
-        // [JsonProperty("rulebase_links"), JsonPropertyName("rulebase_links")]
-        // public RulebasePerGateway[] Rulebases { get; set; } = [];
-
         public bool Selected { get; set; } = false;
         public bool Relevant { get; set; }
         public bool AwaitMgmt { get; set; }
@@ -55,7 +48,6 @@ namespace FWO.Data
         {
             Id = device.Id;
             Name = device.Name;
-            Uid = device.Uid;
             DeviceType = new DeviceType(device.DeviceType);
             Management = new Management(device.Management);
             LocalRulebase = device.LocalRulebase;
@@ -70,16 +62,10 @@ namespace FWO.Data
             ActionId = device.ActionId;
         }
 
-        public bool Equals(Device device)
-        {
-            return Name.GenerousCompare(device.Name) && Uid.GenerousCompare(device.Uid);
-        }
-
         public bool Sanitize()
         {
             bool shortened = false;
             Name = Sanitizer.SanitizeOpt(Name, ref shortened);
-            Uid = Sanitizer.SanitizeOpt(Uid, ref shortened);
             LocalRulebase = Sanitizer.SanitizeOpt(LocalRulebase, ref shortened);
             GlobalRulebase = Sanitizer.SanitizeOpt(GlobalRulebase, ref shortened);
             Package = Sanitizer.SanitizeOpt(Package, ref shortened);

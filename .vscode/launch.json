@@ -1,14 +1,5 @@
 {
     "version": "0.2.0",
-    "compounds": [
-        {
-            "name": "Launch MW and UI",
-            "configurations": [
-                "c#-MiddlewareServer",
-                "c#-Blazor UI"
-            ]
-        }
-    ],
     "configurations": [
         {
             "name": ".NET Core SSH Attach ubu20",
@@ -17,11 +8,7 @@
             "processId": "${command:pickRemoteProcess}",
             "pipeTransport": {
                 "pipeProgram": "ssh",
-                "pipeArgs": [
-                    "-T",
-                    "-p 22006",
-                    "tim@localhost"
-                ],
+                "pipeArgs": [ "-T", "-p 22006", "tim@localhost" ],
                 "debuggerPath": "~/vsdbg-root/vsdbg",
                 "pipeCwd": "${workspaceRoot}",
                 "quoteArgs": true
@@ -30,7 +17,7 @@
                 "/home/tim/firewall-orchestrator/roles": "${workspaceRoot}"
             },
             "logging": {
-                "logging.diagnosticsLog.protocolMessages": true
+              "logging.diagnosticsLog.protocolMessages": true
             }
         },
         {
@@ -114,54 +101,18 @@
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
             },
             "args": [
-                "-m1",
+                "-m7",
                 "-d1",
                 "-f",
                 "-s",
-                // "-c",
-                // "-ifile:///home/tim/tmp/mgm_id_12_config_normalized_with_links.json",
-                // "-ifile:///home/tim/tmp/mgm_id_16_config_normalized_links_only.json",
-                // "-ifile:///home/tim/tmp/mgm_id_16_config_normalized_links_changed.json",
-                // "-ifile:///home/tim/tmp/mgm_id_16_config_normalized_links_src_negated.json",
-                // "-ifile:///home/tim/tmp/mgm_id_3_config_normalized.json",
-                // "-ifile:///home/tim/tmp/mgm_id_1_config_normalized.json",
-                // "-ifile:///home/tim/tmp/sting_1_norm.json",
-                // "-ifile:///home/tim/tmp/sting_2_plus_one_nwobj_norm.json",
-                "-ifile:///home/tim/tmp/sting_3_plus_one_rule_norm.json",
-                //"-l66",
-                // "-l500",
+                //"-l",
+                // "-c"
+                //"-l250"
                 //  41 - lab fortimanager
-                //"-nhttps://fwodemodata.cactus.de/demo07_dummyGw1.json"
-                // "-ihttps://fwodemodata.cactus.de/demo11-r82_v9.json",
-                // "-ihttps://fwodemodata.cactus.de/demo04_cpr8x.json",
+                //"-ihttps://fwodemodata.cactus.de/demo04_cpr8x.json",
                 //"-ihttps://fwodemodata.cactus.de/demo01_fortiMgrLab.json"
-                // "-ihttps://fwodemodata.cactus.de/demo05_fortiMgr2.json"
+                //"-ihttps://fwodemodata.cactus.de/demo05_fortiMgr2.json"
                 //"-ihttps://fwodemodata.cactus.de/big/xxx.json",
-            ]
-        },
-        {
-            "name": "py-test-ruleorder",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "${workspaceFolder}/roles/importer/files/test/ruleorder.py",
-            "console": "integratedTerminal",
-            "env": {
-                "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
-            },
-            "args": []
-        },
-        {
-            "name": "py-kimport",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "${workspaceFolder}/roles/importer/files/importer/checkpointR8x/scripts/Python-nsPYm-v2/get_all_firewall_data.py",
-            "console": "integratedTerminal",
-            "env": {
-                "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
-            },
-            "args": [
-                "itsecorg",
-                "st8chel"
             ]
         },
         {
@@ -359,24 +310,24 @@
                 "-i/tmp/fworch-config.graphql"
             ]
         },
-        // {
-        //     "name": "py-cpr8x-autodiscovery",
-        //     "type": "debugpy",
-        //     "request": "launch",
-        //     "program": "${workspaceFolder}/roles/importer/files/importer/checkpointR8x/auto-discover.py",
-        //     "console": "integratedTerminal",
-        //     "cwd": "${workspaceFolder}/roles/importer/files/importer/checkpointR8x",
-        //     "env": {
-        //         "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
-        //     },
-        //     "args": [
-        //         "-a192.168.100.111",
-        //         "-w/home/tim/secrets/cp_apiuser_pwd",
-        //         "-uitsecorg",
-        //         "-d4",
-        //         "-fjson"
-        //     ]
-        // },
+        {
+            "name": "py-cpr8x-autodiscovery",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/roles/importer/files/importer/checkpointR8x/auto-discover.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}/roles/importer/files/importer/checkpointR8x",
+            "env": {
+                "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
+            },
+            "args": [
+                "-a192.168.100.110",
+                "-w/home/tim/secrets/cp_apiuser_pwd",
+                "-uitsecorg",
+                "-d4",
+                "-fjson"
+            ]
+        },
         {
             "name": "py-import-main-loop",
             "type": "debugpy",

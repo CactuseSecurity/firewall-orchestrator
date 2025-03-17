@@ -4,11 +4,11 @@ using FWO.Basics;
 using FWO.Data;
 using System.Text;
 using System.Text.Json.Serialization;
+using System.Text.Encodings.Web;
 using Newtonsoft.Json;
 using FWO.Logging;
 using RestSharp.Serializers.NewtonsoftJson;
 using RestSharp.Serializers;
-// using Newtonsoft.Json.Linq;
 
 namespace FWO.Rest.Client
 {
@@ -30,9 +30,10 @@ namespace FWO.Rest.Client
             config.UseSerializer(() => serializer);
         }
 
-        public async Task<RestResponse<SessionAuthInfo>> AuthenticateUser(string? user, string pwd, string domainString = "")
+
+        public async Task<RestResponse<SessionAuthInfo>> AuthenticateUser(string? user, string pwd)
         {
-            List<object> dataList = [];
+            List<object> dataList = new List<object>();
             dataList.Add(new { passwd = pwd, user = user });
 
             List<object> paramList = new List<object>();
@@ -60,36 +61,15 @@ namespace FWO.Rest.Client
                 id = 1,
                 @params = paramList // because "params" is a c# keyword, we have to escape it here with @
             };
-            RestRequest request = new("", Method.Post);
+            RestRequest request = new RestRequest("", Method.Post);
             request.AddJsonBody(body);
             return await restClient.ExecuteAsync<SessionAuthInfo>(request);
         }
 
-        public async Task<string> GetFortiManagerDetails(string sessionId)
-        {
-            string[] fieldArray = ["name", "oid", "uuid"];
-            List<object> paramList = [new { fields = fieldArray, url = "/sys/status" }];
-
-            var body = new
-            {
-                @params = paramList,
-                method = "get",
-                id = 1,
-                session = sessionId
-            };
-            RestRequest request = new("", Method.Post);
-            request.AddJsonBody(body);
-            Log.WriteDebug("Autodiscovery", $"using FortiManager REST API call with body='{body.ToString()}' and paramList='{paramList.ToString()}'");
-            RestResponse<FmApiTopLevelHelper> response = await restClient.ExecuteAsync<FmApiTopLevelHelper>(request);
-            
-            string uid = "dummy-uid"; // response?.Data?.Result[0]."Serial Number"];
-            return uid;
-        }
-
-        public async Task<RestResponse<FmApiTopLevelHelper>> GetAdoms(string sessionId)
+        public async Task<RestResponse<FmApiTopLevelHelper>> GetAdoms(string session)
         {
             string[] fieldArray = { "name", "oid", "uuid" };
-            List<object> paramList = [];
+            List<object> paramList = new List<object>();
             paramList.Add(new { fields = fieldArray, url = "/dvmdb/adom" });
 
             var body = new
@@ -97,18 +77,18 @@ namespace FWO.Rest.Client
                 @params = paramList,
                 method = "get",
                 id = 1,
-                session = sessionId
+                session = session
             };
-            RestRequest request = new("", Method.Post);
+            RestRequest request = new RestRequest("", Method.Post);
             request.AddJsonBody(body);
             Log.WriteDebug("Autodiscovery", $"using FortiManager REST API call with body='{body.ToString()}' and paramList='{paramList.ToString()}'");
             return await restClient.ExecuteAsync<FmApiTopLevelHelper>(request);
         }
 
-        public async Task<RestResponse<FmApiTopLevelHelperDev>> GetDevices(string sessionId)
+        public async Task<RestResponse<FmApiTopLevelHelperDev>> GetDevices(string session)
         {
             string[] fieldArray = { "name", "desc", "hostname", "vdom", "ip", "mgmt_id", "mgt_vdom", "os_type", "os_ver", "platform_str", "dev_status" };
-            List<object> paramList = [];
+            List<object> paramList = new List<object>();
             paramList.Add(new { fields = fieldArray, url = "/dvmdb/device" });
 
             var body = new
@@ -116,16 +96,16 @@ namespace FWO.Rest.Client
                 @params = paramList,
                 method = "get",
                 id = 1,
-                session = sessionId
+                session = session
             };
-            RestRequest request = new("", Method.Post);
+            RestRequest request = new RestRequest("", Method.Post);
             request.AddJsonBody(body);
             return await restClient.ExecuteAsync<FmApiTopLevelHelperDev>(request);
         }
 
         public async Task<RestResponse<FmApiTopLevelHelperAssign>> GetPackageAssignmentsPerAdom(string session, string adomName)
         {
-            List<object> paramList = [];
+            List<object> paramList = new List<object>();
             string urlString = "/pm/config/";
 
             if (adomName=="global")
@@ -163,7 +143,6 @@ namespace FWO.Rest.Client
     }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-
     public class FmApiTopLevelHelper
     {
         [JsonProperty("id"), JsonPropertyName("id")]
@@ -183,7 +162,6 @@ namespace FWO.Rest.Client
     }
 
     public class Adom
-
     {
         [JsonProperty("oid"), JsonPropertyName("oid")]
         public int Oid { get; set; }
@@ -215,7 +193,7 @@ namespace FWO.Rest.Client
     public class FmApiDataHelperDev
     {
         [JsonProperty("data"), JsonPropertyName("data")]
-        public List<FortiGate> DeviceList { get; set; } = [];
+        public List<FortiGate> DeviceList { get; set; } = new List<FortiGate>();
     }
     public class FortiGate
     {
@@ -279,7 +257,7 @@ namespace FWO.Rest.Client
         public int Oid { get; set; }
 
         [JsonProperty("dev"), JsonPropertyName("dev")]
-        public string RulebaseName { get; set; } = "";
+        public string DeviceName { get; set; } = "";
 
         [JsonProperty("vdom"), JsonPropertyName("vdom")]
         public string VdomName { get; set; } = "";

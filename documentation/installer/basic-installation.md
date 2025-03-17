@@ -74,9 +74,9 @@ ok: [install-srv] => {
 PLAY RECAP *********************************************************************
 install-srv                 : ok=302  changed=171  unreachable=0    failed=0    skipped=127  rescued=0    ignored=0
 ```
-Simply navigate to <https://localhost/> and login with user 'admin' and the UI admin password displayed by the install script (see above).
+Simply navigate to <https://localhost/> and login with user 'admin' and the UI admin password.
 
-The api hasura admin secret can be used to access the API at <https://localhost:9443/api/console>.
+The api hasura admin secret can be used to access the API at <https://localhost:9443/>.
 
 
 If using the python venv method, you may now exit venv with:

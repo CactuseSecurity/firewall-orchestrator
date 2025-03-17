@@ -1,0 +1,6 @@
+query getLanguages {
+  language {
+    name
+    culture_info
+  }
+}

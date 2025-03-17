@@ -1,0 +1,8 @@
+mutation removeStateAction(
+  $stateId: Int!
+  $actionId: Int!
+  ) {
+  delete_request_state_action(where: {_and: [{state_id: {_eq: $stateId}},{action_id: {_eq: $actionId}}]}) {
+    affected_rows
+  }
+}

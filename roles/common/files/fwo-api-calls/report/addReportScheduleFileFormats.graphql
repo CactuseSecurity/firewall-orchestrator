@@ -1,0 +1,13 @@
+﻿mutation addReportScheduleFileTypes(
+  $report_schedule_ids_formats: report_schedule_format_arr_rel_insert_input! # array of foreign key to output formats
+) {
+    insert_report_schedule(
+    objects: {
+      report_schedule_formats: $report_schedule_ids_formats
+    }
+  ) {
+    returning {
+      report_schedule_id
+    }
+  }
+}

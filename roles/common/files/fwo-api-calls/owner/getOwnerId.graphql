@@ -1,0 +1,5 @@
+query getOwnerId($externalAppId: String) {
+  owner_list: owner (where: {app_id_external:{_eq: $externalAppId}}){
+     id  
+  }
+}

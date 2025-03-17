@@ -1,0 +1,15 @@
+query getReportTemplates($reportTemplateName: String, $userId: Int) {
+  report_template(
+    where: { _or: [{report_template_owner: {_eq: $userId }}, {report_template_owner: {_eq: 0 }}]  report_template_name: { _ilike: $reportTemplateName } }
+    order_by: { report_template_owner: asc, report_template_name: asc }
+  ) {
+    report_template_name
+    report_filter
+    report_template_comment
+    report_template_create
+    report_template_id
+    report_template_owner
+    filterline_history
+    report_parameters
+  }
+}

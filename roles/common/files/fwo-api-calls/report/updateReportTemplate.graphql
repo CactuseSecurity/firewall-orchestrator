@@ -1,0 +1,23 @@
+﻿mutation updateReportTemplate(
+  $reportTemplateId: Int
+  $reportTemplateName: String
+  $reportTemplateCreate: timestamp
+  $reportTemplateComment: String
+  $reportFilterLine: String
+  $reportTemplateOwner: Int
+  $reportParameters: json
+) {
+  update_report_template(
+    where: { report_template_id: { _eq: $reportTemplateId } }
+    _set: {
+      report_template_name: $reportTemplateName
+      report_template_create: $reportTemplateCreate
+      report_template_comment: $reportTemplateComment
+      report_filter: $reportFilterLine
+      report_template_owner: $reportTemplateOwner
+      report_parameters: $reportParameters
+    }
+  ) {
+    affected_rows
+  }
+}

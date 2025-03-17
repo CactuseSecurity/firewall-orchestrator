@@ -1,0 +1,7 @@
+
+query getIpProtocols {
+  stm_ip_proto {
+    ip_proto_id
+    ip_proto_name
+  }
+}

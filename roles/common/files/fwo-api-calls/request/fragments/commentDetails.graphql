@@ -1,0 +1,11 @@
+fragment commentDetails on request_comment {
+  id
+  ref_id
+  scope
+  creation_date
+  creator: uiuser {
+    uiuser_id
+    uiuser_username
+  }
+  comment_text
+}

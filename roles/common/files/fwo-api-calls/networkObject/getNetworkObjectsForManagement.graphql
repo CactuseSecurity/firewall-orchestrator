@@ -1,0 +1,5 @@
+query getNetworkObjectsForManagement ($mgmId: Int, $objTypeIds: [Int!]){
+  object(where: {mgm_id: { _eq: $mgmId }, active: {_eq: true}, obj_typ_id: {_in: $objTypeIds}}) {   
+    ...networkObjectDetails
+  }
+}

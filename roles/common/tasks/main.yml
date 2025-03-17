@@ -278,6 +278,9 @@
   - name: include fworch.yaml config file creator
     import_tasks: conf_file_creator.yml
 
+  - name: include fwo api call installer
+    import_tasks: install-api-calls.yml
+
   - name: include upgrade script
     import_tasks: run-upgrades.yml
     when: "installation_mode == 'upgrade'"

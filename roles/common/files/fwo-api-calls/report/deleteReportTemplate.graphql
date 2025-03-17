@@ -1,0 +1,7 @@
+﻿mutation deleteReportTemplate ($reportTemplateId : Int!) {
+  delete_report_template(
+    where: {report_template_id: {_eq: $reportTemplateId}}
+  ) {
+    affected_rows
+  }
+}

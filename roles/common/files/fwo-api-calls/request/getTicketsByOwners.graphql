@@ -1,0 +1,15 @@
+query getTicketsByOwners(
+  $ownerIds: [Int!]
+  $fromState: Int!
+  $toState: Int!
+  ) {
+  request_ticket(where: {
+    _and: [{
+      reqtasks: { reqtask_owners: { owner_id: {_in: $ownerIds}} },
+      _or: [{_and: [{state_id: {_gte: $fromState}}, {state_id: {_lt: $toState}}]}, 
+        {reqtasks: {_and: [{state_id: {_gte: $fromState}}, {state_id: {_lt: $toState}}]}}]
+    }]
+    }, order_by: {id: asc}) {
+    ...ticketDetails
+  }
+}

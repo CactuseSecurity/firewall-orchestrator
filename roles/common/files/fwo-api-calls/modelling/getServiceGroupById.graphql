@@ -1,0 +1,10 @@
+query getServiceGroupById ($id: Int!){
+  modelling_service_group_by_pk(id: $id){
+    ...serviceGroupDetails
+    services: service_service_groups{
+      service{
+        ...serviceDetails
+      }
+    }
+  }
+}

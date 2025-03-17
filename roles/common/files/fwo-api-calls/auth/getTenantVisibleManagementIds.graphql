@@ -1,0 +1,2 @@
+query getVisibleManagementIdsPerTenant($tenantId: Int!) {
+  visibleManagements: get_visible_managements_per_tenant(args: {arg_1: $tenantId}) { id } }

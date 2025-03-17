@@ -1,0 +1,9 @@
+fragment deviceTypeDetails on stm_dev_typ {
+      id: dev_typ_id
+      name: dev_typ_name
+      version: dev_typ_version
+      manufacturer: dev_typ_manufacturer
+      isPureRoutingDevice: is_pure_routing_device
+      isManagement: dev_typ_is_mgmt
+      predefinedObjects: dev_typ_predef_obj
+}

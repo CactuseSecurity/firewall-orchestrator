@@ -1,0 +1,20 @@
+query listUsers(
+  $management_id: [Int!]
+  $time: String
+  $user_name: [String!]
+  $limit: Int
+  $offset: Int
+) {
+  management(where: { mgm_id: { _in: $management_id }, stm_dev_typ:{dev_typ_is_multi_mgmt:{_eq:false}} }) {
+    id: mgm_id
+    name: mgm_name
+    userObjects: usrs(
+      limit: $limit
+      offset: $offset
+      where: { active: { _eq: true }, user_name: { _in: $user_name } }
+      order_by: { user_name: asc }
+    ) {
+      ...userDetails
+    }
+  }
+}

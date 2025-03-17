@@ -1,0 +1,5 @@
+query getDeviceTypeDetails {
+  deviceType: stm_dev_typ(order_by: {dev_typ_name: asc, dev_typ_version:asc}) {
+      ...deviceTypeDetails
+    }
+}

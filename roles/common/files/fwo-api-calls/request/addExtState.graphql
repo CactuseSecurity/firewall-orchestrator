@@ -1,0 +1,13 @@
+mutation addExtState(
+  $name: String!
+  $stateId: Int!
+  ) {
+  insert_request_ext_state(objects: {
+    name: $name
+    state_id: $stateId
+  }) {
+    returning {
+      newId: id
+    }
+  }
+}

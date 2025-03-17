@@ -1,0 +1,17 @@
+query getFutureRecertsForOwners($ownerId: Int!, $mgmId: Int!) {
+  recert_get_one_owner_one_mgm(
+    where: { recert_date: { _is_null: true } }
+    args: { i_mgm_id: $mgmId, i_owner_id: $ownerId }
+  ) {
+    id
+    rule_metadata_id
+    rule_id
+    ip_match
+    owner_id
+    user_dn
+    recertified
+    next_recert_date
+    recert_date
+    comment
+  }
+}

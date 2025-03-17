@@ -1,0 +1,5 @@
+query getConfigItemByKey($key: String!) {
+  config(where: {config_key: {_eq: $key}, config_user: {_eq: 0}}) {
+    config_value
+  }
+}

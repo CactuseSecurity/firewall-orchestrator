@@ -1,0 +1,5 @@
+query getConnectionIdsForAppServer ($id: bigint!){
+  modelling_nwobject_connection (where: { nwobject_id: { _eq: $id } }){
+    connection_id
+  }
+}

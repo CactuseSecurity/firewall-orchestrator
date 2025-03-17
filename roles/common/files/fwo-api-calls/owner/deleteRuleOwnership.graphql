@@ -1,0 +1,8 @@
+mutation deleteRuleOwnership(
+  $ownerId: Int!
+  $ruleMetadataId: bigint!
+  ) {
+  delete_rule_owner(where: {owner_id: {_eq: $ownerId}, rule_metadata_id: {_eq: $ruleMetadataId}}) {
+    affected_rows
+  }
+}

@@ -1,0 +1,6 @@
+﻿subscription subscribeConfigChangesByUser($userId: Int, $ignoreKeys: [String]) {
+  config(where: {_and: [{config_user: {_eq: $userId}}, {config_key: {_nin: $ignoreKeys}} ]}) {
+    config_key
+    config_value
+  }
+}

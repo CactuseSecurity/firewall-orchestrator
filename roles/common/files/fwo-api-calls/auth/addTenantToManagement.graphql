@@ -1,0 +1,7 @@
+
+mutation addTenantToManagement($tenantId: Int!, $mgmId: Int!, $shared: Boolean) {
+    insert_tenant_to_management(objects: {management_id: $mgmId, shared: $shared, tenant_id: $tenantId})
+  {
+    affected_rows
+  }
+}

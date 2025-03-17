@@ -1,0 +1,11 @@
+mutation replaceUsedInterface(
+  $usedInterfaceIdOld: Int!
+  $usedInterfaceIdNew: Int!
+ ) {
+  update_modelling_connection(where: {used_interface_id: {_eq: $usedInterfaceIdOld}}
+    _set: {
+      used_interface_id: $usedInterfaceIdNew
+  }) {
+    affected_rows
+  }
+}

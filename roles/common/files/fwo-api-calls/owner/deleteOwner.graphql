@@ -1,0 +1,5 @@
+mutation deleteOwner($id: Int!) {
+  delete_owner(where: {id: {_eq: $id}}) {
+    affected_rows
+  }
+}

@@ -1,0 +1,14 @@
+mutation updateConfigItem(
+  $key: String!
+  $value: String!
+  $user: Int!
+) {
+  update_config_by_pk(
+    pk_columns: { config_key: $key, config_user: $user}
+    _set: {
+      config_value: $value
+    }
+  ) {
+    updatedId: config_key
+  }
+}

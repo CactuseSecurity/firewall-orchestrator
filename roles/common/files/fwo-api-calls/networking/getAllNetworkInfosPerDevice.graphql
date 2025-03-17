@@ -1,0 +1,36 @@
+query getAllNetworkInfosPerDevice {
+  management(
+    where: { 
+      hide_in_gui: { _eq: false }, 
+      stm_dev_typ:{
+        dev_typ_is_multi_mgmt:{_eq:false}
+      } 
+    }
+    order_by: { mgm_name: asc }
+  ) {
+    id: mgm_id
+    name: mgm_name
+    devices(
+      where: { hide_in_gui: { _eq: false } }
+      order_by: { dev_name: asc }
+    ) {
+      id: dev_id
+      name: dev_name
+      gw_interfaces_aggregate {
+        aggregate { count }
+      }
+      gw_routes_aggregate {
+        aggregate { count }
+      }      
+      gw_interfaces {
+        name
+        ip
+        ip_version
+      }
+      gw_routes {
+        destination
+        target_gateway
+      }
+    }
+  }
+}

@@ -1,0 +1,10 @@
+
+query getTenantNetworks ($tenantId: Int!) {
+  tenant_network (where: {tenant_id: {_eq: $tenantId}} order_by: { tenant_net_id: asc }){
+    id: tenant_net_id
+    ip: tenant_net_ip
+    ip_end: tenant_net_ip_end
+    name: tenant_net_name
+    comment: tenant_net_comment
+  }
+}

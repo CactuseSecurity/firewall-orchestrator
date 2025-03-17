@@ -1,0 +1,5 @@
+mutation deleteAction($id: Int!) {
+  delete_request_action(where: {id: {_eq: $id}}) {
+    affected_rows
+  }
+}

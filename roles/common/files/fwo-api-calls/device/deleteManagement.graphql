@@ -1,0 +1,7 @@
+mutation delete_management_by_pk ($id: Int!) {
+  delete_management_by_pk (
+    mgm_id: $id
+  ) {
+    deletedId: mgm_id
+  }
+}

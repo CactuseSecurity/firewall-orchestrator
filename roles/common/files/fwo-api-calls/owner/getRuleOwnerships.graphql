@@ -1,0 +1,10 @@
+
+query getRuleOwnerships ($ownerId: Int!) {
+  rule_owner (where: {owner_id: {_eq: $ownerId}} order_by: { rule_metadata_id: asc }){
+    rule_metadatum {
+      rule_metadata_id
+      dev_id
+      rule_uid
+    }
+  }
+}

@@ -1,0 +1,14 @@
+
+query getActions {
+  action_list: request_action (order_by: { id: asc }){
+    id
+    name
+    action_type
+    scope
+    task_type
+    phase
+    event
+    button_text
+    external_parameters
+  }
+}

@@ -1,0 +1,43 @@
+﻿mutation editReportSchedule($report_schedule_id: bigint!, $report_schedule_name: String!,
+  $report_schedule_owner_id: Int!, $report_schedule_template_id: Int!,
+  $report_schedule_start_time : timestamp!, $report_schedule_repeat : Int!,
+  $report_schedule_every : Int!, $report_schedule_active : Boolean!
+  $report_schedule_format_names : [String!]!,
+  $report_schedule_format_rel: [report_schedule_format_insert_input!]!) {
+  update_report_schedule(
+    where: {report_schedule_id: {_eq: $report_schedule_id}},
+    _set: {
+      report_schedule_name: $report_schedule_name,
+      report_schedule_owner: $report_schedule_owner_id,
+      report_schedule_start_time: $report_schedule_start_time,
+      report_schedule_active: $report_schedule_active,
+      report_schedule_every: $report_schedule_every,
+      report_schedule_repeat: $report_schedule_repeat,
+      report_template_id: $report_schedule_template_id
+    }
+  ) {
+    affected_rows
+  }
+         
+  delete_report_schedule_format(
+    where: {
+        _and: [
+        { report_schedule_id: {_eq: $report_schedule_id}},
+        { report_schedule_format_name: {_nin: $report_schedule_format_names}}
+      ]   
+    }) {     
+      affected_rows
+    }
+  
+  insert_report_schedule_format(
+    objects: $report_schedule_format_rel,
+    on_conflict: {
+    	constraint: report_schedule_format_pkey,
+    	update_columns: []
+    },
+  ) {
+    returning {
+      report_schedule_id
+    },
+  }
+}

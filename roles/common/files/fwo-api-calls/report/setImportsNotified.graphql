@@ -1,0 +1,9 @@
+mutation setImportsNotified($ids: [bigint!]) {
+  update_import_control(
+    where: { control_id: {_in: $ids} }
+    _set: {
+      notification_done: true
+  }) {
+    affected_rows
+  }
+}

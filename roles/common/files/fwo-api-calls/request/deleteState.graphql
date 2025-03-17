@@ -1,0 +1,5 @@
+mutation deleteState($id: Int!) {
+  delete_request_state(where: {id: {_eq: $id}}) {
+    affected_rows
+  }
+}

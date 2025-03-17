@@ -1,0 +1,12 @@
+query getUserByDn($dn: String!) {
+  uiuser(where: {uuid: {_eq:  $dn } }) {
+    uiuser_id
+    uuid
+    uiuser_username
+    uiuser_email
+    uiuser_first_name
+    uiuser_last_name
+    uiuser_language
+    uiuser_password_must_be_changed
+  }
+}

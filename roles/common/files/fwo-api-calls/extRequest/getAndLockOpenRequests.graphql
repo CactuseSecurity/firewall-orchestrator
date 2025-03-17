@@ -1,0 +1,12 @@
+
+mutation getAndLockOpenRequests ($states: [String!] ){
+  update_ext_request (where: { ext_request_state: { _in: $states }, locked: { _eq: false } },
+      _set: {
+        locked: true
+      }
+  ){
+    returning {
+      ...extRequestDetails
+    }
+  }
+}

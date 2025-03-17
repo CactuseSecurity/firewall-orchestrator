@@ -1,0 +1,33 @@
+query getObjectsInReport(
+  $mgmIds: [Int!]
+  $ruleIds: _int8
+  $importId: bigint
+  $limit: Int
+  $offset: Int
+) {
+  management(where: { mgm_id: { _in: $mgmIds }, stm_dev_typ:{dev_typ_is_multi_mgmt:{_eq:false}} }) {
+    name: mgm_name
+    id: mgm_id
+    reportNetworkObjects: filter_rule_nwobj_resolveds (
+      args: {rule_ids: $ruleIds, import_id: $importId}
+      limit: $limit
+      offset: $offset
+    ) {
+      ...networkObjectDetails
+    }
+    reportServiceObjects: filter_rule_svc_resolveds (
+      args: {rule_ids: $ruleIds, import_id: $importId}
+      limit: $limit
+      offset: $offset
+    ) {
+      ...networkServiceDetails
+    }
+    reportUserObjects: filter_rule_user_resolveds (
+      args: {rule_ids: $ruleIds, import_id: $importId}
+      limit: $limit
+      offset: $offset
+    ) {
+      ...userDetails
+    }
+  }
+}

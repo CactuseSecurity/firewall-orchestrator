@@ -1,0 +1,13 @@
+mutation addStateAction(
+  $stateId: Int!
+  $actionId: Int!
+  ) {
+  insert_request_state_action(objects: {
+    state_id: $stateId
+    action_id: $actionId
+  }) {
+    returning {
+      newId: action_id
+    }
+  }
+}

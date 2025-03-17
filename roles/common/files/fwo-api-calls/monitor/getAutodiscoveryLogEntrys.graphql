@@ -1,0 +1,12 @@
+query getAutodiscoveryLogEntrys {
+  log_data_issue (where: {source: {_eq: "autodiscovery"}} order_by: { data_issue_id: desc }){
+    data_issue_id
+    user_id
+    severity
+    issue_timestamp
+    suspected_cause
+    description
+    issue_mgm_id
+    issue_dev_id
+  }
+}

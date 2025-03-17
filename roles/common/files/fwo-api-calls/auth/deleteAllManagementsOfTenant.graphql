@@ -1,0 +1,7 @@
+
+mutation deleteAllManagementsOfTenant($tenantId: Int!) {
+  delete_tenant_to_management(where: {tenant_id:{_eq:$tenantId}})
+  {
+    affected_rows
+  }
+}

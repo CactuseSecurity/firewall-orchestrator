@@ -1,0 +1,13 @@
+mutation updateUserLastLogin(
+  $id: Int!
+  $loginTime: timestamptz!
+) {
+  update_uiuser_by_pk(
+    pk_columns: { uiuser_id: $id }
+    _set: {
+      uiuser_last_login: $loginTime
+    }
+  ) {
+    PasswordMustBeChanged: uiuser_password_must_be_changed
+  }
+}

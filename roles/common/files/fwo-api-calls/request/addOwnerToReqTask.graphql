@@ -1,0 +1,13 @@
+mutation addOwnerToReqTask(
+  $reqTaskId: bigint
+  $ownerId: Int!
+  ) {
+  insert_reqtask_owner(objects: {
+    reqtask_id: $reqTaskId
+    owner_id: $ownerId
+  }) {
+    returning {
+      newId: owner_id
+    }
+  }
+}

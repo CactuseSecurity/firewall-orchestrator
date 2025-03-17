@@ -1,0 +1,20 @@
+query getRuleUidsOfDevice ($devId: Int!, $relevantImportId: bigint) {
+  rule (
+  where: {
+    dev_id: { _eq: $devId }
+    active: { _eq: true }
+    access_rule: { _eq: true }
+    rule_head_text: { _is_null: true }
+    rule_disabled: { _eq: false }
+    action_id: { _nin: [2,3,7] }
+    import_control: { control_id: {_lte: $relevantImportId } }, importControlByRuleLastSeen: { control_id: {_gte: $relevantImportId }}
+  }
+  order_by: { rule_num_numeric: asc }){
+    rule_uid
+    rule_metadatum{
+      rule_metadata_id
+      rule_uid
+      dev_id
+    }
+  }
+}

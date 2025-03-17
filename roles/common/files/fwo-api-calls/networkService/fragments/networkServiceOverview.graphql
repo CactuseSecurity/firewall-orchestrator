@@ -1,0 +1,16 @@
+fragment networkServiceOverview on service {
+  svc_id
+  svc_name
+  svc_uid
+  svc_port
+  svc_port_end
+  service_type: stm_svc_typ {
+    id: svc_typ_id
+    name: svc_typ_name
+  }
+  svc_color_id
+  protocol_name: stm_ip_proto {
+    id: ip_proto_id
+    name: ip_proto_name
+  }
+}

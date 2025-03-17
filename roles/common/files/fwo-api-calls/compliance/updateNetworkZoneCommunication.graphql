@@ -1,0 +1,18 @@
+mutation update_compliance_network_zone_communication(
+  $delete_zone_communication_exp: [compliance_network_zone_communication_bool_exp!]!,
+	$add_zone_communication: [compliance_network_zone_communication_insert_input!]!,)
+{
+  delete_compliance_network_zone_communication (
+    where: {
+      _or: $delete_zone_communication_exp
+    }
+  ) {
+    affected_rows
+  }
+  
+  insert_compliance_network_zone_communication (
+    objects: $add_zone_communication
+  ) {
+    affected_rows
+  }
+}

@@ -1,0 +1,14 @@
+query getAppZonesByAppId($appId: Int!) {
+  modelling_nwgroup (where: { group_type: { _eq: 21 }, app_id: { _eq: $appId} } order_by: { name: asc }){
+    id
+    app_id
+    name
+    id_string
+    is_deleted   
+    nwobjects: nwobject_nwgroups{
+    owner_network{
+      ...appServerDetails
+    }
+  }
+  }
+}

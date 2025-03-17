@@ -1,0 +1,19 @@
+mutation newServiceGroup(
+  $name: String
+  $appId: Int
+  $isGlobal: Boolean
+  $comment: String
+  $creator: String
+  ) {
+  insert_modelling_service_group(objects: {
+    name: $name
+    app_id: $appId
+    is_global: $isGlobal
+    comment: $comment
+    creator: $creator
+  }) {
+    returning {
+      newId: id
+    }
+  }
+}

@@ -1,0 +1,5 @@
+mutation deleteServiceGroup($id: Int!) {
+  delete_modelling_service_group(where: {id: {_eq: $id}}) {
+    affected_rows
+  }
+}

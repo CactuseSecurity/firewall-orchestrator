@@ -1,0 +1,5 @@
+query getAreas {
+  modelling_nwgroup (where: { group_type: { _eq: 23 } } order_by: { name: asc }){
+    ...areaDetails
+  }
+}

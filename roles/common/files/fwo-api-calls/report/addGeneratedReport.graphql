@@ -1,0 +1,33 @@
+﻿mutation addGeneratedReport(
+  $report_name: String!
+  $report_start_time: timestamp!
+  $report_end_time: timestamp!
+  $report_owner_id: Int!
+  $report_pdf: String
+  $report_csv: String
+  $report_html: String
+  $report_json: json
+  $report_template_id: Int
+  $report_type: Int
+  $description: String
+) {
+    insert_report(
+      objects: {
+        report_name: $report_name
+        report_start_time: $report_start_time
+        report_end_time: $report_end_time
+        report_owner_id : $report_owner_id
+        report_csv: $report_csv
+        report_pdf: $report_pdf
+        report_html: $report_html
+        report_json: $report_json
+        report_template_id : $report_template_id
+        report_type: $report_type
+        description: $description
+  }
+  ) {
+        returning {
+            report_id
+        }
+    }
+}

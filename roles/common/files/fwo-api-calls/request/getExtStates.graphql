@@ -1,0 +1,8 @@
+
+query getExtStates {
+  request_ext_state (order_by: { id: asc }){
+    id
+    name
+    state_id
+  }
+}

@@ -1,0 +1,7 @@
+query getSelectedConnections ($appId: Int!){
+  modelling_selected_connections (where: { app_id: { _eq: $appId } }){
+    connection {
+      ...connectionDetails
+    }
+  }
+}

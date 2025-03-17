@@ -1,0 +1,8 @@
+
+query getTextsPerLanguage($language: String!) {
+  txt(where: {language: {_eq: $language}}) {
+    id
+    language
+    txt
+  }
+}

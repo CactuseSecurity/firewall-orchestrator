@@ -9,10 +9,9 @@ using FWO.Basics;
 
 namespace FWO.Report.Filter
 {
-    public class DynGraphqlQuery
+    public class DynGraphqlQuery(string rawInput)
     {
-        public string RawFilter { get; private set; }
-
+        public string RawFilter { get; private set; } = rawInput;
         public int parameterCounter = 0;
         public Dictionary<string, object> QueryVariables { get; set; } = [];
         public string FullQuery { get; set; } = "";
@@ -35,9 +34,7 @@ namespace FWO.Report.Filter
 
         public ReportType ReportType { get; set; } = ReportType.Rules;
         public FwoOwner? SelectedOwner { get; set; }
-
         public DynGraphqlQuery(string rawInput) { RawFilter = rawInput; }
-
         public const string fullTimeFormat = "yyyy-MM-dd HH:mm:ss";
         public const string dateFormat = "yyyy-MM-dd";
         public const int layerRecursionLevel = 2;
@@ -355,7 +352,7 @@ namespace FWO.Report.Filter
             bool first = true;
             if (deviceFilter != null)
             {
-                query.RelevantManagementIds = deviceFilter.getSelectedManagements();
+                query.RelevantManagementIds = deviceFilter.GetSelectedManagements();
                 query.RuleWhereStatement += "{_or: [{";
                 foreach (ManagementSelect mgmt in deviceFilter.Managements)
                 {

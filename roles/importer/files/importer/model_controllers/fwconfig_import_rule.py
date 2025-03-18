@@ -991,27 +991,6 @@ class FwConfigImportRule(FwConfigImportBase):
         """
         return self.ImportDetails.call(mutation, queryVariables=query_variables)
 
-    # def insertRulesEnforcedOnGateway(self, ruleIds, devId):
-    #     rulesEnforcedOnGateway = []
-    #     for ruleId in ruleIds:
-    #         rulesEnforcedOnGateway.append({
-    #             "rule_id": ruleId,
-    #             "dev_id": devId,
-    #             "created": self.ImportDetails.ImportId
-    #         })
-
-    #     query_variables = {
-    #         "ruleEnforcedOnGateway": rulesEnforcedOnGateway
-    #     }
-    #     mutation = """
-    #         mutation importInsertRulesEnforcedOnGateway($rulesEnforcedOnGateway: [rule_enforced_on_gateway_insert_input!]!) {
-    #             insert_rule_enforced_on_gateway(objects: $rulesEnforcedOnGateway) {
-    #                 affected_rows
-    #             }
-    #         }"""
-        
-    #     return self.ImportDetails.call(mutation, queryVariables=query_variables)
-
 
     def importInsertRulebaseOnGateway(self, rulebaseId, devId, orderNo=0):
         query_variables = {

@@ -174,7 +174,7 @@ namespace FWO.Middleware.Server
                 {
                     Managements = await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement)
                 };
-                deviceFilter.applyFullDeviceSelection(true);
+                deviceFilter.ApplyFullDeviceSelection(true);
 
                 ReportParams reportParams = new((int)ReportType.Recertification, deviceFilter)
                 {

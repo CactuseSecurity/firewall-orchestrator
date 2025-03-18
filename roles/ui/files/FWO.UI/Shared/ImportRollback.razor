@@ -85,7 +85,7 @@
                     {
                         RollbackMode = false;
                         workInProgress = false;
-                        var variablesRollback = new { mgmId = ManagementId, lastImportId = lastImportId };
+                        var variablesRollback = new { mgmId = ManagementId, importId = lastImportId };
                         var ReturnId = await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.DeviceQueries.rollbackLastImport, variablesRollback);
                         // int affectedRows = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.DeviceQueries.rollbackLastImport, variablesRollback)).AffectedRows;
                         

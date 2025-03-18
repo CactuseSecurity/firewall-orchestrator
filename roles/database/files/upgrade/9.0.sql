@@ -1072,21 +1072,3 @@ ALTER TABLE "rule_to" DROP COLUMN IF EXISTS "rt_last_seen";
 ALTER TABLE "rule_service" DROP COLUMN IF EXISTS "rs_last_seen";
 
 */
-
-CREATE
-OR REPLACE FUNCTION public.reset_rules_order_numbers(uids text []) RETURNS SETOF rule LANGUAGE plpgsql AS $ function $ DECLARE idx INT;
-current_uid TEXT;
-BEGIN -- Schleife über alle UIDs
-FOR idx IN 1..array_length(uids, 1) LOOP current_uid: = uids [idx];
--- UPDATE-Statement und Zurückgeben der betroffenen Zeilen
-RETURN QUERY
-UPDATE
-  rule
-SET
-  rule_num_numeric = idx
-WHERE
-  rule_uid = current_uid RETURNING *;
--- Alle betroffenen Zeilen der Tabelle "rule" zurückgeben
-END LOOP;
-END;
-$ function $

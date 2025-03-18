@@ -15,3 +15,4 @@ class UidManager:
                 need_new_uid = False
 
         return new_uid
+    

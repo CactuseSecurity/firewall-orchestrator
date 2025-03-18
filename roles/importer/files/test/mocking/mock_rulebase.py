@@ -16,3 +16,4 @@ class MockRulebase:
             "is_global": self.is_global,
             "Rules": self.Rules
         }
+    

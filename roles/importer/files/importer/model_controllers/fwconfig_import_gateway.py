@@ -26,7 +26,7 @@ class FwConfigImportGateway(FwConfigImportBase):
 
 
     def updateRulebaseLinkDiffs(self, prevConfig: FwConfigNormalized):
-        logger = getFwoLogger()
+        logger = getFwoLogger(debug_level=self.ImportDetails.DebugLevel)
         for gw in self.NormalizedConfig.gateways:
             if gw in prevConfig.gateways:   # this check finds all changes in gateway (including rulebase link changes)
                 if self.ImportDetails.DebugLevel>3:
@@ -62,18 +62,18 @@ class FwConfigImportGateway(FwConfigImportBase):
         return
 
     def updateRuleEnforcedOnGatewayDiffs(self, prevConfig: FwConfigNormalized):
-        logger = getFwoLogger()
+        logger = getFwoLogger(debug_level=self.ImportDetails.DebugLevel)
         # TODO: needs to be implemented
         return
     
 
     def updateInterfaceDiffs(self, prevConfig: FwConfigNormalized):
-        logger = getFwoLogger()
+        logger = getFwoLogger(debug_level=self.ImportDetails.DebugLevel)
         # TODO: needs to be implemented
         return
 
     def updateRoutingDiffs(self, prevConfig: FwConfigNormalized):
-        logger = getFwoLogger()
+        logger = getFwoLogger(debug_level=self.ImportDetails.DebugLevel)
         # TODO: needs to be implemented
         return
     

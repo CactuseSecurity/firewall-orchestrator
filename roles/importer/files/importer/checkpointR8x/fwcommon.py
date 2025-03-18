@@ -149,7 +149,7 @@ def getRules (nativeConfig: dict, importState: ImportStateController) -> int:
             continue
 
         # decide if mds or stand alone manager
-        if device['global_rulebase_name'] != None and device['global_rulebase_name']!='':
+        if 'global_rulebase_name' in device and device['global_rulebase_name'] != None and device['global_rulebase_name']!='':
             # delete_v: ACHTUNG hier werden namen in show_params_rules benutzt
             show_params_rules.update({'name': device['global_rulebase_name']})
 
@@ -213,6 +213,7 @@ def getRules (nativeConfig: dict, importState: ImportStateController) -> int:
                                     nativeConfig=nativeConfig,
                                     deviceConfig=deviceConfig)
             
+            lastRuleUid = None
             # parse ordered layer and get last rule uid
             for rulebase in nativeConfig['rulebases']:
                 if rulebase['uid'] == orderedLayerUid:
@@ -231,7 +232,7 @@ def getRules (nativeConfig: dict, importState: ImportStateController) -> int:
 
         # getting NAT rules - need package name for nat rule retrieval
         # todo: each gateway/layer should have its own package name (pass management details instead of single data?)
-        if device['package_name'] != None and device['package_name'] != '':
+        if 'package_name' in device and device['package_name'] != None and device['package_name'] != '':
             show_params_rules = {
                 'limit': importState.FwoConfig.ApiFetchSize,
                 'use-object-dictionary':cp_const.use_object_dictionary,

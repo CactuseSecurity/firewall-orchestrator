@@ -5,7 +5,8 @@ import traceback
 
 import fwo_globals
 from fwo_log import getFwoLogger
-from fwo_data_networking import InterfaceSerializable, RouteSerializable
+from roles.importer.files.importer.model_controllers.interface_controller import InterfaceSerializable
+from model_controllers.route_controller import RouteSerializable
 from fwo_base import split_list, serializeDictToClassRecursively, deserializeClassToDictRecursively
 from fwo_const import max_objs_per_chunk, import_tmp_path
 

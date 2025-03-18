@@ -20,7 +20,7 @@ class FwConfigImportBase():
 
     # return previous config or empty config if there is none
     def getPreviousConfig(self) -> FwConfigNormalized:
-        logger = getFwoLogger()
+        logger = getFwoLogger(debug_level=self.ImportDetails.DebugLevel)
         query = "query getLatestConfig($mgmId: Int!) { latest_config(where: {mgm_id: {_eq: $mgmId}}) { config } }"
         queryVariables = { 'mgmId': self.ImportDetails.MgmDetails.Id }
         try:
@@ -49,26 +49,3 @@ class FwConfigImportBase():
         except:
             logger.exception(f"failed to get latest normalized config for mgm id {str(self.ImportDetails.MgmDetails.Id)}: {str(traceback.format_exc())}")
             raise Exception(f"error while trying to get the previous config")
-
-
-    # def isInitialImport(self):
-    #     query = """
-    #         query isInitialImport($mgmId: Int!) {
-    #             import_control_aggregate(where: {mgm_id: {_eq: $mgmId}, successful_import: {_eq: true}}) {
-    #                 imports: aggregate {
-    #                 count
-    #                 }
-    #             }
-    #         }
-    #     """
-    #     queryVariables = { 'mgmId': self.ImportDetails.MgmDetails.Id }
-
-    #     try:
-    #         result = self.ImportDetails.call(query=query, queryVariables=queryVariables)
-    #         if result['data']['import_control_aggregate']['imports']['count']==0:
-    #             return True
-    #         else:
-    #             return False
-    #     except:
-    #         logger = getFwoLogger()
-    #         logger.error(f'Error while getting imports count')

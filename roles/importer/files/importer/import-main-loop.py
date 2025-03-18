@@ -13,7 +13,7 @@ import requests, warnings
 import fwo_api
 from common import import_management
 from fwo_log import getFwoLogger, LogLock
-import fwo_globals, fwo_config
+import fwo_base, fwo_config
 from fwo_const import base_dir, importer_base_dir
 from fwo_exception import FwoApiLoginFailed, FwoApiFailedLockImport, FwLoginFailed
 from models.fwconfigmanagerlist import FwConfigManager, FwConfigManagerList
@@ -94,7 +94,7 @@ if __name__ == '__main__':
     fwo_api_base_url = fwo_config['fwo_api_base_url']
     fwo_major_version = fwo_config['fwo_major_version']
     user_management_api_base_url = fwo_config['user_management_api_base_url']
-    fwo_globals.setGlobalValues(verify_certs_in=args.verify_certificates, 
+    fwo_base.setGlobalValues(verify_certs_in=args.verify_certificates, 
         suppress_cert_warnings_in=args.suppress_certificate_warnings,
         debug_level_in=args.debug)
     if args.suppress_certificate_warnings: requests.packages.urllib3.disable_warnings()

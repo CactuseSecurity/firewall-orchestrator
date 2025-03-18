@@ -11,7 +11,6 @@ import fwo_api
 from fwo_log import getFwoLogger
 from fwo_const import fw_module_name
 from fwo_const import import_tmp_path
-import fwo_globals
 from fwo_exception import FwLoginFailed, ImportRecursionLimitReached
 from fwo_base import stringIsUri, ConfigAction, ConfFormat
 import fwo_file_import
@@ -20,6 +19,7 @@ from models.fwconfig_normalized import FwConfig, FwConfigNormalized
 from models.fwconfigmanagerlist import FwConfigManagerList, FwConfigManager
 from models.gateway import Gateway
 from fwconfig_base import calcManagerUidHash
+from model_controllers.import_state_controller import ImportStateController
 from model_controllers.fwconfig_import import FwConfigImport
 from model_controllers.gateway_controller import GatewayController
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
@@ -42,13 +42,14 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
         limit=150, force=False, clearManagementData=False, suppress_cert_warnings_in=None,
         in_file=None, version=8):
 
-    logger = getFwoLogger()
+    logger = getFwoLogger(debug_level=debug_level_in)
     config_changed_since_last_import = True
     time_get_config = 0
+    verifyCerts = (ssl_verification is not None)
 
     importState = ImportStateController.initializeImport(mgmId, debugLevel=debug_level_in, 
                                                force=force, version=version, 
-                                               isClearingImport=clearManagementData, isFullImport=False)
+                                               isClearingImport=clearManagementData, isFullImport=False, sslVerification=verifyCerts)
 
     if not clearManagementData and importState.DataRetentionDays<importState.DaysSinceLastFullImport:
         # run clear import; this makes sure the following import is a full one
@@ -137,10 +138,10 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
                                         logger.error("importConfig - unspecified error: " + str(traceback.format_exc()))
                                         importState.Stats.ErrorCount += 1
                                     if importState.Stats.ErrorCount>0:
-                                        importState.Stats.ErrorCount += fwo_api.complete_import(importState)
+                                        fwo_api.complete_import(importState)
                                         FwConfigImportRollback(configImporter).rollbackCurrentImport()
                                     else:
-                                        configImporter.storeConfigToApi() # to file (for debugging) and to database
+                                        configImporter.storeLatestConfig()
                             else:
                                 configChunk = config.toJsonLegacy(withAction=False)
                                 importState.increaseErrorCounter(fwo_api.import_json_config(importState, configChunk))
@@ -175,7 +176,7 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
             #     logger.error("import_management - unspecified error while getting change count: " + str(traceback.format_exc()))
             #     raise
         
-        importState.Stats.ErrorCount += fwo_api.complete_import(importState)
+        fwo_api.complete_import(importState)
 
     if not clearManagementData and importState.DataRetentionDays<importState.DaysSinceLastFullImport:
         # delete all imports of the current management before the last but one full import
@@ -186,7 +187,7 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
 
 def importFromFile(importState: ImportStateController, fileName: str = "", gateways: List[Gateway] = []):
 
-    logger = getFwoLogger()
+    logger = getFwoLogger(debug_level=importState.DebugLevel)
     logger.debug("import_management - not getting config from API but from file: " + fileName)
 
     config_changed_since_last_import = True
@@ -231,8 +232,8 @@ def importFromFile(importState: ImportStateController, fileName: str = "", gatew
     return config_changed_since_last_import, configNormalized
 
 
-def get_config_from_api(importState, configNative, import_tmp_path=import_tmp_path, limit=150) -> FwConfigManagerList:
-    logger = getFwoLogger()
+def get_config_from_api(importState: ImportStateController, configNative, import_tmp_path=import_tmp_path, limit=150) -> FwConfigManagerList:
+    logger = getFwoLogger(debug_level=importState.DebugLevel)
 
     try: # pick product-specific importer:
         pkg_name = importState.MgmDetails.DeviceTypeName.lower().replace(' ', '') + importState.MgmDetails.DeviceTypeVersion
@@ -260,20 +261,20 @@ def get_config_from_api(importState, configNative, import_tmp_path=import_tmp_pa
         importState.ErrorCount += 1
         logger.error(importState.ErrorString)
         fwo_api.delete_import(importState) # deleting trace of not even begun import
-        importState.ErrorCount = fwo_api.complete_import(importState)
+        fwo_api.complete_import(importState)
         raise FwLoginFailed(e.message)
     except ImportRecursionLimitReached as e:
         importState.ErrorString += "  recursion limit reached: mgm_id=" + str(importState.MgmDetails.Id) + ", mgm_name=" + importState.MgmDetails.Name + ", " + e.message
         importState.ErrorCount += 1
         logger.error(importState.ErrorString)
         fwo_api.delete_import(importState.FwoConfig.FwoApiUri, importState.Jwt, importState.ImportId) # deleting trace of not even begun import
-        importState.ErrorCount = fwo_api.complete_import(importState)
+        fwo_api.complete_import(importState)
         raise ImportRecursionLimitReached(e.message)
     except:
-        importState.ErrorString += "  import_management - unspecified error while getting config: " + str(traceback.format_exc())
-        logger.error(importState.ErrorString)
-        importState.ErrorCount += 1
-        importState.ErrorCount = fwo_api.complete_import(importState)
+        importState.appendErrorString("import_management - unspecified error while getting config: " + str(traceback.format_exc()))
+        logger.error(', '.join(importState.getErrors()))
+        importState.increaseErrorCounterByOne()
+        fwo_api.complete_import(importState)
         raise
 
     writeNativeConfigToFile(importState, configNative)
@@ -284,8 +285,8 @@ def get_config_from_api(importState, configNative, import_tmp_path=import_tmp_pa
 
 
 def writeNativeConfigToFile(importState, configNative):
-    if fwo_globals.debug_level>6:
-        logger = getFwoLogger()
+    if importState.DebugLevel>6:
+        logger = getFwoLogger(debug_level=importState.DebugLevel)
         debug_start_time = int(time.time())
         try:
                 full_native_config_filename = f"{import_tmp_path}/mgm_id_{str(importState.MgmDetails.Id)}_config_native.json"

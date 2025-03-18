@@ -1,8 +1,7 @@
-import sys
-import fwo_globals
 import logging
 import time
 import threading
+import fwo_globals
 
 
 class LogLock:
@@ -74,9 +73,8 @@ class LogLock:
 #         LogLock.semaphore.release()
 
 
-def getFwoLogger():
-    debug_level = int(fwo_globals.debug_level)
-    if debug_level >= 1:
+def getFwoLogger(debug_level=0):
+    if int(debug_level) >= 1:
         log_level = logging.DEBUG
     else:
         log_level = logging.INFO

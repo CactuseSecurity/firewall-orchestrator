@@ -84,7 +84,7 @@ from model_controllers.import_state_controller import ImportStateController
 def readJsonConfigFromFile(importState: ImportStateController) -> FwConfigController:
     configJson = readFile(importState)
     config = None
-    logger = getFwoLogger()
+    logger = getFwoLogger(debug_level=importState.DebugLevel)
 
     # now try to convert to config object
     try:
@@ -139,7 +139,7 @@ def detectLegacyFormat(importState, configJson) -> ConfFormat:
 
 
 def readFile(importState: ImportStateController) -> dict:
-    logger = getFwoLogger()
+    logger = getFwoLogger(debug_level=importState.DebugLevel)
     try:
         if importState.ImportFileName is not None:
             if importState.ImportFileName.startswith('http://') or importState.ImportFileName.startswith('https://'):   # get conf file via http(s)
@@ -176,7 +176,7 @@ def readFile(importState: ImportStateController) -> dict:
 
 
 def handleErrorOnConfigFileSerialization(importState: ImportStateController, exception: Exception):
-    logger = getFwoLogger()
+    logger = getFwoLogger(debug_level=importState.DebugLevel)
     importState.appendErrorString(f"Could not understand config file format in file {importState.ImportFileName}")
     importState.increaseErrorCounterByOne()
     complete_import(importState)
@@ -248,7 +248,7 @@ def addWrapperForLegacyConfig(confFormat: ConfFormat, config: dict) -> dict:
 
 
 def convertFromLegacyNormalizedToNormalized(importState: ImportStateController, configJson: dict):
-    logger = getFwoLogger()
+    logger = getFwoLogger(debug_level=importState.DebugLevel)
     
     logger.info("assuming legacy normalized config")
 

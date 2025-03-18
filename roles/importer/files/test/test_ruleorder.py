@@ -14,7 +14,7 @@ from fwconfig_import_rule import FwConfigImportRule
 from model_controllers.import_state_controller import ImportStateController
 from fwo_base import ConfigAction
 from fwconfig_base import FwConfig
-from fwo_globals import setGlobalValues
+from fwo_base import setGlobalValues
 from fwo_const import dummy_ip
 from model_controllers.import_statistics_controller import ImportStatisticsController
 

@@ -95,7 +95,7 @@ class FwConfigImportObject(FwConfigImportBase):
 
     def updateObjectsViaApi(self, newNwObjectUids, newSvcObjectUids, removedNwObjectUids, removedSvcObjectUids):
         # here we also mark old objects removed before adding the new versions
-        logger = getFwoLogger()
+        logger = getFwoLogger(debug_level=self.ImportDetails.DebugLevel)
         errors = 0
         changes = 0
         newNwObjIds = []

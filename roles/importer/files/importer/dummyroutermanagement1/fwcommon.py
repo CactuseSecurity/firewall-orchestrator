@@ -6,7 +6,8 @@ sys.path.append(importer_base_dir + '/dummyrouter')
 from curses import raw
 from fwo_log import getFwoLogger
 import fwo_globals
-from fwo_data_networking import Interface, Route, getRouteDestination
+from roles.importer.files.importer.model_controllers.interface_controller import Interface
+from model_controllers.route_controller import Route
 import json, requests, requests.packages
 from datetime import datetime
 import jsonpickle

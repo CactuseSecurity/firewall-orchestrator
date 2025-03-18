@@ -506,7 +506,7 @@
             }
             if(Container.AreaElements.Count > 0)
             {
-                if (ConnHandler is not null && !ConnHandler.NetworkAreaUseAllowed(Container.AreaElements, out (string Title, string Text) reason))
+                if (ConnHandler is not null && !ConnHandler.NetworkAreaUseAllowed(Container.AreaElements, Direction.Source, out (string Title, string Text) reason))
                 {
                     DisplayMessageInUi(default, reason.Title, reason.Text, true);
                     Container.Clear();
@@ -548,7 +548,7 @@
             }
             if(Container.AreaElements.Count > 0)
             {
-                if (ConnHandler is not null && !ConnHandler.NetworkAreaUseAllowed(Container.AreaElements, out (string Title, string Text) reason))
+                if (ConnHandler is not null && !ConnHandler.NetworkAreaUseAllowed(Container.AreaElements, Direction.Destination, out (string Title, string Text) reason))
                 {
                     DisplayMessageInUi(default, reason.Title, reason.Text, true);
                     Container.Clear();

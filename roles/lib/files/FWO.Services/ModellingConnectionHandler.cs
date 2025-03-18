@@ -1019,9 +1019,25 @@ namespace FWO.Services
             return true;
         }
 
-        public bool NetworkAreaUseAllowed(List<ModellingNetworkArea> networkAreas, out (string Title, string Text) reason)
+        private bool IsAreaForbiddenInDirection(Direction direction)
+        {
+            return direction switch
+            {
+                Direction.Source => ActConn.DestinationAreas.Count > 0,
+                Direction.Destination => ActConn.SourceAreas.Count > 0,
+                _ => false,
+            };
+        }
+
+        /// <summary>
+        /// Checks if the given network areas are allowed in the current connection/interface/service.
+        /// </summary>
+        /// <param name="networkAreas">The list of network areas to check.</param>
+        /// <param name="reason">Out parameter to give context as a reason why it's not allowed, otherwise is's empty.</param>
+        public bool NetworkAreaUseAllowed(List<ModellingNetworkArea> networkAreas, Direction direction, out (string Title, string Text) reason)
         {
             reason.Text = "";
+
 
             if (ActConn.IsCommonService)
             {
@@ -1034,6 +1050,12 @@ namespace FWO.Services
             else
             {
                 reason.Title = userConfig.GetText("edit_connection");
+            }
+
+            if (IsAreaForbiddenInDirection(direction))
+            {
+                reason.Text = userConfig.GetText("direction_contain_nwarea");
+                return false;
             }
 
             if (ActConn.IsInterface)

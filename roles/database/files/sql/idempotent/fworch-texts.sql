@@ -1158,6 +1158,8 @@ INSERT INTO txt VALUES ('edit_interface', 	    'German',	'Schnittstelle bearbeit
 INSERT INTO txt VALUES ('edit_interface', 	    'English',	'Edit Interface');
 INSERT INTO txt VALUES ('interface_contain_nwarea','German', 'Schnittstellen d&uuml;rfen keine Netzbereiche enthalten');
 INSERT INTO txt VALUES ('interface_contain_nwarea','English','Interfaces must not contain network areas');
+INSERT INTO txt VALUES ('direction_contain_nwarea', 'German','Schnittstelle l&ouml;schen');
+INSERT INTO txt VALUES ('direction_contain_nwarea', 'English','Delete Interface');
 INSERT INTO txt VALUES ('delete_interface', 	'German',	'Schnittstelle l&ouml;schen');
 INSERT INTO txt VALUES ('delete_interface', 	'English',	'Delete Interface');
 INSERT INTO txt VALUES ('insert_forbidden', 	'German',	'Einf&uuml;gen verboten');

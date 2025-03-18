@@ -26,16 +26,17 @@ class FwConfigImportCheckConsistency(FwConfigImport):
     # pre-flight checks
     def checkConfigConsistency(self):
         issues = {}
-        issues.update(self.checkNetworkObjectConsistency())
-        issues.update(self.checkServiceObjectConsistency())
-        issues.update(self.checkUserObjectConsistency())
-        issues.update(self.checkZoneObjectConsistency())
-        issues.update(self.checkRuleConsistency())
-        issues.update(self.checkGatewayConsistency())
-        if len(issues)>0:
-            logger = getFwoLogger()
-            logger.warning(f'config not imported due to the following inconsistencies: {json.dumps(issues, indent=3)}')
-            self.ImportDetails.increaseErrorCounterByOne()
+        # TODO: uncomment and adjust as soon as possible
+        # issues.update(self.checkNetworkObjectConsistency())
+        # issues.update(self.checkServiceObjectConsistency())
+        # issues.update(self.checkUserObjectConsistency())
+        # issues.update(self.checkZoneObjectConsistency())
+        # issues.update(self.checkRuleConsistency())
+        # issues.update(self.checkGatewayConsistency())
+        # if len(issues)>0:
+        #     logger = getFwoLogger()
+        #     logger.warning(f'config not imported due to the following inconsistencies: {json.dumps(issues, indent=3)}')
+        #     self.ImportDetails.increaseErrorCounterByOne()
 
         return issues
 

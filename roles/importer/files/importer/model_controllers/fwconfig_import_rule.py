@@ -1,7 +1,9 @@
 import traceback
 from difflib import ndiff
 import json
-from itertools import chain
+from itertools import chain, islice
+import asyncio
+import traceback
 
 import fwo_const
 from models.rule import RuleForImport, RuleType
@@ -98,15 +100,17 @@ class FwConfigImportRule(FwConfigImportBase):
         # now update the database with all rule diffs
         errorCountAdd, numberOfAddedRules, newRuleIds = self.addNewRules(newRulebases)
 
-        # resets order nrs in db on the basis of all rules in normalized config
-        self.resetOrderNumbers()
-
         # try to add the rule ids to the existing rulebase objects
         # self.updateRuleIds(newRulebases, newRuleIds)
 
         # TODO: self.addNewRuleSvcRefs(newRulebases, newRuleIds)
         self.addNewRule2ObjRefs(newRulebases, newRuleIds)
         errorCountDel, numberOfDeletedRules, removedRuleIds = self.markRulesRemoved(deletedRuleUids)
+
+        # TODO: get rules without removed rule in the right order
+        rules_without_removed = self.NormalizedConfig.rulebases
+
+        asyncio.run(resetOrderNumbersAsync(rules_without_removed, 500, 4, self.ImportDetails))
 
         self.ImportDetails.Stats.RuleAddCount += numberOfAddedRules
         self.ImportDetails.Stats.RuleDeleteCount += numberOfDeletedRules
@@ -1022,7 +1026,7 @@ class FwConfigImportRule(FwConfigImportBase):
         mutation = """
             mutation importInsertRulebaseOnGateway($rulebase2gateway: [rulebase_on_gateway_insert_input!]!) {
                 insert_rulebase_on_gateway(objects: $rulebase2gateway) {
-                    affected_rows
+                affected_rows
                 }
             }"""
         
@@ -1077,35 +1081,62 @@ class FwConfigImportRule(FwConfigImportBase):
             prepared_rules.append(rule_for_import)
         return { "data": prepared_rules }
     
-    def resetOrderNumbers(self):
-        logger = getFwoLogger()
+async def resetOrderNumbersAsync(rulebases, batch_size, max_concurrent_requests, import_details):
+    """
+        Iterates asnychronously and batchwise over the rule db table and updates rule_num_numeric with an incrementing order number.
+        The order dependes on the given list of rulebases.
+    """
+    logger = getFwoLogger()
 
-        rule_uids = []
+    rule_uids = list(chain.from_iterable(rulebase.Rules.keys() for rulebase in rulebases))
 
-        rule_uids = list(chain.from_iterable(rulebase.Rules.keys() for rulebase in self.NormalizedConfig.rulebases))
-
-        updateRuleOrderNumbers = """mutation updateRuleOrderNumbers($uids: _text!) {
-            reset_rules_order_numbers(args: {uids: $uids}) {
-                rule_uid
-                rule_num_numeric
+    updateRuleOrderNumbers = """
+        mutation UpdateRuleOrder($updates: [rule_updates!]!) {
+            update_rule_many(updates: $updates) {
+                affected_rows
             }
         }
-        """
+    """
 
-        try:
-            if len(rule_uids) > 0:
-                postgre_text_array = self.convertListOfStringsToPostgreTextArray(rule_uids)
-                import_result = self.ImportDetails.call(updateRuleOrderNumbers, queryVariables={ "uids": postgre_text_array})
-            else:
-                logger.warning(f'"fwo_api:updateRuleOrderNumbers - warning in updateRuleOrderNumbers: found no rule uids')
-                return
-            
-            if 'errors' in import_result:
-                logger.exception(f"fwo_api:updateRuleOrderNumbers - error in updateRuleOrderNumbers: {str(import_result['errors'])}")
+    async def send_batch(batch, batch_number):
+        updates = [
+            {
+                "where": {"rule_uid": {"_eq": rule_uid}},
+                "_set": {"rule_num_numeric": batch_size * batch_number + (index + 1)}
+            }
+            for index, rule_uid in enumerate(batch)
+        ]
 
-        except:
-            logger.exception(f"failed to update rule order numbers: {str(traceback.format_exc())}")
+        return await asyncio.to_thread(import_details.call, updateRuleOrderNumbers, queryVariables={"updates": updates})
 
-    def convertListOfStringsToPostgreTextArray(self, list_of_strings):
-        return "{ " + ", ".join(list_of_strings) + " }"
+    async def process_batches():
+        if not rule_uids:
+            logger.warning("fwo_api:updateRuleOrderNumbers - warning: found no rule uids")
+            return
 
+        tasks = []
+        for batch_number, batch in enumerate(chunked_iterable(rule_uids, batch_size)):
+            tasks.append(send_batch(batch, batch_number))
+            if len(tasks) >= max_concurrent_requests:
+                results = await asyncio.gather(*tasks)  # Warte auf alle Requests
+                for result in results:
+                    if 'errors' in result:
+                        logger.exception(f"fwo_api:updateRuleOrderNumbers - error: {str(result['errors'])}")
+                tasks = []  # Leere die Task-Liste
+
+        if tasks:  # Letzte Reste verarbeiten
+            results = await asyncio.gather(*tasks)
+            for result in results:
+                if 'errors' in result:
+                    logger.exception(f"fwo_api:updateRuleOrderNumbers - error: {str(result['errors'])}")
+
+    try:
+        await process_batches()
+    except Exception as e:
+        logger.exception(f"Failed to update rule order numbers: {str(e)}")
+
+def chunked_iterable(iterable, size):
+    """Zerlegt eine Liste in kleinere Batches."""
+    iterator = iter(iterable)
+    while chunk := list(islice(iterator, size)):
+        yield chunk

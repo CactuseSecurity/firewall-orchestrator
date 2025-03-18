@@ -257,3 +257,6 @@ bugfix release:
 
 # 8.6.3 - 20.02.2025 DEVELOP
 - dns lookup for app server names
+
+# 8.7.1 - 05.03.2025 DEVELOP
+- ldap writepath for groups

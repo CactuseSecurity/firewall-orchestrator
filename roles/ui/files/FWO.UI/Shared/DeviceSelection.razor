@@ -129,16 +129,16 @@
 
     private async Task SetSelectAll()
     {
-        if (DeviceFilter.areAllDevicesSelected())
+        if (DeviceFilter.AreAllDevicesSelected())
             SelectAll = false;
-        if (!DeviceFilter.isAnyDeviceFilterSet())
+        if (!DeviceFilter.IsAnyDeviceFilterSet())
             SelectAll = true;
         await SelectAllChanged.InvokeAsync(SelectAll);
     }
 
     private async Task ToggleSelectAll()
     {
-        DeviceFilter.applyFullDeviceSelection(SelectAll);
+        DeviceFilter.ApplyFullDeviceSelection(SelectAll);
         SelectAll = !SelectAll;
         await SelectAllChanged.InvokeAsync(SelectAll);
     }

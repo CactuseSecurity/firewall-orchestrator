@@ -5,6 +5,7 @@ namespace FWO.Report
 {
     public class OwnerReport : ConnectionReport
     {
+        public FwoOwner Owner { get; set; } = new();
         public List<ModellingConnection> Connections { get; set; } = [];
         public List<ModellingConnection> RegularConnections { get; set; } = [];
         public List<ModellingConnection> Interfaces { get; set; } = [];

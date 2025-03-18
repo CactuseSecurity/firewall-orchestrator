@@ -49,6 +49,9 @@ namespace FWO.Data
         [JsonProperty("ldap_searchpath_for_groups"), JsonPropertyName("ldap_searchpath_for_groups")]
         public string? GroupSearchPath { get; set; }
 
+       [JsonProperty("ldap_writepath_for_groups"), JsonPropertyName("ldap_writepath_for_groups")]
+        public string? GroupWritePath { get; set; }
+
         [JsonProperty("ldap_write_user"), JsonPropertyName("ldap_write_user")]
         public string? WriteUser { get; set; }
 
@@ -67,6 +70,28 @@ namespace FWO.Data
         public LdapConnectionBase()
         {}
 
+        public LdapConnectionBase(LdapConnectionBase ldapConnection)
+        {
+            Id = ldapConnection.Id;
+            Address = ldapConnection.Address;
+            Port = ldapConnection.Port;
+            Type = ldapConnection.Type;
+            PatternLength = ldapConnection.PatternLength;
+            SearchUser = ldapConnection.SearchUser;
+            Tls = ldapConnection.Tls;
+            TenantLevel = ldapConnection.TenantLevel;
+            SearchUserPwd = ldapConnection.SearchUserPwd;
+            UserSearchPath = ldapConnection.UserSearchPath;
+            RoleSearchPath = ldapConnection.RoleSearchPath;
+            GroupSearchPath = ldapConnection.GroupSearchPath;
+            GroupWritePath = ldapConnection.GroupWritePath;
+            WriteUser = ldapConnection.WriteUser;
+            WriteUserPwd = ldapConnection.WriteUserPwd;
+            TenantId = ldapConnection.TenantId;
+            GlobalTenantName = ldapConnection.GlobalTenantName;
+            Active = ldapConnection.Active;
+        }
+
         public LdapConnectionBase(LdapGetUpdateParameters ldapGetUpdateParameters)
         {
             Id = ldapGetUpdateParameters.Id;
@@ -81,11 +106,28 @@ namespace FWO.Data
             UserSearchPath = ldapGetUpdateParameters.SearchpathForUsers;
             RoleSearchPath = ldapGetUpdateParameters.SearchpathForRoles;
             GroupSearchPath = ldapGetUpdateParameters.SearchpathForGroups;
+            GroupWritePath = ldapGetUpdateParameters.WritepathForGroups;
             WriteUser = ldapGetUpdateParameters.WriteUser;
             WriteUserPwd = ldapGetUpdateParameters.WriteUserPwd;
             TenantId = ldapGetUpdateParameters.TenantId;
             GlobalTenantName = ldapGetUpdateParameters.GlobalTenantName;
             Active = ldapGetUpdateParameters.Active;
+        }
+
+        public virtual bool Sanitize()
+        {
+            bool shortened = false;
+            Address = Sanitizer.SanitizeMand(Address, ref shortened);
+            SearchUser = Sanitizer.SanitizeLdapPathOpt(SearchUser, ref shortened) ?? "";
+            UserSearchPath = Sanitizer.SanitizeLdapPathOpt(UserSearchPath, ref shortened);
+            RoleSearchPath = Sanitizer.SanitizeLdapPathOpt(RoleSearchPath, ref shortened);
+            GroupSearchPath = Sanitizer.SanitizeLdapPathOpt(GroupSearchPath, ref shortened);
+            GroupWritePath = Sanitizer.SanitizeLdapPathOpt(GroupWritePath, ref shortened);
+            WriteUser = Sanitizer.SanitizeLdapPathOpt(WriteUser, ref shortened);
+            GlobalTenantName = Sanitizer.SanitizeOpt(GlobalTenantName, ref shortened);
+            SearchUserPwd = Sanitizer.SanitizePasswOpt(SearchUserPwd, ref shortened) ?? "";
+            WriteUserPwd = Sanitizer.SanitizePasswOpt(WriteUserPwd, ref shortened);
+            return shortened;
         }
 
         public string Host()

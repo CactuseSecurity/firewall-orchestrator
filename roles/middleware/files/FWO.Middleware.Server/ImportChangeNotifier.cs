@@ -8,7 +8,6 @@ using FWO.Logging;
 using FWO.Mail;
 using FWO.Encryption;
 using FWO.Report;
-using FWO.Report.Filter;
 using Newtonsoft.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
@@ -132,7 +131,7 @@ namespace FWO.Middleware.Server
                         reportData.ManagementData = rep.ManagementData;
                         foreach (var mgm in reportData.ManagementData)
                         {
-                            mgm.Ignore = !deviceFilter.getSelectedManagements().Contains(mgm.Id);
+                            mgm.Ignore = !deviceFilter.GetSelectedManagements().Contains(mgm.Id);
                         }
                         return Task.CompletedTask;
                     }, token);
@@ -147,7 +146,7 @@ namespace FWO.Middleware.Server
         {
             deviceFilter.Managements = ( await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement) )
                 .Where(x => importedManagements.Contains(x.Id)).ToList();
-            deviceFilter.applyFullDeviceSelection(true);
+            deviceFilter.ApplyFullDeviceSelection(true);
 
             return new((int)ReportType.Changes, deviceFilter)
             {

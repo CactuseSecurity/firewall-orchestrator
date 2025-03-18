@@ -1501,6 +1501,8 @@ INSERT INTO txt VALUES ('regular_connections', 	'German',	'Standard-Verbindungen
 INSERT INTO txt VALUES ('regular_connections', 	'English',	'Regular Connections');
 INSERT INTO txt VALUES ('show_all',             'German', 	'Alle darstellen');
 INSERT INTO txt VALUES ('show_all',             'English', 	'Show all');
+INSERT INTO txt VALUES ('fetch_limit',          'German', 	'Limit');
+INSERT INTO txt VALUES ('fetch_limit',          'English', 	'limit');
 INSERT INTO txt VALUES ('as_source',            'German', 	'Als Quelle');
 INSERT INTO txt VALUES ('as_source',            'English', 	'As Source');
 INSERT INTO txt VALUES ('send_email',           'German', 	'Email senden');
@@ -1911,6 +1913,8 @@ INSERT INTO txt VALUES ('role_search_path',     'German', 	'Suchpfad Rollen');
 INSERT INTO txt VALUES ('role_search_path',     'English', 	'Role Search Path');
 INSERT INTO txt VALUES ('group_search_path',    'German', 	'Suchpfad Gruppen');
 INSERT INTO txt VALUES ('group_search_path',    'English', 	'Group Search Path');
+INSERT INTO txt VALUES ('group_write_path',     'German', 	'Schreibpfad Gruppen');
+INSERT INTO txt VALUES ('group_write_path',     'English', 	'Group Write Path');
 INSERT INTO txt VALUES ('search_user',          'German', 	'Nutzer f&uuml;r Suche');
 INSERT INTO txt VALUES ('search_user',          'English', 	'Search User');
 INSERT INTO txt VALUES ('search_user_pwd',      'German', 	'Passwort Nutzer f&uuml;r Suche');
@@ -2324,9 +2328,9 @@ INSERT INTO txt VALUES ('appRolePattern',       'English',  'App Role Pattern');
 INSERT INTO txt VALUES ('appServerPrefix',      'German',   'App Server Namenspr&auml;fix');
 INSERT INTO txt VALUES ('appServerPrefix',      'English',  'App Server Name Prefix');
 INSERT INTO txt VALUES ('networkPrefix',        'German',   'Namenspr&auml;fix IP-Netzwerk');
-INSERT INTO txt VALUES ('networkPrefix',        'English',  'IP Range Name Prefix');
+INSERT INTO txt VALUES ('networkPrefix',        'English',  'Network Name Prefix');
 INSERT INTO txt VALUES ('ipRangePrefix',        'German',   'Namenspr&auml;fix IP-Bereich');
-INSERT INTO txt VALUES ('ipRangePrefix',        'English',  'App Server Name Prefix');
+INSERT INTO txt VALUES ('ipRangePrefix',        'English',  'IP Range Name Prefix');
 INSERT INTO txt VALUES ('dns_lookup',           'German',   'DNS-Suche');
 INSERT INTO txt VALUES ('dns_lookup',           'English',  'DNS Look-up');
 INSERT INTO txt VALUES ('overwrite_exiting_names','German', 'Existierende Namen &uuml;berschreiben');
@@ -4482,6 +4486,8 @@ INSERT INTO txt VALUES ('H5225', 'English', 'Global Tenant Name: If the Ldap is 
 ');
 INSERT INTO txt VALUES ('H5226', 'German',  'Aktiv: Wenn das Ldap nicht auf aktiv gesetzt ist, wird es f&uuml;r andere Aktionen (Autorisierungen, Rollenzuweisung etc.) nicht ber&uuml;cksichtigt.');
 INSERT INTO txt VALUES ('H5226', 'English', 'Active: If not set to active, the Ldap is not involved in other actions (authorization, role assignment etc.).');
+INSERT INTO txt VALUES ('H5227', 'German',  'Schreibpfad Gruppen: Der Distinguished name (Dn) des Wurzelverzeichnisses des Gruppensbaums. Dieser Parameter kann vom Suchpfad abweichen (was er im internen Ldap nicht tut).');
+INSERT INTO txt VALUES ('H5227', 'English', 'Group Write Path: The distinguished name (Dn) of the root of the group writ tree. This parameter may differ from the search path (in the internal Ldap it does not).');
 INSERT INTO txt VALUES ('H5231', 'German',  'Die verf&uuml;gbaren Mandanten werden hier mit den zugeordneten Gateways dargestellt.<br>
     Es ist m&ouml;glich, Mandanten im lokalen Ldap sowie Verkn&uuml;pfungen zu den vorhandenen <a href="/help/settings/gateways">Gateways</a> anzulegen oder zu l&ouml;schen.
     Wenn Beispieldaten (definiert durch die Endung "_demo" vom Mandantennamen) existieren, wird eine Schaltfl&auml;che angezeigt, um diese zu l&ouml;schen.

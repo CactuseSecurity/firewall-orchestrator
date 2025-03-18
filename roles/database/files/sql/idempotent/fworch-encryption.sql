@@ -136,6 +136,7 @@ CREATE OR REPLACE FUNCTION insertLocalLdapWithEncryptedPasswords(
     userSearchPath TEXT,
     roleSearchPath TEXT, 
     groupSearchPath TEXT,
+    groupWritePath TEXT,
     tenantLevel INTEGER,
     searchUser TEXT,
     searchUserPwd TEXT,
@@ -154,9 +155,9 @@ BEGIN
         SELECT INTO t_encryptedReadPwd * FROM encryptText(searchUserPwd, t_key);
         SELECT INTO t_encryptedWritePwd * FROM encryptText(writeUserPwd, t_key);
         INSERT INTO ldap_connection
-            (ldap_server, ldap_port, ldap_searchpath_for_users, ldap_searchpath_for_roles, ldap_searchpath_for_groups,
+            (ldap_server, ldap_port, ldap_searchpath_for_users, ldap_searchpath_for_roles, ldap_searchpath_for_groups, ldap_writepath_for_groups,
             ldap_tenant_level, ldap_search_user, ldap_search_user_pwd, ldap_write_user, ldap_write_user_pwd, ldap_type)
-            VALUES (serverName, port, userSearchPath, roleSearchPath, groupSearchPath, tenantLevel, searchUser, t_encryptedReadPwd, writeUser, t_encryptedWritePwd, ldapType);
+            VALUES (serverName, port, userSearchPath, roleSearchPath, groupSearchPath, groupWritePath, tenantLevel, searchUser, t_encryptedReadPwd, writeUser, t_encryptedWritePwd, ldapType);
     END IF;
 END;
 $$ LANGUAGE plpgsql;

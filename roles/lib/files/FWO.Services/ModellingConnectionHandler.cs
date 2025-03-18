@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Components.Authorization;
 using FWO.Middleware.Client;
 using System.Data;
 using Microsoft.AspNetCore.Components;
+using static FWO.Data.Modelling.ModellingTypes;
 
 
 namespace FWO.Services
@@ -1021,6 +1022,8 @@ namespace FWO.Services
 
         private bool IsAreaForbiddenInDirection(Direction direction)
         {
+            var areas = AvailableSelectedObjects.Where(_ => _.Content.GroupType == (int)ModObjectType.NetworkArea).ToList();
+
             return direction switch
             {
                 Direction.Source => ActConn.DestinationAreas.Count > 0,

@@ -1,4 +1,5 @@
 @using System
+@using FWO.Data.Report
 @using FWO.Report
 @using FWO.Report.Filter
 @using FWO.Ui.Data
@@ -115,6 +116,9 @@
     [Parameter]
     public ReportType SelectedReportType { get; set; } = ReportType.Rules;
 
+	[Parameter]
+	public TimeFilter LSBTime { get; set; } = new();
+
     [Parameter]
     public bool Recert { get; set; } = false;
 
@@ -151,7 +155,7 @@
     {
         Dictionary<string, object> ImpIdQueryVariables = new()
         {
-            ["time"] = DateTime.Now.ToString(DynGraphqlQuery.fullTimeFormat), // TODO: if set, use time from lsb
+            ["time"] = LSBTime.IsShortcut ? DateTime.Now.ToString(DynGraphqlQuery.fullTimeFormat) : LSBTime.ReportTime.ToString(DynGraphqlQuery.fullTimeFormat),
             ["mgmIds"] = mgmId
         };
         List<ManagementReport> result = await apiConnection.SendQueryAsync<List<ManagementReport>>(ReportQueries.getRelevantImportIdsAtTime, ImpIdQueryVariables);

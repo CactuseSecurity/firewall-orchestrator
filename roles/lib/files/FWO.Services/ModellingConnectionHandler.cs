@@ -1029,14 +1029,14 @@ namespace FWO.Services
             {
                 if (direction == Direction.Source)
                 {                    
-                    if (ActConn.SourceAreas.FirstOrDefault(w => w.Content.Id == area.Id) == null && !SrcAreasToAdd.Contains(area))
+                    if (ActConn.SourceAreas.Any(w => w.Content.Id == area.Id) || SrcAreasToAdd.Contains(area))
                     {
                         directionNetworkAreas.Add(area);
                     }
                 }
                 else if (direction == Direction.Destination)
                 {
-                    if (ActConn.DestinationAreas.FirstOrDefault(w => w.Content.Id == area.Id) == null && !DstAreasToAdd.Contains(area))
+                    if (ActConn.DestinationAreas.Any(w => w.Content.Id == area.Id) || DstAreasToAdd.Contains(area))
                     {
                         directionNetworkAreas.Add(area);
                     }

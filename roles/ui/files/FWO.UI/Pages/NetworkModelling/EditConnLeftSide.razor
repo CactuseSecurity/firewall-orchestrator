@@ -358,6 +358,15 @@
         }
         if(areas.Count > 0)
         {
+            Direction direction = toSource ? Direction.Source : Direction.Destination;
+
+            if (ConnHandler is not null && !ConnHandler.NetworkAreaUseAllowed(areas, direction, out (string Title, string Text) reason))
+            {
+                DisplayMessageInUi(default, reason.Title, reason.Text, true);
+                selectedNwElems = new();
+                return;
+            }
+
             if(toSource)
             {
                 ConnHandler?.AreasToSource(areas);
@@ -366,14 +375,6 @@
             {
                 ConnHandler?.AreasToDestination(areas);
             }
-
-            Direction direction = toSource ? Direction.Source : Direction.Destination;
-
-            if (ConnHandler is not null && !ConnHandler.NetworkAreaUseAllowed(areas, direction, out (string Title, string Text) reason))
-            {
-                DisplayMessageInUi(default, reason.Title, reason.Text, true);
-            }
-
         }
         if(nwGroups.Count > 0)
         {

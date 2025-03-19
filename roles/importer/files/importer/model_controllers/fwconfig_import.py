@@ -60,36 +60,59 @@ class FwConfigImport(FwConfigImportObject, FwConfigImportRule, FwConfigImportGat
         self.updateGatewayDiffs(previousConfig)
         return 
 
-    def storeLatestConfig(self, config):
-        logger = getFwoLogger()
-        import_mutation = """
-            mutation storeLatestConfig($importId: bigint!, $mgmId: Int!, $config: jsonb!) {
-                insert_latest_config(objects: {import_id: $importId, mgm_id: $mgmId, config: $config}) {
-                    affected_rows
-                }
-            }
-        """
-        try:
-            queryVariables = {
-                'mgmId': self.ImportDetails.MgmDetails.Id,
-                'importId': self.ImportDetails.ImportId,
-                'config': config
-            }
-            import_result = self.ImportDetails.call(import_mutation, queryVariables=queryVariables)
-            if 'errors' in import_result:
-                logger.exception("fwo_api:storeLatestConfig - error while writing importable config for mgm id " +
-                                str(self.ImportDetails.MgmDetails.Id) + ": " + str(import_result['errors']))
-                return 1 # error
-            else:
-                changes = import_result['data']['insert_latest_config']['affected_rows']
-        except:
-            logger.exception(f"failed to write latest normalized config for mgm id {str(self.ImportDetails.MgmDetails.Id)}: {str(traceback.format_exc())}")
-            return 1 # error
+    def storeLatestConfig(self):
+
+        logger = getFwoLogger(debug_level=self.ImportDetails.DebugLevel)
+        changes = 0
+        errorsFound = 0
+
+        if self.ImportDetails.ImportVersion>8:
+            # convert FwConfigImport to FwConfigNormalized
+            self.NormalizedConfig = FwConfigNormalized(action=self.NormalizedConfig.action, 
+                                    network_objects=self.NormalizedConfig.network_objects, 
+                                    service_objects=self.NormalizedConfig.service_objects, 
+                                    users=self.NormalizedConfig.users,
+                                    zone_objects=self.NormalizedConfig.zone_objects,
+                                    rulebases=self.NormalizedConfig.rulebases,
+                                    gateways=self.NormalizedConfig.gateways,
+                                    ConfigFormat=self.NormalizedConfig.ConfigFormat)
         
-        if changes==1:
-            return 0
-        else:
-            return 1
+            errorsFound = self.deleteLatestConfig()
+            if errorsFound:
+                getFwoLogger().warning(f"error while trying to delete latest config for mgm_id: {self.ImportDetails.ImportId}")
+            # errorsFound = self.storeLatestConfig(self.NormalizedConfig.json())
+            import_mutation = """
+                mutation storeLatestConfig($importId: bigint!, $mgmId: Int!, $config: jsonb!) {
+                    insert_latest_config(objects: {import_id: $importId, mgm_id: $mgmId, config: $config}) {
+                        affected_rows
+                    }
+                }
+            """
+            try:
+                queryVariables = {
+                    'mgmId': self.ImportDetails.MgmDetails.Id,
+                    'importId': self.ImportDetails.ImportId,
+                    'config': self.NormalizedConfig.json()
+                }
+                import_result = self.ImportDetails.call(import_mutation, queryVariables=queryVariables)
+                if 'errors' in import_result:
+                    logger.exception("fwo_api:storeLatestConfig - error while writing importable config for mgm id " +
+                                    str(self.ImportDetails.MgmDetails.Id) + ": " + str(import_result['errors']))
+                    errorsFound = 1 # error
+                else:
+                    changes = import_result['data']['insert_latest_config']['affected_rows']
+            except:
+                logger.exception(f"failed to write latest normalized config for mgm id {str(self.ImportDetails.MgmDetails.Id)}: {str(traceback.format_exc())}")
+                errorsFound = 1 # error
+            
+            if changes==1:
+                errorsFound = 0
+            else:
+                errorsFound = 1
+
+            if errorsFound:
+                getFwoLogger().warning(f"error while writing latest config for mgm_id: {self.ImportDetails.ImportId}")        
+
         
     def deleteLatestConfig(self) -> int:
         logger = getFwoLogger()
@@ -117,27 +140,6 @@ class FwConfigImport(FwConfigImportObject, FwConfigImportRule, FwConfigImportGat
             return 0
         else:
             return 1
-
-    def storeConfigToApi(self):
-
-         # convert FwConfigImport to FwConfigNormalized
-        self.NormalizedConfig = FwConfigNormalized(action=self.NormalizedConfig.action, 
-                                  network_objects=self.NormalizedConfig.network_objects, 
-                                  service_objects=self.NormalizedConfig.service_objects, 
-                                  users=self.NormalizedConfig.users,
-                                  zone_objects=self.NormalizedConfig.zone_objects,
-                                  rulebases=self.NormalizedConfig.rulebases,
-                                  gateways=self.NormalizedConfig.gateways,
-                                  ConfigFormat=self.NormalizedConfig.ConfigFormat)
-        
-        if self.ImportDetails.ImportVersion>8:
-            errorsFound = self.deleteLatestConfig()
-            if errorsFound:
-                getFwoLogger().warning(f"error while trying to delete latest config for mgm_id: {self.ImportDetails.ImportId}")
-            errorsFound = self.storeLatestConfig(self.NormalizedConfig.json())
-            if errorsFound:
-                getFwoLogger().warning(f"error while writing latest config for mgm_id: {self.ImportDetails.ImportId}")
-
 
     # cleanup configs which do not need to be retained according to data retention time
     def deleteOldImports(self) -> None:

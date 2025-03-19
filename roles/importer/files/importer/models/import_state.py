@@ -13,6 +13,7 @@ class ImportState(FwoApi):
     Stats: ImportStatisticsController = ImportStatisticsController()
     StartTime: int
     DebugLevel: int
+    VerifyCerts: bool = False
     ConfigChangedSinceLastImport: bool
     FwoConfig: FworchConfigController
     MgmDetails: ManagementDetailsController

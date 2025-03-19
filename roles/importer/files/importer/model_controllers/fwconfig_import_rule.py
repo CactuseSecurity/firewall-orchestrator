@@ -41,7 +41,7 @@ class FwConfigImportRule(FwConfigImportBase):
       # self.RulebaseMap = self.GetRulebaseMap()     # limited to the current mgm_id
 
     def updateRulebaseDiffs(self, prevConfig: FwConfigNormalized):
-        logger = getFwoLogger()
+        logger = getFwoLogger(debug_level=self.ImportDetails.DebugLevel)
         # calculate rule diffs
         changedRuleUids = {}
         deletedRuleUids = {}

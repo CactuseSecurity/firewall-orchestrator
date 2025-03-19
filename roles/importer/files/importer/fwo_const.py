@@ -7,6 +7,7 @@ base_dir = '/usr/local/fworch'
 importer_base_dir = base_dir + '/importer'
 sys.path.append(importer_base_dir) # adding absolute path here once
 
+debug_level=0
 fw_module_name = 'fwcommon'  # the module start-point for product specific code
 full_config_size_limit = 5000000 # native configs greater than 5 MB will not be stored in DB
 csv_delimiter = '%'

@@ -37,6 +37,5 @@ mutation rollbackCurrentImport($mgmId: Int!, $importId: bigint!) {
     update_rule_svc_resolved(where: {removed: {_eq: $importId}}, _set: {removed: null}) { affected_rows }
     update_rule_user_resolved(where: {removed: {_eq: $importId}}, _set: {removed: null}) { affected_rows }
     update_rule_enforced_on_gateway(where: {removed: {_eq: $importId}}, _set: {removed: null}) { affected_rows }
-    delete_latest_config (where:{mgm_id: {_eq:$mgmId}}) { affected_rows }
     delete_import_control(where: {control_id: {_eq: $importId}}) { affected_rows }            
 }

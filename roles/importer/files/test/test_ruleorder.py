@@ -46,5 +46,6 @@ class TestRuleOrdering(unittest.TestCase):
 
                 count_asserts += 1
 
+
 if __name__ == '__main__':
     unittest.main()

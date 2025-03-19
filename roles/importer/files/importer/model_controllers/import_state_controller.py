@@ -16,10 +16,11 @@ from model_controllers.import_statistics_controller import ImportStatisticsContr
 """Used for storing state during import process per management"""
 class ImportStateController(ImportState):
 
-    def __init__(self, debugLevel, configChangedSinceLastImport, fwoConfig, mgmDetails, jwt, force, version=8, isFullImport=False, isClearingImport=False):
+    def __init__(self, debugLevel, configChangedSinceLastImport, fwoConfig, mgmDetails, jwt, force, version=8, isFullImport=False, isClearingImport=False, verifyCerts=False):
         self.Stats = ImportStatisticsController()
         self.StartTime = int(time.time())
         self.DebugLevel = debugLevel
+        self.VerifyCerts = verifyCerts
         self.ConfigChangedSinceLastImport = configChangedSinceLastImport
         self.FwoConfig = fwoConfig
         self.MgmDetails = ManagementDetailsController.fromJson(mgmDetails)
@@ -53,6 +54,9 @@ class ImportStateController(ImportState):
 
     def appendErrorString(self, errorStr):
         self.Stats.ErrorDetails.append(errorStr)
+
+    def getErrors(self):
+        return self.Stats.ErrorDetails
 
     @classmethod
     def initializeImport(cls, mgmId, debugLevel=0, suppressCertWarnings=False, 
@@ -102,7 +106,8 @@ class ImportStateController(ImportState):
             force = force,
             version = version,
             isClearingImport=isClearingImport,
-            isFullImport=isFullImport
+            isFullImport=isFullImport,
+            verifyCerts=sslVerification
         )
 
         result.setPastImportInfos()

@@ -76,7 +76,7 @@ namespace FWO.Services
                     appZone.AppServers.AddRange(newAppServers);
                 }
 
-                List<ModellingAppServerWrapper>? unchangedAppServers = FindNewAppServers(new ModellingAppZone() { AppServers = diffAppServers }, appZone.AppServers);
+                List<ModellingAppServerWrapper>? unchangedAppServers = FindUnchangedAppServers(new ModellingAppZone() { AppServers = diffAppServers }, appZone.AppServers);
 
                 if (unchangedAppServers.Count > 0)
                 {

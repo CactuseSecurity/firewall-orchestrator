@@ -1079,7 +1079,7 @@ namespace FWO.Services
                 return true;
             }
 
-            reason.Text = "This network area can only be used in 'common services tab'";
+            reason.Text = userConfig.GetText("only_common_service");
             return false;
         }
 

@@ -1160,6 +1160,8 @@ INSERT INTO txt VALUES ('interface_contain_nwarea','German','Schnittstellen d&uu
 INSERT INTO txt VALUES ('interface_contain_nwarea','English','Interfaces must not contain network areas');
 INSERT INTO txt VALUES ('direction_contain_nwarea','German','Quelle und Ziel d&uuml;rfen nicht gleichzeitig einen Netzbereich enthalten');
 INSERT INTO txt VALUES ('direction_contain_nwarea','English','Source and destination must not contain a network area at the same time');
+INSERT INTO txt VALUES ('only_common_service',  'German',   'Dieser Netzbereich kann nur in der Registerkarte Gemeinsame Dienste verwendet werden.');
+INSERT INTO txt VALUES ('only_common_service',  'English',  'This network area can only be used in common services tab');
 INSERT INTO txt VALUES ('delete_interface', 	'German',	'Schnittstelle l&ouml;schen');
 INSERT INTO txt VALUES ('delete_interface', 	'English',	'Delete Interface');
 INSERT INTO txt VALUES ('insert_forbidden', 	'German',	'Einf&uuml;gen verboten');

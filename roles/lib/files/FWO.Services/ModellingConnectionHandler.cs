@@ -1021,37 +1021,12 @@ namespace FWO.Services
             return true;
         }
 
-        private List<ModellingNetworkArea> GetAreasInDirection(List<ModellingNetworkArea> networkAreas, Direction direction)
-        {
-            List<ModellingNetworkArea> directionNetworkAreas = [];
-
-            foreach (ModellingNetworkArea area in networkAreas)
-            {
-                if (direction == Direction.Source)
-                {                    
-                    if (ActConn.SourceAreas.Any(w => w.Content.Id == area.Id) || SrcAreasToAdd.Contains(area))
-                    {
-                        directionNetworkAreas.Add(area);
-                    }
-                }
-                else if (direction == Direction.Destination)
-                {
-                    if (ActConn.DestinationAreas.Any(w => w.Content.Id == area.Id) || DstAreasToAdd.Contains(area))
-                    {
-                        directionNetworkAreas.Add(area);
-                    }
-                }                
-            }
-
-            return directionNetworkAreas;
-        }
-
-        public bool IsAreaForbiddenInDirection(List<ModellingNetworkArea> networkAreas, Direction direction)
+        public bool IsAreaForbiddenInDirection(Direction direction)
         {
             return direction switch
             {
-                Direction.Source => ActConn.DestinationAreas.Count > 0 || GetAreasInDirection(networkAreas, Direction.Destination).Count > 0,
-                Direction.Destination => ActConn.SourceAreas.Count > 0 || GetAreasInDirection(networkAreas, Direction.Source).Count > 0,
+                Direction.Source => ActConn.DestinationAreas.Count > 0 || DstAreasToAdd.Count > 0,
+                Direction.Destination => ActConn.SourceAreas.Count > 0 || SrcAreasToAdd.Count > 0,
                 _ => false,
             };
         }
@@ -1079,7 +1054,7 @@ namespace FWO.Services
                 reason.Title = userConfig.GetText("edit_connection");
             }
 
-            if (IsAreaForbiddenInDirection(networkAreas, direction))
+            if (IsAreaForbiddenInDirection(direction))
             {
                 reason.Text = userConfig.GetText("direction_contain_nwarea");
                 return false;

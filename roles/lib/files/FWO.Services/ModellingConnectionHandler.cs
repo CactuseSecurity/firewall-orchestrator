@@ -1070,12 +1070,10 @@ namespace FWO.Services
 
             if (!hasCommonNetworkAreas && ActConn.IsCommonService)
             {
-                //Uncommon network areas should only be selectable under “Common Services”
                 return true;
             }
             else if (hasCommonNetworkAreas && ( ActConn.IsCommonService || ( !ActConn.IsInterface && !ActConn.IsCommonService ) ))
             {
-                //Common network areas may be selected in “Common Services” + “Connections”
                 return true;
             }
 

@@ -1,4 +1,5 @@
-﻿namespace FWO.Data
+﻿
+namespace FWO.Data
 {
     public class Role
     {
@@ -20,12 +21,23 @@
             Users = new (role.Users);
         }
 
+        private static string DisplayUserName(string name)
+        {
+            // replace encoded comma with real comma for displaying
+            // also put name in square brackets if it contains commas
+            if (name.Contains("\\2c", StringComparison.CurrentCultureIgnoreCase))
+            {
+                return $"[{name.Replace("\\2c", ",", StringComparison.CurrentCultureIgnoreCase)}]";
+            }
+            return name;
+        }
+
         public string UserList()
         {
             List<string> userNames = [];
             foreach(UiUser user in Users)
             {
-                userNames.Add(user.Name);
+                userNames.Add(DisplayUserName(new DistName(user.Dn).UserName));
             }
             return string.Join(", ", userNames);
         }

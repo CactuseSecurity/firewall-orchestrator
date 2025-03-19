@@ -1,4 +1,4 @@
-﻿using FWO.Api.Client;
+using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Data;
 using FWO.Data.Report;
@@ -63,13 +63,13 @@ namespace FWO.Report
                                 List<NetworkLocation> disregardedFroms = [.. rule.Froms];
                                 if(modellingFilter.ShowSourceMatch)
                                 {
-                                    (relevantFroms, disregardedFroms) = CheckNetworkObjects(rule.Froms);
+                                    (relevantFroms, disregardedFroms) = CheckNetworkObjects(rule.Froms, rule.SourceNegated);
                                 }
                                 List<NetworkLocation> relevantTos = [];
                                 List<NetworkLocation> disregardedTos = [.. rule.Tos];
                                 if(modellingFilter.ShowDestinationMatch)
                                 {
-                                    (relevantTos, disregardedTos) = CheckNetworkObjects(rule.Tos);
+                                    (relevantTos, disregardedTos) = CheckNetworkObjects(rule.Tos, rule.DestinationNegated);
                                 }
 
                                 if(relevantFroms.Count > 0 || relevantTos.Count > 0)
@@ -107,7 +107,7 @@ namespace FWO.Report
                 IPAddress.Parse((s.IpEnd != "" ? s.IpEnd : s.Ip).StripOffNetmask())))];
         }
 
-        private (List<NetworkLocation>, List<NetworkLocation>) CheckNetworkObjects(NetworkLocation[] objList)
+        private (List<NetworkLocation>, List<NetworkLocation>) CheckNetworkObjects(NetworkLocation[] objList, bool negated)
         {
             List<NetworkLocation> relevantObjects = [];
             List<NetworkLocation> disregardedObjects = [];
@@ -131,7 +131,7 @@ namespace FWO.Report
                     {
                         foreach(var grpobj in obj.Object.ObjectGroupFlats)
                         {
-                            if(grpobj.Object != null && CheckObj(grpobj.Object))
+                            if(grpobj.Object != null && CheckObj(grpobj.Object, negated))
                             {
                                 relevantObjects.Add(obj);
                                 found = true;
@@ -139,7 +139,7 @@ namespace FWO.Report
                             }
                         }
                     }
-                    else if(CheckObj(obj.Object))
+                    else if(CheckObj(obj.Object, negated))
                     {
                         relevantObjects.Add(obj);
                         found = true;
@@ -153,13 +153,27 @@ namespace FWO.Report
             return (relevantObjects, disregardedObjects);
         }
 
-        private bool CheckObj(NetworkObject obj)
+        private bool CheckObj(NetworkObject obj, bool negated)
         {
             foreach(var ownerIpRange in ownerIps)
             {
-                if(obj.IP != null &&
-                    IpOperations.RangeOverlapExists(new IPAddressRange(IPAddress.Parse(obj.IP.StripOffNetmask()),
-                    IPAddress.Parse((obj.IpEnd != null && obj.IpEnd != "" ? obj.IpEnd : obj.IP).StripOffNetmask())), ownerIpRange))
+                if(obj.IP == null)
+                {
+                    continue;
+                }
+
+                IPAddressRange objRange = new(IPAddress.Parse(obj.IP.StripOffNetmask()),
+                    IPAddress.Parse((obj.IpEnd != null && obj.IpEnd != "" ? obj.IpEnd : obj.IP).StripOffNetmask()));
+
+                if(negated)
+                {
+                    if (IpOperations.IpToUint(ownerIpRange.Begin) < IpOperations.IpToUint(objRange.Begin) ||
+                            (IpOperations.IpToUint(ownerIpRange.End) > IpOperations.IpToUint(objRange.End)))
+                    {
+                        return true;
+                    }
+                }
+                else if(IpOperations.RangeOverlapExists(objRange, ownerIpRange))
                 {
                     return true;
                 }
@@ -185,7 +199,7 @@ namespace FWO.Report
                             {
                                 foreach(var grpobj in from.Object.ObjectGroupFlats)
                                 {
-                                    if(grpobj.Object != null && CheckObj(grpobj.Object))
+                                    if(grpobj.Object != null && CheckObj(grpobj.Object, rule.SourceNegated))
                                     {
                                         mgt.HighlightedObjectIds.Add(grpobj.Object.Id);
                                     }
@@ -207,7 +221,7 @@ namespace FWO.Report
                             {
                                 foreach(var grpobj in to.Object.ObjectGroupFlats)
                                 {
-                                    if(grpobj.Object != null && CheckObj(grpobj.Object))
+                                    if(grpobj.Object != null && CheckObj(grpobj.Object, rule.DestinationNegated))
                                     {
                                         mgt.HighlightedObjectIds.Add(grpobj.Object.Id);
                                     }

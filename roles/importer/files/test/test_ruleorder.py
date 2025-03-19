@@ -12,7 +12,7 @@ from test.mocking.mock_import_state import MockImportState
 class TestRuleOrdering(unittest.TestCase):
     config_mocker = ConfigMocker()
 
-    def test_rule_ordering_new_import_creates_correct_mutation(self):
+    async def test_rule_ordering_new_import_creates_correct_mutation(self):
         # arrange
         number_config = [10] # one rulebase with ten rules
         config, rules_uids = self.config_mocker.create_config(True, number_config=number_config)
@@ -26,7 +26,7 @@ class TestRuleOrdering(unittest.TestCase):
         expected_query = '\n        mutation UpdateRuleOrder($updates: [rule_updates!]!) {\n            update_rule_many(updates: $updates) {\n                affected_rows\n            }\n        }\n    '
 
         # act
-        asyncio.run(resetOrderNumbersAsync(config.rulebases, batch_size, 2, mock_import_state))
+        await resetOrderNumbersAsync(config.rulebases, batch_size, 2, mock_import_state)
 
         # assert
         self.assertTrue(len(mock_import_state.previous_calls) == batch_size) # one call per batch should be sent

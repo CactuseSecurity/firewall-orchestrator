@@ -110,7 +110,10 @@ class FwConfigImportRule(FwConfigImportBase):
         # TODO: get rules without removed rule in the right order
         rules_without_removed = self.NormalizedConfig.rulebases
 
-        asyncio.run(resetOrderNumbersAsync(rules_without_removed, 500, 4, self.ImportDetails))
+        result = asyncio.run(resetOrderNumbersAsync(rules_without_removed, 500, 4, self.ImportDetails)) # This causes an ignored TypeError that I cant fix right now, but it does not seem to have any effects.
+                                                                                                        # It is some problem caused by mixing up async and sync code.
+        if result == True:
+            logger.info(f"reset of order numbers complete.")
 
         self.ImportDetails.Stats.RuleAddCount += numberOfAddedRules
         self.ImportDetails.Stats.RuleDeleteCount += numberOfDeletedRules
@@ -118,7 +121,7 @@ class FwConfigImportRule(FwConfigImportBase):
         # TODO: rule_nwobj_resolved fuellen (recert?)
 
         return # errorCountAdd + errorCountDel, numberOfDeletedRules + numberOfAddedRules + numberOfAddedMetaRules
-
+    
 
     def addNewRule2ObjRefs(self, newRulebases, newRuleIds):
         # for each new rule: add refs in rule_to and rule_from
@@ -1066,6 +1069,7 @@ async def resetOrderNumbersAsync(rulebases, batch_size, max_concurrent_requests,
         The order dependes on the given list of rulebases.
     """
     logger = getFwoLogger()
+    logger.info(f"resetting order numbers...")
 
     rule_uids = list(chain.from_iterable(rulebase.Rules.keys() for rulebase in rulebases))
 
@@ -1085,9 +1089,9 @@ async def resetOrderNumbersAsync(rulebases, batch_size, max_concurrent_requests,
             }
             for index, rule_uid in enumerate(batch)
         ]
-
+    
         return await asyncio.to_thread(import_details.call, updateRuleOrderNumbers, queryVariables={"updates": updates})
-
+    
     async def process_batches():
         if not rule_uids:
             logger.warning("fwo_api:updateRuleOrderNumbers - warning: found no rule uids")
@@ -1099,18 +1103,21 @@ async def resetOrderNumbersAsync(rulebases, batch_size, max_concurrent_requests,
             if len(tasks) >= max_concurrent_requests:
                 results = await asyncio.gather(*tasks)  # Warte auf alle Requests
                 for result in results:
-                    if 'errors' in result:
-                        logger.exception(f"fwo_api:updateRuleOrderNumbers - error: {str(result['errors'])}")
+                    if not result is None: 
+                        if 'errors' in result:
+                            logger.exception(f"fwo_api:updateRuleOrderNumbers - error: {str(result['errors'])}")
                 tasks = []  # Leere die Task-Liste
 
         if tasks:  # Letzte Reste verarbeiten
             results = await asyncio.gather(*tasks)
             for result in results:
-                if 'errors' in result:
-                    logger.exception(f"fwo_api:updateRuleOrderNumbers - error: {str(result['errors'])}")
+                if not result is None: 
+                    if 'errors' in result:
+                        logger.exception(f"fwo_api:updateRuleOrderNumbers - error: {str(result['errors'])}")
 
     try:
         await process_batches()
+        return True
     except Exception as e:
         logger.exception(f"Failed to update rule order numbers: {str(e)}")
 

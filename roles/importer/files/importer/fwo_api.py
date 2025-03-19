@@ -10,7 +10,12 @@ import string
 from typing import List
 
 import model_controllers.import_statistics_controller as stats
-from model_controllers.import_state_controller import ImportStateController
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING: # prevents circular import problems
+    from model_controllers.import_state_controller import ImportStateController
+
 from fwo_log import getFwoLogger
 import fwo_globals
 import fwo_const
@@ -622,7 +627,7 @@ def setAlert(fwo_api_base_url, jwt, import_id=None, title=None, mgm_id=None, dev
     return True
 
 
-def complete_import(importState: ImportStateController):
+def complete_import(importState: "ImportStateController"):
     logger = getFwoLogger(debug_level=importState.DebugLevel)
     
     success = (importState.Stats.ErrorCount==0)

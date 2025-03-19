@@ -1,10 +1,11 @@
-﻿namespace FWO.Data.Modelling
+namespace FWO.Data.Modelling
 {
     public class ModellingAppZone : ModellingAppRole
     {
         public bool Exists { get; set; }
         public List<ModellingAppServerWrapper> AppServersNew = [];
         public List<ModellingAppServerWrapper> AppServersRemoved = [];
+        public List<ModellingAppServerWrapper> AppServersUnchanged = [];
 
         public ModellingAppZone()
         { }

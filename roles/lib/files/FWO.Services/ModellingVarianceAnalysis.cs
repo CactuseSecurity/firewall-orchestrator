@@ -1,4 +1,4 @@
-﻿using FWO.Config.Api;
+using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Workflow;
 using FWO.Data.Modelling;
@@ -282,6 +282,7 @@ namespace FWO.Services
             {            
                 newAppServers = existingAppZone.AppServersNew;
                 deletedAppServers = existingAppZone.AppServersRemoved;
+                unchangedAppServers = existingAppZone.AppServersUnchanged;
                 RequestUpdateNwGroup(existingAppZone, mgt);
             }
         }

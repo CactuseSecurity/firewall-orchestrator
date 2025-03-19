@@ -1,4 +1,4 @@
-﻿using FWO.Api.Client;
+using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Data;
 using FWO.Data.Modelling;
@@ -75,6 +75,13 @@ namespace FWO.Services
                     appZone.AppServersNew = newAppServers;
                     appZone.AppServers.AddRange(newAppServers);
                 }
+
+                List<ModellingAppServerWrapper>? unchangedAppServers = FindNewAppServers(new ModellingAppZone() { AppServers = diffAppServers }, appZone.AppServers);
+
+                if (unchangedAppServers.Count > 0)
+                {
+                    appZone.AppServersUnchanged = unchangedAppServers;
+                }
             }
 
             return appZone;
@@ -117,6 +124,21 @@ namespace FWO.Services
             }
 
             return newAppServers;
+        }
+
+        private List<ModellingAppServerWrapper> FindUnchangedAppServers(ModellingAppZone existingAppZone, List<ModellingAppServerWrapper> allAppServers)
+        {
+            List<ModellingAppServerWrapper> unchangedAppServers = [];
+
+            foreach (ModellingAppServerWrapper appserver in allAppServers)
+            {
+                if (existingAppZone.AppServers.FirstOrDefault(a => new AppServerComparer(NamingConvention).Equals(a.Content, appserver.Content)) != null)
+                {
+                    unchangedAppServers.Add(appserver);
+                }
+            }
+
+            return unchangedAppServers;
         }
 
         private List<ModellingAppServerWrapper> FindRemovedAppServers(ModellingAppZone existingAppZone, List<ModellingAppServerWrapper> allAppServers)

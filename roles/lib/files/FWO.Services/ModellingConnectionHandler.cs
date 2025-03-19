@@ -1021,7 +1021,10 @@ namespace FWO.Services
             return true;
         }
 
-        public bool IsAreaForbiddenInDirection(Direction direction)
+        /// <summary>
+        /// Checks the opposite direction if it already contains a network area.
+        /// </summary>
+        private bool IsAreaForbiddenInDirection(Direction direction)
         {
             return direction switch
             {
@@ -1081,6 +1084,11 @@ namespace FWO.Services
             return false;
         }
 
+        /// <summary>
+        /// Checks the given list of network areas against common network area settings.
+        /// </summary>
+        /// <param name="networkAreas"></param>
+        /// <returns></returns>
         private bool HasCommonNetworkAreas(List<ModellingNetworkArea> networkAreas)
         {
             foreach (ModellingNetworkArea area in networkAreas)

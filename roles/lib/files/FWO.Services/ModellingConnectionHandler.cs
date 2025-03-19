@@ -1022,7 +1022,6 @@ namespace FWO.Services
 
         public bool IsAreaForbiddenInDirection(List<ModellingNetworkArea> oppositeNetworkAreas, Direction direction)
         {
-
             return direction switch
             {
                 Direction.Source => oppositeNetworkAreas.Count > 0,

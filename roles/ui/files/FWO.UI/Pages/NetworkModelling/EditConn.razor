@@ -550,7 +550,7 @@
             }
             if(Container.AreaElements.Count > 0)
             {
-                var bla = ConnHandler.IsAreaForbiddenInDirection(Container.AreaElements, Direction.Destination);
+                //var bla = ConnHandler.IsAreaForbiddenInDirection(, Direction.Destination);
 
                 if (ConnHandler is not null && !ConnHandler.NetworkAreaUseAllowed(Container.AreaElements, Direction.Destination, out (string Title, string Text) reason))
                 {

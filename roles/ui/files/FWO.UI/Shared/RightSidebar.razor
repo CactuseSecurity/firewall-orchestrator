@@ -215,7 +215,6 @@
                     if (objType == ObjCategory.all)
                     {
                         queryVars.Add("rule_id", id);
-                        queryVars.Remove("limit"); // No pagination for rule details
                         query = nat ? RuleQueries.getNatRuleDetails : RuleQueries.getRuleDetails;
                         await FetchObjects(query, queryVars, callback);
                     }

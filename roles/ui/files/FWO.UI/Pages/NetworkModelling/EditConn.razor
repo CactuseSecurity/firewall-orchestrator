@@ -506,7 +506,7 @@
             }
             if(Container.AreaElements.Count > 0)
             {
-
+                ConnHandler?.AreasToSource(Container.AreaElements);
 
                 if (ConnHandler is not null && !ConnHandler.NetworkAreaUseAllowed(Container.AreaElements, Direction.Source, out (string Title, string Text) reason))
                 {
@@ -514,8 +514,6 @@
                     Container.Clear();
                     return;
                 }
-
-                ConnHandler?.AreasToSource(Container.AreaElements);                
             }
             if(Container.NwGroupElements.Count > 0)
             {
@@ -549,8 +547,8 @@
                 ConnHandler?.AppRolesToDestination(Container.AppRoleElements);
             }
             if(Container.AreaElements.Count > 0)
-            {
-                //var bla = ConnHandler.IsAreaForbiddenInDirection(, Direction.Destination);
+            {    
+                ConnHandler?.AreasToDestination(Container.AreaElements);                
 
                 if (ConnHandler is not null && !ConnHandler.NetworkAreaUseAllowed(Container.AreaElements, Direction.Destination, out (string Title, string Text) reason))
                 {
@@ -558,8 +556,6 @@
                     Container.Clear();
                     return;
                 }
-
-                ConnHandler?.AreasToDestination(Container.AreaElements);
             }
             if(Container.NwGroupElements.Count > 0)
             {

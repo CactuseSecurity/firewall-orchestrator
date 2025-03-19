@@ -1020,12 +1020,12 @@ namespace FWO.Services
             return true;
         }
 
-        public bool IsAreaForbiddenInDirection(List<ModellingNetworkArea> oppositeNetworkAreas, Direction direction)
+        public bool IsAreaForbiddenInDirection(Direction direction)
         {
             return direction switch
             {
-                Direction.Source => oppositeNetworkAreas.Count > 0,
-                Direction.Destination => oppositeNetworkAreas.Count > 0,
+                Direction.Source => ActConn.DestinationAreas.Count > 0 || DstAreasToAdd.Count > 0,
+                Direction.Destination => ActConn.SourceAreas.Count > 0 || SrcAreasToAdd.Count > 0,
                 _ => false,
             };
         }
@@ -1053,11 +1053,11 @@ namespace FWO.Services
                 reason.Title = userConfig.GetText("edit_connection");
             }
 
-            //if (IsAreaForbiddenInDirection(direction))
-            //{
-            //    reason.Text = userConfig.GetText("direction_contain_nwarea");
-            //    return false;
-            //}
+            if (IsAreaForbiddenInDirection(direction))
+            {
+                reason.Text = userConfig.GetText("direction_contain_nwarea");
+                return false;
+            }
 
             if (ActConn.IsInterface)
             {

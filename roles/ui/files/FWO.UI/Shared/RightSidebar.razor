@@ -1,4 +1,4 @@
-﻿@using System
+@using System
 @using FWO.Report
 @using FWO.Report.Filter
 @using FWO.Ui.Data
@@ -147,6 +147,17 @@
         });
     }
 
+    private async Task<long> GetImportId(int mgmId)
+    {
+        Dictionary<string, object> ImpIdQueryVariables = new()
+        {
+            ["time"] = DateTime.Now.ToString(DynGraphqlQuery.fullTimeFormat), // TODO: if set, use time from lsb
+            ["mgmIds"] = mgmId
+        };
+        List<ManagementReport> result = await apiConnection.SendQueryAsync<List<ManagementReport>>(ReportQueries.getRelevantImportIdsAtTime, ImpIdQueryVariables);
+        return result.First().Import.ImportAggregate.ImportAggregateMax.RelevantImportId ?? 0;
+    }
+
     public async Task FetchContent(RsbTab rsbTab, ObjCategory objType, Func<ReportData, Task> callback, long id = 0, bool nat = false)
     {
         Log.WriteDebug("Fetching Content..", $"nat: {nat}");
@@ -165,6 +176,8 @@
             {
                 case RsbTab.all:
                     queryVars.Add("management_id", (int)id);
+                    queryVars.Add("import_id", await GetImportId((int)id));
+
                     switch (objType)
                     {
                         case ObjCategory.all:
@@ -198,6 +211,7 @@
                     if (objType == ObjCategory.all)
                     {
                         queryVars.Add("rule_id", id);
+                        queryVars.Remove("limit"); // No pagination for rule details
                         query = nat ? RuleQueries.getNatRuleDetails : RuleQueries.getRuleDetails;
                         await FetchObjects(query, queryVars, callback);
                     }
@@ -218,6 +232,7 @@
             ReportData reportData = new();
             bool newObjects = true;
             int fetchCount = 0;
+            int elementsPerFetch = userConfig.ElementsPerFetch;
 
             while (newObjects && (++fetchCount <= userConfig.MaxInitialFetchesRightSidebar || userConfig.AutoFillRightSidebar))
             {
@@ -232,11 +247,11 @@
                 }
 
                 if (queryVars.ContainsKey("offset"))
-                    queryVars["offset"] = (int)queryVars["offset"] + userConfig.ElementsPerFetch;
+                    queryVars["offset"] = (int)queryVars["offset"] + elementsPerFetch;
                 await callback(reportData);
             }
 
-            Log.WriteDebug("Lazy Fetch", $"Fetched sidebar objects in {fetchCount - 1} cycle(s) ({userConfig.ElementsPerFetch} at a time)");
+            Log.WriteDebug("Lazy Fetch", $"Fetched sidebar objects in {fetchCount - 1} cycle(s) ({elementsPerFetch} at a time)");
 
             if (fetchCount > userConfig.MaxInitialFetchesRightSidebar && !userConfig.AutoFillRightSidebar)
                 DisplayMessageInUi(null, userConfig.GetText("object_fetch_warning"), userConfig.GetText("E0021"), true);

@@ -1,4 +1,4 @@
-﻿@using FWO.Report
+@using FWO.Report
 @using FWO.Ui.Display
 
 @inject UserConfig userConfig
@@ -14,7 +14,7 @@
     {
         Content = InitialContent;
     }
-    <Collapse Title="@(NameExtractor != null ? NameExtractor(Content) : "")" UseHtmlTitle="@(Tab == RsbTab.rule)" Style="@("primary")" StartToggled="StartCollapsed" RSBLocation="@GetRSBLocation()">
+    <Collapse Title="@(NameExtractor != null ? NameExtractor(Content) : "")" UseHtmlTitle="@(Tab == RsbTab.rule)" Style="@("primary")" StartToggled="StartCollapsed" OnOpen="() => HandleUncollapse(ObjCategory.all)" RSBLocation="@GetRSBLocation()">
         <TitleWithHtml>
             @if (typeof(InputDataType) == typeof(Rule))
             {
@@ -40,7 +40,7 @@
             {
                 <Collapse Title="@(userConfig.GetText("network_objects"))" StartToggled="StartCollapsed"  OnOpen="() => HandleUncollapse(ObjCategory.nobj)" RSBLocation=@($"{GetIDPrefix(ObjCategory.nobj)}")>
                     <Table PageSize="PageSize" style="font-size:small" class="table table-bordered table-sm th-bg-secondary table-responsive" TableItem="NetworkObject"
-                            Items="@NetworkObjectExtractor(Content)" ColumnReorder="true">
+                    Items="@NetworkObjectExtractor(Content)" ColumnReorder="true">
                         <Column TableItem="NetworkObject" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Class="word-break">
                             <Template>
                                 <div style="@(context.Highlighted ? GlobalConst.kStyleHighlighted : "")">
@@ -110,7 +110,7 @@
             {
                 <Collapse Title="@(userConfig.GetText("services"))" StartToggled="StartCollapsed" OnOpen="() => HandleUncollapse(ObjCategory.nsrv)" RSBLocation=@($"{GetIDPrefix(ObjCategory.nsrv)}")>
                     <Table PageSize="PageSize" style="font-size:small" class="table table-bordered table-sm th-bg-secondary table-responsive" TableItem="NetworkService"
-                            Items="@NetworkServiceExtractor(Content)" ColumnReorder="true">
+                    Items="@NetworkServiceExtractor(Content)" ColumnReorder="true">
                         <Column TableItem="NetworkService" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Class="word-break">
                             <Template>
                                 <div> @* need same offset to parent html for link highlight *@
@@ -188,7 +188,7 @@
             {
                 <Collapse Title="@(userConfig.GetText("users"))" StartToggled="StartCollapsed" OnOpen="() => HandleUncollapse(ObjCategory.user)" RSBLocation=@($"{GetIDPrefix(ObjCategory.user)}")>
                     <Table PageSize="PageSize" style="font-size:small" class="table table-bordered table-sm th-bg-secondary table-responsive"
-                            TableItem="NetworkUser" Items="@NetworkUserExtractor(Content)" ColumnReorder="true">
+                    TableItem="NetworkUser" Items="@NetworkUserExtractor(Content)" ColumnReorder="true">
                         <Column TableItem="NetworkUser" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Class="word-break">
                             <Template>
                                 <div> @* need same offset to parent html for link highlight *@
@@ -301,6 +301,7 @@
         {
             await FetchContent(ObjCategory.all);
         }
+        Console.WriteLine("lllllk");
     }
 
     protected override void OnParametersSet()
@@ -362,7 +363,7 @@
 
         return idPref;
     }
-    
+
     private string GetID(ObjCategory objCategory, long objId)
     {
         return GetIDPrefix(objCategory) + objId;
@@ -378,23 +379,23 @@
         string htmlObjRefPrefix = GetIDPrefix(objCategory, targetTab, true);
 
         string page = Recert ? PageName.Certification : PageName.ReportGeneration;
-        
+
         return @<a style="@(highlighted ? GlobalConst.kStyleHighlighted : "")" href="@(page)#goto-@(htmlObjRefPrefix + objId)" target="_top"><span class="@ReportBase.GetIconClass(objCategory, type)">&nbsp;</span>@(name)</a>;
     }
 
     private async Task HandleUncollapse(ObjCategory objCategory)
     {
-        if (Tab != RsbTab.rule)
-            await FetchContent(objCategory);
+        if (Tab != RsbTab.rule && objCategory == ObjCategory.all
+           || Tab == RsbTab.rule && objCategory != ObjCategory.all)
+            return;
+
+        await FetchContent(objCategory);
     }
 
     private async Task FetchContent(ObjCategory objCategory)
     {
         try
         {
-            if (Tab == RsbTab.rule && objCategory != ObjCategory.all)
-                return;
-
             if (objCategory == ObjCategory.all && !ContentIsDetailed || objCategory == ObjCategory.nobj && !nobjDetailed ||
                 objCategory == ObjCategory.nsrv && !nsrvDetailed || objCategory == ObjCategory.user && !userDetailed)
             {
@@ -409,25 +410,21 @@
                                     ManagementReport? mgtUpdated = managementsUpdate.ManagementData.FirstOrDefault(m => m.Id == mgt.Id);
                                     if (mgtUpdated != null)
                                     {
-                                        switch (objCategory)
+                                        if (objCategory == ObjCategory.all || objCategory == ObjCategory.nobj)
                                         {
-                                            case ObjCategory.all:
-                                                mgt = mgtUpdated;
-                                                break;
-                                            case ObjCategory.nobj:
-                                                mgt.Objects = mgtUpdated.Objects;
-                                                mgt.ReportObjects = mgtUpdated.ReportObjects;
-                                                break;
-                                            case ObjCategory.nsrv:
-                                                mgt.Services = mgtUpdated.Services;
-                                                mgt.ReportServices = mgtUpdated.ReportServices;
-                                                break;
-                                            case ObjCategory.user:
-                                                mgt.Users = mgtUpdated.Users;
-                                                mgt.ReportUsers = mgtUpdated.ReportUsers;
-                                                break;
+                                            mgt.Objects = mgtUpdated.Objects;
+                                            mgt.ReportObjects = mgtUpdated.ReportObjects;
                                         }
-                                        Content = (InputDataType)(Object)mgt;
+                                        if (objCategory == ObjCategory.all || objCategory == ObjCategory.nsrv)
+                                        {
+                                            mgt.Services = mgtUpdated.Services;
+                                            mgt.ReportServices = mgtUpdated.ReportServices;
+                                        }
+                                        if (objCategory == ObjCategory.all || objCategory == ObjCategory.user)
+                                        {
+                                            mgt.Users = mgtUpdated.Users;
+                                            mgt.ReportUsers = mgtUpdated.ReportUsers;
+                                        }
                                     }
                                     AnchorNavToRSB?.ScrollToFragment();
                                     return InvokeAsync(StateHasChanged);
@@ -441,12 +438,16 @@
                                     Rule? ruleUpdated = managementsUpdate.ManagementData.SelectMany(m => m.Devices).SelectMany(d => d.Rules ?? new Rule[0]).FirstOrDefault();
                                     if (ruleUpdated != null)
                                     {
-                                        ruleUpdated.DeviceName = rule.DeviceName;
-                                        Content = (InputDataType)(Object)ruleUpdated;
+                                        rule.Froms = ruleUpdated.Froms;
+                                        rule.Tos = ruleUpdated.Tos;
+                                        rule.NatData.TranslatedFroms = ruleUpdated.NatData.TranslatedFroms;
+                                        rule.NatData.TranslatedTos = ruleUpdated.NatData.TranslatedTos;
+                                        rule.Services = ruleUpdated.Services;
+                                        rule.NatData.TranslatedServices = ruleUpdated.NatData.TranslatedServices;
                                     }
                                     AnchorNavToRSB?.ScrollToFragment();
                                     return InvokeAsync(StateHasChanged);
-                                 }, rule.Id, !string.IsNullOrEmpty(rule.NatData?.TranslatedSource));
+                                }, rule.Id, !string.IsNullOrEmpty(rule.NatData?.TranslatedSource));
                             break;
                     }
                 }
@@ -457,10 +458,12 @@
 
                 await InvokeAsync(StateHasChanged);
             }
+            return;
         }
         catch (Exception exception)
         {
             DisplayMessageInUi(exception, userConfig.GetText("object_fetch"), "", true);
+            return;
         }
     }
 }

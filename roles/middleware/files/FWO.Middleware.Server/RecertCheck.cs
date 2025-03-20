@@ -1,4 +1,4 @@
-﻿using FWO.Api.Client;
+using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Config.Api;
@@ -93,7 +93,7 @@ namespace FWO.Middleware.Server
             {
                 if (currentLdap.IsInternal() && currentLdap.HasGroupHandling())
                 {
-                    groups.AddRange(currentLdap.GetAllInternalGroups());
+                    groups.AddRange(await currentLdap.GetAllInternalGroups());
                 }
             }
             uiUsers = await apiConnectionMiddlewareServer.SendQueryAsync<List<UiUser>>(AuthQueries.getUsers);

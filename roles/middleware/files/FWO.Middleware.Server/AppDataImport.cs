@@ -1,4 +1,4 @@
-﻿using FWO.Api.Client;
+using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Config.Api;
@@ -80,14 +80,14 @@ namespace FWO.Middleware.Server
 			requesterRoleDn = $"cn=requester,{internalLdap.RoleSearchPath}";
 			implementerRoleDn = $"cn=implementer,{internalLdap.RoleSearchPath}";
 			reviewerRoleDn = $"cn=reviewer,{internalLdap.RoleSearchPath}";
-			allInternalGroups = internalLdap.GetAllInternalGroups();
+			allInternalGroups = await internalLdap.GetAllInternalGroups();
 			if (globalConfig.OwnerLdapId == GlobalConst.kLdapInternalId)
 			{
 				allGroups = allInternalGroups;	// TODO: check if ref is ok here
 			}
 			else
 			{
-				allGroups = ownerGroupLdap.GetAllGroupObjects(globalConfig.OwnerLdapGroupNames.Replace(GlobalConst.kAppIdPlaceholder, "*"));
+				allGroups = await ownerGroupLdap.GetAllGroupObjects(globalConfig.OwnerLdapGroupNames.Replace(GlobalConst.kAppIdPlaceholder, "*"));
 			}
 		}
 
@@ -189,7 +189,7 @@ namespace FWO.Middleware.Server
 		private async Task<string> NewApp(ModellingImportAppData incomingApp)
 		{
 			string userGroupDn;
-			userGroupDn = globalConfig.ManageOwnerLdapGroups ? CreateUserGroup(incomingApp) : GetGroupDn(incomingApp.ExtAppId);
+			userGroupDn = globalConfig.ManageOwnerLdapGroups ? await CreateUserGroup(incomingApp) : GetGroupDn(incomingApp.ExtAppId);
 
 			var variables = new
 			{
@@ -224,7 +224,7 @@ namespace FWO.Middleware.Server
 			{
 				if (string.IsNullOrEmpty(existingApp.GroupDn) && allGroups.FirstOrDefault(x => x.GroupDn == userGroupDn) == null)
 				{
-					string newDn = CreateUserGroup(incomingApp);
+					string newDn = await CreateUserGroup(incomingApp);
 					if(newDn != userGroupDn) // may this happen?
 					{
 						Log.WriteInfo("Import App Data", $"New UserGroup DN {newDn} differs from settings value {userGroupDn}.");
@@ -290,7 +290,7 @@ namespace FWO.Middleware.Server
 		{
 			foreach (Ldap ldap in connectedLdaps)
 			{
-				foreach (string memberDn in ldap.GetGroupMembers(userGroupDn))
+				foreach (string memberDn in await ldap.GetGroupMembers(userGroupDn))
 				{
 					UiUser? uiUser = await ConvertLdapToUiUser(apiConnection, memberDn);
 					if(uiUser != null)
@@ -309,7 +309,7 @@ namespace FWO.Middleware.Server
 			{
 				if (!string.IsNullOrEmpty(ldap.UserSearchPath) && userDn.ToLower().Contains(ldap.UserSearchPath!.ToLower()))
 				{
-					LdapEntry? ldapUser = ldap.GetUserDetailsFromLdap(userDn);
+					LdapEntry? ldapUser = await ldap.GetUserDetailsFromLdap(userDn);
 					
 					if (ldapUser != null)
 					{
@@ -366,38 +366,38 @@ namespace FWO.Middleware.Server
 			return tenant;
 		}
 
-		private string CreateUserGroup(ModellingImportAppData incomingApp)
+		private async Task<string> CreateUserGroup(ModellingImportAppData incomingApp)
 		{
 			string groupDn = "";
 			if (incomingApp.Modellers != null && incomingApp.Modellers.Count > 0
 				|| incomingApp.ModellerGroups != null && incomingApp.ModellerGroups.Count > 0)
 			{
 				string groupName = GetGroupName(incomingApp.ExtAppId);
-				groupDn = internalLdap.AddGroup(groupName, true);
+				groupDn = await internalLdap.AddGroup(groupName, true);
 				if (incomingApp.Modellers != null)
 				{
 					foreach (var modeller in incomingApp.Modellers)
 					{
 						// add user to internal group:
-						internalLdap.AddUserToEntry(modeller, groupDn);
+						await internalLdap.AddUserToEntry(modeller, groupDn);
 					}
 				}
 				if (incomingApp.ModellerGroups != null)
 				{
 					foreach (var modellerGrp in incomingApp.ModellerGroups)
 					{
-						internalLdap.AddUserToEntry(modellerGrp, groupDn);
+						await internalLdap.AddUserToEntry(modellerGrp, groupDn);
 					}
 				}
-				internalLdap.AddUserToEntry(groupDn, modellerRoleDn);
-				internalLdap.AddUserToEntry(groupDn, requesterRoleDn);
-				internalLdap.AddUserToEntry(groupDn, implementerRoleDn);
-				internalLdap.AddUserToEntry(groupDn, reviewerRoleDn);
+				await internalLdap.AddUserToEntry(groupDn, modellerRoleDn);
+				await internalLdap.AddUserToEntry(groupDn, requesterRoleDn);
+				await internalLdap.AddUserToEntry(groupDn, implementerRoleDn);
+				await internalLdap.AddUserToEntry(groupDn, reviewerRoleDn);
 			}
 			return groupDn;
 		}
 
-		private string UpdateUserGroup(ModellingImportAppData incomingApp, string groupDn)
+		private async Task<string> UpdateUserGroup(ModellingImportAppData incomingApp, string groupDn)
 		{
 			List<string> existingMembers = (allGroups.FirstOrDefault(x => x.GroupDn == groupDn) ?? throw new Exception("Group could not be found.")).Members;
 			if (incomingApp.Modellers != null)
@@ -406,7 +406,7 @@ namespace FWO.Middleware.Server
 				{
 					if (existingMembers.FirstOrDefault(x => x.Equals(modeller, StringComparison.CurrentCultureIgnoreCase)) == null)
 					{
-						internalLdap.AddUserToEntry(modeller, groupDn);
+                        await internalLdap.AddUserToEntry(modeller, groupDn);
 					}
 				}
 			}
@@ -416,7 +416,7 @@ namespace FWO.Middleware.Server
 				{
 					if (existingMembers.FirstOrDefault(x => x.Equals(modellerGrp, StringComparison.CurrentCultureIgnoreCase)) == null)
 					{
-						internalLdap.AddUserToEntry(modellerGrp, groupDn);
+						await internalLdap.AddUserToEntry(modellerGrp, groupDn);
 					}
 				}
 			}
@@ -425,31 +425,31 @@ namespace FWO.Middleware.Server
 				if ((incomingApp.Modellers == null || incomingApp.Modellers.FirstOrDefault(x => x.Equals(member, StringComparison.CurrentCultureIgnoreCase)) == null)
 					&& (incomingApp.ModellerGroups == null || incomingApp.ModellerGroups.FirstOrDefault(x => x.Equals(member, StringComparison.CurrentCultureIgnoreCase)) == null))
 				{
-					internalLdap.RemoveUserFromEntry(member, groupDn);
+					await internalLdap.RemoveUserFromEntry(member, groupDn);
 				}
 			}
-			UpdateRoles(groupDn);
+			await UpdateRoles(groupDn);
 			return groupDn;
 		}
 
-		private void UpdateRoles(string dn)
+		private async Task UpdateRoles(string dn)
 		{
-			List<string> roles = internalLdap.GetRoles([dn]);
+			List<string> roles = await internalLdap.GetRoles([dn]);
 			if(!roles.Contains(Roles.Modeller))
 			{
-				internalLdap.AddUserToEntry(dn, modellerRoleDn);
+				await internalLdap.AddUserToEntry(dn, modellerRoleDn);
 			}
 			if(!roles.Contains(Roles.Requester))
 			{
-				internalLdap.AddUserToEntry(dn, requesterRoleDn);
+				await internalLdap.AddUserToEntry(dn, requesterRoleDn);
 			}
 			if(!roles.Contains(Roles.Implementer))
 			{
-				internalLdap.AddUserToEntry(dn, implementerRoleDn);
+				await internalLdap.AddUserToEntry(dn, implementerRoleDn);
 			}
 			if(!roles.Contains(Roles.Reviewer))
 			{
-				internalLdap.AddUserToEntry(dn, reviewerRoleDn);
+				await internalLdap.AddUserToEntry(dn, reviewerRoleDn);
 			}
 		}
 

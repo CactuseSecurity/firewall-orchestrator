@@ -1,14 +1,15 @@
-﻿using FWO.Basics;
-using FWO.Data;
-using System.Text;
-using FWO.Api.Client;
-using FWO.Report.Filter;
+﻿using FWO.Api.Client;
 using FWO.Api.Client.Queries;
-using FWO.Ui.Display;
-using FWO.Logging;
+using FWO.Basics;
 using FWO.Config.Api;
-using System.Text.Json;
+using FWO.Data;
+using FWO.Data.Report;
+using FWO.Logging;
+using FWO.Report.Filter;
+using FWO.Ui.Display;
 using Newtonsoft.Json;
+using System.Text;
+using System.Text.Json;
 
 namespace FWO.Report
 {

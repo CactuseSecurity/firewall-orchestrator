@@ -237,6 +237,7 @@ namespace FWO.Report.Filter
                     break;
 
                 case ReportType.Connections:
+                case ReportType.VarianceAnalysis:
 
                     query.FullQuery = Queries.compact($@"
                         {ModellingQueries.connectionResolvedDetailsFragment}
@@ -316,7 +317,7 @@ namespace FWO.Report.Filter
             {
                 SetOwnerFilter(ref query, reportParams.ReportParams.ModellingFilter);
             }
-            if ((ReportType)reportParams.ReportParams.ReportType == ReportType.Connections)
+            if (((ReportType)reportParams.ReportParams.ReportType).IsOwnerRelatedReport())
             {
                 SetConnectionFilter(ref query, reportParams.ReportParams.ModellingFilter);
             }

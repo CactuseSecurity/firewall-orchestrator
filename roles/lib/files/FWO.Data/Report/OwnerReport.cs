@@ -1,7 +1,6 @@
-﻿using FWO.Data;
-using FWO.Data.Modelling;
+﻿using FWO.Data.Modelling;
 
-namespace FWO.Report
+namespace FWO.Data.Report
 {
     public class OwnerReport : ConnectionReport
     {

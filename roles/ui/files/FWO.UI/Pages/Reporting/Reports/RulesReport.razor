@@ -231,7 +231,7 @@
 @code
 {
     [Parameter]
-    public bool Recertification { get; set; }
+    public bool Recertification { get; set; } = false;
     
     [Parameter]
     public bool ReadonlyMode { get; set; } = false;
@@ -243,7 +243,7 @@
     public EventCallback<List<Rule>> SelectedRulesChanged { get; set; }
 
     [Parameter]
-    public List<Rule> SelectedRules { get; set; } = new List<Rule>();
+    public List<Rule> SelectedRules { get; set; } = [];
 
     [Parameter]
     public int RulesPerPage { get; set; }
@@ -255,7 +255,7 @@
     public int Width { get; set; }
 
     [Parameter]
-    public List<ManagementReport> Managements { get; set; } = new ();
+    public List<ManagementReport> Managements { get; set; } = [];
 
     private bool RecertificationHistory { get; set; } = false;
     private ITable<Rule>? reportTable;

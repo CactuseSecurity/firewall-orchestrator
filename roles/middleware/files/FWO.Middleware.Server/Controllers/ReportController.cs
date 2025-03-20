@@ -91,6 +91,7 @@ namespace FWO.Middleware.Server.Controllers
                 "unusedrules" => 10,
                 "connections" => 21,
                 "apprules" => 22,
+                "variance" => 23,
                 _ => 1,
             };
         }

@@ -1,4 +1,4 @@
-﻿namespace FWO.Report
+﻿namespace FWO.Data.Report
 {
     public class ReportData
     {

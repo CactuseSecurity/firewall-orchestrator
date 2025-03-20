@@ -1,11 +1,12 @@
+using FWO.Api.Client;
 using FWO.Basics;
+using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Modelling;
-using FWO.Api.Client;
+using FWO.Data.Report;
 using FWO.Report.Filter;
-using FWO.Config.Api;
-using System.Text;
 using FWO.Services;
+using System.Text;
 
 namespace FWO.Report
 {
@@ -40,12 +41,14 @@ namespace FWO.Report
             //ReportData.OwnerData.Add(new(){ Connections = conns });
         }
 
-        public override async Task<bool> GetObjectsInReport(int objectsPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback)
+        public override string SetDescription()
         {
-            await callback (ReportData);
-            // currently no further objects to be fetched
-            GotObjectsInReport = true;
-            return true;
+            int counter = 0;
+            foreach(var owner in ReportData.OwnerData)
+            {
+                counter += owner.Connections.Count;
+            }
+            return $"{counter} {userConfig.GetText("connections")}";
         }
 
         public override string ExportToHtml()
@@ -115,7 +118,7 @@ namespace FWO.Report
                 }
                 else
                 {
-                    report.AppendLine($"<td>{string.Join("<br>", connReport.GetLinkedSrcNames(connection, chapterNumber))}</td>");
+                    report.AppendLine($"<td>{string.Join("<br>", GetLinkedSrcNames(connReport, connection, chapterNumber))}</td>");
                 }
                 if(!isGlobalComSvc && (connection.InterfaceIsRequested || connection.IsRequested))
                 {
@@ -124,7 +127,7 @@ namespace FWO.Report
                 }
                 else
                 {
-                    report.AppendLine($"<td>{string.Join("<br>", connReport.GetLinkedSvcNames(connection, chapterNumber))}</td>");
+                    report.AppendLine($"<td>{string.Join("<br>", GetLinkedSvcNames(connReport, connection, chapterNumber))}</td>");
                 }
                 if(!isGlobalComSvc && ((connection.InterfaceIsRequested && connection.DstFromInterface) || (connection.IsRequested && connection.DestinationFilled())))
                 {
@@ -133,7 +136,7 @@ namespace FWO.Report
                 }
                 else
                 {
-                    report.AppendLine($"<td>{string.Join("<br>", connReport.GetLinkedDstNames(connection, chapterNumber))}</td>");
+                    report.AppendLine($"<td>{string.Join("<br>", GetLinkedDstNames(connReport, connection, chapterNumber))}</td>");
                 }
             }
             report.AppendLine("</table>");
@@ -227,14 +230,35 @@ namespace FWO.Report
             report.AppendLine("</tr>");
         }
 
-        public override string SetDescription()
+
+        private List<string> GetLinkedSrcNames(ConnectionReport connReport, ModellingConnection conn, int chapterNumber)
         {
-            int counter = 0;
-            foreach(var owner in ReportData.OwnerData)
-            {
-                counter += owner.Connections.Count;
-            }
-            return $"{counter} {userConfig.GetText("connections")}";
+            List<string> names = ModellingNetworkAreaWrapper.Resolve(conn.SourceAreas).ToList().ConvertAll(s => ConstructOutput(s, ObjCatString.NwObj, chapterNumber, connReport.ResolveObjId(s)));
+            names.AddRange(ModellingNwGroupWrapper.Resolve(conn.SourceOtherGroups).ToList().ConvertAll(s => ConstructOutput(s, ObjCatString.NwObj, chapterNumber, connReport.ResolveObjId(s))));
+            names.AddRange(ModellingAppRoleWrapper.Resolve(conn.SourceAppRoles).ToList().ConvertAll(s => ConstructOutput(s, ObjCatString.NwObj, chapterNumber, connReport.ResolveObjId(s))));
+            names.AddRange(ModellingAppServerWrapper.Resolve(conn.SourceAppServers).ToList().ConvertAll(s => ConstructOutput(s, ObjCatString.NwObj, chapterNumber, connReport.ResolveObjId(s))));
+            return names;
+        }
+        
+        private List<string> GetLinkedDstNames(ConnectionReport connReport, ModellingConnection conn, int chapterNumber)
+        {
+            List<string> names = ModellingNetworkAreaWrapper.Resolve(conn.DestinationAreas).ToList().ConvertAll(s => ConstructOutput(s, ObjCatString.NwObj, chapterNumber, connReport.ResolveObjId(s)));
+            names.AddRange(ModellingNwGroupWrapper.Resolve(conn.DestinationOtherGroups).ToList().ConvertAll(s => ConstructOutput(s, ObjCatString.NwObj, chapterNumber, connReport.ResolveObjId(s))));
+            names.AddRange(ModellingAppRoleWrapper.Resolve(conn.DestinationAppRoles).ToList().ConvertAll(s => ConstructOutput(s, ObjCatString.NwObj, chapterNumber, connReport.ResolveObjId(s))));
+            names.AddRange(ModellingAppServerWrapper.Resolve(conn.DestinationAppServers).ToList().ConvertAll(s => ConstructOutput(s, ObjCatString.NwObj, chapterNumber, connReport.ResolveObjId(s))));
+            return names;
+        }
+
+        private List<string> GetLinkedSvcNames(ConnectionReport connReport, ModellingConnection conn, int chapterNumber)
+        {
+            List<string> names = ModellingServiceGroupWrapper.Resolve(conn.ServiceGroups).ToList().ConvertAll(s => ConstructOutput(s, ObjCatString.Svc, chapterNumber, connReport.ResolveSvcId(s)));
+            names.AddRange(ModellingServiceWrapper.Resolve(conn.Services).ToList().ConvertAll(s => ConstructOutput(s, ObjCatString.Svc, chapterNumber, connReport.ResolveSvcId(s))));
+            return names;
+        }
+
+        private static string ConstructOutput(ModellingObject inputObj, string type, int chapterNumber, long objId)
+        {
+            return ConstructLink(type, "", chapterNumber, objId, inputObj.Display(), OutputLocation.export, $"a{inputObj.AppId}", "");
         }
     }
 }

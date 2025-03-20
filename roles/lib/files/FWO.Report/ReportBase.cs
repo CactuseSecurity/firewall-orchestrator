@@ -113,7 +113,13 @@ namespace FWO.Report
 
         public abstract Task Generate(int rulesPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback, CancellationToken ct);
 
-        public abstract Task<bool> GetObjectsInReport(int objectsPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback); // to be called when exporting
+        public virtual async Task<bool> GetObjectsInReport(int objectsPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback)
+        {
+            await callback(ReportData);
+            // currently no further objects to be fetched
+            GotObjectsInReport = true;
+            return true;
+        }
 
         public virtual Task<bool> GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, ObjCategory objects, int maxFetchCycles, ApiConnection apiConnection, Func<ReportData, Task> callback)
         {
@@ -151,6 +157,7 @@ namespace FWO.Report
                 ReportType.UnusedRules => new ReportRules(query, userConfig, repType),
                 ReportType.Connections => new ReportConnections(query, userConfig, repType),
                 ReportType.AppRules => new ReportAppRules(query, userConfig, repType, reportFilter.ReportParams.ModellingFilter),
+                ReportType.VarianceAnalysis => new ReportVariances(query, userConfig, repType),
                 _ => throw new NotSupportedException("Report Type is not supported."),
             };
         }

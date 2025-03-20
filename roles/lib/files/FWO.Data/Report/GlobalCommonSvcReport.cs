@@ -1,16 +1,15 @@
-﻿using FWO.Data;
-using FWO.Data.Modelling;
+﻿using FWO.Data.Modelling;
 
-namespace FWO.Report
+namespace FWO.Data.Report
 {
     public class GlobalCommonSvcReport : ConnectionReport
     {
         public List<ModellingConnection> GlobalComSvcs = [];
 
-        public GlobalCommonSvcReport()
+        public GlobalCommonSvcReport() : base()
         {}
 
-        public GlobalCommonSvcReport(GlobalCommonSvcReport report): base(report)
+        public GlobalCommonSvcReport(GlobalCommonSvcReport report) : base(report)
         {
             GlobalComSvcs = report.GlobalComSvcs;
         }

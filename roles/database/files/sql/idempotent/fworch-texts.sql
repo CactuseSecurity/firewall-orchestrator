@@ -1803,6 +1803,10 @@ INSERT INTO txt VALUES ('last_incomplete',      'German', 	'Letzter Unvollendete
 INSERT INTO txt VALUES ('last_incomplete',      'English', 	'Last Incomplete');
 INSERT INTO txt VALUES ('rollback',             'German', 	'Zur&uuml;cksetzen');
 INSERT INTO txt VALUES ('rollback',             'English', 	'Rollback');
+INSERT INTO txt VALUES ('full_rollback',        'German', 	'Komplett zur&uuml;cksetzen');
+INSERT INTO txt VALUES ('full_rollback',        'English', 	'Full rollback');
+INSERT INTO txt VALUES ('not_imported_yet',     'German', 	'Kein Import f&uuml;r dieses Management vorhanden');
+INSERT INTO txt VALUES ('not_imported_yet',     'English', 	'No existing Import for this management');
 INSERT INTO txt VALUES ('last_success',         'German', 	'Letzter Erfolg');
 INSERT INTO txt VALUES ('last_success',         'English', 	'Last Success');
 INSERT INTO txt VALUES ('last_import',          'German', 	'Letzter Import');

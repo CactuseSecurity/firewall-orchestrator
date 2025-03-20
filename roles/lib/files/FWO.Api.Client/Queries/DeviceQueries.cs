@@ -21,9 +21,6 @@ namespace FWO.Api.Client.Queries
         public static readonly string updateGatewayUid;
         public static readonly string changeDeviceState;
         public static readonly string deleteDevice;
-        public static readonly string deleteImport;
-        public static readonly string rollbackLastImport;
-        public static readonly string getLastImport;
         public static readonly string getCredentials;
         public static readonly string getCredentialsWithoutSecrets;
         public static readonly string newCredential;
@@ -62,9 +59,6 @@ namespace FWO.Api.Client.Queries
                 getGatewayId = File.ReadAllText(QueryPath + "device/getGatewayId.graphql");
                 changeDeviceState = File.ReadAllText(QueryPath + "device/changeDeviceState.graphql");
                 deleteDevice = File.ReadAllText(QueryPath + "device/deleteDevice.graphql");
-                deleteImport = File.ReadAllText(QueryPath + "device/deleteImport.graphql");
-                rollbackLastImport = File.ReadAllText(QueryPath + "import/rollback.graphql");
-                getLastImport = File.ReadAllText(QueryPath + "import/getLastImport.graphql");
 
                 getCredentials = File.ReadAllText(QueryPath + "device/getCredentials.graphql") + " "
                                     + File.ReadAllText(QueryPath + "device/fragments/importCredentials.graphql");

@@ -47,18 +47,23 @@ class FwConfigImportGateway(FwConfigImportBase):
                                          to_rulebase_id=toRulebaseId,
                                          link_type=linkTypeId,
                                          created=self.ImportDetails.ImportId)
-                    
-                    for prev_gw in prevConfig.gateways:
-                        if prev_gw.Uid == gw.Uid:
-                            for prev_link in prev_gw.RulebaseLinks:
-                                if prev_link not in gw.RulebaseLinks:
-                                    # TODO: Handle deleted links
-                                    logger.debug(f"link {prev_link} was deleted")
-                                if link not in prev_gw.RulebaseLinks:
-                                    # Handle new links
-                                    logger.debug(f"link {link} was added")
-                                    rbLink.importInsertRulebaseLink(self.ImportDetails)
-                                    # TODO: check for changed rbLink
+
+                    # Handle new links
+                    logger.debug(f"link {link} was added")
+                    rbLink.importInsertRulebaseLink(self.ImportDetails)
+
+                    # TODO: check for changed rbLink
+                    # for prev_gw in prevConfig.gateways:
+                    #     if prev_gw.Uid == gw.Uid:
+                    #         for prev_link in prev_gw.RulebaseLinks:
+                    #             if prev_link not in gw.RulebaseLinks:
+                    #                 # TODO: Handle deleted links
+                    #                 logger.debug(f"link {prev_link} was deleted")
+                    #             if link not in prev_gw.RulebaseLinks:
+                    #                 # Handle new links
+                    #                 logger.debug(f"link {link} was added")
+                    #                 rbLink.importInsertRulebaseLink(self.ImportDetails)
+                    #                 # TODO: check for changed rbLink
         return
 
     def updateRuleEnforcedOnGatewayDiffs(self, prevConfig: FwConfigNormalized):

@@ -10,8 +10,6 @@ using Microsoft.AspNetCore.Components.Authorization;
 using FWO.Middleware.Client;
 using System.Data;
 using Microsoft.AspNetCore.Components;
-using static FWO.Data.Modelling.ModellingTypes;
-using System.Collections.Generic;
 
 
 namespace FWO.Services
@@ -276,6 +274,87 @@ namespace FWO.Services
         public void AddExtraConfig()
         {
             AddExtraConfigMode = true;
+        }
+
+        /// <summary>
+        /// Checks the opposite direction if it already contains a network area.
+        /// </summary>
+        private bool IsAreaForbiddenInDirection(Direction direction)
+        {
+            return direction switch
+            {
+                Direction.Source => ActConn.DestinationAreas.Count > 0 || DstAreasToAdd.Count > 0,
+                Direction.Destination => ActConn.SourceAreas.Count > 0 || SrcAreasToAdd.Count > 0,
+                _ => false,
+            };
+        }
+
+        /// <summary>
+        /// Checks if the given network areas are allowed in the current connection/interface/service.
+        /// </summary>
+        /// <param name="networkAreas">The list of network areas to check.</param>
+        /// <param name="reason">Out parameter to give context as a reason why it's not allowed, otherwise is's empty.</param>
+        public bool NetworkAreaUseAllowed(List<ModellingNetworkArea> networkAreas, Direction direction, out (string Title, string Text) reason)
+        {
+            reason.Text = "";
+
+
+            if (ActConn.IsCommonService)
+            {
+                reason.Title = userConfig.GetText("edit_service");
+            }
+            else if (ActConn.IsInterface)
+            {
+                reason.Title = userConfig.GetText("edit_interface");
+            }
+            else
+            {
+                reason.Title = userConfig.GetText("edit_connection");
+            }
+
+            if (IsAreaForbiddenInDirection(direction))
+            {
+                reason.Text = userConfig.GetText("direction_contain_nwarea");
+                return false;
+            }
+
+            if (ActConn.IsInterface)
+            {
+                reason.Text = userConfig.GetText("interface_contain_nwarea");
+                return false;
+            }
+
+            bool hasCommonNetworkAreas = HasCommonNetworkAreas(networkAreas);
+
+            if (!hasCommonNetworkAreas && ActConn.IsCommonService)
+            {
+                return true;
+            }
+            else if (hasCommonNetworkAreas && ( ActConn.IsCommonService || ( !ActConn.IsInterface && !ActConn.IsCommonService ) ))
+            {
+                return true;
+            }
+
+            reason.Text = userConfig.GetText("only_common_service");
+            return false;
+        }
+
+        /// <summary>
+        /// Checks the given list of network areas against common network area settings.
+        /// </summary>
+        /// <param name="networkAreas"></param>
+        /// <returns></returns>
+        private bool HasCommonNetworkAreas(List<ModellingNetworkArea> networkAreas)
+        {
+            foreach (ModellingNetworkArea area in networkAreas)
+            {
+                if (CommonAreaConfigItems.Any(_ => _.AreaId == area.Id))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         public bool SaveExtraConfig(ModellingExtraConfig extraConfig)
@@ -1019,87 +1098,6 @@ namespace FWO.Services
                 SvcReadOnly = false;
             }
             return true;
-        }
-
-        /// <summary>
-        /// Checks the opposite direction if it already contains a network area.
-        /// </summary>
-        private bool IsAreaForbiddenInDirection(Direction direction)
-        {
-            return direction switch
-            {
-                Direction.Source => ActConn.DestinationAreas.Count > 0 || DstAreasToAdd.Count > 0,
-                Direction.Destination => ActConn.SourceAreas.Count > 0 || SrcAreasToAdd.Count > 0,
-                _ => false,
-            };
-        }
-
-        /// <summary>
-        /// Checks if the given network areas are allowed in the current connection/interface/service.
-        /// </summary>
-        /// <param name="networkAreas">The list of network areas to check.</param>
-        /// <param name="reason">Out parameter to give context as a reason why it's not allowed, otherwise is's empty.</param>
-        public bool NetworkAreaUseAllowed(List<ModellingNetworkArea> networkAreas, Direction direction, out (string Title, string Text) reason)
-        {
-            reason.Text = "";
-
-
-            if (ActConn.IsCommonService)
-            {
-                reason.Title = userConfig.GetText("edit_service");
-            }
-            else if (ActConn.IsInterface)
-            {
-                reason.Title = userConfig.GetText("edit_interface");
-            }
-            else
-            {
-                reason.Title = userConfig.GetText("edit_connection");
-            }
-
-            if (IsAreaForbiddenInDirection(direction))
-            {
-                reason.Text = userConfig.GetText("direction_contain_nwarea");
-                return false;
-            }
-
-            if (ActConn.IsInterface)
-            {
-                reason.Text = userConfig.GetText("interface_contain_nwarea");
-                return false;
-            }
-
-            bool hasCommonNetworkAreas = HasCommonNetworkAreas(networkAreas);
-
-            if (!hasCommonNetworkAreas && ActConn.IsCommonService)
-            {
-                return true;
-            }
-            else if (hasCommonNetworkAreas && ( ActConn.IsCommonService || ( !ActConn.IsInterface && !ActConn.IsCommonService ) ))
-            {
-                return true;
-            }
-
-            reason.Text = userConfig.GetText("only_common_service");
-            return false;
-        }
-
-        /// <summary>
-        /// Checks the given list of network areas against common network area settings.
-        /// </summary>
-        /// <param name="networkAreas"></param>
-        /// <returns></returns>
-        private bool HasCommonNetworkAreas(List<ModellingNetworkArea> networkAreas)
-        {
-            foreach (ModellingNetworkArea area in networkAreas)
-            {
-                if (CommonAreaConfigItems.Any(_ => _.AreaId == area.Id))
-                {
-                    return true;
-                }
-            }
-
-            return false;
         }
 
         public bool SrcDropForbidden()

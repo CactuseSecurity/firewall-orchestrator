@@ -349,6 +349,16 @@
             <label class="col-form-label col-sm-4">@(userConfig.GetText("modRolloutErrorText")):</label>
             <input type="text" class="col-sm-6" @bind="configData!.ModRolloutErrorText" />
         </div>
+        <div class="form-group row mt-2">
+            <div class="row col-sm-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5648"))">
+                <label class="col-form-label col-sm-5">@userConfig.GetText("modelledMarker"):</label>
+                <input type="text" class="col-sm-4" @bind="configData!.ModModelledMarker" />
+            </div>
+            <div class="row col-sm-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5649"))">
+                <label class="col-form-label col-sm-5">@userConfig.GetText("modelledMarkerLocation"):</label>
+                <input type="text" class="col-sm-4" @bind="configData!.ModModelledMarkerLocation" />
+            </div>
+        </div>
         <hr />
     </form>
     <AuthorizeView Roles="@Roles.Admin">

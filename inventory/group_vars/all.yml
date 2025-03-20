@@ -1,5 +1,5 @@
 ### general settings
-product_version: "8.7.1"
+product_version: "8.7.2"
 ansible_user: "{{ lookup('env', 'USER') }}"
 ansible_become_method: sudo
 ansible_python_interpreter: /usr/bin/python3
@@ -124,7 +124,7 @@ syslog_port: 514
 middleware_server_syslog_id: "{{ product_name }}.middleware-server"
 ui_syslog_id: "{{ product_name }}-ui"
 ldap_syslog_id: slapd
-api_log_level: info
+api_log_level: error
 fworch_log_dir: "/var/log/{{ product_name }}"
 fworch_log_lock_dir: "/var/{{ product_name }}/lock"
 fworch_mw_lockfile: "{{ fworch_log_lock_dir }}/FWO.Middleware.Server_log.lock"

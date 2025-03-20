@@ -344,6 +344,12 @@ namespace FWO.Config.Api.Data
 		[JsonProperty("modExtraConfigs"), JsonPropertyName("modExtraConfigs")]
 		public string ModExtraConfigs { get; set; } = "";
 
+		[JsonProperty("modModelledMarker"), JsonPropertyName("modModelledMarker")]
+		public string ModModelledMarker { get; set; } = "FWOC";
+
+		[JsonProperty("modModelledMarkerLocation"), JsonPropertyName("modModelledMarkerLocation")]
+		public string ModModelledMarkerLocation { get; set; } = "rulename";
+
         public ConfigData(bool editable = false)
 		{
 			Editable = editable;

@@ -206,7 +206,7 @@ namespace FWO.Middleware.Server
 			{
 				if(incomingApp.MainUser != null && incomingApp.MainUser != "")
 				{
-					UpdateRoles(incomingApp.MainUser);
+					await UpdateRoles(incomingApp.MainUser);
 				}
 				int appId = returnIds[0].NewId;
 				foreach (var appServer in incomingApp.AppServers)
@@ -233,7 +233,7 @@ namespace FWO.Middleware.Server
 				}
 				else
 				{
-					UpdateUserGroup(incomingApp, userGroupDn);
+					await UpdateUserGroup(incomingApp, userGroupDn);
 				}
 			}
 
@@ -250,7 +250,7 @@ namespace FWO.Middleware.Server
 			await apiConnection.SendQueryAsync<ReturnIdWrapper>(OwnerQueries.updateOwner, Variables);
 			if(incomingApp.MainUser != null && incomingApp.MainUser != "")
 			{
-				UpdateRoles(incomingApp.MainUser);
+				await UpdateRoles(incomingApp.MainUser);
 			}
 			await ImportAppServers(incomingApp, existingApp.Id);
 			return userGroupDn;

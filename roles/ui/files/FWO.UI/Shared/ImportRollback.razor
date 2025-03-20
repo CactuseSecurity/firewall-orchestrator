@@ -146,7 +146,8 @@
                         while (managementImportsStillExists)
                         {
                             var variablesGetManagement = new { mgmId = ManagementId };
-                            lastImportId = await apiConnection.SendQueryAsync<long?>(FWO.Api.Client.Queries.ImportQueries.getLastImport, variablesGetManagement);
+                            List<ImportControl>? getLastImportResponse = await apiConnection.SendQueryAsync<List<ImportControl>>(FWO.Api.Client.Queries.ImportQueries.getLastImport, variablesGetManagement);
+                            lastImportId = getLastImportResponse.FirstOrDefault()?.ControlId;
                             if (lastImportId == null)
                             {
                                 managementImportsStillExists = false;

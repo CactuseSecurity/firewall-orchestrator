@@ -1,4 +1,4 @@
-﻿using FWO.Api.Client;
+using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Data;
 using FWO.Data.Modelling;
@@ -11,7 +11,7 @@ namespace FWO.Services
     {
         private ModellingNamingConvention NamingConvention = new();
 
-        public async Task<ModellingAppZone?> UpsertAppZone()
+        public async Task<ModellingAppZone> PlanAppZoneUpsert(List<ModellingAppServerWrapper>? diffAppServers = default)
         {
             NamingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(userConfig.ModNamingConvention) ?? new();
             List<ModellingAppServer> tempAppServers = await apiConnection.SendQueryAsync<List<ModellingAppServer>>(ModellingQueries.getAppServersForOwner, new { appId = owner.Id });
@@ -26,19 +26,26 @@ namespace FWO.Services
 
             if (appZone is null)
             {
-                appZone = new(owner.Id);
+                appZone = new(owner.Id)
+                {
+                    Exists = false
+                };
+
                 ApplyNamingConvention(owner.ExtAppId?.ToUpper(), appZone);
-                appZone.AppServers.AddRange(allAppServers);
-                appZone.Id = await AddAppZoneToDb(appZone);                
-                await AddAppServersToAppZone(appZone.Id, appZone.AppServers);
+                appZone.AppServersNew = allAppServers;
+                appZone.AppServers = allAppServers;
             }
             else
             {
+                appZone.Exists = true;
+
+                ApplyNamingConvention(owner.ExtAppId?.ToUpper(), appZone);
+
                 List<ModellingAppServerWrapper>? removedAppServers = FindRemovedAppServers(appZone, allAppServers);
 
                 if (removedAppServers.Count > 0)
                 {
-                    await RemoveAppServersFromAppZone(appZone.Id, removedAppServers);
+                    appZone.AppServersRemoved = removedAppServers;
                     appZone.AppServers.RemoveAll(_ => removedAppServers.Contains(_));
                 }
 
@@ -46,8 +53,58 @@ namespace FWO.Services
 
                 if (newAppServers.Count > 0)
                 {
-                    await AddAppServersToAppZone(appZone.Id, newAppServers);
+                    appZone.AppServersNew = newAppServers;
                     appZone.AppServers.AddRange(newAppServers);
+                }
+            }
+
+            if (diffAppServers is not null)
+            {
+                List<ModellingAppServerWrapper>? removedAppServers = FindRemovedAppServers(new ModellingAppZone() { AppServers = diffAppServers}, appZone.AppServers);
+
+                if (removedAppServers.Count > 0)
+                {
+                    appZone.AppServersRemoved = removedAppServers;
+                    appZone.AppServers.RemoveAll(_ => removedAppServers.Contains(_));
+                }
+
+                List<ModellingAppServerWrapper>? newAppServers = FindNewAppServers(new ModellingAppZone() { AppServers = diffAppServers }, appZone.AppServers);
+
+                if (newAppServers.Count > 0)
+                {
+                    appZone.AppServersNew = newAppServers;
+                    appZone.AppServers.AddRange(newAppServers);
+                }
+
+                List<ModellingAppServerWrapper>? unchangedAppServers = FindUnchangedAppServers(new ModellingAppZone() { AppServers = diffAppServers }, appZone.AppServers);
+
+                if (unchangedAppServers.Count > 0)
+                {
+                    appZone.AppServersUnchanged = unchangedAppServers;
+                }
+            }
+
+            return appZone;
+        }
+
+        public async Task<ModellingAppZone?> UpsertAppZone(ModellingAppZone appZone)
+        {
+
+            if (!appZone.Exists)
+            {
+                appZone.Id = await AddAppZoneToDb(appZone);
+                await AddAppServersToAppZone(appZone.Id, appZone.AppServers);
+            }
+            else
+            {
+                if (appZone.AppServersRemoved.Count > 0)
+                {
+                    await RemoveAppServersFromAppZone(appZone.Id, appZone.AppServersRemoved);
+                }
+
+                if (appZone.AppServersNew.Count > 0)
+                {
+                    await AddAppServersToAppZone(appZone.Id, appZone.AppServersNew);
                 }
             }
 
@@ -56,12 +113,47 @@ namespace FWO.Services
 
         private List<ModellingAppServerWrapper> FindNewAppServers(ModellingAppZone existingAppZone, List<ModellingAppServerWrapper> allAppServers)
         {
-            return allAppServers.Except(existingAppZone.AppServers, new AppServerComparer(NamingConvention)).ToList();
+            List<ModellingAppServerWrapper> newAppServers = [];
+
+            foreach (ModellingAppServerWrapper appserver in allAppServers)
+            {
+                if (existingAppZone.AppServers.FirstOrDefault(a => new AppServerComparer(NamingConvention).Equals(a.Content, appserver.Content)) == null)
+                {
+                    newAppServers.Add(appserver);
+                }
+            }
+
+            return newAppServers;
+        }
+
+        private List<ModellingAppServerWrapper> FindUnchangedAppServers(ModellingAppZone existingAppZone, List<ModellingAppServerWrapper> allAppServers)
+        {
+            List<ModellingAppServerWrapper> unchangedAppServers = [];
+
+            foreach (ModellingAppServerWrapper appserver in allAppServers)
+            {
+                if (existingAppZone.AppServers.FirstOrDefault(a => new AppServerComparer(NamingConvention).Equals(a.Content, appserver.Content)) != null)
+                {
+                    unchangedAppServers.Add(appserver);
+                }
+            }
+
+            return unchangedAppServers;
         }
 
         private List<ModellingAppServerWrapper> FindRemovedAppServers(ModellingAppZone existingAppZone, List<ModellingAppServerWrapper> allAppServers)
         {
-            return existingAppZone.AppServers.Except(allAppServers, new AppServerComparer(NamingConvention)).ToList();
+            List<ModellingAppServerWrapper> deletedAppServers = [];
+
+            foreach (ModellingAppServerWrapper exAppserver in existingAppZone.AppServers)
+            {
+                if (allAppServers.FirstOrDefault(a => new AppServerComparer(NamingConvention).Equals(exAppserver.Content, a.Content)) == null)
+                {
+                    deletedAppServers.Add(exAppserver);
+                }
+            }
+
+            return deletedAppServers;
         }
 
         public async Task<ModellingAppZone?> GetExistingAppZone()
@@ -81,7 +173,7 @@ namespace FWO.Services
         private void ApplyNamingConvention(string? extAppId, ModellingAppZone appZone)
         {
             appZone.ManagedIdString.NamingConvention = NamingConvention;
-            if(extAppId != null)
+            if (extAppId != null)
             {
                 appZone.ManagedIdString.SetAppPartFromExtIdAZ(extAppId);
             }

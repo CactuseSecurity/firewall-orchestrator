@@ -1,4 +1,4 @@
-﻿@using FWO.Data.Middleware
+@using FWO.Data.Middleware
 @using FWO.Data.Workflow
 @using FWO.Middleware.Client
 @using FWO.Report
@@ -108,6 +108,8 @@
     private ExtStateHandler? extStateHandler;
     private List<GraphQlApiSubscription<List<WfReqTask>>> actTaskSubscriptions = [];
 
+    private ModellingAppZone? PlannedAppZone = default;
+
     protected override async Task OnInitializedAsync()
     {
         extStateHandler = new(apiConnection);
@@ -133,9 +135,9 @@
             if (!await GetActTicketStatus() && extStateHandler != null)
             {
                 ModellingAppZoneHandler appZoneHandler = new(apiConnection, userConfig, SelectedApp, DisplayMessageInUi);
-                await appZoneHandler.UpsertAppZone();
                 ModellingVarianceAnalysis varianceAnalysis = new(apiConnection, extStateHandler, userConfig, SelectedApp, DisplayMessageInUi);
                 TaskList = await varianceAnalysis.AnalyseModelledConnections(Connections);
+                PlannedAppZone = varianceAnalysis.PlannedAppZone;
             }
         }
         catch (Exception exception)
@@ -271,6 +273,12 @@
         WorkInProgress = true;
         try
         {
+            if (PlannedAppZone is not null)
+            {
+                ModellingAppZoneHandler appZoneHandler = new(apiConnection, userConfig, SelectedApp, DisplayMessageInUi);
+                await appZoneHandler.UpsertAppZone(PlannedAppZone);
+            }
+
             TicketCreator ticketCreator = new(apiConnection, userConfig, authenticationStateTask!.Result.User, middlewareClient);
             WfTicket intTicket = await ticketCreator.CreateTicket(SelectedApp, TaskList,
                 "Rollout modelled connections for: " + SelectedApp.Name, extStateHandler?.GetInternalStateId(ExtStates.ExtReqInitialized), "");

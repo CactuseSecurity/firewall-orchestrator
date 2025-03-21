@@ -71,10 +71,10 @@ namespace FWO.Middleware.Server.Controllers
 			{
 				if (currentLdap.Id == parameters.LdapId)
 				{
-					await Task.Run(() =>
+					await Task.Run(async() =>
 					{
 						// Get all users from current Ldap
-						allUsers = currentLdap.GetAllUsers(parameters.SearchPattern);
+						allUsers = await currentLdap.GetAllUsers(parameters.SearchPattern);
 					});
 				}
 			}
@@ -111,9 +111,9 @@ namespace FWO.Middleware.Server.Controllers
 				// Try to add user to current Ldap
 				if ((currentLdap.Id == parameters.LdapId || parameters.LdapId == 0) && currentLdap.IsWritable())
 				{
-					await Task.Run(() =>
+					await Task.Run(async() =>
 					{
-						if (currentLdap.AddUser(parameters.UserDn, parameters.Password, email))
+						if (await currentLdap.AddUser(parameters.UserDn, parameters.Password, email))
 						{
 							userAdded = true;
 							Log.WriteAudit("AddUser", $"user {parameters.UserDn} successfully added to Ldap Id: {parameters.LdapId} Name: {currentLdap.Host()}");
@@ -176,9 +176,9 @@ namespace FWO.Middleware.Server.Controllers
 				// Try to update user in current Ldap
 				if ((currentLdap.Id == parameters.LdapId || parameters.LdapId == 0) && currentLdap.IsWritable())
 				{
-					await Task.Run(() =>
+					await Task.Run(async () =>
 					{
-						if (currentLdap.UpdateUser(user.Dn, email))
+						if (await currentLdap.UpdateUser(user.Dn, email))
 						{
 							userUpdated = true;
 							Log.WriteAudit("UpdateUser", $"User {user.Dn} updated in Ldap Id: {parameters.LdapId} Name: {currentLdap.Host()}");
@@ -239,7 +239,7 @@ namespace FWO.Middleware.Server.Controllers
 
 					await Task.Run(async () =>
 					{
-						errorMsg = currentLdap.ChangePassword(user.Dn, parameters.OldPassword, parameters.NewPassword);
+						errorMsg = await currentLdap.ChangePassword(user.Dn, parameters.OldPassword, parameters.NewPassword);
 						if (errorMsg == "")
 						{
 							await UiUserHandler.UpdateUserPasswordChanged(apiConnection, user.Dn);
@@ -277,10 +277,10 @@ namespace FWO.Middleware.Server.Controllers
 				{
 					await Task.Run(async () =>
 					{
-						errorMsg = currentLdap.SetPassword(user.Dn, parameters.NewPassword);
+						errorMsg = await currentLdap.SetPassword(user.Dn, parameters.NewPassword);
 						if (errorMsg == "")
 						{
-							List<string> roles = [.. currentLdap.GetRoles([user.Dn])]; // TODO: Group roles are not included
+							List<string> roles = [.. await currentLdap.GetRoles([user.Dn])]; // TODO: Group roles are not included
 							// the demo user (currently auditor) can't be forced to change password as he is not allowed to do it. Everyone else has to change it though
 							bool passwordMustBeChanged = !roles.Contains(Roles.Auditor);
 							await UiUserHandler.UpdateUserPasswordChanged(apiConnection, user.Dn, passwordMustBeChanged);
@@ -316,9 +316,9 @@ namespace FWO.Middleware.Server.Controllers
 				// Try to remove user from all roles and groups in current Ldap
 				if (currentLdap.IsWritable() && (currentLdap.HasRoleHandling() || currentLdap.HasGroupHandling()))
 				{
-					ldapRoleRequests.Add(Task.Run(() =>
+					ldapRoleRequests.Add(Task.Run(async () =>
 					{
-						if (currentLdap.RemoveUserFromAllEntries(user.Dn))
+						if (await currentLdap.RemoveUserFromAllEntries(user.Dn))
 						{
 							userRemoved = true;
 						}
@@ -356,9 +356,9 @@ namespace FWO.Middleware.Server.Controllers
 				{
 					if (currentLdap.IsWritable())
 					{
-						await Task.Run(() =>
+						await Task.Run(async() =>
 						{
-							if (currentLdap.DeleteUser(user.Dn))
+							if (await currentLdap.DeleteUser(user.Dn))
 							{
 								userDeleted = true;
 								Log.WriteAudit("DeleteUser", $"User {user.Dn} deleted from Ldap Id: {parameters.LdapId} Name: {currentLdap.Host()}");

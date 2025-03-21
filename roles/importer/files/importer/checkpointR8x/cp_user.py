@@ -102,3 +102,6 @@ def normalizeUsers(nativeConfig, normalizedConfig, import_id, debug_level=0):
         # if usr_objects[idx]['usr_type'] == 'group':
             # add_member_names_for_usr_group(idx, svc_objects)
     normalizedConfig.update({'user_objects': usr_objects})
+
+def normalizeUsersLegacy():
+    raise NotImplementedError

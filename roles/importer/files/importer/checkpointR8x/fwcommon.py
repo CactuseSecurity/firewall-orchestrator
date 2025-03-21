@@ -1,6 +1,6 @@
 import sys
 import json
-import copy
+from packaging import version
 from common import importer_base_dir
 from fwo_log import getFwoLogger
 sys.path.append(importer_base_dir + '/checkpointR8x')
@@ -10,7 +10,7 @@ import cp_gateway
 import cp_const, cp_network, cp_service
 import cp_getter
 from fwo_exception import FwLoginFailed
-from cp_user import normalizeUsers
+from cp_user import normalizeUsers, normalizeUsersLegacy
 from fwconfig_base import calcManagerUidHash
 from models.fwconfigmanagerlist import FwConfigManagerList, FwConfigManager
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
@@ -300,8 +300,14 @@ def get_config(nativeConfig: json, importState: ImportStateController) -> tuple[
     cp_service.normalize_service_objects(nativeConfig, normalizedConfig, importState.ImportId)
     logger.info("completed normalizing service objects")
 
-    if isCompatibleWithApiVersion("1.6.1"):
+    # normalize users
+
+    api_versions = cp_getter.cp_api_call(cpManagerApiBaseUrl, 'show-api-versions', {}, sid)
+    api_supported = api_versions["current-version"]
+    if isCompatibleApiVersion("1.6.1", api_supported):
         normalizeUsers(nativeConfig, normalizedConfig, importState.ImportId)
+    else:
+        normalizeUsersLegacy()
 
 
 
@@ -496,6 +502,16 @@ def ParseUidToName(myUid, myObjectDictList):
 
     return myReturnObject
 
-def isCompatibleWithApiVersion(required_min_api_version):
-    # TODO: implement
-    return False
+def isCompatibleApiVersion(required_version: str, given_version: str) -> bool:
+    def parse_version(ver: str):
+        try:
+            return [int(part) for part in ver.split('.')]
+        except ValueError:
+            raise ValueError(f"Invalid version format: {ver}")
+    
+    try:
+        required = parse_version(required_version)
+        given = parse_version(given_version)
+        return given >= required
+    except ValueError:
+        raise ValueError(f"Invalid version format: {given_version}")

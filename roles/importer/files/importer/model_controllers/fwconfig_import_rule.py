@@ -1020,6 +1020,7 @@ async def resetOrderNumbersAsync(rulebases, batch_size, max_concurrent_requests,
                     if not result is None: 
                         if 'errors' in result:
                             logger.exception(f"fwo_api:updateRuleOrderNumbers - error: {str(result['errors'])}")
+                            import_details.Stats.ErrorCount += 1
                 tasks = []  # Leere die Task-Liste
 
         if tasks:  # Letzte Reste verarbeiten
@@ -1028,12 +1029,14 @@ async def resetOrderNumbersAsync(rulebases, batch_size, max_concurrent_requests,
                 if not result is None: 
                     if 'errors' in result:
                         logger.exception(f"fwo_api:updateRuleOrderNumbers - error: {str(result['errors'])}")
+                        import_details.Stats.ErrorCount += 1
 
     try:
         await process_batches()
         return True
     except Exception as e:
         logger.exception(f"Failed to update rule order numbers: {str(e)}")
+        import_details.Stats.ErrorCount += 1
 
 def chunked_iterable(iterable, size):
     """Zerlegt eine Liste in kleinere Batches."""

@@ -1,7 +1,6 @@
 from typing import List, Optional, Dict
 from models.rule import Rule, RuleForImport
 from pydantic import BaseModel
-from model_controllers.import_state_controller import ImportStateController
 
 # Rulebase is the model for a rulebase (containing no DB IDs)
 class Rulebase(BaseModel):

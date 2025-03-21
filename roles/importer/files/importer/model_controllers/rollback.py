@@ -28,7 +28,6 @@ class FwConfigImportRollback(FwConfigImport):
         rollbackMutation = getGraphqlCode([fileName])
         try:
             queryVariables = {
-                'mgmId': self.ImportDetails.MgmDetails.Id, 
                 'importId': self.ImportDetails.ImportId
             }
             rollbackResult = self.ImportDetails.call(rollbackMutation, queryVariables=queryVariables)

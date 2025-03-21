@@ -66,6 +66,6 @@ def normalizeRouting (nativeConfig, importState, normalizedConfig):
 
 def gwInNormalizedConfig(normalizedConfig, gwUid):
     for gw in normalizedConfig['gateways']:
-        if gw['uid'] == gwUid:
+        if gw['Uid'] == gwUid:
             return True
     return False

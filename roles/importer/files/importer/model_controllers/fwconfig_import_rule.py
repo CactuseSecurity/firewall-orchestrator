@@ -1,6 +1,9 @@
 import traceback
 from difflib import ndiff
 import json
+from itertools import chain, islice
+import asyncio
+import traceback
 
 import fwo_const
 from models.rule import RuleForImport, RuleType
@@ -84,10 +87,6 @@ class FwConfigImportRule(FwConfigImportBase):
                 if self.ruleChanged(rulebaseId, ruleUid, currentRulebase, previousRulebase):
                     changedRuleUids[rulebaseId].append(ruleUid)
 
-        # changed rules will get the same rule_num_numeric as their previous version?!
-        # new rules will be fitted between the respective rules of the previous rulebase
-        self.setNewRulesNumbering(prevConfig)
-
         # add full rule details first
         newRulebases = self.getRules(newRuleUids)
 
@@ -104,13 +103,21 @@ class FwConfigImportRule(FwConfigImportBase):
         self.addNewRule2ObjRefs(newRulebases, newRuleIds)
         errorCountDel, numberOfDeletedRules, removedRuleIds = self.markRulesRemoved(deletedRuleUids)
 
+        # TODO: get rules without removed rule in the right order
+        rules_without_removed = self.NormalizedConfig.rulebases
+
+        result = asyncio.run(resetOrderNumbersAsync(rules_without_removed, 500, 4, self.ImportDetails)) # This causes an ignored TypeError that I cant fix right now, but it does not seem to have any effects.
+                                                                                                        # It is some problem caused by mixing up async and sync code.
+        if result == True:
+            logger.info(f"reset of order numbers complete.")
+
         self.ImportDetails.Stats.RuleAddCount += numberOfAddedRules
         self.ImportDetails.Stats.RuleDeleteCount += numberOfDeletedRules
 
         # TODO: rule_nwobj_resolved fuellen (recert?)
 
         return # errorCountAdd + errorCountDel, numberOfDeletedRules + numberOfAddedRules + numberOfAddedMetaRules
-
+    
 
     def addNewRule2ObjRefs(self, newRulebases, newRuleIds):
         # for each new rule: add refs in rule_to and rule_from
@@ -338,88 +345,6 @@ class FwConfigImportRule(FwConfigImportBase):
                 changes.append(('unchanged', change[2:]))
         
         return changes
-
-
-    # TODO: rework this as we get errors:
-    # File "/home/tim/dev/firewall-orchestrator/roles/importer/files/importer/fwconfig_import_rule.py", line 148, in setNewRulesNumbering
-    #     new_order_number = current_db_list[db_index-1][1] + order_number_increment
-
-    # input: 
-    # - list of previously existing rules (in previous successful import) per rulebase
-    # - list of rules to be imported (only the changes - rules to be added) per rulebase
-    # - full database table of current rules of the rulebase at hand
-    # update attribute rule_num_numeric of all new rules in current rulebases
-
-    def setNewRulesNumbering(self, previousConfig: FwConfigNormalized):
-        """
-        Updates the PostgreSQL table 'rule' to reflect changes between old and new rules,
-        inserting new rules at the correct positions using float rule_num_numeric values.
-
-        :param old_rules: List of tuples representing previous rules (e.g., [(1, 1.0), (2, 2.0)]).
-        :param conn: Connection to the PostgreSQL database.
-        """
-
-        for rulebase in self.NormalizedConfig.rulebases:
-            # Step 1: Identify the old and new rule IDs
-            oldRuleUids  = {}
-            if rulebase.uid in previousConfig.rulebases:
-                oldRuleUids = previousConfig.rulebases[rulebase.uid].Rules.keys()
-            newRuleUids = self.NormalizedConfig.getRulebase(rulebase.uid).Rules.keys()
-
-            # Rules to delete and add
-            deleted_rules = oldRuleUids - newRuleUids
-            added_rules = newRuleUids - oldRuleUids
-
-            # Map existing rules to their current rule numbers for quick lookup
-            if rulebase.uid in previousConfig.rulebases:
-                existing_rule_numbers = previousConfig.getRulebase(rulebase.uid).Rules
-            else:
-                existing_rule_numbers = {}
-
-            try:
-                # # Step 2: Delete the rules no longer in the new list
-                # if deleted_rules:
-                #     delete_query = "DELETE FROM rule WHERE rule_id IN %s"
-                #     cursor.execute(delete_query, (tuple(deleted_rules),))
-
-                # Step 3: Traverse the new list and handle added rules using list operations
-                current_rule_number = None
-                for ruleUid in rulebase.Rules.keys():
-                    if ruleUid not in existing_rule_numbers:
-                        # This is a new rule and needs a new `rule_number`
-
-                        # Find the previous rule in the list that already exists
-                        previous_rule_number = current_rule_number
-
-                        # Get the next existing rule number in the new list
-                        next_rule_number = None
-                        for nextRuleUid in self._find_following_rules(ruleUid, existing_rule_numbers, rulebase.uid):
-                            if nextRuleUid in existing_rule_numbers:
-                                next_rule_number = existing_rule_numbers[nextRuleUid]
-                                break
-
-                        # Calculate the new rule number based on neighbors
-                        if previous_rule_number is not None and next_rule_number is not None:
-                            new_rule_number = (previous_rule_number + next_rule_number) / 2.0
-                        elif previous_rule_number is not None:
-                            new_rule_number = previous_rule_number + 1.0
-                        elif next_rule_number is not None:
-                            new_rule_number = next_rule_number - 1.0
-                        else:
-                            new_rule_number = 1.0  # Default when no neighbors exist
-
-                        # # Insert the new rule into the database
-                        # insert_query = "INSERT INTO rule (rule_id, rule_num_numeric) VALUES (%s, %s)"
-                        # cursor.execute(insert_query, (rule_id, new_rule_number))
-
-                        # Update the existing rule numbers dictionary
-                        existing_rule_numbers[ruleUid] = new_rule_number
-
-                    # Update the current rule number for the next iteration
-                    current_rule_number = existing_rule_numbers[ruleUid]
-
-            except Exception as e:
-                print(f"An error occurred: {e}")
 
     def _find_following_rules(self, ruleUid, previousRulebase, rulebaseId):
         """
@@ -997,7 +922,7 @@ class FwConfigImportRule(FwConfigImportBase):
         mutation = """
             mutation importInsertRulebaseOnGateway($rulebase2gateway: [rulebase_on_gateway_insert_input!]!) {
                 insert_rulebase_on_gateway(objects: $rulebase2gateway) {
-                    affected_rows
+                affected_rows
                 }
             }"""
         
@@ -1052,4 +977,69 @@ class FwConfigImportRule(FwConfigImportBase):
             prepared_rules.append(rule_for_import)
         return { "data": prepared_rules }
     
+async def resetOrderNumbersAsync(rulebases, batch_size, max_concurrent_requests, import_details):
+    """
+        Iterates asnychronously and batchwise over the rule db table and updates rule_num_numeric with an incrementing order number.
+        The order dependes on the given list of rulebases.
+    """
+    logger = getFwoLogger()
+    logger.info(f"resetting order numbers...")
 
+    rule_uids = list(chain.from_iterable(rulebase.Rules.keys() for rulebase in rulebases))
+
+    updateRuleOrderNumbers = """
+        mutation UpdateRuleOrder($updates: [rule_updates!]!) {
+            update_rule_many(updates: $updates) {
+                affected_rows
+            }
+        }
+    """
+
+    async def send_batch(batch, batch_number):
+        updates = [
+            {
+                "where": {"rule_uid": {"_eq": rule_uid}},
+                "_set": {"rule_num_numeric": batch_size * batch_number + (index + 1)}
+            }
+            for index, rule_uid in enumerate(batch)
+        ]
+    
+        return await asyncio.to_thread(import_details.call, updateRuleOrderNumbers, queryVariables={"updates": updates})
+    
+    async def process_batches():
+        if not rule_uids:
+            logger.warning("fwo_api:updateRuleOrderNumbers - warning: found no rule uids")
+            return
+
+        tasks = []
+        for batch_number, batch in enumerate(chunked_iterable(rule_uids, batch_size)):
+            tasks.append(send_batch(batch, batch_number))
+            if len(tasks) >= max_concurrent_requests:
+                results = await asyncio.gather(*tasks)  # Warte auf alle Requests
+                for result in results:
+                    if not result is None: 
+                        if 'errors' in result:
+                            logger.exception(f"fwo_api:updateRuleOrderNumbers - error: {str(result['errors'])}")
+                            import_details.Stats.ErrorCount += 1
+                tasks = []  # Leere die Task-Liste
+
+        if tasks:  # Letzte Reste verarbeiten
+            results = await asyncio.gather(*tasks)
+            for result in results:
+                if not result is None: 
+                    if 'errors' in result:
+                        logger.exception(f"fwo_api:updateRuleOrderNumbers - error: {str(result['errors'])}")
+                        import_details.Stats.ErrorCount += 1
+
+    try:
+        await process_batches()
+        return True
+    except Exception as e:
+        logger.exception(f"Failed to update rule order numbers: {str(e)}")
+        import_details.Stats.ErrorCount += 1
+
+def chunked_iterable(iterable, size):
+    """Zerlegt eine Liste in kleinere Batches."""
+    iterator = iter(iterable)
+    while chunk := list(islice(iterator, size)):
+        yield chunk

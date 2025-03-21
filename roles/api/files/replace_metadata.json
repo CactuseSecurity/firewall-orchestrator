@@ -14285,7 +14285,8 @@
                       "columns": [
                         "active",
                         "removed",
-                        "rule_last_seen"
+                        "rule_last_seen",
+                        "rule_num_numeric"
                       ],
                       "filter": {},
                       "check": {}
@@ -14332,6 +14333,41 @@
                     "using": {
                       "foreign_key_constraint_on": "rule_id"
                     }
+                  }
+                ],
+                "select_permissions": [
+                  {
+                    "role": "importer",
+                    "permission": {
+                      "columns": [
+                        "created",
+                        "removed"
+                      ],
+                      "filter": {}
+                    },
+                    "comment": ""
+                  }
+                ],
+                "update_permissions": [
+                  {
+                    "role": "importer",
+                    "permission": {
+                      "columns": [
+                        "removed"
+                      ],
+                      "filter": {},
+                      "check": null
+                    },
+                    "comment": ""
+                  }
+                ],
+                "delete_permissions": [
+                  {
+                    "role": "importer",
+                    "permission": {
+                      "filter": {}
+                    },
+                    "comment": ""
                   }
                 ]
               },

@@ -7,13 +7,8 @@
 
 @typeparam InputDataType
 
-@if(Content != null && InitialContent != null)
+@if(Content != null)
 {
-    // InitialContent may be overwritten with data of different rule when rerendering RSB Rule tab objgroups after unselecting a rule
-    if (typeof(InputDataType) == typeof(Rule))
-    {
-        Content = InitialContent;
-    }
     <Collapse Title="@(NameExtractor != null ? NameExtractor(Content) : "")" UseHtmlTitle="@(Tab == RsbTab.rule)" Style="@("primary")" StartToggled="StartCollapsed" OnOpen="() => HandleUncollapse(ObjCategory.all)" RSBLocation="@GetRSBLocation()">
         <TitleWithHtml>
             @if (typeof(InputDataType) == typeof(Rule))
@@ -250,7 +245,7 @@
     AnchorNavToRSB? AnchorNavToRSB { get; set; }
 
     [Parameter]
-    public Func<RsbTab, ObjCategory, Func<ReportData, Task>, long, bool, Task>? FetchObjects { get; set; }
+    public Func<RsbTab, ObjCategory, Func<Task>, long, bool, Task>? FetchObjects { get; set; }
 
     [Parameter]
     public bool Recert { get; set; }
@@ -272,7 +267,7 @@
     public Func<InputDataType, string>? NameExtractor { get; set; }
 
     [Parameter]
-    public InputDataType? InitialContent { get; set; }
+    public InputDataType? Content { get; set; }
 
     [Parameter]
     public Func<InputDataType, IEnumerable<NetworkObject>>? NetworkObjectExtractor { get; set; }
@@ -283,32 +278,11 @@
     [Parameter]
     public Func<InputDataType, IEnumerable<NetworkUser>>? NetworkUserExtractor { get; set; }
 
-    [Parameter]
-    public bool Reload { get; set; } = false;
-
-
-    // Parameter Variables are being overwritten, because something happens with the component on StateHasChanged (but the Initialize Task does not get called)
-    public InputDataType? Content { get; set; }
-    public bool ContentIsDetailed => nobjDetailed && nsrvDetailed && userDetailed;
-    private bool nobjDetailed = false;
-    private bool nsrvDetailed = false;
-    private bool userDetailed = false;
-
     protected override async Task OnInitializedAsync()
     {
-        Content = InitialContent;
         if (StartContentDetailed)
         {
             await FetchContent(ObjCategory.all);
-        }
-        Console.WriteLine("lllllk");
-    }
-
-    protected override void OnParametersSet()
-    {
-        if(Reload)
-        {
-            Content = InitialContent;
         }
     }
 
@@ -392,78 +366,46 @@
         await FetchContent(objCategory);
     }
 
+    private bool IsDetailed(ObjCategory objCategory)
+    {
+        switch (Content)
+        {
+            case ManagementReport mgt:
+                return mgt.Detailed[(int)objCategory - 1];
+            case Rule rule:
+                return rule.Detailed;
+        }
+
+        return false;
+    }
+
     private async Task FetchContent(ObjCategory objCategory)
     {
-        try
+        if (FetchObjects != null && !IsDetailed(objCategory))
         {
-            if (objCategory == ObjCategory.all && !ContentIsDetailed || objCategory == ObjCategory.nobj && !nobjDetailed ||
-                objCategory == ObjCategory.nsrv && !nsrvDetailed || objCategory == ObjCategory.user && !userDetailed)
+            switch (Content)
             {
-                if(FetchObjects != null)
-                {
-                    switch (Content)
-                    {
-                        case ManagementReport mgt:
-                            await FetchObjects(Tab, objCategory,
-                                managementsUpdate =>
-                                {
-                                    ManagementReport? mgtUpdated = managementsUpdate.ManagementData.FirstOrDefault(m => m.Id == mgt.Id);
-                                    if (mgtUpdated != null)
-                                    {
-                                        if (objCategory == ObjCategory.all || objCategory == ObjCategory.nobj)
-                                        {
-                                            mgt.Objects = mgtUpdated.Objects;
-                                            mgt.ReportObjects = mgtUpdated.ReportObjects;
-                                        }
-                                        if (objCategory == ObjCategory.all || objCategory == ObjCategory.nsrv)
-                                        {
-                                            mgt.Services = mgtUpdated.Services;
-                                            mgt.ReportServices = mgtUpdated.ReportServices;
-                                        }
-                                        if (objCategory == ObjCategory.all || objCategory == ObjCategory.user)
-                                        {
-                                            mgt.Users = mgtUpdated.Users;
-                                            mgt.ReportUsers = mgtUpdated.ReportUsers;
-                                        }
-                                    }
-                                    AnchorNavToRSB?.ScrollToFragment();
-                                    return InvokeAsync(StateHasChanged);
-                                }, mgt.Id, false);
-                            break;
+                case ManagementReport mgt:
+                    await FetchObjects(Tab, objCategory,
+                        () =>
+                        {
+                            AnchorNavToRSB?.ScrollToFragment();
+                            return InvokeAsync(StateHasChanged);
+                        }, mgt.Id, false);
+                    break;
 
-                        case Rule rule:
-                            await FetchObjects(Tab, objCategory,
-                                managementsUpdate =>
-                                {
-                                    Rule? ruleUpdated = managementsUpdate.ManagementData.SelectMany(m => m.Devices).SelectMany(d => d.Rules ?? new Rule[0]).FirstOrDefault();
-                                    if (ruleUpdated != null)
-                                    {
-                                        rule.Froms = ruleUpdated.Froms;
-                                        rule.Tos = ruleUpdated.Tos;
-                                        rule.NatData.TranslatedFroms = ruleUpdated.NatData.TranslatedFroms;
-                                        rule.NatData.TranslatedTos = ruleUpdated.NatData.TranslatedTos;
-                                        rule.Services = ruleUpdated.Services;
-                                        rule.NatData.TranslatedServices = ruleUpdated.NatData.TranslatedServices;
-                                    }
-                                    AnchorNavToRSB?.ScrollToFragment();
-                                    return InvokeAsync(StateHasChanged);
-                                }, rule.Id, !string.IsNullOrEmpty(rule.NatData?.TranslatedSource));
-                            break;
-                    }
-                }
-
-                nobjDetailed = nobjDetailed || objCategory == ObjCategory.all || objCategory == ObjCategory.nobj;
-                nsrvDetailed = nsrvDetailed || objCategory == ObjCategory.all || objCategory == ObjCategory.nsrv;
-                userDetailed = userDetailed || objCategory == ObjCategory.all || objCategory == ObjCategory.user;
-
-                await InvokeAsync(StateHasChanged);
+                case Rule rule:
+                    await FetchObjects(Tab, objCategory,
+                        () =>
+                        {
+                            AnchorNavToRSB?.ScrollToFragment();
+                            return InvokeAsync(StateHasChanged);
+                        }, rule.Id, !string.IsNullOrEmpty(rule.NatData?.TranslatedSource));
+                    break;
             }
-            return;
         }
-        catch (Exception exception)
-        {
-            DisplayMessageInUi(exception, userConfig.GetText("object_fetch"), "", true);
-            return;
-        }
+
+        await InvokeAsync(StateHasChanged);
+        return;
     }
 }

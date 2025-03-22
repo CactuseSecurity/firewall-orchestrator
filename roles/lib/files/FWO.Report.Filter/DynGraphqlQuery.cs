@@ -416,7 +416,7 @@ namespace FWO.Report.Filter
             }
         }
 
-        private static (string, string) ResolveTimeRange(TimeFilter timeFilter)
+        public static (string, string) ResolveTimeRange(TimeFilter timeFilter)
         {
             string start;
             string stop;

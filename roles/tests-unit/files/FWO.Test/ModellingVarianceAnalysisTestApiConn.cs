@@ -1,4 +1,4 @@
-﻿using FWO.Api.Client.Queries;
+using FWO.Api.Client.Queries;
 using GraphQL;
 using FWO.Basics;
 using FWO.Services;
@@ -60,10 +60,17 @@ namespace FWO.Test
             }
             else if (responseType == typeof(List<ModellingAppZone>))
             {
-                GraphQLResponse<dynamic> response = new() { Data = new List<ModellingAppZone>(){ AZExist }};
+                GraphQLResponse<dynamic> response = new() { Data = new List<ModellingAppZone>() { AZExist } };
 
                 return response.Data;
             }
+            else if (responseType == typeof(List<ModellingAppServer>))
+            {
+                GraphQLResponse<dynamic> response = new() { Data = new List<ModellingAppServer>() { AppServer1, AppServer2 } };
+
+                return response.Data;
+            }
+
             throw new NotImplementedException();
         }
     }

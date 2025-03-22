@@ -37,5 +37,5 @@ def decrypt(encrypted_data, passphrase):
         decrypted = decrypt_aes_ciphertext(encrypted_data, passphrase)
         return decrypted
     except:
-        logger.warning("Unspecified error while decrypting with MS: " + str(traceback.format_exc()))
+        logger.warning("Unspecified error while decrypting with AES: " + str(traceback.format_exc()))
         return encrypted_data

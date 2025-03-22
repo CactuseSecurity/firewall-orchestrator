@@ -1,4 +1,4 @@
-﻿using FWO.Api.Client;
+using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Data;
@@ -44,12 +44,12 @@ namespace FWO.Middleware.Server.Controllers
         /// <returns></returns>
         [HttpGet("TestConnection")]
         [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
-        public ActionResult<string> TestConnection([FromBody] LdapGetUpdateParameters parameters)
+        public async Task<ActionResult<string>> TestConnection([FromBody] LdapGetUpdateParameters parameters)
         {
             try
             {
                 Ldap ldapToTest = new Ldap(parameters);
-                ldapToTest.TestConnection();
+                await ldapToTest.TestConnection();
             }
             catch (Exception e)
             {

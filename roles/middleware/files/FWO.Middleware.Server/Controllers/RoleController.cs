@@ -43,10 +43,10 @@ namespace FWO.Middleware.Server.Controllers
             {
                 if (currentLdap.HasRoleHandling())
                 {
-                    ldapRoleRequests.Add(Task.Run(() =>
+                    ldapRoleRequests.Add(Task.Run(async() =>
                     {
                         // if current Ldap has roles stored: Get all roles from current Ldap
-                        List<RoleGetReturnParameters> currentRoles = currentLdap.GetAllRoles();
+                        List<RoleGetReturnParameters> currentRoles = await currentLdap.GetAllRoles();
                         foreach (RoleGetReturnParameters role in currentRoles)
                             allRoles.Add(role);
                     }));
@@ -80,9 +80,9 @@ namespace FWO.Middleware.Server.Controllers
                 // Try to add user to role in current Ldap
                 if (currentLdap.IsWritable() && currentLdap.HasRoleHandling())
                 {
-                    ldapRoleRequests.Add(Task.Run(() =>
+                    ldapRoleRequests.Add(Task.Run(async() =>
                     {
-                        if (currentLdap.AddUserToEntry(parameters.UserDn, parameters.Role))
+                        if (await currentLdap.AddUserToEntry(parameters.UserDn, parameters.Role))
                         {
                             userAdded = true;
                             Log.WriteAudit("AddUserToRole", $"user {parameters.UserDn} successfully added to role {parameters.Role} in {currentLdap.Host()}");
@@ -118,9 +118,9 @@ namespace FWO.Middleware.Server.Controllers
                 // Try to remove user from role in current Ldap
                 if (currentLdap.IsWritable() && currentLdap.HasRoleHandling())
                 {
-                    ldapRoleRequests.Add(Task.Run(() =>
+                    ldapRoleRequests.Add(Task.Run(async() =>
                     {
-                        if (currentLdap.RemoveUserFromEntry(parameters.UserDn, parameters.Role))
+                        if (await currentLdap.RemoveUserFromEntry(parameters.UserDn, parameters.Role))
                         {
                             userRemoved = true;
                             Log.WriteAudit("RemoveUserFromRole", $"Removed user {parameters.UserDn} from {parameters.Role} in {currentLdap.Host()}");

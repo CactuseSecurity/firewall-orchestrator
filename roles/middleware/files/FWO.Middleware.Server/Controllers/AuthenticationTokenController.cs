@@ -1,4 +1,4 @@
-﻿using FWO.Api.Client;
+using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Data;
@@ -194,10 +194,10 @@ namespace FWO.Middleware.Server.Controllers
 				{
 					if (currentLdap.IsInternal())
 					{
-						ldapRoleRequests.Add(Task.Run(() =>
+						ldapRoleRequests.Add(Task.Run(async() =>
 						{
 							// Get groups from current Ldap
-							List<string> currentGroups = currentLdap.GetGroups([ldapUser.Dn]);
+							List<string> currentGroups = await currentLdap.GetGroups([ldapUser.Dn]);
 							lock (groupsLock)
 							{
 								currentGroups = Array.ConvertAll(currentGroups.ToArray(), x => "cn=" + x + "," + currentLdap.GroupSearchPath).ToList();
@@ -230,13 +230,13 @@ namespace FWO.Middleware.Server.Controllers
 
 				foreach (Ldap currentLdap in ldaps.Where(x => x.Active))
 				{
-					ldapValidationRequests.Add(Task.Run(() =>
+					ldapValidationRequests.Add(Task.Run(async() =>
 					{
 						Log.WriteDebug("User Authentication", $"Trying to authenticate {user.Name + " " + user.Dn} against LDAP {currentLdap.Address}:{currentLdap.Port} ...");
 
 						try
 						{
-							LdapEntry? currentLdapEntry = currentLdap.GetLdapEntry(user, validatePassword);
+							LdapEntry? currentLdapEntry = await currentLdap.GetLdapEntry(user, validatePassword);
 
 							if (currentLdapEntry != null)
 							{
@@ -304,10 +304,10 @@ namespace FWO.Middleware.Server.Controllers
 				// if current Ldap has roles stored
 				if (currentLdap.HasRoleHandling())
 				{
-					ldapRoleRequests.Add(Task.Run(() =>
+					ldapRoleRequests.Add(Task.Run(async() =>
 					{
 						// Get roles from current Ldap
-						List<string> currentRoles = currentLdap.GetRoles(dnList);
+						List<string> currentRoles = await currentLdap.GetRoles(dnList);
 
 						lock (rolesLock)
 						{

@@ -168,7 +168,7 @@ namespace FWO.Middleware.Server
 			List<Ldap> connectedLdaps = await ApiConnection.SendQueryAsync<List<Ldap>>(AuthQueries.getLdapConnections);
 			Ldap internalLdap = connectedLdaps.FirstOrDefault(x => x.IsInternal() && x.HasGroupHandling()) ?? throw new Exception("No internal Ldap with group handling found.");
 
-			List<GroupGetReturnParameters> allGroups = internalLdap.GetAllInternalGroups();
+			List<GroupGetReturnParameters> allGroups = await internalLdap.GetAllInternalGroups();
 			ownerGroups = [];
 			foreach (var ldapUserGroup in allGroups)
 			{

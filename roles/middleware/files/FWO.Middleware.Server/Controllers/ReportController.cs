@@ -8,6 +8,7 @@ using FWO.Data.Middleware;
 using FWO.Data.Report;
 using FWO.Logging;
 using FWO.Report;
+using FWO.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
@@ -45,7 +46,7 @@ namespace FWO.Middleware.Server.Controllers
                     return "";  // todo: Error message?
                 }
 
-                ReportBase? report = await ReportGenerator.Generate(await ConvertParameters(parameters), apiConnectionUserContext, userConfig);
+                ReportBase? report = await ReportGenerator.Generate(await ConvertParameters(parameters), apiConnectionUserContext, userConfig, DefaultInit.DoNothing);
                 return report?.ExportToJson() ?? "";
             }
             catch (Exception exception)

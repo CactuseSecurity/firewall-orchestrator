@@ -6,6 +6,7 @@ using FWO.Config.Api;
 using FWO.Logging;
 using FWO.Middleware.Server.Controllers;
 using FWO.Report;
+using FWO.Services;
 using System.Timers;
 using FWO.Config.File;
 
@@ -144,7 +145,7 @@ namespace FWO.Middleware.Server
                     await apiConnectionUserContext.SendQueryAsync<object>(ReportQueries.countReportSchedule, new { report_schedule_id = reportSchedule.Id });
                     await AdaptDeviceFilter(reportSchedule.Template.ReportParams, apiConnectionUserContext);
 
-                    ReportBase? report = await ReportGenerator.Generate(reportSchedule.Template, apiConnectionUserContext, userConfig, token);
+                    ReportBase? report = await ReportGenerator.Generate(reportSchedule.Template, apiConnectionUserContext, userConfig, DefaultInit.DoNothing, token);
                     if(report != null)
                     {
                         await report.GetObjectsInReport(int.MaxValue, apiConnectionUserContext, _ => Task.CompletedTask);

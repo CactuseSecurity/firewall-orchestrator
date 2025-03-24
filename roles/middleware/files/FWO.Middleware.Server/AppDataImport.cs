@@ -477,7 +477,7 @@ namespace FWO.Middleware.Server
 					++failCounter;
 				}
 			}
-			foreach (var existingAppServer in existingAppServers)
+			foreach (var existingAppServer in existingAppServers.Where(e => !e.IsDeleted).ToList())
 			{
 				if (incomingApp.AppServers.FirstOrDefault(x => x.Ip.IpAsCidr() == existingAppServer.Ip.IpAsCidr() && x.IpEnd.IpAsCidr() == existingAppServer.IpEnd.IpAsCidr()) == null)
 				{

@@ -47,7 +47,7 @@
             <div class="p-3">
                 <h5 class="text-left">@(userConfig.GetText("report_time"))</h5>
                 <div class="input-group">
-                    <input type="text" class="form-control form-control-sm" value="@actReportFilters.DisplayedTimeSelection" />
+                    <input type="text" class="form-control form-control-sm" value="@actReportFilters.DisplayedTimeSelection" disabled />
                     <button type="button" class="btn btn-sm btn-secondary" @onclick="SelectTime">@(userConfig.GetText("change"))</button>
                 </div>
             </div>
@@ -159,7 +159,8 @@
     <RightSidebar @bind-Width="sidebarRightWidth" CurrentReport="currentReport"
         @bind-SelectedRules="selectedItemsRuleReportTable" 
         AllTabVisible="(tenantFilteringAllowed && actReportFilters.SelectedTenant == null)"
-        SelectedReportType = "actReportFilters.ReportType"/>
+        SelectedReportType="actReportFilters.ReportType"
+        LSBTime="actReportFilters.TimeFilter"/>
 }
 
 @* ==== POPUPS ==== *@

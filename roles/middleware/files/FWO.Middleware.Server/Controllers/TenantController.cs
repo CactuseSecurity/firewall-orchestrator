@@ -1,4 +1,4 @@
-﻿using FWO.Api.Client;
+using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Data;
@@ -73,9 +73,9 @@ namespace FWO.Middleware.Server.Controllers
                 // Try to add tenant in current Ldap
                 if (currentLdap.IsInternal() && currentLdap.IsWritable())
                 {
-                    await Task.Run(() =>
+                    await Task.Run(async() =>
                     {
-                        if (currentLdap.AddTenant(tenantName))
+                        if (await currentLdap.AddTenant(tenantName))
                         {
                             tenantAdded = true;
                             Log.WriteAudit("AddTenant", $"Tenant {tenantName} successfully added to {currentLdap.Host()}");
@@ -178,9 +178,9 @@ namespace FWO.Middleware.Server.Controllers
                 // Try to delete tenant in current Ldap
                 if (currentLdap.IsInternal() && currentLdap.IsWritable())
                 {
-                    await Task.Run(() =>
+                    await Task.Run(async() =>
                     {
-                        if(currentLdap.DeleteTenant(tenant.Name))
+                        if(await currentLdap.DeleteTenant(tenant.Name))
                         {
                             Log.WriteAudit("DeleteTenant", $"Tenant {tenant.Name} deleted from {currentLdap.Host()}");
                         }

@@ -1,4 +1,4 @@
-﻿using FWO.Api.Client;
+using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Data;
 using FWO.Data.Report;
@@ -62,13 +62,13 @@ namespace FWO.Report
                                 List<NetworkLocation> disregardedFroms = [.. rule.Froms];
                                 if(modellingFilter.ShowSourceMatch)
                                 {
-                                    (relevantFroms, disregardedFroms) = CheckNetworkObjects(rule.Froms, modellingFilter, ownerIps);
+                                    (relevantFroms, disregardedFroms) = CheckNetworkObjects(rule.Froms, rule.SourceNegated, modellingFilter, ownerIps);
                                 }
                                 List<NetworkLocation> relevantTos = [];
                                 List<NetworkLocation> disregardedTos = [.. rule.Tos];
                                 if(modellingFilter.ShowDestinationMatch)
                                 {
-                                    (relevantTos, disregardedTos) = CheckNetworkObjects(rule.Tos, modellingFilter, ownerIps);
+                                    (relevantTos, disregardedTos) = CheckNetworkObjects(rule.Tos, rule.DestinationNegated, modellingFilter, ownerIps);
                                 }
 
                                 if(relevantFroms.Count > 0 || relevantTos.Count > 0)
@@ -106,7 +106,7 @@ namespace FWO.Report
                 IPAddress.Parse((s.IpEnd != "" ? s.IpEnd : s.Ip).StripOffNetmask())))];
         }
 
-        private static (List<NetworkLocation>, List<NetworkLocation>) CheckNetworkObjects(NetworkLocation[] objList, ModellingFilter modellingFilter, List<IPAddressRange> ownerIps)
+        private static (List<NetworkLocation>, List<NetworkLocation>) CheckNetworkObjects(NetworkLocation[] objList, bool negated, ModellingFilter modellingFilter, List<IPAddressRange> ownerIps)
         {
             List<NetworkLocation> relevantObjects = [];
             List<NetworkLocation> disregardedObjects = [];
@@ -130,15 +130,15 @@ namespace FWO.Report
                     {
                         foreach(var grpobj in obj.Object.ObjectGroupFlats)
                         {
-                            if(grpobj.Object != null && CheckObj(grpobj.Object, ownerIps))
-                            {
+                            if(grpobj.Object != null && CheckObj(grpobj.Object, negated, ownerIps))
+                             {
                                 relevantObjects.Add(obj);
                                 found = true;
                                 break;
                             }
                         }
                     }
-                    else if(CheckObj(obj.Object, ownerIps))
+                    else if(CheckObj(obj.Object, negated, ownerIps))
                     {
                         relevantObjects.Add(obj);
                         found = true;
@@ -152,13 +152,27 @@ namespace FWO.Report
             return (relevantObjects, disregardedObjects);
         }
 
-        private static bool CheckObj(NetworkObject obj, List<IPAddressRange> ownerIps)
+        private static bool CheckObj(NetworkObject obj, bool negated, List<IPAddressRange> ownerIps)
         {
             foreach(var ownerIpRange in ownerIps)
             {
-                if(obj.IP != null &&
-                    IpOperations.RangeOverlapExists(new IPAddressRange(IPAddress.Parse(obj.IP.StripOffNetmask()),
-                    IPAddress.Parse((obj.IpEnd != null && obj.IpEnd != "" ? obj.IpEnd : obj.IP).StripOffNetmask())), ownerIpRange))
+                if(obj.IP == null)
+                {
+                    continue;
+                }
+
+                IPAddressRange objRange = new(IPAddress.Parse(obj.IP.StripOffNetmask()),
+                    IPAddress.Parse((obj.IpEnd != null && obj.IpEnd != "" ? obj.IpEnd : obj.IP).StripOffNetmask()));
+
+                if(negated)
+                {
+                    if (IpOperations.IpToUint(ownerIpRange.Begin) < IpOperations.IpToUint(objRange.Begin) ||
+                            (IpOperations.IpToUint(ownerIpRange.End) > IpOperations.IpToUint(objRange.End)))
+                    {
+                        return true;
+                    }
+                }
+                else if(IpOperations.RangeOverlapExists(objRange, ownerIpRange))
                 {
                     return true;
                 }
@@ -184,7 +198,7 @@ namespace FWO.Report
                             {
                                 foreach(var grpobj in from.Object.ObjectGroupFlats)
                                 {
-                                    if(grpobj.Object != null && CheckObj(grpobj.Object, ownerIps))
+                                    if(grpobj.Object != null && CheckObj(grpobj.Object, rule.SourceNegated, ownerIps))
                                     {
                                         mgt.HighlightedObjectIds.Add(grpobj.Object.Id);
                                     }
@@ -206,7 +220,7 @@ namespace FWO.Report
                             {
                                 foreach(var grpobj in to.Object.ObjectGroupFlats)
                                 {
-                                    if(grpobj.Object != null && CheckObj(grpobj.Object, ownerIps))
+                                    if(grpobj.Object != null && CheckObj(grpobj.Object, rule.DestinationNegated, ownerIps))
                                     {
                                         mgt.HighlightedObjectIds.Add(grpobj.Object.Id);
                                     }

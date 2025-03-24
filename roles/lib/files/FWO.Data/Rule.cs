@@ -99,6 +99,7 @@ namespace FWO.Data
         public bool ShowDisregarded { get; set; } = false;
         public long ConnId { get; set; }
         public bool ModellOk { get; set; } = false;
+        public bool Detailed = false;
 
         public bool IsDropRule()
         {

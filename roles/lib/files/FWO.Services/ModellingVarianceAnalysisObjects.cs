@@ -86,18 +86,26 @@ namespace FWO.Services
                 return;
             }
 
-            ModellingAppZone? existingAppZone = await AppZoneHandler.GetExistingAppZone();
+            ModellingAppZone existingAppZone = await AppZoneHandler.PlanAppZoneUpsert();
 
-            if (existingAppZone is not null)
-            {               
-                if (!ResolveExistingNwGroup(existingAppZone, mgt))
-                {
-                    RequestNewNwGroup(existingAppZone, mgt);
-                }
-                else if (NwGroupChanged(existingAppZone) )
-                {
-                    RequestUpdateNwGroup(existingAppZone, mgt);
-                }
+            if (!ResolveExistingNwGroup(existingAppZone, mgt))
+            {
+                PlannedAppZone = existingAppZone;
+                RequestNewNwGroup(existingAppZone, mgt);
+                return;
+            }
+
+            //Check prod AZ diff against current DB AZ
+            existingAppZone = await AppZoneHandler.PlanAppZoneUpsert(existingAppRole.AppServers);
+
+            PlannedAppZone = existingAppZone;
+
+            if (existingAppZone.AppServersNew.Count > 0 || existingAppZone.AppServersRemoved.Count > 0)
+            {            
+                newAppServers = existingAppZone.AppServersNew;
+                deletedAppServers = existingAppZone.AppServersRemoved;
+                unchangedAppServers = existingAppZone.AppServersUnchanged;
+                RequestUpdateNwGroup(existingAppZone, mgt);
             }
         }
 
@@ -150,6 +158,11 @@ namespace FWO.Services
             if (existingAppRole is null)
             {
                 return false;
+            }
+
+            if (nwGroup is ModellingAppZone appZone)
+            {
+                return appZone.AppServersNew.Count > 0 || appZone.AppServersRemoved.Count > 0;
             }
 
             foreach (ModellingAppServerWrapper appserver in ( (ModellingAppRole)nwGroup ).AppServers)

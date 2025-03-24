@@ -1,4 +1,4 @@
-﻿using Newtonsoft.Json;
+using Newtonsoft.Json;
 using System.Text.Json.Serialization;
 
 namespace FWO.Data.Report
@@ -58,6 +58,7 @@ namespace FWO.Data.Report
         public List<long> RelevantObjectIds = [];
         public List<long> HighlightedObjectIds = [];
 
+        public bool[] Detailed = [false, false, false]; // nobj, nsrv, user
 
         public ManagementReport()
         {}

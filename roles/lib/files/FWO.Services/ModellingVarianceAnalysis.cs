@@ -32,6 +32,7 @@ namespace FWO.Services
         private readonly Dictionary<int, List<ModellingAppServer>> allExistingAppServers = [];
         private readonly Dictionary<int, List<ModellingAppServer>> alreadyCreatedAppServers = [];
 
+        public ModellingAppZone? PlannedAppZone = default;
 
         public async Task<ModellingVarianceResult> AnalyseRulesVsModelledConnections(List<ModellingConnection> connections, ModellingFilter modellingFilter)
         {
@@ -60,7 +61,7 @@ namespace FWO.Services
             foreach (Management mgt in RelevantManagements)
             {
                 await AnalyseAppZone(mgt);
-                foreach(var conn in connections.Where(c => !c.IsRequested).OrderBy(c => c.Id))
+                foreach (var conn in connections.Where(c => !c.IsRequested).OrderBy(c => c.Id))
                 {
                     elements = [];
                     AnalyseNetworkAreas(conn);
@@ -73,7 +74,7 @@ namespace FWO.Services
                         Dictionary<string, string>? addInfo = new() { { AdditionalInfoKeys.ConnId, conn.Id.ToString() } };
                         AccessTaskList.Add(new()
                         {
-                            Title = (conn.IsCommonService ? userConfig.GetText("new_common_service") : userConfig.GetText("new_connection")) + ": " + conn.Name ?? "",
+                            Title = ( conn.IsCommonService ? userConfig.GetText("new_common_service") : userConfig.GetText("new_connection") ) + ": " + conn.Name ?? "",
                             TaskType = WfTaskType.access.ToString(),
                             ManagementId = mgt.Id,
                             OnManagement = mgt,
@@ -105,9 +106,9 @@ namespace FWO.Services
             {
                 comment += ", ComSvc";
             }
-            if(conn.ExtraConfigs.Count > 0 || conn.ExtraConfigsFromInterface.Count > 0)
+            if (conn.ExtraConfigs.Count > 0 || conn.ExtraConfigsFromInterface.Count > 0)
             {
-                comment += ", " + userConfig.GetText("impl_instructions") + ": " + 
+                comment += ", " + userConfig.GetText("impl_instructions") + ": " +
                     string.Join(", ", conn.ExtraConfigs.ConvertAll(x => x.Display()).Concat(conn.ExtraConfigsFromInterface.ConvertAll(x => x.Display())));
             }
             return comment;

@@ -117,6 +117,7 @@ namespace FWO.Data.Modelling
             }
         }
         public List<ModellingExtraConfig> ExtraConfigsFromInterface = [];
+        public bool ProdRuleFound { get; set; } = false;
 
 
         public ModellingConnection()

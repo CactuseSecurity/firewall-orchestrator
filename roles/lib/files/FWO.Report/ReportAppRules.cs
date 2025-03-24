@@ -13,7 +13,6 @@ namespace FWO.Report
 {
     public class ReportAppRules : ReportRules
     {
-        private List<IPAddressRange> ownerIps = [];
         private readonly ModellingFilter modellingFilter;
 
         public ReportAppRules(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType, ModellingFilter modellingFilter) : base(query, userConfig, reportType)
@@ -24,14 +23,14 @@ namespace FWO.Report
         public override async Task Generate(int rulesPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback, CancellationToken ct)
         {
             await base.Generate(rulesPerFetch, apiConnection, callback, ct);
-            await PrepareAppRulesReport(apiConnection);
+            ReportData.ManagementData = await PrepareAppRulesReport(ReportData.ManagementData, modellingFilter, apiConnection, Query.SelectedOwner?.Id);
         }
 
         public override async Task<bool> GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, ObjCategory objects, int maxFetchCycles, ApiConnection apiConnection, Func<ReportData, Task> callback)
         {
             int mid = (int)objQueryVariables.GetValueOrDefault("mgmIds")!;
             ManagementReport managementReport = ReportData.ManagementData.FirstOrDefault(m => m.Id == mid) ?? throw new ArgumentException("Given management id does not exist for this report");
-            PrepareFilter(managementReport);
+            PrepareFilter(managementReport, await GetAppServers(apiConnection, Query.SelectedOwner?.Id));
             UseAdditionalFilter = !modellingFilter.ShowFullRules;
 
             bool gotAllObjects = await base.GetObjectsForManagementInReport(objQueryVariables, objects, maxFetchCycles, apiConnection, callback);
@@ -42,11 +41,11 @@ namespace FWO.Report
             return gotAllObjects;
         }
 
-        private async Task PrepareAppRulesReport(ApiConnection apiConnection)
+        public static async Task<List<ManagementReport>> PrepareAppRulesReport(List<ManagementReport> managementData, ModellingFilter modellingFilter, ApiConnection apiConnection, int? ownerId)
         {
-            await GetAppServers(apiConnection);
+            List<IPAddressRange> ownerIps = await GetAppServers(apiConnection, ownerId);
             List<ManagementReport> relevantData = [];
-            foreach(var mgt in ReportData.ManagementData)
+            foreach(var mgt in managementData)
             {
                 ManagementReport relevantMgt = new(){ Name = mgt.Name, Id = mgt.Id, Import = mgt.Import };
                 foreach(var dev in mgt.Devices)
@@ -63,13 +62,13 @@ namespace FWO.Report
                                 List<NetworkLocation> disregardedFroms = [.. rule.Froms];
                                 if(modellingFilter.ShowSourceMatch)
                                 {
-                                    (relevantFroms, disregardedFroms) = CheckNetworkObjects(rule.Froms);
+                                    (relevantFroms, disregardedFroms) = CheckNetworkObjects(rule.Froms, modellingFilter, ownerIps);
                                 }
                                 List<NetworkLocation> relevantTos = [];
                                 List<NetworkLocation> disregardedTos = [.. rule.Tos];
                                 if(modellingFilter.ShowDestinationMatch)
                                 {
-                                    (relevantTos, disregardedTos) = CheckNetworkObjects(rule.Tos);
+                                    (relevantTos, disregardedTos) = CheckNetworkObjects(rule.Tos, modellingFilter, ownerIps);
                                 }
 
                                 if(relevantFroms.Count > 0 || relevantTos.Count > 0)
@@ -96,18 +95,18 @@ namespace FWO.Report
                     relevantData.Add(relevantMgt);
                 }
             }
-            ReportData.ManagementData = relevantData;
+            return relevantData;
         }
 
-        private async Task GetAppServers(ApiConnection apiConnection)
+        private static async Task<List<IPAddressRange>> GetAppServers(ApiConnection apiConnection, int? ownerId)
         {
             List<ModellingAppServer> appServers = await apiConnection.SendQueryAsync<List<ModellingAppServer>>(ModellingQueries.getAppServersForOwner, 
-                new { appId = Query.SelectedOwner?.Id });
-            ownerIps = [.. appServers.ConvertAll(s => new IPAddressRange(IPAddress.Parse(s.Ip.StripOffNetmask()),
+                new { appId = ownerId });
+            return [.. appServers.ConvertAll(s => new IPAddressRange(IPAddress.Parse(s.Ip.StripOffNetmask()),
                 IPAddress.Parse((s.IpEnd != "" ? s.IpEnd : s.Ip).StripOffNetmask())))];
         }
 
-        private (List<NetworkLocation>, List<NetworkLocation>) CheckNetworkObjects(NetworkLocation[] objList)
+        private static (List<NetworkLocation>, List<NetworkLocation>) CheckNetworkObjects(NetworkLocation[] objList, ModellingFilter modellingFilter, List<IPAddressRange> ownerIps)
         {
             List<NetworkLocation> relevantObjects = [];
             List<NetworkLocation> disregardedObjects = [];
@@ -131,7 +130,7 @@ namespace FWO.Report
                     {
                         foreach(var grpobj in obj.Object.ObjectGroupFlats)
                         {
-                            if(grpobj.Object != null && CheckObj(grpobj.Object))
+                            if(grpobj.Object != null && CheckObj(grpobj.Object, ownerIps))
                             {
                                 relevantObjects.Add(obj);
                                 found = true;
@@ -139,7 +138,7 @@ namespace FWO.Report
                             }
                         }
                     }
-                    else if(CheckObj(obj.Object))
+                    else if(CheckObj(obj.Object, ownerIps))
                     {
                         relevantObjects.Add(obj);
                         found = true;
@@ -153,7 +152,7 @@ namespace FWO.Report
             return (relevantObjects, disregardedObjects);
         }
 
-        private bool CheckObj(NetworkObject obj)
+        private static bool CheckObj(NetworkObject obj, List<IPAddressRange> ownerIps)
         {
             foreach(var ownerIpRange in ownerIps)
             {
@@ -167,7 +166,7 @@ namespace FWO.Report
             return false;
         }
 
-        private void PrepareFilter(ManagementReport mgt)
+        private void PrepareFilter(ManagementReport mgt, List<IPAddressRange> ownerIps)
         {
             mgt.RelevantObjectIds = [];
             mgt.HighlightedObjectIds = [];
@@ -185,7 +184,7 @@ namespace FWO.Report
                             {
                                 foreach(var grpobj in from.Object.ObjectGroupFlats)
                                 {
-                                    if(grpobj.Object != null && CheckObj(grpobj.Object))
+                                    if(grpobj.Object != null && CheckObj(grpobj.Object, ownerIps))
                                     {
                                         mgt.HighlightedObjectIds.Add(grpobj.Object.Id);
                                     }
@@ -207,7 +206,7 @@ namespace FWO.Report
                             {
                                 foreach(var grpobj in to.Object.ObjectGroupFlats)
                                 {
-                                    if(grpobj.Object != null && CheckObj(grpobj.Object))
+                                    if(grpobj.Object != null && CheckObj(grpobj.Object, ownerIps))
                                     {
                                         mgt.HighlightedObjectIds.Add(grpobj.Object.Id);
                                     }

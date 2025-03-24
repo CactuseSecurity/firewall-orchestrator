@@ -135,7 +135,7 @@
                 ModellingAppZoneHandler appZoneHandler = new(apiConnection, userConfig, SelectedApp, DisplayMessageInUi);
                 await appZoneHandler.UpsertAppZone();
                 ModellingVarianceAnalysis varianceAnalysis = new(apiConnection, extStateHandler, userConfig, SelectedApp, DisplayMessageInUi);
-                TaskList = await varianceAnalysis.AnalyseModelledConnections(Connections);
+                TaskList = await varianceAnalysis.AnalyseModelledConnectionsForRequest(Connections);
             }
         }
         catch (Exception exception)

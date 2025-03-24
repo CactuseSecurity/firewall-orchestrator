@@ -61,7 +61,7 @@ namespace FWO.Test
         [Test]
         public async Task TestAnalyseModelledConnections()
         {
-            List<WfReqTask> TaskList = await varianceAnalysis!.AnalyseModelledConnections(Connections);
+            List<WfReqTask> TaskList = await varianceAnalysis!.AnalyseModelledConnectionsForRequest(Connections);
 
             ClassicAssert.AreEqual(5, TaskList.Count);
 
@@ -182,7 +182,7 @@ namespace FWO.Test
             ClassicAssert.AreEqual("unchanged", TaskList[4].Elements[2].RequestAction);
 
             userConfig.ModRolloutResolveServiceGroups = false;
-            TaskList = await varianceAnalysis!.AnalyseModelledConnections(Connections);
+            TaskList = await varianceAnalysis!.AnalyseModelledConnectionsForRequest(Connections);
             ClassicAssert.AreEqual(6, TaskList.Count);
             ClassicAssert.AreEqual(WfTaskType.group_modify.ToString(), TaskList[0].TaskType);
             ClassicAssert.AreEqual(WfTaskType.group_modify.ToString(), TaskList[1].TaskType);

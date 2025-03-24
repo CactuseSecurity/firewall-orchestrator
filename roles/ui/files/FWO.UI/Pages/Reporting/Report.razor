@@ -33,7 +33,7 @@
         }
         else if (actReportFilters.ReportType.IsModellingReport())
         {
-            <ReportModellingParamSelection @bind-ModellingFilter="actReportFilters.ModellingFilter" InjectedAppId="injectedAppId" AllParams="@(actReportFilters.ReportType == ReportType.AppRules)"/>
+            <ReportModellingParamSelection @bind-ModellingFilter="actReportFilters.ModellingFilter" InjectedAppId="injectedAppId" ReportType="actReportFilters.ReportType"/>
         }
         else if(actReportFilters.ReportType == ReportType.UnusedRules)
         {
@@ -129,7 +129,11 @@
                             break;
 
                         case ReportType.Connections:
-                            <ConnectionsReport AppHandlers="appHandlers" AllCommonServices="currentReport.ReportData.GlobalComSvc?.FirstOrDefault()?.GlobalComSvcs"/>
+                            <ConnectionsReport OwnerData="currentReport.ReportData.OwnerData" AllCommonServices="currentReport.ReportData.GlobalComSvc?.FirstOrDefault()?.GlobalComSvcs"/>
+                            break;
+
+                        case ReportType.VarianceAnalysis:
+                            <VariancesReport OwnerData="currentReport.ReportData.OwnerData"/>
                             break;
 
                         default:
@@ -181,8 +185,6 @@
 
     private List<Rule> selectedItemsRuleReportTable = [];
     private List<RuleChange> selectedItemsChangeReportTable = [];
-
-    private List<ModellingAppHandler> appHandlers = [];
 
     private ReportFilters actReportFilters = new();
     private bool InitDone = false;
@@ -327,7 +329,6 @@
         {
             currentReport.ReportData = new ();
         }
-        appHandlers = new();
         reportGenerationDuration = 0;
     }
 
@@ -387,8 +388,7 @@
             processing = true;
             SetProperRoleForReport();
             await PrepareReportGeneration();
-            currentReport = await ReportGenerator.Generate(ConstructReportTemplate(), apiConnection, userConfig, token);
-            await PrepareOutput();
+            currentReport = await ReportGenerator.Generate(ConstructReportTemplate(), apiConnection, userConfig, DisplayMessageInUi, token);
             processing = false;
             PostProcess();
         }
@@ -424,19 +424,6 @@
 
         // reset report data when switching between reports
         ResetReport();
-    }
-
-    private async Task PrepareOutput()
-    {
-        if(currentReport != null && currentReport.ReportType == ReportType.Connections)
-        {
-            foreach(var ownerReport in currentReport.ReportData.OwnerData)
-            {
-                ModellingAppHandler appHandler = new (apiConnection, userConfig, ownerReport.Owner, DisplayMessageInUi);
-                await appHandler.Init(ownerReport.Connections);
-                appHandlers.Add(appHandler);
-            }
-        }
     }
 
     private void PostProcess()
@@ -508,7 +495,8 @@
             ReportType.Changes, ReportType.ResolvedChanges, ReportType.ResolvedChangesTech, 
             ReportType.Statistics,
             ReportType.Connections,
-            ReportType.AppRules
+            ReportType.AppRules,
+            ReportType.VarianceAnalysis
         };
         foreach (var reportType in orderedReportTypeList)
         {

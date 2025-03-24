@@ -3,7 +3,7 @@ using Newtonsoft.Json;
 
 namespace FWO.Data.Report
 {
-    public class DeviceReport // : Device
+    public class DeviceReport
     {
         [JsonProperty("id"), JsonPropertyName("id")]
         public int Id { get; set; }

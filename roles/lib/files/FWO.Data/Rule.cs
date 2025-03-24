@@ -92,10 +92,13 @@ namespace FWO.Data
 
         public int DisplayOrderNumber { get; set; }
         public bool Certified { get; set; }
+        public string ManagementName { get; set; } = "";
         public string DeviceName { get; set; } = "";
         public NetworkLocation[] DisregardedFroms { get; set; } = [];
         public NetworkLocation[] DisregardedTos { get; set; } = [];
         public bool ShowDisregarded { get; set; } = false;
+        public long ConnId { get; set; }
+        public bool ModellOk { get; set; } = false;
 
         public bool IsDropRule()
         {

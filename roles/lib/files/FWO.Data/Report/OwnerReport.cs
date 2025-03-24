@@ -9,6 +9,8 @@ namespace FWO.Data.Report
         public List<ModellingConnection> RegularConnections { get; set; } = [];
         public List<ModellingConnection> Interfaces { get; set; } = [];
         public List<ModellingConnection> CommonServices { get; set; } = [];
+        public List<ManagementReport> ManagementData { get; set; } = [];
+        public List<ModProdDifference> Differences { get; set; } = [];
         private readonly long DummyARid = -1;
 
         public OwnerReport()
@@ -21,10 +23,13 @@ namespace FWO.Data.Report
 
         public OwnerReport(OwnerReport report): base(report)
         {
+            Owner = report.Owner;
             Connections = report.Connections;
             RegularConnections = report.RegularConnections;
             Interfaces = report.Interfaces;
             CommonServices = report.CommonServices;
+            ManagementData = report.ManagementData;
+            Differences = report.Differences;
             DummyARid = report.DummyARid;
         }
 

@@ -194,6 +194,8 @@ namespace FWO.Report
                     {
                         foreach (Rule rule in dev.Rules)
                         {
+                            rule.ManagementName = mgt.Name ?? "";
+                            rule.DeviceName = dev.Name ?? "";
                             mgt.ReportedRuleIds.Add(rule.Id);
                         }
                     }

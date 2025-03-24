@@ -127,6 +127,8 @@ INSERT INTO txt VALUES ('Connections', 	        'German', 	'Verbindungs-Report')
 INSERT INTO txt VALUES ('Connections', 	        'English', 	'Connections Report');
 INSERT INTO txt VALUES ('AppRules', 	        'German', 	'App-Regel-Report');
 INSERT INTO txt VALUES ('AppRules', 		    'English', 	'App Rules Report');
+INSERT INTO txt VALUES ('VarianceAnalysis', 	'German', 	'Soll-Ist-Report');
+INSERT INTO txt VALUES ('VarianceAnalysis',     'English', 	'Variance Report');
 INSERT INTO txt VALUES ('mixed', 	            'German', 	'Gemischt');
 INSERT INTO txt VALUES ('mixed', 	            'English', 	'Mixed');
 INSERT INTO txt VALUES ('exclusive', 	        'German', 	'Exklusiv');
@@ -738,6 +740,12 @@ INSERT INTO txt VALUES ('rpc',                  'German', 	'Rpc');
 INSERT INTO txt VALUES ('rpc',                  'English', 	'Rpc');
 INSERT INTO txt VALUES ('more',		            'German', 	'weitere');
 INSERT INTO txt VALUES ('more',		            'English', 	'more');
+INSERT INTO txt VALUES ('connections_not_implemented','German',	'Nicht implementierte Verbindungen');
+INSERT INTO txt VALUES ('connections_not_implemented','English','Connections not implemented');
+INSERT INTO txt VALUES ('connections_with_diffs','German',	'Verbindungen mit Abweichungen');
+INSERT INTO txt VALUES ('connections_with_diffs','English', 'Connections with differences');
+INSERT INTO txt VALUES ('rules_not_modelled',   'German',	'Nicht modellierte Regeln');
+INSERT INTO txt VALUES ('rules_not_modelled',   'English',  'Rules not modelled');
 
 -- schedule
 INSERT INTO txt VALUES ('schedule', 			'German',	'Terminplan');
@@ -1533,6 +1541,8 @@ INSERT INTO txt VALUES ('copy_to_clipboard', 	'German',	'in Zwischenablage kopie
 INSERT INTO txt VALUES ('copy_to_clipboard', 	'English',	'Copy to clipboard');
 INSERT INTO txt VALUES ('rule_filters',		    'German', 	'Regel-Filter');
 INSERT INTO txt VALUES ('rule_filters',			'English', 	'Rule Filters');
+INSERT INTO txt VALUES ('variance_filters',		'German', 	'Soll-Ist-Filter');
+INSERT INTO txt VALUES ('variance_filters',	    'English', 	'Variance Filters');
 INSERT INTO txt VALUES ('match_source',			'German', 	'in Quelle');
 INSERT INTO txt VALUES ('match_source',			'English', 	'in Source');
 INSERT INTO txt VALUES ('match_destination',	'German', 	'in Ziel');
@@ -1545,6 +1555,8 @@ INSERT INTO txt VALUES ('match_drop_rules',		'German', 	'in Drop-Regeln');
 INSERT INTO txt VALUES ('match_drop_rules',		'English', 	'in Drop rules');
 INSERT INTO txt VALUES ('show_full_rules',		'German', 	'vollst&auml;ndige Regeln anzeigen');
 INSERT INTO txt VALUES ('show_full_rules',		'English', 	'show full rules');
+INSERT INTO txt VALUES ('analyse_remaining_rules','German', 'Verbleibende Regeln analysieren');
+INSERT INTO txt VALUES ('analyse_remaining_rules','English','Analyse remaining rules');
 INSERT INTO txt VALUES ('reject',               'German',   'Ablehnen');
 INSERT INTO txt VALUES ('reject',               'English',  'Reject');
 INSERT INTO txt VALUES ('reject_interface',     'German',   'Schnittstelle ablehnen');
@@ -2315,6 +2327,10 @@ INSERT INTO txt VALUES ('modRolloutBundleTasks','German',   'Tasks zusammenfasse
 INSERT INTO txt VALUES ('modRolloutBundleTasks','English',  'Bundle tasks');
 INSERT INTO txt VALUES ('modRolloutErrorText',  'German',   'Fehlertext');
 INSERT INTO txt VALUES ('modRolloutErrorText',  'English',  'Error text');
+INSERT INTO txt VALUES ('modelledMarker',       'German',   'Markierung Modelliert');
+INSERT INTO txt VALUES ('modelledMarker',       'English',  'Modelled marker');
+INSERT INTO txt VALUES ('modelledMarkerLocation','German',  'Ort Markierung');
+INSERT INTO txt VALUES ('modelledMarkerLocation','English', 'Marker Location');
 INSERT INTO txt VALUES ('fixedPartLength',      'German',   'L&auml;nge fixer Teil');
 INSERT INTO txt VALUES ('fixedPartLength',      'English',  'Fixed Part Length');
 INSERT INTO txt VALUES ('freePartLength',       'German',   'L&auml;nge freier Teil');
@@ -5273,6 +5289,10 @@ INSERT INTO txt VALUES ('H5646', 'German',  'Namenspr&auml;fix IP-Bereich: Der N
 INSERT INTO txt VALUES ('H5646', 'English', 'IP Range Name Prefix: The name of IP ranges will be constructed by this prefix + Ip address range.');
 INSERT INTO txt VALUES ('H5647', 'German',  'App Server umh&auml;ngen: Neu angelegte oder reaktivierte App Server ersetzen vorher vorhandene gleichen Namens auch in App Rollen und Verbindungen/Schnittstellen.');
 INSERT INTO txt VALUES ('H5647', 'English', 'Replace App Servers: New or reactivated App Servers replace existing ones of same name also in App Roles and Connections/Interfaces.');
+INSERT INTO txt VALUES ('H5648', 'German',  'Markierung Modelliert: Gibt eine Zeichenfolge an, nach der in einer Regel der Verweis auf die modellierte Verbindung gesetzt wird (default:"FWOC", z.B. "FWOC123" verweist auf Verbindung 123).');
+INSERT INTO txt VALUES ('H5648', 'English', 'Modelled marker: Defines a pattern mark a to reference to the modelled connection (default:"FWOC", e.g. "FWOC123" references to connection 123).');
+INSERT INTO txt VALUES ('H5649', 'German',  'Ort Markierung: Gibt an, in welchem Feld der Regel die Markierung erfolgen soll (rulename/comment/customfields, default:"rulename").');
+INSERT INTO txt VALUES ('H5649', 'English', 'Marker Location: Defines the data field in the rule, where this reference should be placed (rulename/comment/customfields, default:"rulename").');
 
 INSERT INTO txt VALUES ('H5701', 'German',  'Die in der Datenbank hinterlegten sprachabh&auml;ngigen Texte k&ouml;nnen individuell &uuml;berschrieben werden.
     Dabei werden die vom System vorgegebenen Texte nicht ge&auml;ndert, sondern nur durch die hier definierten Texte - falls vorhanden - &uuml;berblendet.

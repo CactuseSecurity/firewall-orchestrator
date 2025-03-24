@@ -1,0 +1,57 @@
+﻿@using FWO.Ui.Display
+@using FWO.Config.Api
+@using FWO.Report
+@using FWO.Report.Filter
+@using FWO.Data.Modelling
+
+
+@inject UserConfig userConfig
+
+@foreach(var owner in OwnerData)
+{
+    <h4>@owner.Owner.Display(userConfig.GetText("common_service"))</h4>
+    @if(owner.Connections.Count > 0)
+    {
+        <h5>@(userConfig.GetText("connections_not_implemented"))</h5>
+        @if(owner.RegularConnections.Count > 0)
+        {
+            <Collapse Title="@userConfig.GetText("regular_connections")" Style="@("primary")" StartToggled="false">
+                <ConnectionTable Connections="@owner.RegularConnections" Readonly="true"/>
+            </Collapse>
+        }
+        @if(owner.CommonServices.Count > 0)
+        {
+            <Collapse Title="@userConfig.GetText("common_services")" Style="@("primary")" StartToggled="false">
+                <ConnectionTable Connections="@owner.CommonServices" Readonly="true"/>
+            </Collapse>
+        }
+    }
+    @if(owner.Differences.Count > 0)
+    {
+        <h5>@(userConfig.GetText("connections_with_diffs"))</h5>
+        <Collapse Title="@userConfig.GetText("connections")" Style="@("primary")" StartToggled="false">
+            @foreach(var difference in owner.Differences)
+            {
+                <Collapse Title="@difference.ModelledConnection.Name" Style="@("secondary")" StartToggled="true">
+                    <ConnectionTable Connections="@([difference.ModelledConnection])" Readonly="true" DiffMode="true"/>
+                    <ReportedRules Rules="difference.ImplementedRules.ToArray()" SelectedReportType="ReportType.VarianceAnalysis"
+                        ReadonlyMode="true" RulesPerPage="rulesPerPage"/>
+                </Collapse>
+            }
+        </Collapse>
+    }
+    @if(owner.ManagementData.Count > 0)
+    {
+        <h5>@(userConfig.GetText("rules_not_modelled"))</h5>
+        <RulesReport Managements="owner.ManagementData" SelectedReportType="ReportType.AppRules" RulesPerPage="rulesPerPage" @bind-SelectedRules="selectedRules" />
+    }
+}
+
+@code
+{
+    [Parameter]
+    public List<OwnerReport> OwnerData { get; set; } = [];
+
+    private const int rulesPerPage = 0;
+    private List<Rule> selectedRules = [];
+}

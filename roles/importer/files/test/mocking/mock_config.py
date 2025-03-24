@@ -24,20 +24,99 @@ class ConfigMocker:
     default_file_path = tmp_dir + file_name
     default_number_config = [10000]
     uid_manager = UidManager()
+    checkpoint_object_types = ["hosts", 
+                                "networks", 
+                                "groups", 
+                                "address-ranges", 
+                                "groups-with-exclusion",
+                                "gateways-and-servers",
+                                "dns-domains",
+                                "updatable-objects-repository-content",
+                                "interoperable-devices",
+                                "security-zones",
+                                "Global",
+                                "access-roles",
+                                "updatable-objects",
+                                "service-groups",
+                                "application-site-categories",
+                                "application-sites",
+                                "services-tcp",
+                                "services-udp",
+                                "services-dce-rpc",
+                                "services-rpc",
+                                "services-other",
+                                "services-icmp",
+                                "services-icmp6",
+                                "services-sctp",
+                                "services-gtp",
+                                "CpmiAnyObject",
+                                "user-groups",
+                                "users",
+                                "access-roles",
+                                "user-templates"]
 
     config = {}
     rules_uids = []
     rulebases = []
+    checkpoint_config_objects = []
+
+    checkpoint_objects_config = {}
+
+    def create_checkpoint_config(self):
+        self.config["object_tables"] = []
+        for object_type in self.checkpoint_object_types:
+            self.config["object_tables"].append(
+                {
+                    "object_type": object_type,
+                    "object_chunks": [{"objects":[]}]
+                }
+            )
+
+    def create_checkpoint_config_object(self, uid, name, type, domain_uid = "", domain_name = "", domain_type = "", icon = "", color = ""):
+        return {
+            "uid": uid,
+            "name": name,
+            "type": type,
+            "domain": {
+            "uid": domain_uid,
+            "name": domain_name,
+            "domain-type": domain_type
+            },
+            "icon": icon,
+            "color": color
+        }
+
+    def create_checkpoint_config_objects(self):
+        for objects_config in self.checkpoint_objects_config.keys():
+            object_tables = self.config["object_tables"]
+            table = next((object_table for object_table in object_tables if object_table["object_type"] == objects_config), None)
+            counter = 1
+            while counter <= self.checkpoint_objects_config[objects_config]:
+                new_uid = self.uid_manager.create_uid()
+                new_object = self.create_checkpoint_config_object(new_uid, f"{table["object_type"]}_object {counter}", table["object_type"])
+                self.checkpoint_config_objects.append(new_object)
+                table["object_chunks"][0]["objects"].append(new_object) # TODO: Support more than one chunk
+                counter += 1
 
     def create_config(self, as_dict: bool = False, file_path: str = "", number_config: list = []) -> Union[dict, None]: 
         if number_config == []:
             number_config = self.default_number_config
 
         self.generate_rulebases(number_config)
-        self.build_config()
+
+        match self.config_type:
+            case "normalized":
+                self.build_normalized_config()
+            case "checkpoint":
+                self.create_checkpoint_config()
+                self.create_checkpoint_config_objects()
+                
         
         if as_dict:
-            return self, self.rules_uids
+            if self.config_type == "normalized":
+                return self, self.rules_uids
+            else:
+                return self.checkpoint_config_objects, self.config
         else:
             if file_path == "":
                 file_path = self.default_file_path
@@ -48,7 +127,7 @@ class ConfigMocker:
 
             return None
 
-    def build_config(self):
+    def build_normalized_config(self):
         self.config = {
             "ConfigFormat": self.config_type.upper(),
             "ManagerSet": [

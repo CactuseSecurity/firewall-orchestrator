@@ -124,7 +124,7 @@ syslog_port: 514
 middleware_server_syslog_id: "{{ product_name }}.middleware-server"
 ui_syslog_id: "{{ product_name }}-ui"
 ldap_syslog_id: slapd
-api_log_level: error
+api_log_level: info
 fworch_log_dir: "/var/log/{{ product_name }}"
 fworch_log_lock_dir: "/var/{{ product_name }}/lock"
 fworch_mw_lockfile: "{{ fworch_log_lock_dir }}/FWO.Middleware.Server_log.lock"

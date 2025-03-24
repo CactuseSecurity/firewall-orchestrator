@@ -1,6 +1,6 @@
-query listUsers(
+query getUserDetails(
   $management_id: [Int!]
-  $time: String
+  $import_id: bigint
   $user_name: [String!]
   $limit: Int
   $offset: Int
@@ -11,8 +11,12 @@ query listUsers(
     userObjects: usrs(
       limit: $limit
       offset: $offset
-      where: { active: { _eq: true }, user_name: { _in: $user_name } }
-      order_by: { user_name: asc }
+      where: {
+        user_last_seen: { _gte: $import_id }
+        user_create: { _lte: $import_id }
+        user_name: { _in: $user_name }
+      }
+      order_by: [{ user_name: asc }, { user_id: asc }]
     ) {
       ...userDetails
     }

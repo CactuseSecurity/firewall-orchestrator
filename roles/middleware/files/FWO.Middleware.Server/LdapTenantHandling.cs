@@ -1,4 +1,4 @@
-﻿using FWO.Data;
+using FWO.Data;
 using FWO.Logging;
 using Novell.Directory.Ldap;
 
@@ -14,15 +14,15 @@ namespace FWO.Middleware.Server
 		/// Add new tenant
 		/// </summary>
 		/// <returns>true if tenant added</returns>
-		public bool AddTenant(string tenantName)
+		public async Task<bool> AddTenant(string tenantName)
 		{
 			Log.WriteInfo("Add Tenant", $"Trying to add Tenant: \"{tenantName}\"");
 			bool tenantAdded = false;
 			try
 			{
-                using LdapConnection connection = Connect();
+                using LdapConnection connection = await Connect();
                 // Authenticate as write user
-                TryBind(connection, WriteUser, WriteUserPwd);
+                await TryBind(connection, WriteUser, WriteUserPwd);
 
 				LdapAttributeSet attributeSet = new ()
 				{
@@ -34,7 +34,7 @@ namespace FWO.Middleware.Server
                 try
                 {
                     //Add the entry to the directory
-                    connection.Add(newEntry);
+                    await connection.AddAsync(newEntry);
                     tenantAdded = true;
                     Log.WriteDebug("Add tenant", $"Tenant {tenantName} added in {Address}:{Port}");
                 }
@@ -54,21 +54,21 @@ namespace FWO.Middleware.Server
 		/// Delete tenant
 		/// </summary>
 		/// <returns>true if tenant deleted</returns>
-		public bool DeleteTenant(string tenantName)
+		public async Task<bool> DeleteTenant(string tenantName)
 		{
 			Log.WriteDebug("Delete Tenant", $"Trying to delete Tenant: \"{tenantName}\" from Ldap");
 			bool tenantDeleted = false;
 			try
 			{
-                using LdapConnection connection = Connect();
+                using LdapConnection connection = await Connect();
                 // Authenticate as write user
-                TryBind(connection, WriteUser, WriteUserPwd);
+                await TryBind(connection, WriteUser, WriteUserPwd);
 
                 try
                 {
 					string tenantDn = TenantNameToDn(tenantName);
                     //Delete the entry in the directory
-                    connection.Delete(tenantDn);
+                    await connection.DeleteAsync(tenantDn);
                     tenantDeleted = true;
                     Log.WriteDebug("Delete Tenant", $"tenant {tenantDn} deleted in {Address}:{Port}");
                 }

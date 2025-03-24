@@ -1,6 +1,6 @@
 query getNetworkServiceDetails(
   $management_id: [Int!]
-  $time: String
+  $import_id: bigint
   $svc_name: [String!]
   $svc_port: [Int!]
   $limit: Int
@@ -13,11 +13,12 @@ query getNetworkServiceDetails(
       limit: $limit
       offset: $offset
       where: {
-        active: { _eq: true }
+        svc_last_seen: { _gte: $import_id }
+        svc_create: { _lte: $import_id }
         svc_name: { _in: $svc_name }
         svc_port: { _in: $svc_port }
       }
-      order_by: { svc_name: asc }
+      order_by: [{ svc_name: asc }, { svc_id: asc }]
     ) {
       ...networkServiceDetails
     }

@@ -28,11 +28,13 @@ simple_svc_obj_types = ['services-tcp', 'services-udp', 'services-dce-rpc', 'ser
 group_svc_obj_types = ['service-groups', 'application-site-categories', 'application-sites']
 
 svc_obj_table_names = group_svc_obj_types + simple_svc_obj_types + [ 'CpmiAnyObject' ]
-# usr_obj_table_names : do not exist yet - not fetchable via API
 
+# users
+group_user_objects = ['user-groups']
 simple_user_obj_types = ['users']
+user_obj_table_names = group_user_objects + simple_user_obj_types + ['access-roles', 'user-templates']
 
-api_obj_types = nw_obj_table_names + svc_obj_table_names + simple_user_obj_types # all obj table names to look at during import
+api_obj_types = nw_obj_table_names + svc_obj_table_names + user_obj_table_names # all obj table names to look at during import
 
 obj_types_full_fetch_needed = ['groups', 'groups-with-exclusion', 'updatable-objects', 'gateways-and-servers'] + group_svc_obj_types
 

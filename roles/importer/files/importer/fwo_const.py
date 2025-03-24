@@ -46,7 +46,7 @@ max_objs_per_chunk = 1000
 emptyNormalizedFwConfigJsonDict = {
     'network_objects': [],
     'service_objects': [],
-    'users': [],
+    'user_objects': [],
     'zone_objects': [],
     'rules': [],
     'gateways': []

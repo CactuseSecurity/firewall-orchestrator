@@ -1,7 +1,26 @@
 
 from fwo_log import getFwoLogger
 import json
+from checkpointR8x import cp_const
 # from checkpointR8x.cp_getter import ParseUidToName
+
+def collect_user_objects(object_table, user_objects):
+        type = ""
+        if object_table['object_type'] in cp_const.user_obj_table_names:
+            type = 'undef'
+        if object_table['object_type'] in cp_const.group_user_objects:
+            type = 'group'
+        if object_table['object_type'] in cp_const.simple_user_obj_types:
+            type = 'simple'
+        for chunk in object_table['object_chunks']:
+            if 'objects' in chunk:
+                for obj in chunk['objects']:
+                    user_objects.extend([{'usr_uid': obj['uid'], 
+                                          'usr_name': obj['name'], 
+                                          'usr_color': obj['color'],
+                                          'usr_type': type,
+                                          'usr_domain': obj['domain'],
+                                        }])
 
 def collect_users_from_rule(rule, users): #, objDict):
     if 'rule-number' in rule:  # standard rule
@@ -72,3 +91,17 @@ def getUserUidFromCpApi (userName):
     # dummy implementation returning the name as uid
     return userName
 
+def normalizeUsers(nativeConfig, normalizedConfig, import_id, debug_level=0):
+    usr_objects = []
+    for obj_table in nativeConfig['object_tables']:
+        if obj_table["object_type"] in cp_const.user_obj_table_names:
+            collect_user_objects(obj_table, usr_objects)
+    for obj in usr_objects:
+        obj.update({'control_id': import_id})
+    # for idx in range(0, len(usr_objects)-1):
+        # if usr_objects[idx]['usr_type'] == 'group':
+            # add_member_names_for_usr_group(idx, svc_objects)
+    normalizedConfig.update({'user_objects': usr_objects})
+
+def normalizeUsersLegacy():
+    raise NotImplementedError

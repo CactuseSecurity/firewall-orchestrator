@@ -1,6 +1,5 @@
 import sys
 import json
-from packaging import version
 from common import importer_base_dir
 from fwo_log import getFwoLogger
 sys.path.append(importer_base_dir + '/checkpointR8x')

@@ -430,6 +430,7 @@ namespace FWO.Report
                 ObjectType.Host => Icons.Host,
                 ObjectType.Network => Icons.Network,
                 ObjectType.IPRange => Icons.Range,
+                ObjectType.AccessRole => Icons.User,
                 _ => objCategory switch
                 {
                     ObjCategory.nobj => Icons.NwObject,

@@ -84,6 +84,7 @@
     {
         this.show = true;
         invokeOnOpenAfterRender = true;
+        StateHasChanged();
     }
 
     public void ToggleCollapse()
@@ -91,6 +92,8 @@
         show = !show;
         if (show)
             invokeOnOpenAfterRender = true;
+        StateHasChanged();
+
     }
 
     private void onCollapse(string? location)

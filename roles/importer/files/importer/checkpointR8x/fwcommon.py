@@ -9,7 +9,6 @@ import cp_gateway
 import cp_const, cp_network, cp_service
 import cp_getter
 from fwo_exception import FwLoginFailed
-from cp_user import normalizeUsers, normalizeUsersLegacy
 from fwconfig_base import calcManagerUidHash
 from models.fwconfigmanagerlist import FwConfigManagerList, FwConfigManager
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
@@ -299,19 +298,6 @@ def get_config(nativeConfig: json, importState: ImportStateController) -> tuple[
     cp_service.normalize_service_objects(nativeConfig, normalizedConfig, importState.ImportId)
     logger.info("completed normalizing service objects")
 
-    # normalize users
-
-    api_versions = cp_getter.cp_api_call(cpManagerApiBaseUrl, 'show-api-versions', {}, sid)
-    api_supported = api_versions["current-version"]
-    if isCompatibleApiVersion("1.6.1", api_supported):
-        normalizeUsers(nativeConfig, normalizedConfig, importState.ImportId)
-    else:
-        normalizeUsersLegacy()
-
-
-
-    # TODO: re-add user import
-    # parse_users_from_rulebases(full_config, full_config['rulebases'], full_config['users'], config2import, current_import_id)
     if importState.ImportVersion>8:
         cp_rule.normalizeRulebases(nativeConfig, importState, normalizedConfig)
         cp_gateway.normalizeGateways(nativeConfig, importState, normalizedConfig)
@@ -325,7 +311,6 @@ def get_config(nativeConfig: json, importState: ImportStateController) -> tuple[
     normalizedConfig2 = FwConfigNormalized(action=ConfigAction.INSERT, 
                             network_objects=FwConfigNormalizedController.convertListToDict(normalizedConfig['network_objects'], 'obj_uid'),
                             service_objects=FwConfigNormalizedController.convertListToDict(normalizedConfig['service_objects'], 'svc_uid'),
-                            users=FwConfigNormalizedController.convertListToDict(normalizedConfig['user_objects'], "usr_uid" ),
                             zone_objects=normalizedConfig['zone_objects'],
                             # decide between old (rules) and new (policies) format
                             # rules=normalizedConfig['rules'] if len(normalizedConfig['rules'])>0 else normalizedConfig['policies'],    
@@ -500,17 +485,3 @@ def ParseUidToName(myUid, myObjectDictList):
         logger.warning('The UID: ' + myUid + ' was not found in Object Dict')
 
     return myReturnObject
-
-def isCompatibleApiVersion(required_version: str, given_version: str) -> bool:
-    def parse_version(ver: str):
-        try:
-            return [int(part) for part in ver.split('.')]
-        except ValueError:
-            raise ValueError(f"Invalid version format: {ver}")
-    
-    try:
-        required = parse_version(required_version)
-        given = parse_version(given_version)
-        return given >= required
-    except ValueError:
-        raise ValueError(f"Invalid version format: {given_version}")

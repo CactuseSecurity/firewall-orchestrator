@@ -29,14 +29,9 @@ group_svc_obj_types = ['service-groups', 'application-site-categories', 'applica
 
 svc_obj_table_names = group_svc_obj_types + simple_svc_obj_types + [ 'CpmiAnyObject' ]
 
-# users
-group_user_objects = ['user-groups']
-simple_user_obj_types = ['users']
-user_obj_table_names = group_user_objects + simple_user_obj_types + ['access-roles', 'user-templates']
+api_obj_types = nw_obj_table_names + svc_obj_table_names # all obj table names to look at during import
 
-api_obj_types = nw_obj_table_names + svc_obj_table_names + user_obj_table_names # all obj table names to look at during import
-
-obj_types_full_fetch_needed = ['groups', 'groups-with-exclusion', 'updatable-objects', 'gateways-and-servers'] + group_svc_obj_types
+obj_types_full_fetch_needed = ['access-roles', 'groups', 'groups-with-exclusion', 'updatable-objects', 'gateways-and-servers'] + group_svc_obj_types
 
 cp_specific_object_types = [    # used for fetching enrichment data via "get object" separately (no specific API call)
     'simple-gateway', 'simple-cluster', 'CpmiVsClusterNetobj', 'CpmiVsxClusterNetobj', 'CpmiVsxClusterMember', 'CpmiVsNetobj',

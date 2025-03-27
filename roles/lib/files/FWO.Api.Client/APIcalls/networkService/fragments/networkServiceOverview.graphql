@@ -9,6 +9,7 @@ fragment networkServiceOverview on service {
     name: svc_typ_name
   }
   svc_color_id
+  ip_proto_id
   protocol_name: stm_ip_proto {
     id: ip_proto_id
     name: ip_proto_name

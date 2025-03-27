@@ -112,6 +112,7 @@ namespace FWO.Report
         private static async Task PrepareVarianceData(OwnerReport ownerReport, ModellingFilter modellingFilter, ApiConnection apiConnection,
             UserConfig userConfig, Action<Exception?, string, string, bool> displayMessageInUi)
         {
+            ownerReport.ExtractConnectionsToAnalyse();
             ExtStateHandler extStateHandler = new(apiConnection);
             ModellingVarianceAnalysis varianceAnalysis = new(apiConnection, extStateHandler, userConfig, ownerReport.Owner, displayMessageInUi);
             ModellingVarianceResult result = await varianceAnalysis.AnalyseRulesVsModelledConnections(ownerReport.Connections, modellingFilter);

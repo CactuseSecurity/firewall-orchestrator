@@ -11,6 +11,6 @@ query getModelledRulesByManagementName ($mgmId: Int!, $relevantImportId: bigint,
     rule_name: { _ilike: $marker }
   }
   order_by: { rule_num_numeric: asc }){
-    ...ruleOverview
+    ...ruleDetails
   }
 }

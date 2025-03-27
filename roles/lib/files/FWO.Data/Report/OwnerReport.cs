@@ -12,6 +12,7 @@ namespace FWO.Data.Report
         public List<ManagementReport> ManagementData { get; set; } = [];
         public List<ModProdDifference> Differences { get; set; } = [];
         private readonly long DummyARid = -1;
+        public int ModelledConnectionsCount { get; set; }
 
         public OwnerReport()
         {}
@@ -31,6 +32,7 @@ namespace FWO.Data.Report
             ManagementData = report.ManagementData;
             Differences = report.Differences;
             DummyARid = report.DummyARid;
+            ModelledConnectionsCount = report.ModelledConnectionsCount;
         }
 
 
@@ -50,6 +52,17 @@ namespace FWO.Data.Report
         public List<NetworkService> GetAllServices(bool resolved = false)
         {
             return GetAllServices(Connections, resolved);
+        }
+
+        public void ExtractConnectionsToAnalyse()
+        {
+            Connections = [.. Connections.Where(x => !(x.IsInterface ||
+                x.GetBoolProperty(ConState.InterfaceRequested.ToString()) ||
+                x.GetBoolProperty(ConState.InterfaceRejected.ToString()) || 
+                x.EmptyAppRolesFound(DummyARid) ||
+                x.DeletedObjectsFound()
+                )).OrderByDescending(y => y.IsCommonService)];
+            ModelledConnectionsCount = Connections.Count;
         }
     }
 }

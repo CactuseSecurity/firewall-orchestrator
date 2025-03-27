@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using FWO.Basics;
 using FWO.Data;
+using FWO.Data.Modelling;
 using FWO.Data.Workflow;
 using FWO.Mail;
 
@@ -349,6 +350,9 @@ namespace FWO.Config.Api.Data
 
 		[JsonProperty("modModelledMarkerLocation"), JsonPropertyName("modModelledMarkerLocation")]
 		public string ModModelledMarkerLocation { get; set; } = "rulename";
+
+		[JsonProperty("ruleRecognitionOption"), JsonPropertyName("ruleRecognitionOption")]
+		public RuleRecognitionOption RuleRecognitionOption { get; set; } = new();
 
         public ConfigData(bool editable = false)
 		{

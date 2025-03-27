@@ -358,6 +358,10 @@
                 <label class="col-form-label col-sm-5">@userConfig.GetText("modelledMarkerLocation"):</label>
                 <input type="text" class="col-sm-4" @bind="configData!.ModModelledMarkerLocation" />
             </div>
+            <div class="row col-sm-3" data-toggle="tooltip" title="@(userConfig.PureLine("H5650"))">
+                 <button type="button" class="col-sm-6 btn btn-sm btn-primary" @onclick="VarianceOptions" 
+                    @onclick:preventDefault>@(userConfig.GetText("rule_recognition_options"))</button>
+            </div>
         </div>
         <hr />
     </form>
@@ -372,6 +376,8 @@
     <br>
     <br>
     <p>@(userConfig.GetText("U5303"))</p>
+
+    <VarianceOptionsSelection @bind-Display="varOptMode" @bind-ConfigValue="configData.RuleRecognitionOption"/>
 }
 else
 {
@@ -426,6 +432,7 @@ else
     private List<UiLdapConnection> connectedLdaps = new List<UiLdapConnection>();
     private UiLdapConnection selectedLdap = new();
     private bool initComplete = false;
+    private bool varOptMode = false;
 
 
     private void OnAddAppServerError((Exception Exception, string Message) error)
@@ -554,6 +561,11 @@ else
     private void SearchArea()
     {
         searchArea = true;
+    }
+
+    private void VarianceOptions()
+    {
+        varOptMode = true;
     }
 
     private async Task Save()

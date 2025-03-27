@@ -1,0 +1,110 @@
+﻿@using FWO.Data
+
+@inject UserConfig userConfig
+@inject ApiConnection apiConnection
+
+
+<PopUp Title="@(userConfig.GetText("rule_recognition_options"))" Show="@Display" Size=PopupSize.Small OnClose="Close">
+    <Body>
+        @if (Display)
+        {
+            <form>
+                <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5650"))">
+                    <div class="row col-sm-6 align-items-center">@(userConfig.GetText("network_objects"))</div>
+                    <div class="row col-sm-6 align-items-center">@(userConfig.GetText("services"))</div>
+                </div>
+                <div class="form-group row mt-2">
+                    <div class="row col-sm-6 align-items-center">
+                        <label for="cbx_NwRegardIp" class="col-form-label col-sm-8">@(userConfig.GetText("ip_address")):</label>
+                        <div class="col-sm-2">
+                            <input id="cbx_NwRegardIp" type="checkbox" @bind="ConfigValue.NwRegardIp">
+                        </div>
+                    </div>
+                    <div class="row col-sm-6 align-items-center">
+                        <label for="cbx_SvcRegardPortAndProt" class="col-form-label col-sm-8">@(userConfig.GetText("port_protocol")):</label>
+                        <div class="col-sm-2">
+                            <input id="cbx_SvcRegardPortAndProt" type="checkbox" @bind="ConfigValue.SvcRegardPortAndProt">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <div class="row col-sm-6 align-items-center">
+                        <label for="cbx_NwRegardName" class="col-form-label col-sm-8">@(userConfig.GetText("name")):</label>
+                        <div class="col-sm-2">
+                            <input id="cbx_NwRegardName" type="checkbox" @bind="ConfigValue.NwRegardName">
+                        </div>
+                    </div>
+                    <div class="row col-sm-6 align-items-center">
+                        <label for="cbx_SvcRegardName" class="col-form-label col-sm-8">@(userConfig.GetText("name")):</label>
+                        <div class="col-sm-2">
+                            <input id="cbx_SvcRegardName" type="checkbox" @bind="ConfigValue.SvcRegardName">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <div class="row col-sm-6 align-items-center">
+                        <label for="cbx_NwRegardGroupName" class="col-form-label col-sm-8">@(userConfig.GetText("group_name")):</label>
+                        <div class="col-sm-2">
+                            <input id="cbx_NwRegardGroupName" type="checkbox" @bind="ConfigValue.NwRegardGroupName">
+                        </div>
+                    </div>
+                    <div class="row col-sm-6 align-items-center">
+                        <label for="cbx_SvcRegardGroupName" class="col-form-label col-sm-8">@(userConfig.GetText("group_name")):</label>
+                        <div class="col-sm-2">
+                            <input id="cbx_SvcRegardGroupName" type="checkbox" @bind="ConfigValue.SvcRegardGroupName">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <div class="row col-sm-6 align-items-center">
+                        <label for="cbx_NwResolveGroup" class="col-form-label col-sm-8">@(userConfig.GetText("resolve_group")):</label>
+                        <div class="col-sm-2">
+                            <input id="cbx_NwResolveGroup" type="checkbox" @bind="ConfigValue.NwResolveGroup">
+                        </div>
+                    </div>
+                    <div class="row col-sm-6 align-items-center">
+                        <label for="cbx_SvcResolveGroup" class="col-form-label col-sm-8">@(userConfig.GetText("resolve_group")):</label>
+                        <div class="col-sm-2">
+                            <input id="cbx_SvcResolveGroup" type="checkbox" @bind="ConfigValue.SvcResolveGroup">
+                        </div>
+                    </div>
+                </div>
+            </form>
+        }
+    </Body>
+    <Footer>
+        <button type="button" class="btn btn-sm btn-primary" @onclick="Confirm">@(userConfig.GetText("ok"))</button>
+    </Footer>
+</PopUp>
+
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    [Parameter]
+    public bool Display { get; set; } = false;
+
+    [Parameter]
+    public EventCallback<bool> DisplayChanged { get; set; }
+
+    [Parameter]
+    public RuleRecognitionOption ConfigValue { get; set; } = new();
+
+    [Parameter]
+    public EventCallback<RuleRecognitionOption> ConfigValueChanged { get; set; }
+
+
+    private void Confirm()
+    {
+        ConfigValueChanged.InvokeAsync(ConfigValue);
+        Close();
+    }
+
+    private void Close()
+    {
+        Display = false;
+        DisplayChanged.InvokeAsync(Display);
+    }
+}

@@ -11,6 +11,6 @@ query getModelledRulesByManagementComment ($mgmId: Int!, $relevantImportId: bigi
     rule_comment: { _ilike: $marker }
   }
   order_by: { rule_num_numeric: asc }){
-    ...ruleOverview
+    ...ruleDetails
   }
 }

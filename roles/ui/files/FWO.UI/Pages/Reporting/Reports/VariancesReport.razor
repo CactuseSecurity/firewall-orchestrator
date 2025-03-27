@@ -10,6 +10,7 @@
 @foreach(var owner in OwnerData)
 {
     <h4>@owner.Owner.Display(userConfig.GetText("common_service"))</h4>
+    <div class="mb-2">@(DisplayStat(owner))</div>
     @if(owner.Connections.Count > 0)
     {
         <h5>@(userConfig.GetText("connections_not_implemented"))</h5>
@@ -54,4 +55,12 @@
 
     private const int rulesPerPage = 0;
     private List<Rule> selectedRules = [];
+
+    private string DisplayStat(OwnerReport ownerReport)
+    {
+        return $"{userConfig.GetText("connections")}: {ownerReport.ModelledConnectionsCount}, " +
+            $"{userConfig.GetText("implemented")}: {ownerReport.ModelledConnectionsCount - ownerReport.Differences.Count - ownerReport.Connections.Count}, " +
+            $"{userConfig.GetText("not_implemented")}: {ownerReport.Connections.Count}, " +
+            $"{userConfig.GetText("with_diffs")}: {ownerReport.Differences.Count}";
+    }
 }

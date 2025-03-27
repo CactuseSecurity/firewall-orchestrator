@@ -10,9 +10,10 @@ namespace FWO.Services
 	/// </summary>
     public partial class ModellingVarianceAnalysis
     {
-        readonly NetworkObjectComparer networkObjectComparer = new();
-        readonly NetworkObjectGroupComparer networkObjectGroupComparer = new();
-        readonly NetworkServiceComparer networkServiceComparer = new();
+        private readonly NetworkObjectComparer networkObjectComparer = new(userConfig.RuleRecognitionOption);
+        private readonly NetworkObjectGroupFlatComparer networkObjectGroupComparer = new(userConfig.RuleRecognitionOption);
+        private readonly NetworkServiceComparer networkServiceComparer = new(userConfig.RuleRecognitionOption);
+        private readonly NetworkServiceGroupComparer networkServiceGroupComparer = new(userConfig.RuleRecognitionOption);
 
         private void AnalyseRules(ModellingConnection conn)
         {
@@ -37,7 +38,7 @@ namespace FWO.Services
         {
             if(rule.ConnId == conn.Id)
             {
-                if(Equals(rule, conn))
+                if(IsImplementation(rule, conn))
                 {
                     conn.ProdRuleFound = true;
                     rule.ModellOk = true;
@@ -51,52 +52,99 @@ namespace FWO.Services
             return false;
         }
 
-        private bool Equals(Rule rule, ModellingConnection conn)
+        private bool IsImplementation(Rule rule, ModellingConnection conn)
         {
             return !rule.IsDropRule() && !rule.Disabled
-                && Equals(rule.Froms, conn.SourceAppServers, conn.SourceAppRoles, conn.SourceAreas, conn.SourceOtherGroups)
-                && Equals(rule.Tos, conn.DestinationAppServers, conn.DestinationAppRoles, conn.DestinationAreas, conn.DestinationOtherGroups)
-                && Equals(rule.Services, conn.Services, conn.ServiceGroups);
+                && IsNwImplementation(rule.Froms, conn.SourceAppServers, conn.SourceAppRoles, conn.SourceAreas, conn.SourceOtherGroups)
+                && IsNwImplementation(rule.Tos, conn.DestinationAppServers, conn.DestinationAppRoles, conn.DestinationAreas, conn.DestinationOtherGroups)
+                && IsSvcImplementation(rule.Services, conn.Services, conn.ServiceGroups);
         }
 
-        private bool Equals(NetworkLocation[] networkLocations, List<ModellingAppServerWrapper> appServers,
+        private bool IsNwImplementation(NetworkLocation[] networkLocations, List<ModellingAppServerWrapper> appServers,
             List<ModellingAppRoleWrapper> appRoles, List<ModellingNetworkAreaWrapper> areas, List<ModellingNwGroupWrapper> otherGroups)
         {
-            List<NetworkObject> allProdNwObjects = networkLocations.Where(n => n.Object.Type.Name == ObjectType.Group).ToList().ConvertAll(n => n.Object);
-            List<NetworkObject> allModNwObjects = ModellingAppServerWrapper.Resolve(appServers).ToList().ConvertAll(s => ModellingAppServer.ToNetworkObject(s));
-
-            List<NetworkObject> modNotProdObj = allModNwObjects.Except(allProdNwObjects, networkObjectGroupComparer).ToList();
-            List<NetworkObject> prodNotModObj = allProdNwObjects.Except(allModNwObjects, networkObjectGroupComparer).ToList();
-
-            if(modNotProdObj.Count > 0 && prodNotModObj.Count > 0)
+            if (!CompareNwAreas(networkLocations, areas))
             {
                 return false;
             }
-
-            List<NetworkObject> allProdNwGroups = networkLocations.Where(n => n.Object.Type.Name == ObjectType.Group).ToList().ConvertAll(n => n.Object);
-            List<NetworkObject> allModNwGroups = ModellingAppRoleWrapper.Resolve(appRoles).ToList().ConvertAll(a => a.ToNetworkObjectGroup());
-            allModNwGroups.AddRange(ModellingNetworkAreaWrapper.Resolve(areas).ToList().ConvertAll(a => a.ToNetworkObjectGroup()));
-            allModNwGroups.AddRange(ModellingNwGroupWrapper.Resolve(otherGroups).ToList().ConvertAll(a => a.ToNetworkObjectGroup()));
-
-            List<NetworkObject> modNotProdGrp = allModNwGroups.Except(allProdNwGroups, networkObjectGroupComparer).ToList();
-            List<NetworkObject> prodNotModGrp = allProdNwGroups.Except(allModNwGroups, networkObjectGroupComparer).ToList();
-
-            return modNotProdGrp.Count == 0 && prodNotModGrp.Count == 0;
-        }
-
-        private bool Equals(ServiceWrapper[] networkServices, List<ModellingServiceWrapper> services, List<ModellingServiceGroupWrapper> serviceGroups)
-        {
-            List<NetworkService> allProdServices = networkServices.ToList().ConvertAll(s => s.Content).ToList();
-            List<NetworkService> allModServices = ModellingServiceWrapper.Resolve(services).ToList().ConvertAll(s => ModellingService.ToNetworkService(s));
-            foreach(var svcGrp in ModellingServiceGroupWrapper.Resolve(serviceGroups))
+            List<NetworkObject> allProdNwObjects = networkLocations.Where(n => n.Object.Type.Name != ObjectType.Group).ToList().ConvertAll(n => n.Object);
+            List<NetworkObject> allModNwObjects = ModellingAppServerWrapper.Resolve(appServers).ToList().ConvertAll(a => ModellingAppServer.ToNetworkObject(a));
+            if(userConfig.RuleRecognitionOption.NwResolveGroup)
             {
-                allModServices.AddRange(ModellingServiceWrapper.Resolve(svcGrp.Services).ToList().ConvertAll(s => ModellingService.ToNetworkService(s)));
+                foreach(var nwGroup in networkLocations.Where(n => n.Object.Type.Name == ObjectType.Group && !IsArea(n.Object)))
+                {
+                    allProdNwObjects.AddRange(nwGroup.Object.ObjectGroupFlats.ToList().ConvertAll(g => g.Object).ToList());
+                }
+                foreach(var appRole in ModellingAppRoleWrapper.Resolve(appRoles))
+                {
+                    allModNwObjects.AddRange(ModellingAppServerWrapper.Resolve(appRole.AppServers).ToList().ConvertAll(a => ModellingAppServer.ToNetworkObject(a)));
+                }
             }
 
-            List<NetworkService> modNotProd = allModServices.Except(allProdServices, networkServiceComparer).ToList();
-            List<NetworkService> prodNotMod = allProdServices.Except(allModServices, networkServiceComparer).ToList();
+            if(allModNwObjects.Count != allProdNwObjects.Count
+                || allModNwObjects.Except(allProdNwObjects, networkObjectComparer).ToList().Count > 0 
+                || allProdNwObjects.Except(allModNwObjects, networkObjectComparer).ToList().Count > 0)
+            {
+                return false;
+            }
+            return userConfig.RuleRecognitionOption.NwResolveGroup ? true : CompareNwGroups(networkLocations, appRoles, otherGroups);
+        }
 
-            return modNotProd.Count == 0 && prodNotMod.Count == 0;
+        private bool CompareNwAreas(NetworkLocation[] networkLocations, List<ModellingNetworkAreaWrapper> areas)
+        {
+            List<NetworkObject> allProdNwAreas = networkLocations.Where(n => n.Object.Type.Name == ObjectType.Group && IsArea(n.Object)).ToList().ConvertAll(n => n.Object);
+            List<NetworkObject> allModNwAreas = ModellingNetworkAreaWrapper.Resolve(areas).ToList().ConvertAll(a => a.ToNetworkObjectGroup(true));
+            NetworkObjectComparer networkAreaComparer = new(new(){ NwRegardName = true, NwRegardIp = false });
+
+            return allModNwAreas.Count == allProdNwAreas.Count
+                && allModNwAreas.Except(allProdNwAreas, networkAreaComparer).ToList().Count == 0
+                && allProdNwAreas.Except(allModNwAreas, networkAreaComparer).ToList().Count == 0;
+        }
+
+        private bool IsArea(NetworkObject nwGroup)
+        {
+            return nwGroup.Name.StartsWith(namingConvention.NetworkAreaPattern);
+        }
+
+        private bool CompareNwGroups(NetworkLocation[] networkLocations, List<ModellingAppRoleWrapper> appRoles, List<ModellingNwGroupWrapper> otherGroups)
+        {
+            List<NetworkObject> allProdNwGroups = networkLocations.Where(n => n.Object.Type.Name == ObjectType.Group && !IsArea(n.Object)).ToList().ConvertAll(n => n.Object);
+            List<NetworkObject> allModNwGroups = ModellingAppRoleWrapper.Resolve(appRoles).ToList().ConvertAll(a => a.ToNetworkObjectGroup());
+            allModNwGroups.AddRange(ModellingNwGroupWrapper.Resolve(otherGroups).ToList().ConvertAll(a => a.ToNetworkObjectGroup()));
+
+            return allModNwGroups.Count == allProdNwGroups.Count
+                && allModNwGroups.Except(allProdNwGroups, networkObjectGroupComparer).ToList().Count == 0
+                && allProdNwGroups.Except(allModNwGroups, networkObjectGroupComparer).ToList().Count == 0;
+        }
+
+        private bool IsSvcImplementation(ServiceWrapper[] networkServices, List<ModellingServiceWrapper> services, List<ModellingServiceGroupWrapper> serviceGroups)
+        {
+            List<NetworkService> allProdServices = networkServices.Where(s => s.Content.Type.Name != ServiceType.Group).ToList().ConvertAll(s => s.Content).ToList();
+            List<NetworkService> allModServices = ModellingServiceWrapper.Resolve(services).ToList().ConvertAll(s => ModellingService.ToNetworkService(s));
+            if(userConfig.RuleRecognitionOption.SvcResolveGroup)
+            {
+                foreach(var svcGrp in ModellingServiceGroupWrapper.Resolve(serviceGroups))
+                {
+                    allModServices.AddRange(ModellingServiceWrapper.Resolve(svcGrp.Services).ToList().ConvertAll(s => ModellingService.ToNetworkService(s)));
+                }
+            }
+            if( allModServices.Count != allProdServices.Count
+                || allModServices.Except(allProdServices, networkServiceComparer).ToList().Count > 0
+                || allProdServices.Except(allModServices, networkServiceComparer).ToList().Count > 0)
+            {
+                return false;
+            }
+            return userConfig.RuleRecognitionOption.SvcResolveGroup ? true : CompareSvcGroups(networkServices, serviceGroups);
+        }
+
+        private bool CompareSvcGroups(ServiceWrapper[] networkServices, List<ModellingServiceGroupWrapper> serviceGroups)
+        {
+            List<NetworkService> allProdSvcGroups = networkServices.Where(n => n.Content.Type.Name == ServiceType.Group).ToList().ConvertAll(s => s.Content).ToList();
+            List<NetworkService> allModSvcGroups = ModellingServiceGroupWrapper.Resolve(serviceGroups).ToList().ConvertAll(a => a.ToNetworkServiceGroup());
+
+            return allModSvcGroups.Count == allProdSvcGroups.Count
+                && allModSvcGroups.Except(allProdSvcGroups, networkServiceGroupComparer).ToList().Count == 0
+                && allProdSvcGroups.Except(allModSvcGroups, networkServiceGroupComparer).ToList().Count == 0;
         }
     }
 }

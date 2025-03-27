@@ -746,6 +746,12 @@ INSERT INTO txt VALUES ('connections_with_diffs','German',	'Verbindungen mit Abw
 INSERT INTO txt VALUES ('connections_with_diffs','English', 'Connections with differences');
 INSERT INTO txt VALUES ('rules_not_modelled',   'German',	'Nicht modellierte Regeln');
 INSERT INTO txt VALUES ('rules_not_modelled',   'English',  'Rules not modelled');
+INSERT INTO txt VALUES ('implemented',          'German',	'implementiert');
+INSERT INTO txt VALUES ('implemented',          'English',  'implemented');
+INSERT INTO txt VALUES ('not_implemented',      'German',	'nicht implementiert');
+INSERT INTO txt VALUES ('not_implemented',      'English',  'not implemented');
+INSERT INTO txt VALUES ('with_diffs',           'German',	'mit Abweichungen');
+INSERT INTO txt VALUES ('with_diffs',           'English',  'with differences');
 
 -- schedule
 INSERT INTO txt VALUES ('schedule', 			'German',	'Terminplan');
@@ -2365,6 +2371,14 @@ INSERT INTO txt VALUES ('import_source',        'German',   'Importquelle');
 INSERT INTO txt VALUES ('import_source',        'English',  'Import Source');
 INSERT INTO txt VALUES ('modelling_settings',   'German', 	'Modellierungseinstellungen');
 INSERT INTO txt VALUES ('modelling_settings',   'English', 	'Modelling Settings');
+INSERT INTO txt VALUES ('rule_recognition_options','German','Regelerkennungs-Optionen');
+INSERT INTO txt VALUES ('rule_recognition_options','English','Rule Recognition Options');
+INSERT INTO txt VALUES ('port_protocol',        'German', 	'Port und Protokoll');
+INSERT INTO txt VALUES ('port_protocol',        'English', 	'Port and Protocol');
+INSERT INTO txt VALUES ('group_name',           'German', 	'Gruppenname');
+INSERT INTO txt VALUES ('group_name',           'English', 	'Group Name');
+INSERT INTO txt VALUES ('resolve_group',        'German', 	'Gruppen aufl&ouml;sen');
+INSERT INTO txt VALUES ('resolve_group',        'English', 	'Resolve Groups');
 INSERT INTO txt VALUES ('ext_ticketing',        'German', 	'Externes Ticket-System');
 INSERT INTO txt VALUES ('ext_ticketing',        'English', 	'External ticket tool');
 INSERT INTO txt VALUES ('ext_ticket_settings',  'German', 	'Einstellungen externes Ticket-System');
@@ -2529,6 +2543,8 @@ INSERT INTO txt VALUES ('ext_request_tickets',  'German',   'Interne Tickets f&u
 INSERT INTO txt VALUES ('ext_request_tickets',  'English',  'Internal Tickets for Ext. Req.');
 INSERT INTO txt VALUES ('reinit_ext_request',   'German',   'Externe Auftr&auml;ge neu anstossen');
 INSERT INTO txt VALUES ('reinit_ext_request',   'English',  'Reinit External Requests');
+INSERT INTO txt VALUES ('close_ticket',         'German',   'Auftrag schliessen');
+INSERT INTO txt VALUES ('close_ticket',         'English',  'Close Ticket');
 INSERT INTO txt VALUES ('wait_cycles',          'German',   'Wartezyklen');
 INSERT INTO txt VALUES ('wait_cycles',          'English',  'Wait cycles');
 INSERT INTO txt VALUES ('locked',               'German', 	'Gesperrt');
@@ -2883,6 +2899,8 @@ INSERT INTO txt VALUES ('U9019', 'German',  'Sind sie sicher, dass sie die Exter
 INSERT INTO txt VALUES ('U9019', 'English', 'Are you sure you want to reinit the external requests for following ticket: ');
 INSERT INTO txt VALUES ('U9020', 'German',  'Die externe Beantragung wurde gestartet.');
 INSERT INTO txt VALUES ('U9020', 'English', 'External Request initialized.');
+INSERT INTO txt VALUES ('U9021', 'German',  'Sind sie sicher, dass sie folgendes Ticket schliessen wollen: ');
+INSERT INTO txt VALUES ('U9021', 'English', 'Are you sure you want to close the following ticket: ');
 
 -- error messages
 INSERT INTO txt VALUES ('E0001', 'German',  'Nicht klassifizierter Fehler: ');
@@ -3209,6 +3227,8 @@ INSERT INTO txt VALUES ('E9101', 'German',  'Fehler bei externer Auftragserzeugu
 INSERT INTO txt VALUES ('E9101', 'English', 'Error at external ticket creation.');
 INSERT INTO txt VALUES ('E9102', 'German',  'Fehler beim &Auml;ndern des externen Auftragsstatus.');
 INSERT INTO txt VALUES ('E9102', 'English', 'Error at changing the external ticket state.');
+INSERT INTO txt VALUES ('E9103', 'German',  'Fehler beim Schliessen des Tickets.');
+INSERT INTO txt VALUES ('E9103', 'English', 'Error closing ticket.');
 
 INSERT INTO txt VALUES ('E9201', 'German',  'Fehler beim L&ouml;schen der existierenden App Zonen Objekte');
 INSERT INTO txt VALUES ('E9201', 'English', 'Error deleting existing app zone objects');
@@ -5301,6 +5321,14 @@ INSERT INTO txt VALUES ('H5648', 'German',  'Markierung Modelliert: Gibt eine Ze
 INSERT INTO txt VALUES ('H5648', 'English', 'Modelled marker: Defines a pattern mark a to reference to the modelled connection (default:"FWOC", e.g. "FWOC123" references to connection 123).');
 INSERT INTO txt VALUES ('H5649', 'German',  'Ort Markierung: Gibt an, in welchem Feld der Regel die Markierung erfolgen soll (rulename/comment/customfields, default:"rulename").');
 INSERT INTO txt VALUES ('H5649', 'English', 'Marker Location: Defines the data field in the rule, where this reference should be placed (rulename/comment/customfields, default:"rulename").');
+INSERT INTO txt VALUES ('H5650', 'German',  'Regelerkennungs-Optionen: Legt fest, wann implementierte Regeln als identisch zu den modellierten Verbindungen angesehen werden.
+    M&ouml;gliche Kriterien sind - jeweils f&uuml;r Netzwerkobjekte und Dienste - Name, IP-Adresse bzw Port/Protokoll, Gruppennname.
+    Ausserdem muss festgelegt werden, ob Gruppen aufgel&ouml;st werden sollen; dann werden die einzelnen Objekte unabh&auml;ngig von der Gruppenzugeh&ouml;rigkeit erkannt.
+');
+INSERT INTO txt VALUES ('H5650', 'English', 'Rule Recognition Options: Defines, when implemented rules are regarded as identical to the modelled connections.
+    Possible criteria are - separated for network objects and services - Name, IP address resp. Port/Protocol, Group Name.
+    Additionally it has to be defined, if groups are resolved; then single objects are identified independently from their group membership.
+');
 
 INSERT INTO txt VALUES ('H5701', 'German',  'Die in der Datenbank hinterlegten sprachabh&auml;ngigen Texte k&ouml;nnen individuell &uuml;berschrieben werden.
     Dabei werden die vom System vorgegebenen Texte nicht ge&auml;ndert, sondern nur durch die hier definierten Texte - falls vorhanden - &uuml;berblendet.

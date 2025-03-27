@@ -361,7 +361,7 @@
             if (!ConnHandler.InterfaceAllowedWithNetworkArea())
             {
                 DisplayMessageInUi(default, userConfig.GetText("edit_connection"), userConfig.GetText("foreign_interface_na"), true);
-                Container.Clear();
+                selectedNwElems = new();
                 return;
             }
 

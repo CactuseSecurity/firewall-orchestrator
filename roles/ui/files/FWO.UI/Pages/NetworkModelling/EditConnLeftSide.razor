@@ -358,7 +358,7 @@
         }
         if(areas.Count > 0)
         {
-            if (!ConnHandler.InterfaceAllowedWithNetworkArea())
+            if (ConnHandler is not null && !ConnHandler.InterfaceAllowedWithNetworkArea())
             {
                 DisplayMessageInUi(default, userConfig.GetText("edit_connection"), userConfig.GetText("foreign_interface_na"), true);
                 selectedNwElems = new();

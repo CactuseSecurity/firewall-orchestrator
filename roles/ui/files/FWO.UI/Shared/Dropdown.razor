@@ -269,29 +269,25 @@
 
     private async Task SelectElement(ElementType element)
     {
-        Debug.Assert(!Multiselect, "If the Multiselect option is enabled do not use the property SelectedElement but SelectedElements instead.");
-        if (( SelectedElements.Count() == 0 && element != null ) || !Object.Equals(element, SelectedElements.FirstOrDefault()))
+        if (element == null)
         {
-            if (element == null)
+            Debug.Assert(Nullable == true, "The assigned value is null but the Nullable option is not enabled.");
+            SelectedElements = Enumerable.Empty<ElementType>();
+        }
+        else
+        {
+            if (Multiselect)
             {
-                Debug.Assert(Nullable == true, "The assigned value is null but the Nullable option is not enabled.");
-                SelectedElements = Enumerable.Empty<ElementType>();
+                SelectedElements = SelectedElements.Append(element);
+                await SelectedElementsChanged.InvokeAsync(SelectedElements);
             }
             else
             {
-                if (Multiselect)
-                {
-                    SelectedElements = SelectedElements.Append(element);
-                    await SelectedElementsChanged.InvokeAsync(SelectedElements);
-                }
-                else
-                {
-                    SelectedElement = element;
-                    await SelectedElementChanged.InvokeAsync(element);
-                }
+                SelectedElement = element;
+                await SelectedElementChanged.InvokeAsync(element);
             }
-            await CompleteSelectionChange();
         }
+        await CompleteSelectionChange();
     }
 
     private async Task CompleteSelectionChange()

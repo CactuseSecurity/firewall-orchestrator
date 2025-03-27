@@ -276,6 +276,29 @@ namespace FWO.Services
             AddExtraConfigMode = true;
         }
 
+        public bool InterfaceAllowedWithNetworkArea(ModellingConnection interf)
+        {
+            if (!ActConn.IsInterface && !ActConn.IsCommonService && interf.AppId != ActConn.AppId &&
+                ( ActConn.DestinationAreas.Count > 0 || DstAreasToAdd.Count > 0 ||
+                ActConn.SourceAreas.Count > 0 || SrcAreasToAdd.Count > 0 ))
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        public bool InterfaceAllowedWithNetworkArea()
+        {
+            if (!ActConn.IsInterface && !ActConn.IsCommonService && ActConn.UsedInterfaceId != null &&
+                ActConn.UsedInterfaceId > 0 && PreselectedInterfaces.FirstOrDefault(_ => _.Id == ActConn.UsedInterfaceId)?.AppId != ActConn.AppId)
+            {
+                return false;
+            }
+
+            return true;
+        }
+
         /// <summary>
         /// Checks the opposite direction if it already contains a network area.
         /// </summary>

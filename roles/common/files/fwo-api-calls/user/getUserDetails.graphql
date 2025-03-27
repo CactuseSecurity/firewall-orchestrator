@@ -1,6 +1,7 @@
 query getUserDetails(
   $management_id: [Int!]
-  $import_id: bigint
+  $import_id_start: bigint
+  $import_id_end: bigint
   $user_name: [String!]
   $limit: Int
   $offset: Int
@@ -12,8 +13,8 @@ query getUserDetails(
       limit: $limit
       offset: $offset
       where: {
-        user_last_seen: { _gte: $import_id }
-        user_create: { _lte: $import_id }
+        user_last_seen: { _gte: $import_id_start }
+        user_create: { _lte: $import_id_end }
         user_name: { _in: $user_name }
       }
       order_by: [{ user_name: asc }, { user_id: asc }]

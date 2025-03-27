@@ -833,6 +833,8 @@ ALTER TABLE "rule_enforced_on_gateway" ADD COLUMN IF NOT EXISTS "removed" BIGINT
 ALTER TABLE "rulebase" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
 ALTER TABLE "rulebase_link" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
 
+-- add obj type access-role for cp import
+INSERT INTO stm_obj_typ (obj_typ_id,obj_typ_name) VALUES (21,'access-role') ON CONFLICT DO NOTHING;
 
 -- adding labels (simple version without mapping tables and without foreign keys)
 

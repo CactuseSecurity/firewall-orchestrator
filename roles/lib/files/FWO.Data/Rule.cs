@@ -1,4 +1,4 @@
-﻿using System.Text.Json.Serialization; 
+using System.Text.Json.Serialization; 
 using Newtonsoft.Json;
 
 namespace FWO.Data
@@ -102,6 +102,7 @@ namespace FWO.Data
         public NetworkLocation[] DisregardedFroms { get; set; } = [];
         public NetworkLocation[] DisregardedTos { get; set; } = [];
         public bool ShowDisregarded { get; set; } = false;
+        public bool Detailed = false;
 
         public bool IsDropRule()
         {

@@ -1,4 +1,4 @@
-﻿using NetTools;
+using NetTools;
 using FWO.Config.Api;
 using FWO.Basics;
 using FWO.Data;
@@ -56,6 +56,10 @@ namespace FWO.Services
                             DisplayMessageInUi(null, userConfig.GetText("edit_app_server"), $"{userConfig.GetText("E9010")} {DisplayBase.DisplayIp(ActAppServer.Ip, ActAppServer.IpEnd)} in {ExistingAppServerName}", true);
                         }
                         return false;
+                    }else if(string.IsNullOrEmpty(ExistingAppServerName) && string.IsNullOrEmpty(ActAppServer.Name))
+                    {
+                        string message = $"{userConfig.GetText("E9018")} Name: \"\"";
+                        DisplayMessageInUi(null, userConfig.GetText("edit_app_server"), message, true);
                     }
                     else
                     {

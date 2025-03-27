@@ -298,6 +298,12 @@
 
     private bool InterfaceToConn(ModellingConnection interf)
     {
+        if (ConnHandler is not null && !ConnHandler.InterfaceAllowedWithNetworkArea(interf))
+        {
+            DisplayMessageInUi(default, userConfig.GetText("edit_connection"), userConfig.GetText("foreign_interface_na"), true);           
+            return false;
+        }
+
         ConnHandler?.InterfaceToConn(interf);
         ConnHandlerChanged.InvokeAsync(ConnHandler);
         return true;

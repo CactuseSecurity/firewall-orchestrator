@@ -358,6 +358,13 @@
         }
         if(areas.Count > 0)
         {
+            if (!ConnHandler.InterfaceAllowedWithNetworkArea())
+            {
+                DisplayMessageInUi(default, userConfig.GetText("edit_connection"), userConfig.GetText("foreign_interface_na"), true);
+                Container.Clear();
+                return;
+            }
+
             Direction direction = toSource ? Direction.Source : Direction.Destination;
 
             if (ConnHandler is not null && !ConnHandler.NetworkAreaUseAllowed(areas, direction, out (string Title, string Text) reason))

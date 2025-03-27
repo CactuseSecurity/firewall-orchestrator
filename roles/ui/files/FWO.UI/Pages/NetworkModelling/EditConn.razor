@@ -491,7 +491,7 @@
         {
             if (!ConnHandler.InterfaceAllowedWithNetworkArea(Container.ConnElement))
             {
-                DisplayMessageInUi(default, userConfig.GetText("edit_connection"), "", true);
+                DisplayMessageInUi(default, userConfig.GetText("edit_connection"), userConfig.GetText("foreign_interface_na"), true);
                 Container.Clear();
                 return;
             }
@@ -515,7 +515,7 @@
             {
                 if (!ConnHandler.InterfaceAllowedWithNetworkArea())
                 {
-                    DisplayMessageInUi(default, userConfig.GetText("edit_connection"), "", true);
+                    DisplayMessageInUi(default, userConfig.GetText("edit_connection"), userConfig.GetText("foreign_interface_na"), true);
                     Container.Clear();
                     return;
                 }
@@ -547,7 +547,7 @@
         {
             if (!ConnHandler.InterfaceAllowedWithNetworkArea(Container.ConnElement))
             {
-                DisplayMessageInUi(default, userConfig.GetText("edit_connection"), "", true);
+                DisplayMessageInUi(default, userConfig.GetText("edit_connection"), userConfig.GetText("foreign_interface_na"), true);
                 Container.Clear();
                 return;
             }
@@ -571,7 +571,7 @@
             {
                 if (!ConnHandler.InterfaceAllowedWithNetworkArea())
                 {
-                    DisplayMessageInUi(default, userConfig.GetText("edit_connection"), "", true);
+                    DisplayMessageInUi(default, userConfig.GetText("edit_connection"), userConfig.GetText("foreign_interface_na"), true);
                     Container.Clear();
                     return;
                 }

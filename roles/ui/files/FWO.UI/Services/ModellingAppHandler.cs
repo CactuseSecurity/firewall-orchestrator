@@ -1,4 +1,4 @@
-﻿using FWO.Config.Api;
+using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Modelling;
 using FWO.Api.Client;
@@ -152,7 +152,8 @@ namespace FWO.Ui.Services
                 x.GetBoolProperty(ConState.InterfaceRequested.ToString()) ||
                 x.GetBoolProperty(ConState.InterfaceRejected.ToString()) || 
                 x.EmptyAppRolesFound(dummyAppRoleId) ||
-                x.DeletedObjectsFound()
+                x.DeletedObjectsFound() ||
+                x.EmptyServiceGroupsFound()
                 )).OrderByDescending(y => y.IsCommonService)];
         }
 

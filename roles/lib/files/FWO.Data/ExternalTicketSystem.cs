@@ -42,6 +42,9 @@ namespace FWO.Data
 		[JsonProperty(nameof(TasksTemplate)), JsonPropertyName(nameof(TasksTemplate))]
 		public string TasksTemplate { get; set; } = "";
 
+		[JsonProperty(nameof(ResponseTimeout)), JsonPropertyName(nameof(ResponseTimeout))]
+		public int ResponseTimeout { get; set; } = 300;
+
 		public bool Sanitize()
         {
             bool shortened = false;

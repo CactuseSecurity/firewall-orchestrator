@@ -539,3 +539,11 @@ max-width: 99%;
 {
     padding-bottom: 30px;
 } */
+
+div.modal-body > div.table-responsive {
+    overflow-x: inherit;
+}
+
+div.modal-body > * > div.table-responsive {
+    overflow-x: inherit;
+}

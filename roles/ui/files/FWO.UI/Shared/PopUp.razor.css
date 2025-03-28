@@ -1,3 +1,8 @@
+/* !! ATTENTION: When changing the margin-top values of the custom-modal-x classes you 
+    HAVE to change the --bs-custom-modal-margin-top respectively
+    or the sticky header for tables in the modals will look weird !!
+*/
+
 .custom-modal-fs {
     --bs-modal-width: 100vw;
     height: 100vh;

@@ -549,9 +549,9 @@ div.modal-body > * > div.table-responsive {
 }
 
 div.modal-body > div.table-responsive > table.sticky-header thead {
-    top: var(--bs-custom-modal-margin-top);
+    top: calc(var(--bs-custom-modal-margin-top) + 1em - 1px);
 }
 
-div.modal-body > div.m-2 > div.table-responsive > table.sticky-header thead {
-    top: calc(var(--bs-custom-modal-margin-top) + .5rem);
+div.modal-body > * > div.table-responsive > table.sticky-header thead {
+    top: calc(var(--bs-custom-modal-margin-top) + 1em - 1px);
 }

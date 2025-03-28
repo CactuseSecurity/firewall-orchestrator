@@ -1,4 +1,4 @@
-﻿using System.Text.Json.Serialization; 
+using System.Text.Json.Serialization; 
 using Newtonsoft.Json;
 
 namespace FWO.Data.Modelling
@@ -14,7 +14,8 @@ namespace FWO.Data.Modelling
         Rejected,
 
         EmptyAppRoles,
-        DeletedObjects
+        DeletedObjects,
+        EmptySvcGrps
     }
 
     public class ModellingConnection
@@ -279,6 +280,15 @@ namespace FWO.Data.Modelling
             {
                 RemoveProperty(ConState.DeletedObjects.ToString());
             }
+
+            if (EmptyServiceGroupsFound())
+            {
+                AddProperty(ConState.EmptySvcGrps.ToString());
+            }
+            else
+            {
+                RemoveProperty(ConState.EmptySvcGrps.ToString());
+            }
         }
 
         public bool EmptyAppRolesFound(long dummyAppRoleId)
@@ -299,6 +309,9 @@ namespace FWO.Data.Modelling
             }
             return false;
         }
+
+        public bool EmptyServiceGroupsFound() 
+            => ServiceGroups.Any(_ => _.Content.Services.Count == 0);
 
         public bool DeletedObjectsFound()
         {

@@ -1,4 +1,5 @@
 from asyncio.log import logger
+from typing import List
 from fwo_log import getFwoLogger
 import json
 import cp_const
@@ -8,7 +9,8 @@ from fwo_const import list_delimiter, default_section_header_text
 from fwo_base import sanitize
 from fwo_exception import ImportRecursionLimitReached
 from models.rulebase import Rulebase
-from models.rule import Rule
+from models.rule import RuleNormalized
+from models.rule_enforced_on_gateway import RuleEnforcedOnGatewayNormalized
 
 uid_to_name_map = {}
 
@@ -163,7 +165,7 @@ def parseRulePart (objects, part='source'):
                                             addressObjects[obj['uid']] = obj['name'] + '@' + obj['networks']
                                     else:  # more than one source
                                         for nw in obj['networks']:
-                                            nw_resolved = resolve_uid_to_name(nw)
+                                            nw_resolved = resolveNwObjUidToName(nw)
                                             if nw_resolved == "":
                                                 addressObjects[obj['uid']] = obj['name']
                                             else:
@@ -203,8 +205,13 @@ def parse_single_rule(nativeRule, rulebase, layer_name, import_id, rule_num, par
             rule_svc_ref = list_delimiter.join(svcObjects.keys())
             rule_svc_name = list_delimiter.join(svcObjects.values())
 
-            targetObjects = parseRulePart (nativeRule['install-on'], 'install-on')
-            rule_installon = list_delimiter.join(targetObjects.values())
+            # targetObjects = parseRulePart (nativeRule['install-on'], 'install-on')
+            # rule_installon = list_delimiter.join(targetObjects.values())
+            ruleEnforcedOnGateways = parseRuleEnforcedOnGateway(nativeRule=nativeRule)
+            listOfGwUids = []
+            for enforceEntry in ruleEnforcedOnGateways:
+                listOfGwUids.append(enforceEntry.dev_uid)
+            strListOfGwUids = list_delimiter.join(listOfGwUids)
 
             if isinstance(nativeRule['track'],str):
                 rule_track = nativeRule['track']
@@ -276,7 +283,8 @@ def parse_single_rule(nativeRule, rulebase, layer_name, import_id, rule_num, par
                 "rule_action":      sanitize(rule_action).lower(),
                 # "rule_track":       sanitize(nativeRule['track']['type']),
                 "rule_track":       sanitize(rule_track).lower(),
-                "rule_installon":   sanitize(rule_installon),
+                # "rule_installon":   sanitize(rule_installon),
+                "rule_installon":   sanitize(strListOfGwUids),
                 "rule_time":        sanitize(rule_time),
                 "rule_name":        sanitize(rule_name),
                 "rule_uid":         sanitize(nativeRule['uid']),
@@ -292,13 +300,37 @@ def parse_single_rule(nativeRule, rulebase, layer_name, import_id, rule_num, par
             }
             if comments is not None:
                 rule['rule_comment'] = sanitize(comments)
-            rulebase.Rules.update({ rule['rule_uid']: Rule(**rule)})
+            rulebase.Rules.update({ rule['rule_uid']: RuleNormalized(**rule)})
 
             return rule_num + 1
     return rule_num
 
+def parseRuleEnforcedOnGateway(nativeRule={}) -> List[RuleEnforcedOnGatewayNormalized]:
+    if nativeRule == {}:
+        logger.warning('did not get a native rule')
+        return
 
-def resolve_uid_to_name(nw_obj_uid):
+    enforceEntries = []
+    # listofEnforcingGwNames = []
+    allTargetGwNamesDict = parseRulePart (nativeRule['install-on'], 'install-on')
+
+    for targetUid in allTargetGwNamesDict:
+        targetName = allTargetGwNamesDict[targetUid]
+        if targetName == 'Policy Targets': # or target == 'Any'
+
+            # TODO: implement the following
+            # assuming that the rule is enforced on all gateways of the current management
+            # listofEnforcingGwNames = [] # TODO: getAllGatewayNamesForManagement(mgmId)
+
+            # workaround: simply add the uid of "Policy Targets" here
+            enforceEntry = RuleEnforcedOnGatewayNormalized(rule_uid=nativeRule['uid'], dev_uid=targetUid)
+            enforceEntries.append(enforceEntry)
+        else:
+            enforceEntry = RuleEnforcedOnGatewayNormalized(rule_uid=nativeRule['uid'], dev_uid=targetUid)
+            enforceEntries.append(enforceEntry)
+    return enforceEntries
+
+def resolveNwObjUidToName(nw_obj_uid):
     if nw_obj_uid in uid_to_name_map:
         return uid_to_name_map[nw_obj_uid]
     else:
@@ -313,7 +345,6 @@ def insert_section_header_rule(rulebase, section_name, layer_name, import_id, ru
         "control_id":       int(import_id),
         "rule_num":         int(rule_num),
         "rulebase_name":    sanitize(layer_name),
-        # rule_ruleid
         "rule_disabled":    False,
         "rule_src_neg":     False,
         "rule_src":         "Any",
@@ -329,13 +360,8 @@ def insert_section_header_rule(rulebase, section_name, layer_name, import_id, ru
         "rule_installon":   "Policy Targets",
         "rule_time":        "Any",
         "rule_implied":      False,
-        # "rule_comment":     None,
-        # rule_name
         "rule_uid":         sanitize(rule_uid),
         "rule_head_text":   sanitize(section_name),
-        # rule_from_zone
-        # rule_to_zone
-        # rule_last_change_admin
         "parent_rule_uid":  sanitize(parent_uid)
     }
     rulebase.append(rule)
@@ -374,7 +400,7 @@ def insertSectionHeaderRule(rulebase, section_name, layer_name, import_id, rule_
         "parent_rule_uid":  sanitize(parent_uid)
     }
     # rulebase.Rules.append(rule)
-    rulebase.Rules.update({ rule['rule_uid']: Rule(**rule)})
+    rulebase.Rules.update({ rule['rule_uid']: RuleNormalized(**rule)})
     return rule_num + 1
 
 def add_domain_rule_header_rule(rulebase, section_name, layer_name, import_id, rule_uid, rule_num, section_header_uids, parent_uid):

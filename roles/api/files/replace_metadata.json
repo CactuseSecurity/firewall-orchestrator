@@ -14336,13 +14336,30 @@
                     }
                   }
                 ],
+                "insert_permissions": [
+                  {
+                    "role": "importer",
+                    "permission": {
+                      "check": {},
+                      "columns": [
+                        "created",
+                        "removed",
+                        "dev_id",
+                        "rule_id"
+                      ]
+                    },
+                    "comment": ""
+                  }
+                ],
                 "select_permissions": [
                   {
                     "role": "importer",
                     "permission": {
                       "columns": [
                         "created",
-                        "removed"
+                        "removed",
+                        "dev_id",
+                        "rule_id"
                       ],
                       "filter": {}
                     },
@@ -14354,10 +14371,13 @@
                     "role": "importer",
                     "permission": {
                       "columns": [
-                        "removed"
+                        "created",
+                        "removed",
+                        "dev_id",
+                        "rule_id"
                       ],
                       "filter": {},
-                      "check": null
+                      "check": {}
                     },
                     "comment": ""
                   }

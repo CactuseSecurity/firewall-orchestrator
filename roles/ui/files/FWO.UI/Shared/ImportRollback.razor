@@ -19,8 +19,14 @@
         <div class="btn-group">
             <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Importer}")" Context="xxx">
                 <Authorized>
-                    <button type="button" class="btn btn-sm btn-danger" @onclick="async () => { await Rollback(); RollbackMode = false; await Closing.InvokeAsync(RollbackMode); }">@(userConfig.GetText("rollback"))</button>
-                    <button type="button" class="btn btn-sm btn-danger" @onclick="async () => { await FullMgmRollback(); RollbackMode = false; await Closing.InvokeAsync(RollbackMode); }">@(userConfig.GetText("full_rollback"))</button>
+                    @if (LastIncompleteImport != null && LastIncompleteImport.Length > 0)
+                    {
+                        <button type="button" class="btn btn-sm btn-danger" @onclick="async () => { await Rollback(); RollbackMode = false; await Closing.InvokeAsync(RollbackMode); }">@(userConfig.GetText("rollback"))</button>
+                    }
+                    else
+                    {
+                        <button type="button" class="btn btn-sm btn-danger" @onclick="async () => { await FullMgmRollback(); RollbackMode = false; await Closing.InvokeAsync(RollbackMode); }">@(userConfig.GetText("full_rollback"))</button>
+                    }
                 </Authorized>
                 <NotAuthorized>
                     <button type="button" class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("rollback"))</button>

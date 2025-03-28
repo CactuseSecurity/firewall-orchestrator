@@ -1,4 +1,4 @@
-﻿@implements IDisposable
+@implements IDisposable
 
 @if (ContainerTabSet?.KeepPanelsAlive == true)
 {
@@ -30,9 +30,14 @@ else
     [Parameter]
     public int Position { get; set; } = -1;
 
+    [Parameter]
+    public bool StartSelected { get; set; } = false;
+
     protected override void OnInitialized()
     {
         ContainerTabSet?.AddTab(this, Position);
+        if (StartSelected)
+            ActivateTab();
     }
 
     private void ActivateTab()

@@ -3313,6 +3313,10 @@ INSERT INTO txt VALUES ('C9017', 'German',  'Hier kann der Name des App-Servers,
 INSERT INTO txt VALUES ('C9017', 'English', 'Here the name of the App Server, which is created on saving anyway, can be generated for display in advance.
     The name is searched in the DNS. If not found, it is constructed according to the naming convention.
 ');
+INSERT INTO txt VALUES ('C9018', 'German',  'Leere Service Gruppe(n) enthalten. Diese Verbindung wird nicht beantragt.');
+INSERT INTO txt VALUES ('C9018', 'English', 'Contains empty Service Groups(s). This connection will not be requested.');
+INSERT INTO txt VALUES ('C9019', 'German',  'Leere Service Gruppe(n) enthalten. Nutzende Verbindungen dieser Schnittstelle werden nicht beantragt.');
+INSERT INTO txt VALUES ('C9019', 'English', 'Contains empty Service Groups(s). Connections using this interface will not be requested.');
 
 -- help pages
 INSERT INTO txt VALUES ('H0001', 'German',  'Firewall Orchestrator ist eine Anwendung zum Erzeugen und Verwalten von verschiedenen Reports aus Konfigurationsdaten verteilter Firewallsysteme.

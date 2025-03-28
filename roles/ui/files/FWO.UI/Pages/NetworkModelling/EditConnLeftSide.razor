@@ -298,6 +298,12 @@
 
     private bool InterfaceToConn(ModellingConnection interf)
     {
+        if (ConnHandler is not null && !ConnHandler.InterfaceAllowedWithNetworkArea(interf))
+        {
+            DisplayMessageInUi(default, userConfig.GetText("edit_connection"), userConfig.GetText("U9024"), true);           
+            return false;
+        }
+
         ConnHandler?.InterfaceToConn(interf);
         ConnHandlerChanged.InvokeAsync(ConnHandler);
         return true;
@@ -358,6 +364,13 @@
         }
         if(areas.Count > 0)
         {
+            if (ConnHandler is not null && !ConnHandler.IsNotInterfaceForeignToApp())
+            {
+                DisplayMessageInUi(default, userConfig.GetText("edit_connection"), userConfig.GetText("U9024"), true);
+                selectedNwElems = new();
+                return;
+            }
+
             Direction direction = toSource ? Direction.Source : Direction.Destination;
 
             if (ConnHandler is not null && !ConnHandler.NetworkAreaUseAllowed(areas, direction, out (string Title, string Text) reason))

@@ -23,7 +23,7 @@
                 </Authorized>
             </AuthorizeView>
             <PageSizeComponent PageSizeCallback="UpdatePageSize"></PageSizeComponent>
-            <Table PageSize="PageSize" class="table table-bordered th-bg-secondary table-responsive" TableItem="ModellingHistoryEntry" Items="history">
+            <Table PageSize="PageSize" class="table table-bordered th-bg-secondary table-responsive sticky-header" TableItem="ModellingHistoryEntry" Items="history">
                 <Column TableItem="ModellingHistoryEntry" Title="@(userConfig.GetText("application"))" Field="@(x => x.AppId)" Sortable="true" Filterable="true">
                     <Template>
                         @(Applications.FirstOrDefault(x => x.Id == context.AppId)?.Name ?? context.AppId.ToString())

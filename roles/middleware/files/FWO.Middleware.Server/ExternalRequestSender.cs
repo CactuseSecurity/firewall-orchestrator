@@ -112,6 +112,7 @@ namespace FWO.Middleware.Server
 				ExternalTicket ticket = JsonSerializer.Deserialize<ExternalTicket>(request.ExtRequestContent) ?? throw new Exception("No Ticket Content");
 				ticket.TicketSystem = JsonSerializer.Deserialize<ExternalTicketSystem>(request.ExtTicketSystem) ?? throw new Exception("No Ticket System");
 				Log.WriteInfo(userConfig.GetText("send_ext_request"), $"Id: {request.Id}, Internal TicketId: {request.TicketId}, TaskNo: {request.TaskNumber}");
+				request.Attempts++;
                 RestResponse<int> ticketIdResponse = await ticket.CreateExternalTicket();
 				request.LastMessage = ticketIdResponse.Content;
 				if (ticketIdResponse.StatusCode == HttpStatusCode.OK || ticketIdResponse.StatusCode == HttpStatusCode.Created)
@@ -126,35 +127,70 @@ namespace FWO.Middleware.Server
 					await UpdateRequestCreation(request);
 					Log.WriteDebug(userConfig.GetText("ext_ticket_success"), "Message: " + ticketIdResponse?.Content);
 				}
-				else if(AnalyseForRejected(ticketIdResponse))
-				{
-					request.ExtRequestState = ExtStates.ExtReqRejected.ToString();
-					await UpdateRequestCreation(request);
-					Log.WriteError(userConfig.GetText("ext_ticket_fail"), "Error Message: " + ticketIdResponse?.StatusDescription + ", " + ticketIdResponse?.Content);
-					ExternalRequestHandler extReqHandler = new(userConfig, apiConnection);
-					await extReqHandler.HandleStateChange(request);
-				}
 				else
 				{
-					request.ExtRequestState = ExtStates.ExtReqFailed.ToString();
-					await UpdateRequestCreation(request);
 					Log.WriteError(userConfig.GetText("ext_ticket_fail"), "Error Message: " + ticketIdResponse?.StatusDescription + ", " + ticketIdResponse?.Content);
+					if(AnalyseForRejected(ticketIdResponse))
+					{
+						await RejectRequest(request);
+					}
+					else
+					{
+						request.ExtRequestState = ExtStates.ExtReqFailed.ToString();
+						await UpdateRequestCreation(request);
+					}
 				}
 			}
 			catch(Exception exception)
 			{
 				Log.WriteError(userConfig.GetText("ext_ticket_fail"), $"Sending request failed: ", exception);
+				await HandleTimeOut(request);
+			}
+		}
+
+		private asyn Task RejectRequest(ExternalRequest request)
+		{
+			request.ExtRequestState = ExtStates.ExtReqRejected.ToString();
+			await UpdateRequestCreation(request);
+			ExternalRequestHandler extReqHandler = new(userConfig, apiConnection);
+			await extReqHandler.HandleStateChange(request);
+		}
+
+		private async Task HandleTimeOut(ExternalRequest request, ExternalTicket ticket)
+		{
+			try
+			{
+				if(request.Attempts > ticket.TicketSystem.MaxAttempts)
+				{
+					await RejectRequest(request);
+				}
+				else
+				{
+					request.ExtRequestState = ExtStates.ExtReqFailed.ToString();
+					request.WaitCycles = request.Attempts * ticket.TicketSystem.CyclesBetweenAttempts;
+					await UpdateRequestCreation(request);
+				}
+			}
+			catch(Exception exception)
+			{
+				Log.WriteError(userConfig.GetText("ext_ticket_fail"), $"Timeout handling failed: ", exception);
 			}
 		}
 
 		private static bool AnalyseForRejected(RestResponse<int> ticketIdResponse)
 		{
 			return ticketIdResponse.Content != null && 
-				(ticketIdResponse.Content.Contains("GENERAL_ERROR") ||
+				((ticketIdResponse.Content.Contains("GENERAL_ERROR") && !TryAgain(ticketIdResponse))||
 				ticketIdResponse.Content.Contains("ILLEGAL_ARGUMENT_ERROR") ||
 				ticketIdResponse.Content.Contains("FIELD_VALIDATION_ERROR") ||
 				ticketIdResponse.Content.Contains("WEB_APPLICATION_ERROR") ||
 				ticketIdResponse.Content.Contains("implementation failure"));
+		}
+
+		private static bool TryAgain(RestResponse<int> ticketIdResponse)
+		{
+			return ticketIdResponse.Content != null &&
+				ticketIdResponse.Content.Contains("Unable to rollback against JDBC Connection");
 		}
 
 		private async Task RefreshState(ExternalRequest request)
@@ -207,7 +243,9 @@ namespace FWO.Middleware.Server
 					id = request.Id,
 					extRequestState = request.ExtRequestState,
 					extTicketId = request.ExtTicketId,
-					creationResponse = request.LastMessage
+					creationResponse = request.LastMessage,
+					waitCycles = request.WaitCycles,
+					attempts = request.Attempts
 				};
 				await apiConnection.SendQueryAsync<ReturnId>(ExtRequestQueries.updateExtRequestCreation, Variables);
 			}
@@ -251,6 +289,5 @@ namespace FWO.Middleware.Server
 				Log.WriteError(userConfig.GetText("External Request Sender"), $"WaitCycle update failed: ", exception);
 			}
 		}
-
 	}
 }

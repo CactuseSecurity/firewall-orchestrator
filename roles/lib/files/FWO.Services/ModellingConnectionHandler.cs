@@ -276,6 +276,11 @@ namespace FWO.Services
             AddExtraConfigMode = true;
         }
 
+        /// <summary>
+        /// Checks the given interface object if it can be used with network areas that are added to the connection.
+        /// </summary>
+        /// <param name="interf"></param>
+        /// <returns></returns>
         public bool InterfaceAllowedWithNetworkArea(ModellingConnection interf)
         {
             if (!ActConn.IsInterface && !ActConn.IsCommonService && interf.AppId != ActConn.AppId &&
@@ -288,7 +293,11 @@ namespace FWO.Services
             return true;
         }
 
-        public bool InterfaceAllowedWithNetworkArea()
+        /// <summary>
+        /// Checks the selected interface if it is foreign to the modelled connection
+        /// </summary>
+        /// <returns></returns>
+        public bool IsNotInterfaceForeignToApp()
         {
             if (!ActConn.IsInterface && !ActConn.IsCommonService && ActConn.UsedInterfaceId != null &&
                 ActConn.UsedInterfaceId > 0 && PreselectedInterfaces.FirstOrDefault(_ => _.Id == ActConn.UsedInterfaceId)?.AppId != ActConn.AppId)

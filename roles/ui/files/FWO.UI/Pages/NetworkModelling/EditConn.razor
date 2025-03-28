@@ -513,7 +513,7 @@
             }
             if(Container.AreaElements.Count > 0)
             {
-                if (ConnHandler is not null && !ConnHandler.InterfaceAllowedWithNetworkArea())
+                if (ConnHandler is not null && !ConnHandler.IsNotInterfaceForeignToApp())
                 {
                     DisplayMessageInUi(default, userConfig.GetText("edit_connection"), userConfig.GetText("U9024"), true);
                     Container.Clear();
@@ -569,7 +569,7 @@
             }
             if(Container.AreaElements.Count > 0)
             {
-                if (ConnHandler is not null && !ConnHandler.InterfaceAllowedWithNetworkArea())
+                if (ConnHandler is not null && !ConnHandler.IsNotInterfaceForeignToApp())
                 {
                     DisplayMessageInUi(default, userConfig.GetText("edit_connection"), userConfig.GetText("U9024"), true);
                     Container.Clear();

@@ -21,6 +21,7 @@ class ImportStatisticsController(ImportStatistics):
         self.RuleDeleteCount = 0
         self.RuleChangeCount = 0
         self.RuleMoveCount = 0
+        self.RuleEnforceChangeCount = 0
     
     def addError(self, error: str):
         self.ErrorCount += 1
@@ -31,7 +32,8 @@ class ImportStatisticsController(ImportStatistics):
             self.ServiceObjectAddCount + self.ServiceObjectDeleteCount + self.ServiceObjectChangeCount + \
             self.UserObjectAddCount + self.UserObjectDeleteCount + self.UserObjectChangeCount + \
             self.ZoneObjectAddCount + self.ZoneObjectDeleteCount + self.ZoneObjectChangeCount + \
-            self.RuleAddCount + self.RuleDeleteCount + self.RuleChangeCount + self.RuleMoveCount
+            self.RuleAddCount + self.RuleDeleteCount + self.RuleChangeCount + self.RuleMoveCount + \
+            self.RuleEnforceChangeCount
 
     def getChangeDetails(self):
 
@@ -68,5 +70,7 @@ class ImportStatisticsController(ImportStatistics):
             result['RuleChangeCount'] = self.RuleChangeCount
         if self.RuleMoveCount > 0:
             result['RuleMoveCount'] = self.RuleMoveCount    
+        if self.RuleEnforceChangeCount > 0:
+            result['RuleEnforceChangeCount'] = self.RuleEnforceChangeCount    
         
         return result

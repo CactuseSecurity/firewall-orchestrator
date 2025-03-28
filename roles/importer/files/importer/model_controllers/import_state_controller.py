@@ -43,9 +43,6 @@ class ImportStateController(ImportState):
     def setImportId(self, importId):
         self.ImportId = importId
 
-    def setChangeCounter(self, changeNo):
-        self.Stats.ChangeCount = changeNo
-
     def increaseErrorCounter(self, errorNo):
         self.Stats.ErrorCount = self.Stats.ErrorCount + errorNo
 

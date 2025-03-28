@@ -107,9 +107,10 @@ namespace FWO.Middleware.Server
 
 		private async Task SendRequest(ExternalRequest request)
 		{
+			ExternalTicket? ticket = null;
 			try
 			{
-				ExternalTicket ticket = JsonSerializer.Deserialize<ExternalTicket>(request.ExtRequestContent) ?? throw new Exception("No Ticket Content");
+				ticket = JsonSerializer.Deserialize<ExternalTicket>(request.ExtRequestContent) ?? throw new Exception("No Ticket Content");
 				ticket.TicketSystem = JsonSerializer.Deserialize<ExternalTicketSystem>(request.ExtTicketSystem) ?? throw new Exception("No Ticket System");
 				Log.WriteInfo(userConfig.GetText("send_ext_request"), $"Id: {request.Id}, Internal TicketId: {request.TicketId}, TaskNo: {request.TaskNumber}");
 				request.Attempts++;
@@ -144,11 +145,11 @@ namespace FWO.Middleware.Server
 			catch(Exception exception)
 			{
 				Log.WriteError(userConfig.GetText("ext_ticket_fail"), $"Sending request failed: ", exception);
-				await HandleTimeOut(request);
+				await HandleTimeOut(request, ticket);
 			}
 		}
 
-		private asyn Task RejectRequest(ExternalRequest request)
+		private async Task RejectRequest(ExternalRequest request)
 		{
 			request.ExtRequestState = ExtStates.ExtReqRejected.ToString();
 			await UpdateRequestCreation(request);
@@ -156,24 +157,27 @@ namespace FWO.Middleware.Server
 			await extReqHandler.HandleStateChange(request);
 		}
 
-		private async Task HandleTimeOut(ExternalRequest request, ExternalTicket ticket)
+		private async Task HandleTimeOut(ExternalRequest request, ExternalTicket? ticket)
 		{
-			try
+			if(ticket != null && request.Attempts > 0)
 			{
-				if(request.Attempts > ticket.TicketSystem.MaxAttempts)
+				try
 				{
-					await RejectRequest(request);
+					if(request.Attempts > ticket.TicketSystem.MaxAttempts)
+					{
+						await RejectRequest(request);
+					}
+					else
+					{
+						request.ExtRequestState = ExtStates.ExtReqFailed.ToString();
+						request.WaitCycles = request.Attempts * ticket.TicketSystem.CyclesBetweenAttempts;
+						await UpdateRequestCreation(request);
+					}
 				}
-				else
+				catch(Exception exception)
 				{
-					request.ExtRequestState = ExtStates.ExtReqFailed.ToString();
-					request.WaitCycles = request.Attempts * ticket.TicketSystem.CyclesBetweenAttempts;
-					await UpdateRequestCreation(request);
+					Log.WriteError(userConfig.GetText("ext_ticket_fail"), $"Timeout handling failed: ", exception);
 				}
-			}
-			catch(Exception exception)
-			{
-				Log.WriteError(userConfig.GetText("ext_ticket_fail"), $"Timeout handling failed: ", exception);
 			}
 		}
 

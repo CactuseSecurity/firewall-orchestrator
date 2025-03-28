@@ -1,6 +1,7 @@
 .custom-modal-fs {
     --bs-modal-width: 100vw;
     height: 100vh;
+    --bs-custom-modal-margin-top: -3em;
 }
 
 .custom-modal-content-fs {

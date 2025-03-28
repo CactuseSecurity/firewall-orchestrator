@@ -1156,14 +1156,6 @@ INSERT INTO txt VALUES ('add_interface', 	    'German',	'Schnittstelle hinzuf&uu
 INSERT INTO txt VALUES ('add_interface', 	    'English',	'Add Interface');
 INSERT INTO txt VALUES ('edit_interface', 	    'German',	'Schnittstelle bearbeiten');
 INSERT INTO txt VALUES ('edit_interface', 	    'English',	'Edit Interface');
-INSERT INTO txt VALUES ('interface_contain_nwarea','German','Schnittstellen d&uuml;rfen keine Netzbereiche enthalten');
-INSERT INTO txt VALUES ('interface_contain_nwarea','English','Interfaces must not contain network areas');
-INSERT INTO txt VALUES ('direction_contain_nwarea','German','Quelle und Ziel d&uuml;rfen nicht gleichzeitig einen Netzbereich enthalten');
-INSERT INTO txt VALUES ('direction_contain_nwarea','English','Source and destination must not contain a network area at the same time');
-INSERT INTO txt VALUES ('only_common_service',  'German',   'Dieser Netzbereich kann nur in der Registerkarte Gemeinsame Dienste verwendet werden.');
-INSERT INTO txt VALUES ('only_common_service',  'English',  'This network area can only be used in common services tab');
-INSERT INTO txt VALUES ('foreign_interface_na', 'German',   'Netzbereiche k&ouml;nnen nicht zusammen mit Schnittstellen anderer Apps genutzt werden.');
-INSERT INTO txt VALUES ('foreign_interface_na', 'English',  'Network areas cannot be used together with interfaces from foreign apps.');
 INSERT INTO txt VALUES ('delete_interface', 	'German',	'Schnittstelle l&ouml;schen');
 INSERT INTO txt VALUES ('delete_interface', 	'English',	'Delete Interface');
 INSERT INTO txt VALUES ('insert_forbidden', 	'German',	'Einf&uuml;gen verboten');
@@ -2869,6 +2861,14 @@ INSERT INTO txt VALUES ('U9019', 'German',  'Sind sie sicher, dass sie die Exter
 INSERT INTO txt VALUES ('U9019', 'English', 'Are you sure you want to reinit the external requests for following ticket: ');
 INSERT INTO txt VALUES ('U9020', 'German',  'Die externe Beantragung wurde gestartet.');
 INSERT INTO txt VALUES ('U9020', 'English', 'External Request initialized.');
+INSERT INTO txt VALUES ('U9021', 'German',  'Schnittstellen d&uuml;rfen keine Netzbereiche enthalten');
+INSERT INTO txt VALUES ('U9021', 'English', 'Interfaces must not contain network areas');
+INSERT INTO txt VALUES ('U9022', 'German',  'Quelle und Ziel d&uuml;rfen nicht gleichzeitig einen Netzbereich enthalten');
+INSERT INTO txt VALUES ('U9022', 'English', 'Source and destination must not contain a network area at the same time');
+INSERT INTO txt VALUES ('U9023', 'German',  'Dieser Netzbereich kann nur in der Registerkarte Gemeinsame Dienste verwendet werden.');
+INSERT INTO txt VALUES ('U9023', 'English', 'This network area can only be used in common services tab');
+INSERT INTO txt VALUES ('U9024', 'German',  'Netzbereiche k&ouml;nnen nicht zusammen mit Schnittstellen anderer Apps genutzt werden.');
+INSERT INTO txt VALUES ('U9024', 'English', 'Network areas cannot be used together with interfaces from foreign apps.');
 
 -- error messages
 INSERT INTO txt VALUES ('E0001', 'German',  'Nicht klassifizierter Fehler: ');

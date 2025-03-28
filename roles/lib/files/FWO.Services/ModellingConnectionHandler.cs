@@ -337,13 +337,13 @@ namespace FWO.Services
 
             if (IsAreaForbiddenInDirection(direction))
             {
-                reason.Text = userConfig.GetText("direction_contain_nwarea");
+                reason.Text = userConfig.GetText("U9022");
                 return false;
             }
 
             if (ActConn.IsInterface)
             {
-                reason.Text = userConfig.GetText("interface_contain_nwarea");
+                reason.Text = userConfig.GetText("U9021");
                 return false;
             }
 
@@ -358,7 +358,7 @@ namespace FWO.Services
                 return true;
             }
 
-            reason.Text = userConfig.GetText("only_common_service");
+            reason.Text = userConfig.GetText("U9023");
             return false;
         }
 

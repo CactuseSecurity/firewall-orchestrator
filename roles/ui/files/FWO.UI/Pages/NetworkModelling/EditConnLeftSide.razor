@@ -300,7 +300,7 @@
     {
         if (ConnHandler is not null && !ConnHandler.InterfaceAllowedWithNetworkArea(interf))
         {
-            DisplayMessageInUi(default, userConfig.GetText("edit_connection"), userConfig.GetText("foreign_interface_na"), true);           
+            DisplayMessageInUi(default, userConfig.GetText("edit_connection"), userConfig.GetText("U9024"), true);           
             return false;
         }
 
@@ -366,7 +366,7 @@
         {
             if (ConnHandler is not null && !ConnHandler.InterfaceAllowedWithNetworkArea())
             {
-                DisplayMessageInUi(default, userConfig.GetText("edit_connection"), userConfig.GetText("foreign_interface_na"), true);
+                DisplayMessageInUi(default, userConfig.GetText("edit_connection"), userConfig.GetText("U9024"), true);
                 selectedNwElems = new();
                 return;
             }

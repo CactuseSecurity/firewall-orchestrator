@@ -300,6 +300,10 @@
         string displayOrderNumber = "";
         bool isFirstOrderNumberPart = true;
 
+        if (rule == null || rule.RuleOrderArray == null)
+        {
+            return displayOrderNumber;
+        }
         foreach (int orderArrayItem in rule.RuleOrderArray)
         {
             if (!isFirstOrderNumberPart)

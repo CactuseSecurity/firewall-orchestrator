@@ -163,7 +163,7 @@ namespace FWO.Middleware.Server
 			{
 				try
 				{
-					if(request.Attempts > ticket.TicketSystem.MaxAttempts)
+					if(request.Attempts >= ticket.TicketSystem.MaxAttempts)
 					{
 						await RejectRequest(request);
 					}

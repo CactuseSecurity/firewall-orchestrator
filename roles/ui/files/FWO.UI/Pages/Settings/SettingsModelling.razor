@@ -377,7 +377,7 @@
     <br>
     <p>@(userConfig.GetText("U5303"))</p>
 
-    <VarianceOptionsSelection @bind-Display="varOptMode" @bind-ConfigValue="configData.RuleRecognitionOption"/>
+    <VarianceOptionsSelection @bind-Display="varOptMode" @bind-ConfigValue="ruleRecognitionOption"/>
 }
 else
 {
@@ -427,10 +427,12 @@ else
     private DateTime subnetDataDate = DateTime.Today;
     private DateTime subnetDataTime = DateTime.Now.AddSeconds(-DateTime.Now.Second);
     private List<EmailRecipientOption> selectableRecipientOptions = [ EmailRecipientOption.OwnerGroupOnly,
-    EmailRecipientOption.AllOwnerResponsibles, EmailRecipientOption.OwnerMainResponsible, EmailRecipientOption.FallbackToMainResponsibleIfOwnerGroupEmpty ];
+        EmailRecipientOption.AllOwnerResponsibles, EmailRecipientOption.OwnerMainResponsible, EmailRecipientOption.FallbackToMainResponsibleIfOwnerGroupEmpty ];
 
-    private List<UiLdapConnection> connectedLdaps = new List<UiLdapConnection>();
+    private List<UiLdapConnection> connectedLdaps = [];
     private UiLdapConnection selectedLdap = new();
+    private RuleRecognitionOption ruleRecognitionOption = new();
+
     private bool initComplete = false;
     private bool varOptMode = false;
 
@@ -483,6 +485,8 @@ else
 
             // get config value of selected ldap connection for owner data (both groups and main responsible user), default value = 1 = internal ldap
             selectedLdap = connectedLdaps.FirstOrDefault(x => x.Id == configData.OwnerLdapId) ?? new();
+
+            ruleRecognitionOption = string.IsNullOrEmpty(configData.RuleRecognitionOption) ? new() : JsonSerializer.Deserialize<RuleRecognitionOption>(configData.RuleRecognitionOption) ?? new();
             initComplete = true;
         }
         catch (Exception exception)
@@ -611,6 +615,7 @@ else
         configData!.ImportAppDataStartAt = appDataDate.Date.Add(appDataTime.TimeOfDay);
         configData!.ImportSubnetDataStartAt = subnetDataDate.Date.Add(subnetDataTime.TimeOfDay);
         configData!.OwnerLdapId = selectedLdap.Id;
+        configData!.RuleRecognitionOption = JsonSerializer.Serialize(ruleRecognitionOption);
     }
 
     private void PrepareAppDataPaths()

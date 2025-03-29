@@ -4,6 +4,8 @@ using FWO.Data;
 using FWO.Data.Modelling;
 using FWO.Data.Report;
 using FWO.Data.Workflow;
+using System.Text.Json; 
+
 
 namespace FWO.Services
 {
@@ -13,7 +15,9 @@ namespace FWO.Services
     public partial class ModellingVarianceAnalysis(ApiConnection apiConnection, ExtStateHandler extStateHandler,
             UserConfig userConfig, FwoOwner owner, Action<Exception?, string, string, bool> displayMessageInUi)
     {
-        private readonly ModellingNamingConvention namingConvention = System.Text.Json.JsonSerializer.Deserialize<ModellingNamingConvention>(userConfig.ModNamingConvention) ?? new();
+        private readonly ModellingNamingConvention namingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(userConfig.ModNamingConvention) ?? new();
+        private readonly RuleRecognitionOption ruleRecognitionOption = string.IsNullOrEmpty(userConfig.RuleRecognitionOption) ? new() : 
+            JsonSerializer.Deserialize<RuleRecognitionOption>(userConfig.RuleRecognitionOption) ?? new();
         private readonly ModellingAppZoneHandler AppZoneHandler = new(apiConnection, userConfig, owner, displayMessageInUi);
         private AppServerComparer appServerComparer = new(new());
         private List<Management> RelevantManagements = [];
@@ -81,7 +85,7 @@ namespace FWO.Services
                             Elements = elements,
                             RuleAction = 1,  // Todo ??
                             Tracking = 1,  // Todo ??
-                            AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(addInfo),
+                            AdditionalInfo = JsonSerializer.Serialize(addInfo),
                             Comments = [new() { Comment = new() { CommentText = ConstructComment(conn) } }]
                         });
                     }

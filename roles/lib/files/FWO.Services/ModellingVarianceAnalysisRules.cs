@@ -2,6 +2,8 @@
 using FWO.Data;
 using FWO.Data.Modelling;
 using FWO.Logging;
+using Newtonsoft.Json;
+using System.Text.Json.Serialization;
 
 namespace FWO.Services
 {
@@ -10,13 +12,17 @@ namespace FWO.Services
 	/// </summary>
     public partial class ModellingVarianceAnalysis
     {
-        private readonly NetworkObjectComparer networkObjectComparer = new(userConfig.RuleRecognitionOption);
-        private readonly NetworkObjectGroupFlatComparer networkObjectGroupComparer = new(userConfig.RuleRecognitionOption);
-        private readonly NetworkServiceComparer networkServiceComparer = new(userConfig.RuleRecognitionOption);
-        private readonly NetworkServiceGroupComparer networkServiceGroupComparer = new(userConfig.RuleRecognitionOption);
+        private NetworkObjectComparer networkObjectComparer = new(new());
+        private NetworkObjectGroupFlatComparer networkObjectGroupComparer = new(new());
+        private NetworkServiceComparer networkServiceComparer = new(new());
+        private NetworkServiceGroupComparer networkServiceGroupComparer = new(new());
 
         private void AnalyseRules(ModellingConnection conn)
         {
+            networkObjectComparer = new(ruleRecognitionOption);
+            networkObjectGroupComparer = new(ruleRecognitionOption);
+            networkServiceComparer = new(ruleRecognitionOption);
+            networkServiceGroupComparer = new(ruleRecognitionOption);
             bool ruleFound = false;
             foreach (var mgt in RelevantManagements)
             {
@@ -69,7 +75,7 @@ namespace FWO.Services
             }
             List<NetworkObject> allProdNwObjects = networkLocations.Where(n => n.Object.Type.Name != ObjectType.Group).ToList().ConvertAll(n => n.Object);
             List<NetworkObject> allModNwObjects = ModellingAppServerWrapper.Resolve(appServers).ToList().ConvertAll(a => ModellingAppServer.ToNetworkObject(a));
-            if(userConfig.RuleRecognitionOption.NwResolveGroup)
+            if(ruleRecognitionOption.NwResolveGroup)
             {
                 foreach(var nwGroup in networkLocations.Where(n => n.Object.Type.Name == ObjectType.Group && !IsArea(n.Object)))
                 {
@@ -87,7 +93,7 @@ namespace FWO.Services
             {
                 return false;
             }
-            return userConfig.RuleRecognitionOption.NwResolveGroup ? true : CompareNwGroups(networkLocations, appRoles, otherGroups);
+            return ruleRecognitionOption.NwResolveGroup ? true : CompareNwGroups(networkLocations, appRoles, otherGroups);
         }
 
         private bool CompareNwAreas(NetworkLocation[] networkLocations, List<ModellingNetworkAreaWrapper> areas)
@@ -121,7 +127,7 @@ namespace FWO.Services
         {
             List<NetworkService> allProdServices = networkServices.Where(s => s.Content.Type.Name != ServiceType.Group).ToList().ConvertAll(s => s.Content).ToList();
             List<NetworkService> allModServices = ModellingServiceWrapper.Resolve(services).ToList().ConvertAll(s => ModellingService.ToNetworkService(s));
-            if(userConfig.RuleRecognitionOption.SvcResolveGroup)
+            if(ruleRecognitionOption.SvcResolveGroup)
             {
                 foreach(var svcGrp in ModellingServiceGroupWrapper.Resolve(serviceGroups))
                 {
@@ -134,7 +140,7 @@ namespace FWO.Services
             {
                 return false;
             }
-            return userConfig.RuleRecognitionOption.SvcResolveGroup ? true : CompareSvcGroups(networkServices, serviceGroups);
+            return ruleRecognitionOption.SvcResolveGroup ? true : CompareSvcGroups(networkServices, serviceGroups);
         }
 
         private bool CompareSvcGroups(ServiceWrapper[] networkServices, List<ModellingServiceGroupWrapper> serviceGroups)

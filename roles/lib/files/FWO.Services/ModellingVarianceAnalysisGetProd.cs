@@ -3,6 +3,7 @@ using FWO.Basics;
 using FWO.Data;
 using FWO.Data.Report;
 using FWO.Logging;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 
 namespace FWO.Services
@@ -21,7 +22,7 @@ namespace FWO.Services
                 RelevantManagements = [];
                 foreach (Management mgt in managements)
                 {
-                    ExtMgtData extMgtData = System.Text.Json.JsonSerializer.Deserialize<ExtMgtData>(mgt.ExtMgtData ?? "");
+                    ExtMgtData extMgtData = JsonSerializer.Deserialize<ExtMgtData>(mgt.ExtMgtData ?? "");
                     if(!string.IsNullOrEmpty(extMgtData.ExtId) || !string.IsNullOrEmpty(extMgtData.ExtName))
                     {
                         RelevantManagements.Add(mgt);
@@ -118,7 +119,7 @@ namespace FWO.Services
 
         private string? GetFromCustomField(Rule rule)
         {
-            Dictionary<string, string>? customFields = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(rule.CustomFields);
+            Dictionary<string, string>? customFields = JsonSerializer.Deserialize<Dictionary<string, string>>(rule.CustomFields);
             return customFields != null && customFields.ContainsKey(userConfig.ModModelledMarker) ? customFields[userConfig.ModModelledMarker] : null;
         }
 

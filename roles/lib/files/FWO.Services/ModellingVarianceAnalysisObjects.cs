@@ -2,6 +2,7 @@
 using FWO.Data.Modelling;
 using FWO.Data.Workflow;
 using FWO.Logging;
+using System.Text.Json;
 
 namespace FWO.Services
 {
@@ -223,7 +224,7 @@ namespace FWO.Services
                 ManagementId = mgt.Id,
                 OnManagement = mgt,
                 Elements = groupMembers,
-                AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(addInfo)
+                AdditionalInfo = JsonSerializer.Serialize(addInfo)
             });
         }
 
@@ -254,7 +255,7 @@ namespace FWO.Services
                     ManagementId = mgt.Id,
                     OnManagement = mgt,
                     Elements = newGroupMembers,
-                    AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(addInfo)
+                    AdditionalInfo = JsonSerializer.Serialize(addInfo)
                 });
             }
             if (deletedGroupMembers.Count > 0)
@@ -269,7 +270,7 @@ namespace FWO.Services
                     ManagementId = mgt.Id,
                     OnManagement = mgt,
                     Elements = deletedGroupMembers,
-                    AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(addInfo)
+                    AdditionalInfo = JsonSerializer.Serialize(addInfo)
                 });
             }
         }
@@ -425,7 +426,7 @@ namespace FWO.Services
                 ManagementId = mgt.Id,
                 OnManagement = mgt,
                 Elements = groupMembers,
-                AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(addInfo)
+                AdditionalInfo = JsonSerializer.Serialize(addInfo)
             });
         }
 

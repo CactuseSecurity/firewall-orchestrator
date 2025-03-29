@@ -225,7 +225,7 @@
             }
             else
             {
-                services.Add(elem.Port + "/" + ipProtos.Find(x => x.Id == elem.ProtoId)?.Name);
+                services.Add(SCAccessRequestTicketTask.DisplayPortRange(elem.Port ?? 0, elem.PortEnd) + "/" + ipProtos.Find(x => x.Id == elem.ProtoId)?.Name);
             }
         }
         return string.Join(", ", services);

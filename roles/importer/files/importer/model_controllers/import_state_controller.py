@@ -32,6 +32,7 @@ class ImportStateController(ImportState):
         self.ImportVersion = int(version)
         self.IsFullImport = isFullImport
         self.IsClearingImport = isClearingImport
+        self.RulbaseToGatewayMap = {}
         super().__init__(fwoConfig.FwoApiUri, jwt)
 
     def __str__(self):

@@ -96,17 +96,23 @@ class FwConfigImportRule(FwConfigImportBase):
         newRulebases = self.getRules(newRuleUids)
 
         # update rule_metadata before adding rules
-        errorCountAdd, numberOfAddedMetaRules, newRuleIds = self.addNewRuleMetadata(newRulebases)
+        errorCountAdd, numberOfAddedMetaRules, newRuleMetadataIds = self.addNewRuleMetadata(newRulebases)
 
-        # now update the database with all rule diffs
+        # # now update the database with all rule diffs
         errorCountAdd, numberOfAddedRules, newRuleIds = self.addNewRules(newRulebases)
 
-        # try to add the rule ids to the existing rulebase objects
-        # self.updateRuleIds(newRulebases, newRuleIds)
+        # # try to add the rule ids to the existing rulebase objects
+        # # self.updateRuleIds(newRulebases, newRuleIds)
 
-        # TODO: self.addNewRuleSvcRefs(newRulebases, newRuleIds)
-        self.addNewRule2ObjRefs(newRulebases, newRuleIds)
-        ids = self.addNewRuleEnforcedOnGatewayRefs(newRulebases, newRuleIds)
+        # # get new rules details from API (for obj refs as well as enforcing gateways)
+        # errors, changes, newRules = self.getRulesByIdWithRefUids(newRuleIds)
+
+        # self.addNewRule2ObjRefs(newRules)
+        # # TODO: self.addNewRuleSvcRefs(newRulebases, newRuleIds)
+
+        # enforcingController = RuleEnforcedOnGatewayController(self.ImportDetails)
+        # ids = enforcingController.addNewRuleEnforcedOnGatewayRefs(newRules, self.ImportDetails)
+
         errorCountDel, numberOfDeletedRules, removedRuleIds = self.markRulesRemoved(deletedRuleUids)
 
         # TODO: get rules without removed rule in the right order
@@ -117,71 +123,84 @@ class FwConfigImportRule(FwConfigImportBase):
         loop.close()
         end_time = time.time()      
         execution_time = end_time - start_time
-                                                                                       # It is some problem caused by mixing up async and sync code.
-
+        # It is some problem caused by mixing up async and sync code.
         logger.info(f"reset of order numbers completed in {execution_time:.2f}.")
 
         self.ImportDetails.Stats.RuleAddCount += numberOfAddedRules
         self.ImportDetails.Stats.RuleDeleteCount += numberOfDeletedRules
 
         # TODO: rule_nwobj_resolved fuellen (recert?)
+        return newRuleIds
 
-        return # errorCountAdd + errorCountDel, numberOfDeletedRules + numberOfAddedRules + numberOfAddedMetaRules
-    
+    # def addNewRuleEnforcedOnGatewayRefs(self, newRules, allGwIds= []):
+    #     # for each new rule: add refs in rule_enforced_on_gateway
+    #     # assuming all gateways and rules are already in the database
+    #     # set map for this management: rulebaseId to list of ids of all gateways this rulebase is installed on
+    #     # (using rulebase_links)]
+    #     self.ImportDetails.SetMapOfAllEnforcingGatewayIdsForRulebaseId()
 
-    def addNewRuleEnforcedOnGatewayRefs(self, newRulebases, newRuleIds):
-        # for each new rule: add refs in rule_enforced_on_gateway
-        # assuming all gateways and rules are already in the database
+    #     ruleToGwRefs = []
+    #     # now add the references to the rules
+    #     for rule in newRules:
+    #         if 'rule_installon' in rule:
+    #             if rule['rule_installon'] is None:
+    #                 # add links to all gateways that this rulebase is installed on
+    #                 for id in self.ImportDetails.getGwIdsForRulebaseId(rule['rulebase_id']):
+    #                     ruleToGwRefs.append(RuleEnforcedOnGateway(
+    #                         rule_id=rule['rule_id'], 
+    #                         dev_id=id, 
+    #                         created=self.ImportDetails.ImportId, 
+    #                         removed=None,
+    #                         importState=self.ImportDetails).
+    #                         toDict())
+    #                 pass
+    #             else:
+    #                 for gwUid in rule['rule_installon'].split(fwo_const.list_delimiter):
+    #                     gwId = self.ImportDetails.lookupGatewayId(gwUid)
+    #                     if gwId is not None:
+    #                         ruleToGwRefs.append(RuleEnforcedOnGateway(
+    #                             rule_id=rule['rule_id'], 
+    #                             dev_id=gwId, 
+    #                             created=self.ImportDetails.ImportId, 
+    #                             removed=None,
+    #                             importState=self.ImportDetails).
+    #                             toDict())
+    #                     else:
+    #                         # TODO: here we got a broken ref to a non-existing gateway (e.g. CpmiOseDevice) - ignoring for now
+    #                         pass
 
-        # TODO: need to make sure that the references do not already exist!
-        errors, changes, newRules = self.getRulesByIdWithRefUids(newRuleIds)
+    #     enforcementController = RuleEnforcedOnGatewayController(self.ImportDetails)
 
-        ruleToGwRefs = []
-        # now add the references to the rules
-        for rule in newRules:
-            if 'rule_installon' in rule and rule['rule_installon'] is not None:
-                for gwUid in rule['rule_installon'].split(fwo_const.list_delimiter):
-                    gwId = self.ImportDetails.lookupGatewayId(gwUid)
-                    if gwId is not None:
-                        ruleToGwRefs.append(RuleEnforcedOnGateway(
-                            rule_id=rule['rule_id'], 
-                            dev_id=gwId, 
-                            created=self.ImportDetails.ImportId, 
-                            removed=None,
-                            importState=self.ImportDetails).
-                            toDict())
-                    else:
-                        # TODO: add links to all gateways? or do this implicitely in UI?
-                        pass
+    #     if ruleToGwRefs is None or len(ruleToGwRefs) == 0:
+    #         logger = getFwoLogger()
+    #         logger.info("no rules to be enforced on gateways")
+    #         return
+    #     try:
+    #         logger = getFwoLogger()
+    #         importResults = enforcementController.insertRulesEnforcedOnGateway(ruleToGwRefs)
+    #         if 'errors' in importResults:
+    #             logger.exception(f"fwo_api:importNwObject - error in addNewRuleEnforcedOnGatewayRefs: {str(importResults['errors'])}")
+    #             self.ImportDetails.increaseErrorCounterByOne()
+    #             self.ImportDetails.appendErrorString(f"error in addNewRuleEnforcedOnGatewayRefs: {str(importResults['errors'])}")
+    #         else:
+    #             if 'affected_rows' in importResults['data']['insert_rule_enforced_on_gateway']:
+    #                 changes = importResults['data']['insert_rule_enforced_on_gateway']['affected_rows']
+    #             else:
+    #                 changes = 1
+    #             self.ImportDetails.Stats.RuleEnforceChangeCount += changes
+    #     except:
+    #         logger.exception(f"failed to write new rules: {str(traceback.format_exc())}")
+    #         self.ImportDetails.increaseErrorCounterByOne()
+    #         self.ImportDetails.appendErrorString(f"failed to write new rules: {str(traceback.format_exc())}")
 
-        enforcementController = RuleEnforcedOnGatewayController(self.ImportDetails)
 
-        try:
-            logger = getFwoLogger()
-            importResults = enforcementController.insertRulesEnforcedOnGateway(ruleToGwRefs)
-            if 'errors' in importResults:
-                logger.exception(f"fwo_api:importNwObject - error in addNewRuleEnforcedOnGatewayRefs: {str(importResults['errors'])}")
-                self.ImportDetails.increaseErrorCounterByOne()
-                self.ImportDetails.appendErrorString(f"error in addNewRuleEnforcedOnGatewayRefs: {str(importResults['errors'])}")
-            else:
-                if 'affected_rows' in importResults['data']['insert_rule_enforced_on_gateway']:
-                    changes = importResults['data']['insert_rule_enforced_on_gateway']['affected_rows']
-                else:
-                    changes = 1
-                self.ImportDetails.Stats.RuleEnforceChangeCount += changes
-        except:
-            logger.exception(f"failed to write new rules: {str(traceback.format_exc())}")
-            self.ImportDetails.increaseErrorCounterByOne()
-            self.ImportDetails.appendErrorString(f"failed to write new rules: {str(traceback.format_exc())}")
-
-    def addNewRule2ObjRefs(self, newRulebases, newRuleIds):
+    def addNewRule2ObjRefs(self, newRules):
         # for each new rule: add refs in rule_to and rule_from
         # assuming all nwobjs are already in the database
 
         # TODO: need to make sure that the references do not already exist!
 
         # first get all network objects via API that are used in the new rules
-        errors, changes, newRules = self.getRulesByIdWithRefUids(newRuleIds)
         objectUid2IdMapper = FwConfigImportObject(self.ImportDetails, self.NormalizedConfig)
         objectUid2IdMapper.buildObjUidToIdMapFromApi(newRules)  # creates a dict with all relevant mapping
             # service, network objects, users, zones, ...
@@ -339,6 +358,7 @@ class FwConfigImportRule(FwConfigImportBase):
                     rule_src_neg
                     rule_dst_neg
                     rule_svc_neg
+                    rulebase_id
                     rule_installon
                 }
             }

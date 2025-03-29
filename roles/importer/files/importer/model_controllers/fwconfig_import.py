@@ -12,13 +12,8 @@ from model_controllers.fwconfig_import_object import FwConfigImportObject
 from model_controllers.fwconfig_import_rule import FwConfigImportRule
 from model_controllers.fwconfig_import_object import FwConfigImportObject
 from model_controllers.fwconfig_import_rule import FwConfigImportRule
-
-
-# from models.gateway import Gateway
-# from models.rulebase_link import RulebaseLinkUidBased
-# from model_controllers.rulebase_link_uid_based_controller import RulebaseLinkUidBasedController
-# from model_controllers.rulebase_link_controller import RulebaseLinkController
 from model_controllers.fwconfig_import_gateway import FwConfigImportGateway
+from model_controllers.rule_enforced_on_gateway_controller import RuleEnforcedOnGatewayController
 
 
 """
@@ -49,15 +44,26 @@ class FwConfigImport(FwConfigImportObject, FwConfigImportRule, FwConfigImportGat
         previousConfig = self.getPreviousConfig()
         self.updateDiffs(previousConfig)
         # calculate differences and write them to the database via API
-        # self.getRulebaseLinks()
+
+        # rbLinks = RulebaseLinkController.getRulebaseLinks()
         # TODO: deal with networking later
         return
 
     def updateDiffs(self, previousConfig: FwConfigNormalized):
         self.updateObjectDiffs(previousConfig)
-        self.updateRulebaseDiffs(previousConfig)
+        newRuleIds = self.updateRulebaseDiffs(previousConfig)
         self.ImportDetails.SetRuleMap() # update all rule entries (from currently running import for rulebase_links)
         self.updateGatewayDiffs(previousConfig)
+
+        # get new rules details from API (for obj refs as well as enforcing gateways)
+        errors, changes, newRules = self.getRulesByIdWithRefUids(newRuleIds)
+
+        self.addNewRule2ObjRefs(newRules)
+        # TODO: self.addNewRuleSvcRefs(newRulebases, newRuleIds)
+
+        enforcingController = RuleEnforcedOnGatewayController(self.ImportDetails)
+        ids = enforcingController.addNewRuleEnforcedOnGatewayRefs(newRules, self.ImportDetails)
+
         return 
 
     def storeLatestConfig(self):

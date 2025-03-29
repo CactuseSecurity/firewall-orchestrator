@@ -190,6 +190,7 @@ Create table "rule"
 	"xlate_rule" BIGINT,
 	"is_global" BOOLEAN DEFAULT FALSE NOT NULL,
 	"rulebase_id" Integer NOT NULL,
+	"rule_order_array" Integer [],
 	primary key ("rule_id")
 );
 

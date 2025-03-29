@@ -1170,12 +1170,6 @@ INSERT INTO txt VALUES ('add_interface', 	    'German',	'Schnittstelle hinzuf&uu
 INSERT INTO txt VALUES ('add_interface', 	    'English',	'Add Interface');
 INSERT INTO txt VALUES ('edit_interface', 	    'German',	'Schnittstelle bearbeiten');
 INSERT INTO txt VALUES ('edit_interface', 	    'English',	'Edit Interface');
-INSERT INTO txt VALUES ('interface_contain_nwarea','German','Schnittstellen d&uuml;rfen keine Netzbereiche enthalten');
-INSERT INTO txt VALUES ('interface_contain_nwarea','English','Interfaces must not contain network areas');
-INSERT INTO txt VALUES ('direction_contain_nwarea','German','Quelle und Ziel d&uuml;rfen nicht gleichzeitig einen Netzbereich enthalten');
-INSERT INTO txt VALUES ('direction_contain_nwarea','English','Source and destination must not contain a network area at the same time');
-INSERT INTO txt VALUES ('only_common_service',  'German',   'Dieser Netzbereich kann nur in der Registerkarte Gemeinsame Dienste verwendet werden.');
-INSERT INTO txt VALUES ('only_common_service',  'English',  'This network area can only be used in common services tab');
 INSERT INTO txt VALUES ('delete_interface', 	'German',	'Schnittstelle l&ouml;schen');
 INSERT INTO txt VALUES ('delete_interface', 	'English',	'Delete Interface');
 INSERT INTO txt VALUES ('insert_forbidden', 	'German',	'Einf&uuml;gen verboten');
@@ -2907,8 +2901,14 @@ INSERT INTO txt VALUES ('U9019', 'German',  'Sind sie sicher, dass sie die Exter
 INSERT INTO txt VALUES ('U9019', 'English', 'Are you sure you want to reinit the external requests for following ticket: ');
 INSERT INTO txt VALUES ('U9020', 'German',  'Die externe Beantragung wurde gestartet.');
 INSERT INTO txt VALUES ('U9020', 'English', 'External Request initialized.');
-INSERT INTO txt VALUES ('U9021', 'German',  'Sind sie sicher, dass sie folgendes Ticket schliessen wollen: ');
-INSERT INTO txt VALUES ('U9021', 'English', 'Are you sure you want to close the following ticket: ');
+INSERT INTO txt VALUES ('U9021', 'German',  'Schnittstellen d&uuml;rfen keine Netzbereiche enthalten');
+INSERT INTO txt VALUES ('U9021', 'English', 'Interfaces must not contain network areas');
+INSERT INTO txt VALUES ('U9022', 'German',  'Quelle und Ziel d&uuml;rfen nicht gleichzeitig einen Netzbereich enthalten');
+INSERT INTO txt VALUES ('U9022', 'English', 'Source and destination must not contain a network area at the same time');
+INSERT INTO txt VALUES ('U9023', 'German',  'Dieser Netzbereich kann nur in der Registerkarte Gemeinsame Dienste verwendet werden.');
+INSERT INTO txt VALUES ('U9023', 'English', 'This network area can only be used in common services tab');
+INSERT INTO txt VALUES ('U9024', 'German',  'Netzbereiche k&ouml;nnen nicht zusammen mit Schnittstellen anderer Apps genutzt werden.');
+INSERT INTO txt VALUES ('U9024', 'English', 'Network areas cannot be used together with interfaces from foreign apps.');
 
 -- error messages
 INSERT INTO txt VALUES ('E0001', 'German',  'Nicht klassifizierter Fehler: ');
@@ -3357,6 +3357,10 @@ INSERT INTO txt VALUES ('C9017', 'German',  'Hier kann der Name des App-Servers,
 INSERT INTO txt VALUES ('C9017', 'English', 'Here the name of the App Server, which is created on saving anyway, can be generated for display in advance.
     The name is searched in the DNS. If not found, it is constructed according to the naming convention.
 ');
+INSERT INTO txt VALUES ('C9018', 'German',  'Leere Service Gruppe(n) enthalten. Diese Verbindung wird nicht beantragt.');
+INSERT INTO txt VALUES ('C9018', 'English', 'Contains empty Service Groups(s). This connection will not be requested.');
+INSERT INTO txt VALUES ('C9019', 'German',  'Leere Service Gruppe(n) enthalten. Nutzende Verbindungen dieser Schnittstelle werden nicht beantragt.');
+INSERT INTO txt VALUES ('C9019', 'English', 'Contains empty Service Groups(s). Connections using this interface will not be requested.');
 
 -- help pages
 INSERT INTO txt VALUES ('H0001', 'German',  'Firewall Orchestrator ist eine Anwendung zum Erzeugen und Verwalten von verschiedenen Reports aus Konfigurationsdaten verteilter Firewallsysteme.

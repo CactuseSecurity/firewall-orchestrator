@@ -16,23 +16,23 @@
             <Template>
                 <div class="btn-group">
                     <button type="button" class="btn btn-sm btn-primary" @onclick="async () =>
-                            { await AppHandler.ShowDetails(context); await AppHandlerChanged.InvokeAsync(AppHandler); }">
+                        { await AppHandler.ShowDetails(context); await AppHandlerChanged.InvokeAsync(AppHandler); }">
                         @(AppHandler.DisplayButton("details", Icons.Display))
                     </button>
-                @if (AppActive)
-                {
-                    @if (!context.GetBoolProperty(ConState.InterfaceRejected.ToString()) && !context.GetBoolProperty(ConState.Rejected.ToString()))
+                    @if (AppActive)
                     {
-                        <button type="button" class="btn btn-sm btn-warning" @onclick="async () =>
+                        @if (!context.GetBoolProperty(ConState.InterfaceRejected.ToString()) && !context.GetBoolProperty(ConState.Rejected.ToString()))
+                        {
+                            <button type="button" class="btn btn-sm btn-warning" @onclick="async () =>
                                 { await AppHandler.EditConn(context); await AppHandlerChanged.InvokeAsync(AppHandler); }">
-                            @(AppHandler.DisplayButton("edit", Icons.Edit))
+                                @(AppHandler.DisplayButton("edit", Icons.Edit))
+                            </button>
+                        }
+                        <button type="button" class="btn btn-sm btn-danger" @onclick="async () =>
+                            { await AppHandler.RequestDeleteConnection(context); await AppHandlerChanged.InvokeAsync(AppHandler); }">
+                            @(AppHandler.DisplayButton("delete", Icons.Delete))
                         </button>
                     }
-                    <button type="button" class="btn btn-sm btn-danger" @onclick="async () =>
-                            { await AppHandler.RequestDeleteConnection(context); await AppHandlerChanged.InvokeAsync(AppHandler); }">
-                        @(AppHandler.DisplayButton("delete", Icons.Delete))
-                    </button>
-                }
                 </div>
             </Template>
         </Column>
@@ -164,7 +164,7 @@
 
     [Parameter] 
     public EventCallback<int> PageSizeCallback { get; set; }
-    
+
     [Parameter]
     public bool ShowPageSizeInput { get; set; } = false;
 
@@ -239,6 +239,9 @@
                         break;
                     case nameof(ConState.DeletedObjects):
                         relevantProps.Add($"<span class=\"text-warning\" data-toggle=\"tooltip\" title=\"{(connection.IsInterface ? userConfig.PureLine("C9016") : userConfig.PureLine("C9014"))}\">!</span>");
+                        break;
+                    case nameof(ConState.EmptySvcGrps):
+                        relevantProps.Add($"<span class=\"text-warning\" data-toggle=\"tooltip\" title=\"{( connection.IsInterface ? userConfig.PureLine("C9019") : userConfig.PureLine("C9018") )}\">!</span>");
                         break;
                     default:
                         break;

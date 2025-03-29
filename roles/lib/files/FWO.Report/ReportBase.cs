@@ -1,16 +1,16 @@
-﻿using FWO.Basics;
-using FWO.Api.Client;
-using FWO.Data.Report;
-using FWO.Report.Filter;
+﻿using FWO.Api.Client;
+using FWO.Basics;
 using FWO.Config.Api;
+using FWO.Data.Report;
+using FWO.Logging;
+using FWO.Report.Data;
+using FWO.Report.Filter;
 using System.Text;
 using System.Reflection;
 using PuppeteerSharp;
 using PuppeteerSharp.Media;
 using PuppeteerSharp.BrowserData;
 using HtmlAgilityPack;
-using FWO.Report.Data;
-using FWO.Logging;
 
 namespace FWO.Report
 {
@@ -270,6 +270,9 @@ namespace FWO.Report
             {
                 ExecutablePath = installedBrowser.GetExecutablePath(),
                 Headless = true,
+                // Args = isGitHubActions?
+                //     ["--no-sandbox", "--database=/tmp", "--disable-setuid-sandbox"]
+                //     : new string[0] // No additional arguments locally
             });
 
             try
@@ -427,6 +430,7 @@ namespace FWO.Report
                 ObjectType.Host => Icons.Host,
                 ObjectType.Network => Icons.Network,
                 ObjectType.IPRange => Icons.Range,
+                ObjectType.AccessRole => Icons.User,
                 _ => objCategory switch
                 {
                     ObjCategory.nobj => Icons.NwObject,

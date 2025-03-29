@@ -106,13 +106,13 @@ DECLARE
 	i_admin_id	INTEGER;	-- id des admins der die letzte Aenderung gemacht hat
     existing_obj   RECORD; -- der ev. bestehende  Datensatz aus object
     b_insert	BOOLEAN; -- soll eingefuegt werden oder nicht?
-    b_change	BOOLEAN; -- hat sich etwas geändert?
-    b_change_security_relevant	BOOLEAN; -- hat sich etwas sicherheitsrelevantes geändert?
+    b_change	BOOLEAN; -- hat sich etwas geaendert?
+    b_change_security_relevant	BOOLEAN; -- hat sich etwas sicherheitsrelevantes geaendert?
     v_change_id VARCHAR;	-- type of change
 	b_is_documented BOOLEAN; 
 	t_outtext TEXT; 
 	i_change_type INTEGER;
-	i_new_obj_id  BIGINT;	-- id des neu eingefügten object
+	i_new_obj_id  BIGINT;	-- id des neu eingefuegten object
 	v_comment	VARCHAR;
 	ip_range    RECORD;
 BEGIN

@@ -7,7 +7,7 @@
 
 @foreach (var management in Managements)
 {
-    @if (management.Devices.Where(device => device.Rules != null && device.Rules.Count() > 0).Count() > 0)
+    @if (management.ContainsRules())
     {
         management.AssignRuleNumbers();
 
@@ -15,12 +15,12 @@
 
             @foreach (var device in management.Devices)
             {
-                @if (device.Rules != null && device.Rules.Length > 0 && ruleDisplay != null)
+                @if (device.ContainsRules() && ruleDisplay != null)
                 {
                     <Collapse Title="@device.Name" Style="@("secondary")" StartToggled="true">
                         <Table SelectedItems="SelectedRules"
                             RowClickAction="@(async rule => { rule.DeviceName = device.Name ?? ""; if (!SelectedRules.Remove(rule)) SelectedRules.Add(rule); await SelectedRulesChanged.InvokeAsync(SelectedRules); })"
-                            style="font-size:small" TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header popover-transform" TableItem="Rule" Items="device.Rules" ShowSearchBar="false"
+                            style="font-size:small" TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="Rule" Items="ReportRules.GetAllRulesOfGateway(device, management)" ShowSearchBar="false"
                             PageSize="RulesPerPage" ColumnReorder="true" TableRowClass="@(rule => getTableRowClasses(rule))"
                             @ref="reportTable">
 
@@ -28,7 +28,7 @@
                             {
                                 <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("number"))" DefaultSortColumn="true" Field="@(rChange => rChange.OrderNumber)" Sortable="true" Filterable="false" Hideable="true">
                                     <Template>
-                                        @((MarkupString)ruleDisplay.DisplayNumber(rule))
+                                        @((MarkupString) DisplayOrderArray(rule))
                                     </Template>
                                 </Column>
                             }
@@ -36,7 +36,7 @@
                             {
                                 <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("last_hit"))" Field="@(rule => rule.Metadata.LastHit)" Sortable="false" Filterable="false">
                                     <Template>
-                                        @((MarkupString)ruleDisplay.DisplayLastHit(rule))
+                                        @((MarkupString)RuleDisplayHtml.DisplayLastHit(rule.Metadata))
                                     </Template>
                                 </Column>
                             }
@@ -44,23 +44,23 @@
                             {
                                 <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("next_recert"))" Field="@(rule => rule.Metadata.RuleRecertification)" Sortable="false" Filterable="false">
                                     <Template>
-                                        @((MarkupString)ruleDisplay.DisplayNextRecert(rule))
+                                        @((MarkupString)RuleDisplayHtml.DisplayNextRecert(rule.Metadata))
                                     </Template>
                                 </Column>
                                 <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("owner"))" Field="@(rule => rule.Metadata.RuleRecertification)" Sortable="false" Filterable="false">
                                     <Template>
-                                        @((MarkupString)ruleDisplay.DisplayOwner(rule))
+                                        @((MarkupString)RuleDisplayHtml.DisplayOwner(rule.Metadata))
                                     </Template>
                                 </Column>
 
                                 <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("ip_matches"))" Field="@(rule => rule.Metadata.RuleRecertification)" Sortable="false" Filterable="false">
                                     <Template>
-                                        @((MarkupString)ruleDisplay.DisplayRecertIpMatches(rule))
+                                        @((MarkupString)RuleDisplayHtml.DisplayRecertIpMatches(rule.Metadata))
                                     </Template>
                                 </Column>
                                 <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("last_hit"))" Field="@(rule => rule.Metadata.LastHit)" Sortable="false" Filterable="false">
                                     <Template>
-                                        @((MarkupString)ruleDisplay.DisplayLastHit(rule))
+                                        @((MarkupString)RuleDisplayHtml.DisplayLastHit(rule.Metadata))
                                     </Template>
                                 </Column>
                                 @if(Recertification && RecertificationHistory)
@@ -68,7 +68,7 @@
                                     // TODO: implement 2nd recert report containing latest recerts
                                     <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("last_recertifier"))" Field="@(rule => rule.Metadata.RuleRecertification)" Sortable="false" Filterable="true">
                                         <Template>
-                                            @((MarkupString)ruleDisplay.DisplayLastRecertifier(rule))
+                                            @((MarkupString)RuleDisplayHtml.DisplayLastRecertifier(rule.Metadata))
                                         </Template>
                                     </Column>
                                 }
@@ -112,7 +112,7 @@
                             {
                                 <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("source_zone"))" Field="@(rChange => rChange.SourceZone)" Sortable="true" Filterable="false" Hideable="true">
                                     <Template>
-                                        @((MarkupString)ruleDisplay.DisplaySourceZone(rule))
+                                        @((MarkupString)RuleDisplayHtml.DisplaySourceZone(rule))
                                     </Template>
                                 </Column>
                             }
@@ -128,7 +128,7 @@
                             {
                                 <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("destination_zone"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true">
                                     <Template>
-                                        @((MarkupString)ruleDisplay.DisplayDestinationZone(rule))
+                                        @((MarkupString)RuleDisplayHtml.DisplayDestinationZone(rule))
                                     </Template>
                                 </Column>
                             }
@@ -178,7 +178,7 @@
                             {
                                 <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("enabled"))" Field="@(rChange => rChange.Disabled)" Sortable="true" Filterable="false" Hideable="true">
                                     <Template>
-                                        @((MarkupString)ruleDisplay.DisplayEnabled(rule, getActLocation()))
+                                        @((MarkupString)RuleDisplayHtml.DisplayEnabled(rule, getActLocation()))
                                     </Template>
                                 </Column>
                             }
@@ -294,4 +294,28 @@
         return $"{userConfig.GetText(recert.Recertified ? "recertified_by" : "decertified_by")} {username} " +
             $"{userConfig.GetText("as_owner")} {recert.FwoOwner?.Name} {userConfig.GetText("comment")}: {recert.Comment}";
     }
+
+    private string DisplayOrderArray(Rule rule)
+    {
+        string displayOrderNumber = "";
+        bool isFirstOrderNumberPart = true;
+
+        if (rule == null || rule.RuleOrderArray == null)
+        {
+            return displayOrderNumber;
+        }
+        foreach (int orderArrayItem in rule.RuleOrderArray)
+        {
+            if (!isFirstOrderNumberPart)
+            {
+                displayOrderNumber += ".";
+            }
+
+            displayOrderNumber += orderArrayItem.ToString();
+            isFirstOrderNumberPart = false;
+        }
+
+        return displayOrderNumber;
+    }
+
 }

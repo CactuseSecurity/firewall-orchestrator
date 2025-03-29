@@ -33,6 +33,7 @@ Create table "device" -- contains an entry for each firewall gateway
 	"dev_id" SERIAL,
 	"mgm_id" Integer NOT NULL,
 	"dev_name" Varchar,
+	"dev_uid" Varchar,
 	"local_rulebase_name" Varchar,
 	"local_rulebase_uid" Varchar,
 	"global_rulebase_name" Varchar,
@@ -76,9 +77,14 @@ Create table "management" -- contains an entry for each firewall management syst
 	"importer_hostname" Varchar,
 	"debug_level" Integer,
 	"multi_device_manager_id" integer,		-- if this manager belongs to another multi_device_manager, then this id points to it
+	"is_super_manager" BOOLEAN DEFAULT FALSE,
 	"ext_mgm_data" Varchar,
+	"mgm_uid" Varchar NOT NULL DEFAULT '',
+	"rulebase_name" Varchar NOT NULL DEFAULT '',
+	"rulebase_uid" Varchar NOT NULL DEFAULT '',
  primary key ("mgm_id")
 );
+
 
 create table import_credential
 (
@@ -122,6 +128,7 @@ Create table "object"
 	"obj_sys_readcom" Varchar,
 	"obj_sys_writecom" Varchar,
 	"active" Boolean NOT NULL Default TRUE,
+	"removed" BIGINT,
 	"obj_create" BIGINT NOT NULL,
 	"obj_last_seen" BIGINT NOT NULL,
  primary key ("obj_id")
@@ -132,6 +139,7 @@ Create table "objgrp"
 	"objgrp_id" BIGINT NOT NULL,
 	"objgrp_member_id" BIGINT NOT NULL,
 	"import_created" BIGINT NOT NULL,
+	"removed" BIGINT,
 	"import_last_seen" BIGINT NOT NULL,
 	"active" Boolean NOT NULL Default TRUE,
 	"negated" Boolean NOT NULL Default FALSE,
@@ -147,6 +155,7 @@ Create table "rule"
 	"parent_rule_id" BIGINT,
 	"parent_rule_type" smallint,
 	"active" Boolean NOT NULL Default TRUE,
+	"removed" BIGINT,
 	"rule_num" Integer NOT NULL,
 	"rule_num_numeric" NUMERIC(16, 8),
 	"rule_ruleid" Varchar,
@@ -179,14 +188,16 @@ Create table "rule"
 	"access_rule" BOOLEAN Default TRUE,
 	"nat_rule" BOOLEAN Default FALSE,
 	"xlate_rule" BIGINT,
- primary key ("rule_id")
+	"is_global" BOOLEAN DEFAULT FALSE NOT NULL,
+	"rulebase_id" Integer NOT NULL,
+	"rule_order_array" Integer [],
+	primary key ("rule_id")
 );
 
 -- rule_metadata contains rule related data that does not change when the rule itself is changed
 Create table "rule_metadata"
 (
 	"rule_metadata_id" BIGSERIAL,
-	"dev_id" Integer NOT NULL,
 	"rule_uid" Text NOT NULL,
 	"rule_created" Timestamp NOT NULL Default now(),
 	"rule_last_modified" Timestamp NOT NULL Default now(),
@@ -202,7 +213,7 @@ Create table "rule_metadata"
 	"last_change_admin" Integer,
 	"rule_decert_date" Timestamp,
 	"rule_recertification_comment" Varchar,
- primary key ("rule_metadata_id")
+ primary key ("rule_metadata_id") 
 );
 
 -- adding direct link tables rule_[svc|nwobj|user]_resolved to make report object export easier
@@ -245,6 +256,7 @@ Create table "rule_from"
 	"user_id" BIGINT,
 	"active" Boolean NOT NULL Default TRUE,
 	"negated" Boolean NOT NULL Default FALSE,
+	"removed" BIGINT,
 	"rf_create" BIGINT NOT NULL,
 	"rf_last_seen" BIGINT NOT NULL
 );
@@ -257,6 +269,7 @@ Create table "rule_service"
 	"rs_create" BIGINT NOT NULL,
 	"rs_last_seen" BIGINT NOT NULL,
 	"negated" Boolean NOT NULL Default FALSE,
+	"removed" BIGINT,
  primary key ("rule_id","svc_id")
 );
 
@@ -270,6 +283,7 @@ Create table "rule_to"
 	"rt_create" BIGINT NOT NULL,
 	"rt_last_seen" BIGINT NOT NULL,
 	"active" Boolean NOT NULL Default TRUE,
+	"removed" BIGINT,
 	"negated" Boolean NOT NULL Default FALSE
 );
 
@@ -306,6 +320,7 @@ Create table "service"
 	"svc_sync_delay_start" Integer,
 	"active" Boolean NOT NULL Default TRUE,
 	"last_change_admin" Integer,
+	"removed" BIGINT,
 	"svc_create" BIGINT NOT NULL,
 	"svc_last_seen" BIGINT NOT NULL,
  primary key ("svc_id")
@@ -317,6 +332,7 @@ Create table "svcgrp"
 	"svcgrp_member_id" BIGINT NOT NULL,
 	"import_created" BIGINT NOT NULL,
 	"import_last_seen" BIGINT NOT NULL,
+	"removed" BIGINT,
 	"active" Boolean NOT NULL Default TRUE,
 	"negated" Boolean NOT NULL Default FALSE,
  primary key ("svcgrp_id","svcgrp_member_id")
@@ -327,6 +343,7 @@ Create table "zone"
 	"zone_id" SERIAL,
 	"zone_create" BIGINT NOT NULL,
 	"zone_last_seen" BIGINT NOT NULL,
+	"removed" BIGINT,
 	"mgm_id" Integer NOT NULL,
 	"zone_name" Varchar NOT NULL,
 	"active" Boolean NOT NULL Default TRUE,
@@ -351,6 +368,7 @@ Create table "usr"
 	"time_restrict" Text,
 	"user_create" BIGINT NOT NULL,
 	"user_last_seen" BIGINT NOT NULL,
+	"removed" BIGINT,
 	"user_comment" Text,
 	"user_uid" Text,
 	"user_firstname" Varchar,
@@ -365,6 +383,7 @@ Create table "usergrp"
 	"usergrp_member_id" BIGINT,
 	"import_created" BIGINT NOT NULL,
 	"import_last_seen" BIGINT NOT NULL,
+	"removed" BIGINT,
 	"active" Boolean NOT NULL Default TRUE,
  primary key ("usergrp_id","usergrp_member_id")
 );
@@ -376,6 +395,7 @@ Create table "usergrp_flat"
 	"usergrp_flat_member_id" BIGINT NOT NULL,
 	"import_created" BIGINT NOT NULL,
 	"import_last_seen" BIGINT NOT NULL,
+	"removed" BIGINT,
  primary key ("usergrp_flat_id","usergrp_flat_member_id")
 );
 
@@ -386,16 +406,18 @@ Create table "objgrp_flat"
 	"active" Boolean NOT NULL Default TRUE,
 	"import_created" BIGINT NOT NULL,
 	"import_last_seen" BIGINT NOT NULL,
+	"removed" BIGINT,
 	"negated" Boolean NOT NULL Default FALSE
 );
 
 Create table "svcgrp_flat"
 (
-	"svcgrp_flat_id" Integer NOT NULL,
-	"svcgrp_flat_member_id" Integer NOT NULL,
-	"import_created" Integer NOT NULL,
-	"import_last_seen" Integer NOT NULL,
+	"svcgrp_flat_id" BIGINT NOT NULL,
+	"svcgrp_flat_member_id" BIGINT NOT NULL,
+	"import_created" BIGINT NOT NULL,
+	"import_last_seen" BIGINT NOT NULL,
 	"active" Boolean NOT NULL Default TRUE,
+	"removed" BIGINT,
 	"negated" Boolean NOT NULL Default FALSE
 );
 
@@ -506,10 +528,17 @@ Create table "parent_rule_type"
  primary key ("id")
 );
 
+Create table IF NOT EXISTS "stm_link_type"
+(
+	"id" SERIAL primary key,
+	"name" Varchar NOT NULL
+);
+
 Create table "stm_action"
 (
 	"action_id" SERIAL,
 	"action_name" Varchar NOT NULL,
+	"allowed" BOOLEAN NOT NULL DEFAULT TRUE,
  primary key ("action_id")
 );
 
@@ -599,6 +628,7 @@ Create table "import_control"
 	"import_errors" Varchar,
 	"notification_done" Boolean NOT NULL Default FALSE,
 	"security_relevant_changes_counter" INTEGER NOT NULL Default 0,
+	"is_full_import" BOOLEAN DEFAULT FALSE,
  primary key ("control_id")
 );
 
@@ -606,7 +636,6 @@ Create table "import_control"
 CREATE table "import_config" (
     "import_id" bigint NOT NULL,
     "mgm_id" integer NOT NULL,
-    "chunk_number" integer,
     "config" jsonb NOT NULL,
 	"start_import_flag" Boolean NOT NULL Default FALSE,
 	"debug_mode" Boolean Default FALSE
@@ -615,6 +644,13 @@ CREATE table "import_config" (
 -- todo: move this to git instead
 -- permanent table for storing the full config as an archive
 CREATE TABLE "import_full_config" (
+    "import_id" bigint NOT NULL,
+    "mgm_id" integer NOT NULL,
+    "config" jsonb NOT NULL,
+    PRIMARY KEY ("import_id")
+);
+
+CREATE TABLE IF NOT EXISTS "latest_config" (
     "import_id" bigint NOT NULL,
     "mgm_id" integer NOT NULL,
     "config" jsonb NOT NULL,
@@ -1088,6 +1124,36 @@ create table recertification
 	recert_date Timestamp,
 	comment varchar,
 	next_recert_date Timestamp
+);
+
+Create Table IF NOT EXISTS "rule_enforced_on_gateway" 
+(
+	"rule_id" Integer NOT NULL,
+	"dev_id" Integer,  --  NULL if rule is available for all gateways of its management
+	"created" BIGINT,
+	"removed" BIGINT
+);
+
+Create table IF NOT EXISTS "rulebase"
+(
+	"id" SERIAL primary key,
+	"name" Varchar NOT NULL,
+	"uid" Varchar NOT NULL,
+	"mgm_id" Integer NOT NULL,
+	"is_global" BOOLEAN DEFAULT FALSE NOT NULL,
+	"created" BIGINT,
+	"removed" BIGINT
+);
+
+Create table IF NOT EXISTS "rulebase_link"
+(
+	"id" SERIAL primary key,
+	"gw_id" Integer,
+	"from_rule_id" Integer,
+	"to_rulebase_id" Integer NOT NULL,
+	"link_type" Integer,
+	"created" BIGINT,
+	"removed" BIGINT
 );
 
 create table owner_ticket

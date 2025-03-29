@@ -60,6 +60,12 @@
 
     - name: Install dotnet-sdk-{{ dotnet_version }}
       package: "name=dotnet-sdk-{{ dotnet_version }} state=present"
+      when: ansible_architecture == "x86_64"
+
+    - debug: 
+        msg:
+          - "NOTE: you need to install dotnet yourself for architectures other than x86_64 before running FWO installer"
+      when: ansible_architecture != "x86_64"
 
   become: true
   environment: "{{ proxy_env }}"

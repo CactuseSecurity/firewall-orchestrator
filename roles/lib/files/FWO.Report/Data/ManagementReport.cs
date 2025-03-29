@@ -1,4 +1,4 @@
-﻿using Newtonsoft.Json;
+using Newtonsoft.Json;
 using System.Text.Json.Serialization;
 using FWO.Data;
 
@@ -9,11 +9,17 @@ namespace FWO.Report
         [JsonProperty("id"), JsonPropertyName("id")]
         public int Id { get; set; }
 
+        [JsonProperty("uid"), JsonPropertyName("uid")]
+        public string Uid { get; set; }
+
         [JsonProperty("name"), JsonPropertyName("name")]
         public string Name { get; set; } = "";
 
         [JsonProperty("devices"), JsonPropertyName("devices")]
         public DeviceReport[] Devices { get; set; } = [];
+
+        [JsonProperty("rulebases"), JsonPropertyName("rulebases")]
+        public RulebaseReport[] Rulebases { get; set; } = [];
 
         [JsonProperty("import"), JsonPropertyName("import")]
         public Import Import { get; set; } = new ();
@@ -59,6 +65,7 @@ namespace FWO.Report
         public List<long> RelevantObjectIds = [];
         public List<long> HighlightedObjectIds = [];
 
+        public bool[] Detailed = [false, false, false]; // nobj, nsrv, user
 
         public ManagementReport()
         {}
@@ -68,6 +75,7 @@ namespace FWO.Report
             Id = managementReport.Id;
             Name = managementReport.Name;
             Devices = managementReport.Devices;
+            Rulebases = managementReport.Rulebases;
             Import = managementReport.Import;
             if (managementReport.Import != null && managementReport.Import.ImportAggregate != null &&
                 managementReport.Import.ImportAggregate.ImportAggregateMax != null &&
@@ -94,16 +102,28 @@ namespace FWO.Report
 
         public void AssignRuleNumbers()
         {
-            foreach (var device in Devices)
+            foreach (DeviceReport device in Devices)
             {
                 device.AssignRuleNumbers();
             }
         }
 
-        public string NameAndDeviceNames(string separator = ", ")
+        public string NameAndRulebaseNames(string separator = ", ")
         {
             return $"{Name} [{string.Join(separator, Array.ConvertAll(Devices, device => device.Name))}]";
         }
+        public bool ContainsRules()
+        {
+            foreach (var device in Devices)
+            {
+                if (device.ContainsRules())
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
     }
 
     public static class ManagementUtility
@@ -145,12 +165,19 @@ namespace FWO.Report
                 newObjects = true;
             }
 
-            if (managementReport.Devices != null && managementToMerge.Devices != null && managementToMerge.Devices.Length > 0)
+            if (managementReport.Rulebases != null && managementToMerge.Rulebases != null && managementToMerge.Rulebases.Length > 0)
             {
                 // important: if any management still returns rules, newObjects is set to true
-                if (managementReport.Devices.Merge(managementToMerge.Devices) == true)
+                if (managementReport.Rulebases.Merge(managementToMerge.Rulebases) == true)
                     newObjects = true;
             }
+
+            // if (managementReport.Devices != null && managementToMerge.Devices!= null && managementToMerge.Devices.Length > 0)
+            // {
+            //     managementReport.Devices = managementReport.Devices.Concat(managementToMerge.Devices).ToArray();
+            //     newObjects = true;
+            // }
+
             return newObjects;
         }
 
@@ -179,10 +206,11 @@ namespace FWO.Report
             if (managementReport.Devices != null && managementReportToMerge.Devices != null && managementReportToMerge.Devices.Length > 0)
             {
                 // important: if any management still returns rules, newObjects is set to true
-                if (managementReport.Devices.Merge(managementReportToMerge.Devices) == true)
+                if (managementReport.Rulebases.Merge(managementReportToMerge.Rulebases) == true)
                     newObjects = true;
             }
             return newObjects;
         }
+
     }
 }

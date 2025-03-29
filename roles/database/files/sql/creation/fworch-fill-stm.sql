@@ -283,14 +283,15 @@ insert into stm_obj_typ (obj_typ_id,obj_typ_name) VALUES (17,'voip_sip');
 insert into stm_obj_typ (obj_typ_id,obj_typ_name) VALUES (18,'simple-gateway');
 insert into stm_obj_typ (obj_typ_id,obj_typ_name) VALUES (19,'external-gateway');
 insert into stm_obj_typ (obj_typ_id,obj_typ_name) VALUES (20,'voip');   -- general voip object replacing old specific ones and including CpmiVoipSipDomain
+insert into stm_obj_typ (obj_typ_id,obj_typ_name) VALUES (21,'access-role'); 
 
 insert into stm_action (action_id,action_name) VALUES (1,'accept'); -- cp, fortinet
-insert into stm_action (action_id,action_name) VALUES (2,'drop'); -- cp
-insert into stm_action (action_id,action_name) VALUES (3,'deny'); -- netscreen, fortinet
+insert into stm_action (action_id,action_name, allowed) VALUES (2,'drop', FALSE); -- cp
+insert into stm_action (action_id,action_name, allowed) VALUES (3,'deny', FALSE); -- netscreen, fortinet
 insert into stm_action (action_id,action_name) VALUES (4,'access'); -- netscreen
 insert into stm_action (action_id,action_name) VALUES (5,'client encrypt'); -- cp
 insert into stm_action (action_id,action_name) VALUES (6,'client auth'); -- cp
-insert into stm_action (action_id,action_name) VALUES (7,'reject'); -- cp
+insert into stm_action (action_id,action_name, allowed) VALUES (7,'reject', FALSE); -- cp
 insert into stm_action (action_id,action_name) VALUES (8,'encrypt'); -- cp
 insert into stm_action (action_id,action_name) VALUES (9,'user auth'); -- cp
 insert into stm_action (action_id,action_name) VALUES (10,'session auth'); -- cp
@@ -337,8 +338,9 @@ insert into stm_track (track_id,track_name) VALUES (17,'count alarm');
 insert into stm_track (track_id,track_name) VALUES (18,'all');
 insert into stm_track (track_id,track_name) VALUES (19,'all start');
 insert into stm_track (track_id,track_name) VALUES (20,'utm');
-insert into stm_track (track_id,track_name) VALUES (22,'utm start');
 insert into stm_track (track_id,track_name) VALUES (21,'network log'); -- check point R8x:
+insert into stm_track (track_id,track_name) VALUES (22,'utm start'); -- fortinet
+insert into stm_track (track_id,track_name) VALUES (23,'detailed log'); -- check point R8x:
 
 insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufacturer,dev_typ_predef_svc,dev_typ_is_mgmt,is_pure_routing_device)
     VALUES (2,'Netscreen','5.x-6.x','Netscreen', '', true,false);
@@ -610,3 +612,10 @@ insert into request.state (id,name) VALUES (620,'Discarded');
 INSERT INTO owner (id, name, dn, group_dn, is_default, recert_interval, app_id_external) 
 VALUES    (0, 'super-owner', 'uid=admin,ou=tenant0,ou=operator,ou=user,dc=fworch,dc=internal', 'group-dn-for-super-owner', true, 365, 'NONE')
 ON CONFLICT DO NOTHING; 
+
+insert into stm_link_type (id, name) VALUES (0, 'initial');
+insert into stm_link_type (id, name) VALUES (1, 'section');
+insert into stm_link_type (id, name) VALUES (2, 'ordered');
+insert into stm_link_type (id, name) VALUES (3, 'inline');
+insert into stm_link_type (id, name) VALUES (4, 'global');
+insert into stm_link_type (id, name) VALUES (5, 'local');

@@ -1,6 +1,7 @@
 
 from fwo_log import getFwoLogger
 import json
+from checkpointR8x import cp_const
 # from checkpointR8x.cp_getter import ParseUidToName
 
 def collect_users_from_rule(rule, users): #, objDict):
@@ -46,8 +47,8 @@ def collect_users_from_rule(rule, users): #, objDict):
 
 # collect_users writes user info into global users dict
 def collect_users_from_rulebase(rulebase, users):
-    if 'layerchunks' in rulebase:
-        for chunk in rulebase['layerchunks']:
+    if 'rulebase_chunks' in rulebase:
+        for chunk in rulebase['rulebase_chunks']:
             if 'rulebase' in chunk:
                 for rule in chunk['rulebase']:
                     collect_users_from_rule(rule, users)
@@ -72,3 +73,5 @@ def getUserUidFromCpApi (userName):
     # dummy implementation returning the name as uid
     return userName
 
+def normalizeUsersLegacy():
+    raise NotImplementedError

@@ -1,7 +1,3 @@
-from urllib.parse import urlparse
-import socket
-
-debug_level=0
 
 
 def setGlobalValues (
@@ -15,4 +11,4 @@ def setGlobalValues (
     verify_certs = verify_certs_in
     suppress_cert_warnings = suppress_cert_warnings_in
     debug_level = int(debug_level_in)
- 
+    

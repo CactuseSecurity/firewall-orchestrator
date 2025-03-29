@@ -31,7 +31,8 @@ namespace FWO.Api.Client.Queries
                     File.ReadAllText(QueryPath + "networkObject/fragments/networkObjectOverview.graphql") +
                     File.ReadAllText(QueryPath + "networkService/fragments/networkServiceOverview.graphql") +
                     File.ReadAllText(QueryPath + "user/fragments/userOverview.graphql") +
-                    File.ReadAllText(QueryPath + "rule/fragments/ruleOverview.graphql");
+                    File.ReadAllText(QueryPath + "rule/fragments/ruleOverview.graphql") +
+                    File.ReadAllText(QueryPath + "rule/fragments/rulebaseOverview.graphql");
 
                 getRuleOverview = ruleOverviewFragments + File.ReadAllText(QueryPath + "rule/getRuleOverview.graphql");
 

@@ -66,8 +66,8 @@ class RuleEnforcedOnGatewayController():
                                 self=self.ImportDetails).
                                 toDict())
                         else:
-                            # TODO: here we got a broken ref to a non-existing gateway (e.g. CpmiOseDevice) - ignoring for now
-                            pass
+                            logger = getFwoLogger()
+                            logger.warning(f"found a broken ref to a non-existing gateway (uid={gwUid}. Might be e.g. CpmiOseDevice) - ignoring")
 
         enforcementController = RuleEnforcedOnGatewayController(self.ImportDetails)
 

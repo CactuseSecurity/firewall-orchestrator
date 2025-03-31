@@ -95,6 +95,9 @@ namespace FWO.Data
         [JsonProperty("rule_order_array"), JsonPropertyName("rule_order_array")]
         public int[] RuleOrderArray { get; set; } = [];
 
+        [JsonProperty("rule_enforced_on_gateways"), JsonPropertyName("rule_enforced_on_gateways")]
+        public DeviceWrapper[] EnforcingGateways { get; set; } = [];
+
         public int DisplayOrderNumber { get; set; }
         public bool Certified { get; set; }
         public string DeviceName { get; set; } = "";

@@ -14353,6 +14353,20 @@
                 ],
                 "select_permissions": [
                   {
+                    "role": "fw-admin",
+                    "permission": {
+                      "columns": [
+                        "created",
+                        "removed",
+                        "dev_id",
+                        "rule_id"
+                      ],
+                      "filter": {},
+                      "allow_aggregations": true
+                    },
+                    "comment": ""
+                  },
+                  {
                     "role": "importer",
                     "permission": {
                       "columns": [
@@ -14362,6 +14376,68 @@
                         "rule_id"
                       ],
                       "filter": {}
+                    },
+                    "comment": ""
+                  },
+                  {
+                    "role": "middleware-server",
+                    "permission": {
+                      "columns": [
+                        "created",
+                        "removed",
+                        "dev_id",
+                        "rule_id"
+                      ],
+                      "filter": {},
+                      "allow_aggregations": true
+                    },
+                    "comment": ""
+                  },
+                  {
+                    "role": "recertifier",
+                    "permission": {
+                      "columns": [
+                        "created",
+                        "removed",
+                        "dev_id",
+                        "rule_id"
+                      ],
+                      "filter": {
+                        "dev_id": {
+                          "_in": "x-hasura-visible-devices"
+                        }
+                      }
+                    },
+                    "comment": ""
+                  },
+                  {
+                    "role": "reporter",
+                    "permission": {
+                      "columns": [
+                        "created",
+                        "removed",
+                        "dev_id",
+                        "rule_id"
+                      ],
+                      "filter": {
+                        "dev_id": {
+                          "_in": "x-hasura-visible-devices"
+                        }
+                      }
+                    },
+                    "comment": ""
+                  },
+                  {
+                    "role": "reporter-viewall",
+                    "permission": {
+                      "columns": [
+                        "created",
+                        "removed",
+                        "dev_id",
+                        "rule_id"
+                      ],
+                      "filter": {},
+                      "allow_aggregations": true
                     },
                     "comment": ""
                   }

@@ -2389,6 +2389,8 @@ INSERT INTO txt VALUES ('suspected_cause',      'German', 	'Vermutliche Ursache'
 INSERT INTO txt VALUES ('suspected_cause',      'English', 	'Suspected Cause');
 INSERT INTO txt VALUES ('device',				'German', 	'Ger&auml;t');
 INSERT INTO txt VALUES ('device',				'English', 	'Device');
+INSERT INTO txt VALUES ('enforcing_devices',	'German', 	'Filter-Devices');
+INSERT INTO txt VALUES ('enforcing_devices',	'English', 	'Enforcing Devices');
 INSERT INTO txt VALUES ('object_type',          'German', 	'Objekt-Typ');
 INSERT INTO txt VALUES ('object_type',          'English', 	'Object Type');
 INSERT INTO txt VALUES ('object_name',          'German', 	'Objektname');

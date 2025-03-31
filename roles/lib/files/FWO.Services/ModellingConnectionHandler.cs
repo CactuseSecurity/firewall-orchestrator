@@ -277,6 +277,38 @@ namespace FWO.Services
         }
 
         /// <summary>
+        /// Checks the given interface object if it can be used with network areas that are added to the connection.
+        /// </summary>
+        /// <param name="interf"></param>
+        /// <returns></returns>
+        public bool InterfaceAllowedWithNetworkArea(ModellingConnection interf)
+        {
+            if (!ActConn.IsInterface && !ActConn.IsCommonService && interf.AppId != ActConn.AppId &&
+                ( ActConn.DestinationAreas.Count > 0 || DstAreasToAdd.Count > 0 ||
+                ActConn.SourceAreas.Count > 0 || SrcAreasToAdd.Count > 0 ))
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Checks the selected interface if it is foreign to the modelled connection
+        /// </summary>
+        /// <returns></returns>
+        public bool IsNotInterfaceForeignToApp()
+        {
+            if (!ActConn.IsInterface && !ActConn.IsCommonService && ActConn.UsedInterfaceId != null &&
+                ActConn.UsedInterfaceId > 0 && PreselectedInterfaces.FirstOrDefault(_ => _.Id == ActConn.UsedInterfaceId)?.AppId != ActConn.AppId)
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
         /// Checks the opposite direction if it already contains a network area.
         /// </summary>
         private bool IsAreaForbiddenInDirection(Direction direction)
@@ -314,13 +346,13 @@ namespace FWO.Services
 
             if (IsAreaForbiddenInDirection(direction))
             {
-                reason.Text = userConfig.GetText("direction_contain_nwarea");
+                reason.Text = userConfig.GetText("U9022");
                 return false;
             }
 
             if (ActConn.IsInterface)
             {
-                reason.Text = userConfig.GetText("interface_contain_nwarea");
+                reason.Text = userConfig.GetText("U9021");
                 return false;
             }
 
@@ -335,7 +367,7 @@ namespace FWO.Services
                 return true;
             }
 
-            reason.Text = userConfig.GetText("only_common_service");
+            reason.Text = userConfig.GetText("U9023");
             return false;
         }
 

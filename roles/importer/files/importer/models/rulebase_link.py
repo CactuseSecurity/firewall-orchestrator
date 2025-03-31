@@ -29,3 +29,14 @@ class RulebaseLink(BaseModel):
     link_type: int = 0
     created: int
     removed: Optional[int] = None
+
+
+    def toDict(self):
+        return {
+            "gw_id": self.gw_id,
+            "from_rule_id": self.from_rule_id,
+            "to_rulebase_id": self.to_rulebase_id,
+            "link_type": self.link_type,
+            "created": self.created
+        }
+    

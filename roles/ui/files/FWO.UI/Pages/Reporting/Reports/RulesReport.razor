@@ -184,9 +184,17 @@
                             }
                             @if (EmptyColumns[10] == false)
                             {
-                                <Column TableItem="Rule" Title="@(userConfig.GetText("uid"))" Field="@(rChange => rChange.Uid)" Sortable="true" Filterable="false" Hideable="true" />
+                                <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("enforcing_devices"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true">
+                                    <Template>
+                                        @((MarkupString)ruleDisplay.DisplayEnforcingGateways(rule, getActLocation(), SelectedReportType))
+                                    </Template>
+                                </Column>
                             }
                             @if (EmptyColumns[11] == false)
+                            {
+                                <Column TableItem="Rule" Title="@(userConfig.GetText("uid"))" Field="@(rChange => rChange.Uid)" Sortable="true" Filterable="false" Hideable="true" />
+                            }
+                            @if (EmptyColumns[12] == false)
                             {
                                 <Column TableItem="Rule" Title="@(userConfig.GetText("comment"))" Field="@(rChange => rChange.Comment)" Sortable="true" Filterable="false" Hideable="true" />
                             }
@@ -259,7 +267,7 @@
 
     private bool RecertificationHistory { get; set; } = false;
     private ITable<Rule>? reportTable;
-    private const int ColumnsCount = 12;
+    private const int ColumnsCount = 13;
     private bool[] EmptyColumns = new bool[ColumnsCount];
 
     private NatRuleDisplayHtml? ruleDisplay;

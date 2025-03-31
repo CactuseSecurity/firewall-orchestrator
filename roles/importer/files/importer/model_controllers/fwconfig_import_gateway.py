@@ -6,6 +6,7 @@ from model_controllers.fwconfig_normalized_controller import FwConfigNormalized
 from model_controllers.fwconfig_import_base import FwConfigImportBase
 from fwo_log import getFwoLogger
 from model_controllers.rulebase_link_controller import RulebaseLinkController
+from models.rulebase_link import RulebaseLink
 # from model_controllers.rulebase_link_uid_based_controller import RulebaseLink, RulebaseLinkUidBasedController
 
 # this class is used for importing a config into the FWO API
@@ -19,7 +20,7 @@ class FwConfigImportGateway(FwConfigImportBase):
     def updateGatewayDiffs(self, prevConfig: FwConfigNormalized):
         # add gateway details:
         self.updateRulebaseLinkDiffs(prevConfig)
-        self.updateRuleEnforcedOnGatewayDiffs(prevConfig)
+        # self.updateRuleEnforcedOnGatewayDiffs(prevConfig)
         self.updateInterfaceDiffs(prevConfig)
         self.updateRoutingDiffs(prevConfig)
         # self.ImportDetails.Stats.addError('simulate error')
@@ -27,6 +28,7 @@ class FwConfigImportGateway(FwConfigImportBase):
 
     def updateRulebaseLinkDiffs(self, prevConfig: FwConfigNormalized):
         logger = getFwoLogger(debug_level=self.ImportDetails.DebugLevel)
+        rbLinkList = []
         for gw in self.NormalizedConfig.gateways:
             if gw in prevConfig.gateways:   # this check finds all changes in gateway (including rulebase link changes)
                 if self.ImportDetails.DebugLevel>3:
@@ -42,15 +44,15 @@ class FwConfigImportGateway(FwConfigImportBase):
                         self.ImportDetails.Stats.addError(f"toRulebaseId is None for link {link}")
                         continue
                     linkTypeId = self.ImportDetails.lookupLinkType(link.link_type)
-                    rbLink = RulebaseLinkController(gw_id=gwId, 
+                    rbLinkList.append(RulebaseLink(gw_id=gwId, 
                                          from_rule_id=fromRuleId,
                                          to_rulebase_id=toRulebaseId,
                                          link_type=linkTypeId,
-                                         created=self.ImportDetails.ImportId)
+                                         created=self.ImportDetails.ImportId).toDict())
 
                     # Handle new links
                     logger.debug(f"link {link} was added")
-                    rbLink.importInsertRulebaseLink(self.ImportDetails)
+#                    rbLink.importInsertRulebaseLink(self.ImportDetails)
 
                     # TODO: check for changed rbLink
                     # for prev_gw in prevConfig.gateways:
@@ -64,12 +66,15 @@ class FwConfigImportGateway(FwConfigImportBase):
                     #                 logger.debug(f"link {link} was added")
                     #                 rbLink.importInsertRulebaseLink(self.ImportDetails)
                     #                 # TODO: check for changed rbLink
+        rbLinkController = RulebaseLinkController()
+        rbLinkController.importInsertRulebaseLinks(self.ImportDetails, rbLinkList) 
+        
         return
 
-    def updateRuleEnforcedOnGatewayDiffs(self, prevConfig: FwConfigNormalized):
-        logger = getFwoLogger(debug_level=self.ImportDetails.DebugLevel)
-        # TODO: needs to be implemented
-        return
+    # def updateRuleEnforcedOnGatewayDiffs(self, prevConfig: FwConfigNormalized):
+    #     logger = getFwoLogger(debug_level=self.ImportDetails.DebugLevel)
+    #     # TODO: needs to be implemented
+    #     return
     
 
     def updateInterfaceDiffs(self, prevConfig: FwConfigNormalized):

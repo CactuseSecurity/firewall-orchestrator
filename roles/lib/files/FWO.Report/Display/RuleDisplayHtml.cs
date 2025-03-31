@@ -42,6 +42,12 @@ namespace FWO.Ui.Display
             return result.ToString();
         }
 
+        public string DisplayEnforcingGateways(Rule rule, OutputLocation location, ReportType reportType, int chapterNumber = 0, string style = "")
+        {
+            StringBuilder result = new ();
+            result.AppendJoin("<br>", Array.ConvertAll(rule.EnforcingGateways, gw => EnforcingGatewayToHtml(gw.Content, rule.MgmtId, chapterNumber, location, style, reportType)));
+            return result.ToString();
+        }
         public static string DisplaySectionHeader(Rule rule, int ColumnCount)
         {
             return $"<tr><td class=\"bg-gray\" colspan=\"{ColumnCount}\"><b>{rule.SectionHeader}</b></td></tr>";
@@ -97,6 +103,11 @@ namespace FWO.Ui.Display
         {
             return DisplayService(service, reportType, reportType.IsResolvedReport() ? null : 
                 ReportDevicesBase.ConstructLink(ObjCatString.Svc, ReportBase.GetIconClass(ObjCategory.nsrv, service.Type.Name), chapterNumber, service.Id, service.Name, location, mgmtId, style)).ToString();
+        }
+        protected static string EnforcingGatewayToHtml(Device gateway, int mgmtId, int chapterNumber, OutputLocation location, string style, ReportType reportType)
+        {
+            return DisplayGateway(gateway, reportType, reportType.IsResolvedReport() ? null : 
+                ReportDevicesBase.ConstructLink(ObjCatString.Svc, Icons.Host, chapterNumber, gateway.Id, gateway.Name, location, mgmtId, style)).ToString();
         }
 
         private string DisplaySourceOrDestination(Rule rule, int chapterNumber, OutputLocation location, ReportType reportType, string style, bool isSource)

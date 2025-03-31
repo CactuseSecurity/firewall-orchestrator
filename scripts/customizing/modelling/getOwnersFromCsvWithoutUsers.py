@@ -234,4 +234,17 @@ if __name__ == "__main__":
     fileOut = path + '/' + Path(os.path.basename(__file__)).stem + ".json"
     with open(fileOut, "w") as outFH:
         json.dump(appData, outFH, indent=3)
+        
+    #############################################    
+    # 4. Some statistics
+    logger.info(f"total #apps: {str(len(appData))}")
+    appsWithIp = 0
+    for appId in appData:
+        appsWithIp += 1 if len(appData[appId]['app_servers']) > 0 else 0
+    logger.info(f"#apps with ip addresses: {str(appsWithIp)}")
+    totalIps = 0
+    for appId in appData:
+        totalIps += len(appData[appId]['app_servers'])
+    logger.info(f"#ip addresses in total: {str(totalIps)}")
+
     sys.exit(0)

@@ -16,7 +16,8 @@ from model_controllers.import_statistics_controller import ImportStatisticsContr
 """Used for storing state during import process per management"""
 class ImportStateController(ImportState):
 
-    def __init__(self, debugLevel, configChangedSinceLastImport, fwoConfig, mgmDetails, jwt, force, version=8, isFullImport=False, isClearingImport=False, verifyCerts=False):
+    def __init__(self, debugLevel, configChangedSinceLastImport, fwoConfig, mgmDetails, jwt, force, 
+                 version=8, isFullImport=False, isInitialImport=False, isClearingImport=False, verifyCerts=False, LastSuccessfulImport=None):
         self.Stats = ImportStatisticsController()
         self.StartTime = int(time.time())
         self.DebugLevel = debugLevel
@@ -31,8 +32,10 @@ class ImportStateController(ImportState):
         self.ForceImport = force
         self.ImportVersion = int(version)
         self.IsFullImport = isFullImport
+        self.IsInitialImport = isInitialImport
         self.IsClearingImport = isClearingImport
         self.RulbaseToGatewayMap = {}
+        self.LastSuccessfulImport = LastSuccessfulImport
         super().__init__(fwoConfig.FwoApiUri, jwt)
 
     def __str__(self):
@@ -56,10 +59,13 @@ class ImportStateController(ImportState):
     def getErrors(self):
         return self.Stats.ErrorDetails
 
+    def getErrorString(self):
+        return str(self.Stats.ErrorDetails)
+
     @classmethod
     def initializeImport(cls, mgmId, debugLevel=0, suppressCertWarnings=False, 
                          sslVerification=False, force=False, version=8,
-                         isClearingImport=False, isFullImport=False
+                         isClearingImport=False, isFullImport=False, isInitialImport=False,
                          ):
 
         def _check_input_parameters(mgmId):
@@ -95,6 +101,12 @@ class ImportStateController(ImportState):
             logger.error("import_management - error while getting fw management details for mgm=" + str(mgmId) )
             raise
 
+        try: # get last import data
+            lastImportDate = fwo_api.getLastImportDate(fwoConfig.FwoApiUri, jwt, {"mgmId": int(mgmId)}, debug_level=0)
+        except:
+            logger.error("import_management - error while getting last import data for mgm=" + str(mgmId) )
+            raise
+
         result = cls (
             debugLevel = int(debugLevel),
             configChangedSinceLastImport = True,
@@ -105,10 +117,12 @@ class ImportStateController(ImportState):
             version = version,
             isClearingImport=isClearingImport,
             isFullImport=isFullImport,
-            verifyCerts=sslVerification
+            isInitialImport=(lastImportDate is None),
+            verifyCerts=sslVerification,
+            LastSuccessfulImport=lastImportDate
         )
 
-        result.setPastImportInfos()
+        result.getPastImportInfos()
         result.setCoreData()
 
         if type(result) is str:
@@ -117,7 +131,7 @@ class ImportStateController(ImportState):
         
         return result 
 
-    def setPastImportInfos(self):        
+    def getPastImportInfos(self):        
         logger = getFwoLogger()
         
         try: # get past import details (LastFullImport, ...):
@@ -128,6 +142,8 @@ class ImportStateController(ImportState):
             raise
 
         if lastFullImportDate is not None:
+            self.LastSuccessfulImport = lastFullImportDate
+
             # Convert the string to a datetime object
             pastDate = datetime.strptime(lastFullImportDate, "%Y-%m-%dT%H:%M:%S.%f")
             now = datetime.now()
@@ -135,6 +151,7 @@ class ImportStateController(ImportState):
             self.DaysSinceLastFullImport = difference.days
         else:
             self.DaysSinceLastFullImport = 0
+            # self.IsInitialImport = True
 
     def setCoreData(self):        
         # logger = getFwoLogger()

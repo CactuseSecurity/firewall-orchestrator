@@ -67,7 +67,7 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
         # only run if this is the correct import module
         if importState.MgmDetails.ImporterHostname != gethostname() and not importState.ForceImport:
             logger.info("import_management - this host (" + gethostname() + ") is not responsible for importing management " + str(mgmId))
-            return ""
+            return 0
 
         fwo_api.setImportLock(importState)
         logger.info("starting import of management " + importState.MgmDetails.Name + '(' + str(mgmId) + "), import_id=" + str(importState.ImportId))
@@ -245,7 +245,7 @@ def get_config_from_api(importState: ImportStateController, configNative, import
     try: # get the config data from the firewall manager's API: 
         # check for changes from product-specific FW API
         config_changed_since_last_import = importState.ImportFileName != None or \
-            fw_module.has_config_changed(configNative, importState.FullMgmDetails, force=importState.ForceImport)
+            fw_module.has_config_changed(configNative, importState, force=importState.ForceImport)
         if config_changed_since_last_import:
             logger.info ( "has_config_changed: changes found or forced mode -> go ahead with getting config, Force = " + str(importState.ForceImport))
         else:
@@ -257,22 +257,22 @@ def get_config_from_api(importState: ImportStateController, configNative, import
         else:
             configNormalized = {}
     except (FwLoginFailed) as e:
-        importState.ErrorString += "  login failed: mgm_id=" + str(importState.MgmDetails.Id) + ", mgm_name=" + importState.MgmDetails.Name + ", " + e.message
-        importState.ErrorCount += 1
-        logger.error(importState.ErrorString)
+        importState.appendErrorString(f"login failed: mgm_id={str(importState.MgmDetails.Id)}, mgm_name={importState.MgmDetails.Name}, {e.message}")
+        importState.increaseErrorCounter()
+        logger.error(importState.getErrorString())
         fwo_api.delete_import(importState) # deleting trace of not even begun import
         fwo_api.complete_import(importState)
         raise FwLoginFailed(e.message)
     except ImportRecursionLimitReached as e:
-        importState.ErrorString += "  recursion limit reached: mgm_id=" + str(importState.MgmDetails.Id) + ", mgm_name=" + importState.MgmDetails.Name + ", " + e.message
-        importState.ErrorCount += 1
-        logger.error(importState.ErrorString)
+        importState.appendErrorString(f"recursion limit reached: mgm_id={str(importState.MgmDetails.Id)}, mgm_name={importState.MgmDetails.Name},{e.message}")
+        importState.increaseErrorCounter()
+        logger.error(importState.getErrorString())
         fwo_api.delete_import(importState.FwoConfig.FwoApiUri, importState.Jwt, importState.ImportId) # deleting trace of not even begun import
         fwo_api.complete_import(importState)
         raise ImportRecursionLimitReached(e.message)
     except:
         importState.appendErrorString("import_management - unspecified error while getting config: " + str(traceback.format_exc()))
-        logger.error(', '.join(importState.getErrors()))
+        logger.error(importState.getErrorString())
         importState.increaseErrorCounterByOne()
         fwo_api.complete_import(importState)
         raise

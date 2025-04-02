@@ -9,6 +9,7 @@ from fwo_log import getFwoLogger
 import fwo_globals
 import cp_network
 import cp_const
+from datetime import datetime
 
 
 def cp_api_call(url, command, json_payload, sid, show_progress=False):
@@ -115,6 +116,11 @@ def set_api_url(base_url,testmode,api_supported,hostname, debug_level=0):
 
 def get_changes(sid,api_host,api_port,fromdate):
     logger = getFwoLogger()
+    
+    dt_object = datetime.fromisoformat(fromdate)
+    dt_truncated = dt_object.replace(microsecond=0)     # Truncate microseconds
+    fromdate = dt_truncated.isoformat()
+
     payload = {'from-date' : fromdate, 'details-level' : 'uid'}
     logger.debug ("payload: " + json.dumps(payload))
     base_url = 'https://' + api_host + ':' + str(api_port) + '/web_api/'

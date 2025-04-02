@@ -31,7 +31,7 @@ namespace FWO.Services
 
     public class NetworkObjectGroupFlatComparer(RuleRecognitionOption option) : IEqualityComparer<NetworkObject?>
     {
-        private NetworkObjectComparer networkObjectComparer = new(option);
+        private readonly NetworkObjectComparer networkObjectComparer = new(option);
 
         public bool Equals(NetworkObject? nwObjectGrp1, NetworkObject? nwObjectGrp2)
         {
@@ -45,8 +45,8 @@ namespace FWO.Services
                 return false;
             }
 
-            List<NetworkObject> objectList1 = nwObjectGrp1.ObjectGroupFlats.Where(o => o.Object.Type.Name != ObjectType.Group).ToList().ConvertAll(g => g.Object).ToList();
-            List<NetworkObject> objectList2 = nwObjectGrp2.ObjectGroupFlats.Where(o => o.Object.Type.Name != ObjectType.Group).ToList().ConvertAll(g => g.Object).ToList();
+            List<NetworkObject> objectList1 = [.. nwObjectGrp1.ObjectGroupFlats.Where(o => o.Object != null && o.Object?.Type.Name != ObjectType.Group).ToList().ConvertAll(g => g.Object)];
+            List<NetworkObject> objectList2 = [.. nwObjectGrp2.ObjectGroupFlats.Where(o => o.Object != null && o.Object?.Type.Name != ObjectType.Group).ToList().ConvertAll(g => g.Object)];
 
             if (objectList1.Count != objectList2.Count
                 || (option.NwRegardGroupName && nwObjectGrp1.Name != nwObjectGrp2.Name))
@@ -62,9 +62,9 @@ namespace FWO.Services
         {
             int hashCode = 0;
             
-            foreach(var obj in nwObject.ObjectGroupFlats.Where(o => o.Object.Type.Name != ObjectType.Group).ToList())
+            foreach(var obj in nwObject.ObjectGroupFlats.Where(o => o.Object?.Type.Name != ObjectType.Group).ToList())
             {
-                hashCode ^= networkObjectComparer.GetHashCode(obj.Object);
+                hashCode ^= obj.Object != null ? networkObjectComparer.GetHashCode(obj.Object) : 0;
             }
             return hashCode ^ (option.NwRegardGroupName ? 
                 HashCode.Combine(nwObject.Type.Name, nwObject.Name) :

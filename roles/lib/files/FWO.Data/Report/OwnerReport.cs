@@ -10,9 +10,13 @@ namespace FWO.Data.Report
         public List<ModellingConnection> Interfaces { get; set; } = [];
         public List<ModellingConnection> CommonServices { get; set; } = [];
         public List<ManagementReport> ManagementData { get; set; } = [];
-        public List<ModProdDifference> Differences { get; set; } = [];
+        public List<ModProdDifference> RuleDifferences { get; set; } = [];
         private readonly long DummyARid = -1;
         public int ModelledConnectionsCount { get; set; }
+
+        public Dictionary<int, List<ModellingAppRole>> MissingAppRoles { get; set; } = [];
+        public Dictionary<int, List<ModellingAppRole>> DifferingAppRoles { get; set; } = [];
+        public AppRoleStats AppRoleStats { get; set; } = new();
 
         public OwnerReport()
         {}
@@ -30,9 +34,10 @@ namespace FWO.Data.Report
             Interfaces = report.Interfaces;
             CommonServices = report.CommonServices;
             ManagementData = report.ManagementData;
-            Differences = report.Differences;
+            RuleDifferences = report.RuleDifferences;
             DummyARid = report.DummyARid;
             ModelledConnectionsCount = report.ModelledConnectionsCount;
+            AppRoleStats = report.AppRoleStats;
         }
 
 

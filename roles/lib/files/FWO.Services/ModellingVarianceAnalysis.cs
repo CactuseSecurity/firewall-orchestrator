@@ -31,6 +31,7 @@ namespace FWO.Services
         private ModellingVarianceResult varianceResult = new();
         
         private Dictionary<int, List<Rule>> allModelledRules = [];
+        private List<ModellingAppRole> allModelledAppRoles = [];
 
         private readonly Dictionary<int, List<ModellingAppRole>> allExistingAppRoles = [];
         private readonly Dictionary<int, List<ModellingAppServer>> allExistingAppServers = [];
@@ -42,14 +43,73 @@ namespace FWO.Services
         {
             await InitManagements();
             varianceResult = new() { Managements = RelevantManagements };
+            if(ruleRecognitionOption.NwSeparateGroupAnalysis)
+            {
+                await GetNwObjectsProductionState();
+                PreAnalyseAllAppRoles(connections);
+            }
             if(await GetModelledRulesProductionState(modellingFilter))
             {
-                foreach(var conn in connections.Where(c => !c.IsRequested).OrderBy(c => c.Id))
+                foreach(var conn in connections.Where(c => !c.IsInterface).OrderBy(c => c.Id))
                 {
                     AnalyseRules(conn);
                 }
             }
             return varianceResult;
+        }
+
+        private void PreAnalyseAllAppRoles(List<ModellingConnection> connections)
+        {
+            CollectModelledAppRoles(connections);
+            foreach (Management mgt in RelevantManagements)
+            {
+                varianceResult.MissingAppRoles.Add(mgt.Id, []);
+                varianceResult.DifferingAppRoles.Add(mgt.Id, []);
+                foreach (var modelledAppRole in allModelledAppRoles)
+                {
+                    AnalyseAppRole(modelledAppRole, mgt);
+                }
+            }
+            varianceResult.AppRoleStats.ModelledAppRolesCount = allModelledAppRoles.Count;
+            varianceResult.AppRoleStats.AppRolesOk = allModelledAppRoles.Where(a => !a.IsMissing && !a.HasDifference).Count();
+            varianceResult.AppRoleStats.AppRolesMissingCount = allModelledAppRoles.Where(a => a.IsMissing).Count();
+            varianceResult.AppRoleStats.AppRolesDifferenceCount = allModelledAppRoles.Where(a => a.HasDifference).Count();
+        }
+
+        private void CollectModelledAppRoles(List<ModellingConnection> connections)
+        {
+            AppRoleComparer appRoleComparer = new ();
+            foreach(var conn in connections.Where(c => !c.IsInterface).OrderBy(c => c.Id))
+            {
+                foreach(var modelledAppRole in ModellingAppRoleWrapper.Resolve(conn.SourceAppRoles))
+                {
+                    allModelledAppRoles.Add(modelledAppRole);
+                }
+                foreach(var modelledAppRole in ModellingAppRoleWrapper.Resolve(conn.DestinationAppRoles))
+                {
+                    allModelledAppRoles.Add(modelledAppRole);
+                }
+            }
+            allModelledAppRoles = allModelledAppRoles.Distinct(appRoleComparer).ToList();
+        }
+
+        private void AnalyseAppRole(ModellingAppRole modelledAppRole, Management mgt, bool isSource = false)
+        {
+            if (!ResolveExistingNwGroup(modelledAppRole, mgt))
+            {
+                modelledAppRole.IsMissing = true;
+                varianceResult.MissingAppRoles[mgt.Id].Add(modelledAppRole);
+            }
+            else if (AppRoleChanged(modelledAppRole))
+            {
+                modelledAppRole.HasDifference = true;
+                modelledAppRole.SurplusAppServers = deletedAppServers;
+                foreach(var appServer in modelledAppRole.AppServers)
+                {
+                    appServer.Content.NotImplemented = newAppServers.FirstOrDefault(a => a.Content.Id == appServer.Content.Id) != null;
+                }
+                varianceResult.DifferingAppRoles[mgt.Id].Add(modelledAppRole);
+            }
         }
 
         public async Task<List<WfReqTask>> AnalyseModelledConnectionsForRequest(List<ModellingConnection> connections)
@@ -68,11 +128,11 @@ namespace FWO.Services
                 foreach (var conn in connections.Where(c => !c.IsRequested).OrderBy(c => c.Id))
                 {
                     elements = [];
-                    AnalyseNetworkAreas(conn);
-                    AnalyseAppRoles(conn, mgt);
-                    AnalyseAppServers(conn);
-                    AnalyseServiceGroups(conn, mgt);
-                    AnalyseServices(conn);
+                    AnalyseNetworkAreasForRequest(conn);
+                    AnalyseAppRolesForRequest(conn, mgt);
+                    AnalyseAppServersForRequest(conn);
+                    AnalyseServiceGroupsForRequest(conn, mgt);
+                    AnalyseServicesForRequest(conn);
                     if (elements.Count > 0)
                     {
                         Dictionary<string, string>? addInfo = new() { { AdditionalInfoKeys.ConnId, conn.Id.ToString() } };

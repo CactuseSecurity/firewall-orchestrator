@@ -19,6 +19,9 @@ namespace FWO.Data.Modelling
         public List<ModellingAppServerWrapper> AppServers { get; set; } = [];
 
         public ModellingNetworkArea? Area { get; set; } = new();
+        public bool IsMissing = false;
+        public bool HasDifference = false;
+        public List<ModellingAppServerWrapper> SurplusAppServers { get; set; } = [];
 
 
         public ModellingAppRole()

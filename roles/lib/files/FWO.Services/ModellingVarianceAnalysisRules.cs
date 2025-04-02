@@ -1,9 +1,6 @@
 ﻿using FWO.Basics;
 using FWO.Data;
 using FWO.Data.Modelling;
-using FWO.Logging;
-using Newtonsoft.Json;
-using System.Text.Json.Serialization;
 
 namespace FWO.Services
 {
@@ -79,7 +76,7 @@ namespace FWO.Services
             {
                 foreach(var nwGroup in networkLocations.Where(n => n.Object.Type.Name == ObjectType.Group && !IsArea(n.Object)))
                 {
-                    allProdNwObjects.AddRange(nwGroup.Object.ObjectGroupFlats.ToList().ConvertAll(g => g.Object).ToList());
+                    allProdNwObjects.AddRange([.. nwGroup.Object.ObjectGroupFlats.Where(g => g.Object != null).ToList().ConvertAll(g => g.Object!)]);
                 }
                 foreach(var appRole in ModellingAppRoleWrapper.Resolve(appRoles))
                 {
@@ -93,7 +90,8 @@ namespace FWO.Services
             {
                 return false;
             }
-            return ruleRecognitionOption.NwResolveGroup ? true : CompareNwGroups(networkLocations, appRoles, otherGroups);
+            return ruleRecognitionOption.NwResolveGroup || ruleRecognitionOption.NwSeparateGroupAnalysis ?
+                true : CompareNwGroups(networkLocations, appRoles, otherGroups);
         }
 
         private bool CompareNwAreas(NetworkLocation[] networkLocations, List<ModellingNetworkAreaWrapper> areas)

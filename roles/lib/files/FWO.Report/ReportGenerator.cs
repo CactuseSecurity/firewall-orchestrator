@@ -117,7 +117,10 @@ namespace FWO.Report
             ModellingVarianceAnalysis varianceAnalysis = new(apiConnection, extStateHandler, userConfig, ownerReport.Owner, displayMessageInUi);
             ModellingVarianceResult result = await varianceAnalysis.AnalyseRulesVsModelledConnections(ownerReport.Connections, modellingFilter);
             ownerReport.Connections = result.ConnsNotImplemented;
-            ownerReport.Differences = result.Differences;
+            ownerReport.RuleDifferences = result.RuleDifferences;
+            ownerReport.MissingAppRoles = result.MissingAppRoles;
+            ownerReport.DifferingAppRoles = result.DifferingAppRoles;
+            ownerReport.AppRoleStats = result.AppRoleStats;
             if(modellingFilter.AnalyseRemainingRules)
             {
                 ownerReport.ManagementData = result.MgtDataToReport();

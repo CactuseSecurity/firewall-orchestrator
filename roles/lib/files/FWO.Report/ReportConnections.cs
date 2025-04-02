@@ -57,28 +57,9 @@ namespace FWO.Report
             int chapterNumber = 0;
             foreach (var ownerReport in ReportData.OwnerData)
             {
-                chapterNumber++;
-                ownerReport.PrepareObjectData();
-                report.AppendLine($"<h3 id=\"{Guid.NewGuid()}\">{ownerReport.Name}</h3>");
-                if(ownerReport.RegularConnections.Count > 0)
-                {
-                    report.AppendLine($"<h4 id=\"{Guid.NewGuid()}\">{userConfig.GetText("connections")}</h4>");
-                    AppendConnectionsGroupHtml(ownerReport.RegularConnections, ownerReport, chapterNumber, ref report);
-                }
-                if(ownerReport.Interfaces.Count > 0)
-                {
-                    report.AppendLine($"<h4 id=\"{Guid.NewGuid()}\">{userConfig.GetText("interfaces")}</h4>");
-                    ownerReport.Interfaces.Sort((ModellingConnection a, ModellingConnection b) => a.CompareTo(b));
-                    AppendConnectionsGroupHtml(ownerReport.Interfaces, ownerReport, chapterNumber, ref report, true);
-                }
-                if(ownerReport.CommonServices.Count > 0)
-                {
-                    report.AppendLine($"<h4 id=\"{Guid.NewGuid()}\">{userConfig.GetText("own_common_services")}</h4>");
-                    AppendConnectionsGroupHtml(ownerReport.CommonServices, ownerReport, chapterNumber, ref report);
-                }
-                AppendNetworkObjectsHtml(ownerReport.AllObjects, chapterNumber, ref report);
-                AppendNetworkServicesHtml(ownerReport.AllServices, chapterNumber, ref report);
+                AppendConnDataForOwner(ref report, ownerReport, chapterNumber);
             }
+
             if(ReportData.GlobalComSvc.Count > 0 && ReportData.GlobalComSvc.First().GlobalComSvcs.Count > 0)
             {
                 chapterNumber++;
@@ -89,6 +70,31 @@ namespace FWO.Report
                 AppendNetworkServicesHtml(ReportData.GlobalComSvc.First().AllServices, chapterNumber, ref report);
             }
             return GenerateHtmlFrame(userConfig.GetText(ReportType.ToString()), Query.RawFilter, DateTime.Now, report);
+        }
+
+        public void AppendConnDataForOwner(ref StringBuilder report, OwnerReport ownerReport, int chapterNumber)
+        {
+            chapterNumber++;
+            ownerReport.PrepareObjectData();
+            report.AppendLine($"<h3 id=\"{Guid.NewGuid()}\">{ownerReport.Name}</h3>");
+            if(ownerReport.RegularConnections.Count > 0)
+            {
+                report.AppendLine($"<h4 id=\"{Guid.NewGuid()}\">{userConfig.GetText("connections")}</h4>");
+                AppendConnectionsGroupHtml(ownerReport.RegularConnections, ownerReport, chapterNumber, ref report);
+            }
+            if(ownerReport.Interfaces.Count > 0)
+            {
+                report.AppendLine($"<h4 id=\"{Guid.NewGuid()}\">{userConfig.GetText("interfaces")}</h4>");
+                ownerReport.Interfaces.Sort((ModellingConnection a, ModellingConnection b) => a.CompareTo(b));
+                AppendConnectionsGroupHtml(ownerReport.Interfaces, ownerReport, chapterNumber, ref report, true);
+            }
+            if(ownerReport.CommonServices.Count > 0)
+            {
+                report.AppendLine($"<h4 id=\"{Guid.NewGuid()}\">{userConfig.GetText("own_common_services")}</h4>");
+                AppendConnectionsGroupHtml(ownerReport.CommonServices, ownerReport, chapterNumber, ref report);
+            }
+            AppendNetworkObjectsHtml(ownerReport.AllObjects, chapterNumber, ref report);
+            AppendNetworkServicesHtml(ownerReport.AllServices, chapterNumber, ref report);
         }
 
         private void AppendConnectionsGroupHtml(List<ModellingConnection> connections, ConnectionReport connReport, int chapterNumber, ref StringBuilder report, bool isInterface = false, bool isGlobalComSvc = false)

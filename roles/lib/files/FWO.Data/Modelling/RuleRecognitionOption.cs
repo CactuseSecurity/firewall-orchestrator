@@ -17,6 +17,9 @@ namespace FWO.Data.Modelling
 		[JsonProperty("nwResolveGroup"), JsonPropertyName("nwResolveGroup")]
         public bool NwResolveGroup { get; set; } = false;
 
+		[JsonProperty("nwSeparateGroupAnalysis"), JsonPropertyName("nwSeparateGroupAnalysis")]
+        public bool NwSeparateGroupAnalysis { get; set; } = true;
+
 		[JsonProperty("svcRegardPortAndProt"), JsonPropertyName("svcRegardPortAndProt")]
         public bool SvcRegardPortAndProt { get; set; } = true;
 

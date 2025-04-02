@@ -8,22 +8,34 @@ namespace FWO.Data.Modelling
         public List<Rule> ImplementedRules { get; set; } = [];
     }
 
+    public class AppRoleStats
+    {
+        public int ModelledAppRolesCount { get; set; } = 0;
+        public int AppRolesOk { get; set; } = 0;
+        public int AppRolesMissingCount { get; set; } = 0;
+        public int AppRolesDifferenceCount { get; set; } = 0;
+    }
+
     public class ModellingVarianceResult
     {
         public List<ModellingConnection> ConnsNotImplemented { get; set; } = [];
-        public List<ModProdDifference> Differences { get; set; } = [];
+        public List<ModProdDifference> RuleDifferences { get; set; } = [];
         public Dictionary<int, List<Rule>> UnModelledRules { get; set; } = [];
         public int ModelledCount = 0;
         public List<Management> Managements { get; set; } = [];
+
+        public Dictionary<int, List<ModellingAppRole>> MissingAppRoles { get; set; } = [];
+        public Dictionary<int, List<ModellingAppRole>> DifferingAppRoles { get; set; } = [];
+        public AppRoleStats AppRoleStats { get; set; } = new();
 
         public List<ManagementReport> UnModelledRulesReport { get; set; } = [];
 
         public void AddDifference(ModellingConnection conn, Rule rule)
         {
-            ModProdDifference? diff = Differences.FirstOrDefault(d => d.ModelledConnection.Id == conn.Id);
+            ModProdDifference? diff = RuleDifferences.FirstOrDefault(d => d.ModelledConnection.Id == conn.Id);
             if (diff == null)
             {
-                Differences.Add(new(){ModelledConnection = conn, ImplementedRules = [rule]});
+                RuleDifferences.Add(new(){ModelledConnection = conn, ImplementedRules = [rule]});
             }
             else
             {

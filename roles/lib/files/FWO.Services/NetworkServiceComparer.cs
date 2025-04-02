@@ -3,7 +3,7 @@ using FWO.Data.Modelling;
 
 namespace FWO.Services
 {
-    public class NetworkServiceComparer(RuleRecognitionOption option) : IEqualityComparer<NetworkService>
+    public class NetworkServiceComparer(RuleRecognitionOption option) : IEqualityComparer<NetworkService?>
     {
         public bool Equals(NetworkService? service1, NetworkService? service2)
         {
@@ -52,9 +52,9 @@ namespace FWO.Services
 
             NetworkServiceComparer networkServiceComparer = new(option);
             return service1.ServiceGroupFlats.ToList().ConvertAll(g => g.Object).ToList()
-                    .Except(service2.ServiceGroupFlats.ToList().ConvertAll(g => g.Object).ToList(), networkServiceComparer).ToList().Count == 0 
+                    .Except([.. service2.ServiceGroupFlats.ToList().ConvertAll(g => g.Object)], networkServiceComparer).ToList().Count == 0 
                 && service2.ServiceGroupFlats.ToList().ConvertAll(g => g.Object).ToList()
-                    .Except(service1.ServiceGroupFlats.ToList().ConvertAll(g => g.Object).ToList(), networkServiceComparer).ToList().Count == 0;
+                    .Except([.. service1.ServiceGroupFlats.ToList().ConvertAll(g => g.Object)], networkServiceComparer).ToList().Count == 0;
         }
 
         public int GetHashCode(NetworkService service)

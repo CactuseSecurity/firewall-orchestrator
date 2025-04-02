@@ -20,6 +20,7 @@ namespace FWO.Data.Modelling
 
         public bool InUse { get; set; } = true;
         public bool HighestPrio { get; set; } = true;
+        public bool NotImplemented { get; set; } = false;
 
 
         public override string Display()

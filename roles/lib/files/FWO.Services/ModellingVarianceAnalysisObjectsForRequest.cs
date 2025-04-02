@@ -7,7 +7,7 @@ using System.Text.Json;
 namespace FWO.Services
 {
     /// <summary>
-	/// Part of Variance Analysis Class analysing the network and service objects
+	/// Part of Variance Analysis Class analysing the network and service objects for request
 	/// </summary>
     public partial class ModellingVarianceAnalysis
     {
@@ -22,7 +22,7 @@ namespace FWO.Services
         private List<WfReqElement> unchangedGroupMembers = [];
 
 
-        private void AnalyseNetworkAreas(ModellingConnection conn)
+        private void AnalyseNetworkAreasForRequest(ModellingConnection conn)
         {
             foreach(var area in ModellingNetworkAreaWrapper.Resolve(conn.SourceAreas))
             {
@@ -44,19 +44,19 @@ namespace FWO.Services
             }
         }
 
-        private void AnalyseAppRoles(ModellingConnection conn, Management mgt)
+        private void AnalyseAppRolesForRequest(ModellingConnection conn, Management mgt)
         {
             foreach (ModellingAppRole srcAppRole in ModellingAppRoleWrapper.Resolve(conn.SourceAppRoles))
             {
-                AnalyseAppRole(srcAppRole, mgt, true);
+                AnalyseAppRoleForRequest(srcAppRole, mgt, true);
             }
             foreach (ModellingAppRole dstAppRole in ModellingAppRoleWrapper.Resolve(conn.DestinationAppRoles))
             {
-                AnalyseAppRole(dstAppRole, mgt);
+                AnalyseAppRoleForRequest(dstAppRole, mgt);
             }
         }
 
-        private void AnalyseAppRole(ModellingAppRole appRole, Management mgt, bool isSource = false)
+        private void AnalyseAppRoleForRequest(ModellingAppRole appRole, Management mgt, bool isSource = false)
         {
             if (!ResolveExistingNwGroup(appRole, mgt))
             {
@@ -65,7 +65,7 @@ namespace FWO.Services
                     RequestNewNwGroup(appRole, mgt);
                 }
             }
-            else if (NwGroupChanged(appRole) &&
+            else if (AppRoleChanged(appRole) &&
                 TaskList.FirstOrDefault(x => x.Title == userConfig.GetText("update_app_role") + appRole.IdString + userConfig.GetText("add_members") && x.OnManagement?.Id == mgt.Id) == null &&
                 DeleteTasksList.FirstOrDefault(x => x.Title == userConfig.GetText("update_app_role") + appRole.IdString + userConfig.GetText("remove_members") && x.OnManagement?.Id == mgt.Id) == null)
             {
@@ -150,7 +150,7 @@ namespace FWO.Services
             }
         }
 
-        private bool NwGroupChanged(ModellingNwGroup nwGroup)
+        private bool AppRoleChanged(ModellingAppRole appRole)
         {
             newAppServers = [];
             deletedAppServers = [];
@@ -161,12 +161,12 @@ namespace FWO.Services
                 return false;
             }
 
-            if (nwGroup is ModellingAppZone appZone)
+            if (appRole is ModellingAppZone appZone)
             {
                 return appZone.AppServersNew.Count > 0 || appZone.AppServersRemoved.Count > 0;
             }
 
-            foreach (ModellingAppServerWrapper appserver in ( (ModellingAppRole)nwGroup ).AppServers)
+            foreach (ModellingAppServerWrapper appserver in appRole.AppServers)
             {
                 if (existingAppRole.AppServers.FirstOrDefault(a => appServerComparer.Equals(a.Content, appserver.Content)) != null)
                 {
@@ -179,7 +179,7 @@ namespace FWO.Services
             }
             foreach (ModellingAppServerWrapper exAppserver in existingAppRole.AppServers)
             {
-                if (( (ModellingAppRole)nwGroup ).AppServers.FirstOrDefault(a => appServerComparer.Equals(exAppserver.Content, a.Content)) == null)
+                if (appRole.AppServers.FirstOrDefault(a => appServerComparer.Equals(exAppserver.Content, a.Content)) == null)
                 {
                     deletedAppServers.Add(exAppserver);
                 }
@@ -341,7 +341,7 @@ namespace FWO.Services
             }
         }
 
-        private void AnalyseAppServers(ModellingConnection conn)
+        private void AnalyseAppServersForRequest(ModellingConnection conn)
         {
             foreach (ModellingAppServerWrapper srcAppServer in conn.SourceAppServers)
             {
@@ -367,7 +367,7 @@ namespace FWO.Services
             }
         }
 
-        private void AnalyseServiceGroups(ModellingConnection conn, Management mgt)
+        private void AnalyseServiceGroupsForRequest(ModellingConnection conn, Management mgt)
         {
             foreach (ModellingServiceGroup svcGrp in ModellingServiceGroupWrapper.Resolve(conn.ServiceGroups))
             {
@@ -430,7 +430,7 @@ namespace FWO.Services
             });
         }
 
-        private void AnalyseServices(ModellingConnection conn)
+        private void AnalyseServicesForRequest(ModellingConnection conn)
         {
             foreach (ModellingService svc in ModellingServiceWrapper.Resolve(conn.Services))
             {

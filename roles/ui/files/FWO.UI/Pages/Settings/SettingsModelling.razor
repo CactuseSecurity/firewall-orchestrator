@@ -1,4 +1,4 @@
-﻿@using System.Text.Json
+@using System.Text.Json
 @using FWO.Ui.Pages.NetworkModelling
 
 @page "/settings/modelling"
@@ -15,7 +15,7 @@
 @(userConfig.GetText("U5322"))
 <hr />
 
-@if (configData != null && initComplete)
+@if(configData != null && initComplete)
 {
     <form onsubmit="return false">
         <button type="button" class="btn btn-sm btn-dark ms-5" data-toggle="tooltip" title="@(userConfig.PureLine("H5602"))"
@@ -82,7 +82,7 @@
         <div class="form-group row mt-4" data-toggle="tooltip" title="@(userConfig.PureLine("H9055"))">
             <label class="col-form-label col-sm-4">@userConfig.GetText("import_app_server"):</label>
             <div class="row col-sm-6">
-                <CSVFileUpload AuthorizedRoles="@Roles.Admin" OnAddAppServerError="OnAddAppServerError" OnAddAppServerWarning="OnAddAppServerWarning" OnImportSuccess="OnAppServerImportSuccess"></CSVFileUpload>
+                <CSVFileUpload SupportedFileFormats=".csv" AuthorizedRoles="@Roles.Admin" OnAddAppServerError="OnAddAppServerError" OnAddAppServerWarning="OnAddAppServerWarning" OnImportSuccess="OnAppServerImportSuccess"></CSVFileUpload>
             </div>
         </div>
         <hr />

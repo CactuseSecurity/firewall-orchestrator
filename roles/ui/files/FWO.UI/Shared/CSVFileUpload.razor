@@ -1,4 +1,4 @@
-﻿@using FWO.Ui.Data
+@using FWO.Ui.Data
 @using FWO.Data.Modelling
 @using NetTools
 @using System.Net
@@ -15,7 +15,7 @@
                     @(ModellingHandlerBase.DisplayButton(userConfig, "import", Icons.Add))
                     <span class="ms-2">@(userConfig.GetText("add"))</span>
                 </label>
-                <InputFile id="fileUpload" hidden accept=".csv" OnChange="@SingleUpload" />
+                <InputFile id="fileUpload" hidden accept="@SupportedFileFormats" OnChange="@SingleUpload" />
                 @if (InputFileChangeEventArgs is not null && !string.IsNullOrEmpty(InputFileChangeEventArgs.File.Name))
                 {
                     <label class="d-inline">@InputFileChangeEventArgs.File.Name</label>
@@ -74,6 +74,12 @@
     [Parameter]
     public EventCallback OnImportSuccess { get; set; }
 
+    /// <summary>
+    /// Defines a set of supported file formats.
+    /// </summary>
+    [Parameter, EditorRequired]
+    public string SupportedFileFormats { get; set; } = "";
+
     private List<AppServerType> AppServerTypes = new();
 
     protected override void OnParametersSet()
@@ -81,6 +87,11 @@
         if (string.IsNullOrWhiteSpace(AuthorizedRoles))
         {
             throw new UnauthorizedAccessException($"Parameter {nameof(AuthorizedRoles)} cannot be empty!");
+        }
+
+        if (string.IsNullOrWhiteSpace(SupportedFileFormats))
+        {
+            throw new ArgumentNullException($"Parameter {nameof(SupportedFileFormats)} cannot be empty!");
         }
 
         base.OnParametersSet();

@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Dict, Optional
 
 from models.import_statistics import ImportStatistics
 from model_controllers.import_statistics_controller import ImportStatisticsController
@@ -25,9 +25,12 @@ class ImportState(FwoApi):
     DataRetentionDays: int
     DaysSinceLastFullImport: int
     LastFullImportId: int
+    LastSuccessfulImport: Optional[str] = None
     IsFullImport: bool
+    IsInitialImport: bool = False
     Actions: Dict[str, Action]
     Tracks: Dict[str, Track]
     LinkTypes: Dict[str, int]
     RulebaseMap: Dict[str, int]
     RuleMap: Dict[str, int]
+    

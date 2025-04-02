@@ -52,26 +52,22 @@ from model_controllers.fwconfig_normalized_controller import FwConfigNormalizedC
 #                    normalizedConfig.ManagerSet[mgrSet].Configs.gateways[device].append(rulebase.name )
 
 
-def has_config_changed (full_config, mgm_details, force=False):
+def has_config_changed (full_config, importState, force=False):
 
     if full_config != {}:   # a config was passed in (read from file), so we assume that an import has to be done (simulating changes here)
         return 1
 
-    domain, _ = prepare_get_vars(mgm_details)
-    session_id = login_cp(mgm_details, domain)
+    domain, _ = prepare_get_vars(importState.FullMgmDetails)
+    session_id = login_cp(importState.FullMgmDetails, domain)
     last_change_time = ''
-    if 'import_controls' in mgm_details:
-        for importctl in mgm_details['import_controls']: 
-            if 'starttime' in importctl:
-                last_change_time = importctl['starttime']
 
-    if last_change_time==None or last_change_time=='' or force:
+    if importState.LastSuccessfulImport==None or importState.LastSuccessfulImport=='' or force:
         # if no last import time found or given or if force flag is set, do full import
         result = 1
     else: # otherwise search for any changes since last import
-        result = (cp_getter.get_changes(session_id, mgm_details['hostname'], str(mgm_details['port']),last_change_time) != 0)
+        result = (cp_getter.get_changes(session_id, importState.FullMgmDetails['hostname'], str(importState.FullMgmDetails['port']),importState.LastSuccessfulImport) != 0)
 
-    logout_cp("https://" + mgm_details['hostname'] + ":" + str(mgm_details['port']) + "/web_api/", session_id)
+    logout_cp("https://" + importState.FullMgmDetails['hostname'] + ":" + str(importState.FullMgmDetails['port']) + "/web_api/", session_id)
 
     return result
 

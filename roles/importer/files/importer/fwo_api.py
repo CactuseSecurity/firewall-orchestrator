@@ -254,13 +254,13 @@ def setImportLock(importState) -> None:
             url = importState.FwoConfig.FwoApiUri
             mgmId = int(importState.MgmDetails.Id)
             lock_mutation = """
-                mutation lockImport($mgmId: Int!, $isFullImport: Boolean) { 
-                    insert_import_control(objects: {mgm_id: $mgmId, is_full_import: $isFullImport}) 
+                mutation lockImport($mgmId: Int!, $isFullImport: Boolean!, $isInitialImport: Boolean!) { 
+                    insert_import_control(objects: {mgm_id: $mgmId, is_full_import: $isFullImport, is_initial_import: $isInitialImport}) 
                     { returning { control_id } } 
                 }
                 """
             lock_result = call(importState.FwoConfig.FwoApiUri, importState.Jwt, lock_mutation, 
-                               query_variables={"mgmId": mgmId, "isFullImport": importState.IsFullImport },
+                               query_variables={"mgmId": mgmId, "isFullImport": importState.IsFullImport, "isInitialImport": importState.IsInitialImport },
                                role='importer')
             if lock_result['data']['insert_import_control']['returning'][0]['control_id']:
                 importState.setImportId(lock_result['data']['insert_import_control']['returning'][0]['control_id'])
@@ -696,3 +696,24 @@ def getLastImportDetails(fwo_api_base_url, jwt, queryVariables, debug_level=0):
         logger.error(f"error while getting past import details for mgm {str(queryVariables)}")
 
     return int(retentionInDays), lastFullImportId, lastFullImportDate
+
+def getLastImportDate(fwo_api_base_url, jwt, queryVariables, debug_level=0):
+    mgm_query = """
+        query getLastImportDate($mgmId: Int!) {
+            import_control(where: {mgm_id: {_eq: $mgmId}, stop_time: {_is_null: false} }, order_by: {control_id: desc}, limit: 1) {
+                start_time
+            }
+        }
+    """
+
+    try:
+        pastDetails = call(fwo_api_base_url, jwt, mgm_query, query_variables=queryVariables, role='importer')
+        if len(pastDetails['data']['import_control'])>0:
+            lastFullImportDate = pastDetails['data']['import_control'][0]['start_time']
+        else: # no matching imports found
+            lastFullImportDate = None
+    except:
+        logger = getFwoLogger()
+        logger.error(f"error while getting past import details for mgm {str(queryVariables)}")
+
+    return lastFullImportDate

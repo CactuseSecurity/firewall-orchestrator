@@ -171,7 +171,12 @@ def extractAppDataFromCsvFile(csvFile: str, appData: dict, containsIp: bool):
                 # add app server ip addresses (but do not add the whole app - it must already exist)
                 appServerIp = line[appServerIpColumn]
                 if appServerIp is not None and appServerIp != "" and appServerIp not in appData[appId]['app_servers']:
-                    appData[appId]['app_servers'].append(appServerIp)
+                    appData[appId]['app_servers'].append({
+                        "ip": appServerIp,
+                        "ip_end": appServerIp,
+                        "type": "host",
+                        "name": f"host_{appServerIp}"
+                    })
                 else:
                     # logger.debug(f'ignoring line from csv file: {appId} - empty IP')
                     countSkips += 1                    

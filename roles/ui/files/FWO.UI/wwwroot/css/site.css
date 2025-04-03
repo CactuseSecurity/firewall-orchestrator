@@ -539,3 +539,19 @@ max-width: 99%;
 {
     padding-bottom: 30px;
 } */
+
+div.modal-body > div.table-responsive {
+    overflow-x: inherit;
+}
+
+div.modal-body > * > div.table-responsive {
+    overflow-x: inherit;
+}
+
+div.modal-body > div.table-responsive > table.sticky-header thead {
+    top: calc(var(--bs-custom-modal-margin-top) + 1em - 1px);
+}
+
+div.modal-body > * > div.table-responsive > table.sticky-header thead {
+    top: calc(var(--bs-custom-modal-margin-top) + 1em - 1px);
+}

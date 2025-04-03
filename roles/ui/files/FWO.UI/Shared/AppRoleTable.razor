@@ -1,4 +1,5 @@
 @using FWO.Data.Modelling
+@using FWO.Data.Report
 @using FWO.Ui.Display
 
 @inject UserConfig userConfig
@@ -12,7 +13,7 @@
     </Column>
     <Column TableItem="ModellingAppRole" Title="@(userConfig.GetText("app_servers"))" Field="@(x => x.Id)" Sortable="false" Filterable="true">
         <Template>
-            @((MarkupString)ListAppServers(ModellingAppServerWrapper.Resolve(context.AppServers).ToList(), ModellingAppServerWrapper.Resolve(context.SurplusAppServers).ToList()))
+            @((MarkupString)ConnectionReport.ListAppServers(ModellingAppServerWrapper.Resolve(context.AppServers).ToList(), ModellingAppServerWrapper.Resolve(context.SurplusAppServers).ToList(), DiffMode))
         </Template>
     </Column>
     <Pager ShowPageNumber="true" ShowTotalCount="true" />
@@ -26,33 +27,4 @@
 
     [Parameter]
     public bool DiffMode { get; set; } = false;
-
-
-    private string ListAppServers(List<ModellingAppServer> appServers, List<ModellingAppServer> surplusAppServers)
-    {
-        if(DiffMode)
-        {
-            List<string> allAppServers = appServers.ConvertAll(a => DisplayAppServerWithDiff(a, CssClass(a))).ToList();
-            allAppServers.AddRange(surplusAppServers.ConvertAll(a => DisplayAppServerWithDiff(a, "text-danger")));
-            return string.Join(", ", allAppServers);
-        }
-        else
-        {
-            return string.Join(", ", appServers.ConvertAll(a => DisplayBase.DisplayIpWithName(ModellingAppServer.ToNetworkObject(a))));
-        }
-    }
-
-    private string DisplayAppServerWithDiff(ModellingAppServer appServer, string cssClass)
-    {
-        return $"<span class=\"{cssClass}\" >{DisplayBase.DisplayIpWithName(ModellingAppServer.ToNetworkObject(appServer))}</span>";
-    }
-
-    private string CssClass(ModellingAppServer appServer)
-    {
-        if (appServer.NotImplemented)
-        {
-            return "text-success";
-        }
-        return "";
-    }
 }

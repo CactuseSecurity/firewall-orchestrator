@@ -9,11 +9,11 @@
 @foreach(var owner in OwnerData)
 {
     <h4>@owner.Owner.Display(userConfig.GetText("common_service"))</h4>
-    <div class="mb-2">@(ReportVariances.DisplayConnStat(owner, userConfig))</div>
     @if(owner.AppRoleStats.ModelledAppRolesCount > 0)
     {
         <div class="mb-2">@(ReportVariances.DisplayAppRoleStat(owner, userConfig))</div>
     }
+    <div class="mb-2">@(ReportVariances.DisplayConnStat(owner, userConfig))</div>
     @if(owner.MissingAppRoles.Count > 0)
     {
         <br>
@@ -22,7 +22,7 @@
         {
             @if(owner.MissingAppRoles[mgt].Count > 0)
             {
-                <Collapse Title="@(managements.FirstOrDefault(x => x.Id == mgt)?.Name ?? "")" Style="@("primary")" StartToggled="false">
+                <Collapse Title="@(owner.MissingAppRoles[mgt].First().ManagementName)" Style="@("primary")" StartToggled="false">
                     <AppRoleTable AppRoles="owner.MissingAppRoles[mgt]" />
                 </Collapse>
             }
@@ -36,7 +36,7 @@
         {
             @if(owner.DifferingAppRoles[mgt].Count > 0)
             {
-                <Collapse Title="@(managements.FirstOrDefault(x => x.Id == mgt)?.Name ?? "")" Style="@("primary")" StartToggled="false">
+                <Collapse Title="@(owner.DifferingAppRoles[mgt].First().ManagementName)" Style="@("primary")" StartToggled="false">
                     <AppRoleTable AppRoles="owner.DifferingAppRoles[mgt]" DiffMode="true"/>
                 </Collapse>
             }
@@ -89,11 +89,4 @@
 
     private const int rulesPerPage = 0;
     private List<Rule> selectedRules = [];
-    private List<Management> managements = [];
-
-
-    protected override async Task OnInitializedAsync()
-    {
-        managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames);
-    }
 }

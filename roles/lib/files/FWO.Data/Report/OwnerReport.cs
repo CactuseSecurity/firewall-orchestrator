@@ -40,21 +40,12 @@ namespace FWO.Data.Report
             AppRoleStats = report.AppRoleStats;
         }
 
-
-        public void PrepareObjectData()
-        {
-            AllObjects = GetAllNetworkObjects(true);
-            SetObjectNumbers(ref AllObjects);
-            AllServices = GetAllServices(true);
-            SetSvcNumbers(ref AllServices);
-        }
-
-        public List<NetworkObject> GetAllNetworkObjects(bool resolved = false)
+        public override List<NetworkObject> GetAllNetworkObjects(bool resolved = false)
         {
             return GetAllNetworkObjects(Connections, resolved, DummyARid);
         }
 
-        public List<NetworkService> GetAllServices(bool resolved = false)
+        public override List<NetworkService> GetAllServices(bool resolved = false)
         {
             return GetAllServices(Connections, resolved);
         }

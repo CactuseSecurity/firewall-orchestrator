@@ -1,4 +1,5 @@
-﻿using FWO.Data.Modelling;
+﻿using FWO.Basics;
+using FWO.Data.Modelling;
 
 namespace FWO.Data.Report
 {
@@ -28,7 +29,25 @@ namespace FWO.Data.Report
             }
         }
 
-        protected static void SetSvcNumbers(ref List<NetworkService> svcList)
+        public void PrepareObjectData()
+        {
+            AllObjects = GetAllNetworkObjects(true);
+            SetObjectNumbers(ref AllObjects);
+            AllServices = GetAllServices(true);
+            SetSvcNumbers(ref AllServices);
+        }
+
+        public virtual List<NetworkObject> GetAllNetworkObjects(bool resolved = false)
+        {
+            return [];
+        }
+
+        public virtual List<NetworkService> GetAllServices(bool resolved = false)
+        {
+            return [];
+        }
+
+        private static void SetSvcNumbers(ref List<NetworkService> svcList)
         {
             long number = 1;
             foreach(var svc in svcList)
@@ -37,7 +56,7 @@ namespace FWO.Data.Report
             }
         }
 
-        protected static void SetObjectNumbers(ref List<NetworkObject> objList)
+        private static void SetObjectNumbers(ref List<NetworkObject> objList)
         {
             long number = 1;
             foreach(var obj in objList)
@@ -169,6 +188,39 @@ namespace FWO.Data.Report
                     }
                 }
             }
+        }
+
+        public static string ListAppServers(List<ModellingAppServer> appServers, List<ModellingAppServer> surplusAppServers, bool diffMode = false, bool forExport = false)
+        {
+            if(diffMode)
+            {
+                List<string> allAppServers = [.. appServers.ConvertAll(a => DisplayAppServerWithDiff(a, forExport))];
+                allAppServers.AddRange(surplusAppServers.ConvertAll(a => DisplayAppServerWithDiff(a, forExport, true)));
+                return string.Join(", ", allAppServers);
+            }
+            else
+            {
+                return string.Join(", ", appServers.ConvertAll(a => DisplayBase.DisplayIpWithName(ModellingAppServer.ToNetworkObject(a))));
+            }
+        }
+
+        private static string DisplayAppServerWithDiff(ModellingAppServer appServer, bool forExport, bool surplus = false)
+        {
+            string styleOrClass = $"{(forExport ? "style" : "class")}=\"{StyleOrCssClass(appServer, forExport, surplus)}\"";
+            return $"<span {styleOrClass}>{DisplayBase.DisplayIpWithName(ModellingAppServer.ToNetworkObject(appServer))}</span>";
+        }
+
+        private static string StyleOrCssClass(ModellingAppServer appServer, bool forExport, bool surplus)
+        {
+            if (surplus)
+            {
+                return forExport ? GlobalConst.kStyleHighlighted : "text-danger";
+            }
+            if (appServer.NotImplemented)
+            {
+                return forExport ? "color:green" : "text-success";
+            }
+            return "";
         }
     }
 }

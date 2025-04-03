@@ -71,6 +71,7 @@ namespace FWO.Data.Modelling
             InUse = appServer.InUse;
             CustomType = appServer.CustomType;
             HighestPrio = appServer.HighestPrio;
+            NotImplemented = appServer.NotImplemented;
         }
 
         public ModellingAppServer(NetworkObject nwObj)  : base(nwObj)

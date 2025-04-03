@@ -22,6 +22,7 @@ namespace FWO.Data.Modelling
         public bool IsMissing = false;
         public bool HasDifference = false;
         public List<ModellingAppServerWrapper> SurplusAppServers { get; set; } = [];
+        public string ManagementName = "";
 
 
         public ModellingAppRole()
@@ -34,6 +35,10 @@ namespace FWO.Data.Modelling
             CreationDate = appRole.CreationDate;
             AppServers = appRole.AppServers;
             Area = appRole.Area;
+            IsMissing = appRole.IsMissing;
+            HasDifference = appRole.HasDifference;
+            SurplusAppServers = appRole.SurplusAppServers;
+            ManagementName = appRole.ManagementName;
         }
 
         public ModellingAppRole(NetworkObject nwObj, ModellingNamingConvention? namCon = null) : base(nwObj, namCon)

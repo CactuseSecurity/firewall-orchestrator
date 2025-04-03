@@ -318,9 +318,17 @@ namespace FWO.Report
             {
                 string headText = heading.InnerText.Trim();
 
-                if (heading.Name == "h4")
+                if (heading.Name == "h4" && tocs.Count > 0)
                 {
                     tocs[i - 1].Items.Add(new ToCItem(headText, heading.Id));
+                }
+                else if (heading.Name == "h5" && tocs.Count > 0 && tocs[i - 1].Items.Count > 0)
+                {
+                    tocs[i - 1].Items.Last().SubItems.Add(new ToCItem(headText, heading.Id));
+                }
+                else if (heading.Name == "h6" && tocs.Count > 0 && tocs[i - 1].Items.Count > 0 && tocs[i - 1].Items.Last().SubItems.Count > 0)
+                {
+                    tocs[i - 1].Items.Last().SubItems.Last().SubItems.Add(new ToCItem(headText, heading.Id));
                 }
                 else
                 {
@@ -357,8 +365,25 @@ namespace FWO.Report
                     foreach (ToCItem tocItem in toCHeader.Items)
                     {
                         sb.AppendLine($"<li class=\"subli\"><a href=\"#{tocItem.Id}\">{tocItem.Title}</a></li>");
+                        if (tocItem.SubItems.Count > 0)
+                        {
+                            sb.AppendLine("<ul>");
+                            foreach (ToCItem subItem in tocItem.SubItems)
+                            {
+                                sb.AppendLine($"<li class=\"subli\"><a href=\"#{subItem.Id}\">{subItem.Title}</a></li>");
+                                if (subItem.SubItems.Count > 0)
+                                {
+                                    sb.AppendLine("<ul>");
+                                    foreach (ToCItem subsubItem in subItem.SubItems)
+                                    {
+                                        sb.AppendLine($"<li class=\"subli\"><a href=\"#{subsubItem.Id}\">{subsubItem.Title}</a></li>");
+                                    }
+                                    sb.AppendLine("</ul>");
+                                }
+                            }
+                            sb.AppendLine("</ul>");
+                        }
                     }
-
                     sb.AppendLine("</ul>");
                 }
             }

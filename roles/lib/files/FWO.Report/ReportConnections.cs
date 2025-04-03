@@ -10,35 +10,13 @@ using System.Text;
 
 namespace FWO.Report
 {
-    public class ReportConnections : ReportOwnersBase
+    public class ReportConnections(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType) : ReportOwnersBase(query, userConfig, reportType)
     {
-        public ReportConnections(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType) : base(query, userConfig, reportType) { }
-
         public override async Task Generate(int connectionsPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback, CancellationToken ct)
         {
-            // Query.QueryVariables["limit"] = connectionsPerFetch;
-            // Query.QueryVariables["offset"] = 0;
-            // bool gotNewObjects = true;
-
             List<ModellingConnection> conns = await apiConnection.SendQueryAsync<List<ModellingConnection>>(Query.FullQuery, Query.QueryVariables);
-
-            // while (gotNewObjects)
-            // {
-            //     if (ct.IsCancellationRequested)
-            //     {
-            //         Log.WriteDebug("Generate Connections Report", "Task cancelled");
-            //         ct.ThrowIfCancellationRequested();
-            //     }
-            //     Query.QueryVariables["offset"] = (int)Query.QueryVariables["offset"] + connectionsPerFetch;
-            //     List<ModellingConnection> newConnections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(Query.FullQuery, Query.QueryVariables);
-            //     gotNewObjects = newConnections.Count > 0;
-            //     ReportData.OwnerData.Connections.AddRange(newConnections);
-
             ReportData reportData = new() { OwnerData = [new(){ Connections = conns }] };
             await callback(reportData);
-
-            // }
-            //ReportData.OwnerData.Add(new(){ Connections = conns });
         }
 
         public override string SetDescription()
@@ -57,7 +35,9 @@ namespace FWO.Report
             int chapterNumber = 0;
             foreach (var ownerReport in ReportData.OwnerData)
             {
+                report.AppendLine($"<h3 id=\"{Guid.NewGuid()}\">{ownerReport.Name}</h3>");
                 AppendConnDataForOwner(ref report, ownerReport, chapterNumber);
+                report.AppendLine("<hr>");
             }
 
             if(ReportData.GlobalComSvc.Count > 0 && ReportData.GlobalComSvc.First().GlobalComSvcs.Count > 0)
@@ -66,6 +46,7 @@ namespace FWO.Report
                 ReportData.GlobalComSvc.First().PrepareObjectData();
                 report.AppendLine($"<h3 id=\"{Guid.NewGuid()}\">{userConfig.GetText("global_common_services")}</h3>");
                 AppendConnectionsGroupHtml(ReportData.GlobalComSvc.First().GlobalComSvcs, ReportData.GlobalComSvc.First(), chapterNumber, ref report, false, true);
+                report.AppendLine("<hr>");
                 AppendNetworkObjectsHtml(ReportData.GlobalComSvc.First().AllObjects, chapterNumber, ref report);
                 AppendNetworkServicesHtml(ReportData.GlobalComSvc.First().AllServices, chapterNumber, ref report);
             }
@@ -76,28 +57,31 @@ namespace FWO.Report
         {
             chapterNumber++;
             ownerReport.PrepareObjectData();
-            report.AppendLine($"<h3 id=\"{Guid.NewGuid()}\">{ownerReport.Name}</h3>");
             if(ownerReport.RegularConnections.Count > 0)
             {
                 report.AppendLine($"<h4 id=\"{Guid.NewGuid()}\">{userConfig.GetText("connections")}</h4>");
                 AppendConnectionsGroupHtml(ownerReport.RegularConnections, ownerReport, chapterNumber, ref report);
+                report.AppendLine("<hr>");
+                
             }
             if(ownerReport.Interfaces.Count > 0)
             {
                 report.AppendLine($"<h4 id=\"{Guid.NewGuid()}\">{userConfig.GetText("interfaces")}</h4>");
                 ownerReport.Interfaces.Sort((ModellingConnection a, ModellingConnection b) => a.CompareTo(b));
                 AppendConnectionsGroupHtml(ownerReport.Interfaces, ownerReport, chapterNumber, ref report, true);
+                report.AppendLine("<hr>");
             }
             if(ownerReport.CommonServices.Count > 0)
             {
                 report.AppendLine($"<h4 id=\"{Guid.NewGuid()}\">{userConfig.GetText("own_common_services")}</h4>");
                 AppendConnectionsGroupHtml(ownerReport.CommonServices, ownerReport, chapterNumber, ref report);
+                report.AppendLine("<hr>");
             }
             AppendNetworkObjectsHtml(ownerReport.AllObjects, chapterNumber, ref report);
             AppendNetworkServicesHtml(ownerReport.AllServices, chapterNumber, ref report);
         }
 
-        private void AppendConnectionsGroupHtml(List<ModellingConnection> connections, ConnectionReport connReport, int chapterNumber, ref StringBuilder report, bool isInterface = false, bool isGlobalComSvc = false)
+        protected void AppendConnectionsGroupHtml(List<ModellingConnection> connections, ConnectionReport connReport, int chapterNumber, ref StringBuilder report, bool isInterface = false, bool isGlobalComSvc = false)
         {
             ConnectionReport.AssignConnectionNumbers(connections);
             report.AppendLine("<table>");
@@ -146,7 +130,6 @@ namespace FWO.Report
                 }
             }
             report.AppendLine("</table>");
-            report.AppendLine("<hr>");
         }
 
         private void AppendConnectionHeadlineHtml(ref StringBuilder report, bool showOwnerName, bool isInterface = false)
@@ -237,7 +220,7 @@ namespace FWO.Report
         }
 
 
-        private List<string> GetLinkedSrcNames(ConnectionReport connReport, ModellingConnection conn, int chapterNumber)
+        private static List<string> GetLinkedSrcNames(ConnectionReport connReport, ModellingConnection conn, int chapterNumber)
         {
             List<string> names = ModellingNetworkAreaWrapper.Resolve(conn.SourceAreas).ToList().ConvertAll(s => ConstructOutput(s, ObjCatString.NwObj, chapterNumber, connReport.ResolveObjId(s)));
             names.AddRange(ModellingNwGroupWrapper.Resolve(conn.SourceOtherGroups).ToList().ConvertAll(s => ConstructOutput(s, ObjCatString.NwObj, chapterNumber, connReport.ResolveObjId(s))));
@@ -246,7 +229,7 @@ namespace FWO.Report
             return names;
         }
         
-        private List<string> GetLinkedDstNames(ConnectionReport connReport, ModellingConnection conn, int chapterNumber)
+        private static List<string> GetLinkedDstNames(ConnectionReport connReport, ModellingConnection conn, int chapterNumber)
         {
             List<string> names = ModellingNetworkAreaWrapper.Resolve(conn.DestinationAreas).ToList().ConvertAll(s => ConstructOutput(s, ObjCatString.NwObj, chapterNumber, connReport.ResolveObjId(s)));
             names.AddRange(ModellingNwGroupWrapper.Resolve(conn.DestinationOtherGroups).ToList().ConvertAll(s => ConstructOutput(s, ObjCatString.NwObj, chapterNumber, connReport.ResolveObjId(s))));
@@ -255,7 +238,7 @@ namespace FWO.Report
             return names;
         }
 
-        private List<string> GetLinkedSvcNames(ConnectionReport connReport, ModellingConnection conn, int chapterNumber)
+        private static List<string> GetLinkedSvcNames(ConnectionReport connReport, ModellingConnection conn, int chapterNumber)
         {
             List<string> names = ModellingServiceGroupWrapper.Resolve(conn.ServiceGroups).ToList().ConvertAll(s => ConstructOutput(s, ObjCatString.Svc, chapterNumber, connReport.ResolveSvcId(s)));
             names.AddRange(ModellingServiceWrapper.Resolve(conn.Services).ToList().ConvertAll(s => ConstructOutput(s, ObjCatString.Svc, chapterNumber, connReport.ResolveSvcId(s))));

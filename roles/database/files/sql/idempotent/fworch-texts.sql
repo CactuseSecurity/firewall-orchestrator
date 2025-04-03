@@ -750,6 +750,8 @@ INSERT INTO txt VALUES ('app_roles_not_implemented','German','Nicht implementier
 INSERT INTO txt VALUES ('app_roles_not_implemented','English','App Roles not implemented');
 INSERT INTO txt VALUES ('app_roles_with_diffs', 'German',   'App Rollen mit Abweichungen');
 INSERT INTO txt VALUES ('app_roles_with_diffs', 'English',  'App Roles with difference');
+INSERT INTO txt VALUES ('remaining_rules',      'German',   'Verbleibende Regeln');
+INSERT INTO txt VALUES ('remaining_rules',      'English',  'Remaining rules');
 INSERT INTO txt VALUES ('implemented',          'German',	'implementiert');
 INSERT INTO txt VALUES ('implemented',          'English',  'implemented');
 INSERT INTO txt VALUES ('not_implemented',      'German',	'nicht implementiert');

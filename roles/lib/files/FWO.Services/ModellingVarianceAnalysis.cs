@@ -98,17 +98,17 @@ namespace FWO.Services
             if (ResolveProdAppRole(modelledAppRole, mgt) == null)
             {
                 modelledAppRole.IsMissing = true;
-                varianceResult.MissingAppRoles[mgt.Id].Add(modelledAppRole);
+                varianceResult.MissingAppRoles[mgt.Id].Add(new(modelledAppRole){ ManagementName = mgt.Name });
             }
             else if (AppRoleChanged(modelledAppRole))
             {
                 modelledAppRole.HasDifference = true;
-                modelledAppRole.SurplusAppServers = deletedAppServers;
-                foreach(var appServer in modelledAppRole.AppServers)
+                ModellingAppRole changedAppRole = new(modelledAppRole){ ManagementName = mgt.Name, SurplusAppServers = deletedAppServers};
+                foreach(var appServer in changedAppRole.AppServers)
                 {
                     appServer.Content.NotImplemented = newAppServers.FirstOrDefault(a => a.Content.Id == appServer.Content.Id) != null;
                 }
-                varianceResult.DifferingAppRoles[mgt.Id].Add(modelledAppRole);
+                varianceResult.DifferingAppRoles[mgt.Id].Add(changedAppRole);
             }
         }
 

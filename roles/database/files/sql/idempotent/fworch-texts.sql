@@ -2371,6 +2371,8 @@ INSERT INTO txt VALUES ('app_zone_creation',	'German', 	'App Zonen Objekte erste
 INSERT INTO txt VALUES ('app_zone_creation',	'English', 	'Create App Zone Objects');
 INSERT INTO txt VALUES ('appserver_import',     'German',   'App server import');
 INSERT INTO txt VALUES ('appserver_import',     'English',  'App server import');
+INSERT INTO txt VALUES ('select_file',          'German',   'Datei ausw&auml;hlen');
+INSERT INTO txt VALUES ('select_file',          'English',  'Select file');
 
 -- monitoring
 INSERT INTO txt VALUES ('open_alerts',          'German', 	'Offene Alarme');

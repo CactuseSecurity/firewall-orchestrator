@@ -1,14 +1,14 @@
 import traceback
 from difflib import ndiff
-import json
 from itertools import chain, islice
 import asyncio
 import traceback
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import fwo_const
-from models.rule import Rule, RuleType
-from models.rule_metadatum import RuleMetadatum, RuleMetadatumForImport
+import fwo_api
+from models.rule import Rule
+from models.rule_metadatum import RuleMetadatum
 from models.rulebase import Rulebase, RulebaseForImport
 from model_controllers.import_state_controller import ImportStateController
 from model_controllers.fwconfig_normalized_controller import FwConfigNormalized
@@ -20,28 +20,17 @@ from model_controllers.fwconfig_import_object import FwConfigImportObject
 from models.rule_from import RuleFrom
 from models.rule_to import RuleTo
 from models.rule_service import RuleService
-from models.rule_enforced_on_gateway import RuleEnforcedOnGateway
-from model_controllers.rule_enforced_on_gateway_controller import RuleEnforcedOnGatewayController
 
-# this class is used for importing a config into the FWO API
+# this class is used for importing rules and rule refs into the FWO API
 class FwConfigImportRule(FwConfigImportBase):
-
-    # @root_validator(pre=True)
-    # def custom_initialization(cls, values):
-    #     values['ActionMap'] = cls.GetActionMap()
-    #     values['TrackMap'] = cls.GetTrackMap()
-    #     values['RuleNumLookup'] = cls.GetRuleNumMap()  # TODO: needs to be updated with each insert
-    #     values['NextRuleNumLookup'] = cls.GetNextRuleNumMap() # TODO: needs to be updated with each insert
-    #     values['RulebaseMap'] = cls.GetRulebaseMap() # limited to the current mgm_id
-    #     return values
 
     def __init__(self, importState: ImportStateController, config: FwConfigNormalized):
       super().__init__(importState, config)
-    #   self.ActionMap = self.GetActionMap()
-    #   self.TrackMap = self.GetTrackMap()
-      self.RuleNumLookup = self.GetRuleNumMap()             # TODO: needs to be updated with each insert
-      self.NextRuleNumLookup = self.GetNextRuleNumMap()     # TODO: needs to be updated with each insert
-      # self.RulebaseMap = self.GetRulebaseMap()     # limited to the current mgm_id
+    # #   self.ActionMap = self.GetActionMap()
+    # #   self.TrackMap = self.GetTrackMap()
+    #   self.RuleNumLookup = self.GetRuleNumMap()             # TODO: needs to be updated with each insert
+    #   self.NextRuleNumLookup = self.GetNextRuleNumMap()     # TODO: needs to be updated with each insert
+    #   # self.RulebaseMap = self.GetRulebaseMap()     # limited to the current mgm_id
 
     def updateRulebaseDiffs(self, prevConfig: FwConfigNormalized):
         logger = getFwoLogger(debug_level=self.ImportDetails.DebugLevel)
@@ -131,67 +120,6 @@ class FwConfigImportRule(FwConfigImportBase):
 
         # TODO: rule_nwobj_resolved fuellen (recert?)
         return newRuleIds
-
-    # def addNewRuleEnforcedOnGatewayRefs(self, newRules, allGwIds= []):
-    #     # for each new rule: add refs in rule_enforced_on_gateway
-    #     # assuming all gateways and rules are already in the database
-    #     # set map for this management: rulebaseId to list of ids of all gateways this rulebase is installed on
-    #     # (using rulebase_links)]
-    #     self.ImportDetails.SetMapOfAllEnforcingGatewayIdsForRulebaseId()
-
-    #     ruleToGwRefs = []
-    #     # now add the references to the rules
-    #     for rule in newRules:
-    #         if 'rule_installon' in rule:
-    #             if rule['rule_installon'] is None:
-    #                 # add links to all gateways that this rulebase is installed on
-    #                 for id in self.ImportDetails.getGwIdsForRulebaseId(rule['rulebase_id']):
-    #                     ruleToGwRefs.append(RuleEnforcedOnGateway(
-    #                         rule_id=rule['rule_id'], 
-    #                         dev_id=id, 
-    #                         created=self.ImportDetails.ImportId, 
-    #                         removed=None,
-    #                         importState=self.ImportDetails).
-    #                         toDict())
-    #                 pass
-    #             else:
-    #                 for gwUid in rule['rule_installon'].split(fwo_const.list_delimiter):
-    #                     gwId = self.ImportDetails.lookupGatewayId(gwUid)
-    #                     if gwId is not None:
-    #                         ruleToGwRefs.append(RuleEnforcedOnGateway(
-    #                             rule_id=rule['rule_id'], 
-    #                             dev_id=gwId, 
-    #                             created=self.ImportDetails.ImportId, 
-    #                             removed=None,
-    #                             importState=self.ImportDetails).
-    #                             toDict())
-    #                     else:
-    #                         # TODO: here we got a broken ref to a non-existing gateway (e.g. CpmiOseDevice) - ignoring for now
-    #                         pass
-
-    #     enforcementController = RuleEnforcedOnGatewayController(self.ImportDetails)
-
-    #     if ruleToGwRefs is None or len(ruleToGwRefs) == 0:
-    #         logger = getFwoLogger()
-    #         logger.info("no rules to be enforced on gateways")
-    #         return
-    #     try:
-    #         logger = getFwoLogger()
-    #         importResults = enforcementController.insertRulesEnforcedOnGateway(ruleToGwRefs)
-    #         if 'errors' in importResults:
-    #             logger.exception(f"fwo_api:importNwObject - error in addNewRuleEnforcedOnGatewayRefs: {str(importResults['errors'])}")
-    #             self.ImportDetails.increaseErrorCounterByOne()
-    #             self.ImportDetails.appendErrorString(f"error in addNewRuleEnforcedOnGatewayRefs: {str(importResults['errors'])}")
-    #         else:
-    #             if 'affected_rows' in importResults['data']['insert_rule_enforced_on_gateway']:
-    #                 changes = importResults['data']['insert_rule_enforced_on_gateway']['affected_rows']
-    #             else:
-    #                 changes = 1
-    #             self.ImportDetails.Stats.RuleEnforceChangeCount += changes
-    #     except:
-    #         logger.exception(f"failed to write new rules: {str(traceback.format_exc())}")
-    #         self.ImportDetails.increaseErrorCounterByOne()
-    #         self.ImportDetails.appendErrorString(f"failed to write new rules: {str(traceback.format_exc())}")
 
 
     def addNewRule2ObjRefs(self, newRules):
@@ -308,22 +236,7 @@ class FwConfigImportRule(FwConfigImportBase):
                 ).dict())
         
         # build mutation
-        addNewRuleNwObjAndSvcRefsMutation = """
-        mutation insertRuleRefs($ruleFroms: [rule_from_insert_input!]!, $ruleTos: [rule_to_insert_input!]!, $ruleServices: [rule_service_insert_input!]!) {
-            insert_rule_from(objects: $ruleFroms) {
-                affected_rows
-                returning { rule_from_id }
-            }
-            insert_rule_to(objects: $ruleTos) {
-                affected_rows
-                returning { rule_to_id }
-            }
-            insert_rule_service(objects: $ruleServices) {
-                affected_rows
-                returning { svc_id }
-            }
-        }
-        """
+        addNewRuleNwObjAndSvcRefsMutation = fwo_api.getGraphqlCode([fwo_const.graphqlQueryPath + "rule/inserRuleRefs.graphql"])
 
         # execute mutation
         try:
@@ -346,29 +259,13 @@ class FwConfigImportRule(FwConfigImportBase):
     def getRulesByIdWithRefUids(self, ruleIds: List[int]) -> List[Rule]:
         logger = getFwoLogger()
         rulesToBeReferenced = {}
-        getRuleUidRefsQuery = """
-            query getRulesByIdWithRefUids ($ruleIds:[bigint!]!) {
-                rule (where:{rule_id:{_in:$ruleIds}}) {
-                    rule_id
-                    rule_src_refs
-                    rule_dst_refs
-                    rule_svc_refs
-                    rule_to_zone
-                    rule_from_zone
-                    rule_src_neg
-                    rule_dst_neg
-                    rule_svc_neg
-                    rulebase_id
-                    rule_installon
-                }
-            }
-        """
+        getRuleUidRefsQuery = fwo_api.getGraphqlCode([fwo_const.graphqlQueryPath + "rule/getRulesByIdWithRefUids.graphql"])
         queryVariables = { 'ruleIds': ruleIds }
         
         try:
             import_result = self.ImportDetails.call(getRuleUidRefsQuery, queryVariables=queryVariables)
             if 'errors' in import_result:
-                logger.exception(f"fwo_api:importNwObject - error in addNewRules: {str(import_result['errors'])}")
+                logger.exception(f"fwconfig_import_rule:getRulesByIdWithRefUids - error in addNewRules: {str(import_result['errors'])}")
                 return 1, 0, rulesToBeReferenced
             else:
                 return 0, 0, import_result['data']['rule']

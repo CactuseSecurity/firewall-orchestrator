@@ -1,9 +1,8 @@
 import traceback
 import sys, time
-import json, requests, requests.packages
+import json
 from socket import gethostname
 from typing import List
-import importlib.util
 from fwo_const import importer_base_dir
 from pathlib import Path
 sys.path.append(importer_base_dir) # adding absolute path here once
@@ -26,7 +25,6 @@ from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerList
 from model_controllers.check_consistency import FwConfigImportCheckConsistency
 from model_controllers.rollback import FwConfigImportRollback
 from model_controllers.import_state_controller import ImportStateController
-from model_controllers.import_statistics_controller import ImportStatisticsController
 
 """  
     import_management: import a single management (if no import for it is running)

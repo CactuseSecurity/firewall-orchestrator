@@ -3108,6 +3108,10 @@ INSERT INTO txt VALUES ('E5415', 'German',  'Passwort muss mindestens ein Sonder
 INSERT INTO txt VALUES ('E5415', 'English', 'Password must contain at least one special character (!?(){}=~$%&amp;#*-+.,_)');
 INSERT INTO txt VALUES ('E5421', 'German',  'Schl&uuml;ssel nicht gefunden oder Wert nicht konvertierbar: Wert wird gesetzt auf: ');
 INSERT INTO txt VALUES ('E5421', 'English', 'Key not found or could not convert value to int: taking value: ');
+INSERT INTO txt VALUES ('E5422', 'German',  'Eintrag enth&auml;lt nicht alle erforderlichen Spalten');
+INSERT INTO txt VALUES ('E5422', 'English', 'Entry does not contain all required columns');
+INSERT INTO txt VALUES ('E5423', 'German',  'IP-Adresse/IP-Bereich ist fehlerhaft');
+INSERT INTO txt VALUES ('E5423', 'English', 'IP Address/IP Range malformed');
 
 INSERT INTO txt VALUES ('E6001', 'German', 	'Der Re-Login war nicht erfolgreich. Haben Sie ein falsches Passwort eingegeben? Schauen Sie f&uuml;r Details bitte in die Logs.');
 INSERT INTO txt VALUES ('E6001', 'English', 'Re-login failed. Did you enter a wrong password? See log for details.');

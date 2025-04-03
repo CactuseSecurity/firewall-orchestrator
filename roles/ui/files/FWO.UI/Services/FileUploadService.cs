@@ -74,7 +74,7 @@ namespace FWO.Ui.Services
 
                 if(!TryGetEntries(line, ';', out string[] entries) && !TryGetEntries(line, ',', out entries))
                 {
-                    error.Message = "Entry doesn't contain all required columns"; 
+                    error.Message = UserConfig.GetText("E5422"); 
                     errors.Add(error);
 
                     continue;
@@ -83,8 +83,20 @@ namespace FWO.Ui.Services
                 if (IsHeader(entries))
                     continue;
 
-                CSVAppServerImportModel importAppServer = new(entries[3])
+                string ipString = entries[3];
+
+                if(!ipString.TryParseIPString<(string, string)>(out (string Start, string End) ipRange, strictv4Parse: true))
                 {
+                    error.Message = UserConfig.GetText("E5423");
+                    errors.Add(error);
+
+                    continue;
+                }
+
+                CSVAppServerImportModel importAppServer = new()
+                {
+                    AppIPRangeStart = ipRange.Start,
+                    AppIPRangeEnd = ipRange.End,
                     AppID = entries[1],
                     AppServerTyp = entries[2]
                 };

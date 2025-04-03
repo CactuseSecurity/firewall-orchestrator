@@ -142,8 +142,7 @@ namespace FWO.Basics
         {
             byte[] addBytes = [.. ipAddress.Split('.').Where(_ => byte.Parse(_) <= 255 && byte.Parse(_) >= 0).Select(byte.Parse)];
 
-            return addBytes.Length != 4;
-            
+            return addBytes.Length == 4;            
         }
 
         public static string GetObjectType(string ip1, string ip2)

@@ -17,35 +17,3 @@ class FwConfigImportBase():
         self.FwoJwt = importState.Jwt
         self.ImportDetails = importState
         self.NormalizedConfig = config
-
-    # return previous config or empty config if there is none
-    def getPreviousConfig(self) -> FwConfigNormalized:
-        logger = getFwoLogger(debug_level=self.ImportDetails.DebugLevel)
-        query = "query getLatestConfig($mgmId: Int!) { latest_config(where: {mgm_id: {_eq: $mgmId}}) { config } }"
-        queryVariables = { 'mgmId': self.ImportDetails.MgmDetails.Id }
-        try:
-            queryResult = self.ImportDetails.call(query, queryVariables=queryVariables)
-            if 'errors' in queryResult:
-                logger.exception("fwo_api:import_latest_config - error while deleting last config for mgm id " +
-                                str(self.ImportDetails.MgmDetails.Id) + ": " + str(queryResult['errors']))
-                return 1 # error
-            else:
-                if len(queryResult['data']['latest_config'])>0: # do we have a prev config?
-                    # prevConfigDict = json.loads(queryResult['data']['latest_config'][0]['config'])
-                    prevConfig = FwConfigNormalized.parse_raw(queryResult['data']['latest_config'][0]['config'])
-                else:
-                    prevConfigDict = {
-                        'action': ConfigAction.INSERT,
-                        'network_objects': {},
-                        'service_objects': {},
-                        'users': {},
-                        'zone_objects': {},
-                        'rules': [],
-                        'gateways': [],
-                        'ConfigFormat': ConfFormat.NORMALIZED_LEGACY
-                    }
-                    prevConfig = FwConfigNormalized(**prevConfigDict)
-                return prevConfig
-        except:
-            logger.exception(f"failed to get latest normalized config for mgm id {str(self.ImportDetails.MgmDetails.Id)}: {str(traceback.format_exc())}")
-            raise Exception(f"error while trying to get the previous config")

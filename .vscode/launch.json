@@ -116,7 +116,7 @@
             "args": [
                 "-m1",
                 "-d8",
-                // "-f",
+                "-f",
                 "-s",
                 // "-c",
                 // "-ifile:///home/tim/tmp/mgm_id_12_config_normalized_with_links.json",

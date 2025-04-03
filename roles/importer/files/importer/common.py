@@ -114,9 +114,6 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
                     configNormalized.mergeConfigs(configNormalizedSub)
                     # TODO: destroy configNormalizedSub?
 
-                if importState.ImportVersion>8:
-                    configNormalized.ConfigFormat = ConfFormat.NORMALIZED
-
             time_get_config = int(time.time()) - importState.StartTime
             logger.debug("import_management - getting config total duration " + str(int(time.time()) - importState.StartTime) + "s")
 
@@ -255,7 +252,18 @@ def get_config_from_api(importState: ImportStateController, configNative, import
             # get config from product-specific FW API
             _, configNormalized = fw_module.get_config(configNative, importState)
         else:
-            configNormalized = {}
+            # returning empty config
+            emptyConfigDict = {
+                                    'action': ConfigAction.INSERT,
+                                    'network_objects': {},
+                                    'service_objects': {},
+                                    'users': {},
+                                    'zone_objects': {},
+                                    'rules': [],
+                                    'gateways': [],
+                                    'ConfigFormat': ConfFormat.NORMALIZED
+                                }
+            configNormalized = FwConfigNormalized(**emptyConfigDict)
     except (FwLoginFailed) as e:
         importState.appendErrorString(f"login failed: mgm_id={str(importState.MgmDetails.Id)}, mgm_name={importState.MgmDetails.Name}, {e.message}")
         importState.increaseErrorCounter()

@@ -1,9 +1,8 @@
 import traceback
 import sys, time
-import json, requests, requests.packages
+import json
 from socket import gethostname
 from typing import List
-import importlib.util
 from fwo_const import importer_base_dir
 from pathlib import Path
 sys.path.append(importer_base_dir) # adding absolute path here once
@@ -26,7 +25,6 @@ from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerList
 from model_controllers.check_consistency import FwConfigImportCheckConsistency
 from model_controllers.rollback import FwConfigImportRollback
 from model_controllers.import_state_controller import ImportStateController
-from model_controllers.import_statistics_controller import ImportStatisticsController
 
 """  
     import_management: import a single management (if no import for it is running)
@@ -113,9 +111,6 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
                     config_changed_since_last_import, configNormalizedSub = get_config_from_api(subMgrImportState, {})
                     configNormalized.mergeConfigs(configNormalizedSub)
                     # TODO: destroy configNormalizedSub?
-
-                if importState.ImportVersion>8:
-                    configNormalized.ConfigFormat = ConfFormat.NORMALIZED
 
             time_get_config = int(time.time()) - importState.StartTime
             logger.debug("import_management - getting config total duration " + str(int(time.time()) - importState.StartTime) + "s")
@@ -255,7 +250,18 @@ def get_config_from_api(importState: ImportStateController, configNative, import
             # get config from product-specific FW API
             _, configNormalized = fw_module.get_config(configNative, importState)
         else:
-            configNormalized = {}
+            # returning empty config
+            emptyConfigDict = {
+                                    'action': ConfigAction.INSERT,
+                                    'network_objects': {},
+                                    'service_objects': {},
+                                    'users': {},
+                                    'zone_objects': {},
+                                    'rules': [],
+                                    'gateways': [],
+                                    'ConfigFormat': ConfFormat.NORMALIZED
+                                }
+            configNormalized = FwConfigNormalized(**emptyConfigDict)
     except (FwLoginFailed) as e:
         importState.appendErrorString(f"login failed: mgm_id={str(importState.MgmDetails.Id)}, mgm_name={importState.MgmDetails.Name}, {e.message}")
         importState.increaseErrorCounter()

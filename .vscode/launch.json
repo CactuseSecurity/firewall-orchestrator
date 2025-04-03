@@ -116,7 +116,7 @@
             "args": [
                 "-m1",
                 "-d8",
-                // "-f",
+                "-f",
                 "-s",
                 // "-c",
                 // "-ifile:///home/tim/tmp/mgm_id_12_config_normalized_with_links.json",
@@ -124,7 +124,7 @@
                 // "-ifile:///home/tim/tmp/mgm_id_16_config_normalized_links_changed.json",
                 // "-ifile:///home/tim/tmp/mgm_id_16_config_normalized_links_src_negated.json",
                 // "-ifile:///home/tim/tmp/mgm_id_3_config_normalized.json",
-                // "-ifile:///home/tim/tmp/mgm_id_1_config_normalized.json",
+                "-ifile:///home/tim/tmp/mgm_id_1_config_normalized.json",
                 // "-ifile:///home/tim/tmp/sting_1_norm.json",
                 // "-ifile:///home/tim/tmp/sting_2_plus_one_nwobj_norm.json",
                 //"-l66",

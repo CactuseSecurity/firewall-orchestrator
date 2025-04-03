@@ -141,12 +141,9 @@ namespace FWO.Basics
         private static bool IsValidIPv4(string ipAddress)
         {
             byte[] addBytes = [.. ipAddress.Split('.').Where(_ => byte.Parse(_) <= 255 && byte.Parse(_) >= 0).Select(byte.Parse)];
-            if(addBytes.Length != 4) return false;
-            foreach(var b in addBytes)
-            {
-                if(b < 0 || b > 255) return false;
-            }
-            return true;
+
+            return addBytes.Length != 4;
+            
         }
 
         public static string GetObjectType(string ip1, string ip2)

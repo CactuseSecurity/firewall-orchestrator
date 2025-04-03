@@ -1,4 +1,5 @@
 @using System.Text.Json
+@using FWO.Ui.Data
 @using FWO.Ui.Pages.NetworkModelling
 
 @page "/settings/modelling"
@@ -19,7 +20,7 @@
 {
     <form onsubmit="return false">
         <button type="button" class="btn btn-sm btn-dark ms-5" data-toggle="tooltip" title="@(userConfig.PureLine("H5602"))"
-                @onclick="PredefServices">
+        @onclick="PredefServices">
             @(userConfig.GetText("predef_services"))
         </button>
         <hr />
@@ -82,7 +83,7 @@
         <div class="form-group row mt-4" data-toggle="tooltip" title="@(userConfig.PureLine("H9055"))">
             <label class="col-form-label col-sm-4">@userConfig.GetText("import_app_server"):</label>
             <div class="row col-sm-6">
-                <CSVFileUpload SupportedFileFormats=".csv" AuthorizedRoles="@Roles.Admin" OnAddAppServerError="OnAddAppServerError" OnAddAppServerWarning="OnAddAppServerWarning" OnImportSuccess="OnAppServerImportSuccess"></CSVFileUpload>
+                <FileUpload SupportedFileFormats=".csv" AuthorizedRoles="@Roles.Admin" OnImportSuccess="OnAppServerImportSuccess" OnAddAppServerError="OnAddAppServerError" TImportResult="CSVFileUploadErrorModel" OnAfterImportResults="OnAfterImportResults"></FileUpload>
             </div>
         </div>
         <hr />
@@ -371,6 +372,37 @@ else
 }
 <PredefServices @bind-Display="predefServices" />
 <SearchNwObject @bind-Display="searchArea" ObjectList="pureAreaList" Add="AddArea" CommonAreaMode="true" />
+<PopUp Title="@(userConfig.GetText("appserver_import"))" Show="@ShowCSVImportPopUp" Size=PopupSize.Large OnClose="() => ShowCSVImportPopUp = false">
+    <Body>
+        @if(CSVImportSuccess is not null)
+        {
+            <div class="mt-3">
+                <Collapse StartToggled="true" Style="success" Title="@(userConfig.GetText("success"))">
+                    <Table PageSize="0" TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="string" Items="CSVImportSuccess">
+                        <Column TableItem="string" Title="@(userConfig.GetText("entrydata"))" Type="typeof(string)" Field="@(_ => new string(_))" Sortable="true" Filterable="true" />
+                    </Table>
+                </Collapse>
+            </div>
+        }
+        @if(CSVImportErrors is not null)
+        {
+            <div class="mt-1">
+                <Collapse StartToggled="false" Style="danger" Title="@(userConfig.GetText("errors"))">
+                    <Table PageSize="0" TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="CSVFileUploadErrorModel" Items="CSVImportErrors">
+                        <Column TableItem="CSVFileUploadErrorModel" Title="@(userConfig.GetText("entrydata"))" Field="@(_ => _.EntryData)" Sortable="true" Filterable="true" />
+                        <Column TableItem="CSVFileUploadErrorModel" Title="@(userConfig.GetText("error_message"))" Field="@(_ => _.Message)" Sortable="true" Filterable="true" />
+                        <Column TableItem="CSVFileUploadErrorModel" Title="@(userConfig.GetText("type"))" Field="@(_ => _.MessageType)" Sortable="true" />
+                    </Table>
+                </Collapse>
+            </div>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <button type="button" class="btn btn-sm btn-primary" @onclick="() => ShowCSVImportPopUp = false">@(userConfig.GetText("ok"))</button>
+        </div>
+    </Footer>
+</PopUp>
 
 @code
 {
@@ -416,23 +448,22 @@ else
     private List<UiLdapConnection> connectedLdaps = new List<UiLdapConnection>();
     private UiLdapConnection selectedLdap = new();
     private bool initComplete = false;
-
+    private bool ShowCSVImportPopUp { get; set; }
+    private List<CSVFileUploadErrorModel>? CSVImportErrors;
+    private List<string>? CSVImportSuccess;
 
     private void OnAddAppServerError((Exception Exception, string Message) error)
     {
         DisplayMessageInUi(error.Exception, userConfig.GetText("add_app_server"), error.Message, false);
     }
 
-    private void OnAddAppServerWarning(string errorMessage)
+    private void OnAfterImportResults((List<string>? Success, List<CSVFileUploadErrorModel>? Errors) importResult)
     {
-        DisplayMessageInUi(null, userConfig.GetText("add_app_server"), errorMessage, true);
-    }
+        CSVImportSuccess = importResult.Success;
+        CSVImportErrors = importResult.Errors;
 
-    private void OnAddAppServerWarning(Exception ex)
-    {
-        DisplayMessageInUi(ex, userConfig.GetText("add_app_server"), ex.Message, false);
+        ShowCSVImportPopUp = true;
     }
-
     private void OnAppServerImportSuccess()
     {
         DisplayMessageInUi(null, userConfig.GetText("import_app_server"), userConfig.GetText("importAppServerDataSuccess"), false);

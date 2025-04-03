@@ -1607,8 +1607,12 @@ INSERT INTO txt VALUES ('generate_name',        'German',   'Name generieren');
 INSERT INTO txt VALUES ('generate_name',        'English',  'Generate Name');
 INSERT INTO txt VALUES ('change_source',        'German',   '&Auml;nderungsquelle');
 INSERT INTO txt VALUES ('change_source',        'English',  'Change Source');
-INSERT INTO txt VALUES ('tableofcontent',      'German',     'Inhaltsverzeichnis');
-INSERT INTO txt VALUES ('tableofcontent',      'English',    'Table of content');
+INSERT INTO txt VALUES ('tableofcontent',       'German',   'Inhaltsverzeichnis');
+INSERT INTO txt VALUES ('tableofcontent',       'English',  'Table of content');
+INSERT INTO txt VALUES ('entrydata',            'German',   'Dateneintrag');
+INSERT INTO txt VALUES ('entrydata',            'English',  'Data entry');
+INSERT INTO txt VALUES ('error_message',        'German',   'Fehlermeldung');
+INSERT INTO txt VALUES ('error_message',        'English',  'Error message');
 
 -- compliance
 INSERT INTO txt VALUES ('compliance',			'German', 	'Compliance');
@@ -2365,6 +2369,8 @@ INSERT INTO txt VALUES ('app_zone_pattern',		'German', 	'Muster App Zone');
 INSERT INTO txt VALUES ('app_zone_pattern',		'English', 	'App Zone Pattern');
 INSERT INTO txt VALUES ('app_zone_creation',	'German', 	'App Zonen Objekte erstellen');
 INSERT INTO txt VALUES ('app_zone_creation',	'English', 	'Create App Zone Objects');
+INSERT INTO txt VALUES ('appserver_import',     'German',   'App server import');
+INSERT INTO txt VALUES ('appserver_import',     'English',  'App server import');
 
 -- monitoring
 INSERT INTO txt VALUES ('open_alerts',          'German', 	'Offene Alarme');

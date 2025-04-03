@@ -1,4 +1,4 @@
-﻿using FWO.Api.Client.Queries;
+using FWO.Api.Client.Queries;
 using FWO.Api.Client;
 using FWO.Data;
 using FWO.Data.Modelling;
@@ -8,6 +8,7 @@ using FWO.Config.Api;
 using FWO.Ui.Data;
 using Microsoft.AspNetCore.Components.Forms;
 using System.Text.Json;
+using System.Collections.Generic;
 
 namespace FWO.Ui.Services
 {
@@ -17,11 +18,6 @@ namespace FWO.Ui.Services
         /// Uploaded data as bytes.
         /// </summary>
         private byte[] UploadedData { get; set; } = [];
-
-        /// <summary>
-        /// Errors that occured while trying to write file data in database.
-        /// </summary>
-        private List<Exception> ImportErrors { get; set; } = [];
 
         private UserConfig UserConfig { get; set; }
         private ApiConnection ApiConnection { get; set; }
@@ -44,29 +40,45 @@ namespace FWO.Ui.Services
             UploadedData = ms.ToArray();
         }
 
-        public async Task<List<Exception>> ImportUploadedData(FileUploadCase fileUploadCase, string filename = "")
+        public async Task<(List<string>? success, List<TError>? errors)> ImportUploadedData<TError>(FileUploadCase fileUploadCase, string filename = "") 
+            where TError : ErrorBaseModel
         {
-            ImportErrors.Clear();
-
             if (fileUploadCase == FileUploadCase.ImportAppServerFromCSV)
             {
                 ImportSource = GlobalConst.kCSV_ + filename;
-                await ImportAppServersFromCSV();
+                (List<string>? success, List<CSVFileUploadErrorModel>? errors)  =  await ImportAppServersFromCSV();
+
+                List<TError>? importErrors = errors is not null ? [.. errors.Cast<TError>()] : default;
+
+                return (success, importErrors);
             }
 
-            return ImportErrors;
+            throw new NotImplementedException();
         }
 
-        private async Task ImportAppServersFromCSV()
+        private async Task<(List<string>? success, List<CSVFileUploadErrorModel>? errors)> ImportAppServersFromCSV()
         {
+            List<string> success = [];
+            List<CSVFileUploadErrorModel> errors = [];
+
             string text = System.Text.Encoding.UTF8.GetString(UploadedData);
             string[] lines = text.Split('\r');
 
             foreach (string line in lines)
             {
-                // create import model
-                if (!TryGetEntries(line, ';', out string[] entries) && !TryGetEntries(line, ',', out entries))
+                CSVFileUploadErrorModel? error = new()
+                {
+                    EntryData = line,
+                    MessageType = MessageType.Error,
+                };
+
+                if(!TryGetEntries(line, ';', out string[] entries) && !TryGetEntries(line, ',', out entries))
+                {
+                    error.Message = "Entry doesn't contain all required columns"; 
+                    errors.Add(error);
+
                     continue;
+                }
 
                 if (IsHeader(entries))
                     continue;
@@ -76,16 +88,26 @@ namespace FWO.Ui.Services
                     AppID = entries[1],
                     AppServerTyp = entries[2]
                 };
+
                 importAppServer.AppServerName = UserConfig.DnsLookup ? 
                     await AppServerHelper.ConstructAppServerNameFromDns(importAppServer.ToModellingAppServer(), NamingConvention, UserConfig.OverwriteExistingNames) :
                     entries[0];
                 
                 // write to db
-                (bool importSuccess, Exception? error) = await AddAppServerToDb(importAppServer);
+                (bool importSuccess, Exception? e) = await AddAppServerToDb(importAppServer);
 
-                if (!importSuccess && error is not null)
-                    ImportErrors.Add(error);
+                if (!importSuccess && e is not null)
+                {
+                    error.Message = e.Message;
+                    errors.Add(error);
+                }
+                else
+                {
+                    success.Add(line);
+                }
             }
+
+            return (success, errors);
         }
 
         private static bool TryGetEntries(string line, char separator, out string[] entries)

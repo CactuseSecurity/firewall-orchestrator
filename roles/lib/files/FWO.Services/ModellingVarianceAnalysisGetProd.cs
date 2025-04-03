@@ -174,11 +174,11 @@ namespace FWO.Services
                         foreach (NetworkObject objGrp in objGrpByMgt)
                         {
                             // Todo: filter for naming convention??
-                            if (!allExistingAppRoles.ContainsKey(mgt.Id))
+                            if (!allProdAppRoles.ContainsKey(mgt.Id))
                             {
-                                allExistingAppRoles.Add(mgt.Id, []);
+                                allProdAppRoles.Add(mgt.Id, []);
                             }
-                            allExistingAppRoles[mgt.Id].Add(new(objGrp, namingConvention));
+                            allProdAppRoles[mgt.Id].Add(new(objGrp, namingConvention));
                             aRCount++;
                         }
                     }
@@ -200,9 +200,9 @@ namespace FWO.Services
 
                 string aRappRoles = "";
                 string aRappServers = "";
-                foreach (int mgt in allExistingAppRoles.Keys)
+                foreach (int mgt in allProdAppRoles.Keys)
                 {
-                    aRappRoles += $" Management {mgt}: " + string.Join(",", allExistingAppRoles[mgt].Where(a => a.Name.StartsWith("AR")).ToList().ConvertAll(x => $"{x.Name}({x.IdString})").ToList());
+                    aRappRoles += $" Management {mgt}: " + string.Join(",", allProdAppRoles[mgt].Where(a => a.Name.StartsWith("AR")).ToList().ConvertAll(x => $"{x.Name}({x.IdString})").ToList());
                 }
                 foreach (int mgt in allExistingAppServers.Keys)
                 {

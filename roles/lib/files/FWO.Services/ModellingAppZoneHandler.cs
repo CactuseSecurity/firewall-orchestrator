@@ -9,87 +9,42 @@ namespace FWO.Services
 {
     public class ModellingAppZoneHandler(ApiConnection apiConnection, UserConfig userConfig, FwoOwner owner, Action<Exception?, string, string, bool> displayMessageInUi) : ModellingHandlerBase(apiConnection, userConfig, displayMessageInUi)
     {
-        private ModellingNamingConvention NamingConvention = new();
+        private readonly ModellingNamingConvention NamingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(userConfig.ModNamingConvention) ?? new();
+        List<ModellingAppServerWrapper> allAppServers = [];
 
-        public async Task<ModellingAppZone> PlanAppZoneUpsert(List<ModellingAppServerWrapper>? diffAppServers = default)
+        public async Task<ModellingAppZone?> GetExistingAppZone()
         {
-            NamingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(userConfig.ModNamingConvention) ?? new();
-            List<ModellingAppServer> tempAppServers = await apiConnection.SendQueryAsync<List<ModellingAppServer>>(ModellingQueries.getAppServersForOwner, new { appId = owner.Id });
-            List<ModellingAppServerWrapper> allAppServers = [];
-
-            foreach (ModellingAppServer appServer in tempAppServers.Where(a => !a.IsDeleted))
+            try
             {
-                allAppServers.Add(new ModellingAppServerWrapper() { Content = appServer });
+                List<ModellingAppZone>? existingAppZones = await apiConnection.SendQueryAsync<List<ModellingAppZone>>(ModellingQueries.getAppZonesByAppId, new { appId = owner.Id });
+                return existingAppZones.FirstOrDefault();
             }
-
-            ModellingAppZone? appZone = await GetExistingAppZone();
-
-            if (appZone is null)
+            catch (Exception ex)
             {
-                appZone = new(owner.Id)
-                {
-                    Exists = false
-                };
-
-                ApplyNamingConvention(owner.ExtAppId?.ToUpper(), appZone);
-                appZone.AppServersNew = allAppServers;
-                appZone.AppServers = allAppServers;
+                DisplayMessageInUi(ex, userConfig.GetText("app_zone_creation"), userConfig.GetText("E9203"), true);
             }
-            else
-            {
-                appZone.Exists = true;
+            return default;
+        }
 
-                ApplyNamingConvention(owner.ExtAppId?.ToUpper(), appZone);
-
-                List<ModellingAppServerWrapper>? removedAppServers = FindRemovedAppServers(appZone, allAppServers);
-
-                if (removedAppServers.Count > 0)
-                {
-                    appZone.AppServersRemoved = removedAppServers;
-                    appZone.AppServers.RemoveAll(_ => removedAppServers.Contains(_));
-                }
-
-                List<ModellingAppServerWrapper>? newAppServers = FindNewAppServers(appZone, allAppServers);
-
-                if (newAppServers.Count > 0)
-                {
-                    appZone.AppServersNew = newAppServers;
-                    appZone.AppServers.AddRange(newAppServers);
-                }
-            }
-
-            if (diffAppServers is not null)
-            {
-                List<ModellingAppServerWrapper>? removedAppServers = FindRemovedAppServers(new ModellingAppZone() { AppServers = diffAppServers}, appZone.AppServers);
-
-                if (removedAppServers.Count > 0)
-                {
-                    appZone.AppServersRemoved = removedAppServers;
-                    appZone.AppServers.RemoveAll(_ => removedAppServers.Contains(_));
-                }
-
-                List<ModellingAppServerWrapper>? newAppServers = FindNewAppServers(new ModellingAppZone() { AppServers = diffAppServers }, appZone.AppServers);
-
-                if (newAppServers.Count > 0)
-                {
-                    appZone.AppServersNew = newAppServers;
-                    appZone.AppServers.AddRange(newAppServers);
-                }
-
-                List<ModellingAppServerWrapper>? unchangedAppServers = FindUnchangedAppServers(new ModellingAppZone() { AppServers = diffAppServers }, appZone.AppServers);
-
-                if (unchangedAppServers.Count > 0)
-                {
-                    appZone.AppServersUnchanged = unchangedAppServers;
-                }
-            }
-
+        public async Task<ModellingAppZone> PlanNewAppZone(bool exist)
+        {
+            allAppServers = await GetAllModelledAppServers();
+            ModellingAppZone appZone = new(owner.Id){ Exists = exist };
+            ApplyNamingConvention(owner.ExtAppId?.ToUpper(), appZone);
+            appZone.AppServersNew = allAppServers;
+            appZone.AppServers = allAppServers;
             return appZone;
+        }
+
+        public async Task<ModellingAppZone> PlanAppZoneUpsert(ModellingAppZone prodAppZone)
+        {
+            allAppServers = await GetAllModelledAppServers();
+            FillDiffLists(prodAppZone, allAppServers);
+            return prodAppZone;
         }
 
         public async Task<ModellingAppZone?> UpsertAppZone(ModellingAppZone appZone)
         {
-
             if (!appZone.Exists)
             {
                 appZone.Id = await AddAppZoneToDb(appZone);
@@ -111,63 +66,15 @@ namespace FWO.Services
             return appZone;
         }
 
-        private List<ModellingAppServerWrapper> FindNewAppServers(ModellingAppZone existingAppZone, List<ModellingAppServerWrapper> allAppServers)
+        private async Task<List<ModellingAppServerWrapper>> GetAllModelledAppServers()
         {
-            List<ModellingAppServerWrapper> newAppServers = [];
-
-            foreach (ModellingAppServerWrapper appserver in allAppServers)
+            List<ModellingAppServer> tempAppServers = await apiConnection.SendQueryAsync<List<ModellingAppServer>>(ModellingQueries.getAppServersForOwner, new { appId = owner.Id });
+            List<ModellingAppServerWrapper> allAppServers = [];
+            foreach (ModellingAppServer appServer in tempAppServers.Where(a => !a.IsDeleted))
             {
-                if (existingAppZone.AppServers.FirstOrDefault(a => new AppServerComparer(NamingConvention).Equals(a.Content, appserver.Content)) == null)
-                {
-                    newAppServers.Add(appserver);
-                }
+                allAppServers.Add(new ModellingAppServerWrapper() { Content = appServer });
             }
-
-            return newAppServers;
-        }
-
-        private List<ModellingAppServerWrapper> FindUnchangedAppServers(ModellingAppZone existingAppZone, List<ModellingAppServerWrapper> allAppServers)
-        {
-            List<ModellingAppServerWrapper> unchangedAppServers = [];
-
-            foreach (ModellingAppServerWrapper appserver in allAppServers)
-            {
-                if (existingAppZone.AppServers.FirstOrDefault(a => new AppServerComparer(NamingConvention).Equals(a.Content, appserver.Content)) != null)
-                {
-                    unchangedAppServers.Add(appserver);
-                }
-            }
-
-            return unchangedAppServers;
-        }
-
-        private List<ModellingAppServerWrapper> FindRemovedAppServers(ModellingAppZone existingAppZone, List<ModellingAppServerWrapper> allAppServers)
-        {
-            List<ModellingAppServerWrapper> deletedAppServers = [];
-
-            foreach (ModellingAppServerWrapper exAppserver in existingAppZone.AppServers)
-            {
-                if (allAppServers.FirstOrDefault(a => new AppServerComparer(NamingConvention).Equals(exAppserver.Content, a.Content)) == null)
-                {
-                    deletedAppServers.Add(exAppserver);
-                }
-            }
-
-            return deletedAppServers;
-        }
-
-        public async Task<ModellingAppZone?> GetExistingAppZone()
-        {
-            try
-            {
-                List<ModellingAppZone>? existingAppZones = await apiConnection.SendQueryAsync<List<ModellingAppZone>>(ModellingQueries.getAppZonesByAppId, new { appId = owner.Id });
-                return existingAppZones.FirstOrDefault();
-            }
-            catch (Exception ex)
-            {
-                DisplayMessageInUi(ex, userConfig.GetText("app_zone_creation"), userConfig.GetText("E9203"), true);
-            }
-            return default;
+            return allAppServers;
         }
 
         private void ApplyNamingConvention(string? extAppId, ModellingAppZone appZone)
@@ -179,6 +86,28 @@ namespace FWO.Services
             }
         }
 
+        private void FillDiffLists(ModellingAppZone appZone, List<ModellingAppServerWrapper> allAppServers)
+        {
+            AppServerComparer appServerComparer = new(NamingConvention);
+            List<ModellingAppServerWrapper>? newAppServers = [.. allAppServers.Except(appZone.AppServers, appServerComparer)];
+            List<ModellingAppServerWrapper> removedAppServers = [.. appZone.AppServers.Except(allAppServers, appServerComparer)];
+            List<ModellingAppServerWrapper>? unchangedAppServers = [.. appZone.AppServers.Except(removedAppServers, appServerComparer)];
+            if (newAppServers.Count > 0)
+            {
+                appZone.AppServersNew = newAppServers;
+                appZone.AppServers.AddRange(newAppServers);
+            }
+            if (removedAppServers.Count > 0)
+            {
+                appZone.AppServersRemoved = removedAppServers;
+                appZone.AppServers.RemoveAll(_ => removedAppServers.Contains(_));
+            }
+            if (unchangedAppServers.Count > 0)
+            {
+                appZone.AppServersUnchanged = unchangedAppServers;
+            }
+        }
+        
         private async Task<long> AddAppZoneToDb(ModellingAppZone appZone)
         {
             var azVars = new
@@ -206,7 +135,7 @@ namespace FWO.Services
             return -1;
         }
 
-        public async Task AddAppServersToAppZone(long appZoneId, List<ModellingAppServerWrapper> appServers)
+        private async Task AddAppServersToAppZone(long appZoneId, List<ModellingAppServerWrapper> appServers)
         {
             foreach (ModellingAppServerWrapper appServer in appServers)
             {
@@ -227,7 +156,7 @@ namespace FWO.Services
             }
         }
 
-        public async Task RemoveAppServersFromAppZone(long appZoneId, List<ModellingAppServerWrapper> appServers)
+        private async Task RemoveAppServersFromAppZone(long appZoneId, List<ModellingAppServerWrapper> appServers)
         {
             foreach (ModellingAppServer appServer in ModellingAppServerWrapper.Resolve(appServers))
             {

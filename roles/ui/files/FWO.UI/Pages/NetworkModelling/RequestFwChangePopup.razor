@@ -134,7 +134,6 @@
         {
             if (!await GetActTicketStatus() && extStateHandler != null)
             {
-                ModellingAppZoneHandler appZoneHandler = new(apiConnection, userConfig, SelectedApp, DisplayMessageInUi);
                 ModellingVarianceAnalysis varianceAnalysis = new(apiConnection, extStateHandler, userConfig, SelectedApp, DisplayMessageInUi);
                 TaskList = await varianceAnalysis.AnalyseModelledConnectionsForRequest(Connections);
                 PlannedAppZone = varianceAnalysis.PlannedAppZone;

@@ -33,7 +33,7 @@ namespace FWO.Services
         private Dictionary<int, List<Rule>> allModelledRules = [];
         private List<ModellingAppRole> allModelledAppRoles = [];
 
-        private readonly Dictionary<int, List<ModellingAppRole>> allExistingAppRoles = [];
+        private readonly Dictionary<int, List<ModellingAppRole>> allProdAppRoles = [];
         private readonly Dictionary<int, List<ModellingAppServer>> allExistingAppServers = [];
         private readonly Dictionary<int, List<ModellingAppServer>> alreadyCreatedAppServers = [];
 
@@ -93,9 +93,9 @@ namespace FWO.Services
             allModelledAppRoles = allModelledAppRoles.Distinct(appRoleComparer).ToList();
         }
 
-        private void AnalyseAppRole(ModellingAppRole modelledAppRole, Management mgt, bool isSource = false)
+        private void AnalyseAppRole(ModellingAppRole modelledAppRole, Management mgt)
         {
-            if (!ResolveExistingNwGroup(modelledAppRole, mgt))
+            if (ResolveProdAppRole(modelledAppRole, mgt) == null)
             {
                 modelledAppRole.IsMissing = true;
                 varianceResult.MissingAppRoles[mgt.Id].Add(modelledAppRole);

@@ -4,12 +4,16 @@ name: Build
 on:
 
   push:
+    branches-ignore:
+    - importer-rework
     paths-ignore:
     - 'documentation/**'
     - 'design/**'
 
   pull_request:
     types: [ ready_for_review, review_requested ]
+    branches-ignore:
+        - importer-rework
     paths-ignore:
     - 'documentation/**'
     - 'design/**'

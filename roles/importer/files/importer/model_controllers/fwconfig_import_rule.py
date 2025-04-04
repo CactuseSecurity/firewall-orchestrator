@@ -113,7 +113,7 @@ class FwConfigImportRule(FwConfigImportBase):
         end_time = time.time()      
         execution_time = end_time - start_time
         # It is some problem caused by mixing up async and sync code.
-        logger.info(f"reset of order numbers completed in {execution_time:.2f}.")
+        logger.info(f"reset of order numbers completed in {execution_time:.2f}s.")
 
         self.ImportDetails.Stats.RuleAddCount += numberOfAddedRules
         self.ImportDetails.Stats.RuleDeleteCount += numberOfDeletedRules

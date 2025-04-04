@@ -62,7 +62,7 @@ namespace FWO.Ui.Services
             List<CSVFileUploadErrorModel> errors = [];
 
             string text = System.Text.Encoding.UTF8.GetString(UploadedData);
-            string[] lines = text.Split('\r');
+            string[] lines = text.Split(Environment.NewLine);
 
             foreach (string line in lines)
             {

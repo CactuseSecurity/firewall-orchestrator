@@ -33,17 +33,11 @@ class FwConfigImport(FwConfigImportObject, FwConfigImportRule, FwConfigImportGat
     def __init__(self, importState: ImportStateController, config: FwConfigNormalized):
         self.ImportDetails = importState
         self.NormalizedConfig = config
-        
-        FwConfigNormalizedController.__init__(self, importState, config)
         FwConfigImportObject.__init__(self, importState, config)
-        FwConfigImportRule.__init__(self, importState, config)
-        FwConfigImportGateway.__init__(self, importState, config)
         
     def importConfig(self):
         # current implementation restriction: assuming we always get the full config (only inserts) from API
-
         previousConfig = self.getPreviousConfig()
-
         # calculate differences and write them to the database via API
         self.updateDiffs(previousConfig)
         return
@@ -53,6 +47,8 @@ class FwConfigImport(FwConfigImportObject, FwConfigImportRule, FwConfigImportGat
         newRuleIds = self.updateRulebaseDiffs(previousConfig)
         self.ImportDetails.SetRuleMap() # update all rule entries (from currently running import for rulebase_links)
         self.updateGatewayDiffs(previousConfig)
+
+        # raise NotImplementedError("just testing")
 
         # get new rules details from API (for obj refs as well as enforcing gateways)
         errors, changes, newRules = self.getRulesByIdWithRefUids(newRuleIds)

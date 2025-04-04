@@ -45,139 +45,170 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
     time_get_config = 0
     verifyCerts = (ssl_verification is not None)
 
-    importState = ImportStateController.initializeImport(mgmId, debugLevel=debug_level_in, 
-                                               force=force, version=version, 
-                                               isClearingImport=clearManagementData, isFullImport=False, sslVerification=verifyCerts)
 
-    if not clearManagementData and importState.DataRetentionDays<importState.DaysSinceLastFullImport:
-        # run clear import; this makes sure the following import is a full one
-        import_management(mgmId=mgmId, ssl_verification=ssl_verification, debug_level_in=debug_level_in, 
-            limit=limit, force=True, clearManagementData=True, suppress_cert_warnings_in=suppress_cert_warnings_in,
-            in_file=in_file, version=version)
-        importState.IsFullImport = True # the now following import is a full one
+    try:
 
-    if importState.MgmDetails.ImportDisabled and not importState.ForceImport:
-        logger.info(f"import_management - import disabled for mgm  {str(mgmId)} - skipping")
-    else:
-        Path(import_tmp_path).mkdir(parents=True, exist_ok=True)  # make sure tmp path exists
-        gateways = GatewayController.buildGatewayList(importState.FullMgmDetails)
+        importState = ImportStateController.initializeImport(mgmId, debugLevel=debug_level_in, 
+                                                force=force, version=version, 
+                                                isClearingImport=clearManagementData, isFullImport=False, sslVerification=verifyCerts)
 
-        # only run if this is the correct import module
-        if importState.MgmDetails.ImporterHostname != gethostname() and not importState.ForceImport:
-            logger.info("import_management - this host (" + gethostname() + ") is not responsible for importing management " + str(mgmId))
-            return 0
+        if not clearManagementData and importState.DataRetentionDays<importState.DaysSinceLastFullImport:
+            # run clear import; this makes sure the following import is a full one
+            import_management(mgmId=mgmId, ssl_verification=ssl_verification, debug_level_in=debug_level_in, 
+                limit=limit, force=True, clearManagementData=True, suppress_cert_warnings_in=suppress_cert_warnings_in,
+                in_file=in_file, version=version)
+            importState.IsFullImport = True # the now following import is a full one
 
-        fwo_api.setImportLock(importState)
-        logger.info("starting import of management " + importState.MgmDetails.Name + '(' + str(mgmId) + "), import_id=" + str(importState.ImportId))
-        configNormalized = {}
-
-        if clearManagementData:
-            logger.info('this import run will reset the configuration of this management to "empty"')
-            configNormalized = FwConfigManagerListController()
-            configNormalized.addManager(
-                manager=FwConfigManager(
-                    ManagerUid=calcManagerUidHash(importState.FullMgmDetails),
-                    ManagerName=importState.MgmDetails.Name,
-                    IsGlobal=importState.MgmDetails.IsSuperManager,
-                    DependantManagerUids=[],
-                    Configs=[]
-                ))
-            configNormalized.ManagerSet[0].Configs.append(
-                FwConfigNormalized(
-                    action=ConfigAction.INSERT, 
-                    network_objects=[], 
-                    service_objects=[], 
-                    users=[], 
-                    zone_objects=[], 
-                    rulebases=[],
-                    gateways=[]
-            ))
-            
-            importState.IsClearingImport = True # the now following import is a full one
+        if importState.MgmDetails.ImportDisabled and not importState.ForceImport:
+            logger.info(f"import_management - import disabled for mgm  {str(mgmId)} - skipping")
         else:
-            if in_file is not None or stringIsUri(importState.MgmDetails.Hostname):
-                ### geting config from file ######################
-                config_changed_since_last_import, configNormalized = \
-                    importFromFile(importState, in_file, gateways)
+            Path(import_tmp_path).mkdir(parents=True, exist_ok=True)  # make sure tmp path exists
+            gateways = GatewayController.buildGatewayList(importState.FullMgmDetails)
+
+            # only run if this is the correct import module
+            if importState.MgmDetails.ImporterHostname != gethostname() and not importState.ForceImport:
+                logger.info("import_management - this host (" + gethostname() + ") is not responsible for importing management " + str(mgmId))
+                return 0
+
+            fwo_api.setImportLock(importState)
+            logger.info("starting import of management " + importState.MgmDetails.Name + '(' + str(mgmId) + "), import_id=" + str(importState.ImportId))
+            configNormalized = {}
+
+            if clearManagementData:
+                logger.info('this import run will reset the configuration of this management to "empty"')
+                configNormalized = FwConfigManagerListController()
+                configNormalized.addManager(
+                    manager=FwConfigManager(
+                        ManagerUid=calcManagerUidHash(importState.FullMgmDetails),
+                        ManagerName=importState.MgmDetails.Name,
+                        IsGlobal=importState.MgmDetails.IsSuperManager,
+                        DependantManagerUids=[],
+                        Configs=[]
+                    ))
+                configNormalized.ManagerSet[0].Configs.append(
+                    FwConfigNormalized(
+                        action=ConfigAction.INSERT, 
+                        network_objects=[], 
+                        service_objects=[], 
+                        users=[], 
+                        zone_objects=[], 
+                        rulebases=[],
+                        gateways=[]
+                ))
+                
+                importState.IsClearingImport = True # the now following import is a full one
             else:
-                ### getting config from firewall manager API ######
-                config_changed_since_last_import, configNormalized = get_config_from_api(importState, {})
+                if in_file is not None or stringIsUri(importState.MgmDetails.Hostname):
+                    ### geting config from file ######################
+                    config_changed_since_last_import, configNormalized = \
+                        importFromFile(importState, in_file, gateways)
+                else:
+                    ### getting config from firewall manager API ######
+                    config_changed_since_last_import, configNormalized = get_config_from_api(importState, {})
 
-                # also import sub managers if they exist
-                for subManagerId in importState.MgmDetails.SubManager:
-                    subMgrImportState = ImportStateController.initializeImport(subManagerId, debugLevel=debug_level_in, 
-                                            force=force, version=version, 
-                                            isClearingImport=clearManagementData, isFullImport=False)
-                    config_changed_since_last_import, configNormalizedSub = get_config_from_api(subMgrImportState, {})
-                    configNormalized.mergeConfigs(configNormalizedSub)
-                    # TODO: destroy configNormalizedSub?
+                    # also import sub managers if they exist
+                    for subManagerId in importState.MgmDetails.SubManager:
+                        subMgrImportState = ImportStateController.initializeImport(subManagerId, debugLevel=debug_level_in, 
+                                                force=force, version=version, 
+                                                isClearingImport=clearManagementData, isFullImport=False)
+                        config_changed_since_last_import, configNormalizedSub = get_config_from_api(subMgrImportState, {})
+                        configNormalized.mergeConfigs(configNormalizedSub)
+                        # TODO: destroy configNormalizedSub?
 
-            time_get_config = int(time.time()) - importState.StartTime
-            logger.debug("import_management - getting config total duration " + str(int(time.time()) - importState.StartTime) + "s")
+                time_get_config = int(time.time()) - importState.StartTime
+                logger.debug("import_management - getting config total duration " + str(int(time.time()) - importState.StartTime) + "s")
 
-        if config_changed_since_last_import or importState.ForceImport:
-            try: # now we import the config via API chunk by chunk:
-                # for config_chunk in split_config(importState, configNormalized):
-                configNormalized.storeFullNormalizedConfigToFile(importState) # write full config to file (for debugging)
+            if config_changed_since_last_import or importState.ForceImport:
+                try: # now we import the config via API chunk by chunk:
+                    # for config_chunk in split_config(importState, configNormalized):
+                    configNormalized.storeFullNormalizedConfigToFile(importState) # write full config to file (for debugging)
 
-                for managerSet in configNormalized.ManagerSet:
-                    for config in managerSet.Configs:
-                        # if len(config)>0:
-                            if importState.ImportVersion>8:
-                                configImporter = FwConfigImport(importState, config)
-                                configChecker = FwConfigImportCheckConsistency(configImporter)
-                                if len(configChecker.checkConfigConsistency())==0:
+                    for managerSet in configNormalized.ManagerSet:
+                        for config in managerSet.Configs:
+                            # if len(config)>0:
+                                if importState.ImportVersion>8:
                                     try:
-                                        configImporter.importConfig()
+                                        configImporter = FwConfigImport(importState, config)
                                     except:
-                                        logger.error("importConfig - unspecified error: " + str(traceback.format_exc()))
-                                        importState.Stats.ErrorCount += 1
-                                    if importState.Stats.ErrorCount>0:
-                                        fwo_api.complete_import(importState)
+                                        # logger.error("import_management - unspecified error while creating config importer (FwConfigImport): " + str(traceback.format_exc()))
+                                        try:
+                                            importState.increaseErrorCounterByOne()
+                                            importState.appendErrorString(str(traceback.format_exc()))
+                                            fwo_api.delete_import(importState)
+                                            fwo_api.complete_import(importState)
+                                        except:
+                                            pass # logger.error("import_management - unspecified error while deleting import: " + str(traceback.format_exc()))
+                                        finally:
+                                            raise
+                                    try:
+                                        configChecker = FwConfigImportCheckConsistency(configImporter)
+                                        if len(configChecker.checkConfigConsistency())==0:
+                                            try:
+                                                configImporter.importConfig()
+                                            except:
+                                                logger.error("importConfig - unspecified error: " + str(traceback.format_exc()))
+                                                importState.increaseErrorCounterByOne()
+                                            if importState.Stats.ErrorCount>0:
+                                                fwo_api.complete_import(importState)
+                                                FwConfigImportRollback(configImporter).rollbackCurrentImport()
+                                            else:
+                                                configImporter.storeLatestConfig()
+                                    except:
+                                        logger.error("import_management - unspecified error while rolling back import: " + str(traceback.format_exc()))
                                         FwConfigImportRollback(configImporter).rollbackCurrentImport()
-                                    else:
-                                        configImporter.storeLatestConfig()
-                            else:
-                                configChunk = config.toJsonLegacy(withAction=False)
-                                importState.increaseErrorCounter(fwo_api.import_json_config(importState, configChunk))
+                                        fwo_api.complete_import(importState)
+                                        raise
+                                else:
+                                    configChunk = config.toJsonLegacy(withAction=False)
+                                    importState.increaseErrorCounter(fwo_api.import_json_config(importState, configChunk))
 
-                            fwo_api.update_hit_counter(importState, config)
+                                fwo_api.update_hit_counter(importState, config)
 
-                # currently assuming only one chunk
-                # initiateImportStart(importState)
-            except:
-                logger.error("import_management - unspecified error while importing config via FWO API: " + str(traceback.format_exc()))
-                raise
-            logger.debug(f"full import duration: {str(int(time.time())-time_get_config-importState.StartTime)}s")
+                    # currently assuming only one chunk
+                    # initiateImportStart(importState)
+                except:
+                    # logger.error("import_management - unspecified error while importing config via FWO API: " + str(traceback.format_exc()))
+                    raise
+                logger.debug(f"full import duration: {str(int(time.time())-time_get_config-importState.StartTime)}s")
 
-            # TODO: move the following error handling to function
-            error_from_imp_control = "assuming error"
-            try: # checking for errors during stored_procedure db imort in import_control table
-                error_from_imp_control = fwo_api.get_error_string_from_imp_control(importState, {"importId": importState.ImportId})
-            except:
-                logger.error("import_management - unspecified error while getting error string: " + str(traceback.format_exc()))
+                # TODO: move the following error handling to function
+                error_from_imp_control = "assuming error"
+                try: # checking for errors during stored_procedure db imort in import_control table
+                    error_from_imp_control = fwo_api.get_error_string_from_imp_control(importState, {"importId": importState.ImportId})
+                except:
+                    logger.error("import_management - unspecified error while getting error string: " + str(traceback.format_exc()))
 
-            if error_from_imp_control != None and error_from_imp_control != [{'import_errors': None}]:
-                importState.increaseErrorCounterByOne()
-                importState.appendErrorString(str(error_from_imp_control))
-            # TODO: if no objects found at all: at least throw a warning
+                if error_from_imp_control != None and error_from_imp_control != [{'import_errors': None}]:
+                    importState.increaseErrorCounterByOne()
+                    importState.appendErrorString(str(error_from_imp_control))
+                # TODO: if no objects found at all: at least throw a warning
 
-            # try: # get change count from db
-            #     # temporarily only count rule changes until change report also includes other changes
-            #     # change_count = fwo_api.count_changes_per_import(fwo_config['fwo_api_base_url'], jwt, current_import_id)
-            #     # change_count = fwo_api.count_rule_changes_per_import(importState.FwoConfig.FwoApiUri, importState.Jwt, importState.ImportId)
-            #     change_count = fwo_api.count_rule_changes_per_import(importState.FwoConfig.FwoApiUri, importState.Jwt, importState.ImportId)
-            # except:
-            #     logger.error("import_management - unspecified error while getting change count: " + str(traceback.format_exc()))
-            #     raise
+                # try: # get change count from db
+                #     # temporarily only count rule changes until change report also includes other changes
+                #     # change_count = fwo_api.count_changes_per_import(fwo_config['fwo_api_base_url'], jwt, current_import_id)
+                #     # change_count = fwo_api.count_rule_changes_per_import(importState.FwoConfig.FwoApiUri, importState.Jwt, importState.ImportId)
+                #     change_count = fwo_api.count_rule_changes_per_import(importState.FwoConfig.FwoApiUri, importState.Jwt, importState.ImportId)
+                # except:
+                #     logger.error("import_management - unspecified error while getting change count: " + str(traceback.format_exc()))
+                #     raise
+            
+            fwo_api.complete_import(importState)
+
+        if not clearManagementData and importState.DataRetentionDays<importState.DaysSinceLastFullImport:
+            # delete all imports of the current management before the last but one full import
+            configImporter.deleteOldImports()
         
-        fwo_api.complete_import(importState)
-
-    if not clearManagementData and importState.DataRetentionDays<importState.DaysSinceLastFullImport:
-        # delete all imports of the current management before the last but one full import
-        configImporter.deleteOldImports()
-       
-    return importState.Stats.ErrorCount
+    except:
+        if importState.ImportId>=0:
+            if not importState.Stats.ErrorAlreadyLogged:
+                importState.appendErrorString("import_management - unspecified error while importing management " + str(mgmId) + ": " + str(traceback.format_exc()))
+                importState.increaseErrorCounterByOne()
+                logger.error("import_management - unspecified error while importing management " + str(mgmId) + ": " + str(traceback.format_exc()))
+        else:
+            if not importState.Stats.ErrorAlreadyLogged:
+                logger.error("import_management - unspecified error before even assigning an import ID")
+    finally:
+        return importState.Stats.ErrorCount
 
 
 def importFromFile(importState: ImportStateController, fileName: str = "", gateways: List[Gateway] = []):

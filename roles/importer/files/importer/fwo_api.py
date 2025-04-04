@@ -604,9 +604,9 @@ def setAlert(fwo_api_base_url, jwt, import_id=None, title=None, mgm_id=None, dev
         jsonData.update({"mgm_name": mgm_details.Name})
     query_variables.update({"jsonData": json.dumps(jsonData)})
 
-    # write data issue to alert.log file as well
-    if severity>0:
-        writeAlertToLogFile(query_variables)
+    # # write data issue to alert.log file as well
+    # if severity>0:
+    #     writeAlertToLogFile(query_variables)
     
     try:
         import_result = call(fwo_api_base_url, jwt, addAlert_mutation, query_variables=query_variables, role=role)
@@ -666,6 +666,7 @@ def complete_import(importState: "ImportStateController"):
             description=str(importState.Stats.ErrorDetails), source='import', alertCode=14, mgm_details=importState.MgmDetails)
 
     logger.info(import_result)
+    importState.Stats.ErrorAlreadyLogged = True
 
     return
 

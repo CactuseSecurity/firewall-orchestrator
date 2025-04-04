@@ -1,0 +1,14 @@
+mutation insertRuleRefs($ruleFroms: [rule_from_insert_input!]!, $ruleTos: [rule_to_insert_input!]!, $ruleServices: [rule_service_insert_input!]!) {
+    insert_rule_from(objects: $ruleFroms) {
+        affected_rows
+        returning { rule_from_id }
+    }
+    insert_rule_to(objects: $ruleTos) {
+        affected_rows
+        returning { rule_to_id }
+    }
+    insert_rule_service(objects: $ruleServices) {
+        affected_rows
+        returning { svc_id }
+    }
+}

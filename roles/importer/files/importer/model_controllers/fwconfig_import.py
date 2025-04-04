@@ -34,11 +34,12 @@ class FwConfigImport(FwConfigImportObject, FwConfigImportRule, FwConfigImportGat
         self.ImportDetails = importState
         self.NormalizedConfig = config
         
-        FwConfigNormalizedController.__init__(self, importState, config)
+        # FwConfigNormalizedController.__init__(self, importState, config)
         FwConfigImportObject.__init__(self, importState, config)
-        FwConfigImportRule.__init__(self, importState, config)
-        FwConfigImportGateway.__init__(self, importState, config)
-        
+        # FwConfigImportRule.__init__(self, importState, config)
+        # FwConfigImportGateway.__init__(self, importState, config)
+        # raise NotImplementedError("just testing")
+
     def importConfig(self):
         # current implementation restriction: assuming we always get the full config (only inserts) from API
 

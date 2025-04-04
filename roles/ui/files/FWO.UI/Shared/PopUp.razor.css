@@ -1,6 +1,12 @@
+/* !! ATTENTION: When changing the margin-top values of the custom-modal-x classes you 
+    HAVE to change the --bs-custom-modal-margin-top respectively
+    or the sticky header for tables in the modals will look weird !!
+*/
+
 .custom-modal-fs {
     --bs-modal-width: 100vw;
     height: 100vh;
+    --bs-custom-modal-margin-top: -3em;
 }
 
 .custom-modal-content-fs {
@@ -10,6 +16,7 @@
 .custom-modal-xl {
     max-width: 80vw;
     margin-top: 3em;
+    --bs-custom-modal-margin-top: -3em;
     margin-left: auto;
     margin-right: auto;
 }
@@ -21,6 +28,7 @@
 .custom-modal-lg {
     max-width: 60vw;
     margin-top: 8em;
+    --bs-custom-modal-margin-top: -8em;
     margin-left: auto;
     margin-right: auto;
 }
@@ -32,6 +40,7 @@
 .custom-modal-md {
     max-width: 40vw;
     margin-top: 12em;
+    --bs-custom-modal-margin-top: -12em;
     margin-left: auto;
     margin-right: auto;
 }
@@ -43,6 +52,7 @@
 .custom-modal-sm {
     max-width: 30vw;
     margin-top: 16em;
+    --bs-custom-modal-margin-top: -16em;
     margin-left: auto;
     margin-right: auto;
 }
@@ -54,6 +64,7 @@
 .custom-modal-xs {
     max-width: 30vw;
     margin-top: 16em;
+    --bs-custom-modal-margin-top: -16em;
     margin-left: auto;
     margin-right: auto;
 }
@@ -78,5 +89,5 @@
     padding: 2em 2em 0 2em;
     background-color: rgba(255, 255, 255, 1);
     overflow-y: auto;
-    overflow-x: hidden;
+    /*overflow-x: hidden;*/    
 }

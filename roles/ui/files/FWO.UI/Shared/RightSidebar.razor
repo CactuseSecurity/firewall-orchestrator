@@ -16,26 +16,26 @@
                 <CascadingValue Value="anchorNavToRSB">
                     @if (SelectedReportType.IsDeviceRelatedReport() && AllTabVisible)
                     {
-                            <Tab Title="@(userConfig.GetText("all"))" Position=0>
-                                <div class="d-md-flex justify-content-md-end sticky-marker-45">
-                                    <div class="btn btn-secondary btn-sm w-50" @onclick="@(() => collapseInRSB.Collapse("all"))">@(userConfig.GetText("collapse_all"))</div>
-                                </div>
-                                <div class="mt-2">
-                                    <ObjectGroupCollection PageSize="PageSize" FetchObjects="FetchContent" Recert="Recert" Tab="RsbTab.all" InputDataType="ManagementReport" Data="managementsAllObjects"
-                                    NameExtractor="man => man.Name" NetworkObjectExtractor="man => man.Objects"
-                                    NetworkServiceExtractor="man => man.Services" NetworkUserExtractor="man => man.Users" />
-                                </div>
-                            </Tab>
+                        <Tab Title="@(userConfig.GetText("all"))" Position=0>
+                            <div class="d-md-flex justify-content-md-end sticky-marker-45">
+                                <div class="btn btn-secondary btn-sm w-50" @onclick="@(() => collapseInRSB.Collapse("all"))">@(userConfig.GetText("collapse_all"))</div>
+                            </div>
+                            <div class="mt-2">
+                                <ObjectGroupCollection PageSize="PageSize" FetchObjects="FetchContent" Recert="Recert" Tab="RsbTab.all" InputDataType="ManagementReport" Data="managementsAllObjects"
+                                NameExtractor="man => man.Name" NetworkObjectExtractor="man => man.Objects"
+                                NetworkServiceExtractor="man => man.Services" NetworkUserExtractor="man => man.Users" />
+                            </div>
+                        </Tab>
                     }
                     @if (CurrentReport?.ReportData.ManagementData.Count > 0 && (CurrentReport?.ReportType.IsRuleReport() ?? false))
                     {
-                            <Tab Title="@(userConfig.GetText("report"))" StartSelected="true">
-                                <div class="d-md-flex justify-content-md-end sticky-marker-45">
-                                    <div class="btn btn-secondary btn-sm w-50" @onclick="@(() => collapseInRSB.Collapse("report"))">@(userConfig.GetText("collapse_all"))</div>
-                                </div>
-                                <div class="mt-2">
-                                    <ObjectGroupCollection PageSize="PageSize" FetchObjects="FetchContent" Recert="Recert" Tab="RsbTab.report" InputDataType="ManagementReport"
-                                        Data="CurrentReport.ReportData.ManagementData
+                        <Tab Title="@(userConfig.GetText("report"))" StartSelected="true">
+                            <div class="d-md-flex justify-content-md-end sticky-marker-45">
+                                <div class="btn btn-secondary btn-sm w-50" @onclick="@(() => collapseInRSB.Collapse("report"))">@(userConfig.GetText("collapse_all"))</div>
+                            </div>
+                            <div class="mt-2">
+                                <ObjectGroupCollection PageSize="PageSize" FetchObjects="FetchContent" Recert="Recert" Tab="RsbTab.report" InputDataType="ManagementReport"
+                                Data="CurrentReport.ReportData.ManagementData
                                                                             .Where(m => m.Devices.Any(d => d.RulebaseLinks != null && d.RulebaseLinks.Any(rb => rb.NextRulebaseId != null)))"
 
                                 NameExtractor="man => man.Name"
@@ -61,26 +61,26 @@
                                 NetworkUserExtractor="rule => rule.Froms.Select(nl => nl.User).Distinct().Where(u => u != null).OrderBy(u => u.Name).ToArray()" />
                             </div>
                         </Tab>
-                                        }
+                    }
                     @if (CurrentReport?.ReportData.OwnerData.Count > 0 && CurrentReport?.ReportType == ReportType.Connections)
                     {
-                            <Tab Title="@(userConfig.GetText("used_objects"))" StartSelected="true">
-                                <div class="d-md-flex justify-content-md-end sticky-marker-45">
-                                    <div class="btn btn-secondary btn-sm w-50" @onclick="@(() => collapseInRSB.Collapse("report"))">@(userConfig.GetText("collapse_all"))</div>
-                                </div>
-                                <div class="mt-2">
-                                    <ObjectGroupCollection PageSize="PageSize" FetchObjects="FetchContent" Recert="Recert" Tab="RsbTab.usedObj" StartCollapsed="false" InputDataType="OwnerReport"
-                                    Data="CurrentReport.ReportData.OwnerData"
-                                    NameExtractor="own => own.Name"
-                                    NetworkObjectExtractor="own => own.GetAllNetworkObjects(true)"
-                                    NetworkServiceExtractor="own => own.GetAllServices(true)" />
-                                    <ObjectGroupCollection PageSize="PageSize" FetchObjects="FetchContent" Recert="Recert" Tab="RsbTab.usedObj" StartCollapsed="false" InputDataType="GlobalCommonSvcReport"
-                                    Data="CurrentReport.ReportData.GlobalComSvc"
-                                    NameExtractor="glbComSvc => glbComSvc.Name"
-                                    NetworkObjectExtractor="glbComSvc => glbComSvc.GetAllNetworkObjects(true)"
-                                    NetworkServiceExtractor="glbComSvc => glbComSvc.GetAllServices(true)" />
-                                </div>
-                            </Tab>
+                        <Tab Title="@(userConfig.GetText("used_objects"))" StartSelected="true">
+                            <div class="d-md-flex justify-content-md-end sticky-marker-45">
+                                <div class="btn btn-secondary btn-sm w-50" @onclick="@(() => collapseInRSB.Collapse("report"))">@(userConfig.GetText("collapse_all"))</div>
+                            </div>
+                            <div class="mt-2">
+                                <ObjectGroupCollection PageSize="PageSize" FetchObjects="FetchContent" Recert="Recert" Tab="RsbTab.usedObj" StartCollapsed="false" InputDataType="OwnerReport"
+                                Data="CurrentReport.ReportData.OwnerData"
+                                NameExtractor="own => own.Name"
+                                NetworkObjectExtractor="own => own.GetAllNetworkObjects(true)"
+                                NetworkServiceExtractor="own => own.GetAllServices(true)" />
+                                <ObjectGroupCollection PageSize="PageSize" FetchObjects="FetchContent" Recert="Recert" Tab="RsbTab.usedObj" StartCollapsed="false" InputDataType="GlobalCommonSvcReport"
+                                Data="CurrentReport.ReportData.GlobalComSvc"
+                                NameExtractor="glbComSvc => glbComSvc.Name"
+                                NetworkObjectExtractor="glbComSvc => glbComSvc.GetAllNetworkObjects(true)"
+                                NetworkServiceExtractor="glbComSvc => glbComSvc.GetAllServices(true)" />
+                            </div>
+                        </Tab>
                     }
                 </CascadingValue>
             </CascadingValue>
@@ -264,9 +264,9 @@
                             break;
                     }
 
-                    await FetchObjects(query, queryVars, managementsUpdate =>
+                    await FetchObjects<ManagementReport>(query, queryVars, managementsUpdate =>
                     {
-                        ManagementReport? mgtUpdated = managementsUpdate.ManagementData.FirstOrDefault(m => m.Id == id);
+                        ManagementReport? mgtUpdated = managementsUpdate.FirstOrDefault(m => m.Id == id);
                         if (mgt != null && mgtUpdated != null)
                         {
                             if (objType == ObjCategory.all || objType == ObjCategory.nobj)
@@ -336,19 +336,9 @@
                     queryVars.Add("rule_id", id);
                     query = nat ? RuleQueries.getNatRuleDetails : RuleQueries.getRuleDetails;
 
-                    await FetchObjects(query, queryVars, managementsUpdate =>
+                    await FetchObjects<Rule>(query, queryVars, rulesUpdate =>
                     {
-                        Rule? ruleUpdated = managementsUpdate.ManagementData
-                            .SelectMany(m => m.Devices)
-                            .SelectMany(d => d.RulebaseLinks ?? Enumerable.Empty<RulebaseLink>())
-                            .Where(rb => rb.NextRulebaseId != null)
-                            .Select(rb => rb.NextRulebaseId)
-                            .SelectMany(nextRbId => managementsUpdate.ManagementData
-                                .SelectMany(m => m.Rulebases)
-                                .Where(rb => rb.Id == nextRbId)
-                                .SelectMany(rb => rb.Rules ?? Enumerable.Empty<Rule>())
-                                .Where(r => r.Id == id))
-                            .FirstOrDefault();
+                        Rule? ruleUpdated = rulesUpdate.Where(r => r.Id == id).FirstOrDefault();
                         if (ruleUpdated != null)
                         {
                             rule.Froms = ruleUpdated.Froms;
@@ -369,31 +359,38 @@
         }
     }
 
-    private async Task FetchObjects(string query, Dictionary<string, object> queryVars, Func<ReportData, Task> callback)
+    private async Task FetchObjects<ContentType>(string query, Dictionary<string, object> queryVars, Func<List<ContentType>, Task> callback)
     {
         // lazy fetch all objects for right sidebar
         try
         {
-            ReportData reportData = new();
+            List<ContentType> updatedContent = new();
             bool newObjects = true;
             int fetchCount = 0;
             int elementsPerFetch = userConfig.ElementsPerFetch;
 
             while (newObjects && (++fetchCount <= userConfig.MaxInitialFetchesRightSidebar || userConfig.AutoFillRightSidebar))
             {
-                List<ManagementReport> managementsCurrentFetch = await apiConnection.SendQueryAsync<List<ManagementReport>>(query, queryVars);
+                List<ContentType> currentFetch = await apiConnection.SendQueryAsync<List<ContentType>>(query, queryVars);
                 if (fetchCount == 1)
                 {
-                    reportData.ManagementData = managementsCurrentFetch;
+                    updatedContent = currentFetch;
                 }
                 else
                 {
-                    newObjects = reportData.ManagementData.Merge(managementsCurrentFetch);
+                    switch (currentFetch)
+                    {
+                        case List<ManagementReport> mgmData when updatedContent is List<ManagementReport> updatedMgm:
+                            newObjects = updatedMgm.Merge(mgmData);
+                            break;
+                        case List<Rule> ruleData:
+                            return;
+                    }
                 }
 
                 if (queryVars.ContainsKey("offset"))
                     queryVars["offset"] = (int)queryVars["offset"] + elementsPerFetch;
-                await callback(reportData);
+                await callback(updatedContent);
             }
 
             Log.WriteDebug("Lazy Fetch", $"Fetched sidebar objects in {fetchCount - 1} cycle(s) ({elementsPerFetch} at a time)");

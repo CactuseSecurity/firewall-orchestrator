@@ -129,14 +129,13 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
                                 if importState.ImportVersion>8:
                                     try:
                                         configImporter = FwConfigImport(importState, config)
-                                    except:
+                                    except Exception:
                                         # logger.error("import_management - unspecified error while creating config importer (FwConfigImport): " + str(traceback.format_exc()))
                                         try:
-                                            importState.increaseErrorCounterByOne()
-                                            importState.appendErrorString(str(traceback.format_exc()))
+                                            importState.addError(str(traceback.format_exc()))
                                             fwo_api.delete_import(importState)
                                             fwo_api.complete_import(importState)
-                                        except:
+                                        except Exception:
                                             pass # logger.error("import_management - unspecified error while deleting import: " + str(traceback.format_exc()))
                                         finally:
                                             raise
@@ -145,15 +144,15 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
                                         if len(configChecker.checkConfigConsistency())==0:
                                             try:
                                                 configImporter.importConfig()
-                                            except:
-                                                logger.error("importConfig - unspecified error: " + str(traceback.format_exc()))
-                                                importState.increaseErrorCounterByOne()
+                                            except Exception:
+                                                importState.addError(str(traceback.format_exc()), log=True)
                                             if importState.Stats.ErrorCount>0:
                                                 fwo_api.complete_import(importState)
                                                 FwConfigImportRollback(configImporter).rollbackCurrentImport()
+                                                sys.exit(1)
                                             else:
                                                 configImporter.storeLatestConfig()
-                                    except:
+                                    except Exception:
                                         logger.error("import_management - unspecified error while rolling back import: " + str(traceback.format_exc()))
                                         FwConfigImportRollback(configImporter).rollbackCurrentImport()
                                         fwo_api.complete_import(importState)
@@ -166,8 +165,7 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
 
                     # currently assuming only one chunk
                     # initiateImportStart(importState)
-                except:
-                    # logger.error("import_management - unspecified error while importing config via FWO API: " + str(traceback.format_exc()))
+                except Exception:
                     raise
                 logger.debug(f"full import duration: {str(int(time.time())-time_get_config-importState.StartTime)}s")
 
@@ -175,35 +173,23 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
                 error_from_imp_control = "assuming error"
                 try: # checking for errors during stored_procedure db imort in import_control table
                     error_from_imp_control = fwo_api.get_error_string_from_imp_control(importState, {"importId": importState.ImportId})
-                except:
-                    logger.error("import_management - unspecified error while getting error string: " + str(traceback.format_exc()))
+                except Exception:
+                    importState.addError(f"import_management - unspecified error while getting error string: {str(traceback.format_exc())}", log=True)
 
                 if error_from_imp_control != None and error_from_imp_control != [{'import_errors': None}]:
-                    importState.increaseErrorCounterByOne()
-                    importState.appendErrorString(str(error_from_imp_control))
-                # TODO: if no objects found at all: at least throw a warning
+                    importState.addError(str(traceback.format_exc()))
+                # TODO: if no objects found at all: at least show a warning
 
-                # try: # get change count from db
-                #     # temporarily only count rule changes until change report also includes other changes
-                #     # change_count = fwo_api.count_changes_per_import(fwo_config['fwo_api_base_url'], jwt, current_import_id)
-                #     # change_count = fwo_api.count_rule_changes_per_import(importState.FwoConfig.FwoApiUri, importState.Jwt, importState.ImportId)
-                #     change_count = fwo_api.count_rule_changes_per_import(importState.FwoConfig.FwoApiUri, importState.Jwt, importState.ImportId)
-                # except:
-                #     logger.error("import_management - unspecified error while getting change count: " + str(traceback.format_exc()))
-                #     raise
-            
             fwo_api.complete_import(importState)
 
         if not clearManagementData and importState.DataRetentionDays<importState.DaysSinceLastFullImport:
             # delete all imports of the current management before the last but one full import
             configImporter.deleteOldImports()
         
-    except:
+    except Exception:
         if importState.ImportId>=0:
             if not importState.Stats.ErrorAlreadyLogged:
-                importState.appendErrorString("import_management - unspecified error while importing management " + str(mgmId) + ": " + str(traceback.format_exc()))
-                importState.increaseErrorCounterByOne()
-                logger.error("import_management - unspecified error while importing management " + str(mgmId) + ": " + str(traceback.format_exc()))
+                importState.addError(f"import_management - unspecified error while importing management {str(mgmId)}: {str(traceback.format_exc())}", log=True)
         else:
             if not importState.Stats.ErrorAlreadyLogged:
                 logger.error("import_management - unspecified error before even assigning an import ID")
@@ -264,7 +250,7 @@ def get_config_from_api(importState: ImportStateController, configNative, import
     try: # pick product-specific importer:
         pkg_name = importState.MgmDetails.DeviceTypeName.lower().replace(' ', '') + importState.MgmDetails.DeviceTypeVersion
         fw_module = importlib.import_module("." + fw_module_name, pkg_name)
-    except:
+    except Exception:
         logger.exception("import_management - error while loading product specific fwcommon module", traceback.format_exc())        
         raise
     
@@ -307,7 +293,7 @@ def get_config_from_api(importState: ImportStateController, configNative, import
         fwo_api.delete_import(importState.FwoConfig.FwoApiUri, importState.Jwt, importState.ImportId) # deleting trace of not even begun import
         fwo_api.complete_import(importState)
         raise ImportRecursionLimitReached(e.message)
-    except:
+    except Exception:
         importState.appendErrorString("import_management - unspecified error while getting config: " + str(traceback.format_exc()))
         logger.error(importState.getErrorString())
         importState.increaseErrorCounterByOne()
@@ -329,7 +315,7 @@ def writeNativeConfigToFile(importState, configNative):
                 full_native_config_filename = f"{import_tmp_path}/mgm_id_{str(importState.MgmDetails.Id)}_config_native.json"
                 with open(full_native_config_filename, "w") as json_data:
                     json_data.write(json.dumps(configNative, indent=2))
-        except:
+        except Exception:
             logger.error(f"import_management - unspecified error while dumping config to json file: {str(traceback.format_exc())}")
             raise
 

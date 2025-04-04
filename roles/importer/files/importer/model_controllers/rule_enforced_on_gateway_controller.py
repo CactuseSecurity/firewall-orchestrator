@@ -88,7 +88,7 @@ class RuleEnforcedOnGatewayController():
                 else:
                     changes = 1
                 self.ImportDetails.Stats.RuleEnforceChangeCount += changes
-        except:
+        except Exception:
             logger.exception(f"failed to write new rules: {str(format_exc())}")
             self.ImportDetails.increaseErrorCounterByOne()
             self.ImportDetails.appendErrorString(f"failed to write new rules: {str(format_exc())}")

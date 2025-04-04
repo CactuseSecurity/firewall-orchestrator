@@ -277,7 +277,7 @@ def validIPAddress(IP: str) -> str:
             return "IPv6"
         else:
             return 'Invalid'
-    except:
+    except Exception:
         try:
             t = type(ipaddress.ip_network(IP))
             if t is ipaddress.IPv4Network:
@@ -286,7 +286,7 @@ def validIPAddress(IP: str) -> str:
                 return "IPv6"
             else:
                 return 'Invalid'        
-        except:
+        except Exception:
             return "Invalid"
 
 

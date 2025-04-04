@@ -56,7 +56,7 @@ def readConfig(configFilename, keysToGet=['username', 'password', 'ldapPath', 'a
             configValues.append(customConfig[key])
         return configValues
 
-    except:
+    except Exception:
         logger.error("could not read config file " + configFilename + ", Exception: " + str(traceback.format_exc()))
         sys.exit(1)
 
@@ -118,7 +118,7 @@ if __name__ == "__main__":
     # try:
     #     with open(subnetDataFilename, "r") as subnetFH:
     #         subnets = (subnetFH.readlines())
-    # except:
+    # except Exception:
     #     logger.error("error while trying to read subnets from csv file '" + subnetDataFilename + "', exception: " + str(traceback.format_exc()))
     #     sys.exit(1)
 

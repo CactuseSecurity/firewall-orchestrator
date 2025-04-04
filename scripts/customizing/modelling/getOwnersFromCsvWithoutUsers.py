@@ -77,7 +77,7 @@ def readConfig(configFilename, keyToGet):
             customConfig = json.loads(customConfigFH.read())
         return customConfig[keyToGet]
 
-    except:
+    except Exception:
         logger.error("could not read key '" + keyToGet + "' from config file " + configFilename + ", Exception: " + str(traceback.format_exc()))
         sys.exit(1)
 
@@ -141,7 +141,7 @@ def extractAppDataFromCsvFile(csvFile: str, appData: dict, containsIp: bool):
         with open(csvFile, newline='') as csvFile:
             reader = csv.reader(csvFile)
             appDataFromCsv += list(reader)[1:]# Skip headers in first line
-    except:
+    except Exception:
         logger.error("error while trying to read csv file '" + csvFile + "', exception: " + str(traceback.format_exc()))
         sys.exit(1)
 

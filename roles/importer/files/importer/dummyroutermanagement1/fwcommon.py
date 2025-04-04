@@ -42,7 +42,7 @@ def get_config(config2import, _, current_import_id, mgm_details, limit=100, forc
         error_count += 1
         error_count = complete_import(current_import_id, error_string, start_time, mgm_details, change_count, error_count, jwt)
         raise ConfigFileNotFound(error_string) from None
-    except:
+    except Exception:
         error_string = "Could not read config file " + router_file_url
         error_count += 1
         error_count = complete_import(current_import_id, error_string, start_time, mgm_details, change_count, error_count, jwt)

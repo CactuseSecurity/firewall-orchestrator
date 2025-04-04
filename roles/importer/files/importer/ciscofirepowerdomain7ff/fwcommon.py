@@ -51,7 +51,7 @@ def get_config(config2import, full_config, current_import_id, mgm_details, limit
 
         try:  # logout
             cifp_getter.logout(cisco_api_url, sessionId)
-        except:
+        except Exception:
             logger.warning(
                 "logout exception probably due to timeout - irrelevant, so ignoring it")
 

@@ -73,8 +73,8 @@ class FwConfigImport(FwConfigImportObject, FwConfigImportRule, FwConfigImportGat
             if deleteResult['data']['delete_import_control']['returning']['control_id']:
                 importsDeleted = len(deleteResult['data']['delete_import_control']['returning']['control_id'])
                 if importsDeleted>0:
-                    logger.info(f"deleted {str(importsDeleted)} imoprts which passed the retention time of {ImportStateController.DataRetentionDays} days")
-        except:
+                    logger.info(f"deleted {str(importsDeleted)} imports which passed the retention time of {ImportStateController.DataRetentionDays} days")
+        except Exception:
             logger.error(f"error while trying to delete old imports for mgm {str(self.ImportDetails.MgmDetails.Id)}")
             # create_data_issue(importState.FwoConfig.FwoApiUri, importState.Jwt, mgm_id=int(importState.MgmDetails.Id), severity=1, 
             #     description="failed to get import lock for management id " + str(mgmId))
@@ -131,7 +131,7 @@ class FwConfigImport(FwConfigImportObject, FwConfigImportRule, FwConfigImportGat
                     errorsFound = 1 # error
                 else:
                     changes = import_result['data']['insert_latest_config']['affected_rows']
-            except:
+            except Exception:
                 logger.exception(f"failed to write latest normalized config for mgm id {str(self.ImportDetails.MgmDetails.Id)}: {str(traceback.format_exc())}")
                 errorsFound = 1 # error
             
@@ -156,7 +156,7 @@ class FwConfigImport(FwConfigImportObject, FwConfigImportRule, FwConfigImportGat
                 return 1 # error
             else:
                 changes = import_result['data']['delete_latest_config']['affected_rows']
-        except:
+        except Exception:
             logger.exception(f"failed to delete latest normalized config for mgm id {str(self.ImportDetails.MgmDetails.Id)}: {str(traceback.format_exc())}")
             return 1 # error
         
@@ -192,6 +192,6 @@ class FwConfigImport(FwConfigImportObject, FwConfigImportRule, FwConfigImportGat
                     }
                     prevConfig = FwConfigNormalized(**prevConfigDict)
                 return prevConfig
-        except:
+        except Exception:
             logger.exception(f"failed to get latest normalized config for mgm id {str(self.ImportDetails.MgmDetails.Id)}: {str(traceback.format_exc())}")
             raise Exception(f"error while trying to get the previous config")

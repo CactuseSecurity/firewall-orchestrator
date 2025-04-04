@@ -248,7 +248,7 @@ class FwConfigImportRule(FwConfigImportBase):
             else:
                 errors = 0
                 changes = 1
-        except:
+        except Exception:
             logger.exception(f"failed to write new rules: {str(traceback.format_exc())}")
             errors = 1 
             changes = 0
@@ -269,7 +269,7 @@ class FwConfigImportRule(FwConfigImportBase):
                 return 1, 0, rulesToBeReferenced
             else:
                 return 0, 0, import_result['data']['rule']
-        except:
+        except Exception:
             logger.exception(f"failed to get rules from API: {str(traceback.format_exc())}")
 
 
@@ -433,7 +433,7 @@ class FwConfigImportRule(FwConfigImportBase):
                 if changes>0:
                     for rule_metadata_id in import_result['data']['insert_rule_metadata']['returning']:
                         newRuleMetaDataIds.append(rule_metadata_id)
-        except:
+        except Exception:
             logger.exception(f"failed to write new rules: {str(traceback.format_exc())}")
             return 1, 0, newRuleMetaDataIds
         
@@ -480,7 +480,7 @@ class FwConfigImportRule(FwConfigImportBase):
                     # finally, add the new rulebases to the map for next step (adding rulebase with rules)
                     self.ImportDetails.SetRulebaseMap() 
                 return 0, changes, newRulebaseIds
-        except:
+        except Exception:
             logger.exception(f"failed to write new rules: {str(traceback.format_exc())}")
             return 1, 0, newRulebaseIds
         
@@ -516,7 +516,7 @@ class FwConfigImportRule(FwConfigImportBase):
                             for rule in import_result['data']['insert_rule']['returning']:
                                 newRuleIds.append(rule['rule_id'])
                             changes += changesForThisRulebase
-                except:
+                except Exception:
                     logger.exception(f"failed to insert new rules: {str(traceback.format_exc())}")
                     errors += 1
         return errors, changes, newRuleIds
@@ -632,7 +632,7 @@ class FwConfigImportRule(FwConfigImportBase):
                         changes = int(removeResult['data']['update_rulebase']['affected_rows'])
                         removedRuleIds = removeResult['data']['update_rulebase']['returning']
                         collectedRemovedRuleIds += [item['id'] for item in removedRuleIds]
-                except:
+                except Exception:
                     errors = 1
                     logger.exception(f"failed to remove rules: {str(traceback.format_exc())}")
                     return errors, changes, collectedRemovedRuleIds
@@ -672,7 +672,7 @@ class FwConfigImportRule(FwConfigImportBase):
                     errors = 1
                     logger.exception(f"fwo_api:removeRuleRefs - error while removing rule refs: {str(removeResult['errors'])}")
                     return errors, changes, removedRuleIds
-            except:
+            except Exception:
                 errors = 1
                 logger.exception(f"failed to remove rules: {str(traceback.format_exc())}")
                 return errors, changes, collectedRemovedRuleIds
@@ -684,7 +684,7 @@ class FwConfigImportRule(FwConfigImportBase):
         query = "query getRuleNumMap($mgmId: Int) { rule(where:{mgm_id:{_eq:$mgmId}}) { rule_uid rulebase_id rule_num_numeric } }"
         try:
             result = self.ImportDetails.call(query=query, queryVariables={"mgmId": self.ImportDetails.MgmDetails.Id})
-        except:
+        except Exception:
             logger = getFwoLogger()
             logger.error(f'Error while getting rule number map')
             return {}
@@ -700,7 +700,7 @@ class FwConfigImportRule(FwConfigImportBase):
         query = "query getRuleNumMap { rule { rule_uid rule_num_numeric } }"
         try:
             result = self.ImportDetails.call(query=query, queryVariables={})
-        except:
+        except Exception:
             logger = getFwoLogger()
             logger.error(f'Error while getting rule number')
             return {}
@@ -714,7 +714,7 @@ class FwConfigImportRule(FwConfigImportBase):
         query = "query getTrackMap { stm_track { track_name track_id } }"
         try:
             result = self.ImportDetails.call(query=query, queryVariables={})
-        except:
+        except Exception:
             logger = getFwoLogger()
             logger.error(f'Error while getting stm_track')
             return {}
@@ -831,7 +831,7 @@ class FwConfigImportRule(FwConfigImportBase):
         
         try:
             queryResult = self.ImportDetails.call(query, queryVariables=query_variables)
-        except:
+        except Exception:
             logger = getFwoLogger()
             logger.error(f"error while getting current rulebase: {str(traceback.format_exc())}")
             self.ImportDetails.increaseErrorCounterByOne()
@@ -839,7 +839,7 @@ class FwConfigImportRule(FwConfigImportBase):
         
         try:
             ruleList = queryResult['data']['rulebase'][0]['rules']
-        except:
+        except Exception:
             logger = getFwoLogger()
             logger.error(f'could not find rules in query result: {queryResult}')
             self.ImportDetails.increaseErrorCounterByOne()

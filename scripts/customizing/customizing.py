@@ -80,7 +80,7 @@ def readJsonFile(filename):
     try: 
         with open(filename, "r") as jsonFH:
             jsonDict = json.loads(jsonFH.read())
-    except:
+    except Exception:
         raise Exception("readJsonFile ERROR: while reading file: " + filename)
     return jsonDict
 

@@ -58,7 +58,7 @@ def readConfig(configFilename, keysToGet=['username', 'password', 'ldapPath', 'a
             configValues.append(customConfig[key])
         return configValues
 
-    except:
+    except Exception:
         logger.error("could not read config file " + configFilename + ", Exception: " + str(traceback.format_exc()))
         sys.exit(1)
 
@@ -130,7 +130,7 @@ if __name__ == "__main__":
         else:
             repoUrl = "https://" + ipamGitUser + ":" + ipamGitPassword + "@" + ipamGitRepo
             repo = git.Repo.clone_from(repoUrl, ipamGitRepoTargetDir)
-    except:
+    except Exception:
         logger.error("error while trying to access git repo '" + ipamGitRepo + "', exception: " + str(traceback.format_exc()))
         sys.exit(1)
 
@@ -143,7 +143,7 @@ if __name__ == "__main__":
             csv_reader = csv.DictReader(file)
             for row in csv_reader:
                 subnetAr.append(row)
-    except:
+    except Exception:
         logger.error("error while trying to read subnet csv file '" + subnetDataFilename + "', exception: " + str(traceback.format_exc()))
         sys.exit(1)
 

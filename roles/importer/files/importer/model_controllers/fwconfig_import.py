@@ -73,7 +73,7 @@ class FwConfigImport(FwConfigImportObject, FwConfigImportRule, FwConfigImportGat
             if deleteResult['data']['delete_import_control']['returning']['control_id']:
                 importsDeleted = len(deleteResult['data']['delete_import_control']['returning']['control_id'])
                 if importsDeleted>0:
-                    logger.info(f"deleted {str(importsDeleted)} imoprts which passed the retention time of {ImportStateController.DataRetentionDays} days")
+                    logger.info(f"deleted {str(importsDeleted)} imports which passed the retention time of {ImportStateController.DataRetentionDays} days")
         except Exception:
             logger.error(f"error while trying to delete old imports for mgm {str(self.ImportDetails.MgmDetails.Id)}")
             # create_data_issue(importState.FwoConfig.FwoApiUri, importState.Jwt, mgm_id=int(importState.MgmDetails.Id), severity=1, 

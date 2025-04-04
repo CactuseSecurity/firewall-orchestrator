@@ -25,7 +25,7 @@ def readConfig(fwo_config_filename='/etc/fworch/fworch.json'):
         logger.error("config file not found or unable to access: "+ fwo_config_filename)
         sys.exit(1)
     except Exception:
-        logger.error("unspecified error occured while trying to read config file: "+ fwo_config_filename)
+        logger.error("unspecified error occurred while trying to read config file: "+ fwo_config_filename)
         sys.exit(1)
     config = {
         "fwo_major_version": fwo_major_version, 

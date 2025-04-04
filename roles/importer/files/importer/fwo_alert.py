@@ -10,14 +10,14 @@ def getFwoAlerter():
             fwo_config = json.loads(fwo_config.read())
         user_management_api_base_url = fwo_config['middleware_uri']
         fwo_api_base_url = fwo_config['api_uri']
-    except Exception:Exception:
+    except Exception:
         logger.error("getFwoAlerter - error while reading FWO config file")        
         raise
 
     try:
         with open(fwo_const.base_dir + '/etc/secrets/importer_pwd', 'r') as file:
             importer_pwd = file.read().replace('\n', '')
-    except Exception:Exception:
+    except Exception:
         logger.error("getFwoAlerter - error while reading importer pwd file")
         raise
 

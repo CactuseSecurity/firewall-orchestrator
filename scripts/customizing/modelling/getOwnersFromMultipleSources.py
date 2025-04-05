@@ -81,7 +81,7 @@ def readConfig(configFilename, keyToGet):
             customConfig = json.loads(customConfigFH.read())
         return customConfig[keyToGet]
 
-    except:
+    except Exception:
         logger.error("could not read key '" + keyToGet + "' from config file " + configFilename + ", Exception: " + str(traceback.format_exc()))
         sys.exit(1)
 
@@ -300,7 +300,7 @@ if __name__ == "__main__":
             with open(csvFile, newline='') as csvFile:
                 reader = csv.reader(csvFile)
                 dfAllApps += list(reader)[1:]# Skip headers in first line
-        except:
+        except Exception:
             logger.error("error while trying to read csv file '" + csvFile + "', exception: " + str(traceback.format_exc()))
             sys.exit(1)
 
@@ -339,7 +339,7 @@ if __name__ == "__main__":
         try:
             with open(rlmApiUrl, "r") as ownerDumpFH:
                 ownerData = json.loads(ownerDumpFH.read())
-        except:
+        except Exception:
             logger.error("error while trying to read owners from config file '" + rlmApiUrl + "', exception: " + str(traceback.format_exc()))
             sys.exit(1)
     else:
@@ -349,7 +349,7 @@ if __name__ == "__main__":
             # logger.debug("token for RLM: " + oauthToken)
             rlmOwnerData = rlmGetOwners(oauthToken, rlmApiUrl + api_url_path_rlm_apps, float(rlmVersion))
 
-        except:
+        except Exception:
             logger.error("error while getting owner data from RLM API: " + str(traceback.format_exc()))
             sys.exit(1)
 

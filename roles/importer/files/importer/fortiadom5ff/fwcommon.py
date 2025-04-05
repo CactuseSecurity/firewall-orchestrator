@@ -76,7 +76,7 @@ def get_config(config2import, full_config, current_import_id, mgm_details, limit
             try:  # logout of fortimanager API
                 fmgr_getter.logout(
                     fm_api_url, sid)
-            except:
+            except Exception:
                 logger.warning("logout exception probably due to timeout - irrelevant, so ignoring it")
 
         # now we normalize relevant parts of the raw config and write the results to config2import dict

@@ -61,6 +61,15 @@ class ImportStateController(ImportState):
 
     def getErrorString(self):
         return str(self.Stats.ErrorDetails)
+    
+    def addError(self, error, log=False):
+        self.increaseErrorCounterByOne()
+        self.appendErrorString(str(error))
+        if log and not self.Stats.ErrorAlreadyLogged:
+            logger = getFwoLogger()
+            logger.error(str(error))
+            self.Stats.ErrorAlreadyLogged = True
+
 
     @classmethod
     def initializeImport(cls, mgmId, debugLevel=0, suppressCertWarnings=False, 
@@ -83,7 +92,7 @@ class ImportStateController(ImportState):
         except FwoApiLoginFailed as e:
             logger.error(e.message)
             raise
-        except:
+        except Exception:
             raise
 
         # set global https connection values
@@ -97,13 +106,13 @@ class ImportStateController(ImportState):
 
         try: # get mgm_details (fw-type, port, ip, user credentials):
             mgmDetails = fwo_api.get_mgm_details(fwoConfig.FwoApiUri, jwt, {"mgmId": int(mgmId)}, debugLevel) 
-        except:
+        except Exception:
             logger.error("import_management - error while getting fw management details for mgm=" + str(mgmId) )
             raise
 
         try: # get last import data
             lastImportDate = fwo_api.getLastImportDate(fwoConfig.FwoApiUri, jwt, {"mgmId": int(mgmId)}, debug_level=0)
-        except:
+        except Exception:
             logger.error("import_management - error while getting last import data for mgm=" + str(mgmId) )
             raise
 
@@ -137,7 +146,7 @@ class ImportStateController(ImportState):
         try: # get past import details (LastFullImport, ...):
             self.DataRetentionDays, self.LastFullImportId, lastFullImportDate = \
                 fwo_api.getLastImportDetails(self.FwoConfig.FwoApiUri, self.Jwt, {"mgmId": int(self.MgmDetails.Id)}, self.DebugLevel) 
-        except:
+        except Exception:
             logger.error(f"import_management - error while getting past import details for mgm={str(self.MgmDetails.Id)}")
             raise
 
@@ -166,7 +175,7 @@ class ImportStateController(ImportState):
         query = "query getActionMap { stm_action { action_name action_id allowed } }"
         try:
             result = self.call(query=query, queryVariables={})
-        except:
+        except Exception:
             logger = getFwoLogger()
             logger.error(f'Error while getting stm_action')
             return {}
@@ -180,7 +189,7 @@ class ImportStateController(ImportState):
         query = "query getTrackMap { stm_track { track_name track_id } }"
         try:
             result = self.call(query=query, queryVariables={})
-        except:
+        except Exception:
             logger = getFwoLogger()
             logger.error(f'Error while getting stm_track')
             return {}
@@ -194,7 +203,7 @@ class ImportStateController(ImportState):
         query = "query getLinkType { stm_link_type { id name } }"
         try:
             result = self.call(query=query, queryVariables={})
-        except:
+        except Exception:
             logger = getFwoLogger()
             logger.error(f'Error while getting stm_link_type')
             return {}
@@ -212,7 +221,7 @@ class ImportStateController(ImportState):
         query = """query getRulebaseMap($mgmId: Int) { rulebase(where:{mgm_id: {_eq: $mgmId}, removed:{_is_null:true }}) { id name uid } }"""
         try:
             result = self.call(query=query, queryVariables= {"mgmId": self.MgmDetails.Id})
-        except:
+        except Exception:
             logger = getFwoLogger()
             logger.error(f'Error while getting rulebases')
             self.RulebaseMap = {}
@@ -232,7 +241,7 @@ class ImportStateController(ImportState):
         query = """query getRuleMap($mgmId: Int) { rule(where:{mgm_id: {_eq: $mgmId}, removed:{_is_null:true }}) { id: rule_id uid: rule_uid } }"""
         try:
             result = self.call(query=query, queryVariables= {"mgmId": self.MgmDetails.Id})
-        except:
+        except Exception:
             logger = getFwoLogger()
             logger.error(f'Error while getting rules')
             self.RuleMap = {}
@@ -257,7 +266,7 @@ class ImportStateController(ImportState):
     """
         try:
             result = self.call(query=query, queryVariables= {"mgmId": self.MgmDetails.Id})
-        except:
+        except Exception:
             logger = getFwoLogger()
             logger.error(f'Error while getting gateways')
             self.GatewayMap = {}

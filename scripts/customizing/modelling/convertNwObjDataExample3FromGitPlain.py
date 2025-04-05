@@ -60,7 +60,7 @@ def readConfig(configFilename, keysToGet=['username', 'password', 'ldapPath', 'a
             configValues.append(customConfig[key])
         return configValues
 
-    except:
+    except Exception:
         logger.error("could not read config file " + configFilename + ", Exception: " + str(traceback.format_exc()))
         sys.exit(1)
 
@@ -132,7 +132,7 @@ if __name__ == "__main__":
         else:
             repoUrl = "https://" + ipamGitUser + ":" + urllib.parse.quote(ipamGitPassword, safe='') + "@" + ipamGitRepo
             repo = git.Repo.clone_from(repoUrl, ipamGitRepoTargetDir)
-    except:
+    except Exception:
         logger.error("error while trying to access git repo '" + ipamGitRepo + "', exception: " + str(traceback.format_exc()))
         sys.exit(1)
 
@@ -144,7 +144,7 @@ if __name__ == "__main__":
         with open(subnetDataFilename, newline='') as csvFile:
             reader = csv.reader(csvFile)
             subnetAr += list(reader)
-    except:
+    except Exception:
         logger.error("error while trying to read csv file '" + csvFile + "', exception: " + str(traceback.format_exc()))
         sys.exit(1)
 
@@ -153,7 +153,7 @@ if __name__ == "__main__":
     #         csv_reader = csv.DictReader(file)
     #         for row in csv_reader:
     #             subnetAr.append(row)
-    # except:
+    # except Exception:
     #     logger.error("error while trying to read subnet csv file '" + subnetDataFilename + "', exception: " + str(traceback.format_exc()))
     #     sys.exit(1)
 
@@ -177,7 +177,7 @@ if __name__ == "__main__":
                 netmask = subnet[maskColumn]
                 try:
                     cidr = str(ipaddress.ip_network(subnetIp + '/' + netmask))
-                except:
+                except Exception:
                     logger.warning('found line with unparsable IP: ' + subnetIp + '/' + netmask)
                     continue
 

@@ -100,7 +100,7 @@ def readJsonConfigFromFile(importState: ImportStateController) -> FwConfigContro
     #     for error in e.errors():
     #         print(f"Field: {error['loc']}, Error: {error['msg']}") 
 
-    except: # legacy stuff from here
+    except Exception: # legacy stuff from here
         logger.info(f"could not serialize config {str(traceback.format_exc())}")
         if 'ConfigFormat' in configJson:
             if configJson['ConfigFormat']=='NORMALIZED':

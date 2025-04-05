@@ -343,7 +343,7 @@ def login_cp(mgm_details, domain, ssl_verification=True):
     try: # top level dict start, sid contains the domain information, so only sending domain during login
         login_result = cp_getter.login(mgm_details['import_credential']['user'], mgm_details['import_credential']['secret'], mgm_details['hostname'], str(mgm_details['port']), domain)
         return login_result
-    except:
+    except Exception:
         raise FwLoginFailed
 
 
@@ -351,7 +351,7 @@ def logout_cp(url, sid):
     try:
         logout_result = cp_getter.logout(url, sid)
         return logout_result
-    except:
+    except Exception:
         logger = getFwoLogger()
         logger.warning("logout from CP management failed")
 

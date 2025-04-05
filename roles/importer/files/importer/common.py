@@ -1,8 +1,13 @@
 import traceback
 import sys, time
 import json
+import signal
+import sys
+
+import importlib
 from socket import gethostname
 from typing import List
+
 from fwo_const import importer_base_dir
 from pathlib import Path
 sys.path.append(importer_base_dir) # adding absolute path here once
@@ -10,7 +15,8 @@ import fwo_api
 from fwo_log import getFwoLogger
 from fwo_const import fw_module_name
 from fwo_const import import_tmp_path
-from fwo_exception import FwLoginFailed, ImportRecursionLimitReached
+import fwo_globals
+from fwo_exception import FwLoginFailed, ImportRecursionLimitReached, InterruptedCallRollback
 from fwo_base import stringIsUri, ConfigAction, ConfFormat
 import fwo_file_import
 from model_controllers.import_state_controller import ImportStateController
@@ -26,6 +32,11 @@ from model_controllers.check_consistency import FwConfigImportCheckConsistency
 from model_controllers.rollback import FwConfigImportRollback
 from model_controllers.import_state_controller import ImportStateController
 
+
+def handle_shutdown_signal(signum, frame):
+    fwo_globals.shutdown_requested = True
+    print(f"Received shutdown signal: {signal.Signals(signum).name}. Performing cleanup...")
+
 """  
     import_management: import a single management (if no import for it is running)
     lock mgmt for import via FWORCH API call, generating new import_id y
@@ -39,6 +50,10 @@ from model_controllers.import_state_controller import ImportStateController
 def import_management(mgmId=None, ssl_verification=None, debug_level_in=0, 
         limit=150, force=False, clearManagementData=False, suppress_cert_warnings_in=None,
         in_file=None, version=8):
+
+    # Register signal handlers for system shutdown interrupts
+    signal.signal(signal.SIGTERM, handle_shutdown_signal)  # Handle termination signal
+    signal.signal(signal.SIGINT, handle_shutdown_signal)   # Handle interrupt signal (e.g., Ctrl+C)
 
     logger = getFwoLogger(debug_level=debug_level_in)
     config_changed_since_last_import = True
@@ -164,7 +179,7 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
                                 fwo_api.update_hit_counter(importState, config)
 
                     # currently assuming only one chunk
-                    # initiateImportStart(importState)
+
                 except Exception:
                     raise
                 logger.debug(f"full import duration: {str(int(time.time())-time_get_config-importState.StartTime)}s")
@@ -185,15 +200,33 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
         if not clearManagementData and importState.DataRetentionDays<importState.DaysSinceLastFullImport:
             # delete all imports of the current management before the last but one full import
             configImporter.deleteOldImports()
-        
-    except Exception:
-        if importState.ImportId>=0:
-            if not importState.Stats.ErrorAlreadyLogged:
-                importState.addError(f"import_management - unspecified error while importing management {str(mgmId)}: {str(traceback.format_exc())}", log=True)
-        else:
-            if not importState.Stats.ErrorAlreadyLogged:
-                logger.error("import_management - unspecified error before even assigning an import ID")
+
+    except InterruptedCallRollback as e:
+        logger.warning(f"InterruptedCallRollback caught in import_management: {e}")
+        if 'configImporter' in locals():
+            FwConfigImportRollback(configImporter).rollbackCurrentImport()
+        fwo_api.delete_import(importState) # deleting trace of not even begun import
+        # fwo_api.complete_import(importState)
+        sys.exit(1)
+    except (KeyboardInterrupt) as e:
+        logger.warning(f"KeyboardInterrupt caught in import_management: {e}")
+        if 'configImporter' in locals():
+            FwConfigImportRollback(configImporter).rollbackCurrentImport()
+        fwo_api.complete_import(importState)
+        sys.exit(1)
+    except Exception as e:
+        logger.error(f"Unexpected error in import_management: {e}")
+        raise
     finally:
+        if fwo_globals.shutdown_requested:
+            logger.warning("Shutdown requested.")
+            if 'configImporter' in locals():
+                logger.info("Performing rollback before exiting...")
+                FwConfigImportRollback(configImporter).rollbackCurrentImport()
+            else:
+                logger.info("No configImporter found, skipping rollback.")
+            fwo_api.complete_import(importState)
+            sys.exit(0)
         return importState.Stats.ErrorCount
 
 
@@ -279,6 +312,11 @@ def get_config_from_api(importState: ImportStateController, configNative, import
                                     'ConfigFormat': ConfFormat.NORMALIZED
                                 }
             configNormalized = FwConfigNormalized(**emptyConfigDict)
+
+    except InterruptedCallRollback as e:
+        logger.error(f"Import interrupted: {e}")
+        # Perform rollback or cleanup here
+        raise
     except (FwLoginFailed) as e:
         importState.appendErrorString(f"login failed: mgm_id={str(importState.MgmDetails.Id)}, mgm_name={importState.MgmDetails.Name}, {e.message}")
         importState.increaseErrorCounter()

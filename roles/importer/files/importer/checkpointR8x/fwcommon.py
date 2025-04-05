@@ -4,6 +4,8 @@ from common import importer_base_dir
 from fwo_log import getFwoLogger
 sys.path.append(importer_base_dir + '/checkpointR8x')
 import time
+import signal
+
 import cp_rule
 import cp_gateway
 import cp_const, cp_network, cp_service
@@ -16,8 +18,9 @@ from models.fwconfig_normalized import FwConfigNormalized
 from model_controllers.import_state_controller import ImportStateController
 from fwo_base import ConfigAction
 import fwo_const
+import fwo_globals
 from model_controllers.fwconfig_normalized_controller import FwConfigNormalizedController
-
+from fwo_exception import InterruptedCallRollback
 
 # objects as well as rules can now be either from super-amanager or from local manager!
 # TODO: decide if we still support importing native config from file
@@ -51,6 +54,14 @@ from model_controllers.fwconfig_normalized_controller import FwConfigNormalizedC
 #                        normalizedConfig.rulebases.append(getRulebase(rulebase))
 #                    normalizedConfig.ManagerSet[mgrSet].Configs.gateways[device].append(rulebase.name )
 
+def handle_interrupt(signum, frame):
+    fwo_globals.shutdown_requested = True
+    print(f"Interrupt detected: {signal.Signals(signum).name}. Performing cleanup...")
+
+
+signal.signal(signal.SIGINT, handle_interrupt)  # Handle Ctrl+C
+signal.signal(signal.SIGTERM, handle_interrupt)  # Handle termination signal
+
 
 def has_config_changed (full_config, importState, force=False):
 
@@ -71,6 +82,83 @@ def has_config_changed (full_config, importState, force=False):
 
     return result
 
+
+def get_config(nativeConfig: json, importState: ImportStateController) -> tuple[int, FwConfigManagerList]:
+
+    logger = getFwoLogger()
+    normalizedConfigDict = fwo_const.emptyNormalizedFwConfigJsonDict
+    logger.debug ( "starting checkpointR8x/get_config" )
+
+    if nativeConfig == {}:   # no native config was passed in, so getting it from FW-Manager
+        parsing_config_only = False
+    else:
+        parsing_config_only = True
+
+    if not parsing_config_only: # get config from cp fw mgr
+        starttime = int(time.time())
+
+        if 'users' not in nativeConfig:
+            nativeConfig.update({'users': {}})
+
+        domain, cpManagerApiBaseUrl = prepare_get_vars(importState.FullMgmDetails)
+
+        sid = login_cp(importState.FullMgmDetails, domain)
+
+        starttimeTemp = int(time.time())
+        logger.debug ( "checkpointR8x/get_config/getting objects ...")
+
+        result_get_objects = get_objects (nativeConfig, importState.FullMgmDetails, cpManagerApiBaseUrl, sid, force=importState.ForceImport, limit=str(importState.FwoConfig.ApiFetchSize), details_level=cp_const.details_level_objects, test_version='off')
+        if result_get_objects>0:
+            logger.warning ( "checkpointR8x/get_config/error while gettings objects")
+            return result_get_objects
+        logger.debug ( "checkpointR8x/get_config/fetched objects in " + str(int(time.time()) - starttimeTemp) + "s")
+
+        starttimeTemp = int(time.time())
+        logger.debug ( "checkpointR8x/get_config/getting rules ...")
+        result_get_rules = getRules (nativeConfig, importState)
+        if result_get_rules>0:
+            logger.warning ( "checkpointR8x/get_config/error while gettings rules")
+            return result_get_rules
+        logger.debug ( "checkpointR8x/get_config/fetched rules in " + str(int(time.time()) - starttimeTemp) + "s")
+
+        duration = int(time.time()) - starttime
+        logger.debug ( "checkpointR8x/get_config - fetch duration: " + str(duration) + "s" )
+
+    normalizedConfig = normalizeConfig(nativeConfig, normalizedConfigDict, importState, parsing_config_only, sid)
+
+    manager = FwConfigManager(ManagerUid=calcManagerUidHash(importState.FullMgmDetails),
+                              ManagerName=importState.MgmDetails.Name,
+                              IsGlobal=False, 
+                              DependantManagerUids=[], 
+                              Configs=[normalizedConfig])
+    
+    listOfManagers = FwConfigManagerListController()
+    listOfManagers.addManager(manager)
+    logger.info("completed getting config")
+    
+    return 0, listOfManagers
+
+def normalizeConfig(nativeConfig: json, normalizedConfigDict, importState: ImportStateController, parsing_config_only: bool, sid: str) -> tuple[int, FwConfigManagerList]:
+    logger = getFwoLogger()
+    cp_network.normalize_network_objects(nativeConfig, normalizedConfigDict, importState.ImportId, mgm_id=importState.MgmDetails.Id)
+    logger.info("completed normalizing network objects")
+    cp_service.normalize_service_objects(nativeConfig, normalizedConfigDict, importState.ImportId)
+    logger.info("completed normalizing service objects")
+    cp_rule.normalizeRulebases(nativeConfig, importState, normalizedConfigDict)
+    cp_gateway.normalizeGateways(nativeConfig, importState, normalizedConfigDict)
+    if not parsing_config_only: # get config from cp fw mgr
+        logout_cp("https://" + importState.MgmDetails.Hostname + ":" + str(importState.FullMgmDetails['port']) + "/web_api/", sid)
+    logger.info("completed normalizing rulebases")
+    
+    # put dicts into object of class FwConfigManager
+    return FwConfigNormalized(
+        action=ConfigAction.INSERT, 
+        network_objects=FwConfigNormalizedController.convertListToDict(normalizedConfigDict['network_objects'], 'obj_uid'),
+        service_objects=FwConfigNormalizedController.convertListToDict(normalizedConfigDict['service_objects'], 'svc_uid'),
+        zone_objects=normalizedConfigDict['zone_objects'],
+        rulebases=normalizedConfigDict['policies'],
+        gateways=normalizedConfigDict['gateways']
+    )
 
 def getRules (nativeConfig: dict, importState: ImportStateController) -> int:
     # delete_v: Schnittstellen die zum Rest passen müssen
@@ -206,7 +294,9 @@ def getRules (nativeConfig: dict, importState: ImportStateController) -> int:
                                     access_type='access',
                                     nativeConfig=nativeConfig,
                                     deviceConfig=deviceConfig)
-            
+            if fwo_globals.shutdown_requested:
+                raise InterruptedCallRollback("Shutdown requested during rulebase retrieval.")
+                        
             lastRuleUid = None
             # parse ordered layer and get last rule uid
             for rulebase in nativeConfig['rulebases']:
@@ -247,83 +337,6 @@ def getRules (nativeConfig: dict, importState: ImportStateController) -> int:
 
         nativeConfig['gateways'].append(deviceConfig)
     return 0
-
-
-def get_config(nativeConfig: json, importState: ImportStateController) -> tuple[int, FwConfigManagerList]:
-    logger = getFwoLogger()
-    normalizedConfig = fwo_const.emptyNormalizedFwConfigJsonDict
-    logger.debug ( "starting checkpointR8x/get_config" )
-
-    if nativeConfig == {}:   # no native config was passed in, so getting it from FW-Manager
-        parsing_config_only = False
-    else:
-        parsing_config_only = True
-
-    if not parsing_config_only: # get config from cp fw mgr
-        starttime = int(time.time())
-
-        if 'users' not in nativeConfig:
-            nativeConfig.update({'users': {}})
-
-        domain, cpManagerApiBaseUrl = prepare_get_vars(importState.FullMgmDetails)
-
-        sid = login_cp(importState.FullMgmDetails, domain)
-
-        starttimeTemp = int(time.time())
-        logger.debug ( "checkpointR8x/get_config/getting objects ...")
-
-        result_get_objects = get_objects (nativeConfig, importState.FullMgmDetails, cpManagerApiBaseUrl, sid, force=importState.ForceImport, limit=str(importState.FwoConfig.ApiFetchSize), details_level=cp_const.details_level_objects, test_version='off')
-        if result_get_objects>0:
-            logger.warning ( "checkpointR8x/get_config/error while gettings objects")
-            return result_get_objects
-        logger.debug ( "checkpointR8x/get_config/fetched objects in " + str(int(time.time()) - starttimeTemp) + "s")
-
-        starttimeTemp = int(time.time())
-        logger.debug ( "checkpointR8x/get_config/getting rules ...")
-        result_get_rules = getRules (nativeConfig, importState)
-        if result_get_rules>0:
-            logger.warning ( "checkpointR8x/get_config/error while gettings rules")
-            return result_get_rules
-        logger.debug ( "checkpointR8x/get_config/fetched rules in " + str(int(time.time()) - starttimeTemp) + "s")
-
-        duration = int(time.time()) - starttime
-        logger.debug ( "checkpointR8x/get_config - fetch duration: " + str(duration) + "s" )
-
-    cp_network.normalize_network_objects(nativeConfig, normalizedConfig, importState.ImportId, mgm_id=importState.MgmDetails.Id)
-    logger.info("completed normalizing network objects")
-    cp_service.normalize_service_objects(nativeConfig, normalizedConfig, importState.ImportId)
-    logger.info("completed normalizing service objects")
-
-    if importState.ImportVersion>8:
-        cp_rule.normalizeRulebases(nativeConfig, importState, normalizedConfig)
-        cp_gateway.normalizeGateways(nativeConfig, importState, normalizedConfig)
-    else:
-        normalizedConfig.update({'rules':  cp_rule.normalize_rulebases_top_level(nativeConfig, importState.ImportId, normalizedConfig) })
-    if not parsing_config_only: # get config from cp fw mgr
-        logout_cp("https://" + importState.MgmDetails.Hostname + ":" + str(importState.FullMgmDetails['port']) + "/web_api/", sid)
-    logger.info("completed normalizing rulebases")
-    
-    # put dicts into object of class FwConfigManager
-    normalizedConfig2 = FwConfigNormalized(action=ConfigAction.INSERT, 
-                            network_objects=FwConfigNormalizedController.convertListToDict(normalizedConfig['network_objects'], 'obj_uid'),
-                            service_objects=FwConfigNormalizedController.convertListToDict(normalizedConfig['service_objects'], 'svc_uid'),
-                            zone_objects=normalizedConfig['zone_objects'],
-                            # decide between old (rules) and new (policies) format
-                            # rules=normalizedConfig['rules'] if len(normalizedConfig['rules'])>0 else normalizedConfig['policies'],    
-                            rulebases=normalizedConfig['policies'],
-                            gateways=normalizedConfig['gateways']
-                            )
-    manager = FwConfigManager(ManagerUid=calcManagerUidHash(importState.FullMgmDetails),
-                              ManagerName=importState.MgmDetails.Name,
-                              IsGlobal=False, 
-                              DependantManagerUids=[], 
-                              Configs=[normalizedConfig2])
-    listOfManagers = FwConfigManagerListController()
-
-    listOfManagers.addManager(manager)
-    logger.info("completed getting config")
-    
-    return 0, listOfManagers
 
 
 def prepare_get_vars(mgm_details):
@@ -392,6 +405,8 @@ def get_objects(config_json, mgm_details, v_url, sid, force=False, config_filena
     internetObj = cp_getter.getObjectDetailsFromApi(cp_const.internet_obj_uid, sid=sid, apiurl=v_url, debug_level=debug_level)['object_chunks'][0]
 
     for obj_type in cp_const.api_obj_types:
+        if fwo_globals.shutdown_requested:
+            raise InterruptedCallRollback("Shutdown requested during object retrieval.")
         if obj_type in cp_const.obj_types_full_fetch_needed:
             show_params_objs.update({'details-level': cp_const.details_level_group_objects})
         else:
@@ -405,6 +420,9 @@ def get_objects(config_json, mgm_details, v_url, sid, force=False, config_filena
         while (current<total) :
             show_params_objs['offset']=current
             objects = cp_getter.cp_api_call(v_url, show_cmd, show_params_objs, sid)
+            if fwo_globals.shutdown_requested:
+                raise InterruptedCallRollback("Shutdown requested during object retrieval.")
+
             object_table["object_chunks"].append(objects)
             if 'total' in objects  and 'to' in objects:
                 total=objects['total']

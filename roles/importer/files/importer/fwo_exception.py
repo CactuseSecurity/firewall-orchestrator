@@ -69,3 +69,8 @@ class ImportRecursionLimitReached(Exception):
     def __init__(self, message="Max recursion level reached - aborting"):
         self.message = message
         super().__init__(self.message)
+
+class InterruptedCallRollback(Exception):
+    """Custom exception to signal an interrupted call requiring rollback."""
+    def __init__(self, message="Operation interrupted. Rollback required."):
+        super().__init__(message)

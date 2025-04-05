@@ -170,7 +170,7 @@ def readFile(importState: ImportStateController) -> dict:
         importState.increaseErrorCounterByOne()
         logger.error("unspecified error while reading config file: " + str(traceback.format_exc()))
         complete_import(importState)
-        raise Exception(f"Could not read config file {importState.ImportFileName}")
+        raise Exception(f"unspecified error while reading config file {importState.ImportFileName}")
 
     return configJson
 

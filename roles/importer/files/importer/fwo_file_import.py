@@ -154,6 +154,8 @@ def readFile(importState: ImportStateController) -> dict:
             else:   # reading from local file
                 if importState.ImportFileName.startswith('file://'):   # remove file uri identifier
                     filename = importState.ImportFileName[7:]
+                else:
+                    filename = importState.ImportFileName
                 with open(filename, 'r') as json_file:
                     configJson = json.load(json_file)
     except requests.exceptions.RequestException:

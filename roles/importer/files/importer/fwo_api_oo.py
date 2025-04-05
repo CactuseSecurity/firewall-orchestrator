@@ -50,7 +50,8 @@ class FwoApi():
                 else:
                     raise
             if int(fwo_globals.debug_level) > 8:
-                logger.debug (self.showImportApiCallInfo(self.FwoApiUrl, full_query, request_headers, typ='debug'))
+                #TODO: fails on windows for some reason
+                logger.debug(self.showImportApiCallInfo(self.FwoApiUrl, full_query, request_headers, typ='debug'))
             if r != None:
                 return r.json()
             else:

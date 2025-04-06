@@ -165,7 +165,8 @@ if __name__ == '__main__':
                             try:
                                 import_result = import_management(mgmId=importState.MgmDetails.Id, debug_level_in=debug_level, version=importState.ImportVersion,
                                     clearManagementData=args.clear, force=args.force, limit=str(api_fetch_limit))
-                            except (FwoApiFailedLockImport, FwLoginFailed):
+                            except (FwoApiFailedLockImport, FwLoginFailed) as e:
+                                logger.info(f"import-main-loop - minor error on while importing mgm_id=" + str(importState.MgmDetails.Id) + ", " + str(traceback.format_exc())) 
                                 pass # minor errors for a single mgm, go to next one
                             except Exception: # all other exceptions are logged here
                                 logger.error("import-main-loop - unspecific error while importing mgm_id=" + str(importState.MgmDetails.Id) + ", " +  str(traceback.format_exc()))

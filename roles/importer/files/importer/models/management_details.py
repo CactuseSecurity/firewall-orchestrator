@@ -15,4 +15,4 @@ class ManagementDetails():
     ImportUser: str
     Secret: str
     IsSuperManager: bool
-    SubManager: List[int]
+    SubManagerIds: List[int]

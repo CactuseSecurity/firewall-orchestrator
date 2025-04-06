@@ -104,10 +104,26 @@ def getRules (nativeConfig: dict, importState: ImportStateController) -> int:
         'show-hits': cp_const.with_hits 
     }
 
+    # handle super manager case
+    if importState.FullMgmDetails['isSuperManager']:
+        # get all global rulebases (for super manager) - only one layer per rulebase
+        for policy in policyStructure:
+            for accessLayer in policy['access-layers']:
+                show_params_rules.update({'name': accessLayer['name']})
+                logger.debug ( "getting layer: " + show_params_rules['name'] )
+                cp_getter.getRulebases (cpManagerApiBaseUrl, 
+                                        sid, 
+                                        show_params_rules, 
+                                        rulebaseName=accessLayer['name'],
+                                        access_type='access',
+                                        nativeConfig=nativeConfig)
+                # add rulebase to native config
+                nativeConfig['rulebases'].append(accessLayer)
+        # get all global objects (for super manager)
+
     # read all rulebases: handle per device details
     for device in importState.FullMgmDetails['devices']:
         if 'name' in device:
-
             # find device uid in policy structure
             deviceConfigUid = ''
             for policy in policyStructure:
@@ -315,8 +331,8 @@ def get_config(nativeConfig: json, importState: ImportStateController) -> tuple[
                             )
     manager = FwConfigManager(ManagerUid=calcManagerUidHash(importState.FullMgmDetails),
                               ManagerName=importState.MgmDetails.Name,
-                              IsGlobal=False, 
-                              DependantManagerUids=[], 
+                              IsSuperManager=False, 
+                              SubManagerIds=[], 
                               Configs=[normalizedConfig2])
     listOfManagers = FwConfigManagerListController()
 

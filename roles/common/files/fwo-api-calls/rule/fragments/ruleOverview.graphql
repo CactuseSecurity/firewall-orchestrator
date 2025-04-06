@@ -61,4 +61,10 @@ fragment ruleOverview on rule {
       ...networkServiceOverview
     }
   }
+  rule_enforced_on_gateways(order_by:{ device: { dev_name: asc } }) {
+    device {
+      id: dev_id
+      name: dev_name
+    }
+  }
 }

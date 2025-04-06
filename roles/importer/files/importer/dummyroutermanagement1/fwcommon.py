@@ -6,7 +6,7 @@ sys.path.append(importer_base_dir + '/dummyrouter')
 from curses import raw
 from fwo_log import getFwoLogger
 import fwo_globals
-from roles.importer.files.importer.model_controllers.interface_controller import Interface
+from model_controllers.interface_controller import Interface
 from model_controllers.route_controller import Route
 import json, requests, requests.packages
 from datetime import datetime
@@ -42,7 +42,7 @@ def get_config(config2import, _, current_import_id, mgm_details, limit=100, forc
         error_count += 1
         error_count = complete_import(current_import_id, error_string, start_time, mgm_details, change_count, error_count, jwt)
         raise ConfigFileNotFound(error_string) from None
-    except:
+    except Exception:
         error_string = "Could not read config file " + router_file_url
         error_count += 1
         error_count = complete_import(current_import_id, error_string, start_time, mgm_details, change_count, error_count, jwt)

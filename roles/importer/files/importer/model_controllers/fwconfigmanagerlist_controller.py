@@ -5,7 +5,7 @@ import traceback
 
 import fwo_globals
 from fwo_log import getFwoLogger
-from roles.importer.files.importer.model_controllers.interface_controller import InterfaceSerializable
+from model_controllers.interface_controller import InterfaceSerializable
 from model_controllers.route_controller import RouteSerializable
 from fwo_base import split_list, serializeDictToClassRecursively, deserializeClassToDictRecursively
 from fwo_const import max_objs_per_chunk, import_tmp_path
@@ -157,7 +157,7 @@ class FwConfigManagerListController(FwConfigManagerList):
                         json_data.write(self.toJsonStringLegacy(prettyPrint=True))
                 time_write_debug_json = int(time.time()) - debug_start_time
                 logger.debug(f"storeFullNormalizedConfigToFile - writing normalized config json files duration {str(time_write_debug_json)}s")
-            except:
+            except Exception:
                 logger.error(f"import_management - unspecified error while dumping normalized config to json file: {str(traceback.format_exc())}")
                 raise
 

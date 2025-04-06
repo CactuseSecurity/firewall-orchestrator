@@ -8,6 +8,13 @@ namespace FWO.Data
 {
     public static class DisplayBase
     {
+        public static StringBuilder DisplayGateway(Device gateway, bool isTechReport, string? gatewayName = null)
+        {
+            StringBuilder result = new ();
+            // result.Append($" <p class=\"no-break\">{gateway.Name}</p>");
+            result.Append($" {gateway.Name}");
+            return result;
+        }        
         public static StringBuilder DisplayService(NetworkService service, bool isTechReport, string? serviceName = null)
         {
             StringBuilder result = new ();

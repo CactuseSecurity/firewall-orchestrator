@@ -5,8 +5,8 @@ from functools import cmp_to_key
 import traceback
 import fOS_getter as fOS_getter
 import fwo_globals
-from roles.importer.files.importer.model_controllers.interface_controller import Route, Interface
-from roles.importer.files.importer.model_controllers.interface_controller import getRouteDestination
+from model_controllers.interface_controller import Route, Interface
+from model_controllers.interface_controller import getRouteDestination
 
 def normalize_network_data(native_config, normalized_config, mgm_details):
 
@@ -235,7 +235,7 @@ def getInterfacesAndRouting(sid, fm_api_url, raw_config, adom_name, devices, lim
             fOS_getter.update_config_with_fortinet_api_call(
                 raw_config, sid, fm_api_url, "/pm/config/device/" + plain_dev_name + "/global/system/interface",
                 "interfaces_per_device/" + full_vdom_name, payload=all_interfaces_payload, limit=limit, method="get")
-        except:
+        except Exception:
             logger.warning("error while getting interfaces of device " + plain_vdom_name + ", vdom=" + plain_vdom_name + ", ignoring, traceback: " + str(traceback.format_exc()))
 
         # now getting routing information
@@ -259,7 +259,7 @@ def getInterfacesAndRouting(sid, fm_api_url, raw_config, adom_name, devices, lim
                     else:
                         logger.warning("got empty " + ip_version + " routing table from device " + full_vdom_name + ", ignoring")
                         routing_table = []
-            except:
+            except Exception:
                 logger.warning("could not get routing table for device " + full_vdom_name + ", ignoring") # exception " + str(traceback.format_exc()))
                 routing_table = []
 

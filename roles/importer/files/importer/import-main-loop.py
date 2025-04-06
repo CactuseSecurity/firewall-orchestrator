@@ -64,7 +64,7 @@ def getFwoJwt(importUser, importPwd, userManagementApi) -> tuple [str, bool]:
     except FwoApiLoginFailed as e:
         logger.error(e.message)
         skipping = True
-    except:
+    except Exception:
         logger.error("import-main-loop - unspecified error during FWO API login - skipping: " + str(traceback.format_exc()))
         skipping = True
     return jwt, skipping
@@ -122,7 +122,7 @@ if __name__ == '__main__':
         try:
             with open(importer_pwd_file, 'r') as file:
                 importer_pwd = file.read().replace('\n', '')
-        except:
+        except Exception:
             logger.error("import-main-loop - error while reading importer pwd file")
             raise
 
@@ -136,7 +136,7 @@ if __name__ == '__main__':
         if not skipping:
             try:
                 managerWithId = fwo_api.get_mgm_ids(fwo_api_base_url, jwt, {})
-            except:
+            except Exception:
                 logger.error("import-main-loop - error while getting FW management ids: " + str(traceback.format_exc()))
                 skipping = True
 
@@ -157,7 +157,7 @@ if __name__ == '__main__':
                     if not skipping:
                         try:
                             mgm_details = fwo_api.get_mgm_details(fwo_api_base_url, jwt, {"mgmId": importState.MgmDetails.Id})
-                        except:
+                        except Exception:
                             logger.error("import-main-loop - error while getting FW management details for mgm_id=" + str(importState.MgmDetails.Id) + " - skipping: " + str(traceback.format_exc()))
                             skipping = True
                         if not skipping and mgm_details["deviceType"]["id"] in (9, 11, 17, 22, 23, 24):  # only handle CPR8x Manager, fortiManager, Cisco MgmCenter, Palo Panorama, Palo FW, FortiOS REST
@@ -167,7 +167,7 @@ if __name__ == '__main__':
                                     clearManagementData=args.clear, force=args.force, limit=str(api_fetch_limit))
                             except (FwoApiFailedLockImport, FwLoginFailed):
                                 pass # minor errors for a single mgm, go to next one
-                            except: # all other exceptions are logged here
+                            except Exception: # all other exceptions are logged here
                                 logger.error("import-main-loop - unspecific error while importing mgm_id=" + str(importState.MgmDetails.Id) + ", " +  str(traceback.format_exc()))
         if args.clear:
             break # while loop                                    

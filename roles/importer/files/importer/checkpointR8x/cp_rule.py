@@ -48,7 +48,8 @@ def normalizeRulebases (nativeConfig, importState, normalizedConfig):
             nativeConfig['rulebases'][rb_id], accessPolicy, rulebaseUid,
             importState.ImportId, section_header_uids, parent_uid, normalizedConfig, 0)
         
-        logger.debug("parsed " + str(rule_num) + " rules for layer " + rulebaseUid)
+        if fwo_globals.debug_level>3:
+            logger.debug("parsed " + str(rule_num) + " rules for layer " + rulebaseUid)
         
         normalizedConfig['policies'].append(accessPolicy)
 

@@ -38,7 +38,7 @@ class FwConfigImportRollback(FwConfigImport):
             else:
                 logger.info("import " + str(self.ImportDetails.ImportId) + " has been rolled back successfully")
 
-        except:
+        except Exception:
             logger.exception(f"failed to rollback current importfor mgm id {str(self.ImportDetails.MgmDetails.Id)}: {str(traceback.format_exc())}")
             return 1 # error
         

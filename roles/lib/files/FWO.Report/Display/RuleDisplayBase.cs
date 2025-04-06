@@ -91,6 +91,10 @@ namespace FWO.Ui.Display
         {
             return DisplayBase.DisplayService(service, reportType.IsTechReport(), serviceName);
         }
+        public static StringBuilder DisplayGateway(Device gateway, ReportType reportType, string? gatewayName = null)
+        {
+            return DisplayBase.DisplayGateway(gateway, reportType.IsTechReport(), gatewayName);
+        }
 
         public static StringBuilder RemoveLastChars(StringBuilder s, int count)
         {

@@ -22,6 +22,7 @@ class ImportStatisticsController(ImportStatistics):
         self.RuleChangeCount = 0
         self.RuleMoveCount = 0
         self.RuleEnforceChangeCount = 0
+        self.ErrorAlreadyLogged = False
     
     def addError(self, error: str):
         self.ErrorCount += 1

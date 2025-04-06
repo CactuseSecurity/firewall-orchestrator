@@ -96,7 +96,7 @@ class FwConfigNormalizedController():
     #                         json_data.write(self.toJsonString(prettyPrint=True))
     #                     else:
     #                         json_data.write(self.toJsonStringLegacy(prettyPrint=True))
-    #         except:
+    #         except Exception:
     #             logger.error(f"import_management - unspecified error while dumping normalized config to json file: {str(traceback.format_exc())}")
     #             raise
 

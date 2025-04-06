@@ -75,7 +75,7 @@ class ImportInterruption(Exception):
     def __init__(self, message="Operation interrupted. Rollback required."):
         super().__init__(message)
 
-class ImportError(Exception):
+class FwoImporterError(Exception):
     """Custom exception to signal a failed import attempt."""
     def __init__(self, message="Operation interrupted. Rollback required."):
         super().__init__(message)

@@ -15,7 +15,7 @@ from common import import_management
 from fwo_log import getFwoLogger, LogLock
 import fwo_base, fwo_config
 from fwo_const import base_dir, importer_base_dir
-from fwo_exception import FwoApiLoginFailed, FwoApiFailedLockImport, FwLoginFailed
+from fwo_exceptions import FwoApiLoginFailed, FwoApiFailedLockImport, FwLoginFailed
 from models.fwconfigmanagerlist import FwConfigManager, FwConfigManagerList
 from model_controllers.import_state_controller import ImportStateController
 

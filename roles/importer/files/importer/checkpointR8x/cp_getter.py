@@ -12,7 +12,7 @@ from fwo_log import getFwoLogger
 import fwo_globals
 import cp_network
 import cp_const
-from fwo_exception import ImportInterruption
+from fwo_exceptions import ImportInterruption
 
 
 def handle_interrupt(signum, frame):

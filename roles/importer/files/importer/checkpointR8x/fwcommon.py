@@ -10,7 +10,7 @@ import cp_rule
 import cp_gateway
 import cp_const, cp_network, cp_service
 import cp_getter
-from fwo_exception import FwLoginFailed
+from fwo_exceptions import FwLoginFailed
 from fwconfig_base import calcManagerUidHash
 from models.fwconfigmanagerlist import FwConfigManagerList, FwConfigManager
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
@@ -20,7 +20,7 @@ from fwo_base import ConfigAction
 import fwo_const
 import fwo_globals
 from model_controllers.fwconfig_normalized_controller import FwConfigNormalizedController
-from fwo_exception import ImportInterruption
+from fwo_exceptions import ImportInterruption
 
 # objects as well as rules can now be either from super-amanager or from local manager!
 # TODO: decide if we still support importing native config from file

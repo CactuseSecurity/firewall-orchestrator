@@ -20,7 +20,7 @@ from fwo_log import getFwoLogger
 import fwo_globals
 import fwo_const
 from fwo_const import fwo_api_http_import_timeout
-from fwo_exception import FwoApiServiceUnavailable, FwoApiTimeout, FwoApiLoginFailed, \
+from fwo_exceptions import FwoApiServiceUnavailable, FwoApiTimeout, FwoApiLoginFailed, \
     SecretDecryptionFailed, FwoApiFailedLockImport
 from fwo_base import writeAlertToLogFile
 from fwo_encrypt import decrypt

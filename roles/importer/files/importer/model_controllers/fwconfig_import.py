@@ -4,7 +4,7 @@ import signal
 import fwo_const
 import fwo_api
 import fwo_globals
-from fwo_exception import ImportInterruption
+from fwo_exceptions import ImportInterruption
 from fwo_log import getFwoLogger
 from model_controllers.import_state_controller import ImportStateController
 from fwo_api_oo import FwoApi

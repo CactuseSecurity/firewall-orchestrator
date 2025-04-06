@@ -7,7 +7,7 @@ from enum import Enum
 import json, requests, requests.packages
 from fwo_log import getFwoLogger
 import fwo_globals
-from fwo_exception import ConfigFileNotFound
+from fwo_exceptions import ConfigFileNotFound
 from fwo_api import complete_import
 from models.fwconfigmanagerlist import FwConfigManagerList
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController

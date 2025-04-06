@@ -16,7 +16,7 @@ from fwo_log import getFwoLogger
 from fwo_const import fw_module_name
 from fwo_const import import_tmp_path
 import fwo_globals
-from fwo_exception import FwLoginFailed, ImportRecursionLimitReached, ImportInterruption, ImportError
+from fwo_exceptions import FwLoginFailed, ImportRecursionLimitReached, ImportInterruption, FwoImporterError
 from fwo_base import stringIsUri, ConfigAction, ConfFormat
 import fwo_file_import
 from model_controllers.import_state_controller import ImportStateController
@@ -146,9 +146,9 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
                                         except Exception:
                                             importState.addError(str(traceback.format_exc()), log=True)
                                             raise
-                                        
+
                                         if importState.Stats.ErrorCount>0:
-                                            raise ImportError("Import failed due to errors.")
+                                            raise FwoImporterError("Import failed due to errors.")
                                         else:
                                             configImporter.storeLatestConfig()
                                 except Exception:
@@ -179,7 +179,7 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
             logger.info("No configImporter found, skipping rollback.")
         fwo_api.delete_import(importState) # delete whole import
         sys.exit(1)
-    except (ImportError) as e:
+    except (FwoImporterError) as e:
         logger.error(f"import error encountered: {importState.getErrorString()}")
         if 'configImporter' in locals():
             FwConfigImportRollback(configImporter).rollbackCurrentImport()

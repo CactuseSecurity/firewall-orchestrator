@@ -667,7 +667,7 @@ def complete_import(importState: "ImportStateController"):
         setAlert(importState.FwoConfig.FwoApiUri, importState.Jwt, import_id=importState.ImportId, title="import error", mgm_id=importState.MgmDetails.Id, severity=2, role='importer', \
             description=str(importState.Stats.ErrorDetails), source='import', alertCode=14, mgm_details=importState.MgmDetails)
     if not importState.Stats.ErrorAlreadyLogged:
-        logger.info(import_result)
+        logger.info(import_result.encode().decode("unicode_escape"))
         importState.Stats.ErrorAlreadyLogged = True
 
     return

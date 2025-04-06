@@ -157,7 +157,7 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
                                         try:
                                             configImporter.importConfig()
                                         except Exception:
-                                            importState.addError(str(traceback.format_exc()), log=True)
+                                            # importState.addError(str(traceback.format_exc()), log=True)
                                             raise
 
                                         if importState.Stats.ErrorCount>0:
@@ -201,8 +201,14 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
         fwo_api.delete_import(importState) # delete whole import
         sys.exit(1)
     except Exception as e:
-        logger.error(f"Unexpected error in import_management: {e}")
-        raise
+        # logger.error(f"Unexpected error in import_management: {e}")
+        if 'configImporter' in locals():
+            FwConfigImportRollback(configImporter).rollbackCurrentImport()
+        else:
+            logger.info("No configImporter found, skipping rollback.")
+        fwo_api.delete_import(importState) # delete whole import
+        sys.exit(1)
+        # raise
     finally:
         fwo_api.complete_import(importState)
         # sys.exit(0)

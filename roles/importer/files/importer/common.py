@@ -9,7 +9,7 @@ import importlib.util
 from fwo_config import readConfig
 from fwo_const import fwo_config_filename, importer_user_name
 from fwo_const import importer_base_dir
-from fwo_exception import FwoApiLoginFailed
+from fwo_exceptions import FwoApiLoginFailed
 from model_controllers.management_details_controller import ManagementDetailsController
 from model_controllers.fworch_config_controller import FworchConfigController
 from pathlib import Path

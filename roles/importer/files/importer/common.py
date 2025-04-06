@@ -7,17 +7,14 @@ from socket import gethostname
 from typing import List
 import importlib.util
 from fwo_config import readConfig
-from fwo_const import fwo_config_filename, importer_user_name
-from fwo_const import importer_base_dir
-from fwo_exception import FwoApiLoginFailed
+from fwo_const import fwo_config_filename, importer_user_name, importer_base_dir
 from model_controllers.management_details_controller import ManagementDetailsController
 from model_controllers.fworch_config_controller import FworchConfigController
 from pathlib import Path
 sys.path.append(importer_base_dir) # adding absolute path here once
 import fwo_api
 from fwo_log import getFwoLogger
-from fwo_const import fw_module_name
-from fwo_const import import_tmp_path
+from fwo_const import fw_module_name, import_tmp_path
 import fwo_globals
 from fwo_exceptions import FwLoginFailed, ImportRecursionLimitReached, ImportInterruption, FwoImporterError
 from fwo_base import stringIsUri, ConfigAction, ConfFormat
@@ -27,13 +24,11 @@ from models.fwconfig_normalized import FwConfig, FwConfigNormalized
 from models.fwconfigmanagerlist import FwConfigManagerList, FwConfigManager
 from models.gateway import Gateway
 from fwconfig_base import calcManagerUidHash
-from model_controllers.import_state_controller import ImportStateController
 from model_controllers.fwconfig_import import FwConfigImport
 from model_controllers.gateway_controller import GatewayController
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
 from model_controllers.check_consistency import FwConfigImportCheckConsistency
 from model_controllers.rollback import FwConfigImportRollback
-from model_controllers.import_state_controller import ImportStateController
 import fwo_signalling
 
 """  

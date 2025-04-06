@@ -31,11 +31,7 @@ from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerList
 from model_controllers.check_consistency import FwConfigImportCheckConsistency
 from model_controllers.rollback import FwConfigImportRollback
 from model_controllers.import_state_controller import ImportStateController
-
-
-def handle_shutdown_signal(signum, frame):
-    fwo_globals.shutdown_requested = True
-    print(f"Received shutdown signal: {signal.Signals(signum).name}. Performing cleanup...")
+import fwo_signalling
 
 """  
     import_management: import a single management (if no import for it is running)
@@ -51,10 +47,7 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
         limit=150, force=False, clearManagementData=False, suppress_cert_warnings_in=None,
         in_file=None, version=8):
 
-    # Register signal handlers for system shutdown interrupts
-    signal.signal(signal.SIGTERM, handle_shutdown_signal)  # Handle termination signal
-    signal.signal(signal.SIGINT, handle_shutdown_signal)   # Handle interrupt signal (e.g., Ctrl+C)
-
+    fwo_signalling.registerSignallingHandlers()
     logger = getFwoLogger(debug_level=debug_level_in)
     config_changed_since_last_import = True
     time_get_config = 0

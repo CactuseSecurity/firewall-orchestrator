@@ -1,5 +1,4 @@
 import traceback
-import signal
 
 import fwo_const
 import fwo_api
@@ -10,18 +9,12 @@ from model_controllers.import_state_controller import ImportStateController
 from fwo_api_oo import FwoApi
 from fwo_base import ConfigAction, ConfFormat
 from models.fwconfig_normalized import FwConfigNormalized
-from model_controllers.fwconfig_normalized_controller import FwConfigNormalizedController
 from model_controllers.fwconfig_import_object import FwConfigImportObject
 from model_controllers.fwconfig_import_rule import FwConfigImportRule
 from model_controllers.fwconfig_import_object import FwConfigImportObject
 from model_controllers.fwconfig_import_rule import FwConfigImportRule
 from model_controllers.fwconfig_import_gateway import FwConfigImportGateway
 from model_controllers.rule_enforced_on_gateway_controller import RuleEnforcedOnGatewayController
-
-
-def handle_shutdown_signal(signum, frame):
-    fwo_globals.shutdown_requested = True
-    print(f"Received shutdown signal: {signal.Signals(signum).name}. Performing cleanup...")
 
 """
 Class hierarchy:
@@ -36,10 +29,6 @@ Class hierarchy:
 class FwConfigImport(FwConfigImportObject, FwConfigImportRule, FwConfigImportGateway, FwoApi):
     ImportDetails: ImportStateController
     NormalizedConfig: FwConfigNormalized
-
-    # Register signal handlers for system shutdown interrupts
-    signal.signal(signal.SIGTERM, handle_shutdown_signal)  # Handle termination signal
-    signal.signal(signal.SIGINT, handle_shutdown_signal)   # Handle interrupt signal (e.g., Ctrl+C)
 
     def __init__(self, importState: ImportStateController, config: FwConfigNormalized):
         self.ImportDetails = importState

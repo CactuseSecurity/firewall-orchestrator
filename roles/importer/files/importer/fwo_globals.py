@@ -1,4 +1,3 @@
-
 shutdown_requested = False
 
 def setGlobalValues (

@@ -20,7 +20,7 @@ from fwo_log import getFwoLogger
 import fwo_globals
 import fwo_const
 from fwo_const import fwo_api_http_import_timeout
-from fwo_exception import FwoApiServiceUnavailable, FwoApiTimeout, FwoApiLoginFailed, \
+from fwo_exceptions import FwoApiServiceUnavailable, FwoApiTimeout, FwoApiLoginFailed, \
     SecretDecryptionFailed, FwoApiFailedLockImport
 from fwo_base import writeAlertToLogFile
 from fwo_encrypt import decrypt
@@ -635,18 +635,14 @@ def setAlert(fwo_api_base_url, jwt, import_id=None, title=None, mgm_id=None, dev
 def complete_import(importState: "ImportStateController"):
     logger = getFwoLogger(debug_level=importState.DebugLevel)
     
+    if fwo_globals.shutdown_requested:
+        importState.addError("shutdown requested, aborting import")
+
     success = (importState.Stats.ErrorCount==0)
     try:
         log_import_attempt(importState.FwoConfig.FwoApiUri, importState.Jwt, importState.MgmDetails.Id, successful=success)
     except Exception:
         logger.error('error while trying to log import attempt')
-        importState.increaseErrorCounterByOne()
-
-    try: # CLEANUP: delete data of this import from import_object/rule/service/user tables
-        if delete_import_object_tables(importState, {"importId": importState.ImportId})<0:
-            importState.increaseErrorCounterByOne()
-    except Exception:
-        logger.error("import_management - unspecified error cleaning up import_ object tables: " + str(traceback.format_exc()))
         importState.increaseErrorCounterByOne()
 
     try: # finalize import by unlocking it
@@ -665,13 +661,14 @@ def complete_import(importState: "ImportStateController"):
         import_result += ", ERRORS: " + str(importState.Stats.ErrorDetails)
 
     if importState.Stats.ErrorCount>0:
-        import_result += ", change details: " + str(importState.Stats.getChangeDetails())
+        if importState.Stats.getChangeDetails() != {}:
+            import_result += ", change details: " + str(importState.Stats.getChangeDetails())
         create_data_issue(importState.FwoConfig.FwoApiUri, importState.Jwt, import_id=importState.ImportId, severity=1, description=str(importState.Stats.ErrorDetails))
         setAlert(importState.FwoConfig.FwoApiUri, importState.Jwt, import_id=importState.ImportId, title="import error", mgm_id=importState.MgmDetails.Id, severity=2, role='importer', \
             description=str(importState.Stats.ErrorDetails), source='import', alertCode=14, mgm_details=importState.MgmDetails)
-
-    logger.info(import_result)
-    importState.Stats.ErrorAlreadyLogged = True
+    if not importState.Stats.ErrorAlreadyLogged:
+        logger.info(import_result)
+        importState.Stats.ErrorAlreadyLogged = True
 
     return
 

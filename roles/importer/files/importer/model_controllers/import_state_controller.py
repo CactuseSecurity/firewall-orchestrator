@@ -6,7 +6,7 @@ from fwo_log import getFwoLogger
 from fwo_config import readConfig
 from fwo_const import fwo_config_filename, importer_user_name
 import fwo_api
-from fwo_exception import FwoApiLoginFailed
+from fwo_exceptions import FwoApiLoginFailed
 import fwo_globals
 from models.import_state import ImportState
 from model_controllers.fworch_config_controller import FworchConfigController

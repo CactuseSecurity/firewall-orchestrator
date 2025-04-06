@@ -4,12 +4,14 @@ import json
 import re
 import requests, requests.packages
 import time
+from datetime import datetime
+
 from common import FwLoginFailed
 from fwo_log import getFwoLogger
 import fwo_globals
 import cp_network
 import cp_const
-from datetime import datetime
+from fwo_exceptions import ImportInterruption
 
 
 def cp_api_call(url, command, json_payload, sid, show_progress=False):
@@ -296,6 +298,8 @@ def getRulebases (api_v_url, sid, show_params_rules,
         
             try:
                 rulebase = cp_api_call(api_v_url, 'show-' + access_type + '-rulebase', show_params_rules, sid)
+                if fwo_globals.shutdown_requested:
+                    raise ImportInterruption("Shutdown requested during rulebase retrieval.")                
                 if currentRulebase['name'] == '' and 'name' in rulebase:
                     currentRulebase.update({'name': rulebase['name']})
             except Exception:

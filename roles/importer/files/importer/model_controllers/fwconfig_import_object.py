@@ -289,7 +289,7 @@ class FwConfigImportObject(FwConfigImportBase):
             try:
                 uidMapResult = self.ImportDetails.call(buildQuery, queryVariables={ 'uids': nwObjUids })
                 if 'errors' in uidMapResult:
-                    logger.exception(f"fwo_api:importNwObject - error in buildNwObjMemberUidToIdMap: {str(uidMapResult['errors'])}")
+                    logger.exception(f"fwo_api:importNwObject - error in buildNwObjUidToIdMap: {str(uidMapResult['errors'])}")
                     # TODO: add error to global import error counter
                 else:
                     uidMap = uidMapResult['data']['object']
@@ -320,7 +320,7 @@ class FwConfigImportObject(FwConfigImportBase):
             try:
                 uidMapResult = self.ImportDetails.call(buildQuery, queryVariables={ 'uids': svcObjUids })
                 if 'errors' in uidMapResult:
-                    logger.exception(f"fwo_api:importService - error in buildNwObjMemberUidToIdMap: {str(uidMapResult['errors'])}")
+                    logger.exception(f"fwo_api:importService - error in buildSvcObjUidToIdMap: {str(uidMapResult['errors'])}")
                     # TODO: add error to global import error counter
                 else:
                     uidMap = uidMapResult['data']['service']
@@ -337,11 +337,11 @@ class FwConfigImportObject(FwConfigImportBase):
         logger = getFwoLogger()
         userObjUidToIdMap = {}
 
-        # TODO: impelment
+        # TODO: implement
 
         return userObjUidToIdMap
 
-
+    # used for filling objgrp table
     def buildNwObjMemberUidToIdMap(self, newIds):
         uidList = []
         for addedObj in newIds:
@@ -368,7 +368,8 @@ class FwConfigImportObject(FwConfigImportBase):
                         "objgrp_id": addedObj['obj_id'],
                         "objgrp_member_id": memberId,
                         "import_created": self.ImportDetails.ImportId,
-                        "import_last_seen": self.ImportDetails.ImportId })
+                        "import_last_seen": self.ImportDetails.ImportId 
+                    })
                     
 
         if len(newGroupMembers)>0:

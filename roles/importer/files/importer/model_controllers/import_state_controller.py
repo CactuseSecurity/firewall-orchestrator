@@ -68,7 +68,7 @@ class ImportStateController(ImportState):
         if log and not self.Stats.ErrorAlreadyLogged:
             logger = getFwoLogger()
             logger.error(str(error))
-            self.Stats.ErrorAlreadyLogged = True
+            # self.Stats.ErrorAlreadyLogged = True
 
 
     @classmethod

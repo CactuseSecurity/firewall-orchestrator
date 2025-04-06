@@ -86,8 +86,8 @@ namespace FWO.Services
             {
                 return;
             }
-            ModellingAppZone? oldAppZone = await AppZoneHandler.GetExistingAppZone();
-            ModellingAppZone? prodAppZone = oldAppZone == null ? null : (ModellingAppZone?)ResolveProdAppRole(oldAppZone, mgt);
+            ModellingAppZone? oldAppZone = await AppZoneHandler.GetExistingModelledAppZone();
+            ModellingAppRole? prodAppZone = oldAppZone == null ? null : ResolveProdAppRole(oldAppZone, mgt);
 
             if (oldAppZone == null || prodAppZone == null)
             {
@@ -97,9 +97,9 @@ namespace FWO.Services
             }
 
             //Check prod AZ diff against current DB AZ
-            PlannedAppZone = await AppZoneHandler.PlanAppZoneUpsert(prodAppZone);
+            PlannedAppZone = await AppZoneHandler.PlanAppZoneUpsert(new ModellingAppZone(prodAppZone));
             if (PlannedAppZone.AppServersNew.Count > 0 || PlannedAppZone.AppServersRemoved.Count > 0)
-            {            
+            {
                 newAppServers = PlannedAppZone.AppServersNew;
                 deletedAppServers = PlannedAppZone.AppServersRemoved;
                 unchangedAppServers = PlannedAppZone.AppServersUnchanged;

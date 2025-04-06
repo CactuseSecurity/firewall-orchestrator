@@ -12,7 +12,7 @@ namespace FWO.Services
         private readonly ModellingNamingConvention NamingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(userConfig.ModNamingConvention) ?? new();
         List<ModellingAppServerWrapper> allAppServers = [];
 
-        public async Task<ModellingAppZone?> GetExistingAppZone()
+        public async Task<ModellingAppZone?> GetExistingModelledAppZone()
         {
             try
             {

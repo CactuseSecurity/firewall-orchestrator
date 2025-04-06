@@ -35,6 +35,7 @@ namespace FWO.Report
             int chapterNumber = 0;
             foreach (var ownerReport in ReportData.OwnerData)
             {
+                chapterNumber++;
                 report.AppendLine($"<h3 id=\"{Guid.NewGuid()}\">{ownerReport.Name}</h3>");
                 AppendConnDataForOwner(ref report, ownerReport, chapterNumber);
                 report.AppendLine("<hr>");
@@ -55,7 +56,6 @@ namespace FWO.Report
 
         public void AppendConnDataForOwner(ref StringBuilder report, OwnerReport ownerReport, int chapterNumber)
         {
-            chapterNumber++;
             ownerReport.PrepareObjectData();
             if(ownerReport.RegularConnections.Count > 0)
             {

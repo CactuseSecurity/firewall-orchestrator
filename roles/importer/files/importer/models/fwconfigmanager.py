@@ -5,8 +5,8 @@ from models.fwconfig_normalized import FwConfigNormalized
 class FwConfigManager(BaseModel):
     ManagerUid: str
     ManagerName: str
-    IsGlobal: bool = False
-    DependantManagerUids: List[str] = []
+    IsSuperManager: bool = False
+    SubManagerIds: List[int] = []
     Configs: List[FwConfigNormalized] = []
 
     class Config:

@@ -2,7 +2,6 @@
 from asyncio.log import logger
 import json
 import re
-import signal
 import requests, requests.packages
 import time
 from datetime import datetime
@@ -13,15 +12,6 @@ import fwo_globals
 import cp_network
 import cp_const
 from fwo_exceptions import ImportInterruption
-
-
-def handle_interrupt(signum, frame):
-    fwo_globals.shutdown_requested = True
-    print(f"Interrupt detected: {signal.Signals(signum).name}. Performing cleanup...")
-
-
-signal.signal(signal.SIGINT, handle_interrupt)  # Handle Ctrl+C
-signal.signal(signal.SIGTERM, handle_interrupt)  # Handle termination signal
 
 
 def cp_api_call(url, command, json_payload, sid, show_progress=False):

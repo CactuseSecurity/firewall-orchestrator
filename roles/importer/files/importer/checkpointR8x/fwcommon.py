@@ -54,15 +54,6 @@ from fwo_exceptions import ImportInterruption
 #                        normalizedConfig.rulebases.append(getRulebase(rulebase))
 #                    normalizedConfig.ManagerSet[mgrSet].Configs.gateways[device].append(rulebase.name )
 
-def handle_interrupt(signum, frame):
-    fwo_globals.shutdown_requested = True
-    print(f"Interrupt detected: {signal.Signals(signum).name}. Performing cleanup...")
-
-
-signal.signal(signal.SIGINT, handle_interrupt)  # Handle Ctrl+C
-signal.signal(signal.SIGTERM, handle_interrupt)  # Handle termination signal
-
-
 def has_config_changed (full_config, importState, force=False):
 
     if full_config != {}:   # a config was passed in (read from file), so we assume that an import has to be done (simulating changes here)

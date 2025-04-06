@@ -1,4 +1,4 @@
-from typing import List
+from typing import Dict, List
 import traceback
 import time, datetime
 import json
@@ -354,6 +354,7 @@ class FwConfigImportObject(FwConfigImportBase):
 
     def addNwObjGroupMemberships(self, newIds):
         newGroupMembers = []
+        newGroupMemberFlats = []
         logger = getFwoLogger()
         errors = 0
         changes = 0
@@ -363,10 +364,16 @@ class FwConfigImportObject(FwConfigImportBase):
         for addedObj in newIds:
             if addedObj['obj_member_refs'] is not None:
                 for memberUId in addedObj['obj_member_refs'].split(fwo_const.list_delimiter):
-                    memberId =self.NwObjMemberUidToIdMap[memberUId]
+                    memberId = self.NwObjMemberUidToIdMap[memberUId]
                     newGroupMembers.append({
                         "objgrp_id": addedObj['obj_id'],
                         "objgrp_member_id": memberId,
+                        "import_created": self.ImportDetails.ImportId,
+                        "import_last_seen": self.ImportDetails.ImportId })
+                for flatMemberId in self.flatMembersOfNwObjGroup(newIds, addedObj['obj_id']):
+                    newGroupMemberFlats.append({
+                        "objgrp_flat_id": addedObj['obj_id'],
+                        "objgrp_flat_member_id": flatMemberId,
                         "import_created": self.ImportDetails.ImportId,
                         "import_last_seen": self.ImportDetails.ImportId })
                     
@@ -374,18 +381,22 @@ class FwConfigImportObject(FwConfigImportBase):
         if len(newGroupMembers)>0:
 
             import_mutation = """
-                mutation insertNwGroup($nwGroups: [objgrp_insert_input!]!) {
+                mutation insertNwGroup($nwGroups: [objgrp_insert_input!]!, $nwGroupFlats: [objgrp_flat_insert_input!]!) {
                     insert_objgrp(objects: $nwGroups) {
                         affected_rows
-                        returning { objgrp_id objgrp_member_id }
+                        returning { objgrp_id objgrp_member_id
+                        }
+                    }
+                    insert_objgrp_flat(objects: $nwGroupFlats) {
+                        affected_rows
+                        returning { objgrp_flat_id objgrp_flat_member_id }
                     }
                 }
             """
 
-            # TODO: also add objgrp_flat here
-
             queryVariables = { 
-                'nwGroups': newGroupMembers
+                'nwGroups': newGroupMembers,
+                'nwGroupFlats': newGroupMemberFlats
             }
             try:
                 import_result = self.ImportDetails.call(import_mutation, queryVariables=queryVariables)
@@ -400,6 +411,32 @@ class FwConfigImportObject(FwConfigImportBase):
                 errors = 1
             
         return errors, changes, newObjGrpIds
+    
+
+    def flatMembersOfNwObjGroup(self, newIds, groupId: int, flatMembers: set = None, recursionLevel: int = 0):
+        # this function is used to get all members of a group, including nested groups
+        if flatMembers is None:
+            flatMembers = set()
+        logger = getFwoLogger()
+
+        if recursionLevel > 20:
+            logger.warning(f"recursion level exceeded for group {groupId}")
+            return flatMembers
+
+        obj = next((obj for obj in newIds if obj['obj_id'] == groupId), None)
+        if obj is None:
+            logger.error(f"object with id {groupId} not found in newIds")
+            return
+
+        if obj['obj_member_refs'] is not None:
+            for memberUid in obj['obj_member_refs'].split(fwo_const.list_delimiter):
+                member = self.NwObjMemberUidToIdMap.get(memberUid, None)
+                if member is not None:
+                    flatMembers.add(member)
+                    self.flatMembersOfNwObjGroup(newIds, member, flatMembers, recursionLevel + 1)
+
+        return flatMembers
+        
 
     def prepareNewSvcObjects(self, newSvcobjUids):
         newObjs = []

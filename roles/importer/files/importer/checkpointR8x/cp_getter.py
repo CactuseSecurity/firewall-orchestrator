@@ -299,7 +299,7 @@ def getRulebases (api_v_url, sid, show_params_rules,
             try:
                 rulebase = cp_api_call(api_v_url, 'show-' + access_type + '-rulebase', show_params_rules, sid)
                 if fwo_globals.shutdown_requested:
-                    raise ImportInterruption("Shutdown requested during object retrieval.")                
+                    raise ImportInterruption("Shutdown requested during rulebase retrieval.")                
                 if currentRulebase['name'] == '' and 'name' in rulebase:
                     currentRulebase.update({'name': rulebase['name']})
             except Exception:

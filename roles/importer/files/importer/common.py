@@ -1,8 +1,6 @@
 import traceback
 import sys, time
 import json
-import signal
-import sys
 
 import importlib
 from socket import gethostname

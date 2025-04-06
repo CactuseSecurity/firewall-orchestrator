@@ -100,7 +100,7 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
                     try:
                         jwt = fwo_api.login(importer_user_name, fwoConfig.ImporterPassword, fwoConfig.FwoUserMgmtApiUri)
                     except Exception as e:
-                        logger.error(e.message)
+                        logger.error(str(e))
                         raise             
                     # Reset submanagement
                     for subManagerId in importState.MgmDetails.SubManagerIds:

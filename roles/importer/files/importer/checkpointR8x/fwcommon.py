@@ -20,7 +20,7 @@ from fwo_base import ConfigAction
 import fwo_const
 import fwo_globals
 from model_controllers.fwconfig_normalized_controller import FwConfigNormalizedController
-from fwo_exception import InterruptedCallRollback
+from fwo_exception import ImportInterruption
 
 # objects as well as rules can now be either from super-amanager or from local manager!
 # TODO: decide if we still support importing native config from file
@@ -295,7 +295,7 @@ def getRules (nativeConfig: dict, importState: ImportStateController) -> int:
                                     nativeConfig=nativeConfig,
                                     deviceConfig=deviceConfig)
             if fwo_globals.shutdown_requested:
-                raise InterruptedCallRollback("Shutdown requested during rulebase retrieval.")
+                raise ImportInterruption("Shutdown requested during rulebase retrieval.")
                         
             lastRuleUid = None
             # parse ordered layer and get last rule uid
@@ -406,7 +406,7 @@ def get_objects(config_json, mgm_details, v_url, sid, force=False, config_filena
 
     for obj_type in cp_const.api_obj_types:
         if fwo_globals.shutdown_requested:
-            raise InterruptedCallRollback("Shutdown requested during object retrieval.")
+            raise ImportInterruption("Shutdown requested during object retrieval.")
         if obj_type in cp_const.obj_types_full_fetch_needed:
             show_params_objs.update({'details-level': cp_const.details_level_group_objects})
         else:
@@ -421,7 +421,7 @@ def get_objects(config_json, mgm_details, v_url, sid, force=False, config_filena
             show_params_objs['offset']=current
             objects = cp_getter.cp_api_call(v_url, show_cmd, show_params_objs, sid)
             if fwo_globals.shutdown_requested:
-                raise InterruptedCallRollback("Shutdown requested during object retrieval.")
+                raise ImportInterruption("Shutdown requested during object retrieval.")
 
             object_table["object_chunks"].append(objects)
             if 'total' in objects  and 'to' in objects:

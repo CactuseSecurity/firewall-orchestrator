@@ -1,7 +1,10 @@
 import traceback
+import signal
 
 import fwo_const
 import fwo_api
+import fwo_globals
+from fwo_exception import ImportInterruption
 from fwo_log import getFwoLogger
 from model_controllers.import_state_controller import ImportStateController
 from fwo_api_oo import FwoApi
@@ -16,6 +19,10 @@ from model_controllers.fwconfig_import_gateway import FwConfigImportGateway
 from model_controllers.rule_enforced_on_gateway_controller import RuleEnforcedOnGatewayController
 
 
+def handle_shutdown_signal(signum, frame):
+    fwo_globals.shutdown_requested = True
+    print(f"Received shutdown signal: {signal.Signals(signum).name}. Performing cleanup...")
+
 """
 Class hierarchy:
     FwConfigImport(FwConfigImportObject, FwconfigImportRule)
@@ -29,7 +36,11 @@ Class hierarchy:
 class FwConfigImport(FwConfigImportObject, FwConfigImportRule, FwConfigImportGateway, FwoApi):
     ImportDetails: ImportStateController
     NormalizedConfig: FwConfigNormalized
-    
+
+    # Register signal handlers for system shutdown interrupts
+    signal.signal(signal.SIGTERM, handle_shutdown_signal)  # Handle termination signal
+    signal.signal(signal.SIGINT, handle_shutdown_signal)   # Handle interrupt signal (e.g., Ctrl+C)
+
     def __init__(self, importState: ImportStateController, config: FwConfigNormalized):
         self.ImportDetails = importState
         self.NormalizedConfig = config
@@ -44,7 +55,16 @@ class FwConfigImport(FwConfigImportObject, FwConfigImportRule, FwConfigImportGat
 
     def updateDiffs(self, previousConfig: FwConfigNormalized):
         self.updateObjectDiffs(previousConfig)
+        if fwo_globals.shutdown_requested:
+            # self.ImportDetails.addError("shutdown requested, aborting import")
+            raise ImportInterruption("Shutdown requested during updateObjectDiffs.")
+
         newRuleIds = self.updateRulebaseDiffs(previousConfig)
+
+        if fwo_globals.shutdown_requested:
+            # self.ImportDetails.addError("shutdown requested, aborting import")
+            raise ImportInterruption("Shutdown requested during updateRulebaseDiffs.")
+
         self.ImportDetails.SetRuleMap() # update all rule entries (from currently running import for rulebase_links)
         self.updateGatewayDiffs(previousConfig)
 

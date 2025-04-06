@@ -12,7 +12,7 @@ from fwo_log import getFwoLogger
 import fwo_globals
 import cp_network
 import cp_const
-from fwo_exception import InterruptedCallRollback
+from fwo_exception import ImportInterruption
 
 
 def handle_interrupt(signum, frame):
@@ -309,7 +309,7 @@ def getRulebases (api_v_url, sid, show_params_rules,
             try:
                 rulebase = cp_api_call(api_v_url, 'show-' + access_type + '-rulebase', show_params_rules, sid)
                 if fwo_globals.shutdown_requested:
-                    raise InterruptedCallRollback("Shutdown requested during object retrieval.")                
+                    raise ImportInterruption("Shutdown requested during object retrieval.")                
                 if currentRulebase['name'] == '' and 'name' in rulebase:
                     currentRulebase.update({'name': rulebase['name']})
             except Exception:

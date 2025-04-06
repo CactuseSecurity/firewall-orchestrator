@@ -640,13 +640,6 @@ def complete_import(importState: "ImportStateController"):
         logger.error('error while trying to log import attempt')
         importState.increaseErrorCounterByOne()
 
-    try: # CLEANUP: delete data of this import from import_object/rule/service/user tables
-        if delete_import_object_tables(importState, {"importId": importState.ImportId})<0:
-            importState.increaseErrorCounterByOne()
-    except Exception:
-        logger.error("import_management - unspecified error cleaning up import_ object tables: " + str(traceback.format_exc()))
-        importState.increaseErrorCounterByOne()
-
     try: # finalize import by unlocking it
         importState.increaseErrorCounter(unlock_import(importState))
     except Exception:

@@ -482,10 +482,11 @@ def resolveRefFromObjectDictionary(id, objDict, nativeConfig={}, sid='', base_ur
         if matchedObj['type'] in ['CpmiVoipSipDomain', 'CpmiVoipMgcpDomain']:
             logger.info(f"adding voip domain '{matchedObj['name']}' object manually, because it is not retrieved by show objects API command")
             if 'object_tables' in nativeConfig:
+                color = matchedObj.get('color', 'black')
                 nativeConfig['object_tables'].append({ 
                         "object_type": "hosts", "object_chunks": [ {
                         "objects": [ {
-                        'uid': matchedObj['uid'], 'name': matchedObj['name'], 'color': matchedObj['color'],
+                        'uid': matchedObj['uid'], 'name': matchedObj['name'], 'color': color,
                         'type': matchedObj['type']
                     } ] } ] } )
             else:
@@ -533,55 +534,57 @@ def getObjectDetailsFromApi(uid_missing_obj, sid='', apiurl='', debug_level=0):
         if obj is not None:
             if 'object' in obj:
                 obj = obj['object']
+                color = obj.get('color', 'black')
+
                 if (obj['type'] == 'CpmiAnyObject'):
                     if (obj['name'] == 'Any'):
                         return  { "object_type": "hosts", "object_chunks": [ {
                             "objects": [ {
-                            'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],
+                            'uid': obj['uid'], 'name': obj['name'], 'color': color,
                             'comments': 'any nw object checkpoint (hard coded)',
                             'type': 'network', 'ipv4-address': '0.0.0.0/0'
                             } ] } ] }
                     elif (obj['name'] == 'None'):
                         return  { "object_type": "hosts", "object_chunks": [ {
                             "objects": [ {
-                            'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],
+                            'uid': obj['uid'], 'name': obj['name'], 'color': color,
                             'comments': 'any nw object checkpoint (hard coded)',
                             'type': 'group'
                             } ] } ] }
                 elif (obj['type'] in [ 'simple-gateway', obj['type'], 'CpmiGatewayPlain', obj['type'] == 'interop' ]):
                     return { "object_type": "hosts", "object_chunks": [ {
                         "objects": [ {
-                        'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],
+                        'uid': obj['uid'], 'name': obj['name'], 'color': color,
                         'comments': obj['comments'], 'type': 'host', 'ipv4-address': cp_network.get_ip_of_obj(obj),
                         } ] } ] }
                 elif obj['type'] == 'multicast-address-range':
                     return {"object_type": "hosts", "object_chunks": [ {
                         "objects": [ {
-                        'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],
+                        'uid': obj['uid'], 'name': obj['name'], 'color': color,
                         'comments': obj['comments'], 'type': 'host', 'ipv4-address': cp_network.get_ip_of_obj(obj),
                         } ] } ] }
                 elif (obj['type'] in ['CpmiVsClusterMember', 'CpmiVsxClusterMember', 'CpmiVsxNetobj']):
                     return {"object_type": "hosts", "object_chunks": [ {
                         "objects": [ {
-                        'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],
+                        'uid': obj['uid'], 'name': obj['name'], 'color': color,
                         'comments': obj['comments'], 'type': 'host', 'ipv4-address': cp_network.get_ip_of_obj(obj),
                         } ] } ] }
                 elif (obj['type'] == 'Global'):
                     return {"object_type": "hosts", "object_chunks": [ {
                         "objects": [ {
-                        'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],
+                        'uid': obj['uid'], 'name': obj['name'], 'color': color,
                         'comments': obj['comments'], 'type': 'host', 'ipv4-address': '0.0.0.0/0',
                         } ] } ] }
                 elif (obj['type'] in [ 'updatable-object', 'CpmiVoipSipDomain', 'CpmiVoipMgcpDomain' ]):
                     return {"object_type": "hosts", "object_chunks": [ {
                         "objects": [ {
-                        'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],
+                        'uid': obj['uid'], 'name': obj['name'], 'color': color,
                         'comments': obj['comments'], 'type': 'group'
                         } ] } ] }
                 elif (obj['type'] in ['Internet', 'security-zone']):
                     return {"object_type": "hosts", "object_chunks": [ {
                         "objects": [ {
-                        'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],
+                        'uid': obj['uid'], 'name': obj['name'], 'color': color,
                         'comments': obj['comments'], 'type': 'network', 'ipv4-address': '0.0.0.0/0',
                         } ] } ] }
                 elif (obj['type'] == 'access-role'):

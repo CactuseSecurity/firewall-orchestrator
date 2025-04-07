@@ -666,14 +666,6 @@ def complete_import(importState: "ImportStateController"):
         logger.info(import_result.encode().decode("unicode_escape"))
         importState.Stats.ErrorAlreadyLogged = True
 
-    if importState.Stats.ErrorCount>0:
-        # make sure that we rollback the import in case there was any error at all
-        exc_type, _, _ = sys.exc_info()
-        if exc_type is not None:
-            raise
-        else:
-            logger.error("import_management - import failed, but no exception raised")
-            raise RollbackNecessary
     return
 
 def getLastImportDetails(fwo_api_base_url, jwt, queryVariables, debug_level=0):

@@ -160,6 +160,12 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
 
         if not clearManagementData and importState.DataRetentionDays<importState.DaysSinceLastFullImport:
             configImporter.deleteOldImports() # delete all imports of the current management before the last but one full import
+    except (FwLoginFailed) as e:
+        fwo_api.delete_import(importState) # delete whole import
+        importState.addError("Login to FW manager failed")
+    except (ImportRecursionLimitReached) as e:
+        fwo_api.delete_import(importState) # delete whole import
+        importState.addError("ImportRecursionLimitReached - aborting import")
     except (KeyboardInterrupt, ImportInterruption) as e:
         if fwo_globals.shutdown_requested:
             logger.warning("Shutdown requested.")
@@ -188,7 +194,6 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
             logger.info("No configImporter found, skipping rollback.")
         fwo_api.delete_import(importState) # delete whole import
         sys.exit(1)
-        # raise
     finally:
         fwo_api.complete_import(importState)
         # sys.exit(0)
@@ -252,56 +257,30 @@ def get_config_from_api(importState: ImportStateController, configNative, import
         logger.exception("import_management - error while loading product specific fwcommon module", traceback.format_exc())        
         raise
     
-    try: # get the config data from the firewall manager's API: 
-        # check for changes from product-specific FW API
-        config_changed_since_last_import = importState.ImportFileName != None or \
-            fw_module.has_config_changed(configNative, importState, force=importState.ForceImport)
-        if config_changed_since_last_import:
-            logger.info ( "has_config_changed: changes found or forced mode -> go ahead with getting config, Force = " + str(importState.ForceImport))
-        else:
-            logger.info ( "has_config_changed: no new changes found")
+    # check for changes from product-specific FW API
+    config_changed_since_last_import = importState.ImportFileName != None or \
+        fw_module.has_config_changed(configNative, importState, force=importState.ForceImport)
+    if config_changed_since_last_import:
+        logger.info ( "has_config_changed: changes found or forced mode -> go ahead with getting config, Force = " + str(importState.ForceImport))
+    else:
+        logger.info ( "has_config_changed: no new changes found")
 
-        if config_changed_since_last_import or importState.ForceImport:
-            # get config from product-specific FW API
-            _, configNormalized = fw_module.get_config(configNative, importState)
-        else:
-            # returning empty config
-            emptyConfigDict = {
-                                    'action': ConfigAction.INSERT,
-                                    'network_objects': {},
-                                    'service_objects': {},
-                                    'users': {},
-                                    'zone_objects': {},
-                                    'rules': [],
-                                    'gateways': [],
-                                    'ConfigFormat': ConfFormat.NORMALIZED
-                                }
-            configNormalized = FwConfigNormalized(**emptyConfigDict)
-
-    except ImportInterruption as e:
-        logger.error(f"Import interrupted: {e}")
-        # Perform rollback or cleanup here
-        raise
-    except (FwLoginFailed) as e:
-        importState.appendErrorString(f"login failed: mgm_id={str(importState.MgmDetails.Id)}, mgm_name={importState.MgmDetails.Name}, {e.message}")
-        importState.increaseErrorCounter()
-        logger.error(importState.getErrorString())
-        fwo_api.delete_import(importState) # deleting trace of not even begun import
-        fwo_api.complete_import(importState)
-        raise FwLoginFailed(e.message)
-    except ImportRecursionLimitReached as e:
-        importState.appendErrorString(f"recursion limit reached: mgm_id={str(importState.MgmDetails.Id)}, mgm_name={importState.MgmDetails.Name},{e.message}")
-        importState.increaseErrorCounter()
-        logger.error(importState.getErrorString())
-        fwo_api.delete_import(importState.FwoConfig.FwoApiUri, importState.Jwt, importState.ImportId) # deleting trace of not even begun import
-        fwo_api.complete_import(importState)
-        raise ImportRecursionLimitReached(e.message)
-    except Exception:
-        importState.appendErrorString("import_management - unspecified error while getting config: " + str(traceback.format_exc()))
-        logger.error(importState.getErrorString())
-        importState.increaseErrorCounterByOne()
-        fwo_api.complete_import(importState)
-        raise
+    if config_changed_since_last_import or importState.ForceImport:
+        # get config from product-specific FW API
+        _, configNormalized = fw_module.get_config(configNative, importState)
+    else:
+        # returning empty config
+        emptyConfigDict = {
+                                'action': ConfigAction.INSERT,
+                                'network_objects': {},
+                                'service_objects': {},
+                                'users': {},
+                                'zone_objects': {},
+                                'rules': [],
+                                'gateways': [],
+                                'ConfigFormat': ConfFormat.NORMALIZED
+                            }
+        configNormalized = FwConfigNormalized(**emptyConfigDict)
 
     writeNativeConfigToFile(importState, configNative)
 

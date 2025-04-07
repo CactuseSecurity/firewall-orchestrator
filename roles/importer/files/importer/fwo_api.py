@@ -1,7 +1,7 @@
 # library for FWORCH API calls
 import re
 import traceback
-import requests.packages
+import sys
 import requests
 import json
 import datetime
@@ -359,9 +359,9 @@ def delete_import(importState):
                       query_variables=query_variables, role='importer')
         api_changes = result['data']['delete_import_control']['affected_rows']
     except Exception:
-        logger.exception(
-            "fwo_api: failed to unlock import for import id " + str(importState.ImportId))
+        logger.exception(f"fwo_api: failed to delete import with id {str(importState.ImportId)}")
         return 1  # signaling an error
+    logger.info(f"removed import with id {str(importState.ImportId)} completely")
     if api_changes == 1:
         return 0        # return code 0 is ok
     else:
@@ -672,7 +672,9 @@ def complete_import(importState: "ImportStateController"):
 
     if importState.Stats.ErrorCount>0:
         # make sure that we rollback the import in case there was any error at all
-        raise
+        exc_type, exc_value, traceback = sys.exc_info()
+        if exc_type is not None:
+            raise
 
     return
 

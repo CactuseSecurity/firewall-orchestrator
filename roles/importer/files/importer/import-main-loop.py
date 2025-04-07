@@ -74,7 +74,7 @@ if __name__ == '__main__':
     while True:
         if fwo_globals.shutdown_requested:
             logger.info("import-main-loop - shutdown requested. Exiting...")
-            break        # authenticate to get JWT
+            raise SystemExit("import-main-loop - shutdown requested")
         skipping = False
         try:
             with open(importer_pwd_file, 'r') as file:
@@ -107,8 +107,6 @@ if __name__ == '__main__':
             if not skipping:
                 for mgm in managerWithId:
                     importState = ImportStateController.initializeImport(mgm['id'], debugLevel=debug_level, version=fwo_major_version)
-                    # getting a new JWT in case the old one is not valid anymore after a long previous import
-                    jwt, skipping = getFwoJwt(importer_user_name, importer_pwd, user_management_api_base_url)
                     if not skipping:
                         try:
                             mgm_details = fwo_api.get_mgm_details(fwo_api_base_url, jwt, {"mgmId": importState.MgmDetails.Id})
@@ -129,7 +127,7 @@ if __name__ == '__main__':
             break # while loop                                    
         logger.info("import-main-loop.py: sleeping between loops for " + str(sleep_timer) + " seconds")
         counter=0
-        while counter < int(sleep_timer): # and not killer.kill_now:
+        while counter < int(sleep_timer):
             if fwo_globals.shutdown_requested:
                 logger.info("import-main-loop - shutdown requested. Exiting...")
                 raise SystemExit("import-main-loop - shutdown requested")

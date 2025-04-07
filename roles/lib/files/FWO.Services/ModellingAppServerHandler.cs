@@ -101,7 +101,7 @@ namespace FWO.Services
 
         private static bool CheckIpAdress(string ip)
         {
-            return IPAddressRange.TryParse(ip, out _);
+            return IPAddressRange.TryParse(ip, out _) && ip.TryParseIPStringToRange(out _, strictv4Parse: true);
         }
     }
 }

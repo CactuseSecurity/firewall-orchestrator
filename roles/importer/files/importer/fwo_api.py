@@ -1,18 +1,13 @@
 # library for FWORCH API calls
 import re
 import traceback
-import sys
 import requests
 import json
 import datetime
 import time
 import string
 from typing import List
-
-import model_controllers.import_statistics_controller as stats
-
 from typing import TYPE_CHECKING
-
 if TYPE_CHECKING: # prevents circular import problems
     from model_controllers.import_state_controller import ImportStateController
 
@@ -21,10 +16,8 @@ import fwo_globals
 import fwo_const
 from fwo_const import fwo_api_http_import_timeout
 from fwo_exceptions import FwoApiServiceUnavailable, FwoApiTimeout, FwoApiLoginFailed, \
-    SecretDecryptionFailed, FwoApiFailedLockImport, RollbackNecessary
-from fwo_base import writeAlertToLogFile
+    SecretDecryptionFailed, FwoApiFailedLockImport
 from fwo_encrypt import decrypt
-from models.import_state import ImportState
 
 
 def readCleanText(filePath):

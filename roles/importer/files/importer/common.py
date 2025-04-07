@@ -185,7 +185,6 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
             logger.info("No configImporter found, skipping rollback.")
         fwo_api.delete_import(importState) # delete whole import
         raise
-        sys.exit(1)
     except Exception as e:
         importState.addError(str(traceback.format_exc()))
         if 'configImporter' in locals():
@@ -194,7 +193,6 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
             logger.info("No configImporter found, skipping rollback.")
         fwo_api.delete_import(importState) # delete whole import
         raise
-        sys.exit(1)
     finally:
         fwo_api.complete_import(importState)
         # fwo_globals.shutdown_requested = False

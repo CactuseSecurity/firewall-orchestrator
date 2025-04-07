@@ -156,7 +156,7 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
                             importState.addError(str(traceback.format_exc()))
                             raise
                         fwo_api.update_hit_counter(importState, config)
-                logger.debug(f"import duration without getting config: {str(int(time.time())-time_get_config-importState.StartTime)}s")
+                # logger.debug(f"import duration without getting config: {str(int(time.time())-time_get_config-importState.StartTime)}s")
 
         if not clearManagementData and importState.DataRetentionDays<importState.DaysSinceLastFullImport:
             configImporter.deleteOldImports() # delete all imports of the current management before the last but one full import

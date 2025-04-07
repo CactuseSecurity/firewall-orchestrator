@@ -214,11 +214,11 @@ namespace FWO.Data.Report
         {
             if (surplus)
             {
-                return forExport ? GlobalConst.kStyleHighlighted : "text-danger";
+                return forExport ? "color:green" : "text-success";
             }
             if (appServer.NotImplemented)
             {
-                return forExport ? "color:green" : "text-success";
+                return forExport ? GlobalConst.kStyleHighlighted : "text-danger";
             }
             return "";
         }

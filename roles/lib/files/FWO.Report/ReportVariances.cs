@@ -1,17 +1,22 @@
 using FWO.Basics;
 using FWO.Config.Api;
+using FWO.Data;
 using FWO.Data.Modelling;
 using FWO.Data.Report;
 using FWO.Report.Filter;
+using FWO.Ui.Display;
 using System.Text;
 
 namespace FWO.Report
 {
     public class ReportVariances(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType) : ReportConnections(query, userConfig, reportType)
     {
+        private RuleChangeDisplayHtml? ruleChangeDisplay;
+
         public override string ExportToHtml()
         {
             StringBuilder report = new ();
+            ruleChangeDisplay = new RuleChangeDisplayHtml(userConfig);
             int chapterNumber = 0;
             foreach (var ownerReport in ReportData.OwnerData)
             {
@@ -125,16 +130,15 @@ namespace FWO.Report
             {
                 chapterNumber++;
                 report.AppendLine($"<h4 id=\"{Guid.NewGuid()}\">{userConfig.GetText("connections_not_implemented")}</h4>");
-                ownerReport.PrepareObjectData();
                 if(ownerReport.RegularConnections.Count > 0)
                 {
                     report.AppendLine($"<h5 id=\"{Guid.NewGuid()}\">{userConfig.GetText("connections")}</h5>");
-                    AppendConnectionsGroupHtml(ownerReport.RegularConnections, ownerReport, chapterNumber, ref report);
+                    AppendConnectionsGroupHtml(ownerReport.RegularConnections, ownerReport, chapterNumber, ref report, false, false, true);
                 }
                 if(ownerReport.CommonServices.Count > 0)
                 {
                     report.AppendLine($"<h5 id=\"{Guid.NewGuid()}\">{userConfig.GetText("own_common_services")}</h5>");
-                    AppendConnectionsGroupHtml(ownerReport.CommonServices, ownerReport, chapterNumber, ref report);
+                    AppendConnectionsGroupHtml(ownerReport.CommonServices, ownerReport, chapterNumber, ref report, false, false, true);
                 }
                 report.AppendLine("<hr>");
             }
@@ -142,11 +146,36 @@ namespace FWO.Report
 
         private void AppendConnDiffs(ref StringBuilder report, OwnerReport ownerReport, int chapterNumber)
         {
-            if(ownerReport.RuleDifferences.Count > 0)
+            if(ownerReport.RuleDifferences.Count > 0 && ruleChangeDisplay != null)
             {
                 report.AppendLine($"<h4 id=\"{Guid.NewGuid()}\">{userConfig.GetText("connections_with_diffs")}</h4>");
+                foreach(var difference in ownerReport.RuleDifferences)
+                {
+                    report.AppendLine($"<h5 id=\"{Guid.NewGuid()}\">{difference.ModelledConnection.Name}</h5>");
+                    AppendConnectionsGroupHtml([difference.ModelledConnection], ownerReport, chapterNumber, ref report, false, false, true);
+                    report.AppendLine("<table>");
+                    report.AppendLine("<tr>");
+                    report.AppendLine($"<th>{userConfig.GetText("management")}</th>");
+                    report.AppendLine($"<th>{userConfig.GetText("gateway")}</th>");
+                    report.AppendLine($"<th>{userConfig.GetText("source")}</th>");
+                    report.AppendLine($"<th>{userConfig.GetText("services")}</th>");
+                    report.AppendLine($"<th>{userConfig.GetText("destination")}</th>");
+                    report.AppendLine("</tr>");
 
-
+                    Rule modelledRule = difference.ModelledConnection.ToRule();
+                    foreach (var diff in difference.ImplementedRules)
+                    {
+                        RuleChange ruleChange = new (){ OldRule = modelledRule, NewRule = diff, ChangeAction = 'C' };
+                        report.AppendLine("<tr>");
+                        report.AppendLine($"<td>{diff.ManagementName}</td>");
+                        report.AppendLine($"<td>{diff.DeviceName}</td>");
+                        report.AppendLine($"<td>{ruleChangeDisplay.DisplaySource(ruleChange, OutputLocation.export, ReportType)}</td>");
+                        report.AppendLine($"<td>{ruleChangeDisplay.DisplayServices(ruleChange, OutputLocation.export, ReportType)}</td>");
+                        report.AppendLine($"<td>{ruleChangeDisplay.DisplayDestination(ruleChange, OutputLocation.export, ReportType)}</td>");
+                        report.AppendLine("</tr>");
+                    }
+                    report.AppendLine("</table>");
+                }
                 report.AppendLine("<hr>");
             }
         }

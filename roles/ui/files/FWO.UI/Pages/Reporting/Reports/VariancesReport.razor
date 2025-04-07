@@ -68,8 +68,7 @@
             {
                 <Collapse Title="@difference.ModelledConnection.Name" Style="@("secondary")" StartToggled="true">
                     <ConnectionTable Connections="@([difference.ModelledConnection])" Readonly="true" DiffMode="true"/>
-                    <ReportedRulesForDiff Rules="difference.ImplementedRules.ToArray()" SelectedReportType="ReportType.VarianceAnalysis"
-                        RulesPerPage="rulesPerPage"/>
+                    <ReportedRulesForDiff Difference="difference" RulesPerPage="rulesPerPage"/>
                 </Collapse>
             }
         </Collapse>

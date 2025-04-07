@@ -90,10 +90,10 @@ namespace FWO.Ui.Display
         protected static string NetworkLocationToHtml(NetworkLocation networkLocation, int mgmtId, int chapterNumber, OutputLocation location, string style, ReportType reportType)
         {
             string nwLocation = DisplayNetworkLocation(networkLocation, reportType, 
-                reportType.IsResolvedReport() || networkLocation.User == null ? null :
+                reportType.IsResolvedReport() || reportType == ReportType.VarianceAnalysis || networkLocation.User == null ? null :
                 ReportDevicesBase.ConstructLink(ObjCatString.User, ReportBase.GetIconClass(ObjCategory.user, networkLocation.User?.Type.Name),
                     chapterNumber, networkLocation.User!.Id, networkLocation.User.Name, location, mgmtId, style),
-                reportType.IsResolvedReport() ? null :
+                reportType.IsResolvedReport() || reportType == ReportType.VarianceAnalysis ? null :
                 ReportDevicesBase.ConstructLink(ObjCatString.NwObj, ReportBase.GetIconClass(ObjCategory.nobj, networkLocation.Object.Type.Name),
                     chapterNumber, networkLocation.Object.Id, networkLocation.Object.Name, location, mgmtId, style)
                 ).ToString();
@@ -102,7 +102,7 @@ namespace FWO.Ui.Display
 
         protected static string ServiceToHtml(NetworkService service, int mgmtId, int chapterNumber, OutputLocation location, string style, ReportType reportType)
         {
-            return DisplayService(service, reportType, reportType.IsResolvedReport() ? null : 
+            return DisplayService(service, reportType, reportType.IsResolvedReport() || reportType == ReportType.VarianceAnalysis ? null : 
                 ReportDevicesBase.ConstructLink(ObjCatString.Svc, ReportBase.GetIconClass(ObjCategory.nsrv, service.Type.Name), chapterNumber, service.Id, service.Name, location, mgmtId, style)).ToString();
         }
 

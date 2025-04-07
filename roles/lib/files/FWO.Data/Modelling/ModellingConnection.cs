@@ -367,6 +367,63 @@ namespace FWO.Data.Modelling
             return false;
         }
 
+        public Rule ToRule()
+        {
+            List<NetworkLocation> froms = [];
+            foreach (var areaWrapper in SourceAreas)
+            {
+                froms.Add(new(new(), areaWrapper.Content.ToNetworkObjectGroup()));
+            }
+            foreach (var groupWrapper in SourceOtherGroups)
+            {
+                froms.Add(new(new(), groupWrapper.Content.ToNetworkObjectGroup()));
+            }
+            foreach (var appRoleWrapper in SourceAppRoles)
+            {
+                froms.Add(new(new(), appRoleWrapper.Content.ToNetworkObjectGroup()));
+            }
+            foreach (var appServerWrapper in SourceAppServers)
+            {
+                froms.Add(new(new(), ModellingAppServer.ToNetworkObject(appServerWrapper.Content)));
+            }
+
+            List<NetworkLocation> tos = [];
+            foreach (var areaWrapper in DestinationAreas)
+            {
+                tos.Add(new(new(), areaWrapper.Content.ToNetworkObjectGroup()));
+            }
+            foreach (var groupWrapper in DestinationOtherGroups)
+            {
+                tos.Add(new(new(), groupWrapper.Content.ToNetworkObjectGroup()));
+            }
+            foreach (var appRoleWrapper in DestinationAppRoles)
+            {
+                tos.Add(new(new(), appRoleWrapper.Content.ToNetworkObjectGroup()));
+            }
+            foreach (var appServerWrapper in DestinationAppServers)
+            {
+                tos.Add(new(new(), ModellingAppServer.ToNetworkObject(appServerWrapper.Content)));
+            }
+
+            List<ServiceWrapper> services = [];
+            foreach (var svcGrp in ServiceGroups)
+            {
+                services.Add(new(){ Content = svcGrp.Content.ToNetworkServiceGroup() });
+            }
+            foreach (var svc in Services)
+            {
+                services.Add(new(){ Content = ModellingService.ToNetworkService(svc.Content) });
+            }
+
+            return new Rule()
+            {
+                Name = Name,
+                Froms = [.. froms],
+                Tos = [.. tos],
+                Services = [.. services]
+            };
+        }
+
         public bool Sanitize()
         {
             bool shortened = false;

@@ -81,7 +81,8 @@ namespace FWO.Report
             AppendNetworkServicesHtml(ownerReport.AllServices, chapterNumber, ref report);
         }
 
-        protected void AppendConnectionsGroupHtml(List<ModellingConnection> connections, ConnectionReport connReport, int chapterNumber, ref StringBuilder report, bool isInterface = false, bool isGlobalComSvc = false)
+        protected void AppendConnectionsGroupHtml(List<ModellingConnection> connections, ConnectionReport connReport, int chapterNumber,
+            ref StringBuilder report, bool isInterface = false, bool isGlobalComSvc = false, bool withoutLinks = false)
         {
             ConnectionReport.AssignConnectionNumbers(connections);
             report.AppendLine("<table>");
@@ -106,6 +107,10 @@ namespace FWO.Report
                     report.AppendLine($"<td>{ModellingHandlerBase.DisplayReqInt(userConfig, connection.TicketId, connection.InterfaceIsRequested, 
                         connection.GetBoolProperty(ConState.Rejected.ToString()) || connection.GetBoolProperty(ConState.InterfaceRejected.ToString()))}</td>");
                 }
+                else if(withoutLinks)
+                {
+                    report.AppendLine($"<td>{string.Join("<br>", GetPlainSrcNames(connReport, connection))}</td>");
+                }
                 else
                 {
                     report.AppendLine($"<td>{string.Join("<br>", GetLinkedSrcNames(connReport, connection, chapterNumber))}</td>");
@@ -115,6 +120,10 @@ namespace FWO.Report
                     report.AppendLine($"<td>{ModellingHandlerBase.DisplayReqInt(userConfig, connection.TicketId, connection.InterfaceIsRequested,
                         connection.GetBoolProperty(ConState.Rejected.ToString()) || connection.GetBoolProperty(ConState.InterfaceRejected.ToString()))}</td>");
                 }
+                else if(withoutLinks)
+                {
+                    report.AppendLine($"<td>{string.Join("<br>", GetPlainSvcNames(connReport, connection))}</td>");
+                }
                 else
                 {
                     report.AppendLine($"<td>{string.Join("<br>", GetLinkedSvcNames(connReport, connection, chapterNumber))}</td>");
@@ -123,6 +132,10 @@ namespace FWO.Report
                 {
                     report.AppendLine($"<td>{ModellingHandlerBase.DisplayReqInt(userConfig, connection.TicketId, connection.InterfaceIsRequested,
                         connection.GetBoolProperty(ConState.Rejected.ToString()) || connection.GetBoolProperty(ConState.InterfaceRejected.ToString()))}</td>");
+                }
+                else if(withoutLinks)
+                {
+                    report.AppendLine($"<td>{string.Join("<br>", GetPlainDstNames(connReport, connection))}</td>");
                 }
                 else
                 {
@@ -219,6 +232,30 @@ namespace FWO.Report
             report.AppendLine("</tr>");
         }
 
+        private static List<string> GetPlainSrcNames(ConnectionReport connReport, ModellingConnection conn)
+        {
+            List<string> names = ModellingNetworkAreaWrapper.Resolve(conn.SourceAreas).ToList().ConvertAll(s => s.Display());
+            names.AddRange(ModellingNwGroupWrapper.Resolve(conn.SourceOtherGroups).ToList().ConvertAll(s => s.Display()));
+            names.AddRange(ModellingAppRoleWrapper.Resolve(conn.SourceAppRoles).ToList().ConvertAll(s => s.Display()));
+            names.AddRange(ModellingAppServerWrapper.Resolve(conn.SourceAppServers).ToList().ConvertAll(s => s.Display()));
+            return names;
+        }
+
+        private static List<string> GetPlainDstNames(ConnectionReport connReport, ModellingConnection conn)
+        {
+            List<string> names = ModellingNetworkAreaWrapper.Resolve(conn.DestinationAreas).ToList().ConvertAll(s => s.Display());
+            names.AddRange(ModellingNwGroupWrapper.Resolve(conn.DestinationOtherGroups).ToList().ConvertAll(s => s.Display()));
+            names.AddRange(ModellingAppRoleWrapper.Resolve(conn.DestinationAppRoles).ToList().ConvertAll(s => s.Display()));
+            names.AddRange(ModellingAppServerWrapper.Resolve(conn.DestinationAppServers).ToList().ConvertAll(s => s.Display()));
+            return names;
+        }
+
+        private static List<string> GetPlainSvcNames(ConnectionReport connReport, ModellingConnection conn)
+        {
+            List<string> names = ModellingServiceGroupWrapper.Resolve(conn.ServiceGroups).ToList().ConvertAll(s => s.Display());
+            names.AddRange(ModellingServiceWrapper.Resolve(conn.Services).ToList().ConvertAll(s => s.Display()));
+            return names;
+        }
 
         private static List<string> GetLinkedSrcNames(ConnectionReport connReport, ModellingConnection conn, int chapterNumber)
         {

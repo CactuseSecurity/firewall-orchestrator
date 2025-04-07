@@ -106,6 +106,9 @@ if __name__ == '__main__':
 
             if not skipping:
                 for mgm in managerWithId:
+                    if fwo_globals.shutdown_requested:
+                        logger.info("import-main-loop - shutdown requested. Exiting...")
+                        raise SystemExit("import-main-loop - shutdown requested")
                     importState = ImportStateController.initializeImport(mgm['id'], debugLevel=debug_level, version=fwo_major_version)
                     if not skipping:
                         try:

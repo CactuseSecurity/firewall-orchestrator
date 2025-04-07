@@ -1,7 +1,7 @@
 # library for FWORCH API calls
 import re
 import traceback
-import requests.packages
+import sys
 import requests
 import json
 import datetime
@@ -21,7 +21,7 @@ import fwo_globals
 import fwo_const
 from fwo_const import fwo_api_http_import_timeout
 from fwo_exceptions import FwoApiServiceUnavailable, FwoApiTimeout, FwoApiLoginFailed, \
-    SecretDecryptionFailed, FwoApiFailedLockImport
+    SecretDecryptionFailed, FwoApiFailedLockImport, RollbackNecessary
 from fwo_base import writeAlertToLogFile
 from fwo_encrypt import decrypt
 from models.import_state import ImportState
@@ -359,9 +359,9 @@ def delete_import(importState):
                       query_variables=query_variables, role='importer')
         api_changes = result['data']['delete_import_control']['affected_rows']
     except Exception:
-        logger.exception(
-            "fwo_api: failed to unlock import for import id " + str(importState.ImportId))
+        logger.exception(f"fwo_api: failed to delete import with id {str(importState.ImportId)}")
         return 1  # signaling an error
+    logger.info(f"removed import with id {str(importState.ImportId)} completely")
     if api_changes == 1:
         return 0        # return code 0 is ok
     else:
@@ -609,10 +609,6 @@ def setAlert(fwo_api_base_url, jwt, import_id=None, title=None, mgm_id=None, dev
         jsonData.update({"mgm_name": mgm_details.Name})
     query_variables.update({"jsonData": json.dumps(jsonData)})
 
-    # # write data issue to alert.log file as well
-    # if severity>0:
-    #     writeAlertToLogFile(query_variables)
-    
     try:
         import_result = call(fwo_api_base_url, jwt, addAlert_mutation, query_variables=query_variables, role=role)
         newAlertId = import_result['data']['insert_alert']['returning'][0]['newIdLong']
@@ -669,11 +665,6 @@ def complete_import(importState: "ImportStateController"):
     if not importState.Stats.ErrorAlreadyLogged:
         logger.info(import_result.encode().decode("unicode_escape"))
         importState.Stats.ErrorAlreadyLogged = True
-
-
-    if importState.Stats.ErrorCount>0:
-        # make sure that we rollback the import in case there was any error at all
-        raise
 
     return
 

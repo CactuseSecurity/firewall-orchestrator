@@ -21,7 +21,7 @@ import fwo_globals
 import fwo_const
 from fwo_const import fwo_api_http_import_timeout
 from fwo_exceptions import FwoApiServiceUnavailable, FwoApiTimeout, FwoApiLoginFailed, \
-    SecretDecryptionFailed, FwoApiFailedLockImport
+    SecretDecryptionFailed, FwoApiFailedLockImport, RollbackNecessary
 from fwo_base import writeAlertToLogFile
 from fwo_encrypt import decrypt
 from models.import_state import ImportState
@@ -609,10 +609,6 @@ def setAlert(fwo_api_base_url, jwt, import_id=None, title=None, mgm_id=None, dev
         jsonData.update({"mgm_name": mgm_details.Name})
     query_variables.update({"jsonData": json.dumps(jsonData)})
 
-    # # write data issue to alert.log file as well
-    # if severity>0:
-    #     writeAlertToLogFile(query_variables)
-    
     try:
         import_result = call(fwo_api_base_url, jwt, addAlert_mutation, query_variables=query_variables, role=role)
         newAlertId = import_result['data']['insert_alert']['returning'][0]['newIdLong']
@@ -672,10 +668,12 @@ def complete_import(importState: "ImportStateController"):
 
     if importState.Stats.ErrorCount>0:
         # make sure that we rollback the import in case there was any error at all
-        exc_type, exc_value, traceback = sys.exc_info()
+        exc_type, _, _ = sys.exc_info()
         if exc_type is not None:
             raise
-
+        else:
+            logger.error("import_management - import failed, but no exception raised")
+            raise RollbackNecessary
     return
 
 def getLastImportDetails(fwo_api_base_url, jwt, queryVariables, debug_level=0):

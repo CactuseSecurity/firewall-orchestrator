@@ -156,7 +156,7 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
                             importState.addError(str(traceback.format_exc()))
                             raise
                         fwo_api.update_hit_counter(importState, config)
-                logger.debug(f"full import duration: {str(int(time.time())-time_get_config-importState.StartTime)}s")
+                logger.debug(f"import duration without getting config: {str(int(time.time())-time_get_config-importState.StartTime)}s")
 
         if not clearManagementData and importState.DataRetentionDays<importState.DaysSinceLastFullImport:
             configImporter.deleteOldImports() # delete all imports of the current management before the last but one full import
@@ -187,7 +187,6 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
         sys.exit(1)
     except Exception as e:
         importState.addError(str(traceback.format_exc()))
-        # logger.error(f"Unexpected error in import_management: {e}")
         if 'configImporter' in locals():
             FwConfigImportRollback(configImporter).rollbackCurrentImport()
         else:
@@ -196,7 +195,6 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
         sys.exit(1)
     finally:
         fwo_api.complete_import(importState)
-        # sys.exit(0)
         return importState.Stats.ErrorCount
 
 

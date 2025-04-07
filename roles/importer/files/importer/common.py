@@ -89,7 +89,7 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
                         SubManagerIds=importState.MgmDetails.SubManagerIds,
                         Configs=[]
                     ))
-                if len(importState.MgmDetails.SubManagerIds) > 0:
+                if len(importState.MgmDetails.SubManagerIds)>0:
                     # Read config
                     fwoConfig = FworchConfigController.fromJson(readConfig(fwo_config_filename))
                     fwo_api_base_url = fwoConfig['fwo_api_base_url']
@@ -139,43 +139,27 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
             logger.debug("import_management - getting config total duration " + str(int(time.time()) - importState.StartTime) + "s")
 
             if config_changed_since_last_import or importState.ForceImport:
-                try: # now we import the config via API chunk by chunk:
-                    # for config_chunk in split_config(importState, configNormalized):
-                    configNormalized.storeFullNormalizedConfigToFile(importState) # write full config to file (for debugging)
-                    for managerSet in configNormalized.ManagerSet:
-                        for config in managerSet.Configs:
-                            try:
-                                configImporter = FwConfigImport(importState, config)
-                                try:
-                                    configChecker = FwConfigImportCheckConsistency(configImporter)
-                                    if len(configChecker.checkConfigConsistency())==0:
-                                        try:
-                                            configImporter.importConfig()
-                                        except Exception:
-                                            # importState.addError(str(traceback.format_exc()), log=True)
-                                            raise
-
-                                        if importState.Stats.ErrorCount>0:
-                                            raise FwoImporterError("Import failed due to errors.")
-                                        else:
-                                            configImporter.storeLatestConfig()
-                                except Exception:
-                                    raise # ImportError("Import failed due to errors.")
-                            except Exception:
-                                importState.addError(str(traceback.format_exc()))
-                                raise
-                            fwo_api.update_hit_counter(importState, config)
-                except Exception:
-                    raise
+                # for config_chunk in split_config(importState, configNormalized):
+                configNormalized.storeFullNormalizedConfigToFile(importState) # write full config to file (for debugging)
+                for managerSet in configNormalized.ManagerSet:
+                    for config in managerSet.Configs:
+                        try:
+                            configImporter = FwConfigImport(importState, config)
+                            configChecker = FwConfigImportCheckConsistency(configImporter)
+                            if len(configChecker.checkConfigConsistency())==0:
+                                configImporter.importConfig()
+                                if importState.Stats.ErrorCount>0:
+                                    raise FwoImporterError("Import failed due to errors.")
+                                else:
+                                    configImporter.storeLatestConfig()
+                        except Exception:
+                            importState.addError(str(traceback.format_exc()))
+                            raise
+                        fwo_api.update_hit_counter(importState, config)
                 logger.debug(f"full import duration: {str(int(time.time())-time_get_config-importState.StartTime)}s")
-                # TODO: if no objects found at all: at least show a warning
-
-            fwo_api.complete_import(importState)    # default (successful) completion of import
 
         if not clearManagementData and importState.DataRetentionDays<importState.DaysSinceLastFullImport:
-            # delete all imports of the current management before the last but one full import
-            configImporter.deleteOldImports()
-
+            configImporter.deleteOldImports() # delete all imports of the current management before the last but one full import
     except (KeyboardInterrupt, ImportInterruption) as e:
         if fwo_globals.shutdown_requested:
             logger.warning("Shutdown requested.")
@@ -196,6 +180,7 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
         fwo_api.delete_import(importState) # delete whole import
         sys.exit(1)
     except Exception as e:
+        importState.addError(str(traceback.format_exc()))
         # logger.error(f"Unexpected error in import_management: {e}")
         if 'configImporter' in locals():
             FwConfigImportRollback(configImporter).rollbackCurrentImport()

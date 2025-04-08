@@ -148,7 +148,7 @@ namespace FWO.Middleware.Server
                 }
                 catch(TaskCanceledException)
                 {
-                    Log.WriteWarning("Report Scheduling", $"Generating scheduled report was cancelled");
+                    Log.WriteWarning("Report Scheduling", $"Generating scheduled report \"{reportSchedule.Name}\" was cancelled");
                 }
                 catch (Exception exception)
                 {

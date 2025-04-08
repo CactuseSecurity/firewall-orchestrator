@@ -9,9 +9,6 @@ using FWO.Report;
 using System.Timers;
 using FWO.Config.File;
 using System.Collections.Concurrent;
-using System;
-using MethodTimer;
-using System.Reflection;
 
 namespace FWO.Middleware.Server
 {
@@ -70,7 +67,6 @@ namespace FWO.Middleware.Server
             // Subscription will be restored if no exception is thrown here
         }
 
-        [Time]
         private async void CheckSchedule(object? _, ElapsedEventArgs __)
         {
             List<Task> reportGeneratorTasks = [];
@@ -112,7 +108,6 @@ namespace FWO.Middleware.Server
 
         }
 
-        [Time]
         private async Task GenerateReport(ReportSchedule reportSchedule, DateTime dateTimeNowRounded, CancellationToken token)
         {
             await Task.Run(async () =>

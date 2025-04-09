@@ -222,8 +222,10 @@
                     await OnSelectedAreaChanged(AppRoleHandler.AddMode ? areas.First() : AppRoleHandler.ActAppRole.Area);
                 }
             }
-
-            AppRoleHandler.AppServersInArea = AppRoleHandler.AvailableAppServers.Where(x => !x.IsDeleted).ToList();
+            else
+            {
+                AppRoleHandler.AppServersInArea = AppRoleHandler.AvailableAppServers.Where(x => !x.IsDeleted).ToList();
+            }
         }
     }
 

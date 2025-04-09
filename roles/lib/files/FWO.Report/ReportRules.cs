@@ -196,7 +196,9 @@ namespace FWO.Report
                 List<Rule> initialRules = GetRulesByRulebaseId((int)initialRulebaseId, managementReport).ToList();
                 if (initialRules != null)
                 {
-                    return GetAllRulesOfGatewayRecursively(deviceReport, managementReport, [], initialRules).ToArray();
+                    List<Rule> allRules = GetAllRulesOfGatewayRecursively(deviceReport, managementReport, [], initialRules);
+                    CreateOrderNumbers(allRules,  managementReport, deviceReport);
+                    return allRules.ToArray();
                 }
             }
             return [];
@@ -263,20 +265,28 @@ namespace FWO.Report
             return 0;
         }
 
-        public static string GetOrderNumberByRule(ManagementReport mgmReport, Rule rule)
+        public static void CreateOrderNumbers(List<Rule> allRules, ManagementReport mgmReport, DeviceReport device)
         {
-            string orderNumber = "";
             List<RulebaseReport> rulebases = mgmReport.Rulebases.ToList();
+            int allRulesCounter = 0;
+            int rulebaseCounter = 0;
 
-            // add layer number
-            int rulebaseId = rule.RulebaseId;
-            int layer_number = rulebases.FindIndex(x => x.Id == rulebaseId) + 1;
-            orderNumber += layer_number.ToString();
+            foreach (RulebaseReport rulebase in rulebases)
+            {
+                rulebaseCounter++;
+                List<Rule> rulebaseRules = rulebase.Rules.ToList();
 
-            // add rule number
-            orderNumber += "." + (rule.RuleOrderNumber + 1).ToString();
+                foreach (Rule rulebaseRule in rulebaseRules)
+                { 
+                    allRulesCounter++;
 
-            return orderNumber;
+                    Rule rule = allRules.FirstOrDefault(x => x.Id == rulebaseRule.Id);
+                    
+                    rule.OrderNumber = allRulesCounter;
+                    
+                    rule.DisplayOrderNumberString = $"{rulebaseCounter.ToString()}.{(rulebaseRule.RuleOrderNumber + 1).ToString()}";
+                }
+            }
         }
 
         public override string SetDescription()

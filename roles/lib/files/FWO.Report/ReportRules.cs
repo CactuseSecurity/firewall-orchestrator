@@ -263,6 +263,22 @@ namespace FWO.Report
             return 0;
         }
 
+        public static string GetOrderNumberByRule(ManagementReport mgmReport, Rule rule)
+        {
+            string orderNumber = "";
+            List<RulebaseReport> rulebases = mgmReport.Rulebases.ToList();
+
+            // add layer number
+            int rulebaseId = rule.RulebaseId;
+            int layer_number = rulebases.FindIndex(x => x.Id == rulebaseId) + 1;
+            orderNumber += layer_number.ToString();
+
+            // add rule number
+            orderNumber += "." + (rule.RuleOrderNumber + 1).ToString();
+
+            return orderNumber;
+        }
+
         public override string SetDescription()
         {
             int managementCounter = 0;

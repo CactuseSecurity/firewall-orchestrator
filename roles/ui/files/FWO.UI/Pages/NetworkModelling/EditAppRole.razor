@@ -90,7 +90,7 @@
                             }
                             else
                             {
-                                <OrderByDropdown CssClass="bg-secondary" @ref="orderByDropdown" TCollectionItem="ModellingAppServer" Collection="AppRoleHandler.AppServerToAdd" CollectionReordered="OnCollectionReordered" ElementProperties="orderByDropdownProperties" />
+                                <OrderByDropdown CssClass="bg-secondary" @ref="orderByDropdown" TCollectionItem="ModellingAppServer" Collection="ModellingAppServerWrapper.Resolve(AppRoleHandler.ActAppRole.AppServers).Concat(AppRoleHandler.AppServerToAdd).ToList()" CollectionReordered="OnCollectionReordered" ElementProperties="orderByDropdownProperties" />
                                 <div class="dropzone-scrollable dropzone bg-secondary"
                                      ondragover="event.preventDefault();"
                                      ondragstart="event.dataTransfer.setData('', event.target.id);"

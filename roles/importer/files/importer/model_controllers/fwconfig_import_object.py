@@ -15,10 +15,6 @@ import fwo_const
 # this class is used for importing a config into the FWO API
 class FwConfigImportObject(FwConfigImportBase):
 
-    NwObjUidToIdMap = {}
-    NwObjMemberUidToIdMap = {}  
-    SvcObjUidToIdMap = {}
-
     # @root_validator(pre=True)
     # def custom_initialization(cls, values):
     #     values['NetworkObjectTypeMap'] = cls.GetNetworkObjTypeMap()
@@ -67,6 +63,15 @@ class FwConfigImportObject(FwConfigImportBase):
         # add newly created objects
         errorCountUpdate, numberOfModifiedObjects, newNwObjIds, newNwSvcIds, removedNwObjIds, removedNwSvcIds = \
             self.updateObjectsViaApi(newNwobjUids, newSvcObjUids, deletedNwobjUids, deletedSvcObjUids)
+
+        # initial mapping of object uids to ids. already updated for new objects
+        #TODO: only fetch objects needed later. Esp for !isFullImport. but: newNwObjIds not enough!
+        # -> newObjs + extract all objects from new/changed rules and groups, flatten them. Complete?
+        self.uid2id_mapper.update_network_object_mapping()
+        self.uid2id_mapper.update_service_object_mapping()
+        self.uid2id_mapper.update_user_mapping()
+        # important!: always update mapping whenever we update objects via API
+        # if not, there will be inconsistencies in the database!
 
 
         # update group memberships
@@ -120,6 +125,7 @@ class FwConfigImportObject(FwConfigImportBase):
                     affected_rows
                     returning {
                         obj_id
+                        obj_uid
                         obj_member_refs
                     }
                 }
@@ -127,6 +133,7 @@ class FwConfigImportObject(FwConfigImportBase):
                     affected_rows
                     returning {
                         svc_id
+                        svc_uid
                         svc_member_refs
                     }
                 }
@@ -166,7 +173,7 @@ class FwConfigImportObject(FwConfigImportBase):
             result = self.ImportDetails.call(query=query, queryVariables={})
         except Exception:
             logger = getFwoLogger()
-            logger.error(f'Error while getting stm_obj_typ')
+            logger.error("Error while getting stm_obj_typ")
             return {}
         
         map = {}
@@ -180,7 +187,7 @@ class FwConfigImportObject(FwConfigImportBase):
             result = self.ImportDetails.call(query=query, queryVariables={})
         except Exception:
             logger = getFwoLogger()
-            logger.error(f'Error while getting stm_svc_typ')
+            logger.error("Error while getting stm_svc_typ")
             return {}
         
         map = {}
@@ -194,7 +201,7 @@ class FwConfigImportObject(FwConfigImportBase):
             result = self.ImportDetails.call(query=query, queryVariables={})
         except Exception:
             logger = getFwoLogger()
-            logger.error(f'Error while getting stm_usr_typ')
+            logger.error("Error while getting stm_usr_typ")
             return {}
         
         map = {}
@@ -208,7 +215,7 @@ class FwConfigImportObject(FwConfigImportBase):
             result = self.ImportDetails.call(query=query, queryVariables={})
         except Exception:
             logger = getFwoLogger()
-            logger.error(f'Error while getting stm_ip_proto')
+            logger.error("Error while getting stm_ip_proto")
             return {}
         
         map = {}
@@ -222,7 +229,7 @@ class FwConfigImportObject(FwConfigImportBase):
             result = self.ImportDetails.call(query=query, queryVariables={})
         except Exception:
             logger = getFwoLogger()
-            logger.error(f'Error while getting stm_color')
+            logger.error("Error while getting stm_color")
             return {}
         
         map = {}
@@ -248,110 +255,6 @@ class FwConfigImportObject(FwConfigImportBase):
         return newNwObjs
 
 
-    def buildObjUidToIdMapFromApi(self, rules):
-        nwObjUids = self.extractNwObjUidsFromRules(rules)
-        svcObjUids = self.extractSvcObjUidsFromRules(rules)
-        self.NwObjUidToIdMap = self.buildNwObjUidToIdMapFromApi(nwObjUids)
-        self.UserUidToIdMap = self.buildUserObjUidToIdMapFromApi(nwObjUids)
-        self.SvcObjUidToIdMap = self.buildSvcObjUidToIdMapFromApi(svcObjUids)
-
-    def extractNwObjUidsFromRules(self, rules):
-        nwObjUids = set()
-        for rule in rules:
-            if rule['rule_src_refs'] is not None:
-                nwObjUids.update(rule['rule_src_refs'].split(fwo_const.list_delimiter))
-            if rule['rule_dst_refs'] is not None:
-                nwObjUids.update(rule['rule_dst_refs'].split(fwo_const.list_delimiter))
-        return list(nwObjUids)
-    
-    def extractSvcObjUidsFromRules(self, rules):
-        svcObjUids = set()
-        for rule in rules:
-            if rule['rule_svc_refs'] is not None:
-                svcObjUids.update(rule['rule_svc_refs'].split(fwo_const.list_delimiter))
-        return list(svcObjUids)
-
-    def buildNwObjUidToIdMapFromApi(self, nwObjUids: List[str]):
-        logger = getFwoLogger()
-        nwObjUidToIdMap = {}
-
-        if len(nwObjUids)>0:
-            # TODO: remove active filter later
-            buildQuery = """
-                query getMapOfUid2Id($uids: [String!]!) {
-                    object(where: {obj_uid: {_in: $uids}, removed: {_is_null: true}, active: {_eq: true}}) {
-                        obj_id
-                        obj_uid
-                    }
-                }
-            """
-
-            try:
-                uidMapResult = self.ImportDetails.call(buildQuery, queryVariables={ 'uids': nwObjUids })
-                if 'errors' in uidMapResult:
-                    logger.exception(f"fwo_api:importNwObject - error in buildNwObjMemberUidToIdMap: {str(uidMapResult['errors'])}")
-                    # TODO: add error to global import error counter
-                else:
-                    uidMap = uidMapResult['data']['object']
-                    # now turn the list into a dict with key = uid
-                    for obj in uidMap:
-                        nwObjUidToIdMap.update({ obj['obj_uid']: obj['obj_id'] })
-            except Exception:
-                logger.exception(f"failed to write new objects: {str(traceback.format_exc())}")
-                # TODO: add error to global import error counter
-
-        return nwObjUidToIdMap
-
-    def buildSvcObjUidToIdMapFromApi(self, svcObjUids: List[str]):
-        logger = getFwoLogger()
-        svcObjUidToIdMap = {}
-
-        if len(svcObjUids)>0:
-            # TODO: remove active filter later
-            buildQuery = """
-                query getMapOfUid2Id($uids: [String!]!) {
-                    service(where: {svc_uid: {_in: $uids}, removed: {_is_null: true}, active: {_eq: true}}) {
-                        svc_id
-                        svc_uid
-                    }
-                }
-            """
-
-            try:
-                uidMapResult = self.ImportDetails.call(buildQuery, queryVariables={ 'uids': svcObjUids })
-                if 'errors' in uidMapResult:
-                    logger.exception(f"fwo_api:importService - error in buildNwObjMemberUidToIdMap: {str(uidMapResult['errors'])}")
-                    # TODO: add error to global import error counter
-                else:
-                    uidMap = uidMapResult['data']['service']
-                    # now turn the list into a dict with key = uid
-                    for obj in uidMap:
-                        svcObjUidToIdMap.update({ obj['svc_uid']: obj['svc_id'] })
-            except Exception:
-                logger.exception(f"failed to write new objects: {str(traceback.format_exc())}")
-                # TODO: add error to global import error counter
-
-        return svcObjUidToIdMap
-
-    def buildUserObjUidToIdMapFromApi(self, userObjUids: List[str]):
-        logger = getFwoLogger()
-        userObjUidToIdMap = {}
-
-        # TODO: impelment
-
-        return userObjUidToIdMap
-
-
-    def buildNwObjMemberUidToIdMap(self, newIds):
-        uidList = []
-        for addedObj in newIds:
-            if addedObj['obj_member_refs'] is not None:
-                for memberUid in addedObj['obj_member_refs'].split(fwo_const.list_delimiter):
-                    uidList.append(memberUid)
-
-        self.NwObjMemberUidToIdMap = self.buildNwObjUidToIdMapFromApi(uidList)
-
-
     def addNwObjGroupMemberships(self, newIds):
         newGroupMembers = []
         newGroupMemberFlats = []
@@ -360,23 +263,22 @@ class FwConfigImportObject(FwConfigImportBase):
         changes = 0
         newObjGrpIds = []
 
-        self.buildNwObjMemberUidToIdMap(newIds)
         for addedObj in newIds:
             if addedObj['obj_member_refs'] is not None:
                 for memberUId in addedObj['obj_member_refs'].split(fwo_const.list_delimiter):
-                    memberId = self.NwObjMemberUidToIdMap[memberUId]
+                    memberId = self.uid2id_mapper.get_network_object_id(memberUId)
                     newGroupMembers.append({
                         "objgrp_id": addedObj['obj_id'],
                         "objgrp_member_id": memberId,
                         "import_created": self.ImportDetails.ImportId,
                         "import_last_seen": self.ImportDetails.ImportId })
-                for flatMemberId in self.flatMembersOfNwObjGroup(newIds, addedObj['obj_id']):
+                for flatMemberUid in self.group_flats_mapper.get_network_object_flats(addedObj['obj_uid']):
+                    flatMemberId = self.uid2id_mapper.get_network_object_id(flatMemberUid),
                     newGroupMemberFlats.append({
                         "objgrp_flat_id": addedObj['obj_id'],
                         "objgrp_flat_member_id": flatMemberId,
                         "import_created": self.ImportDetails.ImportId,
                         "import_last_seen": self.ImportDetails.ImportId })
-                    
 
         if len(newGroupMembers)>0:
 
@@ -412,31 +314,6 @@ class FwConfigImportObject(FwConfigImportBase):
             
         return errors, changes, newObjGrpIds
     
-
-    def flatMembersOfNwObjGroup(self, newIds, groupId: int, flatMembers: set = None, recursionLevel: int = 0):
-        # this function is used to get all members of a group, including nested groups
-        if flatMembers is None:
-            flatMembers = set()
-        logger = getFwoLogger()
-
-        if recursionLevel > 20:
-            logger.warning(f"recursion level exceeded for group {groupId}")
-            return flatMembers
-
-        obj = next((obj for obj in newIds if obj['obj_id'] == groupId), None)
-        if obj is None:
-            logger.error(f"object with id {groupId} not found in newIds")
-            return
-
-        if obj['obj_member_refs'] is not None:
-            for memberUid in obj['obj_member_refs'].split(fwo_const.list_delimiter):
-                member = self.NwObjMemberUidToIdMap.get(memberUid, None)
-                if member is not None:
-                    flatMembers.add(member)
-                    self.flatMembersOfNwObjGroup(newIds, member, flatMembers, recursionLevel + 1)
-
-        return flatMembers
-        
 
     def prepareNewSvcObjects(self, newSvcobjUids):
         newObjs = []

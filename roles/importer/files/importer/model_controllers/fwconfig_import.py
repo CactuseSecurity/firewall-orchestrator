@@ -54,7 +54,7 @@ class FwConfigImport(FwConfigImportObject, FwConfigImportRule, FwConfigImportGat
         errors, changes, newRules = self.getRulesByIdWithRefUids(newRuleIds)
 
         self.addNewRule2ObjRefs(newRules)
-        # TODO: self.addNewRuleSvcRefs(newRulebases, newRuleIds)
+        #TODO: self.addNewRule2SvcRefs(newRules)
 
         enforcingController = RuleEnforcedOnGatewayController(self.ImportDetails)
         ids = enforcingController.addNewRuleEnforcedOnGatewayRefs(newRules, self.ImportDetails)

@@ -35,7 +35,6 @@ fragment ruleOverview on rule {
   access_rule
   nat_rule
   xlate_rule
-  rule_order_array
   rule_froms(order_by:{ object: { obj_name: asc } }) {
     usr {
       ...userOverview

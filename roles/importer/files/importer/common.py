@@ -2,16 +2,22 @@ import importlib
 import traceback
 import sys, time
 import json
+
+import importlib
 from socket import gethostname
 from typing import List
-from fwo_const import importer_base_dir
+import importlib.util
+from fwo_config import readConfig
+from fwo_const import fwo_config_filename, importer_user_name, importer_base_dir
+from model_controllers.management_details_controller import ManagementDetailsController
+from model_controllers.fworch_config_controller import FworchConfigController
 from pathlib import Path
 sys.path.append(importer_base_dir) # adding absolute path here once
 import fwo_api
 from fwo_log import getFwoLogger
-from fwo_const import fw_module_name
-from fwo_const import import_tmp_path
-from fwo_exception import FwLoginFailed, ImportRecursionLimitReached
+from fwo_const import fw_module_name, import_tmp_path
+import fwo_globals
+from fwo_exceptions import FwLoginFailed, ImportRecursionLimitReached, ImportInterruption, FwoImporterError
 from fwo_base import stringIsUri, ConfigAction, ConfFormat
 import fwo_file_import
 from model_controllers.import_state_controller import ImportStateController
@@ -19,13 +25,12 @@ from models.fwconfig_normalized import FwConfig, FwConfigNormalized
 from models.fwconfigmanagerlist import FwConfigManagerList, FwConfigManager
 from models.gateway import Gateway
 from fwconfig_base import calcManagerUidHash
-from model_controllers.import_state_controller import ImportStateController
 from model_controllers.fwconfig_import import FwConfigImport
 from model_controllers.gateway_controller import GatewayController
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
 from model_controllers.check_consistency import FwConfigImportCheckConsistency
 from model_controllers.rollback import FwConfigImportRollback
-from model_controllers.import_state_controller import ImportStateController
+import fwo_signalling
 
 """  
     import_management: import a single management (if no import for it is running)
@@ -41,18 +46,16 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
         limit=150, force=False, clearManagementData=False, suppress_cert_warnings_in=None,
         in_file=None, version=8):
 
+    fwo_signalling.registerSignallingHandlers()
     logger = getFwoLogger(debug_level=debug_level_in)
     config_changed_since_last_import = True
     time_get_config = 0
     verifyCerts = (ssl_verification is not None)
 
-
     try:
-
         importState = ImportStateController.initializeImport(mgmId, debugLevel=debug_level_in, 
                                                 force=force, version=version, 
                                                 isClearingImport=clearManagementData, isFullImport=False, sslVerification=verifyCerts)
-
         if not clearManagementData and importState.DataRetentionDays<importState.DaysSinceLastFullImport:
             # run clear import; this makes sure the following import is a full one
             import_management(mgmId=mgmId, ssl_verification=ssl_verification, debug_level_in=debug_level_in, 
@@ -78,123 +81,122 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
             if clearManagementData:
                 logger.info('this import run will reset the configuration of this management to "empty"')
                 configNormalized = FwConfigManagerListController()
+                # Reset management
                 configNormalized.addManager(
                     manager=FwConfigManager(
                         ManagerUid=calcManagerUidHash(importState.FullMgmDetails),
                         ManagerName=importState.MgmDetails.Name,
-                        IsGlobal=importState.MgmDetails.IsSuperManager,
-                        DependantManagerUids=[],
+                        IsSuperManager=importState.MgmDetails.IsSuperManager,
+                        SubManagerIds=importState.MgmDetails.SubManagerIds,
                         Configs=[]
                     ))
-                configNormalized.ManagerSet[0].Configs.append(
-                    FwConfigNormalized(
-                        action=ConfigAction.INSERT, 
-                        network_objects=[], 
-                        service_objects=[], 
-                        users=[], 
-                        zone_objects=[], 
-                        rulebases=[],
-                        gateways=[]
-                ))
-                
+                if len(importState.MgmDetails.SubManagerIds)>0:
+                    # Read config
+                    fwoConfig = FworchConfigController.fromJson(readConfig(fwo_config_filename))
+                    fwo_api_base_url = fwoConfig['fwo_api_base_url']
+                    # Authenticate to get JWT
+                    try:
+                        jwt = fwo_api.login(importer_user_name, fwoConfig.ImporterPassword, fwoConfig.FwoUserMgmtApiUri)
+                    except Exception as e:
+                        logger.error(str(e))
+                        raise             
+                    # Reset submanagement
+                    for subManagerId in importState.MgmDetails.SubManagerIds:
+                        # Fetch sub management details
+                        mgm_details_raw = fwo_api.get_mgm_details(fwo_api_base_url, jwt, {"mgmId": subManagerId})
+                        mgm_details = ManagementDetailsController.fromJson(mgm_details_raw)
+                        configNormalized.addManager(
+                            manager=FwConfigManager(
+                                ManagerUid=calcManagerUidHash(mgm_details_raw),
+                                ManagerName=mgm_details.Name,
+                                IsSuperManager=mgm_details.IsSuperManager,
+                                SubManagerIds=mgm_details.SubManagerIds,
+                                Configs=[]
+                            )
+                        )
+                # Reset objects
+                for management in configNormalized.ManagerSet:
+                    management.Configs.append(
+                        FwConfigNormalized(
+                            action=ConfigAction.INSERT, 
+                            network_objects=[], 
+                            service_objects=[], 
+                            users=[], 
+                            zone_objects=[], 
+                            rulebases=[],
+                            gateways=[]
+                        )
+                    )
                 importState.IsClearingImport = True # the now following import is a full one
+
+            if in_file is not None or stringIsUri(importState.MgmDetails.Hostname):
+                ### geting config from file ######################
+                config_changed_since_last_import, configNormalized = \
+                    importFromFile(importState, in_file, gateways)
             else:
-                if in_file is not None or stringIsUri(importState.MgmDetails.Hostname):
-                    ### geting config from file ######################
-                    config_changed_since_last_import, configNormalized = \
-                        importFromFile(importState, in_file, gateways)
-                else:
-                    ### getting config from firewall manager API ######
-                    config_changed_since_last_import, configNormalized = get_config_from_api(importState, {})
-
-                    # also import sub managers if they exist
-                    for subManagerId in importState.MgmDetails.SubManager:
-                        subMgrImportState = ImportStateController.initializeImport(subManagerId, debugLevel=debug_level_in, 
-                                                force=force, version=version, 
-                                                isClearingImport=clearManagementData, isFullImport=False)
-                        config_changed_since_last_import, configNormalizedSub = get_config_from_api(subMgrImportState, {})
-                        configNormalized.mergeConfigs(configNormalizedSub)
-                        # TODO: destroy configNormalizedSub?
-
-                time_get_config = int(time.time()) - importState.StartTime
-                logger.debug("import_management - getting config total duration " + str(int(time.time()) - importState.StartTime) + "s")
+                ### getting config from firewall manager API ######
+                config_changed_since_last_import, configNormalized = get_config_from_api(importState, {})
+            time_get_config = int(time.time()) - importState.StartTime
+            logger.debug("import_management - getting config total duration " + str(int(time.time()) - importState.StartTime) + "s")
 
             if config_changed_since_last_import or importState.ForceImport:
-                try: # now we import the config via API chunk by chunk:
-                    # for config_chunk in split_config(importState, configNormalized):
-                    configNormalized.storeFullNormalizedConfigToFile(importState) # write full config to file (for debugging)
-
-                    for managerSet in configNormalized.ManagerSet:
-                        for config in managerSet.Configs:
-                            # if len(config)>0:
-                                if importState.ImportVersion>8:
-                                    try:
-                                        configImporter = FwConfigImport(importState, config)
-                                    except Exception:
-                                        # logger.error("import_management - unspecified error while creating config importer (FwConfigImport): " + str(traceback.format_exc()))
-                                        try:
-                                            importState.addError(str(traceback.format_exc()))
-                                            fwo_api.delete_import(importState)
-                                            fwo_api.complete_import(importState)
-                                        except Exception:
-                                            pass # logger.error("import_management - unspecified error while deleting import: " + str(traceback.format_exc()))
-                                        finally:
-                                            raise
-                                    try:
-                                        configChecker = FwConfigImportCheckConsistency(configImporter)
-                                        if len(configChecker.checkConfigConsistency())==0:
-                                            try:
-                                                configImporter.importConfig()
-                                            except Exception:
-                                                importState.addError(str(traceback.format_exc()), log=True)
-                                            if importState.Stats.ErrorCount>0:
-                                                fwo_api.complete_import(importState)
-                                                FwConfigImportRollback(configImporter).rollbackCurrentImport()
-                                                sys.exit(1)
-                                            else:
-                                                configImporter.storeLatestConfig()
-                                    except Exception:
-                                        logger.error("import_management - unspecified error while rolling back import: " + str(traceback.format_exc()))
-                                        FwConfigImportRollback(configImporter).rollbackCurrentImport()
-                                        fwo_api.complete_import(importState)
-                                        raise
+                # for config_chunk in split_config(importState, configNormalized):
+                configNormalized.storeFullNormalizedConfigToFile(importState) # write full config to file (for debugging)
+                for managerSet in configNormalized.ManagerSet:
+                    for config in managerSet.Configs:
+                        try:
+                            configImporter = FwConfigImport(importState, config)
+                            configChecker = FwConfigImportCheckConsistency(configImporter)
+                            if len(configChecker.checkConfigConsistency())==0:
+                                configImporter.importConfig()
+                                if importState.Stats.ErrorCount>0:
+                                    raise FwoImporterError("Import failed due to errors.")
                                 else:
-                                    configChunk = config.toJsonLegacy(withAction=False)
-                                    importState.increaseErrorCounter(fwo_api.import_json_config(importState, configChunk))
-
-                                fwo_api.update_hit_counter(importState, config)
-
-                    # currently assuming only one chunk
-                    # initiateImportStart(importState)
-                except Exception:
-                    raise
-                logger.debug(f"full import duration: {str(int(time.time())-time_get_config-importState.StartTime)}s")
-
-                # TODO: move the following error handling to function
-                error_from_imp_control = "assuming error"
-                try: # checking for errors during stored_procedure db imort in import_control table
-                    error_from_imp_control = fwo_api.get_error_string_from_imp_control(importState, {"importId": importState.ImportId})
-                except Exception:
-                    importState.addError(f"import_management - unspecified error while getting error string: {str(traceback.format_exc())}", log=True)
-
-                if error_from_imp_control != None and error_from_imp_control != [{'import_errors': None}]:
-                    importState.addError(str(traceback.format_exc()))
-                # TODO: if no objects found at all: at least show a warning
-
-            fwo_api.complete_import(importState)
+                                    configImporter.storeLatestConfig()
+                        except Exception:
+                            importState.addError(str(traceback.format_exc()))
+                            raise
+                        fwo_api.update_hit_counter(importState, config)
+                # logger.debug(f"import duration without getting config: {str(int(time.time())-time_get_config-importState.StartTime)}s")
 
         if not clearManagementData and importState.DataRetentionDays<importState.DaysSinceLastFullImport:
-            # delete all imports of the current management before the last but one full import
-            configImporter.deleteOldImports()
-        
-    except Exception:
-        if importState.ImportId>=0:
-            if not importState.Stats.ErrorAlreadyLogged:
-                importState.addError(f"import_management - unspecified error while importing management {str(mgmId)}: {str(traceback.format_exc())}", log=True)
+            configImporter.deleteOldImports() # delete all imports of the current management before the last but one full import
+    except (FwLoginFailed) as e:
+        fwo_api.delete_import(importState) # delete whole import
+        importState.addError("Login to FW manager failed")
+    except (ImportRecursionLimitReached) as e:
+        fwo_api.delete_import(importState) # delete whole import
+        importState.addError("ImportRecursionLimitReached - aborting import")
+    except (KeyboardInterrupt, ImportInterruption) as e:
+        if fwo_globals.shutdown_requested:
+            logger.warning("Shutdown requested.")
         else:
-            if not importState.Stats.ErrorAlreadyLogged:
-                logger.error("import_management - unspecified error before even assigning an import ID")
+            logger.error(e)
+        if 'configImporter' in locals():
+            FwConfigImportRollback(configImporter).rollbackCurrentImport()
+        else:
+            logger.info("No configImporter found, skipping rollback.")
+        fwo_api.delete_import(importState) # delete whole import
+        raise
+    except (FwoImporterError) as e:
+        logger.error(f"import error encountered: {importState.getErrorString()}")
+        if 'configImporter' in locals():
+            FwConfigImportRollback(configImporter).rollbackCurrentImport()
+        else:
+            logger.info("No configImporter found, skipping rollback.")
+        fwo_api.delete_import(importState) # delete whole import
+        raise
+    except Exception as e:
+        importState.addError(str(traceback.format_exc()))
+        if 'configImporter' in locals():
+            FwConfigImportRollback(configImporter).rollbackCurrentImport()
+        else:
+            logger.info("No configImporter found, skipping rollback.")
+        fwo_api.delete_import(importState) # delete whole import
+        raise
     finally:
+        fwo_api.complete_import(importState)
+        # fwo_globals.shutdown_requested = False
         return importState.Stats.ErrorCount
 
 
@@ -249,57 +251,36 @@ def get_config_from_api(importState: ImportStateController, configNative, import
     logger = getFwoLogger(debug_level=importState.DebugLevel)
 
     try: # pick product-specific importer:
-        pkg_name = importState.MgmDetails.DeviceTypeName.lower().replace(' ', '') + importState.MgmDetails.DeviceTypeVersion
+        pkg_name = importState.MgmDetails.DeviceTypeName.lower().replace(' ', '') + importState.MgmDetails.DeviceTypeVersion.replace('MDS', '').replace(' ', '')
         fw_module = importlib.import_module("." + fw_module_name, pkg_name)
     except Exception:
         logger.exception("import_management - error while loading product specific fwcommon module", traceback.format_exc())        
         raise
     
-    try: # get the config data from the firewall manager's API: 
-        # check for changes from product-specific FW API
-        config_changed_since_last_import = importState.ImportFileName != None or \
-            fw_module.has_config_changed(configNative, importState, force=importState.ForceImport)
-        if config_changed_since_last_import:
-            logger.info ( "has_config_changed: changes found or forced mode -> go ahead with getting config, Force = " + str(importState.ForceImport))
-        else:
-            logger.info ( "has_config_changed: no new changes found")
+    # check for changes from product-specific FW API
+    config_changed_since_last_import = importState.ImportFileName != None or \
+        fw_module.has_config_changed(configNative, importState, force=importState.ForceImport)
+    if config_changed_since_last_import:
+        logger.info ( "has_config_changed: changes found or forced mode -> go ahead with getting config, Force = " + str(importState.ForceImport))
+    else:
+        logger.info ( "has_config_changed: no new changes found")
 
-        if config_changed_since_last_import or importState.ForceImport:
-            # get config from product-specific FW API
-            _, configNormalized = fw_module.get_config(configNative, importState)
-        else:
-            # returning empty config
-            emptyConfigDict = {
-                                    'action': ConfigAction.INSERT,
-                                    'network_objects': {},
-                                    'service_objects': {},
-                                    'users': {},
-                                    'zone_objects': {},
-                                    'rules': [],
-                                    'gateways': [],
-                                    'ConfigFormat': ConfFormat.NORMALIZED
-                                }
-            configNormalized = FwConfigNormalized(**emptyConfigDict)
-    except (FwLoginFailed) as e:
-        importState.appendErrorString(f"login failed: mgm_id={str(importState.MgmDetails.Id)}, mgm_name={importState.MgmDetails.Name}, {e.message}")
-        importState.increaseErrorCounter()
-        logger.error(importState.getErrorString())
-        fwo_api.delete_import(importState) # deleting trace of not even begun import
-        fwo_api.complete_import(importState)
-        raise FwLoginFailed(e.message)
-    except ImportRecursionLimitReached as e:
-        importState.appendErrorString(f"recursion limit reached: mgm_id={str(importState.MgmDetails.Id)}, mgm_name={importState.MgmDetails.Name},{e.message}")
-        importState.increaseErrorCounter()
-        logger.error(importState.getErrorString())
-        fwo_api.delete_import(importState.FwoConfig.FwoApiUri, importState.Jwt, importState.ImportId) # deleting trace of not even begun import
-        fwo_api.complete_import(importState)
-        raise ImportRecursionLimitReached(e.message)
-    except Exception:
-        importState.appendErrorString("import_management - unspecified error while getting config: " + str(traceback.format_exc()))
-        logger.error(importState.getErrorString())
-        importState.increaseErrorCounterByOne()
-        fwo_api.complete_import(importState)
-        raise
+    if config_changed_since_last_import or importState.ForceImport:
+        # get config from product-specific FW API
+        _, configNormalized = fw_module.get_config(configNative, importState)
+    else:
+        # returning empty config
+        emptyConfigDict = {
+                                'action': ConfigAction.INSERT,
+                                'network_objects': {},
+                                'service_objects': {},
+                                'users': {},
+                                'zone_objects': {},
+                                'rules': [],
+                                'gateways': [],
+                                'ConfigFormat': ConfFormat.NORMALIZED
+                            }
+        configNormalized = FwConfigNormalized(**emptyConfigDict)
 
     writeNativeConfigToFile(importState, configNative)
 

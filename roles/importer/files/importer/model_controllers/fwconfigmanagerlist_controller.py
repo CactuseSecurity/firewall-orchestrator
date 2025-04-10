@@ -41,7 +41,6 @@ class FwConfigManagerListController(FwConfigManagerList):
         if self.ConfigFormat==conf2.ConfigFormat:
             self.ManagerSet.extend(conf2.ManagerSet)
 
-
 # to be re-written:
     def toJsonLegacy(self):
         return deserializeClassToDictRecursively(self)
@@ -133,8 +132,8 @@ class FwConfigManagerListController(FwConfigManagerList):
     def convertLegacyConfig(self, legacyConfig: dict, mgmDetails: ManagementDetails):
         if 'networkobjects' in legacyConfig:
             mgr = FwConfigManager(ManagerUid=calcManagerUidHash(mgmDetails.FullMgmDetails),
-                                  IsGlobal=False,
-                                  DependantManagerUids = [],
+                                  IsSuperManager=False,
+                                  SubManagerIds = [],
                                   Configs=[])
             convertedConfig = FwConfig()
             mgr.Configs.append(convertedConfig)

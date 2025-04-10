@@ -7,7 +7,7 @@ from enum import Enum
 import json, requests, requests.packages
 from fwo_log import getFwoLogger
 import fwo_globals
-from fwo_exception import ConfigFileNotFound
+from fwo_exceptions import ConfigFileNotFound
 from fwo_api import complete_import
 from models.fwconfigmanagerlist import FwConfigManagerList
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
@@ -172,7 +172,7 @@ def readFile(importState: ImportStateController) -> dict:
         importState.increaseErrorCounterByOne()
         logger.error("unspecified error while reading config file: " + str(traceback.format_exc()))
         complete_import(importState)
-        raise Exception(f"Could not read config file {importState.ImportFileName}")
+        raise Exception(f"unspecified error while reading config file {importState.ImportFileName}")
 
     return configJson
 

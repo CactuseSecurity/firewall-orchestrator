@@ -1,6 +1,7 @@
 using System.Net.Sockets;
 using System.Net;
 using NetTools;
+using System;
 
 namespace FWO.Basics
 {
@@ -37,6 +38,111 @@ namespace FWO.Basics
                 ipEnd = ipString;
             }
             return (ipStart, ipEnd);
+        }
+
+        public static bool TryParseIPStringToRange(this string ipString, out (string Start, string End) ipRange, bool strictv4Parse = false)
+        {
+            ipRange = default;
+
+            try
+            {
+                (string ipStart, string ipEnd) = SplitIpToRange(ipString);
+
+                bool ipStartOK = IPAddress.TryParse(ipStart, out IPAddress? ipAdressStart);
+                bool ipEndOK = IPAddress.TryParse(ipEnd, out IPAddress? ipAdressEnd);
+
+                if(ipAdressStart is null || ipAdressEnd is null)
+                {
+                    return false;
+                }
+
+                if(strictv4Parse && ipAdressStart?.AddressFamily == AddressFamily.InterNetwork && ipAdressEnd?.AddressFamily == AddressFamily.InterNetwork)
+                {
+                    if(!IsValidIPv4(ipStart) || !IsValidIPv4(ipEnd))
+                    {
+                        return false;
+                    }
+                }
+
+                if(!ipStartOK || !ipEndOK)
+                {
+                    return false;
+                }
+
+                if(!IPAddress.TryParse(ipStart, out _) || !IPAddress.TryParse(ipEnd, out _))
+                {
+                    return false;
+                }
+
+                ipRange.Start = ipStart;
+                ipRange.End = ipEnd;
+
+                return true;
+            }
+            catch(Exception) 
+            {
+                return false;
+            }
+        }
+
+        public static bool TryParseIPString<T>(this string ipString, out T? ipResult, bool strictv4Parse = false) 
+        {
+            ipResult = default;
+            
+            try
+            {
+                (string ipStart, string ipEnd) = SplitIpToRange(ipString);
+
+                bool ipStartOK = IPAddress.TryParse(ipStart, out IPAddress? ipAdressStart);
+                bool ipEndOK = IPAddress.TryParse(ipEnd, out IPAddress? ipAdressEnd);
+
+                if(ipAdressStart is null || ipAdressEnd is null)
+                {
+                    return false;
+                }
+
+                if(strictv4Parse && ipAdressStart?.AddressFamily == AddressFamily.InterNetwork && ipAdressEnd?.AddressFamily == AddressFamily.InterNetwork)
+                {
+                    if(!IsValidIPv4(ipStart) || !IsValidIPv4(ipEnd))
+                    {
+                        return false;
+                    }
+                }
+
+                if(!ipStartOK || !ipEndOK)
+                {
+                    return false;
+                }
+
+                if(typeof(T) == typeof((string, string)))
+                {
+                    ipResult = (T)Convert.ChangeType((ipAdressStart.ToString(), ipAdressEnd.ToString()), typeof(T));
+                    return true;
+                }
+                else if(typeof(T) == typeof(IPAddressRange) && IPAddressRange.TryParse(ipString, out IPAddressRange ipRange))
+                {
+                    ipResult = (T)Convert.ChangeType(ipRange, typeof(T));
+                    return true;
+                }else if(typeof(T) == typeof((IPAddress, IPAddress)))
+                {
+                    Tuple<IPAddress, IPAddress>? ipTuple = new(ipAdressStart, ipAdressEnd);
+                    ipResult = (T)Convert.ChangeType(ipTuple, typeof(T));
+                    return true;
+                }
+
+                return false;
+            }
+            catch(Exception)
+            {
+                return false;
+            }
+        }
+
+        private static bool IsValidIPv4(string ipAddress)
+        {
+            byte[] addBytes = [.. ipAddress.Split('.').Where(_ => byte.Parse(_) <= 255 && byte.Parse(_) >= 0).Select(byte.Parse)];
+
+            return addBytes.Length == 4;            
         }
 
         public static string GetObjectType(string ip1, string ip2)

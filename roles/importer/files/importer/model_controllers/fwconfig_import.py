@@ -2,19 +2,19 @@ import traceback
 
 import fwo_const
 import fwo_api
+import fwo_globals
+from fwo_exceptions import ImportInterruption
 from fwo_log import getFwoLogger
 from model_controllers.import_state_controller import ImportStateController
 from fwo_api_oo import FwoApi
 from fwo_base import ConfigAction, ConfFormat
 from models.fwconfig_normalized import FwConfigNormalized
-from model_controllers.fwconfig_normalized_controller import FwConfigNormalizedController
 from model_controllers.fwconfig_import_object import FwConfigImportObject
 from model_controllers.fwconfig_import_rule import FwConfigImportRule
 from model_controllers.fwconfig_import_object import FwConfigImportObject
 from model_controllers.fwconfig_import_rule import FwConfigImportRule
 from model_controllers.fwconfig_import_gateway import FwConfigImportGateway
 from model_controllers.rule_enforced_on_gateway_controller import RuleEnforcedOnGatewayController
-
 
 """
 Class hierarchy:
@@ -29,7 +29,7 @@ Class hierarchy:
 class FwConfigImport(FwConfigImportObject, FwConfigImportRule, FwConfigImportGateway, FwoApi):
     ImportDetails: ImportStateController
     NormalizedConfig: FwConfigNormalized
-    
+
     def __init__(self, importState: ImportStateController, config: FwConfigNormalized):
         self.ImportDetails = importState
         self.NormalizedConfig = config
@@ -44,7 +44,16 @@ class FwConfigImport(FwConfigImportObject, FwConfigImportRule, FwConfigImportGat
 
     def updateDiffs(self, previousConfig: FwConfigNormalized):
         self.updateObjectDiffs(previousConfig)
+        if fwo_globals.shutdown_requested:
+            # self.ImportDetails.addError("shutdown requested, aborting import")
+            raise ImportInterruption("Shutdown requested during updateObjectDiffs.")
+
         newRuleIds = self.updateRulebaseDiffs(previousConfig)
+
+        if fwo_globals.shutdown_requested:
+            # self.ImportDetails.addError("shutdown requested, aborting import")
+            raise ImportInterruption("Shutdown requested during updateRulebaseDiffs.")
+
         self.ImportDetails.SetRuleMap() # update all rule entries (from currently running import for rulebase_links)
         self.updateGatewayDiffs(previousConfig)
 

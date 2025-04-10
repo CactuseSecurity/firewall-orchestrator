@@ -271,14 +271,16 @@ class FwConfigImportObject(FwConfigImportBase):
                         "objgrp_id": addedObj['obj_id'],
                         "objgrp_member_id": memberId,
                         "import_created": self.ImportDetails.ImportId,
-                        "import_last_seen": self.ImportDetails.ImportId })
+                        "import_last_seen": self.ImportDetails.ImportId
+                    })
                 for flatMemberUid in self.group_flats_mapper.get_network_object_flats([addedObj['obj_uid']]):
                     flatMemberId = self.uid2id_mapper.get_network_object_id(flatMemberUid)
                     newGroupMemberFlats.append({
                         "objgrp_flat_id": addedObj['obj_id'],
                         "objgrp_flat_member_id": flatMemberId,
                         "import_created": self.ImportDetails.ImportId,
-                        "import_last_seen": self.ImportDetails.ImportId })
+                        "import_last_seen": self.ImportDetails.ImportId
+                    })
 
         if len(newGroupMembers)>0:
 

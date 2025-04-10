@@ -110,8 +110,8 @@ def get_config(full_config: json, importState: ImportStateController) -> tuple[i
                             config2import['rules'], stripFields=False
                             )
     manager = FwConfigManager(ManagerUid=calcManagerUidHash(importState.FullMgmDetails), 
-                              IsGlobal=False, 
-                              DependantManagerUids=[], 
+                              IsSuperManager=False, 
+                              SubManagerIds=[], 
                               Configs=[normalizedConfig])
 
     listOfManagers = FwConfigManagerList()

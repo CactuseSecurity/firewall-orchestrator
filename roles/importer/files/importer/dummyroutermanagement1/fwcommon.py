@@ -1,6 +1,6 @@
 import sys
 from common import importer_base_dir, complete_import
-from fwo_exception import ConfigFileNotFound
+from fwo_exceptions import ConfigFileNotFound
 
 sys.path.append(importer_base_dir + '/dummyrouter')
 from curses import raw

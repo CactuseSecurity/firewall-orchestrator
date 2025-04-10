@@ -5,13 +5,6 @@ from fwo_log import getFwoLogger
 from model_controllers.fwconfig_import import FwConfigImport
 
 
-# from models.gateway import Gateway
-# from models.rulebase_link import RulebaseLinkUidBased
-# from model_controllers.rulebase_link_uid_based_controller import RulebaseLinkUidBasedController
-# from model_controllers.rulebase_link_controller import RulebaseLinkController
-from model_controllers.fwconfig_import_gateway import FwConfigImportGateway
-
-
 # this class is used for importing a config into the FWO API
 class FwConfigImportCheckConsistency(FwConfigImport):
 
@@ -26,6 +19,7 @@ class FwConfigImportCheckConsistency(FwConfigImport):
     # pre-flight checks
     def checkConfigConsistency(self):
         issues = {}
+        issues.update(self.checkColorConsistency(fix=True))
         issues.update(self.checkNetworkObjectConsistency())
         issues.update(self.checkServiceObjectConsistency())
         issues.update(self.checkUserObjectConsistency())
@@ -182,9 +176,72 @@ class FwConfigImportCheckConsistency(FwConfigImport):
             issues.update({'unresolvableZoneObRefs': list(unresolvableObRefs)})
 
         # we currently do not have zone types - skipping type handling
-
         return issues
     
+    # check if all color refs are valid (in the DB)
+    # fix=True means that missing color refs will be replaced by the default color (black)
+    def checkColorConsistency(self, fix=True):
+        issues = {}
+        allUsedNwObjColorRefSet = set()
+        allUsedSvcColorRefSet = set()
+        allUsedUserColorRefSet = set()
+        unresolvableNwObjColors = []
+        unresolvableSvcColors = []
+        unresolvableUserColors = []
+
+        self.ImportDetails.SetColorRefMap()
+        
+        # collect all colors
+        for uid in self.NormalizedConfig.network_objects:
+            if self.NormalizedConfig.network_objects[uid].obj_color is not None:
+                allUsedNwObjColorRefSet.add(self.NormalizedConfig.network_objects[uid].obj_color)
+        for uid in self.NormalizedConfig.service_objects:
+            if self.NormalizedConfig.service_objects[uid].svc_color is not None:
+                allUsedSvcColorRefSet.add(self.NormalizedConfig.service_objects[uid].svc_color)
+        for uid in self.NormalizedConfig.users:
+            if self.NormalizedConfig.users[uid].user_color is not None:
+                allUsedUserColorRefSet.add(self.NormalizedConfig.users[uid].user_color)
+
+        # check all nwobj color refs
+        for colorString in allUsedNwObjColorRefSet:
+            colorId = self.ImportDetails.lookupColorId(colorString)
+            if colorId is None:
+                unresolvableNwObjColors.append(colorString)
+
+        # check all nwobj color refs
+        for colorString in allUsedSvcColorRefSet:
+            colorId = self.ImportDetails.lookupColorId(colorString)
+            if colorId is None:
+                unresolvableSvcColors.append(colorString)
+
+        # check all user color refs
+        for colorString in allUsedUserColorRefSet:
+            colorId = self.ImportDetails.lookupColorId(colorString)
+            if colorId is None:
+                unresolvableUserColors.append(colorString)
+
+        if fix:
+            for colorString in unresolvableNwObjColors:
+                # replace with default color
+                for uid in self.NormalizedConfig.network_objects:
+                    if self.NormalizedConfig.network_objects[uid].obj_color==colorString:
+                        self.NormalizedConfig.network_objects[uid].obj_color = fwo_const.defaultColor
+            for colorString in unresolvableSvcColors:
+                # replace with default color
+                for uid in self.NormalizedConfig.service_objects:
+                    if self.NormalizedConfig.service_objects[uid].svc_color==colorString:
+                        self.NormalizedConfig.service_objects[uid].svc_color = fwo_const.defaultColor
+            for colorString in unresolvableUserColors:
+                # replace with default color
+                for uid in self.NormalizedConfig.users:
+                    if self.NormalizedConfig.users[uid].user_color==colorString:
+                        self.NormalizedConfig.users[uid].user_color = fwo_const.defaultColor
+
+        elif len(unresolvableNwObjColors)>0 or len(unresolvableSvcColors)>0 or len(unresolvableUserColors)>0:
+            issues.update({ 'unresolvableColorRefs': 
+                {'nwObjColors': unresolvableNwObjColors, 'svcColors': unresolvableSvcColors, 'userColors': unresolvableUserColors}})
+        return issues
+
     # e.g. check rule to rule refs
     def checkRuleConsistency(self):
         issues = {}

@@ -6,7 +6,7 @@ import traceback
 import fwo_globals
 from fwo_log import getFwoLogger
 from fwo_const import fwo_api_http_import_timeout
-from fwo_exception import FwoApiServiceUnavailable, FwoApiTimeout
+from fwo_exceptions import FwoApiServiceUnavailable, FwoApiTimeout
 
 # this class is used for making calls to the FWO API (will supersede fwo_api.py)
 class FwoApi():

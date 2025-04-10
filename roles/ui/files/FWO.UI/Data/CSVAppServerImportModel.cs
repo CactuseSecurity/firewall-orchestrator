@@ -1,4 +1,4 @@
-﻿using FWO.Basics;
+using FWO.Basics;
 using FWO.Data.Modelling;
 
 namespace FWO.Ui.Data
@@ -14,6 +14,11 @@ namespace FWO.Ui.Data
         public CSVAppServerImportModel (string ipString)
         {
             (AppIPRangeStart, AppIPRangeEnd) = IpOperations.SplitIpToRange(ipString);
+        }
+
+        public CSVAppServerImportModel()
+        {
+                
         }
 
         public ModellingAppServer ToModellingAppServer()

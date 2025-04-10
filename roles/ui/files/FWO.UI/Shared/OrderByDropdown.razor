@@ -43,9 +43,12 @@
     /// </summary>
     [Parameter, EditorRequired]
     public EventCallback<List<TCollectionItem>> CollectionReordered { get; set; }
-    
+
     [Parameter]
     public string? CssClass { get; set; } = "";
+
+    [Parameter]
+    public ModellingAppRoleHandler? AppRoleHandler { get; set; }
 
     /// <summary>
     /// Backing field of property 'SelectedProperty'.
@@ -108,14 +111,24 @@
             {
                 SelectedProperty = ElementProperties.First();
             }
-            
+
             if(string.IsNullOrEmpty(CssClass))
             {
                 CssClass = "";
             }
 
+            if (AppRoleHandler is not null)
+            {
+                AppRoleHandler.OnAppServersChanged += OnAppServersChanged;
+            }
+
             initialized = true;
         }
+    }
+
+    private void OnAppServersChanged()
+    {
+        Console.WriteLine();
     }
 
     /// <summary>

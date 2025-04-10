@@ -1,4 +1,4 @@
-﻿using FWO.Api.Client;
+using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Data;
 using FWO.Data.Modelling;
@@ -21,6 +21,8 @@ namespace FWO.Services
 
         private ModellingManagedIdString OrigId = new();
 
+        public delegate void OnAppServersChangedEvent();
+        public event OnAppServersChangedEvent OnAppServersChanged;
 
         public ModellingAppRoleHandler(ApiConnection apiConnection, UserConfig userConfig, FwoOwner application,
             List<ModellingAppRole> appRoles, ModellingAppRole appRole, List<ModellingAppServer> availableAppServers,
@@ -304,6 +306,7 @@ namespace FWO.Services
                         AppServersInArea.Add(server);
                     }
                 }
+                OnAppServersChanged?.Invoke();
             }
         }
 

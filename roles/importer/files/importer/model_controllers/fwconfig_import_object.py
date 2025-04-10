@@ -53,10 +53,14 @@ class FwConfigImportObject(FwConfigImportBase):
         newSvcObjUids = list(self.NormalizedConfig.service_objects.keys() - prevConfig.service_objects.keys())
         svcObjUidsInBoth = list(self.NormalizedConfig.service_objects.keys() & prevConfig.service_objects.keys())
 
-        for uid in svcObjUidsInBoth:
-            if prevConfig.service_objects[uid] != self.NormalizedConfig.service_objects[uid]:
-                newSvcObjUids.append(uid)
-                deletedSvcObjUids.append(uid)
+        for nwSvcUid in svcObjUidsInBoth:
+            if prevConfig.service_objects[nwSvcUid] != self.NormalizedConfig.service_objects[nwSvcUid]:
+                newSvcObjUids.append(nwSvcUid)
+                deletedSvcObjUids.append(nwSvcUid)
+        
+        #TODO: calculate user diffs
+        # deletedUserUids = list(prevConfig.users.keys() - self.NormalizedConfig.users.keys())
+
 
         # TODO: deal with object changes (e.g. group with added member)
 
@@ -76,8 +80,8 @@ class FwConfigImportObject(FwConfigImportBase):
 
         # update group memberships
         self.addNwObjGroupMemberships(newNwObjIds)
-        # TODO: self.addSvcObjGroupMemberships(newSvcObjIds)
-        # TODO: self.addUserObjGroupMemberships(newUserObjIds)
+        self.addNwSvcGroupMemberships(newNwSvcIds)
+        # self.addUserObjGroupMemberships(newUserIds)
 
         # these objects have really been deleted so there should be no refs to them anywhere! verify this
 
@@ -352,6 +356,130 @@ class FwConfigImportObject(FwConfigImportBase):
             #     })
             # newObjs.append(newEnrichedSvcObj)
         return newObjs
+
+    def addNwSvcGroupMemberships(self, newIds):
+        newGroupMembers = []
+        newGroupMemberFlats = []
+        logger = getFwoLogger()
+        errors = 0
+        changes = 0
+        newSvcGrpIds = []
+
+        for addedObj in newIds:
+            if addedObj['svc_member_refs'] is not None:
+                for memberUId in addedObj['svc_member_refs'].split(fwo_const.list_delimiter):
+                    memberId = self.uid2id_mapper.get_service_object_id(memberUId)
+                    newGroupMembers.append({
+                        "svcgrp_id": addedObj['svc_id'],
+                        "svcgrp_member_id": memberId,
+                        "import_created": self.ImportDetails.ImportId,
+                        "import_last_seen": self.ImportDetails.ImportId
+                    })
+                for flatMemberUid in self.group_flats_mapper.get_service_object_flats([addedObj['svc_uid']]):
+                    flatMemberId = self.uid2id_mapper.get_service_object_id(flatMemberUid)
+                    newGroupMemberFlats.append({
+                        "svcgrp_flat_id": addedObj['svc_id'],
+                        "svcgrp_flat_member_id": flatMemberId,
+                        "import_created": self.ImportDetails.ImportId,
+                        "import_last_seen": self.ImportDetails.ImportId
+                    })
+
+        if len(newGroupMembers)>0:
+
+            import_mutation = """
+                mutation insertSvcGroup($svcGroups: [svcgrp_insert_input!]!, $svcGroupFlats: [svcgrp_flat_insert_input!]!) {
+                    insert_svcgrp(objects: $svcGroups) {
+                        affected_rows
+                        returning { svcgrp_id svcgrp_member_id
+                        }
+                    }
+                    insert_svcgrp_flat(objects: $svcGroupFlats) {
+                        affected_rows
+                        returning { svcgrp_flat_id svcgrp_flat_member_id }
+                    }
+                }
+            """
+
+            queryVariables = { 
+                'svcGroups': newGroupMembers,
+                'svcGroupFlats': newGroupMemberFlats
+            }
+            try:
+                import_result = self.ImportDetails.call(import_mutation, queryVariables=queryVariables)
+                if 'errors' in import_result:
+                    logger.exception(f"fwo_api:importNwObject - error in addSvcObjGroupMemberships: {str(import_result['errors'])}")
+                    errors = 1
+                else:
+                    changes = int(import_result['data']['insert_svcgrp']['affected_rows'])
+                    newSvcGrpIds = import_result['data']['insert_svcgrp']['returning']
+            except Exception:
+                logger.exception(f"failed to write new objects: {str(traceback.format_exc())}")
+                errors = 1
+            
+        return errors, changes, newSvcGrpIds
+
+
+    def addUserGroupMemberships(self, newIds):
+        newGroupMembers = []
+        newGroupMemberFlats = []
+        logger = getFwoLogger()
+        errors = 0
+        changes = 0
+        newUserGrpIds = []
+
+        for addedUser in newIds:
+            if addedUser['user_member_refs'] is not None:
+                for memberUId in addedUser['user_member_refs'].split(fwo_const.list_delimiter):
+                    memberId = self.uid2id_mapper.get_user_id(memberUId)
+                    newGroupMembers.append({
+                        "usergrp_id": addedUser['user_id'],
+                        "usergrp_member_id": memberId,
+                        "import_created": self.ImportDetails.ImportId,
+                        "import_last_seen": self.ImportDetails.ImportId
+                    })
+                for flatMemberUid in self.group_flats_mapper.get_user_flats([addedUser['user_uid']]):
+                    flatMemberId = self.uid2id_mapper.get_user_id(flatMemberUid)
+                    newGroupMemberFlats.append({
+                        "usergrp_flat_id": addedUser['user_id'],
+                        "usergrp_flat_member_id": flatMemberId,
+                        "import_created": self.ImportDetails.ImportId,
+                        "import_last_seen": self.ImportDetails.ImportId
+                    })
+
+        if len(newGroupMembers)>0:
+
+            import_mutation = """
+                mutation insertUserGroup($userGroups: [usergrp_insert_input!]!, $userGroupFlats: [usergrp_flat_insert_input!]!) {
+                    insert_usergrp(objects: $userGroups) {
+                        affected_rows
+                        returning { usergrp_id usergrp_member_id
+                        }
+                    }
+                    insert_usergrp_flat(objects: $userGroupFlats) {
+                        affected_rows
+                        returning { usergrp_flat_id usergrp_flat_member_id }
+                    }
+                }
+            """
+
+            queryVariables = { 
+                'userGroups': newGroupMembers,
+                'userGroupFlats': newGroupMemberFlats
+            }
+            try:
+                import_result = self.ImportDetails.call(import_mutation, queryVariables=queryVariables)
+                if 'errors' in import_result:
+                    logger.exception(f"fwo_api:importNwObject - error in addUserObjGroupMemberships: {str(import_result['errors'])}")
+                    errors = 1
+                else:
+                    changes = int(import_result['data']['insert_usergrp']['affected_rows'])
+                    newUserGrpIds = import_result['data']['insert_usergrp']['returning']
+            except Exception:
+                logger.exception(f"failed to write new objects: {str(traceback.format_exc())}")
+                errors = 1
+
+        return errors, changes, newUserGrpIds
+
 
     # # objects are not deleted but marked as removed
     # def markObjectsRemoved(self, removedNwObjectUids, removedSvcObjectUids):

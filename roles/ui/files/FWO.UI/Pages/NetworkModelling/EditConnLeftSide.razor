@@ -1,4 +1,7 @@
+@using FWO.Services.EventMediator.Events
+@using FWO.Services.EventMediator.Interfaces
 @using FWO.Ui.Display
+@inject IEventMediator EventMediator
 
 @inject UserConfig userConfig
 
@@ -15,7 +18,7 @@
             <h5>@(userConfig.GetText("network_objects"))</h5>
             <div class="form-group row">
                 <div class="@ColWidthClass()">
-                    <DraggableList AllElements="ConnHandler.AvailableNwElems" @bind-SelectedElements="selectedNwElems" 
+                    <DraggableList AllElements="AvailableNwElements" @bind-SelectedElements="selectedNwElems" 
                     HandleDragStart="HandleNwDragStart" Display="@DisplayNwObject" MaxHeight="25"/>
                 </div>
                 @if(!OverviewMode)
@@ -284,6 +287,13 @@
         }
     }
 
+    private List<KeyValuePair<int, long>> AvailableNwElements = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        EventMediator.Subscribe<EditAppServerSavedEvent>(new Action<EditAppServerSavedEvent>(async _ => await LoadNwElements(refresh: true)));
+        await LoadNwElements();
+    }
 
     private string DisplayInterfaceWithIcon(ModellingConnection interf)
     {
@@ -683,5 +693,20 @@
     private string ColWidthClass()
     {
         return OverviewMode ? "col-sm-12" : "col-sm-10";
+    }
+
+    private async Task LoadNwElements(bool refresh = false)
+    {
+        if(ConnHandler is null)
+        {
+            return; 
+        }
+
+        if (refresh)
+        {
+            await ConnHandler.RefreshObjects();
+        }
+
+        AvailableNwElements = ConnHandler.AvailableNwElems;
     }
 }

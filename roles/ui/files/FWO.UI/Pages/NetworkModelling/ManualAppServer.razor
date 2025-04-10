@@ -1,5 +1,8 @@
-﻿@using FWO.Ui.Display
+@using FWO.Ui.Display
 @using System.Text.Json
+@using FWO.Services.EventMediator.Events
+@using FWO.Services.EventMediator.Interfaces
+@inject IEventMediator EventMediator
 
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
 
@@ -17,7 +20,7 @@
                 </button>
                 <div class="vheight75">
                     <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="ModellingAppServer"
-                        Items="appServerListHandler.ManualAppServers" PageSize="0" ColumnReorder="true">
+                    Items="appServerListHandler.ManualAppServers" PageSize="0" ColumnReorder="true">
                         <Column TableItem="ModellingAppServer" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
                             <Template>
                                 <div class="btn-group">
@@ -84,9 +87,9 @@
     </PopUp>
     <EditAppServer @bind-Display="appServerListHandler.EditAppServerMode" @bind-AppServerHandler="appServerListHandler.AppServerHandler" />
     <ConfirmDelete @bind-Display="appServerListHandler.DeleteAppServerMode" PerformAction="Delete"
-        Title="@userConfig.GetText("delete_app_server")" DeleteMessage="@appServerListHandler.Message" />
+    Title="@userConfig.GetText("delete_app_server")" DeleteMessage="@appServerListHandler.Message" />
     <Confirm @bind-Display="appServerListHandler.ReactivateAppServerMode" PerformAction="Reactivate"
-        Title="@userConfig.GetText("reactivate")" Message="@appServerListHandler.Message" />
+    Title="@userConfig.GetText("reactivate")" Message="@appServerListHandler.Message" />
 }
 <InProgress Display="workInProgress" />
 
@@ -109,6 +112,7 @@
     private bool workInProgress = false;
     private bool firstTry = true;
 
+    private readonly static CollectionChangedEvent OnCollectionChanged = new();
 
     protected override void OnInitialized()
     {
@@ -142,6 +146,7 @@
         workInProgress = true;
         await appServerListHandler!.DeleteAppServer();
         workInProgress = false;
+
         StateHasChanged();
     }
 
@@ -155,6 +160,7 @@
 
     private void Close()
     {
+        EventMediator.Publish<CollectionChangedEvent>(OnCollectionChanged);
         firstTry = true;
         Display = false;
         DisplayChanged.InvokeAsync(Display);

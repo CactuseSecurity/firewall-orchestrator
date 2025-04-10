@@ -291,7 +291,8 @@
 
     protected override async Task OnInitializedAsync()
     {
-        EventMediator.Subscribe<EditAppServerSavedEvent>(new Action<EditAppServerSavedEvent>(async _ => await LoadNwElements(refresh: true)));
+        EventMediator.Subscribe<CollectionChangedEvent>(new Action<CollectionChangedEvent>(async _ => await LoadNwElements(refresh: true)));
+
         await LoadNwElements();
     }
 
@@ -544,7 +545,19 @@
 
     public string DisplayNwObject(KeyValuePair<int, long> nwObject)
     {
-        return ResolveNwObject(ConnHandler!.AvailableNwElems[ConnHandler!.AvailableNwElems.FindIndex(x => x.Key == nwObject.Key && x.Value == nwObject.Value)])?.DisplayWithIcon() ?? "";
+        if(ConnHandler is null || ConnHandler.AvailableNwElems.Count == 0)
+        {
+            return "";
+        }
+
+        int index = ConnHandler!.AvailableNwElems.FindIndex(x => x.Key == nwObject.Key && x.Value == nwObject.Value);
+
+        if(index == -1)
+        {
+            return "";
+        }
+
+        return ResolveNwObject(ConnHandler!.AvailableNwElems[index])?.DisplayWithIcon() ?? "";
     }
 
     public string DisplaySvcObject(KeyValuePair<int, int> svcObject)
@@ -707,6 +720,7 @@
             await ConnHandler.RefreshObjects();
         }
 
-        AvailableNwElements = ConnHandler.AvailableNwElems;
+        AvailableNwElements = ConnHandler.AvailableNwElems;        
+        await InvokeAsync(StateHasChanged);
     }
 }

@@ -21,9 +21,6 @@ namespace FWO.Services
 
         private ModellingManagedIdString OrigId = new();
 
-        public delegate void OnAppServersChangedEvent();
-        public event OnAppServersChangedEvent OnAppServersChanged;
-
         public ModellingAppRoleHandler(ApiConnection apiConnection, UserConfig userConfig, FwoOwner application,
             List<ModellingAppRole> appRoles, ModellingAppRole appRole, List<ModellingAppServer> availableAppServers,
             List<KeyValuePair<int, long>> availableNwElems, bool addMode, Action<Exception?, string, string, bool> displayMessageInUi, bool isOwner = true, bool readOnly = false)
@@ -306,7 +303,6 @@ namespace FWO.Services
                         AppServersInArea.Add(server);
                     }
                 }
-                OnAppServersChanged?.Invoke();
             }
         }
 

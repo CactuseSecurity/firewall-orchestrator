@@ -12,7 +12,7 @@
             <div class="bg-secondary">
                 <div id="app-role-library-ordered-draggable-list" class="col-sm-12 ">
                     <div class="d-flex align-items-center">
-                        <OrderByDropdown CssClass="@(orderByDropdownWidthClass)" @ref="orderByDropdown" AppRoleHandler="AppRoleHandler" TCollectionItem="ModellingAppServer" Collection="AppRoleHandler.AppServersInArea" CollectionReordered="OnCollectionReordered" ElementProperties="orderByDropdownProperties" />
+                        <OrderByDropdown CssClass="@(orderByDropdownWidthClass)" @ref="orderByDropdown" TCollectionItem="ModellingAppServer" Collection="AppRoleHandler.AppServersInArea" CollectionReordered="OnCollectionReordered" ElementProperties="orderByDropdownProperties" />
                         @if (selectedAppServers.Count > 0)
                         {
                             <div class="col-sm-2 p-2">

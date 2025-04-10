@@ -1,10 +1,13 @@
 @using FWO.Basics.Comparer
+@using FWO.Services.EventMediator.Interfaces
+@using FWO.Services.EventMediator.Events
 @using FWO.Ui.Data
 @using FWO.Data.Modelling
 @using NetTools
 @using System.Linq.Expressions
 @using System.Net
 @using System.Reflection
+@inject IEventMediator EventMediator
 
 @typeparam TCollectionItem
 
@@ -47,8 +50,6 @@
     [Parameter]
     public string? CssClass { get; set; } = "";
 
-    [Parameter]
-    public ModellingAppRoleHandler? AppRoleHandler { get; set; }
 
     /// <summary>
     /// Backing field of property 'SelectedProperty'.
@@ -117,19 +118,10 @@
                 CssClass = "";
             }
 
-            if (AppRoleHandler is not null)
-            {
-                AppRoleHandler.OnAppServersChanged += OnAppServersChanged;
-            }
+            EventMediator.Subscribe<CollectionChangedEvent>(new Action<CollectionChangedEvent>(_ => ReorderCollection()));
 
             initialized = true;
         }
-    }
-
-    private void OnAppServersChanged()
-    {
-        if(Collection is not null && Collection.Count > 0)
-            ReorderCollection();
     }
 
     /// <summary>

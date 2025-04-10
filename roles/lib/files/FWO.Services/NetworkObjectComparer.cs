@@ -45,6 +45,11 @@ namespace FWO.Services
                 return false;
             }
 
+            if(option.NwSeparateGroupAnalysis)
+            {
+                return !option.NwRegardGroupName || nwObjectGrp1.Name == nwObjectGrp2.Name;
+            }
+
             List<NetworkObject> objectList1 = [.. nwObjectGrp1.ObjectGroupFlats.Where(o => o.Object != null && o.Object?.Type.Name != ObjectType.Group).ToList().ConvertAll(g => g.Object)];
             List<NetworkObject> objectList2 = [.. nwObjectGrp2.ObjectGroupFlats.Where(o => o.Object != null && o.Object?.Type.Name != ObjectType.Group).ToList().ConvertAll(g => g.Object)];
 

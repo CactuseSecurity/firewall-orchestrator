@@ -57,7 +57,7 @@ namespace FWO.Services
 
         private bool IsImplementation(Rule rule, ModellingConnection conn)
         {
-            return !rule.IsDropRule() && !rule.Disabled
+            return !rule.IsDropRule() && !rule.Disabled && !rule.SourceNegated && !rule.DestinationNegated
                 && IsNwImplementation(rule.Froms, conn.SourceAppServers, conn.SourceAppRoles, conn.SourceAreas, conn.SourceOtherGroups)
                 && IsNwImplementation(rule.Tos, conn.DestinationAppServers, conn.DestinationAppRoles, conn.DestinationAreas, conn.DestinationOtherGroups)
                 && IsSvcImplementation(rule.Services, conn.Services, conn.ServiceGroups);
@@ -90,8 +90,7 @@ namespace FWO.Services
             {
                 return false;
             }
-            return ruleRecognitionOption.NwResolveGroup || ruleRecognitionOption.NwSeparateGroupAnalysis ?
-                true : CompareNwGroups(networkLocations, appRoles, otherGroups);
+            return ruleRecognitionOption.NwResolveGroup ? true : CompareNwGroups(networkLocations, appRoles, otherGroups);
         }
 
         private bool CompareNwAreas(NetworkLocation[] networkLocations, List<ModellingNetworkAreaWrapper> areas)

@@ -34,6 +34,15 @@ class Uid2IdMapper:
         self.logger.error(message)
         self.import_state_controller.appendErrorString(message)
         self.import_state_controller.increaseErrorCounterByOne()
+    
+    def log_debug(self, message: str):
+        """
+        Log a debug message.
+        
+        Args:
+            message (str): The debug message to log.
+        """
+        self.logger.debug(message)
 
     def get_network_object_id(self, uid: str) -> int:
         """
@@ -117,8 +126,8 @@ class Uid2IdMapper:
             """
         if uids is not None:
             if len(uids) == 0:
-                self.log_error("Error updating network object mapping: No UIDs provided")
-                return False
+                self.log_debug("Network object mapping updated for 0 objects")
+                return True
             variables = {'uids': uids}
         else:
             # If no UIDs are provided, fetch all UIDs for the Management
@@ -133,6 +142,7 @@ class Uid2IdMapper:
                 return False
             for obj in response['data']['object']:
                 self.nwobj_uid2id[obj['obj_uid']] = obj['obj_id']
+            self.log_debug(f"Network object mapping updated for {len(response['data']['object'])} objects")
             return True
         except Exception as e:
             self.log_error(f"Error updating network object mapping: {e}")
@@ -159,8 +169,8 @@ class Uid2IdMapper:
             """
         if uids is not None:
             if len(uids) == 0:
-                self.log_error("Error updating service object mapping: No UIDs provided")
-                return False
+                self.log_debug("Service object mapping updated for 0 objects")
+                return True
             variables = {'uids': uids}
         else:
             # If no UIDs are provided, fetch all UIDs for the Management
@@ -175,6 +185,7 @@ class Uid2IdMapper:
                 return False
             for obj in response['data']['service']:
                 self.svc_uid2id[obj['svc_uid']] = obj['svc_id']
+            self.log_debug(f"Service object mapping updated for {len(response['data']['service'])} objects")
             return True
         except Exception as e:
             self.log_error(f"Error updating service object mapping: {e}")
@@ -201,8 +212,8 @@ class Uid2IdMapper:
             """
         if uids is not None:
             if len(uids) == 0:
-                self.log_error("Error updating user mapping: No UIDs provided")
-                return False
+                self.log_debug("User mapping updated for 0 objects")
+                return True
             variables = {'uids': uids}
         else:
             # If no UIDs are provided, fetch all UIDs for the Management
@@ -217,6 +228,7 @@ class Uid2IdMapper:
                 return False
             for obj in response['data']['usr']:
                 self.user_uid2id[obj['user_uid']] = obj['user_id']
+            self.log_debug(f"User mapping updated for {len(response['data']['usr'])} objects")
             return True
         except Exception as e:
             self.log_error(f"Error updating user mapping: {e}")

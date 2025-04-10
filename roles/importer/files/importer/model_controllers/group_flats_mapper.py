@@ -38,19 +38,25 @@ class GroupFlatsMapper:
         self.import_state_controller.appendErrorString(message)
         self.import_state_controller.increaseErrorCounterByOne()
 
-    def get_network_object_flats(self, uid: str) -> List[str]:
+    def get_network_object_flats(self, uids: List[str]) -> List[str]:
         """
-        Get the flattened network objects.
+        Args:
+            uids (List[str]): The list of network object UIDs to flatten.
         
         Returns:
-            dict: The flattened network objects.
+            List[str]: The flattened network object UIDs.
         """
-        members = self.network_object_flats.get(uid)
-        if members is None:
-            members = self.flat_nwobj_members_recursive(uid)
-            self.network_object_flats[uid] = members
-            self.logger.debug(f"Added {len(members)} members to network object flats for group {uid}")
-        return members
+        all_members = set()
+        for uid in uids:
+            members = self.network_object_flats.get(uid)
+            if members is None:
+                members = self.flat_nwobj_members_recursive(uid)
+                if members is None:
+                    continue
+                self.network_object_flats[uid] = members
+                self.logger.debug(f"Added {len(members)} members to network object flats for group {uid}")
+            all_members.update(members)
+        return list(all_members)
     
     def flat_nwobj_members_recursive(self, groupUid: str, flatMembers: set = None, recursionLevel: int = 0):
         if flatMembers is None:
@@ -68,19 +74,24 @@ class GroupFlatsMapper:
                 self.flat_nwobj_members_recursive(memberUid, flatMembers, recursionLevel + 1)
         return flatMembers
 
-    def get_service_object_flats(self, uid: str) -> List[str]:
+    def get_service_object_flats(self, uids: List[str]) -> List[str]:
         """
-        Get the flattened service objects.
-        
+        Args:
+            uids (List[str]): The list of service object UIDs to flatten.
         Returns:
-            dict: The flattened service objects.
+            List[str]: The flattened service object UIDs.
         """
-        members = self.service_object_flats.get(uid)
-        if members is None:
-            members = self.flat_svcobj_members_recursive(uid)
-            self.service_object_flats[uid] = members
-            self.logger.debug(f"Added {len(members)} members to service object flats for group {uid}")
-        return members
+        all_members = set()
+        for uid in uids:
+            members = self.service_object_flats.get(uid)
+            if members is None:
+                members = self.flat_svcobj_members_recursive(uid)
+                if members is None:
+                    continue
+                self.service_object_flats[uid] = members
+                self.logger.debug(f"Added {len(members)} members to service object flats for group {uid}")
+            all_members.update(members)
+        return list(all_members)
 
     def flat_svcobj_members_recursive(self, groupUid: str, flatMembers: set = None, recursionLevel: int = 0):
         if flatMembers is None:
@@ -98,19 +109,24 @@ class GroupFlatsMapper:
                 self.flat_svcobj_members_recursive(memberUid, flatMembers, recursionLevel + 1)
         return flatMembers
     
-    def get_user_flats(self, uid: str) -> List[str]:
+    def get_user_flats(self, uids: List[str]) -> List[str]:
         """
-        Get the flattened users.
-        
+        Args:
+            uids (List[str]): The list of user UIDs to flatten.
         Returns:
-            dict: The flattened users.
+            List[str]: The flattened user UIDs.
         """
-        members = self.user_flats.get(uid)
-        if members is None:
-            members = self.flat_user_members_recursive(uid)
-            self.user_flats[uid] = members
-            self.logger.debug(f"Added {len(members)} members to user flats for group {uid}")
-        return members
+        all_members = set()
+        for uid in uids:
+            members = self.user_flats.get(uid)
+            if members is None:
+                members = self.flat_user_members_recursive(uid)
+                if members is None:
+                    continue
+                self.user_flats[uid] = members
+                self.logger.debug(f"Added {len(members)} members to user flats for group {uid}")
+            all_members.update(members)
+        return list(all_members)
     
     def flat_user_members_recursive(self, groupUid: str, flatMembers: set = None, recursionLevel: int = 0):
         if flatMembers is None:

@@ -128,7 +128,8 @@
 
     private void OnAppServersChanged()
     {
-        Console.WriteLine();
+        if(Collection is not null && Collection.Count > 0)
+            ReorderCollection();
     }
 
     /// <summary>

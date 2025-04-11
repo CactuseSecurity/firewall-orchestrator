@@ -49,11 +49,7 @@
                     <label class="btn btn-sm @(UploadDisabled ? "btn-primary" : "btn-success")" for="fileUpload">
                         @(ModellingHandlerBase.DisplayButton(userConfig, "select_file", Icons.Add, "select_file"))
                     </label>
-                    <InputFile id="fileUpload" hidden accept="@SupportedFileFormats" OnChange="@(async () => await UploadCustomLogo())" />
-                    @if(InputFileChangeEventArgs is not null && !string.IsNullOrEmpty(InputFileChangeEventArgs.File.Name))
-                    {
-                        <label class="d-inline">@InputFileChangeEventArgs.File.Name</label>
-                    }
+                    <InputFile id="fileUpload" hidden accept="@SupportedFileFormats" OnChange="@(async (InputFileChangeEventArgs e) => await UploadCustomLogo(e))" />
                 </Authorized>
                 <NotAuthorized>
                 </NotAuthorized>
@@ -167,8 +163,10 @@
         Loading = false;
     }
 
-    private async Task UploadCustomLogo()
+    private async Task UploadCustomLogo(InputFileChangeEventArgs e)
     {
+        SingleUpload(e);
+
         if(InputFileChangeEventArgs is null)
             return;
 
@@ -190,7 +188,14 @@
             return;
         }
 
-        var bla = await fileUploadService.ImportCustomLogo<ErrorBaseModel>(UploadCase, InputFileChangeEventArgs.File.Name);
+        (bool success, ErrorBaseModel? error) = await fileUploadService.ImportCustomLogo<ErrorBaseModel>(UploadCase, InputFileChangeEventArgs.File.Name);
+
+        if(!success && error is not null)
+        {
+            Exception exception = new(error.Message, error.InternalException);
+
+            await OnError.InvokeAsync();
+        }
 
         Loading = false;
     }

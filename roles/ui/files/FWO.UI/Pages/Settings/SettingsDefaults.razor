@@ -65,7 +65,7 @@
         <div class="form-group row" data-toggle="tooltip" title="">
             <label class="col-form-label col-sm-4">asdasdasd:</label>
             <div class="col-sm-4">
-                <FileUpload UploadCase="FileUploadCase.CustomLogoUpload" TUploadResult="ErrorBaseModel" SupportedFileFormats=".png|.jpg" AuthorizedRoles="@Roles.Admin"></FileUpload>
+                <FileUpload UploadCase="FileUploadCase.CustomLogoUpload" TUploadResult="ErrorBaseModel" SupportedFileFormats=".png|.jpg" AuthorizedRoles="@Roles.Admin" OnError="OnLogoUploadError"></FileUpload>
             </div>
         </div>
         <hr />
@@ -203,6 +203,11 @@ else
     private Language selectedLanguage = new Language();
     private DateTime autoDiscStartDate = DateTime.Today;
     private DateTime autoDiscStartTime = DateTime.Now.AddSeconds(-DateTime.Now.Second);
+
+    private void OnLogoUploadError((Exception Exception, string Message) error)
+    {
+        DisplayMessageInUi(error.Exception, userConfig.GetText("change_default"), error.Message, false);
+    }
 
     protected override async Task OnInitializedAsync()
     {

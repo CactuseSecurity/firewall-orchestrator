@@ -12,6 +12,12 @@
     #     LimitRequestBody 250M
     # </Location>
 
+	# set buffer to 128KB
+	ProxyIOBufferSize 131072
+	
+	Timeout 3600
+	ProxyTimeout 3600
+
 	# terminate https incoming calls and proxy to http
 	ProxyPass /api http://{{ api_local_listening_ip_address }}:{{ api_port }}/
 	ProxyPassReverse /api http://{{ api_local_listening_ip_address }}:{{ api_port }}/

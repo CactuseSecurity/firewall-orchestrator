@@ -41,7 +41,8 @@ class FwoApi():
                 r = session.post(self.FwoApiUrl, data=json.dumps(full_query), timeout=int(fwo_api_http_import_timeout))
                 r.raise_for_status()
             except requests.exceptions.RequestException:
-                logger.error(self.showImportApiCallInfo(full_query, request_headers, typ='error') + ":\n" + str(traceback.format_exc()))
+                if int(fwo_globals.debug_level) > 1:
+                    logger.error(self.showImportApiCallInfo(full_query, request_headers, typ='error') + ":\n" + str(traceback.format_exc()))
                 if r != None:
                     if r.status_code == 503:
                         raise FwoApiServiceUnavailable("FWO API HTTP error 503 (FWO API died?)" )

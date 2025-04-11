@@ -37,7 +37,7 @@ namespace FWO.Services
         private readonly Dictionary<int, List<ModellingAppServer>> allExistingAppServers = [];
         private readonly Dictionary<int, List<ModellingAppServer>> alreadyCreatedAppServers = [];
 
-        public ModellingAppZone? PlannedAppZone = default;
+        public ModellingAppZone? PlannedAppZoneDbUpdate = default;
 
         public async Task<ModellingVarianceResult> AnalyseRulesVsModelledConnections(List<ModellingConnection> connections, ModellingFilter modellingFilter)
         {

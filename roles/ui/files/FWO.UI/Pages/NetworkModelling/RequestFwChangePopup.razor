@@ -108,7 +108,7 @@
     private ExtStateHandler? extStateHandler;
     private List<GraphQlApiSubscription<List<WfReqTask>>> actTaskSubscriptions = [];
 
-    private ModellingAppZone? PlannedAppZone = default;
+    private ModellingAppZone? PlannedAppZoneDbUpdate = default;
 
     protected override async Task OnInitializedAsync()
     {
@@ -136,7 +136,7 @@
             {
                 ModellingVarianceAnalysis varianceAnalysis = new(apiConnection, extStateHandler, userConfig, SelectedApp, DisplayMessageInUi);
                 TaskList = await varianceAnalysis.AnalyseModelledConnectionsForRequest(Connections);
-                PlannedAppZone = varianceAnalysis.PlannedAppZone;
+                PlannedAppZoneDbUpdate = varianceAnalysis.PlannedAppZoneDbUpdate;
             }
         }
         catch (Exception exception)
@@ -272,10 +272,10 @@
         WorkInProgress = true;
         try
         {
-            if (PlannedAppZone is not null)
+            if (PlannedAppZoneDbUpdate is not null)
             {
                 ModellingAppZoneHandler appZoneHandler = new(apiConnection, userConfig, SelectedApp, DisplayMessageInUi);
-                await appZoneHandler.UpsertAppZone(PlannedAppZone);
+                await appZoneHandler.UpsertAppZone(PlannedAppZoneDbUpdate);
             }
 
             TicketCreator ticketCreator = new(apiConnection, userConfig, authenticationStateTask!.Result.User, middlewareClient);

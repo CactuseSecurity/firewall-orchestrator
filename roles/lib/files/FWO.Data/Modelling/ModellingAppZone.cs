@@ -2,7 +2,7 @@ namespace FWO.Data.Modelling
 {
     public class ModellingAppZone : ModellingAppRole
     {
-        public bool Exists { get; set; } = false;
+        public bool AlreadyExistsInDb { get; set; } = false;
         public List<ModellingAppServerWrapper> AppServersNew = [];
         public List<ModellingAppServerWrapper> AppServersRemoved = [];
         public List<ModellingAppServerWrapper> AppServersUnchanged = [];
@@ -16,7 +16,9 @@ namespace FWO.Data.Modelling
         }
 
         public ModellingAppZone(ModellingAppZone appZone) : base(appZone)
-        { }
+        { 
+            AlreadyExistsInDb = appZone.AlreadyExistsInDb;
+        }
 
         public ModellingAppZone(ModellingAppRole appRole) : base(appRole)
         { }

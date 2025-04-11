@@ -14,41 +14,50 @@ namespace FWO.Services
 
         public async Task<ModellingAppZone?> GetExistingModelledAppZone()
         {
-            try
-            {
-                List<ModellingAppZone>? existingAppZones = await apiConnection.SendQueryAsync<List<ModellingAppZone>>(ModellingQueries.getAppZonesByAppId, new { appId = owner.Id });
-                return existingAppZones.FirstOrDefault();
-            }
-            catch (Exception ex)
-            {
-                DisplayMessageInUi(ex, userConfig.GetText("app_zone_creation"), userConfig.GetText("E9203"), true);
-            }
-            return default;
+            List<ModellingAppZone>? existingAppZones = await apiConnection.SendQueryAsync<List<ModellingAppZone>>(ModellingQueries.getAppZonesByAppId, new { appId = owner.Id });
+            return existingAppZones.FirstOrDefault();
         }
 
-        public async Task<ModellingAppZone> PlanNewAppZone(bool exist)
+        public ModellingAppZone CreateNewAppZone()
         {
-            allAppServers = await GetAllModelledAppServers();
-            ModellingAppZone appZone = new(owner.Id){ Exists = exist };
+            ModellingAppZone appZone = new(owner.Id);
             ApplyNamingConvention(owner.ExtAppId?.ToUpper(), appZone);
             appZone.AppServersNew = allAppServers;
             appZone.AppServers = allAppServers;
             return appZone;
         }
 
-        public async Task<ModellingAppZone> PlanAppZoneUpsert(ModellingAppZone prodAppZone)
+        public async Task<ModellingAppZone> PlanAppZoneDbUpdate(ModellingAppZone? oldAppZone)
         {
             allAppServers = await GetAllModelledAppServers();
+            ModellingAppZone appZone;
+            if(oldAppZone == null)
+            {
+                appZone = CreateNewAppZone();
+            }
+            else
+            {
+                appZone = new(oldAppZone) { AlreadyExistsInDb = true };
+                FillDiffLists(appZone, allAppServers);
+            }
+            return appZone;
+        }
+
+        public ModellingAppZone PlanAppZoneRequest(ModellingAppZone prodAppZone)
+        {
             FillDiffLists(prodAppZone, allAppServers);
             return prodAppZone;
         }
 
         public async Task<ModellingAppZone?> UpsertAppZone(ModellingAppZone appZone)
         {
-            if (!appZone.Exists)
+            if (!appZone.AlreadyExistsInDb)
             {
                 appZone.Id = await AddAppZoneToDb(appZone);
-                await AddAppServersToAppZone(appZone.Id, appZone.AppServers);
+                if(appZone.Id > 0)
+                {
+                    await AddAppServersToAppZone(appZone.Id, appZone.AppServers);
+                }
             }
             else
             {
@@ -62,7 +71,6 @@ namespace FWO.Services
                     await AddAppServersToAppZone(appZone.Id, appZone.AppServersNew);
                 }
             }
-
             return appZone;
         }
 
@@ -118,20 +126,12 @@ namespace FWO.Services
                 creator = "CreateAZObjects"
             };
 
-            try
+            ReturnId[]? returnIds = ( await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.newAppZone, azVars) ).ReturnIds;
+            if (returnIds != null && returnIds.Length > 0)
             {
-                ReturnId[]? returnIds = ( await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.newAppZone, azVars) ).ReturnIds;
-
                 await LogChange(ModellingTypes.ChangeType.Insert, ModellingTypes.ModObjectType.AppZone, appZone.Id, $"New App Zone: {appZone.Display()}", null);
-
-                if (returnIds != null && returnIds.Length > 0)
-                    return returnIds[0].NewIdLong;
+                return returnIds[0].NewIdLong;
             }
-            catch (Exception ex)
-            {
-                DisplayMessageInUi(ex, userConfig.GetText("app_zone_creation"), userConfig.GetText("E9202"), true);
-            }
-
             return -1;
         }
 
@@ -144,15 +144,7 @@ namespace FWO.Services
                     nwObjectId = appServer.Content.Id,
                     nwGroupId = appZoneId
                 };
-
-                try
-                {
-                    await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addNwObjectToNwGroup, nwobject_nwgroupVars);
-                }
-                catch (Exception ex)
-                {
-                    DisplayMessageInUi(ex, userConfig.GetText("app_zone_creation"), userConfig.GetText("E9204"), true);
-                }
+                await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addNwObjectToNwGroup, nwobject_nwgroupVars);
             }
         }
 
@@ -165,15 +157,7 @@ namespace FWO.Services
                     nwObjectId = appServer.Id,
                     nwGroupId = appZoneId
                 };
-
-                try
-                {
-                    await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.removeNwObjectFromNwGroup, nwobject_nwgroupVars);
-                }
-                catch (Exception ex)
-                {
-                    DisplayMessageInUi(ex, userConfig.GetText("app_zone_creation"), userConfig.GetText("E9204"), true);
-                }
+                await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.removeNwObjectFromNwGroup, nwobject_nwgroupVars);
             }
         }
     }

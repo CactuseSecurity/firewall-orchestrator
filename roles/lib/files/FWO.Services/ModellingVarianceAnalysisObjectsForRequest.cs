@@ -87,23 +87,23 @@ namespace FWO.Services
                 return;
             }
             ModellingAppZone? oldAppZone = await AppZoneHandler.GetExistingModelledAppZone();
+            PlannedAppZoneDbUpdate = await AppZoneHandler.PlanAppZoneDbUpdate(oldAppZone);
+
             ModellingAppRole? prodAppZone = oldAppZone == null ? null : ResolveProdAppRole(oldAppZone, mgt);
-
-            if (oldAppZone == null || prodAppZone == null)
+            if(prodAppZone == null)
             {
-                PlannedAppZone = await AppZoneHandler.PlanNewAppZone(oldAppZone != null);
-                RequestNewAppRole(PlannedAppZone, mgt);
-                return;
+                RequestNewAppRole(AppZoneHandler.CreateNewAppZone() , mgt);
             }
-
-            //Check prod AZ diff against current DB AZ
-            PlannedAppZone = await AppZoneHandler.PlanAppZoneUpsert(new ModellingAppZone(prodAppZone));
-            if (PlannedAppZone.AppServersNew.Count > 0 || PlannedAppZone.AppServersRemoved.Count > 0)
+            else
             {
-                newAppServers = PlannedAppZone.AppServersNew;
-                deletedAppServers = PlannedAppZone.AppServersRemoved;
-                unchangedAppServers = PlannedAppZone.AppServersUnchanged;
-                RequestUpdateAppRole(PlannedAppZone, mgt);
+                ModellingAppZone appZoneToRequest = AppZoneHandler.PlanAppZoneRequest(new ModellingAppZone(prodAppZone));
+                if (appZoneToRequest.AppServersNew.Count > 0 || appZoneToRequest.AppServersRemoved.Count > 0)
+                {
+                    newAppServers = appZoneToRequest.AppServersNew;
+                    deletedAppServers = appZoneToRequest.AppServersRemoved;
+                    unchangedAppServers = appZoneToRequest.AppServersUnchanged;
+                    RequestUpdateAppRole(appZoneToRequest, mgt);
+                }
             }
         }
 

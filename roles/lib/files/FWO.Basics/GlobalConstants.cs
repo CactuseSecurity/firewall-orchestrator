@@ -49,7 +49,8 @@ namespace FWO.Basics
         public const string TestPDFFilePath = "pdffile.pdf";
         public const string TestPDFHtmlTemplate = "<html><body><h1>test</h1><h2>test mit puppteer</h2></body></html>";
 
-        public const string CustomLogoPath = "/usr/local/fworch/ui/files/FWO.UI/wwwroot/images";
+        public const string CustomLogoPath = @".\wwwroot\images\";
+        public const string CustomLogoFilename = "CustomLogo";
     }
 
     public struct PageName

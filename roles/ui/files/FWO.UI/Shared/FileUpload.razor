@@ -46,12 +46,18 @@
         {
             <AuthorizeView Roles="@AuthorizedRoles">
                 <Authorized>
+                    <InputFile id="fileUpload" hidden accept="@SupportedFileFormats" OnChange="@(async (InputFileChangeEventArgs e) => await UploadCustomLogo(e))" />
+
                     <label class="btn btn-sm @(UploadDisabled ? "btn-primary" : "btn-success")" for="fileUpload">
                         @(ModellingHandlerBase.DisplayButton(userConfig, "select_file", Icons.Add, "select_file"))
-                    </label>
-                    <InputFile id="fileUpload" hidden accept="@SupportedFileFormats" OnChange="@(async (InputFileChangeEventArgs e) => await UploadCustomLogo(e))" />
+                    </label>                   
                 </Authorized>
                 <NotAuthorized>
+                    <button type="button" disabled class="btn btn-sm btn-primary">
+                        <span class="ms-2">
+                            @(ModellingHandlerBase.DisplayButton(userConfig, "select_file", Icons.Add, "select_file"))
+                        </span>
+                    </button>
                 </NotAuthorized>
             </AuthorizeView>
         }       
@@ -70,7 +76,7 @@
     public EventCallback<(Exception, string?)> OnError { get; set; }
 
     [Parameter]
-    public EventCallback OnImportSuccess { get; set; }
+    public EventCallback<string?> OnImportSuccess { get; set; }
 
     @typeparam TUploadResult
 
@@ -195,7 +201,12 @@
             Exception exception = new(error.Message, error.InternalException);
 
             await OnError.InvokeAsync();
+        }else if(success)
+        {
+            string filename = GlobalConst.CustomLogoFilename + Path.GetExtension(InputFileChangeEventArgs.File.Name);
+            await OnImportSuccess.InvokeAsync(filename);
         }
+
 
         Loading = false;
     }

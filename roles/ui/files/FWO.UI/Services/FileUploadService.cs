@@ -8,7 +8,6 @@ using FWO.Config.Api;
 using FWO.Ui.Data;
 using Microsoft.AspNetCore.Components.Forms;
 using System.Text.Json;
-using System.Collections.Generic;
 
 namespace FWO.Ui.Services
 {
@@ -202,7 +201,7 @@ namespace FWO.Ui.Services
         private async Task<(bool success, ErrorBaseModel? error)> SaveCustomLogo(string filename)
         {
             string extension = Path.GetExtension(filename);
-            string path = Path.Combine(GlobalConst.CustomLogoPath, "CustomLogo" + extension);
+            string path = GlobalConst.CustomLogoPath + GlobalConst.CustomLogoFilename + extension;
 
             try
             {

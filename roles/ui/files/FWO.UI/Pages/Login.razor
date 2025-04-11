@@ -24,7 +24,14 @@
     <div class="row text-center">
         <div class="col-xl col-lg col-md-3 col-sm-2"></div>
         <div class="col-xl-2 col-lg-3 col-md-6 col-sm-8 col-xs-12">
-            <img src="images/FWO_logo.png">
+            @if(globalConfig.UseCustomLogo)
+            {
+                <img src="@("/images/" + globalConfig.CustomLogoFilename)" style="max-width: 300px" alt="">
+            }
+            else
+            {
+                <img src="/images/FWO_logo.png">
+            }
             <br><br>            
         @* <h2 class="text-center"> @(userConfig.GetText("login")) </h2> *@
             <div class="shadow-sm card p-3">

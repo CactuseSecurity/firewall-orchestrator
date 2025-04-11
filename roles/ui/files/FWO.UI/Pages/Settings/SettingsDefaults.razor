@@ -63,9 +63,12 @@
             </div>
         </div>
         <div class="form-group row" data-toggle="tooltip" title="">
-            <label class="col-form-label col-sm-4">asdasdasd:</label>
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("useCustomLogo")):</label>
+            <div class="col-sm-1">
+                <input id="cbx_customLogo" type="checkbox" @bind="configData!.UseCustomLogo">
+            </div>
             <div class="col-sm-4">
-                <FileUpload UploadCase="FileUploadCase.CustomLogoUpload" TUploadResult="ErrorBaseModel" SupportedFileFormats=".png|.jpg" AuthorizedRoles="@Roles.Admin" OnError="OnLogoUploadError"></FileUpload>
+                <FileUpload UploadCase="FileUploadCase.CustomLogoUpload" TUploadResult="ErrorBaseModel" SupportedFileFormats=".png,.jpg,.jpeg" AuthorizedRoles="@Roles.Admin" OnError="OnLogoUploadError" OnImportSuccess="SaveLogoFilename"></FileUpload>
             </div>
         </div>
         <hr />
@@ -107,14 +110,14 @@
                 <input type="number" min="0" @bind="configData!.UnusedTolerance" />
             </div>
         </div>
-            <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5448"))">
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5448"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("creationTolerance"))*:</label>
             <div class="col-sm-2">
                 <input type="number" min="0" @bind="configData!.CreationTolerance" />
             </div>
         </div>
         <hr />
-            <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5415"))">
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5415"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("dataRetentionTime")):</label>
             <div class="col-sm-2">
                 <input type="number" min="0" @bind="configData!.DataRetentionTime" />
@@ -242,6 +245,14 @@ else
         catch (Exception exception)
         {
             DisplayMessageInUi(exception, userConfig.GetText("change_default"), "", true);
+        }
+    }
+
+    private void SaveLogoFilename(string? filename)
+    {
+        if(configData is not null && !string.IsNullOrEmpty(filename))
+        {
+            configData.CustomLogoFilename = filename;
         }
     }
 }

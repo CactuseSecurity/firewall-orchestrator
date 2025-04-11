@@ -3,3 +3,4 @@
 .test_data/
 roles/importer/venv/
 ansible_venv/
+/roles/ui/files/FWO.UI/wwwroot/images/CustomLogo.png

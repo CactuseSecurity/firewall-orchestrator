@@ -24,17 +24,26 @@ namespace FWO.Ui.Services
         private readonly ModellingNamingConvention NamingConvention = new();
         private readonly List<AppServerType> AppServerTypes = [];
         private string ImportSource = "";
+        private readonly string AllowedFileFormats;
 
-        public FileUploadService(ApiConnection apiConnection, UserConfig userConfig)
+        public FileUploadService(ApiConnection apiConnection, UserConfig userConfig, string allowedFileFormats)
         {
             UserConfig = userConfig;
             ApiConnection = apiConnection;
             NamingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(userConfig.ModNamingConvention) ?? new();
             AppServerTypes = JsonSerializer.Deserialize<List<AppServerType>>(UserConfig.ModAppServerTypes) ?? [];
+            AllowedFileFormats = allowedFileFormats;
         }
 
         public async Task ReadFileToBytes(InputFileChangeEventArgs args)
         {
+            string fileExtension = Path.GetExtension(args.File.Name);
+
+            if(!AllowedFileFormats.Contains(fileExtension))
+            {
+                throw new ArgumentException(UserConfig.GetText("E5430"));
+            }
+
             using MemoryStream ms = new();
             await args.File.OpenReadStream().CopyToAsync(ms);
             UploadedData = ms.ToArray();

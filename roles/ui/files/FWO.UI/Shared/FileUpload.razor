@@ -49,7 +49,7 @@
                     <label class="btn btn-sm @(UploadDisabled ? "btn-primary" : "btn-success")" for="fileUpload">
                         @(ModellingHandlerBase.DisplayButton(userConfig, "select_file", Icons.Add, "select_file"))
                     </label>
-                    <InputFile id="fileUpload" hidden accept="@SupportedFileFormats" OnChange="@SingleUpload" />
+                    <InputFile id="fileUpload" hidden accept="@SupportedFileFormats" OnChange="@(async () => await UploadCustomLogo())" />
                     @if(InputFileChangeEventArgs is not null && !string.IsNullOrEmpty(InputFileChangeEventArgs.File.Name))
                     {
                         <label class="d-inline">@InputFileChangeEventArgs.File.Name</label>
@@ -139,7 +139,7 @@
             return;
 
         Loading = true;
-        FileUploadService fileUploadService = new(apiConnection, userConfig);
+        FileUploadService fileUploadService = new(apiConnection, userConfig, SupportedFileFormats);
 
         try
         {
@@ -169,7 +169,7 @@
 
     private async Task UploadCustomLogo()
     {
-        if(UploadDisabled || InputFileChangeEventArgs is null)
+        if(InputFileChangeEventArgs is null)
             return;
 
         if(InputFileChangeEventArgs.File is null)
@@ -177,7 +177,7 @@
 
         Loading = true;
 
-        FileUploadService fileUploadService = new(apiConnection, userConfig);
+        FileUploadService fileUploadService = new(apiConnection, userConfig, SupportedFileFormats);
 
         try
         {

@@ -511,28 +511,31 @@ namespace FWO.Middleware.Server
 				{
 					return await NewAppServer(incomingAppServer, appID, impSource);
 				}
+
+				if (existingAppServer.IsDeleted)
+				{
+					if (!await ReactivateAppServer(existingAppServer))
+					{	
+						return false;
+					}
+				}
 				else
 				{
-					if (existingAppServer.IsDeleted)
-					{
-						if (!await ReactivateAppServer(existingAppServer))
-						{	
-							return false;
-						}
+					// in case there are still active appservers from other sources (resulting e.g. from older revisions)
+					await AppServerHelper.DeactivateOtherSources(apiConnection, userConfig, existingAppServer);
+				}
+				if (!existingAppServer.Name.Equals(incomingAppServer.Name))
+				{
+					if (!await UpdateAppServerName(existingAppServer, incomingAppServer.Name))
+					{	
+						return false;
 					}
-					if (!existingAppServer.Name.Equals(incomingAppServer.Name))
-					{
-						if (!await UpdateAppServerName(existingAppServer, incomingAppServer.Name))
-						{	
-							return false;
-						}
-					}
-					if (existingAppServer.CustomType == null)
-					{
-						if (!await UpdateAppServerType(existingAppServer))
-						{	
-							return false;
-						}
+				}
+				if (existingAppServer.CustomType == null)
+				{
+					if (!await UpdateAppServerType(existingAppServer))
+					{	
+						return false;
 					}
 				}
 				return true;

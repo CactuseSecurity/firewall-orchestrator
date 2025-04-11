@@ -4,50 +4,50 @@
 
 @inject UserConfig userConfig
 
-@if(ruleChangeDisplay != null)
+@if(ruleDiffDisplay != null)
 {
-    <Table TableItem="RuleChange" Items="ruleChanges" ShowSearchBar="false" style="font-size:small"
+    <Table TableItem="Rule" Items="Difference.ImplementedRules" ShowSearchBar="false" style="font-size:small"
             TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header popover-transform" 
             PageSize="RulesPerPage" ColumnReorder="true">
 
-        <Column TableItem="RuleChange" Context="rule" Title="@(userConfig.GetText("management"))" Field="@(r => r.NewRule.ManagementName)" Sortable="false" Filterable="false" Hideable="true" />
-        <Column TableItem="RuleChange" Context="rule" Title="@(userConfig.GetText("gateway"))" Field="@(r => r.NewRule.DeviceName)" Sortable="false" Filterable="false" Hideable="true" />
-        <Column TableItem="RuleChange" Context="rule" Title="@(userConfig.GetText("source"))" Field="@(r => r.NewRule.Name)" Sortable="true" Filterable="false" Hideable="true">
+        <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("management"))" Field="@(r => r.ManagementName)" Sortable="false" Filterable="false" Hideable="true" />
+        <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("gateway"))" Field="@(r => r.DeviceName)" Sortable="false" Filterable="false" Hideable="true" />
+        <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("source"))" Field="@(r => r.Name)" Sortable="true" Filterable="false" Hideable="true">
             <Template>
-                @((MarkupString)ruleChangeDisplay.DisplaySource(rule, OutputLocation.report, ReportType.VarianceAnalysis))
+                @((MarkupString)ruleDiffDisplay.DisplaySourceDiff(rule, OutputLocation.report, ReportType.VarianceAnalysis))
             </Template>
         </Column>
-        <Column TableItem="RuleChange" Context="rule" Title="@(userConfig.GetText("services"))" Field="@(r => r.NewRule.Name)" Sortable="true" Filterable="false" Hideable="true">
+        <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("services"))" Field="@(r => r.Name)" Sortable="true" Filterable="false" Hideable="true">
             <Template>
-                @((MarkupString)ruleChangeDisplay.DisplayServices(rule, OutputLocation.report, ReportType.VarianceAnalysis))
+                @((MarkupString)ruleDiffDisplay.DisplayServiceDiff(rule, OutputLocation.report, ReportType.VarianceAnalysis))
             </Template>
         </Column>
-        <Column TableItem="RuleChange" Context="rule" Title="@(userConfig.GetText("destination"))" Field="@(r => r.NewRule.Name)" Sortable="true" Filterable="false" Hideable="true">
+        <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("destination"))" Field="@(r => r.Name)" Sortable="true" Filterable="false" Hideable="true">
             <Template>
-                @((MarkupString)ruleChangeDisplay.DisplayDestination(rule, OutputLocation.report, ReportType.VarianceAnalysis))
+                @((MarkupString)ruleDiffDisplay.DisplayDestinationDiff(rule, OutputLocation.report, ReportType.VarianceAnalysis))
             </Template>
         </Column>
 
-        <DetailTemplate TableItem="RuleChange">
-            <Detail Title="@(userConfig.GetText("name"))" Data="@context.NewRule.Name?.ToString()" />
-            <Detail Title="@(userConfig.GetText("uid"))" Data="@context.NewRule.Uid?.ToString()" />
-            <Detail Title="@(userConfig.GetText("action"))" Data="@context.NewRule.Action?.ToString()" />
-            <Detail Title="@(userConfig.GetText("track"))" Data="@context.NewRule.Track?.ToString()" />
-            <Detail Title="@(userConfig.GetText("comment"))" Data="@context.NewRule.Comment?.ToString()" />
-            <Detail Title="@(userConfig.GetText("source_zone"))" Data="@ruleChangeDisplay.DisplaySourceZone(context)" />
-            <Detail Title="@(userConfig.GetText("destination_zone"))" Data="@ruleChangeDisplay.DisplayDestinationZone(context)" />
-            <Detail Title="@(userConfig.GetText("enabled"))" Data="@((!context.NewRule.Disabled).ToString())" />
-            @if(context.NewRule.Metadata != null)
+        <DetailTemplate TableItem="Rule">
+            <Detail Title="@(userConfig.GetText("name"))" Data="@context.Name?.ToString()" />
+            <Detail Title="@(userConfig.GetText("uid"))" Data="@context.Uid?.ToString()" />
+            <Detail Title="@(userConfig.GetText("action"))" Data="@context.Action?.ToString()" />
+            <Detail Title="@(userConfig.GetText("track"))" Data="@context.Track?.ToString()" />
+            <Detail Title="@(userConfig.GetText("comment"))" Data="@context.Comment?.ToString()" />
+            <Detail Title="@(userConfig.GetText("source_zone"))" Data="@context.SourceZone?.Name" />
+            <Detail Title="@(userConfig.GetText("destination_zone"))" Data="@context.DestinationZone?.Name" />
+            <Detail Title="@(userConfig.GetText("enabled"))" Data="@((!context.Disabled).ToString())" />
+            @if(context.Metadata != null)
             {
-                <Detail Title="@(userConfig.GetText("created"))" Data="@context.NewRule.Metadata?.Created?.ToString()" />
-                <Detail Title="@(userConfig.GetText("last_modified"))" Data="@context.NewRule.Metadata?.LastModified?.ToString()" />
-                <Detail Title="@(userConfig.GetText("first_hit"))" Data="@context.NewRule.Metadata?.FirstHit?.ToString()" />
-                <Detail Title="@(userConfig.GetText("last_hit"))" Data="@context.NewRule.Metadata?.LastHit?.ToString()" />
-                <Detail Title="@(userConfig.GetText("last_certify_date"))" Data="@context.NewRule.Metadata?.LastCertified?.ToString()" />
-                <Detail Title="@(userConfig.GetText("last_recertifier"))" Data="@context.NewRule.Metadata?.LastCertifierDn?.ToString()" />
-                <Detail Title="@(userConfig.GetText("decert_date"))" Data="@context.NewRule.Metadata?.DecertificationDate?.ToString()" />
-                <Detail Title="@(userConfig.GetText("recert_comment"))" Data="@context.NewRule.Metadata?.Comment?.ToString()" />
-                <Detail Title="@(userConfig.GetText("recert_history"))" Data="@(context.NewRule.Metadata?.RecertHistory.Count > 0 ? ":" : "")" />
+                <Detail Title="@(userConfig.GetText("created"))" Data="@context.Metadata?.Created?.ToString()" />
+                <Detail Title="@(userConfig.GetText("last_modified"))" Data="@context.Metadata?.LastModified?.ToString()" />
+                <Detail Title="@(userConfig.GetText("first_hit"))" Data="@context.Metadata?.FirstHit?.ToString()" />
+                <Detail Title="@(userConfig.GetText("last_hit"))" Data="@context.Metadata?.LastHit?.ToString()" />
+                <Detail Title="@(userConfig.GetText("last_certify_date"))" Data="@context.Metadata?.LastCertified?.ToString()" />
+                <Detail Title="@(userConfig.GetText("last_recertifier"))" Data="@context.Metadata?.LastCertifierDn?.ToString()" />
+                <Detail Title="@(userConfig.GetText("decert_date"))" Data="@context.Metadata?.DecertificationDate?.ToString()" />
+                <Detail Title="@(userConfig.GetText("recert_comment"))" Data="@context.Metadata?.Comment?.ToString()" />
+                <Detail Title="@(userConfig.GetText("recert_history"))" Data="@(context.Metadata?.RecertHistory.Count > 0 ? ":" : "")" />
             }
         </DetailTemplate>
         <Pager ShowPageNumber="true" ShowTotalCount="true" />
@@ -62,22 +62,11 @@
     [Parameter]
     public ModProdDifference Difference { get; set; } = new();
 
-    RuleChangeDisplayHtml? ruleChangeDisplay;
-    private List<RuleChange> ruleChanges = [];
+    RuleDifferenceDisplayHtml? ruleDiffDisplay;
 
     
     protected override void OnInitialized()
     {
-        ruleChangeDisplay = new RuleChangeDisplayHtml(userConfig);
-    }
-
-    protected override void OnParametersSet()
-    {
-        ruleChanges = [];
-        Rule modelledRule = Difference.ModelledConnection.ToRule();
-        foreach(var diff in Difference.ImplementedRules)
-        {
-            ruleChanges.Add(new (){ OldRule = modelledRule, NewRule = diff, ChangeAction = 'C' });
-        }
+        ruleDiffDisplay = new (userConfig);
     }
 }

@@ -52,7 +52,7 @@ namespace FWO.Services
             {
                 foreach(var conn in connections.Where(c => !c.IsInterface).OrderBy(c => c.Id))
                 {
-                    AnalyseRules(conn);
+                    AnalyseRules(conn, true);
                 }
             }
             return varianceResult;

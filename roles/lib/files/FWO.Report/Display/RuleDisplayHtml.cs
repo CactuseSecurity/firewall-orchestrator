@@ -113,7 +113,7 @@ namespace FWO.Ui.Display
             {
                 result.AppendLine(userConfig.GetText("negated") + "<br>");
             }
-            string highlightedStyle = style + (reportType == ReportType.AppRules ? " " + GlobalConst.kStyleHighlighted : "");
+            string highlightedStyle = style + (reportType == ReportType.AppRules ? " " + GlobalConst.kStyleHighlightedRed : "");
 
             if(reportType.IsResolvedReport())
             {
@@ -156,7 +156,7 @@ namespace FWO.Ui.Display
                 dateOnly = DateOnly.FromDateTime((DateTime)recert.NextRecertDate).ToString("yyyy-MM-dd");
                 if(recert.NextRecertDate < DateTime.Now)
                 {
-                    color = " style=\"color: red;\"";
+                    color = $" style=\"{GlobalConst.kStyleHighlightedRed}\"";
                 }
             }
             return "<p" + color + ">" + countString + dateOnly + "</p>";

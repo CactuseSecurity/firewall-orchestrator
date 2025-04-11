@@ -8,9 +8,6 @@ namespace FWO.Ui.Display
 {
     public class RuleChangeDisplayHtml : RuleDisplayHtml
     {
-        static readonly string addedStyle = "color: green; text-decoration: bold;";
-        static readonly string deletedStyle = "color: red; text-decoration: line-through red;";
-
         public RuleChangeDisplayHtml(UserConfig userConfig) : base(userConfig)
         { }
 
@@ -56,8 +53,8 @@ namespace FWO.Ui.Display
         {
             switch (ruleChange.ChangeAction)
             {
-                case 'D': return OutputHtmlDeleted(DisplaySource(ruleChange.OldRule, location, reportType, 0, deletedStyle));
-                case 'I': return OutputHtmlAdded(DisplaySource(ruleChange.NewRule, location, reportType, 0, addedStyle));
+                case 'D': return OutputHtmlDeleted(DisplaySource(ruleChange.OldRule, location, reportType, 0, GlobalConst.kStyleDeleted));
+                case 'I': return OutputHtmlAdded(DisplaySource(ruleChange.NewRule, location, reportType, 0, GlobalConst.kStyleAdded));
                 case 'C': return DisplayArrayDiff(DisplaySource(ruleChange.OldRule, location, reportType),
                                                   DisplaySource(ruleChange.NewRule, location, reportType),
                                                   ruleChange.OldRule.SourceNegated, ruleChange.NewRule.SourceNegated);
@@ -80,8 +77,8 @@ namespace FWO.Ui.Display
         {
             switch (ruleChange.ChangeAction)
             {
-                case 'D': return OutputHtmlDeleted(DisplayDestination(ruleChange.OldRule, location, reportType, 0, deletedStyle));
-                case 'I': return OutputHtmlAdded(DisplayDestination(ruleChange.NewRule, location, reportType, 0, addedStyle));
+                case 'D': return OutputHtmlDeleted(DisplayDestination(ruleChange.OldRule, location, reportType, 0, GlobalConst.kStyleDeleted));
+                case 'I': return OutputHtmlAdded(DisplayDestination(ruleChange.NewRule, location, reportType, 0, GlobalConst.kStyleAdded));
                 case 'C': return DisplayArrayDiff(DisplayDestination(ruleChange.OldRule, location, reportType),
                                                   DisplayDestination(ruleChange.NewRule, location, reportType),
                                                   ruleChange.OldRule.DestinationNegated, ruleChange.NewRule.DestinationNegated);
@@ -93,8 +90,8 @@ namespace FWO.Ui.Display
         {
             switch (ruleChange.ChangeAction)
             {
-                case 'D': return OutputHtmlDeleted(DisplayServices(ruleChange.OldRule, location, reportType, 0, deletedStyle));
-                case 'I': return OutputHtmlAdded(DisplayServices(ruleChange.NewRule, location, reportType, 0, addedStyle));
+                case 'D': return OutputHtmlDeleted(DisplayServices(ruleChange.OldRule, location, reportType, 0, GlobalConst.kStyleDeleted));
+                case 'I': return OutputHtmlAdded(DisplayServices(ruleChange.NewRule, location, reportType, 0, GlobalConst.kStyleAdded));
                 case 'C': return DisplayArrayDiff(DisplayServices(ruleChange.OldRule, location, reportType),
                                                   DisplayServices(ruleChange.NewRule, location, reportType),
                                                   ruleChange.OldRule.ServiceNegated, ruleChange.NewRule.ServiceNegated);
@@ -161,8 +158,8 @@ namespace FWO.Ui.Display
         {
             switch (ruleChange.ChangeAction)
             {
-                case 'D': return deletedStyle;
-                case 'I': return addedStyle;
+                case 'D': return GlobalConst.kStyleDeleted;
+                case 'I': return GlobalConst.kStyleAdded;
                 case 'C': return "";
                 default: ThrowErrorUnknowChangeAction(ruleChange.ChangeAction); return "";
             }
@@ -176,8 +173,8 @@ namespace FWO.Ui.Display
             }
             else
             {
-                return (oldElement.Length > 0 ? $"{userConfig.GetText("deleted")}: <p style=\"{deletedStyle}\">{oldElement}<br></p>" : "")
-                    + (newElement.Length > 0 ? $"{userConfig.GetText("added")}: <p style=\"{addedStyle}\">{newElement}</p>" : "");
+                return (oldElement.Length > 0 ? $"{userConfig.GetText("deleted")}: <p style=\"{GlobalConst.kStyleDeleted}\">{oldElement}<br></p>" : "")
+                    + (newElement.Length > 0 ? $"{userConfig.GetText("added")}: <p style=\"{GlobalConst.kStyleAdded}\">{newElement}</p>" : "");
             }
         }
 
@@ -201,8 +198,8 @@ namespace FWO.Ui.Display
 
                 if(oldNegated != newNegated)
                 {
-                    deleted.Add(SetStyle(oldElement, deletedStyle));
-                    added.Add(SetStyle(newElement, addedStyle));
+                    deleted.Add(SetStyle(oldElement, GlobalConst.kStyleDeleted));
+                    added.Add(SetStyle(newElement, GlobalConst.kStyleAdded));
                 }
                 else
                 {
@@ -218,32 +215,32 @@ namespace FWO.Ui.Display
                         }
                         else
                         {
-                            deleted.Add(SetStyle(item, deletedStyle));
+                            deleted.Add(SetStyle(item, GlobalConst.kStyleDeleted));
                         }
                     }
                     foreach (var item in newAr)
                     {
                         if (!oldAr.Contains(item))
                         {
-                            added.Add(SetStyle(item, addedStyle));
+                            added.Add(SetStyle(item, GlobalConst.kStyleAdded));
                         }
                     }
                 }
 
                 return (unchanged.Count > 0 ? $"<p>{string.Join("<br>", unchanged)}<br></p>" : "")
-                       + (deleted.Count > 0 ? $"{userConfig.GetText("deleted")}: <p style=\"{deletedStyle}\">{string.Join("<br>", deleted)}<br></p>" : "")
-                       + (added.Count > 0 ? $"{userConfig.GetText("added")}: <p style=\"{addedStyle}\">{string.Join("<br>", added)}</p>" : "");
+                       + (deleted.Count > 0 ? $"{userConfig.GetText("deleted")}: <p style=\"{GlobalConst.kStyleDeleted}\">{string.Join("<br>", deleted)}<br></p>" : "")
+                       + (added.Count > 0 ? $"{userConfig.GetText("added")}: <p style=\"{GlobalConst.kStyleAdded}\">{string.Join("<br>", added)}</p>" : "");
             }
         }
         
         private static string OutputHtmlDeleted(string? input)
         {
-            return  input != null && input != "" ? $"<p style=\"{deletedStyle}\">{input}</p>" : "";
+            return  input != null && input != "" ? $"<p style=\"{GlobalConst.kStyleDeleted}\">{input}</p>" : "";
         }
 
         private static string OutputHtmlAdded(string? input)
         {
-            return  input != null && input != "" ? $"<p style=\"{addedStyle}\">{input}</p>" : "";
+            return  input != null && input != "" ? $"<p style=\"{GlobalConst.kStyleAdded}\">{input}</p>" : "";
         }
 
         private static string SetStyle(string input, string style)

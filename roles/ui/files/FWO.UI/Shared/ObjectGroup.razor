@@ -39,7 +39,7 @@
                     Items="@NetworkObjectExtractor(Content)" ColumnReorder="true">
                         <Column TableItem="NetworkObject" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Class="word-break">
                             <Template>
-                                <div style="@(context.Highlighted ? GlobalConst.kStyleHighlighted : "")">
+                                <div style="@(context.Highlighted ? GlobalConst.kStyleHighlightedRed : "")">
                                     <span class="@ReportBase.GetIconClass(ObjCategory.nobj, context.Type.Name)">&nbsp;</span>
                                     <b id="@(GetID(ObjCategory.nobj, context.Id))">@(context.Name)</b>
                                 </div>
@@ -58,7 +58,7 @@
                                     {
                                         if(member.Object != null)
                                         {
-                                            <div style="@(context.Highlighted ? GlobalConst.kStyleHighlighted : "")"><span class=\"{Icons.NwObject}\"></span> @DisplayBase.DisplayIpWithName(member.Object)</div>
+                                            <div style="@(context.Highlighted ? GlobalConst.kStyleHighlightedRed : "")"><span class=\"{Icons.NwObject}\"></span> @DisplayBase.DisplayIpWithName(member.Object)</div>
                                         }
                                     }
                                 }
@@ -355,7 +355,7 @@
 
         string page = Recert ? PageName.Certification : PageName.ReportGeneration;
 
-        return @<a style="@(highlighted ? GlobalConst.kStyleHighlighted : "")" href="@(page)#goto-@(htmlObjRefPrefix + objId)" target="_top"><span class="@ReportBase.GetIconClass(objCategory, type)">&nbsp;</span>@(name)</a>;
+        return @<a style="@(highlighted ? GlobalConst.kStyleHighlightedRed : "")" href="@(page)#goto-@(htmlObjRefPrefix + objId)" target="_top"><span class="@ReportBase.GetIconClass(objCategory, type)">&nbsp;</span>@(name)</a>;
     }
 
     private async Task HandleUncollapse(ObjCategory objCategory)

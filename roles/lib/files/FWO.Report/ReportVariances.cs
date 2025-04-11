@@ -11,12 +11,12 @@ namespace FWO.Report
 {
     public class ReportVariances(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType) : ReportConnections(query, userConfig, reportType)
     {
-        private RuleChangeDisplayHtml? ruleChangeDisplay;
+        private RuleDifferenceDisplayHtml? ruleDiffDisplay;
 
         public override string ExportToHtml()
         {
             StringBuilder report = new ();
-            ruleChangeDisplay = new RuleChangeDisplayHtml(userConfig);
+            ruleDiffDisplay = new (userConfig);
             int chapterNumber = 0;
             foreach (var ownerReport in ReportData.OwnerData)
             {
@@ -146,7 +146,7 @@ namespace FWO.Report
 
         private void AppendConnDiffs(ref StringBuilder report, OwnerReport ownerReport, int chapterNumber)
         {
-            if(ownerReport.RuleDifferences.Count > 0 && ruleChangeDisplay != null)
+            if(ownerReport.RuleDifferences.Count > 0 && ruleDiffDisplay != null)
             {
                 report.AppendLine($"<h4 id=\"{Guid.NewGuid()}\">{userConfig.GetText("connections_with_diffs")}</h4>");
                 foreach(var difference in ownerReport.RuleDifferences)
@@ -169,9 +169,9 @@ namespace FWO.Report
                         report.AppendLine("<tr>");
                         report.AppendLine($"<td>{diff.ManagementName}</td>");
                         report.AppendLine($"<td>{diff.DeviceName}</td>");
-                        report.AppendLine($"<td>{ruleChangeDisplay.DisplaySource(ruleChange, OutputLocation.export, ReportType)}</td>");
-                        report.AppendLine($"<td>{ruleChangeDisplay.DisplayServices(ruleChange, OutputLocation.export, ReportType)}</td>");
-                        report.AppendLine($"<td>{ruleChangeDisplay.DisplayDestination(ruleChange, OutputLocation.export, ReportType)}</td>");
+                        report.AppendLine($"<td>{ruleDiffDisplay.DisplaySourceDiff(modelledRule, OutputLocation.export, ReportType)}</td>");
+                        report.AppendLine($"<td>{ruleDiffDisplay.DisplayServiceDiff(modelledRule, OutputLocation.export, ReportType)}</td>");
+                        report.AppendLine($"<td>{ruleDiffDisplay.DisplayDestinationDiff(modelledRule, OutputLocation.export, ReportType)}</td>");
                         report.AppendLine("</tr>");
                     }
                     report.AppendLine("</table>");

@@ -248,6 +248,6 @@
                 }
             }
         }
-        return relevantProps.Count > 0 ? string.Join(",", relevantProps) : $"<span style=\"color:green\">{true.ShowAsHtml()}</span>";
+        return relevantProps.Count > 0 ? string.Join(",", relevantProps) : $"<span style=\"{GlobalConst.kStyleHighlightedGreen}\">{true.ShowAsHtml()}</span>";
     }
 }

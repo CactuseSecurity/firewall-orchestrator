@@ -96,6 +96,7 @@ namespace FWO.Data
         public string DeviceName { get; set; } = "";
         public NetworkLocation[] DisregardedFroms { get; set; } = [];
         public NetworkLocation[] DisregardedTos { get; set; } = [];
+        public NetworkService[] DisregardedServices { get; set; } = [];
         public bool ShowDisregarded { get; set; } = false;
         public long ConnId;
         public bool ModellOk = false;

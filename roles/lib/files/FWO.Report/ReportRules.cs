@@ -482,7 +482,7 @@ namespace FWO.Report
                 int objNumber = 1;
                 foreach (var nwobj in managementReport.ReportObjects)
                 {
-                    report.AppendLine($"<tr style=\"{(nwobj.Highlighted ? GlobalConst.kStyleHighlighted : "")}\">");
+                    report.AppendLine($"<tr style=\"{(nwobj.Highlighted ? GlobalConst.kStyleHighlightedRed : "")}\">");
                     report.AppendLine($"<td>{objNumber++}</td>");
                     report.AppendLine($"<td><a name={ObjCatString.NwObj}{chapterNumber}x{nwobj.Id}>{nwobj.Name}</a></td>");
                     report.AppendLine($"<td>{(nwobj.Type.Name != "" ? userConfig.GetText(nwobj.Type.Name) : "")}</td>");

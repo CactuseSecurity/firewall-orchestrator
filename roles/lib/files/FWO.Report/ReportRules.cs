@@ -265,29 +265,106 @@ namespace FWO.Report
             return 0;
         }
 
+        // /// <summary>
+        // /// Creates more dimensional (dotted) order numbers for display and sets hidden int order number for sorting.
+        // /// </summary>
+        // TODO: Find reason for missing rules and fix the problem
+        // TODO: Implement unit tests
+        // TODO: Simplify (if possible) and comment
+        // TODO: Enhance performance
         public static void CreateOrderNumbers(List<Rule> allRules, ManagementReport mgmReport, DeviceReport device)
         {
-            List<RulebaseReport> rulebases = mgmReport.Rulebases.ToList();
-            int allRulesCounter = 0;
-            int rulebaseCounter = 0;
+            Dictionary<int, List<Rule>> rulesByRulebase = new();
+            Dictionary<int, List<RulebaseLink>> linksByFromRuleId = new();
+            Dictionary<int, (string dottedNumber, int position)> result = new();
+            int positionCounter = 1;
 
-            foreach (RulebaseReport rulebase in rulebases)
+            // build order number map
+
+            rulesByRulebase = allRules.GroupBy(r => r.RulebaseId)
+                                        .ToDictionary(g => g.Key, g => g.OrderBy(r => r.Id) // TODO: check if order by id is reliable for this purpose
+                                        .ToList());
+
+            linksByFromRuleId = device.RulebaseLinks.Where(link => !link.IsInitialRulebase())
+                                                        .GroupBy(l => l.FromRuleId ?? 0)
+                                                        .ToDictionary(g => g.Key, g => g
+                                                        .ToList());
+
+            int rootRulebaseId = device.RulebaseLinks.First(link => link.IsInitialRulebase()).NextRulebaseId;
+            
+            TraverseRulebase(rootRulebaseId, new List<int> { 1 }, rulesByRulebase, linksByFromRuleId, result, ref positionCounter);
+
+            // update rules
+
+            foreach(Rule rule in allRules)
             {
-                rulebaseCounter++;
-                List<Rule> rulebaseRules = rulebase.Rules.ToList();
+                if (result.TryGetValue((int) rule.Id, out var ruleOrderNumbers))
+                {
+                    rule.DisplayOrderNumberString = ruleOrderNumbers.dottedNumber;
+                    rule.OrderNumber = ruleOrderNumbers.position;
+                }
+            }
 
-                foreach (Rule rulebaseRule in rulebaseRules)
-                { 
-                    allRulesCounter++;
+        }
 
-                    Rule rule = allRules.FirstOrDefault(x => x.Id == rulebaseRule.Id);
-                    
-                    rule.OrderNumber = allRulesCounter;
-                    
-                    rule.DisplayOrderNumberString = $"{rulebaseCounter.ToString()}.{(rulebaseRule.RuleOrderNumber + 1).ToString()}";
+        private static void TraverseRulebase(int rulebaseId, List<int> currentPath, Dictionary<int, List<Rule>> rulesByRulebase, Dictionary<int, List<RulebaseLink>> linksByFromRuleId, Dictionary<int, (string dottedNumber, int position)> result, ref int positionCounter)
+        {
+            if (!rulesByRulebase.TryGetValue(rulebaseId, out var rules)) return;
+
+            for (int i = 0; i < rules.Count; i++)
+            {
+                var rule = rules[i];
+                var path = new List<int>(currentPath) { i + 1 };
+                var dotted = string.Join(".", path);
+                result[(int) rule.Id] = (dotted, positionCounter++);
+
+                if (linksByFromRuleId.TryGetValue((int) rule.Id, out var links))
+                {
+                    foreach (var link in links.OrderBy(l => l.LinkType))
+                    {
+                        if (link.LinkType == 2) // ordered
+                        {
+                            var newPath = new List<int> { path[0] + 1 };
+                            TraverseRulebase(link.NextRulebaseId, newPath, rulesByRulebase, linksByFromRuleId, result, ref positionCounter);
+                        }
+                        else if (link.LinkType == 3) // inline
+                        {
+                            TraverseInline(link.NextRulebaseId, path, rulesByRulebase, linksByFromRuleId, result, ref positionCounter);
+                        }
+                    }
                 }
             }
         }
+
+
+        private static void TraverseInline(int rulebaseId, List<int> parentPath, Dictionary<int, List<Rule>> rulesByRulebase, Dictionary<int, List<RulebaseLink>> linksByFromRuleId, Dictionary<int, (string dottedNumber, int position)> result, ref int positionCounter)
+        {
+            if (!rulesByRulebase.TryGetValue(rulebaseId, out var rules)) return;
+
+            for (int i = 0; i < rules.Count; i++)
+            {
+                var rule = rules[i];
+                var path = new List<int>(parentPath) { i + 1 };
+                var dotted = string.Join(".", path);
+                result[(int) rule.Id] = (dotted, positionCounter++);
+
+                if (linksByFromRuleId.TryGetValue((int) rule.Id, out var links))
+                {
+                    foreach (var link in links.OrderBy(l => l.LinkType))
+                    {
+                        if (link.LinkType == 2)
+                        {
+                            var newPath = new List<int> { path[0] + 1 };
+                            TraverseRulebase(link.NextRulebaseId, newPath, rulesByRulebase, linksByFromRuleId, result, ref positionCounter);
+                        }
+                        else if (link.LinkType == 3)
+                        {
+                            TraverseInline(link.NextRulebaseId, path, rulesByRulebase, linksByFromRuleId, result, ref positionCounter);
+                        }
+                    }
+                }
+            }
+        }     
 
         public override string SetDescription()
         {

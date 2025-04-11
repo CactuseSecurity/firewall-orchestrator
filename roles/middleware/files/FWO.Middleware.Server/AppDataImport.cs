@@ -53,6 +53,7 @@ namespace FWO.Middleware.Server
 				List<string> importfilePathAndNames = JsonSerializer.Deserialize<List<string>>(globalConfig.ImportAppDataPath) ?? throw new Exception("Config Data could not be deserialized.");
 				userConfig = new(globalConfig);
 				userConfig.User.Name = Roles.MiddlewareServer;
+                userConfig.AutoReplaceAppServer = globalConfig.AutoReplaceAppServer;
 				await InitLdap();
 				foreach (var importfilePathAndName in importfilePathAndNames)
 				{

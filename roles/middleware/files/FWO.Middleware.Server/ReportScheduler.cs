@@ -1,4 +1,4 @@
-﻿using FWO.Basics;
+using FWO.Basics;
 using FWO.Data.Report;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
@@ -9,6 +9,7 @@ using FWO.Report;
 using FWO.Services;
 using System.Timers;
 using FWO.Config.File;
+using System.Collections.Concurrent;
 
 namespace FWO.Middleware.Server
 {
@@ -17,8 +18,7 @@ namespace FWO.Middleware.Server
     /// </summary>
     public class ReportScheduler
     {
-        private readonly object scheduledReportsLock = new ();
-        private List<ReportSchedule> scheduledReports = [];
+        private ConcurrentBag<ReportSchedule> scheduledReports = [];
         private readonly TimeSpan CheckScheduleInterval = TimeSpan.FromMinutes(1);
 
         private readonly string apiServerUri;
@@ -28,7 +28,6 @@ namespace FWO.Middleware.Server
         private readonly GraphQlApiSubscription<ReportSchedule[]> scheduledReportsSubscription;
         private readonly JwtWriter jwtWriter;
 
-        private readonly object ldapLock = new ();
         private List<Ldap> connectedLdaps;
 
 		/// <summary>
@@ -55,18 +54,12 @@ namespace FWO.Middleware.Server
 
         private void OnLdapUpdate(List<Ldap> connectedLdaps)
         {
-            lock(ldapLock)
-            {
-                this.connectedLdaps = connectedLdaps;
-            }
+            this.connectedLdaps = connectedLdaps;            
         }
 
         private void OnScheduleUpdate(ReportSchedule[] scheduledReports)
         {
-            lock (scheduledReportsLock)
-            {
-                this.scheduledReports = [.. scheduledReports];
-            }
+            this.scheduledReports = [.. scheduledReports];            
         }
 
         private void ApiExceptionHandler(Exception exception)
@@ -81,16 +74,15 @@ namespace FWO.Middleware.Server
 
             DateTime dateTimeNowRounded = RoundDown(DateTime.Now, CheckScheduleInterval);
 
-            lock (scheduledReports)
-            {
-                foreach (ReportSchedule reportSchedule in scheduledReports)
+            await Parallel.ForEachAsync(scheduledReports, new ParallelOptions() { MaxDegreeOfParallelism = Environment.ProcessorCount }, 
+                async (reportSchedule,  ct) =>
                 {
                     try
                     {
-                        if (reportSchedule.Active)
+                        if(reportSchedule.Active)
                         {
                             // Add schedule interval as long as schedule time is smaller then current time 
-                            while (RoundDown(reportSchedule.StartTime, CheckScheduleInterval) < dateTimeNowRounded)
+                            while(RoundDown(reportSchedule.StartTime, CheckScheduleInterval) < dateTimeNowRounded)
                             {
                                 reportSchedule.StartTime = reportSchedule.RepeatInterval switch
                                 {
@@ -103,26 +95,23 @@ namespace FWO.Middleware.Server
                                 };
                             }
 
-                            if (RoundDown(reportSchedule.StartTime, CheckScheduleInterval) == dateTimeNowRounded)
+                            if(RoundDown(reportSchedule.StartTime, CheckScheduleInterval) == dateTimeNowRounded)
                             {
-                                reportGeneratorTasks.Add(GenerateReport(reportSchedule, dateTimeNowRounded));
+                                await GenerateReport(reportSchedule, dateTimeNowRounded, ct);
                             }
                         }
                     }
-                    catch (Exception exception)
+                    catch(Exception exception)
                     {
                         Log.WriteError("Report Scheduling", "Checking scheduled reports lead to exception.", exception);
                     }
-                }
-            }
+                });
 
-            await Task.WhenAll(reportGeneratorTasks);
         }
 
-        private Task GenerateReport(ReportSchedule reportSchedule, DateTime dateTimeNowRounded)
+        private async Task GenerateReport(ReportSchedule reportSchedule, DateTime dateTimeNowRounded, CancellationToken token)
         {
-            CancellationToken token = new ();
-            return Task.Run(async () =>
+            await Task.Run(async () =>
             {
                 try
                 {
@@ -157,6 +146,10 @@ namespace FWO.Middleware.Server
                     {
                         Log.WriteInfo("Report Scheduling", $"Scheduled report \"{reportSchedule.Name}\" with id \"{reportSchedule.Id}\" for user \"{reportSchedule.ScheduleOwningUser.Name}\" with id \"{reportSchedule.ScheduleOwningUser.DbId}\" was empty.");
                     }
+                }
+                catch(TaskCanceledException)
+                {
+                    Log.WriteWarning("Report Scheduling", $"Generating scheduled report \"{reportSchedule.Name}\" was cancelled");
                 }
                 catch (Exception exception)
                 {

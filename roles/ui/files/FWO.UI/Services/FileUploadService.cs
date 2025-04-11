@@ -51,6 +51,20 @@ namespace FWO.Ui.Services
                 List<TError>? importErrors = errors is not null ? [.. errors.Cast<TError>()] : default;
 
                 return (success, importErrors);
+            } 
+            throw new NotImplementedException();
+        }
+
+        public async Task<(bool success, TError? error)> ImportCustomLogo<TError>(FileUploadCase fileUploadCase, string filename)
+            where TError : ErrorBaseModel
+        {
+            if(fileUploadCase == FileUploadCase.CustomLogoUpload)
+            {
+                (bool success, ErrorBaseModel? error) = await SaveCustomLogo(filename);
+
+                TError? logoUploadError = error is not null ? (TError)error : default;
+
+                return (success, logoUploadError);
             }
 
             throw new NotImplementedException();
@@ -173,6 +187,28 @@ namespace FWO.Ui.Services
             catch (Exception exception)
             {
                 return (false, exception);
+            }
+        }
+
+        private async Task<(bool success, ErrorBaseModel? error)> SaveCustomLogo(string filename)
+        {
+            string extension = Path.GetExtension(filename);
+            string path = Path.Combine(GlobalConst.CustomLogoPath, "CustomLogo" + extension);
+
+            try
+            {
+                if(!Directory.Exists(GlobalConst.CustomLogoPath))
+                {
+                    Directory.CreateDirectory(GlobalConst.CustomLogoPath);
+                }
+
+                await File.WriteAllBytesAsync(path, UploadedData);
+
+                return (true, default);
+            }
+            catch(Exception ex)
+            { 
+                return (false, new ErrorBaseModel() { InternalException = ex, MessageType = MessageType.Error, Message = ex.Message});
             }
         }
     }

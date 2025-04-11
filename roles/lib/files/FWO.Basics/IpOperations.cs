@@ -1,101 +1,203 @@
 using System.Net.Sockets;
 using System.Net;
-using System.Numerics;
 using NetTools;
+using System;
 
 namespace FWO.Basics
 {
     public static class IpOperations
     {
-        public static bool IsInSubnet(IPAddress address, string cidrString)
+        public static async Task<string> DnsReverseLookUp(IPAddress address)
         {
-            string[] parts = cidrString.Split('/');
-            if (parts.Length != 2)
+            try
             {
-                throw new FormatException("Invalid CIDR format.");
+                return (await Dns.GetHostEntryAsync(address)).HostName;
             }
-
-            var networkAddress = IPAddress.Parse(parts[0]);
-            int prefixLength = int.Parse(parts[1]);
-
-            if (address.AddressFamily != networkAddress.AddressFamily)
+            catch(Exception)
             {
-                // The IP versions must match (IPv4 vs IPv6)
-                return false;
+                return "";
             }
+        }
 
-            if (address.AddressFamily == AddressFamily.InterNetwork)  // IPv4
+        public static (string, string) SplitIpToRange(string ipString)
+        {
+            string ipStart;
+            string ipEnd;
+            if (ipString.TryGetNetmask(out _))
             {
-                return IsIPv4InSubnet(address, networkAddress, prefixLength);
+                (ipStart, ipEnd) = ipString.CidrToRangeString();
             }
-            else if (address.AddressFamily == AddressFamily.InterNetworkV6)  // IPv6
+            else if (ipString.TrySplit('-', 1, out _) && IPAddressRange.TryParse(ipString, out IPAddressRange ipRange))
             {
-                return IsIPv6InSubnet(address, networkAddress, prefixLength);
+                ipStart = ipRange.Begin.ToString();
+                ipEnd = ipRange.End.ToString();
             }
             else
             {
-                throw new NotSupportedException("Only IPv4 and IPv6 are supported.");
+                ipStart = ipString;
+                ipEnd = ipString;
             }
-        }
-        
-        private static bool IsIPv4InSubnet(IPAddress address, IPAddress networkAddress, int prefixLength)
-        {
-            uint ipAddress = BitConverter.ToUInt32(address.GetAddressBytes().Reverse().ToArray(), 0);
-            uint networkIpAddress = BitConverter.ToUInt32(networkAddress.GetAddressBytes().Reverse().ToArray(), 0);
-
-            uint mask = (uint.MaxValue << (32 - prefixLength)) & uint.MaxValue;
-
-            return (ipAddress & mask) == (networkIpAddress & mask);
+            return (ipStart, ipEnd);
         }
 
-        private static bool IsIPv6InSubnet(IPAddress address, IPAddress networkAddress, int prefixLength)
+        public static bool TryParseIPStringToRange(this string ipString, out (string Start, string End) ipRange, bool strictv4Parse = false)
         {
-            BigInteger ipAddressBigInt = new(address.GetAddressBytes().Reverse().ToArray().Concat(new byte[] { 0 }).ToArray());
-            BigInteger networkIpAddressBigInt = new(networkAddress.GetAddressBytes().Reverse().ToArray().Concat(new byte[] { 0 }).ToArray());
+            ipRange = default;
 
-            BigInteger mask = BigInteger.Pow(2, 128) - BigInteger.Pow(2, 128 - prefixLength);
-
-            return (ipAddressBigInt & mask) == (networkIpAddressBigInt & mask);
-        }
-
-        public static string SanitizeIp(string cidr_str)
-        {
-            cidr_str = cidr_str.StripOffNetmask();
-
-            if (IPAddress.TryParse(cidr_str, out IPAddress? ip))
+            try
             {
-                if (ip != null)
+                (string ipStart, string ipEnd) = SplitIpToRange(ipString);
+
+                bool ipStartOK = IPAddress.TryParse(ipStart, out IPAddress? ipAdressStart);
+                bool ipEndOK = IPAddress.TryParse(ipEnd, out IPAddress? ipAdressEnd);
+
+                if(ipAdressStart is null || ipAdressEnd is null)
                 {
-                    if (ip.AddressFamily == AddressFamily.InterNetworkV6)
+                    return false;
+                }
+
+                if(strictv4Parse && ipAdressStart?.AddressFamily == AddressFamily.InterNetwork && ipAdressEnd?.AddressFamily == AddressFamily.InterNetwork)
+                {
+                    if(!IsValidIPv4(ipStart) || !IsValidIPv4(ipEnd))
                     {
-                        cidr_str = ip.ToString();
-                        if (cidr_str.IndexOf('/') < 0) // a single ip without mask
-                        {
-                            cidr_str += "/128";
-                        }
-                        if (cidr_str.IndexOf('/') == cidr_str.Length - 1) // wrong format (/ at the end, fixing this by adding 128 mask)
-                        {
-                            cidr_str += "128";
-                        }
-                    }
-                    else if (ip.AddressFamily == AddressFamily.InterNetwork)
-                    {
-                        cidr_str = ip.ToString();
-                        if (cidr_str.IndexOf('/') < 0) // a single ip without mask
-                        {
-                            cidr_str += "/32";
-                        }
-                        if (cidr_str.IndexOf('/') == cidr_str.Length - 1) // wrong format (/ at the end, fixing this by adding 32 mask)
-                        {
-                            cidr_str += "32";
-                        }
+                        return false;
                     }
                 }
+
+                if(!ipStartOK || !ipEndOK)
+                {
+                    return false;
+                }
+
+                if(!IPAddress.TryParse(ipStart, out _) || !IPAddress.TryParse(ipEnd, out _))
+                {
+                    return false;
+                }
+
+                ipRange.Start = ipStart;
+                ipRange.End = ipEnd;
+
+                return true;
             }
-            return cidr_str;
+            catch(Exception) 
+            {
+                return false;
+            }
         }
 
-        public static bool OverlapExists(IPAddressRange a, IPAddressRange b)
+        public static bool TryParseIPString<T>(this string ipString, out T? ipResult, bool strictv4Parse = false) 
+        {
+            ipResult = default;
+            
+            try
+            {
+                (string ipStart, string ipEnd) = SplitIpToRange(ipString);
+
+                bool ipStartOK = IPAddress.TryParse(ipStart, out IPAddress? ipAdressStart);
+                bool ipEndOK = IPAddress.TryParse(ipEnd, out IPAddress? ipAdressEnd);
+
+                if(ipAdressStart is null || ipAdressEnd is null)
+                {
+                    return false;
+                }
+
+                if(strictv4Parse && ipAdressStart?.AddressFamily == AddressFamily.InterNetwork && ipAdressEnd?.AddressFamily == AddressFamily.InterNetwork)
+                {
+                    if(!IsValidIPv4(ipStart) || !IsValidIPv4(ipEnd))
+                    {
+                        return false;
+                    }
+                }
+
+                if(!ipStartOK || !ipEndOK)
+                {
+                    return false;
+                }
+
+                if(typeof(T) == typeof((string, string)))
+                {
+                    ipResult = (T)Convert.ChangeType((ipAdressStart.ToString(), ipAdressEnd.ToString()), typeof(T));
+                    return true;
+                }
+                else if(typeof(T) == typeof(IPAddressRange) && IPAddressRange.TryParse(ipString, out IPAddressRange ipRange))
+                {
+                    ipResult = (T)Convert.ChangeType(ipRange, typeof(T));
+                    return true;
+                }else if(typeof(T) == typeof((IPAddress, IPAddress)))
+                {
+                    Tuple<IPAddress, IPAddress>? ipTuple = new(ipAdressStart, ipAdressEnd);
+                    ipResult = (T)Convert.ChangeType(ipTuple, typeof(T));
+                    return true;
+                }
+
+                return false;
+            }
+            catch(Exception)
+            {
+                return false;
+            }
+        }
+
+        private static bool IsValidIPv4(string ipAddress)
+        {
+            byte[] addBytes = [.. ipAddress.Split('.').Where(_ => byte.Parse(_) <= 255 && byte.Parse(_) >= 0).Select(byte.Parse)];
+
+            return addBytes.Length == 4;            
+        }
+
+        public static string GetObjectType(string ip1, string ip2)
+        {
+            ip1 = ip1.StripOffUnnecessaryNetmask();
+            ip2 = ip2.StripOffUnnecessaryNetmask();
+            if (ip1 == ip2 || ip2 == "")
+            {
+                if (ip1.TryGetNetmask(out _))
+                {
+                    return ObjectType.Network;
+                }
+                return ObjectType.Host;
+            }
+            if (SpanSingleNetwork(ip1, ip2))
+            {
+                return ObjectType.Network;
+            }
+            return ObjectType.IPRange;
+        }
+
+        private static bool SpanSingleNetwork(string ipStart, string ipEnd)
+        {
+            IPAddressRange range = IPAddressRange.Parse(ipStart.StripOffNetmask() + "-" + ipEnd.StripOffNetmask());
+            return HasValidNetmask(range);
+        }
+
+        private static bool HasValidNetmask(IPAddressRange range)
+        {
+            // code adapted (without exception) from IPAddressRange.getPrefixLength()
+            byte[] addressBytes = range.Begin.GetAddressBytes();
+            if (range.Begin.Equals(range.End))
+            {
+                return true;
+            }
+
+            int num = addressBytes.Length * 8;
+            for (int i = 0; i < num; i++)
+            {
+                byte[] bitMask = Bits.GetBitMask(addressBytes.Length, i);
+                if (new IPAddress(Bits.And(addressBytes, bitMask)).Equals(range.Begin) && new IPAddress(Bits.Or(addressBytes, Bits.Not(bitMask))).Equals(range.End))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Checks if IP range a and b overlap.
+        /// </summary>
+        /// <param name="a">First IP range</param>
+        /// <param name="b">Second IP range</param>
+        /// <returns>True, if IP ranges overlap, false otherwise.</returns>
+        public static bool RangeOverlapExists(IPAddressRange a, IPAddressRange b)
         {
             return IpToUint(a.Begin) <= IpToUint(b.End) && IpToUint(b.Begin) <= IpToUint(a.End);
         }
@@ -109,8 +211,19 @@ namespace FWO.Basics
             {
                 Array.Reverse(bytes);
             }
-
             return BitConverter.ToUInt32(bytes, 0);
+        }
+
+        public static IPAddress UintToIp(uint ipAddress)
+        {
+            byte[] bytes = BitConverter.GetBytes(ipAddress);
+
+            // flip big-endian(network order) to little-endian
+            if (BitConverter.IsLittleEndian)
+            {
+                Array.Reverse(bytes);
+            }
+            return new IPAddress(bytes);
         }
 
         public static bool CheckOverlap(string ip1, string ip2)
@@ -121,7 +234,7 @@ namespace FWO.Basics
             if (range1.Begin.AddressFamily != range2.Begin.AddressFamily)
                 return false;
 
-            return OverlapExists(range1, range2);
+            return RangeOverlapExists(range1, range2);
         }
 
         public static IPAddressRange GetIPAdressRange(string ip)
@@ -178,11 +291,9 @@ namespace FWO.Basics
                         ? GetIPv4SubnetMask(network.PrefixLength)  // Convert PrefixLength to Subnet Mask for IPv4
                         : $"(IPv6) /{network.PrefixLength}"; // IPv6 uses CIDR notation directly
 
-                    string resultingIpString = $"{network.ToString().StripOffNetmask()}/{subnetMask}";
-                    return resultingIpString;
+                    return $"{network.ToString().StripOffNetmask()}/{subnetMask}";
                 }
             }
-
             return ""; // No exact network match found
         }
 
@@ -192,6 +303,46 @@ namespace FWO.Basics
             uint mask = 0xffffffff << (32 - prefixLength);
             uint[] bytes = [(mask >> 24) & 0xff, (mask >> 16) & 0xff, (mask >> 8) & 0xff, mask & 0xff];
             return string.Join(".", bytes);
+        }
+
+        /// <summary>
+        /// Compares the values of two IP adresses byte by byte.
+        /// </summary>
+        public static int CompareIpValues(IPAddress ip1, IPAddress ip2)
+        {
+            var ip1Bytes = ip1.GetAddressBytes();
+            var ip2Bytes = ip2.GetAddressBytes();
+
+            for (int i = 0; i < ip1Bytes.Length; i++)
+            {
+                if (ip1Bytes[i] < ip2Bytes[i])
+                {
+                    return -1;
+                }
+                if (ip1Bytes[i] > ip2Bytes[i])
+                {
+                    return 1;
+                }
+            }
+
+            return 0;
+        }
+
+        /// <summary>
+        /// Compares two IPAdress objects by their family (IPv4 or IPv6).
+        /// </summary>
+        public static int CompareIpFamilies(IPAddress ip1, IPAddress ip2)
+        {
+            if (ip1.AddressFamily == AddressFamily.InterNetwork && ip2.AddressFamily == AddressFamily.InterNetworkV6 )
+            {
+                return -1;
+            }
+            if (ip1.AddressFamily == AddressFamily.InterNetworkV6 && ip2.AddressFamily == AddressFamily.InterNetwork )
+            {
+                return 1;
+            }
+
+            return 0;
         }
     }
 }

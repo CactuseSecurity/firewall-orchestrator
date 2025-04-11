@@ -190,6 +190,7 @@ Create table "rule"
 	"xlate_rule" BIGINT,
 	"is_global" BOOLEAN DEFAULT FALSE NOT NULL,
 	"rulebase_id" Integer NOT NULL,
+	"rule_order_array" Integer [],
 	primary key ("rule_id")
 );
 
@@ -212,7 +213,7 @@ Create table "rule_metadata"
 	"last_change_admin" Integer,
 	"rule_decert_date" Timestamp,
 	"rule_recertification_comment" Varchar,
- primary key ("rule_metadata_id")
+ primary key ("rule_metadata_id") 
 );
 
 -- adding direct link tables rule_[svc|nwobj|user]_resolved to make report object export easier
@@ -1047,6 +1048,7 @@ Create table "ldap_connection"
 	"tenant_id" Integer,
 	"ldap_write_user_pwd" Varchar,
 	"ldap_searchpath_for_groups" Varchar,
+	"ldap_writepath_for_groups" Varchar,
 	"ldap_type" Integer NOT NULL Default 0,
 	"ldap_pattern_length" Integer NOT NULL Default 0,
 	"ldap_name" Varchar,
@@ -1540,5 +1542,6 @@ create table modelling.change_history
     object_id bigint,
 	change_text Varchar,
 	changer Varchar,
-	change_time Timestamp default now()
+	change_time Timestamp default now(),
+	change_source Varchar default 'manual'
 );

@@ -1,13 +1,16 @@
-﻿using FWO.Basics;
-using FWO.Api.Client;
-using FWO.Api.Data;
-using FWO.Report.Filter;
+﻿using FWO.Api.Client;
+using FWO.Basics;
 using FWO.Config.Api;
+using FWO.Data.Report;
+using FWO.Logging;
+using FWO.Report.Data;
+using FWO.Report.Filter;
 using System.Text;
 using System.Reflection;
 using PuppeteerSharp;
 using PuppeteerSharp.Media;
 using PuppeteerSharp.BrowserData;
+using HtmlAgilityPack;
 
 namespace FWO.Report
 {
@@ -81,6 +84,8 @@ namespace FWO.Report
         <p>##OtherFilters##</p>
         <p>##Filter##</p>
         <hr>
+        ##ToC##
+        <hr>
         ##Body##
     </body>
 </html>");
@@ -94,7 +99,7 @@ namespace FWO.Report
 
         protected string htmlExport = "";
 
-        private const string ChromeBinPathLinux = "/usr/local/bin";
+        private string TocHTMLTemplate = "<div id=\"toc_container\"><h2>##ToCHeader##</h2><ul class=\"toc_list\">##ToCList##</ul></div><style>#toc_container {background: #f9f9f9 none repeat scroll 0 0;border: 1px solid #aaa;display: table;font-size: 95%;margin-bottom: 1em;padding: 10px;width: 100%;}#toc_container ul{list-style-type: none;}.subli {list-style-type: square;}.toc_list ul li {margin-bottom: 4px;}.toc_list a {color: black;font-family: 'Arial';font-size: 12pt;}</style>";
 
         public bool GotObjectsInReport { get; protected set; } = false;
 
@@ -199,6 +204,10 @@ namespace FWO.Report
                 {
                     HtmlTemplate = HtmlTemplate.Replace("<p>##OtherFilters##</p>", "");
                 }
+
+                string htmlToC = BuildHTMLToC(htmlReport.ToString());
+
+                HtmlTemplate = HtmlTemplate.Replace("##ToC##", htmlToC);
                 HtmlTemplate = HtmlTemplate.Replace("##Body##", htmlReport.ToString());
                 htmlExport = HtmlTemplate.ToString();
             }
@@ -222,31 +231,48 @@ namespace FWO.Report
             OperatingSystem? os = Environment.OSVersion;
 
             string path = "";
-            BrowserFetcher? browserFetcher;
+            Platform platform = Platform.Unknown;
+            const SupportedBrowser wantedBrowser = SupportedBrowser.Chrome;
 
             switch (os.Platform)
             {
                 case PlatformID.Win32NT:
-                    browserFetcher = new();
+                    platform = Platform.Win32;
                     break;
                 case PlatformID.Unix:
-                    path = ChromeBinPathLinux;
-                    browserFetcher = new(new BrowserFetcherOptions { Path = path, Platform = Platform.Linux, Browser = SupportedBrowser.Chrome });
+                    path = GlobalConst.ChromeBinPathLinux;
+                    platform = Platform.Linux;
                     break;
                 default:
-                    return default;
+                    break;
             }
 
-            InstalledBrowser? brw = await browserFetcher.DownloadAsync(BrowserTag.Stable);
+            BrowserFetcher browserFetcher = new(new BrowserFetcherOptions() { Platform = platform, Browser = wantedBrowser, Path = path });
 
-            var isGitHubActions = Environment.GetEnvironmentVariable("GITHUB_ACTIONS") == "true";
+            InstalledBrowser? installedBrowser = browserFetcher.GetInstalledBrowsers()
+                      .FirstOrDefault(_ => _.Platform == platform && _.Browser == wantedBrowser);
+
+            if (installedBrowser == null && os.Platform == PlatformID.Win32NT)
+            {
+                Log.WriteInfo("Browser", $"Browser not found for Windows! Trying to download...");
+                await browserFetcher.DownloadAsync();
+
+                installedBrowser = browserFetcher.GetInstalledBrowsers()
+                      .FirstOrDefault(_ => _.Platform == platform && _.Browser == wantedBrowser);
+            }
+
+            if (installedBrowser == null)
+            {
+                throw new Exception($"Browser {wantedBrowser} is not installed!");
+            }
+
             using IBrowser? browser = await Puppeteer.LaunchAsync(new LaunchOptions
             {
-                ExecutablePath = isGitHubActions? "/usr/bin/chromium-browser" : brw.GetExecutablePath(),
+                ExecutablePath = installedBrowser.GetExecutablePath(),
                 Headless = true,
-                Args = isGitHubActions?
-                    ["--no-sandbox", "--database=/tmp", "--disable-setuid-sandbox"]
-                    : new string[0] // No additional arguments locally
+                // Args = isGitHubActions?
+                //     ["--no-sandbox", "--database=/tmp", "--disable-setuid-sandbox"]
+                //     : new string[0] // No additional arguments locally
             });
 
             try
@@ -254,10 +280,10 @@ namespace FWO.Report
                 using IPage page = await browser.NewPageAsync();
                 await page.SetContentAsync(html);
 
-                PuppeteerSharp.Media.PaperFormat? pupformat =  GetPuppeteerPaperFormat(format)  ?? throw new Exception();
+                PuppeteerSharp.Media.PaperFormat? pupformat = GetPuppeteerPaperFormat(format) ?? throw new Exception();
 
-                PdfOptions pdfOptions = new() { DisplayHeaderFooter = true, Landscape = true, PrintBackground = true, Format = pupformat, MarginOptions = new MarginOptions { Top = "1cm", Bottom = "1cm", Left = "1cm", Right = "1cm" } };
-                byte[] pdfData = await page.PdfDataAsync(pdfOptions);
+                PdfOptions pdfOptions = new() { Outline = true, DisplayHeaderFooter = false, Landscape = true, PrintBackground = true, Format = pupformat, MarginOptions = new MarginOptions { Top = "1cm", Bottom = "1cm", Left = "1cm", Right = "1cm" } };
+                byte[]? pdfData = await page.PdfDataAsync(pdfOptions);
 
                 return Convert.ToBase64String(pdfData);
             }
@@ -271,7 +297,96 @@ namespace FWO.Report
             }
         }
 
-        private PuppeteerSharp.Media.PaperFormat? GetPuppeteerPaperFormat(PaperFormat format)
+        public static List<ToCHeader> CreateTOCContent(string html)
+        {
+            HtmlDocument doc = new();
+            doc.LoadHtml(html);
+
+            List<HtmlNode>? headings = doc.DocumentNode.Descendants()
+                            .Where(n => n.Name.StartsWith('h') && n.Name.Length == 2 && n.Name != "hr")
+                            .ToList();
+
+            List<ToCHeader> tocs = [];
+
+            int i = 0;
+
+            foreach (HtmlNode heading in headings)
+            {
+                string headText = heading.InnerText.Trim();
+
+                if (heading.Name == "h4")
+                {
+                    tocs[i - 1].Items.Add(new ToCItem(headText, heading.Id));
+                }
+                else
+                {
+                    tocs.Add(new(headText, heading.Id));
+                    i++;
+                }
+            }
+            return tocs;
+        }
+
+        public string BuildHTMLToC(string html)
+        {
+            bool tocTemplateValid = IsValidHTML(TocHTMLTemplate);
+
+            if (!tocTemplateValid)
+            {
+                throw new Exception(userConfig.GetText("E9302"));
+            }
+
+            List<ToCHeader>? tocHeaders = CreateTOCContent(html);
+
+            TocHTMLTemplate = TocHTMLTemplate.Replace("##ToCHeader##", userConfig.GetText("tableofcontent"));
+
+            StringBuilder sb = new();
+
+            foreach (ToCHeader toCHeader in tocHeaders)
+            {
+                sb.AppendLine($"<li><a href=\"#{toCHeader.Id}\">{toCHeader.Title}</a></li>");
+
+                if (toCHeader.Items.Count > 0)
+                {
+                    sb.AppendLine("<ul>");
+
+                    foreach (ToCItem tocItem in toCHeader.Items)
+                    {
+                        sb.AppendLine($"<li class=\"subli\"><a href=\"#{tocItem.Id}\">{tocItem.Title}</a></li>");
+                    }
+
+                    sb.AppendLine("</ul>");
+                }
+            }
+
+            TocHTMLTemplate = TocHTMLTemplate.Replace("##ToCList##", sb.ToString());
+
+            bool tocValidHTML = IsValidHTML(TocHTMLTemplate);
+
+            if (!tocValidHTML)
+            {
+                throw new Exception(userConfig.GetText("E9302"));
+            }
+
+            return TocHTMLTemplate;
+        }
+
+        public static bool IsValidHTML(string html)
+        {
+            try
+            {
+                HtmlDocument? doc = new();
+                doc.LoadHtml(html);
+                return !doc.ParseErrors.Any();
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+
+        }
+
+        public PuppeteerSharp.Media.PaperFormat? GetPuppeteerPaperFormat(PaperFormat format)
         {
             if (format == PaperFormat.Custom)
                 return new PuppeteerSharp.Media.PaperFormat(CustomWidth, CustomHeight);
@@ -283,7 +398,7 @@ namespace FWO.Report
             if (prop == null)
                 return default;
 
-            PuppeteerSharp.Media.PaperFormat? propFormat = (PuppeteerSharp.Media.PaperFormat)prop.GetValue(null);
+            PuppeteerSharp.Media.PaperFormat? propFormat = (PuppeteerSharp.Media.PaperFormat?)prop.GetValue(null);
 
             if (propFormat is null)
                 return default;
@@ -315,6 +430,7 @@ namespace FWO.Report
                 ObjectType.Host => Icons.Host,
                 ObjectType.Network => Icons.Network,
                 ObjectType.IPRange => Icons.Range,
+                ObjectType.AccessRole => Icons.User,
                 _ => objCategory switch
                 {
                     ObjCategory.nobj => Icons.NwObject,

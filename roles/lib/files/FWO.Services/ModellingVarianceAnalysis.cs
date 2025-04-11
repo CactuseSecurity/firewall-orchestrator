@@ -1,9 +1,10 @@
-﻿using FWO.Config.Api;
-using FWO.Api.Data;
+using FWO.Config.Api;
+using FWO.Data;
+using FWO.Data.Workflow;
+using FWO.Data.Modelling;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Logging;
-using FWO.Api.Client.Data;
 
 namespace FWO.Services
 {
@@ -12,7 +13,7 @@ namespace FWO.Services
         private readonly ModellingNamingConvention namingConvention = System.Text.Json.JsonSerializer.Deserialize<ModellingNamingConvention>(userConfig.ModNamingConvention) ?? new();
         private readonly ModellingAppZoneHandler AppZoneHandler = new(apiConnection, userConfig, owner, displayMessageInUi);
         private AppServerComparer appServerComparer = new(new());
-        private List<Management> managements = [];
+        private List<Management> relevantManagements = [];
 
         private List<WfReqTask> TaskList = [];
         private List<WfReqTask> AccessTaskList = [];
@@ -34,29 +35,22 @@ namespace FWO.Services
         private List<WfReqElement> unchangedGroupMembersDuringCreate = [];
         private List<WfReqElement> unchangedGroupMembers = [];
 
+        public ModellingAppZone? PlannedAppZone = default;
+
         public async Task<List<WfReqTask>> AnalyseModelledConnections(List<ModellingConnection> connections)
         {
             // later: get rules + compare, bundle requests
             appServerComparer = new (namingConvention);
-            managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames);
-            managements = managements.Where(m => !string.IsNullOrEmpty(m.ExtMgtData)).ToList();
-            foreach (Management mgt in managements)
-            {
-                if (!alreadyCreatedAppServers.ContainsKey(mgt.Id))
-                {
-                    alreadyCreatedAppServers.Add(mgt.Id, []);
-                }
-            }
-
+            await InitManagements();
             await GetProductionState();
 
             TaskList = [];
             AccessTaskList = [];
             DeleteTasksList = [];
-            foreach (Management mgt in managements)
+            foreach (Management mgt in relevantManagements)
             {
                 await AnalyseAppZone(mgt);
-                foreach(var conn in connections.Where(c => !c.IsRequested).OrderBy(c => c.Id))
+                foreach (var conn in connections.Where(c => !c.IsRequested).OrderBy(c => c.Id))
                 {
                     elements = [];
                     AnalyseNetworkAreas(conn);
@@ -69,7 +63,7 @@ namespace FWO.Services
                         Dictionary<string, string>? addInfo = new() { { AdditionalInfoKeys.ConnId, conn.Id.ToString() } };
                         AccessTaskList.Add(new()
                         {
-                            Title = (conn.IsCommonService ? userConfig.GetText("new_common_service") : userConfig.GetText("new_connection")) + ": " + conn.Name ?? "",
+                            Title = ( conn.IsCommonService ? userConfig.GetText("new_common_service") : userConfig.GetText("new_connection") ) + ": " + conn.Name ?? "",
                             TaskType = WfTaskType.access.ToString(),
                             ManagementId = mgt.Id,
                             OnManagement = mgt,
@@ -94,16 +88,42 @@ namespace FWO.Services
             return TaskList;
         }
 
+        private async Task InitManagements()
+        {
+            try
+            {
+                List<Management> managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames);
+                managements = managements.Where(m => !string.IsNullOrEmpty(m.ExtMgtData)).ToList();
+                relevantManagements = [];
+                foreach (Management mgt in managements)
+                {
+                    ExtMgtData extMgtData = System.Text.Json.JsonSerializer.Deserialize<ExtMgtData>(mgt.ExtMgtData);
+                    if(!string.IsNullOrEmpty(extMgtData.ExtId) || !string.IsNullOrEmpty(extMgtData.ExtName))
+                    {
+                        relevantManagements.Add(mgt);
+                        if (!alreadyCreatedAppServers.ContainsKey(mgt.Id))
+                        {
+                            alreadyCreatedAppServers.Add(mgt.Id, []);
+                        }
+                    }
+                }
+            }
+            catch (Exception exception)
+            {
+                Log.WriteError(userConfig.GetText("fetch_data"), "Init Managements leads to error: ", exception);
+            }
+        }
+
         private string ConstructComment(ModellingConnection conn)
         {
             string comment = "FWOC" + conn.Id.ToString();
-            if(conn.IsCommonService)
+            if (conn.IsCommonService)
             {
                 comment += ", ComSvc";
             }
-            if(conn.ExtraConfigs.Count > 0 || conn.ExtraConfigsFromInterface.Count > 0)
+            if (conn.ExtraConfigs.Count > 0 || conn.ExtraConfigsFromInterface.Count > 0)
             {
-                comment += ", " + userConfig.GetText("impl_instructions") + ": " + 
+                comment += ", " + userConfig.GetText("impl_instructions") + ": " +
                     string.Join(", ", conn.ExtraConfigs.ConvertAll(x => x.Display()).Concat(conn.ExtraConfigsFromInterface.ConvertAll(x => x.Display())));
             }
             return comment;
@@ -115,7 +135,7 @@ namespace FWO.Services
             {
                 int aRCount = 0;
                 int aSCount = 0;
-                foreach (Management mgt in managements)
+                foreach (Management mgt in relevantManagements)
                 {
                     List<NetworkObject>? objGrpByMgt = await GetObjects(mgt.Id, [2]);
                     if (objGrpByMgt != null)
@@ -181,7 +201,7 @@ namespace FWO.Services
 
         private void AnalyseNetworkAreas(ModellingConnection conn)
         {
-            foreach(var area in ModellingNetworkAreaWrapper.Resolve(conn.SourceAreas))
+            foreach (var area in ModellingNetworkAreaWrapper.Resolve(conn.SourceAreas))
             {
                 elements.Add(new()
                 {
@@ -190,7 +210,7 @@ namespace FWO.Services
                     GroupName = area.IdString
                 });
             }
-            foreach(var area in ModellingNetworkAreaWrapper.Resolve(conn.DestinationAreas))
+            foreach (var area in ModellingNetworkAreaWrapper.Resolve(conn.DestinationAreas))
             {
                 elements.Add(new()
                 {
@@ -244,24 +264,32 @@ namespace FWO.Services
                 return;
             }
 
-            ModellingAppZone? existingAppZone = await AppZoneHandler.GetExistingAppZone();
+            ModellingAppZone existingAppZone = await AppZoneHandler.PlanAppZoneUpsert();
 
-            if (existingAppZone is not null)
-            {               
-                if (!ResolveExistingNwGroup(existingAppZone, mgt))
-                {
-                    RequestNewNwGroup(existingAppZone, mgt);
-                }
-                else if (NwGroupChanged(existingAppZone) )
-                {
-                    RequestUpdateNwGroup(existingAppZone, mgt);
-                }
+            if (!ResolveExistingNwGroup(existingAppZone, mgt))
+            {
+                PlannedAppZone = existingAppZone;
+                RequestNewNwGroup(existingAppZone, mgt);
+                return;
+            }
+
+            //Check prod AZ diff against current DB AZ
+            existingAppZone = await AppZoneHandler.PlanAppZoneUpsert(existingAppRole.AppServers);
+
+            PlannedAppZone = existingAppZone;
+
+            if (existingAppZone.AppServersNew.Count > 0 || existingAppZone.AppServersRemoved.Count > 0)
+            {            
+                newAppServers = existingAppZone.AppServersNew;
+                deletedAppServers = existingAppZone.AppServersRemoved;
+                unchangedAppServers = existingAppZone.AppServersUnchanged;
+                RequestUpdateNwGroup(existingAppZone, mgt);
             }
         }
 
         private bool ResolveExistingNwGroup(ModellingNwGroup nwGroup, Management mgt)
         {
-            string nwGroupType = nwGroup.GetType() == typeof(ModellingAppRole) ? "AppRole" : "AppZone"; 
+            string nwGroupType = nwGroup.GetType() == typeof(ModellingAppRole) ? "AppRole" : "AppZone";
             Log.WriteDebug($"Search {nwGroupType}", $"Name: {nwGroup.Name}, IdString: {nwGroup.IdString}, Management: {mgt.Name}");
 
             bool shortened = false;
@@ -310,6 +338,11 @@ namespace FWO.Services
                 return false;
             }
 
+            if (nwGroup is ModellingAppZone appZone)
+            {
+                return appZone.AppServersNew.Count > 0 || appZone.AppServersRemoved.Count > 0;
+            }
+
             foreach (ModellingAppServerWrapper appserver in ( (ModellingAppRole)nwGroup ).AppServers)
             {
                 if (existingAppRole.AppServers.FirstOrDefault(a => appServerComparer.Equals(a.Content, appserver.Content)) != null)
@@ -352,7 +385,7 @@ namespace FWO.Services
                 {
                     RequestAction = alreadyRequested ? RequestAction.addAfterCreation.ToString() : RequestAction.create.ToString(),
                     Field = ElemFieldType.source.ToString(),
-                    Name = AppServerComparer.ConstructAppServerName(appServer, namingConvention),
+                    Name = AppServerHelper.ConstructAppServerName(appServer, namingConvention),
                     IpString = appServer.Ip,
                     IpEnd = appServer.IpEnd,
                     GroupName = nwGroup.IdString,
@@ -433,7 +466,7 @@ namespace FWO.Services
                 {
                     RequestAction = alreadyRequested ? RequestAction.addAfterCreation.ToString() : RequestAction.create.ToString(),
                     Field = ElemFieldType.source.ToString(),
-                    Name = AppServerComparer.ConstructAppServerName(appServer.Content, namingConvention),
+                    Name = AppServerHelper.ConstructAppServerName(appServer.Content, namingConvention),
                     IpString = appServer.Content.Ip,
                     IpEnd = appServer.Content.IpEnd,
                     GroupName = idString,

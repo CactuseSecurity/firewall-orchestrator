@@ -283,6 +283,8 @@ INSERT INTO txt VALUES ('PagerPagesize',        'German', 	'Seitengr&ouml;sse');
 INSERT INTO txt VALUES ('PagerPagesize',        'English',  'Page size');
 INSERT INTO txt VALUES ('PagerSubmit',          'German', 	'Speichern');
 INSERT INTO txt VALUES ('PagerSubmit',          'English',  'Save');
+INSERT INTO txt VALUES ('order_by',          'German',  'Sortieren nach');
+INSERT INTO txt VALUES ('order_by',          'English',  'Order by');
 
 -- (re)login
 INSERT INTO txt VALUES ('login', 				'German',	'Anmelden');
@@ -1152,6 +1154,8 @@ INSERT INTO txt VALUES ('displayRejected', 	    'German',	'Abgelehnte anzeigen')
 INSERT INTO txt VALUES ('displayRejected', 	    'English',	'Display rejected');
 INSERT INTO txt VALUES ('add_interface', 	    'German',	'Schnittstelle hinzuf&uuml;gen');
 INSERT INTO txt VALUES ('add_interface', 	    'English',	'Add Interface');
+INSERT INTO txt VALUES ('edit_interface', 	    'German',	'Schnittstelle bearbeiten');
+INSERT INTO txt VALUES ('edit_interface', 	    'English',	'Edit Interface');
 INSERT INTO txt VALUES ('delete_interface', 	'German',	'Schnittstelle l&ouml;schen');
 INSERT INTO txt VALUES ('delete_interface', 	'English',	'Delete Interface');
 INSERT INTO txt VALUES ('insert_forbidden', 	'German',	'Einf&uuml;gen verboten');
@@ -1499,6 +1503,8 @@ INSERT INTO txt VALUES ('regular_connections', 	'German',	'Standard-Verbindungen
 INSERT INTO txt VALUES ('regular_connections', 	'English',	'Regular Connections');
 INSERT INTO txt VALUES ('show_all',             'German', 	'Alle darstellen');
 INSERT INTO txt VALUES ('show_all',             'English', 	'Show all');
+INSERT INTO txt VALUES ('fetch_limit',          'German', 	'Limit');
+INSERT INTO txt VALUES ('fetch_limit',          'English', 	'limit');
 INSERT INTO txt VALUES ('as_source',            'German', 	'Als Quelle');
 INSERT INTO txt VALUES ('as_source',            'English', 	'As Source');
 INSERT INTO txt VALUES ('send_email',           'German', 	'Email senden');
@@ -1567,7 +1573,7 @@ INSERT INTO txt VALUES ('add_members',          'German',   ': Mitglieder hinzuf
 INSERT INTO txt VALUES ('add_members',          'English',  ': Add Members');
 INSERT INTO txt VALUES ('remove_members',       'German',   ': Mitglieder entfernen');
 INSERT INTO txt VALUES ('remove_members',       'English',  ': Remove Members');
-INSERT INTO txt VALUES ('app_owner_not_found',  'German',   'Keinen Eigent&uuml;mer für diese App gefunden');
+INSERT INTO txt VALUES ('app_owner_not_found',  'German',   'Keinen Eigent&uuml;mer f&uuml;r diese App gefunden');
 INSERT INTO txt VALUES ('app_owner_not_found',  'English',  'No owner found for this app');
 INSERT INTO txt VALUES ('delete_app_zone', 	    'German',	'App Zone l&ouml;schen');
 INSERT INTO txt VALUES ('delete_app_zone', 	    'English',	'Delete App Zone');
@@ -1593,8 +1599,20 @@ INSERT INTO txt VALUES ('new_app_zone',         'German',   'Neue AppZone: ');
 INSERT INTO txt VALUES ('new_app_zone',         'English',  'New AppZone: ');
 INSERT INTO txt VALUES ('update_app_zone',      'German',   'Ge&auml;nderte AppZone: ');
 INSERT INTO txt VALUES ('update_app_zone',      'English',  'Update AppZone: ');
-INSERT INTO txt VALUES ('nwareachange_clear_app_servers',    'German',   'Sind Sie sicher, dass Sie die Netzwerk Area wechseln wollen?<br><br>Es werden alle hinzugef&uuml;gten App Server entfernt!');
-INSERT INTO txt VALUES ('nwareachange_clear_app_servers',    'English',  'Are you sure you want to change the network area?<br><br>All added app servers will be removed!');
+INSERT INTO txt VALUES ('nwareachange_clear_app_servers',   'German',   'Sind Sie sicher, dass Sie die Netzwerk Area wechseln wollen?<br><br>Es werden alle hinzugef&uuml;gten App Server entfernt!');
+INSERT INTO txt VALUES ('nwareachange_clear_app_servers',   'English',  'Are you sure you want to change the network area?<br><br>All added app servers will be removed!');
+INSERT INTO txt VALUES ('lookup',               'German',   'Nachschlagen');
+INSERT INTO txt VALUES ('lookup',               'English',  'Look-up');
+INSERT INTO txt VALUES ('generate_name',        'German',   'Name generieren');
+INSERT INTO txt VALUES ('generate_name',        'English',  'Generate Name');
+INSERT INTO txt VALUES ('change_source',        'German',   '&Auml;nderungsquelle');
+INSERT INTO txt VALUES ('change_source',        'English',  'Change Source');
+INSERT INTO txt VALUES ('tableofcontent',       'German',   'Inhaltsverzeichnis');
+INSERT INTO txt VALUES ('tableofcontent',       'English',  'Table of content');
+INSERT INTO txt VALUES ('entrydata',            'German',   'Dateneintrag');
+INSERT INTO txt VALUES ('entrydata',            'English',  'Data entry');
+INSERT INTO txt VALUES ('error_message',        'German',   'Fehlermeldung');
+INSERT INTO txt VALUES ('error_message',        'English',  'Error message');
 
 -- compliance
 INSERT INTO txt VALUES ('compliance',			'German', 	'Compliance');
@@ -1791,6 +1809,10 @@ INSERT INTO txt VALUES ('last_incomplete',      'German', 	'Letzter Unvollendete
 INSERT INTO txt VALUES ('last_incomplete',      'English', 	'Last Incomplete');
 INSERT INTO txt VALUES ('rollback',             'German', 	'Zur&uuml;cksetzen');
 INSERT INTO txt VALUES ('rollback',             'English', 	'Rollback');
+INSERT INTO txt VALUES ('full_rollback',        'German', 	'Komplett zur&uuml;cksetzen');
+INSERT INTO txt VALUES ('full_rollback',        'English', 	'Full rollback');
+INSERT INTO txt VALUES ('not_imported_yet',     'German', 	'Kein Import f&uuml;r dieses Management vorhanden');
+INSERT INTO txt VALUES ('not_imported_yet',     'English', 	'No existing Import for this management');
 INSERT INTO txt VALUES ('last_success',         'German', 	'Letzter Erfolg');
 INSERT INTO txt VALUES ('last_success',         'English', 	'Last Success');
 INSERT INTO txt VALUES ('last_import',          'German', 	'Letzter Import');
@@ -1901,6 +1923,8 @@ INSERT INTO txt VALUES ('role_search_path',     'German', 	'Suchpfad Rollen');
 INSERT INTO txt VALUES ('role_search_path',     'English', 	'Role Search Path');
 INSERT INTO txt VALUES ('group_search_path',    'German', 	'Suchpfad Gruppen');
 INSERT INTO txt VALUES ('group_search_path',    'English', 	'Group Search Path');
+INSERT INTO txt VALUES ('group_write_path',     'German', 	'Schreibpfad Gruppen');
+INSERT INTO txt VALUES ('group_write_path',     'English', 	'Group Write Path');
 INSERT INTO txt VALUES ('search_user',          'German', 	'Nutzer f&uuml;r Suche');
 INSERT INTO txt VALUES ('search_user',          'English', 	'Search User');
 INSERT INTO txt VALUES ('search_user_pwd',      'German', 	'Passwort Nutzer f&uuml;r Suche');
@@ -2263,7 +2287,7 @@ INSERT INTO txt VALUES ('importAppDataSleepTime','German', 	'Import Appdaten-Int
 INSERT INTO txt VALUES ('importAppDataSleepTime','English', 'Import App data sleep time (in hours)');
 INSERT INTO txt VALUES ('ownerGroupLdap',       'German',   'LDAP f&uuml;r Eigent&uuml;mergruppen');
 INSERT INTO txt VALUES ('ownerGroupLdap',       'English',  'LDAP for owner groups');
-INSERT INTO txt VALUES ('ownerGroupPattern',    'German',   'Namenskonvention f&uuml;r Eigentt&uuml;mer-LDAP-Gruppen');
+INSERT INTO txt VALUES ('ownerGroupPattern',    'German',   'Namenskonvention f&uuml;r Eigent&uuml;mer-LDAP-Gruppen');
 INSERT INTO txt VALUES ('ownerGroupPattern',    'English',  'Naming convention for LDAP owner groups');
 INSERT INTO txt VALUES ('manageGroupsInLdap',   'German',   'Aktive Pflege der Eigent&uuml;mer-LDAP-Gruppen durch FWO');
 INSERT INTO txt VALUES ('manageGroupsInLdap',   'English',  'Active management of owner LDAP groups by FWO');
@@ -2311,8 +2335,18 @@ INSERT INTO txt VALUES ('networkAreaPattern',   'German',   'Muster Netzwerkarea
 INSERT INTO txt VALUES ('networkAreaPattern',   'English',  'Network Area Pattern');
 INSERT INTO txt VALUES ('appRolePattern',       'German',   'Muster App Rolle');
 INSERT INTO txt VALUES ('appRolePattern',       'English',  'App Role Pattern');
-INSERT INTO txt VALUES ('appServerPrefix',      'German',   'App Server Namensprefix');
+INSERT INTO txt VALUES ('appServerPrefix',      'German',   'App Server Namenspr&auml;fix');
 INSERT INTO txt VALUES ('appServerPrefix',      'English',  'App Server Name Prefix');
+INSERT INTO txt VALUES ('networkPrefix',        'German',   'Namenspr&auml;fix IP-Netzwerk');
+INSERT INTO txt VALUES ('networkPrefix',        'English',  'Network Name Prefix');
+INSERT INTO txt VALUES ('ipRangePrefix',        'German',   'Namenspr&auml;fix IP-Bereich');
+INSERT INTO txt VALUES ('ipRangePrefix',        'English',  'IP Range Name Prefix');
+INSERT INTO txt VALUES ('dns_lookup',           'German',   'DNS-Suche');
+INSERT INTO txt VALUES ('dns_lookup',           'English',  'DNS Look-up');
+INSERT INTO txt VALUES ('overwrite_exiting_names','German', 'Existierende Namen &uuml;berschreiben');
+INSERT INTO txt VALUES ('overwrite_exiting_names','English','Overwrite Existing Names');
+INSERT INTO txt VALUES ('auto_replace_app_server','German', 'App Server umh&auml;ngen');
+INSERT INTO txt VALUES ('auto_replace_app_server','English','Replace App Servers');
 INSERT INTO txt VALUES ('import_source',        'German',   'Importquelle');
 INSERT INTO txt VALUES ('import_source',        'English',  'Import Source');
 INSERT INTO txt VALUES ('modelling_settings',   'German', 	'Modellierungseinstellungen');
@@ -2339,6 +2373,10 @@ INSERT INTO txt VALUES ('app_zone_pattern',		'German', 	'Muster App Zone');
 INSERT INTO txt VALUES ('app_zone_pattern',		'English', 	'App Zone Pattern');
 INSERT INTO txt VALUES ('app_zone_creation',	'German', 	'App Zonen Objekte erstellen');
 INSERT INTO txt VALUES ('app_zone_creation',	'English', 	'Create App Zone Objects');
+INSERT INTO txt VALUES ('appserver_import',     'German',   'App server import');
+INSERT INTO txt VALUES ('appserver_import',     'English',  'App server import');
+INSERT INTO txt VALUES ('select_file',          'German',   'Datei ausw&auml;hlen');
+INSERT INTO txt VALUES ('select_file',          'English',  'Select file');
 
 -- monitoring
 INSERT INTO txt VALUES ('open_alerts',          'German', 	'Offene Alarme');
@@ -2359,6 +2397,8 @@ INSERT INTO txt VALUES ('suspected_cause',      'German', 	'Vermutliche Ursache'
 INSERT INTO txt VALUES ('suspected_cause',      'English', 	'Suspected Cause');
 INSERT INTO txt VALUES ('device',				'German', 	'Ger&auml;t');
 INSERT INTO txt VALUES ('device',				'English', 	'Device');
+INSERT INTO txt VALUES ('enforcing_devices',	'German', 	'Filter-Devices');
+INSERT INTO txt VALUES ('enforcing_devices',	'English', 	'Enforcing Devices');
 INSERT INTO txt VALUES ('object_type',          'German', 	'Objekt-Typ');
 INSERT INTO txt VALUES ('object_type',          'English', 	'Object Type');
 INSERT INTO txt VALUES ('object_name',          'German', 	'Objektname');
@@ -2835,6 +2875,14 @@ INSERT INTO txt VALUES ('U9019', 'German',  'Sind sie sicher, dass sie die Exter
 INSERT INTO txt VALUES ('U9019', 'English', 'Are you sure you want to reinit the external requests for following ticket: ');
 INSERT INTO txt VALUES ('U9020', 'German',  'Die externe Beantragung wurde gestartet.');
 INSERT INTO txt VALUES ('U9020', 'English', 'External Request initialized.');
+INSERT INTO txt VALUES ('U9021', 'German',  'Schnittstellen d&uuml;rfen keine Netzbereiche enthalten');
+INSERT INTO txt VALUES ('U9021', 'English', 'Interfaces must not contain network areas');
+INSERT INTO txt VALUES ('U9022', 'German',  'Quelle und Ziel d&uuml;rfen nicht gleichzeitig einen Netzbereich enthalten');
+INSERT INTO txt VALUES ('U9022', 'English', 'Source and destination must not contain a network area at the same time');
+INSERT INTO txt VALUES ('U9023', 'German',  'Dieser Netzbereich kann nur in der Registerkarte Gemeinsame Dienste verwendet werden.');
+INSERT INTO txt VALUES ('U9023', 'English', 'This network area can only be used in common services tab');
+INSERT INTO txt VALUES ('U9024', 'German',  'Netzbereiche k&ouml;nnen nicht zusammen mit Schnittstellen anderer Apps genutzt werden.');
+INSERT INTO txt VALUES ('U9024', 'English', 'Network areas cannot be used together with interfaces from foreign apps.');
 
 -- error messages
 INSERT INTO txt VALUES ('E0001', 'German',  'Nicht klassifizierter Fehler: ');
@@ -3068,6 +3116,10 @@ INSERT INTO txt VALUES ('E5415', 'German',  'Passwort muss mindestens ein Sonder
 INSERT INTO txt VALUES ('E5415', 'English', 'Password must contain at least one special character (!?(){}=~$%&amp;#*-+.,_)');
 INSERT INTO txt VALUES ('E5421', 'German',  'Schl&uuml;ssel nicht gefunden oder Wert nicht konvertierbar: Wert wird gesetzt auf: ');
 INSERT INTO txt VALUES ('E5421', 'English', 'Key not found or could not convert value to int: taking value: ');
+INSERT INTO txt VALUES ('E5422', 'German',  'Eintrag enth&auml;lt nicht alle erforderlichen Spalten');
+INSERT INTO txt VALUES ('E5422', 'English', 'Entry does not contain all required columns');
+INSERT INTO txt VALUES ('E5423', 'German',  'IP-Adresse/IP-Bereich ist fehlerhaft');
+INSERT INTO txt VALUES ('E5423', 'English', 'IP Address/IP Range malformed');
 
 INSERT INTO txt VALUES ('E6001', 'German', 	'Der Re-Login war nicht erfolgreich. Haben Sie ein falsches Passwort eingegeben? Schauen Sie f&uuml;r Details bitte in die Logs.');
 INSERT INTO txt VALUES ('E6001', 'English', 'Re-login failed. Did you enter a wrong password? See log for details.');
@@ -3157,6 +3209,8 @@ INSERT INTO txt VALUES ('E9016', 'German',  'Beantragte Schnittstelle kann nicht
 INSERT INTO txt VALUES ('E9016', 'English', 'Requested interface cannot be deleted.');
 INSERT INTO txt VALUES ('E9017', 'German',  'Schnittstelle kann die angeforderte nicht ersetzen: Die Richtungen der Schnittstellen stimmen nicht &uuml;berein (eine ist eine Quellschnittstelle, die andere eine Zielschnittstelle).');
 INSERT INTO txt VALUES ('E9017', 'English', 'Interface cannot replace requested one: the directions of the interfaces do not match (one is a source interface, the other a destination interface).');
+INSERT INTO txt VALUES ('E9018', 'German',  'Name schon vergeben. Bitte einen anderen w&auml;hlen.');
+INSERT INTO txt VALUES ('E9018', 'English', 'Name already used. Please choose another.');
 INSERT INTO txt VALUES ('E9101', 'German',  'Fehler bei externer Auftragserzeugung.');
 INSERT INTO txt VALUES ('E9101', 'English', 'Error at external ticket creation.');
 INSERT INTO txt VALUES ('E9102', 'German',  'Fehler beim &Auml;ndern des externen Auftragsstatus.');
@@ -3170,6 +3224,11 @@ INSERT INTO txt VALUES ('E9203', 'German',  'Fehler beim Abrufen der existierend
 INSERT INTO txt VALUES ('E9203', 'English', 'Error retrieving the existing app zone objects');
 INSERT INTO txt VALUES ('E9204', 'German',  'Fehler beim Hinzuf&uuml;gen des App Servers zum App Zonen Objekt');
 INSERT INTO txt VALUES ('E9204', 'English', 'Error adding the App Server to the App Zone object');
+
+INSERT INTO txt VALUES ('E9301', 'German',  'Template Datei nicht gefunden!');
+INSERT INTO txt VALUES ('E9301', 'English', 'Template File not found!');
+INSERT INTO txt VALUES ('E9302', 'German',  'HTML ist nicht valide!');
+INSERT INTO txt VALUES ('E9302', 'English', 'HTML is invalid!');
 
 -- errors from Api
 INSERT INTO txt VALUES ('A0001', 'German',  'Ung&uuml;ltige Anmeldedaten. Nutzername darf nicht leer sein');
@@ -3270,6 +3329,16 @@ INSERT INTO txt VALUES ('C9015', 'German',  'Leere App Rolle enthalten. Nutzende
 INSERT INTO txt VALUES ('C9015', 'English', 'Contains empty App Role. Connections using this interface will not be requested.');
 INSERT INTO txt VALUES ('C9016', 'German',  'Gel&ouml;schtes Objekt enthalten. Nutzende Verbindungen dieser Schnittstelle werden nicht beantragt.');
 INSERT INTO txt VALUES ('C9016', 'English', 'Contains deleted object. Connections using this interface will not be requested.');
+INSERT INTO txt VALUES ('C9017', 'German',  'Hier kann der Name des App-Servers, der beim Speichern ohnehin automatisch erzeugt wird, im voraus zur Ansicht generiert werden.
+    Dabei wird der Name zur IP-Adresse im DNS nachgeschlagen. Wenn keiner gefunden wird, so wird er entsprechend der Namenskonvention konstruiert.
+');
+INSERT INTO txt VALUES ('C9017', 'English', 'Here the name of the App Server, which is created on saving anyway, can be generated for display in advance.
+    The name is searched in the DNS. If not found, it is constructed according to the naming convention.
+');
+INSERT INTO txt VALUES ('C9018', 'German',  'Leere Service Gruppe(n) enthalten. Diese Verbindung wird nicht beantragt.');
+INSERT INTO txt VALUES ('C9018', 'English', 'Contains empty Service Groups(s). This connection will not be requested.');
+INSERT INTO txt VALUES ('C9019', 'German',  'Leere Service Gruppe(n) enthalten. Nutzende Verbindungen dieser Schnittstelle werden nicht beantragt.');
+INSERT INTO txt VALUES ('C9019', 'English', 'Contains empty Service Groups(s). Connections using this interface will not be requested.');
 
 -- help pages
 INSERT INTO txt VALUES ('H0001', 'German',  'Firewall Orchestrator ist eine Anwendung zum Erzeugen und Verwalten von verschiedenen Reports aus Konfigurationsdaten verteilter Firewallsysteme.
@@ -4455,6 +4524,8 @@ INSERT INTO txt VALUES ('H5225', 'English', 'Global Tenant Name: If the Ldap is 
 ');
 INSERT INTO txt VALUES ('H5226', 'German',  'Aktiv: Wenn das Ldap nicht auf aktiv gesetzt ist, wird es f&uuml;r andere Aktionen (Autorisierungen, Rollenzuweisung etc.) nicht ber&uuml;cksichtigt.');
 INSERT INTO txt VALUES ('H5226', 'English', 'Active: If not set to active, the Ldap is not involved in other actions (authorization, role assignment etc.).');
+INSERT INTO txt VALUES ('H5227', 'German',  'Schreibpfad Gruppen: Der Distinguished name (Dn) des Wurzelverzeichnisses des Gruppensbaums. Dieser Parameter kann vom Suchpfad abweichen (was er im internen Ldap nicht tut).');
+INSERT INTO txt VALUES ('H5227', 'English', 'Group Write Path: The distinguished name (Dn) of the root of the group writ tree. This parameter may differ from the search path (in the internal Ldap it does not).');
 INSERT INTO txt VALUES ('H5231', 'German',  'Die verf&uuml;gbaren Mandanten werden hier mit den zugeordneten Gateways dargestellt.<br>
     Es ist m&ouml;glich, Mandanten im lokalen Ldap sowie Verkn&uuml;pfungen zu den vorhandenen <a href="/help/settings/gateways">Gateways</a> anzulegen oder zu l&ouml;schen.
     Wenn Beispieldaten (definiert durch die Endung "_demo" vom Mandantennamen) existieren, wird eine Schaltfl&auml;che angezeigt, um diese zu l&ouml;schen.
@@ -5210,7 +5281,7 @@ INSERT INTO txt VALUES ('H5631', 'German',  'Servicegruppen aufl&ouml;sen: Erset
 INSERT INTO txt VALUES ('H5631', 'English', 'Resolve service groups: Replace service groups by its members when creating an external request.');
 INSERT INTO txt VALUES ('H5632', 'German',  'Tasks zusammenfassen: Fasse gleichartige Tasks in einem externen Auftrag zusammen.');
 INSERT INTO txt VALUES ('H5632', 'English', 'Bundle tasks: Bundle tasks of same type in one external request.');
-INSERT INTO txt VALUES ('H5633', 'German',  'App Server Namensprefix: Falls der Name nicht schon anderweitig vorbelegt ist, wird er aus Namensprefix + Ip-Adresse zusammengesetzt.');
+INSERT INTO txt VALUES ('H5633', 'German',  'App Server Namenspr&auml;fix: Falls der Name nicht schon anderweitig vorbelegt ist, wird er aus Namenspr&auml;fix + Ip-Adresse zusammengesetzt.');
 INSERT INTO txt VALUES ('H5633', 'English', 'App Server Name Prefix: If not already filled, the App Server Name will be constructed by Name Prefix + Ip address.');
 INSERT INTO txt VALUES ('H5634', 'German',  'Automatische Firewallbeantragung aktivieren: Aktiviert den Button zum Workflow zur automatischen Firewallbeantragung.');
 INSERT INTO txt VALUES ('H5634', 'English', 'Activate automatic Firewall request: Activates the button to the workflow for automatic firewall requests.');
@@ -5224,14 +5295,22 @@ INSERT INTO txt VALUES ('H5638', 'German',  'Hier wird der Anweisungstext f&uuml
 INSERT INTO txt VALUES ('H5638', 'English', 'Insert text for extra configurations.');
 INSERT INTO txt VALUES ('H5639', 'German',  'Hier wird der Meldungstext f&uuml;r Fehler im externen Beantragungsprozess eingetragen.');
 INSERT INTO txt VALUES ('H5639', 'English', 'Insert customized text for errors in requests to external ticket system.');
-
 INSERT INTO txt VALUES ('H5640', 'German',  'Auswahl des LDAP-Systems, in dem die Eigent&uuml;mergruppen gepflegt werden.');
 INSERT INTO txt VALUES ('H5640', 'English', 'Select LDAP system for storing owner groups.');
 INSERT INTO txt VALUES ('H5641', 'German',  'Festlegen des Namensschemas f&uuml;r Eigent&uuml;mergruppen. Dient zur eindeutigen Identifizierung der LDAP Gruppen. Der Platzhalter wird als @@ExternalAppId@@ definiert.');
 INSERT INTO txt VALUES ('H5641', 'English', 'Define naming convention in order to identify the LDAP group belonging to an owner. The variable is specified as @@ExternalAppId@@.');
 INSERT INTO txt VALUES ('H5642', 'German',  'Sollen die LDAP-Gruppen aktiv von FWO gepflegt werden (anlegen/&auml;ndern von Gruppenmitgliedern)? Ein Schreibzugriff auf den jeweiligen LDAP-Server ist notwendig.');
 INSERT INTO txt VALUES ('H5642', 'English', 'Shall FWO manage LDAP groups for owners? Write access to the respective LDAP is needed if you choose this option.');
-
+INSERT INTO txt VALUES ('H5643', 'German',  'DNS-Suche: Wenn gesetzt, werden App-Server-Namen aus dem DNS erg&auml;nzt und sind nicht manuell editierbar. Falls kein Name aufgel&ouml;st werden kann, wird er aus Pr&auml;fix und IP-Adresse konstruiert.');
+INSERT INTO txt VALUES ('H5643', 'English', 'DNS Look-up: When set, App Server names are resolved from DNS and are not manually editable. If no name can be resolved, it is constructed from prefix and IP address.');
+INSERT INTO txt VALUES ('H5644', 'German',  'Existierende Namen &uuml;berschreiben: Wenn gesetzt, werden bereits existierende Namen auch &uuml;berschrieben, wenn sie nicht im DNS aufgel&ouml;st werden k&ouml;nnen.');
+INSERT INTO txt VALUES ('H5644', 'English', 'Overwrite Existing Names: When set, existing App Server names are overwritten, even if they cannot be resolved from DNS.');
+INSERT INTO txt VALUES ('H5645', 'German',  'Namenspr&auml;fix IP-Netzwerk: Der Name der IP-Netzwerke wird aus diesem Namenspr&auml;fix + Ip-Netzwerkadresse zusammengesetzt.');
+INSERT INTO txt VALUES ('H5645', 'English', 'Network Name Prefix: The name of IP networks will be constructed by this prefix + network address.');
+INSERT INTO txt VALUES ('H5646', 'German',  'Namenspr&auml;fix IP-Bereich: Der Name der IP-Bereiche wird aus diesem Namenspr&auml;fix + Ip-Bereich zusammengesetzt.');
+INSERT INTO txt VALUES ('H5646', 'English', 'IP Range Name Prefix: The name of IP ranges will be constructed by this prefix + Ip address range.');
+INSERT INTO txt VALUES ('H5647', 'German',  'App Server umh&auml;ngen: Neu angelegte oder reaktivierte App Server ersetzen vorher vorhandene gleichen Namens auch in App Rollen und Verbindungen/Schnittstellen.');
+INSERT INTO txt VALUES ('H5647', 'English', 'Replace App Servers: New or reactivated App Servers replace existing ones of same name also in App Roles and Connections/Interfaces.');
 
 INSERT INTO txt VALUES ('H5701', 'German',  'Die in der Datenbank hinterlegten sprachabh&auml;ngigen Texte k&ouml;nnen individuell &uuml;berschrieben werden.
     Dabei werden die vom System vorgegebenen Texte nicht ge&auml;ndert, sondern nur durch die hier definierten Texte - falls vorhanden - &uuml;berblendet.
@@ -6380,12 +6459,12 @@ INSERT INTO txt VALUES ('H9024', 'English', 'Common Services: Can only be define
 ');
 INSERT INTO txt VALUES ('H9031', 'German',  'Netzwerkobjekte werden zur Definition von Quelle und Ziel der Verbindungen ben&ouml;tigt. Es wird zwischen verschiedenen Arten von Netzwerkobjekten unterschieden:');
 INSERT INTO txt VALUES ('H9031', 'English', 'Network objects are used to define source and destination of the connections. There are different types of network objects:');
-INSERT INTO txt VALUES ('H9032', 'German',  'App-Server: Die elementaren Bausteine (Host-Adressen), die der Applikation zugeordnet sind. Sie werden in der Regel mit den Applikationen importiert
-    (<a href="/help/settings/modelling">Import-Einstellungen</a>, <a href="/help/API/appdataimport">Import-Schnittstelle</a>), k&ouml;nnen aber auch manuell vom Administrator angelegt werden.
+INSERT INTO txt VALUES ('H9032', 'German',  'App-Server: Die elementaren Bausteine (Host-Adressen, Netzwerke, IP-Bereiche), die der Applikation zugeordnet sind. Sie werden in der Regel mit den Applikationen importiert
+    (<a href="/help/settings/modelling">Import-Einstellungen</a>, <a href="/help/API/appdataimport">Import-Schnittstelle</a>), k&ouml;nnen aber auch manuell oder per CSV-Import vom Administrator angelegt werden.
     Je nach Einstellung (abh&auml;ngig von den jeweiligen Vorgaben des Unternehmens) k&ouml;nnen die App-Server direkt in die Verbindungen &uuml;bernommen werden oder m&uuml;ssen zuerst in App-Rollen geb&uuml;ndelt werden.
 ');
-INSERT INTO txt VALUES ('H9032', 'English', 'App Server: Elementary components (host addresses) associated to the application. Usually they are imported with the applications
-    (<a href="/help/settings/modelling">Import Settings</a>, <a href="/help/API/appdataimport">Import Interface</a>), but can also be created manually by the administrator.
+INSERT INTO txt VALUES ('H9032', 'English', 'App Server: Elementary components (host addresses, networks, IP ranges) associated to the application. Usually they are imported with the applications
+    (<a href="/help/settings/modelling">Import Settings</a>, <a href="/help/API/appdataimport">Import Interface</a>), but can also be created manually or imported via CSV by the administrator.
     Depending on the settings (according to company requirements) App Servers can be used directly in the connections or have to be bundled in App Roles first.
 ');
 INSERT INTO txt VALUES ('H9033', 'German',  'App-Rollen: Dienen der B&uuml;ndelung von App-Servern. Falls in den <a href="/help/settings/modelling">Modellierungseinstellungen</a> so vorgesehen,

@@ -1,6 +1,8 @@
 ﻿using NUnit.Framework;
 using NUnit.Framework.Legacy;
-using FWO.Api.Data;
+using FWO.Data;
+using FWO.Data.Workflow;
+using FWO.Data.Modelling;
 using FWO.Tufin.SecureChange;
 using FWO.Middleware.Server;
 

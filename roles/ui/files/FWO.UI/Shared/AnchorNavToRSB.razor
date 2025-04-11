@@ -1,5 +1,5 @@
-@using FWO.Basics
 @using System.Text.RegularExpressions
+
 @inject IJSRuntime JSRuntime
 @inject NavigationManager NavigationManager
 @inject UserConfig userConfig
@@ -88,11 +88,9 @@
             
             bool foundObj = await JSRuntime.InvokeAsync<bool>("scrollIntoRSBView", elementId);
 
-            if (foundObj)
-            {
-                // remove #goto-{obj-link} fragment from uri
-                await JSRuntime.InvokeVoidAsync("removeUrlFragment");
-            }
+            
+            // remove #goto-{obj-link} fragment from uri
+            await JSRuntime.InvokeVoidAsync("removeUrlFragment");
         }
     }
 }

@@ -1,7 +1,3 @@
-@using FWO.Api.Client
-@using FWO.Api.Client.Queries
-@using FWO.Config.Api
-@using FWO.Services
 @using FWO.Ui.Services
 @using FWO.Ui.Pages.NetworkModelling
 @using FWO.Ui.Display
@@ -73,7 +69,7 @@
                                             @(userConfig.GetText(type.ToString()))
                                         </ElementTemplate>
                                     </Dropdown>
-                               }
+                                }
                                 else
                                 {
                                     <label class="col-sm-12 h-100 border bg-secondary">@(userConfig.GetText(actTaskType.ToString()))</label>
@@ -113,7 +109,7 @@
                                 <div class="col-sm-8">
                                     @if (WfHandler.EditReqTaskMode)
                                     {
-                                        <Dropdown ElementType="Device" @bind-SelectedElements="selectedDevices" ElementToString="@(d => d.Name)" Elements="WfHandler.Devices" Multiselect="true">
+                                        <Dropdown SelectedElementsChanged="SetDevices" SelectedElementChanged="SetDevice" SelectedElements="selectedDevices" ElementType="Device" ElementToString="@(d => d.Name)" Elements="WfHandler.Devices" Multiselect="true">
                                             <ElementTemplate Context="device">
                                                 @device.Name
                                             </ElementTemplate>
@@ -291,9 +287,9 @@
                 @if(actTaskType == WfTaskType.access)
                 {
                     <DisplayAccessElements Sources="actSources" @bind-SourcesToAdd="sourcesToAdd" @bind-SourcesToDelete="sourcesToDelete"
-                        Destinations="actDestinations" @bind-DestinationsToAdd="destinationsToAdd" @bind-DestinationsToDelete="destinationsToDelete"
-                        Services="actServices" @bind-ServicesToAdd="servicesToAdd" @bind-ServicesToDelete="servicesToDelete"
-                        IpProtos="ipProtos" TaskId="WfHandler.ActReqTask.Id" EditMode="WfHandler.EditReqTaskMode" />
+                    Destinations="actDestinations" @bind-DestinationsToAdd="destinationsToAdd" @bind-DestinationsToDelete="destinationsToDelete"
+                    Services="actServices" @bind-ServicesToAdd="servicesToAdd" @bind-ServicesToDelete="servicesToDelete"
+                    IpProtos="ipProtos" TaskId="WfHandler.ActReqTask.Id" EditMode="WfHandler.EditReqTaskMode" />
                 }
                 else if(actTaskType == WfTaskType.rule_delete)
                 {
@@ -377,7 +373,7 @@
                 {
                     <h5 class="mt-2">@(userConfig.GetText("implementation_tasks"))</h5>
 
-                    <DisplayImplTaskTable Phase="Phase" States="States" WfHandler="WfHandler" ResetParent="Reset" 
+                    <DisplayImplTaskTable Phase="Phase" States="States" WfHandler="WfHandler" ResetParent="Reset"
                         AllImplTasks="WfHandler.ActReqTask.ImplementationTasks" StartImplPhase="StartImplPhase"/>
                 }
             </form>
@@ -400,7 +396,7 @@
                     </Authorized>
                     <NotAuthorized>
                         <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
-                    </NotAuthorized> 
+                    </NotAuthorized>
                 </AuthorizeView>
             }
             else if (WfHandler.PlanReqTaskMode)
@@ -411,7 +407,7 @@
                     </Authorized>
                     <NotAuthorized>
                         <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("change_state"))</button>
-                    </NotAuthorized> 
+                    </NotAuthorized>
                 </AuthorizeView>
             }
             else if (WfHandler.ApproveReqTaskMode)
@@ -422,7 +418,7 @@
                     </Authorized>
                     <NotAuthorized>
                         <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("approve"))</button>
-                    </NotAuthorized> 
+                    </NotAuthorized>
                 </AuthorizeView>
             }
             @if(WfHandler.EditReqTaskMode || WfHandler.PlanReqTaskMode || WfHandler.ApproveReqTaskMode)
@@ -530,6 +526,7 @@
         {
             if (WfHandler.DisplayReqTaskMode && firstParamSet)
             {
+                firstParamSet = false;
                 InitElements();
                 await InitComments();
                 await Reset();
@@ -546,13 +543,22 @@
                     }
                     actGrpName = WfHandler.ActReqTask.GetAddInfoValue(AdditionalInfoKeys.GrpName);
                 }
-                firstParamSet = false;
-             }
+            }
         }
         catch (Exception exception)
         {
             DisplayMessageInUi(exception, userConfig.GetText("init_environment"), "", true);
         }
+    }
+
+    private void SetDevice(Device device)
+    {
+        selectedDevices = new[] { device };
+    }
+
+    private void SetDevices(IEnumerable<Device> devices)
+    {
+        selectedDevices = devices;
     }
 
     private void InitElements()
@@ -567,6 +573,7 @@
     private async Task InitComments()
     {
         allComments = WfStatefulObject.DisplayAllComments(WfHandler.ActReqTask.Comments);
+        await DefaultInit.DoNothing(); // qad avoid compiler warning
     }
 
     private async Task Close()
@@ -585,7 +592,10 @@
     private async Task Reset()
     {
         Log.WriteDebug("DisplayRequestTask", "Reset");
-        offeredActions = WfHandler.ActionHandler.GetOfferedActions(WfHandler.ActReqTask, WfObjectScopes.RequestTask, WfHandler.Phase);
+        if(WfHandler.ActionHandler != null)
+        {
+            offeredActions = WfHandler.ActionHandler.GetOfferedActions(WfHandler.ActReqTask, WfObjectScopes.RequestTask, WfHandler.Phase);
+        }
         selectedDevices = new List<Device>();
         foreach(int devId in WfHandler.ActReqTask.GetDeviceList().ToArray())
         {
@@ -792,7 +802,7 @@
 
     private async Task<bool> CheckTaskValues()
     {
-        if (WfHandler.ActReqTask.Title == null || WfHandler.ActReqTask.Title == "" || 
+        if (WfHandler.ActReqTask.Title == null || WfHandler.ActReqTask.Title == "" ||
             (actTaskType == WfTaskType.new_interface && actOwner == null))
         {
             DisplayMessageInUi(null, userConfig.GetText("save_task"), userConfig.GetText("E5102"), true);

@@ -11,10 +11,13 @@ import fOS_getter
 from curses import raw
 from fwo_log import getFwoLogger
 # from fOS_gw_networking import getInterfacesAndRouting, normalize_network_data
-from fwo_data_networking import get_ip_of_interface_obj
-
-from fwoBaseImport import ImportState, ManagementDetails
-from fwconfig import FwConfigManager, FwConfigManagerList, FwConfigNormalized
+from model_controllers.interface_controller import get_ip_of_interface_obj
+from model_controllers.import_state_controller import ImportStateController
+from model_controllers.management_details_controller import ManagementDetailsController
+#from fwconfig import FwConfigManager, FwConfigManagerList, FwConfigNormalized
+from models.fwconfigmanagerlist import FwConfigManagerList
+from models.fwconfigmanager import FwConfigManager
+from models.fwconfig_normalized import FwConfigNormalized
 from fwo_base import calcManagerUidHash, ConfigAction
 
 import fwo_const
@@ -45,7 +48,7 @@ def has_config_changed(full_config, mgm_details, force=False):
     # dummy - may be filled with real check later on
     return True
  
-def get_config(full_config: json, importState: ImportState) -> tuple[int, FwConfigManagerList]: # current_import_id, mgm_details, limit=150, force=False, jwt=None) 
+def get_config(full_config: json, importState: ImportStateController) -> tuple[int, FwConfigManagerList]: # current_import_id, mgm_details, limit=150, force=False, jwt=None) 
 # def get_config(config2import, full_config, current_import_id, mgm_details, limit=100, force=False, jwt=''):
     logger = getFwoLogger()
     config2import = fwo_const.emptyNormalizedFwConfigJsonDict
@@ -107,8 +110,8 @@ def get_config(full_config: json, importState: ImportState) -> tuple[int, FwConf
                             config2import['rules'], stripFields=False
                             )
     manager = FwConfigManager(ManagerUid=calcManagerUidHash(importState.FullMgmDetails), 
-                              IsGlobal=False, 
-                              DependantManagerUids=[], 
+                              IsSuperManager=False, 
+                              SubManagerIds=[], 
                               Configs=[normalizedConfig])
 
     listOfManagers = FwConfigManagerList()

@@ -1,9 +1,4 @@
-@using FWO.Basics
-@using FWO.Api.Data
-@using FWO.Api.Client
-@using FWO.Config.Api
 @using FWO.Ui.Services
-@using FWO.Services
 @using FWO.Middleware.Client
 
 @page "/request/plannings/{ticketId?}"
@@ -42,7 +37,7 @@ else
 
     private WfHandler wfHandler = new ();
     private WfStateDict states = new ();
-    private List<int> OwnerIds = new ();
+    private List<int>? OwnerIds = null;
     private bool InitComplete = false;
 
 
@@ -50,7 +45,7 @@ else
     {
         try
         {
-            apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { Roles.Admin, Roles.Planner, Roles.FwAdmin, Roles.Auditor});
+            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Admin, Roles.Planner, Roles.FwAdmin, Roles.Auditor ]);
             await states.Init(apiConnection);
 
             if(userConfig.ReqOwnerBased)
@@ -87,7 +82,7 @@ else
         try
         {
             wfHandler.ReadOnlyMode = !(authenticationStateTask!.Result.User.IsInRole(Roles.Planner) || authenticationStateTask!.Result.User.IsInRole(Roles.FwAdmin) || authenticationStateTask!.Result.User.IsInRole(Roles.Admin));
-            await wfHandler.Init(OwnerIds);
+            await wfHandler.Init(true, OwnerIds);
         }
         catch (Exception exception)
         {

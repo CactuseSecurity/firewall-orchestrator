@@ -21,9 +21,17 @@ class RuleTrack(CaseInsensitiveEnum):
     NONE = 'none'
     LOG = 'log'
     ALERT = 'alert'
+    DETAILEDLOG = 'detailed log'
+    USERDEFINED = 'userdefined'
+    MAIL = 'mail'
+    ACCOUNT = 'account'
+    USERDEFINED1 = 'userdefined 1'
+    USERDEFINED2 = 'userdefined 2'
+    USERDEFINED3 = 'userdefined 3'
+    SNMPTRAP = 'snmptrap'
 
-# Rule is the model for a normalized rule (containing no DB IDs)
-class Rule(BaseModel):
+# RuleNormalized is the model for a normalized rule (containing no DB IDs)
+class RuleNormalized(BaseModel):
     rule_num: int
     rule_disabled: bool
     rule_src_neg: bool
@@ -100,8 +108,8 @@ class Rule(BaseModel):
 	"rulebase_id" Integer NOT NULL,
 """
 
-# RuleForImport is the model for a rule to be imported into the DB (containing IDs)
-class RuleForImport(BaseModel):
+# Rule is the model for a rule to be imported into the DB (containing IDs)
+class Rule(BaseModel):
     access_rule: bool = True
     action_id: int
     is_global: bool = False
@@ -122,7 +130,7 @@ class RuleForImport(BaseModel):
     rule_from_zone: Optional[str] = None
     rule_head_text: Optional[str] = None
     rule_implied: bool = False
-    rule_installon: str
+    rule_installon: Optional[str] = None
     rule_last_seen: int
     rule_name: Optional[str] = None
     rule_num: int
@@ -139,7 +147,7 @@ class RuleForImport(BaseModel):
     xlate_rule: Optional[int] = None
     rule_track: str
     rule_uid: str
-    # rulebase_id: Optional[int] # = None
+    rulebase_id: Optional[int] # = None
 
     # def __init__(self, rule: Rule, mgmId: int, importId: int, access_rule: bool, nat_rule: bool, rulebase_id: str):
     #     self.rule_uid = rule.rule_uid

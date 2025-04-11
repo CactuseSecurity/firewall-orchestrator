@@ -1,15 +1,17 @@
 using FWO.Report.Filter.Ast;
 using FWO.Api.Client.Queries;
-using FWO.Api.Data;
+using FWO.Data;
+using FWO.Data.Report;
 using System.Text.RegularExpressions;
 using FWO.Logging;
+using FWO.Basics;
+
 
 namespace FWO.Report.Filter
 {
-    public class DynGraphqlQuery
+    public class DynGraphqlQuery(string rawInput)
     {
-        public string RawFilter { get; private set; }
-
+        public string RawFilter { get; private set; } = rawInput;
         public int parameterCounter = 0;
         public Dictionary<string, object> QueryVariables { get; set; } = [];
         public string FullQuery { get; set; } = "";
@@ -32,9 +34,7 @@ namespace FWO.Report.Filter
 
         public ReportType ReportType { get; set; } = ReportType.Rules;
         public FwoOwner? SelectedOwner { get; set; }
-
-        public DynGraphqlQuery(string rawInput) { RawFilter = rawInput; }
-
+        // public DynGraphqlQuery(string rawInput) { RawFilter = rawInput; }
         public const string fullTimeFormat = "yyyy-MM-dd HH:mm:ss";
         public const string dateFormat = "yyyy-MM-dd";
         public const int layerRecursionLevel = 2;
@@ -81,7 +81,7 @@ namespace FWO.Report.Filter
             switch ((ReportType)filter.ReportParams.ReportType)
             {
                 case ReportType.Statistics:
-                    query.FullQuery = Queries.compact($@"
+                    query.FullQuery = Queries.Compact($@"
                         query statisticsReport ({paramString}) 
                         {{ 
                             management({mgmtWhereString}) 
@@ -112,7 +112,7 @@ namespace FWO.Report.Filter
                 case ReportType.ResolvedRulesTech:
                 case ReportType.UnusedRules:
                 case ReportType.AppRules:
-                    query.FullQuery = Queries.compact($@"
+                    query.FullQuery = Queries.Compact($@"
                 {( filter.Detailed ? RuleQueries.ruleDetailsForReportFragments : RuleQueries.ruleOverviewFragments )}
                 query rulesReport ({paramString}) 
                 {{ 
@@ -143,16 +143,23 @@ namespace FWO.Report.Filter
                             name
                             uid
                             id
-                            rules ({limitOffsetString} where: {{access_rule: {{_eq: true}} }}, order_by: {{rule_num_numeric: asc}}) {{
+                            rules ({limitOffsetString} where: {{ 
+                                    rule_create: {{_lte: $relevantImportId}}, 
+                                    _or: [{{removed: {{_gt: $relevantImportId}} }}, {{removed: {{_is_null: true}} }}],
+                                    access_rule: {{_eq: true}} 
+                                }}, order_by: {{rule_num_numeric: asc}}) {{
                                 ...ruleOverview
                             }}
                         }}
                     }}
                 }}");
                 break;
+                            // rules ({limitOffsetString} where: {{ rule_create: {{_lte: $relevantImportId}}, 
+                            //     _or: [ {{ removed: {{_is_null: true}} }}, {{ removed: {{_gte: $relevantImportId}} }} ], 
+                            //     access_rule: {{_eq: true}} }}, order_by: {{rule_num_numeric: asc}}) {{
 
                 case ReportType.Recertification:
-                    query.FullQuery = Queries.compact($@"
+                    query.FullQuery = Queries.Compact($@"
                         {RecertQueries.ruleOpenRecertFragments}
                         query rulesCertReport({paramString}) 
                         {{
@@ -186,7 +193,7 @@ namespace FWO.Report.Filter
                 case ReportType.Changes:
                 case ReportType.ResolvedChanges:
                 case ReportType.ResolvedChangesTech:
-                    query.FullQuery = Queries.compact($@"
+                    query.FullQuery = Queries.Compact($@"
                         {( filter.Detailed ? RuleQueries.ruleDetailsForReportFragments : RuleQueries.ruleOverviewFragments )}
                         query changeReport({paramString}) 
                         {{
@@ -229,7 +236,7 @@ namespace FWO.Report.Filter
                     break;
 
                 case ReportType.NatRules:
-                    query.FullQuery = Queries.compact($@"
+                    query.FullQuery = Queries.Compact($@"
                         {( filter.Detailed ? RuleQueries.natRuleDetailsForReportFragments : RuleQueries.natRuleOverviewFragments )}
                         query natRulesReport ({paramString}) 
                         {{ 
@@ -258,7 +265,7 @@ namespace FWO.Report.Filter
 
                 case ReportType.Connections:
 
-                    query.FullQuery = Queries.compact($@"
+                    query.FullQuery = Queries.Compact($@"
                         {ModellingQueries.connectionResolvedDetailsFragment}
                         query getConnectionsResolved ({paramString})
                         {{
@@ -320,7 +327,7 @@ namespace FWO.Report.Filter
             SetTenantFilter(ref query, reportParams);
             if (( (ReportType)reportParams.ReportParams.ReportType ).IsDeviceRelatedReport())
             {
-                // SetDeviceFilter(ref query, reportParams.ReportParams.DeviceFilter);
+                SetDeviceFilter(ref query, reportParams.ReportParams.DeviceFilter);
                 SetTimeFilter(ref query, reportParams.ReportParams.TimeFilter, (ReportType)reportParams.ReportParams.ReportType, reportParams.ReportParams.RecertFilter);
             }
             if ((ReportType)reportParams.ReportParams.ReportType == ReportType.Recertification)
@@ -340,11 +347,35 @@ namespace FWO.Report.Filter
                 SetConnectionFilter(ref query, reportParams.ReportParams.ModellingFilter);
             }
         }
-
+        private static void SetDeviceFilter(ref DynGraphqlQuery query, DeviceFilter? deviceFilter)
+        {
+            bool first = true;
+            if (deviceFilter != null)
+            {
+                query.RelevantManagementIds = deviceFilter.GetSelectedManagements();
+                query.RuleWhereStatement += "{_or: [{";
+                foreach (ManagementSelect mgmt in deviceFilter.Managements)
+                {
+                    foreach (DeviceSelect dev in mgmt.Devices)
+                    {
+                        if (dev.Selected == true)
+                        {
+                            if (first == false)
+                            {
+                                query.RuleWhereStatement += "}, {";
+                            }
+                            query.RuleWhereStatement += $" device: {{dev_id: {{_eq:{dev.Id}}} }}";
+                            first = false;
+                        }
+                    }
+                }
+                query.RuleWhereStatement += "}]}, ";
+            }
+        }
         private static string GetDevWhereFilter(ref DynGraphqlQuery query, DeviceFilter? deviceFilter)
         {
             string devWhereStatement = $@"where: {{ hide_in_gui: {{_eq: false }}, _or: [";
-            query.RelevantManagementIds = deviceFilter.getSelectedManagements();
+            // query.RelevantManagementIds = deviceFilter.getSelectedManagements();
             foreach (ManagementSelect mgmt in deviceFilter.Managements)
             {
                 foreach (DeviceSelect dev in mgmt.Devices)
@@ -375,18 +406,19 @@ namespace FWO.Report.Filter
                     case ReportType.UnusedRules:
                     case ReportType.AppRules:
                         query.QueryParameters.Add("$relevantImportId: bigint ");
-                        query.RuleWhereStatement +=
-                            $"import_control: {{ control_id: {{_lte: $relevantImportId }} }}, " +
-                            $"importControlByRuleLastSeen: {{ control_id: {{_gte: $relevantImportId }} }}";
-                        query.NwObjWhereStatement +=
-                            $"import_control: {{ control_id: {{_lte: $relevantImportId }} }}, " +
-                            $"importControlByObjLastSeen: {{ control_id: {{_gte: $relevantImportId }} }}";
-                        query.SvcObjWhereStatement +=
-                            $"import_control: {{ control_id: {{_lte: $relevantImportId }} }}, " +
-                            $"importControlBySvcLastSeen: {{ control_id: {{_gte: $relevantImportId }} }}";
-                        query.UserObjWhereStatement +=
-                            $"import_control: {{ control_id: {{_lte: $relevantImportId }} }}, " +
-                            $"importControlByUserLastSeen: {{ control_id: {{_gte: $relevantImportId }} }}";
+                        // query.QueryVariables["relevantImportId"] = "";
+                        // query.RuleWhereStatement +=
+                        //     $"import_control: {{ control_id: {{_lte: $relevantImportId }} }}, " +
+                        //     $"importControlByRuleLastSeen: {{ control_id: {{_gte: $relevantImportId }} }}";
+                        // query.NwObjWhereStatement +=
+                        //     $"import_control: {{ control_id: {{_lte: $relevantImportId }} }}, " +
+                        //     $"importControlByObjLastSeen: {{ control_id: {{_gte: $relevantImportId }} }}";
+                        // query.SvcObjWhereStatement +=
+                        //     $"import_control: {{ control_id: {{_lte: $relevantImportId }} }}, " +
+                        //     $"importControlBySvcLastSeen: {{ control_id: {{_gte: $relevantImportId }} }}";
+                        // query.UserObjWhereStatement +=
+                        //     $"import_control: {{ control_id: {{_lte: $relevantImportId }} }}, " +
+                        //     $"importControlByUserLastSeen: {{ control_id: {{_gte: $relevantImportId }} }}";
                         query.ReportTimeString = timeFilter.IsShortcut ?
                             DateTime.Now.ToString(fullTimeFormat) : timeFilter.ReportTime.ToString(fullTimeFormat);
                         break;
@@ -427,7 +459,7 @@ namespace FWO.Report.Filter
             }
         }
 
-        private static (string, string) ResolveTimeRange(TimeFilter timeFilter)
+        public static (string, string) ResolveTimeRange(TimeFilter timeFilter)
         {
             string start;
             string stop;

@@ -1,6 +1,6 @@
 ﻿using FWO.Api.Client;
 using FWO.Api.Client.Queries;
-using FWO.Api.Data;
+using FWO.Data;
 using FWO.Config.Api;
 using FWO.Config.Api.Data;
 using FWO.Logging;
@@ -30,10 +30,9 @@ namespace FWO.Middleware.Server
 
         private List<Alert> openAlerts = [];
 
-    
-		/// <summary>
-		/// Constructor starting the Schedule timer
-		/// </summary>
+        /// <summary>
+        /// Constructor starting the Schedule timer
+        /// </summary>
         protected SchedulerBase(ApiConnection apiConnection, GlobalConfig globalConfig, string configDataSubscription)
         {
             this.apiConnection = apiConnection;
@@ -41,9 +40,9 @@ namespace FWO.Middleware.Server
             ConfigDataSubscription = apiConnection.GetSubscription<List<ConfigItem>>(ApiExceptionHandler, OnGlobalConfigChange, configDataSubscription);
         }
 
-		/// <summary>
-		/// set scheduling timer from config values, to be overwritten for specific scheduler
-		/// </summary>
+        /// <summary>
+        /// set scheduling timer from config values, to be overwritten for specific scheduler
+        /// </summary>
         protected abstract void OnGlobalConfigChange(List<ConfigItem> _);
 
 		/// <summary>
@@ -82,10 +81,10 @@ namespace FWO.Middleware.Server
                     jsonData = JsonData,
                     refAlert = refAlertId
                 };
-                ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(MonitorQueries.addAlert, Variables)).ReturnIds;
+                ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(MonitorQueries.addAlert, Variables)).ReturnIds;
                 if (returnIds != null)
                 {
-                    alertId = returnIds[0].NewId;
+                    alertId = returnIds[0].NewIdLong;
                     // Acknowledge older alert for same problem
                     Alert? existingAlert = openAlerts.FirstOrDefault(x => x.AlertCode == alertCode && 
                         (x.ManagementId == mgmtId || (x.ManagementId == null && mgmtId == null))
@@ -158,7 +157,7 @@ namespace FWO.Middleware.Server
                     ruleUid = (string?)null,
                     ruleId = (long?)null
                 };
-                ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(MonitorQueries.addLogEntry, Variables)).ReturnIds;
+                ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(MonitorQueries.addLogEntry, Variables)).ReturnIds;
                 if (returnIds == null)
                 {
                     Log.WriteError("Write Log", "Log could not be written to database");

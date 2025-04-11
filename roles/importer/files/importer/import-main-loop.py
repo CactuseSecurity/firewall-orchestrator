@@ -1,60 +1,19 @@
 #!/usr/bin/python3
-# add main importer loop in pyhton (also able to run distributed)
+# add main importer loop in python (also able to run distributed)
 #   run import loop every x seconds (adjust sleep time per management depending on the change frequency )
 
-import signal
 import traceback
 import argparse
 import sys
 import time
-import json
-import threading
 import requests, warnings
 import fwo_api
 from common import import_management
-from fwo_log import getFwoLogger, LogLock
+from fwo_log import getFwoLogger #, LogLock
 import fwo_globals, fwo_config
 from fwo_const import base_dir, importer_base_dir
-from fwo_exception import FwoApiLoginFailed, FwoApiFailedLockImport, FwLoginFailed
-from models.fwconfigmanagerlist import FwConfigManager, FwConfigManagerList
-from fwoBaseImport import ImportState
-
-
-# https://stackoverflow.com/questions/18499497/how-to-process-sigterm-signal-gracefully
-class GracefulKiller:
-    kill_now = False
-
-
-    def __init__(self):
-        signal.signal(signal.SIGINT, self.exit_gracefully)
-        signal.signal(signal.SIGTERM, self.exit_gracefully)
-
-
-    def exit_gracefully(self, *args):
-        self.kill_now = True
-
-
-class LogLockerTask(threading.Thread):
-    def __init__(self):
-        super().__init__()
-        self._stop_event = threading.Event()
-        # signal.signal(signal.SIGINT, self.exit_gracefully)
-        # signal.signal(signal.SIGTERM, self.exit_gracefully)
-
-
-    def run(self):
-        while not self._stop_event.is_set():
-            threading.Thread(target = LogLock.handle_log_lock)
-            time.sleep(1)
-
-
-    def exit_gracefully(self, *args):
-        self.kill_now = True
-
-
-    def stop(self):
-        self._stop_event.set()
-        # self.kill_now = True
+from fwo_exceptions import FwoApiLoginFailed, FwoApiFailedLockImport, FwLoginFailed
+from model_controllers.import_state_controller import ImportStateController
 
 
 def getFwoJwt(importUser, importPwd, userManagementApi) -> tuple [str, bool]:
@@ -64,7 +23,7 @@ def getFwoJwt(importUser, importPwd, userManagementApi) -> tuple [str, bool]:
     except FwoApiLoginFailed as e:
         logger.error(e.message)
         skipping = True
-    except:
+    except Exception:
         logger.error("import-main-loop - unspecified error during FWO API login - skipping: " + str(traceback.format_exc()))
         skipping = True
     return jwt, skipping
@@ -85,9 +44,6 @@ if __name__ == '__main__':
                     help='If set all imports will be run without checking for changes before')
 
     args = parser.parse_args()
-
-    # logLockerTask = LogLockerTask()     # create logLocker
-    # logLockerTask.start()           # start Log locking
 
     ### initializing
     fwo_config = fwo_config.readConfig()
@@ -115,14 +71,15 @@ if __name__ == '__main__':
     mgm_ids = []
     mgm_details = {}
 
-    killer = GracefulKiller()
-    while not killer.kill_now:
-        # authenticate to get JWT
+    while True:
+        if fwo_globals.shutdown_requested:
+            logger.info("import-main-loop - shutdown requested. Exiting...")
+            raise SystemExit("import-main-loop - shutdown requested")
         skipping = False
         try:
             with open(importer_pwd_file, 'r') as file:
                 importer_pwd = file.read().replace('\n', '')
-        except:
+        except Exception:
             logger.error("import-main-loop - error while reading importer pwd file")
             raise
 
@@ -135,53 +92,47 @@ if __name__ == '__main__':
         
         if not skipping:
             try:
-                mgm_ids = fwo_api.get_mgm_ids(fwo_api_base_url, jwt, {})
-            except:
+                managerWithId = fwo_api.get_mgm_ids(fwo_api_base_url, jwt, {})
+            except Exception:
                 logger.error("import-main-loop - error while getting FW management ids: " + str(traceback.format_exc()))
                 skipping = True
 
-            try:
-                api_fetch_limit = fwo_api.get_config_value(fwo_api_base_url, jwt, key='fwApiElementsPerFetch')
-                sleep_timer = fwo_api.get_config_value(fwo_api_base_url, jwt, key='importSleepTime')
-                if api_fetch_limit == None:
-                    api_fetch_limit = 150
-                if sleep_timer == None:
-                    sleep_timer = 90
-            except:
-                logger.debug("import-main-loop - could not get config values from FWO API - using default values")
+            api_fetch_limit = fwo_api.get_config_value(fwo_api_base_url, jwt, key='fwApiElementsPerFetch')
+            sleep_timer = fwo_api.get_config_value(fwo_api_base_url, jwt, key='importSleepTime')
+            if api_fetch_limit == None:
+                api_fetch_limit = 150
+            if sleep_timer == None:
+                sleep_timer = 90
 
             if not skipping:
-                for mgm_id in mgm_ids:
-                    if killer.kill_now: break 
-                    
-                    importState = ImportState.initializeImport(mgm_id, debugLevel=debug_level, version=fwo_major_version)
-                    # getting a new JWT in case the old one is not valid anymore after a long previous import
-                    jwt, skipping = getFwoJwt(importer_user_name, importer_pwd, user_management_api_base_url)
+                for mgm in managerWithId:
+                    if fwo_globals.shutdown_requested:
+                        logger.info("import-main-loop - shutdown requested. Exiting...")
+                        raise SystemExit("import-main-loop - shutdown requested")
+                    importState = ImportStateController.initializeImport(mgm['id'], debugLevel=debug_level, version=fwo_major_version)
                     if not skipping:
                         try:
                             mgm_details = fwo_api.get_mgm_details(fwo_api_base_url, jwt, {"mgmId": importState.MgmDetails.Id})
-                        except:
+                        except Exception:
                             logger.error("import-main-loop - error while getting FW management details for mgm_id=" + str(importState.MgmDetails.Id) + " - skipping: " + str(traceback.format_exc()))
                             skipping = True
                         if not skipping and mgm_details["deviceType"]["id"] in (9, 11, 17, 22, 23, 24):  # only handle CPR8x Manager, fortiManager, Cisco MgmCenter, Palo Panorama, Palo FW, FortiOS REST
-                            logger.debug("import-main-loop: starting import of mgm_id=" + id)
+                            logger.debug("import-main-loop: starting import of mgm_id=" + str(importState.MgmDetails.Id))
                             try:
                                 import_result = import_management(mgmId=importState.MgmDetails.Id, debug_level_in=debug_level, version=importState.ImportVersion,
                                     clearManagementData=args.clear, force=args.force, limit=str(api_fetch_limit))
-                            except (FwoApiFailedLockImport, FwLoginFailed):
+                            except (FwoApiFailedLockImport, FwLoginFailed) as e:
+                                logger.info(f"import-main-loop - minor error while importing mgm_id=" + str(importState.MgmDetails.Id) + ", " + str(traceback.format_exc())) 
                                 pass # minor errors for a single mgm, go to next one
-                            except: # all other exceptions are logged here
-                                logger.error("import-main-loop - unspecific error while importing mgm_id=" + str(mgmId) + ", " +  str(traceback.format_exc()))
+                            except Exception: # all other exceptions are logged here
+                                logger.error("import-main-loop - unspecific error while importing mgm_id=" + str(importState.MgmDetails.Id) + ", " +  str(traceback.format_exc()))
         if args.clear:
             break # while loop                                    
-        if not killer.kill_now:
-            logger.info("import-main-loop.py: sleeping between loops for " + str(sleep_timer) + " seconds")
+        logger.info("import-main-loop.py: sleeping between loops for " + str(sleep_timer) + " seconds")
         counter=0
-        while counter < int(sleep_timer) and not killer.kill_now:
+        while counter < int(sleep_timer):
+            if fwo_globals.shutdown_requested:
+                logger.info("import-main-loop - shutdown requested. Exiting...")
+                raise SystemExit("import-main-loop - shutdown requested")
             time.sleep(1)
             counter += 1
-
-    # got break signal stopping background process for handling log locking
-    # logLockerTask.stop()
-    # logLockerTask.join()
-    logger.info("importer-main-loop exited gracefully.")

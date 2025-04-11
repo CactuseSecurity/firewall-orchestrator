@@ -1,9 +1,3 @@
-@using FWO.Api.Client
-@using FWO.Api.Client.Queries
-@using FWO.Basics
-@using FWO.Api.Data
-@using FWO.Config.Api
-@using FWO.Services
 @using FWO.Ui.Services
 @using FWO.Ui.Pages.NetworkModelling
 @using FWO.Ui.Display
@@ -325,7 +319,10 @@
     <CommentObject @bind-Display="WfHandler.DisplayImplTaskCommentMode" ResetParent="InitComments" ObjectName="@WfHandler.ActImplTask.Title" Save="ConfAddComment"/>
     <Confirm @bind-Display="assignOwnerMode" PerformAction="async () => {await AssignOwner(); StateHasChanged();}"
         Title="@userConfig.GetText("assign_owner")" Message="@message" AllowedRoles="@($"{Roles.Admin}, {Roles.Implementer}")"/>
-    <EditConnPopup @bind-Display="WfHandler.ActionHandler.DisplayConnectionMode" ConnHandler="WfHandler.ActionHandler.ConnHandler"/>
+    @if(WfHandler.ActionHandler != null)
+    {
+        <EditConnPopup @bind-Display="WfHandler.ActionHandler.DisplayConnectionMode" ConnHandler="WfHandler.ActionHandler.ConnHandler"/>
+    }
 }
 <InProgress Display="WorkInProgress"/>
 
@@ -442,11 +439,15 @@
     {
         allComments = WfStatefulObject.DisplayAllComments(WfHandler.ActImplTask.Comments);
         WfHandler.DisplayImplTaskCommentMode = false;
+        await DefaultInit.DoNothing(); // qad avoid compiler warning
     }
 
     private async Task Close()
     {
+        WorkInProgress = true;
         await ResetParent();
+        WorkInProgress = false;
+        await InvokeAsync(StateHasChanged);
         WfHandler.DisplayPromoteImplTaskMode = false;
         WfHandler.DisplayImplTaskMode = false;
         firstParamSet = true;

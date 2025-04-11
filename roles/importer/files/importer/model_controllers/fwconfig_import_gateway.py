@@ -1,87 +1,89 @@
 
 from typing import List
 
-from fwoBaseImport import ImportState
+from model_controllers.import_state_controller import ImportStateController
 from model_controllers.fwconfig_normalized_controller import FwConfigNormalized
 from model_controllers.fwconfig_import_base import FwConfigImportBase
 from fwo_log import getFwoLogger
 from model_controllers.rulebase_link_controller import RulebaseLinkController
+from models.rulebase_link import RulebaseLink
 # from model_controllers.rulebase_link_uid_based_controller import RulebaseLink, RulebaseLinkUidBasedController
 
 # this class is used for importing a config into the FWO API
 class FwConfigImportGateway(FwConfigImportBase):
 
-    ImportDetails: ImportState
+    ImportDetails: ImportStateController
 
-    def __init__(self, importState: ImportState, config: FwConfigNormalized):
-      # ImportDetails = importState
+    def __init__(self, importState: ImportStateController, config: FwConfigNormalized):
       super().__init__(importState, config)
 
     def updateGatewayDiffs(self, prevConfig: FwConfigNormalized):
-        logger = getFwoLogger()
-        errors = 0
-        changes = 0
-        totalChanges = 0
-        # changedRuleUids = {}
-        # deletedRuleUids = {}
-        # newRuleUids = {}
-        # ruleUidsInBoth = {}
-        # previousRulebaseUids = []
-        # currentRulebaseUids = []
+        # add gateway details:
+        self.updateRulebaseLinkDiffs(prevConfig)
+        # self.updateRuleEnforcedOnGatewayDiffs(prevConfig)
+        self.updateInterfaceDiffs(prevConfig)
+        self.updateRoutingDiffs(prevConfig)
+        # self.ImportDetails.Stats.addError('simulate error')
 
 
+    def updateRulebaseLinkDiffs(self, prevConfig: FwConfigNormalized):
+        logger = getFwoLogger(debug_level=self.ImportDetails.DebugLevel)
+        rbLinkList = []
         for gw in self.NormalizedConfig.gateways:
-            # check interface changes
-            # check routing changes
-            # check rulebase link changes
-            if gw in prevConfig.gateways:
-                logger.debug(f"gateway {str(gw)} found in previous config")
-                # check if rulebase links have changed
-                # check if interfaces have changed
-                # check if routing has changed
-                pass
+            if gw in prevConfig.gateways:   # this check finds all changes in gateway (including rulebase link changes)
+                if self.ImportDetails.DebugLevel>3:
+                    logger.debug(f"gateway {str(gw)} found in previous config")
             else:
-                logger.debug(f"gateway {str(gw)} NOT found in previous config")
-                # add gateway details:
-                # TODO: add interfaces
-                # TODO: add routing
+                if self.ImportDetails.DebugLevel>3:
+                    logger.debug(f"gateway {str(gw)} NOT found in previous config")
                 gwId = self.ImportDetails.lookupGatewayId(gw.Uid)
                 for link in gw.RulebaseLinks:
                     fromRuleId = self.ImportDetails.lookupRule(link.from_rule_uid)
                     toRulebaseId = self.ImportDetails.lookupRulebaseId(link.to_rulebase_uid)
                     if toRulebaseId is None:
-                        logger.error(f"toRulebaseId is None for link {link}")
-                        errors += 1
+                        self.ImportDetails.Stats.addError(f"toRulebaseId is None for link {link}")
                         continue
                     linkTypeId = self.ImportDetails.lookupLinkType(link.link_type)
-                    rbLink = RulebaseLinkController(gw_id=gwId, 
+                    rbLinkList.append(RulebaseLink(gw_id=gwId, 
                                          from_rule_id=fromRuleId,
                                          to_rulebase_id=toRulebaseId,
                                          link_type=linkTypeId,
-                                         created=self.ImportDetails.ImportId)
-                    (errors, changes) = rbLink.importInsertRulebaseLink(self.ImportDetails)
-                    totalChanges += changes
+                                         created=self.ImportDetails.ImportId).toDict())
 
-        return errors, totalChanges
+                    # Handle new links
+                    logger.debug(f"link {link} was added")
+#                    rbLink.importInsertRulebaseLink(self.ImportDetails)
 
-    # this should not be confused with the rulebase_link model - it refers to the check point "install on" feature
-    def insertRulesEnforcedOnGateway(self, ruleIds, devId):
-        rulesEnforcedOnGateway = []
-        for ruleId in ruleIds:
-            rulesEnforcedOnGateway.append({
-                "rule_id": ruleId,
-                "dev_id": devId,
-                "created": self.ImportDetails.ImportId
-            })
-
-        query_variables = {
-            "ruleEnforcedOnGateway": rulesEnforcedOnGateway
-        }
-        mutation = """
-            mutation importInsertRulesEnforcedOnGateway($rulesEnforcedOnGateway: [rule_enforced_on_gateway_insert_input!]!) {
-                insert_rule_enforced_on_gateway(objects: $rulesEnforcedOnGateway) {
-                    affected_rows
-                }
-            }"""
+                    # TODO: check for changed rbLink
+                    # for prev_gw in prevConfig.gateways:
+                    #     if prev_gw.Uid == gw.Uid:
+                    #         for prev_link in prev_gw.RulebaseLinks:
+                    #             if prev_link not in gw.RulebaseLinks:
+                    #                 # TODO: Handle deleted links
+                    #                 logger.debug(f"link {prev_link} was deleted")
+                    #             if link not in prev_gw.RulebaseLinks:
+                    #                 # Handle new links
+                    #                 logger.debug(f"link {link} was added")
+                    #                 rbLink.importInsertRulebaseLink(self.ImportDetails)
+                    #                 # TODO: check for changed rbLink
+        rbLinkController = RulebaseLinkController()
+        rbLinkController.importInsertRulebaseLinks(self.ImportDetails, rbLinkList) 
         
-        return self.ImportDetails.call(mutation, queryVariables=query_variables)
+        return
+
+    # def updateRuleEnforcedOnGatewayDiffs(self, prevConfig: FwConfigNormalized):
+    #     logger = getFwoLogger(debug_level=self.ImportDetails.DebugLevel)
+    #     # TODO: needs to be implemented
+    #     return
+    
+
+    def updateInterfaceDiffs(self, prevConfig: FwConfigNormalized):
+        logger = getFwoLogger(debug_level=self.ImportDetails.DebugLevel)
+        # TODO: needs to be implemented
+        return
+
+    def updateRoutingDiffs(self, prevConfig: FwConfigNormalized):
+        logger = getFwoLogger(debug_level=self.ImportDetails.DebugLevel)
+        # TODO: needs to be implemented
+        return
+    

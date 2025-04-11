@@ -1,10 +1,10 @@
-﻿using System;
+﻿using FWO.Config.Api;
+using FWO.Data.Middleware;
+using FWO.Middleware.Client;
+using RestSharp;
+using System;
 using System.Net;
 using System.Threading.Tasks;
-using FWO.Config.Api;
-using FWO.Middleware.Client;
-using FWO.Middleware.RequestParameters;
-using RestSharp;
 
 namespace FWO.Ui.Services
 {

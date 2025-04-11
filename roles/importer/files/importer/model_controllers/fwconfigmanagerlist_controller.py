@@ -5,15 +5,18 @@ import traceback
 
 import fwo_globals
 from fwo_log import getFwoLogger
-from fwo_data_networking import InterfaceSerializable, RouteSerializable
+from model_controllers.interface_controller import InterfaceSerializable
+from model_controllers.route_controller import RouteSerializable
 from fwo_base import split_list, serializeDictToClassRecursively, deserializeClassToDictRecursively
 from fwo_const import max_objs_per_chunk, import_tmp_path
 
-from fwoBaseImport import ImportState, ManagementDetails
+from model_controllers.import_state_controller import ImportStateController
+from model_controllers.management_details_controller import ManagementDetails
 from models.fwconfig_normalized import FwConfig, FwConfigNormalized
 from fwo_base import ConfFormat
 from fwconfig_base import calcManagerUidHash
 from models.fwconfigmanagerlist import FwConfigManagerList
+from models.fwconfigmanager import FwConfigManager
 from model_controllers.fwconfig_controller import FwoEncoder
 
 """
@@ -37,7 +40,6 @@ class FwConfigManagerListController(FwConfigManagerList):
     def mergeConfigs(self, conf2: 'FwConfigManagerListController'):
         if self.ConfigFormat==conf2.ConfigFormat:
             self.ManagerSet.extend(conf2.ManagerSet)
-
 
 # to be re-written:
     def toJsonLegacy(self):
@@ -130,8 +132,8 @@ class FwConfigManagerListController(FwConfigManagerList):
     def convertLegacyConfig(self, legacyConfig: dict, mgmDetails: ManagementDetails):
         if 'networkobjects' in legacyConfig:
             mgr = FwConfigManager(ManagerUid=calcManagerUidHash(mgmDetails.FullMgmDetails),
-                                  IsGlobal=False,
-                                  DependantManagerUids = [],
+                                  IsSuperManager=False,
+                                  SubManagerIds = [],
                                   Configs=[])
             convertedConfig = FwConfig()
             mgr.Configs.append(convertedConfig)
@@ -141,28 +143,27 @@ class FwConfigManagerListController(FwConfigManagerList):
             logger.error(f"found malformed legacy config: {str(legacyConfig)}")
         pass
 
-    def storeFullNormalizedConfigToFile(self, importState: ImportState):
-        logger = getFwoLogger()
-        debug_start_time = int(time.time())
-        try:
-            if fwo_globals.debug_level>5:
+    def storeFullNormalizedConfigToFile(self, importState: ImportStateController):
+        if fwo_globals.debug_level>5:
+            logger = getFwoLogger()
+            debug_start_time = int(time.time())
+            try:
                 normalized_config_filename = f"{import_tmp_path}/mgm_id_{str(importState.MgmDetails.Id)}_config_normalized.json"
                 with open(normalized_config_filename, "w") as json_data:
                     if importState.ImportVersion>8:
                         json_data.write(self.toJsonString(prettyPrint=True))
                     else:
                         json_data.write(self.toJsonStringLegacy(prettyPrint=True))
-        except:
-            logger.error(f"import_management - unspecified error while dumping normalized config to json file: {str(traceback.format_exc())}")
-            raise
-
-        time_write_debug_json = int(time.time()) - debug_start_time
-        logger.debug(f"import_management - writing normalized config json files duration {str(time_write_debug_json)}s")
+                time_write_debug_json = int(time.time()) - debug_start_time
+                logger.debug(f"storeFullNormalizedConfigToFile - writing normalized config json files duration {str(time_write_debug_json)}s")
+            except Exception:
+                logger.error(f"import_management - unspecified error while dumping normalized config to json file: {str(traceback.format_exc())}")
+                raise
 
 # split the config into chunks of max size "max_objs_per_chunk" to avoid 
 # timeout of import while writing data to import table
 # each object table to import is handled here 
-def split_config(importState: ImportState, config2import: FwConfigManagerList):
+def split_config(importState: ImportStateController, config2import: FwConfigManagerList):
     # temp disable chunking of imports
     # config_split_with_metadata = [{
     #     "config": config2import,

@@ -1,6 +1,7 @@
-﻿using FWO.Api.Data;
+using FWO.Basics;
+using FWO.Data;
+using FWO.Data.Middleware;
 using FWO.Logging;
-using FWO.Middleware.RequestParameters;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Collections.Concurrent;
@@ -42,10 +43,10 @@ namespace FWO.Middleware.Server.Controllers
                 {
                     if (currentLdap.IsInternal() && currentLdap.HasGroupHandling())
                     {
-                        ldapGroupRequests.Add(Task.Run(() =>
+                        ldapGroupRequests.Add(Task.Run(async() =>
                         {
                             // Get all groups from internal Ldap
-                            List<GroupGetReturnParameters> currentGroups = currentLdap.GetAllInternalGroups();
+                            List<GroupGetReturnParameters> currentGroups = await currentLdap.GetAllInternalGroups();
                             foreach (GroupGetReturnParameters currentGroup in currentGroups)
                                 allGroups.Add(currentGroup);
                         }));
@@ -84,9 +85,9 @@ namespace FWO.Middleware.Server.Controllers
                 // Try to add group to current Ldap
                 if (currentLdap.IsInternal() && currentLdap.IsWritable() && currentLdap.HasGroupHandling())
                 {
-                    workers.Add(Task.Run(() =>
+                    workers.Add(Task.Run(async() =>
                     {
-                        string actDn = currentLdap.AddGroup(parameters.GroupName, parameters.OwnerGroup);
+                        string actDn = await currentLdap.AddGroup(parameters.GroupName, parameters.OwnerGroup);
                         if(actDn != "")
                         {
                             groupDn = actDn;
@@ -123,9 +124,9 @@ namespace FWO.Middleware.Server.Controllers
                 // Try to delete group in current Ldap
                 if (currentLdap.IsInternal() && currentLdap.IsWritable() && currentLdap.HasGroupHandling())
                 {
-                    workers.Add(Task.Run(() =>
+                    workers.Add(Task.Run(async() =>
                     {
-                        if(currentLdap.DeleteGroup(parameters.GroupName))
+                        if(await currentLdap.DeleteGroup(parameters.GroupName))
                         {
                             groupDeleted = true;
                             Log.WriteAudit("DeleteGroup", $"Group {parameters.GroupName} deleted from {currentLdap.Host()}");
@@ -161,9 +162,9 @@ namespace FWO.Middleware.Server.Controllers
                 // Try to update group in current Ldap
                 if (currentLdap.IsInternal() && currentLdap.IsWritable() && currentLdap.HasGroupHandling())
                 {
-                    workers.Add(Task.Run(() =>
+                    workers.Add(Task.Run(async() =>
                     {
-                        string newDn = currentLdap.UpdateGroup(parameters.OldGroupName, parameters.NewGroupName);
+                        string newDn = await currentLdap.UpdateGroup(parameters.OldGroupName, parameters.NewGroupName);
                         if (newDn != "")
                         {
                             groupUpdatedDn = newDn;
@@ -197,10 +198,10 @@ namespace FWO.Middleware.Server.Controllers
             {
                 if ((currentLdap.Id == parameters.LdapId || parameters.LdapId == 0) && currentLdap.HasGroupHandling())
                 {
-                    await Task.Run(() =>
+                    await Task.Run(async() =>
                     {
                         // Get all groups from current Ldap
-                        allGroups = currentLdap.GetAllGroups(parameters.SearchPattern);
+                        allGroups = await currentLdap.GetAllGroups(parameters.SearchPattern);
                     });
                 }
             }
@@ -231,9 +232,9 @@ namespace FWO.Middleware.Server.Controllers
                 // Try to add user to group in current Ldap
                 if (currentLdap.IsInternal() && currentLdap.IsWritable() && currentLdap.HasGroupHandling())
                 {
-                    workers.Add(Task.Run(() =>
+                    workers.Add(Task.Run(async() =>
                     {
-                        if(currentLdap.AddUserToEntry(parameters.UserDn, parameters.GroupDn))
+                        if(await currentLdap.AddUserToEntry(parameters.UserDn, parameters.GroupDn))
                         {
                             userAdded = true;
                             Log.WriteAudit("AddUserToGroup", $"user {parameters.UserDn} successfully added to group {parameters.GroupDn} in {currentLdap.Host()}");
@@ -269,9 +270,9 @@ namespace FWO.Middleware.Server.Controllers
                 // Try to remove user from group in current Ldap
                 if (currentLdap.IsInternal() && currentLdap.IsWritable() && currentLdap.HasGroupHandling())
                 {
-                    workers.Add(Task.Run(() =>
+                    workers.Add(Task.Run(async() =>
                     {
-                        if(currentLdap.RemoveUserFromEntry(parameters.UserDn, parameters.GroupDn))
+                        if(await currentLdap.RemoveUserFromEntry(parameters.UserDn, parameters.GroupDn))
                         {
                             userRemoved = true;
                             Log.WriteAudit("RemoveUserFromGroup", $"Removed user {parameters.UserDn} from {parameters.GroupDn} in {currentLdap.Host()}");

@@ -1,16 +1,9 @@
-﻿@using System.Net
-@using FWO.Api.Client
-@using FWO.Api.Client.Queries
-@using FWO.Config.Api
-@using FWO.Config.Api.Data
-@using FWO.Middleware.Client
-@using FWO.Middleware.RequestParameters
-@using RestSharp
-@using FWO.Basics
-@using FWO.Api.Data
+﻿@using FWO.Data.Middleware
 @using FWO.Logging
+@using FWO.Middleware.Client
 @using FWO.Recert
-@using FWO.Services
+@using RestSharp
+@using System.Net
 
 @page "/settings/owners"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
@@ -261,7 +254,7 @@
                                 <div class="col-sm-4">
                                     @if(Readonly)
                                     {
-                                        <label>@userConfig.GetText(((DayOfWeek?)actRecCheckParams?.RecertCheckWeekday).ToString())</label>
+                                        <label>@userConfig.GetText(((DayOfWeek?)actRecCheckParams?.RecertCheckWeekday)?.ToString() ?? "undefined")</label>
                                     }
                                     else
                                     {
@@ -496,7 +489,7 @@ else
             recertCheckParams = actOwner.RecertCheckParamString,
             commSvcPossible = actOwner.CommSvcPossible
         };
-        ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(OwnerQueries.newOwner, variables)).ReturnIds;
+        ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(OwnerQueries.newOwner, variables)).ReturnIds;
         if (returnIds == null)
         {
             DisplayMessageInUi(null, userConfig.GetText("add_owner"), userConfig.GetText("E5291"), true);
@@ -549,7 +542,7 @@ else
                 ownerId = actOwner.Id,
                 ruleMetadataId = rule.Metadata.Id
             };
-            await apiConnection.SendQueryAsync<NewReturning>(OwnerQueries.newRuleOwnership, Variables);
+            await apiConnection.SendQueryAsync<ReturnIdWrapper>(OwnerQueries.newRuleOwnership, Variables);
             actRules.Add(rule);
         }
     }
@@ -563,7 +556,7 @@ else
                 ownerId = actOwner.Id,
                 ruleMetadataId = rule.Metadata.Id
             };
-            await apiConnection.SendQueryAsync<NewReturning>(OwnerQueries.deleteRuleOwnership, Variables);
+            await apiConnection.SendQueryAsync<ReturnIdWrapper>(OwnerQueries.deleteRuleOwnership, Variables);
             actRules.Remove(rule);
         }
     }
@@ -578,7 +571,7 @@ else
                 ip = (ipAdd.Cidr != null && ipAdd.Cidr.Valid ? ipAdd.IpString : null), 
                 ip_end = (ipAdd.IpEndString != null && ipAdd.Cidr != null && ipAdd.Cidr.Valid  && ipAdd.IpEndString != "" ? ipAdd.IpEndString : null)
             };
-            await apiConnection.SendQueryAsync<NewReturning>(OwnerQueries.newNetworkOwnership, Variables);
+            await apiConnection.SendQueryAsync<ReturnIdWrapper>(OwnerQueries.newNetworkOwnership, Variables);
             actIpAddresses.Add(ipAdd);
         }
     }
@@ -680,10 +673,12 @@ else
     private async Task AddUser(UiUser user)
     {
         actOwner.Dn = user.Dn;
+        await DefaultInit.DoNothing(); // qad avoid compiler warning
     }
 
     private async Task AddGroup(string groupDn)
     {
         actOwner.GroupDn = groupDn;
+        await DefaultInit.DoNothing(); // qad avoid compiler warning
     }
 }

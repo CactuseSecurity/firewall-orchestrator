@@ -1,12 +1,10 @@
-﻿@using FWO.Report
+@using FWO.Report
 @using FWO.Report.Filter
-@using FWO.Config.Api
-@using FWO.Services
 
 @inject UserConfig userConfig
 
 
-<PopUp Size=PopupSize.Large Title="@(userConfig.GetText("report_time"))" Show="@Display">
+<PopUp Size=PopupSize.Small Title="@(userConfig.GetText("report_time"))" Show="@Display" OnClose="Close">
     <Body>
         <div>
             @if (SelectedReportType.IsChangeReport())

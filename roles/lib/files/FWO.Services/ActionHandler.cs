@@ -1,7 +1,10 @@
-﻿using FWO.Api.Data;
+﻿using FWO.Data;
+using FWO.Data.Workflow;
+using FWO.Data.Modelling;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Logging;
+using FWO.Basics;
 
 
 namespace FWO.Services
@@ -330,7 +333,7 @@ namespace FWO.Services
                     description = description,
                     alertCode = (int)AlertCode.WorkflowAlert
                 };
-                ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(MonitorQueries.addAlert, Variables)).ReturnIds;
+                await apiConnection.SendQueryAsync<ReturnIdWrapper>(MonitorQueries.addAlert, Variables);
                 Log.WriteAlert ($"source: \"workflow\"", 
                     $"userId: \"0\", title: \"Workflow state alert\", description: \"{description}\", " +
                     $"alertCode: \"{AlertCode.WorkflowAlert}\"");

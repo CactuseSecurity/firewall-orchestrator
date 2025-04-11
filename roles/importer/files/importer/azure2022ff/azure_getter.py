@@ -6,7 +6,7 @@ import requests.packages
 import requests
 import json
 import fwo_globals
-from fwo_exception import FwLoginFailed
+from fwo_exceptions import FwLoginFailed
 
 
 def api_call(url, params = {}, headers = {}, data = {}, azure_jwt = '', show_progress=False, method='get'):

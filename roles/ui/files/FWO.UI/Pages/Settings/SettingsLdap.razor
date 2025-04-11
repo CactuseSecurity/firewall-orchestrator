@@ -1,14 +1,8 @@
-﻿@using BlazorTable
-@using System.Net
-@using RestSharp
-@using FWO.Services
-@using FWO.Basics
-@using FWO.Api.Data
-@using FWO.Api.Client
-@using FWO.Config.Api
-@using FWO.Middleware.Client
-@using FWO.Middleware.RequestParameters
+﻿@using FWO.Data.Middleware
 @using FWO.Encryption
+@using FWO.Middleware.Client
+@using RestSharp
+@using System.Net
 
 
 @page "/settings/ldap"
@@ -83,7 +77,7 @@
     </Table>
 </div>
 
-<PopUp Title="@(userConfig.GetText("edit_ldap"))" Show="@EditMode" Size=PopupSize.Large OnClose="() => EditMode = false">
+<PopUp Title="@(userConfig.GetText("edit_ldap"))" Show="@EditMode" Size=PopupSize.XLarge OnClose="() => EditMode = false">
     <Body>
         @if (EditMode)
         {
@@ -140,6 +134,12 @@
                     <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("group_search_path")):</label>
                     <div class="col-sm-8">
                         <input type="text" class="form-control form-control-sm" @bind="actLdapConnection.GroupSearchPath" />
+                    </div>
+                </div>
+                <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5227"))">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("group_write_path")):</label>
+                    <div class="col-sm-8">
+                        <input type="text" class="form-control form-control-sm" @bind="actLdapConnection.GroupWritePath" />
                     </div>
                 </div>
                 <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5220"))">
@@ -225,17 +225,16 @@
     [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
-    private List<UiLdapConnection> connectedLdaps = new List<UiLdapConnection>();
-
-    private List<Tenant> tenants = new List<Tenant>();
+    private List<UiLdapConnection> connectedLdaps = [];
+    private List<Tenant> tenants = [];
 
     private bool EditMode = false;
     private bool DeleteMode = false;
     private bool AddMode = false;
     private bool ShowWarning = false;
 
-    private UiLdapConnection newLdapConnection = new UiLdapConnection();
-    private UiLdapConnection actLdapConnection = new UiLdapConnection();
+    private UiLdapConnection newLdapConnection = new();
+    private UiLdapConnection actLdapConnection = new();
     private LdapType selectedType = LdapType.Default;
     private Tenant? selectedTenant;
 
@@ -262,7 +261,7 @@
                 }
             }
 
-            tenants = await apiConnection.SendQueryAsync<List<Tenant>>(FWO.Api.Client.Queries.AuthQueries.getTenants);
+            tenants = await apiConnection.SendQueryAsync<List<Tenant>>(AuthQueries.getTenants);
         }
         catch (System.Exception exception)
         {
@@ -350,7 +349,7 @@
     {
         try
         {
-            LdapGetUpdateParameters ldapParams = new LdapGetUpdateParameters()
+            LdapGetUpdateParameters ldapParams = new()
             {
                 Address = actLdapConnection.Address,
                 Port = actLdapConnection.Port,
@@ -405,33 +404,7 @@
             }
             if (CheckValues())
             {
-                string mainKey = AesEnc.GetMainKey();
-                string encryptedSecretSearchUser = actLdapConnection.SearchUserPwd;
-                string encryptedSecretWriteUser = actLdapConnection.WriteUserPwd;
-
-                // only encrypt secret if it was not already encrypted
-                try
-                {
-                    string decryptedSecretSearchUser = AesEnc.Decrypt(actLdapConnection.SearchUserPwd, mainKey);
-                }
-                catch (Exception)
-                {
-                    encryptedSecretSearchUser = AesEnc.Encrypt(actLdapConnection.SearchUserPwd, mainKey);
-                    actLdapConnection.SearchUserPwd = encryptedSecretSearchUser;
-                }
-                try
-                {
-                    string decryptedSecret = AesEnc.Decrypt(actLdapConnection.WriteUserPwd, mainKey);
-                }
-                catch (Exception)
-                {
-                    if (actLdapConnection.WriteUserPwd != null)
-                    {
-                        encryptedSecretWriteUser = AesEnc.Encrypt(actLdapConnection.WriteUserPwd, mainKey);
-                        actLdapConnection.WriteUserPwd = encryptedSecretWriteUser;
-                    }
-                }
-
+                EncryptPasswords();
                 if (AddMode)
                 {
                     RestResponse<int> ldapMiddlewareServerResponse = await middlewareClient.AddLdap(actLdapConnection.ToApiParams());
@@ -466,6 +439,33 @@
         catch (Exception exception)
         {
             DisplayMessageInUi(exception, userConfig.GetText("save_ldap_conn"), "", true);
+        }
+    }
+
+    private void EncryptPasswords()
+    {
+        string mainKey = AesEnc.GetMainKey();
+
+        // only encrypt secret if it was not already encrypted
+        try
+        {
+            AesEnc.Decrypt(actLdapConnection.SearchUserPwd, mainKey);
+        }
+        catch (Exception)
+        {
+            actLdapConnection.SearchUserPwd = AesEnc.Encrypt(actLdapConnection.SearchUserPwd, mainKey);
+        }
+        
+        if (actLdapConnection.WriteUserPwd != null)
+        {
+            try
+            {
+                AesEnc.Decrypt(actLdapConnection.WriteUserPwd, mainKey);
+            }
+            catch (Exception)
+            {
+                actLdapConnection.WriteUserPwd = AesEnc.Encrypt(actLdapConnection.WriteUserPwd, mainKey);
+            }
         }
     }
 

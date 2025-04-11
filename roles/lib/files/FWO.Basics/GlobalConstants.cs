@@ -1,8 +1,3 @@
-using System.Net.Sockets;
-using System.Net;
-using System.Numerics;
-using System.Text.RegularExpressions;
-
 namespace FWO.Basics
 {
     /// <summary>
@@ -34,8 +29,10 @@ namespace FWO.Basics
         public const string kUi = "ui";
         public const string kCertification = "Certification";
         public const string kImportAppData = "importAppData";
+        public const string kAdjustAppServerNames = "adjustAppServerNames";
         public const string kImportAreaSubnetData = "importAreaSubnetData";
         public const string kManual = "manual";
+        public const string kCSV_ = "CSV_";
         public const string kModellerGroup = "ModellerGroup_";
         public const string kAppIdPlaceholder = "@@ExternalAppId@@";
         public const string kLdapGroupPattern = kModellerGroup + kAppIdPlaceholder;
@@ -47,6 +44,10 @@ namespace FWO.Basics
         public const string kUndefinedText = "(undefined text)";
 
         public const string kStyleHighlighted = "color:red;";
+
+        public const string ChromeBinPathLinux = "/usr/local/fworch/bin";
+        public const string TestPDFFilePath = "pdffile.pdf";
+        public const string TestPDFHtmlTemplate = "<html><body><h1>test</h1><h2>test mit puppteer</h2></body></html>";
     }
 
     public struct PageName
@@ -61,6 +62,7 @@ namespace FWO.Basics
         public const string Host = "host";
         public const string Network = "network";
         public const string IPRange = "ip_range";
+        public const string AccessRole = "access-role";
     }
 
     public struct ServiceType
@@ -69,5 +71,4 @@ namespace FWO.Basics
         public const string SimpleService = "simple";
         public const string Rpc = "rpc";
     }
-
 }

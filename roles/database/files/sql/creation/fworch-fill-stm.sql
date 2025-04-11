@@ -121,6 +121,12 @@ insert into config (config_key, config_value, config_user) VALUES ('externalRequ
 insert into config (config_key, config_value, config_user) VALUES ('modExtraConfigs', '[]', 0);
 insert into config (config_key, config_value, config_user) VALUES ('extTicketSystems', '[{"Url":"","TicketTemplate":"{\"ticket\":{\"subject\":\"@@TICKET_SUBJECT@@\",\"priority\":\"@@PRIORITY@@\",\"requester\":\"@@ONBEHALF@@\",\"domain_name\":\"\",\"workflow\":{\"name\":\"@@WORKFLOW_NAME@@\"},\"steps\":{\"step\":[{\"name\":\"Erfassung des Antrags\",\"tasks\":{\"task\":{\"fields\":{\"field\":[@@TASKS@@]}}}}]}}}","TasksTemplate":"{\"@xsi.type\":\"multi_access_request\",\"name\":\"GewünschterZugang\",\"read_only\":false,\"access_request\":{\"order\":\"AR1\",\"verifier_result\":{\"status\":\"notrun\"},\"use_topology\":true,\"targets\":{\"target\":{\"@type\":\"ANY\"}},\"users\":{\"user\":@@USERS@@},\"sources\":{\"source\":@@SOURCES@@},\"destinations\":{\"destination\":@@DESTINATIONS@@},\"services\":{\"service\":@@SERVICES@@},\"action\":\"@@ACTION@@\",\"labels\":\"\"}},{\"@xsi.type\":\"text_area\",\"name\":\"Grund für den Antrag\",\"read_only\":false,\"text\":\"@@REASON@@\"},{\"@xsi.type\":\"drop_down_list\",\"name\":\"Regel Log aktivieren?\",\"selection\":\"@@LOGGING@@\"},{\"@xsi.type\":\"date\",\"name\":\"Regel befristen bis:\"},{\"@xsi.type\":\"text_field\",\"name\":\"Anwendungs-ID\",\"text\":\"@@APPID@@\"},{\"@xsi.type\":\"checkbox\",\"name\":\"Die benötigte Kommunikationsverbindung ist im Kommunikationsprofil nach IT-Sicherheitsstandard hinterlegt\",\"value\":@@COM_DOCUMENTED@@},{\"@xsi.type\":\"drop_down_list\",\"name\":\"Expertenmodus: Exakt wie beantragt implementieren (Designervorschlag ignorieren)\",\"selection\":\"Nein\"}"}]', 0);
 insert into config (config_key, config_value, config_user) VALUES ('welcomeMessage', '', 0);
+insert into config (config_key, config_value, config_user) VALUES ('dnsLookup', 'False', 0);
+insert into config (config_key, config_value, config_user) VALUES ('overwriteExistingNames', 'False', 0);
+insert into config (config_key, config_value, config_user) VALUES ('autoReplaceAppServer', 'False', 0);
+insert into config (config_key, config_value, config_user) VALUES ('ownerLdapId', '1', 0);
+insert into config (config_key, config_value, config_user) VALUES ('ownerLdapGroupNames', 'ModellerGroup_@@ExternalAppId@@', 0);
+insert into config (config_key, config_value, config_user) VALUES ('manageOwnerLdapGroups', 'true', 0);
 
 INSERT INTO "report_format" ("report_format_name") VALUES ('json');
 INSERT INTO "report_format" ("report_format_name") VALUES ('pdf');
@@ -277,6 +283,7 @@ insert into stm_obj_typ (obj_typ_id,obj_typ_name) VALUES (17,'voip_sip');
 insert into stm_obj_typ (obj_typ_id,obj_typ_name) VALUES (18,'simple-gateway');
 insert into stm_obj_typ (obj_typ_id,obj_typ_name) VALUES (19,'external-gateway');
 insert into stm_obj_typ (obj_typ_id,obj_typ_name) VALUES (20,'voip');   -- general voip object replacing old specific ones and including CpmiVoipSipDomain
+insert into stm_obj_typ (obj_typ_id,obj_typ_name) VALUES (21,'access-role'); 
 
 insert into stm_action (action_id,action_name) VALUES (1,'accept'); -- cp, fortinet
 insert into stm_action (action_id,action_name, allowed) VALUES (2,'drop', FALSE); -- cp
@@ -331,8 +338,9 @@ insert into stm_track (track_id,track_name) VALUES (17,'count alarm');
 insert into stm_track (track_id,track_name) VALUES (18,'all');
 insert into stm_track (track_id,track_name) VALUES (19,'all start');
 insert into stm_track (track_id,track_name) VALUES (20,'utm');
-insert into stm_track (track_id,track_name) VALUES (22,'utm start');
 insert into stm_track (track_id,track_name) VALUES (21,'network log'); -- check point R8x:
+insert into stm_track (track_id,track_name) VALUES (22,'utm start'); -- fortinet
+insert into stm_track (track_id,track_name) VALUES (23,'detailed log'); -- check point R8x:
 
 insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufacturer,dev_typ_predef_svc,dev_typ_is_mgmt,is_pure_routing_device)
     VALUES (2,'Netscreen','5.x-6.x','Netscreen', '', true,false);

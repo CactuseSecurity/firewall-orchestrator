@@ -1,6 +1,4 @@
-﻿@using FWO.Config.Api
-@using FWO.Report.Filter
-@using FWO.Services
+﻿@using FWO.Report.Filter
 
 @inject UserConfig userConfig
 @inject ApiConnection apiConnection
@@ -114,7 +112,7 @@
                 <div class="form-group row mt-2">
                     <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("devices")):</label>
                     <div class="form-group row col-sm-9">
-                        <label class="col-sm-9">@(reportTemplateInEdit.ReportParams.DeviceFilter.listAllSelectedDevices())</label>
+                        <label class="col-sm-9">@(reportTemplateInEdit.ReportParams.DeviceFilter.ListAllSelectedDevices())</label>
                         <button type="button" class="btn btn-sm btn-warning col-sm-2" @onclick="EditDeviceSelection">@(userConfig.GetText("edit"))</button>
                     </div>
                 </div>
@@ -195,7 +193,7 @@
         recertOwnerList = await apiConnection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwners);
         if(showModellingReports)
         {
-            modOwnerList = await ModellingHandlerBase.GetOwnApps(authenticationStateTask, userConfig, apiConnection, DisplayMessageInUi);
+            modOwnerList = await ModellingHandlerBase.GetOwnApps(authenticationStateTask!, userConfig, apiConnection, DisplayMessageInUi);
         }
         await RefreshTemplates();
     }
@@ -345,7 +343,7 @@
                 reportParameters = reportTemplateInEdit.ReportParams
             };
 
-            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(ReportQueries.addReportTemplate, queryVariables)).ReturnIds;
+            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(ReportQueries.addReportTemplate, queryVariables)).ReturnIds;
             if (returnIds != null)
             {
                 reportTemplateInEdit.Id = returnIds[0].NewId;

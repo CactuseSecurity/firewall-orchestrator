@@ -63,9 +63,8 @@ if __name__ == "__main__":
             version=fwo_config['fwo_major_version']
         )
     except SystemExit:
-        logger.error("import-mgm - error while importing mgmId=" + str(args.mgmId)  + ": " + str(traceback.format_exc()))
-        error_count = 1
-    except:
+        error_count = 0
+    except Exception:
         logger.error("import-mgm - error while importing mgmId=" + str(args.mgmId) + ": " + str(traceback.format_exc()))
         error_count = 1
 

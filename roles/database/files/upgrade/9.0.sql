@@ -1,6 +1,178 @@
 -- next steps:
-   -- 1) add rule_to, rule_from, rule_service to importer
-   -- 2) in UI also show more rulebases (not just initial one)
+   -- add rule_to, rule_service to importer
+   -- consolidate: not only first import but also subsequent imports should work
+   -- improve rollback - currently if import stops in the middle, the rollback is not automatically called
+   /* 
+
+-- main script ---
+
+import os
+import time
+import subprocess
+import uuid
+from datetime import datetime
+import psutil
+
+LOCK_DIR = "locks"
+REPAIR_SCRIPT = "repair_script.py"
+
+# Stelle sicher, dass das Lock-Verzeichnis existiert
+os.makedirs(LOCK_DIR, exist_ok=True)
+
+def get_lockfile(instance_id):
+    return os.path.join(LOCK_DIR, f"lock_{instance_id}.lock")
+
+def create_lock(instance_id):
+    lockfile = get_lockfile(instance_id)
+    instance_info = {
+        "instance_id": instance_id,
+        "start_time": datetime.now().isoformat(),
+        "pid": os.getpid()
+    }
+    with open(lockfile, "w") as f:
+        f.write(str(instance_info))
+    print(f"Lockfile für Instanz {instance_id} erstellt: {lockfile}")
+
+def remove_lock(instance_id):
+    lockfile = get_lockfile(instance_id)
+    if os.path.exists(lockfile):
+        os.remove(lockfile)
+        print(f"Lockfile für Instanz {instance_id} entfernt.")
+
+def read_lock(instance_id):
+    lockfile = get_lockfile(instance_id)
+    if os.path.exists(lockfile):
+        with open(lockfile, "r") as f:
+            return eval(f.read())
+    return None
+
+def start_repair(instance_info):
+    print(f"🛠️ Unsauberer Abbruch erkannt für Instanz-ID {instance_info['instance_id']}. Starte Reparatur...")
+    subprocess.Popen(["python", REPAIR_SCRIPT, instance_info["instance_id"]])
+
+def main(instance_id):
+    lock_info = read_lock(instance_id)
+    if lock_info:
+        pid = lock_info.get("pid")
+        if psutil.pid_exists(pid):
+            print(f"⚠️ Instanz {instance_id} läuft bereits mit PID {pid}. Kein Neustart erforderlich.")
+            return
+        else:
+            # Prozess nicht mehr aktiv, also Reparatur starten
+            start_repair(lock_info)
+
+    # Erstelle Lockfile für die neue Instanz
+    create_lock(instance_id)
+
+    try:
+        print(f"🚀 Instanz {instance_id} läuft (PID: {os.getpid()})...")
+        time.sleep(5)  # Simuliert Arbeit
+        print(f"✅ Instanz {instance_id} erfolgreich beendet.")
+    finally:
+        remove_lock(instance_id)
+
+
+----- repair_script.py -----
+
+# Starte das Skript mit einer eindeutigen Management-ID
+if __name__ == "__main__":
+    instance_id = str(uuid.uuid4())[:8]  # Kürzere ID für bessere Lesbarkeit
+    main(instance_id)
+
+import sys
+from datetime import datetime
+
+if len(sys.argv) != 2:
+    print("❌ Fehlende Instanz-ID!")
+    sys.exit(1)
+
+instance_id = sys.argv[1]
+
+print(f"🔧 Reparatur-Skript gestartet für Instanz-ID: {instance_id}")
+print(f"🕒 Reparaturzeitpunkt: {datetime.now().isoformat()}")
+rollbackImport(instance_id)
+time.sleep(3)
+print(f"✅ Reparatur für Instanz {instance_id} abgeschlossen.")
+
+   */
+
+-- pre 9.0 upgrade scripts
+
+--- 8.6.3
+
+insert into config (config_key, config_value, config_user) VALUES ('dnsLookup', 'False', 0) ON CONFLICT DO NOTHING;
+insert into config (config_key, config_value, config_user) VALUES ('overwriteExistingNames', 'False', 0) ON CONFLICT DO NOTHING;
+insert into config (config_key, config_value, config_user) VALUES ('autoReplaceAppServer', 'False', 0) ON CONFLICT DO NOTHING;
+
+ALTER TABLE modelling.change_history ADD COLUMN IF NOT EXISTS change_source Varchar default 'manual';
+
+
+CREATE TABLE IF NOT EXISTS refresh_log (
+    id SERIAL PRIMARY KEY,
+    view_name TEXT NOT NULL,
+    refreshed_at TIMESTAMPTZ DEFAULT now(),
+    status TEXT
+);
+
+CREATE OR REPLACE FUNCTION refresh_view_rule_with_owner()
+RETURNS SETOF refresh_log AS $$
+DECLARE
+    status_message TEXT;
+BEGIN
+    -- Attempt to refresh the materialized view
+    BEGIN
+        REFRESH MATERIALIZED VIEW view_rule_with_owner;
+        status_message := 'Materialized view refreshed successfully';
+    EXCEPTION
+        WHEN OTHERS THEN
+            status_message := format('Failed to refresh view: %s', SQLERRM);
+    END;
+
+    -- Log the operation
+    INSERT INTO refresh_log (view_name, status)
+    VALUES ('view_rule_with_owner', status_message);
+
+    -- Return the log entry
+    RETURN QUERY SELECT * FROM refresh_log WHERE view_name = 'view_rule_with_owner' ORDER BY refreshed_at DESC LIMIT 1;
+END;
+$$ LANGUAGE plpgsql VOLATILE;
+
+---
+--- 8.7.1
+
+Alter table "ldap_connection" ADD COLUMN IF NOT EXISTS "ldap_writepath_for_groups" Varchar;
+
+CREATE OR REPLACE FUNCTION insertLocalLdapWithEncryptedPasswords(
+    serverName TEXT, 
+    port INTEGER,
+    userSearchPath TEXT,
+    roleSearchPath TEXT, 
+    groupSearchPath TEXT,
+    groupWritePath TEXT,
+    tenantLevel INTEGER,
+    searchUser TEXT,
+    searchUserPwd TEXT,
+    writeUser TEXT,
+    writeUserPwd TEXT,
+    ldapType INTEGER
+) RETURNS VOID AS $$
+DECLARE
+    t_key TEXT;
+    t_encryptedReadPwd TEXT;
+    t_encryptedWritePwd TEXT;
+BEGIN
+    IF NOT EXISTS (SELECT * FROM ldap_connection WHERE ldap_server = serverName)
+    THEN
+        SELECT INTO t_key * FROM getMainKey();
+        SELECT INTO t_encryptedReadPwd * FROM encryptText(searchUserPwd, t_key);
+        SELECT INTO t_encryptedWritePwd * FROM encryptText(writeUserPwd, t_key);
+        INSERT INTO ldap_connection
+            (ldap_server, ldap_port, ldap_searchpath_for_users, ldap_searchpath_for_roles, ldap_searchpath_for_groups, ldap_writepath_for_groups,
+            ldap_tenant_level, ldap_search_user, ldap_search_user_pwd, ldap_write_user, ldap_write_user_pwd, ldap_type)
+            VALUES (serverName, port, userSearchPath, roleSearchPath, groupSearchPath, groupWritePath, tenantLevel, searchUser, t_encryptedReadPwd, writeUser, t_encryptedWritePwd, ldapType);
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
 
 --- pre 9.0 changes (old import)
 
@@ -90,7 +262,7 @@ CREATE TRIGGER import_config_insert
 ALTER TABLE management ADD COLUMN IF NOT EXISTS "mgm_uid" Varchar NOT NULL DEFAULT '';
 ALTER TABLE management ADD COLUMN IF NOT EXISTS "rulebase_name" Varchar NOT NULL DEFAULT '';
 ALTER TABLE management ADD COLUMN IF NOT EXISTS "rulebase_uid" Varchar NOT NULL DEFAULT '';
-Alter table rule_metadata add column if not exists rulebase_id integer; -- not null;
+-- Alter table rule_metadata add column if not exists rulebase_id integer; -- not null;
 
 ALTER TABLE device ADD COLUMN IF NOT EXISTS "dev_uid" Varchar NOT NULL DEFAULT '';
 
@@ -121,9 +293,12 @@ Alter table "rulebase" add CONSTRAINT unique_rulebase_mgm_id_name UNIQUE ("mgm_i
 ALTER TABLE "management" ADD COLUMN IF NOT EXISTS "is_super_manager" BOOLEAN DEFAULT FALSE;
 ALTER TABLE "rule" ADD COLUMN IF NOT EXISTS "is_global" BOOLEAN DEFAULT FALSE NOT NULL;
 ALTER TABLE "rule" ADD COLUMN IF NOT EXISTS "rulebase_id" INTEGER;
+ALTER TABLE "rule" ADD COLUMN IF NOT EXISTS rule_order_array INTEGER [];
 
--- ALTER TABLE "rule" DROP CONSTRAINT IF EXISTS "unique_rule_rule_uid_rule_create" CASCADE;
--- Alter table "rule" add CONSTRAINT "unique_rule_rule_uid_rule_create" UNIQUE ("rule_uid", "rule_create");
+Alter Table "rule" DROP Constraint IF EXISTS "rule_altkey";
+Alter Table "rule" DROP Constraint IF EXISTS "rule_unique_mgm_id_rule_uid_rule_create_xlate_rule";
+Alter Table "rule" ADD Constraint "rule_unique_mgm_id_rule_uid_rule_create_xlate_rule" UNIQUE ("mgm_id", "rule_uid","rule_create","xlate_rule");
+
 
 -- permanent table for storing latest config to calc diffs
 CREATE TABLE IF NOT EXISTS "latest_config" (
@@ -193,7 +368,6 @@ ALTER table "svcgrp_flat" ALTER COLUMN "svcgrp_flat_member_id" TYPE BIGINT;
 ALTER table "svcgrp_flat" ALTER COLUMN "import_created" TYPE BIGINT;
 ALTER table "svcgrp_flat" ALTER COLUMN "import_last_seen" TYPE BIGINT;
 
-alter table "rule" add column if not exists "rulebase_id" Integer; -- NOT NULL;
 ALTER TABLE "rule" DROP CONSTRAINT IF EXISTS "fk_rule_rulebase_id" CASCADE;
 ALTER TABLE "rule" ADD CONSTRAINT fk_rule_rulebase_id FOREIGN KEY ("rulebase_id") REFERENCES "rulebase" ("id") ON UPDATE RESTRICT ON DELETE CASCADE;
 
@@ -226,9 +400,17 @@ ALTER TABLE "rule" ADD CONSTRAINT fk_rule_rulebase_id FOREIGN KEY ("rulebase_id"
 
 Alter table "rule" drop constraint IF EXISTS "rule_metadata_dev_id_rule_uid_f_key";
 Alter Table "rule_metadata" drop Constraint IF EXISTS "rule_metadata_alt_key";
-ALTER TABLE rule_metadata DROP Constraint IF EXISTS "rule_metadata_rule_uid_unique";
-ALTER TABLE rule_metadata ADD Constraint "rule_metadata_rule_uid_unique" unique ("rule_uid");
+/*
+    TODO: fix this:
+        ALTER TABLE rule_metadata DROP Constraint IF EXISTS "rule_metadata_rule_uid_unique";
+        ALTER TABLE rule_metadata ADD Constraint "rule_metadata_rule_uid_unique" unique ("rule_uid");
+    causes error:
+        None: FEHLER:  kann Constraint rule_metadata_rule_uid_unique für Tabelle rule_metadata nicht löschen, weil andere Objekte davon abhängen\nDETAIL:  
+        Constraint rule_metadata_rule_uid_f_key für Tabelle rule hängt von Index rule_metadata_rule_uid_unique ab\nHINT:  Verwenden Sie DROP ... CASCADE, um die abhängigen Objekte ebenfalls zu löschen.\n"}
+*/
 
+ALTER TABLE rule_metadata DROP Constraint IF EXISTS "rule_metadata_rule_uid_unique" CASCADE;
+ALTER TABLE rule_metadata ADD Constraint "rule_metadata_rule_uid_unique" unique ("rule_uid");
 Alter table "rule" DROP constraint IF EXISTS "rule_rule_metadata_rule_uid_f_key";
 Alter table "rule" add constraint "rule_rule_metadata_rule_uid_f_key"
   foreign key ("rule_uid") references "rule_metadata" ("rule_uid") on update restrict on delete cascade;
@@ -628,7 +810,7 @@ $function$;
 
 ALTER TABLE rule DROP CONSTRAINT IF EXISTS rule_dev_id_fkey;
 
--- ALTER TABLE "rule_metadata" DROP CONSTRAINT IF EXISTS "rule_metadata_rulebase_id_f_key" CASCADE;
+ALTER TABLE "rule_metadata" DROP CONSTRAINT IF EXISTS "rule_metadata_rulebase_id_f_key" CASCADE;
 -- Alter table "rule_metadata" add constraint "rule_metadata_rulebase_id_f_key"
 --   foreign key ("rulebase_id") references "rulebase" ("id") on update restrict on delete cascade;
 -- ALTER TABLE "rule_metadata" DROP CONSTRAINT IF EXISTS "rule_metadata_alt_key" CASCADE;
@@ -653,6 +835,8 @@ ALTER TABLE "rule_enforced_on_gateway" ADD COLUMN IF NOT EXISTS "removed" BIGINT
 ALTER TABLE "rulebase" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
 ALTER TABLE "rulebase_link" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
 
+-- add obj type access-role for cp import
+INSERT INTO stm_obj_typ (obj_typ_id,obj_typ_name) VALUES (21,'access-role') ON CONFLICT DO NOTHING;
 
 -- adding labels (simple version without mapping tables and without foreign keys)
 

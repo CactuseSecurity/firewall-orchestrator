@@ -1,4 +1,6 @@
 using FWO.Report.Filter.Exceptions;
+using FWO.Report.Filter.FilterTypes;
+
 
 namespace FWO.Report.Filter.Ast
 {

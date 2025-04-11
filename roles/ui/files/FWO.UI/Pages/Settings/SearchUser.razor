@@ -1,40 +1,31 @@
-﻿@using System.Net
-@using FWO.Api.Client
-@using FWO.Api.Client.Queries
-@using FWO.Config.Api
-@using FWO.Config.Api.Data
+@using FWO.Data.Middleware
 @using FWO.Middleware.Client
-@using FWO.Middleware.RequestParameters
 @using RestSharp
-@using FWO.Basics
-@using FWO.Api.Data
-@using FWO.Services
+@using System.Net
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 @inject MiddlewareClient middlewareClient
 
 
-<PopUp Title="@(userConfig.GetText(UserSearchMode ? "assign_user": "assign_group") + ": " + Title)" Show="@Display" Size=PopupSize.Large OnClose="Close">
+<PopUp Title="@(userConfig.GetText(UserSearchMode ? "assign_user": "assign_group") + ": " + Title)" Show="@Display" Size=PopupSize.Medium OnClose="Close">
     <Body>
         @if (Display)
         {
-            <form>
+            <form class="mt-2">
                 <form class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5351"))">
-                    <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("from_ldap")):</label>
-                    <div class="col-sm-3">
+                    <label class="col-form-label col-form-label-sm col-2 col-md-3 col-xl-2">@(userConfig.GetText("from_ldap")):</label>
+                    <div class="col-10 col-md-9 col-xl-5 col-xxl-3">
                         <Dropdown ElementType="UiLdapConnection" ElementToString="@(l => l.Name)" @bind-SelectedElement="selectedLdap" Elements="connectedLdaps">
                             <ElementTemplate Context="ldap">
                                 @ldap.Name
                             </ElementTemplate>
                         </Dropdown>
                     </div>
-                    <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("search_pattern")):</label>
-                    <div class="col-sm-3">
-                        <input class="form-control-sm col-sm" type="text" @bind="searchPattern" />
-                    </div>
-                    <div class="col-sm-2">
-                        <button type="button" class="btn btn-sm btn-success" @onclick="async() => await SearchInLdap()" @onclick:preventDefault>@(userConfig.GetText("search"))</button>
+                    <div class="col-12 col-xl-5 col-xxl-7 mt-lg-2 mt-xl-0">
+                        <label for="lblSearchPattern" class="col-form-label col-form-label-sm">@(userConfig.GetText("search_pattern")):</label>
+                        <input id="lblSearchPattern" class="form-control-sm col-sm" type="text" @bind="searchPattern" />
+                        <button type="button" class="btn btn-sm btn-success mt-1 mt-md-0 mt-xl-1 mt-xxl-0" @onclick="async() => await SearchInLdap()" @onclick:preventDefault>@(userConfig.GetText("search"))</button>
                     </div>
                 </form>
                 @if(UserSearchMode)
@@ -243,7 +234,7 @@
                     viewAllDevices = false,
                     create = DateTime.Now
                 };
-                await apiConnection.SendQueryAsync<NewReturning>(AuthQueries.addTenant, Variables);
+                await apiConnection.SendQueryAsync<ReturnIdWrapper>(AuthQueries.addTenant, Variables);
             }
         }
         catch (Exception exception)

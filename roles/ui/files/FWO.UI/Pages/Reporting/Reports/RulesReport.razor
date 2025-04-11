@@ -28,7 +28,7 @@
                             {
                                 <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("number"))" DefaultSortColumn="true" Field="@(rChange => rChange.OrderNumber)" Sortable="true" Filterable="false" Hideable="true">
                                     <Template>
-                                        @((MarkupString)RuleDisplayBase.DisplayNumber(rule))
+                                        @((MarkupString) DisplayOrderArray(rule))
                                     </Template>
                                 </Column>
                             }
@@ -184,28 +184,39 @@
                             }
                             @if (EmptyColumns[10] == false)
                             {
-                                <Column TableItem="Rule" Title="@(userConfig.GetText("uid"))" Field="@(rChange => rChange.Uid)" Sortable="true" Filterable="false" Hideable="true" />
+                                <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("enforcing_devices"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true">
+                                    <Template>
+                                        @((MarkupString)ruleDisplay.DisplayEnforcingGateways(rule, getActLocation(), SelectedReportType))
+                                    </Template>
+                                </Column>
                             }
                             @if (EmptyColumns[11] == false)
+                            {
+                                <Column TableItem="Rule" Title="@(userConfig.GetText("uid"))" Field="@(rChange => rChange.Uid)" Sortable="true" Filterable="false" Hideable="true" />
+                            }
+                            @if (EmptyColumns[12] == false)
                             {
                                 <Column TableItem="Rule" Title="@(userConfig.GetText("comment"))" Field="@(rChange => rChange.Comment)" Sortable="true" Filterable="false" Hideable="true" />
                             }
 
                             <DetailTemplate TableItem="Rule">
-                                <Detail Title="@(userConfig.GetText("created"))" Data="@context.Metadata?.Created?.ToString()" />
-                                <Detail Title="@(userConfig.GetText("last_modified"))" Data="@context.Metadata?.LastModified?.ToString()" />
-                                <Detail Title="@(userConfig.GetText("first_hit"))" Data="@context.Metadata?.FirstHit?.ToString()" />
-                                <Detail Title="@(userConfig.GetText("last_hit"))" Data="@context.Metadata?.LastHit?.ToString()" />
-                                <Detail Title="@(userConfig.GetText("last_certify_date"))" Data="@context.Metadata?.LastCertified?.ToString()" />
-                                <Detail Title="@(userConfig.GetText("last_recertifier"))" Data="@context.Metadata?.LastCertifierDn?.ToString()" />
-                                @* <Detail Title="@(userConfig.GetText("marked_to_be_removed"))" Data="@((context.Metadata?.ToBeRemoved)?'yes':'no'))" /> 
-                                    // TODO: not able to get this syntactically working, but implicit info is there: ToBeRemoved == NOT DecertificationDate IS NULL *@
-                                <Detail Title="@(userConfig.GetText("decert_date"))" Data="@context.Metadata?.DecertificationDate?.ToString()" />
-                                <Detail Title="@(userConfig.GetText("recert_comment"))" Data="@context.Metadata?.Comment?.ToString()" />
-                                <Detail Title="@(userConfig.GetText("recert_history"))" Data="@(context.Metadata?.RecertHistory.Count > 0 ? ":" : "")" />
-                                @foreach(var recert in context.Metadata?.RecertHistory)
+                                @if(context.Metadata != null)
                                 {
-                                    <Detail Title="@(recert.RecertDate.ToString())" Data="@(getHistoryString(recert))" />
+                                    <Detail Title="@(userConfig.GetText("created"))" Data="@context.Metadata?.Created?.ToString()" />
+                                    <Detail Title="@(userConfig.GetText("last_modified"))" Data="@context.Metadata?.LastModified?.ToString()" />
+                                    <Detail Title="@(userConfig.GetText("first_hit"))" Data="@context.Metadata?.FirstHit?.ToString()" />
+                                    <Detail Title="@(userConfig.GetText("last_hit"))" Data="@context.Metadata?.LastHit?.ToString()" />
+                                    <Detail Title="@(userConfig.GetText("last_certify_date"))" Data="@context.Metadata?.LastCertified?.ToString()" />
+                                    <Detail Title="@(userConfig.GetText("last_recertifier"))" Data="@context.Metadata?.LastCertifierDn?.ToString()" />
+                                    @* <Detail Title="@(userConfig.GetText("marked_to_be_removed"))" Data="@((context.Metadata?.ToBeRemoved)?'yes':'no'))" /> 
+                                        // TODO: not able to get this syntactically working, but implicit info is there: ToBeRemoved == NOT DecertificationDate IS NULL *@
+                                    <Detail Title="@(userConfig.GetText("decert_date"))" Data="@context.Metadata?.DecertificationDate?.ToString()" />
+                                    <Detail Title="@(userConfig.GetText("recert_comment"))" Data="@context.Metadata?.Comment?.ToString()" />
+                                    <Detail Title="@(userConfig.GetText("recert_history"))" Data="@(context.Metadata?.RecertHistory.Count > 0 ? ":" : "")" />
+                                    @foreach(var recert in context.Metadata!.RecertHistory)
+                                    {
+                                        <Detail Title="@(recert.RecertDate.ToString())" Data="@(getHistoryString(recert))" />
+                                    }
                                 }
                             </DetailTemplate>
 
@@ -256,7 +267,7 @@
 
     private bool RecertificationHistory { get; set; } = false;
     private ITable<Rule>? reportTable;
-    private const int ColumnsCount = 12;
+    private const int ColumnsCount = 13;
     private bool[] EmptyColumns = new bool[ColumnsCount];
 
     private NatRuleDisplayHtml? ruleDisplay;
@@ -291,4 +302,28 @@
         return $"{userConfig.GetText(recert.Recertified ? "recertified_by" : "decertified_by")} {username} " +
             $"{userConfig.GetText("as_owner")} {recert.FwoOwner?.Name} {userConfig.GetText("comment")}: {recert.Comment}";
     }
+
+    private string DisplayOrderArray(Rule rule)
+    {
+        string displayOrderNumber = "";
+        bool isFirstOrderNumberPart = true;
+
+        if (rule == null || rule.RuleOrderArray == null)
+        {
+            return displayOrderNumber;
+        }
+        foreach (int orderArrayItem in rule.RuleOrderArray)
+        {
+            if (!isFirstOrderNumberPart)
+            {
+                displayOrderNumber += ".";
+            }
+
+            displayOrderNumber += orderArrayItem.ToString();
+            isFirstOrderNumberPart = false;
+        }
+
+        return displayOrderNumber;
+    }
+
 }

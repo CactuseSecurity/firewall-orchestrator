@@ -1,6 +1,6 @@
 ﻿using System.Text;
 using FWO.Basics;
-using FWO.Api.Data;
+using FWO.Data;
 using FWO.Config.Api;
 using FWO.Report.Filter;
 using FWO.Report;
@@ -90,6 +90,10 @@ namespace FWO.Ui.Display
         public static StringBuilder DisplayService(NetworkService service, ReportType reportType, string? serviceName = null)
         {
             return DisplayBase.DisplayService(service, reportType.IsTechReport(), serviceName);
+        }
+        public static StringBuilder DisplayGateway(Device gateway, ReportType reportType, string? gatewayName = null)
+        {
+            return DisplayBase.DisplayGateway(gateway, reportType.IsTechReport(), gatewayName);
         }
 
         public static StringBuilder RemoveLastChars(StringBuilder s, int count)

@@ -1,16 +1,13 @@
 ﻿using FWO.Basics;
-using FWO.Api.Data;
+using FWO.Data.Report;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Config.Api;
 using FWO.Logging;
 using FWO.Middleware.Server.Controllers;
 using FWO.Report;
-using FWO.Report.Filter;
 using System.Timers;
 using FWO.Config.File;
-using PuppeteerSharp.Media;
-using FWO.Services;
 
 namespace FWO.Middleware.Server
 {
@@ -25,8 +22,8 @@ namespace FWO.Middleware.Server
 
         private readonly string apiServerUri;
         private readonly ApiConnection apiConnectionScheduler;
-        private ApiConnection apiConnectionUserContext;
-        private UserConfig userConfig;
+        private ApiConnection? apiConnectionUserContext;
+        private UserConfig? userConfig;
         private readonly GraphQlApiSubscription<ReportSchedule[]> scheduledReportsSubscription;
         private readonly JwtWriter jwtWriter;
 
@@ -39,7 +36,7 @@ namespace FWO.Middleware.Server
         public ReportScheduler(ApiConnection apiConnection, JwtWriter jwtWriter, GraphQlApiSubscription<List<Ldap>> connectedLdapsSubscription)
         {
             this.jwtWriter = jwtWriter;            
-            this.apiConnectionScheduler = apiConnection;
+            apiConnectionScheduler = apiConnection;
             apiServerUri = ConfigFile.ApiServerUri;
 
             connectedLdaps = apiConnectionScheduler.SendQueryAsync<List<Ldap>>(AuthQueries.getLdapConnections).Result;
@@ -130,7 +127,7 @@ namespace FWO.Middleware.Server
                 {
                     Log.WriteInfo("Report Scheduling", $"Generating scheduled report \"{reportSchedule.Name}\" with id \"{reportSchedule.Id}\" for user \"{reportSchedule.ScheduleOwningUser.Name}\" with id \"{reportSchedule.ScheduleOwningUser.DbId}\" ...");
 
-                    if(!await InitUserEnvironment(reportSchedule))
+                    if(!await InitUserEnvironment(reportSchedule) || apiConnectionUserContext == null || userConfig == null)
                     {
                         return;
                     }
@@ -147,25 +144,18 @@ namespace FWO.Middleware.Server
                     await apiConnectionUserContext.SendQueryAsync<object>(ReportQueries.countReportSchedule, new { report_schedule_id = reportSchedule.Id });
                     await AdaptDeviceFilter(reportSchedule.Template.ReportParams, apiConnectionUserContext);
 
-                    ReportBase report = ReportBase.ConstructReport(reportSchedule.Template, userConfig);
-                    if(report.ReportType.IsDeviceRelatedReport())
+                    ReportBase? report = await ReportGenerator.Generate(reportSchedule.Template, apiConnectionUserContext, userConfig, token);
+                    if(report != null)
                     {
-                        await report.Generate(int.MaxValue, apiConnectionUserContext, 
-                            rep =>
-                            {
-                                report.ReportData.ManagementData = rep.ManagementData;
-                                SetRelevantManagements(ref report.ReportData.ManagementData, reportSchedule.Template.ReportParams.DeviceFilter);
-                                return Task.CompletedTask;
-                            }, token);
+                        await report.GetObjectsInReport(int.MaxValue, apiConnectionUserContext, _ => Task.CompletedTask);
+                        await WriteReportFile(report, reportSchedule.OutputFormat, reportFile);
+                        await SaveReport(reportFile, report.SetDescription(), apiConnectionUserContext);
+                        Log.WriteInfo("Report Scheduling", $"Scheduled report \"{reportSchedule.Name}\" with id \"{reportSchedule.Id}\" for user \"{reportSchedule.ScheduleOwningUser.Name}\" with id \"{reportSchedule.ScheduleOwningUser.DbId}\" successfully generated.");
                     }
                     else
                     {
-                        await GenerateConnectionsReport(reportSchedule, report, apiConnectionUserContext, token);
+                        Log.WriteInfo("Report Scheduling", $"Scheduled report \"{reportSchedule.Name}\" with id \"{reportSchedule.Id}\" for user \"{reportSchedule.ScheduleOwningUser.Name}\" with id \"{reportSchedule.ScheduleOwningUser.DbId}\" was empty.");
                     }
-                    await report.GetObjectsInReport(int.MaxValue, apiConnectionUserContext, _ => Task.CompletedTask);
-                    WriteReportFile(report, reportSchedule.OutputFormat, reportFile);
-                    await SaveReport(reportFile, report.SetDescription(), apiConnectionUserContext);
-                    Log.WriteInfo("Report Scheduling", $"Scheduled report \"{reportSchedule.Name}\" with id \"{reportSchedule.Id}\" for user \"{reportSchedule.ScheduleOwningUser.Name}\" with id \"{reportSchedule.ScheduleOwningUser.DbId}\" successfully generated.");
                 }
                 catch (Exception exception)
                 {
@@ -195,58 +185,15 @@ namespace FWO.Middleware.Server
             return true;
         }
 
-        private async Task GenerateConnectionsReport(ReportSchedule reportSchedule, ReportBase report, ApiConnection apiConnectionUser, CancellationToken token)
-        {
-            ModellingAppRole dummyAppRole = new();
-            List<ModellingAppRole> dummyAppRoles = await apiConnectionUser.SendQueryAsync<List<ModellingAppRole>>(ModellingQueries.getDummyAppRole);
-            if(dummyAppRoles.Count > 0)
-            {
-                dummyAppRole = dummyAppRoles.First();
-            }
-            foreach(var selectedOwner in reportSchedule.Template.ReportParams.ModellingFilter.SelectedOwners)
-            {
-                OwnerReport actOwnerData = new(dummyAppRole.Id){ Name = selectedOwner.Name };
-                report.ReportData.OwnerData.Add(actOwnerData);
-                await report.Generate(int.MaxValue, apiConnectionUser,
-                rep =>
-                {
-                    actOwnerData.Connections = rep.OwnerData.First().Connections;
-                    return Task.CompletedTask;
-                }, token);
-            }
-            await PrepareConnReportData(reportSchedule, report, apiConnectionUser);
-            List<ModellingConnection> comSvcs = await apiConnectionUser.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getCommonServices);
-            if(comSvcs.Count > 0)
-            {
-                report.ReportData.GlobalComSvc = [new(){GlobalComSvcs = comSvcs, Name = userConfig.GetText("global_common_services")}];
-            }
-        }
-
-        private async Task PrepareConnReportData(ReportSchedule reportSchedule, ReportBase report, ApiConnection apiConnectionUser)
-        {
-            ModellingHandlerBase handlerBase = new(apiConnectionUser, userConfig, new(), false, DefaultInit.DoNothing);
-            foreach(var ownerReport in report.ReportData.OwnerData)
-            {
-                foreach(var conn in ownerReport.Connections)
-                {
-                    await handlerBase.ExtractUsedInterface(conn);
-                }
-                ownerReport.Name = reportSchedule.Template.ReportParams.ModellingFilter.SelectedOwner.Name;
-                ownerReport.RegularConnections = ownerReport.Connections.Where(x => !x.IsInterface && !x.IsCommonService).ToList();
-                ownerReport.Interfaces = ownerReport.Connections.Where(x => x.IsInterface).ToList();
-                ownerReport.CommonServices = ownerReport.Connections.Where(x => !x.IsInterface && x.IsCommonService).ToList();
-            }
-        }
-
         private static async Task AdaptDeviceFilter(ReportParams reportParams, ApiConnection apiConnectionUser)
         {
             try
             {
-                if(!reportParams.DeviceFilter.isAnyDeviceFilterSet())
+                if(!reportParams.DeviceFilter.IsAnyDeviceFilterSet())
                 {
                     // for scheduling no device selection means "all"
                     reportParams.DeviceFilter.Managements = await apiConnectionUser.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement);
-                    reportParams.DeviceFilter.applyFullDeviceSelection(true);
+                    reportParams.DeviceFilter.ApplyFullDeviceSelection(true);
                 }
                 if(reportParams.ReportType == (int)ReportType.UnusedRules)
                 {
@@ -276,7 +223,8 @@ namespace FWO.Middleware.Server
                         break;
 
                     case GlobalConst.kPdf:
-                        reportFile.Pdf = await report.ToPdf(Report.PaperFormat.A4);
+                        string html = report.ExportToHtml();
+                        reportFile.Pdf = await report.ToPdf(html);
                         break;
 
                     case GlobalConst.kJson:
@@ -313,18 +261,6 @@ namespace FWO.Middleware.Server
             {
                 Log.WriteError("Save Report", $"Could not save report \"{reportFile.Name}\".");
                 throw;
-            }
-        }
-
-        private static void SetRelevantManagements(ref List<ManagementReport> managementsReport, DeviceFilter deviceFilter)
-        {
-            if (deviceFilter.isAnyDeviceFilterSet())
-            {
-                List<int> relevantManagements = deviceFilter.getSelectedManagements();
-                foreach (var mgm in managementsReport)
-                {
-                    mgm.Ignore = !relevantManagements.Contains(mgm.Id);
-                }
             }
         }
 

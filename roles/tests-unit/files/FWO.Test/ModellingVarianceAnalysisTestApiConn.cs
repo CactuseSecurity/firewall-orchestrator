@@ -1,8 +1,9 @@
-﻿using FWO.Api.Client.Queries;
+using FWO.Api.Client.Queries;
 using GraphQL;
-using FWO.Api.Data;
 using FWO.Basics;
-using FWO.Api.Client.Data;
+using FWO.Services;
+using FWO.Data;
+using FWO.Data.Modelling;
 
 namespace FWO.Test
 {
@@ -19,6 +20,7 @@ namespace FWO.Test
         
         public override async Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
         {
+            await DefaultInit.DoNothing(); // qad avoid compiler warning
             Type responseType = typeof(QueryResponseType);
             if (responseType == typeof(List<Management>))
             {
@@ -37,7 +39,7 @@ namespace FWO.Test
                     if (variables != null)
                     {
                         var objTypeIds = variables.GetType().GetProperties().First(o => o.Name == "objTypeIds").GetValue(variables, null);
-                        if (( (int[])objTypeIds )[0] == 2)
+                        if (objTypeIds != null && ( (int[])objTypeIds )[0] == 2)
                         {
                             nwObjects =
                             [
@@ -58,10 +60,17 @@ namespace FWO.Test
             }
             else if (responseType == typeof(List<ModellingAppZone>))
             {
-                GraphQLResponse<dynamic> response = new() { Data = new List<ModellingAppZone>(){ AZExist }};
+                GraphQLResponse<dynamic> response = new() { Data = new List<ModellingAppZone>() { AZExist } };
 
                 return response.Data;
             }
+            else if (responseType == typeof(List<ModellingAppServer>))
+            {
+                GraphQLResponse<dynamic> response = new() { Data = new List<ModellingAppServer>() { AppServer1, AppServer2 } };
+
+                return response.Data;
+            }
+
             throw new NotImplementedException();
         }
     }

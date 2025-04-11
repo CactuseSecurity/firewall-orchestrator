@@ -1,0 +1,88 @@
+@using FWO.Ui.Data
+@inject IJSRuntime JSRuntime
+@inject KeyboardInputService keyboardInputService
+
+@code {
+    /// <summary>
+    /// Reference to be able to explicitly dispose the dotnet reference object.
+    /// </summary>
+    private DotNetObjectReference<KeyboardInput>? dotNetRef;
+
+    /// <summary>
+    /// Adds event listeners for keyup and keydown events to the document.
+    /// </summary>
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            dotNetRef = DotNetObjectReference.Create(this);
+            await JSRuntime.InvokeVoidAsync("globalKeyboardListener.init", dotNetRef);
+        }
+    }
+
+    /// <summary>
+    /// Is invoked everytime a key on the keyboard is pressed, if FWO is the selected tab.
+    /// </summary>
+    [JSInvokable]
+    public Task OnKeyUp(KeyboardEventArgs e)
+    {
+        switch (e.Key)
+        {
+            case "Shift":
+                keyboardInputService.ShiftPressed = false;
+                break;
+
+            case "Control":
+                keyboardInputService.ControlPressed = false;
+                break;
+        }
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Is invoked everytime a key on the keyboard is released, if FWO is the selected tab.
+    /// </summary>
+    [JSInvokable]
+    public Task OnKeyDown(KeyboardEventArgs e)
+    {
+        switch (e.Key)
+        {
+            case "Shift":
+                keyboardInputService.ShiftPressed = true;
+                break;
+
+            case "Control":
+                keyboardInputService.ControlPressed = true;
+                break;
+        }
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Is invoked everytime the focus on the window gets lost.
+    /// </summary>
+    [JSInvokable]
+    public Task OnBlur()
+    {
+        // to prevent keys get stuck bug when user clicks outside the window while pressing a multiselect button
+        keyboardInputService.ShiftPressed = false;
+        keyboardInputService.ControlPressed = false;
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Explicitly dispose dot net reference and remove event listeners from dom. Only needed if the component is implemented in a page directly (not recommended!). When implemented n MainLayout the instance will be alive for the whole session.
+    /// </summary>
+    public async ValueTask DisposeAsync()
+    {
+        if (dotNetRef is not null)
+        {
+            await JSRuntime.InvokeVoidAsync("globalKeyboardListener.dispose"); // Remove JS listener
+            dotNetRef.Dispose();
+            dotNetRef = null;
+        }
+    }
+}

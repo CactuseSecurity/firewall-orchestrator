@@ -1,12 +1,14 @@
-using FWO.Logging;
-using FWO.Api.Data;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Config.Api;
+using FWO.Data;
+using FWO.Data.Middleware;
+using FWO.Data.Modelling;
+using FWO.Data.Workflow;
+using FWO.Logging;
+using FWO.Services;
 using FWO.Tufin.SecureChange;
 using System.Text.Json;
-using FWO.Services;
-using FWO.Middleware.RequestParameters;
 
 
 namespace FWO.Middleware.Server
@@ -17,7 +19,7 @@ namespace FWO.Middleware.Server
 	public class ExternalRequestHandler
 	{
 		private readonly ApiConnection ApiConnection;
-		private readonly ExtStateHandler extStateHandler;
+		private readonly ExtStateHandler? extStateHandler;
 		private readonly WfHandler wfHandler;
 		private readonly UserConfig UserConfig;
 		private ExternalTicketSystemType extSystemType = ExternalTicketSystemType.Generic;
@@ -94,12 +96,13 @@ namespace FWO.Middleware.Server
 				{
 					wfHandler.SetTicketEnv(intTicket);
 					await UpdateTicket(intTicket, externalRequest);
-					if(extStateHandler.GetInternalStateId(externalRequest.ExtRequestState) >= wfHandler.ActStateMatrix.LowestEndState)
+					if(extStateHandler != null && extStateHandler.GetInternalStateId(externalRequest.ExtRequestState) >= wfHandler.ActStateMatrix.LowestEndState)
 					{
 						await Acknowledge(externalRequest);
 						if(externalRequest.ExtRequestState == ExtStates.ExtReqRejected.ToString())
 						{
 							await RejectFollowingTasks(intTicket, externalRequest.TaskNumber);
+							Log.WriteInfo($"External Request {externalRequest.Id} rejected", $"Reject Following Tasks for internal ticket {intTicket.Id}");
 						}
 						else
 						{
@@ -156,10 +159,8 @@ namespace FWO.Middleware.Server
 		private async Task<WfTicket?> InitAndResolve(long ticketId)
 		{
 			GetExtSystemFromConfig();
-			await extStateHandler.Init();
 			ipProtos = await ApiConnection.SendQueryAsync<List<IpProtocol>>(StmQueries.getIpProtocols);
-			await wfHandler.Init([], false, true);
-			return await wfHandler.ResolveTicket(ticketId);
+			return await wfHandler.Init() ? await wfHandler.ResolveTicket(ticketId) : null;
 		}
 
 		private async Task GetInternalGroups()
@@ -167,7 +168,7 @@ namespace FWO.Middleware.Server
 			List<Ldap> connectedLdaps = await ApiConnection.SendQueryAsync<List<Ldap>>(AuthQueries.getLdapConnections);
 			Ldap internalLdap = connectedLdaps.FirstOrDefault(x => x.IsInternal() && x.HasGroupHandling()) ?? throw new Exception("No internal Ldap with group handling found.");
 
-			List<GroupGetReturnParameters> allGroups = internalLdap.GetAllInternalGroups();
+			List<GroupGetReturnParameters> allGroups = await internalLdap.GetAllInternalGroups();
 			ownerGroups = [];
 			foreach (var ldapUserGroup in allGroups)
 			{
@@ -252,6 +253,7 @@ namespace FWO.Middleware.Server
 					await CreateExtRequest(ticket, [nextTask], waitCycles);
 				}
 			}
+			Log.WriteInfo("CreateNextRequest", $"Created Request for ticket {ticket.Id}.");
 			return true;
 		}
 
@@ -306,7 +308,7 @@ namespace FWO.Middleware.Server
 				extRequestState = ExtStates.ExtReqInitialized.ToString(),
 				waitCycles = waitCycles
 			};
-			await ApiConnection.SendQueryAsync<NewReturning>(ExtRequestQueries.addExtRequest, Variables);
+			await ApiConnection.SendQueryAsync<ReturnIdWrapper>(ExtRequestQueries.addExtRequest, Variables);
 			await LogRequestTasks(tasks, ticket.Requester?.Name, ModellingTypes.ChangeType.Request);
 		}
 
@@ -420,7 +422,7 @@ namespace FWO.Middleware.Server
 
 		private async Task UpdateTaskState(WfReqTask reqTask, string extReqState)
 		{
-			if(reqTask.StateId != extStateHandler.GetInternalStateId(extReqState))
+			if(extStateHandler != null && reqTask.StateId != extStateHandler.GetInternalStateId(extReqState))
 			{
 				wfHandler.SetReqTaskEnv(reqTask);
 				reqTask.StateId = extStateHandler.GetInternalStateId(extReqState) ?? throw new Exception("No translation defined for external state.");

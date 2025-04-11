@@ -1,5 +1,5 @@
 ﻿using FWO.Basics;
-using FWO.Api.Data;
+using FWO.Data;
 using System.Text;
 using FWO.Api.Client;
 using FWO.Report.Filter;
@@ -30,7 +30,7 @@ namespace FWO.Report
             ReportData.ManagementData = [];
             foreach (var management in managementsWithRelevantImportId)
             {
-                SetMgtQueryVars(management);
+                SetMgtQueryVars(management);    // this includes mgm_id AND relevant import ID!
                 ManagementReport managementReport = (await apiConnection.SendQueryAsync<List<ManagementReport>>(Query.FullQuery, Query.QueryVariables))[0];
                 managementReport.Import = management.Import;
                 ReportData.ManagementData.Add(managementReport);
@@ -481,7 +481,7 @@ namespace FWO.Report
             {
                 chapterNumber++;
                 managementReport.AssignRuleNumbers();
-                report.AppendLine($"<h3>{managementReport.Name}</h3>");
+                report.AppendLine($"<h3 id=\"{Guid.NewGuid()}\">{managementReport.Name}</h3>");
                 report.AppendLine("<hr>");
 
                 foreach (var device in managementReport.Devices)
@@ -532,7 +532,7 @@ namespace FWO.Report
         {
             if (device.ContainsRules())
             {
-                report.AppendLine($"<h4>{device.Name}</h4>");
+                report.AppendLine($"<h4 id=\"{Guid.NewGuid()}\">{device.Name}</h4>");
                 report.AppendLine("<table>");
                 appendRuleHeadlineHtml(ref report);
 
@@ -612,7 +612,7 @@ namespace FWO.Report
         {
             if (managementReport.ReportObjects != null && !ReportType.IsResolvedReport())
             {
-                report.AppendLine($"<h4>{userConfig.GetText("network_objects")}</h4>");
+                report.AppendLine($"<h4 id=\"{Guid.NewGuid()}\">{userConfig.GetText("network_objects")}</h4>");
                 report.AppendLine("<table>");
                 report.AppendLine("<tr>");
                 report.AppendLine($"<th>{userConfig.GetText("number")}</th>");
@@ -645,7 +645,7 @@ namespace FWO.Report
         {
             if (managementReport.ReportServices != null && !ReportType.IsResolvedReport())
             {
-                report.AppendLine($"<h4>{userConfig.GetText("network_services")}</h4>");
+                report.AppendLine($"<h4 id=\"{Guid.NewGuid()}\">{userConfig.GetText("network_services")}</h4>");
                 report.AppendLine("<table>");
                 report.AppendLine("<tr>");
                 report.AppendLine($"<th>{userConfig.GetText("number")}</th>");
@@ -687,7 +687,7 @@ namespace FWO.Report
         {
             if (managementReport.ReportUsers != null && !ReportType.IsResolvedReport())
             {
-                report.AppendLine($"<h4>{userConfig.GetText("users")}</h4>");
+                report.AppendLine($"<h4 id=\"{Guid.NewGuid()}\">{userConfig.GetText("users")}</h4>");
                 report.AppendLine("<table>");
                 report.AppendLine("<tr>");
                 report.AppendLine($"<th>{userConfig.GetText("number")}</th>");

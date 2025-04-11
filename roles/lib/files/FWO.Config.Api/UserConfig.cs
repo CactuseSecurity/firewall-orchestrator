@@ -3,7 +3,7 @@ using FWO.Basics;
 using FWO.Logging;
 using FWO.Config.Api.Data;
 using FWO.Api.Client;
-using FWO.Api.Data;
+using FWO.Data;
 using FWO.Api.Client.Queries;
 using System.Reflection;
 using System.Text.Json.Serialization;
@@ -44,6 +44,7 @@ namespace FWO.Config.Api
             globalConfig.OnChange += OnGlobalConfigChange;
         }
 
+        // Warning: only for Texts, ConfigItems contain Default content, correct ConfigItems are only in this.globalConfig
         public UserConfig(GlobalConfig globalConfig) : base()
         {
             User = new UiUser();

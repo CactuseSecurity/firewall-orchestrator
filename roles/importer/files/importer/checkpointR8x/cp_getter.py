@@ -4,11 +4,14 @@ import json
 import re
 import requests, requests.packages
 import time
+from datetime import datetime
+
 from common import FwLoginFailed
 from fwo_log import getFwoLogger
 import fwo_globals
 import cp_network
 import cp_const
+from fwo_exceptions import ImportInterruption
 
 
 def cp_api_call(url, command, json_payload, sid, show_progress=False):
@@ -39,7 +42,7 @@ def cp_api_call(url, command, json_payload, sid, show_progress=False):
 
     try:
         json_response = r.json()
-    except:
+    except Exception:
         raise Exception("checkpointR8x:api_call: response is not in valid json format: " + r.text)
     return json_response
 
@@ -115,6 +118,11 @@ def set_api_url(base_url,testmode,api_supported,hostname, debug_level=0):
 
 def get_changes(sid,api_host,api_port,fromdate):
     logger = getFwoLogger()
+    
+    dt_object = datetime.fromisoformat(fromdate)
+    dt_truncated = dt_object.replace(microsecond=0)     # Truncate microseconds
+    fromdate = dt_truncated.isoformat()
+
     payload = {'from-date' : fromdate, 'details-level' : 'uid'}
     logger.debug ("payload: " + json.dumps(payload))
     base_url = 'https://' + api_host + ':' + str(api_port) + '/web_api/'
@@ -169,7 +177,7 @@ def getPolicyStructure(api_v_url, sid, show_params_policy_structure, policyStruc
 
         try:
             packages = cp_api_call(api_v_url, 'show-packages', show_params_policy_structure, sid)
-        except:
+        except Exception:
             logger.error("could not return 'show-packages'")
             return 1
 
@@ -262,7 +270,7 @@ def getRulebases (api_v_url, sid, show_params_rules,
         try:
             rulebaseForUid = cp_api_call(api_v_url, 'show-' + access_type + '-rulebase', get_rulebase_uid_params, sid)
             rulebaseUid = rulebaseForUid['uid']
-        except:
+        except Exception:
             logger.error("could not find uid for rulebase name=" + rulebaseName)
             return 1
     else:
@@ -290,9 +298,11 @@ def getRulebases (api_v_url, sid, show_params_rules,
         
             try:
                 rulebase = cp_api_call(api_v_url, 'show-' + access_type + '-rulebase', show_params_rules, sid)
+                if fwo_globals.shutdown_requested:
+                    raise ImportInterruption("Shutdown requested during rulebase retrieval.")                
                 if currentRulebase['name'] == '' and 'name' in rulebase:
                     currentRulebase.update({'name': rulebase['name']})
-            except:
+            except Exception:
                 logger.error("could not find rulebase uid=" + rulebaseUid)
                 # todo: need to get FWO API jwt here somehow:
                 # create_data_issue(fwo_api_base_url, jwt, severity=2, description="failed to get show-access-rulebase  " + rulebaseUid)
@@ -303,7 +313,7 @@ def getRulebases (api_v_url, sid, show_params_rules,
                 for ruleField in ['source', 'destination', 'service', 'action', 'track', 'install-on', 'time']:
                     resolveRefListFromObjectDictionary(rulebase, ruleField, nativeConfig=nativeConfig, sid=sid, base_url=api_v_url)
                 currentRulebase['chunks'].append(rulebase)
-            except:
+            except Exception:
                 logger.error("error while getting field " + ruleField + " of layer " + rulebaseUid + ", params: " + str(show_params_rules))
                 return 1
 
@@ -472,10 +482,11 @@ def resolveRefFromObjectDictionary(id, objDict, nativeConfig={}, sid='', base_ur
         if matchedObj['type'] in ['CpmiVoipSipDomain', 'CpmiVoipMgcpDomain']:
             logger.info(f"adding voip domain '{matchedObj['name']}' object manually, because it is not retrieved by show objects API command")
             if 'object_tables' in nativeConfig:
+                color = matchedObj.get('color', 'black')
                 nativeConfig['object_tables'].append({ 
                         "object_type": "hosts", "object_chunks": [ {
                         "objects": [ {
-                        'uid': matchedObj['uid'], 'name': matchedObj['name'], 'color': matchedObj['color'],
+                        'uid': matchedObj['uid'], 'name': matchedObj['name'], 'color': color,
                         'type': matchedObj['type']
                     } ] } ] } )
             else:
@@ -523,55 +534,57 @@ def getObjectDetailsFromApi(uid_missing_obj, sid='', apiurl='', debug_level=0):
         if obj is not None:
             if 'object' in obj:
                 obj = obj['object']
+                color = obj.get('color', 'black')
+
                 if (obj['type'] == 'CpmiAnyObject'):
                     if (obj['name'] == 'Any'):
                         return  { "object_type": "hosts", "object_chunks": [ {
                             "objects": [ {
-                            'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],
+                            'uid': obj['uid'], 'name': obj['name'], 'color': color,
                             'comments': 'any nw object checkpoint (hard coded)',
                             'type': 'network', 'ipv4-address': '0.0.0.0/0'
                             } ] } ] }
                     elif (obj['name'] == 'None'):
                         return  { "object_type": "hosts", "object_chunks": [ {
                             "objects": [ {
-                            'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],
+                            'uid': obj['uid'], 'name': obj['name'], 'color': color,
                             'comments': 'any nw object checkpoint (hard coded)',
                             'type': 'group'
                             } ] } ] }
                 elif (obj['type'] in [ 'simple-gateway', obj['type'], 'CpmiGatewayPlain', obj['type'] == 'interop' ]):
                     return { "object_type": "hosts", "object_chunks": [ {
                         "objects": [ {
-                        'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],
+                        'uid': obj['uid'], 'name': obj['name'], 'color': color,
                         'comments': obj['comments'], 'type': 'host', 'ipv4-address': cp_network.get_ip_of_obj(obj),
                         } ] } ] }
                 elif obj['type'] == 'multicast-address-range':
                     return {"object_type": "hosts", "object_chunks": [ {
                         "objects": [ {
-                        'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],
+                        'uid': obj['uid'], 'name': obj['name'], 'color': color,
                         'comments': obj['comments'], 'type': 'host', 'ipv4-address': cp_network.get_ip_of_obj(obj),
                         } ] } ] }
                 elif (obj['type'] in ['CpmiVsClusterMember', 'CpmiVsxClusterMember', 'CpmiVsxNetobj']):
                     return {"object_type": "hosts", "object_chunks": [ {
                         "objects": [ {
-                        'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],
+                        'uid': obj['uid'], 'name': obj['name'], 'color': color,
                         'comments': obj['comments'], 'type': 'host', 'ipv4-address': cp_network.get_ip_of_obj(obj),
                         } ] } ] }
                 elif (obj['type'] == 'Global'):
                     return {"object_type": "hosts", "object_chunks": [ {
                         "objects": [ {
-                        'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],
+                        'uid': obj['uid'], 'name': obj['name'], 'color': color,
                         'comments': obj['comments'], 'type': 'host', 'ipv4-address': '0.0.0.0/0',
                         } ] } ] }
                 elif (obj['type'] in [ 'updatable-object', 'CpmiVoipSipDomain', 'CpmiVoipMgcpDomain' ]):
                     return {"object_type": "hosts", "object_chunks": [ {
                         "objects": [ {
-                        'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],
+                        'uid': obj['uid'], 'name': obj['name'], 'color': color,
                         'comments': obj['comments'], 'type': 'group'
                         } ] } ] }
                 elif (obj['type'] in ['Internet', 'security-zone']):
                     return {"object_type": "hosts", "object_chunks": [ {
                         "objects": [ {
-                        'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],
+                        'uid': obj['uid'], 'name': obj['name'], 'color': color,
                         'comments': obj['comments'], 'type': 'network', 'ipv4-address': '0.0.0.0/0',
                         } ] } ] }
                 elif (obj['type'] == 'access-role'):

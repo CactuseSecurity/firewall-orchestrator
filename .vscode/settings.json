@@ -1,4 +1,10 @@
 {
     "editor.formatOnPaste": false,
-    "editor.formatOnSave": false
+    "editor.formatOnSave": false,
+    "[csharp]": {
+        "editor.defaultFormatter": "ms-dotnettools.csharp"
+    },
+    "[razor]": {
+      "editor.defaultFormatter": "ms-dotnettools.csharp"
+    }
 }

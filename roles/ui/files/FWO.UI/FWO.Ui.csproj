@@ -5,11 +5,10 @@
 		<Nullable>enable</Nullable>
 		<ImplicitUsings>enable</ImplicitUsings>
 	</PropertyGroup>
-
 	<ItemGroup>
 		<PackageReference Include="IPAddressRange" Version="6.1.0" />
 		<PackageReference Include="BlazorTable" Version="1.17.0" />
-		<PackageReference Include="PuppeteerSharp" Version="20.0.5" />
+		<PackageReference Include="PuppeteerSharp" Version="20.1.3" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -28,5 +27,4 @@
 		<ProjectReference Include="..\..\..\lib\files\FWO.DeviceAutoDiscovery\FWO.DeviceAutoDiscovery.csproj" />
 		<ProjectReference Include="..\..\..\lib\files\FWO.Services\FWO.Services.csproj" />
 	</ItemGroup>
-
 </Project>

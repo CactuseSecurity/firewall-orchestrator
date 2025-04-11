@@ -1,10 +1,4 @@
-@using FWO.Basics
-@using FWO.Api.Data
-@using FWO.Api.Client
-@using FWO.Api.Client.Queries
-@using FWO.Config.Api
 @using FWO.Middleware.Client
-@using FWO.Services
 
 @page "/settings/gateways"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.FwAdmin}")]
@@ -218,8 +212,8 @@
             devices = await apiConnection.SendQueryAsync<List<Device>>(DeviceQueries.getDeviceDetails);
             deviceTypes = await apiConnection.SendQueryAsync<List<DeviceType>>(DeviceQueries.getDeviceTypeDetails);
 
-            JwtReader jwt = new JwtReader(userConfig.User.Jwt);
-            jwt.Validate();
+            JwtReader jwt = new (userConfig.User.Jwt);
+            await jwt.Validate();
             if (jwt.ContainsAllowedRole(Roles.Admin) || jwt.ContainsAllowedRole(Roles.FwAdmin))
                 managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementsDetails);
             else
@@ -324,7 +318,7 @@
                         hideInUi = actDevice.HideInUi,
                         comment = actDevice.Comment
                     };
-                    ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(DeviceQueries.newDevice, Variables)).ReturnIds;
+                    ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(DeviceQueries.newDevice, Variables)).ReturnIds;
                     if (returnIds == null)
                     {
                         DisplayMessageInUi(null, userConfig.GetText("save_gateway"), userConfig.GetText("E5112"), true);
@@ -382,7 +376,7 @@
         try
         {
             var Variables = new { tenantId = GlobalConst.kTenant0Id, deviceId = deviceId };
-            await apiConnection.SendQueryAsync<NewReturning>(AuthQueries.addDeviceToTenant, Variables);
+            await apiConnection.SendQueryAsync<ReturnIdWrapper>(AuthQueries.addDeviceToTenant, Variables);
         }
         catch (System.Exception exception)
         {

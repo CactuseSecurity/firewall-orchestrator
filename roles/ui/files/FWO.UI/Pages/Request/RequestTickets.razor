@@ -1,9 +1,4 @@
-@using FWO.Basics
-@using FWO.Api.Data
-@using FWO.Api.Client
-@using FWO.Config.Api
 @using FWO.Ui.Services
-@using FWO.Services
 @using FWO.Middleware.Client
 
 @page "/request/tickets/{ticketId?}"
@@ -23,7 +18,7 @@
 }
 else
 {
-   <div class="spinner-border" role="status">
+    <div class="spinner-border" role="status">
         <span class="visually-hidden">@(userConfig.GetText("loading"))</span>
     </div>
 }
@@ -41,7 +36,7 @@ else
 
     private WfHandler wfHandler = new ();
     private WfStateDict states = new ();
-    private List<int> OwnerIds = new ();
+    private List<int>? OwnerIds = null;
     private bool InitComplete = false;
 
 
@@ -49,7 +44,7 @@ else
     {
         try
         {
-            apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { Roles.Admin, Roles.Requester, Roles.Auditor });
+            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Admin, Roles.Requester, Roles.Auditor ]);
             await states.Init(apiConnection);
 
             if(userConfig.ReqOwnerBased)
@@ -84,7 +79,7 @@ else
         try
         {
             wfHandler.ReadOnlyMode = !(authenticationStateTask!.Result.User.IsInRole(Roles.Requester) || authenticationStateTask!.Result.User.IsInRole(Roles.Admin));
-            await wfHandler.Init(OwnerIds);
+            await wfHandler.Init(true, OwnerIds);
         }
         catch (Exception exception)
         {

@@ -1,302 +1,301 @@
-﻿@using System.Reflection
+@using System.Reflection
 @using System.Diagnostics;
-@using FWO.Basics
-@using FWO.Api.Data
+
 @typeparam ElementType
 
 @inject DomEventService eventService
 @inject IJSRuntime jsRuntime
 
 <div id="@($"dropdown-{Id}")" class="input-group @(Small ? "input-group-sm" : "")">
-	<label id="@($"dropdown-input-prepend-{Id}")" class="input-group-text d-flex justify-content-center" style="width: 40px;" for="@($"dropdown-input-{Id}")">
-		<span id="@($"dropdown-input-prepend-icon-{Id}")" class="@Icons.CollapseDown"></span>
-	</label>
-	<input type="text" id="@($"dropdown-input-{Id}")" class="@InputClass form-control" style="@($"width: calc(100% - {40 + AppendWidth}px);")" @onclick="ShowMenu" @onfocus="ClearFilter" @oninput="Filter" @bind="searchValue" />
-	@if (Append != null)
-	{
-		@Append
-	}
+    <label id="@($"dropdown-input-prepend-{Id}")" class="input-group-text d-flex justify-content-center" style="width: 40px;" for="@($"dropdown-input-{Id}")">
+        <span id="@($"dropdown-input-prepend-icon-{Id}")" class="@Icons.CollapseDown"></span>
+    </label>
+    <input type="text" id="@($"dropdown-input-{Id}")" class="@InputClass form-control" style="@($"width: calc(100% - {40 + AppendWidth}px);")" @onclick="ShowMenu" @onfocus="ClearFilter" @oninput="Filter" @bind="searchValue" />
+    @if (Append != null)
+    {
+        @Append
+    }
 </div>
 <ul id="@($"dropdown-menu-{Id}")" class="dropdown-menu" style="@($"position: fixed; top: {yPositionDropdown}px; left: {xPositionDropdown}px; max-height: calc(100vh - {yPositionDropdown}px - 10px); overflow: auto;" + (Toggled ? "" : " display: inline;"))">
-	@if (!Toggled)
-	{
-		int i = 1;
-		if (SelectedElements.Count() > 0)
-		{
-			foreach (ElementType element in SelectedElements)
-			{
-				<li id="@($"dropdown-menu-li-selected-{Id + i++}")">
-					<button id="@($"dropdown-menu-selected-{Id + i++}")" type="button" @onclick="async () => await UnselectElement(element)" class="dropdown-item @(Small ? "small" : "")">
-						<div id="@($"dropdown-menu-selected-content-{Id + i++}")" class="d-flex align-items-baseline justify-content-between">
-							@ElementTemplate(element)
-							@if ((Nullable || Multiselect))
-							{
-								<i id="@($"dropdown-menu-selected-x-{Id + i++}")" class="ms-2 @(Icons.Close)"></i>
-							}
-						</div>
-					</button>
-				</li>
-			}
-			<li id="@($"dropdown-menu-li-divider-{Id + i++}")"><hr id="@($"dropdown-menu-divider-{Id + i++}")" class="dropdown-divider @(Small ? "small" : "")"></li>
-		}
-		@foreach (ElementType element in FilteredElements.Where(element => !_selectedElements.Contains(element)))
-		{
-			<li id="@($"dropdown-menu-li-element-{Id + i++}")">
-				<button id="@($"dropdown-menu-element-{Id + i++}")" type="button" @onclick="async () => await SelectElement(element)" class="dropdown-item @(Small ? "small" : "")">@ElementTemplate(element)</button>
-			</li>
-		}
-	}
+    @if (!Toggled)
+    {
+        int i = 1;
+        if (SelectedElements.Count() > 0)
+        {
+            foreach (ElementType element in SelectedElements)
+            {
+                <li id="@($"dropdown-menu-li-selected-{Id + i++}")">
+                    <button id="@($"dropdown-menu-selected-{Id + i++}")" type="button" @onclick="async () => await UnselectElement(element)" class="dropdown-item @(Small ? "small" : "")">
+                        <div id="@($"dropdown-menu-selected-content-{Id + i++}")" class="d-flex align-items-baseline justify-content-between">
+                            @ElementTemplate(element)
+                            @if (( Nullable || Multiselect ))
+                            {
+                                <i id="@($"dropdown-menu-selected-x-{Id + i++}")" class="ms-2 @(Icons.Close)"></i>
+                            }
+                        </div>
+                    </button>
+                </li>
+            }
+            <li id="@($"dropdown-menu-li-divider-{Id + i++}")"><hr id="@($"dropdown-menu-divider-{Id + i++}")" class="dropdown-divider @(Small ? "small" : "")"></li>
+        }
+        @foreach (ElementType element in FilteredElements.Where(element => !SelectedElements.Contains(element)))
+        {
+            <li id="@($"dropdown-menu-li-element-{Id + i++}")">
+                <button id="@($"dropdown-menu-element-{Id + i++}")" type="button" @onclick="async () => await SelectElement(element)" class="dropdown-item @(Small ? "small" : "")">@ElementTemplate(element)</button>
+            </li>
+        }
+    }
 </ul>
 
 @code
 {
-	private int xPositionDropdown;
-	private int yPositionDropdown;
+    private int xPositionDropdown;
+    private int yPositionDropdown;
 
-	[Parameter]
-	public string Id { get; set; }
+    [Parameter]
+    public string Id { get; set; }
 
-	[Parameter]
-	public bool Small { get; set; } = true;
+    [Parameter]
+    public bool Small { get; set; } = true;
 
-	[Parameter]
-	public string InputClass { get; set; } = "";
+    [Parameter]
+    public string InputClass { get; set; } = "";
 
-	[Parameter]
-	public RenderFragment? Append { get; set; }
+    [Parameter]
+    public RenderFragment? Append { get; set; }
 
-	[Parameter]
-	public int AppendWidth { get; set; } = 0;
+    [Parameter]
+    public int AppendWidth { get; set; } = 0;
 
-	private Func<ElementType, string> _elementToString = (o => o.ToString() ?? "");
+    [Parameter]
+    public Func<ElementType, string> ElementToString { get; set; } = ( o => o?.ToString() ?? "" );
 
-	[Parameter]
-	public Func<ElementType, string> ElementToString 
-	{
-		get { return _elementToString; }
-		set
-		{
-			_elementToString = value;
-			// Update selected element display
-			DisplaySelection(SelectedElements);
-		}
-	}
+    private bool _nullable = false;
 
-	private bool _nullable = false;
+    [Parameter]
+    public bool Nullable { get; set; }
 
-	[Parameter]
-	public bool Nullable
-	{
-		get { return _nullable; }
-		set
-		{
-			Debug.Assert(!Nullable || default(ElementType) == null, "The Nullable option was enabled but the ElementType is not nullable.");
-			_nullable = value;
-		}
-	}
+    [Parameter]
+    public bool Multiselect { get; set; } = false;
 
-	[Parameter]
-	public bool Multiselect { get; set; } = false;
+    [Parameter]
+    public RenderFragment<ElementType> ElementTemplate { get; set; } = element => __builder =>
+    {
+        @element
+    };
 
-	[Parameter]
-	public RenderFragment<ElementType> ElementTemplate { get; set; } = element => __builder =>
-	{
-		@element
-	};
+    public IEnumerable<ElementType> FilteredElements { get; private set; } = Enumerable.Empty<ElementType>();
 
-	public IEnumerable<ElementType> FilteredElements { get; private set; } = Enumerable.Empty<ElementType>();
+    [Parameter]
+    public IEnumerable<ElementType> Elements { get; set; } = Enumerable.Empty<ElementType>();
 
-	[Parameter]
-	public IEnumerable<ElementType> Elements { get; set; } = Enumerable.Empty<ElementType>();
+    [Parameter]
+    public EventCallback<IEnumerable<ElementType>> SelectedElementsChanged { get; set; }
 
-	[Parameter]
-	public EventCallback<IEnumerable<ElementType>> SelectedElementsChanged { get; set; }
+    [Parameter]
+    public IEnumerable<ElementType> SelectedElements { get; set; } = Enumerable.Empty<ElementType>();
 
-	private IEnumerable<ElementType> _selectedElements = Enumerable.Empty<ElementType>();
+    [Parameter]
+    public EventCallback<ElementType> SelectedElementChanged { get; set; }
 
-	[Parameter]
-	public IEnumerable<ElementType> SelectedElements
-	{
-		get { return _selectedElements; }
-		set
-		{
-			if (!new HashSet<ElementType>(value).SetEquals(_selectedElements))
-			{
-				_selectedElements = value;
-				DisplaySelection(_selectedElements);
-				SelectedElementsChanged.InvokeAsync(value);
-				SelectedElementChanged.InvokeAsync(value.FirstOrDefault());
-			}
-		}
-	}
+    private ElementType? _selectedElement
+    {
+        get
+        {
+            return SelectedElements.FirstOrDefault();
+        }
+        set
+        {
+            Debug.Assert(!Multiselect, "If the Multiselect option is enabled do not use the property SelectedElement but SelectedElements instead.");
+            if (( SelectedElements.Count() == 0 && value != null ) || !Object.Equals(value, SelectedElements.FirstOrDefault()))
+            {
+                if (value == null)
+                {
+                    Debug.Assert(Nullable == true, "The assigned value is null but the Nullable option is not enabled.");
+                    SelectedElements = Enumerable.Empty<ElementType>();
+                }
+                else
+                {
+                    SelectedElements = new ElementType[] { value };
+                }
+                DisplaySelection(SelectedElements);
+                SelectedElementChanged.InvokeAsync(value);
+            }
+        }
+    }
 
-	[Parameter]
-	public EventCallback<ElementType> SelectedElementChanged { get; set; }
+    [Parameter]
+    public ElementType? SelectedElement
+    {
+        get
+        {
+            return _selectedElement;
+        }
+        set
+        {
+            _selectedElement = value;
+        }
+    }
 
-	[Parameter]
-	public ElementType? SelectedElement
-	{
-		get
-		{
-			Debug.Assert(!Multiselect, "If the Multiselect option is enabled do not use the property SelectedElement but SelectedElements instead.");
-			return _selectedElements.FirstOrDefault();
-		}
-		set
-		{
-			Debug.Assert(!Multiselect, "If the Multiselect option is enabled do not use the property SelectedElement but SelectedElements instead.");
-			if ((_selectedElements.Count() == 0 && value != null) || !Object.Equals(value, _selectedElements.FirstOrDefault()))
-			{
-				if (value == null)
-				{
-					Debug.Assert(Nullable == true, "The assigned value is null but the Nullable option is not enabled.");
-					SelectedElements = Enumerable.Empty<ElementType>();
-				}
-				else
-				{
-					SelectedElements = new ElementType[] { value };
-				}
-				DisplaySelection(_selectedElements);
-				SelectedElementChanged.InvokeAsync(value);
-			}
-		}
-	}
+    [Parameter]
+    public string NoneSelectedText { get; set; } = "";
 
-	[Parameter]
-	public string NoneSelectedText { get; set; } = "";
+    public bool Toggled { get; private set; } = true;
 
-	public bool Toggled { get; private set; } = true;
+    private string searchValue = "";
 
-	private string searchValue = "";
+    public Dropdown()
+    {
+        Id = Guid.NewGuid().ToString();
+    }
 
-	public Dropdown()
-	{
-		Id = Guid.NewGuid().ToString();
-	}
+    protected override async Task OnInitializedAsync()
+    {
+        if (SelectedElements.Count() == 0)
+        {
+            searchValue = NoneSelectedText;
+        }
+        if (!Multiselect && SelectedElement is not null)
+        {
+            await SelectElement(SelectedElement);
+        }
+        else if (Multiselect && SelectedElements is not null)
+        {
+            DisplaySelection(SelectedElements);
+        }
 
-	protected override async Task OnInitializedAsync()
-	{
-		if (SelectedElements.Count() == 0)
-		{
-			searchValue = NoneSelectedText;
-		}
+        // Toggle on resize of Window / scroll outside of dropdown (to avoid positional problems)
+        if (!eventService.Initialized)
+        {
+            await eventService.Initialize(jsRuntime);
+        }
+        eventService.OnGlobalResize += OnGlobalResize;
+        eventService.OnGlobalScroll += OnGlobalScroll;
+        eventService.OnGlobalClick += OnGlobalClick;
+    }
 
-		// Toggle on resize of Window / scroll outside of dropdown (to avoid positional problems)
-		if (!eventService.Initialized)
-		{
-			await eventService.Initialize(jsRuntime);
-		}
-		eventService.OnGlobalResize += OnGlobalResize;
-		eventService.OnGlobalScroll += OnGlobalScroll;
-		eventService.OnGlobalClick += OnGlobalClick;
-	}
+    private async void OnGlobalResize()
+    {
+        Toggled = true;
+        DisplaySelection(SelectedElements);
+        await InvokeAsync(StateHasChanged);
+    }
 
-	private async void OnGlobalResize()
-	{
-		Toggled = true;
-		DisplaySelection(SelectedElements);
-		await InvokeAsync(StateHasChanged);
-	}
+    private async void OnGlobalScroll(string elementId)
+    {
+        if (!await jsRuntime.InvokeAsync<bool>("isChild", elementId, $"dropdown-{Id}") &&
+            !await jsRuntime.InvokeAsync<bool>("isChild", elementId, $"dropdown-menu-{Id}"))
+        {
+            Toggled = true;
+            DisplaySelection(SelectedElements);
+            await InvokeAsync(StateHasChanged);
+        }
+    }
 
-	private async void OnGlobalScroll(string elementId)
-	{
-		if (!await jsRuntime.InvokeAsync<bool>("isChild", elementId, $"dropdown-{Id}") &&
-			!await jsRuntime.InvokeAsync<bool>("isChild", elementId, $"dropdown-menu-{Id}"))
-		{
-			Toggled = true;
-			DisplaySelection(SelectedElements);
-			await InvokeAsync(StateHasChanged);
-		}
-	}
+    private async void OnGlobalClick(string elementId)
+    {
+        try
+        {
+            if (!await jsRuntime.InvokeAsync<bool>("isChild", elementId, $"dropdown-{Id}") &&
+                !await jsRuntime.InvokeAsync<bool>("isChild", elementId, $"dropdown-menu-{Id}"))
+            {
+                Toggled = true;
+                DisplaySelection(SelectedElements);
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        catch (Exception)
+        {
+            Toggled = true;
+        }
+    }
 
-	private async void OnGlobalClick(string elementId)
-	{
-		try
-		{
-			if (!await jsRuntime.InvokeAsync<bool>("isChild", elementId, $"dropdown-{Id}") &&
-				!await jsRuntime.InvokeAsync<bool>("isChild", elementId, $"dropdown-menu-{Id}"))
-			{
-				Toggled = true;
-				DisplaySelection(SelectedElements);
-				await InvokeAsync(StateHasChanged);
-			}
-		}
-		catch (Exception)
-		{
-			Toggled = true;
-		}
-	}
+    private void ShowMenu(MouseEventArgs input)
+    {
+        xPositionDropdown = (int)input.ClientX - (int)input.OffsetX;
+        yPositionDropdown = (int)input.ClientY - (int)input.OffsetY + ( Small ? 29 : 37 );
+        Toggled = false;
+    }
 
-	private void ShowMenu(MouseEventArgs input)
-	{
-		xPositionDropdown = (int)input.ClientX - (int)input.OffsetX;
-		yPositionDropdown = (int)input.ClientY - (int)input.OffsetY + (Small ? 29 : 37);
-		Toggled = false;
-	}
+    private void Filter(ChangeEventArgs input)
+    {
+        Filter(( input.Value ?? "" ).ToString() ?? "");
+    }
 
-	private void Filter(ChangeEventArgs input)
-	{
-		Filter((input.Value ?? "").ToString() ?? "");
-	}
+    private void Filter(string filter)
+    {
+        // case insensitive
+        FilteredElements = Elements.Where(e => ElementToString(e).ToLower().Contains(filter.ToLower()));
+    }
 
-	private void Filter(string filter)
-	{
-		// case insensitive
-		FilteredElements = Elements.Where(e => ElementToString(e).ToLower().Contains(filter.ToLower()));
-	}
+    private void ClearFilter()
+    {
+        searchValue = "";
+        Filter(""); // No filter
+    }
 
-	private void ClearFilter()
-	{
-		searchValue = "";
-		Filter(""); // No filter
-	}
+    private void DisplaySelection(IEnumerable<ElementType> valuesToDisplay)
+    {
+        searchValue = NoneSelectedText;
 
-	private void DisplaySelection(IEnumerable<ElementType> valuesToDisplay)
-	{
-		searchValue = NoneSelectedText;
+        if (valuesToDisplay.Count() > 0)
+        {
+            searchValue = ElementToString(valuesToDisplay.First());
+            if (valuesToDisplay.Count() > 1)
+            {
+                searchValue += $", ... (+ {valuesToDisplay.Count() - 1})";
+            }
+        }
+        //string.Join(", ", valuesToDisplay.Take(3));
+        //foreach(ElementType value in valuesToDisplay)
+        //{
+        //	searchValue += value;  // set search / display field to current value
+        //}
+    }
 
-		if (valuesToDisplay.Count() > 0)
-		{
-			searchValue = ElementToString(valuesToDisplay.First());
-			if (valuesToDisplay.Count() > 1)
-			{
-				searchValue += $", ... (+ {valuesToDisplay.Count() - 1})";
-			}
-		}
-		//string.Join(", ", valuesToDisplay.Take(3));
-		//foreach(ElementType value in valuesToDisplay)
-		//{
-		//	searchValue += value;  // set search / display field to current value
-		//}
-	}
+    private async Task UnselectElement(ElementType element)
+    {
+        if (Multiselect || Nullable)
+        {
+            SelectedElements = SelectedElements.Where(e => !Object.Equals(e, element));
+            await SelectedElementsChanged.InvokeAsync(SelectedElements);
+        }
+        else if (!Multiselect)
+        {
+            await SelectedElementChanged.InvokeAsync(element);
+        }
+        await CompleteSelectionChange();
+    }
 
-	public async Task UnselectElement(ElementType element)
-	{
-		if (Multiselect || Nullable)
-		{
-			SelectedElements = SelectedElements.Where(e => !Object.Equals(e, element));
-		}
-		await CompleteSelectionChange();
-	}
+    private async Task SelectElement(ElementType element)
+    {
+        if (element == null)
+        {
+            Debug.Assert(Nullable == true, "The assigned value is null but the Nullable option is not enabled.");
+            SelectedElements = Enumerable.Empty<ElementType>();
+        }
+        else
+        {
+            if (Multiselect)
+            {
+                SelectedElements = SelectedElements.Append(element);
+                await SelectedElementsChanged.InvokeAsync(SelectedElements);
+            }
+            else
+            {
+                SelectedElement = element;
+                await SelectedElementChanged.InvokeAsync(element);
+            }
+        }
+        await CompleteSelectionChange();
+    }
 
-	public async Task SelectElement(ElementType element)
-	{
-		if (Multiselect)
-		{
-			SelectedElements = SelectedElements.Append(element);
-		}
-		else
-		{
-			SelectedElement = element;
-		}
-		await CompleteSelectionChange();
-	}
-
-	private async Task CompleteSelectionChange()
-	{
-		// Toggle if multiselect option disabled
-		Toggled = !Multiselect;
-		// Reset display
-		DisplaySelection(SelectedElements);
-		await InvokeAsync(StateHasChanged);
-	}
+    private async Task CompleteSelectionChange()
+    {
+        // Toggle if multiselect option disabled
+        Toggled = !Multiselect;
+        // Reset display
+        DisplaySelection(SelectedElements);
+        await InvokeAsync(StateHasChanged);
+    }
 }

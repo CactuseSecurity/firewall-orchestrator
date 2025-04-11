@@ -1,6 +1,6 @@
 ﻿using FWO.Api.Client;
 using FWO.Api.Client.Queries;
-using FWO.Api.Data;
+using FWO.Data;
 using FWO.Config.Api;
 using FWO.Logging;
 using FWO.Basics;
@@ -75,7 +75,7 @@ namespace FWO.Middleware.Server
 					{
 						await RefreshState(request);
 					}
-					if ((await apiConnection.SendQueryAsync<ReturnId>(ExtRequestQueries.updateExternalRequestLock, new {id = request.Id, locked = false})).UpdatedId == request.Id)
+					if ((await apiConnection.SendQueryAsync<ReturnId>(ExtRequestQueries.updateExternalRequestLock, new {id = request.Id, locked = false})).UpdatedIdLong == request.Id)
 					{
 						request.Locked = false;
 					}

@@ -1,15 +1,16 @@
-﻿using FWO.Api.Client;
+using FWO.Api.Client;
 using FWO.Api.Client.Queries;
-using FWO.Api.Data;
-using FWO.Config.File;
+using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Config.Api.Data;
+using FWO.Config.File;
+using FWO.Data;
+using FWO.Data.Middleware;
+using FWO.Data.Report;
+using FWO.Encryption;
 using FWO.Logging;
 using FWO.Mail;
-using FWO.Encryption;
-using FWO.Middleware.RequestParameters;
 using FWO.Report;
-using FWO.Report.Filter;
 
 
 namespace FWO.Middleware.Server
@@ -92,7 +93,7 @@ namespace FWO.Middleware.Server
             {
                 if (currentLdap.IsInternal() && currentLdap.HasGroupHandling())
                 {
-                    groups.AddRange(currentLdap.GetAllInternalGroups());
+                    groups.AddRange(await currentLdap.GetAllInternalGroups());
                 }
             }
             uiUsers = await apiConnectionMiddlewareServer.SendQueryAsync<List<UiUser>>(AuthQueries.getUsers);
@@ -173,7 +174,7 @@ namespace FWO.Middleware.Server
                 {
                     Managements = await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement)
                 };
-                deviceFilter.applyFullDeviceSelection(true);
+                deviceFilter.ApplyFullDeviceSelection(true);
 
                 ReportParams reportParams = new((int)ReportType.Recertification, deviceFilter)
                 {

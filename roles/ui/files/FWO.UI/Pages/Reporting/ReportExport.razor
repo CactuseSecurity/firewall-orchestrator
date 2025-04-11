@@ -1,11 +1,9 @@
 ﻿@using System.Text
 @using FWO.Report
-@using FWO.Config.Api
 @using System.Reflection
 @using System.Linq
 @using FWO.Report.Filter
 @using System.IO
-@using FWO.Services
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
@@ -15,7 +13,7 @@
     @userConfig.GetText("export_report")
 </button>
 
-<PopUp Title="@(userConfig.GetText("export_report"))" Show="@ShowExportDialog" Size=PopupSize.Small OnClose="() => ShowExportDialog = false">
+<PopUp Title="@(userConfig.GetText("export_report"))" Show="@ShowExportDialog" Size=PopupSize.Medium OnClose="() => ShowExportDialog = false">
     <Body>
         <div>
             <div class="input-group input-group-sm mb-2">
@@ -173,6 +171,7 @@
 
                         string html = ReportToExport.ExportToHtml();
                         reportExportFile.Pdf = await ReportToExport.ToPdf(html, SelectedPaperFormat);
+                        
                     }
 
                     if (ExportCsv)

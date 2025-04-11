@@ -83,9 +83,8 @@ def collect_nw_objects(object_table, nw_objects, debug_level=0, mgm_id=0):
                             obj['uid'] = obj['uid']
                         else:
                             obj['uid'] = obj['name-in-updatable-objects-repository']
-                        obj['color'] = 'black'
-                    # TODO: handle exclusion groups, access-roles correctly
-                    if obj_type in ['updatable-object', 'access-role', 'group-with-exclusion', 'security-zone', 'dns-domain']:
+                        
+                    if obj_type in ['updatable-object', 'group-with-exclusion', 'security-zone', 'dns-domain']:
                         obj_type = 'group'
 
                     if obj_type == 'group-with-exclusion':
@@ -123,6 +122,9 @@ def collect_nw_objects(object_table, nw_objects, debug_level=0, mgm_id=0):
                         comments = None
                     else:
                         comments = obj['comments']
+                    if 'color' not in obj:
+                        obj['color'] = 'black'
+
                     nw_objects.extend([{'obj_uid': obj['uid'], 'obj_name': obj['name'], 'obj_color': obj['color'],
                                         'obj_comment': comments,
                                         'obj_typ': obj_type, 'obj_ip': first_ip, 'obj_ip_end': last_ip,
@@ -251,7 +253,7 @@ def validIPAddress(IP: str) -> str:
             return "IPv6"
         else:
             return 'Invalid'
-    except:
+    except Exception:
         try:
             t = type(ipaddress.ip_network(IP))
             if t is ipaddress.IPv4Network:
@@ -260,5 +262,5 @@ def validIPAddress(IP: str) -> str:
                 return "IPv6"
             else:
                 return 'Invalid'        
-        except:
+        except Exception:
             return "Invalid"

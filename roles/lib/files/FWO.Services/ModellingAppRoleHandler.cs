@@ -1,6 +1,11 @@
+﻿using FWO.Api.Client;
+using FWO.Api.Client.Queries;
+using FWO.Data;
+using FWO.Data.Modelling;
+using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Basics;
-using FWO.Api.Data;
+using FWO.Data;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using NetTools;
@@ -210,10 +215,10 @@ namespace FWO.Services
                     comment = ActAppRole.Comment,
                     creator = userConfig.User.Name
                 };
-                ReturnId[]? returnIds = ( await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.newAppRole, Variables) ).ReturnIds;
+                ReturnId[]? returnIds = ( await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.newAppRole, Variables) ).ReturnIds;
                 if (returnIds != null)
                 {
-                    ActAppRole.Id = returnIds[0].NewId;
+                    ActAppRole.Id = returnIds[0].NewIdLong;
                     await LogChange(ModellingTypes.ChangeType.Insert, ModellingTypes.ModObjectType.AppRole, ActAppRole.Id,
                         $"New App Role: {ActAppRole.Display()}", Application.Id);
                     foreach (ModellingAppServerWrapper appServer in ActAppRole.AppServers)
@@ -341,7 +346,7 @@ namespace FWO.Services
                         return false;
                     }
 
-                    if (OverlapExists(ipRangeServer, ipRangeSubnet))
+                    if (IpOperations.RangeOverlapExists(ipRangeServer, ipRangeSubnet))
                     {
                         return true;
                     }
@@ -352,24 +357,6 @@ namespace FWO.Services
             {
                 return false;
             }
-        }
-
-        public static bool OverlapExists(IPAddressRange a, IPAddressRange b)
-        {
-            return IpToUint(a.Begin) <= IpToUint(b.End) && IpToUint(b.Begin) <= IpToUint(a.End);
-        }
-
-        private static uint IpToUint(IPAddress ipAddress)
-        {
-            byte[] bytes = ipAddress.GetAddressBytes();
-
-            // flip big-endian(network order) to little-endian
-            if (BitConverter.IsLittleEndian)
-            {
-                Array.Reverse(bytes);
-            }
-
-            return BitConverter.ToUInt32(bytes, 0);
         }
     }
 }

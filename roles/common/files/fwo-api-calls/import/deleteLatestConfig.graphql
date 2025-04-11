@@ -1,0 +1,3 @@
+mutation deleteLatestConfigOfManagement($mgmId: Int!) {
+    delete_latest_config(where: {mgm_id: {_eq: $mgmId}}) { affected_rows }            
+}

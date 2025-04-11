@@ -1,16 +1,15 @@
 from typing import List, Optional, Dict
-from models.rule import Rule, RuleForImport
+from models.rule import RuleNormalized, Rule
 from pydantic import BaseModel
-from fwoBaseImport import ImportState
 
 # Rulebase is the model for a rulebase (containing no DB IDs)
 class Rulebase(BaseModel):
-    id: Optional[int] = None
+    id: Optional[int] # = None
     uid: str
     name: str
     mgm_uid: str
     is_global: bool = False
-    Rules: dict[str, Rule] = {}
+    Rules: dict[str, RuleNormalized] = {}
 
 
 # RulebaseForImport is the model for a rule to be imported into the DB (containing IDs)
@@ -26,7 +25,7 @@ class Rulebase(BaseModel):
 	# "removed" BIGINT
 """
 class RulebaseForImport(BaseModel):
-    id: Optional[int] = None
+    id: Optional[int] # = None
     name: str
     uid: str
     mgm_id: int
@@ -34,7 +33,7 @@ class RulebaseForImport(BaseModel):
     created: int
     removed: Optional[int] = None
     # rules: Dict[RuleForImport] = {}
-    rules: Dict[str, List[RuleForImport]] = {}
+    rules: Dict[str, List[Rule]] = {}
 
     def dict(self, **kwargs):
         return super().dict(by_alias=True, exclude_unset=True, **kwargs)

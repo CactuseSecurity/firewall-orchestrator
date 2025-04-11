@@ -5,8 +5,8 @@ from functools import cmp_to_key
 import traceback
 import fmgr_getter
 import fwo_globals
-from fwo_data_networking import Route, Interface
-from fwo_data_networking import getRouteDestination
+from model_controllers.interface_controller import Route, Interface
+from model_controllers.interface_controller import getRouteDestination
 
 def normalize_network_data(native_config, normalized_config, mgm_details):
 
@@ -62,12 +62,12 @@ def normalize_network_data(native_config, normalized_config, mgm_details):
         normalized_config['routing'].sort(key=getRouteDestination,reverse=True)
         
         for interface in native_config['interfaces_per_device/' + full_vdom_name]:
-            if interface['ipv6']['ip6-address']!='::/0':
+            if 'ipv6' in interface and 'ip6-address' in interface['ipv6'] and interface['ipv6']['ip6-address']!='::/0':
                 ipv6, netmask_bits = interface['ipv6']['ip6-address'].split('/')
                 normIfV6 = Interface(dev_id, interface['name'], IPAddress(ipv6), netmask_bits, ip_version=6)
                 normalized_config['interfaces'].append(normIfV6)
 
-            if interface['ip']!=['0.0.0.0','0.0.0.0']:
+            if 'ip' in interface and interface['ip']!=['0.0.0.0','0.0.0.0']:
                 ipv4 = IPAddress(interface['ip'][0])
                 netmask_bits = IPAddress(interface['ip'][1]).netmask_bits()
                 normIfV4 = Interface(dev_id, interface['name'], ipv4, netmask_bits, ip_version=4)
@@ -265,7 +265,7 @@ def getInterfacesAndRouting(sid, fm_api_url, raw_config, adom_name, devices, lim
             fmgr_getter.update_config_with_fortinet_api_call(
                 raw_config, sid, fm_api_url, "/pm/config/device/" + plain_dev_name + "/global/system/interface",
                 "interfaces_per_device/" + full_vdom_name, payload=all_interfaces_payload, limit=limit, method="get")
-        except:
+        except Exception:
             logger.warning("error while getting interfaces of device " + plain_vdom_name + ", vdom=" + plain_vdom_name + ", ignoring, traceback: " + str(traceback.format_exc()))
 
         # now getting routing information
@@ -289,7 +289,7 @@ def getInterfacesAndRouting(sid, fm_api_url, raw_config, adom_name, devices, lim
                     else:
                         logger.warning("got empty " + ip_version + " routing table from device " + full_vdom_name + ", ignoring")
                         routing_table = []
-            except:
+            except Exception:
                 logger.warning("could not get routing table for device " + full_vdom_name + ", ignoring") # exception " + str(traceback.format_exc()))
                 routing_table = []
 

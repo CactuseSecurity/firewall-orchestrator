@@ -1,10 +1,6 @@
-﻿@using FWO.Api.Client
-@using FWO.Api.Client.Queries
-@using FWO.Config.Api
-@using FWO.Config.Api.Data
 @using System.Text.Json
+@using FWO.Ui.Data
 @using FWO.Ui.Pages.NetworkModelling
-@using FWO.Services
 
 @page "/settings/modelling"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
@@ -20,11 +16,11 @@
 @(userConfig.GetText("U5322"))
 <hr />
 
-@if (configData != null)
+@if(configData != null && initComplete)
 {
     <form onsubmit="return false">
         <button type="button" class="btn btn-sm btn-dark ms-5" data-toggle="tooltip" title="@(userConfig.PureLine("H5602"))"
-                @onclick="PredefServices">
+        @onclick="PredefServices">
             @(userConfig.GetText("predef_services"))
         </button>
         <hr />
@@ -87,7 +83,7 @@
         <div class="form-group row mt-4" data-toggle="tooltip" title="@(userConfig.PureLine("H9055"))">
             <label class="col-form-label col-sm-4">@userConfig.GetText("import_app_server"):</label>
             <div class="row col-sm-6">
-                <CSVFileUpload AuthorizedRoles="@Roles.Admin" OnAddAppServerError="OnAddAppServerError" OnAddAppServerWarning="OnAddAppServerWarning" OnImportSuccess="OnAppServerImportSuccess"></CSVFileUpload>
+                <FileUpload SupportedFileFormats=".csv" AuthorizedRoles="@Roles.Admin" OnImportSuccess="OnAppServerImportSuccess" OnAddAppServerError="OnAddAppServerError" TImportResult="CSVFileUploadErrorModel" OnAfterImportResults="OnAfterImportResults"></FileUpload>
             </div>
         </div>
         <hr />
@@ -185,9 +181,39 @@
                 <label class="col-form-label col-sm-5">@userConfig.GetText("app_zone_pattern"):</label>
                 <input disabled="@(!configData.CreateAppZones)" type="text" class="col-sm-4" @bind="namingConvention.AppZone" />               
             </div>
+        </div>
+        <div class="form-group row mt-2">
             <div class="row col-sm-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5633"))">
                 <label class="col-form-label col-sm-5">@userConfig.GetText("appServerPrefix"):</label>
                 <input type="text" class="col-sm-4" @bind="namingConvention.AppServerPrefix" />
+            </div>
+            <div class="row col-sm-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5645"))">
+                <label class="col-form-label col-sm-5">@userConfig.GetText("networkPrefix"):</label>
+                <input type="text" class="col-sm-4" @bind="namingConvention.NetworkPrefix" />
+            </div>
+            <div class="row col-sm-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5646"))">
+                <label class="col-form-label col-sm-5">@userConfig.GetText("ipRangePrefix"):</label>
+                <input type="text" class="col-sm-4" @bind="namingConvention.IpRangePrefix" />
+            </div>
+        </div>
+        <div class="form-group row mt-2">
+            <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5643"))">
+                <label for="cbx_dns_lookup" class="col-form-label col-sm-8">@(userConfig.GetText("dns_lookup")):</label>
+                <div class="col-sm-2">
+                    <input id="cbx_dns_lookup" type="checkbox" @bind="configData!.DnsLookup">
+                </div>
+            </div>
+            <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5644"))">
+                <label for="cbx_overwrite_names" class="col-form-label col-sm-8">@(userConfig.GetText("overwrite_exiting_names")):</label>
+                <div class="col-sm-2">
+                    <input id="cbx_overwrite_names" type="checkbox" @bind="configData!.OverwriteExistingNames">
+                </div>
+            </div>
+            <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5647"))">
+                <label for="cbx_replace_appserver" class="col-form-label col-sm-8">@(userConfig.GetText("auto_replace_app_server")):</label>
+                <div class="col-sm-2">
+                    <input id="cbx_replace_appserver" type="checkbox" @bind="configData!.AutoReplaceAppServer">
+                </div>
             </div>
         </div>
         <hr />
@@ -228,13 +254,13 @@
             </div>
         </div>
         <div class="form-group row mt-2">
-            <div class="row mt-2 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5642"))">
-                <label for="cbx_manage_owner_ldap_groups" class="col-form-label col-sm-4">@(userConfig.GetText("manageGroupsInLdap")):</label>
+            <div class="row align-items-center col-sm-5" data-toggle="tooltip" title="@(userConfig.PureLine("H5642"))">
+                <label for="cbx_manage_owner_ldap_groups" class="col-form-label col-sm-10">@(userConfig.GetText("manageGroupsInLdap")):</label>
                 <input id="cbx_manage_owner_ldap_groups" type="checkbox" class="col-sm-2" @bind="configData!.ManageOwnerLdapGroups">
             </div>
-            <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5641"))">
-                <label class="col-form-label col-sm-4">@(userConfig.GetText("ownerGroupPattern")):</label>
-                <input type="input" class="col-sm-4" @bind="configData!.OwnerLdapGroupNames" />
+            <div class="form-group row col-sm-7" data-toggle="tooltip" title="@(userConfig.PureLine("H5641"))">
+                <label class="col-form-label col-sm-6">@(userConfig.GetText("ownerGroupPattern")):</label>
+                <input type="input" class="col-sm-6" @bind="configData!.OwnerLdapGroupNames" />
             </div>
         </div>
 
@@ -346,6 +372,37 @@ else
 }
 <PredefServices @bind-Display="predefServices" />
 <SearchNwObject @bind-Display="searchArea" ObjectList="pureAreaList" Add="AddArea" CommonAreaMode="true" />
+<PopUp Title="@(userConfig.GetText("appserver_import"))" Show="@ShowCSVImportPopUp" Size=PopupSize.Large OnClose="() => ShowCSVImportPopUp = false">
+    <Body>
+        @if(CSVImportSuccess is not null && CSVImportSuccess.Count > 0)
+        {
+            <div class="mt-3">
+                <Collapse StartToggled="true" Style="success" Title="@(userConfig.GetText("success"))">
+                    <Table PageSize="0" TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="string" Items="CSVImportSuccess">
+                        <Column TableItem="string" Title="@(userConfig.GetText("entrydata"))" Type="typeof(string)" Field="@(_ => new string(_))" Sortable="true" Filterable="true" />
+                    </Table>
+                </Collapse>
+            </div>
+        }
+        @if(CSVImportErrors is not null && CSVImportErrors.Count > 0)
+        {
+            <div class="mt-1">
+                <Collapse StartToggled="false" Style="danger" Title="@(userConfig.GetText("errors"))">
+                    <Table PageSize="0" TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="CSVFileUploadErrorModel" Items="CSVImportErrors">
+                        <Column TableItem="CSVFileUploadErrorModel" Title="@(userConfig.GetText("entrydata"))" Field="@(_ => _.EntryData)" Sortable="true" Filterable="true" />
+                        <Column TableItem="CSVFileUploadErrorModel" Title="@(userConfig.GetText("error_message"))" Field="@(_ => _.Message)" Sortable="true" Filterable="true" />
+                        <Column TableItem="CSVFileUploadErrorModel" Title="@(userConfig.GetText("type"))" Field="@(_ => _.MessageType)" Sortable="true" />
+                    </Table>
+                </Collapse>
+            </div>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <button type="button" class="btn btn-sm btn-primary" @onclick="() => ShowCSVImportPopUp = false">@(userConfig.GetText("ok"))</button>
+        </div>
+    </Footer>
+</PopUp>
 
 @code
 {
@@ -390,27 +447,23 @@ else
 
     private List<UiLdapConnection> connectedLdaps = new List<UiLdapConnection>();
     private UiLdapConnection selectedLdap = new();
-
-    private int ownerLdapId = GlobalConst.kLdapInternalId;
-    private string ownerLdapGroupNames = GlobalConst.kLdapGroupPattern;
-    private bool manageOwnerLdapGroups = true;
-
+    private bool initComplete = false;
+    private bool ShowCSVImportPopUp { get; set; }
+    private List<CSVFileUploadErrorModel>? CSVImportErrors;
+    private List<string>? CSVImportSuccess;
 
     private void OnAddAppServerError((Exception Exception, string Message) error)
     {
         DisplayMessageInUi(error.Exception, userConfig.GetText("add_app_server"), error.Message, false);
     }
 
-    private void OnAddAppServerWarning(string errorMessage)
+    private void OnAfterImportResults((List<string>? Success, List<CSVFileUploadErrorModel>? Errors) importResult)
     {
-        DisplayMessageInUi(null, userConfig.GetText("add_app_server"), errorMessage, true);
-    }
+        CSVImportSuccess = importResult.Success;
+        CSVImportErrors = importResult.Errors;
 
-    private void OnAddAppServerWarning(Exception ex)
-    {
-        DisplayMessageInUi(ex, userConfig.GetText("add_app_server"), ex.Message, false);
+        ShowCSVImportPopUp = true;
     }
-
     private void OnAppServerImportSuccess()
     {
         DisplayMessageInUi(null, userConfig.GetText("import_app_server"), userConfig.GetText("importAppServerDataSuccess"), false);
@@ -443,16 +496,8 @@ else
             connectedLdaps = await apiConnection.SendQueryAsync<List<UiLdapConnection>>(AuthQueries.getAllLdapConnections);
 
             // get config value of selected ldap connection for owner data (both groups and main responsible user), default value = 1 = internal ldap
-            ownerLdapId = configData.OwnerLdapId;
-
-            selectedLdap = connectedLdaps.FirstOrDefault(x => x.Id == ownerLdapId);
-
-            // get naming schema for groups: all groups follow a naming convention, e.g. ext-app-id,groups,example,com
-            ownerLdapGroupNames = configData.OwnerLdapGroupNames ?? GlobalConst.kLdapGroupPattern;
-
-            // whether or not to create owner groups in LDAP
-            manageOwnerLdapGroups = configData.ManageOwnerLdapGroups;
-
+            selectedLdap = connectedLdaps.FirstOrDefault(x => x.Id == configData.OwnerLdapId) ?? new();
+            initComplete = true;
         }
         catch (Exception exception)
         {
@@ -462,7 +507,7 @@ else
 
     private void RefreshAreas()
     {
-        if (configData.ModCommonAreas != "")
+        if (configData != null && configData.ModCommonAreas != "")
         {
             commAreaConfigItems = JsonSerializer.Deserialize<List<CommonAreaConfig>>(configData.ModCommonAreas) ?? new();
         }
@@ -569,12 +614,12 @@ else
         PrepareAppDataPaths();
         PrepareSubnetDataPaths();
         PrepareExtraConfigs();
-        configData.ModNamingConvention = JsonSerializer.Serialize(namingConvention);
+        configData!.ModNamingConvention = JsonSerializer.Serialize(namingConvention);
         PrepareAppServerTypes();
         PrepareCommonAreas();
-        configData.ImportAppDataStartAt = appDataDate.Date.Add(appDataTime.TimeOfDay);
-        configData.ImportSubnetDataStartAt = subnetDataDate.Date.Add(subnetDataTime.TimeOfDay);
-        configData.OwnerLdapId = selectedLdap.Id;
+        configData!.ImportAppDataStartAt = appDataDate.Date.Add(appDataTime.TimeOfDay);
+        configData!.ImportSubnetDataStartAt = subnetDataDate.Date.Add(subnetDataTime.TimeOfDay);
+        configData!.OwnerLdapId = selectedLdap.Id;
     }
 
     private void PrepareAppDataPaths()
@@ -587,7 +632,7 @@ else
         {
             appDataPaths.Add(path);
         }
-        configData.ImportAppDataPath = JsonSerializer.Serialize(appDataPaths);
+        configData!.ImportAppDataPath = JsonSerializer.Serialize(appDataPaths);
     }
 
     private void PrepareSubnetDataPaths()
@@ -600,7 +645,7 @@ else
         {
             SubnetDataPaths.Add(path);
         }
-        configData.ImportSubnetDataPath = JsonSerializer.Serialize(SubnetDataPaths);
+        configData!.ImportSubnetDataPath = JsonSerializer.Serialize(SubnetDataPaths);
     }
 
     private void PrepareCommonAreas()
@@ -614,7 +659,7 @@ else
                 commAreaConfigItems.Remove(existingItem);
             }
         }
-        configData.ModCommonAreas = JsonSerializer.Serialize(commAreaConfigItems);
+        configData!.ModCommonAreas = JsonSerializer.Serialize(commAreaConfigItems);
     }
 
     private void PrepareAppServerTypes()
@@ -636,7 +681,7 @@ else
         {
             appServerTypes.Add(appServerType);
         }
-        configData.ModAppServerTypes = JsonSerializer.Serialize(appServerTypes);
+        configData!.ModAppServerTypes = JsonSerializer.Serialize(appServerTypes);
     }
 
     private void PrepareExtraConfigs()
@@ -649,6 +694,6 @@ else
         {
             ExtraConfigs.Add(config);
         }
-        configData.ModExtraConfigs = JsonSerializer.Serialize(ExtraConfigs);
+        configData!.ModExtraConfigs = JsonSerializer.Serialize(ExtraConfigs);
     }
 }

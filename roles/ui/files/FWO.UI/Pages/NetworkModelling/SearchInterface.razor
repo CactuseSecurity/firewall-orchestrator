@@ -1,7 +1,4 @@
-﻿@using FWO.Config.Api
-@using FWO.Services
-
-@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.Modeller}")]
+﻿@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.Modeller}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
@@ -121,7 +118,7 @@
                         connectionId = @interface.Id
                     };
 
-                    await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.addSelectedConnection, Variables);
+                    await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.addSelectedConnection, Variables);
                     PreselectedInterfaces.Add(@interface ?? throw new Exception("No Interface selected."));
                 }
 

@@ -1,6 +1,7 @@
 
 from fwo_log import getFwoLogger
 import json
+from checkpointR8x import cp_const
 # from checkpointR8x.cp_getter import ParseUidToName
 
 def collect_users_from_rule(rule, users): #, objDict):
@@ -18,7 +19,7 @@ def collect_users_from_rule(rule, users): #, objDict):
                             user_uid = src['uid']
                             user_typ = 'group'
                             user_comment = src.get('comments', None)
-                            user_color = src['color']
+                            user_color = src.get('color', None)
                             if 'users' in src:
                                 user_typ = 'simple'
                         elif src['type'] == 'LegacyUserAtLocation':
@@ -33,6 +34,10 @@ def collect_users_from_rule(rule, users): #, objDict):
                             break
                         if user_comment == '':
                             user_comment = None
+
+                        if user_color is None:
+                            user_color = 'black'
+
                         users.update({user_name: {'user_uid': user_uid, 'user_typ': user_typ,
                                      'user_comment': user_comment, 'user_color': user_color}})
                 else:
@@ -72,3 +77,5 @@ def getUserUidFromCpApi (userName):
     # dummy implementation returning the name as uid
     return userName
 
+def normalizeUsersLegacy():
+    raise NotImplementedError

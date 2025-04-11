@@ -1,6 +1,8 @@
-﻿using FWO.Api.Client;
+using FWO.Api.Client;
 using FWO.Api.Client.Queries;
-using FWO.Api.Data;
+using FWO.Data;
+using FWO.Data.Report;
+using FWO.Data.Modelling;
 using FWO.Report.Filter;
 using FWO.Config.Api;
 using NetTools;
@@ -64,13 +66,13 @@ namespace FWO.Report
                                 List<NetworkLocation> disregardedFroms = [.. rule.Froms];
                                 if (modellingFilter.ShowSourceMatch)
                                 {
-                                    (relevantFroms, disregardedFroms) = CheckNetworkObjects(rule.Froms);
+                                    (relevantFroms, disregardedFroms) = CheckNetworkObjects(rule.Froms, rule.SourceNegated);
                                 }
                                 List<NetworkLocation> relevantTos = [];
                                 List<NetworkLocation> disregardedTos = [.. rule.Tos];
                                 if (modellingFilter.ShowDestinationMatch)
                                 {
-                                    (relevantTos, disregardedTos) = CheckNetworkObjects(rule.Tos);
+                                    (relevantTos, disregardedTos) = CheckNetworkObjects(rule.Tos, rule.DestinationNegated);
                                 }
 
                                 if (relevantFroms.Count > 0 || relevantTos.Count > 0)
@@ -106,13 +108,13 @@ namespace FWO.Report
 
         private async Task GetAppServers(ApiConnection apiConnection)
         {
-            List<ModellingAppServer> appServers = await apiConnection.SendQueryAsync<List<ModellingAppServer>>(ModellingQueries.getAppServers,
+            List<ModellingAppServer> appServers = await apiConnection.SendQueryAsync<List<ModellingAppServer>>(ModellingQueries.getAppServersForOwner,
                 new { appId = Query.SelectedOwner?.Id });
             ownerIps = [.. appServers.ConvertAll(s => new IPAddressRange(IPAddress.Parse(s.Ip.StripOffNetmask()),
                 IPAddress.Parse((s.IpEnd != "" ? s.IpEnd : s.Ip).StripOffNetmask())))];
         }
 
-        private (List<NetworkLocation>, List<NetworkLocation>) CheckNetworkObjects(NetworkLocation[] objList)
+        private (List<NetworkLocation>, List<NetworkLocation>) CheckNetworkObjects(NetworkLocation[] objList, bool negated)
         {
             List<NetworkLocation> relevantObjects = [];
             List<NetworkLocation> disregardedObjects = [];
@@ -136,7 +138,7 @@ namespace FWO.Report
                     {
                         foreach (var grpobj in obj.Object.ObjectGroupFlats)
                         {
-                            if (grpobj.Object != null && CheckObj(grpobj.Object))
+                            if(grpobj.Object != null && CheckObj(grpobj.Object, negated))
                             {
                                 relevantObjects.Add(obj);
                                 found = true;
@@ -144,7 +146,7 @@ namespace FWO.Report
                             }
                         }
                     }
-                    else if (CheckObj(obj.Object))
+                    else if(CheckObj(obj.Object, negated))
                     {
                         relevantObjects.Add(obj);
                         found = true;
@@ -158,13 +160,27 @@ namespace FWO.Report
             return (relevantObjects, disregardedObjects);
         }
 
-        private bool CheckObj(NetworkObject obj)
+        private bool CheckObj(NetworkObject obj, bool negated)
         {
             foreach (var ownerIpRange in ownerIps)
             {
-                if (obj.IP != null &&
-                    ComplianceNetworkZone.OverlapExists(new IPAddressRange(IPAddress.Parse(obj.IP.StripOffNetmask()),
-                    IPAddress.Parse((obj.IpEnd != null && obj.IpEnd != "" ? obj.IpEnd : obj.IP).StripOffNetmask())), ownerIpRange))
+                if(obj.IP == null)
+                {
+                    continue;
+                }
+
+                IPAddressRange objRange = new(IPAddress.Parse(obj.IP.StripOffNetmask()),
+                    IPAddress.Parse((obj.IpEnd != null && obj.IpEnd != "" ? obj.IpEnd : obj.IP).StripOffNetmask()));
+
+                if(negated)
+                {
+                    if (IpOperations.IpToUint(ownerIpRange.Begin) < IpOperations.IpToUint(objRange.Begin) ||
+                            (IpOperations.IpToUint(ownerIpRange.End) > IpOperations.IpToUint(objRange.End)))
+                    {
+                        return true;
+                    }
+                }
+                else if(IpOperations.RangeOverlapExists(objRange, ownerIpRange))
                 {
                     return true;
                 }
@@ -241,6 +257,56 @@ namespace FWO.Report
             {
                 PrepareFilterRecursive(mgt, dev, dev.RulebaseLinks.FirstOrDefault(r => r.IsInitialRulebase()));
 
+                // if(dev.Rules != null)
+                // {
+                //     foreach(var rule in dev.Rules)
+                //     {
+                //         foreach(var from in rule.Froms)
+                //         {
+                //             mgt.RelevantObjectIds.Add(from.Object.Id);
+                //             mgt.HighlightedObjectIds.Add(from.Object.Id);
+                //             if(from.Object.Type.Name == ObjectType.Group)
+                //             {
+                //                 foreach(var grpobj in from.Object.ObjectGroupFlats)
+                //                 {
+                //                     if(grpobj.Object != null && CheckObj(grpobj.Object, rule.SourceNegated))
+                //                     {
+                //                         mgt.HighlightedObjectIds.Add(grpobj.Object.Id);
+                //                     }
+                //                 }
+                //             }
+                //         }
+                //         if(rule.Froms.Length == 0)
+                //         {
+                //             foreach(var from in rule.DisregardedFroms)
+                //             {
+                //                 mgt.RelevantObjectIds.Add(from.Object.Id);
+                //             }
+                //         }
+                //         foreach(var to in rule.Tos)
+                //         {
+                //             mgt.RelevantObjectIds.Add(to.Object.Id);
+                //             mgt.HighlightedObjectIds.Add(to.Object.Id);
+                //             if(to.Object.Type.Name == ObjectType.Group)
+                //             {
+                //                 foreach(var grpobj in to.Object.ObjectGroupFlats)
+                //                 {
+                //                     if(grpobj.Object != null && CheckObj(grpobj.Object, rule.DestinationNegated))
+                //                     {
+                //                         mgt.HighlightedObjectIds.Add(grpobj.Object.Id);
+                //                     }
+                //                 }
+                //             }
+                //         }
+                //         if(rule.Tos.Length == 0)
+                //         {
+                //             foreach(var to in rule.DisregardedTos)
+                //             {
+                //                 mgt.RelevantObjectIds.Add(to.Object.Id);
+                //             }
+                //         }
+                //     }
+                // }
             }
             mgt.RelevantObjectIds = mgt.RelevantObjectIds.Distinct().ToList();
             mgt.HighlightedObjectIds = mgt.HighlightedObjectIds.Distinct().ToList();

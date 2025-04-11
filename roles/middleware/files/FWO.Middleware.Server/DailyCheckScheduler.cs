@@ -1,13 +1,13 @@
-﻿using FWO.Api.Client;
+using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
-using FWO.Api.Data;
 using FWO.Config.Api;
 using FWO.Config.Api.Data;
+using FWO.Data;
+using FWO.Data.Middleware;
 using FWO.Logging;
-using System.Timers;
-using FWO.Middleware.RequestParameters;
 using FWO.Recert;
+using System.Timers;
 
 namespace FWO.Middleware.Server
 {
@@ -177,7 +177,7 @@ namespace FWO.Middleware.Server
             {
                 if (currentLdap.IsInternal() && currentLdap.HasGroupHandling())
                 {
-                    List<GroupGetReturnParameters> groups = currentLdap.GetAllInternalGroups();
+                    List<GroupGetReturnParameters> groups = await currentLdap.GetAllInternalGroups();
                     foreach (var ldapUserGroup in groups)
                     {
                         if ((new DistName(ldapUserGroup.GroupDn)).Group.EndsWith("_demo"))

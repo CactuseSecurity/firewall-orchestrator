@@ -1,13 +1,13 @@
-﻿using FWO.Api.Data;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
-using FWO.Logging;
 using FWO.Basics;
+using FWO.Data;
+using FWO.Data.Middleware;
+using FWO.Logging;
 using Microsoft.AspNetCore.Mvc;
-using FWO.Middleware.RequestParameters;
-using System.Security.Authentication;
 using Novell.Directory.Ldap;
 using System.Data;
+using System.Security.Authentication;
 
 namespace FWO.Middleware.Server.Controllers
 {
@@ -194,10 +194,10 @@ namespace FWO.Middleware.Server.Controllers
 				{
 					if (currentLdap.IsInternal())
 					{
-						ldapRoleRequests.Add(Task.Run(() =>
+						ldapRoleRequests.Add(Task.Run(async() =>
 						{
 							// Get groups from current Ldap
-							List<string> currentGroups = currentLdap.GetGroups([ldapUser.Dn]);
+							List<string> currentGroups = await currentLdap.GetGroups([ldapUser.Dn]);
 							lock (groupsLock)
 							{
 								currentGroups = Array.ConvertAll(currentGroups.ToArray(), x => "cn=" + x + "," + currentLdap.GroupSearchPath).ToList();
@@ -230,13 +230,13 @@ namespace FWO.Middleware.Server.Controllers
 
 				foreach (Ldap currentLdap in ldaps.Where(x => x.Active))
 				{
-					ldapValidationRequests.Add(Task.Run(() =>
+					ldapValidationRequests.Add(Task.Run(async() =>
 					{
 						Log.WriteDebug("User Authentication", $"Trying to authenticate {user.Name + " " + user.Dn} against LDAP {currentLdap.Address}:{currentLdap.Port} ...");
 
 						try
 						{
-							LdapEntry? currentLdapEntry = currentLdap.GetLdapEntry(user, validatePassword);
+							LdapEntry? currentLdapEntry = await currentLdap.GetLdapEntry(user, validatePassword);
 
 							if (currentLdapEntry != null)
 							{
@@ -304,10 +304,10 @@ namespace FWO.Middleware.Server.Controllers
 				// if current Ldap has roles stored
 				if (currentLdap.HasRoleHandling())
 				{
-					ldapRoleRequests.Add(Task.Run(() =>
+					ldapRoleRequests.Add(Task.Run(async() =>
 					{
 						// Get roles from current Ldap
-						List<string> currentRoles = currentLdap.GetRoles(dnList);
+						List<string> currentRoles = await currentLdap.GetRoles(dnList);
 
 						lock (rolesLock)
 						{
@@ -371,7 +371,7 @@ namespace FWO.Middleware.Server.Controllers
 								viewAllDevices = false,
 								create = DateTime.Now
 							};
-							ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(AuthQueries.addTenant, Variables)).ReturnIds;
+							ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(AuthQueries.addTenant, Variables)).ReturnIds;
 							if (returnIds != null)
 							{
 								tenant.Id = returnIds[0].NewId;
@@ -391,9 +391,21 @@ namespace FWO.Middleware.Server.Controllers
 					}
 				}
 			}
-			await tenant.AddDevices(apiConnection);
+			await AddDevices(apiConnection, tenant);
 
 			return tenant;
 		}
+
+		// the following method adds device visibility information to a tenant (fetched from API)
+        private async Task AddDevices(ApiConnection conn, Tenant tenant)
+        {
+            var tenIdObj = new { tenantId = tenant.Id };
+
+            Device[] deviceIds = await conn.SendQueryAsync<Device[]>(AuthQueries.getVisibleDeviceIdsPerTenant, tenIdObj, "getVisibleDeviceIdsPerTenant");
+            tenant.VisibleGatewayIds = Array.ConvertAll(deviceIds, device => device.Id);
+
+            Management[] managementIds = await conn.SendQueryAsync<Management[]>(AuthQueries.getVisibleManagementIdsPerTenant, tenIdObj, "getVisibleManagementIdsPerTenant");
+            tenant.VisibleManagementIds = Array.ConvertAll(managementIds, management => management.Id);
+        }
 	}
 }

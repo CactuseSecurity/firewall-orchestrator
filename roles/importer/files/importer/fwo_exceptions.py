@@ -21,7 +21,7 @@ class SecretDecryptionFailed(Exception):
         super().__init__(self.message)
 
 class FwoApiLoginFailed(Exception):
-    """Raised when login to FWO API failed"""
+    """Raised when login to FWO API fails"""
 
     def __init__(self, message="Login to FWO API failed"):
         self.message = message
@@ -31,6 +31,13 @@ class FwoApiFailedLockImport(Exception):
     """Raised when unable to lock import (import running?)"""
 
     def __init__(self, message="Locking import failed - already running?"):
+        self.message = message
+        super().__init__(self.message)
+
+class FwoApiWriteError(Exception):
+    """Raised when an FWO API mutation fails"""
+
+    def __init__(self, message="FWO API mutation failed"):
         self.message = message
         super().__init__(self.message)
 
@@ -62,7 +69,6 @@ class ConfigFileNotFound(Exception):
         self.message = message
         super().__init__(self.message)
 
-
 class ImportRecursionLimitReached(Exception):
     """Raised when recursion of function inimport process reaches max allowed recursion limit"""
 
@@ -83,4 +89,9 @@ class FwoImporterError(Exception):
 class RollbackNecessary(Exception):
     """Custom exception to signal a failed import attempt which needs a rollback."""
     def __init__(self, message="Rollback required."):
+        super().__init__(message)
+
+class RollbackError(Exception):
+    """Custom exception to signal a failed rollback attempt."""
+    def __init__(self, message="Rollback failed."):
         super().__init__(message)

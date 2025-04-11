@@ -62,7 +62,7 @@ namespace FWO.Tufin.SecureChange
 			request.AddHeader("Content-Type", "application/json");
 			request.AddHeader("Authorization", TicketSystem.Authorization);
 			request.AddHeader("Accept", "application/json");
-			RestClientOptions restClientOptions = new();
+			RestClientOptions restClientOptions = new RestClientOptions() { Timeout = TimeSpan.FromMinutes(30) };
 			restClientOptions.RemoteCertificateValidationCallback += (_, _, _, _) => true;
 			restClientOptions.BaseUrl = new Uri(TicketSystem.Url);
 			RestClient restClient = new(restClientOptions, null, ConfigureRestClientSerialization);

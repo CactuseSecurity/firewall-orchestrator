@@ -1,11 +1,12 @@
+@using FWO.Data.Modelling
 @using FWO.Report
 @using FWO.Report.Filter
 @using FWO.Report.Filter.FilterTypes
 @using FWO.Report.Filter.Exceptions
-@using FWO.Data.Modelling
 @using FWO.Ui.Data
 @using FWO.Ui.Pages.Reporting.Reports
 @using System.Diagnostics
+@using System.Text.Json
 
 @page "/report/generation/{appId?}"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Auditor}, {Roles.Modeller}")]
@@ -21,7 +22,7 @@
         <div class="p-3 mt-2">
             <h5 class="text-left">@(userConfig.GetText("report_type"))</h5>
             <Dropdown ElementType="ReportType" ElementToString="@(r => userConfig.GetText(r.ToString()))" SelectedElement="actReportFilters.ReportType"
-                SelectedElementChanged="ReportTypeChanged" Elements="CustomSortReportType(Enum.GetValues(typeof(ReportType)).Cast<ReportType>().ToList())">
+                SelectedElementChanged="ReportTypeChanged" Elements="availableReportTypes">
                 <ElementTemplate Context="reportType">
                     @userConfig.GetText(reportType.ToString())
                 </ElementTemplate>
@@ -187,6 +188,7 @@
     private List<Rule> selectedItemsRuleReportTable = [];
     private List<RuleChange> selectedItemsChangeReportTable = [];
 
+    private List<ReportType> availableReportTypes { get; set; } = [];
     private ReportFilters actReportFilters = new();
     private bool InitDone = false;
     private int? injectedAppId = null;
@@ -230,6 +232,9 @@
     {
         try
         {
+            availableReportTypes = CustomSortReportType(
+                JsonSerializer.Deserialize<List<ReportType>>(string.IsNullOrEmpty(userConfig.AvailableReportTypes) ? "[]" : userConfig.AvailableReportTypes)
+                ?? throw new Exception("Config data could not be parsed."));
             SetProperRoleForReport();
             actReportFilters.DeviceFilter.Managements = await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement);
             if(int.TryParse(AppId, out int appId))
@@ -501,8 +506,7 @@
         };
         foreach (var reportType in orderedReportTypeList)
         {
-            ReportType? foundType = ListIn.Find(x => x == reportType);
-            if (foundType != null)
+            if (ListIn.Contains(reportType))
             {
                 if(showRuleRelatedReports && reportType.IsDeviceRelatedReport() || showModellingReports && reportType.IsModellingReport())
                 {

@@ -2417,6 +2417,9 @@ INSERT INTO txt VALUES ('appserver_import',     'German',   'App server import')
 INSERT INTO txt VALUES ('appserver_import',     'English',  'App server import');
 INSERT INTO txt VALUES ('select_file',          'German',   'Datei ausw&auml;hlen');
 INSERT INTO txt VALUES ('select_file',          'English',  'Select file');
+INSERT INTO txt VALUES ('availableReportTypes', 'German', 	'Verf&uuml;gbare Reporttypen');
+INSERT INTO txt VALUES ('availableReportTypes', 'English', 	'Available Report Types');
+
 
 -- monitoring
 INSERT INTO txt VALUES ('open_alerts',          'German', 	'Offene Alarme');
@@ -2834,6 +2837,8 @@ INSERT INTO txt VALUES ('U5321', 'German',  'Anzeige und &Uuml;berschreiben alle
 INSERT INTO txt VALUES ('U5321', 'English', 'Show and overwrite all shown texts');
 INSERT INTO txt VALUES ('U5322', 'German',  'Verwaltung der Voreinstellungen f&uuml;r die Netzwerk-Modellierung');
 INSERT INTO txt VALUES ('U5322', 'English', 'Administration of default settings for network modelling');
+INSERT INTO txt VALUES ('U5323', 'German',  'Verwaltung der Voreinstellungen f&uuml;r das Reporting');
+INSERT INTO txt VALUES ('U5323', 'English', 'Administration of default settings for reporting');
 
 INSERT INTO txt VALUES ('U5401', 'German',  'Passwort ge&auml;ndert.');
 INSERT INTO txt VALUES ('U5401', 'English', 'Password changed.');
@@ -4836,6 +4841,8 @@ INSERT INTO txt VALUES ('H5453', 'German',  'Max erlaubtes Importintervall (in S
 INSERT INTO txt VALUES ('H5453', 'English', 'Max import interval (in hours): Upper limit for the accepted interval between two imports in the daily check.');
 INSERT INTO txt VALUES ('H5454', 'German',  'Regel-Eigent&uuml;merschaftsmodus: (Gemischt/Exklusiv) Wird z. Zt. nicht genutzt.');
 INSERT INTO txt VALUES ('H5454', 'English', 'Rule Ownership Mode: (Mixed/Exclusive) Currently not in use.');
+INSERT INTO txt VALUES ('H5455', 'German',  'Verf&uuml;gbare Reporttypen: Es kann ausgew&auml;hlt werden, welche der technisch vorhandenen Reporttypen zur Verwendung in der Oberfl&auml;che angeboten werden sollen. Die Liste der angebotenen Reporttypen beim Nutzer kann je nach Rolle weiter verk&uuml;rzt sein.');
+INSERT INTO txt VALUES ('H5455', 'English', 'Available Report Types: It can be selected, which of the technically available report types should be offered for use in the UI. The List of offered report types to the user can be shorter depending on the respective role.');
 
 INSERT INTO txt VALUES ('H5461', 'German',  'Jeder Nutzer kann seine eigene bevorzugte Sprache f&uuml;r die Anwendung einstellen.<br>
     Alle Texte werden in dieser Sprache dargestellt, soweit verf&uuml;gbar. Wenn nicht, wird die Standardsprache verwendet. Wenn der Text auch dort nicht verf&uuml;gbar ist, wird Englisch genutzt.

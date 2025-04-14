@@ -49,6 +49,9 @@ namespace FWO.Config.Api.Data
 		[JsonProperty("creationTolerance"), JsonPropertyName("creationTolerance")]
 		public int CreationTolerance { get; set; } = 90;
 
+		[JsonProperty("availableReportTypes"), JsonPropertyName("availableReportTypes")]
+		public string AvailableReportTypes { get; set; } = "[]";
+
 		[JsonProperty("dataRetentionTime"), JsonPropertyName("dataRetentionTime")]
 		public int DataRetentionTime { get; set; } = 731;
 

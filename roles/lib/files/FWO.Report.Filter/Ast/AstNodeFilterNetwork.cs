@@ -1,4 +1,4 @@
-﻿using NetTools;
+using NetTools;
 using System.Net;
 using FWO.Logging;
 using FWO.Basics;
@@ -131,24 +131,33 @@ namespace FWO.Report.Filter.Ast
             string ipFilterString =
                     $@" obj_ip_end: {{ _gte: ${QueryVarNameFirst1} }} 
                         obj_ip: {{ _lte: ${QueryVarNameLast2} }}";
+            string ipFilterStringNegated =
+                    $@" obj_ip_end: {{ _lt: ${QueryVarNameFirst1} }} 
+                        obj_ip: {{ _gt: ${QueryVarNameLast2} }}";
             query.RuleWhereStatement +=
-                $@" {locationTable}: 
-                        {{ object: 
-                            {{ objgrp_flats: 
-                                {{ objectByObjgrpFlatMemberId:
-                                    {{ {ipFilterString} }}
-                                }}
-                            }}
-                        }}";
+                $@" _or: [
+                      {{
+                        rule_{location}_neg: {{_eq: false}},
+                        {locationTable}: {{
+                        _or: [{{_and: [{{negated: {{_eq: false}}}}, {{object: {{objgrp_flats: {{objectByObjgrpFlatMemberId: {{ {ipFilterString} }}}}}}}}]}},
+                              {{_and: [{{negated: {{_eq: true}}}}, {{object: {{objgrp_flats: {{objectByObjgrpFlatMemberId: {{ {ipFilterStringNegated} }}}}}}}}]}}
+                        ]}}
+                      }},
+                      {{
+                        rule_{location}_neg: {{_eq: true}},
+                        {locationTable}: {{
+                        _or: [{{_and: [{{negated: {{_eq: false}}}}, {{object: {{objgrp_flats: {{objectByObjgrpFlatMemberId: {{ {ipFilterStringNegated} }}}}}}}}]}},
+                              {{_and: [{{negated: {{_eq: true}}}}, {{object: {{objgrp_flats: {{objectByObjgrpFlatMemberId: {{ {ipFilterString} }}}}}}}}]}}
+                        ]}}
+                      }},
+                    ]
+                ";
             query.NwObjWhereStatement +=
-                $@" {locationTable}: 
-                        {{ object: 
-                            {{ objgrp_flats: 
-                                {{ objectByObjgrpFlatMemberId:
-                                    {{ {ipFilterString} }}
-                                }}
-                            }}
-                        }}";
+                $@" {locationTable}: {{
+                    _or: [{{_and: [{{negated: {{_eq: false}}}}, {{object: {{objgrp_flats: {{objectByObjgrpFlatMemberId: {{ {ipFilterString} }}}}}}}}]}},
+                          {{_and: [{{negated: {{_eq: true}}}}, {{object: {{objgrp_flats: {{objectByObjgrpFlatMemberId: {{ {ipFilterStringNegated} }}}}}}}}]}}
+                    ]
+                }}";
             ipFilterString = $@" ip_end: {{ _gte: ${QueryVarNameFirst1} }} ip: {{ _lte: ${QueryVarNameLast2} }}";
             int conField = location == "src" ? 1 : 2;
             query.ConnectionWhereStatement += $"nwobject_connections: {{connection_field: {{ _eq: {conField} }}, owner_network: {{ {ipFilterString} }} }}";

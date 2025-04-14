@@ -3,9 +3,9 @@ from models.management_details import ManagementDetails
 
 class ManagementDetailsController(ManagementDetails):
 
-    def __init__(self, hostname: str, id: int, uid: str, importDisabled: bool, devices: Dict, 
-                 importerHostname: str, name: str, deviceTypeName: str, deviceTypeVersion: str, 
-                 port: int = 443, secret: str = '', importUser: str = '', isSuperManager: bool = False, subManagerIds: List[int] = []):
+    def __init__(self, hostname: str, id: int, uid: str, importDisabled: bool, devices: Dict, importerHostname: str, name: str,
+                 deviceTypeName: str, deviceTypeVersion: str,  port: int = 443, secret: str = '', importUser: str = '',
+                 isSuperManager: bool = False, subManagerIds: List[int] = [], isTopLevelManager: bool = True):
         self.Hostname = hostname
         self.Id = id
         self.Uid = uid
@@ -20,6 +20,7 @@ class ManagementDetailsController(ManagementDetails):
         self.Secret = secret
         self.IsSuperManager = isSuperManager
         self.SubManagerIds = subManagerIds
+        self.IsTopLevelManager = isTopLevelManager
 
     @classmethod
     def fromJson(cls, json_dict: Dict):

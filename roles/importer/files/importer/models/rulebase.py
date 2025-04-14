@@ -9,8 +9,8 @@ class Rulebase(BaseModel):
     name: str
     mgm_uid: str
     is_global: bool = False
+    # UID -> Rule
     Rules: dict[str, RuleNormalized] = {}
-
 
 # RulebaseForImport is the model for a rule to be imported into the DB (containing IDs)
 """

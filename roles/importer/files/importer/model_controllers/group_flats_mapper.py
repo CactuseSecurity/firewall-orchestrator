@@ -48,31 +48,33 @@ class GroupFlatsMapper:
         """
         all_members = set()
         for uid in uids:
-            members = self.network_object_flats.get(uid)
-            if members is None:
-                members = self.flat_nwobj_members_recursive(uid)
-                if members is None:
-                    continue
-                self.network_object_flats[uid] = members
-                self.logger.debug(f"Added {len(members)} members to network object flats for group {uid}")
-            all_members.update(members)
+            members = self.flat_nwobj_members_recursive(uid)
+            if members is not None:
+                all_members.update(members)
         return list(all_members)
     
-    def flat_nwobj_members_recursive(self, groupUid: str, flatMembers: set = None, recursionLevel: int = 0):
-        if flatMembers is None:
-            flatMembers = set()
+    def flat_nwobj_members_recursive(self, groupUid: str, recursionLevel: int = 0):
         if recursionLevel > MAX_RECURSION_LEVEL:
             self.logger.warning(f"recursion level exceeded for group {groupUid}")
-            return flatMembers
-        obj = self.normalized_config.network_objects.get(groupUid, None)
-        if obj is None:
+            return None
+        if groupUid in self.network_object_flats:
+            return self.network_object_flats[groupUid]
+        nwobj = self.normalized_config.network_objects.get(groupUid, None)
+        if nwobj is None:
             self.logger.error(f"object with uid {groupUid} not found in network objects of config")
-            return
-        if obj.obj_member_refs is not None and obj.obj_member_refs != '':
-            for memberUid in obj.obj_member_refs.split(fwo_const.list_delimiter):
-                flatMembers.add(memberUid)
-                self.flat_nwobj_members_recursive(memberUid, flatMembers, recursionLevel + 1)
-        return flatMembers
+            return None
+        if nwobj.obj_member_refs is None or nwobj.obj_member_refs == '':
+            if recursionLevel == 0:
+                return None # group has no members / not a group
+            return [groupUid] # leaf node, return itself
+        members = set()
+        for memberUid in nwobj.obj_member_refs.split(fwo_const.list_delimiter):
+            flatMembers = self.flat_nwobj_members_recursive(memberUid, recursionLevel + 1)
+            if flatMembers is None:
+                continue
+            members.update(flatMembers)
+        self.network_object_flats[groupUid] = members
+        return members
 
     def get_service_object_flats(self, uids: List[str]) -> List[str]:
         """
@@ -83,31 +85,33 @@ class GroupFlatsMapper:
         """
         all_members = set()
         for uid in uids:
-            members = self.service_object_flats.get(uid)
-            if members is None:
-                members = self.flat_svcobj_members_recursive(uid)
-                if members is None:
-                    continue
-                self.service_object_flats[uid] = members
-                self.logger.debug(f"Added {len(members)} members to service object flats for group {uid}")
-            all_members.update(members)
+            members = self.flat_svcobj_members_recursive(uid)
+            if members is not None:
+                all_members.update(members)
         return list(all_members)
 
-    def flat_svcobj_members_recursive(self, groupUid: str, flatMembers: set = None, recursionLevel: int = 0):
-        if flatMembers is None:
-            flatMembers = set()
+    def flat_svcobj_members_recursive(self, groupUid: str, recursionLevel: int = 0):
         if recursionLevel > MAX_RECURSION_LEVEL:
             self.logger.warning(f"recursion level exceeded for group {groupUid}")
-            return flatMembers
-        svc = self.normalized_config.service_objects.get(groupUid, None)
-        if svc is None:
+            return None
+        if groupUid in self.service_object_flats:
+            return self.service_object_flats[groupUid]
+        svcobj = self.normalized_config.service_objects.get(groupUid, None)
+        if svcobj is None:
             self.logger.error(f"object with uid {groupUid} not found in service objects of config")
-            return
-        if svc.svc_member_refs is not None and svc.svc_member_refs != '':
-            for memberUid in svc.svc_member_refs.split(fwo_const.list_delimiter):
-                flatMembers.add(memberUid)
-                self.flat_svcobj_members_recursive(memberUid, flatMembers, recursionLevel + 1)
-        return flatMembers
+            return None
+        if svcobj.svc_member_refs is None or svcobj.svc_member_refs == '':
+            if recursionLevel == 0:
+                return None # group has no members / not a group
+            return [groupUid] # leaf node, return itself
+        members = set()
+        for memberUid in svcobj.svc_member_refs.split(fwo_const.list_delimiter):
+            flatMembers = self.flat_svcobj_members_recursive(memberUid, recursionLevel + 1)
+            if flatMembers is None:
+                continue
+            members.update(flatMembers)
+        self.service_object_flats[groupUid] = members
+        return members
     
     def get_user_flats(self, uids: List[str]) -> List[str]:
         """
@@ -128,18 +132,25 @@ class GroupFlatsMapper:
             all_members.update(members)
         return list(all_members)
     
-    def flat_user_members_recursive(self, groupUid: str, flatMembers: set = None, recursionLevel: int = 0):
-        if flatMembers is None:
-            flatMembers = set()
+    def flat_user_members_recursive(self, groupUid: str, recursionLevel: int = 0):
         if recursionLevel > MAX_RECURSION_LEVEL:
             self.logger.warning(f"recursion level exceeded for group {groupUid}")
-            return flatMembers
+            return None
+        if groupUid in self.user_flats:
+            return self.user_flats[groupUid]
         user = self.normalized_config.users.get(groupUid, None)
         if user is None:
             self.logger.error(f"object with uid {groupUid} not found in users of config")
-            return
-        if user['user_member_refs'] is not None and user['user_member_refs'] != '': #TODO: adjust when/if users are refactored into objects
-            for memberUid in user['user_member_refs'].split(fwo_const.list_delimiter):
-                flatMembers.add(memberUid)
-                self.flat_user_members_recursive(memberUid, flatMembers, recursionLevel + 1)
-        return flatMembers
+            return None
+        if user['user_member_refs'] is None or user['user_member_refs'] == '':
+            if recursionLevel == 0:
+                return None # group has no members / not a group
+            return [groupUid] # leaf node, return itself
+        members = set()
+        for memberUid in user['user_member_refs'].split(fwo_const.list_delimiter): #TODO: adjust when/if users are refactored into objects
+            flatMembers = self.flat_user_members_recursive(memberUid, recursionLevel + 1)
+            if flatMembers is None:
+                continue
+            members.update(flatMembers)
+        self.user_flats[groupUid] = members
+        return members

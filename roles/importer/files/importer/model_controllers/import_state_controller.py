@@ -16,8 +16,8 @@ from model_controllers.import_statistics_controller import ImportStatisticsContr
 """Used for storing state during import process per management"""
 class ImportStateController(ImportState):
 
-    def __init__(self, debugLevel, configChangedSinceLastImport, fwoConfig, mgmDetails, jwt, force, 
-                 version=8, isFullImport=False, isInitialImport=False, isClearingImport=False, verifyCerts=False, LastSuccessfulImport=None):
+    def __init__(self, debugLevel, configChangedSinceLastImport, fwoConfig, mgmDetails, jwt, force, version=8, isFullImport=False,
+                 isInitialImport=False, isClearingImport=False, verifyCerts=False, LastSuccessfulImport=None, isTopLevelManager=False):
         self.Stats = ImportStatisticsController()
         self.StartTime = int(time.time())
         self.DebugLevel = debugLevel

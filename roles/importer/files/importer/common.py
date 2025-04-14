@@ -88,31 +88,7 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
                         IsSuperManager=importState.MgmDetails.IsSuperManager,
                         SubManagerIds=importState.MgmDetails.SubManagerIds,
                         Configs=[]
-                    ))
-                if len(importState.MgmDetails.SubManagerIds)>0:
-                    # Read config
-                    fwoConfig = FworchConfigController.fromJson(readConfig(fwo_config_filename))
-                    fwo_api_base_url = fwoConfig['fwo_api_base_url']
-                    # Authenticate to get JWT
-                    try:
-                        jwt = fwo_api.login(importer_user_name, fwoConfig.ImporterPassword, fwoConfig.FwoUserMgmtApiUri)
-                    except Exception as e:
-                        logger.error(str(e))
-                        raise             
-                    # Reset submanagement
-                    for subManagerId in importState.MgmDetails.SubManagerIds:
-                        # Fetch sub management details
-                        mgm_details_raw = fwo_api.get_mgm_details(fwo_api_base_url, jwt, {"mgmId": subManagerId})
-                        mgm_details = ManagementDetailsController.fromJson(mgm_details_raw)
-                        configNormalized.addManager(
-                            manager=FwConfigManager(
-                                ManagerUid=calcManagerUidHash(mgm_details_raw),
-                                ManagerName=mgm_details.Name,
-                                IsSuperManager=mgm_details.IsSuperManager,
-                                SubManagerIds=mgm_details.SubManagerIds,
-                                Configs=[]
-                            )
-                        )
+                    ))           
                 # Reset objects
                 for management in configNormalized.ManagerSet:
                     management.Configs.append(
@@ -134,9 +110,9 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
                     importFromFile(importState, in_file, gateways)
             else:
                 ### getting config from firewall manager API ######
+                time_get_config = int(time.time()) - importState.StartTime
                 config_changed_since_last_import, configNormalized = get_config_from_api(importState, {})
-            time_get_config = int(time.time()) - importState.StartTime
-            logger.debug("import_management - getting config total duration " + str(int(time.time()) - importState.StartTime) + "s")
+                logger.debug("import_management - getting config total duration " + str(int(time.time()) - importState.StartTime) + "s")
 
             if config_changed_since_last_import or importState.ForceImport:
                 # for config_chunk in split_config(importState, configNormalized):
@@ -244,17 +220,19 @@ def importFromFile(importState: ImportStateController, fileName: str = "", gatew
 
     return config_changed_since_last_import, configNormalized
 
+def get_module(importState: ImportStateController):
+    logger = getFwoLogger(debug_level=importState.DebugLevel)    
+    try: # pick product-specific importer:
+        pkg_name = importState.MgmDetails.DeviceTypeName.lower().replace(' ', '') + importState.MgmDetails.DeviceTypeVersion.replace('MDS', '').replace(' ', '')
+        return importlib.import_module("." + fw_module_name, pkg_name)
+    except Exception:
+        logger.exception("import_management - error while loading product specific fwcommon module", traceback.format_exc())        
+        raise    
 
 def get_config_from_api(importState: ImportStateController, configNative, import_tmp_path=import_tmp_path, limit=150) -> FwConfigManagerList:
     logger = getFwoLogger(debug_level=importState.DebugLevel)
-
-    try: # pick product-specific importer:
-        pkg_name = importState.MgmDetails.DeviceTypeName.lower().replace(' ', '') + importState.MgmDetails.DeviceTypeVersion.replace('MDS', '').replace(' ', '')
-        fw_module = importlib.import_module("." + fw_module_name, pkg_name)
-    except Exception:
-        logger.exception("import_management - error while loading product specific fwcommon module", traceback.format_exc())        
-        raise
-    
+    # Get product-specific module
+    fw_module = get_module(importState)
     # check for changes from product-specific FW API
     config_changed_since_last_import = importState.ImportFileName != None or \
         fw_module.has_config_changed(configNative, importState, force=importState.ForceImport)
@@ -285,7 +263,6 @@ def get_config_from_api(importState: ImportStateController, configNative, import
     logger.debug("import_management: get_config completed (including normalization), duration: " + str(int(time.time()) - importState.StartTime) + "s") 
 
     return config_changed_since_last_import, configNormalized
-
 
 def writeNativeConfigToFile(importState, configNative):
     if importState.DebugLevel>6:

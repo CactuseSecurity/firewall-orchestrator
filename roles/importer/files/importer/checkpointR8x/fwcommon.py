@@ -1,7 +1,10 @@
 import sys
 import json
+from typing import List
 from common import importer_base_dir
 from fwo_log import getFwoLogger
+from models.rulebase import Rulebase
+from models.rulebase_link import RulebaseLink, RulebaseLinkUidBased
 sys.path.append(importer_base_dir + '/checkpointR8x')
 import time
 import signal
@@ -183,23 +186,6 @@ def getRules (nativeConfig: dict, importState: ImportStateController) -> int:
         'show-hits': cp_const.with_hits 
     }
 
-    # handle super manager case
-    if importState.FullMgmDetails['isSuperManager']:
-        # get all global rulebases (for super manager) - only one layer per rulebase
-        for policy in policyStructure:
-            for accessLayer in policy['access-layers']:
-                show_params_rules.update({'name': accessLayer['name']})
-                logger.debug ( "getting layer: " + show_params_rules['name'] )
-                cp_getter.getRulebases (cpManagerApiBaseUrl, 
-                                        sid, 
-                                        show_params_rules, 
-                                        rulebaseName=accessLayer['name'],
-                                        access_type='access',
-                                        nativeConfig=nativeConfig)
-                # add rulebase to native config
-                nativeConfig['rulebases'].append(accessLayer)
-        # get all global objects (for super manager)
-
     # read all rulebases: handle per device details
     for device in importState.FullMgmDetails['devices']:
         if 'name' in device:
@@ -350,7 +336,7 @@ def get_config(nativeConfig: json, importState: ImportStateController) -> tuple[
     logger = getFwoLogger()
     normalizedConfig = fwo_const.emptyNormalizedFwConfigJsonDict
     logger.debug ( "starting checkpointR8x/get_config" )
-
+      
     if nativeConfig == {}:   # no native config was passed in, so getting it from FW-Manager
         parsing_config_only = False
     else:
@@ -369,7 +355,7 @@ def get_config(nativeConfig: json, importState: ImportStateController) -> tuple[
         starttimeTemp = int(time.time())
         logger.debug ( "checkpointR8x/get_config/getting objects ...")
 
-        result_get_objects = get_objects (nativeConfig, importState.FullMgmDetails, cpManagerApiBaseUrl, sid, force=importState.ForceImport, limit=str(importState.FwoConfig.ApiFetchSize), details_level=cp_const.details_level_objects, test_version='off')
+        result_get_objects = get_objects (nativeConfig, cpManagerApiBaseUrl, sid, limit=str(importState.FwoConfig.ApiFetchSize), details_level=cp_const.details_level_objects)
         if result_get_objects>0:
             logger.warning ( "checkpointR8x/get_config/error while gettings objects")
             return result_get_objects
@@ -436,7 +422,7 @@ def prepare_get_vars(mgm_details):
     return domain, base_url
 
 
-def login_cp(mgm_details, domain, ssl_verification=True):
+def login_cp(mgm_details, domain):
     try: # top level dict start, sid contains the domain information, so only sending domain during login
         login_result = cp_getter.login(mgm_details['import_credential']['user'], mgm_details['import_credential']['secret'], mgm_details['hostname'], str(mgm_details['port']), domain)
         return login_result
@@ -474,19 +460,17 @@ def addRulebaseIfNew(rulebaseToAdd, url, sid, packageName, rulebaseNamesCollecte
         return cp_getter.get_layer_from_api_as_dict (url, sid, show_params_rules, layerName=rulebaseToAdd, nativeConfig=nativeConfig)
     
 
-def get_objects(config_json, mgm_details, v_url, sid, force=False, config_filename=None,
-    limit=150, details_level=cp_const.details_level_objects, test_version='off', debug_level=0, ssl_verification=True):
-
+def get_objects(config_json, api_url, sid, config_filename=None, limit=150, details_level=cp_const.details_level_objects, debug_level=0):
     logger = getFwoLogger()
 
     config_json["object_tables"] = []
     show_params_objs = {'limit':limit,'details-level': details_level }
 
     # getting Original (NAT) object (both for networks and services)
-    origObj = cp_getter.getObjectDetailsFromApi(cp_const.original_obj_uid, sid=sid, apiurl=v_url, debug_level=debug_level)['object_chunks'][0]
-    anyObj = cp_getter.getObjectDetailsFromApi(cp_const.any_obj_uid, sid=sid, apiurl=v_url, debug_level=debug_level)['object_chunks'][0]
-    noneObj = cp_getter.getObjectDetailsFromApi(cp_const.none_obj_uid, sid=sid, apiurl=v_url, debug_level=debug_level)['object_chunks'][0]
-    internetObj = cp_getter.getObjectDetailsFromApi(cp_const.internet_obj_uid, sid=sid, apiurl=v_url, debug_level=debug_level)['object_chunks'][0]
+    origObj = cp_getter.getObjectDetailsFromApi(cp_const.original_obj_uid, sid=sid, apiurl=api_url, debug_level=debug_level)['object_chunks'][0]
+    anyObj = cp_getter.getObjectDetailsFromApi(cp_const.any_obj_uid, sid=sid, apiurl=api_url, debug_level=debug_level)['object_chunks'][0]
+    noneObj = cp_getter.getObjectDetailsFromApi(cp_const.none_obj_uid, sid=sid, apiurl=api_url, debug_level=debug_level)['object_chunks'][0]
+    internetObj = cp_getter.getObjectDetailsFromApi(cp_const.internet_obj_uid, sid=sid, apiurl=api_url, debug_level=debug_level)['object_chunks'][0]
 
     for obj_type in cp_const.api_obj_types:
         if fwo_globals.shutdown_requested:
@@ -503,10 +487,9 @@ def get_objects(config_json, mgm_details, v_url, sid, force=False, config_filena
             logger.debug ( "obj_type: "+ obj_type )
         while (current<total) :
             show_params_objs['offset']=current
-            objects = cp_getter.cp_api_call(v_url, show_cmd, show_params_objs, sid)
+            objects = cp_getter.cp_api_call(api_url, show_cmd, show_params_objs, sid)
             if fwo_globals.shutdown_requested:
                 raise ImportInterruption("Shutdown requested during object retrieval.")
-
             object_table["object_chunks"].append(objects)
             if 'total' in objects  and 'to' in objects:
                 total=objects['total']
@@ -535,8 +518,7 @@ def get_objects(config_json, mgm_details, v_url, sid, force=False, config_filena
     if config_filename != None and len(config_filename)>1:
         with open(config_filename, "w") as configfile_json:
             configfile_json.write(json.dumps(config_json))
-    return 0
-
+    return 0               
 
 # def parse_users_from_rulebases (full_config, rulebase, users, config2import, current_import_id):
 #     if 'users' not in full_config:

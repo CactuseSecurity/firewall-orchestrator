@@ -90,7 +90,6 @@ def normalize_rulebases_top_level (full_config, current_import_id, config2import
         rule_num = parse_rulebase(
             full_config['rulebases'][rb_id], target_rulebase, full_config['rulebases'][rb_id]['layername'], 
             current_import_id, rule_num, section_header_uids, parent_uid, config2import)
-        # now parse the nat rulebase
 
         # parse nat rules
         if len(full_config['nat_rulebases'])>0:

@@ -405,7 +405,7 @@ namespace FWO.Middleware.Server
 			{
 				foreach (var modeller in incomingApp.Modellers)
 				{
-					if (existingMembers.FirstOrDefault(x => x.Equals(modeller, StringComparison.CurrentCultureIgnoreCase)) == null)
+					if (existingMembers.FirstOrDefault(x => x.Equals(modeller, StringComparison.OrdinalIgnoreCase)) == null)
 					{
                         await internalLdap.AddUserToEntry(modeller, groupDn);
 					}
@@ -415,7 +415,7 @@ namespace FWO.Middleware.Server
 			{
 				foreach (var modellerGrp in incomingApp.ModellerGroups)
 				{
-					if (existingMembers.FirstOrDefault(x => x.Equals(modellerGrp, StringComparison.CurrentCultureIgnoreCase)) == null)
+					if (existingMembers.FirstOrDefault(x => x.Equals(modellerGrp, StringComparison.OrdinalIgnoreCase)) == null)
 					{
 						await internalLdap.AddUserToEntry(modellerGrp, groupDn);
 					}
@@ -423,8 +423,8 @@ namespace FWO.Middleware.Server
 			}
 			foreach (var member in existingMembers)
 			{
-				if ((incomingApp.Modellers == null || incomingApp.Modellers.FirstOrDefault(x => x.Equals(member, StringComparison.CurrentCultureIgnoreCase)) == null)
-					&& (incomingApp.ModellerGroups == null || incomingApp.ModellerGroups.FirstOrDefault(x => x.Equals(member, StringComparison.CurrentCultureIgnoreCase)) == null))
+				if ((incomingApp.Modellers == null || incomingApp.Modellers.FirstOrDefault(x => x.Equals(member, StringComparison.OrdinalIgnoreCase)) == null)
+					&& (incomingApp.ModellerGroups == null || incomingApp.ModellerGroups.FirstOrDefault(x => x.Equals(member, StringComparison.OrdinalIgnoreCase)) == null))
 				{
 					await internalLdap.RemoveUserFromEntry(member, groupDn);
 				}

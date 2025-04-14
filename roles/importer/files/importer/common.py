@@ -220,15 +220,19 @@ def importFromFile(importState: ImportStateController, fileName: str = "", gatew
 
     return config_changed_since_last_import, configNormalized
 
-
 def get_module(importState: ImportStateController):
-    logger = getFwoLogger(debug_level=importState.DebugLevel)
+    logger = getFwoLogger(debug_level=importState.DebugLevel)    
     try: # pick product-specific importer:
         pkg_name = importState.MgmDetails.DeviceTypeName.lower().replace(' ', '') + importState.MgmDetails.DeviceTypeVersion.replace('MDS', '').replace(' ', '')
         return importlib.import_module("." + fw_module_name, pkg_name)
     except Exception:
         logger.exception("import_management - error while loading product specific fwcommon module", traceback.format_exc())        
         raise    
+
+def get_config_from_api(importState: ImportStateController, configNative, import_tmp_path=import_tmp_path, limit=150) -> FwConfigManagerList:
+    logger = getFwoLogger(debug_level=importState.DebugLevel)
+    # Get product-specific module
+    fw_module = get_module(importState)
     # check for changes from product-specific FW API
     config_changed_since_last_import = importState.ImportFileName != None or \
         fw_module.has_config_changed(configNative, importState, force=importState.ForceImport)

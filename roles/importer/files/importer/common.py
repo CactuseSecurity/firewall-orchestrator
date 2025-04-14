@@ -17,7 +17,7 @@ import fwo_api
 from fwo_log import getFwoLogger
 from fwo_const import fw_module_name, import_tmp_path
 import fwo_globals
-from fwo_exceptions import FwLoginFailed, ImportRecursionLimitReached, ImportInterruption, FwoImporterError
+import fwo_exceptions
 from fwo_base import stringIsUri, ConfigAction, ConfFormat
 import fwo_file_import
 from model_controllers.import_state_controller import ImportStateController
@@ -150,55 +150,54 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
                             if len(configChecker.checkConfigConsistency())==0:
                                 configImporter.importConfig()
                                 if importState.Stats.ErrorCount>0:
-                                    raise FwoImporterError("Import failed due to errors.")
+                                    raise fwo_exceptions.FwoImporterError("Import failed due to errors.")
                                 else:
                                     configImporter.storeLatestConfig()
                         except Exception:
                             importState.addError(str(traceback.format_exc()))
                             raise
                         fwo_api.update_hit_counter(importState, config)
-                # logger.debug(f"import duration without getting config: {str(int(time.time())-time_get_config-importState.StartTime)}s")
 
         if not clearManagementData and importState.DataRetentionDays<importState.DaysSinceLastFullImport:
             configImporter.deleteOldImports() # delete all imports of the current management before the last but one full import
-    except (FwLoginFailed) as e:
+    except (fwo_exceptions.FwLoginFailed) as e:
         fwo_api.delete_import(importState) # delete whole import
         importState.addError("Login to FW manager failed")
-    except (ImportRecursionLimitReached) as e:
+    except (fwo_exceptions.ImportRecursionLimitReached) as e:
         fwo_api.delete_import(importState) # delete whole import
         importState.addError("ImportRecursionLimitReached - aborting import")
-    except (KeyboardInterrupt, ImportInterruption) as e:
-        if fwo_globals.shutdown_requested:
-            logger.warning("Shutdown requested.")
-        else:
-            logger.error(e)
-        if 'configImporter' in locals():
-            FwConfigImportRollback(configImporter).rollbackCurrentImport()
-        else:
-            logger.info("No configImporter found, skipping rollback.")
-        fwo_api.delete_import(importState) # delete whole import
+    except (KeyboardInterrupt, fwo_exceptions.ImportInterruption) as e:
+        rollBackExceptionHandler(importState, configImporter=configImporter, exc=e, errorText="shutdown requested")
         raise
-    except (FwoImporterError) as e:
-        logger.error(f"import error encountered: {importState.getErrorString()}")
-        if 'configImporter' in locals():
-            FwConfigImportRollback(configImporter).rollbackCurrentImport()
-        else:
-            logger.info("No configImporter found, skipping rollback.")
-        fwo_api.delete_import(importState) # delete whole import
+    except (fwo_exceptions.FwoApiWriteError, fwo_exceptions.FwoImporterError) as e:
+        rollBackExceptionHandler(importState, configImporter=configImporter, exc=e, errorText="")
         raise
     except Exception as e:
-        importState.addError(str(traceback.format_exc()))
-        if 'configImporter' in locals():
-            FwConfigImportRollback(configImporter).rollbackCurrentImport()
-        else:
-            logger.info("No configImporter found, skipping rollback.")
-        fwo_api.delete_import(importState) # delete whole import
+        rollBackExceptionHandler(importState, configImporter=configImporter, exc=e)
         raise
     finally:
         fwo_api.complete_import(importState)
-        # fwo_globals.shutdown_requested = False
         return importState.Stats.ErrorCount
 
+def rollBackExceptionHandler(importState, configImporter=None, exc=None, errorText=""):
+    try:
+        logger = getFwoLogger()
+        if fwo_globals.shutdown_requested:
+            logger.warning("Shutdown requested.")
+        elif errorText!="":
+            logger.error(f"Exception: errorText")
+        else:
+            if exc is not None:
+                logger.error(f"Exception: {type(exc).__name__}")
+            else:
+                logger.error(f"Exception: no exception provided")
+        if 'configImporter' in locals() and configImporter is not None:
+            FwConfigImportRollback(configImporter).rollbackCurrentImport()
+        else:
+            logger.info("No configImporter found, skipping rollback.")
+        fwo_api.delete_import(importState) # delete whole import
+    except Exception as rollbackError:
+        logger.error(f"Error during rollback: {type(rollbackError).__name__} - {rollbackError}")
 
 def importFromFile(importState: ImportStateController, fileName: str = "", gateways: List[Gateway] = []):
 

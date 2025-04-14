@@ -7,6 +7,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import fwo_const
 import fwo_api
+import fwo_exceptions
 from models.rule import Rule
 from models.rule_metadatum import RuleMetadatum
 from models.rulebase import Rulebase, RulebaseForImport
@@ -20,6 +21,7 @@ from model_controllers.fwconfig_import_object import FwConfigImportObject
 from models.rule_from import RuleFrom
 from models.rule_to import RuleTo
 from models.rule_service import RuleService
+
 
 # this class is used for importing rules and rule refs into the FWO API
 class FwConfigImportRule(FwConfigImportBase):
@@ -266,16 +268,18 @@ class FwConfigImportRule(FwConfigImportBase):
         try:
             import_result = self.ImportDetails.call(addNewRuleNwObjAndSvcRefsMutation, queryVariables={ 'ruleFroms': ruleFroms, 'ruleTos': ruleTos, 'ruleServices':  ruleSvcs})
             if 'errors' in import_result:
-                logger.exception(f"fwo_api:importNwObject - error in addRuleNwObjRefs: {str(import_result['errors'])}")
                 errors = 1 
                 changes = 0
+                raise fwo_exceptions.FwoApiWriteError(f"failed to write new rules: {str(traceback.format_exc())}")
+                # logger.exception(f"fwo_api:importNwObject - error in addRuleNwObjRefs: {str(import_result['errors'])}")
             else:
                 errors = 0
                 changes = 1
         except Exception:
-            logger.exception(f"failed to write new rules: {str(traceback.format_exc())}")
+            # logger.exception(f"failed to write new rules: {str(traceback.format_exc())}")
             errors = 1 
             changes = 0
+            raise fwo_exceptions.FwoApiWriteError(f"failed to write new rules: {str(traceback.format_exc())}")
         
         return errors, changes
     
@@ -535,8 +539,7 @@ class FwConfigImportRule(FwConfigImportBase):
                     for rule_metadata_id in import_result['data']['insert_rule_metadata']['returning']:
                         newRuleMetaDataIds.append(rule_metadata_id)
         except Exception:
-            logger.exception(f"failed to write new rules: {str(traceback.format_exc())}")
-            return 1, 0, newRuleMetaDataIds
+            raise fwo_exceptions.FwoApiWriteError(f"failed to write new RulesMetadata: {str(traceback.format_exc())}")
         
         return errors, changes, newRuleIds
 
@@ -582,8 +585,7 @@ class FwConfigImportRule(FwConfigImportBase):
                     self.ImportDetails.SetRulebaseMap() 
                 return 0, changes, newRulebaseIds
         except Exception:
-            logger.exception(f"failed to write new rules: {str(traceback.format_exc())}")
-            return 1, 0, newRulebaseIds
+            raise fwo_exceptions.FwoApiWriteError(f"failed to write new rulebases: {str(traceback.format_exc())}")
         
     # as we cannot add the rules for all rulebases in one go (using a constraint from the rule table), 
     # we need to add them per rulebase separately
@@ -618,8 +620,7 @@ class FwConfigImportRule(FwConfigImportBase):
                                 newRuleIds.append(rule['rule_id'])
                             changes += changesForThisRulebase
                 except Exception:
-                    logger.exception(f"failed to insert new rules: {str(traceback.format_exc())}")
-                    errors += 1
+                    raise fwo_exceptions.FwoApiWriteError(f"failed to write new rulebases: {str(traceback.format_exc())}")
         return errors, changes, newRuleIds
 
     # adds only new rules to the database

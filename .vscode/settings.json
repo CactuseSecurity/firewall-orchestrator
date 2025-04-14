@@ -9,5 +9,14 @@
     },
     "files.associations": {
         "launch.template.json": "jsonc"
-    }
+    },
+    "python.testing.unittestArgs": [
+      "-v",
+      "-p",
+      "test_*.py",
+      "-s",
+      "./roles/importer/files/test"
+    ],
+    "python.testing.pytestEnabled": false,
+    "python.testing.unittestEnabled": true
 }

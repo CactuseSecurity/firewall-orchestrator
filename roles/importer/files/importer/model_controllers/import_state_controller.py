@@ -4,9 +4,9 @@ import requests, requests.packages
 
 from fwo_log import getFwoLogger
 from fwo_config import readConfig
-from fwo_const import fwo_config_filename, importer_user_name
+from fwo_const import fwo_config_filename, importer_user_name, graphqlQueryPath
 import fwo_api
-from fwo_exception import FwoApiLoginFailed
+from fwo_exceptions import FwoApiLoginFailed
 import fwo_globals
 from models.import_state import ImportState
 from model_controllers.fworch_config_controller import FworchConfigController
@@ -68,7 +68,7 @@ class ImportStateController(ImportState):
         if log and not self.Stats.ErrorAlreadyLogged:
             logger = getFwoLogger()
             logger.error(str(error))
-            self.Stats.ErrorAlreadyLogged = True
+            # self.Stats.ErrorAlreadyLogged = True
 
 
     @classmethod
@@ -170,6 +170,7 @@ class ImportStateController(ImportState):
         self.SetRuleMap()
         self.SetGatewayMap()
         self.SetLinkTypeMap()
+        self.SetColorRefMap()
 
     def SetActionMap(self):
         query = "query getActionMap { stm_action { action_name action_id allowed } }"
@@ -213,8 +214,23 @@ class ImportStateController(ImportState):
             map.update({track['name']: track['id']})
         self.LinkTypes = map
 
+    def SetColorRefMap(self):
+        getColorsQuery = fwo_api.getGraphqlCode([graphqlQueryPath + "stmTables/getColors.graphql"])
+
+        try:
+            result = self.call(query=getColorsQuery, queryVariables={})
+        except Exception:
+            logger = getFwoLogger()
+            logger.error(f'Error while getting stm_color')
+            return {}
+        
+        map = {}
+        for color in result['data']['stm_color']:
+            map.update({color['color_name']: color['color_id']})
+        self.ColorMap = map
+
     # limited to the current mgm_id
-    # creats a dict with key = rulebase.name and value = rulebase.id
+    # creates a dict with key = rulebase.name and value = rulebase.id
     def SetRulebaseMap(self):
 
         # TODO: maps need to be updated directly after data changes
@@ -299,3 +315,7 @@ class ImportStateController(ImportState):
 
     def lookupGatewayId(self, gwUid):
         return self.GatewayMap.get(gwUid, None)
+
+    def lookupColorId(self, colorStr):
+        return self.ColorMap.get(colorStr, None)
+    

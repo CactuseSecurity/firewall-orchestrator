@@ -7,7 +7,7 @@ import fwo_const
 import fwo_globals
 from fwo_const import list_delimiter, default_section_header_text
 from fwo_base import sanitize
-from fwo_exception import ImportRecursionLimitReached
+from fwo_exceptions import ImportRecursionLimitReached
 from models.rulebase import Rulebase
 from models.rule import RuleNormalized
 from models.rule_enforced_on_gateway import RuleEnforcedOnGatewayNormalized

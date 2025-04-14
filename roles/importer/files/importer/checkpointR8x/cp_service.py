@@ -84,7 +84,6 @@ def collect_svc_objects(object_table, svc_objects):
                         port = None
                         port_end = None
                     if not 'color' in obj:
-                        # print('warning: no color found for service ' + obj['name'])
                         obj['color'] = 'black'
                     if not 'comments' in obj or obj['comments'] == '':
                         obj['comments'] = None

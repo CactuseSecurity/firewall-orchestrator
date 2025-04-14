@@ -1,4 +1,4 @@
-
+shutdown_requested = False
 
 def setGlobalValues (
         verify_certs_in=None, 

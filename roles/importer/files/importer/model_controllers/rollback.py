@@ -24,8 +24,7 @@ class FwConfigImportRollback(FwConfigImport):
 
     def rollbackCurrentImport(self) -> None:
         logger = getFwoLogger()
-        fileName = f"{fwo_const.graphqlQueryPath}import/rollback.graphql"
-        rollbackMutation = getGraphqlCode([fileName])
+        rollbackMutation = getGraphqlCode([f"{fwo_const.graphqlQueryPath}import/rollback.graphql"])
         try:
             queryVariables = {
                 'importId': self.ImportDetails.ImportId

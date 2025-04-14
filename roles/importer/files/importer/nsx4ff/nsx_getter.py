@@ -6,7 +6,7 @@ import requests.packages
 import requests
 import xmltodict, json
 import fwo_globals
-from fwo_exception import FwLoginFailed
+from fwo_exceptions import FwLoginFailed
 
 
 def api_call(url, params = {}, headers = {}, data = {}, credentials = '', show_progress=False, method='get'):

@@ -433,43 +433,7 @@ def get_objects(config_json, api_url, sid, config_filename=None, limit=150, deta
     if config_filename != None and len(config_filename)>1:
         with open(config_filename, "w") as configfile_json:
             configfile_json.write(json.dumps(config_json))
-    return 0
-
-def merge_super_with_submanagements(super_management_config: FwConfigManagerList, super_management_import_state: ImportStateController,
-                                    sub_management_configs: List[FwConfigManagerList]) -> FwConfigManagerList:
-    # Get global rulebase from super management config  
-    global_rulebase_rules = super_management_config.ManagerSet[0].Configs[0].rulebases getOrderedRuleList()
-    global_rulebase = super_management_config.ManagerSet[0].Configs[0].rulebases[0]
-    global_rulebase_rules = list(global_rulebase.Rules.items())
-    # Find split place holder rule in global rulebase and split the rulebase into two parts
-    start_global_rulebase = None
-    end_global_rulebase = None
-    for i in range(len(global_rulebase_rules)):
-        if global_rulebase_rules[i][1].rule_type == 'place-holder':
-            start_global_rulebase = Rulebase(uid=f"{global_rulebase.uid}_start", 
-                                             name=f"{global_rulebase.name}_start",
-                                             rules=global_rulebase_rules[:i-1], mgm_uid=super_management_import_state.MgmDetails.Name)
-            end_global_rulebase = Rulebase(uid=f"{global_rulebase.uid}_start", 
-                                             name=f"{global_rulebase.name}_start",
-                                             rules=global_rulebase_rules[i+1:], mgm_uid=super_management_import_state.MgmDetails.Name)
-            break
-    # Update global rulebase with the split rulebases
-    super_management_config.ManagerSet[0].Configs[0].rulebases = [start_global_rulebase, end_global_rulebase]
-    # Add the rule base links to the sub management configs
-    for sub_management_config in sub_management_configs:
-        for sub_management in sub_management_config.ManagerSet:
-            for config in sub_management.Configs:
-                for gateway in config.gateways:
-                    # Modify the initial rulebase link to point to the start global rulebase
-                    initial_rulebase_link: RulebaseLinkUidBased = filter(lambda x: x.link_type == 'initial', gateway.RulebaseLinks)[0]
-                    initial_rulebase_link.from_rule_uid = start_global_rulebase.Rules[-1].rule_uid
-                    initial_rulebase_link.link_type = 5 # local
-                    # Add the global start rulebase to the gateway rulebase links
-                    RulebaseLink(gw_id=gateway.Uid,
-                        from_rule_id='',
-                        to_rulebase_id=start_global_rulebase.uid,
-                        link_type=0, # initial
-                        created=super_management_import_state.ImportId)                    
+    return 0               
 
 # def parse_users_from_rulebases (full_config, rulebase, users, config2import, current_import_id):
 #     if 'users' not in full_config:

@@ -91,31 +91,7 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
                         IsSuperManager=importState.MgmDetails.IsSuperManager,
                         SubManagerIds=importState.MgmDetails.SubManagerIds,
                         Configs=[]
-                    ))
-                if len(importState.MgmDetails.SubManagerIds) > 0:
-                    # Read config
-                    fwoConfig = FworchConfigController.fromJson(readConfig(fwo_config_filename))
-                    fwo_api_base_url = fwoConfig['fwo_api_base_url']
-                    # Authenticate to get JWT
-                    try:
-                        jwt = fwo_api.login(importer_user_name, fwoConfig.ImporterPassword, fwoConfig.FwoUserMgmtApiUri)
-                    except Exception as e:
-                        logger.error(e.message)
-                        raise             
-                    # Reset submanagement
-                    for subManagerId in importState.MgmDetails.SubManagerIds:
-                        # Fetch sub management details
-                        mgm_details_raw = fwo_api.get_mgm_details(fwo_api_base_url, jwt, {"mgmId": subManagerId})
-                        mgm_details = ManagementDetailsController.fromJson(mgm_details_raw)
-                        configNormalized.addManager(
-                            manager=FwConfigManager(
-                                ManagerUid=calcManagerUidHash(mgm_details_raw),
-                                ManagerName=mgm_details.Name,
-                                IsSuperManager=mgm_details.IsSuperManager,
-                                SubManagerIds=mgm_details.SubManagerIds,
-                                Configs=[]
-                            )
-                        )
+                    ))           
                 # Reset objects
                 for management in configNormalized.ManagerSet:
                     management.Configs.append(
@@ -137,25 +113,8 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
                     importFromFile(importState, in_file, gateways)
             else:
                 ### getting config from firewall manager API ######
-                config_changed_since_last_import, configNormalized = get_config_from_api(importState, {})
-                # Check if management is super manager
-                if importState.MgmDetails.IsSuperManager:
-                    sub_management_configs = []
-                    for sub_management_id in importState.MgmDetails.SubManagerIds:
-                        # Import sub manager
-                        importState_submanager = ImportStateController.initializeImport(mgmId, debugLevel=debug_level_in, force=force, version=version, 
-                                        isClearingImport=clearManagementData, isFullImport=False, sslVerification=verifyCerts)
-                        importState_submanager.MgmDetails.IsTopLevelManager = False
-                        # Skip sub management if do not import flag is set
-                        if importState_submanager.FullMgmDetails["do_not_import"] and force == False:
-                            logger.debug(f"Skipping submanagement with id {sub_management_id}; do not import flag set.")
-                            continue
-                        _, submanager_config = get_config_from_api(importState_submanager, {})
-                        sub_management_configs.append(submanager_config)
-                    # Merge submanagements into super management
-                    configNormalized = merge_super_with_submanagements(configNormalized, importState, sub_management_configs)
- 
                 time_get_config = int(time.time()) - importState.StartTime
+                config_changed_since_last_import, configNormalized = get_config_from_api(importState, {})
                 logger.debug("import_management - getting config total duration " + str(int(time.time()) - importState.StartTime) + "s")
 
             if config_changed_since_last_import or importState.ForceImport:
@@ -350,13 +309,6 @@ def get_config_from_api(importState: ImportStateController, configNative, import
     logger.debug("import_management: get_config completed (including normalization), duration: " + str(int(time.time()) - importState.StartTime) + "s") 
 
     return config_changed_since_last_import, configNormalized
-
-def merge_super_with_submanagements(super_management_config: FwConfigManagerList, super_management_import_state: ImportStateController,
-                                    sub_management_configs: List[FwConfigManagerList]) -> FwConfigManagerList:
-    # Parse and import python module according to the device type
-    fw_module = get_module(super_management_import_state)
-    # Merge submanagements into super management
-    fw_module.merge_super_with_submanagements(super_management_config, super_management_import_state, sub_management_configs)
 
 def writeNativeConfigToFile(importState, configNative):
     if importState.DebugLevel>6:

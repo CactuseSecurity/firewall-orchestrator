@@ -75,6 +75,21 @@ class FwConfigImportRule(FwConfigImportBase):
                     changedRuleUids[rulebaseId].append(ruleUid)
 
         # TODO: handle changedRuleUids
+        changedRules = []
+        for rulebaseId in changedRuleUids:
+            if len(changedRuleUids[rulebaseId]) <= 0:
+                continue
+
+            currentRulebase = self.NormalizedConfig.getRulebase(rulebaseId)
+
+            for ruleUid in changedRuleUids[rulebaseId]:
+                changedRule = currentRulebase.Rules[ruleUid]
+                changedRules.append(changedRule)
+
+        if len(changedRules) > 0:
+            self.updateChangedRules(changedRules)
+        
+
 
         # add full rule details first
         newRulebases = self.getRules(newRuleUids)
@@ -101,6 +116,7 @@ class FwConfigImportRule(FwConfigImportBase):
 
         self.ImportDetails.Stats.RuleAddCount += numberOfAddedRules
         self.ImportDetails.Stats.RuleDeleteCount += numberOfDeletedRules
+        # self.ImportDetails.Stats.RuleChangeCount += numberOfChangedRules
 
         # TODO: rule_nwobj_resolved fuellen (recert?)
         return newRuleIds
@@ -238,7 +254,6 @@ class FwConfigImportRule(FwConfigImportBase):
             changes = 0
         
         return errors, changes
-            
 
     def getRulesByIdWithRefUids(self, ruleIds: List[int]) -> List[Rule]:
         logger = getFwoLogger()
@@ -467,6 +482,59 @@ class FwConfigImportRule(FwConfigImportBase):
         except Exception:
             logger.exception(f"failed to write new rules: {str(traceback.format_exc())}")
             return 1, 0, newRulebaseIds
+        
+    def updateChangedRules(self, changedRules):
+        """
+        Updates rules, according a list of rule objects.
+
+        Args:
+            changedRules (list): A list containing the rules, that have changed.
+
+        Returns:
+            tuple: (errors, changes), where errors is 1 if an error occurred, otherwise 0, 
+                and changes is 1 if modifications were made, otherwise 0.
+        """
+
+        logger = getFwoLogger()
+        errors = 0
+        changes = 0
+
+        updateRuleOrderNumbers = """
+            mutation UpdateRuleOrder($updates: [rule_updates!]!) {
+                update_rule_many(updates: $updates) {
+                    affected_rows
+                }
+            }
+        """
+
+        updates = [
+            {
+                "where": {"rule_uid": {"_eq": rule[1].rule_uid}},
+                "_set": {
+                    "rule_num": rule[1].rule_num
+                }
+            }
+            for rule in enumerate(changedRules)
+        ]
+
+        # execute mutation
+        try:
+            import_result = self.ImportDetails.call(updateRuleOrderNumbers, queryVariables={ "updates": updates })
+            if 'errors' in import_result:
+                logger.exception(f"fwo_api:updateRulebaseDiffs - error in updateChangedRules: {str(import_result['errors'])}")
+                errors = 1 
+                changes = 0
+                changedRules = []
+            else:
+                errors = 0
+                changes = 1
+        except Exception:
+            logger.exception(f"failed to update rules: {str(traceback.format_exc())}")
+            errors = 1 
+            changes = 0
+            changedRules = []
+        
+        return errors, changes, changedRules     
         
     # as we cannot add the rules for all rulebases in one go (using a constraint from the rule table), 
     # we need to add them per rulebase separately

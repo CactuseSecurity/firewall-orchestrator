@@ -282,7 +282,7 @@ namespace FWO.Report
             // build order number map
 
             rulesByRulebase = allRules.GroupBy(r => r.RulebaseId)
-                                        .ToDictionary(g => g.Key, g => g.OrderBy(r => r.Id) // TODO: check if order by id is reliable for this purpose
+                                        .ToDictionary(g => g.Key, g => g.OrderBy(r => r.RuleOrderNumber) // TODO: check if order by id is reliable for this purpose
                                         .ToList());
 
             linksByFromRuleId = device.RulebaseLinks.Where(link => !link.IsInitialRulebase())
@@ -313,59 +313,30 @@ namespace FWO.Report
 
             for (int i = 0; i < rules.Count; i++)
             {
-                var rule = rules[i];
-                var path = new List<int>(currentPath) { i + 1 };
-                var dotted = string.Join(".", path);
+                // update order number
+                Rule rule = rules[i];
+                List<int> path = new List<int>(currentPath) { i + 1 };
+                string dotted = string.Join(".", path);
                 result[(int) rule.Id] = (dotted, positionCounter++);
 
+                // if there is a rulebase link which has current rules id as FromRuleId handle rule base link
                 if (linksByFromRuleId.TryGetValue((int) rule.Id, out var links))
                 {
                     foreach (var link in links.OrderBy(l => l.LinkType))
                     {
                         if (link.LinkType == 2) // ordered
                         {
-                            var newPath = new List<int> { path[0] + 1 };
-                            TraverseRulebase(link.NextRulebaseId, newPath, rulesByRulebase, linksByFromRuleId, result, ref positionCounter);
+                            path = new List<int> { path[0] + 1 };
+                            TraverseRulebase(link.NextRulebaseId, path, rulesByRulebase, linksByFromRuleId, result, ref positionCounter);
                         }
                         else if (link.LinkType == 3) // inline
                         {
-                            TraverseInline(link.NextRulebaseId, path, rulesByRulebase, linksByFromRuleId, result, ref positionCounter);
+                            TraverseRulebase(link.NextRulebaseId, path, rulesByRulebase, linksByFromRuleId, result, ref positionCounter);
                         }
                     }
                 }
             }
         }
-
-
-        private static void TraverseInline(int rulebaseId, List<int> parentPath, Dictionary<int, List<Rule>> rulesByRulebase, Dictionary<int, List<RulebaseLink>> linksByFromRuleId, Dictionary<int, (string dottedNumber, int position)> result, ref int positionCounter)
-        {
-            if (!rulesByRulebase.TryGetValue(rulebaseId, out var rules)) return;
-
-            for (int i = 0; i < rules.Count; i++)
-            {
-                var rule = rules[i];
-                var path = new List<int>(parentPath) { i + 1 };
-                var dotted = string.Join(".", path);
-                result[(int) rule.Id] = (dotted, positionCounter++);
-
-                if (linksByFromRuleId.TryGetValue((int) rule.Id, out var links))
-                {
-                    foreach (var link in links.OrderBy(l => l.LinkType))
-                    {
-                        if (link.LinkType == 2)
-                        {
-                            var newPath = new List<int> { path[0] + 1 };
-                            TraverseRulebase(link.NextRulebaseId, newPath, rulesByRulebase, linksByFromRuleId, result, ref positionCounter);
-                        }
-                        else if (link.LinkType == 3)
-                        {
-                            TraverseInline(link.NextRulebaseId, path, rulesByRulebase, linksByFromRuleId, result, ref positionCounter);
-                        }
-                    }
-                }
-            }
-        }     
-
         public override string SetDescription()
         {
             int managementCounter = 0;

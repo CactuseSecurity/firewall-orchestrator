@@ -1,7 +1,9 @@
+using FWO.Services.EventMediator.Interfaces;
+
 namespace FWO.Services.EventMediator.Events;
 
-public class CollectionChangedEventArgs(object? Sender, IEnumerable<dynamic>? Collection) : EventArgs
-{ 
-
+public class CollectionChangedEventArgs(IEnumerable<dynamic> collection) : IEventArgs
+{
+    IEnumerable<dynamic> Collection { get; } = collection;
 }
 

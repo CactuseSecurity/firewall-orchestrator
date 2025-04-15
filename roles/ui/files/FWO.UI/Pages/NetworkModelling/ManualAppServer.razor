@@ -109,6 +109,7 @@
     private bool workInProgress = false;
     private bool firstTry = true;
 
+    private readonly static CollectionChangedEvent OnCollectionChanged = new();
 
     protected override void OnInitialized()
     {
@@ -155,6 +156,7 @@
 
     private void Close()
     {
+        EventMediator.Publish<CollectionChangedEvent>(OnCollectionChanged);
         firstTry = true;
         Display = false;
         DisplayChanged.InvokeAsync(Display);

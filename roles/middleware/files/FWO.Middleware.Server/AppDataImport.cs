@@ -10,6 +10,7 @@ using FWO.Services;
 using Novell.Directory.Ldap;
 using System.Data;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace FWO.Middleware.Server
 {
@@ -273,7 +274,24 @@ namespace FWO.Middleware.Server
 
 		private string GetGroupName(string extAppIdString)
 		{
-			return globalConfig.OwnerLdapGroupNames.Replace(GlobalConst.kAppIdPlaceholder, extAppIdString);
+            // hard-coded GlobalConst.kAppIdSeparator could be moved to settings
+
+            if (globalConfig.OwnerLdapGroupNames.Contains(GlobalConst.kFullAppIdPlaceholder))
+            {
+    			return globalConfig.OwnerLdapGroupNames.Replace(GlobalConst.kFullAppIdPlaceholder, extAppIdString);
+            }
+            
+            if (globalConfig.OwnerLdapGroupNames.Contains(GlobalConst.kAppPrefixPlaceholder) && 
+                globalConfig.OwnerLdapGroupNames.Contains(GlobalConst.kAppIdPlaceholder))
+            {
+				string[] parts = extAppIdString.Split(GlobalConst.kAppIdSeparator);
+				string appPrefix = parts.Length > 0 ? parts[0] : "";
+				string appId = parts.Length > 1 ? parts[1] : "";
+    			return globalConfig.OwnerLdapGroupNames.Replace(GlobalConst.kAppPrefixPlaceholder, appPrefix).Replace(GlobalConst.kAppIdPlaceholder, appId);
+            }
+            Log.WriteInfo("Import App Data", $"Could not find ayn placeholders in group name pattern \"{globalConfig.OwnerLdapGroupNames}\" " +
+                $"({GlobalConst.kFullAppIdPlaceholder}, {GlobalConst.kAppPrefixPlaceholder}, {GlobalConst.kAppIdPlaceholder} ");
+            return globalConfig.OwnerLdapGroupNames;
 		}
 
 		private string GetGroupDn(string extAppIdString)

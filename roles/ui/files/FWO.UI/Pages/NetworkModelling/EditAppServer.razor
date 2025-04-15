@@ -109,8 +109,6 @@
     private bool firstTry = true;
     private bool workInProgress = false;
 
-    private readonly static EditAppServerSavedEvent OnEditAppServerSavedEvent = new();
-
     protected override void OnInitialized()
     {
         try
@@ -176,7 +174,8 @@
                     await AppServerHandlerChanged.InvokeAsync(AppServerHandler);
                     Close();
                 }
-                EventMediator.Publish<EditAppServerSavedEvent>(OnEditAppServerSavedEvent);
+                EventMediator.Publish(new CollectionChangedEvent());
+
                 workInProgress = false;
             }
             catch (Exception exception)

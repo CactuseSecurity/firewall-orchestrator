@@ -758,6 +758,10 @@ INSERT INTO txt VALUES ('not_implemented',      'German',	'nicht implementiert')
 INSERT INTO txt VALUES ('not_implemented',      'English',  'not implemented');
 INSERT INTO txt VALUES ('with_diffs',           'German',	'mit Abweichungen');
 INSERT INTO txt VALUES ('with_diffs',           'English',  'with differences');
+INSERT INTO txt VALUES ('missing_app_servers', 	'German',	'Fehlende App Server auf Device');
+INSERT INTO txt VALUES ('missing_app_servers', 	'English',	'Missing App Servers on Device');
+INSERT INTO txt VALUES ('surplus_app_servers', 	'German',	'&Uuml;bersch&uuml;ssige App Server auf Device');
+INSERT INTO txt VALUES ('surplus_app_servers', 	'English',	'Surplus App Servers on Device');
 
 -- schedule
 INSERT INTO txt VALUES ('schedule', 			'German',	'Terminplan');

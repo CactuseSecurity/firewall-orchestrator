@@ -1,3 +1,4 @@
+@using FWO.Data.Modelling
 @using FWO.Data.Report
 @using FWO.Report
 @using FWO.Report.Filter
@@ -68,7 +69,7 @@
                             </div>
                             <div class="mt-2">
                                 <ObjectGroupCollection PageSize="PageSize" FetchObjects="FetchContent" Recert="Recert" Tab="RsbTab.usedObj" StartCollapsed="false" InputDataType="OwnerReport"
-                                Data="CurrentReport.ReportData.OwnerData"
+                                Data="@(PrepareObjects(CurrentReport.ReportData.OwnerData))"
                                 NameExtractor="own => own.Name"
                                 NetworkObjectExtractor="own => own.GetAllNetworkObjects(true)"
                                 NetworkServiceExtractor="own => own.GetAllServices(true)" />
@@ -393,5 +394,31 @@
         {
             DisplayMessageInUi(exception, userConfig.GetText("object_fetch"), "", true);
         }
+    }
+
+    private List<OwnerReport> PrepareObjects(List<OwnerReport> ownerData)
+    {
+        if(CurrentReport?.ReportType == ReportType.VarianceAnalysis)
+        {
+            List<OwnerReport> ownerDataForRsb = [];
+            foreach(var ownerReport in ownerData)
+            {
+                OwnerReport modifiedOwnerReport = new(){ Connections = new(ownerReport.Connections) };
+                modifiedOwnerReport.Connections.AddRange(ownerReport.RuleDifferences.ConvertAll(o => o.ModelledConnection));
+                if(ownerReport.MissingAppRoles.Count > 0 || ownerReport.DifferingAppRoles.Count > 0)
+                {
+                    ModellingConnection diffConn = new();
+                    foreach(var mgt in ownerReport.MissingAppRoles.Keys)
+                    {
+                        diffConn.SourceAppRoles.AddRange(ownerReport.MissingAppRoles[mgt].ConvertAll(a => new ModellingAppRoleWrapper(){ Content = a }));
+                        diffConn.DestinationAppRoles.AddRange(ownerReport.DifferingAppRoles[mgt].ConvertAll(a => new ModellingAppRoleWrapper(){ Content = a }));
+                    }
+                    modifiedOwnerReport.Connections.Add(diffConn);
+                }
+                ownerDataForRsb.Add(modifiedOwnerReport);
+            }
+            return ownerDataForRsb;
+        }
+        return ownerData;
     }
 }

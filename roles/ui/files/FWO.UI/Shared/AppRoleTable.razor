@@ -11,11 +11,28 @@
             @(context.Display())
         </Template>
     </Column>
-    <Column TableItem="ModellingAppRole" Title="@(userConfig.GetText("app_servers"))" Field="@(x => x.Id)" Sortable="false" Filterable="true">
-        <Template>
-            @((MarkupString)ConnectionReport.ListAppServers(ModellingAppServerWrapper.Resolve(context.AppServers).ToList(), ModellingAppServerWrapper.Resolve(context.SurplusAppServers).ToList(), DiffMode))
-        </Template>
-    </Column>
+    @if(Split)
+    {
+        <Column TableItem="ModellingAppRole" Title="@(userConfig.GetText("missing_app_servers"))" Field="@(x => x.Id)" Sortable="false" Filterable="true">
+            <Template>
+                @((MarkupString)ConnectionReport.ListAppServers(ModellingAppServerWrapper.Resolve(context.AppServers).ToList(), []))
+            </Template>
+        </Column>
+        <Column TableItem="ModellingAppRole" Title="@(userConfig.GetText("surplus_app_servers"))" Field="@(x => x.Id)" Sortable="false" Filterable="true">
+            <Template>
+                @((MarkupString)ConnectionReport.ListAppServers(ModellingAppServerWrapper.Resolve(context.SurplusAppServers).ToList(), []))
+            </Template>
+        </Column>
+    }
+    else
+    {
+        <Column TableItem="ModellingAppRole" Title="@(userConfig.GetText("app_servers"))" Field="@(x => x.Id)" Sortable="false" Filterable="true">
+            <Template>
+                @((MarkupString)ConnectionReport.ListAppServers(ModellingAppServerWrapper.Resolve(context.AppServers).ToList(), 
+                    ModellingAppServerWrapper.Resolve(context.SurplusAppServers).ToList(), DiffMode))
+            </Template>
+        </Column>
+    }
     <Pager ShowPageNumber="true" ShowTotalCount="true" />
 </Table>
 
@@ -27,4 +44,7 @@
 
     [Parameter]
     public bool DiffMode { get; set; } = false;
+
+    [Parameter]
+    public bool Split { get; set; } = false;
 }

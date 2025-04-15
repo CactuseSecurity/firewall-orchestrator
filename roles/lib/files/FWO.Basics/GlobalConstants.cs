@@ -33,7 +33,7 @@ namespace FWO.Basics
         public const string kImportAreaSubnetData = "importAreaSubnetData";
         public const string kManual = "manual";
         public const string kCSV_ = "CSV_";
-        public const char kAppIdSeparator = '-';
+        public const char kAppIdSeparator = '-'; // hard-coded could be moved to settings
         public const string kModellerGroup = "ModellerGroup_";
         public const string kFullAppIdPlaceholder = "@@ExternalAppId@@";
         public const string kAppIdPlaceholder = "@@AppId@@";

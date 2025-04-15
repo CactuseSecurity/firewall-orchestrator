@@ -632,6 +632,8 @@ INSERT INTO txt VALUES ('used_objects',		    'German', 	'Benutzte Objekte');
 INSERT INTO txt VALUES ('used_objects',		    'English', 	'Used Objects');
 INSERT INTO txt VALUES ('unused_objects',		'German', 	'Unbenutzte Objekte');
 INSERT INTO txt VALUES ('inused_objects',		'English', 	'Unused Objects');
+INSERT INTO txt VALUES ('modelled_objects',		'German', 	'Modellierte Objekte');
+INSERT INTO txt VALUES ('modelled_objects',		'English', 	'Modelled Objects');
 INSERT INTO txt VALUES ('rule_deleted',         'German', 	'Regel gel&ouml;scht');
 INSERT INTO txt VALUES ('rule_deleted',         'English', 	'Rule deleted');
 INSERT INTO txt VALUES ('rule_added',           'German', 	'Regel hinzugef&uuml;gt');

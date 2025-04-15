@@ -63,7 +63,7 @@
                     }
                     @if (CurrentReport?.ReportData.OwnerData.Count > 0 && (bool)CurrentReport?.ReportType.IsOwnerRelatedReport())
                     {
-                        <Tab Title="@(userConfig.GetText("used_objects"))" StartSelected="true">
+                        <Tab Title="@(CurrentReport?.ReportType == ReportType.VarianceAnalysis ? userConfig.GetText("modelled_objects") : userConfig.GetText("used_objects"))" StartSelected="true">
                             <div class="d-md-flex justify-content-md-end sticky-marker-45">
                                 <div class="btn btn-secondary btn-sm w-50" @onclick="@(() => collapseInRSB.Collapse("report"))">@(userConfig.GetText("collapse_all"))</div>
                             </div>

@@ -118,8 +118,8 @@ namespace FWO.Report
                 report.AppendLine($"<td>{appRole.Name}</td>");
                 if(split)
                 {
-                    report.AppendLine($"<td>{ConnectionReport.ListAppServers(ModellingAppServerWrapper.Resolve(appRole.AppServers).ToList(), [])}</td>");
-                    report.AppendLine($"<td>{ConnectionReport.ListAppServers(ModellingAppServerWrapper.Resolve(appRole.SurplusAppServers).ToList(), [])}</td>");
+                    report.AppendLine($"<td>{ConnectionReport.ListAppServers([.. ModellingAppServerWrapper.Resolve(appRole.AppServers)], [])}</td>");
+                    report.AppendLine($"<td>{ConnectionReport.ListAppServers([.. ModellingAppServerWrapper.Resolve(appRole.SurplusAppServers)], [])}</td>");
                 }
                 else
                 {
@@ -203,9 +203,9 @@ namespace FWO.Report
                         report.AppendLine("<tr>");
                         report.AppendLine($"<td>{diff.ManagementName}</td>");
                         report.AppendLine($"<td>{diff.DeviceName}</td>");
-                        report.AppendLine($"<td>{ruleDiffDisplay.DisplaySourceDiff(modelledRule, OutputLocation.export, ReportType)}</td>");
-                        report.AppendLine($"<td>{ruleDiffDisplay.DisplayServiceDiff(modelledRule, OutputLocation.export, ReportType)}</td>");
-                        report.AppendLine($"<td>{ruleDiffDisplay.DisplayDestinationDiff(modelledRule, OutputLocation.export, ReportType)}</td>");
+                        report.AppendLine($"<td>{ruleDiffDisplay.DisplaySourceDiff(diff, OutputLocation.export, ReportType)}</td>");
+                        report.AppendLine($"<td>{ruleDiffDisplay.DisplayServiceDiff(diff, OutputLocation.export, ReportType)}</td>");
+                        report.AppendLine($"<td>{ruleDiffDisplay.DisplayDestinationDiff(diff, OutputLocation.export, ReportType)}</td>");
                         report.AppendLine("</tr>");
                     }
                     report.AppendLine("</table>");

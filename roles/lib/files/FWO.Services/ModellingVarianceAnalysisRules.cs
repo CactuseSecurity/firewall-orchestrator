@@ -153,7 +153,11 @@ namespace FWO.Services
                 List<NetworkObject> surplusGroups = allProdGroups.Except(allModGroups, comparer).ToList();
                 foreach (var obj in surplusGroups)
                 {
-                    networkLocations.FirstOrDefault(n => n.Object.Id == obj.Id).Object.IsSurplus = true;
+                    NetworkLocation? extLoc = networkLocations.FirstOrDefault(n => n.Object.Id == obj.Id);
+                    if(extLoc != null)
+                    {
+                        extLoc.Object.IsSurplus = true;
+                    }
                 }
                 disregardedLocations.AddRange(disregardedGroups.ConvertAll(o => new NetworkLocation(new(), o)));
                 return disregardedGroups.Count == 0 && surplusGroups.Count == 0;
@@ -184,6 +188,10 @@ namespace FWO.Services
             List<NetworkService> allModServices = ModellingServiceWrapper.Resolve(services).ToList().ConvertAll(s => ModellingService.ToNetworkService(s));
             if(ruleRecognitionOption.SvcResolveGroup)
             {
+                foreach(var svc in networkServices.Where(n => n.Content.Type.Name == ServiceType.Group).ToList().ConvertAll(s => s.Content).ToList())
+                {
+                    allProdServices.AddRange([.. svc.ServiceGroupFlats.ToList().ConvertAll(g => g.Object)]);
+                }
                 foreach(var svcGrp in ModellingServiceGroupWrapper.Resolve(serviceGroups))
                 {
                     allModServices.AddRange(ModellingServiceWrapper.Resolve(svcGrp.Services).ToList().ConvertAll(s => ModellingService.ToNetworkService(s)));
@@ -200,7 +208,7 @@ namespace FWO.Services
         }
 
         private bool CompareSvcObjects(List<NetworkService> allModGroups, List<NetworkService> allProdGroups, ServiceWrapper[] networkServices,
-            List<NetworkService> disregardedLocations, IEqualityComparer<NetworkService?> comparer)
+            List<NetworkService> disregardedServices, IEqualityComparer<NetworkService?> comparer)
         {
             if(FullAnalysis)
             {
@@ -208,9 +216,13 @@ namespace FWO.Services
                 List<NetworkService> surplusGroups = allProdGroups.Except(allModGroups, comparer).ToList();
                 foreach (var svc in surplusGroups)
                 {
-                    networkServices.FirstOrDefault(n => n.Content.Id == svc.Id).Content.IsSurplus = true;
+                    ServiceWrapper? exSvc = networkServices.FirstOrDefault(n => n.Content.Id == svc.Id);
+                    if(exSvc != null)
+                    {
+                        exSvc.Content.IsSurplus = true;
+                    }
                 }
-                disregardedLocations.AddRange(disregardedGroups);
+                disregardedServices.AddRange(disregardedGroups);
                 return disregardedGroups.Count == 0 && surplusGroups.Count == 0;
             }
 

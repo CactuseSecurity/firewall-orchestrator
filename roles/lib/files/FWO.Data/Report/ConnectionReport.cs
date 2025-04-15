@@ -47,7 +47,7 @@ namespace FWO.Data.Report
             return [];
         }
 
-        private static void SetSvcNumbers(ref List<NetworkService> svcList)
+        public static void SetSvcNumbers(ref List<NetworkService> svcList)
         {
             long number = 1;
             foreach(var svc in svcList)
@@ -56,7 +56,7 @@ namespace FWO.Data.Report
             }
         }
 
-        private static void SetObjectNumbers(ref List<NetworkObject> objList)
+        public static void SetObjectNumbers(ref List<NetworkObject> objList)
         {
             long number = 1;
             foreach(var obj in objList)
@@ -65,7 +65,7 @@ namespace FWO.Data.Report
             }
         }
 
-        protected static List<NetworkService> GetAllServices(List<ModellingConnection> connections, bool resolved = false)
+        public static List<NetworkService> GetAllServices(List<ModellingConnection> connections, bool resolved = false)
         {
             List<NetworkService> allServices = [];
             foreach(var conn in connections)
@@ -92,7 +92,7 @@ namespace FWO.Data.Report
             return allServices;
         }
 
-        protected static List<NetworkObject> GetAllNetworkObjects(List<ModellingConnection> connections, bool resolved = false, long dummyARid = 0)
+        public static List<NetworkObject> GetAllNetworkObjects(List<ModellingConnection> connections, bool resolved = false, long dummyARid = 0)
         {
             List<NetworkObject> allObjects = [];
             foreach(var conn in connections)

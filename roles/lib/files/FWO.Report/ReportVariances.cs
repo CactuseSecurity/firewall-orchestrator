@@ -18,7 +18,7 @@ namespace FWO.Report
             StringBuilder report = new ();
             ruleDiffDisplay = new (userConfig);
             int chapterNumber = 0;
-            foreach (var ownerReport in ReportData.OwnerData)
+             foreach (var ownerReport in ReportData.OwnerData)
             {
                 report.AppendLine($"<h3 id=\"{Guid.NewGuid()}\">{ownerReport.Name}</h3>");
                 report.AppendLine($"{DisplayAppRoleStat(ownerReport, userConfig)}<br>");
@@ -28,6 +28,7 @@ namespace FWO.Report
                 AppendAppRoleDiffs(ref report, ownerReport, chapterNumber);
                 AppendMissingConns(ref report, ownerReport, chapterNumber);
                 AppendConnDiffs(ref report, ownerReport, chapterNumber);
+                AppendObjects(ref report, ownerReport, chapterNumber);
                 AppendRemainingRules(ref report, ownerReport, chapterNumber);
                 report.AppendLine("<hr>");
             }
@@ -48,6 +49,23 @@ namespace FWO.Report
                 $"{userConfig.GetText("implemented")}: {ownerReport.AppRoleStats.AppRolesOk}, " +
                 $"{userConfig.GetText("not_implemented")}: {ownerReport.AppRoleStats.AppRolesMissingCount}, " +
                 $"{userConfig.GetText("with_diffs")}: {ownerReport.AppRoleStats.AppRolesDifferenceCount}.";
+        }
+
+        public static OwnerReport CollectObjectsInReport(OwnerReport ownerReport)
+        {
+            OwnerReport modifiedOwnerReport = new(){ Connections = new(ownerReport.Connections) };
+            modifiedOwnerReport.Connections.AddRange(ownerReport.RuleDifferences.ConvertAll(o => o.ModelledConnection));
+            if(ownerReport.MissingAppRoles.Count > 0 || ownerReport.DifferingAppRoles.Count > 0)
+            {
+                ModellingConnection diffConn = new();
+                foreach(var mgt in ownerReport.MissingAppRoles.Keys)
+                {
+                    diffConn.SourceAppRoles.AddRange(ownerReport.MissingAppRoles[mgt].ConvertAll(a => new ModellingAppRoleWrapper(){ Content = a }));
+                    diffConn.DestinationAppRoles.AddRange(ownerReport.DifferingAppRoles[mgt].ConvertAll(a => new ModellingAppRoleWrapper(){ Content = a }));
+                }
+                modifiedOwnerReport.Connections.Add(diffConn);
+            }
+            return modifiedOwnerReport;
         }
 
         private void AppendMissingAppRoles(ref StringBuilder report, OwnerReport ownerReport, int chapterNumber)
@@ -77,20 +95,20 @@ namespace FWO.Report
                     if(ownerReport.DifferingAppRoles[mgt].Count > 0)
                     {
                         report.AppendLine($"<h5 id=\"{Guid.NewGuid()}\">{ownerReport.DifferingAppRoles[mgt].First().ManagementName}</h5>");
-                        AppendAppRolesHtml(ownerReport.DifferingAppRoles[mgt], chapterNumber, ref report, true);
+                        AppendAppRolesHtml(ownerReport.DifferingAppRoles[mgt], chapterNumber, ref report, true, true);
                     }
                 }
                 report.AppendLine("<hr>");
             }
         }
 
-        private void AppendAppRolesHtml(List<ModellingAppRole> appRoles, int chapterNumber, ref StringBuilder report, bool diffMode = false)
+        private void AppendAppRolesHtml(List<ModellingAppRole> appRoles, int chapterNumber, ref StringBuilder report, bool diffMode = false, bool split = false)
         {
             SetObjectNumbers(appRoles);
             report.AppendLine("<table>");
             if(appRoles.Count > 0)
             {
-                AppendAppRoleHeadlineHtml(ref report);
+                AppendAppRoleHeadlineHtml(ref report, split);
             }
             foreach (var appRole in appRoles)
             {
@@ -98,8 +116,16 @@ namespace FWO.Report
                 report.AppendLine($"<td>{appRole.Number}</td>");
                 report.AppendLine($"<td>{appRole.Id}</td>");
                 report.AppendLine($"<td>{appRole.Name}</td>");
-                report.AppendLine($"<td>{ConnectionReport.ListAppServers([.. ModellingAppServerWrapper.Resolve(appRole.AppServers)],
-                    [.. ModellingAppServerWrapper.Resolve(appRole.SurplusAppServers)], diffMode, true)}</td>");
+                if(split)
+                {
+                    report.AppendLine($"<td>{ConnectionReport.ListAppServers(ModellingAppServerWrapper.Resolve(appRole.AppServers).ToList(), [])}</td>");
+                    report.AppendLine($"<td>{ConnectionReport.ListAppServers(ModellingAppServerWrapper.Resolve(appRole.SurplusAppServers).ToList(), [])}</td>");
+                }
+                else
+                {
+                    report.AppendLine($"<td>{ConnectionReport.ListAppServers([.. ModellingAppServerWrapper.Resolve(appRole.AppServers)],
+                        [.. ModellingAppServerWrapper.Resolve(appRole.SurplusAppServers)], diffMode, true)}</td>");
+                }
             }
             report.AppendLine("</table>");
             report.AppendLine("<hr>");
@@ -114,13 +140,21 @@ namespace FWO.Report
             }
         }
 
-        private void AppendAppRoleHeadlineHtml(ref StringBuilder report)
+        private void AppendAppRoleHeadlineHtml(ref StringBuilder report, bool split)
         {
             report.AppendLine("<tr>");
             report.AppendLine($"<th>{userConfig.GetText("number")}</th>");
             report.AppendLine($"<th>{userConfig.GetText("id")}</th>");
             report.AppendLine($"<th>{userConfig.GetText("name")}</th>");
-            report.AppendLine($"<th>{userConfig.GetText("members")}</th>");
+            if(split)
+            {
+                report.AppendLine($"<th>{userConfig.GetText("missing_app_servers")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("surplus_app_servers")}</th>");
+            }
+            else
+            {
+                report.AppendLine($"<th>{userConfig.GetText("members")}</th>");
+            }
             report.AppendLine("</tr>");
         }
 
@@ -180,6 +214,17 @@ namespace FWO.Report
             }
         }
 
+        private void AppendObjects(ref StringBuilder report, OwnerReport ownerReport, int chapterNumber)
+        {
+            List<ModellingConnection> relevantConns = CollectObjectsInReport(ownerReport).Connections;
+            ownerReport.AllObjects = ConnectionReport.GetAllNetworkObjects(relevantConns, true);
+            ConnectionReport.SetObjectNumbers(ref ownerReport.AllObjects);
+            ownerReport.AllServices = ConnectionReport.GetAllServices(relevantConns, true);
+            ConnectionReport.SetSvcNumbers(ref ownerReport.AllServices);
+            AppendNetworkObjectsHtml(ownerReport.AllObjects, chapterNumber, ref report);
+            AppendNetworkServicesHtml(ownerReport.AllServices, chapterNumber, ref report);
+        }
+     
         private void AppendRemainingRules(ref StringBuilder report, OwnerReport ownerReport, int chapterNumber)
         {
             if(ownerReport.ManagementData.Count > 0)

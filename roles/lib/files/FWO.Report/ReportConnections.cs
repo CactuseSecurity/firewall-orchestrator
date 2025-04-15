@@ -166,7 +166,7 @@ namespace FWO.Report
             report.AppendLine("</tr>");
         }
 
-        private void AppendNetworkObjectsHtml(List<NetworkObject> networkObjects, int chapterNumber, ref StringBuilder report)
+        protected void AppendNetworkObjectsHtml(List<NetworkObject> networkObjects, int chapterNumber, ref StringBuilder report)
         {
             report.AppendLine($"<h4 id=\"{Guid.NewGuid()}\">{userConfig.GetText("network_objects")}</h4>");
             report.AppendLine("<table>");
@@ -198,7 +198,7 @@ namespace FWO.Report
             report.AppendLine("</tr>");
         }
 
-        private void AppendNetworkServicesHtml(List<NetworkService> networkServices, int chapterNumber, ref StringBuilder report)
+        protected void AppendNetworkServicesHtml(List<NetworkService> networkServices, int chapterNumber, ref StringBuilder report)
         {
             report.AppendLine($"<h4 id=\"{Guid.NewGuid()}\">{userConfig.GetText("network_services")}</h4>");
             report.AppendLine("<table>");

@@ -31,7 +31,9 @@ fragment ruleOverview on rule {
   rule_dst
   rule_svc
   rule_num_numeric
-  rule_num
+  rule_num_history_by_rule_id (where: {import_id: {_eq: $relevantImportId}}, limit: 1) {
+    rule_num
+  }
   rule_name
   access_rule
   nat_rule

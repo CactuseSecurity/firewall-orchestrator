@@ -5,7 +5,9 @@ class ManagementDetailsController(ManagementDetails):
 
     def __init__(self, hostname: str, id: int, uid: str, importDisabled: bool, devices: Dict, 
                  importerHostname: str, name: str, deviceTypeName: str, deviceTypeVersion: str, 
-                 port: int = 443, secret: str = '', importUser: str = '', isSuperManager: bool = False, subManagerIds: List[int] = []):
+                 port: int = 443, secret: str = '', importUser: str = '', isSuperManager: bool = False, 
+                 subManagerIds: List[int] = [], subManagers: List['ManagementDetails'] = [],
+                 domainName: str = '', domainUid: str = ''):
         self.Hostname = hostname
         self.Id = id
         self.Uid = uid
@@ -20,6 +22,9 @@ class ManagementDetailsController(ManagementDetails):
         self.Secret = secret
         self.IsSuperManager = isSuperManager
         self.SubManagerIds = subManagerIds
+        self.SubManagers = subManagers
+        self.DomainName = domainName
+        self.DomainUid = domainUid
 
     @classmethod
     def fromJson(cls, json_dict: Dict):

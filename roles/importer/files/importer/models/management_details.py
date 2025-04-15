@@ -1,5 +1,5 @@
 from typing import List
-# from pydantic import BaseModel
+from pydantic import Field
 
 class ManagementDetails():
     Id: int
@@ -15,4 +15,7 @@ class ManagementDetails():
     ImportUser: str
     Secret: str
     IsSuperManager: bool
-    SubManagerIds: List[int]
+    SubManagerIds: List[int] = []
+    DomainName: str = Field(alias='configPath', default='')
+    DomainUid: str = Field(alias='domainUid', default='')
+    SubManagers: List['ManagementDetails'] = Field(default = [], alias='subManager')

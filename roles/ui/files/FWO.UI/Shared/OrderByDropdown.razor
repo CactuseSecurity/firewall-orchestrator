@@ -118,7 +118,7 @@
                 CssClass = "";
             }
 
-            EventMediator.Subscribe<CollectionChangedEvent>(this, new Action<CollectionChangedEvent>(_ => ReorderCollection()));
+            EventMediator.Subscribe<CollectionChangedEvent>(new Action<CollectionChangedEvent>(_ => ReorderCollection()));
 
             initialized = true;
         }

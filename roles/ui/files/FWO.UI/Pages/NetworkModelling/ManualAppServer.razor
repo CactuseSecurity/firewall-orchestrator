@@ -1,4 +1,4 @@
-﻿@using FWO.Ui.Display
+@using FWO.Ui.Display
 @using System.Text.Json
 
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
@@ -109,8 +109,6 @@
     private bool workInProgress = false;
     private bool firstTry = true;
 
-    private readonly static CollectionChangedEvent OnCollectionChanged = new();
-
     protected override void OnInitialized()
     {
         try
@@ -156,7 +154,6 @@
 
     private void Close()
     {
-        EventMediator.Publish<CollectionChangedEvent>(OnCollectionChanged);
         firstTry = true;
         Display = false;
         DisplayChanged.InvokeAsync(Display);

@@ -225,7 +225,7 @@ namespace FWO.Middleware.Server
                     {
                         GroupDn = entry.Dn,
                         Members = members,
-                        OwnerGroup = entry.GetAttributeSet().ContainsKey("businessCategory") && entry.Get("businessCategory").StringValue.Equals("ownergroup", StringComparison.CurrentCultureIgnoreCase)
+                        OwnerGroup = entry.GetAttributeSet().ContainsKey("businessCategory") && entry.Get("businessCategory").StringValue.Equals("ownergroup", StringComparison.OrdinalIgnoreCase)
                     });
                 }
             }
@@ -275,7 +275,7 @@ namespace FWO.Middleware.Server
                     {
                         GroupDn = entry.Dn,
                         Members = members,
-                        OwnerGroup = entry.GetAttributeSet().ContainsKey("businessCategory") && entry.Get("businessCategory").StringValue.Equals("ownergroup", StringComparison.CurrentCultureIgnoreCase)
+                        OwnerGroup = entry.GetAttributeSet().ContainsKey("businessCategory") && entry.Get("businessCategory").StringValue.Equals("ownergroup", StringComparison.OrdinalIgnoreCase)
                     });
                 }
             }

@@ -1,8 +1,9 @@
-@using System
+@using FWO.Data.Modelling
 @using FWO.Data.Report
 @using FWO.Report
 @using FWO.Report.Filter
 @using FWO.Ui.Data
+@using System
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
@@ -60,15 +61,15 @@
                             </div>
                         </Tab>
                     }
-                    @if (CurrentReport?.ReportData.OwnerData.Count > 0 && CurrentReport?.ReportType == ReportType.Connections)
+                    @if (CurrentReport?.ReportData.OwnerData.Count > 0 && (bool)CurrentReport?.ReportType.IsOwnerRelatedReport())
                     {
-                        <Tab Title="@(userConfig.GetText("used_objects"))" StartSelected="true">
+                        <Tab Title="@(CurrentReport?.ReportType == ReportType.VarianceAnalysis ? userConfig.GetText("modelled_objects") : userConfig.GetText("used_objects"))" StartSelected="true">
                             <div class="d-md-flex justify-content-md-end sticky-marker-45">
                                 <div class="btn btn-secondary btn-sm w-50" @onclick="@(() => collapseInRSB.Collapse("report"))">@(userConfig.GetText("collapse_all"))</div>
                             </div>
                             <div class="mt-2">
                                 <ObjectGroupCollection PageSize="PageSize" FetchObjects="FetchContent" Recert="Recert" Tab="RsbTab.usedObj" StartCollapsed="false" InputDataType="OwnerReport"
-                                Data="CurrentReport.ReportData.OwnerData"
+                                Data="@(PrepareObjects(CurrentReport.ReportData.OwnerData))"
                                 NameExtractor="own => own.Name"
                                 NetworkObjectExtractor="own => own.GetAllNetworkObjects(true)"
                                 NetworkServiceExtractor="own => own.GetAllServices(true)" />
@@ -393,5 +394,19 @@
         {
             DisplayMessageInUi(exception, userConfig.GetText("object_fetch"), "", true);
         }
+    }
+
+    private List<OwnerReport> PrepareObjects(List<OwnerReport> ownerData)
+    {
+        if(CurrentReport?.ReportType == ReportType.VarianceAnalysis)
+        {
+            List<OwnerReport> ownerDataForRsb = [];
+            foreach(var ownerReport in ownerData)
+            {
+                ownerDataForRsb.Add(ReportVariances.CollectObjectsInReport(ownerReport));
+            }
+            return ownerDataForRsb;
+        }
+        return ownerData;
     }
 }

@@ -16,14 +16,14 @@ namespace FWO.Data.Modelling
         public ModellingNetworkArea(ModellingNwGroup nwgroup) : base(nwgroup)
         {}
         
-        public override NetworkObject ToNetworkObjectGroup()
+        public override NetworkObject ToNetworkObjectGroup(bool IdAsName = false)
         {
             Group<NetworkObject>[] objectGroups = NetworkDataWrapper.ResolveIpDataAsNetworkObjectGroup(IpData ?? []);
             return new()
             {
                 Id = Id,
                 Number = Number,
-                Name = Name + " (" + IdString + ")" ?? IdString ?? "",
+                Name = IdAsName ? IdString : Name + " (" + IdString + ")" ?? IdString ?? "",
                 Type = new NetworkObjectType(){ Name = ObjectType.Group },
                 ObjectGroups = objectGroups,
                 MemberNames = string.Join("|", Array.ConvertAll(objectGroups, o => o.Object?.Name))

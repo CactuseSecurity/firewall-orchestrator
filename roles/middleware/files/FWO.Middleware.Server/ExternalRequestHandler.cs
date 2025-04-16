@@ -417,6 +417,10 @@ namespace FWO.Middleware.Server
 						await LogRequestTasks([updatedTask], actSystem.Name, ModellingTypes.ChangeType.Reject, extReq.LastProcessingResponse ?? extReq.LastCreationResponse ?? "");
 					}
 				}
+				else
+				{
+					Log.WriteError("UpdateTicket", $"Task not found in Ticket {ticket.Id}: {taskNumber}");
+				}
 			}
 		}
 

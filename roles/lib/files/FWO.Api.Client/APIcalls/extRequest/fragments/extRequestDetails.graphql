@@ -16,5 +16,6 @@ fragment extRequestDetails on ext_request
 	  create_date
 	  finish_date
     wait_cycles
+    attempts
     locked
 }

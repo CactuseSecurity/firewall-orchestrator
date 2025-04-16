@@ -99,12 +99,14 @@ class FwConfigImportRule(FwConfigImportBase):
 
         errorCountDel, numberOfDeletedRules, removedRuleIds = self.markRulesRemoved(deletedRuleUids)
 
-        # update current rule order to db
-        self.updateRuleNums(self.NormalizedConfig.rulebases, self.ImportDetails.ImportId)
+        # update current rule order to db 
+        errorCountMove, numberOfMovedRules, ruleNumHistoryIds = self.updateRuleNums(self.NormalizedConfig.rulebases, self.ImportDetails.ImportId)
 
         self.ImportDetails.Stats.RuleAddCount += numberOfAddedRules
         self.ImportDetails.Stats.RuleDeleteCount += numberOfDeletedRules
         # self.ImportDetails.Stats.RuleChangeCount += numberOfChangedRules
+        self.ImportDetails.Stats.RuleMoveCount += numberOfMovedRules
+
 
         # TODO: rule_nwobj_resolved fuellen (recert?)
         return newRuleIds
@@ -484,9 +486,12 @@ class FwConfigImportRule(FwConfigImportBase):
         """
 
         logger = getFwoLogger()
+
         errors = 0
         changes = 0
-        changedRules = []
+        changedRuleNumHistoryEntries = []
+
+        insertObjects = []
         
         updateRuleNumHistory = """ mutation InsertRuleNumHistory($insertObjects: [rule_num_history_insert_input!]!) {
             insert_rule_num_history(objects: $insertObjects) {
@@ -520,8 +525,6 @@ class FwConfigImportRule(FwConfigImportBase):
 
                 ruleData = import_result["data"]["rule"]
 
-                insertObjects = []
-
                 for rulebase in rulebases:
                     newRuleNum = 0
                     for rule in rulebase.Rules.values():
@@ -542,17 +545,18 @@ class FwConfigImportRule(FwConfigImportBase):
                 logger.exception(f"fwo_api:updateRulebaseDiffs - error in InsertRuleNumHistory: {str(import_result['errors'])}")
                 errors = 1 
                 changes = 0
-                changedRules = []
+                changedRuleNumHistoryEntries = []
             else:
                 errors = 0
-                changes = 1
+                changes = import_result["data"]["insert_rule_num_history"]["affected_rows"]
+                changedRuleNumHistoryEntries = [list(dict.values())[0] for dict in import_result["data"]["insert_rule_num_history"]["returning"]]
         except Exception:
             logger.exception(f"failed to update rules: {str(traceback.format_exc())}")
             errors = 1 
             changes = 0
-            changedRules = []
+            changedRuleNumHistoryEntries = []
         
-        return errors, changes, changedRules     
+        return errors, changes, changedRuleNumHistoryEntries     
         
     # as we cannot add the rules for all rulebases in one go (using a constraint from the rule table), 
     # we need to add them per rulebase separately

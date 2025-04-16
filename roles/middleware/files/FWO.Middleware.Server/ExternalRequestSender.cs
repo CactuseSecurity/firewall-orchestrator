@@ -112,7 +112,7 @@ namespace FWO.Middleware.Server
 			{
 				ticket = JsonSerializer.Deserialize<ExternalTicket>(request.ExtRequestContent) ?? throw new Exception("No Ticket Content");
 				ticket.TicketSystem = JsonSerializer.Deserialize<ExternalTicketSystem>(request.ExtTicketSystem) ?? throw new Exception("No Ticket System");
-				Log.WriteInfo(userConfig.GetText("send_ext_request"), $"Id: {request.Id}, Internal TicketId: {request.TicketId}, TaskNo: {request.TaskNumber}");
+				Log.WriteInfo(userConfig.GetText("send_ext_request"), $"Request Id: {request.Id}, Internal TicketId: {request.TicketId}, TaskNo: {request.TaskNumber}");
 				request.Attempts++;
                 RestResponse<int> ticketIdResponse = await ticket.CreateExternalTicket();
 				request.LastMessage = ticketIdResponse.Content;
@@ -130,7 +130,7 @@ namespace FWO.Middleware.Server
 				}
 				else
 				{
-					Log.WriteError(userConfig.GetText("ext_ticket_fail"), "Error Message: " + ticketIdResponse?.StatusDescription + ", " + ticketIdResponse?.Content);
+					Log.WriteError(userConfig.GetText("ext_ticket_fail"), $"Request Id: {request.Id}, Internal TicketId: {request.TicketId}, TaskNo: {request.TaskNumber}. Error Message: " + ticketIdResponse?.StatusDescription + ", " + ticketIdResponse?.Content);
 					if(AnalyseForRejected(ticketIdResponse))
 					{
 						await RejectRequest(request);

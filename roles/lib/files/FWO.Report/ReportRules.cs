@@ -315,7 +315,7 @@ namespace FWO.Report
             {
                 // update order number
                 Rule rule = rules[i];
-                List<int> path = new List<int>(currentPath) { i + 1 };
+                List<int> path = new List<int>(currentPath) { rule.RuleOrderNumber + 1 };
                 string dotted = string.Join(".", path);
                 result[(int) rule.Id] = (dotted, positionCounter++);
 

@@ -5,3 +5,4 @@ namespace FWO.Services.EventMediator.Interfaces
         public IEventArgs? EventArgs { get; set; }
     }
 }
+

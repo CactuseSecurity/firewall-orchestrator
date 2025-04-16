@@ -54,9 +54,9 @@ public class EventMediator : IEventMediator
     /// <returns>True/False if remove was successfull</returns>
     public bool Unsubscribe<TEvent>(string name) where TEvent : class, IEvent
     {
-        if(_handlers.ContainsKey(typeof(TEvent)))
+        if(_handlers.ContainsKey(typeof(TEvent)) && _handlers[typeof(TEvent)].ContainsKey(name))
         {
-           return _handlers.Remove(typeof(TEvent));
+           return _handlers[typeof(TEvent)].Remove(name);
         }
 
         return false;

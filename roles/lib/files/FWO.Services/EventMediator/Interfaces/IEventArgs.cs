@@ -1,4 +1,4 @@
-namespace FWO.Services.EventMediator.Interfaces;
-
-public interface IEventArgs { }
-
+namespace FWO.Services.EventMediator.Interfaces
+{
+    public interface IEventArgs { }
+}

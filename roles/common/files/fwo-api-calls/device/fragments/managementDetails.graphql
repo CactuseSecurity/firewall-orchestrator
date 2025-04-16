@@ -30,7 +30,7 @@ fragment ManagementDetails on management {
   }
   isSuperManager: is_super_manager
   superManager: multi_device_manager_id
-  subManager: managementByMultiDeviceManagerId {
+  subManagers: managementByMultiDeviceManagerId {
     id: mgm_id
     name: mgm_name
     uid: mgm_uid
@@ -51,5 +51,9 @@ fragment ManagementDetails on management {
       importDisabled: do_not_import
       local_rulebase_name: local_rulebase_name
     }
+    importerHostname: importer_hostname
+    import_credential { ...ImportCredentialDetails }
+    isSuperManager: is_super_manager
+    subManagers: managementByMultiDeviceManagerId { mgm_id }
   }
 }

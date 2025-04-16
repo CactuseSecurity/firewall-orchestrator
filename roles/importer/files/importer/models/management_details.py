@@ -18,4 +18,4 @@ class ManagementDetails():
     SubManagerIds: List[int] = []
     DomainName: str = Field(alias='configPath', default='')
     DomainUid: str = Field(alias='domainUid', default='')
-    SubManagers: List['ManagementDetails'] = Field(default = [], alias='subManager')
+    SubManagers: List['ManagementDetails'] = Field(default=[], alias='subManager')

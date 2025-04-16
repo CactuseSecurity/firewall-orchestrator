@@ -41,10 +41,14 @@ class ManagementDetailsController(ManagementDetails):
         ImportUser = json_dict['import_credential']['user']
         Secret = json_dict['import_credential']['secret']
         IsSuperManager = json_dict["isSuperManager"]
-        SubManagerIds = [subManager["id"] for subManager in json_dict["subManager"]]
+        SubManagerIds = [subManager["id"] for subManager in json_dict["subManagers"]]
+        SubManagers = [cls.fromJson(subManager) for subManager in json_dict["subManagers"]]
+        domainName = json_dict['configPath']
+        domainUid = json_dict['domainUid']
 
         return cls(Hostname, Id, Uid, ImportDisabled, Devices, ImporterHostname, Name, DeviceTypeName, DeviceTypeVersion,
-                    port=Port, importUser=ImportUser, secret=Secret, isSuperManager = IsSuperManager, subManagerIds = SubManagerIds)
+                    port=Port, importUser=ImportUser, secret=Secret, isSuperManager = IsSuperManager, subManagerIds = SubManagerIds, 
+                    subManagers = SubManagers, domainName = domainName, domainUid = domainUid)
 
     def __str__(self):
         return f"{self.Hostname}({self.Id})"

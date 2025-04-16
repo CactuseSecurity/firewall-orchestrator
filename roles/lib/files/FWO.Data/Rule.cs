@@ -122,5 +122,11 @@ namespace FWO.Data
             return Action == "drop" || Action == "reject" || Action == "deny";
         }
 
+        public Rule CreateClone()
+        {
+            var json = JsonConvert.SerializeObject(this);
+            return JsonConvert.DeserializeObject<Rule>(json);
+        }
+
     }
 }

@@ -276,7 +276,8 @@ namespace FWO.Report
         {
             Dictionary<int, List<Rule>> rulesByRulebase = new();
             Dictionary<int, List<RulebaseLink>> linksByFromRuleId = new();
-            Dictionary<int, (string dottedNumber, int position)> result = new();
+            Dictionary<Rule, (string dottedNumber, int position)> result = new();
+            List<Rule> traversedRules = new();
             int positionCounter = 1;
 
             // build order number map
@@ -292,13 +293,15 @@ namespace FWO.Report
 
             int rootRulebaseId = device.RulebaseLinks.First(link => link.IsInitialRulebase()).NextRulebaseId;
             
-            TraverseRulebase(rootRulebaseId, new List<int> { 1 }, rulesByRulebase, linksByFromRuleId, result, ref positionCounter);
+            TraverseRulebase(rootRulebaseId, new List<int> { 1 }, rulesByRulebase, linksByFromRuleId, result, ref positionCounter, traversedRules, allRules);
 
             // update rules
 
+
+
             foreach(Rule rule in allRules)
             {
-                if (result.TryGetValue((int) rule.Id, out var ruleOrderNumbers))
+                if (result.TryGetValue(rule, out var ruleOrderNumbers))
                 {
                     rule.DisplayOrderNumberString = ruleOrderNumbers.dottedNumber;
                     rule.OrderNumber = ruleOrderNumbers.position;
@@ -307,7 +310,7 @@ namespace FWO.Report
 
         }
 
-        private static void TraverseRulebase(int rulebaseId, List<int> currentPath, Dictionary<int, List<Rule>> rulesByRulebase, Dictionary<int, List<RulebaseLink>> linksByFromRuleId, Dictionary<int, (string dottedNumber, int position)> result, ref int positionCounter)
+        private static void TraverseRulebase(int rulebaseId, List<int> currentPath, Dictionary<int, List<Rule>> rulesByRulebase, Dictionary<int, List<RulebaseLink>> linksByFromRuleId, Dictionary<Rule, (string dottedNumber, int position)> result, ref int positionCounter, List<Rule> traversedRules, List<Rule> allRules)
         {
             if (!rulesByRulebase.TryGetValue(rulebaseId, out var rules)) return;
 
@@ -315,9 +318,18 @@ namespace FWO.Report
             {
                 // update order number
                 Rule rule = rules[i];
+
+                if(traversedRules.Contains(rule)) // TODO: make with TryGetValue
+                {
+                    rule = rule.CreateClone();
+                    allRules.Add(rule);
+                }
+
                 List<int> path = new List<int>(currentPath) { rule.RuleOrderNumber + 1 };
                 string dotted = string.Join(".", path);
-                result[(int) rule.Id] = (dotted, positionCounter++);
+                result[rule] = (dotted, positionCounter++);
+                traversedRules.Add(rule);
+
 
                 // if there is a rulebase link which has current rules id as FromRuleId handle rule base link
                 if (linksByFromRuleId.TryGetValue((int) rule.Id, out var links))
@@ -327,16 +339,17 @@ namespace FWO.Report
                         if (link.LinkType == 2) // ordered
                         {
                             path = new List<int> { path[0] + 1 };
-                            TraverseRulebase(link.NextRulebaseId, path, rulesByRulebase, linksByFromRuleId, result, ref positionCounter);
+                            TraverseRulebase(link.NextRulebaseId, path, rulesByRulebase, linksByFromRuleId, result, ref positionCounter, traversedRules, allRules);
                         }
                         else if (link.LinkType == 3) // inline
                         {
-                            TraverseRulebase(link.NextRulebaseId, path, rulesByRulebase, linksByFromRuleId, result, ref positionCounter);
+                            TraverseRulebase(link.NextRulebaseId, path, rulesByRulebase, linksByFromRuleId, result, ref positionCounter, traversedRules, allRules);
                         }
                     }
                 }
             }
         }
+
         public override string SetDescription()
         {
             int managementCounter = 0;

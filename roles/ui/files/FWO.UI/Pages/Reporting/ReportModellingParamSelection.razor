@@ -10,7 +10,7 @@
             @owner.Display(userConfig.GetText("common_service"))
         </ElementTemplate>
     </Dropdown>
-    @if(AllParams)
+    @if(ReportType == ReportType.AppRules)
     {
         <br>
         <h5 class="text-left">@(userConfig.GetText("rule_filters"))</h5>
@@ -47,6 +47,15 @@
             <label class="form-check-label text-white" for="showFull">@(userConfig.GetText("show_full_rules"))</label>
         </div>
     }
+     else if(ReportType == ReportType.VarianceAnalysis)
+    {
+        <br>
+        <h5 class="text-left">@(userConfig.GetText("variance_filters"))</h5>
+        <div class="form-check">
+            <input class="form-check-input" id="analyseRemaining" type="checkbox" @bind="ModellingFilter.AnalyseRemainingRules" />
+            <label class="form-check-label text-white" for="analyseRemaining">@(userConfig.GetText("analyse_remaining_rules"))</label>
+        </div>
+    }
 </div>
 
 
@@ -68,7 +77,7 @@
     public int? InjectedAppId { get; set; } = null;
 
     [Parameter]
-    public bool AllParams { get; set; } = false;
+    public ReportType ReportType { get; set; } = ReportType.Connections;
 
     private List<FwoOwner> ownerList = new List<FwoOwner>();
 

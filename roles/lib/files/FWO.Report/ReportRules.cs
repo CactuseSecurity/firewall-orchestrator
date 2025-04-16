@@ -268,7 +268,6 @@ namespace FWO.Report
         // /// <summary>
         // /// Creates more dimensional (dotted) order numbers for display and sets hidden int order number for sorting.
         // /// </summary>
-        // TODO: Find reason for missing rules and fix the problem
         // TODO: Implement unit tests
         // TODO: Simplify (if possible) and comment
         // TODO: Enhance performance
@@ -278,12 +277,13 @@ namespace FWO.Report
             Dictionary<int, List<RulebaseLink>> linksByFromRuleId = new();
             Dictionary<Rule, (string dottedNumber, int position)> result = new();
             List<Rule> traversedRules = new();
+            List<int> initialPath = new();
             int positionCounter = 1;
 
             // build order number map
 
             rulesByRulebase = allRules.GroupBy(r => r.RulebaseId)
-                                        .ToDictionary(g => g.Key, g => g.OrderBy(r => r.RuleOrderNumber) // TODO: check if order by id is reliable for this purpose
+                                        .ToDictionary(g => g.Key, g => g.OrderBy(r => r.RuleOrderNumber)
                                         .ToList());
 
             linksByFromRuleId = device.RulebaseLinks.Where(link => !link.IsInitialRulebase())
@@ -293,11 +293,14 @@ namespace FWO.Report
 
             int rootRulebaseId = device.RulebaseLinks.First(link => link.IsInitialRulebase()).NextRulebaseId;
             
-            TraverseRulebase(rootRulebaseId, new List<int> { 1 }, rulesByRulebase, linksByFromRuleId, result, ref positionCounter, traversedRules, allRules);
+            if(device.RulebaseLinks.Any(link => link.LinkType == 2))
+            {
+                initialPath.Add(1);
+            }
+
+            TraverseRulebase(rootRulebaseId, initialPath, rulesByRulebase, linksByFromRuleId, result, ref positionCounter, traversedRules, allRules);
 
             // update rules
-
-
 
             foreach(Rule rule in allRules)
             {

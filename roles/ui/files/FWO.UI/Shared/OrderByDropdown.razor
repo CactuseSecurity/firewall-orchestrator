@@ -119,8 +119,7 @@
                 CssClass = "";
             }
 
-            EventMediator.Subscribe<CollectionChangedEvent>(nameof(Pages.NetworkModelling.EditAppRole), 
-                new Action<CollectionChangedEvent>(_ => ReorderCollection()));
+            EventMediator.Subscribe<CollectionChangedEvent>(nameof(Pages.NetworkModelling.EditAppRole), _ => ReorderCollection());
 
             initialized = true;
         }

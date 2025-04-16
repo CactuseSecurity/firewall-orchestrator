@@ -90,6 +90,7 @@
     hasura_env:
       HASURA_GRAPHQL_DATABASE_URL:     "postgres://{{ api_user }}:{{ api_user_password }}@{{ fworch_db_host }}:{{ fworch_db_port }}/{{ fworch_db_name }}"
       HASURA_GRAPHQL_ENABLE_CONSOLE:   "true"
+      HASURA_GRAPHQL_REQUEST_SIZE_LIMIT: "262144000"
       HASURA_GRAPHQL_ENABLE_TELEMETRY: "false"
       HASURA_GRAPHQL_ADMIN_SECRET:     "{{ api_hasura_admin_secret }}"
       HASURA_GRAPHQL_LOG_LEVEL:        "{{ api_log_level }}"

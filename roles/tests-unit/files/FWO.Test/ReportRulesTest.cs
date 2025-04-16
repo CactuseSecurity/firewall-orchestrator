@@ -18,47 +18,54 @@ namespace FWO.Test
                 {
                     Id = 1,
                     Name = "1.1",
-                    RulebaseId = 1
+                    RulebaseId = 1,
+                    RuleOrderNumber = 0
                 },
                 new Rule
                 {
                     Id = 2,
                     Name = "1.2",
-                    RulebaseId = 1
+                    RulebaseId = 1,
+                    RuleOrderNumber = 1
                 },
                 // rulebase link: ordered from rule 2 to rulebase 2
                 new Rule
                 {
                     Id = 3,
                     Name = "2.1",
-                    RulebaseId = 2
+                    RulebaseId = 2,
+                    RuleOrderNumber = 0
                 },
                 // rulebase link: inline from rule 3 to rulebase 3
                 new Rule
                 {
                     Id = 4,
                     Name = "2.1.1",
-                    RulebaseId = 3
+                    RulebaseId = 3,
+                    RuleOrderNumber = 0
                 },
                 new Rule
                 {
                     Id = 5,
                     Name = "2.1.2",
-                    RulebaseId = 3
+                    RulebaseId = 3,
+                    RuleOrderNumber = 1
                 },
                 // no more rules for rulebase => jump backwards to last rulebase with remaining rules
                 new Rule
                 {
                     Id = 6,
                     Name = "2.2",
-                    RulebaseId = 2
+                    RulebaseId = 2,
+                    RuleOrderNumber = 1
                 },
                 // rulebase link: ordered from rule 5 to rulebase 4
                 new Rule
                 {
                     Id = 7,
                     Name = "3.1",
-                    RulebaseId = 4
+                    RulebaseId = 4,
+                    RuleOrderNumber = 0
                 }                               
             };
             ManagementReport mgmReport = new();

@@ -99,14 +99,9 @@ class FwConfigImportRule(FwConfigImportBase):
 
         errorCountDel, numberOfDeletedRules, removedRuleIds = self.markRulesRemoved(deletedRuleUids)
 
-        # update current rule order to db 
-        errorCountMove, numberOfMovedRules, ruleNumHistoryIds = self.updateRuleNums(self.NormalizedConfig.rulebases, self.ImportDetails.ImportId)
-
         self.ImportDetails.Stats.RuleAddCount += numberOfAddedRules
         self.ImportDetails.Stats.RuleDeleteCount += numberOfDeletedRules
         # self.ImportDetails.Stats.RuleChangeCount += numberOfChangedRules
-        self.ImportDetails.Stats.RuleMoveCount += numberOfMovedRules
-
 
         # TODO: rule_nwobj_resolved fuellen (recert?)
         return newRuleIds
@@ -472,91 +467,6 @@ class FwConfigImportRule(FwConfigImportBase):
         except Exception:
             logger.exception(f"failed to write new rules: {str(traceback.format_exc())}")
             return 1, 0, newRulebaseIds
-        
-    def updateRuleNums(self, rulebases, importId):
-        """
-        Updates db table rule_num_history, according to the order inside a list of rulebases.
-
-        Args:
-            rulebases (list): A list containing the rulebases of this import.
-
-        Returns:
-            tuple: (errors, changes), where errors is 1 if an error occurred, otherwise 0, 
-                and changes is 1 if modifications were made, otherwise 0.
-        """
-
-        logger = getFwoLogger()
-
-        errors = 0
-        changes = 0
-        changedRuleNumHistoryEntries = []
-
-        insertObjects = []
-        
-        updateRuleNumHistory = """ mutation InsertRuleNumHistory($insertObjects: [rule_num_history_insert_input!]!) {
-            insert_rule_num_history(objects: $insertObjects) {
-                affected_rows
-                returning {
-                id
-                }
-            }
-        }
-        """
-
-        getRules = """ query GetAllRuleIds{
-            rule {
-                rule_id
-                rule_uid,
-                rule_num
-            }
-        }
-        """
-        # execute mutation
-        try:
-
-            # build query variables
-
-            import_result = self.ImportDetails.call(getRules, queryVariables={})
-            if 'errors' in import_result:
-                logger.exception(f"fwo_api:updateRulebaseDiffs - error in GetAllRuleIds: {str(import_result['errors'])}")
-                errors = 1 
-            else:
-                errors = 0
-
-                ruleData = import_result["data"]["rule"]
-
-                for rulebase in rulebases:
-                    newRuleNum = 0
-                    for rule in rulebase.Rules.values():
-                        ruleDataRule =  next((ruleDataObject for ruleDataObject in ruleData if ruleDataObject["rule_uid"] == rule.rule_uid), None)
-                        insertObjects.append(
-                            {
-                            "import_id": importId,
-                            "rule_id": ruleDataRule["rule_id"],
-                            "rule_num": newRuleNum
-                            }
-                        )
-                        newRuleNum += 1
-
-            # update rule_num_history
-
-            import_result = self.ImportDetails.call(updateRuleNumHistory, queryVariables={ "insertObjects": insertObjects })
-            if 'errors' in import_result:
-                logger.exception(f"fwo_api:updateRulebaseDiffs - error in InsertRuleNumHistory: {str(import_result['errors'])}")
-                errors = 1 
-                changes = 0
-                changedRuleNumHistoryEntries = []
-            else:
-                errors = 0
-                changes = import_result["data"]["insert_rule_num_history"]["affected_rows"]
-                changedRuleNumHistoryEntries = [list(dict.values())[0] for dict in import_result["data"]["insert_rule_num_history"]["returning"]]
-        except Exception:
-            logger.exception(f"failed to update rules: {str(traceback.format_exc())}")
-            errors = 1 
-            changes = 0
-            changedRuleNumHistoryEntries = []
-        
-        return errors, changes, changedRuleNumHistoryEntries     
         
     # as we cannot add the rules for all rulebases in one go (using a constraint from the rule table), 
     # we need to add them per rulebase separately

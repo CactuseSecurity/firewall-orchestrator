@@ -92,20 +92,11 @@ namespace FWO.Data
         [JsonProperty("rulebase_id"), JsonPropertyName("rulebase_id")]
         public int RulebaseId { get; set; }
 
-        [Newtonsoft.Json.JsonIgnore]
-        public int RuleOrderNumber
-        {
-            get
-            {
-                return RuleNumHistory?.FirstOrDefault()?.RuleNum ?? 0;
-            }
-        }
+        [JsonProperty("rule_num"), JsonPropertyName("rule_num")]
+        public int RuleOrderNumber { get; set; }
         
         [JsonProperty("rule_enforced_on_gateways"), JsonPropertyName("rule_enforced_on_gateways")]
         public DeviceWrapper[] EnforcingGateways { get; set; } = [];
-
-        [JsonProperty("rule_num_history_by_rule_id"), JsonPropertyName("rule_num_history_by_rule_id")]
-        public RuleNumHistory[]? RuleNumHistory { get; set; }
 
         public string DisplayOrderNumberString { get; set; }
         public int DisplayOrderNumber { get; set; }
@@ -122,11 +113,13 @@ namespace FWO.Data
             return Action == "drop" || Action == "reject" || Action == "deny";
         }
 
+        /// <summary>
+        /// Creates an exact copy of this rule.
+        /// </summary>
         public Rule CreateClone()
         {
             var json = JsonConvert.SerializeObject(this);
             return JsonConvert.DeserializeObject<Rule>(json);
         }
-
     }
 }

@@ -21,7 +21,7 @@
                         <Table SelectedItems="SelectedRules"
                             RowClickAction="@(async rule => { rule.DeviceName = device.Name ?? ""; if (!SelectedRules.Remove(rule)) SelectedRules.Add(rule); await SelectedRulesChanged.InvokeAsync(SelectedRules); })"
                             style="font-size:small" TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="Rule" Items="ReportRules.GetAllRulesOfGateway(device, management)" ShowSearchBar="false"
-                             PageSize="RulesPerPage" ColumnReorder="true" TableRowClass="@(rule => getTableRowClasses(rule))"
+                            PageSize="RulesPerPage" ColumnReorder="true" TableRowClass="@(rule => getTableRowClasses(rule))"
                             @ref="reportTable">
 
                             @if (EmptyColumns[0] == false)

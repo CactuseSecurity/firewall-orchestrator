@@ -197,7 +197,10 @@ namespace FWO.Report
                 if (initialRules != null)
                 {
                     List<Rule> allRules = GetAllRulesOfGatewayRecursively(deviceReport, managementReport, [], initialRules);
+
+                    // create hierarchical order number on runtime
                     CreateOrderNumbers(allRules,  managementReport, deviceReport);
+
                     return allRules.ToArray();
                 }
             }
@@ -268,9 +271,6 @@ namespace FWO.Report
         // /// <summary>
         // /// Creates more dimensional (dotted) order numbers for display and sets hidden int order number for sorting.
         // /// </summary>
-        // TODO: Implement unit tests
-        // TODO: Simplify (if possible) and comment
-        // TODO: Enhance performance
         public static void CreateOrderNumbers(List<Rule> allRules, ManagementReport mgmReport, DeviceReport device)
         {
             Dictionary<int, List<Rule>> rulesByRulebase = new();

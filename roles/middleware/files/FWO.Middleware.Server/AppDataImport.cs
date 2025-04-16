@@ -422,7 +422,7 @@ namespace FWO.Middleware.Server
 			{
 				foreach (var modeller in incomingApp.Modellers)
 				{
-					if (existingMembers.FirstOrDefault(x => x.Equals(modeller, StringComparison.CurrentCultureIgnoreCase)) == null)
+					if (existingMembers.FirstOrDefault(x => x.Equals(modeller, StringComparison.OrdinalIgnoreCase)) == null)
 					{
                         await internalLdap.AddUserToEntry(modeller, groupDn);
 					}
@@ -432,7 +432,7 @@ namespace FWO.Middleware.Server
 			{
 				foreach (var modellerGrp in incomingApp.ModellerGroups)
 				{
-					if (existingMembers.FirstOrDefault(x => x.Equals(modellerGrp, StringComparison.CurrentCultureIgnoreCase)) == null)
+					if (existingMembers.FirstOrDefault(x => x.Equals(modellerGrp, StringComparison.OrdinalIgnoreCase)) == null)
 					{
 						await internalLdap.AddUserToEntry(modellerGrp, groupDn);
 					}
@@ -440,8 +440,8 @@ namespace FWO.Middleware.Server
 			}
 			foreach (var member in existingMembers)
 			{
-				if ((incomingApp.Modellers == null || incomingApp.Modellers.FirstOrDefault(x => x.Equals(member, StringComparison.CurrentCultureIgnoreCase)) == null)
-					&& (incomingApp.ModellerGroups == null || incomingApp.ModellerGroups.FirstOrDefault(x => x.Equals(member, StringComparison.CurrentCultureIgnoreCase)) == null))
+				if ((incomingApp.Modellers == null || incomingApp.Modellers.FirstOrDefault(x => x.Equals(member, StringComparison.OrdinalIgnoreCase)) == null)
+					&& (incomingApp.ModellerGroups == null || incomingApp.ModellerGroups.FirstOrDefault(x => x.Equals(member, StringComparison.OrdinalIgnoreCase)) == null))
 				{
 					await internalLdap.RemoveUserFromEntry(member, groupDn);
 				}
@@ -495,7 +495,7 @@ namespace FWO.Middleware.Server
 					++failCounter;
 				}
 			}
-			foreach (var existingAppServer in existingAppServers)
+			foreach (var existingAppServer in existingAppServers.Where(e => !e.IsDeleted).ToList())
 			{
 				if (incomingApp.AppServers.FirstOrDefault(x => x.Ip.IpAsCidr() == existingAppServer.Ip.IpAsCidr() && x.IpEnd.IpAsCidr() == existingAppServer.IpEnd.IpAsCidr()) == null)
 				{
@@ -529,28 +529,31 @@ namespace FWO.Middleware.Server
 				{
 					return await NewAppServer(incomingAppServer, appID, impSource);
 				}
+
+				if (existingAppServer.IsDeleted)
+				{
+					if (!await ReactivateAppServer(existingAppServer))
+					{	
+						return false;
+					}
+				}
 				else
 				{
-					if (existingAppServer.IsDeleted)
-					{
-						if (!await ReactivateAppServer(existingAppServer))
-						{	
-							return false;
-						}
+					// in case there are still active appservers from other sources (resulting e.g. from older revisions)
+					await AppServerHelper.DeactivateOtherSources(apiConnection, userConfig, existingAppServer);
+				}
+				if (!existingAppServer.Name.Equals(incomingAppServer.Name))
+				{
+					if (!await UpdateAppServerName(existingAppServer, incomingAppServer.Name))
+					{	
+						return false;
 					}
-					if (!existingAppServer.Name.Equals(incomingAppServer.Name))
-					{
-						if (!await UpdateAppServerName(existingAppServer, incomingAppServer.Name))
-						{	
-							return false;
-						}
-					}
-					if (existingAppServer.CustomType == null)
-					{
-						if (!await UpdateAppServerType(existingAppServer))
-						{	
-							return false;
-						}
+				}
+				if (existingAppServer.CustomType == null)
+				{
+					if (!await UpdateAppServerType(existingAppServer))
+					{	
+						return false;
 					}
 				}
 				return true;

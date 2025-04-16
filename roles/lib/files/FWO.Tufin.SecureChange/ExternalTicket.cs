@@ -62,13 +62,13 @@ namespace FWO.Tufin.SecureChange
 			request.AddHeader("Content-Type", "application/json");
 			request.AddHeader("Authorization", TicketSystem.Authorization);
 			request.AddHeader("Accept", "application/json");
-			RestClientOptions restClientOptions = new RestClientOptions() { Timeout = TimeSpan.FromMinutes(30) };
+			RestClientOptions restClientOptions = new() { Timeout = TimeSpan.FromSeconds(TicketSystem.ResponseTimeout) };
 			restClientOptions.RemoteCertificateValidationCallback += (_, _, _, _) => true;
 			restClientOptions.BaseUrl = new Uri(TicketSystem.Url);
 			RestClient restClient = new(restClientOptions, null, ConfigureRestClientSerialization);
 
 			// Debugging SecureChange API call
-			DebugApiCall(request, restClient, restEndPoint);
+			Log.WriteDebug("API", DebugApiCallText(request, restClient, restEndPoint));
 
 			// send API call
 			return await restClient.ExecuteAsync<int>(request);
@@ -92,7 +92,7 @@ namespace FWO.Tufin.SecureChange
 			config.UseSerializer(() => serializer);
 		}
 
-		private static void DebugApiCall(RestRequest request, RestClient restClient, string restEndPoint)
+		private static string DebugApiCallText(RestRequest request, RestClient restClient, string restEndPoint)
 		{
 			string headers = "";
 			string body = "";
@@ -108,7 +108,7 @@ namespace FWO.Tufin.SecureChange
 						headers += $"header: '{p.Name}: {p.Value}' ";
 				}
 			}
-			Log.WriteDebug("API", $"Sending API Call to SecureChange:\nrequest: {request.Method}, base url: {restClient.Options.BaseUrl}, restEndpoint: {restEndPoint}, body: {body}, {headers} ");
+			return $"Sending API Call to SecureChange:\nrequest: {request.Method}, base url: {restClient.Options.BaseUrl}, restEndpoint: {restEndPoint}, body: {body}, {headers}";
 		}
 	}
 }

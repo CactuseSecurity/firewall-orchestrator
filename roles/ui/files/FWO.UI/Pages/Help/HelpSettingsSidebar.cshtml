@@ -50,6 +50,9 @@
                 <a class="nav-link" href="/help/settings/defaults/?lang=@($"{userConfig.GetUserLanguage()}")">
                     <span class="@Icons.Settings"></span> @(userConfig.GetText("standards"))
                 </a>
+                <a class="nav-link" href="/help/settings/reportgeneral/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="@Icons.Reporting"></span> @(userConfig.GetText("reporting"))
+                </a>
                 <a class="nav-link" href="/help/settings/recertificationgeneral/?lang=@($"{userConfig.GetUserLanguage()}")">
                     <span class="@Icons.Recertification"></span> @(userConfig.GetText("recertification"))
                 </a>

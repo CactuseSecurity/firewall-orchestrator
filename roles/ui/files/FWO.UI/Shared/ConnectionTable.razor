@@ -8,8 +8,8 @@
     <PageSizeComponent PageSizeCallback="UpdatePageSize"></PageSizeComponent>
 }
 <Table class="table table-bordered th-bg-secondary sticky-header show-scrollbar table-responsive" TableItem="ModellingConnection"
-Items="Connections" PageSize="PageSize" ColumnReorder="true" TableRowClass="@(con => getTableRowClass(con))"
-SelectedItems="SelectedConns" RowClickAction="@(conn => ToggleSelection(conn))">
+        Items="Connections" PageSize="PageSize" ColumnReorder="true" TableRowClass="@(con => getTableRowClass(con))"
+        SelectedItems="SelectedConns" RowClickAction="@(conn => ToggleSelection(conn))">
     @if (!Readonly && !SelectInterfaceView && AppHandler != null)
     {
         <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
@@ -53,7 +53,7 @@ SelectedItems="SelectedConns" RowClickAction="@(conn => ToggleSelection(conn))">
         </Column>
     }
     <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
-    @if (!SelectInterfaceView)
+    @if (!SelectInterfaceView && !DiffMode)
     {
         @if (Connections.Count > 0 && Connections.First().IsInterface)
         {
@@ -87,12 +87,15 @@ SelectedItems="SelectedConns" RowClickAction="@(conn => ToggleSelection(conn))">
             @((MarkupString)DisplayConditional(context, context.Name ?? ""))
         </Template>
     </Column>
-    <Column TableItem="ModellingConnection" Title="@(Connections.Count > 0 && Connections.First().IsInterface ? userConfig.GetText("interface_description") : userConfig.GetText("func_reason"))"
-    Field="@(x => x.Reason)" Sortable="true" Filterable="true">
-        <Template>
-            @((MarkupString)DisplayConditional(context, context.Reason ?? ""))
-        </Template>
-    </Column>
+    @if(!DiffMode)
+    {
+        <Column TableItem="ModellingConnection" Title="@(Connections.Count > 0 && Connections.First().IsInterface ? userConfig.GetText("interface_description") : userConfig.GetText("func_reason"))"
+                Field="@(x => x.Reason)" Sortable="true" Filterable="true">
+            <Template>
+                @((MarkupString)DisplayConditional(context, context.Reason ?? ""))
+            </Template>
+        </Column>
+    }
     <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("source"))" Field="@(x => x.Id)" Sortable="true" Filterable="false">
         <Template>
             <ExpandableList2 Elements="ModellingHandlerBase.GetSrcNames(context, userConfig)" Context="src" AlwaysShowElements="@userConfig.OverviewDisplayLines">
@@ -164,6 +167,9 @@ SelectedItems="SelectedConns" RowClickAction="@(conn => ToggleSelection(conn))">
 
     [Parameter]
     public bool ShowPageSizeInput { get; set; } = false;
+
+    [Parameter]
+    public bool DiffMode { get; set; } = false;
 
     private int PageSize { get; set; }
 
@@ -242,6 +248,6 @@ SelectedItems="SelectedConns" RowClickAction="@(conn => ToggleSelection(conn))">
                 }
             }
         }
-        return relevantProps.Count > 0 ? string.Join(",", relevantProps) : $"<span style=\"color:green\">{true.ShowAsHtml()}</span>";
+        return relevantProps.Count > 0 ? string.Join(",", relevantProps) : $"<span style=\"{GlobalConst.kStyleHighlightedGreen}\">{true.ShowAsHtml()}</span>";
     }
 }

@@ -199,7 +199,7 @@ namespace FWO.Report
                     List<Rule> allRules = GetAllRulesOfGatewayRecursively(deviceReport, managementReport, [], initialRules);
 
                     // create hierarchical order number on runtime
-                    CreateOrderNumbers(allRules,  managementReport, deviceReport);
+                    CreateOrderNumbers(allRules, deviceReport);
 
                     return allRules.ToArray();
                 }
@@ -268,61 +268,54 @@ namespace FWO.Report
             return 0;
         }
 
-        // /// <summary>
-        // /// Creates more dimensional (dotted) order numbers for display and sets hidden int order number for sorting.
-        // /// </summary>
-        public static void CreateOrderNumbers(List<Rule> allRules, ManagementReport mgmReport, DeviceReport device)
+        /// <summary>
+        /// Creates multi-level (dotted) order numbers for display and sets internal numeric order for sorting.
+        /// </summary>
+        public static void CreateOrderNumbers(List<Rule> rules, DeviceReport device)
         {
-            Dictionary<int, List<Rule>> rulesByRulebase = new();
-            Dictionary<int, List<RulebaseLink>> linksByFromRuleId = new();
+            // Creates a dictionary with rulebase IDs as keys and lists of the corresponding rows as values.
+
+            Dictionary<int, List<Rule>> rulesByRulebase = rules
+                .GroupBy(r => r.RulebaseId)
+                .ToDictionary(g => g.Key, g => g.OrderBy(r => r.RuleOrderNumber).ToList());
+
+            // Creates a dictionary with rule IDs as keys and the rulebase link that has that rule as its from rule as values.
+
+            Dictionary<int, RulebaseLink> linksByFromRuleId = device.RulebaseLinks
+                .Where(link => !link.IsInitialRulebase() && link.FromRuleId.HasValue)
+                .ToDictionary(link => link.FromRuleId!.Value, link => link);
+
+            // Initialize other needed variables.
+
             Dictionary<Rule, (string dottedNumber, int position)> result = new();
-            List<Rule> traversedRules = new();
             List<int> initialPath = new();
             int positionCounter = 1;
-
-            // build order number map
-
-            rulesByRulebase = allRules.GroupBy(r => r.RulebaseId)
-                                        .ToDictionary(g => g.Key, g => g.OrderBy(r => r.RuleOrderNumber)
-                                        .ToList());
-
-            linksByFromRuleId = device.RulebaseLinks.Where(link => !link.IsInitialRulebase())
-                                                        .GroupBy(l => l.FromRuleId ?? 0)
-                                                        .ToDictionary(g => g.Key, g => g
-                                                        .ToList());
-
             int rootRulebaseId = device.RulebaseLinks.First(link => link.IsInitialRulebase()).NextRulebaseId;
             
+            // If there are more than one layer path needs to be initialized here.
+
             if(device.RulebaseLinks.Any(link => link.LinkType == 2))
             {
                 initialPath.Add(1);
             }
 
-            TraverseRulebase(rootRulebaseId, initialPath, rulesByRulebase, linksByFromRuleId, result, ref positionCounter, traversedRules, allRules);
-
-            // update rules
-
-            foreach(Rule rule in allRules)
-            {
-                if (result.TryGetValue(rule, out var ruleOrderNumbers))
-                {
-                    rule.DisplayOrderNumberString = ruleOrderNumbers.dottedNumber;
-                    rule.OrderNumber = ruleOrderNumbers.position;
-                }
-            }
-
+            BuildOrderNumberTree(rootRulebaseId, initialPath, rulesByRulebase, linksByFromRuleId, result, ref positionCounter, rules); 
         }
 
-        private static void TraverseRulebase(int rulebaseId, List<int> currentPath, Dictionary<int, List<Rule>> rulesByRulebase, Dictionary<int, List<RulebaseLink>> linksByFromRuleId, Dictionary<Rule, (string dottedNumber, int position)> result, ref int positionCounter, List<Rule> traversedRules, List<Rule> allRules)
+        private static void BuildOrderNumberTree(int rulebaseId, List<int> currentPath, Dictionary<int, List<Rule>> rulesByRulebase, Dictionary<int, RulebaseLink> linksByFromRuleId, Dictionary<Rule, (string dottedNumber, int position)> result, ref int positionCounter, List<Rule> allRules)
         {
-            if (!rulesByRulebase.TryGetValue(rulebaseId, out var rules)) return;
+            if (!rulesByRulebase.TryGetValue(rulebaseId, out var rules))
+            {
+                return;
+            }
 
             for (int i = 0; i < rules.Count; i++)
             {
-                // update order number
                 Rule rule = rules[i];
 
-                if(traversedRules.Contains(rule)) // TODO: make with TryGetValue
+                // Create duplicate if rulebase links make it necessary.
+
+                if (result.TryGetValue(rule, out var _))
                 {
                     rule = rule.CreateClone();
                     allRules.Add(rule);
@@ -330,24 +323,22 @@ namespace FWO.Report
 
                 List<int> path = new List<int>(currentPath) { rule.RuleOrderNumber + 1 };
                 string dotted = string.Join(".", path);
-                result[rule] = (dotted, positionCounter++);
-                traversedRules.Add(rule);
+                result[rule] = (dotted, positionCounter);
+                rule.DisplayOrderNumberString = dotted;
+                rule.OrderNumber = positionCounter++;
 
-
-                // if there is a rulebase link which has current rules id as FromRuleId handle rule base link
-                if (linksByFromRuleId.TryGetValue((int) rule.Id, out var links))
+                if (linksByFromRuleId.TryGetValue((int) rule.Id, out RulebaseLink link))
                 {
-                    foreach (var link in links.OrderBy(l => l.LinkType))
+                    switch (link.LinkType)
                     {
-                        if (link.LinkType == 2) // ordered
-                        {
-                            path = new List<int> { path[0] + 1 };
-                            TraverseRulebase(link.NextRulebaseId, path, rulesByRulebase, linksByFromRuleId, result, ref positionCounter, traversedRules, allRules);
-                        }
-                        else if (link.LinkType == 3) // inline
-                        {
-                            TraverseRulebase(link.NextRulebaseId, path, rulesByRulebase, linksByFromRuleId, result, ref positionCounter, traversedRules, allRules);
-                        }
+                        case 2: // ordered
+                            List<int> newPath = new() { path[0] + 1 };
+                            BuildOrderNumberTree(link.NextRulebaseId, newPath, rulesByRulebase, linksByFromRuleId, result, ref positionCounter, allRules);
+                            break;
+
+                        case 3: // inline
+                            BuildOrderNumberTree(link.NextRulebaseId, path, rulesByRulebase, linksByFromRuleId, result, ref positionCounter, allRules);
+                            break;
                     }
                 }
             }

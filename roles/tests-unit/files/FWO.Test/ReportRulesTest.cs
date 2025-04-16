@@ -68,7 +68,7 @@ namespace FWO.Test
                     RuleOrderNumber = 0
                 }                               
             };
-            ManagementReport mgmReport = new();
+
             DeviceReport device = new ();
             device.RulebaseLinks = new RulebaseLink[]
             {
@@ -104,7 +104,7 @@ namespace FWO.Test
             };
 
             // ACT
-            ReportRules.CreateOrderNumbers(rulesUnderTest, mgmReport, device);
+            ReportRules.CreateOrderNumbers(rulesUnderTest, device);
 
             // ASSERT
             foreach(Rule rule in rulesUnderTest)

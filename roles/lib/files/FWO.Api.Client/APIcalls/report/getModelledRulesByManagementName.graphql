@@ -1,0 +1,16 @@
+query getModelledRulesByManagementName ($mgmId: Int!, $relevantImportId: bigint, $marker: String) {
+  rule (
+  where: {
+    mgm_id: { _eq: $mgmId }
+    active: { _eq: true }
+    access_rule: { _eq: true }
+    rule_head_text: { _is_null: true }
+    rule_disabled: { _eq: false }
+    action_id: { _nin: [2,3,7] }
+    import_control: { control_id: {_lte: $relevantImportId } }, importControlByRuleLastSeen: { control_id: {_gte: $relevantImportId }}
+    rule_name: { _ilike: $marker }
+  }
+  order_by: { rule_num_numeric: asc }){
+    ...ruleDetails
+  }
+}

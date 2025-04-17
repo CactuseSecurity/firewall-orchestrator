@@ -55,6 +55,7 @@ namespace FWO.Data
 
         public long Number;
         public bool Highlighted = false;
+        public bool IsSurplus = false;
 
         public override bool Equals(object? obj)
         {

@@ -3,6 +3,8 @@ mutation updateExtRequestCreation(
   $extRequestState: String!
   $extTicketId: String
   $creationResponse: String
+  $waitCycles: Int!
+  $attempts: Int!
   ) {
   update_ext_request_by_pk(
     pk_columns: { id: $id }
@@ -10,6 +12,8 @@ mutation updateExtRequestCreation(
       ext_request_state: $extRequestState
       ext_ticket_id: $extTicketId
       last_creation_response: $creationResponse
+      wait_cycles: $waitCycles
+      attempts: $attempts
   }) {
     updatedIdLong: id
   }

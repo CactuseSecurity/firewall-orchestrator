@@ -1,0 +1,72 @@
+﻿@using FWO.Data.Modelling
+@using FWO.Report
+@using FWO.Ui.Display
+
+@inject UserConfig userConfig
+
+@if(ruleDiffDisplay != null)
+{
+    <Table TableItem="Rule" Items="Difference.ImplementedRules" ShowSearchBar="false"
+            TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header popover-transform" 
+            PageSize="RulesPerPage" ColumnReorder="true">
+
+        <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("management"))" Field="@(r => r.ManagementName)" Sortable="false" Filterable="false" Hideable="true" />
+        <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("gateway"))" Field="@(r => r.DeviceName)" Sortable="false" Filterable="false" Hideable="true" />
+        <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("source"))" Field="@(r => r.Name)" Sortable="true" Filterable="false" Hideable="true">
+            <Template>
+                @((MarkupString)ruleDiffDisplay.DisplaySourceDiff(rule, OutputLocation.report, ReportType.VarianceAnalysis))
+            </Template>
+        </Column>
+        <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("services"))" Field="@(r => r.Name)" Sortable="true" Filterable="false" Hideable="true">
+            <Template>
+                @((MarkupString)ruleDiffDisplay.DisplayServiceDiff(rule, OutputLocation.report, ReportType.VarianceAnalysis))
+            </Template>
+        </Column>
+        <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("destination"))" Field="@(r => r.Name)" Sortable="true" Filterable="false" Hideable="true">
+            <Template>
+                @((MarkupString)ruleDiffDisplay.DisplayDestinationDiff(rule, OutputLocation.report, ReportType.VarianceAnalysis))
+            </Template>
+        </Column>
+
+        <DetailTemplate TableItem="Rule">
+            <Detail Title="@(userConfig.GetText("name"))" Data="@context.Name?.ToString()" />
+            <Detail Title="@(userConfig.GetText("uid"))" Data="@context.Uid?.ToString()" />
+            <Detail Title="@(userConfig.GetText("action"))" Data="@context.Action?.ToString()" />
+            <Detail Title="@(userConfig.GetText("track"))" Data="@context.Track?.ToString()" />
+            <Detail Title="@(userConfig.GetText("comment"))" Data="@context.Comment?.ToString()" />
+            <Detail Title="@(userConfig.GetText("source_zone"))" Data="@context.SourceZone?.Name" />
+            <Detail Title="@(userConfig.GetText("destination_zone"))" Data="@context.DestinationZone?.Name" />
+            <Detail Title="@(userConfig.GetText("enabled"))" Data="@((!context.Disabled).ToString())" />
+            @if(context.Metadata != null)
+            {
+                <Detail Title="@(userConfig.GetText("created"))" Data="@context.Metadata?.Created?.ToString()" />
+                <Detail Title="@(userConfig.GetText("last_modified"))" Data="@context.Metadata?.LastModified?.ToString()" />
+                <Detail Title="@(userConfig.GetText("first_hit"))" Data="@context.Metadata?.FirstHit?.ToString()" />
+                <Detail Title="@(userConfig.GetText("last_hit"))" Data="@context.Metadata?.LastHit?.ToString()" />
+                <Detail Title="@(userConfig.GetText("last_certify_date"))" Data="@context.Metadata?.LastCertified?.ToString()" />
+                <Detail Title="@(userConfig.GetText("last_recertifier"))" Data="@context.Metadata?.LastCertifierDn?.ToString()" />
+                <Detail Title="@(userConfig.GetText("decert_date"))" Data="@context.Metadata?.DecertificationDate?.ToString()" />
+                <Detail Title="@(userConfig.GetText("recert_comment"))" Data="@context.Metadata?.Comment?.ToString()" />
+                <Detail Title="@(userConfig.GetText("recert_history"))" Data="@(context.Metadata?.RecertHistory.Count > 0 ? ":" : "")" />
+            }
+        </DetailTemplate>
+        <Pager ShowPageNumber="true" ShowTotalCount="true" />
+    </Table>
+}
+
+@code
+{
+    [Parameter]
+    public int RulesPerPage { get; set; }
+
+    [Parameter]
+    public ModProdDifference Difference { get; set; } = new();
+
+    RuleDifferenceDisplayHtml? ruleDiffDisplay;
+
+    
+    protected override void OnInitialized()
+    {
+        ruleDiffDisplay = new (userConfig);
+    }
+}

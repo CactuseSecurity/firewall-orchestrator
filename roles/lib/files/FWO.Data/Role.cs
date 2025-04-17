@@ -25,9 +25,9 @@ namespace FWO.Data
         {
             // replace encoded comma with real comma for displaying
             // also put name in square brackets if it contains commas
-            if (name.Contains("\\2c", StringComparison.CurrentCultureIgnoreCase))
+            if (name.Contains("\\2c", StringComparison.OrdinalIgnoreCase))
             {
-                return $"[{name.Replace("\\2c", ",", StringComparison.CurrentCultureIgnoreCase)}]";
+                return $"[{name.Replace("\\2c", ",", StringComparison.OrdinalIgnoreCase)}]";
             }
             return name;
         }

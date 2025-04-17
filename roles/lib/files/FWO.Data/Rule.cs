@@ -1,4 +1,4 @@
-using System.Text.Json.Serialization; 
+﻿using System.Text.Json.Serialization; 
 using Newtonsoft.Json;
 
 namespace FWO.Data
@@ -92,10 +92,14 @@ namespace FWO.Data
 
         public int DisplayOrderNumber { get; set; }
         public bool Certified { get; set; }
+        public string ManagementName = "";
         public string DeviceName { get; set; } = "";
         public NetworkLocation[] DisregardedFroms { get; set; } = [];
         public NetworkLocation[] DisregardedTos { get; set; } = [];
+        public NetworkService[] DisregardedServices { get; set; } = [];
         public bool ShowDisregarded { get; set; } = false;
+        public long ConnId;
+        public bool ModellOk = false;
         public bool Detailed = false;
 
         public bool IsDropRule()

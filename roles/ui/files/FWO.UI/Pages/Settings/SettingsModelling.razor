@@ -1,4 +1,4 @@
-@using System.Text.Json
+﻿@using System.Text.Json
 @using FWO.Ui.Data
 @using FWO.Ui.Pages.NetworkModelling
 
@@ -350,6 +350,20 @@
             <label class="col-form-label col-sm-4">@(userConfig.GetText("modRolloutErrorText")):</label>
             <input type="text" class="col-sm-6" @bind="configData!.ModRolloutErrorText" />
         </div>
+        <div class="form-group row mt-2">
+            <div class="row col-sm-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5648"))">
+                <label class="col-form-label col-sm-5">@userConfig.GetText("modelledMarker"):</label>
+                <input type="text" class="col-sm-4" @bind="configData!.ModModelledMarker" />
+            </div>
+            <div class="row col-sm-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5649"))">
+                <label class="col-form-label col-sm-5">@userConfig.GetText("modelledMarkerLocation"):</label>
+                <input type="text" class="col-sm-4" @bind="configData!.ModModelledMarkerLocation" />
+            </div>
+            <div class="row col-sm-3" data-toggle="tooltip" title="@(userConfig.PureLine("H5650"))">
+                 <button type="button" class="col-sm-6 btn btn-sm btn-primary" @onclick="VarianceOptions" 
+                    @onclick:preventDefault>@(userConfig.GetText("rule_recognition_options"))</button>
+            </div>
+        </div>
         <hr />
     </form>
     <AuthorizeView Roles="@Roles.Admin">
@@ -363,6 +377,8 @@
     <br>
     <br>
     <p>@(userConfig.GetText("U5303"))</p>
+
+    <VarianceOptionsSelection @bind-Display="varOptMode" @bind-ConfigValue="ruleRecognitionOption"/>
 }
 else
 {
@@ -443,11 +459,14 @@ else
     private DateTime subnetDataDate = DateTime.Today;
     private DateTime subnetDataTime = DateTime.Now.AddSeconds(-DateTime.Now.Second);
     private List<EmailRecipientOption> selectableRecipientOptions = [ EmailRecipientOption.OwnerGroupOnly,
-    EmailRecipientOption.AllOwnerResponsibles, EmailRecipientOption.OwnerMainResponsible, EmailRecipientOption.FallbackToMainResponsibleIfOwnerGroupEmpty ];
+        EmailRecipientOption.AllOwnerResponsibles, EmailRecipientOption.OwnerMainResponsible, EmailRecipientOption.FallbackToMainResponsibleIfOwnerGroupEmpty ];
 
-    private List<UiLdapConnection> connectedLdaps = new List<UiLdapConnection>();
+    private List<UiLdapConnection> connectedLdaps = [];
     private UiLdapConnection selectedLdap = new();
+    private RuleRecognitionOption ruleRecognitionOption = new();
+
     private bool initComplete = false;
+    private bool varOptMode = false;
     private bool ShowCSVImportPopUp { get; set; }
     private List<CSVFileUploadErrorModel>? CSVImportErrors;
     private List<string>? CSVImportSuccess;
@@ -497,6 +516,8 @@ else
 
             // get config value of selected ldap connection for owner data (both groups and main responsible user), default value = 1 = internal ldap
             selectedLdap = connectedLdaps.FirstOrDefault(x => x.Id == configData.OwnerLdapId) ?? new();
+
+            ruleRecognitionOption = string.IsNullOrEmpty(configData.RuleRecognitionOption) ? new() : JsonSerializer.Deserialize<RuleRecognitionOption>(configData.RuleRecognitionOption) ?? new();
             initComplete = true;
         }
         catch (Exception exception)
@@ -577,6 +598,11 @@ else
         searchArea = true;
     }
 
+    private void VarianceOptions()
+    {
+        varOptMode = true;
+    }
+
     private async Task Save()
     {
         try
@@ -620,6 +646,7 @@ else
         configData!.ImportAppDataStartAt = appDataDate.Date.Add(appDataTime.TimeOfDay);
         configData!.ImportSubnetDataStartAt = subnetDataDate.Date.Add(subnetDataTime.TimeOfDay);
         configData!.OwnerLdapId = selectedLdap.Id;
+        configData!.RuleRecognitionOption = JsonSerializer.Serialize(ruleRecognitionOption);
     }
 
     private void PrepareAppDataPaths()

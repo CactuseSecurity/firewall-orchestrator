@@ -1,11 +1,9 @@
 ﻿using System.Text.Json.Serialization; 
 using Newtonsoft.Json;
-using FWO.Basics;
-using FWO.Data;
 
-namespace FWO.Report
+namespace FWO.Data.Report
 {
-    public class DeviceReport // : Device
+    public class DeviceReport
     {
         [JsonProperty("id"), JsonPropertyName("id")]
         public int Id { get; set; }

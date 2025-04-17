@@ -287,10 +287,10 @@ namespace FWO.Report
 
             // Initialize other needed variables.
 
-            Dictionary<Rule, (string dottedNumber, int position)> result = new();
+            List<Rule> changedRules = new();
             List<int> initialPath = new();
             int positionCounter = 1;
-            int rootRulebaseId = device.RulebaseLinks.First(link => link.IsInitialRulebase()).NextRulebaseId;
+            int firstRulebaseId = device.RulebaseLinks.First(link => link.IsInitialRulebase()).NextRulebaseId;
             
             // If there are more than one layer path needs to be initialized here.
 
@@ -299,10 +299,11 @@ namespace FWO.Report
                 initialPath.Add(1);
             }
 
-            BuildOrderNumberTree(rootRulebaseId, initialPath, rulesByRulebase, linksByFromRuleId, result, ref positionCounter, rules); 
+            // BuildOrderNumberTree(firstRulebaseId, initialPath, rulesByRulebase, linksByFromRuleId, result, ref positionCounter, rules);
+            BuildOrderNumberTree(firstRulebaseId, initialPath, rulesByRulebase, linksByFromRuleId, changedRules, ref positionCounter, rules); 
         }
 
-        private static void BuildOrderNumberTree(int rulebaseId, List<int> currentPath, Dictionary<int, List<Rule>> rulesByRulebase, Dictionary<int, RulebaseLink> linksByFromRuleId, Dictionary<Rule, (string dottedNumber, int position)> result, ref int positionCounter, List<Rule> allRules)
+        private static void BuildOrderNumberTree(int rulebaseId, List<int> currentPath, Dictionary<int, List<Rule>> rulesByRulebase, Dictionary<int, RulebaseLink> linksByFromRuleId, List<Rule> changedRules, ref int positionCounter, List<Rule> rulebaseRules)
         {
             if (!rulesByRulebase.TryGetValue(rulebaseId, out var rules))
             {
@@ -315,29 +316,36 @@ namespace FWO.Report
 
                 // Create duplicate if rulebase links make it necessary.
 
-                if (result.TryGetValue(rule, out var _))
+                if (changedRules.Contains(rule))
                 {
                     rule = rule.CreateClone();
-                    allRules.Add(rule);
+                    rulebaseRules.Add(rule);
                 }
+
+                // Write order numbers to rule object.
 
                 List<int> path = new List<int>(currentPath) { rule.RuleOrderNumber + 1 };
                 string dotted = string.Join(".", path);
-                result[rule] = (dotted, positionCounter);
                 rule.DisplayOrderNumberString = dotted;
                 rule.OrderNumber = positionCounter++;
 
-                if (linksByFromRuleId.TryGetValue((int) rule.Id, out RulebaseLink link))
+                // Gather changed rules, to recognize if duplicate is necessary
+
+                changedRules.Add(rule);
+
+                // Handle link, if there is one that has this rule as its from rule.
+
+                if (linksByFromRuleId.TryGetValue((int) rule.Id, out RulebaseLink? link))
                 {
                     switch (link.LinkType)
                     {
                         case 2: // ordered
                             List<int> newPath = new() { path[0] + 1 };
-                            BuildOrderNumberTree(link.NextRulebaseId, newPath, rulesByRulebase, linksByFromRuleId, result, ref positionCounter, allRules);
+                            BuildOrderNumberTree(link.NextRulebaseId, newPath, rulesByRulebase, linksByFromRuleId, changedRules, ref positionCounter, rulebaseRules);
                             break;
 
                         case 3: // inline
-                            BuildOrderNumberTree(link.NextRulebaseId, path, rulesByRulebase, linksByFromRuleId, result, ref positionCounter, allRules);
+                            BuildOrderNumberTree(link.NextRulebaseId, path, rulesByRulebase, linksByFromRuleId, changedRules, ref positionCounter, rulebaseRules);
                             break;
                     }
                 }

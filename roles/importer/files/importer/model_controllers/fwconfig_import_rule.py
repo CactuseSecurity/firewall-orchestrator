@@ -101,7 +101,6 @@ class FwConfigImportRule(FwConfigImportBase):
 
         self.ImportDetails.Stats.RuleAddCount += numberOfAddedRules
         self.ImportDetails.Stats.RuleDeleteCount += numberOfDeletedRules
-        # self.ImportDetails.Stats.RuleChangeCount += numberOfChangedRules
 
         # TODO: rule_nwobj_resolved fuellen (recert?)
         return newRuleIds

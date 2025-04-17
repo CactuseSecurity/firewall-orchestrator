@@ -94,11 +94,11 @@ namespace FWO.Data
 
         [JsonProperty("rule_num"), JsonPropertyName("rule_num")]
         public int RuleOrderNumber { get; set; }
-        
+
         [JsonProperty("rule_enforced_on_gateways"), JsonPropertyName("rule_enforced_on_gateways")]
         public DeviceWrapper[] EnforcingGateways { get; set; } = [];
 
-        public string DisplayOrderNumberString { get; set; }
+        public string DisplayOrderNumberString { get; set; } = "";
         public int DisplayOrderNumber { get; set; }
         public bool Certified { get; set; }
         public string DeviceName { get; set; } = "";
@@ -114,12 +114,14 @@ namespace FWO.Data
         }
 
         /// <summary>
-        /// Creates an exact copy of this rule.
+        /// Creates an exact copy of this rule. Returns new rule on fail.
         /// </summary>
         public Rule CreateClone()
         {
             var json = JsonConvert.SerializeObject(this);
-            return JsonConvert.DeserializeObject<Rule>(json);
+            Rule rule = JsonConvert.DeserializeObject<Rule>(json) ?? new();
+
+            return rule;
         }
     }
 }

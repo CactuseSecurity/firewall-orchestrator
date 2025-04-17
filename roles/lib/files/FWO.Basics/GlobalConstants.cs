@@ -33,8 +33,11 @@ namespace FWO.Basics
         public const string kImportAreaSubnetData = "importAreaSubnetData";
         public const string kManual = "manual";
         public const string kCSV_ = "CSV_";
+        public const char kAppIdSeparator = '-'; // hard-coded could be moved to settings
         public const string kModellerGroup = "ModellerGroup_";
-        public const string kAppIdPlaceholder = "@@ExternalAppId@@";
+        public const string kFullAppIdPlaceholder = "@@ExternalAppId@@";
+        public const string kAppIdPlaceholder = "@@AppId@@";
+        public const string kAppPrefixPlaceholder = "@@AppPrefix@@";
         public const string kLdapGroupPattern = kModellerGroup + kAppIdPlaceholder;
         public const string kImportChangeNotify = "importChangeNotify";
 		public const string kExternalRequest = "externalRequest";
@@ -43,7 +46,10 @@ namespace FWO.Basics
         public const string kDummyAppRole = "DummyAppRole";
         public const string kUndefinedText = "(undefined text)";
 
-        public const string kStyleHighlighted = "color:red;";
+        public const string kStyleHighlightedRed = "color: red;";
+        public const string kStyleHighlightedGreen = "color: green;";
+        public const string kStyleDeleted = "color: red; text-decoration: line-through red;";
+        public const string kStyleAdded = "color: green; text-decoration: bold;";
 
         public const string ChromeBinPathLinux = "/usr/local/fworch/bin";
         public const string TestPDFFilePath = "pdffile.pdf";

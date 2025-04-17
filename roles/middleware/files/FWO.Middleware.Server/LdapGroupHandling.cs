@@ -1,4 +1,4 @@
-﻿using FWO.Data;
+using FWO.Data;
 using FWO.Data.Middleware;
 using FWO.Encryption;
 using FWO.Logging;
@@ -17,18 +17,18 @@ namespace FWO.Middleware.Server
 		/// Get the roles for the given DN list
 		/// </summary>
 		/// <returns>list of roles for the given DN list</returns>
-		public List<string> GetRoles(List<string> dnList)
+		public async Task<List<string>> GetRoles(List<string> dnList)
 		{
-			return GetMemberships(dnList, RoleSearchPath);
+			return await GetMemberships(dnList, RoleSearchPath);
 		}
 
 		/// <summary>
 		/// Get the groups for the given DN list
 		/// </summary>
 		/// <returns>list of groups for the given DN list</returns>
-		public List<string> GetGroups(List<string> dnList)
+		public async Task<List<string>> GetGroups(List<string> dnList)
 		{
-			return GetMemberships(dnList, GroupSearchPath);
+			return await GetMemberships(dnList, GroupSearchPath);
 		}
 
         [GeneratedRegex(@"(\bcn|\bou|\bdc|\bo|\bc|\bst|\bl)=(.*?)(?=,[A-Za-z]+=|$)", RegexOptions.IgnoreCase, "en-US")]
@@ -48,7 +48,7 @@ namespace FWO.Middleware.Server
             });
         }
 
-		private List<string> GetMemberships(List<string> dnList, string? searchPath)
+		private async Task<List<string>> GetMemberships(List<string> dnList, string? searchPath)
 		{
 			List<string> userMemberships = [];
 
@@ -57,25 +57,27 @@ namespace FWO.Middleware.Server
 			{
 				try
 				{
-                    using LdapConnection connection = Connect();
+                    using LdapConnection connection = await Connect();
                     // Authenticate as search user
-                    TryBind(connection, SearchUser, AesEnc.Decrypt(SearchUserPwd, AesEnc.GetMainKey()));
+                    await TryBind(connection, SearchUser, AesEnc.Decrypt(SearchUserPwd, AesEnc.GetMainKey()));
 
                     // Search for Ldap roles / groups in given directory          
                     int searchScope = LdapConnection.ScopeSub; // TODO: Correct search scope?
                     string searchFilter = $"(&(objectClass=groupOfUniqueNames)(cn=*))";
-                    LdapSearchResults allExistingGroupsAndRoles = (LdapSearchResults)connection.Search(searchPath, searchScope, searchFilter, null, false);
+                    ILdapSearchResults? allExistingGroupsAndRoles = await connection.SearchAsync(searchPath, searchScope, searchFilter, null, false);
 
                     // convert dnList to lower case to avoid case problems
                     dnList = dnList.ConvertAll(dn => dn.ToLower());
 
-                    // Foreach found role / group
-                    foreach (LdapEntry entry in allExistingGroupsAndRoles)
+                    // Iterate found role / group
+                    while (await allExistingGroupsAndRoles.HasMoreAsync())
                     {
-                        Log.WriteDebug("Ldap Roles/Groups", $"Try to get roles / groups from ldap entry {entry.GetAttribute("cn").StringValue}");
+                        LdapEntry? entry = await allExistingGroupsAndRoles.NextAsync();
+
+                        Log.WriteDebug("Ldap Roles/Groups", $"Try to get roles / groups from ldap entry {entry.Get("cn").StringValue}");
 
                         // Get dn of users having current role / group
-                        LdapAttribute members = entry.GetAttribute("uniqueMember");
+                        LdapAttribute members = entry.Get("uniqueMember");
                         string[] memberDn = members.StringValueArray;
 
                         // Foreach user (member) of the current role/group:
@@ -89,7 +91,7 @@ namespace FWO.Middleware.Server
                                 if (dnList.Contains(currentUserDnEscapedLower))
                                 {
                                     // Get name and add it to list of roles / groups of given user
-                                    string name = entry.GetAttribute("cn").StringValue;
+                                    string name = entry.Get("cn").StringValue;
                                     userMemberships.Add(name);
                                     break;
                                 }
@@ -111,7 +113,7 @@ namespace FWO.Middleware.Server
 		/// Get all roles
 		/// </summary>
 		/// <returns>list of roles</returns>
-		public List<RoleGetReturnParameters> GetAllRoles()
+		public async Task<List<RoleGetReturnParameters>> GetAllRoles()
 		{
 			List<RoleGetReturnParameters> roleUsers = [];
 
@@ -120,28 +122,30 @@ namespace FWO.Middleware.Server
 			{
 				try
 				{
-                    using LdapConnection connection = Connect();
+                    using LdapConnection connection = await Connect();
                     // Authenticate as search user
-                    TryBind(connection, SearchUser, SearchUserPwd);
+                    await TryBind(connection, SearchUser, SearchUserPwd);
 
                     // Search for Ldap roles in given directory          
                     int searchScope = LdapConnection.ScopeSub; // TODO: Correct search scope?
                     string searchFilter = $"(&(objectClass=groupOfUniqueNames)(cn=*))";
-                    LdapSearchResults searchResults = (LdapSearchResults)connection.Search(RoleSearchPath, searchScope, searchFilter, null, false);
+                    ILdapSearchResults? searchResults = await connection.SearchAsync(RoleSearchPath, searchScope, searchFilter, null, false);
 
-                    // Foreach found role
-                    foreach (LdapEntry entry in searchResults)
+                    // Iterate found role
+                    while (await searchResults.HasMoreAsync())
                     {
-                        List<RoleAttribute> attributes = [];
-                        string roleDesc = entry.GetAttribute("description").StringValue;
-                        attributes.Add(new () { Key = "description", Value = roleDesc });
+                        LdapEntry entry = await searchResults.NextAsync();
 
-                        string[] roleMemberDn = entry.GetAttribute("uniqueMember").StringValueArray;
+                        List<RoleAttribute> attributes = [];
+                        string roleDesc = entry.Get("description").StringValue;
+                        attributes.Add(new() { Key = "description", Value = roleDesc });
+
+                        string[] roleMemberDn = entry.Get("uniqueMember").StringValueArray;
                         foreach (string currentDn in roleMemberDn)
                         {
                             if (currentDn != "")
                             {
-                                attributes.Add(new () { Key = "user", Value = currentDn });
+                                attributes.Add(new() { Key = "user", Value = currentDn });
                             }
                         }
                         roleUsers.Add(new RoleGetReturnParameters() { Role = entry.Dn, Attributes = attributes });
@@ -159,21 +163,23 @@ namespace FWO.Middleware.Server
 		/// Search all groups with search pattern
 		/// </summary>
 		/// <returns>list of groups</returns>
-		public List<string> GetAllGroups(string searchPattern)
+		public async Task<List<string>> GetAllGroups(string searchPattern)
 		{
 			List<string> allGroups = [];
 			try
 			{
-                using LdapConnection connection = Connect();
+                using LdapConnection connection = await Connect();
                 // Authenticate as search user
-                TryBind(connection, SearchUser, SearchUserPwd);
+                await TryBind(connection, SearchUser, SearchUserPwd);
 
                 // Search for Ldap groups in given directory          
                 int searchScope = LdapConnection.ScopeSub;
-                LdapSearchResults searchResults = (LdapSearchResults)connection.Search(GroupSearchPath, searchScope, GetGroupSearchFilter(searchPattern), null, false);
+                ILdapSearchResults? searchResults = await connection.SearchAsync(GroupSearchPath, searchScope, GetGroupSearchFilter(searchPattern), null, false);
 
-                foreach (LdapEntry entry in searchResults)
+                while (await searchResults.HasMoreAsync())
                 {
+                    LdapEntry entry = await searchResults.NextAsync();
+
                     allGroups.Add(entry.Dn);
                 }
             }
@@ -188,24 +194,26 @@ namespace FWO.Middleware.Server
 		/// Get all internal groups
 		/// </summary>
 		/// <returns>list of groups</returns>
-		public List<GroupGetReturnParameters> GetAllInternalGroups()
+		public async Task<List<GroupGetReturnParameters>> GetAllInternalGroups()
 		{
 			List<GroupGetReturnParameters> allGroups = [];
 
 			try
 			{
-                using LdapConnection connection = Connect();
+                using LdapConnection connection = await Connect();
                 // Authenticate as search user
-                TryBind(connection, SearchUser, SearchUserPwd);
+                await TryBind(connection, SearchUser, SearchUserPwd);
 
                 // Search for Ldap groups in given directory          
                 int searchScope = LdapConnection.ScopeSub;
-                LdapSearchResults searchResults = (LdapSearchResults)connection.Search(GroupSearchPath, searchScope, GetGroupSearchFilter(""), null, false);
+                ILdapSearchResults? searchResults = await connection.SearchAsync(GroupSearchPath, searchScope, GetGroupSearchFilter(""), null, false);
 
-                foreach (LdapEntry entry in searchResults)
+                while (await searchResults.HasMoreAsync())
                 {
+                    LdapEntry entry = await searchResults.NextAsync();
+
                     List<string> members = [];
-                    string[] groupMemberDn = entry.GetAttribute("uniqueMember").StringValueArray;
+                    string[] groupMemberDn = entry.Get("uniqueMember").StringValueArray;
                     foreach (string currentDn in groupMemberDn)
                     {
                         if (currentDn != "")
@@ -217,7 +225,7 @@ namespace FWO.Middleware.Server
                     {
                         GroupDn = entry.Dn,
                         Members = members,
-                        OwnerGroup = entry.GetAttributeSet().ContainsKey("businessCategory") && entry.GetAttribute("businessCategory").StringValue.Equals("ownergroup", StringComparison.CurrentCultureIgnoreCase)
+                        OwnerGroup = entry.GetAttributeSet().ContainsKey("businessCategory") && entry.Get("businessCategory").StringValue.Equals("ownergroup", StringComparison.OrdinalIgnoreCase)
                     });
                 }
             }
@@ -232,40 +240,42 @@ namespace FWO.Middleware.Server
 		/// Get all groups of an LDAP server matching a specific pattern
 		/// </summary>
 		/// <returns>list of groups</returns>
-		public List<GroupGetReturnParameters> GetAllGroupObjects(string groupPattern)
+		public async Task<List<GroupGetReturnParameters>> GetAllGroupObjects(string groupPattern)
 		{
 			List<GroupGetReturnParameters> allGroups = [];
 
 			try
 			{
-                using LdapConnection connection = Connect();
+                using LdapConnection connection = await Connect();
                 // Authenticate as search user
-                TryBind(connection, SearchUser, SearchUserPwd);
+                await TryBind(connection, SearchUser, SearchUserPwd);
 
                 // Search for Ldap groups in given directory          
                 int searchScope = LdapConnection.ScopeSub;
 				string searchFilter = GetGroupSearchFilter(groupPattern);
-                LdapSearchResults searchResults = (LdapSearchResults)connection.Search(GroupSearchPath, searchScope, searchFilter, null, false);
+                ILdapSearchResults? searchResults = await connection.SearchAsync(GroupSearchPath, searchScope, searchFilter, null, false);
 
-                foreach (LdapEntry entry in searchResults)
+                while (await searchResults.HasMoreAsync())
                 {
+                    LdapEntry entry = await searchResults.NextAsync();
+
                     List<string> members = [];
-					if (entry.GetAttributeSet().ContainsKey(GetMemberKey()))
-					{
-						string[] groupMemberDn = entry.GetAttribute(GetMemberKey()).StringValueArray;
-						foreach (string currentDn in groupMemberDn)
-						{
-							if (currentDn != "")
-							{
-								members.Add(currentDn);
-							}
-						}
-					}
+                    if (entry.GetAttributeSet().ContainsKey(GetMemberKey()))
+                    {
+                        string[] groupMemberDn = entry.Get(GetMemberKey()).StringValueArray;
+                        foreach (string currentDn in groupMemberDn)
+                        {
+                            if (currentDn != "")
+                            {
+                                members.Add(currentDn);
+                            }
+                        }
+                    }
                     allGroups.Add(new GroupGetReturnParameters()
                     {
                         GroupDn = entry.Dn,
                         Members = members,
-                        OwnerGroup = entry.GetAttributeSet().ContainsKey("businessCategory") && entry.GetAttribute("businessCategory").StringValue.Equals("ownergroup", StringComparison.CurrentCultureIgnoreCase)
+                        OwnerGroup = entry.GetAttributeSet().ContainsKey("businessCategory") && entry.Get("businessCategory").StringValue.Equals("ownergroup", StringComparison.OrdinalIgnoreCase)
                     });
                 }
             }
@@ -294,7 +304,7 @@ namespace FWO.Middleware.Server
 		/// Get members of an ldap group
 		/// </summary>
 		/// <returns>list of members</returns>
-		public List<string> GetGroupMembers(string groupDn)
+		public async Task<List<string>> GetGroupMembers(string groupDn)
 		{
 			List<string> allMembers = [];
 
@@ -302,14 +312,14 @@ namespace FWO.Middleware.Server
 			{
 				try
 				{
-                    using LdapConnection connection = Connect();
+                    using LdapConnection connection = await Connect();
                     // Authenticate as search user
-                    TryBind(connection, SearchUser, SearchUserPwd);
-                    LdapEntry entry = connection.Read(groupDn);
+                    await TryBind(connection, SearchUser, SearchUserPwd);
+                    LdapEntry? entry = await connection.ReadAsync(groupDn);
 
                     if (entry != null)
                     {
-                        string[] groupMemberDn = entry.GetAttribute(GetMemberKey()).StringValueArray;
+                        string[] groupMemberDn = entry.Get(GetMemberKey()).StringValueArray;
                         foreach (string currentDn in groupMemberDn)
                         {
                             if (currentDn != "")
@@ -331,16 +341,16 @@ namespace FWO.Middleware.Server
 		/// Add new group
 		/// </summary>
 		/// <returns>group DN if user added</returns>
-		public string AddGroup(string groupName, bool ownerGroup)
+		public async Task<string> AddGroup(string groupName, bool ownerGroup)
 		{
 			Log.WriteInfo("Add Group", $"Trying to add Group: \"{groupName}\"");
 			bool groupAdded = false;
 			string groupDn = groupName;
 			try
 			{
-                using LdapConnection connection = Connect();
+                using LdapConnection connection = await Connect();
                 // Authenticate as write user
-                TryBind(connection, WriteUser, WriteUserPwd);
+                await TryBind(connection, WriteUser, WriteUserPwd);
 
 				if (!IsFullyQualifiedDn(groupDn))
 				{
@@ -359,7 +369,7 @@ namespace FWO.Middleware.Server
                 try
                 {
                     //Add the entry to the directory
-                    connection.Add(newEntry);
+                    await connection.AddAsync(newEntry);
                     groupAdded = true;
                     Log.WriteDebug("Add group", $"Group {groupName} added in {Address}:{Port}");
                 }
@@ -379,7 +389,7 @@ namespace FWO.Middleware.Server
 		/// Update group name
 		/// </summary>
 		/// <returns>new group DN if group updated</returns>
-		public string UpdateGroup(string oldName, string newName)
+		public async Task<string> UpdateGroup(string oldName, string newName)
 		{
 			Log.WriteInfo("Update Group", $"Trying to update Group: \"{oldName}\"");
 			bool groupUpdated = false;
@@ -388,14 +398,14 @@ namespace FWO.Middleware.Server
 
 			try
 			{
-                using LdapConnection connection = Connect();
+                using LdapConnection connection = await Connect();
                 // Authenticate as write user
-                TryBind(connection, WriteUser, WriteUserPwd);
+                await TryBind(connection, WriteUser, WriteUserPwd);
 
                 try
                 {
                     //Add the entry to the directory
-                    connection.Rename(oldGroupDn, newGroupRdn, true);
+                    await connection.RenameAsync(oldGroupDn, newGroupRdn, true);
                     groupUpdated = true;
                     Log.WriteDebug("Update group", $"Group {oldName} renamed to {newName} in {Address}:{Port}");
                 }
@@ -415,21 +425,21 @@ namespace FWO.Middleware.Server
 		/// Delete group
 		/// </summary>
 		/// <returns>true if group deleted</returns>
-		public bool DeleteGroup(string groupName)
+		public async Task<bool> DeleteGroup(string groupName)
 		{
 			Log.WriteInfo("Delete Group", $"Trying to delete Group: \"{groupName}\"");
 			bool groupDeleted = false;
 			try
 			{
-                using LdapConnection connection = Connect();
+                using LdapConnection connection = await Connect();
                 // Authenticate as write user
-                TryBind(connection, WriteUser, WriteUserPwd);
+                await TryBind(connection, WriteUser, WriteUserPwd);
 
                 try
                 {
                     //Delete the entry in the directory
                     string groupDn = $"cn={groupName},{GroupWritePath}";
-                    connection.Delete(groupDn);
+                    await connection.DeleteAsync(groupDn);
                     groupDeleted = true;
                     Log.WriteDebug("Delete group", $"Group {groupName} deleted in {Address}:{Port}");
                 }

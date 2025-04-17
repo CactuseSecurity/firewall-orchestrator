@@ -102,6 +102,7 @@ namespace FWO.Middleware.Server
 						if(externalRequest.ExtRequestState == ExtStates.ExtReqRejected.ToString())
 						{
 							await RejectFollowingTasks(intTicket, externalRequest.TaskNumber);
+							Log.WriteInfo($"External Request {externalRequest.Id} rejected", $"Reject Following Tasks for internal ticket {intTicket.Id}");
 						}
 						else
 						{
@@ -167,7 +168,7 @@ namespace FWO.Middleware.Server
 			List<Ldap> connectedLdaps = await ApiConnection.SendQueryAsync<List<Ldap>>(AuthQueries.getLdapConnections);
 			Ldap internalLdap = connectedLdaps.FirstOrDefault(x => x.IsInternal() && x.HasGroupHandling()) ?? throw new Exception("No internal Ldap with group handling found.");
 
-			List<GroupGetReturnParameters> allGroups = internalLdap.GetAllInternalGroups();
+			List<GroupGetReturnParameters> allGroups = await internalLdap.GetAllInternalGroups();
 			ownerGroups = [];
 			foreach (var ldapUserGroup in allGroups)
 			{
@@ -252,6 +253,7 @@ namespace FWO.Middleware.Server
 					await CreateExtRequest(ticket, [nextTask], waitCycles);
 				}
 			}
+			Log.WriteInfo("CreateNextRequest", $"Created Request for ticket {ticket.Id}.");
 			return true;
 		}
 
@@ -414,6 +416,10 @@ namespace FWO.Middleware.Server
 					{
 						await LogRequestTasks([updatedTask], actSystem.Name, ModellingTypes.ChangeType.Reject, extReq.LastProcessingResponse ?? extReq.LastCreationResponse ?? "");
 					}
+				}
+				else
+				{
+					Log.WriteError("UpdateTicket", $"Task not found in Ticket {ticket.Id}: {taskNumber}");
 				}
 			}
 		}

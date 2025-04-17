@@ -1,4 +1,4 @@
-﻿using FWO.Api.Client.Queries;
+using FWO.Api.Client.Queries;
 using GraphQL;
 using FWO.Basics;
 using FWO.Services;
@@ -15,7 +15,7 @@ namespace FWO.Test
         static readonly NetworkObject Nwgroup1 = new() { Id = 1, Name = "AR504711-001", Type = new() { Name = ObjectType.Group }, ObjectGroupFlats = [new() { Object = NwObj1 }, new() { Object = NwObj3 }] };
         static readonly ModellingAppServer AppServer1 = new() { Id = 13, Name = "AppServer1", Ip = "1.1.1.1/32", IpEnd = "1.1.1.1/32" };
         static readonly ModellingAppServer AppServer2 = new() { Id = 14, Name = "AppServer2", Ip = "2.2.2.2/32", IpEnd = "2.2.2.2/32" };
-        static readonly NetworkObject AZProd = new() { Id = 2, Name = "AZ4711", Type = new() { Name = ObjectType.Group }, ObjectGroupFlats = [new() { Object = NwObj1 }] };
+        static readonly NetworkObject AZProd = new() { Id = 3, Name = "AZ4711", Type = new() { Name = ObjectType.Group }, ObjectGroupFlats = [new() { Object = NwObj1 }] };
         static readonly ModellingAppZone AZExist = new() { Id = 3, Name = "AZ4711", IdString = "AZ4711", AppServers = new() { new() { Content = AppServer1 }, new() { Content = AppServer2 } } };
         
         public override async Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
@@ -60,10 +60,17 @@ namespace FWO.Test
             }
             else if (responseType == typeof(List<ModellingAppZone>))
             {
-                GraphQLResponse<dynamic> response = new() { Data = new List<ModellingAppZone>(){ AZExist }};
+                GraphQLResponse<dynamic> response = new() { Data = new List<ModellingAppZone>() { AZExist } };
 
                 return response.Data;
             }
+            else if (responseType == typeof(List<ModellingAppServer>))
+            {
+                GraphQLResponse<dynamic> response = new() { Data = new List<ModellingAppServer>() { AppServer1, AppServer2 } };
+
+                return response.Data;
+            }
+
             throw new NotImplementedException();
         }
     }

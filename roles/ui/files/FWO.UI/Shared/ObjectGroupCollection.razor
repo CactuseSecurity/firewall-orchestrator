@@ -1,14 +1,15 @@
-﻿@using FWO.Report
+@using FWO.Data.Report
+@using FWO.Report
 
 @typeparam InputDataType
 
 @if (Data != null && NameExtractor != null)
 {
-    @foreach (InputDataType obj in Data)
+    @foreach (InputDataType content in Data)
     {
         <ObjectGroup PageSize="PageSize" FetchObjects="FetchObjects" Recert="Recert" Tab="Tab" StartCollapsed="StartCollapsed" StartContentDetailed="StartContentDetailed"
-            InputDataType="InputDataType" InitialContent="obj" NameExtractor="NameExtractor" NetworkObjectExtractor="NetworkObjectExtractor"
-            NetworkServiceExtractor="NetworkServiceExtractor" NetworkUserExtractor="NetworkUserExtractor" Reload="Reload"/>
+            InputDataType="InputDataType" Content="content" NameExtractor="NameExtractor" NetworkObjectExtractor="NetworkObjectExtractor"
+            NetworkServiceExtractor="NetworkServiceExtractor" NetworkUserExtractor="NetworkUserExtractor" />
         <div class="mb-1"></div>
     }
 }
@@ -16,7 +17,7 @@
 @code
 {
     [Parameter]
-    public Func<RsbTab, ObjCategory, Func<ReportData, Task>, long, bool, Task>? FetchObjects { get; set; }
+    public Func<RsbTab, ObjCategory, Func<Task>, long, bool, Task>? FetchObjects { get; set; }
 
     [Parameter]
     public bool Recert { get; set; }
@@ -48,8 +49,5 @@
 
     [Parameter]
     public Func<InputDataType, IEnumerable<NetworkUser>>? NetworkUserExtractor { get; set; }
-    
-    [Parameter]
-    public bool Reload { get; set; } = false;
 
 }

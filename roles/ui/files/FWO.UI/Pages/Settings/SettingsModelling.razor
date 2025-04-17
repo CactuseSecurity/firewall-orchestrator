@@ -1,4 +1,5 @@
 ﻿@using System.Text.Json
+@using FWO.Ui.Data
 @using FWO.Ui.Pages.NetworkModelling
 
 @page "/settings/modelling"
@@ -15,11 +16,11 @@
 @(userConfig.GetText("U5322"))
 <hr />
 
-@if (configData != null && initComplete)
+@if(configData != null && initComplete)
 {
     <form onsubmit="return false">
         <button type="button" class="btn btn-sm btn-dark ms-5" data-toggle="tooltip" title="@(userConfig.PureLine("H5602"))"
-                @onclick="PredefServices">
+        @onclick="PredefServices">
             @(userConfig.GetText("predef_services"))
         </button>
         <hr />
@@ -82,7 +83,7 @@
         <div class="form-group row mt-4" data-toggle="tooltip" title="@(userConfig.PureLine("H9055"))">
             <label class="col-form-label col-sm-4">@userConfig.GetText("import_app_server"):</label>
             <div class="row col-sm-6">
-                <CSVFileUpload AuthorizedRoles="@Roles.Admin" OnAddAppServerError="OnAddAppServerError" OnAddAppServerWarning="OnAddAppServerWarning" OnImportSuccess="OnAppServerImportSuccess"></CSVFileUpload>
+                <FileUpload SupportedFileFormats=".csv" AuthorizedRoles="@Roles.Admin" OnImportSuccess="OnAppServerImportSuccess" OnAddAppServerError="OnAddAppServerError" TImportResult="CSVFileUploadErrorModel" OnAfterImportResults="OnAfterImportResults"></FileUpload>
             </div>
         </div>
         <hr />
@@ -349,6 +350,20 @@
             <label class="col-form-label col-sm-4">@(userConfig.GetText("modRolloutErrorText")):</label>
             <input type="text" class="col-sm-6" @bind="configData!.ModRolloutErrorText" />
         </div>
+        <div class="form-group row mt-2">
+            <div class="row col-sm-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5648"))">
+                <label class="col-form-label col-sm-5">@userConfig.GetText("modelledMarker"):</label>
+                <input type="text" class="col-sm-4" @bind="configData!.ModModelledMarker" />
+            </div>
+            <div class="row col-sm-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5649"))">
+                <label class="col-form-label col-sm-5">@userConfig.GetText("modelledMarkerLocation"):</label>
+                <input type="text" class="col-sm-4" @bind="configData!.ModModelledMarkerLocation" />
+            </div>
+            <div class="row col-sm-3" data-toggle="tooltip" title="@(userConfig.PureLine("H5650"))">
+                 <button type="button" class="col-sm-6 btn btn-sm btn-primary" @onclick="VarianceOptions" 
+                    @onclick:preventDefault>@(userConfig.GetText("rule_recognition_options"))</button>
+            </div>
+        </div>
         <hr />
     </form>
     <AuthorizeView Roles="@Roles.Admin">
@@ -362,6 +377,8 @@
     <br>
     <br>
     <p>@(userConfig.GetText("U5303"))</p>
+
+    <VarianceOptionsSelection @bind-Display="varOptMode" @bind-ConfigValue="ruleRecognitionOption"/>
 }
 else
 {
@@ -371,6 +388,37 @@ else
 }
 <PredefServices @bind-Display="predefServices" />
 <SearchNwObject @bind-Display="searchArea" ObjectList="pureAreaList" Add="AddArea" CommonAreaMode="true" />
+<PopUp Title="@(userConfig.GetText("appserver_import"))" Show="@ShowCSVImportPopUp" Size=PopupSize.Large OnClose="() => ShowCSVImportPopUp = false">
+    <Body>
+        @if(CSVImportSuccess is not null && CSVImportSuccess.Count > 0)
+        {
+            <div class="mt-3">
+                <Collapse StartToggled="true" Style="success" Title="@(userConfig.GetText("success"))">
+                    <Table PageSize="0" TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="string" Items="CSVImportSuccess">
+                        <Column TableItem="string" Title="@(userConfig.GetText("entrydata"))" Type="typeof(string)" Field="@(_ => new string(_))" Sortable="true" Filterable="true" />
+                    </Table>
+                </Collapse>
+            </div>
+        }
+        @if(CSVImportErrors is not null && CSVImportErrors.Count > 0)
+        {
+            <div class="mt-1">
+                <Collapse StartToggled="false" Style="danger" Title="@(userConfig.GetText("errors"))">
+                    <Table PageSize="0" TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="CSVFileUploadErrorModel" Items="CSVImportErrors">
+                        <Column TableItem="CSVFileUploadErrorModel" Title="@(userConfig.GetText("entrydata"))" Field="@(_ => _.EntryData)" Sortable="true" Filterable="true" />
+                        <Column TableItem="CSVFileUploadErrorModel" Title="@(userConfig.GetText("error_message"))" Field="@(_ => _.Message)" Sortable="true" Filterable="true" />
+                        <Column TableItem="CSVFileUploadErrorModel" Title="@(userConfig.GetText("type"))" Field="@(_ => _.MessageType)" Sortable="true" />
+                    </Table>
+                </Collapse>
+            </div>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <button type="button" class="btn btn-sm btn-primary" @onclick="() => ShowCSVImportPopUp = false">@(userConfig.GetText("ok"))</button>
+        </div>
+    </Footer>
+</PopUp>
 
 @code
 {
@@ -411,28 +459,30 @@ else
     private DateTime subnetDataDate = DateTime.Today;
     private DateTime subnetDataTime = DateTime.Now.AddSeconds(-DateTime.Now.Second);
     private List<EmailRecipientOption> selectableRecipientOptions = [ EmailRecipientOption.OwnerGroupOnly,
-    EmailRecipientOption.AllOwnerResponsibles, EmailRecipientOption.OwnerMainResponsible, EmailRecipientOption.FallbackToMainResponsibleIfOwnerGroupEmpty ];
+        EmailRecipientOption.AllOwnerResponsibles, EmailRecipientOption.OwnerMainResponsible, EmailRecipientOption.FallbackToMainResponsibleIfOwnerGroupEmpty ];
 
-    private List<UiLdapConnection> connectedLdaps = new List<UiLdapConnection>();
+    private List<UiLdapConnection> connectedLdaps = [];
     private UiLdapConnection selectedLdap = new();
-    private bool initComplete = false;
+    private RuleRecognitionOption ruleRecognitionOption = new();
 
+    private bool initComplete = false;
+    private bool varOptMode = false;
+    private bool ShowCSVImportPopUp { get; set; }
+    private List<CSVFileUploadErrorModel>? CSVImportErrors;
+    private List<string>? CSVImportSuccess;
 
     private void OnAddAppServerError((Exception Exception, string Message) error)
     {
         DisplayMessageInUi(error.Exception, userConfig.GetText("add_app_server"), error.Message, false);
     }
 
-    private void OnAddAppServerWarning(string errorMessage)
+    private void OnAfterImportResults((List<string>? Success, List<CSVFileUploadErrorModel>? Errors) importResult)
     {
-        DisplayMessageInUi(null, userConfig.GetText("add_app_server"), errorMessage, true);
-    }
+        CSVImportSuccess = importResult.Success;
+        CSVImportErrors = importResult.Errors;
 
-    private void OnAddAppServerWarning(Exception ex)
-    {
-        DisplayMessageInUi(ex, userConfig.GetText("add_app_server"), ex.Message, false);
+        ShowCSVImportPopUp = true;
     }
-
     private void OnAppServerImportSuccess()
     {
         DisplayMessageInUi(null, userConfig.GetText("import_app_server"), userConfig.GetText("importAppServerDataSuccess"), false);
@@ -466,6 +516,8 @@ else
 
             // get config value of selected ldap connection for owner data (both groups and main responsible user), default value = 1 = internal ldap
             selectedLdap = connectedLdaps.FirstOrDefault(x => x.Id == configData.OwnerLdapId) ?? new();
+
+            ruleRecognitionOption = string.IsNullOrEmpty(configData.RuleRecognitionOption) ? new() : JsonSerializer.Deserialize<RuleRecognitionOption>(configData.RuleRecognitionOption) ?? new();
             initComplete = true;
         }
         catch (Exception exception)
@@ -546,6 +598,11 @@ else
         searchArea = true;
     }
 
+    private void VarianceOptions()
+    {
+        varOptMode = true;
+    }
+
     private async Task Save()
     {
         try
@@ -589,6 +646,7 @@ else
         configData!.ImportAppDataStartAt = appDataDate.Date.Add(appDataTime.TimeOfDay);
         configData!.ImportSubnetDataStartAt = subnetDataDate.Date.Add(subnetDataTime.TimeOfDay);
         configData!.OwnerLdapId = selectedLdap.Id;
+        configData!.RuleRecognitionOption = JsonSerializer.Serialize(ruleRecognitionOption);
     }
 
     private void PrepareAppDataPaths()

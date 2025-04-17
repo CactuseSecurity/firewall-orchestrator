@@ -1,4 +1,4 @@
-﻿@implements IDisposable
+@implements IDisposable
 
 <!-- Display the tab headers -->
 <ul class="@GetNavClasses()">
@@ -89,7 +89,7 @@
         }
 
         var index = Tabs.IndexOf(tab);
-        if (ActiveTab != null && tab == ActiveTab && index == Tabs.Count - 1)
+        if (ActiveTab != null && tab == ActiveTab)
         {
             SetActiveTab(Tabs[index > 0 ? index - 1 : 0]);
             if (Tabs.Count == 1)

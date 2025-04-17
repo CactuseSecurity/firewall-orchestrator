@@ -75,6 +75,7 @@ namespace FWO.Data
         public GroupFlat<NetworkService>[] ServiceGroupFlats { get; set; } = [];
 
         public long Number;
+        public bool IsSurplus = false;
 
         public override bool Equals(object? obj)
         {

@@ -7,6 +7,8 @@ mutation newNetworkOwnership(
     owner_id: $ownerId
     ip: $ip
     ip_end: $ip_end
+    is_deleted: false
+    nw_type: 10
   }) {
     returning {
       newIdLong: id

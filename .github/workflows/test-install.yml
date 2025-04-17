@@ -4,12 +4,16 @@ name: Build
 on:
 
   push:
+    branches-ignore:
+    - importer-rework
     paths-ignore:
     - 'documentation/**'
     - 'design/**'
 
   pull_request:
     types: [ ready_for_review, review_requested ]
+    branches-ignore:
+        - importer-rework
     paths-ignore:
     - 'documentation/**'
     - 'design/**'
@@ -32,4 +36,3 @@ jobs:
     - name: Running in GitHub actions requires testing puppeteer pdf creation separately 
       if: ${{ env.RUNNING_ON_GITHUB_ACTIONS }} == true   
       run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator/roles/tests-unit/files/FWO.Test && dotnet restore && dotnet build && dotnet test --filter "Name=HtmlToPdfTest"
-   

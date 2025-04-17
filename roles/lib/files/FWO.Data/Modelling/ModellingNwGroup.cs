@@ -50,7 +50,7 @@ namespace FWO.Data.Modelling
             return $"<span class=\"{Icons.NwGroup}\"></span> " + DisplayHtml();
         }
 
-        public virtual NetworkObject ToNetworkObjectGroup()
+        public virtual NetworkObject ToNetworkObjectGroup(bool IdAsName = false)
         {
             return new()
             {

@@ -14,7 +14,8 @@ namespace FWO.Basics
         UnusedRules = 10,
 
         Connections = 21,
-        AppRules = 22
+        AppRules = 22,
+        VarianceAnalysis = 23
     }
 
     public static class ReportTypeGroups
@@ -72,12 +73,18 @@ namespace FWO.Basics
             return reportType.IsRuleReport() || reportType.IsChangeReport() || reportType == ReportType.Statistics;
         }
 
+        public static bool IsOwnerRelatedReport(this ReportType reportType)
+        {
+            return reportType == ReportType.Connections || reportType == ReportType.VarianceAnalysis;
+        }
+
         public static bool IsModellingReport(this ReportType reportType)
         {
             return reportType switch
             {
                 ReportType.Connections or
-                ReportType.AppRules => true,
+                ReportType.AppRules or
+                ReportType.VarianceAnalysis => true,
                 _ => false,
             };
         }

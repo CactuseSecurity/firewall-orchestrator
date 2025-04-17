@@ -16,7 +16,7 @@
             <div class="form-group row">
                 <div class="@ColWidthClass()">
                     <DraggableList AllElements="ConnHandler.AvailableNwElems" @bind-SelectedElements="selectedNwElems" 
-                        HandleDragStart="HandleNwDragStart" Display="@DisplayNwObject" MaxHeight="25"/>
+                    HandleDragStart="HandleNwDragStart" Display="@DisplayNwObject" MaxHeight="25"/>
                 </div>
                 @if(!OverviewMode)
                 {
@@ -87,7 +87,7 @@
                 <div class="form-group row">
                     <div class="@ColWidthClass()">
                         <DraggableList AllElements="ConnHandler.AvailableSvcElems" @bind-SelectedElements="selectedSvcElems" 
-                            HandleDragStart="HandleSvcDragStart" Display="@DisplaySvcObject" MaxHeight="25"/>
+                        HandleDragStart="HandleSvcDragStart" Display="@DisplaySvcObject" MaxHeight="25"/>
                     </div>
                     @if(!OverviewMode)
                     {
@@ -151,7 +151,7 @@
                 <div class="form-group row">
                     <div class="@ColWidthClass()">
                         <DraggableList AllElements="ConnHandler.PreselectedInterfaces" @bind-SelectedElements="selectedInterfaces" 
-                            HandleDragStart="HandleConnDragStart" Display="@DisplayInterfaceWithIcon" MaxHeight="15" Multiselect="false"/>
+                        HandleDragStart="HandleConnDragStart" Display="@DisplayInterfaceWithIcon" MaxHeight="15" Multiselect="false"/>
                     </div>
                     @if(!OverviewMode)
                     {
@@ -189,7 +189,7 @@
                 <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("C9010"))">
                     <div class="col-sm-10">
                         <DraggableList AllElements="ConnHandler.Connections.Where(c => c.IsInterface && !c.IsRequested).ToList()" @bind-SelectedElements="selectedInterfaces" 
-                            HandleDragStart="HandleConnDragStart" Display="@DisplayInterfaceWithIcon" MaxHeight="15" Multiselect="false"/>
+                        HandleDragStart="HandleConnDragStart" Display="@DisplayInterfaceWithIcon" MaxHeight="15" Multiselect="false"/>
                     </div>
                     <div class="col-sm-2">
                         @if(selectedInterfaces.Count  == 1)
@@ -212,20 +212,20 @@
     </Sidebar>
     <EditAppRole @bind-Display="ConnHandler.EditAppRoleMode" @bind-AppRoleHandler="ConnHandler.AppRoleHandler" RefreshParent="RefreshParentWithoutRefreshingActConn"/>
     <ConfirmDelete @bind-Display="ConnHandler.DeleteAppRoleMode" PerformAction="async () => await WrapAsync(ConnHandler.DeleteAppRole)"
-        Title="@userConfig.GetText("delete_app_role")" DeleteMessage="@ConnHandler.Message" AllowedRoles="@Roles.Modeller" DeleteAllowed="ConnHandler.DeleteAllowed" Enabled="ConnHandler.IsOwner"/>
+    Title="@userConfig.GetText("delete_app_role")" DeleteMessage="@ConnHandler.Message" AllowedRoles="@Roles.Modeller" DeleteAllowed="ConnHandler.DeleteAllowed" Enabled="ConnHandler.IsOwner"/>
     <EditServiceGroup @bind-Display="ConnHandler.EditSvcGrpMode" @bind-SvcGroupHandler="ConnHandler.SvcGrpHandler"/>
     <ConfirmDelete @bind-Display="ConnHandler.DeleteSvcGrpMode" PerformAction="async () => await WrapAsync(ConnHandler.DeleteServiceGroup)"
-        Title="@userConfig.GetText("delete_service_group")" DeleteMessage="@ConnHandler.Message" AllowedRoles="@Roles.Modeller" DeleteAllowed="ConnHandler.DeleteAllowed" Enabled="ConnHandler.IsOwner"/>
+    Title="@userConfig.GetText("delete_service_group")" DeleteMessage="@ConnHandler.Message" AllowedRoles="@Roles.Modeller" DeleteAllowed="ConnHandler.DeleteAllowed" Enabled="ConnHandler.IsOwner"/>
     <EditService @bind-Display="ConnHandler.EditServiceMode" ServiceHandler="ConnHandler.ServiceHandler" RefreshParent="RefreshParentWithoutRefreshingActConn"/>
     <ConfirmDelete @bind-Display="ConnHandler.DeleteServiceMode" PerformAction="async () => await WrapAsync(ConnHandler.DeleteService)"
-        Title="@userConfig.GetText("delete_service")" DeleteMessage="@ConnHandler.Message" AllowedRoles="@Roles.Modeller" DeleteAllowed="ConnHandler.DeleteAllowed" Enabled="ConnHandler.IsOwner"/>
+    Title="@userConfig.GetText("delete_service")" DeleteMessage="@ConnHandler.Message" AllowedRoles="@Roles.Modeller" DeleteAllowed="ConnHandler.DeleteAllowed" Enabled="ConnHandler.IsOwner"/>
     <SearchInterface @bind-Display="SearchInterfaceMode" @bind-PreselectedInterfaces="ConnHandler.PreselectedInterfaces" Application="ConnHandler.Application"/>
     <ConfirmDelete @bind-Display="ConnHandler.RemovePreselectedInterfaceMode" PerformAction="async () => await WrapAsync(ConnHandler.RemovePreselectedInterface)" 
-        Title="@userConfig.GetText("remove_connection")" DeleteMessage="@ConnHandler.Message" AllowedRoles="@Roles.Modeller" Remove="true" Enabled="ConnHandler.IsOwner"/>
+    Title="@userConfig.GetText("remove_connection")" DeleteMessage="@ConnHandler.Message" AllowedRoles="@Roles.Modeller" Remove="true" Enabled="ConnHandler.IsOwner"/>
     <SearchNwObject @bind-Display="SearchNwObjectMode" @bind-ObjectList="ConnHandler.AvailableSelectedObjects"
-        Application="ConnHandler.Application" Refresh="ConnHandler.RefreshSelectableNwObjects"/>
+    Application="ConnHandler.Application" Refresh="ConnHandler.RefreshSelectableNwObjects"/>
     <ConfirmDelete @bind-Display="ConnHandler.RemoveNwObjectMode" PerformAction="async () => await WrapAsync(ConnHandler.RemoveNwGrpObject)"
-        Title="@userConfig.GetText("remove_nw_object")" DeleteMessage="@ConnHandler.Message" AllowedRoles="@Roles.Modeller" Remove="true" Enabled="ConnHandler.IsOwner"/>
+    Title="@userConfig.GetText("remove_nw_object")" DeleteMessage="@ConnHandler.Message" AllowedRoles="@Roles.Modeller" Remove="true" Enabled="ConnHandler.IsOwner"/>
     <RequestInterfacePopup @bind-Display="SelectAppMode" Apps="ConnHandler.AllApps" RequestingOwner="ConnHandler.Application" RefreshParent="async () => await WrapAsync(ConnHandler.RefreshPreselectedInterfaces)"/>
     <EditConnPopup @bind-Display="ConnHandler.DisplaySelectedInterfaceMode" ConnHandler="ConnHandler.IntConnHandler"/>
 }
@@ -284,7 +284,7 @@
         }
     }
 
-    
+
     private string DisplayInterfaceWithIcon(ModellingConnection interf)
     {
         return $"<span class=\"{Icons.Interface}\"></span> " + ConnHandler?.DisplayInterface(interf);
@@ -298,6 +298,12 @@
 
     private bool InterfaceToConn(ModellingConnection interf)
     {
+        if (ConnHandler is not null && !ConnHandler.InterfaceAllowedWithNetworkArea(interf))
+        {
+            DisplayMessageInUi(default, userConfig.GetText("edit_connection"), userConfig.GetText("U9024"), true);           
+            return false;
+        }
+
         ConnHandler?.InterfaceToConn(interf);
         ConnHandlerChanged.InvokeAsync(ConnHandler);
         return true;
@@ -344,6 +350,7 @@
                 }
             }
         }
+
         if(appRoles.Count > 0)
         {
             if(toSource)
@@ -357,6 +364,22 @@
         }
         if(areas.Count > 0)
         {
+            if (ConnHandler is not null && !ConnHandler.IsNotInterfaceForeignToApp())
+            {
+                DisplayMessageInUi(default, userConfig.GetText("edit_connection"), userConfig.GetText("U9024"), true);
+                selectedNwElems = new();
+                return;
+            }
+
+            Direction direction = toSource ? Direction.Source : Direction.Destination;
+
+            if (ConnHandler is not null && !ConnHandler.NetworkAreaUseAllowed(areas, direction, out (string Title, string Text) reason))
+            {
+                DisplayMessageInUi(default, reason.Title, reason.Text, true);
+                selectedNwElems = new();
+                return;
+            }
+
             if(toSource)
             {
                 ConnHandler?.AreasToSource(areas);

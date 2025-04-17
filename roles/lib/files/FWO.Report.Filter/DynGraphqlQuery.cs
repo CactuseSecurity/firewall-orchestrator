@@ -9,10 +9,9 @@ using FWO.Basics;
 
 namespace FWO.Report.Filter
 {
-    public class DynGraphqlQuery
+    public class DynGraphqlQuery(string rawInput)
     {
-        public string RawFilter { get; private set; }
-
+        public string RawFilter { get; private set; } = rawInput;
         public int parameterCounter = 0;
         public Dictionary<string, object> QueryVariables { get; set; } = [];
         public string FullQuery { get; set; } = "";
@@ -35,10 +34,8 @@ namespace FWO.Report.Filter
         public ReportType ReportType { get; set; } = ReportType.Rules;
         public FwoOwner? SelectedOwner { get; set; }
 
-        public DynGraphqlQuery(string rawInput) { RawFilter = rawInput; }
-
-        public static string fullTimeFormat = "yyyy-MM-dd HH:mm:ss";
-        public static string dateFormat = "yyyy-MM-dd";
+        public const string fullTimeFormat = "yyyy-MM-dd HH:mm:ss";
+        public const string dateFormat = "yyyy-MM-dd";
 
 
         public static DynGraphqlQuery GenerateQuery(ReportTemplate filter, AstNode? ast)
@@ -240,6 +237,7 @@ namespace FWO.Report.Filter
                     break;
 
                 case ReportType.Connections:
+                case ReportType.VarianceAnalysis:
 
                     query.FullQuery = Queries.compact($@"
                         {ModellingQueries.connectionResolvedDetailsFragment}
@@ -319,7 +317,7 @@ namespace FWO.Report.Filter
             {
                 SetOwnerFilter(ref query, reportParams.ReportParams.ModellingFilter);
             }
-            if ((ReportType)reportParams.ReportParams.ReportType == ReportType.Connections)
+            if (((ReportType)reportParams.ReportParams.ReportType).IsOwnerRelatedReport())
             {
                 SetConnectionFilter(ref query, reportParams.ReportParams.ModellingFilter);
             }
@@ -330,7 +328,7 @@ namespace FWO.Report.Filter
             bool first = true;
             if (deviceFilter != null)
             {
-                query.RelevantManagementIds = deviceFilter.getSelectedManagements();
+                query.RelevantManagementIds = deviceFilter.GetSelectedManagements();
                 query.RuleWhereStatement += "{_or: [{";
                 foreach (ManagementSelect mgmt in deviceFilter.Managements)
                 {
@@ -419,7 +417,7 @@ namespace FWO.Report.Filter
             }
         }
 
-        private static (string, string) ResolveTimeRange(TimeFilter timeFilter)
+        public static (string, string) ResolveTimeRange(TimeFilter timeFilter)
         {
             string start;
             string stop;

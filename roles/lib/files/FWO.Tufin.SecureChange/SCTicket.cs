@@ -119,7 +119,7 @@ namespace FWO.Tufin.SecureChange
 					return (GetInternalState(scResponse.Ticket.Status.ToUpper()), restResponse.Content);
 				}
 			}
-			Log.WriteDebug("Poll external ticket status failed", "Content: " + restResponse.Content + ", Error Message: " + restResponse.ErrorMessage);
+			Log.WriteError($"Poll status failed for external ticket {TicketId}.", "Content: " + restResponse.Content + ", Error Message: " + restResponse.ErrorMessage);
 			return (oldState, restResponse.ErrorMessage);
 		}
 
@@ -189,7 +189,7 @@ namespace FWO.Tufin.SecureChange
 					ExternalTicketTemplate? template = TicketSystem.Templates.FirstOrDefault(t => t.TaskType == actTaskType.ToString());
 					if(template == null)
 					{
-						Log.WriteDebug("Create Ticket Tasks", $"No Template found for task type {actTaskType}.");
+						Log.WriteError("Create Ticket Tasks", $"No Template found for task type {actTaskType}.");
 					}
 					else
 					{
@@ -262,6 +262,10 @@ namespace FWO.Tufin.SecureChange
 					{
 						return scResponse.User.Users.FirstOrDefault()?.Id ?? 0;
 					}
+				}
+				else
+				{
+					Log.WriteError("Lookup external requester id not OK", "Content: " + restResponse.Content);
 				}
 			}
 			return 0;

@@ -1,11 +1,12 @@
+@using FWO.Data.Modelling
 @using FWO.Report
 @using FWO.Report.Filter
 @using FWO.Report.Filter.FilterTypes
 @using FWO.Report.Filter.Exceptions
-@using FWO.Data.Modelling
 @using FWO.Ui.Data
 @using FWO.Ui.Pages.Reporting.Reports
 @using System.Diagnostics
+@using System.Text.Json
 
 @page "/report/generation/{appId?}"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Auditor}, {Roles.Modeller}")]
@@ -21,7 +22,7 @@
         <div class="p-3 mt-2">
             <h5 class="text-left">@(userConfig.GetText("report_type"))</h5>
             <Dropdown ElementType="ReportType" ElementToString="@(r => userConfig.GetText(r.ToString()))" SelectedElement="actReportFilters.ReportType"
-                SelectedElementChanged="ReportTypeChanged" Elements="CustomSortReportType(Enum.GetValues(typeof(ReportType)).Cast<ReportType>().ToList())">
+                SelectedElementChanged="ReportTypeChanged" Elements="availableReportTypes">
                 <ElementTemplate Context="reportType">
                     @userConfig.GetText(reportType.ToString())
                 </ElementTemplate>
@@ -33,7 +34,7 @@
         }
         else if (actReportFilters.ReportType.IsModellingReport())
         {
-            <ReportModellingParamSelection @bind-ModellingFilter="actReportFilters.ModellingFilter" InjectedAppId="injectedAppId" AllParams="@(actReportFilters.ReportType == ReportType.AppRules)"/>
+            <ReportModellingParamSelection @bind-ModellingFilter="actReportFilters.ModellingFilter" InjectedAppId="injectedAppId" ReportType="actReportFilters.ReportType"/>
         }
         else if(actReportFilters.ReportType == ReportType.UnusedRules)
         {
@@ -47,7 +48,7 @@
             <div class="p-3">
                 <h5 class="text-left">@(userConfig.GetText("report_time"))</h5>
                 <div class="input-group">
-                    <input type="text" class="form-control form-control-sm" value="@actReportFilters.DisplayedTimeSelection" />
+                    <input type="text" class="form-control form-control-sm" value="@actReportFilters.DisplayedTimeSelection" disabled />
                     <button type="button" class="btn btn-sm btn-secondary" @onclick="SelectTime">@(userConfig.GetText("change"))</button>
                 </div>
             </div>
@@ -129,7 +130,11 @@
                             break;
 
                         case ReportType.Connections:
-                            <ConnectionsReport AppHandlers="appHandlers" AllCommonServices="currentReport.ReportData.GlobalComSvc?.FirstOrDefault()?.GlobalComSvcs"/>
+                            <ConnectionsReport OwnerData="currentReport.ReportData.OwnerData" AllCommonServices="currentReport.ReportData.GlobalComSvc?.FirstOrDefault()?.GlobalComSvcs"/>
+                            break;
+
+                        case ReportType.VarianceAnalysis:
+                            <VariancesReport OwnerData="currentReport.ReportData.OwnerData"/>
                             break;
 
                         default:
@@ -155,7 +160,8 @@
     <RightSidebar @bind-Width="sidebarRightWidth" CurrentReport="currentReport"
         @bind-SelectedRules="selectedItemsRuleReportTable" 
         AllTabVisible="(tenantFilteringAllowed && actReportFilters.SelectedTenant == null)"
-        SelectedReportType = "actReportFilters.ReportType"/>
+        SelectedReportType="actReportFilters.ReportType"
+        LSBTime="actReportFilters.TimeFilter"/>
 }
 
 @* ==== POPUPS ==== *@
@@ -182,15 +188,12 @@
     private List<Rule> selectedItemsRuleReportTable = [];
     private List<RuleChange> selectedItemsChangeReportTable = [];
 
-    private List<ModellingAppHandler> appHandlers = [];
-    List<int> relevantManagementIds = [];
-
+    private List<ReportType> availableReportTypes { get; set; } = [];
     private ReportFilters actReportFilters = new();
     private bool InitDone = false;
     private int? injectedAppId = null;
     private bool autoGenerateReport = false;
 
-    private List<string> unsupportedList = [];
     private bool ShowSelectTimeDialog = false;
     private bool ShowCreateTicketDialog = false;
 
@@ -229,6 +232,9 @@
     {
         try
         {
+            availableReportTypes = CustomSortReportType(
+                JsonSerializer.Deserialize<List<ReportType>>(string.IsNullOrEmpty(userConfig.AvailableReportTypes) ? "[]" : userConfig.AvailableReportTypes)
+                ?? throw new Exception("Config data could not be parsed."));
             SetProperRoleForReport();
             actReportFilters.DeviceFilter.Managements = await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement);
             if(int.TryParse(AppId, out int appId))
@@ -307,17 +313,17 @@
     {
         if(actReportFilters.ReportType == ReportType.AppRules)
         {
-            if(!actReportFilters.DeviceFilter.isAnyDeviceFilterSet())
+            if(!actReportFilters.DeviceFilter.IsAnyDeviceFilterSet())
             {
                 resetToEmptyDevFilter = true;
-                actReportFilters.DeviceFilter.applyFullDeviceSelection(true);
+                actReportFilters.DeviceFilter.ApplyFullDeviceSelection(true);
                 actReportFilters.SelectAll = false;
             }
         }
-        else if(resetToEmptyDevFilter && actReportFilters.DeviceFilter.areAllDevicesSelected())
+        else if(resetToEmptyDevFilter && actReportFilters.DeviceFilter.AreAllDevicesSelected())
         {
             resetToEmptyDevFilter = false;
-            actReportFilters.DeviceFilter.applyFullDeviceSelection(false);
+            actReportFilters.DeviceFilter.ApplyFullDeviceSelection(false);
             actReportFilters.SelectAll = true;
         }
     }
@@ -329,7 +335,6 @@
         {
             currentReport.ReportData = new ();
         }
-        appHandlers = new();
         reportGenerationDuration = 0;
     }
 
@@ -361,55 +366,35 @@
 
     private async Task GenerateReport()
     {
+        if (actReportFilters.ReportType.IsDeviceRelatedReport() && !actReportFilters.DeviceFilter.IsAnyDeviceFilterSet())
+        {
+            DisplayMessageInUi(null, userConfig.GetText("no_device_selected"), userConfig.GetText("E1001"), true);
+            return;
+        }
         Stopwatch watch = new System.Diagnostics.Stopwatch();
         watch.Start();
         tokenSource = new CancellationTokenSource();
         var token = tokenSource.Token;
 
+        await ProcessReportGeneration(token);
+
+        watch.Stop();
+        reportGenerationDuration = watch.ElapsedMilliseconds/1000.0;
+        await InvokeAsync(StateHasChanged);
+        Log.WriteDebug("Report Generation", $"Generation Time: {reportGenerationDuration} s.");
+    }
+
+    private async Task ProcessReportGeneration(CancellationToken token)
+    {
         // save original report for exception case
         ReportData reportOrig = currentReport?.ReportData ?? new();
 
         try
         {
-            if (actReportFilters.ReportType.IsDeviceRelatedReport() && !actReportFilters.DeviceFilter.isAnyDeviceFilterSet())
-            {
-                DisplayMessageInUi(null, userConfig.GetText("no_device_selected"), userConfig.GetText("E1001"), true);
-                return;
-            }
             processing = true;
             SetProperRoleForReport();
             await PrepareReportGeneration();
-
-            try
-            {
-                if(currentReport!.ReportType == ReportType.Connections)
-                {
-                    await GenerateConnectionsReport(token);
-                }
-                else if(currentReport!.ReportType == ReportType.Statistics)
-                {
-                    await GenerateStatisticsReport(token);
-                }
-                else
-                {
-                    await currentReport!.Generate(userConfig.ElementsPerFetch, apiConnection,
-                    managementsReportIntermediate =>
-                    {
-                        currentReport.ReportData.ManagementData = managementsReportIntermediate.ManagementData;
-                        setRelevantManagements();
-                        return InvokeAsync(StateHasChanged);
-                    }, token);
-                    if (currentReport.ReportType == ReportType.Recertification)
-                    {
-                        PrepareMetadata(currentReport.ReportData.ManagementData);
-                    }
-                }
-            }
-            catch (OperationCanceledException e)
-            {
-                Log.WriteDebug("Generate Report", $"Cancelled: {e.Message}");
-            }
-
+            currentReport = await ReportGenerator.Generate(ConstructReportTemplate(), apiConnection, userConfig, DisplayMessageInUi, token);
             processing = false;
             PostProcess();
         }
@@ -424,10 +409,6 @@
             await InvokeAsync(StateHasChanged);
             DisplayMessageInUi(exception, userConfig.GetText("generate_report"), "", true);
         }
-        watch.Stop();
-        reportGenerationDuration = watch.ElapsedMilliseconds/1000.0;
-        await InvokeAsync(StateHasChanged);
-        Log.WriteDebug("Report Generation", $"Generation Time: {reportGenerationDuration} s.");
     }
 
     private async Task PrepareReportGeneration()
@@ -437,110 +418,18 @@
         {
             var result = await ReportDevicesBase.GetUsageDataUnsupportedDevices(apiConnection, actReportFilters.DeviceFilter);
             actReportFilters.ReducedDeviceFilter = result.reducedDeviceFilter;
-            unsupportedList = result.unsupportedList;
-            if(unsupportedList.Count > 0)
+            if(result.unsupportedList.Count > 0)
             {
-                DisplayMessageInUi(null, userConfig.GetText("generate_report"), userConfig.GetText("E4004") + string.Join(", ", unsupportedList), true);
+                DisplayMessageInUi(null, userConfig.GetText("generate_report"), userConfig.GetText("E4004") + string.Join(", ", result.unsupportedList), true);
             }
         }
-
-        currentReport = ReportBase.ConstructReport(ConstructReportTemplate(), userConfig);
 
         // clear selected rules
         selectedItemsRuleReportTable.Clear();
         selectedItemsChangeReportTable.Clear();
 
-        // save selected managements before resetting
-        relevantManagementIds = actReportFilters.DeviceFilter.getSelectedManagements();
-
-         // reset report data when switching between reports
+        // reset report data when switching between reports
         ResetReport();
-    }
-
-    private async Task GenerateConnectionsReport(CancellationToken token)
-    {
-        if(currentReport != null)
-        {
-            ModellingAppRole dummyAppRole = new();
-            List<ModellingAppRole> dummyAppRoles = await apiConnection.SendQueryAsync<List<ModellingAppRole>>(ModellingQueries.getDummyAppRole);
-            if(dummyAppRoles.Count > 0)
-            {
-                dummyAppRole = dummyAppRoles.First();
-            }
-            foreach(var selectedOwner in actReportFilters.ModellingFilter.SelectedOwners)
-            {
-                OwnerReport actOwnerData = new(dummyAppRole.Id){ Name = selectedOwner.Display("") };
-                currentReport.ReportData.OwnerData.Add(actOwnerData);
-                await currentReport.Generate(userConfig.ElementsPerFetch, apiConnection,
-                connIntermediate =>
-                {
-                    actOwnerData.Connections = connIntermediate.OwnerData.First().Connections;
-                    return InvokeAsync(StateHasChanged);
-                }, token);
-
-                await PrepareConnReportData(selectedOwner, actOwnerData);
-            }
-            List<ModellingConnection> comSvcs = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getCommonServices);
-            if(comSvcs.Count > 0)
-            {
-                currentReport.ReportData.GlobalComSvc = [new(){GlobalComSvcs = comSvcs, Name = userConfig.GetText("global_common_services")}];
-            }
-        }
-    }
-
-    async Task PrepareConnReportData(FwoOwner selectedOwner, OwnerReport ownerData)
-    {
-        ModellingAppHandler appHandler = new (apiConnection, userConfig, selectedOwner, DisplayMessageInUi);
-        await appHandler.Init(ownerData.Connections);
-        ownerData.RegularConnections = appHandler.GetRegularConnections();
-        ownerData.Interfaces = appHandler.GetInterfaces();
-        ownerData.CommonServices = appHandler.GetCommonServices();
-        appHandlers.Add(appHandler);
-    }
-
-    private async Task GenerateStatisticsReport(CancellationToken token)
-    {
-        if(currentReport != null)
-        {
-            currentReport.ReportData.GlobalStats = new ();
-            await currentReport.Generate(0, apiConnection,
-                managementsReportIntermediate =>
-                {
-                    currentReport.ReportData.ManagementData = managementsReportIntermediate.ManagementData;
-                    setRelevantManagements();
-                    return InvokeAsync(() =>
-                    {
-                        foreach (var mgm in currentReport.ReportData.ManagementData.Where(mgt => !mgt.Ignore))
-                        {
-                            currentReport.ReportData.GlobalStats.RuleStatistics.ObjectAggregate.ObjectCount += mgm.RuleStatistics.ObjectAggregate.ObjectCount;
-                            currentReport.ReportData.GlobalStats.NetworkObjectStatistics.ObjectAggregate.ObjectCount += mgm.NetworkObjectStatistics.ObjectAggregate.ObjectCount;
-                            currentReport.ReportData.GlobalStats.ServiceObjectStatistics.ObjectAggregate.ObjectCount += mgm.ServiceObjectStatistics.ObjectAggregate.ObjectCount;
-                            currentReport.ReportData.GlobalStats.UserObjectStatistics.ObjectAggregate.ObjectCount += mgm.UserObjectStatistics.ObjectAggregate.ObjectCount;
-                        }
-                        StateHasChanged();
-                    });
-                }, token);
-        }
-    }
-
-    private bool PrepareMetadata(List<ManagementReport> ManagementReports)
-    {
-        bool rulesFound = false;
-        foreach (var managementReport in ManagementReports)
-        {
-            foreach (var device in managementReport.Devices)
-            {
-                if (device.ContainsRules())
-                {
-                    rulesFound = true;
-                    foreach (var rule in device.Rules!)
-                    {
-                        rule.Metadata.UpdateRecertPeriods(userConfig.RecertificationPeriod, userConfig.RecertificationNoticePeriod);
-                    }
-                }
-            }
-        }
-        return rulesFound;
     }
 
     private void PostProcess()
@@ -567,17 +456,6 @@
     {
         tokenSource.Cancel();
         DisplayMessageInUi(null, userConfig.GetText("report_data_fetch"), userConfig.GetText("E1003"), true);
-    }
-
-    private void setRelevantManagements()
-    {
-        if(currentReport != null)
-        {
-            foreach (var mgm in currentReport.ReportData.ManagementData)
-            {
-                mgm.Ignore = !relevantManagementIds.Contains(mgm.Id);
-            }
-        }
     }
 
     private ReportTemplate ConstructReportTemplate()
@@ -623,12 +501,12 @@
             ReportType.Changes, ReportType.ResolvedChanges, ReportType.ResolvedChangesTech, 
             ReportType.Statistics,
             ReportType.Connections,
-            ReportType.AppRules
+            ReportType.AppRules,
+            ReportType.VarianceAnalysis
         };
         foreach (var reportType in orderedReportTypeList)
         {
-            ReportType? foundType = ListIn.Find(x => x == reportType);
-            if (foundType != null)
+            if (ListIn.Contains(reportType))
             {
                 if(showRuleRelatedReports && reportType.IsDeviceRelatedReport() || showModellingReports && reportType.IsModellingReport())
                 {

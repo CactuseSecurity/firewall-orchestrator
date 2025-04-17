@@ -1,4 +1,4 @@
-﻿using FWO.Api.Client;
+using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Config.Api;
@@ -11,7 +11,7 @@ using FWO.Encryption;
 using FWO.Logging;
 using FWO.Mail;
 using FWO.Report;
-
+using FWO.Services;
 
 namespace FWO.Middleware.Server
 {
@@ -93,7 +93,7 @@ namespace FWO.Middleware.Server
             {
                 if (currentLdap.IsInternal() && currentLdap.HasGroupHandling())
                 {
-                    groups.AddRange(currentLdap.GetAllInternalGroups());
+                    groups.AddRange(await currentLdap.GetAllInternalGroups());
                 }
             }
             uiUsers = await apiConnectionMiddlewareServer.SendQueryAsync<List<UiUser>>(AuthQueries.getUsers);
@@ -167,14 +167,13 @@ namespace FWO.Middleware.Server
             List<Rule> rules = [];
             try
             {
-                CancellationToken token = new ();
                 UserConfig userConfig = new (globalConfig);
 
                 DeviceFilter deviceFilter = new()
                 {
                     Managements = await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement)
                 };
-                deviceFilter.applyFullDeviceSelection(true);
+                deviceFilter.ApplyFullDeviceSelection(true);
 
                 ReportParams reportParams = new((int)ReportType.Recertification, deviceFilter)
                 {
@@ -184,16 +183,8 @@ namespace FWO.Middleware.Server
                         RecertificationDisplayPeriod = globalConfig.RecertificationNoticePeriod
                     }
                 };
-                ReportBase? currentReport = ReportBase.ConstructReport(new ReportTemplate("", reportParams), userConfig);
 
-                ReportData reportData = new ();
-
-                await currentReport.Generate(int.MaxValue, apiConnection,
-                rep =>
-                {
-                    reportData.ManagementData = rep.ManagementData;
-                    return Task.CompletedTask;
-                }, token);
+                ReportData reportData = (await ReportGenerator.Generate(new ReportTemplate("", reportParams), apiConnection, userConfig, DefaultInit.DoNothing))?.ReportData ?? new();
 
                 foreach (var management in reportData.ManagementData)
                 {

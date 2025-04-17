@@ -1,4 +1,4 @@
-﻿using NetTools;
+using NetTools;
 using FWO.Config.Api;
 using FWO.Basics;
 using FWO.Data;
@@ -57,6 +57,11 @@ namespace FWO.Services
                         }
                         return false;
                     }
+                    else if(string.IsNullOrEmpty(ExistingAppServerName) && string.IsNullOrEmpty(ActAppServer.Name))
+                    {
+                        string message = $"{userConfig.GetText("E9018")} Name: \"\"";
+                        DisplayMessageInUi(null, userConfig.GetText("edit_app_server"), message, true);
+                    }
                     else
                     {
                         DisplayMessageInUi(null, userConfig.GetText("edit_app_server"), userConfig.GetText("E0034"), true);
@@ -96,7 +101,7 @@ namespace FWO.Services
 
         private static bool CheckIpAdress(string ip)
         {
-            return IPAddressRange.TryParse(ip, out _);
+            return IPAddressRange.TryParse(ip, out _) && ip.TryParseIPStringToRange(out _, strictv4Parse: true);
         }
     }
 }

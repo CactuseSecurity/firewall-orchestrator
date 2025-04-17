@@ -1,16 +1,16 @@
-﻿using FWO.Basics;
-using FWO.Api.Client;
-using FWO.Data.Report;
-using FWO.Report.Filter;
+﻿using FWO.Api.Client;
+using FWO.Basics;
 using FWO.Config.Api;
+using FWO.Data.Report;
+using FWO.Logging;
+using FWO.Report.Data;
+using FWO.Report.Filter;
 using System.Text;
 using System.Reflection;
 using PuppeteerSharp;
 using PuppeteerSharp.Media;
 using PuppeteerSharp.BrowserData;
 using HtmlAgilityPack;
-using FWO.Report.Data;
-using FWO.Logging;
 
 namespace FWO.Report
 {
@@ -113,7 +113,13 @@ namespace FWO.Report
 
         public abstract Task Generate(int rulesPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback, CancellationToken ct);
 
-        public abstract Task<bool> GetObjectsInReport(int objectsPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback); // to be called when exporting
+        public virtual async Task<bool> GetObjectsInReport(int objectsPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback)
+        {
+            await callback(ReportData);
+            // currently no further objects to be fetched
+            GotObjectsInReport = true;
+            return true;
+        }
 
         public virtual Task<bool> GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, ObjCategory objects, int maxFetchCycles, ApiConnection apiConnection, Func<ReportData, Task> callback)
         {
@@ -151,6 +157,7 @@ namespace FWO.Report
                 ReportType.UnusedRules => new ReportRules(query, userConfig, repType),
                 ReportType.Connections => new ReportConnections(query, userConfig, repType),
                 ReportType.AppRules => new ReportAppRules(query, userConfig, repType, reportFilter.ReportParams.ModellingFilter),
+                ReportType.VarianceAnalysis => new ReportVariances(query, userConfig, repType),
                 _ => throw new NotSupportedException("Report Type is not supported."),
             };
         }
@@ -311,9 +318,17 @@ namespace FWO.Report
             {
                 string headText = heading.InnerText.Trim();
 
-                if (heading.Name == "h4")
+                if (heading.Name == "h4" && tocs.Count > 0)
                 {
                     tocs[i - 1].Items.Add(new ToCItem(headText, heading.Id));
+                }
+                else if (heading.Name == "h5" && tocs.Count > 0 && tocs[i - 1].Items.Count > 0)
+                {
+                    tocs[i - 1].Items.Last().SubItems.Add(new ToCItem(headText, heading.Id));
+                }
+                else if (heading.Name == "h6" && tocs.Count > 0 && tocs[i - 1].Items.Count > 0 && tocs[i - 1].Items.Last().SubItems.Count > 0)
+                {
+                    tocs[i - 1].Items.Last().SubItems.Last().SubItems.Add(new ToCItem(headText, heading.Id));
                 }
                 else
                 {
@@ -350,8 +365,25 @@ namespace FWO.Report
                     foreach (ToCItem tocItem in toCHeader.Items)
                     {
                         sb.AppendLine($"<li class=\"subli\"><a href=\"#{tocItem.Id}\">{tocItem.Title}</a></li>");
+                        if (tocItem.SubItems.Count > 0)
+                        {
+                            sb.AppendLine("<ul>");
+                            foreach (ToCItem subItem in tocItem.SubItems)
+                            {
+                                sb.AppendLine($"<li class=\"subli\"><a href=\"#{subItem.Id}\">{subItem.Title}</a></li>");
+                                if (subItem.SubItems.Count > 0)
+                                {
+                                    sb.AppendLine("<ul>");
+                                    foreach (ToCItem subsubItem in subItem.SubItems)
+                                    {
+                                        sb.AppendLine($"<li class=\"subli\"><a href=\"#{subsubItem.Id}\">{subsubItem.Title}</a></li>");
+                                    }
+                                    sb.AppendLine("</ul>");
+                                }
+                            }
+                            sb.AppendLine("</ul>");
+                        }
                     }
-
                     sb.AppendLine("</ul>");
                 }
             }

@@ -1,0 +1,101 @@
+﻿@using FWO.Data.Modelling
+@using FWO.Report
+@using FWO.Ui.Display
+
+
+@inject UserConfig userConfig
+@inject ApiConnection apiConnection
+
+@foreach(var owner in OwnerData)
+{
+    <h4>@owner.Owner.Display(userConfig.GetText("common_service"))</h4>
+    @if(owner.AppRoleStats.ModelledAppRolesCount > 0)
+    {
+        <div class="mb-2">@(ReportVariances.DisplayAppRoleStat(owner, userConfig))</div>
+    }
+    <div class="mb-2">@(ReportVariances.DisplayConnStat(owner, userConfig))</div>
+    @if(owner.MissingAppRoles.Count > 0)
+    {
+        <br>
+        <h5>@(userConfig.GetText("app_roles_not_implemented"))</h5>
+        <div class="ml-13">
+            @foreach(var mgt in owner.MissingAppRoles.Keys)
+            {
+                @if(owner.MissingAppRoles[mgt].Count > 0)
+                {
+                    <Collapse Title="@(owner.MissingAppRoles[mgt].First().ManagementName)" Style="@("primary")" StartToggled="false">
+                        <AppRoleTable AppRoles="owner.MissingAppRoles[mgt]" />
+                    </Collapse>
+                }
+            }
+        </div>
+    }
+    @if(owner.DifferingAppRoles.Count > 0)
+    {
+        <br>
+        <h5>@(userConfig.GetText("app_roles_with_diffs"))</h5>
+        <div class="ml-13">
+            @foreach(var mgt in owner.DifferingAppRoles.Keys)
+            {
+                @if(owner.DifferingAppRoles[mgt].Count > 0)
+                {
+                    <Collapse Title="@(owner.DifferingAppRoles[mgt].First().ManagementName)" Style="@("primary")" StartToggled="false">
+                        <AppRoleTable AppRoles="owner.DifferingAppRoles[mgt]" DiffMode="true" Split="true"/>
+                    </Collapse>
+                }
+            }
+        </div>
+    }
+    @if(owner.Connections.Count > 0)
+    {
+        <br>
+        <h5>@(userConfig.GetText("connections_not_implemented"))</h5>
+        <div class="ml-13">
+            @if(owner.RegularConnections.Count > 0)
+            {
+                <Collapse Title="@userConfig.GetText("regular_connections")" Style="@("primary")" StartToggled="false">
+                    <ConnectionTable Connections="@owner.RegularConnections" Readonly="true" DiffMode="true"/>
+                </Collapse>
+            }
+            @if(owner.CommonServices.Count > 0)
+            {
+                <Collapse Title="@userConfig.GetText("common_services")" Style="@("primary")" StartToggled="false">
+                    <ConnectionTable Connections="@owner.CommonServices" Readonly="true" DiffMode="true"/>
+                </Collapse>
+            }
+        </div>
+    }
+    @if(owner.RuleDifferences.Count > 0)
+    {
+        <br>
+        <h5>@(userConfig.GetText("connections_with_diffs"))</h5>
+        <div class="ml-13">
+            <Collapse Title="@userConfig.GetText("connections")" Style="@("primary")" StartToggled="false">
+                @foreach(var difference in owner.RuleDifferences)
+                {
+                    <Collapse Title="@difference.ModelledConnection.Name" Style="@("secondary")" StartToggled="true">
+                        <ConnectionTable Connections="@([difference.ModelledConnection])" Readonly="true" DiffMode="true"/>
+                        <ReportedRulesForDiff Difference="difference" RulesPerPage="rulesPerPage"/>
+                    </Collapse>
+                }
+            </Collapse>
+        </div>
+    }
+    @if(owner.ManagementData.Count > 0)
+    {
+        <br>
+        <h5>@(userConfig.GetText("rules_not_modelled"))</h5>
+        <div class="ml-13">
+            <RulesReport Managements="owner.ManagementData" SelectedReportType="ReportType.AppRules" RulesPerPage="rulesPerPage" @bind-SelectedRules="selectedRules" />
+        </div>
+    }
+}
+
+@code
+{
+    [Parameter]
+    public List<OwnerReport> OwnerData { get; set; } = [];
+
+    private const int rulesPerPage = 0;
+    private List<Rule> selectedRules = [];
+}

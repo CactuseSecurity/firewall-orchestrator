@@ -2,6 +2,7 @@
 @using FWO.Services.EventMediator.Interfaces
 @using FWO.Ui.Display
 @inject IEventMediator EventMediator
+@implements IDisposable
 
 @inject UserConfig userConfig
 
@@ -722,5 +723,10 @@
 
         AvailableNwElements = ConnHandler.AvailableNwElems;        
         await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        EventMediator.Unsubscribe<CollectionChangedEvent>("AppserversCollectionChanged");
     }
 }

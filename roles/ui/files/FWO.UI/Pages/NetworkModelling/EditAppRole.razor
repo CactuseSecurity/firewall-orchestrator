@@ -1,5 +1,7 @@
+@using FWO.Basics.Comparer
 @using FWO.Services.EventMediator.Events
 @using FWO.Services.EventMediator.Interfaces
+@using FWO.Ui.Data
 @using FWO.Ui.Display
 
 @inject ApiConnection apiConnection
@@ -93,7 +95,7 @@
                             }
                             else
                             {
-                                <OrderByDropdown CssClass="bg-secondary" @ref="orderByDropdown" TCollectionItem="ModellingAppServer" Collection="ModellingAppServerWrapper.Resolve(AppRoleHandler.ActAppRole.AppServers).Concat(AppRoleHandler.AppServerToAdd).ToList()" CollectionReordered="OnCollectionReordered" ElementProperties="orderByDropdownProperties" />
+                                <OrderByDropdown CssClass="bg-secondary" @ref="orderByDropdown" TCollectionItem="ModellingAppServer" CollectionReordered="OnCollectionReordered" ElementProperties="orderByDropdownProperties" CustomSort="true"/>
                                 <div class="dropzone-scrollable dropzone bg-secondary"
                                 ondragover="event.preventDefault();"
                                 ondragstart="event.dataTransfer.setData('', event.target.id);"
@@ -321,13 +323,39 @@
     }
 
     /// <summary>
-    /// Updates the app server's visual elements after reordering the collection.
+    /// Implements a custom way to reorder the relevant collections.
     /// </summary>
     private void OnCollectionReordered(List<ModellingAppServer> orderedCollection)
     {
-        if (AppRoleHandler != null && orderedCollection != null)
+        if (AppRoleHandler != null && orderByDropdown != null)
         {
-            AppRoleHandler.AppServerToAdd = orderedCollection;
+            ModellingAppServer[]? resolved = ModellingAppServerWrapper.Resolve(AppRoleHandler.ActAppRole.AppServers);
+            ModellingAppServer[]? ordered;
+            List<ModellingAppServer> appServersToAdd = AppRoleHandler.AppServerToAdd; 
+
+            if(orderByDropdown.SelectedProperty.Equals("Ip"))
+            {
+                
+                ordered = resolved.OrderBy(OrderByDropdown<ModellingAppServer>.GetIPAddressRange, new IPAddressRangeComparer()).ToArray<ModellingAppServer>();
+                appServersToAdd = appServersToAdd.OrderBy(OrderByDropdown<ModellingAppServer>.GetIPAddressRange, new IPAddressRangeComparer()).ToList<ModellingAppServer>();
+
+            }
+            else
+            {
+                Func<ModellingAppServer, object> keySelector = orderByDropdown.GetGenericOrderByExpression<ModellingAppServer>(orderByDropdown.SelectedProperty);
+                ordered = resolved.OrderBy(keySelector).ToArray(); 
+                appServersToAdd = appServersToAdd.OrderBy(keySelector).ToList();
+            }
+
+            if (orderByDropdown.SelectedOrderMode == OrderMode.Desc)
+            {
+                Array.Reverse(ordered);   
+                appServersToAdd.Reverse();
+            }
+
+            List<ModellingAppServerWrapper> wrapped = ModellingAppServerWrapper.Wrap(ordered);
+            AppRoleHandler.ActAppRole.AppServers = wrapped; 
+            AppRoleHandler.AppServerToAdd = appServersToAdd;
         }
 
         InvokeAsync(StateHasChanged);

@@ -2,6 +2,7 @@
 using FWO.Basics;
 using FWO.Data;
 using FWO.Config.Api;
+using FWO.Report;
 using FWO.Report.Filter;
 
 namespace FWO.Ui.Display
@@ -77,12 +78,13 @@ namespace FWO.Ui.Display
                     userNetworkObject.Object.Type.Name,
                     showIpinBrackets));
             }
-            return result;
+            return reportType == ReportType.VarianceAnalysis ? DisplayWithIcon(result, ObjCategory.nobj, userNetworkObject.Object.Type.Name) : result;
         }
 
         public static StringBuilder DisplayService(NetworkService service, ReportType reportType, string? serviceName = null)
         {
-            return DisplayBase.DisplayService(service, reportType.IsTechReport(), serviceName);
+            StringBuilder result = DisplayBase.DisplayService(service, reportType.IsTechReport(), serviceName);
+            return reportType == ReportType.VarianceAnalysis ? DisplayWithIcon(result, ObjCategory.nsrv, service.Type.Name) : result;
         }
 
         public static StringBuilder RemoveLastChars(StringBuilder s, int count)
@@ -159,6 +161,12 @@ namespace FWO.Ui.Display
                     added.Add(newItem);
                 }
             }
+        }
+
+        private static StringBuilder DisplayWithIcon(StringBuilder outputString, ObjCategory? objCategory, string? objType)
+        {
+            string symbol = ReportBase.GetIconClass(objCategory, objType);
+            return new($"<span class=\"{symbol}\">{outputString}</span>");
         }
     }
 }

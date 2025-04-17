@@ -108,7 +108,7 @@
     private ExtStateHandler? extStateHandler;
     private List<GraphQlApiSubscription<List<WfReqTask>>> actTaskSubscriptions = [];
 
-    private ModellingAppZone? PlannedAppZone = default;
+    private ModellingAppZone? PlannedAppZoneDbUpdate = default;
 
     protected override async Task OnInitializedAsync()
     {
@@ -134,10 +134,9 @@
         {
             if (!await GetActTicketStatus() && extStateHandler != null)
             {
-                ModellingAppZoneHandler appZoneHandler = new(apiConnection, userConfig, SelectedApp, DisplayMessageInUi);
                 ModellingVarianceAnalysis varianceAnalysis = new(apiConnection, extStateHandler, userConfig, SelectedApp, DisplayMessageInUi);
-                TaskList = await varianceAnalysis.AnalyseModelledConnections(Connections);
-                PlannedAppZone = varianceAnalysis.PlannedAppZone;
+                TaskList = await varianceAnalysis.AnalyseModelledConnectionsForRequest(Connections);
+                PlannedAppZoneDbUpdate = varianceAnalysis.PlannedAppZoneDbUpdate;
             }
         }
         catch (Exception exception)
@@ -225,7 +224,7 @@
             }
             else
             {
-                services.Add(elem.Port + "/" + ipProtos.Find(x => x.Id == elem.ProtoId)?.Name);
+                services.Add(SCAccessRequestTicketTask.DisplayPortRange(elem.Port ?? 0, elem.PortEnd) + "/" + ipProtos.Find(x => x.Id == elem.ProtoId)?.Name);
             }
         }
         return string.Join(", ", services);
@@ -273,10 +272,10 @@
         WorkInProgress = true;
         try
         {
-            if (PlannedAppZone is not null)
+            if (PlannedAppZoneDbUpdate is not null)
             {
                 ModellingAppZoneHandler appZoneHandler = new(apiConnection, userConfig, SelectedApp, DisplayMessageInUi);
-                await appZoneHandler.UpsertAppZone(PlannedAppZone);
+                await appZoneHandler.UpsertAppZone(PlannedAppZoneDbUpdate);
             }
 
             TicketCreator ticketCreator = new(apiConnection, userConfig, authenticationStateTask!.Result.User, middlewareClient);

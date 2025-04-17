@@ -61,25 +61,26 @@ namespace FWO.Test
         [Test]
         public async Task TestAnalyseModelledConnections()
         {
-            List<WfReqTask> TaskList = await varianceAnalysis!.AnalyseModelledConnections(Connections);
+            List<WfReqTask> TaskList = await varianceAnalysis!.AnalyseModelledConnectionsForRequest(Connections);
 
-            ClassicAssert.AreEqual(5, TaskList.Count);
+            ClassicAssert.AreEqual(6, TaskList.Count);
 
             ClassicAssert.AreEqual(WfTaskType.group_modify.ToString(), TaskList[0].TaskType);
             ClassicAssert.AreEqual("{\"GrpName\":\"AZ4711\",\"AppRoleId\":\"3\"}", TaskList[0].AdditionalInfo);
             ClassicAssert.AreEqual("modify", TaskList[0].RequestAction);
             ClassicAssert.AreEqual(1, TaskList[0].TaskNumber);
             ClassicAssert.AreEqual("Update AppZone: AZ4711: Add Members", TaskList[0].Title);
-            ClassicAssert.AreEqual(2, TaskList[0].Elements.Count);
-            ClassicAssert.AreEqual("AppServer2", TaskList[0].Elements[0].Name);
-            ClassicAssert.AreEqual("AppServer1", TaskList[0].Elements[1].Name);
+            ClassicAssert.AreEqual(3, TaskList[0].Elements.Count);
+            ClassicAssert.AreEqual("AppServer1", TaskList[0].Elements[0].Name);
+            ClassicAssert.AreEqual("AppServer2", TaskList[0].Elements[1].Name);
             ClassicAssert.AreEqual("AZ4711", TaskList[0].Elements[0].GroupName);
-            ClassicAssert.AreEqual("1.1.1.1/32", TaskList[0].Elements[1].IpString);
-            ClassicAssert.AreEqual("1.1.1.1/32", TaskList[0].Elements[1].IpEnd);
-            ClassicAssert.AreEqual("2.2.2.2/32", TaskList[0].Elements[0].IpString);
-            ClassicAssert.AreEqual("2.2.2.2/32", TaskList[0].Elements[0].IpEnd);
+            ClassicAssert.AreEqual("1.1.1.1/32", TaskList[0].Elements[0].IpString);
+            ClassicAssert.AreEqual("1.1.1.1/32", TaskList[0].Elements[0].IpEnd);
+            ClassicAssert.AreEqual("2.2.2.2/32", TaskList[0].Elements[1].IpString);
+            ClassicAssert.AreEqual("2.2.2.2/32", TaskList[0].Elements[1].IpEnd);
             ClassicAssert.AreEqual("source", TaskList[0].Elements[0].Field);
             ClassicAssert.AreEqual("addAfterCreation", TaskList[0].Elements[0].RequestAction);
+            ClassicAssert.AreEqual("unchanged", TaskList[0].Elements[2].RequestAction);
 
             ClassicAssert.AreEqual(WfTaskType.group_modify.ToString(), TaskList[1].TaskType);
             ClassicAssert.AreEqual("{\"GrpName\":\"AR504711-001\",\"AppRoleId\":\"1\"}", TaskList[1].AdditionalInfo);
@@ -157,39 +158,44 @@ namespace FWO.Test
             ClassicAssert.AreEqual("service", TaskList[3].Elements[4].Field);
             ClassicAssert.AreEqual("create", TaskList[3].Elements[4].RequestAction);
 
-            ClassicAssert.AreEqual(WfTaskType.group_modify.ToString(), TaskList[4].TaskType);
-            ClassicAssert.AreEqual("{\"GrpName\":\"AR504711-001\",\"AppRoleId\":\"1\"}", TaskList[4].AdditionalInfo);
+            ClassicAssert.AreEqual("{\"GrpName\":\"AZ4711\",\"AppRoleId\":\"3\"}", TaskList[4].AdditionalInfo);
             ClassicAssert.AreEqual("modify", TaskList[4].RequestAction);
-            ClassicAssert.AreEqual(5, TaskList[4].TaskNumber);
-            ClassicAssert.AreEqual("Update AppRole: AR504711-001: Remove Members", TaskList[4].Title);
-            ClassicAssert.AreEqual(1, TaskList[4].ManagementId);
-            ClassicAssert.AreEqual("Checkpoint1", TaskList[4].OnManagement?.Name);
             ClassicAssert.AreEqual(3, TaskList[4].Elements.Count);
-            ClassicAssert.AreEqual("AppServer3", TaskList[4].Elements[0].Name);
-            ClassicAssert.AreEqual("AR504711-001", TaskList[4].Elements[0].GroupName);
-            ClassicAssert.AreEqual("1.2.4.0/24", TaskList[4].Elements[0].IpString);
-            ClassicAssert.AreEqual("source", TaskList[4].Elements[0].Field);
-            ClassicAssert.AreEqual("delete", TaskList[4].Elements[0].RequestAction);
-            ClassicAssert.AreEqual("AppServer1", TaskList[4].Elements[1].Name);
-            ClassicAssert.AreEqual("AR504711-001", TaskList[4].Elements[1].GroupName);
-            ClassicAssert.AreEqual("1.2.3.4", TaskList[4].Elements[1].IpString);
-            ClassicAssert.AreEqual("source", TaskList[4].Elements[1].Field);
-            ClassicAssert.AreEqual("unchanged", TaskList[4].Elements[1].RequestAction);
-            ClassicAssert.AreEqual("AppServerNew", TaskList[4].Elements[2].Name);
-            ClassicAssert.AreEqual("AR504711-001", TaskList[4].Elements[2].GroupName);
-            ClassicAssert.AreEqual("10.10.10.10", TaskList[4].Elements[2].IpString);
-            ClassicAssert.AreEqual("source", TaskList[4].Elements[2].Field);
-            ClassicAssert.AreEqual("unchanged", TaskList[4].Elements[2].RequestAction);
+
+            ClassicAssert.AreEqual(WfTaskType.group_modify.ToString(), TaskList[5].TaskType);
+            ClassicAssert.AreEqual("{\"GrpName\":\"AR504711-001\",\"AppRoleId\":\"1\"}", TaskList[5].AdditionalInfo);
+            ClassicAssert.AreEqual("modify", TaskList[5].RequestAction);
+            ClassicAssert.AreEqual(6, TaskList[5].TaskNumber);
+            ClassicAssert.AreEqual("Update AppRole: AR504711-001: Remove Members", TaskList[5].Title);
+            ClassicAssert.AreEqual(1, TaskList[5].ManagementId);
+            ClassicAssert.AreEqual("Checkpoint1", TaskList[5].OnManagement?.Name);
+            ClassicAssert.AreEqual(3, TaskList[5].Elements.Count);
+            ClassicAssert.AreEqual("AppServer3", TaskList[5].Elements[0].Name);
+            ClassicAssert.AreEqual("AR504711-001", TaskList[5].Elements[0].GroupName);
+            ClassicAssert.AreEqual("1.2.4.0/24", TaskList[5].Elements[0].IpString);
+            ClassicAssert.AreEqual("source", TaskList[5].Elements[0].Field);
+            ClassicAssert.AreEqual("delete", TaskList[5].Elements[0].RequestAction);
+            ClassicAssert.AreEqual("AppServer1", TaskList[5].Elements[1].Name);
+            ClassicAssert.AreEqual("AR504711-001", TaskList[5].Elements[1].GroupName);
+            ClassicAssert.AreEqual("1.2.3.4", TaskList[5].Elements[1].IpString);
+            ClassicAssert.AreEqual("source", TaskList[5].Elements[1].Field);
+            ClassicAssert.AreEqual("unchanged", TaskList[5].Elements[1].RequestAction);
+            ClassicAssert.AreEqual("AppServerNew", TaskList[5].Elements[2].Name);
+            ClassicAssert.AreEqual("AR504711-001", TaskList[5].Elements[2].GroupName);
+            ClassicAssert.AreEqual("10.10.10.10", TaskList[5].Elements[2].IpString);
+            ClassicAssert.AreEqual("source", TaskList[5].Elements[2].Field);
+            ClassicAssert.AreEqual("unchanged", TaskList[5].Elements[2].RequestAction);
 
             userConfig.ModRolloutResolveServiceGroups = false;
-            TaskList = await varianceAnalysis!.AnalyseModelledConnections(Connections);
-            ClassicAssert.AreEqual(6, TaskList.Count);
+            TaskList = await varianceAnalysis!.AnalyseModelledConnectionsForRequest(Connections);
+            ClassicAssert.AreEqual(7, TaskList.Count);
             ClassicAssert.AreEqual(WfTaskType.group_modify.ToString(), TaskList[0].TaskType);
             ClassicAssert.AreEqual(WfTaskType.group_modify.ToString(), TaskList[1].TaskType);
             ClassicAssert.AreEqual(WfTaskType.group_create.ToString(), TaskList[2].TaskType);
             ClassicAssert.AreEqual(WfTaskType.group_create.ToString(), TaskList[3].TaskType);
             ClassicAssert.AreEqual(WfTaskType.access.ToString(), TaskList[4].TaskType);
             ClassicAssert.AreEqual(WfTaskType.group_modify.ToString(), TaskList[5].TaskType);
+            ClassicAssert.AreEqual(WfTaskType.group_modify.ToString(), TaskList[6].TaskType);
 
             ClassicAssert.AreEqual("{\"GrpName\":\"SvcGrp1\",\"SvcGrpId\":\"1\"}", TaskList[3].AdditionalInfo);
             ClassicAssert.AreEqual("create", TaskList[3].RequestAction);

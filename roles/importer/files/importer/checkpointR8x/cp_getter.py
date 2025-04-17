@@ -6,7 +6,7 @@ import requests, requests.packages
 import time
 from datetime import datetime
 
-from common import FwLoginFailed
+from fwo_exceptions import FwLoginFailed
 from fwo_log import getFwoLogger
 import fwo_globals
 import cp_network

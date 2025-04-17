@@ -114,12 +114,12 @@
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
             },
             "args": [
-                "-m1",
+                "-m26",
                 "-d1",
                 "-f",
                 "-s",
                 // "-c",
-                // "-ifile:///home/tim/tmp/mgm_id_12_config_normalized_with_links.json",
+                // "-ifile:///usr/local/fworch/tmp/import/mgm_id_3_config_normalized.json",
                 // "-ifile:///home/tim/tmp/mgm_id_16_config_normalized_links_only.json",
                 // "-ifile:///home/tim/tmp/mgm_id_16_config_normalized_links_changed.json",
                 // "-ifile:///home/tim/tmp/mgm_id_16_config_normalized_links_src_negated.json",

@@ -158,7 +158,7 @@
 
     private void Close()
     {
-        EventMediator.Publish<CollectionChangedEvent>(new CollectionChangedEvent());
+        EventMediator.Publish<CollectionChangedEvent>("AppserversCollectionChanged", new CollectionChangedEvent());
         firstTry = true;
         Display = false;
         DisplayChanged.InvokeAsync(Display);

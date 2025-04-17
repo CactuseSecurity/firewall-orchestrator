@@ -291,7 +291,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        EventMediator.Subscribe<CollectionChangedEvent>(new Action<CollectionChangedEvent>(async _ => await LoadNwElements(refresh: true)));
+        EventMediator.Subscribe<CollectionChangedEvent>("AppserversCollectionChanged", async _ => await LoadNwElements(refresh: true));
 
         await LoadNwElements();
     }

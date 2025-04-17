@@ -174,7 +174,7 @@
                     await AppServerHandlerChanged.InvokeAsync(AppServerHandler);
                     Close();
                 }
-                EventMediator.Publish(new CollectionChangedEvent());
+                EventMediator.Publish("AppserversCollectionChanged", new CollectionChangedEvent());
 
                 workInProgress = false;
             }

@@ -107,5 +107,16 @@ namespace FWO.Data.Modelling
         {
             return Array.ConvertAll(wrappedList.ToArray(), wrapper => wrapper.Content);
         }
+
+        /// <summary>
+        /// Converts an array of ModellingAppServer objects to a list of ModellingAppServerWrapper objects
+        /// </summary>
+        /// <param name="appServers"></param>
+        /// <returns></returns>
+        public static List<ModellingAppServerWrapper> Wrap(ModellingAppServer[] appServers)
+        {
+            ModellingAppServerWrapper[] wrappedArray = Array.ConvertAll(appServers, appServer => new ModellingAppServerWrapper(){Content = appServer});
+            return wrappedArray.ToList();
+        }
     }
 }

@@ -728,8 +728,7 @@ namespace FWO.Test
                         [
                             new ()
                             {
-                                Name = "TestDev",
-                                Rules = [Rule1, Rule2]
+                                Name = "TestDev"
                             }
                         ]
                     }
@@ -779,8 +778,7 @@ namespace FWO.Test
                         [
                             new ()
                             {
-                                Name = "TestDev",
-                                Rules = [RecertRule1, RecertRule2]
+                                Name = "TestDev"
                             }
                         ]
                     }
@@ -823,7 +821,7 @@ namespace FWO.Test
                         ReportUsers = [TestUser2],
                         Devices =
                         [
-                            new (){ Name = "TestDev", Rules = [NatRule]}
+                            new (){ Name = "TestDev"}
                         ]
                     }
                 ]

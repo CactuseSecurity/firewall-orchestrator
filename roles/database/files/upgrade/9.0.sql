@@ -293,7 +293,6 @@ Alter table "rulebase" add CONSTRAINT unique_rulebase_mgm_id_name UNIQUE ("mgm_i
 ALTER TABLE "management" ADD COLUMN IF NOT EXISTS "is_super_manager" BOOLEAN DEFAULT FALSE;
 ALTER TABLE "rule" ADD COLUMN IF NOT EXISTS "is_global" BOOLEAN DEFAULT FALSE NOT NULL;
 ALTER TABLE "rule" ADD COLUMN IF NOT EXISTS "rulebase_id" INTEGER;
-ALTER TABLE "rule" ADD COLUMN IF NOT EXISTS rule_order_array INTEGER [];
 
 Alter Table "rule" DROP Constraint IF EXISTS "rule_altkey";
 Alter Table "rule" DROP Constraint IF EXISTS "rule_unique_mgm_id_rule_uid_rule_create_xlate_rule";

@@ -28,7 +28,7 @@
                             {
                                 <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("number"))" DefaultSortColumn="true" Field="@(rChange => rChange.OrderNumber)" Sortable="true" Filterable="false" Hideable="true">
                                     <Template>
-                                        @((MarkupString) DisplayOrderArray(rule))
+                                        @((MarkupString) rule.DisplayOrderNumberString)
                                     </Template>
                                 </Column>
                             }
@@ -302,28 +302,4 @@
         return $"{userConfig.GetText(recert.Recertified ? "recertified_by" : "decertified_by")} {username} " +
             $"{userConfig.GetText("as_owner")} {recert.FwoOwner?.Name} {userConfig.GetText("comment")}: {recert.Comment}";
     }
-
-    private string DisplayOrderArray(Rule rule)
-    {
-        string displayOrderNumber = "";
-        bool isFirstOrderNumberPart = true;
-
-        if (rule == null || rule.RuleOrderArray == null)
-        {
-            return displayOrderNumber;
-        }
-        foreach (int orderArrayItem in rule.RuleOrderArray)
-        {
-            if (!isFirstOrderNumberPart)
-            {
-                displayOrderNumber += ".";
-            }
-
-            displayOrderNumber += orderArrayItem.ToString();
-            isFirstOrderNumberPart = false;
-        }
-
-        return displayOrderNumber;
-    }
-
 }

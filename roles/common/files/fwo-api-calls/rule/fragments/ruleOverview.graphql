@@ -31,11 +31,11 @@ fragment ruleOverview on rule {
   rule_dst
   rule_svc
   rule_num_numeric
+  rule_num
   rule_name
   access_rule
   nat_rule
   xlate_rule
-  rule_order_array
   rule_froms(order_by:{ object: { obj_name: asc } }) {
     usr {
       ...userOverview

@@ -14286,8 +14286,7 @@
                         "active",
                         "removed",
                         "rule_last_seen",
-                        "rule_num_numeric",
-                        "rule_order_array"
+                        "rule_num_numeric"
                       ],
                       "filter": {},
                       "check": {}

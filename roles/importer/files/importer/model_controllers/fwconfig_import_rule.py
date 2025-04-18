@@ -1,10 +1,5 @@
 import traceback
 from difflib import ndiff
-from itertools import chain, islice
-import asyncio
-import traceback
-import time
-from concurrent.futures import ThreadPoolExecutor, as_completed
 import fwo_const
 import fwo_api
 import fwo_exceptions
@@ -81,7 +76,7 @@ class FwConfigImportRule(FwConfigImportBase):
                 if self.ruleChanged(rulebaseId, ruleUid, currentRulebase, previousRulebase):
                     changedRuleUids[rulebaseId].append(ruleUid)
 
-        # TODO: handle changedRuleUids
+        # TODO: handle changedRuleUids        
 
         # add full rule details first
         newRulebases = self.getRules(newRuleUids)
@@ -105,17 +100,6 @@ class FwConfigImportRule(FwConfigImportBase):
         # ids = enforcingController.addNewRuleEnforcedOnGatewayRefs(newRules, self.ImportDetails)
 
         errorCountDel, numberOfDeletedRules, removedRuleIds = self.markRulesRemoved(deletedRuleUids)
-
-        # TODO: get rules without removed rule in the right order
-        rules_without_removed = self.NormalizedConfig.rulebases
-        
-        start_time = time.time()  # Startzeitpunkt
-        loop = asyncio.run(resetOrderNumbersAsync(rules_without_removed, 500, 4, self.ImportDetails), debug=True) # This causes an ignored TypeError that I cant fix right now, but it does not seem to have any effects.
-        loop.close()
-        end_time = time.time()      
-        execution_time = end_time - start_time
-        # It is some problem caused by mixing up async and sync code.
-        logger.info(f"reset of order numbers completed in {execution_time:.2f}s.")
 
         self.ImportDetails.Stats.RuleAddCount += numberOfAddedRules
         self.ImportDetails.Stats.RuleDeleteCount += numberOfDeletedRules
@@ -282,6 +266,7 @@ class FwConfigImportRule(FwConfigImportBase):
             raise fwo_exceptions.FwoApiWriteError(f"failed to write new rules: {str(traceback.format_exc())}")
         
         return errors, changes
+        
     
     def addRuleResolveds(self, new_rule_nwobj_resolveds, new_rule_svc_resolveds, new_rule_user_resolveds):
         """
@@ -1062,83 +1047,3 @@ class FwConfigImportRule(FwConfigImportBase):
             prepared_rules.append(rule_for_import)
         return { "data": prepared_rules }
     
-
-async def resetOrderNumbersAsync(rulebases, batch_size, max_concurrent_requests, import_details):
-    logger = getFwoLogger()
-    logger.info("Resetting order numbers...")
-
-    executor = ThreadPoolExecutor(max_workers=max_concurrent_requests)
-    event_loop = asyncio.get_running_loop()
-    event_loop.set_debug(True)
-
-    rule_uids = list(chain.from_iterable(rulebase.Rules.keys() for rulebase in rulebases))
-    rule_order_arrays = await build_rule_order_number_map(rulebases, import_details)
-
-    updateRuleOrderNumbers = """
-        mutation UpdateRuleOrder($updates: [rule_updates!]!) {
-            update_rule_many(updates: $updates) {
-                affected_rows
-            }
-        }
-    """
-
-    async def send_batch(batch, batch_number):
-        updates = [
-            {
-                "where": {"rule_uid": {"_eq": rule_uid}},
-                "_set": {
-                    "rule_order_array": rule_order_arrays[rule_uid],
-                    "rule_num_numeric": batch_size * batch_number + (index + 1)
-                }
-            }
-            for index, rule_uid in enumerate(batch)
-        ]
-        return await event_loop.run_in_executor(executor, import_details.call, updateRuleOrderNumbers, {"updates": updates})
-    async def handle_results(results, batch_number):
-            for result in results:
-                if result is not None:
-                    if 'errors' in result:
-                        logger.exception(f"fwo_api:updateRuleOrderNumbers - error in batch {batch_number}: {str(result['errors'])}")
-                        import_details.Stats.ErrorCount += 1
-
-    async def process_batches():
-        if not rule_uids:
-            logger.warning("fwo_api:updateRuleOrderNumbers - warning: found no rule uids")
-            return
-
-        futures = []
-        for batch_number, batch in enumerate(chunked_iterable(rule_uids, batch_size)):
-            futures.append(send_batch(batch, batch_number))
-            # Wenn die maximale Anzahl an parallelen Requests erreicht ist, warte auf die Ergebnisse
-            if len(futures) >= max_concurrent_requests:
-                results = await asyncio.gather(*futures)  # Warte auf alle Requests
-                await handle_results(results, batch_number)
-                futures = []  # Leere die Task-Liste
-
-        # Letzte Reste verarbeiten
-        if futures:
-            results = await asyncio.gather(*futures)
-            await handle_results(results, None)
-
-    try:
-        await process_batches()
-        return event_loop
-    except Exception as e:
-        logger.exception(f"Failed to update rule order numbers: {str(e)}")
-        import_details.Stats.ErrorCount += 1
-    finally:
-        executor.shutdown(wait=True)
-
-def chunked_iterable(iterable, size):
-    """Zerlegt eine Liste in kleinere Batches."""
-    iterator = iter(iterable)
-    while chunk := list(islice(iterator, size)):
-        yield chunk
-
-async def build_rule_order_number_map(rulebases, import_details):
-    rulebase_order_arrays = {}
-    for rulebase_number, rulebase in enumerate(rulebases, start=1):
-        for rule_number, rule_uid in enumerate(rulebase.Rules.keys(), start=1):
-            rulebase_order_arrays[rule_uid] = [rulebase_number, rule_number]
-    return rulebase_order_arrays
-

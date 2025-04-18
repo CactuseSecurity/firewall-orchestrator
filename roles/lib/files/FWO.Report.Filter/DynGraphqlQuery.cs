@@ -147,7 +147,7 @@ namespace FWO.Report.Filter
                                     rule_create: {{_lte: $relevantImportId}}, 
                                     _or: [{{removed: {{_gt: $relevantImportId}} }}, {{removed: {{_is_null: true}} }}],
                                     access_rule: {{_eq: true}} 
-                                }}, order_by: {{rule_num_numeric: asc}}) {{
+                                }}, order_by: {{rule_num: asc}}) {{
                                 ...ruleOverview
                             }}
                         }}

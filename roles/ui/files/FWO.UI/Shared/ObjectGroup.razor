@@ -76,18 +76,12 @@
                                             }
                                         </Content1>
                                         <Content2>
-                                            @{ List<long> shownMemberIds = []; }
-                                            @foreach (GroupFlat<NetworkObject> member in context.ObjectGroupFlats)
+                                            @{ List<NetworkObject> members = context.ObjectGroupFlats.Where(m => m.Object != null && m.Object.Type.Name != ObjectType.Group).Select(m => m.Object!).ToList(); }
+                                            @foreach (NetworkObject member in members)
                                             {
-                                                if(member.Object != null)
-                                                {
-                                                    if (member.Object.Type.Name == ObjectType.Group || shownMemberIds.Contains(member.Object.Id))
-                                                        continue;
-                                                    shownMemberIds.Add(member.Object.Id);
-
-                                                    @AddLinkToObject(ObjCategory.nobj, member.Object.Id, member.Object.Type.Name, member.Object.Name, member.Object.Highlighted)
-                                                    <br>
-                                                }
+                                                @AddLinkToObject(ObjCategory.nobj, member.Id, member.Type.Name, member.Name, member.Highlighted)
+                                                <span>∟ @(userConfig.GetText("ip")): @NwObjDisplay.DisplayIp(member.IP, member.IpEnd, member.Type != null ? member.Type.Name : "")</span>
+                                                <br>
                                             }
                                         </Content2>
                                     </ContentSwap>
@@ -120,10 +114,8 @@
                             <Detail Title="@(userConfig.GetText("uid"))" Data=@context.Uid />
                             @if (context.Type == null || context.Type.Name != ServiceType.Group)
                             {
-                                <Detail Title="@(userConfig.GetText("source_port"))" Data=@(context.SourcePort == context.SourcePortEnd || context.SourcePortEnd.ToString() == "" ? 
-                                    context.SourcePort.ToString() : $"{context.SourcePort.ToString()}-{context.SourcePortEnd.ToString()}") />
-                                <Detail Title="@(userConfig.GetText("destination_port"))" Data=@(context.DestinationPort == context.DestinationPortEnd || context.DestinationPortEnd.ToString() == "" ? 
-                                    context.DestinationPort.ToString() : $"{context.DestinationPort.ToString()}-{context.DestinationPortEnd.ToString()}") />
+                                <Detail Title="@(userConfig.GetText("source_port"))" Data=@DisplayBase.DisplayPort(context.SourcePort, context.SourcePortEnd) />
+                                <Detail Title="@(userConfig.GetText("destination_port"))" Data=@DisplayBase.DisplayPort(context.DestinationPort, context.DestinationPortEnd) />
                                 <Detail Title="@(userConfig.GetText("protocol"))" Data=@context.Protocol?.Name />
                                 <Detail Title="@(userConfig.GetText("code"))" Data=@context.Code />
                                 <Detail Title="@(userConfig.GetText("timeout"))" Data=@context.Timeout.ToString() />
@@ -154,18 +146,21 @@
                                             }
                                         </Content1>
                                         <Content2>
-                                            @{ List<long> shownMemberIds = []; }
-                                            @foreach (GroupFlat<NetworkService> member in context.ServiceGroupFlats)
+                                            @{
+                                                List<NetworkService> members = context.ServiceGroupFlats.Where(m => m.Object != null && m.Object.Type.Name != ServiceType.Group).Select(m => m.Object!).ToList();
+                                            }
+                                            @foreach (NetworkService member in members)
                                             {
-                                                if(member.Object != null)
+                                                @AddLinkToObject(ObjCategory.nsrv, member.Id, member.Type.Name, member.Name)
+                                                @if (member.SourcePort != null)
                                                 {
-                                                    if (member.Object.Type.Name == ServiceType.Group || shownMemberIds.Contains(member.Object.Id))
-                                                        continue;
-                                                    shownMemberIds.Add(member.Object.Id);
-
-                                                    @AddLinkToObject(ObjCategory.nsrv, member.Object.Id, member.Object.Type.Name, member.Object.Name)
-                                                    <br>
+                                                    <span>∟ @(userConfig.GetText("source_port")): @DisplayBase.DisplayPort(member.SourcePort, member.SourcePortEnd)</span>
                                                 }
+                                                @if (member.DestinationPort != null)
+                                                {
+                                                    <span>∟ @(userConfig.GetText("destination_port")): @DisplayBase.DisplayPort(member.DestinationPort, member.DestinationPortEnd)</span>
+                                                }
+                                                <br>
                                             }
                                         </Content2>
                                     </ContentSwap>

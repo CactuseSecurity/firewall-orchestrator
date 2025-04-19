@@ -497,3 +497,47 @@ Hotfix for network modelling:
 - fix modelling select existing interfac
 - fix modelling settings ldap selection
 - fix workflow ticket close spinner
+
+# 8.8 17.04.2025 MAIN
+* fix stm_action by @tpurschke in https://github.com/CactuseSecurity/firewall-orchestrator/pull/2844
+* add missing rulebase_link constraints by @tpurschke in https://github.com/CactuseSecurity/firewall-orchestrator/pull/2845
+* fix rule_metadata creation by @tpurschke in https://github.com/CactuseSecurity/firewall-orchestrator/pull/2865
+* remove dev_id fk constraint from rule_metadata by @tpurschke in https://github.com/CactuseSecurity/firewall-orchestrator/pull/2909
+* fix missing rule_metadata.rulebase_id by @tpurschke in https://github.com/CactuseSecurity/firewall-orchestrator/pull/2911
+* fix warnings and rule normalize bug by @tpurschke in https://github.com/CactuseSecurity/firewall-orchestrator/pull/2912
+* fix missing upgrade scripts from pre 9 by @tpurschke in https://github.com/CactuseSecurity/firewall-orchestrator/pull/2938
+* Cactus develop fix importer main level bug by @tpurschke in https://github.com/CactuseSecurity/firewall-orchestrator/pull/3009
+* Endpoint for getting rules by @abarz722 in https://github.com/CactuseSecurity/firewall-orchestrator/pull/3027
+* ExtRequest - increase logging by @abarz722 in https://github.com/CactuseSecurity/firewall-orchestrator/pull/3029
+* Nuget Updates by @SolidProgramming in https://github.com/CactuseSecurity/firewall-orchestrator/pull/3038
+* Nuget Updates by @SolidProgramming in https://github.com/CactuseSecurity/firewall-orchestrator/pull/3042
+* fix(ui): ip filtering in app report by @Y4nnikH in https://github.com/CactuseSecurity/firewall-orchestrator/pull/3040
+* Preventing use of NA objects in connections by @SolidProgramming in https://github.com/CactuseSecurity/firewall-orchestrator/pull/3043
+* fix(ui rsb): ui crash likely caused by duplicates in query result by @Y4nnikH in https://github.com/CactuseSecurity/firewall-orchestrator/pull/3046
+* LDAP Nuget Update changes by @SolidProgramming in https://github.com/CactuseSecurity/firewall-orchestrator/pull/3056
+* Defer AZ creation until second button click by @SolidProgramming in https://github.com/CactuseSecurity/firewall-orchestrator/pull/2856
+* Removing minor py-re deprecation warnings  by @tpurschke in https://github.com/CactuseSecurity/firewall-orchestrator/pull/3053
+* feat(ui): rsb enhancements by @Y4nnikH in https://github.com/CactuseSecurity/firewall-orchestrator/pull/3073
+* User UI glitch by @SolidProgramming in https://github.com/CactuseSecurity/firewall-orchestrator/pull/3089
+* Modelling new AR drop down strange initial value by @SolidProgramming in https://github.com/CactuseSecurity/firewall-orchestrator/pull/3091
+* Verify modelled services for empty groups by @SolidProgramming in https://github.com/CactuseSecurity/firewall-orchestrator/pull/3087
+* adding app servers fails without name by @SolidProgramming in https://github.com/CactuseSecurity/firewall-orchestrator/pull/3088
+* Modelling - no NA should be usable for selected interfaces by @SolidProgramming in https://github.com/CactuseSecurity/firewall-orchestrator/pull/3086
+* new customized app data import script by @tpurschke in https://github.com/CactuseSecurity/firewall-orchestrator/pull/3101
+* adding csv appdata import stats by @tpurschke in https://github.com/CactuseSecurity/firewall-orchestrator/pull/3103
+* reformatting app server ip struct by @tpurschke in https://github.com/CactuseSecurity/firewall-orchestrator/pull/3105
+* css cache changes by @SolidProgramming in https://github.com/CactuseSecurity/firewall-orchestrator/pull/3108
+* show more clearly if everything is (horizontally) displayed by @SolidProgramming in https://github.com/CactuseSecurity/firewall-orchestrator/pull/3096
+* Fixed connection object duplication by @SolidProgramming in https://github.com/CactuseSecurity/firewall-orchestrator/pull/3118
+* Modelling csv import improvements by @SolidProgramming in https://github.com/CactuseSecurity/firewall-orchestrator/pull/3113
+* IP check improvements by @SolidProgramming in https://github.com/CactuseSecurity/firewall-orchestrator/pull/3133
+* Nuget Updates by @SolidProgramming in https://github.com/CactuseSecurity/firewall-orchestrator/pull/3136
+* Some report generation improvements by @SolidProgramming in https://github.com/CactuseSecurity/firewall-orchestrator/pull/3117
+* Config change subscribe add "autoReplaceAppServer"  #3138 by @SolidProgramming in https://github.com/CactuseSecurity/firewall-orchestrator/pull/3148
+* Nuget Updates by @SolidProgramming in https://github.com/CactuseSecurity/firewall-orchestrator/pull/3143
+* External ticket timout fix by @NilsPur in https://github.com/CactuseSecurity/firewall-orchestrator/pull/3151
+* feat(ui): ip filter line observes negation in rules by @Y4nnikH in https://github.com/CactuseSecurity/firewall-orchestrator/pull/3164
+* allow for flexible ldap group name templating, fix #3114 by @tpurschke in https://github.com/CactuseSecurity/firewall-orchestrator/pull/3165
+* Variance Report First Throw by @abarz722 in https://github.com/CactuseSecurity/firewall-orchestrator/pull/3080
+* feat(ui rsb): show ip/port of flat members by @Y4nnikH in https://github.com/CactuseSecurity/firewall-orchestrator/pull/3172
+* fix(ui report): ip filter on negated rule to/from by @Y4nnikH in https://github.com/CactuseSecurity/firewall-orchestrator/pull/3173

@@ -9,14 +9,27 @@ namespace FWO.Test
 {
     internal class ModellingVarianceAnalysisTestApiConn : SimulatedApiConnection
     {
-        static readonly NetworkObject NwObj1 = new() { Id = 10, Name = "AppServer1", IP = "1.2.3.4", Type = new() { Name = ObjectType.Host } };
-        static readonly NetworkObject NwObj2 = new() { Id = 11, Name = "AppServer2", IP = "1.2.3.5", IpEnd = "1.2.3.10", Type = new() { Name = ObjectType.IPRange } };
-        static readonly NetworkObject NwObj3 = new() { Id = 12, Name = "AppServer3", IP = "1.2.4.0/24", Type = new() { Name = ObjectType.Network } };
-        static readonly NetworkObject Nwgroup1 = new() { Id = 1, Name = "AR504711-001", Type = new() { Name = ObjectType.Group }, ObjectGroupFlats = [new() { Object = NwObj1 }, new() { Object = NwObj3 }] };
-        static readonly ModellingAppServer AppServer1 = new() { Id = 13, Name = "AppServer1", Ip = "1.1.1.1/32", IpEnd = "1.1.1.1/32" };
-        static readonly ModellingAppServer AppServer2 = new() { Id = 14, Name = "AppServer2", Ip = "2.2.2.2/32", IpEnd = "2.2.2.2/32" };
-        static readonly NetworkObject AZProd = new() { Id = 3, Name = "AZ4711", Type = new() { Name = ObjectType.Group }, ObjectGroupFlats = [new() { Object = NwObj1 }] };
+        static readonly NetworkObject NwObj1 = new() { Id = 10, Name = "AppServerUnchanged", IP = "1.2.3.4", Type = new() { Name = ObjectType.Host } };
+        static readonly NetworkObject NwObj2 = new() { Id = 11, Name = "AppServerOld", IP = "1.0.0.0", Type = new() { Name = ObjectType.Host } };
+        static readonly NetworkObject Nwgroup1 = new() { Id = 1, Name = "AR504711-001", Type = new() { Name = ObjectType.Group }, ObjectGroupFlats = [new() { Object = NwObj1 }, new() { Object = NwObj2 }] };
+        static readonly NetworkObject Nwgroup3 = new() { Id = 3, Name = "AR504711-003", Type = new() { Name = ObjectType.Group }, ObjectGroupFlats = [new() { Object = NwObj1 }] };
+        static readonly ModellingAppServer AppServer1 = new() { Id = 13, Name = "AppServerUnchanged", Ip = "1.2.3.4/32", IpEnd = "1.2.3.4/32" };
+        static readonly ModellingAppServer AppServer2 = new() { Id = 14, Name = "AppServerNew1", Ip = "1.1.1.1/32", IpEnd = "1.1.1.1/32" };
+        static readonly ModellingAppServer AppServer3 = new() { Id = 15, Name = "AppServerNew2", Ip = "2.2.2.2/32", IpEnd = "2.2.2.2/32" };
+        static readonly NetworkObject AZProd = new() { Id = 3, Name = "AZ4711", Type = new() { Name = ObjectType.Group }, ObjectGroupFlats = [new() { Object = NwObj1 }, new() { Object = NwObj2 }] };
         static readonly ModellingAppZone AZExist = new() { Id = 3, Name = "AZ4711", IdString = "AZ4711", AppServers = new() { new() { Content = AppServer1 }, new() { Content = AppServer2 } } };
+        static readonly NetworkService Svc1 = new() { Id = 1, DestinationPort = 1000, DestinationPortEnd = 2000, Name = "Service1", ProtoId = 6 };
+        static readonly Rule Rule1 = new() { Name = "FWOC1" };
+        static readonly Rule Rule2 = new() 
+        {
+            Name = "xxxFWOC2yyy",
+            Froms = [ new(new(), NwObj1) ],
+            // Froms = [ new (new(), new(){ ObjectGroupFlats = [ new(){ Object = NwObj1 }]})],
+            Tos = [ new(new(), Nwgroup3) ],
+            // Tos = [ new (new(), new(){ ObjectGroupFlats = [ new(){ Object = Nwgroup3 }]})],
+            Services = [ new(){ Content = Svc1 } ]
+        };
+        static readonly Rule Rule3 = new() { Name = "NonModelledRule", Comment = "XXX3" };
         
         public override async Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
         {
@@ -50,7 +63,7 @@ namespace FWO.Test
                         {
                             nwObjects =
                             [
-                                NwObj1, NwObj2, NwObj3
+                                NwObj1, NwObj2
                             ];
                         }
                     }
@@ -66,7 +79,13 @@ namespace FWO.Test
             }
             else if (responseType == typeof(List<ModellingAppServer>))
             {
-                GraphQLResponse<dynamic> response = new() { Data = new List<ModellingAppServer>() { AppServer1, AppServer2 } };
+                GraphQLResponse<dynamic> response = new() { Data = new List<ModellingAppServer>() { AppServer1, AppServer2, AppServer3 } };
+
+                return response.Data;
+            }
+            else if (responseType == typeof(List<Rule>))
+            {
+                GraphQLResponse<dynamic> response = new() { Data = new List<Rule>() { Rule1, Rule2, Rule3 } };
 
                 return response.Data;
             }

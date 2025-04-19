@@ -71,13 +71,13 @@ namespace FWO.Test
         [SetUp]
         public void Initialize()
         {
-            varianceAnalysis = new (varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
         }
 
         [Test]
         public async Task TestAnalyseModelledConnections()
         {
             Connections = [ Connection1 ];
+            varianceAnalysis = new (varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
             List<WfReqTask> TaskList = await varianceAnalysis!.AnalyseModelledConnectionsForRequest(Connections);
 
             ClassicAssert.AreEqual(6, TaskList.Count);
@@ -214,27 +214,36 @@ namespace FWO.Test
             ClassicAssert.AreEqual("1.1.1.1", TaskList[5].Elements[2].IpString);
             ClassicAssert.AreEqual("source", TaskList[5].Elements[2].Field);
             ClassicAssert.AreEqual("unchanged", TaskList[5].Elements[2].RequestAction);
+        }
 
+        [Test]
+        public async Task TestAnalyseModelledConnectionsWithServiceGroups()
+        {
+            Connections = [ Connection1 ];
             userConfig.ModRolloutResolveServiceGroups = false;
-            TaskList = await varianceAnalysis!.AnalyseModelledConnectionsForRequest(Connections);
-            ClassicAssert.AreEqual(5, TaskList.Count);
-            ClassicAssert.AreEqual(WfTaskType.group_modify.ToString(), TaskList[0].TaskType);
-            ClassicAssert.AreEqual(WfTaskType.group_create.ToString(), TaskList[1].TaskType);
-            ClassicAssert.AreEqual(WfTaskType.group_create.ToString(), TaskList[2].TaskType);
-            ClassicAssert.AreEqual(WfTaskType.access.ToString(), TaskList[3].TaskType);
-            ClassicAssert.AreEqual(WfTaskType.group_modify.ToString(), TaskList[4].TaskType);
+            varianceAnalysis = new (varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
+            List<WfReqTask> TaskList = await varianceAnalysis!.AnalyseModelledConnectionsForRequest(Connections);
 
-            ClassicAssert.AreEqual("{\"GrpName\":\"SvcGrp1\",\"SvcGrpId\":\"1\"}", TaskList[2].AdditionalInfo);
-            ClassicAssert.AreEqual("create", TaskList[2].RequestAction);
-            ClassicAssert.AreEqual(3, TaskList[2].TaskNumber);
-            ClassicAssert.AreEqual("New Servicegroup: SvcGrp1", TaskList[2].Title);
-            ClassicAssert.AreEqual(1, TaskList[2].Elements.Count);
-            ClassicAssert.AreEqual("Service2", TaskList[2].Elements[0].Name);
-            ClassicAssert.AreEqual("SvcGrp1", TaskList[2].Elements[0].GroupName);
-            ClassicAssert.AreEqual(6, TaskList[2].Elements[0].ProtoId);
-            ClassicAssert.AreEqual(4000, TaskList[2].Elements[0].Port);
-            ClassicAssert.AreEqual("service", TaskList[2].Elements[0].Field);
-            ClassicAssert.AreEqual("create", TaskList[2].Elements[0].RequestAction);
+            ClassicAssert.AreEqual(7, TaskList.Count);
+            ClassicAssert.AreEqual(WfTaskType.group_modify.ToString(), TaskList[0].TaskType);
+            ClassicAssert.AreEqual(WfTaskType.group_modify.ToString(), TaskList[1].TaskType);
+            ClassicAssert.AreEqual(WfTaskType.group_create.ToString(), TaskList[2].TaskType);
+            ClassicAssert.AreEqual(WfTaskType.group_create.ToString(), TaskList[3].TaskType);
+            ClassicAssert.AreEqual(WfTaskType.access.ToString(), TaskList[4].TaskType);
+            ClassicAssert.AreEqual(WfTaskType.group_modify.ToString(), TaskList[5].TaskType);
+            ClassicAssert.AreEqual(WfTaskType.group_modify.ToString(), TaskList[6].TaskType);
+
+            ClassicAssert.AreEqual("{\"GrpName\":\"SvcGrp1\",\"SvcGrpId\":\"1\"}", TaskList[3].AdditionalInfo);
+            ClassicAssert.AreEqual("create", TaskList[3].RequestAction);
+            ClassicAssert.AreEqual(4, TaskList[3].TaskNumber);
+            ClassicAssert.AreEqual("New Servicegroup: SvcGrp1", TaskList[3].Title);
+            ClassicAssert.AreEqual(1, TaskList[3].Elements.Count);
+            ClassicAssert.AreEqual("Service2", TaskList[3].Elements[0].Name);
+            ClassicAssert.AreEqual("SvcGrp1", TaskList[3].Elements[0].GroupName);
+            ClassicAssert.AreEqual(6, TaskList[3].Elements[0].ProtoId);
+            ClassicAssert.AreEqual(4000, TaskList[3].Elements[0].Port);
+            ClassicAssert.AreEqual("service", TaskList[3].Elements[0].Field);
+            ClassicAssert.AreEqual("create", TaskList[3].Elements[0].RequestAction);
         }
 
         [Test]

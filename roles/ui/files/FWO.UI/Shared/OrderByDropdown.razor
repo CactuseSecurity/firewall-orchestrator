@@ -40,13 +40,18 @@
     /// <summary>
     /// Collection of items, that the user can order by the selected property and order mode.
     /// </summary>
-    [Parameter, EditorRequired]
+    [Parameter]
     public List<TCollectionItem>? Collection { get; set; }
     /// <summary>
     /// Callback to communicate that the reordering process has been completed.
     /// </summary>
     [Parameter, EditorRequired]
     public EventCallback<List<TCollectionItem>> CollectionReordered { get; set; }
+    /// <summary>
+    /// Bool if a custom sorting will be implemented.
+    /// </summary>
+    [Parameter, EditorRequired]
+    public bool CustomSort { get; set; }   
 
     [Parameter]
     public string? CssClass { get; set; } = "";
@@ -67,7 +72,7 @@
             if(!selectedProperty.Equals(value))
             {
                 selectedProperty = value;
-                ReorderCollection();
+                ReorderCollection(CustomSort);
             }
         }
     }
@@ -87,7 +92,7 @@
             if(!selectedOrderMode.Equals(value))
             {
                 selectedOrderMode = value;
-                ReorderCollection();
+                ReorderCollection(CustomSort);
             }
         }
     }
@@ -119,7 +124,7 @@
                 CssClass = "";
             }
 
-            EventMediator.Subscribe<CollectionChangedEvent>(nameof(Pages.NetworkModelling.EditAppRole), _ => ReorderCollection());
+            EventMediator.Subscribe<CollectionChangedEvent>(nameof(Pages.NetworkModelling.EditAppRole), _ => ReorderCollection(CustomSort));
 
             initialized = true;
         }
@@ -128,8 +133,16 @@
     /// <summary>
     /// Reordering the collection by the selected property and in the selected mode.
     /// </summary>
-    private void ReorderCollection()
+    private void ReorderCollection(bool customSort)
     {
+        // Skip default way if custom sort, because the sorting will be done in the method that subscribed to the event callback.
+
+        if(customSort)
+        {
+            CollectionReordered.InvokeAsync(Collection);
+            return;
+        }
+
         if(Collection != null && !string.IsNullOrEmpty(SelectedProperty))
         {
             if(SelectedProperty.Equals("Ip") && typeof(TCollectionItem) == typeof(ModellingAppServer))
@@ -163,7 +176,7 @@
     /// <summary>
     /// Creates an IPAddressRange Object.
     /// </summary>
-    private IPAddressRange GetIPAddressRange(TCollectionItem item)
+    public static IPAddressRange GetIPAddressRange(TCollectionItem item)
     {
         if (item is ModellingAppServer server)
         {
@@ -181,7 +194,7 @@
     /// <summary>
     /// Creates lamba function that works as a key selector for OrderBy.
     /// </summary>
-    private Func<T, object> GetGenericOrderByExpression<T>(string propertyName)
+    public Func<T, object> GetGenericOrderByExpression<T>(string propertyName)
     {
         ParameterExpression param = Expression.Parameter(typeof(T), "x");
 

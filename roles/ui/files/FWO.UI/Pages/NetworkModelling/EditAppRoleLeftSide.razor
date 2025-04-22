@@ -61,9 +61,10 @@
     private int sidebarLeftWidth { get { return Width; } set { Width = value; WidthChanged.InvokeAsync(Width); } }
 
     /// <summary>
-    /// The app servers which are available for adding (i.e. which are not already in the AppServerToAdd collection).
+    /// The app servers which are available for adding (i.e. which are not already in the AppServerToAdd collection and not already saved in the app role).
     /// </summary>
-    private List<ModellingAppServer> selectableAppServers => AppRoleHandler?.AppServersInArea.Except(AppRoleHandler.AppServerToAdd).ToList() ?? [];
+    private List<ModellingAppServer> selectableAppServers => GetSelectableAppServers();
+                                                                                                
 
     /// <summary>
     /// Reference to the order by component.
@@ -101,5 +102,28 @@
         }
 
         InvokeAsync(StateHasChanged);
+    }
+
+    /// <summary>
+    /// Returns selectable app servers if AppRoleHandler is not null, returns empty list otherwise.
+    /// </summary>
+    private List<ModellingAppServer> GetSelectableAppServers()
+    {
+        ModellingAppServer[] actAppRoleAppServers = [];
+
+        if(AppRoleHandler != null)
+        {
+            actAppRoleAppServers = ModellingAppServerWrapper.Resolve(AppRoleHandler.ActAppRole.AppServers);
+            
+            // Selectable app servers equals app servers in area except for already saved app servers and app servers, that are selected for adding.
+            return AppRoleHandler.AppServersInArea
+                                    .Except(actAppRoleAppServers)
+                                    .Except(AppRoleHandler.AppServerToAdd).ToList();
+        }
+        else
+        {
+            // Returns empty collection if AppRoleHandler is null.
+            return new();
+        }
     }
 }

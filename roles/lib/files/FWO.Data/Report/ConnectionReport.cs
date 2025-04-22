@@ -1,7 +1,7 @@
-﻿using FWO.Data;
+﻿using FWO.Basics;
 using FWO.Data.Modelling;
 
-namespace FWO.Report
+namespace FWO.Data.Report
 {
     public class ConnectionReport
     {
@@ -29,32 +29,25 @@ namespace FWO.Report
             }
         }
 
-        public List<string> GetLinkedSrcNames(ModellingConnection conn, int chapterNumber)
+        public void PrepareObjectData()
         {
-            List<string> names = ModellingNetworkAreaWrapper.Resolve(conn.SourceAreas).ToList().ConvertAll(s => ConstructOutput(s, ObjCatString.NwObj, chapterNumber, ResolveObjId(s)));
-            names.AddRange(ModellingNwGroupWrapper.Resolve(conn.SourceOtherGroups).ToList().ConvertAll(s => ConstructOutput(s, ObjCatString.NwObj, chapterNumber, ResolveObjId(s))));
-            names.AddRange(ModellingAppRoleWrapper.Resolve(conn.SourceAppRoles).ToList().ConvertAll(s => ConstructOutput(s, ObjCatString.NwObj, chapterNumber, ResolveObjId(s))));
-            names.AddRange(ModellingAppServerWrapper.Resolve(conn.SourceAppServers).ToList().ConvertAll(s => ConstructOutput(s, ObjCatString.NwObj, chapterNumber, ResolveObjId(s))));
-            return names;
-        }
-        
-        public List<string> GetLinkedDstNames(ModellingConnection conn, int chapterNumber)
-        {
-            List<string> names = ModellingNetworkAreaWrapper.Resolve(conn.DestinationAreas).ToList().ConvertAll(s => ConstructOutput(s, ObjCatString.NwObj, chapterNumber, ResolveObjId(s)));
-            names.AddRange(ModellingNwGroupWrapper.Resolve(conn.DestinationOtherGroups).ToList().ConvertAll(s => ConstructOutput(s, ObjCatString.NwObj, chapterNumber, ResolveObjId(s))));
-            names.AddRange(ModellingAppRoleWrapper.Resolve(conn.DestinationAppRoles).ToList().ConvertAll(s => ConstructOutput(s, ObjCatString.NwObj, chapterNumber, ResolveObjId(s))));
-            names.AddRange(ModellingAppServerWrapper.Resolve(conn.DestinationAppServers).ToList().ConvertAll(s => ConstructOutput(s, ObjCatString.NwObj, chapterNumber, ResolveObjId(s))));
-            return names;
+            AllObjects = GetAllNetworkObjects(true);
+            SetObjectNumbers(ref AllObjects);
+            AllServices = GetAllServices(true);
+            SetSvcNumbers(ref AllServices);
         }
 
-        public List<string> GetLinkedSvcNames(ModellingConnection conn, int chapterNumber)
+        public virtual List<NetworkObject> GetAllNetworkObjects(bool resolved = false)
         {
-            List<string> names = ModellingServiceGroupWrapper.Resolve(conn.ServiceGroups).ToList().ConvertAll(s => ConstructOutput(s, ObjCatString.Svc, chapterNumber, ResolveSvcId(s)));
-            names.AddRange(ModellingServiceWrapper.Resolve(conn.Services).ToList().ConvertAll(s => ConstructOutput(s, ObjCatString.Svc, chapterNumber, ResolveSvcId(s))));
-            return names;
+            return [];
         }
 
-        protected static void SetSvcNumbers(ref List<NetworkService> svcList)
+        public virtual List<NetworkService> GetAllServices(bool resolved = false)
+        {
+            return [];
+        }
+
+        public static void SetSvcNumbers(ref List<NetworkService> svcList)
         {
             long number = 1;
             foreach(var svc in svcList)
@@ -63,7 +56,7 @@ namespace FWO.Report
             }
         }
 
-        protected static void SetObjectNumbers(ref List<NetworkObject> objList)
+        public static void SetObjectNumbers(ref List<NetworkObject> objList)
         {
             long number = 1;
             foreach(var obj in objList)
@@ -72,7 +65,7 @@ namespace FWO.Report
             }
         }
 
-        protected static List<NetworkService> GetAllServices(List<ModellingConnection> connections, bool resolved = false)
+        public static List<NetworkService> GetAllServices(List<ModellingConnection> connections, bool resolved = false)
         {
             List<NetworkService> allServices = [];
             foreach(var conn in connections)
@@ -99,7 +92,7 @@ namespace FWO.Report
             return allServices;
         }
 
-        protected static List<NetworkObject> GetAllNetworkObjects(List<ModellingConnection> connections, bool resolved = false, long dummyARid = 0)
+        public static List<NetworkObject> GetAllNetworkObjects(List<ModellingConnection> connections, bool resolved = false, long dummyARid = 0)
         {
             List<NetworkObject> allObjects = [];
             foreach(var conn in connections)
@@ -108,6 +101,16 @@ namespace FWO.Report
             }
             allObjects = allObjects.Union(GetAllAppServers(connections).ConvertAll(ModellingAppServer.ToNetworkObject)).ToList();
             return allObjects;
+        }
+
+        public long ResolveObjId(ModellingNwObject networkObject)
+        {
+            return AllObjects.FirstOrDefault(x => x.Name.StartsWith(networkObject.Name))?.Id ?? 0;
+        }
+
+        public long ResolveSvcId(ModellingSvcObject serviceObject)
+        {
+            return AllServices.FirstOrDefault(x => x.Name == serviceObject.Name)?.Id ?? 0;
         }
 
         private static List<ModellingAppServer> GetAllAppServers(List<ModellingConnection> connections)
@@ -187,44 +190,37 @@ namespace FWO.Report
             }
         }
 
-        private long ResolveObjId(ModellingNwObject networkObject)
+        public static string ListAppServers(List<ModellingAppServer> appServers, List<ModellingAppServer> surplusAppServers, bool diffMode = false, bool forExport = false)
         {
-            return AllObjects.FirstOrDefault(x => x.Name.StartsWith(networkObject.Name))?.Id ?? 0;
+            if(diffMode)
+            {
+                List<string> allAppServers = [.. appServers.ConvertAll(a => DisplayAppServerWithDiff(a, forExport))];
+                allAppServers.AddRange(surplusAppServers.ConvertAll(a => DisplayAppServerWithDiff(a, forExport, true)));
+                return string.Join(", ", allAppServers);
+            }
+            else
+            {
+                return string.Join(", ", appServers.ConvertAll(a => DisplayBase.DisplayIpWithName(ModellingAppServer.ToNetworkObject(a))));
+            }
         }
 
-        private long ResolveSvcId(ModellingSvcObject serviceObject)
+        private static string DisplayAppServerWithDiff(ModellingAppServer appServer, bool forExport, bool surplus = false)
         {
-            return AllServices.FirstOrDefault(x => x.Name == serviceObject.Name)?.Id ?? 0;
+            string styleOrClass = $"{(forExport ? "style" : "class")}=\"{StyleOrCssClass(appServer, forExport, surplus)}\"";
+            return $"<span {styleOrClass}>{DisplayBase.DisplayIpWithName(ModellingAppServer.ToNetworkObject(appServer))}</span>";
         }
 
-        private static string ConstructOutput(ModellingObject inputObj, string type, int chapterNumber, long objId)
+        private static string StyleOrCssClass(ModellingAppServer appServer, bool forExport, bool surplus)
         {
-            return ReportBase.ConstructLink(type, "", chapterNumber, objId, inputObj.Display(), OutputLocation.export, $"a{inputObj.AppId}", "");
+            if (surplus)
+            {
+                return forExport ? GlobalConst.kStyleHighlightedGreen : "text-success";
+            }
+            if (appServer.NotImplemented)
+            {
+                return forExport ? GlobalConst.kStyleHighlightedRed : "text-danger";
+            }
+            return "";
         }
-
-        // public static List<string> GetSrcNames(ModellingConnection conn)
-        // {
-        //     List<string> names = ModellingNetworkAreaWrapper.Resolve(conn.SourceAreas).ToList().ConvertAll(s => s.DisplayHtml());
-        //     names.AddRange(ModellingNwGroupWrapper.Resolve(conn.SourceOtherGroups).ToList().ConvertAll(s => s.DisplayHtml()));
-        //     names.AddRange(ModellingAppRoleWrapper.Resolve(conn.SourceAppRoles).ToList().ConvertAll(s => s.DisplayHtml()));
-        //     names.AddRange(ModellingAppServerWrapper.Resolve(conn.SourceAppServers).ToList().ConvertAll(s => s.DisplayHtml()));
-        //     return names;
-        // }
-
-        // public static List<string> GetDstNames(ModellingConnection conn)
-        // {
-        //     List<string> names = ModellingNetworkAreaWrapper.Resolve(conn.DestinationAreas).ToList().ConvertAll(s => s.DisplayHtml());
-        //     names.AddRange(ModellingNwGroupWrapper.Resolve(conn.DestinationOtherGroups).ToList().ConvertAll(s => s.DisplayHtml()));
-        //     names.AddRange(ModellingAppRoleWrapper.Resolve(conn.DestinationAppRoles).ToList().ConvertAll(s => s.DisplayHtml()));
-        //     names.AddRange(ModellingAppServerWrapper.Resolve(conn.DestinationAppServers).ToList().ConvertAll(s => s.DisplayHtml()));
-        //     return names;
-        // }
-
-        // public static List<string> GetSvcNames(ModellingConnection conn)
-        // {
-        //     List<string> names = ModellingServiceGroupWrapper.Resolve(conn.ServiceGroups).ToList().ConvertAll(s => s.DisplayHtml());
-        //     names.AddRange(ModellingServiceWrapper.Resolve(conn.Services).ToList().ConvertAll(s => s.DisplayHtml()));
-        //     return names;
-        // }
     }
 }

@@ -1,0 +1,155 @@
+﻿@using System.Text.Json
+
+@page "/settings/reportgeneral"
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
+
+@inject ApiConnection apiConnection
+@inject GlobalConfig globalConfig
+@inject UserConfig userConfig
+
+<div class="input-group">
+    <h3>@(userConfig.GetText("report_settings"))</h3>
+    <HelpLink Page="settings/reportgeneral"/>
+</div>
+@(userConfig.GetText("U5323"))
+<hr />
+
+@if (configData != null)
+{
+    <form onsubmit="return false">
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5412"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("elementsPerFetch"))*:</label>
+            <div class="col-sm-2">
+                <input type="number" min="0" @bind="configData!.ElementsPerFetch" />
+            </div>
+        </div>
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5414"))">
+            <label for="cbx_auto_fill_right_sidebar" class="col-form-label col-sm-4">@(userConfig.GetText("autoFillRightSidebar")):</label>
+            <div class="col-sm-1">
+                <input id="cbx_auto_fill_right_sidebar" type="checkbox" class="w-100" @bind="configData!.AutoFillRightSidebar">
+            </div>
+        </div>
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5413"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("maxInitialFetchesRightSidebar")):</label>
+            <div class="col-sm-2">
+                @if (configData!.AutoFillRightSidebar)
+                {
+                    <input disabled type="number" min="0" @bind="configData!.MaxInitialFetchesRightSidebar" />
+                }
+                else
+                {
+                    <input type="number" min="0" @bind="configData!.MaxInitialFetchesRightSidebar" />
+                }
+            </div>
+        </div>
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5422"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("minCollapseAllDevices"))*:</label>
+            <div class="col-sm-2">
+                <input type="number" min="0" @bind="configData!.MinCollapseAllDevices">
+            </div>
+        </div>
+        <hr />
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5447"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("unusedTolerance"))*:</label>
+            <div class="col-sm-2">
+                <input type="number" min="0" @bind="configData!.UnusedTolerance" />
+            </div>
+        </div>
+            <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5448"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("creationTolerance"))*:</label>
+            <div class="col-sm-2">
+                <input type="number" min="0" @bind="configData!.CreationTolerance" />
+            </div>
+        </div>
+        <hr />
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5455"))">
+            <label class="col-form-label col-sm-3">@(userConfig.GetText("availableReportTypes")):</label>
+            <div class="form-group row col-sm-9">
+                @foreach (ReportType type in Enum.GetValues(typeof(ReportType)))
+                {
+                    <div class="form-group col-sm-3">
+                        <input id="cbx_@type.ToString()" type="checkbox" @bind="reportTypesActiveDict[type]" />
+                        <label for="cbx_@type.ToString()" class="col-form-label">@(userConfig.GetText(type.ToString()))</label>
+                    </div>
+                }
+            </div>
+        </div>
+    </form>
+    <hr />
+    <AuthorizeView Roles="@Roles.Admin">
+        <Authorized>
+            <button type="button" class="btn btn-sm btn-primary" @onclick="Save" @onclick:preventDefault>@(userConfig.GetText("save"))</button>
+        </Authorized>
+        <NotAuthorized>
+            <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+        </NotAuthorized> 
+    </AuthorizeView>
+    <br><br>
+    <p>@(userConfig.GetText("U5303"))</p>
+}
+else
+{
+    <div class="spinner-border" role="status">
+        <span class="visually-hidden">@(userConfig.GetText("loading"))</span>
+    </div>
+}
+
+
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    private ConfigData? configData;
+    private List<ReportType> availableReportTypes { get; set; } = [];
+    private Dictionary<ReportType, bool> reportTypesActiveDict = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            configData = await globalConfig.GetEditableConfig();
+            availableReportTypes = JsonSerializer.Deserialize<List<ReportType>>(string.IsNullOrEmpty(configData.AvailableReportTypes) ? "[]" : configData.AvailableReportTypes) ?? throw new Exception("Config data could not be parsed.");
+            reportTypesActiveDict = [];
+            foreach(ReportType type in Enum.GetValues(typeof(ReportType)))
+            {
+                reportTypesActiveDict.Add(type, availableReportTypes.Contains(type));
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("read_config"), userConfig.GetText("E5301"), false);
+        }
+    }
+
+    private async Task Save()
+    {
+        try
+        {
+            if (configData != null)
+            {
+                availableReportTypes = [];
+                foreach(ReportType type in reportTypesActiveDict.Keys)
+                {
+                    if (reportTypesActiveDict[type])
+                    {
+                        availableReportTypes.Add(type);
+                    }
+                }
+                configData.AvailableReportTypes = JsonSerializer.Serialize(availableReportTypes);
+
+                await globalConfig.WriteToDatabase(configData, apiConnection);
+                DisplayMessageInUi(null, userConfig.GetText("change_default"), userConfig.GetText("U5301"), false);
+            }
+            else
+            {
+                throw new Exception("Data saved before loaded. This should be impossible.");
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("change_default"), "", true);
+        }
+    }
+}

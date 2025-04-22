@@ -1,12 +1,17 @@
+@using FWO.Basics.Comparer
+@using FWO.Services.EventMediator.Events
+@using FWO.Services.EventMediator.Interfaces
+@using FWO.Ui.Data
 @using FWO.Ui.Display
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
+@inject IEventMediator EventMediator
 
 @if (AppRoleHandler != null && Display)
 {
     <PopUp Title="@(AppRoleHandler.ReadOnly ? "" : (AppRoleHandler.AddMode ? userConfig.GetText("add_app_role") : userConfig.GetText("edit_app_role")))"
-           Size="@(AppRoleHandler.ReadOnly ? PopupSize.Medium : PopupSize.Large)" Show="@Display" OnClose="Close">
+    Size="@(AppRoleHandler.ReadOnly ? PopupSize.Medium : PopupSize.Large)" Show="@Display" OnClose="Close">
         <Body>
             <div class="row mt-2">
                 @if (!AppRoleHandler.ReadOnly)
@@ -26,7 +31,7 @@
                                 {
                                     <div class="col-sm-8">
                                         <Dropdown ElementType="ModellingNetworkArea" SelectedElement="AppRoleHandler.ActAppRole.Area" ElementToString="@(a => a.Display() + DisplayObjectCount(a))"
-                                                  SelectedElementChanged="OnSelectedAreaChanged" Elements="areas" Nullable="true">
+                                        SelectedElementChanged="OnSelectedAreaChanged" Elements="areas" Nullable="true">
                                             <ElementTemplate Context="area">
                                                 @((MarkupString)DisplayAreaWithObjectCount(area))
                                             </ElementTemplate>
@@ -90,11 +95,11 @@
                             }
                             else
                             {
-                                <OrderByDropdown CssClass="bg-secondary" @ref="orderByDropdown" TCollectionItem="ModellingAppServer" Collection="AppRoleHandler.AppServerToAdd" CollectionReordered="OnCollectionReordered" ElementProperties="orderByDropdownProperties" />
+                                <OrderByDropdown CssClass="bg-secondary" @ref="orderByDropdown" TCollectionItem="ModellingAppServer" CollectionReordered="OnCollectionReordered" ElementProperties="orderByDropdownProperties" CustomSort="true"/>
                                 <div class="dropzone-scrollable dropzone bg-secondary"
-                                     ondragover="event.preventDefault();"
-                                     ondragstart="event.dataTransfer.setData('', event.target.id);"
-                                     @ondrop="HandleServerDrop">
+                                ondragover="event.preventDefault();"
+                                ondragstart="event.dataTransfer.setData('', event.target.id);"
+                                @ondrop="HandleServerDrop">
                                     <EditList ElementType="ModellingAppServer" Elements="ModellingAppServerWrapper.Resolve(AppRoleHandler.ActAppRole.AppServers)" ElementsToAdd="AppRoleHandler.AppServerToAdd" ElementsToDelete="AppRoleHandler.AppServerToDelete" StdLayout="false" ElementsRemoved="OnAppServerRemovedFromEditList">
                                         <Display>
                                             <div class="row">
@@ -136,7 +141,7 @@
     </PopUp>
     <InProgress Display="workInProgress" />
     <Confirm @bind-Display="ShowAreaChangeConfirmation" AllowedRoles="@Roles.Modeller" RenderMessageAsHtml="true"
-             Message="@(userConfig.GetText("nwareachange_clear_app_servers"))" PerformAction="AreaChangeConfirmation" Title="@(userConfig.GetText("confirm"))" />
+    Message="@(userConfig.GetText("nwareachange_clear_app_servers"))" PerformAction="AreaChangeConfirmation" Title="@(userConfig.GetText("confirm"))" />
 }
 @code
 {
@@ -161,6 +166,7 @@
     [Parameter]
     public Func<Task> RefreshParent { get; set; } = DefaultInit.DoNothing;
 
+    private readonly static CollectionChangedEvent OnCollectionChanged = new();
 
     private ModellingDnDContainer Container { get; set; } = new();
     int sidebarLeftWidth = GlobalConst.kObjLibraryWidth;
@@ -291,6 +297,9 @@
 
                 workInProgress = true;
                 await AppRoleHandler.InitAppRole(newArea);
+
+                EventMediator.Publish<CollectionChangedEvent>(nameof(EditAppRole), OnCollectionChanged);
+
                 workInProgress = false;
             }
         }
@@ -314,13 +323,39 @@
     }
 
     /// <summary>
-    /// Updates the app server's visual elements after reordering the collection.
+    /// Implements a custom way to reorder the relevant collections.
     /// </summary>
     private void OnCollectionReordered(List<ModellingAppServer> orderedCollection)
     {
-        if (AppRoleHandler != null && orderedCollection != null)
+        if (AppRoleHandler != null && orderByDropdown != null)
         {
-            AppRoleHandler.AppServerToAdd = orderedCollection;
+            ModellingAppServer[]? resolved = ModellingAppServerWrapper.Resolve(AppRoleHandler.ActAppRole.AppServers);
+            ModellingAppServer[]? ordered;
+            List<ModellingAppServer> appServersToAdd = AppRoleHandler.AppServerToAdd; 
+
+            if(orderByDropdown.SelectedProperty.Equals("Ip"))
+            {
+                
+                ordered = resolved.OrderBy(OrderByDropdown<ModellingAppServer>.GetIPAddressRange, new IPAddressRangeComparer()).ToArray<ModellingAppServer>();
+                appServersToAdd = appServersToAdd.OrderBy(OrderByDropdown<ModellingAppServer>.GetIPAddressRange, new IPAddressRangeComparer()).ToList<ModellingAppServer>();
+
+            }
+            else
+            {
+                Func<ModellingAppServer, object> keySelector = orderByDropdown.GetGenericOrderByExpression<ModellingAppServer>(orderByDropdown.SelectedProperty);
+                ordered = resolved.OrderBy(keySelector).ToArray(); 
+                appServersToAdd = appServersToAdd.OrderBy(keySelector).ToList();
+            }
+
+            if (orderByDropdown.SelectedOrderMode == OrderMode.Desc)
+            {
+                Array.Reverse(ordered);   
+                appServersToAdd.Reverse();
+            }
+
+            List<ModellingAppServerWrapper> wrapped = ModellingAppServerWrapper.Wrap(ordered);
+            AppRoleHandler.ActAppRole.AppServers = wrapped; 
+            AppRoleHandler.AppServerToAdd = appServersToAdd;
         }
 
         InvokeAsync(StateHasChanged);

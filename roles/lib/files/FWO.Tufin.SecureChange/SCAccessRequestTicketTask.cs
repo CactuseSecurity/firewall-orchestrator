@@ -83,7 +83,7 @@ namespace FWO.Tufin.SecureChange
 			return "[" + string.Join(",", convertedObjects) + "]";
 		}
 
-		private static string DisplayPortRange(int port, int? portEnd)
+		public static string DisplayPortRange(int port, int? portEnd)
 		{
 			return portEnd == null || portEnd == 0 || port == portEnd ? $"{port}" : $"{port}-{portEnd}";
 		}

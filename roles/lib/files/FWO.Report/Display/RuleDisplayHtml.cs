@@ -89,10 +89,10 @@ namespace FWO.Ui.Display
         protected static string NetworkLocationToHtml(NetworkLocation networkLocation, int mgmtId, int chapterNumber, OutputLocation location, string style, ReportType reportType)
         {
             string nwLocation = DisplayNetworkLocation(networkLocation, reportType, 
-                reportType.IsResolvedReport() || networkLocation.User == null ? null :
+                reportType.IsResolvedReport() || reportType == ReportType.VarianceAnalysis || networkLocation.User == null ? null :
                 ReportDevicesBase.ConstructLink(ObjCatString.User, ReportBase.GetIconClass(ObjCategory.user, networkLocation.User?.Type.Name),
                     chapterNumber, networkLocation.User!.Id, networkLocation.User.Name, location, mgmtId, style),
-                reportType.IsResolvedReport() ? null :
+                reportType.IsResolvedReport() || reportType == ReportType.VarianceAnalysis ? null :
                 ReportDevicesBase.ConstructLink(ObjCatString.NwObj, ReportBase.GetIconClass(ObjCategory.nobj, networkLocation.Object.Type.Name),
                     chapterNumber, networkLocation.Object.Id, networkLocation.Object.Name, location, mgmtId, style)
                 ).ToString();
@@ -101,7 +101,7 @@ namespace FWO.Ui.Display
 
         protected static string ServiceToHtml(NetworkService service, int mgmtId, int chapterNumber, OutputLocation location, string style, ReportType reportType)
         {
-            return DisplayService(service, reportType, reportType.IsResolvedReport() ? null : 
+            return DisplayService(service, reportType, reportType.IsResolvedReport() || reportType == ReportType.VarianceAnalysis ? null : 
                 ReportDevicesBase.ConstructLink(ObjCatString.Svc, ReportBase.GetIconClass(ObjCategory.nsrv, service.Type.Name), chapterNumber, service.Id, service.Name, location, mgmtId, style)).ToString();
         }
         protected static string EnforcingGatewayToHtml(Device gateway, int mgmtId, int chapterNumber, OutputLocation location, string style, ReportType reportType)
@@ -117,7 +117,7 @@ namespace FWO.Ui.Display
             {
                 result.AppendLine(userConfig.GetText("negated") + "<br>");
             }
-            string highlightedStyle = style + (reportType == ReportType.AppRules ? " " + GlobalConst.kStyleHighlighted : "");
+            string highlightedStyle = style + (reportType == ReportType.AppRules ? " " + GlobalConst.kStyleHighlightedRed : "");
 
             if(reportType.IsResolvedReport())
             {
@@ -160,7 +160,7 @@ namespace FWO.Ui.Display
                 dateOnly = DateOnly.FromDateTime((DateTime)recert.NextRecertDate).ToString("yyyy-MM-dd");
                 if(recert.NextRecertDate < DateTime.Now)
                 {
-                    color = " style=\"color: red;\"";
+                    color = $" style=\"{GlobalConst.kStyleHighlightedRed}\"";
                 }
             }
             return "<p" + color + ">" + countString + dateOnly + "</p>";

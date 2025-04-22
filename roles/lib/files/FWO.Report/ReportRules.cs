@@ -1,14 +1,15 @@
-﻿using FWO.Basics;
-using FWO.Data;
-using System.Text;
-using FWO.Api.Client;
-using FWO.Report.Filter;
+﻿using FWO.Api.Client;
 using FWO.Api.Client.Queries;
-using FWO.Ui.Display;
-using FWO.Logging;
+using FWO.Basics;
 using FWO.Config.Api;
-using System.Text.Json;
+using FWO.Data;
+using FWO.Data.Report;
+using FWO.Logging;
+using FWO.Report.Filter;
+using FWO.Ui.Display;
 using Newtonsoft.Json;
+using System.Text;
+using System.Text.Json;
 
 namespace FWO.Report
 {
@@ -16,6 +17,7 @@ namespace FWO.Report
     {
         private const int ColumnCount = 12;
         protected bool UseAdditionalFilter = false;
+        private bool VarianceMode = false;
 
         public ReportRules(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType) : base(query, userConfig, reportType) { }
 
@@ -561,16 +563,23 @@ namespace FWO.Report
 
         public override string ExportToHtml()
         {
-            StringBuilder report = new();
-            RuleDisplayHtml ruleDisplayHtml = new(userConfig);
+            StringBuilder report = new ();
             int chapterNumber = 0;
+            ConstructHtmlReport(ref report, ReportData.ManagementData, chapterNumber);
+            return GenerateHtmlFrame(userConfig.GetText(ReportType.ToString()), Query.RawFilter, DateTime.Now, report);
+        }
 
-            foreach (var managementReport in ReportData.ManagementData.Where(mgt => !mgt.Ignore && mgt.Devices != null &&
-                    Array.Exists(mgt.Devices, device => device.RulebaseLinks != null)))
+        public void ConstructHtmlReport(ref StringBuilder report, List<ManagementReport> managementData, int chapterNumber, bool varianceMode = false)
+        {
+            RuleDisplayHtml ruleDisplayHtml = new (userConfig);
+            VarianceMode = varianceMode;
+
+            foreach (var managementReport in managementData.Where(mgt => !mgt.Ignore && mgt.Devices != null &&
+                    Array.Exists(mgt.Devices, device => device.Rules != null && device.Rules.Length > 0)))
             {
                 chapterNumber++;
                 managementReport.AssignRuleNumbers();
-                report.AppendLine($"<h3 id=\"{Guid.NewGuid()}\">{managementReport.Name}</h3>");
+                report.AppendLine(Headline(managementReport.Name, 3));
                 report.AppendLine("<hr>");
 
                 foreach (var device in managementReport.Devices)
@@ -584,11 +593,9 @@ namespace FWO.Report
                 // show all objects used in this management's rules
                 AppendObjectsForManagementHtml(ref report, chapterNumber, managementReport);
             }
-
-            return GenerateHtmlFrame(userConfig.GetText(ReportType.ToString()), Query.RawFilter, DateTime.Now, report);
         }
 
-        private void appendRuleHeadlineHtml(ref StringBuilder report)
+        private void AppendRuleHeadlineHtml(ref StringBuilder report)
         {
             report.AppendLine("<tr>");
             report.AppendLine($"<th>{userConfig.GetText("number")}</th>");
@@ -621,9 +628,9 @@ namespace FWO.Report
         {
             if (device.ContainsRules())
             {
-                report.AppendLine($"<h4 id=\"{Guid.NewGuid()}\">{device.Name}</h4>");
+                report.AppendLine(Headline(device.Name, 4));
                 report.AppendLine("<table>");
-                appendRuleHeadlineHtml(ref report);
+                AppendRuleHeadlineHtml(ref report);
 
                 RulebaseLink? nextRbLink = device.RulebaseLinks.FirstOrDefault(_ => _.IsInitialRulebase());
 
@@ -699,9 +706,9 @@ namespace FWO.Report
 
         private void AppendNetworkObjectsForManagementHtml(ref StringBuilder report, int chapterNumber, ManagementReport managementReport)
         {
-            if (managementReport.ReportObjects != null && !ReportType.IsResolvedReport())
+            if (managementReport.ReportObjects != null && managementReport.ReportObjects.Length > 0 && !ReportType.IsResolvedReport())
             {
-                report.AppendLine($"<h4 id=\"{Guid.NewGuid()}\">{userConfig.GetText("network_objects")}</h4>");
+                report.AppendLine(Headline(userConfig.GetText("network_objects"), 4));
                 report.AppendLine("<table>");
                 report.AppendLine("<tr>");
                 report.AppendLine($"<th>{userConfig.GetText("number")}</th>");
@@ -715,7 +722,7 @@ namespace FWO.Report
                 int objNumber = 1;
                 foreach (var nwobj in managementReport.ReportObjects)
                 {
-                    report.AppendLine($"<tr style=\"{(nwobj.Highlighted ? GlobalConst.kStyleHighlighted : "")}\">");
+                    report.AppendLine($"<tr style=\"{(nwobj.Highlighted ? GlobalConst.kStyleHighlightedRed : "")}\">");
                     report.AppendLine($"<td>{objNumber++}</td>");
                     report.AppendLine($"<td><a name={ObjCatString.NwObj}{chapterNumber}x{nwobj.Id}>{nwobj.Name}</a></td>");
                     report.AppendLine($"<td>{(nwobj.Type.Name != "" ? userConfig.GetText(nwobj.Type.Name) : "")}</td>");
@@ -732,9 +739,9 @@ namespace FWO.Report
 
         private void AppendNetworkServicesForManagementHtml(ref StringBuilder report, int chapterNumber, ManagementReport managementReport)
         {
-            if (managementReport.ReportServices != null && !ReportType.IsResolvedReport())
+            if (managementReport.ReportServices != null && managementReport.ReportServices.Length > 0 && !ReportType.IsResolvedReport())
             {
-                report.AppendLine($"<h4 id=\"{Guid.NewGuid()}\">{userConfig.GetText("network_services")}</h4>");
+                report.AppendLine(Headline(userConfig.GetText("network_services"), 4));
                 report.AppendLine("<table>");
                 report.AppendLine("<tr>");
                 report.AppendLine($"<th>{userConfig.GetText("number")}</th>");
@@ -774,9 +781,9 @@ namespace FWO.Report
 
         private void AppendUsersForManagementHtml(ref StringBuilder report, int chapterNumber, ManagementReport managementReport)
         {
-            if (managementReport.ReportUsers != null && !ReportType.IsResolvedReport())
+            if (managementReport.ReportUsers != null && managementReport.ReportUsers.Length > 0 && !ReportType.IsResolvedReport())
             {
-                report.AppendLine($"<h4 id=\"{Guid.NewGuid()}\">{userConfig.GetText("users")}</h4>");
+                report.AppendLine(Headline(userConfig.GetText("users"), 4));
                 report.AppendLine("<table>");
                 report.AppendLine("<tr>");
                 report.AppendLine($"<th>{userConfig.GetText("number")}</th>");
@@ -801,6 +808,12 @@ namespace FWO.Report
                 report.AppendLine("</table>");
                 report.AppendLine("<hr>");
             }
+        }
+
+        private string Headline (string? title, int level)
+        {
+            int Level = VarianceMode ? level + 2 : level;
+            return  $"<h{Level} id=\"{Guid.NewGuid()}\">{title}</h{Level}>";
         }
     }
 }

@@ -2182,7 +2182,7 @@
                     "comment": ""
                   }
                 ]
-              },
+                },
               {
                 "table": {
                   "name": "service_service_group",
@@ -5323,12 +5323,14 @@
                     }
                   }
                 ],
+
                 "insert_permissions": [
                   {
                     "role": "middleware-server",
                     "permission": {
                       "check": {},
                       "columns": [
+                        "attempts",
                         "create_date",
                         "ext_query_variables",
                         "ext_request_content",
@@ -5377,22 +5379,23 @@
                     "role": "auditor",
                     "permission": {
                       "columns": [
-                        "id",
-                        "ticket_id",
-                        "locked",
+                        "attempts",
+                        "create_date",
                         "ext_query_variables",
                         "ext_request_content",
                         "ext_request_state",
                         "ext_request_type",
                         "ext_ticket_id",
                         "ext_ticket_system",
+                        "finish_date",
+                        "id",
                         "last_creation_response",
                         "last_processing_response",
+                        "locked",
                         "owner_id",
                         "task_number",
-                        "wait_cycles",
-                        "create_date",
-                        "finish_date"
+                        "ticket_id",
+                        "wait_cycles"
                       ],
                       "filter": {}
                     },
@@ -5413,6 +5416,7 @@
                         "ext_ticket_system",
                         "last_creation_response",
                         "last_processing_response",
+                        "attempts",
                         "owner_id",
                         "task_number",
                         "wait_cycles",
@@ -5427,22 +5431,23 @@
                     "role": "modeller",
                     "permission": {
                       "columns": [
-                        "id",
-                        "ticket_id",
-                        "locked",
+                        "attempts",
+                        "create_date",
                         "ext_query_variables",
                         "ext_request_content",
                         "ext_request_state",
                         "ext_request_type",
                         "ext_ticket_id",
                         "ext_ticket_system",
+                        "finish_date",
+                        "id",
                         "last_creation_response",
                         "last_processing_response",
+                        "locked",
                         "owner_id",
                         "task_number",
-                        "wait_cycles",
-                        "create_date",
-                        "finish_date"
+                        "ticket_id",
+                        "wait_cycles"
                       ],
                       "filter": {}
                     },
@@ -5454,22 +5459,23 @@
                     "role": "middleware-server",
                     "permission": {
                       "columns": [
-                        "id",
-                        "ticket_id",
-                        "locked",
+                        "attempts",
+                        "create_date",
                         "ext_query_variables",
                         "ext_request_content",
                         "ext_request_state",
                         "ext_request_type",
                         "ext_ticket_id",
                         "ext_ticket_system",
+                        "finish_date",
+                        "id",
                         "last_creation_response",
                         "last_processing_response",
+                        "locked",
                         "owner_id",
                         "task_number",
-                        "wait_cycles",
-                        "create_date",
-                        "finish_date"
+                        "ticket_id",
+                        "wait_cycles"
                       ],
                       "filter": {},
                       "check": null

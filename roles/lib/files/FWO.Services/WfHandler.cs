@@ -449,18 +449,20 @@ namespace FWO.Services
             return 0;
         }
 
-        public async Task PromoteTicket(WfStatefulObject ticket)
+        public async Task<bool> PromoteTicket(WfStatefulObject ticket)
         {
             try
             {
                 ActTicket.StateId = ticket.StateId;
                 await UpdateActTicketState();
                 ResetTicketActions();
+                return true;
             }
             catch (Exception exception)
             {
                 DisplayMessageInUi(exception, userConfig.GetText("promote_ticket"), "", true);
             }
+            return false;
         }
 
 

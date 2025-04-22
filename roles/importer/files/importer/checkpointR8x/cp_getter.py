@@ -199,7 +199,7 @@ def getPolicyStructure(api_v_url, sid, show_params_policy_structure, policyStruc
             if 'to' in packages:
                 current=packages['to']
             else:
-                raise Exception ( 'packages do not contain to field')
+                logger.error ( 'packages do not contain to field')
                 return 1
         
 # [{'name':'policy1', 'uid':'bla', 'targets':[{'name':'gateway1', 'uid':'bla'}], 'access-layers':[{'name':'ord1', 'uid':'ord1'}]}]
@@ -207,8 +207,18 @@ def getPolicyStructure(api_v_url, sid, show_params_policy_structure, policyStruc
         for package in packages['packages']:
             alreadyFetchedPackage = False
 
-            # parse package if at least one installation target exists
-            if 'installation-targets-revision' in package:
+            # parse package in case of supermanager
+            if 'installation-targets' in package and package['installation-targets'] == 'all':
+                if not alreadyFetchedPackage:
+                    
+                    currentPacakage = { 'name': package['name'],
+                                        'uid': package['uid'],
+                                        'targets': [{'name': 'all', 'uid': 'all'}],
+                                        'access-layers': []}
+                    alreadyFetchedPackage = True
+
+            # parse package if at least one installation target exists for sub- or stand-alone-manager
+            elif 'installation-targets-revision' in package:
                 for installationTarget in package['installation-targets-revision']:
                     if 'target-name' in installationTarget and 'target-uid' in installationTarget:
 
@@ -224,17 +234,80 @@ def getPolicyStructure(api_v_url, sid, show_params_policy_structure, policyStruc
                     else:
                         logger.warning ( 'installation target in package: ' + package['uid'] + ' is missing name or uid')
                 
-                if alreadyFetchedPackage:
-                    if 'access-layers' in package:
-                        for accessLayer in package['access-layers']:
-                            if 'name' in accessLayer and 'uid' in accessLayer:
-                                currentPacakage['access-layers'].append({ 'name': accessLayer['name'],
-                                                                          'uid': accessLayer['uid']})
-                            else:
-                                logger.warning ( 'access layer in package: ' + package['uid'] + ' is missing name or uid')
-                    # in future threat-layers may be fetched the same way as access-layers
-                    
-                    policyStructure.append(currentPacakage)
+            # add access-layers to current package, if at least one installation target was found
+            if alreadyFetchedPackage:
+                if 'access-layers' in package:
+                    for accessLayer in package['access-layers']:
+                        if 'name' in accessLayer and 'uid' in accessLayer:
+                            currentPacakage['access-layers'].append({ 'name': accessLayer['name'],
+                                                                        'uid': accessLayer['uid']})
+                        else:
+                            logger.warning ( 'access layer in package: ' + package['uid'] + ' is missing name or uid')
+                # in future threat-layers may be fetched the same way as access-layers
+                
+                policyStructure.append(currentPacakage)
+
+    return 0
+
+
+def getGlobalAssignments(api_v_url, sid, show_params_policy_structure, globalAssignments = []):
+
+    logger = getFwoLogger()
+
+    current=0
+    total=current+1
+
+    show_params_policy_structure.update({'offset': current})
+
+    while (current<total):
+
+        try:
+            assignments = cp_api_call(api_v_url, 'show-global-assignments', show_params_policy_structure, sid)
+        except Exception:
+            logger.error("could not return 'show-global-assignments'")
+            return 1
+
+        if 'total' in assignments:
+            total=assignments['total']
+        else:
+            logger.error ( 'global assignments do not contain total field')
+            logger.warning ( 'sid: ' + sid)
+            logger.warning ( 'api_v_url: ' + api_v_url)
+            for key, value in show_params_policy_structure.items():
+                logger.warning('show_params_policy_structure ' + key + ': ' + str(value))
+            for key, value in assignments.items():
+                logger.warning('global assignments ' + key + ': ' + str(value))
+            return 1
+        
+        if total==0:
+            current=0
+        else:
+            if 'to' in assignments:
+                current=assignments['to']
+            else:
+                logger.error ( 'global assignments do not contain to field')
+                return 1
+
+        # parse global assignment
+        for assignment in assignments['objects']:
+            if 'type' in assignment and assignment['type'] == 'global-assignment':
+                globalAssignment = {
+                    'uid': assignment['uid'],
+                    'global-domain': {
+                        'uid': assignment['global-domain']['uid'],
+                        'name': assignment['global-domain']['name']
+                    },
+                    'dependent-domain': {
+                        'uid': assignment['dependent-domain']['uid'],
+                        'name': assignment['dependent-domain']['name']
+                    },
+                    'global-access-policy': assignment['global-access-policy']
+                }
+
+                globalAssignments.append(globalAssignment)
+
+            else:
+                logger.error ('global assignment with unexpected type')
 
     return 0
                         

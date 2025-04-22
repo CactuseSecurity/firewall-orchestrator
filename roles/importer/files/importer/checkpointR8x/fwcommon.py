@@ -185,20 +185,34 @@ def getRules (nativeConfig: dict, importState: ImportStateController) -> int:
 
         # delte_v: kann prepare_get_vars gelöscht werden?
         domain, cpManagerApiBaseUrl = prepareGetVars(importState.MgmDetails)
-        sid = login_cp(importState.FullMgmDetails, domain)
 
-        # store toplevel domain and sid, we need it in the submanager iterations
+        # in case of mds get global assignments via mds sid and then change to global domain and sid for all further operations
         if importState.MgmDetails.IsSuperManager and managerDetails.Uid == topLevelMgmDetails.Uid:
-            topLevelDomain = domain
-            topLevelApiUrl = cpManagerApiBaseUrl
-            topLevelSid = sid
+            mdsSid = loginCp(importState.MgmDetails, domain)
+            globalAssignments = []
+            cp_getter.getGlobalAssignments(cpManagerApiBaseUrl,
+                                           mdsSid,
+                                           show_params_policy_structure,
+                                           globalAssignments = globalAssignments)
 
+            domain = '1e294ce0-367a-11e3-aa6e-0800200c9a66' # delete_v: muss Global uid sein
+
+        # delete_v: kann login_cp weg?
+        sid = loginCp(importState.MgmDetails, domain)
+        
         # get all access (ordered) layers for each policy
         policyStructure = []
         cp_getter.getPolicyStructure(cpManagerApiBaseUrl,
                                     sid,
                                     show_params_policy_structure,
                                     policyStructure = policyStructure)
+
+        # store toplevel domain, api-url, sid and policy structure, we need them in the submanager iterations
+        if importState.MgmDetails.IsSuperManager and managerDetails.Uid == topLevelMgmDetails.Uid:
+            topLevelDomain = domain
+            topLevelApiUrl = cpManagerApiBaseUrl
+            topLevelSid = sid
+            topLevelPolicyStructure = policyStructure
 
         show_params_rules = {
             'limit': importState.FwoConfig.ApiFetchSize,
@@ -264,6 +278,10 @@ def getRules (nativeConfig: dict, importState: ImportStateController) -> int:
 
             # decide if mds or stand alone manager
             if importState.MgmDetails.IsSuperManager:
+                # get global policy from policyStructure via globalAssignments
+                for globalAssignment in globalAssignments:
+                    break
+
                 # delete_v: ACHTUNG hier werden namen in show_params_rules benutzt
                 # delte_v global rulebase
                 show_params_rules.update({'name': device['global_rulebase_name']})
@@ -472,6 +490,12 @@ def prepareGetVars(mgm_details):
 
     return domain, base_url
 
+def loginCp(mgm_details, domain, ssl_verification=True):
+    try: # top level dict start, sid contains the domain information, so only sending domain during login
+        login_result = cp_getter.login(mgm_details.ImportUser, mgm_details.Secret, mgm_details.ImporterHostname, str(mgm_details.Port), domain)
+        return login_result
+    except Exception:
+        raise FwLoginFailed
 
 def login_cp(mgm_details, domain, ssl_verification=True):
     try: # top level dict start, sid contains the domain information, so only sending domain during login

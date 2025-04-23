@@ -39,7 +39,7 @@ graphqlQueryPath = base_dir + "/fwo-api-calls/";
 # https://stackoverflow.com/questions/12632871/size-limit-of-json-data-type-in-postgresql
 # >25.000 rules exceed this limit
 max_objs_per_chunk = 1000
-api_call_chunk_size = 50
+api_call_chunk_size = 1000
 
 # with open(fwo_config_filename, "r") as fwo_config:
 #     fwo_config = json.loads(fwo_config.read())

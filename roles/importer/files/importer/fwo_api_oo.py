@@ -25,6 +25,9 @@ class FwoApi():
     def call(self, query, queryVariables="", chunkable_variable="", query_name="", return_object_name="", debug_level=0):
 
         def call_chunked(self, query, queryVariables="", chunkable_variable="", query_name="", return_object_name="", debug_level=0):
+            """
+                Splits a defined query variable, that is of type list, into chunks and posts the queries chunk by chunk.
+            """
             chunk_number = 1
             obj_count = 0
             return_object = {}
@@ -32,21 +35,26 @@ class FwoApi():
             logger = getFwoLogger(debug_level=debug_level)
             logger.debug(f"Processing chunked API call{"(" + query_name + ")"}...")
 
+            # Loops until all elements of the the query variable have been processed.
             while(obj_count < chunk_number * api_call_chunk_size and obj_count < len(queryVariables[chunkable_variable])):
+                # Gets current chunk and sets it as query variable
                 chunk = queryVariables[chunkable_variable][obj_count : obj_count + api_call_chunk_size]
                 chunked_query_variables[chunkable_variable] = chunk
+                # Post query.
                 r = session.post(self.FwoApiUrl, data=json.dumps({"query": query, "variables": chunked_query_variables}), timeout=int(fwo_api_http_import_timeout))
                 r.raise_for_status()
+                # Gather and merge returning data.
                 if return_object == {}:
                     return_object = r.json()
                 else:
                     new_return = r.json()
                     return_object["data"][return_object_name]["returning"].extend(new_return["data"][return_object_name]["returning"])
                     return_object["data"][return_object_name]["affected_rows"] += new_return["data"][return_object_name]["affected_rows"]
+                # Log current state of the process and increment variables.
                 obj_count += len(chunk)
                 logger.debug(f"Chunk nr: {chunk_number}; Total nr of processed elements: {obj_count}")
                 chunk_number += 1
-                
+
             return return_object
 
         role = 'importer'

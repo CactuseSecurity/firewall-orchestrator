@@ -2,10 +2,12 @@ import requests.packages
 import requests
 import json
 import traceback
+import copy
+import time
 
 import fwo_globals
 from fwo_log import getFwoLogger
-from fwo_const import fwo_api_http_import_timeout
+from fwo_const import fwo_api_http_import_timeout, api_call_chunk_size
 from fwo_exceptions import FwoApiServiceUnavailable, FwoApiTimeout
 
 # this class is used for making calls to the FWO API (will supersede fwo_api.py)
@@ -20,7 +22,33 @@ class FwoApi():
         self.FwoJwt = Jwt
 
     # standard FWO API call
-    def call(self, query, queryVariables=""):
+    def call(self, query, queryVariables="", chunkable_variable="", query_name="", return_object_name="", debug_level=0):
+
+        def call_chunked(self, query, queryVariables="", chunkable_variable="", query_name="", return_object_name="", debug_level=0):
+            chunk_number = 1
+            obj_count = 0
+            return_object = {}
+            chunked_query_variables = copy.deepcopy(queryVariables)
+            logger = getFwoLogger(debug_level=debug_level)
+            logger.debug(f"Processing chunked API call{"(" + query_name + ")"}...")
+
+            while(obj_count < chunk_number * api_call_chunk_size and obj_count < len(queryVariables[chunkable_variable])):
+                chunk = queryVariables[chunkable_variable][obj_count : obj_count + api_call_chunk_size]
+                chunked_query_variables[chunkable_variable] = chunk
+                r = session.post(self.FwoApiUrl, data=json.dumps({"query": query, "variables": chunked_query_variables}), timeout=int(fwo_api_http_import_timeout))
+                r.raise_for_status()
+                if return_object == {}:
+                    return_object = r.json()
+                else:
+                    new_return = r.json()
+                    return_object["data"][return_object_name]["returning"].extend(new_return["data"][return_object_name]["returning"])
+                    return_object["data"][return_object_name]["affected_rows"] += new_return["data"][return_object_name]["affected_rows"]
+                obj_count += len(chunk)
+                logger.debug(f"Chunk nr: {chunk_number}; Total nr of processed elements: {obj_count}")
+                chunk_number += 1
+                
+            return return_object
+
         role = 'importer'
         request_headers = { 
             'Content-Type': 'application/json', 
@@ -28,7 +56,9 @@ class FwoApi():
             'x-hasura-role': role 
         }
         full_query = {"query": query, "variables": queryVariables}
-        logger = getFwoLogger()
+        logger = getFwoLogger(debug_level=debug_level)
+        is_chunked_call = not chunkable_variable == "" and len(queryVariables[chunkable_variable]) > api_call_chunk_size
+        started = time.time()
 
         with requests.Session() as session:
             if fwo_globals.verify_certs is None:    # only for first FWO API call (getting info on cert verification)
@@ -37,9 +67,15 @@ class FwoApi():
                 session.verify = fwo_globals.verify_certs
             session.headers = request_headers
 
-            try:
-                r = session.post(self.FwoApiUrl, data=json.dumps(full_query), timeout=int(fwo_api_http_import_timeout))
-                r.raise_for_status()
+            try: 
+                if is_chunked_call:
+                    return_object = call_chunked(self, query, queryVariables, chunkable_variable, query_name, return_object_name, debug_level)
+                    elapsed_time = time.time() - started
+                    logger.debug(f"Chunked API call ({query_name}) processed in {elapsed_time:.4f} s.")
+                else:
+                    r = session.post(self.FwoApiUrl, data=json.dumps(full_query), timeout=int(fwo_api_http_import_timeout))
+                    r.raise_for_status()
+
             except requests.exceptions.RequestException:
                 if int(fwo_globals.debug_level) > 1:
                     logger.error(self.showImportApiCallInfo(full_query, request_headers, typ='error') + ":\n" + str(traceback.format_exc()))
@@ -52,8 +88,10 @@ class FwoApi():
                     raise
             if int(fwo_globals.debug_level) > 8:
                 logger.debug (self.showImportApiCallInfo(self.FwoApiUrl, full_query, request_headers, typ='debug'))
-            if r != None:
-                return r.json()
+            if is_chunked_call:
+                return return_object
+            elif r != None:
+                    return r.json()
             else:
                 return None
 
@@ -75,3 +113,4 @@ class FwoApi():
                 query_string[query_size-round(max_query_size_to_display/2):] + " (total query size=" + str(query_size) + " bytes)"
         result += "\n and  headers: \n" + header_string
         return result
+    

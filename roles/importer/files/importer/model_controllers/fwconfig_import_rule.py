@@ -410,7 +410,7 @@ class FwConfigImportRule(FwConfigImportBase):
         # queryVarJson = json.dumps(queryVariables)    # just for debugging purposes, remove in prod
 
         try:
-            import_result = self.ImportDetails.call(addNewRuleMetadataMutation, queryVariables=queryVariables)
+            import_result = self.ImportDetails.call(addNewRuleMetadataMutation, queryVariables=queryVariables, chunkable_variable="ruleMetadata", query_name="addNewRuleMetadata", return_object_name="insert_rule_metadata", debug_level=self.ImportDetails.DebugLevel)
             if 'errors' in import_result:
                 logger.exception(f"fwo_api:importNwObject - error in addNewRuleMetadata: {str(import_result['errors'])}")
                 return 1, 0, newRuleMetaDataIds
@@ -490,7 +490,7 @@ class FwConfigImportRule(FwConfigImportBase):
             if 'rules' in rulebase and 'data' in rulebase['rules'] and len(rulebase['rules']['data'])>0:
                 queryVariables = { 'rules': rulebase['rules']['data'] }
                 try:
-                    import_result = self.ImportDetails.call(upsertRulebaseWithRules, queryVariables=queryVariables)
+                    import_result = self.ImportDetails.call(upsertRulebaseWithRules, queryVariables=queryVariables, chunkable_variable="rules", query_name="upsertRulebaseWithRules", return_object_name="insert_rule", debug_level=self.ImportDetails.DebugLevel)
                     if 'errors' in import_result:
                         logger.exception(f"fwo_api:addRulesWithinRulebases - error in addRulesWithinRulebases: {str(import_result['errors'])}")
                         errors += 1

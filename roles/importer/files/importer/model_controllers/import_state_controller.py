@@ -142,12 +142,12 @@ class ImportStateController(ImportState):
         return result 
 
 
-    def call(self, query, queryVariables=""):
+    def call(self, query, queryVariables="", chunkable_variable="", query_name="", return_object_name="", debug_level=0):
         """
         Call the FWO API with the given query and query variables.
         This method is a wrapper around the FwoApi class to make it easier to call the API.
         """
-        return self.api_connection.call(query, queryVariables)
+        return self.api_connection.call(query, queryVariables, chunkable_variable, query_name, return_object_name, debug_level)
 
     def getPastImportInfos(self):        
         logger = getFwoLogger()

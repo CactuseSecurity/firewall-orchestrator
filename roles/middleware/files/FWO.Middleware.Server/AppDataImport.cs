@@ -119,11 +119,10 @@ namespace FWO.Middleware.Server
 			int deleteCounter = 0;
 			int deleteFailCounter = 0;
 
-			if (!globalConfig.OwnerLdapGroupNames.Contains(GlobalConst.kAppIdPlaceholder))
-			{
-                Log.WriteWarning("Import App Data", $"Owner group pattern does not contain placeholder {GlobalConst.kAppIdPlaceholder}");
-                Log.WriteAlert($"source: \"{GlobalConst.kImportAppData}\"",
-                    $"userId: \"0\", title: \"Error encountered while trying to import App Data\", description: \"Owner group name does not contain placeholder {GlobalConst.kAppIdPlaceholder}\", alertCode: \"{AlertCode.ImportAppData}\"");
+			if (!(globalConfig.OwnerLdapGroupNames.Contains(GlobalConst.kAppIdPlaceholder) ||
+                globalConfig.OwnerLdapGroupNames.Contains(GlobalConst.kFullAppIdPlaceholder)))
+            {
+                Log.WriteWarning("Import App Data", $"Owner group pattern does not contain any of the placeholders {GlobalConst.kAppIdPlaceholder} or {GlobalConst.kFullAppIdPlaceholder}.");
 			}
 			else
 			{

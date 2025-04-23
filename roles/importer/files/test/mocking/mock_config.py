@@ -1,8 +1,8 @@
 import json
 import uuid
 from typing import Union
-from test.mocking.uid_manager import UidManager
-from test.mocking.mock_rulebase import MockRulebase
+from uid_manager import UidManager
+from mock_rulebase import MockRulebase
 
 """ 
 
@@ -22,7 +22,7 @@ class ConfigMocker:
     manager_name = 'sting-mgmt'
     file_name = f'{file_name_prefix}mgm_id_{mgm_id}_config_{config_type}.json'
     default_file_path = tmp_dir + file_name
-    default_number_config = [10000]
+    default_number_config = [100000]
     uid_manager = UidManager()
     checkpoint_object_types = ["hosts", 
                                 "networks", 
@@ -202,6 +202,7 @@ class ConfigMocker:
     def generate_rulebase(self, rules_number=0):
         rulebase = MockRulebase()
         rulebase.uid = self.uid_manager.create_uid()
+        rulebase.name = f"Rulebase {rulebase.uid}" # to ensure unique key 'unique_rulebase_mgm_id_name'
         rulebase.mgm_uid = self.uid_manager.create_uid()
         rulebase.Rules = self.generate_rules(rules_number) or {}
         return rulebase

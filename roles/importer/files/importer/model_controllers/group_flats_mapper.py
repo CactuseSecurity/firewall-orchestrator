@@ -40,6 +40,8 @@ class GroupFlatsMapper:
 
     def get_network_object_flats(self, uids: List[str]) -> List[str]:
         """
+        Flatten the network object UIDs to all members, including group objects, and the top-level group object itself.
+        Does not check if the given objects are group objects or not.
         Args:
             uids (List[str]): The list of network object UIDs to flatten.
         
@@ -63,11 +65,9 @@ class GroupFlatsMapper:
         if nwobj is None:
             self.logger.error(f"object with uid {groupUid} not found in network objects of config")
             return None
+        members: set = {groupUid}
         if nwobj.obj_member_refs is None or nwobj.obj_member_refs == '':
-            if recursionLevel == 0:
-                return None # group has no members / not a group
-            return [groupUid] # leaf node, return itself
-        members = set()
+            return members
         for memberUid in nwobj.obj_member_refs.split(fwo_const.list_delimiter):
             flatMembers = self.flat_nwobj_members_recursive(memberUid, recursionLevel + 1)
             if flatMembers is None:
@@ -78,6 +78,8 @@ class GroupFlatsMapper:
 
     def get_service_object_flats(self, uids: List[str]) -> List[str]:
         """
+        Flatten the service object UIDs to all members, including group objects, and the top-level group object itself.
+        Does not check if the given objects are group objects or not.
         Args:
             uids (List[str]): The list of service object UIDs to flatten.
         Returns:
@@ -100,11 +102,9 @@ class GroupFlatsMapper:
         if svcobj is None:
             self.logger.error(f"object with uid {groupUid} not found in service objects of config")
             return None
+        members: set = {groupUid}
         if svcobj.svc_member_refs is None or svcobj.svc_member_refs == '':
-            if recursionLevel == 0:
-                return None # group has no members / not a group
-            return [groupUid] # leaf node, return itself
-        members = set()
+            return members
         for memberUid in svcobj.svc_member_refs.split(fwo_const.list_delimiter):
             flatMembers = self.flat_svcobj_members_recursive(memberUid, recursionLevel + 1)
             if flatMembers is None:
@@ -115,6 +115,8 @@ class GroupFlatsMapper:
     
     def get_user_flats(self, uids: List[str]) -> List[str]:
         """
+        Flatten the user UIDs to all members, including groups, and the top-level group itself.
+        Does not check if the given users are groups or not.
         Args:
             uids (List[str]): The list of user UIDs to flatten.
         Returns:
@@ -142,11 +144,9 @@ class GroupFlatsMapper:
         if user is None:
             self.logger.error(f"object with uid {groupUid} not found in users of config")
             return None
+        members: set = {groupUid}
         if user['user_member_refs'] is None or user['user_member_refs'] == '':
-            if recursionLevel == 0:
-                return None # group has no members / not a group
-            return [groupUid] # leaf node, return itself
-        members = set()
+            return members
         for memberUid in user['user_member_refs'].split(fwo_const.list_delimiter): #TODO: adjust when/if users are refactored into objects
             flatMembers = self.flat_user_members_recursive(memberUid, recursionLevel + 1)
             if flatMembers is None:

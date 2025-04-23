@@ -38,50 +38,58 @@ class FwConfigImportObject(FwConfigImportBase):
         # calculate network object diffs
         # here we are handling the previous config as a dict for a while
         # previousNwObjects = prevConfig.network_objects
-        deletedNwobjUids = prevConfig.network_objects.keys() - self.NormalizedConfig.network_objects.keys()
-        newNwobjUids = self.NormalizedConfig.network_objects.keys() - prevConfig.network_objects.keys()
-        nwobjUidsInBoth = self.NormalizedConfig.network_objects.keys() & prevConfig.network_objects.keys()
+        deletedNwobjUids = list(prevConfig.network_objects.keys() - self.NormalizedConfig.network_objects.keys())
+        newNwobjUids = list(self.NormalizedConfig.network_objects.keys() - prevConfig.network_objects.keys())
+        nwobjUidsInBoth = list(self.NormalizedConfig.network_objects.keys() & prevConfig.network_objects.keys())
+        unchangedNwobjUids = []
 
         # decide if it is prudent to mix changed, deleted and added rules here:
         for nwObjUid in nwobjUidsInBoth:
-            if prevConfig.network_objects[nwObjUid] != self.NormalizedConfig.network_objects[nwObjUid]:
-                newNwobjUids.add(nwObjUid)
-                deletedNwobjUids.add(nwObjUid)
+            changes = self.NormalizedConfig.network_objects[nwObjUid].get_changes(prevConfig.network_objects[nwObjUid])
+            if changes != {}:
+                newNwobjUids.append(nwObjUid)
+                deletedNwobjUids.append(nwObjUid)
+            else:
+                unchangedNwobjUids.append(nwObjUid)
 
         # calculate service object diffs
         deletedSvcObjUids = list(prevConfig.service_objects.keys() - self.NormalizedConfig.service_objects.keys())
         newSvcObjUids = list(self.NormalizedConfig.service_objects.keys() - prevConfig.service_objects.keys())
         svcObjUidsInBoth = list(self.NormalizedConfig.service_objects.keys() & prevConfig.service_objects.keys())
+        unchangedSvcObjUids = []
 
         for nwSvcUid in svcObjUidsInBoth:
-            if prevConfig.service_objects[nwSvcUid] != self.NormalizedConfig.service_objects[nwSvcUid]:
+            changes = self.NormalizedConfig.service_objects[nwSvcUid].get_changes(prevConfig.service_objects[nwSvcUid])
+            if changes != {}:
                 newSvcObjUids.append(nwSvcUid)
                 deletedSvcObjUids.append(nwSvcUid)
+            else:
+                unchangedSvcObjUids.append(nwSvcUid)
+        
         
         #TODO: calculate user diffs
         # deletedUserUids = list(prevConfig.users.keys() - self.NormalizedConfig.users.keys())
 
-
-        # TODO: deal with object changes (e.g. group with added member)
-
         # add newly created objects
         errorCountUpdate, numberOfModifiedObjects, newNwObjIds, newNwSvcIds, removedNwObjIds, removedNwSvcIds = \
-            self.updateObjectsViaApi(newNwobjUids, newSvcObjUids, deletedNwobjUids, deletedSvcObjUids)
+            self.updateObjectsViaApi(newNwobjUids, newSvcObjUids, deletedNwobjUids, deletedSvcObjUids, unchangedNwobjUids, unchangedSvcObjUids)
 
-        # initial mapping of object uids to ids. already updated for new objects
+        # initial mapping of object uids to ids. needs to be updated, if more objects are created in the db after this point
         #TODO: only fetch objects needed later. Esp for !isFullImport. but: newNwObjIds not enough!
         # -> newObjs + extract all objects from new/changed rules and groups, flatten them. Complete?
         self.uid2id_mapper.update_network_object_mapping()
         self.uid2id_mapper.update_service_object_mapping()
         self.uid2id_mapper.update_user_mapping()
-        # important!: always update mapping whenever we update objects via API
-        # if not, there will be inconsistencies in the database!
+
+        # remove outdated group memberships
+        errors, changes, outdatedNwObjMembers, outdatedNwSvcMembers, outdatedNwObjFlats, outdatedSvcObjFlats = \
+            self.removeOutdatedGroupMemberships(removedNwObjIds, removedNwSvcIds)
 
 
-        # update group memberships
-        self.addNwObjGroupMemberships(newNwObjIds)
-        self.addNwSvcGroupMemberships(newNwSvcIds)
-        # self.addUserObjGroupMemberships(newUserIds)
+        # insert new and updated group memberships
+        self.updateNwObjGroupMemberships(newNwObjIds, removedNwObjIds, outdatedNwObjMembers, outdatedNwObjFlats)
+        self.updateNwSvcGroupMemberships(newNwSvcIds, removedNwSvcIds, outdatedNwSvcMembers, outdatedSvcObjFlats)
+        #TODO: self.addUserObjGroupMemberships(newUserIds)
 
         # these objects have really been deleted so there should be no refs to them anywhere! verify this
 
@@ -102,7 +110,7 @@ class FwConfigImportObject(FwConfigImportBase):
 
         return
 
-    def updateObjectsViaApi(self, newNwObjectUids, newSvcObjectUids, removedNwObjectUids, removedSvcObjectUids):
+    def updateObjectsViaApi(self, newNwObjectUids, newSvcObjectUids, removedNwObjectUids, removedSvcObjectUids, unchangedNwObjectUids, unchangedSvcObjectUids):
         # here we also mark old objects removed before adding the new versions
         logger = getFwoLogger(debug_level=self.ImportDetails.DebugLevel)
         errors = 0
@@ -112,18 +120,44 @@ class FwConfigImportObject(FwConfigImportBase):
         removedNwObjIds = []
         removedNwSvcIds = []
         import_mutation = """
-            mutation updateObjects($mgmId: Int!, $importId: bigint!, $removedNwObjectUids: [String!]!, $removedSvcObjectUids: [String!]!, $newNwObjects: [object_insert_input!]!, $newSvcObjects: [service_insert_input!]!) {
-                update_object(where: {mgm_id: {_eq: $mgmId}, obj_uid: {_in: $removedNwObjectUids}, removed: {_is_null: true}}, _set: {removed: $importId, active: false}) {
+            mutation updateObjects($mgmId: Int!, $importId: bigint!, $removedNwObjectUids: [String!]!, $removedSvcObjectUids: [String!]!, $newNwObjects: [object_insert_input!]!, $newSvcObjects: [service_insert_input!]!, $unchangedNwObjectUids: [String!]!, $unchangedSvcObjectUids: [String!]!) {
+                update_removed_obj: update_object(where: {mgm_id: {_eq: $mgmId}, obj_uid: {_in: $removedNwObjectUids}, removed: {_is_null: true}},
+                    _set: {
+                        removed: $importId,
+                        active: false
+                    }
+                ) {
                     affected_rows
                     returning {
                         obj_id
+                        obj_uid
                     }
                 }
-                update_service(where: {mgm_id: {_eq: $mgmId}, svc_uid: {_in: $removedSvcObjectUids}, removed: {_is_null: true}}, _set: {removed: $importId, active: false}) {
+                update_removed_svc: update_service(where: {mgm_id: {_eq: $mgmId}, svc_uid: {_in: $removedSvcObjectUids}, removed: {_is_null: true}},
+                    _set: {
+                        removed: $importId,
+                        active: false
+                    }
+                ) {
                     affected_rows
                     returning {
                         svc_id
+                        svc_uid
                     }
+                }
+                update_unchanged_obj: update_object(where: {mgm_id: {_eq: $mgmId}, obj_uid: {_in: $unchangedNwObjectUids}, removed: {_is_null: true}},
+                    _set: {
+                        obj_last_seen: $importId
+                    }
+                ) {
+                    affected_rows
+                }
+                update_unchanged_svc: update_service(where: {mgm_id: {_eq: $mgmId}, svc_uid: {_in: $unchangedSvcObjectUids}, removed: {_is_null: true}},
+                    _set: {
+                        svc_last_seen: $importId
+                    }
+                ) {
+                    affected_rows
                 }
                 insert_object(objects: $newNwObjects) {
                     affected_rows
@@ -148,8 +182,10 @@ class FwConfigImportObject(FwConfigImportBase):
             'importId': self.ImportDetails.ImportId,
             'newNwObjects': self.prepareNewNwObjects(newNwObjectUids),
             'newSvcObjects': self.prepareNewSvcObjects(newSvcObjectUids),
-            'removedNwObjectUids': list(removedNwObjectUids),
-            'removedSvcObjectUids': list(removedSvcObjectUids)
+            'removedNwObjectUids': removedNwObjectUids,
+            'removedSvcObjectUids': removedSvcObjectUids,
+            'unchangedNwObjectUids': unchangedNwObjectUids,
+            'unchangedSvcObjectUids': unchangedSvcObjectUids
         }
         
         try:
@@ -160,12 +196,14 @@ class FwConfigImportObject(FwConfigImportBase):
             else:
                 changes = int(import_result['data']['insert_object']['affected_rows']) + \
                     int(import_result['data']['insert_service']['affected_rows']) + \
-                    int(import_result['data']['update_object']['affected_rows']) + \
-                    int(import_result['data']['update_service']['affected_rows'])
+                    int(import_result['data']['update_removed_obj']['affected_rows']) + \
+                    int(import_result['data']['update_removed_svc']['affected_rows'])
+                # unchanges = int(import_result['data']['update_unchanged_obj']['affected_rows']) + \
+                #     int(import_result['data']['update_unchanged_svc']['affected_rows']) #TODO: consistency check: did all objects either get updated or removed?
                 newNwObjIds = import_result['data']['insert_object']['returning']
                 newNwSvcIds = import_result['data']['insert_service']['returning']
-                removedNwObjIds = import_result['data']['update_object']['returning']
-                removedNwSvcIds = import_result['data']['update_service']['returning']
+                removedNwObjIds = import_result['data']['update_removed_obj']['returning']
+                removedNwSvcIds = import_result['data']['update_removed_svc']['returning']
         except Exception:
             logger.exception(f"failed to update objects: {str(traceback.format_exc())}")
             errors = 1
@@ -236,7 +274,9 @@ class FwConfigImportObject(FwConfigImportBase):
             logger.error("Error while getting stm_color")
             return {}
         
+
         map = {}
+
         for color in result['data']['stm_color']:
             map.update({color['color_name']: color['color_id']})
         return map
@@ -259,15 +299,111 @@ class FwConfigImportObject(FwConfigImportBase):
         return newNwObjs
 
 
-    def addNwObjGroupMemberships(self, newIds):
+    def removeOutdatedGroupMemberships(self, nwObjRemIds, svcObjRemIds):
+        """
+        This function is used to remove outdated group memberships for network and service objects in the database.
+        It returns the removed memberships, some of which will need to be re-added with the new IDs.
+
+        Args:
+            nwObjRemIds (List[dict]): List of removed/updated network objects with their old IDs.
+            svcObjRemIds (List[dict]): List of removed/updated service objects with their old IDs.
+
+        Returns:
+            Tuple[int, int, List[dict], List[dict], List[dict], List[dict]]: A tuple containing the number of errors, number of changes,
+                and lists of removed network and service object memberships and flats.
+        """
+        logger = getFwoLogger()
+        errors = 0
+        changes = 0
+
+        removedNwObjMembers = []
+        removedSvcObjMembers = []
+        removedNwObjFlats = []
+        removedSvcObjFlats = []
+
+        import_mutation = """
+            mutation updateObjGroupMemberships($importId: bigint!, $nwObjRemIds: [bigint!]!, $svcObjRemIds: [bigint!]!) {
+                update_objgrp(where: {_or: [{objgrp_id: {_in: $nwObjRemIds}}, {objgrp_member_id: {_in: $nwObjRemIds}}], removed: {_is_null: true}},
+                    _set: {
+                        removed: $importId,
+                        active: false
+                    }
+                ) {
+                    affected_rows
+                    returning { objgrp_id objgrp_member_id }
+                }
+                update_objgrp_flat(where: {_or: [{objgrp_flat_id: {_in: $nwObjRemIds}}, {objgrp_flat_member_id: {_in: $nwObjRemIds}}], removed: {_is_null: true}},
+                    _set: {
+                        removed: $importId,
+                        active: false
+                    }
+                ) {
+                    affected_rows
+                    returning { objgrp_flat_id objgrp_flat_member_id }
+                }
+                update_svcgrp(where: {_or: [{svcgrp_id: {_in: $svcObjRemIds}}, {svcgrp_member_id: {_in: $svcObjRemIds}}], removed: {_is_null: true}},
+                    _set: {
+                        removed: $importId,
+                        active: false
+                    }
+                ) {
+                    affected_rows
+                    returning { svcgrp_id svcgrp_member_id }
+                }
+                update_svcgrp_flat(where: {_or: [{svcgrp_flat_id: {_in: $svcObjRemIds}}, {svcgrp_flat_member_id: {_in: $svcObjRemIds}}], removed: {_is_null: true}},
+                    _set: {
+                        removed: $importId,
+                        active: false
+                    }
+                ) {
+                    affected_rows
+                    returning { svcgrp_flat_id svcgrp_flat_member_id }
+                }
+            }
+        """
+        queryVariables = {
+            'importId': self.ImportDetails.ImportId,
+            'nwObjRemIds': [obj['obj_id'] for obj in nwObjRemIds],
+            'svcObjRemIds': [obj['svc_id'] for obj in svcObjRemIds]
+        }
+        try:
+            import_result = self.ImportDetails.call(import_mutation, queryVariables=queryVariables)
+            if 'errors' in import_result:
+                logger.exception(f"fwo_api:importNwObject - error in removeOutdatedGroupMemberships: {str(import_result['errors'])}")
+                errors = 1
+            else:
+                changes = int(import_result['data']['update_objgrp']['affected_rows']) + \
+                    int(import_result['data']['update_svcgrp']['affected_rows']) + \
+                    int(import_result['data']['update_objgrp_flat']['affected_rows']) + \
+                    int(import_result['data']['update_svcgrp_flat']['affected_rows'])
+                removedNwObjMembers = import_result['data']['update_objgrp']['returning']
+                removedSvcObjMembers = import_result['data']['update_svcgrp']['returning']
+                removedNwObjFlats = import_result['data']['update_objgrp_flat']['returning']
+                removedSvcObjFlats = import_result['data']['update_svcgrp_flat']['returning']
+        except Exception:
+            logger.exception(f"failed to remove outdated group memberships: {str(traceback.format_exc())}")
+            errors = 1
+        return errors, changes, removedNwObjMembers, removedSvcObjMembers, removedNwObjFlats, removedSvcObjFlats
+    
+
+    def updateNwObjGroupMemberships(self, newIdObjs, oldIdObjs, outdatedMembers, outdatedFlats):
+        """
+        This function is used to update group memberships for network objects in the database.
+        It adds group memberships and flats for new and updated members.
+
+        Args:
+            newIdObjs (List[dict]): List of added/updated network objects with their new IDs.
+            oldIdObjs (List[dict]): List of removed/updated network objects with their old IDs.
+            outdatedMembers (List[dict]): List of outdated network object memberships, some to be readded.
+            outdatedFlats (List[dict]): List of outdated network object flats, some to be readded.
+        """
         newGroupMembers = []
         newGroupMemberFlats = []
         logger = getFwoLogger()
         errors = 0
         changes = 0
-        newObjGrpIds = []
 
-        for addedObj in newIds:
+        for addedObj in newIdObjs:
             if addedObj['obj_member_refs'] is not None:
                 for memberUId in addedObj['obj_member_refs'].split(fwo_const.list_delimiter):
                     memberId = self.uid2id_mapper.get_network_object_id(memberUId)
@@ -286,23 +422,71 @@ class FwConfigImportObject(FwConfigImportBase):
                         "import_last_seen": self.ImportDetails.ImportId
                     })
 
+        oldIds = [obj['obj_id'] for obj in oldIdObjs]
+        for outdatedObj in outdatedMembers:
+            if outdatedObj['objgrp_id'] not in oldIds: # group still exists, but member was removed/updated
+                member = next((obj for obj in oldIdObjs if obj['obj_id'] == outdatedObj['objgrp_member_id']), None)
+                if member is None:
+                    logger.error(f"Outdated member with ID {outdatedObj['objgrp_member_id']} not found in old IDs")
+                    continue
+                member_uid = member['obj_uid']
+                member_new_id = self.uid2id_mapper.get_network_object_id(member_uid)
+                if member_new_id is None:
+                    continue
+                newGroupMembers.append({
+                    "objgrp_id": outdatedObj['objgrp_id'],
+                    "objgrp_member_id": member_new_id,
+                    "import_created": self.ImportDetails.ImportId,
+                    "import_last_seen": self.ImportDetails.ImportId,
+                })
+        for outdatedObj in outdatedFlats:
+            if outdatedObj['objgrp_flat_id'] not in oldIds:
+                flat_member = next((obj for obj in oldIdObjs if obj['obj_id'] == outdatedObj['objgrp_flat_member_id']), None)
+                if flat_member is None:
+                    logger.error(f"Outdated flat member with ID {outdatedObj['objgrp_flat_member_id']} not found in old IDs")
+                    continue
+                flat_member_uid = flat_member['obj_uid']
+                flat_member_new_id = self.uid2id_mapper.get_network_object_id(flat_member_uid)
+                if flat_member_new_id is None:
+                    continue
+                newGroupMemberFlats.append({
+                    "objgrp_flat_id": outdatedObj['objgrp_flat_id'],
+                    "objgrp_flat_member_id": flat_member_new_id,
+                    "import_created": self.ImportDetails.ImportId,
+                    "import_last_seen": self.ImportDetails.ImportId,
+                })
+
+
         if len(newGroupMembers)>0:
 
             import_mutation = """
-                mutation insertNwGroup($nwGroups: [objgrp_insert_input!]!, $nwGroupFlats: [objgrp_flat_insert_input!]!) {
+                mutation updateNwGroups($importId: bigint!, $removedNwObjIds: [bigint!]!, $nwGroups: [objgrp_insert_input!]!, $nwGroupFlats: [objgrp_flat_insert_input!]!) {
+                    update_objgrp(where: {_and: [{objgrp_id: {_nin: $removedNwObjIds}}, {objgrp_member_id: {_nin: $removedNwObjIds}}, {removed: {_is_null: true}}]},
+                        _set: {
+                            import_last_seen: $importId
+                        }
+                    ) {
+                        affected_rows
+                    }
+                    update_objgrp_flat(where: {_and: [{objgrp_flat_id: {_nin: $removedNwObjIds}}, {objgrp_flat_member_id: {_nin: $removedNwObjIds}}, {removed: {_is_null: true}}]},
+                        _set: {
+                            import_last_seen: $importId
+                        }
+                    ) {
+                        affected_rows
+                    }
                     insert_objgrp(objects: $nwGroups) {
                         affected_rows
-                        returning { objgrp_id objgrp_member_id
-                        }
                     }
                     insert_objgrp_flat(objects: $nwGroupFlats) {
                         affected_rows
-                        returning { objgrp_flat_id objgrp_flat_member_id }
                     }
                 }
             """
 
             queryVariables = { 
+                'importId': self.ImportDetails.ImportId,
+                'removedNwObjIds': oldIds,
                 'nwGroups': newGroupMembers,
                 'nwGroupFlats': newGroupMemberFlats
             }
@@ -312,15 +496,16 @@ class FwConfigImportObject(FwConfigImportBase):
                     logger.exception(f"fwo_api:importNwObject - error in addNwObjGroupMemberships: {str(import_result['errors'])}")
                     errors = 1
                 else:
-                    changes = int(import_result['data']['insert_objgrp']['affected_rows'])
-                    newObjGrpIds = import_result['data']['insert_objgrp']['returning']
+                    changes = int(import_result['data']['insert_objgrp']['affected_rows']) + \
+                        int(import_result['data']['insert_objgrp_flat']['affected_rows'])
+                    # unchanges = int(import_result['data']['update_objgrp']['affected_rows']) + \
+                    #     int(import_result['data']['update_objgrp_flat']['affected_rows'])
             except Exception:
                 logger.exception(f"failed to write new objects: {str(traceback.format_exc())}")
                 errors = 1
             
-        return errors, changes, newObjGrpIds
+        return errors, changes
     
-
     def prepareNewSvcObjects(self, newSvcobjUids):
         newObjs = []
         for uid in newSvcobjUids:
@@ -357,15 +542,24 @@ class FwConfigImportObject(FwConfigImportBase):
             # newObjs.append(newEnrichedSvcObj)
         return newObjs
 
-    def addNwSvcGroupMemberships(self, newIds):
+    def updateNwSvcGroupMemberships(self, newIdObjs, oldIdObjs, outdatedMembers, outdatedFlats):
+        """
+        This function is used to update group memberships for service objects in the database.
+        It adds group memberships and flats for new and updated members.
+
+        Args:
+            newIdObjs (List[dict]): List of added/updated service objects with their new IDs.
+            oldIdObjs (List[dict]): List of removed/updated service objects with their old IDs.
+            outdatedMembers (List[dict]): List of outdated service object memberships, some to be readded.
+            outdatedFlats (List[dict]): List of outdated service object flats, some to be readded.
+        """
         newGroupMembers = []
         newGroupMemberFlats = []
         logger = getFwoLogger()
         errors = 0
         changes = 0
-        newSvcGrpIds = []
 
-        for addedObj in newIds:
+        for addedObj in newIdObjs:
             if addedObj['svc_member_refs'] is not None:
                 for memberUId in addedObj['svc_member_refs'].split(fwo_const.list_delimiter):
                     memberId = self.uid2id_mapper.get_service_object_id(memberUId)
@@ -383,24 +577,71 @@ class FwConfigImportObject(FwConfigImportBase):
                         "import_created": self.ImportDetails.ImportId,
                         "import_last_seen": self.ImportDetails.ImportId
                     })
+        
+        oldIds = [obj['svc_id'] for obj in oldIdObjs]
+        for outdatedObj in outdatedMembers:
+            if outdatedObj['svcgrp_id'] not in oldIds:
+                member = next((obj for obj in oldIdObjs if obj['svc_id'] == outdatedObj['svcgrp_member_id']), None)
+                if member is None:
+                    logger.error(f"Outdated member with ID {outdatedObj['svcgrp_member_id']} not found in old IDs")
+                    continue
+                member_uid = member['svc_uid']
+                member_new_id = self.uid2id_mapper.get_service_object_id(member_uid)
+                if member_new_id is None:
+                    continue
+                newGroupMembers.append({
+                    "svcgrp_id": outdatedObj['svcgrp_id'],
+                    "svcgrp_member_id": member_new_id,
+                    "import_created": self.ImportDetails.ImportId,
+                    "import_last_seen": self.ImportDetails.ImportId,
+                })
+        for outdatedObj in outdatedFlats:
+            if outdatedObj['svcgrp_flat_id'] not in oldIds:
+                flat_member = next((obj for obj in oldIdObjs if obj['svc_id'] == outdatedObj['svcgrp_flat_member_id']), None)
+                if flat_member is None:
+                    logger.error(f"Outdated flat member with ID {outdatedObj['svcgrp_flat_member_id']} not found in old IDs")
+                    continue
+                flat_member_uid = flat_member['svc_uid']
+                flat_member_new_id = self.uid2id_mapper.get_service_object_id(flat_member_uid)
+                if flat_member_new_id is None:
+                    continue
+                newGroupMemberFlats.append({
+                    "svcgrp_flat_id": outdatedObj['svcgrp_flat_id'],
+                    "svcgrp_flat_member_id": flat_member_new_id,
+                    "import_created": self.ImportDetails.ImportId,
+                    "import_last_seen": self.ImportDetails.ImportId,
+                })
 
         if len(newGroupMembers)>0:
 
             import_mutation = """
-                mutation insertSvcGroup($svcGroups: [svcgrp_insert_input!]!, $svcGroupFlats: [svcgrp_flat_insert_input!]!) {
+                mutation updateSvcGroup($importId: bigint!, $removedSvcObjIds: [bigint!]!, $svcGroups: [svcgrp_insert_input!]!, $svcGroupFlats: [svcgrp_flat_insert_input!]!) {
+                    update_svcgrp(where: {_and: [{svcgrp_id: {_nin: $removedSvcObjIds}}, {svcgrp_member_id: {_nin: $removedSvcObjIds}}, {removed: {_is_null: true}}]},
+                        _set: {
+                            import_last_seen: $importId
+                        }
+                    ) {
+                        affected_rows
+                    }
+                    update_svcgrp_flat(where: {_and: [{svcgrp_flat_id: {_nin: $removedSvcObjIds}}, {svcgrp_flat_member_id: {_nin: $removedSvcObjIds}}, {removed: {_is_null: true}}]},
+                        _set: {
+                            import_last_seen: $importId
+                        }
+                    ) {
+                        affected_rows
+                    }
                     insert_svcgrp(objects: $svcGroups) {
                         affected_rows
-                        returning { svcgrp_id svcgrp_member_id
-                        }
                     }
                     insert_svcgrp_flat(objects: $svcGroupFlats) {
                         affected_rows
-                        returning { svcgrp_flat_id svcgrp_flat_member_id }
                     }
                 }
             """
 
             queryVariables = { 
+                'importId': self.ImportDetails.ImportId,
+                'removedSvcObjIds': oldIds,
                 'svcGroups': newGroupMembers,
                 'svcGroupFlats': newGroupMemberFlats
             }
@@ -410,13 +651,15 @@ class FwConfigImportObject(FwConfigImportBase):
                     logger.exception(f"fwo_api:importNwObject - error in addSvcObjGroupMemberships: {str(import_result['errors'])}")
                     errors = 1
                 else:
-                    changes = int(import_result['data']['insert_svcgrp']['affected_rows'])
-                    newSvcGrpIds = import_result['data']['insert_svcgrp']['returning']
+                    changes = int(import_result['data']['insert_svcgrp']['affected_rows']) + \
+                        int(import_result['data']['insert_svcgrp_flat']['affected_rows'])
+                    # unchanges = int(import_result['data']['update_svcgrp']['affected_rows']) + \
+                    #     int(import_result['data']['update_svcgrp_flat']['affected_rows'])
             except Exception:
                 logger.exception(f"failed to write new objects: {str(traceback.format_exc())}")
                 errors = 1
             
-        return errors, changes, newSvcGrpIds
+        return errors, changes
 
 
     def addUserGroupMemberships(self, newIds):

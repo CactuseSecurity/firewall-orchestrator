@@ -47,6 +47,18 @@ class NetworkObject(BaseModel):
                         raise ValueError(f"Invalid network format: {value}") from e
         return value
 
+    def get_changes(self, otherObj: 'NetworkObject') -> dict:
+        """
+        Compare the current object with another NetworkObject and return the differences.
+        """
+        if not isinstance(otherObj, NetworkObject):
+            raise ValueError("Comparison object must be of type NetworkObject")
+        changes = {}
+        for field in self.__dict__:
+            if getattr(self, field) != getattr(otherObj, field):
+                changes[field] = (getattr(self, field), getattr(otherObj, field))
+        return changes
+
     # @root_validator(pre=True)
     # def validate_ip_addresses(cls, values):
 
@@ -118,7 +130,7 @@ class NetworkObjectForImport():
         if self.obj_ip_end is not None and self.obj_ip_end != 'None':
             result.update({'obj_ip_end': self.obj_ip_end})
         return result
-
+    
     # def toJson (self):
     #     nwObjDict = self.toDict()
     #     return nwObjDict

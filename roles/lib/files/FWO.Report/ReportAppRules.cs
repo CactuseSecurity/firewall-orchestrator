@@ -8,6 +8,8 @@ using FWO.Config.Api;
 using NetTools;
 using System.Net;
 using FWO.Basics;
+using FWO.FwLogic;
+using Org.BouncyCastle.Asn1.Misc;
 
 namespace FWO.Report
 {
@@ -49,9 +51,9 @@ namespace FWO.Report
             foreach(var mgt in managementData)
             {
                 ManagementReport relevantMgt = new() { Name = mgt.Name, Id = mgt.Id, Import = mgt.Import };
-                foreach (var dev in mgt.Devices)
+                foreach (DeviceReportController dev in mgt.Devices)
                 {
-                    DeviceReport relevantDevice = new() { Name = dev.Name, Id = dev.Id };
+                    DeviceReportController relevantDevice = new(dev);
                     var rbLink = dev.RulebaseLinks.FirstOrDefault(r => r.IsInitialRulebase());
                     RulebaseReport? rb = mgt.Rulebases.FirstOrDefault(r => r.Id == rbLink?.NextRulebaseId);
                     if (rb?.Rules != null)
@@ -191,52 +193,53 @@ namespace FWO.Report
         {
             mgt.RelevantObjectIds = [];
             mgt.HighlightedObjectIds = [];
-            foreach (var dev in mgt.Devices)
+            foreach (EnforcingDevice dev in mgt.Devices.Cast<EnforcingDevice>())
             {
-                if(dev.Rules != null)
+                List<Rule> allDeviceRules = dev.GetRuleListForDevice();
+                if (allDeviceRules.Count()>0)
                 {
-                    foreach(var rule in dev.Rules)
+                    foreach (var rule in allDeviceRules)
                     {
-                        foreach(var from in rule.Froms)
+                        foreach (var from in rule.Froms)
                         {
                             mgt.RelevantObjectIds.Add(from.Object.Id);
                             mgt.HighlightedObjectIds.Add(from.Object.Id);
-                            if(from.Object.Type.Name == ObjectType.Group)
+                            if (from.Object.Type.Name == ObjectType.Group)
                             {
-                                foreach(var grpobj in from.Object.ObjectGroupFlats)
+                                foreach (var grpobj in from.Object.ObjectGroupFlats)
                                 {
-                                    if(grpobj.Object != null && CheckObj(grpobj.Object, rule.SourceNegated, ownerIps))
+                                    if (grpobj.Object != null && CheckObj(grpobj.Object, rule.SourceNegated, ownerIps))
                                     {
                                         mgt.HighlightedObjectIds.Add(grpobj.Object.Id);
                                     }
                                 }
                             }
                         }
-                        if(rule.Froms.Length == 0)
+                        if (rule.Froms.Length == 0)
                         {
-                            foreach(var from in rule.DisregardedFroms)
+                            foreach (var from in rule.DisregardedFroms)
                             {
                                 mgt.RelevantObjectIds.Add(from.Object.Id);
                             }
                         }
-                        foreach(var to in rule.Tos)
+                        foreach (var to in rule.Tos)
                         {
                             mgt.RelevantObjectIds.Add(to.Object.Id);
                             mgt.HighlightedObjectIds.Add(to.Object.Id);
-                            if(to.Object.Type.Name == ObjectType.Group)
+                            if (to.Object.Type.Name == ObjectType.Group)
                             {
-                                foreach(var grpobj in to.Object.ObjectGroupFlats)
+                                foreach (var grpobj in to.Object.ObjectGroupFlats)
                                 {
-                                    if(grpobj.Object != null && CheckObj(grpobj.Object, rule.DestinationNegated, ownerIps))
+                                    if (grpobj.Object != null && CheckObj(grpobj.Object, rule.DestinationNegated, ownerIps))
                                     {
                                         mgt.HighlightedObjectIds.Add(grpobj.Object.Id);
                                     }
                                 }
                             }
                         }
-                        if(rule.Tos.Length == 0)
+                        if (rule.Tos.Length == 0)
                         {
-                            foreach(var to in rule.DisregardedTos)
+                            foreach (var to in rule.DisregardedTos)
                             {
                                 mgt.RelevantObjectIds.Add(to.Object.Id);
                             }

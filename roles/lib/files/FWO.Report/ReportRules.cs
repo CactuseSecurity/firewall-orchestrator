@@ -4,6 +4,7 @@ using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Report;
+using FWO.FwLogic;
 using FWO.Logging;
 using FWO.Report.Filter;
 using FWO.Ui.Display;
@@ -13,6 +14,18 @@ using System.Text.Json;
 
 namespace FWO.Report
 {
+    public static class DeviceReportExtensions 
+    {
+        public static bool ContainsRules(this DeviceReport device)
+        {
+            return device.RulebaseLinks != null && device.RulebaseLinks.Any();
+        }
+
+        public static bool ContainsRules(this ManagementReport management)
+        {
+            return management.Devices != null && management.Devices.Any(d => d.ContainsRules());
+        }
+    }
     public class ReportRules : ReportDevicesBase
     {
         private const int ColumnCount = 12;
@@ -176,7 +189,7 @@ namespace FWO.Report
             }
             return [];
         }
-        public static Rule[] GetInitialRulesOfGateway(DeviceReport deviceReport, ManagementReport managementReport)
+        public static Rule[] GetInitialRulesOfGateway(DeviceReportController deviceReport, ManagementReport managementReport)
         {
             // RulebaseLink? initialRulebaseLink = deviceReport.RulebaseLinks.FirstOrDefault(_ => _.LinkType == 0);
             int? initialRulebaseId = deviceReport.GetInitialRulebaseId(managementReport);
@@ -190,7 +203,7 @@ namespace FWO.Report
             }
             return [];
         }
-        public static Rule[] GetAllRulesOfGateway(DeviceReport deviceReport, ManagementReport managementReport)
+        public static Rule[] GetAllRulesOfGateway(DeviceReportController deviceReport, ManagementReport managementReport)
         {
             int? initialRulebaseId = deviceReport.GetInitialRulebaseId(managementReport);
             if (initialRulebaseId != null)
@@ -359,7 +372,7 @@ namespace FWO.Report
             int managementCounter = 0;
             int deviceCounter = 0;
             int ruleCounter = 0;
-            foreach (var managementReport in ReportData.ManagementData.Where(mgt => !mgt.Ignore && mgt.Devices != null &&
+            foreach (ManagementReportController managementReport in ReportData.ManagementData.Where(mgt => !mgt.Ignore && mgt.Devices != null &&
                     mgt.ContainsRules()))
             {
                 managementCounter++;
@@ -377,7 +390,7 @@ namespace FWO.Report
         {
             foreach (var mgt in ReportData.ManagementData)
             {
-                foreach (var dev in mgt.Devices.Where(b => b.ContainsRules()))
+                foreach (DeviceReportController dev in mgt.Devices.Where(b => b.ContainsRules()))
                 {
                     {
                         if (dev.RulebaseLinks != null)
@@ -574,8 +587,7 @@ namespace FWO.Report
             RuleDisplayHtml ruleDisplayHtml = new (userConfig);
             VarianceMode = varianceMode;
 
-            foreach (var managementReport in managementData.Where(mgt => !mgt.Ignore && mgt.Devices != null &&
-                    Array.Exists(mgt.Devices, device => device.Rules != null && device.Rules.Length > 0)))
+            foreach (ManagementReportController managementReport in managementData.Where(mgt => !mgt.Ignore && mgt.ContainsRules()))
             {
                 chapterNumber++;
                 managementReport.AssignRuleNumbers();
@@ -586,7 +598,7 @@ namespace FWO.Report
                 {
                     if (device.RulebaseLinks != null)
                     {
-                        AppendRulesForDeviceHtml(ref report, managementReport, device, chapterNumber, ruleDisplayHtml);
+                        AppendRulesForDeviceHtml(ref report, managementReport, (DeviceReportController)device, chapterNumber, ruleDisplayHtml);
                     }
                 }
 
@@ -624,7 +636,7 @@ namespace FWO.Report
             report.AppendLine("</tr>");
         }
 
-        private void AppendRulesForDeviceHtml(ref StringBuilder report, ManagementReport managementReport, DeviceReport device, int chapterNumber, RuleDisplayHtml ruleDisplayHtml)
+        private void AppendRulesForDeviceHtml(ref StringBuilder report, ManagementReport managementReport, DeviceReportController device, int chapterNumber, RuleDisplayHtml ruleDisplayHtml)
         {
             if (device.ContainsRules())
             {

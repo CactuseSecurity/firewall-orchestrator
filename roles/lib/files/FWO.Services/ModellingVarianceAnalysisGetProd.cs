@@ -4,6 +4,7 @@ using FWO.Data.Report;
 using FWO.Logging;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using FWO.FwLogic;
 
 namespace FWO.Services
 {
@@ -70,6 +71,8 @@ namespace FWO.Services
 
         private void AnalyseModelledRules(Management mgt, List<Rule> rulesByMgt)
         {
+            // get all rulebase links for this management
+            List<RulebaseLink> rulebaseLinks = mgt.Devices.Cast<DeviceReport>().SelectMany(d => d.RulebaseLinks.Where(rl => rl.Removed!=null)).ToList();
             allModelledRules.Add(mgt.Id, []);
             foreach (var rule in rulesByMgt)
             {
@@ -81,7 +84,8 @@ namespace FWO.Services
                         rule.ConnId = connId;
                     }
                     rule.ManagementName = mgt.Name;
-                    rule.DeviceName = mgt.Devices.FirstOrDefault(d => d.Id == rule.DeviceId)?.Name ?? "";
+                    int enforcingDeviceId = rulebaseLinks.FirstOrDefault(rl => rl.NextRulebaseId == rule.RulebaseId)?.GatewayId ?? 0;
+                    rule.DeviceName = mgt.Devices.FirstOrDefault(d => d.Id == enforcingDeviceId)?.Name ?? "";
                     allModelledRules[mgt.Id].Add(rule);
                 }
                 else

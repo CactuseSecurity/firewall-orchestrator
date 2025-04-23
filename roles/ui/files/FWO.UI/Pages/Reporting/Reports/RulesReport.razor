@@ -1,12 +1,14 @@
 ﻿@inject UserConfig userConfig
+@using FWO.Report
+@using FWO.Ui.Display
 
-@foreach (var management in Managements)
+@foreach (ManagementReportController management in Managements)
 {
     @if (management.ContainsRules())
     {
         management.AssignRuleNumbers();
         <Collapse Title="@management.Name" Style="@("primary")" StartToggled="false">
-            @foreach (var device in management.Devices)
+            @foreach (DeviceReportController device in management.Devices)
             {
                 @if (device.ContainsRules() && ruleDisplay != null)
                 {

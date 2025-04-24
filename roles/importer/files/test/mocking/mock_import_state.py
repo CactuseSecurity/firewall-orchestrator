@@ -1,6 +1,5 @@
-class MockImportState:
-    previous_calls = []
+from importer.model_controllers.import_statistics_controller import ImportStatisticsController
 
-    def call(self, query, queryVariables):
-        full_query = {"query": query, "variables": queryVariables}
-        self.previous_calls.append(full_query)
+class MockImportStateController: # TODO: use real class as base
+    DebugLevel = 0
+    Stats = ImportStatisticsController()

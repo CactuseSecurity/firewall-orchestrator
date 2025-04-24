@@ -46,7 +46,7 @@ class FwConfigImportRule(FwConfigImportBase):
         # collect rulebase UIDs of current (just imported) config
         for rulebase in self.NormalizedConfig.rulebases:
             currentRulebaseUids.append(rulebase.uid)
-
+        # TODO: Just collect all previous and current rule uids
         for rulebaseId in previousRulebaseUids:
             currentRulebase = self.NormalizedConfig.getRulebase(rulebaseId)
             if rulebaseId in currentRulebaseUids:
@@ -65,6 +65,12 @@ class FwConfigImportRule(FwConfigImportBase):
         for rulebase in self.NormalizedConfig.rulebases:
             if rulebase.uid not in previousRulebaseUids:
                 newRuleUids.update({ rulebase.uid: list(rulebase.Rules.keys()) })
+        
+        # TODO: compute_min_moves
+
+        # TODO: handle deletes
+        # TODO: handle inserts
+        # TODO: handle moves (make new version)
 
         # find changed rules
         # TODO: need to ignore last_hit! 
@@ -82,10 +88,10 @@ class FwConfigImportRule(FwConfigImportBase):
         newRulebases = self.getRules(newRuleUids)
 
         # update rule_metadata before adding rules
-        errorCountAdd, numberOfAddedMetaRules, newRuleMetadataIds = self.addNewRuleMetadata(newRulebases)
+        errorCountAdd, numberOfAddedMetaRules, newRuleMetadataIds = self.addNewRuleMetadata(newRulebases) # TODO: find correct position
 
         # # now update the database with all rule diffs
-        errorCountAdd, numberOfAddedRules, newRuleIds = self.addNewRules(newRulebases)
+        errorCountAdd, numberOfAddedRules, newRuleIds = self.addNewRules(newRulebases) # TODO: move to handling of inserts
 
         # # try to add the rule ids to the existing rulebase objects
         # # self.updateRuleIds(newRulebases, newRuleIds)
@@ -107,6 +113,101 @@ class FwConfigImportRule(FwConfigImportBase):
         # TODO: rule_nwobj_resolved fuellen (recert?)
         return newRuleIds
 
+    def update_rulebase_diffs(self, prevConfig: FwConfigNormalized):
+        logger = getFwoLogger(debug_level=self.ImportDetails.DebugLevel)
+
+        previousRulebaseUids = []
+        currentRulebaseUids = []
+
+        changedRuleUids = {}
+        deletedRuleUids = {}
+        newRuleUids = {}
+        movedRuleUids = {}
+        ruleUidsInBoth = {}
+
+        numberOfAddedRules = 0
+        numberOfDeletedRules = 0
+        numberOfChangedRules = 0
+        numberOfMovedRules = 0
+        
+        source_rule_uids = []
+        target_rule_uids = []
+
+        newRuleIds = []
+
+        # # collect rulebase UIDs of previous config
+        for rulebase in prevConfig.rulebases:
+            previousRulebaseUids.append(rulebase.uid)
+            source_rule_uids.extend(rulebase.Rules.keys())
+
+        # # collect rulebase UIDs of current (just imported) config
+        for rulebase in self.NormalizedConfig.rulebases:
+            currentRulebaseUids.append(rulebase.uid)
+            target_rule_uids.extend(rulebase.Rules.keys())
+
+        # TODO: Check for deleted rulebases ?
+
+        # TODO: Handle new and deleted rulebases
+        
+        compute_min_moves_result = compute_min_moves(source_rule_uids, target_rule_uids)
+
+        deletion_uid_list = [deletion[1] for deletion in compute_min_moves_result["deletions"]]
+
+        for rulebase in prevConfig.rulebases:
+            deletedRuleUids[rulebase.uid] = list(set(deletion_uid_list) & set(rulebase.Rules.keys()))
+            newRuleUids[rulebase.uid] = list(set(compute_min_moves_result["insertions"]) & set(rulebase.Rules.keys()))
+            movedRuleUids[rulebase.uid] = list(set(compute_min_moves_result["reposition_moves"]) & set(rulebase.Rules.keys()))
+        
+        # # TODO: handle deletes
+        errorCountDel, numberOfDeletedRules, removedRuleIds = self.markRulesRemoved(deletedRuleUids)
+
+        # # TODO: handle inserts
+            # # add full rule details first
+            # newRulebases = self.getRules(newRuleUids)
+
+            # # update rule_metadata before adding rules
+            # errorCountAdd, numberOfAddedMetaRules, newRuleMetadataIds = self.addNewRuleMetadata(newRulebases) # TODO: find correct position
+
+            # # # now update the database with all rule diffs
+            # errorCountAdd, numberOfAddedRules, newRuleIds = self.addNewRules(newRulebases) # TODO: move to handling of inserts
+        # # TODO: handle moves (make new version)
+
+        # # find changed rules # TODO: Maybe before handling moves ? 
+            # # TODO: need to ignore last_hit! 
+            # for rulebaseId in ruleUidsInBoth: # TODO : set ruleUidsInBoth before
+            #     changedRuleUids.update({ rulebaseId: [] })
+            #     currentRulebase = self.NormalizedConfig.getRulebase(rulebaseId) # [pol for pol in self.NormalizedConfig.rulebases if pol.Uid == rulebaseId]
+            #     previousRulebase = prevConfig.getRulebase(rulebaseId)
+            #     for ruleUid in ruleUidsInBoth[rulebaseId]:
+            #         if self.ruleChanged(rulebaseId, ruleUid, currentRulebase, previousRulebase):
+            #             changedRuleUids[rulebaseId].append(ruleUid)
+
+        # # TODO: handle changedRuleUids - so simply updates?
+
+
+        # TODO: Evaluate
+            # # # try to add the rule ids to the existing rulebase objects
+            # # # self.updateRuleIds(newRulebases, newRuleIds)
+
+            # # # get new rules details from API (for obj refs as well as enforcing gateways)
+            # # errors, changes, newRules = self.getRulesByIdWithRefUids(newRuleIds)
+
+            # # self.addNewRule2ObjRefs(newRules)
+            # # # TODO: self.addNewRuleSvcRefs(newRulebases, newRuleIds)
+
+            # # enforcingController = RuleEnforcedOnGatewayController(self.ImportDetails)
+            # # ids = enforcingController.addNewRuleEnforcedOnGatewayRefs(newRules, self.ImportDetails)
+
+        
+
+        self.ImportDetails.Stats.RuleAddCount += numberOfAddedRules
+        self.ImportDetails.Stats.RuleDeleteCount += numberOfDeletedRules
+        self.ImportDetails.Stats.RuleAddCount += numberOfChangedRules
+        self.ImportDetails.Stats.RuleDeleteCount += numberOfMovedRules
+
+        # TODO: rule_nwobj_resolved fuellen (recert?)
+        return newRuleIds
+        
 
     def addNewRule2ObjRefs(self, newRules):
         # for each new rule: add refs in rule_to and rule_from
@@ -988,7 +1089,7 @@ def compute_min_moves(source, target):
        - delete (an element in source not present in target)
        - insert (an element in target not present in source)
 
-    Returns a tuple (total_moves, operations) where operations is a list of suggested operations.
+    Returns a dictionary with all gathered data (total_moves, operations, deletions, insertions and moves) where operations is a list of suggested human readable operations.
     """
     # Build sets (assume uniqueness for membership checks)
     target_set = set(target)
@@ -1023,9 +1124,7 @@ def compute_min_moves(source, target):
             if not in_place[s_common_iter]:
                 # This element is not in the LCS so it will be repositioned.
                 # We will reinsert it to the position where it should appear in target.
-                # (The precise target position can be determined based on T_common and lcs_indices.
-                # Here, we simply note that it must be repositioned.)
-                reposition_moves.append((orig_index, elem))
+                reposition_moves.append((orig_index, elem, target.index(elem)))
             s_common_iter += 1
 
     total_moves = (len(deletions)
@@ -1038,10 +1137,14 @@ def compute_min_moves(source, target):
         operations.append(f"Delete element '{elem}' at source index {idx}.")
     for idx, elem in insertions:
         operations.append(f"Insert element '{elem}' at target position {idx}.")
-    for idx, elem in reposition_moves:
-        # For reporting, we can try to find its target position from the target list.
-        target_pos = target.index(elem)
+    for idx, elem, target_pos in reposition_moves:
         operations.append(f"Pop element '{elem}' from source index {idx} and reinsert at target position {target_pos}.")
    
-    return total_moves, operations
+    return {
+        "moves": total_moves,
+        "operations": operations,
+        "deletions": deletions,
+        "insertions": insertions,
+        "reposition_moves": reposition_moves
+    }
 

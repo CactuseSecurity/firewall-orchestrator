@@ -240,7 +240,8 @@ def getPolicyStructure(api_v_url, sid, show_params_policy_structure, policyStruc
                     for accessLayer in package['access-layers']:
                         if 'name' in accessLayer and 'uid' in accessLayer:
                             currentPacakage['access-layers'].append({ 'name': accessLayer['name'],
-                                                                        'uid': accessLayer['uid']})
+                                                                        'uid': accessLayer['uid'],
+                                                                        'domain': accessLayer['domain']['uid']})
                         else:
                             logger.warning ( 'access layer in package: ' + package['uid'] + ' is missing name or uid')
                 # in future threat-layers may be fetched the same way as access-layers
@@ -449,6 +450,7 @@ def getRulebases (api_v_url, sid, show_params_rules,
 def getRuleUid(rulebase, mode):
     # mode: last/place-holder
 
+    returnUid = ''
     for rulebaseChunk in rulebase['chunks']:
         # search in case of access rulebase only
         if 'rulebase' in rulebaseChunk:

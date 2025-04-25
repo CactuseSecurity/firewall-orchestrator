@@ -124,23 +124,23 @@ def login(user, password, user_management_api_base_url, method='api/Authenticati
             raise FwoApiLoginFailed(error_txt)
 
 
-def set_api_url(base_url, testmode, api_supported, hostname):
-    logger = getFwoLogger()
-    url = ''
-    if testmode == 'off':
-        url = base_url
-    else:
-        if re.search(r'^\d+[\.\d+]+$', testmode) or re.search(r'^\d+$', testmode):
-            if testmode in api_supported:
-                url = base_url + 'v' + testmode + '/'
-            else:
-                exception_text = "api version " + testmode + \
-                             " is not supported by the manager " + hostname + " - Import is canceled"
-                raise Exception(exception_text)
-        else:
-            raise Exception("\"" + testmode + "\" - not a valid version")
-    logger.debug("testmode: " + testmode + " - url: " + url)
-    return url
+# def set_api_url(base_url, testmode, api_supported, hostname):
+#     logger = getFwoLogger()
+#     url = ''
+#     if testmode == 'off':
+#         url = base_url
+#     else:
+#         if re.search(r'^\d+[\.\d+]+$', testmode) or re.search(r'^\d+$', testmode):
+#             if testmode in api_supported:
+#                 url = base_url + 'v' + testmode + '/'
+#             else:
+#                 exception_text = "api version " + testmode + \
+#                              " is not supported by the manager " + hostname + " - Import is canceled"
+#                 raise Exception(exception_text)
+#         else:
+#             raise Exception("\"" + testmode + "\" - not a valid version")
+#     logger.debug("testmode: " + testmode + " - url: " + url)
+#     return url
 
 
 def get_mgm_ids(fwo_api_base_url, jwt, query_variables):

@@ -170,9 +170,11 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
         rollBackExceptionHandler(importState, configImporter=configImporter, exc=e, errorText="shutdown requested")
         raise
     except (fwo_exceptions.FwoApiWriteError, fwo_exceptions.FwoImporterError) as e:
+        importState.addError("FwoApiWriteError or FwoImporterError - aborting import")
         rollBackExceptionHandler(importState, configImporter=configImporter, exc=e, errorText="")
         raise
     except Exception as e:
+        importState.addError("Unexpected exception in import process - aborting " + traceback.format_exc())
         rollBackExceptionHandler(importState, configImporter=configImporter, exc=e)
         raise
     finally:

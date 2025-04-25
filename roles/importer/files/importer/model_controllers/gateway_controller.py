@@ -16,7 +16,7 @@ class GatewayController(Gateway):
         devs = []
         for dev in mgmDetails.Devices:
             # check if gateway import is enabled
-            if dev.ImportDisabled:
+            if 'do_not_import' in dev and dev['do_not_import']: # TODO: get this key from the device
                 continue
             devs.append(Gateway(Name = dev['name'], Uid = f"{dev['name']}/{cls.calcManagerUidHash(mgmDetails)}"))
         return devs

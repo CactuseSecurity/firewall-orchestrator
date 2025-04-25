@@ -26,9 +26,7 @@ def has_config_changed (full_config, importState: ImportState, force=False):
     if full_config != {}:   # a config was passed in (read from file), so we assume that an import has to be done (simulating changes here)
         return 1
 
-    domain, _ = prepare_get_vars(importState.MgmDetails, importState.ApiBaseUrl)
-    session_id = login_cp(importState.MgmDetails, domain)
-    last_change_time = ''
+    session_id = loginCp(importState.MgmDetails)
 
     if importState.LastSuccessfulImport==None or importState.LastSuccessfulImport=='' or force:
         # if no last import time found or given or if force flag is set, do full import
@@ -36,65 +34,65 @@ def has_config_changed (full_config, importState: ImportState, force=False):
     else: # otherwise search for any changes since last import
         result = (cp_getter.get_changes(session_id, importState.MgmDetails.Hostname, str(importState.MgmDetails.Port),importState.LastSuccessfulImport) != 0)
 
-    logout_cp("https://" + importState.MgmDetails.Hostname + ":" + str(importState.MgmDetails.Port) + "/web_api/", session_id)
+    logout_cp(importState.MgmDetails.buildFwApiString(), session_id)
 
     return result
 
 
-# def get_config(nativeConfig: json, importState: ImportStateController) -> tuple[int, FwConfigManagerList]:
+def get_config(nativeConfig: json, importState: ImportStateController) -> tuple[int, FwConfigManagerList]:
 
-#     logger = getFwoLogger()
-#     normalizedConfigDict = fwo_const.emptyNormalizedFwConfigJsonDict
-#     logger.debug ( "starting checkpointR8x/get_config" )
+    logger = getFwoLogger()
+    normalizedConfigDict = fwo_const.emptyNormalizedFwConfigJsonDict
+    logger.debug ( "starting checkpointR8x/get_config" )
 
-#     if nativeConfig == {}:   # no native config was passed in, so getting it from FW-Manager
-#         parsing_config_only = False
-#     else:
-#         parsing_config_only = True
+    if nativeConfig == {}:   # no native config was passed in, so getting it from FW-Manager
+        parsing_config_only = False
+    else:
+        parsing_config_only = True
 
-#     if not parsing_config_only: # get config from cp fw mgr
-#         starttime = int(time.time())
+    if not parsing_config_only: # get config from cp fw mgr
+        starttime = int(time.time())
 
-#         if 'users' not in nativeConfig:
-#             nativeConfig.update({'users': {}})
+        if 'users' not in nativeConfig:
+            nativeConfig.update({'users': {}})
 
-#         domain, cpManagerApiBaseUrl = prepare_get_vars(importState.MgmDetails)
+        cpManagerApiBaseUrl = importState.MgmDetails.buildFwApiString()
 
-#         sid = login_cp(importState.MgmDetails, domain)
+        sid = loginCp(importState.MgmDetails)
 
-#         starttimeTemp = int(time.time())
-#         logger.debug ( "checkpointR8x/get_config/getting objects ...")
+        starttimeTemp = int(time.time())
+        logger.debug ( "checkpointR8x/get_config/getting objects ...")
 
-#         result_get_objects = get_objects (nativeConfig, importState.MgmDetails, cpManagerApiBaseUrl, sid, force=importState.ForceImport, limit=str(importState.FwoConfig.ApiFetchSize), details_level=cp_const.details_level_objects, test_version='off')
-#         if result_get_objects>0:
-#             logger.warning ( "checkpointR8x/get_config/error while gettings objects")
-#             return result_get_objects
-#         logger.debug ( "checkpointR8x/get_config/fetched objects in " + str(int(time.time()) - starttimeTemp) + "s")
+        result_get_objects = get_objects (nativeConfig, importState.MgmDetails, cpManagerApiBaseUrl, sid, force=importState.ForceImport, limit=str(importState.FwoConfig.ApiFetchSize), details_level=cp_const.details_level_objects, test_version='off')
+        if result_get_objects>0:
+            logger.warning ( "checkpointR8x/get_config/error while gettings objects")
+            return result_get_objects
+        logger.debug ( "checkpointR8x/get_config/fetched objects in " + str(int(time.time()) - starttimeTemp) + "s")
 
-#         starttimeTemp = int(time.time())
-#         logger.debug ( "checkpointR8x/get_config/getting rules ...")
-#         result_get_rules = getRules (nativeConfig, importState)
-#         if result_get_rules>0:
-#             logger.warning ( "checkpointR8x/get_config/error while gettings rules")
-#             return result_get_rules
-#         logger.debug ( "checkpointR8x/get_config/fetched rules in " + str(int(time.time()) - starttimeTemp) + "s")
+        starttimeTemp = int(time.time())
+        logger.debug ( "checkpointR8x/get_config/getting rules ...")
+        result_get_rules = getRules (nativeConfig, importState)
+        if result_get_rules>0:
+            logger.warning ( "checkpointR8x/get_config/error while gettings rules")
+            return result_get_rules
+        logger.debug ( "checkpointR8x/get_config/fetched rules in " + str(int(time.time()) - starttimeTemp) + "s")
 
-#         duration = int(time.time()) - starttime
-#         logger.debug ( "checkpointR8x/get_config - fetch duration: " + str(duration) + "s" )
+        duration = int(time.time()) - starttime
+        logger.debug ( "checkpointR8x/get_config - fetch duration: " + str(duration) + "s" )
 
-#     normalizedConfig = normalizeConfig(nativeConfig, normalizedConfigDict, importState, parsing_config_only, sid)
+    normalizedConfig = normalizeConfig(nativeConfig, normalizedConfigDict, importState, parsing_config_only, sid)
 
-#     manager = FwConfigManager(ManagerUid=calcManagerUidHash(importState.MgmDetails),
-#                               ManagerName=importState.MgmDetails.Name,
-#                               IsGlobal=False, 
-#                               DependantManagerUids=[], 
-#                               Configs=[normalizedConfig])
+    manager = FwConfigManager(ManagerUid=calcManagerUidHash(importState.MgmDetails),
+                              ManagerName=importState.MgmDetails.Name,
+                              IsGlobal=False, 
+                              DependantManagerUids=[], 
+                              Configs=[normalizedConfig])
     
-#     listOfManagers = FwConfigManagerListController()
-#     listOfManagers.addManager(manager)
-#     logger.info("completed getting config")
+    listOfManagers = FwConfigManagerListController()
+    listOfManagers.addManager(manager)
+    logger.info("completed getting config")
     
-#     return 0, listOfManagers
+    return 0, listOfManagers
 
 def normalizeConfig(nativeConfig: json, normalizedConfigDict, importState: ImportStateController, parsing_config_only: bool, sid: str) -> tuple[int, FwConfigManagerList]:
     logger = getFwoLogger()
@@ -105,7 +103,7 @@ def normalizeConfig(nativeConfig: json, normalizedConfigDict, importState: Impor
     cp_rule.normalizeRulebases(nativeConfig, importState, normalizedConfigDict)
     cp_gateway.normalizeGateways(nativeConfig, importState, normalizedConfigDict)
     if not parsing_config_only: # get config from cp fw mgr
-        logout_cp("https://" + importState.MgmDetails.Hostname + ":" + str(importState.MgmDetails.Port) + "/web_api/", sid)
+        logout_cp(importState.MgmDetails.buildFwApiString(), sid)
     logger.info("completed normalizing rulebases")
     
     # put dicts into object of class FwConfigManager
@@ -145,13 +143,11 @@ def getRules (nativeConfig: dict, importState: ImportStateController) -> int:
             
     # loop over toplevel- and sub-managers in case of mds
     for managerDetails in managerDetailsList:
-
-        # delete_v: kann prepare_get_vars gelöscht werden? Nein noch nicht
-        domain, cpManagerApiBaseUrl = prepareGetVars(managerDetails)
-
+        cpManagerApiBaseUrl = importState.MgmDetails.buildFwApiString()
+        
         # in case of mds get global assignments via mds sid and then change to global domain and sid for all further operations
         if managerDetails.IsSuperManager and managerDetails.Uid == topLevelMgmDetails.Uid:
-            mdsSid = loginCp(managerDetails, domain)
+            mdsSid = loginCp(managerDetails)
             globalAssignments = []
             cp_getter.getGlobalAssignments(cpManagerApiBaseUrl,
                                            mdsSid,
@@ -159,9 +155,11 @@ def getRules (nativeConfig: dict, importState: ImportStateController) -> int:
                                            globalAssignments = globalAssignments)
 
             domain = '1e294ce0-367a-11e3-aa6e-0800200c9a66' # delete_v: muss Global uid sein
+        else:
+            domain = managerDetails.getDomainString()
 
-        # delete_v: kann login_cp weg? Nein noch nicht
-        sid = loginCp(managerDetails, domain)
+        # sid = loginCp(managerDetails, domain)
+        sid = loginCp(managerDetails)
         
         # get all access (ordered) layers for each policy
         policyStructure = []
@@ -336,50 +334,19 @@ def getOrderedLayerUids(policyStructure, deviceConfig, domain):
                 foundTargetInPolciy = True
         if foundTargetInPolciy:
             for accessLayer in policy['access-layers']:
-                if accessLayer['domain'] == domain:
+                if accessLayer['domain'] == domain or domain == '':
                     orderedLayerUids.append(accessLayer['uid'])
 
     return orderedLayerUids
 
 
-def prepare_get_vars(mgm_details: ManagementDetails, api_base_url: str = None) -> tuple[str, str]:
-    # from 5.8 onwards: preferably use domain uid instead of domain name due to CP R81 bug with certain installations
-    if mgm_details.DomainUid != None:
-        domain = mgm_details.DomainUid
-    else:
-        domain = mgm_details.DomainName
-    api_host = mgm_details.Hostname
-    api_port = str(mgm_details.Port)
-    base_url = 'https://' + api_host + ':' + str(api_port) + '/web_api/'
-
-    return domain, base_url
-
-def prepareGetVars(mgm_details):
-    # from 5.8 onwards: preferably use domain uid instead of domain name due to CP R81 bug with certain installations
-    if mgm_details.DomainUid != None:
-        domain = mgm_details.DomainUid
-    else:
-        domain = mgm_details.DomainName
-    api_host = mgm_details.Hostname
-    api_port = str(mgm_details.Port)
-    base_url = 'https://' + api_host + ':' + str(api_port) + '/web_api/'
-
-    return domain, base_url
-
-def loginCp(mgm_details, domain, ssl_verification=True):
+def loginCp(mgm_details, ssl_verification=True):
     try: # top level dict start, sid contains the domain information, so only sending domain during login
-        login_result = cp_getter.login(mgm_details.ImportUser, mgm_details.Secret, mgm_details.Hostname, str(mgm_details.Port), domain)
-        return login_result
-    except Exception:
-        raise FwLoginFailed
-
-def login_cp(mgm_details: ManagementDetails, domain, ssl_verification=True):
-    try: # top level dict start, sid contains the domain information, so only sending domain during login
-        login_result = cp_getter.login(mgm_details.ImportUser, mgm_details.Secret, mgm_details.Hostname, str(mgm_details.Port), domain)
+        login_result = cp_getter.login(mgm_details)
         return login_result
     except Exception:
         raise fwo_exceptions.FwLoginFailed
-
+    
 
 def logout_cp(url, sid):
     try:
@@ -452,50 +419,3 @@ def get_objects(config_json, mgm_details, v_url, sid, force=False, config_filena
         with open(config_filename, "w") as configfile_json:
             configfile_json.write(json.dumps(config_json))
     return 0
-
-
-# def parse_users_from_rulebases (full_config, rulebase, users, config2import, current_import_id):
-#     if 'users' not in full_config:
-#         full_config.update({'users': {}})
-
-#     rb_range = range(len(full_config['rulebases']))
-#     for rb_id in rb_range:
-#         parse_user_objects_from_rulebase (full_config['rulebases'][rb_id], full_config['users'], current_import_id)
-
-#     # copy users from full_config to config2import
-#     # also converting users from dict to array:
-#     config2import.update({'user_objects': []})
-#     for user_name in full_config['users'].keys():
-#         user = copy.deepcopy(full_config['users'][user_name])
-#         user.update({'user_name': user_name})
-#         config2import['user_objects'].append(user)
-
-# delete_v soll das weg, wird bisher nirgends benutzt
-def ParseUidToName(myUid, myObjectDictList):
-    """Help function finds name to given UID in object dict 
-    
-    Parameters
-    ----------
-    myUid : str
-        Checkpoint UID
-    myObjectDictList : list[dict]
-        Each dict represents a checkpoint object
-        Notation of CP API return to 'show-access-rulebase'
-        with 'details-level' as 'standard'
-
-    Returns
-    -------
-    myReturnObject : str
-        Name of object with matching UID to input parameter myUid
-    """
-
-    logger = getFwoLogger()
-    myReturnObject = ''
-    for myObject in myObjectDictList:
-        if myUid == myObject['uid']:
-            myReturnObject = myObject['name']
-
-    if myReturnObject == '':
-        logger.warning('The UID: ' + myUid + ' was not found in Object Dict')
-
-    return myReturnObject

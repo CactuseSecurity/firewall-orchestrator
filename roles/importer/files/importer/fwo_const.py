@@ -5,7 +5,8 @@ import socket
 
 base_dir = '/usr/local/fworch'
 importer_base_dir = base_dir + '/importer'
-sys.path.append(importer_base_dir) # adding absolute path here once
+# if not importer_base_dir in sys.path:
+#     sys.path.append(importer_base_dir) # adding absolute path here once
 
 debug_level=0
 fw_module_name = 'fwcommon'  # the module start-point for product specific code
@@ -38,7 +39,8 @@ graphqlQueryPath = base_dir + "/fwo-api-calls/";
 # the database has a limit of 255 MB per jsonb
 # https://stackoverflow.com/questions/12632871/size-limit-of-json-data-type-in-postgresql
 # >25.000 rules exceed this limit
-max_objs_per_chunk = 1000 
+max_objs_per_chunk = 1000
+api_call_chunk_size = 1000
 
 # with open(fwo_config_filename, "r") as fwo_config:
 #     fwo_config = json.loads(fwo_config.read())

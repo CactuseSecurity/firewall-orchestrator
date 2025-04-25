@@ -147,7 +147,7 @@ namespace FWO.Report.Filter
                                     rule_create: {{_lte: $relevantImportId}}, 
                                     _or: [{{removed: {{_gt: $relevantImportId}} }}, {{removed: {{_is_null: true}} }}],
                                     access_rule: {{_eq: true}} 
-                                }}, order_by: {{rule_num_numeric: asc}}) {{
+                                }}, order_by: {{rule_num: asc}}) {{
                                 ...ruleOverview
                             }}
                         }}
@@ -264,6 +264,7 @@ namespace FWO.Report.Filter
                     break;
 
                 case ReportType.Connections:
+                case ReportType.VarianceAnalysis:
 
                     query.FullQuery = Queries.Compact($@"
                         {ModellingQueries.connectionResolvedDetailsFragment}
@@ -342,7 +343,7 @@ namespace FWO.Report.Filter
             {
                 SetOwnerFilter(ref query, reportParams.ReportParams.ModellingFilter);
             }
-            if ((ReportType)reportParams.ReportParams.ReportType == ReportType.Connections)
+            if (((ReportType)reportParams.ReportParams.ReportType).IsOwnerRelatedReport())
             {
                 SetConnectionFilter(ref query, reportParams.ReportParams.ModellingFilter);
             }

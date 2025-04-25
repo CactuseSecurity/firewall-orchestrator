@@ -26,22 +26,18 @@ namespace FWO.Services
             }
 
             string appServer2Name = AppServerHelper.ConstructAppServerName(appServer2, NamingConvention);
-            bool shortened = false;
-            string sanitizedAS2Name = Sanitizer.SanitizeJsonFieldMand(new(appServer2Name), ref shortened);
-            return appServer1.Name.Trim() == appServer2Name.Trim() || appServer1.Name.Trim() == sanitizedAS2Name.Trim();
+            return appServer1.Name.Trim() == appServer2Name.Trim(); // || appServer1.Name.Trim() == sanitizedAS2Name.Trim();
         }
 
         public int GetHashCode(ModellingAppServerWrapper appServerWrapper)
         {
-            if (appServerWrapper is null) return 0;
-            int hash = appServerWrapper == null ? 0 : appServerWrapper.GetHashCode();
-            int hashContent = appServerWrapper?.Content == null ? 0 : appServerWrapper.Content.GetHashCode();
-            return hash ^ hashContent;
+            return appServerWrapper == null ? 0 : GetHashCode(appServerWrapper.Content);
         }
 
-        public int GetHashCode([DisallowNull] ModellingAppServer obj)
+        public int GetHashCode(ModellingAppServer appServer)
         {
-            throw new NotImplementedException();
+            string appServerName = AppServerHelper.ConstructAppServerName(appServer, NamingConvention).Trim();
+            return HashCode.Combine(appServerName);
         }
     }
 }

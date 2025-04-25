@@ -8,10 +8,9 @@ from typing import List
 import importlib.util
 from fwo_config import readConfig
 from fwo_const import fwo_config_filename, importer_user_name, importer_base_dir
-from model_controllers.management_details_controller import ManagementDetailsController
-from model_controllers.fworch_config_controller import FworchConfigController
 from pathlib import Path
-sys.path.append(importer_base_dir) # adding absolute path here once
+if importer_base_dir not in sys.path:
+    sys.path.append(importer_base_dir) # adding absolute path here once
 import fwo_api
 from fwo_log import getFwoLogger
 from fwo_const import fw_module_name, import_tmp_path
@@ -19,6 +18,8 @@ import fwo_globals
 import fwo_exceptions
 from fwo_base import stringIsUri, ConfigAction, ConfFormat
 import fwo_file_import
+from model_controllers.management_details_controller import ManagementDetailsController
+from model_controllers.fworch_config_controller import FworchConfigController
 from model_controllers.import_state_controller import ImportStateController
 from models.fwconfig_normalized import FwConfig, FwConfigNormalized
 from models.fwconfigmanagerlist import FwConfigManagerList, FwConfigManager
@@ -249,7 +250,9 @@ def get_config_from_api(importState: ImportStateController, configNative, import
     logger = getFwoLogger(debug_level=importState.DebugLevel)
 
     try: # pick product-specific importer:
-        pkg_name = importState.MgmDetails.DeviceTypeName.lower().replace(' ', '') + importState.MgmDetails.DeviceTypeVersion.replace('MDS', '').replace(' ', '')
+        pkg_name = importState.MgmDetails.DeviceTypeName.lower().replace(' ', '') + importState.MgmDetails.DeviceTypeVersion
+        if not f"{importer_base_dir}/{pkg_name}" in sys.path:
+            sys.path.append(f"{importer_base_dir}/{pkg_name}")
         fw_module = importlib.import_module("." + fw_module_name, pkg_name)
     except Exception:
         logger.exception("import_management - error while loading product specific fwcommon module", traceback.format_exc())        

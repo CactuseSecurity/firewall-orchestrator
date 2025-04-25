@@ -1,21 +1,36 @@
-﻿using FWO.Basics;
-using FWO.Data;
-using System.Text;
-using FWO.Api.Client;
-using FWO.Report.Filter;
+﻿using FWO.Api.Client;
 using FWO.Api.Client.Queries;
-using FWO.Ui.Display;
-using FWO.Logging;
+using FWO.Basics;
 using FWO.Config.Api;
-using System.Text.Json;
+using FWO.Data;
+using FWO.Data.Report;
+using FWO.FwLogic;
+using FWO.Logging;
+using FWO.Report.Filter;
+using FWO.Ui.Display;
 using Newtonsoft.Json;
+using System.Text;
+using System.Text.Json;
 
 namespace FWO.Report
 {
+    public static class DeviceReportExtensions 
+    {
+        public static bool ContainsRules(this DeviceReport device)
+        {
+            return device.RulebaseLinks != null && device.RulebaseLinks.Any();
+        }
+
+        public static bool ContainsRules(this ManagementReport management)
+        {
+            return management.Devices != null && management.Devices.Any(d => d.ContainsRules());
+        }
+    }
     public class ReportRules : ReportDevicesBase
     {
         private const int ColumnCount = 12;
         protected bool UseAdditionalFilter = false;
+        private bool VarianceMode = false;
 
         public ReportRules(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType) : base(query, userConfig, reportType) { }
 
@@ -174,7 +189,7 @@ namespace FWO.Report
             }
             return [];
         }
-        public static Rule[] GetInitialRulesOfGateway(DeviceReport deviceReport, ManagementReport managementReport)
+        public static Rule[] GetInitialRulesOfGateway(DeviceReportController deviceReport, ManagementReport managementReport)
         {
             // RulebaseLink? initialRulebaseLink = deviceReport.RulebaseLinks.FirstOrDefault(_ => _.LinkType == 0);
             int? initialRulebaseId = deviceReport.GetInitialRulebaseId(managementReport);
@@ -188,7 +203,7 @@ namespace FWO.Report
             }
             return [];
         }
-        public static Rule[] GetAllRulesOfGateway(DeviceReport deviceReport, ManagementReport managementReport)
+        public static Rule[] GetAllRulesOfGateway(DeviceReportController deviceReport, ManagementReport managementReport)
         {
             int? initialRulebaseId = deviceReport.GetInitialRulebaseId(managementReport);
             if (initialRulebaseId != null)
@@ -196,7 +211,12 @@ namespace FWO.Report
                 List<Rule> initialRules = GetRulesByRulebaseId((int)initialRulebaseId, managementReport).ToList();
                 if (initialRules != null)
                 {
-                    return GetAllRulesOfGatewayRecursively(deviceReport, managementReport, [], initialRules).ToArray();
+                    List<Rule> allRules = GetAllRulesOfGatewayRecursively(deviceReport, managementReport, [], initialRules);
+
+                    // create hierarchical order number on runtime
+                    CreateOrderNumbers(allRules, deviceReport);
+
+                    return allRules.ToArray();
                 }
             }
             return [];
@@ -263,12 +283,96 @@ namespace FWO.Report
             return 0;
         }
 
+        /// <summary>
+        /// Creates multi-level (dotted) order numbers for display and sets internal numeric order for sorting.
+        /// </summary>
+        public static void CreateOrderNumbers(List<Rule> rules, DeviceReport device)
+        {
+            // Creates a dictionary with rulebase IDs as keys and lists of the corresponding rows as values.
+
+            Dictionary<int, List<Rule>> rulesByRulebase = rules
+                .GroupBy(r => r.RulebaseId)
+                .ToDictionary(g => g.Key, g => g.OrderBy(r => r.RuleOrderNumber).ToList());
+
+            // Creates a dictionary with rule IDs as keys and the rulebase link that has that rule as its from rule as values.
+
+            Dictionary<int, RulebaseLink> linksByFromRuleId = device.RulebaseLinks
+                .Where(link => !link.IsInitialRulebase() && link.FromRuleId.HasValue)
+                .ToDictionary(link => link.FromRuleId!.Value, link => link);
+
+            // Initialize other needed variables.
+
+            List<Rule> changedRules = new();
+            List<int> initialPath = new();
+            int positionCounter = 1;
+            int firstRulebaseId = device.RulebaseLinks.First(link => link.IsInitialRulebase()).NextRulebaseId;
+            
+            // If there are more than one layer path needs to be initialized here.
+
+            if(device.RulebaseLinks.Any(link => link.LinkType == 2))
+            {
+                initialPath.Add(1);
+            }
+
+            // BuildOrderNumberTree(firstRulebaseId, initialPath, rulesByRulebase, linksByFromRuleId, result, ref positionCounter, rules);
+            BuildOrderNumberTree(firstRulebaseId, initialPath, rulesByRulebase, linksByFromRuleId, changedRules, ref positionCounter, rules); 
+        }
+
+        private static void BuildOrderNumberTree(int rulebaseId, List<int> currentPath, Dictionary<int, List<Rule>> rulesByRulebase, Dictionary<int, RulebaseLink> linksByFromRuleId, List<Rule> changedRules, ref int positionCounter, List<Rule> rulebaseRules)
+        {
+            if (!rulesByRulebase.TryGetValue(rulebaseId, out var rules))
+            {
+                return;
+            }
+
+            for (int i = 0; i < rules.Count; i++)
+            {
+                Rule rule = rules[i];
+
+                // Create duplicate if rulebase links make it necessary.
+
+                if (changedRules.Contains(rule))
+                {
+                    rule = rule.CreateClone();
+                    rulebaseRules.Add(rule);
+                }
+
+                // Write order numbers to rule object.
+
+                List<int> path = new List<int>(currentPath) { rule.RuleOrderNumber + 1 };
+                string dotted = string.Join(".", path);
+                rule.DisplayOrderNumberString = dotted;
+                rule.OrderNumber = positionCounter++;
+
+                // Gather changed rules, to recognize if duplicate is necessary
+
+                changedRules.Add(rule);
+
+                // Handle link, if there is one that has this rule as its from rule.
+
+                if (linksByFromRuleId.TryGetValue((int) rule.Id, out RulebaseLink? link))
+                {
+                    switch (link.LinkType)
+                    {
+                        case 2: // ordered
+                            List<int> newPath = new() { path[0] + 1 };
+                            BuildOrderNumberTree(link.NextRulebaseId, newPath, rulesByRulebase, linksByFromRuleId, changedRules, ref positionCounter, rulebaseRules);
+                            break;
+
+                        case 3: // inline
+                            BuildOrderNumberTree(link.NextRulebaseId, path, rulesByRulebase, linksByFromRuleId, changedRules, ref positionCounter, rulebaseRules);
+                            break;
+                    }
+                }
+            }
+        }
+
         public override string SetDescription()
         {
             int managementCounter = 0;
             int deviceCounter = 0;
             int ruleCounter = 0;
-            foreach (var managementReport in ReportData.ManagementData.Where(mgt => !mgt.Ignore && mgt.Devices != null &&
+            foreach (ManagementReportController managementReport in ReportData.ManagementData.Where(mgt => !mgt.Ignore && mgt.Devices != null &&
                     mgt.ContainsRules()))
             {
                 managementCounter++;
@@ -282,24 +386,23 @@ namespace FWO.Report
         }
 
         // here we can simply traverse all rulebases (disregarding any order) and add their ids to the list
-        private void SetReportedRuleIds() //ManagementReport mgt, DeviceReport dev, RulebaseReport rulebase)
+        private void SetReportedRuleIds()
         {
             foreach (var mgt in ReportData.ManagementData)
             {
                 foreach (var dev in mgt.Devices.Where(b => b.ContainsRules()))
                 {
+                    DeviceReportController deviceController = DeviceReportController.FromDeviceReport(dev);
+                    if (deviceController.RulebaseLinks != null)
                     {
-                        if (dev.RulebaseLinks != null)
+                        foreach (var rbLink in deviceController.RulebaseLinks)
                         {
-                            foreach (var rbLink in dev.RulebaseLinks)
+                            RulebaseReport? rulebase = mgt.Rulebases.FirstOrDefault(_ => _.Id == rbLink.NextRulebaseId);
+                            if (rulebase != null)
                             {
-                                RulebaseReport? rulebase = mgt.Rulebases.FirstOrDefault(_ => _.Id == rbLink.NextRulebaseId);
-                                if (rulebase != null)
+                                foreach (Rule rule in rulebase.Rules)
                                 {
-                                    foreach (Rule rule in rulebase.Rules)
-                                    {
-                                        mgt.ReportedRuleIds.Add(rule.Id);
-                                    }
+                                    mgt.ReportedRuleIds.Add(rule.Id);
                                 }
                             }
                         }
@@ -472,34 +575,38 @@ namespace FWO.Report
 
         public override string ExportToHtml()
         {
-            StringBuilder report = new();
-            RuleDisplayHtml ruleDisplayHtml = new(userConfig);
+            StringBuilder report = new ();
             int chapterNumber = 0;
+            ConstructHtmlReport(ref report, ReportData.ManagementData, chapterNumber);
+            return GenerateHtmlFrame(userConfig.GetText(ReportType.ToString()), Query.RawFilter, DateTime.Now, report);
+        }
 
-            foreach (var managementReport in ReportData.ManagementData.Where(mgt => !mgt.Ignore && mgt.Devices != null &&
-                    Array.Exists(mgt.Devices, device => device.RulebaseLinks != null)))
+        public void ConstructHtmlReport(ref StringBuilder report, List<ManagementReport> managementData, int chapterNumber, bool varianceMode = false)
+        {
+            RuleDisplayHtml ruleDisplayHtml = new (userConfig);
+            VarianceMode = varianceMode;
+
+            foreach (ManagementReportController managementReport in managementData.Where(mgt => !mgt.Ignore && mgt.ContainsRules()))
             {
                 chapterNumber++;
                 managementReport.AssignRuleNumbers();
-                report.AppendLine($"<h3 id=\"{Guid.NewGuid()}\">{managementReport.Name}</h3>");
+                report.AppendLine(Headline(managementReport.Name, 3));
                 report.AppendLine("<hr>");
 
                 foreach (var device in managementReport.Devices)
                 {
                     if (device.RulebaseLinks != null)
                     {
-                        AppendRulesForDeviceHtml(ref report, managementReport, device, chapterNumber, ruleDisplayHtml);
+                        AppendRulesForDeviceHtml(ref report, managementReport, (DeviceReportController)device, chapterNumber, ruleDisplayHtml);
                     }
                 }
 
                 // show all objects used in this management's rules
                 AppendObjectsForManagementHtml(ref report, chapterNumber, managementReport);
             }
-
-            return GenerateHtmlFrame(userConfig.GetText(ReportType.ToString()), Query.RawFilter, DateTime.Now, report);
         }
 
-        private void appendRuleHeadlineHtml(ref StringBuilder report)
+        private void AppendRuleHeadlineHtml(ref StringBuilder report)
         {
             report.AppendLine("<tr>");
             report.AppendLine($"<th>{userConfig.GetText("number")}</th>");
@@ -528,13 +635,13 @@ namespace FWO.Report
             report.AppendLine("</tr>");
         }
 
-        private void AppendRulesForDeviceHtml(ref StringBuilder report, ManagementReport managementReport, DeviceReport device, int chapterNumber, RuleDisplayHtml ruleDisplayHtml)
+        private void AppendRulesForDeviceHtml(ref StringBuilder report, ManagementReport managementReport, DeviceReportController device, int chapterNumber, RuleDisplayHtml ruleDisplayHtml)
         {
             if (device.ContainsRules())
             {
-                report.AppendLine($"<h4 id=\"{Guid.NewGuid()}\">{device.Name}</h4>");
+                report.AppendLine(Headline(device.Name, 4));
                 report.AppendLine("<table>");
-                appendRuleHeadlineHtml(ref report);
+                AppendRuleHeadlineHtml(ref report);
 
                 RulebaseLink? nextRbLink = device.RulebaseLinks.FirstOrDefault(_ => _.IsInitialRulebase());
 
@@ -610,9 +717,9 @@ namespace FWO.Report
 
         private void AppendNetworkObjectsForManagementHtml(ref StringBuilder report, int chapterNumber, ManagementReport managementReport)
         {
-            if (managementReport.ReportObjects != null && !ReportType.IsResolvedReport())
+            if (managementReport.ReportObjects != null && managementReport.ReportObjects.Length > 0 && !ReportType.IsResolvedReport())
             {
-                report.AppendLine($"<h4 id=\"{Guid.NewGuid()}\">{userConfig.GetText("network_objects")}</h4>");
+                report.AppendLine(Headline(userConfig.GetText("network_objects"), 4));
                 report.AppendLine("<table>");
                 report.AppendLine("<tr>");
                 report.AppendLine($"<th>{userConfig.GetText("number")}</th>");
@@ -626,7 +733,7 @@ namespace FWO.Report
                 int objNumber = 1;
                 foreach (var nwobj in managementReport.ReportObjects)
                 {
-                    report.AppendLine($"<tr style=\"{(nwobj.Highlighted ? GlobalConst.kStyleHighlighted : "")}\">");
+                    report.AppendLine($"<tr style=\"{(nwobj.Highlighted ? GlobalConst.kStyleHighlightedRed : "")}\">");
                     report.AppendLine($"<td>{objNumber++}</td>");
                     report.AppendLine($"<td><a name={ObjCatString.NwObj}{chapterNumber}x{nwobj.Id}>{nwobj.Name}</a></td>");
                     report.AppendLine($"<td>{(nwobj.Type.Name != "" ? userConfig.GetText(nwobj.Type.Name) : "")}</td>");
@@ -643,9 +750,9 @@ namespace FWO.Report
 
         private void AppendNetworkServicesForManagementHtml(ref StringBuilder report, int chapterNumber, ManagementReport managementReport)
         {
-            if (managementReport.ReportServices != null && !ReportType.IsResolvedReport())
+            if (managementReport.ReportServices != null && managementReport.ReportServices.Length > 0 && !ReportType.IsResolvedReport())
             {
-                report.AppendLine($"<h4 id=\"{Guid.NewGuid()}\">{userConfig.GetText("network_services")}</h4>");
+                report.AppendLine(Headline(userConfig.GetText("network_services"), 4));
                 report.AppendLine("<table>");
                 report.AppendLine("<tr>");
                 report.AppendLine($"<th>{userConfig.GetText("number")}</th>");
@@ -685,9 +792,9 @@ namespace FWO.Report
 
         private void AppendUsersForManagementHtml(ref StringBuilder report, int chapterNumber, ManagementReport managementReport)
         {
-            if (managementReport.ReportUsers != null && !ReportType.IsResolvedReport())
+            if (managementReport.ReportUsers != null && managementReport.ReportUsers.Length > 0 && !ReportType.IsResolvedReport())
             {
-                report.AppendLine($"<h4 id=\"{Guid.NewGuid()}\">{userConfig.GetText("users")}</h4>");
+                report.AppendLine(Headline(userConfig.GetText("users"), 4));
                 report.AppendLine("<table>");
                 report.AppendLine("<tr>");
                 report.AppendLine($"<th>{userConfig.GetText("number")}</th>");
@@ -712,6 +819,12 @@ namespace FWO.Report
                 report.AppendLine("</table>");
                 report.AppendLine("<hr>");
             }
+        }
+
+        private string Headline (string? title, int level)
+        {
+            int Level = VarianceMode ? level + 2 : level;
+            return  $"<h{Level} id=\"{Guid.NewGuid()}\">{title}</h{Level}>";
         }
     }
 }

@@ -1,17 +1,18 @@
-using FWO.Basics;
-using System.Text;
 using FWO.Api.Client;
-using FWO.Report.Filter;
-using System.Text.Json;
+using FWO.Basics;
 using FWO.Config.Api;
+using FWO.Data.Report;
 using FWO.Logging;
+using FWO.Report.Filter;
+using System.Text;
+using System.Text.Json;
 
 namespace FWO.Report
 {
     public class ReportStatistics : ReportDevicesBase
     {
         // TODO: Currently generated in Report.razor as well as here, because of export. Remove dupliacte.
-        private ManagementReport globalStatisticsManagement = new ();
+        private readonly ManagementReport globalStatisticsManagement = new ();
 
         public ReportStatistics(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType) : base(query, userConfig, reportType) {}
 
@@ -20,7 +21,7 @@ namespace FWO.Report
         {
             List<ManagementReport> managementsWithRelevantImportId = await GetRelevantImportIds(apiConnection);
 
-            ReportData.ManagementData = new ();
+            ReportData.ManagementData = [];
 
             foreach (var relevantMgmt in managementsWithRelevantImportId)
             {
@@ -44,14 +45,6 @@ namespace FWO.Report
                 globalStatisticsManagement.ServiceObjectStatistics.ObjectAggregate.ObjectCount += mgm.ServiceObjectStatistics.ObjectAggregate.ObjectCount;
                 globalStatisticsManagement.UserObjectStatistics.ObjectAggregate.ObjectCount += mgm.UserObjectStatistics.ObjectAggregate.ObjectCount;
             }
-        }
-
-        public override async Task<bool> GetObjectsInReport(int objectsPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback)
-        {
-            await callback(ReportData);
-            // currently no further objects to be fetched
-            GotObjectsInReport = true;
-            return true;
         }
 
         public override Task<bool> GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, ObjCategory objects, int maxFetchCycles, ApiConnection apiConnection, Func<ReportData, Task> callback)

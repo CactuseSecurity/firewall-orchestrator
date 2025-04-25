@@ -1,11 +1,12 @@
-import sys
-from common import importer_base_dir
-sys.path.append(importer_base_dir + '/ciscofirepowerdomain7ff')
+import json
+
+# import sys
+# from common import importer_base_dir
+# sys.path.append(importer_base_dir + '/ciscofirepowerdomain7ff')
 import cifp_service
 import cifp_rule
 import cifp_network
 import cifp_getter
-import json
 from fwo_log import getFwoLogger
 
 

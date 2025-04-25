@@ -190,7 +190,6 @@ Create table "rule"
 	"xlate_rule" BIGINT,
 	"is_global" BOOLEAN DEFAULT FALSE NOT NULL,
 	"rulebase_id" Integer NOT NULL,
-	"rule_order_array" Integer [],
 	primary key ("rule_id")
 );
 
@@ -1179,6 +1178,7 @@ create table ext_request
 	create_date Timestamp default now(),
 	finish_date Timestamp,
 	wait_cycles int default 0,
+	attempts int default 0,
 	locked boolean default false
 );
 

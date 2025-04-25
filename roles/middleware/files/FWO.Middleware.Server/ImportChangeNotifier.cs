@@ -8,6 +8,7 @@ using FWO.Logging;
 using FWO.Mail;
 using FWO.Encryption;
 using FWO.Report;
+using FWO.Services;
 using Newtonsoft.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
@@ -122,19 +123,7 @@ namespace FWO.Middleware.Server
         {
             try
             {
-                CancellationToken token = new();
-                changeReport = ReportBase.ConstructReport(new ReportTemplate("", await SetFilters()), userConfig);
-                ReportData reportData = new();
-                await changeReport.Generate(int.MaxValue, apiConnection,
-                    rep =>
-                    {
-                        reportData.ManagementData = rep.ManagementData;
-                        foreach (var mgm in reportData.ManagementData)
-                        {
-                            mgm.Ignore = !deviceFilter.GetSelectedManagements().Contains(mgm.Id);
-                        }
-                        return Task.CompletedTask;
-                    }, token);
+                changeReport = await ReportGenerator.Generate(new ReportTemplate("", await SetFilters()), apiConnection, userConfig, DefaultInit.DoNothing);
             }
             catch (Exception exception)
             {

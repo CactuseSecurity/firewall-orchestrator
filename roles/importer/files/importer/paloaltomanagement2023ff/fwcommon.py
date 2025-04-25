@@ -1,6 +1,6 @@
-import sys
-from common import importer_base_dir
-sys.path.append(importer_base_dir + "/paloaltomanagement2023ff")
+# import sys
+# from common import importer_base_dir
+# sys.path.append(importer_base_dir + "/paloaltomanagement2023ff")
 from palo_service import normalize_svcobjects
 from palo_application import normalize_application_objects
 from palo_rule import normalize_access_rules

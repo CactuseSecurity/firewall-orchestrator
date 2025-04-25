@@ -1,4 +1,4 @@
-using System.Text.Json.Serialization; 
+﻿using System.Text.Json.Serialization; 
 using Newtonsoft.Json;
 
 namespace FWO.Data
@@ -92,19 +92,24 @@ namespace FWO.Data
         [JsonProperty("rulebase_id"), JsonPropertyName("rulebase_id")]
         public int RulebaseId { get; set; }
 
-        [JsonProperty("rule_order_array"), JsonPropertyName("rule_order_array")]
-        public int[] RuleOrderArray { get; set; } = [];
+        [JsonProperty("rule_num"), JsonPropertyName("rule_num")]
+        public int RuleOrderNumber { get; set; }
 
         [JsonProperty("rule_enforced_on_gateways"), JsonPropertyName("rule_enforced_on_gateways")]
         public DeviceWrapper[] EnforcingGateways { get; set; } = [];
 
+        public string DisplayOrderNumberString { get; set; } = "";
         public int DisplayOrderNumber { get; set; }
         public bool Certified { get; set; }
+        public string ManagementName = "";
         public string DeviceName { get; set; } = "";
         public string RulebaseName { get; set; } = "";
         public NetworkLocation[] DisregardedFroms { get; set; } = [];
         public NetworkLocation[] DisregardedTos { get; set; } = [];
+        public NetworkService[] DisregardedServices { get; set; } = [];
         public bool ShowDisregarded { get; set; } = false;
+        public long ConnId;
+        public bool ModellOk = false;
         public bool Detailed = false;
 
         public bool IsDropRule()
@@ -112,5 +117,15 @@ namespace FWO.Data
             return Action == "drop" || Action == "reject" || Action == "deny";
         }
 
+        /// <summary>
+        /// Creates an exact copy of this rule. Returns new rule on fail.
+        /// </summary>
+        public Rule CreateClone()
+        {
+            var json = JsonConvert.SerializeObject(this);
+            Rule rule = JsonConvert.DeserializeObject<Rule>(json) ?? new();
+
+            return rule;
+        }
     }
 }

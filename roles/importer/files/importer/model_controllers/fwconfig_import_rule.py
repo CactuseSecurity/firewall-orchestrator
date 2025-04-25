@@ -152,24 +152,25 @@ class FwConfigImportRule(FwConfigImportBase):
         compute_min_moves_result = compute_min_moves(source_rule_uids, target_rule_uids)
 
         deletion_uid_list = [deletion[1] for deletion in compute_min_moves_result["deletions"]]
+        insertion_uid_list = [insertion[1] for insertion in compute_min_moves_result["insertions"]]
+        moved_rule_uid_list = [insertion[1] for insertion in compute_min_moves_result["reposition_moves"]]
 
         for rulebase in prevConfig.rulebases:
             deletedRuleUids[rulebase.uid] = list(set(deletion_uid_list) & set(rulebase.Rules.keys()))
-            newRuleUids[rulebase.uid] = list(set(compute_min_moves_result["insertions"]) & set(rulebase.Rules.keys()))
-            movedRuleUids[rulebase.uid] = list(set(compute_min_moves_result["reposition_moves"]) & set(rulebase.Rules.keys()))
+            newRuleUids[rulebase.uid] = list(set(insertion_uid_list) & set(rulebase.Rules.keys()))
+            movedRuleUids[rulebase.uid] = list(set(moved_rule_uid_list) & set(rulebase.Rules.keys()))
         
-        # # TODO: handle deletes
-        errorCountDel, numberOfDeletedRules, removedRuleIds = self.markRulesRemoved(deletedRuleUids)
+        # Handle deletes
+        errorCountDel, numberOfDeletedRules, removedRuleIds = self.markRulesRemoved(deletedRuleUids) # TODO: Create test
 
         # # TODO: handle inserts
-            # # add full rule details first
-            # newRulebases = self.getRules(newRuleUids)
+        # Add full rule details first
+        newRulebases = self.getRules(newRuleUids)
+        # Update rule_metadata before adding rules
+        errorCountAdd, numberOfAddedMetaRules, newRuleMetadataIds = self.addNewRuleMetadata(newRulebases) # TODO: Handle new Metadata, create test and fix stub
+        # Now update the database with all rule diffs
+        errorCountAdd, numberOfAddedRules, newRuleIds = self.addNewRules(newRulebases) # TODO: Create test
 
-            # # update rule_metadata before adding rules
-            # errorCountAdd, numberOfAddedMetaRules, newRuleMetadataIds = self.addNewRuleMetadata(newRulebases) # TODO: find correct position
-
-            # # # now update the database with all rule diffs
-            # errorCountAdd, numberOfAddedRules, newRuleIds = self.addNewRules(newRulebases) # TODO: move to handling of inserts
         # # TODO: handle moves (make new version)
 
         # # find changed rules # TODO: Maybe before handling moves ? 
@@ -604,7 +605,7 @@ class FwConfigImportRule(FwConfigImportBase):
                             changes += changesForThisRulebase
                 except Exception:
                     raise fwo_exceptions.FwoApiWriteError(f"failed to write new rulebases: {str(traceback.format_exc())}")
-        return errors, changes, newRuleIds
+        return errors, changes, 
 
     # adds only new rules to the database
     # unchanged or deleted rules are not touched here

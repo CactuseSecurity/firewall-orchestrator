@@ -208,6 +208,27 @@ class TestRuleOrdering(unittest.TestCase):
         self.assertEqual(fwconfig_import_rule.ImportDetails.Stats.RuleChangeCount, 0)
         self.assertEqual(fwconfig_import_rule.ImportDetails.Stats.RuleMoveCount, 0)
 
+    def test_update_rulebase_diffs_insert(self):
+        # arrange
+        previous_config = MockFwConfigNormalized()
+        previous_config.initialize_config(
+            {
+                "rule_config": [10,10,10]
+            }
+        )
+
+        fwconfig_import_rule = MockFwConfigImportRule()
+        fwconfig_import_rule.NormalizedConfig = copy.deepcopy(previous_config)
+        fwconfig_import_rule.NormalizedConfig.add_rule_to_rulebase(fwconfig_import_rule.NormalizedConfig.rulebases[0].uid)
+
+        # act
+        fwconfig_import_rule.update_rulebase_diffs(previous_config)
+
+        # assert
+        self.assertEqual(fwconfig_import_rule.ImportDetails.Stats.RuleAddCount, 1)
+        self.assertEqual(fwconfig_import_rule.ImportDetails.Stats.RuleDeleteCount, 0)
+        self.assertEqual(fwconfig_import_rule.ImportDetails.Stats.RuleChangeCount, 0)
+        self.assertEqual(fwconfig_import_rule.ImportDetails.Stats.RuleMoveCount, 0)
 
     # TODO: Do that via mock_config.py
 

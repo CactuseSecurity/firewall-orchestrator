@@ -219,7 +219,7 @@ namespace FWO.DeviceAutoDiscovery
                 // TODO: this is not clean - we are assuming that the mgmt host name is given as defined in the config
                 // alternatively we could simply drop the name check
                 // better: check for primary manager
-                if (cpDev.CpDevType == "checkpoint-host" && cpDev.Name == mgmName)
+                if (cpDev.CpDevType == "checkpoint-host") // && cpDev.Name == mgmName)
                     return cpDev.Uid;
             }
             Log.WriteDebug("Autodiscovery", $"Did not find management host {mgmName} in device list - could not set UID");

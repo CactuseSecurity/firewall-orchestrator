@@ -12,6 +12,7 @@ import fwo_globals
 import cp_network
 import cp_const
 from fwo_exceptions import ImportInterruption
+from model_controllers.management_details_controller import ManagementDetailsController
 
 
 def cp_api_call(url, command, json_payload, sid, show_progress=False):
@@ -47,20 +48,19 @@ def cp_api_call(url, command, json_payload, sid, show_progress=False):
     return json_response
 
 
-def login(user, password, api_host, api_port, domain):
+def login(mgmDetails: ManagementDetailsController):
     logger = getFwoLogger()
-    payload = {'user': user, 'password': password}
+    payload = {'user': mgmDetails.ImportUser, 'password': mgmDetails.Secret}
+    domain = mgmDetails.getDomainString()
     if domain is not None and domain != '':
         payload.update({'domain': domain})
-    base_url = 'https://' + api_host + ':' + str(api_port) + '/web_api/'
+    base_url = mgmDetails.buildFwApiString()
     if int(fwo_globals.debug_level)>2:
-        logger.debug("login - login to url " + base_url + " with user " + user)
+        logger.debug(f"login - login to url {base_url} with user {mgmDetails.ImportUser}")
     response = cp_api_call(base_url, 'login', payload, '')
     if "sid" not in response:
-        exception_text = "\ngetter ERROR: did not receive a sid during login, " + \
-            "api call: api_host: " + str(api_host) + ", api_port: " + str(api_port) + ", base_url: " + str(base_url) + \
-            ", ssl_verification: " + str(fwo_globals.verify_certs)
-        raise  FwLoginFailed(exception_text)
+        exception_text = f"getter ERROR: did not receive a sid, api call: {base_url}"
+        raise FwLoginFailed(exception_text)
     return response["sid"]
 
 
@@ -71,49 +71,23 @@ def logout(url, sid):
     response = cp_api_call(url, 'logout', {}, sid)
     return response
 
-# delete_v soll das weg, wird nirgends benutzt?
-def get_api_url(sid, api_host, api_port, user, base_url, limit, test_version, ssl_verification, debug_level=0):
-    logger = getFwoLogger()
-
-    v_url = ''
-    if test_version == 'off':
-        v_url = base_url
-    else:
-        api_versions = cp_api_call(base_url, 'show-api-versions', {}, sid)
-        api_version = api_versions["current-version"]
-        api_supported = api_versions["supported-versions"]
-
-        if debug_level>3:
-            logger.debug ("current version: " + api_version + "; supported versions: "+ ', '.join(api_supported) + "; limit:"+ str(limit) )
-            logger.debug ("getter - login:" + user + "; sid:" + sid )
-        if re.search(r'^\d+[\.\d+]+$', test_version) or re.search(r'^\d+$', test_version):
-            if test_version in api_supported :
-                v_url = base_url + 'v' + test_version + '/'
-            else:
-                raise Exception("api version " + test_version + " not supported")
-        else:
-            logger.debug ("not a valid version")
-            raise Exception("\"" + test_version +"\" - not a valid version")
-    logger.debug ("test_version: " + test_version + " - url: "+ v_url)
-    return v_url
-
-# delete_v soll das weg, wird nirgends benutzt?
-def set_api_url(base_url,testmode,api_supported,hostname, debug_level=0):
-    logger = getFwoLogger()
-    url = ''
-    if testmode == 'off':
-        url = base_url
-    else:
-        if re.search(r'^\d+[\.\d+]+$', testmode) or re.search(r'^\d+$', testmode):
-            if testmode in api_supported :
-                url = base_url + 'v' + testmode + '/'
-            else:
-                raise Exception("api version " + testmode + " is not supported by the manager " + hostname + " - Import is canceled")
-        else:
-            logger.debug ("not a valid version")
-            raise Exception("\"" + testmode +"\" - not a valid version")
-    logger.debug ("testmode: " + testmode + " - url: "+ url)
-    return url
+# # delete_v soll das weg, wird nirgends benutzt?
+# def set_api_url(base_url,testmode,api_supported,hostname, debug_level=0):
+#     logger = getFwoLogger()
+#     url = ''
+#     if testmode == 'off':
+#         url = base_url
+#     else:
+#         if re.search(r'^\d+[\.\d+]+$', testmode) or re.search(r'^\d+$', testmode):
+#             if testmode in api_supported :
+#                 url = base_url + 'v' + testmode + '/'
+#             else:
+#                 raise Exception("api version " + testmode + " is not supported by the manager " + hostname + " - Import is canceled")
+#         else:
+#             logger.debug ("not a valid version")
+#             raise Exception("\"" + testmode +"\" - not a valid version")
+#     logger.debug ("testmode: " + testmode + " - url: "+ url)
+#     return url
 
 
 def get_changes(sid,api_host,api_port,fromdate):

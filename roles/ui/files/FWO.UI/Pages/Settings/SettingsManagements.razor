@@ -470,7 +470,8 @@
                         importerHostname = actManagement.ImporterHostname,
                         debugLevel = actManagement.DebugLevel,
                         comment = actManagement.Comment,
-                        extMgtData = actManagement.ExtMgtData
+                        extMgtData = actManagement.ExtMgtData,
+                        isSuperManager = actManagement.DeviceType.CanBeSupermanager()
                     };
                     ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(DeviceQueries.newManagement, Variables)).ReturnIds;
                     if (returnIds != null)
@@ -504,7 +505,8 @@
                         importerHostname = actManagement.ImporterHostname,
                         debugLevel = actManagement.DebugLevel,
                         comment = actManagement.Comment,
-                        extMgtData = actManagement.ExtMgtData
+                        extMgtData = actManagement.ExtMgtData,
+                        isSuperManager = actManagement.DeviceType.CanBeSupermanager()
                     };
                     int udId = (await apiConnection.SendQueryAsync<ReturnId>(DeviceQueries.updateManagement, Variables)).UpdatedId;
                     EditMode = (udId == actManagement.Id ? false : true);

@@ -17,6 +17,7 @@ mutation newManagementWithExistingCredentials(
   $debugLevel: Int
   $superManager: Int
   $extMgtData: String
+  $isSuperManager: Boolean
 ) {
   insert_management(
     objects: {
@@ -38,6 +39,7 @@ mutation newManagementWithExistingCredentials(
       debug_level: $debugLevel
       multi_device_manager_id: $superManager
       ext_mgm_data: $extMgtData
+      is_super_manager: $isSuperManager
     }
   ) {
     returning {

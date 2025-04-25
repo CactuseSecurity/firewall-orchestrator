@@ -1,16 +1,11 @@
-
 from fwo_log import getFwoLogger
 import json
-from checkpointR8x import cp_const
-# from checkpointR8x.cp_getter import ParseUidToName
 
 def collect_users_from_rule(rule, users): #, objDict):
     if 'rule-number' in rule:  # standard rule
         logger = getFwoLogger()
         if 'type' in rule and rule['type'] != 'place-holder':
             for src in rule["source"]:
-#                srcObj = ParseUidToName(src, objDict)
-
                 # need to get all details for the user first!
                 if 'type' in src:
                     if src['type'] == 'access-role' or src['type'] == 'LegacyUserAtLocation':

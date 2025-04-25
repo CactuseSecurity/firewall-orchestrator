@@ -71,7 +71,7 @@ def logout(url, sid):
     response = cp_api_call(url, 'logout', {}, sid)
     return response
 
-
+# delete_v soll das weg, wird nirgends benutzt?
 def get_api_url(sid, api_host, api_port, user, base_url, limit, test_version, ssl_verification, debug_level=0):
     logger = getFwoLogger()
 
@@ -97,7 +97,7 @@ def get_api_url(sid, api_host, api_port, user, base_url, limit, test_version, ss
     logger.debug ("test_version: " + test_version + " - url: "+ v_url)
     return v_url
 
-
+# delete_v soll das weg, wird nirgends benutzt?
 def set_api_url(base_url,testmode,api_supported,hostname, debug_level=0):
     logger = getFwoLogger()
     url = ''
@@ -199,16 +199,25 @@ def getPolicyStructure(api_v_url, sid, show_params_policy_structure, policyStruc
             if 'to' in packages:
                 current=packages['to']
             else:
-                raise Exception ( 'packages do not contain to field')
+                logger.error ( 'packages do not contain to field')
                 return 1
         
-# [{'name':'policy1', 'uid':'bla', 'targets':[{'name':'gateway1', 'uid':'bla'}], 'access-layers':[{'name':'ord1', 'uid':'ord1'}]}]
         # parse devices with ordered layers
         for package in packages['packages']:
             alreadyFetchedPackage = False
 
-            # parse package if at least one installation target exists
-            if 'installation-targets-revision' in package:
+            # parse package in case of supermanager
+            if 'installation-targets' in package and package['installation-targets'] == 'all':
+                if not alreadyFetchedPackage:
+                    
+                    currentPacakage = { 'name': package['name'],
+                                        'uid': package['uid'],
+                                        'targets': [{'name': 'all', 'uid': 'all'}],
+                                        'access-layers': []}
+                    alreadyFetchedPackage = True
+
+            # parse package if at least one installation target exists for sub- or stand-alone-manager
+            elif 'installation-targets-revision' in package:
                 for installationTarget in package['installation-targets-revision']:
                     if 'target-name' in installationTarget and 'target-uid' in installationTarget:
 
@@ -224,17 +233,81 @@ def getPolicyStructure(api_v_url, sid, show_params_policy_structure, policyStruc
                     else:
                         logger.warning ( 'installation target in package: ' + package['uid'] + ' is missing name or uid')
                 
-                if alreadyFetchedPackage:
-                    if 'access-layers' in package:
-                        for accessLayer in package['access-layers']:
-                            if 'name' in accessLayer and 'uid' in accessLayer:
-                                currentPacakage['access-layers'].append({ 'name': accessLayer['name'],
-                                                                          'uid': accessLayer['uid']})
-                            else:
-                                logger.warning ( 'access layer in package: ' + package['uid'] + ' is missing name or uid')
-                    # in future threat-layers may be fetched the same way as access-layers
-                    
-                    policyStructure.append(currentPacakage)
+            # add access-layers to current package, if at least one installation target was found
+            if alreadyFetchedPackage:
+                if 'access-layers' in package:
+                    for accessLayer in package['access-layers']:
+                        if 'name' in accessLayer and 'uid' in accessLayer:
+                            currentPacakage['access-layers'].append({ 'name': accessLayer['name'],
+                                                                        'uid': accessLayer['uid'],
+                                                                        'domain': accessLayer['domain']['uid']})
+                        else:
+                            logger.warning ( 'access layer in package: ' + package['uid'] + ' is missing name or uid')
+                # in future threat-layers may be fetched the same way as access-layers
+                
+                policyStructure.append(currentPacakage)
+
+    return 0
+
+
+def getGlobalAssignments(api_v_url, sid, show_params_policy_structure, globalAssignments = []):
+
+    logger = getFwoLogger()
+
+    current=0
+    total=current+1
+
+    show_params_policy_structure.update({'offset': current})
+
+    while (current<total):
+
+        try:
+            assignments = cp_api_call(api_v_url, 'show-global-assignments', show_params_policy_structure, sid)
+        except Exception:
+            logger.error("could not return 'show-global-assignments'")
+            return 1
+
+        if 'total' in assignments:
+            total=assignments['total']
+        else:
+            logger.error ( 'global assignments do not contain total field')
+            logger.warning ( 'sid: ' + sid)
+            logger.warning ( 'api_v_url: ' + api_v_url)
+            for key, value in show_params_policy_structure.items():
+                logger.warning('show_params_policy_structure ' + key + ': ' + str(value))
+            for key, value in assignments.items():
+                logger.warning('global assignments ' + key + ': ' + str(value))
+            return 1
+        
+        if total==0:
+            current=0
+        else:
+            if 'to' in assignments:
+                current=assignments['to']
+            else:
+                logger.error ( 'global assignments do not contain to field')
+                return 1
+
+        # parse global assignment
+        for assignment in assignments['objects']:
+            if 'type' in assignment and assignment['type'] == 'global-assignment':
+                globalAssignment = {
+                    'uid': assignment['uid'],
+                    'global-domain': {
+                        'uid': assignment['global-domain']['uid'],
+                        'name': assignment['global-domain']['name']
+                    },
+                    'dependent-domain': {
+                        'uid': assignment['dependent-domain']['uid'],
+                        'name': assignment['dependent-domain']['name']
+                    },
+                    'global-access-policy': assignment['global-access-policy']
+                }
+
+                globalAssignments.append(globalAssignment)
+
+            else:
+                logger.error ('global assignment with unexpected type')
 
     return 0
                         
@@ -347,28 +420,27 @@ def getRulebases (api_v_url, sid, show_params_rules,
             for section in rulebaseChunk['rulebase']:
 
                 # if no section is used, use dummy section
-                if section['type'] == 'access-rule':
+                if section['type'] != 'access-section':
                     section = {
                         'type': 'access-section',
                         'rulebase': [section]
                         }
 
-                if section['type'] == 'access-section':
-                    for rule in section['rulebase']:
-                        if 'inline-layer' in rule:
-                            # add link to inline layer for current device
-                            deviceConfig['rulebase_links'].append({
-                                'from_rulebase_uid': currentRulebase['uid'],
-                                'from_rule_uid': rule['uid'],
-                                'to_rulebase_uid': rule['inline-layer'],
-                                'type': 'inline'})
-                            
-                            # get inline layer
-                            getRulebases(api_v_url, sid, show_params_rules,
-                                         rulebaseUid=rule['inline-layer'],
-                                         access_type='access',
-                                         nativeConfig=nativeConfig,
-                                         deviceConfig=deviceConfig)
+                for rule in section['rulebase']:
+                    if 'inline-layer' in rule:
+                        # add link to inline layer for current device
+                        deviceConfig['rulebase_links'].append({
+                            'from_rulebase_uid': currentRulebase['uid'],
+                            'from_rule_uid': rule['uid'],
+                            'to_rulebase_uid': rule['inline-layer'],
+                            'type': 'inline'})
+                        
+                        # get inline layer
+                        getRulebases(api_v_url, sid, show_params_rules,
+                                        rulebaseUid=rule['inline-layer'],
+                                        access_type='access',
+                                        nativeConfig=nativeConfig,
+                                        deviceConfig=deviceConfig)
     
     return 0
 
@@ -376,29 +448,28 @@ def getRulebases (api_v_url, sid, show_params_rules,
 def getRuleUid(rulebase, mode):
     # mode: last/place-holder
 
+    returnUid = ''
     for rulebaseChunk in rulebase['chunks']:
         # search in case of access rulebase only
         if 'rulebase' in rulebaseChunk:
             for section in rulebaseChunk['rulebase']:
 
                 # if no section is used, use dummy section
-                if section['type'] == 'access-rule':
+                if section['type'] != 'access-section':
                     section = {
                         'type': 'access-section',
                         'rulebase': [section]
                         }
 
-                if section['type'] == 'access-section':
-                    for rule in section['rulebase']:
-                        if mode == 'last':
+                for rule in section['rulebase']:
+                    if mode == 'last':
+                        returnUid = rule['uid']
+                    elif mode == 'place-holder':
+                        if rule['type'] == 'place-holder':
                             returnUid = rule['uid']
-                        elif mode == 'place-holder':
-                            if rule['type'] == 'place-holder':
-                                returnUid = rule['uid']
 
     return returnUid
                             
-
 
 def get_nat_rules_from_api_as_dict (api_v_url, sid, show_params_rules, nativeConfig={}):
     logger = getFwoLogger()
@@ -430,36 +501,6 @@ def get_nat_rules_from_api_as_dict (api_v_url, sid, show_params_rules, nativeCon
                 # logger.warning ( "get_nat_rules_from_api - rulebase does not contain to field, get_rulebase_chunk_from_api found garbled json " + str(nat_rules))
                 raise Exception ( "get_nat_rules_from_api - rulebase does not contain to field, get_rulebase_chunk_from_api found garbled json " + str(nat_rules))
     return nat_rules
-
-
-# insert domain rule layer after rule_idx within top_ruleset
-def insert_layer_after_place_holder (top_ruleset_json, domain_ruleset_json, placeholder_uid, nativeConfig={}):
-    logger = getFwoLogger()
-    # serialize domain rule chunks
-    domain_rules_serialized = []
-    for chunk in domain_ruleset_json['rulebase_chunks']:
-        domain_rules_serialized.extend(chunk['rulebase'])
-
-    # set the upper (parent) rule uid for all domain rules:
-    for rule in domain_rules_serialized:
-        rule['parent_rule_uid'] = placeholder_uid
-        logger.debug ("domain_rules_serialized, added parent_rule_uid for rule with uid " + rule['uid'])
-
-    # find the reference (place-holder rule) and insert the domain rules behind it:
-    chunk_idx = 0
-    while chunk_idx<len(top_ruleset_json['rulebase_chunks']):
-        rules = top_ruleset_json['rulebase_chunks'][chunk_idx]['rulebase']
-        rule_idx = 0
-        while rule_idx<len(rules):
-            if rules[rule_idx]['uid'] == placeholder_uid:
-                logger.debug ("found matching rule uid, "  + placeholder_uid + " == " + rules[rule_idx]['uid'])
-                rules[rule_idx+1:rule_idx+1] = domain_rules_serialized
-                top_ruleset_json['rulebase_chunks'][chunk_idx]['rulebase'] = rules
-            rule_idx += 1
-        chunk_idx += 1
-    if fwo_globals.debug_level>5:
-        logger.debug("result:\n" + json.dumps(top_ruleset_json, indent=2))
-    return top_ruleset_json
 
 
 def findElementByUid(array, uid):

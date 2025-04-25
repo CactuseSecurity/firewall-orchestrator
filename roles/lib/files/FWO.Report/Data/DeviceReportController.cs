@@ -7,6 +7,9 @@ namespace FWO.Report
 {
     public class DeviceReportController: DeviceReport
     {
+        public DeviceReportController()
+        {
+        }
 
         public DeviceReportController(DeviceReportController device)
         {
@@ -17,6 +20,20 @@ namespace FWO.Report
             RuleStatistics = device.RuleStatistics;
         }
 
+
+        public static DeviceReportController FromDeviceReport(DeviceReport deviceReport)
+        {
+            var controller = new DeviceReportController
+            {
+                Id = deviceReport.Id,
+                Name = deviceReport.Name,
+                RulebaseLinks = deviceReport.RulebaseLinks,
+                RuleChanges = deviceReport.RuleChanges,
+                RuleStatistics = deviceReport.RuleStatistics
+            };
+            return controller;
+        }
+        
         public void AssignRuleNumbers(RulebaseLink? rbLinkIn = null, int ruleNumber = 1)
         {
             // rbLinkIn ??= RbLink;
@@ -53,6 +70,10 @@ namespace FWO.Report
             return RulebaseLinks.FirstOrDefault(_ => _.LinkType == 0)?.NextRulebaseId;
         }
 
+        public static explicit operator DeviceReportController(bool v)
+        {
+            throw new NotImplementedException();
+        }
     }
 
 }

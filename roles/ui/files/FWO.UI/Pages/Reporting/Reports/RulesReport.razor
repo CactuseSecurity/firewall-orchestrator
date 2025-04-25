@@ -2,13 +2,13 @@
 @using FWO.Report
 @using FWO.Ui.Display
 
-@foreach (ManagementReportController management in Managements)
+@foreach (var management in Managements.Select(mgt => new ManagementReportController(mgt)))
 {
     @if (management.ContainsRules())
     {
         management.AssignRuleNumbers();
         <Collapse Title="@management.Name" Style="@("primary")" StartToggled="false">
-            @foreach (DeviceReportController device in management.Devices)
+            @foreach (var device in management.Devices.Select(dev => DeviceReportController.FromDeviceReport(dev)))
             {
                 @if (device.ContainsRules() && ruleDisplay != null)
                 {

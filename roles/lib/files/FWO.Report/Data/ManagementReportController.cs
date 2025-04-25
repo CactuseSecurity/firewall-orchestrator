@@ -42,7 +42,7 @@ namespace FWO.Report
 
         public void AssignRuleNumbers()
         {
-            foreach (DeviceReportController device in Devices.Cast<DeviceReportController>())
+            foreach (var device in Devices.Select(dev => DeviceReportController.FromDeviceReport(dev)))
             {
                 device.AssignRuleNumbers();
             }
@@ -54,7 +54,7 @@ namespace FWO.Report
         }
         public bool ContainsRules()
         {
-            foreach (DeviceReportController device in Devices.Cast<DeviceReportController>())
+            foreach (var device in Devices.Select(dev => DeviceReportController.FromDeviceReport(dev)))
             {
                 if (device.ContainsRules())
                 {

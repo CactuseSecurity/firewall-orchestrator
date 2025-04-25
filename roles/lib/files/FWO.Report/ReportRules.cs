@@ -386,24 +386,23 @@ namespace FWO.Report
         }
 
         // here we can simply traverse all rulebases (disregarding any order) and add their ids to the list
-        private void SetReportedRuleIds() //ManagementReport mgt, DeviceReport dev, RulebaseReport rulebase)
+        private void SetReportedRuleIds()
         {
             foreach (var mgt in ReportData.ManagementData)
             {
-                foreach (DeviceReportController dev in mgt.Devices.Where(b => b.ContainsRules()))
+                foreach (var dev in mgt.Devices.Where(b => b.ContainsRules()))
                 {
+                    DeviceReportController deviceController = DeviceReportController.FromDeviceReport(dev);
+                    if (deviceController.RulebaseLinks != null)
                     {
-                        if (dev.RulebaseLinks != null)
+                        foreach (var rbLink in deviceController.RulebaseLinks)
                         {
-                            foreach (var rbLink in dev.RulebaseLinks)
+                            RulebaseReport? rulebase = mgt.Rulebases.FirstOrDefault(_ => _.Id == rbLink.NextRulebaseId);
+                            if (rulebase != null)
                             {
-                                RulebaseReport? rulebase = mgt.Rulebases.FirstOrDefault(_ => _.Id == rbLink.NextRulebaseId);
-                                if (rulebase != null)
+                                foreach (Rule rule in rulebase.Rules)
                                 {
-                                    foreach (Rule rule in rulebase.Rules)
-                                    {
-                                        mgt.ReportedRuleIds.Add(rule.Id);
-                                    }
+                                    mgt.ReportedRuleIds.Add(rule.Id);
                                 }
                             }
                         }

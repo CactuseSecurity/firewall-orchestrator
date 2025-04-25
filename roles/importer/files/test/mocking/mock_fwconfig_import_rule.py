@@ -8,6 +8,7 @@ class MockFwConfigImportRule(FwConfigImportRule):
         """
             A class for testing FwConfigImportRule, while stubbing internal methods as configured.
         """
+        
         def __init__(self):
             self._import_details = MockImportStateController()
             self._stub_markRulesRemoved = True

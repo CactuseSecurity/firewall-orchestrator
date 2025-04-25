@@ -16,18 +16,21 @@ from model_controllers.fwconfig_import_object import FwConfigImportObject
 from models.rule_from import RuleFrom
 from models.rule_to import RuleTo
 from models.rule_service import RuleService
-
+from fwo_const import rule_num_numeric_steps
 
 # this class is used for importing rules and rule refs into the FWO API
 class FwConfigImportRule(FwConfigImportBase):
 
     def __init__(self, importState: ImportStateController, config: FwConfigNormalized):
-      super().__init__(importState, config)
+        super().__init__(importState, config)
+        self._reusable_counter = 0
     # #   self.ActionMap = self.GetActionMap()
     # #   self.TrackMap = self.GetTrackMap()
     #   self.RuleNumLookup = self.GetRuleNumMap()             # TODO: needs to be updated with each insert
     #   self.NextRuleNumLookup = self.GetNextRuleNumMap()     # TODO: needs to be updated with each insert
     #   # self.RulebaseMap = self.GetRulebaseMap()     # limited to the current mgm_id
+
+
 
     def updateRulebaseDiffs(self, prevConfig: FwConfigNormalized):
         logger = getFwoLogger(debug_level=self.ImportDetails.DebugLevel)
@@ -106,6 +109,8 @@ class FwConfigImportRule(FwConfigImportBase):
         # ids = enforcingController.addNewRuleEnforcedOnGatewayRefs(newRules, self.ImportDetails)
 
         errorCountDel, numberOfDeletedRules, removedRuleIds = self.markRulesRemoved(deletedRuleUids)
+
+        self.createRuleMoveArgs({},[])
 
         self.ImportDetails.Stats.RuleAddCount += numberOfAddedRules
         self.ImportDetails.Stats.RuleDeleteCount += numberOfDeletedRules
@@ -220,17 +225,75 @@ class FwConfigImportRule(FwConfigImportBase):
         numberOfMovedRules = 0
         movedRuleIds = []
 
-        # TODO: Define mutation
-
-        for rulebase in movedRuleUids.keys():
-            for rule in movedRuleUids[rulebase]:
-                # TODO: Create move args
-                pass
+        ruleMoveArgs = self.createRuleMoveArgs(movedRuleUids, target_rule_uids)
 
         # TODO: Post mutation
 
         return errorCountMove, numberOfMovedRules, movedRuleIds
+    
+    def createRuleMoveArgs(self, movedRuleUids, target_rule_uids):
+        logger = getFwoLogger()
+        errorCountMove = 0
+        numberOfMovedRules = 0
+        movedRuleIds = []
+        rule_move_args = []
+        rules = [] 
 
+        try:
+            import_result = self.getCurrentNotRemovedRules()
+
+
+            if 'errors' in import_result:
+                errorCountMove += 1 
+                raise fwo_exceptions.FwoApiFailure(f"failed to query current rules: {str(traceback.format_exc())}")
+            else:
+                rules = import_result["data"]["rule"]
+                
+                for movedRuleUid in movedRuleUids:
+                    pass
+
+        except Exception:
+            errorCountMove += 1 
+            raise fwo_exceptions.FwoApiFailure(f"failed to query current rules: {str(traceback.format_exc())}")
+
+        for rulebase in movedRuleUids.keys():
+
+            rulebase_rules = self.getCurrentRules(self.ImportDetails.ImportId, )
+            rules.extend()
+            for rule in movedRuleUids[rulebase]:
+                
+                rule_move_args.append(
+
+                )
+        
+        return rule_move_args
+
+    def getCurrentNotRemovedRules(self):
+
+        getCurrentRules = """query getCurrentRules{
+            rule(where:{removed:{_eq:null}}){
+                rule_id,
+                rule_num_numeric,
+                rule_uid
+            }
+        }
+        """
+
+        return self.ImportDetails.call(getCurrentRules, queryVariables={})
+
+    def writeRuleMovesToDb(self, rule_move_args):
+        logger = getFwoLogger()
+        errorCountMove = 0
+        numberOfMovedRules = 0
+        movedRuleIds = []
+
+        # TODO: Define mutation
+        # TODO: Implement api call
+
+        return errorCountMove, numberOfMovedRules, movedRuleIds
+
+    def getRulesFromDb():
+        pass
 
     def addNewRule2ObjRefs(self, newRules):
         # for each new rule: add refs in rule_to and rule_from
@@ -610,6 +673,9 @@ class FwConfigImportRule(FwConfigImportBase):
                 ) { affected_rows,  returning { rule_id } }
             }
         """
+
+        self._reusable_counter = 0
+
         for rulebase in newRulesForImport:
             if 'rules' in rulebase and 'data' in rulebase['rules'] and len(rulebase['rules']['data'])>0:
                 queryVariables = { 'rules': rulebase['rules']['data'] }
@@ -683,7 +749,6 @@ class FwConfigImportRule(FwConfigImportBase):
             # Rules: List[Rule] = []
 
         newRulesForImport: List[RulebaseForImport] = []
-
 
         for rulebase in newRules:
             rules = {"data": []}
@@ -1018,6 +1083,9 @@ class FwConfigImportRule(FwConfigImportBase):
 
         for rule in Rules:
             listOfEnforcedGwIds = []
+            self._reusable_counter += 1
+            
+
             for gwUid in rule.rule_installon.split(fwo_const.list_delimiter):
                 gwId = importDetails.lookupGatewayId(gwUid)
                 if gwId is not None:
@@ -1056,7 +1124,7 @@ class FwConfigImportRule(FwConfigImportBase):
                 rulebase_id=rulebase_id,
                 rule_create=importDetails.ImportId,
                 rule_last_seen=importDetails.ImportId,
-                rule_num_numeric=1,
+                rule_num_numeric= self.get_new_rule_num_numeric(),
                 action_id = importDetails.lookupAction(rule.rule_action),
                 track_id = importDetails.lookupTrack(rule.rule_track),
                 rule_head_text=rule.rule_head_text
@@ -1068,6 +1136,10 @@ class FwConfigImportRule(FwConfigImportBase):
             prepared_rules.append(rule_for_import)
         return { "data": prepared_rules }
     
+    def get_new_rule_num_numeric(self):
+        return self._reusable_counter * rule_num_numeric_steps
+
+
 def lcs_dp(seq1, seq2):
     """
     Compute the length and dynamic programming (DP) table for the longest common subsequence (LCS)

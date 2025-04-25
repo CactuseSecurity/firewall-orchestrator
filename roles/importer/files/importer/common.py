@@ -67,7 +67,7 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
             logger.info(f"import_management - import disabled for mgm  {str(mgmId)} - skipping")
         else:
             Path(import_tmp_path).mkdir(parents=True, exist_ok=True)  # make sure tmp path exists
-            gateways = GatewayController.buildGatewayList(importState.FullMgmDetails)
+            gateways = GatewayController.buildGatewayList(importState.MgmDetails)
 
             # only run if this is the correct import module
             if importState.MgmDetails.ImporterHostname != gethostname() and not importState.ForceImport:
@@ -84,7 +84,7 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
                 # Reset management
                 configNormalized.addManager(
                     manager=FwConfigManager(
-                        ManagerUid=calcManagerUidHash(importState.FullMgmDetails),
+                        ManagerUid=calcManagerUidHash(importState.MgmDetails),
                         ManagerName=importState.MgmDetails.Name,
                         IsSuperManager=importState.MgmDetails.IsSuperManager,
                         SubManagerIds=importState.MgmDetails.SubManagerIds,
@@ -220,7 +220,7 @@ def importFromFile(importState: ImportStateController, fileName: str = "", gatew
         if isinstance(configFromFile, FwConfig):
             if configFromFile.ConfigFormat == 'NORMALIZED_LEGACY':
                 configNormalized = FwConfigManagerList(ConfigFormat=configFromFile.ConfigFormat)
-                configNormalized.addManager(manager=FwConfigManager(calcManagerUidHash(importState.FullMgmDetails), importState.MgmDetails.Name))
+                configNormalized.addManager(manager=FwConfigManager(calcManagerUidHash(importState.MgmDetails), importState.MgmDetails.Name))
                 configNormalized.ManagerSet[0].Configs.append(FwConfigNormalized(ConfigAction.INSERT, 
                                                                                 configFromFile.Config['network_objects'],
                                                                                 configFromFile.Config['service_objects'],

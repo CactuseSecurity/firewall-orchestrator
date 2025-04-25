@@ -252,7 +252,8 @@ def get_config_from_api(importState: ImportStateController, configNative, import
     logger = getFwoLogger(debug_level=importState.DebugLevel)
 
     try: # pick product-specific importer:
-        pkg_name = importState.MgmDetails.DeviceTypeName.lower().replace(' ', '') + importState.MgmDetails.DeviceTypeVersion
+        pkg_name = importState.MgmDetails.DeviceTypeName.lower().replace(' ', '') + \
+            importState.MgmDetails.DeviceTypeVersion.replace(' ', '').replace('MDS', '')
         if not f"{importer_base_dir}/{pkg_name}" in sys.path:
             sys.path.append(f"{importer_base_dir}/{pkg_name}")
         fw_module = importlib.import_module("." + fw_module_name, pkg_name)

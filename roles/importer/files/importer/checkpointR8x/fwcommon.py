@@ -155,6 +155,7 @@ def getRules (nativeConfig: dict, importState: ImportStateController) -> int:
                                            globalAssignments = globalAssignments)
 
             domain = '1e294ce0-367a-11e3-aa6e-0800200c9a66' # delete_v: muss Global uid sein
+            managerDetails.DomainUid = domain # delete_v
         else:
             domain = managerDetails.getDomainString()
 

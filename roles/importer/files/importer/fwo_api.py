@@ -224,6 +224,14 @@ def get_mgm_details(fwo_api_base_url, jwt, query_variables, debug_level=0):
             except ():
                 raise SecretDecryptionFailed
             api_call_result['data']['management'][0]['import_credential']['secret'] = decryptedSecret
+            if 'subManagers' in api_call_result['data']['management'][0]:
+                for subMgm in api_call_result['data']['management'][0]['subManagers']:
+                    try:
+                        secret = subMgm['import_credential']['secret']
+                        decryptedSecret = decrypt(secret, readMainKey())
+                    except ():
+                        raise SecretDecryptionFailed
+                    subMgm['import_credential']['secret'] = decryptedSecret
         return api_call_result['data']['management'][0]
     else:
         raise Exception('did not succeed in getting management details from FWO API')

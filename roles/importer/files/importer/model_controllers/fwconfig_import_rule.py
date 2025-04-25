@@ -135,12 +135,12 @@ class FwConfigImportRule(FwConfigImportBase):
 
         newRuleIds = []
 
-        # # collect rulebase UIDs of previous config
+        # Collect rulebase UIDs of previous config
         for rulebase in prevConfig.rulebases:
             previousRulebaseUids.append(rulebase.uid)
             source_rule_uids.extend(rulebase.Rules.keys())
 
-        # # collect rulebase UIDs of current (just imported) config
+        # Collect rulebase UIDs of current (just imported) config
         for rulebase in self.NormalizedConfig.rulebases:
             currentRulebaseUids.append(rulebase.uid)
             target_rule_uids.extend(rulebase.Rules.keys())
@@ -148,30 +148,36 @@ class FwConfigImportRule(FwConfigImportBase):
         # TODO: Check for deleted rulebases ?
 
         # TODO: Handle new and deleted rulebases
-        
-        compute_min_moves_result = compute_min_moves(source_rule_uids, target_rule_uids)
 
+        # Compute min moves
+        compute_min_moves_result = compute_min_moves(source_rule_uids, target_rule_uids)
+        
+        # Handle deletes
         deletion_uid_list = [deletion[1] for deletion in compute_min_moves_result["deletions"]]
-        insertion_uid_list = [insertion[1] for insertion in compute_min_moves_result["insertions"]]
-        moved_rule_uid_list = [insertion[1] for insertion in compute_min_moves_result["reposition_moves"]]
 
         for rulebase in prevConfig.rulebases:
             deletedRuleUids[rulebase.uid] = list(set(deletion_uid_list) & set(rulebase.Rules.keys()))
-            newRuleUids[rulebase.uid] = list(set(insertion_uid_list) & set(rulebase.Rules.keys()))
-            movedRuleUids[rulebase.uid] = list(set(moved_rule_uid_list) & set(rulebase.Rules.keys()))
-        
-        # Handle deletes
+
         errorCountDel, numberOfDeletedRules, removedRuleIds = self.markRulesRemoved(deletedRuleUids) # TODO: Create test
 
-        # # TODO: handle inserts
-        # Add full rule details first
+        # Handle inserts
+        insertion_uid_list = [insertion[1] for insertion in compute_min_moves_result["insertions"]]
+
+        for rulebase in self.NormalizedConfig.rulebases:
+            newRuleUids[rulebase.uid] = list(set(insertion_uid_list) & set(rulebase.Rules.keys()))
+
         newRulebases = self.getRules(newRuleUids)
-        # Update rule_metadata before adding rules
+
         errorCountAdd, numberOfAddedMetaRules, newRuleMetadataIds = self.addNewRuleMetadata(newRulebases) # TODO: Handle new Metadata, create test and fix stub
-        # Now update the database with all rule diffs
         errorCountAdd, numberOfAddedRules, newRuleIds = self.addNewRules(newRulebases) # TODO: Create test
 
-        # # TODO: handle moves (make new version)
+        # # TODO: Handle moves (make new version)
+        moved_rule_uid_list = [insertion[1] for insertion in compute_min_moves_result["reposition_moves"]]
+
+        for rulebase in self.NormalizedConfig.rulebases:
+            movedRuleUids[rulebase.uid] = list(set(moved_rule_uid_list) & set(rulebase.Rules.keys()))
+        
+        errorCountMove, numberOfMovedRules, movedRuleIds = self.moveRules(movedRuleUids, target_rule_uids)
 
         # # find changed rules # TODO: Maybe before handling moves ? 
             # # TODO: need to ignore last_hit! 
@@ -199,16 +205,32 @@ class FwConfigImportRule(FwConfigImportBase):
             # # enforcingController = RuleEnforcedOnGatewayController(self.ImportDetails)
             # # ids = enforcingController.addNewRuleEnforcedOnGatewayRefs(newRules, self.ImportDetails)
 
-        
-
         self.ImportDetails.Stats.RuleAddCount += numberOfAddedRules
         self.ImportDetails.Stats.RuleDeleteCount += numberOfDeletedRules
         self.ImportDetails.Stats.RuleAddCount += numberOfChangedRules
-        self.ImportDetails.Stats.RuleDeleteCount += numberOfMovedRules
+        self.ImportDetails.Stats.RuleMoveCount += numberOfMovedRules
 
         # TODO: rule_nwobj_resolved fuellen (recert?)
         return newRuleIds
         
+
+    def moveRules(self, movedRuleUids, target_rule_uids):
+        logger = getFwoLogger()
+        errorCountMove = 0
+        numberOfMovedRules = 0
+        movedRuleIds = []
+
+        # TODO: Define mutation
+
+        for rulebase in movedRuleUids.keys():
+            for rule in movedRuleUids[rulebase]:
+                # TODO: Create move args
+                pass
+
+        # TODO: Post mutation
+
+        return errorCountMove, numberOfMovedRules, movedRuleIds
+
 
     def addNewRule2ObjRefs(self, newRules):
         # for each new rule: add refs in rule_to and rule_from
@@ -605,7 +627,7 @@ class FwConfigImportRule(FwConfigImportBase):
                             changes += changesForThisRulebase
                 except Exception:
                     raise fwo_exceptions.FwoApiWriteError(f"failed to write new rulebases: {str(traceback.format_exc())}")
-        return errors, changes, 
+        return errors, changes, newRuleIds
 
     # adds only new rules to the database
     # unchanged or deleted rules are not touched here

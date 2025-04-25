@@ -14,6 +14,7 @@ class MockFwConfigImportRule(FwConfigImportRule):
             self._stub_getRules = False
             self._stub_addNewRuleMetadata = True
             self._stub_addNewRules = True
+            self._stub_moveRules = True
 
         @property
         def ImportDetails(self) -> MockImportStateController:
@@ -51,6 +52,14 @@ class MockFwConfigImportRule(FwConfigImportRule):
         def stub_addNewRules(self, value):
             self._stub_addNewRules = value
 
+        @property
+        def stub_moveRules(self) -> bool:
+              return self._stub_moveRules
+        
+        @stub_moveRules.setter
+        def stub_moveRules(self, value):
+            self._stub_moveRules = value
+
         def markRulesRemoved(self, removedRuleUids):
             errors = 0
             changes = 0
@@ -63,6 +72,7 @@ class MockFwConfigImportRule(FwConfigImportRule):
 
             return errors, changes, collectedRemovedRuleIds
         
+
         def getRules(self, ruleUids):
             rulebases = []
 
@@ -71,6 +81,7 @@ class MockFwConfigImportRule(FwConfigImportRule):
 
             return rulebases
         
+
         def addNewRuleMetadata(self, newRules: List[Rulebase]):
             errors = 0
             changes = 0
@@ -81,6 +92,7 @@ class MockFwConfigImportRule(FwConfigImportRule):
 
             return errors, changes, newRuleIds
         
+
         def addNewRules(self, newRules: List[Rulebase]):
             errors = 0
             changes = 0
@@ -95,4 +107,19 @@ class MockFwConfigImportRule(FwConfigImportRule):
                 errors, changes, newRuleIds = super().addNewRules(newRules)
 
             return errors, changes, newRuleIds
+        
+        def moveRules(self, movedRuleUids, target_rule_uids):
+            errors = 0
+            changes = 0
+            movedRuleIds = []
+
+            for rulebase in movedRuleUids.keys():
+                for rule in movedRuleUids[rulebase]:
+                    changes += 1
+                    movedRuleIds.append(changes) # just random incremental id for now
+
+            if not self.stub_moveRules:
+                errors, changes, movedRuleIds = super().moveRules(movedRuleUids, target_rule_uids)
+
+            return errors, changes, movedRuleIds
 

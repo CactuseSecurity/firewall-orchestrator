@@ -230,6 +230,29 @@ class TestRuleOrdering(unittest.TestCase):
         self.assertEqual(fwconfig_import_rule.ImportDetails.Stats.RuleChangeCount, 0)
         self.assertEqual(fwconfig_import_rule.ImportDetails.Stats.RuleMoveCount, 0)
 
+    def test_update_rulebase_diffs_move(self):
+        # arrange
+        previous_config = MockFwConfigNormalized()
+        previous_config.initialize_config(
+            {
+                "rule_config": [10,10,10]
+            }
+        )
+
+        fwconfig_import_rule = MockFwConfigImportRule()
+        fwconfig_import_rule.NormalizedConfig = copy.deepcopy(previous_config)
+        moved_rule_uid = list(fwconfig_import_rule.NormalizedConfig.rulebases[0].Rules.keys())[0]
+        fwconfig_import_rule.NormalizedConfig.rulebases[1].Rules[moved_rule_uid] = fwconfig_import_rule.NormalizedConfig.rulebases[0].Rules.pop(moved_rule_uid)
+
+        # act
+        fwconfig_import_rule.update_rulebase_diffs(previous_config)
+
+        # assert
+        self.assertEqual(fwconfig_import_rule.ImportDetails.Stats.RuleAddCount, 0)
+        self.assertEqual(fwconfig_import_rule.ImportDetails.Stats.RuleDeleteCount, 0)
+        self.assertEqual(fwconfig_import_rule.ImportDetails.Stats.RuleChangeCount, 0)
+        self.assertEqual(fwconfig_import_rule.ImportDetails.Stats.RuleMoveCount, 1)
+
     # TODO: Do that via mock_config.py
 
     def mock_previous_config_rule_uids(self, with_rule_num_numeric = False, longer_version = False):

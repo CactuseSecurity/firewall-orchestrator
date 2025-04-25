@@ -55,7 +55,7 @@ class MockFwConfigNormalized(FwConfigNormalized):
         new_rule =  Rule(
             action_id = 0,
             mgm_id = 0,
-            rule_action = "",
+            rule_action = "accept",
             rule_create = 0,
             rule_disabled = False,
             rule_dst = "",
@@ -72,8 +72,9 @@ class MockFwConfigNormalized(FwConfigNormalized):
             rule_svc_refs = "",
             rule_time = "",
             track_id = 0,
-            rule_track = "",
+            rule_track = "none",
             rule_uid = self.uid_manager.create_uid(),
+            rule_installon = ""
         )
         rulebase.Rules[new_rule.rule_uid] = new_rule
         

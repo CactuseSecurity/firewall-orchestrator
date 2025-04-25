@@ -71,7 +71,7 @@ def logout(url, sid):
     response = cp_api_call(url, 'logout', {}, sid)
     return response
 
-
+# delete_v soll das weg, wird nirgends benutzt?
 def get_api_url(sid, api_host, api_port, user, base_url, limit, test_version, ssl_verification, debug_level=0):
     logger = getFwoLogger()
 
@@ -97,7 +97,7 @@ def get_api_url(sid, api_host, api_port, user, base_url, limit, test_version, ss
     logger.debug ("test_version: " + test_version + " - url: "+ v_url)
     return v_url
 
-
+# delete_v soll das weg, wird nirgends benutzt?
 def set_api_url(base_url,testmode,api_supported,hostname, debug_level=0):
     logger = getFwoLogger()
     url = ''
@@ -202,7 +202,6 @@ def getPolicyStructure(api_v_url, sid, show_params_policy_structure, policyStruc
                 logger.error ( 'packages do not contain to field')
                 return 1
         
-# [{'name':'policy1', 'uid':'bla', 'targets':[{'name':'gateway1', 'uid':'bla'}], 'access-layers':[{'name':'ord1', 'uid':'ord1'}]}]
         # parse devices with ordered layers
         for package in packages['packages']:
             alreadyFetchedPackage = False
@@ -421,28 +420,27 @@ def getRulebases (api_v_url, sid, show_params_rules,
             for section in rulebaseChunk['rulebase']:
 
                 # if no section is used, use dummy section
-                if section['type'] == 'access-rule':
+                if section['type'] != 'access-section':
                     section = {
                         'type': 'access-section',
                         'rulebase': [section]
                         }
 
-                if section['type'] == 'access-section':
-                    for rule in section['rulebase']:
-                        if 'inline-layer' in rule:
-                            # add link to inline layer for current device
-                            deviceConfig['rulebase_links'].append({
-                                'from_rulebase_uid': currentRulebase['uid'],
-                                'from_rule_uid': rule['uid'],
-                                'to_rulebase_uid': rule['inline-layer'],
-                                'type': 'inline'})
-                            
-                            # get inline layer
-                            getRulebases(api_v_url, sid, show_params_rules,
-                                         rulebaseUid=rule['inline-layer'],
-                                         access_type='access',
-                                         nativeConfig=nativeConfig,
-                                         deviceConfig=deviceConfig)
+                for rule in section['rulebase']:
+                    if 'inline-layer' in rule:
+                        # add link to inline layer for current device
+                        deviceConfig['rulebase_links'].append({
+                            'from_rulebase_uid': currentRulebase['uid'],
+                            'from_rule_uid': rule['uid'],
+                            'to_rulebase_uid': rule['inline-layer'],
+                            'type': 'inline'})
+                        
+                        # get inline layer
+                        getRulebases(api_v_url, sid, show_params_rules,
+                                        rulebaseUid=rule['inline-layer'],
+                                        access_type='access',
+                                        nativeConfig=nativeConfig,
+                                        deviceConfig=deviceConfig)
     
     return 0
 
@@ -457,23 +455,21 @@ def getRuleUid(rulebase, mode):
             for section in rulebaseChunk['rulebase']:
 
                 # if no section is used, use dummy section
-                if section['type'] == 'access-rule':
+                if section['type'] != 'access-section':
                     section = {
                         'type': 'access-section',
                         'rulebase': [section]
                         }
 
-                if section['type'] == 'access-section':
-                    for rule in section['rulebase']:
-                        if mode == 'last':
+                for rule in section['rulebase']:
+                    if mode == 'last':
+                        returnUid = rule['uid']
+                    elif mode == 'place-holder':
+                        if rule['type'] == 'place-holder':
                             returnUid = rule['uid']
-                        elif mode == 'place-holder':
-                            if rule['type'] == 'place-holder':
-                                returnUid = rule['uid']
 
     return returnUid
                             
-
 
 def get_nat_rules_from_api_as_dict (api_v_url, sid, show_params_rules, nativeConfig={}):
     logger = getFwoLogger()
@@ -505,36 +501,6 @@ def get_nat_rules_from_api_as_dict (api_v_url, sid, show_params_rules, nativeCon
                 # logger.warning ( "get_nat_rules_from_api - rulebase does not contain to field, get_rulebase_chunk_from_api found garbled json " + str(nat_rules))
                 raise Exception ( "get_nat_rules_from_api - rulebase does not contain to field, get_rulebase_chunk_from_api found garbled json " + str(nat_rules))
     return nat_rules
-
-
-# insert domain rule layer after rule_idx within top_ruleset
-def insert_layer_after_place_holder (top_ruleset_json, domain_ruleset_json, placeholder_uid, nativeConfig={}):
-    logger = getFwoLogger()
-    # serialize domain rule chunks
-    domain_rules_serialized = []
-    for chunk in domain_ruleset_json['rulebase_chunks']:
-        domain_rules_serialized.extend(chunk['rulebase'])
-
-    # set the upper (parent) rule uid for all domain rules:
-    for rule in domain_rules_serialized:
-        rule['parent_rule_uid'] = placeholder_uid
-        logger.debug ("domain_rules_serialized, added parent_rule_uid for rule with uid " + rule['uid'])
-
-    # find the reference (place-holder rule) and insert the domain rules behind it:
-    chunk_idx = 0
-    while chunk_idx<len(top_ruleset_json['rulebase_chunks']):
-        rules = top_ruleset_json['rulebase_chunks'][chunk_idx]['rulebase']
-        rule_idx = 0
-        while rule_idx<len(rules):
-            if rules[rule_idx]['uid'] == placeholder_uid:
-                logger.debug ("found matching rule uid, "  + placeholder_uid + " == " + rules[rule_idx]['uid'])
-                rules[rule_idx+1:rule_idx+1] = domain_rules_serialized
-                top_ruleset_json['rulebase_chunks'][chunk_idx]['rulebase'] = rules
-            rule_idx += 1
-        chunk_idx += 1
-    if fwo_globals.debug_level>5:
-        logger.debug("result:\n" + json.dumps(top_ruleset_json, indent=2))
-    return top_ruleset_json
 
 
 def findElementByUid(array, uid):

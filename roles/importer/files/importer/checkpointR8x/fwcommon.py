@@ -158,14 +158,9 @@ def getRules (nativeConfig: dict, importState: ImportStateController) -> int:
     - global rulebase is the same for every device
     - only db rulebase stored per device is its local rulebase
     '''
-    # delete_v: Schnittstellen die zum Rest passen müssen
-    # 1. domain wird durch prepare_get_vars aus importState.FullMgmDetails ausgelesen,
-    #    was muss für mds vs standalone beachtet werden
-    # 1.b domain muss immer in der nativeConfig mitgenommen werden
-    # 1.c mache domain immer zu uid!
-    # 2. importState.FullMgmDetails['devices'][x]['global_rulebase_name'] entscheidet ob mds oder nicht
-    # 3. ich mache nirgends logout
-    # 4. NAT noch nicht getestet
+    # delete_v: Noch offen Todo
+    # 1. ich mache nirgends logout
+    # 2. NAT noch nicht getestet
 
     logger = getFwoLogger()
     nativeConfig.update({'rulebases': [], 'nat_rulebases': [], 'gateways': [] })
@@ -184,7 +179,7 @@ def getRules (nativeConfig: dict, importState: ImportStateController) -> int:
     # loop over toplevel- and sub-managers in case of mds
     for managerDetails in managerDetailsList:
 
-        # delte_v: kann prepare_get_vars gelöscht werden?
+        # delete_v: kann prepare_get_vars gelöscht werden? Nein noch nicht
         domain, cpManagerApiBaseUrl = prepareGetVars(managerDetails)
 
         # in case of mds get global assignments via mds sid and then change to global domain and sid for all further operations
@@ -198,7 +193,7 @@ def getRules (nativeConfig: dict, importState: ImportStateController) -> int:
 
             domain = '1e294ce0-367a-11e3-aa6e-0800200c9a66' # delete_v: muss Global uid sein
 
-        # delete_v: kann login_cp weg?
+        # delete_v: kann login_cp weg? Nein noch nicht
         sid = loginCp(managerDetails, domain)
         
         # get all access (ordered) layers for each policy
@@ -255,6 +250,7 @@ def getRules (nativeConfig: dict, importState: ImportStateController) -> int:
                                 if len(globalOrderedLayerUids) == 0:
                                     logger.warning ( "No access layer for global policy: " +  globalPolicy['name'])
                                     break
+                                logger.debug ( "getting global rule layers" )
                                 addOrderedLayersToNativeConfig(globalOrderedLayerUids, show_params_rules, globalApiUrl, globalSid, nativeConfig, deviceConfig)
 
                                 # define initial rulebase for device in case of mds
@@ -298,40 +294,8 @@ def getRules (nativeConfig: dict, importState: ImportStateController) -> int:
                     'type': 'initial'})
 
             # get local rulebases (ordered layers)
+            logger.debug ( "getting domain rule layers" )
             addOrderedLayersToNativeConfig(orderedLayerUids, show_params_rules, cpManagerApiBaseUrl, sid, nativeConfig, deviceConfig)
-            # orderedLayerIndex = 0
-            # for orderedLayerUid in orderedLayerUids:
-
-            #     show_params_rules.update({'uid': orderedLayerUid})
-            #     show_params_rules.pop('name', None) # delete_v das kann weg sobald show_params_rules nur noch uids verwendet
-
-            #     logger.debug ( "getting domain rule layer: " + show_params_rules['uid'] )
-            #     cp_getter.getRulebases (cpManagerApiBaseUrl, 
-            #                             sid, 
-            #                             show_params_rules, 
-            #                             rulebaseUid=orderedLayerUid,
-            #                             access_type='access',
-            #                             nativeConfig=nativeConfig,
-            #                             deviceConfig=deviceConfig)
-            #     if fwo_globals.shutdown_requested:
-            #         raise ImportInterruption("Shutdown requested during rulebase retrieval.")
-                            
-            #     lastRuleUid = None
-            #     # parse ordered layer and get last rule uid
-            #     for rulebase in nativeConfig['rulebases']:
-            #         if rulebase['uid'] == orderedLayerUid:
-            #             lastRuleUid = cp_getter.getRuleUid(rulebase, 'last')
-            #             break
-                
-            #     # link to next ordered layer
-            #     if orderedLayerIndex < len(orderedLayerUids) - 1:
-            #         deviceConfig['rulebase_links'].append({
-            #             'from_rulebase_uid': orderedLayerUid,
-            #             'from_rule_uid': lastRuleUid,
-            #             'to_rulebase_uid': orderedLayerUids[orderedLayerIndex + 1],
-            #             'type': 'ordered'})
-                
-            #     orderedLayerIndex += 1
 
             # getting NAT rules - need package name for nat rule retrieval
             # todo: each gateway/layer should have its own package name (pass management details instead of single data?)
@@ -364,10 +328,7 @@ def addOrderedLayersToNativeConfig(orderedLayerUids, show_params_rules, cpManage
     for orderedLayerUid in orderedLayerUids:
 
         show_params_rules.update({'uid': orderedLayerUid})
-        show_params_rules.pop('name', None) # delete_v das kann weg sobald show_params_rules nur noch uids verwendet
 
-        # delete_v: logger nach oben
-        #logger.debug ( "getting domain rule layer: " + show_params_rules['uid'] )
         cp_getter.getRulebases (cpManagerApiBaseUrl, 
                                 sid, 
                                 show_params_rules, 
@@ -462,27 +423,6 @@ def logout_cp(url, sid):
         logger.warning("logout from CP management failed")
 
 
-def addRulebaseIfNew(rulebaseToAdd, url, sid, packageName, rulebaseNamesCollected=[], limit=500, nativeConfig={}):
-    if rulebaseToAdd in rulebaseNamesCollected:
-        return None
-    else:
-        rulebaseNamesCollected.append(rulebaseToAdd)
-
-        show_params_rules = {
-            'limit': limit,
-            'use-object-dictionary': cp_const.use_object_dictionary,
-            'details-level': 'standard',
-            'package': packageName, 
-            'show-hits': cp_const.with_hits 
-        }
-
-        logger = getFwoLogger()
-        rulebaseNamesCollected.append(rulebaseToAdd)
-        show_params_rules.update({'name': rulebaseToAdd})
-        logger.debug ( "getting layer: " + show_params_rules['name'] )
-        return cp_getter.get_layer_from_api_as_dict (url, sid, show_params_rules, layerName=rulebaseToAdd, nativeConfig=nativeConfig)
-    
-
 def get_objects(config_json, mgm_details, v_url, sid, force=False, config_filename=None,
     limit=150, details_level=cp_const.details_level_objects, test_version='off', debug_level=0, ssl_verification=True):
 
@@ -563,7 +503,7 @@ def get_objects(config_json, mgm_details, v_url, sid, force=False, config_filena
 #         user.update({'user_name': user_name})
 #         config2import['user_objects'].append(user)
 
-
+# delete_v soll das weg, wird bisher nirgends benutzt
 def ParseUidToName(myUid, myObjectDictList):
     """Help function finds name to given UID in object dict 
     

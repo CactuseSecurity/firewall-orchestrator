@@ -8338,24 +8338,6 @@
                     }
                   },
                   {
-                    "name": "managementByMgmId",
-                    "using": {
-                      "foreign_key_constraint_on": "mgm_id"
-                    }
-                  },
-                  {
-                    "name": "managementByMgmId1",
-                    "using": {
-                      "foreign_key_constraint_on": {
-                        "column": "mgm_id",
-                        "table": {
-                          "name": "management",
-                          "schema": "public"
-                        }
-                      }
-                    }
-                  },
-                  {
                     "name": "stm_dev_typ",
                     "using": {
                       "foreign_key_constraint_on": "dev_typ_id"

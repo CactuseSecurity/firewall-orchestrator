@@ -59,7 +59,8 @@ if __name__ == '__main__':
     logger = getFwoLogger()
 
     logger.info("importer-main-loop starting ...")
-    sys.path.append(importer_base_dir)
+    if importer_base_dir not in sys.path:
+        sys.path.append(importer_base_dir)
     importer_user_name = 'importer'  # todo: move to config file?
     fwo_config_filename = base_dir + '/etc/fworch.json'
     importer_pwd_file = base_dir + '/etc/secrets/importer_pwd'

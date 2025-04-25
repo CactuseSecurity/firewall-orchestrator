@@ -1,16 +1,12 @@
-import sys
 import json
-from common import importer_base_dir
 from fwo_log import getFwoLogger
-sys.path.append(importer_base_dir + '/checkpointR8x')
 import time
-import signal
 
 import cp_rule
-import cp_gateway
 import cp_const, cp_network, cp_service
 import cp_getter
-from fwo_exceptions import FwLoginFailed
+import cp_gateway
+import fwo_exceptions
 from fwconfig_base import calcManagerUidHash
 from models.fwconfigmanagerlist import FwConfigManagerList, FwConfigManager
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
@@ -22,37 +18,6 @@ import fwo_globals
 from model_controllers.fwconfig_normalized_controller import FwConfigNormalizedController
 from fwo_exceptions import ImportInterruption
 
-# objects as well as rules can now be either from super-amanager or from local manager!
-# TODO: decide if we still support importing native config from file
-#   might replace this with json config file (in case it is not deserializable into classes)
-#def getConfig(nativeConfig:json, importState:ImportStateController, managerSet:FwConfigManagerList) -> tuple[int, FwConfigManagerList]:
-#    logger = getFwoLogger()
-#    logger.debug ( "starting checkpointR8x/get_config" )
-#
-#    # get list of managers for import
-#    managers = FwConfigManagerList()
-#    managers.ManagerSet.append(FwConfigManager(ManagerUid=importState.MgmDetails.Name, ManagerName=importState.MgmDetails.Name))#
-#
-#    for manager in managers:
-#        
-#
-#    policies = []
-#    if importState.MgmDetails.IsSuperManager:
-#        # parse all global objects and policies
-#        getObjects(importState, normalizedConfig)
-#        getPolicies(importState, normalizedConfig)
-#    else:
-#        # get all details needed to import necessary policies via CP API
-#        getGatewayDetails(importState, normalizedConfig)
-#
-#        # for local managers - only get and parse policies that are used by gateways which are marked as "do import" 
-#        for device in importState.FullMgmDetails['devices']:
-#            if not device.do_not_import:
-#
-#                for rulebase in package:
-#                    if rulebase not in policies:
-#                        normalizedConfig.rulebases.append(getRulebase(rulebase))
-#                    normalizedConfig.ManagerSet[mgrSet].Configs.gateways[device].append(rulebase.name )
 
 def has_config_changed (full_config, importState, force=False):
 
@@ -441,7 +406,7 @@ def login_cp(mgm_details, domain, ssl_verification=True):
         login_result = cp_getter.login(mgm_details['import_credential']['user'], mgm_details['import_credential']['secret'], mgm_details['hostname'], str(mgm_details['port']), domain)
         return login_result
     except Exception:
-        raise FwLoginFailed
+        raise fwo_exceptions.FwLoginFailed
 
 
 def logout_cp(url, sid):

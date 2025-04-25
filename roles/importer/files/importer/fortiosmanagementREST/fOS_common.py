@@ -1,6 +1,6 @@
-import sys
-from common import importer_base_dir
-sys.path.append(importer_base_dir + '/fortiosmanagementREST')
+# import sys
+# from common import importer_base_dir
+# sys.path.append(importer_base_dir + '/fortiosmanagementREST')
 from curses import raw
 from fwo_log import getFwoLogger
 from fwo_const import list_delimiter, fwo_config_filename

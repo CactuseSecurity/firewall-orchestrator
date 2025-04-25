@@ -17,6 +17,7 @@
 		<ProjectReference Include="..\FWO.Middleware.Client\FWO.Middleware.Client.csproj" />
 		<ProjectReference Include="..\FWO.Tufin.SecureChange\FWO.Tufin.SecureChange.csproj" />
 		<ProjectReference Include="..\FWO.Logging\FWO.Logging.csproj" />
+		<ProjectReference Include="..\FWO.FwLogic\FWO.FwLogic.csproj" />
 	</ItemGroup>
 
 </Project>

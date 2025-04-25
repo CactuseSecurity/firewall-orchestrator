@@ -17,6 +17,7 @@
     <ProjectReference Include="..\FWO.Basics\FWO.Basics.csproj" />
     <ProjectReference Include="..\FWO.Api.Client\FWO.Api.Client.csproj" />
     <ProjectReference Include="..\FWO.Services\FWO.Services.csproj" />
+    <ProjectReference Include="..\FWO.FwLogic\FWO.FwLogic.csproj" />
   </ItemGroup>
 
 </Project>

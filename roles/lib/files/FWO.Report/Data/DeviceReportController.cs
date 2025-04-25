@@ -1,34 +1,17 @@
-﻿using System.Text.Json.Serialization; 
+﻿using System.Text.Json.Serialization;
 using Newtonsoft.Json;
-using FWO.Basics;
+using FWO.Data.Report;
 using FWO.Data;
 
 namespace FWO.Report
 {
-    public class DeviceReport
+    public class DeviceReportController: DeviceReport
     {
-        [JsonProperty("uid"), JsonPropertyName("uid")]
-        public string Uid { get; set; }
+        public DeviceReportController()
+        {
+        }
 
-        [JsonProperty("id"), JsonPropertyName("id")]
-        public int Id { get; set; }
-
-        [JsonProperty("name"), JsonPropertyName("name")]
-        public string? Name { get; set; }
-
-        [JsonProperty("rulebase_links"), JsonPropertyName("rulebase_links")]
-        public RulebaseLink[] RulebaseLinks { get; set; }
-
-        [JsonProperty("changelog_rules"), JsonPropertyName("changelog_rules")]
-        public RuleChange[]? RuleChanges { get; set; }
-
-        [JsonProperty("rules_aggregate"), JsonPropertyName("rules_aggregate")]
-        public ObjectStatistics RuleStatistics { get; set; } = new ObjectStatistics();
-
-        public DeviceReport()
-        { }
-
-        public DeviceReport(DeviceReport device)
+        public DeviceReportController(DeviceReportController device)
         {
             Id = device.Id;
             Name = device.Name;
@@ -37,6 +20,20 @@ namespace FWO.Report
             RuleStatistics = device.RuleStatistics;
         }
 
+
+        public static DeviceReportController FromDeviceReport(DeviceReport deviceReport)
+        {
+            var controller = new DeviceReportController
+            {
+                Id = deviceReport.Id,
+                Name = deviceReport.Name,
+                RulebaseLinks = deviceReport.RulebaseLinks,
+                RuleChanges = deviceReport.RuleChanges,
+                RuleStatistics = deviceReport.RuleStatistics
+            };
+            return controller;
+        }
+        
         public void AssignRuleNumbers(RulebaseLink? rbLinkIn = null, int ruleNumber = 1)
         {
             // rbLinkIn ??= RbLink;
@@ -73,6 +70,10 @@ namespace FWO.Report
             return RulebaseLinks.FirstOrDefault(_ => _.LinkType == 0)?.NextRulebaseId;
         }
 
+        public static explicit operator DeviceReportController(bool v)
+        {
+            throw new NotImplementedException();
+        }
     }
 
 }

@@ -17,6 +17,12 @@ namespace FWO.Data
         [JsonProperty("to_rulebase_id"), JsonPropertyName("to_rulebase_id")]
         public int NextRulebaseId = new();
 
+        [JsonProperty("created"), JsonPropertyName("created")]
+        public long Created;
+
+        [JsonProperty("removed"), JsonPropertyName("removed")]
+        public long? Removed;
+
         public bool IsInitialRulebase()
         {
             return LinkType == 0;

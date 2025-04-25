@@ -1,19 +1,14 @@
-﻿@using FWO.Ui.Display
-@using FWO.Config.Api
+﻿@inject UserConfig userConfig
 @using FWO.Report
-@using FWO.Report.Filter
+@using FWO.Ui.Display
 
-@inject UserConfig userConfig
-
-@foreach (var management in Managements)
+@foreach (var management in Managements.Select(mgt => new ManagementReportController(mgt)))
 {
     @if (management.ContainsRules())
     {
         management.AssignRuleNumbers();
-
         <Collapse Title="@management.Name" Style="@("primary")" StartToggled="false">
-
-            @foreach (var device in management.Devices)
+            @foreach (var device in management.Devices.Select(dev => DeviceReportController.FromDeviceReport(dev)))
             {
                 @if (device.ContainsRules() && ruleDisplay != null)
                 {
@@ -239,7 +234,7 @@
 @code
 {
     [Parameter]
-    public bool Recertification { get; set; }
+    public bool Recertification { get; set; } = false;
     
     [Parameter]
     public bool ReadonlyMode { get; set; } = false;
@@ -251,7 +246,7 @@
     public EventCallback<List<Rule>> SelectedRulesChanged { get; set; }
 
     [Parameter]
-    public List<Rule> SelectedRules { get; set; } = new List<Rule>();
+    public List<Rule> SelectedRules { get; set; } = [];
 
     [Parameter]
     public int RulesPerPage { get; set; }

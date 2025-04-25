@@ -1,8 +1,4 @@
-import sys
-from common import importer_base_dir, complete_import
-from fwo_exceptions import ConfigFileNotFound
-
-sys.path.append(importer_base_dir + '/dummyrouter')
+from common import complete_import
 from curses import raw
 from fwo_log import getFwoLogger
 import fwo_globals
@@ -10,7 +6,7 @@ from model_controllers.interface_controller import Interface
 from model_controllers.route_controller import Route
 import json, requests, requests.packages
 from datetime import datetime
-import jsonpickle
+from fwo_exceptions import ConfigFileNotFound
 
 def has_config_changed(_, __, force=False):
     return True

@@ -1,76 +1,16 @@
 using Newtonsoft.Json;
 using System.Text.Json.Serialization;
+using FWO.Data.Report;
 using FWO.Data;
 
 namespace FWO.Report
 {
-    public class ManagementReport
+    public class ManagementReportController : ManagementReport
     {
-        [JsonProperty("id"), JsonPropertyName("id")]
-        public int Id { get; set; }
-
-        [JsonProperty("uid"), JsonPropertyName("uid")]
-        public string Uid { get; set; }
-
-        [JsonProperty("name"), JsonPropertyName("name")]
-        public string Name { get; set; } = "";
-
-        [JsonProperty("devices"), JsonPropertyName("devices")]
-        public DeviceReport[] Devices { get; set; } = [];
-
-        [JsonProperty("rulebases"), JsonPropertyName("rulebases")]
-        public RulebaseReport[] Rulebases { get; set; } = [];
-
-        [JsonProperty("import"), JsonPropertyName("import")]
-        public Import Import { get; set; } = new ();
-
-        public long? RelevantImportId { get; set; }
-
-        [JsonProperty("networkObjects"), JsonPropertyName("networkObjects")]
-        public NetworkObject[] Objects { get; set; } = [];
-
-        [JsonProperty("serviceObjects"), JsonPropertyName("serviceObjects")]
-        public NetworkService[] Services { get; set; } = [];
-
-        [JsonProperty("userObjects"), JsonPropertyName("userObjects")]
-        public NetworkUser[] Users { get; set; } = [];
-
-        [JsonProperty("reportNetworkObjects"), JsonPropertyName("reportNetworkObjects")]
-        public NetworkObject[] ReportObjects { get; set; } = [];
-
-        [JsonProperty("reportServiceObjects"), JsonPropertyName("reportServiceObjects")]
-        public NetworkService[] ReportServices { get; set; } = [];
-
-        [JsonProperty("reportUserObjects"), JsonPropertyName("reportUserObjects")]
-        public NetworkUser[] ReportUsers { get; set; } = [];
-
-
-        //[JsonProperty("rule_id"), JsonPropertyName("rule_id")]
-        public List<long> ReportedRuleIds { get; set; } = [];
-        public List<long> ReportedNetworkServiceIds { get; set; } = [];
-
-        [JsonProperty("objects_aggregate"), JsonPropertyName("objects_aggregate")]
-        public ObjectStatistics NetworkObjectStatistics { get; set; } = new ();
-
-        [JsonProperty("services_aggregate"), JsonPropertyName("services_aggregate")]
-        public ObjectStatistics ServiceObjectStatistics { get; set; } = new ();
-
-        [JsonProperty("usrs_aggregate"), JsonPropertyName("usrs_aggregate")]
-        public ObjectStatistics UserObjectStatistics { get; set; } = new ();
-        
-        [JsonProperty("rules_aggregate"), JsonPropertyName("rules_aggregate")]
-        public ObjectStatistics RuleStatistics { get; set; } = new ();
-
-        public bool Ignore { get; set; }
-        public List<long> RelevantObjectIds = [];
-        public List<long> HighlightedObjectIds = [];
-
-        public bool[] Detailed = [false, false, false]; // nobj, nsrv, user
-
-        public ManagementReport()
+        public ManagementReportController()
         {}
 
-        public ManagementReport(ManagementReport managementReport)
+        public ManagementReportController(ManagementReport managementReport)
         {
             Id = managementReport.Id;
             Name = managementReport.Name;
@@ -102,7 +42,7 @@ namespace FWO.Report
 
         public void AssignRuleNumbers()
         {
-            foreach (DeviceReport device in Devices)
+            foreach (var device in Devices.Select(dev => DeviceReportController.FromDeviceReport(dev)))
             {
                 device.AssignRuleNumbers();
             }
@@ -114,7 +54,7 @@ namespace FWO.Report
         }
         public bool ContainsRules()
         {
-            foreach (var device in Devices)
+            foreach (var device in Devices.Select(dev => DeviceReportController.FromDeviceReport(dev)))
             {
                 if (device.ContainsRules())
                 {

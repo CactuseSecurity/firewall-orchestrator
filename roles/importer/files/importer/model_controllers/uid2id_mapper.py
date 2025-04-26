@@ -104,6 +104,63 @@ class Uid2IdMapper:
             self.log_error(f"Rule UID '{uid}' not found in mapping.")
         return id
 
+
+    def add_network_object_mappings(self, mappings: List[dict]) -> bool:
+        """
+        Add network object mappings to the internal mapping dictionary.
+
+        Args:
+            mappings (List[dict]): A list of dictionaries containing UID and ID mappings.
+                    Each dictionary should have 'obj_uid' and 'obj_id' keys.
+
+        Returns:
+            bool: True if the mappings were added successfully, False otherwise.
+        """
+        for mapping in mappings:
+            if 'obj_uid' not in mapping or 'obj_id' not in mapping:
+                self.log_error("Invalid mapping format. Each mapping must contain 'obj_uid' and 'obj_id'.")
+                return False
+            self.nwobj_uid2id[mapping['obj_uid']] = mapping['obj_id']
+        self.log_debug(f"Added {len(mappings)} network object mappings.")
+        return True
+
+    def add_service_object_mappings(self, mappings: List[dict]) -> bool:
+        """
+        Add service object mappings to the internal mapping dictionary.
+
+        Args:
+            mappings (List[dict]): A list of dictionaries containing UID and ID mappings.
+                    Each dictionary should have 'svc_uid' and 'svc_id' keys.
+
+        Returns:
+            bool: True if the mappings were added successfully, False otherwise.
+        """
+        for mapping in mappings:
+            if 'svc_uid' not in mapping or 'svc_id' not in mapping:
+                self.log_error("Invalid mapping format. Each mapping must contain 'svc_uid' and 'svc_id'.")
+                return False
+            self.svc_uid2id[mapping['svc_uid']] = mapping['svc_id']
+        self.log_debug(f"Added {len(mappings)} service object mappings.")
+        return True
+
+    def add_user_mappings(self, mappings: List[dict]) -> bool:
+        """
+        Add user mappings to the internal mapping dictionary.
+
+        Args:
+            mappings (List[dict]): A list of dictionaries containing UID and ID mappings.
+                    Each dictionary should have 'user_uid' and 'user_id' keys.
+
+        Returns:
+            bool: True if the mappings were added successfully, False otherwise.
+        """
+        for mapping in mappings:
+            if 'user_uid' not in mapping or 'user_id' not in mapping:
+                self.log_error("Invalid mapping format. Each mapping must contain 'user_uid' and 'user_id'.")
+                return False
+            self.user_uid2id[mapping['user_uid']] = mapping['user_id']
+        self.log_debug(f"Added {len(mappings)} user mappings.")
+        return True
     
     def update_network_object_mapping(self, uids: Optional[List[str]] = None) -> bool:
         """

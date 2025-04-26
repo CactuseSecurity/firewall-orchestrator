@@ -11,8 +11,6 @@ from fwo_base import ConfigAction, ConfFormat
 from models.fwconfig_normalized import FwConfigNormalized
 from model_controllers.fwconfig_import_object import FwConfigImportObject
 from model_controllers.fwconfig_import_rule import FwConfigImportRule
-from model_controllers.fwconfig_import_object import FwConfigImportObject
-from model_controllers.fwconfig_import_rule import FwConfigImportRule
 from model_controllers.fwconfig_import_gateway import FwConfigImportGateway
 from model_controllers.rule_enforced_on_gateway_controller import RuleEnforcedOnGatewayController
 

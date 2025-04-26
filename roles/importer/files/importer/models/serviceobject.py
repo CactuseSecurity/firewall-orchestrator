@@ -20,14 +20,16 @@ class ServiceObject(BaseModel):
     # class Config:
     #     arbitrary_types_allowed = True
 
-    def get_changes(self, otherObj: 'ServiceObject') -> dict:
-        if not isinstance(otherObj, ServiceObject):
+    def did_change(self, prevObj: 'ServiceObject') -> bool:
+        """
+        Check if the service object has changed compared to a previous version of the same object.
+        """
+        if not isinstance(prevObj, ServiceObject):
             raise ValueError("Comparison must be with another ServiceObject instance")
-        changes = {}
         for field in self.__fields__:
-            if getattr(self, field) != getattr(otherObj, field):
-                changes[field] = (getattr(self, field), getattr(otherObj, field))
-        return changes
+            if getattr(self, field) != getattr(prevObj, field):
+                return True
+        return False
 
 
 class ServiceObjectForImport():

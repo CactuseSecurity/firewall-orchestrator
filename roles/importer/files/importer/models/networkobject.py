@@ -46,18 +46,17 @@ class NetworkObject(BaseModel):
                     else:
                         raise ValueError(f"Invalid network format: {value}") from e
         return value
-
-    def get_changes(self, otherObj: 'NetworkObject') -> dict:
+    
+    def did_change(self, prevObj: 'NetworkObject') -> bool:
         """
-        Compare the current object with another NetworkObject and return the differences.
+        Check if the network object has changed compared to a previous version of the same object.
         """
-        if not isinstance(otherObj, NetworkObject):
-            raise ValueError("Comparison object must be of type NetworkObject")
-        changes = {}
+        if not isinstance(prevObj, NetworkObject):
+            raise ValueError("Comparison must be with another NetworkObject instance")
         for field in self.__dict__:
-            if getattr(self, field) != getattr(otherObj, field):
-                changes[field] = (getattr(self, field), getattr(otherObj, field))
-        return changes
+            if getattr(self, field) != getattr(prevObj, field):
+                return True
+        return False
 
     # @root_validator(pre=True)
     # def validate_ip_addresses(cls, values):

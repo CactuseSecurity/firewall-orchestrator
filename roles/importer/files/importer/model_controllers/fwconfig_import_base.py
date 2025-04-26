@@ -13,5 +13,6 @@ class FwConfigImportBase():
         self.FwoJwt = importState.Jwt
         self.ImportDetails = importState
         self.NormalizedConfig = config
-        self.group_flats_mapper = GroupFlatsMapper(importState, config)
+        self.group_flats_mapper = GroupFlatsMapper(importState)
+        self.prev_group_flats_mapper = GroupFlatsMapper(importState)
         self.uid2id_mapper = Uid2IdMapper(importState)

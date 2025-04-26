@@ -76,6 +76,20 @@
                     <input type="text" class="col-sm-8" @bind="extTicketingSystemAuth" />
                 </div>
             </div>
+            <div class="form-group row mt-2">
+                <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("response_timeout")):</label>
+                <div class="col-sm-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5593a"))">
+                    <input type="number" class="col-sm-6" @bind="extTicketingSystemTimeout" />
+                </div>
+                <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("max_attempts")):</label>
+                <div class="col-sm-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5593b"))">
+                    <input type="number" class="col-sm-6" @bind="extTicketingSystemMaxAttempts" />
+                </div>
+                <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("cycles_between")):</label>
+                <div class="col-sm-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5593c"))">
+                    <input type="number" class="col-sm-6" @bind="extTicketingSystemCyclesBetweenAttempts" />
+                </div>
+            </div>
             @if(actExtTicketSystemType == ExternalTicketSystemType.TufinSecureChange)
             {
                 <label for="cbx_ext_ticket_lookup_id" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ext_ticket_lookup_id")):</label>
@@ -83,6 +97,7 @@
                     <input id="cbx_ext_ticket_lookup_id" type="checkbox" class="w-100" @bind="extTicketingSystemLookup">
                 </div>
             }
+            <br>
             <TabSet WholeWidth="false" DarkMode="false" KeepPanelsAlive="false">
                 @{int pos = 0;}
                 @foreach(var template in extTicketingSystemTemplates)
@@ -129,6 +144,9 @@ else
     private string extTicketingSystemName = "";
     private ExternalTicketSystemType actExtTicketSystemType = ExternalTicketSystemType.Generic;
     private string extTicketingSystemUrl = "";
+    private int extTicketingSystemTimeout = 300;
+    private int extTicketingSystemMaxAttempts = 3;
+    private int extTicketingSystemCyclesBetweenAttempts = 5;
     private string extTicketingSystemAuth = "";
     private bool extTicketingSystemLookup = false;
     private List<ExternalTicketSystem> extTicketSystems = [];
@@ -152,6 +170,9 @@ else
                 actExtTicketSystemType = extTicketSystems.First().Type;
                 InitTaskTypeList(actExtTicketSystemType);
                 extTicketingSystemUrl = extTicketSystems.First().Url;
+                extTicketingSystemTimeout = extTicketSystems.First().ResponseTimeout;
+                extTicketingSystemMaxAttempts = extTicketSystems.First().MaxAttempts;
+                extTicketingSystemCyclesBetweenAttempts = extTicketSystems.First().CyclesBetweenAttempts;
                 extTicketingSystemAuth = extTicketSystems.First().Authorization;
                 extTicketingSystemLookup = extTicketSystems.First().LookupRequesterId;
                 if(extTicketSystems.First().Templates.Count == 0 && 
@@ -222,6 +243,9 @@ else
                     Name = extTicketingSystemName,
                     Type = actExtTicketSystemType,
                     Url = extTicketingSystemUrl,
+                    ResponseTimeout = extTicketingSystemTimeout,
+                    MaxAttempts = extTicketingSystemMaxAttempts,
+                    CyclesBetweenAttempts = extTicketingSystemCyclesBetweenAttempts,
                     Authorization = extTicketingSystemAuth,
                     LookupRequesterId = extTicketingSystemLookup,
                     Templates = extTicketingSystemTemplates

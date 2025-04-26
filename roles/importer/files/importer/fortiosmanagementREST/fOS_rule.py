@@ -8,6 +8,7 @@ import fOS_zone, fOS_getter
 #from fOS_gw_networking import get_device_from_package
 from fwo_log import getFwoLogger
 from model_controllers.interface_controller import get_matching_route_obj, get_ip_of_interface_obj
+from models.management_details import ManagementDetails
 import ipaddress
 from fOS_common import resolve_objects
 import time
@@ -49,7 +50,7 @@ def getNatPolicy(sid, fm_api_url, raw_config, adom_name, device, limit):
             raw_config['rules_adom_nat'], sid, fm_api_url, "/pm/config/" + scope + "/pkg/" + pkg + '/' + nat_type, device['local_rulebase_name'], limit=limit)
 
 
-def normalize_access_rules(full_config, config2import, import_id, mgm_details={}, jwt=None):
+def normalize_access_rules(full_config, config2import, import_id, mgm_details: ManagementDetails, jwt=None):
     logger = getFwoLogger()
     rules = []
     rule_number = 0
@@ -65,7 +66,7 @@ def normalize_access_rules(full_config, config2import, import_id, mgm_details={}
             rule.update({ 'rule_num': rule_number})
             if 'name' in rule_orig:
                 rule.update({ 'rule_name': rule_orig['name']})
-            rule.update({ 'rule_installon': mgm_details['devices'][0]['name'] })
+            rule.update({ 'rule_installon': mgm_details.Devices[0]['name'] if mgm_details.Devices else None })
             # rule.update({ 'rule_installon': localPkgName })
             rule.update({ 'rule_implied': False })
             rule.update({ 'rule_time': None })

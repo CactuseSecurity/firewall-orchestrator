@@ -1,12 +1,13 @@
-﻿using System.Text;
-using FWO.Api.Client;
-using FWO.Report.Filter;
+﻿using FWO.Api.Client;
 using FWO.Basics;
-using FWO.Ui.Display;
 using FWO.Config.Api;
+using FWO.Data.Report;
 using FWO.Logging;
-using System.Text.Json;
+using FWO.Report.Filter;
+using FWO.Ui.Display;
 using Newtonsoft.Json;
+using System.Text;
+using System.Text.Json;
 
 namespace FWO.Report
 {
@@ -35,14 +36,6 @@ namespace FWO.Report
                 gotNewObjects = ReportData.ManagementData.Merge(await apiConnection.SendQueryAsync<List<ManagementReport>>(Query.FullQuery, Query.QueryVariables));
                 await callback(ReportData);
             }
-        }
-
-        public override async Task<bool> GetObjectsInReport(int objectsPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback)
-        {
-            await callback(ReportData);
-            // currently no further objects to be fetched
-            GotObjectsInReport = true;
-            return true;
         }
 
         public override Task<bool> GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, ObjCategory objects, int maxFetchCycles, ApiConnection apiConnection, Func<ReportData, Task> callback)

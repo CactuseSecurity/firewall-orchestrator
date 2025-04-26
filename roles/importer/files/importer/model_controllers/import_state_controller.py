@@ -26,7 +26,6 @@ class ImportStateController(ImportState):
         self.ConfigChangedSinceLastImport = configChangedSinceLastImport
         self.FwoConfig = fwoConfig
         self.MgmDetails = ManagementDetailsController.fromJson(mgmDetails)
-        self.FullMgmDetails = mgmDetails
         self.ImportId = None
         self.Jwt = jwt
         self.api_connection = FwoApi(fwoConfig.FwoApiUri, jwt)

@@ -5,5 +5,9 @@
     name: mgm_name
     uid: mgm_uid
     extMgtData: ext_mgm_data
+    devices {
+      id: dev_id
+      name: dev_name
+    }
   }
 }

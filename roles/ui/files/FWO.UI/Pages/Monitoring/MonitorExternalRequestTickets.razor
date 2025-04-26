@@ -30,6 +30,10 @@
                         {
                             <button type="button" class="btn btn-sm btn-warning" @onclick="() => RequestReInit(context)">@(userConfig.GetText("reinit_ext_request"))</button>
                         }
+                        @if(ClosePossible(context))
+                        {
+                            <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestClose(context)">@(userConfig.GetText("reject_ticket"))</button>
+                        }
                     </div>
                 </Template>
             </Column>
@@ -104,11 +108,16 @@ else
     </Footer>
 </PopUp>
 <Confirm @bind-Display="ReInitMode" AllowedRoles="@Roles.Admin" Message="@(userConfig.GetText("U9019") + actOwnerTicket.Ticket.Id + "?")"
-    PerformAction="ReInit" Title="@(userConfig.GetText("confirm"))" />
+    PerformAction="ReInitTicket" Title="@(userConfig.GetText("confirm"))" />
+<Confirm @bind-Display="CloseTicketMode" AllowedRoles="@Roles.Admin" Message="@(userConfig.GetText("U9025") + actOwnerTicket.Ticket.Id + "?")"
+    PerformAction="CloseTicket" Title="@(userConfig.GetText("confirm"))" />
 <InProgress Display="workInProgress" />
 
 @code
 {
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationStateTask { get; set; }
+
     [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
@@ -124,6 +133,7 @@ else
     private bool InitComplete = false;
     private bool DetailsMode = false;
     private bool ReInitMode = false;
+    private bool CloseTicketMode = false;
 
     private int PageSize { get; set; }
     private bool workInProgress = false;
@@ -146,12 +156,24 @@ else
         if(allOwners.Count > 0)
         {
             actOwner = allOwners.First();
-            await FetchOwnerData(actOwner);
-            relevantRequests = await apiConnection.SendQueryAsync<List<ExternalRequest>>(ExtRequestQueries.getOpenRequests, new {states = relevantRequestStates});
+            await InitData(actOwner);
             await stateMatrixDict.Init(WorkflowPhases.request, apiConnection);
             MasterStateMatrix = stateMatrixDict.Matrices[WfTaskType.master.ToString()];
         }
         InitComplete = true;
+    }
+
+    private async Task InitData(FwoOwner owner)
+    {
+        try
+        {
+            await FetchOwnerData(owner);
+            relevantRequests = await apiConnection.SendQueryAsync<List<ExternalRequest>>(ExtRequestQueries.getOpenRequests, new {states = relevantRequestStates});
+        }
+        catch (System.Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
+        }
     }
 
     private async Task FetchOwnerData(FwoOwner newOwner)
@@ -178,25 +200,29 @@ else
         return ownerTicket.Ticket.StateId < MasterStateMatrix.LowestEndState && relevantRequests.FirstOrDefault(x => x.TicketId == ownerTicket.Ticket.Id) == null;
     }
 
+    private bool ClosePossible(OwnerTicket ownerTicket)
+    {
+        return ownerTicket.Ticket.StateId < MasterStateMatrix.LowestEndState;
+    }
+
     private void RequestReInit(OwnerTicket ownerTicket)
     {
         actOwnerTicket = ownerTicket;
         ReInitMode = true;
     }
 
-    private async Task ReInit()
+    private async Task ReInitTicket()
     {
         workInProgress = true;
         await InvokeAsync(StateHasChanged);
-        await SendRequest();
-        await FetchOwnerData(actOwner);
-        relevantRequests = await apiConnection.SendQueryAsync<List<ExternalRequest>>(ExtRequestQueries.getOpenRequests, new {states = relevantRequestStates});
+        await SendReinitRequest();
+        await InitData(actOwner);
         workInProgress = false;
         await InvokeAsync(StateHasChanged);
         ReInitMode = false;
     }
 
-    private async Task SendRequest()
+    private async Task SendReinitRequest()
     {
         try
         {
@@ -218,6 +244,44 @@ else
         catch (Exception exception)
         {
             DisplayMessageInUi(exception, userConfig.GetText("reinit_ext_request"), "", true);
+        }
+    }
+
+    private void RequestClose(OwnerTicket ownerTicket)
+    {
+        actOwnerTicket = ownerTicket;
+        CloseTicketMode = true;
+    }
+
+    private async Task CloseTicket()
+    {
+        workInProgress = true;
+        await InvokeAsync(StateHasChanged);
+        await SendCloseTicket();
+        await InitData(actOwner);
+        workInProgress = false;
+        await InvokeAsync(StateHasChanged);
+        CloseTicketMode = false;
+    }
+
+    private async Task SendCloseTicket()
+    {
+        try
+        {
+            TicketCreator ticketCreator = new (apiConnection, userConfig, authenticationStateTask!.Result.User, middlewareClient);
+            if (await ticketCreator.PromoteTicket(actOwnerTicket.Ticket.Id, ExtStates.ExtReqRejected.ToString()))
+            {
+                Log.WriteDebug("Close Ticket", $"Ticket {actOwnerTicket.Ticket.Id.ToString()} closed as rejected.");
+            }
+            else
+            {
+                DisplayMessageInUi(null, userConfig.GetText("reject_ticket"), userConfig.GetText("E9103"), true);
+                Log.WriteError("Close Ticket", $"Could not close Ticket {actOwnerTicket.Ticket.Id.ToString()}.");
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("reject_ticket"), "", true);
         }
     }
 

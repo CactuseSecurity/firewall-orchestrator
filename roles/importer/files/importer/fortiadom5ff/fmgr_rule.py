@@ -121,6 +121,9 @@ def getNatPolicy(sid, fm_api_url, raw_config, adom_name, device, limit):
             raw_config['rules_adom_nat'], sid, fm_api_url, "/pm/config/" + scope + "/pkg/" + pkg + '/' + nat_type, device['local_rulebase_name'], limit=limit)
 
 
+# delete_v: versuch das von cp_rule zu kopieren
+#def normalizeRulebases (nativeConfig, importState, normalizedConfig):
+
 def normalize_access_rules(full_config, config2import, import_id, mgm_details={}, jwt=None):
     logger = getFwoLogger()
     rules = []

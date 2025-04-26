@@ -14,10 +14,10 @@ class FwoEncoder(json.JSONEncoder):
 
 def calcManagerUidHash(mgm_details):
     combination = f"""
-        {replaceNoneWithEmpty(mgm_details['hostname'])}
-        {replaceNoneWithEmpty(mgm_details['port'])}
-        {replaceNoneWithEmpty(mgm_details['domainUid'])}
-        {replaceNoneWithEmpty(mgm_details['configPath'])}
+        {replaceNoneWithEmpty(mgm_details.Hostname)}
+        {replaceNoneWithEmpty(mgm_details.Port)}
+        {replaceNoneWithEmpty(mgm_details.DomainUid)}
+        {replaceNoneWithEmpty(mgm_details.DomainName)}
     """
     return hashlib.sha256(combination.encode()).hexdigest()
 

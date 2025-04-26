@@ -100,7 +100,7 @@ namespace FWO.Report
             {
                 report.AppendLine($"\"date of configuration shown\": \"{DateTime.Parse(Query.ReportTimeString).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssK")} (UTC)\",");
             }
-            report.AppendLine($"\"device filter\": \"{string.Join("; ", Array.ConvertAll(ReportData.ManagementData.ToArray(), m => m.NameAndRulebaseNames()))}\",");
+            report.AppendLine($"# device filter: {string.Join(" ", ReportData.ManagementData.Where(mgt => !mgt.Ignore).Cast<ManagementReportController>().Select(m => m.NameAndRulebaseNames(" ")))}");
             report.AppendLine($"\"other filters\": \"{Query.RawFilter}\",");
             report.AppendLine($"\"report generator\": \"Firewall Orchestrator - https://fwo.cactus.de/en\",");
             report.AppendLine($"\"data protection level\": \"For internal use only\",");
@@ -116,7 +116,7 @@ namespace FWO.Report
             {
                 report.AppendLine($"# date of configuration shown: {DateTime.Parse(Query.ReportTimeString).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssK")} (UTC)");
             }
-            report.AppendLine($"# device filter: {string.Join(" ", Array.ConvertAll(ReportData.ManagementData.Where(mgt => !mgt.Ignore).ToArray(), m => m.NameAndRulebaseNames(" ")))}");
+            report.AppendLine($"# device filter: {string.Join(" ", ReportData.ManagementData.Where(mgt => !mgt.Ignore).Cast<ManagementReportController>().Select(m => m.NameAndRulebaseNames(" ")))}");
             report.AppendLine($"# other filters: {Query.RawFilter}");
             report.AppendLine($"# report generator: Firewall Orchestrator - https://fwo.cactus.de/en");
             report.AppendLine($"# data protection level: For internal use only");
@@ -132,7 +132,7 @@ namespace FWO.Report
         protected string GenerateHtmlFrame(string title, string filter, DateTime date, StringBuilder htmlReport)
         {
             return GenerateHtmlFrameBase(title, filter, date, htmlReport,
-                string.Join("; ", Array.ConvertAll(ReportData.ManagementData.Where(mgt => !mgt.Ignore).ToArray(), m => m.NameAndRulebaseNames())),
+                string.Join("; ", ReportData.ManagementData.Where(mgt => !mgt.Ignore).Cast<ManagementReportController>().Select(m => m.NameAndRulebaseNames())),
                 Query.SelectedOwner?.Name);
         }
     }

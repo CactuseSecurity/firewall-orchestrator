@@ -250,5 +250,24 @@ namespace FWO.Data
             }
             return result;
         }
+
+        public static string DisplayPort(int? port, int? portEnd, bool inBrackets = false)
+        {
+            string result = "";
+            if (port != null)
+            {
+                result = inBrackets ? " (" : "";
+                if (portEnd == null || portEnd == 0 || port == portEnd)
+                {
+                    result += $"{port}";
+                }
+                else
+                {
+                    result += $"{port}-{portEnd}";
+                }
+                result += inBrackets ? ")" : "";
+            }
+            return result;
+        }
     }
 }

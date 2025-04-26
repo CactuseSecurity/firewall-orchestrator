@@ -17,7 +17,6 @@ class ImportState():
     ConfigChangedSinceLastImport: bool
     FwoConfig: FworchConfigController
     MgmDetails: ManagementDetailsController
-    FullMgmDetails: dict
     ImportId: int
     ImportFileName: str
     ForceImport: str

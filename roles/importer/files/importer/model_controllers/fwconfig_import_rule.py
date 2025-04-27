@@ -133,21 +133,21 @@ class FwConfigImportRule(FwConfigImportBase):
                 if fwo_const.user_delimiter in srcRef:
                     userRef, nwRef = srcRef.split(fwo_const.user_delimiter)
                     user_uids.append(userRef)
-                    ruleFromUserRefs.append(self.uid2id_mapper.get_user_id(userRef))
+                    ruleFromUserRefs.append(self.uid2id_mapper.get_id(userRef))
                     srcRef = nwRef
                 nwobj_uids.append(srcRef)
-                ruleFromRefs.append(self.uid2id_mapper.get_network_object_id(srcRef))
+                ruleFromRefs.append(self.uid2id_mapper.get_id(srcRef))
             for dstRef in rule['rule_dst_refs'].split(fwo_const.list_delimiter):
                 if fwo_const.user_delimiter in dstRef:
                     userRef, nwRef = dstRef.split(fwo_const.user_delimiter)
                     user_uids.append(userRef)
-                    ruleToUserRefs.append(self.uid2id_mapper.get_user_id(userRef))
+                    ruleToUserRefs.append(self.uid2id_mapper.get_id(userRef))
                     dstRef = nwRef
                 nwobj_uids.append(dstRef)
-                ruleToRefs.append(self.uid2id_mapper.get_network_object_id(dstRef))
+                ruleToRefs.append(self.uid2id_mapper.get_id(dstRef))
             for svcRef in rule['rule_svc_refs'].split(fwo_const.list_delimiter):
                 svc_uids.append(svcRef)
-                ruleSvcRefs.append(self.uid2id_mapper.get_service_object_id(svcRef))
+                ruleSvcRefs.append(self.uid2id_mapper.get_id(svcRef))
             ruleRefs.update({ rule['rule_id']: { 
                 'from': ruleFromRefs, 
                 'to': ruleToRefs, 
@@ -157,7 +157,7 @@ class FwConfigImportRule(FwConfigImportBase):
                 'svc_negated': rule['rule_svc_neg']
                 } })
             flat_nwobj_uids = list(set(nwobj_uids + self.group_flats_mapper.get_network_object_flats(nwobj_uids)))
-            flat_nwobj_refs = [self.uid2id_mapper.get_network_object_id(uid) for uid in flat_nwobj_uids]
+            flat_nwobj_refs = [self.uid2id_mapper.get_id(uid) for uid in flat_nwobj_uids]
             user_refs = ruleFromUserRefs + ruleToUserRefs
             rule_nwobj_resolveds += [{
                 'mgm_id': self.ImportDetails.MgmDetails.Id,

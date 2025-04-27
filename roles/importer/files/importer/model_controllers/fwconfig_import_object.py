@@ -326,7 +326,7 @@ class FwConfigImportObject(FwConfigImportBase):
 
         for nwObjUid in prevConfig.network_objects.keys():
             if prevConfig.network_objects[nwObjUid].obj_member_refs is not None:
-                objgrpId = self.uid2id_mapper.get_network_object_id(nwObjUid)
+                objgrpId = self.uid2id_mapper.get_id(nwObjUid)
                 prevMemberUIds = prevConfig.network_objects[nwObjUid].obj_member_refs.split(fwo_const.list_delimiter)
                 prevFlatMemberUIds = self.prev_group_flats_mapper.get_network_object_flats([nwObjUid])
                 memberUIds = [] # all members need to be removed if group deleted or changed
@@ -343,7 +343,7 @@ class FwConfigImportObject(FwConfigImportBase):
                             removed = True
                             changedNwObjMembers.append([nwObjUid, prevMemberUId])
                     if removed:
-                        prevMemberId = self.uid2id_mapper.get_network_object_id(prevMemberUId)
+                        prevMemberId = self.uid2id_mapper.get_id(prevMemberUId)
                         removedNwObjMembers.append({
                             "_and": [
                                 { "objgrp_id": {"_eq": objgrpId} },
@@ -357,7 +357,7 @@ class FwConfigImportObject(FwConfigImportBase):
                             removed = True
                             changedNwObjFlats.append([nwObjUid, prevFlatMemberUId])
                     if removed:
-                        prevFlatMemberId = self.uid2id_mapper.get_network_object_id(prevFlatMemberUId)
+                        prevFlatMemberId = self.uid2id_mapper.get_id(prevFlatMemberUId)
                         removedNwObjFlats.append({
                             "_and": [
                                 { "objgrp_flat_id": {"_eq": objgrpId} },
@@ -417,7 +417,7 @@ class FwConfigImportObject(FwConfigImportBase):
 
         for svcObjUid in prevConfig.service_objects.keys():
             if prevConfig.service_objects[svcObjUid].svc_member_refs is not None:
-                svcgrpId = self.uid2id_mapper.get_service_object_id(svcObjUid)
+                svcgrpId = self.uid2id_mapper.get_id(svcObjUid)
                 prevMemberUIds = prevConfig.service_objects[svcObjUid].svc_member_refs.split(fwo_const.list_delimiter)
                 prevFlatMemberUIds = self.prev_group_flats_mapper.get_service_object_flats([svcObjUid])
                 memberUIds = [] # all members need to be removed if group deleted or changed
@@ -434,7 +434,7 @@ class FwConfigImportObject(FwConfigImportBase):
                             removed = True
                             changedSvcObjMembers.append([svcObjUid, prevMemberUId])
                     if removed:
-                        prevMemberId = self.uid2id_mapper.get_service_object_id(prevMemberUId)
+                        prevMemberId = self.uid2id_mapper.get_id(prevMemberUId)
                         removedSvcObjMembers.append({
                             "_and": [
                                 { "svcgrp_id": {"_eq": svcgrpId} },
@@ -448,7 +448,7 @@ class FwConfigImportObject(FwConfigImportBase):
                             removed = True
                             changedSvcObjFlats.append([svcObjUid, prevFlatMemberUId])
                     if removed:
-                        prevFlatMemberId = self.uid2id_mapper.get_service_object_id(prevFlatMemberUId)
+                        prevFlatMemberId = self.uid2id_mapper.get_id(prevFlatMemberUId)
                         removedSvcObjFlats.append({
                             "_and": [
                                 { "svcgrp_flat_id": {"_eq": svcgrpId} },
@@ -521,9 +521,9 @@ class FwConfigImportObject(FwConfigImportBase):
                     if not self.NormalizedConfig.network_objects[nwObjUid].did_change(prevConfig.network_objects[nwObjUid]):
                         # group not changed -> if exist, changed members are handled below
                         continue
-                objgrpId = self.uid2id_mapper.get_network_object_id(nwObjUid)
+                objgrpId = self.uid2id_mapper.get_id(nwObjUid)
                 for memberUId in memberUids:
-                    memberId = self.uid2id_mapper.get_network_object_id(memberUId)
+                    memberId = self.uid2id_mapper.get_id(memberUId)
                     newGroupMembers.append({
                         "objgrp_id": objgrpId,
                         "objgrp_member_id": memberId,
@@ -532,7 +532,7 @@ class FwConfigImportObject(FwConfigImportBase):
                     })
                 flatMemberUids = self.group_flats_mapper.get_network_object_flats([nwObjUid])
                 for flatMemberUid in flatMemberUids:
-                    flatMemberId = self.uid2id_mapper.get_network_object_id(flatMemberUid)
+                    flatMemberId = self.uid2id_mapper.get_id(flatMemberUid)
                     newGroupMemberFlats.append({
                         "objgrp_flat_id": objgrpId,
                         "objgrp_flat_member_id": flatMemberId,
@@ -541,8 +541,8 @@ class FwConfigImportObject(FwConfigImportBase):
                     })
         
         for changedObj in outdatedMembers: # readd changed members
-            objgrpId = self.uid2id_mapper.get_network_object_id(changedObj[0])
-            memberId = self.uid2id_mapper.get_network_object_id(changedObj[1])
+            objgrpId = self.uid2id_mapper.get_id(changedObj[0])
+            memberId = self.uid2id_mapper.get_id(changedObj[1])
             newGroupMembers.append({
                 "objgrp_id": objgrpId,
                 "objgrp_member_id": memberId,
@@ -551,8 +551,8 @@ class FwConfigImportObject(FwConfigImportBase):
             })
         
         for changedObj in outdatedFlats: # readd changed flats
-            objgrpId = self.uid2id_mapper.get_network_object_id(changedObj[0])
-            memberId = self.uid2id_mapper.get_network_object_id(changedObj[1])
+            objgrpId = self.uid2id_mapper.get_id(changedObj[0])
+            memberId = self.uid2id_mapper.get_id(changedObj[1])
             newGroupMemberFlats.append({
                 "objgrp_flat_id": objgrpId,
                 "objgrp_flat_member_id": memberId,
@@ -616,9 +616,9 @@ class FwConfigImportObject(FwConfigImportBase):
                     if not self.NormalizedConfig.service_objects[svcObjUid].did_change(prevConfig.service_objects[svcObjUid]):
                         # group not changed -> if exist, changed members are handled below
                         continue
-                svcgrpId = self.uid2id_mapper.get_service_object_id(svcObjUid)
+                svcgrpId = self.uid2id_mapper.get_id(svcObjUid)
                 for memberUId in memberUids:
-                    memberId = self.uid2id_mapper.get_service_object_id(memberUId)
+                    memberId = self.uid2id_mapper.get_id(memberUId)
                     newGroupMembers.append({
                         "svcgrp_id": svcgrpId,
                         "svcgrp_member_id": memberId,
@@ -627,7 +627,7 @@ class FwConfigImportObject(FwConfigImportBase):
                     })
                 flatMemberUids = self.group_flats_mapper.get_service_object_flats([svcObjUid])
                 for flatMemberUid in flatMemberUids:
-                    flatMemberId = self.uid2id_mapper.get_service_object_id(flatMemberUid)
+                    flatMemberId = self.uid2id_mapper.get_id(flatMemberUid)
                     newGroupMemberFlats.append({
                         "svcgrp_flat_id": svcgrpId,
                         "svcgrp_flat_member_id": flatMemberId,
@@ -636,8 +636,8 @@ class FwConfigImportObject(FwConfigImportBase):
                     })
 
         for changedObj in outdatedMembers: # readd changed members
-            svcgrpId = self.uid2id_mapper.get_service_object_id(changedObj[0])
-            memberId = self.uid2id_mapper.get_service_object_id(changedObj[1])
+            svcgrpId = self.uid2id_mapper.get_id(changedObj[0])
+            memberId = self.uid2id_mapper.get_id(changedObj[1])
             newGroupMembers.append({
                 "svcgrp_id": svcgrpId,
                 "svcgrp_member_id": memberId,
@@ -646,8 +646,8 @@ class FwConfigImportObject(FwConfigImportBase):
             })
 
         for changedObj in outdatedFlats: # readd changed flats
-            svcgrpId = self.uid2id_mapper.get_service_object_id(changedObj[0])
-            memberId = self.uid2id_mapper.get_service_object_id(changedObj[1])
+            svcgrpId = self.uid2id_mapper.get_id(changedObj[0])
+            memberId = self.uid2id_mapper.get_id(changedObj[1])
             newGroupMemberFlats.append({
                 "svcgrp_flat_id": svcgrpId,
                 "svcgrp_flat_member_id": memberId,

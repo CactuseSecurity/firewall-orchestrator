@@ -23,9 +23,7 @@ namespace FWO.Test
         static readonly ModellingVarianceAnalysisTestApiConn varianceAnalysisApiConnection = new();
         static readonly ExtStateTestApiConn extStateApiConnection = new();
         readonly ExtStateHandler extStateHandler = new(extStateApiConnection);
-        ModellingVarianceAnalysis? varianceAnalysis;
-        List<ModellingConnection> Connections = [];
-
+    
         static readonly FwoOwner Application = new() { Id = 1, Name = "App1" };
 
         static readonly ModellingAppServer AS1 = new() {Id = 1, Name = "AppServerUnchanged", Ip = "1.2.3.4" };
@@ -74,11 +72,11 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task TestAnalyseModelledConnections()
+        public async Task TestAnalyseModelledConnectionsForRequest()
         {
-            Connections = [ Connection1 ];
-            varianceAnalysis = new (varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
-            List<WfReqTask> TaskList = await varianceAnalysis!.AnalyseModelledConnectionsForRequest(Connections);
+            List<ModellingConnection> Connections = [ Connection1 ];
+            ModellingVarianceAnalysis varianceAnalysis = new (varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
+            List<WfReqTask> TaskList = await varianceAnalysis.AnalyseModelledConnectionsForRequest(Connections);
 
             ClassicAssert.AreEqual(6, TaskList.Count);
 
@@ -217,12 +215,12 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task TestAnalyseModelledConnectionsWithServiceGroups()
+        public async Task TestAnalyseModelledConnectionsForRequestWithServiceGroups()
         {
-            Connections = [ Connection1 ];
+            List<ModellingConnection> Connections = [ Connection1 ];
             userConfig.ModRolloutResolveServiceGroups = false;
-            varianceAnalysis = new (varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
-            List<WfReqTask> TaskList = await varianceAnalysis!.AnalyseModelledConnectionsForRequest(Connections);
+            ModellingVarianceAnalysis varianceAnalysis = new (varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
+            List<WfReqTask> TaskList = await varianceAnalysis.AnalyseModelledConnectionsForRequest(Connections);
 
             ClassicAssert.AreEqual(7, TaskList.Count);
             ClassicAssert.AreEqual(WfTaskType.group_modify.ToString(), TaskList[0].TaskType);
@@ -249,44 +247,113 @@ namespace FWO.Test
         [Test]
         public async Task TestAnalyseRules()
         {
-            // vary options: nwResolveGroup, svcResolveGroup
-            // AppRole: Surplus app servers, missing appservers
-            // Rule: surplus appRoles, missing appRoles
-            // missing rules in conns
-            // Recognition: NA, AppRole, AppServer, SvcGrp, Svc, Enabled, Negated, RejectRule
+            // open: NA, Enabled, Negated, DropRule
 
-            Connections = [ Connection1, Connection2, Connection3 ];
+            List<ModellingConnection> Connections = [ Connection1, Connection2, Connection3 ];
+            ModellingVarianceAnalysis varianceAnalysis = new (varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
             ModellingFilter modellingFilter = new();
-            ModellingVarianceResult result = await varianceAnalysis!.AnalyseRulesVsModelledConnections(Connections, modellingFilter);
+            ModellingVarianceResult result = await varianceAnalysis.AnalyseRulesVsModelledConnections(Connections, modellingFilter);
 
             ClassicAssert.AreEqual(1, result.UnModelledRules.Count);
-
-            ClassicAssert.AreEqual(1, result.RuleDifferences.Count);
-            ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules.Count);
-            ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules[0].ConnId);
+            ClassicAssert.AreEqual(1, result.UnModelledRules[1].Count);
+            ClassicAssert.AreEqual("NonModelledRule", result.UnModelledRules[1].First().Name);
 
             ClassicAssert.AreEqual(1, result.ConnsNotImplemented.Count);
             ClassicAssert.AreEqual(3, result.ConnsNotImplemented[0].Id);
             ClassicAssert.AreEqual("Conn3", result.ConnsNotImplemented[0].Name);
 
+            ClassicAssert.AreEqual(1, result.RuleDifferences.Count);
+            ClassicAssert.AreEqual("Conn1", result.RuleDifferences[0].ModelledConnection.Name);
+            ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules.Count);
+            ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules[0].DisregardedFroms.Length);
+            ClassicAssert.AreEqual("AppRole1 (AR504711-001)", result.RuleDifferences[0].ImplementedRules[0].DisregardedFroms[0].Object.Name);
+            ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules[0].DisregardedTos.Length);
+            ClassicAssert.AreEqual("AppServerUnchanged", result.RuleDifferences[0].ImplementedRules[0].DisregardedTos[0].Object.Name);
+            ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules[0].DisregardedServices.Length);
+            ClassicAssert.AreEqual("Service2", result.RuleDifferences[0].ImplementedRules[0].DisregardedServices[0].Name);
+            ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules[0].Froms.Length);
+            ClassicAssert.AreEqual("AppServerOld", result.RuleDifferences[0].ImplementedRules[0].Froms[0].Object.Name);
+            ClassicAssert.AreEqual(true, result.RuleDifferences[0].ImplementedRules[0].Froms[0].Object.IsSurplus);
+            ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules[0].Tos.Length);
+            ClassicAssert.AreEqual("AR504711-001", result.RuleDifferences[0].ImplementedRules[0].Tos[0].Object.Name);
+            ClassicAssert.AreEqual(false, result.RuleDifferences[0].ImplementedRules[0].Tos[0].Object.IsSurplus);
+            ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules[0].Services.Length);
+            ClassicAssert.AreEqual("Service1", result.RuleDifferences[0].ImplementedRules[0].Services[0].Content.Name);
+            ClassicAssert.AreEqual(false, result.RuleDifferences[0].ImplementedRules[0].Services[0].Content.IsSurplus);
 
+            ClassicAssert.AreEqual(1, result.DifferingAppRoles.Count);
+            ClassicAssert.AreEqual(1, result.DifferingAppRoles[1].Count);
+            ClassicAssert.AreEqual("AR504711-001", result.DifferingAppRoles[1].First().IdString);
+            ClassicAssert.AreEqual(1, result.DifferingAppRoles[1].First().SurplusAppServers.Count);
+            ClassicAssert.AreEqual("AppServerOld", result.DifferingAppRoles[1].First().SurplusAppServers[0].Content.Name);
+            ClassicAssert.AreEqual("1.0.0.0", result.DifferingAppRoles[1].First().SurplusAppServers[0].Content.Ip);
+            ClassicAssert.AreEqual(2, result.DifferingAppRoles[1].First().AppServers.Count);
+            ClassicAssert.AreEqual("AppServerUnchanged", result.DifferingAppRoles[1].First().AppServers[0].Content.Name);
+            ClassicAssert.AreEqual("1.2.3.4", result.DifferingAppRoles[1].First().AppServers[0].Content.Ip);
+            ClassicAssert.AreEqual(false, result.DifferingAppRoles[1].First().AppServers[0].Content.NotImplemented);
+            ClassicAssert.AreEqual("AppServerNew1", result.DifferingAppRoles[1].First().AppServers[1].Content.Name);
+            ClassicAssert.AreEqual(true, result.DifferingAppRoles[1].First().AppServers[1].Content.NotImplemented);
+        }
 
-            modellingFilter.AnalyseRemainingRules = true;
-            result = await varianceAnalysis!.AnalyseRulesVsModelledConnections(Connections, modellingFilter);
+        [Test]
+        public async Task TestAnalyseRulesOppositeRecogOptions()
+        {
+            List<ModellingConnection> Connections = [ Connection1, Connection2, Connection3 ];
+            userConfig.RuleRecognitionOption = "{\"nwRegardIp\":false,\"nwRegardName\":true,\"nwRegardGroupName\":true,\"nwResolveGroup\":true,\"nwSeparateGroupAnalysis\":false,\"svcRegardPortAndProt\":false,\"svcRegardName\":true,\"svcRegardGroupName\":true,\"svcResolveGroup\":false}";
+            ModellingVarianceAnalysis varianceAnalysis = new (varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
+            ModellingFilter modellingFilter = new();
+            ModellingVarianceResult result = await varianceAnalysis.AnalyseRulesVsModelledConnections(Connections, modellingFilter);
+
             ClassicAssert.AreEqual(1, result.UnModelledRules.Count);
             ClassicAssert.AreEqual(1, result.UnModelledRules[1].Count);
             ClassicAssert.AreEqual("NonModelledRule", result.UnModelledRules[1].First().Name);
 
+            ClassicAssert.AreEqual(1, result.ConnsNotImplemented.Count);
+            ClassicAssert.AreEqual(3, result.ConnsNotImplemented[0].Id);
+            ClassicAssert.AreEqual("Conn3", result.ConnsNotImplemented[0].Name);
+
+            ClassicAssert.AreEqual(1, result.RuleDifferences.Count);
+            ClassicAssert.AreEqual("Conn1", result.RuleDifferences[0].ModelledConnection.Name);
+            ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules.Count);
+            ClassicAssert.AreEqual(2, result.RuleDifferences[0].ImplementedRules[0].DisregardedFroms.Length);
+            ClassicAssert.AreEqual("AppServerUnchanged", result.RuleDifferences[0].ImplementedRules[0].DisregardedFroms[0].Object.Name);
+            ClassicAssert.AreEqual("AppServerNew1", result.RuleDifferences[0].ImplementedRules[0].DisregardedFroms[1].Object.Name);
+            ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules[0].DisregardedTos.Length);
+            ClassicAssert.AreEqual("AppServerNew2", result.RuleDifferences[0].ImplementedRules[0].DisregardedTos[0].Object.Name);
+            ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules[0].DisregardedServices.Length);
+            ClassicAssert.AreEqual("SvcGrp1", result.RuleDifferences[0].ImplementedRules[0].DisregardedServices[0].Name);
+            ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules[0].Froms.Length);
+            ClassicAssert.AreEqual("AppServerOld", result.RuleDifferences[0].ImplementedRules[0].Froms[0].Object.Name);
+            ClassicAssert.AreEqual(true, result.RuleDifferences[0].ImplementedRules[0].Froms[0].Object.IsSurplus);
+            ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules[0].Tos.Length);
+            ClassicAssert.AreEqual("AR504711-001", result.RuleDifferences[0].ImplementedRules[0].Tos[0].Object.Name);
+            ClassicAssert.AreEqual(false, result.RuleDifferences[0].ImplementedRules[0].Tos[0].Object.IsSurplus);
+            ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules[0].Services.Length);
+            ClassicAssert.AreEqual("Service1", result.RuleDifferences[0].ImplementedRules[0].Services[0].Content.Name);
+            ClassicAssert.AreEqual(false, result.RuleDifferences[0].ImplementedRules[0].Services[0].Content.IsSurplus);
+
+            ClassicAssert.AreEqual(0, result.DifferingAppRoles.Count);
+        }
+
+        [Test]
+        public async Task TestAnalyseRulesOtherMarkerLocation()
+        {
+            List<ModellingConnection> Connections = [ Connection1, Connection2, Connection3 ];
             userConfig.ModModelledMarker = "XXX";
             userConfig.ModModelledMarkerLocation = "comment";
-            varianceAnalysis = new (varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
-            result = await varianceAnalysis!.AnalyseRulesVsModelledConnections(Connections, modellingFilter);
+            ModellingVarianceAnalysis varianceAnalysis = new (varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
+            ModellingFilter modellingFilter = new(){ AnalyseRemainingRules = true };
+            ModellingVarianceResult result = await varianceAnalysis.AnalyseRulesVsModelledConnections(Connections, modellingFilter);
 
             ClassicAssert.AreEqual(2, result.ConnsNotImplemented.Count);
             ClassicAssert.AreEqual("Conn1", result.ConnsNotImplemented[0].Name);
             ClassicAssert.AreEqual("Conn2", result.ConnsNotImplemented[1].Name);
             ClassicAssert.AreEqual(1, result.RuleDifferences.Count);
             ClassicAssert.AreEqual("Conn3", result.RuleDifferences[0].ModelledConnection.Name);
+            ClassicAssert.AreEqual(1, result.UnModelledRules.Count);
+            ClassicAssert.AreEqual(2, result.UnModelledRules[1].Count);
+            ClassicAssert.AreEqual("FWOC1", result.UnModelledRules[1][0].Name);
+            ClassicAssert.AreEqual("xxxFWOC2yyy", result.UnModelledRules[1][1].Name);
          }
     }
 }

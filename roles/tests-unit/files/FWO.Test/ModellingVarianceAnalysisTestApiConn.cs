@@ -19,14 +19,18 @@ namespace FWO.Test
         static readonly NetworkObject AZProd = new() { Id = 3, Name = "AZ4711", Type = new() { Name = ObjectType.Group }, ObjectGroupFlats = [new() { Object = NwObj1 }, new() { Object = NwObj2 }] };
         static readonly ModellingAppZone AZExist = new() { Id = 3, Name = "AZ4711", IdString = "AZ4711", AppServers = new() { new() { Content = AppServer1 }, new() { Content = AppServer2 } } };
         static readonly NetworkService Svc1 = new() { Id = 1, DestinationPort = 1000, DestinationPortEnd = 2000, Name = "Service1", ProtoId = 6 };
-        static readonly Rule Rule1 = new() { Name = "FWOC1" };
+        static readonly Rule Rule1 = new() 
+        {
+            Name = "FWOC1" ,
+            Froms = [ new(new(), NwObj2) ],
+            Tos = [ new(new(), Nwgroup1) ],
+            Services = [ new(){ Content = Svc1 } ]
+        };
         static readonly Rule Rule2 = new() 
         {
             Name = "xxxFWOC2yyy",
             Froms = [ new(new(), NwObj1) ],
-            // Froms = [ new (new(), new(){ ObjectGroupFlats = [ new(){ Object = NwObj1 }]})],
             Tos = [ new(new(), Nwgroup3) ],
-            // Tos = [ new (new(), new(){ ObjectGroupFlats = [ new(){ Object = Nwgroup3 }]})],
             Services = [ new(){ Content = Svc1 } ]
         };
         static readonly Rule Rule3 = new() { Name = "NonModelledRule", Comment = "XXX3" };

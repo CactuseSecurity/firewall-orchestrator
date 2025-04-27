@@ -18,6 +18,9 @@ namespace FWO.Test
         static readonly ModellingAppServer AppSrv4 = new() { Name = "AppSrv1", Ip = "1.1.1.1", IpEnd = "1.1.1.2" };
         static readonly ModellingAppServer AppSrv5 = new() { Name = "AppSrv1 ", Ip = "", IpEnd = "" };
 
+        static readonly ModellingAppRole AppRole1 = new() { Name = "AppRole1", IdString = "AR1", AppServers = [ new(){Content = AppSrv1} ] };
+        static readonly ModellingAppRole AppRole2 = new() { Name = "AppRole2", IdString = "AR2", AppServers = [ new(){Content = AppSrv2} ] };
+
         static readonly ModellingAppServerWrapper AppSrvWrap1 = new() { Content = AppSrv1 };
         static readonly ModellingAppServerWrapper AppSrvWrap2 = new() { Content = AppSrv2 };
         static readonly ModellingAppServerWrapper AppSrvWrap3 = new() { Content = AppSrv3 };
@@ -121,6 +124,17 @@ namespace FWO.Test
             ClassicAssert.AreEqual(false, appServerComparer.GetHashCode(AppSrvWrap1) == appServerComparer.GetHashCode(AppSrvWrap3));
             ClassicAssert.AreEqual(true, appServerComparer.GetHashCode(AppSrvWrap1) == appServerComparer.GetHashCode(AppSrvWrap4));
             ClassicAssert.AreEqual(true, appServerComparer.GetHashCode(AppSrvWrap1) == appServerComparer.GetHashCode(AppSrvWrap5));
+        }
+
+        [Test]
+        public void TestAppRoleComparer()
+        {
+            AppRoleComparer appRoleComparer = new();
+
+            ClassicAssert.AreEqual(true, appRoleComparer.Equals(AppRole1,AppRole1));
+            ClassicAssert.AreEqual(false, appRoleComparer.Equals(AppRole1,AppRole2));
+            ClassicAssert.AreEqual(true, appRoleComparer.GetHashCode(AppRole1) == appRoleComparer.GetHashCode(AppRole1));
+            ClassicAssert.AreEqual(false, appRoleComparer.GetHashCode(AppRole1) == appRoleComparer.GetHashCode(AppRole2));
         }
 
         [Test]

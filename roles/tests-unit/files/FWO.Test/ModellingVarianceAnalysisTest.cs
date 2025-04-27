@@ -27,7 +27,7 @@ namespace FWO.Test
         static readonly FwoOwner Application = new() { Id = 1, Name = "App1" };
 
         static readonly ModellingAppServer AS1 = new() {Id = 1, Name = "AppServerUnchanged", Ip = "1.2.3.4" };
-        static readonly ModellingAppServer AS2 = new() {Id = 2, Name = "AppServerNew1", Ip = "1.1.1.1", IpEnd = "1.1.1.1" };
+        static readonly ModellingAppServer AS2 = new() {Id = 2, Name = "AppServerNew1/32", Ip = "1.1.1.1", IpEnd = "1.1.1.1" };
         static readonly ModellingAppServer AS3 = new() {Id = 3, Name = "AppServerNew2", Ip = "2.2.2.2", IpEnd = "2.2.2.2" };
 
         static readonly ModellingAppRole AR1 = new() { Id = 1, Name = "AppRole1", IdString = "AR504711-001", AppServers = [ new(){Content = AS1}, new(){Content = AS2} ]};
@@ -86,7 +86,7 @@ namespace FWO.Test
             ClassicAssert.AreEqual(1, TaskList[0].TaskNumber);
             ClassicAssert.AreEqual("Update AppZone: AZ4711: Add Members", TaskList[0].Title);
             ClassicAssert.AreEqual(4, TaskList[0].Elements.Count);
-            ClassicAssert.AreEqual("AppServerNew1", TaskList[0].Elements[0].Name);
+            ClassicAssert.AreEqual("AppServerNew1_32", TaskList[0].Elements[0].Name);
             ClassicAssert.AreEqual("AppServerNew2", TaskList[0].Elements[1].Name);
             ClassicAssert.AreEqual("AppServerUnchanged", TaskList[0].Elements[2].Name);
             ClassicAssert.AreEqual("AZ4711", TaskList[0].Elements[0].GroupName);
@@ -110,7 +110,7 @@ namespace FWO.Test
             ClassicAssert.AreEqual(1, TaskList[1].ManagementId);
             ClassicAssert.AreEqual("Checkpoint1", TaskList[1].OnManagement?.Name);
             ClassicAssert.AreEqual(3, TaskList[1].Elements.Count);
-            ClassicAssert.AreEqual("AppServerNew1", TaskList[1].Elements[0].Name);
+            ClassicAssert.AreEqual("AppServerNew1/32", TaskList[1].Elements[0].Name);
             ClassicAssert.AreEqual("AR504711-001", TaskList[1].Elements[0].GroupName);
             ClassicAssert.AreEqual("1.1.1.1", TaskList[1].Elements[0].IpString);
             ClassicAssert.AreEqual("source", TaskList[1].Elements[0].Field);
@@ -185,7 +185,7 @@ namespace FWO.Test
             ClassicAssert.AreEqual("delete", TaskList[4].Elements[0].RequestAction);
             ClassicAssert.AreEqual("AppServerUnchanged", TaskList[4].Elements[1].Name);
             ClassicAssert.AreEqual("unchanged", TaskList[4].Elements[1].RequestAction);
-            ClassicAssert.AreEqual("AppServerNew1", TaskList[4].Elements[2].Name);
+            ClassicAssert.AreEqual("AppServerNew1_32", TaskList[4].Elements[2].Name);
             ClassicAssert.AreEqual("unchanged", TaskList[4].Elements[2].RequestAction);
             ClassicAssert.AreEqual("AppServerNew2", TaskList[4].Elements[3].Name);
 
@@ -207,7 +207,7 @@ namespace FWO.Test
             ClassicAssert.AreEqual("1.2.3.4", TaskList[5].Elements[1].IpString);
             ClassicAssert.AreEqual("source", TaskList[5].Elements[1].Field);
             ClassicAssert.AreEqual("unchanged", TaskList[5].Elements[1].RequestAction);
-            ClassicAssert.AreEqual("AppServerNew1", TaskList[5].Elements[2].Name);
+            ClassicAssert.AreEqual("AppServerNew1/32", TaskList[5].Elements[2].Name);
             ClassicAssert.AreEqual("AR504711-001", TaskList[5].Elements[2].GroupName);
             ClassicAssert.AreEqual("1.1.1.1", TaskList[5].Elements[2].IpString);
             ClassicAssert.AreEqual("source", TaskList[5].Elements[2].Field);
@@ -291,7 +291,7 @@ namespace FWO.Test
             ClassicAssert.AreEqual("AppServerUnchanged", result.DifferingAppRoles[1].First().AppServers[0].Content.Name);
             ClassicAssert.AreEqual("1.2.3.4", result.DifferingAppRoles[1].First().AppServers[0].Content.Ip);
             ClassicAssert.AreEqual(false, result.DifferingAppRoles[1].First().AppServers[0].Content.NotImplemented);
-            ClassicAssert.AreEqual("AppServerNew1", result.DifferingAppRoles[1].First().AppServers[1].Content.Name);
+            ClassicAssert.AreEqual("AppServerNew1/32", result.DifferingAppRoles[1].First().AppServers[1].Content.Name);
             ClassicAssert.AreEqual(true, result.DifferingAppRoles[1].First().AppServers[1].Content.NotImplemented);
         }
 
@@ -317,7 +317,7 @@ namespace FWO.Test
             ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules.Count);
             ClassicAssert.AreEqual(2, result.RuleDifferences[0].ImplementedRules[0].DisregardedFroms.Length);
             ClassicAssert.AreEqual("AppServerUnchanged", result.RuleDifferences[0].ImplementedRules[0].DisregardedFroms[0].Object.Name);
-            ClassicAssert.AreEqual("AppServerNew1", result.RuleDifferences[0].ImplementedRules[0].DisregardedFroms[1].Object.Name);
+            ClassicAssert.AreEqual("AppServerNew1/32", result.RuleDifferences[0].ImplementedRules[0].DisregardedFroms[1].Object.Name);
             ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules[0].DisregardedTos.Length);
             ClassicAssert.AreEqual("AppServerNew2", result.RuleDifferences[0].ImplementedRules[0].DisregardedTos[0].Object.Name);
             ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules[0].DisregardedServices.Length);

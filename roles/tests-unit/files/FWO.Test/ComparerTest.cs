@@ -12,11 +12,12 @@ namespace FWO.Test
     [Parallelizable]
     internal class ComparerTest
     {
-        static readonly ModellingAppServer AppSrv1 = new() { Name = "AppSrv1", Ip = "1.2.3.4", IpEnd = "1.2.3.4" };
+        static readonly ModellingAppServer AppSrv1 = new() { Name = "AppSrv_1", Ip = "1.2.3.4", IpEnd = "1.2.3.4" };
         static readonly ModellingAppServer AppSrv2 = new() { Name = "AppSrv2", Ip = "1.2.3.4", IpEnd = "1.2.3.4" };
         static readonly ModellingAppServer AppSrv3 = new() { Name = "", Ip = "1.2.3.4", IpEnd = "1.2.3.4" };
-        static readonly ModellingAppServer AppSrv4 = new() { Name = "AppSrv1", Ip = "1.1.1.1", IpEnd = "1.1.1.2" };
-        static readonly ModellingAppServer AppSrv5 = new() { Name = "AppSrv1 ", Ip = "", IpEnd = "" };
+        static readonly ModellingAppServer AppSrv4 = new() { Name = "AppSrv_1", Ip = "1.1.1.1", IpEnd = "1.1.1.2" };
+        static readonly ModellingAppServer AppSrv5 = new() { Name = "AppSrv_1", Ip = "", IpEnd = "" };
+        static readonly ModellingAppServer AppSrv6 = new() { Name = "AppSrv/1 ", Ip = "1.2.3.4", IpEnd = "1.2.3.4" };
 
         static readonly ModellingAppRole AppRole1 = new() { Name = "AppRole1", IdString = "AR1", AppServers = [ new(){Content = AppSrv1} ] };
         static readonly ModellingAppRole AppRole2 = new() { Name = "AppRole2", IdString = "AR2", AppServers = [ new(){Content = AppSrv2} ] };
@@ -26,6 +27,7 @@ namespace FWO.Test
         static readonly ModellingAppServerWrapper AppSrvWrap3 = new() { Content = AppSrv3 };
         static readonly ModellingAppServerWrapper AppSrvWrap4 = new() { Content = AppSrv4 };
         static readonly ModellingAppServerWrapper AppSrvWrap5 = new() { Content = AppSrv5 };
+        static readonly ModellingAppServerWrapper AppSrvWrap6 = new() { Content = AppSrv6 };
 
         static readonly NetworkObject NwObj1 = new() { Name = "NwObj1", IP = "1.2.3.4", IpEnd = "1.2.3.4" };
         static readonly NetworkObject NwObj2 = new() { Name = "NwObj2", IP = "1.2.3.4", IpEnd = "1.2.3.4" };
@@ -83,21 +85,25 @@ namespace FWO.Test
             ClassicAssert.AreEqual(false, appServerComparer.Equals(AppSrv1,AppSrv3));
             ClassicAssert.AreEqual(true, appServerComparer.Equals(AppSrv1,AppSrv4));
             ClassicAssert.AreEqual(true, appServerComparer.Equals(AppSrv1,AppSrv5));
+            ClassicAssert.AreEqual(true, appServerComparer.Equals(AppSrv1,AppSrv6));
             ClassicAssert.AreEqual(true, appServerComparer.GetHashCode(AppSrv1) == appServerComparer.GetHashCode(AppSrv1));
             ClassicAssert.AreEqual(false, appServerComparer.GetHashCode(AppSrv1) == appServerComparer.GetHashCode(AppSrv2));
             ClassicAssert.AreEqual(false, appServerComparer.GetHashCode(AppSrv1) == appServerComparer.GetHashCode(AppSrv3));
             ClassicAssert.AreEqual(true, appServerComparer.GetHashCode(AppSrv1) == appServerComparer.GetHashCode(AppSrv4));
             ClassicAssert.AreEqual(true, appServerComparer.GetHashCode(AppSrv1) == appServerComparer.GetHashCode(AppSrv5));
+            ClassicAssert.AreEqual(true, appServerComparer.GetHashCode(AppSrv1) == appServerComparer.GetHashCode(AppSrv6));
             ClassicAssert.AreEqual(true, appServerComparer.Equals(AppSrvWrap1,AppSrvWrap1));
             ClassicAssert.AreEqual(false, appServerComparer.Equals(AppSrvWrap1,AppSrvWrap2));
             ClassicAssert.AreEqual(false, appServerComparer.Equals(AppSrvWrap1,AppSrvWrap3));
             ClassicAssert.AreEqual(true, appServerComparer.Equals(AppSrvWrap1,AppSrvWrap4));
             ClassicAssert.AreEqual(true, appServerComparer.Equals(AppSrvWrap1,AppSrvWrap5));
+            ClassicAssert.AreEqual(true, appServerComparer.Equals(AppSrvWrap1,AppSrvWrap6));
             ClassicAssert.AreEqual(true, appServerComparer.GetHashCode(AppSrvWrap1) == appServerComparer.GetHashCode(AppSrvWrap1));
             ClassicAssert.AreEqual(false, appServerComparer.GetHashCode(AppSrvWrap1) == appServerComparer.GetHashCode(AppSrvWrap2));
             ClassicAssert.AreEqual(false, appServerComparer.GetHashCode(AppSrvWrap1) == appServerComparer.GetHashCode(AppSrvWrap3));
             ClassicAssert.AreEqual(true, appServerComparer.GetHashCode(AppSrvWrap1) == appServerComparer.GetHashCode(AppSrvWrap4));
             ClassicAssert.AreEqual(true, appServerComparer.GetHashCode(AppSrvWrap1) == appServerComparer.GetHashCode(AppSrvWrap5));
+            ClassicAssert.AreEqual(true, appServerComparer.GetHashCode(AppSrvWrap1) == appServerComparer.GetHashCode(AppSrvWrap6));
 
             namingConvention.AppServerPrefix = "host_";
             namingConvention.NetworkPrefix = "net_";
@@ -109,21 +115,25 @@ namespace FWO.Test
             ClassicAssert.AreEqual(false, appServerComparer.Equals(AppSrv1,AppSrv3));
             ClassicAssert.AreEqual(true, appServerComparer.Equals(AppSrv1,AppSrv4));
             ClassicAssert.AreEqual(true, appServerComparer.Equals(AppSrv1,AppSrv5));
+            ClassicAssert.AreEqual(true, appServerComparer.Equals(AppSrv1,AppSrv6));
             ClassicAssert.AreEqual(true, appServerComparer.GetHashCode(AppSrv1) == appServerComparer.GetHashCode(AppSrv1));
             ClassicAssert.AreEqual(false, appServerComparer.GetHashCode(AppSrv1) == appServerComparer.GetHashCode(AppSrv2));
             ClassicAssert.AreEqual(false, appServerComparer.GetHashCode(AppSrv1) == appServerComparer.GetHashCode(AppSrv3));
             ClassicAssert.AreEqual(true, appServerComparer.GetHashCode(AppSrv1) == appServerComparer.GetHashCode(AppSrv4));
             ClassicAssert.AreEqual(true, appServerComparer.GetHashCode(AppSrv1) == appServerComparer.GetHashCode(AppSrv5));
+            ClassicAssert.AreEqual(true, appServerComparer.GetHashCode(AppSrv1) == appServerComparer.GetHashCode(AppSrv6));
             ClassicAssert.AreEqual(true, appServerComparer.Equals(AppSrvWrap1,AppSrvWrap1));
             ClassicAssert.AreEqual(false, appServerComparer.Equals(AppSrvWrap1,AppSrvWrap2));
             ClassicAssert.AreEqual(false, appServerComparer.Equals(AppSrvWrap1,AppSrvWrap3));
             ClassicAssert.AreEqual(true, appServerComparer.Equals(AppSrvWrap1,AppSrvWrap4));
             ClassicAssert.AreEqual(true, appServerComparer.Equals(AppSrvWrap1,AppSrvWrap5));
+            ClassicAssert.AreEqual(true, appServerComparer.Equals(AppSrvWrap1,AppSrvWrap6));
             ClassicAssert.AreEqual(true, appServerComparer.GetHashCode(AppSrvWrap1) == appServerComparer.GetHashCode(AppSrvWrap1));
             ClassicAssert.AreEqual(false, appServerComparer.GetHashCode(AppSrvWrap1) == appServerComparer.GetHashCode(AppSrvWrap2));
             ClassicAssert.AreEqual(false, appServerComparer.GetHashCode(AppSrvWrap1) == appServerComparer.GetHashCode(AppSrvWrap3));
             ClassicAssert.AreEqual(true, appServerComparer.GetHashCode(AppSrvWrap1) == appServerComparer.GetHashCode(AppSrvWrap4));
             ClassicAssert.AreEqual(true, appServerComparer.GetHashCode(AppSrvWrap1) == appServerComparer.GetHashCode(AppSrvWrap5));
+            ClassicAssert.AreEqual(true, appServerComparer.GetHashCode(AppSrvWrap1) == appServerComparer.GetHashCode(AppSrvWrap6));
         }
 
         [Test]

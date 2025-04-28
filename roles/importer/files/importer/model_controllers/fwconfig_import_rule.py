@@ -17,17 +17,17 @@ from models.rule_from import RuleFrom
 from models.rule_to import RuleTo
 from models.rule_service import RuleService
 
+
 # this class is used for importing rules and rule refs into the FWO API
 class FwConfigImportRule(FwConfigImportBase):
 
     def __init__(self, importState: ImportStateController, config: FwConfigNormalized):
-        super().__init__(importState, config)
+      super().__init__(importState, config)
     # #   self.ActionMap = self.GetActionMap()
     # #   self.TrackMap = self.GetTrackMap()
     #   self.RuleNumLookup = self.GetRuleNumMap()             # TODO: needs to be updated with each insert
     #   self.NextRuleNumLookup = self.GetNextRuleNumMap()     # TODO: needs to be updated with each insert
     #   # self.RulebaseMap = self.GetRulebaseMap()     # limited to the current mgm_id
-    
 
     def updateRulebaseDiffs(self, prevConfig: FwConfigNormalized):
         logger = getFwoLogger(debug_level=self.ImportDetails.DebugLevel)
@@ -106,94 +106,7 @@ class FwConfigImportRule(FwConfigImportBase):
 
         # TODO: rule_nwobj_resolved fuellen (recert?)
         return newRuleIds
-        
 
-    def moveRules(self, movedRuleUids, target_rule_uids):
-        logger = getFwoLogger()
-        errorCountMove = 0
-        numberOfMovedRules = 0
-        movedRuleIds = []
-
-        ruleMoveArgs = self.createRuleMoveArgs(movedRuleUids, target_rule_uids)
-
-        # TODO: Post mutation
-
-        return errorCountMove, numberOfMovedRules, movedRuleIds
-    
-    def createRuleMoveArgs(self, movedRuleUids, target_rule_uids):
-        logger = getFwoLogger()
-        errorCountMove = 0
-        numberOfMovedRules = 0
-        movedRuleIds = []
-        rule_move_args = []
-        rule_num_map = {}
-        flatted_rule_num_map = []
-
-        # try:
-        #     get_rule_num_map_result = self.GetRuleNumMap()
-
-        #     if 'errors' in get_rule_num_map_result:
-        #         errorCountMove += 1 
-        #         raise fwo_exceptions.FwoApiFailure(f"failed to query current rules: {str(traceback.format_exc())}")
-        #     else:
-        #         rule_num_map = get_rule_num_map_result["data"]["rule"]
-
-        #         for rule_num_map_rulebase_key in rule_num_map.keys():
-        #             flatted_rule_num_map.extend(rule_num_map[rule_num_map_rulebase_key])
-                
-        #         for movedRuleUidRulebase in movedRuleUids:
-        #             for rule_uid in movedRuleUidRulebase:
-        #                 current_rule = next((rule for rule in flatted_rule_num_map if rule["rule_uid"] == rule_uid), None)
-        #                 current_rule_index = flatted_rule_num_map.index(current_rule)
-        #                 predecessor_index = 0 if current_rule_index == 0 else current_rule_index -1
-        #                 successor = 0 if current_rule == flatted_rule_num_map.last() else current_rule_index + 1
-        #                 new_rule_num_numeric = 0
-
-        #                 # if predecessor_index == 0 and len(flatted_rule_num_map) > 1: # first
-
-        #                 # rule_move_args.append({
-        #                 #         "where": {"rule_uid": {"_eq": rule_uid}},
-        #                 #         "_set": {
-        #                 #             "rule_num_numeric": new_rule_num_numeric
-        #                 #         }
-        #                 #     }
-        #                 # )
-
-        # except Exception:
-        #     errorCountMove += 1 
-        #     raise fwo_exceptions.FwoApiFailure(f"failed to query current rules: {str(traceback.format_exc())}")
-        
-        return rule_move_args
-
-    def getCurrentNotRemovedRules(self):
-
-        getCurrentRules = """query getCurrentRules{
-            rule(
-                where:{removed:{_eq:null}}
-                order_by: { rule_num_numeric: asc }
-            ){
-                rule_id,
-                rule_num_numeric,
-                rule_uid
-            }
-        }
-        """
-
-        return self.ImportDetails.call(getCurrentRules, queryVariables={})
-
-    def writeRuleMovesToDb(self, rule_move_args):
-        logger = getFwoLogger()
-        errorCountMove = 0
-        numberOfMovedRules = 0
-        movedRuleIds = []
-
-        # TODO: Define mutation
-        # TODO: Implement api call
-
-        return errorCountMove, numberOfMovedRules, movedRuleIds
-
-    def getRulesFromDb():
-        pass
 
     def addNewRule2ObjRefs(self, newRules):
         # for each new rule: add refs in rule_to and rule_from
@@ -573,9 +486,6 @@ class FwConfigImportRule(FwConfigImportBase):
                 ) { affected_rows,  returning { rule_id } }
             }
         """
-
-        self._reusable_counter = 0
-
         for rulebase in newRulesForImport:
             if 'rules' in rulebase and 'data' in rulebase['rules'] and len(rulebase['rules']['data'])>0:
                 queryVariables = { 'rules': rulebase['rules']['data'] }
@@ -649,6 +559,7 @@ class FwConfigImportRule(FwConfigImportBase):
             # Rules: List[Rule] = []
 
         newRulesForImport: List[RulebaseForImport] = []
+
 
         for rulebase in newRules:
             rules = {"data": []}
@@ -754,19 +665,7 @@ class FwConfigImportRule(FwConfigImportBase):
 
     # TODO: limit query to a single rulebase
     def GetRuleNumMap(self):
-
-        query = """query getRuleNumMap($mgmId: Int) {
-            rule(
-                where: { removed: { _eq: null }, mgm_id: { _eq: $mgmId } }
-                order_by: { rule_num_numeric: asc }
-            ) {
-                rule_id
-                rule_num_numeric
-                rule_uid,
-                rulebase_id
-        }
-        """
-        
+        query = "query getRuleNumMap($mgmId: Int) { rule(where:{mgm_id:{_eq:$mgmId}}) { rule_uid rulebase_id rule_num_numeric } }"
         try:
             result = self.ImportDetails.call(query=query, queryVariables={"mgmId": self.ImportDetails.MgmDetails.Id})
         except Exception:
@@ -780,30 +679,6 @@ class FwConfigImportRule(FwConfigImportBase):
                 map.update({ ruleNum['rulebase_id']: {} })  # initialize rulebase
             map[ruleNum['rulebase_id']].update({ ruleNum['rule_uid']: ruleNum['rule_num_numeric']})
         return map
-    
-    def getRuleNumMapFlat(self):
-
-        query = """query 
-            getRuleNumMap($mgmId: Int){ 
-                rule(
-                    where:{removed:{_eq:null}, mgm_id: { _eq: $mgmId } }
-                    order_by: { rule_num_numeric: asc }
-                )
-                { 
-                    rule_uid 
-                    rulebase_id 
-                    rule_num_numeric
-                }
-        }"""
-        
-        try:
-            result = self.ImportDetails.call(query=query, queryVariables={"mgmId": self.ImportDetails.MgmDetails.Id})
-        except Exception:
-            logger = getFwoLogger()
-            logger.error(f'Error while getting rule number map')
-            return {}
-        
-        return result['data']['rule']
 
     def GetNextRuleNumMap(self):    # TODO: implement!
         query = "query getRuleNumMap { rule { rule_uid rule_num_numeric } }"
@@ -933,7 +808,6 @@ class FwConfigImportRule(FwConfigImportBase):
                         rule_num
                         rule_num_numeric
                         rule_uid
-                        rule_id
                     }
                 }
             }
@@ -1020,9 +894,6 @@ class FwConfigImportRule(FwConfigImportBase):
 
         for rule in Rules:
             listOfEnforcedGwIds = []
-            # self._reusable_counter += 1
-            
-
             for gwUid in rule.rule_installon.split(fwo_const.list_delimiter):
                 gwId = importDetails.lookupGatewayId(gwUid)
                 if gwId is not None:
@@ -1061,7 +932,7 @@ class FwConfigImportRule(FwConfigImportBase):
                 rulebase_id=rulebase_id,
                 rule_create=importDetails.ImportId,
                 rule_last_seen=importDetails.ImportId,
-                rule_num_numeric= rule.rule_num_numeric, # self.get_new_rule_num_numeric(),
+                rule_num_numeric=1,
                 action_id = importDetails.lookupAction(rule.rule_action),
                 track_id = importDetails.lookupTrack(rule.rule_track),
                 rule_head_text=rule.rule_head_text
@@ -1072,107 +943,4 @@ class FwConfigImportRule(FwConfigImportBase):
 
             prepared_rules.append(rule_for_import)
         return { "data": prepared_rules }
-
-def lcs_dp(seq1, seq2):
-    """
-    Compute the length and dynamic programming (DP) table for the longest common subsequence (LCS)
-    between seq1 and seq2. Returns (dp, length) where dp is a 2D table and
-    length = dp[len(seq1)][len(seq2)].
-    """
-    m, n = len(seq1), len(seq2)
-    dp = [[0]*(n+1) for _ in range(m+1)]
-   
-    for i in range(m):
-        for j in range(n):
-            if seq1[i] == seq2[j]:
-                dp[i+1][j+1] = dp[i][j] + 1
-            else:
-                dp[i+1][j+1] = max(dp[i+1][j], dp[i][j+1])
-    return dp, dp[m][n]
-
-def backtrack_lcs(seq1, seq2, dp):
-    """
-    Backtracks the dynamic programming (DP) table to recover one longest common subsequence (LCS) (as a list of (i, j) index pairs).
-    These index pairs indicate positions in seq1 and seq2 that match in the LCS.
-    """
-    lcs_indices = []
-    i, j = len(seq1), len(seq2)
-    while i > 0 and j > 0:
-        if seq1[i-1] == seq2[j-1]:
-            lcs_indices.append((i-1, j-1))
-            i -= 1
-            j -= 1
-        elif dp[i-1][j] >= dp[i][j-1]:
-            i -= 1
-        else:
-            j -= 1
-    lcs_indices.reverse()
-    return lcs_indices
-
-def compute_min_moves(source, target):
-    """
-    Computes the minimal number of operations required to transform the source list into the target list,
-    where allowed operations are:
-       - pop-and-reinsert a common element (to reposition it)
-       - delete (an element in source not present in target)
-       - insert (an element in target not present in source)
-
-    Returns a dictionary with all gathered data (total_moves, operations, deletions, insertions and moves) where operations is a list of suggested human readable operations.
-    """
-    # Build sets (assume uniqueness for membership checks)
-    target_set = set(target)
-    source_set = set(source)
-   
-    # Identify the common elements:
-    S_common = [elem for elem in source if elem in target_set]
-    T_common = [elem for elem in target if elem in source_set]
-   
-    # Calculate deletions and insertions:
-    deletions = [ (i, elem) for i, elem in enumerate(source) if elem not in target_set ]
-    insertions = [ (j, elem) for j, elem in enumerate(target) if elem not in source_set ]
-   
-    # Compute the longest common subsequence (LCS) between S_common and T_common – these are common elements already in correct relative order.
-    dp, lcs_length = lcs_dp(S_common, T_common)
-    lcs_indices = backtrack_lcs(S_common, T_common, dp)
-   
-    # To decide which common elements must be repositioned, mark the indices in S_common which are part of the LCS.
-    in_place = [False] * len(S_common)
-    for i, _ in lcs_indices:
-        in_place[i] = True
-    # Every common element in S_common not in the LCS will need a pop-and-reinsert.
-    reposition_moves = []
-    # To better explain (rough indexing): We traverse the source list and when we get to a common element,
-    # we check if it is “in place”. Note that because S_common is a filtered version of source, we need
-    # to convert back to indices in the original source. We do this by iterating over source and whenever
-    # we encounter an element in target_set, we pop the next value from S_common.
-    s_common_iter = 0
-    for orig_index, elem in enumerate(source):
-        if elem in target_set:
-            # This element is one of the common ones.
-            if not in_place[s_common_iter]:
-                # This element is not in the LCS so it will be repositioned.
-                # We will reinsert it to the position where it should appear in target.
-                reposition_moves.append((orig_index, elem, target.index(elem)))
-            s_common_iter += 1
-
-    total_moves = (len(deletions)
-                   + len(insertions)
-                   + len(reposition_moves))
-
-    # Build a list of human‐readable operations.
-    operations = []
-    for idx, elem in deletions:
-        operations.append(f"Delete element '{elem}' at source index {idx}.")
-    for idx, elem in insertions:
-        operations.append(f"Insert element '{elem}' at target position {idx}.")
-    for idx, elem, target_pos in reposition_moves:
-        operations.append(f"Pop element '{elem}' from source index {idx} and reinsert at target position {target_pos}.")
-   
-    return {
-        "moves": total_moves,
-        "operations": operations,
-        "deletions": deletions,
-        "insertions": insertions,
-        "reposition_moves": reposition_moves
-    }
-
+    

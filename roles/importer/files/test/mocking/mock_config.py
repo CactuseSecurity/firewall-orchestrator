@@ -1,18 +1,8 @@
 import json
 import uuid
 from typing import Union
-
-if __name__ == '__main__': # for usage as executable script
-    from uid_manager import UidManager
-    from mock_rulebase import MockRulebase
-else: # for usage in unit tests
-    from . uid_manager import UidManager
-    from . mock_rulebase import MockRulebase
-    from importer.models.fwconfig_normalized import FwConfigNormalized
-    from importer.models.rulebase import Rulebase
-    from importer.models.rule import Rule
-    from pydantic import PrivateAttr
-    from importer.fwo_const import rule_num_numeric_steps
+from uid_manager import UidManager
+from mock_rulebase import MockRulebase
 
 """ 
 
@@ -22,76 +12,6 @@ This script does create a config similar to the normalized config we get when we
 It simply creates an empty config with the bare minimum to import n rules. To make it work you have to deactivate the consistency checks and create only one rulebase. 
 
 """
-
-class MockFwConfigNormalized(FwConfigNormalized):
-    _uid_manager: UidManager = PrivateAttr()
-
-    def __init__(self, **kwargs):
-        super().__init__(action="INSERT", gateways=[], **kwargs)
-        self._uid_manager = UidManager()
-
-    @property
-    def uid_manager(self) -> UidManager:
-        return self._uid_manager
-
-    def initialize_config(self, mock_config: dict):
-        mock_mgm_uid = self.uid_manager.create_uid()
-        created_rule_counter = 1
-
-        for number_of_rules in mock_config["rule_config"]:
-            new_rulebase_uid = self.uid_manager.create_uid()
-            new_rulebase = Rulebase(
-                uid = new_rulebase_uid,
-                name = f"Rulebase {new_rulebase_uid}",
-                mgm_uid = mock_mgm_uid
-            )
-            self.rulebases.append(new_rulebase)
-
-            for i in range(number_of_rules):
-                new_rule = self.add_rule_to_rulebase(new_rulebase_uid)
-
-                if  mock_config.get("initialize_rule_num_numeric"):
-                    new_rule.rule_num_numeric = created_rule_counter * rule_num_numeric_steps
-                    created_rule_counter += 1 
-
-
-                
-            
-
-    def add_rule_to_rulebase(self, rulebase_uid: str):
-        rulebase = next(rb for rb in self.rulebases if rb.uid == rulebase_uid)
-
-        new_rule =  Rule(
-            action_id = 0,
-            mgm_id = 0,
-            rule_action = "accept",
-            rule_create = 0,
-            rule_disabled = False,
-            rule_dst = "",
-            rule_dst_neg = False,
-            rule_dst_refs = "",
-            rule_last_seen = 0,
-            rule_num = 0,
-            rule_num_numeric = 0,
-            rule_src = "",
-            rule_src_neg = False,
-            rule_src_refs = "",
-            rule_svc = "",
-            rule_svc_neg = False,
-            rule_svc_refs = "",
-            rule_time = "",
-            track_id = 0,
-            rule_track = "none",
-            rule_uid = self.uid_manager.create_uid(),
-            rule_installon = ""
-        )
-        rulebase.Rules[new_rule.rule_uid] = new_rule
-
-        return new_rule
-        
-
-
-
 
 class ConfigMocker:
     config_type = "normalized"

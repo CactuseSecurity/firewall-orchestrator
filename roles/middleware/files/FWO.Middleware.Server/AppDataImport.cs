@@ -119,11 +119,10 @@ namespace FWO.Middleware.Server
 			int deleteCounter = 0;
 			int deleteFailCounter = 0;
 
-			if (!globalConfig.OwnerLdapGroupNames.Contains(GlobalConst.kAppIdPlaceholder))
-			{
-                Log.WriteWarning("Import App Data", $"Owner group pattern does not contain placeholder {GlobalConst.kAppIdPlaceholder}");
-                Log.WriteAlert($"source: \"{GlobalConst.kImportAppData}\"",
-                    $"userId: \"0\", title: \"Error encountered while trying to import App Data\", description: \"Owner group name does not contain placeholder {GlobalConst.kAppIdPlaceholder}\", alertCode: \"{AlertCode.ImportAppData}\"");
+			if (!(globalConfig.OwnerLdapGroupNames.Contains(GlobalConst.kAppIdPlaceholder) ||
+                globalConfig.OwnerLdapGroupNames.Contains(GlobalConst.kFullAppIdPlaceholder)))
+            {
+                Log.WriteWarning("Import App Data", $"Owner group pattern does not contain any of the placeholders {GlobalConst.kAppIdPlaceholder} or {GlobalConst.kFullAppIdPlaceholder}.");
 			}
 			else
 			{
@@ -273,7 +272,24 @@ namespace FWO.Middleware.Server
 
 		private string GetGroupName(string extAppIdString)
 		{
-			return globalConfig.OwnerLdapGroupNames.Replace(GlobalConst.kAppIdPlaceholder, extAppIdString);
+            // hard-coded GlobalConst.kAppIdSeparator could be moved to settings
+
+            if (globalConfig.OwnerLdapGroupNames.Contains(GlobalConst.kFullAppIdPlaceholder))
+            {
+    			return globalConfig.OwnerLdapGroupNames.Replace(GlobalConst.kFullAppIdPlaceholder, extAppIdString);
+            }
+            
+            if (globalConfig.OwnerLdapGroupNames.Contains(GlobalConst.kAppPrefixPlaceholder) && 
+                globalConfig.OwnerLdapGroupNames.Contains(GlobalConst.kAppIdPlaceholder))
+            {
+				string[] parts = extAppIdString.Split(GlobalConst.kAppIdSeparator);
+				string appPrefix = parts.Length > 0 ? parts[0] : "";
+				string appId = parts.Length > 1 ? parts[1] : "";
+    			return globalConfig.OwnerLdapGroupNames.Replace(GlobalConst.kAppPrefixPlaceholder, appPrefix).Replace(GlobalConst.kAppIdPlaceholder, appId);
+            }
+            Log.WriteInfo("Import App Data", $"Could not find ayn placeholders in group name pattern \"{globalConfig.OwnerLdapGroupNames}\" " +
+                $"({GlobalConst.kFullAppIdPlaceholder}, {GlobalConst.kAppPrefixPlaceholder}, {GlobalConst.kAppIdPlaceholder} ");
+            return globalConfig.OwnerLdapGroupNames;
 		}
 
 		private string GetGroupDn(string extAppIdString)
@@ -405,7 +421,7 @@ namespace FWO.Middleware.Server
 			{
 				foreach (var modeller in incomingApp.Modellers)
 				{
-					if (existingMembers.FirstOrDefault(x => x.Equals(modeller, StringComparison.CurrentCultureIgnoreCase)) == null)
+					if (existingMembers.FirstOrDefault(x => x.Equals(modeller, StringComparison.OrdinalIgnoreCase)) == null)
 					{
                         await internalLdap.AddUserToEntry(modeller, groupDn);
 					}
@@ -415,7 +431,7 @@ namespace FWO.Middleware.Server
 			{
 				foreach (var modellerGrp in incomingApp.ModellerGroups)
 				{
-					if (existingMembers.FirstOrDefault(x => x.Equals(modellerGrp, StringComparison.CurrentCultureIgnoreCase)) == null)
+					if (existingMembers.FirstOrDefault(x => x.Equals(modellerGrp, StringComparison.OrdinalIgnoreCase)) == null)
 					{
 						await internalLdap.AddUserToEntry(modellerGrp, groupDn);
 					}
@@ -423,8 +439,8 @@ namespace FWO.Middleware.Server
 			}
 			foreach (var member in existingMembers)
 			{
-				if ((incomingApp.Modellers == null || incomingApp.Modellers.FirstOrDefault(x => x.Equals(member, StringComparison.CurrentCultureIgnoreCase)) == null)
-					&& (incomingApp.ModellerGroups == null || incomingApp.ModellerGroups.FirstOrDefault(x => x.Equals(member, StringComparison.CurrentCultureIgnoreCase)) == null))
+				if ((incomingApp.Modellers == null || incomingApp.Modellers.FirstOrDefault(x => x.Equals(member, StringComparison.OrdinalIgnoreCase)) == null)
+					&& (incomingApp.ModellerGroups == null || incomingApp.ModellerGroups.FirstOrDefault(x => x.Equals(member, StringComparison.OrdinalIgnoreCase)) == null))
 				{
 					await internalLdap.RemoveUserFromEntry(member, groupDn);
 				}
@@ -478,7 +494,7 @@ namespace FWO.Middleware.Server
 					++failCounter;
 				}
 			}
-			foreach (var existingAppServer in existingAppServers)
+			foreach (var existingAppServer in existingAppServers.Where(e => !e.IsDeleted).ToList())
 			{
 				if (incomingApp.AppServers.FirstOrDefault(x => x.Ip.IpAsCidr() == existingAppServer.Ip.IpAsCidr() && x.IpEnd.IpAsCidr() == existingAppServer.IpEnd.IpAsCidr()) == null)
 				{
@@ -512,28 +528,31 @@ namespace FWO.Middleware.Server
 				{
 					return await NewAppServer(incomingAppServer, appID, impSource);
 				}
+
+				if (existingAppServer.IsDeleted)
+				{
+					if (!await ReactivateAppServer(existingAppServer))
+					{	
+						return false;
+					}
+				}
 				else
 				{
-					if (existingAppServer.IsDeleted)
-					{
-						if (!await ReactivateAppServer(existingAppServer))
-						{	
-							return false;
-						}
+					// in case there are still active appservers from other sources (resulting e.g. from older revisions)
+					await AppServerHelper.DeactivateOtherSources(apiConnection, userConfig, existingAppServer);
+				}
+				if (!existingAppServer.Name.Equals(incomingAppServer.Name))
+				{
+					if (!await UpdateAppServerName(existingAppServer, incomingAppServer.Name))
+					{	
+						return false;
 					}
-					if (!existingAppServer.Name.Equals(incomingAppServer.Name))
-					{
-						if (!await UpdateAppServerName(existingAppServer, incomingAppServer.Name))
-						{	
-							return false;
-						}
-					}
-					if (existingAppServer.CustomType == null)
-					{
-						if (!await UpdateAppServerType(existingAppServer))
-						{	
-							return false;
-						}
+				}
+				if (existingAppServer.CustomType == null)
+				{
+					if (!await UpdateAppServerType(existingAppServer))
+					{	
+						return false;
 					}
 				}
 				return true;

@@ -1,4 +1,3 @@
-from asyncio.log import logger
 from fwo_log import getFwoLogger
 import fwo_globals
 

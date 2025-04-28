@@ -1,5 +1,6 @@
 from typing import List, Dict
 from models.management_details import ManagementDetails
+import fwo_exceptions
 
 class ManagementDetailsController(ManagementDetails):
 
@@ -52,3 +53,23 @@ class ManagementDetailsController(ManagementDetails):
 
     def __str__(self):
         return f"{self.Hostname}({self.Id})"
+    
+
+    # TODO: fix device type URIs
+    def buildFwApiString(self):
+        if self.DeviceTypeName == 'Check Point':
+            return f"https://{self.Hostname}:{str(self.Port)}/web_api/"
+        elif self.DeviceTypeName == 'CiscoFMC':
+            return f"https://{self.Hostname}:{str(self.Port)}/api/fmc_platform/v1/"
+        elif self.DeviceTypeName == 'Fortinet':
+            return f"https://{self.Hostname}:{str(self.Port)}/api/v2/"
+        elif self.DeviceTypeName == 'PaloAlto':
+            return f"https://{self.Hostname}:{str(self.Port)}/restapi/v10.0/"
+        elif self.DeviceTypeName == 'PaloAltoLegacy':
+            return f"https://{self.Hostname}:{str(self.Port)}/restapi/v10.0/"
+        else:
+            raise fwo_exceptions.FwLoginFailed(f"Unsupported device type: {self.DeviceTypeName}")
+
+
+    def getDomainString(self):
+        return self.DomainUid if self.DomainUid != None else self.DomainName

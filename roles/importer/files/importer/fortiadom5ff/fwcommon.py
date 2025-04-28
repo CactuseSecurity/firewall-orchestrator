@@ -1,13 +1,14 @@
-import sys
-from common import importer_base_dir
-sys.path.append(importer_base_dir + '/fortiadom5ff')
+# import sys
+# from common import importer_base_dir
+# sys.path.append(importer_base_dir + '/fortiadom5ff')
+from curses import raw
+
 import fmgr_user
 import fmgr_service
 import fmgr_zone
 import fmgr_rule
 import fmgr_network
 import fmgr_getter
-from curses import raw
 from fwo_log import getFwoLogger
 from fmgr_gw_networking import getInterfacesAndRouting, normalize_network_data
 from model_controllers.interface_controller import get_ip_of_interface_obj

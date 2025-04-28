@@ -26,6 +26,9 @@ namespace FWO.Data
         [JsonProperty("wait_cycles"), JsonPropertyName("wait_cycles")]
         public int WaitCycles { get; set; }
 
+        [JsonProperty("attempts"), JsonPropertyName("attempts")]
+        public int Attempts { get; set; } = 0;
+
         [JsonProperty("ext_ticket_system"), JsonPropertyName("ext_ticket_system")]
         public string ExtTicketSystem { get; set; } = "";
 

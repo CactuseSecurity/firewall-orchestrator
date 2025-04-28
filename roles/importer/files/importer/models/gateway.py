@@ -22,6 +22,8 @@ class Gateway(BaseModel):
     GlobalPolicyUid: Optional[str] = None
     EnforcedPolicyUids: Optional[List[str]] = []
     EnforcedNatPolicyUids: Optional[List[str]] = []
+    ImportDisabled: Optional[bool] = False
+    ShowInUI: Optional[bool] = True
 
 
     def __eq__(self, other):
@@ -33,5 +35,7 @@ class Gateway(BaseModel):
                 and self.RulebaseLinks == other.RulebaseLinks \
                 and self.GlobalPolicyUid == other.GlobalPolicyUid \
                 and self.EnforcedPolicyUids == other.EnforcedPolicyUids \
-                and self.EnforcedNatPolicyUids == other.EnforcedNatPolicyUids
+                and self.EnforcedNatPolicyUids == other.EnforcedNatPolicyUids \
+                and self.ImportDisabled == other.ImportDisabled \
+                and self.ShowInUI == other.ShowInUI
         return False

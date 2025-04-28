@@ -68,9 +68,9 @@ namespace FWO.Services
                 isImpl &= IsNwImplementation(rule.Froms, conn.SourceAppServers, conn.SourceAppRoles, conn.SourceAreas, conn.SourceOtherGroups, disregardedFroms);
                 isImpl &= IsNwImplementation(rule.Tos, conn.DestinationAppServers, conn.DestinationAppRoles, conn.DestinationAreas, conn.DestinationOtherGroups, disregardedTos);
                 isImpl &= IsSvcImplementation(rule.Services, conn.Services, conn.ServiceGroups, disregardedServices);
-                rule.DisregardedFroms = disregardedFroms.ToArray();
-                rule.DisregardedTos = disregardedTos.ToArray();
-                rule.DisregardedServices = disregardedServices.ToArray();
+                rule.DisregardedFroms = [.. disregardedFroms];
+                rule.DisregardedTos = [.. disregardedTos];
+                rule.DisregardedServices = [.. disregardedServices];
             }
             else if (isImpl)
             {
@@ -101,7 +101,7 @@ namespace FWO.Services
                 }
                 isImpl = false;
             }
-            return (ruleRecognitionOption.NwResolveGroup ? true : CompareRemainingNwGroups(networkLocations, appRoles, otherGroups, disregardedLocations)) && isImpl;
+            return (ruleRecognitionOption.NwResolveGroup || CompareRemainingNwGroups(networkLocations, appRoles, otherGroups, disregardedLocations)) && isImpl;
         }
 
         private bool CompareNwAreas(NetworkLocation[] networkLocations, List<ModellingNetworkAreaWrapper> areas, List<NetworkLocation> disregardedLocations)
@@ -149,8 +149,8 @@ namespace FWO.Services
         {
             if(FullAnalysis)
             {
-                List<NetworkObject> disregardedGroups = allModGroups.Except(allProdGroups, comparer).ToList();
-                List<NetworkObject> surplusGroups = allProdGroups.Except(allModGroups, comparer).ToList();
+                List<NetworkObject> disregardedGroups = [.. allModGroups.Except(allProdGroups, comparer)];
+                List<NetworkObject> surplusGroups = [.. allProdGroups.Except(allModGroups, comparer)];
                 foreach (var obj in surplusGroups)
                 {
                     NetworkLocation? extLoc = networkLocations.FirstOrDefault(n => n.Object.Id == obj.Id);
@@ -179,18 +179,18 @@ namespace FWO.Services
                 }
                 isImpl = false;
             }
-            return (ruleRecognitionOption.SvcResolveGroup ? true : CompareSvcGroups(networkServices, serviceGroups, disregardedServices)) && isImpl;
+            return (ruleRecognitionOption.SvcResolveGroup || CompareSvcGroups(networkServices, serviceGroups, disregardedServices)) && isImpl;
         }
 
         private bool CompareServices(ServiceWrapper[] networkServices, List<ModellingServiceWrapper> services, List<ModellingServiceGroupWrapper> serviceGroups, List<NetworkService> disregardedServices)
         {
-            List<NetworkService> allProdServices = networkServices.Where(s => s.Content.Type.Name != ServiceType.Group).ToList().ConvertAll(s => s.Content).ToList();
+            List<NetworkService> allProdServices = [.. networkServices.Where(s => s.Content.Type.Name != ServiceType.Group).ToList().ConvertAll(s => s.Content)];
             List<NetworkService> allModServices = ModellingServiceWrapper.Resolve(services).ToList().ConvertAll(s => ModellingService.ToNetworkService(s));
             if(ruleRecognitionOption.SvcResolveGroup)
             {
                 foreach(var svc in networkServices.Where(n => n.Content.Type.Name == ServiceType.Group).ToList().ConvertAll(s => s.Content).ToList())
                 {
-                    allProdServices.AddRange([.. svc.ServiceGroupFlats.ToList().ConvertAll(g => g.Object)]);
+                    allProdServices.AddRange([.. svc.ServiceGroupFlats.ToList().ConvertAll(g => g.Object ?? new())]);
                 }
                 foreach(var svcGrp in ModellingServiceGroupWrapper.Resolve(serviceGroups))
                 {
@@ -202,7 +202,7 @@ namespace FWO.Services
 
         private bool CompareSvcGroups(ServiceWrapper[] networkServices, List<ModellingServiceGroupWrapper> serviceGroups, List<NetworkService> disregardedServices)
         {
-            List<NetworkService> allProdSvcGroups = networkServices.Where(n => n.Content.Type.Name == ServiceType.Group).ToList().ConvertAll(s => s.Content).ToList();
+            List<NetworkService> allProdSvcGroups = [.. networkServices.Where(n => n.Content.Type.Name == ServiceType.Group).ToList().ConvertAll(s => s.Content)];
             List<NetworkService> allModSvcGroups = ModellingServiceGroupWrapper.Resolve(serviceGroups).ToList().ConvertAll(a => a.ToNetworkServiceGroup());
             return CompareSvcObjects(allModSvcGroups, allProdSvcGroups, networkServices, disregardedServices, networkServiceGroupComparer);
         }
@@ -212,8 +212,8 @@ namespace FWO.Services
         {
             if(FullAnalysis)
             {
-                List<NetworkService> disregardedGroups = allModGroups.Except(allProdGroups, comparer).ToList();
-                List<NetworkService> surplusGroups = allProdGroups.Except(allModGroups, comparer).ToList();
+                List<NetworkService> disregardedGroups = [.. allModGroups.Except(allProdGroups, comparer)];
+                List<NetworkService> surplusGroups = [.. allProdGroups.Except(allModGroups, comparer)];
                 foreach (var svc in surplusGroups)
                 {
                     ServiceWrapper? exSvc = networkServices.FirstOrDefault(n => n.Content.Id == svc.Id);

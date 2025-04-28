@@ -48,6 +48,7 @@ namespace FWO.Test
         static readonly NetworkService Svc4 = new() { Name = "Svc4", DestinationPort = 1235, DestinationPortEnd = 1235, ProtoId = 6 };
         static readonly NetworkService Svc5 = new() { Name = "Svc5", DestinationPort = 1234, DestinationPortEnd = 1235, ProtoId = 12 };
         static readonly NetworkService Svc6 = new() { Name = "Svc1", DestinationPort = 1, DestinationPortEnd = 1, ProtoId = 1 };
+        static readonly NetworkService Svc7 = new() { Name = "Svc7", DestinationPort = 1235, DestinationPortEnd = null, ProtoId = 6 };
 
         static readonly NetworkService SvcGrp1 = new() { Name = "SvcGrp1", ServiceGroupFlats = [ new GroupFlat<NetworkService>(){ Object = Svc1 }]};
         static readonly NetworkService SvcGrp2 = new() { Name = "SvcGrp2", ServiceGroupFlats = [ new GroupFlat<NetworkService>(){ Object = Svc1 }]};
@@ -338,12 +339,14 @@ namespace FWO.Test
             ClassicAssert.AreEqual(false, networkServiceComparer.Equals(Svc1,Svc4));
             ClassicAssert.AreEqual(false, networkServiceComparer.Equals(Svc1,Svc5));
             ClassicAssert.AreEqual(false, networkServiceComparer.Equals(Svc1,Svc6));
+            ClassicAssert.AreEqual(true, networkServiceComparer.Equals(Svc4,Svc7));
             ClassicAssert.AreEqual(true, networkServiceComparer.GetHashCode(Svc1) == networkServiceComparer.GetHashCode(Svc1));
             ClassicAssert.AreEqual(true, networkServiceComparer.GetHashCode(Svc1) == networkServiceComparer.GetHashCode(Svc2));
             ClassicAssert.AreEqual(false, networkServiceComparer.GetHashCode(Svc1) == networkServiceComparer.GetHashCode(Svc3));
             ClassicAssert.AreEqual(false, networkServiceComparer.GetHashCode(Svc1) == networkServiceComparer.GetHashCode(Svc4));
             ClassicAssert.AreEqual(false, networkServiceComparer.GetHashCode(Svc1) == networkServiceComparer.GetHashCode(Svc5));
             ClassicAssert.AreEqual(false, networkServiceComparer.GetHashCode(Svc1) == networkServiceComparer.GetHashCode(Svc6));
+            ClassicAssert.AreEqual(true, networkServiceComparer.GetHashCode(Svc4) == networkServiceComparer.GetHashCode(Svc7));
 
             ruleRecognitionOption.SvcRegardName = true;
             networkServiceComparer = new(ruleRecognitionOption);

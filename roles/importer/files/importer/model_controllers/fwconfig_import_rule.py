@@ -932,7 +932,7 @@ class FwConfigImportRule(FwConfigImportBase):
                 rulebase_id=rulebase_id,
                 rule_create=importDetails.ImportId,
                 rule_last_seen=importDetails.ImportId,
-                rule_num_numeric=1,
+                rule_num_numeric=rule.rule_num_numeric,
                 action_id = importDetails.lookupAction(rule.rule_action),
                 track_id = importDetails.lookupTrack(rule.rule_track),
                 rule_head_text=rule.rule_head_text

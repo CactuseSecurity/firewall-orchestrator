@@ -30,7 +30,6 @@ def normalizeRulebases (nativeConfig, importState, normalizedConfig):
     parent_uid=None
     section_header_uids=[]
     normalizedConfig['policies'] = []
-    rule_order_service = RuleOrderService()
 
     # fill uid_to_name_map:
     for nw_obj in normalizedConfig['network_objects']:

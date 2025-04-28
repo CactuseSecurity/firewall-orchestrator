@@ -95,7 +95,7 @@ class MockFwConfigNormalized(FwConfigNormalized):
 
 class ConfigMocker:
     config_type = "normalized"
-    file_name_prefix = 'test'
+    file_name_prefix = ''
     tmp_dir = "/usr/local/fworch/tmp/import/"
     mgm_id = 3
     manager_uid = "6ae3760206b9bfbd2282b5964f6ea07869374f427533c72faa7418c28f7a77f2"

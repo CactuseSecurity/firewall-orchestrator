@@ -5,7 +5,7 @@ import json
 import cp_const
 import fwo_const
 import fwo_globals
-from fwo_const import list_delimiter, default_section_header_text, rule_num_numeric_steps
+from fwo_const import list_delimiter, default_section_header_text
 from fwo_base import sanitize
 from fwo_exceptions import ImportRecursionLimitReached
 from models.rulebase import Rulebase
@@ -14,7 +14,6 @@ from models.rule_enforced_on_gateway import RuleEnforcedOnGatewayNormalized
 from model_controllers.fwconfig_import_ruleorder import RuleOrderService
 
 uid_to_name_map = {}
-current_rule_num_numeric = 0.0
 
 """
     new import format which takes the following cases into account without duplicating any rules in the DB:

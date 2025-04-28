@@ -177,7 +177,7 @@ class TestRuleOrdering(unittest.TestCase):
         fwconfig_import_rule.NormalizedConfig = copy.deepcopy(previous_config)
 
         # act
-        fwconfig_import_rule.update_rulebase_diffs(previous_config)
+        fwconfig_import_rule.updateRulebaseDiffs(previous_config)
 
         # assert
         self.assertEqual(fwconfig_import_rule.ImportDetails.Stats.RuleAddCount, 0)
@@ -201,7 +201,7 @@ class TestRuleOrdering(unittest.TestCase):
 
 
         # act
-        fwconfig_import_rule.update_rulebase_diffs(previous_config)
+        fwconfig_import_rule.updateRulebaseDiffs(previous_config)
 
         # assert
         self.assertEqual(fwconfig_import_rule.ImportDetails.Stats.RuleAddCount, 0)
@@ -223,7 +223,7 @@ class TestRuleOrdering(unittest.TestCase):
         fwconfig_import_rule.NormalizedConfig.add_rule_to_rulebase(fwconfig_import_rule.NormalizedConfig.rulebases[0].uid)
 
         # act
-        fwconfig_import_rule.update_rulebase_diffs(previous_config)
+        fwconfig_import_rule.updateRulebaseDiffs(previous_config)
 
         # assert
         self.assertEqual(fwconfig_import_rule.ImportDetails.Stats.RuleAddCount, 1)
@@ -247,7 +247,7 @@ class TestRuleOrdering(unittest.TestCase):
         fwconfig_import_rule.NormalizedConfig.rulebases[1].Rules[moved_rule_uid] = fwconfig_import_rule.NormalizedConfig.rulebases[0].Rules.pop(moved_rule_uid)
 
         # act
-        fwconfig_import_rule.update_rulebase_diffs(previous_config)
+        fwconfig_import_rule.updateRulebaseDiffs(previous_config)
 
         # assert
         self.assertEqual(fwconfig_import_rule.ImportDetails.Stats.RuleAddCount, 0)
@@ -272,7 +272,7 @@ class TestRuleOrdering(unittest.TestCase):
         fwconfig_import_rule.NormalizedConfig.rulebases[0].Rules = self.simulate_move(fwconfig_import_rule.NormalizedConfig.rulebases[0].Rules, moved_rule, 5) 
 
         # act
-        fwconfig_import_rule.update_rulebase_diffs(previous_config)
+        fwconfig_import_rule.updateRulebaseDiffs(previous_config)
 
         # assert
 

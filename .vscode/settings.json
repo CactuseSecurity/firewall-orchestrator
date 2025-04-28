@@ -7,6 +7,9 @@
     "[razor]": {
       "editor.defaultFormatter": "ms-dotnettools.csharp"
     },
+    "files.associations": {
+        "launch.template.json": "jsonc"
+    },
     "python.testing.unittestArgs": [
       "-v",
       "-p",

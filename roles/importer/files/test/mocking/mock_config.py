@@ -12,6 +12,7 @@ else: # for usage in unit tests
     from importer.models.rulebase import Rulebase
     from importer.models.rule import Rule
     from pydantic import PrivateAttr
+    from importer.fwo_const import rule_num_numeric_steps
 
 """ 
 
@@ -35,7 +36,8 @@ class MockFwConfigNormalized(FwConfigNormalized):
 
     def initialize_config(self, mock_config: dict):
         mock_mgm_uid = self.uid_manager.create_uid()
-        
+        created_rule_counter = 1
+
         for number_of_rules in mock_config["rule_config"]:
             new_rulebase_uid = self.uid_manager.create_uid()
             new_rulebase = Rulebase(
@@ -44,14 +46,21 @@ class MockFwConfigNormalized(FwConfigNormalized):
                 mgm_uid = mock_mgm_uid
             )
             self.rulebases.append(new_rulebase)
+
             for i in range(number_of_rules):
-                self.add_rule_to_rulebase(new_rulebase_uid)
+                new_rule = self.add_rule_to_rulebase(new_rulebase_uid)
+
+                if  mock_config.get("initialize_rule_num_numeric"):
+                    new_rule.rule_num_numeric = created_rule_counter * rule_num_numeric_steps
+                    created_rule_counter += 1 
+
 
                 
             
 
     def add_rule_to_rulebase(self, rulebase_uid: str):
         rulebase = next(rb for rb in self.rulebases if rb.uid == rulebase_uid)
+
         new_rule =  Rule(
             action_id = 0,
             mgm_id = 0,
@@ -77,6 +86,8 @@ class MockFwConfigNormalized(FwConfigNormalized):
             rule_installon = ""
         )
         rulebase.Rules[new_rule.rule_uid] = new_rule
+
+        return new_rule
         
 
 

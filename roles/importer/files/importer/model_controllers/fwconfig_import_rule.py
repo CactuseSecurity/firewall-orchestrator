@@ -32,93 +32,93 @@ class FwConfigImportRule(FwConfigImportBase):
 
 
 
-    def updateRulebaseDiffs(self, prevConfig: FwConfigNormalized):
-        logger = getFwoLogger(debug_level=self.ImportDetails.DebugLevel)
-        # calculate rule diffs
-        changedRuleUids = {}
-        deletedRuleUids = {}
-        newRuleUids = {}
-        ruleUidsInBoth = {}
-        previousRulebaseUids = []
-        currentRulebaseUids = []
+    # def updateRulebaseDiffs(self, prevConfig: FwConfigNormalized):
+    #     logger = getFwoLogger(debug_level=self.ImportDetails.DebugLevel)
+    #     # calculate rule diffs
+    #     changedRuleUids = {}
+    #     deletedRuleUids = {}
+    #     newRuleUids = {}
+    #     ruleUidsInBoth = {}
+    #     previousRulebaseUids = []
+    #     currentRulebaseUids = []
 
-        # collect rulebase UIDs of previous config
-        for rulebase in prevConfig.rulebases:
-            previousRulebaseUids.append(rulebase.uid)
+    #     # collect rulebase UIDs of previous config
+    #     for rulebase in prevConfig.rulebases:
+    #         previousRulebaseUids.append(rulebase.uid)
 
-        # collect rulebase UIDs of current (just imported) config
-        for rulebase in self.NormalizedConfig.rulebases:
-            currentRulebaseUids.append(rulebase.uid)
-        # TODO: Just collect all previous and current rule uids
-        for rulebaseId in previousRulebaseUids:
-            currentRulebase = self.NormalizedConfig.getRulebase(rulebaseId)
-            if rulebaseId in currentRulebaseUids:
-                # deal with policies contained both in this and previous config
-                previousRulebase = prevConfig.getRulebase(rulebaseId)
+    #     # collect rulebase UIDs of current (just imported) config
+    #     for rulebase in self.NormalizedConfig.rulebases:
+    #         currentRulebaseUids.append(rulebase.uid)
+    #     # TODO: Just collect all previous and current rule uids
+    #     for rulebaseId in previousRulebaseUids:
+    #         currentRulebase = self.NormalizedConfig.getRulebase(rulebaseId)
+    #         if rulebaseId in currentRulebaseUids:
+    #             # deal with policies contained both in this and previous config
+    #             previousRulebase = prevConfig.getRulebase(rulebaseId)
 
-                deletedRuleUids.update({ rulebaseId: list(previousRulebase.Rules.keys() - currentRulebase.Rules.keys()) })
-                newRuleUids.update({ rulebaseId: list(currentRulebase.Rules.keys() - previousRulebase.Rules.keys()) })
-                ruleUidsInBoth.update({ rulebaseId: list(currentRulebase.Rules.keys() & previousRulebase.Rules.keys()) })
-            else:
-                logger.info(f"previous rulebase has been deleted: {rulebaseId}")
-                # TODO: also dispaly rulebase name
-                deletedRuleUids.update({ rulebaseId: list(currentRulebase.Rules.keys()) })
+    #             deletedRuleUids.update({ rulebaseId: list(previousRulebase.Rules.keys() - currentRulebase.Rules.keys()) })
+    #             newRuleUids.update({ rulebaseId: list(currentRulebase.Rules.keys() - previousRulebase.Rules.keys()) })
+    #             ruleUidsInBoth.update({ rulebaseId: list(currentRulebase.Rules.keys() & previousRulebase.Rules.keys()) })
+    #         else:
+    #             logger.info(f"previous rulebase has been deleted: {rulebaseId}")
+    #             # TODO: also dispaly rulebase name
+    #             deletedRuleUids.update({ rulebaseId: list(currentRulebase.Rules.keys()) })
 
-        # now deal with new rulebases (not contained in previous config)
-        for rulebase in self.NormalizedConfig.rulebases:
-            if rulebase.uid not in previousRulebaseUids:
-                newRuleUids.update({ rulebase.uid: list(rulebase.Rules.keys()) })
+    #     # now deal with new rulebases (not contained in previous config)
+    #     for rulebase in self.NormalizedConfig.rulebases:
+    #         if rulebase.uid not in previousRulebaseUids:
+    #             newRuleUids.update({ rulebase.uid: list(rulebase.Rules.keys()) })
         
-        # TODO: compute_min_moves
+    #     # TODO: compute_min_moves
 
-        # TODO: handle deletes
-        # TODO: handle inserts
-        # TODO: handle moves (make new version)
+    #     # TODO: handle deletes
+    #     # TODO: handle inserts
+    #     # TODO: handle moves (make new version)
 
-        # find changed rules
-        # TODO: need to ignore last_hit! 
-        for rulebaseId in ruleUidsInBoth:
-            changedRuleUids.update({ rulebaseId: [] })
-            currentRulebase = self.NormalizedConfig.getRulebase(rulebaseId) # [pol for pol in self.NormalizedConfig.rulebases if pol.Uid == rulebaseId]
-            previousRulebase = prevConfig.getRulebase(rulebaseId)
-            for ruleUid in ruleUidsInBoth[rulebaseId]:
-                if self.ruleChanged(rulebaseId, ruleUid, currentRulebase, previousRulebase):
-                    changedRuleUids[rulebaseId].append(ruleUid)
+    #     # find changed rules
+    #     # TODO: need to ignore last_hit! 
+    #     for rulebaseId in ruleUidsInBoth:
+    #         changedRuleUids.update({ rulebaseId: [] })
+    #         currentRulebase = self.NormalizedConfig.getRulebase(rulebaseId) # [pol for pol in self.NormalizedConfig.rulebases if pol.Uid == rulebaseId]
+    #         previousRulebase = prevConfig.getRulebase(rulebaseId)
+    #         for ruleUid in ruleUidsInBoth[rulebaseId]:
+    #             if self.ruleChanged(rulebaseId, ruleUid, currentRulebase, previousRulebase):
+    #                 changedRuleUids[rulebaseId].append(ruleUid)
 
-        # TODO: handle changedRuleUids        
+    #     # TODO: handle changedRuleUids        
 
-        # add full rule details first
-        newRulebases = self.getRules(newRuleUids)
+    #     # add full rule details first
+    #     newRulebases = self.getRules(newRuleUids)
 
-        # update rule_metadata before adding rules
-        errorCountAdd, numberOfAddedMetaRules, newRuleMetadataIds = self.addNewRuleMetadata(newRulebases) # TODO: find correct position
+    #     # update rule_metadata before adding rules
+    #     errorCountAdd, numberOfAddedMetaRules, newRuleMetadataIds = self.addNewRuleMetadata(newRulebases) # TODO: find correct position
 
-        # # now update the database with all rule diffs
-        errorCountAdd, numberOfAddedRules, newRuleIds = self.addNewRules(newRulebases) # TODO: move to handling of inserts
+    #     # # now update the database with all rule diffs
+    #     errorCountAdd, numberOfAddedRules, newRuleIds = self.addNewRules(newRulebases) # TODO: move to handling of inserts
 
-        # # try to add the rule ids to the existing rulebase objects
-        # # self.updateRuleIds(newRulebases, newRuleIds)
+    #     # # try to add the rule ids to the existing rulebase objects
+    #     # # self.updateRuleIds(newRulebases, newRuleIds)
 
-        # # get new rules details from API (for obj refs as well as enforcing gateways)
-        # errors, changes, newRules = self.getRulesByIdWithRefUids(newRuleIds)
+    #     # # get new rules details from API (for obj refs as well as enforcing gateways)
+    #     # errors, changes, newRules = self.getRulesByIdWithRefUids(newRuleIds)
 
-        # self.addNewRule2ObjRefs(newRules)
-        # # TODO: self.addNewRuleSvcRefs(newRulebases, newRuleIds)
+    #     # self.addNewRule2ObjRefs(newRules)
+    #     # # TODO: self.addNewRuleSvcRefs(newRulebases, newRuleIds)
 
-        # enforcingController = RuleEnforcedOnGatewayController(self.ImportDetails)
-        # ids = enforcingController.addNewRuleEnforcedOnGatewayRefs(newRules, self.ImportDetails)
+    #     # enforcingController = RuleEnforcedOnGatewayController(self.ImportDetails)
+    #     # ids = enforcingController.addNewRuleEnforcedOnGatewayRefs(newRules, self.ImportDetails)
 
-        errorCountDel, numberOfDeletedRules, removedRuleIds = self.markRulesRemoved(deletedRuleUids)
+    #     errorCountDel, numberOfDeletedRules, removedRuleIds = self.markRulesRemoved(deletedRuleUids)
 
-        self.createRuleMoveArgs({},[])
+    #     self.createRuleMoveArgs({},[])
 
-        self.ImportDetails.Stats.RuleAddCount += numberOfAddedRules
-        self.ImportDetails.Stats.RuleDeleteCount += numberOfDeletedRules
+    #     self.ImportDetails.Stats.RuleAddCount += numberOfAddedRules
+    #     self.ImportDetails.Stats.RuleDeleteCount += numberOfDeletedRules
 
-        # TODO: rule_nwobj_resolved fuellen (recert?)
-        return newRuleIds
+    #     # TODO: rule_nwobj_resolved fuellen (recert?)
+    #     return newRuleIds
 
-    def update_rulebase_diffs(self, prevConfig: FwConfigNormalized):
+    def updateRulebaseDiffs(self, prevConfig: FwConfigNormalized):
         logger = getFwoLogger(debug_level=self.ImportDetails.DebugLevel)
 
         previousRulebaseUids = []
@@ -237,41 +237,52 @@ class FwConfigImportRule(FwConfigImportBase):
         numberOfMovedRules = 0
         movedRuleIds = []
         rule_move_args = []
-        rules = [] 
+        rule_num_map = {}
+        flatted_rule_num_map = []
 
-        try:
-            import_result = self.getCurrentNotRemovedRules()
+        # try:
+        #     get_rule_num_map_result = self.GetRuleNumMap()
 
+        #     if 'errors' in get_rule_num_map_result:
+        #         errorCountMove += 1 
+        #         raise fwo_exceptions.FwoApiFailure(f"failed to query current rules: {str(traceback.format_exc())}")
+        #     else:
+        #         rule_num_map = get_rule_num_map_result["data"]["rule"]
 
-            if 'errors' in import_result:
-                errorCountMove += 1 
-                raise fwo_exceptions.FwoApiFailure(f"failed to query current rules: {str(traceback.format_exc())}")
-            else:
-                rules = import_result["data"]["rule"]
+        #         for rule_num_map_rulebase_key in rule_num_map.keys():
+        #             flatted_rule_num_map.extend(rule_num_map[rule_num_map_rulebase_key])
                 
-                for movedRuleUid in movedRuleUids:
-                    pass
+        #         for movedRuleUidRulebase in movedRuleUids:
+        #             for rule_uid in movedRuleUidRulebase:
+        #                 current_rule = next((rule for rule in flatted_rule_num_map if rule["rule_uid"] == rule_uid), None)
+        #                 current_rule_index = flatted_rule_num_map.index(current_rule)
+        #                 predecessor_index = 0 if current_rule_index == 0 else current_rule_index -1
+        #                 successor = 0 if current_rule == flatted_rule_num_map.last() else current_rule_index + 1
+        #                 new_rule_num_numeric = 0
 
-        except Exception:
-            errorCountMove += 1 
-            raise fwo_exceptions.FwoApiFailure(f"failed to query current rules: {str(traceback.format_exc())}")
+        #                 # if predecessor_index == 0 and len(flatted_rule_num_map) > 1: # first
 
-        for rulebase in movedRuleUids.keys():
+        #                 # rule_move_args.append({
+        #                 #         "where": {"rule_uid": {"_eq": rule_uid}},
+        #                 #         "_set": {
+        #                 #             "rule_num_numeric": new_rule_num_numeric
+        #                 #         }
+        #                 #     }
+        #                 # )
 
-            rulebase_rules = self.getCurrentRules(self.ImportDetails.ImportId, )
-            rules.extend()
-            for rule in movedRuleUids[rulebase]:
-                
-                rule_move_args.append(
-
-                )
+        # except Exception:
+        #     errorCountMove += 1 
+        #     raise fwo_exceptions.FwoApiFailure(f"failed to query current rules: {str(traceback.format_exc())}")
         
         return rule_move_args
 
     def getCurrentNotRemovedRules(self):
 
         getCurrentRules = """query getCurrentRules{
-            rule(where:{removed:{_eq:null}}){
+            rule(
+                where:{removed:{_eq:null}}
+                order_by: { rule_num_numeric: asc }
+            ){
                 rule_id,
                 rule_num_numeric,
                 rule_uid
@@ -854,7 +865,19 @@ class FwConfigImportRule(FwConfigImportBase):
 
     # TODO: limit query to a single rulebase
     def GetRuleNumMap(self):
-        query = "query getRuleNumMap($mgmId: Int) { rule(where:{mgm_id:{_eq:$mgmId}}) { rule_uid rulebase_id rule_num_numeric } }"
+
+        query = """query getRuleNumMap($mgmId: Int) {
+            rule(
+                where: { removed: { _eq: null }, mgm_id: { _eq: $mgmId } }
+                order_by: { rule_num_numeric: asc }
+            ) {
+                rule_id
+                rule_num_numeric
+                rule_uid,
+                rulebase_id
+        }
+        """
+        
         try:
             result = self.ImportDetails.call(query=query, queryVariables={"mgmId": self.ImportDetails.MgmDetails.Id})
         except Exception:
@@ -868,6 +891,30 @@ class FwConfigImportRule(FwConfigImportBase):
                 map.update({ ruleNum['rulebase_id']: {} })  # initialize rulebase
             map[ruleNum['rulebase_id']].update({ ruleNum['rule_uid']: ruleNum['rule_num_numeric']})
         return map
+    
+    def getRuleNumMapFlat(self):
+
+        query = """query 
+            getRuleNumMap($mgmId: Int){ 
+                rule(
+                    where:{removed:{_eq:null}, mgm_id: { _eq: $mgmId } }
+                    order_by: { rule_num_numeric: asc }
+                )
+                { 
+                    rule_uid 
+                    rulebase_id 
+                    rule_num_numeric
+                }
+        }"""
+        
+        try:
+            result = self.ImportDetails.call(query=query, queryVariables={"mgmId": self.ImportDetails.MgmDetails.Id})
+        except Exception:
+            logger = getFwoLogger()
+            logger.error(f'Error while getting rule number map')
+            return {}
+        
+        return result['data']['rule']
 
     def GetNextRuleNumMap(self):    # TODO: implement!
         query = "query getRuleNumMap { rule { rule_uid rule_num_numeric } }"
@@ -997,6 +1044,7 @@ class FwConfigImportRule(FwConfigImportBase):
                         rule_num
                         rule_num_numeric
                         rule_uid
+                        rule_id
                     }
                 }
             }
@@ -1083,7 +1131,7 @@ class FwConfigImportRule(FwConfigImportBase):
 
         for rule in Rules:
             listOfEnforcedGwIds = []
-            self._reusable_counter += 1
+            # self._reusable_counter += 1
             
 
             for gwUid in rule.rule_installon.split(fwo_const.list_delimiter):
@@ -1124,7 +1172,7 @@ class FwConfigImportRule(FwConfigImportBase):
                 rulebase_id=rulebase_id,
                 rule_create=importDetails.ImportId,
                 rule_last_seen=importDetails.ImportId,
-                rule_num_numeric= self.get_new_rule_num_numeric(),
+                rule_num_numeric= rule.rule_num_numeric, # self.get_new_rule_num_numeric(),
                 action_id = importDetails.lookupAction(rule.rule_action),
                 track_id = importDetails.lookupTrack(rule.rule_track),
                 rule_head_text=rule.rule_head_text

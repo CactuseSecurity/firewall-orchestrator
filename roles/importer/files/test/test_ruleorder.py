@@ -6,6 +6,7 @@ import copy
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '../importer'))
 
+from importer.models.rule import Rule
 from test.mocking.mock_fwconfig_import_rule import MockFwConfigImportRule
 from importer.model_controllers.fwconfig_import_rule import compute_min_moves
 from importer.models.fwconfig_normalized import FwConfigNormalized
@@ -163,7 +164,7 @@ class TestRuleOrdering(unittest.TestCase):
         self.assertEqual(compute_min_moves_result["deletions"], expectedResult["deletions"])     
         self.assertEqual(compute_min_moves_result["reposition_moves"], expectedResult["reposition_moves"])      
 
-    def test_update_rulebase_diffs_same_config(self):
+    def test_update_rulebase_diffs_recognize_same_config(self):
         # arrange
         previous_config = MockFwConfigNormalized()
         previous_config.initialize_config(
@@ -184,7 +185,7 @@ class TestRuleOrdering(unittest.TestCase):
         self.assertEqual(fwconfig_import_rule.ImportDetails.Stats.RuleChangeCount, 0)
         self.assertEqual(fwconfig_import_rule.ImportDetails.Stats.RuleMoveCount, 0)
 
-    def test_update_rulebase_diffs_delete(self):
+    def test_update_rulebase_diffs_recognize_delete(self):
         # arrange
         previous_config = MockFwConfigNormalized()
         previous_config.initialize_config(
@@ -208,7 +209,7 @@ class TestRuleOrdering(unittest.TestCase):
         self.assertEqual(fwconfig_import_rule.ImportDetails.Stats.RuleChangeCount, 0)
         self.assertEqual(fwconfig_import_rule.ImportDetails.Stats.RuleMoveCount, 0)
 
-    def test_update_rulebase_diffs_insert(self):
+    def test_update_rulebase_diffs_recognize_insert(self):
         # arrange
         previous_config = MockFwConfigNormalized()
         previous_config.initialize_config(
@@ -230,12 +231,13 @@ class TestRuleOrdering(unittest.TestCase):
         self.assertEqual(fwconfig_import_rule.ImportDetails.Stats.RuleChangeCount, 0)
         self.assertEqual(fwconfig_import_rule.ImportDetails.Stats.RuleMoveCount, 0)
 
-    def test_update_rulebase_diffs_move(self):
+    def test_update_rulebase_diffs_recognize_move(self):
         # arrange
         previous_config = MockFwConfigNormalized()
         previous_config.initialize_config(
             {
-                "rule_config": [10,10,10]
+                "rule_config": [10,10,10],
+                "initialize_rule_num_numeric": True
             }
         )
 
@@ -252,6 +254,28 @@ class TestRuleOrdering(unittest.TestCase):
         self.assertEqual(fwconfig_import_rule.ImportDetails.Stats.RuleDeleteCount, 0)
         self.assertEqual(fwconfig_import_rule.ImportDetails.Stats.RuleChangeCount, 0)
         self.assertEqual(fwconfig_import_rule.ImportDetails.Stats.RuleMoveCount, 1)
+
+    def test_update_rulebase_diffs_handle_move_simple(self):
+        # arrange
+        previous_config = MockFwConfigNormalized()
+        previous_config.initialize_config(
+            {
+                "rule_config": [10,10,10],
+                "initialize_rule_num_numeric": True
+            }
+        )
+
+        fwconfig_import_rule = MockFwConfigImportRule()
+        fwconfig_import_rule.NormalizedConfig = copy.deepcopy(previous_config)
+        moved_rule_uid = list(fwconfig_import_rule.NormalizedConfig.rulebases[0].Rules.keys())[0]
+        moved_rule = fwconfig_import_rule.NormalizedConfig.rulebases[0].Rules.pop(moved_rule_uid)
+        fwconfig_import_rule.NormalizedConfig.rulebases[0].Rules = self.simulate_move(fwconfig_import_rule.NormalizedConfig.rulebases[0].Rules, moved_rule, 5) 
+
+        # act
+        fwconfig_import_rule.update_rulebase_diffs(previous_config)
+
+        # assert
+
 
     # TODO: Do that via mock_config.py
 
@@ -280,6 +304,17 @@ class TestRuleOrdering(unittest.TestCase):
             return data
         else:
             return list(data.keys())
+        
+    def simulate_move(self, rules: dict, moved_rule: Rule, new_position : int):
+
+        new_rules = {}
+
+        for idx, (k, v) in enumerate(rules.items()):
+            if idx == new_position:
+                new_rules[moved_rule.rule_uid] = moved_rule
+            new_rules[k] = v
+
+        return new_rules
 
 if __name__ == '__main__':
     unittest.main()

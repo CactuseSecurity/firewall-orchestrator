@@ -41,7 +41,7 @@ graphqlQueryPath = base_dir + "/fwo-api-calls/";
 # >25.000 rules exceed this limit
 max_objs_per_chunk = 1000
 api_call_chunk_size = 1000
-rule_num_numeric_steps = 1000
+rule_num_numeric_steps = 1024.0
 
 # with open(fwo_config_filename, "r") as fwo_config:
 #     fwo_config = json.loads(fwo_config.read())

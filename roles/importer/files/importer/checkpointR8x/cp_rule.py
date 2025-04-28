@@ -5,14 +5,16 @@ import json
 import cp_const
 import fwo_const
 import fwo_globals
-from fwo_const import list_delimiter, default_section_header_text
+from fwo_const import list_delimiter, default_section_header_text, rule_num_numeric_steps
 from fwo_base import sanitize
 from fwo_exceptions import ImportRecursionLimitReached
 from models.rulebase import Rulebase
 from models.rule import RuleNormalized
 from models.rule_enforced_on_gateway import RuleEnforcedOnGatewayNormalized
+from model_controllers.fwconfig_import_ruleorder import RuleOrderService
 
 uid_to_name_map = {}
+current_rule_num_numeric = 0.0
 
 """
     new import format which takes the following cases into account without duplicating any rules in the DB:
@@ -29,6 +31,7 @@ def normalizeRulebases (nativeConfig, importState, normalizedConfig):
     parent_uid=None
     section_header_uids=[]
     normalizedConfig['policies'] = []
+    rule_order_service = RuleOrderService()
 
     # fill uid_to_name_map:
     for nw_obj in normalizedConfig['network_objects']:
@@ -189,6 +192,8 @@ def parseRulePart (objects, part='source'):
 
 def parse_single_rule(nativeRule, rulebase, layer_name, import_id, rule_num, parent_uid, config2import, debug_level=0):
     logger = getFwoLogger()
+    rule_order_service = RuleOrderService()
+
     # reference to domain rule layer, filling up basic fields
     if 'type' in nativeRule and nativeRule['type'] != 'place-holder':
         if 'rule-number' in nativeRule:  # standard rule, no section header
@@ -269,6 +274,7 @@ def parse_single_rule(nativeRule, rulebase, layer_name, import_id, rule_num, par
             rule = {
                 # "control_id":       int(import_id),
                 "rule_num":         int(rule_num),
+                "rule_num_numeric": rule_order_service.get_new_rule_num_numeric(),
                 "rulebase_name":    sanitize(layer_name),
                 # rule_ruleid
                 "rule_disabled": not bool(nativeRule['enabled']),

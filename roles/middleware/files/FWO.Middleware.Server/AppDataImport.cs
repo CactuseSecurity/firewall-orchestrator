@@ -30,6 +30,7 @@ namespace FWO.Middleware.Server
 		private string requesterRoleDn = "";
 		private string implementerRoleDn = "";
 		private string reviewerRoleDn = "";
+		private string? ownerGroupLdapPath = "";
 		private List<GroupGetReturnParameters> allGroups = [];
 		private List<GroupGetReturnParameters> allInternalGroups = [];
 		private ModellingNamingConvention NamingConvention = new();
@@ -82,14 +83,15 @@ namespace FWO.Middleware.Server
 			implementerRoleDn = $"cn=implementer,{internalLdap.RoleSearchPath}";
 			reviewerRoleDn = $"cn=reviewer,{internalLdap.RoleSearchPath}";
 			allInternalGroups = await internalLdap.GetAllInternalGroups();
+            ownerGroupLdapPath = ownerGroupLdap.GroupWritePath;
 			if (globalConfig.OwnerLdapId == GlobalConst.kLdapInternalId)
-			{
-				allGroups = allInternalGroups;	// TODO: check if ref is ok here
-			}
-			else
-			{
-				allGroups = await ownerGroupLdap.GetAllGroupObjects(globalConfig.OwnerLdapGroupNames.Replace(GlobalConst.kAppIdPlaceholder, "*"));
-			}
+            {
+                allGroups = allInternalGroups;  // TODO: check if ref is ok here
+            }
+            else
+            {
+                allGroups = await ownerGroupLdap.GetAllGroupObjects(globalConfig.OwnerLdapGroupNames.Replace(GlobalConst.kAppIdPlaceholder, "*"));
+            }
 		}
 
 		private async Task<bool> ImportSingleSource(string importfileName)
@@ -294,7 +296,11 @@ namespace FWO.Middleware.Server
 
 		private string GetGroupDn(string extAppIdString)
 		{
-			return $"cn={GetGroupName(extAppIdString)},{internalLdap.GroupWritePath}";
+            if (ownerGroupLdapPath == null)
+            {
+                throw new Exception("Owner group LDAP path is not set.");
+            }
+			return $"cn={GetGroupName(extAppIdString)},{ownerGroupLdapPath}";
 		}
 
 

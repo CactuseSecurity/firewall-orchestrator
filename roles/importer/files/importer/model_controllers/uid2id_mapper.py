@@ -19,8 +19,12 @@ class Uid2IdMapper:
         self.import_state_controller = import_state_controller
         self.api_connection = import_state_controller.api_connection
         self.logger = getFwoLogger()
-        self.uid2id = {}
-        self.outdated_uid2id = {}
+        self.nwobj_uid2id = {}
+        self.svc_uid2id = {}
+        self.user_uid2id = {}
+        self.outdated_nwobj_uid2id = {}
+        self.outdated_svc_uid2id = {}
+        self.outdated_user_uid2id = {}
 
     def log_error(self, message: str):
         """
@@ -42,24 +46,64 @@ class Uid2IdMapper:
         """
         self.logger.debug(message)
 
-    def get_id(self, uid: str, before_update: bool = False) -> int:
+    def get_network_object_id(self, uid: str, before_update: bool = False) -> int:
         """
-        Get the ID for a given UID.
+        Get the ID for a given network object UID.
         
         Args:
-            uid (str): The UID.
-            before_update (bool): If True, use ID before update if available.
+            uid (str): The UID of the network object.
+            before_update (bool): If True, use the outdated mapping if available.
         
         Returns:
-            int: The ID of the object.
+            int: The ID of the network object.
         """
         if before_update:
-            id = self.outdated_uid2id.get(uid)
+            id = self.outdated_nwobj_uid2id.get(uid)
             if id is not None:
                 return id
-        id = self.uid2id.get(uid)
+        id = self.nwobj_uid2id.get(uid)
         if id is None:
-            self.log_error(f"UID '{uid}' not found in mapping.")
+            self.log_error(f"Network object UID '{uid}' not found in mapping.")
+        return id
+    
+    def get_service_object_id(self, uid: str, before_update: bool = False) -> int:
+        """
+        Get the ID for a given service object UID.
+        
+        Args:
+            uid (str): The UID of the service object.
+            before_update (bool): If True, use the outdated mapping if available.
+        
+        Returns:
+            int: The ID of the service object.
+        """
+        if before_update:
+            id = self.outdated_svc_uid2id.get(uid)
+            if id is not None:
+                return id
+        id = self.svc_uid2id.get(uid)
+        if id is None:
+            self.log_error(f"Service object UID '{uid}' not found in mapping.")
+        return id
+    
+    def get_user_id(self, uid: str, before_update: bool = False) -> int:
+        """
+        Get the ID for a given user UID.
+        
+        Args:
+            uid (str): The UID of the user.
+            before_update (bool): If True, use the outdated mapping if available.
+        
+        Returns:
+            int: The ID of the user.
+        """
+        if before_update:
+            id = self.outdated_user_uid2id.get(uid)
+            if id is not None:
+                return id
+        id = self.user_uid2id.get(uid)
+        if id is None:
+            self.log_error(f"User UID '{uid}' not found in mapping.")
         return id
     
     def add_network_object_mappings(self, mappings: List[dict]) -> bool:
@@ -77,9 +121,7 @@ class Uid2IdMapper:
             if 'obj_uid' not in mapping or 'obj_id' not in mapping:
                 self.log_error("Invalid mapping format. Each mapping must contain 'obj_uid' and 'obj_id'.")
                 return False
-            if mapping['obj_uid'] in self.uid2id:
-                self.outdated_uid2id[mapping['obj_uid']] = self.uid2id[mapping['obj_uid']]
-            self.uid2id[mapping['obj_uid']] = mapping['obj_id']
+            self.nwobj_uid2id[mapping['obj_uid']] = mapping['obj_id']
         self.log_debug(f"Added {len(mappings)} network object mappings.")
         return True
 
@@ -98,9 +140,7 @@ class Uid2IdMapper:
             if 'svc_uid' not in mapping or 'svc_id' not in mapping:
                 self.log_error("Invalid mapping format. Each mapping must contain 'svc_uid' and 'svc_id'.")
                 return False
-            if mapping['svc_uid'] in self.uid2id:
-                self.outdated_uid2id[mapping['svc_uid']] = self.uid2id[mapping['svc_uid']]
-            self.uid2id[mapping['svc_uid']] = mapping['svc_id']
+            self.svc_uid2id[mapping['svc_uid']] = mapping['svc_id']
         self.log_debug(f"Added {len(mappings)} service object mappings.")
         return True
 
@@ -119,9 +159,7 @@ class Uid2IdMapper:
             if 'user_uid' not in mapping or 'user_id' not in mapping:
                 self.log_error("Invalid mapping format. Each mapping must contain 'user_uid' and 'user_id'.")
                 return False
-            if mapping['user_uid'] in self.uid2id:
-                self.outdated_uid2id[mapping['user_uid']] = self.uid2id[mapping['user_uid']]
-            self.uid2id[mapping['user_uid']] = mapping['user_id']
+            self.user_uid2id[mapping['user_uid']] = mapping['user_id']
         self.log_debug(f"Added {len(mappings)} user mappings.")
         return True
     
@@ -161,9 +199,7 @@ class Uid2IdMapper:
                 self.log_error(f"Error updating network object mapping: {response['errors']}")
                 return False
             for obj in response['data']['object']:
-                if obj['obj_uid'] in self.uid2id:
-                    self.outdated_uid2id[obj['obj_uid']] = self.uid2id[obj['obj_uid']]
-                self.uid2id[obj['obj_uid']] = obj['obj_id']
+                self.nwobj_uid2id[obj['obj_uid']] = obj['obj_id']
             self.log_debug(f"Network object mapping updated for {len(response['data']['object'])} objects")
             return True
         except Exception as e:
@@ -206,9 +242,7 @@ class Uid2IdMapper:
                 self.log_error(f"Error updating service object mapping: {response['errors']}")
                 return False
             for obj in response['data']['service']:
-                if obj['svc_uid'] in self.uid2id:
-                    self.outdated_uid2id[obj['svc_uid']] = self.uid2id[obj['svc_uid']]
-                self.uid2id[obj['svc_uid']] = obj['svc_id']
+                self.svc_uid2id[obj['svc_uid']] = obj['svc_id']
             self.log_debug(f"Service object mapping updated for {len(response['data']['service'])} objects")
             return True
         except Exception as e:
@@ -251,17 +285,9 @@ class Uid2IdMapper:
                 self.log_error(f"Error updating user mapping: {response['errors']}")
                 return False
             for obj in response['data']['usr']:
-                if obj['user_uid'] in self.uid2id:
-                    self.outdated_uid2id[obj['user_uid']] = self.uid2id[obj['user_uid']]
-                self.uid2id[obj['user_uid']] = obj['user_id']
+                self.user_uid2id[obj['user_uid']] = obj['user_id']
             self.log_debug(f"User mapping updated for {len(response['data']['usr'])} objects")
             return True
         except Exception as e:
             self.log_error(f"Error updating user mapping: {e}")
             return False
-    
-
-
-
-
-

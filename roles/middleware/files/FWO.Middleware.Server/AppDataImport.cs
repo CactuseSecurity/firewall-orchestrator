@@ -30,6 +30,7 @@ namespace FWO.Middleware.Server
 		private string requesterRoleDn = "";
 		private string implementerRoleDn = "";
 		private string reviewerRoleDn = "";
+		private string? ownerGroupLdapPath = "";
 		private List<GroupGetReturnParameters> allGroups = [];
 		private List<GroupGetReturnParameters> allInternalGroups = [];
 		private ModellingNamingConvention NamingConvention = new();
@@ -82,14 +83,18 @@ namespace FWO.Middleware.Server
 			implementerRoleDn = $"cn=implementer,{internalLdap.RoleSearchPath}";
 			reviewerRoleDn = $"cn=reviewer,{internalLdap.RoleSearchPath}";
 			allInternalGroups = await internalLdap.GetAllInternalGroups();
+            ownerGroupLdapPath = ownerGroupLdap.GroupWritePath;
 			if (globalConfig.OwnerLdapId == GlobalConst.kLdapInternalId)
-			{
-				allGroups = allInternalGroups;	// TODO: check if ref is ok here
-			}
-			else
-			{
-				allGroups = await ownerGroupLdap.GetAllGroupObjects(globalConfig.OwnerLdapGroupNames.Replace(GlobalConst.kAppIdPlaceholder, "*"));
-			}
+            {
+                allGroups = allInternalGroups;  // TODO: check if ref is ok here
+            }
+            else
+            {
+                allGroups = await ownerGroupLdap.GetAllGroupObjects(globalConfig.OwnerLdapGroupNames.
+                    Replace(GlobalConst.kAppIdPlaceholder, "*").
+                    Replace(GlobalConst.kFullAppIdPlaceholder, "*").
+                    Replace(GlobalConst.kAppPrefixPlaceholder, "*"));
+            }
 		}
 
 		private async Task<bool> ImportSingleSource(string importfileName)
@@ -119,11 +124,10 @@ namespace FWO.Middleware.Server
 			int deleteCounter = 0;
 			int deleteFailCounter = 0;
 
-			if (!globalConfig.OwnerLdapGroupNames.Contains(GlobalConst.kAppIdPlaceholder))
-			{
-                Log.WriteWarning("Import App Data", $"Owner group pattern does not contain placeholder {GlobalConst.kAppIdPlaceholder}");
-                Log.WriteAlert($"source: \"{GlobalConst.kImportAppData}\"",
-                    $"userId: \"0\", title: \"Error encountered while trying to import App Data\", description: \"Owner group name does not contain placeholder {GlobalConst.kAppIdPlaceholder}\", alertCode: \"{AlertCode.ImportAppData}\"");
+			if (!(globalConfig.OwnerLdapGroupNames.Contains(GlobalConst.kAppIdPlaceholder) ||
+                globalConfig.OwnerLdapGroupNames.Contains(GlobalConst.kFullAppIdPlaceholder)))
+            {
+                Log.WriteWarning("Import App Data", $"Owner group pattern does not contain any of the placeholders {GlobalConst.kAppIdPlaceholder} or {GlobalConst.kFullAppIdPlaceholder}.");
 			}
 			else
 			{
@@ -295,7 +299,11 @@ namespace FWO.Middleware.Server
 
 		private string GetGroupDn(string extAppIdString)
 		{
-			return $"cn={GetGroupName(extAppIdString)},{internalLdap.GroupWritePath}";
+            if (ownerGroupLdapPath == null)
+            {
+                throw new Exception("Owner group LDAP path is not set.");
+            }
+			return $"cn={GetGroupName(extAppIdString)},{ownerGroupLdapPath}";
 		}
 
 

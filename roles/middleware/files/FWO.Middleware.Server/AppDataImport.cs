@@ -90,7 +90,10 @@ namespace FWO.Middleware.Server
             }
             else
             {
-                allGroups = await ownerGroupLdap.GetAllGroupObjects(globalConfig.OwnerLdapGroupNames.Replace(GlobalConst.kAppIdPlaceholder, "*"));
+                allGroups = await ownerGroupLdap.GetAllGroupObjects(globalConfig.OwnerLdapGroupNames.
+                    Replace(GlobalConst.kAppIdPlaceholder, "*").
+                    Replace(GlobalConst.kFullAppIdPlaceholder, "*").
+                    Replace(GlobalConst.kAppPrefixPlaceholder, "*"));
             }
 		}
 

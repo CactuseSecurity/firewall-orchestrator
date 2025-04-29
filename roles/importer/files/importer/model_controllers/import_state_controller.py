@@ -6,6 +6,7 @@ from fwo_log import getFwoLogger
 from fwo_config import readConfig
 from fwo_const import fwo_config_filename, importer_user_name, graphqlQueryPath
 import fwo_api
+from fwo_api_oo import FwoApi
 from fwo_exceptions import FwoApiLoginFailed
 import fwo_globals
 from models.import_state import ImportState
@@ -25,9 +26,9 @@ class ImportStateController(ImportState):
         self.ConfigChangedSinceLastImport = configChangedSinceLastImport
         self.FwoConfig = fwoConfig
         self.MgmDetails = ManagementDetailsController.fromJson(mgmDetails)
-        self.FullMgmDetails = mgmDetails
         self.ImportId = None
         self.Jwt = jwt
+        self.api_connection = FwoApi(fwoConfig.FwoApiUri, jwt)
         self.ImportFileName = None
         self.ForceImport = force
         self.ImportVersion = int(version)
@@ -36,7 +37,6 @@ class ImportStateController(ImportState):
         self.IsClearingImport = isClearingImport
         self.RulbaseToGatewayMap = {}
         self.LastSuccessfulImport = LastSuccessfulImport
-        super().__init__(fwoConfig.FwoApiUri, jwt)
 
     def __str__(self):
         return f"{str(self.ManagementDetails)}({self.age})"
@@ -139,6 +139,14 @@ class ImportStateController(ImportState):
             raise
         
         return result 
+
+
+    def call(self, query, queryVariables="", chunkable_variable="", query_name="", return_object_name="", debug_level=0):
+        """
+        Call the FWO API with the given query and query variables.
+        This method is a wrapper around the FwoApi class to make it easier to call the API.
+        """
+        return self.api_connection.call(query, queryVariables, chunkable_variable, query_name, return_object_name, debug_level)
 
     def getPastImportInfos(self):        
         logger = getFwoLogger()

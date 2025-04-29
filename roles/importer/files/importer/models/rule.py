@@ -33,6 +33,7 @@ class RuleTrack(CaseInsensitiveEnum):
 # RuleNormalized is the model for a normalized rule (containing no DB IDs)
 class RuleNormalized(BaseModel):
     rule_num: int
+    rule_num_numeric: float
     rule_disabled: bool
     rule_src_neg: bool
     rule_src: str

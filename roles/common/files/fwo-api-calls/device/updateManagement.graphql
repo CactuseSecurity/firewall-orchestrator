@@ -18,6 +18,7 @@ mutation updateManagement(
   $debugLevel: Int
   $superManager: Int
   $extMgtData: String
+  $isSuperManager: Boolean
 ) {
   update_management_by_pk(
     pk_columns: { mgm_id: $id }
@@ -40,6 +41,7 @@ mutation updateManagement(
       debug_level: $debugLevel
       multi_device_manager_id: $superManager
       ext_mgm_data: $extMgtData
+      is_super_manager: $isSuperManager
     }
   ) {
     updatedId: mgm_id

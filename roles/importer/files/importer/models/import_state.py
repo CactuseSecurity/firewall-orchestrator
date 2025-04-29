@@ -9,7 +9,7 @@ from model_controllers.fworch_config_controller import FworchConfigController
 from model_controllers.management_details_controller import ManagementDetailsController
 
 """Used for storing state during import process per management"""
-class ImportState(FwoApi):
+class ImportState():
     Stats: ImportStatisticsController = ImportStatisticsController()
     StartTime: int
     DebugLevel: int
@@ -17,7 +17,6 @@ class ImportState(FwoApi):
     ConfigChangedSinceLastImport: bool
     FwoConfig: FworchConfigController
     MgmDetails: ManagementDetailsController
-    FullMgmDetails: dict
     ImportId: int
     ImportFileName: str
     ForceImport: str

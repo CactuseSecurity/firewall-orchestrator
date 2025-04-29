@@ -11,7 +11,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../FWO.Logging/FWO.Logging.csproj" />
+    <ProjectReference Include="..\FWO.Logging\FWO.Logging.csproj" />
   </ItemGroup>
 
 </Project>

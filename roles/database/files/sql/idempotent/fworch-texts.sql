@@ -3394,6 +3394,8 @@ INSERT INTO txt VALUES ('C9018', 'German',  'Leere Service Gruppe(n) enthalten. 
 INSERT INTO txt VALUES ('C9018', 'English', 'Contains empty Service Groups(s). This connection will not be requested.');
 INSERT INTO txt VALUES ('C9019', 'German',  'Leere Service Gruppe(n) enthalten. Nutzende Verbindungen dieser Schnittstelle werden nicht beantragt.');
 INSERT INTO txt VALUES ('C9019', 'English', 'Contains empty Service Groups(s). Connections using this interface will not be requested.');
+INSERT INTO txt VALUES ('C9020', 'German',  'Nur zu Dokumentation. Diese Verbindung wird nicht beantragt.');
+INSERT INTO txt VALUES ('C9020', 'English', 'Only for documentation. This connection will not be requested.');
 
 -- help pages
 INSERT INTO txt VALUES ('H0001', 'German',  'Firewall Orchestrator ist eine Anwendung zum Erzeugen und Verwalten von verschiedenen Reports aus Konfigurationsdaten verteilter Firewallsysteme.
@@ -5350,8 +5352,12 @@ INSERT INTO txt VALUES ('H5635', 'German',  'Muster App Zone: Definiert, wie der
 INSERT INTO txt VALUES ('H5635', 'English', 'App zone pattern: Defines how the name of an app zone begins (e.g. "AZ").');
 INSERT INTO txt VALUES ('H5636', 'German',  'App Zonen erstellen: Wenn dieses Flag gesetzt wird, werden App Zonen erstellt.');
 INSERT INTO txt VALUES ('H5636', 'English', 'Create app zones: If this flag is set, app zones are created.');
-INSERT INTO txt VALUES ('H5637', 'German',  'Hier werden die m&ouml;glichen Werte f&uuml;r Sonderkonfigurationstypen gesetzt.');
-INSERT INTO txt VALUES ('H5637', 'English', 'Set here the possible values for extra configuration types, e.g. NAT.');
+INSERT INTO txt VALUES ('H5637', 'German',  'Hier werden die m&ouml;glichen Werte f&uuml;r Sonderkonfigurationstypen gesetzt, z.B. NAT. Ein Präfix "Doku_" (welches in der Benutzeroberfläche nicht dargestellt wird) bewirkt die Markierung einer Verbindung als nur zu Dokumentationszwecken.
+    Sie wird dann bei der Beantragung und dem Soll-Ist-Abgleich nicht berücksichtigt. 
+');
+INSERT INTO txt VALUES ('H5637', 'English', 'Set here the possible values for extra configuration types, e.g. NAT. A prefix "Doku_" (which is then not displayed in the UI) leads to marking the connection as for documentation only.
+    It will not be regarded in the requesting process and Variance Analysis. 
+');
 INSERT INTO txt VALUES ('H5638', 'German',  'Hier wird der Anweisungstext f&uuml;r Sonderkonfigurationen eingetragen.');
 INSERT INTO txt VALUES ('H5638', 'English', 'Insert text for extra configurations.');
 INSERT INTO txt VALUES ('H5639', 'German',  'Hier wird der Meldungstext f&uuml;r Fehler im externen Beantragungsprozess eingetragen.');

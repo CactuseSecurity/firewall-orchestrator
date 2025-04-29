@@ -124,23 +124,23 @@ def login(user, password, user_management_api_base_url, method='api/Authenticati
             raise FwoApiLoginFailed(error_txt)
 
 
-def set_api_url(base_url, testmode, api_supported, hostname):
-    logger = getFwoLogger()
-    url = ''
-    if testmode == 'off':
-        url = base_url
-    else:
-        if re.search(r'^\d+[\.\d+]+$', testmode) or re.search(r'^\d+$', testmode):
-            if testmode in api_supported:
-                url = base_url + 'v' + testmode + '/'
-            else:
-                exception_text = "api version " + testmode + \
-                             " is not supported by the manager " + hostname + " - Import is canceled"
-                raise Exception(exception_text)
-        else:
-            raise Exception("\"" + testmode + "\" - not a valid version")
-    logger.debug("testmode: " + testmode + " - url: " + url)
-    return url
+# def set_api_url(base_url, testmode, api_supported, hostname):
+#     logger = getFwoLogger()
+#     url = ''
+#     if testmode == 'off':
+#         url = base_url
+#     else:
+#         if re.search(r'^\d+[\.\d+]+$', testmode) or re.search(r'^\d+$', testmode):
+#             if testmode in api_supported:
+#                 url = base_url + 'v' + testmode + '/'
+#             else:
+#                 exception_text = "api version " + testmode + \
+#                              " is not supported by the manager " + hostname + " - Import is canceled"
+#                 raise Exception(exception_text)
+#         else:
+#             raise Exception("\"" + testmode + "\" - not a valid version")
+#     logger.debug("testmode: " + testmode + " - url: " + url)
+#     return url
 
 
 def get_mgm_ids(fwo_api_base_url, jwt, query_variables):
@@ -224,6 +224,14 @@ def get_mgm_details(fwo_api_base_url, jwt, query_variables, debug_level=0):
             except ():
                 raise SecretDecryptionFailed
             api_call_result['data']['management'][0]['import_credential']['secret'] = decryptedSecret
+            if 'subManagers' in api_call_result['data']['management'][0]:
+                for subMgm in api_call_result['data']['management'][0]['subManagers']:
+                    try:
+                        secret = subMgm['import_credential']['secret']
+                        decryptedSecret = decrypt(secret, readMainKey())
+                    except ():
+                        raise SecretDecryptionFailed
+                    subMgm['import_credential']['secret'] = decryptedSecret
         return api_call_result['data']['management'][0]
     else:
         raise Exception('did not succeed in getting management details from FWO API')

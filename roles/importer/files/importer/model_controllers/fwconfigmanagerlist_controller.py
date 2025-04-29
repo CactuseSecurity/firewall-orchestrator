@@ -131,7 +131,7 @@ class FwConfigManagerListController(FwConfigManagerList):
 
     def convertLegacyConfig(self, legacyConfig: dict, mgmDetails: ManagementDetails):
         if 'networkobjects' in legacyConfig:
-            mgr = FwConfigManager(ManagerUid=calcManagerUidHash(mgmDetails.FullMgmDetails),
+            mgr = FwConfigManager(ManagerUid=calcManagerUidHash(mgmDetails.MgmDetails),
                                   IsSuperManager=False,
                                   SubManagerIds = [],
                                   Configs=[])

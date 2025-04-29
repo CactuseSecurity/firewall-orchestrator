@@ -156,6 +156,8 @@ def getRules (nativeConfig: dict, importState: ImportStateController) -> int:
                                            show_params_policy_structure,
                                            globalAssignments = globalAssignments)
 
+            # delete_v: man könnte Global domain uid aus globalAssignments[0]['global-domain]['uid']
+            # delete_v: auslesen. Wenn es kein einziges Assignment gibt, könnte man global wahrscheinlich weglassen
             domain = '1e294ce0-367a-11e3-aa6e-0800200c9a66' # delete_v: muss Global uid sein
 
         # delete_v: kann login_cp weg? Nein noch nicht

@@ -165,7 +165,7 @@ namespace FWO.Data
             return output;
         }
 
-        // not allowed: +*(){}[]?!#<>=,;'\"'/\\\t@$%^|&~
+        // not allowed: +*(){}[]?!#<>=,;'\"'/\\\t@$%^|&~ -> replaced by "_"
         public static string SanitizeJsonFieldMand(string input, ref bool changed)
         {
             string output = Regex.Replace(input.Trim(), @"[\+\*\(\)\{\}\[\]\?\!#<>\=\,\;\/\\\t@\$\%\^\|\&\~ ]", "_");

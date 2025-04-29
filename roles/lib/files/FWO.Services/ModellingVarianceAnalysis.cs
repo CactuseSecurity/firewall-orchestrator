@@ -90,7 +90,7 @@ namespace FWO.Services
                     allModelledAppRoles.Add(modelledAppRole);
                 }
             }
-            allModelledAppRoles = allModelledAppRoles.Distinct(appRoleComparer).ToList();
+            allModelledAppRoles = [.. allModelledAppRoles.Distinct(appRoleComparer)];
         }
 
         private void AnalyseAppRole(ModellingAppRole modelledAppRole, Management mgt)

@@ -51,7 +51,7 @@ namespace FWO.Middleware.Server
 			try
 			{
 				NamingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(globalConfig.ModNamingConvention) ?? new();
-				List<string> importfilePathAndNames = JsonSerializer.Deserialize<List<string>>(globalConfig.ImportAppDataPath) ?? throw new InvalidOperationException("Config Data could not be deserialized.");
+				List<string> importfilePathAndNames = JsonSerializer.Deserialize<List<string>>(globalConfig.ImportAppDataPath) ?? throw new JsonException("Config Data could not be deserialized.");
 				userConfig = new(globalConfig);
 				userConfig.User.Name = Roles.MiddlewareServer;
                 userConfig.AutoReplaceAppServer = globalConfig.AutoReplaceAppServer;
@@ -76,8 +76,8 @@ namespace FWO.Middleware.Server
 		private async Task InitLdap()
 		{
 			connectedLdaps = await apiConnection.SendQueryAsync<List<Ldap>>(AuthQueries.getLdapConnections);
-			internalLdap = connectedLdaps.FirstOrDefault(x => x.IsInternal() && x.HasGroupHandling()) ?? throw new InvalidOperationException("No internal Ldap with group handling found.");
-			ownerGroupLdap = connectedLdaps.FirstOrDefault(x => x.Id == globalConfig.OwnerLdapId) ?? throw new InvalidOperationException("Ldap with group handling not found.");
+			internalLdap = connectedLdaps.FirstOrDefault(x => x.IsInternal() && x.HasGroupHandling()) ?? throw new KeyNotFoundException("No internal Ldap with group handling found.");
+			ownerGroupLdap = connectedLdaps.FirstOrDefault(x => x.Id == globalConfig.OwnerLdapId) ?? throw new KeyNotFoundException("Ldap with group handling not found.");
 			modellerRoleDn = $"cn=modeller,{internalLdap.RoleSearchPath}";
 			requesterRoleDn = $"cn=requester,{internalLdap.RoleSearchPath}";
 			implementerRoleDn = $"cn=implementer,{internalLdap.RoleSearchPath}";
@@ -102,7 +102,7 @@ namespace FWO.Middleware.Server
 			try
 			{
 				ReadFile(importfileName);
-				ModellingImportOwnerData? importedOwnerData = JsonSerializer.Deserialize<ModellingImportOwnerData>(importFile) ?? throw new InvalidDataException("File could not be parsed.");
+				ModellingImportOwnerData? importedOwnerData = JsonSerializer.Deserialize<ModellingImportOwnerData>(importFile) ?? throw new JsonException("File could not be parsed.");
 				if (importedOwnerData != null && importedOwnerData.Owners != null)
 				{
 					importedApps = importedOwnerData.Owners;

@@ -11,8 +11,6 @@ from fwo_base import ConfigAction, ConfFormat
 from models.fwconfig_normalized import FwConfigNormalized
 from model_controllers.fwconfig_import_object import FwConfigImportObject
 from model_controllers.fwconfig_import_rule import FwConfigImportRule
-from model_controllers.fwconfig_import_object import FwConfigImportObject
-from model_controllers.fwconfig_import_rule import FwConfigImportRule
 from model_controllers.fwconfig_import_gateway import FwConfigImportGateway
 from model_controllers.rule_enforced_on_gateway_controller import RuleEnforcedOnGatewayController
 
@@ -63,7 +61,7 @@ class FwConfigImport(FwConfigImportObject, FwConfigImportRule, FwConfigImportGat
         errors, changes, newRules = self.getRulesByIdWithRefUids(newRuleIds)
 
         self.addNewRule2ObjRefs(newRules)
-        # TODO: self.addNewRuleSvcRefs(newRulebases, newRuleIds)
+        #TODO: self.addNewRule2SvcRefs(newRules)
 
         enforcingController = RuleEnforcedOnGatewayController(self.ImportDetails)
         ids = enforcingController.addNewRuleEnforcedOnGatewayRefs(newRules, self.ImportDetails)

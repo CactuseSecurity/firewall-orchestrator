@@ -95,6 +95,7 @@ class FwoApi():
                 else:
                     raise
             if int(fwo_globals.debug_level) > 8:
+                #TODO: fails on windows for some reason
                 logger.debug (self.showImportApiCallInfo(self.FwoApiUrl, full_query, request_headers, typ='debug'))
             if is_chunked_call:
                 return return_object

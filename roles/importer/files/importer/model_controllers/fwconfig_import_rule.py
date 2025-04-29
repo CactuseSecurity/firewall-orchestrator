@@ -114,13 +114,6 @@ class FwConfigImportRule(FwConfigImportBase):
 
         # TODO: need to make sure that the references do not already exist!
 
-        # first get all network objects via API that are used in the new rules
-        objectUid2IdMapper = FwConfigImportObject(self.ImportDetails, self.NormalizedConfig)
-        objectUid2IdMapper.buildObjUidToIdMapFromApi(newRules)  # creates a dict with all relevant mapping
-            # service, network objects, users, zones, ...
-            # (of the current management and possibly its super management)
-            # this will be limited to refs found in newRules
-
         ruleRefs = {}
         # now add the references to the rules
         for rule in newRules:
@@ -133,20 +126,17 @@ class FwConfigImportRule(FwConfigImportBase):
             for srcRef in rule['rule_src_refs'].split(fwo_const.list_delimiter):
                 if fwo_const.user_delimiter in srcRef:
                     userRef, nwRef = srcRef.split(fwo_const.user_delimiter)
-                    ruleFromUserRefs.append(objectUid2IdMapper.UserObjUidToIdMap[userRef])
+                    ruleFromUserRefs.append(self.uid2id_mapper.get_user_id(userRef))
                     srcRef = nwRef
-                if srcRef in objectUid2IdMapper.NwObjUidToIdMap:
-                    ruleFromRefs.append(objectUid2IdMapper.NwObjUidToIdMap[srcRef])
+                ruleFromRefs.append(self.uid2id_mapper.get_network_object_id(srcRef))
             for dstRef in rule['rule_dst_refs'].split(fwo_const.list_delimiter):
                 if fwo_const.user_delimiter in dstRef:
                     userRef, nwRef = dstRef.split(fwo_const.user_delimiter)
-                    ruleToUserRefs.append(objectUid2IdMapper.UserObjUidToIdMap[userRef])
+                    ruleToUserRefs.append(self.uid2id_mapper.get_user_id(userRef))
                     dstRef = nwRef
-                if dstRef in objectUid2IdMapper.NwObjUidToIdMap:
-                    ruleToRefs.append(objectUid2IdMapper.NwObjUidToIdMap[dstRef])
+                ruleToRefs.append(self.uid2id_mapper.get_network_object_id(dstRef))
             for svcRef in rule['rule_svc_refs'].split(fwo_const.list_delimiter):
-                if svcRef in objectUid2IdMapper.SvcObjUidToIdMap:
-                    ruleSvcRefs.append(objectUid2IdMapper.SvcObjUidToIdMap[svcRef])
+                ruleSvcRefs.append(self.uid2id_mapper.get_service_object_id(svcRef))
             ruleRefs.update({ rule['rule_id']: { 
                 'from': ruleFromRefs, 
                 'to': ruleToRefs, 
@@ -932,7 +922,7 @@ class FwConfigImportRule(FwConfigImportBase):
                 rulebase_id=rulebase_id,
                 rule_create=importDetails.ImportId,
                 rule_last_seen=importDetails.ImportId,
-                rule_num_numeric=1,
+                rule_num_numeric=rule.rule_num_numeric,
                 action_id = importDetails.lookupAction(rule.rule_action),
                 track_id = importDetails.lookupTrack(rule.rule_track),
                 rule_head_text=rule.rule_head_text

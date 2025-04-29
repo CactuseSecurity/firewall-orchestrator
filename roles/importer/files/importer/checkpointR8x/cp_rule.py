@@ -11,6 +11,7 @@ from fwo_exceptions import ImportRecursionLimitReached
 from models.rulebase import Rulebase
 from models.rule import RuleNormalized
 from models.rule_enforced_on_gateway import RuleEnforcedOnGatewayNormalized
+from model_controllers.fwconfig_import_ruleorder import RuleOrderService
 
 uid_to_name_map = {}
 
@@ -189,6 +190,8 @@ def parseRulePart (objects, part='source'):
 
 def parse_single_rule(nativeRule, rulebase, layer_name, import_id, rule_num, parent_uid, config2import, debug_level=0):
     logger = getFwoLogger()
+    rule_order_service = RuleOrderService()
+
     # reference to domain rule layer, filling up basic fields
     if 'type' in nativeRule and nativeRule['type'] != 'place-holder':
         if 'rule-number' in nativeRule:  # standard rule, no section header
@@ -269,6 +272,7 @@ def parse_single_rule(nativeRule, rulebase, layer_name, import_id, rule_num, par
             rule = {
                 # "control_id":       int(import_id),
                 "rule_num":         int(rule_num),
+                "rule_num_numeric": rule_order_service.get_new_rule_num_numeric(),
                 "rulebase_name":    sanitize(layer_name),
                 # rule_ruleid
                 "rule_disabled": not bool(nativeRule['enabled']),

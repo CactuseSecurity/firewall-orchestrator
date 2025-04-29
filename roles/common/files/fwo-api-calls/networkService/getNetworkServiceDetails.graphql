@@ -14,7 +14,10 @@ query getNetworkServiceDetails(
       limit: $limit
       offset: $offset
       where: {
-        svc_last_seen: { _gte: $import_id_start }
+        _or: [
+          { removed: { _is_null: true } }, 
+          { removed: { _gte: $import_id_start } }
+        ]
         svc_create: { _lte: $import_id_end }
         svc_name: { _in: $svc_name }
         svc_port: { _in: $svc_port }

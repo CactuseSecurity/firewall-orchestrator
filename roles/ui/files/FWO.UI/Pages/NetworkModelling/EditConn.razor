@@ -86,10 +86,10 @@
                                     }
                                     else
                                     {
-                                        <div class="col-sm-1">
+                                        <div class="col-sm-2">
                                             <label>@(extraConfig.ExtraConfigType)</label>
                                         </div>
-                                        <input type="text" class="col-sm-9" data-toggle="@("tooltip")"
+                                        <input type="text" class="col-sm-8" data-toggle="@("tooltip")"
                                         title="@(userConfig.PureLine("H5638"))" value="@extraConfig.ExtraConfigText" @onchange="@((e) => {ConnHandler.UpdateExtraConfig(e, extraConfig);})"/>
                                     }
                                     <button type="button" class="btn btn-sm btn-danger col-sm-1" @onclick="() =>

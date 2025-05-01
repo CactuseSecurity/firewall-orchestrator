@@ -328,6 +328,19 @@ namespace FWO.Data.Modelling
         public bool IsDocumentationOnly()
             => ExtraConfigs.Any(_ => _.ExtraConfigType.StartsWith(GlobalConst.kDoku_));
 
+        public Dictionary<string, bool> GetSpecialUserObjectNames()
+        {
+            Dictionary<string, bool> userObjectNames = [];
+            foreach(var extraConfig in ExtraConfigs)
+            {
+                if (extraConfig.ExtraConfigType.ToLower().EndsWith(GlobalConst.k_user))
+                {
+                    userObjectNames.Add(extraConfig.ExtraConfigText.ToLower(),false);
+                }
+            }
+            return userObjectNames;
+        }
+
         public bool DeletedObjectsFound()
         {
             foreach(var area in SourceAreas)

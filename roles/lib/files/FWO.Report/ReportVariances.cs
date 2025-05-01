@@ -185,6 +185,7 @@ namespace FWO.Report
                 report.AppendLine($"<h4 id=\"{Guid.NewGuid()}\">{userConfig.GetText("connections_with_diffs")}</h4>");
                 foreach(var difference in ownerReport.RuleDifferences)
                 {
+                    bool anyUnusedSpecialUsers = difference.ImplementedRules.Any(r => r.UnusedSpecialUserObjects.Count > 0);
                     report.AppendLine($"<h5 id=\"{Guid.NewGuid()}\">{difference.ModelledConnection.Name}</h5>");
                     AppendConnectionsGroupHtml([difference.ModelledConnection], ownerReport, chapterNumber, ref report, false, false, true);
                     report.AppendLine("<table>");
@@ -194,6 +195,10 @@ namespace FWO.Report
                     report.AppendLine($"<th>{userConfig.GetText("source")}</th>");
                     report.AppendLine($"<th>{userConfig.GetText("services")}</th>");
                     report.AppendLine($"<th>{userConfig.GetText("destination")}</th>");
+                    if(anyUnusedSpecialUsers)
+                    {
+                        report.AppendLine($"<th>{userConfig.GetText("unused_objects")}</th>");
+                    }
                     report.AppendLine("</tr>");
 
                     Rule modelledRule = difference.ModelledConnection.ToRule();
@@ -206,6 +211,10 @@ namespace FWO.Report
                         report.AppendLine($"<td>{ruleDiffDisplay.DisplaySourceDiff(diff, OutputLocation.export, ReportType)}</td>");
                         report.AppendLine($"<td>{ruleDiffDisplay.DisplayServiceDiff(diff, OutputLocation.export, ReportType)}</td>");
                         report.AppendLine($"<td>{ruleDiffDisplay.DisplayDestinationDiff(diff, OutputLocation.export, ReportType)}</td>");
+                        if(anyUnusedSpecialUsers)
+                        {
+                            report.AppendLine($"<td>{string.Join(", ", diff.UnusedSpecialUserObjects)}</td>");
+                        }
                         report.AppendLine("</tr>");
                     }
                     report.AppendLine("</table>");

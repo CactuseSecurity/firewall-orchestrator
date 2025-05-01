@@ -631,7 +631,7 @@ INSERT INTO txt VALUES ('changes',		        'English', 	'Changes');
 INSERT INTO txt VALUES ('used_objects',		    'German', 	'Benutzte Objekte');
 INSERT INTO txt VALUES ('used_objects',		    'English', 	'Used Objects');
 INSERT INTO txt VALUES ('unused_objects',		'German', 	'Unbenutzte Objekte');
-INSERT INTO txt VALUES ('inused_objects',		'English', 	'Unused Objects');
+INSERT INTO txt VALUES ('unused_objects',		'English', 	'Unused Objects');
 INSERT INTO txt VALUES ('modelled_objects',		'German', 	'Modellierte Objekte');
 INSERT INTO txt VALUES ('modelled_objects',		'English', 	'Modelled Objects');
 INSERT INTO txt VALUES ('rule_deleted',         'German', 	'Regel gel&ouml;scht');
@@ -5353,10 +5353,12 @@ INSERT INTO txt VALUES ('H5635', 'English', 'App zone pattern: Defines how the n
 INSERT INTO txt VALUES ('H5636', 'German',  'App Zonen erstellen: Wenn dieses Flag gesetzt wird, werden App Zonen erstellt.');
 INSERT INTO txt VALUES ('H5636', 'English', 'Create app zones: If this flag is set, app zones are created.');
 INSERT INTO txt VALUES ('H5637', 'German',  'Hier werden die m&ouml;glichen Werte f&uuml;r Sonderkonfigurationstypen gesetzt, z.B. NAT. Ein Präfix "Doku_" (welches in der Benutzeroberfläche nicht dargestellt wird) bewirkt die Markierung einer Verbindung als nur zu Dokumentationszwecken.
-    Sie wird dann bei der Beantragung und dem Soll-Ist-Abgleich nicht berücksichtigt. 
+    Sie wird dann bei der Beantragung und dem Soll-Ist-Abgleich nicht berücksichtigt. Endet der Feldinhalt mit dem String "_user" (Case insensitiv), so wird in den Produktionsdaten mindestens ein Objekt mit dem im zugehörigen Text angegebenen Namen erwartet.
+    In diesem werden dann alle (mindestens eines) nicht anderweitig zuzuordnenden modellierten Objekte als enthalten angenommen.
 ');
 INSERT INTO txt VALUES ('H5637', 'English', 'Set here the possible values for extra configuration types, e.g. NAT. A prefix "Doku_" (which is then not displayed in the UI) leads to marking the connection as for documentation only.
-    It will not be regarded in the requesting process and Variance Analysis. 
+    It will not be regarded in the requesting process and Variance Analysis. If the field content ends with "_user" (Case insensitiv), an object with the name given in the extra configuration text is expected to be found in the production data.
+    This object is assumed to contain all modelled objects (at least one), which could not be matched so far.
 ');
 INSERT INTO txt VALUES ('H5638', 'German',  'Hier wird der Anweisungstext f&uuml;r Sonderkonfigurationen eingetragen.');
 INSERT INTO txt VALUES ('H5638', 'English', 'Insert text for extra configurations.');

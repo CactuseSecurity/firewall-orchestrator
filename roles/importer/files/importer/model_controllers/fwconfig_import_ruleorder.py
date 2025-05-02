@@ -121,8 +121,18 @@ class RuleOrderService:
         if index < len(self._target_rule_uids) - 1:
             next_num_numeric = self._target_rules_flat[index + 1].rule_num_numeric
 
-        if next_num_numeric == 0:
+        if index == len(self._target_rule_uids) - 1:
             new_rule_num_numeric = self._target_rules_flat[index].rule_num_numeric
+        elif next_num_numeric == 0:
+            consecutive_insertions = 1
+            while next_num_numeric == 0:          
+                if index + consecutive_insertions < len(self._target_rule_uids) - 1:
+                    next_num_numeric = next_num_numeric = self._target_rules_flat[index + consecutive_insertions].rule_num_numeric
+                    consecutive_insertions += 1
+                else:
+                    next_num_numeric = consecutive_insertions * rule_num_numeric_steps + previous_rule_num_numeric
+            new_rule_num_numeric_step = (next_num_numeric - previous_rule_num_numeric) / consecutive_insertions # divide by zero !!! But if zero occurs here, there data is already corrupted
+            new_rule_num_numeric = previous_rule_num_numeric + new_rule_num_numeric_step
         else:
             new_rule_num_numeric = (previous_rule_num_numeric + next_num_numeric) / 2
 

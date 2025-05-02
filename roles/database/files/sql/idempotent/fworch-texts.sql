@@ -2938,7 +2938,7 @@ INSERT INTO txt VALUES ('U9021', 'German',  'Schnittstellen d&uuml;rfen keine Ne
 INSERT INTO txt VALUES ('U9021', 'English', 'Interfaces must not contain network areas.');
 INSERT INTO txt VALUES ('U9022', 'German',  'Quelle und Ziel d&uuml;rfen nicht gleichzeitig einen Netzbereich enthalten.');
 INSERT INTO txt VALUES ('U9022', 'English', 'Source and destination must not contain a network area at the same time.');
-INSERT INTO txt VALUES ('U9023', 'German',  'Dieser Netzbereich kann nur in der Registerkarte Gemeinsame Dienste verwendet werden.');
+INSERT INTO txt VALUES ('U9023', 'German',  'Dieser Netzbereich kann nur in der Registerkarte Common Services verwendet werden.');
 INSERT INTO txt VALUES ('U9023', 'English', 'This network area can only be used in common services tab.');
 INSERT INTO txt VALUES ('U9024', 'German',  'Netzbereiche k&ouml;nnen nicht zusammen mit Schnittstellen anderer Apps genutzt werden.');
 INSERT INTO txt VALUES ('U9024', 'English', 'Network areas cannot be used together with interfaces from foreign apps.');

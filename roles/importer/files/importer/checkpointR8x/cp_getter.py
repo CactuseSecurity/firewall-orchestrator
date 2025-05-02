@@ -71,24 +71,6 @@ def logout(url, sid):
     response = cp_api_call(url, 'logout', {}, sid)
     return response
 
-# # delete_v soll das weg, wird nirgends benutzt?
-# def set_api_url(base_url,testmode,api_supported,hostname, debug_level=0):
-#     logger = getFwoLogger()
-#     url = ''
-#     if testmode == 'off':
-#         url = base_url
-#     else:
-#         if re.search(r'^\d+[\.\d+]+$', testmode) or re.search(r'^\d+$', testmode):
-#             if testmode in api_supported :
-#                 url = base_url + 'v' + testmode + '/'
-#             else:
-#                 raise Exception("api version " + testmode + " is not supported by the manager " + hostname + " - Import is canceled")
-#         else:
-#             logger.debug ("not a valid version")
-#             raise Exception("\"" + testmode +"\" - not a valid version")
-#     logger.debug ("testmode: " + testmode + " - url: "+ url)
-#     return url
-
 
 def get_changes(sid,api_host,api_port,fromdate):
     logger = getFwoLogger()

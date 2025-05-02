@@ -197,7 +197,7 @@ namespace FWO.Report
                     report.AppendLine($"<th>{userConfig.GetText("destination")}</th>");
                     if(anyUnusedSpecialUsers)
                     {
-                        report.AppendLine($"<th>{userConfig.GetText("unused_objects")}</th>");
+                        report.AppendLine($"<th>{userConfig.GetText("missing_objects")}</th>");
                     }
                     report.AppendLine("</tr>");
 

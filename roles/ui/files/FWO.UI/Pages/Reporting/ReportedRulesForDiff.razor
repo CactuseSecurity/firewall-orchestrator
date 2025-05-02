@@ -29,7 +29,7 @@
         </Column>
         @if(anyUnusedSpecialUsers)
         {
-            <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("unused_objects"))" Field="@(r => r.Name)" Sortable="true" Filterable="false" Hideable="true">
+            <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("missing_objects"))" Field="@(r => r.Name)" Sortable="true" Filterable="false" Hideable="true">
                 <Template>
                     @(ListUnusedSpecialUsers(rule))
                 </Template>

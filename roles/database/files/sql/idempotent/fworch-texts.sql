@@ -764,6 +764,8 @@ INSERT INTO txt VALUES ('missing_app_servers', 	'German',	'Fehlende App Server a
 INSERT INTO txt VALUES ('missing_app_servers', 	'English',	'Missing App Servers on Device');
 INSERT INTO txt VALUES ('surplus_app_servers', 	'German',	'&Uuml;bersch&uuml;ssige App Server auf Device');
 INSERT INTO txt VALUES ('surplus_app_servers', 	'English',	'Surplus App Servers on Device');
+INSERT INTO txt VALUES ('missing_objects',		'German', 	'Fehlende Objekte auf Device');
+INSERT INTO txt VALUES ('missing_objects',		'English', 	'Missing Objects on Device');
 
 -- schedule
 INSERT INTO txt VALUES ('schedule', 			'German',	'Terminplan');

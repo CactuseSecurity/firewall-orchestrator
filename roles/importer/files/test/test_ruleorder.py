@@ -40,28 +40,58 @@ class TestRuleOrdering(unittest.TestCase):
         self.assertEqual(compute_min_moves_result["deletions"], expectedResult["deletions"])     
         self.assertEqual(compute_min_moves_result["reposition_moves"], expectedResult["reposition_moves"])      
 
-    def test_compute_min_moves_on_delete(self):
+    def test_compute_rulebase_diffs_delete(self):
         # arrange
-        previousConfigRuleUids = self.mock_previous_config_rule_uids()
-        currentConfigRuleUids = copy.deepcopy(previousConfigRuleUids)
-        del currentConfigRuleUids[4]
-        expectedResult = { 
-            "moves": 1, 
-            "operations": ["Delete element 'e40d5b53-67e0-4ba7-923e-226909fc3c82' at source index 4."],
-            "insertions": [],
-            "deletions": [(4, 'e40d5b53-67e0-4ba7-923e-226909fc3c82')],
-            "reposition_moves": []
-        }
+        previous_config = MockFwConfigNormalized()
+        previous_config.initialize_config(
+            {
+                "rule_config": [10,10,10]
+            }
+        )
+
+        fwconfig_import_rule = MockFwConfigImportRule()
+        fwconfig_import_rule.NormalizedConfig = copy.deepcopy(previous_config)
+        deleted_rule = list(fwconfig_import_rule.NormalizedConfig.rulebases[0].Rules.keys())[0]
+        del fwconfig_import_rule.NormalizedConfig.rulebases[0].Rules[deleted_rule]
 
         # act
-        compute_min_moves_result = compute_min_moves(previousConfigRuleUids, currentConfigRuleUids)
+        deletions, _, _ = fwconfig_import_rule.computeRulebaseDiffs(previous_config)
+        flatted_deletions = [
+            rule_uid
+            for rules_uids in deletions.values()
+            for rule_uid in rules_uids
+        ]
+
 
         # assert
-        self.assertEqual(compute_min_moves_result["moves"], expectedResult["moves"])
-        self.assertEqual(compute_min_moves_result["operations"], expectedResult["operations"])
-        self.assertEqual(compute_min_moves_result["insertions"], expectedResult["insertions"])
-        self.assertEqual(compute_min_moves_result["deletions"], expectedResult["deletions"])     
-        self.assertEqual(compute_min_moves_result["reposition_moves"], expectedResult["reposition_moves"])      
+        self.assertEqual(len(flatted_deletions), 1)
+        self.assertEqual(flatted_deletions[0], deleted_rule)
+
+
+    # def test_update_rulebase_diffs_recognize_delete(self):
+    #     # arrange
+    #     previous_config = MockFwConfigNormalized()
+    #     previous_config.initialize_config(
+    #         {
+    #             "rule_config": [10,10,10]
+    #         }
+    #     )
+
+    #     fwconfig_import_rule = MockFwConfigImportRule()
+    #     fwconfig_import_rule.NormalizedConfig = copy.deepcopy(previous_config)
+    #     deleted_rule = list(fwconfig_import_rule.NormalizedConfig.rulebases[0].Rules.keys())[0]
+    #     del fwconfig_import_rule.NormalizedConfig.rulebases[0].Rules[deleted_rule]
+
+
+    #     # act
+    #     fwconfig_import_rule.updateRulebaseDiffs(previous_config)
+
+    #     # assert
+    #     self.assertEqual(fwconfig_import_rule.ImportDetails.Stats.RuleAddCount, 0)
+    #     self.assertEqual(fwconfig_import_rule.ImportDetails.Stats.RuleDeleteCount, 1)
+    #     self.assertEqual(fwconfig_import_rule.ImportDetails.Stats.RuleChangeCount, 0)
+    #     self.assertEqual(fwconfig_import_rule.ImportDetails.Stats.RuleMoveCount, 0)
+
 
 
 

@@ -131,8 +131,12 @@ class RuleOrderService:
                     consecutive_insertions += 1
                 else:
                     next_num_numeric = consecutive_insertions * rule_num_numeric_steps + previous_rule_num_numeric
-            new_rule_num_numeric_step = (next_num_numeric - previous_rule_num_numeric) / consecutive_insertions # divide by zero !!! But if zero occurs here, there data is already corrupted
-            new_rule_num_numeric = previous_rule_num_numeric + new_rule_num_numeric_step
+            new_rule_num_numeric_step = (next_num_numeric - previous_rule_num_numeric)
+            if new_rule_num_numeric_step != 0:
+                new_rule_num_numeric_step /= consecutive_insertions
+                new_rule_num_numeric = previous_rule_num_numeric + new_rule_num_numeric_step
+            else:
+                new_rule_num_numeric = previous_rule_num_numeric
         else:
             new_rule_num_numeric = (previous_rule_num_numeric + next_num_numeric) / 2
 

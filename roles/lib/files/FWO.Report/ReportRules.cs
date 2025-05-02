@@ -343,7 +343,7 @@ namespace FWO.Report
 
                 // Write order numbers to rule object.
 
-                List<int> path = new List<int>(currentPath) { (int) rule.OrderNumber };
+                List<int> path = new List<int>(currentPath) { rule.RuleOrderNumber };
                 string dotted = string.Join(".", path);
                 rule.DisplayOrderNumberString = dotted;
                 rule.OrderNumber = positionCounter++;
@@ -376,7 +376,7 @@ namespace FWO.Report
         /// while preserving their relative order (e.g., [1.4, 4.645, 13.65] -> [1, 2, 3]).
         /// </summary>
         /// <param name="rulesByRulebase"></param>
-        private static void ResetRelativeOrderNumbers(Dictionary<int, List<Rule>> rulesByRulebase)
+        private static void NormalizeOrderNumbers(Dictionary<int, List<Rule>> rulesByRulebase)
         {
             foreach (KeyValuePair<int, List<Rule>> rulebaseRules in rulesByRulebase)
             {

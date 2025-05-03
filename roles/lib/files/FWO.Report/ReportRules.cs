@@ -292,7 +292,11 @@ namespace FWO.Report
 
             Dictionary<int, List<Rule>> rulesByRulebase = rules
                 .GroupBy(r => r.RulebaseId)
-                .ToDictionary(g => g.Key, g => g.OrderBy(r => r.RuleOrderNumber).ToList());
+                .ToDictionary(g => g.Key, g => g.OrderBy(r => r.OrderNumber).ToList());
+
+            // Normalize actual order numbers to incremental int like form.
+
+            NormalizeOrderNumbers(rulesByRulebase);
 
             // Creates a dictionary with rule IDs as keys and the rulebase link that has that rule as its from rule as values.
 
@@ -339,7 +343,7 @@ namespace FWO.Report
 
                 // Write order numbers to rule object.
 
-                List<int> path = new List<int>(currentPath) { rule.RuleOrderNumber + 1 };
+                List<int> path = new List<int>(currentPath) { rule.RuleOrderNumber };
                 string dotted = string.Join(".", path);
                 rule.DisplayOrderNumberString = dotted;
                 rule.OrderNumber = positionCounter++;
@@ -363,6 +367,25 @@ namespace FWO.Report
                             BuildOrderNumberTree(link.NextRulebaseId, path, rulesByRulebase, linksByFromRuleId, changedRules, ref positionCounter, rulebaseRules);
                             break;
                     }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Normalizes float values within rule groups (grouped by rulebase ID) to ascending integers 
+        /// while preserving their relative order (e.g., [1.4, 4.645, 13.65] -> [1, 2, 3]).
+        /// </summary>
+        /// <param name="rulesByRulebase"></param>
+        private static void NormalizeOrderNumbers(Dictionary<int, List<Rule>> rulesByRulebase)
+        {
+            foreach (KeyValuePair<int, List<Rule>> rulebaseRules in rulesByRulebase)
+            {
+                int relativeOrderNumber = 1;
+
+                foreach (Rule rule in rulebaseRules.Value.ToList())
+                {
+                    rule.RuleOrderNumber = relativeOrderNumber;
+                    relativeOrderNumber++;
                 }
             }
         }

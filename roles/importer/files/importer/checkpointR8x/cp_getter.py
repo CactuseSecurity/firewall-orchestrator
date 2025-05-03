@@ -260,12 +260,16 @@ def getGlobalAssignments(api_v_url, sid, show_params_policy_structure, globalAss
     return 0
                         
 
-def getRulebases (api_v_url, sid, show_params_rules,
-                  rulebaseUid=None,
-                  rulebaseName=None,
-                  access_type='access',
-                  nativeConfig={'rulebases':[],'nat_rulebases':[]},
-                  deviceConfig={'rulebase_links': []}):
+def getRulebases(api_v_url, sid, show_params_rules,
+                 rulebaseUid=None,
+                 rulebaseName=None,
+                 access_type='access',
+                 nativeConfig=None,
+                 deviceConfig=None):
+    if nativeConfig is None:
+        nativeConfig = {'rulebases': [], 'nat_rulebases': []}
+    if deviceConfig is None:
+        deviceConfig = {'rulebase_links': []}
     
     # access_type: access / nat
     logger = getFwoLogger()

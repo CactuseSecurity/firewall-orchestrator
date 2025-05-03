@@ -72,7 +72,7 @@ namespace FWO.Services
                 rule.DisregardedFroms = [.. disregardedFroms];
                 rule.DisregardedTos = [.. disregardedTos];
                 rule.DisregardedServices = [.. disregardedServices];
-                rule.UnusedSpecialUserObjects = [.. SpecialUserObjects.Keys.Where(x => SpecialUserObjects[x] == false)];
+                rule.UnusedSpecialUserObjects = [.. SpecialUserObjects.Keys.Where(x => !SpecialUserObjects[x])];
                 isImpl &= rule.UnusedSpecialUserObjects.Count == 0;
             }
             else if (isImpl)
@@ -80,7 +80,7 @@ namespace FWO.Services
                 isImpl = IsNwImplementation(rule.Froms, SpecialUserObjects, conn.SourceAppServers, conn.SourceAppRoles, conn.SourceAreas, conn.SourceOtherGroups, ref disregardedFroms)
                     && IsNwImplementation(rule.Tos, SpecialUserObjects, conn.DestinationAppServers, conn.DestinationAppRoles, conn.DestinationAreas, conn.DestinationOtherGroups, ref disregardedTos)
                     && IsSvcImplementation(rule.Services, conn.Services, conn.ServiceGroups, [])
-                    && !SpecialUserObjects.Any(x => x.Value == false);
+                    && !SpecialUserObjects.Any(x => !x.Value);
             }
             return isImpl;
         }
@@ -88,26 +88,17 @@ namespace FWO.Services
         private bool IsNwImplementation(NetworkLocation[] networkLocations, Dictionary<string, bool> specialUserObjects, List<ModellingAppServerWrapper> appServers,
             List<ModellingAppRoleWrapper> appRoles, List<ModellingNetworkAreaWrapper> areas, List<ModellingNwGroupWrapper> otherGroups, ref List<NetworkLocation> disregardedLocations)
         {
-            if (!CompareNwAreas(networkLocations, areas, disregardedLocations))
+            if (!CompareNwAreas(networkLocations, areas, disregardedLocations) && !FullAnalysis && specialUserObjects.Count == 0)
             {
-                if(!FullAnalysis && specialUserObjects.Count == 0)
-                {
-                    return false;
-                }
+                return false;
             }
-            if (!CompareAppServers(networkLocations, appServers, appRoles, disregardedLocations))
+            if (!CompareAppServers(networkLocations, appServers, appRoles, disregardedLocations) && !FullAnalysis && specialUserObjects.Count == 0)
             {
-                if(!FullAnalysis && specialUserObjects.Count == 0)
-                {
-                    return false;
-                }
+                return false;
             }
-            if (!ruleRecognitionOption.NwResolveGroup && !CompareRemainingNwGroups(networkLocations, appRoles, otherGroups, disregardedLocations))
+            if (!ruleRecognitionOption.NwResolveGroup && !CompareRemainingNwGroups(networkLocations, appRoles, otherGroups, disregardedLocations) && !FullAnalysis && specialUserObjects.Count == 0)
             {
-                if(!FullAnalysis && specialUserObjects.Count == 0)
-                {
-                    return false;
-                }
+                return false;
             }
             AdjustWithSpecialUserObjects(networkLocations, specialUserObjects, ref disregardedLocations);
             return disregardedLocations.Count == 0 && networkLocations.Where(n => n.Object.IsSurplus).ToList().Count == 0;
@@ -119,23 +110,17 @@ namespace FWO.Services
             {
                 List<NetworkLocation> surplusNwLocations = [.. networkLocations.Where(n => n.Object.IsSurplus)];
                 int userCounter = 0;
-                foreach(var location in surplusNwLocations)
+                foreach(var location in surplusNwLocations.Where(l => specialUserObjects.ContainsKey(l.Object.Name.ToLower())))
                 {
-                    if(specialUserObjects.ContainsKey(location.Object.Name.ToLower()))
-                    {
-                        specialUserObjects[location.Object.Name.ToLower()] = true;
-                        userCounter++;
-                    }
+                    specialUserObjects[location.Object.Name.ToLower()] = true;
+                    userCounter++;
                 }
                 if(userCounter <= disregardedLocations.Count)
                 {
                     disregardedLocations = [];
-                    foreach(var location in surplusNwLocations)
+                    foreach(var location in surplusNwLocations.Where(l => specialUserObjects.ContainsKey(l.Object.Name.ToLower())))
                     {
-                        if(specialUserObjects.ContainsKey(location.Object.Name.ToLower()))
-                        {
-                            location.Object.IsSurplus = false;
-                        }
+                        location.Object.IsSurplus = false;
                     }
                 }
              }

@@ -331,12 +331,9 @@ namespace FWO.Data.Modelling
         public Dictionary<string, bool> GetSpecialUserObjectNames()
         {
             Dictionary<string, bool> userObjectNames = [];
-            foreach(var extraConfig in ExtraConfigs)
+            foreach(var extraConfig in ExtraConfigs.Where(e => e.ExtraConfigType.ToLower().EndsWith(GlobalConst.k_user)))
             {
-                if (extraConfig.ExtraConfigType.ToLower().EndsWith(GlobalConst.k_user))
-                {
-                    userObjectNames.Add(extraConfig.ExtraConfigText.ToLower(),false);
-                }
+                userObjectNames.Add(extraConfig.ExtraConfigText.ToLower(),false);
             }
             return userObjectNames;
         }

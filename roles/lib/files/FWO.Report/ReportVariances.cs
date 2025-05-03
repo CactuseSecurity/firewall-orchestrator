@@ -213,7 +213,7 @@ namespace FWO.Report
                         report.AppendLine($"<td>{ruleDiffDisplay.DisplayDestinationDiff(diff, OutputLocation.export, ReportType)}</td>");
                         if(anyUnusedSpecialUsers)
                         {
-                            report.AppendLine($"<td>{string.Join(", ", diff.UnusedSpecialUserObjects)}</td>");
+                            report.AppendLine($"<td style=\"{GlobalConst.kStyleHighlightedRed}\">{string.Join(", ", diff.UnusedSpecialUserObjects)}</td>");
                         }
                         report.AppendLine("</tr>");
                     }

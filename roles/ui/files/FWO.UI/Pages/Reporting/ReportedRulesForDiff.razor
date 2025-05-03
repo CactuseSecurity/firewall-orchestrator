@@ -31,7 +31,7 @@
         {
             <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("missing_objects"))" Field="@(r => r.Name)" Sortable="true" Filterable="false" Hideable="true">
                 <Template>
-                    @(ListUnusedSpecialUsers(rule))
+                    <span class="text-danger">@(ListUnusedSpecialUsers(rule))</span>
                 </Template>
             </Column>
         }

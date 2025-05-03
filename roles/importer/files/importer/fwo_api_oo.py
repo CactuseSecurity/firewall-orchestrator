@@ -86,7 +86,7 @@ class FwoApi():
 
             except requests.exceptions.RequestException:
                 if int(fwo_globals.debug_level) > 1:
-                    logger.error(self.showImportApiCallInfo(full_query, request_headers, typ='error') + ":\n" + str(traceback.format_exc()))
+                    logger.error(self.showImportApiCallInfo(self.FwoApiUrl, full_query, request_headers, typ='error') + ":\n" + str(traceback.format_exc()))
                 if r != None:
                     if r.status_code == 503:
                         raise FwoApiServiceUnavailable("FWO API HTTP error 503 (FWO API died?)" )
@@ -95,7 +95,6 @@ class FwoApi():
                 else:
                     raise
             if int(fwo_globals.debug_level) > 8:
-                #TODO: fails (on windows) for some reason
                 logger.debug (self.showImportApiCallInfo(self.FwoApiUrl, full_query, request_headers, typ='debug'))
             if is_chunked_call:
                 return return_object

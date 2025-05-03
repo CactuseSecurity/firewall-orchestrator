@@ -423,8 +423,11 @@ def checkAndAddSectionHeader(src_rulebase, target_rulebase, layer_name, import_i
     return rule_num
 
 
-def transform_section_into_rulebase(src_rulebase, target_rulebase, layer_name, import_id, rule_num, section_header_uids, parent_uid, config2import, section_rulebases=[], debug_level=0, recursion_level=1):
+def transform_section_into_rulebase(src_rulebase, target_rulebase, layer_name, import_id, rule_num, section_header_uids, parent_uid, config2import, 
+                                    section_rulebases=None, debug_level=0, recursion_level=1):
     # if current rulebase starts a new section, add section header, but only if it does not exist yet (can happen by chunking a section)
+    if section_rulebases is None:
+        section_rulebases = []
     if 'type' in src_rulebase and src_rulebase['type'] == 'access-section' and 'uid' in src_rulebase:
         section_name = default_section_header_text
         if 'name' in src_rulebase:

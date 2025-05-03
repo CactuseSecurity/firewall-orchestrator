@@ -249,6 +249,25 @@ namespace FWO.Test
         }
 
         [Test]
+        public void VariancesGenerateHtml()
+        {
+            Log.WriteInfo("Test Log", "starting variance report html generation");
+            ReportVariances reportVariances = new(query, userConfig, ReportType.VarianceAnalysis)
+            {
+                ReportData = ConstructVarianceReport()
+            };
+
+            string expectedHtmlResult = "<!DOCTYPE html><html><head><meta charset=\"utf-8\"/><title>VarianceAnalysis</title><style>table {font-family: arial, sans-serif;font-size: 10px;border-collapse: collapse;width: 100 %;}td {border: 1px solid #000000;text-align: left;padding: 3px;}th {border: 1px solid #000000;text-align: left;padding: 3px;background-color: #dddddd;}</style></head><body><h2>VarianceAnalysis</h2><p>Generated on: Z (UTC)</p><p>Owners: TestOwner</p><p>Filter: TestFilter</p><hr><div id=\"toc_container\"><h2>Table of content</h2><ul class=\"toc_list\"><li><a href=\"#" + StaticAnkerId + "\">TestOwner</a></li><ul><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">AppRoles Not Implemented</a></li><ul><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\"></a></li></ul><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">AppRoles With Diffs</a></li><ul><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\"></a></li></ul><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">Network Objects</a></li><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">Network Services</a></li></ul></ul></div><style>#toc_container {background: #f9f9f9 none repeat scroll 0 0;border: 1px solid #aaa;display: table;font-size: 95%;margin-bottom: 1em;padding: 10px;width: 100%;}#toc_container ul{list-style-type: none;}.subli {list-style-type: square;}.toc_list ul li {margin-bottom: 4px;}.toc_list a {color: black;font-family: 'Arial';font-size: 12pt;}</style><hr><h3 id=\"" + StaticAnkerId + "\">TestOwner</h3>AppRoles: 2, Implemented: 0, Not Implemented: 1, With Diffs: 1.<br>Connections: 1, Implemented: 0, Not Implemented: 1, With Diffs: 0<br><hr><h4 id=\"" + StaticAnkerId + "\">AppRoles Not Implemented</h4><h5 id=\"" + StaticAnkerId + "\"></h5><table><tr><th>No.</th><th>Id</th><th>Name</th><th>Members</th></tr><tr><td>1</td><td>21</td><td>AppRole1</td><td>AppServer1 (1.0.0.0)</td></table><hr><hr><h4 id=\"" + StaticAnkerId + "\">AppRoles With Diffs</h4><h5 id=\"" + StaticAnkerId + "\"></h5><table><tr><th>No.</th><th>Id</th><th>Name</th><th>Missing App Servers</th><th>Surplus App Servers</th></tr><tr><td>1</td><td>22</td><td>AppRole2</td><td>AppServer2 (2.0.0.0)</td><td></td></table><hr><hr><h4 id=\"" + StaticAnkerId + "\">Network Objects</h4><table><tr><th>No.</th><th>Id</th><th>Name</th><th>Ip</th><th>Members</th></tr><tr><td>1</td><td>21</td><td><a name=nwobj0x21>AppRole1 (AR1)</a></td><td></td><td>AppServer1</td><tr><td>2</td><td>11</td><td><a name=nwobj0x11>AppServer1</a></td><td>1.0.0.0</td><td></td><tr><td>3</td><td>22</td><td><a name=nwobj0x22>AppRole2 (AR2)</a></td><td></td><td>AppServer2</td><tr><td>4</td><td>12</td><td><a name=nwobj0x12>AppServer2</a></td><td>2.0.0.0</td><td></td></table><hr><h4 id=\"" + StaticAnkerId + "\">Network Services</h4><table><tr><th>No.</th><th>Id</th><th>Name</th><th>Protocol</th><th>Port</th><th>Members</th></tr><tr><td>1</td><td>41</td><td><a name=svc0x41>ServiceGroup1</a></td><td></td><td></td><td>Service1</td><tr><td>2</td><td>31</td><td><a name=svc0x31>Service1</a></td><td>TCP</td><td>1234</td><td></td></table><hr><hr></body></html>";
+
+            string reportHtml = RemoveLinebreaks(RemoveGenDate(reportVariances.ExportToHtml(), true));
+
+            IEnumerable<string> matches = reportHtml.GetMatches(ToCRegexPattern, ToCAnkerIdGroupName);
+            reportHtml = reportHtml.ReplaceAll(matches, StaticAnkerId);
+
+            ClassicAssert.AreEqual(expectedHtmlResult, reportHtml);
+        }
+
+        [Test]
         public void ResolvedRulesGenerateCsv()
         {
             Log.WriteInfo("Test Log", "starting rules report resolved csv generation");
@@ -960,6 +979,53 @@ namespace FWO.Test
                     }
                 ],
                 GlobalComSvc = [new() { GlobalComSvcs = [ComSvc3] }]
+            };
+            reportData.OwnerData.First().PrepareObjectData();
+            return reportData;
+        }
+
+        private static ReportData ConstructVarianceReport()
+        {
+            ModellingAppServer AppServer1 = new() { Id = 11, Number = 1, Name = "AppServer1", Ip = "1.0.0.0" };
+            ModellingAppServer AppServer2 = new() { Id = 12, Number = 2, Name = "AppServer2", Ip = "2.0.0.0" };
+            ModellingAppRole AppRole1 = new() { Id = 21, Number = 3, Name = "AppRole1", IdString = "AR1", Comment = "CommAR1", AppServers = [new() { Content = AppServer1 }] };
+            ModellingAppRole AppRole2 = new() { Id = 22, Number = 3, Name = "AppRole2", IdString = "AR2", Comment = "CommAR2", AppServers = [new() { Content = AppServer2 }] };
+            Dictionary<int, List<ModellingAppRole>> MissAR = new() { [0] = [ AppRole1 ] };
+            Dictionary<int, List<ModellingAppRole>> DiffAR = new() { [0] = [ AppRole2 ] };
+            ModellingService Service1 = new() { Id = 31, Number = 1, Name = "Service1", Port = 1234, Protocol = new() { Name = "TCP" } };
+            ModellingServiceGroup ServiceGroup1 = new() { Id = 41, Number = 3, Name = "ServiceGroup1", Comment = "CommSG1", Services = [new() { Content = Service1 }] };
+            ModellingConnection Conn1 = new()
+            {
+                Id = 101,
+                Name = "Conn1",
+                SourceAppServers = [new() { Content = AppServer1 }],
+                SourceAppRoles = [new() { Content = AppRole1 }],
+                DestinationAppRoles = [new() { Content = AppRole2 }],
+                Services = [new() { Content = Service1 }],
+                ServiceGroups = [new() { Content = ServiceGroup1 }]
+            };
+
+            ReportData reportData = new()
+            {
+                OwnerData =
+                [
+                    new ()
+                    {
+                        Name = "TestOwner",
+                        Connections = [Conn1],
+                        MissingAppRoles = MissAR,
+                        DifferingAppRoles = DiffAR,
+                        RuleDifferences = [],
+                        ModelledConnectionsCount = 1,
+                        AppRoleStats = new() 
+                        {
+                            ModelledAppRolesCount = 2,
+                            AppRolesOk = 0,
+                            AppRolesMissingCount = 1,
+                            AppRolesDifferenceCount = 1
+                        }
+                    }
+                ]
             };
             reportData.OwnerData.First().PrepareObjectData();
             return reportData;

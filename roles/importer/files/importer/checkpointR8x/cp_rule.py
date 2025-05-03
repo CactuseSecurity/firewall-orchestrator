@@ -23,89 +23,65 @@ uid_to_name_map = {}
     - migrate section headers from rule to ordering element 
     ...
 """
-def normalizeRulebases (nativeConfig, importState, normalizedConfig):
-    if fwo_globals.debug_level>0:
-        logger = getFwoLogger()
+def normalize_rulebases (nativeConfig, importState, normalizedConfig):
     rule_num = 0
-    parent_uid=None
-    section_header_uids=[]
     normalizedConfig['policies'] = []
 
     # fill uid_to_name_map:
     for nw_obj in normalizedConfig['network_objects']:
         uid_to_name_map[nw_obj['obj_uid']] = nw_obj['obj_name']
 
+    section_rulebases = [] # keep new section rulebases separate from real rulebases
+    # the following loop fills the section_rulebases with sections
     rb_range = range(len(nativeConfig['rulebases']))
     for rb_id in rb_range:
-        rulebaseName = nativeConfig['rulebases'][rb_id]['name']
-        rulebaseUid = nativeConfig['rulebases'][rb_id]['uid']
-        accessPolicy = Rulebase(uid=rulebaseUid, name=rulebaseName, mgm_uid=importState.MgmDetails.Uid, Rules=[])
+        normalize_rulebase(nativeConfig['rulebases'][rb_id], importState, normalizedConfig, rule_num=rule_num, section_rulebases=section_rulebases)
 
-        if fwo_globals.debug_level>3:
-            logger.debug("parsing layer " + rulebaseUid)
-
-        # parse access rules
-        rule_num = parseAccessRulebase(
-            nativeConfig['rulebases'][rb_id], accessPolicy, rulebaseUid,
-            importState.ImportId, section_header_uids, parent_uid, normalizedConfig, 0)
-        
-        if fwo_globals.debug_level>3:
-            logger.debug("parsed " + str(rule_num) + " rules for layer " + rulebaseUid)
-        
-        normalizedConfig['policies'].append(accessPolicy)
-
-        # now parse the nat rulebase
-
-        # parse nat rules
-        # natPolicy = Rulebase(uid=rulebaseUid, name=rulebaseUid, mgm_uid=importState.MgmDetails.Name, Rules=[])
-        # if len(nativeConfig['nat_rulebases'])>0:
-        #     if len(nativeConfig['nat_rulebases']) != len(rb_range):
-        #         pass
-        #         # logger.warning('get_config - found ' + str(len(nativeConfig['nat_rulebases'])) +
-        #         #     ' nat rulebases and ' +  str(len(rb_range)) + ' access rulebases')
-        #     else:
-        #         rule_num = parseNatRulebase(
-        #             nativeConfig['nat_rulebases'][rb_id], natPolicy, nativeConfig['rulebases'][rb_id]['layername'], 
-        #             importState.ImportId, rule_num, section_header_uids, parent_uid, normalizedConfig)
-        #         # TODO: do we have to add the nat rulebase here?!
-
-
-def normalize_rulebases_top_level (full_config, current_import_id, config2import):
-    logger = getFwoLogger()
-    target_rulebase = []
-    rule_num = 0
-    parent_uid=None
-    section_header_uids=[]
-
-    # fill uid_to_name_map:
-    for nw_obj in config2import['network_objects']:
-        uid_to_name_map[nw_obj['obj_uid']] = nw_obj['obj_name']
-
-    rb_range = range(len(full_config['rulebases']))
+    # now deal with the section rulebases
+    rb_range = range(len(section_rulebases))
     for rb_id in rb_range:
-        # if current_layer_name == args.rulebase:
-        if fwo_globals.debug_level>3:
-            logger.debug("parsing layer " + full_config['rulebases'][rb_id]['layername'])
-
-        # parse access rules
-        rule_num = parse_rulebase(
-            full_config['rulebases'][rb_id], target_rulebase, full_config['rulebases'][rb_id]['layername'], 
-            current_import_id, rule_num, section_header_uids, parent_uid, config2import)
-        # now parse the nat rulebase
-
-        # parse nat rules
-        if len(full_config['nat_rulebases'])>0:
-            if len(full_config['nat_rulebases']) != len(rb_range):
-                logger.warning('get_config - found ' + str(len(full_config['nat_rulebases'])) +
-                    ' nat rulebases and ' +  str(len(rb_range)) + ' access rulebases')
-            else:
-                rule_num = parse_nat_rulebase(
-                    full_config['nat_rulebases'][rb_id], target_rulebase, full_config['rulebases'][rb_id]['layername'], 
-                    current_import_id, rule_num, section_header_uids, parent_uid, config2import)
-    return target_rulebase
+        normalize_rulebase(section_rulebases[rb_id], importState, normalizedConfig, rule_num=rule_num)
 
 
-def acceptMalformedParts(objects, part=''):
+def normalize_rulebase(rulebase, importState, normalizedConfig, rule_num=0,
+        parent_uid=None,
+        section_rulebases=None):
+    logger = getFwoLogger()
+    if normalizedConfig['policies'] is None:
+        normalizedConfig['policies'] = []
+    if section_rulebases is None:
+        section_rulebases = []
+    access_policy = Rulebase(uid=rulebase['uid'], name=rulebase['name'], mgm_uid=importState.MgmDetails.Uid, Rules=[])
+
+    if fwo_globals.debug_level>3:
+        logger.debug("parsing layer " + rulebase['uid'])
+
+    # parse access rules
+    rule_num = parseAccessRulebase(
+        rulebase, access_policy, rulebase['uid'],
+        importState.ImportId, [], parent_uid, normalizedConfig, rule_num=rule_num, section_rulebases=section_rulebases)
+    
+    if fwo_globals.debug_level>3:
+        logger.debug("parsed " + str(rule_num) + " rules for layer " + rulebase['uid'])
+    
+    normalizedConfig['policies'].append(access_policy)
+
+    # now parse the nat rulebase
+
+    # parse nat rules
+    # natPolicy = Rulebase(uid=rulebaseUid, name=rulebaseUid, mgm_uid=importState.MgmDetails.Name, Rules=[])
+    # if len(nativeConfig['nat_rulebases'])>0:
+    #     if len(nativeConfig['nat_rulebases']) != len(rb_range):
+    #         pass
+    #         # logger.warning('get_config - found ' + str(len(nativeConfig['nat_rulebases'])) +
+    #         #     ' nat rulebases and ' +  str(len(rb_range)) + ' access rulebases')
+    #     else:
+    #         rule_num = parseNatRulebase(
+    #             nativeConfig['nat_rulebases'][rb_id], natPolicy, nativeConfig['rulebases'][rb_id]['layername'], 
+    #             importState.ImportId, rule_num, section_header_uids, parent_uid, normalizedConfig)
+    #         # TODO: do we have to add the nat rulebase here?!
+
+def accept_malformd_parts(objects, part=''):
     # logger.debug('about to accept malformed rule part (' + part + '): ' + str(objects))
 
     # if we are dealing with a list with one element, resolve the list
@@ -135,7 +111,7 @@ def parseRulePart (objects, part='source'):
             addressObjects[objects['uid']] = objects['name']
             return addressObjects
         else:
-            return acceptMalformedParts(objects, part=part)
+            return accept_malformd_parts(objects, part=part)
 
     else:   # assuming list of objects
         if objects is None:
@@ -144,8 +120,6 @@ def parseRulePart (objects, part='source'):
         else:
             for obj in objects:
                 if obj is not None:
-                    # if 'name' in obj:
-                    #     logger.debug(f"handling obj without uid {obj['name']}, part={part}")
                     if 'object_chunks' in obj:
                         addressObjects.update(parseRulePart(obj['object_chunks'], part=part)) # need to parse chunk first
                     elif 'objects' in obj:
@@ -177,7 +151,7 @@ def parseRulePart (objects, part='source'):
                             else:  # standard object
                                 addressObjects[obj['uid']] = obj['name']
                         else:
-                            return acceptMalformedParts(objects, part=part)
+                            return accept_malformd_parts(objects, part=part)
                 else:
                     logger.warning(f"found list with a single None obj")
 
@@ -378,6 +352,7 @@ def insertSectionHeaderRule(rulebase, section_name, layer_name, import_id, rule_
     rule = {
         # "control_id":       int(import_id),
         "rule_num":         int(rule_num),
+        "rule_num_numeric": float(rule_num),
         "rulebase_name":    sanitize(layer_name),
         # rule_ruleid
         "rule_disabled":    False,
@@ -448,9 +423,25 @@ def checkAndAddSectionHeader(src_rulebase, target_rulebase, layer_name, import_i
     return rule_num
 
 
+def transform_section_into_rulebase(src_rulebase, target_rulebase, layer_name, import_id, rule_num, section_header_uids, parent_uid, config2import, section_rulebases=[], debug_level=0, recursion_level=1):
+    # if current rulebase starts a new section, add section header, but only if it does not exist yet (can happen by chunking a section)
+    if 'type' in src_rulebase and src_rulebase['type'] == 'access-section' and 'uid' in src_rulebase:
+        section_name = default_section_header_text
+        if 'name' in src_rulebase:
+            section_name = src_rulebase['name']
+        if 'parent_rule_uid' in src_rulebase:
+            parent_uid = src_rulebase['parent_rule_uid']
+            rule_num = insertSectionHeaderRule(target_rulebase, section_name, layer_name, import_id, src_rulebase['uid'], rule_num, section_header_uids, parent_uid)
+        else:
+            section_rulebases.append(src_rulebase)
+            parent_uid = ""
+    return rule_num
+
 def parseAccessRulebase(src_rulebase, target_rulebase, layer_name, import_id, section_header_uids, parent_uid, config2import, 
-                    rule_num=0, debug_level=0, recursion_level=1, layer_disabled=False):
+                            rule_num=0, section_rulebases=None, debug_level=0, recursion_level=1, layer_disabled=False):
     logger = getFwoLogger()
+    if section_rulebases is None:
+        section_rulebases = []
     if (recursion_level > fwo_const.max_recursion_level):
         raise ImportRecursionLimitReached("parse_rulebase") from None
 
@@ -463,15 +454,16 @@ def parseAccessRulebase(src_rulebase, target_rulebase, layer_name, import_id, se
     if 'chunks' in src_rulebase:   # found chunks of layers which need to be parsed separately
         for chunk in src_rulebase['chunks']:
             rule_num = parseAccessRulebase(chunk['rulebase'], target_rulebase, layer_name, import_id,
-                                            section_header_uids, parent_uid, config2import, rule_num, debug_level=debug_level, recursion_level=recursion_level+1)
+                                            section_header_uids, parent_uid, config2import, rule_num=rule_num, 
+                                            section_rulebases=section_rulebases, debug_level=debug_level, recursion_level=recursion_level+1)
         return rule_num
       
+    # transform_section_into_rulebase(src_rulebase, target_rulebase, layer_name, import_id, rule_num, section_header_uids, parent_uid, config2import, section_rulebases=section_rulebases, debug_level=debug_level, recursion_level=recursion_level+1)
     checkAndAddSectionHeader(src_rulebase, target_rulebase, layer_name, import_id, rule_num, section_header_uids, parent_uid, config2import, debug_level=debug_level, recursion_level=recursion_level+1)
 
     # parse layered rulebase
     if 'rulebase' in src_rulebase:
         logger.warning('found rulebase in rulebase: ' + str(src_rulebase))
-        # layer_disabled = not src_rulebase['enabled']
         for rule in src_rulebase['rulebase']:
             if 'type' in rule:
                 if rule['type'] == 'place-holder':  # add domain rules
@@ -484,24 +476,27 @@ def parseAccessRulebase(src_rulebase, target_rulebase, layer_name, import_id, se
                     rule_num = parse_single_rule(
                         rule, target_rulebase, layer_name, import_id, rule_num, parent_uid, config2import, debug_level=debug_level)
             if 'rulebase' in rule:  # always check if a rule contains another layer
-                rule_num = parseAccessRulebase(rule, target_rulebase, layer_name, import_id, section_header_uids, parent_uid, config2import, rule_num, debug_level=debug_level, recursion_level=recursion_level+1)
-
-    # if 'type' in src_rulebase and src_rulebase['type'] == 'place-holder':  # add domain rules
-    #     logger.debug('found domain rule ref: ' + src_rulebase['uid'])
-    #     section_name = ""
-    #     if 'name' in src_rulebase:
-    #         section_name = src_rulebase['name']
-    #     rule_num = add_domain_rule_header_rule(
-    #         target_rulebase, section_name, layer_name, import_id, src_rulebase['uid'], rule_num, section_header_uids, parent_uid)
-
-    for rule in src_rulebase:   # rulebase is just a list of rules
-        if rule['type'] == 'access-section':
-            # TODO: turn the section into another rulebase
-            if 'rulebase' in rule:
-                rule_num = parseAccessRulebase(rule['rulebase'], target_rulebase, layer_name, import_id, section_header_uids, parent_uid, config2import, rule_num, debug_level=debug_level, recursion_level=recursion_level+1)
-        else:
-            parse_single_rule(rule, target_rulebase, layer_name, import_id, rule_num, parent_uid, config2import, debug_level=debug_level)
-            rule_num += 1
+                rule_num = parseAccessRulebase(rule, target_rulebase, layer_name, import_id, section_header_uids, parent_uid, config2import, rule_num, 
+                                               section_rulebases=section_rulebases, debug_level=debug_level, recursion_level=recursion_level+1)
+    else:
+        for rule in src_rulebase:   # rulebase is just a list of rules
+            if type(rule) is not dict:
+                logger.warning('found rule which is not a dict: ' + str(rule))
+            elif rule['type'] == 'access-section':
+                section_rulebases.append(rule)  # we found a section which will be treated as a new rulebase
+                # add rulebase_link (note: section rulebases can only be used in one place, so we only need one link per section rulebase)
+                # we need the uid of the previous rule
+                # issue 1: what if multiple sections headers appear directly behind each other (empty sections)?
+                #   in this case we cannot use a link from a rule!
+                #   should we add a second type of rulebase_link?
+                # issue 2: these section rb links do not really depend on gateways but are links within rulebases 
+                # # TODO: turn the section into another rulebase
+                if 'rulebase' in rule:
+                    rule_num = parseAccessRulebase(rule['rulebase'], target_rulebase, layer_name, import_id, section_header_uids, parent_uid, config2import, rule_num, 
+                                                   section_rulebases=section_rulebases, debug_level=debug_level, recursion_level=recursion_level+1)
+            else:
+                parse_single_rule(rule, target_rulebase, layer_name, import_id, rule_num, parent_uid, config2import, debug_level=debug_level)
+                rule_num += 1
 
     return rule_num
 

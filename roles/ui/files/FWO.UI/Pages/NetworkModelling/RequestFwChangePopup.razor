@@ -173,7 +173,7 @@
         {
             intTicket.UpdateCidrsInTaskElements();
             TaskList = intTicket.Tasks.OrderBy(t => t.TaskNumber).ToList();
-            RequestInProcess = (TaskList.FirstOrDefault(t => extStateHandler.IsInProgress(t.StateId)) != null);
+            RequestInProcess = extStateHandler.IsInProgress(intTicket.StateId) && (TaskList.FirstOrDefault(t => extStateHandler.IsInProgress(t.StateId)) != null);
         }
     }
 

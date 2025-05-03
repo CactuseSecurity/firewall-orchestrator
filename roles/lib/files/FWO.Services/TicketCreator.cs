@@ -86,7 +86,7 @@ namespace FWO.Services
                 {
                     ExtStateHandler extStateHandler = new(apiConnection);
                     ticket.StateId = extStateHandler.GetInternalStateId(extReqState) ?? throw new Exception($"No translation defined for external state {extReqState}.");
-                    return await wfHandler.PromoteTicket(ticket);
+                    return await wfHandler.PromoteTicketAndTasks(ticket);
                 }
             }
             catch (Exception exception)

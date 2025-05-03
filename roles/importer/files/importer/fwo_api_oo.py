@@ -33,7 +33,7 @@ class FwoApi():
             return_object = {}
             chunked_query_variables = copy.deepcopy(queryVariables)
             logger = getFwoLogger(debug_level=debug_level)
-            logger.debug(f"Processing chunked API call{"(" + query_name + ")"}...")
+            logger.debug(f"Processing chunked API call ({query_name})...")
 
             # Loops until all elements of the the query variable have been processed.
             while(obj_count < chunk_number * api_call_chunk_size and obj_count < len(queryVariables[chunkable_variable])):

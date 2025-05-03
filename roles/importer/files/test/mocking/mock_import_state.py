@@ -1,6 +1,17 @@
-class MockImportState:
-    previous_calls = []
+from importer.model_controllers.import_state_controller import ImportStateController
+from importer.model_controllers.import_statistics_controller import ImportStatisticsController
 
-    def call(self, query, queryVariables):
-        full_query = {"query": query, "variables": queryVariables}
-        self.previous_calls.append(full_query)
+
+class MockImportStateController(ImportStateController):
+    """
+        Mock class for ImportState.
+    """
+
+    def __init__(self):
+        """
+            Initializes without calling base init. This avoids the necessity to provide JWT and management details.
+        """
+
+        self.DebugLevel = 0
+        self.Stats = ImportStatisticsController()
+

@@ -95,7 +95,7 @@ class FwoApi():
                 else:
                     raise
             if int(fwo_globals.debug_level) > 8:
-                #TODO: fails on windows for some reason
+                #TODO: fails (on windows) for some reason
                 logger.debug (self.showImportApiCallInfo(self.FwoApiUrl, full_query, request_headers, typ='debug'))
             if is_chunked_call:
                 return return_object
@@ -104,10 +104,11 @@ class FwoApi():
             else:
                 return None
 
-    def showImportApiCallInfo(self, query, headers, typ='debug'):
+    def showImportApiCallInfo(self, api_url, query, headers, typ='debug'):
         max_query_size_to_display = 1000
         query_string = json.dumps(query, indent=2)
         header_string = json.dumps(headers, indent=2)
+        api_url = json.dumps(api_url, indent=2)
         query_size = len(query_string)
 
         if typ=='error':
@@ -120,6 +121,6 @@ class FwoApi():
         else:
             result += str(query)[:round(max_query_size_to_display/2)] +   "\n ... [snip] ... \n" + \
                 query_string[query_size-round(max_query_size_to_display/2):] + " (total query size=" + str(query_size) + " bytes)"
-        result += "\n and  headers: \n" + header_string
+        result += "\n and  headers: \n" + header_string + ", api_url: " + api_url
         return result
     

@@ -367,7 +367,7 @@ def getRulebases (api_v_url, sid, show_params_rules,
         if 'rulebase' in rulebase_chunk:
             for section in rulebase_chunk['rulebase']:
 
-                # if no section is used, use dummy section
+                # if no section is used, create dummy section
                 if section['type'] != 'access-section':
                     section = {
                         'type': 'access-section',

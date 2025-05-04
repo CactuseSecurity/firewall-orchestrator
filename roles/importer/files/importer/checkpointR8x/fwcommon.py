@@ -100,7 +100,7 @@ def normalizeConfig(nativeConfig: json, normalizedConfigDict, importState: Impor
     logger.info("completed normalizing network objects")
     cp_service.normalize_service_objects(nativeConfig, normalizedConfigDict, importState.ImportId)
     logger.info("completed normalizing service objects")
-    cp_rule.normalize_rulebases(nativeConfig, importState, normalizedConfigDict)
+    cp_rule.normalizeRulebases(nativeConfig, importState, normalizedConfigDict)
     cp_gateway.normalizeGateways(nativeConfig, importState, normalizedConfigDict)
     if not parsing_config_only: # get config from cp fw mgr
         logout_cp(importState.MgmDetails.buildFwApiString(), sid)

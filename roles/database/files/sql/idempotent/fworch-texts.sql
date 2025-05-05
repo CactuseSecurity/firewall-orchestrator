@@ -269,6 +269,10 @@ INSERT INTO txt VALUES ('added',                'German', 	'hinzugef&uuml;gt');
 INSERT INTO txt VALUES ('added',                'English', 	'added');
 INSERT INTO txt VALUES ('deleted',		        'German', 	'gel&ouml;scht');
 INSERT INTO txt VALUES ('deleted',		        'English', 	'deleted');
+INSERT INTO txt VALUES ('surplus',              'German', 	'zuviel');
+INSERT INTO txt VALUES ('surplus',              'English', 	'surplus');
+INSERT INTO txt VALUES ('missing',		        'German', 	'fehlend');
+INSERT INTO txt VALUES ('missing',		        'English', 	'missing');
 INSERT INTO txt VALUES ('modified',		        'German', 	'ge&auml;ndert');
 INSERT INTO txt VALUES ('modified',		        'English', 	'modified');
 INSERT INTO txt VALUES ('id',		            'German', 	'Id');
@@ -631,7 +635,7 @@ INSERT INTO txt VALUES ('changes',		        'English', 	'Changes');
 INSERT INTO txt VALUES ('used_objects',		    'German', 	'Benutzte Objekte');
 INSERT INTO txt VALUES ('used_objects',		    'English', 	'Used Objects');
 INSERT INTO txt VALUES ('unused_objects',		'German', 	'Unbenutzte Objekte');
-INSERT INTO txt VALUES ('inused_objects',		'English', 	'Unused Objects');
+INSERT INTO txt VALUES ('unused_objects',		'English', 	'Unused Objects');
 INSERT INTO txt VALUES ('modelled_objects',		'German', 	'Modellierte Objekte');
 INSERT INTO txt VALUES ('modelled_objects',		'English', 	'Modelled Objects');
 INSERT INTO txt VALUES ('rule_deleted',         'German', 	'Regel gel&ouml;scht');
@@ -764,6 +768,8 @@ INSERT INTO txt VALUES ('missing_app_servers', 	'German',	'Fehlende App Server a
 INSERT INTO txt VALUES ('missing_app_servers', 	'English',	'Missing App Servers on Device');
 INSERT INTO txt VALUES ('surplus_app_servers', 	'German',	'&Uuml;bersch&uuml;ssige App Server auf Device');
 INSERT INTO txt VALUES ('surplus_app_servers', 	'English',	'Surplus App Servers on Device');
+INSERT INTO txt VALUES ('missing_objects',		'German', 	'Fehlende Objekte auf Device');
+INSERT INTO txt VALUES ('missing_objects',		'English', 	'Missing Objects on Device');
 
 -- schedule
 INSERT INTO txt VALUES ('schedule', 			'German',	'Terminplan');
@@ -2932,7 +2938,7 @@ INSERT INTO txt VALUES ('U9021', 'German',  'Schnittstellen d&uuml;rfen keine Ne
 INSERT INTO txt VALUES ('U9021', 'English', 'Interfaces must not contain network areas.');
 INSERT INTO txt VALUES ('U9022', 'German',  'Quelle und Ziel d&uuml;rfen nicht gleichzeitig einen Netzbereich enthalten.');
 INSERT INTO txt VALUES ('U9022', 'English', 'Source and destination must not contain a network area at the same time.');
-INSERT INTO txt VALUES ('U9023', 'German',  'Dieser Netzbereich kann nur in der Registerkarte Gemeinsame Dienste verwendet werden.');
+INSERT INTO txt VALUES ('U9023', 'German',  'Dieser Netzbereich kann nur in der Registerkarte Common Services verwendet werden.');
 INSERT INTO txt VALUES ('U9023', 'English', 'This network area can only be used in common services tab.');
 INSERT INTO txt VALUES ('U9024', 'German',  'Netzbereiche k&ouml;nnen nicht zusammen mit Schnittstellen anderer Apps genutzt werden.');
 INSERT INTO txt VALUES ('U9024', 'English', 'Network areas cannot be used together with interfaces from foreign apps.');
@@ -3394,6 +3400,8 @@ INSERT INTO txt VALUES ('C9018', 'German',  'Leere Service Gruppe(n) enthalten. 
 INSERT INTO txt VALUES ('C9018', 'English', 'Contains empty Service Groups(s). This connection will not be requested.');
 INSERT INTO txt VALUES ('C9019', 'German',  'Leere Service Gruppe(n) enthalten. Nutzende Verbindungen dieser Schnittstelle werden nicht beantragt.');
 INSERT INTO txt VALUES ('C9019', 'English', 'Contains empty Service Groups(s). Connections using this interface will not be requested.');
+INSERT INTO txt VALUES ('C9020', 'German',  'Nur zu Dokumentation. Diese Verbindung wird nicht beantragt.');
+INSERT INTO txt VALUES ('C9020', 'English', 'Only for documentation. This connection will not be requested.');
 
 -- help pages
 INSERT INTO txt VALUES ('H0001', 'German',  'Firewall Orchestrator ist eine Anwendung zum Erzeugen und Verwalten von verschiedenen Reports aus Konfigurationsdaten verteilter Firewallsysteme.
@@ -5350,15 +5358,21 @@ INSERT INTO txt VALUES ('H5635', 'German',  'Muster App Zone: Definiert, wie der
 INSERT INTO txt VALUES ('H5635', 'English', 'App zone pattern: Defines how the name of an app zone begins (e.g. "AZ").');
 INSERT INTO txt VALUES ('H5636', 'German',  'App Zonen erstellen: Wenn dieses Flag gesetzt wird, werden App Zonen erstellt.');
 INSERT INTO txt VALUES ('H5636', 'English', 'Create app zones: If this flag is set, app zones are created.');
-INSERT INTO txt VALUES ('H5637', 'German',  'Hier werden die m&ouml;glichen Werte f&uuml;r Sonderkonfigurationstypen gesetzt.');
-INSERT INTO txt VALUES ('H5637', 'English', 'Set here the possible values for extra configuration types, e.g. NAT.');
+INSERT INTO txt VALUES ('H5637', 'German',  'Hier werden die m&ouml;glichen Werte f&uuml;r Sonderkonfigurationstypen gesetzt, z.B. NAT. Ein Pr&auml;fix "Doku_" (welches in der Benutzeroberfl&auml;che nicht dargestellt wird) bewirkt die Markierung einer Verbindung als nur zu Dokumentationszwecken.
+    Sie wird dann bei der Beantragung und dem Soll-Ist-Abgleich nicht ber&uuml;cksichtigt. Endet der Feldinhalt mit dem String "_user" (Case-insensitiv), so wird in den Produktionsdaten mindestens ein Objekt mit dem im zugeh&ouml;rigen Text angegebenen Namen erwartet.
+    In diesem werden dann alle (mindestens eines) nicht anderweitig zuzuordnenden modellierten Objekte als enthalten angenommen.
+');
+INSERT INTO txt VALUES ('H5637', 'English', 'Set here the possible values for extra configuration types, e.g. NAT. A prefix "Doku_" (which is then not displayed in the UI) leads to marking the connection as for documentation only.
+    It will not be regarded in the requesting process and Variance Analysis. If the field content ends with "_user" (case insensitive), an object with the name given in the extra configuration text is expected to be found in the production data.
+    This object is assumed to contain all modelled objects (at least one), which could not be matched so far.
+');
 INSERT INTO txt VALUES ('H5638', 'German',  'Hier wird der Anweisungstext f&uuml;r Sonderkonfigurationen eingetragen.');
 INSERT INTO txt VALUES ('H5638', 'English', 'Insert text for extra configurations.');
 INSERT INTO txt VALUES ('H5639', 'German',  'Hier wird der Meldungstext f&uuml;r Fehler im externen Beantragungsprozess eingetragen.');
 INSERT INTO txt VALUES ('H5639', 'English', 'Insert customized text for errors in requests to external ticket system.');
 INSERT INTO txt VALUES ('H5640', 'German',  'Auswahl des LDAP-Systems, in dem die Eigent&uuml;mergruppen gepflegt werden.');
 INSERT INTO txt VALUES ('H5640', 'English', 'Select LDAP system for storing owner groups.');
-INSERT INTO txt VALUES ('H5641', 'German',  'Definieren Sie eine Namenskonvention, um die LDAP-Gruppe (nicht der volle DN) zu identifizieren, die zu einem Eigentümer gehört. Mindestens eine der Variablen @@AppId@@ oder @@ExternalAppId@@ muss enthalten sein. Optional können Sie auch @@AppPrefix@@ verwenden.');
+INSERT INTO txt VALUES ('H5641', 'German',  'Definieren Sie eine Namenskonvention, um die LDAP-Gruppe (nicht der volle DN) zu identifizieren, die zu einem Eigent&uuml;mer geh&ouml;rt. Mindestens eine der Variablen @@AppId@@ oder @@ExternalAppId@@ muss enthalten sein. Optional k&ouml;nnen Sie auch @@AppPrefix@@ verwenden.');
 INSERT INTO txt VALUES ('H5641', 'English', 'Define naming convention in order to identify the LDAP group (not the full DN) belonging to an owner. At least one of the variables @@AppId@@ or @@ExternalAppId@@ must be included. Optionally you may also use @@AppPrefix@@.');
 INSERT INTO txt VALUES ('H5642', 'German',  'Sollen die LDAP-Gruppen aktiv von FWO gepflegt werden (anlegen/&auml;ndern von Gruppenmitgliedern)? Ein Schreibzugriff auf den jeweiligen LDAP-Server ist notwendig.');
 INSERT INTO txt VALUES ('H5642', 'English', 'Shall FWO manage LDAP groups for owners? Write access to the respective LDAP is needed if you choose this option.');

@@ -101,6 +101,7 @@ namespace FWO.Data
         public long ConnId;
         public bool ModellOk = false;
         public bool Detailed = false;
+        public List<string> UnusedSpecialUserObjects = [];
 
         public bool IsDropRule()
         {

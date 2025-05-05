@@ -90,7 +90,7 @@ namespace FWO.Services
                     allModelledAppRoles.Add(modelledAppRole);
                 }
             }
-            allModelledAppRoles = allModelledAppRoles.Distinct(appRoleComparer).ToList();
+            allModelledAppRoles = [.. allModelledAppRoles.Distinct(appRoleComparer)];
         }
 
         private void AnalyseAppRole(ModellingAppRole modelledAppRole, Management mgt)
@@ -125,7 +125,7 @@ namespace FWO.Services
             foreach (Management mgt in RelevantManagements)
             {
                 await AnalyseAppZone(mgt);
-                foreach (var conn in connections.Where(c => !c.IsRequested).OrderBy(c => c.Id))
+                foreach (var conn in connections.Where(c => !c.IsRequested && !c.IsDocumentationOnly()).OrderBy(c => c.Id))
                 {
                     elements = [];
                     AnalyseNetworkAreasForRequest(conn);

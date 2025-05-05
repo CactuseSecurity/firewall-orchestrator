@@ -55,7 +55,7 @@
     <Footer>
         <AuthorizeView Roles="@Roles.Modeller">
             <Authorized>
-                @if (SelectedApp.Id > 0 && !WorkInProgress && !RequestInProcess)
+                @if (SelectedApp.Id > 0 && !WorkInProgress && !RequestInProcess && TaskList.Count > 0)
                 {
                     <button type="button" class="btn btn-sm btn-primary" @onclick="StartRequests">@(userConfig.GetText("request_fw_change"))</button>
                 }
@@ -173,7 +173,7 @@
         {
             intTicket.UpdateCidrsInTaskElements();
             TaskList = intTicket.Tasks.OrderBy(t => t.TaskNumber).ToList();
-            RequestInProcess = (TaskList.FirstOrDefault(t => extStateHandler.IsInProgress(t.StateId)) != null);
+            RequestInProcess = extStateHandler.IsInProgress(intTicket.StateId) && (TaskList.FirstOrDefault(t => extStateHandler.IsInProgress(t.StateId)) != null);
         }
     }
 
@@ -287,7 +287,7 @@
                 TaskList = intTicket.Tasks;
                 await SaveTicketId(intTicket.Id);
                 await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.InitRequests, ModellingTypes.ModObjectType.CommunicationProfile,
-                    0, $"Initialized Rollout Requests", apiConnection, userConfig,
+                    0, $"Initialized Rollout Requests (Ticket {intTicket.Id})", apiConnection, userConfig,
                     intTicket.Tasks.FirstOrDefault()?.Owners.FirstOrDefault()?.Owner.Id, DefaultInit.DoNothing, intTicket.Requester?.Name);
                 SubscribeTaskChanges();
                 await CreateExtRequests(intTicket);

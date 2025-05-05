@@ -27,6 +27,14 @@
                 @((MarkupString)ruleDiffDisplay.DisplayDestinationDiff(rule, OutputLocation.report, ReportType.VarianceAnalysis))
             </Template>
         </Column>
+        @if(anyUnusedSpecialUsers)
+        {
+            <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("missing_objects"))" Field="@(r => r.Name)" Sortable="true" Filterable="false" Hideable="true">
+                <Template>
+                    <span class="text-danger">@(ListUnusedSpecialUsers(rule))</span>
+                </Template>
+            </Column>
+        }
 
         <DetailTemplate TableItem="Rule">
             <Detail Title="@(userConfig.GetText("name"))" Data="@context.Name?.ToString()" />
@@ -63,10 +71,21 @@
     public ModProdDifference Difference { get; set; } = new();
 
     RuleDifferenceDisplayHtml? ruleDiffDisplay;
+    private bool anyUnusedSpecialUsers = false;
 
     
     protected override void OnInitialized()
     {
         ruleDiffDisplay = new (userConfig);
+    }
+
+    protected override void OnParametersSet()
+    {
+        anyUnusedSpecialUsers = Difference.ImplementedRules.Any(r => r.UnusedSpecialUserObjects.Count > 0);
+    }
+
+    private string ListUnusedSpecialUsers(Rule rule)
+    {
+        return string.Join(", ", rule.UnusedSpecialUserObjects);
     }
 }

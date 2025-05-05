@@ -225,23 +225,26 @@
                     case nameof(ConState.InterfaceRequested):
                         if (!connection.Props.ContainsKey(ConState.InterfaceRejected.ToString()))
                         {
-                            relevantProps.Add($"<span class=\"text-warning\" data-toggle=\"tooltip\" title=\"{userConfig.PureLine("C9007")}\">!</span>");
+                            relevantProps.Add($"<span class=\"text-warning\" data-toggle=\"tooltip\" title=\"{userConfig.PureLine("C9007")}\">{Exclamation()}</span>");
                         }
                         break;
                     case nameof(ConState.InterfaceRejected):
                         relevantProps.Add($"<span style=\"color:red\" data-toggle=\"tooltip\" title=\"{userConfig.PureLine("C9011")}\">{false.ShowAsHtml()}</span>");
                         break;
                     case nameof(ConState.Requested):
-                        relevantProps.Add($"<span class=\"text-warning\" data-toggle=\"tooltip\" title=\"{userConfig.PureLine("C9008")}\">!</span>");
+                        relevantProps.Add($"<span class=\"text-warning\" data-toggle=\"tooltip\" title=\"{userConfig.PureLine("C9008")}\">{Exclamation()}</span>");
                         break;
                     case nameof(ConState.EmptyAppRoles):
-                        relevantProps.Add($"<span class=\"text-warning\" data-toggle=\"tooltip\" title=\"{(connection.IsInterface ? userConfig.PureLine("C9015") : userConfig.PureLine("C9013"))}\">!</span>");
+                        relevantProps.Add($"<span class=\"text-warning\" data-toggle=\"tooltip\" title=\"{(connection.IsInterface ? userConfig.PureLine("C9015") : userConfig.PureLine("C9013"))}\">{Exclamation()}</span>");
                         break;
                     case nameof(ConState.DeletedObjects):
-                        relevantProps.Add($"<span class=\"text-warning\" data-toggle=\"tooltip\" title=\"{(connection.IsInterface ? userConfig.PureLine("C9016") : userConfig.PureLine("C9014"))}\">!</span>");
+                        relevantProps.Add($"<span class=\"text-warning\" data-toggle=\"tooltip\" title=\"{(connection.IsInterface ? userConfig.PureLine("C9016") : userConfig.PureLine("C9014"))}\">{Exclamation()}</span>");
                         break;
                     case nameof(ConState.EmptySvcGrps):
-                        relevantProps.Add($"<span class=\"text-warning\" data-toggle=\"tooltip\" title=\"{( connection.IsInterface ? userConfig.PureLine("C9019") : userConfig.PureLine("C9018") )}\">!</span>");
+                        relevantProps.Add($"<span class=\"text-warning\" data-toggle=\"tooltip\" title=\"{( connection.IsInterface ? userConfig.PureLine("C9019") : userConfig.PureLine("C9018") )}\">{Exclamation()}</span>");
+                        break;
+                    case nameof(ConState.DocumentationOnly):
+                        relevantProps.Add($"<span class=\"text-warning\" data-toggle=\"tooltip\" title=\"{userConfig.PureLine("C9020")}\">{Exclamation()}</span>");
                         break;
                     default:
                         break;
@@ -249,5 +252,10 @@
             }
         }
         return relevantProps.Count > 0 ? string.Join(",", relevantProps) : $"<span style=\"{GlobalConst.kStyleHighlightedGreen}\">{true.ShowAsHtml()}</span>";
+    }
+
+    private string Exclamation()
+    {
+        return "<b>&nbsp;!&nbsp;</b>";
     }
 }

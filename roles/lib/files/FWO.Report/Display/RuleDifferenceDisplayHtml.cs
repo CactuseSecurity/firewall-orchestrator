@@ -42,8 +42,8 @@ namespace FWO.Ui.Display
         private string DisplayDiff(List<string> addedElems, List<string> deletedElems, List<string> unchangedElems)
         {
             return (unchangedElems.Count > 0 ? $"<p>{string.Join("<br>", unchangedElems)}<br></p>" : "")
-                    + (deletedElems.Count > 0 ? $"{userConfig.GetText("deleted")}: <p style=\"{GlobalConst.kStyleDeleted}\">{string.Join("<br>", deletedElems)}<br></p>" : "")
-                    + (addedElems.Count > 0 ? $"{userConfig.GetText("added")}: <p style=\"{GlobalConst.kStyleAdded}\">{string.Join("<br>", addedElems)}</p>" : "");
+                    + (deletedElems.Count > 0 ? $"{userConfig.GetText("missing")}: <p style=\"{GlobalConst.kStyleDeleted}\">{string.Join("<br>", deletedElems)}<br></p>" : "")
+                    + (addedElems.Count > 0 ? $"{userConfig.GetText("surplus")}: <p style=\"{GlobalConst.kStyleAdded}\">{string.Join("<br>", addedElems)}</p>" : "");
         }
     }
 }

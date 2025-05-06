@@ -9,6 +9,7 @@ import fwo_globals
 from fwo_log import getFwoLogger
 from fwo_const import fwo_api_http_import_timeout, api_call_chunk_size
 from fwo_exceptions import FwoApiServiceUnavailable, FwoApiTimeout
+from fwo_base import ChunkableVariableType
 
 # this class is used for making calls to the FWO API (will supersede fwo_api.py)
 class FwoApi():
@@ -24,9 +25,9 @@ class FwoApi():
     # standard FWO API call
     def call(self, query, queryVariables="", chunkable_variable="", query_name="", return_object_name="", debug_level=0):
 
-        def call_chunked(self, query, queryVariables="", chunkable_variable="", query_name="", return_object_name="", debug_level=0):
+        def call_chunked(self, query, queryVariables="", chunkable_variable="", query_name="", return_object_name="", debug_level=0, chunkable_variable_type=ChunkableVariableType.DEFAULT, total_elements=0):
             """
-                Splits a defined query variable, that is of type list, into chunks and posts the queries chunk by chunk.
+                Splits a defined query variable into chunks and posts the queries chunk by chunk.
             """
             chunk_number = 1
             obj_count = 0
@@ -36,10 +37,21 @@ class FwoApi():
             logger.debug(f"Processing chunked API call ({query_name})...")
 
             # Loops until all elements of the the query variable have been processed.
-            while(obj_count < chunk_number * api_call_chunk_size and obj_count < len(queryVariables[chunkable_variable])):
+            while(obj_count < chunk_number * api_call_chunk_size and obj_count < total_elements):
                 # Gets current chunk and sets it as query variable
-                chunk = queryVariables[chunkable_variable][obj_count : obj_count + api_call_chunk_size]
-                chunked_query_variables[chunkable_variable] = chunk
+                chunk = []
+
+                if chunkable_variable_type == ChunkableVariableType.STRING:
+                    chunk = queryVariables[chunkable_variable][obj_count : obj_count + api_call_chunk_size]
+                    chunked_query_variables[chunkable_variable] = chunk
+                elif chunkable_variable_type == ChunkableVariableType.LIST_OF_TUPLES:
+                    update_args = chunkable_variable[0][1]
+                    chunk = update_args[obj_count : obj_count + api_call_chunk_size]
+                    for key in chunked_query_variables.keys():
+                        chunked_query_variables[key] = chunk
+                else:
+                    raise NotImplementedError()
+
                 # Post query.
                 r = session.post(self.FwoApiUrl, data=json.dumps({"query": query, "variables": chunked_query_variables}), timeout=int(fwo_api_http_import_timeout))
                 r.raise_for_status()
@@ -48,14 +60,44 @@ class FwoApi():
                     return_object = r.json()
                 else:
                     new_return = r.json()
-                    return_object["data"][return_object_name]["returning"].extend(new_return["data"][return_object_name]["returning"])
-                    return_object["data"][return_object_name]["affected_rows"] += new_return["data"][return_object_name]["affected_rows"]
+                    if chunkable_variable_type != ChunkableVariableType.LIST_OF_TUPLES:
+                        return_object["data"][return_object_name]["returning"].extend(new_return["data"][return_object_name]["returning"])
+                        return_object["data"][return_object_name]["affected_rows"] += new_return["data"][return_object_name]["affected_rows"]
                 # Log current state of the process and increment variables.
                 obj_count += len(chunk)
                 logger.debug(f"Chunk nr: {chunk_number}; Total nr of processed elements: {obj_count}")
                 chunk_number += 1
 
             return return_object
+        
+        def check_is_chunkable_call(self, chunkable_variable):
+            is_chunkable_call = False
+            chunkable_variable_type = ChunkableVariableType.DEFAULT
+            total_elements = 0
+
+            if chunkable_variable != "":
+
+                # Check if call qualifies as standard chunked call.
+
+                if isinstance(chunkable_variable, str):
+                    chunkable_variable_type = ChunkableVariableType.STRING
+                    total_elements = len(queryVariables[chunkable_variable])
+
+                # Check if call qualifies as chunked multi-table call.
+
+                elif isinstance(chunkable_variable, list) and all(isinstance(item, tuple) for item in chunkable_variable):
+                    chunkable_variable_type = ChunkableVariableType.LIST_OF_TUPLES
+                    referenced_update_args = chunkable_variable[0][1]
+                    total_elements = len(referenced_update_args)
+                
+                else:
+                    chunkable_variable_type = ChunkableVariableType.UNKNOWN
+                
+                if total_elements > api_call_chunk_size:
+                    is_chunkable_call = True
+
+            return is_chunkable_call, chunkable_variable_type, total_elements
+
 
         role = 'importer'
         request_headers = { 
@@ -65,7 +107,7 @@ class FwoApi():
         }
         full_query = {"query": query, "variables": queryVariables}
         logger = getFwoLogger(debug_level=debug_level)
-        is_chunked_call = not chunkable_variable == "" and len(queryVariables[chunkable_variable]) > api_call_chunk_size
+        is_chunked_call, chunkable_variable_type, total_elements = check_is_chunkable_call(self, chunkable_variable)
         started = time.time()
 
         with requests.Session() as session:
@@ -77,7 +119,7 @@ class FwoApi():
 
             try: 
                 if is_chunked_call:
-                    return_object = call_chunked(self, query, queryVariables, chunkable_variable, query_name, return_object_name, debug_level)
+                    return_object = call_chunked(self, query, queryVariables, chunkable_variable, query_name, return_object_name, debug_level, chunkable_variable_type, total_elements)
                     elapsed_time = time.time() - started
                     logger.debug(f"Chunked API call ({query_name}) processed in {elapsed_time:.4f} s.")
                 else:

@@ -9,6 +9,11 @@ import fwo_globals
 from fwo_const import csv_delimiter, apostrophe, line_delimiter
 from fwo_log import getFwoLogger, getFwoAlertLogger
 
+class ChunkableVariableType(Enum):
+    DEFAULT = "DEFAULT"
+    STRING = "STRING"
+    LIST_OF_TUPLES = "LIST_OF_TUPLES"
+    UNKNOWN = "UNKNOWN"
 
 class ConfigAction(Enum):
     INSERT = 'INSERT'

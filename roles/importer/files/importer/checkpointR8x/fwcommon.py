@@ -71,7 +71,7 @@ def get_config(nativeConfig: json, importState: ImportStateController) -> tuple[
 
         starttimeTemp = int(time.time())
         logger.debug ( "checkpointR8x/get_config/getting rules ...")
-        result_get_rules = getRules (nativeConfig, importState)
+        result_get_rules = get_rules (nativeConfig, importState)
         if result_get_rules>0:
             logger.warning ( "checkpointR8x/get_config/error while gettings rules")
             return result_get_rules
@@ -116,7 +116,7 @@ def normalizeConfig(nativeConfig: json, normalizedConfigDict, importState: Impor
         gateways=normalizedConfigDict['gateways']
     )
 
-def getRules (nativeConfig: dict, importState: ImportStateController) -> int:
+def get_rules (nativeConfig: dict, importState: ImportStateController) -> int:
     '''
     Implicit premises for mds:
     - all devices are attached to a submanager, not to the super manager
@@ -187,7 +187,7 @@ def getRules (nativeConfig: dict, importState: ImportStateController) -> int:
         for device in managerDetails.Devices:
 
             # initialize device config
-            if 'name' and 'uid' in device:
+            if 'name' in device and 'uid' in device:
                 deviceConfig = {'name': device['name'],
                                 'uid': device['uid'],
                                 'rulebase_links': []}
@@ -224,7 +224,10 @@ def getRules (nativeConfig: dict, importState: ImportStateController) -> int:
                                     'from_rulebase_uid': '',
                                     'from_rule_uid': '',
                                     'to_rulebase_uid': globalOrderedLayerUids[0],
-                                    'type': 'initial'})
+                                    'type': 'global',
+                                    'is_global': False,
+                                    'is_initial': True
+                                })
                 
                                 # parse global rulebase, find place-holder and link local rulebase (first ordered layer)
                                 for globalOrderedLayerUid in globalOrderedLayerUids:
@@ -240,7 +243,10 @@ def getRules (nativeConfig: dict, importState: ImportStateController) -> int:
                                             'from_rulebase_uid': globalOrderedLayerUid,
                                             'from_rule_uid': placeholderRuleUid,
                                             'to_rulebase_uid': orderedLayerUids[0],
-                                            'type': 'local'})
+                                            'type': 'ordered',
+                                            'is_global': True,
+                                            'is_initial': False
+                                        })
                                         
                 # define initial rulebase for device in case of mds without global rulebase
                 if deviceConfig['rulebase_links'] == []:
@@ -249,15 +255,20 @@ def getRules (nativeConfig: dict, importState: ImportStateController) -> int:
                         'from_rulebase_uid': '',
                         'from_rule_uid': '',
                         'to_rulebase_uid': orderedLayerUids[0],
-                        'type': 'initial'})
-
+                        'type': 'ordered',
+                        'is_global': False,
+                        'is_initial': True
+                    })
             else:
                 # define initial rulebase for device in case of stand alone manager
                 deviceConfig['rulebase_links'].append({
                     'from_rulebase_uid': '',
                     'from_rule_uid': '',
                     'to_rulebase_uid': orderedLayerUids[0],
-                    'type': 'initial'})
+                    'type': 'ordered',
+                    'is_global': False,
+                    'is_initial': True
+                    })
 
             # get local rulebases (ordered layers)
             logger.debug ( "getting domain rule layers" )
@@ -295,7 +306,7 @@ def addOrderedLayersToNativeConfig(orderedLayerUids, show_params_rules, cpManage
 
         show_params_rules.update({'uid': orderedLayerUid})
 
-        cp_getter.getRulebases (cpManagerApiBaseUrl, 
+        cp_getter.get_rulebases (cpManagerApiBaseUrl, 
                                 sid, 
                                 show_params_rules, 
                                 rulebaseUid=orderedLayerUid,
@@ -318,7 +329,10 @@ def addOrderedLayersToNativeConfig(orderedLayerUids, show_params_rules, cpManage
                 'from_rulebase_uid': orderedLayerUid,
                 'from_rule_uid': lastRuleUid,
                 'to_rulebase_uid': orderedLayerUids[orderedLayerIndex + 1],
-                'type': 'ordered'})
+                'type': 'ordered',
+                'is_global': False,
+                'is_initial': False
+            })
         
         orderedLayerIndex += 1
 

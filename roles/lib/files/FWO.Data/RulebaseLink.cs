@@ -14,6 +14,12 @@ namespace FWO.Data
         [JsonProperty("link_type"), JsonPropertyName("link_type")]
         public int LinkType { get; set; }
 
+        [JsonProperty("is_initial"), JsonPropertyName("is_initial")]
+        public bool IsInitial { get; set; } = false;
+
+        [JsonProperty("is_global"), JsonPropertyName("is_global")]
+        public bool IsGlobal { get; set; } = false;
+
         [JsonProperty("to_rulebase_id"), JsonPropertyName("to_rulebase_id")]
         public int NextRulebaseId = new();
 
@@ -25,7 +31,7 @@ namespace FWO.Data
 
         public bool IsInitialRulebase()
         {
-            return LinkType == 0;
+            return IsInitial;
         }
 
     }

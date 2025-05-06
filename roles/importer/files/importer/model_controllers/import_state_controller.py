@@ -225,7 +225,7 @@ class ImportStateController(ImportState):
         self.LinkTypes = map
 
     def SetColorRefMap(self):
-        get_colors_query = fwo_api.getGraphqlCode([graphqlQueryPath + "stmTables/getColors.graphql"])
+        get_colors_query = fwo_api.get_graphql_code([graphqlQueryPath + "stmTables/getColors.graphql"])
 
         try:
             result = self.call(query=get_colors_query, queryVariables={})

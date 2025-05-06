@@ -191,7 +191,6 @@ namespace FWO.Report
         }
         public static Rule[] GetInitialRulesOfGateway(DeviceReportController deviceReport, ManagementReport managementReport)
         {
-            // RulebaseLink? initialRulebaseLink = deviceReport.RulebaseLinks.FirstOrDefault(_ => _.LinkType == 0);
             int? initialRulebaseId = deviceReport.GetInitialRulebaseId(managementReport);
             if (initialRulebaseId != null)
             {
@@ -313,7 +312,7 @@ namespace FWO.Report
             
             // If there are more than one layer path needs to be initialized here.
 
-            if(device.RulebaseLinks.Any(link => link.LinkType == 2))
+            if(device.RulebaseLinks.Any(link => link.LinkType == 2))    // ordered
             {
                 initialPath.Add(1);
             }
@@ -489,7 +488,7 @@ namespace FWO.Report
                         {
                             if (gateway.RulebaseLinks != null)
                             {
-                                RulebaseLink? rbLink = gateway.RulebaseLinks.FirstOrDefault(rbl => rbl.LinkType == 0);
+                                RulebaseLink? rbLink = gateway.RulebaseLinks.FirstOrDefault(rbl => rbl.IsInitialRulebase());
                                 if (rbLink != null)
                                 {
                                     ExportSingleRulebaseToCsv(report, ruleDisplayCsv, managementReport, gateway, rbLink);

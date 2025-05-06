@@ -1,0 +1,11 @@
+query getRulebaseLinks($gwIds: [Int!]) {
+    rulebase_link (where: {removed:{_is_null:true}, gw_id: {_in: $gwIds } }) {
+        gw_id
+        from_rule_id
+        from_rulebase_id
+        to_rulebase_id
+        link_type
+        is_initial
+        is_global
+    }
+}

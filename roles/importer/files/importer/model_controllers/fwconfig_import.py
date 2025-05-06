@@ -53,7 +53,7 @@ class FwConfigImport(FwConfigImportObject, FwConfigImportRule, FwConfigImportGat
             raise ImportInterruption("Shutdown requested during updateRulebaseDiffs.")
 
         self.ImportDetails.SetRuleMap() # update all rule entries (from currently running import for rulebase_links)
-        self.updateGatewayDiffs(previousConfig)
+        self.update_gateway_diffs(previousConfig)
 
         # raise NotImplementedError("just testing")
 
@@ -73,7 +73,7 @@ class FwConfigImport(FwConfigImportObject, FwConfigImportRule, FwConfigImportGat
     def deleteOldImports(self) -> None:
         logger = getFwoLogger()
         mgmId = int(self.ImportDetails.MgmDetails.Id)
-        deleteMutation = fwo_api.getGraphqlCode([fwo_const.graphqlQueryPath + "import/deleteOldImports.graphql"])
+        deleteMutation = fwo_api.get_graphql_code([fwo_const.graphqlQueryPath + "import/deleteOldImports.graphql"])
 
         try:
             deleteResult = self.ImportDetails.call(deleteMutation, query_variables={"mgmId": mgmId, "is_full_import": self.ImportDetails.IsFullImport })
@@ -124,7 +124,7 @@ class FwConfigImport(FwConfigImportObject, FwConfigImportRule, FwConfigImportGat
             errorsFound = self.deleteLatestConfig()
             if errorsFound:
                 getFwoLogger().warning(f"error while trying to delete latest config for mgm_id: {self.ImportDetails.ImportId}")
-            insertMutation = fwo_api.getGraphqlCode([fwo_const.graphqlQueryPath + "import/storeLatestConfig.graphql"])
+            insertMutation = fwo_api.get_graphql_code([fwo_const.graphqlQueryPath + "import/storeLatestConfig.graphql"])
             try:
                 queryVariables = {
                     'mgmId': self.ImportDetails.MgmDetails.Id,
@@ -153,7 +153,7 @@ class FwConfigImport(FwConfigImportObject, FwConfigImportRule, FwConfigImportGat
         
     def deleteLatestConfig(self) -> int:
         logger = getFwoLogger()
-        deleteMutation = fwo_api.getGraphqlCode([fwo_const.graphqlQueryPath + "import/deleteLatestConfig.graphql"])
+        deleteMutation = fwo_api.get_graphql_code([fwo_const.graphqlQueryPath + "import/deleteLatestConfig.graphql"])
         try:
             queryVariables = { 'mgmId': self.ImportDetails.MgmDetails.Id }
             import_result = self.ImportDetails.call(deleteMutation, queryVariables=queryVariables)
@@ -175,7 +175,7 @@ class FwConfigImport(FwConfigImportObject, FwConfigImportRule, FwConfigImportGat
     # return previous config or empty config if there is none
     def getPreviousConfig(self) -> FwConfigNormalized:
         logger = getFwoLogger(debug_level=self.ImportDetails.DebugLevel)
-        query = fwo_api.getGraphqlCode([fwo_const.graphqlQueryPath + "import/getLatestConfig.graphql"])
+        query = fwo_api.get_graphql_code([fwo_const.graphqlQueryPath + "import/getLatestConfig.graphql"])
         queryVariables = { 'mgmId': self.ImportDetails.MgmDetails.Id }
         try:
             queryResult = self.ImportDetails.call(query, queryVariables=queryVariables)

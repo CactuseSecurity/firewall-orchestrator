@@ -37,7 +37,7 @@ class RuleEnforcedOnGatewayController():
         # (using rulebase_links)]
 
         rbLinkController = RulebaseLinkController()
-        rbLinkController.SetMapOfAllEnforcingGatewayIdsForRulebaseId(importState)
+        rbLinkController.set_map_of_all_enforcing_gateway_ids_for_rulebase_id(importState)
 
         ruleToGwRefs = []
         # now add the references to the rules
@@ -45,7 +45,7 @@ class RuleEnforcedOnGatewayController():
             if 'rule_installon' in rule:
                 if rule['rule_installon'] is None:
                     # add links to all gateways that this rulebase is installed on
-                    for gwId in rbLinkController.GetGwIdsForRulebaseId(rule['rulebase_id']):
+                    for gwId in rbLinkController.get_gw_ids_for_rulebase_id(rule['rulebase_id']):
                         ruleToGwRefs.append(RuleEnforcedOnGateway(
                             rule_id=rule['rule_id'], 
                             dev_id=gwId, 

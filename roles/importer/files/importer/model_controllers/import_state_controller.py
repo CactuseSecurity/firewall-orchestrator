@@ -326,6 +326,6 @@ class ImportStateController(ImportState):
     def lookupGatewayId(self, gwUid):
         return self.GatewayMap.get(gwUid, None)
 
-    def lookupColorId(self, colorStr):
-        return self.ColorMap.get(colorStr, None)
+    def lookupColorId(self, color_str):
+        return self.ColorMap.get(color_str, None)
     

@@ -64,19 +64,17 @@ class FwConfigImport(FwConfigImportObject, FwConfigImportRule, FwConfigImportGat
         #TODO: self.addNewRule2SvcRefs(newRules)
 
         enforcingController = RuleEnforcedOnGatewayController(self.ImportDetails)
-        ids = enforcingController.addNewRuleEnforcedOnGatewayRefs(newRules, self.ImportDetails)
-
-        return 
-
+        ids = enforcingController.add_new_rule_enforced_on_gateway_refs(newRules, self.ImportDetails)
+        
 
     # cleanup configs which do not need to be retained according to data retention time
     def deleteOldImports(self) -> None:
         logger = getFwoLogger()
         mgmId = int(self.ImportDetails.MgmDetails.Id)
-        deleteMutation = fwo_api.get_graphql_code([fwo_const.graphqlQueryPath + "import/deleteOldImports.graphql"])
+        delete_mutation = fwo_api.get_graphql_code([fwo_const.graphqlQueryPath + "import/deleteOldImports.graphql"])
 
         try:
-            deleteResult = self.ImportDetails.call(deleteMutation, query_variables={"mgmId": mgmId, "is_full_import": self.ImportDetails.IsFullImport })
+            deleteResult = self.ImportDetails.call(delete_mutation, query_variables={"mgmId": mgmId, "is_full_import": self.ImportDetails.IsFullImport })
             if deleteResult['data']['delete_import_control']['returning']['control_id']:
                 importsDeleted = len(deleteResult['data']['delete_import_control']['returning']['control_id'])
                 if importsDeleted>0:

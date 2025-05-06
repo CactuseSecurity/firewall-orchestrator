@@ -9,6 +9,7 @@
 		<PackageReference Include="IPAddressRange" Version="6.2.0" />
 		<PackageReference Include="BlazorTable" Version="1.17.0" />
 		<PackageReference Include="PuppeteerSharp" Version="20.1.3" />
+		<PackageReference Include="Radzen.Blazor" Version="6.6.4" />
 	</ItemGroup>
 
 	<ItemGroup>

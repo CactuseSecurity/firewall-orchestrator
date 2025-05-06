@@ -114,8 +114,9 @@
                         case ReportType.UnusedRules:
                         case ReportType.NatRules:
                         case ReportType.AppRules:
-                            <RulesReport Managements="currentReport.ReportData.ManagementData" SelectedReportType="actReportFilters.ReportType" RulesPerPage="rulesPerPage"
-                                @bind-SelectedRules="selectedItemsRuleReportTable" />
+                            @* <RulesReport Managements="currentReport.ReportData.ManagementData" SelectedReportType="actReportFilters.ReportType" RulesPerPage="rulesPerPage"
+                                @bind-SelectedRules="selectedItemsRuleReportTable" /> *@
+                            <RulesReportRadzen Managements="currentReport.ReportData.ManagementData"></RulesReportRadzen>
                             break;
 
                         case ReportType.Changes:

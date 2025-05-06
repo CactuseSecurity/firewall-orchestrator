@@ -41,13 +41,13 @@ def get_graphql_code(fileList: List[str]) -> str:
     return removeSpecialCharsFromGraphqlQuery(code)
 
 
-def show_api_call_info(url, query, headers, typ='debug'):
+def show_api_call_info(url, query, headers, type='debug'):
     max_query_size_to_display = 1000
     query_string = json.dumps(query, indent=2)
     header_string = json.dumps(headers, indent=2)
     query_size = len(query_string)
 
-    if typ=='error':
+    if type=='error':
         result = "error while sending api_call to url "
     else:
         result = "successful FWO API call to url "        
@@ -78,7 +78,7 @@ def call(url, jwt, query, query_variables="", role="reporter", show_progress=Fal
             r = session.post(url, data=json.dumps(full_query), timeout=int(fwo_api_http_import_timeout))
             r.raise_for_status()
             if int(fwo_globals.debug_level) > 4:
-                logger.debug (show_api_call_info(url, full_query, request_headers, typ='debug'))
+                logger.debug (show_api_call_info(url, full_query, request_headers, type='debug'))
             if show_progress:
                 pass
                 # print('.', end='', flush=True)

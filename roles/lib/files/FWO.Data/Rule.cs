@@ -1,4 +1,4 @@
-﻿using System.Text.Json.Serialization; 
+using System.Text.Json.Serialization; 
 using Newtonsoft.Json;
 
 namespace FWO.Data
@@ -111,6 +111,8 @@ namespace FWO.Data
         public long ConnId;
         public bool ModellOk = false;
         public bool Detailed = false;
+
+        public string? GroupKey { get; set; }
 
         public bool IsDropRule()
         {

@@ -69,13 +69,27 @@ namespace FWO.Data.Report
             return true;
         }
 
-        public static IEnumerable<IGrouping<string, Rule>> GroupByLevel(IEnumerable<Rule> objects)
+        //public static IEnumerable<IGrouping<string, Rule>> GroupByLevel(IEnumerable<Rule> objects)
+        //{
+        //    return objects.GroupBy(obj =>
+        //    {
+        //        RulebaseHelper? version = new(obj.DisplayOrderNumberString);
+        //        return version.GetPrefix(version.Level - 1).ToString();
+        //    });
+        //}
+
+        public static List<RuleGroup> GroupByLevel(IEnumerable<Rule> objects)
         {
             return objects.GroupBy(obj =>
             {
                 RulebaseHelper? version = new(obj.DisplayOrderNumberString);
                 return version.GetPrefix(version.Level - 1).ToString();
-            });
+            })
+            .Select(g => new RuleGroup
+            {
+                GroupName = g.Key,
+                Rules = g.ToList()
+            }).ToList();
         }
 
         public static bool operator >(RulebaseHelper a, RulebaseHelper b) => a.CompareTo(b) > 0;

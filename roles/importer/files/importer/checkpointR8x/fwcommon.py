@@ -120,12 +120,14 @@ def get_rules(nativeConfig: dict, importState: ImportStateController) -> int:
     """
     Main function to get rules. Divided into smaller sub-tasks for better readability and maintainability.
     """
-    logger = getFwoLogger()
     initialize_native_config(nativeConfig)
-    show_params_policy_structure = get_policy_structure_params(importState)
+    show_params_policy_structure = {
+        'limit': importState.FwoConfig.ApiFetchSize,
+        'details-level': 'full'
+    }
 
-    managerDetailsList = get_manager_details_list(importState)
-    for managerDetails in managerDetailsList:
+    manager_details_list = enrich_submanager_details(importState)
+    for managerDetails in manager_details_list:
         cpManagerApiBaseUrl = importState.MgmDetails.buildFwApiString()
 
         if managerDetails.IsSuperManager:
@@ -150,14 +152,7 @@ def initialize_native_config(nativeConfig):
     nativeConfig.update({'rulebases': [], 'nat_rulebases': [], 'gateways': []})
 
 
-def get_policy_structure_params(importState):
-    return {
-        'limit': importState.FwoConfig.ApiFetchSize,
-        'details-level': 'full'
-    }
-
-
-def get_manager_details_list(importState):
+def enrich_submanager_details(importState):
     managerDetailsList = [importState.MgmDetails]
     if importState.MgmDetails.IsSuperManager:
         for subManager in importState.MgmDetails.SubManagers:
@@ -182,11 +177,11 @@ def handle_super_manager(managerDetails, cpManagerApiBaseUrl, show_params_policy
 
 
 def get_policy_structure(cpManagerApiBaseUrl, sid, show_params_policy_structure):
-    policyStructure = []
+    pol_structure = []
     cp_getter.getPolicyStructure(
-        cpManagerApiBaseUrl, sid, show_params_policy_structure, policyStructure=policyStructure
+        cpManagerApiBaseUrl, sid, show_params_policy_structure, policyStructure=pol_structure
     )
-    return policyStructure
+    return pol_structure
 
 
 def process_devices(
@@ -206,13 +201,13 @@ def process_devices(
 
         if importState.MgmDetails.IsSuperManager:
             handle_global_rulebase_links(
-                deviceConfig, globalAssignments, globalPolicyStructure, globalDomain,
-                globalSid, orderedLayerUids, nativeConfig, cpManagerApiBaseUrl, sid
+                importState, deviceConfig, globalAssignments, globalPolicyStructure, globalDomain,
+                globalSid, orderedLayerUids, nativeConfig, cpManagerApiBaseUrl
             )
         else:
             define_initial_rulebase(deviceConfig, orderedLayerUids)
 
-        addOrderedLayersToNativeConfig(orderedLayerUids, get_rules_params(importState), cpManagerApiBaseUrl, sid, nativeConfig, deviceConfig)
+        add_ordered_layers_to_native_config(orderedLayerUids, get_rules_params(importState), cpManagerApiBaseUrl, sid, nativeConfig, deviceConfig)
         handle_nat_rules(device, nativeConfig, sid, importState)
 
         nativeConfig['gateways'].append(deviceConfig)
@@ -227,25 +222,24 @@ def initialize_device_config(device):
 
 
 def handle_global_rulebase_links(
-    deviceConfig, globalAssignments, globalPolicyStructure, globalDomain,
-    globalSid, orderedLayerUids, nativeConfig, cpManagerApiBaseUrl, sid
+    import_state, deviceConfig, globalAssignments, globalPolicyStructure, globalDomain,
+    globalSid, orderedLayerUids, nativeConfig, cpManagerApiBaseUrl
 ):
     logger = getFwoLogger()
     for globalAssignment in globalAssignments:
         if globalAssignment['dependent-domain']['uid'] == globalDomain:
             for globalPolicy in globalPolicyStructure:
                 if globalPolicy['name'] == globalAssignment['global-access-policy']:
-                    globalOrderedLayerUids = getOrderedLayerUids([globalPolicy], deviceConfig, globalDomain)
-                    if not globalOrderedLayerUids:
+                    global_ordered_layer_uids = getOrderedLayerUids([globalPolicy], deviceConfig, globalDomain)
+                    if not global_ordered_layer_uids:
                         logger.warning(f"No access layer for global policy: {globalPolicy['name']}")
                         break
 
-                    addOrderedLayersToNativeConfig(globalOrderedLayerUids, get_rules_params(importState), cpManagerApiBaseUrl, globalSid, nativeConfig, deviceConfig)
-                    define_global_rulebase_link(deviceConfig, globalOrderedLayerUids, orderedLayerUids, nativeConfig)
+                    add_ordered_layers_to_native_config(global_ordered_layer_uids, get_rules_params(import_state), cpManagerApiBaseUrl, globalSid, nativeConfig, deviceConfig)
+                    define_global_rulebase_link(deviceConfig, global_ordered_layer_uids, orderedLayerUids, nativeConfig)
 
 
 def define_global_rulebase_link(deviceConfig, globalOrderedLayerUids, orderedLayerUids, nativeConfig):
-    logger = getFwoLogger()
     for globalOrderedLayerUid in globalOrderedLayerUids:
         placeholderRuleUid = ''
         for rulebase in nativeConfig['rulebases']:
@@ -305,10 +299,10 @@ def handle_nat_rules(device, nativeConfig, sid, importState):
             nativeConfig['nat_rulebases'].append({"nat_rule_chunks": []})
     else:
         nativeConfig['nat_rulebases'].append({"nat_rule_chunks": []})
-        
+
 
 ###### helper functions ######
-def addOrderedLayersToNativeConfig(orderedLayerUids, show_params_rules, cpManagerApiBaseUrl, sid, nativeConfig, deviceConfig):
+def add_ordered_layers_to_native_config(orderedLayerUids, show_params_rules, cpManagerApiBaseUrl, sid, nativeConfig, deviceConfig):
 
     orderedLayerIndex = 0
     for orderedLayerUid in orderedLayerUids:

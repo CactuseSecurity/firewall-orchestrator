@@ -7,7 +7,7 @@
     IsLoading=@Loading Sort="@ShowLoading" Page="@ShowLoading" Group="@ShowLoading" Filter="@ShowLoading"
     AllowMultiColumnSorting="true" ShowMultiColumnSortingIndex="true">
     <Columns>
-        <RadzenDataGridColumn Property="DisplayOrderNumberString" Title="@(userConfig.GetText("number"))" Filterable="false" Sortable="true" TextAlign="TextAlign.Left" SortOrder="SortOrder.Ascending">
+        <RadzenDataGridColumn Property="DisplayOrderNumberString" Title="@(userConfig.GetText("number"))" Filterable="false" Sortable="true" TextAlign="TextAlign.Left">
             <Template>
                 @((MarkupString)context.DisplayOrderNumberString)
             </Template>
@@ -17,7 +17,7 @@
                 @context.Name
             </Template>
         </RadzenDataGridColumn>
-        <RadzenDataGridColumn Property="SourceZone.Name" Title="@(userConfig.GetText("source_zone"))" Sortable="true" Filterable="false" TextAlign="TextAlign.Left">
+        <RadzenDataGridColumn Title="@(userConfig.GetText("source_zone"))" Sortable="true" Filterable="false" TextAlign="TextAlign.Left">
             <Template>
                 @((MarkupString)RuleDisplayHtml.DisplaySourceZone(context))
             </Template>
@@ -27,12 +27,12 @@
                 @((MarkupString)RuleDisplay.DisplaySource(context, getActLocation(), SelectedReportType))
             </Template>
         </RadzenDataGridColumn>
-        <RadzenDataGridColumn Title="@(userConfig.GetText("destination_zone"))" Sortable="true" Filterable="false" TextAlign="TextAlign.Left">
+        <RadzenDataGridColumn Property="DestinationZone.Name" Title="@(userConfig.GetText("destination_zone"))" Sortable="true" Filterable="false" TextAlign="TextAlign.Left">
             <Template>
                 @((MarkupString)RuleDisplayHtml.DisplayDestinationZone(context))
             </Template>
         </RadzenDataGridColumn>
-        <RadzenDataGridColumn Title="@(userConfig.GetText("destination"))" Sortable="true" Filterable="false" TextAlign="TextAlign.Left">
+        <RadzenDataGridColumn Property="DestinationZone.Name" Title="@(userConfig.GetText("destination"))" Sortable="true" Filterable="false" TextAlign="TextAlign.Left">
             <Template>
                 @((MarkupString)RuleDisplay.DisplayDestination(context, getActLocation(), SelectedReportType))
             </Template>
@@ -52,12 +52,12 @@
                 @((MarkupString)RuleDisplay.DisplayEnforcingGateways(context, getActLocation(), SelectedReportType))
             </Template>
         </RadzenDataGridColumn>
-        <RadzenDataGridColumn Title="@(userConfig.GetText("uid"))" Sortable="true" Filterable="false" TextAlign="TextAlign.Left">
+        <RadzenDataGridColumn Property="Uid" Title="@(userConfig.GetText("uid"))" Sortable="true" Filterable="false" TextAlign="TextAlign.Left">
             <Template>
                 @context.Uid
             </Template>
         </RadzenDataGridColumn>
-        <RadzenDataGridColumn Title="@(userConfig.GetText("comment"))" Sortable="true" Filterable="false" TextAlign="TextAlign.Left">
+        <RadzenDataGridColumn Property="Comment" Title="@(userConfig.GetText("comment"))" Sortable="true" Filterable="false" TextAlign="TextAlign.Left">
             <Template>
                 @context.Comment
             </Template>

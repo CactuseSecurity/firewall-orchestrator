@@ -660,128 +660,141 @@ class FwConfigImportRule(FwConfigImportBase):
             for _, move_rule_uid, target_index in rule_order_service.compute_min_moves_result["reposition_moves"]
         ]
 
-        if len(args_rules_uids) > 0:
-            moveRulesMutation = """mutation MoveRules($objects: [rule_insert_input!]!, $uids: [String!], $mgmId: Int!, $importId: bigint) {
-                insert_rule(objects: $objects) {
-                    affected_rows
-                    returning {
-                    rule_id
-                    rule_uid
-                    rule_num_numeric
-                    }
-                }
-
-                update_rule(
-                    where: {
-                    active: { _eq: true },
-                    rule_uid: { _in: $uids },
-                    mgm_id: { _eq: $mgmId },
-                    rule_last_seen: { _neq: $importId }
-                    },
-                    _set: {
-                    removed: $importId,
-                    active: false
-                    }
-                ) {
-                    affected_rows
-                    returning {
-                    rule_id
-                    rule_uid
-                    }
+        if len(args_rules_uids) <= 0:
+            return errors, changes, collectedMovedRuleIds
+        
+        moveRulesMutation = """mutation MoveRules($objects: [rule_insert_input!]!, $uids: [String!], $mgmId: Int!, $importId: bigint) {
+            insert_rule(objects: $objects) {
+                affected_rows
+                returning {
+                rule_id
+                rule_uid
+                rule_num_numeric
                 }
             }
-            """
 
-            args_rules = [args_rule for args_rule in rule_order_service.target_rules_flat if args_rule.rule_uid in args_rules_uids]
-            import_rules = []
-            for rulebase in self.NormalizedConfig.rulebases:
-                if len(movedRuleUids[rulebase.uid]) > 0:
-                    import_rules.extend(self.PrepareRuleForImport(self.ImportDetails, [args_rule for args_rule in args_rules if args_rule in rulebase.Rules.values()], rulebaseUid=rulebase.uid)["data"])
-
-            queryVariables = {
-                "objects": import_rules,
-                "uids": args_rules_uids,
-                "mgmId": self.ImportDetails.MgmDetails.Id,
-                "importId": self.ImportDetails.ImportId
+            update_rule(
+                where: {
+                active: { _eq: true },
+                rule_uid: { _in: $uids },
+                mgm_id: { _eq: $mgmId },
+                rule_last_seen: { _neq: $importId }
+                },
+                _set: {
+                removed: $importId,
+                active: false
+                }
+            ) {
+                affected_rows
+                returning {
+                rule_id
+                rule_uid
+                }
             }
-            
-            try:
-                moveResult = self.ImportDetails.call(moveRulesMutation, queryVariables=queryVariables)
-                if 'errors' in moveResult:
-                    errors = 1
-                    logger.exception(f"fwo_api:moveRules - error while moving rules: {str(moveResult['errors'])}")
-                    return errors, changes, movedRuleUids
-                else:
-                    changes = int(moveResult['data']['update_rule']['affected_rows'])
-                    movedRuleIds = moveResult['data']['update_rule']['returning']
-                    collectedMovedRuleIds += [item['rule_id'] for item in movedRuleIds]
+        }
+        """
 
-            except Exception:
+        args_rules = [args_rule for args_rule in rule_order_service.target_rules_flat if args_rule.rule_uid in args_rules_uids]
+        import_rules = []
+        for rulebase in self.NormalizedConfig.rulebases:
+            if len(movedRuleUids[rulebase.uid]) > 0:
+                import_rules.extend(self.PrepareRuleForImport(self.ImportDetails, [args_rule for args_rule in args_rules if args_rule in rulebase.Rules.values()], rulebaseUid=rulebase.uid)["data"])
+
+        queryVariables = {
+            "objects": import_rules,
+            "uids": args_rules_uids,
+            "mgmId": self.ImportDetails.MgmDetails.Id,
+            "importId": self.ImportDetails.ImportId
+        }
+        
+        try:
+            moveResult = self.ImportDetails.call(moveRulesMutation, queryVariables=queryVariables)
+            if 'errors' in moveResult:
                 errors = 1
-                logger.exception(f"failed to move rules: {str(traceback.format_exc())}")
-                return errors, changes, collectedMovedRuleIds
+                logger.exception(f"fwo_api:moveRules - error while moving rules: {str(moveResult['errors'])}")
+                return errors, changes, movedRuleUids
+            else:
+                changes = int(moveResult['data']['update_rule']['affected_rows'])
+                movedRuleIds = moveResult['data']['update_rule']['returning']
+                collectedMovedRuleIds += [item['rule_id'] for item in movedRuleIds]
+                self.update_refs_after_move(moveResult, movedRuleIds)
 
-            # Creates a dictionary that maps the original rule id to the one of the newly created version.
+        except Exception:
+            errors = 1
+            logger.exception(f"failed to move rules: {str(traceback.format_exc())}")
+            return errors, changes, collectedMovedRuleIds
 
-            rule_id_map = {}
-            new_rule_ids = moveResult['data']['insert_rule']['returning']
-
-            for new_item in new_rule_ids:
-                rule_id_map[new_item['rule_id']] = next(old_item['rule_id']
-                                                            for old_item in movedRuleIds 
-                                                            if old_item['rule_uid'] == new_item['rule_uid'])
-
-            # Creates a list of update arguments for the upcoming bulk mutation.
-
-            updates = [
-                {"where": {"rule_id": {"_eq": old_rule_id}}, "_set": {"rule_id": new_rule_id}}
-                for new_rule_id, old_rule_id in rule_id_map.items()
-            ]
-
-            # Creates a mutation that updates all the tables that need updates in one request (will be chunked if to big).
-
-            updateMovedRulesRefsMutation = """mutation updateMovedRulesRefs(
-                $ruleFromUpdates: [rule_from_updates!]!
-                $ruleToUpdates: [rule_to_updates!]!
-                $ruleServiceUpdates: [rule_service_updates!]!
-                $nwobjUpdates: [rule_nwobj_resolved_updates!]!
-                $svcUpdates: [rule_svc_resolved_updates!]!
-                $userUpdates: [rule_user_resolved_updates!]!
-                ) {
-                update_rule_from_many(updates: $ruleFromUpdates) { affected_rows }
-                update_rule_to_many(updates: $ruleToUpdates) { affected_rows }
-                update_rule_service_many(updates: $ruleServiceUpdates) { affected_rows }
-                update_rule_nwobj_resolved_many(updates: $nwobjUpdates) { affected_rows }
-                update_rule_svc_resolved_many(updates: $svcUpdates) { affected_rows }
-                update_rule_user_resolved_many(updates: $userUpdates) { affected_rows }
-            }
-            """
-
-            updateMovedRulesRefsVariables = {
-                "ruleFromUpdates": updates,
-                "ruleToUpdates": updates,
-                "ruleServiceUpdates": updates,
-                "nwobjUpdates": updates,
-                "svcUpdates": updates,
-                "userUpdates": updates,
-            }
-
-            # Executes call with a list of dicts as chunkable_variable, to trigger multi table chunking.
-
-            try:
-                updateMovedRulesRefsResult = self.ImportDetails.call(updateMovedRulesRefsMutation, queryVariables=updateMovedRulesRefsVariables, chunkable_variable=list(updateMovedRulesRefsVariables.items()), query_name="upsertRulebaseWithRules", return_object_name="insert_rule", debug_level=self.ImportDetails.DebugLevel)
-                if 'errors' in updateMovedRulesRefsResult:
-                    errors = 1
-                    logger.exception(f"fwo_api:moveRules - error while updating moved rules refs: {str(updateMovedRulesRefsResult['errors'])}")
-                    return errors, changes, movedRuleUids
-
-            except Exception:
-                errors = 1
-                logger.exception(f"failed to move rules: {str(traceback.format_exc())}")
-                return errors, changes, collectedMovedRuleIds
+       
 
         return errors, changes, collectedMovedRuleIds
 
+
+    def update_refs_after_move(self, move_result, moved_rule_ids):
+        """
+            Updates every occurence of the moved rules ids in relevant tables to the newly created versions ids…
+        """
+
+        logger = getFwoLogger()
+
+        # Creates a dictionary that maps the original rule id to the one of the newly created version.
+
+        rule_id_map = {}
+        new_rule_ids = move_result['data']['insert_rule']['returning']
+
+        for new_item in new_rule_ids:
+            rule_id_map[new_item['rule_id']] = next(old_item['rule_id']
+                                                        for old_item in moved_rule_ids 
+                                                        if old_item['rule_uid'] == new_item['rule_uid'])
+
+        # Creates a list of update arguments for the upcoming bulk mutation.
+
+        updates = [
+            {"where": {"rule_id": {"_eq": old_rule_id}}, "_set": {"rule_id": new_rule_id}}
+            for new_rule_id, old_rule_id in rule_id_map.items()
+        ]
+
+        # Creates a mutation that updates all the tables that need updates in one request (will be chunked if to big).
+
+        update_moved_rules_refs_mutation = """mutation updateMovedRulesRefs(
+            $ruleFromUpdates: [rule_from_updates!]!
+            $ruleToUpdates: [rule_to_updates!]!
+            $ruleServiceUpdates: [rule_service_updates!]!
+            $nwobjUpdates: [rule_nwobj_resolved_updates!]!
+            $svcUpdates: [rule_svc_resolved_updates!]!
+            $userUpdates: [rule_user_resolved_updates!]!
+            ) {
+            update_rule_from_many(updates: $ruleFromUpdates) { affected_rows }
+            update_rule_to_many(updates: $ruleToUpdates) { affected_rows }
+            update_rule_service_many(updates: $ruleServiceUpdates) { affected_rows }
+            update_rule_nwobj_resolved_many(updates: $nwobjUpdates) { affected_rows }
+            update_rule_svc_resolved_many(updates: $svcUpdates) { affected_rows }
+            update_rule_user_resolved_many(updates: $userUpdates) { affected_rows }
+        }
+        """
+
+        update_moved_rules_refs_variables = {
+            "ruleFromUpdates": updates,
+            "ruleToUpdates": updates,
+            "ruleServiceUpdates": updates,
+            "nwobjUpdates": updates,
+            "svcUpdates": updates,
+            "userUpdates": updates,
+        }
+
+        # Executes call with a list of dicts as chunkable_variable, to trigger multi table chunking.
+
+        try:
+            update_moved_rules_refs_result = self.ImportDetails.call(update_moved_rules_refs_mutation, queryVariables=update_moved_rules_refs_variables, chunkable_variable=list(update_moved_rules_refs_variables.items()), query_name="upsertRulebaseWithRules", return_object_name="insert_rule", debug_level=self.ImportDetails.DebugLevel)
+            if 'errors' in update_moved_rules_refs_result:
+                logger.exception(f"fwo_api:moveRules - error while updating moved rules refs: {str(update_moved_rules_refs_result['errors'])}")
+                return 1, 0, []
+            else:
+                return 0, 0, []
+
+        except Exception:
+            logger.exception(f"failed to move rules: {str(traceback.format_exc())}")
+            return 1, 0, []
+        
 
     # TODO: limit query to a single rulebase
     def GetRuleNumMap(self):

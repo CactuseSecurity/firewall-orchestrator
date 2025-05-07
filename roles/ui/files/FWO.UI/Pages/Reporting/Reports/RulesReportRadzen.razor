@@ -3,23 +3,23 @@
 @using FWO.Ui.Display
 
 <RadzenDataGrid @ref="RulesGrid"
-                TItem="Rule"
-                Data="@Rules"
-                GroupProperty="GroupKey"
-                Groups="@(new List<string> { " GroupKey" })"
-                AllowGrouping="false"
-                ExpandMode="DataGridExpandMode.Multiple"
-                AllowFiltering="true"
-                AllowSorting="true"
-                ShowGroupPanel="false"
-                Render="@OnRender">
+TItem="Rule"
+Data="@Rules"
+                GroupProperty="RulebaseId"
+                Groups="@(new List<string> { " RulebaseId" })"
+AllowGrouping="false"
+ExpandMode="DataGridExpandMode.Multiple"
+AllowFiltering="true"
+AllowSorting="true"
+ShowGroupPanel="false"
+Render="@OnRender">
     <GroupHeaderTemplate Context="group">
         <tr style="background-color:#f0f0f0; font-weight:bold;">
             <td>Rulebase: @(group.Data.Key)</td>
         </tr>
     </GroupHeaderTemplate>
     <Columns>
-        <RadzenDataGridColumn Property="GroupKey" Groupable="true" Title="@(userConfig.GetText("number"))" Filterable="false" Sortable="true" TextAlign="TextAlign.Left">
+        <RadzenDataGridColumn Property="RulebaseId" Groupable="true" Title="@(userConfig.GetText("number"))" Filterable="false" Sortable="true" TextAlign="TextAlign.Left">
             <Template>
                 @((MarkupString)context.DisplayOrderNumberString)
             </Template>
@@ -108,19 +108,14 @@
 
         var ungroupedRules = ReportRules.GetAllRulesOfGateway(device, management);
 
-        Rules = ungroupedRules.Select(rule =>
-        {
-            var helper = new RulebaseHelper(rule.DisplayOrderNumberString);
-            rule.GroupKey = helper.GetPrefix(helper.Level - 1).ToString();
-            return rule;
-        }).ToList();
+        Rules = ungroupedRules.ToList();
     }
 
     private void OnRender(DataGridRenderEventArgs<Rule> args)
     {
         if(args.FirstRender)
         {
-            args.Grid.Groups.Add(new GroupDescriptor() { Property = "GroupKey", Title="Rulebase", SortOrder = SortOrder.Ascending });
+            args.Grid.Groups.Add(new GroupDescriptor() { Property = "RulebaseId", Title = "Rulebase", SortOrder = SortOrder.Ascending });
             StateHasChanged();
         }
     }

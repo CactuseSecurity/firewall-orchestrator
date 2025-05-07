@@ -112,8 +112,6 @@ namespace FWO.Data
         public bool ModellOk = false;
         public bool Detailed = false;
 
-        public string? GroupKey { get; set; }
-
         public bool IsDropRule()
         {
             return Action == "drop" || Action == "reject" || Action == "deny";

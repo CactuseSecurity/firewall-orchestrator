@@ -16,7 +16,7 @@ class TestFwoBase(unittest.TestCase):
         new_element = "element d"
         insert_position = 2
         target_sequence.insert(insert_position, new_element)
-        expectedResult = { 
+        expected_result = { 
             "moves": 1, 
             "operations": [f"Insert element '{new_element}' at target position {str(insert_position)}."],
             "insertions": [(insert_position, new_element)],
@@ -28,11 +28,11 @@ class TestFwoBase(unittest.TestCase):
         compute_min_moves_result = compute_min_moves(source_sequence, target_sequence)
 
         # assert
-        self.assertEqual(compute_min_moves_result["moves"], expectedResult["moves"])
-        self.assertEqual(compute_min_moves_result["operations"], expectedResult["operations"])
-        self.assertEqual(compute_min_moves_result["insertions"], expectedResult["insertions"])
-        self.assertEqual(compute_min_moves_result["deletions"], expectedResult["deletions"])     
-        self.assertEqual(compute_min_moves_result["reposition_moves"], expectedResult["reposition_moves"])      
+        self.assertEqual(compute_min_moves_result["moves"], expected_result["moves"])
+        self.assertEqual(compute_min_moves_result["operations"], expected_result["operations"])
+        self.assertEqual(compute_min_moves_result["insertions"], expected_result["insertions"])
+        self.assertEqual(compute_min_moves_result["deletions"], expected_result["deletions"])     
+        self.assertEqual(compute_min_moves_result["reposition_moves"], expected_result["reposition_moves"])      
 
 
     def test_compute_min_moves_on_delete(self):
@@ -41,7 +41,7 @@ class TestFwoBase(unittest.TestCase):
         target_sequence = list(source_sequence)
         delete_position = 1
         deleted_element = target_sequence.pop(delete_position)
-        expectedResult = { 
+        expected_result = { 
             "moves": 1, 
             "operations": [f"Delete element '{deleted_element}' at source index {str(delete_position)}."],
             "insertions": [],
@@ -53,11 +53,11 @@ class TestFwoBase(unittest.TestCase):
         compute_min_moves_result = compute_min_moves(source_sequence, target_sequence)
 
         # assert
-        self.assertEqual(compute_min_moves_result["moves"], expectedResult["moves"])
-        self.assertEqual(compute_min_moves_result["operations"], expectedResult["operations"])
-        self.assertEqual(compute_min_moves_result["insertions"], expectedResult["insertions"])
-        self.assertEqual(compute_min_moves_result["deletions"], expectedResult["deletions"])     
-        self.assertEqual(compute_min_moves_result["reposition_moves"], expectedResult["reposition_moves"])
+        self.assertEqual(compute_min_moves_result["moves"], expected_result["moves"])
+        self.assertEqual(compute_min_moves_result["operations"], expected_result["operations"])
+        self.assertEqual(compute_min_moves_result["insertions"], expected_result["insertions"])
+        self.assertEqual(compute_min_moves_result["deletions"], expected_result["deletions"])     
+        self.assertEqual(compute_min_moves_result["reposition_moves"], expected_result["reposition_moves"])
 
 
     def test_compute_min_moves_on_move(self):
@@ -68,7 +68,7 @@ class TestFwoBase(unittest.TestCase):
         move_target_position = 1
         moved_element = target_sequence.pop(move_source_position)
         target_sequence.insert(move_target_position, moved_element)
-        expectedResult = { 
+        expected_result = { 
             "moves": 1, 
             "operations": [f"Pop element '{moved_element}' from source index {str(move_source_position)} and reinsert at target position {str(move_target_position)}."],
             "insertions": [],
@@ -80,10 +80,10 @@ class TestFwoBase(unittest.TestCase):
         compute_min_moves_result = compute_min_moves(source_sequence, target_sequence)
 
         # assert
-        self.assertEqual(compute_min_moves_result["moves"], expectedResult["moves"])
-        self.assertEqual(compute_min_moves_result["operations"], expectedResult["operations"])
-        self.assertEqual(compute_min_moves_result["insertions"], expectedResult["insertions"])
-        self.assertEqual(compute_min_moves_result["deletions"], expectedResult["deletions"])     
-        self.assertEqual(compute_min_moves_result["reposition_moves"], expectedResult["reposition_moves"])
+        self.assertEqual(compute_min_moves_result["moves"], expected_result["moves"])
+        self.assertEqual(compute_min_moves_result["operations"], expected_result["operations"])
+        self.assertEqual(compute_min_moves_result["insertions"], expected_result["insertions"])
+        self.assertEqual(compute_min_moves_result["deletions"], expected_result["deletions"])     
+        self.assertEqual(compute_min_moves_result["reposition_moves"], expected_result["reposition_moves"])
    
    

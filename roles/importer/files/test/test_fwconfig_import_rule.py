@@ -36,7 +36,7 @@ class TestFwoConfigImportRule(unittest.TestCase):
 
         deleted_rule_position = 0
         deleted_rule_uid = list(fwconfig_import_rule.NormalizedConfig.rulebases[0].Rules.keys())[deleted_rule_position]
-        deleted_rule = fwconfig_import_rule.NormalizedConfig.rulebases[0].Rules.pop(deleted_rule_uid)
+        fwconfig_import_rule.NormalizedConfig.rulebases[0].Rules.pop(deleted_rule_uid)
         rule_uids.pop(deleted_rule_position)
 
         inserted_rule_position = 0

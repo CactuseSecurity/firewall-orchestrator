@@ -272,7 +272,7 @@ def parse_single_rule(nativeRule, rulebase, layer_name, import_id, rule_num, par
             rule = {
                 # "control_id":       int(import_id),
                 "rule_num":         int(rule_num),
-                "rule_num_numeric": rule_order_service.get_new_rule_num_numeric(),
+                "rule_num_numeric": 0,
                 "rulebase_name":    sanitize(layer_name),
                 # rule_ruleid
                 "rule_disabled": not bool(nativeRule['enabled']),

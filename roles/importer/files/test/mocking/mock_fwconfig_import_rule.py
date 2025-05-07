@@ -19,7 +19,7 @@ class MockFwConfigImportRule(FwConfigImportRule):
 
         self._import_details = MockImportStateController()
         self._stub_markRulesRemoved = True
-        self._stub_getRules = True
+        self._stub_getRules = False
         self._stub_addNewRuleMetadata = True
         self._stub_addNewRules = True
         self._stub_moveRules = True
@@ -183,7 +183,7 @@ class MockFwConfigImportRule(FwConfigImportRule):
         return errors, changes, newRuleIds
 
 
-    def moveRules(self, movedRuleUids: Dict[str, List[str]], target_rule_uids: List[str]) -> Tuple[int, int, List[int]]:
+    def moveRules(self, movedRuleUids: Dict[str, List[str]]) -> Tuple[int, int, List[int]]:
         """
             Simulates moving rules to a new location.  Delegates to base if not stubbed.
 

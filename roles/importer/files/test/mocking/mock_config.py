@@ -108,7 +108,6 @@ class MockFwConfigNormalized(FwConfigNormalized):
         rulebase.Rules[new_rule.rule_uid] = new_rule
 
         return new_rule
-
         
 
 class ConfigMocker:

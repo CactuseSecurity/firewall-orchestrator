@@ -19,7 +19,7 @@ class MockFwConfigImportRule(FwConfigImportRule):
 
         self._import_details = MockImportStateController()
         self._stub_markRulesRemoved = True
-        self._stub_getRules = True
+        self._stub_getRules = False
         self._stub_addNewRuleMetadata = True
         self._stub_addNewRules = True
         self._stub_moveRules = True
@@ -183,29 +183,27 @@ class MockFwConfigImportRule(FwConfigImportRule):
         return errors, changes, newRuleIds
 
 
-    def moveRules(self, movedRuleUids: Dict[str, List[str]], target_rule_uids: List[str]) -> Tuple[int, int, List[int]]:
+    def moveRules(self, moved_rule_uids: Dict[str, List[str]]) -> Tuple[int, int, List[int]]:
         """
             Simulates moving rules to a new location.  Delegates to base if not stubbed.
 
             Args:
-                movedRuleUids (dict): Mapping from rulebase to list of rule UIDs to move.
-                target_rule_uids (list): List of target rule UIDs to move to.
-
+                moved_rule_uids (dict): Mapping from rulebase to list of rule UIDs to move.
             Returns:
-                tuple: (errors, changes, movedRuleIds)
+                tuple: (errors, changes, moved_rule_ids)
         """
 
         errors = 0
         changes = 0
-        movedRuleIds: List[int] = []
+        moved_rule_ids: List[int] = []
 
-        for rulebase in movedRuleUids.keys():
-            for rule in movedRuleUids[rulebase]:
+        for rulebase in moved_rule_uids.keys():
+            for _ in moved_rule_uids[rulebase]:
                 changes += 1
-                movedRuleIds.append(changes)
+                moved_rule_ids.append(changes)
 
         if not self.stub_moveRules:
-            errors, changes, movedRuleIds = super().moveRules(movedRuleUids, target_rule_uids)
+            errors, changes, moved_rule_ids = super().moveRules(moved_rule_uids)
 
-        return errors, changes, movedRuleIds
+        return errors, changes, moved_rule_ids
 

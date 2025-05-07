@@ -649,7 +649,7 @@ class FwConfigImportRule(FwConfigImportBase):
 
         return errors, changes, collectedRemovedRuleIds
 
-    def moveRules(self, movedRuleUids):
+    def moveRules(self, moved_rule_uids):
         logger = getFwoLogger()
         errors = 0
         changes = 0
@@ -697,7 +697,7 @@ class FwConfigImportRule(FwConfigImportBase):
         args_rules = [args_rule for args_rule in rule_order_service.target_rules_flat if args_rule.rule_uid in args_rules_uids]
         import_rules = []
         for rulebase in self.NormalizedConfig.rulebases:
-            if len(movedRuleUids[rulebase.uid]) > 0:
+            if len(moved_rule_uids[rulebase.uid]) > 0:
                 import_rules.extend(self.PrepareRuleForImport(self.ImportDetails, [args_rule for args_rule in args_rules if args_rule in rulebase.Rules.values()], rulebaseUid=rulebase.uid)["data"])
 
         queryVariables = {
@@ -712,7 +712,7 @@ class FwConfigImportRule(FwConfigImportBase):
             if 'errors' in moveResult:
                 errors = 1
                 logger.exception(f"fwo_api:moveRules - error while moving rules: {str(moveResult['errors'])}")
-                return errors, changes, movedRuleUids
+                return errors, changes, moved_rule_uids
             else:
                 changes = int(moveResult['data']['update_rule']['affected_rows'])
                 movedRuleIds = moveResult['data']['update_rule']['returning']

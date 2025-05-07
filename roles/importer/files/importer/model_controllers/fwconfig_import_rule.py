@@ -212,7 +212,7 @@ class FwConfigImportRule(FwConfigImportBase):
                 ).dict())
         
         # build mutation
-        addNewRuleNwObjAndSvcRefsMutation = fwo_api.getGraphqlCode([fwo_const.graphqlQueryPath + "rule/inserRuleRefs.graphql"])
+        addNewRuleNwObjAndSvcRefsMutation = fwo_api.get_graphql_code([fwo_const.graphqlQueryPath + "rule/insertRuleRefs.graphql"])
 
         # execute mutation
         try:
@@ -236,7 +236,7 @@ class FwConfigImportRule(FwConfigImportBase):
     def getRulesByIdWithRefUids(self, ruleIds: List[int]) -> List[Rule]:
         logger = getFwoLogger()
         rulesToBeReferenced = {}
-        getRuleUidRefsQuery = fwo_api.getGraphqlCode([fwo_const.graphqlQueryPath + "rule/getRulesByIdWithRefUids.graphql"])
+        getRuleUidRefsQuery = fwo_api.get_graphql_code([fwo_const.graphqlQueryPath + "rule/getRulesByIdWithRefUids.graphql"])
         queryVariables = { 'ruleIds': ruleIds }
         
         try:

@@ -1,3 +1,4 @@
+using FWO.Basics;
 using System.Text.Json.Serialization; 
 using Newtonsoft.Json;
 
@@ -15,7 +16,9 @@ namespace FWO.Data.Modelling
 
         EmptyAppRoles,
         DeletedObjects,
-        EmptySvcGrps
+        EmptySvcGrps,
+        DocumentationOnly,
+        VarianceFound
     }
 
     public class ModellingConnection
@@ -290,6 +293,14 @@ namespace FWO.Data.Modelling
             {
                 RemoveProperty(ConState.EmptySvcGrps.ToString());
             }
+            if(IsDocumentationOnly())
+            {
+                AddProperty(ConState.DocumentationOnly.ToString());
+            }
+            else
+            {
+                RemoveProperty(ConState.DocumentationOnly.ToString());
+            }
         }
 
         public bool EmptyAppRolesFound(long dummyAppRoleId)
@@ -313,6 +324,19 @@ namespace FWO.Data.Modelling
 
         public bool EmptyServiceGroupsFound() 
             => ServiceGroups.Any(_ => _.Content.Services.Count == 0);
+
+        public bool IsDocumentationOnly()
+            => ExtraConfigs.Any(_ => _.ExtraConfigType.StartsWith(GlobalConst.kDoku_));
+
+        public Dictionary<string, bool> GetSpecialUserObjectNames()
+        {
+            Dictionary<string, bool> userObjectNames = [];
+            foreach(var extraConfig in ExtraConfigs.Where(e => e.ExtraConfigType.ToLower().EndsWith(GlobalConst.k_user)))
+            {
+                userObjectNames.Add(extraConfig.ExtraConfigText.ToLower(),false);
+            }
+            return userObjectNames;
+        }
 
         public bool DeletedObjectsFound()
         {

@@ -13,6 +13,9 @@ namespace FWO.Test
         static readonly NetworkObject NwObj2 = new() { Id = 11, Name = "AppServerOld", IP = "1.0.0.0", Type = new() { Name = ObjectType.Host } };
         static readonly NetworkObject Nwgroup1 = new() { Id = 1, Name = "AR504711-001", Type = new() { Name = ObjectType.Group }, ObjectGroupFlats = [new() { Object = NwObj1 }, new() { Object = NwObj2 }] };
         static readonly NetworkObject Nwgroup3 = new() { Id = 3, Name = "AR504711-003", Type = new() { Name = ObjectType.Group }, ObjectGroupFlats = [new() { Object = NwObj1 }] };
+        static readonly NetworkObject SpecObj1 = new() { Id = 21, Name = "SpecObj1", Type = new() { Name = "Something else" } };
+        static readonly NetworkObject SpecObj2 = new() { Id = 21, Name = "SpecObj2", Type = new() { Name = "Something else" } };
+
         static readonly ModellingAppServer AppServer1 = new() { Id = 13, Name = "AppServerUnchanged", Ip = "1.2.3.4/32", IpEnd = "1.2.3.4/32" };
         static readonly ModellingAppServer AppServer2 = new() { Id = 14, Name = "AppServerNew1_32", Ip = "1.1.1.1/32", IpEnd = "1.1.1.1/32" };
         static readonly ModellingAppServer AppServer3 = new() { Id = 15, Name = "AppServerNew2", Ip = "2.2.2.2/32", IpEnd = "2.2.2.2/32" };
@@ -34,7 +37,14 @@ namespace FWO.Test
             Services = [ new(){ Content = Svc1 } ]
         };
         static readonly Rule Rule3 = new() { Name = "NonModelledRule", Comment = "XXX3" };
-        
+        static readonly Rule Rule4 = new() 
+        {
+            Name = "FWOC4",
+            Froms = [ new(new(), SpecObj1), new(new(), Nwgroup1) ],
+            Tos = [ new(new(), SpecObj2) ],
+            Services = [ new(){ Content = Svc1 } ]
+        };
+
         public override async Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
         {
             await DefaultInit.DoNothing(); // qad avoid compiler warning
@@ -89,7 +99,7 @@ namespace FWO.Test
             }
             else if (responseType == typeof(List<Rule>))
             {
-                GraphQLResponse<dynamic> response = new() { Data = new List<Rule>() { Rule1, Rule2, Rule3 } };
+                GraphQLResponse<dynamic> response = new() { Data = new List<Rule>() { Rule1, Rule2, Rule3, Rule4 } };
 
                 return response.Data;
             }

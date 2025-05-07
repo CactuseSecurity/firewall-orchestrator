@@ -25,17 +25,3 @@ class Gateway(BaseModel):
     ImportDisabled: Optional[bool] = False
     ShowInUI: Optional[bool] = True
 
-
-    def __eq__(self, other):
-        if isinstance(other, Gateway):
-            return self.Uid == other.Uid \
-                and self.Name == other.Name \
-                and self.Routing == other.Routing \
-                and self.Interfaces == other.Interfaces \
-                and self.RulebaseLinks == other.RulebaseLinks \
-                and self.GlobalPolicyUid == other.GlobalPolicyUid \
-                and self.EnforcedPolicyUids == other.EnforcedPolicyUids \
-                and self.EnforcedNatPolicyUids == other.EnforcedNatPolicyUids \
-                and self.ImportDisabled == other.ImportDisabled \
-                and self.ShowInUI == other.ShowInUI
-        return False

@@ -260,7 +260,7 @@ def getGlobalAssignments(api_v_url, sid, show_params_policy_structure, globalAss
     return 0
                         
 
-def getRulebases(api_v_url, sid, show_params_rules,
+def get_rulebases(api_v_url, sid, show_params_rules,
                  rulebaseUid=None,
                  rulebaseName=None,
                  access_type='access',
@@ -385,10 +385,13 @@ def getRulebases(api_v_url, sid, show_params_rules,
                             'from_rulebase_uid': currentRulebase['uid'],
                             'from_rule_uid': rule['uid'],
                             'to_rulebase_uid': rule['inline-layer'],
-                            'type': 'inline'})
+                            'type': 'inline',
+                            'is_initial': False,
+                            'is_global': False  # TODO: check if we are also importing global rulebases here, if so, we need to add an is_global parameter
+                        })
                         
                         # get inline layer
-                        getRulebases(api_v_url, sid, show_params_rules,
+                        get_rulebases(api_v_url, sid, show_params_rules,
                                         rulebaseUid=rule['inline-layer'],
                                         access_type='access',
                                         nativeConfig=nativeConfig,

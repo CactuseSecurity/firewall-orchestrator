@@ -2,7 +2,7 @@ import traceback
 import fwo_const
 from fwo_log import getFwoLogger
 from model_controllers.fwconfig_import import FwConfigImport
-from fwo_api import getGraphqlCode
+from fwo_api import get_graphql_code
 
 # this class is used for rolling back an import
 class FwConfigImportRollback(FwConfigImport):
@@ -24,7 +24,7 @@ class FwConfigImportRollback(FwConfigImport):
 
     def rollbackCurrentImport(self) -> None:
         logger = getFwoLogger()
-        rollbackMutation = getGraphqlCode([f"{fwo_const.graphqlQueryPath}import/rollback.graphql"])
+        rollbackMutation = get_graphql_code([f"{fwo_const.graphqlQueryPath}import/rollback.graphql"])
         try:
             queryVariables = {
                 'importId': self.ImportDetails.ImportId

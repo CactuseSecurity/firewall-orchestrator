@@ -132,6 +132,8 @@ namespace FWO.Report.Filter
                                     id
                                 }}
                                 link_type
+                                is_initial
+                                is_global
                                 gw_id
                                 from_rule_id
                                 to_rulebase_id

@@ -69,12 +69,12 @@ namespace FWO.Middleware.Server
                     // convert dnList to lower case to avoid case problems
                     dnList = dnList.ConvertAll(dn => dn.ToLower());
 
+                    Log.WriteDebug("Ldap Roles/Groups", $"Try to get roles / groups from ldap");
+
                     // Iterate found role / group
                     while (await allExistingGroupsAndRoles.HasMoreAsync())
                     {
                         LdapEntry? entry = await allExistingGroupsAndRoles.NextAsync();
-
-                        Log.WriteDebug("Ldap Roles/Groups", $"Try to get roles / groups from ldap entry {entry.Get("cn").StringValue}");
 
                         // Get dn of users having current role / group
                         LdapAttribute members = entry.Get("uniqueMember");
@@ -86,7 +86,7 @@ namespace FWO.Middleware.Server
                             if (currentDn != "") // ignore empty dn (could be caused by empty lines in LDAP)
                             {
                                 string currentUserDnEscapedLower = ConvertHexCommaToComma(currentDn.ToLower());
-                                Log.WriteDebug("Ldap Roles/Groups", $"Checking if current Dn: \"{currentUserDnEscapedLower}\" is user Dn. Then user has current role / group.");
+
                                 // Check if current user dn is matching with given user dn => Given user has current role / group
                                 if (dnList.Contains(currentUserDnEscapedLower))
                                 {

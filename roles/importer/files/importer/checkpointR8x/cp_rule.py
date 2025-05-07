@@ -211,7 +211,7 @@ def parse_single_rule(nativeRule, rulebase, layer_name, import_id, rule_num, par
 
             # targetObjects = parseRulePart (nativeRule['install-on'], 'install-on')
             # rule_installon = list_delimiter.join(targetObjects.values())
-            ruleEnforcedOnGateways = parseRuleEnforcedOnGateway(nativeRule=nativeRule)
+            ruleEnforcedOnGateways = parse_rule_enforced_on_gateway(native_rule=nativeRule)
             listOfGwUids = []
             for enforceEntry in ruleEnforcedOnGateways:
                 listOfGwUids.append(enforceEntry.dev_uid)
@@ -310,30 +310,38 @@ def parse_single_rule(nativeRule, rulebase, layer_name, import_id, rule_num, par
             return rule_num + 1
     return rule_num
 
-def parseRuleEnforcedOnGateway(nativeRule={}) -> List[RuleEnforcedOnGatewayNormalized]:
-    if nativeRule == {}:
-        logger.warning('did not get a native rule')
-        return
+def parse_rule_enforced_on_gateway(native_rule: dict) -> List[RuleEnforcedOnGatewayNormalized]:
+    """Parse rule enforcement information from native rule.
+    
+    Args:
+        nativeRule: The native rule dictionary containing install-on information
+        
+    Returns:
+        List of RuleEnforcedOnGatewayNormalized objects
+    
+    Raises:
+        ValueError: If nativeRule is None or empty
+    """
+    if not native_rule:
+        raise ValueError('Native rule cannot be empty')
 
-    enforceEntries = []
-    # listofEnforcingGwNames = []
-    allTargetGwNamesDict = parseRulePart (nativeRule['install-on'], 'install-on')
+    enforce_entries = []
+    all_target_gw_names_dict = parseRulePart(native_rule['install-on'], 'install-on')
 
-    for targetUid in allTargetGwNamesDict:
-        targetName = allTargetGwNamesDict[targetUid]
+    for targetUid in all_target_gw_names_dict:
+        targetName = all_target_gw_names_dict[targetUid]
         if targetName == 'Policy Targets': # or target == 'Any'
-
             # TODO: implement the following
             # assuming that the rule is enforced on all gateways of the current management
             # listofEnforcingGwNames = [] # TODO: getAllGatewayNamesForManagement(mgmId)
 
             # workaround: simply add the uid of "Policy Targets" here
-            enforceEntry = RuleEnforcedOnGatewayNormalized(rule_uid=nativeRule['uid'], dev_uid=targetUid)
-            enforceEntries.append(enforceEntry)
+            enforceEntry = RuleEnforcedOnGatewayNormalized(rule_uid=native_rule['uid'], dev_uid=targetUid)
+            enforce_entries.append(enforceEntry)
         else:
-            enforceEntry = RuleEnforcedOnGatewayNormalized(rule_uid=nativeRule['uid'], dev_uid=targetUid)
-            enforceEntries.append(enforceEntry)
-    return enforceEntries
+            enforceEntry = RuleEnforcedOnGatewayNormalized(rule_uid=native_rule['uid'], dev_uid=targetUid)
+            enforce_entries.append(enforceEntry)
+    return enforce_entries
 
 def resolveNwObjUidToName(nw_obj_uid):
     if nw_obj_uid in uid_to_name_map:

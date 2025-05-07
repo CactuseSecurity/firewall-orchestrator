@@ -191,7 +191,6 @@ namespace FWO.Report
         }
         public static Rule[] GetInitialRulesOfGateway(DeviceReportController deviceReport, ManagementReport managementReport)
         {
-            // RulebaseLink? initialRulebaseLink = deviceReport.RulebaseLinks.FirstOrDefault(_ => _.LinkType == 0);
             int? initialRulebaseId = deviceReport.GetInitialRulebaseId(managementReport);
             if (initialRulebaseId != null)
             {
@@ -232,18 +231,30 @@ namespace FWO.Report
             List<Rule> allRules = new(rulesSoFar);
             HashSet<long> visitedRuleIds = new(rulesSoFar.Select(r => r.Id)); // Track visited rules to prevent duplication
 
+            RulebaseLink? fromRulebaseNextRbLink = new();
+
             foreach (Rule rule in newRules)
             {
                 if (visitedRuleIds.Add(rule.Id))
                 {
                     allRules.Add(rule);
-                    RulebaseLink? nextRbLink = deviceReport.RulebaseLinks.FirstOrDefault(_ => _.FromRuleId == rule.Id);
-                    if (nextRbLink != null)
+                    RulebaseLink? fromRuleNextRbLink = deviceReport.RulebaseLinks.FirstOrDefault(_ => _.FromRuleId == rule.Id);
+                    if (fromRuleNextRbLink != null)
                     {
-                        List<Rule> subRules = GetRulesByRulebaseId(nextRbLink.NextRulebaseId, managementReport).ToList();
+                        List<Rule> subRules = GetRulesByRulebaseId(fromRuleNextRbLink.NextRulebaseId, managementReport).ToList();
                         allRules = GetAllRulesOfGatewayRecursively(deviceReport, managementReport, allRules, subRules);
                     }
+                    else
+                    {
+                        fromRulebaseNextRbLink = deviceReport.RulebaseLinks.FirstOrDefault(_ => _.FromRulebaseId == rule.RulebaseId); // always set to next rulebase
+                    }
                 }
+            }
+            // add rules from the next rulebase
+            if (fromRulebaseNextRbLink != null)
+            {
+                List<Rule> subRules = GetRulesByRulebaseId(fromRulebaseNextRbLink.NextRulebaseId, managementReport).ToList();
+                allRules = GetAllRulesOfGatewayRecursively(deviceReport, managementReport, allRules, subRules);
             }
             return allRules;
         }
@@ -313,12 +324,11 @@ namespace FWO.Report
             
             // If there are more than one layer path needs to be initialized here.
 
-            if(device.RulebaseLinks.Any(link => link.LinkType == 2))
+            if(device.RulebaseLinks.Any(link => link.LinkType == 2))    // ordered
             {
                 initialPath.Add(1);
             }
 
-            // BuildOrderNumberTree(firstRulebaseId, initialPath, rulesByRulebase, linksByFromRuleId, result, ref positionCounter, rules);
             BuildOrderNumberTree(firstRulebaseId, initialPath, rulesByRulebase, linksByFromRuleId, changedRules, ref positionCounter, rules); 
         }
 
@@ -489,7 +499,7 @@ namespace FWO.Report
                         {
                             if (gateway.RulebaseLinks != null)
                             {
-                                RulebaseLink? rbLink = gateway.RulebaseLinks.FirstOrDefault(rbl => rbl.LinkType == 0);
+                                RulebaseLink? rbLink = gateway.RulebaseLinks.FirstOrDefault(rbl => rbl.IsInitialRulebase());
                                 if (rbLink != null)
                                 {
                                     ExportSingleRulebaseToCsv(report, ruleDisplayCsv, managementReport, gateway, rbLink);
@@ -609,10 +619,10 @@ namespace FWO.Report
             RuleDisplayHtml ruleDisplayHtml = new (userConfig);
             VarianceMode = varianceMode;
 
-            foreach (ManagementReportController managementReport in managementData.Where(mgt => !mgt.Ignore && mgt.ContainsRules()))
+            foreach (ManagementReport managementReport in managementData.Where(mgt => !mgt.Ignore && mgt.ContainsRules()))
             {
                 chapterNumber++;
-                managementReport.AssignRuleNumbers();
+                new ManagementReportController(managementReport).AssignRuleNumbers();
                 report.AppendLine(Headline(managementReport.Name, 3));
                 report.AppendLine("<hr>");
 
@@ -620,7 +630,7 @@ namespace FWO.Report
                 {
                     if (device.RulebaseLinks != null)
                     {
-                        AppendRulesForDeviceHtml(ref report, managementReport, (DeviceReportController)device, chapterNumber, ruleDisplayHtml);
+                        AppendRulesForDeviceHtml(ref report, managementReport, DeviceReportController.FromDeviceReport(device), chapterNumber, ruleDisplayHtml);
                     }
                 }
 

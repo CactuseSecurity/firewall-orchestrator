@@ -95,3 +95,13 @@ class RollbackError(Exception):
     """Custom exception to signal a failed rollback attempt."""
     def __init__(self, message="Rollback failed."):
         super().__init__(message)
+
+class FwApiError(Exception):
+    """Custom exception to signal a failure during access checkpoint api."""
+    def __init__(self, message="Error while trying to access firewall management API."):
+        super().__init__(message)
+
+class FwApiResponseDecodingError(Exception):
+    """Custom exception to signal a failure during decoding checkpoint api response to JSON."""
+    def __init__(self, message="Error while trying to decode firewall management API response into JSON."):
+        super().__init__(message)

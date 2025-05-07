@@ -76,7 +76,9 @@ namespace FWO.Test
                 {
                     GatewayId = 1,
                     FromRuleId = null,
-                    LinkType = 0,
+                    LinkType = 2,
+                    IsInitial = true,
+                    IsGlobal = false,
                     NextRulebaseId = 1
                 },
                 new RulebaseLink
@@ -84,6 +86,8 @@ namespace FWO.Test
                     GatewayId = 1,
                     FromRuleId = 2,
                     LinkType = 2,
+                    IsInitial = false,
+                    IsGlobal = false,
                     NextRulebaseId = 2
                 },
                 new RulebaseLink
@@ -91,14 +95,17 @@ namespace FWO.Test
                     GatewayId = 1,
                     FromRuleId = 3,
                     LinkType = 3,
+                    IsInitial = false,
+                    IsGlobal = false,
                     NextRulebaseId = 3
                 },
                 new RulebaseLink
                 {
                     GatewayId = 1,
-                    FromRuleId = 6
-                    ,
+                    FromRuleId = 6,
                     LinkType = 2,
+                    IsInitial = false,
+                    IsGlobal = false,
                     NextRulebaseId = 4
                 }
             };

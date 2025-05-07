@@ -92,7 +92,8 @@ class ImportStateController(ImportState):
         except FwoApiLoginFailed as e:
             logger.error(e.message)
             raise
-        except Exception:
+        except Exception as e:
+            logger.error(f"Unexpected error during login: {str(e)}")
             raise
 
         # set global https connection values
@@ -171,14 +172,15 @@ class ImportStateController(ImportState):
             # self.IsInitialImport = True
 
     def setCoreData(self):        
-        # logger = getFwoLogger()
         self.SetTrackMap()
         self.SetActionMap()
+        self.SetLinkTypeMap()
+        self.SetGatewayMap()
+        self.SetColorRefMap()
+
+        # the following maps will be empty when starting first import of a management
         self.SetRulebaseMap()
         self.SetRuleMap()
-        self.SetGatewayMap()
-        self.SetLinkTypeMap()
-        self.SetColorRefMap()
 
     def SetActionMap(self):
         query = "query getActionMap { stm_action { action_name action_id allowed } }"
@@ -223,19 +225,19 @@ class ImportStateController(ImportState):
         self.LinkTypes = map
 
     def SetColorRefMap(self):
-        getColorsQuery = fwo_api.getGraphqlCode([graphqlQueryPath + "stmTables/getColors.graphql"])
+        get_colors_query = fwo_api.get_graphql_code([graphqlQueryPath + "stmTables/getColors.graphql"])
 
         try:
-            result = self.call(query=getColorsQuery, queryVariables={})
+            result = self.call(query=get_colors_query, queryVariables={})
         except Exception:
             logger = getFwoLogger()
-            logger.error(f'Error while getting stm_color')
+            logger.error('Error while getting stm_color')
             return {}
         
-        map = {}
+        color_map = {}
         for color in result['data']['stm_color']:
-            map.update({color['color_name']: color['color_id']})
-        self.ColorMap = map
+            color_map.update({color['color_name']: color['color_id']})
+        self.ColorMap = color_map
 
     # limited to the current mgm_id
     # creates a dict with key = rulebase.name and value = rulebase.id
@@ -324,6 +326,6 @@ class ImportStateController(ImportState):
     def lookupGatewayId(self, gwUid):
         return self.GatewayMap.get(gwUid, None)
 
-    def lookupColorId(self, colorStr):
-        return self.ColorMap.get(colorStr, None)
+    def lookupColorId(self, color_str):
+        return self.ColorMap.get(color_str, None)
     

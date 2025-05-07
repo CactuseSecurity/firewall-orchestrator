@@ -420,20 +420,7 @@ namespace FWO.Services
                     }
 
                     // update of request tasks and creation of impl tasks may be necessary
-                    foreach(WfReqTask reqtask in ActTicket.Tasks)
-                    {
-                        if(reqtask.StateId <= ActTicket.StateId)
-                        {
-                            List<int> ticketStateList = [ActTicket.StateId];
-                            reqtask.StateId = stateMatrixDict.Matrices[reqtask.TaskType].getDerivedStateFromSubStates(ticketStateList);
-                            await dbAcc.UpdateReqTaskStateInDb(reqtask);
-                        }
-                        if( reqtask.ImplementationTasks.Count == 0 && !stateMatrixDict.Matrices[reqtask.TaskType].PhaseActive[WorkflowPhases.planning] 
-                            && reqtask.StateId >= stateMatrixDict.Matrices[reqtask.TaskType].MinImplTasksNeeded)
-                        {
-                            await AutoCreateImplTasks(reqtask);
-                        }
-                    }
+                    await UpdateRequestTasksFromTicket();
 
                     //check for further promotion (req tasks may be promoted)
                     await UpdateActTicketStateFromReqTasks();
@@ -465,6 +452,22 @@ namespace FWO.Services
             return false;
         }
 
+        public async Task<bool> PromoteTicketAndTasks(WfStatefulObject ticket)
+        {
+            try
+            {
+                if(await PromoteTicket(ticket))
+                {
+                    await UpdateRequestTasksFromTicket(false);
+                }
+                return true;
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("promote_ticket"), "", true);
+            }
+            return false;
+        }
 
         // Request Tasks
         
@@ -724,6 +727,27 @@ namespace FWO.Services
                 DisplayMessageInUi(exception, userConfig.GetText("promote_task"), "", true);
             }
         } 
+
+        private async Task UpdateRequestTasksFromTicket(bool createImplTasks = true)
+        {
+            if(dbAcc != null)
+            {
+                foreach(WfReqTask reqtask in ActTicket.Tasks)
+                {
+                    if(reqtask.StateId <= ActTicket.StateId)
+                    {
+                        List<int> ticketStateList = [ActTicket.StateId];
+                        reqtask.StateId = stateMatrixDict.Matrices[reqtask.TaskType].getDerivedStateFromSubStates(ticketStateList);
+                        await dbAcc.UpdateReqTaskStateInDb(reqtask);
+                    }
+                    if( createImplTasks && reqtask.ImplementationTasks.Count == 0 && !stateMatrixDict.Matrices[reqtask.TaskType].PhaseActive[WorkflowPhases.planning] 
+                        && reqtask.StateId >= stateMatrixDict.Matrices[reqtask.TaskType].MinImplTasksNeeded)
+                    {
+                        await AutoCreateImplTasks(reqtask);
+                    }
+                }
+            }
+        }
 
         public async Task HandlePathAnalysisAction(string extParams = "")
         {

@@ -675,9 +675,12 @@
     /// </summary>
     private async Task RefreshParentWithoutRefreshingActConn()
     {
-        ConnHandler.ActConnNeedsRefresh = false;
-        await WrapAsync(ConnHandler.ReInit);
-        ConnHandler.ActConnNeedsRefresh = true;
+        if (ConnHandler != null)
+        {
+            ConnHandler.ActConnNeedsRefresh = false;
+            await WrapAsync(ConnHandler.ReInit);
+            ConnHandler.ActConnNeedsRefresh = true;
+        }
     }
 
     private string ColWidthClass()

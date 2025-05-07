@@ -39,7 +39,7 @@ namespace FWO.Report
             // rbLinkIn ??= RbLink;
             // if (rbLinkIn != null)
             // {
-            //     if (rbLinkIn.LinkType == 0)   // TODO: use enum here
+            //     if (rbLinkIn.IsInitialRulebase())   // TODO: use enum here
             //     {
             //         foreach (Rule rule in rbLinkIn.NextRulebase.Rules) // only on rule per rule_metadata
             //         {
@@ -67,7 +67,7 @@ namespace FWO.Report
         }
         public int? GetInitialRulebaseId(ManagementReport managementReport)
         {
-            return RulebaseLinks.FirstOrDefault(_ => _.LinkType == 0)?.NextRulebaseId;
+            return RulebaseLinks.FirstOrDefault(_ => _.IsInitialRulebase())?.NextRulebaseId;
         }
 
         public static explicit operator DeviceReportController(bool v)

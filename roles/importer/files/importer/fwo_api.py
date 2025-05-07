@@ -20,19 +20,19 @@ from fwo_exceptions import FwoApiServiceUnavailable, FwoApiTimeout, FwoApiLoginF
 from fwo_encrypt import decrypt
 
 
-def readCleanText(filePath):
+def read_clean_text(filePath):
     printable_chars = set(string.printable)
     with open(filePath, "r", encoding="utf-8", errors="ignore") as f:
         return "".join(filter(printable_chars.__contains__, f.read()))
 
 
-def getGraphqlCode(fileList: List[str]) -> str:
+def get_graphql_code(fileList: List[str]) -> str:
     code = ""
 
     for file in fileList:
         try:
             # read graphql code from file
-            code += readCleanText(file) + " "
+            code += read_clean_text(file) + " "
         except FileNotFoundError as e:
             logger = getFwoLogger()
             logger.error("fwo_api: file not found: " + file)
@@ -41,13 +41,13 @@ def getGraphqlCode(fileList: List[str]) -> str:
     return removeSpecialCharsFromGraphqlQuery(code)
 
 
-def showApiCallInfo(url, query, headers, typ='debug'):
+def show_api_call_info(url, query, headers, type='debug'):
     max_query_size_to_display = 1000
     query_string = json.dumps(query, indent=2)
     header_string = json.dumps(headers, indent=2)
     query_size = len(query_string)
 
-    if typ=='error':
+    if type=='error':
         result = "error while sending api_call to url "
     else:
         result = "successful FWO API call to url "        
@@ -78,7 +78,7 @@ def call(url, jwt, query, query_variables="", role="reporter", show_progress=Fal
             r = session.post(url, data=json.dumps(full_query), timeout=int(fwo_api_http_import_timeout))
             r.raise_for_status()
             if int(fwo_globals.debug_level) > 4:
-                logger.debug (showApiCallInfo(url, full_query, request_headers, typ='debug'))
+                logger.debug (show_api_call_info(url, full_query, request_headers, type='debug'))
             if show_progress:
                 pass
                 # print('.', end='', flush=True)
@@ -87,7 +87,7 @@ def call(url, jwt, query, query_variables="", role="reporter", show_progress=Fal
             else:
                 return {}
         except requests.exceptions.HTTPError as http_err:
-            logger.error(showApiCallInfo(url, full_query, request_headers, type='error') + ":\n" + str(traceback.format_exc()))
+            logger.error(show_api_call_info(url, full_query, request_headers, type='error') + ":\n" + str(traceback.format_exc()))
             print(f"HTTP error occurred: {http_err}")  
             if http_err.errno == 503:
                 raise FwoApiServiceUnavailable("FWO API HTTP error 503 (FWO API died?)" )
@@ -122,25 +122,6 @@ def login(user, password, user_management_api_base_url, method='api/Authenticati
                             ", api_url: " + str(user_management_api_base_url) + \
                             ", ssl_verification: " + str(fwo_globals.verify_certs)
             raise FwoApiLoginFailed(error_txt)
-
-
-# def set_api_url(base_url, testmode, api_supported, hostname):
-#     logger = getFwoLogger()
-#     url = ''
-#     if testmode == 'off':
-#         url = base_url
-#     else:
-#         if re.search(r'^\d+[\.\d+]+$', testmode) or re.search(r'^\d+$', testmode):
-#             if testmode in api_supported:
-#                 url = base_url + 'v' + testmode + '/'
-#             else:
-#                 exception_text = "api version " + testmode + \
-#                              " is not supported by the manager " + hostname + " - Import is canceled"
-#                 raise Exception(exception_text)
-#         else:
-#             raise Exception("\"" + testmode + "\" - not a valid version")
-#     logger.debug("testmode: " + testmode + " - url: " + url)
-#     return url
 
 
 def get_mgm_ids(fwo_api_base_url, jwt, query_variables):
@@ -208,7 +189,7 @@ def removeSpecialCharsFromGraphqlQuery(queryString):
 
 
 def get_mgm_details(fwo_api_base_url, jwt, query_variables, debug_level=0):
-    getMgmDetailsQuery = getGraphqlCode([fwo_const.graphqlQueryPath + "device/getSingleManagementDetails.graphql",
+    getMgmDetailsQuery = get_graphql_code([fwo_const.graphqlQueryPath + "device/getSingleManagementDetails.graphql",
                         fwo_const.graphqlQueryPath + "device/fragments/managementDetails.graphql",
                         fwo_const.graphqlQueryPath + "device/fragments/deviceTypeDetails.graphql",
                         fwo_const.graphqlQueryPath + "device/fragments/importCredentials.graphql"])
@@ -562,7 +543,7 @@ def setAlert(fwo_api_base_url, jwt, import_id=None, title=None, mgm_id=None, dev
 
     logger = getFwoLogger()
 
-    addAlert_mutation = getGraphqlCode([fwo_const.graphqlQueryPath + "monitor/addAlert.graphql"])
+    addAlert_mutation = get_graphql_code([fwo_const.graphqlQueryPath + "monitor/addAlert.graphql"])
 
     getAlert_query = """
         query getAlerts($mgmId: Int!, $alertCode: Int!, $currentAlertId: bigint!) {

@@ -15,7 +15,8 @@
                     <Collapse Title="@device.Name" Style="@("secondary")" StartToggled="true">
                         <Table SelectedItems="SelectedRules"
                             RowClickAction="@(async rule => { rule.DeviceName = device.Name ?? ""; if (!SelectedRules.Remove(rule)) SelectedRules.Add(rule); await SelectedRulesChanged.InvokeAsync(SelectedRules); })"
-                            style="font-size:small" TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="Rule" Items="ReportRules.GetAllRulesOfGateway(device, management)" ShowSearchBar="false"
+                            style="font-size:small" TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="Rule" 
+                            Items="ReportRules.GetAllRulesOfGateway(device, management)" ShowSearchBar="false"
                             PageSize="RulesPerPage" ColumnReorder="true" TableRowClass="@(rule => getTableRowClasses(rule))"
                             @ref="reportTable">
 
@@ -113,7 +114,7 @@
                             }
                             @if (EmptyColumns[3] == false)
                             {
-                                <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("source"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true">
+                            <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("source"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true">
                                     <Template>
                                         @((MarkupString)ruleDisplay.DisplaySource(rule, getActLocation(), SelectedReportType))
                                     </Template>
@@ -266,10 +267,12 @@
     private bool[] EmptyColumns = new bool[ColumnsCount];
 
     private NatRuleDisplayHtml? ruleDisplay;
+    private int previousRulebaseId = -1;
     
     protected override void OnInitialized()
     {
         ruleDisplay = new NatRuleDisplayHtml(userConfig);
+        // TODO: are we using NatRuleDisplayHtml for non-NAT rules?
     }
 
     private string getTableRowClasses(Rule rule)

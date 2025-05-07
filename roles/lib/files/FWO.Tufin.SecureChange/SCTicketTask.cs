@@ -207,7 +207,7 @@ namespace FWO.Tufin.SecureChange
             {
                 ObjectType.Host => SCObjectType.Host.ToString(),
                 ObjectType.Network => SCObjectType.Network.ToString(),
-                ObjectType.IPRange => SCObjectType.Network.ToString(),  // ??? Todo
+                ObjectType.IPRange => SCObjectType.Range.ToString(),  // ??? Todo
                 _ => "",
             };
         }

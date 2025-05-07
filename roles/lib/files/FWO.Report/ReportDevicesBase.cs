@@ -132,7 +132,7 @@ namespace FWO.Report
         protected string GenerateHtmlFrame(string title, string filter, DateTime date, StringBuilder htmlReport)
         {
             return GenerateHtmlFrameBase(title, filter, date, htmlReport,
-                string.Join("; ", ReportData.ManagementData.Where(mgt => !mgt.Ignore).Cast<ManagementReportController>().Select(m => m.NameAndRulebaseNames())),
+                string.Join("; ", ReportData.ManagementData.Where(mgt => !mgt.Ignore).Select(m => new ManagementReportController(m).NameAndRulebaseNames())),
                 Query.SelectedOwner?.Name);
         }
     }

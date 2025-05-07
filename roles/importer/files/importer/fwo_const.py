@@ -1,12 +1,7 @@
-import sys
-import json
 from urllib.parse import urlparse
-import socket
 
 base_dir = '/usr/local/fworch'
 importer_base_dir = base_dir + '/importer'
-# if not importer_base_dir in sys.path:
-#     sys.path.append(importer_base_dir) # adding absolute path here once
 
 debug_level=0
 fw_module_name = 'fwcommon'  # the module start-point for product specific code
@@ -17,6 +12,7 @@ line_delimiter = "\n"
 user_delimiter = "@"
 apostrophe = "\""
 section_header_uids=[]
+any_ip_ipv4 = '0.0.0.0/0'
 dummy_ip = '0.0.0.0/32'
 defaultColor = 'black'
 nat_postfix = '_NatNwObj'
@@ -42,10 +38,6 @@ graphqlQueryPath = base_dir + "/fwo-api-calls/";
 max_objs_per_chunk = 1000
 api_call_chunk_size = 1000
 rule_num_numeric_steps = 1024.0
-
-# with open(fwo_config_filename, "r") as fwo_config:
-#     fwo_config = json.loads(fwo_config.read())
-# fwo_api_base_url = fwo_config['api_uri']
 
 emptyNormalizedFwConfigJsonDict = {
     'network_objects': [],

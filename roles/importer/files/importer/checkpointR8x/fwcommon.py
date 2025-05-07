@@ -71,7 +71,7 @@ def get_config(nativeConfig: json, importState: ImportStateController) -> tuple[
 
         starttimeTemp = int(time.time())
         logger.debug ( "checkpointR8x/get_config/getting rules ...")
-        result_get_rules = getRules (nativeConfig, importState)
+        result_get_rules = get_rules (nativeConfig, importState)
         if result_get_rules>0:
             logger.warning ( "checkpointR8x/get_config/error while gettings rules")
             return result_get_rules
@@ -116,186 +116,200 @@ def normalizeConfig(nativeConfig: json, normalizedConfigDict, importState: Impor
         gateways=normalizedConfigDict['gateways']
     )
 
-def getRules (nativeConfig: dict, importState: ImportStateController) -> int:
-    '''
-    Implicit premises for mds:
-    - all devices are attached to a submanager, not to the super manager
-    - global rulebase is the same for every device
-    - only db rulebase stored per device is its local rulebase
-    '''
-    # delete_v: Noch offen Todo
-    # 1. ich mache nirgends logout
-    # 2. NAT noch nicht getestet
-
-    logger = getFwoLogger()
-    nativeConfig.update({'rulebases': [], 'nat_rulebases': [], 'gateways': [] })
+def get_rules(nativeConfig: dict, importState: ImportStateController) -> int:
+    """
+    Main function to get rules. Divided into smaller sub-tasks for better readability and maintainability.
+    """
+    initialize_native_config(nativeConfig)
     show_params_policy_structure = {
         'limit': importState.FwoConfig.ApiFetchSize,
         'details-level': 'full'
     }
 
-    # control standalone vs mds
+    manager_details_list = enrich_submanager_details(importState)
+    for managerDetails in manager_details_list:
+        cpManagerApiBaseUrl = importState.MgmDetails.buildFwApiString()
+
+        if managerDetails.IsSuperManager:
+            globalAssignments, globalPolicyStructure, globalDomain, globalSid = handle_super_manager(
+                managerDetails, cpManagerApiBaseUrl, show_params_policy_structure
+            )
+        else:
+            globalAssignments, globalPolicyStructure, globalDomain, globalSid = None, None, None, None
+
+        sid = loginCp(managerDetails)
+        policyStructure = get_policy_structure(cpManagerApiBaseUrl, sid, show_params_policy_structure)
+
+        process_devices(
+            managerDetails, policyStructure, globalAssignments, globalPolicyStructure,
+            globalDomain, globalSid, cpManagerApiBaseUrl, sid, nativeConfig, importState
+        )
+
+    return 0
+
+
+def initialize_native_config(nativeConfig):
+    nativeConfig.update({'rulebases': [], 'nat_rulebases': [], 'gateways': []})
+
+
+def enrich_submanager_details(importState):
     managerDetailsList = [importState.MgmDetails]
     if importState.MgmDetails.IsSuperManager:
-        topLevelMgmDetails = importState.MgmDetails
         for subManager in importState.MgmDetails.SubManagers:
             managerDetailsList.append(subManager)
-            
-    # loop over toplevel- and sub-managers in case of mds
-    for managerDetails in managerDetailsList:
-        cpManagerApiBaseUrl = importState.MgmDetails.buildFwApiString()
-        
-        # in case of mds get global assignments via mds sid and then change to global domain and sid for all further operations
-        if managerDetails.IsSuperManager and managerDetails.Uid == topLevelMgmDetails.Uid:
-            mdsSid = loginCp(managerDetails)
-            globalAssignments = []
-            cp_getter.getGlobalAssignments(cpManagerApiBaseUrl,
-                                           mdsSid,
-                                           show_params_policy_structure,
-                                           globalAssignments = globalAssignments)
+    return managerDetailsList
 
-            domain = '1e294ce0-367a-11e3-aa6e-0800200c9a66' # delete_v: muss Global uid sein
-            managerDetails.DomainUid = domain # delete_v
+
+def handle_super_manager(managerDetails, cpManagerApiBaseUrl, show_params_policy_structure):
+    mdsSid = loginCp(managerDetails)
+    globalAssignments = []
+    cp_getter.getGlobalAssignments(
+        cpManagerApiBaseUrl, mdsSid, show_params_policy_structure, globalAssignments=globalAssignments
+    )
+
+    globalDomain = managerDetails.getDomainString()
+    globalPolicyStructure = []
+    cp_getter.getPolicyStructure(
+        cpManagerApiBaseUrl, mdsSid, show_params_policy_structure, policyStructure=globalPolicyStructure
+    )
+
+    return globalAssignments, globalPolicyStructure, globalDomain, mdsSid
+
+
+def get_policy_structure(cpManagerApiBaseUrl, sid, show_params_policy_structure):
+    pol_structure = []
+    cp_getter.getPolicyStructure(
+        cpManagerApiBaseUrl, sid, show_params_policy_structure, policyStructure=pol_structure
+    )
+    return pol_structure
+
+
+def process_devices(
+    managerDetails, policyStructure, globalAssignments, globalPolicyStructure,
+    globalDomain, globalSid, cpManagerApiBaseUrl, sid, nativeConfig, importState
+):
+    logger = getFwoLogger()
+    for device in managerDetails.Devices:
+        deviceConfig = initialize_device_config(device)
+        if not deviceConfig:
+            continue
+
+        orderedLayerUids = getOrderedLayerUids(policyStructure, deviceConfig, managerDetails.getDomainString())
+        if not orderedLayerUids:
+            logger.warning(f"No ordered layers found for device: {deviceConfig['name']}")
+            continue
+
+        if importState.MgmDetails.IsSuperManager:
+            handle_global_rulebase_links(
+                importState, deviceConfig, globalAssignments, globalPolicyStructure, globalDomain,
+                globalSid, orderedLayerUids, nativeConfig, cpManagerApiBaseUrl
+            )
         else:
-            domain = managerDetails.getDomainString()
+            define_initial_rulebase(deviceConfig, orderedLayerUids)
 
-        # sid = loginCp(managerDetails, domain)
-        sid = loginCp(managerDetails)
-        
-        # get all access (ordered) layers for each policy
-        policyStructure = []
-        cp_getter.getPolicyStructure(cpManagerApiBaseUrl,
-                                    sid,
-                                    show_params_policy_structure,
-                                    policyStructure = policyStructure)
+        add_ordered_layers_to_native_config(orderedLayerUids, get_rules_params(importState), cpManagerApiBaseUrl, sid, nativeConfig, deviceConfig)
+        handle_nat_rules(device, nativeConfig, sid, importState)
 
-        # store toplevel domain, api-url, sid and policy structure, we need them in the submanager iterations
-        if managerDetails.IsSuperManager and managerDetails.Uid == topLevelMgmDetails.Uid:
-            globalDomain = domain
-            globalApiUrl = cpManagerApiBaseUrl
-            globalSid = sid
-            globalPolicyStructure = policyStructure
+        nativeConfig['gateways'].append(deviceConfig)
 
+
+def initialize_device_config(device):
+    if 'name' in device and 'uid' in device:
+        return {'name': device['name'], 'uid': device['uid'], 'rulebase_links': []}
+    logger = getFwoLogger()
+    logger.error(f"Device missing name or uid: {device}")
+    return None
+
+
+def handle_global_rulebase_links(
+    import_state, deviceConfig, globalAssignments, globalPolicyStructure, globalDomain,
+    globalSid, orderedLayerUids, nativeConfig, cpManagerApiBaseUrl
+):
+    logger = getFwoLogger()
+    for globalAssignment in globalAssignments:
+        if globalAssignment['dependent-domain']['uid'] == globalDomain:
+            for globalPolicy in globalPolicyStructure:
+                if globalPolicy['name'] == globalAssignment['global-access-policy']:
+                    global_ordered_layer_uids = getOrderedLayerUids([globalPolicy], deviceConfig, globalDomain)
+                    if not global_ordered_layer_uids:
+                        logger.warning(f"No access layer for global policy: {globalPolicy['name']}")
+                        break
+
+                    add_ordered_layers_to_native_config(global_ordered_layer_uids, get_rules_params(import_state), cpManagerApiBaseUrl, globalSid, nativeConfig, deviceConfig)
+                    define_global_rulebase_link(deviceConfig, global_ordered_layer_uids, orderedLayerUids, nativeConfig)
+
+
+def define_global_rulebase_link(deviceConfig, globalOrderedLayerUids, orderedLayerUids, nativeConfig):
+    for globalOrderedLayerUid in globalOrderedLayerUids:
+        placeholderRuleUid = ''
+        for rulebase in nativeConfig['rulebases']:
+            if rulebase['uid'] == globalOrderedLayerUid:
+                placeholderRuleUid = cp_getter.getRuleUid(rulebase, 'place-holder')
+                if placeholderRuleUid:
+                    break
+
+        if placeholderRuleUid:
+            deviceConfig['rulebase_links'].append({
+                'from_rulebase_uid': globalOrderedLayerUid,
+                'from_rule_uid': placeholderRuleUid,
+                'to_rulebase_uid': orderedLayerUids[0],
+                'type': 'ordered',
+                'is_global': True,
+                'is_initial': False
+            })
+
+
+def define_initial_rulebase(deviceConfig, orderedLayerUids):
+    deviceConfig['rulebase_links'].append({
+        'from_rulebase_uid': '',
+        'from_rule_uid': '',
+        'to_rulebase_uid': orderedLayerUids[0],
+        'type': 'ordered',
+        'is_global': False,
+        'is_initial': True
+    })
+
+
+def get_rules_params(importState):
+    return {
+        'limit': importState.FwoConfig.ApiFetchSize,
+        'use-object-dictionary': cp_const.use_object_dictionary,
+        'details-level': 'standard',
+        'show-hits': cp_const.with_hits
+    }
+
+
+def handle_nat_rules(device, nativeConfig, sid, importState):
+    logger = getFwoLogger()
+    if 'package_name' in device and device['package_name']:
         show_params_rules = {
             'limit': importState.FwoConfig.ApiFetchSize,
             'use-object-dictionary': cp_const.use_object_dictionary,
             'details-level': 'standard',
-            'show-hits': cp_const.with_hits 
+            'package': device['package_name']
         }
-
-        # read all rulebases: handle per device details
-        for device in managerDetails.Devices:
-
-            # initialize device config
-            if 'name' and 'uid' in device:
-                deviceConfig = {'name': device['name'],
-                                'uid': device['uid'],
-                                'rulebase_links': []}
-
-            else:
-                logger.error ( "found device without name or uid: " + str(device) )
-                return 1
-
-            # get ordered layer uids for current device
-            orderedLayerUids = getOrderedLayerUids(policyStructure, deviceConfig, domain)
-            if len(orderedLayerUids) == 0:
-                logger.warning ( "found no ordered layers for device: " + deviceConfig['name'] )
-                continue
-
-            # decide if architecture is mds or stand alone manager
-            if importState.MgmDetails.IsSuperManager:
-
-                # get global policy from globalPolicyStructure via globalAssignments
-                for globalAssignment in globalAssignments:
-                    if globalAssignment['dependent-domain']['uid'] == domain:
-                        for globalPolicy in globalPolicyStructure:
-                            if globalPolicy['name'] == globalAssignment['global-access-policy']:
-
-                                # get ordered layers for global policy
-                                globalOrderedLayerUids = getOrderedLayerUids([globalPolicy], deviceConfig, globalDomain)
-                                if len(globalOrderedLayerUids) == 0:
-                                    logger.warning ( "No access layer for global policy: " +  globalPolicy['name'])
-                                    break
-                                logger.debug ( "getting global rule layers" )
-                                addOrderedLayersToNativeConfig(globalOrderedLayerUids, show_params_rules, globalApiUrl, globalSid, nativeConfig, deviceConfig)
-
-                                # define initial rulebase for device in case of mds
-                                deviceConfig['rulebase_links'].append({
-                                    'from_rulebase_uid': '',
-                                    'from_rule_uid': '',
-                                    'to_rulebase_uid': globalOrderedLayerUids[0],
-                                    'type': 'initial'})
-                
-                                # parse global rulebase, find place-holder and link local rulebase (first ordered layer)
-                                for globalOrderedLayerUid in globalOrderedLayerUids:
-                                    placeholderRuleUid = ''
-                                    for rulebase in nativeConfig['rulebases']:
-                                        if rulebase['uid'] == globalOrderedLayerUid:
-                                            placeholderRuleUid = cp_getter.getRuleUid(rulebase, 'place-holder')
-                                            if placeholderRuleUid != '':
-                                                break
-
-                                    if placeholderRuleUid != '':
-                                        deviceConfig['rulebase_links'].append({
-                                            'from_rulebase_uid': globalOrderedLayerUid,
-                                            'from_rule_uid': placeholderRuleUid,
-                                            'to_rulebase_uid': orderedLayerUids[0],
-                                            'type': 'local'})
-                                        
-                # define initial rulebase for device in case of mds without global rulebase
-                if deviceConfig['rulebase_links'] == []:
-                    logger.info ( "No global rulebases for device : " +  deviceConfig['name'])
-                    deviceConfig['rulebase_links'].append({
-                        'from_rulebase_uid': '',
-                        'from_rule_uid': '',
-                        'to_rulebase_uid': orderedLayerUids[0],
-                        'type': 'initial'})
-
-            else:
-                # define initial rulebase for device in case of stand alone manager
-                deviceConfig['rulebase_links'].append({
-                    'from_rulebase_uid': '',
-                    'from_rule_uid': '',
-                    'to_rulebase_uid': orderedLayerUids[0],
-                    'type': 'initial'})
-
-            # get local rulebases (ordered layers)
-            logger.debug ( "getting domain rule layers" )
-            addOrderedLayersToNativeConfig(orderedLayerUids, show_params_rules, cpManagerApiBaseUrl, sid, nativeConfig, deviceConfig)
-
-            # getting NAT rules - need package name for nat rule retrieval
-            # todo: each gateway/layer should have its own package name (pass management details instead of single data?)
-            if 'package_name' in device and device['package_name'] != None and device['package_name'] != '':
-                show_params_rules = {
-                    'limit': importState.FwoConfig.ApiFetchSize,
-                    'use-object-dictionary':cp_const.use_object_dictionary,
-                    'details-level': 'standard', 
-                    'package': device['package_name'] } #  'show-hits': cp_const.with_hits
-                if importState.DebugLevel>3:
-                    logger.debug ( "getting nat rules for package: " + device['package_name'] )
-                nat_rules = cp_getter.get_nat_rules_from_api_as_dict (cpManagerApiBaseUrl, 
-                                                                    sid, 
-                                                                    show_params_rules, 
-                                                                    nativeConfig=nativeConfig)
-                if len(nat_rules)>0:
-                    nativeConfig['nat_rulebases'].append(nat_rules)
-                else:
-                    nativeConfig['nat_rulebases'].append({ "nat_rule_chunks": [] })
-            else: # always making sure we have an (even empty) nat rulebase per device 
-                nativeConfig['nat_rulebases'].append({ "nat_rule_chunks": [] })
-
-            nativeConfig['gateways'].append(deviceConfig)
-    return 0
+        if importState.DebugLevel > 3:
+            logger.debug(f"Getting NAT rules for package: {device['package_name']}")
+        nat_rules = cp_getter.get_nat_rules_from_api_as_dict(
+            importState.MgmDetails.buildFwApiString(), sid, show_params_rules, nativeConfig=nativeConfig
+        )
+        if nat_rules:
+            nativeConfig['nat_rulebases'].append(nat_rules)
+        else:
+            nativeConfig['nat_rulebases'].append({"nat_rule_chunks": []})
+    else:
+        nativeConfig['nat_rulebases'].append({"nat_rule_chunks": []})
 
 
-def addOrderedLayersToNativeConfig(orderedLayerUids, show_params_rules, cpManagerApiBaseUrl, sid, nativeConfig, deviceConfig):
+###### helper functions ######
+def add_ordered_layers_to_native_config(orderedLayerUids, show_params_rules, cpManagerApiBaseUrl, sid, nativeConfig, deviceConfig):
 
     orderedLayerIndex = 0
     for orderedLayerUid in orderedLayerUids:
 
         show_params_rules.update({'uid': orderedLayerUid})
 
-        cp_getter.getRulebases (cpManagerApiBaseUrl, 
+        cp_getter.get_rulebases (cpManagerApiBaseUrl, 
                                 sid, 
                                 show_params_rules, 
                                 rulebaseUid=orderedLayerUid,
@@ -318,7 +332,10 @@ def addOrderedLayersToNativeConfig(orderedLayerUids, show_params_rules, cpManage
                 'from_rulebase_uid': orderedLayerUid,
                 'from_rule_uid': lastRuleUid,
                 'to_rulebase_uid': orderedLayerUids[orderedLayerIndex + 1],
-                'type': 'ordered'})
+                'type': 'ordered',
+                'is_global': False,
+                'is_initial': False
+            })
         
         orderedLayerIndex += 1
 

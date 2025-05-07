@@ -2,99 +2,6 @@
    -- add rule_to, rule_service to importer
    -- consolidate: not only first import but also subsequent imports should work
    -- improve rollback - currently if import stops in the middle, the rollback is not automatically called
-   /* 
-
--- main script ---
-
-import os
-import time
-import subprocess
-import uuid
-from datetime import datetime
-import psutil
-
-LOCK_DIR = "locks"
-REPAIR_SCRIPT = "repair_script.py"
-
-# Stelle sicher, dass das Lock-Verzeichnis existiert
-os.makedirs(LOCK_DIR, exist_ok=True)
-
-def get_lockfile(instance_id):
-    return os.path.join(LOCK_DIR, f"lock_{instance_id}.lock")
-
-def create_lock(instance_id):
-    lockfile = get_lockfile(instance_id)
-    instance_info = {
-        "instance_id": instance_id,
-        "start_time": datetime.now().isoformat(),
-        "pid": os.getpid()
-    }
-    with open(lockfile, "w") as f:
-        f.write(str(instance_info))
-    print(f"Lockfile für Instanz {instance_id} erstellt: {lockfile}")
-
-def remove_lock(instance_id):
-    lockfile = get_lockfile(instance_id)
-    if os.path.exists(lockfile):
-        os.remove(lockfile)
-        print(f"Lockfile für Instanz {instance_id} entfernt.")
-
-def read_lock(instance_id):
-    lockfile = get_lockfile(instance_id)
-    if os.path.exists(lockfile):
-        with open(lockfile, "r") as f:
-            return eval(f.read())
-    return None
-
-def start_repair(instance_info):
-    print(f"🛠️ Unsauberer Abbruch erkannt für Instanz-ID {instance_info['instance_id']}. Starte Reparatur...")
-    subprocess.Popen(["python", REPAIR_SCRIPT, instance_info["instance_id"]])
-
-def main(instance_id):
-    lock_info = read_lock(instance_id)
-    if lock_info:
-        pid = lock_info.get("pid")
-        if psutil.pid_exists(pid):
-            print(f"⚠️ Instanz {instance_id} läuft bereits mit PID {pid}. Kein Neustart erforderlich.")
-            return
-        else:
-            # Prozess nicht mehr aktiv, also Reparatur starten
-            start_repair(lock_info)
-
-    # Erstelle Lockfile für die neue Instanz
-    create_lock(instance_id)
-
-    try:
-        print(f"🚀 Instanz {instance_id} läuft (PID: {os.getpid()})...")
-        time.sleep(5)  # Simuliert Arbeit
-        print(f"✅ Instanz {instance_id} erfolgreich beendet.")
-    finally:
-        remove_lock(instance_id)
-
-
------ repair_script.py -----
-
-# Starte das Skript mit einer eindeutigen Management-ID
-if __name__ == "__main__":
-    instance_id = str(uuid.uuid4())[:8]  # Kürzere ID für bessere Lesbarkeit
-    main(instance_id)
-
-import sys
-from datetime import datetime
-
-if len(sys.argv) != 2:
-    print("❌ Fehlende Instanz-ID!")
-    sys.exit(1)
-
-instance_id = sys.argv[1]
-
-print(f"🔧 Reparatur-Skript gestartet für Instanz-ID: {instance_id}")
-print(f"🕒 Reparaturzeitpunkt: {datetime.now().isoformat()}")
-rollbackImport(instance_id)
-time.sleep(3)
-print(f"✅ Reparatur für Instanz {instance_id} abgeschlossen.")
-
-   */
 
 -- pre 9.0 upgrade scripts
 
@@ -506,13 +413,38 @@ Create table IF NOT EXISTS "rulebase_link"
 (
 	"id" SERIAL primary key,
 	"gw_id" Integer,
-	"from_rule_id" Integer,
+	"from_rulebase_id" Integer, -- either from_rulebase_id or from_rule_id must be SET or the is_initial flag
+	"from_rule_id" BIGINT,
 	"to_rulebase_id" Integer NOT NULL,
 	"link_type" Integer,
+	"is_initial" BOOLEAN DEFAULT FALSE,
+	"is_global" BOOLEAN DEFAULT FALSE,
 	"created" BIGINT,
 	"removed" BIGINT
 );
 
+-- only for developers who already have on old 9.0 database:
+Alter table "rulebase_link" add column IF NOT EXISTS "is_initial" BOOLEAN;
+Alter table "rulebase_link" add column IF NOT EXISTS "is_global" BOOLEAN;
+Alter table "rulebase_link" add column IF NOT EXISTS "from_rulebase_id" Integer;
+
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_name = 'rulebase_link'
+      AND column_name = 'from_rule_id'
+      AND data_type = 'integer'
+  ) THEN
+    Alter table "rulebase_link" alter column "from_rule_id" TYPE Integer;
+  END IF;
+END
+$$;
+---
+
+Alter table "rulebase_link" drop constraint IF EXISTS "fk_rulebase_link_from_rulebase_id";
+Alter table "rulebase_link" add constraint "fk_rulebase_link_from_rulebase_id" foreign key ("from_rulebase_id") references "rulebase" ("id") on update restrict on delete cascade;
 Alter table "rulebase_link" drop constraint IF EXISTS "fk_rulebase_link_to_rulebase_id";
 Alter table "rulebase_link" add constraint "fk_rulebase_link_to_rulebase_id" foreign key ("to_rulebase_id") references "rulebase" ("id") on update restrict on delete cascade;
 Alter table "rulebase_link" drop constraint IF EXISTS "fk_rulebase_link_from_rule_id";
@@ -521,7 +453,15 @@ Alter table "rulebase_link" drop constraint IF EXISTS "fk_rulebase_link_link_typ
 Alter table "rulebase_link" add constraint "fk_rulebase_link_link_type" foreign key ("link_type") references "stm_link_type" ("id") on update restrict on delete cascade;
 Alter table "rulebase_link" drop constraint IF EXISTS "fk_rulebase_link_gw_id";
 Alter table "rulebase_link" add constraint "fk_rulebase_link_gw_id" foreign key ("gw_id") references "device" ("dev_id") on update restrict on delete cascade;
-
+Alter table "rulebase_link" add CONSTRAINT unique_rulebase_link
+	UNIQUE (
+	"gw_id",
+	"from_rulebase_id",
+	"from_rule_id",
+	"to_rulebase_id",
+	"created"
+	);
+    
 ALTER TABLE "rulebase_link"
     DROP CONSTRAINT IF EXISTS "fk_rulebase_link_created_import_control_control_id" CASCADE;
 Alter table "rulebase_link" add CONSTRAINT fk_rulebase_link_created_import_control_control_id 
@@ -531,12 +471,10 @@ ALTER TABLE "rulebase_link"
 Alter table "rulebase_link" add CONSTRAINT fk_rulebase_link_removed_import_control_control_id 
 	foreign key ("removed") references "import_control" ("control_id") on update restrict on delete cascade;
 
-insert into stm_link_type (id, name) VALUES (0, 'initial') ON CONFLICT DO NOTHING;
 insert into stm_link_type (id, name) VALUES (1, 'section') ON CONFLICT DO NOTHING;
 insert into stm_link_type (id, name) VALUES (2, 'ordered') ON CONFLICT DO NOTHING;
 insert into stm_link_type (id, name) VALUES (3, 'inline') ON CONFLICT DO NOTHING;
-insert into stm_link_type (id, name) VALUES (4, 'global') ON CONFLICT DO NOTHING;
-insert into stm_link_type (id, name) VALUES (5, 'local') ON CONFLICT DO NOTHING;
+delete from stm_link_type where name in ('initial','global','local'); -- initial and global/local are additional flags now
 
 -- TODO delete all rule.parent_rule_id and rule.parent_rule_type, always = None so far
 

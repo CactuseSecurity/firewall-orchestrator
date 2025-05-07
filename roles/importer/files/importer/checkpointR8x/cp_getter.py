@@ -1,16 +1,16 @@
 # library for API get functions
 from asyncio.log import logger
 import json
-import re
 import requests, requests.packages
 import time
 from datetime import datetime
 
-from fwo_exceptions import FwLoginFailed
+from fwo_exceptions import FwLoginFailed, FwApiError, FwApiResponseDecodingError
 from fwo_log import getFwoLogger
 import fwo_globals
 import cp_network
 import cp_const
+import fwo_const
 from fwo_exceptions import ImportInterruption
 from model_controllers.management_details_controller import ManagementDetailsController
 
@@ -23,40 +23,36 @@ def cp_api_call(url, command, json_payload, sid, show_progress=False):
 
     if fwo_globals.debug_level>8:
         logger.debug(f"api call '{command}'")
-        if fwo_globals.debug_level>9:
-            if command!='login':    # do not log passwords
+        if fwo_globals.debug_level>9 and command!='login':    # do not log passwords
                 logger.debug("json_payload: " + str(json_payload) )
 
     try:
          r = requests.post(url, json=json_payload, headers=request_headers, verify=fwo_globals.verify_certs)
     except requests.exceptions.RequestException as e:
-        raise Exception("error, url: " + str(url))
-        
-    if r is None:
         if 'password' in json.dumps(json_payload):
             exception_text = "\nerror while sending api_call containing credential information to url '" + str(url)
         else:
             exception_text = "\nerror while sending api_call to url '" + str(url) + "' with payload '" + json.dumps(json_payload, indent=2) + "' and  headers: '" + json.dumps(request_headers, indent=2)
-        raise Exception (exception_text)
+        raise FwApiError(exception_text)
     if show_progress:
         print ('.', end='', flush=True)
 
     try:
         json_response = r.json()
     except Exception:
-        raise Exception("checkpointR8x:api_call: response is not in valid json format: " + r.text)
+        raise FwApiResponseDecodingError(f"checkpointR8x:api_call: response is not in valid json format: {r.text}")
     return json_response
 
 
-def login(mgmDetails: ManagementDetailsController):
+def login(mgm_details: ManagementDetailsController):
     logger = getFwoLogger()
-    payload = {'user': mgmDetails.ImportUser, 'password': mgmDetails.Secret}
-    domain = mgmDetails.getDomainString()
+    payload = {'user': mgm_details.ImportUser, 'password': mgm_details.Secret}
+    domain = mgm_details.getDomainString()
     if domain is not None and domain != '':
         payload.update({'domain': domain})
-    base_url = mgmDetails.buildFwApiString()
+    base_url = mgm_details.buildFwApiString()
     if int(fwo_globals.debug_level)>2:
-        logger.debug(f"login - login to url {base_url} with user {mgmDetails.ImportUser}")
+        logger.debug(f"login - login to url {base_url} with user {mgm_details.ImportUser}")
     response = cp_api_call(base_url, 'login', payload, '')
     if "sid" not in response:
         exception_text = f"getter ERROR: did not receive a sid, api call: {base_url}"
@@ -207,16 +203,12 @@ def getPolicyStructure(api_v_url, sid, show_params_policy_structure, policyStruc
 
 
 def getGlobalAssignments(api_v_url, sid, show_params_policy_structure, globalAssignments = []):
-
     logger = getFwoLogger()
-
     current=0
     total=current+1
-
     show_params_policy_structure.update({'offset': current})
 
     while (current<total):
-
         try:
             assignments = cp_api_call(api_v_url, 'show-global-assignments', show_params_policy_structure, sid)
         except Exception:
@@ -268,12 +260,16 @@ def getGlobalAssignments(api_v_url, sid, show_params_policy_structure, globalAss
     return 0
                         
 
-def getRulebases (api_v_url, sid, show_params_rules,
-                  rulebaseUid=None,
-                  rulebaseName=None,
-                  access_type='access',
-                  nativeConfig={'rulebases':[],'nat_rulebases':[]},
-                  deviceConfig={'rulebae_links': []}):
+def get_rulebases(api_v_url, sid, show_params_rules,
+                 rulebaseUid=None,
+                 rulebaseName=None,
+                 access_type='access',
+                 nativeConfig=None,
+                 deviceConfig=None):
+    if nativeConfig is None:
+        nativeConfig = {'rulebases': [], 'nat_rulebases': []}
+    if deviceConfig is None:
+        deviceConfig = {'rulebase_links': []}
     
     # access_type: access / nat
     logger = getFwoLogger()
@@ -370,12 +366,12 @@ def getRulebases (api_v_url, sid, show_params_rules,
         nativeConfig[nativeConfigRulebaseKey].append(currentRulebase)
 
     # use recursion to get inline layers
-    for rulebaseChunk in currentRulebase['chunks']:
+    for rulebase_chunk in currentRulebase['chunks']:
         # search in case of access rulebase only
-        if 'rulebase' in rulebaseChunk:
-            for section in rulebaseChunk['rulebase']:
+        if 'rulebase' in rulebase_chunk:
+            for section in rulebase_chunk['rulebase']:
 
-                # if no section is used, use dummy section
+                # if no section is used, create dummy section
                 if section['type'] != 'access-section':
                     section = {
                         'type': 'access-section',
@@ -389,10 +385,13 @@ def getRulebases (api_v_url, sid, show_params_rules,
                             'from_rulebase_uid': currentRulebase['uid'],
                             'from_rule_uid': rule['uid'],
                             'to_rulebase_uid': rule['inline-layer'],
-                            'type': 'inline'})
+                            'type': 'inline',
+                            'is_initial': False,
+                            'is_global': False  # TODO: check if we are also importing global rulebases here, if so, we need to add an is_global parameter
+                        })
                         
                         # get inline layer
-                        getRulebases(api_v_url, sid, show_params_rules,
+                        get_rulebases(api_v_url, sid, show_params_rules,
                                         rulebaseUid=rule['inline-layer'],
                                         access_type='access',
                                         nativeConfig=nativeConfig,
@@ -404,11 +403,11 @@ def getRulebases (api_v_url, sid, show_params_rules,
 def getRuleUid(rulebase, mode):
     # mode: last/place-holder
 
-    returnUid = ''
-    for rulebaseChunk in rulebase['chunks']:
+    return_uid = ''
+    for rulebase_chunk in rulebase['chunks']:
         # search in case of access rulebase only
-        if 'rulebase' in rulebaseChunk:
-            for section in rulebaseChunk['rulebase']:
+        if 'rulebase' in rulebase_chunk:
+            for section in rulebase_chunk['rulebase']:
 
                 # if no section is used, use dummy section
                 if section['type'] != 'access-section':
@@ -419,12 +418,12 @@ def getRuleUid(rulebase, mode):
 
                 for rule in section['rulebase']:
                     if mode == 'last':
-                        returnUid = rule['uid']
+                        return_uid = rule['uid']
                     elif mode == 'place-holder':
                         if rule['type'] == 'place-holder':
-                            returnUid = rule['uid']
+                            return_uid = rule['uid']
 
-    return returnUid
+    return return_uid
                             
 
 def get_nat_rules_from_api_as_dict (api_v_url, sid, show_params_rules, nativeConfig={}):
@@ -453,13 +452,11 @@ def get_nat_rules_from_api_as_dict (api_v_url, sid, show_params_rules, nativeCon
             if 'to' in rulebase:
                 current=rulebase['to']
             else:
-                current = total # assuming we do not have any NAT rules, so skipping this step
-                # logger.warning ( "get_nat_rules_from_api - rulebase does not contain to field, get_rulebase_chunk_from_api found garbled json " + str(nat_rules))
-                raise Exception ( "get_nat_rules_from_api - rulebase does not contain to field, get_rulebase_chunk_from_api found garbled json " + str(nat_rules))
+                raise FwApiError("get_nat_rules_from_api - rulebase does not contain to field, get_rulebase_chunk_from_api found garbled json " + str(nat_rules))
     return nat_rules
 
 
-def findElementByUid(array, uid):
+def find_element_by_uid(array, uid):
     for el in array:
         if 'uid' in el and el['uid']==uid:
             return el
@@ -468,28 +465,28 @@ def findElementByUid(array, uid):
 
 def resolveRefFromObjectDictionary(id, objDict, nativeConfig={}, sid='', base_url='', rule4debug={}):
 
-    matchedObj = findElementByUid(objDict, id)
+    matched_obj = find_element_by_uid(objDict, id)
 
-    if matchedObj is None: # object not in dict - neet to fetch it from API
+    if matched_obj is None: # object not in dict - neet to fetch it from API
         logger.warning(f"did not find object with uid {id} in object dictionary")
         return None
     else:
         # there are some objects (at least CpmiVoipSipDomain) which are not API-gettable with show-objects (only with show-object "UID")
         # these must be added to the (network) objects tables
-        if matchedObj['type'] in ['CpmiVoipSipDomain', 'CpmiVoipMgcpDomain']:
-            logger.info(f"adding voip domain '{matchedObj['name']}' object manually, because it is not retrieved by show objects API command")
+        if matched_obj['type'] in ['CpmiVoipSipDomain', 'CpmiVoipMgcpDomain']:
+            logger.info(f"adding voip domain '{matched_obj['name']}' object manually, because it is not retrieved by show objects API command")
             if 'object_tables' in nativeConfig:
-                color = matchedObj.get('color', 'black')
+                color = matched_obj.get('color', 'black')
                 nativeConfig['object_tables'].append({ 
                         "object_type": "hosts", "object_chunks": [ {
                         "objects": [ {
-                        'uid': matchedObj['uid'], 'name': matchedObj['name'], 'color': color,
-                        'type': matchedObj['type']
+                        'uid': matched_obj['uid'], 'name': matched_obj['name'], 'color': color,
+                        'type': matched_obj['type']
                     } ] } ] } )
             else:
-                logger.warning(f"found no existing object_tables while adding voip domain '{matchedObj['name']}' object")
+                logger.warning(f"found no existing object_tables while adding voip domain '{matched_obj['name']}' object")
 
-        return matchedObj
+        return matched_obj
 
 
 # resolving all uid references using the object dictionary
@@ -500,7 +497,7 @@ def resolveRefListFromObjectDictionary(rulebase, value, objDict={}, nativeConfig
     if isinstance(rulebase, list): # found a list of rules
         for rule in rulebase:
             if value in rule:
-                valueList = []
+                value_list = []
                 if isinstance(rule[value], str): # assuming single uid
                     rule[value] = resolveRefFromObjectDictionary(rule[value], objDict, nativeConfig=nativeConfig, sid=sid, base_url=base_url, rule4debug=rule)
                 else:
@@ -508,8 +505,8 @@ def resolveRefListFromObjectDictionary(rulebase, value, objDict={}, nativeConfig
                         rule[value] = resolveRefFromObjectDictionary(rule[value]['type'], objDict, nativeConfig=nativeConfig, sid=sid, base_url=base_url, rule4debug=rule)
                     else:   # assuming list of rules
                         for id in rule[value]:
-                            valueList.append(resolveRefFromObjectDictionary(id, objDict, nativeConfig=nativeConfig, sid=sid, base_url=base_url, rule4debug=rule))
-                        rule[value] = valueList # replace ref list with object list
+                            value_list.append(resolveRefFromObjectDictionary(id, objDict, nativeConfig=nativeConfig, sid=sid, base_url=base_url, rule4debug=rule))
+                        rule[value] = value_list # replace ref list with object list
             if 'rulebase' in rule:
                 resolveRefListFromObjectDictionary(rule['rulebase'], value, objDict=objDict, nativeConfig=nativeConfig, sid=sid, base_url=base_url)
     elif 'rulebase' in rulebase:
@@ -527,73 +524,61 @@ def getObjectDetailsFromApi(uid_missing_obj, sid='', apiurl='', debug_level=0):
     except Exception as e:
         logger.exception(f"error while trying to get details for object with uid {uid_missing_obj}: {e}")
         return None
-    else:
-        if obj is not None:
-            if 'object' in obj:
-                obj = obj['object']
-                color = obj.get('color', 'black')
+    
+    if obj is None:
+        logger.warning("got 'None' from CP API for uid=" + uid_missing_obj)
+        return None
+    if 'object' in obj:
+        obj = obj['object']
+        color = obj.get('color', 'black')
 
-                if (obj['type'] == 'CpmiAnyObject'):
-                    if (obj['name'] == 'Any'):
-                        return  { "object_type": "hosts", "object_chunks": [ {
-                            "objects": [ {
-                            'uid': obj['uid'], 'name': obj['name'], 'color': color,
-                            'comments': 'any nw object checkpoint (hard coded)',
-                            'type': 'network', 'ipv4-address': '0.0.0.0/0'
-                            } ] } ] }
-                    elif (obj['name'] == 'None'):
-                        return  { "object_type": "hosts", "object_chunks": [ {
-                            "objects": [ {
-                            'uid': obj['uid'], 'name': obj['name'], 'color': color,
-                            'comments': 'any nw object checkpoint (hard coded)',
-                            'type': 'group'
-                            } ] } ] }
-                elif (obj['type'] in [ 'simple-gateway', obj['type'], 'CpmiGatewayPlain', obj['type'] == 'interop' ]):
-                    return { "object_type": "hosts", "object_chunks": [ {
-                        "objects": [ {
-                        'uid': obj['uid'], 'name': obj['name'], 'color': color,
-                        'comments': obj['comments'], 'type': 'host', 'ipv4-address': cp_network.get_ip_of_obj(obj),
-                        } ] } ] }
-                elif obj['type'] == 'multicast-address-range':
-                    return {"object_type": "hosts", "object_chunks": [ {
-                        "objects": [ {
-                        'uid': obj['uid'], 'name': obj['name'], 'color': color,
-                        'comments': obj['comments'], 'type': 'host', 'ipv4-address': cp_network.get_ip_of_obj(obj),
-                        } ] } ] }
-                elif (obj['type'] in ['CpmiVsClusterMember', 'CpmiVsxClusterMember', 'CpmiVsxNetobj']):
-                    return {"object_type": "hosts", "object_chunks": [ {
-                        "objects": [ {
-                        'uid': obj['uid'], 'name': obj['name'], 'color': color,
-                        'comments': obj['comments'], 'type': 'host', 'ipv4-address': cp_network.get_ip_of_obj(obj),
-                        } ] } ] }
-                elif (obj['type'] == 'Global'):
-                    return {"object_type": "hosts", "object_chunks": [ {
-                        "objects": [ {
-                        'uid': obj['uid'], 'name': obj['name'], 'color': color,
-                        'comments': obj['comments'], 'type': 'host', 'ipv4-address': '0.0.0.0/0',
-                        } ] } ] }
-                elif (obj['type'] in [ 'updatable-object', 'CpmiVoipSipDomain', 'CpmiVoipMgcpDomain' ]):
-                    return {"object_type": "hosts", "object_chunks": [ {
-                        "objects": [ {
-                        'uid': obj['uid'], 'name': obj['name'], 'color': color,
-                        'comments': obj['comments'], 'type': 'group'
-                        } ] } ] }
-                elif (obj['type'] in ['Internet', 'security-zone']):
-                    return {"object_type": "hosts", "object_chunks": [ {
-                        "objects": [ {
-                        'uid': obj['uid'], 'name': obj['name'], 'color': color,
-                        'comments': obj['comments'], 'type': 'network', 'ipv4-address': '0.0.0.0/0',
-                        } ] } ] }
-                elif (obj['type'] == 'access-role'):
-                    return obj
-                elif obj['type'] in cp_const.api_obj_types:    # standard objects with proper ip
-                    return obj
-                else:
-                    logger.warning ( "missing nw obj of unexpected type '" + obj['type'] + "': " + uid_missing_obj )
-            else:
-                if 'code' in obj:
-                    logger.warning("broken ref in CP DB uid=" + uid_missing_obj + ": " + obj['code'])
-                else:
-                    logger.warning("broken ref in CP DB uid=" + uid_missing_obj)
+        if (obj['type'] == 'CpmiAnyObject'):
+            if (obj['name'] == 'Any'):
+                return  { "object_type": "hosts", "object_chunks": [ {
+                    "objects": [ {
+                    'uid': obj['uid'], 'name': obj['name'], 'color': color,
+                    'comments': 'any nw object checkpoint (hard coded)',
+                    'type': 'network', 'ipv4-address': fwo_const.any_ip_ipv4
+                    } ] } ] }
+            elif (obj['name'] == 'None'):
+                return  { "object_type": "hosts", "object_chunks": [ {
+                    "objects": [ {
+                    'uid': obj['uid'], 'name': obj['name'], 'color': color,
+                    'comments': 'any nw object checkpoint (hard coded)',
+                    'type': 'group'
+                    } ] } ] }
+        elif (obj['type'] in [ 'simple-gateway', 'CpmiGatewayPlain', 'interop', 'multicast-address-range', 'CpmiVsClusterMember', 'CpmiVsxClusterMember', 'CpmiVsxNetobj' ]):
+            return { "object_type": "hosts", "object_chunks": [ {
+                "objects": [ {
+                'uid': obj['uid'], 'name': obj['name'], 'color': color,
+                'comments': obj['comments'], 'type': 'host', 'ipv4-address': cp_network.get_ip_of_obj(obj),
+                } ] } ] }
+        elif (obj['type'] == 'Global'):
+            return {"object_type": "hosts", "object_chunks": [ {
+                "objects": [ {
+                'uid': obj['uid'], 'name': obj['name'], 'color': color,
+                'comments': obj['comments'], 'type': 'host', 'ipv4-address': fwo_const.any_ip_ipv4,
+                } ] } ] }
+        elif (obj['type'] in [ 'updatable-object', 'CpmiVoipSipDomain', 'CpmiVoipMgcpDomain' ]):
+            return {"object_type": "hosts", "object_chunks": [ {
+                "objects": [ {
+                'uid': obj['uid'], 'name': obj['name'], 'color': color,
+                'comments': obj['comments'], 'type': 'group'
+                } ] } ] }
+        elif (obj['type'] in ['Internet', 'security-zone']):
+            return {"object_type": "hosts", "object_chunks": [ {
+                "objects": [ {
+                'uid': obj['uid'], 'name': obj['name'], 'color': color,
+                'comments': obj['comments'], 'type': 'network', 'ipv4-address': fwo_const.any_ip_ipv4,
+                } ] } ] }
+        elif (obj['type'] == 'access-role'):
+            return obj
+        elif obj['type'] in cp_const.api_obj_types:    # standard objects with proper ip
+            return obj
         else:
-            logger.warning("got 'None' from CP API for uid=" + uid_missing_obj)
+            logger.warning ( "missing nw obj of unexpected type '" + obj['type'] + "': " + uid_missing_obj )
+    else:
+        if 'code' in obj:
+            logger.warning(f"broken ref in CP DB uid={uid_missing_obj}: {obj['code']}")
+        else:
+            logger.warning(f"broken ref in CP DB uid={uid_missing_obj}")

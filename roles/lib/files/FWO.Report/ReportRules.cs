@@ -231,18 +231,27 @@ namespace FWO.Report
             List<Rule> allRules = new(rulesSoFar);
             HashSet<long> visitedRuleIds = new(rulesSoFar.Select(r => r.Id)); // Track visited rules to prevent duplication
 
+            RulebaseLink? fromRulebaseNextRbLink = new();
+
             foreach (Rule rule in newRules)
             {
+                fromRulebaseNextRbLink = deviceReport.RulebaseLinks.FirstOrDefault(_ => _.FromRulebaseId == rule.RulebaseId); // always set to next rulebase
                 if (visitedRuleIds.Add(rule.Id))
                 {
                     allRules.Add(rule);
-                    RulebaseLink? nextRbLink = deviceReport.RulebaseLinks.FirstOrDefault(_ => _.FromRuleId == rule.Id);
-                    if (nextRbLink != null)
+                    RulebaseLink? fromRuleNextRbLink = deviceReport.RulebaseLinks.FirstOrDefault(_ => _.FromRuleId == rule.Id);
+                    if (fromRuleNextRbLink != null)
                     {
-                        List<Rule> subRules = GetRulesByRulebaseId(nextRbLink.NextRulebaseId, managementReport).ToList();
+                        List<Rule> subRules = GetRulesByRulebaseId(fromRuleNextRbLink.NextRulebaseId, managementReport).ToList();
                         allRules = GetAllRulesOfGatewayRecursively(deviceReport, managementReport, allRules, subRules);
                     }
                 }
+            }
+            // add rules from the next rulebase
+            if (fromRulebaseNextRbLink != null)
+            {
+                List<Rule> subRules = GetRulesByRulebaseId(fromRulebaseNextRbLink.NextRulebaseId, managementReport).ToList();
+                allRules = GetAllRulesOfGatewayRecursively(deviceReport, managementReport, allRules, subRules);
             }
             return allRules;
         }
@@ -317,7 +326,6 @@ namespace FWO.Report
                 initialPath.Add(1);
             }
 
-            // BuildOrderNumberTree(firstRulebaseId, initialPath, rulesByRulebase, linksByFromRuleId, result, ref positionCounter, rules);
             BuildOrderNumberTree(firstRulebaseId, initialPath, rulesByRulebase, linksByFromRuleId, changedRules, ref positionCounter, rules); 
         }
 

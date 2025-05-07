@@ -235,7 +235,6 @@ namespace FWO.Report
 
             foreach (Rule rule in newRules)
             {
-                fromRulebaseNextRbLink = deviceReport.RulebaseLinks.FirstOrDefault(_ => _.FromRulebaseId == rule.RulebaseId); // always set to next rulebase
                 if (visitedRuleIds.Add(rule.Id))
                 {
                     allRules.Add(rule);
@@ -244,6 +243,10 @@ namespace FWO.Report
                     {
                         List<Rule> subRules = GetRulesByRulebaseId(fromRuleNextRbLink.NextRulebaseId, managementReport).ToList();
                         allRules = GetAllRulesOfGatewayRecursively(deviceReport, managementReport, allRules, subRules);
+                    }
+                    else
+                    {
+                        fromRulebaseNextRbLink = deviceReport.RulebaseLinks.FirstOrDefault(_ => _.FromRulebaseId == rule.RulebaseId); // always set to next rulebase
                     }
                 }
             }
@@ -616,10 +619,10 @@ namespace FWO.Report
             RuleDisplayHtml ruleDisplayHtml = new (userConfig);
             VarianceMode = varianceMode;
 
-            foreach (ManagementReportController managementReport in managementData.Where(mgt => !mgt.Ignore && mgt.ContainsRules()))
+            foreach (ManagementReport managementReport in managementData.Where(mgt => !mgt.Ignore && mgt.ContainsRules()))
             {
                 chapterNumber++;
-                managementReport.AssignRuleNumbers();
+                new ManagementReportController(managementReport).AssignRuleNumbers();
                 report.AppendLine(Headline(managementReport.Name, 3));
                 report.AppendLine("<hr>");
 
@@ -627,7 +630,7 @@ namespace FWO.Report
                 {
                     if (device.RulebaseLinks != null)
                     {
-                        AppendRulesForDeviceHtml(ref report, managementReport, (DeviceReportController)device, chapterNumber, ruleDisplayHtml);
+                        AppendRulesForDeviceHtml(ref report, managementReport, DeviceReportController.FromDeviceReport(device), chapterNumber, ruleDisplayHtml);
                     }
                 }
 

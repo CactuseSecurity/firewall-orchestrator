@@ -198,7 +198,7 @@ class MockFwConfigImportRule(FwConfigImportRule):
         moved_rule_ids: List[int] = []
 
         for rulebase in moved_rule_uids.keys():
-            for rule in moved_rule_uids[rulebase]:
+            for _ in moved_rule_uids[rulebase]:
                 changes += 1
                 moved_rule_ids.append(changes)
 

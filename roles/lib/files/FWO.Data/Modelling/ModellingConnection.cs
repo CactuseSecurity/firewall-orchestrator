@@ -18,6 +18,8 @@ namespace FWO.Data.Modelling
         DeletedObjects,
         EmptySvcGrps,
         DocumentationOnly,
+        VarianceChecked,
+        NotImplemented,
         VarianceFound
     }
 

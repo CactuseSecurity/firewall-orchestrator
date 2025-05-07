@@ -76,14 +76,22 @@
                         <div class="btn-group ms-5">
                             <button type="button" class="btn btn-sm btn-dark" @onclick="ShareLink">
                                 @(appHandler!.DisplayButton("share_link", Icons.Share))
-                            </button>&nbsp;
+                            </button>
                             <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}")">
                                 <Authorized>
+                                    &nbsp;
                                     <button type="button" class="btn btn-sm btn-dark" @onclick="ManualAppServer">
                                         @(appHandler!.DisplayButton("edit_app_server", Icons.Edit, "app_server"))
                                     </button>
                                 </Authorized>
                             </AuthorizeView>
+                            &nbsp;
+                            @if(userConfig.VarianceAnalysisRefresh)
+                            {
+                                <button type="button" class="btn btn-sm btn-primary" @onclick="async() => await appHandler.AnalyseStatus(appHandler.Connections)">
+                                    @(appHandler!.DisplayButton("refresh_state", Icons.Refresh, "state"))
+                                </button>
+                            }
                         </div>
                     }
                     </h5>

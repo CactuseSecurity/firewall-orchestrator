@@ -357,6 +357,18 @@ namespace FWO.Config.Api.Data
 		[JsonProperty("ruleRecognitionOption"), JsonPropertyName("ruleRecognitionOption")]
 		public string RuleRecognitionOption { get; set; } = "";
 
+		[JsonProperty("varianceAnalysisSleepTime"), JsonPropertyName("varianceAnalysisSleepTime")]
+		public int VarianceAnalysisSleepTime { get; set; } = 0;
+
+		[JsonProperty("varianceAnalysisStartAt"), JsonPropertyName("varianceAnalysisStartAt")]
+		public DateTime VarianceAnalysisStartAt { get; set; } = new DateTime();
+
+		[JsonProperty("varianceAnalysisSync"), JsonPropertyName("varianceAnalysisSync")]
+		public bool VarianceAnalysisSync { get; set; } = false;
+
+		[JsonProperty("varianceAnalysisRefresh"), JsonPropertyName("varianceAnalysisRefresh")]
+		public bool VarianceAnalysisRefresh { get; set; } = false;
+
         public ConfigData(bool editable = false)
 		{
 			Editable = editable;

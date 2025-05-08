@@ -11,21 +11,22 @@ def normalize_network_objects(full_config, config2import, import_id, mgm_id=0, d
     nw_objects = []
     logger = getFwoLogger()
 
-    for obj_table in full_config['object_tables']:
-        collect_nw_objects(obj_table, nw_objects,
-                           debug_level=debug_level, mgm_id=mgm_id)
-    for nw_obj in nw_objects:
-        nw_obj.update({'control_id': import_id})
-        if nw_obj['obj_typ'] == 'interoperable-device':
-            nw_obj.update({'obj_typ': 'external-gateway'})
-        if nw_obj['obj_typ'] == 'CpmiVoipSipDomain':
-            logger.info(f"found VOIP object - tranforming to empty group")
-            nw_obj.update({'obj_typ': 'group'})
-        # set a dummy IP address for objects without IP addreses
-        if nw_obj['obj_typ']!='group' and (nw_obj['obj_ip'] is None or nw_obj['obj_ip'] == ''):
-            logger.warning("found object without IP :" + nw_obj['obj_name'] + " (type=" + nw_obj['obj_typ'] + ") - setting dummy IP")
-            nw_obj.update({'obj_ip': fwo_const.dummy_ip})
-            nw_obj.update({'obj_ip_end': fwo_const.dummy_ip})
+    for domain in full_config['object_domains']:
+        for obj_table in domain['object_types']:
+            collect_nw_objects(obj_table, nw_objects,
+                            debug_level=debug_level, mgm_id=mgm_id)
+        for nw_obj in nw_objects:
+            nw_obj.update({'control_id': import_id})
+            if nw_obj['obj_typ'] == 'interoperable-device':
+                nw_obj.update({'obj_typ': 'external-gateway'})
+            if nw_obj['obj_typ'] == 'CpmiVoipSipDomain':
+                logger.info(f"found VOIP object - tranforming to empty group")
+                nw_obj.update({'obj_typ': 'group'})
+            # set a dummy IP address for objects without IP addreses
+            if nw_obj['obj_typ']!='group' and (nw_obj['obj_ip'] is None or nw_obj['obj_ip'] == ''):
+                logger.warning("found object without IP :" + nw_obj['obj_name'] + " (type=" + nw_obj['obj_typ'] + ") - setting dummy IP")
+                nw_obj.update({'obj_ip': fwo_const.dummy_ip})
+                nw_obj.update({'obj_ip_end': fwo_const.dummy_ip})
 
     for idx in range(0, len(nw_objects)-1):
         if nw_objects[idx]['obj_typ'] == 'group':
@@ -38,15 +39,29 @@ def normalize_network_objects(full_config, config2import, import_id, mgm_id=0, d
 def collect_nw_objects(object_table, nw_objects, debug_level=0, mgm_id=0):
     logger = getFwoLogger()
 
-    if object_table['object_type'] in cp_const.nw_obj_table_names:
-        for chunk in object_table['object_chunks']:
+    if object_table['type'] in cp_const.nw_obj_table_names:
+        for chunk in object_table['chunks']:
             if 'objects' in chunk:
                 for obj in chunk['objects']:
 
-                    if 'uid' in obj and obj['uid']=='e9ba0c50-ddd7-4aa8-9df6-1c4045ba10bb':
-                        logger.debug(f"found SIP nw object with uid {obj['uid']} in object dictionary")
+                    # do not collect already existing object
+                    already_collected = False
+                    if 'uid' in obj:
+                        if 'domain' in obj:
+
+                            for already_collected_obj in nw_objects:
+                                if obj['uid'] == already_collected_obj['obj_uid'] and obj['domain']['uid'] == already_collected_obj['obj_domain']:
+                                    already_collected = True
+                                    break
+                            
+                            if already_collected:
+                                continue
+
+                        else:
+                            logger.warning("found nw_object without domain: " + obj['uid'])
+                    else:
+                        logger.warning("found nw_object without uid: " + str(obj))
                 
-                    ip_addr = ''
                     member_refs = None
                     member_names = None
                     if 'members' in obj:
@@ -59,11 +74,8 @@ def collect_nw_objects(object_table, nw_objects, debug_level=0, mgm_id=0):
                             obj['members'] = None
                         
                     ip_addr = get_ip_of_obj(obj, mgm_id=mgm_id)
-
                     ipArray = cidrToRange(ip_addr)
                     
-#                    first_ip, last_ip = get_first_and_last_ip(ip_addr)
-
                     if len(ipArray)==2:
                         first_ip = ipArray[0]
                         last_ip  = ipArray[1]
@@ -125,10 +137,10 @@ def collect_nw_objects(object_table, nw_objects, debug_level=0, mgm_id=0):
                     if 'color' not in obj:
                         obj['color'] = 'black'
 
-                    nw_objects.extend([{'obj_uid': obj['uid'], 'obj_name': obj['name'], 'obj_color': obj['color'],
-                                        'obj_comment': comments,
+                    nw_objects.append({'obj_uid': obj['uid'], 'obj_name': obj['name'], 'obj_color': obj['color'],
+                                        'obj_comment': comments, 'obj_domain': obj['domain']['uid'],
                                         'obj_typ': obj_type, 'obj_ip': first_ip, 'obj_ip_end': last_ip,
-                                        'obj_member_refs': member_refs, 'obj_member_names': member_names}])
+                                        'obj_member_refs': member_refs, 'obj_member_names': member_names})
 
 
 # for members of groups, the name of the member obj needs to be fetched separately (starting from API v1.?)

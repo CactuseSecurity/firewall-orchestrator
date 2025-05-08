@@ -127,8 +127,8 @@ def acceptMalformedParts(objects, part=''):
 def parseRulePart (objects, part='source'):
     addressObjects = {}
 
-    if 'object_chunks' in objects:  # for chunks of actions?!
-        return addressObjects.update(parseRulePart(objects['object_chunks'], part=part)) # need to parse chunk first
+    if 'chunks' in objects:  # for chunks of actions?!
+        return addressObjects.update(parseRulePart(objects['chunks'], part=part)) # need to parse chunk first
 
     if isinstance(objects, dict): # a single address object
         if 'uid' in objects and 'name' in objects:
@@ -146,8 +146,8 @@ def parseRulePart (objects, part='source'):
                 if obj is not None:
                     # if 'name' in obj:
                     #     logger.debug(f"handling obj without uid {obj['name']}, part={part}")
-                    if 'object_chunks' in obj:
-                        addressObjects.update(parseRulePart(obj['object_chunks'], part=part)) # need to parse chunk first
+                    if 'chunks' in obj:
+                        addressObjects.update(parseRulePart(obj['chunks'], part=part)) # need to parse chunk first
                     elif 'objects' in obj:
                         for o in obj['objects']:
                             addressObjects.update(parseRulePart(o, part=part)) # need to parse chunk first

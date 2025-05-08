@@ -1,6 +1,7 @@
 import json
 from fwo_log import getFwoLogger
 import time
+from copy import deepcopy
 
 import cp_rule
 import cp_const, cp_network, cp_service
@@ -63,11 +64,38 @@ def get_config(nativeConfig: json, importState: ImportStateController) -> tuple[
         starttimeTemp = int(time.time())
         logger.debug ( "checkpointR8x/get_config/getting objects ...")
 
-        result_get_objects = get_objects (nativeConfig, importState.MgmDetails, cpManagerApiBaseUrl, sid, force=importState.ForceImport, limit=str(importState.FwoConfig.ApiFetchSize), details_level=cp_const.details_level_objects, test_version='off')
+        #result_get_objects = get_objects (nativeConfig, importState.MgmDetails, cpManagerApiBaseUrl, sid, force=importState.ForceImport, limit=str(importState.FwoConfig.ApiFetchSize), details_level=cp_const.details_level_objects, test_version='off')
+        result_get_objects = getObjects (nativeConfig, importState)
         if result_get_objects>0:
             logger.warning ( "checkpointR8x/get_config/error while gettings objects")
             return result_get_objects
         logger.debug ( "checkpointR8x/get_config/fetched objects in " + str(int(time.time()) - starttimeTemp) + "s")
+
+
+        # delete_v prüfe nativeConfig, kann später weg
+        # inDom1ButNotInDom2List = {}
+        # for dom1Types in nativeConfig['object_tables']['c0f60e6c-23af-4bcb-be0b-26f79d734995']:
+        #     currentType = dom1Types['object_type']
+        #     inDom1ButNotInDom2List.update({currentType: []})
+        #     for dom1Chunk in dom1Types['chunks']:
+        #         if 'objects' in dom1Chunk:
+        #             for dom1Object in dom1Chunk['objects']:
+        #                 if 'uid' in dom1Object:
+        #                     found = False
+
+        #                     for dom2Types in nativeConfig['object_tables']['a0bbbc99-adef-4ef8-bb6d-defdefdefdef']:
+        #                         if currentType == dom2Types['object_type']:
+        #                             for dom2Chunk in dom2Types['chunks']:
+        #                                 if 'objects' in dom2Chunk:
+        #                                     for dom2Object in dom2Chunk['objects']:
+        #                                         if 'uid' in dom2Object:
+        #                                             if dom1Object['uid'] == dom2Object['uid']:
+        #                                                 found = True
+
+        #                     if not found:
+        #                         inDom1ButNotInDom2List[currentType].append(dom1Object['uid'])
+
+
 
         starttimeTemp = int(time.time())
         logger.debug ( "checkpointR8x/get_config/getting rules ...")
@@ -135,11 +163,11 @@ def getRules (nativeConfig: dict, importState: ImportStateController) -> int:
     }
 
     # control standalone vs mds
-    managerDetailsList = [importState.MgmDetails]
+    managerDetailsList = [deepcopy(importState.MgmDetails)]
     if importState.MgmDetails.IsSuperManager:
-        topLevelMgmDetails = importState.MgmDetails
+        topLevelMgmDetails = deepcopy(importState.MgmDetails)
         for subManager in importState.MgmDetails.SubManagers:
-            managerDetailsList.append(subManager)
+            managerDetailsList.append(deepcopy(subManager))
             
     # loop over toplevel- and sub-managers in case of mds
     for managerDetails in managerDetailsList:
@@ -171,7 +199,7 @@ def getRules (nativeConfig: dict, importState: ImportStateController) -> int:
                                     show_params_policy_structure,
                                     policyStructure = policyStructure)
 
-        # store toplevel domain, api-url, sid and policy structure, we need them in the submanager iterations
+        # store global domain, api-url, sid and policy structure, we need them in the submanager iterations
         if managerDetails.IsSuperManager and managerDetails.Uid == topLevelMgmDetails.Uid:
             globalDomain = domain
             globalApiUrl = cpManagerApiBaseUrl
@@ -360,65 +388,132 @@ def logout_cp(url, sid):
         logger.warning("logout from CP management failed")
 
 
-def get_objects(config_json, mgm_details, v_url, sid, force=False, config_filename=None,
-    limit=150, details_level=cp_const.details_level_objects, test_version='off', debug_level=0, ssl_verification=True):
+def getObjects (nativeConfig: dict, importState: ImportStateController) -> int:
 
     logger = getFwoLogger()
+    nativeConfig.update({'object_domains': []})
+    show_params_objs = {'limit': importState.FwoConfig.ApiFetchSize}
 
-    config_json["object_tables"] = []
-    show_params_objs = {'limit':limit,'details-level': details_level }
+    # control standalone vs mds
+    managerDetailsList = []
+    #managerDetailsList = [deepcopy(importState.MgmDetails)] # delete_v wir brauchen weder global noch mds domain
+    if importState.MgmDetails.IsSuperManager:
+        #globalManager = deepcopy(importState.MgmDetails)
+        #globalManager.DomainUid = '1e294ce0-367a-11e3-aa6e-0800200c9a66'
+        #managerDetailsList.append(deepcopy(globalManager))
+        for subManager in importState.MgmDetails.SubManagers:
+            managerDetailsList.append(deepcopy(subManager))
+    else:
+        managerDetailsList.append(deepcopy(importState.MgmDetails))
+            
+    # loop over sub-managers in case of mds
+    manager_index = 0
+    for managerDetails in managerDetailsList:
+        cpManagerApiBaseUrl = importState.MgmDetails.buildFwApiString()
 
-    # getting Original (NAT) object (both for networks and services)
-    origObj = cp_getter.getObjectDetailsFromApi(cp_const.original_obj_uid, sid=sid, apiurl=v_url, debug_level=debug_level)['object_chunks'][0]
-    anyObj = cp_getter.getObjectDetailsFromApi(cp_const.any_obj_uid, sid=sid, apiurl=v_url, debug_level=debug_level)['object_chunks'][0]
-    noneObj = cp_getter.getObjectDetailsFromApi(cp_const.none_obj_uid, sid=sid, apiurl=v_url, debug_level=debug_level)['object_chunks'][0]
-    internetObj = cp_getter.getObjectDetailsFromApi(cp_const.internet_obj_uid, sid=sid, apiurl=v_url, debug_level=debug_level)['object_chunks'][0]
-
-    for obj_type in cp_const.api_obj_types:
-        if fwo_globals.shutdown_requested:
-            raise ImportInterruption("Shutdown requested during object retrieval.")
-        if obj_type in cp_const.obj_types_full_fetch_needed:
-            show_params_objs.update({'details-level': cp_const.details_level_group_objects})
-        else:
-            show_params_objs.update({'details-level': cp_const.details_level_objects})
-        object_table = { "object_type": obj_type, "object_chunks": [] }
-        current=0
-        total=current+1
-        show_cmd = 'show-' + obj_type    
-        if debug_level>5:
-            logger.debug ( "obj_type: "+ obj_type )
-        while (current<total) :
-            show_params_objs['offset']=current
-            objects = cp_getter.cp_api_call(v_url, show_cmd, show_params_objs, sid)
+        sid = loginCp(managerDetails)
+        nativeConfig['object_domains'].append({
+            'domain_name': managerDetails.DomainName,
+            'domain_uid': managerDetails.DomainUid,
+            'objects': []})
+        
+        # get all objects
+        for obj_type in cp_const.api_obj_types:
             if fwo_globals.shutdown_requested:
                 raise ImportInterruption("Shutdown requested during object retrieval.")
+            if obj_type in cp_const.obj_types_full_fetch_needed:
+                show_params_objs.update({'details-level': cp_const.details_level_group_objects})
+            else:
+                show_params_objs.update({'details-level': cp_const.details_level_objects})
+            object_table = { "type": obj_type, "chunks": [] }
+            current=0
+            total=current+1
+            show_cmd = 'show-' + obj_type    
+            # if debug_level>5:
+            #     logger.debug ( "obj_type: "+ obj_type )
+            while (current<total) :
+                show_params_objs['offset']=current
+                objects = cp_getter.cp_api_call(cpManagerApiBaseUrl, show_cmd, show_params_objs, sid)
+                if fwo_globals.shutdown_requested:
+                    raise ImportInterruption("Shutdown requested during object retrieval.")
 
-            object_table["object_chunks"].append(objects)
-            if 'total' in objects  and 'to' in objects:
-                total=objects['total']
-                current=objects['to']
-                if debug_level>5:
-                    logger.debug ( obj_type +" current:"+ str(current) + " of a total " + str(total) )
-            else :
-                current = total
-                if debug_level>5:
-                    logger.debug ( obj_type +" total:"+ str(total) )
+                object_table["chunks"].append(objects)
+                if 'total' in objects  and 'to' in objects:
+                    total=objects['total']
+                    current=objects['to']
+                    # if debug_level>5:
+                    #     logger.debug ( obj_type +" current:"+ str(current) + " of a total " + str(total) )
+                else :
+                    current = total
+                    # if debug_level>5:
+                    #     logger.debug ( obj_type +" total:"+ str(total) )
 
-        # adding the uid of the Original, Any and None objects (as separate chunks):
-        if obj_type == 'networks':
-            object_table['object_chunks'].append(origObj)
-            object_table['object_chunks'].append(anyObj)
-            object_table['object_chunks'].append(noneObj)
-            object_table['object_chunks'].append(internetObj)
-        if obj_type == 'services-other':
-            object_table['object_chunks'].append(origObj)
-            object_table['object_chunks'].append(anyObj)
-            object_table['object_chunks'].append(noneObj)
+            nativeConfig['object_domains'][manager_index]['object_types'].append(object_table)
+        manager_index += 1
 
-        config_json["object_tables"].append(object_table)
-
-    # only write config to file if config_filename is given
-    if config_filename != None and len(config_filename)>1:
-        with open(config_filename, "w") as configfile_json:
-            configfile_json.write(json.dumps(config_json))
     return 0
+
+
+# delete_v komplett löschen wenn getObjects fertig
+# def get_objects(config_json, mgm_details, v_url, sid, force=False, config_filename=None,
+#     limit=150, details_level=cp_const.details_level_objects, test_version='off', debug_level=0, ssl_verification=True):
+
+#     logger = getFwoLogger()
+
+#     config_json["object_tables"] = []
+#     show_params_objs = {'limit':limit,'details-level': details_level }
+
+#     # getting Original (NAT) object (both for networks and services)
+#     origObj = cp_getter.getObjectDetailsFromApi(cp_const.original_obj_uid, sid=sid, apiurl=v_url, debug_level=debug_level)['chunks'][0]
+#     anyObj = cp_getter.getObjectDetailsFromApi(cp_const.any_obj_uid, sid=sid, apiurl=v_url, debug_level=debug_level)['chunks'][0]
+#     noneObj = cp_getter.getObjectDetailsFromApi(cp_const.none_obj_uid, sid=sid, apiurl=v_url, debug_level=debug_level)['chunks'][0]
+#     internetObj = cp_getter.getObjectDetailsFromApi(cp_const.internet_obj_uid, sid=sid, apiurl=v_url, debug_level=debug_level)['chunks'][0]
+
+#     for obj_type in cp_const.api_obj_types:
+#         if fwo_globals.shutdown_requested:
+#             raise ImportInterruption("Shutdown requested during object retrieval.")
+#         if obj_type in cp_const.obj_types_full_fetch_needed:
+#             show_params_objs.update({'details-level': cp_const.details_level_group_objects})
+#         else:
+#             show_params_objs.update({'details-level': cp_const.details_level_objects})
+#         object_table = { "object_type": obj_type, "chunks": [] }
+#         current=0
+#         total=current+1
+#         show_cmd = 'show-' + obj_type    
+#         if debug_level>5:
+#             logger.debug ( "obj_type: "+ obj_type )
+#         while (current<total) :
+#             show_params_objs['offset']=current
+#             objects = cp_getter.cp_api_call(v_url, show_cmd, show_params_objs, sid)
+#             if fwo_globals.shutdown_requested:
+#                 raise ImportInterruption("Shutdown requested during object retrieval.")
+
+#             object_table["chunks"].append(objects)
+#             if 'total' in objects  and 'to' in objects:
+#                 total=objects['total']
+#                 current=objects['to']
+#                 if debug_level>5:
+#                     logger.debug ( obj_type +" current:"+ str(current) + " of a total " + str(total) )
+#             else :
+#                 current = total
+#                 if debug_level>5:
+#                     logger.debug ( obj_type +" total:"+ str(total) )
+
+#         # adding the uid of the Original, Any and None objects (as separate chunks):
+#         if obj_type == 'networks':
+#             object_table['chunks'].append(origObj)
+#             object_table['chunks'].append(anyObj)
+#             object_table['chunks'].append(noneObj)
+#             object_table['chunks'].append(internetObj)
+#         if obj_type == 'services-other':
+#             object_table['chunks'].append(origObj)
+#             object_table['chunks'].append(anyObj)
+#             object_table['chunks'].append(noneObj)
+
+#         config_json["object_tables"].append(object_table)
+
+#     # only write config to file if config_filename is given
+#     if config_filename != None and len(config_filename)>1:
+#         with open(config_filename, "w") as configfile_json:
+#             configfile_json.write(json.dumps(config_json))
+#     return 0

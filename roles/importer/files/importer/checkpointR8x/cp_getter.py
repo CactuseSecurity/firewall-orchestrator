@@ -496,16 +496,30 @@ def resolveRefFromObjectDictionary(id, objDict, nativeConfig={}, sid='', base_ur
         # these must be added to the (network) objects tables
         if matchedObj['type'] in ['CpmiVoipSipDomain', 'CpmiVoipMgcpDomain']:
             logger.info(f"adding voip domain '{matchedObj['name']}' object manually, because it is not retrieved by show objects API command")
-            if 'object_tables' in nativeConfig:
-                color = matchedObj.get('color', 'black')
-                nativeConfig['object_tables'].append({ 
-                        "object_type": "hosts", "object_chunks": [ {
-                        "objects": [ {
-                        'uid': matchedObj['uid'], 'name': matchedObj['name'], 'color': color,
-                        'type': matchedObj['type']
-                    } ] } ] } )
+
+            if 'object_domains' in nativeConfig:
+
+                # find right domain in nativeConfig
+                domain_index = 0
+                if 'domain' in matchedObj and 'uid' in matchedObj['domain']:
+                    loop_index = 0
+                    for object_domain in nativeConfig['object_domains']:
+                        if object_domain['domain_uid'] == matchedObj['domain']['uid']:
+                            domain_index = loop_index
+                        loop_index += 1
+
+                    color = matchedObj.get('color', 'black')
+                    nativeConfig['object_domains'][domain_index]['object_types'].append({ 
+                            "type": "hosts", "chunks": [ {
+                            "objects": [ {
+                            'uid': matchedObj['uid'], 'name': matchedObj['name'], 'color': color,
+                            'type': matchedObj['type'], 'domain': matchedObj['domain']
+                        } ] } ] } )
+                    
+                else:
+                    logger.warning(f"found no domain while adding voip object '{matchedObj['name']}' object")
             else:
-                logger.warning(f"found no existing object_tables while adding voip domain '{matchedObj['name']}' object")
+                logger.warning(f"found no existing object_domains while adding voip domain '{matchedObj['name']}' object")
 
         return matchedObj
 
@@ -534,6 +548,7 @@ def resolveRefListFromObjectDictionary(rulebase, value, objDict={}, nativeConfig
         resolveRefListFromObjectDictionary(rulebase['rulebase'], value, objDict=objDict, nativeConfig=nativeConfig, sid=sid, base_url=base_url)
 
 
+# delete_v gerade nicht benötigt in getObjects, wenn doch muss domain hinzugefügt werden
 def getObjectDetailsFromApi(uid_missing_obj, sid='', apiurl='', debug_level=0):
     logger = getFwoLogger()
     if debug_level>5:
@@ -550,54 +565,53 @@ def getObjectDetailsFromApi(uid_missing_obj, sid='', apiurl='', debug_level=0):
             if 'object' in obj:
                 obj = obj['object']
                 color = obj.get('color', 'black')
-
                 if (obj['type'] == 'CpmiAnyObject'):
                     if (obj['name'] == 'Any'):
-                        return  { "object_type": "hosts", "object_chunks": [ {
+                        return  { "type": "hosts", "chunks": [ {
                             "objects": [ {
                             'uid': obj['uid'], 'name': obj['name'], 'color': color,
                             'comments': 'any nw object checkpoint (hard coded)',
                             'type': 'network', 'ipv4-address': '0.0.0.0/0'
                             } ] } ] }
                     elif (obj['name'] == 'None'):
-                        return  { "object_type": "hosts", "object_chunks": [ {
+                        return  { "type": "hosts", "chunks": [ {
                             "objects": [ {
                             'uid': obj['uid'], 'name': obj['name'], 'color': color,
                             'comments': 'any nw object checkpoint (hard coded)',
                             'type': 'group'
                             } ] } ] }
                 elif (obj['type'] in [ 'simple-gateway', obj['type'], 'CpmiGatewayPlain', obj['type'] == 'interop' ]):
-                    return { "object_type": "hosts", "object_chunks": [ {
+                    return { "type": "hosts", "chunks": [ {
                         "objects": [ {
                         'uid': obj['uid'], 'name': obj['name'], 'color': color,
                         'comments': obj['comments'], 'type': 'host', 'ipv4-address': cp_network.get_ip_of_obj(obj),
                         } ] } ] }
                 elif obj['type'] == 'multicast-address-range':
-                    return {"object_type": "hosts", "object_chunks": [ {
+                    return {"type": "hosts", "chunks": [ {
                         "objects": [ {
                         'uid': obj['uid'], 'name': obj['name'], 'color': color,
                         'comments': obj['comments'], 'type': 'host', 'ipv4-address': cp_network.get_ip_of_obj(obj),
                         } ] } ] }
                 elif (obj['type'] in ['CpmiVsClusterMember', 'CpmiVsxClusterMember', 'CpmiVsxNetobj']):
-                    return {"object_type": "hosts", "object_chunks": [ {
+                    return {"type": "hosts", "chunks": [ {
                         "objects": [ {
                         'uid': obj['uid'], 'name': obj['name'], 'color': color,
                         'comments': obj['comments'], 'type': 'host', 'ipv4-address': cp_network.get_ip_of_obj(obj),
                         } ] } ] }
                 elif (obj['type'] == 'Global'):
-                    return {"object_type": "hosts", "object_chunks": [ {
+                    return {"type": "hosts", "chunks": [ {
                         "objects": [ {
                         'uid': obj['uid'], 'name': obj['name'], 'color': color,
                         'comments': obj['comments'], 'type': 'host', 'ipv4-address': '0.0.0.0/0',
                         } ] } ] }
                 elif (obj['type'] in [ 'updatable-object', 'CpmiVoipSipDomain', 'CpmiVoipMgcpDomain' ]):
-                    return {"object_type": "hosts", "object_chunks": [ {
+                    return {"type": "hosts", "chunks": [ {
                         "objects": [ {
                         'uid': obj['uid'], 'name': obj['name'], 'color': color,
                         'comments': obj['comments'], 'type': 'group'
                         } ] } ] }
                 elif (obj['type'] in ['Internet', 'security-zone']):
-                    return {"object_type": "hosts", "object_chunks": [ {
+                    return {"type": "hosts", "chunks": [ {
                         "objects": [ {
                         'uid': obj['uid'], 'name': obj['name'], 'color': color,
                         'comments': obj['comments'], 'type': 'network', 'ipv4-address': '0.0.0.0/0',

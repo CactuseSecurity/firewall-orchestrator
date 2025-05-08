@@ -2,7 +2,11 @@
 @using FWO.Report
 @using FWO.Ui.Display
 
-<RadzenDataGrid @ref="RulesGrid"
+<SectionHeader>
+    <RulebaseHeader></RulebaseHeader>
+</SectionHeader>
+
+@* <RadzenDataGrid @ref="RulesGrid"
 TItem="Rule"
 Data="@Rules"
                 GroupProperty="RulebaseId"
@@ -13,13 +17,16 @@ AllowFiltering="true"
 AllowSorting="true"
 ShowGroupPanel="false"
 Render="@OnRender">
+    <Template>
+        <SectionHeader></SectionHeader>
+    </Template>
     <GroupHeaderTemplate Context="group">
         <tr style="background-color:#f0f0f0; font-weight:bold;">
             <td>Rulebase: @(group.Data.Key)</td>
         </tr>
     </GroupHeaderTemplate>
     <Columns>
-        <RadzenDataGridColumn Property="RulebaseId" Groupable="true" Title="@(userConfig.GetText("number"))" Filterable="false" Sortable="true" TextAlign="TextAlign.Left">
+         <RadzenDataGridColumn Property="RulebaseId" Groupable="true" Title="@(userConfig.GetText("number"))" Filterable="false" Sortable="true" TextAlign="TextAlign.Left">
             <Template>
                 @((MarkupString)context.DisplayOrderNumberString)
             </Template>
@@ -75,7 +82,7 @@ Render="@OnRender">
             </Template>
         </RadzenDataGridColumn>
     </Columns>
-</RadzenDataGrid>
+</RadzenDataGrid> *@
 
 @code {
     [Parameter]

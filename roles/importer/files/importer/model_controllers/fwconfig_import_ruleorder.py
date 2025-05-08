@@ -69,6 +69,10 @@ class RuleOrderService:
     def updated_values(self):
         return self._updated_rules
     
+    @property
+    def previous_config(self):
+        return self._previous_config
+    
 
     def get_new_rule_num_numeric(self) -> float:
         self._current_rule_num_numeric += rule_num_numeric_steps
@@ -107,6 +111,17 @@ class RuleOrderService:
 
         self._compute_min_moves_result = compute_min_moves(self._source_rule_uids, self._target_rule_uids)
 
+        for rulebase in self._fw_config_import_rule.NormalizedConfig.rulebases:
+            rule_uids = set(rulebase.Rules.keys())
+
+            self._new_rule_uids[rulebase.uid] = [
+                insertion_uid
+                for _, insertion_uid in self._compute_min_moves_result["insertions"]
+                if insertion_uid in rule_uids
+            ]
+
+            self._needs_rule_num_numeric_update_rule_uids.extend(self._new_rule_uids[rulebase.uid])
+
         for rulebase in self._previous_config.rulebases:
             rule_uids = set(rulebase.Rules.keys())
 
@@ -124,18 +139,6 @@ class RuleOrderService:
 
             self._needs_rule_num_numeric_update_rule_uids.extend(self._moved_rule_uids[rulebase.uid])
 
-        for rulebase in self._fw_config_import_rule.NormalizedConfig.rulebases:
-            rule_uids = set(rulebase.Rules.keys())
-
-            self._new_rule_uids[rulebase.uid] = [
-                insertion_uid
-                for _, insertion_uid in self._compute_min_moves_result["insertions"]
-                if insertion_uid in rule_uids
-            ]
-
-            self._needs_rule_num_numeric_update_rule_uids.extend(self._new_rule_uids[rulebase.uid])
-
-        
         # Update rule_num_numeric values.
 
         for rule_uid in self._needs_rule_num_numeric_update_rule_uids:

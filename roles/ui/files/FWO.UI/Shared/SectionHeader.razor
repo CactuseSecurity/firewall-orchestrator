@@ -1,0 +1,17 @@
+﻿<h3>SectionHeader</h3>
+
+@*
+- Bekommt in der GUI einen Section header (Name der Section) über der 
+ersten Regel
+- Header hat Pfeil zum einklappen, Header selber bleibt immer sichtbar (solange nicht eine höre Instanz eingeklappt wird)
+- Numerierung der Regeln geht weiter vom Ende der letzten section, z.B.
+    -- letzte Regel vor Section: 5 => erste Regel in Section 6
+    -- letzte Regel vor Section: 5.15.2 => erste Regel in Section 5.15.3
+    -- Hier keine Dot-Notation sondern kontinuierliches hochzählen über alle Sections einer Ebene hinweg
+- Achtung, es kann beliebig viele leere Sections geben, 
+Regelnummerierung muss von der letzten nicht-leeren Sektion weitergehen
+*@
+
+@code {
+
+}

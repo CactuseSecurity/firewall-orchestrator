@@ -128,6 +128,8 @@
     private string rsbTimeShortcut = "";
     private string rsbTimeStart = "";
     private string rsbTimeEnd = "";
+    private Dictionary<int, long> import_id_start = new(); // import id matching rsbTimeStart for each management
+    private Dictionary<int, long> import_id_end = new(); // import id matching rsbTimeEnd for each management
 
     private int intWidth { get { return Width; } set { Width = value; WidthChanged.InvokeAsync(Width); } }
 
@@ -152,14 +154,14 @@
     {
         try
         {
-            long import_id_start = await GetImportId(rsbTimeStart);
-            long import_id_end = await GetImportId(rsbTimeEnd);
+            import_id_start = await GetImportIds(rsbTimeStart);
+            import_id_end = await GetImportIds(rsbTimeEnd);
             Dictionary<string, object> queryVars = new()
             {
                 ["limit"] = 0,
                 ["offset"] = 0,
-                ["import_id_start"] = import_id_start,
-                ["import_id_end"] = import_id_end
+                ["import_id_start"] = import_id_start.Values.Where(v => v > 0).Min(),
+                ["import_id_end"] = import_id_end.Values.Max(),
             };
             managementsAllObjects = await apiConnection.SendQueryAsync<List<ManagementReport>>(ObjectQueries.getAllObjectDetails, queryVars);
             collapseInRSB.Collapse("all");
@@ -207,7 +209,7 @@
         return prevStart != rsbTimeStart || prevEnd != rsbTimeEnd;
     }
 
-    private async Task<long> GetImportId(string time, int? mgmId = null)
+    private async Task<Dictionary<int, long>> GetImportIds(string time, int? mgmId = null)
     {
         Dictionary<string, object> queryVars = new()
         {
@@ -216,7 +218,12 @@
         if (mgmId != null)
             queryVars.Add("mgmIds", mgmId);
         List<ManagementReport> result = await apiConnection.SendQueryAsync<List<ManagementReport>>(ReportQueries.getRelevantImportIdsAtTime, queryVars);
-        return result.First().Import.ImportAggregate.ImportAggregateMax.RelevantImportId ?? 0;
+        Dictionary<int, long> importIds = new();
+        foreach (ManagementReport mgm in result)
+        {
+            importIds[mgm.Id] = mgm.Import.ImportAggregate.ImportAggregateMax.RelevantImportId ?? 0;
+        }
+        return importIds;
     }
 
     public async Task FetchContent(RsbTab rsbTab, ObjCategory objType, Func<Task> hasChangedCallback, long id = 0, bool nat = false)
@@ -245,8 +252,8 @@
                         mgt.Detailed[(int)objType - 1] = true;
 
                     queryVars.Add("management_id", (int)id);
-                    queryVars.Add("import_id_start", await GetImportId(rsbTimeStart, (int)id));
-                    queryVars.Add("import_id_end", await GetImportId(rsbTimeEnd, (int)id));
+                    queryVars.Add("import_id_start", import_id_start.GetValueOrDefault((int)id, 0));
+                    queryVars.Add("import_id_end", import_id_end.GetValueOrDefault((int)id, 0));
 
                     switch (objType)
                     {
@@ -332,6 +339,8 @@
 
                     rule.Detailed = true;
 
+                    queryVars.Add("import_id_start", import_id_start.GetValueOrDefault((int)rule.MgmtId, 0));
+                    queryVars.Add("import_id_end", import_id_end.GetValueOrDefault((int)rule.MgmtId, 0));
                     queryVars.Add("rule_id", id);
                     query = nat ? RuleQueries.getNatRuleDetails : RuleQueries.getRuleDetails;
 

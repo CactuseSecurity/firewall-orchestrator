@@ -22,7 +22,12 @@ fragment ruleDetails on rule {
   access_rule
   nat_rule
   xlate_rule
-  rule_froms {
+  rule_froms(where: {
+    _or: [
+      { active: { _eq: $active } }
+      { _and: [{ rf_last_seen: { _gte: $import_id_start } }, { rf_create: { _lte: $import_id_end } }] }
+    ]
+  }) {
     usr {
       ...userDetails
     }
@@ -34,7 +39,12 @@ fragment ruleDetails on rule {
     zone_name
     zone_id
   }
-  rule_tos {
+  rule_tos(where: {
+    _or: [
+      { active: { _eq: $active } }
+      { _and: [{ rt_last_seen: { _gte: $import_id_start } }, { rt_create: { _lte: $import_id_end } }] }
+    ]
+  }) {
     usr {
       ...userDetails
     }
@@ -43,7 +53,12 @@ fragment ruleDetails on rule {
     }
   }
   rule_svc
-  rule_services {
+  rule_services(where: {
+    _or: [
+      { active: { _eq: $active } }
+      { _and: [{ rs_last_seen: { _gte: $import_id_start } }, { rs_create: { _lte: $import_id_end } }] }
+    ]
+  }) {
     service {
       ...networkServiceDetails
     }

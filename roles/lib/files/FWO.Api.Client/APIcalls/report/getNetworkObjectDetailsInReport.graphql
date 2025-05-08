@@ -1,6 +1,9 @@
 ﻿query getNetworkObjectsInReport (
   $mgmIds: [Int!]
   $importId: bigint
+  $active: Boolean
+  $import_id_start: bigint #todo: change to use this instead of importId
+  $import_id_end: bigint
   $ruleIds: _int8
   $limit: Int
   $offset: Int

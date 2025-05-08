@@ -1,4 +1,10 @@
-query getNetworkObjectsForManagement ($mgmId: Int, $objTypeIds: [Int!]){
+query getNetworkObjectsForManagement (
+  $mgmId: Int
+  $objTypeIds: [Int!]
+  $active: Boolean
+  $import_id_start: bigint #todo: might be needed to show correct flats
+  $import_id_end: bigint
+){
   object(where: {mgm_id: { _eq: $mgmId }, active: {_eq: true}, obj_typ_id: {_in: $objTypeIds}}) {   
     ...networkObjectDetails
   }

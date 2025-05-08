@@ -2,6 +2,7 @@ query getNetworkObjectDetails(
   $management_id: [Int!]
   $nwObjTyp: [String!]
   $nwObjUid: [String!]
+  $active: Boolean
   $import_id_start: bigint
   $import_id_end: bigint
   $obj_name: [String!]
@@ -17,8 +18,10 @@ query getNetworkObjectDetails(
       offset: $offset
       where: {
         stm_obj_typ: { obj_typ_name: { _in: $nwObjTyp } }
-        obj_last_seen: { _gte: $import_id_start }
-        obj_create: { _lte: $import_id_end }
+        _or: [
+          { active: { _eq: $active } }
+          { _and: [{ obj_last_seen: { _gte: $import_id_start } }, { obj_create: { _lte: $import_id_end } }] }
+        ]
         obj_name: { _in: $obj_name }
         obj_ip: { _in: $obj_ip }
         obj_uid: { _in: $nwObjUid }

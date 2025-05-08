@@ -1,4 +1,5 @@
-﻿@*
+﻿@using Radzen.Blazor
+@*
 - Bekommt in der GUI einen Rulebase header (Name der Rulebase) über der ersten Regel
 - Header hat Pfeil zum einklappen, Header selber bleibt immer sichtbar (solange nicht eine höre Instanz eingeklappt wird)
 - Numerierung von mehreren Ordered Layer Regeln ist in Dot-Notation
@@ -12,11 +13,14 @@
 *@
 
 <div class="ps-2 pt-1">
-    <Radzen.Blazor.RadzenButton ButtonStyle="@Radzen.ButtonStyle.Base" Text="" Icon="arrow_right"></Radzen.Blazor.RadzenButton>
-    <strong>Rulebase Header</strong>
+    <RadzenIcon Icon="arrow_right"></RadzenIcon>
+    <strong>@Title</strong>
 </div>
 
 @code {
     [Parameter]
-    public RenderFragment ChildContent { get; set; }
+    public RenderFragment? ChildContent { get; set; }
+
+    [Parameter]
+    public string? Title { get; set; }
 }

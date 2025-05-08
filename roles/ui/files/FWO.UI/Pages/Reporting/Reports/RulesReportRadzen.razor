@@ -2,87 +2,40 @@
 @using FWO.Report
 @using FWO.Ui.Display
 
-<SectionHeader>
-    <RulebaseHeader></RulebaseHeader>
-</SectionHeader>
-
-@* <RadzenDataGrid @ref="RulesGrid"
+<RadzenDataGrid @ref="RulesGrid"
 TItem="Rule"
 Data="@Rules"
-                GroupProperty="RulebaseId"
-                Groups="@(new List<string> { " RulebaseId" })"
 AllowGrouping="false"
 ExpandMode="DataGridExpandMode.Multiple"
 AllowFiltering="true"
-AllowSorting="true"
-ShowGroupPanel="false"
-Render="@OnRender">
-    <Template>
-        <SectionHeader></SectionHeader>
-    </Template>
-    <GroupHeaderTemplate Context="group">
-        <tr style="background-color:#f0f0f0; font-weight:bold;">
-            <td>Rulebase: @(group.Data.Key)</td>
-        </tr>
-    </GroupHeaderTemplate>
+AllowSorting="true">
+    <HeaderTemplate>
+        <RadzenButton Icon="unfold_more" Size="@ButtonSize.Small" ButtonStyle="@ButtonStyle.Secondary" Variant="@Variant.Flat" />
+        <RadzenButton Icon="unfold_less" Size="@ButtonSize.Small" ButtonStyle="@ButtonStyle.Secondary" Variant="@Variant.Flat" />
+    </HeaderTemplate>
+   @*  <Template Context="Rule">
+        <SectionHeader>
+            <RulebaseHeader></RulebaseHeader>
+        </SectionHeader>
+    </Template> *@
     <Columns>
-         <RadzenDataGridColumn Property="RulebaseId" Groupable="true" Title="@(userConfig.GetText("number"))" Filterable="false" Sortable="true" TextAlign="TextAlign.Left">
+        <RadzenDataGridColumn Visible="true" Width="32px" Groupable="false" Sortable="false" Filterable="false">
             <Template>
-                @((MarkupString)context.DisplayOrderNumberString)
+                <RadzenStack Orientation="@Orientation.Vertical" Gap="5px" AlignItems="@AlignItems.Center" JustifyContent="@JustifyContent.Center">
+                    <RadzenButton Size="@Radzen.ButtonSize.ExtraSmall" Icon="unfold_more" ButtonStyle="@ButtonStyle.Light" Variant="@Variant.Flat" />
+                    <RadzenButton Size="@Radzen.ButtonSize.ExtraSmall" Icon="unfold_less" ButtonStyle="@ButtonStyle.Light" Variant="@Variant.Flat" />
+                </RadzenStack>
             </Template>
         </RadzenDataGridColumn>
-        <RadzenDataGridColumn Property="Name" Title="@(userConfig.GetText("name"))" Groupable="false" Sortable="true" Filterable="false" TextAlign="TextAlign.Left">
+        <RadzenDataGridColumn Property="RulebaseName" Title="Rules" Visible="true">
             <Template>
-                @context.Name
-            </Template>
-        </RadzenDataGridColumn>
-        <RadzenDataGridColumn Title="@(userConfig.GetText("source_zone"))" Groupable="false" Sortable="true" Filterable="false" TextAlign="TextAlign.Left">
-            <Template>
-                @((MarkupString)RuleDisplayHtml.DisplaySourceZone(context))
-            </Template>
-        </RadzenDataGridColumn>
-        <RadzenDataGridColumn Title="@(userConfig.GetText("source"))" Groupable="false" Sortable="true" Filterable="false" TextAlign="TextAlign.Left">
-            <Template>
-                @((MarkupString)RuleDisplay.DisplaySource(context, getActLocation(), SelectedReportType))
-            </Template>
-        </RadzenDataGridColumn>
-        <RadzenDataGridColumn Title="@(userConfig.GetText("destination_zone"))" Groupable="false" Sortable="true" Filterable="false" TextAlign="TextAlign.Left">
-            <Template>
-                @((MarkupString)RuleDisplayHtml.DisplayDestinationZone(context))
-            </Template>
-        </RadzenDataGridColumn>
-        <RadzenDataGridColumn Title="@(userConfig.GetText("destination"))" Groupable="false" Sortable="true" Filterable="false" TextAlign="TextAlign.Left">
-            <Template>
-                @((MarkupString)RuleDisplay.DisplayDestination(context, getActLocation(), SelectedReportType))
-            </Template>
-        </RadzenDataGridColumn>
-        <RadzenDataGridColumn Title="@(userConfig.GetText("services"))" Groupable="false" Sortable="true" Filterable="false" TextAlign="TextAlign.Left">
-            <Template>
-                @((MarkupString)RuleDisplay.DisplayServices(context, getActLocation(), SelectedReportType))
-            </Template>
-        </RadzenDataGridColumn>
-        <RadzenDataGridColumn Title="@(userConfig.GetText("enabled"))" Groupable="false" Sortable="true" Filterable="false" TextAlign="TextAlign.Left">
-            <Template>
-                @((MarkupString)RuleDisplayHtml.DisplayEnabled(context, getActLocation()))
-            </Template>
-        </RadzenDataGridColumn>
-        <RadzenDataGridColumn Title="@(userConfig.GetText("enforcing_devices"))" Groupable="false" Sortable="true" Filterable="false" TextAlign="TextAlign.Left">
-            <Template>
-                @((MarkupString)RuleDisplay.DisplayEnforcingGateways(context, getActLocation(), SelectedReportType))
-            </Template>
-        </RadzenDataGridColumn>
-        <RadzenDataGridColumn Property="Uid" Title="@(userConfig.GetText("uid"))" Groupable="false" Sortable="true" Filterable="false" TextAlign="TextAlign.Left">
-            <Template>
-                @context.Uid
-            </Template>
-        </RadzenDataGridColumn>
-        <RadzenDataGridColumn Property="Comment" Title="@(userConfig.GetText("comment"))" Groupable="false" Sortable="true" Filterable="false" TextAlign="TextAlign.Left">
-            <Template>
-                @context.Comment
+                <SectionHeader Title="@context.Id.ToString()">
+                    <RulebaseHeader Title="@context.DisplayOrderNumberString"></RulebaseHeader>
+                </SectionHeader>
             </Template>
         </RadzenDataGridColumn>
     </Columns>
-</RadzenDataGrid> *@
+</RadzenDataGrid>
 
 @code {
     [Parameter]
@@ -116,20 +69,6 @@ Render="@OnRender">
         var ungroupedRules = ReportRules.GetAllRulesOfGateway(device, management);
 
         Rules = ungroupedRules.ToList();
-    }
-
-    private void OnRender(DataGridRenderEventArgs<Rule> args)
-    {
-        if(args.FirstRender)
-        {
-            args.Grid.Groups.Add(new GroupDescriptor() { Property = "RulebaseId", Title = "Rulebase", SortOrder = SortOrder.Ascending });
-            StateHasChanged();
-        }
-    }
-
-    private void OnGroupRowRender(GroupRowRenderEventArgs args)
-    {
-        args.Expanded = GroupsExpanded;
     }
 
     private async Task ShowLoading()

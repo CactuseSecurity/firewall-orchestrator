@@ -60,7 +60,7 @@ namespace FWO.Middleware.Server
                     startTime = globalConfig.VarianceAnalysisStartAt;
                     while (startTime < DateTime.Now)
                     {
-                        startTime = startTime.AddHours(globalConfig.VarianceAnalysisSleepTime);
+                        startTime = startTime.AddMinutes(globalConfig.VarianceAnalysisSleepTime);
                     }
                 }
                 catch (Exception exception)

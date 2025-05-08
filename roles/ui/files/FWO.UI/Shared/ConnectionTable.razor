@@ -232,7 +232,7 @@
         List<string> modellingProps = CollectModellingProps(connection);
         if(modellingProps.Count > 0)
         {
-            return "";
+            return "-";
         }
         List<string> implementationProps = CollectImplementationProps(connection);
         return connection.GetBoolProperty(ConState.VarianceChecked.ToString()) ? (implementationProps.Count > 0 ? string.Join(",", implementationProps) : Ok("C9024")) : Question();

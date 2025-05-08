@@ -1631,6 +1631,10 @@ INSERT INTO txt VALUES ('never_requested',      'German',   'Wurde noch nicht be
 INSERT INTO txt VALUES ('never_requested',      'English',  'Never requested');
 INSERT INTO txt VALUES ('in_process',           'German',   'Antrag in Bearbeitung');
 INSERT INTO txt VALUES ('in_process',           'English',  'Request in process');
+INSERT INTO txt VALUES ('temp_error',           'German',   'Tempor&auml;rer Fehler');
+INSERT INTO txt VALUES ('temp_error',           'English',  'Temporary error');
+INSERT INTO txt VALUES ('temp_error_extended',  'German',   'Tempor&auml;rer Fehler bei der Beantragung (es wird weiter versucht)');
+INSERT INTO txt VALUES ('temp_error_extended',  'English',  'Temporary error at requesting (will be further attempted)');
 INSERT INTO txt VALUES ('last_successful',      'German',   'Zuletzt erfolgreich beantragt: ');
 INSERT INTO txt VALUES ('last_successful',      'English',  'Last successfully requested: ');
 INSERT INTO txt VALUES ('implementation_error', 'German',   'Fehler bei der Umsetzung');
@@ -2962,6 +2966,8 @@ INSERT INTO txt VALUES ('U9024', 'German',  'Netzbereiche k&ouml;nnen nicht zusa
 INSERT INTO txt VALUES ('U9024', 'English', 'Network areas cannot be used together with interfaces from foreign apps.');
 INSERT INTO txt VALUES ('U9025', 'German',  'Sind sie sicher, dass sie folgendes Ticket als abgelehnt schliessen wollen: ');
 INSERT INTO txt VALUES ('U9025', 'English', 'Are you sure you want to close the following ticket as rejected: ');
+INSERT INTO txt VALUES ('U9026', 'German',  'Nichts zu beantragen!');
+INSERT INTO txt VALUES ('U9026', 'English', 'Nothing to request!');
 
 -- error messages
 INSERT INTO txt VALUES ('E0001', 'German',  'Nicht klassifizierter Fehler: ');

@@ -279,8 +279,8 @@ INSERT INTO txt VALUES ('id',		            'German', 	'Id');
 INSERT INTO txt VALUES ('id',		            'English', 	'Id');
 INSERT INTO txt VALUES ('coming_soon',		    'German', 	'(demn&auml;chst)');
 INSERT INTO txt VALUES ('coming_soon',		    'English', 	'(coming soon)');
-INSERT INTO txt VALUES ('in_progress',		    'German', 	'in Arbeit');
-INSERT INTO txt VALUES ('in_progress',		    'English', 	'in progress');
+INSERT INTO txt VALUES ('in_progress',		    'German', 	'In Arbeit - Bitte warten');
+INSERT INTO txt VALUES ('in_progress',		    'English', 	'In Progress - Please wait');
 INSERT INTO txt VALUES ('select', 				'German',	'Ausw&auml;hlen');
 INSERT INTO txt VALUES ('select', 				'English',	'Select');
 INSERT INTO txt VALUES ('loading', 				'German',	'Laden...');
@@ -1655,6 +1655,14 @@ INSERT INTO txt VALUES ('entrydata',            'German',   'Dateneintrag');
 INSERT INTO txt VALUES ('entrydata',            'English',  'Data entry');
 INSERT INTO txt VALUES ('error_message',        'German',   'Fehlermeldung');
 INSERT INTO txt VALUES ('error_message',        'English',  'Error message');
+INSERT INTO txt VALUES ('variance_analysis', 	'German', 	'Soll-Ist-Abgleich');
+INSERT INTO txt VALUES ('variance_analysis',    'English', 	'Variance Analysis');
+INSERT INTO txt VALUES ('mod_state',            'German', 	'Mod Status');
+INSERT INTO txt VALUES ('mod_state',            'English', 	'Mod State');
+INSERT INTO txt VALUES ('impl_state',           'German', 	'Impl Status');
+INSERT INTO txt VALUES ('impl_state',           'English', 	'Impl State');
+INSERT INTO txt VALUES ('refresh_state',        'German', 	'Status aktualisieren');
+INSERT INTO txt VALUES ('refresh_state',        'English', 	'Refresh State');
 
 -- compliance
 INSERT INTO txt VALUES ('compliance',			'German', 	'Compliance');
@@ -2431,6 +2439,14 @@ INSERT INTO txt VALUES ('select_file',          'German',   'Datei ausw&auml;hle
 INSERT INTO txt VALUES ('select_file',          'English',  'Select file');
 INSERT INTO txt VALUES ('availableReportTypes', 'German', 	'Verf&uuml;gbare Reporttypen');
 INSERT INTO txt VALUES ('availableReportTypes', 'English', 	'Available Report Types');
+INSERT INTO txt VALUES ('varianceAnalysisSync', 'German',   'Synchroner Soll-Ist-Abgleich');
+INSERT INTO txt VALUES ('varianceAnalysisSync', 'English',  'Synchroneous Variance Analysis');
+INSERT INTO txt VALUES ('varianceAnalysisRefresh','German', 'Soll-Ist-Abgleich auf Schaltfl&auml;che');
+INSERT INTO txt VALUES ('varianceAnalysisRefresh','English','Variance Analysis Refresh Button');
+INSERT INTO txt VALUES ('varianceAnalysisSleepTime','German','Soll-Ist-Abgleich-Intervall (in Minuten)');
+INSERT INTO txt VALUES ('varianceAnalysisSleepTime','English','Variance Analysis sleep time (in minutes)');
+INSERT INTO txt VALUES ('varianceAnalysisStartAt','German', 'Soll-Ist-Abgleich-Start');
+INSERT INTO txt VALUES ('varianceAnalysisStartAt','English','Variance Analysis start at');
 
 
 -- monitoring
@@ -2554,6 +2570,8 @@ INSERT INTO txt VALUES ('scheduled_subnet_import','German', 'Termingesteuerter S
 INSERT INTO txt VALUES ('scheduled_subnet_import','English','Scheduled Subnet Import');
 INSERT INTO txt VALUES ('imp_change_notification','German', '&Auml;nderungsbenachrichtigung');
 INSERT INTO txt VALUES ('imp_change_notification','English','Import Change Notification');
+INSERT INTO txt VALUES ('scheduled_var_analysis','German',  'Termingesteuerter Soll-Ist-Abgleich');
+INSERT INTO txt VALUES ('scheduled_var_analysis','English', 'Scheduled Variance Analysis');
 INSERT INTO txt VALUES ('credentials',           'German', 	'Login-Daten');
 INSERT INTO txt VALUES ('credentials',           'English', 'Credentials');
 INSERT INTO txt VALUES ('external_request',     'German',   'Externer Auftrag');
@@ -3402,6 +3420,16 @@ INSERT INTO txt VALUES ('C9019', 'German',  'Leere Service Gruppe(n) enthalten. 
 INSERT INTO txt VALUES ('C9019', 'English', 'Contains empty Service Groups(s). Connections using this interface will not be requested.');
 INSERT INTO txt VALUES ('C9020', 'German',  'Nur zu Dokumentation. Diese Verbindung wird nicht beantragt.');
 INSERT INTO txt VALUES ('C9020', 'English', 'Only for documentation. This connection will not be requested.');
+INSERT INTO txt VALUES ('C9021', 'German',  'Soll-Ist-Differenz: Die Verbindung wurde auf Produktionsdevices nicht gefunden.');
+INSERT INTO txt VALUES ('C9021', 'English', 'Variance: Connection not found on production devices.');
+INSERT INTO txt VALUES ('C9022', 'German',  'Soll-Ist-Differenz: Der Produktionsstand entspricht nicht der modellierten Verbindung.');
+INSERT INTO txt VALUES ('C9022', 'English', 'Variance: Production state does not fit to the modelled connection.');
+INSERT INTO txt VALUES ('C9023', 'German',  'Die modellierte Verbindung ist Ok.');
+INSERT INTO txt VALUES ('C9023', 'English', 'Modelled connection is Ok.');
+INSERT INTO txt VALUES ('C9024', 'German',  'Der Produktionsstand entspricht der modellierten Verbindung.');
+INSERT INTO txt VALUES ('C9024', 'English', 'Production state fits to modelled connection.');
+INSERT INTO txt VALUES ('C9025', 'German',  'Asynchroner Soll-Ist-Abgleich wurde noch nicht durchgef&uuml;hrt.');
+INSERT INTO txt VALUES ('C9025', 'English', 'Asynchroneous Variance Analysis not performed yet.');
 
 -- help pages
 INSERT INTO txt VALUES ('H0001', 'German',  'Firewall Orchestrator ist eine Anwendung zum Erzeugen und Verwalten von verschiedenen Reports aus Konfigurationsdaten verteilter Firewallsysteme.
@@ -5291,7 +5319,7 @@ INSERT INTO txt VALUES ('H5615', 'English', 'Import Subnet data sleep time (in h
     A value 0 means, that the Subnet data import is deactivated. Default value = 0.
 ');
 INSERT INTO txt VALUES ('H5616', 'German',  'Import Subnetzdaten-Start: Legt eine Bezugszeit fest, ab dem die Intervalle f&uuml;r die Subnetzdaten-Importe gerechnet werden.');
-INSERT INTO txt VALUES ('H5616', 'English', 'Import Subnet data start at: Import App data start at: Defines a referential time from which the Subnte data import intervals are calculated.');
+INSERT INTO txt VALUES ('H5616', 'English', 'Import Subnet data start at: Import App data start at: Defines a referential time from which the Subnet data import intervals are calculated.');
 INSERT INTO txt VALUES ('H5617', 'German',  'Reduzierten Protokollset darstellen: Nur eine begrenzte Zahl von Protokollen wird zur Auswahl angeboten (TCP, UDP, ICMP).');
 INSERT INTO txt VALUES ('H5617', 'English', 'Display reduced Protocol set: Offer only a reduced number of protocols for selection (TCP, UDP, ICMP).');
 INSERT INTO txt VALUES ('H5618', 'German',  'Nutzung von Piktogrammen: Vorzugsweise Nutzung von Piktogrammen wo sinnvoll. Wird vom Administrator allgemein vorausgew&auml;hlt, kann aber vom Nutzer in den pers&ouml;nlichen Einstellungen &uuml;berschrieben werden.');
@@ -5398,6 +5426,26 @@ INSERT INTO txt VALUES ('H5650', 'English', 'Rule Recognition Options: Defines, 
     Possible criteria are - separated for network objects and services - Name, IP address resp. Port/Protocol, Group Name.
     Additionally it has to be defined, if groups are resolved; then single objects are identified independently from their group membership.
 ');
+INSERT INTO txt VALUES ('H5651', 'German',  'Synchroner Soll-Ist-Abgleich: Wenn aktiviert, werden die Stati der Verbindungen sofort bei Initialisierung der Seite berechnet.
+    Da dies bei gr&ouml;sseren Systemen zu erheblichem Rechenaufwand f&uuml;hrt, kann dies zu einer verz&ouml;gerten Darstellung f&uuml;hren.
+    In diesem Fall wird die Nutzung des asynchronen Soll-Ist-Abgleichs empfohlen.
+');
+INSERT INTO txt VALUES ('H5651', 'English', 'Synchroneous Variance Analysis: If activated all states of the connections are calculated on page initialization.
+    As this implies a considerable calculation effort, this may lead to a delayed display for bigger systems.
+    In this case the usage of the asynchroneous Variance Analysis is recommended.
+');
+INSERT INTO txt VALUES ('H5652', 'German',  'Soll-Ist-Abgleich-Intervall (in Minuten): Zeitintervall zwischen zwei Soll-Ist-Abgleich-L&auml;ufen.
+    Dort werden asynchron die Stati zur Darstellung in der Oberfl&auml;che berechnet.
+    Ein Wert 0 bedeutet, dass der asynchrone Soll-Ist-Abgleich deaktiviert ist. Default-Wert = 0.
+');
+INSERT INTO txt VALUES ('H5652', 'English', 'Variance Analysis sleep time (in minutes): Time between two Variance Analysis loops.
+    There the states to display in the UI are calculated asynchroneously.
+    A value 0 means, that the Variance Analysis is deactivated. Default value = 0.
+');
+INSERT INTO txt VALUES ('H5653', 'German',  'Soll-Ist-Abgleich-Start: Legt eine Bezugszeit fest, ab dem die Intervalle f&uuml;r die Soll-Ist-Abgleiche gerechnet werden.');
+INSERT INTO txt VALUES ('H5653', 'English', 'Variance Analysis start at: Defines a referential time from which the Variance Analysis intervals are calculated.');
+INSERT INTO txt VALUES ('H5654', 'German',  'Soll-Ist-Abgleich auf Schaltfl&auml;che: Es wird eine Schaltfl&auml;che angeboten, um den Status der Verbindungen mittels Soll-Ist-Abgleich synchron zu ermitteln.');
+INSERT INTO txt VALUES ('H5654', 'English', 'Variance Analysis Refresh Button: A button is offered to calculate the state of the connections synchroneously via Variance Analysis.');
 
 INSERT INTO txt VALUES ('H5701', 'German',  'Die in der Datenbank hinterlegten sprachabh&auml;ngigen Texte k&ouml;nnen individuell &uuml;berschrieben werden.
     Dabei werden die vom System vorgegebenen Texte nicht ge&auml;ndert, sondern nur durch die hier definierten Texte - falls vorhanden - &uuml;berblendet.

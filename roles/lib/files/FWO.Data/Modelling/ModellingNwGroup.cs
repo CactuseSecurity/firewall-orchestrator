@@ -55,7 +55,7 @@ namespace FWO.Data.Modelling
             return new()
             {
                 Id = Id,
-                Name = IdAsName ? IdString : Name + " (" + IdString + ")" ?? IdString ?? "",
+                Name = IdAsName ? IdString : Name + " (" + IdString + ")",
                 Number = Number,
                 Type = new NetworkObjectType(){ Name = ObjectType.Group }
             };

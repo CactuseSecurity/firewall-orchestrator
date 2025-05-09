@@ -29,15 +29,15 @@ namespace FWO.Data.Report
             }
         }
 
-        public void PrepareObjectData()
+        public void PrepareObjectData(bool resolveNetworkAreas)
         {
-            AllObjects = GetAllNetworkObjects(true);
+            AllObjects = GetAllNetworkObjects(true, resolveNetworkAreas);
             SetObjectNumbers(ref AllObjects);
             AllServices = GetAllServices(true);
             SetSvcNumbers(ref AllServices);
         }
 
-        public virtual List<NetworkObject> GetAllNetworkObjects(bool resolved = false)
+        public virtual List<NetworkObject> GetAllNetworkObjects(bool resolved = false, bool resolveNetworkAreas = false)
         {
             return [];
         }
@@ -87,19 +87,19 @@ namespace FWO.Data.Report
                     }
                 }
                 allServices = allServices.Union(svcList).ToList();
-                allServices = allServices.Union(ModellingServiceWrapper.ResolveAsNetworkServices(conn.Services).ToList()).ToList();
+                allServices = [.. allServices.Union([.. ModellingServiceWrapper.ResolveAsNetworkServices(conn.Services)])];
             }
             return allServices;
         }
 
-        public static List<NetworkObject> GetAllNetworkObjects(List<ModellingConnection> connections, bool resolved = false, long dummyARid = 0)
+        public static List<NetworkObject> GetAllNetworkObjects(List<ModellingConnection> connections, bool resolved = false, bool resolveNetworkAreas = false, long dummyARid = 0)
         {
             List<NetworkObject> allObjects = [];
             foreach(var conn in connections)
             {
-                allObjects = allObjects.Union(GetAllNwGrpObjectsFromConn(conn, resolved, dummyARid)).ToList();
+                allObjects = [.. allObjects.Union(GetAllNwGrpObjectsFromConn(conn, resolved, resolveNetworkAreas, dummyARid))];
             }
-            allObjects = allObjects.Union(GetAllAppServers(connections).ConvertAll(ModellingAppServer.ToNetworkObject)).ToList();
+            allObjects = [.. allObjects.Union(GetAllAppServers(connections).ConvertAll(ModellingAppServer.ToNetworkObject))];
             return allObjects;
         }
 
@@ -118,17 +118,17 @@ namespace FWO.Data.Report
             List<ModellingAppServer> allAppServers = [];
             foreach(var conn in connections)
             {
-                allAppServers = allAppServers.Union([.. ModellingAppServerWrapper.Resolve(conn.SourceAppServers)]).ToList();
-                allAppServers = allAppServers.Union([.. ModellingAppServerWrapper.Resolve(conn.DestinationAppServers)]).ToList();
+                allAppServers = [.. allAppServers.Union([.. ModellingAppServerWrapper.Resolve(conn.SourceAppServers)])];
+                allAppServers = [.. allAppServers.Union([.. ModellingAppServerWrapper.Resolve(conn.DestinationAppServers)])];
             }
             return allAppServers;
         }
 
-        private static List<NetworkObject> GetAllNwGrpObjectsFromConn(ModellingConnection conn, bool resolved = false, long dummyARid = 0)
+        private static List<NetworkObject> GetAllNwGrpObjectsFromConn(ModellingConnection conn, bool resolved = false, bool resolveNetworkAreas = false, long dummyARid = 0)
         {
             List<NetworkObject> objList = [];
-            GetObjectsFromAreas(conn.SourceAreas, ref objList, resolved);
-            GetObjectsFromAreas(conn.DestinationAreas, ref objList, resolved);
+            GetObjectsFromAreas(conn.SourceAreas, ref objList, resolved, resolveNetworkAreas);
+            GetObjectsFromAreas(conn.DestinationAreas, ref objList, resolved, resolveNetworkAreas);
             GetObjectsFromAR(conn.SourceAppRoles, ref objList, resolved, dummyARid);
             GetObjectsFromAR(conn.DestinationAppRoles, ref objList, resolved, dummyARid);
             GetObjectsFromOtherGroups(conn.SourceOtherGroups, ref objList, resolved);
@@ -136,12 +136,12 @@ namespace FWO.Data.Report
             return objList;
         }
 
-        private static void GetObjectsFromAreas(List<ModellingNetworkAreaWrapper> areas, ref List<NetworkObject> objectList, bool resolved = false)
+        private static void GetObjectsFromAreas(List<ModellingNetworkAreaWrapper> areas, ref List<NetworkObject> objectList, bool resolved = false, bool resolveNetworkAreas = false)
         {
             foreach (var areaWrapper in areas)
             {
-                objectList.Add(areaWrapper.Content.ToNetworkObjectGroup());
-                if(resolved)
+                objectList.Add(areaWrapper.Content.ToNetworkObjectGroup(false, resolveNetworkAreas));
+                if(resolved && resolveNetworkAreas)
                 {
                     foreach(var obj in areaWrapper.Content.ToNetworkObjectGroup().ObjectGroups)
                     {

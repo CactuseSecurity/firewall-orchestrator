@@ -54,11 +54,25 @@ class RuleOrderService:
         return self._current_rule_num_numeric
     
 
-    def reset_rule_num_numeric(self):
+    def reset_to_defaults(self):
         self._current_rule_num_numeric = 0.0
+        self._previous_config = None
+        self._normalized_config = None
+        self._compute_min_moves_result = None
+        self._source_rule_uids = []
+        self._target_rule_uids = []
+        self._deleted_rule_uids = {}
+        self._new_rule_uids = {}
+        self._moved_rule_uids = {}
+        self._source_rules_flat = []
+        self._target_rules_flat = []
+        self._needs_rule_num_numeric_update_rule_uids = []
 
 
     def initialize(self, previous_config: FwConfigNormalized, normalized_config: FwConfigNormalized):
+        
+        self.reset_to_defaults()
+
         self._previous_config = previous_config
         self._normalized_config = normalized_config
 

@@ -904,6 +904,8 @@ INSERT INTO txt VALUES ('delete_element',       'German', 	'Element l&ouml;schen
 INSERT INTO txt VALUES ('delete_element',       'English', 	'Delete element');
 INSERT INTO txt VALUES ('requester', 			'German',	'Antragsteller');
 INSERT INTO txt VALUES ('requester', 			'English',	'Requester');
+INSERT INTO txt VALUES ('save_promote', 		'German',	'Speichern + Status &auml;ndern');
+INSERT INTO txt VALUES ('save_promote', 		'English',	'Save + Promote');
 INSERT INTO txt VALUES ('promote', 		        'German',	'Status &auml;ndern');
 INSERT INTO txt VALUES ('promote', 		        'English',	'Promote');
 INSERT INTO txt VALUES ('promote_to', 			'German',	'Status &auml;ndern');
@@ -1631,6 +1633,10 @@ INSERT INTO txt VALUES ('never_requested',      'German',   'Wurde noch nicht be
 INSERT INTO txt VALUES ('never_requested',      'English',  'Never requested');
 INSERT INTO txt VALUES ('in_process',           'German',   'Antrag in Bearbeitung');
 INSERT INTO txt VALUES ('in_process',           'English',  'Request in process');
+INSERT INTO txt VALUES ('temp_error',           'German',   'Tempor&auml;rer Fehler');
+INSERT INTO txt VALUES ('temp_error',           'English',  'Temporary error');
+INSERT INTO txt VALUES ('temp_error_extended',  'German',   'Tempor&auml;rer Fehler bei der Beantragung (es wird weiter versucht)');
+INSERT INTO txt VALUES ('temp_error_extended',  'English',  'Temporary error at requesting (will be further attempted)');
 INSERT INTO txt VALUES ('last_successful',      'German',   'Zuletzt erfolgreich beantragt: ');
 INSERT INTO txt VALUES ('last_successful',      'English',  'Last successfully requested: ');
 INSERT INTO txt VALUES ('implementation_error', 'German',   'Fehler bei der Umsetzung');
@@ -2447,6 +2453,8 @@ INSERT INTO txt VALUES ('varianceAnalysisSleepTime','German','Soll-Ist-Abgleich-
 INSERT INTO txt VALUES ('varianceAnalysisSleepTime','English','Variance Analysis sleep time (in minutes)');
 INSERT INTO txt VALUES ('varianceAnalysisStartAt','German', 'Soll-Ist-Abgleich-Start');
 INSERT INTO txt VALUES ('varianceAnalysisStartAt','English','Variance Analysis start at');
+INSERT INTO txt VALUES ('resolveNetworkAreas',  'German',   'Netzbereiche aufl&ouml;sen');
+INSERT INTO txt VALUES ('resolveNetworkAreas',  'English',  'Resolve Network Areas');
 
 
 -- monitoring
@@ -2962,6 +2970,8 @@ INSERT INTO txt VALUES ('U9024', 'German',  'Netzbereiche k&ouml;nnen nicht zusa
 INSERT INTO txt VALUES ('U9024', 'English', 'Network areas cannot be used together with interfaces from foreign apps.');
 INSERT INTO txt VALUES ('U9025', 'German',  'Sind sie sicher, dass sie folgendes Ticket als abgelehnt schliessen wollen: ');
 INSERT INTO txt VALUES ('U9025', 'English', 'Are you sure you want to close the following ticket as rejected: ');
+INSERT INTO txt VALUES ('U9026', 'German',  'Nichts zu beantragen!');
+INSERT INTO txt VALUES ('U9026', 'English', 'Nothing to request!');
 
 -- error messages
 INSERT INTO txt VALUES ('E0001', 'German',  'Nicht klassifizierter Fehler: ');
@@ -4885,6 +4895,8 @@ INSERT INTO txt VALUES ('H5454', 'German',  'Regel-Eigent&uuml;merschaftsmodus: 
 INSERT INTO txt VALUES ('H5454', 'English', 'Rule Ownership Mode: (Mixed/Exclusive) Currently not in use.');
 INSERT INTO txt VALUES ('H5455', 'German',  'Verf&uuml;gbare Reporttypen: Es kann ausgew&auml;hlt werden, welche der technisch vorhandenen Reporttypen zur Verwendung in der Oberfl&auml;che angeboten werden sollen. Die Liste der angebotenen Reporttypen beim Nutzer kann je nach Rolle weiter verk&uuml;rzt sein.');
 INSERT INTO txt VALUES ('H5455', 'English', 'Available Report Types: It can be selected, which of the technically available report types should be offered for use in the UI. The List of offered report types to the user can be shorter depending on the respective role.');
+INSERT INTO txt VALUES ('H5456', 'German',  'Netzbereiche aufl&ouml;sen: Darstellung aller Elemente eines Netzbereichs in Verbindungs-orientierten Reports');
+INSERT INTO txt VALUES ('H5456', 'English', 'Resolve Network Areas: Display of all elements of a network area in connection related reports.');
 
 INSERT INTO txt VALUES ('H5461', 'German',  'Jeder Nutzer kann seine eigene bevorzugte Sprache f&uuml;r die Anwendung einstellen.<br>
     Alle Texte werden in dieser Sprache dargestellt, soweit verf&uuml;gbar. Wenn nicht, wird die Standardsprache verwendet. Wenn der Text auch dort nicht verf&uuml;gbar ist, wird Englisch genutzt.

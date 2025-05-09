@@ -14,10 +14,9 @@ query getUserDetails(
       limit: $limit
       offset: $offset
       where: {
-        _or: [
-          { active: { _eq: $active } }
-          { _and: [{ user_last_seen: { _gte: $import_id_start } }, { user_create: { _lte: $import_id_end } }] }
-        ]
+        active: { _eq: $active }
+        user_last_seen: { _gte: $import_id_start }
+        user_create: { _lte: $import_id_end }
         user_name: { _in: $user_name }
       }
       order_by: [{ user_name: asc }, { user_id: asc }]

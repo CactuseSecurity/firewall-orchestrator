@@ -27,10 +27,9 @@ query getAllObjectDetails (
       offset: $offset
       where: {
         stm_obj_typ: { obj_typ_name: { _in: $type } }
-        _or: [
-          { active: { _eq: $active } }
-          { _and: [{ obj_last_seen: { _gte: $import_id_start } }, { obj_create: { _lte: $import_id_end } }] }
-        ]
+        active: { _eq: $active }
+        obj_last_seen: { _gte: $import_id_start }
+        obj_create: { _lte: $import_id_end }
         obj_name: { _in: $obj_name }
         obj_uid: { _in: $uid }
       }
@@ -43,10 +42,9 @@ query getAllObjectDetails (
       offset: $offset
       where: {
         stm_svc_typ: { svc_typ_name: { _in: $type } }
-        _or: [
-          { active: { _eq: $active } }
-          { _and: [{ svc_last_seen: { _gte: $import_id_start } }, { svc_create: { _lte: $import_id_end } }] }
-        ]
+        active: { _eq: $active }
+        svc_last_seen: { _gte: $import_id_start }
+        svc_create: { _lte: $import_id_end }
         svc_name: { _in: $obj_name }
         svc_uid: { _in: $uid }
       }
@@ -59,10 +57,9 @@ query getAllObjectDetails (
       offset: $offset
       where: {
         stm_usr_typ: { usr_typ_name: { _in: $type } }
-        _or: [
-          { active: { _eq: $active } }
-          { _and: [{ user_last_seen: { _gte: $import_id_start } }, { user_create: { _lte: $import_id_end } }] }
-        ]
+        active: { _eq: $active }
+        user_last_seen: { _gte: $import_id_start }
+        user_create: { _lte: $import_id_end }
         user_name: { _in: $obj_name }
         user_uid: { _in: $uid }
       }

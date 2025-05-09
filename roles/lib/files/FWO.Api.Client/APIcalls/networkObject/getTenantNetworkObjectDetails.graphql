@@ -5,6 +5,9 @@ query getTenantNetworkObjectDetails(
   $time: String
   $obj_name: [String!]
   $obj_ip: [cidr!]
+  $active: Boolean
+  $import_id_start: bigint #todo: might be needed to show correct flats
+  $import_id_end: bigint
   $limit: Int
   $offset: Int
 ) {

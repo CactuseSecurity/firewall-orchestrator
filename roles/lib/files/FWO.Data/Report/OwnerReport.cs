@@ -40,9 +40,9 @@ namespace FWO.Data.Report
             AppRoleStats = report.AppRoleStats;
         }
 
-        public override List<NetworkObject> GetAllNetworkObjects(bool resolved = false)
+        public override List<NetworkObject> GetAllNetworkObjects(bool resolved = false, bool resolveNetworkAreas = false)
         {
-            return GetAllNetworkObjects(Connections, resolved, DummyARid);
+            return GetAllNetworkObjects(Connections, resolved, resolveNetworkAreas, DummyARid);
         }
 
         public override List<NetworkService> GetAllServices(bool resolved = false)

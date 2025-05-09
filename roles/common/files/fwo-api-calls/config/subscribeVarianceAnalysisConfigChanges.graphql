@@ -1,0 +1,14 @@
+subscription subscribeVarianceAnalysisConfigChanges {
+  config (where: { _or: [
+    {config_key: {_eq: "varianceAnalysisSleepTime"}}, 
+    {config_key: {_eq: "varianceAnalysisStartAt"}},
+    {config_key: {_eq: "ModModelledMarkerLocation"}},
+    {config_key: {_eq: "ModModelledMarker"}},
+    {config_key: {_eq: "RuleRecognitionOption"}},
+    {config_key: {_eq: "modNamingConvention"}}
+    ]}){
+      config_key
+      config_value
+  }
+}
+ 

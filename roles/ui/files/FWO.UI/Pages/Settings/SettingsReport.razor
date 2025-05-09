@@ -1,5 +1,5 @@
 ﻿@page "/settings/report"
-@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Recertifier}, {Roles.Auditor}, {Roles.FwAdmin}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Recertifier}, {Roles.Modeller}, {Roles.Auditor}, {Roles.FwAdmin}")]
 
 @inject ApiConnection apiConnection
 @inject GlobalConfig globalConfig
@@ -37,6 +37,12 @@
             <label for="messageViewTime" class="col-form-label col-sm-4">@(userConfig.GetText("messageViewTime")):</label>
             <div class="col-sm-2">
                 <input id="messageViewTime" type="number" min="0" class="form-control form-control-sm" @bind="configData!.MessageViewTime">
+            </div>
+        </div>
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5456"))">
+            <label for="resolveNAs" class="col-form-label col-sm-4">@(userConfig.GetText("resolveNetworkAreas")):</label>
+            <div class="col-sm-1">
+                <input id="resolveNAs" type="checkbox" class="w-100" @bind="configData!.ResolveNetworkAreas">
             </div>
         </div>
         <hr />

@@ -181,9 +181,9 @@ namespace FWO.Middleware.Server
 			}
 		}
 
-		private static bool AnalyseForRejected(RestResponse<int> ticketIdResponse)
+		private static bool AnalyseForRejected(RestResponse<int>? ticketIdResponse)
 		{
-			return ticketIdResponse.Content != null && 
+			return ticketIdResponse != null && ticketIdResponse.Content != null && 
 				((ticketIdResponse.Content.Contains("GENERAL_ERROR") && !TryAgain(ticketIdResponse))||
 				ticketIdResponse.Content.Contains("ILLEGAL_ARGUMENT_ERROR") ||
 				ticketIdResponse.Content.Contains("FIELD_VALIDATION_ERROR") ||

@@ -904,6 +904,8 @@ INSERT INTO txt VALUES ('delete_element',       'German', 	'Element l&ouml;schen
 INSERT INTO txt VALUES ('delete_element',       'English', 	'Delete element');
 INSERT INTO txt VALUES ('requester', 			'German',	'Antragsteller');
 INSERT INTO txt VALUES ('requester', 			'English',	'Requester');
+INSERT INTO txt VALUES ('save_promote', 		'German',	'Speichern + Status &auml;ndern');
+INSERT INTO txt VALUES ('save_promote', 		'English',	'Save + Promote');
 INSERT INTO txt VALUES ('promote', 		        'German',	'Status &auml;ndern');
 INSERT INTO txt VALUES ('promote', 		        'English',	'Promote');
 INSERT INTO txt VALUES ('promote_to', 			'German',	'Status &auml;ndern');

@@ -173,7 +173,7 @@ namespace FWO.Services
             }
         }
 
-        private async Task RefreshObjects()
+        public async Task RefreshObjects()
         {
             await RefreshPreselectedInterfaces();
             PreselectedInterfaces = ModellingConnectionWrapper.Resolve(await apiConnection.SendQueryAsync<List<ModellingConnectionWrapper>>(ModellingQueries.getSelectedConnections, new { appId = Application.Id })).ToList();

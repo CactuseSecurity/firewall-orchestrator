@@ -415,7 +415,7 @@ def getObjects (nativeConfig: dict, importState: ImportStateController) -> int:
         nativeConfig['object_domains'].append({
             'domain_name': managerDetails.DomainName,
             'domain_uid': managerDetails.DomainUid,
-            'objects': []})
+            'object_types': []})
         
         # get all objects
         for obj_type in cp_const.api_obj_types:

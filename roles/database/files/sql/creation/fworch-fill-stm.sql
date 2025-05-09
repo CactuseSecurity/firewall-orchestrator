@@ -135,6 +135,7 @@ insert into config (config_key, config_value, config_user) VALUES ('varianceAnal
 insert into config (config_key, config_value, config_user) VALUES ('varianceAnalysisStartAt', '00:00:00', 0);
 insert into config (config_key, config_value, config_user) VALUES ('varianceAnalysisSync', 'false', 0);
 insert into config (config_key, config_value, config_user) VALUES ('varianceAnalysisRefresh', 'false', 0);
+insert into config (config_key, config_value, config_user) VALUES ('resolveNetworkAreas', 'False', 0);
 
 INSERT INTO "report_format" ("report_format_name") VALUES ('json');
 INSERT INTO "report_format" ("report_format_name") VALUES ('pdf');

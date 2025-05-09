@@ -48,6 +48,12 @@
                 <input type="number" min="0" @bind="configData!.MinCollapseAllDevices">
             </div>
         </div>
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5456"))">
+            <label for="cbx_resolveNAs" class="col-form-label col-sm-4">@(userConfig.GetText("resolveNetworkAreas"))*:</label>
+            <div class="col-sm-1">
+                <input id="cbx_resolveNAs" type="checkbox" class="w-100" @bind="configData!.ResolveNetworkAreas">
+            </div>
+        </div>
         <hr />
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5447"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("unusedTolerance"))*:</label>

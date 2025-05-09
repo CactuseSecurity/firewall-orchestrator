@@ -617,7 +617,7 @@ class FwConfigImportRule(FwConfigImportBase):
                     }
                     update_rule_to(where: {active: {_eq: true}, rule_id: {_in: $ruleIds}}, _set: {removed: $importId, active: false}) {
                         affected_rows
-                    }
+                    }for rulebase in self._fw_config_import_rule.Normalized
                     update_rule_service(where: {active: {_eq: true}, rule_id: {_in: $ruleIds}}, _set: {removed: $importId, active: false}) {
                         affected_rows
                     }

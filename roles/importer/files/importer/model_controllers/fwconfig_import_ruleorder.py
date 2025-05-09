@@ -195,7 +195,7 @@ class RuleOrderService:
 
         if not prev_rule_uid:
             next_rules_rule_num_numeric = self._get_relevant_rule_num_numeric(next_rule_uid, self.fw_config_import_rule.ImportDetails, self._target_rules_flat)
-            changed_rule.rule_num_numeric = next_rules_rule_num_numeric / 2
+            changed_rule.rule_num_numeric = next_rules_rule_num_numeric / 2 or 1
             self._updated_rules.append(changed_rule.rule_uid)
             return
 

@@ -53,11 +53,8 @@ namespace FWO.Ui.Services
                     dummyAppRoleId = dummyAppRoles.First().Id;
                 }
 
-                foreach(var conn in Connections)
-                {
-                    await ExtractUsedInterface(conn);
-                    conn.SyncState(dummyAppRoleId);
-                }
+                await PrepareConnections(Connections);
+
                 ConnToDelete = Connections.FirstOrDefault() ?? new ModellingConnection();
                 overviewConnHandler = new ModellingConnectionHandler(apiConnection, userConfig, Application, Connections, new(), true,
                     false, DisplayMessageInUi, ReInit, IsOwner)
@@ -72,6 +69,27 @@ namespace FWO.Ui.Services
             {
                 DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
             }
+        }
+
+        private async Task PrepareConnections(List<ModellingConnection> connections)
+        {
+            if(userConfig.VarianceAnalysisSync)
+            {
+                await AnalyseStatus(connections);
+             }
+
+            foreach(var conn in connections)
+            {
+                await ExtractUsedInterface(conn);
+                conn.SyncState(dummyAppRoleId);
+            }
+        }
+
+        public async Task AnalyseStatus(List<ModellingConnection> connections)
+        {
+            ExtStateHandler extStateHandler = new(apiConnection);
+            ModellingVarianceAnalysis varianceAnalysis = new(apiConnection, extStateHandler, userConfig, Application, DisplayMessageInUi);
+            await varianceAnalysis.AnalyseConnsForStatus([.. connections.Where(x => !x.IsDocumentationOnly())]);
         }
 
         public async Task ReInit()

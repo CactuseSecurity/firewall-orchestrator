@@ -105,6 +105,10 @@ namespace FWO.Test
             {"missing_app_servers", "Missing App Servers"},
             {"surplus_app_servers", "Surplus App Servers"},
             {"VarianceAnalysis", "VarianceAnalysis"},
+            {"connections_not_implemented", "Connections not implemented"},
+            {"connections_with_diffs", "Connections with Diffs"},
+            {"management", "Management"},
+            {"gateway", "Gateway"},
         };
 
         public override string GetText(string key)

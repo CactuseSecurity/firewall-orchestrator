@@ -1107,6 +1107,30 @@
                   "comment": ""
                 },
                 {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "ticket_id",
+                      "common_service",
+                      "is_interface",
+                      "is_published",
+                      "is_requested",
+                      "conn_prop",
+                      "creator",
+                      "extra_params",
+                      "name",
+                      "app_id",
+                      "id",
+                      "proposed_app_id",
+                      "used_interface_id",
+                      "reason",
+                      "creation_date"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "modeller",
                   "permission": {
                     "columns": [
@@ -1135,6 +1159,17 @@
               "update_permissions": [
                 {
                   "role": "implementer",
+                  "permission": {
+                    "columns": [
+                      "conn_prop"
+                    ],
+                    "filter": {},
+                    "check": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
                   "permission": {
                     "columns": [
                       "conn_prop"
@@ -1446,6 +1481,18 @@
                   "comment": ""
                 },
                 {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "nwgroup_id",
+                      "connection_field",
+                      "connection_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "modeller",
                   "permission": {
                     "columns": [
@@ -1504,6 +1551,18 @@
               "select_permissions": [
                 {
                   "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "nwobject_id",
+                      "connection_field",
+                      "connection_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
                   "permission": {
                     "columns": [
                       "nwobject_id",
@@ -1866,6 +1925,22 @@
                   "comment": ""
                 },
                 {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "is_global",
+                      "name",
+                      "app_id",
+                      "id",
+                      "port",
+                      "port_end",
+                      "proto_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "modeller",
                   "permission": {
                     "columns": [
@@ -1964,6 +2039,17 @@
                   "comment": ""
                 },
                 {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "connection_id",
+                      "service_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "modeller",
                   "permission": {
                     "columns": [
@@ -2049,6 +2135,22 @@
               "select_permissions": [
                 {
                   "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "is_global",
+                      "comment",
+                      "creator",
+                      "name",
+                      "app_id",
+                      "id",
+                      "creation_date"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
                   "permission": {
                     "columns": [
                       "is_global",
@@ -2162,6 +2264,17 @@
                   "comment": ""
                 },
                 {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "connection_id",
+                      "service_group_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "modeller",
                   "permission": {
                     "columns": [
@@ -2218,6 +2331,17 @@
               "select_permissions": [
                 {
                   "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "service_group_id",
+                      "service_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
                   "permission": {
                     "columns": [
                       "service_group_id",
@@ -6508,7 +6632,8 @@
                       "stop_time",
                       "successful_import"
                     ],
-                    "filter": {}
+                    "filter": {},
+                    "allow_aggregations": true
                   }
                 },
                 {
@@ -8861,7 +8986,8 @@
                       "mgm_create",
                       "mgm_update"
                     ],
-                    "filter": {}
+                    "filter": {},
+                    "allow_aggregations": true
                   }
                 },
                 {
@@ -9799,6 +9925,22 @@
                   }
                 },
                 {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "import_created",
+                      "import_last_seen",
+                      "objgrp_id",
+                      "objgrp_member_id",
+                      "removed",
+                      "active",
+                      "negated"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "importer",
                   "permission": {
                     "columns": [
@@ -9981,6 +10123,22 @@
                     ],
                     "filter": {}
                   }
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "import_created",
+                      "import_last_seen",
+                      "objgrp_flat_id",
+                      "objgrp_flat_member_id",
+                      "removed",
+                      "active",
+                      "negated"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
                 },
                 {
                   "role": "importer",
@@ -18735,6 +18893,22 @@
                   }
                 },
                 {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "import_created",
+                      "import_last_seen",
+                      "removed",
+                      "svcgrp_id",
+                      "svcgrp_member_id",
+                      "active",
+                      "negated"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "importer",
                   "permission": {
                     "columns": [
@@ -18920,6 +19094,22 @@
                 },
                 {
                   "role": "importer",
+                  "permission": {
+                    "columns": [
+                      "removed",
+                      "active",
+                      "negated",
+                      "import_created",
+                      "import_last_seen",
+                      "svcgrp_flat_id",
+                      "svcgrp_flat_member_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
                   "permission": {
                     "columns": [
                       "removed",
@@ -21214,6 +21404,22 @@
                   }
                 },
                 {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "import_created",
+                      "import_last_seen",
+                      "removed",
+                      "usergrp_id",
+                      "usergrp_member_id",
+                      "active"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "importer",
                   "permission": {
                     "columns": [
@@ -21433,6 +21639,22 @@
                 },
                 {
                   "role": "importer",
+                  "permission": {
+                    "columns": [
+                      "import_created",
+                      "import_last_seen",
+                      "removed",
+                      "usergrp_flat_id",
+                      "usergrp_flat_member_id",
+                      "active"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
                   "permission": {
                     "columns": [
                       "import_created",

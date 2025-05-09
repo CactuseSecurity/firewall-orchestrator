@@ -78,7 +78,7 @@ namespace FWO.Data.Modelling
             return $"<span class=\"{Icons.AppRole}\"></span> " + DisplayHtml();
         }
 
-        public override NetworkObject ToNetworkObjectGroup(bool IdAsName = false)
+        public override NetworkObject ToNetworkObjectGroup(bool IdAsName = false, bool ListMembers = true)
         {
             Group<NetworkObject>[] objectGroups = ModellingAppRoleWrapper.ResolveAppServersAsNetworkObjectGroup(AppServers ?? []);
             GroupFlat<NetworkObject>[] objectGroupFlats = ModellingAppRoleWrapper.ResolveAppServersAsNetworkObjectGroupFlat(AppServers ?? []);
@@ -87,12 +87,12 @@ namespace FWO.Data.Modelling
             {
                 Id = Id,
                 Number = Number,
-                Name = Name + " (" + IdString + ")" ?? IdString ?? "",
+                Name = IdAsName ? IdString : Name + " (" + IdString + ")" ?? IdString ?? "",
                 Comment = Comment ?? "",
                 Type = new NetworkObjectType(){ Name = ObjectType.Group },
                 ObjectGroups = objectGroups,
                 ObjectGroupFlats = objectGroupFlats,
-                MemberNames = string.Join("|", Array.ConvertAll(objectGroups, o => o.Object?.Name))
+                MemberNames = ListMembers ? string.Join("|", Array.ConvertAll(objectGroups, o => o.Object?.Name)) : "..."
             };
         }
 

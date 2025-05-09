@@ -226,7 +226,7 @@ namespace FWO.Report
         private void AppendObjects(ref StringBuilder report, OwnerReport ownerReport, int chapterNumber)
         {
             List<ModellingConnection> relevantConns = CollectObjectsInReport(ownerReport).Connections;
-            ownerReport.AllObjects = ConnectionReport.GetAllNetworkObjects(relevantConns, true);
+            ownerReport.AllObjects = ConnectionReport.GetAllNetworkObjects(relevantConns, true, userConfig.ResolveNetworkAreas);
             ConnectionReport.SetObjectNumbers(ref ownerReport.AllObjects);
             ownerReport.AllServices = ConnectionReport.GetAllServices(relevantConns, true);
             ConnectionReport.SetSvcNumbers(ref ownerReport.AllServices);

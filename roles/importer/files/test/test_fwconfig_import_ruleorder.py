@@ -14,7 +14,7 @@ class TestFwoConfigImportRule(unittest.TestCase):
     def test_initialized(self):
 
         # Arrange
-        previous_config, fwconfig_import_rule, rule_uids = set_up_test_for_ruleorder_test_with_relevant_changes()
+        previous_config, fwconfig_import_rule, _ = set_up_test_for_ruleorder_test_with_relevant_changes()
         rule_order_service = RuleOrderService()
         fwconfig_import_rule.ImportDetails.setup_response((1, 2), {'a': 3}, 'Erwartete Antwort')
 

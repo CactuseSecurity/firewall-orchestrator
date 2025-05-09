@@ -150,11 +150,12 @@ class RuleOrderService:
 
         for rule_uid in self._needs_rule_num_numeric_update_rule_uids:
 
-            # Set initial rule_num_numerics if there are no rules in the database.
+            # Set initial rule_num_numerics if it is the first import.
 
             if len(self._source_rules_flat) == 0:
-                changed_rule = self.get_new_rule_num_numeric()
-                return
+                _, changed_rule = self._get_index_and_rule_object_from_flat_list(self.target_rules_flat, rule_uid)
+                changed_rule.rule_num_numeric = self.get_new_rule_num_numeric()
+                continue
             
             # Compute value if it is a consecutive insert.
 
@@ -196,15 +197,11 @@ class RuleOrderService:
         if not prev_rule_uid:
             next_rules_rule_num_numeric = self._get_relevant_rule_num_numeric(next_rule_uid, self.fw_config_import_rule.ImportDetails, self._target_rules_flat)
             changed_rule.rule_num_numeric = next_rules_rule_num_numeric / 2 or 1
-            self._updated_rules.append(changed_rule.rule_uid)
-            return
-
+            
         elif not next_rule_uid:
             previous_rule_num_numeric = self._get_relevant_rule_num_numeric(prev_rule_uid, self.fw_config_import_rule.ImportDetails, self._target_rules_flat)
             changed_rule.rule_num_numeric = previous_rule_num_numeric + rule_num_numeric_steps
-            self._updated_rules.append(changed_rule.rule_uid)
-            return
-        
+                    
         else:
             previous_rule_num_numeric = self._get_relevant_rule_num_numeric(prev_rule_uid, self.fw_config_import_rule.ImportDetails, self._target_rules_flat)
             next_rules_rule_num_numeric = self._get_relevant_rule_num_numeric(next_rule_uid, self.fw_config_import_rule.ImportDetails, self._target_rules_flat)
@@ -214,9 +211,8 @@ class RuleOrderService:
             else:    
                 changed_rule.rule_num_numeric = (previous_rule_num_numeric + next_rules_rule_num_numeric) / 2
 
-            self._updated_rules.append(changed_rule.rule_uid)
-            return
-        
+        self._updated_rules.append(changed_rule.rule_uid)
+                    
 
 
     def _calculate_rule_num_numeric_for_consecutive_insert(self, rule_uid):
@@ -272,7 +268,7 @@ class RuleOrderService:
         
         # Evaluate adjacent rule_uids
         
-        index, changed_rule = self._get_index_and_rule_object_from_flat_list(self._target_rules_flat, rule_uid)
+        index, _ = self._get_index_and_rule_object_from_flat_list(self._target_rules_flat, rule_uid)
 
         prev_rule_uid, next_rule_uid = self._get_adjacent_list_element(self._target_rule_uids, index)
 
@@ -307,14 +303,12 @@ class RuleOrderService:
         }
         """
 
-        queryVariables = { 'rule_uid': rule_uid }
-
         try:
             query_result = import_state.call(get_rule_num_numeric_by_uid_query, queryVariables={ 'rule_uid': rule_uid })
             if 'errors' in query_result:
                 self._logger.exception(f"fwo_api:importNwObject - error in addNewRuleMetadata: {str(query_result['errors'])}")
                 raise FwoApiFailure(message="Failed to query rule_num_numeric by uid for unknown reason.")
-        except Exception as e:
+        except Exception:
             raise FwoApiFailure(f"Failed to query rule_num_numeric by uid: {str(traceback.format_exc())}")
         
         return query_result["data"]["rule"][0]["rule_num_numeric"]

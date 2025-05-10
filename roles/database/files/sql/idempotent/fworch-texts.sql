@@ -1631,6 +1631,8 @@ INSERT INTO txt VALUES ('impl_instructions',    'German',   'Implementationsanwe
 INSERT INTO txt VALUES ('impl_instructions',    'English',  'Implementation instructions');
 INSERT INTO txt VALUES ('never_requested',      'German',   'Wurde noch nicht beantragt');
 INSERT INTO txt VALUES ('never_requested',      'English',  'Never requested');
+INSERT INTO txt VALUES ('never_succ_req',       'German',   'Wurde noch nicht erfolgreich beantragt');
+INSERT INTO txt VALUES ('never_succ_req',       'English',  'Never successfully requested');
 INSERT INTO txt VALUES ('in_process',           'German',   'Antrag in Bearbeitung');
 INSERT INTO txt VALUES ('in_process',           'English',  'Request in process');
 INSERT INTO txt VALUES ('temp_error',           'German',   'Tempor&auml;rer Fehler');
@@ -2749,6 +2751,8 @@ INSERT INTO txt VALUES ('U0016', 'English', 'Window can be closed.');
 
 INSERT INTO txt VALUES ('U1002', 'German',  'Sind sie sicher, dass sie folgende Reportvorlage l&ouml;schen wollen: ');
 INSERT INTO txt VALUES ('U1002', 'English', 'Do you really want to delete report template');
+INSERT INTO txt VALUES ('U1003', 'German',  'In diesem Report werden nur vollst&auml;ndig modellierte Verbindungen ber&uuml;cksichtigt.');
+INSERT INTO txt VALUES ('U1003', 'English', 'In this report only completely modelled connections are regarded.');
 
 INSERT INTO txt VALUES ('U2002', 'German',  'Sind sie sicher, dass sie folgenden Reporttermin l&ouml;schen wollen: ');
 INSERT INTO txt VALUES ('U2002', 'English', 'Do you really want to delete report schedule ');

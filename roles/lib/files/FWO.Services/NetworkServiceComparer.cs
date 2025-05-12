@@ -18,22 +18,26 @@ namespace FWO.Services
                 return false;
             }
 
-            return (option.SvcRegardPortAndProt ? service1.ProtoId == service2.ProtoId
+            int destPortEnd1 = service1.DestinationPortEnd ?? service1.DestinationPort ?? 0;
+            int destPortEnd2 = service2.DestinationPortEnd ?? service2.DestinationPort ?? 0;
+
+            return (!option.SvcRegardPortAndProt || service1.ProtoId == service2.ProtoId
                     && service1.DestinationPort == service2.DestinationPort
-                    && service1.DestinationPortEnd == service2.DestinationPortEnd : true)
-                && (option.SvcRegardName ? service1.Name == service2.Name : true);
+                    && destPortEnd1 == destPortEnd2)
+                && (!option.SvcRegardName || service1.Name == service2.Name);
         }
 
         public int GetHashCode(NetworkService service)
         {
-            return (option.SvcRegardPortAndProt ? HashCode.Combine(service.ProtoId, service.DestinationPort, service.DestinationPortEnd) : 0)
+            int destPortEnd = service.DestinationPortEnd ?? service.DestinationPort ?? 0;
+            return (option.SvcRegardPortAndProt ? HashCode.Combine(service.ProtoId, service.DestinationPort, destPortEnd) : 0)
                 ^ (option.SvcRegardName ? HashCode.Combine(service.Name) : 0);
         }
     }
 
     public class NetworkServiceGroupComparer(RuleRecognitionOption option) : IEqualityComparer<NetworkService?>
     {
-        NetworkServiceComparer networkServiceComparer = new(option);
+        readonly NetworkServiceComparer networkServiceComparer = new(option);
 
         public bool Equals(NetworkService? service1, NetworkService? service2)
         {

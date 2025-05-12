@@ -19,43 +19,51 @@
     <Body>
         @if (Display)
         {
-            <div class="m-2">
-                <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="WfReqTask" Items="TaskList.OrderBy(t => t.TaskNumber).ToList()" PageSize="0" ColumnReorder="true">
-                    <Column TableItem="WfReqTask" Title="@(userConfig.GetText("number"))" Field="@(x => x.TaskNumber)" Sortable="true" Filterable="false" />
-                    <Column TableItem="WfReqTask" Title="@(userConfig.GetText("type"))" Field="@(x => x.Id)" Sortable="true" Filterable="false">
-                        <Template>
-                            @(userConfig.GetText(context.TaskType))
-                        </Template>
-                    </Column>
-                    <Column TableItem="WfReqTask" Title="@(userConfig.GetText("management"))" Field="@(x => x.Id)" Sortable="false" Filterable="false">
-                        <Template>
-                            @(context.OnManagement?.Name)
-                        </Template>
-                    </Column>
-                    <Column TableItem="WfReqTask" Title="@(userConfig.GetText("title"))" Field="@(x => x.Title)" Sortable="true" Filterable="false" />
-                    <Column TableItem="WfReqTask" Title="@(userConfig.GetText("state"))" Field="@(x => x.StateId)" Sortable="true" Filterable="false">
-                        <Template>
-                            @(RequestInProcess ? states.Name[context.StateId] : "")
-                        </Template>
-                    </Column>
-                    <Column TableItem="WfReqTask" Title="@(userConfig.GetText("ext_ticket_number"))" Field="@(x => x.Id)" Sortable="false" Filterable="false">
-                        <Template>
-                            @(context.GetAddInfoValue(AdditionalInfoKeys.ExtIcketId) ?? "")
-                        </Template>
-                    </Column>
-                    <DetailTemplate TableItem="WfReqTask">
-                        <Detail Data="@(userConfig.GetText("action") + ": " + context.RequestAction)">
-                            <span>@((MarkupString)@DisplayTaskDetails(context))</span>
-                        </Detail>
-                    </DetailTemplate>
-                </Table>
-            </div>
+            @if(TaskList.Count == 0)
+            {
+                <br>
+                <b>@(userConfig.GetText("U9026"))</b>
+            }
+            else
+            {
+                <div class="m-2">
+                    <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="WfReqTask" Items="TaskList.OrderBy(t => t.TaskNumber).ToList()" PageSize="0" ColumnReorder="true">
+                        <Column TableItem="WfReqTask" Title="@(userConfig.GetText("number"))" Field="@(x => x.TaskNumber)" Sortable="true" Filterable="false" />
+                        <Column TableItem="WfReqTask" Title="@(userConfig.GetText("type"))" Field="@(x => x.Id)" Sortable="true" Filterable="false">
+                            <Template>
+                                @(userConfig.GetText(context.TaskType))
+                            </Template>
+                        </Column>
+                        <Column TableItem="WfReqTask" Title="@(userConfig.GetText("management"))" Field="@(x => x.Id)" Sortable="false" Filterable="false">
+                            <Template>
+                                @(context.OnManagement?.Name)
+                            </Template>
+                        </Column>
+                        <Column TableItem="WfReqTask" Title="@(userConfig.GetText("title"))" Field="@(x => x.Title)" Sortable="true" Filterable="false" />
+                        <Column TableItem="WfReqTask" Title="@(userConfig.GetText("state"))" Field="@(x => x.StateId)" Sortable="true" Filterable="false">
+                            <Template>
+                                @(RequestInProcess ? states.Name[context.StateId] : "")
+                            </Template>
+                        </Column>
+                        <Column TableItem="WfReqTask" Title="@(userConfig.GetText("ext_ticket_number"))" Field="@(x => x.Id)" Sortable="false" Filterable="false">
+                            <Template>
+                                @(context.GetAddInfoValue(AdditionalInfoKeys.ExtIcketId) ?? "")
+                            </Template>
+                        </Column>
+                        <DetailTemplate TableItem="WfReqTask">
+                            <Detail Data="@(userConfig.GetText("action") + ": " + context.RequestAction)">
+                                <span>@((MarkupString)@DisplayTaskDetails(context))</span>
+                            </Detail>
+                        </DetailTemplate>
+                    </Table>
+                </div>
+            }
         }
     </Body>
     <Footer>
         <AuthorizeView Roles="@Roles.Modeller">
             <Authorized>
-                @if (SelectedApp.Id > 0 && !WorkInProgress && !RequestInProcess)
+                @if (SelectedApp.Id > 0 && !WorkInProgress && !RequestInProcess && TaskList.Count > 0)
                 {
                     <button type="button" class="btn btn-sm btn-primary" @onclick="StartRequests">@(userConfig.GetText("request_fw_change"))</button>
                 }
@@ -68,7 +76,7 @@
                 <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("request_fw_change"))</button>
             </NotAuthorized>
         </AuthorizeView>
-        <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(userConfig.GetText("cancel"))</button>
+        <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(userConfig.GetText("close"))</button>
     </Footer>
 </PopUp>
 <InProgress Display="WorkInProgress" />
@@ -173,7 +181,7 @@
         {
             intTicket.UpdateCidrsInTaskElements();
             TaskList = intTicket.Tasks.OrderBy(t => t.TaskNumber).ToList();
-            RequestInProcess = (TaskList.FirstOrDefault(t => extStateHandler.IsInProgress(t.StateId)) != null);
+            RequestInProcess = extStateHandler.IsInProgress(intTicket.StateId) && (TaskList.FirstOrDefault(t => extStateHandler.IsInProgress(t.StateId)) != null);
         }
     }
 
@@ -287,7 +295,7 @@
                 TaskList = intTicket.Tasks;
                 await SaveTicketId(intTicket.Id);
                 await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.InitRequests, ModellingTypes.ModObjectType.CommunicationProfile,
-                    0, $"Initialized Rollout Requests", apiConnection, userConfig,
+                    0, $"Initialized Rollout Requests (Ticket {intTicket.Id})", apiConnection, userConfig,
                     intTicket.Tasks.FirstOrDefault()?.Owners.FirstOrDefault()?.Owner.Id, DefaultInit.DoNothing, intTicket.Requester?.Name);
                 SubscribeTaskChanges();
                 await CreateExtRequests(intTicket);

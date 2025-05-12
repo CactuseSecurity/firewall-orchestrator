@@ -1148,9 +1148,12 @@ Create table IF NOT EXISTS "rulebase_link"
 (
 	"id" SERIAL primary key,
 	"gw_id" Integer,
-	"from_rule_id" Integer,
+	"from_rulebase_id" Integer, -- either from_rulebase_id or from_rule_id must be SET or the is_initial flag
+	"from_rule_id" BIGINT,
 	"to_rulebase_id" Integer NOT NULL,
 	"link_type" Integer,
+	"is_initial" BOOLEAN DEFAULT FALSE,
+	"is_global" BOOLEAN DEFAULT FALSE,
 	"created" BIGINT,
 	"removed" BIGINT
 );

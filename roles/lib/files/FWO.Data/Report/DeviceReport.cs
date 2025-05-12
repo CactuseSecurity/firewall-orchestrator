@@ -40,7 +40,7 @@ namespace FWO.Data.Report
         //     // rbLinkIn ??= RbLink;
         //     // if (rbLinkIn != null)
         //     // {
-        //     //     if (rbLinkIn.LinkType == 0)   // TODO: use enum here
+        //     //     if (rbLinkIn.IsInitial)   // TODO: use enum here
         //     //     {
         //     //         foreach (Rule rule in rbLinkIn.NextRulebase.Rules) // only on rule per rule_metadata
         //     //         {
@@ -68,7 +68,7 @@ namespace FWO.Data.Report
         // }
         // public int? GetInitialRulebaseId(ManagementReport managementReport)
         // {
-        //     return RulebaseLinks.FirstOrDefault(_ => _.LinkType == 0)?.NextRulebaseId;
+        //     return RulebaseLinks.FirstOrDefault(_ => _.IsInitial)?.NextRulebaseId;
         // }
 
     }

@@ -13,7 +13,10 @@ query getUserDetails(
       limit: $limit
       offset: $offset
       where: {
-        user_last_seen: { _gte: $import_id_start }
+        _or: [
+          { removed: { _is_null: true } }
+          { removed: { _gte: $import_id_start } }
+        ]
         user_create: { _lte: $import_id_end }
         user_name: { _in: $user_name }
       }

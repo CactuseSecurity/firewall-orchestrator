@@ -1,9 +1,11 @@
 ﻿using FWO.Api.Client;
+using FWO.Api.Client.Queries;
 using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Modelling;
 using FWO.Data.Report;
 using FWO.Data.Workflow;
+using FWO.Logging;
 using System.Text.Json; 
 
 
@@ -39,11 +41,72 @@ namespace FWO.Services
 
         public ModellingAppZone? PlannedAppZoneDbUpdate = default;
 
-        public async Task<ModellingVarianceResult> AnalyseRulesVsModelledConnections(List<ModellingConnection> connections, ModellingFilter modellingFilter)
+        public async Task AnalyseConnsForStatus(List<ModellingConnection> connections)
+        {
+            connections = [.. connections.Where(x => !x.IsDocumentationOnly())];
+            varianceResult = await AnalyseRulesVsModelledConnections(connections, new(), false);
+            foreach(var conn in connections)
+            {
+                conn.AddProperty(ConState.VarianceChecked.ToString());
+                if(varianceResult.ConnsNotImplemented.FirstOrDefault(c => c.Id == conn.Id) != null)
+                {
+                    conn.AddProperty(ConState.NotImplemented.ToString());
+                }
+                else
+                {
+                    conn.RemoveProperty(ConState.NotImplemented.ToString());
+                }
+                if (varianceResult.RuleDifferences.FirstOrDefault(c => c.ModelledConnection.Id == conn.Id) != null)
+                {
+                    conn.AddProperty(ConState.VarianceFound.ToString());
+                }
+                else
+                {
+                    conn.RemoveProperty(ConState.VarianceFound.ToString());
+                }
+            }            
+        }
+
+        public async Task<bool> AnalyseConnsForStatusAsync(List<ModellingConnection> connections)
+        {
+            try
+            {
+                await AnalyseConnsForStatus(connections);
+                foreach(var conn in connections)
+                {
+                    await UpdateConnectionStatus(conn);
+                }
+            }
+            catch(Exception exc)
+            {
+                Log.WriteError("Analyse Conns For Status Async", $" Error: ", exc);
+                return false;
+            }
+            return true;
+        }
+
+        private async Task UpdateConnectionStatus(ModellingConnection conn)
+        {
+            try
+            {
+                var Variables = new
+                {
+                    id = conn.Id,
+                    connProp = conn.Properties
+                };
+                await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateConnectionProperties, Variables);
+            }
+            catch(Exception exc)
+            {
+                Log.WriteError("Update Connection Properties", $"Could not change state for Connection {conn.Id}: ", exc);
+            }
+        }
+
+        public async Task<ModellingVarianceResult> AnalyseRulesVsModelledConnections(List<ModellingConnection> connections, ModellingFilter modellingFilter, bool fullAnalysis = true)
         {
             await InitManagements();
             varianceResult = new() { Managements = RelevantManagements };
-            if(ruleRecognitionOption.NwSeparateGroupAnalysis)
+            if(ruleRecognitionOption.NwSeparateGroupAnalysis && fullAnalysis)
             {
                 await GetNwObjectsProductionState();
                 PreAnalyseAllAppRoles(connections);
@@ -52,7 +115,7 @@ namespace FWO.Services
             {
                 foreach(var conn in connections.Where(c => !c.IsInterface).OrderBy(c => c.Id))
                 {
-                    AnalyseRules(conn, true);
+                    AnalyseRules(conn, fullAnalysis);
                 }
             }
             return varianceResult;
@@ -90,7 +153,7 @@ namespace FWO.Services
                     allModelledAppRoles.Add(modelledAppRole);
                 }
             }
-            allModelledAppRoles = allModelledAppRoles.Distinct(appRoleComparer).ToList();
+            allModelledAppRoles = [.. allModelledAppRoles.Distinct(appRoleComparer)];
         }
 
         private void AnalyseAppRole(ModellingAppRole modelledAppRole, Management mgt)
@@ -125,7 +188,7 @@ namespace FWO.Services
             foreach (Management mgt in RelevantManagements)
             {
                 await AnalyseAppZone(mgt);
-                foreach (var conn in connections.Where(c => !c.IsRequested).OrderBy(c => c.Id))
+                foreach (var conn in connections.Where(c => !c.IsRequested && !c.IsDocumentationOnly()).OrderBy(c => c.Id))
                 {
                     elements = [];
                     AnalyseNetworkAreasForRequest(conn);

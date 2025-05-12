@@ -1,5 +1,4 @@
-﻿using FWO.Data;
-using FWO.Data.Modelling;
+﻿using FWO.Data.Modelling;
 using System.Diagnostics.CodeAnalysis;
 
 namespace FWO.Services
@@ -25,8 +24,9 @@ namespace FWO.Services
                 return false;
             }
 
-            string appServer2Name = AppServerHelper.ConstructAppServerName(appServer2, NamingConvention);
-            return appServer1.Name.Trim() == appServer2Name.Trim(); // || appServer1.Name.Trim() == sanitizedAS2Name.Trim();
+            string appServer1Name = AppServerHelper.ConstructSanitizedAppServerName(appServer1, NamingConvention);
+            string appServer2Name = AppServerHelper.ConstructSanitizedAppServerName(appServer2, NamingConvention);
+            return appServer1Name == appServer2Name;
         }
 
         public int GetHashCode(ModellingAppServerWrapper appServerWrapper)
@@ -36,7 +36,7 @@ namespace FWO.Services
 
         public int GetHashCode(ModellingAppServer appServer)
         {
-            string appServerName = AppServerHelper.ConstructAppServerName(appServer, NamingConvention).Trim();
+            string appServerName = AppServerHelper.ConstructSanitizedAppServerName(appServer, NamingConvention).Trim();
             return HashCode.Combine(appServerName);
         }
     }

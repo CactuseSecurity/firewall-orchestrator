@@ -50,12 +50,12 @@ namespace FWO.Data.Modelling
             return $"<span class=\"{Icons.NwGroup}\"></span> " + DisplayHtml();
         }
 
-        public virtual NetworkObject ToNetworkObjectGroup(bool IdAsName = false)
+        public virtual NetworkObject ToNetworkObjectGroup(bool IdAsName = false, bool ListMembers = true)
         {
             return new()
             {
                 Id = Id,
-                Name = IdString,
+                Name = IdAsName ? IdString : Name + " (" + IdString + ")",
                 Number = Number,
                 Type = new NetworkObjectType(){ Name = ObjectType.Group }
             };

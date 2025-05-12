@@ -80,6 +80,7 @@
       },
       {
         "type": "Microsoft.Storage/storageAccounts",
+        "minimumTlsVersion": "TLS1_2",
         "apiVersion": "2022-09-01",
         "name": "[variables('storageAccountName')]",
         "location": "[parameters('location')]",

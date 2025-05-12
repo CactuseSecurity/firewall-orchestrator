@@ -23,6 +23,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string subscribeImportAppDataConfigChanges;
         public static readonly string subscribeImportIpDataConfigChanges;
         public static readonly string subscribeImportNotifyConfigChanges;
+        public static readonly string subscribeVarianceAnalysisConfigChanges;
 
 
         static ConfigQueries()
@@ -48,6 +49,7 @@ namespace FWO.Api.Client.Queries
                 subscribeImportAppDataConfigChanges = File.ReadAllText(QueryPath + "config/subscribeImportAppDataConfigChanges.graphql");
                 subscribeImportIpDataConfigChanges = File.ReadAllText(QueryPath + "config/subscribeImportSubnetDataConfigChanges.graphql");
                 subscribeImportNotifyConfigChanges = File.ReadAllText(QueryPath + "config/subscribeImportNotifyConfigChanges.graphql");
+                subscribeVarianceAnalysisConfigChanges = File.ReadAllText(QueryPath + "config/subscribeVarianceAnalysisConfigChanges.graphql");
             }
             catch (Exception exception)
             {

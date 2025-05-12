@@ -76,14 +76,22 @@
                         <div class="btn-group ms-5">
                             <button type="button" class="btn btn-sm btn-dark" @onclick="ShareLink">
                                 @(appHandler!.DisplayButton("share_link", Icons.Share))
-                            </button>&nbsp;
+                            </button>
                             <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}")">
                                 <Authorized>
+                                    &nbsp;
                                     <button type="button" class="btn btn-sm btn-dark" @onclick="ManualAppServer">
                                         @(appHandler!.DisplayButton("edit_app_server", Icons.Edit, "app_server"))
                                     </button>
                                 </Authorized>
                             </AuthorizeView>
+                            &nbsp;
+                            @if(userConfig.VarianceAnalysisRefresh)
+                            {
+                                <button type="button" class="btn btn-sm btn-primary" @onclick="async() => await appHandler.AnalyseStatus(appHandler.Connections)">
+                                    @(appHandler!.DisplayButton("refresh_state", Icons.Refresh, "state"))
+                                </button>
+                            }
                         </div>
                     }
                     </h5>
@@ -377,37 +385,69 @@ else
     {
         if(extStateHandler!= null)
         {
-            if(extStateHandler.IsInProgress(intTicket.StateId))
-            {
-                ChangeStatus = userConfig.GetText("in_process");
-            }
-            else if(extStateHandler.IsDone(intTicket.StateId))
+            if(extStateHandler.IsDone(intTicket.StateId))
             {
                 ChangeStatus = $"{userConfig.GetText("last_successful")}: {intTicket.CreationDate.ToString("yyyy-MM-dd HH:mm:ss")}, {userConfig.GetText("implemented")}: {intTicket.CompletionDate?.ToString("yyyy-MM-dd HH:mm:ss")}, {intTicket.Requester?.Name}";
             }
             else
             {
-                List<ExternalRequest> lastRequests = await apiConnection.SendQueryAsync<List<ExternalRequest>>(ExtRequestQueries.getLastRequest, new{ticketId = intTicket.Id});
-                if(lastRequests != null && lastRequests.Count > 0)
+                string? lastResponse = await GetLastResponse(intTicket);
+                if(extStateHandler.IsInProgress(intTicket.StateId))
                 {
-                    string? lastResponse = !string.IsNullOrEmpty(lastRequests.First().LastProcessingResponse) ? 
-                        lastRequests.First().LastProcessingResponse : lastRequests.First().LastCreationResponse;
-                    bool shortened = false;
-                    string tooltip = states.Name[intTicket.StateId] + ": " + Sanitizer.SanitizeCommentOpt(lastResponse, ref shortened);
-                    ChangeStatus = $"<div data-toggle=\"tooltip\" title=\"{tooltip}\">{userConfig.GetText("implementation_error")}</div>";
+                    if(lastResponse != null && IsTempError(lastResponse))
+                    {
+                        string tooltip = userConfig.GetText("temp_error_extended") + ": " + lastResponse;
+                        ChangeStatus = $"<div data-toggle=\"tooltip\" title=\"{tooltip}\">{userConfig.GetText("temp_error")}</div>";
+                    }
+                    else
+                    {
+                        ChangeStatus = userConfig.GetText("in_process");
+                    }
                 }
                 else
                 {
-                    ChangeStatus = userConfig.GetText("implementation_error");
-                }
-                await InvokeAsync(StateHasChanged);
-                if(firstErrorMessage)
-                {
-                    firstErrorMessage = false;
-                    DisplayMessageInUi(null, userConfig.GetText("implementation_error"), userConfig.ModRolloutErrorText, true);
+                    if(lastResponse != null)
+                    {
+                        string tooltip = states.Name[intTicket.StateId] + ": " + lastResponse;
+                        ChangeStatus = $"<div data-toggle=\"tooltip\" title=\"{tooltip}\">{userConfig.GetText("implementation_error")}</div>";
+                    }
+                    else
+                    {
+                        ChangeStatus = userConfig.GetText("implementation_error");
+                    }
+                    await InvokeAsync(StateHasChanged);
+                    if(firstErrorMessage)
+                    {
+                        firstErrorMessage = false;
+                        DisplayMessageInUi(null, userConfig.GetText("implementation_error"), userConfig.ModRolloutErrorText, true);
+                    }
                 }
             }
         }
+    }
+
+    private async Task<string?> GetLastResponse(WfTicket intTicket)
+    {
+        try
+        {
+            List<ExternalRequest> lastRequests = await apiConnection.SendQueryAsync<List<ExternalRequest>>(ExtRequestQueries.getLastRequest, new{ticketId = intTicket.Id});
+            if(lastRequests != null && lastRequests.Count > 0)
+            {
+                bool shortened = false;
+                return Sanitizer.SanitizeCommentOpt(!string.IsNullOrEmpty(lastRequests.First().LastProcessingResponse) ? 
+                    lastRequests.First().LastProcessingResponse : lastRequests.First().LastCreationResponse, ref shortened);
+            }
+        }
+        catch(Exception exc)
+        {
+            Log.WriteError("Get Last Response", exc.Message);
+        }
+        return null;
+    }
+    
+    private bool IsTempError(string lastResponse)
+    {
+        return lastResponse.Contains("ACCESS_DENIED_ERROR");
     }
 
     private async void HandleSubscriptionError(Exception exception)

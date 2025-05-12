@@ -25,6 +25,8 @@ namespace FWO.Test
             {"rule_modified","Rule modified"},
             {"deleted","deleted"},
             {"added","added"},
+            {"missing","missing"},
+            {"surplus","surplus"},
             {"change_time","Change Time"},
             {"change_type","Change Type"},
             {"number","No."},
@@ -94,6 +96,19 @@ namespace FWO.Test
             {"clear_all", "Clear All"},
             {"used_objects", "Used Objects"},
             {"object_fetch", "Object Fetch"},
+            {"app_roles", "AppRoles"},
+            {"implemented", "Implemented"},
+            {"not_implemented", "Not Implemented"},
+            {"with_diffs", "With Diffs"},
+            {"app_roles_not_implemented", "AppRoles Not Implemented"},
+            {"app_roles_with_diffs", "AppRoles With Diffs"},
+            {"missing_app_servers", "Missing App Servers"},
+            {"surplus_app_servers", "Surplus App Servers"},
+            {"VarianceAnalysis", "VarianceAnalysis"},
+            {"connections_not_implemented", "Connections not implemented"},
+            {"connections_with_diffs", "Connections with Diffs"},
+            {"management", "Management"},
+            {"gateway", "Gateway"},
         };
 
         public override string GetText(string key)

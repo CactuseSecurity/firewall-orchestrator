@@ -58,7 +58,6 @@ class FwConfigImportObject(FwConfigImportBase):
                 newSvcObjUids.append(nwSvcUid)
                 deletedSvcObjUids.append(nwSvcUid)
         
-        
         #TODO: calculate user diffs
         # deletedUserUids = list(prevConfig.users.keys() - self.NormalizedConfig.users.keys())
 
@@ -105,8 +104,6 @@ class FwConfigImportObject(FwConfigImportBase):
         self.ImportDetails.Stats.NetworkObjectDeleteCount = len(removedNwObjIds)
         self.ImportDetails.Stats.ServiceObjectAddCount = len(newNwSvcIds)
         self.ImportDetails.Stats.ServiceObjectDeleteCount = len(removedNwSvcIds)
-
-        return
 
     def GetNetworkObjTypeMap(self):
         query = "query getNetworkObjTypeMap { stm_obj_typ { obj_typ_name obj_typ_id } }"

@@ -265,8 +265,10 @@ bugfix release:
 - new config values
 - external request: attempt counter
 
-# 9.0 - 31.07.2024 DEVELOP
+# 8.8.2 - 07.05.2025 DEVELOP
+- displayed state via variance analysis
+
+# 9.0 - 31.05.2025 DEVELOP
 - rule to gateway mapping 1:n
 - add report output for rule to gw mapping
 - cleanup/rework of main import function
-

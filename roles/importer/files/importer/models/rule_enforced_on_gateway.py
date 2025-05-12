@@ -17,7 +17,7 @@ class RuleEnforcedOnGateway(BaseModel):
     removed: Optional[int] 
 
 
-    def toDict(self):
+    def to_dict(self):
         return {
             "rule_id": self.rule_id,
             "dev_id": self.dev_id,

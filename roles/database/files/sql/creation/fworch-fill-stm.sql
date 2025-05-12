@@ -131,6 +131,11 @@ insert into config (config_key, config_value, config_user) VALUES ('modModelledM
 insert into config (config_key, config_value, config_user) VALUES ('modModelledMarkerLocation', 'rulename', 0);
 insert into config (config_key, config_value, config_user) VALUES ('ruleRecognitionOption', '{"nwRegardIp":true,"nwRegardName":false,"nwRegardGroupName":false,"nwResolveGroup":false,"svcRegardPortAndProt":true,"svcRegardName":false,"svcRegardGroupName":false,"svcResolveGroup":true}', 0);
 insert into config (config_key, config_value, config_user) VALUES ('availableReportTypes', '[1,2,3,4,5,6,7,8,9,10,21,22]', 0);
+insert into config (config_key, config_value, config_user) VALUES ('varianceAnalysisSleepTime', '0', 0);
+insert into config (config_key, config_value, config_user) VALUES ('varianceAnalysisStartAt', '00:00:00', 0);
+insert into config (config_key, config_value, config_user) VALUES ('varianceAnalysisSync', 'false', 0);
+insert into config (config_key, config_value, config_user) VALUES ('varianceAnalysisRefresh', 'false', 0);
+insert into config (config_key, config_value, config_user) VALUES ('resolveNetworkAreas', 'False', 0);
 
 INSERT INTO "report_format" ("report_format_name") VALUES ('json');
 INSERT INTO "report_format" ("report_format_name") VALUES ('pdf');
@@ -617,9 +622,6 @@ INSERT INTO owner (id, name, dn, group_dn, is_default, recert_interval, app_id_e
 VALUES    (0, 'super-owner', 'uid=admin,ou=tenant0,ou=operator,ou=user,dc=fworch,dc=internal', 'group-dn-for-super-owner', true, 365, 'NONE')
 ON CONFLICT DO NOTHING; 
 
-insert into stm_link_type (id, name) VALUES (0, 'initial');
 insert into stm_link_type (id, name) VALUES (1, 'section');
 insert into stm_link_type (id, name) VALUES (2, 'ordered');
 insert into stm_link_type (id, name) VALUES (3, 'inline');
-insert into stm_link_type (id, name) VALUES (4, 'global');
-insert into stm_link_type (id, name) VALUES (5, 'local');

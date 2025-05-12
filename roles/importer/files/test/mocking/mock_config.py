@@ -1,17 +1,114 @@
 import json
 import uuid
-from typing import Union
-from uid_manager import UidManager
-from mock_rulebase import MockRulebase
+from typing import Union, Dict
 
-""" 
+if __name__ == '__main__': # for usage as executable script
+    from uid_manager import UidManager
+    from mock_rulebase import MockRulebase
+else: # for usage in unit tests
+    from . uid_manager import UidManager
+    from . mock_rulebase import MockRulebase
+    from importer.models.fwconfig_normalized import FwConfigNormalized
+    from importer.models.rulebase import Rulebase
+    from importer.models.rule import Rule
+    from pydantic import PrivateAttr
+    from importer.fwo_const import rule_num_numeric_steps
 
-DISCLAIMER
 
-This script does create a config similar to the normalized config we get when we import and transform a config from sting. However, it is not very sophisticated at this point.
-It simply creates an empty config with the bare minimum to import n rules. To make it work you have to deactivate the consistency checks and create only one rulebase. 
+class MockFwConfigNormalized(FwConfigNormalized):
+    """
+    A mock subclass of FwConfigNormalized for testing purposes.
 
-"""
+    This class creates a fake firewall configuration including rulebases
+    and rules, using a UID manager to generate unique identifiers.
+    """
+
+    _uid_manager: UidManager = PrivateAttr()
+
+    def __init__(self, **kwargs):
+        """
+        Initializes the mock configuration with default action and an empty gateway list.
+        """
+        super().__init__(action="INSERT", gateways=[], **kwargs)
+        self._uid_manager = UidManager()
+
+    @property
+    def uid_manager(self) -> UidManager:
+        """
+        Returns the internal UID manager.
+        """
+        return self._uid_manager
+
+    def initialize_config(self, mock_config: Dict):
+        """
+        Initializes the mock configuration with rulebases and rules.
+
+        Args:
+            mock_config (dict): A dictionary with configuration values. Expected keys:
+                - "rule_config": List of integers, each representing the number of rules per rulebase.
+                - "initialize_rule_num_numeric": Optional boolean, if True assigns incremental numeric rule numbers.
+        """
+        mock_mgm_uid = self.uid_manager.create_uid()
+        created_rule_counter = 1
+
+        for number_of_rules in mock_config["rule_config"]:
+            # Create a new rulebase
+            new_rulebase_uid = self.uid_manager.create_uid()
+            new_rulebase = Rulebase(
+                uid=new_rulebase_uid,
+                name=f"Rulebase {new_rulebase_uid}",
+                mgm_uid=mock_mgm_uid
+            )
+            self.rulebases.append(new_rulebase)
+
+            for i in range(number_of_rules):
+                # Add a new rule to the rulebase
+                new_rule = self.add_rule_to_rulebase(new_rulebase_uid)
+
+                if mock_config.get("initialize_rule_num_numeric"):
+                    new_rule.rule_num_numeric = created_rule_counter * rule_num_numeric_steps
+                    created_rule_counter += 1
+
+    def add_rule_to_rulebase(self, rulebase_uid: str) -> Rule:
+        """
+        Adds a new rule to the rulebase identified by the given UID.
+
+        Args:
+            rulebase_uid (str): The UID of the rulebase to which the rule should be added.
+
+        Returns:
+            Rule: The newly created rule.
+        """
+        rulebase = next(rb for rb in self.rulebases if rb.uid == rulebase_uid)
+
+        new_rule = Rule(
+            action_id=0,
+            mgm_id=0,
+            rule_action="accept",
+            rule_create=0,
+            rule_disabled=False,
+            rule_dst="",
+            rule_dst_neg=False,
+            rule_dst_refs="",
+            rule_last_seen=0,
+            rule_num=0,
+            rule_num_numeric=0,
+            rule_src="",
+            rule_src_neg=False,
+            rule_src_refs="",
+            rule_svc="",
+            rule_svc_neg=False,
+            rule_svc_refs="",
+            rule_time="",
+            track_id=0,
+            rule_track="none",
+            rule_uid=self.uid_manager.create_uid(),
+            rule_installon=""
+        )
+        rulebase.Rules[new_rule.rule_uid] = new_rule
+
+        return new_rule
+        
 
 class ConfigMocker:
     config_type = "normalized"
@@ -62,6 +159,7 @@ class ConfigMocker:
 
     checkpoint_objects_config = {}
 
+
     def create_checkpoint_config(self):
         self.config["object_tables"] = []
         for object_type in self.checkpoint_object_types:
@@ -71,6 +169,7 @@ class ConfigMocker:
                     "object_chunks": [{"objects":[]}]
                 }
             )
+
 
     def create_checkpoint_config_object(self, uid, name, type, domain_uid = "", domain_name = "", domain_type = "", icon = "", color = ""):
         return {
@@ -86,6 +185,7 @@ class ConfigMocker:
             "color": color
         }
 
+
     def create_checkpoint_config_objects(self):
         for objects_config in self.checkpoint_objects_config.keys():
             object_tables = self.config["object_tables"]
@@ -97,6 +197,7 @@ class ConfigMocker:
                 self.checkpoint_config_objects.append(new_object)
                 table["object_chunks"][0]["objects"].append(new_object) # TODO: Support more than one chunk
                 counter += 1
+
 
     def create_config(self, as_dict: bool = False, file_path: str = "", number_config: list = []) -> Union[dict, None]: 
         if number_config == []:
@@ -126,6 +227,7 @@ class ConfigMocker:
             print(f"Config file saved to {file_path}")
 
             return None
+
 
     def build_normalized_config(self):
         self.config = {
@@ -158,6 +260,7 @@ class ConfigMocker:
                 }
             ]
         }
+
 
     def generate_rules(self, rules_number=0):
         rules = {}
@@ -199,6 +302,7 @@ class ConfigMocker:
 
         return rules
 
+
     def generate_rulebase(self, rules_number=0):
         rulebase = MockRulebase()
         rulebase.uid = self.uid_manager.create_uid()
@@ -207,12 +311,23 @@ class ConfigMocker:
         rulebase.Rules = self.generate_rules(rules_number) or {}
         return rulebase
 
+
     def generate_rulebases(self, rulebase_config):
         for number_of_rules in rulebase_config:
             new_rulebase = self.generate_rulebase(number_of_rules)
             self.rulebases.append(new_rulebase)
 
+
 if __name__ == '__main__':
+    """ 
+
+    DISCLAIMER
+
+    This script does create a config similar to the normalized config we get when we import and transform a config from sting. However, it is not very sophisticated at this point.
+    It simply creates an empty config with the bare minimum to import n rules. To make it work you have to deactivate the consistency checks and create only one rulebase. 
+
+    """
+
     config_mocker = ConfigMocker()
     config_mocker.create_config()
 

@@ -170,6 +170,9 @@ namespace FWO.Rest.Client
         [JsonProperty("policy"), JsonPropertyName("policy")]
         public CpPolicy Policy { get; set; } = new CpPolicy();
 
+        [JsonProperty("ipv4-address"), JsonPropertyName("ipv4-address")]
+        public string ManagementIp { get; set; } = "";
+
         public CpPackage Package { get; set; } = new CpPackage();
 
         public string LocalLayerName { get; set; } = "";

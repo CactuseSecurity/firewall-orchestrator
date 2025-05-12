@@ -51,12 +51,20 @@ namespace FWO.Test
             Type responseType = typeof(QueryResponseType);
             if (responseType == typeof(List<Management>))
             {
-                List<Management>? managements =
-                [
-                    new(){ Id = 1, Name = "Checkpoint1", ExtMgtData = "{\"id\":\"1\",\"name\":\"CheckpointExt\"}" }
-                ];
-                GraphQLResponse<dynamic> response = new() { Data = managements };
-                return response.Data;
+                if (query == ReportQueries.getRelevantImportIdsAtTime)
+                {
+                    GraphQLResponse<dynamic> response = new() { Data = new List<Management>(){ new() { Import = new() { ImportAggregate = new(){ ImportAggregateMax = new(){ RelevantImportId = 1 } } } } }};
+                    return response.Data;
+                }
+                else
+                {
+                    List<Management>? managements =
+                    [
+                        new(){ Id = 1, Name = "Checkpoint1", ExtMgtData = "{\"id\":\"1\",\"name\":\"CheckpointExt\"}" }
+                    ];
+                    GraphQLResponse<dynamic> response = new() { Data = managements };
+                    return response.Data;
+                }
             }
             else if (responseType == typeof(List<NetworkObject>))
             {
@@ -88,19 +96,16 @@ namespace FWO.Test
             else if (responseType == typeof(List<ModellingAppZone>))
             {
                 GraphQLResponse<dynamic> response = new() { Data = new List<ModellingAppZone>() { AZExist } };
-
                 return response.Data;
             }
             else if (responseType == typeof(List<ModellingAppServer>))
             {
                 GraphQLResponse<dynamic> response = new() { Data = new List<ModellingAppServer>() { AppServer1, AppServer2, AppServer3 } };
-
                 return response.Data;
             }
             else if (responseType == typeof(List<Rule>))
             {
                 GraphQLResponse<dynamic> response = new() { Data = new List<Rule>() { Rule1, Rule2, Rule3, Rule4 } };
-
                 return response.Data;
             }
 

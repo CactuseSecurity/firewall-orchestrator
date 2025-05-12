@@ -396,11 +396,8 @@ def getObjects (nativeConfig: dict, importState: ImportStateController) -> int:
 
     # control standalone vs mds
     managerDetailsList = []
-    #managerDetailsList = [deepcopy(importState.MgmDetails)] # delete_v wir brauchen weder global noch mds domain
+    managerDetailsList = [deepcopy(importState.MgmDetails)]
     if importState.MgmDetails.IsSuperManager:
-        #globalManager = deepcopy(importState.MgmDetails)
-        #globalManager.DomainUid = '1e294ce0-367a-11e3-aa6e-0800200c9a66'
-        #managerDetailsList.append(deepcopy(globalManager))
         for subManager in importState.MgmDetails.SubManagers:
             managerDetailsList.append(deepcopy(subManager))
     else:
@@ -417,6 +414,13 @@ def getObjects (nativeConfig: dict, importState: ImportStateController) -> int:
             'domain_uid': managerDetails.DomainUid,
             'object_types': []})
         
+        # getting Original (NAT) object (both for networks and services)
+        if manager_index == 0:
+            origObj = cp_getter.getObjectDetailsFromApi(cp_const.original_obj_uid, sid=sid, apiurl=cpManagerApiBaseUrl)['chunks'][0]
+            anyObj = cp_getter.getObjectDetailsFromApi(cp_const.any_obj_uid, sid=sid, apiurl=cpManagerApiBaseUrl)['chunks'][0]
+            noneObj = cp_getter.getObjectDetailsFromApi(cp_const.none_obj_uid, sid=sid, apiurl=cpManagerApiBaseUrl)['chunks'][0]
+            internetObj = cp_getter.getObjectDetailsFromApi(cp_const.internet_obj_uid, sid=sid, apiurl=cpManagerApiBaseUrl)['chunks'][0]
+
         # get all objects
         for obj_type in cp_const.api_obj_types:
             if fwo_globals.shutdown_requested:
@@ -431,6 +435,7 @@ def getObjects (nativeConfig: dict, importState: ImportStateController) -> int:
             show_cmd = 'show-' + obj_type    
             # if debug_level>5:
             #     logger.debug ( "obj_type: "+ obj_type )
+
             while (current<total) :
                 show_params_objs['offset']=current
                 objects = cp_getter.cp_api_call(cpManagerApiBaseUrl, show_cmd, show_params_objs, sid)
@@ -447,6 +452,18 @@ def getObjects (nativeConfig: dict, importState: ImportStateController) -> int:
                     current = total
                     # if debug_level>5:
                     #     logger.debug ( obj_type +" total:"+ str(total) )
+
+            # adding the uid of the Original, Any and None objects (as separate chunks):
+            if manager_index == 0:
+                if obj_type == 'networks':
+                    object_table['chunks'].append(origObj)
+                    object_table['chunks'].append(anyObj)
+                    object_table['chunks'].append(noneObj)
+                    object_table['chunks'].append(internetObj)
+                if obj_type == 'services-other':
+                    object_table['chunks'].append(origObj)
+                    object_table['chunks'].append(anyObj)
+                    object_table['chunks'].append(noneObj)
 
             nativeConfig['object_domains'][manager_index]['object_types'].append(object_table)
         manager_index += 1

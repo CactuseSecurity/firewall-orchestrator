@@ -96,7 +96,7 @@ def collect_nw_objects(object_table, nw_objects, debug_level=0, mgm_id=0):
                         else:
                             obj['uid'] = obj['name-in-updatable-objects-repository']
                         
-                    if obj_type in ['updatable-object', 'group-with-exclusion', 'security-zone', 'dns-domain']:
+                    if obj_type in ['updatable-object', 'group-with-exclusion', 'security-zone', 'dns-domain', 'dynamic-object']:
                         obj_type = 'group'
 
                     if obj_type == 'group-with-exclusion':

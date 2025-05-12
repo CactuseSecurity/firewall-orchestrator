@@ -71,24 +71,6 @@ def logout(url, sid):
     response = cp_api_call(url, 'logout', {}, sid)
     return response
 
-# # delete_v soll das weg, wird nirgends benutzt?
-# def set_api_url(base_url,testmode,api_supported,hostname, debug_level=0):
-#     logger = getFwoLogger()
-#     url = ''
-#     if testmode == 'off':
-#         url = base_url
-#     else:
-#         if re.search(r'^\d+[\.\d+]+$', testmode) or re.search(r'^\d+$', testmode):
-#             if testmode in api_supported :
-#                 url = base_url + 'v' + testmode + '/'
-#             else:
-#                 raise Exception("api version " + testmode + " is not supported by the manager " + hostname + " - Import is canceled")
-#         else:
-#             logger.debug ("not a valid version")
-#             raise Exception("\"" + testmode +"\" - not a valid version")
-#     logger.debug ("testmode: " + testmode + " - url: "+ url)
-#     return url
-
 
 def get_changes(sid,api_host,api_port,fromdate):
     logger = getFwoLogger()
@@ -548,11 +530,10 @@ def resolveRefListFromObjectDictionary(rulebase, value, objDict={}, nativeConfig
         resolveRefListFromObjectDictionary(rulebase['rulebase'], value, objDict=objDict, nativeConfig=nativeConfig, sid=sid, base_url=base_url)
 
 
-# delete_v gerade nicht benötigt in getObjects, wenn doch muss domain hinzugefügt werden
-def getObjectDetailsFromApi(uid_missing_obj, sid='', apiurl='', debug_level=0):
+def getObjectDetailsFromApi(uid_missing_obj, sid='', apiurl=''):
     logger = getFwoLogger()
-    if debug_level>5:
-        logger.debug(f"getting {uid_missing_obj} from API")
+    # if debug_level>5:
+    #     logger.debug(f"getting {uid_missing_obj} from API")
 
     show_params_host = {'details-level':'full','uid':uid_missing_obj}   # need to get the full object here
     try:
@@ -571,50 +552,57 @@ def getObjectDetailsFromApi(uid_missing_obj, sid='', apiurl='', debug_level=0):
                             "objects": [ {
                             'uid': obj['uid'], 'name': obj['name'], 'color': color,
                             'comments': 'any nw object checkpoint (hard coded)',
-                            'type': 'network', 'ipv4-address': '0.0.0.0/0'
+                            'type': 'network', 'ipv4-address': '0.0.0.0/0',
+                            'domain': obj['domain']
                             } ] } ] }
                     elif (obj['name'] == 'None'):
                         return  { "type": "hosts", "chunks": [ {
                             "objects": [ {
                             'uid': obj['uid'], 'name': obj['name'], 'color': color,
                             'comments': 'any nw object checkpoint (hard coded)',
-                            'type': 'group'
+                            'type': 'group', 'domain': obj['domain']
                             } ] } ] }
                 elif (obj['type'] in [ 'simple-gateway', obj['type'], 'CpmiGatewayPlain', obj['type'] == 'interop' ]):
                     return { "type": "hosts", "chunks": [ {
                         "objects": [ {
                         'uid': obj['uid'], 'name': obj['name'], 'color': color,
                         'comments': obj['comments'], 'type': 'host', 'ipv4-address': cp_network.get_ip_of_obj(obj),
+                        'domain': obj['domain']
                         } ] } ] }
                 elif obj['type'] == 'multicast-address-range':
                     return {"type": "hosts", "chunks": [ {
                         "objects": [ {
                         'uid': obj['uid'], 'name': obj['name'], 'color': color,
                         'comments': obj['comments'], 'type': 'host', 'ipv4-address': cp_network.get_ip_of_obj(obj),
+                        'domain': obj['domain']
                         } ] } ] }
                 elif (obj['type'] in ['CpmiVsClusterMember', 'CpmiVsxClusterMember', 'CpmiVsxNetobj']):
                     return {"type": "hosts", "chunks": [ {
                         "objects": [ {
                         'uid': obj['uid'], 'name': obj['name'], 'color': color,
                         'comments': obj['comments'], 'type': 'host', 'ipv4-address': cp_network.get_ip_of_obj(obj),
+                        'domain': obj['domain']
                         } ] } ] }
                 elif (obj['type'] == 'Global'):
                     return {"type": "hosts", "chunks": [ {
                         "objects": [ {
                         'uid': obj['uid'], 'name': obj['name'], 'color': color,
                         'comments': obj['comments'], 'type': 'host', 'ipv4-address': '0.0.0.0/0',
+                        'domain': obj['domain']
                         } ] } ] }
                 elif (obj['type'] in [ 'updatable-object', 'CpmiVoipSipDomain', 'CpmiVoipMgcpDomain' ]):
                     return {"type": "hosts", "chunks": [ {
                         "objects": [ {
                         'uid': obj['uid'], 'name': obj['name'], 'color': color,
-                        'comments': obj['comments'], 'type': 'group'
+                        'comments': obj['comments'], 'type': 'group',
+                        'domain': obj['domain']
                         } ] } ] }
                 elif (obj['type'] in ['Internet', 'security-zone']):
                     return {"type": "hosts", "chunks": [ {
                         "objects": [ {
                         'uid': obj['uid'], 'name': obj['name'], 'color': color,
                         'comments': obj['comments'], 'type': 'network', 'ipv4-address': '0.0.0.0/0',
+                        'domain': obj['domain']
                         } ] } ] }
                 elif (obj['type'] == 'access-role'):
                     return obj

@@ -212,61 +212,38 @@ namespace FWO.DeviceAutoDiscovery
             }
         }
 
-        // protected static async Task<string> GetMgmUid(CheckPointClient restClientCP, string sessionIdPerDomain, string ManagementType, string mgmName, string mgmHostname)
-        // {
-        //     List<CpDevice> devList = await restClientCP.GetGateways(@sessionIdPerDomain, ManagementType);
-        //     foreach (CpDevice cpDev in devList)
-        //     {
-        //         // TODO: this is not clean - we are assuming that the mgmt host name is given as defined in the config
-        //         // alternatively we could simply drop the name check
-        //         // better: check for primary manager
-
-        //         string mgmIp = IpOperations.DnsLookUp(mgmHostname);
-        //         if (mgmIp == "")
-        //         {
-        //             Log.WriteWarning("Autodiscovery", $"Could not resolve management host {mgmHostname} - using hostname instead");
-        //             mgmIp = mgmHostname;
-        //         }
-        //         if (cpDev.CpDevType == "checkpoint-host" && cpDev.ManagementIp == mgmIp) // && cpDev.Name == mgmName)
-        //             return cpDev.Uid;
-        //     }
-        //     Log.WriteDebug("Autodiscovery", $"Did not find management host {mgmName} in device list - could not set UID");
-        //     return "";
-        // }
-
-    protected static async Task<string> GetMgmUid(CheckPointClient restClientCP, string sessionIdPerDomain, string ManagementType, string mgmName, string mgmHostname)
-    {
-        List<CpDevice> devList = await restClientCP.GetGateways(sessionIdPerDomain, ManagementType);
-
-        string mgmIp = await IpOperations.DnsLookUp(mgmHostname);
-
-        if (string.IsNullOrEmpty(mgmIp))
+        protected static async Task<string> GetMgmUid(CheckPointClient restClientCP, string sessionIdPerDomain, string ManagementType, string mgmName, string mgmHostname)
         {
-            Log.WriteWarning("Autodiscovery", $"Could not resolve management host {mgmHostname} - using hostname instead");
-            mgmIp = mgmHostname;
-        }
+            List<CpDevice> devList = await restClientCP.GetGateways(sessionIdPerDomain, ManagementType);
 
-        // Try to find a matching device by IP
-        foreach (CpDevice cpDev in devList)
-        {
-            if (cpDev.CpDevType == "checkpoint-host" && cpDev.ManagementIp == mgmIp)
+            string mgmIp = await IpOperations.DnsLookUp(mgmHostname);
+
+            if (string.IsNullOrEmpty(mgmIp))
             {
-                return cpDev.Uid;
+                Log.WriteWarning("Autodiscovery", $"Could not resolve management host {mgmHostname} - using hostname instead");
+                mgmIp = mgmHostname;
             }
+
+            // Try to find a matching device by IP
+            foreach (CpDevice cpDev in devList)
+            {
+                if (cpDev.CpDevType == "checkpoint-host" && cpDev.ManagementIp == mgmIp)
+                {
+                    return cpDev.Uid;
+                }
+            }
+
+            // Fallback: return UID of the first checkpoint-host device
+            var fallbackDevice = devList.FirstOrDefault(d => d.CpDevType == "checkpoint-host");
+            if (fallbackDevice != null)
+            {
+                Log.WriteWarning("Autodiscovery", $"No exact IP match for {mgmHostname}, falling back to first found checkpoint-host: {fallbackDevice.Name}");
+                return fallbackDevice.Uid;
+            }
+
+            Log.WriteDebug("Autodiscovery", $"Did not find any checkpoint-host devices - could not set UID");
+            return "";
         }
-
-        // Fallback: return UID of the first checkpoint-host device
-        var fallbackDevice = devList.FirstOrDefault(d => d.CpDevType == "checkpoint-host");
-        if (fallbackDevice != null)
-        {
-            Log.WriteWarning("Autodiscovery", $"No exact IP match for {mgmHostname}, falling back to first found checkpoint-host: {fallbackDevice.Name}");
-            return fallbackDevice.Uid;
-        }
-
-        Log.WriteDebug("Autodiscovery", $"Did not find any checkpoint-host devices - could not set UID");
-        return "";
-    }
-
 
     }
 

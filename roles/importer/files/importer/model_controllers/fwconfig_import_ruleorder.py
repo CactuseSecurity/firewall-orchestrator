@@ -130,6 +130,7 @@ class RuleOrderService:
                 self._inserts_and_moves[rulebase.uid] = []
 
             self._inserts_and_moves[rulebase.uid].extend(self._new_rule_uids[rulebase.uid])
+            self._inserts_and_moves[rulebase.uid].extend(self._moved_rule_uids[rulebase.uid])
 
         for rulebase in self._previous_config.rulebases:
             rule_uids = set(rulebase.Rules.keys())

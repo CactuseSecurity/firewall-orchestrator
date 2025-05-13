@@ -266,13 +266,14 @@ def get_rulebases(api_v_url, sid, show_params_rules,
                  access_type='access',
                  nativeConfig=None,
                  deviceConfig=None):
+    
+    # access_type: access / nat
+    logger = getFwoLogger()
+
     if nativeConfig is None:
         nativeConfig = {'rulebases': [], 'nat_rulebases': []}
     if deviceConfig is None:
         deviceConfig = {'rulebase_links': []}
-    
-    # access_type: access / nat
-    logger = getFwoLogger()
 
     if access_type == 'access':
         nativeConfigRulebaseKey = 'rulebases'
@@ -285,19 +286,7 @@ def get_rulebases(api_v_url, sid, show_params_rules,
     if rulebaseUid is not None:
         pass
     elif rulebaseName is not None:
-        get_rulebase_uid_params = {
-            'name': rulebaseName,
-            'limit': 1,
-            'use-object-dictionary': False,
-            'details-level': 'uid',
-            'show-hits': False
-        }
-        try:
-            rulebaseForUid = cp_api_call(api_v_url, 'show-' + access_type + '-rulebase', get_rulebase_uid_params, sid)
-            rulebaseUid = rulebaseForUid['uid']
-        except Exception:
-            logger.error("could not find uid for rulebase name=" + rulebaseName)
-            return 1
+        rulebaseUid = get_uid_of_rulebase(rulebaseName, api_v_url, access_type, sid)
     else:
         logger.error('must provide either rulebaseUid or rulebaseName')
         return 1
@@ -310,62 +299,91 @@ def get_rulebases(api_v_url, sid, show_params_rules,
             currentRulebase = fetchedRulebase
             break
 
+    # get rulebase in chunks
     if rulebaseUid not in fetchedRulebaseList:
-        currentRulebase = {'uid': rulebaseUid, 'name': '', 'chunks': []}
-        show_params_rules.update({'uid': rulebaseUid})
-        current=0
-        total=current+1
-
-        # get rulebase in chunks
-        while (current<total):
-
-            show_params_rules.update({'offset': current})
-        
-            try:
-                rulebase = cp_api_call(api_v_url, 'show-' + access_type + '-rulebase', show_params_rules, sid)
-                if fwo_globals.shutdown_requested:
-                    raise ImportInterruption("Shutdown requested during rulebase retrieval.")                
-                if currentRulebase['name'] == '' and 'name' in rulebase:
-                    currentRulebase.update({'name': rulebase['name']})
-            except Exception:
-                logger.error("could not find rulebase uid=" + rulebaseUid)
-                # todo: need to get FWO API jwt here somehow:
-                # create_data_issue(fwo_api_base_url, jwt, severity=2, description="failed to get show-access-rulebase  " + rulebaseUid)
-                return 1
-
-            # resolve checkpoint uids via object dictionary
-            try:
-                for ruleField in ['source', 'destination', 'service', 'action', 'track', 'install-on', 'time']:
-                    resolveRefListFromObjectDictionary(rulebase, ruleField, nativeConfig=nativeConfig, sid=sid, base_url=api_v_url)
-                currentRulebase['chunks'].append(rulebase)
-            except Exception:
-                logger.error("error while getting field " + ruleField + " of layer " + rulebaseUid + ", params: " + str(show_params_rules))
-                return 1
-
-            if 'total' in rulebase:
-                total=rulebase['total']
-            else:
-                logger.error ( "rulebase does not contain total field, get_rulebase_chunk_from_api found garbled json " + str(currentRulebase))
-                logger.warning ( "sid: " + sid)
-                logger.warning ( "api_v_url: " + api_v_url)
-                logger.warning ( "access_type: " + access_type)
-                for key, value in show_params_rules.items():
-                    logger.warning("show_params_rules " + key + ": " + str(value))
-                for key, value in rulebase.items():
-                    logger.warning("rulebase " + key + ": " + str(value))
-                return 1
-            
-            if total==0:
-                current=0
-            else:
-                if 'to' in rulebase:
-                    current=rulebase['to']
-                else:
-                    raise Exception ( "get_nat_rules_from_api - rulebase does not contain to field, get_rulebase_chunk_from_api found garbled json " + str(rulebase))
-
+        get_rulebases_in_chunks(rulebaseUid, show_params_rules, api_v_url, access_type, sid, nativeConfig)
         nativeConfig[nativeConfigRulebaseKey].append(currentRulebase)
 
     # use recursion to get inline layers
+    get_inline_layers_recursively(currentRulebase, deviceConfig, nativeConfig, api_v_url, sid, show_params_rules)    
+    return 0
+
+
+def get_uid_of_rulebase(rulebaseName, api_v_url, access_type, sid):
+
+    get_rulebase_uid_params = {
+        'name': rulebaseName,
+        'limit': 1,
+        'use-object-dictionary': False,
+        'details-level': 'uid',
+        'show-hits': False
+    }
+    try:
+        rulebaseForUid = cp_api_call(api_v_url, 'show-' + access_type + '-rulebase', get_rulebase_uid_params, sid)
+        rulebaseUid = rulebaseForUid['uid']
+    except Exception:
+        logger.error("could not find uid for rulebase name=" + rulebaseName)
+
+    return rulebaseUid
+
+def get_rulebases_in_chunks(rulebaseUid, show_params_rules, api_v_url, access_type, sid, nativeConfig):
+
+    currentRulebase = {'uid': rulebaseUid, 'name': '', 'chunks': []}
+    show_params_rules.update({'uid': rulebaseUid})
+    current=0
+    total=current+1
+
+    while (current<total):
+
+        show_params_rules.update({'offset': current})
+    
+        try:
+            rulebase = cp_api_call(api_v_url, 'show-' + access_type + '-rulebase', show_params_rules, sid)
+            if fwo_globals.shutdown_requested:
+                raise ImportInterruption("Shutdown requested during rulebase retrieval.")                
+            if currentRulebase['name'] == '' and 'name' in rulebase:
+                currentRulebase.update({'name': rulebase['name']})
+        except Exception:
+            logger.error("could not find rulebase uid=" + rulebaseUid)
+            # todo: need to get FWO API jwt here somehow:
+            # create_data_issue(fwo_api_base_url, jwt, severity=2, description="failed to get show-access-rulebase  " + rulebaseUid)
+            return 1
+
+        # resolve checkpoint uids via object dictionary
+        try:
+            for ruleField in ['source', 'destination', 'service', 'action', 'track', 'install-on', 'time']:
+                resolveRefListFromObjectDictionary(rulebase, ruleField, nativeConfig=nativeConfig, sid=sid, base_url=api_v_url)
+            currentRulebase['chunks'].append(rulebase)
+        except Exception:
+            logger.error("error while getting field " + ruleField + " of layer " + rulebaseUid + ", params: " + str(show_params_rules))
+            return 1
+
+        if 'total' in rulebase:
+            total=rulebase['total']
+        else:
+            logger.error ( "rulebase does not contain total field, get_rulebase_chunk_from_api found garbled json " + str(currentRulebase))
+            logger.warning ( "sid: " + sid)
+            logger.warning ( "api_v_url: " + api_v_url)
+            logger.warning ( "access_type: " + access_type)
+            for key, value in show_params_rules.items():
+                logger.warning("show_params_rules " + key + ": " + str(value))
+            for key, value in rulebase.items():
+                logger.warning("rulebase " + key + ": " + str(value))
+            return 1
+        
+        if total==0:
+            current=0
+        else:
+            if 'to' in rulebase:
+                current=rulebase['to']
+            else:
+                raise Exception ( "get_nat_rules_from_api - rulebase does not contain to field, get_rulebase_chunk_from_api found garbled json " + str(rulebase))
+
+    return 0
+
+
+def get_inline_layers_recursively(currentRulebase, deviceConfig, nativeConfig, api_v_url, sid, show_params_rules):
+
     for rulebase_chunk in currentRulebase['chunks']:
         # search in case of access rulebase only
         if 'rulebase' in rulebase_chunk:
@@ -396,7 +414,7 @@ def get_rulebases(api_v_url, sid, show_params_rules,
                                         access_type='access',
                                         nativeConfig=nativeConfig,
                                         deviceConfig=deviceConfig)
-    
+                        
     return 0
 
 

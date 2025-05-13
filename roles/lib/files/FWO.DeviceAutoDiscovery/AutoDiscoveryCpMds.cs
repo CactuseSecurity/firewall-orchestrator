@@ -29,7 +29,6 @@ namespace FWO.DeviceAutoDiscovery
                     Log.WriteDebug("Autodiscovery", $"discovering CP domains & gateways");
                     (string sessionId, CheckPointClient restClientCP) = await LoginCp(superManagement);
 
-                    List<CpDevice> managers = await GetManagers(restClientCP, sessionId); // WiP
                     // when passing sessionId, we always need to use @ verbatim identifier for special chars in sessionId
                     if (string.IsNullOrEmpty(superManagement.Uid))  // pre v9 managements might not have a UID
                     {

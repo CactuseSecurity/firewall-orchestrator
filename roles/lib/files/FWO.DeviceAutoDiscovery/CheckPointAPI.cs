@@ -129,6 +129,7 @@ namespace FWO.Rest.Client
             }
             return [];
         }
+
         public async Task<List<CpDevice>> GetGateways(string session)
         // session id pins this session to a specific domain (if domain was given during login) 
         {

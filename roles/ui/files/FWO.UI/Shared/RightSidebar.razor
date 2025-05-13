@@ -36,7 +36,7 @@
                             </div>
                             <div class="mt-2">
                                 <ObjectGroupCollection PageSize="PageSize" FetchObjects="FetchContent" Recert="Recert" Tab="RsbTab.report" InputDataType="ManagementReport"
-                                Data="CurrentReport.ReportData.ManagementData.Where(m => (m.Devices.Where(d => d.Rules != null && d.Rules.Count() > 0).Count() > 0))"
+                                Data="managementsReportObjects"
                                 NameExtractor="man => man.Name"
                                 NetworkObjectExtractor="man => man.ReportObjects"
                                 NetworkServiceExtractor="man => man.ReportServices"
@@ -49,7 +49,8 @@
                                 <div class="btn btn-secondary btn-sm w-50" @onclick="@(() => collapseInRSB.Collapse("rule"))">@(userConfig.GetText("collapse_all"))</div>
                             </div>
                             <div class="mt-2">
-                                <ObjectGroupCollection PageSize="PageSize" FetchObjects="FetchContent" Recert="Recert" Tab="RsbTab.rule" StartContentDetailed="true" StartCollapsed="false" InputDataType="Rule" Data="SelectedRules"
+                                <ObjectGroupCollection PageSize="PageSize" FetchObjects="FetchContent" Recert="Recert" Tab="RsbTab.rule" StartContentDetailed="true" StartCollapsed="false" InputDataType="Rule"
+                                Data="selectedRulesDetailed.Where(r => SelectedRules.Any(sr => sr.Id == r.Id)).ToList()"
                                 NameExtractor=@(rule => $"{rule.DeviceName} - Rule {rule.Id} {rule.Name}")
                                 NetworkObjectExtractor="rule => rule.Froms.Select(nl => nl.Object)
                                         .Union(rule.Tos.Select(nl => nl.Object))
@@ -123,13 +124,26 @@
     private FWO.Ui.Shared.TabSet tabset = new();
     private FWO.Ui.Shared.AnchorNavToRSB anchorNavToRSB = new();
     private CollapseState collapseInRSB = new();
+
+    /// <summary>
+    /// List of all managements. Will include detailed objects fetched on demand.
+    /// </summary>
     private List<ManagementReport> managementsAllObjects = new();
+    /// <summary>
+    /// List of managements copied from current report. Will include detailed objects fetched on demand.
+    /// </summary>
+    private List<ManagementReport> managementsReportObjects = new();
+    /// <summary>
+    /// List of detailed rules copied from selected rules. Keeps deselected rules cached for the current report.
+    /// </summary>
+    private List<Rule> selectedRulesDetailed = new();
 
     private string rsbTimeShortcut = "";
     private string rsbTimeStart = "";
     private string rsbTimeEnd = "";
     private Dictionary<int, long> import_id_start = new(); // import id matching rsbTimeStart for each management
     private Dictionary<int, long> import_id_end = new(); // import id matching rsbTimeEnd for each management
+    private ReportBase? previousReport = null;
 
     private int intWidth { get { return Width; } set { Width = value; WidthChanged.InvokeAsync(Width); } }
 
@@ -146,8 +160,33 @@
 
     protected override async Task OnParametersSetAsync()
     {
-        if (AllTabVisible && setRSBTime())
+        bool timeChanged = setRSBTime();
+        if (AllTabVisible && timeChanged)
             await ResetAllTabMgts();
+        if (CurrentReport != previousReport)
+        {
+            previousReport = CurrentReport;
+            ResetReportState();
+        }
+        foreach (Rule rule in SelectedRules)
+        {
+            if (!selectedRulesDetailed.Any(r => r.Id == rule.Id))
+            {
+                selectedRulesDetailed.Add(new () { Id = rule.Id, Name = rule.Name, MgmtId = rule.MgmtId });
+            }
+        }
+    }
+
+    public void ResetReportState()
+    {
+        managementsReportObjects = new();
+        foreach (ManagementReport mgt in CurrentReport?.ReportData.ManagementData ?? new List<ManagementReport>())
+        {
+            if (mgt.Devices.Where(d => d.Rules != null && d.Rules.Count() > 0).Count() > 0)
+            {
+                managementsReportObjects.Add(new() { Id = mgt.Id, Name = mgt.Name });
+            }
+        }
     }
 
     private async Task ResetAllTabMgts()
@@ -297,7 +336,7 @@
 
                     break;
                 case RsbTab.report:
-                    ManagementReport? mgtReport = CurrentReport?.ReportData.ManagementData.Where(m => (m.Devices.Where(d => d.Rules != null && d.Rules.Count() > 0).Count() > 0)).FirstOrDefault(m => m.Id == id);
+                    ManagementReport? mgtReport = managementsReportObjects.FirstOrDefault(m => m.Id == id);
                     queryVars.Add("mgmIds", (int)id);
                     if (mgtReport != null)
                     {
@@ -334,7 +373,7 @@
                     }
                     break;
                 case RsbTab.rule:
-                    Rule? rule = SelectedRules.FirstOrDefault(r => r.Id == id);
+                    Rule? rule = selectedRulesDetailed.FirstOrDefault(r => r.Id == id);
                     if (rule == null) break;
 
                     rule.Detailed = true;

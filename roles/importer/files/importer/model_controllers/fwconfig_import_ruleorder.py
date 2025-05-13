@@ -120,6 +120,12 @@ class RuleOrderService:
                 if insertion_uid in rule_uids
             ]
 
+            self._moved_rule_uids[rulebase.uid] = [
+                move_uid
+                for _, move_uid, _ in self._compute_min_moves_result["reposition_moves"]
+                if move_uid in rule_uids
+            ]
+
             self._needs_rule_num_numeric_update_rule_uids.extend(self._new_rule_uids[rulebase.uid])
 
         for rulebase in self._previous_config.rulebases:
@@ -131,11 +137,6 @@ class RuleOrderService:
                 if deletion_uid in rule_uids
             ]
 
-            self._moved_rule_uids[rulebase.uid] = [
-                move_uid
-                for _, move_uid, _ in self._compute_min_moves_result["reposition_moves"]
-                if move_uid in rule_uids
-            ]
 
             self._needs_rule_num_numeric_update_rule_uids.extend(self._moved_rule_uids[rulebase.uid])
 

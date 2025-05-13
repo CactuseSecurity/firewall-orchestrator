@@ -39,7 +39,7 @@ class RuleOrderService:
             cls._instance._deleted_rule_uids = {}
             cls._instance._new_rule_uids = {}
             cls._instance._moved_rule_uids = {}
-            cls._instance._needs_rule_num_numeric_update_rule_uids = []
+            cls._instance._inserts_and_moves = {}
             cls._instance._updated_rules = []
             cls._instance._logger = None
         return cls._instance
@@ -91,7 +91,7 @@ class RuleOrderService:
         self._moved_rule_uids = {}
         self._source_rules_flat = []
         self._target_rules_flat = []
-        self._needs_rule_num_numeric_update_rule_uids = []
+        self._inserts_and_moves = {}
         self._updated_rules = []
 
 
@@ -125,8 +125,11 @@ class RuleOrderService:
                 for _, move_uid, _ in self._compute_min_moves_result["reposition_moves"]
                 if move_uid in rule_uids
             ]
+            
+            if (len(self._moved_rule_uids) > 0 or len(self._new_rule_uids > 0)) and not rulebase.uid in self._inserts_and_moves:
+                self._inserts_and_moves[rulebase.uid] = []
 
-            self._needs_rule_num_numeric_update_rule_uids.extend(self._new_rule_uids[rulebase.uid])
+            self._inserts_and_moves[rulebase.uid].extend(self._new_rule_uids[rulebase.uid])
 
         for rulebase in self._previous_config.rulebases:
             rule_uids = set(rulebase.Rules.keys())
@@ -137,9 +140,6 @@ class RuleOrderService:
                 if deletion_uid in rule_uids
             ]
 
-
-            self._needs_rule_num_numeric_update_rule_uids.extend(self._moved_rule_uids[rulebase.uid])
-
         # Update rule_num_numeric
 
         self.update_rule_num_numerics()
@@ -148,36 +148,50 @@ class RuleOrderService:
 
 
     def update_rule_num_numerics(self):
-        for rulebase in self.fw_config_import_rule.NormalizedConfig.rulebases:
-            rules = list(rulebase.Rules.values())
-            for index, rule in enumerate(rules):
-                if rule.rule_uid in self._needs_rule_num_numeric_update_rule_uids:
 
-            # Set initial rule_num_numerics if it is the first import.
+        # Set initial rule_num_numerics if it is the first import.
+        if len(self._source_rules_flat) == 0:
+            self._set_initial_rule_num_numerics()
+            return
 
+        for rulebase_id, rule_uids in self._inserts_and_moves.items():
+            for rule_uid in rule_uids:
+                        
+                # Compute value if it is a consecutive insert.
+
+                fixed_value = 0
+
+                if(self._is_part_of_consecutive_insert(rule_uid)):
+                    fixed_value = self._calculate_rule_num_numeric_for_consecutive_insert(rule_uid)
+
+                # Handle singular inserts and moves.
+                
+                if self._is_rule_uid_in_return_object(rule_uid, self._new_rule_uids) or self._is_rule_uid_in_return_object(rule_uid, self._moved_rule_uids):
+                    self._update_rule_num_numeric_on_singular_insert_or_move(rule_uid, fixed_value) ## TODO: Change method name
+
+                # Raise if unexpected rule uid.
+
+                else:
+                    raise FwoApiFailure(message="RuleOrderService: Unexpected rule_uid.")
+
+
+    def _set_initial_rule_num_numerics(self):
+            for rulebase_id, rule_uids in self._inserts_and_moves.items():
+                for rule_uid in rule_uids:
                     if len(self._source_rules_flat) == 0:
-                        _, changed_rule = self._get_index_and_rule_object_from_flat_list(self.target_rules_flat, rule.rule_uid)
+                        _, changed_rule = self._get_index_and_rule_object_from_flat_list(self.target_rules_flat, rule_uid)
                         changed_rule.rule_num_numeric = self.get_new_rule_num_numeric()
-                        if index == len(rules) - 1:
+
+                        # Make rule_num_numerics relative to rulebase.
+
+                        if self._is_last_rule(changed_rule, rulebase_id):
                             self._current_rule_num_numeric = 0
-                        continue
-                    
-                    # Compute value if it is a consecutive insert.
 
-                    fixed_value = 0
 
-                    if(self._is_part_of_consecutive_insert(rule.rule_uid)):
-                        fixed_value = self._calculate_rule_num_numeric_for_consecutive_insert(rule.rule_uid)
-
-                    # Handle inserts and moves.
-                    
-                    if self._is_rule_uid_in_return_object(rule.rule_uid, self._new_rule_uids) or self._is_rule_uid_in_return_object(rule.rule_uid, self._moved_rule_uids):
-                        self._update_rule_num_numeric_on_singular_insert_or_move(rule.rule_uid, fixed_value) ## TODO: Change method name
-
-                    # Raise if unexpected rule uid.
-
-                    else:
-                        raise FwoApiFailure(message="RuleOrderService: Unexpected rule_uid.")
+    def _is_last_rule(self, rule, rulebase_uid):
+        rulebase = next(rulebase for rulebase in self._fw_config_import_rule.NormalizedConfig.rulebases if rulebase.uid == rulebase_uid)
+        rulebase_rules = list(rulebase.Rules.values())
+        return rulebase_rules[-1] is rule
 
 
     def _parse_rule_uids_and_objects_from_config(self, config: FwConfigNormalized):

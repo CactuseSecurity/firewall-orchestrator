@@ -29,7 +29,9 @@ namespace FWO.Data
 
         ImportChangeNotify = 51,
 
-        ExternalRequest = 61
+        ExternalRequest = 61,
+        
+        VarianceAnalysis = 71
     }
 
     public class Alert

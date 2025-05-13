@@ -14,9 +14,9 @@ namespace FWO.Data.Report
             GlobalComSvcs = report.GlobalComSvcs;
         }
 
-        public override List<NetworkObject> GetAllNetworkObjects(bool resolved = false)
+        public override List<NetworkObject> GetAllNetworkObjects(bool resolved = false, bool resolveNetworkAreas = false)
         {
-            return GetAllNetworkObjects(GlobalComSvcs, resolved);
+            return GetAllNetworkObjects(GlobalComSvcs, resolved, resolveNetworkAreas);
         }
 
         public override List<NetworkService> GetAllServices(bool resolved = false)

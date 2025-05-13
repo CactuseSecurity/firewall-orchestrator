@@ -369,6 +369,9 @@ namespace FWO.Config.Api.Data
 		[JsonProperty("varianceAnalysisRefresh"), JsonPropertyName("varianceAnalysisRefresh")]
 		public bool VarianceAnalysisRefresh { get; set; } = false;
 
+		[JsonProperty("resolveNetworkAreas"), JsonPropertyName("resolveNetworkAreas")]
+		public bool ResolveNetworkAreas { get; set; } = false;
+
         public ConfigData(bool editable = false)
 		{
 			Editable = editable;

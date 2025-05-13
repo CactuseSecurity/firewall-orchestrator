@@ -72,12 +72,12 @@
                                 <ObjectGroupCollection PageSize="PageSize" FetchObjects="FetchContent" Recert="Recert" Tab="RsbTab.usedObj" StartCollapsed="false" InputDataType="OwnerReport"
                                 Data="@(PrepareObjects(CurrentReport.ReportData.OwnerData))"
                                 NameExtractor="own => own.Name"
-                                NetworkObjectExtractor="own => own.GetAllNetworkObjects(true)"
+                                NetworkObjectExtractor="own => own.GetAllNetworkObjects(true, userConfig.ResolveNetworkAreas)"
                                 NetworkServiceExtractor="own => own.GetAllServices(true)" />
                                 <ObjectGroupCollection PageSize="PageSize" FetchObjects="FetchContent" Recert="Recert" Tab="RsbTab.usedObj" StartCollapsed="false" InputDataType="GlobalCommonSvcReport"
                                 Data="CurrentReport.ReportData.GlobalComSvc"
                                 NameExtractor="glbComSvc => glbComSvc.Name"
-                                NetworkObjectExtractor="glbComSvc => glbComSvc.GetAllNetworkObjects(true)"
+                                NetworkObjectExtractor="glbComSvc => glbComSvc.GetAllNetworkObjects(true, userConfig.ResolveNetworkAreas)"
                                 NetworkServiceExtractor="glbComSvc => glbComSvc.GetAllServices(true)" />
                             </div>
                         </Tab>

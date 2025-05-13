@@ -678,6 +678,7 @@ class FwConfigImportRule(FwConfigImportBase):
                 rule_svc_neg
                 rulebase_id
                 rule_installon
+                rule_uid
                 }
             }
 
@@ -791,7 +792,6 @@ class FwConfigImportRule(FwConfigImportBase):
             ) {
                 affected_rows
             }
-
         }
         """
 
@@ -807,13 +807,96 @@ class FwConfigImportRule(FwConfigImportBase):
             if 'errors' in update_moved_rules_refs_result:
                 logger.exception(f"fwo_api:moveRules - error while updating moved rules refs: {str(update_moved_rules_refs_result['errors'])}")
                 return 1, 0, []
-            else:
-                return 0, 0, []
+
+            return self.update_rule_enforced_on_gateway_after_move(insert_rules_return, update_rules_return)
 
         except Exception:
             logger.exception(f"failed to move rules: {str(traceback.format_exc())}")
             return 1, 0, []
-        
+
+
+    def update_rule_enforced_on_gateway_after_move(self, insert_rules_return, update_rules_return):
+        """
+            Updates the db table rule_enforced_on_gateway by creating new entries for a list of rule_ids and setting the old versions of said rules removed.
+        """
+
+        logger = getFwoLogger()
+
+        id_map = {}
+
+        for insert_rules_return_entry in insert_rules_return:
+            id_map[
+                insert_rules_return_entry["rule_id"]
+            ] = next(
+                update_rules_return_entry["rule_id"]
+                for update_rules_return_entry in update_rules_return
+                if update_rules_return_entry["rule_uid"] == insert_rules_return_entry["rule_uid"]
+            )
+
+
+        set_rule_enforced_on_gateway_entries_removed_mutation = """mutation set_rule_enforced_on_gateway_entries_removed($rule_ids: [Int!], $importId: bigint) {
+                update_rule_enforced_on_gateway(
+                    where: {
+                        rule_id: { _in: $rule_ids },
+                    },
+                    _set: {
+                        removed: $importId,
+                    }
+                ) {
+                    affected_rows
+                    returning {
+                        rule_id
+                        dev_id
+                    }
+                }
+            }
+        """
+
+        set_rule_enforced_on_gateway_entries_removed_variables = {
+            "rule_ids": list(id_map.values()),
+            "importId": self.ImportDetails.ImportId,
+        }
+
+        insert_rule_enforced_on_gateway_entries_mutation = """
+        mutation insert_rule_enforced_on_gateway_entries($new_entries: [rule_enforced_on_gateway_insert_input!]!) {
+            insert_rule_enforced_on_gateway(
+                objects: $new_entries
+            ) {
+                affected_rows
+            }
+        }
+        """
+
+        try:
+            set_rule_enforced_on_gateway_entries_removed_result =  self.ImportDetails.call(set_rule_enforced_on_gateway_entries_removed_mutation, set_rule_enforced_on_gateway_entries_removed_variables, "rule_ids", "set_rule_enforced_on_gateway_entries_removed", "update_rule_enforced_on_gateway", self.ImportDetails.DebugLevel)
+
+            if 'errors' in set_rule_enforced_on_gateway_entries_removed_result:
+                logger.exception(f"fwo_api:moveRules - error while updating moved rules refs: {str(set_rule_enforced_on_gateway_entries_removed_result['errors'])}")
+                return 1, 0, []
+            
+            insert_rule_enforced_on_gateway_entries_variables = {
+                "new_entries": [
+                    {
+                        "rule_id": new_id,
+                        "dev_id": next(entry for entry in  set_rule_enforced_on_gateway_entries_removed_result["data"]["update_rule_enforced_on_gateway"]["returning"] if entry["rule_id"] == id_map[new_id])["dev_id"],
+                        "created": self.ImportDetails.ImportId,
+                    }
+                    for new_id in id_map.keys()
+                ]
+            }
+
+            insert_rule_enforced_on_gateway_entries_result =  self.ImportDetails.call(insert_rule_enforced_on_gateway_entries_mutation, insert_rule_enforced_on_gateway_entries_variables, "new_entries", "insert_rule_enforced_on_gateway_entries", "insert_rule_enforced_on_gateway", self.ImportDetails.DebugLevel)
+
+            if 'errors' in insert_rule_enforced_on_gateway_entries_result:
+                logger.exception(f"fwo_api:moveRules - error while updating moved rules refs: {str(insert_rule_enforced_on_gateway_entries_result['errors'])}")
+                return 1, 0, []
+            
+            return 0, 0, []
+
+
+        except Exception:
+            logger.exception(f"failed to move rules: {str(traceback.format_exc())}")
+            return 1, 0, []    
 
     # TODO: limit query to a single rulebase
     def GetRuleNumMap(self):

@@ -1,6 +1,12 @@
+from typing import TYPE_CHECKING
 from fwo_const import rule_num_numeric_steps
 from models.fwconfig_normalized import FwConfigNormalized
 from fwo_base import compute_min_moves
+from fwo_exceptions import FwoApiFailure
+if TYPE_CHECKING:
+    from model_controllers.fwconfig_import_rule import FwConfigImportRule
+from fwo_log import getFwoLogger
+import traceback
 
 class RuleOrderService:
     """
@@ -8,10 +14,11 @@ class RuleOrderService:
     """
 
     _instance = None
+    _fw_config_import_rule = None
+
     _current_rule_num_numeric: float
     _previous_config: FwConfigNormalized
-    _normalized_config: FwConfigNormalized
-
+    
 
     def __new__(cls):
         """
@@ -20,19 +27,21 @@ class RuleOrderService:
         """
 
         if cls._instance is None:
+            from model_controllers.fwconfig_import_rule import FwConfigImportRule
             cls._instance = super(RuleOrderService, cls).__new__(cls)
             cls._instance._current_rule_num_numeric = 0
-            cls._previous_config = None
-            cls._normalized_config = None
-            cls._compute_min_moves_result = None
-            cls._source_rule_uids = []
-            cls._target_rule_uids = []
-            cls._deleted_rule_uids = {}
-            cls._new_rule_uids = {}
-            cls._moved_rule_uids = {}
-            cls._source_rules_flat = []
-            cls._target_rules_flat = []
-            cls._needs_rule_num_numeric_update_rule_uids = []
+            cls._instance._previous_config = None
+            cls._instance._compute_min_moves_result = None
+            cls._instance._source_rule_uids = []
+            cls._instance._source_rules_flat = []
+            cls._instance._target_rule_uids = []
+            cls._instance._target_rules_flat = []
+            cls._instance._deleted_rule_uids = {}
+            cls._instance._new_rule_uids = {}
+            cls._instance._moved_rule_uids = {}
+            cls._instance._inserts_and_moves = {}
+            cls._instance._updated_rules = []
+            cls._instance._logger = None
         return cls._instance
 
 
@@ -47,6 +56,22 @@ class RuleOrderService:
     @property
     def compute_min_moves_result(self):
         return self._compute_min_moves_result
+    
+    @property
+    def fw_config_import_rule(self):
+        return self._fw_config_import_rule
+    
+    @property
+    def logger(self):
+        return self._logger
+    
+    @property
+    def updated_values(self):
+        return self._updated_rules
+    
+    @property
+    def previous_config(self):
+        return self._previous_config
     
 
     def get_new_rule_num_numeric(self) -> float:
@@ -66,93 +91,267 @@ class RuleOrderService:
         self._moved_rule_uids = {}
         self._source_rules_flat = []
         self._target_rules_flat = []
-        self._needs_rule_num_numeric_update_rule_uids = []
+        self._inserts_and_moves = {}
+        self._updated_rules = []
 
 
-    def initialize(self, previous_config: FwConfigNormalized, normalized_config: FwConfigNormalized):
-        
+    def initialize(self, previous_config: FwConfigNormalized, fw_config_import_rule: "FwConfigImportRule"):
+
+        self._logger = getFwoLogger(debug_level=fw_config_import_rule.ImportDetails.DebugLevel)
         self.reset_to_defaults()
-
         self._previous_config = previous_config
-        self._normalized_config = normalized_config
+        self._fw_config_import_rule = fw_config_import_rule
 
-        self._source_rule_uids = rule_uids = [
-            rule_uid
-            for rulebase in self._previous_config.rulebases
-            for rule_uid in rulebase.Rules.keys()
-        ]
+        # Parse configs to rule uid lists and rule object lists, for easier handling.
 
-        self._target_rule_uids = rule_uids = [
-            rule_uid
-            for rulebase in self._normalized_config.rulebases
-            for rule_uid in rulebase.Rules.keys()
-        ]
+        self._source_rule_uids, self._source_rules_flat = self._parse_rule_uids_and_objects_from_config(self._previous_config)
+        self._target_rule_uids, self._target_rules_flat = self._parse_rule_uids_and_objects_from_config(self._fw_config_import_rule.NormalizedConfig)
+
+        # Compute needed operations and prepare return objects.
 
         self._compute_min_moves_result = compute_min_moves(self._source_rule_uids, self._target_rule_uids)
 
-        for rulebase in self._previous_config.rulebases:
-            self._deleted_rule_uids[rulebase.uid] = [
-                deletion_rule_uid
-                for _, deletion_rule_uid in self._compute_min_moves_result["deletions"]
-                if any(deletion_rule_uid == rule_uid for rule_uid in rulebase.Rules.keys())
-            ]
-            self._moved_rule_uids[rulebase.uid] = [
-                move_rule_uid
-                for _, move_rule_uid, target_index in self._compute_min_moves_result["reposition_moves"]
-                if any(move_rule_uid == rule_uid for rule_uid in rulebase.Rules.keys())
-            ]
-            self._needs_rule_num_numeric_update_rule_uids.extend(self._moved_rule_uids[rulebase.uid])
+        for rulebase in self._fw_config_import_rule.NormalizedConfig.rulebases:
+            rule_uids = set(rulebase.Rules.keys())
 
-            self._source_rules_flat.extend(rulebase.Rules.values())
-            
-        for rulebase in self._normalized_config.rulebases:
             self._new_rule_uids[rulebase.uid] = [
-                insertion_rule_uid
-                for target_index, insertion_rule_uid in self._compute_min_moves_result["insertions"]
-                if any(insertion_rule_uid == rule_uid for rule_uid in rulebase.Rules.keys())
+                insertion_uid
+                for _, insertion_uid in self._compute_min_moves_result["insertions"]
+                if insertion_uid in rule_uids
             ]
 
-            self._target_rules_flat.extend(rulebase.Rules.values())
-            self._needs_rule_num_numeric_update_rule_uids.extend(self._new_rule_uids[rulebase.uid])
-        
-        for rule_uid in self._needs_rule_num_numeric_update_rule_uids:
-            self.update_rule_num_numeric(rule_uid)
+            self._moved_rule_uids[rulebase.uid] = [
+                move_uid
+                for _, move_uid, _ in self._compute_min_moves_result["reposition_moves"]
+                if move_uid in rule_uids
+            ]
+            
+            if (len(self._moved_rule_uids) > 0 or len(self._new_rule_uids > 0)) and not rulebase.uid in self._inserts_and_moves:
+                self._inserts_and_moves[rulebase.uid] = []
+
+            self._inserts_and_moves[rulebase.uid].extend(self._new_rule_uids[rulebase.uid])
+            self._inserts_and_moves[rulebase.uid].extend(self._moved_rule_uids[rulebase.uid])
+
+        for rulebase in self._previous_config.rulebases:
+            rule_uids = set(rulebase.Rules.keys())
+
+            self._deleted_rule_uids[rulebase.uid] = [
+                deletion_uid
+                for _, deletion_uid in self._compute_min_moves_result["deletions"]
+                if deletion_uid in rule_uids
+            ]
+
+        # Update rule_num_numeric
+
+        self.update_rule_num_numerics()
 
         return self._deleted_rule_uids, self._new_rule_uids, self._moved_rule_uids
 
 
-    def update_rule_num_numeric(self, rule_uid):
-        index, changed_rule = next(
-            (i, rule) for i, rule in enumerate(self._target_rules_flat) if rule.rule_uid == rule_uid
-        )
-        previous_rule_num_numeric = 0.0
-        new_rule_num_numeric = 0.0
-        next_num_numeric  = 0.0
+    def update_rule_num_numerics(self):
 
-        if index > 0:
-            previous_rule_num_numeric = self._target_rules_flat[index - 1].rule_num_numeric
+        # Set initial rule_num_numerics if it is the first import.
+        if len(self._source_rules_flat) == 0:
+            self._set_initial_rule_num_numerics()
+            return
 
-        if index < len(self._target_rule_uids) - 1:
-            next_num_numeric = self._target_rules_flat[index + 1].rule_num_numeric
+        for rulebase_id, rule_uids in self._inserts_and_moves.items():
+            for rule_uid in rule_uids:
+                        
+                # Compute value if it is a consecutive insert.
 
-        if index == len(self._target_rule_uids) - 1:
-            new_rule_num_numeric = self._target_rules_flat[index].rule_num_numeric
-        elif next_num_numeric == 0:
-            consecutive_insertions = 1
-            while next_num_numeric == 0:          
-                if index + consecutive_insertions < len(self._target_rule_uids) - 1:
-                    next_num_numeric = next_num_numeric = self._target_rules_flat[index + consecutive_insertions].rule_num_numeric
-                    consecutive_insertions += 1
+                fixed_value = 0
+
+                if(self._is_part_of_consecutive_insert(rule_uid)):
+                    fixed_value = self._calculate_rule_num_numeric_for_consecutive_insert(rule_uid)
+
+                # Handle singular inserts and moves.
+                
+                if self._is_rule_uid_in_return_object(rule_uid, self._new_rule_uids) or self._is_rule_uid_in_return_object(rule_uid, self._moved_rule_uids):
+                    self._update_rule_num_numeric_on_singular_insert_or_move(rule_uid, fixed_value) ## TODO: Change method name
+
+                # Raise if unexpected rule uid.
+
                 else:
-                    next_num_numeric = consecutive_insertions * rule_num_numeric_steps + previous_rule_num_numeric
-            new_rule_num_numeric_step = (next_num_numeric - previous_rule_num_numeric)
-            if new_rule_num_numeric_step != 0:
-                new_rule_num_numeric_step /= consecutive_insertions
-                new_rule_num_numeric = previous_rule_num_numeric + new_rule_num_numeric_step
-            else:
-                new_rule_num_numeric = previous_rule_num_numeric
+                    raise FwoApiFailure(message="RuleOrderService: Unexpected rule_uid.")
+
+
+    def _set_initial_rule_num_numerics(self):
+            for rulebase_id, rule_uids in self._inserts_and_moves.items():
+                for rule_uid in rule_uids:
+                    if len(self._source_rules_flat) == 0:
+                        _, changed_rule = self._get_index_and_rule_object_from_flat_list(self.target_rules_flat, rule_uid)
+                        changed_rule.rule_num_numeric = self.get_new_rule_num_numeric()
+
+                        # Make rule_num_numerics relative to rulebase.
+
+                        if self._is_last_rule(changed_rule, rulebase_id):
+                            self._current_rule_num_numeric = 0
+
+
+    def _is_last_rule(self, rule, rulebase_uid):
+        rulebase = next(rulebase for rulebase in self._fw_config_import_rule.NormalizedConfig.rulebases if rulebase.uid == rulebase_uid)
+        rulebase_rules = list(rulebase.Rules.values())
+        return rulebase_rules[-1] is rule
+
+
+    def _parse_rule_uids_and_objects_from_config(self, config: FwConfigNormalized):
+        uids_and_rules = [
+            (rule_uid, rule)
+            for rulebase in config.rulebases
+            for rule_uid, rule in rulebase.Rules.items()
+        ]
+
+        return map(list, zip(*uids_and_rules)) if uids_and_rules else ([], [])
+
+
+    def _update_rule_num_numeric_on_singular_insert_or_move(self, rule_uid, fixed_value=0): 
+
+        new_rule_num_numeric = 0.0
+        next_rules_rule_num_numeric = 0.0
+        previous_rule_num_numeric = 0.0
+
+        index, changed_rule = self._get_index_and_rule_object_from_flat_list(self._target_rules_flat, rule_uid)
+        prev_rule_uid, next_rule_uid = self._get_adjacent_list_element(self._target_rule_uids, index)
+
+        if not prev_rule_uid:
+            next_rules_rule_num_numeric = self._get_relevant_rule_num_numeric(next_rule_uid, self.fw_config_import_rule.ImportDetails, self._target_rules_flat)
+            changed_rule.rule_num_numeric = next_rules_rule_num_numeric / 2 or 1
+            
+        elif not next_rule_uid:
+            previous_rule_num_numeric = self._get_relevant_rule_num_numeric(prev_rule_uid, self.fw_config_import_rule.ImportDetails, self._target_rules_flat)
+            changed_rule.rule_num_numeric = previous_rule_num_numeric + rule_num_numeric_steps
+                    
         else:
-            new_rule_num_numeric = (previous_rule_num_numeric + next_num_numeric) / 2
+            previous_rule_num_numeric = self._get_relevant_rule_num_numeric(prev_rule_uid, self.fw_config_import_rule.ImportDetails, self._target_rules_flat)
+            next_rules_rule_num_numeric = self._get_relevant_rule_num_numeric(next_rule_uid, self.fw_config_import_rule.ImportDetails, self._target_rules_flat)
 
-        changed_rule.rule_num_numeric = new_rule_num_numeric
+            if fixed_value > 0: # True if it is a consecutive insert.
+                changed_rule.rule_num_numeric = fixed_value
+            else:    
+                changed_rule.rule_num_numeric = (previous_rule_num_numeric + next_rules_rule_num_numeric) / 2
 
+        self._updated_rules.append(changed_rule.rule_uid)
+                    
+
+
+    def _calculate_rule_num_numeric_for_consecutive_insert(self, rule_uid):
+        index, _ = self._get_index_and_rule_object_from_flat_list(self.target_rules_flat, rule_uid)
+        _index = index
+        prev_rule_num_numeric = 0
+        next_rule_num_numeric = 0
+
+        while prev_rule_num_numeric == 0:
+            
+            prev_rule_uid, _ = self._get_adjacent_list_element(self._target_rule_uids, _index)
+
+            if prev_rule_uid:
+                prev_rule_num_numeric = self._get_relevant_rule_num_numeric(prev_rule_uid, self.fw_config_import_rule.ImportDetails, self._target_rules_flat)
+                _index -= 1
+            else:
+                break
+
+        _index = index
+
+        while next_rule_num_numeric == 0:
+            
+            _, next_rule_uid = self._get_adjacent_list_element(self._target_rule_uids, _index)
+
+            if next_rule_uid:
+                next_rule_num_numeric = self._get_relevant_rule_num_numeric(next_rule_uid, self.fw_config_import_rule.ImportDetails, self._target_rules_flat)
+                _index += 1
+            else:
+                break
+
+        if next_rule_num_numeric == 0:
+            next_rule_num_numeric = prev_rule_num_numeric + rule_num_numeric_steps
+        
+
+        return (prev_rule_num_numeric + next_rule_num_numeric) / 2
+
+    def _is_part_of_consecutive_insert(self, rule_uid: str):
+
+        # Only inserts.
+
+        if not self._is_rule_uid_in_return_object(rule_uid, self._new_rule_uids):
+            return False
+
+        # Cant be consecutive, if there is only one insert
+
+        number_of_rule_uids = 0
+
+        for rulebase in self._new_rule_uids.values():
+            number_of_rule_uids += len(rulebase)
+
+        if number_of_rule_uids < 2:
+            return False
+        
+        # Evaluate adjacent rule_uids
+        
+        index, _ = self._get_index_and_rule_object_from_flat_list(self._target_rules_flat, rule_uid)
+
+        prev_rule_uid, next_rule_uid = self._get_adjacent_list_element(self._target_rule_uids, index)
+
+        if prev_rule_uid and self._is_rule_uid_in_return_object(prev_rule_uid, self._new_rule_uids):
+            return True
+        
+        if next_rule_uid and self._is_rule_uid_in_return_object(next_rule_uid, self._new_rule_uids):
+            return True
+
+
+    def _get_adjacent_list_element(self, lst, index):
+        if not lst or index < 0 or index >= len(lst):
+            return None, None
+
+        prev_item = lst[index - 1] if index - 1 >= 0 else None
+        next_item = lst[index + 1] if index + 1 < len(lst) else None
+        return prev_item, next_item
+
+    
+    def _get_index_and_rule_object_from_flat_list(self, flat_list, rule_uid):
+        return next(
+            (i, rule) for i, rule in enumerate(flat_list) if rule.rule_uid == rule_uid
+        )
+
+
+    def _get_rule_num_numeric_from_db(self, rule_uid, import_state):
+
+        get_rule_num_numeric_by_uid_query ="""query GetRuleNumNumericByUid($rule_uid: String!) {
+            rule(where: { rule_uid: { _eq: $rule_uid }, removed: { _is_null: true } }) {
+                rule_num_numeric
+            }
+        }
+        """
+
+        try:
+            query_result = import_state.call(get_rule_num_numeric_by_uid_query, queryVariables={ 'rule_uid': rule_uid })
+            if 'errors' in query_result:
+                self._logger.exception(f"fwo_api:importNwObject - error in addNewRuleMetadata: {str(query_result['errors'])}")
+                raise FwoApiFailure(message="Failed to query rule_num_numeric by uid for unknown reason.")
+        except Exception:
+            raise FwoApiFailure(f"Failed to query rule_num_numeric by uid: {str(traceback.format_exc())}")
+        
+        return query_result["data"]["rule"][0]["rule_num_numeric"]
+    
+
+    def _get_relevant_rule_num_numeric(self, rule_uid, import_state, flat_list):
+        relevant_rule_num_numeric = 0.0
+
+        if rule_uid in self._updated_rules:
+            _, rule = self._get_index_and_rule_object_from_flat_list(flat_list, rule_uid)
+            relevant_rule_num_numeric = rule.rule_num_numeric
+        elif self._is_part_of_consecutive_insert(rule_uid):
+            relevant_rule_num_numeric = 0
+        else:
+            relevant_rule_num_numeric = self._get_rule_num_numeric_from_db(rule_uid, import_state)
+
+        return relevant_rule_num_numeric
+    
+
+    def _is_rule_uid_in_return_object(self, rule_uid, return_object):
+        for rule_uids in return_object.values():
+            for _rule_uid in rule_uids:
+                if rule_uid == _rule_uid:
+                    return True
+                
+        return False

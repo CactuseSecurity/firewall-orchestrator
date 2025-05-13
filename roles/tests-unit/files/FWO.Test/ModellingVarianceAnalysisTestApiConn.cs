@@ -22,6 +22,7 @@ namespace FWO.Test
         static readonly NetworkObject AZProd = new() { Id = 3, Name = "AZ4711", Type = new() { Name = ObjectType.Group }, ObjectGroupFlats = [new() { Object = NwObj1 }, new() { Object = NwObj2 }] };
         static readonly ModellingAppZone AZExist = new() { Id = 3, Name = "AZ4711", IdString = "AZ4711", AppServers = new() { new() { Content = AppServer1 }, new() { Content = AppServer2 } } };
         static readonly NetworkService Svc1 = new() { Id = 1, DestinationPort = 1000, DestinationPortEnd = 2000, Name = "Service1", ProtoId = 6 };
+        static readonly NetworkService Svc2 = new() { Id = 2, DestinationPort = 990, DestinationPortEnd = 1998, Name = "Service1", ProtoId = 6 };
         static readonly Rule Rule1 = new() 
         {
             Name = "FWOC1" ,
@@ -43,6 +44,13 @@ namespace FWO.Test
             Froms = [ new(new(), SpecObj1), new(new(), Nwgroup1) ],
             Tos = [ new(new(), SpecObj2) ],
             Services = [ new(){ Content = Svc1 } ]
+        };
+        static readonly Rule Rule5 = new() 
+        {
+            Name = "FWOC1again" ,
+            Froms = [ new(new(), NwObj2) ],
+            Tos = [ new(new(), Nwgroup1) ],
+            Services = [ new(){ Content = Svc2 } ]
         };
 
         public override async Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
@@ -105,7 +113,7 @@ namespace FWO.Test
             }
             else if (responseType == typeof(List<Rule>))
             {
-                GraphQLResponse<dynamic> response = new() { Data = new List<Rule>() { Rule1, Rule2, Rule3, Rule4 } };
+                GraphQLResponse<dynamic> response = new() { Data = new List<Rule>() { new(Rule1), new(Rule2), new(Rule3), new(Rule4), new(Rule5) } };
                 return response.Data;
             }
 

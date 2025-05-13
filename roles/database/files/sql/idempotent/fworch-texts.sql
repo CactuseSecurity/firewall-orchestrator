@@ -2419,6 +2419,8 @@ INSERT INTO txt VALUES ('resolve_group',        'German', 	'Gruppen aufl&ouml;se
 INSERT INTO txt VALUES ('resolve_group',        'English', 	'Resolve Groups');
 INSERT INTO txt VALUES ('separate_analysis',    'German', 	'Gruppenanalyse trennen');
 INSERT INTO txt VALUES ('separate_analysis',    'English', 	'Separate Group analysis');
+INSERT INTO txt VALUES ('split_port_ranges',    'German', 	'Portbereiche aufl&ouml;sen');
+INSERT INTO txt VALUES ('split_port_ranges',    'English', 	'Split Port Ranges');
 INSERT INTO txt VALUES ('ext_ticketing',        'German', 	'Externes Ticket-System');
 INSERT INTO txt VALUES ('ext_ticketing',        'English', 	'External ticket tool');
 INSERT INTO txt VALUES ('ext_ticket_settings',  'German', 	'Einstellungen externes Ticket-System');

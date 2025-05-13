@@ -224,7 +224,7 @@ namespace FWO.Services
                         objTypeIds = objTypeIds,
                         relevantImportId = relImpId
                     };
-                return await apiConnection.SendQueryAsync<List<NetworkObject>>(ObjectQueries.getNetworkObjectsForManagement, ObjGroupVariables);
+                    return await apiConnection.SendQueryAsync<List<NetworkObject>>(ObjectQueries.getNetworkObjectsForManagement, ObjGroupVariables);
                 }
             }
             catch (Exception exception)

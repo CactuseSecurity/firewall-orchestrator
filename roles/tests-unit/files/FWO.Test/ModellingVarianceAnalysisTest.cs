@@ -13,9 +13,9 @@ namespace FWO.Test
     [Parallelizable]
     internal class ModellingVarianceAnalysisTest
     {
-        const string stdRecogOpt = "{\"nwRegardIp\":true,\"nwRegardName\":false,\"nwRegardGroupName\":false,\"nwResolveGroup\":false,\"nwSeparateGroupAnalysis\":true,\"svcRegardPortAndProt\":true,\"svcRegardName\":false,\"svcRegardGroupName\":false,\"svcResolveGroup\":true}";
-        const string oppRecogOpt = "{\"nwRegardIp\":false,\"nwRegardName\":true,\"nwRegardGroupName\":true,\"nwResolveGroup\":true,\"nwSeparateGroupAnalysis\":false,\"svcRegardPortAndProt\":false,\"svcRegardName\":true,\"svcRegardGroupName\":true,\"svcResolveGroup\":false}";
-        const string grpNameRecogOpt = "{\"nwRegardIp\":true,\"nwRegardName\":false,\"nwRegardGroupName\":true,\"nwResolveGroup\":false,\"nwSeparateGroupAnalysis\":true,\"svcRegardPortAndProt\":true,\"svcRegardName\":false,\"svcRegardGroupName\":false,\"svcResolveGroup\":true}";
+        const string stdRecogOpt = "{\"nwRegardIp\":true,\"nwRegardName\":false,\"nwRegardGroupName\":false,\"nwResolveGroup\":false,\"nwSeparateGroupAnalysis\":true,\"svcRegardPortAndProt\":true,\"svcRegardName\":false,\"svcRegardGroupName\":false,\"svcResolveGroup\":true,\"svcSplitPortRanges\":true}";
+        const string oppRecogOpt = "{\"nwRegardIp\":false,\"nwRegardName\":true,\"nwRegardGroupName\":true,\"nwResolveGroup\":true,\"nwSeparateGroupAnalysis\":false,\"svcRegardPortAndProt\":false,\"svcRegardName\":true,\"svcRegardGroupName\":true,\"svcResolveGroup\":false,\"svcSplitPortRanges\":false}";
+        const string grpNameRecogOpt = "{\"nwRegardIp\":true,\"nwRegardName\":false,\"nwRegardGroupName\":true,\"nwResolveGroup\":false,\"nwSeparateGroupAnalysis\":true,\"svcRegardPortAndProt\":true,\"svcRegardName\":false,\"svcRegardGroupName\":false,\"svcResolveGroup\":true,\"svcSplitPortRanges\":true}";
 
         static readonly SimulatedUserConfig userConfig = new()
         {
@@ -281,7 +281,7 @@ namespace FWO.Test
 
             ClassicAssert.AreEqual(1, result.RuleDifferences.Count);
             ClassicAssert.AreEqual("Conn1", result.RuleDifferences[0].ModelledConnection.Name);
-            ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules.Count);
+            ClassicAssert.AreEqual(2, result.RuleDifferences[0].ImplementedRules.Count);
             ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules[0].DisregardedFroms.Length);
             ClassicAssert.AreEqual("AppRole1 (AR504711-001)", result.RuleDifferences[0].ImplementedRules[0].DisregardedFroms[0].Object.Name);
             ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules[0].DisregardedTos.Length);
@@ -294,9 +294,19 @@ namespace FWO.Test
             ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules[0].Tos.Length);
             ClassicAssert.AreEqual("AR504711-001", result.RuleDifferences[0].ImplementedRules[0].Tos[0].Object.Name);
             ClassicAssert.AreEqual(false, result.RuleDifferences[0].ImplementedRules[0].Tos[0].Object.IsSurplus);
-            ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules[0].Services.Length);
+            ClassicAssert.AreEqual(1001, result.RuleDifferences[0].ImplementedRules[0].Services.Length);
             ClassicAssert.AreEqual("Service1", result.RuleDifferences[0].ImplementedRules[0].Services[0].Content.Name);
             ClassicAssert.AreEqual(false, result.RuleDifferences[0].ImplementedRules[0].Services[0].Content.IsSurplus);
+            ClassicAssert.AreEqual(3, result.RuleDifferences[0].ImplementedRules[1].DisregardedServices.Length);
+            ClassicAssert.AreEqual(1999, result.RuleDifferences[0].ImplementedRules[1].DisregardedServices[0].DestinationPort);
+            ClassicAssert.AreEqual(2000, result.RuleDifferences[0].ImplementedRules[1].DisregardedServices[1].DestinationPort);
+            ClassicAssert.AreEqual(4000, result.RuleDifferences[0].ImplementedRules[1].DisregardedServices[2].DestinationPort);
+            ClassicAssert.AreEqual(1009, result.RuleDifferences[0].ImplementedRules[1].Services.Length);
+            ClassicAssert.AreEqual(990, result.RuleDifferences[0].ImplementedRules[1].Services[0].Content.DestinationPort);
+            ClassicAssert.AreEqual(true, result.RuleDifferences[0].ImplementedRules[1].Services[0].Content.IsSurplus);
+            ClassicAssert.AreEqual(true, result.RuleDifferences[0].ImplementedRules[1].Services[1].Content.IsSurplus);
+            ClassicAssert.AreEqual(1000, result.RuleDifferences[0].ImplementedRules[1].Services[10].Content.DestinationPort);
+            ClassicAssert.AreEqual(false, result.RuleDifferences[0].ImplementedRules[1].Services[10].Content.IsSurplus);
 
             ClassicAssert.AreEqual(1, result.DifferingAppRoles.Count);
             ClassicAssert.AreEqual(1, result.DifferingAppRoles[1].Count);
@@ -380,7 +390,7 @@ namespace FWO.Test
 
             ClassicAssert.AreEqual(1, result.RuleDifferences.Count);
             ClassicAssert.AreEqual("Conn1", result.RuleDifferences[0].ModelledConnection.Name);
-            ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules.Count);
+            ClassicAssert.AreEqual(2, result.RuleDifferences[0].ImplementedRules.Count);
             ClassicAssert.AreEqual(2, result.RuleDifferences[0].ImplementedRules[0].DisregardedFroms.Length);
             ClassicAssert.AreEqual("AppServerUnchanged", result.RuleDifferences[0].ImplementedRules[0].DisregardedFroms[0].Object.Name);
             ClassicAssert.AreEqual("AppServerNew1/32", result.RuleDifferences[0].ImplementedRules[0].DisregardedFroms[1].Object.Name);
@@ -397,6 +407,8 @@ namespace FWO.Test
             ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules[0].Services.Length);
             ClassicAssert.AreEqual("Service1", result.RuleDifferences[0].ImplementedRules[0].Services[0].Content.Name);
             ClassicAssert.AreEqual(false, result.RuleDifferences[0].ImplementedRules[0].Services[0].Content.IsSurplus);
+            ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules[1].DisregardedServices.Length);
+            ClassicAssert.AreEqual("SvcGrp1", result.RuleDifferences[0].ImplementedRules[1].DisregardedServices[0].Name);
 
             ClassicAssert.AreEqual(0, result.DifferingAppRoles.Count);
             userConfig.RuleRecognitionOption = stdRecogOpt;
@@ -418,7 +430,7 @@ namespace FWO.Test
             ClassicAssert.AreEqual(1, result.RuleDifferences.Count);
             ClassicAssert.AreEqual("Conn3", result.RuleDifferences[0].ModelledConnection.Name);
             ClassicAssert.AreEqual(1, result.UnModelledRules.Count);
-            ClassicAssert.AreEqual(3, result.UnModelledRules[1].Count);
+            ClassicAssert.AreEqual(4, result.UnModelledRules[1].Count);
             ClassicAssert.AreEqual("FWOC1", result.UnModelledRules[1][0].Name);
             ClassicAssert.AreEqual("xxxFWOC2yyy", result.UnModelledRules[1][1].Name);
             userConfig.ModModelledMarker = "FWOC";

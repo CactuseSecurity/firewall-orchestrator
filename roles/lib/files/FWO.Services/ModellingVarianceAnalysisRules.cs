@@ -64,25 +64,87 @@ namespace FWO.Services
             List<NetworkLocation> disregardedFroms = [];
             List<NetworkLocation> disregardedTos = [];
             List<NetworkService> disregardedServices = [];
+            (List<NetworkService> normConnSvc, List<NetworkService> normConnSvcGrp, List<NetworkService> normRuleSvc) = NormalizeServices(rule, conn);
             if(FullAnalysis)
             {
                 isImpl &= IsNwImplementation(rule.Froms, SpecialUserObjects, conn.SourceAppServers, conn.SourceAppRoles, conn.SourceAreas, conn.SourceOtherGroups, ref disregardedFroms);
                 isImpl &= IsNwImplementation(rule.Tos, SpecialUserObjects, conn.DestinationAppServers, conn.DestinationAppRoles, conn.DestinationAreas, conn.DestinationOtherGroups, ref disregardedTos);
-                isImpl &= IsSvcImplementation(rule.Services, conn.Services, conn.ServiceGroups, disregardedServices);
+                bool isSvcImpl = IsSvcImplementation(normRuleSvc, normConnSvc, normConnSvcGrp, disregardedServices);
+                isImpl &= isSvcImpl;
                 rule.DisregardedFroms = [.. disregardedFroms];
                 rule.DisregardedTos = [.. disregardedTos];
                 rule.DisregardedServices = [.. disregardedServices];
                 rule.UnusedSpecialUserObjects = [.. SpecialUserObjects.Keys.Where(x => !SpecialUserObjects[x])];
                 isImpl &= rule.UnusedSpecialUserObjects.Count == 0;
+                if(!isSvcImpl && ruleRecognitionOption.SvcSplitPortRanges)
+                {
+                    rule.Services = [.. normRuleSvc.ConvertAll(s => new ServiceWrapper(){ Content = s })];
+                }
             }
             else if (isImpl)
             {
                 isImpl = IsNwImplementation(rule.Froms, SpecialUserObjects, conn.SourceAppServers, conn.SourceAppRoles, conn.SourceAreas, conn.SourceOtherGroups, ref disregardedFroms)
                     && IsNwImplementation(rule.Tos, SpecialUserObjects, conn.DestinationAppServers, conn.DestinationAppRoles, conn.DestinationAreas, conn.DestinationOtherGroups, ref disregardedTos)
-                    && IsSvcImplementation(rule.Services, conn.Services, conn.ServiceGroups, [])
+                    && IsSvcImplementation(normRuleSvc, normConnSvc, normConnSvcGrp, [])
                     && !SpecialUserObjects.Any(x => !x.Value);
             }
             return isImpl;
+        }
+
+        private (List<NetworkService>, List<NetworkService> normConnSvcGrp, List<NetworkService> normRuleSvc) NormalizeServices(Rule rule, ModellingConnection conn)
+        {
+            List<NetworkService> normConnSvc = SplitPortRanges(ModellingServiceWrapper.Resolve(conn.Services).ToList().ConvertAll(s => ModellingService.ToNetworkService(s)));
+            List<NetworkService> normConnSvcGrp = SplitPortRanges(ModellingServiceGroupWrapper.Resolve(conn.ServiceGroups).ToList().ConvertAll(a => a.ToNetworkServiceGroup()));
+            List<NetworkService> normRuleSvc = SplitPortRanges([.. rule.Services.ToList().ConvertAll(s => s.Content)]);
+            return(normConnSvc, normConnSvcGrp, normRuleSvc);
+        }
+
+        private List<NetworkService> SplitPortRanges(List<NetworkService> servicesIn)
+        {
+            if(!ruleRecognitionOption.SvcSplitPortRanges)
+            {
+                return servicesIn;
+            }
+            List<NetworkService> servicesOut = [];
+            foreach(var svc in servicesIn)
+            {
+                if(svc.Type.Name == ObjectType.Group)
+                {
+                    List<NetworkService> grpMembers = [];
+                    foreach(var member in svc.ServiceGroupFlats)
+                    {
+                        if (member.Object != null)
+                        {
+                            grpMembers.AddRange(SplitPortRange(member.Object));
+                        }
+                    }
+                    svc.ServiceGroupFlats = Array.ConvertAll(grpMembers.ToArray(), o => new GroupFlat<NetworkService>() { Object = o });
+                    servicesOut.Add(svc);
+                }
+                else
+                {
+                    servicesOut.AddRange(SplitPortRange(svc));
+                }
+            }
+            return servicesOut;
+         }
+
+        private static List<NetworkService> SplitPortRange(NetworkService serviceIn)
+        {
+            List<NetworkService> servicesOut = [];
+            if(serviceIn.DestinationPort == null ||serviceIn.DestinationPortEnd == null || serviceIn.DestinationPortEnd <= serviceIn.DestinationPort)
+            {
+                return [serviceIn];
+            }
+            else
+            {
+                for (int port = (int)serviceIn.DestinationPort; port <= (int)serviceIn.DestinationPortEnd; port++)
+                {
+                    NetworkService partialSvc = new(serviceIn) { DestinationPort = port, DestinationPortEnd = port};
+                    servicesOut.Add(partialSvc);
+                }
+            }
+            return servicesOut;
         }
 
         private bool IsNwImplementation(NetworkLocation[] networkLocations, Dictionary<string, bool> specialUserObjects, List<ModellingAppServerWrapper> appServers,
@@ -190,10 +252,10 @@ namespace FWO.Services
                 && allProdGroups.Except(allModGroups, comparer).ToList().Count == 0;
         }
 
-        private bool IsSvcImplementation(ServiceWrapper[] networkServices, List<ModellingServiceWrapper> services, List<ModellingServiceGroupWrapper> serviceGroups, List<NetworkService> disregardedServices)
+        private bool IsSvcImplementation(List<NetworkService> prodServices, List<NetworkService> modServices, List<NetworkService> modServiceGroups, List<NetworkService> disregardedServices)
         {
             bool isImpl = true;
-            if(!CompareServices(networkServices, services, serviceGroups, disregardedServices))
+            if(!CompareServices(prodServices, modServices, modServiceGroups, disregardedServices))
             {
                 if(!FullAnalysis)
                 {
@@ -201,56 +263,56 @@ namespace FWO.Services
                 }
                 isImpl = false;
             }
-            return (ruleRecognitionOption.SvcResolveGroup || CompareSvcGroups(networkServices, serviceGroups, disregardedServices)) && isImpl;
+            return (ruleRecognitionOption.SvcResolveGroup || CompareSvcGroups(prodServices, modServiceGroups, disregardedServices)) && isImpl;
         }
 
-        private bool CompareServices(ServiceWrapper[] networkServices, List<ModellingServiceWrapper> services, List<ModellingServiceGroupWrapper> serviceGroups, List<NetworkService> disregardedServices)
+        private bool CompareServices(List<NetworkService> prodServices, List<NetworkService> modServices, List<NetworkService> modServiceGroups, List<NetworkService> disregardedServices)
         {
-            List<NetworkService> allProdServices = [.. networkServices.Where(s => s.Content.Type.Name != ServiceType.Group).ToList().ConvertAll(s => s.Content)];
-            List<NetworkService> allModServices = ModellingServiceWrapper.Resolve(services).ToList().ConvertAll(s => ModellingService.ToNetworkService(s));
+            List<NetworkService> allProdServices = [.. prodServices.Where(s => s.Type.Name != ServiceType.Group)];
+            List<NetworkService> allModServices = modServices;
             if(ruleRecognitionOption.SvcResolveGroup)
             {
-                foreach(var svc in networkServices.Where(n => n.Content.Type.Name == ServiceType.Group).ToList().ConvertAll(s => s.Content).ToList())
+                foreach(var svc in prodServices.Where(n => n.Type.Name == ServiceType.Group))
                 {
                     allProdServices.AddRange([.. svc.ServiceGroupFlats.ToList().ConvertAll(g => g.Object ?? new())]);
                 }
-                foreach(var svcGrp in ModellingServiceGroupWrapper.Resolve(serviceGroups))
+                foreach(var svcGrp in modServiceGroups)
                 {
-                    allModServices.AddRange(ModellingServiceWrapper.Resolve(svcGrp.Services).ToList().ConvertAll(s => ModellingService.ToNetworkService(s)));
+                    allModServices.AddRange([.. svcGrp.ServiceGroupFlats.ToList().ConvertAll(g => g.Object ?? new())]);
                 }
             }
-            return CompareSvcObjects(allModServices, allProdServices, networkServices, disregardedServices, networkServiceComparer);
+            return CompareSvcObjects(allModServices, allProdServices, prodServices, disregardedServices, networkServiceComparer);
         }
 
-        private bool CompareSvcGroups(ServiceWrapper[] networkServices, List<ModellingServiceGroupWrapper> serviceGroups, List<NetworkService> disregardedServices)
+        private bool CompareSvcGroups(List<NetworkService> prodServices, List<NetworkService> modServiceGroups, List<NetworkService> disregardedServices)
         {
-            List<NetworkService> allProdSvcGroups = [.. networkServices.Where(n => n.Content.Type.Name == ServiceType.Group).ToList().ConvertAll(s => s.Content)];
-            List<NetworkService> allModSvcGroups = ModellingServiceGroupWrapper.Resolve(serviceGroups).ToList().ConvertAll(a => a.ToNetworkServiceGroup());
-            return CompareSvcObjects(allModSvcGroups, allProdSvcGroups, networkServices, disregardedServices, networkServiceGroupComparer);
+            List<NetworkService> allProdSvcGroups = [.. prodServices.Where(n => n.Type.Name == ServiceType.Group)];
+            List<NetworkService> allModSvcGroups = modServiceGroups;
+            return CompareSvcObjects(allModSvcGroups, allProdSvcGroups, prodServices, disregardedServices, networkServiceGroupComparer);
         }
 
-        private bool CompareSvcObjects(List<NetworkService> allModGroups, List<NetworkService> allProdGroups, ServiceWrapper[] networkServices,
+        private bool CompareSvcObjects(List<NetworkService> allModSvcObjects, List<NetworkService> allProdSvcObjects, List<NetworkService> prodServices,
             List<NetworkService> disregardedServices, IEqualityComparer<NetworkService?> comparer)
         {
             if(FullAnalysis)
             {
-                List<NetworkService> disregardedGroups = [.. allModGroups.Except(allProdGroups, comparer)];
-                List<NetworkService> surplusGroups = [.. allProdGroups.Except(allModGroups, comparer)];
-                foreach (var svc in surplusGroups)
+                List<NetworkService> disregardedSvcObjects = [.. allModSvcObjects.Except(allProdSvcObjects, comparer)];
+                List<NetworkService> surplusSvcObjects = [.. allProdSvcObjects.Except(allModSvcObjects, comparer)];
+                foreach (var svc in surplusSvcObjects)
                 {
-                    ServiceWrapper? exSvc = networkServices.FirstOrDefault(n => n.Content.Id == svc.Id);
+                    NetworkService? exSvc = prodServices.FirstOrDefault(n => n.Id == svc.Id && n.DestinationPort == svc.DestinationPort);
                     if(exSvc != null)
                     {
-                        exSvc.Content.IsSurplus = true;
+                        exSvc.IsSurplus = true;
                     }
                 }
-                disregardedServices.AddRange(disregardedGroups);
-                return disregardedGroups.Count == 0 && surplusGroups.Count == 0;
+                disregardedServices.AddRange(disregardedSvcObjects);
+                return disregardedSvcObjects.Count == 0 && surplusSvcObjects.Count == 0;
             }
 
-            return allModGroups.Count == allProdGroups.Count
-                && allModGroups.Except(allProdGroups, comparer).ToList().Count == 0
-                && allProdGroups.Except(allModGroups, comparer).ToList().Count == 0;
+            return allModSvcObjects.Count == allProdSvcObjects.Count
+                && allModSvcObjects.Except(allProdSvcObjects, comparer).ToList().Count == 0
+                && allProdSvcObjects.Except(allModSvcObjects, comparer).ToList().Count == 0;
         }
     }
 }

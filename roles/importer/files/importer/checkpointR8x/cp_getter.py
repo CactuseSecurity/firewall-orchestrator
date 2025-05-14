@@ -301,7 +301,7 @@ def get_rulebases(api_v_url, sid, show_params_rules,
 
     # get rulebase in chunks
     if rulebaseUid not in fetchedRulebaseList:
-        get_rulebases_in_chunks(rulebaseUid, show_params_rules, api_v_url, access_type, sid, nativeConfig)
+        currentRulebase = get_rulebases_in_chunks(rulebaseUid, show_params_rules, api_v_url, access_type, sid, nativeConfig)
         nativeConfig[nativeConfigRulebaseKey].append(currentRulebase)
 
     # use recursion to get inline layers
@@ -347,7 +347,6 @@ def get_rulebases_in_chunks(rulebaseUid, show_params_rules, api_v_url, access_ty
             logger.error("could not find rulebase uid=" + rulebaseUid)
             # todo: need to get FWO API jwt here somehow:
             # create_data_issue(fwo_api_base_url, jwt, severity=2, description="failed to get show-access-rulebase  " + rulebaseUid)
-            return 1
 
         # resolve checkpoint uids via object dictionary
         try:
@@ -356,7 +355,6 @@ def get_rulebases_in_chunks(rulebaseUid, show_params_rules, api_v_url, access_ty
             currentRulebase['chunks'].append(rulebase)
         except Exception:
             logger.error("error while getting field " + ruleField + " of layer " + rulebaseUid + ", params: " + str(show_params_rules))
-            return 1
 
         if 'total' in rulebase:
             total=rulebase['total']
@@ -369,7 +367,6 @@ def get_rulebases_in_chunks(rulebaseUid, show_params_rules, api_v_url, access_ty
                 logger.warning("show_params_rules " + key + ": " + str(value))
             for key, value in rulebase.items():
                 logger.warning("rulebase " + key + ": " + str(value))
-            return 1
         
         if total==0:
             current=0
@@ -379,7 +376,7 @@ def get_rulebases_in_chunks(rulebaseUid, show_params_rules, api_v_url, access_ty
             else:
                 raise Exception ( "get_nat_rules_from_api - rulebase does not contain to field, get_rulebase_chunk_from_api found garbled json " + str(rulebase))
 
-    return 0
+    return currentRulebase
 
 
 def get_inline_layers_recursively(currentRulebase, deviceConfig, nativeConfig, api_v_url, sid, show_params_rules):

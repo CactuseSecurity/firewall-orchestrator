@@ -154,6 +154,7 @@ def get_rules(nativeConfig: dict, importState: ImportStateController) -> int:
         'details-level': 'full'
     }
 
+    globalAssignments, globalPolicyStructure, globalDomain, globalSid = None, None, None, None
     manager_details_list = enrich_submanager_details(importState)
     for managerDetails in manager_details_list:
         cpManagerApiBaseUrl = importState.MgmDetails.buildFwApiString()
@@ -162,8 +163,6 @@ def get_rules(nativeConfig: dict, importState: ImportStateController) -> int:
             globalAssignments, globalPolicyStructure, globalDomain, globalSid = handle_super_manager(
                 managerDetails, cpManagerApiBaseUrl, show_params_policy_structure
             )
-        else:
-            globalAssignments, globalPolicyStructure, globalDomain, globalSid = None, None, None, None
 
         sid = loginCp(managerDetails)
         policyStructure = get_policy_structure(cpManagerApiBaseUrl, sid, show_params_policy_structure)
@@ -245,7 +244,7 @@ def process_devices(
 
         if importState.MgmDetails.IsSuperManager:
             handle_global_rulebase_links(
-                importState, deviceConfig, globalAssignments, globalPolicyStructure, globalDomain,
+                managerDetails, importState, deviceConfig, globalAssignments, globalPolicyStructure, globalDomain,
                 globalSid, orderedLayerUids, nativeConfig, cpManagerApiBaseUrl
             )
         else:
@@ -266,12 +265,12 @@ def initialize_device_config(device):
 
 
 def handle_global_rulebase_links(
-    import_state, deviceConfig, globalAssignments, globalPolicyStructure, globalDomain,
-    globalSid, orderedLayerUids, nativeConfig, cpManagerApiBaseUrl
-):
+    managerDetails, import_state, deviceConfig, globalAssignments, globalPolicyStructure, globalDomain,
+    globalSid, orderedLayerUids, nativeConfig, cpManagerApiBaseUrl):
+
     logger = getFwoLogger()
     for globalAssignment in globalAssignments:
-        if globalAssignment['dependent-domain']['uid'] == globalDomain:
+        if globalAssignment['dependent-domain']['uid'] == managerDetails.getDomainString():
             for globalPolicy in globalPolicyStructure:
                 if globalPolicy['name'] == globalAssignment['global-access-policy']:
                     global_ordered_layer_uids = getOrderedLayerUids([globalPolicy], deviceConfig, globalDomain)
@@ -284,6 +283,10 @@ def handle_global_rulebase_links(
 
 
 def define_global_rulebase_link(deviceConfig, globalOrderedLayerUids, orderedLayerUids, nativeConfig):
+    # define initial rulebase for device in case of mds
+    define_initial_rulebase(deviceConfig, globalOrderedLayerUids)
+
+    # parse global rulebase, find place-holder and link local rulebase (first ordered layer)
     for globalOrderedLayerUid in globalOrderedLayerUids:
         placeholderRuleUid = ''
         for rulebase in nativeConfig['rulebases']:
@@ -299,7 +302,7 @@ def define_global_rulebase_link(deviceConfig, globalOrderedLayerUids, orderedLay
                 'to_rulebase_uid': orderedLayerUids[0],
                 'type': 'ordered',
                 'is_global': True,
-                'is_initial': False
+                'is_initial': False,
             })
 
 

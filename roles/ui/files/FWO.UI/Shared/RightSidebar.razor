@@ -252,7 +252,7 @@
     {
         Dictionary<string, object> queryVars = new()
         {
-            ["time"] = time,
+            ["time"] = time != "" ? time : DateTime.Now.ToString(DynGraphqlQuery.fullTimeFormat),
         };
         if (mgmId != null)
             queryVars.Add("mgmIds", mgmId);

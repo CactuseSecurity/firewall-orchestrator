@@ -182,15 +182,20 @@ namespace FWO.Services
         private bool IsNwImplementation(NetworkLocation[] networkLocations, Dictionary<string, bool> specialUserObjects, List<ModellingAppServerWrapper> appServers,
             List<ModellingAppRoleWrapper> appRoles, List<ModellingNetworkAreaWrapper> areas, List<ModellingNwGroupWrapper> otherGroups, ref List<NetworkLocation> disregardedLocations)
         {
-            if (!CompareNwAreas(networkLocations, areas, disregardedLocations) && !FullAnalysis && specialUserObjects.Count == 0)
+            bool specialUserObjectsExist = specialUserObjects.Count > 0;
+            foreach(var loc in networkLocations)
+            {
+                loc.Object.IsSurplus = false;
+            }
+            if (!CompareNwAreas(networkLocations, areas, disregardedLocations, specialUserObjectsExist) && !FullAnalysis && !specialUserObjectsExist)
             {
                 return false;
             }
-            if (!CompareAppServers(networkLocations, appServers, appRoles, disregardedLocations) && !FullAnalysis && specialUserObjects.Count == 0)
+            if (!CompareAppServers(networkLocations, appServers, appRoles, disregardedLocations, specialUserObjectsExist) && !FullAnalysis && !specialUserObjectsExist)
             {
                 return false;
             }
-            if (!ruleRecognitionOption.NwResolveGroup && !CompareRemainingNwGroups(networkLocations, appRoles, otherGroups, disregardedLocations) && !FullAnalysis && specialUserObjects.Count == 0)
+            if (!ruleRecognitionOption.NwResolveGroup && !CompareRemainingNwGroups(networkLocations, appRoles, otherGroups, disregardedLocations, specialUserObjectsExist) && !FullAnalysis && !specialUserObjectsExist)
             {
                 return false;
             }
@@ -220,12 +225,12 @@ namespace FWO.Services
              }
         }
 
-        private bool CompareNwAreas(NetworkLocation[] networkLocations, List<ModellingNetworkAreaWrapper> areas, List<NetworkLocation> disregardedLocations)
+        private bool CompareNwAreas(NetworkLocation[] networkLocations, List<ModellingNetworkAreaWrapper> areas, List<NetworkLocation> disregardedLocations, bool specialUserObjectsExist)
         {
             List<NetworkObject> allProdNwAreas = networkLocations.Where(n => n.Object.Type.Name == ObjectType.Group && IsArea(n.Object)).ToList().ConvertAll(n => n.Object);
             List<NetworkObject> allModNwAreas = ModellingNetworkAreaWrapper.Resolve(areas).ToList().ConvertAll(a => a.ToNetworkObjectGroup(true));
             NetworkObjectComparer networkAreaComparer = new(new(){ NwRegardName = true, NwRegardIp = false });
-            return CompareNwObjects(allModNwAreas, allProdNwAreas, networkLocations, disregardedLocations, networkAreaComparer);
+            return CompareNwObjects(allModNwAreas, allProdNwAreas, networkLocations, disregardedLocations, networkAreaComparer, specialUserObjectsExist);
         }
 
         private bool IsArea(NetworkObject nwGroup)
@@ -234,7 +239,7 @@ namespace FWO.Services
         }
 
         private bool CompareAppServers(NetworkLocation[] networkLocations, List<ModellingAppServerWrapper> appServers,
-            List<ModellingAppRoleWrapper> appRoles, List<NetworkLocation> disregardedLocations)
+            List<ModellingAppRoleWrapper> appRoles, List<NetworkLocation> disregardedLocations, bool specialUserObjectsExist)
         {
             List<NetworkObject> allProdNwObjects = networkLocations.Where(n => n.Object.Type.Name != ObjectType.Group).ToList().ConvertAll(n => n.Object);
             List<NetworkObject> allModNwObjects = ModellingAppServerWrapper.Resolve(appServers).ToList().ConvertAll(a => ModellingAppServer.ToNetworkObject(a));
@@ -249,21 +254,21 @@ namespace FWO.Services
                     allModNwObjects.AddRange(ModellingAppServerWrapper.Resolve(appRole.AppServers).ToList().ConvertAll(a => ModellingAppServer.ToNetworkObject(a)));
                 }
             }
-            return CompareNwObjects(allModNwObjects, allProdNwObjects, networkLocations, disregardedLocations, networkObjectComparer);
+            return CompareNwObjects(allModNwObjects, allProdNwObjects, networkLocations, disregardedLocations, networkObjectComparer, specialUserObjectsExist);
         }
 
-        private bool CompareRemainingNwGroups(NetworkLocation[] networkLocations, List<ModellingAppRoleWrapper> appRoles, List<ModellingNwGroupWrapper> otherGroups, List<NetworkLocation> disregardedLocations)
+        private bool CompareRemainingNwGroups(NetworkLocation[] networkLocations, List<ModellingAppRoleWrapper> appRoles, List<ModellingNwGroupWrapper> otherGroups, List<NetworkLocation> disregardedLocations, bool specialUserObjectsExist)
         {
             List<NetworkObject> allProdNwGroups = networkLocations.Where(n => n.Object.Type.Name == ObjectType.Group && !IsArea(n.Object)).ToList().ConvertAll(n => n.Object);
             List<NetworkObject> allModNwGroups = ModellingAppRoleWrapper.Resolve(appRoles).ToList().ConvertAll(a => a.ToNetworkObjectGroup());
             allModNwGroups.AddRange(ModellingNwGroupWrapper.Resolve(otherGroups).ToList().ConvertAll(a => a.ToNetworkObjectGroup()));
-            return CompareNwObjects(allModNwGroups, allProdNwGroups, networkLocations, disregardedLocations, networkObjectGroupComparer);
+            return CompareNwObjects(allModNwGroups, allProdNwGroups, networkLocations, disregardedLocations, networkObjectGroupComparer, specialUserObjectsExist);
         }
 
         private bool CompareNwObjects(List<NetworkObject> allModGroups, List<NetworkObject> allProdGroups, NetworkLocation[] networkLocations,
-            List<NetworkLocation> disregardedLocations, IEqualityComparer<NetworkObject?> comparer)
+            List<NetworkLocation> disregardedLocations, IEqualityComparer<NetworkObject?> comparer, bool specialUserObjectsExist = false)
         {
-            if(FullAnalysis)
+            if(FullAnalysis || specialUserObjectsExist)
             {
                 List<NetworkObject> disregardedGroups = [.. allModGroups.Except(allProdGroups, comparer)];
                 List<NetworkObject> surplusGroups = [.. allProdGroups.Except(allModGroups, comparer)];

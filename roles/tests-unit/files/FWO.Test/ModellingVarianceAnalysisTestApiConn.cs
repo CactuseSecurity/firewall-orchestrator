@@ -52,6 +52,13 @@ namespace FWO.Test
             Tos = [ new(new(), Nwgroup1) ],
             Services = [ new(){ Content = Svc2 } ]
         };
+        static readonly Rule Rule6 = new() 
+        {
+            Name = "FWOC5",
+            Froms = [ new(new(), SpecObj1), new(new(), Nwgroup1) ],
+            Tos = [ new(new(), SpecObj2) ],
+            Services = [ new(){ Content = Svc1 } ]
+        };
 
         public override async Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
         {
@@ -113,8 +120,23 @@ namespace FWO.Test
             }
             else if (responseType == typeof(List<Rule>))
             {
-                GraphQLResponse<dynamic> response = new() { Data = new List<Rule>() { new(Rule1), new(Rule2), new(Rule3), new(Rule4), new(Rule5) } };
+                GraphQLResponse<dynamic> response = new() { Data = new List<Rule>() { new(Rule1), new(Rule2), new(Rule3), new(Rule4), new(Rule5), new(Rule6) } };
                 return response.Data;
+            }
+            else if (responseType == typeof(ReturnId) && query == ModellingQueries.updateConnectionProperties)
+            {
+                if(variables != null)
+                {
+                    List<int> connIds = [1,2,3,4,5];
+                    var connId = variables.GetType().GetProperties().First(o => o.Name == "id").GetValue(variables, null);
+                    if(connId != null && connIds.Contains((int)connId))
+                    {
+                        GraphQLResponse<dynamic> response = new();
+                        return response.Data;
+                    }
+                    throw new ArgumentException($"ConnId {connId} is not valid");
+                }
+                throw new ArgumentException($"No Variables");
             }
 
             throw new NotImplementedException();

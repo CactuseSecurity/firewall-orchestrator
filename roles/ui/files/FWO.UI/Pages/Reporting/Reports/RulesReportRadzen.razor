@@ -9,29 +9,27 @@ AllowGrouping="false"
 ExpandMode="DataGridExpandMode.Multiple"
 AllowFiltering="true"
 AllowSorting="true">
-    <HeaderTemplate>
-        <RadzenButton Icon="unfold_more" Size="@ButtonSize.Small" ButtonStyle="@ButtonStyle.Secondary" Variant="@Variant.Flat" />
-        <RadzenButton Icon="unfold_less" Size="@ButtonSize.Small" ButtonStyle="@ButtonStyle.Secondary" Variant="@Variant.Flat" />
+    <HeaderTemplate>       
+        <RadzenButton Icon="unfold_more" Size="@ButtonSize.Small" ButtonStyle="@ButtonStyle.Base" Variant="@Variant.Flat" />
+        <RadzenButton Icon="unfold_less" Size="@ButtonSize.Small" ButtonStyle="@ButtonStyle.Base" Variant="@Variant.Flat" />
+        <RadzenTextBox Placeholder="Search for IP, object, action, ..." />
+        <RadzenButton Icon="search" Size="@ButtonSize.Small" Variant="@Variant.Flat"></RadzenButton>
     </HeaderTemplate>
-   @*  <Template Context="Rule">
-        <SectionHeader>
-            <RulebaseHeader></RulebaseHeader>
+    <Template Context="Rule">
+        <p>Section (xx.xx-yy.yy)</p>
+        <SectionHeader Title="bla">
+            
         </SectionHeader>
-    </Template> *@
-    <Columns>
-        <RadzenDataGridColumn Visible="true" Width="32px" Groupable="false" Sortable="false" Filterable="false">
-            <Template>
-                <RadzenStack Orientation="@Orientation.Vertical" Gap="5px" AlignItems="@AlignItems.Center" JustifyContent="@JustifyContent.Center">
-                    <RadzenButton Size="@Radzen.ButtonSize.ExtraSmall" Icon="unfold_more" ButtonStyle="@ButtonStyle.Light" Variant="@Variant.Flat" />
-                    <RadzenButton Size="@Radzen.ButtonSize.ExtraSmall" Icon="unfold_less" ButtonStyle="@ButtonStyle.Light" Variant="@Variant.Flat" />
-                </RadzenStack>
+    </Template>
+    <Columns>        
+        <RadzenDataGridColumn Title="@(userConfig.GetText("number"))" Visible="true" Groupable="false" Sortable="false" Filterable="false">            
+            <Template Context="Rule">
+                <p>@Rule.DisplayOrderNumberString</p>
             </Template>
         </RadzenDataGridColumn>
-        <RadzenDataGridColumn Property="RulebaseName" Title="Rules" Visible="true">
-            <Template>
-                <SectionHeader Title="@context.Id.ToString()">
-                    <RulebaseHeader Title="@context.DisplayOrderNumberString"></RulebaseHeader>
-                </SectionHeader>
+        <RadzenDataGridColumn Title="@(userConfig.GetText("name"))" Visible="true" Groupable="false" Sortable="false" Filterable="false">            
+            <Template Context="Rule">
+                <p>@Rule.Name</p>
             </Template>
         </RadzenDataGridColumn>
     </Columns>

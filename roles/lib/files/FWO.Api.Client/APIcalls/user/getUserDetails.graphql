@@ -1,5 +1,6 @@
 query getUserDetails(
   $management_id: [Int!]
+  $active: Boolean
   $import_id_start: bigint
   $import_id_end: bigint
   $user_name: [String!]
@@ -13,6 +14,7 @@ query getUserDetails(
       limit: $limit
       offset: $offset
       where: {
+        active: { _eq: $active }
         user_last_seen: { _gte: $import_id_start }
         user_create: { _lte: $import_id_end }
         user_name: { _in: $user_name }

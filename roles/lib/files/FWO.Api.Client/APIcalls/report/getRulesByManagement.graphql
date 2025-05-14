@@ -1,4 +1,10 @@
-query getRulesByManagement ($mgmId: Int!, $relevantImportId: bigint) {
+query getRulesByManagement (
+  $mgmId: Int!
+  $relevantImportId: bigint
+  $active: Boolean
+  $import_id_start: bigint # needed for fragments
+  $import_id_end: bigint # todo: should use here instead of relevantImportId? to show correct flats
+) {
   rule (
   where: {
     mgm_id: { _eq: $mgmId }

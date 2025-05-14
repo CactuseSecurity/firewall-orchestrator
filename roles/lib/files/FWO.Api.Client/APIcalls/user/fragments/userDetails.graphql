@@ -26,7 +26,11 @@ fragment userDetails on usr {
       }
     }
   }
-  usergrp_flats(order_by: { usergrp_flat_member_id: asc }) {
+  usergrp_flats(where: {
+    active: { _eq: $active }
+    import_last_seen: { _gte: $import_id_start }
+    import_created: { _lte: $import_id_end }
+  } order_by: { usergrp_flat_member_id: asc }) {
     flat_id: usergrp_flat_id
     byFlatId: usrByUsergrpFlatMemberId {
       user_id

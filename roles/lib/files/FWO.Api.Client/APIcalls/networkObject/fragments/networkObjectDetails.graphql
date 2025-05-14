@@ -30,7 +30,11 @@ fragment networkObjectDetails on object {
       }
     }
   }
-  objgrp_flats(order_by: {objgrp_flat_member_id: asc}) {
+  objgrp_flats(where: {
+    active: { _eq: $active }
+    import_last_seen: { _gte: $import_id_start }
+    import_created: { _lte: $import_id_end }
+  } order_by: {objgrp_flat_member_id: asc}) {
     id_flat: objgrp_flat_id
     byFlatId: objectByObjgrpFlatMemberId {
       obj_id

@@ -42,6 +42,7 @@ class FwConfigImportRule(FwConfigImportBase):
         currentRulebaseUids = []
 
         rule_order_service = RuleOrderService()
+        deletedRuleUids, newRuleUids, movedRuleUids = rule_order_service.initialize(prevConfig, self)
 
         # collect rulebase UIDs of previous config
         for rulebase in prevConfig.rulebases:
@@ -70,31 +71,11 @@ class FwConfigImportRule(FwConfigImportBase):
             previousRulebase = prevConfig.getRulebase(rulebaseId)
             for ruleUid in ruleUidsInBoth[rulebaseId]:
 
-                # !!! QUICK N DIRTY !!!
-                currentRulebase.Rules[ruleUid].rule_num_numeric = previousRulebase.Rules[ruleUid].rule_num_numeric 
-                # Currently there is a zero in any rule_num_numeric in the normalized config, because at this moment in the process we cant set it properly. 
-                # To avoid false positives in the changes rules rule_num_numeric has to be ignored at this point.
+                if currentRulebase.Rules[ruleUid].rule_num_numeric == 0:
+                    currentRulebase.Rules[ruleUid].rule_num_numeric = previousRulebase.Rules[ruleUid].rule_num_numeric 
 
                 if self.ruleChanged(rulebaseId, ruleUid, currentRulebase, previousRulebase):
-                    changedRuleUids[rulebaseId].append(ruleUid)
-                
-        deletedRuleUids, newRuleUids, movedRuleUids = rule_order_service.initialize(prevConfig, self)
-
-        for key, values in movedRuleUids.items():
-            if key not in changedRuleUids:
-                # Direkt eine Kopie der Liste übernehmen, falls der Key noch nicht existiert
-                changedRuleUids[key] = list(values)
-            else:
-                # Nur fehlende Werte hinzufügen (unter Vermeidung von Duplikaten)
-                existing = set(changedRuleUids[key])
-                for val in values:
-                    if val not in existing:
-                        changedRuleUids[key].append(val)
-                        existing.add(val)  # optional für noch etwas schnellere Checks
-
-
-
-        # TODO: handle changedRuleUids        
+                    changedRuleUids[rulebaseId].append(ruleUid)       
 
         # add full rule details first
         newRulebases = self.getRules(newRuleUids)
@@ -684,7 +665,7 @@ class FwConfigImportRule(FwConfigImportBase):
         if len(rule_uids) == 0:
             return errors, changes, collected_changed_rule_ids
         
-        create_new_rule_version_mutation = """mutation create_new_rule_version($objects: [rule_insert_input!]!, $uids: [String!], $mgmId: Int!, $importId: bigint) {
+        createNewRuleVersions = """mutation createNewRuleVersions($objects: [rule_insert_input!]!, $uids: [String!], $mgmId: Int!, $importId: bigint) {
             insert_rule(objects: $objects) {
                 affected_rows
                 returning {
@@ -737,10 +718,10 @@ class FwConfigImportRule(FwConfigImportBase):
         }
         
         try:
-            create_new_rule_version_result = self.ImportDetails.call(create_new_rule_version_mutation, queryVariables=create_new_rule_version_variables)
+            create_new_rule_version_result = self.ImportDetails.call(createNewRuleVersions, queryVariables=create_new_rule_version_variables)
             if 'errors' in create_new_rule_version_result:
                 errors = 1
-                logger.exception(f"fwo_api:create_new_rule_version - error while creating new rule versions: {str(create_new_rule_version_result['errors'])}")
+                logger.exception(f"fwo_api:createNewRuleVersions - error while creating new rule versions: {str(create_new_rule_version_result['errors'])}")
                 return errors, changes, collected_changed_rule_ids
             else:
                 changes = int(create_new_rule_version_result['data']['update_rule']['affected_rows'])
@@ -752,9 +733,6 @@ class FwConfigImportRule(FwConfigImportBase):
         except Exception:
             errors = 1
             logger.exception(f"failed to move rules: {str(traceback.format_exc())}")
-            return errors, changes, collected_changed_rule_ids
-
-       
 
         return errors, changes, collected_changed_rule_ids
 

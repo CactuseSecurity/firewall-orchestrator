@@ -312,26 +312,6 @@ class RuleOrderService:
         return next(
             (i, rule) for i, rule in enumerate(flat_list) if rule.rule_uid == rule_uid
         )
-
-
-    def _get_rule_num_numeric_from_db(self, rule_uid, import_state):
-
-        get_rule_num_numeric_by_uid_query ="""query GetRuleNumNumericByUid($rule_uid: String!) {
-            rule(where: { rule_uid: { _eq: $rule_uid }, removed: { _is_null: true } }) {
-                rule_num_numeric
-            }
-        }
-        """
-
-        try:
-            query_result = import_state.call(get_rule_num_numeric_by_uid_query, queryVariables={ 'rule_uid': rule_uid })
-            if 'errors' in query_result:
-                self._logger.exception(f"fwo_api:importNwObject - error in addNewRuleMetadata: {str(query_result['errors'])}")
-                raise FwoApiFailure(message="Failed to query rule_num_numeric by uid for unknown reason.")
-        except Exception:
-            raise FwoApiFailure(f"Failed to query rule_num_numeric by uid: {str(traceback.format_exc())}")
-        
-        return query_result["data"]["rule"][0]["rule_num_numeric"]
     
 
     def _get_relevant_rule_num_numeric(self, rule_uid, import_state, flat_list):
@@ -343,7 +323,8 @@ class RuleOrderService:
         elif self._is_part_of_consecutive_insert(rule_uid):
             relevant_rule_num_numeric = 0
         else:
-            relevant_rule_num_numeric = self._get_rule_num_numeric_from_db(rule_uid, import_state)
+            _, rule = self._get_index_and_rule_object_from_flat_list(self._source_rules_flat, rule_uid)
+            relevant_rule_num_numeric = rule.rule_num_numeric
 
         return relevant_rule_num_numeric
     

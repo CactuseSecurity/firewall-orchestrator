@@ -144,22 +144,27 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
 
                 if config_changed_since_last_import or importState.ForceImport:
                     # for config_chunk in split_config(importState, configNormalized):
-                    configNormalized.storeFullNormalizedConfigToFile(importState) # write full config to file (for debugging)
-                    for managerSet in configNormalized.ManagerSet:
-                        for config in managerSet.Configs:
-                            try:
-                                configImporter = FwConfigImport(importState, config)
-                                configChecker = FwConfigImportCheckConsistency(configImporter)
-                                if len(configChecker.checkConfigConsistency())==0:
-                                    configImporter.importConfig()
-                                    if importState.Stats.ErrorCount>0:
-                                        raise fwo_exceptions.FwoImporterError("Import failed due to errors.")
-                                    else:
-                                        configImporter.storeLatestConfig()
-                            except Exception:
-                                importState.addError(str(traceback.format_exc()))
-                                raise
-                            fwo_api.update_hit_counter(importState, config)
+                    
+                    try:
+                        for managerSet in configNormalized.ManagerSet:
+                            for config in managerSet.Configs:
+                                try:
+                                    configImporter = FwConfigImport(importState, config)
+                                    configChecker = FwConfigImportCheckConsistency(configImporter)
+                                    if len(configChecker.checkConfigConsistency())==0:
+                                        configImporter.importConfig()
+                                        if importState.Stats.ErrorCount>0:
+                                            raise fwo_exceptions.FwoImporterError("Import failed due to errors.")
+                                        else:
+                                            configImporter.storeLatestConfig()
+                                except Exception:
+                                    importState.addError(str(traceback.format_exc()))
+                                    raise
+                                fwo_api.update_hit_counter(importState, config)
+
+                    finally:
+                         # Writes full config to file (for debugging). In case of exception writes the file after error handling here, but before roleback.
+                        configNormalized.storeFullNormalizedConfigToFile(importState)
 
             if not clearManagementData and importState.DataRetentionDays<importState.DaysSinceLastFullImport:
                 configImporter.deleteOldImports() # delete all imports of the current management before the last but one full import

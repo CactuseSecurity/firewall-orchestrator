@@ -2,38 +2,11 @@
 @using FWO.Report
 @using FWO.Ui.Display
 
-<RadzenDataGrid @ref="RulesGrid"
-TItem="Rule"
-Data="@Rules"
-AllowGrouping="false"
-ExpandMode="DataGridExpandMode.Multiple"
-AllowFiltering="true"
-AllowSorting="true">
-    <HeaderTemplate>       
-        <RadzenButton Icon="unfold_more" Size="@ButtonSize.Small" ButtonStyle="@ButtonStyle.Base" Variant="@Variant.Flat" />
-        <RadzenButton Icon="unfold_less" Size="@ButtonSize.Small" ButtonStyle="@ButtonStyle.Base" Variant="@Variant.Flat" />
-        <RadzenTextBox Placeholder="Search for IP, object, action, ..." />
-        <RadzenButton Icon="search" Size="@ButtonSize.Small" Variant="@Variant.Flat"></RadzenButton>
-    </HeaderTemplate>
-    <Template Context="Rule">
-        <p>Section (xx.xx-yy.yy)</p>
-        <SectionHeader Title="bla">
-            
-        </SectionHeader>
-    </Template>
-    <Columns>        
-        <RadzenDataGridColumn Title="@(userConfig.GetText("number"))" Visible="true" Groupable="false" Sortable="false" Filterable="false">            
-            <Template Context="Rule">
-                <p>@Rule.DisplayOrderNumberString</p>
-            </Template>
-        </RadzenDataGridColumn>
-        <RadzenDataGridColumn Title="@(userConfig.GetText("name"))" Visible="true" Groupable="false" Sortable="false" Filterable="false">            
-            <Template Context="Rule">
-                <p>@Rule.Name</p>
-            </Template>
-        </RadzenDataGridColumn>
-    </Columns>
-</RadzenDataGrid>
+<TreeTable TItem="MyData" Headers="Headers" Nodes="treeData">
+    <CellTemplate Context="item">
+        @item.Name
+    </CellTemplate>
+</TreeTable>
 
 @code {
     [Parameter]
@@ -52,6 +25,14 @@ AllowSorting="true">
     #endregion
 
     List<Rule> Rules;
+    List<string> Headers = new List<string>() { "No.", "Name", "Source", "Destination" };
+
+    List<TreeNode<MyData>> treeData;
+
+    class MyData
+    {
+        public string Name { get; set; } = "";
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -67,6 +48,76 @@ AllowSorting="true">
         var ungroupedRules = ReportRules.GetAllRulesOfGateway(device, management);
 
         Rules = ungroupedRules.ToList();
+
+        treeData = new List<TreeNode<MyData>>
+        {
+            new TreeNode<MyData> {
+                Item = new MyData { Name = "pre Stealth rule (3-10)" },
+                Children = new List<TreeNode<MyData>> {
+                    new TreeNode<MyData> {
+                        Item = new MyData { Name = "4" }                        
+                    }
+                }
+            },
+            new TreeNode<MyData> {
+                Item = new MyData { Name = "test & tmp -rules (12-22)" },
+                Children = new List<TreeNode<MyData>>
+                {
+                    new TreeNode<MyData>
+                    {
+                        Item = new MyData { Name = "22" },
+                        Children = new List<TreeNode<MyData>>
+                        {
+                            new TreeNode<MyData>
+                            {
+                                Item = new MyData { Name = "DMZ_E (22.3-22.11)"},
+                                Children = new List<TreeNode<MyData>>
+                                {
+                                     new TreeNode<MyData>
+                                     {
+                                          Item = new MyData { Name = "22.3" },
+                                          Children = new List<TreeNode<MyData>>
+                                          {
+                                              new TreeNode<MyData>{ 
+                                                  Item = new MyData{ Name = "22.3.2" }
+                                              },
+                                              new TreeNode<MyData>
+                                              {
+                                                  Item = new MyData { Name = "22.3.3"}
+                                              },
+                                              new TreeNode<MyData>
+                                              {
+                                                  Item = new MyData { Name = "22.3.4"}
+                                              },
+                                              new TreeNode<MyData>
+                                              {
+                                                  Item = new MyData { Name = "22.3.7"}
+                                              },
+                                              new TreeNode<MyData>
+                                              {
+                                                  Item = new MyData { Name = "22.3.8"}
+                                              },
+                                              new TreeNode<MyData>
+                                              {
+                                                  Item = new MyData { Name = "22.3.9"}
+                                              },
+                                              new TreeNode<MyData>
+                                              {
+                                                  Item = new MyData { Name = "22.3.10"}
+                                              },
+                                              new TreeNode<MyData>
+                                              {
+                                                  Item = new MyData { Name = "22.3.11"}
+                                              }
+                                          }
+                                     }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        };
     }
 
     private async Task ShowLoading()

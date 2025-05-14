@@ -1,0 +1,38 @@
+﻿@using FWO.Data.Report
+@typeparam TItem
+
+<table class="table">
+    <thead>
+        <tr>
+            @foreach (var header in Headers)
+            {
+                <th>@header</th>
+            }
+        </tr>
+    </thead>
+    <tbody>
+        @if(Nodes is not null)
+        {
+            @foreach(var node in Nodes)
+            {
+                <TreeTableRow TItem="TItem" Node="node" Level="0" CellTemplate="CellTemplate" OnToggle="ToggleNode" />
+            }
+        }
+    </tbody>
+</table>
+
+@code {
+    [Parameter] 
+    public List<string> Headers { get; set; } = new();
+
+    [Parameter] 
+    public List<TreeNode<TItem>> Nodes { get; set; } = new();
+
+    [Parameter] 
+    public RenderFragment<TItem> CellTemplate { get; set; }
+
+    private void ToggleNode(TreeNode<TItem> node)
+    {
+        node.IsExpanded = !node.IsExpanded;
+    }
+}

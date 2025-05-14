@@ -294,19 +294,20 @@ namespace FWO.Test
             ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules[0].Tos.Length);
             ClassicAssert.AreEqual("AR504711-001", result.RuleDifferences[0].ImplementedRules[0].Tos[0].Object.Name);
             ClassicAssert.AreEqual(false, result.RuleDifferences[0].ImplementedRules[0].Tos[0].Object.IsSurplus);
-            ClassicAssert.AreEqual(1001, result.RuleDifferences[0].ImplementedRules[0].Services.Length);
+            ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules[0].Services.Length);
             ClassicAssert.AreEqual("Service1", result.RuleDifferences[0].ImplementedRules[0].Services[0].Content.Name);
             ClassicAssert.AreEqual(false, result.RuleDifferences[0].ImplementedRules[0].Services[0].Content.IsSurplus);
-            ClassicAssert.AreEqual(3, result.RuleDifferences[0].ImplementedRules[1].DisregardedServices.Length);
+            ClassicAssert.AreEqual(2, result.RuleDifferences[0].ImplementedRules[1].DisregardedServices.Length);
             ClassicAssert.AreEqual(1999, result.RuleDifferences[0].ImplementedRules[1].DisregardedServices[0].DestinationPort);
-            ClassicAssert.AreEqual(2000, result.RuleDifferences[0].ImplementedRules[1].DisregardedServices[1].DestinationPort);
-            ClassicAssert.AreEqual(4000, result.RuleDifferences[0].ImplementedRules[1].DisregardedServices[2].DestinationPort);
-            ClassicAssert.AreEqual(1009, result.RuleDifferences[0].ImplementedRules[1].Services.Length);
+            ClassicAssert.AreEqual(2000, result.RuleDifferences[0].ImplementedRules[1].DisregardedServices[0].DestinationPortEnd);
+            ClassicAssert.AreEqual(4000, result.RuleDifferences[0].ImplementedRules[1].DisregardedServices[1].DestinationPort);
+            ClassicAssert.AreEqual(2, result.RuleDifferences[0].ImplementedRules[1].Services.Length);
             ClassicAssert.AreEqual(990, result.RuleDifferences[0].ImplementedRules[1].Services[0].Content.DestinationPort);
+            ClassicAssert.AreEqual(999, result.RuleDifferences[0].ImplementedRules[1].Services[0].Content.DestinationPortEnd);
             ClassicAssert.AreEqual(true, result.RuleDifferences[0].ImplementedRules[1].Services[0].Content.IsSurplus);
-            ClassicAssert.AreEqual(true, result.RuleDifferences[0].ImplementedRules[1].Services[1].Content.IsSurplus);
-            ClassicAssert.AreEqual(1000, result.RuleDifferences[0].ImplementedRules[1].Services[10].Content.DestinationPort);
-            ClassicAssert.AreEqual(false, result.RuleDifferences[0].ImplementedRules[1].Services[10].Content.IsSurplus);
+            ClassicAssert.AreEqual(1000, result.RuleDifferences[0].ImplementedRules[1].Services[1].Content.DestinationPort);
+            ClassicAssert.AreEqual(1998, result.RuleDifferences[0].ImplementedRules[1].Services[1].Content.DestinationPortEnd);
+            ClassicAssert.AreEqual(false, result.RuleDifferences[0].ImplementedRules[1].Services[1].Content.IsSurplus);
 
             ClassicAssert.AreEqual(1, result.DifferingAppRoles.Count);
             ClassicAssert.AreEqual(1, result.DifferingAppRoles[1].Count);

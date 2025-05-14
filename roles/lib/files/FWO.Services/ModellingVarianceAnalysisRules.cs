@@ -71,15 +71,16 @@ namespace FWO.Services
                 isImpl &= IsNwImplementation(rule.Tos, SpecialUserObjects, conn.DestinationAppServers, conn.DestinationAppRoles, conn.DestinationAreas, conn.DestinationOtherGroups, ref disregardedTos);
                 bool isSvcImpl = IsSvcImplementation(normRuleSvc, normConnSvc, normConnSvcGrp, disregardedServices);
                 isImpl &= isSvcImpl;
+                if(!isSvcImpl && ruleRecognitionOption.SvcSplitPortRanges)
+                {
+                    disregardedServices = RebundlePortRanges(disregardedServices);
+                    rule.Services = [.. RebundlePortRanges(normRuleSvc).ConvertAll(s => new ServiceWrapper(){ Content = s })];
+                }
                 rule.DisregardedFroms = [.. disregardedFroms];
                 rule.DisregardedTos = [.. disregardedTos];
                 rule.DisregardedServices = [.. disregardedServices];
                 rule.UnusedSpecialUserObjects = [.. SpecialUserObjects.Keys.Where(x => !SpecialUserObjects[x])];
                 isImpl &= rule.UnusedSpecialUserObjects.Count == 0;
-                if(!isSvcImpl && ruleRecognitionOption.SvcSplitPortRanges)
-                {
-                    rule.Services = [.. normRuleSvc.ConvertAll(s => new ServiceWrapper(){ Content = s })];
-                }
             }
             else if (isImpl)
             {
@@ -127,7 +128,7 @@ namespace FWO.Services
                 }
             }
             return servicesOut;
-         }
+        }
 
         private static List<NetworkService> SplitPortRange(NetworkService serviceIn)
         {
@@ -143,6 +144,37 @@ namespace FWO.Services
                     NetworkService partialSvc = new(serviceIn) { DestinationPort = port, DestinationPortEnd = port};
                     servicesOut.Add(partialSvc);
                 }
+            }
+            return servicesOut;
+        }
+
+        private static List<NetworkService> RebundlePortRanges(List<NetworkService> servicesIn)
+        {
+            List<NetworkService> servicesOut = [];
+            NetworkService? actSvc = null;
+            foreach(var svc in servicesIn)
+            {
+                if (svc.DestinationPort == null)
+                {
+                    servicesOut.Add(svc);
+                }
+                else if (actSvc == null)
+                {
+                    actSvc = svc;
+                }
+                else if (svc.Id == actSvc.Id && svc.DestinationPort == actSvc.DestinationPortEnd + 1 && svc.IsSurplus == actSvc.IsSurplus)
+                {
+                    actSvc.DestinationPortEnd++;
+                }
+                else
+                {
+                    servicesOut.Add(actSvc);
+                    actSvc = svc;
+                }
+            }
+            if (actSvc != null)
+            {
+                servicesOut.Add(actSvc);
             }
             return servicesOut;
         }

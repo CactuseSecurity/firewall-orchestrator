@@ -79,7 +79,7 @@
                                             @{ List<NetworkObject> members = context.ObjectGroupFlats.Where(m => m.Object != null && m.Object.Type.Name != ObjectType.Group).Select(m => m.Object!).ToList(); }
                                             @foreach (NetworkObject member in members)
                                             {
-                                                @AddLinkToObject(ObjCategory.nobj, member.Id, member.Type.Name, member.Name, member.Highlighted)
+                                                @AddLinkToObject(ObjCategory.nobj, member.Id, member.Type != null ? member.Type.Name : "", member.Name, member.Highlighted)
                                                 <span>∟ @(userConfig.GetText("ip")): @NwObjDisplay.DisplayIp(member.IP, member.IpEnd, member.Type != null ? member.Type.Name : "")</span>
                                                 <br>
                                             }

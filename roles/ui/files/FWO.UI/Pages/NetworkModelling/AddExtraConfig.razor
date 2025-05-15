@@ -11,14 +11,17 @@
             @if(Display)
             {
                 <div class="col-sm-6">
-                    <Dropdown ElementType="string" @bind-SelectedElement="ExtraConfig.ExtraConfigType" Elements="AvailableExtraConfigTypes" Nullable="false">
+                    <Dropdown ElementType="string" @bind-SelectedElement="ExtraConfig.ExtraConfigType" ElementToString="@(e => DisplayECType(e))" Elements="AvailableExtraConfigTypes" Nullable="false">
                         <ElementTemplate Context="conf">
-                            @conf
+                            @(DisplayECType(conf))
                         </ElementTemplate>
                     </Dropdown>
                 </div>
-                <textarea rows="2" type="text" class="col-sm-12 mt-2" data-toggle="@("tooltip")"
-                    title="@(userConfig.PureLine("H5638"))" @bind="ExtraConfig.ExtraConfigText" />
+                @if(!ExtraConfig.ExtraConfigType.StartsWith(GlobalConst.kDoku_))
+                {
+                    <textarea rows="2" type="text" class="col-sm-12 mt-2" data-toggle="@("tooltip")"
+                        title="@(userConfig.PureLine("H5638"))" @bind="ExtraConfig.ExtraConfigText" />
+                }
             }
         </Body>
         <Footer>
@@ -66,6 +69,11 @@
         {
             ExtraConfig.ExtraConfigType = AvailableExtraConfigTypes.First();
         }
+    }
+
+    private string DisplayECType(string configType)
+    {
+        return configType.StartsWith(GlobalConst.kDoku_) ? configType[GlobalConst.kDoku_.Length..] : configType;
     }
 
     private void Cancel()

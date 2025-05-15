@@ -30,6 +30,7 @@ namespace FWO.Middleware.Server
 		private string requesterRoleDn = "";
 		private string implementerRoleDn = "";
 		private string reviewerRoleDn = "";
+		private string? ownerGroupLdapPath = "";
 		private List<GroupGetReturnParameters> allGroups = [];
 		private List<GroupGetReturnParameters> allInternalGroups = [];
 		private ModellingNamingConvention NamingConvention = new();
@@ -50,7 +51,7 @@ namespace FWO.Middleware.Server
 			try
 			{
 				NamingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(globalConfig.ModNamingConvention) ?? new();
-				List<string> importfilePathAndNames = JsonSerializer.Deserialize<List<string>>(globalConfig.ImportAppDataPath) ?? throw new Exception("Config Data could not be deserialized.");
+				List<string> importfilePathAndNames = JsonSerializer.Deserialize<List<string>>(globalConfig.ImportAppDataPath) ?? throw new JsonException("Config Data could not be deserialized.");
 				userConfig = new(globalConfig);
 				userConfig.User.Name = Roles.MiddlewareServer;
                 userConfig.AutoReplaceAppServer = globalConfig.AutoReplaceAppServer;
@@ -75,21 +76,25 @@ namespace FWO.Middleware.Server
 		private async Task InitLdap()
 		{
 			connectedLdaps = await apiConnection.SendQueryAsync<List<Ldap>>(AuthQueries.getLdapConnections);
-			internalLdap = connectedLdaps.FirstOrDefault(x => x.IsInternal() && x.HasGroupHandling()) ?? throw new Exception("No internal Ldap with group handling found.");
-			ownerGroupLdap = connectedLdaps.FirstOrDefault(x => x.Id == globalConfig.OwnerLdapId) ?? throw new Exception("Ldap with group handling not found.");
+			internalLdap = connectedLdaps.FirstOrDefault(x => x.IsInternal() && x.HasGroupHandling()) ?? throw new KeyNotFoundException("No internal Ldap with group handling found.");
+			ownerGroupLdap = connectedLdaps.FirstOrDefault(x => x.Id == globalConfig.OwnerLdapId) ?? throw new KeyNotFoundException("Ldap with group handling not found.");
 			modellerRoleDn = $"cn=modeller,{internalLdap.RoleSearchPath}";
 			requesterRoleDn = $"cn=requester,{internalLdap.RoleSearchPath}";
 			implementerRoleDn = $"cn=implementer,{internalLdap.RoleSearchPath}";
 			reviewerRoleDn = $"cn=reviewer,{internalLdap.RoleSearchPath}";
 			allInternalGroups = await internalLdap.GetAllInternalGroups();
+            ownerGroupLdapPath = ownerGroupLdap.GroupWritePath;
 			if (globalConfig.OwnerLdapId == GlobalConst.kLdapInternalId)
-			{
-				allGroups = allInternalGroups;	// TODO: check if ref is ok here
-			}
-			else
-			{
-				allGroups = await ownerGroupLdap.GetAllGroupObjects(globalConfig.OwnerLdapGroupNames.Replace(GlobalConst.kAppIdPlaceholder, "*"));
-			}
+            {
+                allGroups = allInternalGroups;  // TODO: check if ref is ok here
+            }
+            else
+            {
+                allGroups = await ownerGroupLdap.GetAllGroupObjects(globalConfig.OwnerLdapGroupNames.
+                    Replace(GlobalConst.kAppIdPlaceholder, "*").
+                    Replace(GlobalConst.kFullAppIdPlaceholder, "*").
+                    Replace(GlobalConst.kAppPrefixPlaceholder, "*"));
+            }
 		}
 
 		private async Task<bool> ImportSingleSource(string importfileName)
@@ -97,7 +102,7 @@ namespace FWO.Middleware.Server
 			try
 			{
 				ReadFile(importfileName);
-				ModellingImportOwnerData? importedOwnerData = JsonSerializer.Deserialize<ModellingImportOwnerData>(importFile) ?? throw new Exception("File could not be parsed.");
+				ModellingImportOwnerData? importedOwnerData = JsonSerializer.Deserialize<ModellingImportOwnerData>(importFile) ?? throw new JsonException("File could not be parsed.");
 				if (importedOwnerData != null && importedOwnerData.Owners != null)
 				{
 					importedApps = importedOwnerData.Owners;
@@ -294,7 +299,11 @@ namespace FWO.Middleware.Server
 
 		private string GetGroupDn(string extAppIdString)
 		{
-			return $"cn={GetGroupName(extAppIdString)},{internalLdap.GroupWritePath}";
+            if (ownerGroupLdapPath == null)
+            {
+				throw new ArgumentNullException(nameof(ownerGroupLdapPath));
+            }
+			return $"cn={GetGroupName(extAppIdString)},{ownerGroupLdapPath}";
 		}
 
 
@@ -416,7 +425,7 @@ namespace FWO.Middleware.Server
 
 		private async Task<string> UpdateUserGroup(ModellingImportAppData incomingApp, string groupDn)
 		{
-			List<string> existingMembers = (allGroups.FirstOrDefault(x => x.GroupDn == groupDn) ?? throw new Exception("Group could not be found.")).Members;
+			List<string> existingMembers = (allGroups.FirstOrDefault(x => x.GroupDn == groupDn) ?? throw new KeyNotFoundException($"Group with DN '{groupDn}' could not be found.")).Members;
 			if (incomingApp.Modellers != null)
 			{
 				foreach (var modeller in incomingApp.Modellers)

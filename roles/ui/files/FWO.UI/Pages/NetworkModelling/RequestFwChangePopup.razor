@@ -63,7 +63,7 @@
     <Footer>
         <AuthorizeView Roles="@Roles.Modeller">
             <Authorized>
-                @if (SelectedApp.Id > 0 && !WorkInProgress && !RequestInProcess && TaskList.Count > 0)
+                @if (SelectedApp.Id > 0 && !WorkInProgress && !RequestInProcess && TaskList.Count > 0 && userConfig.User.Ownerships.Contains(SelectedApp.Id))
                 {
                     <button type="button" class="btn btn-sm btn-primary" @onclick="StartRequests">@(userConfig.GetText("request_fw_change"))</button>
                 }
@@ -280,6 +280,7 @@
         WorkInProgress = true;
         try
         {
+            apiConnection.SetRole( Roles.Modeller );
             if (PlannedAppZoneDbUpdate is not null)
             {
                 ModellingAppZoneHandler appZoneHandler = new(apiConnection, userConfig, SelectedApp, DisplayMessageInUi);
@@ -289,7 +290,7 @@
             TicketCreator ticketCreator = new(apiConnection, userConfig, authenticationStateTask!.Result.User, middlewareClient);
             WfTicket intTicket = await ticketCreator.CreateTicket(SelectedApp, TaskList,
                 "Rollout modelled connections for: " + SelectedApp.Name, extStateHandler?.GetInternalStateId(ExtStates.ExtReqInitialized), "");
-            if (intTicket != null)
+            if (intTicket.Id > 0)
             {
                 RequestInProcess = true;
                 TaskList = intTicket.Tasks;
@@ -302,10 +303,12 @@
                 await RefreshParent(intTicket);
                 DisplayMessageInUi(null, userConfig.GetText("U9020"), userConfig.GetText("U0016"), false);
             }
+            apiConnection.SwitchBack();
         }
         catch (Exception exception)
         {
             DisplayMessageInUi(exception, userConfig.GetText("request_fw_change"), "", true);
+            apiConnection.SwitchBack();
         }
         WorkInProgress = false;
     }

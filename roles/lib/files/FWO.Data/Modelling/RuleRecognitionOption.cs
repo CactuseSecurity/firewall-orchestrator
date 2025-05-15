@@ -31,5 +31,8 @@ namespace FWO.Data.Modelling
 
 		[JsonProperty("svcResolveGroup"), JsonPropertyName("svcResolveGroup")]
         public bool SvcResolveGroup { get; set; } = true;
+
+		[JsonProperty("svcSplitPortRanges"), JsonPropertyName("svcSplitPortRanges")]
+        public bool SvcSplitPortRanges { get; set; } = false;
     }
 }

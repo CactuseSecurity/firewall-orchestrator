@@ -44,7 +44,7 @@ namespace FWO.Report
             if(ReportData.GlobalComSvc.Count > 0 && ReportData.GlobalComSvc.First().GlobalComSvcs.Count > 0)
             {
                 chapterNumber++;
-                ReportData.GlobalComSvc.First().PrepareObjectData();
+                ReportData.GlobalComSvc.First().PrepareObjectData(userConfig.ResolveNetworkAreas);
                 report.AppendLine($"<h3 id=\"{Guid.NewGuid()}\">{userConfig.GetText("global_common_services")}</h3>");
                 AppendConnectionsGroupHtml(ReportData.GlobalComSvc.First().GlobalComSvcs, ReportData.GlobalComSvc.First(), chapterNumber, ref report, false, true);
                 report.AppendLine("<hr>");
@@ -56,7 +56,7 @@ namespace FWO.Report
 
         public void AppendConnDataForOwner(ref StringBuilder report, OwnerReport ownerReport, int chapterNumber)
         {
-            ownerReport.PrepareObjectData();
+            ownerReport.PrepareObjectData(userConfig.ResolveNetworkAreas);
             if(ownerReport.RegularConnections.Count > 0)
             {
                 report.AppendLine($"<h4 id=\"{Guid.NewGuid()}\">{userConfig.GetText("connections")}</h4>");

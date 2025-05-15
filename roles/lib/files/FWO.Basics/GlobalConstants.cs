@@ -17,6 +17,7 @@ namespace FWO.Basics
         public const int kObjLibraryWidth = kSidebarLeftWidth + 300;
         public const int kSidebarRightWidth = 300;
         public const int kHoursToMilliseconds = 3600000;
+        public const int kMinutesToMilliseconds = 60000;
         public const int kMaxPortNumber = 65535;
 
         public const string kHtml = "html";
@@ -31,6 +32,7 @@ namespace FWO.Basics
         public const string kImportAppData = "importAppData";
         public const string kAdjustAppServerNames = "adjustAppServerNames";
         public const string kImportAreaSubnetData = "importAreaSubnetData";
+        public const string kVarianceAnalysis = "varianceAnalysis";
         public const string kManual = "manual";
         public const string kCSV_ = "CSV_";
         public const string kDoku_ = "Doku_";

@@ -1,3 +1,4 @@
+using FWO.Basics;
 using System.Text.Json.Serialization; 
 using Newtonsoft.Json;
 
@@ -26,7 +27,8 @@ namespace FWO.Data.Modelling
 
         public string Display()
         {
-            return $"{ExtraConfigType}: {ExtraConfigText}";
+            return ExtraConfigType.StartsWith(GlobalConst.kDoku_) ?
+                $"{ExtraConfigType[GlobalConst.kDoku_.Length..]}" : $"{ExtraConfigType}: {ExtraConfigText}";
         }
 
         public bool Sanitize()

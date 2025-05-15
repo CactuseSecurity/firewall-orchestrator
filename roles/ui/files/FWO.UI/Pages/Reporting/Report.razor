@@ -1,11 +1,12 @@
+@using FWO.Data.Modelling
 @using FWO.Report
 @using FWO.Report.Filter
 @using FWO.Report.Filter.FilterTypes
 @using FWO.Report.Filter.Exceptions
-@using FWO.Data.Modelling
 @using FWO.Ui.Data
 @using FWO.Ui.Pages.Reporting.Reports
 @using System.Diagnostics
+@using System.Text.Json
 
 @page "/report/generation/{appId?}"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Auditor}, {Roles.Modeller}")]
@@ -21,7 +22,7 @@
         <div class="p-3 mt-2">
             <h5 class="text-left">@(userConfig.GetText("report_type"))</h5>
             <Dropdown ElementType="ReportType" ElementToString="@(r => userConfig.GetText(r.ToString()))" SelectedElement="actReportFilters.ReportType"
-                SelectedElementChanged="ReportTypeChanged" Elements="CustomSortReportType(Enum.GetValues(typeof(ReportType)).Cast<ReportType>().ToList())">
+                SelectedElementChanged="ReportTypeChanged" Elements="availableReportTypes">
                 <ElementTemplate Context="reportType">
                     @userConfig.GetText(reportType.ToString())
                 </ElementTemplate>
@@ -33,7 +34,7 @@
         }
         else if (actReportFilters.ReportType.IsModellingReport())
         {
-            <ReportModellingParamSelection @bind-ModellingFilter="actReportFilters.ModellingFilter" InjectedAppId="injectedAppId" AllParams="@(actReportFilters.ReportType == ReportType.AppRules)"/>
+            <ReportModellingParamSelection @bind-ModellingFilter="actReportFilters.ModellingFilter" InjectedAppId="injectedAppId" ReportType="actReportFilters.ReportType"/>
         }
         else if(actReportFilters.ReportType == ReportType.UnusedRules)
         {
@@ -129,7 +130,11 @@
                             break;
 
                         case ReportType.Connections:
-                            <ConnectionsReport AppHandlers="appHandlers" AllCommonServices="currentReport.ReportData.GlobalComSvc?.FirstOrDefault()?.GlobalComSvcs"/>
+                            <ConnectionsReport OwnerData="currentReport.ReportData.OwnerData" AllCommonServices="currentReport.ReportData.GlobalComSvc?.FirstOrDefault()?.GlobalComSvcs"/>
+                            break;
+
+                        case ReportType.VarianceAnalysis:
+                            <VariancesReport OwnerData="currentReport.ReportData.OwnerData"/>
                             break;
 
                         default:
@@ -183,8 +188,7 @@
     private List<Rule> selectedItemsRuleReportTable = [];
     private List<RuleChange> selectedItemsChangeReportTable = [];
 
-    private List<ModellingAppHandler> appHandlers = [];
-
+    private List<ReportType> availableReportTypes { get; set; } = [];
     private ReportFilters actReportFilters = new();
     private bool InitDone = false;
     private int? injectedAppId = null;
@@ -228,6 +232,9 @@
     {
         try
         {
+            availableReportTypes = CustomSortReportType(
+                JsonSerializer.Deserialize<List<ReportType>>(string.IsNullOrEmpty(userConfig.AvailableReportTypes) ? "[]" : userConfig.AvailableReportTypes)
+                ?? throw new Exception("Config data could not be parsed."));
             SetProperRoleForReport();
             actReportFilters.DeviceFilter.Managements = await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement);
             if(int.TryParse(AppId, out int appId))
@@ -328,7 +335,6 @@
         {
             currentReport.ReportData = new ();
         }
-        appHandlers = new();
         reportGenerationDuration = 0;
     }
 
@@ -388,8 +394,7 @@
             processing = true;
             SetProperRoleForReport();
             await PrepareReportGeneration();
-            currentReport = await ReportGenerator.Generate(ConstructReportTemplate(), apiConnection, userConfig, token);
-            await PrepareOutput();
+            currentReport = await ReportGenerator.Generate(ConstructReportTemplate(), apiConnection, userConfig, DisplayMessageInUi, token);
             processing = false;
             PostProcess();
         }
@@ -425,19 +430,6 @@
 
         // reset report data when switching between reports
         ResetReport();
-    }
-
-    private async Task PrepareOutput()
-    {
-        if(currentReport != null && currentReport.ReportType == ReportType.Connections)
-        {
-            foreach(var ownerReport in currentReport.ReportData.OwnerData)
-            {
-                ModellingAppHandler appHandler = new (apiConnection, userConfig, ownerReport.Owner, DisplayMessageInUi);
-                await appHandler.Init(ownerReport.Connections);
-                appHandlers.Add(appHandler);
-            }
-        }
     }
 
     private void PostProcess()
@@ -509,12 +501,12 @@
             ReportType.Changes, ReportType.ResolvedChanges, ReportType.ResolvedChangesTech, 
             ReportType.Statistics,
             ReportType.Connections,
-            ReportType.AppRules
+            ReportType.AppRules,
+            ReportType.VarianceAnalysis
         };
         foreach (var reportType in orderedReportTypeList)
         {
-            ReportType? foundType = ListIn.Find(x => x == reportType);
-            if (foundType != null)
+            if (ListIn.Contains(reportType))
             {
                 if(showRuleRelatedReports && reportType.IsDeviceRelatedReport() || showModellingReports && reportType.IsModellingReport())
                 {

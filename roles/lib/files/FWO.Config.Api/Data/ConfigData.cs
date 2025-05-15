@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using FWO.Basics;
 using FWO.Data;
+using FWO.Data.Modelling;
 using FWO.Data.Workflow;
 using FWO.Mail;
 
@@ -47,6 +48,9 @@ namespace FWO.Config.Api.Data
 
 		[JsonProperty("creationTolerance"), JsonPropertyName("creationTolerance")]
 		public int CreationTolerance { get; set; } = 90;
+
+		[JsonProperty("availableReportTypes"), JsonPropertyName("availableReportTypes")]
+		public string AvailableReportTypes { get; set; } = "[]";
 
 		[JsonProperty("dataRetentionTime"), JsonPropertyName("dataRetentionTime")]
 		public int DataRetentionTime { get; set; } = 731;
@@ -343,6 +347,30 @@ namespace FWO.Config.Api.Data
 
 		[JsonProperty("modExtraConfigs"), JsonPropertyName("modExtraConfigs")]
 		public string ModExtraConfigs { get; set; } = "";
+
+		[JsonProperty("modModelledMarker"), JsonPropertyName("modModelledMarker")]
+		public string ModModelledMarker { get; set; } = "FWOC";
+
+		[JsonProperty("modModelledMarkerLocation"), JsonPropertyName("modModelledMarkerLocation")]
+		public string ModModelledMarkerLocation { get; set; } = "rulename";
+
+		[JsonProperty("ruleRecognitionOption"), JsonPropertyName("ruleRecognitionOption")]
+		public string RuleRecognitionOption { get; set; } = "";
+
+		[JsonProperty("varianceAnalysisSleepTime"), JsonPropertyName("varianceAnalysisSleepTime")]
+		public int VarianceAnalysisSleepTime { get; set; } = 0;
+
+		[JsonProperty("varianceAnalysisStartAt"), JsonPropertyName("varianceAnalysisStartAt")]
+		public DateTime VarianceAnalysisStartAt { get; set; } = new DateTime();
+
+		[JsonProperty("varianceAnalysisSync"), JsonPropertyName("varianceAnalysisSync")]
+		public bool VarianceAnalysisSync { get; set; } = false;
+
+		[JsonProperty("varianceAnalysisRefresh"), JsonPropertyName("varianceAnalysisRefresh")]
+		public bool VarianceAnalysisRefresh { get; set; } = false;
+
+		[JsonProperty("resolveNetworkAreas"), JsonPropertyName("resolveNetworkAreas")]
+		public bool ResolveNetworkAreas { get; set; } = false;
 
         public ConfigData(bool editable = false)
 		{

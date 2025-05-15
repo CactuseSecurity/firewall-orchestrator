@@ -20,6 +20,7 @@ namespace FWO.Data.Modelling
 
         public bool InUse { get; set; } = true;
         public bool HighestPrio { get; set; } = true;
+        public bool NotImplemented { get; set; } = false;
 
 
         public override string Display()
@@ -70,6 +71,7 @@ namespace FWO.Data.Modelling
             InUse = appServer.InUse;
             CustomType = appServer.CustomType;
             HighestPrio = appServer.HighestPrio;
+            NotImplemented = appServer.NotImplemented;
         }
 
         public ModellingAppServer(NetworkObject nwObj)  : base(nwObj)
@@ -104,6 +106,17 @@ namespace FWO.Data.Modelling
         public static ModellingAppServer[] Resolve(List<ModellingAppServerWrapper> wrappedList)
         {
             return Array.ConvertAll(wrappedList.ToArray(), wrapper => wrapper.Content);
+        }
+
+        /// <summary>
+        /// Converts an array of ModellingAppServer objects to a list of ModellingAppServerWrapper objects
+        /// </summary>
+        /// <param name="appServers"></param>
+        /// <returns></returns>
+        public static List<ModellingAppServerWrapper> Wrap(ModellingAppServer[] appServers)
+        {
+            ModellingAppServerWrapper[] wrappedArray = Array.ConvertAll(appServers, appServer => new ModellingAppServerWrapper(){Content = appServer});
+            return wrappedArray.ToList();
         }
     }
 }

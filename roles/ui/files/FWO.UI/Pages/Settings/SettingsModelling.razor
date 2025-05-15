@@ -1,4 +1,4 @@
-@using System.Text.Json
+﻿@using System.Text.Json
 @using FWO.Ui.Data
 @using FWO.Ui.Pages.NetworkModelling
 
@@ -351,6 +351,44 @@
             <input type="text" class="col-sm-6" @bind="configData!.ModRolloutErrorText" />
         </div>
         <hr />
+        <div class="form-group row mt-2">
+            <div class="row col-sm-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5648"))">
+                <label class="col-form-label col-sm-5">@userConfig.GetText("modelledMarker"):</label>
+                <input type="text" class="col-sm-4" @bind="configData!.ModModelledMarker" />
+            </div>
+            <div class="row col-sm-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5649"))">
+                <label class="col-form-label col-sm-5">@userConfig.GetText("modelledMarkerLocation"):</label>
+                <input type="text" class="col-sm-4" @bind="configData!.ModModelledMarkerLocation" />
+            </div>
+            <div class="row col-sm-3" data-toggle="tooltip" title="@(userConfig.PureLine("H5650"))">
+                 <button type="button" class="col-sm-6 btn btn-sm btn-primary" @onclick="VarianceOptions" 
+                    @onclick:preventDefault>@(userConfig.GetText("rule_recognition_options"))</button>
+            </div>
+        </div>
+        <div class="form-group row mt-2">
+            <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5651"))">
+                <label for="cbx_var_ana_sync" class="col-form-label col-sm-8">@(userConfig.GetText("varianceAnalysisSync")):</label>
+                <div class="col-sm-2">
+                    <input id="cbx_var_ana_sync" type="checkbox" class="w-100" @bind="configData!.VarianceAnalysisSync">
+                </div>
+            </div>
+            <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5654"))">
+                <label for="cbx_var_ana_refresh" class="col-form-label col-sm-8">@(userConfig.GetText("varianceAnalysisRefresh")):</label>
+                <div class="col-sm-2">
+                    <input id="cbx_var_ana_refresh" type="checkbox" class="w-100" @bind="configData!.VarianceAnalysisRefresh">
+                </div>
+            </div>
+        </div>
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5652"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("varianceAnalysisSleepTime")):</label>
+            <input type="number" min="0" class="col-sm-2" @bind="configData!.VarianceAnalysisSleepTime" />
+        </div>
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5653"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("varianceAnalysisStartAt")):</label>
+            <input type="time" step="60" class="col-sm-2" @bind="varAnalysisTime" />
+            <input type="date" class="col-sm-2" @bind="varAnalysisDate" />
+        </div>
+        <hr />
     </form>
     <AuthorizeView Roles="@Roles.Admin">
         <Authorized>
@@ -363,6 +401,8 @@
     <br>
     <br>
     <p>@(userConfig.GetText("U5303"))</p>
+
+    <VarianceOptionsSelection @bind-Display="varOptMode" @bind-ConfigValue="ruleRecognitionOption"/>
 }
 else
 {
@@ -442,12 +482,17 @@ else
     private DateTime appDataTime = DateTime.Now.AddSeconds(-DateTime.Now.Second);
     private DateTime subnetDataDate = DateTime.Today;
     private DateTime subnetDataTime = DateTime.Now.AddSeconds(-DateTime.Now.Second);
+    private DateTime varAnalysisDate = DateTime.Today;
+    private DateTime varAnalysisTime = DateTime.Now.AddSeconds(-DateTime.Now.Second);
     private List<EmailRecipientOption> selectableRecipientOptions = [ EmailRecipientOption.OwnerGroupOnly,
-    EmailRecipientOption.AllOwnerResponsibles, EmailRecipientOption.OwnerMainResponsible, EmailRecipientOption.FallbackToMainResponsibleIfOwnerGroupEmpty ];
+        EmailRecipientOption.AllOwnerResponsibles, EmailRecipientOption.OwnerMainResponsible, EmailRecipientOption.FallbackToMainResponsibleIfOwnerGroupEmpty ];
 
-    private List<UiLdapConnection> connectedLdaps = new List<UiLdapConnection>();
+    private List<UiLdapConnection> connectedLdaps = [];
     private UiLdapConnection selectedLdap = new();
+    private RuleRecognitionOption ruleRecognitionOption = new();
+
     private bool initComplete = false;
+    private bool varOptMode = false;
     private bool ShowCSVImportPopUp { get; set; }
     private List<CSVFileUploadErrorModel>? CSVImportErrors;
     private List<string>? CSVImportSuccess;
@@ -491,12 +536,15 @@ else
             RefreshAreas();
             appDataDate = appDataTime = configData.ImportAppDataStartAt;
             subnetDataDate = subnetDataTime = configData.ImportSubnetDataStartAt;
+            varAnalysisDate = varAnalysisTime = configData.VarianceAnalysisStartAt;
 
             // get all ldap connections for dropdown
             connectedLdaps = await apiConnection.SendQueryAsync<List<UiLdapConnection>>(AuthQueries.getAllLdapConnections);
 
             // get config value of selected ldap connection for owner data (both groups and main responsible user), default value = 1 = internal ldap
             selectedLdap = connectedLdaps.FirstOrDefault(x => x.Id == configData.OwnerLdapId) ?? new();
+
+            ruleRecognitionOption = string.IsNullOrEmpty(configData.RuleRecognitionOption) ? new() : JsonSerializer.Deserialize<RuleRecognitionOption>(configData.RuleRecognitionOption) ?? new();
             initComplete = true;
         }
         catch (Exception exception)
@@ -577,6 +625,11 @@ else
         searchArea = true;
     }
 
+    private void VarianceOptions()
+    {
+        varOptMode = true;
+    }
+
     private async Task Save()
     {
         try
@@ -619,7 +672,9 @@ else
         PrepareCommonAreas();
         configData!.ImportAppDataStartAt = appDataDate.Date.Add(appDataTime.TimeOfDay);
         configData!.ImportSubnetDataStartAt = subnetDataDate.Date.Add(subnetDataTime.TimeOfDay);
+        configData!.VarianceAnalysisStartAt = varAnalysisDate.Date.Add(varAnalysisTime.TimeOfDay);
         configData!.OwnerLdapId = selectedLdap.Id;
+        configData!.RuleRecognitionOption = JsonSerializer.Serialize(ruleRecognitionOption);
     }
 
     private void PrepareAppDataPaths()

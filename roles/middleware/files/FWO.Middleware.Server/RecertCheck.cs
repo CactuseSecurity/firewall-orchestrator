@@ -11,7 +11,7 @@ using FWO.Encryption;
 using FWO.Logging;
 using FWO.Mail;
 using FWO.Report;
-
+using FWO.Services;
 
 namespace FWO.Middleware.Server
 {
@@ -167,7 +167,6 @@ namespace FWO.Middleware.Server
             List<Rule> rules = [];
             try
             {
-                CancellationToken token = new ();
                 UserConfig userConfig = new (globalConfig);
 
                 DeviceFilter deviceFilter = new()
@@ -184,16 +183,8 @@ namespace FWO.Middleware.Server
                         RecertificationDisplayPeriod = globalConfig.RecertificationNoticePeriod
                     }
                 };
-                ReportBase? currentReport = ReportBase.ConstructReport(new ReportTemplate("", reportParams), userConfig);
 
-                ReportData reportData = new ();
-
-                await currentReport.Generate(int.MaxValue, apiConnection,
-                rep =>
-                {
-                    reportData.ManagementData = rep.ManagementData;
-                    return Task.CompletedTask;
-                }, token);
+                ReportData reportData = (await ReportGenerator.Generate(new ReportTemplate("", reportParams), apiConnection, userConfig, DefaultInit.DoNothing))?.ReportData ?? new();
 
                 foreach (var management in reportData.ManagementData)
                 {

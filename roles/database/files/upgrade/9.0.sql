@@ -98,6 +98,8 @@ insert into config (config_key, config_value, config_user) VALUES ('resolveNetwo
 
 --- pre 9.0 changes (old import)
 
+DELETE FROM stm_dev_typ WHERE dev_typ_id IN (2,4,5,6,7);
+
 DROP TRIGGER IF EXISTS gw_route_add ON gw_route CASCADE;
 CREATE TRIGGER gw_route_add BEFORE INSERT ON gw_route FOR EACH ROW EXECUTE PROCEDURE gw_route_add();
 
@@ -486,10 +488,9 @@ ALTER TABLE "rulebase_link"
 Alter table "rulebase_link" add CONSTRAINT fk_rulebase_link_removed_import_control_control_id 
 	foreign key ("removed") references "import_control" ("control_id") on update restrict on delete cascade;
 
-insert into stm_link_type (id, name) VALUES (1, 'section') ON CONFLICT DO NOTHING;
 insert into stm_link_type (id, name) VALUES (2, 'ordered') ON CONFLICT DO NOTHING;
 insert into stm_link_type (id, name) VALUES (3, 'inline') ON CONFLICT DO NOTHING;
-delete from stm_link_type where name in ('initial','global','local'); -- initial and global/local are additional flags now
+delete from stm_link_type where name in ('initial','global','local','section'); -- initial and global/local are additional flags now
 
 -- TODO delete all rule.parent_rule_id and rule.parent_rule_type, always = None so far
     -- migration plan:
@@ -620,8 +621,8 @@ AS $function$
             IF i_rulebase_id IS NOT NULL THEN
                 SELECT INTO r_dev_null * FROM rulebase_link WHERE to_rulebase_id=i_rulebase_id AND gw_id=r_dev.dev_id AND removed IS NULL;
                 IF NOT FOUND THEN
-                    INSERT INTO rulebase_link (gw_id, from_rule_id, to_rulebase_id, created, link_type) 
-                    VALUES (r_dev.dev_id, NULL, i_rulebase_id, (SELECT * FROM get_last_import_id_for_mgmt(r_dev.mgm_id)), 0)
+                    INSERT INTO rulebase_link (gw_id, from_rule_id, to_rulebase_id, created, link_type, is_initial) 
+                    VALUES (r_dev.dev_id, NULL, i_rulebase_id, (SELECT * FROM get_last_import_id_for_mgmt(r_dev.mgm_id)), 2, True)
                     RETURNING id INTO i_initial_rulebase_id; -- when migrating, there cannot be more than one (the initial) rb per device
                 END IF;
             END IF;
@@ -634,8 +635,8 @@ AS $function$
                 IF i_rulebase_id IS NOT NULL THEN
                     SELECT INTO r_dev_null * FROM rulebase_link WHERE to_rulebase_id=i_rulebase_id AND gw_id=r_dev.dev_id;
                     IF NOT FOUND THEN
-                        INSERT INTO rulebase_link (gw_id, from_rule_id, to_rulebase_id, created, link_type)
-                        VALUES (r_dev.dev_id, NULL, i_rulebase_id, (SELECT * FROM get_last_import_id_for_mgmt(r_dev.mgm_id)), 0); 
+                        INSERT INTO rulebase_link (gw_id, from_rule_id, to_rulebase_id, created, link_type, is_initial)
+                        VALUES (r_dev.dev_id, NULL, i_rulebase_id, (SELECT * FROM get_last_import_id_for_mgmt(r_dev.mgm_id)), 2, TRUE); 
                     END IF;
                 END IF;
             END IF;

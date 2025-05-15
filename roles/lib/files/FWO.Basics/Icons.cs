@@ -31,6 +31,7 @@ namespace FWO.Basics
         public const string Share = "oi oi-fork"; // oi-share-boxed? oi-share?
         public const string OrderByAsc = "oi oi-caret-top";
         public const string OrderByDesc = "oi oi-caret-bottom";
+        public const string Refresh = "oi oi-reload";
 
         // Object types: General
         public const string Ldap = "oi oi-key";

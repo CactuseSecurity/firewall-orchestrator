@@ -38,6 +38,7 @@ namespace FWO.Data.Modelling
         public NetworkService ToNetworkServiceGroup()
         {
             Group<NetworkService>[] serviceGroups = ModellingServiceGroupWrapper.ResolveAsNetworkServiceGroup(Services ?? []);
+            GroupFlat<NetworkService>[] serviceGroupFlats = ModellingServiceGroupWrapper.ResolveAsNetworkServiceGroupFlat(Services ?? []);
             return new()
             {
                 Id = Id,
@@ -45,6 +46,7 @@ namespace FWO.Data.Modelling
                 Comment = Comment ?? "",
                 Type = new NetworkServiceType(){ Name = ServiceType.Group },
                 ServiceGroups = serviceGroups,
+                ServiceGroupFlats = serviceGroupFlats,
                 MemberNames = string.Join("|", Array.ConvertAll(serviceGroups, o => o.Object?.Name))
             };
         }
@@ -71,6 +73,11 @@ namespace FWO.Data.Modelling
         public static Group<NetworkService>[] ResolveAsNetworkServiceGroup(List<ModellingServiceWrapper> wrappedList)
         {
             return Array.ConvertAll(wrappedList.ToArray(), wrapper => new Group<NetworkService> {Id = wrapper.Content.Id, Object = ModellingService.ToNetworkService(wrapper.Content)});
+        }
+
+        public static GroupFlat<NetworkService>[] ResolveAsNetworkServiceGroupFlat(List<ModellingServiceWrapper> wrappedList)
+        {
+            return Array.ConvertAll(wrappedList.ToArray(), wrapper => new GroupFlat<NetworkService> {Id = wrapper.Content.Id, Object = ModellingService.ToNetworkService(wrapper.Content)});
         }
     }
 }

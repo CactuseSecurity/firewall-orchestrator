@@ -104,9 +104,9 @@ namespace FWO.Report
                 await PrepareVarianceData(ownerReport, modellingFilter, apiConnection, userConfig, displayMessageInUi);
             }
             ownerReport.Name = selectedOwner.Name;
-            ownerReport.RegularConnections = ownerReport.Connections.Where(x => !x.IsInterface && !x.IsCommonService).ToList();
-            ownerReport.Interfaces = ownerReport.Connections.Where(x => x.IsInterface).ToList();
-            ownerReport.CommonServices = ownerReport.Connections.Where(x => !x.IsInterface && x.IsCommonService).ToList();
+            ownerReport.RegularConnections = [.. ownerReport.Connections.Where(x => !x.IsInterface && !x.IsCommonService)];
+            ownerReport.Interfaces = [.. ownerReport.Connections.Where(x => x.IsInterface)];
+            ownerReport.CommonServices = [.. ownerReport.Connections.Where(x => !x.IsInterface && x.IsCommonService)];
         }
 
         private static async Task PrepareVarianceData(OwnerReport ownerReport, ModellingFilter modellingFilter, ApiConnection apiConnection,
@@ -115,12 +115,13 @@ namespace FWO.Report
             ownerReport.ExtractConnectionsToAnalyse();
             ExtStateHandler extStateHandler = new(apiConnection);
             ModellingVarianceAnalysis varianceAnalysis = new(apiConnection, extStateHandler, userConfig, ownerReport.Owner, displayMessageInUi);
-            ModellingVarianceResult result = await varianceAnalysis.AnalyseRulesVsModelledConnections(ownerReport.Connections, modellingFilter);
+            ModellingVarianceResult result = await varianceAnalysis.AnalyseRulesVsModelledConnections([.. ownerReport.Connections.Where(x => !x.IsDocumentationOnly())], modellingFilter);
             ownerReport.Connections = result.ConnsNotImplemented;
             ownerReport.RuleDifferences = result.RuleDifferences;
             ownerReport.MissingAppRoles = result.MissingAppRoles;
             ownerReport.DifferingAppRoles = result.DifferingAppRoles;
             ownerReport.AppRoleStats = result.AppRoleStats;
+            ownerReport.ImplementationState = await varianceAnalysis.GetSuccessfulRequestState();
             if(modellingFilter.AnalyseRemainingRules)
             {
                 ownerReport.ManagementData = result.MgtDataToReport();

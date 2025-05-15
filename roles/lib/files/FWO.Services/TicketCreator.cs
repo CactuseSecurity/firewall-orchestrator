@@ -62,15 +62,18 @@ namespace FWO.Services
             }
             wfHandler.AddTicketMode = true;
             wfHandler.ActTicket.UpdateCidrsInTaskElements();
-            await wfHandler.SaveTicket(wfHandler.ActTicket);
-            foreach(var reqtask in reqTasks.Where(t => t.Comments.Count > 0))
+            long ticketId = await wfHandler.SaveTicket(wfHandler.ActTicket);
+            if(ticketId > 0)
             {
-                WfReqTask? reqTaskToChange = wfHandler.ActTicket.Tasks.FirstOrDefault(x => x.TaskType == reqtask.TaskType &&
-                    x.ManagementId == reqtask.ManagementId && x.Title == reqtask.Title && x.TaskNumber == reqtask.TaskNumber);
-                if(reqTaskToChange != null)
+                foreach(var reqtask in reqTasks.Where(t => t.Comments.Count > 0))
                 {
-                    wfHandler.SetReqTaskEnv(reqTaskToChange);
-                    await wfHandler.ConfAddCommentToReqTask(reqtask.Comments.First().Comment.CommentText);
+                    WfReqTask? reqTaskToChange = wfHandler.ActTicket.Tasks.FirstOrDefault(x => x.TaskType == reqtask.TaskType &&
+                        x.ManagementId == reqtask.ManagementId && x.Title == reqtask.Title && x.TaskNumber == reqtask.TaskNumber);
+                    if(reqTaskToChange != null)
+                    {
+                        wfHandler.SetReqTaskEnv(reqTaskToChange);
+                        await wfHandler.ConfAddCommentToReqTask(reqtask.Comments.First().Comment.CommentText);
+                    }
                 }
             }
             return wfHandler.ActTicket;
@@ -86,7 +89,7 @@ namespace FWO.Services
                 {
                     ExtStateHandler extStateHandler = new(apiConnection);
                     ticket.StateId = extStateHandler.GetInternalStateId(extReqState) ?? throw new Exception($"No translation defined for external state {extReqState}.");
-                    return await wfHandler.PromoteTicket(ticket);
+                    return await wfHandler.PromoteTicketAndTasks(ticket);
                 }
             }
             catch (Exception exception)

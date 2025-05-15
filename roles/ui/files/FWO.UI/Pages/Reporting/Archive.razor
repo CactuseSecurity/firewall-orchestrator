@@ -71,9 +71,9 @@ Show="ShowDownloadReportFileDialog" ShowJson="true" OnClose="() => ShowDownloadR
     private Task<AuthenticationState>? authenticationStateTask { get; set; }
 
     private GraphQlApiSubscription<ReportFile[]>? archivedReportsSubscription;
-    private List<ReportFile> archivedReports = new List<ReportFile>();
+    private List<ReportFile> archivedReports = [];
 
-    private ReportFile reportFileContext = new ReportFile();
+    private ReportFile reportFileContext = new();
     private bool ShowDeleteReportFileDialog = false;
     private bool ShowDownloadReportFileDialog = false;
 

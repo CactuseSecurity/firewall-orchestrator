@@ -151,7 +151,6 @@ namespace FWO.Rest.Client
         }
 
         public async Task<string> GetGlobalDomainUid(string session)
-        // session id pins this session to a specific domain (if domain was given during login) 
         {
             RestRequest request = new("show-global-domain", Method.Post);
             request.AddHeader("X-chkp-sid", session);
@@ -169,6 +168,46 @@ namespace FWO.Rest.Client
             if (globalDomain.Data != null)
             {
                 return globalDomain.Data.Uid;
+            }
+            return "";
+        }
+
+        public async Task<string> GetMdsUid(Management management)
+        {
+            RestResponse<CpSessionAuthInfo> response = await AuthenticateUser(management.ImportCredential.ImportUser, management.ImportCredential.Secret, "System Data");
+            if (response.StatusCode != HttpStatusCode.OK || !response.IsSuccessful)
+            {
+                Log.WriteError("Autodiscovery", $"failed to authenticate user '{management.ImportCredential.ImportUser}'");
+                return "";
+            }
+            string session = response.Data?.SessionId ?? "";
+            if (session == "")
+            {
+                Log.WriteError("Autodiscovery", $"failed to authenticate user '{management.ImportCredential.ImportUser}'");
+                return "";
+            }
+
+            RestRequest request = new("show-mdss", Method.Post);
+            request.AddHeader("X-chkp-sid", session);
+            request.AddHeader("Content-Type", "application/json");
+            Dictionary<string, string> body = [];
+            request.AddJsonBody(body);
+            Log.WriteDebug("Autodiscovery", $"using CP REST API call 'show-mdss'");
+
+            // getting name and uid of the global domain 
+            RestResponse<MdsHelper> mdsObjects = await restClient.ExecuteAsync<MdsHelper>(request);
+            if (mdsObjects.Data?.Mds != null)
+            {
+                if (mdsObjects.Data.Mds.Count == 0)
+                {
+                    Log.WriteDebug("Autodiscovery", $"found no MDS - assuming this is a standard management, adding dummy domain with empty name");
+                    mdsObjects.Data.Mds.Add(new CpNameUidHelper { Name = "", Uid = "" });
+                    return "";
+                }
+                else
+                {
+                    return mdsObjects.Data.Mds.First().Uid;
+                }
             }
             return "";
         }
@@ -211,7 +250,6 @@ namespace FWO.Rest.Client
         public string DomainType { get; set; } = "";
     }
 
-
     public class CpNameUidHelper
     {
         [JsonProperty("name"), JsonPropertyName("name")]
@@ -219,6 +257,12 @@ namespace FWO.Rest.Client
 
         [JsonProperty("uid"), JsonPropertyName("uid")]
         public string Uid { get; set; } = "";
+    }
+
+    public class MdsHelper
+    {
+        [JsonProperty("objects"), JsonPropertyName("objects")]
+        public List<CpNameUidHelper> Mds { get; set; } = [];
     }
 
     public class CpPackagesHelper

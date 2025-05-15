@@ -135,7 +135,8 @@ def get_rules(nativeConfig: dict, importState: ImportStateController) -> int:
                 managerDetails, cpManagerApiBaseUrl, show_params_policy_structure
             )
         else:
-            globalAssignments, globalPolicyStructure, globalDomain, globalSid = None, None, None, None
+            # globalAssignments, globalPolicyStructure, globalDomain, globalSid = None, None, None, None
+            globalAssignments, globalPolicyStructure, globalDomain, globalSid = [], None, None, None
 
         sid = loginCp(managerDetails)
         policyStructure = get_policy_structure(cpManagerApiBaseUrl, sid, show_params_policy_structure)

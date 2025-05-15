@@ -12,63 +12,63 @@
 
 @if (InitComplete)
 {
-                    <div class="m-2 vheight75">
-                        <PageSizeComponent PageSizeCallback="UpdatePageSize"></PageSizeComponent>
-                        <Table PageSize="PageSize" class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="ImportStatus" Items="sortedImportStati" ColumnReorder="true" TableRowClass="@(stat => getTableRowClass(stat))">
-                            <Column TableItem="ImportStatus" Title="@(userConfig.GetText("actions"))" Field="(x => x.MgmId)" Sortable="false" Filterable="false">
-                                <Template>
-                                    <div class="btn-group">
-                                        <button type="button" class="btn btn-sm btn-secondary" @onclick="() => Details(context)">@(userConfig.GetText("details"))</button>
-                                        <button type="button" class="btn btn-sm btn-danger" @onclick:preventDefault @onclick="() => RequestRollback(context)">@(userConfig.GetText("rollback"))</button>
-                                    </div>
-                                </Template>
-                            </Column>
-                            <Column TableItem="ImportStatus" Title="@(userConfig.GetText("id"))" Field="@(x => x.MgmId)" Sortable="true" Filterable="true" />
-                            <Column TableItem="ImportStatus" Title="@(userConfig.GetText("management"))" Field="@(x => x.MgmName)" Sortable="true" Filterable="true" />
-                            <Column TableItem="ImportStatus" Title="@(userConfig.GetText("type"))" Field="@(x => x.DeviceType.Id)" Sortable="true">
-                                <Template>
-                                    @(context.DeviceType.NameVersion())
-                                </Template>
-                            </Column>
-                            <Column TableItem="ImportStatus" Title="@(userConfig.GetText("last_success"))" Field="@(x => x.LastSuccessfulImport)">
-                                <Template>
-                                    @if (context.LastSuccessfulImport != null && context.LastSuccessfulImport.Length > 0)
-                                    {
-                                                        @(context.LastSuccessfulImport[0].StopTime)
-                                                    ;
-                                    }
-                                </Template>
-                            </Column>
-                            <Column TableItem="ImportStatus" Title="@(userConfig.GetText("last_import"))" Field="@(x => x.LastImport)">
-                                <Template>
-                                    @if (context.LastImport != null && context.LastImport.Length > 0)
-                                    {
-                                                        @(context.LastImport[0].StopTime)
-                                                    ;
-                                    }
-                                </Template>
-                            </Column>
-                            <Column TableItem="ImportStatus" Title="@(userConfig.GetText("success"))" Field="@(x => x.LastImport)">
-                                <Template>
-                                    @if (context.LastImport != null && context.LastImport.Length > 0)
-                                    {
-                                                        @(context.LastImport[0].SuccessfulImport.ShowAsHtml())
-                                                    ;
-                                    }
-                                </Template>
-                            </Column>
-                            <Column TableItem="ImportStatus" Title="@(userConfig.GetText("errors"))" Field="@(x => x.LastImport)">
-                                <Template>
-                                    @if (context.LastImport != null && context.LastImport.Length > 0)
-                                    {
-                                                        @(context.LastImport[0]?.ImportErrors)
-                                                    ;
-                                    }
-                                </Template>
-                            </Column>
-                         <Pager ShowPageNumber="true" ShowTotalCount="true" />
-                        </Table>
+    <div class="m-2 vheight75">
+        <PageSizeComponent PageSizeCallback="UpdatePageSize"></PageSizeComponent>
+        <Table PageSize="PageSize" class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="ImportStatus" Items="sortedImportStati" ColumnReorder="true" TableRowClass="@(stat => getTableRowClass(stat))">
+            <Column TableItem="ImportStatus" Title="@(userConfig.GetText("actions"))" Field="(x => x.MgmId)" Sortable="false" Filterable="false">
+                <Template>
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-sm btn-secondary" @onclick="() => Details(context)">@(userConfig.GetText("details"))</button>
+                        <button type="button" class="btn btn-sm btn-danger" @onclick:preventDefault @onclick="() => RequestRollback(context)">@(userConfig.GetText("rollback"))</button>
                     </div>
+                </Template>
+            </Column>
+            <Column TableItem="ImportStatus" Title="@(userConfig.GetText("id"))" Field="@(x => x.MgmId)" Sortable="true" Filterable="true" />
+            <Column TableItem="ImportStatus" Title="@(userConfig.GetText("management"))" Field="@(x => x.MgmName)" Sortable="true" Filterable="true" />
+            <Column TableItem="ImportStatus" Title="@(userConfig.GetText("type"))" Field="@(x => x.DeviceType.Id)" Sortable="true">
+                <Template>
+                    @(context.DeviceType.NameVersion())
+                </Template>
+            </Column>
+            <Column TableItem="ImportStatus" Title="@(userConfig.GetText("last_success"))" Field="@(x => x.LastSuccessfulImport)">
+                <Template>
+                    @if (context.LastSuccessfulImport != null && context.LastSuccessfulImport.Length > 0)
+                    {
+                                        @(context.LastSuccessfulImport[0].StopTime)
+                                    ;
+                    }
+                </Template>
+            </Column>
+            <Column TableItem="ImportStatus" Title="@(userConfig.GetText("last_import"))" Field="@(x => x.LastImport)">
+                <Template>
+                    @if (context.LastImport != null && context.LastImport.Length > 0)
+                    {
+                                        @(context.LastImport[0].StopTime)
+                                    ;
+                    }
+                </Template>
+            </Column>
+            <Column TableItem="ImportStatus" Title="@(userConfig.GetText("success"))" Field="@(x => x.LastImport)">
+                <Template>
+                    @if (context.LastImport != null && context.LastImport.Length > 0)
+                    {
+                                        @(context.LastImport[0].SuccessfulImport.ShowAsHtml())
+                                    ;
+                    }
+                </Template>
+            </Column>
+            <Column TableItem="ImportStatus" Title="@(userConfig.GetText("errors"))" Field="@(x => x.LastImport)">
+                <Template>
+                    @if (context.LastImport != null && context.LastImport.Length > 0)
+                    {
+                                        @(context.LastImport[0]?.ImportErrors)
+                                    ;
+                    }
+                </Template>
+            </Column>
+            <Pager ShowPageNumber="true" ShowTotalCount="true" />
+        </Table>
+    </div>
 }
 else
 {

@@ -18,6 +18,8 @@ namespace FWO.Data.Modelling
         DeletedObjects,
         EmptySvcGrps,
         DocumentationOnly,
+        VarianceChecked,
+        NotImplemented,
         VarianceFound
     }
 
@@ -331,7 +333,8 @@ namespace FWO.Data.Modelling
         public Dictionary<string, bool> GetSpecialUserObjectNames()
         {
             Dictionary<string, bool> userObjectNames = [];
-            foreach(var extraConfig in ExtraConfigs.Where(e => e.ExtraConfigType.ToLower().EndsWith(GlobalConst.k_user)))
+            foreach(var extraConfig in ExtraConfigs.Where(e => e.ExtraConfigType.ToLower().EndsWith(GlobalConst.k_user)
+                                                            || e.ExtraConfigType.ToLower().EndsWith(GlobalConst.k_user2)))
             {
                 userObjectNames.Add(extraConfig.ExtraConfigText.ToLower(),false);
             }

@@ -16,7 +16,7 @@ namespace FWO.Data.Modelling
         public ModellingNetworkArea(ModellingNwGroup nwgroup) : base(nwgroup)
         {}
         
-        public override NetworkObject ToNetworkObjectGroup(bool IdAsName = false)
+        public override NetworkObject ToNetworkObjectGroup(bool IdAsName = false, bool ListMembers = true)
         {
             Group<NetworkObject>[] objectGroups = NetworkDataWrapper.ResolveIpDataAsNetworkObjectGroup(IpData ?? []);
             return new()
@@ -26,7 +26,7 @@ namespace FWO.Data.Modelling
                 Name = IdAsName ? IdString : Name + " (" + IdString + ")" ?? IdString ?? "",
                 Type = new NetworkObjectType(){ Name = ObjectType.Group },
                 ObjectGroups = objectGroups,
-                MemberNames = string.Join("|", Array.ConvertAll(objectGroups, o => o.Object?.Name))
+                MemberNames = ListMembers ? string.Join("|", Array.ConvertAll(objectGroups, o => o.Object?.Name)) : "..."
             };
         }
 

@@ -77,6 +77,38 @@ namespace FWO.Data
         public long Number;
         public bool IsSurplus = false;
 
+        public NetworkService ()
+        {}
+
+        public NetworkService (NetworkService networkService)
+        {
+            Id = networkService.Id;
+            Name = networkService.Name;
+            Uid = networkService.Uid;
+            DestinationPort = networkService.DestinationPort;
+            DestinationPortEnd = networkService.DestinationPortEnd;
+            SourcePort = networkService.SourcePort;
+            SourcePortEnd = networkService.SourcePortEnd;
+            Code = networkService.Code;
+            Timeout = networkService.Timeout;
+            TypeId = networkService.TypeId;
+            Active = networkService.Active;
+            Create = networkService.Create;
+            CreateTime = networkService.CreateTime;
+            LastSeen = networkService.LastSeen;
+            Type = networkService.Type;
+            Comment = networkService.Comment;
+            ColorId = networkService.ColorId;
+            ProtoId = networkService.ProtoId;
+            Protocol = networkService.Protocol;
+            MemberNames = networkService.MemberNames;
+            MemberRefs = networkService.MemberRefs;
+            ServiceGroups = networkService.ServiceGroups;
+            ServiceGroupFlats = networkService.ServiceGroupFlats;
+            Number = networkService.Number;
+            IsSurplus = networkService.IsSurplus;
+        }
+
         public override bool Equals(object? obj)
         {
             return obj switch

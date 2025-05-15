@@ -260,3 +260,10 @@ bugfix release:
 
 # 8.7.1 - 05.03.2025 DEVELOP
 - ldap writepath for groups
+
+# 8.7.2 - 20.03.2025 DEVELOP
+- new config values
+- external request: attempt counter
+
+# 8.8.2 - 07.05.2025 DEVELOP
+- displayed state via variance analysis

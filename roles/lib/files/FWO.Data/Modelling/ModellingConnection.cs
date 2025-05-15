@@ -1,3 +1,4 @@
+using FWO.Basics;
 using System.Text.Json.Serialization; 
 using Newtonsoft.Json;
 
@@ -15,7 +16,11 @@ namespace FWO.Data.Modelling
 
         EmptyAppRoles,
         DeletedObjects,
-        EmptySvcGrps
+        EmptySvcGrps,
+        DocumentationOnly,
+        VarianceChecked,
+        NotImplemented,
+        VarianceFound
     }
 
     public class ModellingConnection
@@ -118,6 +123,7 @@ namespace FWO.Data.Modelling
             }
         }
         public List<ModellingExtraConfig> ExtraConfigsFromInterface = [];
+        public bool ProdRuleFound { get; set; } = false;
 
 
         public ModellingConnection()
@@ -289,6 +295,14 @@ namespace FWO.Data.Modelling
             {
                 RemoveProperty(ConState.EmptySvcGrps.ToString());
             }
+            if(IsDocumentationOnly())
+            {
+                AddProperty(ConState.DocumentationOnly.ToString());
+            }
+            else
+            {
+                RemoveProperty(ConState.DocumentationOnly.ToString());
+            }
         }
 
         public bool EmptyAppRolesFound(long dummyAppRoleId)
@@ -312,6 +326,20 @@ namespace FWO.Data.Modelling
 
         public bool EmptyServiceGroupsFound() 
             => ServiceGroups.Any(_ => _.Content.Services.Count == 0);
+
+        public bool IsDocumentationOnly()
+            => ExtraConfigs.Any(_ => _.ExtraConfigType.StartsWith(GlobalConst.kDoku_));
+
+        public Dictionary<string, bool> GetSpecialUserObjectNames()
+        {
+            Dictionary<string, bool> userObjectNames = [];
+            foreach(var extraConfig in ExtraConfigs.Where(e => e.ExtraConfigType.ToLower().EndsWith(GlobalConst.k_user)
+                                                            || e.ExtraConfigType.ToLower().EndsWith(GlobalConst.k_user2)))
+            {
+                userObjectNames.Add(extraConfig.ExtraConfigText.ToLower(),false);
+            }
+            return userObjectNames;
+        }
 
         public bool DeletedObjectsFound()
         {
@@ -364,6 +392,63 @@ namespace FWO.Data.Modelling
                 }
             }
             return false;
+        }
+
+        public Rule ToRule()
+        {
+            List<NetworkLocation> froms = [];
+            foreach (var areaWrapper in SourceAreas)
+            {
+                froms.Add(new(new(), areaWrapper.Content.ToNetworkObjectGroup()));
+            }
+            foreach (var groupWrapper in SourceOtherGroups)
+            {
+                froms.Add(new(new(), groupWrapper.Content.ToNetworkObjectGroup()));
+            }
+            foreach (var appRoleWrapper in SourceAppRoles)
+            {
+                froms.Add(new(new(), appRoleWrapper.Content.ToNetworkObjectGroup()));
+            }
+            foreach (var appServerWrapper in SourceAppServers)
+            {
+                froms.Add(new(new(), ModellingAppServer.ToNetworkObject(appServerWrapper.Content)));
+            }
+
+            List<NetworkLocation> tos = [];
+            foreach (var areaWrapper in DestinationAreas)
+            {
+                tos.Add(new(new(), areaWrapper.Content.ToNetworkObjectGroup()));
+            }
+            foreach (var groupWrapper in DestinationOtherGroups)
+            {
+                tos.Add(new(new(), groupWrapper.Content.ToNetworkObjectGroup()));
+            }
+            foreach (var appRoleWrapper in DestinationAppRoles)
+            {
+                tos.Add(new(new(), appRoleWrapper.Content.ToNetworkObjectGroup()));
+            }
+            foreach (var appServerWrapper in DestinationAppServers)
+            {
+                tos.Add(new(new(), ModellingAppServer.ToNetworkObject(appServerWrapper.Content)));
+            }
+
+            List<ServiceWrapper> services = [];
+            foreach (var svcGrp in ServiceGroups)
+            {
+                services.Add(new(){ Content = svcGrp.Content.ToNetworkServiceGroup() });
+            }
+            foreach (var svc in Services)
+            {
+                services.Add(new(){ Content = ModellingService.ToNetworkService(svc.Content) });
+            }
+
+            return new Rule()
+            {
+                Name = Name,
+                Froms = [.. froms],
+                Tos = [.. tos],
+                Services = [.. services]
+            };
         }
 
         public bool Sanitize()

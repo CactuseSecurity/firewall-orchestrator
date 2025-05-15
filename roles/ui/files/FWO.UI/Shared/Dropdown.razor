@@ -70,8 +70,6 @@
     [Parameter]
     public Func<ElementType, string> ElementToString { get; set; } = ( o => o?.ToString() ?? "" );
 
-    private bool _nullable = false;
-
     [Parameter]
     public bool Nullable { get; set; }
 

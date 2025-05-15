@@ -8,8 +8,8 @@
     <PageSizeComponent PageSizeCallback="UpdatePageSize"></PageSizeComponent>
 }
 <Table class="table table-bordered th-bg-secondary sticky-header show-scrollbar table-responsive" TableItem="ModellingConnection"
-Items="Connections" PageSize="PageSize" ColumnReorder="true" TableRowClass="@(con => getTableRowClass(con))"
-SelectedItems="SelectedConns" RowClickAction="@(conn => ToggleSelection(conn))">
+        Items="Connections" PageSize="PageSize" ColumnReorder="true" TableRowClass="@(con => getTableRowClass(con))"
+        SelectedItems="SelectedConns" RowClickAction="@(conn => ToggleSelection(conn))">
     @if (!Readonly && !SelectInterfaceView && AppHandler != null)
     {
         <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
@@ -53,7 +53,7 @@ SelectedItems="SelectedConns" RowClickAction="@(conn => ToggleSelection(conn))">
         </Column>
     }
     <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
-    @if (!SelectInterfaceView)
+    @if (!SelectInterfaceView && !DiffMode)
     {
         @if (Connections.Count > 0 && Connections.First().IsInterface)
         {
@@ -63,11 +63,19 @@ SelectedItems="SelectedConns" RowClickAction="@(conn => ToggleSelection(conn))">
                 </Template>
             </Column>
         }
-        <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("state"))" Field="@(x => x.Id)" Sortable="true" Filterable="false">
+        <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("mod_state"))" Field="@(x => x.Id)" Sortable="true" Filterable="false">
             <Template>
-                @((MarkupString)DisplayState(context))
+                @((MarkupString)DisplayModState(context))
             </Template>
         </Column>
+        @if(userConfig.VarianceAnalysisSync || userConfig.VarianceAnalysisRefresh || userConfig.VarianceAnalysisSleepTime > 0)
+        {
+            <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("impl_state"))" Field="@(x => x.Id)" Sortable="true" Filterable="false">
+                <Template>
+                    @((MarkupString)DisplayImplState(context))
+                </Template>
+            </Column>
+        }
     }
     @if (ShowAppName)
     {
@@ -87,12 +95,15 @@ SelectedItems="SelectedConns" RowClickAction="@(conn => ToggleSelection(conn))">
             @((MarkupString)DisplayConditional(context, context.Name ?? ""))
         </Template>
     </Column>
-    <Column TableItem="ModellingConnection" Title="@(Connections.Count > 0 && Connections.First().IsInterface ? userConfig.GetText("interface_description") : userConfig.GetText("func_reason"))"
-    Field="@(x => x.Reason)" Sortable="true" Filterable="true">
-        <Template>
-            @((MarkupString)DisplayConditional(context, context.Reason ?? ""))
-        </Template>
-    </Column>
+    @if(!DiffMode)
+    {
+        <Column TableItem="ModellingConnection" Title="@(Connections.Count > 0 && Connections.First().IsInterface ? userConfig.GetText("interface_description") : userConfig.GetText("func_reason"))"
+                Field="@(x => x.Reason)" Sortable="true" Filterable="true">
+            <Template>
+                @((MarkupString)DisplayConditional(context, context.Reason ?? ""))
+            </Template>
+        </Column>
+    }
     <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("source"))" Field="@(x => x.Id)" Sortable="true" Filterable="false">
         <Template>
             <ExpandableList2 Elements="ModellingHandlerBase.GetSrcNames(context, userConfig)" Context="src" AlwaysShowElements="@userConfig.OverviewDisplayLines">
@@ -165,6 +176,9 @@ SelectedItems="SelectedConns" RowClickAction="@(conn => ToggleSelection(conn))">
     [Parameter]
     public bool ShowPageSizeInput { get; set; } = false;
 
+    [Parameter]
+    public bool DiffMode { get; set; } = false;
+
     private int PageSize { get; set; }
 
     private void UpdatePageSize(int pageSize)
@@ -207,7 +221,24 @@ SelectedItems="SelectedConns" RowClickAction="@(conn => ToggleSelection(conn))">
         return content;
     }
 
-    public string DisplayState(ModellingConnection connection)
+    public string DisplayModState(ModellingConnection connection)
+    {
+        List<string> modellingProps = CollectModellingProps(connection);
+        return modellingProps.Count > 0 ? string.Join(",", modellingProps) : Ok("C9023");
+    }
+
+    public string DisplayImplState(ModellingConnection connection)
+    {
+        List<string> modellingProps = CollectModellingProps(connection);
+        if(modellingProps.Count > 0)
+        {
+            return "-";
+        }
+        List<string> implementationProps = CollectImplementationProps(connection);
+        return connection.GetBoolProperty(ConState.VarianceChecked.ToString()) ? (implementationProps.Count > 0 ? string.Join(",", implementationProps) : Ok("C9024")) : Question();
+    }
+
+    private List<string> CollectModellingProps(ModellingConnection connection)
     {
         List<string> relevantProps = [];
         if (connection.Props != null)
@@ -219,29 +250,70 @@ SelectedItems="SelectedConns" RowClickAction="@(conn => ToggleSelection(conn))">
                     case nameof(ConState.InterfaceRequested):
                         if (!connection.Props.ContainsKey(ConState.InterfaceRejected.ToString()))
                         {
-                            relevantProps.Add($"<span class=\"text-warning\" data-toggle=\"tooltip\" title=\"{userConfig.PureLine("C9007")}\">!</span>");
+                            relevantProps.Add($"<span class=\"text-warning\" data-toggle=\"tooltip\" title=\"{userConfig.PureLine("C9007")}\">{Exclamation()}</span>");
                         }
                         break;
                     case nameof(ConState.InterfaceRejected):
                         relevantProps.Add($"<span style=\"color:red\" data-toggle=\"tooltip\" title=\"{userConfig.PureLine("C9011")}\">{false.ShowAsHtml()}</span>");
                         break;
                     case nameof(ConState.Requested):
-                        relevantProps.Add($"<span class=\"text-warning\" data-toggle=\"tooltip\" title=\"{userConfig.PureLine("C9008")}\">!</span>");
+                        relevantProps.Add($"<span class=\"text-warning\" data-toggle=\"tooltip\" title=\"{userConfig.PureLine("C9008")}\">{Exclamation()}</span>");
                         break;
                     case nameof(ConState.EmptyAppRoles):
-                        relevantProps.Add($"<span class=\"text-warning\" data-toggle=\"tooltip\" title=\"{(connection.IsInterface ? userConfig.PureLine("C9015") : userConfig.PureLine("C9013"))}\">!</span>");
+                        relevantProps.Add($"<span class=\"text-warning\" data-toggle=\"tooltip\" title=\"{(connection.IsInterface ? userConfig.PureLine("C9015") : userConfig.PureLine("C9013"))}\">{Exclamation()}</span>");
                         break;
                     case nameof(ConState.DeletedObjects):
-                        relevantProps.Add($"<span class=\"text-warning\" data-toggle=\"tooltip\" title=\"{(connection.IsInterface ? userConfig.PureLine("C9016") : userConfig.PureLine("C9014"))}\">!</span>");
+                        relevantProps.Add($"<span class=\"text-warning\" data-toggle=\"tooltip\" title=\"{(connection.IsInterface ? userConfig.PureLine("C9016") : userConfig.PureLine("C9014"))}\">{Exclamation()}</span>");
                         break;
                     case nameof(ConState.EmptySvcGrps):
-                        relevantProps.Add($"<span class=\"text-warning\" data-toggle=\"tooltip\" title=\"{( connection.IsInterface ? userConfig.PureLine("C9019") : userConfig.PureLine("C9018") )}\">!</span>");
+                        relevantProps.Add($"<span class=\"text-warning\" data-toggle=\"tooltip\" title=\"{( connection.IsInterface ? userConfig.PureLine("C9019") : userConfig.PureLine("C9018") )}\">{Exclamation()}</span>");
+                        break;
+                    case nameof(ConState.DocumentationOnly):
+                        relevantProps.Add($"<span class=\"text-warning\" data-toggle=\"tooltip\" title=\"{userConfig.PureLine("C9020")}\">{Exclamation()}</span>");
                         break;
                     default:
                         break;
                 }
             }
         }
-        return relevantProps.Count > 0 ? string.Join(",", relevantProps) : $"<span style=\"color:green\">{true.ShowAsHtml()}</span>";
+        return relevantProps;
+    }
+
+    private List<string> CollectImplementationProps(ModellingConnection connection)
+    {
+        List<string> relevantProps = [];
+        if (connection.Props != null)
+        {
+            foreach (var prop in connection.Props)
+            {
+                switch (prop.Key)
+                {
+                    case nameof(ConState.NotImplemented):
+                        relevantProps.Add($"<span class=\"text-warning\" data-toggle=\"tooltip\" title=\"{userConfig.PureLine("C9021")}\">{Exclamation()}</span>");
+                        break;
+                    case nameof(ConState.VarianceFound):
+                        relevantProps.Add($"<span class=\"text-warning\" data-toggle=\"tooltip\" title=\"{userConfig.PureLine("C9022")}\">{Exclamation()}</span>");
+                        break;
+                    default:
+                        break;
+                }
+            }
+        }
+        return relevantProps;
+    }
+
+    private string Ok(string tooltipNo)
+    {
+        return $"<span style=\"{GlobalConst.kStyleHighlightedGreen}\" data-toggle=\"tooltip\" title=\"{userConfig.PureLine(tooltipNo)}\">{true.ShowAsHtml()}</span>";
+    }
+
+    private string Exclamation()
+    {
+        return "<b>&nbsp;!&nbsp;</b>";
+    }
+
+    private string Question()
+    {
+        return $"<span style=\"{GlobalConst.kStyleHighlightedGreen}\" data-toggle=\"tooltip\" title=\"{userConfig.PureLine("C9025")}\">?</span>";
     }
 }

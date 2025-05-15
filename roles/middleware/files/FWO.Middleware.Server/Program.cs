@@ -21,6 +21,7 @@ ImportAppDataScheduler importAppDataScheduler;
 ImportIpDataScheduler importSubnetDataScheduler;
 ImportChangeNotifyScheduler importChangeNotifyScheduler;
 ExternalRequestScheduler externalRequestScheduler;
+VarianceAnalysisScheduler varianceAnalysisScheduler;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 builder.WebHost.UseUrls(ConfigFile.MiddlewareServerNativeUri ?? throw new Exception("Missing middleware server url on startup."));
@@ -94,6 +95,12 @@ await Task.Factory.StartNew(async() =>
 await Task.Factory.StartNew(async() =>
 {
     externalRequestScheduler = await ExternalRequestScheduler.CreateAsync(apiConnection);
+}, TaskCreationOptions.LongRunning);
+
+// Create and start variance analysis scheduler
+await Task.Factory.StartNew(async() =>
+{
+    varianceAnalysisScheduler = await VarianceAnalysisScheduler.CreateAsync(apiConnection);
 }, TaskCreationOptions.LongRunning);
 
 

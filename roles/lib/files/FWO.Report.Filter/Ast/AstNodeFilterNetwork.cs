@@ -131,22 +131,19 @@ namespace FWO.Report.Filter.Ast
             string ipFilterString =
                     $@" obj_ip_end: {{ _gte: ${QueryVarNameFirst1} }} 
                         obj_ip: {{ _lte: ${QueryVarNameLast2} }}";
-            string ipFilterStringNegated =
-                    $@" obj_ip_end: {{ _lt: ${QueryVarNameFirst1} }} 
-                        obj_ip: {{ _gt: ${QueryVarNameLast2} }}";
             query.RuleWhereStatement +=
                 $@" _or: [
                       {{
                         rule_{location}_neg: {{_eq: false}},
                         {locationTable}: {{
                         _or: [{{_and: [{{negated: {{_eq: false}}}}, {{object: {{objgrp_flats: {{objectByObjgrpFlatMemberId: {{ {ipFilterString} }}}}}}}}]}},
-                              {{_and: [{{negated: {{_eq: true}}}}, {{object: {{objgrp_flats: {{objectByObjgrpFlatMemberId: {{ {ipFilterStringNegated} }}}}}}}}]}}
+                              {{_and: [{{negated: {{_eq: true}}}}, {{object: {{_not: {{objgrp_flats: {{objectByObjgrpFlatMemberId: {{ {ipFilterString} }}}}}}}}}}]}}
                         ]}}
                       }},
                       {{
                         rule_{location}_neg: {{_eq: true}},
                         {locationTable}: {{
-                        _or: [{{_and: [{{negated: {{_eq: false}}}}, {{object: {{objgrp_flats: {{objectByObjgrpFlatMemberId: {{ {ipFilterStringNegated} }}}}}}}}]}},
+                        _or: [{{_and: [{{negated: {{_eq: false}}}}, {{object: {{_not: {{objgrp_flats: {{objectByObjgrpFlatMemberId: {{ {ipFilterString} }}}}}}}}}}]}},
                               {{_and: [{{negated: {{_eq: true}}}}, {{object: {{objgrp_flats: {{objectByObjgrpFlatMemberId: {{ {ipFilterString} }}}}}}}}]}}
                         ]}}
                       }},
@@ -155,7 +152,7 @@ namespace FWO.Report.Filter.Ast
             query.NwObjWhereStatement +=
                 $@" {locationTable}: {{
                     _or: [{{_and: [{{negated: {{_eq: false}}}}, {{object: {{objgrp_flats: {{objectByObjgrpFlatMemberId: {{ {ipFilterString} }}}}}}}}]}},
-                          {{_and: [{{negated: {{_eq: true}}}}, {{object: {{objgrp_flats: {{objectByObjgrpFlatMemberId: {{ {ipFilterStringNegated} }}}}}}}}]}}
+                          {{_and: [{{negated: {{_eq: true}}}}, {{object: {{_not: {{objgrp_flats: {{objectByObjgrpFlatMemberId: {{ {ipFilterString} }}}}}}}}}}]}}
                     ]
                 }}";
             ipFilterString = $@" ip_end: {{ _gte: ${QueryVarNameFirst1} }} ip: {{ _lte: ${QueryVarNameLast2} }}";

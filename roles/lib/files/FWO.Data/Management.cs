@@ -147,7 +147,6 @@ namespace FWO.Data
             return Uid.GenerousCompare(management.Uid) &&
                    Name.GenerousCompare(management.Name) &&
                    Hostname.GenerousCompare(management.Hostname) &&
-                   Uid.GenerousCompare(management.Uid) &&
                    ConfigPath.GenerousCompare(management.ConfigPath) &&
                    DomainUid.GenerousCompare(management.DomainUid) &&
                    CloudSubscriptionId.GenerousCompare(management.CloudSubscriptionId) &&

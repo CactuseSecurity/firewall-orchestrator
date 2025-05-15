@@ -806,11 +806,100 @@ class FwConfigImportRule(FwConfigImportBase):
                 logger.exception(f"fwo_api:moveRules - error while updating moved rules refs: {str(update_moved_rules_refs_result['errors'])}")
                 return 1, 0, []
 
-            return self.update_rule_enforced_on_gateway_after_move(insert_rules_return, update_rules_return)
+            errors_update_enforced_on_gateway, changes_update_enforced_on_gateway, ids_update_enforced_on_gateway = self.update_rule_enforced_on_gateway_after_move(insert_rules_return, update_rules_return)
+            errors_update_rulebase_links, changes_update_rulebase_links, ids_update_rulebase_links = self.update_rulebase_links_after_move(insert_rules_return, update_rules_return)
+
+            return errors_update_enforced_on_gateway + errors_update_rulebase_links, changes_update_enforced_on_gateway + changes_update_rulebase_links, set(list(ids_update_enforced_on_gateway.extend(ids_update_rulebase_links)))
 
         except Exception:
             logger.exception(f"failed to move rules: {str(traceback.format_exc())}")
             return 1, 0, []
+
+
+    def update_rulebase_links_after_move(self, insert_rules_return, update_rules_return):
+        """
+            Updates the db table rulebase_link by marking old links as removed,
+            and inserting new ones with updated from_rule_ids.
+        """
+
+        logger = getFwoLogger()
+
+        insertNewRulebaseLinks = """mutation insertNewRulebaseLinks($objects: [rulebase_link_insert_input!]!) {
+            insert_rulebase_link(objects: $objects) {
+                affected_rows
+            }
+        }
+        """
+
+        updateRulesbaseLinksAfterMoves = """mutation updateRulesbaseLinksAfterMoves($rule_ids: [bigint!], $importId: bigint) {
+            update_rulebase_link(
+                where: {
+                    from_rule_id: { _in: $rule_ids },
+                    removed: { _is_null: true }
+                },
+                _set: {
+                    removed: $importId
+                }
+            ) {
+                affected_rows
+                returning {
+                    from_rule_id
+                    gw_id
+                    from_rulebase_id
+                    to_rulebase_id
+                    link_type
+                    is_initial
+                    is_global
+                    created
+                }
+            }
+        }
+        """
+
+        updateRulesbaseLinksAfterMoves_variables = {
+            "rule_ids": [update_rules_return_element["rule_id"] for update_rules_return_element in update_rules_return],
+            "importId": self.ImportDetails.ImportId
+        }
+
+        try:
+            updateRulesbaseLinksAfterMoves_result =  self.ImportDetails.call(updateRulesbaseLinksAfterMoves, updateRulesbaseLinksAfterMoves_variables, "rule_ids", "updateRulesbaseLinksAfterMoves", "update_rulebase_link", self.ImportDetails.DebugLevel)
+
+            if 'errors' in updateRulesbaseLinksAfterMoves_result:
+                logger.exception(f"fwo_api:moveRules - error while updating moved rules refs: {str(updateRulesbaseLinksAfterMoves_result['errors'])}")
+                return 1, 0, []
+            
+            updated_rows = updateRulesbaseLinksAfterMoves_result["data"]["update_rulebase_link"]["returning"]
+
+            insert_objects = []
+
+            for updated_row in updated_rows:
+                from_rule_uid = next(update_rules_return_element for update_rules_return_element in update_rules_return if update_rules_return_element["rule_id"] == updated_row["from_rule_id"])["rule_uid"]
+                new_rule_id = next(insert_rules_return_element for insert_rules_return_element in insert_rules_return if insert_rules_return_element["rule_uid"] == from_rule_uid)["rule_id"]
+                updated_row["new_rule_id"] = new_rule_id
+                insert_objects.append({
+                    "gw_id": updated_row["gw_id"],
+                    "from_rulebase_id": updated_row["from_rulebase_id"],
+                    "from_rule_id": new_rule_id,
+                    "to_rulebase_id": updated_row["to_rulebase_id"],
+                    "link_type": updated_row["link_type"],
+                    "is_initial": updated_row["is_initial"],
+                    "is_global": updated_row["is_global"],
+                    "created": updated_row["created"],
+                })
+
+            insertNewRulebaseLinks_result =  self.ImportDetails.call(insertNewRulebaseLinks, {"objects": insert_objects}, debug_level=self.ImportDetails.DebugLevel)
+
+            if 'errors' in insertNewRulebaseLinks_result:
+                logger.exception(f"fwo_api:moveRules - error while updating moved rules refs: {str(insertNewRulebaseLinks_result['errors'])}")
+                return 1, 0, []
+            
+            return 0, 0, []
+        
+        except Exception:
+            logger.exception(f"failed to move rules: {str(traceback.format_exc())}")
+            return 1, 0, []
+        
+
 
 
     def update_rule_enforced_on_gateway_after_move(self, insert_rules_return, update_rules_return):

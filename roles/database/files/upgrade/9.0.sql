@@ -98,6 +98,8 @@ insert into config (config_key, config_value, config_user) VALUES ('resolveNetwo
 
 --- pre 9.0 changes (old import)
 
+DELETE FROM stm_dev_typ WHERE dev_typ_id IN (2,4,5,6,7);
+
 DROP TRIGGER IF EXISTS gw_route_add ON gw_route CASCADE;
 CREATE TRIGGER gw_route_add BEFORE INSERT ON gw_route FOR EACH ROW EXECUTE PROCEDURE gw_route_add();
 

@@ -806,10 +806,10 @@ class FwConfigImportRule(FwConfigImportBase):
                 logger.exception(f"fwo_api:moveRules - error while updating moved rules refs: {str(update_moved_rules_refs_result['errors'])}")
                 return 1, 0, []
 
-            errors_update_enforced_on_gateway, changes_update_enforced_on_gateway, ids_update_enforced_on_gateway = self.update_rule_enforced_on_gateway_after_move(insert_rules_return, update_rules_return)
-            errors_update_rulebase_links, changes_update_rulebase_links, ids_update_rulebase_links = self.update_rulebase_links_after_move(insert_rules_return, update_rules_return)
+            errors_update_enforced_on_gateway, changes_update_enforced_on_gateway, _ = self.update_rule_enforced_on_gateway_after_move(insert_rules_return, update_rules_return)
+            errors_update_rulebase_links, changes_update_rulebase_links, _ = self.update_rulebase_links_after_move(insert_rules_return, update_rules_return)
 
-            return errors_update_enforced_on_gateway + errors_update_rulebase_links, changes_update_enforced_on_gateway + changes_update_rulebase_links, set(list(ids_update_enforced_on_gateway.extend(ids_update_rulebase_links)))
+            return errors_update_enforced_on_gateway + errors_update_rulebase_links, changes_update_enforced_on_gateway + changes_update_rulebase_links, []
 
         except Exception:
             logger.exception(f"failed to move rules: {str(traceback.format_exc())}")

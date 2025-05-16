@@ -144,7 +144,6 @@ namespace FWO.Data
             OwnerName = rule.OwnerName;
             OwnerId = rule.OwnerId;
             IpMatch = rule.IpMatch;
-            DeviceId = rule.DeviceId;
             CustomFields = rule.CustomFields;
             DisplayOrderNumber = rule.DisplayOrderNumber;
             Certified = rule.Certified;

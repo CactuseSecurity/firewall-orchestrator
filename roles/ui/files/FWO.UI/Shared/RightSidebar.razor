@@ -197,12 +197,13 @@
             import_id_end = await GetImportIds(rsbTimeEnd);
             Dictionary<string, object> queryVars = new()
             {
-                ["limit"] = 0,
+                ["limit"] = 1,
                 ["offset"] = 0,
                 ["import_id_start"] = import_id_start.Values.Any(v => v > 0) ? import_id_start.Values.Where(v => v > 0).Min() : 0,
                 ["import_id_end"] = import_id_end.Values.Max(),
             };
-            managementsAllObjects = await apiConnection.SendQueryAsync<List<ManagementReport>>(ObjectQueries.getAllObjectDetails, queryVars);
+            var mgmResult = await apiConnection.SendQueryAsync<List<ManagementReport>>(ObjectQueries.getAllObjectDetails, queryVars);
+            managementsAllObjects = mgmResult.Where(m => m.Objects.Count() > 0 || m.Services.Count() > 0 || m.Users.Count() > 0).ToList();
             collapseInRSB.Collapse("all");
             await InvokeAsync(StateHasChanged);
         }
@@ -236,13 +237,7 @@
         }
         else if (SelectedReportType.IsChangeReport())
         {
-            if (!LSBTime.IsShortcut || LSBTime.TimeRangeShortcut != rsbTimeShortcut)
-                (rsbTimeStart, rsbTimeEnd) = DynGraphqlQuery.ResolveTimeRange(LSBTime);
-
-            if (LSBTime.IsShortcut)
-                rsbTimeShortcut = LSBTime.TimeRangeShortcut;
-            else
-                rsbTimeShortcut = "";
+            (rsbTimeStart, rsbTimeEnd) = DynGraphqlQuery.ResolveTimeRange(LSBTime);
         }
 
         return prevStart != rsbTimeStart || prevEnd != rsbTimeEnd;

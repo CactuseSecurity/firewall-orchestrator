@@ -4,3 +4,5 @@
 .test_data/
 roles/importer/venv/
 ansible_venv/
+.venv/
+*.todo

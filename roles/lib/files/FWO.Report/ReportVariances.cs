@@ -18,9 +18,14 @@ namespace FWO.Report
             StringBuilder report = new ();
             ruleDiffDisplay = new (userConfig);
             int chapterNumber = 0;
-             foreach (var ownerReport in ReportData.OwnerData)
+            report.AppendLine($"{userConfig.GetText("U1003")}<br>");
+            foreach (var ownerReport in ReportData.OwnerData)
             {
                 report.AppendLine($"<h3 id=\"{Guid.NewGuid()}\">{ownerReport.Name}</h3>");
+                if(ownerReport.ImplementationState != "")
+                {
+                    report.AppendLine($"{ownerReport.ImplementationState}<br>");
+                }
                 report.AppendLine($"{DisplayAppRoleStat(ownerReport, userConfig)}<br>");
                 report.AppendLine($"{DisplayConnStat(ownerReport, userConfig)}<br>");
                 report.AppendLine("<hr>");
@@ -66,6 +71,23 @@ namespace FWO.Report
                 modifiedOwnerReport.Connections.Add(diffConn);
             }
             return modifiedOwnerReport;
+        }
+
+        public override string SetDescription()
+        {
+            int missConnCounter = 0;
+            int diffConnCounter = 0;
+            int missARCounter = 0;
+            int diffARCounter = 0;
+            foreach(var owner in ReportData.OwnerData)
+            {
+                missConnCounter += owner.Connections.Count;
+                diffConnCounter += owner.RuleDifferences.Count;
+                missARCounter += owner.AppRoleStats.AppRolesMissingCount;
+                diffARCounter += owner.AppRoleStats.AppRolesDifferenceCount;
+            }
+            string appRoles = $"{userConfig.GetText("app_roles")}: {missARCounter} {userConfig.GetText("not_implemented")}, {diffARCounter} {userConfig.GetText("with_diffs")}, ";
+            return $"{appRoles}{userConfig.GetText("connections")}.: {missConnCounter} {userConfig.GetText("not_implemented")}, {diffConnCounter} {userConfig.GetText("with_diffs")}";
         }
 
         private void AppendMissingAppRoles(ref StringBuilder report, OwnerReport ownerReport, int chapterNumber)

@@ -9,6 +9,10 @@
 @foreach(var owner in OwnerData)
 {
     <h4>@owner.Owner.Display(userConfig.GetText("common_service"))</h4>
+    @if(owner.ImplementationState != "")
+    {
+        <div class="mb-2">@(owner.ImplementationState)</div>
+    }
     @if(owner.AppRoleStats.ModelledAppRolesCount > 0)
     {
         <div class="mb-2">@(ReportVariances.DisplayAppRoleStat(owner, userConfig))</div>

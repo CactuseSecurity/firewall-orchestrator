@@ -128,8 +128,8 @@ def normalizeConfig(nativeConfig: json, normalizedConfigDict, importState: Impor
     logger.info("completed normalizing network objects")
     cp_service.normalize_service_objects(nativeConfig, normalizedConfigDict, importState.ImportId)
     logger.info("completed normalizing service objects")
-    cp_rule.normalizeRulebases(nativeConfig, importState, normalizedConfigDict)
     cp_gateway.normalizeGateways(nativeConfig, importState, normalizedConfigDict)
+    cp_rule.normalizeRulebases(nativeConfig, importState, normalizedConfigDict)
     if not parsing_config_only: # get config from cp fw mgr
         logout_cp(importState.MgmDetails.buildFwApiString(), sid)
     logger.info("completed normalizing rulebases")
@@ -248,9 +248,9 @@ def process_devices(
                 globalSid, orderedLayerUids, nativeConfig, cpManagerApiBaseUrl
             )
         else:
-            define_initial_rulebase(deviceConfig, orderedLayerUids)
+            define_initial_rulebase(deviceConfig, orderedLayerUids, False)
 
-        add_ordered_layers_to_native_config(orderedLayerUids, get_rules_params(importState), cpManagerApiBaseUrl, sid, nativeConfig, deviceConfig)
+        add_ordered_layers_to_native_config(orderedLayerUids, get_rules_params(importState), cpManagerApiBaseUrl, sid, nativeConfig, deviceConfig, False)
         handle_nat_rules(device, nativeConfig, sid, importState)
 
         nativeConfig['gateways'].append(deviceConfig)
@@ -267,6 +267,9 @@ def initialize_device_config(device):
 def handle_global_rulebase_links(
     managerDetails, import_state, deviceConfig, globalAssignments, globalPolicyStructure, globalDomain,
     globalSid, orderedLayerUids, nativeConfig, cpManagerApiBaseUrl):
+    """Searches for global access policy for current device policy,
+    adds global ordered layers and defines global rulebase link
+    """
 
     logger = getFwoLogger()
     for globalAssignment in globalAssignments:
@@ -278,42 +281,47 @@ def handle_global_rulebase_links(
                         logger.warning(f"No access layer for global policy: {globalPolicy['name']}")
                         break
 
-                    add_ordered_layers_to_native_config(global_ordered_layer_uids, get_rules_params(import_state), cpManagerApiBaseUrl, globalSid, nativeConfig, deviceConfig)
-                    define_global_rulebase_link(deviceConfig, global_ordered_layer_uids, orderedLayerUids, nativeConfig)
+                    global_policy_rulebases_uid_list = add_ordered_layers_to_native_config(global_ordered_layer_uids, get_rules_params(import_state),
+                                                                                    cpManagerApiBaseUrl, globalSid, nativeConfig, deviceConfig, True)
+                    define_global_rulebase_link(deviceConfig, global_ordered_layer_uids, orderedLayerUids, nativeConfig, global_policy_rulebases_uid_list)
 
 
-def define_global_rulebase_link(deviceConfig, globalOrderedLayerUids, orderedLayerUids, nativeConfig):
-    # define initial rulebase for device in case of mds
-    define_initial_rulebase(deviceConfig, globalOrderedLayerUids)
+def define_global_rulebase_link(deviceConfig, globalOrderedLayerUids, orderedLayerUids, nativeConfig, global_policy_rulebases_uid_list):
+    """Links initial and placeholder rule for global rulebases
+    """
 
-    # parse global rulebase, find place-holder and link local rulebase (first ordered layer)
-    for globalOrderedLayerUid in globalOrderedLayerUids:
-        placeholderRuleUid = ''
+    define_initial_rulebase(deviceConfig, globalOrderedLayerUids, True)
+
+    # parse global rulebases, find place-holder and link local rulebase (first ordered layer)
+    for global_rulebase_uid in global_policy_rulebases_uid_list:
+        placeholder_rule_uid = ''
         for rulebase in nativeConfig['rulebases']:
-            if rulebase['uid'] == globalOrderedLayerUid:
-                placeholderRuleUid = cp_getter.getRuleUid(rulebase, 'place-holder')
-                if placeholderRuleUid:
+            if rulebase['uid'] == global_rulebase_uid:
+                placeholder_rule_uid, placeholder_rulebase_uid = cp_getter.get_placeholder_in_rulebase(rulebase, 'place-holder')
+                if placeholder_rule_uid:
                     break
 
-        if placeholderRuleUid:
+        if placeholder_rule_uid:
             deviceConfig['rulebase_links'].append({
-                'from_rulebase_uid': globalOrderedLayerUid,
-                'from_rule_uid': placeholderRuleUid,
+                'from_rulebase_uid': placeholder_rulebase_uid,
+                'from_rule_uid': placeholder_rule_uid,
                 'to_rulebase_uid': orderedLayerUids[0],
                 'type': 'ordered',
                 'is_global': True,
                 'is_initial': False,
+                'is_section': False
             })
 
 
-def define_initial_rulebase(deviceConfig, orderedLayerUids):
+def define_initial_rulebase(deviceConfig, orderedLayerUids, is_global):
     deviceConfig['rulebase_links'].append({
         'from_rulebase_uid': '',
         'from_rule_uid': '',
         'to_rulebase_uid': orderedLayerUids[0],
         'type': 'ordered',
-        'is_global': False,
-        'is_initial': True
+        'is_global': is_global,
+        'is_initial': True,
+        'is_section': False
     })
 
 
@@ -349,47 +357,57 @@ def handle_nat_rules(device, nativeConfig, sid, importState):
 
 
 ###### helper functions ######
-def add_ordered_layers_to_native_config(orderedLayerUids, show_params_rules, cpManagerApiBaseUrl, sid, nativeConfig, deviceConfig):
-
+def add_ordered_layers_to_native_config(orderedLayerUids, show_params_rules, cpManagerApiBaseUrl, sid, nativeConfig, deviceConfig, is_global):
+    """Fetches ordered layers and links them
+    """
     orderedLayerIndex = 0
+    policy_rulebases_uid_list = []
     for orderedLayerUid in orderedLayerUids:
 
         show_params_rules.update({'uid': orderedLayerUid})
 
-        cp_getter.get_rulebases (cpManagerApiBaseUrl, 
-                                sid, 
-                                show_params_rules, 
-                                rulebaseUid=orderedLayerUid,
-                                access_type='access',
-                                nativeConfig=nativeConfig,
-                                deviceConfig=deviceConfig)
+        policy_rulebases_uid_list = cp_getter.get_rulebases (cpManagerApiBaseUrl, 
+                                                                sid, 
+                                                                show_params_rules, 
+                                                                rulebaseUid=orderedLayerUid,
+                                                                access_type='access',
+                                                                nativeConfig=nativeConfig,
+                                                                deviceConfig=deviceConfig,
+                                                                is_global=is_global,
+                                                                policy_rulebases_uid_list=policy_rulebases_uid_list)
         if fwo_globals.shutdown_requested:
             raise ImportInterruption("Shutdown requested during rulebase retrieval.")
                     
-        lastRuleUid = None
-        # parse ordered layer and get last rule uid
+        # link sections as self-contained rulebases
         for rulebase in nativeConfig['rulebases']:
             if rulebase['uid'] == orderedLayerUid:
-                lastRuleUid = cp_getter.getRuleUid(rulebase, 'last')
+                current_rulebase_uid = orderedLayerUid
+                for rulebase_chunk in rulebase['chunks']:
+                    if 'rulebase' in rulebase_chunk:
+                        for section in rulebase_chunk['rulebase']:
+                            section, current_rulebase_uid = cp_getter.section_traversal_and_links(section, current_rulebase_uid, deviceConfig, is_global)
                 break
         
         # link to next ordered layer
         if orderedLayerIndex < len(orderedLayerUids) - 1:
             deviceConfig['rulebase_links'].append({
                 'from_rulebase_uid': orderedLayerUid,
-                'from_rule_uid': lastRuleUid,
+                'from_rule_uid': '',
                 'to_rulebase_uid': orderedLayerUids[orderedLayerIndex + 1],
                 'type': 'ordered',
-                'is_global': False,
-                'is_initial': False
+                'is_global': is_global,
+                'is_initial': False,
+                'is_section': False
             })
         
         orderedLayerIndex += 1
 
-    return 0
+    return policy_rulebases_uid_list
 
 
-def getOrderedLayerUids(policyStructure, deviceConfig, domain):
+def getOrderedLayerUids(policyStructure, deviceConfig, domain) -> list[str]:
+    """Get UIDs of ordered layers for policy of device
+    """
 
     orderedLayerUids = []
     for policy in policyStructure:

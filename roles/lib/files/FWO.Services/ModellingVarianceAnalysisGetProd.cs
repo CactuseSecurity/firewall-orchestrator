@@ -123,19 +123,12 @@ namespace FWO.Services
         private string? GetFromCustomField(Rule rule)
         {
             Dictionary<string, string>? customFields = JsonSerializer.Deserialize<Dictionary<string, string>>(rule.CustomFields);
-            return customFields != null && customFields.ContainsKey(userConfig.ModModelledMarker) ? customFields[userConfig.ModModelledMarker] : null;
+            return customFields != null && customFields.TryGetValue(userConfig.ModModelledMarker, out string? value) ? value : null;
         }
 
         private async Task<List<Rule>?> GetRules(int mgtId, ModellingFilter modellingFilter)
         {
-            var Variables = new
-            {
-                time = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
-                mgmIds = mgtId
-            };
-            long? relImpId = (await apiConnection.SendQueryAsync<List<Management>>(ReportQueries.getRelevantImportIdsAtTime, Variables))?
-                .First().Import.ImportAggregate.ImportAggregateMax.RelevantImportId;
-            
+            long? relImpId = await GetRelevantImportId(mgtId);
             if(modellingFilter.AnalyseRemainingRules)
             {
                 var RuleVariables = new
@@ -224,12 +217,44 @@ namespace FWO.Services
 
         private async Task<List<NetworkObject>?> GetObjects(int mgtId, int[] objTypeIds)
         {
-            var ObjGroupVariables = new
+            try
             {
-                mgmId = mgtId,
-                objTypeIds = objTypeIds
-            };
-            return await apiConnection.SendQueryAsync<List<NetworkObject>>(ObjectQueries.getNetworkObjectsForManagement, ObjGroupVariables);
+                long? relImpId = await GetRelevantImportId(mgtId);
+                if(relImpId != null)
+                {
+                    var ObjGroupVariables = new
+                    {
+                        mgmId = mgtId,
+                        objTypeIds = objTypeIds,
+                        relevantImportId = relImpId
+                    };
+                    return await apiConnection.SendQueryAsync<List<NetworkObject>>(ObjectQueries.getNetworkObjectsForManagement, ObjGroupVariables);
+                }
+            }
+            catch (Exception exception)
+            {
+                Log.WriteError(userConfig.GetText("fetch_data"), "Get Production Objects leads to error: ", exception);
+            }
+            return [];
+        }
+
+        private async Task<long?> GetRelevantImportId(int mgtId)
+        {
+            try
+            {
+                var Variables = new
+                {
+                    time = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+                    mgmIds = mgtId
+                };
+                return (await apiConnection.SendQueryAsync<List<Management>>(ReportQueries.getRelevantImportIdsAtTime, Variables))?
+                    .First().Import.ImportAggregate.ImportAggregateMax.RelevantImportId;
+            }
+            catch (Exception exception)
+            {
+                Log.WriteError(userConfig.GetText("fetch_data"), "Get ImportIds leads to error: ", exception);
+            }
+            return null;
         }
     }
 }

@@ -109,6 +109,7 @@ namespace FWO.Test
             {"connections_with_diffs", "Connections with Diffs"},
             {"management", "Management"},
             {"gateway", "Gateway"},
+            {"U1003", "In this report..."},
         };
 
         public override string GetText(string key)

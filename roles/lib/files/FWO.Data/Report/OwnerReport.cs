@@ -17,6 +17,8 @@ namespace FWO.Data.Report
         public Dictionary<int, List<ModellingAppRole>> MissingAppRoles { get; set; } = [];
         public Dictionary<int, List<ModellingAppRole>> DifferingAppRoles { get; set; } = [];
         public AppRoleStats AppRoleStats { get; set; } = new();
+        public string ImplementationState { get; set; } = "";
+
 
         public OwnerReport()
         {}

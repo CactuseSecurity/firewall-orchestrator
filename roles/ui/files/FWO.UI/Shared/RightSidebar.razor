@@ -199,7 +199,7 @@
             {
                 ["limit"] = 0,
                 ["offset"] = 0,
-                ["import_id_start"] = import_id_start.Values.Where(v => v > 0).Min(),
+                ["import_id_start"] = import_id_start.Values.Any(v => v > 0) ? import_id_start.Values.Where(v => v > 0).Min() : 0,
                 ["import_id_end"] = import_id_end.Values.Max(),
             };
             managementsAllObjects = await apiConnection.SendQueryAsync<List<ManagementReport>>(ObjectQueries.getAllObjectDetails, queryVars);

@@ -102,7 +102,7 @@
                             <button type="button" class="btn btn-sm btn-success mb-2" @onclick="appHandler!.AddConnection">
                                 @(appHandler!.DisplayButton("add_connection", Icons.Add))
                             </button>
-                            <ConnectionTable ShowPageSizeInput="true" Connections="@appHandler!.GetRegularConnections()" @bind-AppHandler="appHandler" AppActive="appActive" />
+                            <ConnectionTable ShowPageSizeInput="true" Connections="@appHandler!.GetRegularConnections()" @bind-AppHandler="appHandler" AppActive="appActive" ShowModellingState="true" ShowProductionState="true" />
                         </Tab>
                         <Tab Title="@(userConfig.GetText("provided_interfaces"))" Position=1>
                             <div class="d-flex justify-content-between">
@@ -120,7 +120,7 @@
                                     </Authorized>
                                 </AuthorizeView>
                             </div>
-                            <ConnectionTable ShowPageSizeInput="true" Connections="@appHandler!.GetInterfaces(showRejected)" @bind-AppHandler="appHandler" AppActive="appActive" />
+                            <ConnectionTable ShowPageSizeInput="true" Connections="@appHandler!.GetInterfaces(showRejected)" @bind-AppHandler="appHandler" AppActive="appActive" ShowModellingState="true" />
                         </Tab>
                         @if (selectedApp.CommSvcPossible)
                         {
@@ -128,7 +128,7 @@
                                 <button type="button" class="btn btn-sm btn-success mb-2"
                                     @onclick="appHandler!.AddCommonService">@(appHandler!.DisplayButton("add_common_service", Icons.Add))
                                 </button>
-                                <ConnectionTable Connections="@appHandler!.GetCommonServices()" @bind-AppHandler="appHandler" AppActive="appActive" />
+                                <ConnectionTable Connections="@appHandler!.GetCommonServices()" @bind-AppHandler="appHandler" AppActive="appActive" ShowModellingState="true" ShowProductionState="true" />
                             </Tab>
                         }
                     </TabSet>
@@ -383,46 +383,53 @@ else
 
     private async Task SetStatusFromTicket(WfTicket intTicket)
     {
-        if(extStateHandler!= null)
+        try
         {
-            if(extStateHandler.IsDone(intTicket.StateId))
+            if(extStateHandler!= null && intTicket.Id > 0)
             {
-                ChangeStatus = $"{userConfig.GetText("last_successful")}: {intTicket.CreationDate.ToString("yyyy-MM-dd HH:mm:ss")}, {userConfig.GetText("implemented")}: {intTicket.CompletionDate?.ToString("yyyy-MM-dd HH:mm:ss")}, {intTicket.Requester?.Name}";
-            }
-            else
-            {
-                string? lastResponse = await GetLastResponse(intTicket);
-                if(extStateHandler.IsInProgress(intTicket.StateId))
+                if(extStateHandler.IsDone(intTicket.StateId))
                 {
-                    if(lastResponse != null && IsTempError(lastResponse))
-                    {
-                        string tooltip = userConfig.GetText("temp_error_extended") + ": " + lastResponse;
-                        ChangeStatus = $"<div data-toggle=\"tooltip\" title=\"{tooltip}\">{userConfig.GetText("temp_error")}</div>";
-                    }
-                    else
-                    {
-                        ChangeStatus = userConfig.GetText("in_process");
-                    }
+                    ChangeStatus = $"{userConfig.GetText("last_successful")}: {intTicket.CreationDate.ToString("yyyy-MM-dd HH:mm:ss")}, {userConfig.GetText("implemented")}: {intTicket.CompletionDate?.ToString("yyyy-MM-dd HH:mm:ss")}, {intTicket.Requester?.Name}";
                 }
                 else
                 {
-                    if(lastResponse != null)
+                    string? lastResponse = await GetLastResponse(intTicket);
+                    if(extStateHandler.IsInProgress(intTicket.StateId))
                     {
-                        string tooltip = states.Name[intTicket.StateId] + ": " + lastResponse;
-                        ChangeStatus = $"<div data-toggle=\"tooltip\" title=\"{tooltip}\">{userConfig.GetText("implementation_error")}</div>";
+                        if(lastResponse != null && IsTempError(lastResponse))
+                        {
+                            string tooltip = userConfig.GetText("temp_error_extended") + ": " + lastResponse;
+                            ChangeStatus = $"<div data-toggle=\"tooltip\" title=\"{tooltip}\">{userConfig.GetText("temp_error")}</div>";
+                        }
+                        else
+                        {
+                            ChangeStatus = userConfig.GetText("in_process");
+                        }
                     }
                     else
                     {
-                        ChangeStatus = userConfig.GetText("implementation_error");
-                    }
-                    await InvokeAsync(StateHasChanged);
-                    if(firstErrorMessage)
-                    {
-                        firstErrorMessage = false;
-                        DisplayMessageInUi(null, userConfig.GetText("implementation_error"), userConfig.ModRolloutErrorText, true);
+                        if(lastResponse != null)
+                        {
+                            string tooltip = states.Name[intTicket.StateId] + ": " + lastResponse;
+                            ChangeStatus = $"<div data-toggle=\"tooltip\" title=\"{tooltip}\">{userConfig.GetText("implementation_error")}</div>";
+                        }
+                        else
+                        {
+                            ChangeStatus = userConfig.GetText("implementation_error");
+                        }
+                        await InvokeAsync(StateHasChanged);
+                        if(firstErrorMessage)
+                        {
+                            firstErrorMessage = false;
+                            DisplayMessageInUi(null, userConfig.GetText("implementation_error"), userConfig.ModRolloutErrorText, true);
+                        }
                     }
                 }
             }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("refresh_state"), "", true);
         }
     }
 
@@ -462,7 +469,10 @@ else
 
     private async void OnTicketUpdate(List<WfTicket> tickets)
     {
-        await SetStatusFromTicket(tickets.First());
-        await InvokeAsync(StateHasChanged);
+        if(tickets.Count > 0)
+        {
+            await SetStatusFromTicket(tickets.First());
+            await InvokeAsync(StateHasChanged);
+        }
     }
 }

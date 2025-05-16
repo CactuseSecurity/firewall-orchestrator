@@ -63,12 +63,15 @@
                 </Template>
             </Column>
         }
-        <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("mod_state"))" Field="@(x => x.Id)" Sortable="true" Filterable="false">
-            <Template>
-                @((MarkupString)DisplayModState(context))
-            </Template>
-        </Column>
-        @if(userConfig.VarianceAnalysisSync || userConfig.VarianceAnalysisRefresh || userConfig.VarianceAnalysisSleepTime > 0)
+        @if(ShowModellingState)
+        {
+            <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("mod_state"))" Field="@(x => x.Id)" Sortable="true" Filterable="false">
+                <Template>
+                    @((MarkupString)DisplayModState(context))
+                </Template>
+            </Column>
+        }
+        @if(ShowProductionState && (userConfig.VarianceAnalysisSync || userConfig.VarianceAnalysisRefresh || userConfig.VarianceAnalysisSleepTime > 0))
         {
             <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("impl_state"))" Field="@(x => x.Id)" Sortable="true" Filterable="false">
                 <Template>
@@ -178,6 +181,12 @@
 
     [Parameter]
     public bool DiffMode { get; set; } = false;
+
+    [Parameter]
+    public bool ShowModellingState { get; set; } = false;
+
+    [Parameter]
+    public bool ShowProductionState { get; set; } = false;
 
     private int PageSize { get; set; }
 

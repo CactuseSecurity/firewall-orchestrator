@@ -73,6 +73,7 @@ namespace FWO.DeviceAutoDiscovery
                 currentManagement.ConfigPath = "";
                 currentManagement.SuperManagerId = null;
                 currentManagement.DomainUid = "";
+                currentManagement.IsSupermanager = false;
             }
             return currentManagement;
         }
@@ -84,6 +85,7 @@ namespace FWO.DeviceAutoDiscovery
             {
                 Log.WriteDebug("Autodiscovery", $"found domain '{domain.Name}'");
                 Management currentManagement = CreateManagement(superManagement, domain.Name, domain.Uid);
+                currentManagement.IsSupermanager = false;
                 // session id pins this session to a specific domain (if domain is given during login)
                 string sessionIdPerDomain = await LoginCp(currentManagement, restClientCP);
                 currentManagement.Uid = await GetMgmUid(restClientCP, @sessionIdPerDomain, currentManagement.Hostname);

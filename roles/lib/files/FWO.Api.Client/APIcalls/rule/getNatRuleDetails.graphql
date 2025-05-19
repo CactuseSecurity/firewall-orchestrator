@@ -5,6 +5,9 @@ query getNatRuleDetails(
   $rule_uid: [String!]
   $ruleSrcName: [String!]
   $ruleSrcIp: [cidr!]
+  $active: Boolean
+  $import_id_start: bigint
+  $import_id_end: bigint
   $limit: Int
   $offset: Int
 ) {

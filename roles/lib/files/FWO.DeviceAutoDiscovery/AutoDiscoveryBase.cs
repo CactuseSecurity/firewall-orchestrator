@@ -196,7 +196,8 @@ namespace FWO.DeviceAutoDiscovery
                             Name = changedMgmt.Name,
                             Uid = changedMgmt.Uid,
                             DeviceType = devtype,
-                            SuperManagerId = superManagement.Id
+                            SuperManagerId = superManagement.Id,
+                            IsSupermanager = changedMgmt.IsSupermanager
                         };
                         actions.Add(new ActionItem
                         {

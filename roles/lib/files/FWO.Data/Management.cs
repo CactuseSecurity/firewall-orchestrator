@@ -45,6 +45,9 @@ namespace FWO.Data
         [JsonProperty("superManager"), JsonPropertyName("superManager")]
         public int? SuperManagerId { get; set; }
 
+        [JsonProperty("is_super_manager"), JsonPropertyName("is_super_manager")]
+        public bool IsSupermanager { get; set; } = false;
+
         [JsonProperty("importerHostname"), JsonPropertyName("importerHostname")]
         public string? ImporterHostname { get; set; } = "";
 

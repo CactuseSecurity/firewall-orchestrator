@@ -121,6 +121,7 @@ namespace FWO.Report
             ownerReport.MissingAppRoles = result.MissingAppRoles;
             ownerReport.DifferingAppRoles = result.DifferingAppRoles;
             ownerReport.AppRoleStats = result.AppRoleStats;
+            ownerReport.ImplementationState = await varianceAnalysis.GetSuccessfulRequestState();
             if(modellingFilter.AnalyseRemainingRules)
             {
                 ownerReport.ManagementData = result.MgtDataToReport();

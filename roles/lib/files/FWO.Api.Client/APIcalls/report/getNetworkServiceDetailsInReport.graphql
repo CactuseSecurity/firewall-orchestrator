@@ -2,6 +2,9 @@
   $mgmIds: [Int!]
   $importId: bigint
   $ruleIds: _int8
+  $active: Boolean
+  $import_id_start: bigint #todo: might be needed to show correct flats
+  $import_id_end: bigint
   $limit: Int
   $offset: Int
 ) {

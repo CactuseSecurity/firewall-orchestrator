@@ -167,10 +167,22 @@ class FwoApi():
         
         # If there are more than one chunkable variable, the chunk_size has to be adjusted accordingly.
 
-        adjusted_chunk_size = int(api_call_chunk_size / len(lists_in_query_variable.items()))
+        adjusted_chunk_size = self._get_adjusted_chunk_size(lists_in_query_variable)
 
         return True, adjusted_chunk_size, list_elements_length, list(lists_in_query_variable.keys())
         
+
+    def _get_adjusted_chunk_size(self, lists_in_query_variable):
+
+        return int(api_call_chunk_size / 
+                    len(
+                        [
+                        list_object for list_object in lists_in_query_variable.values() 
+                        if len(list_object) > 0
+                ]
+            )
+        )
+
 
     def _call_chunked(self, session, query, query_variables="", debug_level=0):
         """
@@ -195,18 +207,15 @@ class FwoApi():
         while(total_processed_elements < self.query_info["chunking_info"]["total_elements"]):
             
             total_chunk_elements = 0
+            self.query_info["chunking_info"]["adjusted_chunk_size"] = self._get_adjusted_chunk_size(chunkable_variables)
 
-            # Gets current chunks slice borders.
+            # Gets current chunks, sets them as current query variables and remove them from the remaining query variables (chunkable_variables).
 
-            slice_start = (chunk_number -1) * self.query_info["chunking_info"]["adjusted_chunk_size"]
-            slice_end = chunk_number * self.query_info["chunking_info"]["adjusted_chunk_size"]
+            chunks = {}
 
-            # Gets current chunks.
-
-            chunks = {
-                variable: list_object[slice_start:slice_end]
-                for variable, list_object in chunkable_variables.items()
-            }
+            for variable, list_object in chunkable_variables.items():
+                chunks[variable] = list_object[:self.query_info["chunking_info"]["adjusted_chunk_size"]]
+                chunkable_variables[variable] = list_object[self.query_info["chunking_info"]["adjusted_chunk_size"]:]
 
             for variable, chunk in chunks.items():
                 query_variables[variable] = chunk

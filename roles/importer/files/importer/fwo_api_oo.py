@@ -181,7 +181,7 @@ class FwoApi():
                         if len(list_object) > 0
                 ]
             )
-        )
+        ) or 1
 
 
     def _call_chunked(self, session, query, query_variables="", debug_level=0):
@@ -243,7 +243,7 @@ class FwoApi():
             # Log current state of the process and increment variables.
 
             total_processed_elements += total_chunk_elements
-            logger.debug(f"{chunk_number}: {total_processed_elements}/{self.query_info["chunking_info"]["total_elements"]}")
+            logger.debug(f"Chunk {chunk_number}: {total_processed_elements}/{self.query_info["chunking_info"]["total_elements"]} processed elements.")
             chunk_number += 1
 
         return return_object

@@ -1,4 +1,11 @@
-query getModelledRulesByManagementComment ($mgmId: Int!, $relevantImportId: bigint, $marker: String) {
+query getModelledRulesByManagementComment (
+  $mgmId: Int!
+  $relevantImportId: bigint
+  $active: Boolean
+  $import_id_start: bigint # needed for fragments
+  $import_id_end: bigint # todo: should use here instead of relevantImportId? to show correct flats
+  $marker: String
+) {
   rule (
   where: {
     mgm_id: { _eq: $mgmId }

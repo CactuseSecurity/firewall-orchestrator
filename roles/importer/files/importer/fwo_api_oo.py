@@ -114,8 +114,8 @@ class FwoApi():
         
         for query_args_string_split_element in query_args_string_split:
             element_split = query_args_string_split_element.strip().split()
-            arg_name = element_split[0].removeprefix("$").removesuffix(":")
-            arg_type = element_split[1]
+            arg_name = (element_split[0] if len(element_split) > 0 else "").removeprefix("$").removesuffix(":")
+            arg_type = element_split[1] if len(element_split) > 1 else ""
             query_args[arg_name] = arg_type
 
         # Parse chunking info.
@@ -210,7 +210,7 @@ class FwoApi():
 
             for variable, chunk in chunks.items():
                 query_variables[variable] = chunk
-                total_chunk_elements = len(chunk)
+                total_chunk_elements += len(chunk)
 
             # Post query.
 

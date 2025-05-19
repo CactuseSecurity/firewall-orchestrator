@@ -187,8 +187,7 @@ class FwConfigImportObject(FwConfigImportBase):
         newNwSvcIds = []
         removedNwObjIds = []
         removedNwSvcIds = []
-        import_mutation = """
-            mutation updateObjects($mgmId: Int!, $importId: bigint!, $removedNwObjectUids: [String!]!, $removedSvcObjectUids: [String!]!, $newNwObjects: [object_insert_input!]!, $newSvcObjects: [service_insert_input!]!) {
+        import_mutation = """mutation updateObjects($mgmId: Int!, $importId: bigint!, $removedNwObjectUids: [String!]!, $removedSvcObjectUids: [String!]!, $newNwObjects: [object_insert_input!]!, $newSvcObjects: [service_insert_input!]!) {
                 update_removed_obj: update_object(where: {mgm_id: {_eq: $mgmId}, obj_uid: {_in: $removedNwObjectUids}, removed: {_is_null: true}},
                     _set: {
                         removed: $importId,
@@ -239,7 +238,7 @@ class FwConfigImportObject(FwConfigImportBase):
         }
         
         try:
-            import_result = self.ImportDetails.call(import_mutation, queryVariables=queryVariables)
+            import_result = self.ImportDetails.call(import_mutation, queryVariables=queryVariables, debug_level=self.ImportDetails.DebugLevel, analyze_payload=True)
             if 'errors' in import_result:
                 logger.exception(f"fwo_api:importNwObject - error in updateObjectsViaApi: {str(import_result['errors'])}")
                 errors = 1

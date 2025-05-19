@@ -3,7 +3,7 @@
 @using FWO.Report.Data
 @using FWO.Ui.Display
 
-<TreeTable TItem="MyData" Columns="Columns" Nodes="treeData">
+<TreeTable TItem="Rule" Columns="Columns" Nodes="treeData">
     <CellTemplate Context="item">
         @item.Name
     </CellTemplate>
@@ -28,7 +28,7 @@
     List<Rule> Rules;
     List<string> Columns = new List<string>() { "No.", "Name", "Source", "Destination" };
 
-    List<TreeNode<MyData>> treeData;
+    List<TreeNode<Rule>> treeData;
 
     protected override async Task OnInitializedAsync()
     {
@@ -38,90 +38,90 @@
 
         // RuleDisplay = new NatRuleDisplayHtml(userConfig);
 
-        // var management = Managements.Select(mgt => new ManagementReportController(mgt)).First();
-        // var device = management.Devices.Select(dev => DeviceReportController.FromDeviceReport(dev)).First();
+        var management = Managements.Select(mgt => new ManagementReportController(mgt)).First();
+        var device = management.Devices.Select(dev => DeviceReportController.FromDeviceReport(dev)).First();
 
-        // var ungroupedRules = ReportRules.GetAllRulesOfGateway(device, management);
+        var ungroupedRules = ReportRules.GetAllRulesOfGateway(device, management);
 
         // Rules = ungroupedRules.ToList();
 
-        treeData = new List<TreeNode<MyData>>
-        {
-            new TreeNode<MyData> {
-                Item = new MyData { Name = "pre Stealth rule (3-10)", HeaderType = HeaderType.Section },
-                Children = new List<TreeNode<MyData>> {
-                    new TreeNode<MyData> {
-                        Item = new MyData { Name = "4" }                        
-                    }
-                }
-            },
-            new TreeNode<MyData> {
-                Item = new MyData { Name = "test & tmp -rules (12-22)", HeaderType = HeaderType.Section },
-                Children = new List<TreeNode<MyData>>
-                {
-                    new TreeNode<MyData>
-                    {
-                        Item = new MyData { Name = "22", HeaderType = HeaderType.Rulebase },
-                        Children = new List<TreeNode<MyData>>
-                        {
-                            new TreeNode<MyData>
-                            {
-                                Item = new MyData { Name = "DMZ_E (22.3-22.11)", HeaderType = HeaderType.Section },
-                                Children = new List<TreeNode<MyData>>
-                                {
-                                     new TreeNode<MyData>
-                                     {
-                                          Item = new MyData { Name = "22.3", HeaderType = HeaderType.Rulebase },
-                                          Children = new List<TreeNode<MyData>>
-                                          {
-                                              new TreeNode<MyData>{ 
-                                                  Item = new MyData{ Name = "22.3.2" }
-                                              },
-                                              new TreeNode<MyData>
-                                              {
-                                                  Item = new MyData { Name = "22.3.3"}
-                                              },
-                                              new TreeNode<MyData>
-                                              {
-                                                  Item = new MyData { Name = "22.3.4"}
-                                              },
-                                              new TreeNode<MyData>
-                                              {
-                                                  Item = new MyData { Name = "22.3.7"}
-                                              },
-                                              new TreeNode<MyData>
-                                              {
-                                                  Item = new MyData { Name = "22.3.8"}
-                                              },
-                                              new TreeNode<MyData>
-                                              {
-                                                  Item = new MyData { Name = "22.3.9"}
-                                              },
-                                              new TreeNode<MyData>
-                                              {
-                                                  Item = new MyData { Name = "22.3.10"}
-                                              },
-                                              new TreeNode<MyData>
-                                              {
-                                                  Item = new MyData { Name = "22.3.11"}
-                                              }
-                                          }
-                                     },
-                                     new TreeNode<MyData>
-                                     {
-                                          Item = new MyData { Name = "22.4" },
-                                     },
-                                     new TreeNode<MyData>
-                                     {
-                                          Item = new MyData { Name = "22.5" },
-                                     }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        };
+        // treeData = new List<TreeNode<Rule>>
+        // {
+        //     new TreeNode<Rule> {
+        //         Item = new Rule { Name = "pre Stealth rule (3-10)" },
+        //         Children = new List<TreeNode<Rule>> {
+        //             new TreeNode<Rule> {
+        //                 Item = new Rule { Name = "4" }                   
+        //             }
+        //         }
+        //     },
+        //     new TreeNode<Rule> {
+        //         Item = new Rule { Name = "test & tmp -rules (12-22)" },
+        //         Children = new List<TreeNode<Rule>>
+        //         {
+        //             new TreeNode<Rule>
+        //             {
+        //                 Item = new Rule { Name = "22" },
+        //                 Children = new List<TreeNode<Rule>>
+        //                 {
+        //                     new TreeNode<Rule>
+        //                     {
+        //                         Item = new Rule { Name = "DMZ_E (22.3-22.11)" },
+        //                         Children = new List<TreeNode<Rule>>
+        //                         {
+        //                              new TreeNode<Rule>
+        //                              {
+        //                                   Item = new Rule { Name = "22.3" },
+        //                                   Children = new List<TreeNode<Rule>>
+        //                                   {
+        //                                       new TreeNode<Rule>{ 
+        //                                           Item = new Rule{ Name = "22.3.2" }
+        //                                       },
+        //                                       new TreeNode<Rule>
+        //                                       {
+        //                                           Item = new Rule { Name = "22.3.3"}
+        //                                       },
+        //                                       new TreeNode<Rule>
+        //                                       {
+        //                                           Item = new Rule { Name = "22.3.4"}
+        //                                       },
+        //                                       new TreeNode<Rule>
+        //                                       {
+        //                                           Item = new Rule { Name = "22.3.7"}
+        //                                       },
+        //                                       new TreeNode<Rule>
+        //                                       {
+        //                                           Item = new Rule { Name = "22.3.8"}
+        //                                       },
+        //                                       new TreeNode<Rule>
+        //                                       {
+        //                                           Item = new Rule { Name = "22.3.9"}
+        //                                       },
+        //                                       new TreeNode<Rule>
+        //                                       {
+        //                                           Item = new Rule { Name = "22.3.10"}
+        //                                       },
+        //                                       new TreeNode<Rule>
+        //                                       {
+        //                                           Item = new Rule { Name = "22.3.11"}
+        //                                       }
+        //                                   }
+        //                              },
+        //                              new TreeNode<Rule>
+        //                              {
+        //                                   Item = new Rule { Name = "22.4" },
+        //                              },
+        //                              new TreeNode<Rule>
+        //                              {
+        //                                   Item = new Rule { Name = "22.5" },
+        //                              }
+        //                         }
+        //                     }
+        //                 }
+        //             }
+        //         }
+        //     }
+        // };
     }
 
     private async Task ShowLoading()

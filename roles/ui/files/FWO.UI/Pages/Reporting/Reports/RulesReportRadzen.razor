@@ -1,8 +1,9 @@
 ﻿@inject UserConfig userConfig
 @using FWO.Report
+@using FWO.Report.Data
 @using FWO.Ui.Display
 
-<TreeTable TItem="MyData" Headers="Headers" Nodes="treeData">
+<TreeTable TItem="MyData" Columns="Columns" Nodes="treeData">
     <CellTemplate Context="item">
         @item.Name
     </CellTemplate>
@@ -25,34 +26,29 @@
     #endregion
 
     List<Rule> Rules;
-    List<string> Headers = new List<string>() { "No.", "Name", "Source", "Destination" };
+    List<string> Columns = new List<string>() { "No.", "Name", "Source", "Destination" };
 
     List<TreeNode<MyData>> treeData;
-
-    class MyData
-    {
-        public string Name { get; set; } = "";
-    }
 
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
 
-        await ShowLoading();
+        // await ShowLoading();
 
-        RuleDisplay = new NatRuleDisplayHtml(userConfig);
+        // RuleDisplay = new NatRuleDisplayHtml(userConfig);
 
-        var management = Managements.Select(mgt => new ManagementReportController(mgt)).First();
-        var device = management.Devices.Select(dev => DeviceReportController.FromDeviceReport(dev)).First();
+        // var management = Managements.Select(mgt => new ManagementReportController(mgt)).First();
+        // var device = management.Devices.Select(dev => DeviceReportController.FromDeviceReport(dev)).First();
 
-        var ungroupedRules = ReportRules.GetAllRulesOfGateway(device, management);
+        // var ungroupedRules = ReportRules.GetAllRulesOfGateway(device, management);
 
-        Rules = ungroupedRules.ToList();
+        // Rules = ungroupedRules.ToList();
 
         treeData = new List<TreeNode<MyData>>
         {
             new TreeNode<MyData> {
-                Item = new MyData { Name = "pre Stealth rule (3-10)" },
+                Item = new MyData { Name = "pre Stealth rule (3-10)", HeaderType = HeaderType.Section },
                 Children = new List<TreeNode<MyData>> {
                     new TreeNode<MyData> {
                         Item = new MyData { Name = "4" }                        
@@ -60,22 +56,22 @@
                 }
             },
             new TreeNode<MyData> {
-                Item = new MyData { Name = "test & tmp -rules (12-22)" },
+                Item = new MyData { Name = "test & tmp -rules (12-22)", HeaderType = HeaderType.Section },
                 Children = new List<TreeNode<MyData>>
                 {
                     new TreeNode<MyData>
                     {
-                        Item = new MyData { Name = "22" },
+                        Item = new MyData { Name = "22", HeaderType = HeaderType.Rulebase },
                         Children = new List<TreeNode<MyData>>
                         {
                             new TreeNode<MyData>
                             {
-                                Item = new MyData { Name = "DMZ_E (22.3-22.11)"},
+                                Item = new MyData { Name = "DMZ_E (22.3-22.11)", HeaderType = HeaderType.Section },
                                 Children = new List<TreeNode<MyData>>
                                 {
                                      new TreeNode<MyData>
                                      {
-                                          Item = new MyData { Name = "22.3" },
+                                          Item = new MyData { Name = "22.3", HeaderType = HeaderType.Rulebase },
                                           Children = new List<TreeNode<MyData>>
                                           {
                                               new TreeNode<MyData>{ 
@@ -110,6 +106,14 @@
                                                   Item = new MyData { Name = "22.3.11"}
                                               }
                                           }
+                                     },
+                                     new TreeNode<MyData>
+                                     {
+                                          Item = new MyData { Name = "22.4" },
+                                     },
+                                     new TreeNode<MyData>
+                                     {
+                                          Item = new MyData { Name = "22.5" },
                                      }
                                 }
                             }

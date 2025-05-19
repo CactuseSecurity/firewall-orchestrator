@@ -1,8 +1,9 @@
 ﻿@using FWO.Data.Report
+@using FWO.Report.Data
 @typeparam TItem
 
 <tr>
-    <td style="padding-left:@(Level * 1.5)rem">
+    <td style="@GetColumnStyle()" colspan="@GetColumnSpan()">
         @if(Node.Children.Any())
         {
             <button class="btn btn-sm btn-link p-0" @onclick="() => OnToggle(Node)">
@@ -28,11 +29,7 @@
 {
     @foreach(var child in Node.Children)
     {
-        <TreeTableRow TItem="TItem"
-                      Node="child"
-                      Level="Level + 1"
-                      CellTemplate="CellTemplate"
-                      OnToggle="OnToggle" />
+        <TreeTableRow TItem="TItem" Node="child" Level="Level + 1" CellTemplate="CellTemplate" OnToggle="OnToggle" />
     }
 }
 
@@ -48,4 +45,53 @@
 
     [Parameter] 
     public Action<TreeNode<TItem>> OnToggle { get; set; }
+
+    private string GetColumnStyle()
+    {
+        string color = "#ffff";
+        string yellow = "#fbf3b5", gray = "#f0f1f3", lightBlue = "#bbe3fd";
+        int rem = Level * 1;
+
+        if(Node.Item is MyData)
+        {
+            MyData item = (MyData)Convert.ChangeType(Node.Item, typeof(MyData));
+
+            switch (item.HeaderType)
+            {
+                case HeaderType.Section:
+                    color = yellow;
+                    break;
+                case HeaderType.Rulebase:
+                    color = gray;
+                    rem -= 1;
+                    break;
+                default:
+                    color = gray;
+                    rem -= 1;
+                    break;
+            }
+        }
+
+        
+
+        return $"padding-left:{rem}rem; background-color: {color}";
+    }
+
+    private string GetColumnSpan()
+    {
+        if(Node.Item is MyData)
+        {
+            MyData item = (MyData)Convert.ChangeType(Node.Item, typeof(MyData));
+
+            switch(item.HeaderType)
+            {
+                case HeaderType.Section:
+                    return "4";
+                default: 
+                    return "1";
+            }
+        }
+
+        return "1";
+    }
 }

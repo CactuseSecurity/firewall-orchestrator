@@ -4,9 +4,9 @@
 <table class="table">
     <thead>
         <tr>
-            @foreach (var header in Headers)
+            @foreach(var column in Columns)
             {
-                <th>@header</th>
+                <th>@column</th>
             }
         </tr>
     </thead>
@@ -23,7 +23,7 @@
 
 @code {
     [Parameter] 
-    public List<string> Headers { get; set; } = new();
+    public List<string> Columns { get; set; } = new();
 
     [Parameter] 
     public List<TreeNode<TItem>> Nodes { get; set; } = new();

@@ -173,7 +173,10 @@ class FwoApi():
         
 
     def _get_adjusted_chunk_size(self, lists_in_query_variable):
-
+        """
+            Gets an adjusted chunk size.
+        """
+        
         return int(api_call_chunk_size / 
                     len(
                         [
@@ -204,14 +207,34 @@ class FwoApi():
         }
 
         # Loops until all elements of the the query variable have been processed.
+
         while(total_processed_elements < self.query_info["chunking_info"]["total_elements"]):
             
-            total_chunk_elements = 0
+            # Updates query variables to the current chunks data.
+
             self.query_info["chunking_info"]["adjusted_chunk_size"] = self._get_adjusted_chunk_size(chunkable_variables)
+            total_chunk_elements = self._update_query_variables_by_chunk(query_variables, chunkable_variables)
 
-            # Gets current chunks, sets them as current query variables and remove them from the remaining query variables (chunkable_variables).
+            # Post query.
 
+            response = self._post_query(session, {"query": query, "variables": query_variables})
+
+            # Gather and merge returning data.
+
+            return_object = self._handle_chunked_calls_response(return_object, response)
+
+            # Log current state of the process and increment variables.
+
+            total_processed_elements += total_chunk_elements
+            logger.debug(f"Chunk {chunk_number}: {total_processed_elements}/{self.query_info["chunking_info"]["total_elements"]} processed elements.")
+            chunk_number += 1
+
+        return return_object
+
+
+    def _update_query_variables_by_chunk(self, query_variables, chunkable_variables):
             chunks = {}
+            total_chunk_elements = 0
 
             for variable, list_object in chunkable_variables.items():
                 chunks[variable] = list_object[:self.query_info["chunking_info"]["adjusted_chunk_size"]]
@@ -221,30 +244,22 @@ class FwoApi():
                 query_variables[variable] = chunk
                 total_chunk_elements += len(chunk)
 
-            # Post query.
+            return total_chunk_elements
 
-            response = self._post_query(session, {"query": query, "variables": query_variables})
 
-            # Gather and merge returning data.
-
-            if return_object == {}:
-                return_object = response
-            else:
-                new_return = response
-                for new_return_object_type, new_return_object in new_return["data"].items():
-                    if not isinstance(return_object["data"].get(new_return_object_type), dict):
-                        return_object["data"][new_return_object_type] = {}
-                        return_object["data"][new_return_object_type]["affected_rows"] = 0
-                        return_object["data"][new_return_object_type]["returning"] = []
-                    return_object["data"][new_return_object_type]["affected_rows"] += new_return_object["affected_rows"]
-                    if "returning" in return_object["data"][new_return_object_type].keys():
-                        return_object["data"][new_return_object_type]["returning"].extend(new_return_object["returning"])
-
-            # Log current state of the process and increment variables.
-
-            total_processed_elements += total_chunk_elements
-            logger.debug(f"Chunk {chunk_number}: {total_processed_elements}/{self.query_info["chunking_info"]["total_elements"]} processed elements.")
-            chunk_number += 1
+    def _handle_chunked_calls_response(self, return_object, response):
+        if return_object == {}:
+            return_object = response
+        else:
+            new_return = response
+            for new_return_object_type, new_return_object in new_return["data"].items():
+                if not isinstance(return_object["data"].get(new_return_object_type), dict):
+                    return_object["data"][new_return_object_type] = {}
+                    return_object["data"][new_return_object_type]["affected_rows"] = 0
+                    return_object["data"][new_return_object_type]["returning"] = []
+                return_object["data"][new_return_object_type]["affected_rows"] += new_return_object["affected_rows"]
+                if "returning" in return_object["data"][new_return_object_type].keys():
+                    return_object["data"][new_return_object_type]["returning"].extend(new_return_object["returning"])
 
         return return_object
 

@@ -174,7 +174,14 @@ namespace FWO.Report
             if (string.IsNullOrEmpty(htmlExport))
             {
                 HtmlTemplate = HtmlTemplate.Replace("##Title##", title);
-                HtmlTemplate = HtmlTemplate.Replace("##Filter##", userConfig.GetText("filter") + ": " + filter);
+                if(filter != "")
+                {
+                    HtmlTemplate = HtmlTemplate.Replace("##Filter##", userConfig.GetText("filter") + ": " + filter);
+                }
+                else
+                {
+                    HtmlTemplate = HtmlTemplate.Replace("<p>##Filter##</p>", "");
+                }
                 HtmlTemplate = HtmlTemplate.Replace("##GeneratedOn##", userConfig.GetText("generated_on"));
                 HtmlTemplate = HtmlTemplate.Replace("##Date##", date.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssK"));
                 if (ReportType.IsChangeReport())

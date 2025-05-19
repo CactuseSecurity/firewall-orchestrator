@@ -347,7 +347,7 @@ def insert_section_header_rule(rulebase, section_name, layer_name, import_id, ru
     rulebase.append(rule)
     return rule_num + 1
 
-
+# delete_v: kann kommplett weg, sections werden über rulebases gemacht
 def insertSectionHeaderRule(rulebase, section_name, layer_name, import_id, rule_uid, rule_num, section_header_uids, parent_uid):
     section_header_uids.append(sanitize(rule_uid))
     rule = {
@@ -407,12 +407,50 @@ def checkAndAddSectionHeader(src_rulebase, target_rulebase, layer_name, import_i
         parent_uid = src_rulebase['uid']
     return rule_num
 
+def pop_section_rulebase(src_rulebase, target_rulebase, layer_name, import_id, rule_num, section_header_uids, parent_uid, config2import, debug_level=0, recursion_level=1):
+    if 'type' in src_rulebase and src_rulebase['type'] == 'access-section' and 'uid' in src_rulebase:
+        first_section = src_rulebase
+
 
 def parseAccessRulebase(src_rulebase, target_rulebase, layer_name, import_id, section_header_uids, parent_uid, config2import, 
                     rule_num=0, debug_level=0, recursion_level=1, layer_disabled=False):
     logger = getFwoLogger()
     if (recursion_level > fwo_const.max_recursion_level):
         raise ImportRecursionLimitReached("parse_rulebase") from None
+    
+    # this function expects src_rulebase to be a list
+    if not isinstance(src_rulebase, list):
+        logger.error('parseAccessRulebase expects src_rulebase to be a list, instead: ' + str(src_rulebase))
+    for src_rulebase_dict in src_rulebase:
+
+        # parse rule
+        if 'type' in src_rulebase_dict and src_rulebase_dict['type'] == 'access-rule':
+            rule_num = parse_single_rule(src_rulebase_dict, target_rulebase, layer_name, import_id, rule_num, parent_uid, config2import)
+            return rule_num
+        
+        # parse section
+        elif 'type' in src_rulebase_dict and src_rulebase_dict['type'] == 'access-section':
+            if 'rulebase' in src_rulebase_dict:
+
+                # transform target if first block is section
+                if 
+                for section in src_rulebase_dict['rulebase']:
+
+        #rulebaseName = nativeConfig['rulebases'][rb_id]['name']
+        #rulebaseUid = nativeConfig['rulebases'][rb_id]['uid']
+        #accessPolicy = Rulebase(uid=rulebaseUid, name=rulebaseName, mgm_uid=importState.MgmDetails.Uid, Rules=[])
+            # create_new_rulebase_for_section()
+
+        # parse chunk
+        elif 'chunks' in src_rulebase_dict:
+            for chunk in src_rulebase_dict['chunks']:
+
+                # transform target_rulebase if chunk starts with section
+                if chunk['rulebase'][0]['type'] == 'access-section':
+                    transform_first_rulebase_to_section(chunk['rulebase'], target_rulebase, config2import)
+                rule_num = parseAccessRulebase(chunk['rulebase'], target_rulebase, layer_name, import_id,
+                                                section_header_uids, parent_uid, config2import, rule_num, debug_level=debug_level, recursion_level=recursion_level+1)
+            return rule_num
 
     if 'rule-number' in src_rulebase:   # rulebase is just a single rule
         rule_num = parse_single_rule(src_rulebase, target_rulebase, layer_name, import_id, rule_num, parent_uid, config2import)
@@ -426,7 +464,8 @@ def parseAccessRulebase(src_rulebase, target_rulebase, layer_name, import_id, se
                                             section_header_uids, parent_uid, config2import, rule_num, debug_level=debug_level, recursion_level=recursion_level+1)
         return rule_num
       
-    checkAndAddSectionHeader(src_rulebase, target_rulebase, layer_name, import_id, rule_num, section_header_uids, parent_uid, config2import, debug_level=debug_level, recursion_level=recursion_level+1)
+    #checkAndAddSectionHeader(src_rulebase, target_rulebase, layer_name, import_id, rule_num, section_header_uids, parent_uid, config2import, debug_level=debug_level, recursion_level=recursion_level+1)
+    pop_section_rulebase(src_rulebase, target_rulebase, layer_name, import_id, rule_num, section_header_uids, parent_uid, config2import, debug_level=0, recursion_level=1)
 
     # parse layered rulebase
     if 'rulebase' in src_rulebase:

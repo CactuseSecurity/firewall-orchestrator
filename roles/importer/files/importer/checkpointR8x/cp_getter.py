@@ -384,7 +384,8 @@ def get_rulebases_in_chunks(rulebaseUid, show_params_rules, api_v_url, access_ty
 
 
 def get_inline_layers_recursively(current_rulebase, deviceConfig, nativeConfig, api_v_url, sid, show_params_rules, is_global, policy_rulebases_uid_list):
-
+    """Takes current_rulebase, splits sections into sub-rulebases and searches for layerguards to fetch
+    """
     current_rulebase_uid = current_rulebase['uid']
     for rulebase_chunk in current_rulebase['chunks']:
         # search in case of access rulebase only

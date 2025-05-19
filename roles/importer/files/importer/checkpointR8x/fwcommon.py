@@ -297,7 +297,7 @@ def define_global_rulebase_link(deviceConfig, globalOrderedLayerUids, orderedLay
         placeholder_rule_uid = ''
         for rulebase in nativeConfig['rulebases']:
             if rulebase['uid'] == global_rulebase_uid:
-                placeholder_rule_uid, placeholder_rulebase_uid = cp_getter.get_placeholder_in_rulebase(rulebase, 'place-holder')
+                placeholder_rule_uid, placeholder_rulebase_uid = cp_getter.get_placeholder_in_rulebase(rulebase)
                 if placeholder_rule_uid:
                     break
 
@@ -378,16 +378,6 @@ def add_ordered_layers_to_native_config(orderedLayerUids, show_params_rules, cpM
         if fwo_globals.shutdown_requested:
             raise ImportInterruption("Shutdown requested during rulebase retrieval.")
                     
-        # link sections as self-contained rulebases
-        for rulebase in nativeConfig['rulebases']:
-            if rulebase['uid'] == orderedLayerUid:
-                current_rulebase_uid = orderedLayerUid
-                for rulebase_chunk in rulebase['chunks']:
-                    if 'rulebase' in rulebase_chunk:
-                        for section in rulebase_chunk['rulebase']:
-                            section, current_rulebase_uid = cp_getter.section_traversal_and_links(section, current_rulebase_uid, deviceConfig, is_global)
-                break
-        
         # link to next ordered layer
         if orderedLayerIndex < len(orderedLayerUids) - 1:
             deviceConfig['rulebase_links'].append({

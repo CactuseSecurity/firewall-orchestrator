@@ -102,7 +102,7 @@
                             <button type="button" class="btn btn-sm btn-success mb-2" @onclick="appHandler!.AddConnection">
                                 @(appHandler!.DisplayButton("add_connection", Icons.Add))
                             </button>
-                            <ConnectionTable ShowPageSizeInput="true" Connections="@appHandler!.GetRegularConnections()" @bind-AppHandler="appHandler" AppActive="appActive" />
+                            <ConnectionTable ShowPageSizeInput="true" Connections="@appHandler!.GetRegularConnections()" @bind-AppHandler="appHandler" AppActive="appActive" ShowModellingState="true" ShowProductionState="true" />
                         </Tab>
                         <Tab Title="@(userConfig.GetText("provided_interfaces"))" Position=1>
                             <div class="d-flex justify-content-between">
@@ -120,7 +120,7 @@
                                     </Authorized>
                                 </AuthorizeView>
                             </div>
-                            <ConnectionTable ShowPageSizeInput="true" Connections="@appHandler!.GetInterfaces(showRejected)" @bind-AppHandler="appHandler" AppActive="appActive" />
+                            <ConnectionTable ShowPageSizeInput="true" Connections="@appHandler!.GetInterfaces(showRejected)" @bind-AppHandler="appHandler" AppActive="appActive" ShowModellingState="true" />
                         </Tab>
                         @if (selectedApp.CommSvcPossible)
                         {
@@ -128,7 +128,7 @@
                                 <button type="button" class="btn btn-sm btn-success mb-2"
                                     @onclick="appHandler!.AddCommonService">@(appHandler!.DisplayButton("add_common_service", Icons.Add))
                                 </button>
-                                <ConnectionTable Connections="@appHandler!.GetCommonServices()" @bind-AppHandler="appHandler" AppActive="appActive" />
+                                <ConnectionTable Connections="@appHandler!.GetCommonServices()" @bind-AppHandler="appHandler" AppActive="appActive" ShowModellingState="true" ShowProductionState="true" />
                             </Tab>
                         }
                     </TabSet>

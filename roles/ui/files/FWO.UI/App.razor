@@ -1,20 +1,27 @@
 ﻿<CascadingAuthenticationState>
     <Router AppAssembly="@typeof(Program).Assembly">
         <Found Context="routeData">
-            <AuthorizeView>
-                <Authorized>
-                    <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
-                        <NotAuthorized Context="permissionDeniedAuthState">
-                            <div class="row m-4 justify-content-center">
-                                <h2>Sorry @(permissionDeniedAuthState?.User?.Identity?.Name), this page cannot be accessed with your permissions.</h2>
-                            </div>
+            <ErrorBoundary>
+                <ChildContent>
+                    <AuthorizeView>
+                        <Authorized>
+                            <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
+                                <NotAuthorized Context="permissionDeniedAuthState">
+                                    <div class="row m-4 justify-content-center">
+                                        <h2>Sorry @(permissionDeniedAuthState?.User?.Identity?.Name), this page cannot be accessed with your permissions.</h2>
+                                    </div>
+                                </NotAuthorized>
+                            </AuthorizeRouteView>
+                        </Authorized>
+                        <NotAuthorized>
+                            <Login></Login>
                         </NotAuthorized>
-                    </AuthorizeRouteView>
-                </Authorized>
-                <NotAuthorized>
-                    <Login></Login>
-                </NotAuthorized>
-            </AuthorizeView>
+                    </AuthorizeView>
+                </ChildContent>
+                <ErrorContent>
+                    <p>Something went wrong while loading the component.</p>
+                </ErrorContent>
+            </ErrorBoundary>
         </Found>
         <NotFound>
             <div class="row m-4 justify-content-center">

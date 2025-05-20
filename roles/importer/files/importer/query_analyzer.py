@@ -1,6 +1,14 @@
-from graphql import parse, print_ast, visit
-from graphql.language.visitor import Visitor
-from graphql.language.ast import Document, VariableDefinition, OperationDefinition
+try:
+    # GraphQL-core v3+
+    from graphql import parse, print_ast, visit
+    from graphql.language import Visitor
+    from graphql.language.ast import DocumentNode as Document, VariableDefinitionNode as VariableDefinition, OperationDefinitionNode as OperationDefinition
+except ImportError:
+    # GraphQL-core v2
+    from graphql import parse, print_ast, visit
+    from graphql.language.visitor import Visitor
+    from graphql.language.ast import Document, VariableDefinition, OperationDefinition
+
 from typing import Dict, Any, Optional
 
 from fwo_const import api_call_chunk_size

@@ -43,6 +43,26 @@
 
         var ungroupedRules = ReportRules.GetAllRulesOfGateway(device, management);
 
+        treeData = new List<TreeNode<Rule>>();
+
+        foreach (Rule rule in ungroupedRules)
+        {
+            TreeNode<Rule> node;
+
+            int i = treeData.FindIndex(_ => _.Item.RulebaseId == rule.RulebaseId);
+            if(i > 0)
+            {
+                node = treeData[i];
+                node.Children?.Add(new TreeNode<Rule>() { Item = rule });
+            }
+            else
+            {
+                node = new TreeNode<Rule>() { Item = rule };
+            }
+            
+            treeData.Add(node);
+        }
+
         // Rules = ungroupedRules.ToList();
 
         // treeData = new List<TreeNode<Rule>>

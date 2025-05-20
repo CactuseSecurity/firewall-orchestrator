@@ -99,7 +99,6 @@ def call(url, jwt, query, query_variables="", role="reporter", show_progress=Fal
             print(f"Other error occurred: {err}")
 
 
-
 def login(user, password, user_management_api_base_url, method='api/AuthenticationToken/Get'):
     payload = {"Username": user, "Password": password}
 
@@ -651,7 +650,6 @@ def complete_import(importState: "ImportStateController"):
         logger.info(import_result.encode().decode("unicode_escape"))
         importState.Stats.ErrorAlreadyLogged = True
 
-    return
 
 def getLastImportDetails(fwo_api_base_url, jwt, queryVariables, debug_level=0):
     mgm_query = """
@@ -680,6 +678,7 @@ def getLastImportDetails(fwo_api_base_url, jwt, queryVariables, debug_level=0):
         logger.error(f"error while getting past import details for mgm {str(queryVariables)}")
 
     return int(retentionInDays), lastFullImportId, lastFullImportDate
+
 
 def getLastImportDate(fwo_api_base_url, jwt, queryVariables, debug_level=0):
     mgm_query = """

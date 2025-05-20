@@ -2,6 +2,7 @@ query getNetworkObjectDetails(
   $management_id: [Int!]
   $nwObjTyp: [String!]
   $nwObjUid: [String!]
+  $active: Boolean
   $import_id_start: bigint
   $import_id_end: bigint
   $obj_name: [String!]
@@ -17,6 +18,7 @@ query getNetworkObjectDetails(
       offset: $offset
       where: {
         stm_obj_typ: { obj_typ_name: { _in: $nwObjTyp } }
+        active: { _eq: $active }
         _or: [
           { removed: { _is_null: true } }
           { removed: { _gte: $import_id_start } }

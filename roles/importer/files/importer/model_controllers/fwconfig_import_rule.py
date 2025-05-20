@@ -405,7 +405,7 @@ class FwConfigImportRule(FwConfigImportBase):
         # queryVarJson = json.dumps(queryVariables)    # just for debugging purposes, remove in prod
 
         try:
-            import_result = self.ImportDetails.call(addNewRuleMetadataMutation, queryVariables=queryVariables, chunkable_variable="ruleMetadata", query_name="addNewRuleMetadata", return_object_name="insert_rule_metadata", debug_level=self.ImportDetails.DebugLevel)
+            import_result = self.ImportDetails.call(addNewRuleMetadataMutation, queryVariables=queryVariables, debug_level=self.ImportDetails.DebugLevel, analyze_payload=True)
             if 'errors' in import_result:
                 logger.exception(f"fwo_api:importNwObject - error in addNewRuleMetadata: {str(import_result['errors'])}")
                 return 1, 0, newRuleMetaDataIds
@@ -485,7 +485,7 @@ class FwConfigImportRule(FwConfigImportBase):
             if 'rules' in rulebase and 'data' in rulebase['rules'] and len(rulebase['rules']['data'])>0:
                 queryVariables = { 'rules': rulebase['rules']['data'] }
                 try:
-                    import_result = self.ImportDetails.call(upsertRulebaseWithRules, queryVariables=queryVariables, chunkable_variable="rules", query_name="upsertRulebaseWithRules", return_object_name="insert_rule", debug_level=self.ImportDetails.DebugLevel)
+                    import_result = self.ImportDetails.call(upsertRulebaseWithRules, queryVariables=queryVariables, debug_level=self.ImportDetails.DebugLevel, analyze_payload=True)
                     if 'errors' in import_result:
                         logger.exception(f"fwo_api:addRulesWithinRulebases - error in addRulesWithinRulebases: {str(import_result['errors'])}")
                         errors += 1
@@ -800,7 +800,7 @@ class FwConfigImportRule(FwConfigImportBase):
 
         try:
             self.addNewRule2ObjRefs(insert_rules_return)
-            update_moved_rules_refs_result = self.ImportDetails.call(update_moved_rules_refs_mutation, queryVariables=update_moved_rules_refs_variables, chunkable_variable="rule_ids", query_name="UpdateRulesRefsAfterMoves", debug_level=self.ImportDetails.DebugLevel)
+            update_moved_rules_refs_result = self.ImportDetails.call(update_moved_rules_refs_mutation, queryVariables=update_moved_rules_refs_variables, debug_level=self.ImportDetails.DebugLevel, analyze_payload=True)
             
             if 'errors' in update_moved_rules_refs_result:
                 logger.exception(f"fwo_api:moveRules - error while updating moved rules refs: {str(update_moved_rules_refs_result['errors'])}")
@@ -862,7 +862,7 @@ class FwConfigImportRule(FwConfigImportBase):
         }
 
         try:
-            updateRulesbaseLinksAfterMoves_result =  self.ImportDetails.call(updateRulesbaseLinksAfterMoves, updateRulesbaseLinksAfterMoves_variables, "rule_ids", "updateRulesbaseLinksAfterMoves", "update_rulebase_link", self.ImportDetails.DebugLevel)
+            updateRulesbaseLinksAfterMoves_result =  self.ImportDetails.call(updateRulesbaseLinksAfterMoves, updateRulesbaseLinksAfterMoves_variables, self.ImportDetails.DebugLevel)
 
             if 'errors' in updateRulesbaseLinksAfterMoves_result:
                 logger.exception(f"fwo_api:moveRules - error while updating moved rules refs: {str(updateRulesbaseLinksAfterMoves_result['errors'])}")
@@ -955,7 +955,7 @@ class FwConfigImportRule(FwConfigImportBase):
         """
 
         try:
-            set_rule_enforced_on_gateway_entries_removed_result =  self.ImportDetails.call(set_rule_enforced_on_gateway_entries_removed_mutation, set_rule_enforced_on_gateway_entries_removed_variables, "rule_ids", "set_rule_enforced_on_gateway_entries_removed", "update_rule_enforced_on_gateway", self.ImportDetails.DebugLevel)
+            set_rule_enforced_on_gateway_entries_removed_result =  self.ImportDetails.call(set_rule_enforced_on_gateway_entries_removed_mutation, set_rule_enforced_on_gateway_entries_removed_variables, self.ImportDetails.DebugLevel)
 
             if 'errors' in set_rule_enforced_on_gateway_entries_removed_result:
                 logger.exception(f"fwo_api:moveRules - error while updating moved rules refs: {str(set_rule_enforced_on_gateway_entries_removed_result['errors'])}")
@@ -972,7 +972,7 @@ class FwConfigImportRule(FwConfigImportBase):
                 ]
             }
 
-            insert_rule_enforced_on_gateway_entries_result =  self.ImportDetails.call(insert_rule_enforced_on_gateway_entries_mutation, insert_rule_enforced_on_gateway_entries_variables, "new_entries", "insert_rule_enforced_on_gateway_entries", "insert_rule_enforced_on_gateway", self.ImportDetails.DebugLevel)
+            insert_rule_enforced_on_gateway_entries_result =  self.ImportDetails.call(insert_rule_enforced_on_gateway_entries_mutation, insert_rule_enforced_on_gateway_entries_variables, self.ImportDetails.DebugLevel)
 
             if 'errors' in insert_rule_enforced_on_gateway_entries_result:
                 logger.exception(f"fwo_api:moveRules - error while updating moved rules refs: {str(insert_rule_enforced_on_gateway_entries_result['errors'])}")

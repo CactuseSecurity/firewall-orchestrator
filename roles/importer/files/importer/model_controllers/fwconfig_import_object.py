@@ -187,8 +187,7 @@ class FwConfigImportObject(FwConfigImportBase):
         newNwSvcIds = []
         removedNwObjIds = []
         removedNwSvcIds = []
-        import_mutation = """
-            mutation updateObjects($mgmId: Int!, $importId: bigint!, $removedNwObjectUids: [String!]!, $removedSvcObjectUids: [String!]!, $newNwObjects: [object_insert_input!]!, $newSvcObjects: [service_insert_input!]!) {
+        import_mutation = """mutation updateObjects($mgmId: Int!, $importId: bigint!, $removedNwObjectUids: [String!]!, $removedSvcObjectUids: [String!]!, $newNwObjects: [object_insert_input!]!, $newSvcObjects: [service_insert_input!]!) {
                 update_removed_obj: update_object(where: {mgm_id: {_eq: $mgmId}, obj_uid: {_in: $removedNwObjectUids}, removed: {_is_null: true}},
                     _set: {
                         removed: $importId,
@@ -239,7 +238,7 @@ class FwConfigImportObject(FwConfigImportBase):
         }
         
         try:
-            import_result = self.ImportDetails.call(import_mutation, queryVariables=queryVariables)
+            import_result = self.ImportDetails.call(import_mutation, queryVariables=queryVariables, debug_level=self.ImportDetails.DebugLevel, analyze_payload=True)
             if 'errors' in import_result:
                 logger.exception(f"fwo_api:importNwObject - error in updateObjectsViaApi: {str(import_result['errors'])}")
                 errors = 1
@@ -390,7 +389,7 @@ class FwConfigImportObject(FwConfigImportBase):
                 'removedNwObjFlats': removedNwObjFlats
             }
             try:
-                import_result = self.ImportDetails.call(import_mutation, queryVariables=queryVariables)
+                import_result = self.ImportDetails.call(import_mutation, queryVariables=queryVariables, analyze_payload=True)
                 if 'errors' in import_result:
                     logger = getFwoLogger()
                     logger.exception(f"fwo_api:importNwObject - error in removeOutdatedNwObjMemberships: {str(import_result['errors'])}")
@@ -481,7 +480,7 @@ class FwConfigImportObject(FwConfigImportBase):
                 'removedSvcObjFlats': removedSvcObjFlats
             }
             try:
-                import_result = self.ImportDetails.call(import_mutation, queryVariables=queryVariables)
+                import_result = self.ImportDetails.call(import_mutation, queryVariables=queryVariables, analyze_payload=True)
                 if 'errors' in import_result:
                     logger = getFwoLogger()
                     logger.exception(f"fwo_api:importNwObject - error in removeOutdatedSvcObjMemberships: {str(import_result['errors'])}")
@@ -576,7 +575,7 @@ class FwConfigImportObject(FwConfigImportBase):
                 'nwGroupFlats': newGroupMemberFlats
             }
             try:
-                import_result = self.ImportDetails.call(import_mutation, queryVariables=queryVariables)
+                import_result = self.ImportDetails.call(import_mutation, queryVariables=queryVariables, analyze_payload=True)
                 if 'errors' in import_result:
                     logger.exception(f"fwo_api:importNwObject - error in addNwObjGroupMemberships: {str(import_result['errors'])}")
                     errors = 1
@@ -668,7 +667,7 @@ class FwConfigImportObject(FwConfigImportBase):
                 'svcGroupFlats': newGroupMemberFlats
             }
             try:
-                import_result = self.ImportDetails.call(import_mutation, queryVariables=queryVariables)
+                import_result = self.ImportDetails.call(import_mutation, queryVariables=queryVariables, analyze_payload=True)
                 if 'errors' in import_result:
                     logger.exception(f"fwo_api:importNwObject - error in addNwSvcGroupMemberships: {str(import_result['errors'])}")
                     errors = 1
@@ -721,7 +720,7 @@ class FwConfigImportObject(FwConfigImportBase):
         }
         
         try:
-            removeResult = self.ImportDetails.call(removeMutation, queryVariables=queryVariables)
+            removeResult = self.ImportDetails.call(removeMutation, queryVariables=queryVariables, analyze_payload=True)
             if 'errors' in removeResult:
                 logger.exception(f"error while marking objects as removed: {str(removeResult['errors'])}")
                 errors = 1
@@ -816,7 +815,7 @@ class FwConfigImportObject(FwConfigImportBase):
 
         if len(nwObjsChanged) + len(svcObjsChanged)>0:
             try:
-                changelogResult = self.ImportDetails.call(changelogMutation, queryVariables=queryVariables)
+                changelogResult = self.ImportDetails.call(changelogMutation, queryVariables=queryVariables, analyze_payload=True)
                 if 'errors' in changelogResult:
                     logger.exception(f"error while adding changelog entries for objects: {str(changelogResult['errors'])}")
                     errors = 1

@@ -631,9 +631,12 @@ def complete_import(importState: "ImportStateController"):
 
     import_result = "import_management: import no. " + str(importState.ImportId) + \
             " for management " + importState.MgmDetails.Name + ' (id=' + str(importState.MgmDetails.Id) + ")" + \
-            str(" threw errors," if importState.Stats.ErrorCount else " successful,") + \
-            " change_count: " + str(importState.Stats.getTotalChangeNumber()) + \
-            ", duration: " + str(int(time.time()) - importState.StartTime) + "s" 
+            str(" threw errors," if importState.Stats.ErrorCount else " successful,")
+    if importState.DebugLevel>3:
+        import_result += " change_stats: " + str(importState.Stats)
+    else:
+        import_result += " change_count: " + str(importState.Stats.getTotalChangeNumber()) 
+    import_result += ", duration: " + str(int(time.time()) - importState.StartTime) + "s" 
     
     if len(importState.Stats.ErrorDetails) > 0:
         import_result += ", ERRORS: " + str(importState.Stats.ErrorDetails)

@@ -183,7 +183,7 @@
         managementsReportObjects = new();
         foreach (ManagementReport mgt in CurrentReport?.ReportData.ManagementData ?? new List<ManagementReport>())
         {
-            if (mgt.Devices.Where(d => d.Rules != null && d.Rules.Count() > 0).Count() > 0)
+            if (mgt.Devices.Any(d => d.ContainsRules()))
             {
                 managementsReportObjects.Add(new() { Id = mgt.Id, Name = mgt.Name });
             }

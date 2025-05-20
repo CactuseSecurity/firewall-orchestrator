@@ -1,6 +1,6 @@
-from graphql import OperationDefinitionNode, parse, print_ast, visit
+from graphql import parse, print_ast, visit
 from graphql.language.visitor import Visitor
-from graphql.language.ast import DocumentNode, VariableDefinitionNode
+from graphql.language.ast import Document, VariableDefinition, OperationDefinition
 from typing import Dict, Any, Optional
 
 from fwo_const import api_call_chunk_size
@@ -11,7 +11,7 @@ class QueryAnalyzer(Visitor):
         A class for analyzing GraphQL queries.
     """
     
-    _ast: Optional[DocumentNode]
+    _ast: Optional[Document]
     _variable_definitions: Dict[str, Dict[str, Any]]
     _query_string: str
     _query_variables: Dict[str, Any]
@@ -23,7 +23,7 @@ class QueryAnalyzer(Visitor):
         return self._variable_definitions
     
     @property
-    def ast(self) -> Optional[DocumentNode]:
+    def ast(self) -> Optional[Document]:
         """Returns the AST."""
         return self._ast
     
@@ -95,21 +95,21 @@ class QueryAnalyzer(Visitor):
         ) or 1
     
 
-    def enter_operation_definition(self, node: OperationDefinitionNode, *_):
+    def enter_OperationDefinition(self, node: OperationDefinition, *_):
         """
             Called by visit function for each variable definition in the AST.
         """
 
-        self._query_info["query_type"] = node.operation.value
-        self._query_info["query_name"] = node.name.value if node.name else ""
+        self._query_info["query_type"] = node.operation
+        self._query_info["query_name"] = node.name if node.name else ""
 
 
-    def enter_variable_definition(self, node: VariableDefinitionNode, *_):
+    def enter_VariableDefinition(self, node: VariableDefinition, *_):
         """
             Called by visit function for each variable definition in the AST.
         """
 
-        var_name = node.variable.name.value
+        var_name = node.variable.name
         type_str = print_ast(node.type)
         
         # Store information about the variable definitions.

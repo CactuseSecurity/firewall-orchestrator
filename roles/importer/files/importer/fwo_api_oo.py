@@ -9,7 +9,7 @@ import fwo_globals
 from fwo_log import getFwoLogger
 from fwo_const import fwo_api_http_import_timeout
 from fwo_exceptions import FwoApiServiceUnavailable, FwoApiTimeout
-from roles.importer.files.importer.query_analyzer import QueryAnalyzer
+from query_analyzer import QueryAnalyzer
 
 
 # this class is used for making calls to the FWO API (will supersede fwo_api.py)
@@ -59,7 +59,7 @@ class FwoApi():
                     return_object = self._call_chunked(session, query, queryVariables, debug_level)
                     elapsed_time = time.time() - started
                     affected_rows = sum(obj["affected_rows"] for obj in return_object["data"].values())
-                    logger.debug(f"Chunked API call ({self.query_info["query_name"]}) processed in {elapsed_time:.4f} s. Affected rows: {affected_rows}.")
+                    logger.debug(f"Chunked API call ({self.query_info['query_name']}) processed in {elapsed_time:.4f} s. Affected rows: {affected_rows}.")
                     self.query_info = {}
                 else:
                     return_object = self._post_query(session, full_query)
@@ -99,7 +99,7 @@ class FwoApi():
         total_processed_elements = 0
         return_object = {}
         logger = getFwoLogger(debug_level=debug_level)
-        logger.debug(f"Processing chunked API call ({self.query_info["query_name"]})...")
+        logger.debug(f"Processing chunked API call ({self.query_info['query_name']})...")
 
         # Separate chunkable variables.
 
@@ -129,7 +129,7 @@ class FwoApi():
             # Log current state of the process and increment variables.
 
             total_processed_elements += total_chunk_elements
-            logger.debug(f"Chunk {chunk_number}: {total_processed_elements}/{self.query_info["chunking_info"]["total_elements"]} processed elements.")
+            logger.debug(f"Chunk {chunk_number}: {total_processed_elements}/{self.query_info['chunking_info']['total_elements']} processed elements.")
             chunk_number += 1
 
         return return_object

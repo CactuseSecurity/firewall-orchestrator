@@ -1,5 +1,6 @@
 query getUserDetails(
   $management_id: [Int!]
+  $active: Boolean
   $import_id_start: bigint
   $import_id_end: bigint
   $user_name: [String!]
@@ -17,6 +18,7 @@ query getUserDetails(
           { removed: { _is_null: true } }
           { removed: { _gte: $import_id_start } }
         ]
+        active: { _eq: $active }
         user_create: { _lte: $import_id_end }
         user_name: { _in: $user_name }
       }

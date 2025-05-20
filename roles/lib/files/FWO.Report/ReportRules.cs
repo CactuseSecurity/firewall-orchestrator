@@ -1,4 +1,4 @@
-﻿using FWO.Api.Client;
+using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Config.Api;
@@ -120,7 +120,9 @@ namespace FWO.Report
             ManagementReport managementReport = ReportData.ManagementData.FirstOrDefault(m => m.Id == mid) ?? throw new ArgumentException("Given management id does not exist for this report");
 
             objQueryVariables.Add("ruleIds", "{" + string.Join(", ", managementReport.ReportedRuleIds) + "}");
-            objQueryVariables.Add("importId", managementReport.Import.ImportAggregate.ImportAggregateMax.RelevantImportId!);
+            objQueryVariables.Add("importId", managementReport.Import.ImportAggregate.ImportAggregateMax.RelevantImportId!); // TODO: replaced with below - check if not needed anymore and remove
+            objQueryVariables.Add("import_id_start", managementReport.Import.ImportAggregate.ImportAggregateMax.RelevantImportId!);
+            objQueryVariables.Add("import_id_end", managementReport.Import.ImportAggregate.ImportAggregateMax.RelevantImportId!);
 
             string query = GetQuery(objects);
             bool newObjects = true;

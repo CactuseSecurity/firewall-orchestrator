@@ -26,7 +26,10 @@ namespace FWO.Report.Filter
         public List<string> QueryParameters { get; set; } =
         [
             " $limit: Int ",
-            " $offset: Int "
+            " $offset: Int ",
+            " $active: Boolean ",
+            " $import_id_start: bigint ", // TODO: refactor to use instead of import_id
+            " $import_id_end: bigint ",
         ];
 
         public string ReportTimeString { get; set; } = "";

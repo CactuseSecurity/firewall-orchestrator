@@ -108,11 +108,27 @@ class QueryAnalyzer(Visitor):
             Called by visit function for each variable definition in the AST.
         """
 
+        self.enter_operation_definition(node)
+
+
+    def enter_VariableDefinition(self, node: VariableDefinition, *_):
+        """
+            Called by visit function for each variable definition in the AST.
+        """
+
+        self.enter_variable_definition(node)
+
+
+    def enter_operation_definition(self, node: OperationDefinition, *_):
+        """
+            Called by visit function for each variable definition in the AST.
+        """
+
         self._query_info["query_type"] = node.operation
         self._query_info["query_name"] = node.name.value if node.name else ""
 
 
-    def enter_VariableDefinition(self, node: VariableDefinition, *_):
+    def enter_variable_definition(self, node: VariableDefinition, *_):
         """
             Called by visit function for each variable definition in the AST.
         """

@@ -1,5 +1,6 @@
 query getNetworkServiceDetails(
   $management_id: [Int!]
+  $active: Boolean
   $import_id_start: bigint
   $import_id_end: bigint
   $svc_name: [String!]
@@ -18,6 +19,7 @@ query getNetworkServiceDetails(
           { removed: { _is_null: true } }, 
           { removed: { _gte: $import_id_start } }
         ]
+        active: { _eq: $active }
         svc_create: { _lte: $import_id_end }
         svc_name: { _in: $svc_name }
         svc_port: { _in: $svc_port }

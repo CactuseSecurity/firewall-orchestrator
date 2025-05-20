@@ -4,8 +4,11 @@ name: Build
 on:
 
   push:
-    branches-ignore:
-    - importer-rework
+    # branches-ignore:
+    # - importer-rework
+    branches:
+    - main
+    - develop
     paths-ignore:
     - 'documentation/**'
     - 'design/**'

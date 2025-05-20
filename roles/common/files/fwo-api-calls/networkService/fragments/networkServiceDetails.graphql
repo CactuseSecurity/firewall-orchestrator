@@ -27,7 +27,10 @@ fragment networkServiceDetails on service {
   }
   svc_member_names
   svc_member_refs
-  svcgrps(order_by: { svcgrp_member_id: asc }) {
+  svcgrps(where: {
+    import_last_seen: { _gte: $import_id_start }
+    import_created: { _lte: $import_id_end }
+  } order_by: { svcgrp_member_id: asc }) {
     id: svcgrp_member_id
     byId: serviceBySvcgrpMemberId {
       svc_id
@@ -37,7 +40,9 @@ fragment networkServiceDetails on service {
       }
     }
   }
-  svcgrp_flats(order_by: { svcgrp_flat_member_id: asc }) {
+  svcgrp_flats(where: {
+    active: { _eq: $active }
+  } order_by: { svcgrp_flat_member_id: asc }) {
     flat_id: svcgrp_flat_id
     byFlatId: serviceBySvcgrpFlatMemberId {
       svc_id

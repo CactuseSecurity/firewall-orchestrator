@@ -101,7 +101,7 @@ class QueryAnalyzer(Visitor):
         """
 
         self._query_info["query_type"] = node.operation
-        self._query_info["query_name"] = node.name if node.name else ""
+        self._query_info["query_name"] = node.name.value if node.name else ""
 
 
     def enter_VariableDefinition(self, node: VariableDefinition, *_):
@@ -109,7 +109,7 @@ class QueryAnalyzer(Visitor):
             Called by visit function for each variable definition in the AST.
         """
 
-        var_name = node.variable.name
+        var_name = node.variable.name.value
         type_str = print_ast(node.type)
         
         # Store information about the variable definitions.

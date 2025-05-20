@@ -2,15 +2,14 @@ import requests.packages
 import requests
 import json
 import traceback
-import copy
 import time
-import re
 
 import fwo_globals
 
 from fwo_log import getFwoLogger
-from fwo_const import fwo_api_http_import_timeout, api_call_chunk_size
+from fwo_const import fwo_api_http_import_timeout
 from fwo_exceptions import FwoApiServiceUnavailable, FwoApiTimeout
+from roles.importer.files.importer.query_analyzer import QueryAnalyzer
 
 
 # this class is used for making calls to the FWO API (will supersede fwo_api.py)
@@ -19,12 +18,14 @@ class FwoApi():
     FwoApiUrl: str
     FwoJwt: str
     query_info: dict
+    query_analyzer: QueryAnalyzer
 
 
     def __init__(self, ApiUri, Jwt):
         self.FwoApiUrl = ApiUri
         self.FwoJwt = Jwt
         self.query_info = {}
+        self.query_analyzer = QueryAnalyzer()
 
 
     def call(self, query, queryVariables="", debug_level=0, analyze_payload=False):
@@ -42,7 +43,8 @@ class FwoApi():
         logger = getFwoLogger(debug_level=debug_level)
 
         if analyze_payload:
-            self._analyze_payload(query, queryVariables)
+            # self._analyze_payload(query, queryVariables)
+            self.query_info = self.query_analyzer.analyze_payload(query, queryVariables)
 
         with requests.Session() as session:
             if fwo_globals.verify_certs is None:    # only for first FWO API call (getting info on cert verification)
@@ -70,8 +72,6 @@ class FwoApi():
             except requests.exceptions.RequestException as e: 
                 self._handle_request_exception(e, full_query, request_headers)
 
-
-
     
     def _handle_request_exception(self, exception, query_payload, headers):
         """
@@ -88,103 +88,6 @@ class FwoApi():
             elif exception.response.status_code == 502:
                 raise FwoApiTimeout(f"FWO API HTTP error 502 (might have reached timeout of {int(fwo_api_http_import_timeout)/60} minutes)")
         raise exception
-
-    def _analyze_payload(self, query, query_variables):
-        """
-            Analyzes the query and the query_variables and writes the findings to 'self.query_info'.
-        """
-
-        query_string = query
-        query_length = len(query_string)
-
-        # Parse query type and name from query string.
-
-        query_string_split = query_string.strip().split()
-        query_type = query_string_split[0] if query_string_split[0] in ("query", "mutation", "subscription") else "unknown"
-        query_name_regex_result = re.match(r"[A-Za-z]+", query_string_split[1])
-        query_name = query_name_regex_result.group(0) if query_name_regex_result else ""
-
-        # Parse args from query string.       
-        
-        query_args = {}
-        query_string_substring = query_string.removeprefix(f"{query_type} {query_name}")
-        query_args_regex_result = re.match(r"\(([^)]*)\)", query_string_substring)
-        query_args_string = query_args_regex_result.group(1) if query_args_regex_result else ""
-        query_args_string_split = re.split(r'[,\n]', query_args_string)
-        
-        for query_args_string_split_element in query_args_string_split:
-            element_split = query_args_string_split_element.strip().split()
-            arg_name = (element_split[0] if len(element_split) > 0 else "").removeprefix("$").removesuffix(":")
-            arg_type = element_split[1] if len(element_split) > 1 else ""
-            query_args[arg_name] = arg_type
-
-        # Parse chunking info.
-
-        needs_chunking, adjusted_chunk_size, list_elements_length, chunkable_variables = self._get_chunking_info(query_variables)
-        chunking_info = {
-            "needs_chunking": needs_chunking,
-            "adjusted_chunk_size": adjusted_chunk_size,
-            "chunkable_variables": chunkable_variables,
-            "total_elements": list_elements_length
-        }
-        
-        # Save information in field query_info.
-
-        self.query_info = {
-            "query_string": query_string,
-            "query_length": query_length,
-            "query_type": query_type,
-            "query_name": query_name,
-            "query_args": query_args,
-            "chunking_info": chunking_info
-        }
-        
-
-    def _get_chunking_info(self, query_variables: dict):
-
-        # Get all query variables of type list.
-
-        lists_in_query_variable = {
-            chunkable_variable_name: list_object 
-            for chunkable_variable_name, list_object in query_variables.items() 
-            if isinstance(list_object, list)
-        }
-
-        # If there is no list typed query variable there is nothing chunkable.
-
-        if not lists_in_query_variable or len(lists_in_query_variable.items()) == 0:
-            return False, 0, []
-        
-        list_elements_length = sum(
-            len(list_object) 
-            for list_object in lists_in_query_variable.values() 
-        )
-
-        # If the number of all elements is lower than the configured threshold, there is no need for chunking.
-
-        if list_elements_length < api_call_chunk_size:
-            return False, 0, 0, []
-        
-        # If there are more than one chunkable variable, the chunk_size has to be adjusted accordingly.
-
-        adjusted_chunk_size = self._get_adjusted_chunk_size(lists_in_query_variable)
-
-        return True, adjusted_chunk_size, list_elements_length, list(lists_in_query_variable.keys())
-        
-
-    def _get_adjusted_chunk_size(self, lists_in_query_variable):
-        """
-            Gets an adjusted chunk size.
-        """
-        
-        return int(api_call_chunk_size / 
-                    len(
-                        [
-                        list_object for list_object in lists_in_query_variable.values() 
-                        if len(list_object) > 0
-                ]
-            )
-        ) or 1
 
 
     def _call_chunked(self, session, query, query_variables="", debug_level=0):
@@ -212,7 +115,7 @@ class FwoApi():
             
             # Updates query variables to the current chunks data.
 
-            self.query_info["chunking_info"]["adjusted_chunk_size"] = self._get_adjusted_chunk_size(chunkable_variables)
+            self.query_info["chunking_info"]["adjusted_chunk_size"] = self.query_analyzer.get_adjusted_chunk_size(chunkable_variables)
             total_chunk_elements = self._update_query_variables_by_chunk(query_variables, chunkable_variables)
 
             # Post query.
@@ -294,4 +197,4 @@ class FwoApi():
                 query_string[query_size-round(max_query_size_to_display/2):] + " (total query size=" + str(query_size) + " bytes)"
         result += "\n and  headers: \n" + header_string + ", api_url: " + api_url
         return result
-    
+

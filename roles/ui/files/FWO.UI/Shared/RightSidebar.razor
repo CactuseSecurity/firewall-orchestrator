@@ -51,7 +51,8 @@
                                 <div class="btn btn-secondary btn-sm w-50" @onclick="@(() => collapseInRSB.Collapse("rule"))">@(userConfig.GetText("collapse_all"))</div>
                             </div>
                             <div class="mt-2">
-                                <ObjectGroupCollection PageSize="PageSize" FetchObjects="FetchContent" Recert="Recert" Tab="RsbTab.rule" StartContentDetailed="true" StartCollapsed="false" InputDataType="Rule" Data="SelectedRules"
+                                <ObjectGroupCollection PageSize="PageSize" FetchObjects="FetchContent" Recert="Recert" Tab="RsbTab.rule" StartContentDetailed="true" StartCollapsed="false" InputDataType="Rule"
+                                Data="selectedRulesDetailed.Where(r => SelectedRules.Any(sr => sr.Id == r.Id)).ToList()"
                                 NameExtractor=@(rule => $"{rule.DeviceName} - Rule {rule.Id} {rule.Name}")
                                 NetworkObjectExtractor="rule => rule.Froms.Select(nl => nl.Object)
                                                                         .Union(rule.Tos.Select(nl => nl.Object))
@@ -124,11 +125,26 @@
     private FWO.Ui.Shared.TabSet tabset = new();
     private FWO.Ui.Shared.AnchorNavToRSB anchorNavToRSB = new();
     private CollapseState collapseInRSB = new();
+
+    /// <summary>
+    /// List of all managements. Will include detailed objects fetched on demand.
+    /// </summary>
     private List<ManagementReport> managementsAllObjects = new();
+    /// <summary>
+    /// List of managements copied from current report. Will include detailed objects fetched on demand.
+    /// </summary>
+    private List<ManagementReport> managementsReportObjects = new();
+    /// <summary>
+    /// List of detailed rules copied from selected rules. Keeps deselected rules cached for the current report.
+    /// </summary>
+    private List<Rule> selectedRulesDetailed = new();
 
     private string rsbTimeShortcut = "";
     private string rsbTimeStart = "";
     private string rsbTimeEnd = "";
+    private Dictionary<int, long> import_id_start = new(); // import id matching rsbTimeStart for each management
+    private Dictionary<int, long> import_id_end = new(); // import id matching rsbTimeEnd for each management
+    private ReportBase? previousReport = null;
 
     private int intWidth { get { return Width; } set { Width = value; WidthChanged.InvokeAsync(Width); } }
 
@@ -145,24 +161,50 @@
 
     protected override async Task OnParametersSetAsync()
     {
-        if (AllTabVisible && setRSBTime())
+        bool timeChanged = setRSBTime();
+        if (AllTabVisible && timeChanged)
             await ResetAllTabMgts();
+        if (CurrentReport != previousReport)
+        {
+            previousReport = CurrentReport;
+            ResetReportState();
+        }
+        foreach (Rule rule in SelectedRules)
+        {
+            if (!selectedRulesDetailed.Any(r => r.Id == rule.Id))
+            {
+                selectedRulesDetailed.Add(new () { Id = rule.Id, Name = rule.Name, MgmtId = rule.MgmtId });
+            }
+        }
+    }
+
+    public void ResetReportState()
+    {
+        managementsReportObjects = new();
+        foreach (ManagementReport mgt in CurrentReport?.ReportData.ManagementData ?? new List<ManagementReport>())
+        {
+            if (mgt.Devices.Any(d => d.ContainsRules()))
+            {
+                managementsReportObjects.Add(new() { Id = mgt.Id, Name = mgt.Name });
+            }
+        }
     }
 
     private async Task ResetAllTabMgts()
     {
         try
         {
-            long import_id_start = await GetImportId(rsbTimeStart);
-            long import_id_end = await GetImportId(rsbTimeEnd);
+            import_id_start = await GetImportIds(rsbTimeStart);
+            import_id_end = await GetImportIds(rsbTimeEnd);
             Dictionary<string, object> queryVars = new()
             {
-                ["limit"] = 0,
+                ["limit"] = 1,
                 ["offset"] = 0,
-                ["import_id_start"] = import_id_start,
-                ["import_id_end"] = import_id_end
+                ["import_id_start"] = import_id_start.Values.Any(v => v > 0) ? import_id_start.Values.Where(v => v > 0).Min() : 0,
+                ["import_id_end"] = import_id_end.Values.Max(),
             };
-            managementsAllObjects = await apiConnection.SendQueryAsync<List<ManagementReport>>(ObjectQueries.getAllObjectDetails, queryVars);
+            var mgmResult = await apiConnection.SendQueryAsync<List<ManagementReport>>(ObjectQueries.getAllObjectDetails, queryVars);
+            managementsAllObjects = mgmResult.Where(m => m.Objects.Count() > 0 || m.Services.Count() > 0 || m.Users.Count() > 0).ToList();
             collapseInRSB.Collapse("all");
             await InvokeAsync(StateHasChanged);
         }
@@ -196,19 +238,13 @@
         }
         else if (SelectedReportType.IsChangeReport())
         {
-            if (!LSBTime.IsShortcut || LSBTime.TimeRangeShortcut != rsbTimeShortcut)
-                (rsbTimeStart, rsbTimeEnd) = DynGraphqlQuery.ResolveTimeRange(LSBTime);
-
-            if (LSBTime.IsShortcut)
-                rsbTimeShortcut = LSBTime.TimeRangeShortcut;
-            else
-                rsbTimeShortcut = "";
+            (rsbTimeStart, rsbTimeEnd) = DynGraphqlQuery.ResolveTimeRange(LSBTime);
         }
 
         return prevStart != rsbTimeStart || prevEnd != rsbTimeEnd;
     }
 
-    private async Task<long> GetImportId(string time, int? mgmId = null)
+    private async Task<Dictionary<int, long>> GetImportIds(string time, int? mgmId = null)
     {
         Dictionary<string, object> queryVars = new()
         {
@@ -217,7 +253,12 @@
         if (mgmId != null)
             queryVars.Add("mgmIds", mgmId);
         List<ManagementReport> result = await apiConnection.SendQueryAsync<List<ManagementReport>>(ReportQueries.getRelevantImportIdsAtTime, queryVars);
-        return result.First().Import.ImportAggregate.ImportAggregateMax.RelevantImportId ?? 0;
+        Dictionary<int, long> importIds = new();
+        foreach (ManagementReport mgm in result)
+        {
+            importIds[mgm.Id] = mgm.Import.ImportAggregate.ImportAggregateMax.RelevantImportId ?? 0;
+        }
+        return importIds;
     }
 
     public async Task FetchContent(RsbTab rsbTab, ObjCategory objType, Func<Task> hasChangedCallback, long id = 0, bool nat = false)
@@ -246,8 +287,8 @@
                         mgt.Detailed[(int)objType - 1] = true;
 
                     queryVars.Add("management_id", (int)id);
-                    queryVars.Add("import_id_start", await GetImportId(rsbTimeStart, (int)id));
-                    queryVars.Add("import_id_end", await GetImportId(rsbTimeEnd, (int)id));
+                    queryVars.Add("import_id_start", import_id_start.GetValueOrDefault((int)id, 0));
+                    queryVars.Add("import_id_end", import_id_end.GetValueOrDefault((int)id, 0));
 
                     switch (objType)
                     {
@@ -329,11 +370,13 @@
                     }
                     break;
                 case RsbTab.rule:
-                    Rule? rule = SelectedRules.FirstOrDefault(r => r.Id == id);
+                    Rule? rule = selectedRulesDetailed.FirstOrDefault(r => r.Id == id);
                     if (rule == null) break;
 
                     rule.Detailed = true;
 
+                    queryVars.Add("import_id_start", import_id_start.GetValueOrDefault((int)rule.MgmtId, 0));
+                    queryVars.Add("import_id_end", import_id_end.GetValueOrDefault((int)rule.MgmtId, 0));
                     queryVars.Add("rule_id", id);
                     query = nat ? RuleQueries.getNatRuleDetails : RuleQueries.getRuleDetails;
 

@@ -1,5 +1,11 @@
 
-query getObjectsNotInReport($mgmIds: [Int!], $ruleIds: [bigint!]!) {
+query getObjectsNotInReport(
+  $mgmIds: [Int!]
+  $ruleIds: [bigint!]!
+  $active: Boolean
+  $import_id_start: bigint # needed for fragments
+  $import_id_end: bigint # todo: should use here? to show correct flats
+) {
   management(where: {mgm_id: {_in: $mgmIds}}) {
     name: mgm_name
     id: mgm_id

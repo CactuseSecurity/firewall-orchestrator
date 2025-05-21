@@ -72,17 +72,9 @@ class FwConfigImportRule(FwConfigImportBase):
             currentRulebase = self.NormalizedConfig.getRulebase(rulebaseId) # [pol for pol in self.NormalizedConfig.rulebases if pol.Uid == rulebaseId]
             previousRulebase = prevConfig.getRulebase(rulebaseId)
             for ruleUid in ruleUidsInBoth[rulebaseId]:
-
-                if currentRulebase.Rules[ruleUid].rule_num_numeric == 0:
-                    currentRulebase.Rules[ruleUid].rule_num_numeric = previousRulebase.Rules[ruleUid].rule_num_numeric 
-
-                if currentRulebase.Rules[ruleUid] != previousRulebase.Rules[ruleUid]:
-                    changedRuleUids[rulebaseId].append(ruleUid)
-
-                if self.last_hit_changed(currentRulebase.Rules[ruleUid], previousRulebase.Rules[ruleUid]):
-                    self.append_rule_metadata_last_hit(new_hit_information, currentRulebase.Rules[ruleUid], self.ImportDetails.MgmDetails.Id)
-
-
+                self.preserve_rule_num_numeric(currentRulebase, previousRulebase, ruleUid)
+                self.collect_changed_rules(ruleUid, currentRulebase, previousRulebase, rulebaseId, changedRuleUids)
+                self.collect_last_hit_changes(ruleUid, currentRulebase, previousRulebase, new_hit_information)
 
         # add full rule details first
         newRulebases = self.getRules(newRuleUids)
@@ -119,6 +111,23 @@ class FwConfigImportRule(FwConfigImportBase):
 
         # TODO: rule_nwobj_resolved fuellen (recert?)
         return newRuleIds
+
+
+    def collect_last_hit_changes(self, ruleUid, currentRulebase, previousRulebase, new_hit_information):
+        if self.last_hit_changed(currentRulebase.Rules[ruleUid], previousRulebase.Rules[ruleUid]):
+            self.append_rule_metadata_last_hit(new_hit_information, currentRulebase.Rules[ruleUid], self.ImportDetails.MgmDetails.Id)
+
+
+    @staticmethod
+    def collect_changed_rules(ruleUid, currentRulebase, previousRulebase, rulebaseId, changedRuleUids):
+        if currentRulebase.Rules[ruleUid] != previousRulebase.Rules[ruleUid]:
+            changedRuleUids[rulebaseId].append(ruleUid)
+
+
+    @staticmethod
+    def preserve_rule_num_numeric(currentRulebase, previousRulebase, ruleUid):
+        if currentRulebase.Rules[ruleUid].rule_num_numeric == 0:
+            currentRulebase.Rules[ruleUid].rule_num_numeric = previousRulebase.Rules[ruleUid].rule_num_numeric 
 
 
     @staticmethod

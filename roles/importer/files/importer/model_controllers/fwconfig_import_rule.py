@@ -64,7 +64,7 @@ class FwConfigImportRule(FwConfigImportBase):
                 ruleUidsInBoth.update({ rulebaseId: list(currentRulebase.Rules.keys() & previousRulebase.Rules.keys()) })
             else:
                 logger.info(f"previous rulebase has been deleted: {rulebaseId}")
-                # TODO: also dispaly rulebase name
+                # TODO: also display rulebase name
 
         # find changed rules
         for rulebaseId in ruleUidsInBoth:
@@ -81,7 +81,7 @@ class FwConfigImportRule(FwConfigImportBase):
 
         # update rule_metadata before adding rules
         errorCountAdd, numberOfAddedMetaRules, newRuleMetadataIds = self.addNewRuleMetadata(newRulebases)
-        error_count_change, _ = self.update_rule_metadata_last_hit(new_hit_information)
+        _, _ = self.update_rule_metadata_last_hit(new_hit_information)
 
         # # now update the database with all rule diffs
         errorCountAdd, numberOfAddedRules, newRuleIds = self.addNewRules(newRulebases)
@@ -113,32 +113,26 @@ class FwConfigImportRule(FwConfigImportBase):
         return newRuleIds
 
 
-    def collect_last_hit_changes(self, ruleUid, currentRulebase, previousRulebase, new_hit_information):
-        if self.last_hit_changed(currentRulebase.Rules[ruleUid], previousRulebase.Rules[ruleUid]):
-            self.append_rule_metadata_last_hit(new_hit_information, currentRulebase.Rules[ruleUid], self.ImportDetails.MgmDetails.Id)
+    def collect_last_hit_changes(self, rule_uid, current_rulebase, previous_rulebase, new_hit_information):
+        if self.last_hit_changed(current_rulebase.Rules[rule_uid], previous_rulebase.Rules[rule_uid]):
+            self.append_rule_metadata_last_hit(new_hit_information, current_rulebase.Rules[rule_uid], self.ImportDetails.MgmDetails.Id)
 
 
     @staticmethod
-    def collect_changed_rules(ruleUid, currentRulebase, previousRulebase, rulebaseId, changedRuleUids):
-        if currentRulebase.Rules[ruleUid] != previousRulebase.Rules[ruleUid]:
-            changedRuleUids[rulebaseId].append(ruleUid)
+    def collect_changed_rules(rule_uid, current_rulebase, previous_rulebase, rulebase_id, changed_rule_uids):
+        if current_rulebase.Rules[rule_uid] != previous_rulebase.Rules[rule_uid]:
+            changed_rule_uids[rulebase_id].append(rule_uid)
 
 
     @staticmethod
-    def preserve_rule_num_numeric(currentRulebase, previousRulebase, ruleUid):
-        if currentRulebase.Rules[ruleUid].rule_num_numeric == 0:
-            currentRulebase.Rules[ruleUid].rule_num_numeric = previousRulebase.Rules[ruleUid].rule_num_numeric 
+    def preserve_rule_num_numeric(current_rulebase, previous_rulebase, rule_uid):
+        if current_rulebase.Rules[rule_uid].rule_num_numeric == 0:
+            current_rulebase.Rules[rule_uid].rule_num_numeric = previous_rulebase.Rules[rule_uid].rule_num_numeric 
 
 
     @staticmethod
     def last_hit_changed(current_rule, previous_rule):
         return current_rule.last_hit != previous_rule.last_hit
-
-
-    @staticmethod
-    def update_last_hit_in_metadata(current_rule):
-        # TODO: implement the logic to update the last hit in metadata
-        pass
 
 
     def addNewRule2ObjRefs(self, newRules):

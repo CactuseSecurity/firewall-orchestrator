@@ -81,7 +81,24 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+
+-- 8.7.2
+ALTER TABLE ext_request ADD COLUMN IF NOT EXISTS attempts int DEFAULT 0;
+insert into config (config_key, config_value, config_user) VALUES ('modModelledMarker', 'FWOC', 0) ON CONFLICT DO NOTHING;
+insert into config (config_key, config_value, config_user) VALUES ('modModelledMarkerLocation', 'rulename', 0) ON CONFLICT DO NOTHING;
+insert into config (config_key, config_value, config_user) VALUES ('ruleRecognitionOption', '{"nwRegardIp":true,"nwRegardName":false,"nwRegardGroupName":false,"nwResolveGroup":false,"svcRegardPortAndProt":true,"svcRegardName":false,"svcRegardGroupName":false,"svcResolveGroup":true}', 0) ON CONFLICT DO NOTHING;
+insert into config (config_key, config_value, config_user) VALUES ('availableReportTypes', '[1,2,3,4,5,6,7,8,9,10,21,22]', 0) ON CONFLICT DO NOTHING;
+
+-- 8.8.2
+insert into config (config_key, config_value, config_user) VALUES ('varianceAnalysisSleepTime', '0', 0) ON CONFLICT DO NOTHING;
+insert into config (config_key, config_value, config_user) VALUES ('varianceAnalysisStartAt', '00:00:00', 0) ON CONFLICT DO NOTHING;
+insert into config (config_key, config_value, config_user) VALUES ('varianceAnalysisSync', 'false', 0) ON CONFLICT DO NOTHING;
+insert into config (config_key, config_value, config_user) VALUES ('varianceAnalysisRefresh', 'false', 0) ON CONFLICT DO NOTHING;
+insert into config (config_key, config_value, config_user) VALUES ('resolveNetworkAreas', 'false', 0) ON CONFLICT DO NOTHING;
+
 --- pre 9.0 changes (old import)
+
+DELETE FROM stm_dev_typ WHERE dev_typ_id IN (2,4,5,6,7);
 
 DROP TRIGGER IF EXISTS gw_route_add ON gw_route CASCADE;
 CREATE TRIGGER gw_route_add BEFORE INSERT ON gw_route FOR EACH ROW EXECUTE PROCEDURE gw_route_add();
@@ -306,14 +323,13 @@ ALTER TABLE "rule" ADD CONSTRAINT fk_rule_rulebase_id FOREIGN KEY ("rulebase_id"
 
 Alter table "rule" drop constraint IF EXISTS "rule_metadata_dev_id_rule_uid_f_key";
 Alter Table "rule_metadata" drop Constraint IF EXISTS "rule_metadata_alt_key";
-/*
-    TODO: fix this:
-        ALTER TABLE rule_metadata DROP Constraint IF EXISTS "rule_metadata_rule_uid_unique";
-        ALTER TABLE rule_metadata ADD Constraint "rule_metadata_rule_uid_unique" unique ("rule_uid");
-    causes error:
-        None: FEHLER:  kann Constraint rule_metadata_rule_uid_unique für Tabelle rule_metadata nicht löschen, weil andere Objekte davon abhängen\nDETAIL:  
-        Constraint rule_metadata_rule_uid_f_key für Tabelle rule hängt von Index rule_metadata_rule_uid_unique ab\nHINT:  Verwenden Sie DROP ... CASCADE, um die abhängigen Objekte ebenfalls zu löschen.\n"}
-*/
+
+    -- TODO: fix this:
+    --     ALTER TABLE rule_metadata DROP Constraint IF EXISTS "rule_metadata_rule_uid_unique";
+    --     ALTER TABLE rule_metadata ADD Constraint "rule_metadata_rule_uid_unique" unique ("rule_uid");
+    -- causes error:
+    --     None: FEHLER:  kann Constraint rule_metadata_rule_uid_unique für Tabelle rule_metadata nicht löschen, weil andere Objekte davon abhängen\nDETAIL:  
+    --     Constraint rule_metadata_rule_uid_f_key für Tabelle rule hängt von Index rule_metadata_rule_uid_unique ab\nHINT:  Verwenden Sie DROP ... CASCADE, um die abhängigen Objekte ebenfalls zu löschen.\n"}
 
 ALTER TABLE rule_metadata DROP Constraint IF EXISTS "rule_metadata_rule_uid_unique" CASCADE;
 ALTER TABLE rule_metadata ADD Constraint "rule_metadata_rule_uid_unique" unique ("rule_uid");
@@ -453,6 +469,7 @@ Alter table "rulebase_link" drop constraint IF EXISTS "fk_rulebase_link_link_typ
 Alter table "rulebase_link" add constraint "fk_rulebase_link_link_type" foreign key ("link_type") references "stm_link_type" ("id") on update restrict on delete cascade;
 Alter table "rulebase_link" drop constraint IF EXISTS "fk_rulebase_link_gw_id";
 Alter table "rulebase_link" add constraint "fk_rulebase_link_gw_id" foreign key ("gw_id") references "device" ("dev_id") on update restrict on delete cascade;
+Alter table "rulebase_link" drop constraint IF EXISTS "unique_rulebase_link";
 Alter table "rulebase_link" add CONSTRAINT unique_rulebase_link
 	UNIQUE (
 	"gw_id",
@@ -471,25 +488,18 @@ ALTER TABLE "rulebase_link"
 Alter table "rulebase_link" add CONSTRAINT fk_rulebase_link_removed_import_control_control_id 
 	foreign key ("removed") references "import_control" ("control_id") on update restrict on delete cascade;
 
-insert into stm_link_type (id, name) VALUES (1, 'section') ON CONFLICT DO NOTHING;
 insert into stm_link_type (id, name) VALUES (2, 'ordered') ON CONFLICT DO NOTHING;
 insert into stm_link_type (id, name) VALUES (3, 'inline') ON CONFLICT DO NOTHING;
-delete from stm_link_type where name in ('initial','global','local'); -- initial and global/local are additional flags now
+delete from stm_link_type where name in ('initial','global','local','section'); -- initial and global/local are additional flags now
 
 -- TODO delete all rule.parent_rule_id and rule.parent_rule_type, always = None so far
-
------------------------------------------------
-
-/*
-    migration plan:
-    1) create rulebases without rules (derive from device table)
-    2) set rule.rulebase_id to reference the correct rulebase
-    3) set not null constratint for rule.rulebase_id
-    4) do we really dare to delete duplicate rules here? yes, we should.
-    5) after upgrade start import
-
+    -- migration plan:
+    -- 1) create rulebases without rules (derive from device table)
+    -- 2) set rule.rulebase_id to reference the correct rulebase
+    -- 3) set not null constratint for rule.rulebase_id
+    -- 4) do we really dare to delete duplicate rules here? yes, we should.
+    -- 5) after upgrade start import
     -- TODO: deal with global policies --> move them to the global mgm_id
-*/
 
 CREATE OR REPLACE FUNCTION deleteDuplicateRulebases() RETURNS VOID
     LANGUAGE plpgsql
@@ -611,8 +621,8 @@ AS $function$
             IF i_rulebase_id IS NOT NULL THEN
                 SELECT INTO r_dev_null * FROM rulebase_link WHERE to_rulebase_id=i_rulebase_id AND gw_id=r_dev.dev_id AND removed IS NULL;
                 IF NOT FOUND THEN
-                    INSERT INTO rulebase_link (gw_id, from_rule_id, to_rulebase_id, created, link_type) 
-                    VALUES (r_dev.dev_id, NULL, i_rulebase_id, (SELECT * FROM get_last_import_id_for_mgmt(r_dev.mgm_id)), 0)
+                    INSERT INTO rulebase_link (gw_id, from_rule_id, to_rulebase_id, created, link_type, is_initial) 
+                    VALUES (r_dev.dev_id, NULL, i_rulebase_id, (SELECT * FROM get_last_import_id_for_mgmt(r_dev.mgm_id)), 2, True)
                     RETURNING id INTO i_initial_rulebase_id; -- when migrating, there cannot be more than one (the initial) rb per device
                 END IF;
             END IF;
@@ -625,8 +635,8 @@ AS $function$
                 IF i_rulebase_id IS NOT NULL THEN
                     SELECT INTO r_dev_null * FROM rulebase_link WHERE to_rulebase_id=i_rulebase_id AND gw_id=r_dev.dev_id;
                     IF NOT FOUND THEN
-                        INSERT INTO rulebase_link (gw_id, from_rule_id, to_rulebase_id, created, link_type)
-                        VALUES (r_dev.dev_id, NULL, i_rulebase_id, (SELECT * FROM get_last_import_id_for_mgmt(r_dev.mgm_id)), 0); 
+                        INSERT INTO rulebase_link (gw_id, from_rule_id, to_rulebase_id, created, link_type, is_initial)
+                        VALUES (r_dev.dev_id, NULL, i_rulebase_id, (SELECT * FROM get_last_import_id_for_mgmt(r_dev.mgm_id)), 2, TRUE); 
                     END IF;
                 END IF;
             END IF;
@@ -777,19 +787,16 @@ INSERT INTO stm_obj_typ (obj_typ_id,obj_typ_name) VALUES (21,'access-role') ON C
 
 -- adding labels (simple version without mapping tables and without foreign keys)
 
-/*
+-- CREATE TABLE label (
+--     id SERIAL PRIMARY KEY,
+--     name TEXT NOT NULL
+-- );
 
-CREATE TABLE label (
-    id SERIAL PRIMARY KEY,
-    name TEXT NOT NULL
-);
+-- ALTER TABLE "rule" ADD COLUMN IF NOT EXISTS "labels" INT[];
+-- ALTER TABLE "service" ADD COLUMN IF NOT EXISTS "labels" INT[];
+-- ALTER TABLE "object" ADD COLUMN IF NOT EXISTS "labels" INT[];
+-- ALTER TABLE "usr" ADD COLUMN IF NOT EXISTS "labels" INT[];
 
-ALTER TABLE "rule" ADD COLUMN IF NOT EXISTS "labels" INT[];
-ALTER TABLE "service" ADD COLUMN IF NOT EXISTS "labels" INT[];
-ALTER TABLE "object" ADD COLUMN IF NOT EXISTS "labels" INT[];
-ALTER TABLE "usr" ADD COLUMN IF NOT EXISTS "labels" INT[];
-
-*/
 
 -- ALTER TABLE "object" DROP COLUMN IF EXISTS "deleted" ;
 -- ALTER TABLE "objgrp" DROP COLUMN IF  EXISTS "deleted" ;
@@ -810,206 +817,205 @@ ALTER TABLE "usr" ADD COLUMN IF NOT EXISTS "labels" INT[];
 -- ALTER TABLE "rulebase_link" DROP COLUMN IF EXISTS "deleted";
 -- TODO: fill all rulebase_id s and then add not null constraint
 
-/*  TODOs 
 
-Rename table rulebase_on_gateways to gateway_rulebase to get correct plural gateway_rulebases in hasura
+--   TODOs 
 
-REPORTING:
-    - RulesReportRazor line 23: deal with multiple ordered rulebases (later)
-        style="font-size:small" TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="Rule" Items="device.Rules" ShowSearchBar="false"
-    - ObjectGroup.Razor line 431:
-        Rule? ruleUpdated = managementsUpdate.ManagementData.SelectMany(m => m.Devices).SelectMany(d => d.Rulebases[0].Rulebase.Rules ?? new Rule[0]).FirstOrDefault();
-    - Statistics Report #rules per device are 0 (device report is null)
-    - recertification: without rule.dev_id we have lost all rule information in report!!!
-      - certification information should be aimed at a rule on a gateway
-      - this might lead to a rulebase which is enforced on multiple gateways to be changed only in
-        the rule_enforced_on_gateway field
-      - how do we get the link between rule_metadata (cert) and the actual rule details?
-        --> can we add a fk from rule_metadatum to rulebase to fix this?
-            query rulesReport($limit: Int, $offset: Int, $mgmId: [Int!], $relevantImportId: bigint, $cut: timestamp, $tolerance: timestamp) {
-            management(where: {hide_in_gui: {_eq: false}, mgm_id: {_in: $mgmId}, stm_dev_typ: {dev_typ_is_multi_mgmt: {_eq: false}, is_pure_routing_device: {_eq: false}}}, order_by: {mgm_name: asc}) {
-                id: mgm_id
-                name: mgm_name
-                devices(where: {hide_in_gui: {_eq: false}}) {
-                id: dev_id
-                rule_metadata {
-                    rule_last_hit
-                    rule_uid
-                    dev_id
-                    # here we do not have any rule details 
-                }
-                name: dev_name
-                rulebase_on_gateways(order_by: {order_no: asc}) {
-                    rulebase_id
-                    order_no
-                    rulebase {
-                    id
-                    name
-                    rules {
-                        mgm_id: mgm_id
-                        rule_metadatum {
-                            # here, the rule_metadata is always empty! 
-                            rule_last_hit
-                        }
-                        ...ruleOverview
-                    }
-                    }
-                }
-                }
-            }
-            }
-    - need to enhance certifications (add dev_id?)
+-- Rename table rulebase_on_gateways to gateway_rulebase to get correct plural gateway_rulebases in hasura
 
-- make sure that xlate rules get unique UIDs
-- with each major version released:
-    add fwo version to demo config files on fwodemo to ensure all versions can be served
+-- REPORTING:
+--     - RulesReportRazor line 23: deal with multiple ordered rulebases (later)
+--         style="font-size:small" TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="Rule" Items="device.Rules" ShowSearchBar="false"
+--     - ObjectGroup.Razor line 431:
+--         Rule? ruleUpdated = managementsUpdate.ManagementData.SelectMany(m => m.Devices).SelectMany(d => d.Rulebases[0].Rulebase.Rules ?? new Rule[0]).FirstOrDefault();
+--     - Statistics Report #rules per device are 0 (device report is null)
+--     - recertification: without rule.dev_id we have lost all rule information in report!!!
+--       - certification information should be aimed at a rule on a gateway
+--       - this might lead to a rulebase which is enforced on multiple gateways to be changed only in
+--         the rule_enforced_on_gateway field
+--       - how do we get the link between rule_metadata (cert) and the actual rule details?
+--         --> can we add a fk from rule_metadatum to rulebase to fix this?
+--             query rulesReport($limit: Int, $offset: Int, $mgmId: [Int!], $relevantImportId: bigint, $cut: timestamp, $tolerance: timestamp) {
+--             management(where: {hide_in_gui: {_eq: false}, mgm_id: {_in: $mgmId}, stm_dev_typ: {dev_typ_is_multi_mgmt: {_eq: false}, is_pure_routing_device: {_eq: false}}}, order_by: {mgm_name: asc}) {
+--                 id: mgm_id
+--                 name: mgm_name
+--                 devices(where: {hide_in_gui: {_eq: false}}) {
+--                 id: dev_id
+--                 rule_metadata {
+--                     rule_last_hit
+--                     rule_uid
+--                     dev_id
+--                     # here we do not have any rule details 
+--                 }
+--                 name: dev_name
+--                 rulebase_on_gateways(order_by: {order_no: asc}) {
+--                     rulebase_id
+--                     order_no
+--                     rulebase {
+--                     id
+--                     name
+--                     rules {
+--                         mgm_id: mgm_id
+--                         rule_metadatum {
+--                             # here, the rule_metadata is always empty! 
+--                             rule_last_hit
+--                         }
+--                         ...ruleOverview
+--                     }
+--                     }
+--                 }
+--                 }
+--             }
+--             }
+--     - need to enhance certifications (add dev_id?)
 
-- add install on column to the following reports:
-    - recert
-    - change (all 3)
-    - statistics (optional: only count rules per gw which are active on gw)
+-- - make sure that xlate rules get unique UIDs
+-- - with each major version released:
+--     add fwo version to demo config files on fwodemo to ensure all versions can be served
 
- - adjust report tests (add column)
- import install on information (need to find out, where it is encoded) from 
- - fortimanger - simply add name of current gw?
- - fortios - simply add name of current gw?
- - others? - simply add name of current gw?
+-- - add install on column to the following reports:
+--     - recert
+--     - change (all 3)
+--     - statistics (optional: only count rules per gw which are active on gw)
 
-importer cp get changes:
-    {'uid': 'cf8c7582-fd95-464c-81a0-7297df3c5ad9', 'type': 'access-rule', 'domain': {'uid': '41e821a0-3720-11e3-aa6e-0800200c9fde', 'name': 'SMC User', 'domain-type': 'domain'}, 'position': 7, 'track': {'type': {...}, 'per-session': False, 'per-connection': False, 'accounting': False, 'enable-firewall-session': False, 'alert': 'none'}, 'layer': '0f45100c-e4ea-4dc1-bf22-74d9d98a4811', 'source': [{...}], 'source-negate': False, 'destination': [{...}], 'destination-negate': False, 'service': [{...}], 'service-negate': False, 'service-resource': '', 'vpn': [{...}], 'action': {'uid': '6c488338-8eec-4103-ad21-cd461ac2c472', 'name': 'Accept', 'type': 'RulebaseAction', 'domain': {...}, 'color': 'none', 'meta-info': {...}, 'tags': [...], 'icon': 'Actions/actionsAccept', 'comments': 'Accept', 'display-name': 'Accept', 'customFields': None}, 'action-settings': {'enable-identity-captive-portal': False}, 'content': [{...}], 'content-negate': False, 'content-direction': 'any', 'time': [{...}], 'custom-fields': {'field-1': '', 'field-2': '', 'field-3': ''}, 'meta-info': {'lock': 'unlocked', 'validation-state': 'ok', 'last-modify-time': {...}, 'last-modifier': 'tim-admin', 'creation-time': {...}, 'creator': 'tim-admin'}, 'comments': '', 'enabled': True, 'install-on': [{...}], 'available-actions': {'clone': 'not_supported'}, 'tags': []}
+--  - adjust report tests (add column)
+--  import install on information (need to find out, where it is encoded) from 
+--  - fortimanger - simply add name of current gw?
+--  - fortios - simply add name of current gw?
+--  - others? - simply add name of current gw?
 
-- change (cp) importer to read rulebases and mappings from rulebase to device
-  - each rule is only stored once
-  - each rulebase is only stored once
---- global changes ----
-- allow conversion from new to old format (would lose information when working with rulebases)
-- allow conversion from old to new format (only for simple setups with 1:1 gw to rulebase matches
+-- importer cp get changes:
+--     {'uid': 'cf8c7582-fd95-464c-81a0-7297df3c5ad9', 'type': 'access-rule', 'domain': {'uid': '41e821a0-3720-11e3-aa6e-0800200c9fde', 'name': 'SMC User', 'domain-type': 'domain'}, 'position': 7, 'track': {'type': {...}, 'per-session': False, 'per-connection': False, 'accounting': False, 'enable-firewall-session': False, 'alert': 'none'}, 'layer': '0f45100c-e4ea-4dc1-bf22-74d9d98a4811', 'source': [{...}], 'source-negate': False, 'destination': [{...}], 'destination-negate': False, 'service': [{...}], 'service-negate': False, 'service-resource': '', 'vpn': [{...}], 'action': {'uid': '6c488338-8eec-4103-ad21-cd461ac2c472', 'name': 'Accept', 'type': 'RulebaseAction', 'domain': {...}, 'color': 'none', 'meta-info': {...}, 'tags': [...], 'icon': 'Actions/actionsAccept', 'comments': 'Accept', 'display-name': 'Accept', 'customFields': None}, 'action-settings': {'enable-identity-captive-portal': False}, 'content': [{...}], 'content-negate': False, 'content-direction': 'any', 'time': [{...}], 'custom-fields': {'field-1': '', 'field-2': '', 'field-3': ''}, 'meta-info': {'lock': 'unlocked', 'validation-state': 'ok', 'last-modify-time': {...}, 'last-modifier': 'tim-admin', 'creation-time': {...}, 'creator': 'tim-admin'}, 'comments': '', 'enabled': True, 'install-on': [{...}], 'available-actions': {'clone': 'not_supported'}, 'tags': []}
 
-Cleanups (after cp importer works with all config variants):
-- re-add users (cp),check ida rules - do we have networks here?
-        #parse_users_from_rulebases(full_config, full_config['rulebases'], full_config['users'], config2import, current_import_id)
-        --> replace by api call?
-- re-add config splits
-- add the following functions to all modules:
-    - getNativeConfig
-    - normalizeConfig
-    - getNormalizedConfig (a combination of the two above)
-- re-add global / domain policies
-- update all importers:
-   - fortimanager
-   - azure
-   - cisco firepower
-   - Palo
-   - NSX
-   - Azure
-   - legacy?
-     - netscreen?!
-     - barracuda
+-- - change (cp) importer to read rulebases and mappings from rulebase to device
+--   - each rule is only stored once
+--   - each rulebase is only stored once
+-- --- global changes ----
+-- - allow conversion from new to old format (would lose information when working with rulebases)
+-- - allow conversion from old to new format (only for simple setups with 1:1 gw to rulebase matches
 
-can we get everything working with old config format? no!
+-- Cleanups (after cp importer works with all config variants):
+-- - re-add users (cp),check ida rules - do we have networks here?
+--         #parse_users_from_rulebases(full_config, full_config['rulebases'], full_config['users'], config2import, current_import_id)
+--         --> replace by api call?
+-- - re-add config splits
+-- - add the following functions to all modules:
+--     - getNativeConfig
+--     - normalizeConfig
+--     - getNormalizedConfig (a combination of the two above)
+-- - re-add global / domain policies
+-- - update all importers:
+--    - fortimanager
+--    - azure
+--    - cisco firepower
+--    - Palo
+--    - NSX
+--    - Azure
+--    - legacy?
+--      - netscreen?!
+--      - barracuda
 
-optimization: add mgm_id to all tables like objgrp, ... ?
+-- can we get everything working with old config format? no!
 
-disabled in UI:
-    recertification.razor
-    in report.razor:
-    - RSB 
-    - TicketCreate Komponente
+-- optimization: add mgm_id to all tables like objgrp, ... ?
 
-2024-10-09 planning
-- calculate rule_num_numeric
-- config mapping gateway to rulebase(s)
-    - do not store/use any rulebase names in device table
-    - instead get current config with every import
-    - id for gateway needs to be fixated:
+-- disabled in UI:
+--     recertification.razor
+--     in report.razor:
+--     - RSB 
+--     - TicketCreate Komponente
 
-    - check point: 
-        - read interface information from show-gateways-and-servers details-level=full
-        - where to get routing infos?
-        - optional: also get publish time per policy (push):
-            "publish-time" : {
-                    "posix" : 1727978692716,
-                    "iso-8601" : "2024-10-03T20:04+0200"
-                },
-            filter out vswitches?
+-- 2024-10-09 planning
+-- - calculate rule_num_numeric
+-- - config mapping gateway to rulebase(s)
+--     - do not store/use any rulebase names in device table
+--     - instead get current config with every import
+--     - id for gateway needs to be fixated:
 
-    - goal:
-        - in device table:
-            - for CP only save policy-name per gateway (gotten from show-gateways-and-servers
-        - in config file storage: 
-            - store all policies with the management rathen than with the gateway?
-            - per gateway only store the ordered mapping gw --> policies
-                - also allow for mapping a gateway to a policy from the manager's super-manager
+--     - check point: 
+--         - read interface information from show-gateways-and-servers details-level=full
+--         - where to get routing infos?
+--         - optional: also get publish time per policy (push):
+--             "publish-time" : {
+--                     "posix" : 1727978692716,
+--                     "iso-8601" : "2024-10-03T20:04+0200"
+--                 },
+--             filter out vswitches?
 
-    - TODO: set is_super_manager flag = true for MDS 
+--     - goal:
+--         - in device table:
+--             - for CP only save policy-name per gateway (gotten from show-gateways-and-servers
+--         - in config file storage: 
+--             - store all policies with the management rathen than with the gateway?
+--             - per gateway only store the ordered mapping gw --> policies
+--                 - also allow for mapping a gateway to a policy from the manager's super-manager
 
-{
-  "ConfigFormat": "NORMALIZED",
-  "ManagerSet": [ 
-    {
-      "ManagerUid": "6ae3760206b9bfbd2282b5964f6ea07869374f427533c72faa7418c28f7a77f2",
-      "ManagerName": "schting2",
-      "IsGlobal": false,
-      "DependantManagerUids": [],
-      "Configs": [
-        {
-          "ConfigFormat": "NORMALIZED_LEGACY",
-          "action": "INSERT",
-          "rules": [
-            {
-              "Uid": "FirstLayer shared with inline layer",
-              "Name": "FirstLayer shared with inline layer",
-              "Rules": {
-                "828b0f42-4b18-4352-8bdf-c9c864d692eb": {
-            }
-          ],
-          "gateways": [
-                Uid: str
-                Name: str
-                Routing: List[dict] = []
-                Interfaces: List[dict]  = []
-                # GlobalPolicyUid: Optional[str] = None
-                "EnforcedPolicyUids": [
-                    "<super-manager-UID>:<super-manager-start-policy-UID>",
-                    "FirstLayer shared with inline layer",
-                    "second-layer",
-                    "<super-manager-UID>:<super-manager-final-policy-UID>",
-                ]
-                EnforcedNatPolicyUids: List[str] = []          
-          ]
-        }
-      ]
-    }
-  ]
-}
+--     - TODO: set is_super_manager flag = true for MDS 
 
-
-- config mapping global start rb, local rb, global end rb
-- import inline layers
-- get reports working
-- valentin: open issues for KfW UI problems
-- decide how to implement ordered layer (all must match) vs. e.g. global policies (first match)
-- allow for also importing native configs from file 
+-- {
+--   "ConfigFormat": "NORMALIZED",
+--   "ManagerSet": [ 
+--     {
+--       "ManagerUid": "6ae3760206b9bfbd2282b5964f6ea07869374f427533c72faa7418c28f7a77f2",
+--       "ManagerName": "schting2",
+--       "IsGlobal": false,
+--       "DependantManagerUids": [],
+--       "Configs": [
+--         {
+--           "ConfigFormat": "NORMALIZED_LEGACY",
+--           "action": "INSERT",
+--           "rules": [
+--             {
+--               "Uid": "FirstLayer shared with inline layer",
+--               "Name": "FirstLayer shared with inline layer",
+--               "Rules": {
+--                 "828b0f42-4b18-4352-8bdf-c9c864d692eb": {
+--             }
+--           ],
+--           "gateways": [
+--                 Uid: str
+--                 Name: str
+--                 Routing: List[dict] = []
+--                 Interfaces: List[dict]  = []
+--                 # GlobalPolicyUid: Optional[str] = None
+--                 "EnforcedPolicyUids": [
+--                     "<super-manager-UID>:<super-manager-start-policy-UID>",
+--                     "FirstLayer shared with inline layer",
+--                     "second-layer",
+--                     "<super-manager-UID>:<super-manager-final-policy-UID>",
+--                 ]
+--                 EnforcedNatPolicyUids: List[str] = []          
+--           ]
+--         }
+--       ]
+--     }
+--   ]
+-- }
 
 
-TODOs after full importer migration
--- ALTER table "import_config" DROP COLUMN IF EXISTS "chunk_number";
--- ALTER TABLE "rule" DROP COLUMN IF EXISTS "rule_installon"; -- here we would need to rebuild views
--- ALTER TABLE "rule" DROP COLUMN IF EXISTS "rule_ruleid"; -- here we would need to rebuild views
--- ALTER TABLE "rule" DROP COLUMN IF EXISTS "dev_id"; -- final step when the new structure works
--- ALTER TABLE "import_rule" DROP COLUMN IF EXISTS "rulebase_name";
+-- - config mapping global start rb, local rb, global end rb
+-- - import inline layers
+-- - get reports working
+-- - valentin: open issues for k01 UI problems
+-- - decide how to implement ordered layer (all must match) vs. e.g. global policies (first match)
+-- - allow for also importing native configs from file 
 
-ALTER TABLE "object" DROP COLUMN IF EXISTS "obj_last_seen";
-ALTER TABLE "objgrp" DROP COLUMN IF EXISTS "objgrp_last_seen";
-ALTER TABLE "objgrp_flat" DROP COLUMN IF EXISTS "objgrp_flat_last_seen";
-ALTER TABLE "service" DROP COLUMN IF EXISTS "svc_last_seen";
-ALTER TABLE "svcgrp" DROP COLUMN IF EXISTS "svcgrp_last_seen";
-ALTER TABLE "svcgrp_flat" DROP COLUMN IF EXISTS "svcgrp_flat_last_seen";
-ALTER TABLE "zone" DROP COLUMN IF EXISTS "zone_last_seen";
-ALTER TABLE "usr" DROP COLUMN IF EXISTS "user_last_seen";
-ALTER TABLE "rule" DROP COLUMN IF EXISTS "rule_last_seen";
-ALTER TABLE "rule_from" DROP COLUMN IF EXISTS "rf_last_seen";
-ALTER TABLE "rule_to" DROP COLUMN IF EXISTS "rt_last_seen";
-ALTER TABLE "rule_service" DROP COLUMN IF EXISTS "rs_last_seen";
 
-*/
+-- TODOs after full importer migration
+-- -- ALTER table "import_config" DROP COLUMN IF EXISTS "chunk_number";
+-- -- ALTER TABLE "rule" DROP COLUMN IF EXISTS "rule_installon"; -- here we would need to rebuild views
+-- -- ALTER TABLE "rule" DROP COLUMN IF EXISTS "rule_ruleid"; -- here we would need to rebuild views
+-- -- ALTER TABLE "rule" DROP COLUMN IF EXISTS "dev_id"; -- final step when the new structure works
+-- -- ALTER TABLE "import_rule" DROP COLUMN IF EXISTS "rulebase_name";
+
+-- ALTER TABLE "object" DROP COLUMN IF EXISTS "obj_last_seen";
+-- ALTER TABLE "objgrp" DROP COLUMN IF EXISTS "objgrp_last_seen";
+-- ALTER TABLE "objgrp_flat" DROP COLUMN IF EXISTS "objgrp_flat_last_seen";
+-- ALTER TABLE "service" DROP COLUMN IF EXISTS "svc_last_seen";
+-- ALTER TABLE "svcgrp" DROP COLUMN IF EXISTS "svcgrp_last_seen";
+-- ALTER TABLE "svcgrp_flat" DROP COLUMN IF EXISTS "svcgrp_flat_last_seen";
+-- ALTER TABLE "zone" DROP COLUMN IF EXISTS "zone_last_seen";
+-- ALTER TABLE "usr" DROP COLUMN IF EXISTS "user_last_seen";
+-- ALTER TABLE "rule" DROP COLUMN IF EXISTS "rule_last_seen";
+-- ALTER TABLE "rule_from" DROP COLUMN IF EXISTS "rf_last_seen";
+-- ALTER TABLE "rule_to" DROP COLUMN IF EXISTS "rt_last_seen";
+-- ALTER TABLE "rule_service" DROP COLUMN IF EXISTS "rs_last_seen";

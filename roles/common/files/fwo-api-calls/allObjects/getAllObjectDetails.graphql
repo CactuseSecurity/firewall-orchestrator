@@ -2,6 +2,7 @@ query getAllObjectDetails (
   $management_id: [Int!]
   $type: [String!]
   $uid: [String!]
+  $active: Boolean
   $import_id_start: bigint
   $import_id_end: bigint
   $obj_name: [String!]
@@ -26,6 +27,7 @@ query getAllObjectDetails (
       offset: $offset
       where: {
         stm_obj_typ: { obj_typ_name: { _in: $type } }
+        active: { _eq: $active }
         _or: [
           { removed: { _is_null: true } }, 
           { removed: { _gte: $import_id_start } }
@@ -43,6 +45,7 @@ query getAllObjectDetails (
       offset: $offset
       where: {
         stm_svc_typ: { svc_typ_name: { _in: $type } }
+        active: { _eq: $active }
         _or: [
           { removed: { _is_null: true } }, 
           { removed: { _gte: $import_id_start } }
@@ -60,6 +63,7 @@ query getAllObjectDetails (
       offset: $offset
       where: {
         stm_usr_typ: { usr_typ_name: { _in: $type } }
+        active: { _eq: $active }
         _or: [
           { removed: { _is_null: true } }, 
           { removed: { _gte: $import_id_start } }

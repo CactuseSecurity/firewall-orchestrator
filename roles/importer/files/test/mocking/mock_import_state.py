@@ -14,4 +14,19 @@ class MockImportStateController(ImportStateController):
 
         self.DebugLevel = 0
         self.Stats = ImportStatisticsController()
+        self.call_log = []
+        self.stub_responses = {}
+
+        
+    def call(self, *args, **kwargs):
+
+        self.call_log.append((args, kwargs))
+        key = (args, frozenset(kwargs.items()))
+        return self.stub_responses.get(key, None)
+
+
+    def setup_response(self, args, kwargs, response):
+        
+        key = (args, frozenset(kwargs.items()))
+        self.stub_responses[key] = response
 

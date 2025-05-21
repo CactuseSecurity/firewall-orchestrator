@@ -76,6 +76,12 @@
                             <input id="cbx_NwSeparateGroupAnalysis" type="checkbox" @bind="ConfigValue.NwSeparateGroupAnalysis">
                         </div>
                     </div>
+                    <div class="row col-sm-6 align-items-center">
+                        <label for="cbx_SvcSplitPortRanges" class="col-form-label col-sm-8">@(userConfig.GetText("split_port_ranges")):</label>
+                        <div class="col-sm-2">
+                            <input id="cbx_SvcSplitPortRanges" type="checkbox" @bind="ConfigValue.SvcSplitPortRanges">
+                        </div>
+                    </div>
                 </div>
             </form>
         }

@@ -4,8 +4,8 @@ using FWO.Logging;
 using FWO.Rest.Client;
 using System.Net;
 using RestSharp;
-using System.Runtime.CompilerServices;
 using FWO.Api.Client.Queries;
+using FWO.Basics;
 
 namespace FWO.DeviceAutoDiscovery
 {
@@ -14,65 +14,32 @@ namespace FWO.DeviceAutoDiscovery
         public AutoDiscoveryCpMds(Management mgm, ApiConnection apiConn) : base(mgm, apiConn) { }
 
 
-        public override async Task<List<Management>> Run()
+        override public async Task<List<Management>> Run()
         {
+            List<Management> discoveredDevices = [];
             if (superManagement == null)
                 return null!;
             else
             {
-                List<Management> discoveredDevices = [];
                 Log.WriteAudit("Autodiscovery", $"starting discovery for {superManagement.Name} (id={superManagement.Id})");
 
                 if (superManagement.DeviceType.Name == "Check Point")
                 {
                     string ManagementType = "";
                     Log.WriteDebug("Autodiscovery", $"discovering CP domains & gateways");
+
                     (string sessionId, CheckPointClient restClientCP) = await LoginCp(superManagement);
+
                     // when passing sessionId, we always need to use @ verbatim identifier for special chars in sessionId
-                    if (string.IsNullOrEmpty(superManagement.Uid))  // pre v9 managements might not have a UID
+                    if (string.IsNullOrEmpty(superManagement.Uid) ||
+                        (superManagement.DeviceType.CanBeSupermanager() && string.IsNullOrEmpty(superManagement.DomainUid)))  // pre v9 managements might not have a UID
                     {
-                        // update manager UID in existing management; typically triggered in daily scheduler
-                        // this update happens only once when AutoDiscovery v9.0 is run for the first time
-                        superManagement.Uid = await GetMgmUid(restClientCP, sessionId, ManagementType, superManagement.Name);
-                        var vars = new { id = superManagement.Id, uid = superManagement.Uid };
-                        _ = (await apiConnection.SendQueryAsync<ReturnId>(DeviceQueries.updateManagementUid, vars)).UpdatedId;
-                        // TODO: also add UIDs in gateways?
+                        // update manager Uid in existing management; typically triggered in daily scheduler
+                        ManagementType = await UpdateMgmUids(superManagement, restClientCP, @sessionId);
                     }
-                    RestResponse<CpDomainHelper> domainResponse = await restClientCP.GetDomains(@sessionId);
 
-                    if (domainResponse.StatusCode == HttpStatusCode.OK && domainResponse.IsSuccessful && domainResponse.Data?.DomainList != null)
-                    {
-                        List<Domain> domainList = domainResponse.Data.DomainList;
-                        if (domainList.Count == 0)
-                        {
-                            Log.WriteDebug("Autodiscovery", $"found no domains - assuming this is a standard management, adding dummy domain with empty name");
-                            domainList.Add(new Domain { Name = "" });
-                            ManagementType = "stand-alone";
-                        }
-                        else
-                            ManagementType = "MDS";
-
-                        foreach (Domain domain in domainList)
-                        {
-                            Log.WriteDebug("Autodiscovery", $"found domain '{domain.Name}'");
-                            Management currentManagement = CreateManagement(superManagement, domain.Name, domain.Uid);
-
-                            // session id pins this session to a specific domain (if domain is given during login)
-                            string sessionIdPerDomain = await LoginCp(currentManagement, restClientCP);
-                            if (string.IsNullOrEmpty(currentManagement.Uid))
-                                currentManagement.Uid = await GetMgmUid(restClientCP, @sessionIdPerDomain, ManagementType, currentManagement.Name);
-
-                            if (sessionIdPerDomain != "")
-                            {
-                                currentManagement.Devices = await GetGateways(restClientCP, @sessionIdPerDomain, ManagementType);
-                                await LogoutCp(restClientCP, @sessionIdPerDomain);
-                            }
-                            discoveredDevices.Add(currentManagement);
-                        }
-                        Log.WriteDebug("Autodiscovery", $"found a total of {domainList.Count} domains");
-                    }
-                    else
-                        Log.WriteWarning("AutoDiscovery", $"error while getting domain list: {domainResponse.ErrorMessage}");
+                    List<Domain> domainList = await restClientCP.GetDomains(@sessionId);
+                    discoveredDevices = await DiscoverDomainDevices(domainList, restClientCP, ManagementType);
                     await LogoutCp(restClientCP, @sessionId);
                 }
                 return await GetDeltas(discoveredDevices);
@@ -84,7 +51,7 @@ namespace FWO.DeviceAutoDiscovery
             Management currentManagement = new()
             {
                 Name = superManagement.Name + "__" + domainName,
-                Uid = superManagement.Uid,
+                Uid = superManagement.Uid, 
                 ImporterHostname = superManagement.ImporterHostname,
                 Hostname = superManagement.Hostname,
                 ImportCredential = superManagement.ImportCredential,
@@ -106,8 +73,51 @@ namespace FWO.DeviceAutoDiscovery
                 currentManagement.ConfigPath = "";
                 currentManagement.SuperManagerId = null;
                 currentManagement.DomainUid = "";
+                currentManagement.IsSupermanager = false;
             }
             return currentManagement;
+        }
+
+        private async Task<List<Management>> DiscoverDomainDevices(List<Domain> domainList, CheckPointClient restClientCP, string ManagementType)
+        {
+            List<Management> discoveredDevices = [];
+            foreach (Domain domain in domainList)
+            {
+                Log.WriteDebug("Autodiscovery", $"found domain '{domain.Name}'");
+                Management currentManagement = CreateManagement(superManagement, domain.Name, domain.Uid);
+                currentManagement.IsSupermanager = false;
+                // session id pins this session to a specific domain (if domain is given during login)
+                string sessionIdPerDomain = await LoginCp(currentManagement, restClientCP);
+                currentManagement.Uid = await GetMgmUid(restClientCP, @sessionIdPerDomain, currentManagement.Hostname);
+
+                if (sessionIdPerDomain != "")
+                {
+                    currentManagement.Devices = await GetGateways(restClientCP, @sessionIdPerDomain, ManagementType);
+                    await LogoutCp(restClientCP, @sessionIdPerDomain);
+                }
+                discoveredDevices.Add(currentManagement);
+            }
+            return discoveredDevices;
+        }
+
+        private async Task<string> UpdateMgmUids(Management mgm, CheckPointClient restClientCP, string sessionId)
+        {
+            string mgmType = "";
+            if (mgm.DeviceType.Id == 13)    // MDS
+            {
+                mgm.Uid = await restClientCP.GetMdsUid(mgm);
+                mgmType = "MDS";
+            }
+            else    // single management
+            {
+                mgm.Uid = await GetMgmUid(restClientCP, sessionId, superManagement.Hostname);
+                mgmType = "Management";
+            }
+
+            var vars = new { id = mgm.Id, uid = mgm.Uid, domainUid = mgm.DomainUid };
+            _ = (await apiConnection.SendQueryAsync<ReturnId>(DeviceQueries.updateManagementUids, vars)).UpdatedId;
+ 
+            return mgmType;
         }
 
         private async Task<(string, CheckPointClient)> LoginCp(Management mgm)
@@ -162,8 +172,7 @@ namespace FWO.DeviceAutoDiscovery
 
         private async Task<Device[]> GetGateways(CheckPointClient restClientCP, string sessionIdPerDomain, string ManagementType)
         {
-            // now fetching per device information
-            List<CpDevice> devList = await restClientCP.GetGateways(@sessionIdPerDomain, ManagementType);
+            List<CpDevice> devList = await restClientCP.GetGateways(@sessionIdPerDomain);
             List<Device> devices = [];
 
             // add devices to currentManagement
@@ -178,54 +187,55 @@ namespace FWO.DeviceAutoDiscovery
                         DeviceType = new DeviceType { Id = 9 } // CheckPoint GW
                     };
                     devices.Add(dev);
-                    // pre v9 discovered devices might not have a UID, so setting it here
-
-                    // the following does not work for managements whose devices have not been discovered yet
-                    // int? gwId = await GetIdOfGateway(dev);
-                    // if (gwId != null) 
-                    // {
-                    //     // update UID in existing gateway; typically triggered in daily scheduler
-                    //     // this update happens only once when AutoDiscovery v9.0 is run for the first time
-                    //     var vars = new { id = gwId, uid = dev.Uid };
-                    //     await apiConnection.SendQueryAsync<ReturnId>(DeviceQueries.updateGatewayUid, vars);
-                    // }
-
                 }
             }
             return devices.ToArray();
         }
 
-        private async Task<int?> GetIdOfGateway(Device dev)
+        protected static async Task<string> GetMgmUid(CheckPointClient restClientCP, string sessionIdPerDomain, string mgmHostname)
         {
-            // Device knownGateway = Management.FirstOrDefault(d => d.Name == dev.Name);
-            var vars = new { gwName = dev.Name, mgmUid = superManagement.Uid };
-            int? gwId = (await apiConnection.SendQueryAsync<List<Device>>(DeviceQueries.getGatewayId, vars))?[0]?.Id;
-            if (gwId == null)
-            {
-                Log.WriteDebug("Autodiscovery", $"Did not find gateway {dev.Name} in device list - could not set UID");
-                return null;
-            }
-            else
-            {
-                return gwId;
-            }
-        }
+            List<CpDevice> devList = await restClientCP.GetGateways(sessionIdPerDomain);
 
-        protected static async Task<string> GetMgmUid(CheckPointClient restClientCP, string sessionIdPerDomain, string ManagementType, string mgmName)
-        {
-            List<CpDevice> devList = await restClientCP.GetGateways(@sessionIdPerDomain, ManagementType);
+            string mgmIp = await IpOperations.DnsLookUp(mgmHostname);
+
+            if (string.IsNullOrEmpty(mgmIp))
+            {
+                Log.WriteWarning("Autodiscovery", $"Could not resolve management host {mgmHostname} - using hostname instead");
+                mgmIp = mgmHostname;
+            }
+
+            // Try to find a matching device by IP
             foreach (CpDevice cpDev in devList)
             {
-                // TODO: this is not clean - we are assuming that the mgmt host name is given as defined in the config
-                // alternatively we could simply drop the name check
-                // better: check for primary manager
-                if (cpDev.CpDevType == "checkpoint-host") // && cpDev.Name == mgmName)
+                if (cpDev.CpDevType == "checkpoint-host" && cpDev.ManagementIp == mgmIp)
+                {
                     return cpDev.Uid;
+                }
             }
-            Log.WriteDebug("Autodiscovery", $"Did not find management host {mgmName} in device list - could not set UID");
+
+            // Fallback: return UID of the first checkpoint-host device
+            var fallbackDevice = devList.FirstOrDefault(d => d.CpDevType == "checkpoint-host");
+            if (fallbackDevice != null)
+            {
+                Log.WriteWarning("Autodiscovery", $"No exact IP match for {mgmHostname}, falling back to first found checkpoint-host: {fallbackDevice.Name}");
+                return fallbackDevice.Uid;
+            }
+
+            Log.WriteDebug("Autodiscovery", $"Did not find any checkpoint-host devices - could not set UID");
             return "";
         }
 
+        protected static async Task<List<CpDevice>> GetManagers(CheckPointClient restClientCP, string sessionId)
+        {
+            List<CpDevice> devList = await restClientCP.GetAllCpDevices(sessionId);
+            List<CpDevice> mgmList = devList.Where(d => d.CpDevType == "checkpoint-host").ToList();
+            return mgmList;
+        }
+
+        protected static async Task<string> GetGlobalDomainUid(CheckPointClient restClientCP, string sessionIdPerDomain)
+        {
+            return await restClientCP.GetGlobalDomainUid(sessionIdPerDomain);
+        }
     }
 
 }

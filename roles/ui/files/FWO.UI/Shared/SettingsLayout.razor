@@ -157,7 +157,7 @@
                 <NavLink class="nav-link" href="settings/language">
                     <span class="@Icons.Language"></span> @(userConfig.GetText("language"))
                 </NavLink>
-                <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Recertifier}, {Roles.Auditor}, {Roles.FwAdmin}")">
+                <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Recertifier}, {Roles.Modeller}, {Roles.Auditor}, {Roles.FwAdmin}")">
                     <NavLink class="nav-link" href="settings/report">
                         <span class="@Icons.Reporting"></span> @(userConfig.GetText("reporting"))
                     </NavLink>

@@ -113,6 +113,52 @@ namespace FWO.Data
         public bool Detailed = false;
         public List<string> UnusedSpecialUserObjects = [];
 
+        public Rule()
+        {}
+
+        public Rule(Rule rule)
+        {
+            Id = rule.Id;
+            Uid = rule.Uid;
+            MgmtId = rule.MgmtId;
+            OrderNumber = rule.OrderNumber;
+            Name = rule.Name;
+            Comment = rule.Comment;
+            Disabled = rule.Disabled;
+            Services = rule.Services;
+            ServiceNegated = rule.ServiceNegated;
+            Service = rule.Service;
+            SourceNegated = rule.SourceNegated;
+            Source = rule.Source;
+            SourceZone = rule.SourceZone;
+            Froms = rule.Froms;
+            DestinationNegated = rule.DestinationNegated;
+            Destination = rule.Destination;
+            DestinationZone = rule.DestinationZone;
+            Tos = rule.Tos;
+            Action = rule.Action;
+            Track = rule.Track;
+            SectionHeader = rule.SectionHeader;
+            Metadata = rule.Metadata;
+            NatData = rule.NatData;
+            OwnerName = rule.OwnerName;
+            OwnerId = rule.OwnerId;
+            IpMatch = rule.IpMatch;
+            CustomFields = rule.CustomFields;
+            DisplayOrderNumber = rule.DisplayOrderNumber;
+            Certified = rule.Certified;
+            ManagementName = rule.ManagementName;
+            DeviceName = rule.DeviceName;
+            DisregardedFroms = rule.DisregardedFroms;
+            DisregardedTos = rule.DisregardedTos;
+            DisregardedServices = rule.DisregardedServices;
+            ShowDisregarded = rule.ShowDisregarded;
+            ConnId = rule.ConnId;
+            ModellOk = rule.ModellOk;
+            Detailed = rule.Detailed;
+            UnusedSpecialUserObjects = rule.UnusedSpecialUserObjects;
+        }
+
         public bool IsDropRule()
         {
             return Action == "drop" || Action == "reject" || Action == "deny";

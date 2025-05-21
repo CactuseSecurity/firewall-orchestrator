@@ -1154,6 +1154,7 @@ Create table IF NOT EXISTS "rulebase_link"
 	"link_type" Integer,
 	"is_initial" BOOLEAN DEFAULT FALSE,
 	"is_global" BOOLEAN DEFAULT FALSE,
+	"is_section" BOOLEAN DEFAULT TRUE,
 	"created" BIGINT,
 	"removed" BIGINT
 );

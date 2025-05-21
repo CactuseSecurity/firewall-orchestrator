@@ -45,6 +45,9 @@ namespace FWO.Data
         [JsonProperty("superManager"), JsonPropertyName("superManager")]
         public int? SuperManagerId { get; set; }
 
+        [JsonProperty("is_super_manager"), JsonPropertyName("is_super_manager")]
+        public bool IsSupermanager { get; set; } = false;
+
         [JsonProperty("importerHostname"), JsonPropertyName("importerHostname")]
         public string? ImporterHostname { get; set; } = "";
 
@@ -147,7 +150,6 @@ namespace FWO.Data
             return Uid.GenerousCompare(management.Uid) &&
                    Name.GenerousCompare(management.Name) &&
                    Hostname.GenerousCompare(management.Hostname) &&
-                   Uid.GenerousCompare(management.Uid) &&
                    ConfigPath.GenerousCompare(management.ConfigPath) &&
                    DomainUid.GenerousCompare(management.DomainUid) &&
                    CloudSubscriptionId.GenerousCompare(management.CloudSubscriptionId) &&

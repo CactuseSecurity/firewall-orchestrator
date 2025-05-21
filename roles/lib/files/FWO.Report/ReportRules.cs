@@ -1,4 +1,4 @@
-﻿using FWO.Api.Client;
+using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Config.Api;
@@ -120,7 +120,9 @@ namespace FWO.Report
             ManagementReport managementReport = ReportData.ManagementData.FirstOrDefault(m => m.Id == mid) ?? throw new ArgumentException("Given management id does not exist for this report");
 
             objQueryVariables.Add("ruleIds", "{" + string.Join(", ", managementReport.ReportedRuleIds) + "}");
-            objQueryVariables.Add("importId", managementReport.Import.ImportAggregate.ImportAggregateMax.RelevantImportId!);
+            objQueryVariables.Add("importId", managementReport.Import.ImportAggregate.ImportAggregateMax.RelevantImportId!); // TODO: replaced with below - check if not needed anymore and remove
+            objQueryVariables.Add("import_id_start", managementReport.Import.ImportAggregate.ImportAggregateMax.RelevantImportId!);
+            objQueryVariables.Add("import_id_end", managementReport.Import.ImportAggregate.ImportAggregateMax.RelevantImportId!);
 
             string query = GetQuery(objects);
             bool newObjects = true;
@@ -231,8 +233,6 @@ namespace FWO.Report
             List<Rule> allRules = new(rulesSoFar);
             HashSet<long> visitedRuleIds = new(rulesSoFar.Select(r => r.Id)); // Track visited rules to prevent duplication
 
-            RulebaseLink? fromRulebaseNextRbLink = new();
-
             foreach (Rule rule in newRules)
             {
                 if (visitedRuleIds.Add(rule.Id))
@@ -244,13 +244,12 @@ namespace FWO.Report
                         List<Rule> subRules = GetRulesByRulebaseId(fromRuleNextRbLink.NextRulebaseId, managementReport).ToList();
                         allRules = GetAllRulesOfGatewayRecursively(deviceReport, managementReport, allRules, subRules);
                     }
-                    else
-                    {
-                        fromRulebaseNextRbLink = deviceReport.RulebaseLinks.FirstOrDefault(_ => _.FromRulebaseId == rule.RulebaseId); // always set to next rulebase
-                    }
                 }
             }
-            // add rules from the next rulebase
+            // add rules from the next rulebase, assuming all newRules are from the same rulebase
+            RulebaseLink? fromRulebaseNextRbLink = new();
+            var firstRule = newRules.FirstOrDefault();
+            fromRulebaseNextRbLink = firstRule != null ? deviceReport.RulebaseLinks.FirstOrDefault(_ => _.FromRulebaseId == firstRule.RulebaseId && _.FromRuleId == null) : null; // always set to next rulebase
             if (fromRulebaseNextRbLink != null)
             {
                 List<Rule> subRules = GetRulesByRulebaseId(fromRulebaseNextRbLink.NextRulebaseId, managementReport).ToList();

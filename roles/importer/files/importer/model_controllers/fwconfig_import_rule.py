@@ -63,8 +63,7 @@ class FwConfigImportRule(FwConfigImportBase):
 
                 ruleUidsInBoth.update({ rulebaseId: list(currentRulebase.Rules.keys() & previousRulebase.Rules.keys()) })
             else:
-                logger.info(f"previous rulebase has been deleted: {rulebaseId}")
-                # TODO: also display rulebase name
+                logger.info(f"previous rulebase has been deleted: {currentRulebase.name} (id:{rulebaseId})")
 
         # find changed rules
         for rulebaseId in ruleUidsInBoth:

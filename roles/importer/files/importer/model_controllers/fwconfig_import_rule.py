@@ -1,5 +1,7 @@
 import traceback
 from difflib import ndiff
+import json
+
 import fwo_const
 import fwo_api
 import fwo_exceptions
@@ -12,11 +14,11 @@ from model_controllers.fwconfig_import_base import FwConfigImportBase
 from fwo_log import getFwoLogger
 from typing import Dict, List
 from datetime import datetime
-from model_controllers.fwconfig_import_object import FwConfigImportObject
 from models.rule_from import RuleFrom
 from models.rule_to import RuleTo
 from models.rule_service import RuleService
 from model_controllers.fwconfig_import_ruleorder import RuleOrderService
+from models.rule import RuleNormalized
 
 
 # this class is used for importing rules and rule refs into the FWO API
@@ -40,6 +42,7 @@ class FwConfigImportRule(FwConfigImportBase):
         ruleUidsInBoth = {}
         previousRulebaseUids = []
         currentRulebaseUids = []
+        new_hit_information = []
 
         rule_order_service = RuleOrderService()
         deletedRuleUids, newRuleUids, movedRuleUids = rule_order_service.initialize(prevConfig, self)
@@ -64,7 +67,6 @@ class FwConfigImportRule(FwConfigImportBase):
                 # TODO: also dispaly rulebase name
 
         # find changed rules
-        # TODO: need to ignore last_hit! 
         for rulebaseId in ruleUidsInBoth:
             changedRuleUids.update({ rulebaseId: [] })
             currentRulebase = self.NormalizedConfig.getRulebase(rulebaseId) # [pol for pol in self.NormalizedConfig.rulebases if pol.Uid == rulebaseId]
@@ -74,14 +76,20 @@ class FwConfigImportRule(FwConfigImportBase):
                 if currentRulebase.Rules[ruleUid].rule_num_numeric == 0:
                     currentRulebase.Rules[ruleUid].rule_num_numeric = previousRulebase.Rules[ruleUid].rule_num_numeric 
 
-                if self.ruleChanged(rulebaseId, ruleUid, currentRulebase, previousRulebase):
-                    changedRuleUids[rulebaseId].append(ruleUid)       
+                if currentRulebase.Rules[ruleUid] != previousRulebase.Rules[ruleUid]:
+                    changedRuleUids[rulebaseId].append(ruleUid)
+
+                if self.last_hit_changed(currentRulebase.Rules[ruleUid], previousRulebase.Rules[ruleUid]):
+                    self.append_rule_metadata_last_hit(new_hit_information, currentRulebase.Rules[ruleUid], self.ImportDetails.MgmDetails.Id)
+
+
 
         # add full rule details first
         newRulebases = self.getRules(newRuleUids)
 
         # update rule_metadata before adding rules
         errorCountAdd, numberOfAddedMetaRules, newRuleMetadataIds = self.addNewRuleMetadata(newRulebases)
+        error_count_change, _ = self.update_rule_metadata_last_hit(new_hit_information)
 
         # # now update the database with all rule diffs
         errorCountAdd, numberOfAddedRules, newRuleIds = self.addNewRules(newRulebases)
@@ -111,6 +119,17 @@ class FwConfigImportRule(FwConfigImportBase):
 
         # TODO: rule_nwobj_resolved fuellen (recert?)
         return newRuleIds
+
+
+    @staticmethod
+    def last_hit_changed(current_rule, previous_rule):
+        return current_rule.last_hit != previous_rule.last_hit
+
+
+    @staticmethod
+    def update_last_hit_in_metadata(current_rule):
+        # TODO: implement the logic to update the last hit in metadata
+        pass
 
 
     def addNewRule2ObjRefs(self, newRules):
@@ -272,13 +291,7 @@ class FwConfigImportRule(FwConfigImportBase):
         for rb in rulebases:
             rb.Rules = list(rb.Rules.values())
         return rulebases
-    
 
-    def ruleChanged(self, rulebaseId, ruleUid, currentRulebase: Rulebase, prevRulebase: Rulebase):
-        # TODO: need to ignore rule_num, last_hit, ...?
-        return prevRulebase.Rules[ruleUid] != currentRulebase.Rules[ruleUid]
-        # return prevConfig.rulebases[rulebaseId].Rules[ruleUid] != self.NormalizedConfig.rulebases[rulebaseId].Rules[ruleUid]
-        # return prevConfig['rules'][rulebaseId]['Rules'][ruleUid] != self.rulebases[rulebaseId]['Rules'][ruleUid]
 
     # assuming input of form:
     # {'rule-uid1': {'rule_num': 17', ... }, 'rule-uid2': {'rule_num': 8, ...}, ... }
@@ -316,69 +329,6 @@ class FwConfigImportRule(FwConfigImportBase):
                 found = True
             elif found and ruleUid in previousRulebase:
                 yield currentUid
-
-    """
-        return
-
-
-        # first deal with new rulebases
-        for newRbName in self.NormalizedConfig.rulebases:
-            if newRbName not in previousRules:
-                # if rulebase is new, simply for all rules: set rule_num_numeric to 1000*rule_num
-                for ruleUid in self.rulebases[newRbName]['Rules']:
-                    self.rulebases[newRbName].Rules[ruleUid].update({'rule_num_numeric': self.rulebases[newRbName].Rules[ruleUid]['rule_num']*1000.0})
-                    # self.rulebases[newRbName]['Rules'][ruleUid].update({'rule_num_numeric': self.rulebases[newRbName]['Rules'][ruleUid]['rule_num']*1000.0})
-        
-        # now handle new rules in existing rulebases
-        for rulebaseName in previousRules:
-            previousUidList = []
-            currentUidList = []
-            previousUidList = FwConfigImportRule.ruleDictToOrderedListOfRuleUids(previousRules[rulebaseName]['Rules'])
-
-            if rulebaseName in self.rulebases:  # ignore rulebases that have been deleted
-                currentUidList = FwConfigImportRule.ruleDictToOrderedListOfRuleUids(self.rulebases[rulebaseName].Rules)
-                # currentUidList = FwConfigImportRule.ruleDictToOrderedListOfRuleUids(self.rulebases[rulebaseName]['Rules'])
-
-                # Calculate the rules differences
-                changes = FwConfigImportRule.listDiff(previousUidList, currentUidList)
-                
-                # Retrieve the current list from the database ordered by order_number
-                # cursor.execute("SELECT rule_num, rule_num_numeric, rule_uid FROM rule ORDER BY rule_num_numeric")
-                current_db_list = self.getCurrentRules(self.ImportDetails.ImportId, self.ImportDetails.MgmDetails.Id, rulebaseName)
-
-                db_index = 0  # Tracks the position in the current_db_list
-                order_number_increment = 1.0  # Incremental order number step
-
-                for change_type, uid in changes:
-                    if change_type == 'delete':
-                        # Find the uid in the current_db_list and delete it
-                        for db_item in current_db_list:
-                            if db_item[2] == uid:  # Compare by uid
-                                # ignore deletes: cursor.execute("DELETE FROM list_items WHERE id = ?", (db_item[0],))
-                                current_db_list.remove(db_item)
-                                break
-
-                    elif change_type == 'insert':
-                        # Calculate the new order number
-                        if db_index == 0:
-                            new_order_number = 0.5 if len(current_db_list) > 0 else 1.0
-                        elif db_index >= len(current_db_list):
-                            new_order_number = current_db_list[db_index-1][1] + order_number_increment
-                        else:
-                            prev_order_number = current_db_list[db_index-1][1]
-                            next_order_number = current_db_list[db_index][1]
-                            new_order_number = (prev_order_number + next_order_number) / 2.0
-                        
-                        # Insert the new uid with the calculated order number
-                        # cursor.execute("INSERT INTO list_items (order_number, uid) VALUES (?, ?)", 
-                        #             (new_order_number, uid))
-                        self.rulebases[rulebaseName]['Rules'][uid].update( { 'rule_num_numeric': new_order_number })
-                        # Add to current_db_list to keep track of new state
-                        current_db_list.insert(db_index, (None, new_order_number, uid))
-
-                    elif change_type == 'unchanged':
-                        db_index += 1  # Move to the next uid in the current_db_list
-    """
 
 
     # adds new rule_metadatum to the database
@@ -419,6 +369,41 @@ class FwConfigImportRule(FwConfigImportBase):
             raise fwo_exceptions.FwoApiWriteError(f"failed to write new RulesMetadata: {str(traceback.format_exc())}")
         
         return errors, changes, newRuleIds
+
+
+    # collect new last hit information
+    @staticmethod
+    def append_rule_metadata_last_hit (new_hit_information: List[dict], rule: RuleNormalized, mgm_id: int):
+        if new_hit_information is None:
+            new_hit_information = []        
+        new_hit_information.append({ 
+            "where": { "rule_uid": { "_eq": rule.rule_uid } },
+            "_set": { "rule_last_hit": rule.last_hit }
+        })
+
+
+    # adds new rule_metadatum to the database
+    def update_rule_metadata_last_hit (self, new_hit_information: List[dict]):
+        logger = getFwoLogger()
+        errors = 0
+        changes = 0
+
+        if len(new_hit_information) > 0:
+            update_last_hit_mutation = fwo_api.get_graphql_code([fwo_const.graphqlQueryPath + "rule_metadata/updateLastHits.graphql"])
+            query_variables = { 'hit_info': new_hit_information  }
+            
+            try:
+                import_result = self.ImportDetails.call(update_last_hit_mutation, queryVariables=query_variables, debug_level=self.ImportDetails.DebugLevel, analyze_payload=True)
+                if 'errors' in import_result:
+                    logger.exception(f"fwo_api:importNwObject - error in addNewRuleMetadata: {str(import_result['errors'])}")
+                    return 1, 0
+                    # do not count last hit changes as changes here
+            except Exception:
+                errors = 1
+                raise fwo_exceptions.FwoApiWriteError(f"failed to update RuleMetadata last hit info: {str(traceback.format_exc())}")
+        
+        return errors, changes
+
 
     def addRulebasesWithoutRules(self, newRules: List[Rulebase]):
         logger = getFwoLogger()

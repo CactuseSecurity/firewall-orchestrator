@@ -1,4 +1,5 @@
 shutdown_requested = False
+debug_level = 0 
 
 def setGlobalValues (
         verify_certs_in=None, 

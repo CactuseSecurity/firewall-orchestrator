@@ -3,8 +3,6 @@ import uuid
 from typing import List, Union, Dict
 import random
 
-
-
 if __name__ == '__main__': # for usage as executable script
     import sys
     import os
@@ -31,6 +29,8 @@ if __name__ == '__main__': # for usage as executable script
     from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
     from mock_import_state import MockImportStateController
     from model_controllers.fwconfigmanager_controller import FwConfigManager
+    from models.gateway import Gateway
+    from models.rulebase_link import RulebaseLink, RulebaseLinkUidBased
 else: # for usage in unit tests
     from . uid_manager import UidManager
     from . mock_rulebase import MockRulebase
@@ -155,6 +155,61 @@ class MockFwConfigNormalized(FwConfigNormalized):
                     new_rule.rule_num_numeric = created_rule_counter * rule_num_numeric_steps
                     created_rule_counter += 1
 
+        # Add Gateway.
+
+        self.gateways.append(
+            Gateway(
+                Uid = mock_config["gateway_uid"],
+                Name = mock_config["gateway_name"],
+                RulebaseLinks = self.create_rulebase_links()
+            )
+        )
+
+        
+    def create_rulebase_links(self):
+
+        rulebase_links = []
+
+        # Add initial link.
+
+        initial_rulebase_uid = self.rulebases[0].uid
+        rulebase_links.append(
+            RulebaseLinkUidBased(
+                from_rulebase_uid = "",
+                from_rule_uid = "",
+                to_rulebase_uid = initial_rulebase_uid,
+                link_type = "ordered",
+                is_initial = True,
+                is_global = False
+            )
+        )
+
+        # Add remaining links.
+        
+        for index, rulebase in enumerate(self.rulebases):
+
+            # Skip first rulebase.
+
+            if index == 0:
+                continue
+
+            # Create ordered rulebase link.
+            
+            current_from_rulebase_uid = self.rulebases[index - 1].uid
+            current_from_rule_uid = list(self.rulebases[index - 1].Rules.values())[-1].rule_uid
+            rulebase_links.append(
+                RulebaseLinkUidBased(
+                    from_rulebase_uid = current_from_rulebase_uid,
+                    from_rule_uid = current_from_rule_uid,
+                    to_rulebase_uid = self.rulebases[index].uid,
+                    link_type = "ordered",
+                    is_initial = False,
+                    is_global = False
+                )
+            )
+
+        return rulebase_links
+    
 
     def add_rule_to_rulebase(self, rulebase_uid: str) -> Rule:
         """
@@ -230,7 +285,9 @@ if __name__ == '__main__':
             "rule_config": [10,10,10],
             "network_object_config": 10,
             "service_config": 10,
-            "user_config": 10
+            "user_config": 10,
+            "gateway_uid": "cbdd1e35-b6e9-4ead-b13f-fd6389e34987",
+            "gateway_name": "sting-gw"
         }
     )
 

@@ -61,7 +61,15 @@ class RuleNormalized(BaseModel):
     rule_dst_zone: Optional[str] = None
     rule_head_text: Optional[str] = None
 
-
+    def __eq__(self, other):
+        if not isinstance(other, RuleNormalized):
+            return NotImplemented
+        # Compare all fields except 'last_hit' and 'rule_num'
+        exclude = {"last_hit", "rule_num"}
+        self_dict = self.dict(exclude=exclude)
+        other_dict = other.dict(exclude=exclude)
+        return self_dict == other_dict
+    
 """
     based on public.rule:
 
@@ -150,26 +158,3 @@ class Rule(BaseModel):
     rule_uid: str
     rulebase_id: Optional[int] # = None
 
-    # def __init__(self, rule: Rule, mgmId: int, importId: int, access_rule: bool, nat_rule: bool, rulebase_id: str):
-    #     self.rule_uid = rule.rule_uid
-    #     self.rule_name = rule.rule_name
-    #     self.rule_comment = rule.rule_comment
-    #     self.access_rule = access_rule
-    #     self.nat_rule = nat_rule
-    #     self.mgm_id = mgmId
-    #     self.rule_create = importId
-    #     self.rule_last_seen = importId
-    #     self.rulebase_id = rulebase_id
-    #     # self.rule_typ_id = typId
-
-    # def toDict (self):
-    #     result = {
-    #         'rule_uid': self.rule_uid,
-    #         'rule_name': self.rule_name,
-    #         'rule_comment': self.rule_comment,
-    #         'mgm_id': self.mgm_id,
-    #         'rule_create': self.rule_create,
-    #         'rule_last_seen': self.rule_last_seen,
-    #         'rule_typ_id': self.rule_typ_id
-    #     }
-    #     return result

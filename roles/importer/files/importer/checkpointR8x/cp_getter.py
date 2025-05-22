@@ -260,14 +260,7 @@ def getGlobalAssignments(api_v_url, sid, show_params_policy_structure, globalAss
     return 0
                         
 
-def get_rulebases(api_v_url, sid, show_params_rules,
-                 rulebaseUid=None,
-                 rulebaseName=None,
-                 access_type='access',
-                 nativeConfig=None,
-                 deviceConfig=None,
-                 is_global=False,
-                 policy_rulebases_uid_list=[]):
+def get_rulebases(api_v_url, sid, show_params_rules, nativeConfig, deviceConfig, policy_rulebases_uid_list, is_global=False, access_type='access', rulebaseUid=None, rulebaseName=None):
     
     # access_type: access / nat
     logger = getFwoLogger()
@@ -352,36 +345,47 @@ def get_rulebases_in_chunks(rulebaseUid, show_params_rules, api_v_url, access_ty
             # todo: need to get FWO API jwt here somehow:
             # create_data_issue(fwo_api_base_url, jwt, severity=2, description="failed to get show-access-rulebase  " + rulebaseUid)
 
-        # resolve checkpoint uids via object dictionary
-        try:
-            for ruleField in ['source', 'destination', 'service', 'action', 'track', 'install-on', 'time']:
-                resolveRefListFromObjectDictionary(rulebase, ruleField, nativeConfig=nativeConfig, sid=sid, base_url=api_v_url)
-            current_rulebase['chunks'].append(rulebase)
-        except Exception:
-            logger.error("error while getting field " + ruleField + " of layer " + rulebaseUid + ", params: " + str(show_params_rules))
-
-        if 'total' in rulebase:
-            total=rulebase['total']
-        else:
-            logger.error ( "rulebase does not contain total field, get_rulebase_chunk_from_api found garbled json " + str(current_rulebase))
-            logger.warning ( "sid: " + sid)
-            logger.warning ( "api_v_url: " + api_v_url)
-            logger.warning ( "access_type: " + access_type)
-            for key, value in show_params_rules.items():
-                logger.warning("show_params_rules " + key + ": " + str(value))
-            for key, value in rulebase.items():
-                logger.warning("rulebase " + key + ": " + str(value))
-        
-        if total==0:
-            current=0
-        else:
-            if 'to' in rulebase:
-                current=rulebase['to']
-            else:
-                raise Exception ( "get_nat_rules_from_api - rulebase does not contain to field, get_rulebase_chunk_from_api found garbled json " + str(rulebase))
+        resolve_checkpoint_uids_via_object_dict(rulebase, nativeConfig, sid,
+                                                api_v_url, current_rulebase,
+                                                rulebaseUid, show_params_rules)
+        total, current = control_while_loop_in_get_rulebases_in_chunks(current_rulebase, rulebase, sid, api_v_url, show_params_rules)
 
     return current_rulebase
 
+def resolve_checkpoint_uids_via_object_dict(rulebase, nativeConfig, sid,
+                                            api_v_url, current_rulebase,
+                                            rulebaseUid, show_params_rules):
+    try:
+        for ruleField in ['source', 'destination', 'service', 'action',
+                          'track', 'install-on', 'time']:
+            resolveRefListFromObjectDictionary(rulebase, ruleField,
+                                               nativeConfig=nativeConfig,
+                                               sid=sid, base_url=api_v_url)
+        current_rulebase['chunks'].append(rulebase)
+    except Exception:
+        logger.error("error while getting field " + ruleField + " of layer "
+                     + rulebaseUid + ", params: " + str(show_params_rules))
+        
+def control_while_loop_in_get_rulebases_in_chunks(current_rulebase, rulebase, sid, api_v_url, show_params_rules):
+    if 'total' in rulebase:
+        total=rulebase['total']
+    else:
+        logger.error ( "rulebase does not contain total field, get_rulebase_chunk_from_api found garbled json " + str(current_rulebase))
+        logger.warning ( "sid: " + sid)
+        logger.warning ( "api_v_url: " + api_v_url)
+        for key, value in show_params_rules.items():
+            logger.warning("show_params_rules " + key + ": " + str(value))
+        for key, value in rulebase.items():
+            logger.warning("rulebase " + key + ": " + str(value))
+    
+    if total==0:
+        current=0
+    else:
+        if 'to' in rulebase:
+            current=rulebase['to']
+        else:
+            raise Exception ( "get_nat_rules_from_api - rulebase does not contain to field, get_rulebase_chunk_from_api found garbled json " + str(rulebase))
+    return total, current
 
 def get_inline_layers_recursively(current_rulebase, deviceConfig, nativeConfig, api_v_url, sid, show_params_rules, is_global, policy_rulebases_uid_list):
     """Takes current_rulebase, splits sections into sub-rulebases and searches for layerguards to fetch
@@ -409,12 +413,11 @@ def get_inline_layers_recursively(current_rulebase, deviceConfig, nativeConfig, 
                         
                         # get inline layer
                         policy_rulebases_uid_list = get_rulebases(api_v_url, sid, show_params_rules,
-                                                                    rulebaseUid=rule['inline-layer'],
-                                                                    access_type='access',
-                                                                    nativeConfig=nativeConfig,
-                                                                    deviceConfig=deviceConfig,
-                                                                    is_global=is_global,
-                                                                    policy_rulebases_uid_list=policy_rulebases_uid_list)
+                                                                  nativeConfig, deviceConfig,
+                                                                  policy_rulebases_uid_list,
+                                                                  is_global=is_global,
+                                                                  access_type='access',
+                                                                  rulebaseUid=rule['inline-layer'])
                                                     
     return policy_rulebases_uid_list
 

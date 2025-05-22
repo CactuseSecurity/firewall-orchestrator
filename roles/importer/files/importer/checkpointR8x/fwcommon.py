@@ -346,7 +346,8 @@ def handle_nat_rules(device, nativeConfig, sid, importState):
         if importState.DebugLevel > 3:
             logger.debug(f"Getting NAT rules for package: {device['package_name']}")
         nat_rules = cp_getter.get_nat_rules_from_api_as_dict(
-            importState.MgmDetails.buildFwApiString(), sid, show_params_rules, nativeConfig=nativeConfig
+            importState.MgmDetails.buildFwApiString(), sid, show_params_rules,
+            nativeConfig=nativeConfig
         )
         if nat_rules:
             nativeConfig['nat_rulebases'].append(nat_rules)
@@ -357,7 +358,9 @@ def handle_nat_rules(device, nativeConfig, sid, importState):
 
 
 ###### helper functions ######
-def add_ordered_layers_to_native_config(orderedLayerUids, show_params_rules, cpManagerApiBaseUrl, sid, nativeConfig, deviceConfig, is_global):
+def add_ordered_layers_to_native_config(orderedLayerUids, show_params_rules,
+                                        cpManagerApiBaseUrl, sid, nativeConfig,
+                                        deviceConfig, is_global):
     """Fetches ordered layers and links them
     """
     orderedLayerIndex = 0
@@ -366,15 +369,12 @@ def add_ordered_layers_to_native_config(orderedLayerUids, show_params_rules, cpM
 
         show_params_rules.update({'uid': orderedLayerUid})
 
-        policy_rulebases_uid_list = cp_getter.get_rulebases (cpManagerApiBaseUrl, 
-                                                                sid, 
-                                                                show_params_rules, 
-                                                                rulebaseUid=orderedLayerUid,
-                                                                access_type='access',
-                                                                nativeConfig=nativeConfig,
-                                                                deviceConfig=deviceConfig,
-                                                                is_global=is_global,
-                                                                policy_rulebases_uid_list=policy_rulebases_uid_list)
+        policy_rulebases_uid_list = cp_getter.get_rulebases(
+            cpManagerApiBaseUrl, sid, show_params_rules, nativeConfig,
+            deviceConfig, policy_rulebases_uid_list,
+            is_global=is_global, access_type='access',
+            rulebaseUid=orderedLayerUid)
+        
         if fwo_globals.shutdown_requested:
             raise ImportInterruption("Shutdown requested during rulebase retrieval.")
                     

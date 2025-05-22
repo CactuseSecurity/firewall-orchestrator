@@ -750,6 +750,9 @@ class FwConfigImportObject(FwConfigImportBase):
         # CAST((COALESCE (rule.rule_ruleid, rule.rule_uid) || ', Rulebase: ' || device.local_rulebase_name) AS VARCHAR) AS unique_name,
         # return self.NetworkObjectIdMap.get(objId, None)
 
+    def lookupSvcIdToUidAndPolicyName(self, svcId: int):
+        return str(svcId) # mock
+
     def lookupColor(self, colorString):
         return self.ColorMap.get(colorString, None)
 
@@ -776,8 +779,12 @@ class FwConfigImportObject(FwConfigImportBase):
         svcObjs = []
         importTime = datetime.datetime.now().isoformat()
         changeTyp = 3  # standard
+
         if self.ImportDetails.IsFullImport or self.ImportDetails.IsClearingImport:
             changeTyp = 2   # to be ignored in change reports
+        
+        # Write changelog for network objects.
+
         for obj in nwObjIdsAdded:
             uniqueName = self.lookupObjIdToUidAndPolicyName(obj['obj_id'])
             nwObjs.append({
@@ -790,6 +797,51 @@ class FwConfigImportObject(FwConfigImportBase):
                 "change_time": importTime,
                 "unique_name": uniqueName
             })
+
+        for obj in nwObjIdsRemoved:
+            uniqueName = self.lookupObjIdToUidAndPolicyName(obj['obj_id'])
+            nwObjs.append({
+                "new_obj_id": None,
+                "old_obj_id": obj['obj_id'],
+                "control_id": self.ImportDetails.ImportId,
+                "change_action": "D",
+                "mgm_id": self.ImportDetails.MgmDetails.Id,
+                "change_type_id": changeTyp,
+                # "security_relevant": secRelevant, # assuming everything is security relevant for now
+                "change_time": importTime,
+                "unique_name": uniqueName
+            })
+
+        # Write changelog for Services.
+
+        for svc in svcObjIdsAdded:
+            uniqueName = self.lookupSvcIdToUidAndPolicyName(svc['svc_id'])
+            svcObjs.append({
+                "new_svc_id": svc['svc_id'],
+                "control_id": self.ImportDetails.ImportId,
+                "change_action": "I",
+                "mgm_id": self.ImportDetails.MgmDetails.Id,
+                "change_type_id": changeTyp,
+                # "security_relevant": secRelevant, # assuming everything is security relevant for now
+                "change_time": importTime,
+                "unique_name": uniqueName
+            })
+
+        for svc in svcObjIdsRemoved:
+            uniqueName = self.lookupSvcIdToUidAndPolicyName(svc['svc_id'])
+            svcObjs.append({
+                "new_svc_id": None,
+                "old_svc_id": svc['svc_id'],
+                "control_id": self.ImportDetails.ImportId,
+                "change_action": "D",
+                "mgm_id": self.ImportDetails.MgmDetails.Id,
+                "change_type_id": changeTyp,
+                # "security_relevant": secRelevant, # assuming everything is security relevant for now
+                "change_time": importTime,
+                "unique_name": uniqueName
+            })
+
+
         return nwObjs, svcObjs
 
     def addChangelogObjects(self, nwObjIdsAdded, svcObjIdsAdded, nwObjIdsRemoved, svcObjIdsRemoved):

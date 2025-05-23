@@ -24,8 +24,11 @@ from models.rule import RuleNormalized
 # this class is used for importing rules and rule refs into the FWO API
 class FwConfigImportRule(FwConfigImportBase):
 
+    _changed_rule_id_map: dict
+
     def __init__(self, importState: ImportStateController, config: FwConfigNormalized):
       super().__init__(importState, config)
+      self._changed_rule_id_map = {}
     # #   self.ActionMap = self.GetActionMap()
     # #   self.TrackMap = self.GetTrackMap()
     #   self.RuleNumLookup = self.GetRuleNumMap()             # TODO: needs to be updated with each insert
@@ -649,6 +652,7 @@ class FwConfigImportRule(FwConfigImportBase):
         errors = 0
         changes = 0
         collected_changed_rule_ids = []
+        self._changed_rule_id_map = {}
         rule_order_service = RuleOrderService()
 
         if len(rule_uids) == 0:
@@ -716,7 +720,18 @@ class FwConfigImportRule(FwConfigImportBase):
                 changes = int(create_new_rule_version_result['data']['update_rule']['affected_rows'])
                 update_rules_return = create_new_rule_version_result['data']['update_rule']['returning']
                 insert_rules_return = create_new_rule_version_result['data']['insert_rule']['returning']
-                collected_changed_rule_ids += [item['rule_id'] for item in update_rules_return]
+
+                self._changed_rule_id_map = {
+                    update_item['rule_id']: next(
+                        insert_item['rule_id']
+                        for insert_item in insert_rules_return
+                        if insert_item['rule_uid'] == update_item['rule_uid']
+                    )
+                    for update_item in update_rules_return
+                }
+
+
+                collected_changed_rule_ids.extend(list(self._changed_rule_id_map.keys()))
                 self.update_refs_after_move(insert_rules_return, update_rules_return)
 
         except Exception:
@@ -1280,13 +1295,8 @@ class FwConfigImportRule(FwConfigImportBase):
 
         changelog_rule_insert_objects = self.prepare_changelog_rules_insert_objects(added_rules_ids, removed_rules_ids)
 
-        updateChanglogRules = """
-            mutation updateChanglogRules($rule_changes: [changelog_rule_insert_input!]!) {
-                insert_changelog_rule(objects: $rule_changes) {
-                    affected_rows
-                }
-            }
-        """
+        updateChanglogRules = fwo_api.get_graphql_code([fwo_const.graphqlQueryPath + "rule/updateChanglogRules.graphql"])
+
         queryVariables = {
             'rule_changes': changelog_rule_insert_objects
         }
@@ -1316,40 +1326,50 @@ class FwConfigImportRule(FwConfigImportBase):
 
         if self.ImportDetails.IsFullImport or self.ImportDetails.IsClearingImport:
             changeTyp = 2   # to be ignored in change reports
-        
-        # Write changelog for network objects.
 
         for rule_id in added_rules_ids:
-            uniqueName = self.get_rule_unique_name(rule_id)
-            changelog_rule_insert_objects.append({
-                "new_rule_id": rule_id,
-                "control_id": self.ImportDetails.ImportId,
-                "change_action": "I",
-                "mgm_id": self.ImportDetails.MgmDetails.Id,
-                "change_type_id": changeTyp,
-                # "security_relevant": secRelevant, # assuming everything is security relevant for now
-                "change_time": importTime,
-                "unique_name": uniqueName,
-                "dev_id": 3 # TODO: Set correct value.
-            })
+            changelog_rule_insert_objects.append(self._create_rule_changelog_object('I', changeTyp, importTime, rule_id))
 
         for rule_id in removed_rules_ids:
-            uniqueName = self.get_rule_unique_name(rule_id)
-            changelog_rule_insert_objects.append({
-                "new_rule_id": None,
-                "old_rule_id": rule_id,
-                "control_id": self.ImportDetails.ImportId,
-                "change_action": "D",
-                "mgm_id": self.ImportDetails.MgmDetails.Id,
-                "change_type_id": changeTyp,
-                # "security_relevant": secRelevant, # assuming everything is security relevant for now
-                "change_time": importTime,
-                "unique_name": uniqueName,
-                "dev_id": 3 # TODO: Set correct value.
-            })
+            changelog_rule_insert_objects.append(self._create_rule_changelog_object('D', changeTyp, importTime, rule_id))
+
+        for old_rule_id, new_rule_id in self._changed_rule_id_map.items():
+            changelog_rule_insert_objects.append(self._create_rule_changelog_object('C', changeTyp, importTime, new_rule_id, old_rule_id))
 
         return changelog_rule_insert_objects
     
+
+    def _create_rule_changelog_object(self, change_action, changeTyp, importTime, rule_id, rule_id_alternative = 0):
+        
+        uniqueName = self.get_rule_unique_name(rule_id)
+        old_rule_id = None
+        new_rule_id = None
+
+        if change_action in ['I', 'C']:
+            new_rule_id = rule_id
+        
+        if change_action == 'C':
+            old_rule_id = rule_id_alternative
+
+        if change_action == 'D':
+            old_rule_id = rule_id
+
+        rule_changelog_object =  {
+            "new_rule_id": new_rule_id,
+            "old_rule_id": old_rule_id,
+            "control_id": self.ImportDetails.ImportId,
+            "change_action": change_action,
+            "mgm_id": self.ImportDetails.MgmDetails.Id,
+            "change_type_id": changeTyp,
+            # "security_relevant": secRelevant, # assuming everything is security relevant for now
+            "change_time": importTime,
+            "unique_name": uniqueName,
+            "dev_id": 3 # TODO: Set correct value.
+        }
+
+        return rule_changelog_object
+    
+
     def get_rule_unique_name(self, rule_id: int):
         # TODO: implement
         return str(rule_id)

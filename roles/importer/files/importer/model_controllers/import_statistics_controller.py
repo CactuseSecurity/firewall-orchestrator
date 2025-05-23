@@ -40,33 +40,64 @@ class ImportStatisticsController(ImportStatistics):
             self.RuleAddCount + self.RuleDeleteCount + self.RuleChangeCount + self.RuleMoveCount + \
             self.rule_enforce_change_count + self.rulebase_add_count + self.rulebase_change_count + self.rulebase_delete_count
 
-    def getChangeDetails(self):
 
-        result= {}
+    def getChangeDetails(self):
+        result = {}
+        self.collect_nw_obj_change_details(result)
+        self.collect_svc_obj_change_details(result)
+        self.collect_usr_obj_change_details(result)
+        self.collect_zone_obj_change_details(result)
+        self.collect_rule_change_details(result)
+        return result
+
+
+    def collect_nw_obj_change_details(self, result):
+        if result is None:
+            result = {}
         if self.NetworkObjectAddCount > 0:
             result['NetworkObjectAddCount'] = self.NetworkObjectAddCount
         if self.NetworkObjectDeleteCount > 0:
             result['NetworkObjectDeleteCount'] = self.NetworkObjectDeleteCount
         if self.NetworkObjectChangeCount > 0:
             result['NetworkObjectChangeCount'] = self.NetworkObjectChangeCount
+
+
+    def collect_svc_obj_change_details(self, result):
+        if result is None:
+            result = {}
         if self.ServiceObjectAddCount > 0:
             result['ServiceObjectAddCount'] = self.ServiceObjectAddCount
         if self.ServiceObjectDeleteCount > 0:
             result['ServiceObjectDeleteCount'] = self.ServiceObjectDeleteCount
         if self.ServiceObjectChangeCount > 0:
             result['ServiceObjectChangeCount'] = self.ServiceObjectChangeCount
+
+
+    def collect_usr_obj_change_details(self, result):
+        if result is None:
+            result = {}
         if self.UserObjectAddCount > 0:
             result['UserObjectAddCount'] = self.UserObjectAddCount
         if self.UserObjectDeleteCount > 0:
             result['UserObjectDeleteCount'] = self.UserObjectDeleteCount
         if self.UserObjectChangeCount > 0:
             result['UserObjectChangeCount'] = self.UserObjectChangeCount
+
+
+    def collect_zone_obj_change_details(self, result):
+        if result is None:
+            result = {}         
         if self.ZoneObjectAddCount > 0:
             result['ZoneObjectAddCount'] = self.ZoneObjectAddCount
         if self.ZoneObjectDeleteCount > 0:
             result['ZoneObjectDeleteCount'] = self.ZoneObjectDeleteCount
         if self.ZoneObjectChangeCount > 0:
             result['ZoneObjectChangeCount'] = self.ZoneObjectChangeCount
+
+
+    def collect_zone_obj_change_details(self, result):
+        if result is None:
+            result = {}         
         if self.RuleAddCount > 0:
             result['RuleAddCount'] = self.RuleAddCount
         if self.RuleDeleteCount > 0:
@@ -83,5 +114,3 @@ class ImportStatisticsController(ImportStatistics):
             result['rulebase_add_count'] = self.rulebase_add_count
         if self.rulebase_delete_count > 0:
             result['rulebase_delete_count'] = self.rulebase_delete_count
-        
-        return result

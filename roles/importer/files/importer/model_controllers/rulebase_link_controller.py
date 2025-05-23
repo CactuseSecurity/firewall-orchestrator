@@ -20,7 +20,7 @@ class RulebaseLinkController():
             logger.exception(f"fwo_api:insertRulebaseLinks - error while inserting: {str(add_result['errors'])}")
         else:
             changes = add_result['data']['insert_rulebase_link']['affected_rows']
-            import_state.Stats.RuleChangeCount += changes    # TODO: move this to separate category?!
+            import_state.Stats.rulebase_add_count += changes
 
     def get_rulebase_links(self, import_state: ImportStateController, gw_ids: List[int] = None):
         logger = getFwoLogger()

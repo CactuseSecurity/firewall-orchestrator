@@ -21,7 +21,11 @@ class ImportStatisticsController(ImportStatistics):
         self.RuleDeleteCount = 0
         self.RuleChangeCount = 0
         self.RuleMoveCount = 0
-        self.RuleEnforceChangeCount = 0
+        self.RulebaseAddCount = 0
+        self.rule_enforce_change_count = 0
+        self.rulebase_add_count = 0
+        self.rulebase_change_count = 0
+        self.rulebase_delete_count = 0
         self.ErrorAlreadyLogged = False
     
     def addError(self, error: str):
@@ -34,7 +38,7 @@ class ImportStatisticsController(ImportStatistics):
             self.UserObjectAddCount + self.UserObjectDeleteCount + self.UserObjectChangeCount + \
             self.ZoneObjectAddCount + self.ZoneObjectDeleteCount + self.ZoneObjectChangeCount + \
             self.RuleAddCount + self.RuleDeleteCount + self.RuleChangeCount + self.RuleMoveCount + \
-            self.RuleEnforceChangeCount
+            self.rule_enforce_change_count + self.rulebase_add_count + self.rulebase_change_count + self.rulebase_delete_count
 
     def getChangeDetails(self):
 
@@ -71,7 +75,13 @@ class ImportStatisticsController(ImportStatistics):
             result['RuleChangeCount'] = self.RuleChangeCount
         if self.RuleMoveCount > 0:
             result['RuleMoveCount'] = self.RuleMoveCount    
-        if self.RuleEnforceChangeCount > 0:
-            result['RuleEnforceChangeCount'] = self.RuleEnforceChangeCount    
+        if self.rule_enforce_change_count > 0:
+            result['rule_enforce_change_count'] = self.rule_enforce_change_count    
+        if self.rulebase_change_count > 0:
+            result['rulebase_change_count'] = self.rulebase_change_count
+        if self.rulebase_add_count > 0:
+            result['rulebase_add_count'] = self.rulebase_add_count
+        if self.rulebase_delete_count > 0:
+            result['rulebase_delete_count'] = self.rulebase_delete_count
         
         return result

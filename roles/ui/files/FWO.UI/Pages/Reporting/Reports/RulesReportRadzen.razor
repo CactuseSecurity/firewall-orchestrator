@@ -33,19 +33,89 @@
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
-
-        // await ShowLoading();
-
-        // RuleDisplay = new NatRuleDisplayHtml(userConfig);
-
+            
         var management = Managements.Select(mgt => new ManagementReportController(mgt)).First();
         var device = management.Devices.Select(dev => DeviceReportController.FromDeviceReport(dev)).First();
 
         var ungroupedRules = ReportRules.GetAllRulesOfGateway(device, management);
 
-        treeData = new List<TreeNode<Rule>>();
-
-        //
+        treeData = new List<TreeNode<Rule>>
+        {
+            new TreeNode<Rule> {
+                Item = new Rule { Name = "pre Stealth rule (3-10)" },
+                Children = new List<TreeNode<Rule>> {
+                    new TreeNode<Rule> {
+                        Item = new Rule { Name = "4" }
+                    }
+                }
+            },
+            new TreeNode<Rule> {
+                Item = new Rule { Name = "test & tmp -rules (12-22)" },
+                Children = new List<TreeNode<Rule>>
+                {
+                    new TreeNode<Rule>
+                    {
+                        Item = new Rule { Name = "22" },
+                        Children = new List<TreeNode<Rule>>
+                        {
+                            new TreeNode<Rule>
+                            {
+                                Item = new Rule { Name = "DMZ_E (22.3-22.11)" },
+                                Children = new List<TreeNode<Rule>>
+                                {
+                                     new TreeNode<Rule>
+                                     {
+                                          Item = new Rule { Name = "22.3" },
+                                          Children = new List<TreeNode<Rule>>
+                                          {
+                                              new TreeNode<Rule>{
+                                                  Item = new Rule{ Name = "22.3.2" }
+                                              },
+                                              new TreeNode<Rule>
+                                              {
+                                                  Item = new Rule { Name = "22.3.3"}
+                                              },
+                                              new TreeNode<Rule>
+                                              {
+                                                  Item = new Rule { Name = "22.3.4"}
+                                              },
+                                              new TreeNode<Rule>
+                                              {
+                                                  Item = new Rule { Name = "22.3.7"}
+                                              },
+                                              new TreeNode<Rule>
+                                              {
+                                                  Item = new Rule { Name = "22.3.8"}
+                                              },
+                                              new TreeNode<Rule>
+                                              {
+                                                  Item = new Rule { Name = "22.3.9"}
+                                              },
+                                              new TreeNode<Rule>
+                                              {
+                                                  Item = new Rule { Name = "22.3.10"}
+                                              },
+                                              new TreeNode<Rule>
+                                              {
+                                                  Item = new Rule { Name = "22.3.11"}
+                                              }
+                                          }
+                                     },
+                                     new TreeNode<Rule>
+                                     {
+                                          Item = new Rule { Name = "22.4" },
+                                     },
+                                     new TreeNode<Rule>
+                                     {
+                                          Item = new Rule { Name = "22.5" },
+                                     }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        };
     }
 
 

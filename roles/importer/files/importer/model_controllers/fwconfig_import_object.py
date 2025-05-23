@@ -198,6 +198,7 @@ class FwConfigImportObject(FwConfigImportBase):
                     returning {
                         obj_id
                         obj_uid
+                        obj_typ_id
                     }
                 }
                 update_removed_svc: update_service(where: {mgm_id: {_eq: $mgmId}, svc_uid: {_in: $removedSvcObjectUids}, removed: {_is_null: true}},
@@ -217,6 +218,7 @@ class FwConfigImportObject(FwConfigImportBase):
                     returning {
                         obj_id
                         obj_uid
+                        obj_typ_id
                     }
                 }
                 insert_service(objects: $newSvcObjects) {
@@ -777,6 +779,7 @@ class FwConfigImportObject(FwConfigImportBase):
 
         nwObjs = []
         svcObjs = []
+        usrObjs = []
         importTime = datetime.datetime.now().isoformat()
         changeTyp = 3  # standard
 
@@ -785,7 +788,7 @@ class FwConfigImportObject(FwConfigImportBase):
         
         # Write changelog for network objects.
 
-        for obj in nwObjIdsAdded:
+        for obj in [obj for obj in nwObjIdsAdded if obj["obj_typ_id"] != 21]:
             uniqueName = self.lookupObjIdToUidAndPolicyName(obj['obj_id'])
             nwObjs.append({
                 "new_obj_id": obj['obj_id'],
@@ -798,11 +801,40 @@ class FwConfigImportObject(FwConfigImportBase):
                 "unique_name": uniqueName
             })
 
-        for obj in nwObjIdsRemoved:
+        for obj in [obj for obj in nwObjIdsRemoved if obj["obj_typ_id"] != 21]:
             uniqueName = self.lookupObjIdToUidAndPolicyName(obj['obj_id'])
             nwObjs.append({
                 "new_obj_id": None,
                 "old_obj_id": obj['obj_id'],
+                "control_id": self.ImportDetails.ImportId,
+                "change_action": "D",
+                "mgm_id": self.ImportDetails.MgmDetails.Id,
+                "change_type_id": changeTyp,
+                # "security_relevant": secRelevant, # assuming everything is security relevant for now
+                "change_time": importTime,
+                "unique_name": uniqueName
+            })
+
+        # Write changelog for users.
+
+        for obj in [obj for obj in nwObjIdsAdded if obj["obj_typ_id"] == 21]:
+            uniqueName = self.lookupObjIdToUidAndPolicyName(obj['obj_id'])
+            usrObjs.append({
+                "new_user_id": obj['obj_id'],
+                "control_id": self.ImportDetails.ImportId,
+                "change_action": "I",
+                "mgm_id": self.ImportDetails.MgmDetails.Id,
+                "change_type_id": changeTyp,
+                # "security_relevant": secRelevant, # assuming everything is security relevant for now
+                "change_time": importTime,
+                "unique_name": uniqueName
+            })
+
+        for obj in [obj for obj in nwObjIdsRemoved if obj["obj_typ_id"] == 21]:
+            uniqueName = self.lookupObjIdToUidAndPolicyName(obj['obj_id'])
+            usrObjs.append({
+                "new_user_id": None,
+                "old_user_id": obj['obj_id'],
                 "control_id": self.ImportDetails.ImportId,
                 "change_action": "D",
                 "mgm_id": self.ImportDetails.MgmDetails.Id,
@@ -842,13 +874,13 @@ class FwConfigImportObject(FwConfigImportBase):
             })
 
 
-        return nwObjs, svcObjs
+        return nwObjs, svcObjs, usrObjs
 
     def addChangelogObjects(self, nwObjIdsAdded, svcObjIdsAdded, nwObjIdsRemoved, svcObjIdsRemoved):
         logger = getFwoLogger()
         errors = 0
 
-        nwObjsChanged, svcObjsChanged = self.prepareChangelogObjects(nwObjIdsAdded, svcObjIdsAdded, nwObjIdsRemoved, svcObjIdsRemoved)
+        nwObjsChanged, svcObjsChanged, usrObjsChanged = self.prepareChangelogObjects(nwObjIdsAdded, svcObjIdsAdded, nwObjIdsRemoved, svcObjIdsRemoved)
 
         changelogMutation = """
             mutation updateObjChangelogs($nwObjChanges: [changelog_object_insert_input!]!, $svcObjChanges: [changelog_service_insert_input!]!) {
@@ -860,9 +892,17 @@ class FwConfigImportObject(FwConfigImportBase):
                 }
             }
         """
+
+        # TODO: Add to mutation when writing usr to db is implemented
+        #, $usrObjChanges: [changelog_user_insert_input!]!
+        # insert_changelog_user(objects: $usrObjChanges) {
+        #     affected_rows
+        # }
+
         queryVariables = {
             'nwObjChanges': nwObjsChanged, 
             'svcObjChanges': svcObjsChanged
+            # , 'usrObjChanges': usrObjsChanged # TODO: Uncomment when writing usr to db is implemented
         }
 
         if len(nwObjsChanged) + len(svcObjsChanged)>0:

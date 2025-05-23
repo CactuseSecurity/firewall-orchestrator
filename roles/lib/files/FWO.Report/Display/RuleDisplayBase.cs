@@ -14,7 +14,7 @@ namespace FWO.Ui.Display
 
         public static string DisplayNumber(Rule rule)
         {
-            return rule.DisplayOrderNumber.ToString();
+            return rule.DisplayOrderNumberString;
         }
 
         public static string DisplayEnabled(Rule rule, OutputLocation location)

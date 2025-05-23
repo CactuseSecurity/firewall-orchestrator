@@ -621,22 +621,9 @@ def getObjectDetailsFromApi(uid_missing_obj, sid='', apiurl=''):
                             'comments': 'any nw object checkpoint (hard coded)',
                             'type': 'group', 'domain': obj['domain']
                             } ] } ] }
-                elif (obj['type'] in [ 'simple-gateway', obj['type'], 'CpmiGatewayPlain', obj['type'] == 'interop' ]):
+                elif (obj['type'] in [ 'simple-gateway', 'CpmiGatewayPlain', 'interop', 'multicast-address-range',
+                                      'CpmiVsClusterMember', 'CpmiVsxClusterMember', 'CpmiVsxNetobj' ]):
                     return { "type": "hosts", "chunks": [ {
-                        "objects": [ {
-                        'uid': obj['uid'], 'name': obj['name'], 'color': color,
-                        'comments': obj['comments'], 'type': 'host', 'ipv4-address': cp_network.get_ip_of_obj(obj),
-                        'domain': obj['domain']
-                        } ] } ] }
-                elif obj['type'] == 'multicast-address-range':
-                    return {"type": "hosts", "chunks": [ {
-                        "objects": [ {
-                        'uid': obj['uid'], 'name': obj['name'], 'color': color,
-                        'comments': obj['comments'], 'type': 'host', 'ipv4-address': cp_network.get_ip_of_obj(obj),
-                        'domain': obj['domain']
-                        } ] } ] }
-                elif (obj['type'] in ['CpmiVsClusterMember', 'CpmiVsxClusterMember', 'CpmiVsxNetobj']):
-                    return {"type": "hosts", "chunks": [ {
                         "objects": [ {
                         'uid': obj['uid'], 'name': obj['name'], 'color': color,
                         'comments': obj['comments'], 'type': 'host', 'ipv4-address': cp_network.get_ip_of_obj(obj),

@@ -11,7 +11,7 @@ from models.rulebase import Rulebase, RulebaseForImport
 from model_controllers.import_state_controller import ImportStateController
 from model_controllers.fwconfig_normalized_controller import FwConfigNormalized
 from model_controllers.fwconfig_import_base import FwConfigImportBase
-from fwo_log import getFwoLogger
+from fwo_log import ChangeLogger, getFwoLogger
 from typing import Dict, List
 from datetime import datetime
 from models.rule_from import RuleFrom
@@ -1318,59 +1318,23 @@ class FwConfigImportRule(FwConfigImportBase):
         """
             Creates two lists of insert arguments for the changelog_rules db table, one for new rules, one for deleted.
         """
-        # TODO: deal with object changes where we need old and new obj id
 
+        change_logger = ChangeLogger()
         changelog_rule_insert_objects = []
         importTime = datetime.now().isoformat()
-        changeTyp = 3  # standard
+        changeTyp = 3
 
         if self.ImportDetails.IsFullImport or self.ImportDetails.IsClearingImport:
-            changeTyp = 2   # to be ignored in change reports
+            changeTyp = 2   # TODO: Somehow all imports are treated as im operation.
 
         for rule_id in added_rules_ids:
-            changelog_rule_insert_objects.append(self._create_rule_changelog_object('I', changeTyp, importTime, rule_id))
+            changelog_rule_insert_objects.append(change_logger.create_changelog_import_object("rule", self.ImportDetails, 'I', changeTyp, importTime, rule_id))
 
         for rule_id in removed_rules_ids:
-            changelog_rule_insert_objects.append(self._create_rule_changelog_object('D', changeTyp, importTime, rule_id))
+            changelog_rule_insert_objects.append(change_logger.create_changelog_import_object("rule", self.ImportDetails, 'D', changeTyp, importTime, rule_id))
 
         for old_rule_id, new_rule_id in self._changed_rule_id_map.items():
-            changelog_rule_insert_objects.append(self._create_rule_changelog_object('C', changeTyp, importTime, new_rule_id, old_rule_id))
+            changelog_rule_insert_objects.append(change_logger.create_changelog_import_object("rule", self.ImportDetails, 'C', changeTyp, importTime, new_rule_id, old_rule_id))
 
         return changelog_rule_insert_objects
-    
-
-    def _create_rule_changelog_object(self, change_action, changeTyp, importTime, rule_id, rule_id_alternative = 0):
-        
-        uniqueName = self.get_rule_unique_name(rule_id)
-        old_rule_id = None
-        new_rule_id = None
-
-        if change_action in ['I', 'C']:
-            new_rule_id = rule_id
-        
-        if change_action == 'C':
-            old_rule_id = rule_id_alternative
-
-        if change_action == 'D':
-            old_rule_id = rule_id
-
-        rule_changelog_object =  {
-            "new_rule_id": new_rule_id,
-            "old_rule_id": old_rule_id,
-            "control_id": self.ImportDetails.ImportId,
-            "change_action": change_action,
-            "mgm_id": self.ImportDetails.MgmDetails.Id,
-            "change_type_id": changeTyp,
-            # "security_relevant": secRelevant, # assuming everything is security relevant for now
-            "change_time": importTime,
-            "unique_name": uniqueName,
-            "dev_id": 3 # TODO: Set correct value.
-        }
-
-        return rule_changelog_object
-    
-
-    def get_rule_unique_name(self, rule_id: int):
-        # TODO: implement
-        return str(rule_id)
 

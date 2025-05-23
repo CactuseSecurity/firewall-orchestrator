@@ -3,7 +3,7 @@ import traceback
 import time, datetime
 import json
 
-from fwo_log import getFwoLogger
+from fwo_log import ChangeLogger, getFwoLogger
 from model_controllers.import_state_controller import ImportStateController
 from model_controllers.fwconfig_normalized_controller import FwConfigNormalized
 from model_controllers.fwconfig_import_base import FwConfigImportBase
@@ -41,12 +41,18 @@ class FwConfigImportObject(FwConfigImportBase):
         deletedNwobjUids = list(prevConfig.network_objects.keys() - self.NormalizedConfig.network_objects.keys())
         newNwobjUids = list(self.NormalizedConfig.network_objects.keys() - prevConfig.network_objects.keys())
         nwobjUidsInBoth = list(self.NormalizedConfig.network_objects.keys() & prevConfig.network_objects.keys())
+        change_logger = ChangeLogger()
+
+        # For correct changelog and stats.
+        changed_nw_objs = []
+        changed_svcs = []
 
         # decide if it is prudent to mix changed, deleted and added rules here:
         for nwObjUid in nwobjUidsInBoth:
             if self.NormalizedConfig.network_objects[nwObjUid].did_change(prevConfig.network_objects[nwObjUid]):
                 newNwobjUids.append(nwObjUid)
                 deletedNwobjUids.append(nwObjUid)
+                changed_nw_objs.append(nwObjUid)
 
         # calculate service object diffs
         deletedSvcObjUids = list(prevConfig.service_objects.keys() - self.NormalizedConfig.service_objects.keys())
@@ -57,6 +63,7 @@ class FwConfigImportObject(FwConfigImportBase):
             if self.NormalizedConfig.service_objects[nwSvcUid].did_change(prevConfig.service_objects[nwSvcUid]):
                 newSvcObjUids.append(nwSvcUid)
                 deletedSvcObjUids.append(nwSvcUid)
+                changed_svcs.append(nwSvcUid)
         
         #TODO: calculate user diffs
         # deletedUserUids = list(prevConfig.users.keys() - self.NormalizedConfig.users.keys())
@@ -96,14 +103,41 @@ class FwConfigImportObject(FwConfigImportBase):
         # TODO: calculate user diffs
         # TODO: calculate zone diffs
 
-        # TODO: write changes to changelog_xxx tables
+
+        # Get Changed Ids.
+
+        change_logger.create_change_id_maps(self.uid2id_mapper, changed_nw_objs, changed_svcs, removedNwObjIds, removedNwSvcIds)
+
+        # Seperate changes from adds and removes for changelog and stats.
+
+        newNwObjIds = [newNwObjId
+            for newNwObjId in newNwObjIds
+            if newNwObjId['obj_id'] not in list(change_logger.changed_object_id_map.values())       
+        ]
+        removedNwObjIds = [removedNwObjId
+            for removedNwObjId in removedNwObjIds
+            if removedNwObjId['obj_id'] not in list(change_logger.changed_object_id_map.keys())       
+        ]
+        newNwSvcIds = [newNwSvcId
+            for newNwSvcId in newNwSvcIds
+            if newNwSvcId['svc_id'] not in list(change_logger.changed_service_id_map.values())       
+        ]
+        removedNwSvcIds = [removedNwSvcId
+            for removedNwSvcId in removedNwSvcIds
+            if removedNwSvcId['svc_id'] not in list(change_logger.changed_service_id_map.keys())       
+        ]
+
+        # Write change logs to tables.
+        
         self.addChangelogObjects(newNwObjIds, newNwSvcIds, removedNwObjIds, removedNwSvcIds)
 
         # note changes:
         self.ImportDetails.Stats.NetworkObjectAddCount = len(newNwObjIds)
         self.ImportDetails.Stats.NetworkObjectDeleteCount = len(removedNwObjIds)
+        self.ImportDetails.Stats.NetworkObjectChangeCount = len(change_logger.changed_object_id_map.items())
         self.ImportDetails.Stats.ServiceObjectAddCount = len(newNwSvcIds)
         self.ImportDetails.Stats.ServiceObjectDeleteCount = len(removedNwSvcIds)
+        self.ImportDetails.Stats.ServiceObjectChangeCount = len(change_logger.changed_service_id_map.items())
 
     def GetNetworkObjTypeMap(self):
         query = "query getNetworkObjTypeMap { stm_obj_typ { obj_typ_name obj_typ_id } }"
@@ -779,108 +813,43 @@ class FwConfigImportObject(FwConfigImportBase):
 
         nwObjs = []
         svcObjs = []
-        usrObjs = []
         importTime = datetime.datetime.now().isoformat()
         changeTyp = 3  # standard
+        change_logger = ChangeLogger()
 
         if self.ImportDetails.IsFullImport or self.ImportDetails.IsClearingImport:
             changeTyp = 2   # to be ignored in change reports
         
         # Write changelog for network objects.
 
-        for obj in [obj for obj in nwObjIdsAdded if obj["obj_typ_id"] != 21]:
-            uniqueName = self.lookupObjIdToUidAndPolicyName(obj['obj_id'])
-            nwObjs.append({
-                "new_obj_id": obj['obj_id'],
-                "control_id": self.ImportDetails.ImportId,
-                "change_action": "I",
-                "mgm_id": self.ImportDetails.MgmDetails.Id,
-                "change_type_id": changeTyp,
-                # "security_relevant": secRelevant, # assuming everything is security relevant for now
-                "change_time": importTime,
-                "unique_name": uniqueName
-            })
+        for nw_obj_id in [nw_obj_ids_added_item["obj_id"] for nw_obj_ids_added_item in nwObjIdsAdded]:
+            nwObjs.append(change_logger.create_changelog_import_object("obj", self.ImportDetails, 'I', changeTyp, importTime, nw_obj_id))
 
-        for obj in [obj for obj in nwObjIdsRemoved if obj["obj_typ_id"] != 21]:
-            uniqueName = self.lookupObjIdToUidAndPolicyName(obj['obj_id'])
-            nwObjs.append({
-                "new_obj_id": None,
-                "old_obj_id": obj['obj_id'],
-                "control_id": self.ImportDetails.ImportId,
-                "change_action": "D",
-                "mgm_id": self.ImportDetails.MgmDetails.Id,
-                "change_type_id": changeTyp,
-                # "security_relevant": secRelevant, # assuming everything is security relevant for now
-                "change_time": importTime,
-                "unique_name": uniqueName
-            })
+        for nw_obj_id in [nw_obj_ids_removed_item["obj_id"] for nw_obj_ids_removed_item in nwObjIdsRemoved]:
+            nwObjs.append(change_logger.create_changelog_import_object("obj", self.ImportDetails, 'D', changeTyp, importTime, nw_obj_id))
 
-        # Write changelog for users.
-
-        for obj in [obj for obj in nwObjIdsAdded if obj["obj_typ_id"] == 21]:
-            uniqueName = self.lookupObjIdToUidAndPolicyName(obj['obj_id'])
-            usrObjs.append({
-                "new_user_id": obj['obj_id'],
-                "control_id": self.ImportDetails.ImportId,
-                "change_action": "I",
-                "mgm_id": self.ImportDetails.MgmDetails.Id,
-                "change_type_id": changeTyp,
-                # "security_relevant": secRelevant, # assuming everything is security relevant for now
-                "change_time": importTime,
-                "unique_name": uniqueName
-            })
-
-        for obj in [obj for obj in nwObjIdsRemoved if obj["obj_typ_id"] == 21]:
-            uniqueName = self.lookupObjIdToUidAndPolicyName(obj['obj_id'])
-            usrObjs.append({
-                "new_user_id": None,
-                "old_user_id": obj['obj_id'],
-                "control_id": self.ImportDetails.ImportId,
-                "change_action": "D",
-                "mgm_id": self.ImportDetails.MgmDetails.Id,
-                "change_type_id": changeTyp,
-                # "security_relevant": secRelevant, # assuming everything is security relevant for now
-                "change_time": importTime,
-                "unique_name": uniqueName
-            })
+        for old_nw_obj_id, new_nw_obj_id in change_logger.changed_object_id_map.items():
+            nwObjs.append(change_logger.create_changelog_import_object("obj", self.ImportDetails, 'C', changeTyp, importTime, new_nw_obj_id, old_nw_obj_id))
 
         # Write changelog for Services.
 
-        for svc in svcObjIdsAdded:
-            uniqueName = self.lookupSvcIdToUidAndPolicyName(svc['svc_id'])
-            svcObjs.append({
-                "new_svc_id": svc['svc_id'],
-                "control_id": self.ImportDetails.ImportId,
-                "change_action": "I",
-                "mgm_id": self.ImportDetails.MgmDetails.Id,
-                "change_type_id": changeTyp,
-                # "security_relevant": secRelevant, # assuming everything is security relevant for now
-                "change_time": importTime,
-                "unique_name": uniqueName
-            })
+        for svc_id in [svc_ids_added_item["svc_id"] for svc_ids_added_item in svcObjIdsAdded]:
+            svcObjs.append(change_logger.create_changelog_import_object("svc", self.ImportDetails, 'I', changeTyp, importTime, svc_id))
 
-        for svc in svcObjIdsRemoved:
-            uniqueName = self.lookupSvcIdToUidAndPolicyName(svc['svc_id'])
-            svcObjs.append({
-                "new_svc_id": None,
-                "old_svc_id": svc['svc_id'],
-                "control_id": self.ImportDetails.ImportId,
-                "change_action": "D",
-                "mgm_id": self.ImportDetails.MgmDetails.Id,
-                "change_type_id": changeTyp,
-                # "security_relevant": secRelevant, # assuming everything is security relevant for now
-                "change_time": importTime,
-                "unique_name": uniqueName
-            })
+        for svc_id in [svc_ids_removed_item["svc_id"] for svc_ids_removed_item in svcObjIdsRemoved]:
+            svcObjs.append(change_logger.create_changelog_import_object("svc", self.ImportDetails, 'D', changeTyp, importTime, svc_id))
 
+        for old_svc_id, new_svc_id in change_logger.changed_service_id_map.items():
+            svcObjs.append(change_logger.create_changelog_import_object("svc", self.ImportDetails, 'C', changeTyp, importTime, new_svc_id, old_svc_id))
 
-        return nwObjs, svcObjs, usrObjs
+        return nwObjs, svcObjs
+
 
     def addChangelogObjects(self, nwObjIdsAdded, svcObjIdsAdded, nwObjIdsRemoved, svcObjIdsRemoved):
         logger = getFwoLogger()
         errors = 0
 
-        nwObjsChanged, svcObjsChanged, usrObjsChanged = self.prepareChangelogObjects(nwObjIdsAdded, svcObjIdsAdded, nwObjIdsRemoved, svcObjIdsRemoved)
+        nwObjsChanged, svcObjsChanged = self.prepareChangelogObjects(nwObjIdsAdded, svcObjIdsAdded, nwObjIdsRemoved, svcObjIdsRemoved)
 
         changelogMutation = """
             mutation updateObjChangelogs($nwObjChanges: [changelog_object_insert_input!]!, $svcObjChanges: [changelog_service_insert_input!]!) {
@@ -893,16 +862,9 @@ class FwConfigImportObject(FwConfigImportBase):
             }
         """
 
-        # TODO: Add to mutation when writing usr to db is implemented
-        #, $usrObjChanges: [changelog_user_insert_input!]!
-        # insert_changelog_user(objects: $usrObjChanges) {
-        #     affected_rows
-        # }
-
         queryVariables = {
             'nwObjChanges': nwObjsChanged, 
             'svcObjChanges': svcObjsChanged
-            # , 'usrObjChanges': usrObjsChanged # TODO: Uncomment when writing usr to db is implemented
         }
 
         if len(nwObjsChanged) + len(svcObjsChanged)>0:

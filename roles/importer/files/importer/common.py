@@ -138,7 +138,7 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
     except Exception as e:
         if 'importState' in locals() and importState is not None:
             importState.addError("Unexpected exception in import process - aborting " + traceback.format_exc())
-            if configImporter is not None:
+            if 'configImporter' in locals() and configImporter is not None:
                 rollBackExceptionHandler(importState, configImporter=configImporter, exc=e)
         raise
     finally:

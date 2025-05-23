@@ -99,7 +99,6 @@ def call(url, jwt, query, query_variables="", role="reporter", show_progress=Fal
             print(f"Other error occurred: {err}")
 
 
-
 def login(user, password, user_management_api_base_url, method='api/AuthenticationToken/Get'):
     payload = {"Username": user, "Password": password}
 
@@ -631,9 +630,12 @@ def complete_import(importState: "ImportStateController"):
 
     import_result = "import_management: import no. " + str(importState.ImportId) + \
             " for management " + importState.MgmDetails.Name + ' (id=' + str(importState.MgmDetails.Id) + ")" + \
-            str(" threw errors," if importState.Stats.ErrorCount else " successful,") + \
-            " change_count: " + str(importState.Stats.getTotalChangeNumber()) + \
-            ", duration: " + str(int(time.time()) - importState.StartTime) + "s" 
+            str(" threw errors," if importState.Stats.ErrorCount else " successful,")
+    if importState.DebugLevel>3:
+        import_result += " change_stats: " + str(importState.Stats.getChangeDetails())
+    else:
+        import_result += " change_count: " + str(importState.Stats.getTotalChangeNumber()) 
+    import_result += ", duration: " + str(int(time.time()) - importState.StartTime) + "s" 
     
     if len(importState.Stats.ErrorDetails) > 0:
         import_result += ", ERRORS: " + str(importState.Stats.ErrorDetails)
@@ -648,7 +650,6 @@ def complete_import(importState: "ImportStateController"):
         logger.info(import_result.encode().decode("unicode_escape"))
         importState.Stats.ErrorAlreadyLogged = True
 
-    return
 
 def getLastImportDetails(fwo_api_base_url, jwt, queryVariables, debug_level=0):
     mgm_query = """
@@ -677,6 +678,7 @@ def getLastImportDetails(fwo_api_base_url, jwt, queryVariables, debug_level=0):
         logger.error(f"error while getting past import details for mgm {str(queryVariables)}")
 
     return int(retentionInDays), lastFullImportId, lastFullImportDate
+
 
 def getLastImportDate(fwo_api_base_url, jwt, queryVariables, debug_level=0):
     mgm_query = """

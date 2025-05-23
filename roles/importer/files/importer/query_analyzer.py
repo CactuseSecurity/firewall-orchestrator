@@ -1,6 +1,14 @@
-from graphql import parse, print_ast, visit
-from graphql.language.visitor import Visitor
-from graphql.language.ast import Document, VariableDefinition, OperationDefinition
+try:
+    # GraphQL-core v3+
+    from graphql import parse, print_ast, visit
+    from graphql.language import Visitor
+    from graphql.language.ast import DocumentNode as Document, VariableDefinitionNode as VariableDefinition, OperationDefinitionNode as OperationDefinition
+except ImportError:
+    # GraphQL-core v2
+    from graphql import parse, print_ast, visit
+    from graphql.language.visitor import Visitor
+    from graphql.language.ast import Document, VariableDefinition, OperationDefinition
+
 from typing import Dict, Any, Optional
 
 from fwo_const import api_call_chunk_size
@@ -100,11 +108,27 @@ class QueryAnalyzer(Visitor):
             Called by visit function for each variable definition in the AST.
         """
 
+        self.enter_operation_definition(node)
+
+
+    def enter_VariableDefinition(self, node: VariableDefinition, *_):
+        """
+            Called by visit function for each variable definition in the AST.
+        """
+
+        self.enter_variable_definition(node)
+
+
+    def enter_operation_definition(self, node: OperationDefinition, *_):
+        """
+            Called by visit function for each variable definition in the AST.
+        """
+
         self._query_info["query_type"] = node.operation
         self._query_info["query_name"] = node.name.value if node.name else ""
 
 
-    def enter_VariableDefinition(self, node: VariableDefinition, *_):
+    def enter_variable_definition(self, node: VariableDefinition, *_):
         """
             Called by visit function for each variable definition in the AST.
         """

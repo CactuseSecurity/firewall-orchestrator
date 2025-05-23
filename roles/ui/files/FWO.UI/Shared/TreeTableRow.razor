@@ -47,52 +47,52 @@
     [Parameter] 
     public Action<TreeNode<TItem>> OnToggle { get; set; }
 
-    // private string GetColumnStyle()
-    // {
-    //     string color = "#ffff";
-    //     string yellow = "#fbf3b5", gray = "#f0f1f3", lightBlue = "#bbe3fd";
-    //     int rem = Level * 1;
+    private string GetColumnStyle()
+    {
+        string color = "#ffff";
+        string yellow = "#fbf3b5", gray = "#f0f1f3", lightBlue = "#bbe3fd";
+        int rem = Level * 1;
 
-    //     if(Node.Item is MyData)
-    //     {
-    //         MyData item = (MyData)Convert.ChangeType(Node.Item, typeof(MyData));
+        if(Node.Item is Rule)
+        {
+            Rule item = (Rule)Convert.ChangeType(Node.Item, typeof(Rule));
 
-    //         switch (item.HeaderType)
-    //         {
-    //             case HeaderType.Section:
-    //                 color = yellow;
-    //                 break;
-    //             case HeaderType.Rulebase:
-    //                 color = gray;
-    //                 rem -= 1;
-    //                 break;
-    //             default:
-    //                 color = gray;
-    //                 rem -= 1;
-    //                 break;
-    //         }
-    //     }
+            //switch section/rulebase/inline
+            // switch (item.HeaderType)
+            // {
+            //     case HeaderType.Section:
+            //         color = yellow;
+            //         break;
+            //     case HeaderType.Rulebase:
+            //         color = gray;
+            //         rem -= 1;
+            //         break;
+            //     default:
+            //         color = gray;
+            //         rem -= 1;
+            //         break;
+            // }
+        }
 
-        
+        return $"padding-left:{rem}rem; background-color: {color}";
+    }
 
-    //     return $"padding-left:{rem}rem; background-color: {color}";
-    // }
+    private string GetColumnSpan()
+    {
+        if(Node.Item is Rule)
+        {
+            Rule item = (Rule)Convert.ChangeType(Node.Item, typeof(Rule));
 
-    // private string GetColumnSpan()
-    // {
-    //     if(Node.Item is MyData)
-    //     {
-    //         MyData item = (MyData)Convert.ChangeType(Node.Item, typeof(MyData));
+            //switch section/rulebase/inline
+            // switch(item.HeaderType)
+            // {
+            //     case HeaderType.Section:
+            //         return "4";
+            //     default: 
+            //         return "1";
+            // }
+        }
 
-    //         switch(item.HeaderType)
-    //         {
-    //             case HeaderType.Section:
-    //                 return "4";
-    //             default: 
-    //                 return "1";
-    //         }
-    //     }
-
-    //     return "1";
-    // }
+        return "1";
+    }
 }

@@ -64,38 +64,11 @@ def get_config(nativeConfig: json, importState: ImportStateController) -> tuple[
         starttimeTemp = int(time.time())
         logger.debug ( "checkpointR8x/get_config/getting objects ...")
 
-        #result_get_objects = get_objects (nativeConfig, importState.MgmDetails, cpManagerApiBaseUrl, sid, force=importState.ForceImport, limit=str(importState.FwoConfig.ApiFetchSize), details_level=cp_const.details_level_objects, test_version='off')
-        result_get_objects = getObjects (nativeConfig, importState)
+        result_get_objects = get_objects(nativeConfig, importState)
         if result_get_objects>0:
             logger.warning ( "checkpointR8x/get_config/error while gettings objects")
             return result_get_objects
         logger.debug ( "checkpointR8x/get_config/fetched objects in " + str(int(time.time()) - starttimeTemp) + "s")
-
-
-        # delete_v prüfe nativeConfig, kann später weg
-        # inDom1ButNotInDom2List = {}
-        # for dom1Types in nativeConfig['object_tables']['c0f60e6c-23af-4bcb-be0b-26f79d734995']:
-        #     currentType = dom1Types['object_type']
-        #     inDom1ButNotInDom2List.update({currentType: []})
-        #     for dom1Chunk in dom1Types['chunks']:
-        #         if 'objects' in dom1Chunk:
-        #             for dom1Object in dom1Chunk['objects']:
-        #                 if 'uid' in dom1Object:
-        #                     found = False
-
-        #                     for dom2Types in nativeConfig['object_tables']['a0bbbc99-adef-4ef8-bb6d-defdefdefdef']:
-        #                         if currentType == dom2Types['object_type']:
-        #                             for dom2Chunk in dom2Types['chunks']:
-        #                                 if 'objects' in dom2Chunk:
-        #                                     for dom2Object in dom2Chunk['objects']:
-        #                                         if 'uid' in dom2Object:
-        #                                             if dom1Object['uid'] == dom2Object['uid']:
-        #                                                 found = True
-
-        #                     if not found:
-        #                         inDom1ButNotInDom2List[currentType].append(dom1Object['uid'])
-
-
 
         starttimeTemp = int(time.time())
         logger.debug ( "checkpointR8x/get_config/getting rules ...")
@@ -237,7 +210,7 @@ def process_devices(
         if not deviceConfig:
             continue
 
-        orderedLayerUids = getOrderedLayerUids(policyStructure, deviceConfig, managerDetails.getDomainString())
+        orderedLayerUids = get_ordered_layer_uids(policyStructure, deviceConfig, managerDetails.getDomainString())
         if not orderedLayerUids:
             logger.warning(f"No ordered layers found for device: {deviceConfig['name']}")
             continue
@@ -276,7 +249,7 @@ def handle_global_rulebase_links(
         if globalAssignment['dependent-domain']['uid'] == managerDetails.getDomainString():
             for globalPolicy in globalPolicyStructure:
                 if globalPolicy['name'] == globalAssignment['global-access-policy']:
-                    global_ordered_layer_uids = getOrderedLayerUids([globalPolicy], deviceConfig, globalDomain)
+                    global_ordered_layer_uids = get_ordered_layer_uids([globalPolicy], deviceConfig, globalDomain)
                     if not global_ordered_layer_uids:
                         logger.warning(f"No access layer for global policy: {globalPolicy['name']}")
                         break
@@ -395,7 +368,7 @@ def add_ordered_layers_to_native_config(orderedLayerUids, show_params_rules,
     return policy_rulebases_uid_list
 
 
-def getOrderedLayerUids(policyStructure, deviceConfig, domain) -> list[str]:
+def get_ordered_layer_uids(policyStructure, deviceConfig, domain) -> list[str]:
     """Get UIDs of ordered layers for policy of device
     """
 
@@ -432,7 +405,7 @@ def logout_cp(url, sid):
         logger.warning("logout from CP management failed")
 
 
-def getObjects (nativeConfig: dict, importState: ImportStateController) -> int:
+def get_objects(nativeConfig: dict, importState: ImportStateController) -> int:
 
     nativeConfig.update({'object_domains': []})
     show_params_objs = {'limit': importState.FwoConfig.ApiFetchSize}

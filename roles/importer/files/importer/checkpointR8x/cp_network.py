@@ -8,7 +8,7 @@ import fwo_const
 import fwo_globals
 
 
-def normalize_network_objects(full_config, config2import, import_id, mgm_id=0, debug_level=0):
+def normalize_network_objects(full_config, config2import, import_id, mgm_id=0):
     nw_objects = []
     logger = getFwoLogger()
     global_domain = initialize_global_domain(full_config['object_domains'])
@@ -16,8 +16,7 @@ def normalize_network_objects(full_config, config2import, import_id, mgm_id=0, d
 
     for domain in full_config['object_domains']:
         for obj_table in domain['object_types']:
-            collect_nw_objects(obj_table, nw_objects, global_domain,
-                            debug_level=debug_level, mgm_id=mgm_id)
+            collect_nw_objects(obj_table, nw_objects, global_domain, mgm_id=mgm_id)
         for nw_obj in nw_objects:
             nw_obj.update({'control_id': import_id})
             if nw_obj['obj_typ'] == 'interoperable-device':
@@ -50,7 +49,7 @@ def initialize_global_domain(object_domains : list[dict]):
     return global_domain
 
 
-def collect_nw_objects(object_table, nw_objects, global_domain, debug_level=0, mgm_id=0):
+def collect_nw_objects(object_table, nw_objects, global_domain, mgm_id=0):
     """Collect nw_objects from object tables and write them into global nw_objects dict
     """
 

@@ -468,14 +468,21 @@ def get_placeholder_in_rulebase(rulebase):
                         }
 
                 for rule in section['rulebase']:
-                    if rule['type'] == 'place-holder':
-                        placeholder_rule_uid = rule['uid']
-                        if 'uid' in section:
-                            placeholder_rulebase_uid = section['uid']
-                        else:
-                            placeholder_rulebase_uid = rulebase['uid']
+                    placeholder_rule_uid, placeholder_rulebase_uid = assign_placeholder_uids(
+                        rulebase, section, rule, placeholder_rule_uid, placeholder_rulebase_uid)
+
 
     return placeholder_rule_uid, placeholder_rulebase_uid
+
+def assign_placeholder_uids(rulebase, section, rule):
+    if rule['type'] == 'place-holder':
+        placeholder_rule_uid = rule['uid']
+        if 'uid' in section:
+            placeholder_rulebase_uid = section['uid']
+        else:
+            placeholder_rulebase_uid = rulebase['uid']
+    return placeholder_rule_uid, placeholder_rulebase_uid
+    
                             
 
 def get_nat_rules_from_api_as_dict (api_v_url, sid, show_params_rules, nativeConfig={}):
@@ -529,30 +536,32 @@ def resolveRefFromObjectDictionary(id, objDict, nativeConfig={}, sid='', base_ur
             logger.info(f"adding voip domain '{matched_obj['name']}' object manually, because it is not retrieved by show objects API command")
 
             if 'object_domains' in nativeConfig:
-
-                # find right domain in nativeConfig
-                domain_index = 0
-                if 'domain' in matched_obj and 'uid' in matched_obj['domain']:
-                    loop_index = 0
-                    for object_domain in nativeConfig['object_domains']:
-                        if object_domain['domain_uid'] == matched_obj['domain']['uid']:
-                            domain_index = loop_index
-                        loop_index += 1
-
-                    color = matched_obj.get('color', 'black')
-                    nativeConfig['object_domains'][domain_index]['object_types'].append({ 
-                            "type": "hosts", "chunks": [ {
-                            "objects": [ {
-                            'uid': matched_obj['uid'], 'name': matched_obj['name'], 'color': color,
-                            'type': matched_obj['type'], 'domain': matched_obj['domain']
-                        } ] } ] } )
-                    
-                else:
-                    logger.warning(f"found no domain while adding voip object '{matched_obj['name']}' object")
+                find_domain_to_resolve_object_via_uid(matched_obj, nativeConfig)
             else:
                 logger.warning(f"found no existing object_domains while adding voip domain '{matched_obj['name']}' object")
 
         return matched_obj
+    
+def find_domain_to_resolve_object_via_uid(matched_obj, nativeConfig):
+
+    domain_index = 0
+    if 'domain' in matched_obj and 'uid' in matched_obj['domain']:
+        loop_index = 0
+        for object_domain in nativeConfig['object_domains']:
+            if object_domain['domain_uid'] == matched_obj['domain']['uid']:
+                domain_index = loop_index
+            loop_index += 1
+
+        color = matched_obj.get('color', 'black')
+        nativeConfig['object_domains'][domain_index]['object_types'].append({ 
+                "type": "hosts", "chunks": [ {
+                "objects": [ {
+                'uid': matched_obj['uid'], 'name': matched_obj['name'], 'color': color,
+                'type': matched_obj['type'], 'domain': matched_obj['domain']
+            } ] } ] } )
+        
+    else:
+        logger.warning(f"found no domain while adding voip object '{matched_obj['name']}' object")
 
 
 # resolving all uid references using the object dictionary
@@ -602,7 +611,7 @@ def getObjectDetailsFromApi(uid_missing_obj, sid='', apiurl=''):
                             "objects": [ {
                             'uid': obj['uid'], 'name': obj['name'], 'color': color,
                             'comments': 'any nw object checkpoint (hard coded)',
-                            'type': 'network', 'ipv4-address': '0.0.0.0/0',
+                            'type': 'network', 'ipv4-address': fwo_const.any_ip_ipv4,
                             'domain': obj['domain']
                             } ] } ] }
                     elif (obj['name'] == 'None'):
@@ -637,7 +646,7 @@ def getObjectDetailsFromApi(uid_missing_obj, sid='', apiurl=''):
                     return {"type": "hosts", "chunks": [ {
                         "objects": [ {
                         'uid': obj['uid'], 'name': obj['name'], 'color': color,
-                        'comments': obj['comments'], 'type': 'host', 'ipv4-address': '0.0.0.0/0',
+                        'comments': obj['comments'], 'type': 'host', 'ipv4-address': fwo_const.any_ip_ipv4,
                         'domain': obj['domain']
                         } ] } ] }
                 elif (obj['type'] in [ 'updatable-object', 'CpmiVoipSipDomain', 'CpmiVoipMgcpDomain' ]):
@@ -651,7 +660,7 @@ def getObjectDetailsFromApi(uid_missing_obj, sid='', apiurl=''):
                     return {"type": "hosts", "chunks": [ {
                         "objects": [ {
                         'uid': obj['uid'], 'name': obj['name'], 'color': color,
-                        'comments': obj['comments'], 'type': 'network', 'ipv4-address': '0.0.0.0/0',
+                        'comments': obj['comments'], 'type': 'network', 'ipv4-address': fwo_const.any_ip_ipv4,
                         'domain': obj['domain']
                         } ] } ] }
                 elif (obj['type'] == 'access-role'):

@@ -25,17 +25,20 @@ def normalize_network_objects(full_config, config2import, import_id, mgm_id=0, d
             if nw_obj['obj_typ'] == 'CpmiVoipSipDomain':
                 logger.info(f"found VOIP object - tranforming to empty group")
                 nw_obj.update({'obj_typ': 'group'})
-            # set a dummy IP address for objects without IP addreses
-            if nw_obj['obj_typ']!='group' and (nw_obj['obj_ip'] is None or nw_obj['obj_ip'] == ''):
-                logger.warning("found object without IP :" + nw_obj['obj_name'] + " (type=" + nw_obj['obj_typ'] + ") - setting dummy IP")
-                nw_obj.update({'obj_ip': fwo_const.dummy_ip})
-                nw_obj.update({'obj_ip_end': fwo_const.dummy_ip})
+            set_dummy_ip_for_object_without_ip(nw_obj)
 
     for idx in range(0, len(nw_objects)-1):
         if nw_objects[idx]['obj_typ'] == 'group':
             add_member_names_for_nw_group(idx, nw_objects)
 
     config2import.update({'network_objects': nw_objects})
+
+def set_dummy_ip_for_object_without_ip(nw_obj):
+    logger = getFwoLogger()
+    if nw_obj['obj_typ']!='group' and (nw_obj['obj_ip'] is None or nw_obj['obj_ip'] == ''):
+        logger.warning("found object without IP :" + nw_obj['obj_name'] + " (type=" + nw_obj['obj_typ'] + ") - setting dummy IP")
+        nw_obj.update({'obj_ip': fwo_const.dummy_ip})
+        nw_obj.update({'obj_ip_end': fwo_const.dummy_ip})
 
 def initialize_global_domain(object_domains : list[dict]):
     """Returns CP Global Domain for MDS and standalone domain otherwise
@@ -50,7 +53,6 @@ def initialize_global_domain(object_domains : list[dict]):
 def collect_nw_objects(object_table, nw_objects, global_domain, debug_level=0, mgm_id=0):
     """Collect nw_objects from object tables and write them into global nw_objects dict
     """
-    logger = getFwoLogger()
 
     if object_table['type'] in cp_const.nw_obj_table_names:
         for chunk in object_table['chunks']:
@@ -63,15 +65,8 @@ def collect_nw_objects(object_table, nw_objects, global_domain, debug_level=0, m
                         continue
                     member_refs, member_names = handle_members(obj)  
                     ip_addr = get_ip_of_obj(obj, mgm_id=mgm_id)
-                    obj_type, first_ip, last_ip = handle_object_type_and_ip(obj, obj_type, ip_addr)
-                    
-                    # adding the object:
-                    if not 'comments' in obj or obj['comments'] == '':
-                        comments = None
-                    else:
-                        comments = obj['comments']
-                    if 'color' not in obj:
-                        obj['color'] = 'black'
+                    obj_type, first_ip, last_ip = handle_object_type_and_ip(obj, obj_type, ip_addr)  
+                    comments = get_comment_and_color_of_obj(obj)
 
                     nw_objects.append({'obj_uid': obj['uid'], 'obj_name': obj['name'], 'obj_color': obj['color'],
                                         'obj_comment': comments, 'obj_domain': obj['domain']['uid'],
@@ -134,8 +129,6 @@ def handle_object_type_and_ip(obj, obj_type, ip_addr):
     elif len(ipArray)==1:
         first_ip = ipArray[0]
         last_ip  = None
-    else:
-        logger.warning("found strange ip: " + ip_addr)
 
     if 'type' in obj:
         obj_type = obj['type']
@@ -152,7 +145,7 @@ def handle_object_type_and_ip(obj, obj_type, ip_addr):
         last_ip = '255.255.255.255/32'
         obj_type = 'network'
 
-    if obj_type == 'address-range' or obj_type == 'multicast-address-range':
+    if obj_type in ['address-range', 'multicast-address-range']:
         obj_type = 'ip_range'
         if fwo_globals.debug_level>5:
             logger.debug(
@@ -170,6 +163,16 @@ def handle_object_type_and_ip(obj, obj_type, ip_addr):
 
     return obj_type, first_ip, last_ip
 
+def get_comment_and_color_of_obj(obj):
+    """Returns comment and sets missing color to black
+    """
+    if not 'comments' in obj or obj['comments'] == '':
+        comments = None
+    else:
+        comments = obj['comments']
+    if 'color' not in obj:
+        obj['color'] = 'black'
+    return comments
 
 # for members of groups, the name of the member obj needs to be fetched separately (starting from API v1.?)
 def resolve_nw_uid_to_name(uid, nw_objects):

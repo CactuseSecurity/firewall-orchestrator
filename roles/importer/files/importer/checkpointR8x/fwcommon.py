@@ -406,12 +406,14 @@ def getOrderedLayerUids(policyStructure, deviceConfig, domain) -> list[str]:
             if target['uid'] == deviceConfig['uid'] or target['uid'] == 'all':
                 foundTargetInPolciy = True
         if foundTargetInPolciy:
-            for accessLayer in policy['access-layers']:
-                if accessLayer['domain'] == domain or domain == '':
-                    orderedLayerUids.append(accessLayer['uid'])
+            append_access_layer_uid(policy, domain, orderedLayerUids)
 
     return orderedLayerUids
 
+def append_access_layer_uid(policy, domain, orderedLayerUids):
+    for accessLayer in policy['access-layers']:
+        if accessLayer['domain'] == domain or domain == '':
+            orderedLayerUids.append(accessLayer['uid'])
 
 def loginCp(mgm_details, ssl_verification=True):
     try: # top level dict start, sid contains the domain information, so only sending domain during login
@@ -504,8 +506,6 @@ def get_objects_per_type(obj_type, show_params_objs, sid, cpManagerApiBaseUrl):
                 logger.debug ( obj_type +" current:"+ str(current) + " of a total " + str(total) )
         else :
             current = total
-            if fwo_globals.debug_level>5:
-                logger.debug ( obj_type +" total:"+ str(total) )
 
     return object_table
 

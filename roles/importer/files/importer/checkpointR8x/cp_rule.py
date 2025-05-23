@@ -50,11 +50,10 @@ def find_rulebase_to_parse(rulebase_list, rulebase_uid):
     for rulebase in rulebase_list:
         if rulebase['uid'] == rulebase_uid:
             return rulebase, False
-        else:
-            for chunk in rulebase['chunks']:
-                for section in chunk['rulebase']:
-                    if section['uid'] == rulebase_uid:
-                        return section, True
+        for chunk in rulebase['chunks']:
+            for section in chunk['rulebase']:
+                if section['uid'] == rulebase_uid:
+                    return section, True
                     
 def initialize_normalized_rulebase(rulebase_to_parse, mgm_uid):
     rulebaseName = rulebase_to_parse['name']

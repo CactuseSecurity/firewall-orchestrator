@@ -474,7 +474,7 @@ def get_placeholder_in_rulebase(rulebase):
 
     return placeholder_rule_uid, placeholder_rulebase_uid
 
-def assign_placeholder_uids(rulebase, section, rule):
+def assign_placeholder_uids(rulebase, section, rule, placeholder_rule_uid, placeholder_rulebase_uid):
     if rule['type'] == 'place-holder':
         placeholder_rule_uid = rule['uid']
         if 'uid' in section:

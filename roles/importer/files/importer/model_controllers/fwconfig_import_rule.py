@@ -103,6 +103,8 @@ class FwConfigImportRule(FwConfigImportBase):
 
         error_count_move, number_of_moved_rules, moved_rule_uids = self.verify_rules_moved(changed_rule_uids)
 
+        self.write_changelog_rules(newRuleIds, removedRuleIds)
+
         self.ImportDetails.Stats.RuleAddCount += numberOfAddedRules
         self.ImportDetails.Stats.RuleDeleteCount += numberOfDeletedRules
         self.ImportDetails.Stats.RuleMoveCount += number_of_moved_rules
@@ -1271,3 +1273,84 @@ class FwConfigImportRule(FwConfigImportBase):
             prepared_rules.append(rule_for_import)
         return { "data": prepared_rules }
     
+
+    def write_changelog_rules(self, added_rules_ids, removed_rules_ids):
+        logger = getFwoLogger()
+        errors = 0
+
+        changelog_rule_insert_objects = self.prepare_changelog_rules_insert_objects(added_rules_ids, removed_rules_ids)
+
+        updateChanglogRules = """
+            mutation updateChanglogRules($rule_changes: [changelog_rule_insert_input!]!) {
+                insert_changelog_rule(objects: $rule_changes) {
+                    affected_rows
+                }
+            }
+        """
+        queryVariables = {
+            'rule_changes': changelog_rule_insert_objects
+        }
+
+        if len(changelog_rule_insert_objects) > 0:
+            try:
+                updateChanglogRules_result = self.ImportDetails.call(updateChanglogRules, queryVariables=queryVariables, analyze_payload=True)
+                if 'errors' in updateChanglogRules_result:
+                    logger.exception(f"error while adding changelog entries for objects: {str(updateChanglogRules_result['errors'])}")
+                    errors = 1
+            except Exception:
+                logger.exception(f"fatal error while adding changelog entries for objects: {str(traceback.format_exc())}")
+                errors = 1
+        
+        return errors
+
+
+    def prepare_changelog_rules_insert_objects(self, added_rules_ids, removed_rules_ids):
+        """
+            Creates two lists of insert arguments for the changelog_rules db table, one for new rules, one for deleted.
+        """
+        # TODO: deal with object changes where we need old and new obj id
+
+        changelog_rule_insert_objects = []
+        importTime = datetime.now().isoformat()
+        changeTyp = 3  # standard
+
+        if self.ImportDetails.IsFullImport or self.ImportDetails.IsClearingImport:
+            changeTyp = 2   # to be ignored in change reports
+        
+        # Write changelog for network objects.
+
+        for rule_id in added_rules_ids:
+            uniqueName = self.get_rule_unique_name(rule_id)
+            changelog_rule_insert_objects.append({
+                "new_rule_id": rule_id,
+                "control_id": self.ImportDetails.ImportId,
+                "change_action": "I",
+                "mgm_id": self.ImportDetails.MgmDetails.Id,
+                "change_type_id": changeTyp,
+                # "security_relevant": secRelevant, # assuming everything is security relevant for now
+                "change_time": importTime,
+                "unique_name": uniqueName,
+                "dev_id": 3 # TODO: Set correct value.
+            })
+
+        for rule_id in removed_rules_ids:
+            uniqueName = self.get_rule_unique_name(rule_id)
+            changelog_rule_insert_objects.append({
+                "new_rule_id": None,
+                "old_rule_id": rule_id,
+                "control_id": self.ImportDetails.ImportId,
+                "change_action": "D",
+                "mgm_id": self.ImportDetails.MgmDetails.Id,
+                "change_type_id": changeTyp,
+                # "security_relevant": secRelevant, # assuming everything is security relevant for now
+                "change_time": importTime,
+                "unique_name": uniqueName,
+                "dev_id": 3 # TODO: Set correct value.
+            })
+
+        return changelog_rule_insert_objects
+    
+    def get_rule_unique_name(self, rule_id: int):
+        # TODO: implement
+        return str(rule_id)
+

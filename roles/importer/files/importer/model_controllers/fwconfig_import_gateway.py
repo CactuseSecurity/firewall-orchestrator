@@ -37,9 +37,11 @@ class FwConfigImportGateway(FwConfigImportBase):
                 if self.ImportDetails.DebugLevel>3:
                     logger.debug(f"gateway {str(gw)} NOT found in previous config")
                 gwId = self.ImportDetails.lookupGatewayId(gw.Uid)
+                if gwId is None or gwId == '' or gwId == 'none':
+                    logger.warning(f"did not find a gwId for UID {gw.Uid}")
                 for link in gw.RulebaseLinks:
                     from_rule_id = self.ImportDetails.lookupRule(link.from_rule_uid)
-                    if link.from_rulebase_uid is None:
+                    if link.from_rulebase_uid is None or link.from_rulebase_uid == '':
                         from_rulebase_id = None
                     else:
                         from_rulebase_id = self.ImportDetails.lookupRulebaseId(link.from_rulebase_uid)
@@ -48,6 +50,8 @@ class FwConfigImportGateway(FwConfigImportBase):
                         self.ImportDetails.Stats.addError(f"toRulebaseId is None for link {link}")
                         continue
                     link_type_id = self.ImportDetails.lookupLinkType(link.link_type)
+                    if link_type_id is None or type(link_type_id) is not int:
+                        logger.warning(f"did not find a link_type_id for link_type {link.link_type}")
                     rb_link_list.append(RulebaseLink(gw_id=gwId, 
                                          from_rule_id=from_rule_id,
                                          to_rulebase_id=to_rulebase_id,

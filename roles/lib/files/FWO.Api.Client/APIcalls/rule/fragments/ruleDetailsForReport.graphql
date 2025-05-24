@@ -34,7 +34,10 @@
   access_rule
   nat_rule
   xlate_rule  
-  rule_froms(where: {object:{obj_create:{_lte:$import_id_end}, obj_last_seen:{_gte:$import_id_start}}}) {
+  rule_froms(where: {
+    rf_last_seen: { _gte: $import_id_start }
+    rf_create: { _lte: $import_id_end }
+  }) {
     usr {
       ...userDetails
     }
@@ -46,7 +49,10 @@
     zone_name
     zone_id
   }
-  rule_tos(where: {object:{obj_create:{_lte:$import_id_end}, obj_last_seen:{_gte:$import_id_start}}}) {
+  rule_tos(where: {
+    rt_last_seen: { _gte: $import_id_start }
+    rt_create: { _lte: $import_id_end }
+  }) {
     usr {
       ...userDetails
     }
@@ -54,7 +60,10 @@
       ...networkObjectDetails
     }
   }
-  rule_services(where: {service:{svc_create:{_lte:$import_id_end}, svc_last_seen:{_gte:$import_id_start}}}) {
+  rule_services(where: {
+    rs_last_seen: { _gte: $import_id_start }
+    rs_create: { _lte: $import_id_end }
+  }) {
     service {
       ...networkServiceDetails
     }

@@ -27,8 +27,6 @@ namespace FWO.Report.Filter
             " $limit: Int ",
             " $offset: Int ",
             " $active: Boolean ",
-            " $import_id_start: bigint ", // TODO: refactor to use instead of import_id
-            " $import_id_end: bigint ",
         ];
 
         public string ReportTimeString { get; set; } = "";
@@ -367,19 +365,20 @@ namespace FWO.Report.Filter
                     case ReportType.NatRules:
                     case ReportType.UnusedRules:
                     case ReportType.AppRules:
-                        query.QueryParameters.Add("$relevantImportId: bigint ");
+                        query.QueryParameters.Add("$import_id_start: bigint ");
+                        query.QueryParameters.Add("$import_id_end: bigint ");
                         query.RuleWhereStatement +=
-                            $"import_control: {{ control_id: {{_lte: $relevantImportId }} }}, " +
-                            $"importControlByRuleLastSeen: {{ control_id: {{_gte: $relevantImportId }} }}";
+                            $"import_control: {{ control_id: {{_lte: $import_id_end }} }}, " +
+                            $"importControlByRuleLastSeen: {{ control_id: {{_gte: $import_id_start }} }}";
                         query.NwObjWhereStatement +=
-                            $"import_control: {{ control_id: {{_lte: $relevantImportId }} }}, " +
-                            $"importControlByObjLastSeen: {{ control_id: {{_gte: $relevantImportId }} }}";
+                            $"import_control: {{ control_id: {{_lte: $import_id_end }} }}, " +
+                            $"importControlByObjLastSeen: {{ control_id: {{_gte: $import_id_start }} }}";
                         query.SvcObjWhereStatement +=
-                            $"import_control: {{ control_id: {{_lte: $relevantImportId }} }}, " +
-                            $"importControlBySvcLastSeen: {{ control_id: {{_gte: $relevantImportId }} }}";
+                            $"import_control: {{ control_id: {{_lte: $import_id_end }} }}, " +
+                            $"importControlBySvcLastSeen: {{ control_id: {{_gte: $import_id_start }} }}";
                         query.UserObjWhereStatement +=
-                            $"import_control: {{ control_id: {{_lte: $relevantImportId }} }}, " +
-                            $"importControlByUserLastSeen: {{ control_id: {{_gte: $relevantImportId }} }}";
+                            $"import_control: {{ control_id: {{_lte: $import_id_end }} }}, " +
+                            $"importControlByUserLastSeen: {{ control_id: {{_gte: $import_id_start }} }}";
                         query.ReportTimeString = timeFilter.IsShortcut ?
                             DateTime.Now.ToString(fullTimeFormat) : timeFilter.ReportTime.ToString(fullTimeFormat);
                         break;
@@ -391,7 +390,6 @@ namespace FWO.Report.Filter
                         query.QueryVariables["stop"] = stop;
                         query.QueryParameters.Add("$start: timestamp! ");
                         query.QueryParameters.Add("$stop: timestamp! ");
-                        query.QueryParameters.Add("$relevantImportId: bigint ");
 
                         query.RuleWhereStatement += $@"
                         _and: [

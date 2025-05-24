@@ -10,7 +10,7 @@ fragment natRuleOverview on rule {
     rule_svc
     rule_svc_refs
     rule_svc_neg
-    rule_froms(where: {object:{obj_create:{_lte:$relevantImportId}, obj_last_seen:{_gte:$relevantImportId}}}) {
+    rule_froms(where: {object:{obj_create:{_lte:$import_id_end}, obj_last_seen:{_gte:$import_id_start}}}) {
       usr {
         ...userOverview
       }
@@ -18,7 +18,7 @@ fragment natRuleOverview on rule {
         ...networkObjectOverview
       }
     }
-    rule_tos(where: {object:{obj_create:{_lte:$relevantImportId}, obj_last_seen:{_gte:$relevantImportId}}}) {
+    rule_tos(where: {object:{obj_create:{_lte:$import_id_end}, obj_last_seen:{_gte:$import_id_start}}}) {
       usr {
         ...userOverview
       }
@@ -26,7 +26,7 @@ fragment natRuleOverview on rule {
         ...networkObjectOverview
       }
     }
-    rule_services(where: {service:{svc_create:{_lte:$relevantImportId}, svc_last_seen:{_gte:$relevantImportId}}}) {
+    rule_services(where: {service:{svc_create:{_lte:$import_id_end}, svc_last_seen:{_gte:$import_id_start}}}) {
       service {
         ...networkServiceOverview
       }

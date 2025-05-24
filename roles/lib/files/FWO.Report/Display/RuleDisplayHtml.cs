@@ -92,10 +92,10 @@ namespace FWO.Ui.Display
             string nwLocation = DisplayNetworkLocation(networkLocation, reportType, 
                 reportType.IsResolvedReport() || reportType == ReportType.VarianceAnalysis || networkLocation.User == null ? null :
                 ReportDevicesBase.ConstructLink(ObjCatString.User, ReportBase.GetIconClass(ObjCategory.user, networkLocation.User?.Type.Name),
-                    chapterNumber, networkLocation.User!.Id, networkLocation.User.Name, location, mgmtId, style),
+                    chapterNumber, networkLocation.User!.Id, networkLocation.User.Name, location, mgmtId, reportType, style),
                 reportType.IsResolvedReport() || reportType == ReportType.VarianceAnalysis ? null :
                 ReportDevicesBase.ConstructLink(ObjCatString.NwObj, ReportBase.GetIconClass(ObjCategory.nobj, networkLocation.Object.Type.Name),
-                    chapterNumber, networkLocation.Object.Id, networkLocation.Object.Name, location, mgmtId, style)
+                    chapterNumber, networkLocation.Object.Id, networkLocation.Object.Name, location, mgmtId, reportType, style)
                 ).ToString();
             return reportType.IsRuleReport() ? $"<span style=\"{style}\">{nwLocation}</span>" : nwLocation;
         }
@@ -103,7 +103,7 @@ namespace FWO.Ui.Display
         protected static string ServiceToHtml(NetworkService service, int mgmtId, int chapterNumber, OutputLocation location, string style, ReportType reportType)
         {
             return DisplayService(service, reportType, reportType.IsResolvedReport() || reportType == ReportType.VarianceAnalysis ? null : 
-                ReportDevicesBase.ConstructLink(ObjCatString.Svc, ReportBase.GetIconClass(ObjCategory.nsrv, service.Type.Name), chapterNumber, service.Id, service.Name, location, mgmtId, style)).ToString();
+                ReportDevicesBase.ConstructLink(ObjCatString.Svc, ReportBase.GetIconClass(ObjCategory.nsrv, service.Type.Name), chapterNumber, service.Id, service.Name, location, mgmtId, reportType, style)).ToString();
         }
 
         private string DisplaySourceOrDestination(Rule rule, int chapterNumber, OutputLocation location, ReportType reportType, string style, bool isSource)

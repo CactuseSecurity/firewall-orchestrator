@@ -1,4 +1,4 @@
-﻿using FWO.Api.Client;
+using FWO.Api.Client;
 using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Data.Report;
@@ -162,10 +162,18 @@ namespace FWO.Report
             };
         }
 
-        public static string ConstructLink(string type, string symbol, int chapterNumber, long id, string name, OutputLocation location, string reportId, string style)
+        public static string ConstructLink(string type, string symbol, int chapterNumber, long id, string name, OutputLocation location, string reportId, ReportType reportType, string style)
         {
             string page = location == OutputLocation.report ? PageName.ReportGeneration : PageName.Certification;
-            string link = location == OutputLocation.export ? $"#" : $"{page}#goto-report-{reportId}-";
+            string link = "";
+            if (reportType.IsChangeReport())
+            {
+                link = location == OutputLocation.export ? $"#" : $"{page}#goto-all-{reportId}-";
+            }
+            else
+            {
+                link = location == OutputLocation.export ? $"#" : $"{page}#goto-report-{reportId}-";
+            }
             return $"<span class=\"{symbol}\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"{link}{type}{chapterNumber}x{id}\" target=\"_top\" style=\"{style}\">{name}</a>";
         }
 

@@ -1,4 +1,4 @@
-﻿using FWO.Api.Client;
+using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Data;
 using FWO.Data.Report;
@@ -120,9 +120,9 @@ namespace FWO.Report
             return $"{report}";
         }
 
-        public static string ConstructLink(string type, string symbol, int chapterNumber, long id, string name, OutputLocation location, int mgmtId, string style)
+        public static string ConstructLink(string type, string symbol, int chapterNumber, long id, string name, OutputLocation location, int mgmtId, ReportType reportType, string style)
         {
-            return ConstructLink(type, symbol, chapterNumber, id, name, location, $"m{mgmtId}", style);
+            return ConstructLink(type, symbol, chapterNumber, id, name, location, $"m{mgmtId}", reportType, style);
         }
 
         protected string GenerateHtmlFrame(string title, string filter, DateTime date, StringBuilder htmlReport)

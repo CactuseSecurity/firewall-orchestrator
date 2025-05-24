@@ -34,7 +34,7 @@ namespace FWO.Test
             Services.AddLocalization();
 
             var objToFind = currentReport.ReportData.ManagementData[0].Objects[1];
-            var simObjHtml = ReportDevicesBase.ConstructLink(ObjCatString.NwObj, "", 0, objToFind.Id, objToFind.Name, OutputLocation.report, currentReport.ReportData.ManagementData[0].Id, "");
+            var simObjHtml = ReportDevicesBase.ConstructLink(ObjCatString.NwObj, "", 0, objToFind.Id, objToFind.Name, OutputLocation.report, currentReport.ReportData.ManagementData[0].Id, currentReport.ReportType, "");
             var hrefValue = Regex.Match(simObjHtml, "href=\"([^\"]*)\"").Groups[1].Value;
             var link = $"https://localhost/{hrefValue}";
 

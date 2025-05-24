@@ -95,7 +95,7 @@ class ImportStatisticsController(ImportStatistics):
             result['ZoneObjectChangeCount'] = self.ZoneObjectChangeCount
 
 
-    def collect_zone_obj_change_details(self, result):
+    def collect_rule_change_details(self, result):
         if result is None:
             result = {}         
         if self.RuleAddCount > 0:

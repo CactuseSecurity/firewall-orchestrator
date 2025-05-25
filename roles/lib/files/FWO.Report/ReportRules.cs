@@ -25,7 +25,7 @@ namespace FWO.Report
         {
             Query.QueryVariables["limit"] = rulesPerFetch;
             Query.QueryVariables["offset"] = 0;
-            bool gotNewObjects = true;
+            bool keepFetching = true;
 
             List<ManagementReport> managementsWithRelevantImportId = await GetRelevantImportIds(apiConnection);
 
@@ -38,14 +38,14 @@ namespace FWO.Report
                 ReportData.ManagementData.Add(managementReport);
             }
 
-            while (gotNewObjects)
+            while (keepFetching)
             {
                 if (ct.IsCancellationRequested)
                 {
                     Log.WriteDebug("Generate Rules Report", "Task cancelled");
                     ct.ThrowIfCancellationRequested();
                 }
-                gotNewObjects = false;
+                keepFetching = false;
                 Query.QueryVariables["offset"] = (int)Query.QueryVariables["offset"] + rulesPerFetch;
                 foreach(var management in managementsWithRelevantImportId)
                 {
@@ -53,7 +53,9 @@ namespace FWO.Report
                     ManagementReport? mgtToFill = ReportData.ManagementData.FirstOrDefault(m => m.Id == management.Id);
                     if(mgtToFill != null)
                     {
-                        gotNewObjects |= mgtToFill.Merge((await apiConnection.SendQueryAsync<List<ManagementReport>>(Query.FullQuery, Query.QueryVariables))[0]);
+                        (bool newObjects, Dictionary<string, int> maxAddedCounts) = mgtToFill.Merge((await apiConnection.SendQueryAsync<List<ManagementReport>>(Query.FullQuery, Query.QueryVariables))[0]);
+                        // new objects might have been added, but if none reached the limit of elementsPerFetch, we can stop fetching
+                        keepFetching = newObjects && maxAddedCounts.Values.Any(v => v >= rulesPerFetch);
                     }
                 }
                 await callback(ReportData);
@@ -112,12 +114,12 @@ namespace FWO.Report
             objQueryVariables.Add("import_id_end", managementReport.Import.ImportAggregate.ImportAggregateMax.RelevantImportId!);
 
             string query = GetQuery(objects);
-            bool newObjects = true;
+            bool keepFetching = true;
             int fetchCount = 0;
             int elementsPerFetch = (int)objQueryVariables.GetValueOrDefault("limit")!;
             ManagementReport filteredObjects;
             ManagementReport allFilteredObjects = new ();
-            while (newObjects && ++fetchCount <= maxFetchCycles)
+            while (keepFetching && ++fetchCount <= maxFetchCycles)
             {
                 filteredObjects = (await apiConnection.SendQueryAsync<List<ManagementReport>>(query, objQueryVariables))[0];
 
@@ -127,7 +129,9 @@ namespace FWO.Report
                 }
                 else
                 {
-                    newObjects = allFilteredObjects.MergeReportObjects(filteredObjects);
+                    // newObjects = allFilteredObjects.MergeReportObjects(filteredObjects);
+                    (bool newObjects, Dictionary<string, int> maxAddedCounts) = allFilteredObjects.MergeReportObjects(filteredObjects);
+                    keepFetching = newObjects && maxAddedCounts.Values.Any(v => v >= elementsPerFetch);
                 }
 
                 if(UseAdditionalFilter)

@@ -58,8 +58,8 @@ fragment ruleOverview on rule {
     }
   }
   rule_services(where: {
-    svc_last_seen: { _gte: $import_id_start }
-    svc_create: { _lte: $import_id_end }
+    rs_last_seen: { _gte: $import_id_start }
+    rs_create: { _lte: $import_id_end }
   }, order_by:{ service: { svc_name: asc } }) {
     service {
       ...networkServiceOverview

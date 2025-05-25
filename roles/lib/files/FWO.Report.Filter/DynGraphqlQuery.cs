@@ -169,10 +169,10 @@ namespace FWO.Report.Filter
                 case ReportType.ResolvedChanges:
                 case ReportType.ResolvedChangesTech:
                     query.FullQuery = Queries.compact($@"
-                        {( filter.Detailed ? RuleQueries.ruleDetailsForReportFragments : RuleQueries.ruleOverviewFragments )}
+                        {( filter.Detailed ? RuleQueries.ruleDetailsForChangeReportFragments : RuleQueries.ruleOverviewForChangeReportFragments )}
                         query changeReport({paramString}) 
                         {{
-                            management(where: {{ hide_in_gui: {{_eq: false }} stm_dev_typ: {{dev_typ_is_multi_mgmt: {{_eq: false}} is_pure_routing_device: {{_eq: false}} }} }} order_by: {{mgm_name: asc}}) 
+                            management({mgmtWhereString}) 
                             {{
                                 id: mgm_id
                                 name: mgm_name
@@ -197,11 +197,11 @@ namespace FWO.Report.Filter
                                         change_action
                                         old: ruleByOldRuleId {{
                                         mgm_id: mgm_id
-                                        ...{( filter.Detailed ? "ruleDetails" : "ruleOverview" )}
+                                        ...{( filter.Detailed ? "ruleDetailsChangesOld" : "ruleOverviewChangesOld" )}
                                         }}
                                         new: rule {{
                                         mgm_id: mgm_id
-                                        ...{( filter.Detailed ? "ruleDetails" : "ruleOverview" )}
+                                        ...{( filter.Detailed ? "ruleDetailsChangesNew" : "ruleOverviewChangesNew" )}
                                         }}
                                     }}
                                 }}
@@ -287,7 +287,8 @@ namespace FWO.Report.Filter
 
         private static void SetFixedFilters(ref DynGraphqlQuery query, ReportTemplate reportParams)
         {
-            if (( (ReportType)reportParams.ReportParams.ReportType ).IsRuleReport() || reportParams.ReportParams.ReportType == (int)ReportType.Statistics)
+            ReportType reportType = (ReportType)reportParams.ReportParams.ReportType;
+            if (reportType.IsRuleReport() || reportType.IsChangeReport() || reportType == ReportType.Statistics)
             {
                 query.QueryParameters.Add("$mgmId: [Int!] ");
             }
@@ -385,17 +386,11 @@ namespace FWO.Report.Filter
                     case ReportType.Changes:
                     case ReportType.ResolvedChanges:
                     case ReportType.ResolvedChangesTech:
-                        (string start, string stop) = ResolveTimeRange(timeFilter);
-                        query.QueryVariables["start"] = start;
-                        query.QueryVariables["stop"] = stop;
-                        query.QueryParameters.Add("$start: timestamp! ");
-                        query.QueryParameters.Add("$stop: timestamp! ");
+                        query.QueryParameters.Add("$import_id_old: bigint ");
+                        query.QueryParameters.Add("$import_id_new: bigint ");
 
                         query.RuleWhereStatement += $@"
-                        _and: [
-                            {{ import_control: {{ stop_time: {{ _gte: $start }} }} }}
-                            {{ import_control: {{ stop_time: {{ _lte: $stop }} }} }}
-                        ]
+                        control_id: {{ _eq: $import_id_new }}
                         change_type_id: {{ _eq: 3 }}
                         security_relevant: {{ _eq: true }}";
                         break;

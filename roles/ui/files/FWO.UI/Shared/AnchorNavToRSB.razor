@@ -84,8 +84,7 @@
                 return;
 
             // remove chapternum from #goto-report-{reportId}-{type}{chapterNumber}x{id} in report html export
-            if (elementId.StartsWith("report"))
-                elementId = Regex.Replace(elementId, @"(nwobj|svc|user)\d+x(\d+)", "$1$2");
+            elementId = Regex.Replace(elementId, @"(nwobj|svc|user)\d+x(\d+)", "$1$2");
 
             CollapseState.Expand(elementId);
 

@@ -407,11 +407,11 @@
         try
         {
             ReportData reportData = new();
-            bool newObjects = true;
+            bool keepFetching = true;
             int fetchCount = 0;
             int elementsPerFetch = userConfig.ElementsPerFetch;
 
-            while (newObjects && (++fetchCount <= userConfig.MaxInitialFetchesRightSidebar || userConfig.AutoFillRightSidebar))
+            while (keepFetching && (++fetchCount <= userConfig.MaxInitialFetchesRightSidebar || userConfig.AutoFillRightSidebar))
             {
                 List<ManagementReport> managementsCurrentFetch = await apiConnection.SendQueryAsync<List<ManagementReport>>(query, queryVars);
                 if (fetchCount == 1)
@@ -420,7 +420,9 @@
                 }
                 else
                 {
-                    newObjects = reportData.ManagementData.Merge(managementsCurrentFetch);
+                    (bool newObjects, Dictionary<string, int> maxAddedCounts) = reportData.ManagementData.Merge(managementsCurrentFetch);
+                    // new objects might have been added, but if none reached the limit of elementsPerFetch, we can stop fetching
+                    keepFetching = newObjects && maxAddedCounts.Values.Any(v => v >= elementsPerFetch);
                 }
 
                 if (queryVars.ContainsKey("offset"))

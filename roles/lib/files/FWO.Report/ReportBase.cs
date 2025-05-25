@@ -1,4 +1,4 @@
-using FWO.Api.Client;
+﻿using FWO.Api.Client;
 using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Data.Report;
@@ -149,9 +149,9 @@ namespace FWO.Report
                 ReportType.Rules => new ReportRules(query, userConfig, repType),
                 ReportType.ResolvedRules => new ReportRules(query, userConfig, repType),
                 ReportType.ResolvedRulesTech => new ReportRules(query, userConfig, repType),
-                ReportType.Changes => new ReportChanges(query, userConfig, repType),
-                ReportType.ResolvedChanges => new ReportChanges(query, userConfig, repType),
-                ReportType.ResolvedChangesTech => new ReportChanges(query, userConfig, repType),
+                ReportType.Changes => new ReportChanges(query, userConfig, repType, reportFilter.ReportParams.TimeFilter),
+                ReportType.ResolvedChanges => new ReportChanges(query, userConfig, repType, reportFilter.ReportParams.TimeFilter),
+                ReportType.ResolvedChangesTech => new ReportChanges(query, userConfig, repType, reportFilter.ReportParams.TimeFilter),
                 ReportType.NatRules => new ReportNatRules(query, userConfig, repType),
                 ReportType.Recertification => new ReportRules(query, userConfig, repType),
                 ReportType.UnusedRules => new ReportRules(query, userConfig, repType),

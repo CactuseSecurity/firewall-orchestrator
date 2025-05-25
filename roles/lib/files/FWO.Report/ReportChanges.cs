@@ -1,6 +1,8 @@
 ﻿using FWO.Api.Client;
+using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Config.Api;
+using FWO.Data;
 using FWO.Data.Report;
 using FWO.Logging;
 using FWO.Report.Filter;
@@ -8,6 +10,7 @@ using FWO.Ui.Display;
 using Newtonsoft.Json;
 using System.Text;
 using System.Text.Json;
+using System.Threading.Tasks;
 
 namespace FWO.Report
 {
@@ -15,27 +18,104 @@ namespace FWO.Report
     {
         private const int ColumnCount = 13;
 
-        public ReportChanges(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType) : base(query, userConfig, reportType) {}
+        private readonly TimeFilter timeFilter;
+
+        public ReportChanges(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType, TimeFilter timeFilter) : base(query, userConfig, reportType)
+        {
+            this.timeFilter = timeFilter;
+        }
 
         public override async Task Generate(int changesPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback, CancellationToken ct)
         {
             Query.QueryVariables["limit"] = changesPerFetch;
             Query.QueryVariables["offset"] = 0;
-            bool gotNewObjects = true;
 
-            ReportData.ManagementData = await apiConnection.SendQueryAsync<List<ManagementReport>>(Query.FullQuery, Query.QueryVariables);
+            (string startTime, string stopTime) = DynGraphqlQuery.ResolveTimeRange(timeFilter);
+            Dictionary<int, List<long>> managementImportIds = [];
+            int queriesNeeded = 0;
 
-            while (gotNewObjects)
+            foreach (int mgmId in Query.RelevantManagementIds)
             {
-                if (ct.IsCancellationRequested)
+                List<long> importIdLastBeforeRange = await GetRelevantImportIds(apiConnection, startTime, mgmId);
+                List<long> importIdsInRange = await GetImportIdsInTimeRange(apiConnection, startTime, stopTime, mgmId);
+                List<long> relevantImportIds = [.. importIdLastBeforeRange, .. importIdsInRange];
+                if (relevantImportIds.Count == 0)
                 {
-                    Log.WriteDebug("Generate Changes Report", "Task cancelled");
-                    ct.ThrowIfCancellationRequested();
+                    Log.WriteDebug("Generate Changes Report", $"No relevant import IDs found in time range for management ID {mgmId}");
+                    continue;
                 }
-                Query.QueryVariables["offset"] = (int)Query.QueryVariables["offset"] + changesPerFetch;
-                gotNewObjects = ReportData.ManagementData.Merge(await apiConnection.SendQueryAsync<List<ManagementReport>>(Query.FullQuery, Query.QueryVariables));
-                await callback(ReportData);
+                SetMgtQueryVars(mgmId, relevantImportIds[0], relevantImportIds[1]);
+                ManagementReport managementReport = (await apiConnection.SendQueryAsync<List<ManagementReport>>(Query.FullQuery, Query.QueryVariables)).First();
+                queriesNeeded += 1;
+                ReportData.ManagementData.Add(managementReport);
+                managementImportIds.Add(mgmId, relevantImportIds);
             }
+
+            Query.QueryVariables["offset"] = changesPerFetch; // continuing for possible rest of fetch with first two import IDs
+            for (int i = 1; i < managementImportIds.Values.Select(v => v.Count).Max(); i++)
+            {
+                bool continueFetching = true;
+                while (continueFetching)
+                {
+                    if (ct.IsCancellationRequested)
+                    {
+                        Log.WriteDebug("Generate Changes Report", "Task cancelled");
+                        ct.ThrowIfCancellationRequested();
+                    }
+                    continueFetching = false;
+                    foreach (var management in ReportData.ManagementData)
+                    {
+                        if (managementImportIds[management.Id].Count <= i)
+                        {
+                            continue;
+                        }
+                        long importIdOld = managementImportIds[management.Id][i - 1];
+                        long importIdNew = managementImportIds[management.Id][i];
+                        SetMgtQueryVars(management.Id, importIdOld, importIdNew);
+                        ManagementReport newData = (await apiConnection.SendQueryAsync<List<ManagementReport>>(Query.FullQuery, Query.QueryVariables)).First();
+                        (bool newObjects, Dictionary<string, int> maxAddedCounts) = management.Merge(newData);
+                        queriesNeeded += 1;
+                        if (newObjects && maxAddedCounts.Values.Any(v => v >= changesPerFetch))
+                        {
+                            continueFetching = true;
+                        }
+                    }
+                    await callback(ReportData);
+                    Query.QueryVariables["offset"] = (int)Query.QueryVariables["offset"] + changesPerFetch;
+                }
+                Query.QueryVariables["offset"] = 0; // reset offset for next round
+            }
+            Log.WriteDebug("Generate Changes Report", $"Finished generating changes report with {queriesNeeded} queries.");
+        }
+
+    private void SetMgtQueryVars(int mgmId, long importIdOld, long importIdNew)
+        {
+            Query.QueryVariables["mgmId"] = mgmId;
+            Query.QueryVariables[$"import_id_old"] = importIdOld;
+            Query.QueryVariables[$"import_id_new"] = importIdNew;
+        }
+
+        public static async Task<List<long>> GetImportIdsInTimeRange(ApiConnection apiConnection, string startTime, string stopTime, int mgmId)
+        {
+            var queryVariables = new
+            {
+                start_time = startTime,
+                end_time = stopTime,
+                mgmIds = mgmId
+            };
+            List<ImportControl> importControls = await apiConnection.SendQueryAsync<List<ImportControl>>(ReportQueries.getRelevantImportIdsInTimeRange, queryVariables);
+            return [.. importControls.Select(ic => ic.ControlId)];
+        }
+
+        public static async Task<List<long>> GetRelevantImportIds(ApiConnection apiConnection, string starttime, int mgmId)
+        {
+            var queryVariables = new
+            {
+                time = starttime,
+                mgmIds = mgmId
+            };
+            List<ManagementReport> managementReports = await apiConnection.SendQueryAsync<List<ManagementReport>>(ReportQueries.getRelevantImportIdsAtTime, queryVariables);
+            return [.. managementReports.Select(mr => mr.Import.ImportAggregate.ImportAggregateMax.RelevantImportId ?? -1)];
         }
 
         public override Task<bool> GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, ObjCategory objects, int maxFetchCycles, ApiConnection apiConnection, Func<ReportData, Task> callback)

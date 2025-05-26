@@ -5,11 +5,11 @@
 @inject UserConfig userConfig
 @typeparam TItem
 
-<tr>
-    <td style="@GetColumnStyle()" colspan="@GetColumnSpan()">
+<tr class="@(IsSectionHeader() ? "section-header" : "")">
+    <td class="tree-cell" style="padding-left:@(Level * 1)rem;" colspan="@GetColumnSpan()">
         @if(Node.Children.Any())
         {
-            <button class="btn btn-sm btn-link p-1" @onclick="() => OnToggle(Node)">
+            <button class="btn btn-sm toggle-btn" @onclick="() => OnToggle(Node)">
                 @if(Node.IsExpanded)
                 {
                     <span class="oi oi-collapse-down"></span>
@@ -22,7 +22,7 @@
         }
         else
         {
-            <span style="display:inline-block;width:1.2rem"></span>
+            <span class="indent-placeholder"></span>
         }
         @CellTemplate(Node.Item)
     </td>
@@ -76,24 +76,6 @@
     private Rule? RuleItem => Node.Item as Rule;
 
     private bool IsSectionHeader() => RuleItem?.SectionHeader != null;
-
-    private string GetColumnStyle()
-    {
-        string color = "#ffff";
-        string yellow = "#fbf3b5", gray = "#f0f1f3", lightBlue = "#bbe3fd";
-        int rem = Level * 1;
-
-        if(Node.Item is Rule item)
-        {
-            // Color differently if it's a section header
-            if(!string.IsNullOrEmpty(item.SectionHeader))
-            {
-                color = yellow;
-            }
-        }
-
-        return $"padding-left:{rem}rem; background-color: {color}";
-    }
 
     private string GetColumnSpan()
     {

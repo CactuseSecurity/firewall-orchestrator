@@ -4,21 +4,21 @@
 
 @typeparam TItem
 
-<table class="table">
+<table class="tree-table">
     <thead>
         <tr>
             <th @onclick="() => SortBy(nameof(Rule.Name))">
                 Name
                 @if(SortColumn == nameof(Rule.Name))
                 {
-                    @((MarkupString)SortingIcon())
+                    <span class="sort-icon @(SortAscending ? "oi oi-caret-bottom" : "oi oi-caret-top")"></span>
                 }
             </th>
             <th @onclick="() => SortBy(nameof(Rule.OrderNumber))">
                 @(userConfig.GetText("number"))
                 @if(SortColumn == nameof(Rule.OrderNumber))
                 {
-                    @((MarkupString)SortingIcon())
+                    <span class="sort-icon @(SortAscending ? "oi oi-caret-bottom" : "oi oi-caret-top")"></span>
                 }
             </th>
             <th>
@@ -38,6 +38,9 @@
             </th>
             <th>
                 @(userConfig.GetText("action"))
+            </th>
+            <th>
+                @(userConfig.GetText("track"))
             </th>
             <th>
                 @(userConfig.GetText("enabled"))

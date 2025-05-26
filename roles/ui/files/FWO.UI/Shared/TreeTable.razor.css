@@ -1,0 +1,53 @@
+/* Main table styling */
+.tree-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 1rem;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+/* Header styling */
+::deep thead {
+    background-color: #f8f9fa;
+    border-bottom: 2px solid #dee2e6;
+}
+
+::deep th {
+    padding: 0.75rem;
+    text-align: left;
+    font-weight: 600;
+    color: #495057;
+    cursor: pointer;
+    position: relative;
+    transition: background-color 0.2s;
+}
+
+::deep th:hover {
+    background-color: #e9ecef;
+}
+
+/* Sorting icon styling */
+::deep .sort-icon {
+    margin-left: 0.5rem;
+    font-size: 0.8rem;
+}
+
+/* Standard cell styling */
+::deep tbody td {
+    padding: 0.5rem 0.75rem;
+    vertical-align: middle;
+    border-top: 1px solid #dee2e6;
+}
+
+/* Responsive adjustments */
+@media (max-width: 992px) {
+    ::deep .tree-table {
+        font-size: 0.9rem;
+    }
+    
+    ::deep td, ::deep th {
+        padding: 0.5rem 0.4rem;
+    }
+}

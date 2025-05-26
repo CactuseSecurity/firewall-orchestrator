@@ -7,7 +7,7 @@
         <!-- GetColumnStyle() GetColumnSpan() -->
         @if(Node.Children.Any())
         {
-            <button class="btn btn-sm btn-link p-0" @onclick="() => OnToggle(Node)">
+            <button class="btn btn-sm btn-link p-1" @onclick="() => OnToggle(Node)">
                 @if(Node.IsExpanded)
                 {
                     <span class="oi oi-collapse-down"></span>
@@ -23,6 +23,12 @@
             <span style="display:inline-block;width:1.2rem"></span>
         }
         @CellTemplate(Node.Item)
+    </td>
+    <td>        
+    </td>
+    <td>
+    </td>
+    <td>
     </td>
 </tr>
 
@@ -46,6 +52,8 @@
 
     [Parameter] 
     public Action<TreeNode<TItem>> OnToggle { get; set; }
+
+    private Rule? RuleItem => Node.Item as Rule;
 
     private string GetColumnStyle()
     {
@@ -82,7 +90,6 @@
         if(Node.Item is Rule)
         {
             Rule item = (Rule)Convert.ChangeType(Node.Item, typeof(Rule));
-
             //switch section/rulebase/inline
             // switch(item.HeaderType)
             // {

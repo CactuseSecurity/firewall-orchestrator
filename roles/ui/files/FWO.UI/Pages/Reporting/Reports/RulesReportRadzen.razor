@@ -18,13 +18,6 @@
     private NatRuleDisplayHtml? RuleDisplay;
     private bool Recertification { get; set; } = false;
 
-    private bool Loading { get; set; }
-
-    #region Radzen UI Boilerplate
-    private RadzenDataGrid<Rule> RulesGrid;    
-    private bool? GroupsExpanded { get; set; } = false;
-    #endregion
-
     List<Rule> Rules;
     List<string> Columns = new List<string>() { "No.", "Name", "Source", "Destination" };
 
@@ -116,16 +109,6 @@
                 }
             }
         };
-    }
-
-
-    private async Task ShowLoading()
-    {
-        Loading = true;
-
-        await Task.Yield();
-
-        Loading = false;
     }
 
     private OutputLocation getActLocation()

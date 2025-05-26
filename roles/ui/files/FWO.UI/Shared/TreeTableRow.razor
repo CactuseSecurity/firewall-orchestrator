@@ -10,11 +10,11 @@
             <button class="btn btn-sm btn-link p-0" @onclick="() => OnToggle(Node)">
                 @if(Node.IsExpanded)
                 {
-                    <Radzen.Blazor.RadzenIcon Icon="arrow_drop_down"></Radzen.Blazor.RadzenIcon>
+                    <span class="oi oi-collapse-down"></span>
                 }
                 else
                 {
-                    <Radzen.Blazor.RadzenIcon Icon="arrow_right"></Radzen.Blazor.RadzenIcon>
+                    <span class="oi oi-collapse-right"></span>
                 }
             </button>
         }

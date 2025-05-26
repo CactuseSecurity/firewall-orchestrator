@@ -11,7 +11,6 @@ using Microsoft.AspNetCore.Components.Server.Circuits;
 using RestSharp;
 using FWO.Services.EventMediator.Interfaces;
 using FWO.Services.EventMediator;
-using Radzen;
 
 
 // Implicitly call static constructor so background lock process is started
@@ -20,7 +19,6 @@ Log.WriteInfo("Startup", "Starting FWO UI Server...");
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddRadzenComponents();
 builder.WebHost.UseWebRoot("wwwroot").UseStaticWebAssets();
 
 /// Add services to the container.

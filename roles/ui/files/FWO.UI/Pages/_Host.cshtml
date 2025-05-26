@@ -1,7 +1,6 @@
 @page "/"
 @namespace FWO.Ui.Pages
 @using FWO.Config.Api
-@using Radzen.Blazor
 @addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
 @{
     Layout = null;
@@ -18,7 +17,6 @@
     <link rel="stylesheet" href="/css/bootstrap/bootstrap.min.css" asp-append-version=true />
     <link rel="stylesheet" href="/css/site.css" asp-append-version="true"/>
     <link href="FWO.Ui.styles.css" rel="stylesheet" asp-append-version=true /> <!-- needed for css isolation (e.g. in compliance matrix) -->
-    <component type="typeof(RadzenTheme)" render-mode="ServerPrerendered" param-Theme="@("Standard")" />
 </head>
 <body class="sticky-group sticky-group-35 sticky-group-40 sticky-group-60 vheight100">
     <app>
@@ -44,7 +42,6 @@
     <script src="/js/clipboardCopy.js" asp-append-version="true"></script>
     <script src="/js/globalKeyboardListener.js" asp-append-version="true"></script>
     <script>Blazor.start();</script>
-    <script src="_content/Radzen.Blazor/Radzen.Blazor.js?v=@(typeof(Radzen.Colors).Assembly.GetName().Version)"></script>
 </body>
 </html>
 

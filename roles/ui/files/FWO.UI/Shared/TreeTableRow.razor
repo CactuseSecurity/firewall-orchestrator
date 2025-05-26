@@ -9,14 +9,14 @@
     <td class="tree-cell" style="padding-left:@(Level * 1)rem;" colspan="@GetColumnSpan()">
         @if(Node.Children.Any())
         {
-            <button class="btn btn-sm toggle-btn" @onclick="() => OnToggle(Node)">
+            <button class="btn btn-sm toggle-btn p-2 mx-1" @onclick="() => OnToggle(Node)">
                 @if(Node.IsExpanded)
                 {
-                    <span class="oi oi-collapse-down"></span>
+                    <span class="oi oi-caret-bottom"></span>
                 }
                 else
                 {
-                    <span class="oi oi-collapse-right"></span>
+                    <span class="oi oi-caret-right"></span>
                 }
             </button>
         }
@@ -25,8 +25,7 @@
             <span class="indent-placeholder"></span>
         }
         @CellTemplate(Node.Item)
-    </td>
-    
+    </td>    
     @if(!IsSectionHeader() && RuleItem is not null)
     {
         <td>@RuleItem.DisplayOrderNumberString</td>

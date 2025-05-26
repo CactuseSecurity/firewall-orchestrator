@@ -8,15 +8,15 @@
     <thead>
         <tr>
             <th @onclick="() => SortBy(nameof(Rule.Name))">
-                Name
-                @if(SortColumn == nameof(Rule.Name))
+                @(userConfig.GetText("name"))
+                @if(SortColumn == nameof(Rule.Name) && !NoSorting)
                 {
                     <span class="sort-icon @(SortAscending ? "oi oi-caret-bottom" : "oi oi-caret-top")"></span>
                 }
             </th>
             <th @onclick="() => SortBy(nameof(Rule.OrderNumber))">
                 @(userConfig.GetText("number"))
-                @if(SortColumn == nameof(Rule.OrderNumber))
+                @if(SortColumn == nameof(Rule.OrderNumber) && !NoSorting)
                 {
                     <span class="sort-icon @(SortAscending ? "oi oi-caret-bottom" : "oi oi-caret-top")"></span>
                 }
@@ -77,8 +77,9 @@
     [Parameter]
     public Action<TreeNode<TItem>> OnToggle { get; set; }
 
-    private string SortColumn { get; set; } = nameof(Rule.RulebaseId);
+    private string SortColumn { get; set; } = nameof(Rule.OrderNumber);
     private bool SortAscending { get; set; } = true;
+    private bool NoSorting { get; set; } = false;
 
     private NatRuleDisplayHtml? RuleDisplay;
 
@@ -93,16 +94,33 @@
     private void SortBy(string column)
     {
         if(SortColumn == column)
-            SortAscending = !SortAscending;
+        {
+            if(SortAscending == false)
+            {
+                NoSorting = true;
+                SortAscending = true;
+            }
+            else
+            {
+                SortAscending = false;
+                NoSorting = false;
+            }
+        }
         else
         {
             SortColumn = column;
             SortAscending = true;
+            NoSorting = false;
         }
     }
 
     private IEnumerable<TreeNode<TItem>> SortNodes(IEnumerable<TreeNode<TItem>> nodes)
     {
+        if(NoSorting)
+        {
+            return nodes;
+        }
+
         if(typeof(TItem) == typeof(Rule))
         {
             if(SortColumn == nameof(Rule.Name))
@@ -117,6 +135,12 @@
                     ? nodes.OrderBy(n => ((Rule)(object)n.Item).OrderNumber)
                     : nodes.OrderByDescending(n => ((Rule)(object)n.Item).OrderNumber);
             }
+            else if(SortColumn == nameof(Rule.DisplayOrderNumberString))
+            {
+                return SortAscending
+                    ? nodes.OrderBy(n => ((Rule)(object)n.Item).DisplayOrderNumberString)
+                    : nodes.OrderByDescending(n => ((Rule)(object)n.Item).DisplayOrderNumberString);
+            }
         }
         return nodes;
     }
@@ -125,9 +149,4 @@
     {
         node.IsExpanded = !node.IsExpanded;
     }
-
-    private MarkupString SortingIcon()
-    {
-        return new MarkupString($@"<span class=""{(SortAscending ? "oi oi-caret-bottom" : "oi oi-caret-top")}""></span>");
-    } 
 }

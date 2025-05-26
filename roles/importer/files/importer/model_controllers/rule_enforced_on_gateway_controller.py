@@ -101,7 +101,7 @@ class RuleEnforcedOnGatewayController:
                 self.import_details.appendErrorString(f"Error in add_new_rule_enforced_on_gateway_refs: {str(import_results['errors'])}")
             else:
                 changes = import_results['data']['insert_rule_enforced_on_gateway'].get('affected_rows', 1)
-                self.import_details.Stats.RuleEnforceChangeCount += changes
+                self.import_details.Stats.rule_enforce_change_count += changes
         except Exception:
             logger.exception(f"Failed to write new rules: {str(format_exc())}")
             self.import_details.increaseErrorCounterByOne()

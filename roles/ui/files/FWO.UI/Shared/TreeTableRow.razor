@@ -27,28 +27,19 @@
         @CellTemplate(Node.Item)
     </td>
     
-    @if(!IsSectionHeader())
+    @if(!IsSectionHeader() && RuleItem is not null)
     {
-        <td>@((MarkupString)RuleDisplayBase.DisplayNumber(RuleItem))</td>
+        <td>@RuleItem.DisplayOrderNumberString</td>
         <td>@((MarkupString)RuleDisplayHtml.DisplaySourceZone(RuleItem))</td>
         <td>
-            @if(RuleDisplay != null)
-            {
-                @((MarkupString)RuleDisplay.DisplaySource(RuleItem, OutputLocation.report, ReportType.Rules))
-            }
+            @((MarkupString)RuleDisplay.DisplaySource(RuleItem, OutputLocation.report, ReportType.Rules))            
         </td>
         <td>@((MarkupString)RuleDisplayHtml.DisplayDestinationZone(RuleItem))</td>
         <td>
-            @if(RuleDisplay != null)
-            {
-                @((MarkupString)RuleDisplay.DisplayDestination(RuleItem, OutputLocation.report, ReportType.Rules))
-            }
+            @((MarkupString)RuleDisplay.DisplayDestination(RuleItem, OutputLocation.report, ReportType.Rules))            
         </td>
         <td>
-            @if(RuleDisplay != null)
-            {
-                @((MarkupString)RuleDisplay.DisplayServices(RuleItem, OutputLocation.report, ReportType.Rules))
-            }
+            @((MarkupString)RuleDisplay.DisplayServices(RuleItem, OutputLocation.report, ReportType.Rules))            
         </td>
         <td>@RuleItem.Action</td>
         <td>@RuleItem.Track</td>
@@ -60,7 +51,7 @@
 
 @if(Node.IsExpanded)
 {
-    @foreach(var child in Node.Children)
+    @foreach(TreeNode<TItem> child in Node.Children)
     {
         <TreeTableRow TItem="TItem" Node="child" Level="Level + 1" CellTemplate="CellTemplate" OnToggle="OnToggle" RuleDisplay="RuleDisplay" />
     }

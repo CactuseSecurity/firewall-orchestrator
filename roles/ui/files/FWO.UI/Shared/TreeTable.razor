@@ -15,48 +15,45 @@
                 }
             </th>
             <th @onclick="() => SortBy(nameof(Rule.OrderNumber))">
-                Nummer
+                @(userConfig.GetText("number"))
                 @if(SortColumn == nameof(Rule.OrderNumber))
                 {
                     @((MarkupString)SortingIcon())
                 }
             </th>
             <th>
-                Source Zone
+                @(userConfig.GetText("source_zone"))
             </th>
             <th>
-                Source
+                @(userConfig.GetText("source"))
             </th>
             <th>
-                Destination Zone
+                @(userConfig.GetText("destination_zone"))
             </th>
             <th>
-                Destination
+                @(userConfig.GetText("destination"))
             </th>
             <th>
-                Services
+                @(userConfig.GetText("services"))
             </th>
             <th>
-                Action
+                @(userConfig.GetText("action"))
             </th>
             <th>
-                Logging
+                @(userConfig.GetText("enabled"))
             </th>
             <th>
-                Enabled
+                @(userConfig.GetText("uid"))
             </th>
             <th>
-                UID
-            </th>
-            <th>
-                Comment
+                @(userConfig.GetText("comment"))
             </th>
         </tr>
     </thead>
     <tbody>
         @if(SortedNodes is not null)
         {
-            @foreach(var node in SortedNodes)
+            @foreach(TreeNode<TItem> node in SortedNodes)
             {
                 <TreeTableRow TItem="TItem" Node="node" Level="0" CellTemplate="CellTemplate" OnToggle="ToggleNode" RuleDisplay="RuleDisplay" />
             }

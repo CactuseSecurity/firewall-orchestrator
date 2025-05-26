@@ -453,7 +453,7 @@ BEGIN
       AND column_name = 'from_rule_id'
       AND data_type = 'integer'
   ) THEN
-    Alter table "rulebase_link" alter column "from_rule_id" TYPE Integer;
+    Alter table "rulebase_link" alter column "from_rule_id" TYPE bigint;
   END IF;
 END
 $$;

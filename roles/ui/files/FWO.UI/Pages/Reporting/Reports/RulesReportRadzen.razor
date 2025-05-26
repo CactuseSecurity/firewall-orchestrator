@@ -31,84 +31,38 @@
         var device = management.Devices.Select(dev => DeviceReportController.FromDeviceReport(dev)).First();
 
         var ungroupedRules = ReportRules.GetAllRulesOfGateway(device, management);
+        treeData = BuildTreeData(ungroupedRules.ToList());
+    }
 
-        treeData = new List<TreeNode<Rule>>
+    private List<TreeNode<Rule>> BuildTreeData(List<Rule> rules)
+    {
+        // Group by RulebaseId (or adjust the criteria as needed)
+        var grouped = rules
+            .GroupBy(r => r.RulebaseId)
+            .OrderBy(g => g.Key);
+
+        var tree = new List<TreeNode<Rule>>();
+
+        foreach (var group in grouped)
         {
-            new TreeNode<Rule> {
-                Item = new Rule { Name = "pre Stealth rule (3-10)", SectionHeader = "test" },
-                Children = new List<TreeNode<Rule>> {
-                    new TreeNode<Rule> {
-                        Item = new Rule { Name = "4" }
-                    }
-                }
-            },
-            new TreeNode<Rule> {
-                Item = new Rule { Name = "test & tmp -rules (12-22)" },
-                Children = new List<TreeNode<Rule>>
+            // Create a node for the section, if available
+            if (!string.IsNullOrEmpty(group.Key.ToString()))
+            {
+                var sectionNode = new TreeNode<Rule>
                 {
-                    new TreeNode<Rule>
-                    {
-                        Item = new Rule { Name = "22" },
-                        Children = new List<TreeNode<Rule>>
-                        {
-                            new TreeNode<Rule>
-                            {
-                                Item = new Rule { Name = "DMZ_E (22.3-22.11)" },
-                                Children = new List<TreeNode<Rule>>
-                                {
-                                     new TreeNode<Rule>
-                                     {
-                                          Item = new Rule { Name = "22.3" },
-                                          Children = new List<TreeNode<Rule>>
-                                          {
-                                              new TreeNode<Rule>{
-                                                  Item = new Rule{ Name = "22.3.2" }
-                                              },
-                                              new TreeNode<Rule>
-                                              {
-                                                  Item = new Rule { Name = "22.3.3"}
-                                              },
-                                              new TreeNode<Rule>
-                                              {
-                                                  Item = new Rule { Name = "22.3.4"}
-                                              },
-                                              new TreeNode<Rule>
-                                              {
-                                                  Item = new Rule { Name = "22.3.7"}
-                                              },
-                                              new TreeNode<Rule>
-                                              {
-                                                  Item = new Rule { Name = "22.3.8"}
-                                              },
-                                              new TreeNode<Rule>
-                                              {
-                                                  Item = new Rule { Name = "22.3.9"}
-                                              },
-                                              new TreeNode<Rule>
-                                              {
-                                                  Item = new Rule { Name = "22.3.10"}
-                                              },
-                                              new TreeNode<Rule>
-                                              {
-                                                  Item = new Rule { Name = "22.3.11"}
-                                              }
-                                          }
-                                     },
-                                     new TreeNode<Rule>
-                                     {
-                                          Item = new Rule { Name = "22.4" },
-                                     },
-                                     new TreeNode<Rule>
-                                     {
-                                          Item = new Rule { Name = "22.5" },
-                                     }
-                                }
-                            }
-                        }
-                    }
-                }
+                    Item = new Rule { Name = group.Key.ToString(), SectionHeader = group.Key.ToString() },
+                    Children = group.Select(r => new TreeNode<Rule> { Item = r }).ToList()
+                };
+                tree.Add(sectionNode);
             }
-        };
+            else
+            {
+                // Rules without SectionHeader directly at the top level
+                tree.AddRange(group.Select(r => new TreeNode<Rule> { Item = r }));
+            }
+        }
+
+        return tree;
     }
 
     private OutputLocation getActLocation()

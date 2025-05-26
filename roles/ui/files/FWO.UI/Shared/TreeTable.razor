@@ -1,4 +1,7 @@
 ﻿@using FWO.Data.Report
+@using FWO.Ui.Display
+@inject UserConfig userConfig
+
 @typeparam TItem
 
 <table class="table">
@@ -55,7 +58,7 @@
         {
             @foreach(var node in SortedNodes)
             {
-                <TreeTableRow TItem="TItem" Node="node" Level="0" CellTemplate="CellTemplate" OnToggle="ToggleNode" />
+                <TreeTableRow TItem="TItem" Node="node" Level="0" CellTemplate="CellTemplate" OnToggle="ToggleNode" RuleDisplay="RuleDisplay" />
             }
         }
     </tbody>
@@ -76,6 +79,13 @@
 
     private string SortColumn { get; set; } = nameof(Rule.RulebaseId);
     private bool SortAscending { get; set; } = true;
+
+    private NatRuleDisplayHtml? RuleDisplay;
+
+    protected override void OnInitialized()
+    {
+        RuleDisplay = new NatRuleDisplayHtml(userConfig);
+    }
 
     private IEnumerable<TreeNode<TItem>> SortedNodes =>
         SortNodes(Nodes);

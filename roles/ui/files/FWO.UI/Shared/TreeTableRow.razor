@@ -30,14 +30,14 @@
     @if(!IsSectionHeader())
     {
         <td>@((MarkupString)RuleDisplayBase.DisplayNumber(RuleItem))</td>
-        <td>@((MarkupString)RuleDisplayBase.DisplaySourceZone(RuleItem))</td>
+        <td>@((MarkupString)RuleDisplayHtml.DisplaySourceZone(RuleItem))</td>
         <td>
             @if(RuleDisplay != null)
             {
                 @((MarkupString)RuleDisplay.DisplaySource(RuleItem, OutputLocation.report, ReportType.Rules))
             }
         </td>
-        <td>@((MarkupString)RuleDisplayBase.DisplayDestinationZone(RuleItem))</td>
+        <td>@((MarkupString)RuleDisplayHtml.DisplayDestinationZone(RuleItem))</td>
         <td>
             @if(RuleDisplay != null)
             {
@@ -50,11 +50,11 @@
                 @((MarkupString)RuleDisplay.DisplayServices(RuleItem, OutputLocation.report, ReportType.Rules))
             }
         </td>
-        <td>@((MarkupString)RuleDisplayBase.DisplayAction(RuleItem))</td>
-        <td>@((MarkupString)RuleDisplayBase.DisplayTrack(RuleItem))</td>
-        <td>@((MarkupString)RuleDisplayBase.DisplayEnabled(RuleItem, OutputLocation.report))</td>
-        <td>@((MarkupString)RuleDisplayBase.DisplayUid(RuleItem))</td>
-        <td>@((MarkupString)RuleDisplayBase.DisplayComment(RuleItem))</td>
+        <td>@RuleItem.Action</td>
+        <td>@RuleItem.Track</td>
+        <td>@((MarkupString)RuleDisplayHtml.DisplayEnabled(RuleItem, OutputLocation.report))</td>
+        <td>@RuleItem.Uid</td>
+        <td>@RuleItem.Comment</td>
     }
 </tr>
 
@@ -80,7 +80,7 @@
     public Action<TreeNode<TItem>> OnToggle { get; set; }
 
     [Parameter]
-    public RuleDisplayHtml RuleDisplay { get; set; }
+    public NatRuleDisplayHtml RuleDisplay { get; set; }
 
     private Rule? RuleItem => Node.Item as Rule;
 

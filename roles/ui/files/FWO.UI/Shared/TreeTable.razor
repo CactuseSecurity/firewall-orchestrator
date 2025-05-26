@@ -6,16 +6,16 @@
         <tr>
             <th @onclick="() => SortBy(nameof(Rule.Name))">
                 Name
-                @if (SortColumn == nameof(Rule.Name))
+                @if(SortColumn == nameof(Rule.Name))
                 {
-                    <span class="@(SortAscending ? "oi oi-caret-bottom" : "oi oi-caret-top")"></span>
+                    @((MarkupString)SortingIcon())
                 }
             </th>
             <th @onclick="() => SortBy(nameof(Rule.OrderNumber))">
                 Nummer
-                @if (SortColumn == nameof(Rule.OrderNumber))
+                @if(SortColumn == nameof(Rule.OrderNumber))
                 {
-                    <span class="@(SortAscending ? "oi oi-caret-bottom" : "oi oi-caret-top")"></span>
+                    @((MarkupString)SortingIcon())
                 }
             </th>
         </tr>
@@ -23,7 +23,7 @@
     <tbody>
         @if(SortedNodes is not null)
         {
-            @foreach (var node in SortedNodes)
+            @foreach(var node in SortedNodes)
             {
                 <TreeTableRow TItem="TItem" Node="node" Level="0" CellTemplate="CellTemplate" OnToggle="ToggleNode" />
             }
@@ -32,7 +32,7 @@
 </table>
 
 @code {
-    [Parameter] 
+    [Parameter]
     public List<string> Columns { get; set; } = new();
 
     [Parameter]
@@ -52,7 +52,7 @@
 
     private void SortBy(string column)
     {
-        if (SortColumn == column)
+        if(SortColumn == column)
             SortAscending = !SortAscending;
         else
         {
@@ -63,15 +63,15 @@
 
     private IEnumerable<TreeNode<TItem>> SortNodes(IEnumerable<TreeNode<TItem>> nodes)
     {
-        if (typeof(TItem) == typeof(Rule))
+        if(typeof(TItem) == typeof(Rule))
         {
-            if (SortColumn == nameof(Rule.Name))
+            if(SortColumn == nameof(Rule.Name))
             {
                 return SortAscending
                     ? nodes.OrderBy(n => ((Rule)(object)n.Item).Name)
                     : nodes.OrderByDescending(n => ((Rule)(object)n.Item).Name);
             }
-            else if (SortColumn == nameof(Rule.OrderNumber))
+            else if(SortColumn == nameof(Rule.OrderNumber))
             {
                 return SortAscending
                     ? nodes.OrderBy(n => ((Rule)(object)n.Item).OrderNumber)
@@ -85,4 +85,9 @@
     {
         node.IsExpanded = !node.IsExpanded;
     }
+
+    private MarkupString SortingIcon()
+    {
+        return new MarkupString($@"<span class=""{(SortAscending ? "oi oi-caret-bottom" : "oi oi-caret-top")}""></span>");
+    } 
 }

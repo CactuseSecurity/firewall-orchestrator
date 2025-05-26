@@ -1,7 +1,7 @@
 import json
 import uuid
 from typing import List, Union, Dict
-import random
+import secrets
 
 if __name__ == '__main__': # for usage as executable script
     import sys
@@ -257,18 +257,18 @@ class MockFwConfigNormalized(FwConfigNormalized):
             network_object for network_object in self.network_objects.values()
             if network_object.obj_typ == "group"
         ]
-        src_network_object = random.choice(network_objects)
-        dst_network_object = random.choice(network_objects)
+        src_network_object = secrets.choice(network_objects)
+        dst_network_object = secrets.choice(network_objects)
 
         service_objects = list(self.service_objects.values())
-        service = random.choice(service_objects)
+        service = secrets.choice(service_objects)
 
         users = [
             user for user in self.network_objects.values()
             if user.obj_typ == "access-role"
         ]
-        src_user = random.choice(users)
-        dst_user = random.choice(users)
+        src_user = secrets.choice(users)
+        dst_user = secrets.choice(users)
 
         rule.rule_dst = f"{dst_network_object.obj_name}|{dst_user.obj_name}"
         rule.rule_dst_refs = f"{dst_network_object.obj_uid}|{dst_user.obj_uid}"

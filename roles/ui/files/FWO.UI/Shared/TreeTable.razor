@@ -18,6 +18,36 @@
                     @((MarkupString)SortingIcon())
                 }
             </th>
+            <th>
+                Source Zone
+            </th>
+            <th>
+                Source
+            </th>
+            <th>
+                Destination Zone
+            </th>
+            <th>
+                Destination
+            </th>
+            <th>
+                Services
+            </th>
+            <th>
+                Action
+            </th>
+            <th>
+                Logging
+            </th>
+            <th>
+                Enabled
+            </th>
+            <th>
+                UID
+            </th>
+            <th>
+                Comment
+            </th>
         </tr>
     </thead>
     <tbody>
@@ -44,7 +74,7 @@
     [Parameter]
     public Action<TreeNode<TItem>> OnToggle { get; set; }
 
-    private string SortColumn { get; set; } = nameof(Rule.OrderNumber);
+    private string SortColumn { get; set; } = nameof(Rule.RulebaseId);
     private bool SortAscending { get; set; } = true;
 
     private IEnumerable<TreeNode<TItem>> SortedNodes =>

@@ -30,20 +30,76 @@
         var management = Managements.Select(mgt => new ManagementReportController(mgt)).First();
         var device = management.Devices.Select(dev => DeviceReportController.FromDeviceReport(dev)).First();
 
-        var ungroupedRules = ReportRules.GetAllRulesOfGateway(device, management);
-        treeData = BuildTreeData(ungroupedRules.ToList());
+        var ungroupedRules = ReportRules.GetAllRulesOfGateway(device, management).ToList();
+        
+        // The GetAllRulesOfGateway method already calls CreateOrderNumbers internally,
+        // so DisplayOrderNumberString should already be set
+        
+        treeData = BuildTreeData(ungroupedRules);
     }
 
     private List<TreeNode<Rule>> BuildTreeData(List<Rule> rules)
     {
-        // Group by RulebaseId (or adjust the criteria as needed)
-        var grouped = rules
+        // First, convert the rules to a dictionary keyed by their dotted display order number
+        var rulesByOrderNumber = new Dictionary<string, Rule>();
+        var treeNodes = new Dictionary<string, TreeNode<Rule>>();
+        var rootNodes = new List<TreeNode<Rule>>();
+
+        // Create a node for each rule
+        foreach (var rule in rules)
+        {
+            var node = new TreeNode<Rule>
+            {
+                Item = rule,
+                Children = new List<TreeNode<Rule>>()
+            };
+            
+            // If it has a display order number string (like "1.2.3"), use it to structure the hierarchy
+            if (!string.IsNullOrEmpty(rule.DisplayOrderNumberString))
+            {
+                treeNodes[rule.DisplayOrderNumberString] = node;
+                rulesByOrderNumber[rule.DisplayOrderNumberString] = rule;
+            }
+        }
+
+        // Build the tree structure based on hierarchical order numbers
+        foreach (var key in treeNodes.Keys.OrderBy(k => k))
+        {
+            var node = treeNodes[key];
+            var rule = rulesByOrderNumber[key];
+            
+            // Find parent node
+            var lastDotIndex = key.LastIndexOf('.');
+            
+            if (lastDotIndex > 0) 
+            {
+                // This is a child node, find its parent
+                var parentKey = key.Substring(0, lastDotIndex);
+                if (treeNodes.ContainsKey(parentKey))
+                {
+                    treeNodes[parentKey].Children.Add(node);
+                }
+                else 
+                {
+                    // Fallback if parent not found - add to root
+                    rootNodes.Add(node);
+                }
+            }
+            else 
+            {
+                // This is a root level node
+                rootNodes.Add(node);
+            }
+        }
+
+        // Handle rules without hierarchical order numbers or section headers
+        // Group them by RulebaseId as a fallback
+        var rulesWithoutOrderNumber = rules
+            .Where(r => string.IsNullOrEmpty(r.DisplayOrderNumberString))
             .GroupBy(r => r.RulebaseId)
             .OrderBy(g => g.Key);
-
-        var tree = new List<TreeNode<Rule>>();
-
-        foreach (var group in grouped)
+            
+        foreach (var group in rulesWithoutOrderNumber)
         {
             // Create a node for the section, if available
             if (!string.IsNullOrEmpty(group.Key.ToString()))
@@ -53,16 +109,16 @@
                     Item = new Rule { Name = group.Key.ToString(), SectionHeader = group.Key.ToString() },
                     Children = group.Select(r => new TreeNode<Rule> { Item = r }).ToList()
                 };
-                tree.Add(sectionNode);
+                rootNodes.Add(sectionNode);
             }
             else
             {
                 // Rules without SectionHeader directly at the top level
-                tree.AddRange(group.Select(r => new TreeNode<Rule> { Item = r }));
+                rootNodes.AddRange(group.Select(r => new TreeNode<Rule> { Item = r }));
             }
         }
 
-        return tree;
+        return rootNodes;
     }
 
     private OutputLocation getActLocation()

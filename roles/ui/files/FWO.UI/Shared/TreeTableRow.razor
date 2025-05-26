@@ -1,10 +1,12 @@
 ﻿@using FWO.Data.Report
+@using FWO.Report
 @using FWO.Report.Data
+@using FWO.Ui.Display
+@inject UserConfig userConfig
 @typeparam TItem
 
 <tr>
-    <td style="" colspan="">
-        <!-- GetColumnStyle() GetColumnSpan() -->
+    <td style="@GetColumnStyle()" colspan="@GetColumnSpan()">
         @if(Node.Children.Any())
         {
             <button class="btn btn-sm btn-link p-1" @onclick="() => OnToggle(Node)">
@@ -24,19 +26,43 @@
         }
         @CellTemplate(Node.Item)
     </td>
-    <td>        
-    </td>
-    <td>
-    </td>
-    <td>
-    </td>
+    
+    @if(!IsSectionHeader())
+    {
+        <td>@((MarkupString)RuleDisplayBase.DisplayNumber(RuleItem))</td>
+        <td>@((MarkupString)RuleDisplayBase.DisplaySourceZone(RuleItem))</td>
+        <td>
+            @if(RuleDisplay != null)
+            {
+                @((MarkupString)RuleDisplay.DisplaySource(RuleItem, OutputLocation.report, ReportType.Rules))
+            }
+        </td>
+        <td>@((MarkupString)RuleDisplayBase.DisplayDestinationZone(RuleItem))</td>
+        <td>
+            @if(RuleDisplay != null)
+            {
+                @((MarkupString)RuleDisplay.DisplayDestination(RuleItem, OutputLocation.report, ReportType.Rules))
+            }
+        </td>
+        <td>
+            @if(RuleDisplay != null)
+            {
+                @((MarkupString)RuleDisplay.DisplayServices(RuleItem, OutputLocation.report, ReportType.Rules))
+            }
+        </td>
+        <td>@((MarkupString)RuleDisplayBase.DisplayAction(RuleItem))</td>
+        <td>@((MarkupString)RuleDisplayBase.DisplayTrack(RuleItem))</td>
+        <td>@((MarkupString)RuleDisplayBase.DisplayEnabled(RuleItem, OutputLocation.report))</td>
+        <td>@((MarkupString)RuleDisplayBase.DisplayUid(RuleItem))</td>
+        <td>@((MarkupString)RuleDisplayBase.DisplayComment(RuleItem))</td>
+    }
 </tr>
 
 @if(Node.IsExpanded)
 {
     @foreach(var child in Node.Children)
     {
-        <TreeTableRow TItem="TItem" Node="child" Level="Level + 1" CellTemplate="CellTemplate" OnToggle="OnToggle" />
+        <TreeTableRow TItem="TItem" Node="child" Level="Level + 1" CellTemplate="CellTemplate" OnToggle="OnToggle" RuleDisplay="RuleDisplay" />
     }
 }
 
@@ -53,7 +79,12 @@
     [Parameter] 
     public Action<TreeNode<TItem>> OnToggle { get; set; }
 
+    [Parameter]
+    public RuleDisplayHtml RuleDisplay { get; set; }
+
     private Rule? RuleItem => Node.Item as Rule;
+
+    private bool IsSectionHeader() => RuleItem?.SectionHeader != null;
 
     private string GetColumnStyle()
     {
@@ -61,25 +92,13 @@
         string yellow = "#fbf3b5", gray = "#f0f1f3", lightBlue = "#bbe3fd";
         int rem = Level * 1;
 
-        if(Node.Item is Rule)
+        if(Node.Item is Rule item)
         {
-            Rule item = (Rule)Convert.ChangeType(Node.Item, typeof(Rule));
-
-            //switch section/rulebase/inline
-            // switch (item.HeaderType)
-            // {
-            //     case HeaderType.Section:
-            //         color = yellow;
-            //         break;
-            //     case HeaderType.Rulebase:
-            //         color = gray;
-            //         rem -= 1;
-            //         break;
-            //     default:
-            //         color = gray;
-            //         rem -= 1;
-            //         break;
-            // }
+            // Color differently if it's a section header
+            if(!string.IsNullOrEmpty(item.SectionHeader))
+            {
+                color = yellow;
+            }
         }
 
         return $"padding-left:{rem}rem; background-color: {color}";
@@ -87,17 +106,9 @@
 
     private string GetColumnSpan()
     {
-        if(Node.Item is Rule)
+        if(Node.Item is Rule rule && !string.IsNullOrEmpty(rule.SectionHeader))
         {
-            Rule item = (Rule)Convert.ChangeType(Node.Item, typeof(Rule));
-            //switch section/rulebase/inline
-            // switch(item.HeaderType)
-            // {
-            //     case HeaderType.Section:
-            //         return "4";
-            //     default: 
-            //         return "1";
-            // }
+            return "12"; // Span all columns for section headers
         }
 
         return "1";

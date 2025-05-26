@@ -3216,12 +3216,6 @@
               },
               "object_relationships": [
                 {
-                  "name": "device",
-                  "using": {
-                    "foreign_key_constraint_on": "dev_id"
-                  }
-                },
-                {
                   "name": "import_control",
                   "using": {
                     "foreign_key_constraint_on": "control_id"
@@ -4630,18 +4624,6 @@
                       "column": "alert_dev_id",
                       "table": {
                         "name": "alert",
-                        "schema": "public"
-                      }
-                    }
-                  }
-                },
-                {
-                  "name": "changelog_rules",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "dev_id",
-                      "table": {
-                        "name": "changelog_rule",
                         "schema": "public"
                       }
                     }

@@ -201,11 +201,6 @@ class ChangeLogger:
             "unique_name": uniqueName,
         }
 
-        # Can be removed as soon as the column gets removed from db.
-        
-        if type == "rule":
-            rule_changelog_object["dev_id"] = 3
-
         return rule_changelog_object
     
 

@@ -4,16 +4,26 @@
 <table class="table">
     <thead>
         <tr>
-            @foreach(var column in Columns)
-            {
-                <th>@column</th>
-            }
+            <th @onclick="() => SortBy(nameof(Rule.Name))">
+                Name
+                @if (SortColumn == nameof(Rule.Name))
+                {
+                    <span class="@(SortAscending ? "oi oi-caret-bottom" : "oi oi-caret-top")"></span>
+                }
+            </th>
+            <th @onclick="() => SortBy(nameof(Rule.OrderNumber))">
+                Nummer
+                @if (SortColumn == nameof(Rule.OrderNumber))
+                {
+                    <span class="@(SortAscending ? "oi oi-caret-bottom" : "oi oi-caret-top")"></span>
+                }
+            </th>
         </tr>
     </thead>
     <tbody>
-        @if(Nodes is not null)
+        @if(SortedNodes is not null)
         {
-            @foreach(var node in Nodes)
+            @foreach (var node in SortedNodes)
             {
                 <TreeTableRow TItem="TItem" Node="node" Level="0" CellTemplate="CellTemplate" OnToggle="ToggleNode" />
             }
@@ -25,11 +35,51 @@
     [Parameter] 
     public List<string> Columns { get; set; } = new();
 
-    [Parameter] 
+    [Parameter]
     public List<TreeNode<TItem>> Nodes { get; set; } = new();
 
-    [Parameter] 
+    [Parameter]
     public RenderFragment<TItem> CellTemplate { get; set; }
+
+    [Parameter]
+    public Action<TreeNode<TItem>> OnToggle { get; set; }
+
+    private string SortColumn { get; set; } = nameof(Rule.OrderNumber);
+    private bool SortAscending { get; set; } = true;
+
+    private IEnumerable<TreeNode<TItem>> SortedNodes =>
+        SortNodes(Nodes);
+
+    private void SortBy(string column)
+    {
+        if (SortColumn == column)
+            SortAscending = !SortAscending;
+        else
+        {
+            SortColumn = column;
+            SortAscending = true;
+        }
+    }
+
+    private IEnumerable<TreeNode<TItem>> SortNodes(IEnumerable<TreeNode<TItem>> nodes)
+    {
+        if (typeof(TItem) == typeof(Rule))
+        {
+            if (SortColumn == nameof(Rule.Name))
+            {
+                return SortAscending
+                    ? nodes.OrderBy(n => ((Rule)(object)n.Item).Name)
+                    : nodes.OrderByDescending(n => ((Rule)(object)n.Item).Name);
+            }
+            else if (SortColumn == nameof(Rule.OrderNumber))
+            {
+                return SortAscending
+                    ? nodes.OrderBy(n => ((Rule)(object)n.Item).OrderNumber)
+                    : nodes.OrderByDescending(n => ((Rule)(object)n.Item).OrderNumber);
+            }
+        }
+        return nodes;
+    }
 
     private void ToggleNode(TreeNode<TItem> node)
     {

@@ -1,6 +1,10 @@
 from importer.model_controllers.import_state_controller import ImportStateController
 from importer.model_controllers.import_statistics_controller import ImportStatisticsController
-from mock_management_details_controller import MockManagementDetailsController
+
+try:
+    from mock_management_details_controller import MockManagementDetailsController
+except:
+    from test.mocking.mock_management_details_controller import MockManagementDetailsController
 
 
 class MockImportStateController(ImportStateController):

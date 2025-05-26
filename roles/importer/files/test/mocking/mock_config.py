@@ -302,5 +302,5 @@ if __name__ == '__main__':
     fw_config_manager_list_controller.ManagerSet.append(fw_config_manager)
     fw_config_manager_list_controller.storeFullNormalizedConfigToFile(fw_mock_import_state)
 
-    print(f"MockConfig: File saved on disk.")
+    print("MockConfig: File saved on disk.")
 

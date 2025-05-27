@@ -4,6 +4,15 @@
 
 @typeparam TItem
 
+<div class="d-flex justify-content-end mb-2">
+    <button class="btn btn-sm btn-outline-secondary me-2" @onclick="ExpandAll">
+        <span class="oi oi-expand-down"></span> @userConfig.GetText("expand_all")
+    </button>
+    <button class="btn btn-sm btn-outline-secondary" @onclick="CollapseAll">
+        <span class="oi oi-collapse-up"></span> @userConfig.GetText("collapse_all")
+    </button>
+</div>
+
 <table class="tree-table">
     <thead>
         <tr>
@@ -148,5 +157,39 @@
     private void ToggleNode(TreeNode<TItem> node)
     {
         node.IsExpanded = !node.IsExpanded;
+    }
+    
+    /// <summary>
+    /// Expands all nodes in the tree recursively
+    /// </summary>
+    private void ExpandAll()
+    {
+        SetNodesExpandedState(Nodes, true);
+        StateHasChanged();
+    }
+    
+    /// <summary>
+    /// Collapses all nodes in the tree recursively
+    /// </summary>
+    private void CollapseAll()
+    {
+        SetNodesExpandedState(Nodes, false);
+        StateHasChanged();
+    }
+    
+    /// <summary>
+    /// Sets the expanded state of all nodes recursively
+    /// </summary>
+    /// <param name="nodes">Collection of nodes to process</param>
+    /// <param name="isExpanded">Whether nodes should be expanded (true) or collapsed (false)</param>
+    private void SetNodesExpandedState(IEnumerable<TreeNode<TItem>> nodes, bool isExpanded)
+    {
+        if (nodes == null) return;
+        
+        foreach (var node in nodes)
+        {
+            node.IsExpanded = isExpanded;
+            SetNodesExpandedState(node.Children, isExpanded);
+        }
     }
 }

@@ -10,7 +10,6 @@ query getRelevantImportIdsInTimeRange(
         { stop_time: { _lte: $end_time } }
       ]
       successful_import: { _eq: true }
-      changes_found: { _eq: true }
       management: {
         mgm_id: { _in: $mgmIds }
         hide_in_gui: { _eq: false }

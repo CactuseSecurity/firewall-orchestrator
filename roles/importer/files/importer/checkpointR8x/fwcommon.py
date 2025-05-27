@@ -280,7 +280,7 @@ def define_global_rulebase_link(deviceConfig, globalOrderedLayerUids, orderedLay
                 'from_rule_uid': placeholder_rule_uid,
                 'to_rulebase_uid': orderedLayerUids[0],
                 'type': 'ordered',
-                'is_global': True,
+                'is_global': False,
                 'is_initial': False,
                 'is_section': False
             })

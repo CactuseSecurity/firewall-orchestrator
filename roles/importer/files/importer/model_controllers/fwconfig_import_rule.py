@@ -418,7 +418,7 @@ class FwConfigImportRule(FwConfigImportBase):
                 insert_rulebase(
                     objects: $rulebases,
                     on_conflict: {
-                        constraint: unique_rulebase_mgm_id_name,
+                        constraint: unique_rulebase_mgm_id_uid,
                         update_columns: []
                     }
                 ) {
@@ -426,6 +426,7 @@ class FwConfigImportRule(FwConfigImportBase):
                     returning {
                         id
                         name
+                        uid
                     }
                 }
             }
@@ -437,7 +438,7 @@ class FwConfigImportRule(FwConfigImportBase):
         try:
             import_result = self.ImportDetails.call(addRulebasesWithoutRulesMutation, queryVariables=queryVariables)
             if 'errors' in import_result:
-                logger.exception(f"fwo_api:importNwObject - error in addNewRules: {str(import_result['errors'])}")
+                logger.exception(f"fwo_api:importRules - error in addNewRules: {str(import_result['errors'])}")
                 return 1, 0, newRulebaseIds
             else:
                 # reduce change number by number of rulebases
@@ -1177,7 +1178,7 @@ class FwConfigImportRule(FwConfigImportBase):
                 insert_rulebase(
                     objects: $rulebases,
                     on_conflict: {
-                        constraint: unique_rulebase_mgm_id_name,
+                        constraint: unique_rulebase_mgm_id_uid,
                         update_columns: [created, is_global]
                     }
                 ) {

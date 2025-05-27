@@ -162,7 +162,7 @@ namespace FWO.Report
             {
                 ObjCategory.all => ObjectQueries.getReportFilteredObjectDetails,
                 ObjCategory.nobj => ObjectQueries.getReportFilteredNetworkObjectDetails,
-                ObjCategory.nsrv => ObjectQueries.getReportFilteredNetworkServiceObjectDetails,
+                ObjCategory.nsrv => ObjectQueries.getReportFilteredNetworkServiceDetails,
                 ObjCategory.user => ObjectQueries.getReportFilteredUserDetails,
                 _ => "",
             };

@@ -45,19 +45,19 @@ namespace FWO.Api.Client.Queries
                     File.ReadAllText(QueryPath + "rule/fragments/ruleOverviewChangesNew.graphql");
                 ruleDetailsFragments =
                     ObjectQueries.networkObjectDetailsFragment +
-                    ObjectQueries.networkServiceObjectDetailsFragment +
+                    ObjectQueries.networkServiceDetailsFragment +
                     ObjectQueries.userDetailsFragment +
                     File.ReadAllText(QueryPath + "rule/fragments/ruleDetails.graphql");
                 ruleDetailsForReportFragments =
                     ObjectQueries.networkObjectDetailsFragment +
-                    ObjectQueries.networkServiceObjectDetailsFragment +
+                    ObjectQueries.networkServiceDetailsFragment +
                     ObjectQueries.userDetailsFragment +
                     File.ReadAllText(QueryPath + "rule/fragments/ruleDetailsForReport.graphql");
                 natRuleOverviewFragments = ruleOverviewFragments + File.ReadAllText(QueryPath + "rule/fragments/natRuleOverview.graphql");
                 natRuleDetailsFragments = ruleDetailsFragments + File.ReadAllText(QueryPath + "rule/fragments/natRuleDetails.graphql");
                 natRuleDetailsForReportFragments =
                     ObjectQueries.networkObjectDetailsFragment +
-                    ObjectQueries.networkServiceObjectDetailsFragment +
+                    ObjectQueries.networkServiceDetailsFragment +
                     ObjectQueries.userDetailsFragment +
                     File.ReadAllText(QueryPath + "rule/fragments/natRuleDetailsForReport.graphql");
                 ruleDetailsForChangeReportFragments =

@@ -1,4 +1,4 @@
-﻿query getUsersInReport (
+﻿query getReportFilteredUserDetails (
   $mgmIds: [Int!]
   $active: Boolean
   $import_id_start: bigint

@@ -13,65 +13,67 @@
     </button>
 </div>
 
-<table class="tree-table">
-    <thead>
-        <tr>
-            <th @onclick="() => SortBy(nameof(Rule.Name))">
-                @(userConfig.GetText("name"))
-                @if(SortColumn == nameof(Rule.Name) && !NoSorting)
-                {
-                    <span class="sort-icon @(SortAscending ? "oi oi-caret-bottom" : "oi oi-caret-top")"></span>
-                }
-            </th>
-            <th @onclick="() => SortBy(nameof(Rule.OrderNumber))">
-                @(userConfig.GetText("number"))
-                @if(SortColumn == nameof(Rule.OrderNumber) && !NoSorting)
-                {
-                    <span class="sort-icon @(SortAscending ? "oi oi-caret-bottom" : "oi oi-caret-top")"></span>
-                }
-            </th>
-            <th>
-                @(userConfig.GetText("source_zone"))
-            </th>
-            <th>
-                @(userConfig.GetText("source"))
-            </th>
-            <th>
-                @(userConfig.GetText("destination_zone"))
-            </th>
-            <th>
-                @(userConfig.GetText("destination"))
-            </th>
-            <th>
-                @(userConfig.GetText("services"))
-            </th>
-            <th>
-                @(userConfig.GetText("action"))
-            </th>
-            <th>
-                @(userConfig.GetText("track"))
-            </th>
-            <th>
-                @(userConfig.GetText("enabled"))
-            </th>
-            <th>
-                @(userConfig.GetText("uid"))
-            </th>
-            <th>
-                @(userConfig.GetText("comment"))
-            </th>
-        </tr>
-    </thead>
-    <tbody>
-        @if(SortedNodes is not null)
-        {
-            @foreach(TreeNode<TItem> node in SortedNodes)
+<div class="tree-table-container">
+    <table class="tree-table">
+        <thead>
+            <tr>
+                <th @onclick="() => SortBy(nameof(Rule.Name))">
+                    @(userConfig.GetText("name"))
+                    @if(SortColumn == nameof(Rule.Name) && !NoSorting)
+                    {
+                        <span class="sort-icon @(SortAscending ? "oi oi-caret-bottom" : "oi oi-caret-top")"></span>
+                    }
+                </th>
+                <th @onclick="() => SortBy(nameof(Rule.OrderNumber))">
+                    @(userConfig.GetText("number"))
+                    @if(SortColumn == nameof(Rule.OrderNumber) && !NoSorting)
+                    {
+                        <span class="sort-icon @(SortAscending ? "oi oi-caret-bottom" : "oi oi-caret-top")"></span>
+                    }
+                </th>
+                <th>
+                    @(userConfig.GetText("source_zone"))
+                </th>
+                <th>
+                    @(userConfig.GetText("source"))
+                </th>
+                <th>
+                    @(userConfig.GetText("destination_zone"))
+                </th>
+                <th>
+                    @(userConfig.GetText("destination"))
+                </th>
+                <th>
+                    @(userConfig.GetText("services"))
+                </th>
+                <th>
+                    @(userConfig.GetText("action"))
+                </th>
+                <th>
+                    @(userConfig.GetText("track"))
+                </th>
+                <th>
+                    @(userConfig.GetText("enabled"))
+                </th>
+                <th>
+                    @(userConfig.GetText("uid"))
+                </th>
+                <th>
+                    @(userConfig.GetText("comment"))
+                </th>
+            </tr>
+        </thead>
+        <tbody>
+            @if(SortedNodes is not null)
             {
-                <TreeTableRow TItem="TItem" Node="node" Level="0" CellTemplate="CellTemplate" OnToggle="ToggleNode" RuleDisplay="RuleDisplay" />
+                @foreach(TreeNode<TItem> node in SortedNodes)
+                {
+                    <TreeTableRow TItem="TItem" Node="node" Level="0" CellTemplate="CellTemplate" OnToggle="ToggleNode" RuleDisplay="RuleDisplay" />
+                }
             }
-        }
-    </tbody>
-</table>
+        </tbody>
+    </table>
+</div>
 
 @code {
     [Parameter]
@@ -159,29 +161,18 @@
         node.IsExpanded = !node.IsExpanded;
     }
     
-    /// <summary>
-    /// Expands all nodes in the tree recursively
-    /// </summary>
     private void ExpandAll()
     {
         SetNodesExpandedState(Nodes, true);
         StateHasChanged();
     }
     
-    /// <summary>
-    /// Collapses all nodes in the tree recursively
-    /// </summary>
     private void CollapseAll()
     {
         SetNodesExpandedState(Nodes, false);
         StateHasChanged();
     }
     
-    /// <summary>
-    /// Sets the expanded state of all nodes recursively
-    /// </summary>
-    /// <param name="nodes">Collection of nodes to process</param>
-    /// <param name="isExpanded">Whether nodes should be expanded (true) or collapsed (false)</param>
     private void SetNodesExpandedState(IEnumerable<TreeNode<TItem>> nodes, bool isExpanded)
     {
         if (nodes == null) return;

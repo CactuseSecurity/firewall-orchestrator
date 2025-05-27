@@ -1,4 +1,9 @@
-/* Main table styling */
+.tree-table-container {
+    overflow-x: auto;
+    border: 1px solid #e0e0e0;
+    background: #fff;
+}
+
 .tree-table {
     width: 100%;
     border-collapse: collapse;
@@ -8,7 +13,6 @@
     overflow: hidden;
 }
 
-/* Header styling */
 ::deep thead {
     background-color: #f8f9fa;
     border-bottom: 2px solid #dee2e6;
@@ -28,20 +32,23 @@
     background-color: #e9ecef;
 }
 
-/* Sorting icon styling */
 ::deep .sort-icon {
     margin-left: 0.5rem;
     font-size: 0.8rem;
 }
 
-/* Standard cell styling */
 ::deep tbody td {
     padding: 0.5rem 0.75rem;
     vertical-align: middle;
     border-top: 1px solid #dee2e6;
 }
 
-/* Responsive adjustments */
+::deep th:first-child,
+::deep td:first-child {
+    min-width: 260px;
+    white-space: nowrap;
+}
+
 @media (max-width: 992px) {
     ::deep .tree-table {
         font-size: 0.9rem;

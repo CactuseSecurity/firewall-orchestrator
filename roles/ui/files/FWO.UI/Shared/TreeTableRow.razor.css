@@ -1,11 +1,9 @@
-/* Section header styling */
 tr.section-header td {
     background-color: #fbf3b5 !important;
     font-weight: 600;
     border-top: 2px solid #dee2e6;
 }
 
-/* Expand/collapse button styles */
 ::deep .toggle-btn {
     background: transparent;
     border: none;
@@ -23,13 +21,11 @@ tr.section-header td {
     background-color: rgba(13, 110, 253, 0.1);
 }
 
-/* Indentation placeholder */
 ::deep .indent-placeholder {
     display: inline-block;
     width: 1.5rem;
 }
 
-/* Status indicators for enabled/disabled */
 ::deep .status-enabled {
     color: #198754;
     font-weight: 500;
@@ -40,7 +36,14 @@ tr.section-header td {
     font-weight: 500;
 }
 
-/* Row hover effect */
 tr:not(.section-header):hover td {
     background-color: rgba(0, 123, 255, 0.05);
+}
+
+.tree-indent {
+    display: inline-block;   
+}
+
+.tree-cell {
+    padding-left: 0 !important;
 }

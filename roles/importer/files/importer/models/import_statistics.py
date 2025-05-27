@@ -19,3 +19,8 @@ class ImportStatistics:
     RuleDeleteCount: int
     RuleChangeCount: int
     RuleMoveCount: int  # when a rule is moved within the same rulebase
+    rulebase_add_count: int
+    rulebase_change_count: int
+    rulebase_delete_count: int
+    rule_enforce_change_count: int
+    

@@ -44,9 +44,12 @@ namespace FWO.Middleware.Server
 		/// <summary>
 		/// constructor only for unit testing
 		/// </summary>
-		public ExternalRequestHandler(UserConfig userConfig)
+		public ExternalRequestHandler(UserConfig userConfig, ApiConnection apiConnection, List<UserGroup>? userGroups)
 		{
+			ApiConnection = apiConnection;
 			UserConfig = userConfig;
+			extStateHandler = new(apiConnection);
+			wfHandler = new (LogMessage, userConfig, apiConnection, WorkflowPhases.request, userGroups);
 		}
 
 		/// <summary>
@@ -211,7 +214,15 @@ namespace FWO.Middleware.Server
 			}
 		}
 
-		private async Task<bool> CreateNextRequest(WfTicket ticket, int oldTaskNumber, ExternalRequest? oldRequest = null)
+		/// <summary>
+		/// create next external request from internal ticket task list (public only for unit testing)
+		/// </summary>
+		/// <param name="ticket"></param>
+		/// <param name="oldTaskNumber"></param>
+		/// <param name="oldRequest"></param>
+		/// <returns></returns>
+
+		public async Task<bool> CreateNextRequest(WfTicket ticket, int oldTaskNumber, ExternalRequest? oldRequest = null)
 		{
 			int lastTaskNumber = UserConfig.ModRolloutBundleTasks && oldRequest != null && oldRequest.ExtQueryVariables != "" ?
 				GetLastTaskNumber(oldRequest.ExtQueryVariables, oldTaskNumber) : oldTaskNumber;
@@ -224,21 +235,26 @@ namespace FWO.Middleware.Server
 			else
 			{
 				int waitCycles = GetWaitCycles(nextTask.TaskType, oldRequest);
-				if(UserConfig.ModRolloutBundleTasks && nextTask.TaskType == WfTaskType.access.ToString())
+				if(nextTask.TaskType == WfTaskType.access.ToString() || nextTask.TaskType == WfTaskType.rule_modify.ToString() || nextTask.TaskType == WfTaskType.rule_delete.ToString())
 				{
-					// todo: bundle also other task types?
-					// If the API is called to open a ticket for a SecureApp application with more than 100 ARs,
-					// it must be split into multiple tickets of up to 100 ARs each.
-
 					List<WfReqTask> bundledTasks = [nextTask];
+					List<WfReqTask> handledTasks = [nextTask];
 					int actTaskNumber = lastTaskNumber + 2;
 					bool taskFound = true;
-					while(taskFound && bundledTasks.Count < 100)
+					while(taskFound && bundledTasks.Count < actSystem.MaxBundledTasks())
 					{
 						WfReqTask? furtherTask = ticket.Tasks.FirstOrDefault(ta => ta.TaskNumber == actTaskNumber);
-						if(furtherTask != null && furtherTask.TaskType == WfTaskType.access.ToString())
+						if(furtherTask != null && furtherTask.TaskType == nextTask.TaskType)
 						{
-							bundledTasks.Add(furtherTask);
+							if(actSystem.BundleGateways() && actSystem.TaskTypesToBundle().Contains(nextTask.TaskType) && IsSameRuleOnDiffGw(nextTask, furtherTask))
+							{
+								nextTask.Elements.AddRange(furtherTask.GetRuleElements().ConvertAll(e => e.ToReqElement()));
+							}
+							else if(UserConfig.ModRolloutBundleTasks)
+							{
+								bundledTasks.Add(furtherTask);
+							}
+							handledTasks.Add(furtherTask);
 							actTaskNumber++;
 						}
 						else
@@ -246,11 +262,11 @@ namespace FWO.Middleware.Server
 							taskFound = false;
 						}
 					}
-					await CreateExtRequest(ticket, bundledTasks, waitCycles);
+					await CreateExtRequest(ticket, bundledTasks, handledTasks, waitCycles);
 				}
 				else
 				{
-					await CreateExtRequest(ticket, [nextTask], waitCycles);
+					await CreateExtRequest(ticket, [nextTask], [nextTask], waitCycles);
 				}
 			}
 			Log.WriteInfo("CreateNextRequest", $"Created Request for ticket {ticket.Id}.");
@@ -279,21 +295,27 @@ namespace FWO.Middleware.Server
 			return 0;
 		}
 
+		private static bool IsSameRuleOnDiffGw(WfReqTask? task1, WfReqTask? task2)
+		{
+			return task1 != null && task2 != null && task1.ManagementId == task2.ManagementId &&
+				task1.GetAddInfoIntValue(AdditionalInfoKeys.ConnId) == task2.GetAddInfoIntValue(AdditionalInfoKeys.ConnId);
+		}
+
 		private static bool ContainsNewObj(string contentString)
 		{
 			return contentString.Contains("\"object_updated_status\": \"NEW\"") || contentString.Contains("object_updated_status\\u0022: \\u0022NEW\\u0022") ||
 				contentString.Contains("\"object_updated_status\":\"NEW\"") || contentString.Contains("object_updated_status\\u0022:\\u0022NEW\\u0022");
 		}
 
-		private async Task CreateExtRequest( WfTicket ticket, List<WfReqTask> tasks, int waitCycles)
+		private async Task CreateExtRequest( WfTicket ticket, List<WfReqTask> tasks, List<WfReqTask> handledTasks, int waitCycles)
 		{
 			string taskContent = await ConstructContent(tasks, ticket.Requester);
-			Dictionary<string, List<int>>? bundledTasks;
+			Dictionary<string, List<int>>? handledTaskNumbers;
 			string? extQueryVars = null;
-			if(tasks.Count > 1)
+			if(handledTasks.Count > 1)
 			{
-				bundledTasks = new() { {ExternalVarKeys.BundledTasks, tasks.ConvertAll(t => t.TaskNumber)} };
-				extQueryVars = JsonSerializer.Serialize(bundledTasks);
+				handledTaskNumbers = new() { {ExternalVarKeys.BundledTasks, handledTasks.ConvertAll(t => t.TaskNumber)} };
+				extQueryVars = JsonSerializer.Serialize(handledTaskNumbers);
 			}
 			
 			var Variables = new
@@ -309,7 +331,7 @@ namespace FWO.Middleware.Server
 				waitCycles = waitCycles
 			};
 			await ApiConnection.SendQueryAsync<ReturnIdWrapper>(ExtRequestQueries.addExtRequest, Variables);
-			await LogRequestTasks(tasks, ticket.Requester?.Name, ModellingTypes.ChangeType.Request);
+			await LogRequestTasks(handledTasks, ticket.Requester?.Name, ModellingTypes.ChangeType.Request);
 		}
 
 		private async Task RejectFollowingTasks(WfTicket ticket, int lastTaskNumber)

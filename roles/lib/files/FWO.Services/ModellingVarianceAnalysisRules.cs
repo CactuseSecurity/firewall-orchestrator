@@ -43,6 +43,7 @@ namespace FWO.Services
         {
             if(rule.ConnId == conn.Id)
             {
+                rule.ModellFound = true;
                 if(IsImplementation(rule, conn))
                 {
                     conn.ProdRuleFound = true;

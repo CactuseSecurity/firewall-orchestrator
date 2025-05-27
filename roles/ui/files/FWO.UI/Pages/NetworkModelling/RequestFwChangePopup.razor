@@ -108,6 +108,7 @@
 
     private List<WfReqTask> TaskList = [];
     private List<IpProtocol> ipProtos = [];
+    private List<Device> Devices = [];
     private bool WorkInProgress = false;
     private bool FirstTry = true;
     private bool RequestInProcess = false;
@@ -120,8 +121,16 @@
 
     protected override async Task OnInitializedAsync()
     {
-        extStateHandler = new(apiConnection);
-        ipProtos = await apiConnection.SendQueryAsync<List<IpProtocol>>(StmQueries.getIpProtocols);
+        try
+        {
+            extStateHandler = new(apiConnection);
+            ipProtos = await apiConnection.SendQueryAsync<List<IpProtocol>>(StmQueries.getIpProtocols);
+            Devices = await apiConnection.SendQueryAsync<List<Device>>(DeviceQueries.getDeviceDetails);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
+        }
     }
 
     protected override async Task OnParametersSetAsync()
@@ -194,6 +203,14 @@
                 "<br>" + userConfig.GetText("destination") + ": " + DisplayNwObjects(task, ElemFieldType.destination.ToString()) +
                 (task.Comments.Count > 0 ? "<br>" + userConfig.GetText("comment") + ": " + task.Comments.First().Comment.CommentText : "");
         }
+        else if (task.TaskType == WfTaskType.rule_modify.ToString() || task.TaskType == WfTaskType.rule_delete.ToString())
+        {
+            return userConfig.GetText("gateway") + ": " + DisplayDevices(task) +
+                "<br>" + userConfig.GetText("rule_uid") + ": " + (task.GetRuleElements().FirstOrDefault()?.RuleUid ?? "") +
+                "<br>" + userConfig.GetText("source") + ": " + DisplayNwObjects(task, ElemFieldType.source.ToString()) +
+                "<br>" + userConfig.GetText("service") + ": " + DisplayServices(task) +
+                "<br>" + userConfig.GetText("destination") + ": " + DisplayNwObjects(task, ElemFieldType.destination.ToString());
+        }
         else if (task.TaskType == WfTaskType.group_create.ToString() || task.TaskType == WfTaskType.group_modify.ToString())
         {
             return DisplayMembers(task);
@@ -202,6 +219,16 @@
         {
             return "";
         }
+    }
+
+    private string DisplayDevices(WfReqTask task)
+    {
+        List<string> DevNames = [];
+        foreach (var devId in task.GetDeviceList())
+        {
+            DevNames.Add(Devices.FirstOrDefault(d => d.Id == devId)?.Name ?? "");
+        }
+        return string.Join(", ", DevNames);
     }
 
     private string DisplayNwObjects(WfReqTask task, string fieldType)
@@ -300,6 +327,7 @@
                     intTicket.Tasks.FirstOrDefault()?.Owners.FirstOrDefault()?.Owner.Id, DefaultInit.DoNothing, intTicket.Requester?.Name);
                 SubscribeTaskChanges();
                 await CreateExtRequests(intTicket);
+                await MarkConnectionsAsRequested(Connections);
                 await RefreshParent(intTicket);
                 DisplayMessageInUi(null, userConfig.GetText("U9020"), userConfig.GetText("U0016"), false);
             }
@@ -311,6 +339,15 @@
             apiConnection.SwitchBack();
         }
         WorkInProgress = false;
+    }
+
+    private async Task MarkConnectionsAsRequested(List<ModellingConnection> Connections)
+    {
+        foreach(var conn in Connections.Where(c => !c.IsDocumentationOnly() && !c.RequestedOnFw))
+        {
+            await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.updateConnectionFwRequested, new { id = conn.Id });
+            conn.RequestedOnFw = true;
+        }
     }
 
     private async Task SaveTicketId(long ticketId)

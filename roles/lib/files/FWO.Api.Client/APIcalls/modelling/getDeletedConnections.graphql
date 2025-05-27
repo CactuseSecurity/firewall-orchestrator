@@ -1,0 +1,5 @@
+query getDeletedConnections ($appId: Int!){
+  modelling_connection (where: { app_id: { _eq: $appId }, removed: { _eq: true } } order_by: { id: asc }){
+    id
+  }
+}

@@ -1,13 +1,15 @@
-﻿using FWO.Data;
+﻿using FWO.Basics;
+using FWO.Data;
 using FWO.Data.Modelling;
 using FWO.Data.Workflow;
 using FWO.Logging;
 using System.Text.Json;
+using System.Threading.Tasks;
 
 namespace FWO.Services
 {
     /// <summary>
-	/// Part of Variance Analysis Class analysing the network and service objects for request
+	/// Part of Variance Analysis Class analysing the rules, network and service objects for request
 	/// </summary>
     public partial class ModellingVarianceAnalysis
     {
@@ -21,6 +23,117 @@ namespace FWO.Services
         private List<WfReqElement> unchangedGroupMembersDuringCreate = [];
         private List<WfReqElement> unchangedGroupMembers = [];
 
+        private void AnalyseConnectionForRequest(Management mgt, ModellingConnection conn)
+        {
+            varianceResult = new() { Managements = RelevantManagements };
+            AnalyseRules(conn, false);
+            if(varianceResult.ConnsNotImplemented.Count > 0)
+            {
+                AddAccessTaskList.Add(ConstructCreateTask(mgt, conn));
+            }
+            else if(varianceResult.RuleDifferences.Count > 0)
+            {
+                foreach(var rule in varianceResult.RuleDifferences[0].ImplementedRules.Where(r => r.MgmtId == mgt.Id))
+                {
+                    ChangeAccessTaskList.Add(ConstructRuleTask(mgt, rule, false, elements));
+                }
+            }
+        }
+
+        private async Task AnalyseDeletedRulesForRequest(Management mgt)
+        {
+            List<int> DeletedConnectionIds = await GetDeletedConnectionIds();
+            foreach(var rule in allModelledRules[mgt.Id].Where(r => !r.ModellFound))
+            {
+                if(int.TryParse(FindModelledMarker(rule), out int connId) && DeletedConnectionIds.Contains(connId))
+                {
+                    DeleteAccessTaskList.Add(ConstructRuleTask(mgt, rule, true, GetElementsFromRule(rule)));
+                }
+            }
+        }
+        
+        private static List<WfReqElement> GetElementsFromRule(Rule rule)
+        {
+            List<WfReqElement> ruleElements = [];
+            foreach(var src in rule.Froms)
+            {
+                ruleElements.Add(new()
+                {
+                    RequestAction = RequestAction.unchanged.ToString(),
+                    Field = ElemFieldType.source.ToString(),
+                    Name = src.Object.Name,
+                    IpString = src.Object.IP,
+                    IpEnd = src.Object.IpEnd,
+                    GroupName = src.Object.Type.Name == ObjectType.Group ? src.Object.Name : null
+                });
+            }
+            foreach(var dest in rule.Tos)
+            {
+                ruleElements.Add(new()
+                {
+                    RequestAction = RequestAction.unchanged.ToString(),
+                    Field = ElemFieldType.destination.ToString(),
+                    Name = dest.Object.Name,
+                    IpString = dest.Object.IP,
+                    IpEnd = dest.Object.IpEnd,
+                    GroupName = dest.Object.Type.Name == ObjectType.Group ? dest.Object.Name : null
+                });
+            }
+            foreach(var svc in rule.Services)
+            {
+                ruleElements.Add(new()
+                {
+                    RequestAction = RequestAction.unchanged.ToString(),
+                    Field = ElemFieldType.service.ToString(),
+                    Name = svc.Content.Name,
+                    Port = svc.Content.DestinationPort,
+                    PortEnd = svc.Content.DestinationPortEnd,
+                    ProtoId = svc.Content.ProtoId,
+                    GroupName = svc.Content.Type.Name == ServiceType.Group ? svc.Content.Name : null
+                });
+            }
+            return ruleElements;
+        }
+
+        private WfReqTask ConstructCreateTask(Management mgt, ModellingConnection conn)
+        {
+            Dictionary<string, string>? addInfo = new() { { AdditionalInfoKeys.ConnId, conn.Id.ToString() } };
+            return new()
+            {
+                Title = ( conn.IsCommonService ? userConfig.GetText("new_common_service") : userConfig.GetText("new_connection") ) + ": " + conn.Name ?? "",
+                TaskType = WfTaskType.access.ToString(),
+                ManagementId = mgt.Id,
+                OnManagement = mgt,
+                Elements = elements,
+                RuleAction = 1,  // Todo ??
+                Tracking = 1,  // Todo ??
+                AdditionalInfo = JsonSerializer.Serialize(addInfo),
+                Comments = [new() { Comment = new() { CommentText = ConstructComment(conn) } }]
+            };
+        }
+
+        private WfReqTask ConstructRuleTask(Management mgt, Rule rule, bool delete, List<WfReqElement> ruleElements)
+        {
+            ruleElements.Add(new()
+            {
+                Field = ElemFieldType.rule.ToString(),
+                RuleUid = rule.Uid,
+                DeviceId = rule.DeviceId,
+                Name = rule.Name
+            });
+            WfReqTask ruleTask = new()
+            {
+                Title = (delete? userConfig.GetText("delete_rule") : userConfig.GetText("change_rule")) + ": " + rule.Name ?? "",
+                TaskType = delete? WfTaskType.rule_delete.ToString() : WfTaskType.rule_modify.ToString(),
+                RequestAction = delete? RequestAction.delete.ToString() : RequestAction.modify.ToString(),
+                ManagementId = mgt.Id,
+                OnManagement = mgt,
+                Elements = ruleElements
+            };
+            Device? device = mgt.Devices.FirstOrDefault(d => d.Id == rule.DeviceId);
+            ruleTask.SetDeviceList(device != null ? [device] : []);
+            return ruleTask;
+        }
 
         private void AnalyseNetworkAreasForRequest(ModellingConnection conn)
         {
@@ -67,7 +180,7 @@ namespace FWO.Services
             }
             else if (AppRoleChanged(appRole) &&
                 TaskList.FirstOrDefault(x => x.Title == userConfig.GetText("update_app_role") + appRole.IdString + userConfig.GetText("add_members") && x.OnManagement?.Id == mgt.Id) == null &&
-                DeleteTasksList.FirstOrDefault(x => x.Title == userConfig.GetText("update_app_role") + appRole.IdString + userConfig.GetText("remove_members") && x.OnManagement?.Id == mgt.Id) == null)
+                DeleteObjectTasksList.FirstOrDefault(x => x.Title == userConfig.GetText("update_app_role") + appRole.IdString + userConfig.GetText("remove_members") && x.OnManagement?.Id == mgt.Id) == null)
             {
                 RequestUpdateAppRole(appRole, mgt);
             }
@@ -238,7 +351,7 @@ namespace FWO.Services
             {
                 deletedGroupMembers.AddRange(unchangedGroupMembers);
                 deletedGroupMembers.AddRange(newCreatedGroupMembers);
-                DeleteTasksList.Add(new()
+                DeleteObjectTasksList.Add(new()
                 {
                     Title = title + appRole.IdString + userConfig.GetText("remove_members"),
                     TaskType = WfTaskType.group_modify.ToString(),

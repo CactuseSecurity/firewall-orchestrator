@@ -22,11 +22,13 @@ namespace FWO.Services
             JsonSerializer.Deserialize<RuleRecognitionOption>(userConfig.RuleRecognitionOption) ?? new();
         private readonly ModellingAppZoneHandler AppZoneHandler = new(apiConnection, userConfig, owner, displayMessageInUi);
         private AppServerComparer appServerComparer = new(new());
-        private List<Management> RelevantManagements = [];
+        private List<Management> RelevantManagements {get; set; } = [];
 
         private List<WfReqTask> TaskList = [];
-        private List<WfReqTask> AccessTaskList = [];
-        private List<WfReqTask> DeleteTasksList = [];
+        private List<WfReqTask> AddAccessTaskList = [];
+        private List<WfReqTask> ChangeAccessTaskList = [];
+        private List<WfReqTask> DeleteAccessTaskList = [];
+        private List<WfReqTask> DeleteObjectTasksList = [];
         private int taskNumber = 0;
         private List<WfReqElement> elements = [];
 
@@ -109,11 +111,14 @@ namespace FWO.Services
             // later: get rules + compare, bundle requests
             appServerComparer = new (namingConvention);
             await InitManagements();
+            await GetModelledRulesProductionState(new() { AnalyseRemainingRules = false });
             await GetNwObjectsProductionState();
 
             TaskList = [];
-            AccessTaskList = [];
-            DeleteTasksList = [];
+            AddAccessTaskList = [];
+            ChangeAccessTaskList = [];
+            DeleteAccessTaskList = [];
+            DeleteObjectTasksList = [];
             foreach (Management mgt in RelevantManagements)
             {
                 await AnalyseAppZone(mgt);
@@ -127,24 +132,15 @@ namespace FWO.Services
                     AnalyseServicesForRequest(conn);
                     if (elements.Count > 0)
                     {
-                        Dictionary<string, string>? addInfo = new() { { AdditionalInfoKeys.ConnId, conn.Id.ToString() } };
-                        AccessTaskList.Add(new()
-                        {
-                            Title = ( conn.IsCommonService ? userConfig.GetText("new_common_service") : userConfig.GetText("new_connection") ) + ": " + conn.Name ?? "",
-                            TaskType = WfTaskType.access.ToString(),
-                            ManagementId = mgt.Id,
-                            OnManagement = mgt,
-                            Elements = elements,
-                            RuleAction = 1,  // Todo ??
-                            Tracking = 1,  // Todo ??
-                            AdditionalInfo = JsonSerializer.Serialize(addInfo),
-                            Comments = [new() { Comment = new() { CommentText = ConstructComment(conn) } }]
-                        });
+                        AnalyseConnectionForRequest(mgt, conn);
                     }
                 }
+                await AnalyseDeletedRulesForRequest(mgt);
             }
-            TaskList.AddRange(AccessTaskList);
-            TaskList.AddRange(DeleteTasksList);
+            TaskList.AddRange(AddAccessTaskList);
+            TaskList.AddRange(ChangeAccessTaskList);
+            TaskList.AddRange(DeleteAccessTaskList);
+            TaskList.AddRange(DeleteObjectTasksList);
             taskNumber = 1;
             foreach (WfReqTask task in TaskList)
             {

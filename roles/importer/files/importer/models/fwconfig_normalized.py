@@ -52,7 +52,7 @@ class FwConfigNormalized(FwConfig):
     users: dict = {}
     zone_objects: dict = {}
     rulebases: List[Rulebase] = []
-    gateways: List[Gateway]
+    gateways: List[Gateway] = []
     ConfigFormat: ConfFormat = ConfFormat.NORMALIZED_LEGACY
 
     class Config:

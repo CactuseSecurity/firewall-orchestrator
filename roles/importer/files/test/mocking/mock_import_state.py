@@ -3,7 +3,7 @@ from importer.model_controllers.import_statistics_controller import ImportStatis
 
 try:
     from mock_management_details_controller import MockManagementDetailsController
-except:
+except ModuleNotFoundError:
     from test.mocking.mock_management_details_controller import MockManagementDetailsController
 
 

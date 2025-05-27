@@ -1,6 +1,11 @@
 from importer.model_controllers.import_state_controller import ImportStateController
 from importer.model_controllers.import_statistics_controller import ImportStatisticsController
 
+try:
+    from mock_management_details_controller import MockManagementDetailsController
+except ModuleNotFoundError:
+    from test.mocking.mock_management_details_controller import MockManagementDetailsController
+
 
 class MockImportStateController(ImportStateController):
     """
@@ -16,6 +21,8 @@ class MockImportStateController(ImportStateController):
         self.Stats = ImportStatisticsController()
         self.call_log = []
         self.stub_responses = {}
+        self.ImportVersion = 9
+        self.MgmDetails = MockManagementDetailsController()
 
         
     def call(self, *args, **kwargs):

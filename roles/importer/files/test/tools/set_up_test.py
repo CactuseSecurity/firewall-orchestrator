@@ -14,7 +14,10 @@ def set_up_test_for_ruleorder_test_with_defaults():
     previous_config = MockFwConfigNormalized()
     previous_config.initialize_config(
         {
-            "rule_config": [10,10,10]
+            "rule_config": [10,10,10],
+            "network_object_config": 10,
+            "service_config": 10,
+            "user_config": 10
         }
     )
     new_num_numeric = 0.0

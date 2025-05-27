@@ -946,7 +946,7 @@ Create table "changelog_rule"
 	"documented" Boolean NOT NULL Default FALSE,
 	"docu_time" Timestamp,
 	"mgm_id" Integer NOT NULL,
-	"dev_id" Integer NOT NULL,
+	"dev_id" Integer,
 	"change_type_id" Integer NOT NULL Default 3,
 	"security_relevant" Boolean NOT NULL Default TRUE,
 	"change_request_info" Varchar,

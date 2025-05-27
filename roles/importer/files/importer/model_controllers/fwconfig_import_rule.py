@@ -11,7 +11,7 @@ from models.rulebase import Rulebase, RulebaseForImport
 from model_controllers.import_state_controller import ImportStateController
 from model_controllers.fwconfig_normalized_controller import FwConfigNormalized
 from model_controllers.fwconfig_import_base import FwConfigImportBase
-from fwo_log import getFwoLogger
+from fwo_log import ChangeLogger, getFwoLogger
 from typing import Dict, List
 from datetime import datetime
 from models.rule_from import RuleFrom
@@ -24,8 +24,11 @@ from models.rule import RuleNormalized
 # this class is used for importing rules and rule refs into the FWO API
 class FwConfigImportRule(FwConfigImportBase):
 
+    _changed_rule_id_map: dict
+
     def __init__(self, importState: ImportStateController, config: FwConfigNormalized):
       super().__init__(importState, config)
+      self._changed_rule_id_map = {}
     # #   self.ActionMap = self.GetActionMap()
     # #   self.TrackMap = self.GetTrackMap()
     #   self.RuleNumLookup = self.GetRuleNumMap()             # TODO: needs to be updated with each insert
@@ -102,6 +105,8 @@ class FwConfigImportRule(FwConfigImportBase):
         error_count_change, number_of_changed_rules, changed_rule_uids = self.create_new_rule_version(changedRuleUids)
 
         error_count_move, number_of_moved_rules, moved_rule_uids = self.verify_rules_moved(changed_rule_uids)
+
+        self.write_changelog_rules(newRuleIds, removedRuleIds)
 
         self.ImportDetails.Stats.RuleAddCount += numberOfAddedRules
         self.ImportDetails.Stats.RuleDeleteCount += numberOfDeletedRules
@@ -648,6 +653,7 @@ class FwConfigImportRule(FwConfigImportBase):
         errors = 0
         changes = 0
         collected_changed_rule_ids = []
+        self._changed_rule_id_map = {}
         rule_order_service = RuleOrderService()
 
         if len(rule_uids) == 0:
@@ -715,7 +721,18 @@ class FwConfigImportRule(FwConfigImportBase):
                 changes = int(create_new_rule_version_result['data']['update_rule']['affected_rows'])
                 update_rules_return = create_new_rule_version_result['data']['update_rule']['returning']
                 insert_rules_return = create_new_rule_version_result['data']['insert_rule']['returning']
-                collected_changed_rule_ids += [item['rule_id'] for item in update_rules_return]
+
+                self._changed_rule_id_map = {
+                    update_item['rule_id']: next(
+                        insert_item['rule_id']
+                        for insert_item in insert_rules_return
+                        if insert_item['rule_uid'] == update_item['rule_uid']
+                    )
+                    for update_item in update_rules_return
+                }
+
+
+                collected_changed_rule_ids.extend(list(self._changed_rule_id_map.keys()))
                 self.update_refs_after_move(insert_rules_return, update_rules_return)
 
         except Exception:
@@ -1272,3 +1289,53 @@ class FwConfigImportRule(FwConfigImportBase):
             prepared_rules.append(rule_for_import)
         return { "data": prepared_rules }
     
+
+    def write_changelog_rules(self, added_rules_ids, removed_rules_ids):
+        logger = getFwoLogger()
+        errors = 0
+
+        changelog_rule_insert_objects = self.prepare_changelog_rules_insert_objects(added_rules_ids, removed_rules_ids)
+
+        updateChanglogRules = fwo_api.get_graphql_code([fwo_const.graphqlQueryPath + "rule/updateChanglogRules.graphql"])
+
+        queryVariables = {
+            'rule_changes': changelog_rule_insert_objects
+        }
+
+        if len(changelog_rule_insert_objects) > 0:
+            try:
+                updateChanglogRules_result = self.ImportDetails.call(updateChanglogRules, queryVariables=queryVariables, analyze_payload=True)
+                if 'errors' in updateChanglogRules_result:
+                    logger.exception(f"error while adding changelog entries for objects: {str(updateChanglogRules_result['errors'])}")
+                    errors = 1
+            except Exception:
+                logger.exception(f"fatal error while adding changelog entries for objects: {str(traceback.format_exc())}")
+                errors = 1
+        
+        return errors
+
+
+    def prepare_changelog_rules_insert_objects(self, added_rules_ids, removed_rules_ids):
+        """
+            Creates two lists of insert arguments for the changelog_rules db table, one for new rules, one for deleted.
+        """
+
+        change_logger = ChangeLogger()
+        changelog_rule_insert_objects = []
+        importTime = datetime.now().isoformat()
+        changeTyp = 3
+
+        if self.ImportDetails.IsFullImport or self.ImportDetails.IsClearingImport:
+            changeTyp = 2   # TODO: Somehow all imports are treated as im operation.
+
+        for rule_id in added_rules_ids:
+            changelog_rule_insert_objects.append(change_logger.create_changelog_import_object("rule", self.ImportDetails, 'I', changeTyp, importTime, rule_id))
+
+        for rule_id in removed_rules_ids:
+            changelog_rule_insert_objects.append(change_logger.create_changelog_import_object("rule", self.ImportDetails, 'D', changeTyp, importTime, rule_id))
+
+        for old_rule_id, new_rule_id in self._changed_rule_id_map.items():
+            changelog_rule_insert_objects.append(change_logger.create_changelog_import_object("rule", self.ImportDetails, 'C', changeTyp, importTime, new_rule_id, old_rule_id))
+
+        return changelog_rule_insert_objects
+

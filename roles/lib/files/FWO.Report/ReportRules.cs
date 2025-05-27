@@ -215,7 +215,7 @@ namespace FWO.Report
                     List<Rule> allRules = GetAllRulesOfGatewayRecursively(deviceReport, managementReport, [], initialRules);
 
                     // create hierarchical order number on runtime
-                    CreateOrderNumbers(allRules, deviceReport);
+                    CreateOrderNumberTree(allRules, deviceReport);
 
                     return allRules.ToArray();
                 }
@@ -258,8 +258,6 @@ namespace FWO.Report
             return allRules;
         }
 
-
-
         public static int GetRuleCount(ManagementReport mgmReport, RulebaseLink? currentRbLink, RulebaseLink[] rulebaseLinks)
         {
             if (currentRbLink != null)
@@ -295,54 +293,58 @@ namespace FWO.Report
 
         /// <summary>
         /// Creates multi-level (dotted) order numbers for display and sets internal numeric order for sorting.
+        /// Also builds a tree structure of rules as TreeNode<Rule>.
         /// </summary>
-        public static void CreateOrderNumbers(List<Rule> rules, DeviceReport device)
+        public static List<TreeNode<Rule>> CreateOrderNumberTree(List<Rule> rules, DeviceReport device)
         {
-            // Creates a dictionary with rulebase IDs as keys and lists of the corresponding rows as values.
-
             Dictionary<int, List<Rule>> rulesByRulebase = rules
                 .GroupBy(r => r.RulebaseId)
                 .ToDictionary(g => g.Key, g => g.OrderBy(r => r.OrderNumber).ToList());
 
-            // Normalize actual order numbers to incremental int like form.
-
             NormalizeOrderNumbers(rulesByRulebase);
-
-            // Creates a dictionary with rule IDs as keys and the rulebase link that has that rule as its from rule as values.
 
             Dictionary<int, RulebaseLink> linksByFromRuleId = device.RulebaseLinks
                 .Where(link => !link.IsInitialRulebase() && link.FromRuleId.HasValue)
                 .ToDictionary(link => link.FromRuleId!.Value, link => link);
 
-            // Initialize other needed variables.
-
             List<Rule> changedRules = new();
             List<int> initialPath = new();
             int positionCounter = 1;
             int firstRulebaseId = device.RulebaseLinks.First(link => link.IsInitialRulebase()).NextRulebaseId;
-            
-            // If there are more than one layer path needs to be initialized here.
 
-            if(device.RulebaseLinks.Any(link => link.LinkType == 2))    // ordered
+            if (device.RulebaseLinks.Any(link => link.LinkType == 2)) // ordered
             {
                 initialPath.Add(1);
             }
 
-            BuildOrderNumberTree(firstRulebaseId, initialPath, rulesByRulebase, linksByFromRuleId, changedRules, ref positionCounter, rules); 
+            // Build the tree and return the root nodes
+            return BuildOrderNumberTreeWithNodes(
+                firstRulebaseId, initialPath, rulesByRulebase, linksByFromRuleId, changedRules, ref positionCounter, rules
+            );
         }
 
-        private static void BuildOrderNumberTree(int rulebaseId, List<int> currentPath, Dictionary<int, List<Rule>> rulesByRulebase, Dictionary<int, RulebaseLink> linksByFromRuleId, List<Rule> changedRules, ref int positionCounter, List<Rule> rulebaseRules)
+        /// <summary>
+        /// Recursive helper to build the tree structure and assign order numbers.
+        /// </summary>
+        private static List<TreeNode<Rule>> BuildOrderNumberTreeWithNodes(
+            int rulebaseId,
+            List<int> currentPath,
+            Dictionary<int, List<Rule>> rulesByRulebase,
+            Dictionary<int, RulebaseLink> linksByFromRuleId,
+            List<Rule> changedRules,
+            ref int positionCounter,
+            List<Rule> rulebaseRules)
         {
+            var nodes = new List<TreeNode<Rule>>();
+
             if (!rulesByRulebase.TryGetValue(rulebaseId, out var rules))
             {
-                return;
+                return nodes;
             }
 
             for (int i = 0; i < rules.Count; i++)
             {
                 Rule rule = rules[i];
-
-                // Create duplicate if rulebase links make it necessary.
 
                 if (changedRules.Contains(rule))
                 {
@@ -350,34 +352,37 @@ namespace FWO.Report
                     rulebaseRules.Add(rule);
                 }
 
-                // Write order numbers to rule object.
-
                 List<int> path = new List<int>(currentPath) { rule.RuleOrderNumber };
                 string dotted = string.Join(".", path);
                 rule.DisplayOrderNumberString = dotted;
                 rule.OrderNumber = positionCounter++;
 
-                // Gather changed rules, to recognize if duplicate is necessary
-
                 changedRules.Add(rule);
 
-                // Handle link, if there is one that has this rule as its from rule.
-
-                if (linksByFromRuleId.TryGetValue((int) rule.Id, out RulebaseLink? link))
+                // Recursively build children if there is a link from this rule
+                List<TreeNode<Rule>> children = new();
+                if (linksByFromRuleId.TryGetValue((int)rule.Id, out RulebaseLink? link))
                 {
                     switch (link.LinkType)
                     {
                         case 2: // ordered
                             List<int> newPath = new() { path[0] + 1 };
-                            BuildOrderNumberTree(link.NextRulebaseId, newPath, rulesByRulebase, linksByFromRuleId, changedRules, ref positionCounter, rulebaseRules);
+                            children = BuildOrderNumberTreeWithNodes(link.NextRulebaseId, newPath, rulesByRulebase, linksByFromRuleId, changedRules, ref positionCounter, rulebaseRules);
                             break;
-
                         case 3: // inline
-                            BuildOrderNumberTree(link.NextRulebaseId, path, rulesByRulebase, linksByFromRuleId, changedRules, ref positionCounter, rulebaseRules);
+                            children = BuildOrderNumberTreeWithNodes(link.NextRulebaseId, path, rulesByRulebase, linksByFromRuleId, changedRules, ref positionCounter, rulebaseRules);
                             break;
                     }
                 }
+
+                nodes.Add(new TreeNode<Rule>
+                {
+                    Item = rule,
+                    Children = children
+                });
             }
+
+            return nodes;
         }
 
         /// <summary>

@@ -18,11 +18,11 @@
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
-            
+
         ManagementReportController management = Managements.Select(mgt => new ManagementReportController(mgt)).First();
         DeviceReportController device = management.Devices.Select(dev => DeviceReportController.FromDeviceReport(dev)).First();
 
-        // Use TreeNodeBuilder to build tree structure from rules processed by BuildOrderNumberTree
+        // Use TreeNodeBuilder to build tree structure from rules processed by CreateOrderNumberTree
         RulesNodes = TreeNodeBuilder.BuildRuleTreeFromManagementAndDevice(management, device);
     }
 }

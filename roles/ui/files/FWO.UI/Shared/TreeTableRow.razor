@@ -6,7 +6,8 @@
 @typeparam TItem
 
 <tr class="@(IsSectionHeader() ? "section-header" : "")">
-    <td class="tree-cell" style="padding-left:@(Level * 1)rem;" colspan="@GetColumnSpan()">
+    <td class="tree-cell" colspan="@GetColumnSpan()">
+        <span class="tree-indent" style="width:@(Level * 1.5)rem;"></span>
         @if(Node.Children.Any())
         {
             <button class="btn btn-sm toggle-btn p-2 mx-1" @onclick="() => OnToggle(Node)">

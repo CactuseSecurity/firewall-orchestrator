@@ -539,7 +539,7 @@ namespace FWO.Services
                 DisplayMessageInUi(null, userConfig.GetText("replace"), userConfig.GetText("E9016"), true);
                 return false;
             }
-            if (( await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.deleteConnection, new { id = ActConn.Id }) ).DeletedId == ActConn.Id)
+            if(await DeleteConnection(ActConn))
             {
                 await LogChange(ModellingTypes.ChangeType.Delete, ModellingTypes.ModObjectType.Connection, ActConn.Id,
                     $"Deleted Interface: {ActConn.Name}", Application.Id);

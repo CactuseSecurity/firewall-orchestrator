@@ -267,3 +267,6 @@ bugfix release:
 
 # 8.8.2 - 07.05.2025 DEVELOP
 - displayed state via variance analysis
+
+# 8.8.3 - 15.05.2025 DEVELOP
+- deactivation of connections

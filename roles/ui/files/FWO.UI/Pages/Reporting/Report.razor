@@ -1,8 +1,12 @@
+@inject IEventMediator EventMediator
 @using FWO.Data.Modelling
 @using FWO.Report
 @using FWO.Report.Filter
 @using FWO.Report.Filter.FilterTypes
 @using FWO.Report.Filter.Exceptions
+@using FWO.Services.EventMediator
+@using FWO.Services.EventMediator.Events
+@using FWO.Services.EventMediator.Interfaces
 @using FWO.Ui.Data
 @using FWO.Ui.Pages.Reporting.Reports
 @using System.Diagnostics
@@ -116,7 +120,7 @@
                         case ReportType.AppRules:
                             @* <RulesReport Managements="currentReport.ReportData.ManagementData" SelectedReportType="actReportFilters.ReportType" RulesPerPage="rulesPerPage"
                                 @bind-SelectedRules="selectedItemsRuleReportTable" /> *@
-                            <TreeNodesRulesReport Managements="currentReport.ReportData.ManagementData"></TreeNodesRulesReport>
+                            <TreeNodesRulesReport Managements="currentReport.ReportData.ManagementData" SelectedReportType="actReportFilters.ReportType"></TreeNodesRulesReport>
                             break;
 
                         case ReportType.Changes:
@@ -384,6 +388,10 @@
         watch.Stop();
         reportGenerationDuration = watch.ElapsedMilliseconds/1000.0;
         await InvokeAsync(StateHasChanged);
+
+        // Notify other components about the report generation completion
+        EventMediator.Publish(nameof(ReportGenerationEvent), new ReportGenerationEvent());
+
         Log.WriteDebug("Report Generation", $"Generation Time: {reportGenerationDuration} s.");
     }
 

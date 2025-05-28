@@ -1,28 +1,84 @@
-﻿@inject UserConfig userConfig
+﻿@implements IDisposable
+@inject UserConfig userConfig
+@inject IEventMediator EventMediator
 @using FWO.Report
 @using FWO.Report.Data
+@using FWO.Services.EventMediator.Events
+@using FWO.Services.EventMediator.Interfaces
 @using FWO.Ui.Display
 
-<TreeTable TItem="Rule" Nodes="RulesNodes">
-    <CellTemplate Context="rule">
-        @rule.Name
-    </CellTemplate>
-</TreeTable>
+@if (IsLoading)
+{
+    <div class="d-flex justify-content-center align-items-center">
+        <div class="spinner-border" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+}
+else
+{
+    <TreeTable TItem="Rule" Nodes="RulesNodes">
+        <CellTemplate Context="rule">
+            @rule.Name
+        </CellTemplate>
+    </TreeTable>
+}
 
 @code {
-    [Parameter]
-    public List<ManagementReport> Managements { get; set; } = new();
+    [Parameter, EditorRequired]
+    required public List<ManagementReport> Managements { get; set; } = [];
 
-    List<TreeNode<Rule>> RulesNodes = [];
+    [Parameter, EditorRequired]
+    required public ReportType SelectedReportType { get; set; }
 
-    protected override async Task OnInitializedAsync()
+    private List<TreeNode<Rule>> RulesNodes = new List<TreeNode<Rule>>();
+    private bool IsLoading = false;
+
+    protected override void OnInitialized()
     {
-        await base.OnInitializedAsync();
+        base.OnInitialized();
 
-        ManagementReportController management = Managements.Select(mgt => new ManagementReportController(mgt)).First();
-        DeviceReportController device = management.Devices.Select(dev => DeviceReportController.FromDeviceReport(dev)).First();
+        EventMediator.Subscribe<ReportGenerationEvent>(nameof(ReportGenerationEvent), _ => LoadData());
+    }
 
-        // Use TreeNodeBuilder to build tree structure from rules processed by CreateOrderNumberTree
-        RulesNodes = TreeNodeBuilder.BuildRuleTreeFromManagementAndDevice(management, device);
+    private void LoadData()
+    {
+        IsLoading = true;
+        try
+        {
+            RulesNodes = new List<TreeNode<Rule>>();
+
+            foreach (ManagementReport report in Managements)
+            {
+                ManagementReportController management = new ManagementReportController(report);
+
+                if (!management.ContainsRules())
+                {
+                    continue;
+                }
+
+                foreach (DeviceReport devReport in management.Devices)
+                {
+                    if (!devReport.ContainsRules())
+                    {
+                        continue;
+                    }
+
+                    DeviceReportController device = DeviceReportController.FromDeviceReport(devReport);
+                    List<TreeNode<Rule>> newNodes = TreeNodeBuilder.BuildRuleTreeFromManagementAndDevice(management, device);
+                    RulesNodes.AddRange(newNodes);
+                }
+            }
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    public void Dispose()
+    {
+        EventMediator.Unsubscribe<ReportGenerationEvent>(nameof(ReportGenerationEvent));
     }
 }

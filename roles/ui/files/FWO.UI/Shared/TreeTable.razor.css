@@ -21,19 +21,14 @@
     margin-bottom: 1rem;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
     border-radius: 4px;
-    overflow: hidden;
-}
-
-.sticky-toolbar {
-    position: sticky;
-    top: 0;
-    z-index: 10;
-    background: white;
 }
 
 ::deep thead {
     background-color: #f8f9fa;
     border-bottom: 2px solid #dee2e6;
+    position: sticky;
+    top: 0;
+    z-index: 10;
 }
 
 ::deep th {

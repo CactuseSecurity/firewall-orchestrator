@@ -5,14 +5,32 @@
 @typeparam TItem
 
 <div class="tree-table-viewport" id="treeTableViewport">
-    <div class="d-flex justify-content-start mb-2">
-        <input id="searchbar" class="form-control form-control-sm me-2" placeholder="@userConfig.GetText("search")" @bind="SearchText" @bind:event="oninput" />
-        <button class="btn btn-sm btn-outline-secondary me-2" @onclick="ExpandAll">
-            <span class="oi oi-expand-down"></span> @userConfig.GetText("expand_all")
+    <div class="d-flex mb-2">
+        <button class="btn btn-sm btn-secondary me-1" @onclick="ExpandAll">
+            <span class="oi oi-fullscreen-enter"></span>
         </button>
-        <button class="btn btn-sm btn-outline-secondary" @onclick="CollapseAll">
-            <span class="oi oi-collapse-up"></span> @userConfig.GetText("collapse_all")
+        <button class="btn btn-sm btn-secondary me-1" @onclick="CollapseAll">
+            <span class="oi oi-fullscreen-exit"></span>
         </button>
+        <span class="pt-1">|</span>
+        <button class="btn btn-sm btn-outline-secondary mx-1">
+            <span class="oi oi-bolt"></span>
+        </button>
+        <div class="d-flex ms-auto">
+            <input id="searchbar" class="form-control form-control-sm" placeholder="@userConfig.GetText("search")" @bind="SearchText" @bind:event="oninput" @onkeyup="HandleSearchKeyPress" />
+            @if (string.IsNullOrWhiteSpace(SearchText))
+            {
+                <button class="btn btn-sm btn-outline-secondary mx-1" @onclick="ApplySearch">
+                    <span class="oi oi-magnifying-glass"></span>
+                </button>
+            }
+            else
+            {
+                <button class="btn btn-sm btn-outline-secondary mx-1" @onclick="ClearSearch">
+                    <span class="oi oi-x"></span>
+                </button>
+            }
+        </div>
     </div>
 
     <div class="tree-table-container">
@@ -92,6 +110,7 @@
     private NatRuleDisplayHtml? RuleDisplay;
 
     private string SearchText { get; set; } = string.Empty;
+    private string AppliedSearchText { get; set; } = string.Empty;
 
     protected override void OnInitialized()
     {
@@ -105,29 +124,31 @@
     {
         IEnumerable<TreeNode<TItem>> sorted = SortNodes(nodes);
 
-        if(string.IsNullOrWhiteSpace(SearchText) || typeof(TItem) != typeof(Rule))
+        string filterText = string.IsNullOrWhiteSpace(AppliedSearchText) ? SearchText : AppliedSearchText;
+        
+        if(string.IsNullOrWhiteSpace(filterText) || typeof(TItem) != typeof(Rule))
             return sorted;
 
         IEnumerable<TreeNode<TItem>?> filtered = sorted
-            .Select((TreeNode<TItem> n) => FilterNode(n))
+            .Select((TreeNode<TItem> n) => FilterNode(n, filterText))
             .Where((TreeNode<TItem>? n) => n != null);
 
         return filtered.Cast<TreeNode<TItem>>();
     }
 
-    private TreeNode<TItem>? FilterNode(TreeNode<TItem> node)
+    private TreeNode<TItem>? FilterNode(TreeNode<TItem> node, string filterText)
     {
         if(typeof(TItem) == typeof(Rule))
         {
             Rule? rule = node.Item as Rule;
             bool match =
-                (rule?.Name?.Contains(SearchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
-                (rule?.Comment?.Contains(SearchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
-                (rule?.Source?.Contains(SearchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
-                (rule?.Destination?.Contains(SearchText, StringComparison.OrdinalIgnoreCase) ?? false);
+                (rule?.Name?.Contains(filterText, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (rule?.Comment?.Contains(filterText, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (rule?.Source?.Contains(filterText, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (rule?.Destination?.Contains(filterText, StringComparison.OrdinalIgnoreCase) ?? false);
 
             List<TreeNode<TItem>?> filteredChildren = node.Children
-                .Select((TreeNode<TItem> child) => FilterNode(child))
+                .Select((TreeNode<TItem> child) => FilterNode(child, filterText))
                 .Where((TreeNode<TItem>? child) => child != null)
                 .ToList();
 
@@ -227,5 +248,26 @@
             node.IsExpanded = isExpanded;
             SetNodesExpandedState(node.Children, isExpanded);
         }
+    }
+
+    private void HandleSearchKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            ApplySearch();
+        }
+    }
+
+    private void ApplySearch()
+    {
+        AppliedSearchText = SearchText;
+        StateHasChanged();
+    }
+
+    private void ClearSearch()
+    {
+        SearchText = string.Empty;
+        AppliedSearchText = string.Empty;
+        StateHasChanged();
     }
 }

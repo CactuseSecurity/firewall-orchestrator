@@ -1,7 +1,7 @@
 .tree-table-viewport {
     display: flex;
     flex-direction: column;
-    height: 100vh;
+    max-height: calc(100vh - 350px);
     min-height: 0;
 }
 

@@ -1,7 +1,5 @@
 using FWO.Data;
 using FWO.Data.Report;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace FWO.Report
 {

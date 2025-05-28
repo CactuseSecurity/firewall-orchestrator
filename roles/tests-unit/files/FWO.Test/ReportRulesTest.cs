@@ -112,7 +112,7 @@ namespace FWO.Test
             };
 
             // ACT
-            ReportRules.CreateOrderNumbers(rulesUnderTest, device);
+            ReportRules.CreateOrderNumberTree(rulesUnderTest, device);
 
             // ASSERT
             foreach(Rule rule in rulesUnderTest)

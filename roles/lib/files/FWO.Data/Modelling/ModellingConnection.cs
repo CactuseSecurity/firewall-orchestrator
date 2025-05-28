@@ -103,6 +103,15 @@ namespace FWO.Data.Modelling
         [JsonProperty("destination_other_groups"), JsonPropertyName("destination_other_groups")]
         public List<ModellingNwGroupWrapper> DestinationOtherGroups { get; set; } = [];
 
+        [JsonProperty("requested_on_fw"), JsonPropertyName("requested_on_fw")]
+        public bool RequestedOnFw { get; set; } = false;
+
+        [JsonProperty("removed"), JsonPropertyName("removed")]
+        public bool Removed { get; set; } = false;
+
+        [JsonProperty("removal_date"), JsonPropertyName("removal_date")]
+        public DateTime? RemovalDate { get; set; }
+
         
         public bool SrcFromInterface { get; set; } = false;
         public bool DstFromInterface { get; set; } = false;
@@ -157,6 +166,9 @@ namespace FWO.Data.Modelling
             DestinationAppRoles = [.. conn.DestinationAppRoles];
             DestinationAreas = [.. conn.DestinationAreas];
             DestinationOtherGroups = [.. conn.DestinationOtherGroups];
+            RequestedOnFw = conn.RequestedOnFw;
+            Removed = conn.Removed;
+            RemovalDate = conn.RemovalDate;
             SrcFromInterface = conn.SrcFromInterface;
             DstFromInterface = conn.DstFromInterface;
             InterfaceIsRequested = conn.InterfaceIsRequested;

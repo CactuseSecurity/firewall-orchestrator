@@ -1,5 +1,16 @@
+.tree-table-viewport {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    min-height: 0;
+}
+
 .tree-table-container {
+    flex: 1 1 auto;
+    overflow: auto;
+    min-height: 0;
     overflow-x: auto;
+    overflow-y: auto;
     border: 1px solid #e0e0e0;
     background: #fff;
 }
@@ -11,6 +22,13 @@
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
     border-radius: 4px;
     overflow: hidden;
+}
+
+.sticky-toolbar {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: white;
 }
 
 ::deep thead {

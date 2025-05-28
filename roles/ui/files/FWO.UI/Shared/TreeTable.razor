@@ -4,83 +4,90 @@
 
 @typeparam TItem
 
-<div class="d-flex justify-content-start mb-2">
-    <button class="btn btn-sm btn-outline-secondary me-2" @onclick="ExpandAll">
-        <span class="oi oi-expand-down"></span> @userConfig.GetText("expand_all")
-    </button>
-    <button class="btn btn-sm btn-outline-secondary" @onclick="CollapseAll">
-        <span class="oi oi-collapse-up"></span> @userConfig.GetText("collapse_all")
-    </button>
-</div>
+<div class="tree-table-viewport" id="treeTableViewport">
+    <div class="sticky-toolbar d-flex justify-content-start mb-2" id="stickyToolbar">
+        <input class="form-control form-control-sm me-2"
+               style="width: 200px;"
+               placeholder="@userConfig.GetText("search")"
+               @bind="SearchText"
+               @bind:event="oninput" />
+        <button class="btn btn-sm btn-outline-secondary me-2" @onclick="ExpandAll">
+            <span class="oi oi-expand-down"></span> @userConfig.GetText("expand_all")
+        </button>
+        <button class="btn btn-sm btn-outline-secondary" @onclick="CollapseAll">
+            <span class="oi oi-collapse-up"></span> @userConfig.GetText("collapse_all")
+        </button>
+    </div>
 
-<div class="tree-table-container">
-    <table class="tree-table">
-        <thead>
-            <tr>
-                <th @onclick="() => SortBy(nameof(Rule.Name))">
-                    @(userConfig.GetText("name"))
-                    @if(SortColumn == nameof(Rule.Name) && !NoSorting)
-                    {
-                        <span class="sort-icon @(SortAscending ? "oi oi-caret-bottom" : "oi oi-caret-top")"></span>
-                    }
-                </th>
-                <th @onclick="() => SortBy(nameof(Rule.OrderNumber))">
-                    @(userConfig.GetText("number"))
-                    @if(SortColumn == nameof(Rule.OrderNumber) && !NoSorting)
-                    {
-                        <span class="sort-icon @(SortAscending ? "oi oi-caret-bottom" : "oi oi-caret-top")"></span>
-                    }
-                </th>
-                <th>
-                    @(userConfig.GetText("source_zone"))
-                </th>
-                <th>
-                    @(userConfig.GetText("source"))
-                </th>
-                <th>
-                    @(userConfig.GetText("destination_zone"))
-                </th>
-                <th>
-                    @(userConfig.GetText("destination"))
-                </th>
-                <th>
-                    @(userConfig.GetText("services"))
-                </th>
-                <th>
-                    @(userConfig.GetText("action"))
-                </th>
-                <th>
-                    @(userConfig.GetText("track"))
-                </th>
-                <th>
-                    @(userConfig.GetText("enabled"))
-                </th>
-                <th>
-                    @(userConfig.GetText("uid"))
-                </th>
-                <th>
-                    @(userConfig.GetText("comment"))
-                </th>
-            </tr>
-        </thead>
-        <tbody>
-            @if(SortedNodes is not null)
-            {
-                @foreach(TreeNode<TItem> node in SortedNodes)
+    <div class="tree-table-container">
+        <table class="tree-table">
+            <thead>
+                <tr>
+                    <th @onclick="() => SortBy(nameof(Rule.Name))">
+                        @(userConfig.GetText("name"))
+                        @if(SortColumn == nameof(Rule.Name) && !NoSorting)
+                        {
+                            <span class="sort-icon @(SortAscending ? "oi oi-caret-bottom" : "oi oi-caret-top")"></span>
+                        }
+                    </th>
+                    <th @onclick="() => SortBy(nameof(Rule.OrderNumber))">
+                        @(userConfig.GetText("number"))
+                        @if(SortColumn == nameof(Rule.OrderNumber) && !NoSorting)
+                        {
+                            <span class="sort-icon @(SortAscending ? "oi oi-caret-bottom" : "oi oi-caret-top")"></span>
+                        }
+                    </th>
+                    <th>
+                        @(userConfig.GetText("source_zone"))
+                    </th>
+                    <th>
+                        @(userConfig.GetText("source"))
+                    </th>
+                    <th>
+                        @(userConfig.GetText("destination_zone"))
+                    </th>
+                    <th>
+                        @(userConfig.GetText("destination"))
+                    </th>
+                    <th>
+                        @(userConfig.GetText("services"))
+                    </th>
+                    <th>
+                        @(userConfig.GetText("action"))
+                    </th>
+                    <th>
+                        @(userConfig.GetText("track"))
+                    </th>
+                    <th>
+                        @(userConfig.GetText("enabled"))
+                    </th>
+                    <th>
+                        @(userConfig.GetText("uid"))
+                    </th>
+                    <th>
+                        @(userConfig.GetText("comment"))
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+                @if(FilteredNodes is not null)
                 {
-                    <TreeTableRow TItem="TItem" Node="node" Level="0" CellTemplate="CellTemplate" OnToggle="ToggleNode" RuleDisplay="RuleDisplay" />
+                    @foreach(TreeNode<TItem> node in FilteredNodes)
+                    {
+                        <TreeTableRow TItem="TItem" Node="node" Level="0" CellTemplate="CellTemplate" OnToggle="ToggleNode" RuleDisplay="RuleDisplay" />
+                    }
                 }
-            }
-        </tbody>
-    </table>
+            </tbody>
+        </table>
+    </div>
 </div>
 
 @code {
     [Parameter, EditorRequired]
-    required public List<TreeNode<TItem>> Nodes { get; set; } = new();
+    public required List<TreeNode<TItem>> Nodes { get; set; } = new();
 
     [Parameter, EditorRequired]
-    required public RenderFragment<TItem> CellTemplate { get; set; }
+    public required RenderFragment<TItem> CellTemplate { get; set; }
 
     private string? SortColumn { get; set; }
     private bool SortAscending { get; set; } = true;
@@ -88,13 +95,92 @@
 
     private NatRuleDisplayHtml? RuleDisplay;
 
+    private string SearchText { get; set; } = string.Empty;
+
     protected override void OnInitialized()
     {
         RuleDisplay = new NatRuleDisplayHtml(userConfig);
     }
 
-    private IEnumerable<TreeNode<TItem>> SortedNodes =>
-        SortNodes(Nodes);
+    private IEnumerable<TreeNode<TItem>> FilteredNodes =>
+        FilterAndSortNodes(Nodes);
+
+    private IEnumerable<TreeNode<TItem>> FilterAndSortNodes(IEnumerable<TreeNode<TItem>> nodes)
+    {
+        IEnumerable<TreeNode<TItem>> sorted = SortNodes(nodes);
+
+        if(string.IsNullOrWhiteSpace(SearchText) || typeof(TItem) != typeof(Rule))
+            return sorted;
+
+        IEnumerable<TreeNode<TItem>?> filtered = sorted
+            .Select((TreeNode<TItem> n) => FilterNode(n))
+            .Where((TreeNode<TItem>? n) => n != null);
+
+        return filtered.Cast<TreeNode<TItem>>();
+    }
+
+    private TreeNode<TItem>? FilterNode(TreeNode<TItem> node)
+    {
+        if(typeof(TItem) == typeof(Rule))
+        {
+            Rule? rule = node.Item as Rule;
+            bool match =
+                (rule?.Name?.Contains(SearchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (rule?.Comment?.Contains(SearchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (rule?.Source?.Contains(SearchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (rule?.Destination?.Contains(SearchText, StringComparison.OrdinalIgnoreCase) ?? false);
+
+            List<TreeNode<TItem>?> filteredChildren = node.Children
+                .Select((TreeNode<TItem> child) => FilterNode(child))
+                .Where((TreeNode<TItem>? child) => child != null)
+                .ToList();
+
+            List<TreeNode<TItem>> filteredChildrenNonNull = filteredChildren
+                .Cast<TreeNode<TItem>>()
+                .ToList();
+
+            if(match || filteredChildrenNonNull.Count > 0)
+            {
+                return new TreeNode<TItem>
+                {
+                    Item = node.Item,
+                    IsExpanded = node.IsExpanded,
+                    Children = filteredChildrenNonNull
+                };
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        return node;
+    }
+
+    private IEnumerable<TreeNode<TItem>> SortNodes(IEnumerable<TreeNode<TItem>> nodes)
+    {
+        if(NoSorting)
+        {
+            return nodes;
+        }
+
+        if(typeof(TItem) == typeof(Rule))
+        {
+            if(SortColumn == nameof(Rule.Name))
+            {
+                return SortAscending
+                    ? nodes.OrderBy((TreeNode<TItem> n) => ((Rule)(object)n.Item).Name)
+                    : nodes.OrderByDescending((TreeNode<TItem> n) => ((Rule)(object)n.Item).Name);
+            }
+            else if(SortColumn == nameof(Rule.OrderNumber))
+            {
+                return SortAscending
+                    ? nodes.OrderBy((TreeNode<TItem> n) => ((Rule)(object)n.Item).OrderNumber)
+                    : nodes.OrderByDescending((TreeNode<TItem> n) => ((Rule)(object)n.Item).OrderNumber);
+            }
+        }
+        return nodes;
+    }
 
     private void SortBy(string column)
     {
@@ -119,53 +205,28 @@
         }
     }
 
-    private IEnumerable<TreeNode<TItem>> SortNodes(IEnumerable<TreeNode<TItem>> nodes)
-    {
-        if(NoSorting)
-        {
-            return nodes;
-        }
-
-        if(typeof(TItem) == typeof(Rule))
-        {
-            if(SortColumn == nameof(Rule.Name))
-            {
-                return SortAscending
-                    ? nodes.OrderBy(n => ((Rule)(object)n.Item).Name)
-                    : nodes.OrderByDescending(n => ((Rule)(object)n.Item).Name);
-            }
-            else if(SortColumn == nameof(Rule.OrderNumber))
-            {
-                return SortAscending
-                    ? nodes.OrderBy(n => ((Rule)(object)n.Item).OrderNumber)
-                    : nodes.OrderByDescending(n => ((Rule)(object)n.Item).OrderNumber);
-            }
-        }
-        return nodes;
-    }
-
     private void ToggleNode(TreeNode<TItem> node)
     {
         node.IsExpanded = !node.IsExpanded;
     }
-    
+
     private void ExpandAll()
     {
         SetNodesExpandedState(Nodes, true);
         StateHasChanged();
     }
-    
+
     private void CollapseAll()
     {
         SetNodesExpandedState(Nodes, false);
         StateHasChanged();
     }
-    
+
     private void SetNodesExpandedState(IEnumerable<TreeNode<TItem>> nodes, bool isExpanded)
     {
-        if (nodes == null) return;
-        
-        foreach (var node in nodes)
+        if(nodes == null) return;
+
+        foreach(TreeNode<TItem> node in nodes)
         {
             node.IsExpanded = isExpanded;
             SetNodesExpandedState(node.Children, isExpanded);

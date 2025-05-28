@@ -76,19 +76,13 @@
 </div>
 
 @code {
-    [Parameter]
-    public List<string> Columns { get; set; } = new();
+    [Parameter, EditorRequired]
+    required public List<TreeNode<TItem>> Nodes { get; set; } = new();
 
-    [Parameter]
-    public List<TreeNode<TItem>> Nodes { get; set; } = new();
+    [Parameter, EditorRequired]
+    required public RenderFragment<TItem> CellTemplate { get; set; }
 
-    [Parameter]
-    public RenderFragment<TItem> CellTemplate { get; set; }
-
-    [Parameter]
-    public Action<TreeNode<TItem>> OnToggle { get; set; }
-
-    private string SortColumn { get; set; } = nameof(Rule.OrderNumber);
+    private string? SortColumn { get; set; }
     private bool SortAscending { get; set; } = true;
     private bool NoSorting { get; set; } = false;
 
@@ -145,12 +139,6 @@
                 return SortAscending
                     ? nodes.OrderBy(n => ((Rule)(object)n.Item).OrderNumber)
                     : nodes.OrderByDescending(n => ((Rule)(object)n.Item).OrderNumber);
-            }
-            else if(SortColumn == nameof(Rule.DisplayOrderNumberString))
-            {
-                return SortAscending
-                    ? nodes.OrderBy(n => ((Rule)(object)n.Item).DisplayOrderNumberString)
-                    : nodes.OrderByDescending(n => ((Rule)(object)n.Item).DisplayOrderNumberString);
             }
         }
         return nodes;

@@ -6,7 +6,7 @@
 
 <div class="tree-table-viewport" id="treeTableViewport">
     <div class="d-flex justify-content-start mb-2">
-        <input class="form-control form-control-sm me-2" style="width: 200px;" placeholder="@userConfig.GetText("search")" @bind="SearchText" />
+        <input class="form-control form-control-sm me-2" style="width: 200px;" placeholder="@userConfig.GetText("search")" @bind="SearchText" @bind:event="oninput" />
         <button class="btn btn-sm btn-outline-secondary me-2" @onclick="ExpandAll">
             <span class="oi oi-expand-down"></span> @userConfig.GetText("expand_all")
         </button>

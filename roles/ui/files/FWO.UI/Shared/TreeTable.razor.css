@@ -1,8 +1,12 @@
+#searchbar{
+    width: 200px;
+}
+
 .tree-table-viewport {
     display: flex;
     flex-direction: column;
     max-height: calc(100vh - 390px);
-    min-height: 0;
+    min-height: 520px;
 }
 
 .tree-table-container {

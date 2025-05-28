@@ -4,8 +4,8 @@
 @using FWO.Ui.Display
 
 <TreeTable TItem="Rule" Nodes="RulesNodes">
-    <CellTemplate Context="item">
-        @item.Name
+    <CellTemplate Context="rule">
+        @rule.Name
     </CellTemplate>
 </TreeTable>
 
@@ -13,7 +13,7 @@
     [Parameter]
     public List<ManagementReport> Managements { get; set; } = new();
 
-    List<TreeNode<Rule>> RulesNodes;
+    List<TreeNode<Rule>> RulesNodes = [];
 
     protected override async Task OnInitializedAsync()
     {

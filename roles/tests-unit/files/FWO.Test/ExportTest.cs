@@ -7,7 +7,7 @@ using FWO.Basics;
 using FWO.Data;
 using FWO.Data.Modelling;
 using FWO.Data.Report;
-using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 
 
 namespace FWO.Test
@@ -230,6 +230,26 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task AppRulesGenerateHtml()
+        {
+            // TODO: to be enhanced
+            Log.WriteInfo("Test Log", "starting AppRules report html generation");
+            ReportAppRules reportAppRules = new(query, userConfig, ReportType.AppRules, new())
+            {
+                ReportData = await ConstructAppRulesReport()
+            };
+
+            string expectedHtmlResult = "<!DOCTYPE html><html><head><meta charset=\"utf-8\"/><title>App Rules</title><style>table {font-family: arial, sans-serif;font-size: 10px;border-collapse: collapse;width: 100 %;}td {border: 1px solid #000000;text-align: left;padding: 3px;}th {border: 1px solid #000000;text-align: left;padding: 3px;background-color: #dddddd;}</style></head><body><h2>App Rules</h2><p>Time of configuration: 2023-04-20T15:50:04Z (UTC)</p><p>Generated on: Z (UTC)</p><p>Devices: TestMgt [TestDev]</p><p>Filter: TestFilter</p><hr><div id=\"toc_container\"><h2>Table of content</h2><ul class=\"toc_list\"><li><a href=\"#" + StaticAnkerId + "\">TestMgt</a></li><ul><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">TestDev</a></li></ul></ul></div><style>#toc_container {background: #f9f9f9 none repeat scroll 0 0;border: 1px solid #aaa;display: table;font-size: 95%;margin-bottom: 1em;padding: 10px;width: 100%;}#toc_container ul{list-style-type: none;}.subli {list-style-type: square;}.toc_list ul li {margin-bottom: 4px;}.toc_list a {color: black;font-family: 'Arial';font-size: 12pt;}</style><hr><h3 id=\"" + StaticAnkerId + "\">TestMgt</h3><hr><h4 id=\"" + StaticAnkerId + "\">TestDev</h4><table><tr><th>No.</th><th>Last Hit</th><th>Name</th><th>Source Zone</th><th>Source</th><th>Destination Zone</th><th>Destination</th><th>Services</th><th>Action</th><th>Track</th><th>Enabled</th><th>Uid</th><th>Comment</th></tr><tr><td>1</td><td>2022-04-19</td><td>TestRule1</td><td>srczn</td><td><span style=\" color: red;\"><span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1x1\" target=\"_top\" style=\" color: red;\">TestIp1</a> (1.2.3.4/32)</span><br><span class=\"text-secondary\">... (1 more)</span></td><td>dstzn</td><td><span style=\" color: red;\"><span class=\"oi oi-resize-width\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1x3\" target=\"_top\" style=\" color: red;\">TestIpRange</a> (1.2.3.4-1.2.3.5)</span><br></td><td><span class=\"oi oi-wrench\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc1x1\" target=\"_top\" style=\"\">TestService1</a> (443/TCP)</td><td>accept</td><td>none</td><td><b>Y</b></td><td>uid1</td><td>comment1</td></tr></table><hr></body></html>";
+
+            string reportHtml = RemoveLinebreaks(RemoveGenDate(reportAppRules.ExportToHtml(), true));
+
+            IEnumerable<string> matches = reportHtml.GetMatches(ToCRegexPattern, ToCAnkerIdGroupName);
+            reportHtml = reportHtml.ReplaceAll(matches, StaticAnkerId);
+
+            ClassicAssert.AreEqual(expectedHtmlResult, reportHtml);
+        }
+
+        [Test]
         public void ConnectionsGenerateHtml()
         {
             Log.WriteInfo("Test Log", "starting connection report html generation");
@@ -251,13 +271,14 @@ namespace FWO.Test
         [Test]
         public void VariancesGenerateHtml()
         {
+            // TODO: to be enhanced
             Log.WriteInfo("Test Log", "starting variance report html generation");
             ReportVariances reportVariances = new(query, userConfig, ReportType.VarianceAnalysis)
             {
                 ReportData = ConstructVarianceReport()
             };
 
-            string expectedHtmlResult = "<!DOCTYPE html><html><head><meta charset=\"utf-8\"/><title>VarianceAnalysis</title><style>table {font-family: arial, sans-serif;font-size: 10px;border-collapse: collapse;width: 100 %;}td {border: 1px solid #000000;text-align: left;padding: 3px;}th {border: 1px solid #000000;text-align: left;padding: 3px;background-color: #dddddd;}</style></head><body><h2>VarianceAnalysis</h2><p>Generated on: Z (UTC)</p><p>Owners: TestOwner</p><p>Filter: TestFilter</p><hr><div id=\"toc_container\"><h2>Table of content</h2><ul class=\"toc_list\"><li><a href=\"#" + StaticAnkerId + "\">TestOwner</a></li><ul><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">AppRoles Not Implemented</a></li><ul><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\"></a></li></ul><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">AppRoles With Diffs</a></li><ul><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\"></a></li></ul><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">Connections not implemented</a></li><ul><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">Connections</a></li></ul><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">Connections with Diffs</a></li><ul><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">Conn2</a></li></ul><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">Network Objects</a></li><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">Network Services</a></li></ul></ul></div><style>#toc_container {background: #f9f9f9 none repeat scroll 0 0;border: 1px solid #aaa;display: table;font-size: 95%;margin-bottom: 1em;padding: 10px;width: 100%;}#toc_container ul{list-style-type: none;}.subli {list-style-type: square;}.toc_list ul li {margin-bottom: 4px;}.toc_list a {color: black;font-family: 'Arial';font-size: 12pt;}</style><hr>In this report...<br><h3 id=\"" + StaticAnkerId + "\">TestOwner</h3>AppRoles: 2, Implemented: 0, Not Implemented: 1, With Diffs: 1.<br>Connections: 2, Implemented: 0, Not Implemented: 1, With Diffs: 1<br><hr><h4 id=\"" + StaticAnkerId + "\">AppRoles Not Implemented</h4><h5 id=\"" + StaticAnkerId + "\"></h5><table><tr><th>No.</th><th>Id</th><th>Name</th><th>Members</th></tr><tr><td>1</td><td>21</td><td>AppRole1</td><td>AppServer1 (1.0.0.0)</td></table><hr><hr><h4 id=\"" + StaticAnkerId + "\">AppRoles With Diffs</h4><h5 id=\"" + StaticAnkerId + "\"></h5><table><tr><th>No.</th><th>Id</th><th>Name</th><th>Missing App Servers</th><th>Surplus App Servers</th></tr><tr><td>1</td><td>22</td><td>AppRole2</td><td>AppServer2 (2.0.0.0)</td><td></td></table><hr><hr><h4 id=\"" + StaticAnkerId + "\">Connections not implemented</h4><h5 id=\"" + StaticAnkerId + "\">Connections</h5><table><tr><th>No.</th><th>Id</th><th>Name</th><th>Functional Reason</th><th>Source</th><th>Services</th><th>Destination</th></tr><tr><td>1</td><td>101</td><td>Conn1</td><td></td><td>Area50 (NA50)<br>AppRole1 (AR1)<br>AppServer1 (1.0.0.0)</td><td>ServiceGroup1<br>Service1 (1234/TCP)</td><td>AppRole2 (AR2)</td></table><hr><h4 id=\"" + StaticAnkerId + "\">Connections with Diffs</h4><h5 id=\"" + StaticAnkerId + "\">Conn2</h5><table><tr><th>No.</th><th>Id</th><th>Name</th><th>Functional Reason</th><th>Source</th><th>Services</th><th>Destination</th></tr><tr><td>1</td><td>102</td><td>Conn2</td><td></td><td>AppServer1 (1.0.0.0)</td><td>Service1 (1234/TCP)</td><td>AppRole2 (AR2)</td></table><table><tr><th>Management</th><th>Gateway</th><th>Source</th><th>Services</th><th>Destination</th></tr><tr><td></td><td></td><td><p><span class=\"oi oi-laptop\"></span><br></p></td><td><p><span class=\"oi oi-wrench\"> ()</span><br></p></td><td><p><span class=\"oi oi-laptop\"></span><br></p></td></tr></table><hr><h4 id=\"" + StaticAnkerId + "\">Network Objects</h4><table><tr><th>No.</th><th>Id</th><th>Name</th><th>Ip</th><th>Members</th></tr><tr><td>1</td><td>51</td><td><a name=nwobj0x51>Area50 (NA50)</a></td><td></td><td>...</td><tr><td>2</td><td>21</td><td><a name=nwobj0x21>AppRole1 (AR1)</a></td><td></td><td>AppServer1</td><tr><td>3</td><td>11</td><td><a name=nwobj0x11>AppServer1</a></td><td>1.0.0.0</td><td></td><tr><td>4</td><td>22</td><td><a name=nwobj0x22>AppRole2 (AR2)</a></td><td></td><td>AppServer2</td><tr><td>5</td><td>12</td><td><a name=nwobj0x12>AppServer2</a></td><td>2.0.0.0</td><td></td></table><hr><h4 id=\"" + StaticAnkerId + "\">Network Services</h4><table><tr><th>No.</th><th>Id</th><th>Name</th><th>Protocol</th><th>Port</th><th>Members</th></tr><tr><td>1</td><td>41</td><td><a name=svc0x41>ServiceGroup1</a></td><td></td><td></td><td>Service1</td><tr><td>2</td><td>31</td><td><a name=svc0x31>Service1</a></td><td>TCP</td><td>1234</td><td></td></table><hr><hr></body></html>";
+            string expectedHtmlResult = "<!DOCTYPE html><html><head><meta charset=\"utf-8\"/><title>VarianceAnalysis</title><style>table {font-family: arial, sans-serif;font-size: 10px;border-collapse: collapse;width: 100 %;}td {border: 1px solid #000000;text-align: left;padding: 3px;}th {border: 1px solid #000000;text-align: left;padding: 3px;background-color: #dddddd;}</style></head><body><h2>VarianceAnalysis</h2><p>Generated on: Z (UTC)</p><p>Owners: TestOwner</p><p>Filter: TestFilter</p><hr><div id=\"toc_container\"><h2>Table of content</h2><ul class=\"toc_list\"><li><a href=\"#" + StaticAnkerId + "\">TestOwner</a></li><ul><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">AppRoles Not Implemented</a></li><ul><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\"></a></li></ul><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">AppRoles With Diffs</a></li><ul><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\"></a></li></ul><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">Connections not implemented</a></li><ul><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">Connections</a></li></ul><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">Connections with Diffs</a></li><ul><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">Conn2</a></li></ul><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">Network Objects</a></li><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">Network Services</a></li></ul></ul></div><style>#toc_container {background: #f9f9f9 none repeat scroll 0 0;border: 1px solid #aaa;display: table;font-size: 95%;margin-bottom: 1em;padding: 10px;width: 100%;}#toc_container ul{list-style-type: none;}.subli {list-style-type: square;}.toc_list ul li {margin-bottom: 4px;}.toc_list a {color: black;font-family: 'Arial';font-size: 12pt;}</style><hr>In this report...<br><h3 id=\"" + StaticAnkerId + "\">TestOwner</h3><table><tr><th></th><th>fullymodelled</th><th>Implemented</th><th>Not Implemented</th><th>With Diffs</th></tr><tr><td>AppRoles</td><td>2</td><td>0</td><td>1</td><td>1</td></tr><tr><td>Connections</td><td>2</td><td>0</td><td>1</td><td>1</td></tr></table><hr><h4 id=\"" + StaticAnkerId + "\">AppRoles Not Implemented</h4><h5 id=\"" + StaticAnkerId + "\"></h5><table><tr><th>No.</th><th>Id</th><th>Name</th><th>Members</th></tr><tr><td>1</td><td>21</td><td>AppRole1</td><td>AppServer1 (1.0.0.0)</td></table><hr><hr><h4 id=\"" + StaticAnkerId + "\">AppRoles With Diffs</h4><h5 id=\"" + StaticAnkerId + "\"></h5><table><tr><th>No.</th><th>Id</th><th>Name</th><th>Missing App Servers</th><th>Surplus App Servers</th></tr><tr><td>1</td><td>22</td><td>AppRole2</td><td>AppServer2 (2.0.0.0)</td><td></td></table><hr><hr><h4 id=\"" + StaticAnkerId + "\">Connections not implemented</h4><h5 id=\"" + StaticAnkerId + "\">Connections</h5><table><tr><th>No.</th><th>Id</th><th>Name</th><th>Functional Reason</th><th>Source</th><th>Services</th><th>Destination</th></tr><tr><td>1</td><td>101</td><td>Conn1</td><td></td><td>Area50 (NA50)<br>AppRole1 (AR1)<br>AppServer1 (1.0.0.0)</td><td>ServiceGroup1<br>Service1 (1234/TCP)</td><td>AppRole2 (AR2)</td></table><hr><h4 id=\"" + StaticAnkerId + "\">Connections with Diffs</h4><h5 id=\"" + StaticAnkerId + "\">Conn2</h5><table><tr><th>No.</th><th>Id</th><th>Name</th><th>Functional Reason</th><th>Source</th><th>Services</th><th>Destination</th></tr><tr><td>1</td><td>102</td><td>Conn2</td><td></td><td>AppServer1 (1.0.0.0)</td><td>Service1 (1234/TCP)</td><td>AppRole2 (AR2)</td></table><table><tr><th>Management</th><th>Gateway</th><th>Source</th><th>Services</th><th>Destination</th></tr><tr><td></td><td></td><td><p><span class=\"oi oi-laptop\"></span><br></p></td><td><p><span class=\"oi oi-wrench\"> ()</span><br></p></td><td><p><span class=\"oi oi-laptop\"></span><br></p></td></tr></table><hr><h4 id=\"" + StaticAnkerId + "\">Network Objects</h4><table><tr><th>No.</th><th>Id</th><th>Name</th><th>Ip</th><th>Members</th></tr><tr><td>1</td><td>51</td><td><a name=nwobj0x51>Area50 (NA50)</a></td><td></td><td>...</td><tr><td>2</td><td>21</td><td><a name=nwobj0x21>AppRole1 (AR1)</a></td><td></td><td>AppServer1</td><tr><td>3</td><td>11</td><td><a name=nwobj0x11>AppServer1</a></td><td>1.0.0.0</td><td></td><tr><td>4</td><td>22</td><td><a name=nwobj0x22>AppRole2 (AR2)</a></td><td></td><td>AppServer2</td><tr><td>5</td><td>12</td><td><a name=nwobj0x12>AppServer2</a></td><td>2.0.0.0</td><td></td></table><hr><h4 id=\"" + StaticAnkerId + "\">Network Services</h4><table><tr><th>No.</th><th>Id</th><th>Name</th><th>Protocol</th><th>Port</th><th>Members</th></tr><tr><td>1</td><td>41</td><td><a name=svc0x41>ServiceGroup1</a></td><td></td><td></td><td>Service1</td><tr><td>2</td><td>31</td><td><a name=svc0x31>Service1</a></td><td>TCP</td><td>1234</td><td></td></table><hr><hr></body></html>";
              string reportHtml = RemoveLinebreaks(RemoveGenDate(reportVariances.ExportToHtml(), true));
             IEnumerable<string> matches = reportHtml.GetMatches(ToCRegexPattern, ToCAnkerIdGroupName);
             reportHtml = reportHtml.ReplaceAll(matches, StaticAnkerId);
@@ -269,7 +290,7 @@ namespace FWO.Test
             {
                 ReportData = ConstructVarianceReport()
             };
-            string expectedHtmlResult2 = "<!DOCTYPE html><html><head><meta charset=\"utf-8\"/><title>VarianceAnalysis</title><style>table {font-family: arial, sans-serif;font-size: 10px;border-collapse: collapse;width: 100 %;}td {border: 1px solid #000000;text-align: left;padding: 3px;}th {border: 1px solid #000000;text-align: left;padding: 3px;background-color: #dddddd;}</style></head><body><h2>VarianceAnalysis</h2><p>Generated on: Z (UTC)</p><p>Owners: TestOwner</p><p>Filter: TestFilter</p><hr><div id=\"toc_container\"><h2>Table of content</h2><ul class=\"toc_list\"><li><a href=\"#" + StaticAnkerId + "\">TestOwner</a></li><ul><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">AppRoles Not Implemented</a></li><ul><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\"></a></li></ul><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">AppRoles With Diffs</a></li><ul><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\"></a></li></ul><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">Connections not implemented</a></li><ul><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">Connections</a></li></ul><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">Connections with Diffs</a></li><ul><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">Conn2</a></li></ul><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">Network Objects</a></li><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">Network Services</a></li></ul></ul></div><style>#toc_container {background: #f9f9f9 none repeat scroll 0 0;border: 1px solid #aaa;display: table;font-size: 95%;margin-bottom: 1em;padding: 10px;width: 100%;}#toc_container ul{list-style-type: none;}.subli {list-style-type: square;}.toc_list ul li {margin-bottom: 4px;}.toc_list a {color: black;font-family: 'Arial';font-size: 12pt;}</style><hr>In this report...<br><h3 id=\"" + StaticAnkerId + "\">TestOwner</h3>AppRoles: 2, Implemented: 0, Not Implemented: 1, With Diffs: 1.<br>Connections: 2, Implemented: 0, Not Implemented: 1, With Diffs: 1<br><hr><h4 id=\"" + StaticAnkerId + "\">AppRoles Not Implemented</h4><h5 id=\"" + StaticAnkerId + "\"></h5><table><tr><th>No.</th><th>Id</th><th>Name</th><th>Members</th></tr><tr><td>1</td><td>21</td><td>AppRole1</td><td>AppServer1 (1.0.0.0)</td></table><hr><hr><h4 id=\"" + StaticAnkerId + "\">AppRoles With Diffs</h4><h5 id=\"" + StaticAnkerId + "\"></h5><table><tr><th>No.</th><th>Id</th><th>Name</th><th>Missing App Servers</th><th>Surplus App Servers</th></tr><tr><td>1</td><td>22</td><td>AppRole2</td><td>AppServer2 (2.0.0.0)</td><td></td></table><hr><hr><h4 id=\"" + StaticAnkerId + "\">Connections not implemented</h4><h5 id=\"" + StaticAnkerId + "\">Connections</h5><table><tr><th>No.</th><th>Id</th><th>Name</th><th>Functional Reason</th><th>Source</th><th>Services</th><th>Destination</th></tr><tr><td>1</td><td>101</td><td>Conn1</td><td></td><td>Area50 (NA50)<br>AppRole1 (AR1)<br>AppServer1 (1.0.0.0)</td><td>ServiceGroup1<br>Service1 (1234/TCP)</td><td>AppRole2 (AR2)</td></table><hr><h4 id=\"" + StaticAnkerId + "\">Connections with Diffs</h4><h5 id=\"" + StaticAnkerId + "\">Conn2</h5><table><tr><th>No.</th><th>Id</th><th>Name</th><th>Functional Reason</th><th>Source</th><th>Services</th><th>Destination</th></tr><tr><td>1</td><td>102</td><td>Conn2</td><td></td><td>AppServer1 (1.0.0.0)</td><td>Service1 (1234/TCP)</td><td>AppRole2 (AR2)</td></table><table><tr><th>Management</th><th>Gateway</th><th>Source</th><th>Services</th><th>Destination</th></tr><tr><td></td><td></td><td><p><span class=\"oi oi-laptop\"></span><br></p></td><td><p><span class=\"oi oi-wrench\"> ()</span><br></p></td><td><p><span class=\"oi oi-laptop\"></span><br></p></td></tr></table><hr><h4 id=\"" + StaticAnkerId + "\">Network Objects</h4><table><tr><th>No.</th><th>Id</th><th>Name</th><th>Ip</th><th>Members</th></tr><tr><td>1</td><td>51</td><td><a name=nwobj0x51>Area50 (NA50)</a></td><td></td><td>Net1</td><tr><td>2</td><td>1</td><td><a name=nwobj0x1>Net1</a></td><td>1.0.0.0</td><td></td><tr><td>3</td><td>21</td><td><a name=nwobj0x21>AppRole1 (AR1)</a></td><td></td><td>AppServer1</td><tr><td>4</td><td>11</td><td><a name=nwobj0x11>AppServer1</a></td><td>1.0.0.0</td><td></td><tr><td>5</td><td>22</td><td><a name=nwobj0x22>AppRole2 (AR2)</a></td><td></td><td>AppServer2</td><tr><td>6</td><td>12</td><td><a name=nwobj0x12>AppServer2</a></td><td>2.0.0.0</td><td></td></table><hr><h4 id=\"" + StaticAnkerId + "\">Network Services</h4><table><tr><th>No.</th><th>Id</th><th>Name</th><th>Protocol</th><th>Port</th><th>Members</th></tr><tr><td>1</td><td>41</td><td><a name=svc0x41>ServiceGroup1</a></td><td></td><td></td><td>Service1</td><tr><td>2</td><td>31</td><td><a name=svc0x31>Service1</a></td><td>TCP</td><td>1234</td><td></td></table><hr><hr></body></html>";
+            string expectedHtmlResult2 = "<!DOCTYPE html><html><head><meta charset=\"utf-8\"/><title>VarianceAnalysis</title><style>table {font-family: arial, sans-serif;font-size: 10px;border-collapse: collapse;width: 100 %;}td {border: 1px solid #000000;text-align: left;padding: 3px;}th {border: 1px solid #000000;text-align: left;padding: 3px;background-color: #dddddd;}</style></head><body><h2>VarianceAnalysis</h2><p>Generated on: Z (UTC)</p><p>Owners: TestOwner</p><p>Filter: TestFilter</p><hr><div id=\"toc_container\"><h2>Table of content</h2><ul class=\"toc_list\"><li><a href=\"#" + StaticAnkerId + "\">TestOwner</a></li><ul><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">AppRoles Not Implemented</a></li><ul><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\"></a></li></ul><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">AppRoles With Diffs</a></li><ul><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\"></a></li></ul><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">Connections not implemented</a></li><ul><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">Connections</a></li></ul><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">Connections with Diffs</a></li><ul><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">Conn2</a></li></ul><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">Network Objects</a></li><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">Network Services</a></li></ul></ul></div><style>#toc_container {background: #f9f9f9 none repeat scroll 0 0;border: 1px solid #aaa;display: table;font-size: 95%;margin-bottom: 1em;padding: 10px;width: 100%;}#toc_container ul{list-style-type: none;}.subli {list-style-type: square;}.toc_list ul li {margin-bottom: 4px;}.toc_list a {color: black;font-family: 'Arial';font-size: 12pt;}</style><hr>In this report...<br><h3 id=\"" + StaticAnkerId + "\">TestOwner</h3><table><tr><th></th><th>fullymodelled</th><th>Implemented</th><th>Not Implemented</th><th>With Diffs</th></tr><tr><td>AppRoles</td><td>2</td><td>0</td><td>1</td><td>1</td></tr><tr><td>Connections</td><td>2</td><td>0</td><td>1</td><td>1</td></tr></table><hr><h4 id=\"" + StaticAnkerId + "\">AppRoles Not Implemented</h4><h5 id=\"" + StaticAnkerId + "\"></h5><table><tr><th>No.</th><th>Id</th><th>Name</th><th>Members</th></tr><tr><td>1</td><td>21</td><td>AppRole1</td><td>AppServer1 (1.0.0.0)</td></table><hr><hr><h4 id=\"" + StaticAnkerId + "\">AppRoles With Diffs</h4><h5 id=\"" + StaticAnkerId + "\"></h5><table><tr><th>No.</th><th>Id</th><th>Name</th><th>Missing App Servers</th><th>Surplus App Servers</th></tr><tr><td>1</td><td>22</td><td>AppRole2</td><td>AppServer2 (2.0.0.0)</td><td></td></table><hr><hr><h4 id=\"" + StaticAnkerId + "\">Connections not implemented</h4><h5 id=\"" + StaticAnkerId + "\">Connections</h5><table><tr><th>No.</th><th>Id</th><th>Name</th><th>Functional Reason</th><th>Source</th><th>Services</th><th>Destination</th></tr><tr><td>1</td><td>101</td><td>Conn1</td><td></td><td>Area50 (NA50)<br>AppRole1 (AR1)<br>AppServer1 (1.0.0.0)</td><td>ServiceGroup1<br>Service1 (1234/TCP)</td><td>AppRole2 (AR2)</td></table><hr><h4 id=\"" + StaticAnkerId + "\">Connections with Diffs</h4><h5 id=\"" + StaticAnkerId + "\">Conn2</h5><table><tr><th>No.</th><th>Id</th><th>Name</th><th>Functional Reason</th><th>Source</th><th>Services</th><th>Destination</th></tr><tr><td>1</td><td>102</td><td>Conn2</td><td></td><td>AppServer1 (1.0.0.0)</td><td>Service1 (1234/TCP)</td><td>AppRole2 (AR2)</td></table><table><tr><th>Management</th><th>Gateway</th><th>Source</th><th>Services</th><th>Destination</th></tr><tr><td></td><td></td><td><p><span class=\"oi oi-laptop\"></span><br></p></td><td><p><span class=\"oi oi-wrench\"> ()</span><br></p></td><td><p><span class=\"oi oi-laptop\"></span><br></p></td></tr></table><hr><h4 id=\"" + StaticAnkerId + "\">Network Objects</h4><table><tr><th>No.</th><th>Id</th><th>Name</th><th>Ip</th><th>Members</th></tr><tr><td>1</td><td>51</td><td><a name=nwobj0x51>Area50 (NA50)</a></td><td></td><td>Net1</td><tr><td>2</td><td>1</td><td><a name=nwobj0x1>Net1</a></td><td>1.0.0.0</td><td></td><tr><td>3</td><td>21</td><td><a name=nwobj0x21>AppRole1 (AR1)</a></td><td></td><td>AppServer1</td><tr><td>4</td><td>11</td><td><a name=nwobj0x11>AppServer1</a></td><td>1.0.0.0</td><td></td><tr><td>5</td><td>22</td><td><a name=nwobj0x22>AppRole2 (AR2)</a></td><td></td><td>AppServer2</td><tr><td>6</td><td>12</td><td><a name=nwobj0x12>AppServer2</a></td><td>2.0.0.0</td><td></td></table><hr><h4 id=\"" + StaticAnkerId + "\">Network Services</h4><table><tr><th>No.</th><th>Id</th><th>Name</th><th>Protocol</th><th>Port</th><th>Members</th></tr><tr><td>1</td><td>41</td><td><a name=svc0x41>ServiceGroup1</a></td><td></td><td></td><td>Service1</td><tr><td>2</td><td>31</td><td><a name=svc0x31>Service1</a></td><td>TCP</td><td>1234</td><td></td></table><hr><hr></body></html>";
             reportHtml = RemoveLinebreaks(RemoveGenDate(reportVariances.ExportToHtml(), true));
             matches = reportHtml.GetMatches(ToCRegexPattern, ToCAnkerIdGroupName);
             reportHtml = reportHtml.ReplaceAll(matches, StaticAnkerId);
@@ -697,7 +718,7 @@ namespace FWO.Test
             }
         }
 
-        private Rule InitRule1(bool resolved)
+        private static Rule InitRule1(bool resolved)
         {
             return new Rule()
             {
@@ -720,7 +741,7 @@ namespace FWO.Test
             };
         }
 
-        private Rule InitRule2(bool resolved)
+        private static Rule InitRule2(bool resolved)
         {
             return new Rule()
             {
@@ -740,7 +761,7 @@ namespace FWO.Test
             };
         }
 
-        private ReportData ConstructRuleReport(bool resolved)
+        private static ReportData ConstructRuleReport(bool resolved)
         {
             Rule1 = InitRule1(resolved);
             Rule2 = InitRule2(resolved);
@@ -767,7 +788,7 @@ namespace FWO.Test
             };
         }
 
-        private ReportData ConstructRecertReport()
+        private static ReportData ConstructRecertReport()
         {
             RecertRule1 = InitRule1(false);
             RecertRule1.Metadata.RuleRecertification =
@@ -818,7 +839,7 @@ namespace FWO.Test
             };
         }
 
-        private ReportData ConstructNatRuleReport()
+        private static ReportData ConstructNatRuleReport()
         {
             NatRule = InitRule1(false);
             NatRule.NatData = new NatData()
@@ -860,7 +881,7 @@ namespace FWO.Test
             };
         }
 
-        private ReportData ConstructChangeReport(bool resolved)
+        private static ReportData ConstructChangeReport(bool resolved)
         {
             Rule1 = InitRule1(resolved);
             Rule1Changed = InitRule1(resolved);
@@ -938,6 +959,14 @@ namespace FWO.Test
             };
         }
 
+        private static async Task<ReportData> ConstructAppRulesReport()
+        {
+            ReportData reportData = ConstructRuleReport(false);
+            ModellingVarianceAnalysisTestApiConn apiConnection = new();
+            reportData.ManagementData = await ReportAppRules.PrepareAppRulesReport(reportData.ManagementData, new ModellingFilter(), apiConnection, 1);
+            return reportData;
+        }
+
         private static ReportData ConstructConnectionReport(bool resolved)
         {
             ModellingAppServer AppServer1 = new() { Id = 11, Number = 1, Name = "AppServer1", Ip = "1.0.0.0" };
@@ -994,7 +1023,7 @@ namespace FWO.Test
             return reportData;
         }
 
-        private ReportData ConstructVarianceReport()
+        private static ReportData ConstructVarianceReport()
         {
             ModellingAppServer AppServer1 = new() { Id = 11, Number = 1, Name = "AppServer1", Ip = "1.0.0.0" };
             ModellingAppServer AppServer2 = new() { Id = 12, Number = 2, Name = "AppServer2", Ip = "2.0.0.0" };

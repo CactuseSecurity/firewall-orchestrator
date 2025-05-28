@@ -518,7 +518,7 @@ namespace FWO.Report.Filter
             {
                 query.QueryParameters.Add("$appId: Int!");
                 query.QueryVariables["appId"] = modellingFilter.SelectedOwner.Id;
-                query.ConnectionWhereStatement += $@"{{ _or: [ {{ app_id: {{ _eq: $appId }} }}, {{ proposed_app_id: {{ _eq: $appId }} }} ] }}";
+                query.ConnectionWhereStatement += $@"{{ _or: [ {{ app_id: {{ _eq: $appId }} }}, {{ proposed_app_id: {{ _eq: $appId }} }} ], removed: {{ _eq: false }} }}";
             }
         }
 

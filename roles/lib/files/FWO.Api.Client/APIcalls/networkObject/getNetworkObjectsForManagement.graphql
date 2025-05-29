@@ -2,11 +2,10 @@ query getNetworkObjectsForManagement (
   $mgmId: Int
   $objTypeIds: [Int!]
   $active: Boolean
-  $relevantImportId: bigint
-  $import_id_start: bigint #todo: might be needed to show correct flats
+  $import_id_start: bigint
   $import_id_end: bigint
 ){
-  object(where: {mgm_id: { _eq: $mgmId }, active: {_eq: true}, obj_typ_id: {_in: $objTypeIds}, obj_create: {_lte: $relevantImportId}, obj_last_seen: {_gte: $relevantImportId}}) {   
+  object(where: {mgm_id: { _eq: $mgmId }, active: {_eq: true}, obj_typ_id: {_in: $objTypeIds}, obj_create: {_lte: $import_id_end}, obj_last_seen: {_gte: $import_id_start}}) {   
     ...networkObjectDetails
   }
 }

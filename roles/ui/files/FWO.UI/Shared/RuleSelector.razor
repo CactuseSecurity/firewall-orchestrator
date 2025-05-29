@@ -113,7 +113,8 @@
             var RuleVariables = new
             {
                 devId = newDevice.Id,
-                relevantImportId = managementsWithRelevantImportId.First().Import.ImportAggregate.ImportAggregateMax.RelevantImportId
+                import_id_start = managementsWithRelevantImportId.First().Import.ImportAggregate.ImportAggregateMax.RelevantImportId,
+                import_id_end   = managementsWithRelevantImportId.First().Import.ImportAggregate.ImportAggregateMax.RelevantImportId
             };
             allRulesOfDevice = await apiConnection.SendQueryAsync<List<Rule>>(FWO.Api.Client.Queries.RuleQueries.getRuleUidsOfDevice, RuleVariables);
             actRule = allRulesOfDevice.FirstOrDefault() ?? new Rule();

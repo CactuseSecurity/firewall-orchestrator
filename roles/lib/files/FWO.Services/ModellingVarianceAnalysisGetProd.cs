@@ -130,7 +130,8 @@ namespace FWO.Services
                 var RuleVariables = new
                 {
                     mgmId = mgtId,
-                    relevantImportId = relImpId
+                    import_id_start = relImpId,
+                    import_id_end   = relImpId
                 };
                 return await apiConnection.SendQueryAsync<List<Rule>>(RuleQueries.getRulesByManagement, RuleVariables);
             }
@@ -139,7 +140,8 @@ namespace FWO.Services
                 var RuleVariables = new
                 {
                     mgmId = mgtId,
-                    relevantImportId = relImpId,
+                    import_id_start = relImpId,
+                    import_id_end = relImpId,
                     marker = $"%{userConfig.ModModelledMarker}%"
                 };
 
@@ -222,7 +224,8 @@ namespace FWO.Services
                     {
                         mgmId = mgtId,
                         objTypeIds = objTypeIds,
-                        relevantImportId = relImpId
+                        import_id_start = relImpId,
+                        import_id_end   = relImpId
                     };
                     return await apiConnection.SendQueryAsync<List<NetworkObject>>(ObjectQueries.getNetworkObjectsForManagement, ObjGroupVariables);
                 }

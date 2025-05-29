@@ -239,29 +239,7 @@ namespace FWO.Middleware.Server
 				{
 					List<WfReqTask> bundledTasks = [nextTask];
 					List<WfReqTask> handledTasks = [nextTask];
-					int actTaskNumber = lastTaskNumber + 2;
-					bool taskFound = true;
-					while(taskFound && bundledTasks.Count < actSystem.MaxBundledTasks())
-					{
-						WfReqTask? furtherTask = ticket.Tasks.FirstOrDefault(ta => ta.TaskNumber == actTaskNumber);
-						if(furtherTask != null && furtherTask.TaskType == nextTask.TaskType)
-						{
-							if(actSystem.BundleGateways() && actSystem.TaskTypesToBundle().Contains(nextTask.TaskType) && IsSameRuleOnDiffGw(nextTask, furtherTask))
-							{
-								nextTask.Elements.AddRange(furtherTask.GetRuleElements().ConvertAll(e => e.ToReqElement()));
-							}
-							else if(UserConfig.ModRolloutBundleTasks)
-							{
-								bundledTasks.Add(furtherTask);
-							}
-							handledTasks.Add(furtherTask);
-							actTaskNumber++;
-						}
-						else
-						{
-							taskFound = false;
-						}
-					}
+					BundleTasks(ticket, lastTaskNumber, nextTask, bundledTasks, handledTasks);
 					await CreateExtRequest(ticket, bundledTasks, handledTasks, waitCycles);
 				}
 				else
@@ -271,6 +249,33 @@ namespace FWO.Middleware.Server
 			}
 			Log.WriteInfo("CreateNextRequest", $"Created Request for ticket {ticket.Id}.");
 			return true;
+		}
+
+		private void BundleTasks(WfTicket ticket, int lastTaskNumber, WfReqTask nextTask, List<WfReqTask> bundledTasks, List<WfReqTask> handledTasks)
+		{
+			int actTaskNumber = lastTaskNumber + 2;
+			bool taskFound = true;
+			while(taskFound && bundledTasks.Count < actSystem.MaxBundledTasks())
+			{
+				WfReqTask? furtherTask = ticket.Tasks.FirstOrDefault(ta => ta.TaskNumber == actTaskNumber);
+				if(furtherTask != null && furtherTask.TaskType == nextTask.TaskType)
+				{
+					if(actSystem.BundleGateways() && actSystem.TaskTypesToBundle().Contains(nextTask.TaskType) && IsSameRuleOnDiffGw(nextTask, furtherTask))
+					{
+						nextTask.Elements.AddRange(furtherTask.GetRuleElements().ConvertAll(e => e.ToReqElement()));
+					}
+					else if(UserConfig.ModRolloutBundleTasks)
+					{
+						bundledTasks.Add(furtherTask);
+					}
+					handledTasks.Add(furtherTask);
+					actTaskNumber++;
+				}
+				else
+				{
+					taskFound = false;
+				}
+			}
 		}
 
 		/// <summary>

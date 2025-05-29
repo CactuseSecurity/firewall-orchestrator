@@ -55,41 +55,41 @@ namespace FWO.Services
         private static List<WfReqElement> GetElementsFromRule(Rule rule)
         {
             List<WfReqElement> ruleElements = [];
-            foreach(var src in rule.Froms)
+            foreach(var src in rule.Froms.Select(src => src.Object))
             {
                 ruleElements.Add(new()
                 {
                     RequestAction = RequestAction.unchanged.ToString(),
                     Field = ElemFieldType.source.ToString(),
-                    Name = src.Object.Name,
-                    IpString = src.Object.IP,
-                    IpEnd = src.Object.IpEnd,
-                    GroupName = src.Object.Type.Name == ObjectType.Group ? src.Object.Name : null
+                    Name = src.Name,
+                    IpString = src.IP,
+                    IpEnd = src.IpEnd,
+                    GroupName = src.Type.Name == ObjectType.Group ? src.Name : null
                 });
             }
-            foreach(var dest in rule.Tos)
+            foreach(var dest in rule.Tos.Select(dest => dest.Object))
             {
                 ruleElements.Add(new()
                 {
                     RequestAction = RequestAction.unchanged.ToString(),
                     Field = ElemFieldType.destination.ToString(),
-                    Name = dest.Object.Name,
-                    IpString = dest.Object.IP,
-                    IpEnd = dest.Object.IpEnd,
-                    GroupName = dest.Object.Type.Name == ObjectType.Group ? dest.Object.Name : null
+                    Name = dest.Name,
+                    IpString = dest.IP,
+                    IpEnd = dest.IpEnd,
+                    GroupName = dest.Type.Name == ObjectType.Group ? dest.Name : null
                 });
             }
-            foreach(var svc in rule.Services)
+            foreach(var svc in rule.Services.Select(svc => svc.Content))
             {
                 ruleElements.Add(new()
                 {
                     RequestAction = RequestAction.unchanged.ToString(),
                     Field = ElemFieldType.service.ToString(),
-                    Name = svc.Content.Name,
-                    Port = svc.Content.DestinationPort,
-                    PortEnd = svc.Content.DestinationPortEnd,
-                    ProtoId = svc.Content.ProtoId,
-                    GroupName = svc.Content.Type.Name == ServiceType.Group ? svc.Content.Name : null
+                    Name = svc.Name,
+                    Port = svc.DestinationPort,
+                    PortEnd = svc.DestinationPortEnd,
+                    ProtoId = svc.ProtoId,
+                    GroupName = svc.Type.Name == ServiceType.Group ? svc.Name : null
                 });
             }
             return ruleElements;
@@ -100,7 +100,7 @@ namespace FWO.Services
             Dictionary<string, string>? addInfo = new() { { AdditionalInfoKeys.ConnId, conn.Id.ToString() } };
             return new()
             {
-                Title = ( conn.IsCommonService ? userConfig.GetText("new_common_service") : userConfig.GetText("new_connection") ) + ": " + conn.Name ?? "",
+                Title = ( conn.IsCommonService ? userConfig.GetText("new_common_service") : userConfig.GetText("new_connection") ) + ": " + (conn.Name ?? ""),
                 TaskType = WfTaskType.access.ToString(),
                 ManagementId = mgt.Id,
                 OnManagement = mgt,
@@ -123,7 +123,7 @@ namespace FWO.Services
             });
             WfReqTask ruleTask = new()
             {
-                Title = (delete? userConfig.GetText("delete_rule") : userConfig.GetText("change_rule")) + ": " + rule.Name ?? "",
+                Title = (delete? userConfig.GetText("delete_rule") : userConfig.GetText("change_rule")) + ": " + (rule.Name ?? ""),
                 TaskType = delete? WfTaskType.rule_delete.ToString() : WfTaskType.rule_modify.ToString(),
                 RequestAction = delete? RequestAction.delete.ToString() : RequestAction.modify.ToString(),
                 ManagementId = mgt.Id,

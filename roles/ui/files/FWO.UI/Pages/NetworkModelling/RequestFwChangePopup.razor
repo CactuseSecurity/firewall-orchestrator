@@ -343,7 +343,7 @@
 
     private async Task MarkConnectionsAsRequested(List<ModellingConnection> Connections)
     {
-        foreach(var conn in Connections.Where(c => !c.IsDocumentationOnly() && !c.RequestedOnFw))
+        foreach(var conn in Connections.Where(c => !c.RequestedOnFw))
         {
             await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.updateConnectionFwRequested, new { id = conn.Id });
             conn.RequestedOnFw = true;

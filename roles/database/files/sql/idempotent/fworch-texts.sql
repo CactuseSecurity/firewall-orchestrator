@@ -1455,6 +1455,8 @@ INSERT INTO txt VALUES ('requested_interface',  'German',	'Angeforderte Schnitts
 INSERT INTO txt VALUES ('requested_interface',  'English',	'Requested Interface');
 INSERT INTO txt VALUES ('interface_requested',  'German',	'Schnittstelle angefordert');
 INSERT INTO txt VALUES ('interface_requested',  'English',	'Interface requested');
+INSERT INTO txt VALUES ('update_interf_user',   'German', 	'Schnittstellen-Nutzer aktualisieren');
+INSERT INTO txt VALUES ('update_interf_user',   'English', 	'Update interface user');
 INSERT INTO txt VALUES ('own_interfaces',       'German',	'Eigene Schnittstellen');
 INSERT INTO txt VALUES ('own_interfaces',       'English',	'Own Interfaces');
 INSERT INTO txt VALUES ('use',                  'German', 	'Benutzen');

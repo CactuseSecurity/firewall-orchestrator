@@ -1,4 +1,4 @@
-﻿@using FWO.Ui.Display
+@using FWO.Ui.Display
 @using System.Text.Json
 
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
@@ -108,7 +108,6 @@
     private List<AppServerType> appServerTypes = new();
     private bool workInProgress = false;
     private bool firstTry = true;
-
 
     protected override void OnInitialized()
     {

@@ -25,7 +25,10 @@ namespace FWO.Report.Filter
         public List<string> QueryParameters { get; set; } =
         [
             " $limit: Int ",
-            " $offset: Int "
+            " $offset: Int ",
+            " $active: Boolean ",
+            " $import_id_start: bigint ", // TODO: refactor to use instead of import_id
+            " $import_id_end: bigint ",
         ];
 
         public string ReportTimeString { get; set; } = "";
@@ -237,6 +240,7 @@ namespace FWO.Report.Filter
                     break;
 
                 case ReportType.Connections:
+                case ReportType.VarianceAnalysis:
 
                     query.FullQuery = Queries.compact($@"
                         {ModellingQueries.connectionResolvedDetailsFragment}
@@ -316,7 +320,7 @@ namespace FWO.Report.Filter
             {
                 SetOwnerFilter(ref query, reportParams.ReportParams.ModellingFilter);
             }
-            if ((ReportType)reportParams.ReportParams.ReportType == ReportType.Connections)
+            if (((ReportType)reportParams.ReportParams.ReportType).IsOwnerRelatedReport())
             {
                 SetConnectionFilter(ref query, reportParams.ReportParams.ModellingFilter);
             }
@@ -521,7 +525,7 @@ namespace FWO.Report.Filter
             {
                 query.QueryParameters.Add("$appId: Int!");
                 query.QueryVariables["appId"] = modellingFilter.SelectedOwner.Id;
-                query.ConnectionWhereStatement += $@"{{ _or: [ {{ app_id: {{ _eq: $appId }} }}, {{ proposed_app_id: {{ _eq: $appId }} }} ] }}";
+                query.ConnectionWhereStatement += $@"{{ _or: [ {{ app_id: {{ _eq: $appId }} }}, {{ proposed_app_id: {{ _eq: $appId }} }} ], removed: {{ _eq: false }} }}";
             }
         }
 

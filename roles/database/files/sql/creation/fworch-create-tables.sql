@@ -1113,6 +1113,7 @@ create table ext_request
 	create_date Timestamp default now(),
 	finish_date Timestamp,
 	wait_cycles int default 0,
+	attempts int default 0,
 	locked boolean default false
 );
 
@@ -1384,7 +1385,10 @@ create table modelling.connection
 	creator Varchar,
 	creation_date timestamp default now(),
 	conn_prop Varchar,
-	extra_params Varchar
+	extra_params Varchar,
+	requested_on_fw boolean default false,
+	removed boolean default false,
+	removal_date timestamp
 );
 
 create table modelling.selected_objects

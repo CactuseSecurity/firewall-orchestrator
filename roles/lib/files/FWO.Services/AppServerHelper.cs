@@ -38,6 +38,12 @@ namespace FWO.Services
             return appServer.Name;
         }
 
+        public static string ConstructSanitizedAppServerName(ModellingAppServer appServer, ModellingNamingConvention namingConvention, bool overwriteExistingNames=false)
+        {
+            bool shortened = false;
+            return Sanitizer.SanitizeJsonFieldMand(ConstructAppServerName(appServer, namingConvention, overwriteExistingNames), ref shortened);
+        }
+
         public static string ConstructAppServerName(ModellingAppServer appServer, ModellingNamingConvention namingConvention, bool overwriteExistingNames=false)
         {
             return string.IsNullOrEmpty(appServer.Name) || overwriteExistingNames ? GetPrefix(appServer, namingConvention) + DisplayBase.DisplayIp(appServer.Ip, appServer.IpEnd) :

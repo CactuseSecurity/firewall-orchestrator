@@ -1,5 +1,4 @@
-﻿using FWO.Data;
-using FWO.Data.Modelling;
+﻿using FWO.Data.Modelling;
 using System.Diagnostics.CodeAnalysis;
 
 namespace FWO.Services
@@ -25,23 +24,20 @@ namespace FWO.Services
                 return false;
             }
 
-            string appServer2Name = AppServerHelper.ConstructAppServerName(appServer2, NamingConvention);
-            bool shortened = false;
-            string sanitizedAS2Name = Sanitizer.SanitizeJsonFieldMand(new(appServer2Name), ref shortened);
-            return appServer1.Name.Trim() == appServer2Name.Trim() || appServer1.Name.Trim() == sanitizedAS2Name.Trim();
+            string appServer1Name = AppServerHelper.ConstructSanitizedAppServerName(appServer1, NamingConvention);
+            string appServer2Name = AppServerHelper.ConstructSanitizedAppServerName(appServer2, NamingConvention);
+            return appServer1Name == appServer2Name;
         }
 
         public int GetHashCode(ModellingAppServerWrapper appServerWrapper)
         {
-            if (appServerWrapper is null) return 0;
-            int hash = appServerWrapper == null ? 0 : appServerWrapper.GetHashCode();
-            int hashContent = appServerWrapper?.Content == null ? 0 : appServerWrapper.Content.GetHashCode();
-            return hash ^ hashContent;
+            return appServerWrapper == null ? 0 : GetHashCode(appServerWrapper.Content);
         }
 
-        public int GetHashCode([DisallowNull] ModellingAppServer obj)
+        public int GetHashCode(ModellingAppServer appServer)
         {
-            throw new NotImplementedException();
+            string appServerName = AppServerHelper.ConstructSanitizedAppServerName(appServer, NamingConvention).Trim();
+            return HashCode.Combine(appServerName);
         }
     }
 }

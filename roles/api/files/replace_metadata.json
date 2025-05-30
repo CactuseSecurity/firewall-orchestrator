@@ -1060,21 +1060,24 @@
                       ]
                     },
                     "columns": [
-                      "app_id",
+                      "ticket_id",
                       "common_service",
-                      "conn_prop",
-                      "creation_date",
-                      "creator",
-                      "extra_params",
-                      "id",
                       "is_interface",
                       "is_published",
                       "is_requested",
+                      "removed",
+                      "requested_on_fw",
+                      "conn_prop",
+                      "creator",
+                      "extra_params",
                       "name",
+                      "app_id",
+                      "id",
                       "proposed_app_id",
+                      "used_interface_id",
                       "reason",
-                      "ticket_id",
-                      "used_interface_id"
+                      "creation_date",
+                      "removal_date"
                     ]
                   },
                   "comment": ""
@@ -1085,21 +1088,24 @@
                   "role": "auditor",
                   "permission": {
                     "columns": [
-                      "app_id",
+                      "ticket_id",
                       "common_service",
-                      "conn_prop",
-                      "creation_date",
-                      "creator",
-                      "extra_params",
-                      "id",
                       "is_interface",
                       "is_published",
                       "is_requested",
+                      "removed",
+                      "requested_on_fw",
+                      "conn_prop",
+                      "creator",
+                      "extra_params",
                       "name",
+                      "app_id",
+                      "id",
                       "proposed_app_id",
+                      "used_interface_id",
                       "reason",
-                      "ticket_id",
-                      "used_interface_id"
+                      "creation_date",
+                      "removal_date"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -1107,24 +1113,54 @@
                   "comment": ""
                 },
                 {
-                  "role": "modeller",
+                  "role": "middleware-server",
                   "permission": {
                     "columns": [
-                      "app_id",
+                      "ticket_id",
                       "common_service",
-                      "conn_prop",
-                      "creation_date",
-                      "creator",
-                      "extra_params",
-                      "id",
                       "is_interface",
                       "is_published",
                       "is_requested",
+                      "removed",
+                      "requested_on_fw",
+                      "conn_prop",
+                      "creator",
+                      "extra_params",
                       "name",
+                      "app_id",
+                      "id",
                       "proposed_app_id",
+                      "used_interface_id",
                       "reason",
+                      "creation_date",
+                      "removal_date"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
                       "ticket_id",
-                      "used_interface_id"
+                      "common_service",
+                      "is_interface",
+                      "is_published",
+                      "is_requested",
+                      "removed",
+                      "requested_on_fw",
+                      "conn_prop",
+                      "creator",
+                      "extra_params",
+                      "name",
+                      "app_id",
+                      "id",
+                      "proposed_app_id",
+                      "used_interface_id",
+                      "reason",
+                      "creation_date",
+                      "removal_date"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -1145,24 +1181,38 @@
                   "comment": ""
                 },
                 {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "conn_prop"
+                    ],
+                    "filter": {},
+                    "check": {}
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "modeller",
                   "permission": {
                     "columns": [
-                      "app_id",
+                      "ticket_id",
                       "common_service",
-                      "conn_prop",
-                      "creation_date",
-                      "creator",
-                      "extra_params",
-                      "id",
                       "is_interface",
                       "is_published",
                       "is_requested",
+                      "removed",
+                      "requested_on_fw",
+                      "conn_prop",
+                      "creator",
+                      "extra_params",
                       "name",
+                      "app_id",
+                      "id",
                       "proposed_app_id",
+                      "used_interface_id",
                       "reason",
-                      "ticket_id",
-                      "used_interface_id"
+                      "creation_date",
+                      "removal_date"
                     ],
                     "filter": {},
                     "check": {}
@@ -1446,6 +1496,18 @@
                   "comment": ""
                 },
                 {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "nwgroup_id",
+                      "connection_field",
+                      "connection_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "modeller",
                   "permission": {
                     "columns": [
@@ -1504,6 +1566,18 @@
               "select_permissions": [
                 {
                   "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "nwobject_id",
+                      "connection_field",
+                      "connection_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
                   "permission": {
                     "columns": [
                       "nwobject_id",
@@ -1866,6 +1940,22 @@
                   "comment": ""
                 },
                 {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "is_global",
+                      "name",
+                      "app_id",
+                      "id",
+                      "port",
+                      "port_end",
+                      "proto_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "modeller",
                   "permission": {
                     "columns": [
@@ -1964,6 +2054,17 @@
                   "comment": ""
                 },
                 {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "connection_id",
+                      "service_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "modeller",
                   "permission": {
                     "columns": [
@@ -2049,6 +2150,22 @@
               "select_permissions": [
                 {
                   "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "is_global",
+                      "comment",
+                      "creator",
+                      "name",
+                      "app_id",
+                      "id",
+                      "creation_date"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
                   "permission": {
                     "columns": [
                       "is_global",
@@ -2162,6 +2279,17 @@
                   "comment": ""
                 },
                 {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "connection_id",
+                      "service_group_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "modeller",
                   "permission": {
                     "columns": [
@@ -2218,6 +2346,17 @@
               "select_permissions": [
                 {
                   "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "service_group_id",
+                      "service_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
                   "permission": {
                     "columns": [
                       "service_group_id",
@@ -5190,6 +5329,7 @@
                   "permission": {
                     "check": {},
                     "columns": [
+                      "attempts",
                       "create_date",
                       "ext_query_variables",
                       "ext_request_content",
@@ -5238,22 +5378,23 @@
                   "role": "auditor",
                   "permission": {
                     "columns": [
-                      "id",
-                      "ticket_id",
-                      "locked",
+                      "attempts",
+                      "create_date",
                       "ext_query_variables",
                       "ext_request_content",
                       "ext_request_state",
                       "ext_request_type",
                       "ext_ticket_id",
                       "ext_ticket_system",
+                      "finish_date",
+                      "id",
                       "last_creation_response",
                       "last_processing_response",
+                      "locked",
                       "owner_id",
                       "task_number",
-                      "wait_cycles",
-                      "create_date",
-                      "finish_date"
+                      "ticket_id",
+                      "wait_cycles"
                     ],
                     "filter": {}
                   },
@@ -5274,6 +5415,7 @@
                       "ext_ticket_system",
                       "last_creation_response",
                       "last_processing_response",
+                      "attempts",
                       "owner_id",
                       "task_number",
                       "wait_cycles",
@@ -5288,22 +5430,23 @@
                   "role": "modeller",
                   "permission": {
                     "columns": [
-                      "id",
-                      "ticket_id",
-                      "locked",
+                      "attempts",
+                      "create_date",
                       "ext_query_variables",
                       "ext_request_content",
                       "ext_request_state",
                       "ext_request_type",
                       "ext_ticket_id",
                       "ext_ticket_system",
+                      "finish_date",
+                      "id",
                       "last_creation_response",
                       "last_processing_response",
+                      "locked",
                       "owner_id",
                       "task_number",
-                      "wait_cycles",
-                      "create_date",
-                      "finish_date"
+                      "ticket_id",
+                      "wait_cycles"
                     ],
                     "filter": {}
                   },
@@ -5315,22 +5458,23 @@
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
-                      "id",
-                      "ticket_id",
-                      "locked",
+                      "attempts",
+                      "create_date",
                       "ext_query_variables",
                       "ext_request_content",
                       "ext_request_state",
                       "ext_request_type",
                       "ext_ticket_id",
                       "ext_ticket_system",
+                      "finish_date",
+                      "id",
                       "last_creation_response",
                       "last_processing_response",
+                      "locked",
                       "owner_id",
                       "task_number",
-                      "wait_cycles",
-                      "create_date",
-                      "finish_date"
+                      "ticket_id",
+                      "wait_cycles"
                     ],
                     "filter": {},
                     "check": null
@@ -6312,7 +6456,8 @@
                       "stop_time",
                       "successful_import"
                     ],
-                    "filter": {}
+                    "filter": {},
+                    "allow_aggregations": true
                   }
                 },
                 {
@@ -8579,7 +8724,8 @@
                       "ssh_hostname",
                       "ssh_port"
                     ],
-                    "filter": {}
+                    "filter": {},
+                    "allow_aggregations": true
                   }
                 },
                 {
@@ -9357,6 +9503,21 @@
                   }
                 },
                 {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "import_created",
+                      "import_last_seen",
+                      "objgrp_id",
+                      "objgrp_member_id",
+                      "active",
+                      "negated"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "modeller",
                   "permission": {
                     "columns": [
@@ -9477,6 +9638,21 @@
                     ],
                     "filter": {}
                   }
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "import_created",
+                      "import_last_seen",
+                      "objgrp_flat_id",
+                      "objgrp_flat_member_id",
+                      "active",
+                      "negated"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
                 },
                 {
                   "role": "modeller",
@@ -16973,6 +17149,21 @@
                   }
                 },
                 {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "import_created",
+                      "import_last_seen",
+                      "svcgrp_id",
+                      "svcgrp_member_id",
+                      "active",
+                      "negated"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "modeller",
                   "permission": {
                     "columns": [
@@ -17093,6 +17284,21 @@
                     ],
                     "filter": {}
                   }
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "active",
+                      "negated",
+                      "import_created",
+                      "import_last_seen",
+                      "svcgrp_flat_id",
+                      "svcgrp_flat_member_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
                 },
                 {
                   "role": "modeller",
@@ -19329,6 +19535,20 @@
                   }
                 },
                 {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "import_created",
+                      "import_last_seen",
+                      "usergrp_id",
+                      "usergrp_member_id",
+                      "active"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "modeller",
                   "permission": {
                     "columns": [
@@ -19485,6 +19705,20 @@
                     ],
                     "filter": {}
                   }
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "import_created",
+                      "import_last_seen",
+                      "usergrp_flat_id",
+                      "usergrp_flat_member_id",
+                      "active"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
                 },
                 {
                   "role": "modeller",

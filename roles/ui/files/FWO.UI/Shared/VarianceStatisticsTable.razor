@@ -1,0 +1,54 @@
+@using FWO.Data.Modelling
+@using FWO.Data.Report
+
+@inject UserConfig userConfig
+
+<Table TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="VarStat" Items="varStats">
+    <Column TableItem="VarStat" Title="" Field="@(x => x.ObjectType)" />
+    <Column TableItem="VarStat" Title="@(userConfig.GetText("fully_modelled"))" Field="@(x => x.ModelledCount)" />
+    <Column TableItem="VarStat" Title="@(userConfig.GetText("implemented"))" Field="@(x => x.ImplementedCount)" />
+    <Column TableItem="VarStat" Title="@(userConfig.GetText("not_implemented"))" Field="@(x => x.NotImplementedCount)" />
+    <Column TableItem="VarStat" Title="@(userConfig.GetText("with_diffs"))" Field="@(x => x.WithDiffsCount)" />
+</Table>
+
+
+@code
+{
+    [Parameter]
+    public OwnerReport OwnerReport { get; set; } = new();
+
+    private struct VarStat
+    {
+        public string ObjectType;
+        public int ModelledCount;
+        public int ImplementedCount;
+        public int NotImplementedCount;
+        public int WithDiffsCount;
+    };
+
+    List<VarStat> varStats = [];
+
+    protected override void OnParametersSet()
+    {
+        varStats = [];
+        if(OwnerReport.AppRoleStats.ModelledAppRolesCount > 0)
+        {
+            varStats.Add(new()
+            { 
+                ObjectType = userConfig.GetText("app_roles"),
+                ModelledCount = OwnerReport.AppRoleStats.ModelledAppRolesCount,
+                ImplementedCount = OwnerReport.AppRoleStats.AppRolesOk,
+                NotImplementedCount = OwnerReport.AppRoleStats.AppRolesMissingCount,
+                WithDiffsCount = OwnerReport.AppRoleStats.AppRolesDifferenceCount
+            });
+        }
+        varStats.Add(new()
+        { 
+            ObjectType = userConfig.GetText("connections"),
+            ModelledCount = OwnerReport.ModelledConnectionsCount,
+            ImplementedCount = OwnerReport.ModelledConnectionsCount - OwnerReport.RuleDifferences.Count - OwnerReport.Connections.Count,
+            NotImplementedCount = OwnerReport.Connections.Count,
+            WithDiffsCount = OwnerReport.RuleDifferences.Count
+        });
+    }
+}

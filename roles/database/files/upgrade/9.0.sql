@@ -210,8 +210,8 @@ ALTER TABLE "rulebase" DROP CONSTRAINT IF EXISTS "fk_rulebase_mgm_id" CASCADE;
 Alter table "rulebase" add CONSTRAINT fk_rulebase_mgm_id foreign key ("mgm_id") references "management" ("mgm_id") on update restrict on delete cascade;
 
 ALTER TABLE "rulebase" DROP CONSTRAINT IF EXISTS "unique_rulebase_mgm_id_name" CASCADE;
-Alter table "rulebase" add CONSTRAINT unique_rulebase_mgm_id_name UNIQUE ("mgm_id", "name");
-
+ALTER TABLE "rulebase" DROP CONSTRAINT IF EXISTS "unique_rulebase_mgm_id_uid" CASCADE;
+Alter table "rulebase" add CONSTRAINT unique_rulebase_mgm_id_uid UNIQUE ("mgm_id", "uid");
 -----------------------------------------------
 
 ALTER TABLE "management" ADD COLUMN IF NOT EXISTS "is_super_manager" BOOLEAN DEFAULT FALSE;
@@ -490,6 +490,7 @@ Alter table "rulebase_link" add CONSTRAINT fk_rulebase_link_removed_import_contr
 
 insert into stm_link_type (id, name) VALUES (2, 'ordered') ON CONFLICT DO NOTHING;
 insert into stm_link_type (id, name) VALUES (3, 'inline') ON CONFLICT DO NOTHING;
+insert into stm_link_type (id, name) VALUES (4, 'concatenated') ON CONFLICT DO NOTHING;
 delete from stm_link_type where name in ('initial','global','local','section'); -- initial and global/local are additional flags now
 
 -- TODO delete all rule.parent_rule_id and rule.parent_rule_type, always = None so far

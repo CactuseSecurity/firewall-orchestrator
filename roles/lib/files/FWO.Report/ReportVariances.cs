@@ -41,7 +41,7 @@ namespace FWO.Report
 
         public static OwnerReport CollectObjectsInReport(OwnerReport ownerReport)
         {
-            OwnerReport modifiedOwnerReport = new(){ Connections = new(ownerReport.Connections) };
+            OwnerReport modifiedOwnerReport = new(){ Connections = [.. ownerReport.Connections] };
             modifiedOwnerReport.Connections.AddRange(ownerReport.RuleDifferences.ConvertAll(o => o.ModelledConnection));
             if(ownerReport.MissingAppRoles.Count > 0 || ownerReport.DifferingAppRoles.Count > 0)
             {

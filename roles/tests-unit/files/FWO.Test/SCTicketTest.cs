@@ -12,7 +12,6 @@ namespace FWO.Test
     [Parallelizable]
     internal class SCTicketTest
     {
-        readonly SimulatedUserConfig userConfig = new(){ExternalRequestWaitCycles = 3};
         static readonly ModellingNamingConvention NamingConvention = new()
         {
             NetworkAreaRequired = true, UseAppPart = false, FixedPartLength = 2, FreePartLength = 5, NetworkAreaPattern = "NA", AppRolePattern = "AR", AppServerPrefix = "net_"
@@ -41,13 +40,12 @@ namespace FWO.Test
                 {
                     TaskType = SCTaskType.AccessRequest.ToString(),
                     TicketTemplate = "{\"ticket\":{\"subject\":\"@@TICKET_SUBJECT@@\",\"priority\":\"@@PRIORITY@@\",\"requester\":\"@@ONBEHALF@@\",\"domain_name\":\"\",\"workflow\":{\"name\":\"Standard Firewall Request\"},\"steps\":{\"step\":[{\"name\":\"Erfassung des Antrags\",\"tasks\":{\"task\":{\"fields\":{\"field\":[{\"@xsi.type\": \"multi_access_request\",\"name\": \"Zugang\",\"read_only\": false,\"access_request\":[@@TASKS@@]},{\"@xsi.type\": \"text_area\",\"name\": \"Grund für den Antrag\",\"read_only\": false,\"text\": \"@@REASON@@\"},{\"@xsi.type\": \"text_field\",\"name\": \"Anwendungs-ID\",\"text\": \"@@APPID@@\"},{\"@xsi.type\": \"checkbox\",\"name\": \"hinterlegt\",\"value\": true}]}}}}]}}}}",
-                    TasksTemplate = "{\"order\": \"@@ORDERNAME@@\",\"verifier_result\": {\"status\": \"not run\"},\"use_topology\": true,\"targets\": {\"target\": {\"@type\": \"ANY\"}},\"action\": \"accept\",\"sources\":{\"source\":@@SOURCES@@},\"destinations\":{\"destination\":@@DESTINATIONS@@},\"services\":{\"service\":@@SERVICES@@},\"labels\":\"\",\"comment\": \"@@TASKCOMMENT@@\"}",
+                    TasksTemplate = "{\"order\": \"@@ORDERNAME@@\",\"verifier_result\": {\"status\": \"not run\"},\"use_topology\": true,\"targets\": {\"target\": {\"@type\": \"ANY\"}},\"action\": \"@@ACTION@@\",\"sources\":{\"source\":@@SOURCES@@},\"destinations\":{\"destination\":@@DESTINATIONS@@},\"services\":{\"service\":@@SERVICES@@},\"labels\":\"\",\"comment\": \"@@TASKCOMMENT@@\"}",
                     IpTemplate = "{\"@type\": \"IP\", \"ip_address\": \"@@IP@@\", \"netmask\": \"255.255.255.255\", \"cidr\": 32}",
                     NwObjGroupTemplate = "{\"@type\": \"Object\", \"object_name\": \"@@GROUPNAME@@\", \"management_name\": \"@@MANAGEMENT_NAME@@\"}",
                     ServiceTemplate = "{\"@type\": \"PROTOCOL\", \"protocol\": \"@@PROTOCOLNAME@@\", \"port\": @@PORT@@, \"name\": \"@@SERVICENAME@@\"}",
                     IcmpTemplate = "{\"@type\": \"PROTOCOL\", \"protocol\": \"ICMP\", \"type\": 8, \"name\": \"@@SERVICENAME@@\"}"
                 }
-
             ]
         };
 
@@ -102,6 +100,7 @@ namespace FWO.Test
                 AdditionalInfo = "{\"ConnId\":\"1\"}",
                 OnManagement = new(){ Id = 1, Name = "Checkpoint", ExtMgtData = "{\"id\":\"2\",\"name\":\"CheckpointExt\"}"},
                 ManagementId = 1,
+                Comments = [ new() { Comment = new() { CommentText = "FWOC1, NAT: To: 4.7.1.1" }}],
                 Elements = 
                 [
                     new()
@@ -139,7 +138,6 @@ namespace FWO.Test
                         ProtoId = 1,
                         Field = ElemFieldType.service.ToString()
                     }
-
                 ]
             }
         ];
@@ -151,7 +149,7 @@ namespace FWO.Test
             "\"sources\":{\"source\":[{\"@type\": \"Object\", \"object_name\": \"ARxx12345-100\", \"management_name\": \"CheckpointExt\"}]}," +
             "\"destinations\":{\"destination\":[{\"@type\": \"Object\", \"object_name\": \"ARxx12345-101\", \"management_name\": \"CheckpointExt\"}]}," +
             "\"services\":{\"service\":[{\"@type\": \"PROTOCOL\", \"protocol\": \"TCP\", \"port\": 1000, \"name\": \"Svc1\"},{\"@type\": \"PROTOCOL\", \"protocol\": \"ICMP\", \"type\": 8, \"name\": \"Icmp1\"}]}," +
-            "\"labels\":\"\",\"comment\": \"\"}]}," +
+            "\"labels\":\"\",\"comment\": \"FWOC1, NAT: To: 4.7.1.1\"}]}," +
             "{\"@xsi.type\": \"text_area\",\"name\": \"Grund für den Antrag\",\"read_only\": false,\"text\": \"connection needed\"},{\"@xsi.type\": \"text_field\",\"name\": \"Anwendungs-ID\",\"text\": \"\"},{\"@xsi.type\": \"checkbox\",\"name\": \"hinterlegt\",\"value\": true}]}}}}]}}}}";
 
 
@@ -178,31 +176,6 @@ namespace FWO.Test
             await ticket.CreateRequestString(accessReqTasks, ipProtos, NamingConvention);
 
             ClassicAssert.AreEqual(AccessFilledTicketText, ticket.TicketText);
-        }
-
-        [Test]
-        public async Task TestGetWaitCycles()
-        {
-            SCTicket ticket = new (ticketSystem);
-            await ticket.CreateRequestString(grpCreateReqTasks, ipProtos, NamingConvention);
-            ExternalRequestHandler extReqHandler = new(userConfig);
-            ExternalRequest oldRquestGrp = new(){ ExtRequestType = ticket.GetTaskTypeAsString(grpCreateReqTasks.First()), ExtRequestContent = ticket.TicketText};
-            ExternalRequest oldRquestAcc = new(){ ExtRequestType = ticket.GetTaskTypeAsString(accessReqTasks.First()), ExtRequestContent = ticket.TicketText};
-
-            ClassicAssert.AreEqual(0, extReqHandler.GetWaitCycles(WfTaskType.access.ToString(), oldRquestAcc));
-            ClassicAssert.AreEqual(0, extReqHandler.GetWaitCycles(WfTaskType.group_modify.ToString(), oldRquestAcc));
-            ClassicAssert.AreEqual(0, extReqHandler.GetWaitCycles("any", oldRquestAcc));
-            ClassicAssert.AreEqual(3, extReqHandler.GetWaitCycles(WfTaskType.access.ToString(), oldRquestGrp));
-            ClassicAssert.AreEqual(3, extReqHandler.GetWaitCycles(WfTaskType.group_modify.ToString(), oldRquestGrp));
-            ClassicAssert.AreEqual(3, extReqHandler.GetWaitCycles("any", oldRquestGrp));
-        }
-
-        [Test]
-        public void TestGetLastTaskNumber()
-        {
-            string extQueryVars = "{\"BundledTasks\":[1,2,3]}";
-
-            ClassicAssert.AreEqual(3, ExternalRequestHandler.GetLastTaskNumber(extQueryVars, 0));
         }
     }
 }

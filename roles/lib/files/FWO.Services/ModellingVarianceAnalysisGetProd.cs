@@ -1,5 +1,7 @@
 ﻿using FWO.Api.Client.Queries;
+using FWO.Basics;
 using FWO.Data;
+using FWO.Data.Modelling;
 using FWO.Data.Report;
 using FWO.Logging;
 using System.Text.Json;
@@ -52,7 +54,7 @@ namespace FWO.Services
                     List<Rule>? rulesByMgt = await GetRules(mgt.Id, modellingFilter);
                     if (rulesByMgt != null)
                     {
-                        AnalyseModelledRules(mgt, rulesByMgt);
+                        IdentifyModelledRules(mgt, rulesByMgt);
                         modelledRulesCount += allModelledRules[mgt.Id].Count;
                         notModelledRulesCount += varianceResult.UnModelledRules[mgt.Id].Count;
                     }
@@ -68,7 +70,7 @@ namespace FWO.Services
             return true;
         }
 
-        private void AnalyseModelledRules(Management mgt, List<Rule> rulesByMgt)
+        private void IdentifyModelledRules(Management mgt, List<Rule> rulesByMgt)
         {
             allModelledRules.Add(mgt.Id, []);
             foreach (var rule in rulesByMgt)
@@ -95,9 +97,9 @@ namespace FWO.Services
         {
             return userConfig.ModModelledMarkerLocation switch
             {
-                "rulename" => !string.IsNullOrEmpty(rule.Name) && rule.Name.Contains(userConfig.ModModelledMarker) ? ParseFromString(rule.Name) : null,
-                "comment" => !string.IsNullOrEmpty(rule.Comment) && rule.Comment.Contains(userConfig.ModModelledMarker) ? ParseFromString(rule.Comment) : null,
-                "customfields" => !string.IsNullOrEmpty(rule.CustomFields) ? GetFromCustomField(rule) : null,
+                MarkerLocation.Rulename => !string.IsNullOrEmpty(rule.Name) && rule.Name.Contains(userConfig.ModModelledMarker) ? ParseFromString(rule.Name) : null,
+                MarkerLocation.Comment => !string.IsNullOrEmpty(rule.Comment) && rule.Comment.Contains(userConfig.ModModelledMarker) ? ParseFromString(rule.Comment) : null,
+                MarkerLocation.Customfields => !string.IsNullOrEmpty(rule.CustomFields) ? GetFromCustomField(rule) : null,
                 _ => null,
             }; 
         }
@@ -120,6 +122,22 @@ namespace FWO.Services
         {
             Dictionary<string, string>? customFields = JsonSerializer.Deserialize<Dictionary<string, string>>(rule.CustomFields);
             return customFields != null && customFields.TryGetValue(userConfig.ModModelledMarker, out string? value) ? value : null;
+        }
+
+        private async Task<List<int>> GetDeletedConnectionIds()
+        {
+            List<int> ConnectionIds = [];
+            try
+            {
+                List<ModellingConnection> deletedConns = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getDeletedConnections, new { appId = owner.Id });
+                ConnectionIds = deletedConns.ConvertAll(c => c.Id);
+            }
+            catch (Exception exception)
+            {
+                Log.WriteError(userConfig.GetText("fetch_data"), "Get deleted connections leads to error: ", exception);
+                displayMessageInUi(exception, userConfig.GetText("fetch_data"), "Get deleted connections leads to error: ", true);
+            }
+            return ConnectionIds;
         }
 
         private async Task<List<Rule>?> GetRules(int mgtId, ModellingFilter modellingFilter)
@@ -145,8 +163,8 @@ namespace FWO.Services
 
                 string query = userConfig.ModModelledMarkerLocation switch
                 {
-                    "rulename" => RuleQueries.getModelledRulesByManagementName,
-                    "comment" => RuleQueries.getModelledRulesByManagementComment,
+                    MarkerLocation.Rulename => RuleQueries.getModelledRulesByManagementName,
+                    MarkerLocation.Comment => RuleQueries.getModelledRulesByManagementComment,
                     _ => throw new Exception("invalid or undefined Marker Location")
                 };
                 return await apiConnection.SendQueryAsync<List<Rule>>(query, RuleVariables);

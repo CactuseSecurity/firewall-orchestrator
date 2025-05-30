@@ -113,6 +113,18 @@ namespace FWO.Test
             {"fully_modelled", "fullymodelled"},
             {"more", "more"},
             {"AppRules", "App Rules"},
+            {"change_rule", "Change Rule"},
+            {"delete_rule", "Delete Rule"},
+            {"impl_instructions", "Implementation Instructions"},
+            {"init_environment", "Init Environment"},
+            {"save_request", "Save request"},
+            {"U0001", "Input text..."},
+            {"on", "on"},
+            {"create_rule", "Create Rule"},
+            {"create_group", "Create Group"},
+            {"modify_group", "Modify Group"},
+            {"delete_group", "Delete Group"},
+            {"promote_task", "Promote task"},
         };
 
         public override string GetText(string key)

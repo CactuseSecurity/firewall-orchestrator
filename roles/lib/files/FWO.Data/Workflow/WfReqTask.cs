@@ -132,7 +132,8 @@ namespace FWO.Data.Workflow
                     {
                         ElemId = reqElem.Id,
                         TaskId = reqElem.TaskId,
-                        RuleUid = reqElem.RuleUid ?? ""
+                        RuleUid = reqElem.RuleUid ?? "",
+                        Name = reqElem.Name
                     });
                 }
             }

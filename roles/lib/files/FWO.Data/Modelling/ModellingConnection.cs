@@ -216,6 +216,17 @@ namespace FWO.Data.Modelling
             return DestinationAppServers.Count > 0 || DestinationAppRoles.Count > 0 || DestinationAreas.Count > 0 || DestinationOtherGroups.Count > 0;
         }
 
+        public bool IsRelevantForVarianceAnalysis(long dummyAppRoleId)
+        {
+            return !(IsInterface ||
+                IsDocumentationOnly() ||
+                GetBoolProperty(ConState.InterfaceRequested.ToString()) ||
+                GetBoolProperty(ConState.InterfaceRejected.ToString()) || 
+                EmptyAppRolesFound(dummyAppRoleId) ||
+                DeletedObjectsFound() ||
+                EmptyServiceGroupsFound());
+        }
+
         public void AddProperty(string key, string value = "")
         {
             InitProps();

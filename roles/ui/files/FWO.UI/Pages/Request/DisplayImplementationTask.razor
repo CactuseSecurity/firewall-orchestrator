@@ -48,7 +48,7 @@
                             </div>
                         </div>
                     </div>
-                    @if(WfHandler.ActImplTask.TaskType == WfTaskType.access.ToString() || WfHandler.ActImplTask.TaskType == WfTaskType.rule_delete.ToString())
+                    @if(WfHandler.ActImplTask.TaskType == WfTaskType.access.ToString() || WfHandler.ActImplTask.TaskType == WfTaskType.rule_delete.ToString() || WfHandler.ActImplTask.TaskType == WfTaskType.rule_modify.ToString())
                     {
                         <div class="col-sm-3">
                             <div class="form-group row">
@@ -133,7 +133,7 @@
                     </div>
                 }
 
-                @if(WfHandler.ActImplTask.TaskType == WfTaskType.access.ToString())
+                @if(WfHandler.ActImplTask.TaskType == WfTaskType.access.ToString() || WfHandler.ActImplTask.TaskType == WfTaskType.rule_modify.ToString())
                 {
                     <div class="form-group row mt-2">
                         <div class="col-sm-3">

@@ -68,6 +68,13 @@ namespace FWO.Tufin.SecureChange
 			public const string Range = "range";
 		}
 
+		protected struct SCActionType
+		{
+			public const string Accept = "accept";
+			public const string Remove = "remove";
+		}
+
+
 		public SCTicketTask(WfReqTask reqTask, List<IpProtocol> ipProtos, ModellingNamingConvention? namingConvention) : base(reqTask, ipProtos, namingConvention)
 		{}
 

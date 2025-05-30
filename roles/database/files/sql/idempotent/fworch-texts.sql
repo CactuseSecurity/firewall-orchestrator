@@ -1455,6 +1455,8 @@ INSERT INTO txt VALUES ('requested_interface',  'German',	'Angeforderte Schnitts
 INSERT INTO txt VALUES ('requested_interface',  'English',	'Requested Interface');
 INSERT INTO txt VALUES ('interface_requested',  'German',	'Schnittstelle angefordert');
 INSERT INTO txt VALUES ('interface_requested',  'English',	'Interface requested');
+INSERT INTO txt VALUES ('update_interf_user',   'German', 	'Schnittstellen-Nutzer aktualisieren');
+INSERT INTO txt VALUES ('update_interf_user',   'English', 	'Update interface user');
 INSERT INTO txt VALUES ('own_interfaces',       'German',	'Eigene Schnittstellen');
 INSERT INTO txt VALUES ('own_interfaces',       'English',	'Own Interfaces');
 INSERT INTO txt VALUES ('use',                  'German', 	'Benutzen');
@@ -1673,6 +1675,10 @@ INSERT INTO txt VALUES ('impl_state',           'German', 	'Impl Status');
 INSERT INTO txt VALUES ('impl_state',           'English', 	'Impl State');
 INSERT INTO txt VALUES ('refresh_state',        'German', 	'Status aktualisieren');
 INSERT INTO txt VALUES ('refresh_state',        'English', 	'Refresh State');
+INSERT INTO txt VALUES ('delete_rule',          'German', 	'Regel l&ouml;schen');
+INSERT INTO txt VALUES ('delete_rule',          'English', 	'Delete Rule');
+INSERT INTO txt VALUES ('change_rule',          'German', 	'Regel &auml;ndern');
+INSERT INTO txt VALUES ('change_rule',          'English', 	'Change Rule');
 
 -- compliance
 INSERT INTO txt VALUES ('compliance',			'German', 	'Compliance');
@@ -5231,11 +5237,11 @@ INSERT INTO txt VALUES ('H5595', 'English', 'Template ticket text: template text
     Available placeholders: @@TICKET_SUBJECT@@, @@PRIORITY@@, @@ONBEHALF@@, @@TASKS@@, @@REASON@@, @@APPID@@.
 ');
 INSERT INTO txt VALUES ('H5596', 'German',  'Template Aufgabentext: Template pro Aufgabe (Verbindung/Netzwerkobjekt). Verf&uuml;gbare Platzhalter:
-    Verbindung: @@ORDERNAME@@, @@SOURCES@@, @@SERVICES@@, @@DESTINATIONS@@, @@TASKCOMMENT@@.
+    Verbindung: @@ORDERNAME@@, @@SOURCES@@, @@SERVICES@@, @@DESTINATIONS@@, @@TASKCOMMENT@@, @@ACTION@@.
     Netzwerkobjekt: @@GROUPNAME@@, @@MANAGEMENT_ID@@, @@MANAGEMENT_NAME@@, @@CHANGEACTION@@, @@MEMBERS@@.
 ');
 INSERT INTO txt VALUES ('H5596', 'English', 'Template task text: Template for each task (connection/network object). Available placeholders:
-    Connection: @@ORDERNAME@@, @@SOURCES@@, @@SERVICES@@, @@DESTINATIONS@@, @@TASKCOMMENT@@.
+    Connection: @@ORDERNAME@@, @@SOURCES@@, @@SERVICES@@, @@DESTINATIONS@@, @@TASKCOMMENT@@, @@ACTION@@.
     Network object: @@GROUPNAME@@, @@MANAGEMENT_ID@@, @@MANAGEMENT_NAME@@, @@CHANGEACTION@@, @@MEMBERS@@.
 ');
 INSERT INTO txt VALUES ('H5596a', 'German', 'Template Objekt (neu): Template pro neu anzulegendem Objekt. Verf&uuml;gbare Platzhalter: @@TYPE@@, @@OBJECTNAME@@, @@OBJECT_TYPE@@, @@OBJECT_DETAILS@@, @@COMMENT@@, @@STATUS@@, @@OBJUPDSTATUS@@, @@MANAGEMENT_ID@@.');

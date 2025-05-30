@@ -82,4 +82,11 @@ namespace FWO.Basics
         public const string SimpleService = "simple";
         public const string Rpc = "rpc";
     }
+
+    public struct MarkerLocation
+    {
+        public const string Rulename = "rulename";
+        public const string Comment = "comment";
+        public const string Customfields = "customfields";
+    }
 }

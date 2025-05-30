@@ -212,7 +212,7 @@ namespace FWO.Services
                     allModelledAppRoles.Add(modelledAppRole);
                 }
             }
-            allModelledAppRoles = [.. allModelledAppRoles.Distinct(appRoleComparer)];
+            allModelledAppRoles = [.. allModelledAppRoles.Distinct(appRoleComparer).OrderBy(a => a.Id)];
         }
 
         private void AnalyseAppRole(ModellingAppRole modelledAppRole, Management mgt)

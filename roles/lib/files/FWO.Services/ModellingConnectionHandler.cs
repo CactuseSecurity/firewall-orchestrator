@@ -1205,18 +1205,7 @@ namespace FWO.Services
                 }
                 if (noCheck || CheckConn())
                 {
-                    if (!SrcReadOnly)
-                    {
-                        SyncSrcChanges();
-                    }
-                    if (!DstReadOnly)
-                    {
-                        SyncDstChanges();
-                    }
-                    if (!SvcReadOnly)
-                    {
-                        SyncSvcChanges();
-                    }
+                    SyncChanges();
                     ActConn.SyncState(DummyAppRole.Id);
                     if (AddMode)
                     {
@@ -1282,20 +1271,32 @@ namespace FWO.Services
             try
             {
                 List<ModellingConnection> usingConnections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getInterfaceUsers, new { id = interfaceId });
-                foreach (var conn in usingConnections)
+                foreach (var conn in usingConnections.Where(c => c.GetBoolProperty(ConState.InterfaceRequested.ToString())))
                 {
-                    if(conn.GetBoolProperty(ConState.InterfaceRequested.ToString()))
-                    {
-                        conn.RemoveProperty(ConState.InterfaceRequested.ToString());
-                        await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateConnectionProperties, new { id = conn.Id, connProp = conn.Properties });
-                    }
+                    conn.RemoveProperty(ConState.InterfaceRequested.ToString());
+                    await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateConnectionProperties, new { id = conn.Id, connProp = conn.Properties });
                 }
             }
             catch (Exception exception)
             {
                 DisplayMessageInUi(exception, userConfig.GetText("update_interf_user"), "", true);
            }
+        }
 
+        private void SyncChanges()
+        {
+            if (!SrcReadOnly)
+            {
+                SyncSrcChanges();
+            }
+            if (!DstReadOnly)
+            {
+                SyncDstChanges();
+            }
+            if (!SvcReadOnly)
+            {
+                SyncSvcChanges();
+            }
         }
 
         private void SyncSrcChanges()

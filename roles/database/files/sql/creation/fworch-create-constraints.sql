@@ -32,7 +32,7 @@ Alter Table "rule" ADD Constraint "rule_unique_mgm_id_rule_uid_rule_create_xlate
 -- Alter Table "rule_metadata" add Constraint "rule_metadata_alt_key" UNIQUE ("rule_uid","dev_id");
 -- Alter Table "rule_metadata" add Constraint "rule_metadata_alt_key" UNIQUE ("rule_uid","dev_id","rulebase_id");
 ALTER TABLE rule_metadata ADD Constraint "rule_metadata_rule_uid_unique" unique ("rule_uid");
-Alter table "rulebase" add CONSTRAINT unique_rulebase_mgm_id_name UNIQUE ("mgm_id", "name");
+Alter table "rulebase" add CONSTRAINT unique_rulebase_mgm_id_uid UNIQUE ("mgm_id", "uid");
 Alter table "rulebase_link" add CONSTRAINT unique_rulebase_link
 	UNIQUE (
 	"gw_id",

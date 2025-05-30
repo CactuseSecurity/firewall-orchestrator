@@ -278,12 +278,13 @@ class ImportStateController(ImportState):
             map.update({rule['uid']: rule['id']})
         self.RuleMap = map
 
-    # limited to the current mgm_id
-    # creats a dict with key = rulebase.name and value = rulebase.id
+    # getting all gateways (not limitited to the current mgm_id) to support super managements
+    # creates a dict with key = gateway.uid  and value = gateway.id
+    # and also            key = gateway.name and value = gateway.id
     def SetGatewayMap(self):
         query = """
             query getGatewayMap($mgmId: Int) {
-                device(where: {mgm_id: {_eq: $mgmId}}) {
+                device {
                     id:dev_id
                     name:dev_name
                     uid: dev_uid
@@ -291,7 +292,7 @@ class ImportStateController(ImportState):
             }
     """
         try:
-            result = self.call(query=query, queryVariables= {"mgmId": self.MgmDetails.Id})
+            result = self.call(query=query, queryVariables= {})
         except Exception:
             logger = getFwoLogger()
             logger.error(f'Error while getting gateways')

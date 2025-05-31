@@ -68,7 +68,7 @@
                 <input id="cbx_customLogo" type="checkbox" @bind="configData!.UseCustomLogo">
             </div>
             <div class="col-sm-4">
-                <FileUpload UploadCase="FileUploadCase.CustomLogoUpload" TUploadResult="ErrorBaseModel" SupportedFileFormats=".png,.jpg,.jpeg" AuthorizedRoles="@Roles.Admin" OnError="OnLogoUploadError" OnImportSuccess="SaveLogoFilename"></FileUpload>
+                <CustomLogoUpload AuthorizedRoles="@Roles.Admin" SupportedFileFormats=".png,.jpg,.jpeg"></CustomLogoUpload>               
             </div>
         </div>
         <hr />
@@ -211,6 +211,10 @@ else
     {
         DisplayMessageInUi(error.Exception, userConfig.GetText("change_default"), error.Message, false);
     }
+    private void OnLogoUploadSuccess((Exception Exception, string Message) error)
+    {
+        DisplayMessageInUi(error.Exception, userConfig.GetText("change_default"), error.Message, false);
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -245,14 +249,6 @@ else
         catch (Exception exception)
         {
             DisplayMessageInUi(exception, userConfig.GetText("change_default"), "", true);
-        }
-    }
-
-    private void SaveLogoFilename(string? filename)
-    {
-        if(configData is not null && !string.IsNullOrEmpty(filename))
-        {
-            configData.CustomLogoFilename = filename;
         }
     }
 }

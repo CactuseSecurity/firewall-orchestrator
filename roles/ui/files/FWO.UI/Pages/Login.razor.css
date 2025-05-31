@@ -1,0 +1,29 @@
+.custom-logo {
+    width: 100%;
+    max-width: 180px;
+    height: auto;
+}
+
+@media (min-width: 576px) {
+    .custom-logo {
+        max-width: 220px;
+    }
+}
+
+@media (min-width: 768px) {
+    .custom-logo {
+        max-width: 260px;
+    }
+}
+
+@media (min-width: 992px) {
+    .custom-logo {
+        max-width: 200px;
+    }
+}
+
+@media (min-width: 1200px) {
+    .custom-logo {
+        max-width: 250px;
+    }
+}

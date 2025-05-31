@@ -1,0 +1,104 @@
+@implements IDisposable
+@using FWO.Services.EventMediator.Events
+@using FWO.Services.EventMediator.Interfaces
+@using FWO.Ui.Data
+@using FWO.Data.Modelling
+
+@inject UserConfig UserConfig
+@inject GlobalConfig GlobalConfig
+@inject ApiConnection ApiConnection
+@inject IEventMediator EventMediator
+
+
+<div class="row">
+    <div class="col-sm-8">
+        <AuthorizeView Roles="@AuthorizedRoles">
+            <Authorized>
+                <InputFile id="fileUpload" hidden accept="@SupportedFileFormats" OnChange="@(async (InputFileChangeEventArgs e) => await UploadCustomLogo(e))" />
+                <label class="btn btn-sm @(UploadDisabled ? "btn-primary" : "btn-success")" for="fileUpload">
+                    @(ModellingHandlerBase.DisplayButton(UserConfig, "select_file", Icons.Add, "select_file"))
+                </label>
+            </Authorized>
+            <NotAuthorized>
+                <button type="button" disabled class="btn btn-sm btn-primary">
+                    <span class="ms-2">
+                        @(ModellingHandlerBase.DisplayButton(UserConfig, "select_file", Icons.Add, "select_file"))
+                    </span>
+                </button>
+            </NotAuthorized>
+        </AuthorizeView>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    required public string? AuthorizedRoles { get; set; }
+
+    [Parameter, EditorRequired]
+    required public string SupportedFileFormats { get; set; } = "";
+
+    private InputFileChangeEventArgs? InputFileChangeEventArgs;
+    private bool UploadDisabled { get; set; } = true;
+    private bool Loading { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        if(string.IsNullOrWhiteSpace(AuthorizedRoles))
+            throw new UnauthorizedAccessException($"Parameter {nameof(AuthorizedRoles)} cannot be empty!");
+
+        if(string.IsNullOrWhiteSpace(SupportedFileFormats))
+            throw new ArgumentNullException($"Parameter {nameof(SupportedFileFormats)} cannot be empty!");
+
+        base.OnParametersSet();
+    }
+
+    @code {  
+        protected override void OnInitialized()  
+        {  
+            base.OnInitialized();  
+            EventMediator.Subscribe<FileUploadEvent>(nameof(FileUploadService.ReadFileToBytes), _ => OnFileUploadEvent(_.EventArgs));  
+            EventMediator.Subscribe<FileUploadEvent>(nameof(FileUploadService.ImportCustomLogo), _ => OnImportCustomLogo());  
+        }  
+    }
+
+    private void OnFileUploadEvent(FileUploadEventArgs e)
+    {
+        Console.WriteLine();
+    }
+
+    private void OnImportCustomLogo()
+    {
+        Console.WriteLine();
+    }
+
+    private async Task UploadCustomLogo(InputFileChangeEventArgs e)
+    {
+        if(e is null)
+            return;
+
+        if(e.File is null)
+            return;
+
+        Loading = true;
+
+        FileUploadService fileUploadService = new(ApiConnection, UserConfig, SupportedFileFormats, GlobalConfig, EventMediator);
+        
+        FileUploadEventArgs fileUploadEventArgs = await fileUploadService.ReadFileToBytes(e);
+
+        if(!fileUploadEventArgs.Success)
+        {
+            Loading = false;            
+            return;
+        }       
+
+        fileUploadService.ImportCustomLogo();
+
+        Loading = false;
+    }
+
+    public void Dispose()
+    {
+        EventMediator.Unsubscribe<FileUploadEvent>(nameof(FileUploadService.ReadFileToBytes));
+        EventMediator.Unsubscribe<FileUploadEvent>(nameof(FileUploadService.ImportCustomLogo));
+    }
+}

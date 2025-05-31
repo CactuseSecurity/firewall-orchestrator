@@ -34,8 +34,8 @@ namespace FWO.Config.Api.Data
         [JsonProperty("useCustomLogo"), JsonPropertyName("useCustomLogo")]
         public bool UseCustomLogo { get; set; }
 
-        [JsonProperty("customLogoFilename"), JsonPropertyName("customLogoFilename")]
-        public string CustomLogoFilename { get; set; }
+        [JsonProperty("customLogoData"), JsonPropertyName("customLogoData")]
+        public string CustomLogoData { get; set; }
 
         [JsonProperty("maxMessages"), JsonPropertyName("maxMessages"), UserConfigData]
 		public int MaxMessages { get; set; } = 3;

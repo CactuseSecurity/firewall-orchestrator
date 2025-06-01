@@ -110,10 +110,10 @@ namespace FWO.Middleware.Server
 
             switch (checkParams.RecertCheckInterval)
             {
-                case Interval.Days:
+                case SchedulerInterval.Days:
                     nextCheck = lastCheck.AddDays(checkParams.RecertCheckOffset);
                 break;
-                case Interval.Weeks:
+                case SchedulerInterval.Weeks:
                     if(checkParams.RecertCheckWeekday == null)
                     {
                         nextCheck = lastCheck.AddDays(checkParams.RecertCheckOffset * 7);
@@ -129,7 +129,7 @@ namespace FWO.Middleware.Server
                         }
                     }
                 break;
-                case Interval.Months:
+                case SchedulerInterval.Months:
                     if(checkParams.RecertCheckDayOfMonth == null)
                     {
                         nextCheck = lastCheck.AddMonths(checkParams.RecertCheckOffset);

@@ -2,9 +2,19 @@
 
 namespace FWO.Test
 {
+    internal class SimulatedGlobalConfig : GlobalConfig
+    {
+        public Dictionary<string, string> DummyTranslate = SimulatedUserConfig.DummyTranslate;
+
+        public override string GetText(string key)
+        {
+            return DummyTranslate[key];
+        }
+    }
+
     internal class SimulatedUserConfig : UserConfig
     {
-        public Dictionary<string, string> DummyTranslate = new()
+        public static Dictionary<string, string> DummyTranslate = new()
         {
             {"Rules","Rules Report"},
             {"ResolvedRules","Rules Report (resolved)"},

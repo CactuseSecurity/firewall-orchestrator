@@ -16,12 +16,6 @@ namespace FWO.Middleware.Server
 	/// </summary>
     public class DailyCheckScheduler : SchedulerBase
     {
-        private int DailyCheckSleepTime = 86400000; // 24 hours in milliseconds
-
-        private System.Timers.Timer DailyCheckScheduleTimer = new();
-        private System.Timers.Timer DailyCheckTimer = new();
-
-
 		/// <summary>
 		/// Async Constructor needing the connection
 		/// </summary>
@@ -32,7 +26,7 @@ namespace FWO.Middleware.Server
         }
 
         private DailyCheckScheduler(ApiConnection apiConnection, GlobalConfig globalConfig)
-            : base(apiConnection, globalConfig, ConfigQueries.subscribeDailyCheckConfigChanges)
+            : base(apiConnection, globalConfig, ConfigQueries.subscribeDailyCheckConfigChanges, SchedulerInterval.Days, "DailyCheck")
         {
             if(globalConfig.RecRefreshStartup)
             {
@@ -47,53 +41,15 @@ namespace FWO.Middleware.Server
 		/// </summary>
         protected override void OnGlobalConfigChange(List<ConfigItem> config)
         {
-            DailyCheckScheduleTimer.Stop();
-            globalConfig.SubscriptionUpdateHandler(config.ToArray());
-            DailyCheckTimer.Interval = DailyCheckSleepTime;
-            StartScheduleTimer();
+            ScheduleTimer.Stop();
+            globalConfig.SubscriptionUpdateHandler([.. config]);
+            StartScheduleTimer(1, globalConfig.DailyCheckStartAt);
         }
 
-		/// <summary>
-		/// start the scheduling timer
-		/// </summary>
-        protected override void StartScheduleTimer()
-        {
-            DateTime? startTime = null;
-            try
-            {
-                startTime = DateTime.Now.Date.Add(globalConfig.DailyCheckStartAt.TimeOfDay);
-                if(startTime < DateTime.Now)
-                {
-                    startTime = ((DateTime)startTime).AddDays(1);
-                }
-            }
-            catch (Exception exception)
-            {
-                Log.WriteError("DailyCheck scheduler", "Could not calculate start time.", exception);
-            }
-            TimeSpan interval = (startTime ?? DateTime.Now.AddMilliseconds(1)) - DateTime.Now;
-        
-            DailyCheckScheduleTimer = new();
-            DailyCheckScheduleTimer.Elapsed += DailyCheck;
-            DailyCheckScheduleTimer.Elapsed += StartDailyCheckTimer;
-            DailyCheckScheduleTimer.Interval = interval.TotalMilliseconds;
-            DailyCheckScheduleTimer.AutoReset = false;
-            DailyCheckScheduleTimer.Start();
-            Log.WriteDebug("DailyCheck scheduler", "DailyCheckScheduleTimer started.");
-        }
-
-        private void StartDailyCheckTimer(object? _, ElapsedEventArgs __)
-        {
-            DailyCheckTimer.Stop();
-            DailyCheckTimer = new();
-            DailyCheckTimer.Elapsed += DailyCheck;
-            DailyCheckTimer.Interval = DailyCheckSleepTime;
-            DailyCheckTimer.AutoReset = true;
-            DailyCheckTimer.Start();
-            Log.WriteDebug("DailyCheck scheduler", "DailyCheckTimer started.");
-        }
-
-        private async void DailyCheck(object? _, ElapsedEventArgs __)
+        /// <summary>
+        /// define the processing to be done
+        /// </summary>
+        protected override async void Process(object? _, ElapsedEventArgs __)
         {
             try
             {

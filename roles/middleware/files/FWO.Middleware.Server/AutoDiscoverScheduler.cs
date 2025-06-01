@@ -17,9 +17,6 @@ namespace FWO.Middleware.Server
     {
         private long? lastMgmtAlertId;
 
-        private System.Timers.Timer ScheduleTimer = new();
-        private System.Timers.Timer AutoDiscoverTimer = new();
-
 		/// <summary>
 		/// Async Constructor needing the connection
 		/// </summary>
@@ -30,7 +27,7 @@ namespace FWO.Middleware.Server
         }
     
         private AutoDiscoverScheduler(ApiConnection apiConnection, GlobalConfig globalConfig)
-            : base(apiConnection, globalConfig, ConfigQueries.subscribeAutodiscoveryConfigChanges)
+            : base(apiConnection, globalConfig, ConfigQueries.subscribeAutodiscoveryConfigChanges, SchedulerInterval.Hours, "Autodiscover")
         {}
 
 		/// <summary>
@@ -39,55 +36,14 @@ namespace FWO.Middleware.Server
         protected override void OnGlobalConfigChange(List<ConfigItem> config)
         {
             ScheduleTimer.Stop();
-            globalConfig.SubscriptionUpdateHandler(config.ToArray());
-            AutoDiscoverTimer.Interval = globalConfig.AutoDiscoverSleepTime * GlobalConst.kHoursToMilliseconds;
-            StartScheduleTimer();
+            globalConfig.SubscriptionUpdateHandler([.. config]);
+            StartScheduleTimer(globalConfig.AutoDiscoverSleepTime, globalConfig.AutoDiscoverStartAt);
         }
 
-		/// <summary>
-		/// start the scheduling timer
-		/// </summary>
-        protected override void StartScheduleTimer()
-        {
-            if (globalConfig.AutoDiscoverSleepTime > 0)
-            {
-                DateTime startTime = DateTime.Now;
-                try
-                {
-                    startTime = globalConfig.AutoDiscoverStartAt;
-                    while (startTime < DateTime.Now)
-                    {
-                        startTime = startTime.AddHours(globalConfig.AutoDiscoverSleepTime);
-                    }
-                }
-                catch (Exception exception)
-                {
-                    Log.WriteError("Autodiscover scheduler", "Could not calculate start time.", exception);
-                }
-                TimeSpan interval = startTime - DateTime.Now;
-
-                ScheduleTimer = new();
-                ScheduleTimer.Elapsed += AutoDiscover;
-                ScheduleTimer.Elapsed += StartAutoDiscoverTimer;
-                ScheduleTimer.Interval = interval.TotalMilliseconds;
-                ScheduleTimer.AutoReset = false;
-                ScheduleTimer.Start();
-                Log.WriteDebug("Autodiscover scheduler", "AutodiscoverScheduleTimer started.");
-            }
-        }
-
-        private void StartAutoDiscoverTimer(object? _, ElapsedEventArgs __)
-        {
-            AutoDiscoverTimer.Stop();
-            AutoDiscoverTimer = new();
-            AutoDiscoverTimer.Elapsed += AutoDiscover;
-            AutoDiscoverTimer.Interval = globalConfig.AutoDiscoverSleepTime * GlobalConst.kHoursToMilliseconds;
-            AutoDiscoverTimer.AutoReset = true;
-            AutoDiscoverTimer.Start();
-            Log.WriteDebug("Autodiscover scheduler", "AutoDiscoverTimer started.");
-        }
-
-        private async void AutoDiscover(object? _, ElapsedEventArgs __)
+        /// <summary>
+        /// define the processing to be done
+        /// </summary>
+        protected override async void Process(object? _, ElapsedEventArgs __)
         {
             try
             {
@@ -96,7 +52,7 @@ namespace FWO.Middleware.Server
                 {
                     try
                     {
-                        AutoDiscoveryBase autodiscovery = new AutoDiscoveryBase(superManagement, apiConnection);
+                        AutoDiscoveryBase autodiscovery = new (superManagement, apiConnection);
 
                         List<Management> diffList = await autodiscovery.Run();
                         List<ActionItem> actions = autodiscovery.ConvertToActions(diffList);

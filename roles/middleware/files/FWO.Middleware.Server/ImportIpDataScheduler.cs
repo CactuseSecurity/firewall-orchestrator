@@ -14,9 +14,6 @@ namespace FWO.Middleware.Server
 	/// </summary>
     public class ImportIpDataScheduler : SchedulerBase
     {
-        private System.Timers.Timer ScheduleTimer = new();
-        private System.Timers.Timer ImportIpDataTimer = new();
-
 		/// <summary>
 		/// Async Constructor needing the connection
 		/// </summary>
@@ -27,7 +24,7 @@ namespace FWO.Middleware.Server
         }
     
         private ImportIpDataScheduler(ApiConnection apiConnection, GlobalConfig globalConfig)
-            : base(apiConnection, globalConfig, ConfigQueries.subscribeImportIpDataConfigChanges)
+            : base(apiConnection, globalConfig, ConfigQueries.subscribeImportIpDataConfigChanges, SchedulerInterval.Hours, "ImportAreaIPData")
         {}
 
 		/// <summary>
@@ -36,62 +33,21 @@ namespace FWO.Middleware.Server
         protected override void OnGlobalConfigChange(List<ConfigItem> config)
         {
             ScheduleTimer.Stop();
-            globalConfig.SubscriptionUpdateHandler(config.ToArray());
+            globalConfig.SubscriptionUpdateHandler([.. config]);
             if (globalConfig.ImportSubnetDataSleepTime > 0)
             {
-                ImportIpDataTimer.Interval = globalConfig.ImportSubnetDataSleepTime * GlobalConst.kHoursToMilliseconds;
-                StartScheduleTimer();
+                StartScheduleTimer(globalConfig.ImportSubnetDataSleepTime, globalConfig.ImportSubnetDataStartAt);
             }
         }
 
-		/// <summary>
-		/// start the scheduling timer
-		/// </summary>
-        protected override void StartScheduleTimer()
-        {
-            if (globalConfig.ImportSubnetDataSleepTime > 0)
-            {
-                DateTime startTime = DateTime.Now;
-                try
-                {
-                    startTime = globalConfig.ImportSubnetDataStartAt;
-                    while (startTime < DateTime.Now)
-                    {
-                        startTime = startTime.AddHours(globalConfig.ImportSubnetDataSleepTime);
-                    }
-                }
-                catch (Exception exception)
-                {
-                    Log.WriteError("Import Area IP Data scheduler", "Could not calculate start time.", exception);
-                }
-                TimeSpan interval = startTime - DateTime.Now;
-
-                ScheduleTimer = new();
-                ScheduleTimer.Elapsed += ImportAreaIpData;
-                ScheduleTimer.Elapsed += StartImportIpDataTimer;
-                ScheduleTimer.Interval = interval.TotalMilliseconds;
-                ScheduleTimer.AutoReset = false;
-                ScheduleTimer.Start();
-                Log.WriteDebug("Import Area IP Data scheduler", "ImportIpDataScheduleTimer started.");
-            }
-        }
-
-        private void StartImportIpDataTimer(object? _, ElapsedEventArgs __)
-        {
-            ImportIpDataTimer.Stop();
-            ImportIpDataTimer = new();
-            ImportIpDataTimer.Elapsed += ImportAreaIpData;
-            ImportIpDataTimer.Interval = globalConfig.ImportSubnetDataSleepTime * GlobalConst.kHoursToMilliseconds;
-            ImportIpDataTimer.AutoReset = true;
-            ImportIpDataTimer.Start();
-            Log.WriteDebug("Import Area IP Data scheduler", "ImportIpDataTimer started.");
-        }
-
-        private async void ImportAreaIpData(object? _, ElapsedEventArgs __)
+        /// <summary>
+        /// define the processing to be done
+        /// </summary>
+        protected override async void Process(object? _, ElapsedEventArgs __)
         {
             try
             {
-                AreaIpDataImport import = new AreaIpDataImport(apiConnection, globalConfig);
+                AreaIpDataImport import = new (apiConnection, globalConfig);
                 if(!await import.Run())
                 {
                     throw new Exception("Area IP Data Import failed.");

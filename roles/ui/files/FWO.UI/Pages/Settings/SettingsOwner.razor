@@ -241,14 +241,15 @@
                                 }
                                 else
                                 {
-                                    <Dropdown @bind-SelectedElement="actRecCheckParams.RecertCheckInterval" ElementToString="@(i => userConfig.GetText(i.ToString()))" Elements="Enum.GetValues(typeof(Interval)).Cast<Interval>().Where(x => (x != Interval.Never && x != Interval.Years))" >
+                                    <Dropdown @bind-SelectedElement="actRecCheckParams.RecertCheckInterval" ElementToString="@(i => userConfig.GetText(i.ToString()))"
+                                            Elements="Enum.GetValues(typeof(SchedulerInterval)).Cast<SchedulerInterval>().Where(x => x.OfferedForRecert())" >
                                         <ElementTemplate Context="interval">
                                             @(userConfig.GetText(interval.ToString()))
                                         </ElementTemplate>
                                     </Dropdown>
                                 }
                             </div>
-                            @if(actRecCheckParams.RecertCheckInterval == Interval.Weeks)
+                            @if(actRecCheckParams.RecertCheckInterval == SchedulerInterval.Weeks)
                             {
                                 <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("each_on")):</label>
                                 <div class="col-sm-4">
@@ -266,7 +267,7 @@
                                     }
                                 </div>
                             }
-                            else if(actRecCheckParams.RecertCheckInterval == Interval.Months)
+                            else if(actRecCheckParams.RecertCheckInterval == SchedulerInterval.Months)
                             {
                                 <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("each_on")):</label>
                                 <div class="col-sm-4">

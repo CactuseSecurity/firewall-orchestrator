@@ -16,8 +16,10 @@ namespace FWO.Basics
         public const int kGlobLibraryWidth = kSidebarLeftWidth + 400;
         public const int kObjLibraryWidth = kSidebarLeftWidth + 300;
         public const int kSidebarRightWidth = 300;
+        public const int kDaysToMilliseconds = 86400000;
         public const int kHoursToMilliseconds = 3600000;
         public const int kMinutesToMilliseconds = 60000;
+        public const int kSecondsToMilliseconds = 1000;
         public const int kMaxPortNumber = 65535;
 
         public const string kHtml = "html";

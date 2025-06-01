@@ -56,9 +56,9 @@ GraphQlApiSubscription<List<Ldap>> connectedLdapsSubscription = apiConnection.Ge
 Log.WriteInfo("Found ldap connection to server", string.Join("\n", connectedLdaps.ConvertAll(ldap => $"{ldap.Address}:{ldap.Port}")));
 
 // Create and start report scheduler
-await Task.Factory.StartNew(() =>
+await Task.Factory.StartNew(async () =>
 {
-    reportScheduler = new ReportScheduler(apiConnection, jwtWriter, connectedLdapsSubscription);
+    reportScheduler = await  ReportScheduler.CreateAsync(apiConnection, jwtWriter, connectedLdapsSubscription);
 }, TaskCreationOptions.LongRunning);
 
 // Create and start auto disovery scheduler

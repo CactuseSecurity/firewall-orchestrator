@@ -1,8 +1,10 @@
 using FWO.Basics;
+using FWO.Data;
 using FWO.Data.Report;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Config.Api;
+using FWO.Config.Api.Data;
 using FWO.Logging;
 using FWO.Middleware.Server.Controllers;
 using FWO.Report;
@@ -16,7 +18,7 @@ namespace FWO.Middleware.Server
     /// <summary>
     /// Report scheduler class
     /// </summary>
-    public class ReportScheduler
+    public class ReportScheduler : SchedulerBase
     {
         private ConcurrentBag<ReportSchedule> scheduledReports = [];
         private readonly TimeSpan CheckScheduleInterval = TimeSpan.FromMinutes(1);
@@ -31,9 +33,16 @@ namespace FWO.Middleware.Server
         private List<Ldap> connectedLdaps;
 
 		/// <summary>
-		/// Constructor needing connection, jwtWriter and subscription to connected ldaps
+		/// Async Constructor needing the connection, jwtWriter and subscription
 		/// </summary>
-        public ReportScheduler(ApiConnection apiConnection, JwtWriter jwtWriter, GraphQlApiSubscription<List<Ldap>> connectedLdapsSubscription)
+        public static async Task<ReportScheduler> CreateAsync(ApiConnection apiConnection, JwtWriter jwtWriter, GraphQlApiSubscription<List<Ldap>> connectedLdapsSubscription)
+        {
+            GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(apiConnection, true);
+            return new ReportScheduler(apiConnection, globalConfig, jwtWriter, connectedLdapsSubscription);
+        }
+
+        private ReportScheduler(ApiConnection apiConnection, GlobalConfig globalConfig, JwtWriter jwtWriter, GraphQlApiSubscription<List<Ldap>> connectedLdapsSubscription)
+            : base(apiConnection, globalConfig, ReportQueries.subscribeReportScheduleChanges, SchedulerInterval.Minutes, "Report")
         {
             this.jwtWriter = jwtWriter;            
             apiConnectionScheduler = apiConnection;
@@ -42,14 +51,9 @@ namespace FWO.Middleware.Server
             connectedLdaps = apiConnectionScheduler.SendQueryAsync<List<Ldap>>(AuthQueries.getLdapConnections).Result;
             connectedLdapsSubscription.OnUpdate += OnLdapUpdate;
 
-            //scheduledReports = apiConnectionScheduler.SendQueryAsync<ReportSchedule[]>(ReportQueries.getReportSchedules).Result.ToList();
             scheduledReportsSubscription = apiConnectionScheduler.GetSubscription<ReportSchedule[]>(ApiExceptionHandler, OnScheduleUpdate, ReportQueries.subscribeReportScheduleChanges);
 
-            System.Timers.Timer checkScheduleTimer = new();
-            checkScheduleTimer.Elapsed += CheckSchedule;
-            checkScheduleTimer.Interval = CheckScheduleInterval.TotalMilliseconds;
-            checkScheduleTimer.AutoReset = true;
-            checkScheduleTimer.Start();
+            StartScheduleTimer(1, DateTime.Now);
         }
 
         private void OnLdapUpdate(List<Ldap> connectedLdaps)
@@ -62,13 +66,16 @@ namespace FWO.Middleware.Server
             this.scheduledReports = [.. scheduledReports];            
         }
 
-        private void ApiExceptionHandler(Exception exception)
-        {
-            Log.WriteError("Report scheduler", "Api subscription lead to exception. Retry subscription.", exception);
-            // Subscription will be restored if no exception is thrown here
-        }
+		/// <summary>
+		/// set scheduling timer from config values (not applicable here)
+		/// </summary>
+        protected override void OnGlobalConfigChange(List<ConfigItem> config)
+        {}
 
-        private async void CheckSchedule(object? _, ElapsedEventArgs __)
+        /// <summary>
+        /// define the processing to be done
+        /// </summary>
+        protected override async void Process(object? _, ElapsedEventArgs __)
         {
             List<Task> reportGeneratorTasks = [];
 
@@ -86,11 +93,11 @@ namespace FWO.Middleware.Server
                             {
                                 reportSchedule.StartTime = reportSchedule.RepeatInterval switch
                                 {
-                                    Interval.Days => reportSchedule.StartTime.AddDays(reportSchedule.RepeatOffset),
-                                    Interval.Weeks => reportSchedule.StartTime.AddDays(reportSchedule.RepeatOffset * 7),
-                                    Interval.Months => reportSchedule.StartTime.AddMonths(reportSchedule.RepeatOffset),
-                                    Interval.Years => reportSchedule.StartTime.AddYears(reportSchedule.RepeatOffset),
-                                    Interval.Never => reportSchedule.StartTime.AddYears(42_42),
+                                    SchedulerInterval.Days => reportSchedule.StartTime.AddDays(reportSchedule.RepeatOffset),
+                                    SchedulerInterval.Weeks => reportSchedule.StartTime.AddDays(reportSchedule.RepeatOffset * 7),
+                                    SchedulerInterval.Months => reportSchedule.StartTime.AddMonths(reportSchedule.RepeatOffset),
+                                    SchedulerInterval.Years => reportSchedule.StartTime.AddYears(reportSchedule.RepeatOffset),
+                                    SchedulerInterval.Never => reportSchedule.StartTime.AddYears(42_42),
                                     _ => throw new NotSupportedException("Time interval is not supported.")
                                 };
                             }

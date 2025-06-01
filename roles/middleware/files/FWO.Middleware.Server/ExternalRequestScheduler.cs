@@ -14,9 +14,6 @@ namespace FWO.Middleware.Server
 	/// </summary>
     public class ExternalRequestScheduler : SchedulerBase
     {
-        private System.Timers.Timer ScheduleTimer = new();
-        private System.Timers.Timer ExternalRequestTimer = new();
-
 		/// <summary>
 		/// Async Constructor needing the connection
 		/// </summary>
@@ -27,7 +24,7 @@ namespace FWO.Middleware.Server
         }
     
         private ExternalRequestScheduler(ApiConnection apiConnection, GlobalConfig globalConfig)
-            : base(apiConnection, globalConfig, ConfigQueries.subscribeExternalRequestConfigChanges)
+            : base(apiConnection, globalConfig, ConfigQueries.subscribeExternalRequestConfigChanges, SchedulerInterval.Seconds, "ExternalRequest")
         {}
 
 		/// <summary>
@@ -36,58 +33,17 @@ namespace FWO.Middleware.Server
         protected override void OnGlobalConfigChange(List<ConfigItem> config)
         {
             ScheduleTimer.Stop();
-            globalConfig.SubscriptionUpdateHandler(config.ToArray());
+            globalConfig.SubscriptionUpdateHandler([.. config]);
             if(globalConfig.ExternalRequestSleepTime > 0)
             {
-                ExternalRequestTimer.Interval = globalConfig.ExternalRequestSleepTime * 1000; // convert seconds to milliseconds
-                StartScheduleTimer();
+                StartScheduleTimer(globalConfig.ExternalRequestSleepTime, globalConfig.ExternalRequestStartAt);
             }
         }
 
-		/// <summary>
-		/// start the scheduling timer
-		/// </summary>
-        protected override void StartScheduleTimer()
-        {
-            if (globalConfig.ExternalRequestSleepTime > 0)
-            {
-                DateTime startTime = DateTime.Now;
-                try
-                {
-                    startTime = globalConfig.ExternalRequestStartAt;
-                    while (startTime < DateTime.Now)
-                    {
-                        startTime = startTime.AddSeconds(globalConfig.ExternalRequestSleepTime);
-                    }
-                }
-                catch (Exception exception)
-                {
-                    Log.WriteError("External Request scheduler", "Could not calculate start time.", exception);
-                }
-                TimeSpan interval = startTime - DateTime.Now;
-
-                ScheduleTimer = new();
-                ScheduleTimer.Elapsed += SendExternalRequests;
-                ScheduleTimer.Elapsed += StartExternalRequestTimer;
-                ScheduleTimer.Interval = interval.TotalMilliseconds;
-                ScheduleTimer.AutoReset = false;
-                ScheduleTimer.Start();
-                Log.WriteDebug("External Request scheduler", "ExternalRequestScheduleTimer started.");
-            }
-        }
-
-        private void StartExternalRequestTimer(object? _, ElapsedEventArgs __)
-        {
-            ExternalRequestTimer.Stop();
-            ExternalRequestTimer = new();
-            ExternalRequestTimer.Elapsed += SendExternalRequests;
-            ExternalRequestTimer.Interval = globalConfig.ExternalRequestSleepTime * 1000;  // convert seconds to milliseconds
-            ExternalRequestTimer.AutoReset = true;
-            ExternalRequestTimer.Start();
-            Log.WriteDebug("External Request scheduler", "ExternalRequestTimer started.");
-        }
-
-        private async void SendExternalRequests(object? _, ElapsedEventArgs __)
+        /// <summary>
+        /// define the processing to be done
+        /// </summary>
+        protected override async void Process(object? _, ElapsedEventArgs __)
         {
             try
             {

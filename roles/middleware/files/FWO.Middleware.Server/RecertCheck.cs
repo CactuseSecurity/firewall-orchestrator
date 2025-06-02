@@ -26,6 +26,7 @@ namespace FWO.Middleware.Server
         private List<UiUser> uiUsers = [];
         private RecertCheckParams? globCheckParams;
         private List<FwoOwner> owners = [];
+        private const string LogMessageTitle = "Recertification Check";
 
         /// <summary>
         /// Constructor for Recertification check class
@@ -53,7 +54,7 @@ namespace FWO.Middleware.Server
                 }
                 catch (Exception exception)
                 {
-                    Log.WriteError("CheckRecertifications", $"Could not decrypt mailserver password.", exception);				
+                    Log.WriteError(LogMessageTitle, $"Could not decrypt mailserver password.", exception);				
                 }
                 EmailConnection emailConnection = new(globalConfig.EmailServerAddress, globalConfig.EmailPort,
                     globalConfig.EmailTls, globalConfig.EmailUser, decryptedSecret, globalConfig.EmailSenderAddress);
@@ -61,26 +62,23 @@ namespace FWO.Middleware.Server
                 JwtWriter jwtWriter = new(ConfigFile.JwtPrivateKey);
                 ApiConnection apiConnectionReporter = new GraphQlApiConnection(ConfigFile.ApiServerUri ?? throw new Exception("Missing api server url on startup."), jwtWriter.CreateJWTReporterViewall());
 
-                foreach(var owner in owners)
+                foreach(var owner in owners.Where(o => IsCheckTime(o)))
                 {
-                    if(IsCheckTime(owner))
-                    {
-                        // todo: refine handling
-                        List<Rule> upcomingRecerts = await GenerateRecertificationReport(apiConnectionReporter, owner, false);
-                        List<Rule> overdueRecerts = []; // await GenerateRecertificationReport(apiConnectionReporter, owner, true);
+                    // todo: refine handling
+                    List<Rule> upcomingRecerts = await GenerateRecertificationReport(apiConnectionReporter, owner, false);
+                    List<Rule> overdueRecerts = []; // await GenerateRecertificationReport(apiConnectionReporter, owner, true);
 
-                        if(upcomingRecerts.Count > 0 || overdueRecerts.Count > 0)
-                        {
-                            await mailer.SendAsync(PrepareEmail(owner, upcomingRecerts, overdueRecerts), emailConnection, new CancellationToken());
-                            emailsSent++;
-                        }
-                        await SetOwnerLastCheck(owner);
+                    if(upcomingRecerts.Count > 0 || overdueRecerts.Count > 0)
+                    {
+                        await mailer.SendAsync(PrepareEmail(owner, upcomingRecerts, overdueRecerts), emailConnection, new CancellationToken());
+                        emailsSent++;
                     }
+                    await SetOwnerLastCheck(owner);
                 }
             }
             catch(Exception exception)
             {
-                Log.WriteError("Recertification Check", $"Checking owners for upcoming recertifications leads to exception.", exception);
+                Log.WriteError(LogMessageTitle, $"Checking owners for upcoming recertifications leads to exception.", exception);
             }
             return emailsSent;
         }
@@ -104,62 +102,66 @@ namespace FWO.Middleware.Server
         {
             RecertCheckParams checkParams = (owner.RecertCheckParamString != null && owner.RecertCheckParamString != "" ? 
                 System.Text.Json.JsonSerializer.Deserialize<RecertCheckParams>(owner.RecertCheckParamString) : 
-                globCheckParams) ?? throw new Exception("Config Parameters not set.");
+                globCheckParams) ?? throw new ArgumentException("Config Parameters not set.");
             DateTime lastCheck = owner.LastRecertCheck ?? DateTime.MinValue;
-            DateTime nextCheck;
-
-            switch (checkParams.RecertCheckInterval)
+            var nextCheck = checkParams.RecertCheckInterval switch
             {
-                case SchedulerInterval.Days:
-                    nextCheck = lastCheck.AddDays(checkParams.RecertCheckOffset);
-                break;
-                case SchedulerInterval.Weeks:
-                    if(checkParams.RecertCheckWeekday == null)
-                    {
-                        nextCheck = lastCheck.AddDays(checkParams.RecertCheckOffset * 7);
-                    }
-                    else
-                    {
-                        nextCheck = lastCheck.AddDays((checkParams.RecertCheckOffset - 1) * 7 + 1);
-                        int count = 0;
-                        while(nextCheck.DayOfWeek != (DayOfWeek)checkParams.RecertCheckWeekday && count < 6)
-                        {
-                            nextCheck = nextCheck.AddDays(1);
-                            count++;
-                        }
-                    }
-                break;
-                case SchedulerInterval.Months:
-                    if(checkParams.RecertCheckDayOfMonth == null)
-                    {
-                        nextCheck = lastCheck.AddMonths(checkParams.RecertCheckOffset);
-                    }
-                    else
-                    {
-                        nextCheck = lastCheck.AddMonths(checkParams.RecertCheckOffset - 1);
-                        nextCheck = nextCheck.AddDays(1);
-                        int count = 0;
-                        while(nextCheck.Day != (int)checkParams.RecertCheckDayOfMonth && count < 30)
-                        {
-                            nextCheck = nextCheck.AddDays(1);
-                            count++;
-                        }
-                        if(nextCheck.Day != (int)checkParams.RecertCheckDayOfMonth)
-                        {
-                            // missed the day because or month change: set to first of following month
-                            nextCheck = nextCheck.AddDays(1 - nextCheck.Day);
-                        }
-                    }
-                break;
-                default:
-                    throw new NotSupportedException("Time interval is not supported.");
-            }
-
-            if(nextCheck <= DateTime.Today)
+                SchedulerInterval.Days => lastCheck.AddDays(checkParams.RecertCheckOffset),
+                SchedulerInterval.Weeks => CalcForWeeks(lastCheck, checkParams),
+                SchedulerInterval.Months => CalcForMonths(lastCheck, checkParams),
+                _ => throw new NotSupportedException("Time interval is not supported."),
+            };
+            if (nextCheck <= DateTime.Today)
             {
                 return true;
             }
             return false;
+        }
+
+        private static DateTime CalcForWeeks(DateTime lastCheck, RecertCheckParams checkParams)
+        {
+            DateTime nextCheck;
+            if (checkParams.RecertCheckWeekday == null)
+            {
+                nextCheck = lastCheck.AddDays(checkParams.RecertCheckOffset * 7);
+            }
+            else
+            {
+                nextCheck = lastCheck.AddDays((checkParams.RecertCheckOffset - 1) * 7 + 1);
+                int count = 0;
+                while (nextCheck.DayOfWeek != (DayOfWeek)checkParams.RecertCheckWeekday && count < 6)
+                {
+                    nextCheck = nextCheck.AddDays(1);
+                    count++;
+                }
+            }
+            return nextCheck;
+        }
+
+        private static DateTime CalcForMonths(DateTime lastCheck, RecertCheckParams checkParams)
+        {
+            DateTime nextCheck;
+            if (checkParams.RecertCheckDayOfMonth == null)
+            {
+                nextCheck = lastCheck.AddMonths(checkParams.RecertCheckOffset);
+            }
+            else
+            {
+                nextCheck = lastCheck.AddMonths(checkParams.RecertCheckOffset - 1);
+                nextCheck = nextCheck.AddDays(1);
+                int count = 0;
+                while (nextCheck.Day != (int)checkParams.RecertCheckDayOfMonth && count < 30)
+                {
+                    nextCheck = nextCheck.AddDays(1);
+                    count++;
+                }
+                if (nextCheck.Day != (int)checkParams.RecertCheckDayOfMonth)
+                {
+                    // missed the day because or month change: set to first of following month
+                    nextCheck = nextCheck.AddDays(1 - nextCheck.Day);
+                }
+            }
+            return nextCheck;
         }
 
         private async Task<List<Rule>> GenerateRecertificationReport(ApiConnection apiConnection, FwoOwner owner, bool overdueOnly)
@@ -167,7 +169,7 @@ namespace FWO.Middleware.Server
             List<Rule> rules = [];
             try
             {
-                UserConfig userConfig = new (globalConfig);
+                UserConfig userConfig = new(globalConfig);
 
                 DeviceFilter deviceFilter = new()
                 {
@@ -188,23 +190,20 @@ namespace FWO.Middleware.Server
 
                 foreach (var management in reportData.ManagementData)
                 {
-                    foreach (var device in management.Devices)
+                    foreach (var device in management.Devices.Where(d => d.ContainsRules()))
                     {
-                        if (device.ContainsRules())
+                        foreach (var rule in device.Rules!)
                         {
-                            foreach (var rule in device.Rules!)
-                            {
-                                rule.Metadata.UpdateRecertPeriods(owner.RecertInterval ?? globalConfig.RecertificationPeriod, 0);
-                                rule.DeviceName = device.Name ?? "";
-                                rules.Add(rule);
-                            }
+                            rule.Metadata.UpdateRecertPeriods(owner.RecertInterval ?? globalConfig.RecertificationPeriod, 0);
+                            rule.DeviceName = device.Name ?? "";
+                            rules.Add(rule);
                         }
                     }
                 }
             }
             catch (Exception exception)
             {
-                Log.WriteError("Recertification Check", $"Report for owner {owner.Name} leads to exception.", exception);
+                Log.WriteError(LogMessageTitle, $"Report for owner {owner.Name} leads to exception.", exception);
             }
             return rules;
         }

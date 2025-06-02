@@ -261,7 +261,7 @@ else
     {
         await RefreshStates();
         await InitMatrix();
-        availableTaskTypes = System.Text.Json.JsonSerializer.Deserialize<List<WfTaskType>>(userConfig.ReqAvailableTaskTypes) ?? throw new Exception("Config data could not be parsed.");
+        availableTaskTypes = System.Text.Json.JsonSerializer.Deserialize<List<WfTaskType>>(userConfig.ReqAvailableTaskTypes) ?? throw new JsonException("Config data could not be parsed.");
         InitComplete = true;
     }
 

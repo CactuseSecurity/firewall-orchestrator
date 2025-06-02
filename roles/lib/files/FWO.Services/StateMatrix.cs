@@ -187,7 +187,7 @@ namespace FWO.Services
             }
 
             List<GlobalStateMatrixHelper> confData = await apiConnection.SendQueryAsync<List<GlobalStateMatrixHelper>>(ConfigQueries.getConfigItemByKey, new { key = matrixKey });
-            GlobalStateMatrix glbStateMatrix = System.Text.Json.JsonSerializer.Deserialize<GlobalStateMatrix>(confData[0].ConfData) ?? throw new Exception("Config data could not be parsed.");
+            GlobalStateMatrix glbStateMatrix = System.Text.Json.JsonSerializer.Deserialize<GlobalStateMatrix>(confData[0].ConfData) ?? throw new JsonException("Config data could not be parsed.");
             GlobalMatrix = glbStateMatrix.GlobalMatrix;
         }
     }

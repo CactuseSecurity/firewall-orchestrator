@@ -56,7 +56,6 @@ namespace FWO.Middleware.Server
 
                         List<Management> diffList = await autodiscovery.Run();
                         List<ActionItem> actions = autodiscovery.ConvertToActions(diffList);
-                        // List<ActionItem> actions = autodiscovery.ConvertToActions(await autodiscovery.Run());
 
                         int ChangeCounter = 0;
 
@@ -104,7 +103,7 @@ namespace FWO.Middleware.Server
         {
             string title = "Supermanagement: " + action.Supermanager;
             lastMgmtAlertId = await SetAlert(title, action.ActionType ?? "", GlobalConst.kAutodiscovery, AlertCode.Autodiscovery,
-                action.ManagementId, action.JsonData?.ToString(), action.DeviceId, action.RefAlertId, true);
+                new() { MgmtId = action.ManagementId, JsonData = action.JsonData?.ToString(), DevId = action.DeviceId, RefAlertId = action.RefAlertId }, true);
             return lastMgmtAlertId;
         }
     }

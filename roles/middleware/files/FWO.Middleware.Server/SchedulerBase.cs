@@ -30,16 +30,38 @@ namespace FWO.Middleware.Server
 		/// </summary>
         protected GraphQlApiSubscription<List<ConfigItem>>? ConfigDataSubscription;
 
+        /// <summary>
+        /// Additional Data for Alerts
+        /// </summary>
+        protected struct AdditionalAlertData
+        {
+            /// <summary>
+            /// Management Id
+            /// </summary>
+            public int? MgmtId {get; set;}
+            /// <summary>
+            /// Json Data
+            /// </summary>
+            public object? JsonData {get; set;}
+            /// <summary>
+            /// Device Id
+            /// </summary>
+            public int? DevId {get; set;}
+            /// <summary>
+            /// Reference on other Alert Id
+            /// </summary>
+            public long? RefAlertId {get; set;}
+        }
+
 		/// <summary>
-		/// Schedule Timer
-		/// </summary>
+        /// Schedule Timer
+        /// </summary>
         protected System.Timers.Timer ScheduleTimer = new();
         private System.Timers.Timer RecurringTimer = new();
-        private readonly string SchedulerText = "";
+        private readonly string SchedulerText;
         private readonly SchedulerInterval SchedulerInterval;
         private int SleepTime;
 
-        private List<Alert> openAlerts = [];
 
         /// <summary>
         /// Constructor starting the Schedule timer
@@ -127,7 +149,7 @@ namespace FWO.Middleware.Server
                         SchedulerInterval.Hours => startTime.AddHours(SleepTime),
                         SchedulerInterval.Minutes => startTime.AddMinutes(SleepTime),
                         SchedulerInterval.Seconds => startTime.AddSeconds(SleepTime),
-                        _ => throw new Exception($"Error: wrong time interval format:" + SchedulerInterval.ToString())
+                        _ => throw new NotSupportedException($"Error: wrong time interval format:" + SchedulerInterval.ToString())
                     };
                     }
             }
@@ -146,7 +168,7 @@ namespace FWO.Middleware.Server
                 SchedulerInterval.Hours => SleepTime * GlobalConst.kHoursToMilliseconds,
                 SchedulerInterval.Minutes => SleepTime * GlobalConst.kMinutesToMilliseconds,
                 SchedulerInterval.Seconds => SleepTime * GlobalConst.kSecondsToMilliseconds,
-                _ => throw new Exception($"Error: wrong time interval format:" + SchedulerInterval.ToString())
+                _ => throw new NotSupportedException($"Error: wrong time interval format:" + SchedulerInterval.ToString())
             };
         }
 
@@ -189,23 +211,23 @@ namespace FWO.Middleware.Server
 		/// set an alert in error case
 		/// </summary>
         protected async Task<long?> SetAlert(string title, string description, string source, AlertCode alertCode,
-            int? mgmtId = null, object? JsonData = null, int? devId = null, long? refAlertId = null, bool compareDesc = false)
+            AdditionalAlertData additionalAlertData = new(), bool compareDesc = false)
         {
             long? alertId = null;
             try
             {
-                openAlerts = await apiConnection.SendQueryAsync<List<Alert>>(MonitorQueries.getOpenAlerts);
+                List<Alert> openAlerts = await apiConnection.SendQueryAsync<List<Alert>>(MonitorQueries.getOpenAlerts);
                 var Variables = new
                 {
                     source = source,
                     userId = 0,
                     title = title,
                     description = description,
-                    mgmId = mgmtId,
-                    devId = devId,
+                    mgmId = additionalAlertData.MgmtId,
+                    devId = additionalAlertData.DevId,
                     alertCode = (int)alertCode,
-                    jsonData = JsonData,
-                    refAlert = refAlertId
+                    jsonData = additionalAlertData.JsonData,
+                    refAlert = additionalAlertData.RefAlertId
                 };
                 ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(MonitorQueries.addAlert, Variables)).ReturnIds;
                 if (returnIds != null)
@@ -213,8 +235,8 @@ namespace FWO.Middleware.Server
                     alertId = returnIds[0].NewIdLong;
                     // Acknowledge older alert for same problem
                     Alert? existingAlert = openAlerts.FirstOrDefault(x => x.AlertCode == alertCode && 
-                        (x.ManagementId == mgmtId || (x.ManagementId == null && mgmtId == null))
-                        && (compareDesc ? x.Description == description : true));
+                        (x.ManagementId == additionalAlertData.MgmtId || (x.ManagementId == null && additionalAlertData.MgmtId == null))
+                        && (!compareDesc || x.Description == description));
                     if(existingAlert != null)
                     {
                         await AcknowledgeAlert(existingAlert.Id);
@@ -224,7 +246,7 @@ namespace FWO.Middleware.Server
                 {
                     Log.WriteError("Write Alert", "Log could not be written to database");
                 }
-                LogAlert(title, description, source, alertCode, mgmtId, JsonData, devId);
+                LogAlert(title, description, source, alertCode, additionalAlertData.MgmtId, additionalAlertData.JsonData, additionalAlertData.DevId);
             }
             catch(Exception exc)
             {

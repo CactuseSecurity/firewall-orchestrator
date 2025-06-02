@@ -369,14 +369,7 @@
 
     private void AnalyseSampleUsers()
     {
-        sampleUsers = [];
-        foreach (var user in uiUsers)
-        {
-            if (user.Name.EndsWith("_demo"))
-            {
-                sampleUsers.Add(user);
-            }
-        }
+        sampleUsers = [.. uiUsers.Where(u => u.Name.EndsWith(GlobalConst.k_demo))];
         showSampleRemoveButton = (sampleUsers.Count > 0);
     }
 

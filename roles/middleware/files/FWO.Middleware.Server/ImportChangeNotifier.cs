@@ -62,6 +62,7 @@ namespace FWO.Middleware.Server
         private readonly DeviceFilter deviceFilter = new();
         private List<int> importedManagements = [];
         private readonly UserConfig userConfig;
+        private const string LogMessageTitle = "Import Change Notifier";
 
 
         /// <summary>
@@ -98,7 +99,7 @@ namespace FWO.Middleware.Server
             }
             catch (Exception exception)
             {
-                Log.WriteError("Import Change Notification", $"Runs into exception: ", exception);
+                Log.WriteError(LogMessageTitle, $"Runs into exception: ", exception);
                 WorkInProgress = false;
                 return false;
             }
@@ -127,14 +128,13 @@ namespace FWO.Middleware.Server
             }
             catch (Exception exception)
             {
-                Log.WriteError("Import Change Notifier", $"Report generation leads to exception.", exception);
+                Log.WriteError(LogMessageTitle, $"Report generation leads to exception.", exception);
             }
         }
 
         private async Task<ReportParams> SetFilters()
         {
-            deviceFilter.Managements = ( await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement) )
-                .Where(x => importedManagements.Contains(x.Id)).ToList();
+            deviceFilter.Managements = [.. ( await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement)).Where(x => importedManagements.Contains(x.Id))];
             deviceFilter.ApplyFullDeviceSelection(true);
 
             return new((int)ReportType.Changes, deviceFilter)
@@ -158,7 +158,7 @@ namespace FWO.Middleware.Server
             }
             catch (Exception exception)
             {
-                Log.WriteError("Import Change Notifier", $"Could not decrypt mailserver password.", exception);
+                Log.WriteError(LogMessageTitle, $"Could not decrypt mailserver password.", exception);
             }
 
             EmailConnection emailConnection = new(globalConfig.EmailServerAddress, globalConfig.EmailPort,
@@ -275,7 +275,7 @@ namespace FWO.Middleware.Server
             }
             catch (Exception exception)
             {
-                Log.WriteError("Import Change Notifier", $"Could not mark imports as notified.", exception);
+                Log.WriteError(LogMessageTitle, $"Could not mark imports as notified.", exception);
             }
         }
     }

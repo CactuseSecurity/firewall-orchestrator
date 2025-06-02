@@ -122,12 +122,12 @@ namespace FWO.Data.Modelling
         public Dictionary<string, string>? Props;
         public List<ModellingExtraConfig> ExtraConfigs
         {  
-            get => ExtraParams != null && ExtraParams != "" ? System.Text.Json.JsonSerializer.Deserialize<List<ModellingExtraConfig>>(ExtraParams) ?? throw new Exception("ExtraParams could not be parsed.") : [];
+            get => ExtraParams != null && ExtraParams != "" ? System.Text.Json.JsonSerializer.Deserialize<List<ModellingExtraConfig>>(ExtraParams) ?? throw new JsonException("ExtraParams could not be parsed.") : [];
             set
             {
                 if(value != null)
                 {
-                    ExtraParams = System.Text.Json.JsonSerializer.Serialize(value) ?? throw new Exception("value could not be parsed.");
+                    ExtraParams = System.Text.Json.JsonSerializer.Serialize(value) ?? throw new JsonException("value could not be parsed.");
                 }
             }
         }

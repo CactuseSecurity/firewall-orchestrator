@@ -15,13 +15,14 @@ namespace FWO.Middleware.Server
     public class AreaIpDataImport(ApiConnection apiConnection, GlobalConfig globalConfig) : DataImportBase(apiConnection, globalConfig)
     {
         private List<ModellingNetworkArea> existingAreas = [];
+        private const string LogMessageTitle = "Import Area IP Data";
 
         /// <summary>
         /// Run the Area IP Data Import
         /// </summary>
         public async Task<bool> Run()
         {
-            List<string> importfilePathAndNames = JsonSerializer.Deserialize<List<string>>(globalConfig.ImportSubnetDataPath) ?? throw new Exception("Config Data could not be deserialized.");
+            List<string> importfilePathAndNames = JsonSerializer.Deserialize<List<string>>(globalConfig.ImportSubnetDataPath) ?? throw new JsonException("Config Data could not be deserialized.");
 
             List<ModellingImportNwData> AllNwData = [];
 
@@ -30,12 +31,12 @@ namespace FWO.Middleware.Server
             {
                 if (!RunImportScript(importfilePathAndName + ".py"))
                 {
-                    Log.WriteInfo("Import Area Network Data", $"Script {importfilePathAndName}.py failed but trying to import from existing file.");
+                    Log.WriteInfo(LogMessageTitle, $"Script {importfilePathAndName}.py failed but trying to import from existing file.");
                 }
 
                 try
                 {
-                    Log.WriteInfo("Importing Area Network Data from file ", $"{importfilePathAndName}.json");
+                    Log.WriteInfo(LogMessageTitle, $"Importing Area Network Data from file {importfilePathAndName}.json");
                     ReadFile(importfilePathAndName + ".json");
                     ModellingImportNwData? nwData = Import();
 
@@ -46,7 +47,7 @@ namespace FWO.Middleware.Server
                 }
                 catch (Exception ex)
                 {
-                    Log.WriteError("Import Network Data", $"Import could not be processed.", ex);
+                    Log.WriteError(LogMessageTitle, $"Import could not be processed.", ex);
                 }
             }
 
@@ -59,7 +60,7 @@ namespace FWO.Middleware.Server
             }
             else
             {
-                Log.WriteInfo("Import Area Network Data", $"No valid network data found in any of the following import files {importfilePathAndNames}. No changes were made.");
+                Log.WriteInfo(LogMessageTitle, $"No valid network data found in any of the following import files {importfilePathAndNames}. No changes were made.");
             }
 
             return true;
@@ -100,7 +101,7 @@ namespace FWO.Middleware.Server
                 }
             }
 
-            Log.WriteInfo("Import Area IP Data", $"Imported {successCounter} areas successfully, {failCounter} areas failed. Deleted {deleteCounter} areas, {deleteFailCounter} failed.");
+            Log.WriteInfo(LogMessageTitle, $"Imported {successCounter} areas successfully, {failCounter} areas failed. Deleted {deleteCounter} areas, {deleteFailCounter} failed.");
         }
 
         private static ModellingImportNwData ConvertNwDataToRanges(ModellingImportNwData nwData)
@@ -189,13 +190,13 @@ namespace FWO.Middleware.Server
         {
             try
             {
-                ModellingImportNwData? importedNwData = JsonSerializer.Deserialize<ModellingImportNwData>(importFile) ?? throw new Exception("File could not be parsed.");
+                ModellingImportNwData? importedNwData = JsonSerializer.Deserialize<ModellingImportNwData>(importFile) ?? throw new JsonException("File could not be parsed.");
 
                 return importedNwData;
             }
             catch (Exception exc)
             {
-                Log.WriteError("Import Area IP Data", $"File could not be processed.", exc);
+                Log.WriteError(LogMessageTitle, $"File could not be processed.", exc);
                 return null;
             }
         }
@@ -216,7 +217,7 @@ namespace FWO.Middleware.Server
             }
             catch (Exception exc)
             {
-                Log.WriteError("Import Area IP Data", $"Area {incomingArea.Name}({incomingArea.IdString}) could not be processed.", exc);
+                Log.WriteError(LogMessageTitle, $"Area {incomingArea.Name}({incomingArea.IdString}) could not be processed.", exc);
                 return false;
             }
             return true;
@@ -314,7 +315,7 @@ namespace FWO.Middleware.Server
             }
             catch (Exception exc)
             {
-                Log.WriteError("Import Area IP Data", $"Outdated Area {area.Name} could not be deleted.", exc);
+                Log.WriteError(LogMessageTitle, $"Outdated Area {area.Name} could not be deleted.", exc);
                 return false;
             }
             return true;
@@ -328,7 +329,7 @@ namespace FWO.Middleware.Server
             }
             catch (Exception exc)
             {
-                Log.WriteError("Reactivate Area", $"Area {area.Name}({area.IdString}) could not be reactivated.", exc);
+                Log.WriteError(LogMessageTitle, $"Area {area.Name}({area.IdString}) could not be reactivated.", exc);
             }
         }
     }

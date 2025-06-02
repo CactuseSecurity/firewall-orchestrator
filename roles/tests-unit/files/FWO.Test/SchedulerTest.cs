@@ -74,7 +74,7 @@ namespace FWO.Test
             ClassicAssert.AreEqual(true, ConsoleLogs[0].Contains("Scheduler-Test"));
             ClassicAssert.AreEqual(true, ConsoleLogs[0].Contains("ScheduleTimer started."));
 
-            Thread.Sleep(1500);
+            await Task.Delay(1500);
             ClassicAssert.AreEqual(1, apiConnection.LogEntries.Count);
             ClassicAssert.AreEqual(true, apiConnection.LogEntries[0].Contains("logDesc 1"));
             ClassicAssert.AreEqual(1, apiConnection.Alerts.Count);

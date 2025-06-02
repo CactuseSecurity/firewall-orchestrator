@@ -85,87 +85,67 @@ namespace FWO.Middleware.Server
             }
         }
 
+        private struct DemoDataFlags
+        {
+            public bool SampleManagementExisting;
+            public bool SampleCredentialExisting;
+            public bool SampleUserExisting;
+            public bool SampleTenantExisting;
+            public bool SampleGroupExisting;
+            public bool SampleOwnerExisting;
+
+            public readonly bool AnyFlagSet()
+            {
+                return SampleManagementExisting || SampleCredentialExisting || SampleUserExisting
+                    || SampleTenantExisting || SampleGroupExisting || SampleOwnerExisting;
+            }
+        }
+
         private async Task CheckDemoData()
         {
+            DemoDataFlags demoDataFlags = await CheckDemoDataExisting();
+
+            if (demoDataFlags.AnyFlagSet())
+            {
+                string description = globalConfig.GetText("sample_data_found_in") + (demoDataFlags.SampleManagementExisting ? globalConfig.GetText("managements") + " " : "") +
+                                                        (demoDataFlags.SampleCredentialExisting ? globalConfig.GetText("import_credential") + " " : "") +
+                                                        (demoDataFlags.SampleUserExisting ? globalConfig.GetText("users") + " " : "") +
+                                                        (demoDataFlags.SampleTenantExisting ? globalConfig.GetText("tenants") + " " : "") +
+                                                        (demoDataFlags.SampleGroupExisting ? globalConfig.GetText("groups") + " " : "") +
+                                                        (demoDataFlags.SampleOwnerExisting ? globalConfig.GetText("owners") : "");
+                await SetAlert(globalConfig.GetText("sample_data"), description, GlobalConst.kDailyCheck, AlertCode.SampleDataExisting);
+                await AddLogEntry(1, globalConfig.GetText("daily_sample_data_check"), description, GlobalConst.kDailyCheck);
+            }
+            else
+            {
+                await AddLogEntry(0, globalConfig.GetText("daily_sample_data_check"), globalConfig.GetText("no_sample_data_found"), GlobalConst.kDailyCheck);
+            }
+        }
+
+        private async Task<DemoDataFlags> CheckDemoDataExisting()
+        {
             List<Management> managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementsDetails);
-            bool sampleManagementExisting = false;
-            foreach (var management in managements)
-            {
-                if (management.Name.EndsWith("_demo"))
-                {
-                    sampleManagementExisting = true;
-                }
-            }
-
             List<ImportCredential> credentials = await apiConnection.SendQueryAsync<List<ImportCredential>>(DeviceQueries.getCredentialsWithoutSecrets);
-            bool sampleCredentialExisting = false;
-            foreach (var credential in credentials)
-            {
-                if (credential.Name.EndsWith("_demo"))
-                {
-                    sampleCredentialExisting = true;
-                }
-            }
-
             List<UiUser> users = await apiConnection.SendQueryAsync<List<UiUser>>(AuthQueries.getUsers);
-            bool sampleUserExisting = false;
-            foreach (var user in users)
-            {
-                if (user.Name.EndsWith("_demo"))
-                {
-                    sampleUserExisting = true;
-                }
-            }
-
             List<Tenant> tenants = await apiConnection.SendQueryAsync<List<Tenant>>(AuthQueries.getTenants);
-            bool sampleTenantExisting = false;
-            foreach (var tenant in tenants)
-            {
-                if (tenant.Name.EndsWith("_demo"))
-                {
-                    sampleTenantExisting = true;
-                }
-            }
-
             bool sampleGroupExisting = false;
             List<Ldap> connectedLdaps = apiConnection.SendQueryAsync<List<Ldap>>(AuthQueries.getLdapConnections).Result;
-            foreach (Ldap currentLdap in connectedLdaps)
+            foreach (Ldap currentLdap in connectedLdaps.Where(l => l.IsInternal() && l.HasGroupHandling()))
             {
-                if (currentLdap.IsInternal() && currentLdap.HasGroupHandling())
-                {
-                    List<GroupGetReturnParameters> groups = await currentLdap.GetAllInternalGroups();
-                    foreach (var ldapUserGroup in groups)
-                    {
-                        if ((new DistName(ldapUserGroup.GroupDn)).Group.EndsWith("_demo"))
-                        {
-                            sampleGroupExisting = true;
-                        }
-                    }
-                }
+                List<GroupGetReturnParameters> groups = await currentLdap.GetAllInternalGroups();
+                sampleGroupExisting |= groups.Exists(g => new DistName(g.GroupDn).Group.EndsWith(GlobalConst.k_demo));
             }
-
             List<FwoOwner> owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
-            bool sampleOwnerExisting = false;
-            foreach (var owner in owners)
-            {
-                if (owner.Name.EndsWith("_demo"))
-                {
-                    sampleOwnerExisting = true;
-                }
-            }
 
-            string description = "";
-            if(sampleManagementExisting || sampleCredentialExisting || sampleUserExisting || sampleTenantExisting || sampleGroupExisting || sampleOwnerExisting)
+            return new()
             {
-                description = globalConfig.GetText("sample_data_found_in") + (sampleManagementExisting ? globalConfig.GetText("managements") + " " : "") +
-                                                        (sampleCredentialExisting ? globalConfig.GetText("import_credential") + " " : "") +
-                                                        (sampleUserExisting ? globalConfig.GetText("users") + " " : "") +
-                                                        (sampleTenantExisting ? globalConfig.GetText("tenants") + " " : "") +
-                                                        (sampleGroupExisting ? globalConfig.GetText("groups") + " " : "") +
-                                                        (sampleOwnerExisting ? globalConfig.GetText("owners") : "");
-                await SetAlert(globalConfig.GetText("sample_data"), description, GlobalConst.kDailyCheck, AlertCode.SampleDataExisting);
-            }
-            await AddLogEntry(description != "" ? 1 : 0, globalConfig.GetText("daily_sample_data_check"), description != "" ? description : globalConfig.GetText("no_sample_data_found"), GlobalConst.kDailyCheck);
+                SampleManagementExisting = managements.Exists(m => m.Name.EndsWith(GlobalConst.k_demo)),
+                SampleCredentialExisting = credentials.Exists(c => c.Name.EndsWith(GlobalConst.k_demo)),
+                SampleUserExisting = users.Exists(u => u.Name.EndsWith(GlobalConst.k_demo)),
+                SampleTenantExisting = tenants.Exists(t => t.Name.EndsWith(GlobalConst.k_demo)),
+                SampleGroupExisting = sampleGroupExisting,
+                SampleOwnerExisting = owners.Exists(o => o.Name.EndsWith(GlobalConst.k_demo))
+            };
         }
 
         private async Task CheckImports()
@@ -173,28 +153,28 @@ namespace FWO.Middleware.Server
             List<ImportStatus> importStati = await apiConnection.SendQueryAsync<List<ImportStatus>>(MonitorQueries.getImportStatus);
             int importIssues = 0;
             object jsonData;
-            foreach(ImportStatus imp in importStati.Where(x => !x.ImportDisabled))
+            foreach (ImportStatus imp in importStati.Where(x => !x.ImportDisabled))
             {
                 if (imp.LastIncompleteImport != null && imp.LastIncompleteImport.Length > 0) // import running
                 {
                     if (imp.LastIncompleteImport[0].StartTime < DateTime.Now.AddHours(-globalConfig.MaxImportDuration))  // too long
                     {
                         jsonData = imp.LastIncompleteImport;
-                        await SetAlert(globalConfig.GetText("import"), globalConfig.GetText("E7011"),GlobalConst.kDailyCheck, AlertCode.ImportRunningTooLong, imp.MgmId, jsonData);
+                        await SetAlert(globalConfig.GetText("import"), globalConfig.GetText("E7011"), GlobalConst.kDailyCheck, AlertCode.ImportRunningTooLong, new() { MgmtId = imp.MgmId, JsonData = jsonData });
                         importIssues++;
                     }
                 }
                 else if (imp.LastImport == null || imp.LastImport.Length == 0) // no import at all
                 {
                     jsonData = imp;
-                    await SetAlert(globalConfig.GetText("import"), globalConfig.GetText("E7012"), GlobalConst.kDailyCheck, AlertCode.NoImport, imp.MgmId, jsonData);
+                    await SetAlert(globalConfig.GetText("import"), globalConfig.GetText("E7012"), GlobalConst.kDailyCheck, AlertCode.NoImport, new() { MgmtId = imp.MgmId, JsonData = jsonData });
                     importIssues++;
                 }
                 else if (imp.LastImportAttempt != null && imp.LastImportAttempt < DateTime.Now.AddHours(-globalConfig.MaxImportInterval))
                 // too long ago (not working for legacy devices as LastImportAttempt is not written)
                 {
                     jsonData = imp;
-                    await SetAlert(globalConfig.GetText("import"), globalConfig.GetText("E7013"), GlobalConst.kDailyCheck, AlertCode.SuccessfulImportOverdue, imp.MgmId, jsonData);
+                    await SetAlert(globalConfig.GetText("import"), globalConfig.GetText("E7013"), GlobalConst.kDailyCheck, AlertCode.SuccessfulImportOverdue, new() { MgmtId = imp.MgmId, JsonData = jsonData });
                     importIssues++;
                 }
             }

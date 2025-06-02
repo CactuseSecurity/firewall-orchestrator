@@ -29,6 +29,7 @@ namespace FWO.Middleware.Server
         private UserConfig? userConfig;
         private readonly GraphQlApiSubscription<ReportSchedule[]> scheduledReportsSubscription;
         private readonly JwtWriter jwtWriter;
+        private const string LogMessageTitle = "Report Scheduling";
 
         private List<Ldap> connectedLdaps;
 
@@ -77,8 +78,6 @@ namespace FWO.Middleware.Server
         /// </summary>
         protected override async void Process(object? _, ElapsedEventArgs __)
         {
-            List<Task> reportGeneratorTasks = [];
-
             DateTime dateTimeNowRounded = RoundDown(DateTime.Now, CheckScheduleInterval);
 
             await Parallel.ForEachAsync(scheduledReports, new ParallelOptions() { MaxDegreeOfParallelism = Environment.ProcessorCount }, 
@@ -110,7 +109,7 @@ namespace FWO.Middleware.Server
                     }
                     catch(Exception exception)
                     {
-                        Log.WriteError("Report Scheduling", "Checking scheduled reports lead to exception.", exception);
+                        Log.WriteError(LogMessageTitle, "Checking scheduled reports lead to exception.", exception);
                     }
                 });
 
@@ -122,7 +121,7 @@ namespace FWO.Middleware.Server
             {
                 try
                 {
-                    Log.WriteInfo("Report Scheduling", $"Generating scheduled report \"{reportSchedule.Name}\" with id \"{reportSchedule.Id}\" for user \"{reportSchedule.ScheduleOwningUser.Name}\" with id \"{reportSchedule.ScheduleOwningUser.DbId}\" ...");
+                    Log.WriteInfo(LogMessageTitle, $"Generating scheduled report \"{reportSchedule.Name}\" with id \"{reportSchedule.Id}\" for user \"{reportSchedule.ScheduleOwningUser.Name}\" with id \"{reportSchedule.ScheduleOwningUser.DbId}\" ...");
 
                     if(!await InitUserEnvironment(reportSchedule) || apiConnectionUserContext == null || userConfig == null)
                     {
@@ -147,20 +146,20 @@ namespace FWO.Middleware.Server
                         await report.GetObjectsInReport(int.MaxValue, apiConnectionUserContext, _ => Task.CompletedTask);
                         await WriteReportFile(report, reportSchedule.OutputFormat, reportFile);
                         await SaveReport(reportFile, report.SetDescription(), apiConnectionUserContext);
-                        Log.WriteInfo("Report Scheduling", $"Scheduled report \"{reportSchedule.Name}\" with id \"{reportSchedule.Id}\" for user \"{reportSchedule.ScheduleOwningUser.Name}\" with id \"{reportSchedule.ScheduleOwningUser.DbId}\" successfully generated.");
+                        Log.WriteInfo(LogMessageTitle, $"Scheduled report \"{reportSchedule.Name}\" with id \"{reportSchedule.Id}\" for user \"{reportSchedule.ScheduleOwningUser.Name}\" with id \"{reportSchedule.ScheduleOwningUser.DbId}\" successfully generated.");
                     }
                     else
                     {
-                        Log.WriteInfo("Report Scheduling", $"Scheduled report \"{reportSchedule.Name}\" with id \"{reportSchedule.Id}\" for user \"{reportSchedule.ScheduleOwningUser.Name}\" with id \"{reportSchedule.ScheduleOwningUser.DbId}\" was empty.");
+                        Log.WriteInfo(LogMessageTitle, $"Scheduled report \"{reportSchedule.Name}\" with id \"{reportSchedule.Id}\" for user \"{reportSchedule.ScheduleOwningUser.Name}\" with id \"{reportSchedule.ScheduleOwningUser.DbId}\" was empty.");
                     }
                 }
                 catch(TaskCanceledException)
                 {
-                    Log.WriteWarning("Report Scheduling", $"Generating scheduled report \"{reportSchedule.Name}\" was cancelled");
+                    Log.WriteWarning(LogMessageTitle, $"Generating scheduled report \"{reportSchedule.Name}\" was cancelled");
                 }
                 catch (Exception exception)
                 {
-                    Log.WriteError("Report Scheduling", $"Generating scheduled report \"{reportSchedule.Name}\" with id \"{reportSchedule.Id}\" lead to exception.", exception);
+                    Log.WriteError(LogMessageTitle, $"Generating scheduled report \"{reportSchedule.Name}\" with id \"{reportSchedule.Id}\" lead to exception.", exception);
                 }
             }, token);
         }
@@ -179,7 +178,7 @@ namespace FWO.Middleware.Server
                 await UiUserHandler.GetOwnerships(apiConnectionUserContext, userConfig.User);
                 if(!userConfig.User.Ownerships.Contains(reportSchedule.Template.ReportParams.ModellingFilter.SelectedOwner.Id))
                 {
-                    Log.WriteDebug("Report Scheduling", "Report not generated as owner is not valid anymore.");
+                    Log.WriteDebug(LogMessageTitle, "Report not generated as owner is not valid anymore.");
                     return false;
                 }
             }
@@ -203,7 +202,7 @@ namespace FWO.Middleware.Server
             }
             catch (Exception)
             {
-                Log.WriteError("Set Device Filter", $"Could not adapt device filter.");
+                Log.WriteError(LogMessageTitle, $"Could not adapt device filter.");
                 throw;
             }
         }
@@ -260,7 +259,7 @@ namespace FWO.Middleware.Server
             }
             catch (Exception)
             {
-                Log.WriteError("Save Report", $"Could not save report \"{reportFile.Name}\".");
+                Log.WriteError(LogMessageTitle, $"Could not save report \"{reportFile.Name}\".");
                 throw;
             }
         }

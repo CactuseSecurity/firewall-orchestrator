@@ -1,10 +1,11 @@
-﻿using FWO.Data;
-using FWO.Data.Workflow;
-using FWO.Data.Modelling;
-using FWO.Api.Client;
+﻿using FWO.Api.Client;
 using FWO.Api.Client.Queries;
-using FWO.Logging;
 using FWO.Basics;
+using FWO.Data;
+using FWO.Data.Modelling;
+using FWO.Data.Workflow;
+using FWO.Logging;
+using System.Text.Json;
 
 
 namespace FWO.Services
@@ -150,7 +151,7 @@ namespace FWO.Services
             Log.WriteDebug("SendEmail", "Perform Action");
             try
             {
-                EmailActionParams emailActionParams = System.Text.Json.JsonSerializer.Deserialize<EmailActionParams>(action.ExternalParams) ?? throw new Exception("Extparams could not be parsed.");
+                EmailActionParams emailActionParams = System.Text.Json.JsonSerializer.Deserialize<EmailActionParams>(action.ExternalParams) ?? throw new JsonException("Extparams could not be parsed.");
                 await SetScope(statefulObject, scope, emailActionParams);
                 EmailHelper emailHelper = new(apiConnection, wfHandler.MiddlewareClient, wfHandler.userConfig, DefaultInit.DoNothing, UserGroups, useInMwServer);
                 await emailHelper.Init(ScopedUserTo, ScopedUserCc);

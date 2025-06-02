@@ -234,7 +234,7 @@
         {
             availableReportTypes = CustomSortReportType(
                 JsonSerializer.Deserialize<List<ReportType>>(string.IsNullOrEmpty(userConfig.AvailableReportTypes) ? "[]" : userConfig.AvailableReportTypes)
-                ?? throw new Exception("Config data could not be parsed."));
+                ?? throw new JsonException("Config data could not be parsed."));
             SetProperRoleForReport();
             actReportFilters.DeviceFilter.Managements = await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement);
             if(int.TryParse(AppId, out int appId))

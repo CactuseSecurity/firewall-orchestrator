@@ -1,11 +1,12 @@
-﻿using FWO.Data;
-using FWO.Data.Workflow;
-using FWO.Config.Api;
-using FWO.Api.Client;
+﻿using FWO.Api.Client;
 using FWO.Api.Client.Queries;
-using FWO.Middleware.Client;
-using FWO.Logging;
 using FWO.Basics;
+using FWO.Config.Api;
+using FWO.Data;
+using FWO.Data.Workflow;
+using FWO.Logging;
+using FWO.Middleware.Client;
+using System.Text.Json; 
 
 namespace FWO.Services
 {
@@ -164,7 +165,7 @@ namespace FWO.Services
                         TicketList = await dbAcc.FetchTickets(MasterStateMatrix, ownerIds, allStates, fullTickets);
                     }
                     ReloadTasks = !fullTickets;
-                    PrioList = System.Text.Json.JsonSerializer.Deserialize<List<WfPriority>>(userConfig.ReqPriorities) ?? throw new Exception("Config data could not be parsed.");
+                    PrioList = System.Text.Json.JsonSerializer.Deserialize<List<WfPriority>>(userConfig.ReqPriorities) ?? throw new JsonException("Config data could not be parsed.");
                     apiConnection.SwitchBack();
                     Log.WriteDebug("Init stop:   ", $"{DateTime.Now:hh:mm:ss,fff}");
                     InitOngoing = false;
@@ -756,7 +757,7 @@ namespace FWO.Services
                 PathAnalysisActionParams pathAnalysisParams = new ();
                 if(extParams != "")
                 {
-                    pathAnalysisParams = System.Text.Json.JsonSerializer.Deserialize<PathAnalysisActionParams>(extParams) ?? throw new Exception("Extparams could not be parsed.");
+                    pathAnalysisParams = System.Text.Json.JsonSerializer.Deserialize<PathAnalysisActionParams>(extParams) ?? throw new JsonException("Extparams could not be parsed.");
                 }
 
                 switch(pathAnalysisParams.Option)
@@ -821,7 +822,7 @@ namespace FWO.Services
             ApprovalParams approvalParams = new ();
             if(extParams != "")
             {
-                approvalParams = System.Text.Json.JsonSerializer.Deserialize<ApprovalParams>(extParams) ?? throw new Exception("Extparams could not be parsed.");
+                approvalParams = System.Text.Json.JsonSerializer.Deserialize<ApprovalParams>(extParams) ?? throw new JsonException("Extparams could not be parsed.");
             }
 
             DateTime? deadline = null;

@@ -387,14 +387,7 @@ else
 
     private void AnalyseSampleOwners()
     {
-        sampleOwners = [];
-        foreach (var owner in owners)
-        {
-            if (owner.Name.EndsWith("_demo"))
-            {
-                sampleOwners.Add(owner);
-            }
-        }
+        sampleOwners = [.. owners.Where(o => o.Name.EndsWith(GlobalConst.k_demo))];
         showCleanupButton = (sampleOwners.Count > 0);
     }
 

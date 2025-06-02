@@ -110,8 +110,8 @@ namespace FWO.Middleware.Server
 			ExternalTicket? ticket = null;
 			try
 			{
-				ticket = JsonSerializer.Deserialize<ExternalTicket>(request.ExtRequestContent) ?? throw new Exception("No Ticket Content");
-				ticket.TicketSystem = JsonSerializer.Deserialize<ExternalTicketSystem>(request.ExtTicketSystem) ?? throw new Exception("No Ticket System");
+				ticket = JsonSerializer.Deserialize<ExternalTicket>(request.ExtRequestContent) ?? throw new JsonException("No Ticket Content");
+				ticket.TicketSystem = JsonSerializer.Deserialize<ExternalTicketSystem>(request.ExtTicketSystem) ?? throw new JsonException("No Ticket System");
 				Log.WriteInfo(userConfig.GetText("send_ext_request"), $"Request Id: {request.Id}, Internal TicketId: {request.TicketId}, TaskNo: {request.TaskNumber}");
 				request.Attempts++;
                 RestResponse<int> ticketIdResponse = await ticket.CreateExternalTicket();
@@ -216,7 +216,7 @@ namespace FWO.Middleware.Server
 		{
 			try
 			{
-            	ExternalTicketSystem extTicketSystem = JsonSerializer.Deserialize<ExternalTicketSystem>(request.ExtTicketSystem) ?? throw new Exception("No Ticket System");
+            	ExternalTicketSystem extTicketSystem = JsonSerializer.Deserialize<ExternalTicketSystem>(request.ExtTicketSystem) ?? throw new JsonException("No Ticket System");
 				ExternalTicket? ticket;
 				if(extTicketSystem.Type == ExternalTicketSystemType.TufinSecureChange)
 				{

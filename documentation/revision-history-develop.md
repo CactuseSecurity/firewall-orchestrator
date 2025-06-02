@@ -270,3 +270,6 @@ bugfix release:
 
 # 8.8.3 - 15.05.2025 DEVELOP
 - deactivation of connections
+
+# 8.8.4 - 02.06.2025 DEVELOP
+- hotfix for Check Point importer suppor for Ask action

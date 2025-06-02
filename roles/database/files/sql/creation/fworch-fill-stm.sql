@@ -323,6 +323,7 @@ insert into stm_action (action_id,action_name) VALUES (26,'NAT svc') ON CONFLICT
 insert into stm_action (action_id,action_name) VALUES (27,'NAT src, svc') ON CONFLICT DO NOTHING; -- source ip nat plus port nat
 insert into stm_action (action_id,action_name) VALUES (28,'NAT') ON CONFLICT DO NOTHING; -- generic NAT
 insert into stm_action (action_id,action_name) VALUES (29,'inform'); -- cp
+insert into stm_action (action_id,action_name) VALUES (30,'ask'); -- cp
 
 insert into stm_track (track_id,track_name) VALUES (1,'log');
 insert into stm_track (track_id,track_name) VALUES (2,'none');

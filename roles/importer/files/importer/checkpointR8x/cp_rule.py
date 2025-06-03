@@ -38,6 +38,7 @@ def normalizeRulebases (nativeConfig, importState, normalizedConfig):
         for rulebase_link in gateway['rulebase_links']:
             if rulebase_link['to_rulebase_uid'] not in fetched_links:
                 rulebase_to_parse, is_section = find_rulebase_to_parse(nativeConfig['rulebases'], rulebase_link['to_rulebase_uid'])
+                rulebase_link['is_section'] = is_section
                 normalized_rulebase = initialize_normalized_rulebase(rulebase_to_parse, importState.MgmDetails.Uid)
                 parse_rulebase(rulebase_to_parse, is_section, normalized_rulebase)
                 fetched_links.append(rulebase_link['to_rulebase_uid'])

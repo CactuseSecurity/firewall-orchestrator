@@ -112,14 +112,23 @@
     private string SearchText { get; set; } = string.Empty;
     private string AppliedSearchText { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Initializes the component and sets up the rule display helper.
+    /// </summary>
     protected override void OnInitialized()
     {
         RuleDisplay = new NatRuleDisplayHtml(userConfig);
     }
 
+    /// <summary>
+    /// Returns the filtered and sorted tree nodes for display.
+    /// </summary>
     private IEnumerable<TreeNode<TItem>> FilteredNodes =>
         FilterAndSortNodes(Nodes);
 
+    /// <summary>
+    /// Filters and sorts the provided tree nodes based on search text and sorting options.
+    /// </summary>
     private IEnumerable<TreeNode<TItem>> FilterAndSortNodes(IEnumerable<TreeNode<TItem>> nodes)
     {
         IEnumerable<TreeNode<TItem>> sorted = SortNodes(nodes);
@@ -136,9 +145,12 @@
         return filtered.Cast<TreeNode<TItem>>();
     }
 
+    /// <summary>
+    /// Recursively filters a tree node and its children based on the filter text.
+    /// </summary>
     private TreeNode<TItem>? FilterNode(TreeNode<TItem> node, string filterText)
     {
-        if(typeof(TItem) == typeof(Rule))
+        if (typeof(TItem) == typeof(Rule))
         {
             Rule? rule = node.Item as Rule;
             bool match =
@@ -147,22 +159,24 @@
                 (rule?.Source?.Contains(filterText, StringComparison.OrdinalIgnoreCase) ?? false) ||
                 (rule?.Destination?.Contains(filterText, StringComparison.OrdinalIgnoreCase) ?? false);
 
-            List<TreeNode<TItem>?> filteredChildren = node.Children
-                .Select((TreeNode<TItem> child) => FilterNode(child, filterText))
-                .Where((TreeNode<TItem>? child) => child != null)
-                .ToList();
+            if (match)
+            {
+                return node;
+            }
 
-            List<TreeNode<TItem>> filteredChildrenNonNull = filteredChildren
+            var filteredChildren = node.Children
+                .Select(child => FilterNode(child, filterText))
+                .Where(child => child != null)
                 .Cast<TreeNode<TItem>>()
                 .ToList();
 
-            if(match || filteredChildrenNonNull.Count > 0)
+            if (filteredChildren.Count > 0)
             {
                 return new TreeNode<TItem>
                 {
                     Item = node.Item,
                     IsExpanded = node.IsExpanded,
-                    Children = filteredChildrenNonNull
+                    Children = filteredChildren
                 };
             }
             else
@@ -170,10 +184,12 @@
                 return null;
             }
         }
-
         return node;
     }
 
+    /// <summary>
+    /// Sorts the tree nodes based on the selected column and sort direction.
+    /// </summary>
     private IEnumerable<TreeNode<TItem>> SortNodes(IEnumerable<TreeNode<TItem>> nodes)
     {
         if(NoSorting)
@@ -199,6 +215,9 @@
         return nodes;
     }
 
+    /// <summary>
+    /// Handles sorting logic when a column header is clicked.
+    /// </summary>
     private void SortBy(string column)
     {
         if(SortColumn == column)
@@ -222,23 +241,35 @@
         }
     }
 
+    /// <summary>
+    /// Toggles the expanded state of a tree node.
+    /// </summary>
     private void ToggleNode(TreeNode<TItem> node)
     {
         node.IsExpanded = !node.IsExpanded;
     }
 
+    /// <summary>
+    /// Expands all nodes in the tree.
+    /// </summary>
     private void ExpandAll()
     {
         SetNodesExpandedState(Nodes, true);
         StateHasChanged();
     }
 
+    /// <summary>
+    /// Collapses all nodes in the tree.
+    /// </summary>
     private void CollapseAll()
     {
         SetNodesExpandedState(Nodes, false);
         StateHasChanged();
     }
 
+    /// <summary>
+    /// Recursively sets the expanded state for all nodes in the tree.
+    /// </summary>
     private void SetNodesExpandedState(IEnumerable<TreeNode<TItem>> nodes, bool isExpanded)
     {
         if(nodes == null) return;
@@ -250,6 +281,9 @@
         }
     }
 
+    /// <summary>
+    /// Handles the key press event in the search bar, applying search on Enter.
+    /// </summary>
     private void HandleSearchKeyPress(KeyboardEventArgs e)
     {
         if (e.Key == "Enter")
@@ -258,12 +292,18 @@
         }
     }
 
+    /// <summary>
+    /// Applies the current search text as the filter.
+    /// </summary>
     private void ApplySearch()
     {
         AppliedSearchText = SearchText;
         StateHasChanged();
     }
 
+    /// <summary>
+    /// Clears the search text and removes the filter.
+    /// </summary>
     private void ClearSearch()
     {
         SearchText = string.Empty;

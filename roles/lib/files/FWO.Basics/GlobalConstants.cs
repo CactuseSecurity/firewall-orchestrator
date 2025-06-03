@@ -60,6 +60,8 @@ namespace FWO.Basics
         public const string ChromeBinPathLinux = "/usr/local/fworch/bin";
         public const string TestPDFFilePath = "pdffile.pdf";
         public const string TestPDFHtmlTemplate = "<html><body><h1>test</h1><h2>test mit puppteer</h2></body></html>";
+
+        public const int SearchInputDebounceTime = 300; // milliseconds, used in TreeTable component
     }
 
     public struct PageName

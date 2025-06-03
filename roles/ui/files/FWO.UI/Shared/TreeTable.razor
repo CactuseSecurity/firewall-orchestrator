@@ -115,10 +115,9 @@
     private NatRuleDisplayHtml? RuleDisplay;
 
     private string SearchText { get; set; } = string.Empty;
-    private string AppliedSearchText { get; set; } = string.Empty;
+    public string AppliedSearchText { get; set; } = string.Empty;
 
     private Timer? debounceTimer;
-    private const int DebounceInterval = 300; // milliseconds
 
     /// <summary>
     /// Initializes the component and sets up the rule display helper.
@@ -335,7 +334,7 @@
                 AppliedSearchText = SearchText;
                 StateHasChanged();
             });
-        }, null, DebounceInterval, Timeout.Infinite);
+        }, null, GlobalConst.SearchInputDebounceTime, Timeout.Infinite);
     }
 
     /// <summary>

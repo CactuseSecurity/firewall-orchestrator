@@ -17,7 +17,12 @@
             <span class="oi oi-bolt"></span>
         </button>
         <div class="d-flex ms-auto">
-            <input id="searchbar" class="form-control form-control-sm" placeholder="@userConfig.GetText("search")" @bind="SearchText" @bind:event="oninput" @onkeyup="HandleSearchKeyPress" />
+            <input id="searchbar"
+                   class="form-control form-control-sm"
+                   placeholder="@userConfig.GetText("search")"
+                   value="@SearchText"
+                   @oninput="OnSearchInput"
+                   @onkeyup="HandleSearchKeyPress" />
             @if (string.IsNullOrWhiteSpace(SearchText))
             {
                 <button class="btn btn-sm btn-outline-secondary mx-1" @onclick="ApplySearch">
@@ -112,6 +117,9 @@
     private string SearchText { get; set; } = string.Empty;
     private string AppliedSearchText { get; set; } = string.Empty;
 
+    private Timer? debounceTimer;
+    private const int DebounceInterval = 300; // milliseconds
+
     /// <summary>
     /// Initializes the component and sets up the rule display helper.
     /// </summary>
@@ -134,7 +142,7 @@
         IEnumerable<TreeNode<TItem>> sorted = SortNodes(nodes);
 
         string filterText = string.IsNullOrWhiteSpace(AppliedSearchText) ? SearchText : AppliedSearchText;
-        
+
         if(string.IsNullOrWhiteSpace(filterText) || typeof(TItem) != typeof(Rule))
             return sorted;
 
@@ -288,6 +296,7 @@
     {
         if (e.Key == "Enter")
         {
+            debounceTimer?.Dispose(); //Cancelling debounce because we are applying search immediately
             ApplySearch();
         }
     }
@@ -309,5 +318,31 @@
         SearchText = string.Empty;
         AppliedSearchText = string.Empty;
         StateHasChanged();
+    }
+
+    /// <summary>
+    /// Handles the input event in the search bar with debounce.
+    /// </summary>
+    private void OnSearchInput(ChangeEventArgs e)
+    {
+        SearchText = e.Value?.ToString() ?? string.Empty;
+
+        debounceTimer?.Dispose();
+        debounceTimer = new Timer(_ =>
+        {
+            InvokeAsync(() =>
+            {
+                AppliedSearchText = SearchText;
+                StateHasChanged();
+            });
+        }, null, DebounceInterval, Timeout.Infinite);
+    }
+
+    /// <summary>
+    /// Disposes the debounce timer when the component is disposed.
+    /// </summary>
+    public void Dispose()
+    {
+        debounceTimer?.Dispose();
     }
 }

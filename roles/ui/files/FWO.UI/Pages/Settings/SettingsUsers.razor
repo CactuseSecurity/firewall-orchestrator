@@ -331,7 +331,7 @@
         {
             connectedLdaps = await apiConnection.SendQueryAsync<List<UiLdapConnection>>(AuthQueries.getLdapConnections);
             writableLdaps = connectedLdaps.FindAll(x => x.IsWritable());
-            internalLdap = connectedLdaps.FirstOrDefault(x => x.IsInternal()) ?? throw new Exception(userConfig.GetText("E5207"));
+            internalLdap = connectedLdaps.FirstOrDefault(x => x.IsInternal()) ?? throw new KeyNotFoundException(userConfig.GetText("E5207"));
 
             // Get the tenants
             tenants = await apiConnection.SendQueryAsync<List<Tenant>>(AuthQueries.getTenants);

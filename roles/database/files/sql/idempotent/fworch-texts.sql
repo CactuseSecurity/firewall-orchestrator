@@ -1615,6 +1615,8 @@ INSERT INTO txt VALUES ('new_connection',       'German',   'Neue Verbindung');
 INSERT INTO txt VALUES ('new_connection',       'English',  'New Connection');
 INSERT INTO txt VALUES ('new_common_service',   'German',   'Neuer Common Service');
 INSERT INTO txt VALUES ('new_common_service',   'English',  'New Common Service');
+INSERT INTO txt VALUES ('edit_common_service',   'German',  'Common Service bearbeiten');
+INSERT INTO txt VALUES ('edit_common_service',   'English', 'Edit Common Service');
 INSERT INTO txt VALUES ('new_app_role',         'German',   'Neue AppRolle: ');
 INSERT INTO txt VALUES ('new_app_role',         'English',  'New AppRole: ');
 INSERT INTO txt VALUES ('update_app_role',      'German',   'Ge&auml;nderte AppRolle: ');
@@ -1683,6 +1685,8 @@ INSERT INTO txt VALUES ('delete_rule',          'German', 	'Regel l&ouml;schen')
 INSERT INTO txt VALUES ('delete_rule',          'English', 	'Delete Rule');
 INSERT INTO txt VALUES ('change_rule',          'German', 	'Regel &auml;ndern');
 INSERT INTO txt VALUES ('change_rule',          'English', 	'Change Rule');
+INSERT INTO txt VALUES ('update_ticket',        'German', 	'Ticket aktualisieren');
+INSERT INTO txt VALUES ('update_ticket',        'English', 	'Update ticket');
 
 -- compliance
 INSERT INTO txt VALUES ('compliance',			'German', 	'Compliance');

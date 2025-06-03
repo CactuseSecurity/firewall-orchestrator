@@ -250,7 +250,7 @@
                         }
                         break;
                     case ActionCode.ReactivateManagement:
-                        Management reactMgmt = existingManagements.FirstOrDefault(x => x.Id == action.ManagementId) ?? throw new Exception($"Management doesn't exist anymore!");
+                        Management reactMgmt = existingManagements.FirstOrDefault(x => x.Id == action.ManagementId) ?? throw new KeyNotFoundException($"Management doesn't exist anymore!");
                         if(reactMgmt.ImportDisabled)
                         {
                             reactMgmt.ActionId = action.Number;
@@ -325,7 +325,7 @@
                         }
                         break;
                     case ActionCode.ReactivateGateway:
-                        Device gatewayToReact = existingDevices.FirstOrDefault(x => x.Id == action.DeviceId) ?? throw new Exception($"Gateway doesn't exist anymore!");
+                        Device gatewayToReact = existingDevices.FirstOrDefault(x => x.Id == action.DeviceId) ?? throw new KeyNotFoundException($"Gateway doesn't exist anymore!");
                         if (gatewayToReact.ImportDisabled)
                         {
                             appendToRightManagement(gatewayToReact, action);

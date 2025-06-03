@@ -34,6 +34,14 @@ namespace FWO.Test
 
             IElement? input = cut.Find("#searchbar");
 
+            // Assert: Check the AppliedSearchText property
+            System.Reflection.PropertyInfo? propertyInfo = cut.Instance.GetType().GetProperty(nameof(TreeTable<object>.AppliedSearchText));
+            Assert.That(propertyInfo, Is.Not.Null);
+
+            // Additional Assert: Check if the AppliedSearchText property is not null
+            object? value = propertyInfo?.GetValue(cut.Instance);
+            Assert.That(value, Is.Not.Null, $"{nameof(TreeTable<object>.AppliedSearchText)} property is null. Check if the property exists and is set in TreeTable.");
+
             // Act: Simulate rapid typing
             input.Input(new ChangeEventArgs { Value = "a" });
             input.Input(new ChangeEventArgs { Value = "ab" });
@@ -41,26 +49,21 @@ namespace FWO.Test
 
             int debounceDelay = GlobalConst.SearchInputDebounceTime - DebounceDelaySubstractor;
 
-            Assert.That(debounceDelay, Is.GreaterThan(0), 
-                $"{nameof(debounceDelay)} resulted in '0' ms after the delay substraction" );
+            Assert.That(debounceDelay, Is.GreaterThan(0), $"{nameof(debounceDelay)} resulted in '0' ms after the delay substraction");
 
             // Wait for the debounce delay
             await Task.Delay(debounceDelay);
 
             // Assert: Check that the search text is not immediately applied
-            object? value = cut.Instance.GetType().GetProperty(nameof(TreeTable<object>.AppliedSearchText))?.GetValue(cut.Instance);
-            Assert.That(value, Is.Not.EqualTo("abc"));            
+            value = propertyInfo?.GetValue(cut.Instance);
+            Assert.That(value, Is.Not.EqualTo("abc"));
 
             // Wait a bit longer to ensure the debounce has completed
             await Task.Delay(GlobalConst.SearchInputDebounceTime + DebounceDelaySubstractor);
 
             // Assert: Check that the search text is applied after the debounce delay
-            value = cut.Instance.GetType().GetProperty(nameof(TreeTable<object>.AppliedSearchText))?.GetValue(cut.Instance);
-            Assert.That(cut.Instance.GetType().GetProperty("AppliedSearchText")?.GetValue(cut.Instance), Is.EqualTo("abc"));
-
-            // Additional Assert: Check if the AppliedSearchText property is not null
-            value = cut.Instance.GetType().GetProperty(nameof(TreeTable<object>.AppliedSearchText))?.GetValue(cut.Instance);
-            Assert.That(value, Is.Not.Null, $"{nameof(TreeTable<object>.AppliedSearchText)} property is null. Check if the property exists and is set in TreeTable.");
+            value = propertyInfo?.GetValue(cut.Instance);
+            Assert.That(propertyInfo?.GetValue(cut.Instance), Is.EqualTo("abc"));
         }
     }
 }

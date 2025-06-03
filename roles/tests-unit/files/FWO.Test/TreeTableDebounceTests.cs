@@ -26,8 +26,8 @@ namespace FWO.Test
         public async Task Search_Is_Debounced()
         {
             // Arrange: create minimal test data and render the component
-            var nodes = new List<TreeNode<Rule>>();
-            var cut = RenderComponent<TreeTable<Rule>>(parameters => parameters
+            List<TreeNode<Rule>>? nodes = [];
+            IRenderedComponent<TreeTable<Rule>>? cut = RenderComponent<TreeTable<Rule>>(parameters => parameters
                 .Add(p => p.Nodes, nodes)
                 .Add(p => p.CellTemplate, rule => builder => { })
             );

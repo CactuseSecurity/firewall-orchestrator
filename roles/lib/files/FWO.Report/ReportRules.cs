@@ -332,6 +332,11 @@ namespace FWO.Report
 
             if (!rulesByRulebase.TryGetValue(rulebaseId, out var rules))
             {
+                if (currentLink.LinkType == 3 && GetNextRulebaseLink(null,processedLinks,rulebaseByLink,rulebaseId)?.LinkType == 4)
+                {
+                    currentPath.Add(0);
+                }
+
                 HandleOrderNumberTreeNode(currentLink, currentLink.NextRulebaseId, currentPath, rulesByRulebase, rulebaseByLink, changedRules, ref positionCounter, rulebaseRules, processedLinks, null, null, managementReport, concatenationCounters);
                 return;
             }
@@ -354,7 +359,6 @@ namespace FWO.Report
 
                 if (currentLink.LinkType == 4)
                 {
-                    path = currentPath;
                     path[path.Count() - 1] = GetIncrementedConcatenationCounter(rulebaseId, concatenationCounters);
                 }
                 else
@@ -452,6 +456,15 @@ namespace FWO.Report
                 nextRulebaseLink = rulebaseByLink.Keys
                     .Where(rulebaseLink => !processedLinks.Contains(rulebaseLink))
                     .FirstOrDefault(rulebaseLink => rulebaseLink.FromRuleId == currentRule.Id);
+
+                if (nextRulebaseLink != null)
+                {
+                    return nextRulebaseLink;
+                }
+
+                nextRulebaseLink = rulebaseByLink.Keys
+                    .Where(rulebaseLink => !processedLinks.Contains(rulebaseLink))
+                    .FirstOrDefault(rulebaseLink => rulebaseLink.FromRulebaseId == rulebaseId);
             }
             else
             {
@@ -459,6 +472,9 @@ namespace FWO.Report
                     .Where(rulebaseLink => !processedLinks.Contains(rulebaseLink))
                     .FirstOrDefault(rulebaseLink => rulebaseLink.FromRulebaseId == rulebaseId);
             }
+
+
+
 
             return nextRulebaseLink;
         }

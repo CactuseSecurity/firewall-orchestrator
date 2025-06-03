@@ -23,6 +23,9 @@ namespace FWO.Data
         [JsonProperty("is_global"), JsonPropertyName("is_global")]
         public bool IsGlobal { get; set; } = false;
 
+        [JsonProperty("is_section"), JsonPropertyName("is_section")]
+        public bool IsSection { get; set; } = false;
+
         [JsonProperty("to_rulebase_id"), JsonPropertyName("to_rulebase_id")]
         public int NextRulebaseId = new();
 

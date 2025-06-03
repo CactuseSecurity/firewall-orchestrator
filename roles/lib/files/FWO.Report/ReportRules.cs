@@ -9,6 +9,7 @@ using FWO.Logging;
 using FWO.Report.Filter;
 using FWO.Ui.Display;
 using Newtonsoft.Json;
+using System.Reflection.Metadata;
 using System.Text;
 using System.Text.Json;
 
@@ -26,11 +27,13 @@ namespace FWO.Report
             return management.Devices != null && management.Devices.Any(d => d.ContainsRules());
         }
     }
+    
     public class ReportRules : ReportDevicesBase
     {
         private const int ColumnCount = 12;
         protected bool UseAdditionalFilter = false;
         private bool VarianceMode = false;
+        private static TreeItem<Rule> _ruleTree = new TreeItem<Rule>();
 
         public ReportRules(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType) : base(query, userConfig, reportType) { }
 
@@ -206,60 +209,41 @@ namespace FWO.Report
         }
         public static Rule[] GetAllRulesOfGateway(DeviceReportController deviceReport, ManagementReport managementReport)
         {
-            int? initialRulebaseId = deviceReport.GetInitialRulebaseId(managementReport);
-            if (initialRulebaseId != null)
+            _ruleTree = new();
+            List<Rule> visitedRules = new();
+            List<Rule> allRules = new();
+            Dictionary<int, int> concatenationCounters = new();
+
+            // Create map of rulebase link to target rulebase.
+
+            Dictionary<int, RulebaseReport> reportById = managementReport.Rulebases.ToDictionary(r => r.Id);
+
+            Dictionary<RulebaseLink, RulebaseReport> rulebaseByLink = deviceReport
+                .RulebaseLinks
+                .Where(link => reportById.ContainsKey(link.NextRulebaseId))
+                .ToDictionary(
+                    link => link,
+                    link => reportById[link.NextRulebaseId]
+                );
+
+            // Get all rules.
+
+            foreach (var rulebaseByLinkItem in rulebaseByLink)
             {
-                List<Rule> initialRules = GetRulesByRulebaseId((int)initialRulebaseId, managementReport).ToList();
-                if (initialRules != null)
+                foreach (var rule in rulebaseByLinkItem.Value.Rules)
                 {
-                    List<Rule> allRules = GetAllRulesOfGatewayRecursively(deviceReport, managementReport, [], initialRules);
-
-                    // create hierarchical order number on runtime
-                    CreateOrderNumbers(allRules, deviceReport);
-
-                    return allRules.ToArray();
-                }
-            }
-            return [];
-        }
-
-        public static List<Rule> GetAllRulesOfGatewayRecursively(DeviceReport deviceReport, ManagementReport managementReport, List<Rule> rulesSoFar, List<Rule> newRules)
-        {
-            if (newRules == null || newRules.Count == 0)
-            {
-                return rulesSoFar;
-            }
-
-            List<Rule> allRules = new(rulesSoFar);
-            HashSet<long> visitedRuleIds = new(rulesSoFar.Select(r => r.Id)); // Track visited rules to prevent duplication
-
-            foreach (Rule rule in newRules)
-            {
-                if (visitedRuleIds.Add(rule.Id))
-                {
-                    allRules.Add(rule);
-                    RulebaseLink? fromRuleNextRbLink = deviceReport.RulebaseLinks.FirstOrDefault(_ => _.FromRuleId == rule.Id);
-                    if (fromRuleNextRbLink != null)
+                    if (!allRules.Contains(rule))
                     {
-                        List<Rule> subRules = GetRulesByRulebaseId(fromRuleNextRbLink.NextRulebaseId, managementReport).ToList();
-                        allRules = GetAllRulesOfGatewayRecursively(deviceReport, managementReport, allRules, subRules);
+                        allRules.Add(rule);
                     }
                 }
             }
-            // add rules from the next rulebase, assuming all newRules are from the same rulebase
-            RulebaseLink? fromRulebaseNextRbLink = new();
-            var firstRule = newRules.FirstOrDefault();
-            fromRulebaseNextRbLink = firstRule != null ? deviceReport.RulebaseLinks.FirstOrDefault(_ => _.FromRulebaseId == firstRule.RulebaseId && _.FromRuleId == null) : null; // always set to next rulebase
-            if (fromRulebaseNextRbLink != null)
-            {
-                List<Rule> subRules = GetRulesByRulebaseId(fromRulebaseNextRbLink.NextRulebaseId, managementReport).ToList();
-                allRules = GetAllRulesOfGatewayRecursively(deviceReport, managementReport, allRules, subRules);
-            }
-            return allRules;
+
+            CreateOrderNumbers(allRules, deviceReport, rulebaseByLink, managementReport, concatenationCounters);
+
+            return allRules.ToArray();
         }
-
-
-
+        
         public static int GetRuleCount(ManagementReport mgmReport, RulebaseLink? currentRbLink, RulebaseLink[] rulebaseLinks)
         {
             if (currentRbLink != null)
@@ -296,7 +280,7 @@ namespace FWO.Report
         /// <summary>
         /// Creates multi-level (dotted) order numbers for display and sets internal numeric order for sorting.
         /// </summary>
-        public static void CreateOrderNumbers(List<Rule> rules, DeviceReport device)
+        public static void CreateOrderNumbers(List<Rule> rules, DeviceReport device, Dictionary<RulebaseLink, RulebaseReport> rulebaseByLink, ManagementReport managementReport, Dictionary<int, int> concatenationCounters)
         {
             // Creates a dictionary with rulebase IDs as keys and lists of the corresponding rows as values.
 
@@ -310,31 +294,45 @@ namespace FWO.Report
 
             // Creates a dictionary with rule IDs as keys and the rulebase link that has that rule as its from rule as values.
 
-            Dictionary<int, RulebaseLink> linksByFromRuleId = device.RulebaseLinks
-                .Where(link => !link.IsInitialRulebase() && link.FromRuleId.HasValue)
-                .ToDictionary(link => link.FromRuleId!.Value, link => link);
+            SetMissingFromRuleIds(rulesByRulebase, rulebaseByLink);
 
             // Initialize other needed variables.
 
             List<Rule> changedRules = new();
             List<int> initialPath = new();
             int positionCounter = 1;
-            int firstRulebaseId = device.RulebaseLinks.First(link => link.IsInitialRulebase()).NextRulebaseId;
-            
+            RulebaseLink rulebaseLink = device.RulebaseLinks.First(link => link.IsInitialRulebase());
+            int firstRulebaseId = rulebaseLink.NextRulebaseId;
+            List<RulebaseLink> processedLinks = new();
+            processedLinks.Add(rulebaseLink);
+
             // If there are more than one layer path needs to be initialized here.
 
-            if(device.RulebaseLinks.Any(link => link.LinkType == 2))    // ordered
+            if (device.RulebaseLinks.Any(link => link.LinkType == 2))    // ordered
             {
                 initialPath.Add(1);
             }
 
-            BuildOrderNumberTree(firstRulebaseId, initialPath, rulesByRulebase, linksByFromRuleId, changedRules, ref positionCounter, rules); 
+            BuildOrderNumberTree(rulebaseLink, firstRulebaseId, initialPath, rulesByRulebase, rulebaseByLink, changedRules, ref positionCounter, rules, processedLinks, managementReport, concatenationCounters);
         }
 
-        private static void BuildOrderNumberTree(int rulebaseId, List<int> currentPath, Dictionary<int, List<Rule>> rulesByRulebase, Dictionary<int, RulebaseLink> linksByFromRuleId, List<Rule> changedRules, ref int positionCounter, List<Rule> rulebaseRules)
+        private static void BuildOrderNumberTree(RulebaseLink currentLink,
+                                                    int rulebaseId,
+                                                    List<int> currentPath,
+                                                    Dictionary<int, List<Rule>> rulesByRulebase,
+                                                    Dictionary<RulebaseLink,
+                                                    RulebaseReport> rulebaseByLink,
+                                                    List<Rule> changedRules,
+                                                    ref int positionCounter,
+                                                    List<Rule> rulebaseRules,
+                                                    List<RulebaseLink> processedLinks,
+                                                    ManagementReport managementReport,
+                                                    Dictionary<int, int> concatenationCounters)
         {
+
             if (!rulesByRulebase.TryGetValue(rulebaseId, out var rules))
             {
+                HandleOrderNumberTreeNode(currentLink, currentLink.NextRulebaseId, currentPath, rulesByRulebase, rulebaseByLink, changedRules, ref positionCounter, rulebaseRules, processedLinks, null, null, managementReport, concatenationCounters);
                 return;
             }
 
@@ -352,7 +350,18 @@ namespace FWO.Report
 
                 // Write order numbers to rule object.
 
-                List<int> path = new List<int>(currentPath) { rule.RuleOrderNumber };
+                List<int> path = currentPath;
+
+                if (currentLink.LinkType == 4)
+                {
+                    path = currentPath;
+                    path[path.Count() - 1] = GetIncrementedConcatenationCounter(rulebaseId, concatenationCounters);
+                }
+                else
+                {
+                    path = new List<int>(currentPath) { rule.RuleOrderNumber };
+                }
+
                 string dotted = string.Join(".", path);
                 rule.DisplayOrderNumberString = dotted;
                 rule.OrderNumber = positionCounter++;
@@ -361,23 +370,97 @@ namespace FWO.Report
 
                 changedRules.Add(rule);
 
-                // Handle link, if there is one that has this rule as its from rule.
-
-                if (linksByFromRuleId.TryGetValue((int) rule.Id, out RulebaseLink? link))
+                if (rule == GetRulesByRulebaseId(rulebaseId, managementReport).Last())
                 {
-                    switch (link.LinkType)
-                    {
-                        case 2: // ordered
-                            List<int> newPath = new() { path[0] + 1 };
-                            BuildOrderNumberTree(link.NextRulebaseId, newPath, rulesByRulebase, linksByFromRuleId, changedRules, ref positionCounter, rulebaseRules);
-                            break;
+                    RulebaseLink? link = GetNextRulebaseLink(rule, processedLinks, rulebaseByLink, rulebaseId);
 
-                        case 3: // inline
-                            BuildOrderNumberTree(link.NextRulebaseId, path, rulesByRulebase, linksByFromRuleId, changedRules, ref positionCounter, rulebaseRules);
-                            break;
+                    if (link != null && link.LinkType == 4 && concatenationCounters.TryGetValue(rulebaseId, out int increment))
+                    {
+                        concatenationCounters[link.NextRulebaseId] = increment;
                     }
                 }
+
+                HandleOrderNumberTreeNode(currentLink, currentLink.NextRulebaseId, path, rulesByRulebase, rulebaseByLink, changedRules, ref positionCounter, rulebaseRules, processedLinks, rule, rules, managementReport, concatenationCounters);
             }
+        }
+
+        private static void HandleOrderNumberTreeNode(RulebaseLink currentLink,
+                                                        int rulebaseId,
+                                                        List<int> currentPath,
+                                                        Dictionary<int,
+                                                        List<Rule>> rulesByRulebase,
+                                                        Dictionary<RulebaseLink, RulebaseReport> rulebaseByLink,
+                                                        List<Rule> changedRules,
+                                                        ref int positionCounter,
+                                                        List<Rule> rulebaseRules,
+                                                        List<RulebaseLink> processedLinks,
+                                                        Rule? rule,
+                                                        List<Rule>? rules,
+                                                        ManagementReport managementReport,
+                                                        Dictionary<int, int> concatenationCounters)
+        {
+            RulebaseLink? link = GetNextRulebaseLink(rule, processedLinks, rulebaseByLink, rulebaseId);
+
+            if (link != null)
+            {
+                processedLinks.Add(link);
+
+                switch (link.LinkType)
+                {
+                    case 2: // ordered
+                        List<int> newPath = new() { currentPath[0] + 1, 0 };
+                        BuildOrderNumberTree(link, link.NextRulebaseId, newPath, rulesByRulebase, rulebaseByLink, changedRules, ref positionCounter, rulebaseRules, processedLinks, managementReport, concatenationCounters);
+                        break;
+
+                    case 3: // inline
+                        BuildOrderNumberTree(link, link.NextRulebaseId, currentPath, rulesByRulebase, rulebaseByLink, changedRules, ref positionCounter, rulebaseRules, processedLinks, managementReport, concatenationCounters);
+                        break;
+
+                    case 4: // concatenated
+                        if (currentLink.LinkType == 3 && rules != null && rule != null && rule == GetRulesByRulebaseId(rulebaseId, managementReport).Last())
+                        {
+                            concatenationCounters[link.NextRulebaseId] = changedRules.Where(rule => rulebaseId == rule.RulebaseId).Count();
+                        }
+
+                        BuildOrderNumberTree(link, link.NextRulebaseId, currentPath, rulesByRulebase, rulebaseByLink, changedRules, ref positionCounter, rulebaseRules, processedLinks, managementReport, concatenationCounters);
+                        break;
+                }
+            }
+        }
+
+        private static int GetIncrementedConcatenationCounter(int rulebaseId, Dictionary<int, int> concatenationCounters)
+        {
+            if (concatenationCounters.TryGetValue(rulebaseId, out var currentCount))
+            {
+                concatenationCounters[rulebaseId] = currentCount + 1;
+            }
+            else
+            {
+                concatenationCounters[rulebaseId] = 1;
+            }
+
+            return concatenationCounters[rulebaseId];
+        }
+
+
+        private static RulebaseLink? GetNextRulebaseLink(Rule? currentRule, List<RulebaseLink> processedLinks, Dictionary<RulebaseLink, RulebaseReport> rulebaseByLink, int rulebaseId)
+        {
+            RulebaseLink? nextRulebaseLink = null;
+
+            if (currentRule != null)
+            {
+                nextRulebaseLink = rulebaseByLink.Keys
+                    .Where(rulebaseLink => !processedLinks.Contains(rulebaseLink))
+                    .FirstOrDefault(rulebaseLink => rulebaseLink.FromRuleId == currentRule.Id);
+            }
+            else
+            {
+                nextRulebaseLink = rulebaseByLink.Keys
+                    .Where(rulebaseLink => !processedLinks.Contains(rulebaseLink))
+                    .FirstOrDefault(rulebaseLink => rulebaseLink.FromRulebaseId == rulebaseId);
+            }
+
+            return nextRulebaseLink;
         }
 
         /// <summary>
@@ -396,6 +479,21 @@ namespace FWO.Report
                     rule.RuleOrderNumber = relativeOrderNumber;
                     relativeOrderNumber++;
                 }
+            }
+        }
+
+        /// <summary>
+        /// </summary>
+        private static void SetMissingFromRuleIds(Dictionary<int, List<Rule>> rulesByRulebase, Dictionary<RulebaseLink, RulebaseReport> rulebaseByLink)
+        {
+            int? lastSetId = 0;
+
+            foreach (RulebaseLink rulebaseLink in rulebaseByLink.Keys.Where(rulebaseLink => rulebaseLink.FromRuleId == null).Where(rulebaseLink => !rulebaseLink.IsInitial))
+            {
+                KeyValuePair<RulebaseLink, RulebaseReport> previousRulebaseByLinkItem = rulebaseByLink.First(rulebaseByLinkItem => rulebaseByLinkItem.Value.Id == rulebaseLink.FromRulebaseId);
+                Rule? rule = previousRulebaseByLinkItem.Value.Rules.LastOrDefault();
+                rulebaseLink.FromRuleId = (rule != null ? (int)rule.Id : lastSetId);
+                lastSetId = rulebaseLink.FromRuleId;
             }
         }
 
@@ -607,7 +705,7 @@ namespace FWO.Report
 
         public override string ExportToHtml()
         {
-            StringBuilder report = new ();
+            StringBuilder report = new();
             int chapterNumber = 0;
             ConstructHtmlReport(ref report, ReportData.ManagementData, chapterNumber);
             return GenerateHtmlFrame(userConfig.GetText(ReportType.ToString()), Query.RawFilter, DateTime.Now, report);
@@ -615,7 +713,7 @@ namespace FWO.Report
 
         public void ConstructHtmlReport(ref StringBuilder report, List<ManagementReport> managementData, int chapterNumber, bool varianceMode = false)
         {
-            RuleDisplayHtml ruleDisplayHtml = new (userConfig);
+            RuleDisplayHtml ruleDisplayHtml = new(userConfig);
             VarianceMode = varianceMode;
 
             foreach (ManagementReport managementReport in managementData.Where(mgt => !mgt.Ignore && mgt.ContainsRules()))
@@ -853,10 +951,10 @@ namespace FWO.Report
             }
         }
 
-        private string Headline (string? title, int level)
+        private string Headline(string? title, int level)
         {
             int Level = VarianceMode ? level + 2 : level;
-            return  $"<h{Level} id=\"{Guid.NewGuid()}\">{title}</h{Level}>";
+            return $"<h{Level} id=\"{Guid.NewGuid()}\">{title}</h{Level}>";
         }
     }
 }

@@ -137,8 +137,10 @@ namespace FWO.Report.Filter
                                 link_type
                                 is_initial
                                 is_global
+                                is_section
                                 gw_id
                                 from_rule_id
+                                from_rulebase_id
                                 to_rulebase_id
                                 created
                                 removed

@@ -49,7 +49,7 @@ namespace FWO.Test
 
             // Assert: Check that the search text is not immediately applied
             object? value = cut.Instance.GetType().GetProperty(nameof(TreeTable<object>.AppliedSearchText))?.GetValue(cut.Instance);
-            Assert.That(value, Is.Not.EqualTo("abc"));
+            Assert.That(value, Is.Not.EqualTo("abc"));            
 
             // Wait a bit longer to ensure the debounce has completed
             await Task.Delay(GlobalConst.SearchInputDebounceTime + DebounceDelaySubstractor);
@@ -57,6 +57,10 @@ namespace FWO.Test
             // Assert: Check that the search text is applied after the debounce delay
             value = cut.Instance.GetType().GetProperty(nameof(TreeTable<object>.AppliedSearchText))?.GetValue(cut.Instance);
             Assert.That(cut.Instance.GetType().GetProperty("AppliedSearchText")?.GetValue(cut.Instance), Is.EqualTo("abc"));
+
+            // Additional Assert: Check if the AppliedSearchText property is not null
+            value = cut.Instance.GetType().GetProperty(nameof(TreeTable<object>.AppliedSearchText))?.GetValue(cut.Instance);
+            Assert.That(value, Is.Not.Null, $"{nameof(TreeTable<object>.AppliedSearchText)} property is null. Check if the property exists and is set in TreeTable.");
         }
     }
 }

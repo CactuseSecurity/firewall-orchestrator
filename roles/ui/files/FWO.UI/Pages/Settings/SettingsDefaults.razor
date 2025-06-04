@@ -216,6 +216,7 @@ else
     {
         try
         {
+            // Subscribe to events for file uploads and logo import
             EventMediator.Subscribe<FileUploadEvent>(nameof(FileUploadService.ReadFileToBytes), _ => OnFileUploadEvent(_.EventArgs));
             EventMediator.Subscribe<FileUploadEvent>(nameof(FileUploadService.ImportCustomLogo), _ => OnFileUploadEvent(_.EventArgs));
 
@@ -260,7 +261,7 @@ else
 
         if (!e.Success && e.Error is not null )
         {
-            DisplayMessageInUi(e.Error.InternalException, userConfig.GetText("change_default"), e.Error.Message ?? "", false);
+            DisplayMessageInUi(e.Error.InternalException, userConfig.GetText("change_default"), e.Error.Message ?? "", true);
             return;
         }
 

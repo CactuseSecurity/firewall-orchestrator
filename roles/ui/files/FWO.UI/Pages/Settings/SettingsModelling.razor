@@ -1,13 +1,17 @@
-﻿@using System.Text.Json
+@using System.Text.Json
+@using FWO.Services.EventMediator.Events
+@using FWO.Services.EventMediator.Interfaces
 @using FWO.Ui.Data
 @using FWO.Ui.Pages.NetworkModelling
 
 @page "/settings/modelling"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
 
+@implements IDisposable
 @inject ApiConnection apiConnection
 @inject GlobalConfig globalConfig
 @inject UserConfig userConfig
+@inject IEventMediator EventMediator
 
 <div class="input-group">
     <h3>@(userConfig.GetText("modelling_settings"))</h3>
@@ -83,7 +87,7 @@
         <div class="form-group row mt-4" data-toggle="tooltip" title="@(userConfig.PureLine("H9055"))">
             <label class="col-form-label col-sm-4">@userConfig.GetText("import_app_server"):</label>
             <div class="row col-sm-6">
-                <FileUpload SupportedFileFormats=".csv" AuthorizedRoles="@Roles.Admin" TUploadResult="CSVFileUploadErrorModel" UploadCase="FileUploadCase.ImportAppServerFromCSV" OnAfterImportResults="OnAfterImportResults" OnError="OnAddAppServerError" OnImportSuccess="OnAppServerImportSuccess"></FileUpload>
+                <CSVFileUpload SupportedFileFormats=".csv" AuthorizedRoles="@Roles.Admin"></CSVFileUpload>
             </div>
         </div>
         <hr />
@@ -497,21 +501,18 @@ else
     private List<CSVFileUploadErrorModel>? CSVImportErrors;
     private List<string>? CSVImportSuccess;
 
-    private void OnAddAppServerError((Exception Exception, string Message) error)
+    private void OnFileUploadEvent(FileUploadEventArgs? e)
     {
-        DisplayMessageInUi(error.Exception, userConfig.GetText("add_app_server"), error.Message, false);
+
     }
 
-    private void OnAfterImportResults((List<string>? Success, List<CSVFileUploadErrorModel>? Errors) importResult)
+    private void OnCSVAppServerImportEvent(FileUploadEventArgs? e)
     {
-        CSVImportSuccess = importResult.Success;
-        CSVImportErrors = importResult.Errors;
+        // on error
+        //DisplayMessageInUi(error.Exception, userConfig.GetText("add_app_server"), error.Message, false);
 
-        ShowCSVImportPopUp = true;
-    }
-    private void OnAppServerImportSuccess()
-    {
-        DisplayMessageInUi(null, userConfig.GetText("import_app_server"), userConfig.GetText("importAppServerDataSuccess"), false);
+        //on success
+        // DisplayMessageInUi(null, userConfig.GetText("import_app_server"), userConfig.GetText("importAppServerDataSuccess"), false);
     }
 
     protected override async Task OnInitializedAsync()
@@ -546,6 +547,10 @@ else
 
             ruleRecognitionOption = string.IsNullOrEmpty(configData.RuleRecognitionOption) ? new() : JsonSerializer.Deserialize<RuleRecognitionOption>(configData.RuleRecognitionOption) ?? new();
             initComplete = true;
+
+            // subscribe to events for file upload and import
+            EventMediator.Subscribe<FileUploadEvent>(nameof(FileUploadService.ReadFileToBytes), _ => OnFileUploadEvent(_.EventArgs));
+            EventMediator.Subscribe<FileUploadEvent>(nameof(FileUploadService.ImportAppServersFromCSV), _ => OnCSVAppServerImportEvent(_.EventArgs));
         }
         catch (Exception exception)
         {
@@ -750,5 +755,10 @@ else
             ExtraConfigs.Add(config);
         }
         configData!.ModExtraConfigs = JsonSerializer.Serialize(ExtraConfigs);
+    }
+
+    public void Dispose()
+    {
+        
     }
 }

@@ -21,7 +21,6 @@ namespace FWO.Ui.Services
         private byte[] UploadedData { get; set; } = [];
 
         private UserConfig UserConfig { get; set; }
-        private GlobalConfig GlobalConfig { get; set; }
         private ApiConnection ApiConnection { get; set; }
 
         private readonly ModellingNamingConvention NamingConvention = new();
@@ -36,7 +35,6 @@ namespace FWO.Ui.Services
         public FileUploadService(ApiConnection apiConnection, UserConfig userConfig, string allowedFileFormats, GlobalConfig globalConfig, IEventMediator eventMediator)
         {
             UserConfig = userConfig;
-            GlobalConfig = globalConfig;
             ApiConnection = apiConnection;
             NamingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(userConfig.ModNamingConvention) ?? new();
             AppServerTypes = JsonSerializer.Deserialize<List<AppServerType>>(UserConfig.ModAppServerTypes) ?? [];
@@ -44,13 +42,6 @@ namespace FWO.Ui.Services
             EventMediator = eventMediator;
             CustomLogoUploadEvent = new FileUploadEvent();
             FileUploadEvent = new FileUploadEvent();
-        }
-
-        public async Task ImportUploadedData(string filename = "")
-        {
-            ImportSource = GlobalConst.kCSV_ + filename;
-
-            (List<string>? success, List<CSVFileUploadErrorModel>? errors) = await ImportAppServersFromCSV();
         }
 
         public async Task<FileUploadEventArgs> ReadFileToBytes(InputFileChangeEventArgs args)
@@ -117,8 +108,10 @@ namespace FWO.Ui.Services
             return CustomLogoUploadEvent.EventArgs;
         }
 
-        private async Task<(List<string>? success, List<CSVFileUploadErrorModel>? errors)> ImportAppServersFromCSV()
+        public async Task ImportAppServersFromCSV(string filename = "")
         {
+            ImportSource = GlobalConst.kCSV_ + filename;
+
             List<string> success = [];
             List<CSVFileUploadErrorModel> errors = [];
 
@@ -179,8 +172,6 @@ namespace FWO.Ui.Services
                     success.Add(line);
                 }
             }
-
-            return (success, errors);
         }
 
         private static bool TryGetEntries(string line, char separator, out string[] entries)

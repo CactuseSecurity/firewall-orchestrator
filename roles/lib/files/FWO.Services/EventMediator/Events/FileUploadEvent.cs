@@ -2,14 +2,9 @@ using FWO.Services.EventMediator.Interfaces;
 
 namespace FWO.Services.EventMediator.Events
 {
-    public class FileUploadEvent : IEvent
+    public class FileUploadEvent(FileUploadEventArgs? eventArgs = default) : IEvent
     {
-        public FileUploadEventArgs? EventArgs { get; set; } = default;
-
-        public FileUploadEvent(FileUploadEventArgs? eventArgs = default)
-        {
-            EventArgs = eventArgs ?? new FileUploadEventArgs();
-        }
+        public FileUploadEventArgs? EventArgs { get; set; } = eventArgs ?? new FileUploadEventArgs();
 
         IEventArgs? IEvent.EventArgs
         {

@@ -46,6 +46,13 @@ namespace FWO.Ui.Services
             FileUploadEvent = new FileUploadEvent();
         }
 
+        public async Task ImportUploadedData(string filename = "")
+        {
+            ImportSource = GlobalConst.kCSV_ + filename;
+
+            (List<string>? success, List<CSVFileUploadErrorModel>? errors) = await ImportAppServersFromCSV();
+        }
+
         public async Task<FileUploadEventArgs> ReadFileToBytes(InputFileChangeEventArgs args)
         {
             try
@@ -82,21 +89,14 @@ namespace FWO.Ui.Services
             return FileUploadEvent.EventArgs;
         }
 
-        public async Task ImportUploadedData(string filename = "")
-        {
-            ImportSource = GlobalConst.kCSV_ + filename;
-
-            (List<string>? success, List<CSVFileUploadErrorModel>? errors) = await ImportAppServersFromCSV();
-        }
-
-        public void ImportCustomLogo()
+        public FileUploadEventArgs ImportCustomLogo()
         {
             try
             {
-                string base64Data = Convert.ToBase64String(UploadedData);
-                GlobalConfig.CustomLogoData = base64Data;
+                string base64Data = Convert.ToBase64String(UploadedData);                
 
                 CustomLogoUploadEvent.EventArgs!.Success = true;
+                CustomLogoUploadEvent.EventArgs.Data = base64Data;
             }
             catch(Exception ex)
             {
@@ -113,6 +113,8 @@ namespace FWO.Ui.Services
             {
                 EventMediator.Publish(nameof(ImportCustomLogo), CustomLogoUploadEvent);
             }
+
+            return CustomLogoUploadEvent.EventArgs;
         }
 
         private async Task<(List<string>? success, List<CSVFileUploadErrorModel>? errors)> ImportAppServersFromCSV()

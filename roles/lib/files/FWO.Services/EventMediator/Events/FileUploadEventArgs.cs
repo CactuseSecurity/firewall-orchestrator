@@ -7,6 +7,7 @@ namespace FWO.Services.EventMediator.Events
     {
         public bool Success { get; set; } = success;
         public string? FileName { get; set; } = fileName;
+        public dynamic? Data { get; set; }
         public ErrorBaseModel? Error { get; set; } = error ?? new ErrorBaseModel();
     }
 }

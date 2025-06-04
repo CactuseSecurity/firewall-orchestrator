@@ -18,7 +18,7 @@ namespace FWO.Test
         [SetUp]
         public void Setup()
         {
-            // Register a mock or fake UserConfig service
+            // Register UserConfig for dependency
             Services.AddSingleton(new Config.Api.UserConfig());
         }
 

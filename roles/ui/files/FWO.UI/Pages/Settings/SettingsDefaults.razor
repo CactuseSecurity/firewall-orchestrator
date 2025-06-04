@@ -272,6 +272,9 @@ else
         }
     }
 
+    /// <summary>
+    /// Unsubscribes from file upload events when the component is disposed.
+    /// </summary>
     public void Dispose()
     {
         EventMediator.Unsubscribe<FileUploadEvent>(nameof(FileUploadService.ReadFileToBytes));

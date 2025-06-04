@@ -757,8 +757,12 @@ else
         configData!.ModExtraConfigs = JsonSerializer.Serialize(ExtraConfigs);
     }
 
+    /// <summary>
+    /// Unsubscribes from file upload events when the component is disposed.
+    /// </summary>
     public void Dispose()
     {
-        
+        EventMediator.Unsubscribe<FileUploadEvent>(nameof(FileUploadService.ReadFileToBytes));
+        EventMediator.Unsubscribe<FileUploadEvent>(nameof(FileUploadService.ImportAppServersFromCSV));
     }
 }

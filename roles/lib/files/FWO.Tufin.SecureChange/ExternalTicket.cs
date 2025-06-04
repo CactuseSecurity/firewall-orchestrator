@@ -17,7 +17,7 @@ namespace FWO.Tufin.SecureChange
 
 		public string? TicketId { get; set; } = "";
 		protected List<string> TicketTasks = [];
-		public ExternalTicketSystem TicketSystem = new();
+		public ExternalTicketSystem TicketSystem { get; set; } = new();
 
 		public ExternalTicket(){}
 
@@ -54,7 +54,7 @@ namespace FWO.Tufin.SecureChange
 				RestRequest request = new(restEndPoint, Method.Get);
 				return await RestCall(request, restEndPoint);
 			}
-			throw new Exception("No Ticket Id given.");
+			throw new ArgumentException("No Ticket Id given.");
 		}
 
 		protected async Task<RestResponse<int>> RestCall(RestRequest request, string restEndPoint)
@@ -78,7 +78,7 @@ namespace FWO.Tufin.SecureChange
 		{
 			try
 			{
-				var tmpObj = System.Text.Json.JsonSerializer.Deserialize<object>(jsonString);
+				System.Text.Json.JsonSerializer.Deserialize<object>(jsonString);
 			}
 			catch (Exception ex)
 			{
@@ -86,7 +86,7 @@ namespace FWO.Tufin.SecureChange
 			}
 		}
 
-		private void ConfigureRestClientSerialization(SerializerConfig config)
+		private static void ConfigureRestClientSerialization(SerializerConfig config)
 		{
 			JsonNetSerializer serializer = new (); // Case insensivitive is enabled by default
 			config.UseSerializer(() => serializer);

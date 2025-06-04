@@ -88,7 +88,7 @@ namespace FWO.Services
                 if(ticket != null)
                 {
                     ExtStateHandler extStateHandler = new(apiConnection);
-                    ticket.StateId = extStateHandler.GetInternalStateId(extReqState) ?? throw new Exception($"No translation defined for external state {extReqState}.");
+                    ticket.StateId = extStateHandler.GetInternalStateId(extReqState) ?? throw new ArgumentException($"No translation defined for external state {extReqState}.");
                     return await wfHandler.PromoteTicketAndTasks(ticket);
                 }
             }
@@ -253,7 +253,7 @@ namespace FWO.Services
             return null;
         }
         
-        private void LogMessage(Exception? exception = null, string title = "", string message = "", bool ErrorFlag = false)
+        private static void LogMessage(Exception? exception = null, string title = "", string message = "", bool ErrorFlag = false)
         {
             if (exception == null)
             {

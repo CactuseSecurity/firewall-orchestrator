@@ -169,7 +169,7 @@ namespace FWO.Middleware.Server
 		private async Task GetInternalGroups()
 		{
 			List<Ldap> connectedLdaps = await ApiConnection.SendQueryAsync<List<Ldap>>(AuthQueries.getLdapConnections);
-			Ldap internalLdap = connectedLdaps.FirstOrDefault(x => x.IsInternal() && x.HasGroupHandling()) ?? throw new Exception("No internal Ldap with group handling found.");
+			Ldap internalLdap = connectedLdaps.FirstOrDefault(x => x.IsInternal() && x.HasGroupHandling()) ?? throw new KeyNotFoundException("No internal Ldap with group handling found.");
 
 			List<GroupGetReturnParameters> allGroups = await internalLdap.GetAllInternalGroups();
 			ownerGroups = [];
@@ -206,7 +206,7 @@ namespace FWO.Middleware.Server
 			extQueryVarDict?.TryGetValue(ExternalVarKeys.BundledTasks, out taskNumbers);
 			if(taskNumbers != null && taskNumbers.Count > 0)
 			{
-				return taskNumbers.Last();
+				return taskNumbers[^1];
 			}
 			else
 			{
@@ -364,12 +364,12 @@ namespace FWO.Middleware.Server
 			List<ExternalTicketSystem> extTicketSystems = JsonSerializer.Deserialize<List<ExternalTicketSystem>>(UserConfig.ExtTicketSystems) ?? [];
 			if(extTicketSystems.Count > 0)
 			{
-				extSystemType = extTicketSystems.First().Type;
-				actSystem = extTicketSystems.First();
+				extSystemType = extTicketSystems[0].Type;
+				actSystem = extTicketSystems[0];
 			}
 			else
 			{
-				throw new Exception("No external ticket system defined.");
+				throw new InvalidOperationException("No external ticket system defined.");
 			}
 		}
 
@@ -387,7 +387,7 @@ namespace FWO.Middleware.Server
 			}
 			else
 			{
-				throw new Exception("Ticket system not supported yet");
+				throw new NotSupportedException("Ticket system not supported yet");
 			}
 			if(ticket != null)
 			{
@@ -407,6 +407,8 @@ namespace FWO.Middleware.Server
             return appId + reqTask?.TaskType switch
             {
                 nameof(WfTaskType.access) => UserConfig.GetText("create_rule") + onMgt,
+				nameof(WfTaskType.rule_modify) => UserConfig.GetText("modify_rule") + onMgt,
+				nameof(WfTaskType.rule_delete) => UserConfig.GetText("remove_rule") + onMgt,
                 nameof(WfTaskType.group_create) => UserConfig.GetText("create_group") + grpName + onMgt,
                 nameof(WfTaskType.group_modify) => UserConfig.GetText("modify_group") + grpName + onMgt,
                 nameof(WfTaskType.group_delete) => UserConfig.GetText("delete_group") + grpName + onMgt,
@@ -456,7 +458,7 @@ namespace FWO.Middleware.Server
 			if(extStateHandler != null && reqTask.StateId != extStateHandler.GetInternalStateId(extReqState))
 			{
 				wfHandler.SetReqTaskEnv(reqTask);
-				reqTask.StateId = extStateHandler.GetInternalStateId(extReqState) ?? throw new Exception("No translation defined for external state.");
+				reqTask.StateId = extStateHandler.GetInternalStateId(extReqState) ?? throw new ArgumentException("No translation defined for external state.");
 				await wfHandler.PromoteReqTask(reqTask);
 			}
 		}
@@ -520,7 +522,7 @@ namespace FWO.Middleware.Server
             };
         }
 
-		private void LogMessage(Exception? exception = null, string title = "", string message = "", bool ErrorFlag = false)
+		private static void LogMessage(Exception? exception = null, string title = "", string message = "", bool ErrorFlag = false)
         {
             if (exception == null)
             {

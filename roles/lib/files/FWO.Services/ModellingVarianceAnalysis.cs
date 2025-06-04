@@ -41,7 +41,7 @@ namespace FWO.Services
         private readonly Dictionary<int, List<ModellingAppServer>> allExistingAppServers = [];
         private readonly Dictionary<int, List<ModellingAppServer>> alreadyCreatedAppServers = [];
 
-        public ModellingAppZone? PlannedAppZoneDbUpdate = default;
+        public ModellingAppZone? PlannedAppZoneDbUpdate {get; set; } = default;
 
         public async Task AnalyseConnsForStatus(List<ModellingConnection> connections)
         {
@@ -193,9 +193,9 @@ namespace FWO.Services
                 }
             }
             varianceResult.AppRoleStats.ModelledAppRolesCount = allModelledAppRoles.Count;
-            varianceResult.AppRoleStats.AppRolesOk = allModelledAppRoles.Where(a => !a.IsMissing && !a.HasDifference).Count();
-            varianceResult.AppRoleStats.AppRolesMissingCount = allModelledAppRoles.Where(a => a.IsMissing).Count();
-            varianceResult.AppRoleStats.AppRolesDifferenceCount = allModelledAppRoles.Where(a => a.HasDifference).Count();
+            varianceResult.AppRoleStats.AppRolesOk = allModelledAppRoles.Count(a => !a.IsMissing && !a.HasDifference);
+            varianceResult.AppRoleStats.AppRolesMissingCount = allModelledAppRoles.Count(a => a.IsMissing);
+            varianceResult.AppRoleStats.AppRolesDifferenceCount = allModelledAppRoles.Count(a => a.HasDifference);
         }
 
         private void CollectModelledAppRoles(List<ModellingConnection> connections)
@@ -226,9 +226,9 @@ namespace FWO.Services
             {
                 modelledAppRole.HasDifference = true;
                 ModellingAppRole changedAppRole = new(modelledAppRole){ ManagementName = mgt.Name, SurplusAppServers = deletedAppServers};
-                foreach(var appServer in changedAppRole.AppServers)
+                foreach(var appServer in changedAppRole.AppServers.Select(a => a.Content))
                 {
-                    appServer.Content.NotImplemented = newAppServers.FirstOrDefault(a => a.Content.Id == appServer.Content.Id) != null;
+                    appServer.NotImplemented = newAppServers.FirstOrDefault(a => a.Content.Id == appServer.Id) != null;
                 }
                 varianceResult.DifferingAppRoles[mgt.Id].Add(changedAppRole);
             }

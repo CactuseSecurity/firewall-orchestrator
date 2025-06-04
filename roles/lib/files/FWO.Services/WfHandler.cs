@@ -6,6 +6,7 @@ using FWO.Data;
 using FWO.Data.Workflow;
 using FWO.Logging;
 using FWO.Middleware.Client;
+using System.Security.Authentication;
 using System.Text.Json; 
 
 namespace FWO.Services
@@ -151,7 +152,7 @@ namespace FWO.Services
                     }
                     else
                     {
-                        throw new Exception("No AuthUser set");
+                        throw new AuthenticationException("No AuthUser set");
                     }
                     ActionHandler = new (apiConnection, this, UserGroups, usedInMwServer);
                     await ActionHandler.Init();

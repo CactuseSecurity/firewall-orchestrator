@@ -50,7 +50,7 @@ namespace FWO.Middleware.Server
                 AreaIpDataImport import = new (apiConnection, globalConfig);
                 if(!await import.Run())
                 {
-                    throw new Exception("Area IP Data Import failed.");
+                    throw new ProcessingFailedException("Area IP Data Import failed.");
                 }
             }
             catch (Exception exc)

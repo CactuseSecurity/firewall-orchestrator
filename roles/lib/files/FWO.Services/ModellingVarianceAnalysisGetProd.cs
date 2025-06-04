@@ -4,6 +4,7 @@ using FWO.Data;
 using FWO.Data.Modelling;
 using FWO.Data.Report;
 using FWO.Logging;
+using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
@@ -165,7 +166,7 @@ namespace FWO.Services
                 {
                     MarkerLocation.Rulename => RuleQueries.getModelledRulesByManagementName,
                     MarkerLocation.Comment => RuleQueries.getModelledRulesByManagementComment,
-                    _ => throw new Exception("invalid or undefined Marker Location")
+                    _ => throw new NotSupportedException("invalid or undefined Marker Location")
                 };
                 return await apiConnection.SendQueryAsync<List<Rule>>(query, RuleVariables);
             }
@@ -177,51 +178,12 @@ namespace FWO.Services
             {
                 int aRCount = 0;
                 int aSCount = 0;
-                foreach (Management mgt in RelevantManagements)
+                foreach (var mgtId in RelevantManagements.Select(m => m.Id))
                 {
-                    List<NetworkObject>? objGrpByMgt = await GetObjects(mgt.Id, [2]);
-                    if (objGrpByMgt != null)
-                    {
-                        foreach (NetworkObject objGrp in objGrpByMgt)
-                        {
-                            // Todo: filter for naming convention??
-                            if (!allProdAppRoles.ContainsKey(mgt.Id))
-                            {
-                                allProdAppRoles.Add(mgt.Id, []);
-                            }
-                            allProdAppRoles[mgt.Id].Add(new(objGrp, namingConvention));
-                            aRCount++;
-                        }
-                    }
-
-                    List<NetworkObject>? objByMgt = await GetObjects(mgt.Id, [1, 3, 12]);
-                    if (objByMgt != null)
-                    {
-                        foreach (NetworkObject obj in objByMgt)
-                        {
-                            if (!allExistingAppServers.ContainsKey(mgt.Id))
-                            {
-                                allExistingAppServers.Add(mgt.Id, []);
-                            }
-                            allExistingAppServers[mgt.Id].Add(new(obj));
-                            aSCount++;
-                        }
-                    }
+                    aRCount += await CollectGroupObjects(mgtId);
+                    aSCount += await CollectAppServers(mgtId);
                 }
-
-                string aRappRoles = "";
-                string aRappServers = "";
-                foreach (int mgt in allProdAppRoles.Keys)
-                {
-                    aRappRoles += $" Management {mgt}: " + string.Join(",", allProdAppRoles[mgt].Where(a => a.Name.StartsWith("AR")).ToList().ConvertAll(x => $"{x.Name}({x.IdString})").ToList());
-                }
-                foreach (int mgt in allExistingAppServers.Keys)
-                {
-                    aRappServers += $" Management {mgt}: " + string.Join(",", allExistingAppServers[mgt].ConvertAll(x => $"{x.Name}({x.Ip})").ToList());
-                }
-
-                Log.WriteDebug("GetNwObjectsProductionState",
-                    $"Found {aRCount} AppRoles, {aSCount} AppServer. AppRoles with AR: {aRappRoles},  AppServers: {aRappServers}");
+                LogFoundObjects(aRCount, aSCount);
             }
             catch (Exception exception)
             {
@@ -229,12 +191,68 @@ namespace FWO.Services
             }
         }
 
+        private async Task<int> CollectGroupObjects(int mgtId)
+        {
+            int aRCount = 0;
+            List<NetworkObject>? objGrpByMgt = await GetObjects(mgtId, [2]);
+            if (objGrpByMgt != null)
+            {
+                foreach (NetworkObject objGrp in objGrpByMgt)
+                {
+                    // Todo: filter for naming convention??
+                    if (!allProdAppRoles.ContainsKey(mgtId))
+                    {
+                        allProdAppRoles.Add(mgtId, []);
+                    }
+                    allProdAppRoles[mgtId].Add(new(objGrp, namingConvention));
+                    aRCount++;
+                }
+            }
+            return aRCount;
+        }
+
+        private async Task<int> CollectAppServers(int mgtId)
+        {
+            int aSCount = 0;
+            List<NetworkObject>? objByMgt = await GetObjects(mgtId, [1, 3, 12]);
+            if (objByMgt != null)
+            {
+                foreach (NetworkObject obj in objByMgt)
+                {
+                    if (!allExistingAppServers.ContainsKey(mgtId))
+                    {
+                        allExistingAppServers.Add(mgtId, []);
+                    }
+                    allExistingAppServers[mgtId].Add(new(obj));
+                    aSCount++;
+                }
+            }
+            return aSCount;
+        }
+
+        private void LogFoundObjects(int aRCount, int aSCount)
+        {
+            StringBuilder aRappRoles = new();
+            StringBuilder aRappServers = new();
+            foreach (int mgtId in allProdAppRoles.Keys)
+            {
+                aRappRoles.Append($" Management {mgtId}: " + string.Join(",", allProdAppRoles[mgtId].Where(a => a.Name.StartsWith("AR")).ToList().ConvertAll(x => $"{x.Name}({x.IdString})").ToList()));
+            }
+            foreach (int mgtId in allExistingAppServers.Keys)
+            {
+                aRappServers.Append($" Management {mgtId}: " + string.Join(",", allExistingAppServers[mgtId].ConvertAll(x => $"{x.Name}({x.Ip})").ToList()));
+            }
+
+            Log.WriteDebug("GetNwObjectsProductionState",
+                $"Found {aRCount} AppRoles, {aSCount} AppServer. AppRoles with AR: {aRappRoles},  AppServers: {aRappServers}");
+        }
+
         private async Task<List<NetworkObject>?> GetObjects(int mgtId, int[] objTypeIds)
         {
             try
             {
                 long? relImpId = await GetRelevantImportId(mgtId);
-                if(relImpId != null)
+                if (relImpId != null)
                 {
                     var ObjGroupVariables = new
                     {
@@ -261,8 +279,8 @@ namespace FWO.Services
                     time = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
                     mgmIds = mgtId
                 };
-                return (await apiConnection.SendQueryAsync<List<Management>>(ReportQueries.getRelevantImportIdsAtTime, Variables))?
-                    .First().Import.ImportAggregate.ImportAggregateMax.RelevantImportId;
+                return (await apiConnection.SendQueryAsync<List<Management>>(ReportQueries.getRelevantImportIdsAtTime,
+                    Variables))?[0].Import.ImportAggregate.ImportAggregateMax.RelevantImportId;
             }
             catch (Exception exception)
             {

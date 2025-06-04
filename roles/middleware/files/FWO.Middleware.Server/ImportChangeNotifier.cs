@@ -188,7 +188,7 @@ namespace FWO.Middleware.Server
                         string? pdfData = await changeReport.ToPdf(html);
 
                         if (string.IsNullOrWhiteSpace(pdfData))
-                            throw new Exception("No Pdf generated.");
+                            throw new ProcessingFailedException("No Pdf generated.");
 
                         attachment = CreateAttachment(pdfData, GlobalConst.kPdf);
                         break;

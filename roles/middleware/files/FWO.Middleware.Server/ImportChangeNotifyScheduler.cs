@@ -50,7 +50,7 @@ namespace FWO.Middleware.Server
                 ImportChangeNotifier notifyImportChanges = new(apiConnection, globalConfig);
                 if(!await notifyImportChanges.Run())
                 {
-                    throw new Exception("Import Change Notify failed.");
+                    throw new ProcessingFailedException("Import Change Notify failed.");
                 }
             }
             catch (Exception exc)

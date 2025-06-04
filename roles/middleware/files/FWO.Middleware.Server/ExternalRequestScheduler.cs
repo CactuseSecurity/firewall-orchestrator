@@ -50,7 +50,7 @@ namespace FWO.Middleware.Server
                 ExternalRequestSender externalRequestSender = new(apiConnection, globalConfig);
                 if(!await externalRequestSender.Run())
                 {
-                    throw new Exception("External Request failed.");
+                    throw new ProcessingFailedException("External Request failed.");
                 }
             }
             catch (Exception exc)

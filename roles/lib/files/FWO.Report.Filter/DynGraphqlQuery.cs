@@ -12,7 +12,7 @@ namespace FWO.Report.Filter
     public class DynGraphqlQuery(string rawInput)
     {
         public string RawFilter { get; private set; } = rawInput;
-        public int parameterCounter = 0;
+        public int parameterCounter { get; set; } = 0;
         public Dictionary<string, object> QueryVariables { get; set; } = [];
         public string FullQuery { get; set; } = "";
         public string RuleWhereStatement { get; set; } = "";
@@ -44,7 +44,45 @@ namespace FWO.Report.Filter
         public static DynGraphqlQuery GenerateQuery(ReportTemplate filter, AstNode? ast)
         {
             DynGraphqlQuery query = new(filter.Filter);
+            ConstructWhereStatements(query, filter, ast);
+            if (( (ReportType)filter.ReportParams.ReportType ).IsResolvedReport() || (ReportType)filter.ReportParams.ReportType == ReportType.AppRules)
+            {
+                filter.Detailed = true;
+            }
+            ConstructFullQuery(query, filter);
+            OverwriteMissingTenantFilters(ref query, filter);
+            string pattern = "";
 
+            // remove comment lines (#) before joining lines!
+            // Regex.Replace("10, 20, 30", @"(\d+)$",match => (int.Parse(match.Value)+1).ToString())
+            // Regex.Replace(query.FullQuery, pattern, m => variablesDictionary[m.Value]);
+            // Regex pattern = new Regex(@"#(.*?)\n");
+
+            // TODO: get this working
+            // pattern = @"""[^""\\]*(?:\\[\W\w][^""\\]*)*""|(\#.*)";
+            // string pattern = @"(.*?)(#.*?)\n(.*?)";
+            // query.FullQuery = Regex.Replace(query.FullQuery, pattern, "");
+
+            // remove line breaks and duplicate whitespaces
+            pattern = @"\n";
+            query.FullQuery = Regex.Replace(query.FullQuery, pattern, "");
+            pattern = @"\s+";
+            query.FullQuery = Regex.Replace(query.FullQuery, pattern, " ");
+
+            // // query debugging
+            // Log.WriteDebug("Filter", $"FullQuery = {query.FullQuery}");
+            // string queryVars = "";
+            // foreach ((string k, object o) in query.QueryVariables)
+            // {
+            //     queryVars += $"\"{k}\": {o.ToString()}, ";
+            // }
+            // Log.WriteDebug("Filter", $"Variables = {queryVars}");
+
+            return query;
+        }
+
+        private static void ConstructWhereStatements(DynGraphqlQuery query, ReportTemplate filter, AstNode? ast)
+        {
             query.RuleWhereStatement += "_and: [";
             query.ConnectionWhereStatement += "_and: [";
 
@@ -58,7 +96,10 @@ namespace FWO.Report.Filter
 
             query.RuleWhereStatement += "}] ";
             query.ConnectionWhereStatement += "}] ";
+        }
 
+        private static void ConstructFullQuery(DynGraphqlQuery query, ReportTemplate filter)
+        {
             string paramString = string.Join(" ", query.QueryParameters.ToArray());
 
             string mgmtWhereString = $@"where: {{ hide_in_gui: {{_eq: false }}
@@ -72,11 +113,6 @@ namespace FWO.Report.Filter
 
             string limitOffsetString = $@"limit: $limit 
                                        offset: $offset ";
-
-            if (( (ReportType)filter.ReportParams.ReportType ).IsResolvedReport() || (ReportType)filter.ReportParams.ReportType == ReportType.AppRules)
-            {
-                filter.Detailed = true;
-            }
 
             switch ((ReportType)filter.ReportParams.ReportType)
             {
@@ -254,42 +290,11 @@ namespace FWO.Report.Filter
                     ");
                     break;
             }
-
-            OverwriteMissingTenantFilters(ref query, filter);
-            string pattern = "";
-
-            // remove comment lines (#) before joining lines!
-            // Regex.Replace("10, 20, 30", @"(\d+)$",match => (int.Parse(match.Value)+1).ToString())
-            // Regex.Replace(query.FullQuery, pattern, m => variablesDictionary[m.Value]);
-            // Regex pattern = new Regex(@"#(.*?)\n");
-
-            // TODO: get this working
-            // pattern = @"""[^""\\]*(?:\\[\W\w][^""\\]*)*""|(\#.*)";
-            // string pattern = @"(.*?)(#.*?)\n(.*?)";
-            // query.FullQuery = Regex.Replace(query.FullQuery, pattern, "");
-
-            // remove line breaks and duplicate whitespaces
-            pattern = @"\n";
-            query.FullQuery = Regex.Replace(query.FullQuery, pattern, "");
-            pattern = @"\s+";
-            query.FullQuery = Regex.Replace(query.FullQuery, pattern, " ");
-
-            // // query debugging
-            // Log.WriteDebug("Filter", $"FullQuery = {query.FullQuery}");
-            // string queryVars = "";
-            // foreach ((string k, object o) in query.QueryVariables)
-            // {
-            //     queryVars += $"\"{k}\": {o.ToString()}, ";
-            // }
-            // Log.WriteDebug("Filter", $"Variables = {queryVars}");
-
-
-            return query;
         }
 
         private static void SetFixedFilters(ref DynGraphqlQuery query, ReportTemplate reportParams)
         {
-            if (( (ReportType)reportParams.ReportParams.ReportType ).IsRuleReport() || reportParams.ReportParams.ReportType == (int)ReportType.Statistics)
+            if (((ReportType)reportParams.ReportParams.ReportType).IsRuleReport() || reportParams.ReportParams.ReportType == (int)ReportType.Statistics)
             {
                 query.QueryParameters.Add("$mgmId: [Int!] ");
             }
@@ -297,13 +302,12 @@ namespace FWO.Report.Filter
             // leave out all header texts
             if ((ReportType)reportParams.ReportParams.ReportType == ReportType.Statistics ||
                 (ReportType)reportParams.ReportParams.ReportType == ReportType.Recertification ||
-                ( ( (ReportType)reportParams.ReportParams.ReportType ).IsRuleReport() && !string.IsNullOrWhiteSpace(reportParams.Filter) ))
+                (((ReportType)reportParams.ReportParams.ReportType).IsRuleReport() && !string.IsNullOrWhiteSpace(reportParams.Filter)))
             {
-
                 query.RuleWhereStatement += "{rule_head_text: {_is_null: true}}, ";
             }
             SetTenantFilter(ref query, reportParams);
-            if (( (ReportType)reportParams.ReportParams.ReportType ).IsDeviceRelatedReport())
+            if (((ReportType)reportParams.ReportParams.ReportType).IsDeviceRelatedReport())
             {
                 SetDeviceFilter(ref query, reportParams.ReportParams.DeviceFilter);
                 SetTimeFilter(ref query, reportParams.ReportParams.TimeFilter, (ReportType)reportParams.ReportParams.ReportType, reportParams.ReportParams.RecertFilter);
@@ -337,9 +341,9 @@ namespace FWO.Report.Filter
                 {
                     foreach (DeviceSelect dev in mgmt.Devices)
                     {
-                        if (dev.Selected == true)
+                        if (dev.Selected)
                         {
-                            if (first == false)
+                            if (!first)
                             {
                                 query.RuleWhereStatement += "}, {";
                             }
@@ -466,7 +470,7 @@ namespace FWO.Report.Filter
                             stop = DateTime.Now.ToString(dateFormat);
                             break;
                         default:
-                            throw new Exception($"Error: wrong time range format:" + timeFilter.TimeRangeShortcut);
+                            throw new NotSupportedException($"Error: wrong time range format:" + timeFilter.TimeRangeShortcut);
                     }
                     break;
 
@@ -477,7 +481,7 @@ namespace FWO.Report.Filter
                         SchedulerInterval.Weeks => DateTime.Now.AddDays(-7 * timeFilter.Offset).ToString(fullTimeFormat),
                         SchedulerInterval.Months => DateTime.Now.AddMonths(-timeFilter.Offset).ToString(fullTimeFormat),
                         SchedulerInterval.Years => DateTime.Now.AddYears(-timeFilter.Offset).ToString(fullTimeFormat),
-                        _ => throw new Exception($"Error: wrong time interval format:" + timeFilter.Interval.ToString()),
+                        _ => throw new NotSupportedException($"Error: wrong time interval format:" + timeFilter.Interval.ToString()),
                     };
                     stop = DateTime.Now.ToString(fullTimeFormat);
                     break;

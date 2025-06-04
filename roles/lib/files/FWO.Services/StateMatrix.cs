@@ -178,7 +178,7 @@ namespace FWO.Services
                 WfTaskType.group_modify => "reqGrpModStateMatrix",
                 WfTaskType.group_delete => "reqGrpDelStateMatrix",
                 WfTaskType.new_interface => "reqNewIntStateMatrix",
-                _ => throw new Exception($"Error: wrong task type:" + taskType.ToString()),
+                _ => throw new NotSupportedException($"Error: wrong task type:" + taskType.ToString()),
             };
 
             if(reset)

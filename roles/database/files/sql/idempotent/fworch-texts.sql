@@ -2769,6 +2769,8 @@ INSERT INTO txt VALUES ('U0015', 'English', 'The deletion of the element has bee
 INSERT INTO txt VALUES ('U0016', 'German',  'Das Fenster kann geschlossen werden.');
 INSERT INTO txt VALUES ('U0016', 'English', 'Window can be closed.');
 
+INSERT INTO txt VALUES ('U1001', 'German',  'Filter (nur in Verbindungen)');
+INSERT INTO txt VALUES ('U1001', 'English', 'Filter (in connections only');
 INSERT INTO txt VALUES ('U1002', 'German',  'Sind sie sicher, dass sie folgende Reportvorlage l&ouml;schen wollen: ');
 INSERT INTO txt VALUES ('U1002', 'English', 'Do you really want to delete report template');
 INSERT INTO txt VALUES ('U1003', 'German',  'In diesem Report werden nur vollst&auml;ndig modellierte Verbindungen ber&uuml;cksichtigt.');
@@ -3775,6 +3777,9 @@ INSERT INTO txt VALUES ('H1513', 'German',  'Nur beim App-Regel-Report: Weitere 
 INSERT INTO txt VALUES ('H1513', 'English', 'Only for App Rules Report: Further parameters to reduce the selected rules: Regard Source and/or Destination, Any or Drop rules.
     Furtheron, if not relevant parts of the rules shall be displayed or not.
 ');
+INSERT INTO txt VALUES ('H1514', 'German',  'Nur beim Soll-Ist-Report: Verbleibende Regeln analysieren: Die dem Eigent&uuml;mer zugeordneten nicht modellierten Regeln werden in Form eines App-Regel-Reports an den report angeh&auml;ngt.');
+INSERT INTO txt VALUES ('H1514', 'English', 'Only for Variance Report: Analyse remaining rules: Not modelled rules associated to the owner are appended to the report as App Rules Report.');
+
 INSERT INTO txt VALUES ('H1601', 'German',  'Die rechte Randleiste hat mehrere Reiter, die je nach Report eingeblendet werden: F&uuml;r regelbasierte Reports werden unter "Alle" s&auml;mtliche aktuell abgeholten Objekte dargestellt,
     w&auml;hrend unter "Report" nur die Objekte der im Report vorkommenden Regeln gezeigt werden.
     Im Reiter "Regel" sind dann nur die Objekte der in der Reportausgabe ausgew&auml;hlten Regeln dargestellt.<br>

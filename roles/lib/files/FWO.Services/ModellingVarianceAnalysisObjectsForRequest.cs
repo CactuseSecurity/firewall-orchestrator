@@ -300,7 +300,7 @@ namespace FWO.Services
         {
             string title = appRole.GetType() == typeof(ModellingAppZone)? userConfig.GetText("new_app_zone"): userConfig.GetText("new_app_role");
             List<WfReqElement> groupMembers = [];
-            foreach (ModellingAppServer appServer in ModellingAppServerWrapper.Resolve(( (ModellingAppRole)appRole ).AppServers))
+            foreach (ModellingAppServer appServer in ModellingAppServerWrapper.Resolve(appRole.AppServers))
             {
                 (long? networkId, bool alreadyRequested) = ResolveAppServerId(appServer, mgt);
                 groupMembers.Add(new()
@@ -371,16 +371,16 @@ namespace FWO.Services
             deletedGroupMembers = [];
             unchangedGroupMembers = [];
             unchangedGroupMembersDuringCreate = [];
-            foreach (ModellingAppServerWrapper appServer in newAppServers)
+            foreach (var appServer in newAppServers.Select(a => a.Content))
             {
-                (long? networkId, bool alreadyRequested) = ResolveAppServerId(appServer.Content, mgt);
+                (long? networkId, bool alreadyRequested) = ResolveAppServerId(appServer, mgt);
                 newGroupMembers.Add(new()
                 {
                     RequestAction = alreadyRequested ? RequestAction.addAfterCreation.ToString() : RequestAction.create.ToString(),
                     Field = ElemFieldType.source.ToString(),
-                    Name = AppServerHelper.ConstructAppServerName(appServer.Content, namingConvention),
-                    IpString = appServer.Content.Ip,
-                    IpEnd = appServer.Content.IpEnd,
+                    Name = AppServerHelper.ConstructAppServerName(appServer, namingConvention),
+                    IpString = appServer.Ip,
+                    IpEnd = appServer.IpEnd,
                     GroupName = idString,
                     NetworkId = networkId
                 });
@@ -388,43 +388,43 @@ namespace FWO.Services
                 {
                     RequestAction = RequestAction.unchanged.ToString(),
                     Field = ElemFieldType.source.ToString(),
-                    Name = appServer.Content.Name,
-                    IpString = appServer.Content.Ip,
-                    IpEnd = appServer.Content.IpEnd,
+                    Name = appServer.Name,
+                    IpString = appServer.Ip,
+                    IpEnd = appServer.IpEnd,
                     GroupName = idString,
                     NetworkId = networkId
                 });
             }
-            foreach (ModellingAppServerWrapper appServer in unchangedAppServers)
+            foreach (var appServer in unchangedAppServers.Select(a => a.Content))
             {
                 unchangedGroupMembers.Add(new()
                 {
                     RequestAction = RequestAction.unchanged.ToString(),
                     Field = ElemFieldType.source.ToString(),
-                    Name = appServer.Content.Name,
-                    IpString = appServer.Content.Ip,
-                    IpEnd = appServer.Content.IpEnd,
+                    Name = appServer.Name,
+                    IpString = appServer.Ip,
+                    IpEnd = appServer.IpEnd,
                     GroupName = idString
                 });
             }
-            foreach (ModellingAppServerWrapper appServer in deletedAppServers)
+            foreach (var appServer in deletedAppServers.Select(a => a.Content))
             {
                 unchangedGroupMembersDuringCreate.Add(new()
                 {
                     RequestAction = RequestAction.unchanged.ToString(),
                     Field = ElemFieldType.source.ToString(),
-                    Name = appServer.Content.Name,
-                    IpString = appServer.Content.Ip,
-                    IpEnd = appServer.Content.IpEnd,
+                    Name = appServer.Name,
+                    IpString = appServer.Ip,
+                    IpEnd = appServer.IpEnd,
                     GroupName = idString
                 });
                 deletedGroupMembers.Add(new()
                 {
                     RequestAction = RequestAction.delete.ToString(),
                     Field = ElemFieldType.source.ToString(),
-                    Name = appServer.Content.Name,
-                    IpString = appServer.Content.Ip,
-                    IpEnd = appServer.Content.IpEnd,
+                    Name = appServer.Name,
+                    IpString = appServer.Ip,
+                    IpEnd = appServer.IpEnd,
                     GroupName = idString
                 });
             }
@@ -432,26 +432,26 @@ namespace FWO.Services
 
         private void AnalyseAppServersForRequest(ModellingConnection conn)
         {
-            foreach (ModellingAppServerWrapper srcAppServer in conn.SourceAppServers)
+            foreach (var srcAppServer in conn.SourceAppServers.Select(a => a.Content))
             {
                 elements.Add(new()
                 {
                     RequestAction = RequestAction.create.ToString(),
                     Field = ElemFieldType.source.ToString(),
-                    Name = srcAppServer.Content.Name,
-                    IpString = srcAppServer.Content.Ip,
-                    IpEnd = srcAppServer.Content.IpEnd
+                    Name = srcAppServer.Name,
+                    IpString = srcAppServer.Ip,
+                    IpEnd = srcAppServer.IpEnd
                 });
             }
-            foreach (ModellingAppServerWrapper dstAppServer in conn.DestinationAppServers)
+            foreach (var dstAppServer in conn.DestinationAppServers.Select(a => a.Content))
             {
                 elements.Add(new()
                 {
                     RequestAction = RequestAction.create.ToString(),
                     Field = ElemFieldType.destination.ToString(),
-                    Name = dstAppServer.Content.Name,
-                    IpString = dstAppServer.Content.Ip,
-                    IpEnd = dstAppServer.Content.IpEnd
+                    Name = dstAppServer.Name,
+                    IpString = dstAppServer.Ip,
+                    IpEnd = dstAppServer.IpEnd
                 });
             }
         }

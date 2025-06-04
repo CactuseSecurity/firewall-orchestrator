@@ -227,7 +227,7 @@ namespace FWO.Middleware.Server
 				}
 				else
 				{
-					throw new Exception("Ticket system not supported yet");
+					throw new NotSupportedException("Ticket system not supported yet");
 				}
 				return await ticket.GetNewState(request.ExtRequestState);
 			}

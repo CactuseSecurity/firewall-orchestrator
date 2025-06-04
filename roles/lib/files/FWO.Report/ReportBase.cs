@@ -300,7 +300,7 @@ namespace FWO.Report
             }
             catch (Exception)
             {
-                throw new Exception("This paper kind is currently not supported. Please choose another one or \"Custom\" for a custom size.");
+                throw new NotSupportedException("This paper kind is currently not supported. Please choose another one or \"Custom\" for a custom size.");
             }
             finally
             {

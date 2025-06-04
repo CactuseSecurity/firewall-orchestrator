@@ -25,12 +25,9 @@ namespace FWO.Services
             bool ruleFound = false;
             foreach (var mgt in RelevantManagements)
             {
-                foreach(var rule in allModelledRules[mgt.Id])
+                foreach(var rule in allModelledRules[mgt.Id].Where(r => CompareRuleToConn(r, conn)))
                 {
-                    if(CompareRuleToConn(rule, conn))
-                    {
-                        ruleFound = true;
-                    }
+                    ruleFound = true;
                 }
             }
             if(!ruleFound)
@@ -113,11 +110,11 @@ namespace FWO.Services
                 if(svc.Type.Name == ObjectType.Group)
                 {
                     List<NetworkService> grpMembers = [];
-                    foreach(var member in svc.ServiceGroupFlats)
+                    foreach(var member in svc.ServiceGroupFlats.Select(m => m.Object))
                     {
-                        if (member.Object != null)
+                        if (member != null)
                         {
-                            grpMembers.AddRange(SplitPortRange(member.Object));
+                            grpMembers.AddRange(SplitPortRange(member));
                         }
                     }
                     svc.ServiceGroupFlats = Array.ConvertAll(grpMembers.ToArray(), o => new GroupFlat<NetworkService>() { Object = o });

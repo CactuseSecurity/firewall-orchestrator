@@ -57,7 +57,7 @@ namespace FWO.Middleware.Server
                 AppDataImport import = new (apiConnection, globalConfig);
                 if(!await import.Run())
                 {
-                    throw new Exception("Import App Data failed.");
+                    throw new ProcessingFailedException("Import App Data failed.");
                 }
             }
             catch (Exception exc)

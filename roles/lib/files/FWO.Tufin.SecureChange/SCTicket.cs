@@ -145,7 +145,9 @@ namespace FWO.Tufin.SecureChange
 			switch(task.TaskType)
 			{
 				case nameof(WfTaskType.access):
-					return (SCTaskType.AccessRequest, SCChangeAction.Create);
+				case nameof(WfTaskType.rule_modify):
+				case nameof(WfTaskType.rule_delete):
+					return (SCTaskType.AccessRequest, "");
 				case nameof(WfTaskType.group_create):
 					if(task.IsNetworkFlavor())
 					{
@@ -164,7 +166,7 @@ namespace FWO.Tufin.SecureChange
 					{
 						return (SCTaskType.NetworkServiceUpdate, SCChangeAction.Update);
 					}
-				default: return (SCTaskType.AccessRequest, SCChangeAction.Create);
+				default: return (SCTaskType.AccessRequest, "");
 			}
 		}
 

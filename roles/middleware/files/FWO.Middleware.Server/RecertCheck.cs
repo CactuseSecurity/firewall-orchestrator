@@ -60,7 +60,7 @@ namespace FWO.Middleware.Server
                     globalConfig.EmailTls, globalConfig.EmailUser, decryptedSecret, globalConfig.EmailSenderAddress);
                 MailKitMailer mailer = new(emailConnection);
                 JwtWriter jwtWriter = new(ConfigFile.JwtPrivateKey);
-                ApiConnection apiConnectionReporter = new GraphQlApiConnection(ConfigFile.ApiServerUri ?? throw new Exception("Missing api server url on startup."), jwtWriter.CreateJWTReporterViewall());
+                ApiConnection apiConnectionReporter = new GraphQlApiConnection(ConfigFile.ApiServerUri ?? throw new ArgumentException("Missing api server url on startup."), jwtWriter.CreateJWTReporterViewall());
 
                 foreach(var owner in owners.Where(o => IsCheckTime(o)))
                 {

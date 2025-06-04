@@ -135,6 +135,8 @@ namespace FWO.Test
             {"modify_group", "Modify Group"},
             {"delete_group", "Delete Group"},
             {"promote_task", "Promote task"},
+            {"modify_rule", "Modify Rule"},
+            {"remove_rule", "Remove Rule"},
         };
 
         public override string GetText(string key)

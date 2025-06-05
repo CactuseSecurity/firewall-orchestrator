@@ -215,37 +215,41 @@ namespace FWO.Report
             _createdOrderNumbersCount = 0;
             List<Rule> allRules = new();
 
-            Queue<(RulebaseLink link, List<Rule> rulebase)> rulebaseLinksAndTargetRulebases = BuildRulebaseLinkQueue(deviceReport.RulebaseLinks.ToList(), managementReport.Rulebases.ToList());
+            Queue<(RulebaseLink link, List<Rule> rulebase)>? rulebaseLinksAndTargetRulebases = BuildRulebaseLinkQueue(deviceReport.RulebaseLinks, managementReport.Rulebases);
 
-            // Get all rules.
-
-            foreach ((RulebaseLink link, List<Rule> rulebase) rulebaseLinkQueueItem in rulebaseLinksAndTargetRulebases)
+            if (rulebaseLinksAndTargetRulebases != null)
             {
-                int relativeOrderNumber = 0;
+                // Get all rules.
 
-                List<Rule> clonedRules = new();
-
-                foreach (Rule nextRule in rulebaseLinkQueueItem.rulebase)
+                foreach ((RulebaseLink link, List<Rule> rulebase) rulebaseLinkQueueItem in rulebaseLinksAndTargetRulebases)
                 {
-                    Rule rule = nextRule;
+                    int relativeOrderNumber = 0;
 
-                    if (allRules.Contains(nextRule))
+                    List<Rule> clonedRules = new();
+
+                    foreach (Rule nextRule in rulebaseLinkQueueItem.rulebase)
                     {
-                        rule = nextRule.CreateClone();
-                        clonedRules.Add(rule);
+                        Rule rule = nextRule;
+
+                        if (allRules.Contains(nextRule))
+                        {
+                            rule = nextRule.CreateClone();
+                            clonedRules.Add(rule);
+                        }
+
+                        relativeOrderNumber++;
+                        rule.RuleOrderNumber = relativeOrderNumber;
+                        allRules.Add(rule);
+                        TreeItem<Rule> treeItem = new TreeItem<Rule>(rule);
+                        _ruleTree.Children.Add(treeItem);
                     }
 
-                    relativeOrderNumber++;
-                    rule.RuleOrderNumber = relativeOrderNumber;
-                    allRules.Add(rule);
-                    TreeItem<Rule> treeItem = new TreeItem<Rule>(rule);
-                    _ruleTree.Children.Add(treeItem);
+                    rulebaseLinkQueueItem.rulebase.AddRange(clonedRules);
                 }
 
-                rulebaseLinkQueueItem.rulebase.AddRange(clonedRules);
+                CreateOrderNumbers(rulebaseLinksAndTargetRulebases); 
             }
 
-            CreateOrderNumbers(rulebaseLinksAndTargetRulebases);
 
             return allRules.ToArray();
         }
@@ -420,8 +424,15 @@ namespace FWO.Report
             return lastPosition;
         }
 
-        public static Queue<(RulebaseLink, List<Rule>)> BuildRulebaseLinkQueue(List<RulebaseLink> links, List<RulebaseReport> rulebases)
+        public static Queue<(RulebaseLink, List<Rule>)>? BuildRulebaseLinkQueue(RulebaseLink[] links, RulebaseReport[] rulebases)
         {
+            // Abort if their are no rulebase links or rulebases
+
+            if (links.Count() == 0 || rulebases.Count() == 0)
+            {
+                return null;
+            }
+
             Queue<(RulebaseLink, List<Rule>)> queue = new();
 
             Dictionary<int, RulebaseReport> rulebaseMap = rulebases.ToDictionary(r => r.Id);

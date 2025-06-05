@@ -306,7 +306,7 @@ namespace FWO.Report
 
                 if (rulebaseLinkQueue.TryPeek(out (RulebaseLink link, List<Rule> rulebase) nextQueueItem) && nextQueueItem.link.LinkType == 4)
                 {
-                    Rule? lastVisitedRuleOfNextRulebase = visitedRules.Where(rule => rule.RulebaseId == nextQueueItem.link.FromRulebaseId).LastOrDefault();
+                    Rule? lastVisitedRuleOfNextRulebase = visitedRules.LastOrDefault(rule => rule.RulebaseId == nextQueueItem.link.FromRulebaseId);
 
                     if (lastVisitedRuleOfNextRulebase != null && lastVisitedRuleOfNextRulebase.DisplayOrderNumberString != string.Join(".", lastPosition))
                     {
@@ -325,35 +325,25 @@ namespace FWO.Report
                                                                 List<Rule> visitedRules,
                                                                 ref int orderedLayerCounter)
         {
-
-            RulebaseLink currentLink = currentQueueItem.link;
-            List<Rule> currentRulebase = currentQueueItem.rulebase;
             List<int>? nextPosition = null;
 
             // Get next link and rulebase if they exist.
 
-            RulebaseLink? nextLink = null;
-            List<Rule>? nextRulebase = null;
-
-            if (rulebaseLinkQueue.TryPeek(out (RulebaseLink link, List<Rule> rulebase) nextQueueItem))
-            {
-                nextLink = nextQueueItem.link;
-                nextRulebase = nextQueueItem.rulebase;
-            }
+            (RulebaseLink link, List<Rule> rulebase)? nextQueueItem = TryPeekNextQueueItem(rulebaseLinkQueue);
 
             // Prepare creation of order numbers.
 
-            if (currentLink.LinkType == 2 && !currentLink.IsGlobal)
+            if (currentQueueItem.link.LinkType == 2 && !currentQueueItem.link.IsGlobal)
             {
                 orderedLayerCounter++;
                 nextPosition = new List<int> { orderedLayerCounter, 0 };
                 lastPosition = nextPosition;
             }
-            else if (currentLink.IsSection)
+            else if (currentQueueItem.link.IsSection)
             {
                 nextPosition = lastPosition;
             }
-            else if (currentLink.LinkType == 3)
+            else if (currentQueueItem.link.LinkType == 3)
             {
                 nextPosition = lastPosition.ToList();
                 nextPosition.Add(0);
@@ -361,7 +351,7 @@ namespace FWO.Report
 
                 // Handle sections in inline layers without direct rules.
 
-                if (currentRulebase.Count == 0 && nextLink.IsSection && nextLink.FromRulebaseId == currentLink.NextRulebaseId)
+                if (nextQueueItem?.link is RulebaseLink nextLink && currentQueueItem.rulebase.Count == 0 && nextLink.IsSection && nextLink.FromRulebaseId == currentQueueItem.link.NextRulebaseId)
                 {
                     lastPosition = HandleRulebaseLinkQueueItem(rulebaseLinkQueue.Dequeue(), rulebaseLinkQueue, lastPosition, visitedRules, ref orderedLayerCounter);
                 }
@@ -369,7 +359,7 @@ namespace FWO.Report
 
             // Create order number.
 
-            foreach (Rule currentRule in currentRulebase)
+            foreach (Rule currentRule in currentQueueItem.rulebase)
             {
                 // Exclude already visited rules.
 
@@ -395,26 +385,22 @@ namespace FWO.Report
 
                     // Handle inline layers.
 
-                    if (nextLink != null && ((nextLink.LinkType == 3 && nextLink.FromRuleId == currentRule.Id) || (nextLink.LinkType == 4 && nextLink.FromRulebaseId == currentRule.RulebaseId && currentRule == currentRulebase.LastOrDefault())))
+                    if (nextQueueItem?.link is RulebaseLink nextLink && (
+                                                                            (nextLink.LinkType == 3 && nextLink.FromRuleId == currentRule.Id)
+                                                                            ||
+                                                                            (nextLink.LinkType == 4 && nextLink.FromRulebaseId == currentRule.RulebaseId && currentRule == currentQueueItem.rulebase.LastOrDefault())
+                                                                        ))
                     {
                         nextQueueItem = rulebaseLinkQueue.Dequeue();
-                        nextLink = nextQueueItem.link;
-                        nextRulebase = nextQueueItem.rulebase;
 
-                        lastPosition = HandleRulebaseLinkQueueItem(nextQueueItem, rulebaseLinkQueue, lastPosition, visitedRules, ref orderedLayerCounter);
+                        lastPosition = HandleRulebaseLinkQueueItem(nextQueueItem.Value, rulebaseLinkQueue, lastPosition, visitedRules, ref orderedLayerCounter);
 
                         // Update current and next queue items in case this loop continues after handling an inline layer.
 
-                        currentQueueItem = nextQueueItem;
-                        currentLink = nextQueueItem.link;
-                        currentRulebase = currentQueueItem.rulebase;
+                        currentQueueItem = nextQueueItem.Value;
 
-                        if (rulebaseLinkQueue.TryPeek(out (RulebaseLink link, List<Rule> rulebase) _nextQueueItem))
-                        {
-                            nextQueueItem = _nextQueueItem;
-                            nextLink = nextQueueItem.link;
-                            nextRulebase = nextQueueItem.rulebase;
-                        }
+                        nextQueueItem = TryPeekNextQueueItem(rulebaseLinkQueue);
+                        
                     }
                 }
 
@@ -422,6 +408,18 @@ namespace FWO.Report
             }
 
             return lastPosition;
+        }
+
+        private static (RulebaseLink, List<Rule>)? TryPeekNextQueueItem(Queue<(RulebaseLink link, List<Rule> rulebase)> rulebaseLinkQueue)
+        {
+            if (rulebaseLinkQueue.TryPeek(out (RulebaseLink link, List<Rule> rulebase) peekedQueueItem))
+            {
+                return peekedQueueItem;
+            }
+            else
+            {
+                return null;
+            }
         }
 
         public static Queue<(RulebaseLink, List<Rule>)>? BuildRulebaseLinkQueue(RulebaseLink[] links, RulebaseReport[] rulebases)
@@ -449,7 +447,7 @@ namespace FWO.Report
             {
                 throw new InvalidOperationException("No initial RulebaseLink found.");
             }
-                
+
 
             while (current != null)
             {
@@ -459,7 +457,7 @@ namespace FWO.Report
                 {
                     throw new KeyNotFoundException($"No report found with ID {current.NextRulebaseId}");
                 }
-                    
+
 
                 queue.Enqueue((current, report.Rules.ToList()));
                 remainingLinks.Remove(current);
@@ -480,25 +478,6 @@ namespace FWO.Report
             }
 
             return queue;
-        }
-
-        /// <summary>
-        /// Normalizes float values within rule groups (grouped by rulebase ID) to ascending integers 
-        /// while preserving their relative order (e.g., [1.4, 4.645, 13.65] -> [1, 2, 3]).
-        /// </summary>
-        /// <param name="rulesByRulebase"></param>
-        private static void NormalizeOrderNumbers(Dictionary<int, List<Rule>> rulesByRulebase)
-        {
-            foreach (KeyValuePair<int, List<Rule>> rulebaseRules in rulesByRulebase)
-            {
-                int relativeOrderNumber = 1;
-
-                foreach (Rule rule in rulebaseRules.Value.ToList())
-                {
-                    rule.RuleOrderNumber = relativeOrderNumber;
-                    relativeOrderNumber++;
-                }
-            }
         }
 
         public override string SetDescription()

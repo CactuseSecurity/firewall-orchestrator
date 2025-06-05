@@ -300,6 +300,19 @@ namespace FWO.Report
             while (rulebaseLinkQueue.TryDequeue(out (RulebaseLink link, List<Rule> rulebase) currentQueueItem))
             {
                 lastPosition = HandleRulebaseLinkQueueItem(currentQueueItem, rulebaseLinkQueue, lastPosition, visitedRules, ref orderedLayerCounter);
+
+                if (rulebaseLinkQueue.TryPeek(out (RulebaseLink link, List<Rule> rulebase) nextQueueItem) && nextQueueItem.link.LinkType == 4)
+                {
+                    Rule? lastVisitedRuleOfNextRulebase = visitedRules.Where(rule => rule.RulebaseId == nextQueueItem.link.FromRulebaseId).LastOrDefault();
+
+                    if (lastVisitedRuleOfNextRulebase != null && lastVisitedRuleOfNextRulebase.DisplayOrderNumberString != string.Join(".", lastPosition))
+                    {
+                        lastPosition = lastVisitedRuleOfNextRulebase.DisplayOrderNumberString
+                                                                    .Split('.')
+                                                                    .Select(int.Parse)
+                                                                    .ToList();
+                    }
+                }
             }
         }
 
@@ -342,11 +355,32 @@ namespace FWO.Report
                 nextPosition = lastPosition;
             }
             else if (currentLink.LinkType == 3)
-            // else if (currentLink.LinkType == 3)
             {
                 nextPosition = lastPosition.ToList();
                 nextPosition.Add(0);
                 lastPosition = nextPosition;
+
+                // Handle sections in inline layers without direct rules.
+
+                if (currentRulebase.Count == 0 && nextLink.IsSection && nextLink.FromRulebaseId == currentLink.NextRulebaseId)
+                {
+                    nextQueueItem = rulebaseLinkQueue.Dequeue();
+                    nextLink = nextQueueItem.link;
+                    nextRulebase = nextQueueItem.rulebase;
+
+                    lastPosition = HandleRulebaseLinkQueueItem(nextQueueItem, rulebaseLinkQueue, lastPosition, visitedRules, ref orderedLayerCounter);
+
+                    currentQueueItem = nextQueueItem;
+                    currentLink = nextQueueItem.link;
+                    currentRulebase = currentQueueItem.rulebase;
+
+                    if (rulebaseLinkQueue.TryPeek(out (RulebaseLink link, List<Rule> rulebase) _nextQueueItem))
+                    {
+                        nextQueueItem = _nextQueueItem;
+                        nextLink = nextQueueItem.link;
+                        nextRulebase = nextQueueItem.rulebase;
+                    }
+                }
             }
 
             // Create Order Number.
@@ -375,7 +409,8 @@ namespace FWO.Report
 
                     lastPosition = nextPosition;
 
-                    if (nextLink != null && nextLink.LinkType == 3 && nextLink.FromRuleId == currentRule.Id)
+
+                    if (nextLink != null && ((nextLink.LinkType == 3 && nextLink.FromRuleId == currentRule.Id) || (nextLink.LinkType == 4 && nextLink.FromRulebaseId == currentRule.RulebaseId && currentRule == currentRulebase.LastOrDefault())))
                     {
                         nextQueueItem = rulebaseLinkQueue.Dequeue();
                         nextLink = nextQueueItem.link;
@@ -392,21 +427,6 @@ namespace FWO.Report
                             nextQueueItem = _nextQueueItem;
                             nextLink = nextQueueItem.link;
                             nextRulebase = nextQueueItem.rulebase;
-                        }
-
-                        // Handle sections in inline layers without direct rules.
-
-                        if (currentRulebase.Count == 0 && nextLink.IsSection && nextLink.FromRulebaseId == currentLink.NextRulebaseId)
-                        {
-                            nextQueueItem = rulebaseLinkQueue.Dequeue();
-                            nextLink = nextQueueItem.link;
-                            nextRulebase = nextQueueItem.rulebase;
-
-                            lastPosition = HandleRulebaseLinkQueueItem(nextQueueItem, rulebaseLinkQueue, lastPosition, visitedRules, ref orderedLayerCounter);
-
-                            currentQueueItem = nextQueueItem;
-                            currentLink = nextQueueItem.link;
-                            currentRulebase = currentQueueItem.rulebase;
                         }
                     }
                 }

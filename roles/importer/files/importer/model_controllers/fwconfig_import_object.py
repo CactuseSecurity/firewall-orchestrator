@@ -6,7 +6,6 @@ import json
 from fwo_log import ChangeLogger, getFwoLogger
 from model_controllers.import_state_controller import ImportStateController
 from model_controllers.fwconfig_normalized_controller import FwConfigNormalized
-from model_controllers.fwconfig_import_base import FwConfigImportBase
 from models.networkobject import NetworkObjectForImport
 from models.serviceobject import ServiceObjectForImport
 import fwo_const
@@ -14,7 +13,7 @@ from services.service_provider import ServiceProvider
 from services.enums import Services
 
 # this class is used for importing a config into the FWO API
-class FwConfigImportObject(FwConfigImportBase):
+class FwConfigImportObject():
 
     # @root_validator(pre=True)
     # def custom_initialization(cls, values):
@@ -26,7 +25,6 @@ class FwConfigImportObject(FwConfigImportBase):
     #     return values
     
     def __init__(self, importState: ImportStateController, config: FwConfigNormalized):
-        super().__init__(importState, config)
 
         self.NetworkObjectTypeMap = self.GetNetworkObjTypeMap()
         self.ServiceObjectTypeMap = self.GetServiceObjTypeMap()
@@ -34,11 +32,9 @@ class FwConfigImportObject(FwConfigImportBase):
         self.ProtocolMap = self.GetProtocolMap()
         self.ColorMap = self.GetColorMap()
 
-        self.group_flats_mapper = ServiceProvider().get_service(Services.GROUP_FLATS_MAPPER)
-        self.group_flats_mapper.initialize(importState, config)
-        self.prev_group_flats_mapper = ServiceProvider().get_service(Services.GROUP_FLATS_MAPPER)
-        self.prev_group_flats_mapper.initialize(importState, config)
-
+        self.group_flats_mapper = ServiceProvider().get_service(Services.GROUP_FLATS_MAPPER, importState, config)
+        self.prev_group_flats_mapper = ServiceProvider().get_service(Services.GROUP_FLATS_MAPPER, importState, config)
+        self.uid2id_mapper = ServiceProvider().get_service(Services.UID2ID_MAPPER, importState)
 
 
     def updateObjectDiffs(self, prevConfig: FwConfigNormalized):

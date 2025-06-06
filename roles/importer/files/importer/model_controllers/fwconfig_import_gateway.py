@@ -3,19 +3,22 @@ from typing import List
 
 from model_controllers.import_state_controller import ImportStateController
 from model_controllers.fwconfig_normalized_controller import FwConfigNormalized
-from model_controllers.fwconfig_import_base import FwConfigImportBase
 from fwo_log import getFwoLogger
 from model_controllers.rulebase_link_controller import RulebaseLinkController
 from models.rulebase_link import RulebaseLink
 # from model_controllers.rulebase_link_uid_based_controller import RulebaseLink, RulebaseLinkUidBasedController
 
 # this class is used for importing a config into the FWO API
-class FwConfigImportGateway(FwConfigImportBase):
+class FwConfigImportGateway():
 
     ImportDetails: ImportStateController
+    NormalizedConfig: FwConfigNormalized
 
     def __init__(self, importState: ImportStateController, config: FwConfigNormalized):
-      super().__init__(importState, config)
+      # super().__init__(importState, config)
+      self.ImportDetails = importState
+      self.NormalizedConfig = config
+
 
     def update_gateway_diffs(self, prev_config: FwConfigNormalized):
         # add gateway details:

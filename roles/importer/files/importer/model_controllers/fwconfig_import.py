@@ -14,14 +14,6 @@ from model_controllers.fwconfig_import_rule import FwConfigImportRule
 from model_controllers.fwconfig_import_gateway import FwConfigImportGateway
 from model_controllers.rule_enforced_on_gateway_controller import RuleEnforcedOnGatewayController
 
-"""
-Class hierarchy:
-    FwConfigImport(FwConfigImportObject, FwconfigImportRule)
-    FwconfigImportObject(FwConfigImportBase)
-    FwConfigImportRule(FwConfigImportBase)
-    FwConfigImportGateway(FwConfigImportBase)
-    FwConfigImportBase(FwConfigNormalized)
-"""
 
 # this class is used for importing a config into the FWO API
 class FwConfigImport(FwConfigImportObject, FwConfigImportRule, FwConfigImportGateway, FwoApi):

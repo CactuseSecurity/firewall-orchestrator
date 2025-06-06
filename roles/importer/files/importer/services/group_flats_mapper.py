@@ -12,23 +12,14 @@ class GroupFlatsMapper:
     This class is responsible for mapping group objects to their fully resolved members.
     """
 
+    import_state: ImportStateController = None
+    normalized_config: FwConfigNormalized = None
+
     def __init__(self):
         self.logger = getFwoLogger()
         self.network_object_flats = {}
         self.service_object_flats = {}
         self.user_flats = {}
-
-    def initialize(self, import_state_controller: ImportStateController, normalized_config: FwConfigNormalized = None):
-        """
-        Initialize the GroupFlatsMapper with the import state controller and normalized configuration.
-
-        Args:
-            import_state_controller (ImportStateController): The import state controller instance.
-            normalized_config (FwConfigNormalized): The normalized configuration instance.
-        """
-        
-        self.import_state_controller = import_state_controller
-        self.normalized_config = normalized_config
 
 
     def log_error(self, message: str):
@@ -39,9 +30,10 @@ class GroupFlatsMapper:
             message (str): The error message to log.
         """
         self.logger.error(message)
-        self.import_state_controller.appendErrorString(message)
-        self.import_state_controller.increaseErrorCounterByOne()
+        self.import_state.appendErrorString(message)
+        self.import_state.increaseErrorCounterByOne()
     
+
     def init_config(self, normalized_config: FwConfigNormalized):
         self.normalized_config = normalized_config
         self.network_object_flats = {}

@@ -758,18 +758,20 @@ INSERT INTO txt VALUES ('app_roles_with_diffs', 'German',   'App Rollen mit Abwe
 INSERT INTO txt VALUES ('app_roles_with_diffs', 'English',  'App Roles with difference');
 INSERT INTO txt VALUES ('remaining_rules',      'German',   'Verbleibende Regeln');
 INSERT INTO txt VALUES ('remaining_rules',      'English',  'Remaining rules');
-INSERT INTO txt VALUES ('implemented',          'German',	'implementiert');
-INSERT INTO txt VALUES ('implemented',          'English',  'implemented');
-INSERT INTO txt VALUES ('not_implemented',      'German',	'nicht implementiert');
-INSERT INTO txt VALUES ('not_implemented',      'English',  'not implemented');
-INSERT INTO txt VALUES ('with_diffs',           'German',	'mit Abweichungen');
-INSERT INTO txt VALUES ('with_diffs',           'English',  'with differences');
+INSERT INTO txt VALUES ('implemented',          'German',	'Implementiert');
+INSERT INTO txt VALUES ('implemented',          'English',  'Implemented');
+INSERT INTO txt VALUES ('not_implemented',      'German',	'Nicht Implementiert');
+INSERT INTO txt VALUES ('not_implemented',      'English',  'Not Implemented');
+INSERT INTO txt VALUES ('with_diffs',           'German',	'Mit Abweichungen');
+INSERT INTO txt VALUES ('with_diffs',           'English',  'With Differences');
 INSERT INTO txt VALUES ('missing_app_servers', 	'German',	'Fehlende App Server auf Device');
 INSERT INTO txt VALUES ('missing_app_servers', 	'English',	'Missing App Servers on Device');
 INSERT INTO txt VALUES ('surplus_app_servers', 	'German',	'&Uuml;bersch&uuml;ssige App Server auf Device');
 INSERT INTO txt VALUES ('surplus_app_servers', 	'English',	'Surplus App Servers on Device');
 INSERT INTO txt VALUES ('missing_objects',		'German', 	'Fehlende Objekte auf Device');
 INSERT INTO txt VALUES ('missing_objects',		'English', 	'Missing Objects on Device');
+INSERT INTO txt VALUES ('fully_modelled',		'German', 	'Vollst&auml;ndig Modelliert');
+INSERT INTO txt VALUES ('fully_modelled',		'English', 	'Fully Modelled');
 
 -- schedule
 INSERT INTO txt VALUES ('schedule', 			'German',	'Terminplan');

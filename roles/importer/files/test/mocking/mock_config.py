@@ -180,7 +180,8 @@ class MockFwConfigNormalized(FwConfigNormalized):
                 to_rulebase_uid = initial_rulebase_uid,
                 link_type = "ordered",
                 is_initial = True,
-                is_global = False
+                is_global = False,
+                is_section = False
             )
         )
 
@@ -204,7 +205,8 @@ class MockFwConfigNormalized(FwConfigNormalized):
                     to_rulebase_uid = self.rulebases[index].uid,
                     link_type = "ordered",
                     is_initial = False,
-                    is_global = False
+                    is_global = False,
+                    is_section = False
                 )
             )
 

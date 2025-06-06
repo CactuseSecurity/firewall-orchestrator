@@ -52,12 +52,7 @@ namespace FWO.Middleware.Server
             }
             catch (Exception exc)
             {
-                Log.WriteError("Import Change Notify", $"Ran into exception: ", exc);
-                string titletext = "Error encountered while trying to Notify import Change";
-                Log.WriteAlert($"source: \"{GlobalConst.kImportChangeNotify}\"",
-                    $"userId: \"0\", title: \"{titletext}\", description: \"{exc}\", alertCode: \"{AlertCode.ImportChangeNotify}\"");
-                await AddLogEntry(1, globalConfig.GetText("imp_change_notification"), globalConfig.GetText("ran_into_exception") + exc.Message, GlobalConst.kImportChangeNotify);
-                await SetAlert(globalConfig.GetText("imp_change_notification"), titletext, GlobalConst.kImportChangeNotify, AlertCode.ImportChangeNotify);
+                await LogErrorsWithAlert(1, "Import Change Notify", GlobalConst.kImportChangeNotify, AlertCode.ImportChangeNotify, exc);
             }
         }
     }

@@ -151,7 +151,7 @@ namespace FWO.Middleware.Server
                         SchedulerInterval.Seconds => startTime.AddSeconds(SleepTime),
                         _ => throw new NotSupportedException($"Error: wrong time interval format:" + SchedulerInterval.ToString())
                     };
-                    }
+                }
             }
             catch (Exception exception)
             {
@@ -173,8 +173,26 @@ namespace FWO.Middleware.Server
         }
 
 		/// <summary>
-		/// Write Log to Database. Can be overwritten, if more than basic columns are to be filled
-		/// </summary>
+        /// Write Log and alert
+        /// </summary>
+        protected async Task LogErrorsWithAlert(int severity, string title, string source, AlertCode alertCode, Exception exc)
+        {
+            try
+            {
+                Log.WriteError(title, $"Ran into exception: ", exc);
+                string titletext = $"Error encountered while trying {title}";
+                await AddLogEntry(severity, title, globalConfig.GetText("ran_into_exception") + exc.Message, source);
+                await SetAlert(title, titletext, source, alertCode);
+            }
+            catch (Exception exception)
+            {
+                Log.WriteError(title, $"something went really wrong", exception);
+            }
+       }
+
+		/// <summary>
+        /// Write Log to Database. Can be overwritten, if more than basic columns are to be filled
+        /// </summary>
         protected virtual async Task AddLogEntry(int severity, string cause, string description, string source, int? mgmtId = null)
         {
             try
@@ -234,10 +252,10 @@ namespace FWO.Middleware.Server
                 {
                     alertId = returnIds[0].NewIdLong;
                     // Acknowledge older alert for same problem
-                    Alert? existingAlert = openAlerts.FirstOrDefault(x => x.AlertCode == alertCode && 
+                    Alert? existingAlert = openAlerts.FirstOrDefault(x => x.AlertCode == alertCode &&
                         (x.ManagementId == additionalAlertData.MgmtId || (x.ManagementId == null && additionalAlertData.MgmtId == null))
                         && (!compareDesc || x.Description == description));
-                    if(existingAlert != null)
+                    if (existingAlert != null)
                     {
                         await AcknowledgeAlert(existingAlert.Id);
                     }
@@ -251,6 +269,7 @@ namespace FWO.Middleware.Server
             catch(Exception exc)
             {
                 Log.WriteError("Write Alert", $"Could not write Alert for {source}: ", exc);
+                LogAlert(title, description, source, alertCode, additionalAlertData.MgmtId, additionalAlertData.JsonData, additionalAlertData.DevId);
             }
             return alertId;
         }

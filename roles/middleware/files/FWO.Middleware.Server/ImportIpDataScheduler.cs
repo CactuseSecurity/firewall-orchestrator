@@ -14,9 +14,11 @@ namespace FWO.Middleware.Server
 	/// </summary>
     public class ImportIpDataScheduler : SchedulerBase
     {
+        private const string LogMessageTitle = "Import Area IP Data";
+
 		/// <summary>
-		/// Async Constructor needing the connection
-		/// </summary>
+        /// Async Constructor needing the connection
+        /// </summary>
         public static async Task<ImportIpDataScheduler> CreateAsync(ApiConnection apiConnection)
         {
             GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(apiConnection, true);
@@ -51,16 +53,12 @@ namespace FWO.Middleware.Server
                 List<string> FailedImports = await import.Run();
                 if (FailedImports.Count > 0)
                 {
-                    throw new ProcessingFailedException($"Import Area IP Data failed for {string.Join(", ", FailedImports)}.");
+                    throw new ProcessingFailedException($"{LogMessageTitle} failed for {string.Join(", ", FailedImports)}.");
                 }
             }
             catch (Exception exc)
             {
-                Log.WriteError("Import Area IP Data", $"Ran into exception: ", exc);
-                Log.WriteAlert($"source: \"{GlobalConst.kImportAreaSubnetData}\"",
-                    $"userId: \"0\", title: \"Error encountered while trying to import Area IP Data\", description: \"{exc}\", alertCode: \"{AlertCode.ImportAreaSubnetData}\"");
-                await AddLogEntry(1, globalConfig.GetText("scheduled_subnet_import"), globalConfig.GetText("ran_into_exception") + exc.Message, GlobalConst.kImportAreaSubnetData);
-                await SetAlert("Import Area IP Data failed", exc.Message, GlobalConst.kImportAreaSubnetData, AlertCode.ImportAreaSubnetData);
+                await LogErrorsWithAlert(2, LogMessageTitle, GlobalConst.kImportAreaSubnetData, AlertCode.ImportAreaSubnetData, exc);
             }
         }
     }

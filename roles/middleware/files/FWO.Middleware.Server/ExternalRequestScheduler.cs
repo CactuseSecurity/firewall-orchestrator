@@ -48,19 +48,15 @@ namespace FWO.Middleware.Server
             try
             {
                 ExternalRequestSender externalRequestSender = new(apiConnection, globalConfig);
-                if(!await externalRequestSender.Run())
+                List<string> FailedRequests = await externalRequestSender.Run();
+                if (FailedRequests.Count > 0)
                 {
-                    throw new ProcessingFailedException("External Request failed.");
+                    throw new ProcessingFailedException($"External Request(s) failed: {string.Join(". ", FailedRequests)}.");
                 }
             }
             catch (Exception exc)
             {
-                Log.WriteError("External Request", $"Ran into exception: ", exc);
-                string titletext = "Error encountered while trying to send External Request";
-                Log.WriteAlert($"source: \"{GlobalConst.kExternalRequest}\"",
-                    $"userId: \"0\", title: \"{titletext}\", description: \"{exc}\", alertCode: \"{AlertCode.ExternalRequest}\"");
-                await AddLogEntry(1, globalConfig.GetText("external_request"), globalConfig.GetText("ran_into_exception") + exc.Message, GlobalConst.kExternalRequest);
-                await SetAlert(globalConfig.GetText("external_request"), titletext, GlobalConst.kExternalRequest, AlertCode.ExternalRequest);
+                await LogErrorsWithAlert(1, "External Request", GlobalConst.kExternalRequest, AlertCode.ExternalRequest, exc);
             }
         }
     }

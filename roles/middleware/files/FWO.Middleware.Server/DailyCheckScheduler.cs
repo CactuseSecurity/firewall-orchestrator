@@ -16,9 +16,11 @@ namespace FWO.Middleware.Server
 	/// </summary>
     public class DailyCheckScheduler : SchedulerBase
     {
+        private const string LogMessageTitle = "Daily Check";
+
 		/// <summary>
-		/// Async Constructor needing the connection
-		/// </summary>
+        /// Async Constructor needing the connection
+        /// </summary>
         public static async Task<DailyCheckScheduler> CreateAsync(ApiConnection apiConnection)
         {
             GlobalConfig config = await GlobalConfig.ConstructAsync(apiConnection, true);
@@ -63,15 +65,13 @@ namespace FWO.Middleware.Server
             }
             catch(Exception exc)
             {
-                Log.WriteError("DailyCheck", $"Ran into exception: ", exc);
-                await AddLogEntry(2, globalConfig.GetText("daily_checks"), globalConfig.GetText("ran_into_exception") + exc.Message, GlobalConst.kDailyCheck);
-                await SetAlert(globalConfig.GetText("daily_checks"), globalConfig.GetText("ran_into_exception") + exc.Message,GlobalConst.kDailyCheck, AlertCode.DailyCheckError);
+                await LogErrorsWithAlert(2, LogMessageTitle, GlobalConst.kDailyCheck, AlertCode.DailyCheckError, exc);
             }
         }
 
         private async Task RefreshRecert()
         {
-            Log.WriteDebug("DailyCheck scheduler", "Refresh recert ownerships");
+            Log.WriteDebug(LogMessageTitle, "Refresh recert ownerships");
             await RecertRefresh.RecalcRecerts(apiConnection);
         }
 
@@ -79,7 +79,7 @@ namespace FWO.Middleware.Server
         {
             if(globalConfig.RecCheckActive)
             {
-                RecertCheck recertCheck = new RecertCheck(apiConnection, globalConfig);
+                RecertCheck recertCheck = new (apiConnection, globalConfig);
                 int emailsSent = await recertCheck.CheckRecertifications();
                 await AddLogEntry(0, globalConfig.GetText("daily_recert_check"), emailsSent + globalConfig.GetText("emails_sent"), GlobalConst.kDailyCheck);
             }

@@ -312,7 +312,7 @@ namespace FWO.Middleware.Server
 				contentString.Contains("\"object_updated_status\":\"NEW\"") || contentString.Contains("object_updated_status\\u0022:\\u0022NEW\\u0022");
 		}
 
-		private async Task CreateExtRequest( WfTicket ticket, List<WfReqTask> tasks, List<WfReqTask> handledTasks, int waitCycles)
+		private async Task CreateExtRequest(WfTicket ticket, List<WfReqTask> tasks, List<WfReqTask> handledTasks, int waitCycles)
 		{
 			string taskContent = await ConstructContent(tasks, ticket.Requester);
 			Dictionary<string, List<int>>? handledTaskNumbers;
@@ -380,7 +380,7 @@ namespace FWO.Middleware.Server
 			{
 				ticket = new SCTicket(actSystem)
 				{
-					Subject = ConstructSubject(reqTasks[0]),
+					Subject = ConstructSubject(reqTasks.Count > 0 ? reqTasks[0] : throw new ArgumentException("No Task given")),
 					Priority = SCTicketPriority.Low.ToString(), // todo: handling for manually handled requests (e.g. access)
 					Requester = requester?.Name ?? ""
 				};
@@ -401,10 +401,10 @@ namespace FWO.Middleware.Server
 
 		private string ConstructSubject(WfReqTask reqTask)
 		{
-			string appId = reqTask != null && reqTask?.Owners.Count > 0 ? (reqTask?.Owners.FirstOrDefault()?.Owner.ExtAppId + ": " ?? "") : "";
-			string onMgt = UserConfig.GetText("on") + reqTask?.OnManagement?.Name + "(" + reqTask?.OnManagement?.Id + ")";
-			string grpName = " " + reqTask?.GetAddInfoValue(AdditionalInfoKeys.GrpName);
-            return appId + reqTask?.TaskType switch
+			string appId = reqTask.Owners.Count > 0 ? (reqTask.Owners.FirstOrDefault()?.Owner.ExtAppId + ": " ?? "") : "";
+			string onMgt = UserConfig.GetText("on") + reqTask.OnManagement?.Name + "(" + reqTask.OnManagement?.Id + ")";
+			string grpName = " " + reqTask.GetAddInfoValue(AdditionalInfoKeys.GrpName);
+            return appId + reqTask.TaskType switch
             {
                 nameof(WfTaskType.access) => UserConfig.GetText("create_rule") + onMgt,
 				nameof(WfTaskType.rule_modify) => UserConfig.GetText("modify_rule") + onMgt,

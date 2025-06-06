@@ -41,7 +41,7 @@ namespace FWO.Middleware.Server
             }
             else
             {
-                Log.WriteInfo(LogMessageTitle, $"No valid network data found in any of the following import files {importfilePathAndNames}. No changes were made.");
+                Log.WriteInfo(LogMessageTitle, $"No valid network data found in any of the following import files {string.Join(", ", importfilePathAndNames)}. No changes were made.");
             }
             return FailedImports;
         }
@@ -57,8 +57,8 @@ namespace FWO.Middleware.Server
             {
                 Log.WriteInfo(LogMessageTitle, $"Importing Area Network Data from file {importfilePathAndName}.json");
                 ReadFile(importfilePathAndName + ".json");
-                ModellingImportNwData? nwData = JsonSerializer.Deserialize<ModellingImportNwData>(importFile) ?? throw new JsonException("File could not be parsed.");
-                if (nwData != null)
+                ModellingImportNwData nwData = JsonSerializer.Deserialize<ModellingImportNwData>(importFile) ?? throw new JsonException("File could not be parsed.");
+                if (nwData.Areas.Count > 0)
                 {
                     allNwData.Add(ConvertNwDataToRanges(nwData));
                 }

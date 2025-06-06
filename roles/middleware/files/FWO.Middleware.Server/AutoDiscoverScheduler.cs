@@ -16,10 +16,11 @@ namespace FWO.Middleware.Server
     public class AutoDiscoverScheduler : SchedulerBase
     {
         private long? lastMgmtAlertId;
+        private const string LogMessageTitle = "Autodiscovery";
 
 		/// <summary>
-		/// Async Constructor needing the connection
-		/// </summary>
+        /// Async Constructor needing the connection
+        /// </summary>
         public static async Task<AutoDiscoverScheduler> CreateAsync(ApiConnection apiConnection)
         {
             GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(apiConnection, true);
@@ -74,7 +75,7 @@ namespace FWO.Middleware.Server
                     }
                     catch (Exception excMgm)
                     {
-                        Log.WriteError("Autodiscovery", $"Ran into exception while auto-discovering management {superManagement.Name} (id: {superManagement.Id}) ", excMgm);
+                        Log.WriteError(LogMessageTitle, $"Ran into exception while auto-discovering management {superManagement.Name} (id: {superManagement.Id}) ", excMgm);
                         ActionItem actionException = new()
                         {
                             Number = 0,
@@ -92,10 +93,7 @@ namespace FWO.Middleware.Server
             }
             catch (Exception exc)
             {
-                Log.WriteError("Autodiscovery", $"Ran into exception: ", exc);
-                Log.WriteAlert($"source: \"{GlobalConst.kAutodiscovery}\"",
-                    $"userId: \"0\", title: \"Error encountered while trying to autodiscover\", description: \"{exc}\", alertCode: \"{AlertCode.Autodiscovery}\"");
-                await AddLogEntry(1, globalConfig.GetText("scheduled_autodiscovery"), globalConfig.GetText("ran_into_exception") + exc.Message, GlobalConst.kAutodiscovery);
+                await LogErrorsWithAlert(1, LogMessageTitle, GlobalConst.kAutodiscovery, AlertCode.Autodiscovery, exc);
             }
         }
 

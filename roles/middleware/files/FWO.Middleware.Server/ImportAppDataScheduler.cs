@@ -15,9 +15,12 @@ namespace FWO.Middleware.Server
 	/// </summary>
     public class ImportAppDataScheduler : SchedulerBase
     {
+        private const string LogMessageTitleImport = "Import App Data";
+        private const string LogMessageTitleAdjust = "Adjust App Server Names";
+
 		/// <summary>
-		/// Async Constructor needing the connection
-		/// </summary>
+        /// Async Constructor needing the connection
+        /// </summary>
         public static async Task<ImportAppDataScheduler> CreateAsync(ApiConnection apiConnection)
         {
             GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(apiConnection, true);
@@ -55,16 +58,15 @@ namespace FWO.Middleware.Server
             try
             {
                 AppDataImport import = new (apiConnection, globalConfig);
-                await import.Run();
+                List<string> FailedImports = await import.Run();
+                if (FailedImports.Count > 0)
+                {
+                    throw new ProcessingFailedException($"{LogMessageTitleImport} failed for {string.Join(", ", FailedImports)}.");
+                }
             }
             catch (Exception exc)
             {
-                Log.WriteError("Import App Data", $"Ran into exception: ", exc);
-                string titletext = "Error encountered while trying to import App Data";
-                Log.WriteAlert($"source: \"{GlobalConst.kImportAppData}\"",
-                    $"userId: \"0\", title: \"{titletext}\", description: \"{exc}\", alertCode: \"{AlertCode.ImportAppData}\"");
-                await AddLogEntry(1, globalConfig.GetText("scheduled_app_import"), globalConfig.GetText("ran_into_exception") + exc.Message, GlobalConst.kImportAppData);
-                await SetAlert(globalConfig.GetText("scheduled_app_import"), titletext, GlobalConst.kImportAppData, AlertCode.ImportAppData);
+                await LogErrorsWithAlert(2, LogMessageTitleImport, GlobalConst.kImportAppData, AlertCode.ImportAppData, exc);
             }
         }
 
@@ -81,12 +83,7 @@ namespace FWO.Middleware.Server
             }
             catch (Exception exc)
             {
-                Log.WriteError("Check App Server Names", $"Ran into exception: ", exc);
-                string titletext = "Error encountered while trying to adjust App Server Names";
-                Log.WriteAlert($"source: \"{GlobalConst.kAdjustAppServerNames}\"",
-                    $"userId: \"0\", title: \"{titletext}\", description: \"{exc}\", alertCode: \"{AlertCode.AdjustAppServerNames}\"");
-                await AddLogEntry(1, globalConfig.GetText("adjust_app_server_name"), globalConfig.GetText("ran_into_exception") + exc.Message, GlobalConst.kAdjustAppServerNames);
-                await SetAlert(globalConfig.GetText("adjust_app_server_name"), titletext, GlobalConst.kAdjustAppServerNames, AlertCode.AdjustAppServerNames);
+                await LogErrorsWithAlert(1, LogMessageTitleAdjust, GlobalConst.kAdjustAppServerNames, AlertCode.AdjustAppServerNames, exc);
             }
         }
     }

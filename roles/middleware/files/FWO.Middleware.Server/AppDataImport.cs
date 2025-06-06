@@ -47,7 +47,7 @@ namespace FWO.Middleware.Server
 		/// <summary>
 		/// Run the App Data Import
 		/// </summary>
-		public async Task Run()
+		public async Task<List<string>> Run()
 		{
 			NamingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(globalConfig.ModNamingConvention) ?? new();
 			List<string> importfilePathAndNames = JsonSerializer.Deserialize<List<string>>(globalConfig.ImportAppDataPath) ?? throw new JsonException("Config Data could not be deserialized.");
@@ -55,14 +55,16 @@ namespace FWO.Middleware.Server
 			userConfig.User.Name = Roles.MiddlewareServer;
 			userConfig.AutoReplaceAppServer = globalConfig.AutoReplaceAppServer;
 			await InitLdap();
+			List<string> failedImports = [];
 			foreach (var importfilePathAndName in importfilePathAndNames)
 			{
 				if (!RunImportScript(importfilePathAndName + ".py"))
 				{
 					Log.WriteInfo(LogMessageTitle, $"Script {importfilePathAndName}.py failed but trying to import from existing file.");
 				}
-				await ImportSingleSource(importfilePathAndName + ".json");
+				await ImportSingleSource(importfilePathAndName + ".json", failedImports);
 			}
+			return failedImports;
 		}
 
 		private async Task InitLdap()
@@ -89,7 +91,7 @@ namespace FWO.Middleware.Server
             }
 		}
 
-		private async Task<bool> ImportSingleSource(string importfileName)
+		private async Task ImportSingleSource(string importfileName, List<string> failedImports)
 		{
 			try
 			{
@@ -104,9 +106,8 @@ namespace FWO.Middleware.Server
 			catch (Exception exc)
 			{
 				Log.WriteError(LogMessageTitle, $"File {importfileName} could not be processed.", exc);
-				return false;
+				failedImports.Add(importfileName);
 			}
-			return true;
 		}
 
 		private async Task ImportApps(string importfileName)

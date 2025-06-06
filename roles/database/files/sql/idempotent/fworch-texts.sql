@@ -1497,16 +1497,10 @@ INSERT INTO txt VALUES ('show_history',		    'German', 	'&Auml;nderungshistorie'
 INSERT INTO txt VALUES ('show_history',		    'English', 	'Show History');
 INSERT INTO txt VALUES ('request_fw_change',    'German', 	'Firewall-&Auml;nderungen beantragen');
 INSERT INTO txt VALUES ('request_fw_change',    'English', 	'Request firewall changes');
-INSERT INTO txt VALUES ('send_ext_request',     'German', 	'Versende externen Auftrag');
-INSERT INTO txt VALUES ('send_ext_request',     'English', 	'Send external request');
 INSERT INTO txt VALUES ('ext_ticket_auth',      'German', 	'Authorization-Header-String');
 INSERT INTO txt VALUES ('ext_ticket_auth',      'English', 	'Authorization header string');
 INSERT INTO txt VALUES ('ext_ticket_lookup_id', 'German', 	'Externe Nutzer Id ermitteln');
 INSERT INTO txt VALUES ('ext_ticket_lookup_id', 'English', 	'Lookup external user Id');
-INSERT INTO txt VALUES ('ext_ticket_fail',      'German', 	'Fehler beim Erzeugen des externen Tickets');
-INSERT INTO txt VALUES ('ext_ticket_fail',      'English', 	'Error while creating external ticket');
-INSERT INTO txt VALUES ('ext_ticket_success',   'German', 	'Externes Ticket erfolgreich erzeugt');
-INSERT INTO txt VALUES ('ext_ticket_success',   'English', 	'External ticket successfully created');
 INSERT INTO txt VALUES ('ext_ticket_number',    'German', 	'Externe Ticket-Nummer');
 INSERT INTO txt VALUES ('ext_ticket_number',    'English', 	'External ticket number');
 INSERT INTO txt VALUES ('changed_by',		    'German', 	'Ge&auml;ndert von');

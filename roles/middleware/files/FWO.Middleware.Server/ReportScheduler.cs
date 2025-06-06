@@ -27,7 +27,6 @@ namespace FWO.Middleware.Server
         private readonly ApiConnection apiConnectionScheduler;
         private ApiConnection? apiConnectionUserContext;
         private UserConfig? userConfig;
-        private readonly GraphQlApiSubscription<ReportSchedule[]> scheduledReportsSubscription;
         private readonly JwtWriter jwtWriter;
         private const string LogMessageTitle = "Report Scheduling";
 
@@ -52,7 +51,7 @@ namespace FWO.Middleware.Server
             connectedLdaps = apiConnectionScheduler.SendQueryAsync<List<Ldap>>(AuthQueries.getLdapConnections).Result;
             connectedLdapsSubscription.OnUpdate += OnLdapUpdate;
 
-            scheduledReportsSubscription = apiConnectionScheduler.GetSubscription<ReportSchedule[]>(ApiExceptionHandler, OnScheduleUpdate, ReportQueries.subscribeReportScheduleChanges);
+            apiConnectionScheduler.GetSubscription<ReportSchedule[]>(ApiExceptionHandler, OnScheduleUpdate, ReportQueries.subscribeReportScheduleChanges);
 
             StartScheduleTimer(1, DateTime.Now);
         }

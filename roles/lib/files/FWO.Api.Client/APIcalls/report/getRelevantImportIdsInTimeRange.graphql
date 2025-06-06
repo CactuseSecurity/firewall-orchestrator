@@ -2,6 +2,7 @@ query getRelevantImportIdsInTimeRange(
   $start_time: timestamp!
   $end_time: timestamp!
   $mgmIds: [Int!]
+  $changesFound: Boolean
 ) {
   import_control(
     where: {
@@ -18,6 +19,7 @@ query getRelevantImportIdsInTimeRange(
           is_pure_routing_device: { _eq: false }
         }
       }
+      changes_found: { _eq: $changesFound }
     }
     order_by: { stop_time: asc }
   ) {

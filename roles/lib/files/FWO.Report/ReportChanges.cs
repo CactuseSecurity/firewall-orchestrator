@@ -1,4 +1,4 @@
-﻿using FWO.Api.Client;
+using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Config.Api;
@@ -37,7 +37,7 @@ namespace FWO.Report
             foreach (int mgmId in Query.RelevantManagementIds)
             {
                 List<long> importIdLastBeforeRange = await GetRelevantImportIds(apiConnection, startTime, mgmId);
-                List<long> importIdsInRange = await GetImportIdsInTimeRange(apiConnection, startTime, stopTime, mgmId);
+                List<long> importIdsInRange = await GetImportIdsInTimeRange(apiConnection, startTime, stopTime, mgmId, changeRequired: true);
                 List<long> relevantImportIds = [.. importIdLastBeforeRange, .. importIdsInRange];
                 if (relevantImportIds.Count == 0)
                 {
@@ -95,13 +95,14 @@ namespace FWO.Report
             Query.QueryVariables[$"import_id_new"] = importIdNew;
         }
 
-        public static async Task<List<long>> GetImportIdsInTimeRange(ApiConnection apiConnection, string startTime, string stopTime, int mgmId)
+        public static async Task<List<long>> GetImportIdsInTimeRange(ApiConnection apiConnection, string startTime, string stopTime, int mgmId, bool? changeRequired = null)
         {
             var queryVariables = new
             {
                 start_time = startTime,
                 end_time = stopTime,
-                mgmIds = mgmId
+                mgmIds = mgmId,
+                changesFound = changeRequired
             };
             List<ImportControl> importControls = await apiConnection.SendQueryAsync<List<ImportControl>>(ReportQueries.getRelevantImportIdsInTimeRange, queryVariables);
             return [.. importControls.Select(ic => ic.ControlId)];

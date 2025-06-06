@@ -5,6 +5,10 @@ import argparse
 import requests, requests.packages
 from common import importer_base_dir, import_management
 import fwo_globals, fwo_config
+from services.service_provider import ServiceProvider
+from services.group_flats_mapper import GroupFlatsMapper
+from services.enums import *
+
 if importer_base_dir not in sys.path:
     sys.path.append(importer_base_dir)
 
@@ -42,6 +46,11 @@ if __name__ == "__main__":
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
         sys.exit(1)
+
+    # Register Services.
+
+    service_provider = ServiceProvider()
+    service_provider.register(Services.GROUP_FLATS_MAPPER, lambda: GroupFlatsMapper(), Lifetime.TRANSIENT)
 
     fwo_config = fwo_config.readConfig()
     fwo_globals.setGlobalValues(verify_certs_in=args.verify_certificates, 

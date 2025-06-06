@@ -10,7 +10,8 @@ from model_controllers.fwconfig_import_base import FwConfigImportBase
 from models.networkobject import NetworkObjectForImport
 from models.serviceobject import ServiceObjectForImport
 import fwo_const
-
+from services.service_provider import ServiceProvider
+from services.enums import Services
 
 # this class is used for importing a config into the FWO API
 class FwConfigImportObject(FwConfigImportBase):
@@ -32,6 +33,13 @@ class FwConfigImportObject(FwConfigImportBase):
         self.UserObjectTypeMap = self.GetUserObjTypeMap()
         self.ProtocolMap = self.GetProtocolMap()
         self.ColorMap = self.GetColorMap()
+
+        self.group_flats_mapper = ServiceProvider().get_service(Services.GROUP_FLATS_MAPPER)
+        self.group_flats_mapper.initialize(importState, config)
+        self.prev_group_flats_mapper = ServiceProvider().get_service(Services.GROUP_FLATS_MAPPER)
+        self.prev_group_flats_mapper.initialize(importState, config)
+
+
 
     def updateObjectDiffs(self, prevConfig: FwConfigNormalized):
 

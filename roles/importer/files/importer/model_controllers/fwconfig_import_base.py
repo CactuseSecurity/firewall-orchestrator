@@ -4,6 +4,7 @@ from model_controllers.group_flats_mapper import GroupFlatsMapper
 from model_controllers.uid2id_mapper import Uid2IdMapper
 
 # this class provides the base objects for importing a config into the FWO API
+
 class FwConfigImportBase():
     ImportDetails: ImportStateController
     NormalizedConfig: FwConfigNormalized

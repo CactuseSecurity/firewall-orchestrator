@@ -3,3 +3,5 @@
 .test_data/
 roles/importer/venv/
 ansible_venv/
+
+.vscode/launch.json

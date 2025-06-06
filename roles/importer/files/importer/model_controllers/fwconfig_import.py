@@ -10,12 +10,12 @@ from fwo_base import ConfigAction, ConfFormat
 from models.fwconfig_normalized import FwConfigNormalized
 from model_controllers.fwconfig_import_object import FwConfigImportObject
 from model_controllers.fwconfig_import_rule import FwConfigImportRule
-from model_controllers.fwconfig_import_gateway import FwConfigImportGateway
+from model_controllers.fwconfig_import_gateway import update_gateway_diffs
 from model_controllers.rule_enforced_on_gateway_controller import RuleEnforcedOnGatewayController
 
 
 # this class is used for importing a config into the FWO API
-class FwConfigImport(FwConfigImportObject, FwConfigImportRule, FwConfigImportGateway):
+class FwConfigImport(FwConfigImportObject, FwConfigImportRule):
     ImportDetails: ImportStateController
     NormalizedConfig: FwConfigNormalized
 
@@ -44,7 +44,7 @@ class FwConfigImport(FwConfigImportObject, FwConfigImportRule, FwConfigImportGat
             raise ImportInterruption("Shutdown requested during updateRulebaseDiffs.")
 
         self.ImportDetails.SetRuleMap() # update all rule entries (from currently running import for rulebase_links)
-        self.update_gateway_diffs(previousConfig)
+        update_gateway_diffs(previousConfig, self.ImportDetails, self.NormalizedConfig)
 
         # raise NotImplementedError("just testing")
 

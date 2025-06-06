@@ -786,6 +786,22 @@ ALTER TABLE "rulebase_link" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
 -- add obj type access-role for cp import
 INSERT INTO stm_obj_typ (obj_typ_id,obj_typ_name) VALUES (21,'access-role') ON CONFLICT DO NOTHING;
 
+-- remove dev_id fk and set nullable if column exists
+ALTER TABLE changelog_rule DROP CONSTRAINT IF EXISTS changelog_rule_dev_id_fkey;
+
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_name = 'changelog_rule'
+      AND column_name = 'dev_id'
+  ) THEN
+    ALTER TABLE changelog_rule ALTER COLUMN dev_id DROP NOT NULL;
+  END IF;
+END
+$$;
+
 -- adding labels (simple version without mapping tables and without foreign keys)
 
 -- CREATE TABLE label (

@@ -1060,21 +1060,24 @@
                       ]
                     },
                     "columns": [
-                      "app_id",
+                      "ticket_id",
                       "common_service",
-                      "conn_prop",
-                      "creation_date",
-                      "creator",
-                      "extra_params",
-                      "id",
                       "is_interface",
                       "is_published",
                       "is_requested",
+                      "removed",
+                      "requested_on_fw",
+                      "conn_prop",
+                      "creator",
+                      "extra_params",
                       "name",
+                      "app_id",
+                      "id",
                       "proposed_app_id",
+                      "used_interface_id",
                       "reason",
-                      "ticket_id",
-                      "used_interface_id"
+                      "creation_date",
+                      "removal_date"
                     ]
                   },
                   "comment": ""
@@ -1085,21 +1088,24 @@
                   "role": "auditor",
                   "permission": {
                     "columns": [
-                      "app_id",
+                      "ticket_id",
                       "common_service",
-                      "conn_prop",
-                      "creation_date",
-                      "creator",
-                      "extra_params",
-                      "id",
                       "is_interface",
                       "is_published",
                       "is_requested",
+                      "removed",
+                      "requested_on_fw",
+                      "conn_prop",
+                      "creator",
+                      "extra_params",
                       "name",
+                      "app_id",
+                      "id",
                       "proposed_app_id",
+                      "used_interface_id",
                       "reason",
-                      "ticket_id",
-                      "used_interface_id"
+                      "creation_date",
+                      "removal_date"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -1115,6 +1121,8 @@
                       "is_interface",
                       "is_published",
                       "is_requested",
+                      "removed",
+                      "requested_on_fw",
                       "conn_prop",
                       "creator",
                       "extra_params",
@@ -1124,7 +1132,8 @@
                       "proposed_app_id",
                       "used_interface_id",
                       "reason",
-                      "creation_date"
+                      "creation_date",
+                      "removal_date"
                     ],
                     "filter": {}
                   },
@@ -1134,21 +1143,24 @@
                   "role": "modeller",
                   "permission": {
                     "columns": [
-                      "app_id",
+                      "ticket_id",
                       "common_service",
-                      "conn_prop",
-                      "creation_date",
-                      "creator",
-                      "extra_params",
-                      "id",
                       "is_interface",
                       "is_published",
                       "is_requested",
+                      "removed",
+                      "requested_on_fw",
+                      "conn_prop",
+                      "creator",
+                      "extra_params",
                       "name",
+                      "app_id",
+                      "id",
                       "proposed_app_id",
+                      "used_interface_id",
                       "reason",
-                      "ticket_id",
-                      "used_interface_id"
+                      "creation_date",
+                      "removal_date"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -1183,21 +1195,24 @@
                   "role": "modeller",
                   "permission": {
                     "columns": [
-                      "app_id",
+                      "ticket_id",
                       "common_service",
-                      "conn_prop",
-                      "creation_date",
-                      "creator",
-                      "extra_params",
-                      "id",
                       "is_interface",
                       "is_published",
                       "is_requested",
+                      "removed",
+                      "requested_on_fw",
+                      "conn_prop",
+                      "creator",
+                      "extra_params",
                       "name",
+                      "app_id",
+                      "id",
                       "proposed_app_id",
+                      "used_interface_id",
                       "reason",
-                      "ticket_id",
-                      "used_interface_id"
+                      "creation_date",
+                      "removal_date"
                     ],
                     "filter": {},
                     "check": {}

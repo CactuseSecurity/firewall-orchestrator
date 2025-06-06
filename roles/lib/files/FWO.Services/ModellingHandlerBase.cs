@@ -167,6 +167,34 @@ namespace FWO.Services
             return true;
         }
 
+        protected async Task<bool> DeleteConnection(ModellingConnection ConnToDelete)
+        {
+            try
+            {
+                if(ConnToDelete.RequestedOnFw || ConnToDelete.IsPublished)
+                {
+                    if ((await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateConnectionRemove, new { id = ConnToDelete.Id, removalDate = DateTime.Now })).UpdatedId == ConnToDelete.Id)
+                    {
+                        await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.removeAllNwGroupsFromConnection, new { id = ConnToDelete.Id });
+                        await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.removeAllAppServersFromConnection, new { id = ConnToDelete.Id });
+                        await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.removeAllServiceGroupsFromConnection, new { id = ConnToDelete.Id });
+                        await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.removeAllServicesFromConnection, new { id = ConnToDelete.Id });
+                        await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.removeSelectedConnection, new { connectionId = ConnToDelete.Id });
+                        return true;
+                    }
+                }
+                else
+                {
+                    return (await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.deleteConnection, new { id = ConnToDelete.Id })).DeletedId == ConnToDelete.Id;
+                }
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("delete_connection"), "", true);
+            }
+            return false;
+        }
+
         public async Task<string> ExtractUsedInterface(ModellingConnection conn)
         {
             string interfaceName = "";

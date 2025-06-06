@@ -1,0 +1,13 @@
+mutation updateConnectionRemove(
+  $id: Int!
+  $removalDate: timestamp
+  ) {
+  update_modelling_connection_by_pk(
+    pk_columns: { id: $id }
+    _set: {
+      removed: true
+      removal_date: $removalDate
+  }) {
+    updatedId: id
+  }
+}

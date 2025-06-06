@@ -48,27 +48,27 @@ else
         {
             RulesNodes = new List<TreeNode<Rule>>();
 
-            foreach (ManagementReport report in Managements)
-            {
-                ManagementReportController management = new ManagementReportController(report);
+            // foreach (ManagementReport report in Managements)
+            // {
+            //     ManagementReportController management = new ManagementReportController(report);
 
-                if (!management.ContainsRules())
-                {
-                    continue;
-                }
+            //     if (!management.ContainsRules())
+            //     {
+            //         continue;
+            //     }
 
-                foreach (DeviceReport devReport in management.Devices)
-                {
-                    if (!devReport.ContainsRules())
-                    {
-                        continue;
-                    }
+            //     foreach (DeviceReport devReport in management.Devices)
+            //     {
+            //         if (!devReport.ContainsRules())
+            //         {
+            //             continue;
+            //         }
 
-                    DeviceReportController device = DeviceReportController.FromDeviceReport(devReport);
-                    List<TreeNode<Rule>> newNodes = TreeNodeBuilder.BuildRuleTreeFromManagementAndDevice(management, device);
-                    RulesNodes.AddRange(newNodes);
-                }
-            }
+            //         DeviceReportController device = DeviceReportController.FromDeviceReport(devReport);
+            //         List<TreeNode<Rule>> newNodes = TreeNodeBuilder.BuildRuleTreeFromManagementAndDevice(management, device);
+            //         RulesNodes.AddRange(newNodes);
+            //     }
+            // }
         }
         finally
         {

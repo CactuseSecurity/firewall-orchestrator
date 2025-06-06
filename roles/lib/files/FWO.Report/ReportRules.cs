@@ -4,6 +4,7 @@ using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Report;
+using FWO.FwLogic;
 using FWO.Logging;
 using FWO.Report.Filter;
 using FWO.Ui.Display;
@@ -13,7 +14,7 @@ using System.Text.Json;
 
 namespace FWO.Report
 {
-    public static class DeviceReportExtensions 
+    public static class DeviceReportExtensions
     {
         public static bool ContainsRules(this DeviceReport device)
         {
@@ -25,7 +26,7 @@ namespace FWO.Report
             return management.Devices != null && management.Devices.Any(d => d.ContainsRules());
         }
     }
-    
+
     public class ReportRules : ReportDevicesBase
     {
         private const int ColumnCount = 12;
@@ -45,7 +46,7 @@ namespace FWO.Report
             List<ManagementReport> managementsWithRelevantImportId = await GetRelevantImportIds(apiConnection);
 
             ReportData.ManagementData = [];
-            foreach (ManagementReport management in managementsWithRelevantImportId)
+            foreach(var management in managementsWithRelevantImportId)
             {
                 SetMgtQueryVars(management);    // this includes mgm_id AND relevant import ID!
                 ManagementReport managementReport = (await apiConnection.SendQueryAsync<List<ManagementReport>>(Query.FullQuery, Query.QueryVariables))[0];
@@ -53,20 +54,20 @@ namespace FWO.Report
                 ReportData.ManagementData.Add(managementReport);
             }
 
-            while (gotNewObjects)
+            while(gotNewObjects)
             {
-                if (ct.IsCancellationRequested)
+                if(ct.IsCancellationRequested)
                 {
                     Log.WriteDebug("Generate Rules Report", "Task cancelled");
                     ct.ThrowIfCancellationRequested();
                 }
                 gotNewObjects = false;
                 Query.QueryVariables["offset"] = (int)Query.QueryVariables["offset"] + rulesPerFetch;
-                foreach (ManagementReport management in managementsWithRelevantImportId)
+                foreach(var management in managementsWithRelevantImportId)
                 {
                     SetMgtQueryVars(management);
                     ManagementReport? mgtToFill = ReportData.ManagementData.FirstOrDefault(m => m.Id == management.Id);
-                    if (mgtToFill != null)
+                    if(mgtToFill != null)
                     {
                         gotNewObjects |= mgtToFill.Merge((await apiConnection.SendQueryAsync<List<ManagementReport>>(Query.FullQuery, Query.QueryVariables))[0]);
                     }
@@ -79,7 +80,7 @@ namespace FWO.Report
         private void SetMgtQueryVars(ManagementReport management)
         {
             Query.QueryVariables["mgmId"] = management.Id;
-            if (ReportType != ReportType.Recertification)
+            if(ReportType != ReportType.Recertification)
             {
                 Query.QueryVariables["relevantImportId"] = management.Import.ImportAggregate.ImportAggregateMax.RelevantImportId ?? -1; /* managment was not yet imported at that time */;
             }
@@ -89,14 +90,14 @@ namespace FWO.Report
         {
             bool gotAllObjects = true; //whether the fetch count limit was reached during fetching
 
-            if (!GotObjectsInReport)
+            if(!GotObjectsInReport)
             {
-                foreach (ManagementReport managementReport in ReportData.ManagementData)
+                foreach(var managementReport in ReportData.ManagementData)
                 {
-                    if (managementReport.Import.ImportAggregate.ImportAggregateMax.RelevantImportId is not null)
+                    if(managementReport.Import.ImportAggregate.ImportAggregateMax.RelevantImportId is not null)
                     {
                         // set query variables for object query
-                        Dictionary<string, object> objQueryVariables = new Dictionary<string, object>
+                        var objQueryVariables = new Dictionary<string, object>
                         {
                             { "mgmIds", managementReport.Id },
                             { "limit", objectsPerFetch },
@@ -115,7 +116,7 @@ namespace FWO.Report
 
         public override async Task<bool> GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, ObjCategory objects, int maxFetchCycles, ApiConnection apiConnection, Func<ReportData, Task> callback)
         {
-            if (!objQueryVariables.ContainsKey("mgmIds") || !objQueryVariables.ContainsKey("limit") || !objQueryVariables.ContainsKey("offset"))
+            if(!objQueryVariables.ContainsKey("mgmIds") || !objQueryVariables.ContainsKey("limit") || !objQueryVariables.ContainsKey("offset"))
                 throw new ArgumentException("Given objQueryVariables dictionary does not contain variable for management id, limit or offset");
 
             int mid = (int)objQueryVariables.GetValueOrDefault("mgmIds")!;
@@ -132,11 +133,11 @@ namespace FWO.Report
             int elementsPerFetch = (int)objQueryVariables.GetValueOrDefault("limit")!;
             ManagementReport filteredObjects;
             ManagementReport allFilteredObjects = new();
-            while (newObjects && ++fetchCount <= maxFetchCycles)
+            while(newObjects && ++fetchCount <= maxFetchCycles)
             {
                 filteredObjects = (await apiConnection.SendQueryAsync<List<ManagementReport>>(query, objQueryVariables))[0];
 
-                if (fetchCount == 1)
+                if(fetchCount == 1)
                 {
                     allFilteredObjects = filteredObjects;
                 }
@@ -145,16 +146,16 @@ namespace FWO.Report
                     newObjects = allFilteredObjects.MergeReportObjects(filteredObjects);
                 }
 
-                if (UseAdditionalFilter)
+                if(UseAdditionalFilter)
                 {
                     AdditionalFilter(allFilteredObjects, managementReport.RelevantObjectIds);
                 }
 
-                if (objects == ObjCategory.all || objects == ObjCategory.nobj)
+                if(objects == ObjCategory.all || objects == ObjCategory.nobj)
                     managementReport.ReportObjects = allFilteredObjects.ReportObjects;
-                if (objects == ObjCategory.all || objects == ObjCategory.nsrv)
+                if(objects == ObjCategory.all || objects == ObjCategory.nsrv)
                     managementReport.ReportServices = allFilteredObjects.ReportServices;
-                if (objects == ObjCategory.all || objects == ObjCategory.user)
+                if(objects == ObjCategory.all || objects == ObjCategory.user)
                     managementReport.ReportUsers = allFilteredObjects.ReportUsers;
 
                 objQueryVariables["offset"] = (int)objQueryVariables["offset"] + elementsPerFetch;
@@ -187,7 +188,7 @@ namespace FWO.Report
         public static Rule[] GetRulesByRulebaseId(int rulebaseId, ManagementReport managementReport)
         {
             Rule[]? rules = managementReport.Rulebases.FirstOrDefault(rb => rb.Id == rulebaseId)?.Rules;
-            if (rules != null)
+            if(rules != null)
             {
                 return rules;
             }
@@ -197,10 +198,10 @@ namespace FWO.Report
         public static Rule[] GetInitialRulesOfGateway(DeviceReportController deviceReport, ManagementReport managementReport)
         {
             int? initialRulebaseId = deviceReport.GetInitialRulebaseId(managementReport);
-            if (initialRulebaseId != null)
+            if(initialRulebaseId != null)
             {
                 Rule[]? rules = GetRulesByRulebaseId((int)initialRulebaseId, managementReport);
-                if (rules != null)
+                if(rules != null)
                 {
                     return rules;
                 }
@@ -216,21 +217,21 @@ namespace FWO.Report
 
             Queue<(RulebaseLink link, List<Rule> rulebase)>? rulebaseLinksAndTargetRulebases = BuildRulebaseLinkQueue(deviceReport.RulebaseLinks, managementReport.Rulebases);
 
-            if (rulebaseLinksAndTargetRulebases != null)
+            if(rulebaseLinksAndTargetRulebases != null)
             {
                 // Get all rules.
 
-                foreach ((RulebaseLink link, List<Rule> rulebase) rulebaseLinkQueueItem in rulebaseLinksAndTargetRulebases)
+                foreach((RulebaseLink link, List<Rule> rulebase) rulebaseLinkQueueItem in rulebaseLinksAndTargetRulebases)
                 {
                     int relativeOrderNumber = 0;
 
                     List<Rule> clonedRules = new();
 
-                    foreach (Rule nextRule in rulebaseLinkQueueItem.rulebase)
+                    foreach(Rule nextRule in rulebaseLinkQueueItem.rulebase)
                     {
                         Rule rule = nextRule;
 
-                        if (allRules.Contains(nextRule))
+                        if(allRules.Contains(nextRule))
                         {
                             rule = nextRule.CreateClone();
                             clonedRules.Add(rule);
@@ -246,30 +247,30 @@ namespace FWO.Report
                     rulebaseLinkQueueItem.rulebase.AddRange(clonedRules);
                 }
 
-                CreateOrderNumbers(rulebaseLinksAndTargetRulebases); 
+                CreateOrderNumbers(rulebaseLinksAndTargetRulebases);
             }
 
 
             return allRules.ToArray();
         }
-        
+
         public static int GetRuleCount(ManagementReport mgmReport, RulebaseLink? currentRbLink, RulebaseLink[] rulebaseLinks)
         {
-            if (currentRbLink != null)
+            if(currentRbLink != null)
             {
                 int ruleCount = 0;
-                if (currentRbLink != null)
+                if(currentRbLink != null)
                 {
                     int nextRulebaseId = currentRbLink.NextRulebaseId;
                     RulebaseReport? nextRulebase = mgmReport.Rulebases.FirstOrDefault(_ => _.Id == nextRulebaseId);
-                    if (nextRulebase != null)
+                    if(nextRulebase != null)
                     {
-                        foreach (Rule rule in nextRulebase.Rules)
+                        foreach(var rule in nextRulebase.Rules)
                         {
-                            if (string.IsNullOrEmpty(rule.SectionHeader))
+                            if(string.IsNullOrEmpty(rule.SectionHeader))
                             {
                                 RulebaseLink? nextRbLink = rulebaseLinks.FirstOrDefault(_ => _.FromRuleId == rule.Id);
-                                if (nextRbLink != null)
+                                if(nextRbLink != null)
                                 {
                                     ruleCount += 1 + GetRuleCount(mgmReport, nextRbLink, rulebaseLinks);
                                 }
@@ -288,7 +289,6 @@ namespace FWO.Report
 
         /// <summary>
         /// Creates multi-level (dotted) order numbers for display and sets internal numeric order for sorting.
-        /// Also builds a tree structure of rules as TreeNode<Rule>.
         /// </summary>
         public static void CreateOrderNumbers(Queue<(RulebaseLink link, List<Rule> rulebase)> rulebaseLinkQueue)
         {
@@ -298,17 +298,17 @@ namespace FWO.Report
 
             // Start outer loop.
 
-            while (rulebaseLinkQueue.TryDequeue(out (RulebaseLink link, List<Rule> rulebase) currentQueueItem))
+            while(rulebaseLinkQueue.TryDequeue(out (RulebaseLink link, List<Rule> rulebase) currentQueueItem))
             {
                 lastPosition = HandleRulebaseLinkQueueItem(currentQueueItem, rulebaseLinkQueue, lastPosition, visitedRules, ref orderedLayerCounter);
 
                 // For concatenations: Set the returned last order number to the number of the last visited rule of the source rulebase if it differs from it.
 
-                if (rulebaseLinkQueue.TryPeek(out (RulebaseLink link, List<Rule> rulebase) nextQueueItem) && nextQueueItem.link.LinkType == 4)
+                if(rulebaseLinkQueue.TryPeek(out (RulebaseLink link, List<Rule> rulebase) nextQueueItem) && nextQueueItem.link.LinkType == 4)
                 {
                     Rule? lastVisitedRuleOfNextRulebase = visitedRules.LastOrDefault(rule => rule.RulebaseId == nextQueueItem.link.FromRulebaseId);
 
-                    if (lastVisitedRuleOfNextRulebase != null && lastVisitedRuleOfNextRulebase.DisplayOrderNumberString != string.Join(".", lastPosition))
+                    if(lastVisitedRuleOfNextRulebase != null && lastVisitedRuleOfNextRulebase.DisplayOrderNumberString != string.Join(".", lastPosition))
                     {
                         lastPosition = lastVisitedRuleOfNextRulebase.DisplayOrderNumberString
                                                                     .Split('.')
@@ -316,15 +316,7 @@ namespace FWO.Report
                                                                     .ToList();
                     }
                 }
-
-                nodes.Add(new TreeNode<Rule>
-                {
-                    Item = rule,
-                    Children = children
-                });
             }
-
-            return nodes;
         }
 
         private static List<int> HandleRulebaseLinkQueueItem((RulebaseLink link, List<Rule> rulebase) currentQueueItem,
@@ -341,17 +333,17 @@ namespace FWO.Report
 
             // Prepare creation of order numbers.
 
-            if (currentQueueItem.link.LinkType == 2 && !currentQueueItem.link.IsGlobal)
+            if(currentQueueItem.link.LinkType == 2 && !currentQueueItem.link.IsGlobal)
             {
                 orderedLayerCounter++;
                 nextPosition = new List<int> { orderedLayerCounter, 0 };
                 lastPosition = nextPosition;
             }
-            else if (currentQueueItem.link.IsSection)
+            else if(currentQueueItem.link.IsSection)
             {
                 nextPosition = lastPosition;
             }
-            else if (currentQueueItem.link.LinkType == 3)
+            else if(currentQueueItem.link.LinkType == 3)
             {
                 nextPosition = lastPosition.ToList();
                 nextPosition.Add(0);
@@ -359,7 +351,7 @@ namespace FWO.Report
 
                 // Handle sections in inline layers without direct rules.
 
-                if (nextQueueItem?.link is RulebaseLink nextLink && currentQueueItem.rulebase.Count == 0 && nextLink.IsSection && nextLink.FromRulebaseId == currentQueueItem.link.NextRulebaseId)
+                if(nextQueueItem?.link is RulebaseLink nextLink && currentQueueItem.rulebase.Count == 0 && nextLink.IsSection && nextLink.FromRulebaseId == currentQueueItem.link.NextRulebaseId)
                 {
                     lastPosition = HandleRulebaseLinkQueueItem(rulebaseLinkQueue.Dequeue(), rulebaseLinkQueue, lastPosition, visitedRules, ref orderedLayerCounter);
                 }
@@ -367,15 +359,15 @@ namespace FWO.Report
 
             // Create order number.
 
-            foreach (Rule currentRule in currentQueueItem.rulebase)
+            foreach(Rule currentRule in currentQueueItem.rulebase)
             {
                 // Exclude already visited rules.
 
-                if (!visitedRules.Contains(currentRule))
+                if(!visitedRules.Contains(currentRule))
                 {
                     // Update next position.
 
-                    if (nextPosition == null)
+                    if(nextPosition == null)
                     {
                         nextPosition = lastPosition.ToList();
                     }
@@ -393,7 +385,7 @@ namespace FWO.Report
 
                     // Handle inline layers.
 
-                    if (nextQueueItem?.link is RulebaseLink nextLink && (
+                    if(nextQueueItem?.link is RulebaseLink nextLink && (
                                                                             (nextLink.LinkType == 3 && nextLink.FromRuleId == currentRule.Id)
                                                                             ||
                                                                             (nextLink.LinkType == 4 && nextLink.FromRulebaseId == currentRule.RulebaseId && currentRule == currentQueueItem.rulebase.LastOrDefault())
@@ -408,7 +400,7 @@ namespace FWO.Report
                         currentQueueItem = nextQueueItem.Value;
 
                         nextQueueItem = TryPeekNextQueueItem(rulebaseLinkQueue);
-                        
+
                     }
                 }
 
@@ -420,7 +412,7 @@ namespace FWO.Report
 
         private static (RulebaseLink, List<Rule>)? TryPeekNextQueueItem(Queue<(RulebaseLink link, List<Rule> rulebase)> rulebaseLinkQueue)
         {
-            if (rulebaseLinkQueue.TryPeek(out (RulebaseLink link, List<Rule> rulebase) peekedQueueItem))
+            if(rulebaseLinkQueue.TryPeek(out (RulebaseLink link, List<Rule> rulebase) peekedQueueItem))
             {
                 return peekedQueueItem;
             }
@@ -434,7 +426,7 @@ namespace FWO.Report
         {
             // Abort if their are no rulebase links or rulebases
 
-            if (links.Count() == 0 || rulebases.Count() == 0)
+            if(links.Count() == 0 || rulebases.Count() == 0)
             {
                 return null;
             }
@@ -451,17 +443,17 @@ namespace FWO.Report
 
             RulebaseLink? current = remainingLinks.FirstOrDefault(l => l.IsInitial);
 
-            if (current == null)
+            if(current == null)
             {
                 throw new InvalidOperationException("No initial RulebaseLink found.");
             }
 
 
-            while (current != null)
+            while(current != null)
             {
                 // Get target rulebase to current link and enqueue its rules and the link.
 
-                if (!rulebaseMap.TryGetValue(current.NextRulebaseId, out var report))
+                if(!rulebaseMap.TryGetValue(current.NextRulebaseId, out var report))
                 {
                     throw new KeyNotFoundException($"No report found with ID {current.NextRulebaseId}");
                 }
@@ -479,7 +471,7 @@ namespace FWO.Report
 
                 current = candidates.FirstOrDefault();
 
-                if (current == null)
+                if(current == null)
                 {
                     current = remainingLinks.FirstOrDefault();
                 }
@@ -493,11 +485,11 @@ namespace FWO.Report
             int managementCounter = 0;
             int deviceCounter = 0;
             int ruleCounter = 0;
-            foreach (ManagementReportController managementReport in ReportData.ManagementData.Where(mgt => !mgt.Ignore && mgt.Devices != null &&
+            foreach(ManagementReportController managementReport in ReportData.ManagementData.Where(mgt => !mgt.Ignore && mgt.Devices != null &&
                     mgt.ContainsRules()))
             {
                 managementCounter++;
-                foreach (DeviceReport? device in managementReport.Devices.Where(dev => dev.ContainsRules()))
+                foreach(var device in managementReport.Devices.Where(dev => dev.ContainsRules()))
                 {
                     deviceCounter++;
                     ruleCounter += GetRuleCount(managementReport, device.RulebaseLinks.FirstOrDefault(_ => _.IsInitialRulebase()), device.RulebaseLinks);
@@ -509,19 +501,19 @@ namespace FWO.Report
         // here we can simply traverse all rulebases (disregarding any order) and add their ids to the list
         private void SetReportedRuleIds()
         {
-            foreach (ManagementReport mgt in ReportData.ManagementData)
+            foreach(var mgt in ReportData.ManagementData)
             {
-                foreach (DeviceReport? dev in mgt.Devices.Where(b => b.ContainsRules()))
+                foreach(var dev in mgt.Devices.Where(b => b.ContainsRules()))
                 {
                     DeviceReportController deviceController = DeviceReportController.FromDeviceReport(dev);
-                    if (deviceController.RulebaseLinks != null)
+                    if(deviceController.RulebaseLinks != null)
                     {
-                        foreach (RulebaseLink rbLink in deviceController.RulebaseLinks)
+                        foreach(var rbLink in deviceController.RulebaseLinks)
                         {
                             RulebaseReport? rulebase = mgt.Rulebases.FirstOrDefault(_ => _.Id == rbLink.NextRulebaseId);
-                            if (rulebase != null)
+                            if(rulebase != null)
                             {
-                                foreach (Rule rule in rulebase.Rules)
+                                foreach(Rule rule in rulebase.Rules)
                                 {
                                     mgt.ReportedRuleIds.Add(rule.Id);
                                 }
@@ -535,13 +527,13 @@ namespace FWO.Report
 
         private string ExportSingleRulebaseToCsv(StringBuilder report, RuleDisplayCsv ruleDisplayCsv, ManagementReport managementReport, DeviceReport gateway, RulebaseLink? rbLink)
         {
-            if (rbLink == null)
+            if(rbLink == null)
             {
                 return report.ToString();
             }
-            foreach (Rule rule in GetRulesByRulebaseId(rbLink.NextRulebaseId, managementReport)) // just dealing with the first rb for starters
+            foreach(var rule in GetRulesByRulebaseId(rbLink.NextRulebaseId, managementReport)) // just dealing with the first rb for starters
             {
-                if (string.IsNullOrEmpty(rule.SectionHeader))
+                if(string.IsNullOrEmpty(rule.SectionHeader))
                 {
                     report.Append(ruleDisplayCsv.OutputCsv(managementReport.Name));
                     report.Append(ruleDisplayCsv.OutputCsv(gateway.Name));
@@ -570,7 +562,7 @@ namespace FWO.Report
         }
         public override string ExportToCsv()
         {
-            if (ReportType.IsResolvedReport())
+            if(ReportType.IsResolvedReport())
             {
                 StringBuilder report = new();
                 RuleDisplayCsv ruleDisplayCsv = new(userConfig);
@@ -578,17 +570,17 @@ namespace FWO.Report
                 report.Append(DisplayReportHeaderCsv());
                 report.AppendLine($"\"management-name\",\"device-name\",\"rule-number\",\"rule-name\",\"source-zone\",\"source\",\"destination-zone\",\"destination\",\"service\",\"action\",\"track\",\"rule-enabled\",\"rule-uid\",\"rule-comment\"");
 
-                foreach (ManagementReport? managementReport in ReportData.ManagementData.Where(mgt => !mgt.Ignore && mgt.Devices != null &&
+                foreach(var managementReport in ReportData.ManagementData.Where(mgt => !mgt.Ignore && mgt.Devices != null &&
                         Array.Exists(mgt.Devices, device => device.ContainsRules())))
                 {
-                    foreach (DeviceReport gateway in managementReport.Devices)
+                    foreach(var gateway in managementReport.Devices)
                     {
-                        if (gateway.ContainsRules())
+                        if(gateway.ContainsRules())
                         {
-                            if (gateway.RulebaseLinks != null)
+                            if(gateway.RulebaseLinks != null)
                             {
                                 RulebaseLink? rbLink = gateway.RulebaseLinks.FirstOrDefault(rbl => rbl.IsInitialRulebase());
-                                if (rbLink != null)
+                                if(rbLink != null)
                                 {
                                     ExportSingleRulebaseToCsv(report, ruleDisplayCsv, managementReport, gateway, rbLink);
                                 }
@@ -607,13 +599,13 @@ namespace FWO.Report
 
         public override string ExportToJson()
         {
-            if (ReportType.IsResolvedReport())
+            if(ReportType.IsResolvedReport())
             {
                 // JSON code for resolved rules is stripped from all unneccessary balast, only containing the resolved rules
                 // object tables are not needed as the objects within the rules fully describe the rules (no groups)
                 return ExportResolvedRulesToJson();
             }
-            else if (ReportType.IsRuleReport())
+            else if(ReportType.IsRuleReport())
             {
                 return System.Text.Json.JsonSerializer.Serialize(ReportData.ManagementData.Where(mgt => !mgt.Ignore), new JsonSerializerOptions { WriteIndented = true });
             }
@@ -629,14 +621,14 @@ namespace FWO.Report
             report.Append(DisplayReportHeaderJson());
             report.AppendLine("\"managements\": [");
             RuleDisplayJson ruleDisplayJson = new(userConfig);
-            foreach (ManagementReport? managementReport in ReportData.ManagementData.Where(mgt => !mgt.Ignore && mgt.Devices != null &&
+            foreach(var managementReport in ReportData.ManagementData.Where(mgt => !mgt.Ignore && mgt.Devices != null &&
                     Array.Exists(mgt.Devices, device => device.ContainsRules())))
             {
                 report.AppendLine($"{{\"{managementReport.Name}\": {{");
                 report.AppendLine($"\"gateways\": [");
-                foreach (DeviceReport gateway in managementReport.Devices)
+                foreach(var gateway in managementReport.Devices)
                 {
-                    if (gateway.ContainsRules())
+                    if(gateway.ContainsRules())
                     {
                         report.Append($"{{\"{gateway.Name}\": {{\n\"rules\": [");
                         // TODO: migrate this
@@ -707,16 +699,16 @@ namespace FWO.Report
             RuleDisplayHtml ruleDisplayHtml = new(userConfig);
             VarianceMode = varianceMode;
 
-            foreach (ManagementReport managementReport in managementData.Where(mgt => !mgt.Ignore && mgt.ContainsRules()))
+            foreach(ManagementReport managementReport in managementData.Where(mgt => !mgt.Ignore && mgt.ContainsRules()))
             {
                 chapterNumber++;
                 new ManagementReportController(managementReport).AssignRuleNumbers();
                 report.AppendLine(Headline(managementReport.Name, 3));
                 report.AppendLine("<hr>");
 
-                foreach (DeviceReport device in managementReport.Devices)
+                foreach(var device in managementReport.Devices)
                 {
-                    if (device.RulebaseLinks != null)
+                    if(device.RulebaseLinks != null)
                     {
                         AppendRulesForDeviceHtml(ref report, managementReport, DeviceReportController.FromDeviceReport(device), chapterNumber, ruleDisplayHtml);
                     }
@@ -731,14 +723,14 @@ namespace FWO.Report
         {
             report.AppendLine("<tr>");
             report.AppendLine($"<th>{userConfig.GetText("number")}</th>");
-            if (ReportType == ReportType.Recertification)
+            if(ReportType == ReportType.Recertification)
             {
                 report.AppendLine($"<th>{userConfig.GetText("next_recert")}</th>");
                 report.AppendLine($"<th>{userConfig.GetText("owner")}</th>");
                 report.AppendLine($"<th>{userConfig.GetText("ip_matches")}</th>");
                 report.AppendLine($"<th>{userConfig.GetText("last_hit")}</th>");
             }
-            if (ReportType == ReportType.UnusedRules || ReportType == ReportType.AppRules)
+            if(ReportType == ReportType.UnusedRules || ReportType == ReportType.AppRules)
             {
                 report.AppendLine($"<th>{userConfig.GetText("last_hit")}</th>");
             }
@@ -758,7 +750,7 @@ namespace FWO.Report
 
         private void AppendRulesForDeviceHtml(ref StringBuilder report, ManagementReport managementReport, DeviceReportController device, int chapterNumber, RuleDisplayHtml ruleDisplayHtml)
         {
-            if (device.ContainsRules())
+            if(device.ContainsRules())
             {
                 report.AppendLine(Headline(device.Name, 4));
                 report.AppendLine("<table>");
@@ -766,7 +758,7 @@ namespace FWO.Report
 
                 RulebaseLink? nextRbLink = device.RulebaseLinks.FirstOrDefault(_ => _.IsInitialRulebase());
 
-                if (nextRbLink != null)
+                if(nextRbLink != null)
                 {
                     AppendRulesForRulebaseHtml(ref report, nextRbLink, managementReport, device, chapterNumber, ruleDisplayHtml);
                 }
@@ -780,25 +772,25 @@ namespace FWO.Report
         {
             Rule[]? rb = GetRulesByRulebaseId(rbLink.NextRulebaseId, managementReport);
 
-            if (rb == null)
+            if(rb == null)
             {
                 return;
             }
 
-            foreach (Rule rule in rb)
+            foreach(var rule in rb)
             {
-                if (string.IsNullOrEmpty(rule.SectionHeader))
+                if(string.IsNullOrEmpty(rule.SectionHeader))
                 {
                     report.AppendLine("<tr>");
                     report.AppendLine($"<td>{RuleDisplayBase.DisplayNumber(rule)}</td>");
-                    if (ReportType == ReportType.Recertification)
+                    if(ReportType == ReportType.Recertification)
                     {
                         report.AppendLine($"<td>{RuleDisplayHtml.DisplayNextRecert(rule.Metadata)}</td>");
                         report.AppendLine($"<td>{RuleDisplayHtml.DisplayOwner(rule.Metadata)}</td>");
                         report.AppendLine($"<td>{RuleDisplayHtml.DisplayRecertIpMatches(rule.Metadata)}</td>");
                         report.AppendLine($"<td>{RuleDisplayHtml.DisplayLastHit(rule.Metadata)}</td>");
                     }
-                    if (ReportType == ReportType.UnusedRules) // || ReportType == ReportType.AppRules)
+                    if(ReportType == ReportType.UnusedRules) // || ReportType == ReportType.AppRules)
                     {
                         report.AppendLine($"<td>{RuleDisplayHtml.DisplayLastHit(rule.Metadata)}</td>");
                     }
@@ -822,7 +814,7 @@ namespace FWO.Report
 
                 // if there is a rulebase link starting from the current rule id, follow it
                 RulebaseLink? nextRbLink = device.RulebaseLinks.FirstOrDefault(_ => _.FromRuleId == rule.Id);
-                if (nextRbLink != null)
+                if(nextRbLink != null)
                 {
                     AppendRulesForRulebaseHtml(ref report, nextRbLink, managementReport, device, chapterNumber, ruleDisplayHtml);
                 }
@@ -838,7 +830,7 @@ namespace FWO.Report
 
         private void AppendNetworkObjectsForManagementHtml(ref StringBuilder report, int chapterNumber, ManagementReport managementReport)
         {
-            if (managementReport.ReportObjects != null && managementReport.ReportObjects.Length > 0 && !ReportType.IsResolvedReport())
+            if(managementReport.ReportObjects != null && managementReport.ReportObjects.Length > 0 && !ReportType.IsResolvedReport())
             {
                 report.AppendLine(Headline(userConfig.GetText("network_objects"), 4));
                 report.AppendLine("<table>");
@@ -852,7 +844,7 @@ namespace FWO.Report
                 report.AppendLine($"<th>{userConfig.GetText("comment")}</th>");
                 report.AppendLine("</tr>");
                 int objNumber = 1;
-                foreach (NetworkObject nwobj in managementReport.ReportObjects)
+                foreach(var nwobj in managementReport.ReportObjects)
                 {
                     report.AppendLine($"<tr style=\"{(nwobj.Highlighted ? GlobalConst.kStyleHighlightedRed : "")}\">");
                     report.AppendLine($"<td>{objNumber++}</td>");
@@ -871,7 +863,7 @@ namespace FWO.Report
 
         private void AppendNetworkServicesForManagementHtml(ref StringBuilder report, int chapterNumber, ManagementReport managementReport)
         {
-            if (managementReport.ReportServices != null && managementReport.ReportServices.Length > 0 && !ReportType.IsResolvedReport())
+            if(managementReport.ReportServices != null && managementReport.ReportServices.Length > 0 && !ReportType.IsResolvedReport())
             {
                 report.AppendLine(Headline(userConfig.GetText("network_services"), 4));
                 report.AppendLine("<table>");
@@ -886,14 +878,14 @@ namespace FWO.Report
                 report.AppendLine($"<th>{userConfig.GetText("comment")}</th>");
                 report.AppendLine("</tr>");
                 int objNumber = 1;
-                foreach (NetworkService svcobj in managementReport.ReportServices)
+                foreach(var svcobj in managementReport.ReportServices)
                 {
                     report.AppendLine("<tr>");
                     report.AppendLine($"<td>{objNumber++}</td>");
                     report.AppendLine($"<td><a name={ObjCatString.Svc}{chapterNumber}x{svcobj.Id}>{svcobj.Name}</a></td>");
                     report.AppendLine($"<td>{(svcobj.Type.Name != "" ? userConfig.GetText(svcobj.Type.Name) : "")}</td>");
                     report.AppendLine($"<td>{((svcobj.Type.Name != ServiceType.Group && svcobj.Protocol != null) ? svcobj.Protocol.Name : "")}</td>");
-                    if (svcobj.DestinationPortEnd != null && svcobj.DestinationPortEnd != svcobj.DestinationPort)
+                    if(svcobj.DestinationPortEnd != null && svcobj.DestinationPortEnd != svcobj.DestinationPort)
                     {
                         report.AppendLine($"<td>{svcobj.DestinationPort}-{svcobj.DestinationPortEnd}</td>");
                     }
@@ -913,7 +905,7 @@ namespace FWO.Report
 
         private void AppendUsersForManagementHtml(ref StringBuilder report, int chapterNumber, ManagementReport managementReport)
         {
-            if (managementReport.ReportUsers != null && managementReport.ReportUsers.Length > 0 && !ReportType.IsResolvedReport())
+            if(managementReport.ReportUsers != null && managementReport.ReportUsers.Length > 0 && !ReportType.IsResolvedReport())
             {
                 report.AppendLine(Headline(userConfig.GetText("users"), 4));
                 report.AppendLine("<table>");
@@ -926,7 +918,7 @@ namespace FWO.Report
                 report.AppendLine($"<th>{userConfig.GetText("comment")}</th>");
                 report.AppendLine("</tr>");
                 int objNumber = 1;
-                foreach (NetworkUser userobj in managementReport.ReportUsers)
+                foreach(var userobj in managementReport.ReportUsers)
                 {
                     report.AppendLine("<tr>");
                     report.AppendLine($"<td>{objNumber++}</td>");

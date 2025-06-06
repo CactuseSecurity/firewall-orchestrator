@@ -351,13 +351,13 @@ namespace FWO.Services
             try
             {
                 int searchedStateId = toState ? statefulObject.StateId : statefulObject.ChangedFrom();
-                foreach(var actionHlp in states.FirstOrDefault(x => x.Id == searchedStateId)?.Actions ?? throw new KeyNotFoundException("Unknown stateId:" + searchedStateId))
+                foreach(var action in states.FirstOrDefault(x => x.Id == searchedStateId)?.Actions.Select(a => a.Action) ?? throw new KeyNotFoundException("Unknown stateId:" + searchedStateId))
                 {
-                    if(actionHlp.Action.Scope == scope.ToString() 
-                        && (!(actionHlp.Action.Scope == WfObjectScopes.RequestTask.ToString() || actionHlp.Action.Scope == WfObjectScopes.ImplementationTask.ToString())
-                        || actionHlp.Action.TaskType == "" || actionHlp.Action.TaskType == ((WfTaskBase)statefulObject).TaskType))
+                    if(action.Scope == scope.ToString() 
+                        && (!(action.Scope == WfObjectScopes.RequestTask.ToString() || action.Scope == WfObjectScopes.ImplementationTask.ToString())
+                        || action.TaskType == "" || action.TaskType == ((WfTaskBase)statefulObject).TaskType))
                     {
-                        stateActions.Add(actionHlp.Action);
+                        stateActions.Add(action);
                     }
                 }
             }

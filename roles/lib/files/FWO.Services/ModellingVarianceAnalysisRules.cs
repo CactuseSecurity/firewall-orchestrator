@@ -220,7 +220,7 @@ namespace FWO.Services
                         location.Object.IsSurplus = false;
                     }
                 }
-             }
+            }
         }
 
         private bool CompareNwAreas(NetworkLocation[] networkLocations, List<ModellingNetworkAreaWrapper> areas, List<NetworkLocation> disregardedLocations, bool specialUserObjectsExist)

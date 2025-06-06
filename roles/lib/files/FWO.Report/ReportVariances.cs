@@ -113,7 +113,7 @@ namespace FWO.Report
                 {
                     if(ownerReport.MissingAppRoles[mgt].Count > 0)
                     {
-                        report.AppendLine($"<h5 id=\"{Guid.NewGuid()}\">{ownerReport.MissingAppRoles[mgt].First().ManagementName}</h5>");
+                        report.AppendLine($"<h5 id=\"{Guid.NewGuid()}\">{ownerReport.MissingAppRoles[mgt][0].ManagementName}</h5>");
                         AppendAppRolesHtml(ownerReport.MissingAppRoles[mgt], chapterNumber, ref report);
                     }
                 }
@@ -130,7 +130,7 @@ namespace FWO.Report
                 {
                     if(ownerReport.DifferingAppRoles[mgt].Count > 0)
                     {
-                        report.AppendLine($"<h5 id=\"{Guid.NewGuid()}\">{ownerReport.DifferingAppRoles[mgt].First().ManagementName}</h5>");
+                        report.AppendLine($"<h5 id=\"{Guid.NewGuid()}\">{ownerReport.DifferingAppRoles[mgt][0].ManagementName}</h5>");
                         AppendAppRolesHtml(ownerReport.DifferingAppRoles[mgt], chapterNumber, ref report, true, true);
                     }
                 }

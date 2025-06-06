@@ -144,7 +144,7 @@ namespace FWO.Data.Workflow
         {
             if(Comments.Count > 0)
             {
-                return Comments.First().Comment.CommentText;
+                return Comments[0].Comment.CommentText;
             }
             return "";
         }

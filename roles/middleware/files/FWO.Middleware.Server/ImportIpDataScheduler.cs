@@ -48,9 +48,10 @@ namespace FWO.Middleware.Server
             try
             {
                 AreaIpDataImport import = new (apiConnection, globalConfig);
-                if(!await import.Run())
+                List<string> FailedImports = await import.Run();
+                if (FailedImports.Count > 0)
                 {
-                    throw new ProcessingFailedException("Area IP Data Import failed.");
+                    throw new ProcessingFailedException($"Import Area IP Data failed for {string.Join(", ", FailedImports)}.");
                 }
             }
             catch (Exception exc)

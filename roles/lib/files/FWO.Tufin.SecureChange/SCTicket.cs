@@ -36,13 +36,12 @@ namespace FWO.Tufin.SecureChange
 		public string Subject { get; set; } = "";
 		public string Priority { get; set; } = SCTicketPriority.Normal.ToString();
 		public string Requester { get; set; } = "";
-		public string DefaultReason = "Kommunikationsprofil der Anwendung";
-
+		readonly private string DefaultReason = "Kommunikationsprofil der Anwendung";
+		readonly private string Content = "Content: ";
 		private string actTicketTemplate;
 		private SCTaskType actTaskType;
 
 
-		// {
 		// 	"ticket": {
 		// 		"id": 2,
 		// 		"subject": "Clone Server Policy Ticket",
@@ -51,19 +50,18 @@ namespace FWO.Tufin.SecureChange
 		// 		"priority": "Normal",
 		// 		"status": "In Progress",...
 		// Todo: move to template settings?
-		private class SCPollTicketResponseStatus
+		sealed private class SCPollTicketResponseStatus
 		{
 			[JsonProperty("status"), JsonPropertyName("status")]
 			public string Status { get; set; } = "";
 		}
 
-		private class SCPollTicketResponse
+		sealed private class SCPollTicketResponse
 		{
 			[JsonProperty("ticket"), JsonPropertyName("ticket")]
 			public SCPollTicketResponseStatus Ticket { get; set; } = new();
 		}
 
-		// {
 		// "users": {
 		// 	"user": [
 		// 	{
@@ -71,22 +69,22 @@ namespace FWO.Tufin.SecureChange
 		// 		"id": 55,
 		// 		"type": "user",
 		// 		"name": "Userxyz",
-		private class SCLookupUserResponseUser
+		sealed private class SCLookupUserResponseUser
 		{
 			[JsonProperty("id"), JsonPropertyName("id")]
 			public int Id { get; set; }
 		}
 
-		private class SCLookupUserResponseUsers
+		sealed private class SCLookupUserResponseUsers
 		{
 			[JsonProperty("user"), JsonPropertyName("user")]
-			public List<SCLookupUserResponseUser> Users { get; set; } = [];
+			public List<SCLookupUserResponseUser> User { get; set; } = [];
 		}
 
-		private class SCLookupUsersResponse
+		sealed private class SCLookupUsersResponse
 		{
 			[JsonProperty("users"), JsonPropertyName("users")]
-			public SCLookupUserResponseUsers User { get; set; } = new();
+			public SCLookupUserResponseUsers Users { get; set; } = new();
 		}
 
 
@@ -112,14 +110,14 @@ namespace FWO.Tufin.SecureChange
 			RestResponse<int> restResponse = await PollExternalTicket();
 			if (restResponse.StatusCode == HttpStatusCode.OK && restResponse.Content != null)
 			{
-				Log.WriteDebug("Poll external ticket status OK", "Content: " + restResponse.Content);
+				Log.WriteDebug("Poll external ticket status OK", Content + restResponse.Content);
 				SCPollTicketResponse? scResponse = System.Text.Json.JsonSerializer.Deserialize<SCPollTicketResponse?>(restResponse.Content);
 				if(scResponse != null)
 				{
 					return (GetInternalState(scResponse.Ticket.Status.ToUpper()), restResponse.Content);
 				}
 			}
-			Log.WriteError($"Poll status failed for external ticket {TicketId}.", "Content: " + restResponse.Content + ", Error Message: " + restResponse.ErrorMessage);
+			Log.WriteError($"Poll status failed for external ticket {TicketId}.", Content + restResponse.Content + ", Error Message: " + restResponse.ErrorMessage);
 			return (oldState, restResponse.ErrorMessage);
 		}
 
@@ -235,7 +233,7 @@ namespace FWO.Tufin.SecureChange
 
 		private async Task CreateTicketText(WfReqTask? reqTask)
 		{
-			string appId = reqTask != null && reqTask?.Owners.Count > 0 ? reqTask?.Owners.First()?.Owner.ExtAppId ?? "" : "";
+			string appId = reqTask != null && reqTask?.Owners.Count > 0 ? reqTask?.Owners[0]?.Owner.ExtAppId ?? "" : "";
 			string onBehalf = TicketSystem.LookupRequesterId ? (await LookupRequesterId(Requester)).ToString() : Requester;
 			TicketText = actTicketTemplate
 				.Replace("@@TICKET_SUBJECT@@", Subject)
@@ -258,16 +256,16 @@ namespace FWO.Tufin.SecureChange
 				RestResponse<int> restResponse = await RestCall(request, restEndPoint);
 				if (restResponse.StatusCode == HttpStatusCode.OK && restResponse.Content != null)
 				{
-					Log.WriteDebug("Lookup external requester id OK", "Content: " + restResponse.Content);
+					Log.WriteDebug("Lookup external requester id OK", Content + restResponse.Content);
 					SCLookupUsersResponse? scResponse = System.Text.Json.JsonSerializer.Deserialize<SCLookupUsersResponse?>(restResponse.Content);
 					if(scResponse != null)
 					{
-						return scResponse.User.Users.FirstOrDefault()?.Id ?? 0;
+						return scResponse.Users.User.FirstOrDefault()?.Id ?? 0;
 					}
 				}
 				else
 				{
-					Log.WriteError("Lookup external requester id not OK", "Content: " + restResponse.Content);
+					Log.WriteError("Lookup external requester id not OK", Content + restResponse.Content);
 				}
 			}
 			return 0;

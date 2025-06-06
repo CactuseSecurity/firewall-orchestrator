@@ -297,7 +297,7 @@ namespace FWO.Test
 
             ClassicAssert.AreEqual(1, result.UnModelledRules.Count);
             ClassicAssert.AreEqual(1, result.UnModelledRules[1].Count);
-            ClassicAssert.AreEqual("NonModelledRule", result.UnModelledRules[1].First().Name);
+            ClassicAssert.AreEqual("NonModelledRule", result.UnModelledRules[1][0].Name);
 
             ClassicAssert.AreEqual(1, result.ConnsNotImplemented.Count);
             ClassicAssert.AreEqual(3, result.ConnsNotImplemented[0].Id);
@@ -335,16 +335,16 @@ namespace FWO.Test
 
             ClassicAssert.AreEqual(1, result.DifferingAppRoles.Count);
             ClassicAssert.AreEqual(1, result.DifferingAppRoles[1].Count);
-            ClassicAssert.AreEqual("AR504711-001", result.DifferingAppRoles[1].First().IdString);
-            ClassicAssert.AreEqual(1, result.DifferingAppRoles[1].First().SurplusAppServers.Count);
-            ClassicAssert.AreEqual("AppServerOld", result.DifferingAppRoles[1].First().SurplusAppServers[0].Content.Name);
-            ClassicAssert.AreEqual("1.0.0.0", result.DifferingAppRoles[1].First().SurplusAppServers[0].Content.Ip);
-            ClassicAssert.AreEqual(2, result.DifferingAppRoles[1].First().AppServers.Count);
-            ClassicAssert.AreEqual("AppServerUnchanged", result.DifferingAppRoles[1].First().AppServers[0].Content.Name);
-            ClassicAssert.AreEqual("1.2.3.4", result.DifferingAppRoles[1].First().AppServers[0].Content.Ip);
-            ClassicAssert.AreEqual(false, result.DifferingAppRoles[1].First().AppServers[0].Content.NotImplemented);
-            ClassicAssert.AreEqual("AppServerNew1/32", result.DifferingAppRoles[1].First().AppServers[1].Content.Name);
-            ClassicAssert.AreEqual(true, result.DifferingAppRoles[1].First().AppServers[1].Content.NotImplemented);
+            ClassicAssert.AreEqual("AR504711-001", result.DifferingAppRoles[1][0].IdString);
+            ClassicAssert.AreEqual(1, result.DifferingAppRoles[1][0].SurplusAppServers.Count);
+            ClassicAssert.AreEqual("AppServerOld", result.DifferingAppRoles[1][0].SurplusAppServers[0].Content.Name);
+            ClassicAssert.AreEqual("1.0.0.0", result.DifferingAppRoles[1][0].SurplusAppServers[0].Content.Ip);
+            ClassicAssert.AreEqual(2, result.DifferingAppRoles[1][0].AppServers.Count);
+            ClassicAssert.AreEqual("AppServerUnchanged", result.DifferingAppRoles[1][0].AppServers[0].Content.Name);
+            ClassicAssert.AreEqual("1.2.3.4", result.DifferingAppRoles[1][0].AppServers[0].Content.Ip);
+            ClassicAssert.AreEqual(false, result.DifferingAppRoles[1][0].AppServers[0].Content.NotImplemented);
+            ClassicAssert.AreEqual("AppServerNew1/32", result.DifferingAppRoles[1][0].AppServers[1].Content.Name);
+            ClassicAssert.AreEqual(true, result.DifferingAppRoles[1][0].AppServers[1].Content.NotImplemented);
         }
 
         [Test]
@@ -370,7 +370,7 @@ namespace FWO.Test
             ClassicAssert.AreEqual("SpecObj2", result.RuleDifferences[0].ImplementedRules[0].Tos[0].Object.Name);
             ClassicAssert.AreEqual(false, result.RuleDifferences[0].ImplementedRules[0].Tos[0].Object.IsSurplus);
             ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules[0].UnusedSpecialUserObjects.Count);
-            ClassicAssert.AreEqual("specobj3", result.RuleDifferences[0].ImplementedRules[0].UnusedSpecialUserObjects.First());
+            ClassicAssert.AreEqual("specobj3", result.RuleDifferences[0].ImplementedRules[0].UnusedSpecialUserObjects[0]);
 
             userConfig.RuleRecognitionOption = grpNameRecogOpt;
             varianceAnalysis = new (varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
@@ -391,7 +391,7 @@ namespace FWO.Test
             ClassicAssert.AreEqual("SpecObj2", result.RuleDifferences[0].ImplementedRules[0].Tos[0].Object.Name);
             ClassicAssert.AreEqual(false, result.RuleDifferences[0].ImplementedRules[0].Tos[0].Object.IsSurplus);
             ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules[0].UnusedSpecialUserObjects.Count);
-            ClassicAssert.AreEqual("specobj3", result.RuleDifferences[0].ImplementedRules[0].UnusedSpecialUserObjects.First());
+            ClassicAssert.AreEqual("specobj3", result.RuleDifferences[0].ImplementedRules[0].UnusedSpecialUserObjects[0]);
 
             userConfig.RuleRecognitionOption = stdRecogOpt;
         }
@@ -407,7 +407,7 @@ namespace FWO.Test
 
             ClassicAssert.AreEqual(1, result.UnModelledRules.Count);
             ClassicAssert.AreEqual(1, result.UnModelledRules[1].Count);
-            ClassicAssert.AreEqual("NonModelledRule", result.UnModelledRules[1].First().Name);
+            ClassicAssert.AreEqual("NonModelledRule", result.UnModelledRules[1][0].Name);
 
             ClassicAssert.AreEqual(1, result.ConnsNotImplemented.Count);
             ClassicAssert.AreEqual(3, result.ConnsNotImplemented[0].Id);
@@ -494,7 +494,7 @@ namespace FWO.Test
 
             ClassicAssert.AreEqual(1, result.UnModelledRules.Count);
             ClassicAssert.AreEqual(1, result.UnModelledRules[1].Count);
-            ClassicAssert.AreEqual("NonModelledRule", result.UnModelledRules[1].First().Name);
+            ClassicAssert.AreEqual("NonModelledRule", result.UnModelledRules[1][0].Name);
             ClassicAssert.AreEqual(1, result.ConnsNotImplemented.Count);
             ClassicAssert.AreEqual(3, result.ConnsNotImplemented[0].Id);
             ClassicAssert.AreEqual("Conn3", result.ConnsNotImplemented[0].Name);
@@ -542,7 +542,7 @@ namespace FWO.Test
             ClassicAssert.AreEqual("SpecObj2", result.RuleDifferences[0].ImplementedRules[0].Tos[0].Object.Name);
             ClassicAssert.AreEqual(false, result.RuleDifferences[0].ImplementedRules[0].Tos[0].Object.IsSurplus);
             ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules[0].UnusedSpecialUserObjects.Count);
-            ClassicAssert.AreEqual("specobj3", result.RuleDifferences[0].ImplementedRules[0].UnusedSpecialUserObjects.First());
+            ClassicAssert.AreEqual("specobj3", result.RuleDifferences[0].ImplementedRules[0].UnusedSpecialUserObjects[0]);
 
             userConfig.RuleRecognitionOption = stdRecogOpt;
         }

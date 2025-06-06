@@ -71,7 +71,7 @@ namespace FWO.Data
 			};
 		}
 		
-		public List<string> TaskTypesToBundle()
+		public List<string> TaskTypesToBundleGateways()
 		{
 			return Type switch
 			{

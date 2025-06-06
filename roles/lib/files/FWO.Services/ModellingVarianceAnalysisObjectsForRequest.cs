@@ -4,7 +4,6 @@ using FWO.Data.Modelling;
 using FWO.Data.Workflow;
 using FWO.Logging;
 using System.Text.Json;
-using System.Threading.Tasks;
 
 namespace FWO.Services
 {
@@ -51,7 +50,7 @@ namespace FWO.Services
                 }
             }
         }
-        
+
         private static List<WfReqElement> GetElementsFromRule(Rule rule)
         {
             List<WfReqElement> ruleElements = [];

@@ -47,31 +47,22 @@ namespace FWO.Middleware.Server
 		/// <summary>
 		/// Run the App Data Import
 		/// </summary>
-		public async Task<bool> Run()
+		public async Task Run()
 		{
-			try
+			NamingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(globalConfig.ModNamingConvention) ?? new();
+			List<string> importfilePathAndNames = JsonSerializer.Deserialize<List<string>>(globalConfig.ImportAppDataPath) ?? throw new JsonException("Config Data could not be deserialized.");
+			userConfig = new(globalConfig);
+			userConfig.User.Name = Roles.MiddlewareServer;
+			userConfig.AutoReplaceAppServer = globalConfig.AutoReplaceAppServer;
+			await InitLdap();
+			foreach (var importfilePathAndName in importfilePathAndNames)
 			{
-				NamingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(globalConfig.ModNamingConvention) ?? new();
-				List<string> importfilePathAndNames = JsonSerializer.Deserialize<List<string>>(globalConfig.ImportAppDataPath) ?? throw new JsonException("Config Data could not be deserialized.");
-				userConfig = new(globalConfig);
-				userConfig.User.Name = Roles.MiddlewareServer;
-                userConfig.AutoReplaceAppServer = globalConfig.AutoReplaceAppServer;
-				await InitLdap();
-				foreach (var importfilePathAndName in importfilePathAndNames)
+				if (!RunImportScript(importfilePathAndName + ".py"))
 				{
-					if (!RunImportScript(importfilePathAndName + ".py"))
-					{
-						Log.WriteInfo(LogMessageTitle, $"Script {importfilePathAndName}.py failed but trying to import from existing file.");
-					}
-					await ImportSingleSource(importfilePathAndName + ".json");
+					Log.WriteInfo(LogMessageTitle, $"Script {importfilePathAndName}.py failed but trying to import from existing file.");
 				}
+				await ImportSingleSource(importfilePathAndName + ".json");
 			}
-			catch (Exception exc)
-			{
-				Log.WriteError(LogMessageTitle, $"Import could not be processed.", exc);
-				return false;
-			}
-			return true;
 		}
 
 		private async Task InitLdap()

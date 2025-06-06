@@ -260,7 +260,7 @@ namespace FWO.Middleware.Server
 				WfReqTask? furtherTask = ticket.Tasks.FirstOrDefault(ta => ta.TaskNumber == actTaskNumber);
 				if(furtherTask != null && furtherTask.TaskType == nextTask.TaskType)
 				{
-					if(actSystem.BundleGateways() && actSystem.TaskTypesToBundle().Contains(nextTask.TaskType) && IsSameRuleOnDiffGw(nextTask, furtherTask))
+					if(actSystem.BundleGateways() && actSystem.TaskTypesToBundleGateways().Contains(nextTask.TaskType) && IsSameRuleOnDiffGw(nextTask, furtherTask))
 					{
 						nextTask.Elements.AddRange(furtherTask.GetRuleElements().ConvertAll(e => e.ToReqElement()));
 					}
@@ -380,7 +380,7 @@ namespace FWO.Middleware.Server
 			{
 				ticket = new SCTicket(actSystem)
 				{
-					Subject = ConstructSubject(reqTasks.First()),
+					Subject = ConstructSubject(reqTasks[0]),
 					Priority = SCTicketPriority.Low.ToString(), // todo: handling for manually handled requests (e.g. access)
 					Requester = requester?.Name ?? ""
 				};
@@ -393,7 +393,7 @@ namespace FWO.Middleware.Server
 			{
 				ModellingNamingConvention? namingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(UserConfig.ModNamingConvention);
 				await ticket.CreateRequestString(reqTasks, ipProtos, namingConvention);
-				actTaskType = ticket.GetTaskTypeAsString(reqTasks.First());
+				actTaskType = ticket.GetTaskTypeAsString(reqTasks[0]);
 				return JsonSerializer.Serialize(ticket);
 			}
 			return "";
@@ -401,7 +401,7 @@ namespace FWO.Middleware.Server
 
 		private string ConstructSubject(WfReqTask reqTask)
 		{
-			string appId = reqTask != null && reqTask?.Owners.Count > 0 ? reqTask?.Owners.FirstOrDefault()?.Owner.ExtAppId + ": " ?? "" : "";
+			string appId = reqTask != null && reqTask?.Owners.Count > 0 ? (reqTask?.Owners.FirstOrDefault()?.Owner.ExtAppId + ": " ?? "") : "";
 			string onMgt = UserConfig.GetText("on") + reqTask?.OnManagement?.Name + "(" + reqTask?.OnManagement?.Id + ")";
 			string grpName = " " + reqTask?.GetAddInfoValue(AdditionalInfoKeys.GrpName);
             return appId + reqTask?.TaskType switch

@@ -236,8 +236,6 @@ namespace FWO.Middleware.Server.Controllers
 				// if current Ldap is writable: Try to change password in current Ldap
 				if ((currentLdap.Id == parameters.LdapId || parameters.LdapId == 0) && currentLdap.IsWritable())
 				{
-					// bool passwordMustBeChanged = (await apiConnection.SendQueryAsync<UiUser[]>(AuthQueries.getUserByDn, new { dn = user.Dn }))[0].PasswordMustBeChanged;
-
 					await Task.Run(async () =>
 					{
 						errorMsg = await currentLdap.ChangePassword(user.Dn, parameters.OldPassword, parameters.NewPassword);

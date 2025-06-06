@@ -72,7 +72,7 @@ namespace FWO.Services
                     if(reqTaskToChange != null)
                     {
                         wfHandler.SetReqTaskEnv(reqTaskToChange);
-                        await wfHandler.ConfAddCommentToReqTask(reqtask.Comments.First().Comment.CommentText);
+                        await wfHandler.ConfAddCommentToReqTask(reqtask.Comments[0].Comment.CommentText);
                     }
                 }
             }

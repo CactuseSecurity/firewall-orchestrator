@@ -12,7 +12,6 @@ using FWO.Services;
 using Newtonsoft.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
-using PuppeteerSharp.Media;
 
 namespace FWO.Middleware.Server
 {
@@ -78,7 +77,7 @@ namespace FWO.Middleware.Server
         /// <summary>
         /// Run the Import Change Notifier
         /// </summary>
-        public async Task<bool> Run()
+        public async Task Run()
         {
             try
             {
@@ -97,25 +96,20 @@ namespace FWO.Middleware.Server
                     WorkInProgress = false;
                 }
             }
-            catch (Exception exception)
+            catch (Exception)
             {
-                Log.WriteError(LogMessageTitle, $"Runs into exception: ", exception);
                 WorkInProgress = false;
-                return false;
+                throw;
             }
-            return true;
         }
 
         private async Task<bool> NewImportFound()
         {
             importsToNotify = await apiConnection.SendQueryAsync<List<ImportToNotify>>(ReportQueries.getImportsToNotify);
             importedManagements = [];
-            foreach (var imp in importsToNotify)
+            foreach (var impMgt in importsToNotify.Select(i => i.MgmtId).Where(m => !importedManagements.Contains(m)))
             {
-                if (!importedManagements.Contains(imp.MgmtId))
-                {
-                    importedManagements.Add(imp.MgmtId);
-                }
+                importedManagements.Add(impMgt);
             }
             return importsToNotify.Count > 0;
         }
@@ -142,8 +136,8 @@ namespace FWO.Middleware.Server
                 TimeFilter = new()
                 {
                     TimeRangeType = TimeRangeType.Fixeddates,
-                    StartTime = importsToNotify.First().StopTime,
-                    EndTime = importsToNotify.Last().StopTime.AddSeconds(1)
+                    StartTime = importsToNotify[0].StopTime,
+                    EndTime = importsToNotify[^1].StopTime.AddSeconds(1)
                 }
             };
         }

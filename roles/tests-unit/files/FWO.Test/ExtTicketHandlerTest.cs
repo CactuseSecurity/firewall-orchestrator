@@ -119,8 +119,8 @@ namespace FWO.Test
             SCTicket ticket = new (ticketSystem);
             await ticket.CreateRequestString(grpCreateReqTasks, ipProtos, NamingConvention);
             ExternalRequestHandler extReqHandler = new(userConfig, apiConnection, null);
-            ExternalRequest oldRquestGrp = new(){ ExtRequestType = ticket.GetTaskTypeAsString(grpCreateReqTasks.First()), ExtRequestContent = ticket.TicketText};
-            ExternalRequest oldRquestAcc = new(){ ExtRequestType = ticket.GetTaskTypeAsString(accessReqTasks.First()), ExtRequestContent = ticket.TicketText};
+            ExternalRequest oldRquestGrp = new(){ ExtRequestType = ticket.GetTaskTypeAsString(grpCreateReqTasks[0]), ExtRequestContent = ticket.TicketText};
+            ExternalRequest oldRquestAcc = new(){ ExtRequestType = ticket.GetTaskTypeAsString(accessReqTasks[0]), ExtRequestContent = ticket.TicketText};
 
             ClassicAssert.AreEqual(0, extReqHandler.GetWaitCycles(WfTaskType.access.ToString(), oldRquestAcc));
             ClassicAssert.AreEqual(0, extReqHandler.GetWaitCycles(WfTaskType.group_modify.ToString(), oldRquestAcc));

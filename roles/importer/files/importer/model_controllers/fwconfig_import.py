@@ -6,7 +6,6 @@ import fwo_globals
 from fwo_exceptions import ImportInterruption
 from fwo_log import getFwoLogger
 from model_controllers.import_state_controller import ImportStateController
-from fwo_api_oo import FwoApi
 from fwo_base import ConfigAction, ConfFormat
 from models.fwconfig_normalized import FwConfigNormalized
 from model_controllers.fwconfig_import_object import FwConfigImportObject
@@ -16,7 +15,7 @@ from model_controllers.rule_enforced_on_gateway_controller import RuleEnforcedOn
 
 
 # this class is used for importing a config into the FWO API
-class FwConfigImport(FwConfigImportObject, FwConfigImportRule, FwConfigImportGateway, FwoApi):
+class FwConfigImport(FwConfigImportObject, FwConfigImportRule, FwConfigImportGateway):
     ImportDetails: ImportStateController
     NormalizedConfig: FwConfigNormalized
 

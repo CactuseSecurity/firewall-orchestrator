@@ -117,7 +117,7 @@ namespace FWO.Services
                 {
                     foreach(var svc in SvcToDelete)
                     {
-                        ActServiceGroup.Services.Remove(ActServiceGroup.Services.FirstOrDefault(x => x.Content.Id == svc.Id) ?? throw new Exception("Did not find app service."));
+                        ActServiceGroup.Services.Remove(ActServiceGroup.Services.FirstOrDefault(x => x.Content.Id == svc.Id) ?? throw new KeyNotFoundException("Did not find app service."));
                     }
                     foreach(var svc in SvcToAdd)
                     {

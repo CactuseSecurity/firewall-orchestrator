@@ -2,9 +2,19 @@
 
 namespace FWO.Test
 {
+    internal class SimulatedGlobalConfig : GlobalConfig
+    {
+        public Dictionary<string, string> DummyTranslate = SimulatedUserConfig.DummyTranslate;
+
+        public override string GetText(string key)
+        {
+            return DummyTranslate[key];
+        }
+    }
+
     internal class SimulatedUserConfig : UserConfig
     {
-        public Dictionary<string, string> DummyTranslate = new()
+        public static Dictionary<string, string> DummyTranslate = new()
         {
             {"Rules","Rules Report"},
             {"ResolvedRules","Rules Report (resolved)"},
@@ -113,6 +123,20 @@ namespace FWO.Test
             {"fully_modelled", "fullymodelled"},
             {"more", "more"},
             {"AppRules", "App Rules"},
+            {"change_rule", "Change Rule"},
+            {"delete_rule", "Delete Rule"},
+            {"impl_instructions", "Implementation Instructions"},
+            {"init_environment", "Init Environment"},
+            {"save_request", "Save request"},
+            {"U0001", "Input text..."},
+            {"on", "on"},
+            {"create_rule", "Create Rule"},
+            {"create_group", "Create Group"},
+            {"modify_group", "Modify Group"},
+            {"delete_group", "Delete Group"},
+            {"promote_task", "Promote task"},
+            {"modify_rule", "Modify Rule"},
+            {"remove_rule", "Remove Rule"},
         };
 
         public override string GetText(string key)

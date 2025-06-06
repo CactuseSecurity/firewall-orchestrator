@@ -17,12 +17,11 @@ namespace FWO.Middleware.Server
 	/// </summary>
     public class VarianceAnalysisScheduler : SchedulerBase
     {
-        private System.Timers.Timer ScheduleTimer = new();
-        private System.Timers.Timer VarianceAnalysisTimer = new();
+        private const string LogMessageTitle = "Scheduled Variance Analysis";
 
 		/// <summary>
-		/// Async Constructor needing the connection
-		/// </summary>
+        /// Async Constructor needing the connection
+        /// </summary>
         public static async Task<VarianceAnalysisScheduler> CreateAsync(ApiConnection apiConnection)
         {
             GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(apiConnection, true);
@@ -30,7 +29,7 @@ namespace FWO.Middleware.Server
         }
     
         private VarianceAnalysisScheduler(ApiConnection apiConnection, GlobalConfig globalConfig)
-            : base(apiConnection, globalConfig, ConfigQueries.subscribeVarianceAnalysisConfigChanges)
+            : base(apiConnection, globalConfig, ConfigQueries.subscribeVarianceAnalysisConfigChanges, SchedulerInterval.Minutes, "VarianceAnalysis")
         {}
 
 		/// <summary>
@@ -39,58 +38,17 @@ namespace FWO.Middleware.Server
         protected override void OnGlobalConfigChange(List<ConfigItem> config)
         {
             ScheduleTimer.Stop();
-            globalConfig.SubscriptionUpdateHandler(config.ToArray());
+            globalConfig.SubscriptionUpdateHandler([.. config]);
             if(globalConfig.VarianceAnalysisSleepTime > 0)
             {
-                VarianceAnalysisTimer.Interval = globalConfig.VarianceAnalysisSleepTime * GlobalConst.kMinutesToMilliseconds;
-                StartScheduleTimer();
+                StartScheduleTimer(globalConfig.VarianceAnalysisSleepTime, globalConfig.VarianceAnalysisStartAt);
             }
         }
 
-		/// <summary>
-		/// start the scheduling timer
-		/// </summary>
-        protected override void StartScheduleTimer()
-        {
-            if (globalConfig.VarianceAnalysisSleepTime > 0)
-            {
-                DateTime startTime = DateTime.Now;
-                try
-                {
-                    startTime = globalConfig.VarianceAnalysisStartAt;
-                    while (startTime < DateTime.Now)
-                    {
-                        startTime = startTime.AddMinutes(globalConfig.VarianceAnalysisSleepTime);
-                    }
-                }
-                catch (Exception exception)
-                {
-                    Log.WriteError("Variance Analysis scheduler", "Could not calculate start time.", exception);
-                }
-                TimeSpan interval = startTime - DateTime.Now;
-
-                ScheduleTimer = new();
-                ScheduleTimer.Elapsed += Process;
-                ScheduleTimer.Elapsed += StartVarianceAnalysisTimer;
-                ScheduleTimer.Interval = interval.TotalMilliseconds;
-                ScheduleTimer.AutoReset = false;
-                ScheduleTimer.Start();
-                Log.WriteDebug("Variance Analysis scheduler", "VarianceAnalysisScheduleTimer started.");
-            }
-        }
-
-        private void StartVarianceAnalysisTimer(object? _, ElapsedEventArgs __)
-        {
-            VarianceAnalysisTimer.Stop();
-            VarianceAnalysisTimer = new();
-            VarianceAnalysisTimer.Elapsed += Process;
-            VarianceAnalysisTimer.Interval = globalConfig.VarianceAnalysisSleepTime * GlobalConst.kMinutesToMilliseconds;
-            VarianceAnalysisTimer.AutoReset = true;
-            VarianceAnalysisTimer.Start();
-            Log.WriteDebug("Variance Analysis scheduler", "VarianceAnalysisTimer started.");
-        }
-
-        private async void Process(object? _, ElapsedEventArgs __)
+        /// <summary>
+        /// define the processing to be done
+        /// </summary>
+        protected override async void Process(object? _, ElapsedEventArgs __)
         {
             await VarianceAnalysis();
         }
@@ -113,7 +71,7 @@ namespace FWO.Middleware.Server
                 ReportBase? report = await ReportGenerator.Generate(new ReportTemplate("", new(){ ReportType = (int)ReportType.Connections, ModellingFilter = new(){ SelectedOwners = owners}}), apiConnection, userConfig, DefaultInit.DoNothing);
                 if(report == null || report.ReportData.OwnerData.Count == 0)
                 {
-                    Log.WriteInfo("Variance Analysis scheduler", $"No data found.");
+                    Log.WriteInfo(LogMessageTitle, $"No data found.");
                     return;
                 }
                 foreach(var owner in report.ReportData.OwnerData)
@@ -121,18 +79,13 @@ namespace FWO.Middleware.Server
                     varianceAnalysis = new(apiConnection, extStateHandler, userConfig, owner.Owner, DefaultInit.DoNothing);
                     if(!await varianceAnalysis.AnalyseConnsForStatusAsync(owner.Connections))
                     {
-                        Log.WriteError("Variance Analysis scheduler", $"Variance Analysis failed for owner {owner.Name}.");
+                        Log.WriteError(LogMessageTitle, $"Variance Analysis failed for owner {owner.Name}.");
                     }
                 }
             }
             catch (Exception exc)
             {
-                Log.WriteError("Variance Analysis", $"Ran into exception: ", exc);
-                string titletext = "Error encountered while trying to perform scheduled Variance Analysis";
-                Log.WriteAlert($"source: \"{GlobalConst.kVarianceAnalysis}\"",
-                    $"userId: \"0\", title: \"{titletext}\", description: \"{exc}\", alertCode: \"{AlertCode.VarianceAnalysis}\"");
-                await AddLogEntry(1, globalConfig.GetText("scheduled_var_analysis"), globalConfig.GetText("ran_into_exception") + exc.Message, GlobalConst.kVarianceAnalysis);
-                await SetAlert(globalConfig.GetText("scheduled_var_analysis"), titletext, GlobalConst.kVarianceAnalysis, AlertCode.VarianceAnalysis);
+                await LogErrorsWithAlert(1, LogMessageTitle, GlobalConst.kVarianceAnalysis, AlertCode.VarianceAnalysis, exc);
             }
         }
     }

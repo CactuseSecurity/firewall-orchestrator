@@ -115,7 +115,7 @@ namespace FWO.Report
             ownerReport.ExtractConnectionsToAnalyse();
             ExtStateHandler extStateHandler = new(apiConnection);
             ModellingVarianceAnalysis varianceAnalysis = new(apiConnection, extStateHandler, userConfig, ownerReport.Owner, displayMessageInUi);
-            ModellingVarianceResult result = await varianceAnalysis.AnalyseRulesVsModelledConnections([.. ownerReport.Connections.Where(x => !x.IsDocumentationOnly())], modellingFilter);
+            ModellingVarianceResult result = await varianceAnalysis.AnalyseRulesVsModelledConnections(ownerReport.Connections, modellingFilter);
             ownerReport.Connections = result.ConnsNotImplemented;
             ownerReport.RuleDifferences = result.RuleDifferences;
             ownerReport.MissingAppRoles = result.MissingAppRoles;

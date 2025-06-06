@@ -291,7 +291,7 @@ namespace FWO.Report
                 using IPage page = await browser.NewPageAsync();
                 await page.SetContentAsync(html);
 
-                PuppeteerSharp.Media.PaperFormat? pupformat = GetPuppeteerPaperFormat(format) ?? throw new Exception();
+                PuppeteerSharp.Media.PaperFormat? pupformat = GetPuppeteerPaperFormat(format) ?? throw new KeyNotFoundException();
 
                 PdfOptions pdfOptions = new() { Outline = true, DisplayHeaderFooter = false, Landscape = true, PrintBackground = true, Format = pupformat, MarginOptions = new MarginOptions { Top = "1cm", Bottom = "1cm", Left = "1cm", Right = "1cm" } };
                 byte[]? pdfData = await page.PdfDataAsync(pdfOptions);
@@ -300,7 +300,7 @@ namespace FWO.Report
             }
             catch (Exception)
             {
-                throw new Exception("This paper kind is currently not supported. Please choose another one or \"Custom\" for a custom size.");
+                throw new NotSupportedException("This paper kind is currently not supported. Please choose another one or \"Custom\" for a custom size.");
             }
             finally
             {

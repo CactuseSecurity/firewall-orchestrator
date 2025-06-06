@@ -30,7 +30,7 @@ namespace FWO.Config.Api
             if (user == null)
             {
                 Log.WriteError("Load user config", $"User with id {userId} could not be found in database.");
-                throw new Exception();
+                throw new KeyNotFoundException();
             }
             return new UserConfig(globalConfig, apiConnection, user);
         }

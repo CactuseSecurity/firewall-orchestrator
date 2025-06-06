@@ -218,7 +218,7 @@ namespace FWO.Middleware.Server.Controllers
 
 			if (user.Dn == "" && user.Name == "")
 			{
-				throw new Exception("A0001 Invalid credentials. Username / User DN must not be empty.");
+				throw new AuthenticationException("A0001 Invalid credentials. Username / User DN must not be empty.");
 			}
 			else
 			{
@@ -283,7 +283,7 @@ namespace FWO.Middleware.Server.Controllers
 			}
 
 			// Invalid User Credentials
-			throw new Exception("A0002 Invalid credentials");
+			throw new AuthenticationException("A0002 Invalid credentials");
 		}
 
 		public async Task<List<string>> GetRoles(UiUser user)

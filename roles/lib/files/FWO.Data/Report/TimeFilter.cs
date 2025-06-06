@@ -49,7 +49,7 @@ namespace FWO.Data.Report
         public int Offset { get; set; } = 0;
 
         [JsonProperty("interval"), JsonPropertyName("interval")]
-        public Interval Interval { get; set; } = Interval.Days;
+        public SchedulerInterval Interval { get; set; } = SchedulerInterval.Days;
 
         [JsonProperty("start_time"), JsonPropertyName("start_time")]
         public DateTime StartTime { get; set; } = DateTime.Now.AddSeconds(-DateTime.Now.Second);

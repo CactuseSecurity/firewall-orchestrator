@@ -88,7 +88,7 @@
                             &nbsp;
                             @if(userConfig.VarianceAnalysisRefresh)
                             {
-                                <button type="button" class="btn btn-sm btn-primary" @onclick="async() => await appHandler.AnalyseStatus(appHandler.Connections)">
+                                <button type="button" class="btn btn-sm btn-primary" @onclick="RefreshState">
                                     @(appHandler!.DisplayButton("refresh_state", Icons.Refresh, "state"))
                                 </button>
                             }
@@ -115,7 +115,7 @@
                                     <Authorized>
                                         <div>
                                             <input id="cbx_show_rejected" type="checkbox" @bind="showRejected">
-                                            <label for="cbx_show_rejected" class="col-form-label">@(userConfig.GetText("displayRejected")):</label>
+                                            <label for="cbx_show_rejected" class="col-form-label">@(userConfig.GetText("displayRejected"))</label>
                                         </div>
                                     </Authorized>
                                 </AuthorizeView>
@@ -353,6 +353,23 @@ else
     private void RequestFwChange()
     {
         showFwChange = true;
+    }
+
+    private async Task RefreshState()
+    {
+        if (appHandler != null)
+        {
+            try
+            {
+                workInProgress = true;
+                await appHandler.AnalyseStatus(appHandler.Connections);
+                workInProgress = false;
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("refresh_state"), "", true);
+            }
+        }
     }
 
     private async Task SetChangeStatus()

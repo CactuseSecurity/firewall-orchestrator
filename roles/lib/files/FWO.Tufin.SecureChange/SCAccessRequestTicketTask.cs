@@ -20,6 +20,7 @@ namespace FWO.Tufin.SecureChange
 		// 			"@type": "ANY"
 		// 		}
 		// 	},
+		//  "action": @@ACTION@@,
 		// 	"sources": {
 		// 		"source": @@SOURCES@@
 		// 	},
@@ -39,9 +40,21 @@ namespace FWO.Tufin.SecureChange
 			TaskText = template.TasksTemplate
 				.Replace("@@ORDERNAME@@", "AR"+ ReqTask.TaskNumber.ToString())
 				.Replace("@@TASKCOMMENT@@", ReqTask.GetFirstCommentText())
+				.Replace("@@ACTION@@", MapActionType(ReqTask))
 				.Replace("@@SOURCES@@", ConvertNetworkElems(template, ElemFieldType.source, extMgt.ExtName))
 				.Replace("@@DESTINATIONS@@", ConvertNetworkElems(template, ElemFieldType.destination, extMgt.ExtName))
 				.Replace("@@SERVICES@@", ConvertServiceElems(template));
+		}
+
+		private static string MapActionType(WfReqTask reqTask)
+		{
+			return reqTask.TaskType switch
+            {
+                nameof(WfTaskType.access) => SCActionType.Accept,
+                nameof(WfTaskType.rule_modify) => SCActionType.Accept,
+                nameof(WfTaskType.rule_delete) => SCActionType.Remove,
+                _ => "",
+            };
 		}
 
 		private string ConvertNetworkElems(ExternalTicketTemplate template, ElemFieldType fieldType, string? mgtName)

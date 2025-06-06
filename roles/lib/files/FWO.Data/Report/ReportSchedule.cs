@@ -22,7 +22,7 @@ namespace FWO.Data.Report
         public int RepeatOffset { get; set; } = 1;
 
         [JsonProperty("report_schedule_every"), JsonPropertyName("report_schedule_every")]
-        public Interval RepeatInterval { get; set; }
+        public SchedulerInterval RepeatInterval { get; set; }
 
         [JsonProperty("report_schedule_template"), JsonPropertyName("report_schedule_template")]
         public ReportTemplate Template { get; set; } = new ();
@@ -42,14 +42,5 @@ namespace FWO.Data.Report
             Name = Sanitizer.SanitizeMand(Name, ref shortened);
             return shortened;
         }
-    }
-
-    public enum Interval
-    {
-        Never = 0,
-        Days = 2,
-        Weeks = 3,
-        Months = 4,
-        Years = 5
     }
 }

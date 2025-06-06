@@ -20,6 +20,7 @@ namespace FWO.Middleware.Server.Controllers
 	{
 		private readonly List<Ldap> ldaps;
 		private readonly ApiConnection apiConnection;
+		private readonly string WrongUserId = "Wrong UserId";
 
 		/// <summary>
 		/// Constructor needing ldap list and connection
@@ -168,7 +169,7 @@ namespace FWO.Middleware.Server.Controllers
 		public async Task<bool> Change([FromBody] UserEditParameters parameters)
 		{
 			string email = parameters.Email ?? "";
-			UiUser user = await resolveUser(parameters.UserId) ?? throw new Exception("Wrong UserId");
+			UiUser user = await ResolveUser(parameters.UserId) ?? throw new ArgumentException(WrongUserId);
 			bool userUpdated = false;
 
 			foreach (Ldap currentLdap in ldaps)
@@ -226,7 +227,7 @@ namespace FWO.Middleware.Server.Controllers
 			if (User.IsInRole(Roles.Auditor))
 				return Unauthorized();
 
-			UiUser user = await resolveUser(parameters.UserId) ?? throw new Exception("Wrong UserId");
+			UiUser user = await ResolveUser(parameters.UserId) ?? throw new ArgumentException(WrongUserId);
 
 			string errorMsg = "";
 
@@ -235,8 +236,6 @@ namespace FWO.Middleware.Server.Controllers
 				// if current Ldap is writable: Try to change password in current Ldap
 				if ((currentLdap.Id == parameters.LdapId || parameters.LdapId == 0) && currentLdap.IsWritable())
 				{
-					bool passwordMustBeChanged = (await apiConnection.SendQueryAsync<UiUser[]>(AuthQueries.getUserByDn, new { dn = user.Dn }))[0].PasswordMustBeChanged;
-
 					await Task.Run(async () =>
 					{
 						errorMsg = await currentLdap.ChangePassword(user.Dn, parameters.OldPassword, parameters.NewPassword);
@@ -267,7 +266,7 @@ namespace FWO.Middleware.Server.Controllers
 		[Authorize(Roles = $"{Roles.Admin}")]
 		public async Task<ActionResult<string>> ResetPassword([FromBody] UserResetPasswordParameters parameters)
 		{
-			UiUser user = await resolveUser(parameters.UserId) ?? throw new Exception("Wrong UserId");
+			UiUser user = await ResolveUser(parameters.UserId) ?? throw new ArgumentException(WrongUserId);
 			string errorMsg = "";
 
 			foreach (Ldap currentLdap in ldaps)
@@ -306,7 +305,7 @@ namespace FWO.Middleware.Server.Controllers
 		[Authorize(Roles = $"{Roles.Admin}")]
 		public async Task<bool> DeleteAllGroupsAndRoles([FromBody] UserDeleteAllEntriesParameters parameters)
 		{
-			UiUser user = await resolveUser(parameters.UserId) ?? throw new Exception("Wrong UserId");
+			UiUser user = await ResolveUser(parameters.UserId) ?? throw new ArgumentException(WrongUserId);
 
 			bool userRemoved = false;
 			List<Task> ldapRoleRequests = [];
@@ -346,7 +345,7 @@ namespace FWO.Middleware.Server.Controllers
 		[Authorize(Roles = $"{Roles.Admin}")]
 		public async Task<bool> Delete([FromBody] UserDeleteParameters parameters)
 		{
-			UiUser user = await resolveUser(parameters.UserId) ?? throw new Exception("Wrong UserId");
+			UiUser user = await ResolveUser(parameters.UserId) ?? throw new ArgumentException(WrongUserId);
 			bool userDeleted = false;
 
 			foreach (Ldap currentLdap in ldaps)
@@ -389,7 +388,7 @@ namespace FWO.Middleware.Server.Controllers
 			return userDeleted;
 		}
 
-		private async Task<UiUser?> resolveUser(int id)
+		private async Task<UiUser?> ResolveUser(int id)
 		{
 			List<UiUser> uiUsers;
 			try

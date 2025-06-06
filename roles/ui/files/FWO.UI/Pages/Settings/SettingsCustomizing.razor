@@ -138,13 +138,13 @@ else
         try
         {
             configData = await globalConfig.GetEditableConfig();
-            availableTaskTypes = System.Text.Json.JsonSerializer.Deserialize<List<WfTaskType>>(configData.ReqAvailableTaskTypes) ?? throw new Exception("Config data could not be parsed.");
+            availableTaskTypes = System.Text.Json.JsonSerializer.Deserialize<List<WfTaskType>>(configData.ReqAvailableTaskTypes) ?? throw new JsonException("Config data could not be parsed.");
             taskTypesActiveDict = [];
             foreach(WfTaskType type in Enum.GetValues(typeof(WfTaskType)))
             {
                 taskTypesActiveDict.Add(type, availableTaskTypes.Contains(type));
             }
-            prioList = System.Text.Json.JsonSerializer.Deserialize<List<WfPriority>>(configData.ReqPriorities) ?? throw new Exception("Config data could not be parsed.");
+            prioList = System.Text.Json.JsonSerializer.Deserialize<List<WfPriority>>(configData.ReqPriorities) ?? throw new JsonException("Config data could not be parsed.");
             InitComplete = true;
         }
         catch (Exception exception)

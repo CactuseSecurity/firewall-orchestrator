@@ -69,6 +69,17 @@ namespace FWO.Config.Api
             return new GlobalConfig(apiConnection, productVersion, uiLanguages, tmpLangDicts, tmpLangOverDicts, withSubscription);
         }
 
+        /// <summary>
+        /// constructor only used in unit tests
+        /// </summary>
+        public GlobalConfig() : base()
+        {
+            ProductVersion = "1.0";
+            UiLanguages = [];
+            LangDict = [];
+            OverDict = [];
+        }
+
         private GlobalConfig(ApiConnection apiConnection, string productVersion, Language[] uiLanguages,
                 Dictionary<string, Dictionary<string, string>> langDict, Dictionary<string, Dictionary<string, string>> overDict, bool withSubscription = false)
             : base(apiConnection, 0, withSubscription)

@@ -10,7 +10,7 @@ namespace FWO.Report.Filter.Ast
         public Token Operator { get; set; } = new Token(new Range(), "", TokenKind.Value);
         public Token Value { get; set; } = new Token(new Range(), "", TokenKind.Value);
 
-        protected void CheckOperator(Token isOperator, bool equalsIsExactEquals, params TokenKind[] expectedOperators)
+        protected static void CheckOperator(Token isOperator, bool equalsIsExactEquals, params TokenKind[] expectedOperators)
         {
             if (equalsIsExactEquals)
             {
@@ -35,7 +35,7 @@ namespace FWO.Report.Filter.Ast
             };
         }
 
-        protected string AddVariable<Type>(DynGraphqlQuery query, string name, TokenKind op, Type value)
+        protected static string AddVariable<Type>(DynGraphqlQuery query, string name, TokenKind op, Type value)
         {
             string queryVarName = name + query.parameterCounter++;
             string queryVarType = "";
@@ -67,7 +67,7 @@ namespace FWO.Report.Filter.Ast
                     queryVarType = "timestamp";
                     if (dateTimeValue.Start == null && dateTimeValue.End == null)
                         throw new NotSupportedException($"LastHit filter with missing date");
-                    DateTime date = new DateTime();
+                    DateTime date = new();
                     if (dateTimeValue.End != null)
                         date = (DateTime)dateTimeValue.End;
                     if (dateTimeValue.Start != null)

@@ -28,7 +28,7 @@ namespace FWO.Report.Filter.Ast
             }
         }
 
-        private DynGraphqlQuery ExtractLastHitFilter(DynGraphqlQuery query, ReportType? reportType)
+        private void ExtractLastHitFilter(DynGraphqlQuery query, ReportType? reportType)
         {
             string queryVarName = AddVariable<DateTimeRange>(query, "lastHitLimit", Operator.Kind, semanticValue!);
             
@@ -62,7 +62,6 @@ namespace FWO.Report.Filter.Ast
                     query.RuleWhereStatement += $"rule_metadatum: {{ rule_last_hit: {{{ExtractOperator()}: ${queryVarName} }} }}";
                 }
             }
-            return query;
         }
     }
 }

@@ -1,15 +1,7 @@
-﻿using GraphQL;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Text.Json;
-using System.Threading.Tasks;
-using FWO.Api.Client;
-using Newtonsoft.Json.Linq;
-using FWO.Logging;
-using GraphQL.Client.Abstractions;
+﻿using FWO.Logging;
+using GraphQL;
 using GraphQL.Client.Http;
+using Newtonsoft.Json.Linq;
 
 namespace FWO.Api.Client
 {
@@ -48,7 +40,7 @@ namespace FWO.Api.Client
             apiConnection.OnAuthHeaderChanged += ApiConnectionOnAuthHeaderChanged;
         }
 
-        private void CreateSubscription()
+        protected virtual void CreateSubscription()
         {
             Log.WriteDebug("API", $"Creating API subscription {request.OperationName}.");
             subscriptionStream = graphQlClient.CreateSubscriptionStream<dynamic>(request, internalExceptionHandler);

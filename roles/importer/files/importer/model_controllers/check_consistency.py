@@ -3,17 +3,20 @@ import json
 import fwo_const
 from fwo_log import getFwoLogger
 from model_controllers.fwconfig_import import FwConfigImport
+from model_controllers.fwconfig_import_object import FwConfigImportObject
 
 
 # this class is used for importing a config into the FWO API
 class FwConfigImportCheckConsistency(FwConfigImport):
 
-    def __init__(self, config: FwConfigImport):
+    
+
+    def __init__(self, config: FwConfigImport, fwconfig_import_object: FwConfigImportObject):
         self.ImportDetails = config.ImportDetails
         self.NormalizedConfig = config.NormalizedConfig
-        self.NetworkObjectTypeMap = config.NetworkObjectTypeMap
-        self.ServiceObjectTypeMap = config.ServiceObjectTypeMap
-        self.UserObjectTypeMap = config.UserObjectTypeMap
+        self.NetworkObjectTypeMap = fwconfig_import_object.NetworkObjectTypeMap
+        self.ServiceObjectTypeMap = fwconfig_import_object.ServiceObjectTypeMap
+        self.UserObjectTypeMap = fwconfig_import_object.UserObjectTypeMap
 
         
     # pre-flight checks

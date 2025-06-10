@@ -15,6 +15,9 @@ from services.enums import Services
 # this class is used for importing a config into the FWO API
 class FwConfigImportObject():
 
+    ImportDetails: ImportStateController
+    NormalizedConfig: FwConfigNormalized
+
     # @root_validator(pre=True)
     # def custom_initialization(cls, values):
     #     values['NetworkObjectTypeMap'] = cls.GetNetworkObjTypeMap()
@@ -24,17 +27,24 @@ class FwConfigImportObject():
     #     values['ColorMap'] = cls.GetColorMap()
     #     return values
     
-    def __init__(self, importState: ImportStateController, config: FwConfigNormalized):
+    def __init__(self):
 
+        # Get state, config and services.
+
+        service_provider = ServiceProvider()
+        self.ImportDetails = service_provider._import_state
+        self.NormalizedConfig = service_provider._normalized_config
+        self.group_flats_mapper = service_provider.get_service(Services.GROUP_FLATS_MAPPER)
+        self.prev_group_flats_mapper = service_provider.get_service(Services.GROUP_FLATS_MAPPER)
+        self.uid2id_mapper = service_provider.get_service(Services.UID2ID_MAPPER)
+
+        # Create maps.
+        
         self.NetworkObjectTypeMap = self.GetNetworkObjTypeMap()
         self.ServiceObjectTypeMap = self.GetServiceObjTypeMap()
         self.UserObjectTypeMap = self.GetUserObjTypeMap()
         self.ProtocolMap = self.GetProtocolMap()
         self.ColorMap = self.GetColorMap()
-
-        self.group_flats_mapper = ServiceProvider().get_service(Services.GROUP_FLATS_MAPPER, importState, config)
-        self.prev_group_flats_mapper = ServiceProvider().get_service(Services.GROUP_FLATS_MAPPER, importState, config)
-        self.uid2id_mapper = ServiceProvider().get_service(Services.UID2ID_MAPPER, importState)
 
 
     def updateObjectDiffs(self, prevConfig: FwConfigNormalized):

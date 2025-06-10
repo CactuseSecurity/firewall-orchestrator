@@ -5,7 +5,7 @@ import argparse
 import requests, requests.packages
 from common import importer_base_dir, import_management
 import fwo_globals, fwo_config
-from model_controllers.uid2id_mapper import Uid2IdMapper
+from services.uid2id_mapper import Uid2IdMapper
 from services.service_provider import ServiceProvider
 from services.group_flats_mapper import GroupFlatsMapper
 from services.enums import *
@@ -52,7 +52,7 @@ if __name__ == "__main__":
 
     service_provider = ServiceProvider()
     service_provider.register(Services.GROUP_FLATS_MAPPER, lambda: GroupFlatsMapper(), Lifetime.TRANSIENT)
-    service_provider.register(Services.UID2ID_MAPPER, lambda: Uid2IdMapper(), Lifetime.TRANSIENT)
+    service_provider.register(Services.UID2ID_MAPPER, lambda: Uid2IdMapper(), Lifetime.SINGLETON)
 
     fwo_config = fwo_config.readConfig()
     fwo_globals.setGlobalValues(verify_certs_in=args.verify_certificates, 

@@ -29,9 +29,11 @@ class FwConfigImportRule():
     _changed_rule_id_map: dict
     uid2id_mapper: Uid2IdMapper
 
-    def __init__(self, importState: ImportStateController):
+    def __init__(self, import_state: ImportStateController, normalized_config: FwConfigNormalized):
       self._changed_rule_id_map = {}
-      self.uid2id_mapper = ServiceProvider().get_service(Services.UID2ID_MAPPER, importState)
+      self.uid2id_mapper = ServiceProvider().get_service(Services.UID2ID_MAPPER)
+      self.ImportDetails = import_state
+      self.NormalizedConfig = normalized_config
     # #   self.ActionMap = self.GetActionMap()
     # #   self.TrackMap = self.GetTrackMap()
     #   self.RuleNumLookup = self.GetRuleNumMap()             # TODO: needs to be updated with each insert

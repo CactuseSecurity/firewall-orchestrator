@@ -15,14 +15,18 @@ from model_controllers.rule_enforced_on_gateway_controller import RuleEnforcedOn
 
 
 # this class is used for importing a config into the FWO API
-class FwConfigImport(FwConfigImportObject, FwConfigImportRule):
+class FwConfigImport():
+
     ImportDetails: ImportStateController
     NormalizedConfig: FwConfigNormalized
+    fw_config_import_rule: FwConfigImportRule
+    fw_config_import_object: FwConfigImportObject
 
     def __init__(self, importState: ImportStateController, config: FwConfigNormalized):
         self.ImportDetails = importState
         self.NormalizedConfig = config
-        FwConfigImportObject.__init__(self, importState, config)
+        self.fw_config_import_object = FwConfigImportObject()
+        self.fw_config_import_rule = FwConfigImportRule(importState, config)
         
     def importConfig(self):
         # current implementation restriction: assuming we always get the full config (only inserts) from API
@@ -32,12 +36,12 @@ class FwConfigImport(FwConfigImportObject, FwConfigImportRule):
         return
 
     def updateDiffs(self, previousConfig: FwConfigNormalized):
-        self.updateObjectDiffs(previousConfig)
+        self.fw_config_import_object.updateObjectDiffs(previousConfig)
         if fwo_globals.shutdown_requested:
             # self.ImportDetails.addError("shutdown requested, aborting import")
             raise ImportInterruption("Shutdown requested during updateObjectDiffs.")
 
-        newRuleIds = self.updateRulebaseDiffs(previousConfig)
+        newRuleIds = self.fw_config_import_rule.updateRulebaseDiffs(previousConfig)
 
         if fwo_globals.shutdown_requested:
             # self.ImportDetails.addError("shutdown requested, aborting import")
@@ -49,9 +53,9 @@ class FwConfigImport(FwConfigImportObject, FwConfigImportRule):
         # raise NotImplementedError("just testing")
 
         # get new rules details from API (for obj refs as well as enforcing gateways)
-        errors, changes, newRules = self.getRulesByIdWithRefUids(newRuleIds)
+        errors, changes, newRules = self.fw_config_import_rule.getRulesByIdWithRefUids(newRuleIds)
 
-        self.addNewRule2ObjRefs(newRules)
+        self.fw_config_import_rule.addNewRule2ObjRefs(newRules)
         #TODO: self.addNewRule2SvcRefs(newRules)
 
         enforcingController = RuleEnforcedOnGatewayController(self.ImportDetails)
@@ -191,3 +195,4 @@ class FwConfigImport(FwConfigImportObject, FwConfigImportRule):
         except Exception:
             logger.exception(f"failed to get latest normalized config for mgm id {str(self.ImportDetails.MgmDetails.Id)}: {str(traceback.format_exc())}")
             raise Exception(f"error while trying to get the previous config")
+

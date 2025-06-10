@@ -4,7 +4,6 @@ using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Report;
-using FWO.FwLogic;
 using FWO.Logging;
 using FWO.Report.Filter;
 using FWO.Ui.Display;
@@ -32,7 +31,7 @@ namespace FWO.Report
         private const int ColumnCount = 12;
         protected bool UseAdditionalFilter = false;
         private bool VarianceMode = false;
-        private static TreeItem<Rule> _ruleTree = new TreeItem<Rule>();
+        private static List<TreeNode<Rule>> _ruleTree = [];
         private static int _createdOrderNumbersCount = 0;
 
         public ReportRules(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType) : base(query, userConfig, reportType) { }
@@ -209,9 +208,13 @@ namespace FWO.Report
             return [];
         }
 
+        public static List<TreeNode<Rule>> GetRulesTreeNode()
+        {
+            return _ruleTree;
+        }
+
         public static Rule[] GetAllRulesOfGateway(DeviceReportController deviceReport, ManagementReport managementReport)
         {
-            _ruleTree = new();
             _createdOrderNumbersCount = 0;
             List<Rule> allRules = new();
 
@@ -240,8 +243,6 @@ namespace FWO.Report
                         relativeOrderNumber++;
                         rule.RuleOrderNumber = relativeOrderNumber;
                         allRules.Add(rule);
-                        TreeItem<Rule> treeItem = new TreeItem<Rule>(rule);
-                        _ruleTree.Children.Add(treeItem);
                     }
 
                     rulebaseLinkQueueItem.rulebase.AddRange(clonedRules);
@@ -333,15 +334,41 @@ namespace FWO.Report
 
             // Prepare creation of order numbers.
 
+            TreeNode<Rule> treeItem = new();
+
             if(currentQueueItem.link.LinkType == 2 && !currentQueueItem.link.IsGlobal)
             {
                 orderedLayerCounter++;
                 nextPosition = new List<int> { orderedLayerCounter, 0 };
                 lastPosition = nextPosition;
+
+                if(currentQueueItem.rulebase.Count > 0)
+                {
+                    _ruleTree.AddRange
+                    (
+                        currentQueueItem.rulebase.Select(rule => new TreeNode<Rule>
+                        {
+                            Item = rule
+                        })
+                    );
+                }
             }
             else if(currentQueueItem.link.IsSection)
             {
                 nextPosition = lastPosition;
+
+                treeItem.Item = new Rule() { Name = BuildSectionHeaderName(currentQueueItem.rulebase) };
+                treeItem.Type = RulebaseType.Section;
+
+                treeItem.Children.AddRange
+                (
+                    currentQueueItem.rulebase.Select(rule => new TreeNode<Rule>
+                    {
+                        Item = rule
+                    })
+                );
+
+                _ruleTree.Add(treeItem);
             }
             else if(currentQueueItem.link.LinkType == 3)
             {
@@ -376,7 +403,7 @@ namespace FWO.Report
 
                     nextPosition[nextPosition.Count() - 1] = nextPosition.Last() + 1;
                     currentRule.DisplayOrderNumberString = string.Join(".", nextPosition);
-                    _ruleTree.Children.First(treeItem => treeItem.Data == currentRule).Position = nextPosition.ToList();
+                    //_ruleTree.Children.First(treeItem => treeItem.Item == currentRule).Position = nextPosition.ToList();
                     _createdOrderNumbersCount++;
                     currentRule.OrderNumber = _createdOrderNumbersCount;
                     visitedRules.Add(currentRule);
@@ -403,11 +430,22 @@ namespace FWO.Report
 
                     }
                 }
-
-
             }
 
             return lastPosition;
+        }
+
+        private static string BuildSectionHeaderName(List<Rule> rulebase)
+        {
+            string? firstOrderNumber = rulebase.FirstOrDefault()?.RuleOrderNumber.ToString();
+            string? lastOrderNumber = rulebase.LastOrDefault()?.RuleOrderNumber.ToString();
+
+            if(firstOrderNumber != null && lastOrderNumber != null && firstOrderNumber != lastOrderNumber)
+            {
+                return $"Section ({firstOrderNumber}-{lastOrderNumber})";
+            }
+
+            return string.Empty;
         }
 
         private static (RulebaseLink, List<Rule>)? TryPeekNextQueueItem(Queue<(RulebaseLink link, List<Rule> rulebase)> rulebaseLinkQueue)

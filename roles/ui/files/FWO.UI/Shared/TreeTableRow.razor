@@ -5,7 +5,7 @@
 @inject UserConfig userConfig
 @typeparam TItem
 
-<tr class="@(IsSectionHeader() ? "section-header" : "")">
+<tr class="@(Node.Type == RulebaseType.Section ? "section-header" : "")">
     <td class="tree-cell" colspan="@GetColumnSpan()">
         <span class="tree-indent" style="width:@(Level * 1.5)rem;"></span>
         @if(Node.Children.Any())
@@ -79,7 +79,7 @@
 
     private string GetColumnSpan()
     {
-        if(Node.Item is Rule rule && !string.IsNullOrEmpty(rule.SectionHeader))
+        if(Node.Type == RulebaseType.Section)
         {
             return "12"; // Span all columns for section headers
         }

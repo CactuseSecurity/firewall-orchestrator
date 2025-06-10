@@ -7,7 +7,7 @@
 @using FWO.Services.EventMediator.Interfaces
 @using FWO.Ui.Display
 
-@if (IsLoading)
+@if(IsLoading)
 {
     <div class="d-flex justify-content-center align-items-center">
         <div class="spinner-border" role="status">
@@ -19,7 +19,10 @@ else
 {
     <TreeTable TItem="Rule" Nodes="RulesNodes">
         <CellTemplate Context="rule">
-            @rule.Name
+            @if(rule is not null)
+            {
+                @rule.Name
+            }
         </CellTemplate>
     </TreeTable>
 }
@@ -48,27 +51,27 @@ else
         {
             RulesNodes = new List<TreeNode<Rule>>();
 
-            // foreach (ManagementReport report in Managements)
-            // {
-            //     ManagementReportController management = new ManagementReportController(report);
+            foreach(ManagementReport report in Managements)
+            {
+                ManagementReportController management = new ManagementReportController(report);
 
-            //     if (!management.ContainsRules())
-            //     {
-            //         continue;
-            //     }
+                if(!management.ContainsRules())
+                {
+                    continue;
+                }
 
-            //     foreach (DeviceReport devReport in management.Devices)
-            //     {
-            //         if (!devReport.ContainsRules())
-            //         {
-            //             continue;
-            //         }
+                foreach(DeviceReport devReport in management.Devices)
+                {
+                    if(!devReport.ContainsRules())
+                    {
+                        continue;
+                    }
 
-            //         DeviceReportController device = DeviceReportController.FromDeviceReport(devReport);
-            //         List<TreeNode<Rule>> newNodes = TreeNodeBuilder.BuildRuleTreeFromManagementAndDevice(management, device);
-            //         RulesNodes.AddRange(newNodes);
-            //     }
-            // }
+                    DeviceReportController device = DeviceReportController.FromDeviceReport(devReport);
+                    ReportRules.GetAllRulesOfGateway(device, management);
+                    RulesNodes = ReportRules.GetRulesTreeNode();
+                }
+            }
         }
         finally
         {

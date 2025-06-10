@@ -268,6 +268,12 @@ bugfix release:
 # 8.8.2 - 07.05.2025 DEVELOP
 - displayed state via variance analysis
 
+# 8.8.3 - 15.05.2025 DEVELOP
+- deactivation of connections
+
+# 8.8.4 - 02.06.2025 DEVELOP
+- hotfix for Check Point importer suppor for DLP actions (ask, inform)
+
 # 9.0 - 31.05.2025 DEVELOP
 - rule to gateway mapping 1:n
 - add report output for rule to gw mapping

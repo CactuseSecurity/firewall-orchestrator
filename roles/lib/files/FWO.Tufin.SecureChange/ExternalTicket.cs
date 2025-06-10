@@ -1,12 +1,10 @@
 using FWO.Data;
 using FWO.Data.Workflow;
 using FWO.Data.Modelling;
-using System.Text.Json.Serialization; 
+using FWO.Logging;
 using Newtonsoft.Json;
 using RestSharp;
-using RestSharp.Serializers.NewtonsoftJson;
-using RestSharp.Serializers;
-using FWO.Logging;
+using System.Text.Json.Serialization; 
 
 namespace FWO.Tufin.SecureChange
 {
@@ -36,42 +34,14 @@ namespace FWO.Tufin.SecureChange
 			throw new NotImplementedException();
 		}
 
-		public async Task<RestResponse<int>> CreateExternalTicket()
+		public virtual Task<RestResponse<int>> CreateExternalTicket()
 		{
-			string restEndPoint = "tickets.json";
-			RestRequest request = new(restEndPoint, Method.Post);
-			request.AddJsonBody(TicketText);
-
-			// https://192.168.1.1/securechangeworkflow/api/securechange/tickets
-			return await RestCall(request, restEndPoint);
+			throw new NotImplementedException();
 		}
 
-		protected async Task<RestResponse<int>> PollExternalTicket()
+		protected virtual Task<RestResponse<int>> PollExternalTicket()
 		{
-			if(TicketId != null)
-			{
-				string restEndPoint = "tickets/" + TicketId;
-				RestRequest request = new(restEndPoint, Method.Get);
-				return await RestCall(request, restEndPoint);
-			}
-			throw new ArgumentException("No Ticket Id given.");
-		}
-
-		protected async Task<RestResponse<int>> RestCall(RestRequest request, string restEndPoint)
-		{
-			request.AddHeader("Content-Type", "application/json");
-			request.AddHeader("Authorization", TicketSystem.Authorization);
-			request.AddHeader("Accept", "application/json");
-			RestClientOptions restClientOptions = new() { Timeout = TimeSpan.FromSeconds(TicketSystem.ResponseTimeout) };
-			restClientOptions.RemoteCertificateValidationCallback += (_, _, _, _) => true;
-			restClientOptions.BaseUrl = new Uri(TicketSystem.Url);
-			RestClient restClient = new(restClientOptions, null, ConfigureRestClientSerialization);
-
-			// Debugging SecureChange API call
-			Log.WriteDebug("API", DebugApiCallText(request, restClient, restEndPoint));
-
-			// send API call
-			return await restClient.ExecuteAsync<int>(request);
+			throw new NotImplementedException();
 		}
 
 		protected static void CheckForProperJson(string jsonString)
@@ -84,31 +54,6 @@ namespace FWO.Tufin.SecureChange
 			{
 				Log.WriteError("Check Json string: ", ex.ToString());
 			}
-		}
-
-		private static void ConfigureRestClientSerialization(SerializerConfig config)
-		{
-			JsonNetSerializer serializer = new (); // Case insensivitive is enabled by default
-			config.UseSerializer(() => serializer);
-		}
-
-		private static string DebugApiCallText(RestRequest request, RestClient restClient, string restEndPoint)
-		{
-			string headers = "";
-			string body = "";
-			foreach (Parameter p in request.Parameters)
-			{
-				if (p.Name == "")
-				{
-					body = $"data: '{p.Value}'";
-				}
-				else
-				{
-					if (p.Name != "Authorization") // avoid logging of credentials
-						headers += $"header: '{p.Name}: {p.Value}' ";
-				}
-			}
-			return $"Sending API Call to SecureChange:\nrequest: {request.Method}, base url: {restClient.Options.BaseUrl}, restEndpoint: {restEndPoint}, body: {body}, {headers}";
 		}
 	}
 }

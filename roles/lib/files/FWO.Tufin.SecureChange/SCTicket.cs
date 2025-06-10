@@ -41,6 +41,7 @@ namespace FWO.Tufin.SecureChange
 		readonly private string Content = "Content: ";
 		private string actTicketTemplate;
 		private SCTaskType actTaskType;
+		private readonly SCClient SCClient;
 
 
 		// 	"ticket": {
@@ -89,8 +90,16 @@ namespace FWO.Tufin.SecureChange
 		}
 
 
-		public SCTicket(ExternalTicketSystem tufinSystem)
+		public SCTicket(ExternalTicketSystem tufinSystem, SCClient? sCClient = null)
 		{
+			if (sCClient != null)
+			{
+				SCClient = sCClient;
+			}
+			else
+			{
+				SCClient = new(tufinSystem);
+			}
 			TicketSystem = tufinSystem;
 			actTicketTemplate = TicketSystem.Templates.FirstOrDefault()?.TicketTemplate ?? "";
 		}
@@ -122,14 +131,35 @@ namespace FWO.Tufin.SecureChange
 			throw new ProcessingFailedException(restResponse.ErrorMessage ?? "");
 		}
 
+		public override async Task<RestResponse<int>> CreateExternalTicket()
+		{
+			string restEndPoint = "tickets.json";
+			RestRequest request = new(restEndPoint, Method.Post);
+			request.AddJsonBody(TicketText);
+
+			// https://192.168.1.1/securechangeworkflow/api/securechange/tickets
+			return await SCClient.RestCall(request, restEndPoint);
+		}
+
+		protected override async Task<RestResponse<int>> PollExternalTicket()
+		{
+			if(TicketId != null)
+			{
+				string restEndPoint = "tickets/" + TicketId;
+				RestRequest request = new(restEndPoint, Method.Get);
+				return await SCClient.RestCall(request, restEndPoint);
+			}
+			throw new ArgumentException("No Ticket Id given.");
+		}
+
 		// IN_PROGRESS, REJECTED, CLOSED, CANCELLED, RESOLVED
 		private static string GetInternalState(string externalState)
 		{
-			if(externalState.Contains("REJECTED") || externalState.Contains("CANCELLED"))
+			if (externalState.Contains("REJECTED") || externalState.Contains("CANCELLED"))
 			{
 				return ExtStates.ExtReqRejected.ToString();
 			}
-			else if(externalState.Contains("RESOLVED") || externalState.Contains("CLOSED"))
+			else if (externalState.Contains("RESOLVED") || externalState.Contains("CLOSED"))
 			{
 				return ExtStates.ExtReqDone.ToString();
 			}
@@ -254,7 +284,7 @@ namespace FWO.Tufin.SecureChange
 			{
 				string restEndPoint = "users.json?user_name=" + requesterName;
 				RestRequest request = new(restEndPoint, Method.Get);
-				RestResponse<int> restResponse = await RestCall(request, restEndPoint);
+				RestResponse<int> restResponse = await SCClient.RestCall(request, restEndPoint);
 				if (restResponse.StatusCode == HttpStatusCode.OK && restResponse.Content != null)
 				{
 					Log.WriteDebug("Lookup external requester id OK", Content + restResponse.Content);

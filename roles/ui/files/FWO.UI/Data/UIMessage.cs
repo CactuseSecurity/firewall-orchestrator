@@ -1,4 +1,6 @@
-﻿namespace FWO.Ui.Data
+using FWO.Data;
+
+namespace FWO.Ui.Data
 {
     public class UIMessage
     {

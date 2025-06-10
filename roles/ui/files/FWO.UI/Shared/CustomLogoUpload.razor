@@ -1,0 +1,124 @@
+@implements IDisposable
+@using FWO.Services.EventMediator.Events
+@using FWO.Services.EventMediator.Interfaces
+@using FWO.Ui.Data
+@using FWO.Data.Modelling
+
+@inject UserConfig UserConfig
+@inject GlobalConfig GlobalConfig
+@inject ApiConnection ApiConnection
+@inject IEventMediator EventMediator
+
+
+<div class="row">
+    <div class="col-sm">
+        <AuthorizeView Roles="@AuthorizedRoles">
+            <Authorized>
+                <InputFile id="fileUpload" hidden accept="@SupportedFileFormats" OnChange="@(async (InputFileChangeEventArgs e) => await UploadCustomLogo(e))" />
+                <label class="btn btn-sm @(UploadSuccess ? "btn-success" : "btn-primary")" for="fileUpload">
+                    @(ModellingHandlerBase.DisplayButton(UserConfig, "select_file", (UploadSuccess ? Icons.Check : Icons.Add), "select_file"))
+                </label>
+            </Authorized>
+            <NotAuthorized>
+                <button type="button" disabled class="btn btn-sm btn-primary">
+                    <span class="ms-2">
+                        @(ModellingHandlerBase.DisplayButton(UserConfig, "select_file", Icons.Add, "select_file"))
+                    </span>
+                </button>
+            </NotAuthorized>
+        </AuthorizeView>
+    </div>
+</div>
+@if(!string.IsNullOrEmpty(LogoBase64))
+{
+    <div class="row mt-2">
+        <div class="col-sm">
+            <img src="data:image/png;base64, @(LogoBase64)" class="rounded cl-fixed-size" alt="">
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    required public string? AuthorizedRoles { get; set; }
+
+    [Parameter, EditorRequired]
+    required public string SupportedFileFormats { get; set; } = "";
+
+    private InputFileChangeEventArgs? InputFileChangeEventArgs;
+    private bool Loading { get; set; }
+
+    private bool UploadSuccess { get; set; }
+
+    private string? LogoBase64 { get; set; }
+
+    /// <summary>
+    /// Checks required parameters for validity when parameters are set.
+    /// Throws exceptions if required parameters are missing or empty.
+    /// </summary>
+    protected override void OnParametersSet()
+    {
+        if(string.IsNullOrWhiteSpace(AuthorizedRoles))
+            throw new UnauthorizedAccessException($"Parameter {nameof(AuthorizedRoles)} cannot be empty!");
+
+        if(string.IsNullOrWhiteSpace(SupportedFileFormats))
+            throw new ArgumentNullException($"Parameter {nameof(SupportedFileFormats)} cannot be empty!");
+
+        base.OnParametersSet();
+    }
+
+    /// <summary>
+    /// Initializes the component and sets the logo if available in the global config.
+    /// </summary>
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+
+        if(!string.IsNullOrEmpty(GlobalConfig.CustomLogoData))
+        {
+            LogoBase64 = GlobalConfig.CustomLogoData;
+        }
+    }
+
+    /// <summary>
+    /// Handles the file input change event to upload a custom logo.
+    /// Reads the file, uploads it, and updates the logo display.
+    /// </summary>
+    /// <param name="e">The file input change event arguments.</param>
+    private async Task UploadCustomLogo(InputFileChangeEventArgs e)
+    {
+        if(e is null)
+            return;
+
+        if(e.File is null)
+            return;
+
+        Loading = true;
+
+        FileUploadService fileUploadService = new(ApiConnection, UserConfig, SupportedFileFormats, GlobalConfig, EventMediator);
+
+        FileUploadEventArgs fileUploadEventArgs = await fileUploadService.ReadFileToBytes(e);
+
+        if(!fileUploadEventArgs.Success)
+        {
+            Loading = false;
+            return;
+        }
+
+        UploadSuccess = fileUploadEventArgs.Success;
+
+        FileUploadEventArgs fileImportEventArgs = fileUploadService.ImportCustomLogo();
+        LogoBase64 = fileImportEventArgs.Data;
+
+        Loading = false;
+    }
+
+    /// <summary>
+    /// Unsubscribes from file upload events when the component is disposed.
+    /// </summary>
+    public void Dispose()
+    {
+        EventMediator.Unsubscribe<FileUploadEvent>(nameof(FileUploadService.ReadFileToBytes));
+        EventMediator.Unsubscribe<FileUploadEvent>(nameof(FileUploadService.ImportCustomLogo));
+    }
+}

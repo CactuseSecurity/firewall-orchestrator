@@ -1,8 +1,9 @@
-﻿namespace FWO.Ui.Data
+namespace FWO.Ui.Data
 {
     public enum FileUploadCase
     {
         Undefined,
-        ImportAppServerFromCSV
+        ImportAppServerFromCSV,
+        CustomLogoUpload
     }
 }

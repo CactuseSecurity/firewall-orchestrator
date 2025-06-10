@@ -1,4 +1,4 @@
-﻿namespace FWO.Ui.Data
+namespace FWO.Data
 {
     public enum MessageType
     {

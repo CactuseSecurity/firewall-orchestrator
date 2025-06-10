@@ -304,7 +304,6 @@
                 await AppRoleHandler.InitAppRole(newArea);
 
                 EventMediator.Publish<CollectionChangedEvent>(nameof(EditAppRole), OnCollectionChanged);
-
                 workInProgress = false;
             }
         }

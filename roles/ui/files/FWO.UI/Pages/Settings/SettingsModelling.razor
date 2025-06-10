@@ -418,17 +418,17 @@ else
 <SearchNwObject @bind-Display="searchArea" ObjectList="pureAreaList" Add="AddArea" CommonAreaMode="true" />
 <PopUp Title="@(userConfig.GetText("appserver_import"))" Show="@ShowCSVImportPopUp" Size=PopupSize.Large OnClose="() => ShowCSVImportPopUp = false">
     <Body>
-        @if(CSVImportSuccess is not null && CSVImportSuccess.Count > 0)
+        @if(Appserver is not null && Appserver.Count > 0)
         {
             <div class="mt-3">
-                <Collapse StartToggled="true" Style="success" Title="@(userConfig.GetText("success"))">
-                    <Table PageSize="0" TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="string" Items="CSVImportSuccess">
+                <Collapse StartToggled="false" Style="success" Title="@(userConfig.GetText("success"))">
+                    <Table PageSize="0" TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="string" Items="Appserver">
                         <Column TableItem="string" Title="@(userConfig.GetText("entrydata"))" Type="typeof(string)" Field="@(_ => new string(_))" Sortable="true" Filterable="true" />
                     </Table>
                 </Collapse>
             </div>
         }
-        @if(CSVImportErrors is not null && CSVImportErrors.Count > 0)
+       @if(CSVImportErrors is not null && CSVImportErrors.Count > 0)
         {
             <div class="mt-1">
                 <Collapse StartToggled="false" Style="danger" Title="@(userConfig.GetText("errors"))">
@@ -499,20 +499,34 @@ else
     private bool varOptMode = false;
     private bool ShowCSVImportPopUp { get; set; }
     private List<CSVFileUploadErrorModel>? CSVImportErrors;
-    private List<string>? CSVImportSuccess;
+    private List<string>? Appserver;
 
     private void OnFileUploadEvent(FileUploadEventArgs? e)
     {
+        if(e is null)
+        {
+            return;
+        }
 
+        if(!e.Success && e.Error is not null)
+        {
+            DisplayMessageInUi(e.Error.InternalException, userConfig.GetText("modelling_settings"), e.Error.Message ?? "", true);
+            return;
+        }
     }
 
-    private void OnCSVAppServerImportEvent(FileUploadEventArgs? e)
+    private void OnCSVAppServerImportEvent(AppServerImportEventArgs? e)
     {
-        // on error
-        //DisplayMessageInUi(error.Exception, userConfig.GetText("add_app_server"), error.Message, false);
+        if(e is null)
+        {
+            return;
+        }
 
-        //on success
-        // DisplayMessageInUi(null, userConfig.GetText("import_app_server"), userConfig.GetText("importAppServerDataSuccess"), false);
+        CSVImportErrors = e.Errors;
+        Appserver = e.Appserver;
+
+        ShowCSVImportPopUp = true;
+        StateHasChanged();
     }
 
     protected override async Task OnInitializedAsync()
@@ -550,7 +564,7 @@ else
 
             // subscribe to events for file upload and import
             EventMediator.Subscribe<FileUploadEvent>(nameof(FileUploadService.ReadFileToBytes), _ => OnFileUploadEvent(_.EventArgs));
-            EventMediator.Subscribe<FileUploadEvent>(nameof(FileUploadService.ImportAppServersFromCSV), _ => OnCSVAppServerImportEvent(_.EventArgs));
+            EventMediator.Subscribe<AppServerImportEvent>(nameof(FileUploadService.ImportAppServersFromCSV), _ => OnCSVAppServerImportEvent(_.EventArgs));
         }
         catch (Exception exception)
         {
@@ -763,6 +777,6 @@ else
     public void Dispose()
     {
         EventMediator.Unsubscribe<FileUploadEvent>(nameof(FileUploadService.ReadFileToBytes));
-        EventMediator.Unsubscribe<FileUploadEvent>(nameof(FileUploadService.ImportAppServersFromCSV));
+        EventMediator.Unsubscribe<AppServerImportEvent>(nameof(FileUploadService.ImportAppServersFromCSV));
     }
 }

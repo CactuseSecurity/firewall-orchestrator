@@ -114,16 +114,6 @@
 
         await fileUploadService.ImportAppServersFromCSV(InputFileChangeEventArgs.File.Name ?? "noName");
 
-        // if(errors is null || errors.Count == 0)
-        // {
-        //     //await OnImportSuccess.InvokeAsync();
-        // }
-        // else
-        // {
-        //     ////List<TUploadResult> importErrors = errors.Cast<TUploadResult>().ToList();
-        //     //await OnAfterImportResults.InvokeAsync((success, importErrors));
-        // }
-
         Loading = false;
     }
 }

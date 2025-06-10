@@ -5,7 +5,6 @@ using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Modelling;
 using FWO.Services;
-using FWO.Ui.Data;
 using Microsoft.AspNetCore.Components.Forms;
 using System.Text.Json;
 using FWO.Services.EventMediator.Interfaces;
@@ -31,6 +30,7 @@ namespace FWO.Ui.Services
         private readonly IEventMediator EventMediator;
         private FileUploadEvent CustomLogoUploadEvent;
         private FileUploadEvent FileUploadEvent;
+        private AppServerImportEvent AppServerImportEvent;
 
         public FileUploadService(ApiConnection apiConnection, UserConfig userConfig, string allowedFileFormats, GlobalConfig globalConfig, IEventMediator eventMediator)
         {
@@ -42,6 +42,7 @@ namespace FWO.Ui.Services
             EventMediator = eventMediator;
             CustomLogoUploadEvent = new FileUploadEvent();
             FileUploadEvent = new FileUploadEvent();
+            AppServerImportEvent = new AppServerImportEvent();
         }
 
         public async Task<FileUploadEventArgs> ReadFileToBytes(InputFileChangeEventArgs args)
@@ -171,6 +172,17 @@ namespace FWO.Ui.Services
                 {
                     success.Add(line);
                 }
+            }
+
+            if(AppServerImportEvent.EventArgs is not null)
+            {
+                success = [.. success.Distinct()];
+
+                AppServerImportEvent.EventArgs.Success = success.Count > 0;
+                AppServerImportEvent.EventArgs.Appserver = success;
+                AppServerImportEvent.EventArgs.Errors = errors;
+
+                EventMediator.Publish(nameof(ImportAppServersFromCSV), AppServerImportEvent);
             }
         }
 

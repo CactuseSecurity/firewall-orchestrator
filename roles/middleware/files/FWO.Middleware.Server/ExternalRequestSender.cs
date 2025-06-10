@@ -139,11 +139,11 @@ namespace FWO.Middleware.Server
 					}
 					request.ExtRequestState = ExtStates.ExtReqRequested.ToString();
 					await UpdateRequestCreation(request);
-					Log.WriteDebug(LogMessageTitle, $"{RequestInfo(request)}. Success Message: " + ticketIdResponse?.Content);
+					Log.WriteDebug(LogMessageTitle, $"{RequestInfo(request)}. Success Message: " + ticketIdResponse.Content);
 				}
 				else
 				{
-					Log.WriteError(LogMessageTitle, $"{RequestInfo(request)}. Error Message: " + ticketIdResponse?.StatusDescription + ", " + ticketIdResponse?.Content);
+					Log.WriteError(LogMessageTitle, $"{RequestInfo(request)}. Error Message: " + ticketIdResponse.StatusDescription + ", " + ticketIdResponse.Content);
 					if (AnalyseForRejected(ticketIdResponse))
 					{
 						await RejectRequest(request);
@@ -227,13 +227,13 @@ namespace FWO.Middleware.Server
 			await extReqHandler.HandleStateChange(request);
 		}
 
-		private static async Task<(string, string?)> PollState(ExternalRequest request)
+		private async Task<(string, string?)> PollState(ExternalRequest request)
 		{
 			try
 			{
-            	ExternalTicketSystem extTicketSystem = JsonSerializer.Deserialize<ExternalTicketSystem>(request.ExtTicketSystem) ?? throw new JsonException("No Ticket System");
+				ExternalTicketSystem extTicketSystem = JsonSerializer.Deserialize<ExternalTicketSystem>(request.ExtTicketSystem) ?? throw new JsonException("No Ticket System");
 				ExternalTicket? ticket;
-				if(extTicketSystem.Type == ExternalTicketSystemType.TufinSecureChange)
+				if (extTicketSystem.Type == ExternalTicketSystemType.TufinSecureChange)
 				{
 					ticket = new SCTicket(extTicketSystem)
 					{
@@ -246,10 +246,11 @@ namespace FWO.Middleware.Server
 				}
 				return await ticket.GetNewState(request.ExtRequestState);
 			}
-			catch(Exception exception)
+			catch (Exception exc)
 			{
-				Log.WriteError(LogMessageTitle, "Polling request failed: ", exception);
-				return (request.ExtRequestState, exception.Message);
+				request.LastMessage = exc.Message;
+				await UpdateRequestProcess(request);
+				throw;
 			}
 		}
 
@@ -269,13 +270,20 @@ namespace FWO.Middleware.Server
 
 		private async Task UpdateRequestProcess(ExternalRequest request)
 		{
-			var Variables = new
+			try
 			{
-				id = request.Id,
-				extRequestState = request.ExtRequestState,
-				processingResponse = request.LastMessage
-			};
-			await apiConnection.SendQueryAsync<ReturnId>(ExtRequestQueries.updateExtRequestProcess, Variables);
+				var Variables = new
+				{
+					id = request.Id,
+					extRequestState = request.ExtRequestState,
+					processingResponse = request.LastMessage
+				};
+				await apiConnection.SendQueryAsync<ReturnId>(ExtRequestQueries.updateExtRequestProcess, Variables);
+			}
+			catch (Exception exception)
+			{
+				Log.WriteError(LogMessageTitle, "UpdateRequestProcess failed: ", exception);
+			}
 		}
 
 		private async Task CountDownWaitCycle(ExternalRequest request)

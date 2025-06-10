@@ -6,6 +6,7 @@ using Newtonsoft.Json;
 using System.Net;
 using RestSharp;
 using FWO.Logging;
+using FWO.Basics;
 
 namespace FWO.Tufin.SecureChange
 {
@@ -118,7 +119,7 @@ namespace FWO.Tufin.SecureChange
 				}
 			}
 			Log.WriteError($"Poll status failed for external ticket {TicketId}.", Content + restResponse.Content + ", Error Message: " + restResponse.ErrorMessage);
-			return (oldState, restResponse.ErrorMessage);
+			throw new ProcessingFailedException(restResponse.ErrorMessage ?? "");
 		}
 
 		// IN_PROGRESS, REJECTED, CLOSED, CANCELLED, RESOLVED

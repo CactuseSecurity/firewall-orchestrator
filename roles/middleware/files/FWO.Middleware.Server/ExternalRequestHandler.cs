@@ -88,35 +88,28 @@ namespace FWO.Middleware.Server
 		/// </summary>
 		public async Task HandleStateChange(ExternalRequest externalRequest)
 		{
-			try
+			WfTicket? intTicket = await InitAndResolve(externalRequest.TicketId);
+			if(intTicket == null)
 			{
-				WfTicket? intTicket = await InitAndResolve(externalRequest.TicketId);
-				if(intTicket == null)
+				Log.WriteError("External Request Update", $"Ticket not found.");
+			}
+			else
+			{
+				wfHandler.SetTicketEnv(intTicket);
+				await UpdateTicket(intTicket, externalRequest);
+				if(extStateHandler != null && extStateHandler.GetInternalStateId(externalRequest.ExtRequestState) >= wfHandler.ActStateMatrix.LowestEndState)
 				{
-					Log.WriteError("External Request Update", $"Ticket not found.");
-				}
-				else
-				{
-					wfHandler.SetTicketEnv(intTicket);
-					await UpdateTicket(intTicket, externalRequest);
-					if(extStateHandler != null && extStateHandler.GetInternalStateId(externalRequest.ExtRequestState) >= wfHandler.ActStateMatrix.LowestEndState)
+					await Acknowledge(externalRequest);
+					if(externalRequest.ExtRequestState == ExtStates.ExtReqRejected.ToString())
 					{
-						await Acknowledge(externalRequest);
-						if(externalRequest.ExtRequestState == ExtStates.ExtReqRejected.ToString())
-						{
-							await RejectFollowingTasks(intTicket, externalRequest.TaskNumber);
-							Log.WriteInfo($"External Request {externalRequest.Id} rejected", $"Reject Following Tasks for internal ticket {intTicket.Id}");
-						}
-						else
-						{
-							await CreateNextRequest(intTicket, externalRequest.TaskNumber, externalRequest);
-						}
+						await RejectFollowingTasks(intTicket, externalRequest.TaskNumber);
+						Log.WriteInfo($"External Request {externalRequest.Id} rejected", $"Reject Following Tasks for internal ticket {intTicket.Id}");
+					}
+					else
+					{
+						await CreateNextRequest(intTicket, externalRequest.TaskNumber, externalRequest);
 					}
 				}
-			}
-			catch(Exception exception)
-			{
-				Log.WriteError("External Request Update", $"Runs into exception: ", exception);
 			}
 		}
 
@@ -401,10 +394,10 @@ namespace FWO.Middleware.Server
 
 		private string ConstructSubject(WfReqTask reqTask)
 		{
-			string appId = reqTask.Owners.Count > 0 ? (reqTask.Owners.FirstOrDefault()?.Owner.ExtAppId + ": " ?? "") : "";
+			string appId = reqTask.Owners.Count > 0 ? (reqTask.Owners.FirstOrDefault()?.Owner.ExtAppId ?? "") : "";
 			string onMgt = UserConfig.GetText("on") + reqTask.OnManagement?.Name + "(" + reqTask.OnManagement?.Id + ")";
 			string grpName = " " + reqTask.GetAddInfoValue(AdditionalInfoKeys.GrpName);
-            return appId + reqTask.TaskType switch
+            return (appId != "" ? appId + ": " : "") + reqTask.TaskType switch
             {
                 nameof(WfTaskType.access) => UserConfig.GetText("create_rule") + onMgt,
 				nameof(WfTaskType.rule_modify) => UserConfig.GetText("modify_rule") + onMgt,

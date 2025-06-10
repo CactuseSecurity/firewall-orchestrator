@@ -62,6 +62,7 @@ class FwConfigImportGateway(FwConfigImportBase):
                                 link_type=link_type_id,
                                 is_initial=link.is_initial,
                                 is_global=link.is_global,
+                                is_section = link.is_section,
                                 from_rulebase_id=from_rulebase_id,
                                 created=self.ImportDetails.ImportId).toDict())
         logger.debug(f"link {link} was added")

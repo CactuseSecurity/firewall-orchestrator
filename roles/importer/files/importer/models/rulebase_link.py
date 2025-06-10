@@ -11,6 +11,7 @@ class RulebaseLinkUidBased(BaseModel, ImportStateController):
     link_type: str = "section"
     is_initial: bool
     is_global: bool
+    is_section: bool
 
 class RulebaseLink(BaseModel):
     id: Optional[int] = None    # will be created during db import
@@ -21,6 +22,7 @@ class RulebaseLink(BaseModel):
     link_type: int = 1
     is_initial: bool
     is_global: bool
+    is_section: bool
     created: int
     removed: Optional[int] = None
 
@@ -34,6 +36,7 @@ class RulebaseLink(BaseModel):
             "link_type": self.link_type,
             "is_initial": self.is_initial,
             "is_global": self.is_global,
+            "is_section": self.is_section,
             "created": self.created,
             "removed": self.removed
         }

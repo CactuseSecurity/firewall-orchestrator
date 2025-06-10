@@ -1,12 +1,12 @@
 ﻿using FWO.Api.Client;
 using FWO.Api.Client.Queries;
-using FWO.Data;
-using FWO.Config.Api;
-using FWO.Logging;
 using FWO.Basics;
-using System.Net;
-using RestSharp;
+using FWO.Config.Api;
+using FWO.Data;
+using FWO.Logging;
 using FWO.Tufin.SecureChange;
+using RestSharp;
+using System.Net;
 using System.Text.Json;
 
 namespace FWO.Middleware.Server
@@ -27,6 +27,8 @@ namespace FWO.Middleware.Server
 		protected GlobalConfig globalConfig;
 
 		private readonly UserConfig userConfig;
+		private readonly SCClient? InjScClient;
+		ExternalTicketSystem? ExtTicketSystem;
 	
 
 		// todo: map to internal states to use "lowest_end_state" setting ?
@@ -44,11 +46,12 @@ namespace FWO.Middleware.Server
 		/// <summary>
 		/// Constructor for External Request Sender
 		/// </summary>
-		public ExternalRequestSender(ApiConnection apiConnection, GlobalConfig globalConfig)
+		public ExternalRequestSender(ApiConnection apiConnection, GlobalConfig globalConfig, SCClient? injScClient = null)
 		{
 			this.apiConnection = apiConnection;
 			this.globalConfig = globalConfig;
 			userConfig = new(globalConfig, apiConnection, new() { Language = GlobalConst.kEnglish });
+			InjScClient = injScClient;
 		}
 
 		/// <summary>
@@ -70,6 +73,7 @@ namespace FWO.Middleware.Server
 		{
 			try
 			{
+				ExtTicketSystem = JsonSerializer.Deserialize<ExternalTicketSystem>(request.ExtTicketSystem) ?? throw new JsonException("No Ticket System");
 				if(request.ExtRequestState == ExtStates.ExtReqInitialized.ToString() ||
 					request.ExtRequestState == ExtStates.ExtReqFailed.ToString()) // try again
 				{
@@ -120,11 +124,9 @@ namespace FWO.Middleware.Server
 
 		private async Task SendRequest(ExternalRequest request)
 		{
-			ExternalTicket? ticket = null;
+			ExternalTicket? ticket = ConstructTicket(request);
 			try
 			{
-				ticket = JsonSerializer.Deserialize<ExternalTicket>(request.ExtRequestContent) ?? throw new JsonException("No Ticket Content");
-				ticket.TicketSystem = JsonSerializer.Deserialize<ExternalTicketSystem>(request.ExtTicketSystem) ?? throw new JsonException("No Ticket System");
 				Log.WriteInfo(LogMessageTitle, $"Sending {RequestInfo(request)}");
 				request.Attempts++;
 				RestResponse<int> ticketIdResponse = await ticket.CreateExternalTicket();
@@ -167,6 +169,26 @@ namespace FWO.Middleware.Server
 					throw;
 				}
 			}
+		}
+
+		private ExternalTicket ConstructTicket(ExternalRequest request)
+		{
+			ExternalTicket ticket;
+			ExternalTicket hlpTicket = JsonSerializer.Deserialize<ExternalTicket>(request.ExtRequestContent) ?? throw new JsonException("No Ticket Content");
+			
+			if (ExtTicketSystem?.Type == ExternalTicketSystemType.TufinSecureChange)
+			{
+				ticket = new SCTicket(ExtTicketSystem, InjScClient)
+				{
+					TicketSystem = ExtTicketSystem,
+					TicketText = hlpTicket.TicketText
+				};
+			}
+			else
+			{
+				throw new NotSupportedException("Ticket system not supported yet");
+			}
+			return ticket;
 		}
 
 		private async Task RejectRequest(ExternalRequest request)
@@ -231,11 +253,10 @@ namespace FWO.Middleware.Server
 		{
 			try
 			{
-				ExternalTicketSystem extTicketSystem = JsonSerializer.Deserialize<ExternalTicketSystem>(request.ExtTicketSystem) ?? throw new JsonException("No Ticket System");
-				ExternalTicket? ticket;
-				if (extTicketSystem.Type == ExternalTicketSystemType.TufinSecureChange)
+				ExternalTicket ticket;
+				if (ExtTicketSystem?.Type == ExternalTicketSystemType.TufinSecureChange)
 				{
-					ticket = new SCTicket(extTicketSystem)
+					ticket = new SCTicket(ExtTicketSystem, InjScClient)
 					{
 						TicketId = request.ExtTicketId
 					};

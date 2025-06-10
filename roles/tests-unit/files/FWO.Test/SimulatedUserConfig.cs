@@ -1,4 +1,5 @@
 ﻿using FWO.Config.Api;
+using FWO.Config.Api.Data;
 
 namespace FWO.Test
 {
@@ -9,6 +10,11 @@ namespace FWO.Test
         public override string GetText(string key)
         {
             return DummyTranslate[key];
+        }
+
+        public SimulatedGlobalConfig() : base()
+        {
+            LangDict = new(){ { "English", DummyTranslate } };
         }
     }
 
@@ -137,11 +143,22 @@ namespace FWO.Test
             {"promote_task", "Promote task"},
             {"modify_rule", "Modify Rule"},
             {"remove_rule", "Remove Rule"},
+            {"English", "English"},
         };
 
         public override string GetText(string key)
         {
             return DummyTranslate[key];
+        }
+
+        public static ConfigItem[] GetAsConfigs()
+        {
+            List <ConfigItem> configs = [];
+            foreach (var dictValuePair in DummyTranslate)
+            {
+                configs.Add(new(){ Key = dictValuePair.Key, Value = dictValuePair.Value, User = 0});
+            }
+            return [.. configs];
         }
     }
 }

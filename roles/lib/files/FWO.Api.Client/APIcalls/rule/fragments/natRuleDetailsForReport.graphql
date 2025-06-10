@@ -10,7 +10,10 @@
     rule_svc
     rule_svc_refs
     rule_svc_neg
-    rule_froms(where: {object:{obj_create:{_lte:$relevantImportId}, obj_last_seen:{_gte:$relevantImportId}}}) {
+    rule_froms(where: {
+      rf_last_seen: { _gte: $import_id_start }
+      rf_create: { _lte: $import_id_end }
+    }, order_by: { object: { obj_name: asc } }) {
       usr {
         ...userDetails
       }
@@ -18,7 +21,10 @@
         ...networkObjectDetails
       }
     }
-    rule_tos(where: {object:{obj_create:{_lte:$relevantImportId}, obj_last_seen:{_gte:$relevantImportId}}}) {
+    rule_tos(where: {
+      rt_last_seen: { _gte: $import_id_start }
+      rt_create: { _lte: $import_id_end }
+    }, order_by: { object: { obj_name: asc } }) {
       usr {
         ...userDetails
       }
@@ -26,7 +32,10 @@
         ...networkObjectDetails
       }
     }
-    rule_services(where: {service:{svc_create:{_lte:$relevantImportId}, svc_last_seen:{_gte:$relevantImportId}}}) {
+    rule_services(where: {
+      rs_last_seen: { _gte: $import_id_start }
+      rs_create: { _lte: $import_id_end }
+    }, order_by: { service: { svc_name: asc } }) {
       service {
         ...networkServiceDetails
       }

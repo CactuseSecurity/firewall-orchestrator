@@ -6,32 +6,27 @@ import fwo_globals
 from fwo_exceptions import ImportInterruption
 from fwo_log import getFwoLogger
 from model_controllers.import_state_controller import ImportStateController
-from fwo_api_oo import FwoApi
 from fwo_base import ConfigAction, ConfFormat
 from models.fwconfig_normalized import FwConfigNormalized
 from model_controllers.fwconfig_import_object import FwConfigImportObject
 from model_controllers.fwconfig_import_rule import FwConfigImportRule
-from model_controllers.fwconfig_import_gateway import FwConfigImportGateway
+from model_controllers.fwconfig_import_gateway import update_gateway_diffs
 from model_controllers.rule_enforced_on_gateway_controller import RuleEnforcedOnGatewayController
 
-"""
-Class hierarchy:
-    FwConfigImport(FwConfigImportObject, FwconfigImportRule)
-    FwconfigImportObject(FwConfigImportBase)
-    FwConfigImportRule(FwConfigImportBase)
-    FwConfigImportGateway(FwConfigImportBase)
-    FwConfigImportBase(FwConfigNormalized)
-"""
 
 # this class is used for importing a config into the FWO API
-class FwConfigImport(FwConfigImportObject, FwConfigImportRule, FwConfigImportGateway, FwoApi):
+class FwConfigImport():
+
     ImportDetails: ImportStateController
     NormalizedConfig: FwConfigNormalized
+    fw_config_import_rule: FwConfigImportRule
+    fw_config_import_object: FwConfigImportObject
 
     def __init__(self, importState: ImportStateController, config: FwConfigNormalized):
         self.ImportDetails = importState
         self.NormalizedConfig = config
-        FwConfigImportObject.__init__(self, importState, config)
+        self.fw_config_import_object = FwConfigImportObject()
+        self.fw_config_import_rule = FwConfigImportRule(importState, config)
         
     def importConfig(self):
         # current implementation restriction: assuming we always get the full config (only inserts) from API
@@ -41,26 +36,26 @@ class FwConfigImport(FwConfigImportObject, FwConfigImportRule, FwConfigImportGat
         return
 
     def updateDiffs(self, previousConfig: FwConfigNormalized):
-        self.updateObjectDiffs(previousConfig)
+        self.fw_config_import_object.updateObjectDiffs(previousConfig)
         if fwo_globals.shutdown_requested:
             # self.ImportDetails.addError("shutdown requested, aborting import")
             raise ImportInterruption("Shutdown requested during updateObjectDiffs.")
 
-        newRuleIds = self.updateRulebaseDiffs(previousConfig)
+        newRuleIds = self.fw_config_import_rule.updateRulebaseDiffs(previousConfig)
 
         if fwo_globals.shutdown_requested:
             # self.ImportDetails.addError("shutdown requested, aborting import")
             raise ImportInterruption("Shutdown requested during updateRulebaseDiffs.")
 
         self.ImportDetails.SetRuleMap() # update all rule entries (from currently running import for rulebase_links)
-        self.update_gateway_diffs(previousConfig)
+        update_gateway_diffs(previousConfig, self.ImportDetails, self.NormalizedConfig)
 
         # raise NotImplementedError("just testing")
 
         # get new rules details from API (for obj refs as well as enforcing gateways)
-        errors, changes, newRules = self.getRulesByIdWithRefUids(newRuleIds)
+        errors, changes, newRules = self.fw_config_import_rule.getRulesByIdWithRefUids(newRuleIds)
 
-        self.addNewRule2ObjRefs(newRules)
+        self.fw_config_import_rule.addNewRule2ObjRefs(newRules)
         #TODO: self.addNewRule2SvcRefs(newRules)
 
         enforcingController = RuleEnforcedOnGatewayController(self.ImportDetails)
@@ -200,3 +195,4 @@ class FwConfigImport(FwConfigImportObject, FwConfigImportRule, FwConfigImportGat
         except Exception:
             logger.exception(f"failed to get latest normalized config for mgm id {str(self.ImportDetails.MgmDetails.Id)}: {str(traceback.format_exc())}")
             raise Exception(f"error while trying to get the previous config")
+

@@ -13,6 +13,8 @@ namespace FWO.Basics
 
         public bool IsRoot { get; set; }
 
+        public string Header { get; set; } = "";
+
 
         public TreeItem() : this(default!)
         {

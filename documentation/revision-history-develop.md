@@ -272,4 +272,4 @@ bugfix release:
 - deactivation of connections
 
 # 8.8.4 - 02.06.2025 DEVELOP
-- hotfix for Check Point importer suppor for Ask action
+- hotfix for Check Point importer suppor for DLP actions (ask, inform)

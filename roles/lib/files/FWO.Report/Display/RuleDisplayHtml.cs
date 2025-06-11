@@ -1,9 +1,9 @@
-﻿using FWO.Basics;
-using FWO.Data;
+using FWO.Basics;
 using FWO.Config.Api;
-using System.Text;
+using FWO.Data;
 using FWO.Report;
-using FWO.Report.Filter;
+using Microsoft.AspNetCore.Components;
+using System.Text;
 
 namespace FWO.Ui.Display
 {
@@ -24,8 +24,8 @@ namespace FWO.Ui.Display
 
         public string DisplayServices(Rule rule, OutputLocation location, ReportType reportType, int chapterNumber = 0, string style = "")
         {
-            StringBuilder result = new ();
-            if (rule.ServiceNegated)
+            StringBuilder result = new();
+            if(rule.ServiceNegated)
             {
                 result.AppendLine(userConfig.GetText("negated") + "<br>");
             }
@@ -44,7 +44,7 @@ namespace FWO.Ui.Display
 
         public string DisplayEnforcingGateways(Rule rule, OutputLocation location, ReportType reportType, int chapterNumber = 0, string style = "")
         {
-            StringBuilder result = new ();
+            StringBuilder result = new();
             result.AppendJoin("<br>", Array.ConvertAll(rule.EnforcingGateways, gw => EnforcingGatewayToHtml(gw.Content, rule.MgmtId, chapterNumber, location, style, reportType)));
             return result.ToString();
         }
@@ -73,7 +73,7 @@ namespace FWO.Ui.Display
 
         public static string DisplayLastHit(RuleMetadata rule)
         {
-            if (rule.LastHit == null)
+            if(rule.LastHit == null)
                 return "";
             else
                 return DateOnly.FromDateTime((DateTime)rule.LastHit).ToString("yyyy-MM-dd");  //rule.Metadata.LastHit.ToString("yyyy-MM-dd");
@@ -82,13 +82,13 @@ namespace FWO.Ui.Display
         public static string DisplayLastRecertifier(RuleMetadata rule)
         {
             int count = 0;
-            return string.Join("", Array.ConvertAll<Recertification, string>(rule.RuleRecertification.ToArray(), 
+            return string.Join("", Array.ConvertAll<Recertification, string>(rule.RuleRecertification.ToArray(),
                 recert => GetLastRecertifierDisplayString(CountString(rule.RuleRecertification.Count > 1, ++count), recert).ToString()));
         }
 
         protected static string NetworkLocationToHtml(NetworkLocation networkLocation, int mgmtId, int chapterNumber, OutputLocation location, string style, ReportType reportType)
         {
-            string nwLocation = DisplayNetworkLocation(networkLocation, reportType, 
+            string nwLocation = DisplayNetworkLocation(networkLocation, reportType,
                 reportType.IsResolvedReport() || reportType == ReportType.VarianceAnalysis || networkLocation.User == null ? null :
                 ReportDevicesBase.ConstructLink(ObjCatString.User, ReportBase.GetIconClass(ObjCategory.user, networkLocation.User?.Type.Name),
                     chapterNumber, networkLocation.User!.Id, networkLocation.User.Name, location, mgmtId, style),
@@ -101,19 +101,19 @@ namespace FWO.Ui.Display
 
         protected static string ServiceToHtml(NetworkService service, int mgmtId, int chapterNumber, OutputLocation location, string style, ReportType reportType)
         {
-            return DisplayService(service, reportType, reportType.IsResolvedReport() || reportType == ReportType.VarianceAnalysis ? null : 
+            return DisplayService(service, reportType, reportType.IsResolvedReport() || reportType == ReportType.VarianceAnalysis ? null :
                 ReportDevicesBase.ConstructLink(ObjCatString.Svc, ReportBase.GetIconClass(ObjCategory.nsrv, service.Type.Name), chapterNumber, service.Id, service.Name, location, mgmtId, style)).ToString();
         }
         protected static string EnforcingGatewayToHtml(Device gateway, int mgmtId, int chapterNumber, OutputLocation location, string style, ReportType reportType)
         {
-            return DisplayGateway(gateway, reportType, reportType.IsResolvedReport() ? null : 
+            return DisplayGateway(gateway, reportType, reportType.IsResolvedReport() ? null :
                 ReportDevicesBase.ConstructLink(ObjCatString.Svc, Icons.Host, chapterNumber, gateway.Id, gateway.Name, location, mgmtId, style)).ToString();
         }
 
         private string DisplaySourceOrDestination(Rule rule, int chapterNumber, OutputLocation location, ReportType reportType, string style, bool isSource)
         {
             StringBuilder result = new();
-            if ((isSource && rule.SourceNegated) ||(!isSource && rule.DestinationNegated))
+            if((isSource && rule.SourceNegated) || (!isSource && rule.DestinationNegated))
             {
                 result.AppendLine(userConfig.GetText("negated") + "<br>");
             }
@@ -126,13 +126,13 @@ namespace FWO.Ui.Display
             }
             else
             {
-                result.AppendJoin("<br>", Array.ConvertAll(isSource ? rule.Froms : rule.Tos, 
+                result.AppendJoin("<br>", Array.ConvertAll(isSource ? rule.Froms : rule.Tos,
                     nwLoc => NetworkLocationToHtml(nwLoc, rule.MgmtId, chapterNumber, location, highlightedStyle, reportType)));
             }
             if(reportType == ReportType.AppRules)
             {
                 if(!rule.ShowDisregarded &&
-                    ((isSource && rule.Froms.Length > 0 && rule.DisregardedFroms.Length > 0) || 
+                    ((isSource && rule.Froms.Length > 0 && rule.DisregardedFroms.Length > 0) ||
                     (!isSource && rule.Tos.Length > 0 && rule.DisregardedTos.Length > 0)))
                 {
                     result.Append($"<br><span class=\"text-secondary\">... ({(isSource ? rule.DisregardedFroms.Length : rule.DisregardedTos.Length)} {userConfig.GetText("more")})</span>");
@@ -151,11 +151,11 @@ namespace FWO.Ui.Display
             return result.ToString();
         }
 
-        private static string GetNextRecertDateString (string countString, Recertification recert)
+        private static string GetNextRecertDateString(string countString, Recertification recert)
         {
             string color = "";
             string dateOnly = "-";
-            if (recert.NextRecertDate != null)
+            if(recert.NextRecertDate != null)
             {
                 dateOnly = DateOnly.FromDateTime((DateTime)recert.NextRecertDate).ToString("yyyy-MM-dd");
                 if(recert.NextRecertDate < DateTime.Now)
@@ -166,17 +166,17 @@ namespace FWO.Ui.Display
             return "<p" + color + ">" + countString + dateOnly + "</p>";
         }
 
-        private static string GetOwnerDisplayString (string countString, Recertification recert)
+        private static string GetOwnerDisplayString(string countString, Recertification recert)
         {
             return "<p>" + countString + (recert.FwoOwner != null && recert.FwoOwner?.Name != null ? recert.FwoOwner.Name : "") + "</p>";
         }
 
-        private static string GetIpMatchDisplayString (string countString, Recertification recert)
+        private static string GetIpMatchDisplayString(string countString, Recertification recert)
         {
             return "<p>" + countString + (recert.IpMatch != null && recert.IpMatch != "" ? recert.IpMatch : "&#8208;") + "</p>";
         }
 
-        private static string GetLastRecertifierDisplayString (string countString, Recertification recert)
+        private static string GetLastRecertifierDisplayString(string countString, Recertification recert)
         {
             return "<p>" + countString + "</p>"; // TODO: fetch last recertifier
         }
@@ -184,6 +184,46 @@ namespace FWO.Ui.Display
         private static string CountString(bool multipleOwners, int ownerCounter)
         {
             return multipleOwners ? ownerCounter.ToString() + ".&nbsp;" : "";
+        }
+
+        public static MarkupString DisplayActionMarkup(Rule rule)
+        {
+            string textClass = rule.Action.ToLower() switch
+            {
+                "allow" or "accept" => "text-success",
+                "deny" or "reject" or "drop" or "block" => "text-danger",
+                "ask" => "text-info",
+                _ => ""
+            };
+
+            string iconClass = rule.Action.ToLower() switch
+            {
+                "allow" or "accept" => "bi bi-check-lg",
+                "deny" or "reject" or "drop" or "block" => "bi bi-slash-circle-fill",
+                "ask" => "bi bi-question-lg",
+                _ => ""
+            };
+
+
+            return new MarkupString($"<span class=\"{textClass}\"><i class=\"{iconClass}\"></i> {rule.Action}</span>");
+        }
+
+        public static MarkupString DisplayLogMarkup(Rule rule)
+        {
+            string textClass = rule.Track.ToLower() switch
+            {
+               "log" => "text-info",
+                _ => ""
+            };
+
+            string iconClass = rule.Track.ToLower() switch
+            {
+                "log" => "bi bi-file-text-fill",
+                _ => ""
+            };
+
+
+            return new MarkupString($"<span class=\"{textClass}\"><i class=\"{iconClass}\"></i> {rule.Track}</span>");
         }
     }
 }

@@ -41,8 +41,8 @@
         <td>
             @((MarkupString)RuleDisplay.DisplayServices(RuleItem, OutputLocation.report, ReportType.Rules))
         </td>
-        <td class="text-center @GetActionClass(RuleItem.Action)">@RuleItem.Action</td>
-        <td class="text-center">@RuleItem.Track</td>
+        <td class="text-center">@RuleDisplayHtml.DisplayActionMarkup(RuleItem)</td>
+        <td class="text-center">@RuleDisplayHtml.DisplayLogMarkup(RuleItem)</td>
         <td class="text-center @GetRuleDisabledClass(RuleItem.Disabled)">@((MarkupString)RuleDisplayHtml.DisplayEnabled(RuleItem, OutputLocation.report))</td>
         <td title="@RuleItem.Uid" class="cursor-pointer" style="min-width: 130px;" @onclick="ToggleUid">
             @if(ShowFullUid)

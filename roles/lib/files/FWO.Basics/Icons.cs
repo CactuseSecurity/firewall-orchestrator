@@ -44,14 +44,14 @@ namespace FWO.Basics
         public const string Email = "oi oi-envelope-closed";
         
         // Object types: Reporting
-        public const string UserGroup = "oi oi-people";
-        public const string ObjGroup = "oi oi-list-rich";
-        public const string Host = "oi oi-laptop";
-        public const string Network = "oi oi-rss";
-        public const string Range = "oi oi-resize-width";
-        public const string NwObject = "oi oi-laptop";
-        public const string Service = "oi oi-wrench";
-        public const string User = "oi oi-person";
+        public const string UserGroup = "bi bi-people-fill"; //oi oi-people
+        public const string ObjGroup = "bi bi-boxes"; //oi oi-list-rich
+        public const string Host = "bi bi-pc-display"; //oi oi-laptop
+        public const string Network = "bi bi-diagram-2-fill"; //oi oi-rss
+        public const string Range = "bi bi-arrow-left-right"; //oi oi-resize-width
+        public const string NwObject = "bi bi-laptop"; //oi oi-laptop
+        public const string Service = "bi bi-ethernet"; //oi oi-wrench //alternative: bi bi-activity
+        public const string User = "bi bi-person-fill"; //oi oi-person
 
         // Object types: Modelling
         public const string ModObject = "oi oi-tag";

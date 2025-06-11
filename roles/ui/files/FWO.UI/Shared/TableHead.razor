@@ -1,0 +1,36 @@
+﻿<th class="@HeadClass">
+    <div class="d-inline-flex align-items-center">
+        @Title
+
+        <div class="d-block">
+            @if(Hideable)
+            {
+                <i class="bi bi-eye-slash ps-2 @HideClass"></i>
+            }
+            @if(Sortable)
+            {
+                <i class="bi bi-sort-up ps-2 @SortClass"></i>
+            }
+        </div>
+    </div>    
+</th>
+
+@code {
+    [Parameter, EditorRequired] 
+    public required string Title { get; set; }
+
+    [Parameter]
+    public string? HeadClass { get; set; }
+
+    [Parameter]
+    public bool Hideable { get; set; }
+
+    [Parameter]
+    public string? HideClass { get; set; }
+
+    [Parameter]
+    public bool Sortable { get; set; }
+
+    [Parameter]
+    public string? SortClass { get; set; }
+}

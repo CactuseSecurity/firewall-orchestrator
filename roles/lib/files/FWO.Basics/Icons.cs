@@ -50,7 +50,7 @@ namespace FWO.Basics
         public const string Network = "bi bi-diagram-2-fill"; //oi oi-rss
         public const string Range = "bi bi-arrow-left-right"; //oi oi-resize-width
         public const string NwObject = "bi bi-laptop"; //oi oi-laptop
-        public const string Service = "bi bi-ethernet"; //oi oi-wrench //alternative: bi bi-activity
+        public const string Service = "bi bi-wrench-adjustable"; //oi oi-wrench //alternative: bi bi-activity //bi bi-ethernet
         public const string User = "bi bi-person-fill"; //oi oi-person
 
         // Object types: Modelling

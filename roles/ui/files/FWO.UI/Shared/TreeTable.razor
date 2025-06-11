@@ -24,7 +24,7 @@
                    value="@SearchText"
                    @oninput="OnSearchInput"
                    @onkeyup="HandleSearchKeyPress" />
-            @if (string.IsNullOrWhiteSpace(SearchText))
+            @if(string.IsNullOrWhiteSpace(SearchText))
             {
                 <button class="btn btn-sm btn-outline-secondary mx-1" @onclick="ApplySearch">
                     <span class="oi oi-magnifying-glass"></span>
@@ -43,50 +43,18 @@
         <table class="tree-table">
             <thead>
                 <tr>
-                    <th @onclick="() => SortBy(nameof(Rule.Name))">
-                        @(userConfig.GetText("name"))
-                        @if(SortColumn == nameof(Rule.Name) && !NoSorting)
-                        {
-                            <span class="sort-icon @(SortAscending ? "oi oi-caret-bottom" : "oi oi-caret-top")"></span>
-                        }
-                    </th>
-                    <th @onclick="() => SortBy(nameof(Rule.OrderNumber))">
-                        @(userConfig.GetText("number"))
-                        @if(SortColumn == nameof(Rule.OrderNumber) && !NoSorting)
-                        {
-                            <span class="sort-icon @(SortAscending ? "oi oi-caret-bottom" : "oi oi-caret-top")"></span>
-                        }
-                    </th>
-                    <th>
-                        @(userConfig.GetText("source_zone"))
-                    </th>
-                    <th>
-                        @(userConfig.GetText("source"))
-                    </th>
-                    <th>
-                        @(userConfig.GetText("destination_zone"))
-                    </th>
-                    <th>
-                        @(userConfig.GetText("destination"))
-                    </th>
-                    <th>
-                        @(userConfig.GetText("services"))
-                    </th>
-                    <th>
-                        @(userConfig.GetText("action"))
-                    </th>
-                    <th>
-                        @(userConfig.GetText("track"))
-                    </th>
-                    <th>
-                        @(userConfig.GetText("enabled"))
-                    </th>
-                    <th>
-                        @(userConfig.GetText("uid"))
-                    </th>
-                    <th>
-                        @(userConfig.GetText("comment"))
-                    </th>
+                    <TableHead Title="@(userConfig.GetText("name"))" Sortable="true" SortClass="text-secondary text-info-hover" />
+                    <TableHead Title="@(userConfig.GetText("number"))" Sortable="true" SortClass="text-secondary text-info-hover" />
+                    <TableHead Title="@(userConfig.GetText("source_zone"))" Hideable="true" HideClass="text-secondary text-info-hover" />
+                    <TableHead Title="@(userConfig.GetText("source"))" />
+                    <TableHead Title="@(userConfig.GetText("destination_zone"))" />
+                    <TableHead Title="@(userConfig.GetText("destination"))" />
+                    <TableHead Title="@(userConfig.GetText("services"))" />
+                    <TableHead Title="@(userConfig.GetText("action"))" />
+                    <TableHead Title="@(userConfig.GetText("track"))" />
+                    <TableHead Title="@(userConfig.GetText("enabled"))" />
+                    <TableHead Title="@(userConfig.GetText("uid"))" Hideable="true" HideClass="text-secondary text-info-hover" Sortable="true" SortClass="text-secondary text-info-hover" />
+                    <TableHead Title="@(userConfig.GetText("comment"))" Hideable="true" HideClass="text-secondary text-info-hover" Sortable="true" SortClass="text-secondary text-info-hover" />
                 </tr>
             </thead>
             <tbody>
@@ -158,7 +126,7 @@
     /// </summary>
     private TreeNode<TItem>? FilterNode(TreeNode<TItem> node, string filterText)
     {
-        if (typeof(TItem) == typeof(Rule))
+        if(typeof(TItem) == typeof(Rule))
         {
             Rule? rule = node.Item as Rule;
             bool match =
@@ -167,7 +135,7 @@
                 (rule?.Source?.Contains(filterText, StringComparison.OrdinalIgnoreCase) ?? false) ||
                 (rule?.Destination?.Contains(filterText, StringComparison.OrdinalIgnoreCase) ?? false);
 
-            if (match)
+            if(match)
             {
                 return node;
             }
@@ -178,7 +146,7 @@
                 .Cast<TreeNode<TItem>>()
                 .ToList();
 
-            if (filteredChildren.Count > 0)
+            if(filteredChildren.Count > 0)
             {
                 return new TreeNode<TItem>
                 {
@@ -294,7 +262,7 @@
     /// </summary>
     private void HandleSearchKeyPress(KeyboardEventArgs e)
     {
-        if (e.Key == "Enter")
+        if(e.Key == "Enter")
         {
             debounceTimer?.Dispose(); //Cancelling debounce because we are applying search immediately
             ApplySearch();

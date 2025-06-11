@@ -26,26 +26,30 @@
             <span class="indent-placeholder"></span>
         }
         @CellTemplate(Node.Item)
-    </td>    
+    </td>
     @if(!IsSectionHeader() && RuleItem is not null)
     {
         <td>@RuleItem.DisplayOrderNumberString</td>
         <td>@((MarkupString)RuleDisplayHtml.DisplaySourceZone(RuleItem))</td>
         <td>
-            @((MarkupString)RuleDisplay.DisplaySource(RuleItem, OutputLocation.report, ReportType.Rules))            
+            @((MarkupString)RuleDisplay.DisplaySource(RuleItem, OutputLocation.report, ReportType.Rules))
         </td>
         <td>@((MarkupString)RuleDisplayHtml.DisplayDestinationZone(RuleItem))</td>
         <td>
-            @((MarkupString)RuleDisplay.DisplayDestination(RuleItem, OutputLocation.report, ReportType.Rules))            
+            @((MarkupString)RuleDisplay.DisplayDestination(RuleItem, OutputLocation.report, ReportType.Rules))
         </td>
         <td>
-            @((MarkupString)RuleDisplay.DisplayServices(RuleItem, OutputLocation.report, ReportType.Rules))            
+            @((MarkupString)RuleDisplay.DisplayServices(RuleItem, OutputLocation.report, ReportType.Rules))
         </td>
         <td>@RuleItem.Action</td>
-        <td>@RuleItem.Track</td>
-        <td>@((MarkupString)RuleDisplayHtml.DisplayEnabled(RuleItem, OutputLocation.report))</td>
-        <td>@RuleItem.Uid</td>
-        <td>@RuleItem.Comment</td>
+        <td class="text-center">@RuleItem.Track</td>
+        <td class="text-center">@((MarkupString)RuleDisplayHtml.DisplayEnabled(RuleItem, OutputLocation.report))</td>
+        <td title="@RuleItem.Uid">
+            @TruncateColumnGUIDText(RuleItem.Uid)
+        </td>
+        <td title="@RuleItem.Comment">
+            @TruncateColumnText(RuleItem.Comment, 20)
+        </td>
     }
 </tr>
 
@@ -58,16 +62,16 @@
 }
 
 @code {
-    [Parameter] 
+    [Parameter]
     public TreeNode<TItem> Node { get; set; }
 
-    [Parameter] 
+    [Parameter]
     public int Level { get; set; }
 
-    [Parameter] 
+    [Parameter]
     public RenderFragment<TItem> CellTemplate { get; set; }
 
-    [Parameter] 
+    [Parameter]
     public Action<TreeNode<TItem>> OnToggle { get; set; }
 
     [Parameter]
@@ -85,5 +89,39 @@
         }
 
         return "1";
+    }
+
+    /// <summary>
+    /// Truncates the given text to a specified maximum length. If the text exceeds the maximum length,
+    /// it is cut off and an ellipsis ("...") is appended. If the text is null or shorter than the maximum length,
+    /// the original text is returned.
+    /// </summary>
+    /// <param name="text">The text to be truncated.</param>
+    /// <param name="maxLength">The maximum allowed length of the text before truncation.</param>
+    /// <returns>The truncated text with ellipsis if needed, or the original text.</returns>
+    private string TruncateColumnText(string? text, int maxLength)
+    {
+        if(string.IsNullOrEmpty(text) || text.Length <= maxLength)
+        {
+            return text ?? string.Empty;
+        }
+
+        return text.Substring(0, maxLength) + "...";
+    }
+
+    /// <summary>
+    /// Truncates a GUID-like string by displaying only the first segment (before the first dash)
+    /// followed by "-...". If the input is null, empty, or does not contain a dash, returns an empty string.
+    /// </summary>
+    /// <param name="text">The GUID string to be truncated.</param>
+    /// <returns>The truncated GUID string, or an empty string if input is invalid.</returns>
+    private string TruncateColumnGUIDText(string? text)
+    {
+        if(!string.IsNullOrEmpty(text) && text.TrySplit('-', 0, out string guidStart))
+        {
+            return guidStart + "-...";
+        }
+
+        return string.Empty;
     }
 }

@@ -194,7 +194,7 @@ namespace FWO.Services
             {
                 if(owner != null && ticketId != null) // todo: role check
                 {
-                    apiConnection.SetProperRole(wfHandler.AuthUser ?? throw new Exception("No Auth User"), [Roles.Modeller, Roles.Admin]);
+                    apiConnection.SetProperRole(wfHandler.AuthUser ?? throw new ArgumentException("No Auth User"), [Roles.Modeller, Roles.Admin]);
                     List<ModellingConnection> Connections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnectionsByTicketId, new { ticketId });
                     foreach(var conn in Connections)
                     {
@@ -226,7 +226,7 @@ namespace FWO.Services
             {
                 if(owner != null && ticketId != null) // todo: role check
                 {
-                    apiConnection.SetProperRole(wfHandler.AuthUser ?? throw new Exception("No Auth User"), [Roles.Modeller, Roles.Admin]);
+                    apiConnection.SetProperRole(wfHandler.AuthUser ?? throw new ArgumentException("No Auth User"), [Roles.Modeller, Roles.Admin]);
                     List<ModellingConnection> Connections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnectionsByTicketId, new { ticketId });
                     foreach(var conn in Connections)
                     {
@@ -264,7 +264,7 @@ namespace FWO.Services
             {
                 if(owner != null && ticketId != null)
                 {
-                    apiConnection.SetProperRole(wfHandler.AuthUser ?? throw new Exception("No Auth User"), [Roles.Modeller, Roles.Admin]);
+                    apiConnection.SetProperRole(wfHandler.AuthUser ?? throw new ArgumentException("No Auth User"), [Roles.Modeller, Roles.Admin]);
                     List<ModellingConnection> Connections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnectionsByTicketId, new { ticketId });
                     foreach(var conn in Connections)
                     {
@@ -304,7 +304,7 @@ namespace FWO.Services
                 FwoOwner? owner = wfHandler.ActReqTask.Owners?.FirstOrDefault()?.Owner;
                 if(owner != null && wfHandler.ActReqTask.GetAddInfoIntValue(AdditionalInfoKeys.ConnId) != null)
                 {
-                    apiConnection.SetProperRole(wfHandler.AuthUser ?? throw new Exception("No Auth User"), [Roles.Modeller, Roles.Admin, Roles.Auditor]);
+                    apiConnection.SetProperRole(wfHandler.AuthUser ?? throw new ArgumentException("No Auth User"), [Roles.Modeller, Roles.Admin, Roles.Auditor]);
                     List<ModellingConnection> Connections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnections, new { appId = owner?.Id });
                     ModellingConnection? conn = Connections.FirstOrDefault(c => c.Id == wfHandler.ActReqTask.GetAddInfoIntValue(AdditionalInfoKeys.ConnId));
                     if(conn != null)

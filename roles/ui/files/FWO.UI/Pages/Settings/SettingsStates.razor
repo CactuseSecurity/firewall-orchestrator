@@ -328,7 +328,7 @@ else
             {
                 await apiConnection.SendQueryAsync<object>(RequestQueries.addStateAction, new { stateId = actState.Id, actionId = selectedAction?.Id ?? 0});
             }
-            actState.Actions.Add(new WfStateActionDataHelper(){ Action = selectedAction ?? throw new Exception("no action selected") });
+            actState.Actions.Add(new WfStateActionDataHelper(){ Action = selectedAction ?? throw new ArgumentException("no action selected") });
             SelectActionMode = false;
         }
         catch (Exception exception)

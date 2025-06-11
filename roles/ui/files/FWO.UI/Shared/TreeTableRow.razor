@@ -41,9 +41,9 @@
         <td>
             @((MarkupString)RuleDisplay.DisplayServices(RuleItem, OutputLocation.report, ReportType.Rules))
         </td>
-        <td>@RuleItem.Action</td>
+        <td class="text-center @GetActionClass(RuleItem.Action)">@RuleItem.Action</td>
         <td class="text-center">@RuleItem.Track</td>
-        <td class="text-center">@((MarkupString)RuleDisplayHtml.DisplayEnabled(RuleItem, OutputLocation.report))</td>
+        <td class="text-center @GetRuleDisabledClass(RuleItem.Disabled)">@((MarkupString)RuleDisplayHtml.DisplayEnabled(RuleItem, OutputLocation.report))</td>
         <td title="@RuleItem.Uid" class="cursor-pointer" style="min-width: 130px;" @onclick="ToggleUid">
             @if(ShowFullUid)
             {
@@ -162,5 +162,35 @@
     private void ToggleComment()
     {
         ShowFullComment = !ShowFullComment;
+    }
+
+    private string GetActionClass(string action)
+    {
+        switch(action.ToLower())
+        {           
+            case "allow":
+            case "accept":
+                return "text-success";
+            case "deny":
+            case "reject":
+            case "drop":
+            case "block":
+                return "text-danger";
+            case "ask":
+                return "text-info";
+            default:
+                return "";
+        }
+    }
+
+    private string GetRuleDisabledClass(bool disabled)
+    {
+        switch(disabled)
+        {
+            case false:
+                return "text-success";
+            case true:
+                return "text-danger";
+        }
     }
 }

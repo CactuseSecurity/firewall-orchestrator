@@ -44,12 +44,39 @@
         <td>@RuleItem.Action</td>
         <td class="text-center">@RuleItem.Track</td>
         <td class="text-center">@((MarkupString)RuleDisplayHtml.DisplayEnabled(RuleItem, OutputLocation.report))</td>
-        <td title="@RuleItem.Uid">
-            @TruncateColumnGUIDText(RuleItem.Uid)
+        <td title="@RuleItem.Uid" class="cursor-pointer" style="min-width: 130px;" @onclick="ToggleUid">
+            @if(ShowFullUid)
+            {
+                <span>
+                    @RuleItem.Uid
+                </span>
+            }
+            else
+            {
+                @TruncateColumnUIDText(RuleItem.Uid)
+                <span class="oi oi-eye text-secondary"></span>             
+            }
         </td>
-        <td title="@RuleItem.Comment">
-            @TruncateColumnText(RuleItem.Comment, 20)
-        </td>
+        <td title="@RuleItem.Comment" class="cursor-pointer text-center" @onclick="ToggleComment">
+            @if (string.IsNullOrWhiteSpace(RuleItem.Comment))
+            {
+                <span class="oi oi-minus text-secondary"></span>
+            }
+            else
+            {
+                @if(ShowFullComment)
+                {
+                    <span>
+                        @RuleItem.Comment
+                    </span>
+                }
+                else
+                {
+                    @TruncateColumnText(RuleItem.Comment, 20)
+                    <span class="oi oi-eye text-secondary"></span>
+                }
+            }
+        </td>        
     }
 </tr>
 
@@ -80,6 +107,8 @@
     private Rule? RuleItem => Node.Item as Rule;
 
     private bool IsSectionHeader() => RuleItem?.SectionHeader != null;
+    private bool ShowFullUid = false;
+    private bool ShowFullComment = false;
 
     private string GetColumnSpan()
     {
@@ -115,7 +144,7 @@
     /// </summary>
     /// <param name="text">The GUID string to be truncated.</param>
     /// <returns>The truncated GUID string, or an empty string if input is invalid.</returns>
-    private string TruncateColumnGUIDText(string? text)
+    private string TruncateColumnUIDText(string? text)
     {
         if(!string.IsNullOrEmpty(text) && text.TrySplit('-', 0, out string guidStart))
         {
@@ -123,5 +152,15 @@
         }
 
         return string.Empty;
+    }
+
+    private void ToggleUid()
+    {
+        ShowFullUid = !ShowFullUid;
+    }
+
+    private void ToggleComment()
+    {
+        ShowFullComment = !ShowFullComment;
     }
 }

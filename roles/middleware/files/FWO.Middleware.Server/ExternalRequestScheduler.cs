@@ -51,7 +51,7 @@ namespace FWO.Middleware.Server
                 List<string> FailedRequests = await externalRequestSender.Run();
                 if (FailedRequests.Count > 0)
                 {
-                    throw new ProcessingFailedException($"External Request(s) failed: {string.Join(". ", FailedRequests)}.");
+                    throw new ProcessingFailedException($"{FailedRequests.Count} External Request(s) failed: {string.Join(". ", FailedRequests)}.");
                 }
             }
             catch (Exception exc)

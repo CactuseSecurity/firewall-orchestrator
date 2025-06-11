@@ -177,7 +177,7 @@ namespace FWO.Middleware.Server
                 await UiUserHandler.GetOwnerships(apiConnectionUserContext, userConfig.User);
                 if(!userConfig.User.Ownerships.Contains(reportSchedule.Template.ReportParams.ModellingFilter.SelectedOwner.Id))
                 {
-                    Log.WriteDebug(LogMessageTitle, "Report not generated as owner is not valid anymore.");
+                    Log.WriteInfo(LogMessageTitle, "Report not generated as owner is not valid anymore.");
                     return false;
                 }
             }

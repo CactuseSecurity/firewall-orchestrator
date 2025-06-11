@@ -44,7 +44,7 @@
         <td class="text-center">@RuleDisplayHtml.DisplayActionMarkup(RuleItem)</td>
         <td class="text-center">@RuleDisplayHtml.DisplayLogMarkup(RuleItem)</td>
         <td class="text-center @GetRuleDisabledClass(RuleItem.Disabled)">@((MarkupString)RuleDisplayHtml.DisplayEnabled(RuleItem, OutputLocation.report))</td>
-        <td title="@RuleItem.Uid" class="cursor-pointer" style="min-width: 130px;" @onclick="ToggleUid">
+        <td title="@RuleItem.Uid" class="cursor-pointer" style="min-width: 135px;" @onclick="ToggleUid">
             @if(ShowFullUid)
             {
                 <span>
@@ -54,7 +54,7 @@
             else
             {
                 @TruncateColumnUIDText(RuleItem.Uid)
-                <span class="oi oi-eye text-secondary text-info-hover"></span>             
+                <span class="oi oi-eye text-secondary text-info-hover ms-1"></span>
             }
         </td>
         <td title="@RuleItem.Comment" class="cursor-pointer text-center" @onclick="ToggleComment">

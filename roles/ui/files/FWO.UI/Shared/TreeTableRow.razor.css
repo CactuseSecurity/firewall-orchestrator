@@ -47,3 +47,7 @@ tr:not(.section-header):hover td {
 .tree-cell {
     padding-left: 0 !important;
 }
+
+.text-info-hover:hover {
+    color: rgba(var(--bs-info-rgb), var(--bs-text-opacity)) !important;
+}

@@ -54,13 +54,13 @@
             else
             {
                 @TruncateColumnUIDText(RuleItem.Uid)
-                <span class="oi oi-eye text-secondary"></span>             
+                <span class="oi oi-eye text-secondary text-info-hover"></span>             
             }
         </td>
         <td title="@RuleItem.Comment" class="cursor-pointer text-center" @onclick="ToggleComment">
             @if (string.IsNullOrWhiteSpace(RuleItem.Comment))
             {
-                <span class="oi oi-minus text-secondary"></span>
+                <i class="bi bi-dash-lg"></i>
             }
             else
             {

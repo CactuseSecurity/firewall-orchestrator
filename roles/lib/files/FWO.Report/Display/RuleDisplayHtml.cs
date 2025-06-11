@@ -219,9 +219,13 @@ namespace FWO.Ui.Display
             string iconClass = rule.Track.ToLower() switch
             {
                 "log" => "bi bi-file-text-fill",
-                _ => ""
+                _ => "bi bi-dash-lg"
             };
 
+            if(rule.Track.ToLower() == "none")
+            {
+                rule.Track = string.Empty;
+            }
 
             return new MarkupString($"<span class=\"{textClass}\"><i class=\"{iconClass}\"></i> {rule.Track}</span>");
         }

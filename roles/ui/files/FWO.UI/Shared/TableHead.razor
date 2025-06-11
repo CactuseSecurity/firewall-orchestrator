@@ -9,14 +9,14 @@
             }
             @if(Sortable)
             {
-                <i class="bi bi-sort-up ps-2 @SortClass"></i>
+                <i class="bi @GetSortClass() ps-2 @SortClass" @onclick="OnSortClick"></i>
             }
         </div>
-    </div>    
+    </div>
 </th>
 
 @code {
-    [Parameter, EditorRequired] 
+    [Parameter, EditorRequired]
     public required string Title { get; set; }
 
     [Parameter]
@@ -33,4 +33,36 @@
 
     [Parameter]
     public string? SortClass { get; set; }
+
+    [Parameter]
+    public EventCallback<string> OnSort { get; set; }
+
+    [Parameter]
+    public bool SortAscending { get; set; }
+
+    [Parameter]
+    public string? SortContext { get; set; }
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+
+        if(Sortable && (!OnSort.HasDelegate || string.IsNullOrEmpty(SortContext)))
+        {
+            throw new InvalidOperationException($"{nameof(TableHead)}({Title}): " +
+            $"{nameof(Sortable)} is {Sortable}, but {nameof(OnSort)} EventCallback is {OnSort.HasDelegate} and {nameof(SortContext)} is {SortContext}.\n" +
+            $"If {nameof(Sortable)} is 'True', then {nameof(OnSort)} EvenCallback and {nameof(SortContext)} has to be set!");
+        }
+    }
+
+    private void OnSortClick()
+    {
+        if(Sortable && OnSort.HasDelegate && !string.IsNullOrEmpty(SortContext))
+            OnSort.InvokeAsync(SortContext);
+    }
+
+    private string GetSortClass()
+    {
+        return Sortable ? (SortAscending ? "bi-sort-up" : "bi-sort-down") : string.Empty;
+    }
 }

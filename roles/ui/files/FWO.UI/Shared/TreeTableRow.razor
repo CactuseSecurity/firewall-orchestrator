@@ -164,25 +164,6 @@
         ShowFullComment = !ShowFullComment;
     }
 
-    private string GetActionClass(string action)
-    {
-        switch(action.ToLower())
-        {           
-            case "allow":
-            case "accept":
-                return "text-success";
-            case "deny":
-            case "reject":
-            case "drop":
-            case "block":
-                return "text-danger";
-            case "ask":
-                return "text-info";
-            default:
-                return "";
-        }
-    }
-
     private string GetRuleDisabledClass(bool disabled)
     {
         switch(disabled)

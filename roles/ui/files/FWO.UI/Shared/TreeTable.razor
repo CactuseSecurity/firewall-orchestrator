@@ -43,8 +43,10 @@
         <table class="tree-table">
             <thead>
                 <tr>
-                    <TableHead Title="@(userConfig.GetText("name"))" Sortable="true" SortClass="text-secondary text-info-hover" />
-                    <TableHead Title="@(userConfig.GetText("number"))" Sortable="true" SortClass="text-secondary text-info-hover" />
+                    <TableHead Title="@(userConfig.GetText("name"))" Sortable="true" SortClass="text-secondary text-info-hover"
+                               SortAscending="SortAscending" OnSort="SortBy" SortContext="@nameof(Rule.Name)" />
+
+                    <TableHead Title="@(userConfig.GetText("number"))" Sortable="true" OnSort="SortBy" SortContext="@nameof(Rule.OrderNumber)" SortClass="text-secondary text-info-hover" />
                     <TableHead Title="@(userConfig.GetText("source_zone"))" Hideable="true" HideClass="text-secondary text-info-hover" />
                     <TableHead Title="@(userConfig.GetText("source"))" />
                     <TableHead Title="@(userConfig.GetText("destination_zone"))" />
@@ -53,8 +55,12 @@
                     <TableHead Title="@(userConfig.GetText("action"))" />
                     <TableHead Title="@(userConfig.GetText("track"))" />
                     <TableHead Title="@(userConfig.GetText("enabled"))" />
-                    <TableHead Title="@(userConfig.GetText("uid"))" Hideable="true" HideClass="text-secondary text-info-hover" Sortable="true" SortClass="text-secondary text-info-hover" />
-                    <TableHead Title="@(userConfig.GetText("comment"))" Hideable="true" HideClass="text-secondary text-info-hover" Sortable="true" SortClass="text-secondary text-info-hover" />
+
+                    <TableHead Title="@(userConfig.GetText("uid"))" Hideable="true" HideClass="text-secondary text-info-hover"
+                               Sortable="true" OnSort="SortBy" SortContext="@nameof(Rule.Uid)" SortClass="text-secondary text-info-hover" />
+
+                    <TableHead Title="@(userConfig.GetText("comment"))" Hideable="true" HideClass="text-secondary text-info-hover"
+                               Sortable="true" OnSort="SortBy" SortContext="@nameof(Rule.Comment)" SortClass="text-secondary text-info-hover" />
                 </tr>
             </thead>
             <tbody>
@@ -79,7 +85,7 @@
 
     private string? SortColumn { get; set; }
     private bool SortAscending { get; set; } = true;
-    private bool NoSorting { get; set; } = false;
+    //private bool NoSorting { get; set; } = false;
 
     private NatRuleDisplayHtml? RuleDisplay;
 
@@ -168,10 +174,10 @@
     /// </summary>
     private IEnumerable<TreeNode<TItem>> SortNodes(IEnumerable<TreeNode<TItem>> nodes)
     {
-        if(NoSorting)
-        {
-            return nodes;
-        }
+        // if(NoSorting)
+        // {
+        //     return nodes;
+        // }
 
         if(typeof(TItem) == typeof(Rule))
         {
@@ -187,6 +193,18 @@
                     ? nodes.OrderBy((TreeNode<TItem> n) => ((Rule)(object)n.Item).OrderNumber)
                     : nodes.OrderByDescending((TreeNode<TItem> n) => ((Rule)(object)n.Item).OrderNumber);
             }
+            else if(SortColumn == nameof(Rule.Uid))
+            {
+                return SortAscending
+                    ? nodes.OrderBy((TreeNode<TItem> n) => ((Rule)(object)n.Item).Uid)
+                    : nodes.OrderByDescending((TreeNode<TItem> n) => ((Rule)(object)n.Item).Uid);
+            }
+            else if(SortColumn == nameof(Rule.Comment))
+            {
+                return SortAscending
+                    ? nodes.OrderBy((TreeNode<TItem> n) => ((Rule)(object)n.Item).Comment)
+                    : nodes.OrderByDescending((TreeNode<TItem> n) => ((Rule)(object)n.Item).Comment);
+            }
         }
         return nodes;
     }
@@ -198,22 +216,23 @@
     {
         if(SortColumn == column)
         {
-            if(SortAscending == false)
-            {
-                NoSorting = true;
-                SortAscending = true;
-            }
-            else
-            {
-                SortAscending = false;
-                NoSorting = false;
-            }
+            SortAscending = !SortAscending; // Toggle sort direction
+            // if(SortAscending == false)
+            // {
+            //     //NoSorting = true;
+            //     SortAscending = true;
+            // }
+            // else
+            // {
+            //     SortAscending = false;
+            //     NoSorting = false;
+            // }
         }
         else
         {
             SortColumn = column;
             SortAscending = true;
-            NoSorting = false;
+            //NoSorting = false;
         }
     }
 

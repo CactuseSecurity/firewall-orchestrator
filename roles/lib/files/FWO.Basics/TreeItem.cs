@@ -2,37 +2,28 @@ namespace FWO.Basics
 {
     public class TreeItem<TItem>
     {
-        public List<TreeItem<TItem>> Children { get; set; }
-        public List<TreeItem<TItem>> ElementsFlat { get; set; }
+        public List<TreeItem<TItem>> Children { get; set; } = new();
+        public List<TreeItem<TItem>> ElementsFlat { get; set; } = new();
+
+        public List<int>? Position { get; set; } = new();
         public TreeItem<TItem>? Parent { get; set; }
         public TreeItem<TItem>? LastAddedItem { get; set; }
-
-        public List<int> Position { get; set; }
-
         public TItem? Data { get; set; }
-        public object? Origin { get; set; }
 
-        public bool IsRoot { get; set; }
-
+        public bool IsRoot { get; set; } = false;
         public string Header { get; set; } = "";
-
-
-        public TreeItem() : this(default!)
-        {
-            IsRoot = true;
-        }
-
-        public TreeItem(TItem data)
-        {
-            Children = new();
-            Position = new();
-            ElementsFlat = new();
-            Data = data;
-        }
 
         public string GetPositionString()
         {
-            return string.Join(".", Position);
+            if (Position != null)
+            {
+                return string.Join(".", Position);
+            }
+            else
+            {
+                return "";
+            }
+            
         }
 
         public void SetPosition(string orderNumberString)
@@ -43,6 +34,33 @@ namespace FWO.Basics
                 .ToList();
         }
 
+        public TreeItem<TItem> AddItem(TreeItem<TItem>? item = null, TItem? data = default!, List<int>? position = null, string header = "", bool isRoot = false, bool addToFlatList = false, bool addToChildren = false, bool setLastAddedItem = false)
+        {
+            TreeItem<TItem> newItem = item ?? new();
+
+            newItem.Parent = this;
+            newItem.Data = data;
+            newItem.Position = position;
+            newItem.Header = header;
+            newItem.IsRoot = isRoot;
+
+            if (addToFlatList)
+            {
+                ElementsFlat.Add(newItem);
+            }
+
+            if (addToChildren)
+            {
+                Children.Add(newItem);
+            }
+
+            if (setLastAddedItem)
+            {
+                LastAddedItem = newItem;
+            }
+
+            return newItem;
+        }
 
     }
 }

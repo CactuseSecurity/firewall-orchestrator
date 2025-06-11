@@ -212,6 +212,8 @@ namespace FWO.Report
         public static Rule[] GetAllRulesOfGateway(DeviceReportController deviceReport, ManagementReport managementReport)
         {
             _ruleTree = new();
+            _ruleTree.IsRoot = true;
+
             _createdOrderNumbersCount = 0;
             List<Rule> allRules = new();
 
@@ -229,6 +231,9 @@ namespace FWO.Report
 
                     foreach (Rule nextRule in rulebaseLinkQueueItem.rulebase.Rules.ToList())
                     {
+                        // Make copy of rule object to display same rule with different order number
+                        // TODO: Might be better to let different tree item reference the same rule object and make get the order number from the tree item, not the rule object
+
                         Rule rule = nextRule;
 
                         if (allRules.Contains(nextRule))
@@ -240,8 +245,7 @@ namespace FWO.Report
                         relativeOrderNumber++;
                         rule.RuleOrderNumber = relativeOrderNumber;
                         allRules.Add(rule);
-                        TreeItem<Rule> treeItem = new TreeItem<Rule>(rule);
-                        _ruleTree.ElementsFlat.Add(treeItem);
+                        _ruleTree.AddItem(data: rule, addToFlatList: true);
                     }
 
                     List<Rule> rules = rulebaseLinkQueueItem.rulebase.Rules.ToList();
@@ -329,6 +333,7 @@ namespace FWO.Report
                                                                 ManagementReport managementReport)
         {
             List<int>? nextPosition = null;
+            TreeItem<Rule>? nextParent = null;
 
             // Get next link and rulebase if they exist.
 
@@ -336,54 +341,40 @@ namespace FWO.Report
 
             // Prepare creation of order numbers.
 
-            if (currentQueueItem.link.LinkType == 2 && !currentQueueItem.link.IsGlobal && currentQueueItem.rulebase != null)
+            if (currentQueueItem.link.LinkType == 2 && !currentQueueItem.link.IsGlobal)
             {
-                // Create tree item for header.
-
-                TreeItem<Rule> treeItem = new();
-                treeItem.IsRoot = false;
-                treeItem.Header = currentQueueItem.rulebase.Name ?? "";
-                treeItem.Parent = _ruleTree;
-
-                _ruleTree.Children.Add(treeItem);
-                _ruleTree.ElementsFlat.Add(treeItem);
-                _ruleTree.LastAddedItem = treeItem;
-
-                // Create position root for new ordered layer
+                // Create position root and header item for new ordered layer
 
                 orderedLayerCounter++;
                 nextPosition = new List<int> { orderedLayerCounter, 0 };
+                nextParent = _ruleTree.AddItem(header: currentQueueItem.rulebase.Name ?? "", position: nextPosition, addToChildren: true, addToFlatList: true, setLastAddedItem: true);
                 lastPosition = nextPosition;
             }
-            else if (currentQueueItem.link.IsSection && currentQueueItem.rulebase != null)
+            else if (currentQueueItem.link.IsSection)
             {
-                // Create tree item for header.
+                // Get the starting point for the next position.
 
-                TreeItem<Rule> treeItem = new();
-                treeItem.IsRoot = false;
-                treeItem.Header = currentQueueItem.rulebase.Name ?? "";
+                nextPosition = lastPosition;
+
+                // Get parent for header item.
 
                 if (_ruleTree.LastAddedItem != null)
                 {
-
-                    treeItem.Parent = _ruleTree.LastAddedItem;
-                    treeItem.Parent.Children.Add(treeItem);
+                    nextParent = _ruleTree.LastAddedItem;
                 }
                 else
                 {
-                    _ruleTree.Children.Add(treeItem);
-                    treeItem.Parent = _ruleTree;
+                    nextParent = _ruleTree;
                 }
 
-                _ruleTree.ElementsFlat.Add(treeItem);
-                _ruleTree.LastAddedItem = treeItem;
+                // Create header item for section.
 
-                // Update nextPosition. (?)
+                nextParent = nextParent.AddItem(header: currentQueueItem.rulebase.Name ?? "", position: nextPosition, addToChildren: true, addToFlatList: true, setLastAddedItem: true);
 
-                nextPosition = lastPosition;
             }
             else if (currentQueueItem.link.LinkType == 3)
             {
+                nextParent = _ruleTree.LastAddedItem;
                 nextPosition = lastPosition.ToList();
                 nextPosition.Add(0);
                 lastPosition = nextPosition;
@@ -415,27 +406,29 @@ namespace FWO.Report
 
                     nextPosition[nextPosition.Count() - 1] = nextPosition.Last() + 1;
                     currentRule.DisplayOrderNumberString = string.Join(".", nextPosition);
+
+                    // Get and update tree item that holds currentRule as data.
+
                     TreeItem<Rule> treeItem = _ruleTree.ElementsFlat.First(treeItem => treeItem.Data == currentRule);
                     treeItem.Position = nextPosition.ToList();
 
-                    // Set tree item's origin to rulebase link (?)
+                    // if (currentRule == currentQueueItem.rulebase.Rules.FirstOrDefault())
+                    // {
+                    //     if (nextParent != null)
+                    //     {
+                    //         treeItem.Parent = nextParent;
+                    //     }
+                    // }
 
-                    treeItem.Origin = currentQueueItem.link;
-
-                    // Set parent for tree item
-
-                    if (currentRule == currentQueueItem.rulebase.Rules.FirstOrDefault())
+                    if (nextParent != null)
                     {
-                        treeItem.Parent = _ruleTree.LastAddedItem;
-                    }
-                    else
-                    {
-                        treeItem.Parent = _ruleTree.LastAddedItem.Parent;
+                        treeItem.Parent = nextParent;
                     }
 
                     // Add item to tree.
 
                     treeItem.Parent.Children.Add(treeItem);
+
                     _ruleTree.LastAddedItem = treeItem;
 
                     // Update order number, visited rules and last position.
@@ -452,9 +445,18 @@ namespace FWO.Report
                         if ((nextLink.LinkType == 3 && nextLink.FromRuleId == currentRule.Id)
                             || (nextLink.LinkType == 4 && nextLink.FromRulebaseId == currentRule.RulebaseId && currentRule == currentQueueItem.rulebase.Rules.LastOrDefault()))
                         {
-                            if (nextLink.IsSection && currentRule == currentQueueItem.rulebase.Rules.LastOrDefault())
+
+                            if (nextLink.IsSection)
                             {
-                                _ruleTree.LastAddedItem = treeItem.Parent.Parent;
+                                if (currentQueueItem.link.IsSection)
+                                {
+                                    _ruleTree.LastAddedItem = nextParent?.Parent;
+                                }
+                                else
+                                {
+                                    _ruleTree.LastAddedItem = _ruleTree.LastAddedItem.Parent;
+                                }
+                                
                             }
 
                             nextQueueItem = rulebaseLinkQueue.Dequeue();

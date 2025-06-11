@@ -1,15 +1,16 @@
 namespace FWO.Basics
 {
-    public class TreeItem<T>
+    public class TreeItem<TItem>
     {
-        public List<TreeItem<T>> Children { get; set; }
-
-        public TreeItem<T>? Parent { get; set; }
-        public TreeItem<T>? LastAddedItem { get; set; }
+        public List<TreeItem<TItem>> Children { get; set; }
+        public List<TreeItem<TItem>> ElementsFlat { get; set; }
+        public TreeItem<TItem>? Parent { get; set; }
+        public TreeItem<TItem>? LastAddedItem { get; set; }
 
         public List<int> Position { get; set; }
 
-        public T? Data { get; set; }
+        public TItem? Data { get; set; }
+        public object? Origin { get; set; }
 
         public bool IsRoot { get; set; }
 
@@ -21,10 +22,11 @@ namespace FWO.Basics
             IsRoot = true;
         }
 
-        public TreeItem(T data)
+        public TreeItem(TItem data)
         {
             Children = new();
             Position = new();
+            ElementsFlat = new();
             Data = data;
         }
 

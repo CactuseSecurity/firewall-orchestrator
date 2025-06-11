@@ -241,7 +241,7 @@ namespace FWO.Report
                         rule.RuleOrderNumber = relativeOrderNumber;
                         allRules.Add(rule);
                         TreeItem<Rule> treeItem = new TreeItem<Rule>(rule);
-                        _ruleTree.Children.Add(treeItem);
+                        _ruleTree.ElementsFlat.Add(treeItem);
                     }
 
                     List<Rule> rules = rulebaseLinkQueueItem.rulebase.Rules.ToList();
@@ -344,7 +344,9 @@ namespace FWO.Report
                 treeItem.IsRoot = false;
                 treeItem.Header = currentQueueItem.rulebase.Name ?? "";
                 treeItem.Parent = _ruleTree;
+
                 _ruleTree.Children.Add(treeItem);
+                _ruleTree.ElementsFlat.Add(treeItem);
                 _ruleTree.LastAddedItem = treeItem;
 
                 orderedLayerCounter++;
@@ -359,16 +361,17 @@ namespace FWO.Report
 
                 if (_ruleTree.LastAddedItem != null)
                 {
-                    // TODO: Reset LastAddedItem to Parent if current link is part of concatenation
                     treeItem.Parent = _ruleTree.LastAddedItem;
-                    _ruleTree.LastAddedItem.Children.Add(treeItem);
+                    treeItem.Parent.Children.Add(treeItem);
+                    treeItem.LastAddedItem = treeItem;
                 }
                 else
                 {
                     _ruleTree.Children.Add(treeItem);
                     treeItem.Parent = _ruleTree;
                 }
-                
+
+                _ruleTree.ElementsFlat.Add(treeItem);
                 _ruleTree.LastAddedItem = treeItem;
 
                 nextPosition = lastPosition;
@@ -406,10 +409,26 @@ namespace FWO.Report
 
                     nextPosition[nextPosition.Count() - 1] = nextPosition.Last() + 1;
                     currentRule.DisplayOrderNumberString = string.Join(".", nextPosition);
-                    _ruleTree.Children.First(treeItem => treeItem.Data == currentRule).Position = nextPosition.ToList();
+                    TreeItem<Rule> treeItem = _ruleTree.ElementsFlat.First(treeItem => treeItem.Data == currentRule);
+                    treeItem.Position = nextPosition.ToList();
+                    treeItem.Origin = currentQueueItem.link;
+
+                    if (currentRule == currentQueueItem.rulebase.Rules.FirstOrDefault())
+                    {
+                        treeItem.Parent = _ruleTree.LastAddedItem;
+                    }
+                    else
+                    {
+                        treeItem.Parent = _ruleTree.LastAddedItem.Parent;
+                    }
+
+                    treeItem.Parent.Children.Add(treeItem);
+                    _ruleTree.LastAddedItem = treeItem;
+
                     _createdOrderNumbersCount++;
                     currentRule.OrderNumber = _createdOrderNumbersCount;
-                    visitedRules.Add(currentRule);
+                    visitedRules.Add
+                    (currentRule);
 
                     lastPosition = nextPosition;
 

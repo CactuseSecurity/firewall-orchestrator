@@ -6,6 +6,7 @@ using FWO.Logging;
 using FWO.Middleware.Client;
 using FWO.Ui.Auth;
 using FWO.Ui.Services;
+using FWO.Services;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server.Circuits;
 using RestSharp;
@@ -39,6 +40,8 @@ builder.Services.AddScoped<AuthenticationStateProvider, AuthStateProvider>();
 builder.Services.AddScoped<CircuitHandler, CircuitHandlerService>();
 builder.Services.AddScoped<KeyboardInputService, KeyboardInputService>();
 builder.Services.AddScoped<IEventMediator, EventMediator>();
+
+builder.Services.AddTransient<IRuleTreeService, RuleTreeService>();
 
 string ApiUri = ConfigFile.ApiServerUri;
 string MiddlewareUri = ConfigFile.MiddlewareServerUri;
@@ -84,6 +87,10 @@ builder.Services.AddBlazorTable();
 #endregion
 
 var app = builder.Build();
+
+// Make ServiceProvider accessible via static reference.
+
+FWO.Services.ServiceProvider.UiServices = app.Services;
 
 //// Configure the HTTP request pipeline.
 #region HTTP Request Pipeline

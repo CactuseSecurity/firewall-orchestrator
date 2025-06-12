@@ -5,12 +5,14 @@ using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Report;
 using FWO.FwLogic;
+using FWO.Services;
 using FWO.Logging;
 using FWO.Report.Filter;
 using FWO.Ui.Display;
 using Newtonsoft.Json;
 using System.Text;
 using System.Text.Json;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace FWO.Report
 {
@@ -32,8 +34,8 @@ namespace FWO.Report
         private const int ColumnCount = 12;
         protected bool UseAdditionalFilter = false;
         private bool VarianceMode = false;
-        private static TreeItem<Rule> _ruleTree = new TreeItem<Rule>();
-        private static int _createdOrderNumbersCount = 0;
+
+        private static IRuleTreeService? _ruleTreeService;
 
         public ReportRules(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType) : base(query, userConfig, reportType) { }
 
@@ -211,19 +213,15 @@ namespace FWO.Report
 
         public static Rule[] GetAllRulesOfGateway(DeviceReportController deviceReport, ManagementReport managementReport)
         {
-            _ruleTree = new();
-            _ruleTree.IsRoot = true;
+            _ruleTreeService = FWO.Services.ServiceProvider.UiServices.GetService<IRuleTreeService>();
 
-            _createdOrderNumbersCount = 0;
             List<Rule> allRules = new();
 
-            Queue<(RulebaseLink link, RulebaseReport rulebase)>? rulebaseLinksAndTargetRulebases = BuildRulebaseLinkQueue(deviceReport.RulebaseLinks, managementReport.Rulebases);
-
-            if (rulebaseLinksAndTargetRulebases != null)
+            if (_ruleTreeService.BuildRulebaseLinkQueue(deviceReport.RulebaseLinks, managementReport.Rulebases) != null)
             {
                 // Get all rules.
 
-                foreach ((RulebaseLink link, RulebaseReport rulebase) rulebaseLinkQueueItem in rulebaseLinksAndTargetRulebases)
+                foreach ((RulebaseLink link, RulebaseReport rulebase) rulebaseLinkQueueItem in _ruleTreeService.RuleTreeBuilderQueue)
                 {
                     int relativeOrderNumber = 0;
 
@@ -245,7 +243,7 @@ namespace FWO.Report
                         relativeOrderNumber++;
                         rule.RuleOrderNumber = relativeOrderNumber;
                         allRules.Add(rule);
-                        _ruleTree.AddItem(data: rule, addToFlatList: true);
+                        _ruleTreeService.RuleTree.AddItem(data: rule, addToFlatList: true);
                     }
 
                     List<Rule> rules = rulebaseLinkQueueItem.rulebase.Rules.ToList();
@@ -253,9 +251,8 @@ namespace FWO.Report
                     rulebaseLinkQueueItem.rulebase.Rules = rules.ToArray();
                 }
 
-                CreateOrderNumbers(rulebaseLinksAndTargetRulebases, managementReport); 
+                _ruleTreeService.BuildRuleTree(); 
             }
-
 
             return allRules.ToArray();
         }
@@ -291,268 +288,6 @@ namespace FWO.Report
                 }
             }
             return 0;
-        }
-
-        /// <summary>
-        /// Creates multi-level (dotted) order numbers for display and sets internal numeric order for sorting.
-        /// </summary>
-        public static void CreateOrderNumbers(Queue<(RulebaseLink link, RulebaseReport rulebase)> rulebaseLinkQueue, ManagementReport managementReport)
-        {
-            int orderedLayerCounter = 0;
-            List<Rule> visitedRules = new();
-            List<int> lastPosition = new();
-
-            // Start outer loop.
-
-            while (rulebaseLinkQueue.TryDequeue(out (RulebaseLink link, RulebaseReport rulebase) currentQueueItem))
-            {
-                lastPosition = HandleRulebaseLinkQueueItem(currentQueueItem, rulebaseLinkQueue, lastPosition, visitedRules, ref orderedLayerCounter, managementReport);
-
-                // For concatenations: Set the returned last order number to the number of the last visited rule of the source rulebase if it differs from it.
-
-                if (rulebaseLinkQueue.TryPeek(out (RulebaseLink link, RulebaseReport rulebase) nextQueueItem) && nextQueueItem.link.LinkType == 4)
-                {
-                    Rule? lastVisitedRuleOfNextRulebase = visitedRules.LastOrDefault(rule => rule.RulebaseId == nextQueueItem.link.FromRulebaseId);
-
-                    if (lastVisitedRuleOfNextRulebase != null && lastVisitedRuleOfNextRulebase.DisplayOrderNumberString != string.Join(".", lastPosition))
-                    {
-                        lastPosition = lastVisitedRuleOfNextRulebase.DisplayOrderNumberString
-                                                                    .Split('.')
-                                                                    .Select(int.Parse)
-                                                                    .ToList();
-                    }
-                }
-            }
-        }
-
-        private static List<int> HandleRulebaseLinkQueueItem((RulebaseLink link, RulebaseReport rulebase) currentQueueItem,
-                                                                Queue<(RulebaseLink link, RulebaseReport rulebase)> rulebaseLinkQueue,
-                                                                List<int> lastPosition,
-                                                                List<Rule> visitedRules,
-                                                                ref int orderedLayerCounter,
-                                                                ManagementReport managementReport)
-        {
-            List<int>? nextPosition = null;
-            TreeItem<Rule>? nextParent = null;
-
-            // Get next link and rulebase if they exist.
-
-            (RulebaseLink link, RulebaseReport rulebase)? nextQueueItem = TryPeekNextQueueItem(rulebaseLinkQueue);
-
-            // Prepare creation of order numbers.
-
-            if (currentQueueItem.link.LinkType == 2 && !currentQueueItem.link.IsGlobal)
-            {
-                // Create position root and header item for new ordered layer
-
-                orderedLayerCounter++;
-                nextPosition = new List<int> { orderedLayerCounter, 0 };
-                nextParent = _ruleTree.AddItem(header: currentQueueItem.rulebase.Name ?? "", position: nextPosition.ToList(), addToChildren: true, addToFlatList: true, setLastAddedItem: true);
-                lastPosition = nextPosition;
-            }
-            else if (currentQueueItem.link.IsSection)
-            {
-                // Get the starting point for the next position.
-
-                nextPosition = lastPosition;
-
-                // Get parent for header item.
-
-                if (_ruleTree.LastAddedItem != null)
-                {
-                    nextParent = _ruleTree.LastAddedItem;
-                }
-                else
-                {
-                    nextParent = _ruleTree;
-                }
-
-                // Create header item for section.
-
-                nextParent = nextParent.AddItem(header: currentQueueItem.rulebase.Name ?? "", position: nextPosition.ToList(), addToChildren: true, addToFlatList: true, setLastAddedItem: true);
-
-            }
-            else if (currentQueueItem.link.LinkType == 3)
-            {
-                nextParent = _ruleTree.LastAddedItem;
-                nextPosition = lastPosition.ToList();
-                nextPosition.Add(0);
-                lastPosition = nextPosition;
-
-                // Handle sections in inline layers without direct rules.
-
-                if (nextQueueItem?.link is RulebaseLink nextLink && currentQueueItem.rulebase.Rules.Count() == 0 && nextLink.IsSection && nextLink.FromRulebaseId == currentQueueItem.link.NextRulebaseId)
-                {
-                    lastPosition = HandleRulebaseLinkQueueItem(rulebaseLinkQueue.Dequeue(), rulebaseLinkQueue, lastPosition, visitedRules, ref orderedLayerCounter, managementReport);
-                }
-            }
-
-            // Create order number.
-            List<Rule> currentRules = currentQueueItem.rulebase.Rules.ToList();
-            foreach (Rule currentRule in currentRules)
-            {
-                // Exclude already visited rules.
-
-                if (!visitedRules.Contains(currentRule))
-                {
-                    // Update next position.
-
-                    if (nextPosition == null)
-                    {
-                        nextPosition = lastPosition.ToList();
-                    }
-
-                    // Update order number.
-
-                    nextPosition[nextPosition.Count() - 1] = nextPosition.Last() + 1;
-                    currentRule.DisplayOrderNumberString = string.Join(".", nextPosition);
-
-                    // Get and update tree item that holds currentRule as data.
-
-                    TreeItem<Rule> treeItem = _ruleTree.ElementsFlat.First(treeItem => treeItem.Data == currentRule);
-                    treeItem.Position = nextPosition.ToList();
-                    treeItem.Identifier = $"Rule (ID/UID): {currentRule.Id}/{currentRule.Uid}";
-
-                    if (nextParent != null)
-                    {
-                        treeItem.Parent = nextParent;
-                    }
-
-                    // Add item to tree.
-
-                    treeItem.Parent.Children.Add(treeItem);
-
-                    _ruleTree.LastAddedItem = treeItem;
-
-                    // Update order number, visited rules and last position.
-
-                    _createdOrderNumbersCount++;
-                    currentRule.OrderNumber = _createdOrderNumbersCount;
-                    visitedRules.Add(currentRule);
-                    lastPosition = nextPosition;
-
-                    // Handle inline layers.
-
-                    if (nextQueueItem?.link is RulebaseLink nextLink)
-                    {
-                        if ((nextLink.LinkType == 3 && nextLink.FromRuleId == currentRule.Id)
-                            || (nextLink.LinkType == 4 && nextLink.FromRulebaseId == currentRule.RulebaseId && currentRule == currentRules.LastOrDefault()))
-                        {
-
-                            if (nextLink.IsSection)
-                            {
-                                if (currentQueueItem.link.IsSection)
-                                {
-                                    _ruleTree.LastAddedItem = nextParent?.Parent;
-                                }
-                                else
-                                {
-                                    _ruleTree.LastAddedItem = _ruleTree.LastAddedItem.Parent;
-                                }
-                                
-                            }
-
-                            nextQueueItem = rulebaseLinkQueue.Dequeue();
-
-                            lastPosition = HandleRulebaseLinkQueueItem(nextQueueItem.Value, rulebaseLinkQueue, lastPosition, visitedRules, ref orderedLayerCounter, managementReport);
-
-                            // Update current and next queue items in case this loop continues after handling an inline layer.
-
-                            currentQueueItem = nextQueueItem.Value;
-
-                            nextQueueItem = TryPeekNextQueueItem(rulebaseLinkQueue);
-                        }
-
-                    } 
-                }
-
-
-            }
-
-            return lastPosition;
-        }
-
-        private static (RulebaseLink, RulebaseReport)? TryPeekNextQueueItem(Queue<(RulebaseLink link, RulebaseReport rulebase)> rulebaseLinkQueue)
-        {
-            if (rulebaseLinkQueue.TryPeek(out (RulebaseLink link, RulebaseReport) peekedQueueItem))
-            {
-                return peekedQueueItem;
-            }
-            else
-            {
-                return null;
-            }
-        }
-
-        public static Queue<(RulebaseLink, RulebaseReport)>? BuildRulebaseLinkQueue(RulebaseLink[] links, RulebaseReport[] rulebases)
-        {
-            // Abort if their are no rulebase links or rulebases
-
-            if (links.Count() == 0 || rulebases.Count() == 0)
-            {
-                return null;
-            }
-
-            Queue<(RulebaseLink, RulebaseReport)> queue = new();
-
-            Dictionary<int, RulebaseReport> rulebaseMap = rulebases.ToDictionary(r => r.Id);
-
-            // Make copy of link list, to be able to remove links without changing the original collection.
-
-            List<RulebaseLink> remainingLinks = links.ToList();
-
-            // Start with initial link.
-
-            RulebaseLink? current = remainingLinks.FirstOrDefault(l => l.IsInitial);
-
-            if (current == null)
-            {
-                throw new InvalidOperationException("No initial RulebaseLink found.");
-            }
-
-
-            while (current != null)
-            {
-                // Get target rulebase to current link and enqueue its rules and the link.
-
-                if (!rulebaseMap.TryGetValue(current.NextRulebaseId, out RulebaseReport? report))
-                {
-                    throw new KeyNotFoundException($"No report found with ID {current.NextRulebaseId}");
-                }
-
-                RulebaseReport rulebase = new();
-
-                if (report != null)
-                {
-
-                    rulebase.Id = report.Id;
-                    rulebase.Name = report.Name;
-                    rulebase.RuleChanges = report.RuleChanges;
-                    rulebase.RuleStatistics = report.RuleStatistics;
-                    rulebase.Rules = report.Rules.ToArray();
-
-                }
-
-
-                queue.Enqueue((current, rulebase));
-                remainingLinks.Remove(current);
-
-                // Get next link.
-
-                List<RulebaseLink>? candidates = remainingLinks
-                                                    .Where(l => l.FromRulebaseId == current.NextRulebaseId)
-                                                    .OrderByDescending(l => l.FromRuleId.HasValue)
-                                                    .ToList();
-
-                current = candidates.FirstOrDefault();
-
-                if (current == null)
-                {
-                    current = remainingLinks.FirstOrDefault();
-                }
-            }
-
-            return queue;
         }
 
         public override string SetDescription()

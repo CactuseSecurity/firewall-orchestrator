@@ -43,10 +43,9 @@
         <table class="tree-table">
             <thead>
                 <tr>
-                    <TableHead Title="@(userConfig.GetText("name"))" Sortable="true" SortClass="text-secondary text-info-hover"
-                               SortAscending="SortAscending" OnSort="SortBy" SortContext="@nameof(Rule.Name)" />
+                    <TableHead Title="@(userConfig.GetText("name"))" />
 
-                    <TableHead Title="@(userConfig.GetText("number"))" Sortable="true" OnSort="SortBy" SortContext="@nameof(Rule.OrderNumber)" SortClass="text-secondary text-info-hover" />
+                    <TableHead Title="@(userConfig.GetText("number"))" />
                     <TableHead Title="@(userConfig.GetText("source_zone"))" Hideable="true" HideClass="text-secondary text-info-hover" />
                     <TableHead Title="@(userConfig.GetText("source"))" />
                     <TableHead Title="@(userConfig.GetText("destination_zone"))" />
@@ -56,11 +55,9 @@
                     <TableHead Title="@(userConfig.GetText("track"))" />
                     <TableHead Title="@(userConfig.GetText("enabled"))" />
 
-                    <TableHead Title="@(userConfig.GetText("uid"))" Hideable="true" HideClass="text-secondary text-info-hover"
-                               Sortable="true" OnSort="SortBy" SortContext="@nameof(Rule.Uid)" SortClass="text-secondary text-info-hover" />
+                    <TableHead Title="@(userConfig.GetText("uid"))" Hideable="true" HideClass="text-secondary text-info-hover" />
 
-                    <TableHead Title="@(userConfig.GetText("comment"))" Hideable="true" HideClass="text-secondary text-info-hover"
-                               Sortable="true" OnSort="SortBy" SortContext="@nameof(Rule.Comment)" SortClass="text-secondary text-info-hover" />
+                    <TableHead Title="@(userConfig.GetText("comment"))" Hideable="true" HideClass="text-secondary text-info-hover" />
                 </tr>
             </thead>
             <tbody>

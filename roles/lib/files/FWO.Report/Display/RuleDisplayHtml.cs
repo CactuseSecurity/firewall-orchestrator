@@ -115,7 +115,7 @@ namespace FWO.Ui.Display
             StringBuilder result = new();
             if((isSource && rule.SourceNegated) || (!isSource && rule.DestinationNegated))
             {
-                result.AppendLine(userConfig.GetText("negated") + "<br>");
+                result.AppendLine($"<span class=\"text-danger\"><b>{userConfig.GetText("negated")}</b></span><br>");
             }
             string highlightedStyle = style + (reportType == ReportType.AppRules ? " " + GlobalConst.kStyleHighlightedRed : "");
 

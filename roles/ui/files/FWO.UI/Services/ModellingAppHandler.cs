@@ -248,7 +248,7 @@ namespace FWO.Ui.Services
         {
             try
             {
-                if((await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.deleteConnection, new { id = ConnToDelete.Id })).DeletedId == ConnToDelete.Id)
+                if(await DeleteConnection(ConnToDelete))
                 {
                     await LogChange(ModellingTypes.ChangeType.Delete, ModellingTypes.ModObjectType.Connection, ConnToDelete.Id,
                         $"Deleted {(ConnToDelete.IsInterface? "Interface" : "Connection")}: {ConnToDelete.Name}", Application.Id);

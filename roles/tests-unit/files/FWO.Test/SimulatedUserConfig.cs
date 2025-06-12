@@ -110,6 +110,9 @@ namespace FWO.Test
             {"management", "Management"},
             {"gateway", "Gateway"},
             {"U1003", "In this report..."},
+            {"fully_modelled", "fullymodelled"},
+            {"more", "more"},
+            {"AppRules", "App Rules"},
         };
 
         public override string GetText(string key)

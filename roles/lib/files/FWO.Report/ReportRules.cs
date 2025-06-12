@@ -347,7 +347,7 @@ namespace FWO.Report
 
                 orderedLayerCounter++;
                 nextPosition = new List<int> { orderedLayerCounter, 0 };
-                nextParent = _ruleTree.AddItem(header: currentQueueItem.rulebase.Name ?? "", position: nextPosition, addToChildren: true, addToFlatList: true, setLastAddedItem: true);
+                nextParent = _ruleTree.AddItem(header: currentQueueItem.rulebase.Name ?? "", position: nextPosition.ToList(), addToChildren: true, addToFlatList: true, setLastAddedItem: true);
                 lastPosition = nextPosition;
             }
             else if (currentQueueItem.link.IsSection)
@@ -369,7 +369,7 @@ namespace FWO.Report
 
                 // Create header item for section.
 
-                nextParent = nextParent.AddItem(header: currentQueueItem.rulebase.Name ?? "", position: nextPosition, addToChildren: true, addToFlatList: true, setLastAddedItem: true);
+                nextParent = nextParent.AddItem(header: currentQueueItem.rulebase.Name ?? "", position: nextPosition.ToList(), addToChildren: true, addToFlatList: true, setLastAddedItem: true);
 
             }
             else if (currentQueueItem.link.LinkType == 3)
@@ -388,8 +388,8 @@ namespace FWO.Report
             }
 
             // Create order number.
-
-            foreach (Rule currentRule in currentQueueItem.rulebase.Rules.ToList())
+            List<Rule> currentRules = currentQueueItem.rulebase.Rules.ToList();
+            foreach (Rule currentRule in currentRules)
             {
                 // Exclude already visited rules.
 
@@ -411,14 +411,7 @@ namespace FWO.Report
 
                     TreeItem<Rule> treeItem = _ruleTree.ElementsFlat.First(treeItem => treeItem.Data == currentRule);
                     treeItem.Position = nextPosition.ToList();
-
-                    // if (currentRule == currentQueueItem.rulebase.Rules.FirstOrDefault())
-                    // {
-                    //     if (nextParent != null)
-                    //     {
-                    //         treeItem.Parent = nextParent;
-                    //     }
-                    // }
+                    treeItem.Identifier = $"Rule (ID/UID): {currentRule.Id}/{currentRule.Uid}";
 
                     if (nextParent != null)
                     {
@@ -443,7 +436,7 @@ namespace FWO.Report
                     if (nextQueueItem?.link is RulebaseLink nextLink)
                     {
                         if ((nextLink.LinkType == 3 && nextLink.FromRuleId == currentRule.Id)
-                            || (nextLink.LinkType == 4 && nextLink.FromRulebaseId == currentRule.RulebaseId && currentRule == currentQueueItem.rulebase.Rules.LastOrDefault()))
+                            || (nextLink.LinkType == 4 && nextLink.FromRulebaseId == currentRule.RulebaseId && currentRule == currentRules.LastOrDefault()))
                         {
 
                             if (nextLink.IsSection)

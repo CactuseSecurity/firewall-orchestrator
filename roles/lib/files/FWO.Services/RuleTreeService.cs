@@ -10,7 +10,7 @@ namespace FWO.Services
         public Queue<(RulebaseLink link, RulebaseReport rulebase)> RuleTreeBuilderQueue { get; set; } = new();
         public int CreatedOrderNumbersCount { get; set; } = 0;
         public int OrderedLayerCount { get; set; } = 0;
-        private List<Rule> VisitedRules = new();
+        private List<Rule> _allRules = new();
 
         public RuleTreeService()
         {
@@ -20,7 +20,7 @@ namespace FWO.Services
         /// <summary>
         /// Creates multi-level (dotted) order numbers for display, sets internal numeric order for sorting and builds the rule tree.
         /// </summary>
-        public void BuildRuleTree()
+        public List<Rule> BuildRuleTree()
         {
             List<int> lastPosition = new();
 
@@ -34,7 +34,7 @@ namespace FWO.Services
 
                 if (RuleTreeBuilderQueue.TryPeek(out (RulebaseLink link, RulebaseReport rulebase) nextQueueItem) && nextQueueItem.link.LinkType == 4)
                 {
-                    Rule? lastVisitedRuleOfNextRulebase = VisitedRules.LastOrDefault(rule => rule.RulebaseId == nextQueueItem.link.FromRulebaseId);
+                    Rule? lastVisitedRuleOfNextRulebase = _allRules.LastOrDefault(rule => rule.RulebaseId == nextQueueItem.link.FromRulebaseId);
 
                     if (lastVisitedRuleOfNextRulebase != null && lastVisitedRuleOfNextRulebase.DisplayOrderNumberString != string.Join(".", lastPosition))
                     {
@@ -45,6 +45,8 @@ namespace FWO.Services
                     }
                 }
             }
+
+            return _allRules;
         }
 
         private List<int> HandleRulebaseLinkQueueItem((RulebaseLink link, RulebaseReport rulebase) currentQueueItem, List<int> lastPosition)
@@ -108,81 +110,79 @@ namespace FWO.Services
             List<Rule> currentRules = currentQueueItem.rulebase.Rules.ToList();
             foreach (Rule currentRule in currentRules)
             {
-                // Exclude already visited rules.
+                // Make clone if rule was alreade processed.
 
-                if (!VisitedRules.Contains(currentRule))
+                Rule rule = currentRule;
+
+                if (_allRules.Contains(currentRule))
                 {
-                    // Update next position.
-
-                    if (nextPosition == null)
-                    {
-                        nextPosition = lastPosition.ToList();
-                    }
-
-                    // Update order number.
-
-                    nextPosition[nextPosition.Count() - 1] = nextPosition.Last() + 1;
-                    currentRule.DisplayOrderNumberString = string.Join(".", nextPosition);
-
-                    // Get and update tree item that holds currentRule as data.
-
-                    TreeItem<Rule> treeItem = RuleTree.ElementsFlat.First(treeItem => treeItem.Data == currentRule);
-                    treeItem.Position = nextPosition.ToList();
-                    treeItem.Identifier = $"Rule (ID/UID): {currentRule.Id}/{currentRule.Uid}";
-
-                    if (nextParent != null)
-                    {
-                        treeItem.Parent = nextParent;
-                    }
-
-                    // Add item to tree.
-
-                    treeItem.Parent.Children.Add(treeItem);
-
-                    RuleTree.LastAddedItem = treeItem;
-
-                    // Update order number, visited rules and last position.
-
-                    CreatedOrderNumbersCount++;
-                    currentRule.OrderNumber = CreatedOrderNumbersCount;
-                    VisitedRules.Add(currentRule);
-                    lastPosition = nextPosition;
-
-                    // Handle inline layers.
-
-                    if (nextQueueItem?.link is RulebaseLink nextLink)
-                    {
-                        if ((nextLink.LinkType == 3 && nextLink.FromRuleId == currentRule.Id)
-                            || (nextLink.LinkType == 4 && nextLink.FromRulebaseId == currentRule.RulebaseId && currentRule == currentRules.LastOrDefault()))
-                        {
-
-                            if (nextLink.IsSection)
-                            {
-                                if (currentQueueItem.link.IsSection)
-                                {
-                                    RuleTree.LastAddedItem = nextParent?.Parent;
-                                }
-                                else
-                                {
-                                    RuleTree.LastAddedItem = RuleTree.LastAddedItem.Parent;
-                                }
-                            }
-
-                            nextQueueItem = RuleTreeBuilderQueue.Dequeue();
-
-                            lastPosition = HandleRulebaseLinkQueueItem(nextQueueItem.Value, lastPosition);
-
-                            // Update current and next queue items in case this loop continues after handling an inline layer.
-
-                            currentQueueItem = nextQueueItem.Value;
-
-                            nextQueueItem = TryPeekNextQueueItem();
-                        }
-
-                    } 
+                    rule = currentRule.CreateClone();
                 }
 
+                // Update next position.
 
+                if (nextPosition == null)
+                {
+                    nextPosition = lastPosition.ToList();
+                }
+
+                // Update order number.
+
+                nextPosition[nextPosition.Count() - 1] = nextPosition.Last() + 1;
+                rule.DisplayOrderNumberString = string.Join(".", nextPosition);
+
+                // Get and update tree item that holds currentRule as data.
+
+                TreeItem<Rule> treeItem  = nextParent.AddItem(data: rule, addToChildren: true, addToFlatList: true, setLastAddedItem: true);
+
+                treeItem.Position = nextPosition.ToList();
+                treeItem.Identifier = $"Rule (ID/UID): {rule.Id}/{rule.Uid}";
+
+                // Add item to tree.
+
+                treeItem.Parent.Children.Add(treeItem);
+
+                RuleTree.LastAddedItem = treeItem;
+
+                // Update order number, visited rules and last position.
+
+                CreatedOrderNumbersCount++;
+                rule.OrderNumber = CreatedOrderNumbersCount;
+                _allRules.Add(rule);
+                lastPosition = nextPosition;
+
+                // Handle inline layers.
+
+                if (nextQueueItem?.link is RulebaseLink nextLink)
+                {
+                    if ((nextLink.LinkType == 3 && nextLink.FromRuleId == currentRule.Id)
+                        || (nextLink.LinkType == 4 && nextLink.FromRulebaseId == currentRule.RulebaseId && currentRule == currentRules.LastOrDefault()))
+                    {
+
+                        if (nextLink.IsSection)
+                        {
+                            if (currentQueueItem.link.IsSection)
+                            {
+                                RuleTree.LastAddedItem = nextParent?.Parent;
+                            }
+                            else
+                            {
+                                RuleTree.LastAddedItem = RuleTree.LastAddedItem.Parent;
+                            }
+                        }
+
+                        nextQueueItem = RuleTreeBuilderQueue.Dequeue();
+
+                        lastPosition = HandleRulebaseLinkQueueItem(nextQueueItem.Value, lastPosition);
+
+                        // Update current and next queue items in case this loop continues after handling an inline layer.
+
+                        currentQueueItem = nextQueueItem.Value;
+
+                        nextQueueItem = TryPeekNextQueueItem();
+                    }
+
+                }
             }
 
             return lastPosition;
@@ -260,7 +260,7 @@ namespace FWO.Services
 
             return queue;
         }
-        
+
         private (RulebaseLink, RulebaseReport)? TryPeekNextQueueItem()
         {
             if (RuleTreeBuilderQueue.TryPeek(out (RulebaseLink link, RulebaseReport) peekedQueueItem))

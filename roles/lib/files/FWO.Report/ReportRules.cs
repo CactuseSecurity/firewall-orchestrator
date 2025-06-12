@@ -219,39 +219,7 @@ namespace FWO.Report
 
             if (_ruleTreeService.BuildRulebaseLinkQueue(deviceReport.RulebaseLinks, managementReport.Rulebases) != null)
             {
-                // Get all rules.
-
-                foreach ((RulebaseLink link, RulebaseReport rulebase) rulebaseLinkQueueItem in _ruleTreeService.RuleTreeBuilderQueue)
-                {
-                    int relativeOrderNumber = 0;
-
-                    List<Rule> clonedRules = new();
-
-                    foreach (Rule nextRule in rulebaseLinkQueueItem.rulebase.Rules.ToList())
-                    {
-                        // Make copy of rule object to display same rule with different order number
-                        // TODO: Might be better to let different tree item reference the same rule object and make get the order number from the tree item, not the rule object
-
-                        Rule rule = nextRule;
-
-                        if (allRules.Contains(nextRule))
-                        {
-                            rule = nextRule.CreateClone();
-                            clonedRules.Add(rule);
-                        }
-
-                        relativeOrderNumber++;
-                        rule.RuleOrderNumber = relativeOrderNumber;
-                        allRules.Add(rule);
-                        _ruleTreeService.RuleTree.AddItem(data: rule, addToFlatList: true);
-                    }
-
-                    List<Rule> rules = rulebaseLinkQueueItem.rulebase.Rules.ToList();
-                    rules.AddRange(clonedRules);
-                    rulebaseLinkQueueItem.rulebase.Rules = rules.ToArray();
-                }
-
-                _ruleTreeService.BuildRuleTree(); 
+                allRules = _ruleTreeService.BuildRuleTree(); 
             }
 
             return allRules.ToArray();

@@ -12,7 +12,7 @@ namespace FWO.Services
         int OrderedLayerCount { get; set; }
 
         Queue<(RulebaseLink, RulebaseReport)>? BuildRulebaseLinkQueue(RulebaseLink[] links, RulebaseReport[] rulebases);
-        void BuildRuleTree();
+        List<Rule> BuildRuleTree();
     }
 }
 

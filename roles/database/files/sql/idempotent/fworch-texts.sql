@@ -2504,6 +2504,10 @@ INSERT INTO txt VALUES ('import',       	    'German', 	'Import');
 INSERT INTO txt VALUES ('import',    	        'English', 	'Import');
 INSERT INTO txt VALUES ('import_logs',          'German', 	'Import-Logs');
 INSERT INTO txt VALUES ('import_logs',          'English', 	'Import Logs');
+INSERT INTO txt VALUES ('app_data_import_logs', 'German', 	'Applikationsdaten Import-Logs');
+INSERT INTO txt VALUES ('app_data_import_logs', 'English', 	'Application Data Import Logs');
+INSERT INTO txt VALUES ('area_ip_data_import_logs','German','Subnetzdaten Import-Logs');
+INSERT INTO txt VALUES ('area_ip_data_import_logs','English','Subnet Data Import Logs');
 INSERT INTO txt VALUES ('import_status',       	'German', 	'Import-Status');
 INSERT INTO txt VALUES ('import_status',    	'English', 	'Import Status');
 INSERT INTO txt VALUES ('ui_messages',          'German', 	'UI-Nachrichten');
@@ -5694,12 +5698,12 @@ INSERT INTO txt VALUES ('H7012', 'English', 'The chapter "Background Checks" dis
     <a href="/help/monitoring/daily_checks">Daily Checks</a> inspect other system conditions, especially the import status of the different managements.
 ');
 INSERT INTO txt VALUES ('H7013', 'German', 'Im Kapitel "Import" wird der Datenimport &uuml;berwacht:
-    <a href="/help/monitoring/import_status">Import-Status</a> erlaubt einen &Uuml;berblick &uuml;ber einige Parameter der verschiedenen importierenden systeme,
-    w&auml;hrend <a href="/help/monitoring/import_logs">Import-Logs</a> die wichtigen Ausgaben der Datenimporte festh&auml;lt.
+    <a href="/help/monitoring/import_status">Import-Status</a> erlaubt einen &Uuml;berblick &uuml;ber einige Parameter der verschiedenen importierenden Systeme,
+    w&auml;hrend <a href="/help/monitoring/import_logs">"Import-Logs"</a>, "Applikationsdaten Import-Logs" und "Subnetzdaten Import-Logs" die wichtigen Ausgaben der jeweiligen Datenimporte festh&auml;lt.
 ');
 INSERT INTO txt VALUES ('H7013', 'English', 'In the "Import" chapter the data import is monitored: 
     <a href="/help/monitoring/import_status">Import Status</a> allows a view on several parameters of the different importing systems, 
-    whereas <a href="/help/monitoring/import_logs">Import Logs</a> records noteworthy outcomes of the data imports.
+    whereas <a href="/help/monitoring/import_logs">"Import Logs"</a>, "Application Data Import Logs", and "Subnet Data Import Logs" record noteworthy outcomes of the respective data imports.
 ');
 INSERT INTO txt VALUES ('H7014', 'German', 'Das Kapitel "Pers&ouml;nlich" ist f&uuml;r alle Nutzer zug&auml;nglich. 
     Unter <a href="/help/monitoring/ui_messages">UI-Nachrichten</a> werden alle Fehler- und Erfolgsmeldungen des jeweiligen Nutzers festgehalten.

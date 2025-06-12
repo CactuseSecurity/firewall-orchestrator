@@ -36,7 +36,9 @@ namespace FWO.Middleware.Server
 		private ModellingNamingConvention NamingConvention = new();
 		private UserConfig userConfig = new();
 		private const string LogMessageTitle = "Import App Data";
-	
+		private const string LevelFile = "Import File";
+		private const string LevelApp = "App";
+		private const string LevelAppServer = "App Server";
 
 		/// <summary>
 		/// Constructor for App Data Import
@@ -105,7 +107,9 @@ namespace FWO.Middleware.Server
 			}
 			catch (Exception exc)
 			{
-				Log.WriteError(LogMessageTitle, $"File {importfileName} could not be processed.", exc);
+				string errorText = $"File {importfileName} could not be processed.";
+				Log.WriteError(LogMessageTitle, errorText, exc);
+				await AddLogEntry(2, LevelFile, errorText);
 				failedImports.Add(importfileName);
 			}
 		}
@@ -154,7 +158,9 @@ namespace FWO.Middleware.Server
 						}
 					}
 				}
-				Log.WriteInfo(LogMessageTitle, $"Imported from {importfileName}: {successCounter} apps, {failCounter} failed. Deactivated {deleteCounter} apps, {deleteFailCounter} failed.");
+				string messageText = $"Imported from {importfileName}: {successCounter} apps, {failCounter} failed. Deactivated {deleteCounter} apps, {deleteFailCounter} failed.";
+				Log.WriteInfo(LogMessageTitle, messageText);
+				await AddLogEntry(0, LevelFile, messageText);
 			}
 		}
 
@@ -178,7 +184,9 @@ namespace FWO.Middleware.Server
 			}
 			catch (Exception exc)
 			{
-				Log.WriteError(LogMessageTitle, $"App {incomingApp.Name} could not be processed.", exc);
+				string errorText = $"App {incomingApp.Name} could not be processed.";
+				Log.WriteError(LogMessageTitle, errorText, exc);
+				await AddLogEntry(2, LevelApp, errorText);
 				return false;
 			}
 			return true;
@@ -261,7 +269,9 @@ namespace FWO.Middleware.Server
 			}
 			catch (Exception exc)
 			{
-				Log.WriteError(LogMessageTitle, $"Outdated App {app.Name} could not be deactivated.", exc);
+				string errorText = $"Outdated App {app.Name} could not be deactivated.";
+				Log.WriteError(LogMessageTitle, errorText, exc);
+				await AddLogEntry(1, LevelApp, errorText);
 				return false;
 			}
 			return true;
@@ -282,11 +292,11 @@ namespace FWO.Middleware.Server
 				string[] parts = extAppIdString.Split(GlobalConst.kAppIdSeparator);
 				string appPrefix = parts.Length > 0 ? parts[0] : "";
 				string appId = parts.Length > 1 ? parts[1] : "";
-    			return globalConfig.OwnerLdapGroupNames.Replace(GlobalConst.kAppPrefixPlaceholder, appPrefix).Replace(GlobalConst.kAppIdPlaceholder, appId);
-            }
-            Log.WriteInfo(LogMessageTitle, $"Could not find ayn placeholders in group name pattern \"{globalConfig.OwnerLdapGroupNames}\" " +
-                $"({GlobalConst.kFullAppIdPlaceholder}, {GlobalConst.kAppPrefixPlaceholder}, {GlobalConst.kAppIdPlaceholder} ");
-            return globalConfig.OwnerLdapGroupNames;
+				return globalConfig.OwnerLdapGroupNames.Replace(GlobalConst.kAppPrefixPlaceholder, appPrefix).Replace(GlobalConst.kAppIdPlaceholder, appId);
+			}
+			Log.WriteInfo(LogMessageTitle, $"Could not find ayn placeholders in group name pattern \"{globalConfig.OwnerLdapGroupNames}\" " +
+				$"({GlobalConst.kFullAppIdPlaceholder}, {GlobalConst.kAppPrefixPlaceholder}, {GlobalConst.kAppIdPlaceholder} ");
+			return globalConfig.OwnerLdapGroupNames;
 		}
 
 		private string GetGroupDn(string extAppIdString)
@@ -328,7 +338,7 @@ namespace FWO.Middleware.Server
 				if (!string.IsNullOrEmpty(ldap.UserSearchPath) && userDn.ToLower().Contains(ldap.UserSearchPath!.ToLower()))
 				{
 					LdapEntry? ldapUser = await ldap.GetUserDetailsFromLdap(userDn);
-					
+
 					if (ldapUser != null)
 					{
 						// add data from ldap entry to uiUser
@@ -529,7 +539,7 @@ namespace FWO.Middleware.Server
 				if (existingAppServer.IsDeleted)
 				{
 					if (!await ReactivateAppServer(existingAppServer))
-					{	
+					{
 						return false;
 					}
 				}
@@ -541,14 +551,14 @@ namespace FWO.Middleware.Server
 				if (!existingAppServer.Name.Equals(incomingAppServer.Name))
 				{
 					if (!await UpdateAppServerName(existingAppServer, incomingAppServer.Name))
-					{	
+					{
 						return false;
 					}
 				}
 				if (existingAppServer.CustomType == null)
 				{
 					if (!await UpdateAppServerType(existingAppServer))
-					{	
+					{
 						return false;
 					}
 				}
@@ -556,7 +566,9 @@ namespace FWO.Middleware.Server
 			}
 			catch (Exception exc)
 			{
-				Log.WriteError(LogMessageTitle, $"App Server {incomingAppServer.Name} could not be processed.", exc);
+				string errorText = $"App Server {incomingAppServer.Name} could not be processed.";
+				Log.WriteError(LogMessageTitle, errorText, exc);
+				await AddLogEntry(1, LevelAppServer, errorText);
 				return false;
 			}
 		}
@@ -569,7 +581,9 @@ namespace FWO.Middleware.Server
 			}
 			catch (Exception exc)
 			{
-				Log.WriteError(LogMessageTitle, $"App Server name {appServer.Name} could not be set according to naming conventions.", exc);
+				string errorText = $"App Server name {appServer.Name} could not be set according to naming conventions.";
+				Log.WriteError(LogMessageTitle, errorText, exc);
+				await AddLogEntry(1, LevelAppServer, errorText);
 			}
 			return appServer.Name;
 		}
@@ -598,7 +612,9 @@ namespace FWO.Middleware.Server
 			}
 			catch (Exception exc)
 			{
-				Log.WriteError(LogMessageTitle, $"App Server {incomingAppServer.Name} could not be processed.", exc);
+				string errorText = $"App Server {incomingAppServer.Name} could not be processed.";
+				Log.WriteError(LogMessageTitle, errorText, exc);
+				await AddLogEntry(1, LevelAppServer, errorText);
 				return false;
 			}
 			return true;
@@ -620,7 +636,9 @@ namespace FWO.Middleware.Server
 			}
 			catch (Exception exc)
 			{
-				Log.WriteError(LogMessageTitle, $"App Server {appServer.Name} could not be reactivated.", exc);
+				string errorText = $"App Server {appServer.Name} could not be reactivated.";
+				Log.WriteError(LogMessageTitle, errorText, exc);
+				await AddLogEntry(1, LevelAppServer, errorText);
 				return false;
 			}
 			return true;
@@ -641,7 +659,9 @@ namespace FWO.Middleware.Server
 			}
 			catch (Exception exc)
 			{
-				Log.WriteError(LogMessageTitle, $"Type of App Server {appServer.Name} could not be set.", exc);
+				string errorText = $"Type of App Server {appServer.Name} could not be set.";
+				Log.WriteError(LogMessageTitle, errorText, exc);
+				await AddLogEntry(1, LevelAppServer, errorText);
 				return false;
 			}
 			return true;
@@ -665,7 +685,9 @@ namespace FWO.Middleware.Server
 				}
 				catch (Exception exc)
 				{
-					Log.WriteError(LogMessageTitle, $"Name of App Server {appServer.Name} could not be set to {newName}.", exc);
+					string errorText = $"Name of App Server {appServer.Name} could not be set to {newName}.";
+					Log.WriteError(LogMessageTitle, errorText, exc);
+					await AddLogEntry(1, LevelAppServer, errorText);
 					return false;
 				}
 			}
@@ -688,10 +710,36 @@ namespace FWO.Middleware.Server
 			}
 			catch (Exception exc)
 			{
-				Log.WriteError(LogMessageTitle, $"Outdated AppServer {appServer.Name} could not be marked as deleted.", exc);
+				string errorText = $"Outdated AppServer {appServer.Name} could not be marked as deleted.";
+				Log.WriteError(LogMessageTitle, errorText, exc);
+				await AddLogEntry(1, LevelAppServer, errorText);
 				return false;
 			}
 			return true;
 		}
+		
+		private async Task AddLogEntry(int severity, string level, string description)
+	    {
+	        try
+	        {
+	            var Variables = new
+	            {
+					user = 0,
+					source = GlobalConst.kImportAppData,
+	                severity = severity,
+	                suspectedCause = level,
+	                description = description
+	            };
+	            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(MonitorQueries.addDataImportLogEntry, Variables)).ReturnIds;
+	            if (returnIds == null)
+	            {
+	                Log.WriteError("Write Log", "Log could not be written to database");
+	            }
+	        }
+	        catch (Exception exc)
+	        {
+	            Log.WriteError("Write Log", $"Could not write log: ", exc);
+	        }
+	    }
 	}
 }

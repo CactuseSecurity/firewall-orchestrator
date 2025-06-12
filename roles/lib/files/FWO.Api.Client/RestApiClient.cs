@@ -2,6 +2,7 @@
 using RestSharp.Authenticators;
 using RestSharp.Serializers;
 using RestSharp.Serializers.NewtonsoftJson;
+using System.Net.Security;
 
 namespace FWO.Api.Client
 {
@@ -10,11 +11,13 @@ namespace FWO.Api.Client
 		protected RestClient restClient;
 		readonly string BaseUrl;
 		readonly TimeSpan? ResponseTimeout;
+		readonly bool CheckCertificates;
 
-		protected RestApiClient(string baseUrl, double? timeout = null)
+		protected RestApiClient(string baseUrl, double? timeout = null, bool checkCertificates = false)
 		{
 			BaseUrl = baseUrl;
 			ResponseTimeout = timeout != null ? TimeSpan.FromSeconds((double)timeout) : null;
+			CheckCertificates = checkCertificates;
 			restClient = CreateRestClient(authenticator: null);
 		}
 
@@ -26,7 +29,11 @@ namespace FWO.Api.Client
 		private RestClient CreateRestClient(IAuthenticator? authenticator)
         {
             RestClientOptions restClientOptions = new() { Timeout = ResponseTimeout };
-            restClientOptions.RemoteCertificateValidationCallback += (_, _, _, _) => true;
+            restClientOptions.RemoteCertificateValidationCallback += (requestMessage, cert, chain, sslErrors) =>
+			{
+				// Todo: further customization?
+				return !CheckCertificates || sslErrors == SslPolicyErrors.None;
+            };
             restClientOptions.BaseUrl = new Uri(BaseUrl);
             restClientOptions.Authenticator = authenticator;
             return new RestClient(restClientOptions, null, ConfigureRestClientSerialization);

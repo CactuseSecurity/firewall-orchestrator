@@ -16,6 +16,8 @@ namespace FWO.Middleware.Server
     {
         private List<ModellingNetworkArea> existingAreas = [];
         private const string LogMessageTitle = "Import Area IP Data";
+        private const string LevelFile = "Import File";
+        private const string LevelArea = "Area";
 
         /// <summary>
         /// Run the Area IP Data Import
@@ -29,7 +31,7 @@ namespace FWO.Middleware.Server
             // iterate over all files
             foreach (var importfilePathAndName in importfilePathAndNames)
             {
-                ImportSingleFile(importfilePathAndName, AllNwData, FailedImports);
+                await ImportSingleFile(importfilePathAndName, AllNwData, FailedImports);
             }
 
             // merge all data into a single list of areas
@@ -41,12 +43,14 @@ namespace FWO.Middleware.Server
             }
             else
             {
-                Log.WriteInfo(LogMessageTitle, $"No valid network data found in any of the following import files {string.Join(", ", importfilePathAndNames)}. No changes were made.");
+                string messageText = $"No valid network data found in any of the following import files {string.Join(", ", importfilePathAndNames)}. No changes were made.";
+                Log.WriteInfo(LogMessageTitle, messageText);
+                await AddLogEntry(2, LevelFile, messageText);
             }
             return FailedImports;
         }
 
-        private void ImportSingleFile(string importfilePathAndName, List<ModellingImportNwData> allNwData, List<string> failedImports)
+        private async Task ImportSingleFile(string importfilePathAndName, List<ModellingImportNwData> allNwData, List<string> failedImports)
         {
             if (!RunImportScript(importfilePathAndName + ".py"))
             {
@@ -69,7 +73,9 @@ namespace FWO.Middleware.Server
             }
             catch (Exception ex)
             {
-                Log.WriteError(LogMessageTitle, $"Import could not be processed.", ex);
+                string errorText = $"Import from file {importfilePathAndName}.json could not be processed.";
+                Log.WriteError(LogMessageTitle, errorText, ex);
+                await AddLogEntry(2, LevelFile, errorText);
                 failedImports.Add(importfilePathAndName);
             }
         }
@@ -109,7 +115,9 @@ namespace FWO.Middleware.Server
                 }
             }
 
-            Log.WriteInfo(LogMessageTitle, $"Imported {successCounter} areas successfully, {failCounter} areas failed. Deleted {deleteCounter} areas, {deleteFailCounter} failed.");
+            string messageText = $"Imported {successCounter} areas successfully, {failCounter} areas failed. Deleted {deleteCounter} areas, {deleteFailCounter} failed.";
+            Log.WriteInfo(LogMessageTitle, messageText);
+            await AddLogEntry(0, LevelFile, messageText);
         }
 
         private static ModellingImportNwData ConvertNwDataToRanges(ModellingImportNwData nwData)
@@ -210,7 +218,9 @@ namespace FWO.Middleware.Server
             }
             catch (Exception exc)
             {
-                Log.WriteError(LogMessageTitle, $"Area {incomingArea.Name}({incomingArea.IdString}) could not be processed.", exc);
+                string errorText = $"Area {incomingArea.Name}({incomingArea.IdString}) could not be processed.";
+                Log.WriteError(LogMessageTitle, errorText, exc);
+                await AddLogEntry(1, LevelArea, errorText);
                 return false;
             }
             return true;
@@ -308,7 +318,9 @@ namespace FWO.Middleware.Server
             }
             catch (Exception exc)
             {
-                Log.WriteError(LogMessageTitle, $"Outdated Area {area.Name} could not be deleted.", exc);
+                string errorText = $"Outdated Area {area.Name} could not be deleted.";
+                Log.WriteError(LogMessageTitle, errorText, exc);
+                await AddLogEntry(1, LevelArea, errorText);
                 return false;
             }
             return true;
@@ -322,7 +334,33 @@ namespace FWO.Middleware.Server
             }
             catch (Exception exc)
             {
-                Log.WriteError(LogMessageTitle, $"Area {area.Name}({area.IdString}) could not be reactivated.", exc);
+                string errorText = $"Area {area.Name}({area.IdString}) could not be reactivated.";
+                Log.WriteError(LogMessageTitle, errorText, exc);
+                await AddLogEntry(1, LevelArea, errorText);
+            }
+        }
+        
+        private async Task AddLogEntry(int severity, string level, string description)
+        {
+            try
+            {
+                var Variables = new
+                {
+                    user = 0,
+                    source = GlobalConst.kImportAreaSubnetData,
+                    severity = severity,
+                    suspectedCause = level,
+                    description = description
+                };
+                ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(MonitorQueries.addDataImportLogEntry, Variables)).ReturnIds;
+                if (returnIds == null)
+                {
+                    Log.WriteError("Write Log", "Log could not be written to database");
+                }
+            }
+            catch (Exception exc)
+            {
+                Log.WriteError("Write Log", $"Could not write log: ", exc);
             }
         }
     }

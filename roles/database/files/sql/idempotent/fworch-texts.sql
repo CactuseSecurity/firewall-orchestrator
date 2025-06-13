@@ -2767,8 +2767,8 @@ INSERT INTO txt VALUES ('U0015', 'English', 'The deletion of the element has bee
 INSERT INTO txt VALUES ('U0016', 'German',  'Das Fenster kann geschlossen werden.');
 INSERT INTO txt VALUES ('U0016', 'English', 'Window can be closed.');
 
-INSERT INTO txt VALUES ('U1001', 'German',  'Filter (nur in Verbindungen)');
-INSERT INTO txt VALUES ('U1001', 'English', 'Filter (in connections only');
+INSERT INTO txt VALUES ('U1001', 'German',  'Filter (nur Verbindungen)');
+INSERT INTO txt VALUES ('U1001', 'English', 'Filter (connections only)');
 INSERT INTO txt VALUES ('U1002', 'German',  'Sind sie sicher, dass sie folgende Reportvorlage l&ouml;schen wollen: ');
 INSERT INTO txt VALUES ('U1002', 'English', 'Do you really want to delete report template');
 INSERT INTO txt VALUES ('U1003', 'German',  'In diesem Report werden nur vollst&auml;ndig modellierte Verbindungen ber&uuml;cksichtigt.');

@@ -314,10 +314,7 @@ namespace FWO.Report
             HtmlDocument doc = new();
             doc.LoadHtml(html);
 
-            List<HtmlNode>? headings = doc.DocumentNode.Descendants()
-                            .Where(n => n.Name.StartsWith('h') && n.Name.Length == 2 && n.Name != "hr")
-                            .ToList();
-
+            List<HtmlNode>? headings = [.. doc.DocumentNode.Descendants().Where(n => n.Name.StartsWith('h') && n.Name.Length == 2 && n.Name != "hr")];
             List<ToCHeader> tocs = [];
 
             int i = 0;
@@ -332,11 +329,11 @@ namespace FWO.Report
                 }
                 else if (heading.Name == "h5" && tocs.Count > 0 && tocs[i - 1].Items.Count > 0)
                 {
-                    tocs[i - 1].Items.Last().SubItems.Add(new ToCItem(headText, heading.Id));
+                    tocs[i - 1].Items[^1].SubItems.Add(new ToCItem(headText, heading.Id));
                 }
-                else if (heading.Name == "h6" && tocs.Count > 0 && tocs[i - 1].Items.Count > 0 && tocs[i - 1].Items.Last().SubItems.Count > 0)
+                else if (heading.Name == "h6" && tocs.Count > 0 && tocs[i - 1].Items.Count > 0 && tocs[i - 1].Items[^1].SubItems.Count > 0)
                 {
-                    tocs[i - 1].Items.Last().SubItems.Last().SubItems.Add(new ToCItem(headText, heading.Id));
+                    tocs[i - 1].Items[^1].SubItems[^1].SubItems.Add(new ToCItem(headText, heading.Id));
                 }
                 else
                 {
@@ -353,7 +350,7 @@ namespace FWO.Report
 
             if (!tocTemplateValid)
             {
-                throw new Exception(userConfig.GetText("E9302"));
+                throw new ArgumentException(userConfig.GetText("E9302"));
             }
 
             List<ToCHeader>? tocHeaders = CreateTOCContent(html);
@@ -361,51 +358,63 @@ namespace FWO.Report
             TocHTMLTemplate = TocHTMLTemplate.Replace("##ToCHeader##", userConfig.GetText("tableofcontent"));
 
             StringBuilder sb = new();
-
             foreach (ToCHeader toCHeader in tocHeaders)
             {
-                sb.AppendLine($"<li><a href=\"#{toCHeader.Id}\">{toCHeader.Title}</a></li>");
-
-                if (toCHeader.Items.Count > 0)
-                {
-                    sb.AppendLine("<ul>");
-
-                    foreach (ToCItem tocItem in toCHeader.Items)
-                    {
-                        sb.AppendLine($"<li class=\"subli\"><a href=\"#{tocItem.Id}\">{tocItem.Title}</a></li>");
-                        if (tocItem.SubItems.Count > 0)
-                        {
-                            sb.AppendLine("<ul>");
-                            foreach (ToCItem subItem in tocItem.SubItems)
-                            {
-                                sb.AppendLine($"<li class=\"subli\"><a href=\"#{subItem.Id}\">{subItem.Title}</a></li>");
-                                if (subItem.SubItems.Count > 0)
-                                {
-                                    sb.AppendLine("<ul>");
-                                    foreach (ToCItem subsubItem in subItem.SubItems)
-                                    {
-                                        sb.AppendLine($"<li class=\"subli\"><a href=\"#{subsubItem.Id}\">{subsubItem.Title}</a></li>");
-                                    }
-                                    sb.AppendLine("</ul>");
-                                }
-                            }
-                            sb.AppendLine("</ul>");
-                        }
-                    }
-                    sb.AppendLine("</ul>");
-                }
+				AppendHeader(sb, toCHeader);
             }
 
             TocHTMLTemplate = TocHTMLTemplate.Replace("##ToCList##", sb.ToString());
-
             bool tocValidHTML = IsValidHTML(TocHTMLTemplate);
-
             if (!tocValidHTML)
             {
-                throw new Exception(userConfig.GetText("E9302"));
+                throw new ArgumentException(userConfig.GetText("E9302"));
             }
 
             return TocHTMLTemplate;
+        }
+
+		private static void AppendHeader( StringBuilder sb, ToCHeader toCHeader)
+		{
+            sb.AppendLine($"<li><a href=\"#{toCHeader.Id}\">{toCHeader.Title}</a></li>");
+
+            if (toCHeader.Items.Count > 0)
+            {
+                sb.AppendLine("<ul>");
+
+                foreach (ToCItem tocItem in toCHeader.Items)
+                {
+					AppendItem(sb, tocItem);
+                }
+                sb.AppendLine("</ul>");
+            }
+		}
+
+		private static void AppendItem( StringBuilder sb, ToCItem tocItem)
+		{
+            sb.AppendLine($"<li class=\"subli\"><a href=\"#{tocItem.Id}\">{tocItem.Title}</a></li>");
+            if (tocItem.SubItems.Count > 0)
+            {
+                sb.AppendLine("<ul>");
+                foreach (ToCItem subItem in tocItem.SubItems)
+                {
+					AppendSubItem(sb, subItem);
+                }
+                sb.AppendLine("</ul>");
+             }
+		}
+
+		private static void AppendSubItem( StringBuilder sb, ToCItem subItem)
+		{
+            sb.AppendLine($"<li class=\"subli\"><a href=\"#{subItem.Id}\">{subItem.Title}</a></li>");
+            if (subItem.SubItems.Count > 0)
+            {
+                sb.AppendLine("<ul>");
+                foreach (ToCItem subsubItem in subItem.SubItems)
+                {
+                    sb.AppendLine($"<li class=\"subli\"><a href=\"#{subsubItem.Id}\">{subsubItem.Title}</a></li>");
+                }
+                sb.AppendLine("</ul>");
+            }
         }
 
         public static bool IsValidHTML(string html)

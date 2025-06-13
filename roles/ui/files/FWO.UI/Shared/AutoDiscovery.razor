@@ -232,7 +232,7 @@
 
             foreach(ActionItem action in Actions)
             {
-                ActionCode code = (ActionCode)Enum.Parse(typeof(ActionCode), action.ActionType ?? throw new Exception($"Missing Action Type!"));
+                ActionCode code = (ActionCode)Enum.Parse(typeof(ActionCode), action.ActionType ?? throw new ArgumentNullException($"Missing Action Type!"));
                 if(singleAlert)
                 {
                     actAlertId = action.AlertId;
@@ -241,7 +241,10 @@
                 switch(code)
                 {
                     case ActionCode.AddManagement:
-                        Management newMgmt = JsonSerializer.Deserialize<Management>((action.JsonData ?? throw new Exception($"Missing Management Data!")).ToString() ?? throw new Exception($"Could not convert Management Data to string!")) ?? throw new Exception($"Management Data not converted!");
+                        Management newMgmt = JsonSerializer.Deserialize<Management>((action.JsonData 
+							?? throw new ArgumentNullException($"Missing Management Data!")).ToString() 
+							?? throw new ArgumentException($"Could not convert Management Data to string!")) 
+							?? throw new JsonException($"Management Data not converted!");
                         if(checkManagementCreateToBeDone(newMgmt))
                         {
                             newMgmt.ActionId = action.Number;
@@ -287,7 +290,10 @@
                         }
                         break;
                     case ActionCode.AddGatewayToNewManagement:
-                        Device newGateway = JsonSerializer.Deserialize<Device>((action.JsonData ?? throw new Exception($"Missing Gateway Data!")).ToString() ?? throw new Exception($"Could not convert Gateway Data to string!")) ?? throw new Exception($"Gateway Data not converted!");
+                        Device newGateway = JsonSerializer.Deserialize<Device>((action.JsonData 
+							?? throw new ArgumentNullException($"Missing Gateway Data!")).ToString() 
+							?? throw new ArgumentException($"Could not convert Gateway Data to string!")) 
+							?? throw new JsonException($"Gateway Data not converted!");
                         newGateway.Delete = false;
                         newGateway.Relevant = true;
                         newGateway.ActionId = action.Number;
@@ -318,7 +324,10 @@
                         }
                         break;
                     case ActionCode.AddGatewayToExistingManagement:
-                        Device newGatewayToEx = JsonSerializer.Deserialize<Device>((action.JsonData ?? throw new Exception($"Missing Gateway Data!")).ToString() ?? throw new Exception($"Could not convert Gateway Data to string!")) ?? throw new Exception($"Gateway Data not converted!");
+                        Device newGatewayToEx = JsonSerializer.Deserialize<Device>((action.JsonData 
+							?? throw new ArgumentNullException($"Missing Gateway Data!")).ToString()
+							?? throw new ArgumentException($"Could not convert Gateway Data to string!"))
+							?? throw new JsonException($"Gateway Data not converted!");
                         if (checkGatewayCreateToBeDone(newGatewayToEx))
                         {
                             appendToRightManagement(newGatewayToEx, action);

@@ -1,6 +1,6 @@
 ﻿using NUnit.Framework;
 using NUnit.Framework.Legacy;
-using FWO.Basics;
+using FWO.Basics.Exceptions;
 using FWO.Data;
 using FWO.Middleware.Server;
 using FWO.Tufin.SecureChange;

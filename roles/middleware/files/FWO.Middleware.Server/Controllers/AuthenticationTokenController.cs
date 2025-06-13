@@ -132,6 +132,7 @@ namespace FWO.Middleware.Server.Controllers
 		private readonly JwtWriter jwtWriter;
 		private readonly List<Ldap> ldaps;
 		private readonly ApiConnection apiConnection;
+		private readonly string UserAuthentication = "User Authentication";
 
 		public AuthManager(JwtWriter jwtWriter, List<Ldap> ldaps, ApiConnection apiConnection)
 		{
@@ -154,15 +155,15 @@ namespace FWO.Middleware.Server.Controllers
 				return await jwtWriter.CreateJWT();
 
 			// Retrieve ldap entry for user (throws exception if credentials are invalid)
-			(LdapEntry ldapUser, Ldap ldap) = await GetLdapEntry(user, validatePassword);
+			(LdapEntry ldapUser, Ldap ldap) = await AuthenticateInAnyLdap(user, validatePassword);
 
 			// Get dn of user
 			user.Dn = ldapUser.Dn;
 
 			// Get email of user
-			user.Email = ldap.GetEmail(ldapUser);
-			user.Firstname = ldap.GetFirstName(ldapUser);
-			user.Lastname = ldap.GetLastName(ldapUser);
+			user.Email = Ldap.GetEmail(ldapUser);
+			user.Firstname = Ldap.GetFirstName(ldapUser);
+			user.Lastname = Ldap.GetLastName(ldapUser);
 
 			// Get groups of user
 			user.Groups = await GetGroups(ldapUser, ldap);
@@ -190,31 +191,27 @@ namespace FWO.Middleware.Server.Controllers
 				object groupsLock = new ();
 				List<Task> ldapRoleRequests = [];
 
-				foreach (Ldap currentLdap in ldaps)
+				foreach (Ldap currentLdap in ldaps.Where(l => l.IsInternal()))
 				{
-					if (currentLdap.IsInternal())
+					ldapRoleRequests.Add(Task.Run(async() =>
 					{
-						ldapRoleRequests.Add(Task.Run(async() =>
+						// Get groups from current Ldap
+						List<string> currentGroups = await currentLdap.GetGroups([ldapUser.Dn]);
+						lock (groupsLock)
 						{
-							// Get groups from current Ldap
-							List<string> currentGroups = await currentLdap.GetGroups([ldapUser.Dn]);
-							lock (groupsLock)
-							{
-								currentGroups = Array.ConvertAll(currentGroups.ToArray(), x => "cn=" + x + "," + currentLdap.GroupSearchPath).ToList();
-								userGroups.AddRange(currentGroups);
-							}
-						}));
-					}
+							currentGroups = Array.ConvertAll(currentGroups.ToArray(), x => "cn=" + x + "," + currentLdap.GroupSearchPath).ToList();
+							userGroups.AddRange(currentGroups);
+						}
+					}));
 				}
 				await Task.WhenAll(ldapRoleRequests);
 			}
 			return userGroups;
 		}
 
-		// why do we have a local GetLdapEntry method here?
-		public async Task<(LdapEntry, Ldap)> GetLdapEntry(UiUser user, bool validatePassword)
+		public async Task<(LdapEntry, Ldap)> AuthenticateInAnyLdap(UiUser user, bool validatePassword)
 		{
-			Log.WriteDebug("User Authentication", $"Trying to get ldap entry for user: {user.Name + " " + user.Dn}...");
+			Log.WriteDebug(UserAuthentication, $"Trying to get ldap entry for user: {user.Name + " " + user.Dn}...");
 
 			if (user.Dn == "" && user.Name == "")
 			{
@@ -232,7 +229,7 @@ namespace FWO.Middleware.Server.Controllers
 				{
 					ldapValidationRequests.Add(Task.Run(async() =>
 					{
-						Log.WriteDebug("User Authentication", $"Trying to authenticate {user.Name + " " + user.Dn} against LDAP {currentLdap.Address}:{currentLdap.Port} ...");
+						Log.WriteDebug(UserAuthentication, $"Trying to authenticate {user.Name + " " + user.Dn} against LDAP {currentLdap.Address}:{currentLdap.Port} ...");
 
 						try
 						{
@@ -243,11 +240,11 @@ namespace FWO.Middleware.Server.Controllers
 								// User was successfully authenticated via this LDAP
 								if(user.Name == Roles.Importer)
 								{
-									Log.WriteDebug("User Authentication", $"User {user.Name + " " + currentLdapEntry.Dn} found.");
+									Log.WriteDebug(UserAuthentication, $"User {user.Name + " " + currentLdapEntry.Dn} found.");
 								}
 								else
 								{
-									Log.WriteInfo("User Authentication", $"User {user.Name + " " + currentLdapEntry.Dn} found.");
+									Log.WriteInfo(UserAuthentication, $"User {user.Name + " " + currentLdapEntry.Dn} found.");
 								}
 
 								lock (dnLock)
@@ -279,7 +276,7 @@ namespace FWO.Middleware.Server.Controllers
 
 					ldapValidationRequests.Remove(finishedDnRequest);
 				}
-				Log.WriteInfo("User Authentication", $"User {user.Name} not found in any connected LDAP.");
+				Log.WriteInfo(UserAuthentication, $"User {user.Name} not found in any connected LDAP.");
 			}
 
 			// Invalid User Credentials
@@ -299,22 +296,19 @@ namespace FWO.Middleware.Server.Controllers
 
 			List<Task> ldapRoleRequests = [];
 
-			foreach (Ldap currentLdap in ldaps)
+			foreach (Ldap currentLdap in ldaps.Where(l => l.HasRoleHandling()))
 			{
 				// if current Ldap has roles stored
-				if (currentLdap.HasRoleHandling())
+				ldapRoleRequests.Add(Task.Run(async () =>
 				{
-					ldapRoleRequests.Add(Task.Run(async() =>
-					{
-						// Get roles from current Ldap
-						List<string> currentRoles = await currentLdap.GetRoles(dnList);
+					// Get roles from current Ldap
+					List<string> currentRoles = await currentLdap.GetRoles(dnList);
 
-						lock (rolesLock)
-						{
-							userRoles.AddRange(currentRoles);
-						}
-					}));
-				}
+					lock (rolesLock)
+					{
+						userRoles.AddRange(currentRoles);
+					}
+				}));
 			}
 
 			await Task.WhenAll(ldapRoleRequests);
@@ -361,33 +355,8 @@ namespace FWO.Middleware.Server.Controllers
 					else
 					{
 						// tenant unknown: create in db. This should only happen for users from external Ldaps
-						try
-						{
-							var Variables = new
-							{
-								name = tenant.Name,
-								project = "",
-								comment = "",
-								viewAllDevices = false,
-								create = DateTime.Now
-							};
-							ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(AuthQueries.addTenant, Variables)).ReturnIds;
-							if (returnIds != null)
-							{
-								tenant.Id = returnIds[0].NewId;
-								// no further search for devices etc necessary
-								return tenant;
-							}
-							else
-							{
-								return null;
-							}
-						}
-						catch (Exception exception)
-						{
-							Log.WriteError("AddTenant", $"Adding Tenant {tenant.Name} locally failed: {exception.Message}");
-							return null;
-						}
+						// no further search for devices etc necessary
+						return await CreateTenantInDb(tenant);
 					}
 				}
 			}
@@ -396,8 +365,38 @@ namespace FWO.Middleware.Server.Controllers
 			return tenant;
 		}
 
+		private async Task<Tenant?> CreateTenantInDb(Tenant tenant)
+		{
+			try
+			{
+				var Variables = new
+				{
+					name = tenant.Name,
+					project = "",
+					comment = "",
+					viewAllDevices = false,
+					create = DateTime.Now
+				};
+				ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(AuthQueries.addTenant, Variables)).ReturnIds;
+				if (returnIds != null)
+				{
+					tenant.Id = returnIds[0].NewId;
+					return tenant;
+				}
+				else
+				{
+					return null;
+				}
+			}
+			catch (Exception exception)
+			{
+				Log.WriteError("AddTenant", $"Adding Tenant {tenant.Name} locally failed: {exception.Message}");
+				return null;
+			}
+		}
+
 		// the following method adds device visibility information to a tenant (fetched from API)
-        private async Task AddDevices(ApiConnection conn, Tenant tenant)
+        private static async Task AddDevices(ApiConnection conn, Tenant tenant)
         {
             var tenIdObj = new { tenantId = tenant.Id };
 

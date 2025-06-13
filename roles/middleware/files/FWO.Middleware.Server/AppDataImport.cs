@@ -346,10 +346,10 @@ namespace FWO.Middleware.Server
 						{
 							LdapConnection = new UiLdapConnection(){ Id = ldap.Id },
 							Dn = ldapUser.Dn,
-							Name = ldap.GetName(ldapUser),
-							Firstname = ldap.GetFirstName(ldapUser),
-							Lastname = ldap.GetLastName(ldapUser),
-							Email = ldap.GetEmail(ldapUser),
+							Name = Ldap.GetName(ldapUser),
+							Firstname = Ldap.GetFirstName(ldapUser),
+							Lastname = Ldap.GetLastName(ldapUser),
+							Email = Ldap.GetEmail(ldapUser),
 							Tenant = await DeriveTenantFromLdap(ldap, ldapUser)							
 						};
 					}

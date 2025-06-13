@@ -96,6 +96,9 @@ namespace FWO.Services
         private bool InitOngoing = false;
         private const string kConnection = "Connection";
         private const string kInterface = "Interface";
+        private readonly string EditConnection = "edit_connection";
+		private readonly string InitEnvironment = "init_environment";
+		private readonly string InsertForbidden = "insert_forbidden";
 
 
 
@@ -132,7 +135,7 @@ namespace FWO.Services
             }
             catch (Exception exception)
             {
-                DisplayMessageInUi(exception, userConfig.GetText("init_environment"), "", true);
+                DisplayMessageInUi(exception, userConfig.GetText(InitEnvironment), "", true);
             }
         }
 
@@ -150,7 +153,7 @@ namespace FWO.Services
             }
             catch (Exception exception)
             {
-                DisplayMessageInUi(exception, userConfig.GetText("init_environment"), "", true);
+                DisplayMessageInUi(exception, userConfig.GetText(InitEnvironment), "", true);
             }
         }
 
@@ -169,7 +172,7 @@ namespace FWO.Services
             }
             catch (Exception exception)
             {
-                DisplayMessageInUi(exception, userConfig.GetText("init_environment"), "", true);
+                DisplayMessageInUi(exception, userConfig.GetText(InitEnvironment), "", true);
             }
         }
 
@@ -240,7 +243,7 @@ namespace FWO.Services
             }
             catch (Exception exception)
             {
-                DisplayMessageInUi(exception, userConfig.GetText("init_environment"), "", true);
+                DisplayMessageInUi(exception, userConfig.GetText(InitEnvironment), "", true);
             }
         }
 
@@ -338,7 +341,7 @@ namespace FWO.Services
             }
             else
             {
-                reason.Title = userConfig.GetText("edit_connection");
+                reason.Title = userConfig.GetText(EditConnection);
             }
 
            reason.Text = "";
@@ -743,7 +746,7 @@ namespace FWO.Services
                     }
                     else
                     {
-                        DisplayMessageInUi(null, userConfig.GetText("insert_forbidden"), userConfig.GetText("E9015"), true);
+                        DisplayMessageInUi(null, userConfig.GetText(InsertForbidden), userConfig.GetText("E9015"), true);
                     }
                 }
                 CalcVisibility();
@@ -763,7 +766,7 @@ namespace FWO.Services
                     }
                     else
                     {
-                        DisplayMessageInUi(null, userConfig.GetText("insert_forbidden"), userConfig.GetText("E9015"), true);
+                        DisplayMessageInUi(null, userConfig.GetText(InsertForbidden), userConfig.GetText("E9015"), true);
                     }
                 }
                 CalcVisibility();
@@ -783,7 +786,7 @@ namespace FWO.Services
                     }
                     else
                     {
-                        DisplayMessageInUi(null, userConfig.GetText("insert_forbidden"), userConfig.GetText("E9015"), true);
+                        DisplayMessageInUi(null, userConfig.GetText(InsertForbidden), userConfig.GetText("E9015"), true);
                     }
                 }
                 CalcVisibility();
@@ -803,7 +806,7 @@ namespace FWO.Services
                     }
                     else
                     {
-                        DisplayMessageInUi(null, userConfig.GetText("insert_forbidden"), userConfig.GetText("E9015"), true);
+                        DisplayMessageInUi(null, userConfig.GetText(InsertForbidden), userConfig.GetText("E9015"), true);
                     }
                 }
                 CalcVisibility();
@@ -1233,7 +1236,7 @@ namespace FWO.Services
         {
             if (ActConn.Name == null || ActConn.Name == "" || ActConn.Reason == null || ActConn.Reason == "")
             {
-                DisplayMessageInUi(null, userConfig.GetText("edit_connection"), userConfig.GetText("E5102"), true);
+                DisplayMessageInUi(null, userConfig.GetText(EditConnection), userConfig.GetText("E5102"), true);
                 return false;
             }
             if (ActConn.IsInterface)
@@ -1249,7 +1252,7 @@ namespace FWO.Services
                     !(ActConn.DstFromInterface || DstFilledInWork()) ||
                     !(ActConn.UsedInterfaceId != null || SvcFilledInWork()))
                 {
-                    DisplayMessageInUi(null, userConfig.GetText("edit_connection"), userConfig.GetText("E9006"), true);
+                    DisplayMessageInUi(null, userConfig.GetText(EditConnection), userConfig.GetText("E9006"), true);
                     return false;
                 }
             }
@@ -1262,12 +1265,12 @@ namespace FWO.Services
             int dstDummyARCount = ActConn.DestinationAppRoles.Count(x => x.Content.Id == DummyAppRole.Id);
             if (!(SrcFilledInWork(srcDummyARCount) || DstFilledInWork(dstDummyARCount)) || !SvcFilledInWork())
             {
-                DisplayMessageInUi(null, userConfig.GetText("edit_connection"), userConfig.GetText("E9004"), true);
+                DisplayMessageInUi(null, userConfig.GetText(EditConnection), userConfig.GetText("E9004"), true);
                 return false;
             }
             if (!AddMode && (SrcFilledInWork(srcDummyARCount) != ActConnOrig.SourceFilled() || DstFilledInWork(dstDummyARCount) != ActConnOrig.DestinationFilled()))
             {
-                DisplayMessageInUi(null, userConfig.GetText("edit_connection"), userConfig.GetText("E9005"), true);
+                DisplayMessageInUi(null, userConfig.GetText(EditConnection), userConfig.GetText("E9005"), true);
                 return false;
             }
             return true;
@@ -1522,7 +1525,7 @@ namespace FWO.Services
             }
             catch (Exception exception)
             {
-                DisplayMessageInUi(exception, userConfig.GetText("edit_connection"), "", true);
+                DisplayMessageInUi(exception, userConfig.GetText(EditConnection), "", true);
             }
         }
 
@@ -1562,7 +1565,7 @@ namespace FWO.Services
             }
             catch (Exception exception)
             {
-                DisplayMessageInUi(exception, userConfig.GetText("edit_connection"), "", true);
+                DisplayMessageInUi(exception, userConfig.GetText(EditConnection), "", true);
             }
         }
 
@@ -1602,7 +1605,7 @@ namespace FWO.Services
             }
             catch (Exception exception)
             {
-                DisplayMessageInUi(exception, userConfig.GetText("edit_connection"), "", true);
+                DisplayMessageInUi(exception, userConfig.GetText(EditConnection), "", true);
             }
         }
 
@@ -1627,7 +1630,7 @@ namespace FWO.Services
             }
             catch (Exception exception)
             {
-                DisplayMessageInUi(exception, userConfig.GetText("edit_connection"), "", true);
+                DisplayMessageInUi(exception, userConfig.GetText(EditConnection), "", true);
             }
         }
 
@@ -1652,7 +1655,7 @@ namespace FWO.Services
             }
             catch (Exception exception)
             {
-                DisplayMessageInUi(exception, userConfig.GetText("edit_connection"), "", true);
+                DisplayMessageInUi(exception, userConfig.GetText(EditConnection), "", true);
             }
         }
 

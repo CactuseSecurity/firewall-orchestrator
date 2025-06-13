@@ -1,5 +1,6 @@
 ﻿using FWO.Api.Client;
 using FWO.Basics;
+using FWO.Basics.Exceptions;
 using FWO.Config.Api;
 using FWO.Data.Report;
 using FWO.Logging;
@@ -92,10 +93,10 @@ namespace FWO.Report
 
         public readonly DynGraphqlQuery Query;
         protected UserConfig userConfig;
-        public ReportType ReportType;
-        public ReportData ReportData = new();
-        public int CustomWidth = 0;
-        public int CustomHeight = 0;
+        public ReportType ReportType { get; set; }
+        public ReportData ReportData { get; set; } = new();
+        public int CustomWidth { get; set; } = 0;
+        public int CustomHeight { get; set; } = 0;
 
         protected string htmlExport = "";
 
@@ -277,7 +278,7 @@ namespace FWO.Report
 
             if (installedBrowser == null)
             {
-                throw new Exception($"Browser {wantedBrowser} is not installed!");
+                throw new EnvironmentException($"Browser {wantedBrowser} is not installed!");
             }
 
             using IBrowser? browser = await Puppeteer.LaunchAsync(new LaunchOptions

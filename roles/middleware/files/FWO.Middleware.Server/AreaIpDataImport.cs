@@ -15,54 +15,69 @@ namespace FWO.Middleware.Server
     public class AreaIpDataImport(ApiConnection apiConnection, GlobalConfig globalConfig) : DataImportBase(apiConnection, globalConfig)
     {
         private List<ModellingNetworkArea> existingAreas = [];
+        private const string LogMessageTitle = "Import Area IP Data";
+        private const string LevelFile = "Import File";
+        private const string LevelArea = "Area";
 
         /// <summary>
         /// Run the Area IP Data Import
         /// </summary>
-        public async Task<bool> Run()
+        public async Task<List<string>> Run()
         {
-            List<string> importfilePathAndNames = JsonSerializer.Deserialize<List<string>>(globalConfig.ImportSubnetDataPath) ?? throw new Exception("Config Data could not be deserialized.");
-
+            List<string> importfilePathAndNames = JsonSerializer.Deserialize<List<string>>(globalConfig.ImportSubnetDataPath) ?? throw new JsonException("Config Data could not be deserialized.");
             List<ModellingImportNwData> AllNwData = [];
+            List<string> FailedImports = [];
 
             // iterate over all files
             foreach (var importfilePathAndName in importfilePathAndNames)
             {
-                if (!RunImportScript(importfilePathAndName + ".py"))
-                {
-                    Log.WriteInfo("Import Area Network Data", $"Script {importfilePathAndName}.py failed but trying to import from existing file.");
-                }
-
-                try
-                {
-                    Log.WriteInfo("Importing Area Network Data from file ", $"{importfilePathAndName}.json");
-                    ReadFile(importfilePathAndName + ".json");
-                    ModellingImportNwData? nwData = Import();
-
-                    if (nwData != null)
-                    {
-                        AllNwData.Add(ConvertNwDataToRanges(nwData));
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Log.WriteError("Import Network Data", $"Import could not be processed.", ex);
-                }
+                await ImportSingleFile(importfilePathAndName, AllNwData, FailedImports);
             }
 
             // merge all data into a single list of areas
             ModellingImportNwData mergedNwData = MergeNetworkData(AllNwData);
 
-            if (mergedNwData != null)
+            if (mergedNwData.Areas.Count > 0)
             {
                 await SaveMergedNwData(mergedNwData);
             }
             else
             {
-                Log.WriteInfo("Import Area Network Data", $"No valid network data found in any of the following import files {importfilePathAndNames}. No changes were made.");
+                string messageText = $"No valid network data found in any of the following import files {string.Join(", ", importfilePathAndNames)}. No changes were made.";
+                Log.WriteInfo(LogMessageTitle, messageText);
+                await AddLogEntry(2, LevelFile, messageText);
+            }
+            return FailedImports;
+        }
+
+        private async Task ImportSingleFile(string importfilePathAndName, List<ModellingImportNwData> allNwData, List<string> failedImports)
+        {
+            if (!RunImportScript(importfilePathAndName + ".py"))
+            {
+                Log.WriteInfo(LogMessageTitle, $"Script {importfilePathAndName}.py failed but trying to import from existing file.");
             }
 
-            return true;
+            try
+            {
+                Log.WriteInfo(LogMessageTitle, $"Importing Area Network Data from file {importfilePathAndName}.json");
+                ReadFile(importfilePathAndName + ".json");
+                ModellingImportNwData nwData = JsonSerializer.Deserialize<ModellingImportNwData>(importFile) ?? throw new JsonException("File could not be parsed.");
+                if (nwData.Areas.Count > 0)
+                {
+                    allNwData.Add(ConvertNwDataToRanges(nwData));
+                }
+                else
+                {
+                    Log.WriteInfo(LogMessageTitle, $"Nothing found to import in file {importfilePathAndName}.json");
+                }
+            }
+            catch (Exception ex)
+            {
+                string errorText = $"Import from file {importfilePathAndName}.json could not be processed.";
+                Log.WriteError(LogMessageTitle, errorText, ex);
+                await AddLogEntry(2, LevelFile, errorText);
+                failedImports.Add(importfilePathAndName);
+            }
         }
 
         private async Task SaveMergedNwData(ModellingImportNwData mergedNwData)
@@ -100,7 +115,9 @@ namespace FWO.Middleware.Server
                 }
             }
 
-            Log.WriteInfo("Import Area IP Data", $"Imported {successCounter} areas successfully, {failCounter} areas failed. Deleted {deleteCounter} areas, {deleteFailCounter} failed.");
+            string messageText = $"Imported {successCounter} areas successfully, {failCounter} areas failed. Deleted {deleteCounter} areas, {deleteFailCounter} failed.";
+            Log.WriteInfo(LogMessageTitle, messageText);
+            await AddLogEntry(0, LevelFile, messageText);
         }
 
         private static ModellingImportNwData ConvertNwDataToRanges(ModellingImportNwData nwData)
@@ -185,21 +202,6 @@ namespace FWO.Middleware.Server
             return mergedNwData;
         }
 
-        private ModellingImportNwData? Import()
-        {
-            try
-            {
-                ModellingImportNwData? importedNwData = JsonSerializer.Deserialize<ModellingImportNwData>(importFile) ?? throw new Exception("File could not be parsed.");
-
-                return importedNwData;
-            }
-            catch (Exception exc)
-            {
-                Log.WriteError("Import Area IP Data", $"File could not be processed.", exc);
-                return null;
-            }
-        }
-
         private async Task<bool> SaveArea(ModellingImportAreaData incomingArea)
         {
             try
@@ -216,7 +218,9 @@ namespace FWO.Middleware.Server
             }
             catch (Exception exc)
             {
-                Log.WriteError("Import Area IP Data", $"Area {incomingArea.Name}({incomingArea.IdString}) could not be processed.", exc);
+                string errorText = $"Area {incomingArea.Name}({incomingArea.IdString}) could not be processed.";
+                Log.WriteError(LogMessageTitle, errorText, exc);
+                await AddLogEntry(1, LevelArea, errorText);
                 return false;
             }
             return true;
@@ -314,7 +318,9 @@ namespace FWO.Middleware.Server
             }
             catch (Exception exc)
             {
-                Log.WriteError("Import Area IP Data", $"Outdated Area {area.Name} could not be deleted.", exc);
+                string errorText = $"Outdated Area {area.Name} could not be deleted.";
+                Log.WriteError(LogMessageTitle, errorText, exc);
+                await AddLogEntry(1, LevelArea, errorText);
                 return false;
             }
             return true;
@@ -328,7 +334,33 @@ namespace FWO.Middleware.Server
             }
             catch (Exception exc)
             {
-                Log.WriteError("Reactivate Area", $"Area {area.Name}({area.IdString}) could not be reactivated.", exc);
+                string errorText = $"Area {area.Name}({area.IdString}) could not be reactivated.";
+                Log.WriteError(LogMessageTitle, errorText, exc);
+                await AddLogEntry(1, LevelArea, errorText);
+            }
+        }
+        
+        private async Task AddLogEntry(int severity, string level, string description)
+        {
+            try
+            {
+                var Variables = new
+                {
+                    user = 0,
+                    source = GlobalConst.kImportAreaSubnetData,
+                    severity = severity,
+                    suspectedCause = level,
+                    description = description
+                };
+                ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(MonitorQueries.addDataImportLogEntry, Variables)).ReturnIds;
+                if (returnIds == null)
+                {
+                    Log.WriteError("Write Log", "Log could not be written to database");
+                }
+            }
+            catch (Exception exc)
+            {
+                Log.WriteError("Write Log", $"Could not write log: ", exc);
             }
         }
     }

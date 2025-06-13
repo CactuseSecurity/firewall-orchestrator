@@ -1,14 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace FWO.Report.Filter.Exceptions
+﻿namespace FWO.Report.Filter.Exceptions
 {
-    public class SemanticException : FilterException
+    public class SemanticException(string message, Range errorPosition) : FilterException(message, errorPosition)
     {
-        public SemanticException(string message, Range errorPosition) : base(message, errorPosition)
-        {
-
-        }
     }
 }

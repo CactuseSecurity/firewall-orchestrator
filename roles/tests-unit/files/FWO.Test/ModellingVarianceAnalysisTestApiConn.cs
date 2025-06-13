@@ -20,41 +20,51 @@ namespace FWO.Test
         static readonly ModellingAppServer AppServer2 = new() { Id = 14, Name = "AppServerNew1_32", Ip = "1.1.1.1/32", IpEnd = "1.1.1.1/32" };
         static readonly ModellingAppServer AppServer3 = new() { Id = 15, Name = "AppServerNew2", Ip = "2.2.2.2/32", IpEnd = "2.2.2.2/32" };
         static readonly NetworkObject AZProd = new() { Id = 3, Name = "AZ4711", Type = new() { Name = ObjectType.Group }, ObjectGroupFlats = [new() { Object = NwObj1 }, new() { Object = NwObj2 }] };
-        static readonly ModellingAppZone AZExist = new() { Id = 3, Name = "AZ4711", IdString = "AZ4711", AppServers = new() { new() { Content = AppServer1 }, new() { Content = AppServer2 } } };
+        static readonly ModellingAppZone AZExist = new() { Id = 3, Name = "AZ4711", IdString = "AZ4711", AppServers = [new() { Content = AppServer1 }, new() { Content = AppServer2 }] };
         static readonly NetworkService Svc1 = new() { Id = 1, DestinationPort = 1000, DestinationPortEnd = 2000, Name = "Service1", ProtoId = 6 };
         static readonly NetworkService Svc2 = new() { Id = 2, DestinationPort = 990, DestinationPortEnd = 1998, Name = "Service1", ProtoId = 6 };
-        static readonly Rule Rule1 = new() 
+        static readonly Rule Rule1 = new()
         {
-            Name = "FWOC1" ,
+            Name = "FWOC1",
+            MgmtId = 1,
             Froms = [ new(new(), NwObj2) ],
             Tos = [ new(new(), Nwgroup1) ],
             Services = [ new(){ Content = Svc1 } ]
         };
-        static readonly Rule Rule2 = new() 
+        static readonly Rule Rule2 = new()
         {
             Name = "xxxFWOC2yyy",
+            MgmtId = 1,
             Froms = [ new(new(), NwObj1) ],
             Tos = [ new(new(), Nwgroup3) ],
             Services = [ new(){ Content = Svc1 } ]
         };
-        static readonly Rule Rule3 = new() { Name = "NonModelledRule", Comment = "XXX3" };
-        static readonly Rule Rule4 = new() 
+        static readonly Rule Rule3 = new()
+        {
+            Name = "NonModelledRule",
+            Comment = "XXX3",
+            Froms = [ new(new(), NwObj1) ]
+        };
+        static readonly Rule Rule4 = new()
         {
             Name = "FWOC4",
+            MgmtId = 1,
             Froms = [ new(new(), SpecObj1), new(new(), Nwgroup1) ],
             Tos = [ new(new(), SpecObj2) ],
             Services = [ new(){ Content = Svc1 } ]
         };
-        static readonly Rule Rule5 = new() 
+        static readonly Rule Rule5 = new()
         {
-            Name = "FWOC1again" ,
+            Name = "FWOC1again",
+            MgmtId = 1,
             Froms = [ new(new(), NwObj2) ],
             Tos = [ new(new(), Nwgroup1) ],
             Services = [ new(){ Content = Svc2 } ]
         };
-        static readonly Rule Rule6 = new() 
+        static readonly Rule Rule6 = new()
         {
             Name = "FWOC5",
+            MgmtId = 1,
             Froms = [ new(new(), SpecObj1), new(new(), Nwgroup1) ],
             Tos = [ new(new(), SpecObj2) ],
             Services = [ new(){ Content = Svc1 } ]
@@ -123,11 +133,16 @@ namespace FWO.Test
                 GraphQLResponse<dynamic> response = new() { Data = new List<Rule>() { new(Rule1), new(Rule2), new(Rule3), new(Rule4), new(Rule5), new(Rule6) } };
                 return response.Data;
             }
+            else if (responseType == typeof(List<ModellingConnection>))
+            {
+                GraphQLResponse<dynamic> response = new() { Data = new List<ModellingConnection>() { new(){ Id = 2 } ,new(){ Id = 4 }} };
+                return response.Data;
+            }
             else if (responseType == typeof(ReturnId) && query == ModellingQueries.updateConnectionProperties)
             {
                 if(variables != null)
                 {
-                    List<int> connIds = [1,2,3,4,5];
+                    List<int> connIds = [1,2,3,4,5,6];
                     var connId = variables.GetType().GetProperties().First(o => o.Name == "id").GetValue(variables, null);
                     if(connId != null && connIds.Contains((int)connId))
                     {

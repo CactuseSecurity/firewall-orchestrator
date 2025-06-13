@@ -1,10 +1,8 @@
-﻿using System.Net;
-using RestSharp;
-using FWO.Basics;
+﻿using FWO.Api.Client;
 using FWO.Data;
-using FWO.Api.Client;
 using FWO.Logging;
-using FWO.Rest.Client;
+using RestSharp;
+using System.Net;
 
 namespace FWO.DeviceAutoDiscovery
 {

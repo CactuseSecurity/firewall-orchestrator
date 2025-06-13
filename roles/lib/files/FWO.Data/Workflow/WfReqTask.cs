@@ -132,7 +132,8 @@ namespace FWO.Data.Workflow
                     {
                         ElemId = reqElem.Id,
                         TaskId = reqElem.TaskId,
-                        RuleUid = reqElem.RuleUid ?? ""
+                        RuleUid = reqElem.RuleUid ?? "",
+                        Name = reqElem.Name
                     });
                 }
             }
@@ -143,7 +144,7 @@ namespace FWO.Data.Workflow
         {
             if(Comments.Count > 0)
             {
-                return Comments.First().Comment.CommentText;
+                return Comments[0].Comment.CommentText;
             }
             return "";
         }

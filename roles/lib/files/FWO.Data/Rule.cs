@@ -99,6 +99,7 @@ namespace FWO.Data
         public NetworkService[] DisregardedServices { get; set; } = [];
         public bool ShowDisregarded { get; set; } = false;
         public long ConnId;
+        public bool ModellFound = false;
         public bool ModellOk = false;
         public bool Detailed = false;
         public List<string> UnusedSpecialUserObjects = [];
@@ -145,6 +146,7 @@ namespace FWO.Data
             DisregardedServices = rule.DisregardedServices;
             ShowDisregarded = rule.ShowDisregarded;
             ConnId = rule.ConnId;
+            ModellFound = rule.ModellFound;
             ModellOk = rule.ModellOk;
             Detailed = rule.Detailed;
             UnusedSpecialUserObjects = rule.UnusedSpecialUserObjects;

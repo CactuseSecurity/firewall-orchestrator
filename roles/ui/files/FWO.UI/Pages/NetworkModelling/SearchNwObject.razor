@@ -158,7 +158,7 @@
                     };
                     await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.addSelectedNwGroupObject, Variables);
                 }
-                ObjectList.Add(new ModellingNwGroupWrapper(){ Content = selectedObject ?? throw new Exception("No Object selected.") });
+                ObjectList.Add(new ModellingNwGroupWrapper(){ Content = selectedObject ?? throw new ArgumentException("No Object selected.") });
                 await ObjectListChanged.InvokeAsync(ObjectList);
                 Add(selectedObject);
                 Refresh();

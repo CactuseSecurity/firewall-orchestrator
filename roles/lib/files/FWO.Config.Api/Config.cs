@@ -86,8 +86,8 @@ namespace FWO.Config.Api
                             remainingConfigItemNames.Remove(configItem.Key);
                             TypeConverter converter = TypeDescriptor.GetConverter(property.PropertyType);
                             property.SetValue(this, converter.ConvertFromString(configItem.Value
-                                ?? throw new Exception($"Config value (with key: {configItem.Key}) is null."))
-                                ?? throw new Exception($"Config value (with key: {configItem.Key}) is not convertible to {property.GetType()}."));
+                                ?? throw new ArgumentNullException($"Config value (with key: {configItem.Key}) is null."))
+                                ?? throw new ArgumentException($"Config value (with key: {configItem.Key}) is not convertible to {property.GetType()}."));
                         }
                         catch (Exception exception)
                         {
@@ -122,8 +122,8 @@ namespace FWO.Config.Api
                             {
                                 TypeConverter converter = TypeDescriptor.GetConverter(property.GetType());
                                 string stringValue = converter.ConvertToString(property.GetValue(editedData)
-                                                ?? throw new Exception($"Config value (with key: {key}) is null"))
-                                                ?? throw new Exception($"Config value (with key: {key}) is not convertible to {property.GetType()}.");
+                                                ?? throw new ArgumentNullException($"Config value (with key: {key}) is null"))
+                                                ?? throw new ArgumentException($"Config value (with key: {key}) is not convertible to {property.GetType()}.");
                                 // Add config item to the list of changed config items
                                 configItemChanges.Add(new ConfigItem { Key = key, Value = stringValue, User = UserId });
                             }

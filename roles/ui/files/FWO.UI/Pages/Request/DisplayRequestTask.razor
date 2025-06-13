@@ -1,6 +1,8 @@
-@using FWO.Ui.Services
-@using FWO.Ui.Pages.NetworkModelling
 @using FWO.Ui.Display
+@using FWO.Ui.Pages.NetworkModelling
+@using FWO.Ui.Services
+@using System.Text.Json
+
 
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Requester}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}, {Roles.Auditor}, {Roles.FwAdmin}")]
 
@@ -78,7 +80,7 @@
                         </div>
                     </div>
 
-                    @if(actTaskType == WfTaskType.access || actTaskType == WfTaskType.group_create)
+                    @if(actTaskType == WfTaskType.access || actTaskType == WfTaskType.rule_modify || actTaskType == WfTaskType.rule_delete || actTaskType == WfTaskType.group_create)
                     {
                         <div class="col-sm-3">
                             <div class="form-group row">
@@ -105,7 +107,7 @@
                     {
                         <div class="col-sm-3">
                             <div class="form-group row">
-                                <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("gateway"))*:</label>
+                                <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("gateway"))@(actTaskType == WfTaskType.rule_modify || actTaskType == WfTaskType.rule_delete ? "*" : ""):</label>
                                 <div class="col-sm-8">
                                     @if (WfHandler.EditReqTaskMode)
                                     {
@@ -123,7 +125,7 @@
                             </div>
                         </div>
                     }
-                    else if(actTaskType == WfTaskType.rule_delete)
+                    else if(actTaskType == WfTaskType.rule_delete || actTaskType == WfTaskType.rule_modify)
                     {
                         <div class="col-sm-3">
                             <div class="form-group row">
@@ -284,7 +286,7 @@
                     </div>
                 </div>
 
-                @if(actTaskType == WfTaskType.access)
+                @if(actTaskType == WfTaskType.access || actTaskType == WfTaskType.rule_modify)
                 {
                     <DisplayAccessElements Sources="actSources" @bind-SourcesToAdd="sourcesToAdd" @bind-SourcesToDelete="sourcesToDelete"
                     Destinations="actDestinations" @bind-DestinationsToAdd="destinationsToAdd" @bind-DestinationsToDelete="destinationsToDelete"
@@ -504,7 +506,7 @@
     {
         try
         {
-            availableTaskTypes = System.Text.Json.JsonSerializer.Deserialize<List<WfTaskType>>(userConfig.ReqAvailableTaskTypes) ?? throw new Exception("Config data could not be parsed.");
+            availableTaskTypes = System.Text.Json.JsonSerializer.Deserialize<List<WfTaskType>>(userConfig.ReqAvailableTaskTypes) ?? throw new JsonException("Config data could not be parsed.");
             actTaskType = availableTaskTypes.Count > 0 ? availableTaskTypes.Last() : WfTaskType.access;
             ruleActions = await apiConnection.SendQueryAsync<List<RuleAction>>(StmQueries.getRuleActions);
             trackings = await apiConnection.SendQueryAsync<List<Tracking>>(StmQueries.getTracking);

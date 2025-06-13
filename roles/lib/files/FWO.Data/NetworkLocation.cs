@@ -6,10 +6,10 @@ namespace FWO.Data
     public class NetworkLocation : IComparable
     {
         [JsonProperty("object"), JsonPropertyName("object")]
-        public NetworkObject Object { get; set; } = new NetworkObject() { };
+        public NetworkObject Object { get; set; }
 
         [JsonProperty("usr"), JsonPropertyName("usr")]
-        public NetworkUser User { get; set; } = new NetworkUser() { };
+        public NetworkUser User { get; set; }
 
         public NetworkLocation(NetworkUser user, NetworkObject network)
         {
@@ -17,11 +17,11 @@ namespace FWO.Data
             Object = network;
         }
 
-        int IComparable.CompareTo(object? secondObject)
+        int IComparable.CompareTo(object? obj)
         {
-            if (secondObject != null && secondObject is NetworkLocation)
+            if (obj is NetworkLocation)
             {
-                NetworkLocation secondNetworkLocation = (secondObject as NetworkLocation)!;
+                NetworkLocation secondNetworkLocation = (obj as NetworkLocation)!;
                 if (this.User != null && secondNetworkLocation.User != null)
                 {
                     if (this.User?.Name.CompareTo(secondNetworkLocation.User?.Name) != 0)
@@ -36,7 +36,7 @@ namespace FWO.Data
             }
             else
             {
-                throw new Exception("Uncomparable");
+                throw new ArgumentException("Uncomparable");
             }
         }
     }

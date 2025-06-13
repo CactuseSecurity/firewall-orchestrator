@@ -73,15 +73,15 @@ namespace FWO.Ui.Services
 
         private async Task PrepareConnections(List<ModellingConnection> connections)
         {
-            if(userConfig.VarianceAnalysisSync)
-            {
-                await AnalyseStatus(connections);
-             }
-
             foreach(var conn in connections)
             {
                 await ExtractUsedInterface(conn);
                 conn.SyncState(dummyAppRoleId);
+            }
+
+            if(userConfig.VarianceAnalysisSync)
+            {
+                await AnalyseStatus(connections);
             }
         }
 
@@ -166,13 +166,7 @@ namespace FWO.Ui.Services
 
         public List<ModellingConnection> GetConnectionsToRequest()
         {
-            return [.. Connections.Where(x => !(x.IsInterface ||
-                x.GetBoolProperty(ConState.InterfaceRequested.ToString()) ||
-                x.GetBoolProperty(ConState.InterfaceRejected.ToString()) || 
-                x.EmptyAppRolesFound(dummyAppRoleId) ||
-                x.DeletedObjectsFound() ||
-                x.EmptyServiceGroupsFound()
-                )).OrderByDescending(y => y.IsCommonService)];
+            return [.. Connections.Where(x => x.IsRelevantForVarianceAnalysis(dummyAppRoleId)).OrderByDescending(y => y.IsCommonService)];
         }
 
         public async Task AddConnection()

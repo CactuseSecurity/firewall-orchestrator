@@ -19,6 +19,8 @@ namespace FWO.Api.Client.Queries
         public static readonly string addAutodiscoveryLogEntry;
         public static readonly string getAutodiscoveryLogEntrys;
         public static readonly string getDailyCheckLogEntrys;
+        public static readonly string addDataImportLogEntry;
+        public static readonly string getDataImportLogEntrys;
         public static readonly string getImportStatus;
         public static readonly string getOwnerTickets;
 
@@ -48,6 +50,8 @@ namespace FWO.Api.Client.Queries
                 addAutodiscoveryLogEntry = File.ReadAllText(QueryPath + "monitor/addAutodiscoveryLogEntry.graphql");
                 getAutodiscoveryLogEntrys = File.ReadAllText(QueryPath + "monitor/getAutodiscoveryLogEntrys.graphql");
                 getDailyCheckLogEntrys = File.ReadAllText(QueryPath + "monitor/getDailyCheckLogEntrys.graphql");
+                addDataImportLogEntry = File.ReadAllText(QueryPath + "monitor/addDataImportLogEntry.graphql");
+                getDataImportLogEntrys = File.ReadAllText(QueryPath + "monitor/getDataImportLogEntrys.graphql");
 
                 getOwnerTickets = RequestQueries.ticketOverviewFragment + File.ReadAllText(QueryPath + "monitor/getOwnerTickets.graphql");
             }

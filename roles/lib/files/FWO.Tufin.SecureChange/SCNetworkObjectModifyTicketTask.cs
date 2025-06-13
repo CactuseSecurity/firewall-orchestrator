@@ -6,7 +6,7 @@ namespace FWO.Tufin.SecureChange
 {
 	public class SCNetworkObjectModifyTicketTask : SCTicketTask
 	{
-		private string ChangeAction;
+		private readonly string ChangeAction;
 		public SCNetworkObjectModifyTicketTask(WfReqTask reqTask, string changeAction, List<IpProtocol> ipProtos, ModellingNamingConvention? namingConvention) : base(reqTask, ipProtos, namingConvention)
 		{
 			ChangeAction = changeAction;

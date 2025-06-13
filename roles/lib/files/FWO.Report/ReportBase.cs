@@ -1,5 +1,6 @@
 ﻿using FWO.Api.Client;
 using FWO.Basics;
+using FWO.Basics.Exceptions;
 using FWO.Config.Api;
 using FWO.Data.Report;
 using FWO.Logging;
@@ -92,10 +93,10 @@ namespace FWO.Report
 
         public readonly DynGraphqlQuery Query;
         protected UserConfig userConfig;
-        public ReportType ReportType;
-        public ReportData ReportData = new();
-        public int CustomWidth = 0;
-        public int CustomHeight = 0;
+        public ReportType ReportType { get; set; }
+        public ReportData ReportData { get; set; } = new();
+        public int CustomWidth { get; set; } = 0;
+        public int CustomHeight { get; set; } = 0;
 
         protected string htmlExport = "";
 
@@ -277,7 +278,7 @@ namespace FWO.Report
 
             if (installedBrowser == null)
             {
-                throw new Exception($"Browser {wantedBrowser} is not installed!");
+                throw new EnvironmentException($"Browser {wantedBrowser} is not installed!");
             }
 
             using IBrowser? browser = await Puppeteer.LaunchAsync(new LaunchOptions
@@ -291,7 +292,7 @@ namespace FWO.Report
                 using IPage page = await browser.NewPageAsync();
                 await page.SetContentAsync(html);
 
-                PuppeteerSharp.Media.PaperFormat? pupformat = GetPuppeteerPaperFormat(format) ?? throw new Exception();
+                PuppeteerSharp.Media.PaperFormat? pupformat = GetPuppeteerPaperFormat(format) ?? throw new KeyNotFoundException();
 
                 PdfOptions pdfOptions = new() { Outline = true, DisplayHeaderFooter = false, Landscape = true, PrintBackground = true, Format = pupformat, MarginOptions = new MarginOptions { Top = "1cm", Bottom = "1cm", Left = "1cm", Right = "1cm" } };
                 byte[]? pdfData = await page.PdfDataAsync(pdfOptions);
@@ -300,7 +301,7 @@ namespace FWO.Report
             }
             catch (Exception)
             {
-                throw new Exception("This paper kind is currently not supported. Please choose another one or \"Custom\" for a custom size.");
+                throw new NotSupportedException("This paper kind is currently not supported. Please choose another one or \"Custom\" for a custom size.");
             }
             finally
             {

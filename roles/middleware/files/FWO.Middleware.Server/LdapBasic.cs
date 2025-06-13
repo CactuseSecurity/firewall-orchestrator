@@ -1,3 +1,4 @@
+using FWO.Basics.Exceptions;
 using FWO.Data;
 using FWO.Data.Middleware;
 using FWO.Encryption;
@@ -48,7 +49,7 @@ namespace FWO.Middleware.Server
 			catch (Exception exception)
 			{
 				Log.WriteDebug($"Could not connect to LDAP server {Address}:{Port}: ", exception.Message);
-				throw new Exception($"Error while trying to reach LDAP server {Address}:{Port}", exception);
+				throw new LdapConnectionException($"Error while trying to reach LDAP server {Address}:{Port}", exception);
 			}
 		}
 
@@ -87,13 +88,13 @@ namespace FWO.Middleware.Server
 		public async Task TestConnection()
 		{
             using LdapConnection connection = await Connect();
-            if (!string.IsNullOrEmpty(SearchUser) && !string.IsNullOrEmpty(SearchUserPwd))
+            if (!string.IsNullOrEmpty(SearchUser) && !string.IsNullOrEmpty(SearchUserPwd) && !await TryBind(connection, SearchUser, SearchUserPwd!))
             {
-                if (!await TryBind(connection, SearchUser, SearchUserPwd!)) throw new Exception("Binding failed for search user");
+				throw new LdapConnectionException("Binding failed for search user");
             }
-            if (!string.IsNullOrEmpty(WriteUser) && !string.IsNullOrEmpty(WriteUserPwd))
+            if (!string.IsNullOrEmpty(WriteUser) && !string.IsNullOrEmpty(WriteUserPwd) && !await TryBind(connection, WriteUser, WriteUserPwd!))
             {
-                if (!await TryBind(connection, WriteUser, WriteUserPwd!)) throw new Exception("Binding failed for write user");
+                throw new LdapConnectionException("Binding failed for write user");
             }
         }
 
@@ -171,33 +172,17 @@ namespace FWO.Middleware.Server
                 }
                 else // Dn was not provided, search for user name
                 {
-                    string[] attrList = ["*", "memberof"];
-                    string userSearchFilter = GetUserSearchFilter(user.Name);
-
-                    // Search for users in ldap with same name as user to validate
-                    ILdapSearchResults? searchResults = await connection.SearchAsync(
-                        UserSearchPath,             // top-level path under which to search for user
-                        LdapConnection.ScopeSub,    // search all levels beneath
-                        userSearchFilter,
-                        attrList,
-                        typesOnly: false
-                    );
-
-                    while (await searchResults.HasMoreAsync())
-                    {
-                        LdapEntry? result = await searchResults.NextAsync();
-                        possibleUserEntries.Add(result);
-                    }
+					await SearchUserName(user.Name, possibleUserEntries, connection);
                 }
 
                 // If credentials are not checked return user that was found first
                 // It could happen that multiple users with the same name were found (impossible if dn was provided)
-                if (!validateCredentials && possibleUserEntries.Count > 0)
+                if (!validateCredentials)
                 {
-                    return possibleUserEntries.First();
+                	return possibleUserEntries.Count > 0 ? possibleUserEntries[0] : null;
                 }
                 // If credentials should be checked
-                else if (validateCredentials)
+                else
                 {
                     // Multiple users with the same name could have been found (impossible if dn was provided)
                     foreach (LdapEntry possibleUserEntry in possibleUserEntries)
@@ -221,6 +206,27 @@ namespace FWO.Middleware.Server
 
 			Log.WriteDebug("Invalid Credentials", $"Invalid login credentials - could not authenticate user \"{user.Name}\" on {Address}:{Port}.");
 			return null;
+		}
+
+		private async Task SearchUserName(string userName, List<LdapEntry> possibleUserEntries, LdapConnection connection)
+		{
+	        string[] attrList = ["*", "memberof"];
+            string userSearchFilter = GetUserSearchFilter(userName);
+
+            // Search for users in ldap with same name as user to validate
+            ILdapSearchResults? searchResults = await connection.SearchAsync(
+                UserSearchPath,             // top-level path under which to search for user
+                LdapConnection.ScopeSub,    // search all levels beneath
+                userSearchFilter,
+                attrList,
+                typesOnly: false
+            );
+
+            while (await searchResults.HasMoreAsync())
+            {
+                LdapEntry? result = await searchResults.NextAsync();
+                possibleUserEntries.Add(result);
+            }
 		}
 
 		/// <summary>
@@ -286,7 +292,7 @@ namespace FWO.Middleware.Server
 		/// Get the EmailAddress for the given user
 		/// </summary>
 		/// <returns>EmailAddress of the given user</returns>
-		public string GetEmail(LdapEntry user)
+		public static string GetEmail(LdapEntry user)
 		{
 			return user.GetAttributeSet().ContainsKey("mail") ? user.Get("mail").StringValue : "";
 		}
@@ -295,7 +301,7 @@ namespace FWO.Middleware.Server
 		/// Get the first name for the given user
 		/// </summary>
 		/// <returns>first name of the given user</returns>
-		public string GetFirstName(LdapEntry user)
+		public static string GetFirstName(LdapEntry user)
 		{
 			return user.GetAttributeSet().ContainsKey("givenName") ? user.Get("givenName").StringValue : "";
 		}
@@ -304,7 +310,7 @@ namespace FWO.Middleware.Server
 		/// Get the last name for the given user
 		/// </summary>
 		/// <returns>last name of the given user</returns>
-		public string GetLastName(LdapEntry user)
+		public static string GetLastName(LdapEntry user)
 		{
 			return user.GetAttributeSet().ContainsKey("sn") ? user.Get("sn").StringValue : "";
 		}
@@ -313,7 +319,7 @@ namespace FWO.Middleware.Server
 		/// Get the user name for the given user
 		/// </summary>
 		/// <returns>username of the given user</returns>
-		public string GetName(LdapEntry user)
+		public static string GetName(LdapEntry user)
 		{
 			// active directory:
 			if (user.GetAttributeSet().ContainsKey("sAMAccountName"))
@@ -583,7 +589,7 @@ namespace FWO.Middleware.Server
 			return userDeleted;
 		}
 
-		private bool IsFullyQualifiedDn(string name)
+		private static bool IsFullyQualifiedDn(string name)
 		{
 			name = name.ToLower();
 			return name.Contains(',') && (name.StartsWith("cn=") || name.StartsWith("uid="));
@@ -661,6 +667,5 @@ namespace FWO.Middleware.Server
 			}
 			return userModified;
 		}
-
     }
 }

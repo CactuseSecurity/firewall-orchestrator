@@ -119,7 +119,7 @@
                     };
 
                     await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.addSelectedConnection, Variables);
-                    PreselectedInterfaces.Add(@interface ?? throw new Exception("No Interface selected."));
+                    PreselectedInterfaces.Add(@interface ?? throw new ArgumentException("No Interface selected."));
                 }
 
                 RefreshSelectionList();

@@ -1,4 +1,6 @@
 ﻿using FWO.Api.Client;
+using GraphQL;
+using GraphQL.Client.Http;
 
 namespace FWO.Test
 {
@@ -34,5 +36,15 @@ namespace FWO.Test
 
         public override void DisposeSubscriptions<T>()
         {}
+    }
+
+    internal class SimulatedApiSubscription<SubscriptionResponseType> : GraphQlApiSubscription<SubscriptionResponseType>
+    {
+        public SimulatedApiSubscription(ApiConnection apiConnection, GraphQLHttpClient graphQlClient, GraphQLRequest request, Action<Exception> exceptionHandler, SubscriptionUpdate OnUpdate)
+         : base(apiConnection, graphQlClient, request, exceptionHandler, OnUpdate)
+        { }
+        
+        protected override void CreateSubscription()
+        { }
     }
 }

@@ -1,34 +1,17 @@
+using FWO.Api.Client;
+using FWO.Data;
+using FWO.Logging;
+using Newtonsoft.Json;
 using RestSharp;
 using System.Text.Json;
-using FWO.Basics;
-using FWO.Data;
 using System.Text.Json.Serialization;
-using Newtonsoft.Json;
-using FWO.Logging;
-using RestSharp.Serializers.NewtonsoftJson;
-using System.Text.Encodings.Web;
-using System.Text;
-using RestSharp.Serializers;
 
-namespace FWO.Rest.Client
+namespace FWO.DeviceAutoDiscovery
 {
-    public class CheckPointClient
+    public class CheckPointClient : RestApiClient
     {
-        readonly RestClient restClient;
-
-        public CheckPointClient(Management manager)
-        {
-            RestClientOptions restClientOptions = new RestClientOptions();
-            restClientOptions.RemoteCertificateValidationCallback += (_, _, _, _) => true;
-            restClientOptions.BaseUrl = new Uri("https://" + manager.Hostname + ":" + manager.Port + "/web_api/");
-            restClient = new RestClient(restClientOptions, null, ConfigureRestClientSerialization);
-        }
-
-        private void ConfigureRestClientSerialization(SerializerConfig config)
-        {
-            JsonNetSerializer serializer = new JsonNetSerializer(); // Case insensivitive is enabled by default
-            config.UseSerializer(() => serializer);
-        } 
+        public CheckPointClient(Management manager) : base("https://" + manager.Hostname + ":" + manager.Port + "/web_api/")
+        { }
 
         public async Task<RestResponse<CpSessionAuthInfo>> AuthenticateUser(string? user, string? pwd, string? domain)
         {
@@ -41,12 +24,12 @@ namespace FWO.Rest.Client
                 pwd = "";
             if (domain == null)
                 domain = "";
-            Dictionary<string, string> body = new Dictionary<string, string>();
+            Dictionary<string, string> body = [];
             body.Add("user", user);
             body.Add("password", pwd);
             if (domain != "")
                 body.Add("domain", domain);
-            RestRequest request = new RestRequest("login", Method.Post);
+            RestRequest request = new("login", Method.Post);
             request.AddJsonBody(body);
             request.AddHeader("Content-Type", "application/json");
             return await restClient.ExecuteAsync<CpSessionAuthInfo>(request);
@@ -54,7 +37,7 @@ namespace FWO.Rest.Client
 
         public async Task<RestResponse<CpSessionAuthInfo>> DeAuthenticateUser(string session)
         {
-            RestRequest request = new RestRequest("logout", Method.Post);
+            RestRequest request = new("logout", Method.Post);
             request.AddHeader("Content-Type", "application/json");
             request.AddHeader("X-chkp-sid", session);
             request.AddJsonBody(new { });
@@ -63,7 +46,7 @@ namespace FWO.Rest.Client
 
         public async Task<RestResponse<CpDomainHelper>> GetDomains(string session)
         {
-            RestRequest request = new RestRequest("show-domains", Method.Post);
+            RestRequest request = new("show-domains", Method.Post);
             request.AddHeader("X-chkp-sid", session);
             request.AddHeader("Content-Type", "application/json");
             Dictionary<string, string> body = new Dictionary<string, string>();
@@ -85,10 +68,10 @@ namespace FWO.Rest.Client
         public async Task<List<CpDevice>> GetGateways(string session, string ManagementType)
         // session id pins this session to a specific domain (if domain was given during login) 
         {
-            RestRequest request = new RestRequest("show-gateways-and-servers", Method.Post);
+            RestRequest request = new("show-gateways-and-servers", Method.Post);
             request.AddHeader("X-chkp-sid", session);
             request.AddHeader("Content-Type", "application/json");
-            Dictionary<string, string> body = new Dictionary<string, string>();
+            Dictionary<string, string> body = [];
             body.Add("details-level", "full");
             request.AddJsonBody(body);
             Log.WriteDebug("Autodiscovery", $"using CP REST API call 'show-gateways-and-servers'");
@@ -98,58 +81,53 @@ namespace FWO.Rest.Client
             RestResponse<CpDeviceHelper> devices = await restClient.ExecuteAsync<CpDeviceHelper>(request);
             if(devices.Data != null)
             {
-                foreach (CpDevice dev in devices.Data.DeviceList)
+                foreach (CpDevice dev in devices.Data.DeviceList.Where(d => gwTypes.Contains(d.CpDevType)))
                 {
-                    if (gwTypes.Contains(dev.CpDevType))
-                    {
-                        if (dev.Policy.AccessPolicyInstalled)   // get package info
-                        {
-                            Log.WriteDebug("Autodiscovery", $"found gateway '{dev.Name}' with access policy '{dev.Policy.AccessPolicyName}'");
-                            RestRequest requestPackage = new RestRequest("show-package", Method.Post);
-                            requestPackage.AddHeader("X-chkp-sid", session);
-                            requestPackage.AddHeader("Content-Type", "application/json");
-                            Dictionary<string, string> packageBody = new Dictionary<string, string>();
-                            packageBody.Add("name", dev.Policy.AccessPolicyName);
-                            packageBody.Add("details-level", "full");
-                            requestPackage.AddJsonBody(packageBody);
-                            RestResponse<CpPackage> package = await restClient.ExecuteAsync<CpPackage>(requestPackage);
-                            if (dev != null && package != null && package.Data != null)
-                            {
-                                dev.Package = package.Data;
-                                Log.WriteDebug("Autodiscovery", $"for gateway '{dev.Name}' we found a package '{dev?.Package?.Name}' with {dev?.Package?.CpAccessLayers.Count} layers");
+					if (dev.Policy.AccessPolicyInstalled)   // get package info
+					{
+						Log.WriteDebug("Autodiscovery", $"found gateway '{dev.Name}' with access policy '{dev.Policy.AccessPolicyName}'");
+						RestRequest requestPackage = new RestRequest("show-package", Method.Post);
+						requestPackage.AddHeader("X-chkp-sid", session);
+						requestPackage.AddHeader("Content-Type", "application/json");
+						Dictionary<string, string> packageBody = [];
+						packageBody.Add("name", dev.Policy.AccessPolicyName);
+						packageBody.Add("details-level", "full");
+						requestPackage.AddJsonBody(packageBody);
+						RestResponse<CpPackage> package = await restClient.ExecuteAsync<CpPackage>(requestPackage);
+						if (dev != null && package != null && package.Data != null)
+						{
+							dev.Package = package.Data;
+							Log.WriteDebug("Autodiscovery", $"for gateway '{dev.Name}' we found a package '{dev?.Package?.Name}' with {dev?.Package?.CpAccessLayers.Count} layers");
 
-                                extractLayerNames(dev!.Package, dev.Name, ManagementType, out string localLayerName, out string globalLayerName);
-                                dev.LocalLayerName = localLayerName;
-                                dev.GlobalLayerName = globalLayerName;
-                            }
-                        }
-                        else
-                            Log.WriteWarning("Autodiscovery", $"found gateway '{dev.Name}' without access policy");
-                    }
+							ExtractLayerNames(dev!.Package, dev.Name, ManagementType, out string localLayerName, out string globalLayerName);
+							dev.LocalLayerName = localLayerName;
+							dev.GlobalLayerName = globalLayerName;
+						}
+					}
+					else
+						Log.WriteWarning("Autodiscovery", $"found gateway '{dev.Name}' without access policy");
                 }
                 return devices.Data.DeviceList;
             }
             return new List<CpDevice>();
         }
 
-        private void extractLayerNames(CpPackage package, string devName, string managementType, out string localLayerName, out string globalLayerName)
+        private static void ExtractLayerNames(CpPackage package, string devName, string managementType, out string localLayerName, out string globalLayerName)
         {
             localLayerName = "";
             globalLayerName = "";
             // getting rid of unneccessary layers (eg. url filtering, application, ...)
-            List<CpAccessLayer> relevantLayers = new List<CpAccessLayer>();
-            if (package.CpAccessLayers.Count == 1) // default: pick the first layer found (if any)
-                relevantLayers.Add(package.CpAccessLayers[0]);
-            else if (package.CpAccessLayers.Count > 1)
-            {
-                Log.WriteWarning("Autodiscovery", $"for gateway '{devName}'/ package '{package.Name}' we found multiple ({package.CpAccessLayers.Count}) layers");
-                // for now: pick the layer which the most "firewall-ish" - TODO: deal with layer chaining
-                foreach (CpAccessLayer layer in package.CpAccessLayers)
-                {
-                    if (layer.IsFirewallEnabled && !layer.IsApplicationsAndUrlFilteringEnabled && !layer.IsContentAwarenessEnabled && !layer.IsMobileAccessEnabled)
-                        relevantLayers.Add(layer);
-                }
-            }
+            List<CpAccessLayer> relevantLayers = [];
+			if (package.CpAccessLayers.Count == 1) // default: pick the first layer found (if any)
+			{
+				relevantLayers.Add(package.CpAccessLayers[0]);
+			}
+			else if (package.CpAccessLayers.Count > 1)
+			{
+				Log.WriteWarning("Autodiscovery", $"for gateway '{devName}'/ package '{package.Name}' we found multiple ({package.CpAccessLayers.Count}) layers");
+				// for now: pick the layer which the most "firewall-ish" - TODO: deal with layer chaining
+				relevantLayers = [.. package.CpAccessLayers.Where(l => l.IsFirewallEnabled && !l.IsApplicationsAndUrlFilteringEnabled && !l.IsContentAwarenessEnabled && !l.IsMobileAccessEnabled)];
+			}
 
             foreach (CpAccessLayer layer in relevantLayers)
             {
@@ -207,7 +185,7 @@ namespace FWO.Rest.Client
     public class CpDomainHelper
     {
         [JsonProperty("objects"), JsonPropertyName("objects")]
-        public List<Domain> DomainList { get; set; } = new List<Domain>();
+        public List<Domain> DomainList { get; set; } = [];
 
         [JsonProperty("total"), JsonPropertyName("total")]
         public int Total { get; set; }
@@ -231,7 +209,7 @@ namespace FWO.Rest.Client
     public class CpDeviceHelper
     {
         [JsonProperty("objects"), JsonPropertyName("objects")]
-        public List<CpDevice> DeviceList { get; set; } = new List<CpDevice>();
+        public List<CpDevice> DeviceList { get; set; } = [];
     }
 
     public class CpDevice
@@ -246,12 +224,12 @@ namespace FWO.Rest.Client
         public string CpDevType { get; set; } = "";
 
         [JsonProperty("domain"), JsonPropertyName("domain")]
-        public Domain Domain { get; set; } = new Domain();
+        public Domain Domain { get; set; } = new();
 
         [JsonProperty("policy"), JsonPropertyName("policy")]
-        public CpPolicy Policy { get; set; } = new CpPolicy();
+        public CpPolicy Policy { get; set; } = new();
 
-        public CpPackage Package { get; set; } = new CpPackage();
+        public CpPackage Package { get; set; } = new();
 
         public string LocalLayerName { get; set; } = "";
         public string GlobalLayerName { get; set; } = "";
@@ -282,10 +260,10 @@ namespace FWO.Rest.Client
         public string Uid { get; set; } = "";
 
         [JsonProperty("domain"), JsonPropertyName("domain")]
-        public Domain Domain { get; set; } = new Domain();
+        public Domain Domain { get; set; } = new();
 
         [JsonProperty("access-layers"), JsonPropertyName("access-layers")]
-        public List<CpAccessLayer> CpAccessLayers { get; set; } = new List<CpAccessLayer>();
+        public List<CpAccessLayer> CpAccessLayers { get; set; } = [];
     }
 
     public class CpAccessLayer
@@ -303,7 +281,7 @@ namespace FWO.Rest.Client
         public string ParentLayer { get; set; } = "";
 
         [JsonProperty("domain"), JsonPropertyName("domain")]
-        public Domain Domain { get; set; } = new Domain();
+        public Domain Domain { get; set; } = new();
 
         [JsonProperty("firewall"), JsonPropertyName("firewall")]
         public bool IsFirewallEnabled { get; set; }

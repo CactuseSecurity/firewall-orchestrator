@@ -4,7 +4,7 @@ using FWO.Logging;
 using RestSharp;
 using System.Text;
 
-namespace FWO.Tufin.SecureChange
+namespace FWO.ExternalSystems.Tufin.SecureChange
 {
     public class SCClient : RestApiClient
     {

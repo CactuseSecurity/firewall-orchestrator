@@ -3,7 +3,7 @@ using NUnit.Framework.Legacy;
 using FWO.Data;
 using FWO.Data.Workflow;
 using FWO.Data.Modelling;
-using FWO.Tufin.SecureChange;
+using FWO.ExternalSystems.Tufin.SecureChange;
 using FWO.Middleware.Server;
 
 namespace FWO.Test

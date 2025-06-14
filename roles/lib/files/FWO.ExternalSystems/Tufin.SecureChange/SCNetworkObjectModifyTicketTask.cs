@@ -2,7 +2,7 @@ using FWO.Data;
 using FWO.Data.Workflow;
 using FWO.Data.Modelling;
 
-namespace FWO.Tufin.SecureChange
+namespace FWO.ExternalSystems.Tufin.SecureChange
 {
 	public class SCNetworkObjectModifyTicketTask : SCTicketTask
 	{

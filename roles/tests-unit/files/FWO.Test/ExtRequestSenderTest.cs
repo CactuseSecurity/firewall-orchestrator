@@ -3,7 +3,7 @@ using NUnit.Framework.Legacy;
 using FWO.Basics.Exceptions;
 using FWO.Data;
 using FWO.Middleware.Server;
-using FWO.Tufin.SecureChange;
+using FWO.ExternalSystems.Tufin.SecureChange;
 
 namespace FWO.Test
 {

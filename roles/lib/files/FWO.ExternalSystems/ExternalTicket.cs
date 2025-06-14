@@ -6,7 +6,7 @@ using Newtonsoft.Json;
 using RestSharp;
 using System.Text.Json.Serialization; 
 
-namespace FWO.Tufin.SecureChange
+namespace FWO.ExternalSystems
 {
 	public class ExternalTicket
 	{

@@ -1,6 +1,6 @@
 using FWO.Data;
 using FWO.Services;
-using FWO.Tufin.SecureChange;
+using FWO.ExternalSystems.Tufin.SecureChange;
 using System.Net;
 using RestSharp;
 

@@ -8,7 +8,7 @@ using RestSharp;
 using System.Net;
 using System.Text.Json.Serialization; 
 
-namespace FWO.Tufin.SecureChange
+namespace FWO.ExternalSystems.Tufin.SecureChange
 {
 	public enum SCTaskType
 	{

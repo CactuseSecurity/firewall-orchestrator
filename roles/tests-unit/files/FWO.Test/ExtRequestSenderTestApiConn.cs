@@ -4,7 +4,7 @@ using FWO.Data;
 using FWO.Data.Workflow;
 using FWO.Middleware.Server;
 using FWO.Services;
-using FWO.Tufin.SecureChange;
+using FWO.ExternalSystems.Tufin.SecureChange;
 using GraphQL;
 
 namespace FWO.Test

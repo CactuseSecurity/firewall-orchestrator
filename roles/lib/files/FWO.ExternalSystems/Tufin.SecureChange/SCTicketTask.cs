@@ -3,7 +3,7 @@ using FWO.Data.Workflow;
 using FWO.Data.Modelling;
 using FWO.Basics;
 
-namespace FWO.Tufin.SecureChange
+namespace FWO.ExternalSystems.Tufin.SecureChange
 {
 
 	public abstract class SCTicketTask : ExternalTicketTask

@@ -5,7 +5,7 @@ using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Report;
 using FWO.FwLogic;
-using FWO.Services;
+using FWO.Services.RuleTreeBuilder;
 using FWO.Logging;
 using FWO.Report.Filter;
 using FWO.Ui.Display;
@@ -35,7 +35,7 @@ namespace FWO.Report
         protected bool UseAdditionalFilter = false;
         private bool VarianceMode = false;
 
-        private static IRuleTreeService? _ruleTreeService;
+        private static IRuleTreeBuilder? _ruleTreeBuilder;
 
         public ReportRules(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType) : base(query, userConfig, reportType) { }
 
@@ -213,14 +213,16 @@ namespace FWO.Report
 
         public static Rule[] GetAllRulesOfGateway(DeviceReportController deviceReport, ManagementReport managementReport)
         {
-            _ruleTreeService = FWO.Services.ServiceProvider.UiServices.GetService<IRuleTreeService>();
+            _ruleTreeBuilder = FWO.Services.ServiceProvider.UiServices.GetService<IRuleTreeBuilder>();
 
             List<Rule> allRules = new();
 
-            if (_ruleTreeService.BuildRulebaseLinkQueue(deviceReport.RulebaseLinks, managementReport.Rulebases) != null)
+            if (_ruleTreeBuilder.BuildRulebaseLinkQueue(deviceReport.RulebaseLinks, managementReport.Rulebases) != null)
             {
-                allRules = _ruleTreeService.BuildRuleTree(); 
+                allRules = _ruleTreeBuilder.BuildRuleTree(); 
             }
+            
+            var tree = _ruleTreeBuilder.RuleTree.ToJson();
 
             return allRules.ToArray();
         }

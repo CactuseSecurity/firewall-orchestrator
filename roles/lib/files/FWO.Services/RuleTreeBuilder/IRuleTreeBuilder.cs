@@ -2,11 +2,11 @@ using FWO.Basics;
 using FWO.Data;
 using FWO.Data.Report;
 
-namespace FWO.Services
+namespace FWO.Services.RuleTreeBuilder
 {
-    public interface IRuleTreeService
+    public interface IRuleTreeBuilder
     {
-        TreeItem<Rule> RuleTree { get; set; }
+        RuleTreeItem RuleTree { get; set; }
         Queue<(RulebaseLink link, RulebaseReport rulebase)> RuleTreeBuilderQueue { get; set; }
         int CreatedOrderNumbersCount { get; set; }
         int OrderedLayerCount { get; set; }

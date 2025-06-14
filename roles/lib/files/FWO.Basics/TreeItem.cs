@@ -3,14 +3,14 @@ using System.Text.Json.Serialization;
 
 namespace FWO.Basics
 {
-    public class TreeItem<TItem>
+    public class TreeItem<TItem> : ITreeItem<TItem>
     {
-        public List<TreeItem<TItem>> Children { get; set; } = new();
-        public List<TreeItem<TItem>> ElementsFlat { get; set; } = new();
+        public List<ITreeItem<TItem>> Children { get; set; } = new();
+        public List<ITreeItem<TItem>> ElementsFlat { get; set; } = new();
 
         public List<int>? Position { get; set; } = new();
-        public TreeItem<TItem>? Parent { get; set; }
-        public TreeItem<TItem>? LastAddedItem { get; set; }
+        public ITreeItem<TItem>? Parent { get; set; }
+        public ITreeItem<TItem>? LastAddedItem { get; set; }
         public TItem? Data { get; set; }
         public string? Identifier { get; set; }
 
@@ -39,11 +39,11 @@ namespace FWO.Basics
                 .ToList();
         }
 
-        public TreeItem<TItem> AddItem(TreeItem<TItem>? item = null, TItem? data = default!, List<int>? position = null, string header = "", bool isRoot = false, bool addToFlatList = false, bool addToChildren = false, bool setLastAddedItem = false)
+        public virtual ITreeItem<TItem> AddItem(ITreeItem<TItem>? parent = null, ITreeItem<TItem>? item = null, TItem? data = default!, List<int>? position = null, string header = "", bool isRoot = false, bool addToFlatList = false, bool addToChildren = false, bool setLastAddedItem = false)
         {
-            TreeItem<TItem> newItem = item ?? new();
+            ITreeItem<TItem> newItem = item ?? new TreeItem<TItem>();
 
-            newItem.Parent = this;
+            newItem.Parent = parent ?? this;
             newItem.Data = data;
             newItem.Position = position;
             newItem.Header = header;
@@ -79,7 +79,7 @@ namespace FWO.Basics
             return JsonSerializer.Serialize(rootNode, options);
         }
 
-        private SerializableTreeNode BuildSerializableNode(TreeItem<TItem> node)
+        private SerializableTreeNode BuildSerializableNode(ITreeItem<TItem> node)
         {
             var serializable = new SerializableTreeNode();
 

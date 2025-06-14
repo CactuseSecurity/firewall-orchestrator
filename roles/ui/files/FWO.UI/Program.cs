@@ -6,7 +6,7 @@ using FWO.Logging;
 using FWO.Middleware.Client;
 using FWO.Ui.Auth;
 using FWO.Ui.Services;
-using FWO.Services;
+using FWO.Services.RuleTreeBuilder;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server.Circuits;
 using RestSharp;
@@ -41,7 +41,7 @@ builder.Services.AddScoped<CircuitHandler, CircuitHandlerService>();
 builder.Services.AddScoped<KeyboardInputService, KeyboardInputService>();
 builder.Services.AddScoped<IEventMediator, EventMediator>();
 
-builder.Services.AddTransient<IRuleTreeService, RuleTreeService>();
+builder.Services.AddTransient<IRuleTreeBuilder, RuleTreeBuilder>();
 
 string ApiUri = ConfigFile.ApiServerUri;
 string MiddlewareUri = ConfigFile.MiddlewareServerUri;

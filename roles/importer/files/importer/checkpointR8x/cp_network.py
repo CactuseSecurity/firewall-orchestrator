@@ -4,7 +4,6 @@ import cp_const
 from fwo_const import list_delimiter
 import fwo_alert, fwo_api
 import ipaddress 
-import traceback
 
 
 def normalize_network_objects(full_config, config2import, import_id, mgm_id=0, debug_level=0):
@@ -19,12 +18,12 @@ def normalize_network_objects(full_config, config2import, import_id, mgm_id=0, d
         if nw_obj['obj_typ'] == 'interoperable-device':
             nw_obj.update({'obj_typ': 'external-gateway'})
         if nw_obj['obj_typ'] == 'CpmiVoipSipDomain':
-            logger.info(f"found VOIP object - tranforming to empty group")
+            logger.info("found VOIP object - tranforming to empty group")
             nw_obj.update({'obj_typ': 'group'})
         # set a dummy IP address for objects without IP addreses
         if nw_obj['obj_typ']!='group' and (nw_obj['obj_ip'] is None or nw_obj['obj_ip'] == ''):
             logger.warning("found object without IP :" + nw_obj['obj_name'] + " (type=" + nw_obj['obj_typ'] + ") - setting dummy IP")
-            nw_obj.update({'obj_ip': '0.0.0.0/32'})
+            nw_obj.update({'obj_ip': cp_const.dummy_ip})
 
     for idx in range(0, len(nw_objects)-1):
         if nw_objects[idx]['obj_typ'] == 'group':
@@ -37,91 +36,130 @@ def normalize_network_objects(full_config, config2import, import_id, mgm_id=0, d
 def collect_nw_objects(object_table, nw_objects, debug_level=0, mgm_id=0):
     logger = getFwoLogger()
 
-    if object_table['object_type'] in cp_const.nw_obj_table_names:
-        for chunk in object_table['object_chunks']:
-            if 'objects' in chunk:
-                for obj in chunk['objects']:
+    if object_table['object_type'] not in cp_const.nw_obj_table_names:
+        return
+    
+    for chunk in object_table['object_chunks']:
+        if 'objects' not in chunk:
+            break
+        for obj in chunk['objects']:
+            if 'comments' not in obj or obj['comments'] == '':
+                obj['comments'] = None
 
-                    if 'uid' in obj and obj['uid']=='e9ba0c50-ddd7-4aa8-9df6-1c4045ba10bb':
-                        logger.debug(f"found SIP nw object with uid {obj['uid']} in object dictionary")
-                
-                    ip_addr = ''
-                    member_refs = None
-                    member_names = None
-                    if 'members' in obj:
-                        member_refs = ''
-                        member_names = ''
-                        for member in obj['members']:
-                            member_refs += member + list_delimiter
-                        member_refs = member_refs[:-1]
-                        if obj['members'] == '':
-                            obj['members'] = None
-                        
-                    ip_addr = get_ip_of_obj(obj, mgm_id=mgm_id)
+            if 'uid' in obj and obj['uid']=='e9ba0c50-ddd7-4aa8-9df6-1c4045ba10bb':
+                logger.debug(f"found SIP nw object with uid {obj['uid']} in object dictionary")
+            member_refs, member_names = set_members(obj)                        
 
-                    ipArray = cidrToRange(ip_addr)
+            first_ip, last_ip, ip_addr = calc_ip(obj, mgm_id=mgm_id)
+            first_ip, last_ip, obj_type = obj_type_handling(obj, first_ip, last_ip, ip_addr=ip_addr)
+
+            update_or_add_nw_object(nw_objects, obj['uid'], obj['name'], obj_type, obj['color'], obj['comments'], first_ip, last_ip, member_refs, member_names)
+
+
+def calc_ip(obj, mgm_id=0):
+    logger = getFwoLogger()
+    ip_addr = get_ip_of_obj(obj, mgm_id=mgm_id)
+    ip_array = cidrToRange(ip_addr)
+    
+    if len(ip_array)==2:
+        first_ip = ip_array[0]
+        last_ip  = ip_array[1]
+    elif len(ip_array)==1:
+        first_ip = ip_array[0]
+        last_ip  = None
+    else:
+        logger.warning(f"found strange ip: {ip_addr}")
+    
+    return first_ip, last_ip, ip_addr
+
+
+def obj_type_handling(obj, first_ip, last_ip, ip_addr=None):
+    logger = getFwoLogger()
+    obj_type = 'undef'
+    if 'type' in obj:
+        obj_type = obj['type']
+    if 'uid-in-updatable-objects-repository' in obj:
+        obj_type = 'group'
+        obj['name'] = obj['name-in-updatable-objects-repository']
+        obj['uid'] = obj['uid-in-updatable-objects-repository']
+        obj['color'] = 'black'
+    if obj_type in ['updatable-object', 'access-role', 'group-with-exclusion', 'security-zone', 'dns-domain']:
+        obj_type = 'group'
+
+    if obj_type == 'group-with-exclusion':
+        first_ip = None
+        last_ip = None
+        obj_type = 'group'
+
+    if obj_type == 'security-zone':
+        first_ip = cp_const.dummy_ip
+        last_ip = '255.255.255.255/32'
+        obj_type = 'network'
+
+    if obj_type == 'group':
+        first_ip = None
+        last_ip = None
+
+    if obj_type == 'address-range' or obj_type == 'multicast-address-range':
+        obj_type = 'ip_range'
+        if '-' in str(ip_addr):
+            first_ip, last_ip = str(ip_addr).split('-')
+        else:
+            logger.warning("parse_network::collect_nw_objects - found range object '" +
+                        obj['name'] + "' without hyphen: " + ip_addr)
+    elif obj_type in cp_const.cp_specific_object_types:
+        obj_type = 'host'
                     
-#                    first_ip, last_ip = get_first_and_last_ip(ip_addr)
+    return first_ip, last_ip, obj_type
 
-                    if len(ipArray)==2:
-                        first_ip = ipArray[0]
-                        last_ip  = ipArray[1]
-                    elif len(ipArray)==1:
-                        first_ip = ipArray[0]
-                        last_ip  = None
-                    else:
-                        logger.warning("found strange ip: " + ip_addr)
+def set_members(obj):
+    member_refs = None
+    member_names = None
+    if 'members' in obj:
+        member_refs = ''
+        member_names = ''
+        for member in obj['members']:
+            member_refs += member + list_delimiter
+        member_refs = member_refs[:-1]
+        if obj['members'] == '':
+            obj['members'] = None
+    
+    return member_refs, member_names
 
-                    obj_type = 'undef'
-                    if 'type' in obj:
-                        obj_type = obj['type']
-                    if 'uid-in-updatable-objects-repository' in obj:
-                        obj_type = 'group'
-                        obj['name'] = obj['name-in-updatable-objects-repository']
-                        obj['uid'] = obj['uid-in-updatable-objects-repository']
-                        obj['color'] = 'black'
-                    # TODO: handle exclusion groups, access-roles correctly
-                    if obj_type in ['updatable-object', 'access-role', 'group-with-exclusion', 'security-zone', 'dns-domain']:
-                        obj_type = 'group'
 
-                    if obj_type == 'group-with-exclusion':
-                        first_ip = None
-                        last_ip = None
-                        obj_type = 'group'
-                        # TODO: handle exclusion groups correctly
+def update_or_add_nw_object(nw_objects, obj_uid, obj_name, obj_typ, obj_color, obj_comment, obj_ip, obj_ip_end=None, obj_member_refs=None, obj_member_names=None):
+    """
+    Update an existing network object in the nw_objects list or add it if it does not exist.
+    """
+    for existing_obj in nw_objects:
+        if existing_obj['obj_uid'] == obj_uid:
+            if obj_ip is not None and obj_ip != cp_const.dummy_ip:
+                # Update existing object
+                existing_obj.update({
+                    'obj_uid': obj_uid,
+                    'obj_name': obj_name,
+                    'obj_color': obj_color,
+                    'obj_comment': obj_comment,
+                    'obj_typ': obj_typ,
+                    'obj_ip': obj_ip,
+                    'obj_ip_end': obj_ip_end,
+                    'obj_member_refs': obj_member_refs,
+                    'obj_member_names': obj_member_names
+                })
+            return
 
-                    if obj_type == 'security-zone':
-                        first_ip = '0.0.0.0/32'
-                        last_ip = '255.255.255.255/32'
-                        obj_type = 'network'
-
-                    if obj_type == 'group':
-                        first_ip = None
-                        last_ip = None
-
-                    if obj_type == 'address-range' or obj_type == 'multicast-address-range':
-                        obj_type = 'ip_range'
-                        if debug_level > 5:
-                            logger.debug(
-                                "parse_network::collect_nw_objects - found range object '" + obj['name'] + "' with ip: " + ip_addr)
-                        if '-' in str(ip_addr):
-                            first_ip, last_ip = str(ip_addr).split('-')
-                        else:
-                            logger.warning("parse_network::collect_nw_objects - found range object '" +
-                                        obj['name'] + "' without hyphen: " + ip_addr)
-                    elif obj_type in cp_const.cp_specific_object_types:
-                        if debug_level > 5:
-                            logger.debug(f"rewriting non-standard cp-host-type '{obj['name']}' with object type '{obj_type}' to host")
-                            logger.debug("obj_dump:" + json.dumps(obj, indent=3))
-                        obj_type = 'host'
-                    # adding the object:
-                    if not 'comments' in obj or obj['comments'] == '':
-                        obj['comments'] = None
-                    nw_objects.extend([{'obj_uid': obj['uid'], 'obj_name': obj['name'], 'obj_color': obj['color'],
-                                        'obj_comment': obj['comments'],
-                                        'obj_typ': obj_type, 'obj_ip': first_ip, 'obj_ip_end': last_ip,
-                                        'obj_member_refs': member_refs, 'obj_member_names': member_names}])
-
+    # If not found, append new object
+    nw_objects.append({
+        'obj_uid': obj_uid,
+        'obj_name': obj_name,
+        'obj_color': obj_color,
+        'obj_comment': obj_comment,
+        'obj_typ': obj_typ,
+        'obj_ip': obj_ip,
+        'obj_ip_end': obj_ip_end,
+        'obj_member_refs': obj_member_refs,
+        'obj_member_names': obj_member_names
+    })
 
 # for members of groups, the name of the member obj needs to be fetched separately (starting from API v1.?)
 def resolve_nw_uid_to_name(uid, nw_objects):
@@ -186,11 +224,11 @@ def get_ip_of_obj(obj, mgm_id=None):
         alert_description = "object '" + obj['name'] + "' (type=" + obj['type'] + ") is not a valid ip address (" + str(ip_addr) + ")"
         fwo_api.setAlert(alerter['fwo_api_base_url'], alerter['jwt'], title="import error", severity=2, role='importer', \
             description=alert_description, source='import', alertCode=17, mgm_id=mgm_id)
-        ip_addr = '0.0.0.0/32'  # setting syntactically correct dummy ip
+        ip_addr = cp_const.dummy_ip  # set dummy ip address if the ip address is not valid
     return ip_addr
 
 
-def makeHost(ipIn):
+def make_host(ipIn):
     ip_obj = ipaddress.ip_address(ipIn)
     
     # If it's a valid address, append the appropriate CIDR notation
@@ -231,7 +269,7 @@ def cidrToRange(ip):
             net = ipaddress.IPv4Network(ip)
         elif ipVersion=='IPv6':
             net = ipaddress.IPv6Network(ip)    
-        return [makeHost(str(net.network_address)), makeHost(str(net.broadcast_address))]
+        return [make_host(str(net.network_address)), make_host(str(net.broadcast_address))]
             
     return [ip]
 

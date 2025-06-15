@@ -11,8 +11,7 @@ def normalize_network_objects(full_config, config2import, import_id, mgm_id=0, d
     logger = getFwoLogger()
 
     for obj_table in full_config['object_tables']:
-        collect_nw_objects(obj_table, nw_objects,
-                           debug_level=debug_level, mgm_id=mgm_id)
+        collect_nw_objects(obj_table, nw_objects, mgm_id=mgm_id)
     for nw_obj in nw_objects:
         nw_obj.update({'control_id': import_id})
         if nw_obj['obj_typ'] == 'interoperable-device':
@@ -33,7 +32,7 @@ def normalize_network_objects(full_config, config2import, import_id, mgm_id=0, d
 
 
 # collect_nw_objects from object tables and write them into global nw_objects dict
-def collect_nw_objects(object_table, nw_objects, debug_level=0, mgm_id=0):
+def collect_nw_objects(object_table, nw_objects, mgm_id=0):
     logger = getFwoLogger()
 
     if object_table['object_type'] not in cp_const.nw_obj_table_names:
@@ -48,15 +47,27 @@ def collect_nw_objects(object_table, nw_objects, debug_level=0, mgm_id=0):
 
             if 'uid' in obj and obj['uid']=='e9ba0c50-ddd7-4aa8-9df6-1c4045ba10bb':
                 logger.debug(f"found SIP nw object with uid {obj['uid']} in object dictionary")
+
             member_refs, member_names = set_members(obj)                        
 
-            first_ip, last_ip, ip_addr = calc_ip(obj, mgm_id=mgm_id)
-            first_ip, last_ip, obj_type = obj_type_handling(obj, first_ip, last_ip, ip_addr=ip_addr)
+            first_ip, last_ip, obj_type = ip_and_type_handling(obj, mgm_id=mgm_id)
 
-            update_or_add_nw_object(nw_objects, obj['uid'], obj['name'], obj_type, obj['color'], obj['comments'], first_ip, last_ip, member_refs, member_names)
+            obj_to_add = {
+                'uid': obj['uid'],
+                'name': obj['name'],
+                'typ': obj_type,
+                'color': obj.get('color', 'black'),
+                'comments': obj.get('comments', None),
+                'ip': first_ip,
+                'ip_end': last_ip,
+                'member_refs': member_refs,
+                'member_names': member_names
+            }
+
+            update_or_add_nw_object(nw_objects, obj_to_add) 
 
 
-def calc_ip(obj, mgm_id=0):
+def ip_and_type_handling(obj, mgm_id=0):
     logger = getFwoLogger()
     ip_addr = get_ip_of_obj(obj, mgm_id=mgm_id)
     ip_array = cidrToRange(ip_addr)
@@ -70,11 +81,6 @@ def calc_ip(obj, mgm_id=0):
     else:
         logger.warning(f"found strange ip: {ip_addr}")
     
-    return first_ip, last_ip, ip_addr
-
-
-def obj_type_handling(obj, first_ip, last_ip, ip_addr=None):
-    logger = getFwoLogger()
     obj_type = 'undef'
     if 'type' in obj:
         obj_type = obj['type']
@@ -112,6 +118,7 @@ def obj_type_handling(obj, first_ip, last_ip, ip_addr=None):
                     
     return first_ip, last_ip, obj_type
 
+
 def set_members(obj):
     member_refs = None
     member_names = None
@@ -127,39 +134,40 @@ def set_members(obj):
     return member_refs, member_names
 
 
-def update_or_add_nw_object(nw_objects, obj_uid, obj_name, obj_typ, obj_color, obj_comment, obj_ip, obj_ip_end=None, obj_member_refs=None, obj_member_names=None):
+def update_or_add_nw_object(nw_objects, obj): # obj_uid, obj_name, obj_typ, obj_color, obj_comment, obj_ip, obj_ip_end=None, obj_member_refs=None, obj_member_names=None):
     """
     Update an existing network object in the nw_objects list or add it if it does not exist.
     """
     for existing_obj in nw_objects:
-        if existing_obj['obj_uid'] == obj_uid:
-            if obj_ip is not None and obj_ip != cp_const.dummy_ip:
-                # Update existing object
+        if existing_obj['obj_uid'] == obj['uid']:
+            if obj['typ'] == 'host' and obj['ip'] is not None and obj['ip'] != cp_const.dummy_ip:
+                # Update existing gateway object, ignore all other caess of duplicate objects
                 existing_obj.update({
-                    'obj_uid': obj_uid,
-                    'obj_name': obj_name,
-                    'obj_color': obj_color,
-                    'obj_comment': obj_comment,
-                    'obj_typ': obj_typ,
-                    'obj_ip': obj_ip,
-                    'obj_ip_end': obj_ip_end,
-                    'obj_member_refs': obj_member_refs,
-                    'obj_member_names': obj_member_names
+                    'obj_uid': obj['uid'],
+                    'obj_name': obj['name'],
+                    'obj_color': obj['color'],
+                    'obj_comment': obj['comments'],
+                    'obj_typ': obj['typ'],
+                    'obj_ip': obj['ip'],
+                    'obj_ip_end': obj['ip_end'],
+                    'obj_member_refs': obj['member_refs'],
+                    'obj_member_names': obj['member_names']
                 })
             return
 
     # If not found, append new object
     nw_objects.append({
-        'obj_uid': obj_uid,
-        'obj_name': obj_name,
-        'obj_color': obj_color,
-        'obj_comment': obj_comment,
-        'obj_typ': obj_typ,
-        'obj_ip': obj_ip,
-        'obj_ip_end': obj_ip_end,
-        'obj_member_refs': obj_member_refs,
-        'obj_member_names': obj_member_names
+        'obj_uid': obj['uid'],
+        'obj_name': obj['name'],
+        'obj_color': obj['color'],
+        'obj_comment': obj['comments'],
+        'obj_typ': obj['typ'],
+        'obj_ip': obj['ip'],
+        'obj_ip_end': obj['ip_end'],
+        'obj_member_refs': obj['member_refs'],
+        'obj_member_names': obj['member_names']
     })
+
 
 # for members of groups, the name of the member obj needs to be fetched separately (starting from API v1.?)
 def resolve_nw_uid_to_name(uid, nw_objects):

@@ -96,6 +96,15 @@ insert into config (config_key, config_value, config_user) VALUES ('varianceAnal
 insert into config (config_key, config_value, config_user) VALUES ('varianceAnalysisRefresh', 'false', 0) ON CONFLICT DO NOTHING;
 insert into config (config_key, config_value, config_user) VALUES ('resolveNetworkAreas', 'false', 0) ON CONFLICT DO NOTHING;
 
+-- 8.8.3
+ALTER TABLE modelling.connection ADD COLUMN IF NOT EXISTS requested_on_fw boolean default false;
+ALTER TABLE modelling.connection ADD COLUMN IF NOT EXISTS removed boolean default false;
+ALTER TABLE modelling.connection ADD COLUMN IF NOT EXISTS removal_date timestamp;
+UPDATE modelling.connection SET requested_on_fw=true WHERE requested_on_fw=false;
+
+-- 8.8.4
+insert into stm_action (action_id,action_name) VALUES (30,'ask') ON CONFLICT DO NOTHING; -- cp
+
 --- pre 9.0 changes (old import)
 
 DELETE FROM stm_dev_typ WHERE dev_typ_id IN (2,4,5,6,7);
@@ -435,14 +444,19 @@ Create table IF NOT EXISTS "rulebase_link"
 	"link_type" Integer,
 	"is_initial" BOOLEAN DEFAULT FALSE,
 	"is_global" BOOLEAN DEFAULT FALSE,
+    "is_section" BOOLEAN DEFAULT TRUE,
 	"created" BIGINT,
 	"removed" BIGINT
 );
+
+
+
 
 -- only for developers who already have on old 9.0 database:
 Alter table "rulebase_link" add column IF NOT EXISTS "is_initial" BOOLEAN;
 Alter table "rulebase_link" add column IF NOT EXISTS "is_global" BOOLEAN;
 Alter table "rulebase_link" add column IF NOT EXISTS "from_rulebase_id" Integer;
+Alter table "rulebase_link" add column IF NOT EXISTS "is_section" BOOLEAN DEFAULT TRUE;
 
 DO $$
 BEGIN

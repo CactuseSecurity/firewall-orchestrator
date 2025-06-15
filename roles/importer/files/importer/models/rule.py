@@ -16,6 +16,7 @@ class RuleAction(CaseInsensitiveEnum):
     CLIENTAUTH = 'client auth'
     INNERLAYER = 'inner layer'
     INFORM = 'inform'
+    ASK = 'ask'
 
 class RuleTrack(CaseInsensitiveEnum):
     NONE = 'none'

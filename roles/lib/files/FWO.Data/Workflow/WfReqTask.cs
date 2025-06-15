@@ -161,6 +161,15 @@ namespace FWO.Data.Workflow
             return 0;
         }
 
+        public override List<int> GetDeviceList()
+        {
+            if (DeviceList.Count > 0)
+            {
+                return DeviceList;
+            }
+            return [.. Elements.Where(r => r.Field == ElemFieldType.rule.ToString() && r.DeviceId != null).Select(e => (int)e.DeviceId!)];
+        }
+
         public bool IsNetworkFlavor()
         {
             return Elements.FirstOrDefault(e => e.IpString != null) != null;

@@ -52,7 +52,7 @@ namespace FWO.Data.Workflow
             }
         }
 
-        private List<int> DeviceList { get; set; } = [];
+        protected List<int> DeviceList { get; set; } = [];
 
 
         public WfReqTaskBase()
@@ -68,7 +68,7 @@ namespace FWO.Data.Workflow
             ManagementId = reqtask.ManagementId;
         }
 
-        public List<int> GetDeviceList()
+        public virtual List<int> GetDeviceList()
         {
             return DeviceList;
         }

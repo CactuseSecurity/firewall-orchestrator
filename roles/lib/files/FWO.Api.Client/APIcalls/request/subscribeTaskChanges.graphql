@@ -11,16 +11,7 @@ subscription subscribeTaskChanges ($id: bigint!){
       name: mgm_name
     }
     elements: elements {
-      id
-      request_action
-      ip
-      ip_end
-      port
-      port_end
-      ip_proto_id
-      field
-      group_name
-      name
+      ...reqElementDetails
     }
     comments: reqtask_comments {
       comment: comment {

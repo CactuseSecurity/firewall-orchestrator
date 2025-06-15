@@ -236,26 +236,14 @@ def get_ip_of_obj(obj, mgm_id=None):
     return ip_addr
 
 
-def make_host(ipIn):
-    ip_obj = ipaddress.ip_address(ipIn)
+def make_host(ip_in):
+    ip_obj = ipaddress.ip_address(ip_in)
     
     # If it's a valid address, append the appropriate CIDR notation
     if isinstance(ip_obj, ipaddress.IPv4Address):
-        return f"{ipIn}/32"
+        return f"{ip_in}/32"
     elif isinstance(ip_obj, ipaddress.IPv6Address):
-        return f"{ipIn}/128"
-
-# def get_first_and_last_ip(cidr_notation):
-#     # Create an ip_network object
-#     network = ipaddress.ip_network(cidr_notation, strict=False)
-    
-#     # Get the first IP address in the network
-#     first_ip = makeHost(network.network_address)
-    
-#     # Get the last IP address in the network
-#     last_ip = makeHost(network.broadcast_address)
-    
-#     return first_ip, last_ip
+        return f"{ip_in}/128"
 
 
 def cidrToRange(ip):

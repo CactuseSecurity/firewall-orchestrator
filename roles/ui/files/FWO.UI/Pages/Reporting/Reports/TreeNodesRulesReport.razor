@@ -67,9 +67,8 @@ else
                         continue;
                     }
 
-                    DeviceReportController device = DeviceReportController.FromDeviceReport(devReport);
-                    ReportRules.GetAllRulesOfGateway(device, management);
-                    RulesNodes = ReportRules.GetRulesTreeNode();
+                    DeviceReportController device = DeviceReportController.FromDeviceReport(devReport);                    
+                    var test = ReportRules.GetAllRulesOfGateway(device, management);
                 }
             }
         }

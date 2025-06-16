@@ -211,11 +211,6 @@ namespace FWO.Report
             return [];
         }
 
-        public static List<TreeNode<Rule>> GetRulesTreeNode()
-        {
-            return _ruleTree;
-        }
-
         public static Rule[] GetAllRulesOfGateway(DeviceReportController deviceReport, ManagementReport managementReport)
         {
             _ruleTreeBuilder = FWO.Services.ServiceProvider.UiServices.GetService<IRuleTreeBuilder>();

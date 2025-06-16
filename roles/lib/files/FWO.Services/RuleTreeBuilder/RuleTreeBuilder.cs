@@ -151,7 +151,8 @@ namespace FWO.Services.RuleTreeBuilder
 
                 // Get and update tree item that holds currentRule as data.
 
-                RuleTreeItem treeItem = nextParent.AddItem(data: rule, addToChildren: true, addToFlatList: true, setLastAddedItem: true);
+                RuleTreeItem treeItem = nextParent.AddItem(addToChildren: true, addToFlatList: true, setLastAddedItem: true);
+                treeItem.Data = rule;
                 RuleTree.ElementsFlat.Add(treeItem);
                 treeItem.Position = nextPosition.ToList();
                 rule.DisplayOrderNumberString = string.Join(".", treeItem.Position);

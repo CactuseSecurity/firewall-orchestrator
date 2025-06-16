@@ -24,9 +24,9 @@ namespace FWO.Services.RuleTreeBuilder
         /// <summary>
         /// A strongly typed version of the generic AddItem method.
         /// </summary>
-        public RuleTreeItem AddItem(RuleTreeItem? parent = null, RuleTreeItem? item = null, Rule? data = default!, List<int>? position = null, string header = "", bool isRoot = false, bool addToFlatList = false, bool addToChildren = false, bool setLastAddedItem = false)
+        public RuleTreeItem AddItem(RuleTreeItem? item = null, List<int>? position = null, string header = "", bool isRoot = false, bool addToFlatList = false, bool addToChildren = false, bool setLastAddedItem = false)
         {
-            return base.AddItem(parent, item ?? new(), data, position, header, isRoot, addToFlatList, addToChildren, setLastAddedItem) as RuleTreeItem;
+            return base.AddItem(item ?? new(), position, header, isRoot, addToFlatList, addToChildren, setLastAddedItem) as RuleTreeItem;
         }
 
     }

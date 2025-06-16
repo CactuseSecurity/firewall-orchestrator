@@ -78,12 +78,11 @@ namespace FWO.Basics
         /// <summary>
         /// Adds an item to the tree.
         /// </summary>
-        public virtual ITreeItem<TItem> AddItem(ITreeItem<TItem>? parent = null, ITreeItem<TItem>? item = null, TItem? data = default!, List<int>? position = null, string header = "", bool isRoot = false, bool addToFlatList = false, bool addToChildren = false, bool setLastAddedItem = false)
+        public virtual ITreeItem<TItem> AddItem(ITreeItem<TItem>? item = null, List<int>? position = null, string header = "", bool isRoot = false, bool addToFlatList = false, bool addToChildren = false, bool setLastAddedItem = false)
         {
             ITreeItem<TItem> newItem = item ?? new TreeItem<TItem>();
 
-            newItem.Parent = parent ?? this;
-            newItem.Data = data;
+            newItem.Parent = this;
             newItem.Position = position;
             newItem.Header = header;
             newItem.IsRoot = isRoot;

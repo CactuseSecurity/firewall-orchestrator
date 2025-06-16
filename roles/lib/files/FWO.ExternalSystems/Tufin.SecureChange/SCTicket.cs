@@ -236,7 +236,7 @@ namespace FWO.ExternalSystems.Tufin.SecureChange
 		/// 		"subject": "@@TICKET_SUBJECT@@",
 		/// 		"priority": "@@PRIORITY@@",
 		/// 		"requester": "@@ONBEHALF@@",
-		//// 		"domain_name": "",
+		/// 		"domain_name": "",
 		/// 		"workflow": {"name": "Standard Firewall Request"},
 		/// 		"steps": {
 		/// 			"step": [
@@ -303,7 +303,7 @@ namespace FWO.ExternalSystems.Tufin.SecureChange
 }
 
 
-/*
+/**
 	Create Ticket for creating network groups
 
 	parameters:
@@ -487,4 +487,4 @@ namespace FWO.ExternalSystems.Tufin.SecureChange
 				}
 			}
 		}'
-*/
+**/

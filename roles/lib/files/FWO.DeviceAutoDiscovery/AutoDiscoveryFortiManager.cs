@@ -58,8 +58,8 @@ namespace FWO.DeviceAutoDiscovery
             }
             else
             {
-                string errorTxt = $"error while logging in to FortiManager: {sessionResponse?.ErrorMessage} ";
-                if (sessionResponse?.Data?.SessionId == "")
+                string errorTxt = $"error while logging in to FortiManager: {sessionResponse.ErrorMessage} ";
+                if (sessionResponse.Data?.SessionId == "")
                 {
                     errorTxt += "could not authenticate to FortiManager - got empty session ID";
                 }

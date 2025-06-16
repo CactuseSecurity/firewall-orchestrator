@@ -31,7 +31,6 @@ namespace FWO.ExternalSystems.Tufin.SecureChange
 
 		// @type (string, optional): The data type, in cases where object_updated_status is EXISTING_NOT_EDITED or EXISTING_EDITED, use type="Object",
 		// protected enum MemberTypes
-		// {
 		// 	ANY,
 		// 	IP,
 		// 	DNS,
@@ -40,7 +39,6 @@ namespace FWO.ExternalSystems.Tufin.SecureChange
 		// 	LDAP,
 		// 	host, // ?? not in swagger
 		// 	network // ?? not in swagger
-		// }
 
 		protected enum SCStatusValue
 		{

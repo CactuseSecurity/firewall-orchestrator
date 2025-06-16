@@ -6,10 +6,25 @@ namespace FWO.Services.RuleTreeBuilder
 {
     public class RuleTreeBuilder : IRuleTreeBuilder
     {
+        /// <summary>
+        /// The root item for the tree structure.
+        /// </summary>
         public RuleTreeItem RuleTree { get; set; } = new();
+        /// <summary>
+        /// A Queue to process rulebases by rulebase links.
+        /// </summary>
         public Queue<(RulebaseLink link, RulebaseReport rulebase)> RuleTreeBuilderQueue { get; set; } = new();
+        /// <summary>
+        /// The number of order numbers that were created during the process.
+        /// </summary>
         public int CreatedOrderNumbersCount { get; set; } = 0;
+        /// <summary>
+        /// A counter to easily create the order position (/order number) for the ordered layers on the top level.
+        /// </summary>
         public int OrderedLayerCount { get; set; } = 0;
+        /// <summary>
+        /// All of the processed rules.
+        /// </summary>
         private List<Rule> _allRules = new();
 
         public RuleTreeBuilder()
@@ -51,6 +66,9 @@ namespace FWO.Services.RuleTreeBuilder
             return _allRules;
         }
 
+        /// <summary>
+        /// Recursive method that processes a rulebase link and the target rulebase to create ordernumbers and the integrate the rules in the rule tree.
+        /// </summary>
         private List<int> HandleRulebaseLinkQueueItem((RulebaseLink link, RulebaseReport rulebase) currentQueueItem, List<int>? lastPosition)
         {
             List<int>? nextPosition = null;
@@ -175,6 +193,9 @@ namespace FWO.Services.RuleTreeBuilder
             return lastPosition;
         }
 
+        /// <summary>
+        /// Creates the queue that is used to create the rule tree.
+        /// </summary>
         public Queue<(RulebaseLink, RulebaseReport)>? BuildRulebaseLinkQueue(RulebaseLink[] links, RulebaseReport[] rulebases)
         {
             // Abort if their are no rulebase links or rulebases
@@ -221,9 +242,7 @@ namespace FWO.Services.RuleTreeBuilder
                     rulebase.RuleChanges = report.RuleChanges;
                     rulebase.RuleStatistics = report.RuleStatistics;
                     rulebase.Rules = report.Rules.ToArray();
-
                 }
-
 
                 queue.Enqueue((current, rulebase));
                 remainingLinks.Remove(current);
@@ -248,6 +267,9 @@ namespace FWO.Services.RuleTreeBuilder
             return queue;
         }
 
+        /// <summary>
+        /// Returns the next queue item without removing it from the queue.
+        /// </summary>
         private (RulebaseLink, RulebaseReport)? TryPeekNextQueueItem()
         {
             if (RuleTreeBuilderQueue.TryPeek(out (RulebaseLink link, RulebaseReport) peekedQueueItem))
@@ -260,11 +282,14 @@ namespace FWO.Services.RuleTreeBuilder
             }
         }
 
+        /// <summary>
+        /// Returns the item that should be used for the section rule tree item in creation.
+        /// </summary>
         private RuleTreeItem GetSectionParent(List<int>? nextPosition = null)
         {
             List<int>? position = nextPosition.ToList();
             if (position.Last() == 0) position.Remove(position.Last());
-            var item = RuleTree.ElementsFlat.First(x => x.GetPositionString() == string.Join(".", position)) as RuleTreeItem;
+            RuleTreeItem item = RuleTree.ElementsFlat.First(x => x.GetPositionString() == string.Join(".", position)) as RuleTreeItem;
 
             if (item.IsOrderedLayerHeader)
             {
@@ -291,30 +316,5 @@ namespace FWO.Services.RuleTreeBuilder
                 return new();
             }
         }
-
-        // private RuleTreeItem GetSectionParent(List<int>? nextPosition = null)
-        // {
-        //     if (RuleTree.LastAddedItem == null)
-        //     {
-        //         return RuleTree;
-        //     }
-        //     else if (RuleTree.LastAddedItem.Position.Count() == 1) // Section is first item in ordered layer
-        //     {
-        //         return RuleTree.LastAddedItem as RuleTreeItem;
-        //     }
-        //     else if ((RuleTree.LastAddedItem as RuleTreeItem).IsInlineLayerRoot)
-        //     {
-        //         return RuleTree.LastAddedItem as RuleTreeItem;
-        //     }
-        //     else if ((RuleTree.LastAddedItem.Parent as RuleTreeItem).IsSectionHeader)
-        //     {
-        //         return RuleTree.LastAddedItem.Parent.Parent as RuleTreeItem;
-        //     }
-        //     else
-        //     {
-        //         return RuleTree.LastAddedItem.Parent as RuleTreeItem;
-        //     }
-        // }
-
     }
 }

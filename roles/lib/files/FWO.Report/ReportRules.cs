@@ -221,8 +221,6 @@ namespace FWO.Report
             {
                 allRules = _ruleTreeBuilder.BuildRuleTree(); 
             }
-            
-            var tree = _ruleTreeBuilder.RuleTree.ToJson();
 
             return allRules.ToArray();
         }

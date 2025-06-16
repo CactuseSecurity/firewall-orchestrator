@@ -44,13 +44,13 @@ namespace FWO.ExternalSystems.Tufin.SecureChange
 		private readonly SCClient SCClient;
 
 
-		// 	"ticket": {
-		// 		"id": 2,
-		// 		"subject": "Clone Server Policy Ticket",
-		// 		"requester": "a",
-		// 		"requester_id": 12,
-		// 		"priority": "Normal",
-		// 		"status": "In Progress",...
+		/// 	"ticket": {
+		/// 		"id": 2,
+		/// 		"subject": "Clone Server Policy Ticket",
+		/// 		"requester": "a",
+		/// 		"requester_id": 12,
+		/// 		"priority": "Normal",
+		/// 		"status": "In Progress",...
 		// Todo: move to template settings?
 		sealed private class SCPollTicketResponseStatus
 		{
@@ -64,13 +64,13 @@ namespace FWO.ExternalSystems.Tufin.SecureChange
 			public SCPollTicketResponseStatus Ticket { get; set; } = new();
 		}
 
-		// "users": {
-		// 	"user": [
-		// 	{
-		// 		"@xsi.type": "user",
-		// 		"id": 55,
-		// 		"type": "user",
-		// 		"name": "Userxyz",
+		/// "users": {
+		/// 	"user": [
+		/// 	{
+		/// 		"@xsi.type": "user",
+		/// 		"id": 55,
+		/// 		"type": "user",
+		/// 		"name": "Userxyz",
 		sealed private class SCLookupUserResponseUser
 		{
 			[JsonProperty("id"), JsonPropertyName("id")]
@@ -232,35 +232,33 @@ namespace FWO.ExternalSystems.Tufin.SecureChange
 			}
 		}
 
-		// {
-		// 	"ticket": {
-		// 		"subject": "@@TICKET_SUBJECT@@",
-		// 		"priority": "@@PRIORITY@@",
-		// 		"requester": "@@ONBEHALF@@",
-		// 		"domain_name": "",
-		// 		"workflow": {"name": "Standard Firewall Request"},
-		// 		"steps": {
-		// 			"step": [
-		// 				{
-		// 					"name": "Erfassung des Antrags",
-		// 					"tasks": {
-		// 						"task": {
-		// 							"fields": {
-		// 								"field": [
-		// 										@@TASKS@@
-		// 								]
-		// 							},
-		// 							{
-		// 								"@xsi.type": "text_area",
-		// 								"name": "Grund für den Antrag",
-		// 								"read_only": false,
-		// 								"text": "@@REASON@@"
-		// 							},
-		// 							{
-		// 								"@xsi.type": "text_field",
-		// 								"name": "Anwendungs-ID",
-		// 								"text": "@@APPID@@"
-		// 							}]}}}
+		/// 	"ticket": {
+		/// 		"subject": "@@TICKET_SUBJECT@@",
+		/// 		"priority": "@@PRIORITY@@",
+		/// 		"requester": "@@ONBEHALF@@",
+		//// 		"domain_name": "",
+		/// 		"workflow": {"name": "Standard Firewall Request"},
+		/// 		"steps": {
+		/// 			"step": [
+		/// 				{
+		/// 					"name": "Erfassung des Antrags",
+		/// 					"tasks": {
+		/// 						"task": {
+		/// 							"fields": {
+		/// 								"field": [
+		/// 										@@TASKS@@
+		/// 								]
+		/// 							},
+		/// 							{
+		/// 								"@xsi.type": "text_area",
+		/// 								"name": "Grund für den Antrag",
+		/// 								"read_only": false,
+		/// 								"text": "@@REASON@@"
+		/// 							},
+		/// 							{
+		/// 								"@xsi.type": "text_field",
+		/// 								"name": "Anwendungs-ID",
+		/// 								"text": "@@APPID@@"
 
 		private async Task CreateTicketText(WfReqTask? reqTask)
 		{

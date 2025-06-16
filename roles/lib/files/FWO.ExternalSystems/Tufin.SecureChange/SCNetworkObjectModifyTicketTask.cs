@@ -12,24 +12,22 @@ namespace FWO.ExternalSystems.Tufin.SecureChange
 			ChangeAction = changeAction;
 		}
 
-		// {
-		// "task": {
-		// 	"fields": {
-		// 		"field": {
-		// 			"@xsi.type": "multi_group_change",
-		// 			"name": "Modify network object group",
-		// 			"group_change": {
-		// 				"name": "@@GROUPNAME@@",
-		// 				"management_id": @@MANAGEMENT_ID@@,
-		// 				"management_name": "@@MANAGEMENT_NAME@@",
-		// 				"members": {
-		// 					"member": @@MEMBERS@@
-		// 				},
-		// 				"change_action": "@@CHANGEACTION@@"
-		// 			}
-		// 		}
-		// 	}
-		// }
+		/// "task": {
+		/// 	"fields": {
+		/// 		"field": {
+		/// 			"@xsi.type": "multi_group_change",
+		/// 			"name": "Modify network object group",
+		/// 			"group_change": {
+		/// 				"name": "@@GROUPNAME@@",
+		/// 				"management_id": @@MANAGEMENT_ID@@,
+		/// 				"management_name": "@@MANAGEMENT_NAME@@",
+		/// 				"members": {
+		/// 					"member": @@MEMBERS@@
+		/// 				},
+		/// 				"change_action": "@@CHANGEACTION@@"
+		/// 			}
+		/// 		}
+		/// 	}
 		public override void FillTaskText(ExternalTicketTemplate template)
 		{
 			ExtMgtData extMgt = ReqTask.OnManagement != null && ReqTask.OnManagement?.ExtMgtData != null ?

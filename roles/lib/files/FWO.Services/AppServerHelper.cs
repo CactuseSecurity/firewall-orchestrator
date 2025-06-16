@@ -46,8 +46,11 @@ namespace FWO.Services
 
         public static string ConstructAppServerName(ModellingAppServer appServer, ModellingNamingConvention namingConvention, bool overwriteExistingNames=false)
         {
-            return string.IsNullOrEmpty(appServer.Name) || overwriteExistingNames ? GetPrefix(appServer, namingConvention) + DisplayBase.DisplayIp(appServer.Ip, appServer.IpEnd) :
-                ( char.IsLetter(appServer.Name[0]) ? appServer.Name : GetPrefix(appServer, namingConvention) + appServer.Name );
+            if (string.IsNullOrEmpty(appServer.Name) || overwriteExistingNames)
+            {
+                return GetPrefix(appServer, namingConvention) + DisplayBase.DisplayIp(appServer.Ip, appServer.IpEnd);
+            }
+            return char.IsLetter(appServer.Name[0]) ? appServer.Name : GetPrefix(appServer, namingConvention) + appServer.Name;
         }
 
         public static async Task AdjustAppServerNames(ApiConnection apiConnection, UserConfig userConfig)

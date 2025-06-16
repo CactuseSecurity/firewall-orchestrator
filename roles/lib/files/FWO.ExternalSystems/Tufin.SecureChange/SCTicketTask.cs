@@ -42,11 +42,6 @@ namespace FWO.ExternalSystems.Tufin.SecureChange
 		// 	network // ?? not in swagger
 		// }
 
-		// private readonly string HostTemplateWithId = "{\"@type\": \"host\", \"name\": \"@@HOSTNAME@@\", \"object_UID\": \"@@OBJECT_UID@@\", \"object_type\": \"host\", \"object_details\": \"@@OBJECT_DETAILS@@\", \"management_id\": @@MANAGEMENT_ID@@, \"status\": \"@@STATUS@@\", \"comment\": \"@@COMMENT@@\", \"object_updated_status\": \"@@OBJUPDSTATUS@@\"}";
-		// private readonly string HostTemplateWithoutId = "{\"@type\": \"host\", \"name\": \"@@HOSTNAME@@\", \"object_type\": \"host\", \"object_details\": \"@@OBJECT_DETAILS@@\", \"management_id\": @@MANAGEMENT_ID@@, \"status\": \"@@STATUS@@\", \"comment\": \"@@COMMENT@@\", \"object_updated_status\": \"@@OBJUPDSTATUS@@\"}";
-		// private readonly string SvcGroupTemplate = "{\"@type\": \"service_group\", \"group_name\": \"@@GROUPNAME@@\"}";
-
-
 		protected enum SCStatusValue
 		{
 			NOT_CHANGED,
@@ -74,42 +69,50 @@ namespace FWO.ExternalSystems.Tufin.SecureChange
 			public const string Remove = "remove";
 		}
 
+		protected struct SCObjectInfo
+		{
+			public string Name { get; set; }
+			public string Type { get; set; }
+			public string Details { get; set; }
+			public string Comment { get; set; }
+			public string Status { get; set; }
+			public string UpdateStatus { get; set; }
+		}
 
-		public SCTicketTask(WfReqTask reqTask, List<IpProtocol> ipProtos, ModellingNamingConvention? namingConvention) : base(reqTask, ipProtos, namingConvention)
+		protected SCTicketTask(WfReqTask reqTask, List<IpProtocol> ipProtos, ModellingNamingConvention? namingConvention) : base(reqTask, ipProtos, namingConvention)
 		{}
 
-		// 	{
-		// 		"@type": "Object",
-		// 		"name": "xyz1234.xxx.de",
-		// 		"object_type": "host",
-		// 		"object_details": "1.2.3.4/32",
-		// 		"management_id": 1,
-		// 		"status": "ADDED",
-		// 		"comment": "",
-		// 		"object_updated_status": "EXISTING_NOT_EDITED"
-		// 	}
-		protected static string FillObjectTemplate(ExternalTicketTemplate template, string type, string objName, string ObjType, string objDetails, string comment, 
-			string status, string objUpdStatus, string mgmId)
+		/// 	{
+		/// 		"@type": "Object",
+		/// 		"name": "xyz1234.xxx.de",
+		/// 		"object_type": "host",
+		/// 		"object_details": "1.2.3.4/32",
+		/// 		"management_id": 1,
+		/// 		"status": "ADDED",
+		/// 		"comment": "",
+		/// 		"object_updated_status": "EXISTING_NOT_EDITED"
+		/// 	}
+		protected static string FillObjectTemplate(ExternalTicketTemplate template, string type, SCObjectInfo objInfo, string mgmId)
 		{
 			bool shortened = false;
 			return template.ObjectTemplate
 				.Replace("@@TYPE@@", type)
-				.Replace("@@OBJECTNAME@@", Sanitizer.SanitizeJsonFieldMand(objName, ref shortened))
-				.Replace("@@OBJECT_TYPE@@", ObjType)
-				.Replace("@@OBJECT_DETAILS@@", objDetails)
-				.Replace("@@COMMENT@@", comment)
-				.Replace("@@STATUS@@", status)
-				.Replace("@@OBJUPDSTATUS@@", objUpdStatus)
+				.Replace("@@OBJECTNAME@@", Sanitizer.SanitizeJsonFieldMand(objInfo.Name, ref shortened))
+				.Replace("@@OBJECT_TYPE@@", objInfo.Type)
+				.Replace("@@OBJECT_DETAILS@@", objInfo.Details)
+				.Replace("@@COMMENT@@", objInfo.Comment)
+				.Replace("@@STATUS@@", objInfo.Status)
+				.Replace("@@OBJUPDSTATUS@@", objInfo.UpdateStatus)
 				.Replace("@@MANAGEMENT_ID@@", mgmId);
 		}
 
-		// 	{
-		// 		"@type": "Object",
-		// 		"name": "ip_1.2.3.4",
-		// 		"management_id": 1,
-		// 		"status": "NOT_CHANGED",
-		// 		"object_updated_status": "EXISTING_NOT_EDITED"
-		// 	}
+		/// 	{
+		/// 		"@type": "Object",
+		/// 		"name": "ip_1.2.3.4",
+		/// 		"management_id": 1,
+		/// 		"status": "NOT_CHANGED",
+		/// 		"object_updated_status": "EXISTING_NOT_EDITED"
+		//// 	}
 		protected static string FillObjectTemplateShort(ExternalTicketTemplate template, string objName, string status, string objUpdStatus, string mgmId)
 		{
 			bool shortened = false;
@@ -119,29 +122,6 @@ namespace FWO.ExternalSystems.Tufin.SecureChange
 				.Replace("@@OBJUPDSTATUS@@", objUpdStatus)
 				.Replace("@@MANAGEMENT_ID@@", mgmId);
 		}
-
-		// protected string FillHostTemplate(string hostname, string objUid, string objDetails, string mgmtId, string comment, string status, string objUpdStatus, bool withId)
-		// {
-		// 	bool shortened = false;
-		// 	if(withId)
-		// 	{
-		// 		return HostTemplateWithId
-		// 			.Replace("@@HOSTNAME@@", Sanitizer.SanitizeJsonFieldMand(hostname, ref shortened))
-		// 			.Replace("@@OBJECT_UID@@", objUid)
-		// 			.Replace("@@OBJECT_DETAILS@@", objDetails)
-		// 			.Replace("@@MANAGEMENT_ID@@", mgmtId)
-		// 			.Replace("@@COMMENT@@", comment)
-		// 			.Replace("@@STATUS@@", status)
-		// 			.Replace("@@OBJUPDSTATUS@@", objUpdStatus);
-		// 	}
-		// 	return HostTemplateWithoutId
-		// 		.Replace("@@HOSTNAME@@", Sanitizer.SanitizeJsonFieldMand(hostname, ref shortened))
-		// 		.Replace("@@OBJECT_DETAILS@@", objDetails)
-		// 		.Replace("@@MANAGEMENT_ID@@", mgmtId)
-		// 		.Replace("@@COMMENT@@", comment)
-		// 		.Replace("@@STATUS@@", status)
-		// 		.Replace("@@OBJUPDSTATUS@@", objUpdStatus);
-		// }
 
 		protected static string FillIpTemplate(ExternalTicketTemplate template, string ipString)
 		{
@@ -163,11 +143,6 @@ namespace FWO.ExternalSystems.Tufin.SecureChange
 			return template.NwObjGroupTemplate.Replace("@@GROUPNAME@@", groupName).Replace("@@MANAGEMENT_NAME@@", mgtName);
 		}
 
-		// protected string FillSvcGroupTemplate(string groupName)
-		// {
-		// 	return SvcGroupTemplate.Replace("@@GROUPNAME@@", groupName);
-		// }
-
 		protected string ConvertNetworkObjects(ExternalTicketTemplate template, string? mgmId, ModellingNamingConvention? namingConvention)
 		{
 			List<NwObjectElement> nwObjects = ReqTask.GetNwObjectElements(ElemFieldType.source);
@@ -178,9 +153,18 @@ namespace FWO.ExternalSystems.Tufin.SecureChange
 				{
 					string scObjType = GetSCObjectType(IpOperations.GetObjectType(nwObj.IpString, nwObj.IpEndString));
 					string objUpdStatus = ObjUpdStatus(nwObj.RequestAction);
-					convertedObjects.Add(FillObjectTemplate(template, objUpdStatus == SCObjStatusValue.NEW.ToString() ? scObjType : "Object",
-						ConstructObjectName(nwObj, namingConvention), scObjType,
-                        ConstructObjectIp(nwObj, scObjType), nwObj.Comment ?? "", ObjStatus(nwObj.RequestAction), objUpdStatus, mgmId ?? "0"));
+					convertedObjects.Add(FillObjectTemplate(template,
+						objUpdStatus == SCObjStatusValue.NEW.ToString() ? scObjType : "Object",
+						new()
+						{
+							Name = ConstructObjectName(nwObj, namingConvention),
+							Type = scObjType,
+							Details = ConstructObjectIp(nwObj, scObjType),
+							Comment = nwObj.Comment ?? "",
+							Status = ObjStatus(nwObj.RequestAction),
+							UpdateStatus = objUpdStatus
+						},
+						mgmId ?? "0"));
 				}
 				else
 				{
@@ -194,8 +178,11 @@ namespace FWO.ExternalSystems.Tufin.SecureChange
         private static string ConstructObjectName(NwObjectElement nwObj, ModellingNamingConvention? namingConvention)
         {
 			// shouldn't be necessary here anymore?
-        	return string.IsNullOrEmpty(nwObj.Name) ? namingConvention?.AppServerPrefix + DisplayBase.DisplayIp(nwObj.IpString, nwObj.IpEndString) :
-                char.IsLetter(nwObj.Name[0]) ? nwObj.Name : namingConvention?.AppServerPrefix + nwObj.Name;
+			if (string.IsNullOrEmpty(nwObj.Name))
+			{
+				return namingConvention?.AppServerPrefix + DisplayBase.DisplayIp(nwObj.IpString, nwObj.IpEndString);
+			}
+        	return char.IsLetter(nwObj.Name[0]) ? nwObj.Name : namingConvention?.AppServerPrefix + nwObj.Name;
 		}
 
 		private static string ConstructObjectIp(NwObjectElement nwObj, string scObjType)

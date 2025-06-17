@@ -331,36 +331,7 @@ UNION
    LEFT JOIN objgrp_flat ON rule_from.obj_id = objgrp_flat.objgrp_flat_id
    LEFT JOIN object ON objgrp_flat.objgrp_flat_member_id = object.obj_id;
 
--- view to filter imports based on security relevance (in all tables - rule, object, service, user)
-
-CREATE OR REPLACE VIEW view_imports_with_security_relevant_changes AS
-    SELECT clr.control_id AS import_id, clr.mgm_id
-    FROM changelog_rule clr
-    WHERE clr.security_relevant
-
-    UNION
-
-    SELECT clo.control_id AS import_id, clo.mgm_id
-    FROM changelog_object clo
-    WHERE clo.security_relevant
-
-    UNION
-
-    SELECT cls.control_id AS import_id, cls.mgm_id
-    FROM changelog_service cls
-    WHERE cls.security_relevant
-
-    UNION
-
-    SELECT clu.control_id AS import_id, clu.mgm_id
-    FROM changelog_user clu
-    WHERE clu.security_relevant;
-
-
 -- views used for reporters, too
 GRANT SELECT ON TABLE view_reportable_changes TO GROUP secuadmins, reporters;
 GRANT SELECT ON TABLE view_changes TO GROUP secuadmins, reporters;
 GRANT SELECT ON TABLE view_rule_source_or_destination TO GROUP secuadmins, reporters;
-GRANT SELECT ON TABLE view_imports_with_security_relevant_changes TO GROUP secuadmins, reporters;
-
-

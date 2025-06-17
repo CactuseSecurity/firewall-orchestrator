@@ -5,9 +5,7 @@ import argparse
 import requests, requests.packages
 from common import importer_base_dir, import_management
 import fwo_globals, fwo_config
-from services.uid2id_mapper import Uid2IdMapper
-from services.service_provider import ServiceProvider
-from services.group_flats_mapper import GroupFlatsMapper
+from services import Uid2IdMapper, ServiceProvider, GroupFlatsMapper
 from services.enums import Services, Lifetime
 
 if importer_base_dir not in sys.path:

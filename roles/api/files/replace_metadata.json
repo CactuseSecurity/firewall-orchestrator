@@ -20251,12 +20251,6 @@
             },
             {
               "table": {
-                "name": "view_imports_with_security_relevant_changes",
-                "schema": "public"
-              }
-            },
-            {
-              "table": {
                 "name": "view_obj_changes",
                 "schema": "public"
               }

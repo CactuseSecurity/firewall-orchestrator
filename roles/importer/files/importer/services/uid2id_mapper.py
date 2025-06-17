@@ -60,13 +60,13 @@ class Uid2IdMapper:
             int: The ID of the network object.
         """
         if before_update:
-            id = self.outdated_nwobj_uid2id.get(uid)
-            if id is not None:
-                return id
-        id = self.nwobj_uid2id.get(uid)
-        if id is None:
+            nwobj_id = self.outdated_nwobj_uid2id.get(uid)
+            if nwobj_id is not None:
+                return nwobj_id
+        nwobj_id = self.nwobj_uid2id.get(uid)
+        if nwobj_id is None:
             self.log_error(f"Network object UID '{uid}' not found in mapping.")
-        return id
+        return nwobj_id
     
     def get_service_object_id(self, uid: str, before_update: bool = False) -> int:
         """
@@ -80,13 +80,13 @@ class Uid2IdMapper:
             int: The ID of the service object.
         """
         if before_update:
-            id = self.outdated_svc_uid2id.get(uid)
-            if id is not None:
-                return id
-        id = self.svc_uid2id.get(uid)
-        if id is None:
+            svc_id = self.outdated_svc_uid2id.get(uid)
+            if svc_id is not None:
+                return svc_id
+        svc_id = self.svc_uid2id.get(uid)
+        if svc_id is None:
             self.log_error(f"Service object UID '{uid}' not found in mapping.")
-        return id
+        return svc_id
     
     def get_user_id(self, uid: str, before_update: bool = False) -> int:
         """
@@ -100,13 +100,13 @@ class Uid2IdMapper:
             int: The ID of the user.
         """
         if before_update:
-            id = self.outdated_user_uid2id.get(uid)
-            if id is not None:
-                return id
-        id = self.user_uid2id.get(uid)
-        if id is None:
+            usr_id = self.outdated_user_uid2id.get(uid)
+            if usr_id is not None:
+                return usr_id
+        usr_id = self.user_uid2id.get(uid)
+        if usr_id is None:
             self.log_error(f"User UID '{uid}' not found in mapping.")
-        return id
+        return usr_id
     
     def add_network_object_mappings(self, mappings: List[dict]) -> bool:
         """

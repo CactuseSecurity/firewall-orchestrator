@@ -15,8 +15,8 @@ def update_gateway_diffs(prev_config: FwConfigNormalized, ImportDetails: ImportS
     # add gateway details:
     update_rulebase_link_diffs(prev_config, ImportDetails, NormalizedConfig)
     # self.updateRuleEnforcedOnGatewayDiffs(prevConfig)
-    update_interface_diffs(prev_config, ImportDetails, NormalizedConfig)
-    update_routing_diffs(prev_config, ImportDetails, NormalizedConfig)
+    update_interface_diffs(ImportDetails)
+    update_routing_diffs(ImportDetails)
     # self.ImportDetails.Stats.addError('simulate error')
 
 
@@ -31,12 +31,12 @@ def update_rulebase_link_diffs(prev_config: FwConfigNormalized, ImportDetails: I
             if gwId is None or gwId == '' or gwId == 'none':
                 logger.warning(f"did not find a gwId for UID {gw.Uid}")
             for link in gw.RulebaseLinks:
-                add_single_link(rb_link_list, link, gwId, logger, ImportDetails, NormalizedConfig)
+                add_single_link(rb_link_list, link, gwId, logger, ImportDetails)
     rb_link_controller = RulebaseLinkController()
     rb_link_controller.insert_rulebase_links(ImportDetails, rb_link_list) 
     
 
-def add_single_link(rb_link_list, link, gw_id, logger, ImportDetails: ImportStateController, NormalizedConfig: FwConfigNormalized):
+def add_single_link(rb_link_list, link, gw_id, logger, ImportDetails: ImportStateController):
     from_rule_id = ImportDetails.lookupRule(link.from_rule_uid)
     if link.from_rulebase_uid is None or link.from_rulebase_uid == '':
         from_rulebase_id = None
@@ -74,10 +74,10 @@ def add_single_link(rb_link_list, link, gw_id, logger, ImportDetails: ImportStat
     #                 rbLink.importInsertRulebaseLink(self.ImportDetails)
 
 
-def update_interface_diffs(prevConfig: FwConfigNormalized, ImportDetails: ImportStateController, NormalizedConfig: FwConfigNormalized):
+def update_interface_diffs(ImportDetails: ImportStateController):
     logger = getFwoLogger(debug_level=ImportDetails.DebugLevel)
     # TODO: needs to be implemented
 
-def update_routing_diffs(prevConfig: FwConfigNormalized, ImportDetails: ImportStateController, NormalizedConfig: FwConfigNormalized):
+def update_routing_diffs(ImportDetails: ImportStateController):
     logger = getFwoLogger(debug_level=ImportDetails.DebugLevel)
     # TODO: needs to be implemented

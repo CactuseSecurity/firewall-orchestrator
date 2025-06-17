@@ -6,6 +6,7 @@ from models.fwconfig_normalized import FwConfigNormalized
 
 
 MAX_RECURSION_LEVEL = 20
+CONFIG_NOT_SET_MESSAGE = "normalized config is not set"
 
 class GroupFlatsMapper:
     """
@@ -51,7 +52,7 @@ class GroupFlatsMapper:
             List[str]: The flattened network object UIDs.
         """
         if self.normalized_config is None:
-            self.log_error("normalized config is not set")
+            self.log_error(CONFIG_NOT_SET_MESSAGE)
             return []
         all_members = set()
         for uid in uids:
@@ -91,7 +92,7 @@ class GroupFlatsMapper:
             List[str]: The flattened service object UIDs.
         """
         if self.normalized_config is None:
-            self.log_error("normalized config is not set")
+            self.log_error(CONFIG_NOT_SET_MESSAGE)
             return []
         all_members = set()
         for uid in uids:
@@ -131,7 +132,7 @@ class GroupFlatsMapper:
             List[str]: The flattened user UIDs.
         """
         if self.normalized_config is None:
-            self.log_error("normalized config is not set")
+            self.log_error(CONFIG_NOT_SET_MESSAGE)
             return []
         all_members = set()
         for uid in uids:

@@ -81,7 +81,9 @@ class ManagementDetails():
 """Used for storing state during import process per management"""
 class ImportState():
     ErrorCount: int
-    ChangeCount: int
+    # ChangeCount: int
+    AnyChangeCount: int
+    RuleChangeCount: int
     ErrorString: str
     StartTime: int
     DebugLevel: int
@@ -98,7 +100,8 @@ class ImportState():
 
     def __init__(self, debugLevel, configChangedSinceLastImport, fwoConfig, mgmDetails, jwt, force):
         self.ErrorCount = 0
-        self.ChangeCount = 0
+        self.setAnyChangeCounter(0)
+        self.setRuleChangeCounter(0)
         self.ErrorString = ''
         self.StartTime = int(time.time())
         self.DebugLevel = debugLevel
@@ -121,8 +124,11 @@ class ImportState():
     def setImportId(self, importId):
         self.ImportId = importId
 
-    def setChangeCounter(self, changeNo):
-        self.ChangeCount = changeNo
+    def setAnyChangeCounter(self, changeNo):
+        self.AnyChangeCount = changeNo
+
+    def setRuleChangeCounter(self, changeNo):
+        self.RuleChangeCount = changeNo
 
     def setErrorCounter(self, errorNo):
         self.ErrorCount = errorNo
@@ -231,9 +237,10 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
 
                 try: # get change count from db
                     # temporarily only count rule changes until change report also includes other changes
-                    # change_count = fwo_api.count_changes_per_import(fwo_config['fwo_api_base_url'], jwt, current_import_id)
-                    change_count = fwo_api.count_rule_changes_per_import(importState.FwoConfig['fwo_api_base_url'], importState.Jwt, importState.ImportId)
-                    importState.setChangeCounter(change_count)
+                    rule_change_count = fwo_api.count_rule_changes_per_import(importState.FwoConfig['fwo_api_base_url'], importState.Jwt, importState.ImportId)
+                    any_change_count = fwo_api.count_any_changes_per_import(importState.FwoConfig['fwo_api_base_url'], importState.Jwt, importState.ImportId)
+                    importState.setAnyChangeCounter(any_change_count)
+                    importState.setRuleChangeCounter(rule_change_count)
                 except:
                     logger.error("import_management - unspecified error while getting change count: " + str(traceback.format_exc()))
                     raise
@@ -246,7 +253,7 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
                     logger.error("import_management - unspecified error while calculating config sizes: " + str(traceback.format_exc()))
                     raise
 
-                if (importState.DebugLevel>5 or change_count > 0 or importState.ErrorCount > 0) and full_config_size < full_config_size_limit:  # store full config in case of change or error
+                if (importState.DebugLevel>5 or rule_change_count > 0 or any_change_count > 0 or importState.ErrorCount > 0) and full_config_size < full_config_size_limit:  # store full config in case of change or error
                     try:  # store full config in DB
                         importState.setErrorCounter(importState.ErrorCount + fwo_api.store_full_json_config(importState, {
                             "importId": importState.ImportId, "mgmId": mgmId, "config": configObj.Config}))

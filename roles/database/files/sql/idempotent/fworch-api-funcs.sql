@@ -604,3 +604,27 @@ RETURNS SETOF rule AS $$
         ORDER BY rule_name;
     END;
 $$ LANGUAGE 'plpgsql' STABLE;
+
+
+
+CREATE OR REPLACE FUNCTION cl_import_security_relevant (import_id BIGINT)
+RETURNS boolean AS $$
+
+    DECLARE
+        security_relevant BOOLEAN DEFAULT FALSE;
+    BEGIN
+        SELECT * FROM changelog_rule cl WHERE cl.import_id = import_id AND cl.security_relevant = true;
+        IF FOUND THEN security_relevant := TRUE; END IF;
+
+        SELECT * FROM changelog_object cl WHERE cl.import_id = import_id AND cl.security_relevant = true;
+        IF FOUND THEN security_relevant := TRUE; END IF;
+
+        SELECT * FROM changelog_service cl WHERE cl.import_id = import_id AND cl.security_relevant = true;
+        IF FOUND THEN security_relevant := TRUE; END IF;
+
+        SELECT * FROM changelog_usr cl WHERE cl.import_id = import_id AND cl.security_relevant = true;
+        IF FOUND THEN security_relevant := TRUE; END IF;
+
+        RETURN security_relevant;
+    END;
+$$ LANGUAGE 'plpgsql' STABLE;

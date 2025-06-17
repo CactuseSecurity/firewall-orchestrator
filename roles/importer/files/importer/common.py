@@ -11,6 +11,7 @@ from fwo_config import readConfig
 from fwo_const import fwo_config_filename, importer_user_name, importer_base_dir
 from pathlib import Path
 from services.service_provider import ServiceProvider
+from services.enums import Services
 if importer_base_dir not in sys.path:
     sys.path.append(importer_base_dir) # adding absolute path here once
 import fwo_api
@@ -99,11 +100,15 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
                         for managerSet in configNormalized.ManagerSet:
                             for config in managerSet.Configs:
                                 try:
+
                                     # Make sure service provider's internal references to state and config are set correctly.
 
-                                    ServiceProvider(importState, config)
+                                    service_provider = ServiceProvider()
+                                    global_state = service_provider.get_service(Services.GLOBAL_STATE)
+                                    global_state.import_state = importState
+                                    global_state.normalized_config = config
 
-                                    configImporter = FwConfigImport(importState, config)
+                                    configImporter = FwConfigImport()
                                     configChecker = FwConfigImportCheckConsistency(configImporter, configImporter.fw_config_import_object)
                                     if len(configChecker.checkConfigConsistency())==0:
                                         configImporter.importConfig()

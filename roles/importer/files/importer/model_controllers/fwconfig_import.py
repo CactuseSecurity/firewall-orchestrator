@@ -12,6 +12,8 @@ from model_controllers.fwconfig_import_object import FwConfigImportObject
 from model_controllers.fwconfig_import_rule import FwConfigImportRule
 from model_controllers.fwconfig_import_gateway import update_gateway_diffs
 from model_controllers.rule_enforced_on_gateway_controller import RuleEnforcedOnGatewayController
+from services.service_provider import ServiceProvider
+from services.enums import Services
 
 
 # this class is used for importing a config into the FWO API
@@ -22,11 +24,15 @@ class FwConfigImport():
     fw_config_import_rule: FwConfigImportRule
     fw_config_import_object: FwConfigImportObject
 
-    def __init__(self, importState: ImportStateController, config: FwConfigNormalized):
-        self.ImportDetails = importState
-        self.NormalizedConfig = config
+    def __init__(self):
+        service_provider = ServiceProvider()
+        global_state = service_provider.get_service(Services.GLOBAL_STATE)
+
+        self.ImportDetails = global_state.import_state
+        self.NormalizedConfig = global_state.normalized_config
+
         self.fw_config_import_object = FwConfigImportObject()
-        self.fw_config_import_rule = FwConfigImportRule(importState, config)
+        self.fw_config_import_rule = FwConfigImportRule()
         
     def importConfig(self):
         # current implementation restriction: assuming we always get the full config (only inserts) from API

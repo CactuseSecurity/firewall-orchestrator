@@ -32,11 +32,14 @@ class FwConfigImportObject():
         # Get state, config and services.
 
         service_provider = ServiceProvider()
-        self.ImportDetails = service_provider._import_state
-        self.NormalizedConfig = service_provider._normalized_config
+        global_state = service_provider.get_service(Services.GLOBAL_STATE)
         self.group_flats_mapper = service_provider.get_service(Services.GROUP_FLATS_MAPPER)
         self.prev_group_flats_mapper = service_provider.get_service(Services.GROUP_FLATS_MAPPER)
         self.uid2id_mapper = service_provider.get_service(Services.UID2ID_MAPPER)
+
+        self.ImportDetails = global_state.import_state
+        self.NormalizedConfig = global_state.normalized_config
+
 
         # Create maps.
         

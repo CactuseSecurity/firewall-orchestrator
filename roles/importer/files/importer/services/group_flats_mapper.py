@@ -3,6 +3,8 @@ import fwo_const
 from fwo_log import getFwoLogger
 from model_controllers.import_state_controller import ImportStateController
 from models.fwconfig_normalized import FwConfigNormalized
+from services.service_provider import ServiceProvider
+from services.enums import Services
 
 
 MAX_RECURSION_LEVEL = 20
@@ -17,6 +19,9 @@ class GroupFlatsMapper:
     normalized_config: FwConfigNormalized = None
 
     def __init__(self):
+        self.global_state = ServiceProvider().get_service(Services.GLOBAL_STATE)
+        self.import_state = self.global_state.import_state
+        self.normalized_config = self.global_state.normalized_config
         self.logger = getFwoLogger()
         self.network_object_flats = {}
         self.service_object_flats = {}

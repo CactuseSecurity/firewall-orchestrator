@@ -5,7 +5,10 @@ import argparse
 import requests, requests.packages
 from common import importer_base_dir, import_management
 import fwo_globals, fwo_config
-from services import Uid2IdMapper, ServiceProvider, GroupFlatsMapper
+from services.service_provider import ServiceProvider
+from services.uid2id_mapper import Uid2IdMapper
+from services.group_flats_mapper import GroupFlatsMapper
+from services.global_state import GlobalState
 from services.enums import Services, Lifetime
 
 if importer_base_dir not in sys.path:
@@ -49,6 +52,7 @@ if __name__ == "__main__":
     # Register Services.
 
     service_provider = ServiceProvider()
+    service_provider.register(Services.GLOBAL_STATE, lambda: GlobalState(), Lifetime.SINGLETON)
     service_provider.register(Services.GROUP_FLATS_MAPPER, lambda: GroupFlatsMapper(), Lifetime.TRANSIENT)
     service_provider.register(Services.UID2ID_MAPPER, lambda: Uid2IdMapper(), Lifetime.SINGLETON)
 

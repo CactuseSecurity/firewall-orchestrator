@@ -1,6 +1,8 @@
 from typing import List, Optional
 from fwo_log import getFwoLogger
 from model_controllers.import_state_controller import ImportStateController
+from services.service_provider import ServiceProvider
+from services.enums import Services
 
 
 class Uid2IdMapper:
@@ -19,7 +21,8 @@ class Uid2IdMapper:
         """
         Initialize the Uid2IdMapper.
         """
-
+        self.global_state = ServiceProvider().get_service(Services.GLOBAL_STATE)
+        self.import_state = self.global_state.import_state
         self.logger = getFwoLogger()
         self.nwobj_uid2id = {}
         self.svc_uid2id = {}

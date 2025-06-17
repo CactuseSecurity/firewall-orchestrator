@@ -8,4 +8,5 @@ class Lifetime(Enum):
 class Services(Enum):
     UID2ID_MAPPER = "uid2id_mapper"
     GROUP_FLATS_MAPPER = "group_flats_mapper"
+    GLOBAL_STATE = "global_state"
 

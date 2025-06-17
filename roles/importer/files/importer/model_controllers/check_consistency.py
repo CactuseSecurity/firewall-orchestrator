@@ -8,7 +8,6 @@ from model_controllers.fwconfig_import_object import FwConfigImportObject
 
 # this class is used for importing a config into the FWO API
 class FwConfigImportCheckConsistency(FwConfigImport):
-
     
 
     def __init__(self, config: FwConfigImport, fwconfig_import_object: FwConfigImportObject):

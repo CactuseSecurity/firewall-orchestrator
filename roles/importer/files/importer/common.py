@@ -10,7 +10,6 @@ import importlib.util
 from fwo_config import readConfig
 from fwo_const import fwo_config_filename, importer_user_name, importer_base_dir
 from pathlib import Path
-
 from services.service_provider import ServiceProvider
 if importer_base_dir not in sys.path:
     sys.path.append(importer_base_dir) # adding absolute path here once

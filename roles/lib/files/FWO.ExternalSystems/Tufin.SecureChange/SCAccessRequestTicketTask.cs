@@ -41,8 +41,8 @@ namespace FWO.ExternalSystems.Tufin.SecureChange
 				.Replace("@@ORDERNAME@@", "AR"+ ReqTask.TaskNumber.ToString())
 				.Replace("@@TASKCOMMENT@@", ReqTask.GetFirstCommentText())
 				.Replace("@@ACTION@@", MapActionType(ReqTask))
-				.Replace("@@SOURCES@@", ConvertNetworkElems(template, ElemFieldType.source, extMgt.ExtName))
-				.Replace("@@DESTINATIONS@@", ConvertNetworkElems(template, ElemFieldType.destination, extMgt.ExtName))
+				.Replace("@@SOURCES@@", ConvertNetworkElems(template, UseModelled() ? ElemFieldType.modelled_source : ElemFieldType.source, extMgt.ExtName))
+				.Replace("@@DESTINATIONS@@", ConvertNetworkElems(template, UseModelled() ? ElemFieldType.modelled_destination : ElemFieldType.destination, extMgt.ExtName))
 				.Replace("@@SERVICES@@", ConvertServiceElems(template));
 		}
 
@@ -99,6 +99,11 @@ namespace FWO.ExternalSystems.Tufin.SecureChange
 		public static string DisplayPortRange(int port, int? portEnd)
 		{
 			return portEnd == null || portEnd == 0 || port == portEnd ? $"{port}" : $"{port}-{portEnd}";
+		}
+
+		private bool UseModelled()
+		{
+			return ReqTask.TaskType == WfTaskType.rule_delete.ToString() && ReqTask.Elements.Where(e => e.Field == ElemFieldType.modelled_source.ToString()).ToList().Count > 0;
 		}
 	}
 }

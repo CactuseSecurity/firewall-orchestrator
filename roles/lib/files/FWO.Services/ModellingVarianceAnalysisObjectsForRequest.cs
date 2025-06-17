@@ -8,8 +8,8 @@ using System.Text.Json;
 namespace FWO.Services
 {
     /// <summary>
-	/// Part of Variance Analysis Class analysing the rules, network and service objects for request
-	/// </summary>
+    /// Part of Variance Analysis Class analysing the rules, network and service objects for request
+    /// </summary>
     public partial class ModellingVarianceAnalysis
     {
         private ModellingAppRole? existingAppRole;
@@ -39,21 +39,29 @@ namespace FWO.Services
             }
         }
 
-        private async Task AnalyseDeletedRulesForRequest(Management mgt)
+        private async Task AnalyseDeletedConnsForRequest(Management mgt)
         {
-            List<int> DeletedConnectionIds = await GetDeletedConnectionIds();
-            foreach(var rule in allModelledRules[mgt.Id].Where(r => !r.ModellFound))
+            List<ModellingConnection> deletedConns = await GetDeletedConnections();
+            List<int> DeletedConnectionIds = deletedConns.ConvertAll(c => c.Id);
+            foreach (var rule in allModelledRules[mgt.Id].Where(r => !r.ModellFound))
             {
-                if(int.TryParse(FindModelledMarker(rule), out int connId) && DeletedConnectionIds.Contains(connId))
+                if (int.TryParse(FindModelledMarker(rule), out int connId) && DeletedConnectionIds.Contains(connId))
                 {
-                    DeleteAccessTaskList.Add(ConstructRuleTask(mgt, rule, true, GetElementsFromRule(rule)));
+                    ModellingConnection deletedConn = deletedConns.FirstOrDefault(c => c.Id == connId) ?? throw new KeyNotFoundException("Connection not found.");
+                    DeleteAccessTaskList.Add(ConstructRuleTask(mgt, rule, true, GetElementsFromRule(rule, deletedConn)));
                 }
             }
         }
 
-        private static List<WfReqElement> GetElementsFromRule(Rule rule)
+        private List<WfReqElement> GetElementsFromRule(Rule rule, ModellingConnection deletedConn)
         {
             List<WfReqElement> ruleElements = [];
+             Dictionary<string, bool> specialUserObjects = deletedConn.GetSpecialUserObjectNames();
+            if (specialUserObjects.Count > 0)
+            {
+                // Get from deleted conn as modelled objects are expected instead of specUser (Then deletion of links is suppressed in this case)
+                ruleElements.AddRange(GetNwObjElementsFromConn(deletedConn));
+            }
             foreach(var src in rule.Froms.Select(src => src.Object))
             {
                 ruleElements.Add(new()
@@ -92,6 +100,31 @@ namespace FWO.Services
                 });
             }
             return ruleElements;
+        }
+
+        private List<WfReqElement> GetNwObjElementsFromConn(ModellingConnection deletedConn)
+        {
+            AnalyseNetworkAreasForRequest(deletedConn, true);
+            foreach (ModellingAppRole srcAppRole in ModellingAppRoleWrapper.Resolve(deletedConn.SourceAppRoles))
+            {
+                elements.Add(new()
+                {
+                    RequestAction = RequestAction.create.ToString(),
+                    Field = ElemFieldType.modelled_source.ToString(),
+                    GroupName = srcAppRole.IdString
+                });
+            }
+            foreach (ModellingAppRole dstAppRole in ModellingAppRoleWrapper.Resolve(deletedConn.DestinationAppRoles))
+            {
+                elements.Add(new()
+                {
+                    RequestAction = RequestAction.create.ToString(),
+                    Field = ElemFieldType.modelled_destination.ToString(),
+                    GroupName = dstAppRole.IdString
+                });
+            }
+            AnalyseAppServersForRequest(deletedConn, true);
+            return elements.ConvertAll(e => new WfReqElement(e) { RequestAction = RequestAction.unchanged.ToString() });
         }
 
         private WfReqTask ConstructCreateTask(Management mgt, ModellingConnection conn)
@@ -134,14 +167,14 @@ namespace FWO.Services
             return ruleTask;
         }
 
-        private void AnalyseNetworkAreasForRequest(ModellingConnection conn)
+        private void AnalyseNetworkAreasForRequest(ModellingConnection conn, bool modelled = false)
         {
             foreach(var area in ModellingNetworkAreaWrapper.Resolve(conn.SourceAreas))
             {
                 elements.Add(new()
                 {
                     RequestAction = RequestAction.create.ToString(),
-                    Field = ElemFieldType.source.ToString(),
+                    Field = modelled ? ElemFieldType.modelled_source.ToString() : ElemFieldType.source.ToString(),
                     GroupName = area.IdString
                 });
             }
@@ -150,7 +183,7 @@ namespace FWO.Services
                 elements.Add(new()
                 {
                     RequestAction = RequestAction.create.ToString(),
-                    Field = ElemFieldType.destination.ToString(),
+                    Field = modelled ? ElemFieldType.modelled_destination.ToString() : ElemFieldType.destination.ToString(),
                     GroupName = area.IdString
                 });
             }
@@ -429,14 +462,14 @@ namespace FWO.Services
             }
         }
 
-        private void AnalyseAppServersForRequest(ModellingConnection conn)
+        private void AnalyseAppServersForRequest(ModellingConnection conn, bool modelled = false)
         {
             foreach (var srcAppServer in conn.SourceAppServers.Select(a => a.Content))
             {
                 elements.Add(new()
                 {
                     RequestAction = RequestAction.create.ToString(),
-                    Field = ElemFieldType.source.ToString(),
+                    Field = modelled ? ElemFieldType.modelled_source.ToString() : ElemFieldType.source.ToString(),
                     Name = srcAppServer.Name,
                     IpString = srcAppServer.Ip,
                     IpEnd = srcAppServer.IpEnd
@@ -447,7 +480,7 @@ namespace FWO.Services
                 elements.Add(new()
                 {
                     RequestAction = RequestAction.create.ToString(),
-                    Field = ElemFieldType.destination.ToString(),
+                    Field = modelled ? ElemFieldType.modelled_destination.ToString() : ElemFieldType.destination.ToString(),
                     Name = dstAppServer.Name,
                     IpString = dstAppServer.Ip,
                     IpEnd = dstAppServer.IpEnd

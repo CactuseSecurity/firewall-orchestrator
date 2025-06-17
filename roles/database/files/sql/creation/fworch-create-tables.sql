@@ -1122,7 +1122,7 @@ create table ext_request
 -- create schema
 create schema request;
 
-CREATE TYPE rule_field_enum AS ENUM ('source', 'destination', 'service', 'rule');
+CREATE TYPE rule_field_enum AS ENUM ('source', 'destination', 'service', 'rule', 'modelled_source', 'modelled_destination');
 CREATE TYPE action_enum AS ENUM ('create', 'delete', 'modify', 'unchanged', 'addAfterCreation');
 
 -- create tables

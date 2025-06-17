@@ -208,8 +208,12 @@
             return userConfig.GetText("gateway") + ": " + DisplayDevices(task) +
                 "<br>" + userConfig.GetText("rule_uid") + ": " + (task.GetRuleElements().FirstOrDefault()?.RuleUid ?? "") +
                 "<br>" + userConfig.GetText("source") + ": " + DisplayNwObjects(task, ElemFieldType.source.ToString()) +
+                (task.TaskType == WfTaskType.rule_delete.ToString() && task.Elements.Where(e => e.Field == ElemFieldType.modelled_source.ToString()).ToList().Count > 0 ?
+                    "<br>" + userConfig.GetText("modelled_source") + ": " + DisplayNwObjects(task, ElemFieldType.modelled_source.ToString()) : "") +
                 "<br>" + userConfig.GetText("service") + ": " + DisplayServices(task) +
-                "<br>" + userConfig.GetText("destination") + ": " + DisplayNwObjects(task, ElemFieldType.destination.ToString());
+                "<br>" + userConfig.GetText("destination") + ": " + DisplayNwObjects(task, ElemFieldType.destination.ToString()) +
+                (task.TaskType == WfTaskType.rule_delete.ToString() && task.Elements.Where(e => e.Field == ElemFieldType.modelled_destination.ToString()).ToList().Count > 0 ?
+                    "<br>" + userConfig.GetText("modelled_destination") + ": " + DisplayNwObjects(task, ElemFieldType.modelled_source.ToString()) : "");
         }
         else if (task.TaskType == WfTaskType.group_create.ToString() || task.TaskType == WfTaskType.group_modify.ToString())
         {

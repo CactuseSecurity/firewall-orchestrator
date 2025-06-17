@@ -135,7 +135,7 @@ namespace FWO.Services
                         AnalyseConnectionForRequest(mgt, conn);
                     }
                 }
-                await AnalyseDeletedRulesForRequest(mgt);
+                await AnalyseDeletedConnsForRequest(mgt);
             }
             TaskList.AddRange(AddAccessTaskList);
             TaskList.AddRange(ChangeAccessTaskList);

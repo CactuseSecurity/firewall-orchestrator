@@ -149,7 +149,7 @@ namespace FWO.Api.Client.Queries
                 getConnections = connectionDetailsFragment + File.ReadAllText(QueryPath + "modelling/getConnections.graphql");
                 getConnectionsResolved = connectionResolvedDetailsFragment + File.ReadAllText(QueryPath + "modelling/getConnectionsResolved.graphql");
                 getConnectionsByTicketId = connectionDetailsFragment + File.ReadAllText(QueryPath + "modelling/getConnectionsByTicketId.graphql");
-                getDeletedConnections = File.ReadAllText(QueryPath + "modelling/getDeletedConnections.graphql");
+                getDeletedConnections = connectionDetailsFragment + File.ReadAllText(QueryPath + "modelling/getDeletedConnections.graphql");
                 getInterfaceUsers = File.ReadAllText(QueryPath + "modelling/getInterfaceUsers.graphql");
                 getCommonServices = connectionDetailsFragment + File.ReadAllText(QueryPath + "modelling/getCommonServices.graphql");
                 newConnection = File.ReadAllText(QueryPath + "modelling/newConnection.graphql");

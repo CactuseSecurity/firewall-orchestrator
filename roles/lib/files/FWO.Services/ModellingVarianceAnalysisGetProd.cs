@@ -125,20 +125,19 @@ namespace FWO.Services
             return customFields != null && customFields.TryGetValue(userConfig.ModModelledMarker, out string? value) ? value : null;
         }
 
-        private async Task<List<int>> GetDeletedConnectionIds()
+        private async Task<List<ModellingConnection>> GetDeletedConnections()
         {
-            List<int> ConnectionIds = [];
+            List<ModellingConnection> deletedConns = [];
             try
             {
-                List<ModellingConnection> deletedConns = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getDeletedConnections, new { appId = owner.Id });
-                ConnectionIds = deletedConns.ConvertAll(c => c.Id);
+                deletedConns = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getDeletedConnections, new { appId = owner.Id });
             }
             catch (Exception exception)
             {
                 Log.WriteError(userConfig.GetText("fetch_data"), "Get deleted connections leads to error: ", exception);
                 displayMessageInUi(exception, userConfig.GetText("fetch_data"), "Get deleted connections leads to error: ", true);
             }
-            return ConnectionIds;
+            return deletedConns;
         }
 
         private async Task<List<Rule>?> GetRules(int mgtId, ModellingFilter modellingFilter)

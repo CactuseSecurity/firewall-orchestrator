@@ -105,7 +105,7 @@ namespace FWO.Report
             }
             ownerReport.Name = selectedOwner.Name;
             ownerReport.RegularConnections = [.. ownerReport.Connections.Where(x => !x.IsInterface && !x.IsCommonService && !x.GetBoolProperty(ConState.InterfaceRejected.ToString()))];
-            ownerReport.Interfaces = [.. ownerReport.Connections.Where(x => x.IsInterface)];
+            ownerReport.Interfaces = [.. ownerReport.Connections.Where(x => x.IsInterface && !x.GetBoolProperty(ConState.Rejected.ToString()))];
             ownerReport.CommonServices = [.. ownerReport.Connections.Where(x => !x.IsInterface && x.IsCommonService && !x.GetBoolProperty(ConState.InterfaceRejected.ToString()))];
         }
 

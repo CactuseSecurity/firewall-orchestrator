@@ -1681,6 +1681,10 @@ INSERT INTO txt VALUES ('change_rule',          'German', 	'Regel &auml;ndern');
 INSERT INTO txt VALUES ('change_rule',          'English', 	'Change Rule');
 INSERT INTO txt VALUES ('update_ticket',        'German', 	'Ticket aktualisieren');
 INSERT INTO txt VALUES ('update_ticket',        'English', 	'Update ticket');
+INSERT INTO txt VALUES ('modelled_source', 		'German', 	'Modellierte Quelle');
+INSERT INTO txt VALUES ('modelled_source', 		'English', 	'Modelled Source');
+INSERT INTO txt VALUES ('modelled_destination', 'German', 	'Modelliertes Ziel');
+INSERT INTO txt VALUES ('modelled_destination', 'English', 	'Modelled Destination');
 
 -- compliance
 INSERT INTO txt VALUES ('compliance',			'German', 	'Compliance');

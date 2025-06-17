@@ -1,5 +1,6 @@
 query getInterfaceUsers ($id: Int){
   modelling_connection (where: { used_interface_id: { _eq: $id }, removed: { _eq: false } } ){
     id
+    conn_prop
   }
 }

@@ -273,3 +273,6 @@ bugfix release:
 
 # 8.8.4 - 02.06.2025 DEVELOP
 - hotfix for Check Point importer suppor for DLP actions (ask, inform)
+
+# 8.8.5 - 17.06.2025 DEVELOP
+- new enum values for Request Element Field Types

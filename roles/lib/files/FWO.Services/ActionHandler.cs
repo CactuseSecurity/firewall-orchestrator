@@ -1,10 +1,11 @@
-﻿using FWO.Data;
-using FWO.Data.Workflow;
-using FWO.Data.Modelling;
-using FWO.Api.Client;
+﻿using FWO.Api.Client;
 using FWO.Api.Client.Queries;
-using FWO.Logging;
 using FWO.Basics;
+using FWO.Data;
+using FWO.Data.Modelling;
+using FWO.Data.Workflow;
+using FWO.Logging;
+using System.Text.Json;
 
 
 namespace FWO.Services
@@ -20,6 +21,7 @@ namespace FWO.Services
         public bool DisplayConnectionMode = false;
         public ModellingConnectionHandler? ConnHandler { get; set; }
         private readonly List<UserGroup>? UserGroups = [];
+		private readonly string NoAuthUser = "No Auth User";
 
 
         public ActionHandler(ApiConnection apiConnection, WfHandler wfHandler, List<UserGroup>? userGroups = null, bool useInMwServer = false)
@@ -150,7 +152,7 @@ namespace FWO.Services
             Log.WriteDebug("SendEmail", "Perform Action");
             try
             {
-                EmailActionParams emailActionParams = System.Text.Json.JsonSerializer.Deserialize<EmailActionParams>(action.ExternalParams) ?? throw new Exception("Extparams could not be parsed.");
+                EmailActionParams emailActionParams = System.Text.Json.JsonSerializer.Deserialize<EmailActionParams>(action.ExternalParams) ?? throw new JsonException("Extparams could not be parsed.");
                 await SetScope(statefulObject, scope, emailActionParams);
                 EmailHelper emailHelper = new(apiConnection, wfHandler.MiddlewareClient, wfHandler.userConfig, DefaultInit.DoNothing, UserGroups, useInMwServer);
                 await emailHelper.Init(ScopedUserTo, ScopedUserCc);
@@ -193,7 +195,7 @@ namespace FWO.Services
             {
                 if(owner != null && ticketId != null) // todo: role check
                 {
-                    apiConnection.SetProperRole(wfHandler.AuthUser ?? throw new Exception("No Auth User"), [Roles.Modeller, Roles.Admin]);
+                    apiConnection.SetProperRole(wfHandler.AuthUser ?? throw new ArgumentException(NoAuthUser), [Roles.Modeller, Roles.Admin]);
                     List<ModellingConnection> Connections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnectionsByTicketId, new { ticketId });
                     foreach(var conn in Connections)
                     {
@@ -225,7 +227,7 @@ namespace FWO.Services
             {
                 if(owner != null && ticketId != null) // todo: role check
                 {
-                    apiConnection.SetProperRole(wfHandler.AuthUser ?? throw new Exception("No Auth User"), [Roles.Modeller, Roles.Admin]);
+                    apiConnection.SetProperRole(wfHandler.AuthUser ?? throw new ArgumentException(NoAuthUser), [Roles.Modeller, Roles.Admin]);
                     List<ModellingConnection> Connections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnectionsByTicketId, new { ticketId });
                     foreach(var conn in Connections)
                     {
@@ -263,7 +265,7 @@ namespace FWO.Services
             {
                 if(owner != null && ticketId != null)
                 {
-                    apiConnection.SetProperRole(wfHandler.AuthUser ?? throw new Exception("No Auth User"), [Roles.Modeller, Roles.Admin]);
+                    apiConnection.SetProperRole(wfHandler.AuthUser ?? throw new ArgumentException(NoAuthUser), [Roles.Modeller, Roles.Admin]);
                     List<ModellingConnection> Connections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnectionsByTicketId, new { ticketId });
                     foreach(var conn in Connections)
                     {
@@ -303,7 +305,7 @@ namespace FWO.Services
                 FwoOwner? owner = wfHandler.ActReqTask.Owners?.FirstOrDefault()?.Owner;
                 if(owner != null && wfHandler.ActReqTask.GetAddInfoIntValue(AdditionalInfoKeys.ConnId) != null)
                 {
-                    apiConnection.SetProperRole(wfHandler.AuthUser ?? throw new Exception("No Auth User"), [Roles.Modeller, Roles.Admin, Roles.Auditor]);
+                    apiConnection.SetProperRole(wfHandler.AuthUser ?? throw new ArgumentException(NoAuthUser), [Roles.Modeller, Roles.Admin, Roles.Auditor]);
                     List<ModellingConnection> Connections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnections, new { appId = owner?.Id });
                     ModellingConnection? conn = Connections.FirstOrDefault(c => c.Id == wfHandler.ActReqTask.GetAddInfoIntValue(AdditionalInfoKeys.ConnId));
                     if(conn != null)
@@ -350,13 +352,13 @@ namespace FWO.Services
             try
             {
                 int searchedStateId = toState ? statefulObject.StateId : statefulObject.ChangedFrom();
-                foreach(var actionHlp in states.FirstOrDefault(x => x.Id == searchedStateId)?.Actions ?? throw new Exception("Unknown stateId:" + searchedStateId))
+                foreach(var action in states.FirstOrDefault(x => x.Id == searchedStateId)?.Actions.Select(a => a.Action) ?? throw new KeyNotFoundException("Unknown stateId:" + searchedStateId))
                 {
-                    if(actionHlp.Action.Scope == scope.ToString() 
-                        && (!(actionHlp.Action.Scope == WfObjectScopes.RequestTask.ToString() || actionHlp.Action.Scope == WfObjectScopes.ImplementationTask.ToString())
-                        || actionHlp.Action.TaskType == "" || actionHlp.Action.TaskType == ((WfTaskBase)statefulObject).TaskType))
+                    if(action.Scope == scope.ToString() 
+                        && (!(action.Scope == WfObjectScopes.RequestTask.ToString() || action.Scope == WfObjectScopes.ImplementationTask.ToString())
+                        || action.TaskType == "" || action.TaskType == ((WfTaskBase)statefulObject).TaskType))
                     {
-                        stateActions.Add(actionHlp.Action);
+                        stateActions.Add(action);
                     }
                 }
             }

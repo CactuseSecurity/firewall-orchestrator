@@ -29,7 +29,6 @@ namespace FWO.Report.Filter.Ast
             {
                 case TokenKind.Disabled:
                     ExtractDisabledQuery(query);
-                    //throw new NotSupportedException("Token of type \"Disabled\" is currently not supported.");
                     break;
                 case TokenKind.SourceNegated:
                     // ExtractSourceNegatedQuery(query);
@@ -48,18 +47,16 @@ namespace FWO.Report.Filter.Ast
             }
         }
 
-        private DynGraphqlQuery ExtractRemoveFilter(DynGraphqlQuery query)
+        private void ExtractRemoveFilter(DynGraphqlQuery query)
         {
             string queryVarName = AddVariable<bool>(query, "remove", Operator.Kind, semanticValue);
             query.RuleWhereStatement += $"rule_metadatum: {{rule_to_be_removed: {{ {ExtractOperator()}: ${queryVarName} }}}}";
-            return query;
         }
 
-        private DynGraphqlQuery ExtractDisabledQuery(DynGraphqlQuery query)
+        private void ExtractDisabledQuery(DynGraphqlQuery query)
         {
             string queryVarName = AddVariable<bool>(query, "disabled", Operator.Kind, semanticValue);
             query.RuleWhereStatement += $"rule_disabled: {{ {ExtractOperator()}: ${queryVarName} }}";
-            return query;
         }
     }
 }

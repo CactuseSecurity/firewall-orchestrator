@@ -24,13 +24,13 @@ ExternalRequestScheduler externalRequestScheduler;
 VarianceAnalysisScheduler varianceAnalysisScheduler;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
-builder.WebHost.UseUrls(ConfigFile.MiddlewareServerNativeUri ?? throw new Exception("Missing middleware server url on startup."));
+builder.WebHost.UseUrls(ConfigFile.MiddlewareServerNativeUri ?? throw new ArgumentException("Missing middleware server url on startup."));
 
 // Create Token Generator
 JwtWriter jwtWriter = new(ConfigFile.JwtPrivateKey);
 
 // Create JWT for middleware-server API calls (relevant part is the role middleware-server) and add it to the Api connection header. 
-ApiConnection apiConnection = new GraphQlApiConnection(ConfigFile.ApiServerUri ?? throw new Exception("Missing api server url on startup."), jwtWriter.CreateJWTMiddlewareServer());
+ApiConnection apiConnection = new GraphQlApiConnection(ConfigFile.ApiServerUri ?? throw new ArgumentException("Missing api server url on startup."), jwtWriter.CreateJWTMiddlewareServer());
 
 // Fetch all connectedLdaps via API (blocking).
 List<Ldap> connectedLdaps = [];
@@ -56,9 +56,9 @@ GraphQlApiSubscription<List<Ldap>> connectedLdapsSubscription = apiConnection.Ge
 Log.WriteInfo("Found ldap connection to server", string.Join("\n", connectedLdaps.ConvertAll(ldap => $"{ldap.Address}:{ldap.Port}")));
 
 // Create and start report scheduler
-await Task.Factory.StartNew(() =>
+await Task.Factory.StartNew(async () =>
 {
-    reportScheduler = new ReportScheduler(apiConnection, jwtWriter, connectedLdapsSubscription);
+    reportScheduler = await  ReportScheduler.CreateAsync(apiConnection, jwtWriter, connectedLdapsSubscription);
 }, TaskCreationOptions.LongRunning);
 
 // Create and start auto disovery scheduler

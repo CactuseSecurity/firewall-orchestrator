@@ -37,21 +37,24 @@
     /// </summary>
     [Parameter, EditorRequired]
     public List<string>? ElementProperties { get; set; }
+
     /// <summary>
     /// Collection of items, that the user can order by the selected property and order mode.
     /// </summary>
     [Parameter]
     public List<TCollectionItem>? Collection { get; set; }
+
     /// <summary>
     /// Callback to communicate that the reordering process has been completed.
     /// </summary>
     [Parameter, EditorRequired]
     public EventCallback<List<TCollectionItem>> CollectionReordered { get; set; }
+
     /// <summary>
     /// Bool if a custom sorting will be implemented.
     /// </summary>
-    [Parameter, EditorRequired]
-    public bool CustomSort { get; set; }   
+    [Parameter]
+    public bool CustomSort { get; set; } = false;
 
     [Parameter]
     public string? CssClass { get; set; } = "";
@@ -101,10 +104,12 @@
     /// Reference to the dropdown component for the selected property.
     /// </summary>
     private Dropdown<string>? propertyDropdown;
+
     /// <summary>
     /// The visual elements for the implemented order modes.
     /// </summary>
     private List<OrderMode> orderModes = new List<OrderMode> {OrderMode.Asc, OrderMode.Desc};
+
     /// <summary>
     /// Flag to check whether the component was initialized successfully.
     /// </summary> 

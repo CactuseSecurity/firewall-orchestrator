@@ -183,14 +183,7 @@
 
     private void CollectSampleGroups()
     {
-        sampleGroups = new List<UserGroup>();
-        foreach (var group in groups)
-        {
-            if (group.Name.EndsWith("_demo"))
-            {
-                sampleGroups.Add(group);
-            }
-        }
+        sampleGroups = [.. groups.Where(g => g.Name.EndsWith(GlobalConst.k_demo))];
         showSampleRemoveButton = (sampleGroups.Count > 0);
     }
 
@@ -463,7 +456,7 @@
 
     private void RequestRemoveSampleData()
     {
-        if (sampleGroups.Exists(group => (group.Users.Exists(user => !user.Name.EndsWith("_demo")))))
+        if (sampleGroups.Exists(group => (group.Users.Exists(user => !user.Name.EndsWith(GlobalConst.k_demo)))))
         {
             sampleRemoveMessage = userConfig.GetText("E5245");
             sampleRemoveAllowed = false;

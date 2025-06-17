@@ -1,8 +1,5 @@
 ﻿using FWO.Logging;
 using Microsoft.IdentityModel.Tokens;
-using System;
-using System.Collections.Generic;
-using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -129,7 +126,7 @@ namespace FWO.Config.File
                 string configFile = System.IO.File.ReadAllText(configFilePath).TrimEnd();
 
                 // Deserialize config to dictionary
-                Data = JsonSerializer.Deserialize<ConfigFileData>(configFile) ?? throw new Exception("Config file could not be parsed.");
+                Data = JsonSerializer.Deserialize<ConfigFileData>(configFile) ?? throw new JsonException("Config file could not be parsed.");
 
                 // Errors can be ignored. If a configuration value that could not be loaded is requested from outside this class, an excpetion is thrown. See CriticalConfigValueLoaded()
 

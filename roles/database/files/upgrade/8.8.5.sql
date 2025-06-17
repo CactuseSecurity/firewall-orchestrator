@@ -1,3 +1,6 @@
+ALTER TYPE rule_field_enum ADD VALUE IF NOT EXISTS 'modelled_source';
+ALTER TYPE rule_field_enum ADD VALUE IF NOT EXISTS 'modelled_destination';
+
 -- rename changes_found column to rule_changes_found in import_control table
 DO $$
 BEGIN

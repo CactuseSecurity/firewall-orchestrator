@@ -109,7 +109,7 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
                                     global_state.normalized_config = config
 
                                     configImporter = FwConfigImport()
-                                    configChecker = FwConfigImportCheckConsistency(configImporter, configImporter.fw_config_import_object)
+                                    configChecker = FwConfigImportCheckConsistency(configImporter)
                                     if len(configChecker.checkConfigConsistency())==0:
                                         configImporter.importConfig()
                                         if importState.Stats.ErrorCount>0:
@@ -227,7 +227,7 @@ def rollBackExceptionHandler(importState, configImporter=None, exc=None, errorTe
             else:
                 logger.error(f"Exception: no exception provided")
         if 'configImporter' in locals() and configImporter is not None:
-            FwConfigImportRollback(configImporter).rollbackCurrentImport()
+            FwConfigImportRollback().rollbackCurrentImport()
         else:
             logger.info("No configImporter found, skipping rollback.")
         fwo_api.delete_import(importState) # delete whole import

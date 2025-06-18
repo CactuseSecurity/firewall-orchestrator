@@ -10,12 +10,12 @@ from model_controllers.fwconfig_import_object import FwConfigImportObject
 class FwConfigImportCheckConsistency(FwConfigImport):
     
 
-    def __init__(self, config: FwConfigImport, fwconfig_import_object: FwConfigImportObject):
+    def __init__(self, config: FwConfigImport):
         self.ImportDetails = config.ImportDetails
         self.NormalizedConfig = config.NormalizedConfig
-        self.NetworkObjectTypeMap = fwconfig_import_object.NetworkObjectTypeMap
-        self.ServiceObjectTypeMap = fwconfig_import_object.ServiceObjectTypeMap
-        self.UserObjectTypeMap = fwconfig_import_object.UserObjectTypeMap
+        self.NetworkObjectTypeMap = config.fwconfig_import_object.NetworkObjectTypeMap
+        self.ServiceObjectTypeMap = config.fwconfig_import_object.ServiceObjectTypeMap
+        self.UserObjectTypeMap = config.fwconfig_import_object.UserObjectTypeMap
 
         
     # pre-flight checks

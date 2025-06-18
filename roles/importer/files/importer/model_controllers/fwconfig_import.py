@@ -10,9 +10,10 @@ from fwo_base import ConfigAction, ConfFormat
 from models.fwconfig_normalized import FwConfigNormalized
 from model_controllers.fwconfig_import_object import FwConfigImportObject
 from model_controllers.fwconfig_import_rule import FwConfigImportRule
-from model_controllers.fwconfig_import_gateway import update_gateway_diffs
+from model_controllers.fwconfig_import_gateway import FwConfigImportGateway
 from model_controllers.rule_enforced_on_gateway_controller import RuleEnforcedOnGatewayController
 from services.service_provider import ServiceProvider
+from services.global_state import GlobalState
 from services.enums import Services
 
 
@@ -21,47 +22,57 @@ class FwConfigImport():
 
     ImportDetails: ImportStateController
     NormalizedConfig: FwConfigNormalized
-    fw_config_import_rule: FwConfigImportRule
-    fw_config_import_object: FwConfigImportObject
+
+    _fw_config_import_rule: FwConfigImportRule
+    _fw_config_import_object: FwConfigImportObject
+    _fw_config_import_gateway: FwConfigImportGateway
+    _global_state: GlobalState
+
+    @property
+    def fwconfig_import_object(self):
+        return self._fw_config_import_object
 
     def __init__(self):
         service_provider = ServiceProvider()
-        global_state = service_provider.get_service(Services.GLOBAL_STATE)
+        self._global_state = service_provider.get_service(Services.GLOBAL_STATE)
 
-        self.ImportDetails = global_state.import_state
-        self.NormalizedConfig = global_state.normalized_config
+        self.ImportDetails = self._global_state.import_state
+        self.NormalizedConfig = self._global_state.normalized_config
 
-        self.fw_config_import_object = FwConfigImportObject()
-        self.fw_config_import_rule = FwConfigImportRule()
+        self._fw_config_import_object = FwConfigImportObject()
+        self._fw_config_import_rule = FwConfigImportRule()
+        self._fw_config_import_gateway = FwConfigImportGateway()
+
         
     def importConfig(self):
         # current implementation restriction: assuming we always get the full config (only inserts) from API
         previousConfig = self.getPreviousConfig()
+        self._global_state.previous_config = previousConfig
         # calculate differences and write them to the database via API
         self.updateDiffs(previousConfig)
         return
 
     def updateDiffs(self, previousConfig: FwConfigNormalized):
-        self.fw_config_import_object.updateObjectDiffs(previousConfig)
+        self._fw_config_import_object.updateObjectDiffs(previousConfig)
         if fwo_globals.shutdown_requested:
             # self.ImportDetails.addError("shutdown requested, aborting import")
             raise ImportInterruption("Shutdown requested during updateObjectDiffs.")
 
-        newRuleIds = self.fw_config_import_rule.updateRulebaseDiffs(previousConfig)
+        newRuleIds = self._fw_config_import_rule.updateRulebaseDiffs(previousConfig)
 
         if fwo_globals.shutdown_requested:
             # self.ImportDetails.addError("shutdown requested, aborting import")
             raise ImportInterruption("Shutdown requested during updateRulebaseDiffs.")
 
         self.ImportDetails.SetRuleMap() # update all rule entries (from currently running import for rulebase_links)
-        update_gateway_diffs(previousConfig, self.ImportDetails, self.NormalizedConfig)
+        self._fw_config_import_gateway.update_gateway_diffs()
 
         # raise NotImplementedError("just testing")
 
         # get new rules details from API (for obj refs as well as enforcing gateways)
-        errors, changes, newRules = self.fw_config_import_rule.getRulesByIdWithRefUids(newRuleIds)
+        errors, changes, newRules = self._fw_config_import_rule.getRulesByIdWithRefUids(newRuleIds)
 
-        self.fw_config_import_rule.addNewRule2ObjRefs(newRules)
+        self._fw_config_import_rule.addNewRule2ObjRefs(newRules)
         #TODO: self.addNewRule2SvcRefs(newRules)
 
         enforcingController = RuleEnforcedOnGatewayController(self.ImportDetails)

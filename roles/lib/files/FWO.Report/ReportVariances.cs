@@ -41,7 +41,7 @@ namespace FWO.Report
 
         public static OwnerReport CollectObjectsInReport(OwnerReport ownerReport)
         {
-            OwnerReport modifiedOwnerReport = new(){ Connections = new(ownerReport.Connections) };
+            OwnerReport modifiedOwnerReport = new(){ Connections = [.. ownerReport.Connections] };
             modifiedOwnerReport.Connections.AddRange(ownerReport.RuleDifferences.ConvertAll(o => o.ModelledConnection));
             if(ownerReport.MissingAppRoles.Count > 0 || ownerReport.DifferingAppRoles.Count > 0)
             {
@@ -113,7 +113,7 @@ namespace FWO.Report
                 {
                     if(ownerReport.MissingAppRoles[mgt].Count > 0)
                     {
-                        report.AppendLine($"<h5 id=\"{Guid.NewGuid()}\">{ownerReport.MissingAppRoles[mgt].First().ManagementName}</h5>");
+                        report.AppendLine($"<h5 id=\"{Guid.NewGuid()}\">{ownerReport.MissingAppRoles[mgt][0].ManagementName}</h5>");
                         AppendAppRolesHtml(ownerReport.MissingAppRoles[mgt], chapterNumber, ref report);
                     }
                 }
@@ -130,7 +130,7 @@ namespace FWO.Report
                 {
                     if(ownerReport.DifferingAppRoles[mgt].Count > 0)
                     {
-                        report.AppendLine($"<h5 id=\"{Guid.NewGuid()}\">{ownerReport.DifferingAppRoles[mgt].First().ManagementName}</h5>");
+                        report.AppendLine($"<h5 id=\"{Guid.NewGuid()}\">{ownerReport.DifferingAppRoles[mgt][0].ManagementName}</h5>");
                         AppendAppRolesHtml(ownerReport.DifferingAppRoles[mgt], chapterNumber, ref report, true, true);
                     }
                 }

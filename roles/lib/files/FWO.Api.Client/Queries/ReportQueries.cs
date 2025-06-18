@@ -61,8 +61,10 @@ namespace FWO.Api.Client.Queries
                 deleteGeneratedReport = File.ReadAllText(QueryPath + "report/deleteGeneratedReport.graphql");
                 addGeneratedReport = File.ReadAllText(QueryPath + "report/addGeneratedReport.graphql");
                 getUsageDataCount = File.ReadAllText(QueryPath + "report/getUsageDataCount.graphql");
-                getImportsToNotify = File.ReadAllText(QueryPath + "report/getImportsToNotify.graphql");
-                setImportsNotified = File.ReadAllText(QueryPath + "report/setImportsNotified.graphql");
+                // note: currently we only check for rule changes, but this should be extended to other changes in the future
+                // getImportsToNotify = File.ReadAllText(QueryPath + "report/getImportsToNotifyForAnyChanges.phql");
+                getImportsToNotify = File.ReadAllText(QueryPath + "report/getImportsToNotifyForRuleChanges.graphql");
+
             }
             catch (Exception exception)
             {

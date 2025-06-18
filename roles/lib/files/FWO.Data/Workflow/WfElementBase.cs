@@ -5,10 +5,12 @@ namespace FWO.Data.Workflow
 {
     public enum ElemFieldType
     {
-        source, 
-        destination, 
+        source,
+        destination,
         service,
-        rule
+        rule,
+        modelled_source,
+        modelled_destination
     }
 
     public class WfElementBase

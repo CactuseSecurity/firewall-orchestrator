@@ -16,7 +16,7 @@ query getRelevantImportIdsAtTime(
     import: import_controls_aggregate(where: {
       stop_time: {_lte: $time}
       successful_import: {_eq: true}
-      changes_found: {_eq: $changesFound}
+      any_changes_found: {_eq: $changesFound}
     }) {
       aggregate {
         max {

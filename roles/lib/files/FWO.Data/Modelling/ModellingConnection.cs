@@ -119,19 +119,19 @@ namespace FWO.Data.Modelling
         public bool InterfaceIsRejected { get; set; } = false;
 
         public int OrderNumber { get; set; } = 0;
-        public Dictionary<string, string>? Props;
+        public Dictionary<string, string>? Props { get; set; }
         public List<ModellingExtraConfig> ExtraConfigs
         {  
-            get => ExtraParams != null && ExtraParams != "" ? System.Text.Json.JsonSerializer.Deserialize<List<ModellingExtraConfig>>(ExtraParams) ?? throw new Exception("ExtraParams could not be parsed.") : [];
+            get => ExtraParams != null && ExtraParams != "" ? System.Text.Json.JsonSerializer.Deserialize<List<ModellingExtraConfig>>(ExtraParams) ?? throw new JsonException("ExtraParams could not be parsed.") : [];
             set
             {
                 if(value != null)
                 {
-                    ExtraParams = System.Text.Json.JsonSerializer.Serialize(value) ?? throw new Exception("value could not be parsed.");
+                    ExtraParams = System.Text.Json.JsonSerializer.Serialize(value) ?? throw new JsonException("value could not be parsed.");
                 }
             }
         }
-        public List<ModellingExtraConfig> ExtraConfigsFromInterface = [];
+        public List<ModellingExtraConfig> ExtraConfigsFromInterface { get; set; } = [];
         public bool ProdRuleFound { get; set; } = false;
 
 
@@ -216,6 +216,17 @@ namespace FWO.Data.Modelling
             return DestinationAppServers.Count > 0 || DestinationAppRoles.Count > 0 || DestinationAreas.Count > 0 || DestinationOtherGroups.Count > 0;
         }
 
+        public bool IsRelevantForVarianceAnalysis(long dummyAppRoleId)
+        {
+            return !(IsInterface ||
+                IsDocumentationOnly() ||
+                GetBoolProperty(ConState.InterfaceRequested.ToString()) ||
+                GetBoolProperty(ConState.InterfaceRejected.ToString()) || 
+                EmptyAppRolesFound(dummyAppRoleId) ||
+                DeletedObjectsFound() ||
+                EmptyServiceGroupsFound());
+        }
+
         public void AddProperty(string key, string value = "")
         {
             InitProps();
@@ -233,10 +244,22 @@ namespace FWO.Data.Modelling
             Properties = System.Text.Json.JsonSerializer.Serialize(Props);
         }
 
+        public void UpdateProperty(string key, bool condition)
+        {
+            if (condition)
+            {
+                AddProperty(key);
+            }
+            else
+            {
+                RemoveProperty(key);
+            }
+        }
+
         public string GetStringProperty(string prop)
         {
             InitProps();
-            if(Props != null && Props.Count > 0 && Props.TryGetValue(prop, out string? value))
+            if (Props != null && Props.Count > 0 && Props.TryGetValue(prop, out string? value))
             {
                 return value;
             }
@@ -254,86 +277,55 @@ namespace FWO.Data.Modelling
         {
             if(IsInterface)
             {
-                if(!GetBoolProperty(ConState.Rejected.ToString()))
-                {
-                    if(!IsPublished && IsRequested)
-                    {
-                        AddProperty(ConState.Requested.ToString());
-                    }
-                    else
-                    {
-                        RemoveProperty(ConState.Requested.ToString());
-                    }
-                }
+                SyncInterface();
             }
             else if(UsedInterfaceId != null)
             {
-                if(InterfaceIsRejected)
-                {
-                    RemoveProperty(ConState.InterfaceRequested.ToString());
-                    AddProperty(ConState.InterfaceRejected.ToString());
-                }
-                else if(InterfaceIsRequested)
-                {
-                    AddProperty(ConState.InterfaceRequested.ToString());
-                }
-                else
-                {
-                    RemoveProperty(ConState.InterfaceRequested.ToString());
-                }
+                SyncInterfaceUser();
             }
-            if(EmptyAppRolesFound(dummyAppRoleId))
-            {
-                AddProperty(ConState.EmptyAppRoles.ToString());
-            }
-            else
-            {
-                RemoveProperty(ConState.EmptyAppRoles.ToString());
-            }
-            if(DeletedObjectsFound())
-            {
-                AddProperty(ConState.DeletedObjects.ToString());
-            }
-            else
-            {
-                RemoveProperty(ConState.DeletedObjects.ToString());
-            }
+            SyncMemberIssues(dummyAppRoleId);
+            UpdateProperty(ConState.DocumentationOnly.ToString(), IsDocumentationOnly());
+        }
 
-            if (EmptyServiceGroupsFound())
+        private void SyncInterface()
+        {
+            if (!GetBoolProperty(ConState.Rejected.ToString()))
             {
-                AddProperty(ConState.EmptySvcGrps.ToString());
+                UpdateProperty(ConState.Requested.ToString(), !IsPublished && IsRequested);
+            }
+        }
+
+        private void SyncInterfaceUser()
+        {
+            if (InterfaceIsRejected)
+            {
+                RemoveProperty(ConState.InterfaceRequested.ToString());
+                AddProperty(ConState.InterfaceRejected.ToString());
             }
             else
             {
-                RemoveProperty(ConState.EmptySvcGrps.ToString());
+                UpdateProperty(ConState.InterfaceRequested.ToString(), InterfaceIsRequested);
             }
-            if(IsDocumentationOnly())
-            {
-                AddProperty(ConState.DocumentationOnly.ToString());
-            }
-            else
-            {
-                RemoveProperty(ConState.DocumentationOnly.ToString());
-            }
+        }
+
+        private void SyncMemberIssues(long dummyAppRoleId)
+        {
+            UpdateProperty(ConState.EmptyAppRoles.ToString(), EmptyAppRolesFound(dummyAppRoleId));
+            UpdateProperty(ConState.DeletedObjects.ToString(), DeletedObjectsFound());
+            UpdateProperty(ConState.EmptySvcGrps.ToString(), EmptyServiceGroupsFound());
+        }
+
+        public void CleanUpVarianceResults()
+        {
+            RemoveProperty(ConState.VarianceChecked.ToString());
+            RemoveProperty(ConState.VarianceFound.ToString());
+            RemoveProperty(ConState.NotImplemented.ToString());
         }
 
         public bool EmptyAppRolesFound(long dummyAppRoleId)
         {
-            foreach(var appRole in SourceAppRoles)
-            {
-                if(appRole.Content.Id != dummyAppRoleId && appRole.Content.AppServers.Count == 0)
-                {
-                    return true;
-                }
-            }
-            foreach(var appRole in DestinationAppRoles)
-            {
-                if(appRole.Content.Id != dummyAppRoleId && appRole.Content.AppServers.Count == 0)
-                {
-                    return true;
-                }
-            }
-            return false;
+            return SourceAppRoles.Any(a => a.Content.Id != dummyAppRoleId && a.Content.AppServers.Count == 0) ||
+                DestinationAppRoles.Any(a => a.Content.Id != dummyAppRoleId && a.Content.AppServers.Count == 0);
         }
 
         public bool EmptyServiceGroupsFound() 
@@ -355,55 +347,12 @@ namespace FWO.Data.Modelling
 
         public bool DeletedObjectsFound()
         {
-            foreach(var area in SourceAreas)
-            {
-                if(area.Content.IsDeleted)
-                {
-                    return true;
-                }
-            }
-            foreach(var area in DestinationAreas)
-            {
-                if(area.Content.IsDeleted)
-                {
-                    return true;
-                }
-            }
-            foreach(var appRole in SourceAppRoles)
-            {
-                foreach(var appServer in appRole.Content.AppServers)
-                {
-                    if(appServer.Content.IsDeleted)
-                    {
-                        return true;
-                    }
-                }
-            }
-            foreach(var appRole in DestinationAppRoles)
-            {
-                foreach(var appServer in appRole.Content.AppServers)
-                {
-                    if(appServer.Content.IsDeleted)
-                    {
-                        return true;
-                    }
-                }
-            }
-            foreach(var appServer in SourceAppServers)
-            {
-                if(appServer.Content.IsDeleted)
-                {
-                    return true;
-                }
-            }
-            foreach(var appServer in DestinationAppServers)
-            {
-                if(appServer.Content.IsDeleted)
-                {
-                    return true;
-                }
-            }
-            return false;
+            return SourceAreas.Any(a => a.Content.IsDeleted) ||
+                DestinationAreas.Any(a => a.Content.IsDeleted) ||
+                SourceAppRoles.Any(aR => aR.Content.AppServers.Any(a => a.Content.IsDeleted)) ||
+                DestinationAppRoles.Any(aR => aR.Content.AppServers.Any(a => a.Content.IsDeleted)) ||
+                SourceAppServers.Any(a => a.Content.IsDeleted) ||
+                DestinationAppServers.Any(a => a.Content.IsDeleted);
         }
 
         public Rule ToRule()

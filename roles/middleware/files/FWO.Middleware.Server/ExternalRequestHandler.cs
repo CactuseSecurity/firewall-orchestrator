@@ -7,7 +7,8 @@ using FWO.Data.Modelling;
 using FWO.Data.Workflow;
 using FWO.Logging;
 using FWO.Services;
-using FWO.Tufin.SecureChange;
+using FWO.ExternalSystems;
+using FWO.ExternalSystems.Tufin.SecureChange;
 using System.Text.Json;
 
 
@@ -44,9 +45,12 @@ namespace FWO.Middleware.Server
 		/// <summary>
 		/// constructor only for unit testing
 		/// </summary>
-		public ExternalRequestHandler(UserConfig userConfig)
+		public ExternalRequestHandler(UserConfig userConfig, ApiConnection apiConnection, List<UserGroup>? userGroups)
 		{
+			ApiConnection = apiConnection;
 			UserConfig = userConfig;
+			extStateHandler = new(apiConnection);
+			wfHandler = new (LogMessage, userConfig, apiConnection, WorkflowPhases.request, userGroups);
 		}
 
 		/// <summary>
@@ -85,35 +89,28 @@ namespace FWO.Middleware.Server
 		/// </summary>
 		public async Task HandleStateChange(ExternalRequest externalRequest)
 		{
-			try
+			WfTicket? intTicket = await InitAndResolve(externalRequest.TicketId);
+			if(intTicket == null)
 			{
-				WfTicket? intTicket = await InitAndResolve(externalRequest.TicketId);
-				if(intTicket == null)
+				Log.WriteError("External Request Update", $"Ticket not found.");
+			}
+			else
+			{
+				wfHandler.SetTicketEnv(intTicket);
+				await UpdateTicket(intTicket, externalRequest);
+				if(extStateHandler != null && extStateHandler.GetInternalStateId(externalRequest.ExtRequestState) >= wfHandler.ActStateMatrix.LowestEndState)
 				{
-					Log.WriteError("External Request Update", $"Ticket not found.");
-				}
-				else
-				{
-					wfHandler.SetTicketEnv(intTicket);
-					await UpdateTicket(intTicket, externalRequest);
-					if(extStateHandler != null && extStateHandler.GetInternalStateId(externalRequest.ExtRequestState) >= wfHandler.ActStateMatrix.LowestEndState)
+					await Acknowledge(externalRequest);
+					if(externalRequest.ExtRequestState == ExtStates.ExtReqRejected.ToString())
 					{
-						await Acknowledge(externalRequest);
-						if(externalRequest.ExtRequestState == ExtStates.ExtReqRejected.ToString())
-						{
-							await RejectFollowingTasks(intTicket, externalRequest.TaskNumber);
-							Log.WriteInfo($"External Request {externalRequest.Id} rejected", $"Reject Following Tasks for internal ticket {intTicket.Id}");
-						}
-						else
-						{
-							await CreateNextRequest(intTicket, externalRequest.TaskNumber, externalRequest);
-						}
+						await RejectFollowingTasks(intTicket, externalRequest.TaskNumber);
+						Log.WriteInfo($"External Request {externalRequest.Id} rejected", $"Reject Following Tasks for internal ticket {intTicket.Id}");
+					}
+					else
+					{
+						await CreateNextRequest(intTicket, externalRequest.TaskNumber, externalRequest);
 					}
 				}
-			}
-			catch(Exception exception)
-			{
-				Log.WriteError("External Request Update", $"Runs into exception: ", exception);
 			}
 		}
 
@@ -166,7 +163,7 @@ namespace FWO.Middleware.Server
 		private async Task GetInternalGroups()
 		{
 			List<Ldap> connectedLdaps = await ApiConnection.SendQueryAsync<List<Ldap>>(AuthQueries.getLdapConnections);
-			Ldap internalLdap = connectedLdaps.FirstOrDefault(x => x.IsInternal() && x.HasGroupHandling()) ?? throw new Exception("No internal Ldap with group handling found.");
+			Ldap internalLdap = connectedLdaps.FirstOrDefault(x => x.IsInternal() && x.HasGroupHandling()) ?? throw new KeyNotFoundException("No internal Ldap with group handling found.");
 
 			List<GroupGetReturnParameters> allGroups = await internalLdap.GetAllInternalGroups();
 			ownerGroups = [];
@@ -203,7 +200,7 @@ namespace FWO.Middleware.Server
 			extQueryVarDict?.TryGetValue(ExternalVarKeys.BundledTasks, out taskNumbers);
 			if(taskNumbers != null && taskNumbers.Count > 0)
 			{
-				return taskNumbers.Last();
+				return taskNumbers[^1];
 			}
 			else
 			{
@@ -211,7 +208,15 @@ namespace FWO.Middleware.Server
 			}
 		}
 
-		private async Task<bool> CreateNextRequest(WfTicket ticket, int oldTaskNumber, ExternalRequest? oldRequest = null)
+		/// <summary>
+		/// create next external request from internal ticket task list (public only for unit testing)
+		/// </summary>
+		/// <param name="ticket"></param>
+		/// <param name="oldTaskNumber"></param>
+		/// <param name="oldRequest"></param>
+		/// <returns></returns>
+
+		public async Task<bool> CreateNextRequest(WfTicket ticket, int oldTaskNumber, ExternalRequest? oldRequest = null)
 		{
 			int lastTaskNumber = UserConfig.ModRolloutBundleTasks && oldRequest != null && oldRequest.ExtQueryVariables != "" ?
 				GetLastTaskNumber(oldRequest.ExtQueryVariables, oldTaskNumber) : oldTaskNumber;
@@ -224,37 +229,47 @@ namespace FWO.Middleware.Server
 			else
 			{
 				int waitCycles = GetWaitCycles(nextTask.TaskType, oldRequest);
-				if(UserConfig.ModRolloutBundleTasks && nextTask.TaskType == WfTaskType.access.ToString())
+				if(nextTask.TaskType == WfTaskType.access.ToString() || nextTask.TaskType == WfTaskType.rule_modify.ToString() || nextTask.TaskType == WfTaskType.rule_delete.ToString())
 				{
-					// todo: bundle also other task types?
-					// If the API is called to open a ticket for a SecureApp application with more than 100 ARs,
-					// it must be split into multiple tickets of up to 100 ARs each.
-
 					List<WfReqTask> bundledTasks = [nextTask];
-					int actTaskNumber = lastTaskNumber + 2;
-					bool taskFound = true;
-					while(taskFound && bundledTasks.Count < 100)
-					{
-						WfReqTask? furtherTask = ticket.Tasks.FirstOrDefault(ta => ta.TaskNumber == actTaskNumber);
-						if(furtherTask != null && furtherTask.TaskType == WfTaskType.access.ToString())
-						{
-							bundledTasks.Add(furtherTask);
-							actTaskNumber++;
-						}
-						else
-						{
-							taskFound = false;
-						}
-					}
-					await CreateExtRequest(ticket, bundledTasks, waitCycles);
+					List<WfReqTask> handledTasks = [nextTask];
+					BundleTasks(ticket, lastTaskNumber, nextTask, bundledTasks, handledTasks);
+					await CreateExtRequest(ticket, bundledTasks, handledTasks, waitCycles);
 				}
 				else
 				{
-					await CreateExtRequest(ticket, [nextTask], waitCycles);
+					await CreateExtRequest(ticket, [nextTask], [nextTask], waitCycles);
 				}
 			}
 			Log.WriteInfo("CreateNextRequest", $"Created Request for ticket {ticket.Id}.");
 			return true;
+		}
+
+		private void BundleTasks(WfTicket ticket, int lastTaskNumber, WfReqTask nextTask, List<WfReqTask> bundledTasks, List<WfReqTask> handledTasks)
+		{
+			int actTaskNumber = lastTaskNumber + 2;
+			bool taskFound = true;
+			while(taskFound && bundledTasks.Count < actSystem.MaxBundledTasks())
+			{
+				WfReqTask? furtherTask = ticket.Tasks.FirstOrDefault(ta => ta.TaskNumber == actTaskNumber);
+				if(furtherTask != null && furtherTask.TaskType == nextTask.TaskType)
+				{
+					if(actSystem.BundleGateways() && actSystem.TaskTypesToBundleGateways().Contains(nextTask.TaskType) && IsSameRuleOnDiffGw(nextTask, furtherTask))
+					{
+						nextTask.Elements.AddRange(furtherTask.GetRuleElements().ConvertAll(e => e.ToReqElement()));
+					}
+					else if(UserConfig.ModRolloutBundleTasks)
+					{
+						bundledTasks.Add(furtherTask);
+					}
+					handledTasks.Add(furtherTask);
+					actTaskNumber++;
+				}
+				else
+				{
+					taskFound = false;
+				}
+			}
 		}
 
 		/// <summary>
@@ -279,21 +294,27 @@ namespace FWO.Middleware.Server
 			return 0;
 		}
 
+		private static bool IsSameRuleOnDiffGw(WfReqTask? task1, WfReqTask? task2)
+		{
+			return task1 != null && task2 != null && task1.ManagementId == task2.ManagementId &&
+				task1.GetAddInfoIntValue(AdditionalInfoKeys.ConnId) == task2.GetAddInfoIntValue(AdditionalInfoKeys.ConnId);
+		}
+
 		private static bool ContainsNewObj(string contentString)
 		{
 			return contentString.Contains("\"object_updated_status\": \"NEW\"") || contentString.Contains("object_updated_status\\u0022: \\u0022NEW\\u0022") ||
 				contentString.Contains("\"object_updated_status\":\"NEW\"") || contentString.Contains("object_updated_status\\u0022:\\u0022NEW\\u0022");
 		}
 
-		private async Task CreateExtRequest( WfTicket ticket, List<WfReqTask> tasks, int waitCycles)
+		private async Task CreateExtRequest(WfTicket ticket, List<WfReqTask> tasks, List<WfReqTask> handledTasks, int waitCycles)
 		{
 			string taskContent = await ConstructContent(tasks, ticket.Requester);
-			Dictionary<string, List<int>>? bundledTasks;
+			Dictionary<string, List<int>>? handledTaskNumbers;
 			string? extQueryVars = null;
-			if(tasks.Count > 1)
+			if(handledTasks.Count > 1)
 			{
-				bundledTasks = new() { {ExternalVarKeys.BundledTasks, tasks.ConvertAll(t => t.TaskNumber)} };
-				extQueryVars = JsonSerializer.Serialize(bundledTasks);
+				handledTaskNumbers = new() { {ExternalVarKeys.BundledTasks, handledTasks.ConvertAll(t => t.TaskNumber)} };
+				extQueryVars = JsonSerializer.Serialize(handledTaskNumbers);
 			}
 			
 			var Variables = new
@@ -309,7 +330,7 @@ namespace FWO.Middleware.Server
 				waitCycles = waitCycles
 			};
 			await ApiConnection.SendQueryAsync<ReturnIdWrapper>(ExtRequestQueries.addExtRequest, Variables);
-			await LogRequestTasks(tasks, ticket.Requester?.Name, ModellingTypes.ChangeType.Request);
+			await LogRequestTasks(handledTasks, ticket.Requester?.Name, ModellingTypes.ChangeType.Request);
 		}
 
 		private async Task RejectFollowingTasks(WfTicket ticket, int lastTaskNumber)
@@ -337,12 +358,12 @@ namespace FWO.Middleware.Server
 			List<ExternalTicketSystem> extTicketSystems = JsonSerializer.Deserialize<List<ExternalTicketSystem>>(UserConfig.ExtTicketSystems) ?? [];
 			if(extTicketSystems.Count > 0)
 			{
-				extSystemType = extTicketSystems.First().Type;
-				actSystem = extTicketSystems.First();
+				extSystemType = extTicketSystems[0].Type;
+				actSystem = extTicketSystems[0];
 			}
 			else
 			{
-				throw new Exception("No external ticket system defined.");
+				throw new InvalidOperationException("No external ticket system defined.");
 			}
 		}
 
@@ -353,20 +374,20 @@ namespace FWO.Middleware.Server
 			{
 				ticket = new SCTicket(actSystem)
 				{
-					Subject = ConstructSubject(reqTasks.First()),
+					Subject = ConstructSubject(reqTasks.Count > 0 ? reqTasks[0] : throw new ArgumentException("No Task given")),
 					Priority = SCTicketPriority.Low.ToString(), // todo: handling for manually handled requests (e.g. access)
 					Requester = requester?.Name ?? ""
 				};
 			}
 			else
 			{
-				throw new Exception("Ticket system not supported yet");
+				throw new NotSupportedException("Ticket system not supported yet");
 			}
 			if(ticket != null)
 			{
 				ModellingNamingConvention? namingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(UserConfig.ModNamingConvention);
 				await ticket.CreateRequestString(reqTasks, ipProtos, namingConvention);
-				actTaskType = ticket.GetTaskTypeAsString(reqTasks.First());
+				actTaskType = ticket.GetTaskTypeAsString(reqTasks[0]);
 				return JsonSerializer.Serialize(ticket);
 			}
 			return "";
@@ -374,12 +395,14 @@ namespace FWO.Middleware.Server
 
 		private string ConstructSubject(WfReqTask reqTask)
 		{
-			string appId = reqTask != null && reqTask?.Owners.Count > 0 ? reqTask?.Owners.FirstOrDefault()?.Owner.ExtAppId + ": " ?? "" : "";
-			string onMgt = UserConfig.GetText("on") + reqTask?.OnManagement?.Name + "(" + reqTask?.OnManagement?.Id + ")";
-			string grpName = " " + reqTask?.GetAddInfoValue(AdditionalInfoKeys.GrpName);
-            return appId + reqTask?.TaskType switch
+			string appId = reqTask.Owners.Count > 0 ? (reqTask.Owners.FirstOrDefault()?.Owner.ExtAppId ?? "") : "";
+			string onMgt = UserConfig.GetText("on") + reqTask.OnManagement?.Name + "(" + reqTask.OnManagement?.Id + ")";
+			string grpName = " " + reqTask.GetAddInfoValue(AdditionalInfoKeys.GrpName);
+            return (appId != "" ? appId + ": " : "") + reqTask.TaskType switch
             {
                 nameof(WfTaskType.access) => UserConfig.GetText("create_rule") + onMgt,
+				nameof(WfTaskType.rule_modify) => UserConfig.GetText("modify_rule") + onMgt,
+				nameof(WfTaskType.rule_delete) => UserConfig.GetText("remove_rule") + onMgt,
                 nameof(WfTaskType.group_create) => UserConfig.GetText("create_group") + grpName + onMgt,
                 nameof(WfTaskType.group_modify) => UserConfig.GetText("modify_group") + grpName + onMgt,
                 nameof(WfTaskType.group_delete) => UserConfig.GetText("delete_group") + grpName + onMgt,
@@ -429,7 +452,7 @@ namespace FWO.Middleware.Server
 			if(extStateHandler != null && reqTask.StateId != extStateHandler.GetInternalStateId(extReqState))
 			{
 				wfHandler.SetReqTaskEnv(reqTask);
-				reqTask.StateId = extStateHandler.GetInternalStateId(extReqState) ?? throw new Exception("No translation defined for external state.");
+				reqTask.StateId = extStateHandler.GetInternalStateId(extReqState) ?? throw new ArgumentException("No translation defined for external state.");
 				await wfHandler.PromoteReqTask(reqTask);
 			}
 		}
@@ -493,7 +516,7 @@ namespace FWO.Middleware.Server
             };
         }
 
-		private void LogMessage(Exception? exception = null, string title = "", string message = "", bool ErrorFlag = false)
+		private static void LogMessage(Exception? exception = null, string title = "", string message = "", bool ErrorFlag = false)
         {
             if (exception == null)
             {

@@ -116,7 +116,7 @@ else
         try
         {
             configData = await globalConfig.GetEditableConfig();
-            availableReportTypes = JsonSerializer.Deserialize<List<ReportType>>(string.IsNullOrEmpty(configData.AvailableReportTypes) ? "[]" : configData.AvailableReportTypes) ?? throw new Exception("Config data could not be parsed.");
+            availableReportTypes = JsonSerializer.Deserialize<List<ReportType>>(string.IsNullOrEmpty(configData.AvailableReportTypes) ? "[]" : configData.AvailableReportTypes) ?? throw new JsonException("Config data could not be parsed.");
             reportTypesActiveDict = [];
             foreach(ReportType type in Enum.GetValues(typeof(ReportType)))
             {
@@ -150,7 +150,7 @@ else
             }
             else
             {
-                throw new Exception("Data saved before loaded. This should be impossible.");
+                throw new ArgumentException("Data saved before loaded. This should be impossible.");
             }
         }
         catch (Exception exception)

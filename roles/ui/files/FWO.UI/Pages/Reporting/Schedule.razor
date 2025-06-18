@@ -10,7 +10,7 @@
 
 <ReportTabset/>
 
-<button type="button" class="btn btn-sm btn-success mb-1" @onclick="() => { reportScheduleInEdit = new ReportSchedule() { RepeatInterval = Interval.Never }; ShowAddReportScheduleDialog = true; }">@(userConfig.GetText("add"))</button>
+<button type="button" class="btn btn-sm btn-success mb-1" @onclick="() => { reportScheduleInEdit = new ReportSchedule() { RepeatInterval = SchedulerInterval.Never }; ShowAddReportScheduleDialog = true; }">@(userConfig.GetText("add"))</button>
 
 <div class="vheight75">
     <Table TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="ReportSchedule" Items="reportSchedules" PageSize="0">
@@ -34,7 +34,7 @@
         </Column>
         <Column TableItem="ReportSchedule" Title="@(userConfig.GetText("repeat_interval"))" Field="@(reportSchedule => reportSchedule.RepeatOffset)">
             <Template>
-                @(context.RepeatInterval != Interval.Never ? context.RepeatOffset : "") @(userConfig.GetText(context.RepeatInterval.ToString()))
+                @(context.RepeatInterval != SchedulerInterval.Never ? context.RepeatOffset : "") @(userConfig.GetText(context.RepeatInterval.ToString()))
             </Template>
         </Column>
         <Column TableItem="ReportSchedule" Title="@(userConfig.GetText("template"))" Field="@(reportSchedule => reportSchedule.Template.Name)" Sortable="true" Filterable="true"/>
@@ -81,7 +81,8 @@
                     <input id="scheduleRepeatEvery" type="number" min="1" class="form-control form-control-sm" @bind="reportScheduleInEdit.RepeatOffset" />
                 </div>
                 <div class="col-sm-5">
-                    <Dropdown @bind-SelectedElement="reportScheduleInEdit.RepeatInterval" ElementToString="@(i => userConfig.GetText(i.ToString()))" Elements="Enum.GetValues(typeof(Interval)).Cast<Interval>()" >
+                    <Dropdown @bind-SelectedElement="reportScheduleInEdit.RepeatInterval" ElementToString="@(i => userConfig.GetText(i.ToString()))"
+                            Elements="Enum.GetValues(typeof(SchedulerInterval)).Cast<SchedulerInterval>().Where(x => x.OfferedForReportOrNever())" >
                         <ElementTemplate Context="interval">
                             @(userConfig.GetText(interval.ToString()))
                         </ElementTemplate>

@@ -1,4 +1,6 @@
-﻿using Newtonsoft.Json;
+﻿using FWO.Basics;
+using FWO.Data.Workflow;
+using Newtonsoft.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -50,6 +52,33 @@ namespace FWO.Data
 
 		[JsonProperty(nameof(CyclesBetweenAttempts)), JsonPropertyName(nameof(CyclesBetweenAttempts))]
 		public int CyclesBetweenAttempts { get; set; } = 5;
+
+		public int MaxBundledTasks()
+		{
+			return Type switch
+			{
+				ExternalTicketSystemType.TufinSecureChange => SCConstants.SCMaxBundledTasks,
+                _ => 1
+			};
+		}
+
+		public bool BundleGateways()
+		{
+			return Type switch
+			{
+				ExternalTicketSystemType.TufinSecureChange => SCConstants.SCBundleGateways,
+                _ => false
+			};
+		}
+		
+		public List<string> TaskTypesToBundleGateways()
+		{
+			return Type switch
+			{
+				ExternalTicketSystemType.TufinSecureChange => [WfTaskType.rule_modify.ToString(), WfTaskType.rule_delete.ToString()],
+                _ => []
+			};
+		}
 
 		public bool Sanitize()
         {

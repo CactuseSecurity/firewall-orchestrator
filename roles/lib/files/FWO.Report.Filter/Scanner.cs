@@ -1,20 +1,17 @@
+using FWO.Basics.Exceptions;
 using FWO.Report.Filter.Exceptions;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net.Http.Headers;
+using System.Text;
 
 namespace FWO.Report.Filter
 {
     public class Scanner
     {
-        private string input;
-        private int position;
-        private const int lookAhead = 1;
+        private readonly string input;
+        private int position = 0;
 
-        private static Dictionary<string, TokenKind> whitespaceTokens = new Dictionary<string, TokenKind>();
-        private static Dictionary<string, TokenKind> noWhitespaceTokens = new Dictionary<string, TokenKind>();
-        private static int noWhitespaceTokenMaxLength = 0;
+        private static readonly Dictionary<string, TokenKind> whitespaceTokens = [];
+        private static readonly Dictionary<string, TokenKind> noWhitespaceTokens = [];
+        private static readonly int noWhitespaceTokenMaxLength = 0;
 
         public Scanner(string input)
         {
@@ -45,49 +42,47 @@ namespace FWO.Report.Filter
 
         public List<Token> Scan()
         {
-            List<Token> tokens = new List<Token>();
+            List<Token> tokens = [];
 
-            for (position = 0; position < input.Length; position++)
+            while (position < input.Length)
             {
-                while ((position < input.Length && (input[position] == ' ' || input[position] == '\t' || input[position] == '\n' || input[position] == '\r')) == true)
+                if (position < input.Length && IsWhitespace(position))
                 {
                     position++;
+                    continue;
                 }
-
                 tokens.AddRange(ReadTokens());
+                position++;
             }
-
             return tokens;
+        }
+
+        private bool IsWhitespace(int currentPosition)
+        {
+            return input[currentPosition] == ' ' || input[currentPosition] == '\t' || input[currentPosition] == '\n' || input[currentPosition] == '\r';
         }
 
         private bool IsWhitespaceOrEnd(int currentPosition)
         {
-            if (currentPosition >= input.Length || input[currentPosition] == ' ' || input[currentPosition] == '\t' || input[currentPosition] == '\n' || input[currentPosition] == '\r')
-            {
-                return true;
-            }
-            else
-            {
-                return false;
-            }      
+            return currentPosition >= input.Length || IsWhitespace(currentPosition);
         }
 
         private List<Token> ReadTokens()
         {
-            List<Token> tokens = new List<Token>();
+            List<Token> tokens = [];
 
             // Token begin position
             int tokenBeginPosition = position;          
             
             // Token text
-            string tokenText = "";
+            StringBuilder tokenText = new();
 
-            while (IsWhitespaceOrEnd(position) == false)
+            while (!IsWhitespaceOrEnd(position))
             {             
                 switch (input[position])
                 {
                     case '\\':
-                        tokenText += ScanEscapeSequence();
+                        tokenText.Append(ScanEscapeSequence());
                         break;
 
                     case '\'':
@@ -97,27 +92,23 @@ namespace FWO.Report.Filter
                         break;
 
                     default:
-                        tokenText += input[position];
-
-                        List<Token> newTokens = TryExtractToken(tokenBeginPosition, tokenText, IsWhitespaceOrEnd(position + 1), 0);
-
+                        tokenText.Append(input[position]);
+                        List<Token> newTokens = TryExtractToken(tokenBeginPosition, tokenText.ToString(), IsWhitespaceOrEnd(position + 1), 0);
                         if (newTokens.Count > 0)
                         {
                             tokens.AddRange(newTokens);
                             tokenBeginPosition = position + 1;
-                            tokenText = "";
+                            tokenText = new();
                         }
                         break;
                 }
-
                 position++;
             }
 
-            if (tokenText != "")
+            if (tokenText.Length > 0)
             {
-                tokens.Add(new Token(tokenBeginPosition..position, tokenText, TokenKind.Value));
+                tokens.Add(new Token(tokenBeginPosition..position, tokenText.ToString(), TokenKind.Value));
             }
-
             return tokens;
         }
 
@@ -125,84 +116,84 @@ namespace FWO.Report.Filter
         {
             if (recusionDepth > 1)
             {
-                throw new Exception("Internal error: Stackoverflow. Please report this error.");
+                throw new InternalException("Internal error: Stackoverflow. Please report this error.");
             }
 
-            List<Token> tokens = new List<Token>();
+            List<Token> tokens = [];
            
-            if (surroundedByWhitespace == true)
+            if (surroundedByWhitespace && whitespaceTokens.TryGetValue(text.ToLower(), out TokenKind whiteSpaceTokenKind))
             {
-                if (whitespaceTokens.TryGetValue(text.ToLower(), out TokenKind tokenKind))
-                {
-                    tokens.Add(new Token(beginPosition..(beginPosition + text.Length), text, tokenKind));
-                    return tokens;
-                }
+                tokens.Add(new Token(beginPosition..(beginPosition + text.Length), text, whiteSpaceTokenKind));
+                return tokens;
             }
 
-            for (int tokenLength = 1; tokenLength <= noWhitespaceTokenMaxLength && tokenLength <= text.Length; tokenLength++)
+            int tokenLength = 1;
+            while (tokenLength <= noWhitespaceTokenMaxLength && tokenLength <= text.Length)
             {
                 string tokenText = text[^tokenLength..^0].ToLower();
 
                 if (noWhitespaceTokens.TryGetValue(tokenText, out TokenKind tokenKind))
                 {
-                    if (!IsWhitespaceOrEnd(beginPosition + text.Length) &&
-                        noWhitespaceTokens.TryGetValue(tokenText + input[beginPosition + text.Length], out TokenKind realTokenKind))
-                    {
-                        tokenLength++;
-                        position++;
-                        tokenKind = realTokenKind;
-                        tokenText += input[beginPosition + text.Length];
-                        text += input[beginPosition + text.Length];                      
-                    }
+                    return ExtractTokens(beginPosition, text, tokenText, tokenLength, tokenKind, recusionDepth, tokens);
+                }
+                tokenLength++;
+            }
 
-                    if (text.Length - tokenLength > 0)
-                    {
-                        List<Token> potentialTokens = TryExtractToken(beginPosition, text[..(text.Length - tokenLength)], true, recusionDepth + 1);
-                        if (potentialTokens.Count > 0)
-                        {
-                            tokens.AddRange(potentialTokens);
-                        }
-                        else
-                        {
-                            tokens.Add(new Token(beginPosition..(beginPosition + text.Length - tokenLength), text[..^tokenLength], TokenKind.Value));
-                        }
-                    }
+            return tokens;
+        }
 
-                    tokens.Add(new Token((beginPosition + text.Length - tokenLength)..(beginPosition + text.Length), tokenText, tokenKind));
-                    return tokens;
+        private List<Token> ExtractTokens(int beginPosition, string text, string tokenText, int tokenLength, TokenKind tokenKind, int recusionDepth, List<Token> tokens)
+        {
+            if (!IsWhitespaceOrEnd(beginPosition + text.Length) &&
+                noWhitespaceTokens.TryGetValue(tokenText + input[beginPosition + text.Length], out TokenKind realTokenKind))
+            {
+                tokenLength++;
+                position++;
+                tokenKind = realTokenKind;
+                tokenText += input[beginPosition + text.Length];
+                text += input[beginPosition + text.Length];
+            }
+
+            if (text.Length - tokenLength > 0)
+            {
+                List<Token> potentialTokens = TryExtractToken(beginPosition, text[..(text.Length - tokenLength)], true, recusionDepth + 1);
+                if (potentialTokens.Count > 0)
+                {
+                    tokens.AddRange(potentialTokens);
+                }
+                else
+                {
+                    tokens.Add(new Token(beginPosition..(beginPosition + text.Length - tokenLength), text[..^tokenLength], TokenKind.Value));
                 }
             }
 
+            tokens.Add(new Token((beginPosition + text.Length - tokenLength)..(beginPosition + text.Length), tokenText, tokenKind));
             return tokens;
         }
 
         private Token ScanQuoted(char quoteChar)
         {
             int tokenBeginPosition = position;
-            string tokenText = "";
+            StringBuilder tokenText = new();
 
             position++;
-
             while (position < input.Length)
             {
                 if (input[position] == '\\')
                 {
-                    tokenText += ScanEscapeSequence();
+                    tokenText.Append(ScanEscapeSequence());
                     position++;
                 }
-
                 else if (input[position] == quoteChar)
                 {
-                    return new Token(tokenBeginPosition..(position), tokenText, TokenKind.Value);
+                    return new Token(tokenBeginPosition..(position), tokenText.ToString(), TokenKind.Value);
                 }
-
                 else
                 {
-                    tokenText += input[position];
+                    tokenText.Append(input[position]);
                     position++;
                 }
             }
-
             throw new SyntaxException($"Expected {quoteChar} got end.", (tokenBeginPosition)..(position));
         }
 

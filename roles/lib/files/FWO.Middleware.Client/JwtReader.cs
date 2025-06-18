@@ -1,12 +1,7 @@
-﻿using FWO.Basics;
-using FWO.Config.File;
+﻿using FWO.Config.File;
 using FWO.Logging;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
-using System;
-using System.IdentityModel.Tokens.Jwt;
-using System.IO;
-using System.Linq;
 using System.Security.Claims;
 
 namespace FWO.Middleware.Client
@@ -17,6 +12,9 @@ namespace FWO.Middleware.Client
 		private JsonWebToken? jwt;
 
 		private readonly RsaSecurityKey jwtPublicKey;
+		private readonly string JwtValidation = "Jwt Validation";
+		private readonly string JwtNotValidated = "Jwt was not validated yet.";
+
 
 		public JwtReader(string jwtString)
 		{
@@ -24,8 +22,7 @@ namespace FWO.Middleware.Client
 			this.jwtString = jwtString;
 
 			// Get public key from config lib
-			ConfigFile config = new ConfigFile();
-			jwtPublicKey = ConfigFile.JwtPublicKey ?? throw new Exception("Jwt public key could not be read form config file.");
+			jwtPublicKey = ConfigFile.JwtPublicKey ?? throw new ArgumentException("Jwt public key could not be read form config file.");
 		}
 
 		/// <summary>
@@ -38,7 +35,7 @@ namespace FWO.Middleware.Client
 			Log.WriteDebug($"{roleName} Role Jwt", "Checking Jwt for admin role.");
 
 			if (jwt == null)
-				throw new ArgumentNullException(nameof(jwt), "Jwt was not validated yet.");
+				throw new ArgumentException(nameof(jwt), JwtNotValidated);
 
 			return jwt.Claims.FirstOrDefault(claim => claim.Type == "role" && claim.Value == roleName) != null;
 		}
@@ -53,7 +50,7 @@ namespace FWO.Middleware.Client
 			Log.WriteDebug($"{roleName} Role Jwt", "Checking Jwt for allowed role.");
 
 			if (jwt == null)
-				throw new ArgumentNullException(nameof(jwt), "Jwt was not validated yet.");
+				throw new ArgumentException(nameof(jwt), JwtNotValidated);
 
 			return jwt.Claims.FirstOrDefault(claim => claim.Type == "x-hasura-allowed-roles" && claim.Value == roleName) != null;
 		}
@@ -80,7 +77,7 @@ namespace FWO.Middleware.Client
 				if (tokenValidationResult.IsValid)
 				{
 					jwt = tokenValidationResult.SecurityToken as JsonWebToken;
-					Log.WriteDebug("Jwt Validation", "Jwt was successfully validated.");
+					Log.WriteDebug(JwtValidation, "Jwt was successfully validated.");
 					return true;					
 				}
 				return false;
@@ -88,27 +85,27 @@ namespace FWO.Middleware.Client
 
 			catch (SecurityTokenExpiredException)
 			{
-				Log.WriteDebug("Jwt Validation", "Jwt lifetime expired.");
+				Log.WriteDebug(JwtValidation, "Jwt lifetime expired.");
 				return false;
 			}
 			catch (SecurityTokenInvalidSignatureException InvalidSignatureException)
 			{
-				Log.WriteError("Jwt Validation", $"Jwt signature could not be verified. Potential attack!", InvalidSignatureException);
+				Log.WriteError(JwtValidation, $"Jwt signature could not be verified. Potential attack!", InvalidSignatureException);
 				return false;
 			}
 			catch (SecurityTokenInvalidAudienceException InvalidAudienceException)
 			{
-				Log.WriteError("Jwt Validation", $"Jwt audience incorrect.", InvalidAudienceException);
+				Log.WriteError(JwtValidation, $"Jwt audience incorrect.", InvalidAudienceException);
 				return false;
 			}
 			catch (SecurityTokenInvalidIssuerException InvalidIssuerException)
 			{
-				Log.WriteError("Jwt Validation", $"Jwt issuer incorrect.", InvalidIssuerException);
+				Log.WriteError(JwtValidation, $"Jwt issuer incorrect.", InvalidIssuerException);
 				return false;
 			}
 			catch (Exception UnexpectedError)
 			{
-				Log.WriteError("Jwt Validation", $"Unexpected problem while trying to verify Jwt", UnexpectedError);
+				Log.WriteError(JwtValidation, $"Unexpected problem while trying to verify Jwt", UnexpectedError);
 				return false;
 			}
 		}
@@ -117,7 +114,7 @@ namespace FWO.Middleware.Client
 		{
 			Log.WriteDebug("Claims Jwt", "Reading claims from Jwt.");
 			if (jwt == null)
-				throw new ArgumentNullException(nameof(jwt), "Jwt was not validated yet.");
+				throw new ArgumentException(nameof(jwt), JwtNotValidated);
 
 			return jwt.Claims.ToArray();
 		}
@@ -125,7 +122,7 @@ namespace FWO.Middleware.Client
 		public TimeSpan TimeUntilExpiry()
 		{
 			if (jwt == null)
-				throw new ArgumentNullException(nameof(jwt), "Jwt was not validated yet.");
+				throw new ArgumentException(nameof(jwt), JwtNotValidated);
 
 			return jwt.ValidTo - DateTime.UtcNow;
 		}
@@ -133,7 +130,7 @@ namespace FWO.Middleware.Client
 		public string GetRole()
 		{
 			if (jwt == null)
-				throw new ArgumentNullException(nameof(jwt), "Jwt was not validated yet.");
+				throw new ArgumentException(nameof(jwt), JwtNotValidated);
 			return jwt.Claims.FirstOrDefault(claim => claim.Type == "role")?.Value ?? "";
 		}
 	}

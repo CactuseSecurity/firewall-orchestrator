@@ -81,7 +81,6 @@ class ManagementDetails():
 """Used for storing state during import process per management"""
 class ImportState():
     ErrorCount: int
-    # ChangeCount: int
     AnyChangeCount: int
     RuleChangeCount: int
     ErrorString: str

@@ -37,7 +37,7 @@ namespace FWO.Report
             foreach (int mgmId in Query.RelevantManagementIds)
             {
                 List<long> importIdLastBeforeRange = await GetRelevantImportIds(apiConnection, startTime, mgmId);
-                List<long> importIdsInRange = await GetImportIdsInTimeRange(apiConnection, startTime, stopTime, mgmId, changeRequired: true);
+                List<long> importIdsInRange = await GetImportIdsInTimeRange(apiConnection, startTime, stopTime, mgmId, ruleChangeRequired: true);
                 List<long> relevantImportIds = [.. importIdLastBeforeRange, .. importIdsInRange];
                 if (relevantImportIds.Count == 0)
                 {
@@ -88,21 +88,21 @@ namespace FWO.Report
             Log.WriteDebug("Generate Changes Report", $"Finished generating changes report with {queriesNeeded} queries.");
         }
 
-    private void SetMgtQueryVars(int mgmId, long importIdOld, long importIdNew)
+        private void SetMgtQueryVars(int mgmId, long importIdOld, long importIdNew)
         {
             Query.QueryVariables["mgmId"] = mgmId;
             Query.QueryVariables[$"import_id_old"] = importIdOld;
             Query.QueryVariables[$"import_id_new"] = importIdNew;
         }
 
-        public static async Task<List<long>> GetImportIdsInTimeRange(ApiConnection apiConnection, string startTime, string stopTime, int mgmId, bool? changeRequired = null)
+        public static async Task<List<long>> GetImportIdsInTimeRange(ApiConnection apiConnection, string startTime, string stopTime, int mgmId, bool? ruleChangeRequired = null)
         {
             var queryVariables = new
             {
                 start_time = startTime,
                 end_time = stopTime,
                 mgmIds = mgmId,
-                changesFound = changeRequired
+                ruleChangesFound = ruleChangeRequired
             };
             List<ImportControl> importControls = await apiConnection.SendQueryAsync<List<ImportControl>>(ReportQueries.getRelevantImportIdsInTimeRange, queryVariables);
             return [.. importControls.Select(ic => ic.ControlId)];

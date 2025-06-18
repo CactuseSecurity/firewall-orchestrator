@@ -2,7 +2,7 @@ query getRelevantImportIdsInTimeRange(
   $start_time: timestamp!
   $end_time: timestamp!
   $mgmIds: [Int!]
-  $changesFound: Boolean
+  $ruleChangesFound: Boolean
 ) {
   import_control(
     where: {
@@ -19,7 +19,8 @@ query getRelevantImportIdsInTimeRange(
           is_pure_routing_device: { _eq: false }
         }
       }
-      changes_found: { _eq: $changesFound }
+      any_changes_found: { _eq: true }
+      rule_changes_found: { _eq: $ruleChangesFound }
     }
     order_by: { stop_time: asc }
   ) {

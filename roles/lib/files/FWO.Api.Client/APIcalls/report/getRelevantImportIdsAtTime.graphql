@@ -1,7 +1,7 @@
 query getRelevantImportIdsAtTime(
   $time: timestamp!
   $mgmIds: [Int!]
-  $changesFound: Boolean
+  $ruleChangesFound: Boolean
 ) {
   management(where: {
     hide_in_gui: {_eq: false}
@@ -16,7 +16,8 @@ query getRelevantImportIdsAtTime(
     import: import_controls_aggregate(where: {
       stop_time: {_lte: $time}
       successful_import: {_eq: true}
-      any_changes_found: {_eq: $changesFound}
+      any_changes_found: {_eq: true}
+      rule_changes_found: {_eq: $ruleChangesFound}
     }) {
       aggregate {
         max {

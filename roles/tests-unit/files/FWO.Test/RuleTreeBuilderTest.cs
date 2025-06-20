@@ -11,13 +11,14 @@ namespace FWO.Test
     internal class RuleTreeBuilderTest
     {
         private RuleTreeBuilder _ruleTreeBuilder = default!;
-        private List<RulebaseLink> _rulebaseLinks = new();
-        private List<RulebaseReport> _rulebases = new();
+        private RulebaseLink[] _rulebaseLinks = default!;
+        private RulebaseReport[] _rulebases = default!;
 
         [OneTimeSetUp]
         public void SetUpTestClass()
         {
-            _rulebaseLinks.Add(
+            _rulebaseLinks =
+            [
                 new RulebaseLink
                 {
                     NextRulebaseId = 1,
@@ -25,10 +26,11 @@ namespace FWO.Test
                     IsInitial = true,
                     IsGlobal = false,
                     IsSection = false
-                }
-            );
+                }                
+            ];
 
-            _rulebases.Add(
+            _rulebases =
+            [
                 new RulebaseReport
                 {
                     Id = 1,
@@ -39,15 +41,10 @@ namespace FWO.Test
                         new Rule { Id = 2, Uid = "rule-1.2", RulebaseId = 1 },
                         new Rule { Id = 3, Uid = "rule-1.3", RulebaseId = 1 }
                     }
-                }
-            );
-        }
+                }              
+            ];
 
-        [OneTimeTearDown]
-        public void TearDownTestClass()
-        {
-            _rulebaseLinks.Clear();
-            _rulebases.Clear();
+
         }
 
         [SetUp]
@@ -57,9 +54,35 @@ namespace FWO.Test
         }
 
         [Test]
-        public void BuildRulebaseLinkQueue_WithEmptyArgs_ReturnsNull()
+        public void BuildRulebaseLinkQueue_WithEmptyArraysAsArgs_ReturnsNull()
         {
-            Assert.Fail();
+            // Arrange
+
+            Queue<(RulebaseLink, RulebaseReport)>? queue;
+
+            // Act
+
+            queue = _ruleTreeBuilder.BuildRulebaseLinkQueue([], []);
+
+            // Assert
+
+            Assert.That(queue is null);
+        }
+        
+                [Test]
+        public void BuildRulebaseLinkQueue_WithArraysFromSetUp_ReturnsQueue()
+        {
+            // Arrange
+
+            Queue<(RulebaseLink, RulebaseReport)>? queue;
+
+            // Act
+
+            queue = _ruleTreeBuilder.BuildRulebaseLinkQueue(_rulebaseLinks, _rulebases);
+
+            // Assert
+            
+            Assert.That(queue is Queue<(RulebaseLink, RulebaseReport)>);
         }
 
     }

@@ -56,12 +56,12 @@ namespace FWO.Ui.Services
                     throw new ArgumentException(UserConfig.GetText("E5430"));
                 }
 
-                using MemoryStream ms = new();
-
                 if(args.File.Size > GlobalConst.MaxUploadFileSize)
                 {
                     throw new ArgumentException(UserConfig.GetText("E5431"));
                 }
+
+                using MemoryStream ms = new();
 
                 await args.File.OpenReadStream(GlobalConst.MaxUploadFileSize).CopyToAsync(ms);
                 UploadedData = ms.ToArray();

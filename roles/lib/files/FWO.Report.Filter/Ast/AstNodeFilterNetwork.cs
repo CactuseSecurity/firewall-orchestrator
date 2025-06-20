@@ -40,8 +40,7 @@ namespace FWO.Report.Filter.Ast
             {
                 string QueryVarName = AddVariable<string>(query, "dst", Operator.Kind, Value.Text);
                 query.RuleWhereStatement += $"rule_tos: {{ object: {{ objgrp_flats: {{ objectByObjgrpFlatMemberId: {{ obj_name: {{ {ExtractOperator()}: ${QueryVarName} }} }} }} }} }}";
-                query.ConnectionWhereStatement += $"_or: [ {{ nwobject_connections: {{connection_field: {{ _eq: 2 }}, owner_network: {{name: {{ {ExtractOperator()}: ${QueryVarName} }} }} }} }}, " +
-                    $"{{ nwgroup_connections: {{connection_field: {{ _eq: 2 }}, nwgroup: {{ name: {{ {ExtractOperator()}: ${QueryVarName} }}  }} }} }} ]";
+                query.ConnectionWhereStatement += ConnWhere(QueryVarName, 2);
             }
         }
 
@@ -56,9 +55,14 @@ namespace FWO.Report.Filter.Ast
             {
                 string QueryVarName = AddVariable<string>(query, "src", Operator.Kind, Value.Text);
                 query.RuleWhereStatement += $"rule_froms: {{ object: {{ objgrp_flats: {{ objectByObjgrpFlatMemberId: {{ obj_name: {{ {ExtractOperator()}: ${QueryVarName} }} }} }} }} }}";
-                query.ConnectionWhereStatement += $"_or: [ {{ nwobject_connections: {{connection_field: {{ _eq: 1 }}, owner_network: {{name: {{ {ExtractOperator()}: ${QueryVarName} }} }} }} }}, " +
-                    $"{{ nwgroup_connections: {{connection_field: {{ _eq: 1 }}, nwgroup: {{ name: {{ {ExtractOperator()}: ${QueryVarName} }}  }} }} }} ]";
+                query.ConnectionWhereStatement += ConnWhere(QueryVarName, 1);
             }
+        }
+
+        private string ConnWhere(string QueryVarName, int field)
+        {
+            return $"_or: [ {{ nwobject_connections: {{connection_field: {{ _eq: {field} }}, owner_network: {{name: {{ {ExtractOperator()}: ${QueryVarName} }} }} }} }}, " +
+                    $"{{ nwgroup_connections: {{connection_field: {{ _eq: {field} }}, nwgroup: {{ _or: [ {{ name: {{ {ExtractOperator()}: ${QueryVarName} }} }}, {{ id_string: {{ {ExtractOperator()}: ${QueryVarName} }} }} ] }} }} }} ]";
         }
 
         private static string SanitizeIp(string cidrStr)

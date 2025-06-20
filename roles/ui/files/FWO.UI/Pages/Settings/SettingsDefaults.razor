@@ -243,7 +243,7 @@ else
             }
             else
             {
-                throw new Exception("Data saved before loaded. This should be impossible.");
+                throw new ArgumentException("Data saved before loaded. This should be impossible.");
             }
         }
         catch(Exception exception)

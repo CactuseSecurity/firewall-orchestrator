@@ -6,7 +6,7 @@ namespace FWO.Report.Filter
     public class Parser
     {
         int position;
-        List<Token> tokens;
+        readonly List<Token> tokens;
 
         public Parser(List<Token> tokens)
         {

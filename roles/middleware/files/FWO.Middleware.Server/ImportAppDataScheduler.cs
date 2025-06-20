@@ -1,6 +1,7 @@
 ﻿using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
+using FWO.Basics.Exceptions;
 using FWO.Services;
 using FWO.Data;
 using FWO.Config.Api;
@@ -15,12 +16,12 @@ namespace FWO.Middleware.Server
 	/// </summary>
     public class ImportAppDataScheduler : SchedulerBase
     {
-        private System.Timers.Timer ScheduleTimer = new();
-        private System.Timers.Timer ImportAppDataTimer = new();
+        private const string LogMessageTitleImport = "Import App Data";
+        private const string LogMessageTitleAdjust = "Adjust App Server Names";
 
 		/// <summary>
-		/// Async Constructor needing the connection
-		/// </summary>
+        /// Async Constructor needing the connection
+        /// </summary>
         public static async Task<ImportAppDataScheduler> CreateAsync(ApiConnection apiConnection)
         {
             GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(apiConnection, true);
@@ -28,7 +29,7 @@ namespace FWO.Middleware.Server
         }
     
         private ImportAppDataScheduler(ApiConnection apiConnection, GlobalConfig globalConfig)
-            : base(apiConnection, globalConfig, ConfigQueries.subscribeImportAppDataConfigChanges)
+            : base(apiConnection, globalConfig, ConfigQueries.subscribeImportAppDataConfigChanges, SchedulerInterval.Hours, "ImportAppData")
         {}
 
 		/// <summary>
@@ -37,58 +38,17 @@ namespace FWO.Middleware.Server
         protected override void OnGlobalConfigChange(List<ConfigItem> config)
         {
             ScheduleTimer.Stop();
-            globalConfig.SubscriptionUpdateHandler(config.ToArray());
+            globalConfig.SubscriptionUpdateHandler([.. config]);
             if(globalConfig.ImportAppDataSleepTime > 0)
             {
-                ImportAppDataTimer.Interval = globalConfig.ImportAppDataSleepTime * GlobalConst.kHoursToMilliseconds;
-                StartScheduleTimer();
+                StartScheduleTimer(globalConfig.ImportAppDataSleepTime, globalConfig.ImportAppDataStartAt);
             }
         }
 
-		/// <summary>
-		/// start the scheduling timer
-		/// </summary>
-        protected override void StartScheduleTimer()
-        {
-            if (globalConfig.ImportAppDataSleepTime > 0)
-            {
-                DateTime startTime = DateTime.Now;
-                try
-                {
-                    startTime = globalConfig.ImportAppDataStartAt;
-                    while (startTime < DateTime.Now)
-                    {
-                        startTime = startTime.AddHours(globalConfig.ImportAppDataSleepTime);
-                    }
-                }
-                catch (Exception exception)
-                {
-                    Log.WriteError("Import App Data scheduler", "Could not calculate start time.", exception);
-                }
-                TimeSpan interval = startTime - DateTime.Now;
-
-                ScheduleTimer = new();
-                ScheduleTimer.Elapsed += Process;
-                ScheduleTimer.Elapsed += StartImportAppDataTimer;
-                ScheduleTimer.Interval = interval.TotalMilliseconds;
-                ScheduleTimer.AutoReset = false;
-                ScheduleTimer.Start();
-                Log.WriteDebug("Import App Data scheduler", "ImportAppDataScheduleTimer started.");
-            }
-        }
-
-        private void StartImportAppDataTimer(object? _, ElapsedEventArgs __)
-        {
-            ImportAppDataTimer.Stop();
-            ImportAppDataTimer = new();
-            ImportAppDataTimer.Elapsed += Process;
-            ImportAppDataTimer.Interval = globalConfig.ImportAppDataSleepTime * GlobalConst.kHoursToMilliseconds;
-            ImportAppDataTimer.AutoReset = true;
-            ImportAppDataTimer.Start();
-            Log.WriteDebug("Import App Data scheduler", "ImportAppDataTimer started.");
-        }
-
-        private async void Process(object? _, ElapsedEventArgs __)
+        /// <summary>
+        /// define the processing to be done
+        /// </summary>
+        protected override async void Process(object? _, ElapsedEventArgs __)
         {
             await ImportAppData();
             await AdjustAppServerNames();
@@ -99,19 +59,15 @@ namespace FWO.Middleware.Server
             try
             {
                 AppDataImport import = new (apiConnection, globalConfig);
-                if(!await import.Run())
+                List<string> FailedImports = await import.Run();
+                if (FailedImports.Count > 0)
                 {
-                    throw new Exception("Import App Data failed.");
+                    throw new ProcessingFailedException($"{LogMessageTitleImport} failed for {string.Join(", ", FailedImports)}.");
                 }
             }
             catch (Exception exc)
             {
-                Log.WriteError("Import App Data", $"Ran into exception: ", exc);
-                string titletext = "Error encountered while trying to import App Data";
-                Log.WriteAlert($"source: \"{GlobalConst.kImportAppData}\"",
-                    $"userId: \"0\", title: \"{titletext}\", description: \"{exc}\", alertCode: \"{AlertCode.ImportAppData}\"");
-                await AddLogEntry(1, globalConfig.GetText("scheduled_app_import"), globalConfig.GetText("ran_into_exception") + exc.Message, GlobalConst.kImportAppData);
-                await SetAlert(globalConfig.GetText("scheduled_app_import"), titletext, GlobalConst.kImportAppData, AlertCode.ImportAppData);
+                await LogErrorsWithAlert(2, LogMessageTitleImport, GlobalConst.kImportAppData, AlertCode.ImportAppData, exc);
             }
         }
 
@@ -128,7 +84,7 @@ namespace FWO.Middleware.Server
             }
             catch (Exception exc)
             {
-                Log.WriteError("Check App Server Names", $"Ran into exception: ", exc);
+                await LogErrorsWithAlert(1, LogMessageTitleAdjust, GlobalConst.kAdjustAppServerNames, AlertCode.AdjustAppServerNames, exc);
             }
         }
     }

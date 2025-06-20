@@ -25,12 +25,9 @@ namespace FWO.Services
             bool ruleFound = false;
             foreach (var mgt in RelevantManagements)
             {
-                foreach(var rule in allModelledRules[mgt.Id])
+                foreach(var rule in allModelledRules[mgt.Id].Where(r => CompareRuleToConn(r, conn)))
                 {
-                    if(CompareRuleToConn(rule, conn))
-                    {
-                        ruleFound = true;
-                    }
+                    ruleFound = true;
                 }
             }
             if(!ruleFound)
@@ -43,6 +40,7 @@ namespace FWO.Services
         {
             if(rule.ConnId == conn.Id)
             {
+                rule.ModellFound = true;
                 if(IsImplementation(rule, conn))
                 {
                     conn.ProdRuleFound = true;
@@ -112,11 +110,11 @@ namespace FWO.Services
                 if(svc.Type.Name == ObjectType.Group)
                 {
                     List<NetworkService> grpMembers = [];
-                    foreach(var member in svc.ServiceGroupFlats)
+                    foreach(var member in svc.ServiceGroupFlats.Select(m => m.Object))
                     {
-                        if (member.Object != null)
+                        if (member != null)
                         {
-                            grpMembers.AddRange(SplitPortRange(member.Object));
+                            grpMembers.AddRange(SplitPortRange(member));
                         }
                     }
                     svc.ServiceGroupFlats = Array.ConvertAll(grpMembers.ToArray(), o => new GroupFlat<NetworkService>() { Object = o });
@@ -222,7 +220,7 @@ namespace FWO.Services
                         location.Object.IsSurplus = false;
                     }
                 }
-             }
+            }
         }
 
         private bool CompareNwAreas(NetworkLocation[] networkLocations, List<ModellingNetworkAreaWrapper> areas, List<NetworkLocation> disregardedLocations, bool specialUserObjectsExist)

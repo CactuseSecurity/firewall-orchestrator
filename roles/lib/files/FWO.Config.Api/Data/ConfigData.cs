@@ -358,7 +358,7 @@ namespace FWO.Config.Api.Data
 		public string ModModelledMarker { get; set; } = "FWOC";
 
 		[JsonProperty("modModelledMarkerLocation"), JsonPropertyName("modModelledMarkerLocation")]
-		public string ModModelledMarkerLocation { get; set; } = "rulename";
+		public string ModModelledMarkerLocation { get; set; } = MarkerLocation.Rulename;
 
 		[JsonProperty("ruleRecognitionOption"), JsonPropertyName("ruleRecognitionOption")]
 		public string RuleRecognitionOption { get; set; } = "";

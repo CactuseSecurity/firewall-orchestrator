@@ -1,12 +1,14 @@
 ﻿using FWO.Api.Client;
 using FWO.Api.Client.Queries;
-using FWO.Data;
-using FWO.Config.Api;
-using FWO.Logging;
 using FWO.Basics;
-using System.Net;
+using FWO.Basics.Exceptions;
+using FWO.Config.Api;
+using FWO.Data;
+using FWO.Logging;
+using FWO.ExternalSystems;
+using FWO.ExternalSystems.Tufin.SecureChange;
 using RestSharp;
-using FWO.Tufin.SecureChange;
+using System.Net;
 using System.Text.Json;
 
 namespace FWO.Middleware.Server
@@ -27,7 +29,9 @@ namespace FWO.Middleware.Server
 		protected GlobalConfig globalConfig;
 
 		private readonly UserConfig userConfig;
-		private ExternalRequestDataHelper openRequests = new();
+		private readonly SCClient? InjScClient;
+		ExternalTicketSystem? ExtTicketSystem;
+	
 
 		// todo: map to internal states to use "lowest_end_state" setting ?
 		private static readonly List<string> openRequestStates =
@@ -37,84 +41,97 @@ namespace FWO.Middleware.Server
 			ExtStates.ExtReqRequested.ToString(),
 			ExtStates.ExtReqInProgress.ToString()
 		];
+		
+		private const string LogMessageTitle = "External Request Sender";
 
 
 		/// <summary>
 		/// Constructor for External Request Sender
 		/// </summary>
-		public ExternalRequestSender(ApiConnection apiConnection, GlobalConfig globalConfig)
+		public ExternalRequestSender(ApiConnection apiConnection, GlobalConfig globalConfig, SCClient? injScClient = null)
 		{
 			this.apiConnection = apiConnection;
 			this.globalConfig = globalConfig;
-			userConfig = new(globalConfig, apiConnection, new(){ Language = GlobalConst.kEnglish });
+			userConfig = new(globalConfig, apiConnection, new() { Language = GlobalConst.kEnglish });
+			InjScClient = injScClient;
 		}
 
 		/// <summary>
 		/// Run the External Request Sender
 		/// </summary>
-		public async Task<bool> Run()
+		public async Task<List<string>> Run()
+		{
+			List<string> FailedRequests = [];
+			ExternalRequestDataHelper openRequests = await apiConnection.SendQueryAsync<ExternalRequestDataHelper>(ExtRequestQueries.getAndLockOpenRequests, new {states = openRequestStates});
+			foreach (var request in openRequests.ExternalRequests)
+			{
+				await HandleRequest(request, FailedRequests);
+			}
+			await ReleaseRemainingLocks(openRequests.ExternalRequests);
+			return FailedRequests;
+		}
+
+		private async Task HandleRequest(ExternalRequest request, List<string> FailedRequests)
 		{
 			try
 			{
-				openRequests = await apiConnection.SendQueryAsync<ExternalRequestDataHelper>(ExtRequestQueries.getAndLockOpenRequests, new {states = openRequestStates});
-				foreach(var request in openRequests.ExternalRequests)
+				ExtTicketSystem = JsonSerializer.Deserialize<ExternalTicketSystem>(request.ExtTicketSystem) ?? throw new JsonException("No Ticket System");
+				if(request.ExtRequestState == ExtStates.ExtReqInitialized.ToString() ||
+					request.ExtRequestState == ExtStates.ExtReqFailed.ToString()) // try again
 				{
-					if(request.ExtRequestState == ExtStates.ExtReqInitialized.ToString() ||
-						request.ExtRequestState == ExtStates.ExtReqFailed.ToString()) // try again
+					if(request.WaitCycles > 0)
 					{
-						if(request.WaitCycles > 0)
-						{
-							await CountDownWaitCycle(request);
-						}
-						else
-						{
-							await SendRequest(request);
-						}
+						await CountDownWaitCycle(request);
 					}
 					else
 					{
-						await RefreshState(request);
-					}
-					if ((await apiConnection.SendQueryAsync<ReturnId>(ExtRequestQueries.updateExternalRequestLock, new {id = request.Id, locked = false})).UpdatedIdLong == request.Id)
-					{
-						request.Locked = false;
+						await SendRequest(request);
 					}
 				}
+				else
+				{
+					await RefreshState(request);
+				}
+				if ((await apiConnection.SendQueryAsync<ReturnId>(ExtRequestQueries.updateExternalRequestLock, new {id = request.Id, locked = false})).UpdatedIdLong == request.Id)
+				{
+					request.Locked = false;
+				}
 			}
-			catch(Exception exception)
+			catch (Exception exception)
 			{
-				Log.WriteError("External Request Sender", $"Runs into exception: ", exception);
-				await ReleaseRemainingLocks(openRequests.ExternalRequests);
-				return false;
+				Log.WriteError(LogMessageTitle, "Runs into exception: ", exception);
+				FailedRequests.Add(RequestInfo(request));
 			}
-			return true;
+		}
+
+		private static string RequestInfo(ExternalRequest request)
+		{
+			return $"Request Id: {request.Id}, Internal TicketId: {request.TicketId}, TaskNo: {request.TaskNumber}";
 		}
 
 		private async Task ReleaseRemainingLocks(List<ExternalRequest> requests)
 		{
 			try
 			{
-				foreach(var request in requests.Where(r => r.Locked))
+				foreach (var request in requests.Where(r => r.Locked))
 				{
-					await apiConnection.SendQueryAsync<ReturnId>(ExtRequestQueries.updateExternalRequestLock, new {id = request.Id, locked = false});
+					await apiConnection.SendQueryAsync<ReturnId>(ExtRequestQueries.updateExternalRequestLock, new { id = request.Id, locked = false });
 				}
 			}
-			catch(Exception exception)
+			catch (Exception exception)
 			{
-				Log.WriteError("Release Lock", $"Runs into exception: ", exception);
+				Log.WriteError(LogMessageTitle, "Release Lock runs into exception: ", exception);
 			}
 		}
 
 		private async Task SendRequest(ExternalRequest request)
 		{
-			ExternalTicket? ticket = null;
+			ExternalTicket? ticket = ConstructTicket(request);
 			try
 			{
-				ticket = JsonSerializer.Deserialize<ExternalTicket>(request.ExtRequestContent) ?? throw new Exception("No Ticket Content");
-				ticket.TicketSystem = JsonSerializer.Deserialize<ExternalTicketSystem>(request.ExtTicketSystem) ?? throw new Exception("No Ticket System");
-				Log.WriteInfo(userConfig.GetText("send_ext_request"), $"Request Id: {request.Id}, Internal TicketId: {request.TicketId}, TaskNo: {request.TaskNumber}");
+				Log.WriteInfo(LogMessageTitle, $"Sending {RequestInfo(request)}");
 				request.Attempts++;
-                RestResponse<int> ticketIdResponse = await ticket.CreateExternalTicket();
+				RestResponse<int> ticketIdResponse = await ticket.CreateExternalTicket();
 				request.LastMessage = ticketIdResponse.Content;
 				if (ticketIdResponse.StatusCode == HttpStatusCode.OK || ticketIdResponse.StatusCode == HttpStatusCode.Created)
 				{
@@ -122,16 +139,16 @@ namespace FWO.Middleware.Server
 					if (!string.IsNullOrEmpty(locationHeader))
 					{
 						Uri locationUri = new(locationHeader);
-						request.ExtTicketId = locationUri.Segments.Last();
+						request.ExtTicketId = locationUri.Segments[^1];
 					}
 					request.ExtRequestState = ExtStates.ExtReqRequested.ToString();
 					await UpdateRequestCreation(request);
-					Log.WriteDebug(userConfig.GetText("ext_ticket_success"), "Message: " + ticketIdResponse?.Content);
+					Log.WriteDebug(LogMessageTitle, $"{RequestInfo(request)}. Success Message: " + ticketIdResponse.Content);
 				}
 				else
 				{
-					Log.WriteError(userConfig.GetText("ext_ticket_fail"), $"Request Id: {request.Id}, Internal TicketId: {request.TicketId}, TaskNo: {request.TaskNumber}. Error Message: " + ticketIdResponse?.StatusDescription + ", " + ticketIdResponse?.Content);
-					if(AnalyseForRejected(ticketIdResponse))
+					Log.WriteError(LogMessageTitle, $"{RequestInfo(request)}. Error Message: " + ticketIdResponse.StatusDescription + ", " + ticketIdResponse.Content);
+					if (AnalyseForRejected(ticketIdResponse))
 					{
 						await RejectRequest(request);
 					}
@@ -140,13 +157,40 @@ namespace FWO.Middleware.Server
 						request.ExtRequestState = ExtStates.ExtReqFailed.ToString();
 						await UpdateRequestCreation(request);
 					}
+					throw new ProcessingFailedException("RestResponse: HttpStatusCode not OK");
 				}
 			}
-			catch(Exception exception)
+			catch (ProcessingFailedException)
 			{
-				Log.WriteError(userConfig.GetText("ext_ticket_fail"), $"Sending request failed: ", exception);
-				await HandleTimeOut(request, ticket);
+				throw;
 			}
+			catch (Exception)
+			{
+				if (!await HandleTimeOut(request, ticket))
+				{
+					throw;
+				}
+			}
+		}
+
+		private ExternalTicket ConstructTicket(ExternalRequest request)
+		{
+			ExternalTicket ticket;
+			ExternalTicket hlpTicket = JsonSerializer.Deserialize<ExternalTicket>(request.ExtRequestContent) ?? throw new JsonException("No Ticket Content");
+			
+			if (ExtTicketSystem?.Type == ExternalTicketSystemType.TufinSecureChange)
+			{
+				ticket = new SCTicket(ExtTicketSystem, InjScClient)
+				{
+					TicketSystem = ExtTicketSystem,
+					TicketText = hlpTicket.TicketText
+				};
+			}
+			else
+			{
+				throw new NotSupportedException("Ticket system not supported yet");
+			}
+			return ticket;
 		}
 
 		private async Task RejectRequest(ExternalRequest request)
@@ -157,13 +201,13 @@ namespace FWO.Middleware.Server
 			await extReqHandler.HandleStateChange(request);
 		}
 
-		private async Task HandleTimeOut(ExternalRequest request, ExternalTicket? ticket)
+		private async Task<bool> HandleTimeOut(ExternalRequest request, ExternalTicket? ticket)
 		{
 			if(ticket != null && request.Attempts > 0)
 			{
 				try
 				{
-					if(request.Attempts >= ticket.TicketSystem.MaxAttempts)
+					if (request.Attempts >= ticket.TicketSystem.MaxAttempts)
 					{
 						await RejectRequest(request);
 					}
@@ -172,13 +216,15 @@ namespace FWO.Middleware.Server
 						request.ExtRequestState = ExtStates.ExtReqFailed.ToString();
 						request.WaitCycles = request.Attempts * ticket.TicketSystem.CyclesBetweenAttempts;
 						await UpdateRequestCreation(request);
+						return true;
 					}
 				}
 				catch(Exception exception)
 				{
-					Log.WriteError(userConfig.GetText("ext_ticket_fail"), $"Timeout handling failed: ", exception);
+					Log.WriteError(LogMessageTitle, "Timeout handling failed: ", exception);
 				}
 			}
+			return false;
 		}
 
 		private static bool AnalyseForRejected(RestResponse<int>? ticketIdResponse)
@@ -199,64 +245,50 @@ namespace FWO.Middleware.Server
 
 		private async Task RefreshState(ExternalRequest request)
 		{
-			try
-			{
-				(request.ExtRequestState, request.LastMessage) = await PollState(request);
-				await UpdateRequestProcess(request);
-				ExternalRequestHandler extReqHandler = new(userConfig, apiConnection);
-				await extReqHandler.HandleStateChange(request);
-			}
-			catch(Exception exception)
-			{
-				Log.WriteError("External Request Sender", $"Status update failed: ", exception);
-			}
+			(request.ExtRequestState, request.LastMessage) = await PollState(request);
+			await UpdateRequestProcess(request);
+			ExternalRequestHandler extReqHandler = new(userConfig, apiConnection);
+			await extReqHandler.HandleStateChange(request);
 		}
 
 		private async Task<(string, string?)> PollState(ExternalRequest request)
 		{
 			try
 			{
-            	ExternalTicketSystem extTicketSystem = JsonSerializer.Deserialize<ExternalTicketSystem>(request.ExtTicketSystem) ?? throw new Exception("No Ticket System");
-				ExternalTicket? ticket;
-				if(extTicketSystem.Type == ExternalTicketSystemType.TufinSecureChange)
+				ExternalTicket ticket;
+				if (ExtTicketSystem?.Type == ExternalTicketSystemType.TufinSecureChange)
 				{
-					ticket = new SCTicket(extTicketSystem)
+					ticket = new SCTicket(ExtTicketSystem, InjScClient)
 					{
 						TicketId = request.ExtTicketId
 					};
 				}
 				else
 				{
-					throw new Exception("Ticket system not supported yet");
+					throw new NotSupportedException("Ticket system not supported yet");
 				}
 				return await ticket.GetNewState(request.ExtRequestState);
 			}
-			catch(Exception exception)
+			catch (Exception exc)
 			{
-				Log.WriteError(userConfig.GetText("ext_ticket_fail"), $"Polling request failed: ", exception);
-				return (request.ExtRequestState, exception.Message);
+				request.LastMessage = exc.Message;
+				await UpdateRequestProcess(request);
+				throw;
 			}
 		}
 
 		private async Task UpdateRequestCreation(ExternalRequest request)
 		{
-			try
+			var Variables = new
 			{
-				var Variables = new
-				{
-					id = request.Id,
-					extRequestState = request.ExtRequestState,
-					extTicketId = request.ExtTicketId,
-					creationResponse = request.LastMessage,
-					waitCycles = request.WaitCycles,
-					attempts = request.Attempts
-				};
-				await apiConnection.SendQueryAsync<ReturnId>(ExtRequestQueries.updateExtRequestCreation, Variables);
-			}
-			catch(Exception exception)
-			{
-				Log.WriteError("External Request Sender", $"State update failed: ", exception);
-			}
+				id = request.Id,
+				extRequestState = request.ExtRequestState,
+				extTicketId = request.ExtTicketId,
+				creationResponse = request.LastMessage,
+				waitCycles = request.WaitCycles,
+				attempts = request.Attempts
+			};
+			await apiConnection.SendQueryAsync<ReturnId>(ExtRequestQueries.updateExtRequestCreation, Variables);
 		}
 
 		private async Task UpdateRequestProcess(ExternalRequest request)
@@ -271,27 +303,20 @@ namespace FWO.Middleware.Server
 				};
 				await apiConnection.SendQueryAsync<ReturnId>(ExtRequestQueries.updateExtRequestProcess, Variables);
 			}
-			catch(Exception exception)
+			catch (Exception exception)
 			{
-				Log.WriteError("External Request Sender", $"State update failed: ", exception);
+				Log.WriteError(LogMessageTitle, "UpdateRequestProcess failed: ", exception);
 			}
 		}
 
 		private async Task CountDownWaitCycle(ExternalRequest request)
 		{
-			try
+			var Variables = new
 			{
-				var Variables = new
-				{
-					id = request.Id,
-					waitCycles = --request.WaitCycles
-				};
-				await apiConnection.SendQueryAsync<ReturnId>(ExtRequestQueries.updateExternalRequestWaitCycles, Variables);
-			}
-			catch(Exception exception)
-			{
-				Log.WriteError(userConfig.GetText("External Request Sender"), $"WaitCycle update failed: ", exception);
-			}
+				id = request.Id,
+				waitCycles = --request.WaitCycles
+			};
+			await apiConnection.SendQueryAsync<ReturnId>(ExtRequestQueries.updateExternalRequestWaitCycles, Variables);
 		}
 	}
 }

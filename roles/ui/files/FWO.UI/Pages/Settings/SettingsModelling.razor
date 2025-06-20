@@ -440,6 +440,12 @@ else
                 </Collapse>
             </div>
         }
+        @if(Appserver is not null && Appserver.Count == 0 && CSVImportErrors is not null && CSVImportErrors.Count == 0)
+        {
+            <div class="alert alert-info mt-3" role="alert">
+                @(userConfig.GetText("E9400"))
+            </div>
+        }
     </Body>
     <Footer>
         <div class="btn-group">

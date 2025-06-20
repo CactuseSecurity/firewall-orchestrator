@@ -13,7 +13,6 @@ def normalize_network_objects(full_config, config2import, import_id, mgm_id=0):
     logger = getFwoLogger()
     global_domain = initialize_global_domain(full_config['object_domains'])
     
-
     for domain in full_config['object_domains']:
         for obj_table in domain['object_types']:
             collect_nw_objects(obj_table, nw_objects, global_domain, mgm_id=mgm_id)

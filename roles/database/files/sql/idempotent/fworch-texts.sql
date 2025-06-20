@@ -2634,7 +2634,7 @@ INSERT INTO txt VALUES ('locked',               'German', 	'Gesperrt');
 INSERT INTO txt VALUES ('locked',               'English', 	'Locked');
 INSERT INTO txt VALUES ('unlock',               'German', 	'Entsperren');
 INSERT INTO txt VALUES ('unlock',               'English', 	'Unlock');
-INSERT INTO txt VALUES ('useCustomLogo',        'German', 	'Benutzerdefiniertes Logo benutzes');
+INSERT INTO txt VALUES ('useCustomLogo',        'German', 	'Benutzerdefiniertes Logo benutzen');
 INSERT INTO txt VALUES ('useCustomLogo',        'English', 	'Use custom logo');
 
 -- help pages
@@ -3353,8 +3353,8 @@ INSERT INTO txt VALUES ('E9301', 'English', 'Template File not found!');
 INSERT INTO txt VALUES ('E9302', 'German',  'HTML ist nicht valide!');
 INSERT INTO txt VALUES ('E9302', 'English', 'HTML is invalid!');
 
-INSERT INTO txt VALUES ('E9400', 'German',  'leere Datei hochgeladen oder keine Änderungen nötig');
-INSERT INTO txt VALUES ('E9400', 'English', 'empty file provided or no changes needed');
+INSERT INTO txt VALUES ('E9400', 'German',  'Leere Datei hochgeladen/keine Änderungen wurden vorgenommen');
+INSERT INTO txt VALUES ('E9400', 'English', 'Empty file provided/no changes where applied');
 
 -- errors from Api
 INSERT INTO txt VALUES ('A0001', 'German',  'Ung&uuml;ltige Anmeldedaten. Nutzername darf nicht leer sein');

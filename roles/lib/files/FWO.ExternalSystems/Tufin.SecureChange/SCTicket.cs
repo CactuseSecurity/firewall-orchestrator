@@ -108,6 +108,10 @@ namespace FWO.ExternalSystems.Tufin.SecureChange
 		{
 			CreateTicketTasks(tasks, ipProtos, namingConvention);
 			await CreateTicketText(tasks.FirstOrDefault());
+			if (TicketText.Contains("@@"))
+			{
+				throw new ConfigException("Template error. Unhandled placeholder found.");
+			}
 		}
 
 		public override string GetTaskTypeAsString(WfReqTask task)
@@ -218,9 +222,9 @@ namespace FWO.ExternalSystems.Tufin.SecureChange
 				if(ticketTask != null)
 				{
 					ExternalTicketTemplate? template = TicketSystem.Templates.FirstOrDefault(t => t.TaskType == actTaskType.ToString());
-					if(template == null)
+					if (template == null)
 					{
-						Log.WriteError("Create Ticket Tasks", $"No Template found for task type {actTaskType}.");
+						throw new ConfigException($"No Template found for task type {actTaskType}.");
 					}
 					else
 					{

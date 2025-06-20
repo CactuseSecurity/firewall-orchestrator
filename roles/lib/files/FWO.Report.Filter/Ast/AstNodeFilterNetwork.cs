@@ -41,7 +41,7 @@ namespace FWO.Report.Filter.Ast
                 string QueryVarName = AddVariable<string>(query, "dst", Operator.Kind, Value.Text);
                 query.RuleWhereStatement += $"rule_tos: {{ object: {{ objgrp_flats: {{ objectByObjgrpFlatMemberId: {{ obj_name: {{ {ExtractOperator()}: ${QueryVarName} }} }} }} }} }}";
                 query.ConnectionWhereStatement += $"_or: [ {{ nwobject_connections: {{connection_field: {{ _eq: 2 }}, owner_network: {{name: {{ {ExtractOperator()}: ${QueryVarName} }} }} }} }}, " +
-                    $"{{ nwgroup_connections: {{connection_field: {{ _eq: 2 }}, nwgroup: {{ name: {{ {ExtractOperator()}: ${QueryVarName} }}  }} }} }} ]";
+                    $"{{ nwgroup_connections: {{connection_field: {{ _eq: 2 }}, nwgroup: {{ _or: [ {{ name: {{ {ExtractOperator()}: ${QueryVarName} }} }}, {{ id_string: {{ {ExtractOperator()}: ${QueryVarName} }} }} ] }} }} }} ]";
             }
         }
 
@@ -57,7 +57,7 @@ namespace FWO.Report.Filter.Ast
                 string QueryVarName = AddVariable<string>(query, "src", Operator.Kind, Value.Text);
                 query.RuleWhereStatement += $"rule_froms: {{ object: {{ objgrp_flats: {{ objectByObjgrpFlatMemberId: {{ obj_name: {{ {ExtractOperator()}: ${QueryVarName} }} }} }} }} }}";
                 query.ConnectionWhereStatement += $"_or: [ {{ nwobject_connections: {{connection_field: {{ _eq: 1 }}, owner_network: {{name: {{ {ExtractOperator()}: ${QueryVarName} }} }} }} }}, " +
-                    $"{{ nwgroup_connections: {{connection_field: {{ _eq: 1 }}, nwgroup: {{ name: {{ {ExtractOperator()}: ${QueryVarName} }}  }} }} }} ]";
+                    $"{{ nwgroup_connections: {{connection_field: {{ _eq: 1 }}, nwgroup: {{ _or: [ {{ name: {{ {ExtractOperator()}: ${QueryVarName} }} }}, {{ id_string: {{ {ExtractOperator()}: ${QueryVarName} }} }} ] }} }} }} ]";
             }
         }
 

@@ -64,7 +64,7 @@ namespace FWO.Basics
         public const string TestPDFFilePath = "pdffile.pdf";
         public const string TestPDFHtmlTemplate = "<html><body><h1>test</h1><h2>test mit puppteer</h2></body></html>";
 
-        public const int MaxUploadFileSize = 500_000; //500 KB
+        public const int MaxUploadFileSize = 5 * 1024 * 1024; // 5 MB
     }
 
     public struct PageName

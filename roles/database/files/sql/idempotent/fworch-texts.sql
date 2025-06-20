@@ -2634,8 +2634,8 @@ INSERT INTO txt VALUES ('locked',               'German', 	'Gesperrt');
 INSERT INTO txt VALUES ('locked',               'English', 	'Locked');
 INSERT INTO txt VALUES ('unlock',               'German', 	'Entsperren');
 INSERT INTO txt VALUES ('unlock',               'English', 	'Unlock');
-INSERT INTO txt VALUES ('useCustomLogo',        'German', 	'Benutzerdefiniertes Logo benutzen');
-INSERT INTO txt VALUES ('useCustomLogo',        'English', 	'Use custom logo');
+INSERT INTO txt VALUES ('useCustomLogo',        'German', 	'Benutzerdefiniertes Logo');
+INSERT INTO txt VALUES ('useCustomLogo',        'English', 	'Custom logo');
 
 -- help pages
 INSERT INTO txt VALUES ('report_types',         'German', 	'Report-Typen');

@@ -1,13 +1,14 @@
+using FWO.Basics.Exceptions;
 using FWO.Data;
-using FWO.Data.Workflow;
 using FWO.Data.Modelling;
-using System.Text.Json.Serialization; 
-using Newtonsoft.Json;
-using System.Net;
-using RestSharp;
+using FWO.Data.Workflow;
 using FWO.Logging;
+using Newtonsoft.Json;
+using RestSharp;
+using System.Net;
+using System.Text.Json.Serialization; 
 
-namespace FWO.Tufin.SecureChange
+namespace FWO.ExternalSystems.Tufin.SecureChange
 {
 	public enum SCTaskType
 	{
@@ -36,62 +37,69 @@ namespace FWO.Tufin.SecureChange
 		public string Subject { get; set; } = "";
 		public string Priority { get; set; } = SCTicketPriority.Normal.ToString();
 		public string Requester { get; set; } = "";
-		public string DefaultReason = "Kommunikationsprofil der Anwendung";
-
+		readonly private string DefaultReason = "Kommunikationsprofil der Anwendung";
+		readonly private string Content = "Content: ";
 		private string actTicketTemplate;
 		private SCTaskType actTaskType;
+		private readonly SCClient SCClient;
 
 
-		// {
-		// 	"ticket": {
-		// 		"id": 2,
-		// 		"subject": "Clone Server Policy Ticket",
-		// 		"requester": "a",
-		// 		"requester_id": 12,
-		// 		"priority": "Normal",
-		// 		"status": "In Progress",...
+		/// 	"ticket": {
+		/// 		"id": 2,
+		/// 		"subject": "Clone Server Policy Ticket",
+		/// 		"requester": "a",
+		/// 		"requester_id": 12,
+		/// 		"priority": "Normal",
+		/// 		"status": "In Progress",...
 		// Todo: move to template settings?
-		private class SCPollTicketResponseStatus
+		sealed private class SCPollTicketResponseStatus
 		{
 			[JsonProperty("status"), JsonPropertyName("status")]
 			public string Status { get; set; } = "";
 		}
 
-		private class SCPollTicketResponse
+		sealed private class SCPollTicketResponse
 		{
 			[JsonProperty("ticket"), JsonPropertyName("ticket")]
 			public SCPollTicketResponseStatus Ticket { get; set; } = new();
 		}
 
-		// {
-		// "users": {
-		// 	"user": [
-		// 	{
-		// 		"@xsi.type": "user",
-		// 		"id": 55,
-		// 		"type": "user",
-		// 		"name": "Userxyz",
-		private class SCLookupUserResponseUser
+		/// "users": {
+		/// 	"user": [
+		/// 	{
+		/// 		"@xsi.type": "user",
+		/// 		"id": 55,
+		/// 		"type": "user",
+		/// 		"name": "Userxyz",
+		sealed private class SCLookupUserResponseUser
 		{
 			[JsonProperty("id"), JsonPropertyName("id")]
 			public int Id { get; set; }
 		}
 
-		private class SCLookupUserResponseUsers
+		sealed private class SCLookupUserResponseUsers
 		{
 			[JsonProperty("user"), JsonPropertyName("user")]
-			public List<SCLookupUserResponseUser> Users { get; set; } = [];
+			public List<SCLookupUserResponseUser> User { get; set; } = [];
 		}
 
-		private class SCLookupUsersResponse
+		sealed private class SCLookupUsersResponse
 		{
 			[JsonProperty("users"), JsonPropertyName("users")]
-			public SCLookupUserResponseUsers User { get; set; } = new();
+			public SCLookupUserResponseUsers Users { get; set; } = new();
 		}
 
 
-		public SCTicket(ExternalTicketSystem tufinSystem)
+		public SCTicket(ExternalTicketSystem tufinSystem, SCClient? sCClient = null)
 		{
+			if (sCClient != null)
+			{
+				SCClient = sCClient;
+			}
+			else
+			{
+				SCClient = new(tufinSystem);
+			}
 			TicketSystem = tufinSystem;
 			actTicketTemplate = TicketSystem.Templates.FirstOrDefault()?.TicketTemplate ?? "";
 		}
@@ -100,6 +108,10 @@ namespace FWO.Tufin.SecureChange
 		{
 			CreateTicketTasks(tasks, ipProtos, namingConvention);
 			await CreateTicketText(tasks.FirstOrDefault());
+			if (TicketText.Contains("@@"))
+			{
+				throw new ConfigException("Template error. Unhandled placeholder found.");
+			}
 		}
 
 		public override string GetTaskTypeAsString(WfReqTask task)
@@ -112,25 +124,46 @@ namespace FWO.Tufin.SecureChange
 			RestResponse<int> restResponse = await PollExternalTicket();
 			if (restResponse.StatusCode == HttpStatusCode.OK && restResponse.Content != null)
 			{
-				Log.WriteDebug("Poll external ticket status OK", "Content: " + restResponse.Content);
+				Log.WriteDebug("Poll external ticket status OK", Content + restResponse.Content);
 				SCPollTicketResponse? scResponse = System.Text.Json.JsonSerializer.Deserialize<SCPollTicketResponse?>(restResponse.Content);
 				if(scResponse != null)
 				{
 					return (GetInternalState(scResponse.Ticket.Status.ToUpper()), restResponse.Content);
 				}
 			}
-			Log.WriteError($"Poll status failed for external ticket {TicketId}.", "Content: " + restResponse.Content + ", Error Message: " + restResponse.ErrorMessage);
-			return (oldState, restResponse.ErrorMessage);
+			Log.WriteError($"Poll status failed for external ticket {TicketId}.", Content + restResponse.Content + ", Error Message: " + restResponse.ErrorMessage);
+			throw new ProcessingFailedException(restResponse.ErrorMessage ?? "");
+		}
+
+		public override async Task<RestResponse<int>> CreateExternalTicket()
+		{
+			string restEndPoint = "tickets.json";
+			RestRequest request = new(restEndPoint, Method.Post);
+			request.AddJsonBody(TicketText);
+
+			// https://192.168.1.1/securechangeworkflow/api/securechange/tickets
+			return await SCClient.RestCall(request, restEndPoint);
+		}
+
+		protected override async Task<RestResponse<int>> PollExternalTicket()
+		{
+			if(TicketId != null)
+			{
+				string restEndPoint = "tickets/" + TicketId;
+				RestRequest request = new(restEndPoint, Method.Get);
+				return await SCClient.RestCall(request, restEndPoint);
+			}
+			throw new ArgumentException("No Ticket Id given.");
 		}
 
 		// IN_PROGRESS, REJECTED, CLOSED, CANCELLED, RESOLVED
 		private static string GetInternalState(string externalState)
 		{
-			if(externalState.Contains("REJECTED") || externalState.Contains("CANCELLED"))
+			if (externalState.Contains("REJECTED") || externalState.Contains("CANCELLED"))
 			{
 				return ExtStates.ExtReqRejected.ToString();
 			}
-			else if(externalState.Contains("RESOLVED") || externalState.Contains("CLOSED"))
+			else if (externalState.Contains("RESOLVED") || externalState.Contains("CLOSED"))
 			{
 				return ExtStates.ExtReqDone.ToString();
 			}
@@ -145,7 +178,9 @@ namespace FWO.Tufin.SecureChange
 			switch(task.TaskType)
 			{
 				case nameof(WfTaskType.access):
-					return (SCTaskType.AccessRequest, SCChangeAction.Create);
+				case nameof(WfTaskType.rule_modify):
+				case nameof(WfTaskType.rule_delete):
+					return (SCTaskType.AccessRequest, "");
 				case nameof(WfTaskType.group_create):
 					if(task.IsNetworkFlavor())
 					{
@@ -164,7 +199,7 @@ namespace FWO.Tufin.SecureChange
 					{
 						return (SCTaskType.NetworkServiceUpdate, SCChangeAction.Update);
 					}
-				default: return (SCTaskType.AccessRequest, SCChangeAction.Create);
+				default: return (SCTaskType.AccessRequest, "");
 			}
 		}
 
@@ -187,9 +222,9 @@ namespace FWO.Tufin.SecureChange
 				if(ticketTask != null)
 				{
 					ExternalTicketTemplate? template = TicketSystem.Templates.FirstOrDefault(t => t.TaskType == actTaskType.ToString());
-					if(template == null)
+					if (template == null)
 					{
-						Log.WriteError("Create Ticket Tasks", $"No Template found for task type {actTaskType}.");
+						throw new ConfigException($"No Template found for task type {actTaskType}.");
 					}
 					else
 					{
@@ -201,39 +236,37 @@ namespace FWO.Tufin.SecureChange
 			}
 		}
 
-		// {
-		// 	"ticket": {
-		// 		"subject": "@@TICKET_SUBJECT@@",
-		// 		"priority": "@@PRIORITY@@",
-		// 		"requester": "@@ONBEHALF@@",
-		// 		"domain_name": "",
-		// 		"workflow": {"name": "Standard Firewall Request"},
-		// 		"steps": {
-		// 			"step": [
-		// 				{
-		// 					"name": "Erfassung des Antrags",
-		// 					"tasks": {
-		// 						"task": {
-		// 							"fields": {
-		// 								"field": [
-		// 										@@TASKS@@
-		// 								]
-		// 							},
-		// 							{
-		// 								"@xsi.type": "text_area",
-		// 								"name": "Grund für den Antrag",
-		// 								"read_only": false,
-		// 								"text": "@@REASON@@"
-		// 							},
-		// 							{
-		// 								"@xsi.type": "text_field",
-		// 								"name": "Anwendungs-ID",
-		// 								"text": "@@APPID@@"
-		// 							}]}}}
+		/// 	"ticket": {
+		/// 		"subject": "@@TICKET_SUBJECT@@",
+		/// 		"priority": "@@PRIORITY@@",
+		/// 		"requester": "@@ONBEHALF@@",
+		/// 		"domain_name": "",
+		/// 		"workflow": {"name": "Standard Firewall Request"},
+		/// 		"steps": {
+		/// 			"step": [
+		/// 				{
+		/// 					"name": "Erfassung des Antrags",
+		/// 					"tasks": {
+		/// 						"task": {
+		/// 							"fields": {
+		/// 								"field": [
+		/// 										@@TASKS@@
+		/// 								]
+		/// 							},
+		/// 							{
+		/// 								"@xsi.type": "text_area",
+		/// 								"name": "Grund für den Antrag",
+		/// 								"read_only": false,
+		/// 								"text": "@@REASON@@"
+		/// 							},
+		/// 							{
+		/// 								"@xsi.type": "text_field",
+		/// 								"name": "Anwendungs-ID",
+		/// 								"text": "@@APPID@@"
 
 		private async Task CreateTicketText(WfReqTask? reqTask)
 		{
-			string appId = reqTask != null && reqTask?.Owners.Count > 0 ? reqTask?.Owners.First()?.Owner.ExtAppId ?? "" : "";
+			string appId = reqTask != null && reqTask.Owners.Count > 0 ? reqTask.Owners[0]?.Owner.ExtAppId ?? "" : "";
 			string onBehalf = TicketSystem.LookupRequesterId ? (await LookupRequesterId(Requester)).ToString() : Requester;
 			TicketText = actTicketTemplate
 				.Replace("@@TICKET_SUBJECT@@", Subject)
@@ -253,19 +286,19 @@ namespace FWO.Tufin.SecureChange
 			{
 				string restEndPoint = "users.json?user_name=" + requesterName;
 				RestRequest request = new(restEndPoint, Method.Get);
-				RestResponse<int> restResponse = await RestCall(request, restEndPoint);
+				RestResponse<int> restResponse = await SCClient.RestCall(request, restEndPoint);
 				if (restResponse.StatusCode == HttpStatusCode.OK && restResponse.Content != null)
 				{
-					Log.WriteDebug("Lookup external requester id OK", "Content: " + restResponse.Content);
+					Log.WriteDebug("Lookup external requester id OK", Content + restResponse.Content);
 					SCLookupUsersResponse? scResponse = System.Text.Json.JsonSerializer.Deserialize<SCLookupUsersResponse?>(restResponse.Content);
 					if(scResponse != null)
 					{
-						return scResponse.User.Users.FirstOrDefault()?.Id ?? 0;
+						return scResponse.Users.User.FirstOrDefault()?.Id ?? 0;
 					}
 				}
 				else
 				{
-					Log.WriteError("Lookup external requester id not OK", "Content: " + restResponse.Content);
+					Log.WriteError("Lookup external requester id not OK", Content + restResponse.Content);
 				}
 			}
 			return 0;
@@ -274,7 +307,7 @@ namespace FWO.Tufin.SecureChange
 }
 
 
-/*
+/**
 	Create Ticket for creating network groups
 
 	parameters:
@@ -458,4 +491,4 @@ namespace FWO.Tufin.SecureChange
 				}
 			}
 		}'
-*/
+**/

@@ -1,6 +1,7 @@
 fragment ruleDetails on rule {
   rule_id
   rule_uid
+  mgm_id
   dev_id
   rule_action
   rulebase_id

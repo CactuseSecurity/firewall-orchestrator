@@ -274,7 +274,11 @@ bugfix release:
 # 8.8.4 - 02.06.2025 DEVELOP
 - hotfix for Check Point importer suppor for DLP actions (ask, inform)
 
-# 9.0 - 31.05.2025 DEVELOP
+# 8.8.5 - 17.06.2025 DEVELOP
+- new enum values for Request Element Field Types
+- hotfix change recognition: separate rule changes and "all changes" to make object version handling work properly
+
+# 9.0 - 30.06.2025 DEVELOP
 - rule to gateway mapping 1:n
 - add report output for rule to gw mapping
 - cleanup/rework of main import function

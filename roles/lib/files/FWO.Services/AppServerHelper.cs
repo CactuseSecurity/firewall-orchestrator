@@ -46,41 +46,37 @@ namespace FWO.Services
 
         public static string ConstructAppServerName(ModellingAppServer appServer, ModellingNamingConvention namingConvention, bool overwriteExistingNames=false)
         {
-            return string.IsNullOrEmpty(appServer.Name) || overwriteExistingNames ? GetPrefix(appServer, namingConvention) + DisplayBase.DisplayIp(appServer.Ip, appServer.IpEnd) :
-                ( char.IsLetter(appServer.Name[0]) ? appServer.Name : GetPrefix(appServer, namingConvention) + appServer.Name );
+            if (string.IsNullOrEmpty(appServer.Name) || overwriteExistingNames)
+            {
+                return GetPrefix(appServer, namingConvention) + DisplayBase.DisplayIp(appServer.Ip, appServer.IpEnd);
+            }
+            return char.IsLetter(appServer.Name[0]) ? appServer.Name : GetPrefix(appServer, namingConvention) + appServer.Name;
         }
 
         public static async Task AdjustAppServerNames(ApiConnection apiConnection, UserConfig userConfig)
         {
-            try
+            Log.WriteDebug($"Start adjusting App Server Names", "");
+            ModellingNamingConvention namingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(userConfig.ModNamingConvention) ?? new();
+            List<ModellingAppServer> AppServers = await apiConnection.SendQueryAsync<List<ModellingAppServer>>(ModellingQueries.getAllAppServers);
+            int correctedCounter = 0;
+            int failCounter = 0;
+            foreach(var appServer in AppServers)
             {
-                Log.WriteDebug($"Start adjusting App Server Names", "");
-                ModellingNamingConvention namingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(userConfig.ModNamingConvention) ?? new();
-                List<ModellingAppServer> AppServers = await apiConnection.SendQueryAsync<List<ModellingAppServer>>(ModellingQueries.getAllAppServers);
-                int correctedCounter = 0;
-                int failCounter = 0;
-                foreach(var appServer in AppServers)
+                string oldName = appServer.Name;
+                if((await ConstructAppServerNameFromDns(appServer, namingConvention, userConfig.OverwriteExistingNames)) != oldName)
                 {
-                    string oldName = appServer.Name;
-                    if((await ConstructAppServerNameFromDns(appServer, namingConvention, userConfig.OverwriteExistingNames)) != oldName)
+                    appServer.ImportSource = GlobalConst.kAdjustAppServerNames;
+                    if (await UpdateName(apiConnection, userConfig, appServer, oldName))
                     {
-                        appServer.ImportSource = GlobalConst.kAdjustAppServerNames;
-                        if (await UpdateName(apiConnection, userConfig, appServer, oldName))
-                        {
-                            correctedCounter++;
-                        }
-                        else
-                        {
-                            failCounter++;
-                        }
+                        correctedCounter++;
+                    }
+                    else
+                    {
+                        failCounter++;
                     }
                 }
-                Log.WriteInfo($"Adjusted App Server Names", $"{correctedCounter} out of {AppServers.Count} App Servers have been corrected, {failCounter} failed");
             }
-            catch(Exception exception)
-            {
-                Log.WriteError("Adjust App Server Names", $"Adjusting leads to exception:", exception);
-            }
+            Log.WriteInfo($"Adjusted App Server Names", $"{correctedCounter} out of {AppServers.Count} App Servers have been corrected, {failCounter} failed");
         }
 
         public static async Task<bool> NoHigherPrioActive(ApiConnection apiConnection, ModellingAppServer incomingAppServer)

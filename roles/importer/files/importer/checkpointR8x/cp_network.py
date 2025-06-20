@@ -4,8 +4,8 @@ import cp_const
 from fwo_const import list_delimiter
 import fwo_alert, fwo_api
 import ipaddress 
-import fwo_const
 import fwo_globals
+import fwo_const
 
 
 def normalize_network_objects(full_config, config2import, import_id, mgm_id=0):
@@ -239,14 +239,14 @@ def get_ip_of_obj(obj, mgm_id=None):
     return ip_addr
 
 
-def makeHost(ipIn):
-    ip_obj = ipaddress.ip_address(ipIn)
+def make_host(ip_in):
+    ip_obj = ipaddress.ip_address(ip_in)
     
     # If it's a valid address, append the appropriate CIDR notation
     if isinstance(ip_obj, ipaddress.IPv4Address):
-        return f"{ipIn}/32"
+        return f"{ip_in}/32"
     elif isinstance(ip_obj, ipaddress.IPv6Address):
-        return f"{ipIn}/128"
+        return f"{ip_in}/128"
 
 
 def cidrToRange(ip):
@@ -268,7 +268,7 @@ def cidrToRange(ip):
             net = ipaddress.IPv4Network(ip)
         elif ipVersion=='IPv6':
             net = ipaddress.IPv6Network(ip)    
-        return [makeHost(str(net.network_address)), makeHost(str(net.broadcast_address))]
+        return [make_host(str(net.network_address)), make_host(str(net.broadcast_address))]
             
     return [ip]
 

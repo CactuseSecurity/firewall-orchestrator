@@ -138,6 +138,15 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
 
             if not clearManagementData and importState.DataRetentionDays<importState.DaysSinceLastFullImport:
                 configImporter.deleteOldImports() # delete all imports of the current management before the last but one full import
+                try: # get change count from db
+                    # temporarily only count rule changes until change report also includes other changes
+                    rule_change_count = fwo_api.count_rule_changes_per_import(importState.FwoConfig['fwo_api_base_url'], importState.Jwt, importState.ImportId)
+                    any_change_count = fwo_api.count_any_changes_per_import(importState.FwoConfig['fwo_api_base_url'], importState.Jwt, importState.ImportId)
+                    importState.setAnyChangeCounter(any_change_count)
+                    importState.setRuleChangeCounter(rule_change_count)
+                except:
+                    logger.error("import_management - unspecified error while getting change count: " + str(traceback.format_exc()))
+                    raise
 
         # Set the result based on the error count
         if hasattr(importState, 'Stats') and hasattr(importState.Stats, 'ErrorCount'):
@@ -151,6 +160,58 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
         importState.addError("ImportRecursionLimitReached - aborting import")
     except (KeyboardInterrupt, fwo_exceptions.ImportInterruption) as e:
         rollBackExceptionHandler(importState, configImporter=configImporter, exc=e, errorText="shutdown requested")
+        return importState.ErrorCount
+    else:
+        return 1    # error during initial FWO API login attempt
+
+
+# when we read from a normalized config file, it contains non-matching import ids, so updating them
+# for native configs this function should do nothing
+def replace_import_id(config, current_import_id):
+    for tab in ['network_objects', 'service_objects', 'user_objects', 'zone_objects', 'rules']:
+        if tab in config:
+            for item in config[tab]:
+                if 'control_id' in item:
+                    item['control_id'] = current_import_id
+        else: # assuming native config is read
+            pass
+
+
+def initializeImport(mgmId, debugLevel=0, suppressCertWarnings=False, sslVerification=False, force=False):
+
+    def check_input_parameters(mgmId):
+        if mgmId is None:
+            raise BaseException("parameter mgm_id is mandatory")
+
+    logger = getFwoLogger()
+    check_input_parameters(mgmId)
+
+    fwoConfig = readConfig(fwo_config_filename)
+
+    # authenticate to get JWT
+    with open(importer_pwd_file, 'r') as file:
+        importer_pwd = file.read().replace('\n', '')
+    try:
+        jwt = fwo_api.login(importer_user_name, importer_pwd, fwoConfig['user_management_api_base_url'])
+    except FwoApiLoginFailed as e:
+        logger.error(e.message)
+        return e.message
+    except:
+        return "unspecified error during FWO API login"
+
+    # set global https connection values
+    fwo_globals.setGlobalValues (suppress_cert_warnings_in=suppressCertWarnings, verify_certs_in=sslVerification, debug_level_in=debugLevel)
+    if fwo_globals.verify_certs is None:    # not defined via parameter
+        fwo_globals.verify_certs = fwo_api.get_config_value(fwoConfig['fwo_api_base_url'], jwt, key='importCheckCertificates')=='True'
+    if fwo_globals.suppress_cert_warnings is None:    # not defined via parameter
+        fwo_globals.suppress_cert_warnings = fwo_api.get_config_value(fwoConfig['fwo_api_base_url'], jwt, key='importSuppressCertificateWarnings')=='True'
+    if fwo_globals.suppress_cert_warnings: # not defined via parameter
+        requests.packages.urllib3.disable_warnings()  # suppress ssl warnings only    
+
+    try: # get mgm_details (fw-type, port, ip, user credentials):
+        mgmDetails = fwo_api.get_mgm_details(fwoConfig['fwo_api_base_url'], jwt, {"mgmId": int(mgmId)}, int(debugLevel)) 
+    except:
+        logger.error("import_management - error while getting fw management details for mgm=" + str(mgmId) )
         raise
     except (fwo_exceptions.FwoApiWriteError, fwo_exceptions.FwoImporterError) as e:
         importState.addError("FwoApiWriteError or FwoImporterError - aborting import")

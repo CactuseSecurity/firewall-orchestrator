@@ -1,4 +1,5 @@
-﻿using FWO.Data;
+﻿using FWO.Basics;
+using FWO.Data;
 using FWO.Data.Modelling;
 using FWO.Data.Workflow;
 using FWO.Logging;
@@ -7,8 +8,8 @@ using System.Text.Json;
 namespace FWO.Services
 {
     /// <summary>
-	/// Part of Variance Analysis Class analysing the network and service objects for request
-	/// </summary>
+    /// Part of Variance Analysis Class analysing the rules, network and service objects for request
+    /// </summary>
     public partial class ModellingVarianceAnalysis
     {
         private ModellingAppRole? existingAppRole;
@@ -21,15 +22,164 @@ namespace FWO.Services
         private List<WfReqElement> unchangedGroupMembersDuringCreate = [];
         private List<WfReqElement> unchangedGroupMembers = [];
 
+        private void AnalyseConnectionForRequest(Management mgt, ModellingConnection conn)
+        {
+            varianceResult = new() { Managements = RelevantManagements };
+            AnalyseRules(conn, false);
+            if(varianceResult.ConnsNotImplemented.Count > 0)
+            {
+                AddAccessTaskList.Add(ConstructCreateTask(mgt, conn));
+            }
+            else if(varianceResult.RuleDifferences.Count > 0)
+            {
+                foreach(var rule in varianceResult.RuleDifferences[0].ImplementedRules.Where(r => r.MgmtId == mgt.Id))
+                {
+                    ChangeAccessTaskList.Add(ConstructRuleTask(mgt, rule, conn, false, elements));
+                }
+            }
+        }
 
-        private void AnalyseNetworkAreasForRequest(ModellingConnection conn)
+        private async Task AnalyseDeletedConnsForRequest(Management mgt)
+        {
+            List<ModellingConnection> deletedConns = await GetDeletedConnections();
+            List<int> DeletedConnectionIds = deletedConns.ConvertAll(c => c.Id);
+            foreach (var rule in allModelledRules[mgt.Id].Where(r => !r.ModellFound))
+            {
+                if (int.TryParse(FindModelledMarker(rule), out int connId) && DeletedConnectionIds.Contains(connId))
+                {
+                    ModellingConnection deletedConn = deletedConns.FirstOrDefault(c => c.Id == connId) ?? throw new KeyNotFoundException("Connection not found.");
+                    DeleteAccessTaskList.Add(ConstructRuleTask(mgt, rule, deletedConn, true, GetElementsFromRule(rule, deletedConn)));
+                }
+            }
+        }
+
+        private List<WfReqElement> GetElementsFromRule(Rule rule, ModellingConnection deletedConn)
+        {
+            List<WfReqElement> ruleElements = [];
+             Dictionary<string, bool> specialUserObjects = deletedConn.GetSpecialUserObjectNames();
+            if (specialUserObjects.Count > 0)
+            {
+                // Get from deleted conn as modelled objects are expected instead of specUser (Then deletion of links is suppressed in this case)
+                ruleElements.AddRange(GetNwObjElementsFromConn(deletedConn));
+            }
+            foreach(var src in rule.Froms.Select(src => src.Object))
+            {
+                ruleElements.Add(new()
+                {
+                    RequestAction = RequestAction.unchanged.ToString(),
+                    Field = ElemFieldType.source.ToString(),
+                    Name = src.Name,
+                    IpString = src.IP,
+                    IpEnd = src.IpEnd,
+                    GroupName = src.Type.Name == ObjectType.Group ? src.Name : null
+                });
+            }
+            foreach(var dest in rule.Tos.Select(dest => dest.Object))
+            {
+                ruleElements.Add(new()
+                {
+                    RequestAction = RequestAction.unchanged.ToString(),
+                    Field = ElemFieldType.destination.ToString(),
+                    Name = dest.Name,
+                    IpString = dest.IP,
+                    IpEnd = dest.IpEnd,
+                    GroupName = dest.Type.Name == ObjectType.Group ? dest.Name : null
+                });
+            }
+            foreach(var svc in rule.Services.Select(svc => svc.Content))
+            {
+                ruleElements.Add(new()
+                {
+                    RequestAction = RequestAction.unchanged.ToString(),
+                    Field = ElemFieldType.service.ToString(),
+                    Name = svc.Name,
+                    Port = svc.DestinationPort,
+                    PortEnd = svc.DestinationPortEnd,
+                    ProtoId = svc.ProtoId,
+                    GroupName = svc.Type.Name == ServiceType.Group ? svc.Name : null
+                });
+            }
+            return ruleElements;
+        }
+
+        private List<WfReqElement> GetNwObjElementsFromConn(ModellingConnection deletedConn)
+        {
+            AnalyseNetworkAreasForRequest(deletedConn, true);
+            foreach (ModellingAppRole srcAppRole in ModellingAppRoleWrapper.Resolve(deletedConn.SourceAppRoles))
+            {
+                elements.Add(new()
+                {
+                    RequestAction = RequestAction.create.ToString(),
+                    Field = ElemFieldType.modelled_source.ToString(),
+                    GroupName = srcAppRole.IdString
+                });
+            }
+            foreach (ModellingAppRole dstAppRole in ModellingAppRoleWrapper.Resolve(deletedConn.DestinationAppRoles))
+            {
+                elements.Add(new()
+                {
+                    RequestAction = RequestAction.create.ToString(),
+                    Field = ElemFieldType.modelled_destination.ToString(),
+                    GroupName = dstAppRole.IdString
+                });
+            }
+            AnalyseAppServersForRequest(deletedConn, true);
+            return elements.ConvertAll(e => new WfReqElement(e) { RequestAction = RequestAction.unchanged.ToString() });
+        }
+
+        private WfReqTask ConstructCreateTask(Management mgt, ModellingConnection conn)
+        {
+            Dictionary<string, string>? addInfo = new() { { AdditionalInfoKeys.ConnId, conn.Id.ToString() } };
+            return new()
+            {
+                Title = ( conn.IsCommonService ? userConfig.GetText("new_common_service") : userConfig.GetText("new_connection") ) + ": " + (conn.Name ?? ""),
+                TaskType = WfTaskType.access.ToString(),
+                ManagementId = mgt.Id,
+                OnManagement = mgt,
+                Elements = elements,
+                RuleAction = 1,  // Todo ??
+                Tracking = 1,  // Todo ??
+                AdditionalInfo = JsonSerializer.Serialize(addInfo),
+                Comments = [new() { Comment = new() { CommentText = ConstructComment(conn) } }]
+            };
+        }
+
+        private WfReqTask ConstructRuleTask(Management mgt, Rule rule, ModellingConnection conn, bool delete, List<WfReqElement> ruleElements)
+        {
+            Dictionary<string, string>? addInfo = new() { { AdditionalInfoKeys.ConnId, conn.Id.ToString() } };
+            ruleElements.Add(new()
+            {
+                Field = ElemFieldType.rule.ToString(),
+                RuleUid = rule.Uid,
+                DeviceId = rule.DeviceId,
+                Name = rule.Name
+            });
+            WfReqTask ruleTask = new()
+            {
+                Title = (delete ? userConfig.GetText("delete_rule") : userConfig.GetText("change_rule")) + ": " + (rule.Name ?? ""),
+                TaskType = delete ? WfTaskType.rule_delete.ToString() : WfTaskType.rule_modify.ToString(),
+                RequestAction = delete ? RequestAction.delete.ToString() : RequestAction.modify.ToString(),
+                ManagementId = mgt.Id,
+                OnManagement = mgt,
+                Elements = ruleElements,
+                RuleAction = 1,  // Todo ??
+                Tracking = 1,  // Todo ??
+                AdditionalInfo = JsonSerializer.Serialize(addInfo),
+                Comments = [new() { Comment = new() { CommentText = ConstructComment(conn) } }]
+            };
+            Device? device = mgt.Devices.FirstOrDefault(d => d.Id == rule.DeviceId);
+            ruleTask.SetDeviceList(device != null ? [device] : []);
+            return ruleTask;
+        }
+
+        private void AnalyseNetworkAreasForRequest(ModellingConnection conn, bool modelled = false)
         {
             foreach(var area in ModellingNetworkAreaWrapper.Resolve(conn.SourceAreas))
             {
                 elements.Add(new()
                 {
                     RequestAction = RequestAction.create.ToString(),
-                    Field = ElemFieldType.source.ToString(),
+                    Field = modelled ? ElemFieldType.modelled_source.ToString() : ElemFieldType.source.ToString(),
                     GroupName = area.IdString
                 });
             }
@@ -38,7 +188,7 @@ namespace FWO.Services
                 elements.Add(new()
                 {
                     RequestAction = RequestAction.create.ToString(),
-                    Field = ElemFieldType.destination.ToString(),
+                    Field = modelled ? ElemFieldType.modelled_destination.ToString() : ElemFieldType.destination.ToString(),
                     GroupName = area.IdString
                 });
             }
@@ -67,7 +217,7 @@ namespace FWO.Services
             }
             else if (AppRoleChanged(appRole) &&
                 TaskList.FirstOrDefault(x => x.Title == userConfig.GetText("update_app_role") + appRole.IdString + userConfig.GetText("add_members") && x.OnManagement?.Id == mgt.Id) == null &&
-                DeleteTasksList.FirstOrDefault(x => x.Title == userConfig.GetText("update_app_role") + appRole.IdString + userConfig.GetText("remove_members") && x.OnManagement?.Id == mgt.Id) == null)
+                DeleteObjectTasksList.FirstOrDefault(x => x.Title == userConfig.GetText("update_app_role") + appRole.IdString + userConfig.GetText("remove_members") && x.OnManagement?.Id == mgt.Id) == null)
             {
                 RequestUpdateAppRole(appRole, mgt);
             }
@@ -187,7 +337,7 @@ namespace FWO.Services
         {
             string title = appRole.GetType() == typeof(ModellingAppZone)? userConfig.GetText("new_app_zone"): userConfig.GetText("new_app_role");
             List<WfReqElement> groupMembers = [];
-            foreach (ModellingAppServer appServer in ModellingAppServerWrapper.Resolve(( (ModellingAppRole)appRole ).AppServers))
+            foreach (ModellingAppServer appServer in ModellingAppServerWrapper.Resolve(appRole.AppServers))
             {
                 (long? networkId, bool alreadyRequested) = ResolveAppServerId(appServer, mgt);
                 groupMembers.Add(new()
@@ -238,7 +388,7 @@ namespace FWO.Services
             {
                 deletedGroupMembers.AddRange(unchangedGroupMembers);
                 deletedGroupMembers.AddRange(newCreatedGroupMembers);
-                DeleteTasksList.Add(new()
+                DeleteObjectTasksList.Add(new()
                 {
                     Title = title + appRole.IdString + userConfig.GetText("remove_members"),
                     TaskType = WfTaskType.group_modify.ToString(),
@@ -258,16 +408,16 @@ namespace FWO.Services
             deletedGroupMembers = [];
             unchangedGroupMembers = [];
             unchangedGroupMembersDuringCreate = [];
-            foreach (ModellingAppServerWrapper appServer in newAppServers)
+            foreach (var appServer in newAppServers.Select(a => a.Content))
             {
-                (long? networkId, bool alreadyRequested) = ResolveAppServerId(appServer.Content, mgt);
+                (long? networkId, bool alreadyRequested) = ResolveAppServerId(appServer, mgt);
                 newGroupMembers.Add(new()
                 {
                     RequestAction = alreadyRequested ? RequestAction.addAfterCreation.ToString() : RequestAction.create.ToString(),
                     Field = ElemFieldType.source.ToString(),
-                    Name = AppServerHelper.ConstructAppServerName(appServer.Content, namingConvention),
-                    IpString = appServer.Content.Ip,
-                    IpEnd = appServer.Content.IpEnd,
+                    Name = AppServerHelper.ConstructAppServerName(appServer, namingConvention),
+                    IpString = appServer.Ip,
+                    IpEnd = appServer.IpEnd,
                     GroupName = idString,
                     NetworkId = networkId
                 });
@@ -275,70 +425,70 @@ namespace FWO.Services
                 {
                     RequestAction = RequestAction.unchanged.ToString(),
                     Field = ElemFieldType.source.ToString(),
-                    Name = appServer.Content.Name,
-                    IpString = appServer.Content.Ip,
-                    IpEnd = appServer.Content.IpEnd,
+                    Name = appServer.Name,
+                    IpString = appServer.Ip,
+                    IpEnd = appServer.IpEnd,
                     GroupName = idString,
                     NetworkId = networkId
                 });
             }
-            foreach (ModellingAppServerWrapper appServer in unchangedAppServers)
+            foreach (var appServer in unchangedAppServers.Select(a => a.Content))
             {
                 unchangedGroupMembers.Add(new()
                 {
                     RequestAction = RequestAction.unchanged.ToString(),
                     Field = ElemFieldType.source.ToString(),
-                    Name = appServer.Content.Name,
-                    IpString = appServer.Content.Ip,
-                    IpEnd = appServer.Content.IpEnd,
+                    Name = appServer.Name,
+                    IpString = appServer.Ip,
+                    IpEnd = appServer.IpEnd,
                     GroupName = idString
                 });
             }
-            foreach (ModellingAppServerWrapper appServer in deletedAppServers)
+            foreach (var appServer in deletedAppServers.Select(a => a.Content))
             {
                 unchangedGroupMembersDuringCreate.Add(new()
                 {
                     RequestAction = RequestAction.unchanged.ToString(),
                     Field = ElemFieldType.source.ToString(),
-                    Name = appServer.Content.Name,
-                    IpString = appServer.Content.Ip,
-                    IpEnd = appServer.Content.IpEnd,
+                    Name = appServer.Name,
+                    IpString = appServer.Ip,
+                    IpEnd = appServer.IpEnd,
                     GroupName = idString
                 });
                 deletedGroupMembers.Add(new()
                 {
                     RequestAction = RequestAction.delete.ToString(),
                     Field = ElemFieldType.source.ToString(),
-                    Name = appServer.Content.Name,
-                    IpString = appServer.Content.Ip,
-                    IpEnd = appServer.Content.IpEnd,
+                    Name = appServer.Name,
+                    IpString = appServer.Ip,
+                    IpEnd = appServer.IpEnd,
                     GroupName = idString
                 });
             }
         }
 
-        private void AnalyseAppServersForRequest(ModellingConnection conn)
+        private void AnalyseAppServersForRequest(ModellingConnection conn, bool modelled = false)
         {
-            foreach (ModellingAppServerWrapper srcAppServer in conn.SourceAppServers)
+            foreach (var srcAppServer in conn.SourceAppServers.Select(a => a.Content))
             {
                 elements.Add(new()
                 {
                     RequestAction = RequestAction.create.ToString(),
-                    Field = ElemFieldType.source.ToString(),
-                    Name = srcAppServer.Content.Name,
-                    IpString = srcAppServer.Content.Ip,
-                    IpEnd = srcAppServer.Content.IpEnd
+                    Field = modelled ? ElemFieldType.modelled_source.ToString() : ElemFieldType.source.ToString(),
+                    Name = srcAppServer.Name,
+                    IpString = srcAppServer.Ip,
+                    IpEnd = srcAppServer.IpEnd
                 });
             }
-            foreach (ModellingAppServerWrapper dstAppServer in conn.DestinationAppServers)
+            foreach (var dstAppServer in conn.DestinationAppServers.Select(a => a.Content))
             {
                 elements.Add(new()
                 {
                     RequestAction = RequestAction.create.ToString(),
-                    Field = ElemFieldType.destination.ToString(),
-                    Name = dstAppServer.Content.Name,
-                    IpString = dstAppServer.Content.Ip,
-                    IpEnd = dstAppServer.Content.IpEnd
+                    Field = modelled ? ElemFieldType.modelled_destination.ToString() : ElemFieldType.destination.ToString(),
+                    Name = dstAppServer.Name,
+                    IpString = dstAppServer.Ip,
+                    IpEnd = dstAppServer.IpEnd
                 });
             }
         }

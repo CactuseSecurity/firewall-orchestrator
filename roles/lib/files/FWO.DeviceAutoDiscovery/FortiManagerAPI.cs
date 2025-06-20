@@ -1,41 +1,26 @@
-﻿using RestSharp;
-using System.Text.Json;
-using FWO.Basics;
+﻿using FWO.Api.Client;
 using FWO.Data;
-using System.Text;
 using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 using FWO.Logging;
 using RestSharp.Serializers.NewtonsoftJson;
 using RestSharp.Serializers;
-// using Newtonsoft.Json.Linq;
+using RestSharp;
+using System.Text.Json;
 
-namespace FWO.Rest.Client
+namespace FWO.DeviceAutoDiscovery
 {
-    public class FortiManagerClient
+    public class FortiManagerClient : RestApiClient
     {
-        readonly RestClient restClient;
+        public FortiManagerClient(Management fortiManager) : base("https://" + fortiManager.Hostname + ":" + fortiManager.Port + "/jsonrpc")
+		{ }
 
-        public FortiManagerClient(Management fortiManager)
-        {
-            RestClientOptions restClientOptions = new RestClientOptions();
-            restClientOptions.RemoteCertificateValidationCallback += (_, _, _, _) => true;
-            restClientOptions.BaseUrl = new Uri("https://" + fortiManager.Hostname + ":" + fortiManager.Port + "/jsonrpc");
-            restClient = new RestClient(restClientOptions, null, ConfigureRestClientSerialization);
-        }
-
-        private void ConfigureRestClientSerialization(SerializerConfig config)
-        {
-            JsonNetSerializer serializer = new JsonNetSerializer(); // Case insensivitive is enabled by default
-            config.UseSerializer(() => serializer);
-        }
-
-        public async Task<RestResponse<SessionAuthInfo>> AuthenticateUser(string? user, string pwd, string domainString = "")
+        public async Task<RestResponse<SessionAuthInfo>> AuthenticateUser(string? user, string pwd)
         {
             List<object> dataList = [];
             dataList.Add(new { passwd = pwd, user = user });
 
-            List<object> paramList = new List<object>();
+            List<object> paramList = [];
             paramList.Add(new { data = dataList, url = "/sys/login/user" });
 
             var body = new
@@ -44,14 +29,14 @@ namespace FWO.Rest.Client
                 id = 1,
                 @params = paramList // because "params" is a c# keyword, we have to escape it here with @
             };
-            RestRequest request = new RestRequest("", Method.Post);
+            RestRequest request = new("", Method.Post);
             request.AddJsonBody(body);
             return await restClient.ExecuteAsync<SessionAuthInfo>(request);
         }
 
         public async Task<RestResponse<SessionAuthInfo>> DeAuthenticateUser(string session)
         {
-            List<object> paramList = new List<object>();
+            List<object> paramList = [];
             paramList.Add(new { session = session, url = "/sys/logout" });
 
             var body = new
@@ -141,7 +126,7 @@ namespace FWO.Rest.Client
                 id = 1,
                 session = session
             };
-            RestRequest request = new RestRequest("", Method.Post);
+            RestRequest request = new("", Method.Post);
             request.AddJsonBody(body);
             return await restClient.ExecuteAsync<FmApiTopLevelHelperAssign>(request);
         }
@@ -195,7 +180,7 @@ namespace FWO.Rest.Client
         public string Uid { get; set; } = "";
 
         // public List<Package> Packages = new List<Package>();
-        public List<Assignment> Assignments = new List<Assignment>();
+        public List<Assignment> Assignments { get; set; } = [];
     }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

@@ -1,8 +1,10 @@
 using FWO.Basics;
+using FWO.Data;
 using FWO.Data.Report;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Config.Api;
+using FWO.Config.Api.Data;
 using FWO.Logging;
 using FWO.Middleware.Server.Controllers;
 using FWO.Report;
@@ -16,7 +18,7 @@ namespace FWO.Middleware.Server
     /// <summary>
     /// Report scheduler class
     /// </summary>
-    public class ReportScheduler
+    public class ReportScheduler : SchedulerBase
     {
         private ConcurrentBag<ReportSchedule> scheduledReports = [];
         private readonly TimeSpan CheckScheduleInterval = TimeSpan.FromMinutes(1);
@@ -25,15 +27,22 @@ namespace FWO.Middleware.Server
         private readonly ApiConnection apiConnectionScheduler;
         private ApiConnection? apiConnectionUserContext;
         private UserConfig? userConfig;
-        private readonly GraphQlApiSubscription<ReportSchedule[]> scheduledReportsSubscription;
         private readonly JwtWriter jwtWriter;
+        private const string LogMessageTitle = "Report Scheduling";
 
         private List<Ldap> connectedLdaps;
 
 		/// <summary>
-		/// Constructor needing connection, jwtWriter and subscription to connected ldaps
+		/// Async Constructor needing the connection, jwtWriter and subscription
 		/// </summary>
-        public ReportScheduler(ApiConnection apiConnection, JwtWriter jwtWriter, GraphQlApiSubscription<List<Ldap>> connectedLdapsSubscription)
+        public static async Task<ReportScheduler> CreateAsync(ApiConnection apiConnection, JwtWriter jwtWriter, GraphQlApiSubscription<List<Ldap>> connectedLdapsSubscription)
+        {
+            GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(apiConnection, true);
+            return new ReportScheduler(apiConnection, globalConfig, jwtWriter, connectedLdapsSubscription);
+        }
+
+        private ReportScheduler(ApiConnection apiConnection, GlobalConfig globalConfig, JwtWriter jwtWriter, GraphQlApiSubscription<List<Ldap>> connectedLdapsSubscription)
+            : base(apiConnection, globalConfig, ReportQueries.subscribeReportScheduleChanges, SchedulerInterval.Minutes, "Report")
         {
             this.jwtWriter = jwtWriter;            
             apiConnectionScheduler = apiConnection;
@@ -42,14 +51,9 @@ namespace FWO.Middleware.Server
             connectedLdaps = apiConnectionScheduler.SendQueryAsync<List<Ldap>>(AuthQueries.getLdapConnections).Result;
             connectedLdapsSubscription.OnUpdate += OnLdapUpdate;
 
-            //scheduledReports = apiConnectionScheduler.SendQueryAsync<ReportSchedule[]>(ReportQueries.getReportSchedules).Result.ToList();
-            scheduledReportsSubscription = apiConnectionScheduler.GetSubscription<ReportSchedule[]>(ApiExceptionHandler, OnScheduleUpdate, ReportQueries.subscribeReportScheduleChanges);
+            apiConnectionScheduler.GetSubscription<ReportSchedule[]>(ApiExceptionHandler, OnScheduleUpdate, ReportQueries.subscribeReportScheduleChanges);
 
-            System.Timers.Timer checkScheduleTimer = new();
-            checkScheduleTimer.Elapsed += CheckSchedule;
-            checkScheduleTimer.Interval = CheckScheduleInterval.TotalMilliseconds;
-            checkScheduleTimer.AutoReset = true;
-            checkScheduleTimer.Start();
+            StartScheduleTimer(1, DateTime.Now);
         }
 
         private void OnLdapUpdate(List<Ldap> connectedLdaps)
@@ -62,16 +66,17 @@ namespace FWO.Middleware.Server
             this.scheduledReports = [.. scheduledReports];            
         }
 
-        private void ApiExceptionHandler(Exception exception)
-        {
-            Log.WriteError("Report scheduler", "Api subscription lead to exception. Retry subscription.", exception);
-            // Subscription will be restored if no exception is thrown here
-        }
+		/// <summary>
+		/// set scheduling timer from config values (not applicable here)
+		/// </summary>
+        protected override void OnGlobalConfigChange(List<ConfigItem> config)
+        {}
 
-        private async void CheckSchedule(object? _, ElapsedEventArgs __)
+        /// <summary>
+        /// define the processing to be done
+        /// </summary>
+        protected override async void Process(object? _, ElapsedEventArgs __)
         {
-            List<Task> reportGeneratorTasks = [];
-
             DateTime dateTimeNowRounded = RoundDown(DateTime.Now, CheckScheduleInterval);
 
             await Parallel.ForEachAsync(scheduledReports, new ParallelOptions() { MaxDegreeOfParallelism = Environment.ProcessorCount }, 
@@ -86,11 +91,11 @@ namespace FWO.Middleware.Server
                             {
                                 reportSchedule.StartTime = reportSchedule.RepeatInterval switch
                                 {
-                                    Interval.Days => reportSchedule.StartTime.AddDays(reportSchedule.RepeatOffset),
-                                    Interval.Weeks => reportSchedule.StartTime.AddDays(reportSchedule.RepeatOffset * 7),
-                                    Interval.Months => reportSchedule.StartTime.AddMonths(reportSchedule.RepeatOffset),
-                                    Interval.Years => reportSchedule.StartTime.AddYears(reportSchedule.RepeatOffset),
-                                    Interval.Never => reportSchedule.StartTime.AddYears(42_42),
+                                    SchedulerInterval.Days => reportSchedule.StartTime.AddDays(reportSchedule.RepeatOffset),
+                                    SchedulerInterval.Weeks => reportSchedule.StartTime.AddDays(reportSchedule.RepeatOffset * 7),
+                                    SchedulerInterval.Months => reportSchedule.StartTime.AddMonths(reportSchedule.RepeatOffset),
+                                    SchedulerInterval.Years => reportSchedule.StartTime.AddYears(reportSchedule.RepeatOffset),
+                                    SchedulerInterval.Never => reportSchedule.StartTime.AddYears(42_42),
                                     _ => throw new NotSupportedException("Time interval is not supported.")
                                 };
                             }
@@ -103,7 +108,7 @@ namespace FWO.Middleware.Server
                     }
                     catch(Exception exception)
                     {
-                        Log.WriteError("Report Scheduling", "Checking scheduled reports lead to exception.", exception);
+                        Log.WriteError(LogMessageTitle, "Checking scheduled reports lead to exception.", exception);
                     }
                 });
 
@@ -115,7 +120,7 @@ namespace FWO.Middleware.Server
             {
                 try
                 {
-                    Log.WriteInfo("Report Scheduling", $"Generating scheduled report \"{reportSchedule.Name}\" with id \"{reportSchedule.Id}\" for user \"{reportSchedule.ScheduleOwningUser.Name}\" with id \"{reportSchedule.ScheduleOwningUser.DbId}\" ...");
+                    Log.WriteInfo(LogMessageTitle, $"Generating scheduled report \"{reportSchedule.Name}\" with id \"{reportSchedule.Id}\" for user \"{reportSchedule.ScheduleOwningUser.Name}\" with id \"{reportSchedule.ScheduleOwningUser.DbId}\" ...");
 
                     if(!await InitUserEnvironment(reportSchedule) || apiConnectionUserContext == null || userConfig == null)
                     {
@@ -140,20 +145,20 @@ namespace FWO.Middleware.Server
                         await report.GetObjectsInReport(int.MaxValue, apiConnectionUserContext, _ => Task.CompletedTask);
                         await WriteReportFile(report, reportSchedule.OutputFormat, reportFile);
                         await SaveReport(reportFile, report.SetDescription(), apiConnectionUserContext);
-                        Log.WriteInfo("Report Scheduling", $"Scheduled report \"{reportSchedule.Name}\" with id \"{reportSchedule.Id}\" for user \"{reportSchedule.ScheduleOwningUser.Name}\" with id \"{reportSchedule.ScheduleOwningUser.DbId}\" successfully generated.");
+                        Log.WriteInfo(LogMessageTitle, $"Scheduled report \"{reportSchedule.Name}\" with id \"{reportSchedule.Id}\" for user \"{reportSchedule.ScheduleOwningUser.Name}\" with id \"{reportSchedule.ScheduleOwningUser.DbId}\" successfully generated.");
                     }
                     else
                     {
-                        Log.WriteInfo("Report Scheduling", $"Scheduled report \"{reportSchedule.Name}\" with id \"{reportSchedule.Id}\" for user \"{reportSchedule.ScheduleOwningUser.Name}\" with id \"{reportSchedule.ScheduleOwningUser.DbId}\" was empty.");
+                        Log.WriteInfo(LogMessageTitle, $"Scheduled report \"{reportSchedule.Name}\" with id \"{reportSchedule.Id}\" for user \"{reportSchedule.ScheduleOwningUser.Name}\" with id \"{reportSchedule.ScheduleOwningUser.DbId}\" was empty.");
                     }
                 }
                 catch(TaskCanceledException)
                 {
-                    Log.WriteWarning("Report Scheduling", $"Generating scheduled report \"{reportSchedule.Name}\" was cancelled");
+                    Log.WriteWarning(LogMessageTitle, $"Generating scheduled report \"{reportSchedule.Name}\" was cancelled");
                 }
                 catch (Exception exception)
                 {
-                    Log.WriteError("Report Scheduling", $"Generating scheduled report \"{reportSchedule.Name}\" with id \"{reportSchedule.Id}\" lead to exception.", exception);
+                    Log.WriteError(LogMessageTitle, $"Generating scheduled report \"{reportSchedule.Name}\" with id \"{reportSchedule.Id}\" lead to exception.", exception);
                 }
             }, token);
         }
@@ -172,7 +177,7 @@ namespace FWO.Middleware.Server
                 await UiUserHandler.GetOwnerships(apiConnectionUserContext, userConfig.User);
                 if(!userConfig.User.Ownerships.Contains(reportSchedule.Template.ReportParams.ModellingFilter.SelectedOwner.Id))
                 {
-                    Log.WriteDebug("Report Scheduling", "Report not generated as owner is not valid anymore.");
+                    Log.WriteInfo(LogMessageTitle, "Report not generated as owner is not valid anymore.");
                     return false;
                 }
             }
@@ -196,7 +201,7 @@ namespace FWO.Middleware.Server
             }
             catch (Exception)
             {
-                Log.WriteError("Set Device Filter", $"Could not adapt device filter.");
+                Log.WriteError(LogMessageTitle, $"Could not adapt device filter.");
                 throw;
             }
         }
@@ -253,7 +258,7 @@ namespace FWO.Middleware.Server
             }
             catch (Exception)
             {
-                Log.WriteError("Save Report", $"Could not save report \"{reportFile.Name}\".");
+                Log.WriteError(LogMessageTitle, $"Could not save report \"{reportFile.Name}\".");
                 throw;
             }
         }

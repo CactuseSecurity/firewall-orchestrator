@@ -276,3 +276,4 @@ bugfix release:
 
 # 8.8.5 - 17.06.2025 DEVELOP
 - new enum values for Request Element Field Types
+- hotfix change recognition: separate rule changes and "all changes" to make object version handling work properly

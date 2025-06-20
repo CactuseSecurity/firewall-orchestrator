@@ -34,6 +34,11 @@ from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerList
 from model_controllers.check_consistency import FwConfigImportCheckConsistency
 from model_controllers.rollback import FwConfigImportRollback
 import fwo_signalling
+from services.service_provider import ServiceProvider
+from services.uid2id_mapper import Uid2IdMapper
+from services.group_flats_mapper import GroupFlatsMapper
+from services.global_state import GlobalState
+from services.enums import Services, Lifetime
 
 """  
     import_management: import a single management (if no import for it is running)
@@ -57,6 +62,13 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
     result = 1  # Default result in case of an error
 
     try:
+        # Register Services.
+
+        service_provider = ServiceProvider()
+        service_provider.register(Services.GLOBAL_STATE, lambda: GlobalState(), Lifetime.SINGLETON)
+        service_provider.register(Services.GROUP_FLATS_MAPPER, lambda: GroupFlatsMapper(), Lifetime.TRANSIENT)
+        service_provider.register(Services.UID2ID_MAPPER, lambda: Uid2IdMapper(), Lifetime.SINGLETON)
+
         importState = ImportStateController.initializeImport(mgmId, debugLevel=debug_level_in, 
                                                 force=force, version=version, 
                                                 isClearingImport=clearManagementData, isFullImport=False, sslVerification=verifyCerts)
@@ -103,7 +115,6 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
 
                                     # Make sure service provider's internal references to state and config are set correctly.
 
-                                    service_provider = ServiceProvider()
                                     global_state = service_provider.get_service(Services.GLOBAL_STATE)
                                     global_state.import_state = importState
                                     global_state.normalized_config = config

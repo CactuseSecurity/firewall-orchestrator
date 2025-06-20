@@ -118,9 +118,9 @@
                         case ReportType.UnusedRules:
                         case ReportType.NatRules:
                         case ReportType.AppRules:
-                            @* <RulesReport Managements="currentReport.ReportData.ManagementData" SelectedReportType="actReportFilters.ReportType" RulesPerPage="rulesPerPage"
-                                @bind-SelectedRules="selectedItemsRuleReportTable" /> *@
-                            <TreeNodesRulesReport Managements="currentReport.ReportData.ManagementData" SelectedReportType="actReportFilters.ReportType"></TreeNodesRulesReport>
+                            <RulesReport Managements="currentReport.ReportData.ManagementData" SelectedReportType="actReportFilters.ReportType" RulesPerPage="rulesPerPage"
+                                @bind-SelectedRules="selectedItemsRuleReportTable" />
+                            @* <TreeNodesRulesReport Managements="currentReport.ReportData.ManagementData" SelectedReportType="actReportFilters.ReportType"></TreeNodesRulesReport> *@
                             break;
 
                         case ReportType.Changes:

@@ -29,11 +29,21 @@ namespace FWO.Report
         {
             Query.QueryVariables["limit"] = changesPerFetch;
             Query.QueryVariables["offset"] = 0;
-
+        
             (string startTime, string stopTime) = DynGraphqlQuery.ResolveTimeRange(timeFilter);
             Dictionary<int, List<long>> managementImportIds = [];
             int queriesNeeded = 0;
-
+        
+            queriesNeeded += await FetchInitialManagementData(apiConnection, startTime, stopTime, managementImportIds, changesPerFetch);
+        
+            queriesNeeded += await FetchAdditionalChanges(apiConnection, managementImportIds, changesPerFetch, callback, ct, queriesNeeded);
+        
+            Log.WriteDebug("Generate Changes Report", $"Finished generating changes report with {queriesNeeded} queries.");
+        }
+        
+        private async Task<int> FetchInitialManagementData(ApiConnection apiConnection, string startTime, string stopTime, Dictionary<int, List<long>> managementImportIds, int changesPerFetch)
+        {
+            int queriesNeeded = 0;
             foreach (int mgmId in Query.RelevantManagementIds)
             {
                 List<long> importIdLastBeforeRange = await GetRelevantImportIds(apiConnection, startTime, mgmId);
@@ -50,8 +60,12 @@ namespace FWO.Report
                 ReportData.ManagementData.Add(managementReport);
                 managementImportIds.Add(mgmId, relevantImportIds);
             }
-
-            Query.QueryVariables["offset"] = changesPerFetch; // continuing for possible rest of fetch with first two import IDs
+            return queriesNeeded;
+        }
+        
+        private async Task<int> FetchAdditionalChanges(ApiConnection apiConnection, Dictionary<int, List<long>> managementImportIds, int changesPerFetch, Func<ReportData, Task> callback, CancellationToken ct, int queriesNeeded)
+        {
+            Query.QueryVariables["offset"] = changesPerFetch;
             for (int i = 1; i < managementImportIds.Values.Select(v => v.Count).Max(); i++)
             {
                 bool continueFetching = true;
@@ -83,9 +97,9 @@ namespace FWO.Report
                     await callback(ReportData);
                     Query.QueryVariables["offset"] = (int)Query.QueryVariables["offset"] + changesPerFetch;
                 }
-                Query.QueryVariables["offset"] = 0; // reset offset for next round
+                Query.QueryVariables["offset"] = 0;
             }
-            Log.WriteDebug("Generate Changes Report", $"Finished generating changes report with {queriesNeeded} queries.");
+            return queriesNeeded;
         }
 
         private void SetMgtQueryVars(int mgmId, long importIdOld, long importIdNew)

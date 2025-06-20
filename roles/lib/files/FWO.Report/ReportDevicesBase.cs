@@ -120,10 +120,11 @@ namespace FWO.Report
             return $"{report}";
         }
 
-        public static string ConstructLink(string type, string symbol, int chapterNumber, long id, string name, OutputLocation location, int mgmtId, ReportType reportType, string style)
+        public static string GetReportDevicesLinkAddress(OutputLocation location, int mgmtId, string type, int chapterNumber, long id, ReportType reportType)
         {
-            return ConstructLink(type, symbol, chapterNumber, id, name, location, $"m{mgmtId}", reportType, style);
+            return GetLinkAddress(location, $"m{mgmtId}", type, chapterNumber, id, reportType);
         }
+
 
         protected string GenerateHtmlFrame(string title, string filter, DateTime date, StringBuilder htmlReport)
         {

@@ -163,10 +163,10 @@ namespace FWO.Report
             };
         }
 
-        public static string ConstructLink(string type, string symbol, int chapterNumber, long id, string name, OutputLocation location, string reportId, ReportType reportType, string style)
+        public static string GetLinkAddress(OutputLocation location, string reportId, string type, int chapterNumber, long id, ReportType reportType)
         {
             string page = location == OutputLocation.report ? PageName.ReportGeneration : PageName.Certification;
-            string link = "";
+            string link;
             if (reportType.IsChangeReport())
             {
                 link = location == OutputLocation.export ? $"#" : $"{page}#goto-all-{reportId}-";
@@ -175,7 +175,12 @@ namespace FWO.Report
             {
                 link = location == OutputLocation.export ? $"#" : $"{page}#goto-report-{reportId}-";
             }
-            return $"<span class=\"{symbol}\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"{link}{type}{chapterNumber}x{id}\" target=\"_top\" style=\"{style}\">{name}</a>";
+            return $"{link}{type}{chapterNumber}x{id}";
+        }
+
+        public static string ConstructLink(string symbol, string name, string style, string linkAddress)
+        {
+            return $"<span class=\"{symbol}\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"{linkAddress}\" target=\"_top\" style=\"{style}\">{name}</a>";
         }
 
         protected string GenerateHtmlFrameBase(string title, string filter, DateTime date, StringBuilder htmlReport, string? deviceFilter = null, string? ownerFilter = null)

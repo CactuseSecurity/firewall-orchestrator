@@ -66,11 +66,8 @@ namespace FWO.Report
         private void SetMgtQueryVars(ManagementReport management)
         {
             Query.QueryVariables["mgmId"] = management.Id;
-            if (ReportType != ReportType.Recertification)
-            {
-                Query.QueryVariables["import_id_start"] = management.Import.ImportAggregate.ImportAggregateMax.RelevantImportId ?? -1; /* managment was not yet imported at that time */;
-                Query.QueryVariables["import_id_end"]   = management.Import.ImportAggregate.ImportAggregateMax.RelevantImportId ?? -1; /* managment was not yet imported at that time */;
-            }
+            Query.QueryVariables["import_id_start"] = management.Import.ImportAggregate.ImportAggregateMax.RelevantImportId ?? -1; /* managment was not yet imported at that time */;
+            Query.QueryVariables["import_id_end"]   = management.Import.ImportAggregate.ImportAggregateMax.RelevantImportId ?? -1; /* managment was not yet imported at that time */;
         }
 
         public override async Task<bool> GetObjectsInReport(int objectsPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback) // to be called when exporting
@@ -129,7 +126,6 @@ namespace FWO.Report
                 }
                 else
                 {
-                    // newObjects = allFilteredObjects.MergeReportObjects(filteredObjects);
                     (bool newObjects, Dictionary<string, int> maxAddedCounts) = allFilteredObjects.MergeReportObjects(filteredObjects);
                     keepFetching = newObjects && maxAddedCounts.Values.Any(v => v >= elementsPerFetch);
                 }

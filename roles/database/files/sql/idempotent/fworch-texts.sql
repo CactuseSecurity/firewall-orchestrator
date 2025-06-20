@@ -3242,6 +3242,9 @@ INSERT INTO txt VALUES ('E5423', 'English', 'IP Address/IP Range malformed');
 INSERT INTO txt VALUES ('E5430', 'German',  'Hochgeladener Dateityp ist nicht erlaubt');
 INSERT INTO txt VALUES ('E5430', 'English', 'Uploaded Filetype is not allowed');
 
+INSERT INTO txt VALUES ('E5431', 'German',  'Hochgeladene Dateit überschreitet maximum');
+INSERT INTO txt VALUES ('E5431', 'English', 'Uploaded File exceeds the allowed maximum');
+
 INSERT INTO txt VALUES ('E6001', 'German', 	'Der Re-Login war nicht erfolgreich. Haben Sie ein falsches Passwort eingegeben? Schauen Sie f&uuml;r Details bitte in die Logs.');
 INSERT INTO txt VALUES ('E6001', 'English', 'Re-login failed. Did you enter a wrong password? See log for details.');
 

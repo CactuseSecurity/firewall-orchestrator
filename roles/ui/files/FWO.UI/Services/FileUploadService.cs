@@ -58,7 +58,13 @@ namespace FWO.Ui.Services
 
                 using MemoryStream ms = new();
                 await args.File.OpenReadStream().CopyToAsync(ms);
+
                 UploadedData = ms.ToArray();
+
+                if(UploadedData.Length > GlobalConst.MaxUploadFileSize)
+                {
+                    throw new ArgumentException(UserConfig.GetText("E5431"));
+                }
 
                 FileUploadEvent.EventArgs!.Success = true;
             }

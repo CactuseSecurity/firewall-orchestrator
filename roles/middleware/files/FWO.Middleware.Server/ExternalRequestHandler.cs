@@ -383,12 +383,12 @@ namespace FWO.Middleware.Server
 			{
 				throw new NotSupportedException("Ticket system not supported yet");
 			}
-			if(ticket != null)
+			if (ticket != null)
 			{
 				ModellingNamingConvention? namingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(UserConfig.ModNamingConvention);
 				await ticket.CreateRequestString(reqTasks, ipProtos, namingConvention);
 				actTaskType = ticket.GetTaskTypeAsString(reqTasks[0]);
-				return JsonSerializer.Serialize(ticket);
+				return ticket.TicketText;
 			}
 			return "";
 		}

@@ -425,6 +425,8 @@ namespace FWO.Report.Filter
                         security_relevant: {{ _eq: true }}";
                         break;
                     case ReportType.Recertification:
+                        query.QueryParameters.Add("$import_id_start: bigint ");
+                        query.QueryParameters.Add("$import_id_end: bigint ");
                         query.NwObjWhereStatement += "{}";
                         query.SvcObjWhereStatement += "{}";
                         query.UserObjWhereStatement += "{}";

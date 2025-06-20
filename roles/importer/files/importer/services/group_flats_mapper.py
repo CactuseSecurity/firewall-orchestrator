@@ -3,29 +3,30 @@ import fwo_const
 from fwo_log import getFwoLogger
 from model_controllers.import_state_controller import ImportStateController
 from models.fwconfig_normalized import FwConfigNormalized
+from services.service_provider import ServiceProvider
+from services.enums import Services
 
 
 MAX_RECURSION_LEVEL = 20
+CONFIG_NOT_SET_MESSAGE = "normalized config is not set"
 
 class GroupFlatsMapper:
     """
     This class is responsible for mapping group objects to their fully resolved members.
     """
 
-    def __init__(self, import_state_controller: ImportStateController, normalized_config: FwConfigNormalized = None):
-        """
-        Initialize the GroupFlatsMapper with the import state controller and normalized configuration.
+    import_state: ImportStateController = None
+    normalized_config: FwConfigNormalized = None
 
-        Args:
-            import_state_controller (ImportStateController): The import state controller instance.
-            normalized_config (FwConfigNormalized): The normalized configuration instance.
-        """
-        self.import_state_controller = import_state_controller
-        self.normalized_config = normalized_config
+    def __init__(self):
+        self.global_state = ServiceProvider().get_service(Services.GLOBAL_STATE)
+        self.import_state = self.global_state.import_state
+        self.normalized_config = self.global_state.normalized_config
         self.logger = getFwoLogger()
         self.network_object_flats = {}
         self.service_object_flats = {}
         self.user_flats = {}
+
 
     def log_error(self, message: str):
         """
@@ -35,9 +36,10 @@ class GroupFlatsMapper:
             message (str): The error message to log.
         """
         self.logger.error(message)
-        self.import_state_controller.appendErrorString(message)
-        self.import_state_controller.increaseErrorCounterByOne()
+        self.import_state.appendErrorString(message)
+        self.import_state.increaseErrorCounterByOne()
     
+
     def init_config(self, normalized_config: FwConfigNormalized):
         self.normalized_config = normalized_config
         self.network_object_flats = {}
@@ -55,7 +57,7 @@ class GroupFlatsMapper:
             List[str]: The flattened network object UIDs.
         """
         if self.normalized_config is None:
-            self.log_error("normalized config is not set")
+            self.log_error(CONFIG_NOT_SET_MESSAGE)
             return []
         all_members = set()
         for uid in uids:
@@ -95,7 +97,7 @@ class GroupFlatsMapper:
             List[str]: The flattened service object UIDs.
         """
         if self.normalized_config is None:
-            self.log_error("normalized config is not set")
+            self.log_error(CONFIG_NOT_SET_MESSAGE)
             return []
         all_members = set()
         for uid in uids:
@@ -135,7 +137,7 @@ class GroupFlatsMapper:
             List[str]: The flattened user UIDs.
         """
         if self.normalized_config is None:
-            self.log_error("normalized config is not set")
+            self.log_error(CONFIG_NOT_SET_MESSAGE)
             return []
         all_members = set()
         for uid in uids:
@@ -164,3 +166,4 @@ class GroupFlatsMapper:
             members.update(flatMembers)
         self.user_flats[groupUid] = members
         return members
+    

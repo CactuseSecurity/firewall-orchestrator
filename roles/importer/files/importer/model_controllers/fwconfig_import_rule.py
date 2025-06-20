@@ -10,7 +10,6 @@ from models.rule_metadatum import RuleMetadatum
 from models.rulebase import Rulebase, RulebaseForImport
 from model_controllers.import_state_controller import ImportStateController
 from model_controllers.fwconfig_normalized_controller import FwConfigNormalized
-from model_controllers.fwconfig_import_base import FwConfigImportBase
 from fwo_log import ChangeLogger, getFwoLogger
 from typing import Dict, List
 from datetime import datetime
@@ -19,16 +18,26 @@ from models.rule_to import RuleTo
 from models.rule_service import RuleService
 from model_controllers.fwconfig_import_ruleorder import RuleOrderService
 from models.rule import RuleNormalized
+from services.enums import Services
+from services.uid2id_mapper import Uid2IdMapper
+from services.service_provider import ServiceProvider
 
 
 # this class is used for importing rules and rule refs into the FWO API
-class FwConfigImportRule(FwConfigImportBase):
+class FwConfigImportRule():
 
     _changed_rule_id_map: dict
+    uid2id_mapper: Uid2IdMapper
 
-    def __init__(self, importState: ImportStateController, config: FwConfigNormalized):
-      super().__init__(importState, config)
+    def __init__(self):
       self._changed_rule_id_map = {}
+
+      service_provider = ServiceProvider()
+      self.global_state = service_provider.get_service(Services.GLOBAL_STATE)
+      self.uid2id_mapper = service_provider.get_service(Services.UID2ID_MAPPER)
+      
+      self.ImportDetails = self.global_state.import_state
+      self.NormalizedConfig = self.global_state.normalized_config
     # #   self.ActionMap = self.GetActionMap()
     # #   self.TrackMap = self.GetTrackMap()
     #   self.RuleNumLookup = self.GetRuleNumMap()             # TODO: needs to be updated with each insert

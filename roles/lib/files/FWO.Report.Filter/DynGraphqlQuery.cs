@@ -196,7 +196,11 @@ namespace FWO.Report.Filter
                     {(filter.Detailed ? RuleQueries.ruleDetailsForChangeReportFragments : RuleQueries.ruleOverviewForChangeReportFragments)}
                     query changeReport({paramString}) 
                     {{
-                        management(where: {{ hide_in_gui: {{_eq: false }} stm_dev_typ: {{dev_typ_is_multi_mgmt: {{_eq: false}} is_pure_routing_device: {{_eq: false}} }} }} order_by: {{mgm_name: asc}}) 
+                        management(where: {{
+                            hide_in_gui: {{_eq: false }}
+                            stm_dev_typ: {{dev_typ_is_multi_mgmt: {{_eq: false}} is_pure_routing_device: {{_eq: false}} }}
+                            mgm_id: {{_in: $mgmId }}
+                        }} order_by: {{mgm_name: asc}}) 
                         {{
                             id: mgm_id
                             name: mgm_name

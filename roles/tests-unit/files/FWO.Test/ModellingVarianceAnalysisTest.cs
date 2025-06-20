@@ -307,7 +307,7 @@ namespace FWO.Test
             ClassicAssert.AreEqual("Conn1", result.RuleDifferences[0].ModelledConnection.Name);
             ClassicAssert.AreEqual(2, result.RuleDifferences[0].ImplementedRules.Count);
             ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules[0].DisregardedFroms.Length);
-            ClassicAssert.AreEqual("AppRole1 (AR504711-001)", result.RuleDifferences[0].ImplementedRules[0].DisregardedFroms[0].Object.Name);
+            ClassicAssert.AreEqual("AR504711-001", result.RuleDifferences[0].ImplementedRules[0].DisregardedFroms[0].Object.Name);
             ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules[0].DisregardedTos.Length);
             ClassicAssert.AreEqual("AppServerUnchanged", result.RuleDifferences[0].ImplementedRules[0].DisregardedTos[0].Object.Name);
             ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules[0].DisregardedServices.Length);
@@ -386,7 +386,7 @@ namespace FWO.Test
             ClassicAssert.AreEqual("SpecObj1", result.RuleDifferences[0].ImplementedRules[0].Froms[0].Object.Name);
             ClassicAssert.AreEqual(false, result.RuleDifferences[0].ImplementedRules[0].Froms[0].Object.IsSurplus);
             ClassicAssert.AreEqual("AR504711-001", result.RuleDifferences[0].ImplementedRules[0].Froms[1].Object.Name);
-            ClassicAssert.AreEqual(true, result.RuleDifferences[0].ImplementedRules[0].Froms[1].Object.IsSurplus);
+            ClassicAssert.AreEqual(false, result.RuleDifferences[0].ImplementedRules[0].Froms[1].Object.IsSurplus);
             ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules[0].Tos.Length);
             ClassicAssert.AreEqual("SpecObj2", result.RuleDifferences[0].ImplementedRules[0].Tos[0].Object.Name);
             ClassicAssert.AreEqual(false, result.RuleDifferences[0].ImplementedRules[0].Tos[0].Object.IsSurplus);
@@ -537,7 +537,7 @@ namespace FWO.Test
             ClassicAssert.AreEqual("SpecObj1", result.RuleDifferences[0].ImplementedRules[0].Froms[0].Object.Name);
             ClassicAssert.AreEqual(false, result.RuleDifferences[0].ImplementedRules[0].Froms[0].Object.IsSurplus);
             ClassicAssert.AreEqual("AR504711-001", result.RuleDifferences[0].ImplementedRules[0].Froms[1].Object.Name);
-            ClassicAssert.AreEqual(true, result.RuleDifferences[0].ImplementedRules[0].Froms[1].Object.IsSurplus);
+            ClassicAssert.AreEqual(false, result.RuleDifferences[0].ImplementedRules[0].Froms[1].Object.IsSurplus);
             ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules[0].Tos.Length);
             ClassicAssert.AreEqual("SpecObj2", result.RuleDifferences[0].ImplementedRules[0].Tos[0].Object.Name);
             ClassicAssert.AreEqual(false, result.RuleDifferences[0].ImplementedRules[0].Tos[0].Object.IsSurplus);

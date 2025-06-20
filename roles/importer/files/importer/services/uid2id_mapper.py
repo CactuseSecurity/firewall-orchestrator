@@ -1,6 +1,8 @@
 from typing import List, Optional
 from fwo_log import getFwoLogger
 from model_controllers.import_state_controller import ImportStateController
+from services.service_provider import ServiceProvider
+from services.enums import Services
 
 
 class Uid2IdMapper:
@@ -8,16 +10,19 @@ class Uid2IdMapper:
     A class to map unique identifiers (UIDs) to IDs.
     This class is used to maintain a mapping between UID and relevant ID in the database.
     """
-      
-    def __init__(self, import_state_controller: ImportStateController):
+
+    import_state: ImportStateController = None
+
+    @property
+    def api_connection(self):
+        return self.import_state.api_connection
+
+    def __init__(self):
         """
-        Initialize the Uid2IdMapper with an API connection.
-        
-        Args:
-            import_state_controller (ImportStateController): The import state controller instance.
+        Initialize the Uid2IdMapper.
         """
-        self.import_state_controller = import_state_controller
-        self.api_connection = import_state_controller.api_connection
+        self.global_state = ServiceProvider().get_service(Services.GLOBAL_STATE)
+        self.import_state = self.global_state.import_state
         self.logger = getFwoLogger()
         self.nwobj_uid2id = {}
         self.svc_uid2id = {}
@@ -34,8 +39,8 @@ class Uid2IdMapper:
             message (str): The error message to log.
         """
         self.logger.error(message)
-        self.import_state_controller.appendErrorString(message)
-        self.import_state_controller.increaseErrorCounterByOne()
+        self.import_state.appendErrorString(message)
+        self.import_state.increaseErrorCounterByOne()
     
     def log_debug(self, message: str):
         """
@@ -58,13 +63,13 @@ class Uid2IdMapper:
             int: The ID of the network object.
         """
         if before_update:
-            id = self.outdated_nwobj_uid2id.get(uid)
-            if id is not None:
-                return id
-        id = self.nwobj_uid2id.get(uid)
-        if id is None:
+            nwobj_id = self.outdated_nwobj_uid2id.get(uid)
+            if nwobj_id is not None:
+                return nwobj_id
+        nwobj_id = self.nwobj_uid2id.get(uid)
+        if nwobj_id is None:
             self.log_error(f"Network object UID '{uid}' not found in mapping.")
-        return id
+        return nwobj_id
     
     def get_service_object_id(self, uid: str, before_update: bool = False) -> int:
         """
@@ -78,13 +83,13 @@ class Uid2IdMapper:
             int: The ID of the service object.
         """
         if before_update:
-            id = self.outdated_svc_uid2id.get(uid)
-            if id is not None:
-                return id
-        id = self.svc_uid2id.get(uid)
-        if id is None:
+            svc_id = self.outdated_svc_uid2id.get(uid)
+            if svc_id is not None:
+                return svc_id
+        svc_id = self.svc_uid2id.get(uid)
+        if svc_id is None:
             self.log_error(f"Service object UID '{uid}' not found in mapping.")
-        return id
+        return svc_id
     
     def get_user_id(self, uid: str, before_update: bool = False) -> int:
         """
@@ -98,13 +103,13 @@ class Uid2IdMapper:
             int: The ID of the user.
         """
         if before_update:
-            id = self.outdated_user_uid2id.get(uid)
-            if id is not None:
-                return id
-        id = self.user_uid2id.get(uid)
-        if id is None:
+            usr_id = self.outdated_user_uid2id.get(uid)
+            if usr_id is not None:
+                return usr_id
+        usr_id = self.user_uid2id.get(uid)
+        if usr_id is None:
             self.log_error(f"User UID '{uid}' not found in mapping.")
-        return id
+        return usr_id
     
     def add_network_object_mappings(self, mappings: List[dict]) -> bool:
         """
@@ -189,9 +194,9 @@ class Uid2IdMapper:
             variables = {'uids': uids}
         else:
             # If no UIDs are provided, fetch all UIDs for the Management
-            variables = {'mgmId': self.import_state_controller.MgmDetails.Id}
+            variables = {'mgmId': self.import_state.MgmDetails.Id}
         try:
-            response = self.api_connection.call(query, variables)
+            response = self.import_state.api_connection.call(query, variables)
             if response is None:
                 self.log_error("Error updating network object mapping: No response from API")
                 return False
@@ -232,9 +237,9 @@ class Uid2IdMapper:
             variables = {'uids': uids}
         else:
             # If no UIDs are provided, fetch all UIDs for the Management
-            variables = {'mgmId': self.import_state_controller.MgmDetails.Id}
+            variables = {'mgmId': self.import_state.MgmDetails.Id}
         try:
-            response = self.api_connection.call(query, variables)
+            response = self.import_state.api_connection.call(query, variables)
             if response is None:
                 self.log_error("Error updating service object mapping: No response from API")
                 return False
@@ -275,9 +280,9 @@ class Uid2IdMapper:
             variables = {'uids': uids}
         else:
             # If no UIDs are provided, fetch all UIDs for the Management
-            variables = {'mgmId': self.import_state_controller.MgmDetails.Id}
+            variables = {'mgmId': self.import_state.MgmDetails.Id}
         try:
-            response = self.api_connection.call(query, variables)
+            response = self.import_state.api_connection.call(query, variables)
             if response is None:
                 self.log_error("Error updating user mapping: No response from API")
                 return False

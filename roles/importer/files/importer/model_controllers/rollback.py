@@ -1,18 +1,20 @@
 import traceback
 import fwo_const
 from fwo_log import getFwoLogger
-from model_controllers.fwconfig_import import FwConfigImport
 from fwo_api import get_graphql_code
+from model_controllers.import_state_controller import ImportStateController
+from services.service_provider import ServiceProvider
+from services.enums import Services
 
 # this class is used for rolling back an import
-class FwConfigImportRollback(FwConfigImport):
+class FwConfigImportRollback():
+    ImportDetails: ImportStateController
 
-    def __init__(self, config: FwConfigImport):
-        self.ImportDetails = config.ImportDetails
-        self.NormalizedConfig = config.NormalizedConfig
-        self.NetworkObjectTypeMap = config.NetworkObjectTypeMap
-        self.ServiceObjectTypeMap = config.ServiceObjectTypeMap
-        self.UserObjectTypeMap = config.UserObjectTypeMap
+    def __init__(self):
+        service_provider = ServiceProvider()
+        global_state = service_provider.get_service(Services.GLOBAL_STATE)
+        self.ImportDetails = global_state.import_state
+
         
     # this function deletes all new entries added in this import
     # also resets all entries that have been marked removed

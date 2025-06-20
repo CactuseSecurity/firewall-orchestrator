@@ -176,14 +176,13 @@ namespace FWO.Middleware.Server
 		private ExternalTicket ConstructTicket(ExternalRequest request)
 		{
 			ExternalTicket ticket;
-			ExternalTicket hlpTicket = JsonSerializer.Deserialize<ExternalTicket>(request.ExtRequestContent) ?? throw new JsonException("No Ticket Content");
 			
 			if (ExtTicketSystem?.Type == ExternalTicketSystemType.TufinSecureChange)
 			{
 				ticket = new SCTicket(ExtTicketSystem, InjScClient)
 				{
 					TicketSystem = ExtTicketSystem,
-					TicketText = hlpTicket.TicketText
+					TicketText = request.ExtRequestContent
 				};
 			}
 			else

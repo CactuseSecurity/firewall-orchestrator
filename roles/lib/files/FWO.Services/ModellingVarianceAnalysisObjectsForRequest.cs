@@ -34,7 +34,7 @@ namespace FWO.Services
             {
                 foreach(var rule in varianceResult.RuleDifferences[0].ImplementedRules.Where(r => r.MgmtId == mgt.Id))
                 {
-                    ChangeAccessTaskList.Add(ConstructRuleTask(mgt, rule, false, elements));
+                    ChangeAccessTaskList.Add(ConstructRuleTask(mgt, rule, conn, false, elements));
                 }
             }
         }
@@ -48,7 +48,7 @@ namespace FWO.Services
                 if (int.TryParse(FindModelledMarker(rule), out int connId) && DeletedConnectionIds.Contains(connId))
                 {
                     ModellingConnection deletedConn = deletedConns.FirstOrDefault(c => c.Id == connId) ?? throw new KeyNotFoundException("Connection not found.");
-                    DeleteAccessTaskList.Add(ConstructRuleTask(mgt, rule, true, GetElementsFromRule(rule, deletedConn)));
+                    DeleteAccessTaskList.Add(ConstructRuleTask(mgt, rule, deletedConn, true, GetElementsFromRule(rule, deletedConn)));
                 }
             }
         }
@@ -144,8 +144,9 @@ namespace FWO.Services
             };
         }
 
-        private WfReqTask ConstructRuleTask(Management mgt, Rule rule, bool delete, List<WfReqElement> ruleElements)
+        private WfReqTask ConstructRuleTask(Management mgt, Rule rule, ModellingConnection conn, bool delete, List<WfReqElement> ruleElements)
         {
+            Dictionary<string, string>? addInfo = new() { { AdditionalInfoKeys.ConnId, conn.Id.ToString() } };
             ruleElements.Add(new()
             {
                 Field = ElemFieldType.rule.ToString(),
@@ -155,12 +156,16 @@ namespace FWO.Services
             });
             WfReqTask ruleTask = new()
             {
-                Title = (delete? userConfig.GetText("delete_rule") : userConfig.GetText("change_rule")) + ": " + (rule.Name ?? ""),
-                TaskType = delete? WfTaskType.rule_delete.ToString() : WfTaskType.rule_modify.ToString(),
-                RequestAction = delete? RequestAction.delete.ToString() : RequestAction.modify.ToString(),
+                Title = (delete ? userConfig.GetText("delete_rule") : userConfig.GetText("change_rule")) + ": " + (rule.Name ?? ""),
+                TaskType = delete ? WfTaskType.rule_delete.ToString() : WfTaskType.rule_modify.ToString(),
+                RequestAction = delete ? RequestAction.delete.ToString() : RequestAction.modify.ToString(),
                 ManagementId = mgt.Id,
                 OnManagement = mgt,
-                Elements = ruleElements
+                Elements = ruleElements,
+                RuleAction = 1,  // Todo ??
+                Tracking = 1,  // Todo ??
+                AdditionalInfo = JsonSerializer.Serialize(addInfo),
+                Comments = [new() { Comment = new() { CommentText = ConstructComment(conn) } }]
             };
             Device? device = mgt.Devices.FirstOrDefault(d => d.Id == rule.DeviceId);
             ruleTask.SetDeviceList(device != null ? [device] : []);

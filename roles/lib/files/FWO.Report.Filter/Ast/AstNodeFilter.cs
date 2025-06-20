@@ -38,8 +38,8 @@ namespace FWO.Report.Filter.Ast
         protected static string AddVariable<Type>(DynGraphqlQuery query, string name, TokenKind op, Type value)
         {
             string queryVarName = name + query.parameterCounter++;
-            string queryVarType = "";
-            string queryVarValue = "";
+            string queryVarType;
+            string queryVarValue;
 
             switch (value)
             {
@@ -86,6 +86,5 @@ namespace FWO.Report.Filter.Ast
         }
 
         public abstract void ConvertToSemanticType();
-
     }
 }

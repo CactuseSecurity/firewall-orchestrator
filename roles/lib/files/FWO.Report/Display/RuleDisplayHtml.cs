@@ -121,7 +121,8 @@ namespace FWO.Ui.Display
             {
                 // Construct link for unresolved report types
                 string serviceLink = ReportDevicesBase.GetReportDevicesLinkAddress(location, mgmtId, ObjCatString.Svc, chapterNumber, service.Id, reportType);
-                return ReportBase.ConstructLink(ReportBase.GetIconClass(ObjCategory.nsrv, service.Type.Name), service.Name, style, serviceLink);
+                string serviceName = ReportBase.ConstructLink(ReportBase.GetIconClass(ObjCategory.nsrv, service.Type.Name), service.Name, style, serviceLink);
+                return DisplayService(service, reportType, serviceName).ToString();
             }
         }
 

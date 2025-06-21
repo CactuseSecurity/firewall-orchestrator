@@ -299,12 +299,12 @@ def count_any_changes_per_import(fwo_api_base_url, jwt, import_id):
     return changes_in_import
 
 
-def unlock_import(import_state):
+def unlock_import(import_state: "ImportStateController") -> int:
     logger = getFwoLogger()
     error_during_import_unlock = 0
     query_variables = {"stopTime": datetime.datetime.now().isoformat(), "importId": import_state.ImportId,
-                       "success": import_state.ErrorCount == 0, "anyChangesFound": import_state.AnyChangeCount > 0, 
-                       "ruleChangesFound": import_state.RuleChangeCount > 0, "changeNumber": import_state.RuleChangeCount}
+                       "success": import_state.Stats.ErrorCount == 0, "anyChangesFound": import_state.Stats.getTotalChangeNumber() > 0, 
+                       "ruleChangesFound": import_state.Stats.getRuleChangeNumber() > 0, "changeNumber": import_state.Stats.getRuleChangeNumber()}
 
     unlock_mutation = """
         mutation unlockImport($importId: bigint!, $stopTime: timestamp!, $success: Boolean, $anyChangesFound: Boolean!, $ruleChangesFound: Boolean!, $changeNumber: Int!) {
@@ -314,7 +314,7 @@ def unlock_import(import_state):
         }"""
 
     try:
-        unlock_result = call(import_state.FwoConfig['fwo_api_base_url'], import_state.Jwt, unlock_mutation,
+        unlock_result = call(import_state.FwoConfig.FwoApiUri, import_state.Jwt, unlock_mutation,
                              query_variables=query_variables, role='importer')
         changes_in_import_control = unlock_result['data']['update_import_control']['affected_rows']
     except:
@@ -629,21 +629,17 @@ def complete_import(importState: "ImportStateController"):
 
     import_result = "import_management: import no. " + str(importState.ImportId) + \
             " for management " + importState.MgmDetails.Name + ' (id=' + str(importState.MgmDetails.Id) + ")" + \
-            str(" threw errors," if importState.ErrorCount else " successful,") + \
-            " total change count: " + str(importState.AnyChangeCount) + \
-            ", rule change count: " + str(importState.RuleChangeCount) + \
+            str(" threw errors," if importState.Stats.ErrorCount>0 else " successful,") + \
+            " total change count: " + str(importState.Stats.getTotalChangeNumber()) + \
+            ", rule change count: " + str(importState.Stats.getRuleChangeNumber()) + \
             ", duration: " + str(int(time.time()) - importState.StartTime) + "s" 
-    import_result += ", ERRORS: " + importState.ErrorString if len(importState.ErrorString) > 0 else ""
-    
-    if len(importState.Stats.ErrorDetails) > 0:
-        import_result += ", ERRORS: " + str(importState.Stats.ErrorDetails)
-
+    import_result += ", ERRORS: " + importState.getErrorString() if len(importState.getErrorString()) > 0 else ""
+    if importState.Stats.getChangeDetails() != {} and importState.DebugLevel>3:
+        import_result += ", change details: " + str(importState.Stats.getChangeDetails())
     if importState.Stats.ErrorCount>0:
-        if importState.Stats.getChangeDetails() != {}:
-            import_result += ", change details: " + str(importState.Stats.getChangeDetails())
-        create_data_issue(importState.FwoConfig.FwoApiUri, importState.Jwt, import_id=importState.ImportId, severity=1, description=str(importState.Stats.ErrorDetails))
+        create_data_issue(importState.FwoConfig.FwoApiUri, importState.Jwt, import_id=importState.ImportId, severity=1, description=importState.getErrorString())
         setAlert(importState.FwoConfig.FwoApiUri, importState.Jwt, import_id=importState.ImportId, title="import error", mgm_id=importState.MgmDetails.Id, severity=2, role='importer', \
-            description=str(importState.Stats.ErrorDetails), source='import', alertCode=14, mgm_details=importState.MgmDetails)
+            description=str(importState.getErrorString()), source='import', alertCode=14, mgm_details=importState.MgmDetails)
     if not importState.Stats.ErrorAlreadyLogged:
         logger.info(import_result.encode().decode("unicode_escape"))
         importState.Stats.ErrorAlreadyLogged = True

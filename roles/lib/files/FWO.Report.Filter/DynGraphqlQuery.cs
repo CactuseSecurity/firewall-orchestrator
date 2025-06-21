@@ -66,16 +66,6 @@ namespace FWO.Report.Filter
             OverwriteMissingTenantFilters(ref query, filter);
             string pattern = "";
 
-            // remove comment lines (#) before joining lines!
-            // Regex.Replace("10, 20, 30", @"(\d+)$",match => (int.Parse(match.Value)+1).ToString())
-            // Regex.Replace(query.FullQuery, pattern, m => variablesDictionary[m.Value]);
-            // Regex pattern = new Regex(@"#(.*?)\n");
-
-            // TODO: get this working
-            // pattern = @"""[^""\\]*(?:\\[\W\w][^""\\]*)*""|(\#.*)";
-            // string pattern = @"(.*?)(#.*?)\n(.*?)";
-            // query.FullQuery = Regex.Replace(query.FullQuery, pattern, "");
-
             // remove line breaks and duplicate whitespaces
             pattern = @"\n";
             query.FullQuery = Regex.Replace(query.FullQuery, pattern, "");
@@ -106,9 +96,26 @@ namespace FWO.Report.Filter
 
             // now we convert the ast into a graphql query:
             ast?.Extract(ref query, (ReportType)filter.ReportParams.ReportType);
+            // TODO: remvoe rule dev filtering for rework 
 
             query.RuleWhereStatement += "}] ";
             query.ConnectionWhereStatement += "}] ";
+
+/*
+            string paramString = string.Join(" ", query.QueryParameters.ToArray());
+
+            string mgmtWhereString = $@"where: {{ hide_in_gui: {{_eq: false }}
+                                     mgm_id: {{_in: $mgmId }}
+                                     stm_dev_typ: {{dev_typ_is_multi_mgmt: {{_eq: false}} is_pure_routing_device: {{_eq: false}} }}
+                                     }} order_by: {{ mgm_name: asc }}";
+
+            string devWhereString = GetDevWhereFilter(ref query, filter.ReportParams.DeviceFilter);
+            string metaDataWhereString = ""; // default for rules reports
+            string limitOffsetString = $@"limit: $limit 
+                                       offset: $offset ";
+
+*/
+
         }
 
         private static string ConstructStatisticsQuery(DynGraphqlQuery query, string paramString)
@@ -143,12 +150,35 @@ namespace FWO.Report.Filter
                     management({mgmtWhereString}) 
                     {{
                         id: mgm_id
+                        uid: mgm_uid
                         name: mgm_name
                         devices ({devWhereString}) 
                         {{
                             id: dev_id
                             name: dev_name
-                            {query.OpenRulesTable}
+                            uid: dev_uid
+                            rulebase_links {{
+                                linkType: stm_link_type  {{
+                                    name
+                                    id
+                                }}
+                                link_type
+                                is_initial
+                                is_global
+                                is_section
+                                gw_id
+                                from_rule_id
+                                from_rulebase_id
+                                to_rulebase_id
+                                created
+                                removed
+                            }}
+                        }}
+                        rulebases {{
+                            name
+                            uid
+                            id
+                            rules (
                                 {limitOffsetString}
                                 where: {{ access_rule: {{_eq: true}} {query.RuleWhereStatement} }} 
                                 order_by: {{ rule_num_numeric: asc }} )
@@ -314,6 +344,219 @@ namespace FWO.Report.Filter
                     query.FullQuery = Queries.Compact(ConstructConnectionsQuery(query, paramString));
                     break;
             }
+
+/*
+            if ((ReportType)filter.ReportParams.ReportType == ReportType.UnusedRules)
+            {
+                metaDataWhereString = "{_or: [{_and: [{rule_last_hit: {_is_null: false}}, {rule_last_hit: {_lte: $cut}}]}, {_and: [{rule_last_hit: {_is_null: true}}, {rule_created: {_lte: $tolerance}}]}]}";
+            }
+
+            switch ((ReportType)filter.ReportParams.ReportType)
+            {
+                case ReportType.Statistics:
+                    query.FullQuery = Queries.Compact($@"
+                        query statisticsReport ({paramString}) 
+                        {{ 
+                            management({mgmtWhereString}) 
+                            {{
+                                name: mgm_name
+                                id: mgm_id
+                                objects_aggregate(where: {{ {query.NwObjWhereStatement} }}) {{ aggregate {{ count }} }}
+                                services_aggregate(where: {{ {query.SvcObjWhereStatement} }}) {{ aggregate {{ count }} }}
+                                usrs_aggregate(where: {{ {query.UserObjWhereStatement} }}) {{ aggregate {{ count }} }}
+                                rules_aggregate(where: {{ {query.RuleWhereStatement} }}) {{ aggregate {{ count }} }}
+                                devices({devWhereString})
+                                {{
+                                    name: dev_name
+                                    id: dev_id
+                                    rulebase_link {{
+                                        rulebase {{
+                                            rules_aggregate(where: {{ {query.RuleWhereStatement} }}) {{ aggregate {{ count }} }}
+                                        }}
+                                    }}
+                                }}
+                            }}
+                        }}
+                    ");
+                    break;
+
+                case ReportType.Rules:
+                case ReportType.ResolvedRules:
+                case ReportType.ResolvedRulesTech:
+                case ReportType.UnusedRules:
+                case ReportType.AppRules:
+                    query.FullQuery = Queries.Compact($@"
+                        {(filter.Detailed ? RuleQueries.ruleDetailsForReportFragments : RuleQueries.ruleOverviewFragments)}
+                        query rulesReport ({paramString}) 
+                        {{ 
+                            management({mgmtWhereString}) 
+                            {{
+                                id: mgm_id
+                                uid: mgm_uid
+                                name: mgm_name
+                                devices ({devWhereString}) 
+                                {{
+                                    name: dev_name
+                                    id: dev_id
+                                    uid: dev_uid
+                                    rulebase_links {{
+                                        linkType: stm_link_type  {{
+                                            name
+                                            id
+                                        }}
+                                        link_type
+                                        is_initial
+                                        is_global
+                                        is_section
+                                        gw_id
+                                        from_rule_id
+                                        from_rulebase_id
+                                        to_rulebase_id
+                                        created
+                                        removed
+                                    }}
+                                }}
+                                rulebases {{
+                                    name
+                                    uid
+                                    id
+                                    rules ({limitOffsetString} where: {{ 
+                                            rule_create: {{_lte: $relevantImportId}}, 
+                                            _or: [{{removed: {{_gt: $relevantImportId}} }}, {{removed: {{_is_null: true}} }}],
+                                            access_rule: {{_eq: true}} 
+                                        }}, order_by: {{rule_num: asc}}) {{
+                                        ...ruleOverview
+                                    }}
+                                }}
+                            }}
+                        }}");
+                    break;
+                // rules ({limitOffsetString} where: {{ rule_create: {{_lte: $relevantImportId}}, 
+                //     _or: [ {{ removed: {{_is_null: true}} }}, {{ removed: {{_gte: $relevantImportId}} }} ], 
+                //     access_rule: {{_eq: true}} }}, order_by: {{rule_num_numeric: asc}}) {{
+
+                case ReportType.Recertification:
+                    query.FullQuery = Queries.Compact($@"
+                        {RecertQueries.ruleOpenRecertFragments}
+                        query rulesCertReport({paramString}) 
+                        {{
+                            management({mgmtWhereString}) 
+                            {{
+                                id: mgm_id
+                                name: mgm_name
+                                devices({devWhereString}) 
+                                {{
+                                    id: dev_id
+                                    name: dev_name
+                                    {query.OpenRulesTable}
+                                        where: {{ 
+                                            rule_metadatum: {{ recertifications_aggregate: {{ count: {{ filter: {{ _and: [{{owner: $ownerWhere}}, {{recert_date: {{_is_null: true}}}}, {{next_recert_date: {{_lte: $refdate1}}}}]}}, predicate: {{_gt: 0}}}}}}}}
+                                            active:{{ _eq:true }}
+                                            {query.RuleWhereStatement} 
+                                        }} 
+                                        {limitOffsetString}
+                                        order_by: {{ rule_num_numeric: asc }}
+                                    ) 
+                                    {{
+                                        mgm_id: mgm_id
+                                        ...ruleOpenCertOverview
+                                    }} }} }}
+                        }}
+                    }}
+                    }}
+                    ");
+                    break;
+
+                case ReportType.Changes:
+                case ReportType.ResolvedChanges:
+                case ReportType.ResolvedChangesTech:
+                    query.FullQuery = Queries.Compact($@"
+                        {(filter.Detailed ? RuleQueries.ruleDetailsForReportFragments : RuleQueries.ruleOverviewFragments)}
+                        query changeReport({paramString}) 
+                        {{
+                            management(where: {{ hide_in_gui: {{_eq: false }} stm_dev_typ: {{dev_typ_is_multi_mgmt: {{_eq: false}} is_pure_routing_device: {{_eq: false}} }} }} order_by: {{mgm_name: asc}}) 
+                            {{
+                                id: mgm_id
+                                name: mgm_name
+                                devices ({devWhereString})                           
+                                {{
+                                    id: dev_id
+                                    name: dev_name
+                                    {query.OpenChangeLogRulesTable}
+                                        {limitOffsetString} 
+                                        where: {{ 
+                                            _or:[
+                                                    {{_and: [{{change_action:{{_eq:""I""}}}}, {{rule: {{access_rule:{{_eq:true}}}}}}]}}, 
+                                                    {{_and: [{{change_action:{{_eq:""D""}}}}, {{ruleByOldRuleId: {{access_rule:{{_eq:true}}}}}}]}},
+                                                    {{_and: [{{change_action:{{_eq:""C""}}}}, {{rule: {{access_rule:{{_eq:true}}}}}}, {{ruleByOldRuleId: {{access_rule:{{_eq:true}}}}}}]}}
+                                                ]                                        
+                                            {query.RuleWhereStatement} 
+                                        }}
+                                        order_by: {{ control_id: asc }}
+                                    ) 
+                                    {{
+                                        import: import_control {{ time: stop_time }}
+                                        change_action
+                                        old: ruleByOldRuleId {{
+                                        mgm_id: mgm_id
+                                        ...{(filter.Detailed ? "ruleDetails" : "ruleOverview")}
+                                        }}
+                                        new: rule {{
+                                        mgm_id: mgm_id
+                                        ...{(filter.Detailed ? "ruleDetails" : "ruleOverview")}
+                                        }}
+                                    }}
+                                }}
+                            }}
+                        }}
+                    ");
+                    break;
+
+                case ReportType.NatRules:
+                    query.FullQuery = Queries.Compact($@"
+                        {(filter.Detailed ? RuleQueries.natRuleDetailsForReportFragments : RuleQueries.natRuleOverviewFragments)}
+                        query natRulesReport ({paramString}) 
+                        {{ 
+                            management({mgmtWhereString}) 
+                            {{
+                                id: mgm_id
+                                name: mgm_name
+                                devices ({devWhereString}) 
+                                {{
+                                    id: dev_id
+                                    name: dev_name
+                                    {query.OpenRulesTable}
+                                        {limitOffsetString}
+                                        where: {{  nat_rule: {{_eq: true}}, ruleByXlateRule: {{}} {query.RuleWhereStatement} }} 
+                                        order_by: {{ rule_num_numeric: asc }} )
+                                        {{
+                                            mgm_id: mgm_id
+                                            ...{(filter.Detailed ? "natRuleDetails" : "natRuleOverview")}
+                                        }} 
+                                    }} }}
+                                }}
+                            }} 
+                        }}
+                    ");
+                    break;
+
+                case ReportType.Connections:
+                case ReportType.VarianceAnalysis:
+
+                    query.FullQuery = Queries.Compact($@"
+                        {ModellingQueries.connectionResolvedDetailsFragment}
+                        query getConnectionsResolved ({paramString})
+                        {{
+                            modelling_connection (where: {{ {query.ConnectionWhereStatement} }} order_by: {{ is_interface: desc, common_service: desc, name: asc }})
+                            {{
+                                ...connectionResolvedDetails
+                            }}
+                        }}
+                    ");
+                    break;
+            }
+            */
+
         }
 
         private static void SetFixedFilters(ref DynGraphqlQuery query, ReportTemplate reportParams)
@@ -359,23 +602,25 @@ namespace FWO.Report.Filter
             if (deviceFilter != null)
             {
                 query.RelevantManagementIds = deviceFilter.GetSelectedManagements();
-                query.RuleWhereStatement += "{_or: [{";
-                foreach (ManagementSelect mgmt in deviceFilter.Managements)
-                {
-                    foreach (DeviceSelect dev in mgmt.Devices)
-                    {
-                        if (dev.Selected)
-                        {
-                            if (!first)
-                            {
-                                query.RuleWhereStatement += "}, {";
-                            }
-                            query.RuleWhereStatement += $" device: {{dev_id: {{_eq:{dev.Id}}} }}";
-                            first = false;
-                        }
-                    }
-                }
-                query.RuleWhereStatement += "}]}, ";
+
+                // commenting out the device filtering (which is wrongly added to the rule where statement)
+                // query.RuleWhereStatement += "{_or: [{";
+                // foreach (ManagementSelect mgmt in deviceFilter.Managements)
+                // {
+                //     foreach (DeviceSelect dev in mgmt.Devices)
+                //     {
+                //         if (dev.Selected)
+                //         {
+                //             if (!first)
+                //             {
+                //                 query.RuleWhereStatement += "}, {";
+                //             }
+                //             query.RuleWhereStatement += $" device: {{dev_id: {{_eq:{dev.Id}}} }}";
+                //             first = false;
+                //         }
+                //     }
+                // }
+                // query.RuleWhereStatement += "}]}, ";
             }
         }
         private static string GetDevWhereFilter(ref DynGraphqlQuery query, DeviceFilter? deviceFilter)
@@ -412,19 +657,10 @@ namespace FWO.Report.Filter
                     case ReportType.UnusedRules:
                     case ReportType.AppRules:
                         query.QueryParameters.Add("$relevantImportId: bigint ");
-                        // query.QueryVariables["relevantImportId"] = "";
-                        // query.RuleWhereStatement +=
-                        //     $"import_control: {{ control_id: {{_lte: $relevantImportId }} }}, " +
-                        //     $"importControlByRuleLastSeen: {{ control_id: {{_gte: $relevantImportId }} }}";
-                        // query.NwObjWhereStatement +=
-                        //     $"import_control: {{ control_id: {{_lte: $relevantImportId }} }}, " +
-                        //     $"importControlByObjLastSeen: {{ control_id: {{_gte: $relevantImportId }} }}";
-                        // query.SvcObjWhereStatement +=
-                        //     $"import_control: {{ control_id: {{_lte: $relevantImportId }} }}, " +
-                        //     $"importControlBySvcLastSeen: {{ control_id: {{_gte: $relevantImportId }} }}";
-                        // query.UserObjWhereStatement +=
-                        //     $"import_control: {{ control_id: {{_lte: $relevantImportId }} }}, " +
-                        //     $"importControlByUserLastSeen: {{ control_id: {{_gte: $relevantImportId }} }}";
+                        query.RuleWhereStatement += $@"
+                                    rule_create: {{_lte: $relevantImportId}}, 
+                                    _or: [{{removed: {{_gt: $relevantImportId}} }}, {{removed: {{_is_null: true}} }}],
+                        ";
                         query.ReportTimeString = timeFilter.IsShortcut ?
                             DateTime.Now.ToString(fullTimeFormat) : timeFilter.ReportTime.ToString(fullTimeFormat);
                         break;
@@ -561,7 +797,7 @@ namespace FWO.Report.Filter
             {
                 // currently overruling tenant filter!!
                 // query.OpenRulesTable = $"rules: get_rules_for_owner(args: {{ownerid: {modellingFilter.SelectedOwner.Id} }}, ";
-                query.OpenRulesTable =  $@"
+                query.OpenRulesTable = $@"
                                         rulebase_links(order_by: {{order_no: asc}}) {{
                                             rulebase_id
                                             order_no
@@ -603,7 +839,7 @@ namespace FWO.Report.Filter
             if (filter.ReportParams.TenantFilter.IsActive)
             {
                 int tenant_id = filter.ReportParams.TenantFilter.TenantId;
-                query.OpenRulesTable = $"rules: get_rules_for_tenant(args: {{tenant: {tenant_id }}}, ";
+                query.OpenRulesTable = $"rules: get_rules_for_tenant(args: {{tenant: {tenant_id}}}, ";
                 query.OpenChangeLogRulesTable = $"changelog_rules: get_changelog_rules_for_tenant(args: {{tenant: {tenant_id}}}, ";
             }
         }

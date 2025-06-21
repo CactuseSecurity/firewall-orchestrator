@@ -40,6 +40,9 @@ class ImportStatisticsController(ImportStatistics):
             self.RuleAddCount + self.RuleDeleteCount + self.RuleChangeCount + self.RuleMoveCount + \
             self.rule_enforce_change_count + self.rulebase_add_count + self.rulebase_change_count + self.rulebase_delete_count
 
+    def getRuleChangeNumber(self):
+        return self.RuleAddCount + self.RuleDeleteCount + self.RuleChangeCount + self.RuleMoveCount + \
+            self.rule_enforce_change_count + self.rulebase_add_count + self.rulebase_change_count + self.rulebase_delete_count
 
     def getChangeDetails(self):
         result = {}

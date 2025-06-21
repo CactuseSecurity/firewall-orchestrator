@@ -1,7 +1,7 @@
 using FWO.Basics;
 using FWO.Data.Modelling;
 
-namespace FWO.Ui.Data
+namespace FWO.Data
 {
     public class CSVAppServerImportModel
     {

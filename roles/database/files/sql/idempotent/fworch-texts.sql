@@ -2634,6 +2634,8 @@ INSERT INTO txt VALUES ('locked',               'German', 	'Gesperrt');
 INSERT INTO txt VALUES ('locked',               'English', 	'Locked');
 INSERT INTO txt VALUES ('unlock',               'German', 	'Entsperren');
 INSERT INTO txt VALUES ('unlock',               'English', 	'Unlock');
+INSERT INTO txt VALUES ('useCustomLogo',        'German', 	'Benutzerdefiniertes Logo');
+INSERT INTO txt VALUES ('useCustomLogo',        'English', 	'Custom logo');
 
 -- help pages
 INSERT INTO txt VALUES ('report_types',         'German', 	'Report-Typen');
@@ -2925,6 +2927,7 @@ INSERT INTO txt VALUES ('U5501', 'German',  'Sind sie sicher, dass sie folgenden
 INSERT INTO txt VALUES ('U5501', 'English', 'Are you sure you want to delete state: ');
 INSERT INTO txt VALUES ('U5502', 'German',  'Sind sie sicher, dass sie folgende Aktion l&ouml;schen wollen: ');
 INSERT INTO txt VALUES ('U5502', 'English', 'Are you sure you want to delete action: ');
+
 
 INSERT INTO txt VALUES ('U7001', 'German',  '&Uuml;berblick der Ereignisse im Firewall Orchestrator');
 INSERT INTO txt VALUES ('U7001', 'English', 'Alerts and events inside Firewall Orchestrator');
@@ -3236,6 +3239,12 @@ INSERT INTO txt VALUES ('E5422', 'English', 'Entry does not contain all required
 INSERT INTO txt VALUES ('E5423', 'German',  'IP-Adresse/IP-Bereich ist fehlerhaft');
 INSERT INTO txt VALUES ('E5423', 'English', 'IP Address/IP Range malformed');
 
+INSERT INTO txt VALUES ('E5430', 'German',  'Hochgeladener Dateityp ist nicht erlaubt');
+INSERT INTO txt VALUES ('E5430', 'English', 'Uploaded Filetype is not allowed');
+
+INSERT INTO txt VALUES ('E5431', 'German',  'Hochgeladene Dateit überschreitet maximum');
+INSERT INTO txt VALUES ('E5431', 'English', 'Uploaded File exceeds the allowed maximum');
+
 INSERT INTO txt VALUES ('E6001', 'German', 	'Der Re-Login war nicht erfolgreich. Haben Sie ein falsches Passwort eingegeben? Schauen Sie f&uuml;r Details bitte in die Logs.');
 INSERT INTO txt VALUES ('E6001', 'English', 'Re-login failed. Did you enter a wrong password? See log for details.');
 
@@ -3346,6 +3355,9 @@ INSERT INTO txt VALUES ('E9301', 'German',  'Template Datei nicht gefunden!');
 INSERT INTO txt VALUES ('E9301', 'English', 'Template File not found!');
 INSERT INTO txt VALUES ('E9302', 'German',  'HTML ist nicht valide!');
 INSERT INTO txt VALUES ('E9302', 'English', 'HTML is invalid!');
+
+INSERT INTO txt VALUES ('E9400', 'German',  'Leere Datei hochgeladen/keine Änderungen wurden vorgenommen');
+INSERT INTO txt VALUES ('E9400', 'English', 'Empty file provided/no changes where applied');
 
 -- errors from Api
 INSERT INTO txt VALUES ('A0001', 'German',  'Ung&uuml;ltige Anmeldedaten. Nutzername darf nicht leer sein');

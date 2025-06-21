@@ -1,3 +1,4 @@
+using FWO.Basics;
 using FWO.Api.Client;
 using FWO.Data;
 using FWO.Encryption;
@@ -9,7 +10,7 @@ namespace FWO.DeviceAutoDiscovery
     public class AutoDiscoveryBase
     {
         public Management SuperManagement { get; set; }
-        private readonly ApiConnection apiConnection;
+        protected readonly ApiConnection apiConnection;
 
 
         public AutoDiscoveryBase(Management mgm, ApiConnection apiConn)
@@ -71,7 +72,7 @@ namespace FWO.DeviceAutoDiscovery
             }
             catch (Exception exc)
             {
-                Log.WriteError("Autodiscovery", $"GetDeltas Ran into exception: ", exc);
+                Log.WriteError(GlobalConst.kAutodiscovery, $"GetDeltas Ran into exception: ", exc);
             }
             return deltaManagements;
         }
@@ -173,7 +174,7 @@ namespace FWO.DeviceAutoDiscovery
             }
             catch (Exception exc)
             {
-                Log.WriteError("Autodiscovery", $"ConvertToActions Ran into exception: ", exc);
+                Log.WriteError(GlobalConst.kAutodiscovery, $"ConvertToActions Ran into exception: ", exc);
             }
             return actions;
         }

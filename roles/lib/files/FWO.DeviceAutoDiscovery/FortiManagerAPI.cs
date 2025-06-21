@@ -7,6 +7,7 @@ using RestSharp.Serializers.NewtonsoftJson;
 using RestSharp.Serializers;
 using RestSharp;
 using System.Text.Json;
+using FWO.Basics;
 
 namespace FWO.DeviceAutoDiscovery
 {
@@ -64,7 +65,7 @@ namespace FWO.DeviceAutoDiscovery
             };
             RestRequest request = new("", Method.Post);
             request.AddJsonBody(body);
-            Log.WriteDebug("Autodiscovery", $"using FortiManager REST API call with body='{body.ToString()}' and paramList='{paramList.ToString()}'");
+            Log.WriteDebug(GlobalConst.kAutodiscovery, $"using FortiManager REST API call with body='{body.ToString()}' and paramList='{paramList.ToString()}'");
             RestResponse<FmApiTopLevelHelper> response = await restClient.ExecuteAsync<FmApiTopLevelHelper>(request);
             
             string uid = "dummy-uid"; // response?.Data?.Result[0]."Serial Number"];
@@ -86,7 +87,7 @@ namespace FWO.DeviceAutoDiscovery
             };
             RestRequest request = new("", Method.Post);
             request.AddJsonBody(body);
-            Log.WriteDebug("Autodiscovery", $"using FortiManager REST API call with body='{body.ToString()}' and paramList='{paramList.ToString()}'");
+            Log.WriteDebug(GlobalConst.kAutodiscovery, $"using FortiManager REST API call with body='{body.ToString()}' and paramList='{paramList.ToString()}'");
             return await restClient.ExecuteAsync<FmApiTopLevelHelper>(request);
         }
 

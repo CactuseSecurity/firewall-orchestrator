@@ -284,7 +284,7 @@ namespace FWO.Report.Filter
             switch ((ReportType)filter.ReportParams.ReportType)
             {
                 case ReportType.Statistics:
-                    query.FullQuery = Queries.compact(ConstructStatisticsQuery(query, paramString));
+                    query.FullQuery = Queries.Compact(ConstructStatisticsQuery(query, paramString));
                     break;
 
                 case ReportType.Rules:
@@ -292,26 +292,26 @@ namespace FWO.Report.Filter
                 case ReportType.ResolvedRulesTech:
                 case ReportType.UnusedRules:
                 case ReportType.AppRules:
-                    query.FullQuery = Queries.compact(ConstructRulesQuery(query, paramString, filter));
+                    query.FullQuery = Queries.Compact(ConstructRulesQuery(query, paramString, filter));
                     break;
 
                 case ReportType.Recertification:
-                    query.FullQuery = Queries.compact(ConstructRecertQuery(query, paramString));
+                    query.FullQuery = Queries.Compact(ConstructRecertQuery(query, paramString));
                     break;
 
                 case ReportType.Changes:
                 case ReportType.ResolvedChanges:
                 case ReportType.ResolvedChangesTech:
-                    query.FullQuery = Queries.compact(ConstructChangesQuery(query, paramString, filter));
+                    query.FullQuery = Queries.Compact(ConstructChangesQuery(query, paramString, filter));
                     break;
 
                 case ReportType.NatRules:
-                    query.FullQuery = Queries.compact(ConstructNatRulesQuery(query, paramString, filter));
+                    query.FullQuery = Queries.Compact(ConstructNatRulesQuery(query, paramString, filter));
                     break;
 
                 case ReportType.Connections:
                 case ReportType.VarianceAnalysis:
-                    query.FullQuery = Queries.compact(ConstructConnectionsQuery(query, paramString));
+                    query.FullQuery = Queries.Compact(ConstructConnectionsQuery(query, paramString));
                     break;
             }
         }

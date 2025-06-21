@@ -1,3 +1,4 @@
+using FWO.Basics;
 using FWO.Api.Client;
 using FWO.Data;
 using FWO.Logging;
@@ -5,7 +6,6 @@ using Newtonsoft.Json;
 using RestSharp;
 using System.Text.Json;
 using System.Net;
-using FWO.Data;
 using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 using FWO.Logging;
@@ -22,7 +22,10 @@ namespace FWO.DeviceAutoDiscovery
         readonly RestClient restClient;
         readonly string CPSidHeaderKey = "X-chkp-sid";
 
+        List<string> GwTypes = ["simple-gateway", "simple-cluster", "CpmiVsNetobj", "CpmiVsClusterNetobj", "CpmiGatewayPlain", "CpmiGatewayCluster", "CpmiVsxClusterNetobj", "CpmiVsxNetobj"];
+
         public CheckPointClient(Management manager)
+            : base("https://" + manager.Hostname + ":" + manager.Port + "/web_api/")
         {
             RestClientOptions restClientOptions = new();
             restClientOptions.RemoteCertificateValidationCallback += (_, _, _, _) => true;
@@ -40,7 +43,7 @@ namespace FWO.DeviceAutoDiscovery
         {
             if (user == null || user == "")
             {
-                Log.WriteWarning("Autodiscovery", $"GetDomains got empty user string, aborting");
+                Log.WriteWarning(GlobalConst.kAutodiscovery, $"GetDomains got empty user string, aborting");
                 return new RestResponse<CpSessionAuthInfo>(new RestRequest());
             }
             pwd ??= "";
@@ -84,7 +87,7 @@ namespace FWO.DeviceAutoDiscovery
                 List<Domain> domainList = domainResponse.Data.DomainList;
                 if (domainList.Count == 0)
                 {
-                    Log.WriteDebug("Autodiscovery", $"found no domains - assuming this is a standard management, adding dummy domain with empty name");
+                    Log.WriteDebug(GlobalConst.kAutodiscovery, $"found no domains - assuming this is a standard management, adding dummy domain with empty name");
                     domainList.Add(new Domain { Name = "" });
                 }
                 return domainList;
@@ -109,7 +112,94 @@ namespace FWO.DeviceAutoDiscovery
             RestResponse<CpDeviceHelper> devices = await restClient.ExecuteAsync<CpDeviceHelper>(request);
             if (devices.Data != null)
             {
-                foreach (CpDevice dev in devices.Data.DeviceList.Where(d => gwTypes.Contains(d.CpDevType)))
+                return devices.Data.DeviceList;
+            }
+            return [];
+
+        }
+        // public async Task<List<CpDevice>> GetAllCpDevices(string session)
+        // // session id pins this session to a specific domain (if domain was given during login) 
+        // {
+        //     RestRequest request = new("show-gateways-and-servers", Method.Post);
+        //     request.AddHeader(CPSidHeaderKey, session);
+        //     request.AddHeader("Content-Type", "application/json");
+        //     Dictionary<string, string> body = new()
+        //     {
+        //         { "details-level", "full" }
+        //     };
+        //     request.AddJsonBody(body);
+        //     Log.WriteDebug(GlobalConst.kAutodiscovery, $"using CP REST API call 'show-gateways-and-servers'");
+
+        //     // getting all devices of this management 
+        //     RestResponse<CpDeviceHelper> devices = await restClient.ExecuteAsync<CpDeviceHelper>(request);
+        //     if (devices.Data != null)
+        //     {
+        //         foreach (CpDevice dev in devices.Data.DeviceList.Where(d => GwTypes.Contains(d.CpDevType)))
+        //         {
+        // 			if (dev.Policy.AccessPolicyInstalled)   // get package info
+        // 			{
+        // 				Log.WriteDebug(GlobalConst.kAutodiscovery, $"found gateway '{dev.Name}' with access policy '{dev.Policy.AccessPolicyName}'");
+        // 				RestRequest requestPackage = new RestRequest("show-package", Method.Post);
+        // 				requestPackage.AddHeader("X-chkp-sid", session);
+        // 				requestPackage.AddHeader("Content-Type", "application/json");
+        // 				Dictionary<string, string> packageBody = [];
+        // 				packageBody.Add("name", dev.Policy.AccessPolicyName);
+        // 				packageBody.Add("details-level", "full");
+        // 				requestPackage.AddJsonBody(packageBody);
+        // 				RestResponse<CpPackage> package = await restClient.ExecuteAsync<CpPackage>(requestPackage);
+        // 				if (dev != null && package != null && package.Data != null)
+        // 				{
+        // 					dev.Package = package.Data;
+        // 					Log.WriteDebug(GlobalConst.kAutodiscovery, $"for gateway '{dev.Name}' we found a package '{dev?.Package?.Name}' with {dev?.Package?.CpAccessLayers.Count} layers");
+
+        // 					ExtractLayerNames(dev!.Package, dev.Name, ManagementType, out string localLayerName, out string globalLayerName);
+        // 					dev.LocalLayerName = localLayerName;
+        // 					dev.GlobalLayerName = globalLayerName;
+        // 				}
+        // 			}
+        // 			else
+        // 				Log.WriteWarning(GlobalConst.kAutodiscovery, $"found gateway '{dev.Name}' without access policy");
+        //         }
+        //         return devices.Data.DeviceList;
+        //     }
+        //     return [];
+        // }
+
+        public async Task<List<CpDevice>> GetManagers(string session, string ManagementType)
+        // session id pins this session to a specific domain (if domain was given during login) 
+        {
+
+            List<CpDevice> devices = await GetAllCpDevices(session);
+            if (devices != null)
+            {
+                foreach (CpDevice dev in devices)
+                {
+                    if (GwTypes.Contains(dev.CpDevType) && !dev.Policy.AccessPolicyInstalled)
+                    {
+                        Log.WriteWarning(GlobalConst.kAutodiscovery, $"found gateway '{dev.Name}' without access policy");
+                    }
+                }
+                return devices;
+            }
+            return [];
+        }
+
+        public async Task<List<CpDevice>> GetGateways(string session, string ManagementType)
+        // session id pins this session to a specific domain (if domain was given during login) 
+        {
+            RestRequest request = new("show-gateways-and-servers", Method.Post);
+            request.AddHeader("X-chkp-sid", session);
+            request.AddHeader("Content-Type", "application/json");
+            Dictionary<string, string> body = [];
+            body.Add("details-level", "full");
+            request.AddJsonBody(body);
+            Log.WriteDebug("Autodiscovery", $"using CP REST API call 'show-gateways-and-servers'");
+
+            // getting all gateways of this management 
+            RestResponse<CpDeviceHelper> devices = await restClient.ExecuteAsync<CpDeviceHelper>(request);
+            if(devices.Data != null)
+            {
+                foreach (CpDevice dev in devices.Data.DeviceList.Where(d => GwTypes.Contains(d.CpDevType)))
                 {
 					if (dev.Policy.AccessPolicyInstalled)   // get package info
 					{
@@ -137,48 +227,7 @@ namespace FWO.DeviceAutoDiscovery
                 }
                 return devices.Data.DeviceList;
             }
-            return [];
-
-        }
-
-        public async Task<List<CpDevice>> GetManagers(string session, string ManagementType)
-        // session id pins this session to a specific domain (if domain was given during login) 
-        {
-            List<string> gwTypes = ["simple-gateway", "simple-cluster", "CpmiVsNetobj", "CpmiVsClusterNetobj", "CpmiGatewayPlain", "CpmiGatewayCluster", "CpmiVsxClusterNetobj", "CpmiVsxNetobj"];
-
-            List<CpDevice> devices = await GetAllCpDevices(session);
-            if (devices != null)
-            {
-                foreach (CpDevice dev in devices)
-                {
-                    if (gwTypes.Contains(dev.CpDevType) && !dev.Policy.AccessPolicyInstalled)
-                    {
-                        Log.WriteWarning("Autodiscovery", $"found gateway '{dev.Name}' without access policy");
-                    }
-                }
-                return devices;
-            }
-            return [];
-        }
-
-        public async Task<List<CpDevice>> GetGateways(string session)
-        // session id pins this session to a specific domain (if domain was given during login) 
-        {
-            List<string> gwTypes = ["simple-gateway", "simple-cluster", "CpmiVsNetobj", "CpmiVsClusterNetobj", "CpmiGatewayPlain", "CpmiGatewayCluster", "CpmiVsxClusterNetobj", "CpmiVsxNetobj"];
-
-            List<CpDevice> devices = await GetAllCpDevices(session);
-            if (devices != null)
-            {
-                foreach (CpDevice dev in devices)
-                {
-                    if (gwTypes.Contains(dev.CpDevType) && !dev.Policy.AccessPolicyInstalled)
-                    {
-                        Log.WriteWarning("Autodiscovery", $"found gateway '{dev.Name}' without access policy");
-                    }
-                }
-                return devices;
-            }
-            return [];
+            return new List<CpDevice>();
         }
 
         public async Task<string> GetGlobalDomainUid(string session)
@@ -192,7 +241,7 @@ namespace FWO.DeviceAutoDiscovery
                 { "name", "Global" }
             };
             request.AddJsonBody(body);
-            Log.WriteDebug("Autodiscovery", $"using CP REST API call 'show-global-domain'");
+            Log.WriteDebug(GlobalConst.kAutodiscovery, $"using CP REST API call 'show-global-domain'");
 
             // getting name and uid of the global domain 
             RestResponse<CpNameUidHelper> globalDomain = await restClient.ExecuteAsync<CpNameUidHelper>(request);
@@ -208,31 +257,15 @@ namespace FWO.DeviceAutoDiscovery
             RestResponse<CpSessionAuthInfo> response = await AuthenticateUser(management.ImportCredential.ImportUser, management.ImportCredential.Secret, "System Data");
             if (response.StatusCode != HttpStatusCode.OK || !response.IsSuccessful)
             {
-                Log.WriteError("Autodiscovery", $"failed to authenticate user '{management.ImportCredential.ImportUser}'");
+                Log.WriteError(GlobalConst.kAutodiscovery, $"failed to authenticate user '{management.ImportCredential.ImportUser}'");
                 return "";
             }
             string session = response.Data?.SessionId ?? "";
             if (session == "")
             {
-                Log.WriteError("Autodiscovery", $"failed to authenticate user '{management.ImportCredential.ImportUser}'");
+                Log.WriteError(GlobalConst.kAutodiscovery, $"failed to authenticate user '{management.ImportCredential.ImportUser}'");
                 return "";
             }
-        private static void ExtractLayerNames(CpPackage package, string devName, string managementType, out string localLayerName, out string globalLayerName)
-        {
-            localLayerName = "";
-            globalLayerName = "";
-            // getting rid of unneccessary layers (eg. url filtering, application, ...)
-            List<CpAccessLayer> relevantLayers = [];
-			if (package.CpAccessLayers.Count == 1) // default: pick the first layer found (if any)
-			{
-				relevantLayers.Add(package.CpAccessLayers[0]);
-			}
-			else if (package.CpAccessLayers.Count > 1)
-			{
-				Log.WriteWarning("Autodiscovery", $"for gateway '{devName}'/ package '{package.Name}' we found multiple ({package.CpAccessLayers.Count}) layers");
-				// for now: pick the layer which the most "firewall-ish" - TODO: deal with layer chaining
-				relevantLayers = [.. package.CpAccessLayers.Where(l => l.IsFirewallEnabled && !l.IsApplicationsAndUrlFilteringEnabled && !l.IsContentAwarenessEnabled && !l.IsMobileAccessEnabled)];
-			}
 
             RestRequest request = new("show-mdss", Method.Post);
             request.AddHeader("X-chkp-sid", session);
@@ -248,6 +281,48 @@ namespace FWO.DeviceAutoDiscovery
                 if (mdsObjects.Data.Mds.Count == 0)
                 {
                     Log.WriteDebug("Autodiscovery", $"found no MDS - assuming this is a standard management, adding dummy domain with empty name");
+                    mdsObjects.Data.Mds.Add(new CpNameUidHelper { Name = "", Uid = "" });
+                    return "";
+                }
+                else
+                {
+                    return mdsObjects.Data.Mds.First().Uid;
+                }
+            }
+            return "";
+        }
+
+        private static void ExtractLayerNames(CpPackage package, string devName, string managementType, out string localLayerName, out string globalLayerName)
+        {
+            localLayerName = "";
+            globalLayerName = "";
+            // getting rid of unneccessary layers (eg. url filtering, application, ...)
+            List<CpAccessLayer> relevantLayers = [];
+            if (package.CpAccessLayers.Count == 1) // default: pick the first layer found (if any)
+            {
+                relevantLayers.Add(package.CpAccessLayers[0]);
+            }
+            else if (package.CpAccessLayers.Count > 1)
+            {
+                Log.WriteWarning(GlobalConst.kAutodiscovery, $"for gateway '{devName}'/ package '{package.Name}' we found multiple ({package.CpAccessLayers.Count}) layers");
+                // for now: pick the layer which the most "firewall-ish" - TODO: deal with layer chaining
+                relevantLayers = [.. package.CpAccessLayers.Where(l => l.IsFirewallEnabled && !l.IsApplicationsAndUrlFilteringEnabled && !l.IsContentAwarenessEnabled && !l.IsMobileAccessEnabled)];
+            }
+
+            RestRequest request = new("show-mdss", Method.Post);
+            request.AddHeader("X-chkp-sid", session);
+            request.AddHeader("Content-Type", "application/json");
+            Dictionary<string, string> body = [];
+            request.AddJsonBody(body);
+            Log.WriteDebug(GlobalConst.kAutodiscovery, $"using CP REST API call 'show-mdss'");
+
+            // getting name and uid of the global domain 
+            RestResponse<MdsHelper> mdsObjects = await restClient.ExecuteAsync<MdsHelper>(request);
+            if (mdsObjects.Data?.Mds != null)
+            {
+                if (mdsObjects.Data.Mds.Count == 0)
+                {
+                    Log.WriteDebug(GlobalConst.kAutodiscovery, $"found no MDS - assuming this is a standard management, adding dummy domain with empty name");
                     mdsObjects.Data.Mds.Add(new CpNameUidHelper { Name = "", Uid = "" });
                     return "";
                 }

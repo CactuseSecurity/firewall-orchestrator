@@ -11,7 +11,7 @@ namespace FWO.DeviceAutoDiscovery
 {
     public class AutoDiscoveryCpMds : AutoDiscoveryBase
     {
-        private readonly string Autodiscovery = "Autodiscovery";
+        private readonly string Autodiscovery = GlobalConst.kAutodiscovery;
 
         public AutoDiscoveryCpMds(Management mgm, ApiConnection apiConn) : base(mgm, apiConn) { }
 
@@ -222,28 +222,6 @@ namespace FWO.DeviceAutoDiscovery
             return currentManagement;
         }
 
-        private async Task<List<Management>> DiscoverDomainDevices(List<Domain> domainList, CheckPointClient restClientCP, string ManagementType)
-        {
-            List<Management> discoveredDevices = [];
-            foreach (Domain domain in domainList)
-            {
-                Log.WriteDebug("Autodiscovery", $"found domain '{domain.Name}'");
-                Management currentManagement = CreateManagement(superManagement, domain.Name, domain.Uid);
-                currentManagement.IsSupermanager = false;
-                // session id pins this session to a specific domain (if domain is given during login)
-                string sessionIdPerDomain = await LoginCp(currentManagement, restClientCP);
-                currentManagement.Uid = await GetMgmUid(restClientCP, @sessionIdPerDomain, currentManagement.Hostname);
-
-                if (sessionIdPerDomain != "")
-                {
-                    currentManagement.Devices = await GetGateways(restClientCP, @sessionIdPerDomain, ManagementType);
-                    await LogoutCp(restClientCP, @sessionIdPerDomain);
-                }
-                discoveredDevices.Add(currentManagement);
-            }
-            return discoveredDevices;
-        }
-
         private async Task<string> UpdateMgmUids(Management mgm, CheckPointClient restClientCP, string sessionId)
         {
             string mgmType = "";
@@ -266,7 +244,7 @@ namespace FWO.DeviceAutoDiscovery
 
         private async Task<(string, CheckPointClient)> LoginCp(Management mgm)
         {
-            CheckPointClient restClientCP = new(mgm);
+            CheckPointClient restClientCP = new(mgm, baseUrl: $"https://{mgm.Hostname}:{mgm.Port}/web_api");
             return (await LoginCp(mgm, restClientCP), restClientCP);
         }
         private async Task<string> LoginCp(Management mgm, CheckPointClient restClientCP)
@@ -280,12 +258,12 @@ namespace FWO.DeviceAutoDiscovery
             {
                 if (sessionResponse?.Data?.SessionId == null || sessionResponse.Data.SessionId == "")
                 {
-                    Log.WriteWarning("Autodiscovery", $"Did not receive a correct session ID when trying to login to manager {superManagement.Name} (id={superManagement.Id})");
+                    Log.WriteWarning(GlobalConst.kAutodiscovery, $"Did not receive a correct session ID when trying to login to manager {superManagement.Name} (id={superManagement.Id})");
                 }
                 else
                 {
                     sessionId = sessionResponse.Data.SessionId;
-                    Log.WriteDebug("Autodiscovery", $"successful CP Manager login, got SessionID: {sessionId}");
+                    Log.WriteDebug(GlobalConst.kAutodiscovery, $"successful CP Manager login, got SessionID: {sessionId}");
                 }
             }
             else
@@ -304,12 +282,12 @@ namespace FWO.DeviceAutoDiscovery
             RestResponse<CpSessionAuthInfo> sessionResponse = await restClientCP.DeAuthenticateUser(@sessionId);
             if (sessionResponse.StatusCode == HttpStatusCode.OK)
             {
-                Log.WriteDebug("Autodiscovery", $"successful CP Manager logout");
+                Log.WriteDebug(GlobalConst.kAutodiscovery, $"successful CP Manager logout");
                 return true;
             }
             else
             {
-                Log.WriteWarning("Autodiscovery", $"error while logging out from CP Manager: {sessionResponse.ErrorMessage}");
+                Log.WriteWarning(GlobalConst.kAutodiscovery, $"error while logging out from CP Manager: {sessionResponse.ErrorMessage}");
                 return false;
             }
         }

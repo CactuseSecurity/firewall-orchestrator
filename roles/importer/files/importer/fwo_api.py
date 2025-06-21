@@ -633,7 +633,7 @@ def complete_import(importState: "ImportStateController"):
             " total change count: " + str(importState.Stats.getTotalChangeNumber()) + \
             ", rule change count: " + str(importState.Stats.getRuleChangeNumber()) + \
             ", duration: " + str(int(time.time()) - importState.StartTime) + "s" 
-    import_result += ", ERRORS: " + importState.getErrorString() if len(importState.getErrorString()) > 0 else ""
+    import_result += ", ERRORS: " + importState.getErrorString() if importState.Stats.ErrorCount > 0 else ""
     if importState.Stats.getChangeDetails() != {} and importState.DebugLevel>3:
         import_result += ", change details: " + str(importState.Stats.getChangeDetails())
     if importState.Stats.ErrorCount>0:

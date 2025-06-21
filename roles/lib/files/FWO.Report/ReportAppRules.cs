@@ -51,7 +51,7 @@ namespace FWO.Report
             foreach(var mgt in managementData)
             {
                 ManagementReport relevantMgt = new() { Name = mgt.Name, Id = mgt.Id, Import = mgt.Import };
-                foreach (DeviceReportController dev in mgt.Devices)
+                foreach (DeviceReportController dev in mgt.Devices.Cast<DeviceReportController>())
                 {
                     PrepareDevice(dev, modellingFilter, relevantMgt, ownerIps);
                 }
@@ -64,46 +64,24 @@ namespace FWO.Report
             return relevantData;
         }
 
-        private static void PrepareDevice(DeviceReport dev, ModellingFilter modellingFilter, ManagementReport relevantMgt, List<IPAddressRange> ownerIps)
+         private static void PrepareDevice(DeviceReport dev, ModellingFilter modellingFilter, ManagementReport relevantMgt, List<IPAddressRange> ownerIps)
         {
             DeviceReport relevantDevice = new(){ Name = dev.Name, Id = dev.Id };
-            var rbLink = dev.RulebaseLinks.FirstOrDefault(r => r.IsInitialRulebase());
-            RulebaseReport? rb = relevantMgt.Rulebases.FirstOrDefault(r => r.Id == rbLink?.NextRulebaseId);
-            if (rb?.Rules != null)
+            List<Rule> deviceRules = dev.GetRuleList();
+            if (deviceRules != null)
             {
-                foreach (var rule in rb.Rules)
+                // relevantDevice.Rules = [];
+                foreach (var rule in deviceRules)
                 {
-                    if (modellingFilter.ShowDropRules || !rule.IsDropRule())
-                    {
-                        List<NetworkLocation> relevantFroms = [];
-                        List<NetworkLocation> disregardedFroms = [.. rule.Froms];
-                        if (modellingFilter.ShowSourceMatch)
-                        {
-                            (relevantFroms, disregardedFroms) = CheckNetworkObjects(rule.Froms, rule.SourceNegated, modellingFilter, ownerIps);
-                        }
-                        List<NetworkLocation> relevantTos = [];
-                        List<NetworkLocation> disregardedTos = [.. rule.Tos];
-                        if (modellingFilter.ShowDestinationMatch)
-                        {
-                            (relevantTos, disregardedTos) = CheckNetworkObjects(rule.Tos, rule.DestinationNegated, modellingFilter, ownerIps);
-                        }
-
-                        if (relevantFroms.Count > 0 || relevantTos.Count > 0)
-                        {
-                            rule.Froms = [.. relevantFroms];
-                            rule.Tos = [.. relevantTos];
-                            rule.DisregardedFroms = [.. disregardedFroms];
-                            rule.DisregardedTos = [.. disregardedTos];
-                            rule.ShowDisregarded = modellingFilter.ShowFullRules;
-                        }
-                    }
+                    PrepareRule(rule, modellingFilter, relevantMgt, relevantDevice, ownerIps);
                 }
-                if (relevantDevice.ContainsRules())
+                if (relevantDevice.GetNumerOfRules() > 0)
                 {
                     relevantMgt.Devices = [.. relevantMgt.Devices, relevantDevice];
                 }
             }
         }
+
 
         private static void PrepareRule(Rule rule, ModellingFilter modellingFilter, ManagementReport relevantMgt, DeviceReport relevantDevice, List<IPAddressRange> ownerIps)
         {
@@ -129,7 +107,7 @@ namespace FWO.Report
                     rule.DisregardedFroms = [.. disregardedFroms];
                     rule.DisregardedTos = [.. disregardedTos];
                     rule.ShowDisregarded = modellingFilter.ShowFullRules;
-                    relevantDevice.Rules = [.. relevantDevice.Rules!, rule];
+                    relevantDevice.AddRule(rule);
                     relevantMgt.ReportedRuleIds.Add(rule.Id);
                 }
             }

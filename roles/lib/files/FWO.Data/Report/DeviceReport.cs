@@ -23,53 +23,21 @@ namespace FWO.Data.Report
         [JsonProperty("rules_aggregate"), JsonPropertyName("rules_aggregate")]
         public ObjectStatistics RuleStatistics { get; set; } = new ObjectStatistics();
 
-        // public DeviceReport()
-        // { }
+        public List<Rule> GetRuleList()
+        {
+            // TODO: implement this method to return a list of rules associated with the device
+            return [];
+        }
 
-        // public DeviceReport(DeviceReport device)
-        // {
-        //     Id = device.Id;
-        //     Name = device.Name;
-        //     RulebaseLinks = device.RulebaseLinks;
-        //     RuleChanges = device.RuleChanges;
-        //     RuleStatistics = device.RuleStatistics;
-        // }
-
-        // public void AssignRuleNumbers(RulebaseLink? rbLinkIn = null, int ruleNumber = 1)
-        // {
-        //     // rbLinkIn ??= RbLink;
-        //     // if (rbLinkIn != null)
-        //     // {
-        //     //     if (rbLinkIn.IsInitial)   // TODO: use enum here
-        //     //     {
-        //     //         foreach (Rule rule in rbLinkIn.NextRulebase.Rules) // only on rule per rule_metadata
-        //     //         {
-        //     //             if (string.IsNullOrEmpty(rule.SectionHeader)) // Not a section header
-        //     //             {
-        //     //                 rule.DisplayOrderNumber = ruleNumber++;
-        //     //             }
-        //     //             if (rule.NextRulebase != null)
-        //     //             {
-        //     //                 AssignRuleNumbers(rule.NextRulebase, ruleNumber);
-        //     //             }
-        //     //         }
-        //     //     }
-        //     // }
-        // }
-
-        // public bool ContainsRules()
-        // {
-        //     return true;
-        //     // if (RbLink?.NextRulebase.Rules.Length>0)
-        //     // {
-        //     //     return true;
-        //     // }
-        //     // return false;
-        // }
-        // public int? GetInitialRulebaseId(ManagementReport managementReport)
-        // {
-        //     return RulebaseLinks.FirstOrDefault(_ => _.IsInitial)?.NextRulebaseId;
-        // }
+        public void AddRule(Rule rule)
+        {
+            // TODO: implement this method to add a rule to the device
+        }
+        public int GetNumerOfRules()
+        {
+            return 0;
+            // TODO: implement this method to return the numer of rules for this device
+        }
 
     }
 

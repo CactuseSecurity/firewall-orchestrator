@@ -1,9 +1,8 @@
-using FWO.Basics;
-using FWO.Api.Client;
+﻿using System.Text.Json;
 using FWO.Data;
-using FWO.Encryption;
+using FWO.Api.Client;
 using FWO.Logging;
-using System.Text.Json;
+using FWO.Encryption;
 
 namespace FWO.DeviceAutoDiscovery
 {
@@ -11,7 +10,6 @@ namespace FWO.DeviceAutoDiscovery
     {
         public Management SuperManagement { get; set; }
         protected readonly ApiConnection apiConnection;
-
 
         public AutoDiscoveryBase(Management mgm, ApiConnection apiConn)
         {
@@ -34,7 +32,6 @@ namespace FWO.DeviceAutoDiscovery
             SuperManagement.ImportCredential.Secret = decryptedSecret;
             apiConnection = apiConn;
         }
-
         public virtual Task<List<Management>> Run()
         {
             return SuperManagement.DeviceType.Name switch
@@ -55,11 +52,10 @@ namespace FWO.DeviceAutoDiscovery
 
                 foreach (Management discoveredMgmt in discoveredManagements.Where(x => x.ConfigPath != "global"))
                 {
-                    HandleDiscoveredManagement(discoveredMgmt, deltaManagements, existingManagements);
-                Management? existMgmtDisregardingUid = FindManagementIfExist(discoveredMgmt, existingManagements);
-
+                    DiscoverManagementDetails(discoveredMgmt, deltaManagements, existingManagements);
+                }
                 // deleted managements
-                foreach (Management existMgmt in existingManagements.Where(mgt => mgt.SuperManagerId == SuperManagement.Id && mgt.ConfigPath != "global"))
+                foreach (Management existMgmtDisregardingUid in existingManagements.Where(mgt => mgt.SuperManagerId == SuperManagement.Id && mgt.ConfigPath != "global"))
                 {
                     Management? foundMgmt = FindManagementIfExist(existMgmtDisregardingUid, discoveredManagements);
                     if (foundMgmt == null && !existMgmtDisregardingUid.ImportDisabled)
@@ -68,19 +64,18 @@ namespace FWO.DeviceAutoDiscovery
                         deltaManagements.Add(existMgmtDisregardingUid);
                     }
                 }
-                }
             }
             catch (Exception exc)
             {
-                Log.WriteError(GlobalConst.kAutodiscovery, $"GetDeltas Ran into exception: ", exc);
+                Log.WriteError("Autodiscovery", $"GetDeltas Ran into exception: ", exc);
             }
             return deltaManagements;
         }
 
-        private static void HandleDiscoveredManagement(Management discoveredMgmt, List<Management> deltaManagements, List<Management> existingManagements)
+        private static void DiscoverManagementDetails(Management discoveredMgmt, List<Management> deltaManagements, List<Management> existingManagements)
         {
-            Management? existMgmt = FindManagementIfExist(discoveredMgmt, existingManagements);
-            if (existMgmt == null)
+            Management? existMgmtDisregardingUid = FindManagementIfExist(discoveredMgmt, existingManagements);
+            if (existMgmtDisregardingUid == null)
             {
                 // new management
                 discoveredMgmt.Delete = false;
@@ -88,42 +83,37 @@ namespace FWO.DeviceAutoDiscovery
             }
             else
             {
-                HandleChangedManagement(discoveredMgmt, existMgmt, deltaManagements);
-            }
-        }
-
-        private static void HandleChangedManagement(Management discoveredMgmt, Management existMgmt, List<Management> deltaManagements)
-        {
-            Management changedMgmt = existMgmt;
-            changedMgmt.Delete = false;
-            bool foundChange = false;
-            List<Device> newDevs = [];
-            // new devices in existing management
-            foreach (Device discoveredDev in discoveredMgmt.Devices)
-            {
-                if (CheckDeviceNotInMgmt(discoveredDev, existMgmt) || discoveredDev.ImportDisabled)
+                Management changedMgmt = existMgmtDisregardingUid;
+                changedMgmt.Delete = false;
+                bool foundChange = false;
+                List<Device> newDevs = [];
+                // new devices in existing management
+                foreach (Device discoveredDev in discoveredMgmt.Devices)
                 {
-                    discoveredDev.Delete = false;
-                    newDevs.Add(discoveredDev);
-                    foundChange = true;
+                    if (CheckDeviceNotInMgmt(discoveredDev, existMgmtDisregardingUid) || discoveredDev.ImportDisabled)
+                    {
+                        discoveredDev.Delete = false;
+                        newDevs.Add(discoveredDev);
+                        foundChange = true;
+                    }
                 }
-            }
 
-            // deleted devices in existing management
-            foreach (Device existDev in existMgmt.Devices)
-            {
-                if (CheckDeviceNotInMgmt(existDev, discoveredMgmt) && !existDev.ImportDisabled)
+                // deleted devices in existing management
+                foreach (Device existDev in existMgmtDisregardingUid.Devices)
                 {
-                    existDev.Delete = true;
-                    newDevs.Add(existDev);
-                    foundChange = true;
+                    if (CheckDeviceNotInMgmt(existDev, discoveredMgmt) && !existDev.ImportDisabled)
+                    {
+                        existDev.Delete = true;
+                        newDevs.Add(existDev);
+                        foundChange = true;
+                    }
                 }
-            }
-            changedMgmt.Devices = [.. newDevs];
+                changedMgmt.Devices = newDevs.ToArray();
 
-            if (foundChange || changedMgmt.ImportDisabled)
-            {
-                deltaManagements.Add(changedMgmt);
+                if (foundChange || changedMgmt.ImportDisabled)
+                {
+                    deltaManagements.Add(changedMgmt);
+                }
             }
         }
 
@@ -163,7 +153,6 @@ namespace FWO.DeviceAutoDiscovery
                     }
                     else if (changedMgmt.Id == 0)   // adding new management
                     {
-
                         AddManagement(changedMgmt, actions, counter);
                     }
                     else
@@ -174,7 +163,7 @@ namespace FWO.DeviceAutoDiscovery
             }
             catch (Exception exc)
             {
-                Log.WriteError(GlobalConst.kAutodiscovery, $"ConvertToActions Ran into exception: ", exc);
+                Log.WriteError("Autodiscovery", $"ConvertToActions Ran into exception: ", exc);
             }
             return actions;
         }
@@ -206,7 +195,7 @@ namespace FWO.DeviceAutoDiscovery
 
         private void AddManagement(Management changedMgmt, List<ActionItem> actions, int counter)
         {
-            DeviceType devtype;
+            DeviceType devtype = new();
             if (changedMgmt.DeviceType != null || changedMgmt.DeviceType?.Id == 0)
                 devtype = changedMgmt.DeviceType;
             else
@@ -225,8 +214,10 @@ namespace FWO.DeviceAutoDiscovery
                 ConfigPath = changedMgmt.ConfigPath,
                 DomainUid = changedMgmt.DomainUid,
                 Name = changedMgmt.Name,
+                Uid = changedMgmt.Uid,
                 DeviceType = devtype,
-                SuperManagerId = SuperManagement.Id
+                SuperManagerId = SuperManagement.Id,
+                IsSupermanager = changedMgmt.IsSupermanager
             };
             actions.Add(new ActionItem
             {
@@ -310,6 +301,7 @@ namespace FWO.DeviceAutoDiscovery
                 }
             }
         }
+
     }
 }
 

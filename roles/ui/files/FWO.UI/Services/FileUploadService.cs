@@ -1,14 +1,14 @@
-using FWO.Api.Client.Queries;
 using FWO.Api.Client;
+using FWO.Api.Client.Queries;
+using FWO.Basics;
+using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Modelling;
-using FWO.Basics;
 using FWO.Services;
-using FWO.Config.Api;
-using FWO.Ui.Data;
 using Microsoft.AspNetCore.Components.Forms;
 using System.Text.Json;
-using System.Collections.Generic;
+using FWO.Services.EventMediator.Interfaces;
+using FWO.Services.EventMediator.Events;
 
 namespace FWO.Ui.Services
 {
@@ -21,50 +21,111 @@ namespace FWO.Ui.Services
 
         private UserConfig UserConfig { get; set; }
         private ApiConnection ApiConnection { get; set; }
+
         private readonly ModellingNamingConvention NamingConvention = new();
         private readonly List<AppServerType> AppServerTypes = [];
         private string ImportSource = "";
+        private readonly string AllowedFileFormats;
 
-        public FileUploadService(ApiConnection apiConnection, UserConfig userConfig)
+        private readonly IEventMediator EventMediator;
+        private FileUploadEvent CustomLogoUploadEvent;
+        private FileUploadEvent FileUploadEvent;
+        private AppServerImportEvent AppServerImportEvent;
+
+        public FileUploadService(ApiConnection apiConnection, UserConfig userConfig, string allowedFileFormats, GlobalConfig globalConfig, IEventMediator eventMediator)
         {
             UserConfig = userConfig;
             ApiConnection = apiConnection;
             NamingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(userConfig.ModNamingConvention) ?? new();
             AppServerTypes = JsonSerializer.Deserialize<List<AppServerType>>(UserConfig.ModAppServerTypes) ?? [];
+            AllowedFileFormats = allowedFileFormats;
+            EventMediator = eventMediator;
+            CustomLogoUploadEvent = new FileUploadEvent();
+            FileUploadEvent = new FileUploadEvent();
+            AppServerImportEvent = new AppServerImportEvent();
         }
 
-        public async Task ReadFileToBytes(InputFileChangeEventArgs args)
+        public async Task<FileUploadEventArgs> ReadFileToBytes(InputFileChangeEventArgs args)
         {
-            using MemoryStream ms = new();
-            await args.File.OpenReadStream().CopyToAsync(ms);
-            UploadedData = ms.ToArray();
-        }
-
-        public async Task<(List<string>? success, List<TError>? errors)> ImportUploadedData<TError>(FileUploadCase fileUploadCase, string filename = "") 
-            where TError : ErrorBaseModel
-        {
-            if (fileUploadCase == FileUploadCase.ImportAppServerFromCSV)
+            try
             {
-                ImportSource = GlobalConst.kCSV_ + filename;
-                (List<string>? success, List<CSVFileUploadErrorModel>? errors)  =  await ImportAppServersFromCSV();
+                string fileExtension = Path.GetExtension(args.File.Name);
 
-                List<TError>? importErrors = errors is not null ? [.. errors.Cast<TError>()] : default;
+                if(!AllowedFileFormats.Contains(fileExtension))
+                {
+                    throw new ArgumentException(UserConfig.GetText("E5430"));
+                }
 
-                return (success, importErrors);
+                if(args.File.Size > GlobalConst.MaxUploadFileSize)
+                {
+                    throw new ArgumentException(UserConfig.GetText("E5431"));
+                }
+
+                using MemoryStream ms = new();
+
+                await args.File.OpenReadStream(GlobalConst.MaxUploadFileSize).CopyToAsync(ms);
+                UploadedData = ms.ToArray();
+
+                FileUploadEvent.EventArgs!.Success = true;
+            }
+            catch(Exception ex)
+            {
+                FileUploadEvent.EventArgs!.Success = false;
+
+                FileUploadEvent.EventArgs.Error = new()
+                {
+                    Message = ex.Message,
+                    InternalException = ex,
+                    MessageType = MessageType.Error
+                };
+            }
+            finally
+            {
+                EventMediator.Publish(nameof(ReadFileToBytes), FileUploadEvent);
             }
 
-            throw new NotImplementedException();
+            return FileUploadEvent.EventArgs;
         }
 
-        private async Task<(List<string>? success, List<CSVFileUploadErrorModel>? errors)> ImportAppServersFromCSV()
+        public FileUploadEventArgs ImportCustomLogo()
         {
+            try
+            {
+                string base64Data = Convert.ToBase64String(UploadedData);                
+
+                CustomLogoUploadEvent.EventArgs!.Success = true;
+                CustomLogoUploadEvent.EventArgs.Data = base64Data;
+            }
+            catch(Exception ex)
+            {
+                CustomLogoUploadEvent.EventArgs!.Success = false;
+
+                CustomLogoUploadEvent.EventArgs!.Error = new()
+                {
+                    Message = UserConfig.GetText("file_upload_failed"),
+                    InternalException = ex,
+                    MessageType = MessageType.Error
+                };
+            }
+            finally
+            {
+                EventMediator.Publish(nameof(ImportCustomLogo), CustomLogoUploadEvent);
+            }
+
+            return CustomLogoUploadEvent.EventArgs;
+        }
+
+        public async Task ImportAppServersFromCSV(string filename = "")
+        {
+            ImportSource = GlobalConst.kCSV_ + filename;
+
             List<string> success = [];
             List<CSVFileUploadErrorModel> errors = [];
 
             string text = System.Text.Encoding.UTF8.GetString(UploadedData);
             string[] lines = text.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
-            foreach (string line in lines)
+            foreach(string line in lines)
             {
                 CSVFileUploadErrorModel? error = new()
                 {
@@ -74,13 +135,13 @@ namespace FWO.Ui.Services
 
                 if(!TryGetEntries(line, ';', out string[] entries) && !TryGetEntries(line, ',', out entries))
                 {
-                    error.Message = UserConfig.GetText("E5422"); 
+                    error.Message = UserConfig.GetText("E5422");
                     errors.Add(error);
 
                     continue;
                 }
 
-                if (IsHeader(entries))
+                if(IsHeader(entries))
                     continue;
 
                 string ipString = entries[3];
@@ -101,14 +162,14 @@ namespace FWO.Ui.Services
                     AppServerTyp = entries[2]
                 };
 
-                importAppServer.AppServerName = UserConfig.DnsLookup ? 
+                importAppServer.AppServerName = UserConfig.DnsLookup ?
                     await AppServerHelper.ConstructAppServerNameFromDns(importAppServer.ToModellingAppServer(), NamingConvention, UserConfig.OverwriteExistingNames) :
                     entries[0];
-                
+
                 // write to db
                 (bool importSuccess, Exception? e) = await AddAppServerToDb(importAppServer);
 
-                if (!importSuccess && e is not null)
+                if(!importSuccess && e is not null)
                 {
                     error.Message = e.Message;
                     errors.Add(error);
@@ -119,20 +180,29 @@ namespace FWO.Ui.Services
                 }
             }
 
-            return (success, errors);
+            if(AppServerImportEvent.EventArgs is not null)
+            {
+                success = [.. success.Distinct()];
+
+                AppServerImportEvent.EventArgs.Success = success.Count > 0;
+                AppServerImportEvent.EventArgs.Appserver = success;
+                AppServerImportEvent.EventArgs.Errors = errors;
+
+                EventMediator.Publish(nameof(ImportAppServersFromCSV), AppServerImportEvent);
+            }
         }
 
         private static bool TryGetEntries(string line, char separator, out string[] entries)
         {
-            if (line.StartsWith('\n'))
+            if(line.StartsWith('\n'))
                 line = line[1..];
 
             entries = line.Split(separator);
 
-            if (entries.Length < 4)
+            if(entries.Length < 4)
                 return false;
 
-            for (int i = 0; i < entries.Length; i++)
+            for(int i = 0; i < entries.Length; i++)
             {
                 entries[i] = entries[i].Trim('"');
             }
@@ -154,23 +224,23 @@ namespace FWO.Ui.Services
             try
             {
                 AppServerType? appServerType = AppServerTypes.FirstOrDefault(_ => _.Name == importAppServer.AppServerTyp);
-                if (appServerType is null)
+                if(appServerType is null)
                 {
                     return new(false, new Exception($"{UserConfig.GetText("owner_appservertype_notfound")} At: {importAppServer.AppServerName}/{importAppServer.AppID}"));
                 }
 
                 List<OwnerIdModel> ownerIds = await ApiConnection.SendQueryAsync<List<OwnerIdModel>>(OwnerQueries.getOwnerId, new { externalAppId = importAppServer.AppID });
-                if (ownerIds is null || ownerIds.Count == 0)
+                if(ownerIds is null || ownerIds.Count == 0)
                 {
                     return new(false, new Exception($"{UserConfig.GetText("owner_appserver_notfound")} At: {importAppServer.AppServerName}/{importAppServer.AppID}"));
                 }
 
                 return ((await AppServerHelper.UpsertAppServer(ApiConnection, UserConfig,
-                            new(importAppServer.ToModellingAppServer()){ ImportSource = ImportSource, AppId = ownerIds.First().Id, CustomType = appServerType.Id},
+                            new(importAppServer.ToModellingAppServer()) { ImportSource = ImportSource, AppId = ownerIds.First().Id, CustomType = appServerType.Id },
                             !UserConfig.DnsLookup
                     )).Item1 != null, default);
             }
-            catch (Exception exception)
+            catch(Exception exception)
             {
                 return (false, exception);
             }

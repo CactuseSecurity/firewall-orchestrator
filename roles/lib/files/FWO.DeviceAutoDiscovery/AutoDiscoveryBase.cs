@@ -195,7 +195,7 @@ namespace FWO.DeviceAutoDiscovery
 
         private void AddManagement(Management changedMgmt, List<ActionItem> actions, int counter)
         {
-            DeviceType devtype = new();
+            DeviceType devtype;
             if (changedMgmt.DeviceType != null || changedMgmt.DeviceType?.Id == 0)
                 devtype = changedMgmt.DeviceType;
             else

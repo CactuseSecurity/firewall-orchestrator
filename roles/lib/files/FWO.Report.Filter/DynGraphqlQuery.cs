@@ -390,7 +390,7 @@ namespace FWO.Report.Filter
                     {
                         if (!first)
                         {
-                            query.RuleWhereStatement += "}, {";
+                            devWhereStatement += "}, {";
                         }
                         first = false;
                         devWhereStatement += $@" dev_id: {{_eq:{dev.Id} }} ";

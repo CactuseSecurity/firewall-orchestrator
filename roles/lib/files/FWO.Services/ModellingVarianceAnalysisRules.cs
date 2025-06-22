@@ -45,7 +45,7 @@ namespace FWO.Services
 
         private async Task GetAllowedSpecUserAreas()
         {
-              AllowedSrcSpecUserAreas = [];
+            AllowedSrcSpecUserAreas = [];
             AllowedDestSpecUserAreas = [];
             if (userConfig.ModSpecUserAreas != "" && userConfig.ModSpecUserAreas != "[]")
             {
@@ -241,7 +241,7 @@ namespace FWO.Services
             if(specialUserObjects.Count > 0 && disregardedLocations.Count > 0)
             {
                 List<NetworkLocation> surplusSpecUserLocations = [.. networkLocations.Where(n => n.Object.IsSurplus && specialUserObjects.ContainsKey(n.Object.Name.ToLower()))];
-                List<NetworkLocation> remainingPossibleSpecObj = [.. disregardedLocations.Where(l => l.Object.Type.Name == ObjectType.Group && (source ? AllowedSrcSpecUserAreas.Contains(l.Object.Id) : AllowedDestSpecUserAreas.Contains(l.Object.Id)))];
+                List<NetworkLocation> remainingPossibleSpecObj = GetPossibleSpecobjects(disregardedLocations, source);
                 if (surplusSpecUserLocations.Count > 0 && remainingPossibleSpecObj.Count > 0 && surplusSpecUserLocations.Count <= remainingPossibleSpecObj.Count)
                 {
                     foreach (var location in remainingPossibleSpecObj)
@@ -257,11 +257,16 @@ namespace FWO.Services
             }
         }
 
+        private List<NetworkLocation> GetPossibleSpecobjects(List<NetworkLocation> disregardedLocations, bool source)
+        {
+            return [.. disregardedLocations.Where(l => l.Object.Type.Name == ObjectType.Group && (source ? AllowedSrcSpecUserAreas.Contains(l.Object.Id) : AllowedDestSpecUserAreas.Contains(l.Object.Id)))];
+        }
+
         private bool CompareNwAreas(NetworkLocation[] networkLocations, List<ModellingNetworkAreaWrapper> areas, List<NetworkLocation> disregardedLocations, bool specialUserObjectsExist)
         {
             List<NetworkObject> allProdNwAreas = networkLocations.Where(n => n.Object.Type.Name == ObjectType.Group && IsArea(n.Object)).ToList().ConvertAll(n => n.Object);
             List<NetworkObject> allModNwAreas = ModellingNetworkAreaWrapper.Resolve(areas).ToList().ConvertAll(a => a.ToNetworkObjectGroup(true));
-            NetworkObjectComparer networkAreaComparer = new(new(){ NwRegardName = true, NwRegardIp = false });
+            NetworkObjectComparer networkAreaComparer = new(new() { NwRegardName = true, NwRegardIp = false });
             return CompareNwObjects(allModNwAreas, allProdNwAreas, networkLocations, disregardedLocations, networkAreaComparer, specialUserObjectsExist);
         }
 

@@ -1511,7 +1511,7 @@ INSERT INTO txt VALUES ('predef_services',      'German', 	'Vordefinierte Dienst
 INSERT INTO txt VALUES ('predef_services',      'English', 	'Predefined Services');
 INSERT INTO txt VALUES ('common_areas',         'German', 	'Gemeinsame Netzwerkareas');
 INSERT INTO txt VALUES ('common_areas',         'English', 	'Common Network Areas');
-INSERT INTO txt VALUES ('special_user_areas',   'German', 	'Netzwerkareas für Spezielle Nutzer');
+INSERT INTO txt VALUES ('special_user_areas',   'German', 	'Netzwerkareas f&uuml;r Spezielle Nutzer');
 INSERT INTO txt VALUES ('special_user_areas',   'English', 	'Network Areas for Special Users');
 INSERT INTO txt VALUES ('search_interface',     'German', 	'Schnittstelle suchen');
 INSERT INTO txt VALUES ('search_interface',     'English', 	'Search Interface');
@@ -3244,7 +3244,7 @@ INSERT INTO txt VALUES ('E5423', 'English', 'IP Address/IP Range malformed');
 INSERT INTO txt VALUES ('E5430', 'German',  'Hochgeladener Dateityp ist nicht erlaubt');
 INSERT INTO txt VALUES ('E5430', 'English', 'Uploaded Filetype is not allowed');
 
-INSERT INTO txt VALUES ('E5431', 'German',  'Hochgeladene Dateit überschreitet maximum');
+INSERT INTO txt VALUES ('E5431', 'German',  'Hochgeladene Datei &uuml;berschreitet Maximum');
 INSERT INTO txt VALUES ('E5431', 'English', 'Uploaded File exceeds the allowed maximum');
 
 INSERT INTO txt VALUES ('E6001', 'German', 	'Der Re-Login war nicht erfolgreich. Haben Sie ein falsches Passwort eingegeben? Schauen Sie f&uuml;r Details bitte in die Logs.');
@@ -3358,7 +3358,7 @@ INSERT INTO txt VALUES ('E9301', 'English', 'Template File not found!');
 INSERT INTO txt VALUES ('E9302', 'German',  'HTML ist nicht valide!');
 INSERT INTO txt VALUES ('E9302', 'English', 'HTML is invalid!');
 
-INSERT INTO txt VALUES ('E9400', 'German',  'Leere Datei hochgeladen/keine Änderungen wurden vorgenommen');
+INSERT INTO txt VALUES ('E9400', 'German',  'Leere Datei hochgeladen/keine &Auml;nderungen wurden vorgenommen');
 INSERT INTO txt VALUES ('E9400', 'English', 'Empty file provided/no changes where applied');
 
 -- errors from Api
@@ -5503,12 +5503,8 @@ INSERT INTO txt VALUES ('H5653', 'German',  'Soll-Ist-Abgleich-Start: Legt eine 
 INSERT INTO txt VALUES ('H5653', 'English', 'Variance Analysis start at: Defines a referential time from which the Variance Analysis intervals are calculated.');
 INSERT INTO txt VALUES ('H5654', 'German',  'Soll-Ist-Abgleich auf Schaltfl&auml;che: Es wird eine Schaltfl&auml;che angeboten, um den Status der Verbindungen mittels Soll-Ist-Abgleich synchron zu ermitteln.');
 INSERT INTO txt VALUES ('H5654', 'English', 'Variance Analysis Refresh Button: A button is offered to calculate the state of the connections synchroneously via Variance Analysis.');
-INSERT INTO txt VALUES ('H5655', 'German',  'Netzwerkareas für Spezielle Nutzer: Vom Administrator vorgegebene Netzwerkareas, welche f&uuml;r die Zuordnung &uuml;ber die Sonderkonfiguration genutzt werden d&uuml;rfen.
-    Die beiden Auswahlfelder "in Quelle" und "in Ziel" legen fest, wo die Netzwerkarea genutzt werden darf.
-');
-INSERT INTO txt VALUES ('H5655', 'English', 'Network Areas for Special Users: Network areas defined by the administrator, which are permitted to be used for assignment via the Extra Configurations.
-    The flags "in Source" and "in Destination" determine, where the Network Areas are allowed to be used.
-');
+INSERT INTO txt VALUES ('H5655', 'German',  'Netzwerkareas f&uuml;r Spezielle Nutzer: Vom Administrator vorgegebene Netzwerkareas, welche f&uuml;r die Zuordnung &uuml;ber die Sonderkonfiguration genutzt werden d&uuml;rfen. Die beiden Auswahlfelder "in Quelle" und "in Ziel" legen fest, wo die Netzwerkarea genutzt werden darf.');
+INSERT INTO txt VALUES ('H5655', 'English', 'Network Areas for Special Users: Network areas defined by the administrator, which are permitted to be used for assignment via the Extra Configurations. The flags "in Source" and "in Destination" determine, where the Network Areas are allowed to be used.');
 
 INSERT INTO txt VALUES ('H5701', 'German',  'Die in der Datenbank hinterlegten sprachabh&auml;ngigen Texte k&ouml;nnen individuell &uuml;berschrieben werden.
     Dabei werden die vom System vorgegebenen Texte nicht ge&auml;ndert, sondern nur durch die hier definierten Texte - falls vorhanden - &uuml;berblendet.

@@ -1,4 +1,4 @@
-namespace FWO.Ui.Data
+namespace FWO.Data
 {
     /// <summary>
     /// Defines a model for errors that occured on csv file upload

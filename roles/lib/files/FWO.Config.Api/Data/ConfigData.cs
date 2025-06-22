@@ -1,4 +1,4 @@
-﻿using Newtonsoft.Json;
+using Newtonsoft.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using FWO.Basics;
@@ -31,7 +31,13 @@ namespace FWO.Config.Api.Data
 		[JsonProperty("welcomeMessage"), JsonPropertyName("welcomeMessage")]
 		public string WelcomeMessage { get; set; } = "";
 
-		[JsonProperty("maxMessages"), JsonPropertyName("maxMessages"), UserConfigData]
+        [JsonProperty("useCustomLogo"), JsonPropertyName("useCustomLogo")]
+        public bool UseCustomLogo { get; set; }
+
+        [JsonProperty("customLogoData"), JsonPropertyName("customLogoData")]
+        public string CustomLogoData { get; set; }
+
+        [JsonProperty("maxMessages"), JsonPropertyName("maxMessages"), UserConfigData]
 		public int MaxMessages { get; set; } = 3;
 
 		[JsonProperty("elementsPerFetch"), JsonPropertyName("elementsPerFetch"), UserConfigData]

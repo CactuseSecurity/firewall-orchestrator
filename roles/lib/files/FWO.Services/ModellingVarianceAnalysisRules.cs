@@ -1,23 +1,30 @@
-﻿using FWO.Basics;
+﻿using FWO.Api.Client;
+using FWO.Api.Client.Queries;
+using FWO.Basics;
+using FWO.Config.Api.Data;
 using FWO.Data;
 using FWO.Data.Modelling;
+using System.Text.Json;
 
 namespace FWO.Services
 {
     /// <summary>
-	/// Part of Variance Analysis Class analysing the rules
-	/// </summary>
+    /// Part of Variance Analysis Class analysing the rules
+    /// </summary>
     public partial class ModellingVarianceAnalysis
     {
+        private List<long> AllowedSrcSpecUserAreas { get; set; } = [];
+        private List<long> AllowedDestSpecUserAreas { get; set; } = [];
         private NetworkObjectComparer networkObjectComparer = new(new());
         private NetworkObjectGroupFlatComparer networkObjectGroupComparer = new(new());
         private NetworkServiceComparer networkServiceComparer = new(new());
         private NetworkServiceGroupComparer networkServiceGroupComparer = new(new());
         private bool FullAnalysis = false;
 
-        private void AnalyseRules(ModellingConnection conn, bool fullAnalysis)
+        private async Task AnalyseRules(ModellingConnection conn, bool fullAnalysis)
         {
             FullAnalysis = fullAnalysis;
+            await GetAllowedSpecUserAreas();
             networkObjectComparer = new(ruleRecognitionOption);
             networkObjectGroupComparer = new(ruleRecognitionOption);
             networkServiceComparer = new(ruleRecognitionOption);
@@ -36,12 +43,34 @@ namespace FWO.Services
             }
         }
 
+        private async Task GetAllowedSpecUserAreas()
+        {
+              AllowedSrcSpecUserAreas = [];
+            AllowedDestSpecUserAreas = [];
+            if (userConfig.ModSpecUserAreas != "" && userConfig.ModSpecUserAreas != "[]")
+            {
+                List<ModellingNetworkArea> allAreas = await apiConnection.SendQueryAsync<List<ModellingNetworkArea>>(ModellingQueries.getNwGroupObjects, new { grpType = (int)ModellingTypes.ModObjectType.NetworkArea });
+                List<CommonAreaConfig> configItems = JsonSerializer.Deserialize<List<CommonAreaConfig>>(userConfig.ModSpecUserAreas) ?? [];
+                foreach (var configItem in configItems.Where(c => allAreas.FirstOrDefault(a => a.Id == c.AreaId) != null))
+                {
+                    if (configItem.UseInSrc)
+                    {
+                        AllowedSrcSpecUserAreas.Add(configItem.AreaId);
+                    }
+                    if (configItem.UseInDst)
+                    {
+                        AllowedDestSpecUserAreas.Add(configItem.AreaId);
+                    }
+                }
+            }
+         }
+
         private bool CompareRuleToConn(Rule rule, ModellingConnection conn)
         {
-            if(rule.ConnId == conn.Id)
+            if (rule.ConnId == conn.Id)
             {
                 rule.ModellFound = true;
-                if(IsImplementation(rule, conn))
+                if (IsImplementation(rule, conn))
                 {
                     conn.ProdRuleFound = true;
                     rule.ModellOk = true;
@@ -63,16 +92,17 @@ namespace FWO.Services
             List<NetworkLocation> disregardedTos = [];
             List<NetworkService> disregardedServices = [];
             (List<NetworkService> normConnSvc, List<NetworkService> normConnSvcGrp, List<NetworkService> normRuleSvc) = NormalizeServices(rule, conn);
-            if(FullAnalysis)
+
+            if (FullAnalysis)
             {
-                isImpl &= IsNwImplementation(rule.Froms, SpecialUserObjects, conn.SourceAppServers, conn.SourceAppRoles, conn.SourceAreas, conn.SourceOtherGroups, ref disregardedFroms);
-                isImpl &= IsNwImplementation(rule.Tos, SpecialUserObjects, conn.DestinationAppServers, conn.DestinationAppRoles, conn.DestinationAreas, conn.DestinationOtherGroups, ref disregardedTos);
+                isImpl &= IsNwImplementation(rule.Froms, SpecialUserObjects, conn, true, ref disregardedFroms);
+                isImpl &= IsNwImplementation(rule.Tos, SpecialUserObjects, conn, false, ref disregardedTos);
                 bool isSvcImpl = IsSvcImplementation(normRuleSvc, normConnSvc, normConnSvcGrp, disregardedServices);
                 isImpl &= isSvcImpl;
-                if(!isSvcImpl && ruleRecognitionOption.SvcSplitPortRanges)
+                if (!isSvcImpl && ruleRecognitionOption.SvcSplitPortRanges)
                 {
                     disregardedServices = RebundlePortRanges(disregardedServices);
-                    rule.Services = [.. RebundlePortRanges(normRuleSvc).ConvertAll(s => new ServiceWrapper(){ Content = s })];
+                    rule.Services = [.. RebundlePortRanges(normRuleSvc).ConvertAll(s => new ServiceWrapper() { Content = s })];
                 }
                 rule.DisregardedFroms = [.. disregardedFroms];
                 rule.DisregardedTos = [.. disregardedTos];
@@ -82,8 +112,8 @@ namespace FWO.Services
             }
             else if (isImpl)
             {
-                isImpl = IsNwImplementation(rule.Froms, SpecialUserObjects, conn.SourceAppServers, conn.SourceAppRoles, conn.SourceAreas, conn.SourceOtherGroups, ref disregardedFroms)
-                    && IsNwImplementation(rule.Tos, SpecialUserObjects, conn.DestinationAppServers, conn.DestinationAppRoles, conn.DestinationAreas, conn.DestinationOtherGroups, ref disregardedTos)
+                isImpl = IsNwImplementation(rule.Froms, SpecialUserObjects, conn, true, ref disregardedFroms)
+                    && IsNwImplementation(rule.Tos, SpecialUserObjects, conn, false, ref disregardedTos)
                     && IsSvcImplementation(normRuleSvc, normConnSvc, normConnSvcGrp, [])
                     && !SpecialUserObjects.Any(x => !x.Value);
             }
@@ -177,11 +207,16 @@ namespace FWO.Services
             return servicesOut;
         }
 
-        private bool IsNwImplementation(NetworkLocation[] networkLocations, Dictionary<string, bool> specialUserObjects, List<ModellingAppServerWrapper> appServers,
-            List<ModellingAppRoleWrapper> appRoles, List<ModellingNetworkAreaWrapper> areas, List<ModellingNwGroupWrapper> otherGroups, ref List<NetworkLocation> disregardedLocations)
+        private bool IsNwImplementation(NetworkLocation[] networkLocations, Dictionary<string, bool> specialUserObjects,
+            ModellingConnection conn, bool source, ref List<NetworkLocation> disregardedLocations)
         {
+            List<ModellingAppServerWrapper> appServers = source ? conn.SourceAppServers : conn.DestinationAppServers;
+            List<ModellingAppRoleWrapper> appRoles = source ? conn.SourceAppRoles : conn.DestinationAppRoles;
+            List<ModellingNetworkAreaWrapper> areas = source ? conn.SourceAreas : conn.DestinationAreas;
+            List<ModellingNwGroupWrapper> otherGroups = source ? conn.SourceOtherGroups : conn.DestinationOtherGroups;
             bool specialUserObjectsExist = specialUserObjects.Count > 0;
-            foreach(var loc in networkLocations)
+
+            foreach (var loc in networkLocations)
             {
                 loc.Object.IsSurplus = false;
             }
@@ -197,27 +232,26 @@ namespace FWO.Services
             {
                 return false;
             }
-            AdjustWithSpecialUserObjects(networkLocations, specialUserObjects, ref disregardedLocations);
+            AdjustWithSpecialUserObjects(networkLocations, specialUserObjects, source, ref disregardedLocations);
             return disregardedLocations.Count == 0 && networkLocations.Where(n => n.Object.IsSurplus).ToList().Count == 0;
         }
 
-        private static void AdjustWithSpecialUserObjects(NetworkLocation[] networkLocations, Dictionary<string, bool> specialUserObjects, ref List<NetworkLocation> disregardedLocations)
+        private void AdjustWithSpecialUserObjects(NetworkLocation[] networkLocations, Dictionary<string, bool> specialUserObjects, bool source, ref List<NetworkLocation> disregardedLocations)
         {
             if(specialUserObjects.Count > 0 && disregardedLocations.Count > 0)
             {
-                List<NetworkLocation> surplusNwLocations = [.. networkLocations.Where(n => n.Object.IsSurplus)];
-                int userCounter = 0;
-                foreach(var location in surplusNwLocations.Where(l => specialUserObjects.ContainsKey(l.Object.Name.ToLower())))
+                List<NetworkLocation> surplusSpecUserLocations = [.. networkLocations.Where(n => n.Object.IsSurplus && specialUserObjects.ContainsKey(n.Object.Name.ToLower()))];
+                List<NetworkLocation> remainingPossibleSpecObj = [.. disregardedLocations.Where(l => l.Object.Type.Name == ObjectType.Group && (source ? AllowedSrcSpecUserAreas.Contains(l.Object.Id) : AllowedDestSpecUserAreas.Contains(l.Object.Id)))];
+                if (surplusSpecUserLocations.Count > 0 && remainingPossibleSpecObj.Count > 0 && surplusSpecUserLocations.Count <= remainingPossibleSpecObj.Count)
                 {
-                    specialUserObjects[location.Object.Name.ToLower()] = true;
-                    userCounter++;
-                }
-                if(userCounter <= disregardedLocations.Count)
-                {
-                    disregardedLocations = [];
-                    foreach(var location in surplusNwLocations.Where(l => specialUserObjects.ContainsKey(l.Object.Name.ToLower())))
+                    foreach (var location in remainingPossibleSpecObj)
                     {
-                        location.Object.IsSurplus = false;
+                        disregardedLocations.Remove(location);
+                    }
+                    foreach (var specUser in surplusSpecUserLocations.Select(s => s.Object))
+                    {
+                        specUser.IsSurplus = false;
+                        specialUserObjects[specUser.Name.ToLower()] = true;
                     }
                 }
             }

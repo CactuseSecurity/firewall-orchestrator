@@ -260,13 +260,13 @@ def getGlobalAssignments(api_v_url, sid, show_params_policy_structure, globalAss
     return 0
                         
 
-def get_rulebases(api_v_url, sid, show_params_rules, nativeConfig, deviceConfig, policy_rulebases_uid_list, is_global=False, access_type='access', rulebaseUid=None, rulebaseName=None):
+def get_rulebases(api_v_url, sid, show_params_rules, nativeConfigDomain, deviceConfig, policy_rulebases_uid_list, is_global=False, access_type='access', rulebaseUid=None, rulebaseName=None):
     
     # access_type: access / nat
     logger = getFwoLogger()
 
-    if nativeConfig is None:
-        nativeConfig = {'rulebases': [], 'nat_rulebases': []}
+    if nativeConfigDomain is None:
+        nativeConfigDomain = {'rulebases': [], 'nat_rulebases': []}
     if deviceConfig is None:
         deviceConfig = {'rulebase_links': []}
 
@@ -286,9 +286,9 @@ def get_rulebases(api_v_url, sid, show_params_rules, nativeConfig, deviceConfig,
         logger.error('must provide either rulebaseUid or rulebaseName')
     policy_rulebases_uid_list.append(rulebaseUid)
     
-    # search all rulebases in nativeConfig and import if rulebase is not already fetched
+    # search all rulebases in nativeConfigDomain and import if rulebase is not already fetched
     fetchedRulebaseList = []
-    for fetchedRulebase in nativeConfig[nativeConfigRulebaseKey]:
+    for fetchedRulebase in nativeConfigDomain[nativeConfigRulebaseKey]:
         fetchedRulebaseList.append(fetchedRulebase['uid'])
         if fetchedRulebase['uid'] == rulebaseUid:
             current_rulebase = fetchedRulebase
@@ -296,11 +296,11 @@ def get_rulebases(api_v_url, sid, show_params_rules, nativeConfig, deviceConfig,
 
     # get rulebase in chunks
     if rulebaseUid not in fetchedRulebaseList:
-        current_rulebase = get_rulebases_in_chunks(rulebaseUid, show_params_rules, api_v_url, access_type, sid, nativeConfig)
-        nativeConfig[nativeConfigRulebaseKey].append(current_rulebase)
+        current_rulebase = get_rulebases_in_chunks(rulebaseUid, show_params_rules, api_v_url, access_type, sid, nativeConfigDomain)
+        nativeConfigDomain[nativeConfigRulebaseKey].append(current_rulebase)
 
     # use recursion to get inline layers
-    policy_rulebases_uid_list = get_inline_layers_recursively(current_rulebase, deviceConfig, nativeConfig, api_v_url, sid,
+    policy_rulebases_uid_list = get_inline_layers_recursively(current_rulebase, deviceConfig, nativeConfigDomain, api_v_url, sid,
                                                               show_params_rules, is_global, policy_rulebases_uid_list)    
     
     return policy_rulebases_uid_list
@@ -323,7 +323,7 @@ def get_uid_of_rulebase(rulebaseName, api_v_url, access_type, sid):
 
     return rulebaseUid
 
-def get_rulebases_in_chunks(rulebaseUid, show_params_rules, api_v_url, access_type, sid, nativeConfig):
+def get_rulebases_in_chunks(rulebaseUid, show_params_rules, api_v_url, access_type, sid, nativeConfigDomain):
 
     current_rulebase = {'uid': rulebaseUid, 'name': '', 'chunks': []}
     show_params_rules.update({'uid': rulebaseUid})
@@ -345,22 +345,24 @@ def get_rulebases_in_chunks(rulebaseUid, show_params_rules, api_v_url, access_ty
             # todo: need to get FWO API jwt here somehow:
             # create_data_issue(fwo_api_base_url, jwt, severity=2, description="failed to get show-access-rulebase  " + rulebaseUid)
 
-        resolve_checkpoint_uids_via_object_dict(rulebase, nativeConfig, sid,
-                                                api_v_url, current_rulebase,
+        resolve_checkpoint_uids_via_object_dict(rulebase, nativeConfigDomain,
+                                                current_rulebase,
                                                 rulebaseUid, show_params_rules)
         total, current = control_while_loop_in_get_rulebases_in_chunks(current_rulebase, rulebase, sid, api_v_url, show_params_rules)
 
     return current_rulebase
 
-def resolve_checkpoint_uids_via_object_dict(rulebase, nativeConfig, sid,
-                                            api_v_url, current_rulebase,
+def resolve_checkpoint_uids_via_object_dict(rulebase, nativeConfigDomain,
+                                            current_rulebase,
                                             rulebaseUid, show_params_rules):
+    """
+    Checkpoint stores some rulefields as uids, function translates them to names
+    """
     try:
         for ruleField in ['source', 'destination', 'service', 'action',
                           'track', 'install-on', 'time']:
             resolveRefListFromObjectDictionary(rulebase, ruleField,
-                                               nativeConfig=nativeConfig,
-                                               sid=sid, base_url=api_v_url)
+                                               nativeConfigDomain=nativeConfigDomain)
         current_rulebase['chunks'].append(rulebase)
     except Exception:
         logger.error("error while getting field " + ruleField + " of layer "
@@ -387,7 +389,7 @@ def control_while_loop_in_get_rulebases_in_chunks(current_rulebase, rulebase, si
             raise Exception ( "get_nat_rules_from_api - rulebase does not contain to field, get_rulebase_chunk_from_api found garbled json " + str(rulebase))
     return total, current
 
-def get_inline_layers_recursively(current_rulebase, deviceConfig, nativeConfig, api_v_url, sid, show_params_rules, is_global, policy_rulebases_uid_list):
+def get_inline_layers_recursively(current_rulebase, deviceConfig, nativeConfigDomain, api_v_url, sid, show_params_rules, is_global, policy_rulebases_uid_list):
     """Takes current_rulebase, splits sections into sub-rulebases and searches for layerguards to fetch
     """
     current_rulebase_uid = current_rulebase['uid']
@@ -413,7 +415,7 @@ def get_inline_layers_recursively(current_rulebase, deviceConfig, nativeConfig, 
                         
                         # get inline layer
                         policy_rulebases_uid_list = get_rulebases(api_v_url, sid, show_params_rules,
-                                                                  nativeConfig, deviceConfig,
+                                                                  nativeConfigDomain, deviceConfig,
                                                                   policy_rulebases_uid_list,
                                                                   is_global=is_global,
                                                                   access_type='access',
@@ -485,7 +487,7 @@ def assign_placeholder_uids(rulebase, section, rule, placeholder_rule_uid, place
     
                             
 
-def get_nat_rules_from_api_as_dict (api_v_url, sid, show_params_rules, nativeConfig={}):
+def get_nat_rules_from_api_as_dict (api_v_url, sid, show_params_rules, nativeConfigDomain={}):
     logger = getFwoLogger()
     nat_rules = { "nat_rule_chunks": [] }
     current=0
@@ -497,7 +499,7 @@ def get_nat_rules_from_api_as_dict (api_v_url, sid, show_params_rules, nativeCon
 
         for ruleField in ['original-source', 'original-destination', 'original-service', 'translated-source',
                           'translated-destination', 'translated-service', 'action', 'track', 'install-on', 'time']:
-            resolveRefListFromObjectDictionary(rulebase, ruleField, sid=sid, base_url=api_v_url, nativeConfig=nativeConfig)
+            resolveRefListFromObjectDictionary(rulebase, ruleField, nativeConfigDomain=nativeConfigDomain)
 
         nat_rules['nat_rule_chunks'].append(rulebase)
         if 'total' in rulebase:
@@ -522,7 +524,7 @@ def find_element_by_uid(array, uid):
     return None
 
 
-def resolveRefFromObjectDictionary(id, objDict, nativeConfig={}, sid='', base_url='', rule4debug={}):
+def resolveRefFromObjectDictionary(id, objDict, nativeConfigDomain={}):
 
     matched_obj = find_element_by_uid(objDict, id)
 
@@ -534,39 +536,20 @@ def resolveRefFromObjectDictionary(id, objDict, nativeConfig={}, sid='', base_ur
         # these must be added to the (network) objects tables
         if matched_obj['type'] in ['CpmiVoipSipDomain', 'CpmiVoipMgcpDomain']:
             logger.info(f"adding voip domain '{matched_obj['name']}' object manually, because it is not retrieved by show objects API command")
-
-            if 'object_domains' in nativeConfig:
-                find_domain_to_resolve_object_via_uid(matched_obj, nativeConfig)
-            else:
-                logger.warning(f"found no existing object_domains while adding voip domain '{matched_obj['name']}' object")
-
-        return matched_obj
-    
-def find_domain_to_resolve_object_via_uid(matched_obj, nativeConfig):
-
-    domain_index = 0
-    if 'domain' in matched_obj and 'uid' in matched_obj['domain']:
-        loop_index = 0
-        for object_domain in nativeConfig['object_domains']:
-            if object_domain['domain_uid'] == matched_obj['domain']['uid']:
-                domain_index = loop_index
-            loop_index += 1
-
-        color = matched_obj.get('color', 'black')
-        nativeConfig['object_domains'][domain_index]['object_types'].append({ 
-                "type": "hosts", "chunks": [ {
+            color = matched_obj.get('color', 'black')
+            nativeConfigDomain['objects'].append({ 
+                "type": "network", "chunks": [ {
                 "objects": [ {
                 'uid': matched_obj['uid'], 'name': matched_obj['name'], 'color': color,
                 'type': matched_obj['type'], 'domain': matched_obj['domain']
             } ] } ] } )
-        
-    else:
-        logger.warning(f"found no domain while adding voip object '{matched_obj['name']}' object")
+
+        return matched_obj
 
 
 # resolving all uid references using the object dictionary
 # dealing with a single chunk
-def resolveRefListFromObjectDictionary(rulebase, value, objDict={}, nativeConfig={}, location='network', sid='', base_url=''):
+def resolveRefListFromObjectDictionary(rulebase, value, objDict={}, nativeConfigDomain={}):
     if 'objects-dictionary' in rulebase:
         objDict = rulebase['objects-dictionary']
     if isinstance(rulebase, list): # found a list of rules
@@ -574,18 +557,18 @@ def resolveRefListFromObjectDictionary(rulebase, value, objDict={}, nativeConfig
             if value in rule:
                 value_list = []
                 if isinstance(rule[value], str): # assuming single uid
-                    rule[value] = resolveRefFromObjectDictionary(rule[value], objDict, nativeConfig=nativeConfig, sid=sid, base_url=base_url, rule4debug=rule)
+                    rule[value] = resolveRefFromObjectDictionary(rule[value], objDict, nativeConfigDomain=nativeConfigDomain)
                 else:
                     if 'type' in rule[value]:   # e.g. track
-                        rule[value] = resolveRefFromObjectDictionary(rule[value]['type'], objDict, nativeConfig=nativeConfig, sid=sid, base_url=base_url, rule4debug=rule)
+                        rule[value] = resolveRefFromObjectDictionary(rule[value]['type'], objDict, nativeConfigDomain=nativeConfigDomain)
                     else:   # assuming list of rules
                         for id in rule[value]:
-                            value_list.append(resolveRefFromObjectDictionary(id, objDict, nativeConfig=nativeConfig, sid=sid, base_url=base_url, rule4debug=rule))
+                            value_list.append(resolveRefFromObjectDictionary(id, objDict, nativeConfigDomain=nativeConfigDomain))
                         rule[value] = value_list # replace ref list with object list
             if 'rulebase' in rule:
-                resolveRefListFromObjectDictionary(rule['rulebase'], value, objDict=objDict, nativeConfig=nativeConfig, sid=sid, base_url=base_url)
+                resolveRefListFromObjectDictionary(rule['rulebase'], value, objDict=objDict, nativeConfigDomain=nativeConfigDomain)
     elif 'rulebase' in rulebase:
-        resolveRefListFromObjectDictionary(rulebase['rulebase'], value, objDict=objDict, nativeConfig=nativeConfig, sid=sid, base_url=base_url)
+        resolveRefListFromObjectDictionary(rulebase['rulebase'], value, objDict=objDict, nativeConfigDomain=nativeConfigDomain)
 
 
 def getObjectDetailsFromApi(uid_missing_obj, sid='', apiurl=''):

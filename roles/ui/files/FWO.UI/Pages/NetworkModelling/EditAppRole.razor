@@ -13,6 +13,29 @@
 	<PopUp Title="@(AppRoleHandler.ReadOnly ? "" : (AppRoleHandler.AddMode ? userConfig.GetText("add_app_role") : userConfig.GetText("edit_app_role")))"
 		   Size="@(AppRoleHandler.ReadOnly? PopupSize.Medium: PopupSize.Large)" Show="@Display" OnClose="Close">
 		<Body>
+            <div class="row mt-2">
+                @if(AppRoleHandler.NamingConvention.NetworkAreaRequired)
+                {
+                    <div class="form-group row">
+                        <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("area"))*:</label>
+                        @if(AppRoleHandler.AddMode && !AppRoleHandler.ReadOnly)
+                        {
+                            <div class="col-sm-8">
+                                <Dropdown ElementType="ModellingNetworkArea" SelectedElement="AppRoleHandler.ActAppRole.Area" ElementToString="@(a => a.Display() + DisplayObjectCount(a))"
+                                          SelectedElementChanged="OnSelectedAreaChanged" Elements="areas" Nullable="true">
+                                    <ElementTemplate Context="area">
+                                        @((MarkupString)DisplayAreaWithObjectCount(area))
+                                    </ElementTemplate>
+                                </Dropdown>
+                            </div>
+                        }
+                        else
+                        {
+                            <label class="col-sm-3 bg-secondary">@AppRoleHandler.ActAppRole.Area?.Display()</label>
+                        }
+                    </div>
+                }
+            </div>
 			<div class="row mt-2">
 				@if (!AppRoleHandler.ReadOnly)
 				{
@@ -22,28 +45,7 @@
 				}
 				<div class="@(AppRoleHandler.ReadOnly ? "h-90 col-sm-12" : "col-sm-6")">
 					<h3>@(userConfig.GetText("app_role"))</h3>
-					<div class="border rounded m-2 p-2">
-						@if (AppRoleHandler.NamingConvention.NetworkAreaRequired)
-						{
-							<div class="form-group row">
-								<label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("area"))*:</label>
-								@if (AppRoleHandler.AddMode && !AppRoleHandler.ReadOnly)
-								{
-									<div class="col-sm-8">
-										<Dropdown ElementType="ModellingNetworkArea" SelectedElement="AppRoleHandler.ActAppRole.Area" ElementToString="@(a => a.Display() + DisplayObjectCount(a))"
-												  SelectedElementChanged="OnSelectedAreaChanged" Elements="areas" Nullable="true">
-											<ElementTemplate Context="area">
-												@((MarkupString)DisplayAreaWithObjectCount(area))
-											</ElementTemplate>
-										</Dropdown>
-									</div>
-								}
-								else
-								{
-									<label class="col-sm-8 bg-secondary">@AppRoleHandler.ActAppRole.Area?.Display()</label>
-								}
-							</div>
-						}
+					<div class="border rounded m-2 p-2">						
 						<div class="form-group row mt-2">
 							<label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("id"))*:</label>
 							@if (AppRoleHandler.ReadOnly)

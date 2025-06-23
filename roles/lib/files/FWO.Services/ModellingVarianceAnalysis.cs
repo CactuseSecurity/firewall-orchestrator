@@ -132,7 +132,7 @@ namespace FWO.Services
                     AnalyseServicesForRequest(conn);
                     if (elements.Count > 0)
                     {
-                        AnalyseConnectionForRequest(mgt, conn);
+                        await AnalyseConnectionForRequest(mgt, conn);
                     }
                 }
                 await AnalyseDeletedConnsForRequest(mgt);

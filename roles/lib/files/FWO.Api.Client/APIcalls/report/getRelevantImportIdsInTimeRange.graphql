@@ -1,0 +1,30 @@
+query getRelevantImportIdsInTimeRange(
+  $start_time: timestamp!
+  $end_time: timestamp!
+  $mgmIds: [Int!]
+  $ruleChangesFound: Boolean
+) {
+  import_control(
+    where: {
+      _and: [
+        { stop_time: { _gte: $start_time } }
+        { stop_time: { _lte: $end_time } }
+      ]
+      successful_import: { _eq: true }
+      management: {
+        mgm_id: { _in: $mgmIds }
+        hide_in_gui: { _eq: false }
+        stm_dev_typ: {
+          dev_typ_is_multi_mgmt: { _eq: false }
+          is_pure_routing_device: { _eq: false }
+        }
+      }
+      any_changes_found: { _eq: true }
+      rule_changes_found: { _eq: $ruleChangesFound }
+    }
+    order_by: { stop_time: asc }
+  ) {
+    mgm_id
+    control_id
+  }
+}

@@ -48,6 +48,11 @@ namespace FWO.Data.Modelling
             return $"<span class=\"{Icons.ModObject}\"></span> " + DisplayHtml();
         }
 
+        public virtual string DisplayProblematicWithIcon()
+        {
+            return $"<b class=\"text-danger\">&nbsp;!&nbsp;</b><span class=\"{Icons.ModObject}\"></span> <span class=\"text-danger\">" + DisplayHtml() + "</span>";
+        }
+
         public virtual string DisplayWithIcon(bool displayGrey)
         {
             return $"<span class=\"{(displayGrey ? "text-secondary" : "")}\">{DisplayWithIcon()}</span>";

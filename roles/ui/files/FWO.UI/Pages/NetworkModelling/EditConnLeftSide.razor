@@ -563,7 +563,14 @@
 
     public string DisplaySvcObject(KeyValuePair<int, int> svcObject)
     {
-        return ResolveSvcObject(ConnHandler!.AvailableSvcElems[ConnHandler!.AvailableSvcElems.FindIndex(x => x.Key == svcObject.Key && x.Value == svcObject.Value)])?.DisplayWithIcon() ?? "";
+        ModellingSvcObject? resolvedSvcObject = ResolveSvcObject(ConnHandler!.AvailableSvcElems[ConnHandler!.AvailableSvcElems.FindIndex(x => x.Key == svcObject.Key && x.Value == svcObject.Value)]);
+
+        if(resolvedSvcObject is not null && resolvedSvcObject is ModellingServiceGroup && !((ModellingServiceGroup)resolvedSvcObject).Services.Any())
+        {
+            return resolvedSvcObject.DisplayProblematicWithIcon();
+        }
+
+        return resolvedSvcObject?.DisplayWithIcon() ?? "";
     }
 
     private ModellingNwObject? ResolveNwObject(KeyValuePair<int, long> selectedObj)

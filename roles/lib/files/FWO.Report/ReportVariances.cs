@@ -26,8 +26,7 @@ namespace FWO.Report
                 {
                     report.AppendLine($"{ownerReport.ImplementationState}<br>");
                 }
-                report.AppendLine($"{DisplayAppRoleStat(ownerReport, userConfig)}<br>");
-                report.AppendLine($"{DisplayConnStat(ownerReport, userConfig)}<br>");
+                AppendStats(ref report, ownerReport);
                 report.AppendLine("<hr>");
                 AppendMissingAppRoles(ref report, ownerReport, chapterNumber);
                 AppendAppRoleDiffs(ref report, ownerReport, chapterNumber);
@@ -38,22 +37,6 @@ namespace FWO.Report
                 report.AppendLine("<hr>");
             }
             return GenerateHtmlFrame(userConfig.GetText(ReportType.ToString()), Query.RawFilter, DateTime.Now, report);
-        }
-
-        public static string DisplayConnStat(OwnerReport ownerReport, UserConfig userConfig)
-        {
-            return $"{userConfig.GetText("connections")}: {ownerReport.ModelledConnectionsCount}, " +
-                $"{userConfig.GetText("implemented")}: {ownerReport.ModelledConnectionsCount - ownerReport.RuleDifferences.Count - ownerReport.Connections.Count}, " +
-                $"{userConfig.GetText("not_implemented")}: {ownerReport.Connections.Count}, " +
-                $"{userConfig.GetText("with_diffs")}: {ownerReport.RuleDifferences.Count}";
-        }
-
-        public static string DisplayAppRoleStat(OwnerReport ownerReport, UserConfig userConfig)
-        {
-            return $"{userConfig.GetText("app_roles")}: {ownerReport.AppRoleStats.ModelledAppRolesCount}, " +
-                $"{userConfig.GetText("implemented")}: {ownerReport.AppRoleStats.AppRolesOk}, " +
-                $"{userConfig.GetText("not_implemented")}: {ownerReport.AppRoleStats.AppRolesMissingCount}, " +
-                $"{userConfig.GetText("with_diffs")}: {ownerReport.AppRoleStats.AppRolesDifferenceCount}.";
         }
 
         public static OwnerReport CollectObjectsInReport(OwnerReport ownerReport)
@@ -90,9 +73,40 @@ namespace FWO.Report
             return $"{appRoles}{userConfig.GetText("connections")}.: {missConnCounter} {userConfig.GetText("not_implemented")}, {diffConnCounter} {userConfig.GetText("with_diffs")}";
         }
 
+        private void AppendStats(ref StringBuilder report, OwnerReport ownerReport)
+        {
+            report.AppendLine("<table>");
+            report.AppendLine("<tr>");
+            report.AppendLine($"<th></th>");
+            report.AppendLine($"<th>{userConfig.GetText("fully_modelled")}</th>");
+            report.AppendLine($"<th>{userConfig.GetText("implemented")}</th>");
+            report.AppendLine($"<th>{userConfig.GetText("not_implemented")}</th>");
+            report.AppendLine($"<th>{userConfig.GetText("with_diffs")}</th>");
+            report.AppendLine("</tr>");
+
+            if(ownerReport.AppRoleStats.ModelledAppRolesCount > 0)
+            {
+                report.AppendLine("<tr>");
+                report.AppendLine($"<td>{userConfig.GetText("app_roles")}</td>");
+                report.AppendLine($"<td>{ownerReport.AppRoleStats.ModelledAppRolesCount}</td>");
+                report.AppendLine($"<td>{ownerReport.AppRoleStats.AppRolesOk}</td>");
+                report.AppendLine($"<td>{ownerReport.AppRoleStats.AppRolesMissingCount}</td>");
+                report.AppendLine($"<td>{ownerReport.AppRoleStats.AppRolesDifferenceCount}</td>");
+                report.AppendLine("</tr>");
+            }
+            report.AppendLine("<tr>");
+            report.AppendLine($"<td>{userConfig.GetText("connections")}</td>");
+            report.AppendLine($"<td>{ownerReport.ModelledConnectionsCount}</td>");
+            report.AppendLine($"<td>{ownerReport.ModelledConnectionsCount - ownerReport.RuleDifferences.Count - ownerReport.Connections.Count}</td>");
+            report.AppendLine($"<td>{ownerReport.Connections.Count}</td>");
+            report.AppendLine($"<td>{ownerReport.RuleDifferences.Count}</td>");
+            report.AppendLine("</tr>");
+            report.AppendLine("</table>");
+        }
+
         private void AppendMissingAppRoles(ref StringBuilder report, OwnerReport ownerReport, int chapterNumber)
         {
-            if(ownerReport.MissingAppRoles.Count > 0)
+            if(ownerReport.AppRoleStats.AppRolesMissingCount > 0)
             {
                 report.AppendLine($"<h4 id=\"{Guid.NewGuid()}\">{userConfig.GetText("app_roles_not_implemented")}</h4>");
                 foreach(var mgt in ownerReport.MissingAppRoles.Keys)
@@ -109,7 +123,7 @@ namespace FWO.Report
 
         private void AppendAppRoleDiffs(ref StringBuilder report, OwnerReport ownerReport, int chapterNumber)
         {
-            if(ownerReport.DifferingAppRoles.Count > 0)
+            if(ownerReport.AppRoleStats.AppRolesDifferenceCount > 0)
             {
                 report.AppendLine($"<h4 id=\"{Guid.NewGuid()}\">{userConfig.GetText("app_roles_with_diffs")}</h4>");
                 foreach(var mgt in ownerReport.DifferingAppRoles.Keys)

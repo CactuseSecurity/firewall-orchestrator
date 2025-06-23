@@ -1,4 +1,8 @@
+@using FWO.Services.EventMediator.Events
+@using FWO.Services.EventMediator.Interfaces
 @using FWO.Ui.Display
+@inject IEventMediator EventMediator
+@implements IDisposable
 
 @inject UserConfig userConfig
 
@@ -15,7 +19,7 @@
             <h5>@(userConfig.GetText("network_objects"))</h5>
             <div class="form-group row">
                 <div class="@ColWidthClass()">
-                    <DraggableList AllElements="ConnHandler.AvailableNwElems" @bind-SelectedElements="selectedNwElems" 
+                    <DraggableList AllElements="AvailableNwElements" @bind-SelectedElements="selectedNwElems" 
                     HandleDragStart="HandleNwDragStart" Display="@DisplayNwObject" MaxHeight="25"/>
                 </div>
                 @if(!OverviewMode)
@@ -284,6 +288,14 @@
         }
     }
 
+    private List<KeyValuePair<int, long>> AvailableNwElements = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        EventMediator.Subscribe<CollectionChangedEvent>("AppserversCollectionChanged", async _ => await LoadNwElements(refresh: true));
+
+        await LoadNwElements();
+    }
 
     private string DisplayInterfaceWithIcon(ModellingConnection interf)
     {
@@ -534,7 +546,19 @@
 
     public string DisplayNwObject(KeyValuePair<int, long> nwObject)
     {
-        return ResolveNwObject(ConnHandler!.AvailableNwElems[ConnHandler!.AvailableNwElems.FindIndex(x => x.Key == nwObject.Key && x.Value == nwObject.Value)])?.DisplayWithIcon() ?? "";
+        if(ConnHandler is null || ConnHandler.AvailableNwElems.Count == 0)
+        {
+            return "";
+        }
+
+        int index = ConnHandler!.AvailableNwElems.FindIndex(x => x.Key == nwObject.Key && x.Value == nwObject.Value);
+
+        if(index == -1)
+        {
+            return "";
+        }
+
+        return ResolveNwObject(ConnHandler!.AvailableNwElems[index])?.DisplayWithIcon() ?? "";
     }
 
     public string DisplaySvcObject(KeyValuePair<int, int> svcObject)
@@ -686,5 +710,26 @@
     private string ColWidthClass()
     {
         return OverviewMode ? "col-sm-12" : "col-sm-10";
+    }
+
+    private async Task LoadNwElements(bool refresh = false)
+    {
+        if(ConnHandler is null)
+        {
+            return; 
+        }
+
+        if (refresh)
+        {
+            await ConnHandler.RefreshObjects();
+        }
+
+        AvailableNwElements = ConnHandler.AvailableNwElems;        
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        EventMediator.Unsubscribe<CollectionChangedEvent>("AppserversCollectionChanged");
     }
 }

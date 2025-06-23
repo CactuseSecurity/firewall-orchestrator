@@ -14,6 +14,9 @@ fragment connectionDetails on modelling_connection {
   creation_date
   conn_prop
   extra_params
+  requested_on_fw
+  removed
+  removal_date
   source_nwobjects: nwobject_connections (where: { connection_field: { _eq: 1 } }){
     owner_network{
       ...appServerDetails

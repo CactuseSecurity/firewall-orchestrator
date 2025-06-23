@@ -4,10 +4,14 @@ import os
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '../importer'))
 
+from importer.services.group_flats_mapper import GroupFlatsMapper
+from importer.services.uid2id_mapper import Uid2IdMapper
+from importer.services.global_state import GlobalState
+from importer.services.service_provider import ServiceProvider
+from importer.services.enums import Lifetime, Services
 from importer.model_controllers.fwconfig_import import FwConfigImport
 from test.mocking.mock_import_state import MockImportStateController
 from test.tools.set_up_test import set_up_config_for_import_consistency_test
-from test.mocking.mock_config import sort_config
 
 def find_first_diff(a, b, path="root"):
     if type(a) is not type(b):
@@ -37,18 +41,28 @@ def find_first_diff(a, b, path="root"):
 
 class TestFwoConfigImportConsistency(unittest.TestCase):
 
-    def test_import_config_fetch_from_db_check_consistency(self):
+    def test_fwconfig_compare_config_against_db_state(self):
         
         # Arrange
+        service_provider = ServiceProvider()
 
         import_state = MockImportStateController()
         config = set_up_config_for_import_consistency_test()
-        config_importer = FwConfigImport(import_state, config)
+
+        global_state = GlobalState()
+        global_state.import_state = import_state
+        global_state.normalized_config = config
+
+        service_provider.register(Services.GLOBAL_STATE, lambda: global_state, Lifetime.SINGLETON)
+        service_provider.register(Services.GROUP_FLATS_MAPPER, lambda: GroupFlatsMapper(), Lifetime.TRANSIENT)
+        service_provider.register(Services.UID2ID_MAPPER, lambda: Uid2IdMapper(), Lifetime.SINGLETON)
+
+        config_importer = FwConfigImport()
+
+        # Act
         config_importer.importConfig()
         mock_api = import_state.api_connection
         config_from_api = mock_api.build_config_from_db(import_state, config.rulebases[0].mgm_uid, config.gateways)
-
-        # Act
 
         # check if config objects are equal, if a field is not equal, it will raise an AssertionError
         self.assertEqual(config, config_from_api, 

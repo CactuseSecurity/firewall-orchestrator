@@ -45,13 +45,6 @@ else: # for usage in unit tests
 
 DUMMY_IP = IPNetwork(dummy_ip)
 
-def sort_config(config: FwConfigNormalized) -> FwConfigNormalized:
-    """
-    Sorts the lists in the FwConfigNormalized object, so two configs may be compared.
-    """
-    config.rulebases.sort(key=lambda x: x.uid)
-    return config
-
 class MockFwConfigNormalizedBuilder():
     """
         A mock subclass of FwConfigNormalized for testing purposes.

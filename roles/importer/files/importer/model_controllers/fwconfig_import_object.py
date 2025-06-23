@@ -6,22 +6,39 @@ import json
 from fwo_log import ChangeLogger, getFwoLogger
 from model_controllers.import_state_controller import ImportStateController
 from model_controllers.fwconfig_normalized_controller import FwConfigNormalized
-from model_controllers.fwconfig_import_base import FwConfigImportBase
 from models.networkobject import NetworkObjectForImport
 from models.serviceobject import ServiceObjectForImport
 import fwo_const
-
+from importer.services.service_provider import ServiceProvider
+from importer.services.enums import Services
 
 # this class is used for importing a config into the FWO API
-class FwConfigImportObject(FwConfigImportBase):
-    
-    def __init__(self, importState: ImportStateController, config: FwConfigNormalized):
-        super().__init__(importState, config)
+class FwConfigImportObject():
 
+    ImportDetails: ImportStateController
+    NormalizedConfig: FwConfigNormalized
+    
+    def __init__(self):
+
+        # Get state, config and services.
+
+        service_provider = ServiceProvider()
+        global_state = service_provider.get_service(Services.GLOBAL_STATE)
+        self.group_flats_mapper = service_provider.get_service(Services.GROUP_FLATS_MAPPER)
+        self.prev_group_flats_mapper = service_provider.get_service(Services.GROUP_FLATS_MAPPER)
+        self.uid2id_mapper = service_provider.get_service(Services.UID2ID_MAPPER)
+
+        self.ImportDetails = global_state.import_state
+        self.NormalizedConfig = global_state.normalized_config
+
+
+        # Create maps.
+        
         self.NetworkObjectTypeMap = self.GetNetworkObjTypeMap()
         self.ServiceObjectTypeMap = self.GetServiceObjTypeMap()
         self.UserObjectTypeMap = self.GetUserObjTypeMap()
         self.ProtocolMap = self.GetProtocolMap()
+
 
     def updateObjectDiffs(self, prevConfig: FwConfigNormalized):
 

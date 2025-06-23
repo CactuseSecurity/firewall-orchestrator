@@ -67,7 +67,7 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
         service_provider = ServiceProvider()
         service_provider.register(Services.GLOBAL_STATE, lambda: GlobalState(), Lifetime.SINGLETON)
         service_provider.register(Services.GROUP_FLATS_MAPPER, lambda: GroupFlatsMapper(), Lifetime.TRANSIENT)
-        service_provider.register(Services.UID2ID_MAPPER, lambda: Uid2IdMapper(), Lifetime.SINGLETON)
+        service_provider.register(Services.UID2ID_MAPPER, lambda: Uid2IdMapper(), Lifetime.IMPORT)
 
         importState = ImportStateController.initializeImport(mgmId, debugLevel=debug_level_in, 
                                                 force=force, version=version, 
@@ -165,6 +165,7 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
     finally:
         try:
             fwo_api.complete_import(importState)
+            ServiceProvider().dispose_service(Services.UID2ID_MAPPER, importState.ImportId)
         except Exception as e:
             logger.error(f"Error during import completion: {str(e)}")
 

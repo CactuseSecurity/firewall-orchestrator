@@ -143,7 +143,7 @@
     private string rsbTimeEnd = "";
     private Dictionary<int, long> import_id_start = new(); // import id matching rsbTimeStart for each management
     private Dictionary<int, long> import_id_end = new(); // import id matching rsbTimeEnd for each management
-    private ReportBase? previousReport = null;
+    private List<ManagementReport>? previousReportData = null;
 
     private int intWidth { get { return Width; } set { Width = value; WidthChanged.InvokeAsync(Width); } }
 
@@ -163,9 +163,9 @@
         bool timeChanged = setRSBTime();
         if (AllTabVisible && timeChanged)
             await ResetAllTabMgts();
-        if (CurrentReport != previousReport)
+        if (CurrentReport?.ReportData.ManagementData != previousReportData)
         {
-            previousReport = CurrentReport;
+            previousReportData = CurrentReport?.ReportData.ManagementData;
             ResetReportState();
         }
         foreach (Rule rule in SelectedRules)

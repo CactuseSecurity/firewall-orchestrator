@@ -3,6 +3,7 @@ from enum import Enum
 class Lifetime(Enum):
     SINGLETON = "singleton"
     TRANSIENT = "transient"
+    IMPORT = "import"
 
 class Services(Enum):
     UID2ID_MAPPER = "uid2id_mapper"

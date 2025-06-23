@@ -106,7 +106,7 @@ namespace FWO.Services
                 {
                     foreach (ModellingAppServer appServer in AppServerToDelete)
                     {
-                        ActAppRole.AppServers.Remove(ActAppRole.AppServers.FirstOrDefault(x => x.Content.Id == appServer.Id) ?? throw new Exception("Did not find app server."));
+                        ActAppRole.AppServers.Remove(ActAppRole.AppServers.FirstOrDefault(x => x.Content.Id == appServer.Id) ?? throw new KeyNotFoundException("Did not find app server."));
                     }
                     foreach (ModellingAppServer appServer in AppServerToAdd)
                     {

@@ -1,42 +1,15 @@
-﻿using FWO.Data.Middleware;
+﻿using FWO.Api.Client;
+using FWO.Data.Middleware;
 using RestSharp;
-using RestSharp.Authenticators;
-using RestSharp.Serializers.NewtonsoftJson;
-using RestSharp.Serializers;
 
 namespace FWO.Middleware.Client
 {
-    public class MiddlewareClient : IDisposable
+    public class MiddlewareClient : RestApiClient, IDisposable
     {
         private bool disposed = false;
-        private RestClient restClient;
-        readonly string middlewareServerUri;
 
-        public MiddlewareClient(string middlewareServerUri)
-        {
-            this.middlewareServerUri = middlewareServerUri;
-            restClient = CreateRestClient(authenticator: null);
-        }
-
-        private RestClient CreateRestClient(IAuthenticator? authenticator)
-        {
-            RestClientOptions restClientOptions = new ();
-            restClientOptions.RemoteCertificateValidationCallback += (_, _, _, _) => true;
-            restClientOptions.BaseUrl = new Uri(middlewareServerUri + "api/");
-            restClientOptions.Authenticator = authenticator;
-            return new RestClient(restClientOptions, null, ConfigureRestClientSerialization);
-        }
-
-        private void ConfigureRestClientSerialization(SerializerConfig config)
-        {
-            JsonNetSerializer serializer = new (); // Case insensivitive is enabled by default
-            config.UseSerializer(() => serializer);
-        }
-
-        public void SetAuthenticationToken(string jwt)
-        {
-            restClient = CreateRestClient(new JwtAuthenticator(jwt));
-        }
+        public MiddlewareClient(string middlewareServerUri) : base(middlewareServerUri + "api/")
+        { }
 
         public async Task<RestResponse<string>> AuthenticateUser(AuthenticationTokenGetParameters parameters)
         {

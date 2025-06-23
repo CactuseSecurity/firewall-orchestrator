@@ -11,7 +11,7 @@ namespace FWO.Data
 
         [JsonProperty("uid"), JsonPropertyName("uid")]
         public string? Uid { get; set; }
-        
+
         [JsonProperty("name"), JsonPropertyName("name")]
         public string? Name { get; set; }
 

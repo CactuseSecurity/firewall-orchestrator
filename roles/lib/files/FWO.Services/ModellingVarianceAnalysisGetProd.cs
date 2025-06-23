@@ -1,7 +1,10 @@
 ﻿using FWO.Api.Client.Queries;
+using FWO.Basics;
 using FWO.Data;
+using FWO.Data.Modelling;
 using FWO.Data.Report;
 using FWO.Logging;
+using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using FWO.FwLogic;
@@ -53,7 +56,7 @@ namespace FWO.Services
                     List<Rule>? rulesByMgt = await GetRules(mgt.Id, modellingFilter);
                     if (rulesByMgt != null)
                     {
-                        AnalyseModelledRules(mgt, rulesByMgt);
+                        IdentifyModelledRules(mgt, rulesByMgt);
                         modelledRulesCount += allModelledRules[mgt.Id].Count;
                         notModelledRulesCount += varianceResult.UnModelledRules[mgt.Id].Count;
                     }
@@ -69,7 +72,7 @@ namespace FWO.Services
             return true;
         }
 
-        private void AnalyseModelledRules(Management mgt, List<Rule> rulesByMgt)
+        private void IdentifyModelledRules(Management mgt, List<Rule> rulesByMgt)
         {
             // get all rulebase links for this management
             List<RulebaseLink> rulebaseLinks = mgt.Devices.Cast<DeviceReport>().SelectMany(d => d.RulebaseLinks.Where(rl => rl.Removed!=null)).ToList();
@@ -99,9 +102,9 @@ namespace FWO.Services
         {
             return userConfig.ModModelledMarkerLocation switch
             {
-                "rulename" => !string.IsNullOrEmpty(rule.Name) && rule.Name.Contains(userConfig.ModModelledMarker) ? ParseFromString(rule.Name) : null,
-                "comment" => !string.IsNullOrEmpty(rule.Comment) && rule.Comment.Contains(userConfig.ModModelledMarker) ? ParseFromString(rule.Comment) : null,
-                "customfields" => !string.IsNullOrEmpty(rule.CustomFields) ? GetFromCustomField(rule) : null,
+                MarkerLocation.Rulename => !string.IsNullOrEmpty(rule.Name) && rule.Name.Contains(userConfig.ModModelledMarker) ? ParseFromString(rule.Name) : null,
+                MarkerLocation.Comment => !string.IsNullOrEmpty(rule.Comment) && rule.Comment.Contains(userConfig.ModModelledMarker) ? ParseFromString(rule.Comment) : null,
+                MarkerLocation.Customfields => !string.IsNullOrEmpty(rule.CustomFields) ? GetFromCustomField(rule) : null,
                 _ => null,
             }; 
         }
@@ -124,6 +127,21 @@ namespace FWO.Services
         {
             Dictionary<string, string>? customFields = JsonSerializer.Deserialize<Dictionary<string, string>>(rule.CustomFields);
             return customFields != null && customFields.TryGetValue(userConfig.ModModelledMarker, out string? value) ? value : null;
+        }
+
+        private async Task<List<ModellingConnection>> GetDeletedConnections()
+        {
+            List<ModellingConnection> deletedConns = [];
+            try
+            {
+                deletedConns = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getDeletedConnections, new { appId = owner.Id });
+            }
+            catch (Exception exception)
+            {
+                Log.WriteError(userConfig.GetText("fetch_data"), "Get deleted connections leads to error: ", exception);
+                displayMessageInUi(exception, userConfig.GetText("fetch_data"), "Get deleted connections leads to error: ", true);
+            }
+            return deletedConns;
         }
 
         private async Task<List<Rule>?> GetRules(int mgtId, ModellingFilter modellingFilter)
@@ -149,9 +167,9 @@ namespace FWO.Services
 
                 string query = userConfig.ModModelledMarkerLocation switch
                 {
-                    "rulename" => RuleQueries.getModelledRulesByManagementName,
-                    "comment" => RuleQueries.getModelledRulesByManagementComment,
-                    _ => throw new Exception("invalid or undefined Marker Location")
+                    MarkerLocation.Rulename => RuleQueries.getModelledRulesByManagementName,
+                    MarkerLocation.Comment => RuleQueries.getModelledRulesByManagementComment,
+                    _ => throw new NotSupportedException("invalid or undefined Marker Location")
                 };
                 return await apiConnection.SendQueryAsync<List<Rule>>(query, RuleVariables);
             }
@@ -163,51 +181,12 @@ namespace FWO.Services
             {
                 int aRCount = 0;
                 int aSCount = 0;
-                foreach (Management mgt in RelevantManagements)
+                foreach (var mgtId in RelevantManagements.Select(m => m.Id))
                 {
-                    List<NetworkObject>? objGrpByMgt = await GetObjects(mgt.Id, [2]);
-                    if (objGrpByMgt != null)
-                    {
-                        foreach (NetworkObject objGrp in objGrpByMgt)
-                        {
-                            // Todo: filter for naming convention??
-                            if (!allProdAppRoles.ContainsKey(mgt.Id))
-                            {
-                                allProdAppRoles.Add(mgt.Id, []);
-                            }
-                            allProdAppRoles[mgt.Id].Add(new(objGrp, namingConvention));
-                            aRCount++;
-                        }
-                    }
-
-                    List<NetworkObject>? objByMgt = await GetObjects(mgt.Id, [1, 3, 12]);
-                    if (objByMgt != null)
-                    {
-                        foreach (NetworkObject obj in objByMgt)
-                        {
-                            if (!allExistingAppServers.ContainsKey(mgt.Id))
-                            {
-                                allExistingAppServers.Add(mgt.Id, []);
-                            }
-                            allExistingAppServers[mgt.Id].Add(new(obj));
-                            aSCount++;
-                        }
-                    }
+                    aRCount += await CollectGroupObjects(mgtId);
+                    aSCount += await CollectAppServers(mgtId);
                 }
-
-                string aRappRoles = "";
-                string aRappServers = "";
-                foreach (int mgt in allProdAppRoles.Keys)
-                {
-                    aRappRoles += $" Management {mgt}: " + string.Join(",", allProdAppRoles[mgt].Where(a => a.Name.StartsWith("AR")).ToList().ConvertAll(x => $"{x.Name}({x.IdString})").ToList());
-                }
-                foreach (int mgt in allExistingAppServers.Keys)
-                {
-                    aRappServers += $" Management {mgt}: " + string.Join(",", allExistingAppServers[mgt].ConvertAll(x => $"{x.Name}({x.Ip})").ToList());
-                }
-
-                Log.WriteDebug("GetNwObjectsProductionState",
-                    $"Found {aRCount} AppRoles, {aSCount} AppServer. AppRoles with AR: {aRappRoles},  AppServers: {aRappServers}");
+                LogFoundObjects(aRCount, aSCount);
             }
             catch (Exception exception)
             {
@@ -215,12 +194,68 @@ namespace FWO.Services
             }
         }
 
+        private async Task<int> CollectGroupObjects(int mgtId)
+        {
+            int aRCount = 0;
+            List<NetworkObject>? objGrpByMgt = await GetObjects(mgtId, [2]);
+            if (objGrpByMgt != null)
+            {
+                foreach (NetworkObject objGrp in objGrpByMgt)
+                {
+                    // Todo: filter for naming convention??
+                    if (!allProdAppRoles.ContainsKey(mgtId))
+                    {
+                        allProdAppRoles.Add(mgtId, []);
+                    }
+                    allProdAppRoles[mgtId].Add(new(objGrp, namingConvention));
+                    aRCount++;
+                }
+            }
+            return aRCount;
+        }
+
+        private async Task<int> CollectAppServers(int mgtId)
+        {
+            int aSCount = 0;
+            List<NetworkObject>? objByMgt = await GetObjects(mgtId, [1, 3, 12]);
+            if (objByMgt != null)
+            {
+                foreach (NetworkObject obj in objByMgt)
+                {
+                    if (!allExistingAppServers.ContainsKey(mgtId))
+                    {
+                        allExistingAppServers.Add(mgtId, []);
+                    }
+                    allExistingAppServers[mgtId].Add(new(obj));
+                    aSCount++;
+                }
+            }
+            return aSCount;
+        }
+
+        private void LogFoundObjects(int aRCount, int aSCount)
+        {
+            StringBuilder aRappRoles = new();
+            StringBuilder aRappServers = new();
+            foreach (int mgtId in allProdAppRoles.Keys)
+            {
+                aRappRoles.Append($" Management {mgtId}: " + string.Join(",", allProdAppRoles[mgtId].Where(a => a.Name.StartsWith("AR")).ToList().ConvertAll(x => $"{x.Name}({x.IdString})").ToList()));
+            }
+            foreach (int mgtId in allExistingAppServers.Keys)
+            {
+                aRappServers.Append($" Management {mgtId}: " + string.Join(",", allExistingAppServers[mgtId].ConvertAll(x => $"{x.Name}({x.Ip})").ToList()));
+            }
+
+            Log.WriteDebug("GetNwObjectsProductionState",
+                $"Found {aRCount} AppRoles, {aSCount} AppServer. AppRoles with AR: {aRappRoles},  AppServers: {aRappServers}");
+        }
+
         private async Task<List<NetworkObject>?> GetObjects(int mgtId, int[] objTypeIds)
         {
             try
             {
                 long? relImpId = await GetRelevantImportId(mgtId);
-                if(relImpId != null)
+                if (relImpId != null)
                 {
                     var ObjGroupVariables = new
                     {
@@ -247,8 +282,8 @@ namespace FWO.Services
                     time = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
                     mgmIds = mgtId
                 };
-                return (await apiConnection.SendQueryAsync<List<Management>>(ReportQueries.getRelevantImportIdsAtTime, Variables))?
-                    .First().Import.ImportAggregate.ImportAggregateMax.RelevantImportId;
+                return (await apiConnection.SendQueryAsync<List<Management>>(ReportQueries.getRelevantImportIdsAtTime,
+                    Variables))?[0].Import.ImportAggregate.ImportAggregateMax.RelevantImportId;
             }
             catch (Exception exception)
             {

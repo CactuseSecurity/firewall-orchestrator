@@ -16,11 +16,11 @@ namespace FWO.DeviceAutoDiscovery
         public override async Task<List<Management>> Run()
         {
             List<Management> discoveredDevices = [];
-            Log.WriteAudit("Autodiscovery", $"starting discovery for {superManagement.Name} (id={superManagement.Id})");
+            Log.WriteAudit("Autodiscovery", $"starting discovery for {SuperManagement.Name} (id={SuperManagement.Id})");
             // #if DEBUG
             //      discoveredDevices = fillTestDevices();
             // #endif
-            if (superManagement.DeviceType.Name == "FortiManager")
+            if (SuperManagement.DeviceType.Name == "FortiManager")
             {
                 List<Adom> customAdoms = [];
                 List<string> predefinedAdoms = // TODO: move this to config file
@@ -28,9 +28,9 @@ namespace FWO.DeviceAutoDiscovery
                         "FortiDDoS", "FortiDeceptor", "FortiFirewall", "FortiMail", "FortiManager", "FortiNAC", "FortiProxy",
                         "FortiSandbox", "FortiWeb", "Syslog", "Unmanaged_Devices", "others", "rootp"];
                 Log.WriteDebug("Autodiscovery", $"discovering FortiManager adoms, vdoms, devices");
-                FortiManagerClient restClientFM = new (superManagement);
+                FortiManagerClient restClientFM = new (SuperManagement);
 
-                RestResponse<SessionAuthInfo> sessionResponse = await restClientFM.AuthenticateUser(superManagement.ImportCredential.ImportUser, superManagement.ImportCredential.Secret);
+                RestResponse<SessionAuthInfo> sessionResponse = await restClientFM.AuthenticateUser(SuperManagement.ImportCredential.ImportUser, SuperManagement.ImportCredential.Secret);
                 if (sessionResponse.StatusCode == HttpStatusCode.OK && sessionResponse.IsSuccessful && !string.IsNullOrEmpty(sessionResponse?.Data?.SessionId))
                 {
                     string sessionId = sessionResponse.Data.SessionId;
@@ -38,12 +38,12 @@ namespace FWO.DeviceAutoDiscovery
 
 
                     // when passing sessionId, we always need to use @ verbatim identifier for special chars in sessionId
-                    if (string.IsNullOrEmpty(superManagement.Uid))  // pre v9 managements might not have a UID
+                    if (string.IsNullOrEmpty(SuperManagement.Uid))  // pre v9 managements might not have a UID
                     {
                         // update manager UID in existing management; typically triggered in daily scheduler
                         // this update happens only once when AutoDiscovery v9.0 is run for the first time
-                        superManagement.Uid = await GetFortiManagerUid(restClientFM, sessionId, superManagement.Name);
-                        var vars = new { id = superManagement.Id, uid = superManagement.Uid };
+                        SuperManagement.Uid = await GetFortiManagerUid(restClientFM, sessionId, SuperManagement.Name);
+                        var vars = new { id = SuperManagement.Id, uid = SuperManagement.Uid };
                         _ = (await apiConnection.SendQueryAsync<ReturnId>(DeviceQueries.updateManagementUid, vars)).UpdatedId;
                         // TODO: also add UIDs in gateways?
                     }
@@ -91,7 +91,7 @@ namespace FWO.DeviceAutoDiscovery
                         }
                         foreach (Adom adom in customAdoms)
                         {
-                            Management currentManagement = CreateManagement(superManagement, adom.Name, adom.Uid);
+                            Management currentManagement = CreateManagement(SuperManagement, adom.Name, adom.Uid);
                             RestResponse<FmApiTopLevelHelperAssign> assignResponse = await restClientFM.GetPackageAssignmentsPerAdom(@sessionId, adom.Name);
                             if (assignResponse.StatusCode == HttpStatusCode.OK && assignResponse.IsSuccessful)
                             {

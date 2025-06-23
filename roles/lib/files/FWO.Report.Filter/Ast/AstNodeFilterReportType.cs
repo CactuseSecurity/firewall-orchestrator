@@ -24,6 +24,8 @@ namespace FWO.Report.Filter.Ast
                 "natrules" or "nat_rules" => ReportType.NatRules,
                 "recertifications" or "recertification" => ReportType.Recertification,
                 "connections" or "connection" => ReportType.Connections,
+                "apprules" or "apprule" => ReportType.AppRules,
+                "variances" or "variance" => ReportType.VarianceAnalysis,
                 _ => throw new SemanticException($"Unexpected report type found", Value.Position)
             };
         }
@@ -42,17 +44,14 @@ namespace FWO.Report.Filter.Ast
             }
         }
 
-        private DynGraphqlQuery ExtractReportTypeFilter(DynGraphqlQuery query)
+        private void ExtractReportTypeFilter(DynGraphqlQuery query)
         {
             query.ReportType = semanticValue;
 
             if (query.ReportType == ReportType.Statistics)
             {
-                query.RuleWhereStatement +=
-                    @$"rule_head_text: {{_is_null: true}}";
+                query.RuleWhereStatement += @$"rule_head_text: {{_is_null: true}}";
             }
-
-            return query;
         }
     }
 }

@@ -17,25 +17,25 @@ namespace FWO.DeviceAutoDiscovery
         override public async Task<List<Management>> Run()
         {
             List<Management> discoveredDevices = [];
-            if (superManagement == null)
+            if (SuperManagement == null)
                 return null!;
             else
             {
-                Log.WriteAudit("Autodiscovery", $"starting discovery for {superManagement.Name} (id={superManagement.Id})");
+                Log.WriteAudit("Autodiscovery", $"starting discovery for {SuperManagement.Name} (id={SuperManagement.Id})");
 
-                if (superManagement.DeviceType.Name == "Check Point")
+                if (SuperManagement.DeviceType.Name == "Check Point")
                 {
                     string ManagementType = "";
                     Log.WriteDebug("Autodiscovery", $"discovering CP domains & gateways");
 
-                    (string sessionId, CheckPointClient restClientCP) = await LoginCp(superManagement);
+                    (string sessionId, CheckPointClient restClientCP) = await LoginCp(SuperManagement);
 
                     // when passing sessionId, we always need to use @ verbatim identifier for special chars in sessionId
-                    if (string.IsNullOrEmpty(superManagement.Uid) ||
-                        (superManagement.DeviceType.CanBeSupermanager() && string.IsNullOrEmpty(superManagement.DomainUid)))  // pre v9 managements might not have a UID
+                    if (string.IsNullOrEmpty(SuperManagement.Uid) ||
+                        (SuperManagement.DeviceType.CanBeSupermanager() && string.IsNullOrEmpty(SuperManagement.DomainUid)))  // pre v9 managements might not have a UID
                     {
                         // update manager Uid in existing management; typically triggered in daily scheduler
-                        ManagementType = await UpdateMgmUids(superManagement, restClientCP, @sessionId);
+                        ManagementType = await UpdateMgmUids(SuperManagement, restClientCP, @sessionId);
                     }
 
                     List<Domain> domainList = await restClientCP.GetDomains(@sessionId);
@@ -84,7 +84,7 @@ namespace FWO.DeviceAutoDiscovery
             foreach (Domain domain in domainList)
             {
                 Log.WriteDebug("Autodiscovery", $"found domain '{domain.Name}'");
-                Management currentManagement = CreateManagement(superManagement, domain.Name, domain.Uid);
+                Management currentManagement = CreateManagement(SuperManagement, domain.Name, domain.Uid);
                 currentManagement.IsSupermanager = false;
                 // session id pins this session to a specific domain (if domain is given during login)
                 string sessionIdPerDomain = await LoginCp(currentManagement, restClientCP);
@@ -110,7 +110,7 @@ namespace FWO.DeviceAutoDiscovery
             }
             else    // single management
             {
-                mgm.Uid = await GetMgmUid(restClientCP, sessionId, superManagement.Hostname);
+                mgm.Uid = await GetMgmUid(restClientCP, sessionId, SuperManagement.Hostname);
                 mgmType = "Management";
             }
 
@@ -136,7 +136,7 @@ namespace FWO.DeviceAutoDiscovery
             {
                 if (sessionResponse?.Data?.SessionId == null || sessionResponse.Data.SessionId == "")
                 {
-                    Log.WriteWarning("Autodiscovery", $"Did not receive a correct session ID when trying to login to manager {superManagement.Name} (id={superManagement.Id})");
+                    Log.WriteWarning("Autodiscovery", $"Did not receive a correct session ID when trying to login to manager {SuperManagement.Name} (id={SuperManagement.Id})");
                 }
                 else
                 {

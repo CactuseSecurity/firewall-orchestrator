@@ -167,7 +167,7 @@ namespace FWO.Services
             return true;
         }
 
-        protected async Task<bool> DeleteConnection(ModellingConnection ConnToDelete)
+        protected async Task<bool> DeleteConnection(ModellingConnection ConnToDelete, bool removeObjectLinks = false)
         {
             try
             {
@@ -175,10 +175,13 @@ namespace FWO.Services
                 {
                     if ((await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateConnectionRemove, new { id = ConnToDelete.Id, removalDate = DateTime.Now })).UpdatedId == ConnToDelete.Id)
                     {
-                        await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.removeAllNwGroupsFromConnection, new { id = ConnToDelete.Id });
-                        await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.removeAllAppServersFromConnection, new { id = ConnToDelete.Id });
-                        await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.removeAllServiceGroupsFromConnection, new { id = ConnToDelete.Id });
-                        await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.removeAllServicesFromConnection, new { id = ConnToDelete.Id });
+                        if (removeObjectLinks)
+                        {
+                            await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.removeAllNwGroupsFromConnection, new { id = ConnToDelete.Id });
+                            await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.removeAllAppServersFromConnection, new { id = ConnToDelete.Id });
+                            await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.removeAllServiceGroupsFromConnection, new { id = ConnToDelete.Id });
+                            await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.removeAllServicesFromConnection, new { id = ConnToDelete.Id });
+                        }
                         await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.removeSelectedConnection, new { connectionId = ConnToDelete.Id });
                         return true;
                     }
@@ -215,24 +218,7 @@ namespace FWO.Services
                         }
                         else
                         {
-                            interfaceName = interf[0].Name ?? "";
-                            if(interf[0].SourceFilled())
-                            {
-                                conn.SourceAppServers = interf[0].SourceAppServers;
-                                conn.SourceAppRoles = interf[0].SourceAppRoles;
-                                conn.SourceAreas = interf[0].SourceAreas;
-                                conn.SourceOtherGroups = interf[0].SourceOtherGroups;
-                            }
-                            if(interf[0].DestinationFilled())
-                            {
-                                conn.DestinationAppServers = interf[0].DestinationAppServers;
-                                conn.DestinationAppRoles = interf[0].DestinationAppRoles;
-                                conn.DestinationAreas = interf[0].DestinationAreas;
-                                conn.DestinationOtherGroups = interf[0].DestinationOtherGroups;
-                            }
-                            conn.Services = interf[0].Services;
-                            conn.ServiceGroups = interf[0].ServiceGroups;
-                            conn.ExtraConfigsFromInterface = interf[0].ExtraConfigs;
+                            interfaceName = ExtractFullInterface(conn, interf[0]);
                         }
                         if(interf[0].GetBoolProperty(ConState.Rejected.ToString()))
                         {
@@ -250,6 +236,28 @@ namespace FWO.Services
                 DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
             }
             return interfaceName;
+        }
+
+        private static string ExtractFullInterface(ModellingConnection conn, ModellingConnection interf)
+        {
+            if (interf.SourceFilled())
+            {
+                conn.SourceAppServers = interf.SourceAppServers;
+                conn.SourceAppRoles = interf.SourceAppRoles;
+                conn.SourceAreas = interf.SourceAreas;
+                conn.SourceOtherGroups = interf.SourceOtherGroups;
+            }
+            if (interf.DestinationFilled())
+            {
+                conn.DestinationAppServers = interf.DestinationAppServers;
+                conn.DestinationAppRoles = interf.DestinationAppRoles;
+                conn.DestinationAreas = interf.DestinationAreas;
+                conn.DestinationOtherGroups = interf.DestinationOtherGroups;
+            }
+            conn.Services = interf.Services;
+            conn.ServiceGroups = interf.ServiceGroups;
+            conn.ExtraConfigsFromInterface = interf.ExtraConfigs;
+            return interf.Name ?? "";
         }
 
         public async Task<ModellingConnection?> GetUsedInterface(ModellingConnection conn)

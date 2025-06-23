@@ -392,7 +392,7 @@ else
 }
 <PredefServices @bind-Display="predefServices" />
 <SearchNwObject @bind-Display="searchCommonArea" ObjectList="CommonAreas.ConvertAll(x => x.Area)" Add="AddCommonArea" CommonAreaMode="true" />
-<SearchNwObject @bind-Display="searchSpecUserArea" ObjectList="SpecUserAreas.ConvertAll(x => x.Area)" Add="AddSpecUserArea" CommonAreaMode="true" />
+<SearchNwObject @bind-Display="searchSpecUserArea" ObjectList="SpecUserAreas.ConvertAll(x => x.Area)" Add="AddSpecUserArea" SpecUserMode="true"/>
 <PopUp Title="@(userConfig.GetText("appserver_import"))" Show="@ShowCSVImportPopUp" Size=PopupSize.Large OnClose="() => ShowCSVImportPopUp = false">
     <Body>
         @if(Appserver is not null && Appserver.Count > 0)

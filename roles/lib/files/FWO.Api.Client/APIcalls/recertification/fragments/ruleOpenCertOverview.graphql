@@ -53,7 +53,10 @@ fragment ruleOpenCertOverview on rule {
   access_rule
   nat_rule
   xlate_rule
-  rule_froms {
+  rule_froms(where: {
+    rf_last_seen: { _gte: $import_id_start }
+    rf_create: { _lte: $import_id_end }
+  }, order_by:{ object: { obj_name: asc } }) {
     usr {
       ...userOverview
     }
@@ -65,7 +68,10 @@ fragment ruleOpenCertOverview on rule {
     zone_name
     zone_id
   }
-  rule_tos {
+  rule_tos(where: {
+    rt_last_seen: { _gte: $import_id_start }
+    rt_create: { _lte: $import_id_end }
+  }, order_by:{ object: { obj_name: asc } }) {
     usr {
       ...userOverview
     }
@@ -73,7 +79,10 @@ fragment ruleOpenCertOverview on rule {
       ...networkObjectOverview
     }
   }
-  rule_services {
+  rule_services(where: {
+    rs_last_seen: { _gte: $import_id_start }
+    rs_create: { _lte: $import_id_end }
+  }, order_by:{ service: { svc_name: asc } }) {
     service {
       ...networkServiceOverview
     }

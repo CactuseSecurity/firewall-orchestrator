@@ -14,11 +14,11 @@ namespace FWO.Report
         public ReportDevicesBase(DynGraphqlQuery query, UserConfig UserConfig, ReportType reportType) : base (query, UserConfig, reportType)
         {}
 
-        public async Task<List<ManagementReport>> GetRelevantImportIds(ApiConnection apiConnection)
+        public async Task<List<ManagementReport>> GetRelevantImportIds(ApiConnection apiConnection, string? timestamp = null)
         {
             Dictionary<string, object> ImpIdQueryVariables = new()
             {
-                ["time"] = Query.ReportTimeString != "" ? Query.ReportTimeString : DateTime.Now.ToString(DynGraphqlQuery.fullTimeFormat),
+                ["time"] = timestamp ?? (Query.ReportTimeString != "" ? Query.ReportTimeString : DateTime.Now.ToString(DynGraphqlQuery.fullTimeFormat)),
                 ["mgmIds"] = Query.RelevantManagementIds
             };
             return await apiConnection.SendQueryAsync<List<ManagementReport>>(ReportQueries.getRelevantImportIdsAtTime, ImpIdQueryVariables);
@@ -120,10 +120,11 @@ namespace FWO.Report
             return $"{report}";
         }
 
-        public static string ConstructLink(string type, string symbol, int chapterNumber, long id, string name, OutputLocation location, int mgmtId, string style)
+        public static string GetReportDevicesLinkAddress(OutputLocation location, int mgmtId, string type, int chapterNumber, long id, ReportType reportType)
         {
-            return ConstructLink(type, symbol, chapterNumber, id, name, location, $"m{mgmtId}", style);
+            return GetLinkAddress(location, $"m{mgmtId}", type, chapterNumber, id, reportType);
         }
+
 
         protected string GenerateHtmlFrame(string title, string filter, DateTime date, StringBuilder htmlReport)
         {

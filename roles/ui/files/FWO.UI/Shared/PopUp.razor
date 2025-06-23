@@ -1,11 +1,11 @@
-﻿@if (Show)
+@if (Show)
 {
     <div class="modal-backdrop popup-outer">
         <div class="modal-open" tabindex="-1">
             <div class="@(SizeClass())">
                 <div class="modal-content @(SizeClassContent())">
                     <div class="modal-header justify-content-between">
-                        <h5 class="modal-title">@Title</h5>
+                        <h5>@Title</h5>
                         <button type="button" class="modern-close" @onclick="Close">
                             <span>&times;</span>
                         </button>

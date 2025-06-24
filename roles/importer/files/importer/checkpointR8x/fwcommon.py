@@ -101,6 +101,7 @@ def initialize_nativ_config(nativeConfig, importState):
     """
 
     manager_details_list = enrich_submanager_details(importState)
+    nativeConfig.update({'domains': []})
     for managerDetails in manager_details_list:
 
         nativeConfig['domains'].append({

@@ -15,7 +15,7 @@ query getRelevantImportIdsAtTime($time: timestamp!, $mgmIds: [Int!]) {
   } order_by: {mgm_name: asc}) {
     Name: mgm_name
     id: mgm_id
-    import: import_controls_aggregate(where: {stop_time: {_lte: $time}, successful_import: {_eq: true}, changes_found: {_eq: true}}) {
+    import: import_controls_aggregate(where: {stop_time: {_lte: $time}, successful_import: {_eq: true}, any_changes_found: {_eq: true}}) {
       aggregate {
         max {
           id: control_id

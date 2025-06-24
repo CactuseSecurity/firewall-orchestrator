@@ -42,17 +42,17 @@ namespace FWO.Data.Workflow
         [JsonProperty("devices"), JsonPropertyName("devices")]
         public string SelectedDevices 
         {  
-            get => System.Text.Json.JsonSerializer.Serialize<List<int>>(DeviceList) ?? throw new Exception("DeviceList could not be parsed.");
+            get => System.Text.Json.JsonSerializer.Serialize<List<int>>(DeviceList) ?? throw new JsonException("DeviceList could not be parsed.");
             set
             {
                 if(value != null && value != "")
                 {
-                    DeviceList = System.Text.Json.JsonSerializer.Deserialize<List<int>>(value) ?? throw new Exception("value could not be parsed.");
+                    DeviceList = System.Text.Json.JsonSerializer.Deserialize<List<int>>(value) ?? throw new JsonException("value could not be parsed.");
                 }
             }
         }
 
-        private List<int> DeviceList { get; set; } = [];
+        protected List<int> DeviceList { get; set; } = [];
 
 
         public WfReqTaskBase()
@@ -68,7 +68,7 @@ namespace FWO.Data.Workflow
             ManagementId = reqtask.ManagementId;
         }
 
-        public List<int> GetDeviceList()
+        public virtual List<int> GetDeviceList()
         {
             return DeviceList;
         }

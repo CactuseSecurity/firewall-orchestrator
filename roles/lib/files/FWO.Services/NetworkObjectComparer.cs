@@ -18,8 +18,8 @@ namespace FWO.Services
                 return false;
             }
 
-            return (option.NwRegardIp ? nwObject1.IP == nwObject2.IP && nwObject1.IpEnd == nwObject2.IpEnd : true)
-                && (option.NwRegardName ? nwObject1.Name == nwObject2.Name : true);
+            return (!option.NwRegardIp || nwObject1.IP == nwObject2.IP && nwObject1.IpEnd == nwObject2.IpEnd)
+                && (!option.NwRegardName || nwObject1.Name == nwObject2.Name);
         }
 
         public int GetHashCode(NetworkObject nwObject)
@@ -69,9 +69,9 @@ namespace FWO.Services
             
             if(!option.NwSeparateGroupAnalysis)
             {
-                foreach(var obj in nwObject.ObjectGroupFlats.Where(o => o.Object?.Type.Name != ObjectType.Group).ToList())
+                foreach(var obj in nwObject.ObjectGroupFlats.Where(o => o.Object?.Type.Name != ObjectType.Group).Select(o => o.Object).ToList())
                 {
-                    hashCode ^= obj.Object != null ? networkObjectComparer.GetHashCode(obj.Object) : 0;
+                    hashCode ^= obj != null ? networkObjectComparer.GetHashCode(obj) : 0;
                 }
             }
             return hashCode ^ (option.NwRegardGroupName ? 

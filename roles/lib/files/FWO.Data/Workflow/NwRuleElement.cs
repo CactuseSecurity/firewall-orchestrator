@@ -5,6 +5,8 @@
         public long ElemId { get; set; }
         public long TaskId { get; set; }
         public string RuleUid { get; set; } = "";
+        public string? Name { get; set; } = "";
+
 
 
         public WfReqElement ToReqElement()
@@ -14,7 +16,8 @@
                 Id = ElemId,
                 TaskId = TaskId,
                 Field = ElemFieldType.rule.ToString(),
-                RuleUid = RuleUid
+                RuleUid = RuleUid,
+                Name = Name
             };
             return element;
         }
@@ -26,7 +29,8 @@
                 Id = ElemId,
                 ImplTaskId = TaskId,
                 Field = ElemFieldType.rule.ToString(),
-                RuleUid = RuleUid
+                RuleUid = RuleUid,
+                Name = Name
             };
             return element;
         }

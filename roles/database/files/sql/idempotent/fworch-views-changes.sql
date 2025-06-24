@@ -199,7 +199,7 @@ CREATE OR REPLACE VIEW view_svc_changes AS
 		change_action as change_type,
 		changelog_svc_comment as change_comment,
 		svc_comment as obj_comment,
-		import_control.start_time AS change_time, 
+		import_control.start_time AS change_time,
 		management.mgm_name AS mgm_name, 
 		management.mgm_id AS mgm_id,
 		CAST(NULL AS VARCHAR) as dev_name,		

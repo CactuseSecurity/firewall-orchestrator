@@ -1,18 +1,23 @@
-﻿@page "/settings/defaults"
+@page "/settings/defaults"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
 
+@implements IDisposable
+@using FWO.Services.EventMediator.Events
+@using FWO.Services.EventMediator.Interfaces
+@using FWO.Ui.Data
 @inject ApiConnection apiConnection
 @inject GlobalConfig globalConfig
 @inject UserConfig userConfig
+@inject IEventMediator EventMediator
 
 <div class="input-group">
     <h3>@(userConfig.GetText("standards"))</h3>
-    <HelpLink Page="settings/defaults"/>
+    <HelpLink Page="settings/defaults" />
 </div>
 @(userConfig.GetText("U5311"))
 <hr />
 
-@if (configData != null)
+@if(configData != null)
 {
     <form onsubmit="return false">
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5411"))">
@@ -61,8 +66,62 @@
                 <textarea type="text" rows="10" @bind="@configData!.WelcomeMessage" class="col-sm-12" placeholder="@(userConfig.GetText("welcomeMessage"))" />
             </div>
         </div>
+        <div class="form-group row" data-toggle="tooltip" title="">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("useCustomLogo")):</label>
+            <div class="col-sm-1">
+                <input id="cbx_customLogo" type="checkbox" @bind="configData!.UseCustomLogo">
+            </div>
+            <div class="col-sm-4">
+                <CustomLogoUpload AuthorizedRoles="@Roles.Admin" SupportedFileFormats=".png,.jpg,.jpeg"></CustomLogoUpload>
+            </div>
+        </div>
         <hr />
-            <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5415"))">
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5412"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("elementsPerFetch"))*:</label>
+            <div class="col-sm-2">
+                <input type="number" min="0" @bind="configData!.ElementsPerFetch" />
+            </div>
+        </div>
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5414"))">
+            <label for="cbx_auto_fill_right_sidebar" class="col-form-label col-sm-4">@(userConfig.GetText("autoFillRightSidebar")):</label>
+            <div class="col-sm-1">
+                <input id="cbx_auto_fill_right_sidebar" type="checkbox" class="w-100" @bind="configData!.AutoFillRightSidebar">
+            </div>
+        </div>
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5413"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("maxInitialFetchesRightSidebar")):</label>
+            <div class="col-sm-2">
+                @if(configData!.AutoFillRightSidebar)
+                {
+                    <input disabled type="number" min="0" @bind="configData!.MaxInitialFetchesRightSidebar" />
+                }
+                else
+                {
+                    <input type="number" min="0" @bind="configData!.MaxInitialFetchesRightSidebar" />
+                }
+            </div>
+        </div>
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5422"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("minCollapseAllDevices"))*:</label>
+            <div class="col-sm-2">
+                <input type="number" min="0" @bind="configData!.MinCollapseAllDevices">
+            </div>
+        </div>
+        <hr />
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5447"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("unusedTolerance"))*:</label>
+            <div class="col-sm-2">
+                <input type="number" min="0" @bind="configData!.UnusedTolerance" />
+            </div>
+        </div>
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5448"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("creationTolerance"))*:</label>
+            <div class="col-sm-2">
+                <input type="number" min="0" @bind="configData!.CreationTolerance" />
+            </div>
+        </div>
+        <hr />
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5415"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("dataRetentionTime")):</label>
             <div class="col-sm-2">
                 <input type="number" min="0" @bind="configData!.DataRetentionTime" />
@@ -113,7 +172,7 @@
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5454"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("ruleOwnershipMode")):</label>
             <div class="col-sm-2">
-                <Dropdown @bind-SelectedElement="configData!.RuleOwnershipMode" ElementToString="@(o => userConfig.GetText(o.ToString()))" Elements="Enum.GetValues(typeof(RuleOwnershipMode)).Cast<RuleOwnershipMode>()" >
+                <Dropdown @bind-SelectedElement="configData!.RuleOwnershipMode" ElementToString="@(o => userConfig.GetText(o.ToString()))" Elements="Enum.GetValues(typeof(RuleOwnershipMode)).Cast<RuleOwnershipMode>()">
                     <ElementTemplate Context="opt">
                         @(userConfig.GetText(opt.ToString()))
                     </ElementTemplate>
@@ -128,9 +187,10 @@
         </Authorized>
         <NotAuthorized>
             <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
-        </NotAuthorized> 
+        </NotAuthorized>
     </AuthorizeView>
-    <br><br>
+    <br>
+    <br>
     <p>@(userConfig.GetText("U5303"))</p>
 }
 else
@@ -156,11 +216,15 @@ else
     {
         try
         {
+            // Subscribe to events for file uploads and logo import
+            EventMediator.Subscribe<FileUploadEvent>(nameof(FileUploadService.ReadFileToBytes), _ => OnFileUploadEvent(_.EventArgs));
+            EventMediator.Subscribe<FileUploadEvent>(nameof(FileUploadService.ImportCustomLogo), _ => OnFileUploadEvent(_.EventArgs));
+
             configData = await globalConfig.GetEditableConfig();
             selectedLanguage = globalConfig.UiLanguages.FirstOrDefault(l => l.Name == configData.DefaultLanguage) ?? new Language();
             autoDiscStartDate = autoDiscStartTime = configData.AutoDiscoverStartAt;
         }
-        catch (Exception exception)
+        catch(Exception exception)
         {
             DisplayMessageInUi(exception, userConfig.GetText("read_config"), userConfig.GetText("E5301"), false);
         }
@@ -170,7 +234,7 @@ else
     {
         try
         {
-            if (configData != null)
+            if(configData != null)
             {
                 configData.DefaultLanguage = selectedLanguage.Name;
                 configData.AutoDiscoverStartAt = autoDiscStartDate.Date.Add(autoDiscStartTime.TimeOfDay);
@@ -179,12 +243,41 @@ else
             }
             else
             {
-                throw new Exception("Data saved before loaded. This should be impossible.");
+                throw new ArgumentException("Data saved before loaded. This should be impossible.");
             }
         }
-        catch (Exception exception)
+        catch(Exception exception)
         {
             DisplayMessageInUi(exception, userConfig.GetText("change_default"), "", true);
         }
+    }
+
+    private void OnFileUploadEvent(FileUploadEventArgs? e)
+    {
+        if(e is null)
+        {
+            return;
+        }
+
+        if (!e.Success && e.Error is not null )
+        {
+            DisplayMessageInUi(e.Error.InternalException, userConfig.GetText("change_default"), e.Error.Message ?? "", true);
+            return;
+        }
+
+        // Fileupload was successful and data is a base64 string
+        if(e.Success && e.Data is string && configData is not null)
+        {
+            configData.CustomLogoData = e.Data;
+        }
+    }
+
+    /// <summary>
+    /// Unsubscribes from file upload events when the component is disposed.
+    /// </summary>
+    public void Dispose()
+    {
+        EventMediator.Unsubscribe<FileUploadEvent>(nameof(FileUploadService.ReadFileToBytes));
+        EventMediator.Unsubscribe<FileUploadEvent>(nameof(FileUploadService.ImportCustomLogo));
     }
 }

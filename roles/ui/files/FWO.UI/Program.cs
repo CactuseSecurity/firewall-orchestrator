@@ -21,6 +21,13 @@ Log.WriteInfo("Startup", "Starting FWO UI Server...");
 var builder = WebApplication.CreateBuilder(args);
 builder.WebHost.UseWebRoot("wwwroot").UseStaticWebAssets();
 
+// explicitly set the port to listen on
+// this can be change for debugging purposes (to allow for a second instance of the UI to run)
+builder.WebHost.ConfigureKestrel(serverOptions =>
+{
+    serverOptions.ListenLocalhost(5000); // Listen on port 5000
+});
+
 /// Add services to the container.
 #region Services
 

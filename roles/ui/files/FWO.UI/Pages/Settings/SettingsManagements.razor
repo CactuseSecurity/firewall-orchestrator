@@ -341,14 +341,7 @@
 
     private void AnalyseSampleManagements()
     {
-        sampleManagements = new List<Management>();
-        foreach (var management in managements)
-        {
-            if (management.Name.EndsWith("_demo"))
-            {
-                sampleManagements.Add(management);
-            }
-        }
+        sampleManagements = [.. managements.Where(m => m.Name.EndsWith(GlobalConst.k_demo))];
         showCleanupButton = (sampleManagements.Count > 0);
     }
 

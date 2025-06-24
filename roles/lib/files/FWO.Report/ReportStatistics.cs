@@ -33,7 +33,8 @@ namespace FWO.Report
 
                 // setting mgmt and relevantImporId QueryVariables 
                 Query.QueryVariables["mgmId"] = relevantMgmt.Id;
-                Query.QueryVariables["relevantImportId"] = relevantMgmt.Import.ImportAggregate.ImportAggregateMax.RelevantImportId ?? -1 /* managment was not yet imported at that time */;
+                Query.QueryVariables["import_id_start"] = relevantMgmt.Import.ImportAggregate.ImportAggregateMax.RelevantImportId ?? -1 /* managment was not yet imported at that time */;
+                Query.QueryVariables["import_id_end"]   = relevantMgmt.Import.ImportAggregate.ImportAggregateMax.RelevantImportId ?? -1 /* managment was not yet imported at that time */;
                 ReportData.ManagementData.Add((await apiConnection.SendQueryAsync<List<ManagementReport>>(Query.FullQuery, Query.QueryVariables))[0]);
             }
             await callback(ReportData);

@@ -175,7 +175,7 @@ namespace FWO.Test
         public void ChangesGenerateHtml()
         {
             Log.WriteInfo("Test Log", "starting changes report html generation");
-            ReportChanges reportChanges = new(query, userConfig, ReportType.Changes)
+            ReportChanges reportChanges = new(query, userConfig, ReportType.Changes, new TimeFilter())
             {
                 ReportData = ConstructChangeReport(false)
             };
@@ -194,7 +194,7 @@ namespace FWO.Test
         public void ResolvedChangesGenerateHtml()
         {
             Log.WriteInfo("Test Log", "starting changes report resolved html generation");
-            ReportChanges reportChanges = new(query, userConfig, ReportType.ResolvedChanges)
+            ReportChanges reportChanges = new(query, userConfig, ReportType.ResolvedChanges, new TimeFilter())
             {
                 ReportData = ConstructChangeReport(true)
             };
@@ -213,7 +213,7 @@ namespace FWO.Test
         public void ResolvedChangesTechGenerateHtml()
         {
             Log.WriteInfo("Test Log", "starting changes report tech html generation");
-            ReportChanges reportChanges = new(query, userConfig, ReportType.ResolvedChangesTech)
+            ReportChanges reportChanges = new(query, userConfig, ReportType.ResolvedChangesTech, new TimeFilter())
             {
                 ReportData = ConstructChangeReport(true)
             };
@@ -345,7 +345,7 @@ namespace FWO.Test
         public void ResolvedChangesGenerateCsv()
         {
             Log.WriteInfo("Test Log", "starting changes report resolved csv generation");
-            ReportChanges reportChanges = new(query, userConfig, ReportType.ResolvedChanges)
+            ReportChanges reportChanges = new(query, userConfig, ReportType.ResolvedChanges, new TimeFilter())
             {
                 ReportData = ConstructChangeReport(true)
             };
@@ -374,7 +374,7 @@ namespace FWO.Test
         public void ResolvedChangesTechGenerateCsv()
         {
             Log.WriteInfo("Test Log", "starting changes report tech csv generation");
-            ReportChanges reportChanges = new(query, userConfig, ReportType.ResolvedChangesTech)
+            ReportChanges reportChanges = new(query, userConfig, ReportType.ResolvedChangesTech, new TimeFilter())
             {
                 ReportData = ConstructChangeReport(true)
             };
@@ -507,7 +507,7 @@ namespace FWO.Test
         public void ChangesGenerateJson()
         {
             Log.WriteInfo("Test Log", "starting changes report json generation");
-            ReportChanges reportChanges = new(query, userConfig, ReportType.Changes)
+            ReportChanges reportChanges = new(query, userConfig, ReportType.Changes, new TimeFilter())
             {
                 ReportData = ConstructChangeReport(false)
             };
@@ -601,7 +601,7 @@ namespace FWO.Test
         public void ResolvedChangesGenerateJson()
         {
             Log.WriteInfo("Test Log", "starting resolved changes report json generation");
-            ReportChanges reportChanges = new(query, userConfig, ReportType.ResolvedChanges)
+            ReportChanges reportChanges = new(query, userConfig, ReportType.ResolvedChanges, new TimeFilter())
             {
                 ReportData = ConstructChangeReport(true)
             };
@@ -633,7 +633,7 @@ namespace FWO.Test
         public void ResolvedChangesTechGenerateJson()
         {
             Log.WriteInfo("Test Log", "starting resolved changes report json generation");
-            ReportChanges reportChanges = new(query, userConfig, ReportType.ResolvedChangesTech)
+            ReportChanges reportChanges = new(query, userConfig, ReportType.ResolvedChangesTech, new TimeFilter())
             {
                 ReportData = ConstructChangeReport(true)
             };

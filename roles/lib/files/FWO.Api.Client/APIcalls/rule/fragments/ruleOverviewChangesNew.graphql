@@ -1,7 +1,6 @@
-﻿fragment ruleDetails on rule {
+fragment ruleOverviewChangesNew on rule {
   rule_id
   rule_uid
-  mgm_id
   dev_id
   rule_action
   section_header: rule_head_text
@@ -24,9 +23,6 @@
     rule_decert_date
     rule_recertification_comment
   }
-  active
-  rule_create
-  rule_last_seen
   rule_src_neg
   rule_dst_neg
   rule_svc_neg
@@ -34,16 +30,17 @@
   rule_name
   access_rule
   nat_rule
-  xlate_rule  
+  xlate_rule
   rule_froms(where: {
-    rf_last_seen: { _gte: $import_id_start }
-    rf_create: { _lte: $import_id_end }
+    active: { _eq: $active }
+    rf_last_seen: { _gte: $import_id_new }
+    rf_create: { _lte: $import_id_new }
   }, order_by: { object: { obj_name: asc } }) {
     usr {
-      ...userDetails
+      ...userOverview
     }
     object {
-      ...networkObjectDetails
+      ...networkObjectOverview
     }
   }
   dst_zone: zoneByRuleToZone {
@@ -51,22 +48,24 @@
     zone_id
   }
   rule_tos(where: {
-    rt_last_seen: { _gte: $import_id_start }
-    rt_create: { _lte: $import_id_end }
+    active: { _eq: $active }
+    rt_last_seen: { _gte: $import_id_new }
+    rt_create: { _lte: $import_id_new }
   }, order_by: { object: { obj_name: asc } }) {
     usr {
-      ...userDetails
+      ...userOverview
     }
     object {
-      ...networkObjectDetails
+      ...networkObjectOverview
     }
   }
   rule_services(where: {
-    rs_last_seen: { _gte: $import_id_start }
-    rs_create: { _lte: $import_id_end }
+    active: { _eq: $active }
+    rs_last_seen: { _gte: $import_id_new }
+    rs_create: { _lte: $import_id_new }
   }, order_by: { service: { svc_name: asc } }) {
     service {
-      ...networkServiceDetails
+      ...networkServiceOverview
     }
   }
 }

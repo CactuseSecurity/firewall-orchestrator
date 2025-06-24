@@ -51,7 +51,7 @@ jobs:
             --head develop \
             --title "Sync develop → importer-rework" \
             --body "This PR was auto-created to sync changes from \`develop\` into \`importer-rework\`." \
-            --label automation
+            --label automation \
             --repo ${{ github.repository }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

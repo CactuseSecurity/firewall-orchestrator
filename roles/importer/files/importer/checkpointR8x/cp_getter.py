@@ -361,7 +361,7 @@ def resolve_checkpoint_uids_via_object_dict(rulebase, nativeConfigDomain,
     try:
         for ruleField in ['source', 'destination', 'service', 'action',
                           'track', 'install-on', 'time']:
-            resolveRefListFromObjectDictionary(rulebase, ruleField,
+            resolve_ref_list_from_object_dictionary(rulebase, ruleField,
                                                nativeConfigDomain=nativeConfigDomain)
         current_rulebase['chunks'].append(rulebase)
     except Exception:
@@ -499,7 +499,7 @@ def get_nat_rules_from_api_as_dict (api_v_url, sid, show_params_rules, nativeCon
 
         for ruleField in ['original-source', 'original-destination', 'original-service', 'translated-source',
                           'translated-destination', 'translated-service', 'action', 'track', 'install-on', 'time']:
-            resolveRefListFromObjectDictionary(rulebase, ruleField, nativeConfigDomain=nativeConfigDomain)
+            resolve_ref_list_from_object_dictionary(rulebase, ruleField, nativeConfigDomain=nativeConfigDomain)
 
         nat_rules['nat_rule_chunks'].append(rulebase)
         if 'total' in rulebase:
@@ -524,7 +524,7 @@ def find_element_by_uid(array, uid):
     return None
 
 
-def resolveRefFromObjectDictionary(id, objDict, nativeConfigDomain={}):
+def resolve_ref_from_object_dictionary(id, objDict, nativeConfigDomain={}):
 
     matched_obj = find_element_by_uid(objDict, id)
 
@@ -549,26 +549,30 @@ def resolveRefFromObjectDictionary(id, objDict, nativeConfigDomain={}):
 
 # resolving all uid references using the object dictionary
 # dealing with a single chunk
-def resolveRefListFromObjectDictionary(rulebase, value, objDict={}, nativeConfigDomain={}):
+def resolve_ref_list_from_object_dictionary(rulebase, value, objDict={}, nativeConfigDomain={}):
     if 'objects-dictionary' in rulebase:
         objDict = rulebase['objects-dictionary']
     if isinstance(rulebase, list): # found a list of rules
         for rule in rulebase:
             if value in rule:
-                value_list = []
-                if isinstance(rule[value], str): # assuming single uid
-                    rule[value] = resolveRefFromObjectDictionary(rule[value], objDict, nativeConfigDomain=nativeConfigDomain)
-                else:
-                    if 'type' in rule[value]:   # e.g. track
-                        rule[value] = resolveRefFromObjectDictionary(rule[value]['type'], objDict, nativeConfigDomain=nativeConfigDomain)
-                    else:   # assuming list of rules
-                        for id in rule[value]:
-                            value_list.append(resolveRefFromObjectDictionary(id, objDict, nativeConfigDomain=nativeConfigDomain))
-                        rule[value] = value_list # replace ref list with object list
+                categorize_value_for_resolve_ref(rule, value, objDict, nativeConfigDomain)
             if 'rulebase' in rule:
-                resolveRefListFromObjectDictionary(rule['rulebase'], value, objDict=objDict, nativeConfigDomain=nativeConfigDomain)
+                resolve_ref_list_from_object_dictionary(rule['rulebase'], value, objDict=objDict, nativeConfigDomain=nativeConfigDomain)
     elif 'rulebase' in rulebase:
-        resolveRefListFromObjectDictionary(rulebase['rulebase'], value, objDict=objDict, nativeConfigDomain=nativeConfigDomain)
+        resolve_ref_list_from_object_dictionary(rulebase['rulebase'], value, objDict=objDict, nativeConfigDomain=nativeConfigDomain)
+
+
+def categorize_value_for_resolve_ref(rule, value, objDict, nativeConfigDomain):
+    value_list = []
+    if isinstance(rule[value], str): # assuming single uid
+        rule[value] = resolve_ref_from_object_dictionary(rule[value], objDict, nativeConfigDomain=nativeConfigDomain)
+    else:
+        if 'type' in rule[value]:   # e.g. track
+            rule[value] = resolve_ref_from_object_dictionary(rule[value]['type'], objDict, nativeConfigDomain=nativeConfigDomain)
+        else:   # assuming list of rules
+            for id in rule[value]:
+                value_list.append(resolve_ref_from_object_dictionary(id, objDict, nativeConfigDomain=nativeConfigDomain))
+            rule[value] = value_list # replace ref list with object list
 
 
 def getObjectDetailsFromApi(uid_missing_obj, sid='', apiurl=''):

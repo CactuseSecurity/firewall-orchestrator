@@ -303,11 +303,9 @@ def define_global_rulebase_link(deviceConfig, globalOrderedLayerUids, orderedLay
                 placeholder_rule_uid, placeholder_rulebase_uid = cp_getter.get_placeholder_in_rulebase(rulebase)
 
                 if placeholder_rule_uid:
-
+                    orderedLayerUid =  ''
                     if len(orderedLayerUids) > placeholder_link_index:
                         orderedLayerUid = orderedLayerUids[placeholder_link_index]
-                    else:
-                        orderedLayerUid =  ''
 
                     deviceConfig['rulebase_links'].append({
                         'from_rulebase_uid': placeholder_rulebase_uid,

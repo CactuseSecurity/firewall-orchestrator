@@ -63,8 +63,8 @@ namespace FWO.DeviceAutoDiscovery
                 }
                 else
                 {
-                    string errorTxt = $"error while logging in to FortiManager: {sessionResponse?.ErrorMessage} ";
-                    if (sessionResponse?.Data?.SessionId == "")
+                    string errorTxt = $"error while logging in to FortiManager: {sessionResponse.ErrorMessage} ";
+                    if (sessionResponse.Data?.SessionId == "")
                     {
                         errorTxt += "could not authenticate to FortiManager - got empty session ID";
                     }
@@ -116,7 +116,7 @@ namespace FWO.DeviceAutoDiscovery
             RestResponse<FmApiTopLevelHelper> adomResponse = await restClientFM.GetAdoms(sessionId);
             if (adomResponse.StatusCode == HttpStatusCode.OK && adomResponse.IsSuccessful)
             {
-                List<Adom>? adomList = adomResponse?.Data?.Result[0]?.AdomList;
+                List<Adom>? adomList = adomResponse.Data?.Result[0]?.AdomList;
                 if (adomList?.Count > 0)
                 {
                     Log.WriteDebug(Autodiscovery, $"found a total of {adomList.Count} adoms");

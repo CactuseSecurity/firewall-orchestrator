@@ -64,9 +64,9 @@ namespace FWO.DeviceAutoDiscovery
             RestRequest request = new("", Method.Post);
             request.AddJsonBody(body);
             Log.WriteDebug("Autodiscovery", $"using FortiManager REST API call with body='{body.ToString()}' and paramList='{paramList.ToString()}'");
-            RestResponse<FmApiTopLevelHelper> response = await restClient.ExecuteAsync<FmApiTopLevelHelper>(request);
+            await restClient.ExecuteAsync<FmApiTopLevelHelper>(request);
             
-            return "dummy-uid"; // response?.Data?.Result[0]."Serial Number"];
+            return "dummy-uid"; // replace by "Serial Number" from response?;
         }
 
         public async Task<RestResponse<FmApiTopLevelHelper>> GetAdoms(string sessionId)

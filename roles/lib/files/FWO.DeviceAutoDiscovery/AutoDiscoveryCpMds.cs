@@ -28,7 +28,6 @@ namespace FWO.DeviceAutoDiscovery
 
             if (SuperManagement.DeviceType.Name == "Check Point")
             {
-                string ManagementType = "";
                 Log.WriteDebug(Autodiscovery, $"discovering CP domains & gateways");
 
                 (string sessionId, CheckPointClient restClientCP) = await LoginCp(SuperManagement);
@@ -38,11 +37,11 @@ namespace FWO.DeviceAutoDiscovery
                     (SuperManagement.DeviceType.CanBeSupermanager() && string.IsNullOrEmpty(SuperManagement.DomainUid)))  // pre v9 managements might not have a UID
                 {
                     // update manager Uid in existing management; typically triggered in daily scheduler
-                    ManagementType = await UpdateMgmUids(SuperManagement, restClientCP, @sessionId);
+                    await UpdateMgmUids(SuperManagement, restClientCP, @sessionId);
                 }
 
                 List<Domain> domainList = await restClientCP.GetDomains(@sessionId);
-                discoveredDevices = await DiscoverDomainDevices(domainList, restClientCP, ManagementType);
+                discoveredDevices = await DiscoverDomainDevices(domainList, restClientCP);
                 await LogoutCp(restClientCP, @sessionId);
             }
             return await GetDeltas(discoveredDevices);
@@ -80,7 +79,7 @@ namespace FWO.DeviceAutoDiscovery
             return currentManagement;
         }
 
-        private async Task<List<Management>> DiscoverDomainDevices(List<Domain> domainList, CheckPointClient restClientCP, string ManagementType)
+        private async Task<List<Management>> DiscoverDomainDevices(List<Domain> domainList, CheckPointClient restClientCP)
         {
             List<Management> discoveredDevices = [];
             foreach (Domain domain in domainList)
@@ -94,7 +93,7 @@ namespace FWO.DeviceAutoDiscovery
 
                 if (sessionIdPerDomain != "")
                 {
-                    currentManagement.Devices = await GetGateways(restClientCP, @sessionIdPerDomain, ManagementType);
+                    currentManagement.Devices = await GetGateways(restClientCP, @sessionIdPerDomain);
                     await LogoutCp(restClientCP, @sessionIdPerDomain);
                 }
                 discoveredDevices.Add(currentManagement);
@@ -102,24 +101,19 @@ namespace FWO.DeviceAutoDiscovery
             return discoveredDevices;
         }
 
-        private async Task<string> UpdateMgmUids(Management mgm, CheckPointClient restClientCP, string sessionId)
+        private async Task UpdateMgmUids(Management mgm, CheckPointClient restClientCP, string sessionId)
         {
-            string mgmType = "";
             if (mgm.DeviceType.Id == 13)    // MDS
             {
                 mgm.Uid = await restClientCP.GetMdsUid(mgm);
-                mgmType = "MDS";
             }
             else    // single management
             {
                 mgm.Uid = await GetMgmUid(restClientCP, sessionId, SuperManagement.Hostname);
-                mgmType = "Management";
             }
 
             var vars = new { id = mgm.Id, uid = mgm.Uid, domainUid = mgm.DomainUid };
             _ = (await apiConnection.SendQueryAsync<ReturnId>(DeviceQueries.updateManagementUids, vars)).UpdatedId;
- 
-            return mgmType;
         }
 
         private async Task<(string, CheckPointClient)> LoginCp(Management mgm)
@@ -172,7 +166,7 @@ namespace FWO.DeviceAutoDiscovery
             }
         }
 
-        private async Task<Device[]> GetGateways(CheckPointClient restClientCP, string sessionIdPerDomain, string ManagementType)
+        private async Task<Device[]> GetGateways(CheckPointClient restClientCP, string sessionIdPerDomain)
         {
             List<CpDevice> devList = await restClientCP.GetGateways(@sessionIdPerDomain);
             List<Device> devices = [];

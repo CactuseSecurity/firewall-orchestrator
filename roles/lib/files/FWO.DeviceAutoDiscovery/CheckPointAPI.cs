@@ -1,41 +1,30 @@
-using RestSharp;
-using System.Text.Json;
-using System.Net;
+using FWO.Api.Client;
 using FWO.Data;
-using System.Text.Json.Serialization;
-using Newtonsoft.Json;
 using FWO.Logging;
-using RestSharp.Serializers.NewtonsoftJson;
-using RestSharp.Serializers;
-using System.Reflection.Metadata;
-using MimeKit;
+using Newtonsoft.Json;
+using RestSharp;
+using System.Net;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
-namespace FWO.Rest.Client
+
+namespace FWO.DeviceAutoDiscovery
 {
-    public class CheckPointClient
+    public class CheckPointClient : RestApiClient
     {
-        readonly RestClient restClient;
-        readonly string CPSidHeaderKey = "X-chkp-sid";
+        private readonly string CPSidHeaderKey = "X-chkp-sid";
+        private readonly string Autodiscovery = "Autodiscovery";
+        private readonly string ContentType = "Content-Type";
+        private readonly string ApplicationJson = "application/json";
 
-        public CheckPointClient(Management manager)
-        {
-            RestClientOptions restClientOptions = new();
-            restClientOptions.RemoteCertificateValidationCallback += (_, _, _, _) => true;
-            restClientOptions.BaseUrl = new Uri("https://" + manager.Hostname + ":" + manager.Port + "/web_api/");
-            restClient = new RestClient(restClientOptions, null, ConfigureRestClientSerialization);
-        }
-
-        private void ConfigureRestClientSerialization(SerializerConfig config)
-        {
-            JsonNetSerializer serializer = new(); // Case insensivitive is enabled by default
-            config.UseSerializer(() => serializer);
-        }
+        public CheckPointClient(Management manager) : base("https://" + manager.Hostname + ":" + manager.Port + "/web_api/")
+        { }
 
         public async Task<RestResponse<CpSessionAuthInfo>> AuthenticateUser(string? user, string? pwd, string? domain)
         {
             if (user == null || user == "")
             {
-                Log.WriteWarning("Autodiscovery", $"GetDomains got empty user string, aborting");
+                Log.WriteWarning(Autodiscovery, $"GetDomains got empty user string, aborting");
                 return new RestResponse<CpSessionAuthInfo>(new RestRequest());
             }
             pwd ??= "";
@@ -49,14 +38,14 @@ namespace FWO.Rest.Client
                 body.Add("domain", domain);
             RestRequest request = new("login", Method.Post);
             request.AddJsonBody(body);
-            request.AddHeader("Content-Type", "application/json");
+            request.AddHeader(ContentType, ApplicationJson);
             return await restClient.ExecuteAsync<CpSessionAuthInfo>(request);
         }
 
         public async Task<RestResponse<CpSessionAuthInfo>> DeAuthenticateUser(string session)
         {
             RestRequest request = new("logout", Method.Post);
-            request.AddHeader("Content-Type", "application/json");
+            request.AddHeader(ContentType, ApplicationJson);
             request.AddHeader(CPSidHeaderKey, session);
             request.AddJsonBody(new { });
             return await restClient.ExecuteAsync<CpSessionAuthInfo>(request);
@@ -66,7 +55,7 @@ namespace FWO.Rest.Client
         {
             RestRequest request = new("show-domains", Method.Post);
             request.AddHeader(CPSidHeaderKey, session);
-            request.AddHeader("Content-Type", "application/json");
+            request.AddHeader(ContentType, ApplicationJson);
             Dictionary<string, string> body = new()
             {
                 { "details-level", "full" }
@@ -79,7 +68,7 @@ namespace FWO.Rest.Client
                 List<Domain> domainList = domainResponse.Data.DomainList;
                 if (domainList.Count == 0)
                 {
-                    Log.WriteDebug("Autodiscovery", $"found no domains - assuming this is a standard management, adding dummy domain with empty name");
+                    Log.WriteDebug(Autodiscovery, $"found no domains - assuming this is a standard management, adding dummy domain with empty name");
                     domainList.Add(new Domain { Name = "" });
                 }
                 return domainList;
@@ -92,13 +81,13 @@ namespace FWO.Rest.Client
         {
             RestRequest request = new("show-gateways-and-servers", Method.Post);
             request.AddHeader(CPSidHeaderKey, session);
-            request.AddHeader("Content-Type", "application/json");
+            request.AddHeader(ContentType, ApplicationJson);
             Dictionary<string, string> body = new()
             {
                 { "details-level", "full" }
             };
             request.AddJsonBody(body);
-            Log.WriteDebug("Autodiscovery", $"using CP REST API call 'show-gateways-and-servers'");
+            Log.WriteDebug(Autodiscovery, $"using CP REST API call 'show-gateways-and-servers'");
 
             // getting all devices of this management 
             RestResponse<CpDeviceHelper> devices = await restClient.ExecuteAsync<CpDeviceHelper>(request);
@@ -107,7 +96,6 @@ namespace FWO.Rest.Client
                 return devices.Data.DeviceList;
             }
             return [];
-
         }
 
         public async Task<List<CpDevice>> GetManagers(string session, string ManagementType)
@@ -122,7 +110,7 @@ namespace FWO.Rest.Client
                 {
                     if (gwTypes.Contains(dev.CpDevType) && !dev.Policy.AccessPolicyInstalled)
                     {
-                        Log.WriteWarning("Autodiscovery", $"found gateway '{dev.Name}' without access policy");
+                        Log.WriteWarning(Autodiscovery, $"found gateway '{dev.Name}' without access policy");
                     }
                 }
                 return devices;
@@ -142,7 +130,7 @@ namespace FWO.Rest.Client
                 {
                     if (gwTypes.Contains(dev.CpDevType) && !dev.Policy.AccessPolicyInstalled)
                     {
-                        Log.WriteWarning("Autodiscovery", $"found gateway '{dev.Name}' without access policy");
+                        Log.WriteWarning(Autodiscovery, $"found gateway '{dev.Name}' without access policy");
                     }
                 }
                 return devices;
@@ -154,14 +142,14 @@ namespace FWO.Rest.Client
         {
             RestRequest request = new("show-global-domain", Method.Post);
             request.AddHeader("X-chkp-sid", session);
-            request.AddHeader("Content-Type", "application/json");
+            request.AddHeader(ContentType, ApplicationJson);
             Dictionary<string, string> body = new()
             {
                 { "details-level", "full" },
                 { "name", "Global" }
             };
             request.AddJsonBody(body);
-            Log.WriteDebug("Autodiscovery", $"using CP REST API call 'show-global-domain'");
+            Log.WriteDebug(Autodiscovery, $"using CP REST API call 'show-global-domain'");
 
             // getting name and uid of the global domain 
             RestResponse<CpNameUidHelper> globalDomain = await restClient.ExecuteAsync<CpNameUidHelper>(request);
@@ -177,22 +165,22 @@ namespace FWO.Rest.Client
             RestResponse<CpSessionAuthInfo> response = await AuthenticateUser(management.ImportCredential.ImportUser, management.ImportCredential.Secret, "System Data");
             if (response.StatusCode != HttpStatusCode.OK || !response.IsSuccessful)
             {
-                Log.WriteError("Autodiscovery", $"failed to authenticate user '{management.ImportCredential.ImportUser}'");
+                Log.WriteError(Autodiscovery, $"failed to authenticate user '{management.ImportCredential.ImportUser}'");
                 return "";
             }
             string session = response.Data?.SessionId ?? "";
             if (session == "")
             {
-                Log.WriteError("Autodiscovery", $"failed to authenticate user '{management.ImportCredential.ImportUser}'");
+                Log.WriteError(Autodiscovery, $"failed to authenticate user '{management.ImportCredential.ImportUser}'");
                 return "";
             }
 
             RestRequest request = new("show-mdss", Method.Post);
             request.AddHeader("X-chkp-sid", session);
-            request.AddHeader("Content-Type", "application/json");
+            request.AddHeader(ContentType, ApplicationJson);
             Dictionary<string, string> body = [];
             request.AddJsonBody(body);
-            Log.WriteDebug("Autodiscovery", $"using CP REST API call 'show-mdss'");
+            Log.WriteDebug(Autodiscovery, $"using CP REST API call 'show-mdss'");
 
             // getting name and uid of the global domain 
             RestResponse<MdsHelper> mdsObjects = await restClient.ExecuteAsync<MdsHelper>(request);
@@ -200,13 +188,13 @@ namespace FWO.Rest.Client
             {
                 if (mdsObjects.Data.Mds.Count == 0)
                 {
-                    Log.WriteDebug("Autodiscovery", $"found no MDS - assuming this is a standard management, adding dummy domain with empty name");
+                    Log.WriteDebug(Autodiscovery, $"found no MDS - assuming this is a standard management, adding dummy domain with empty name");
                     mdsObjects.Data.Mds.Add(new CpNameUidHelper { Name = "", Uid = "" });
                     return "";
                 }
                 else
                 {
-                    return mdsObjects.Data.Mds.First().Uid;
+                    return mdsObjects.Data.Mds[0].Uid;
                 }
             }
             return "";

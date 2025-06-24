@@ -1,8 +1,8 @@
-﻿using System.Text.Json;
+﻿using FWO.Api.Client;
 using FWO.Data;
-using FWO.Api.Client;
-using FWO.Logging;
 using FWO.Encryption;
+using FWO.Logging;
+using System.Text.Json;
 
 namespace FWO.DeviceAutoDiscovery
 {
@@ -83,37 +83,42 @@ namespace FWO.DeviceAutoDiscovery
             }
             else
             {
-                Management changedMgmt = existMgmtDisregardingUid;
-                changedMgmt.Delete = false;
-                bool foundChange = false;
-                List<Device> newDevs = [];
-                // new devices in existing management
-                foreach (Device discoveredDev in discoveredMgmt.Devices)
-                {
-                    if (CheckDeviceNotInMgmt(discoveredDev, existMgmtDisregardingUid) || discoveredDev.ImportDisabled)
-                    {
-                        discoveredDev.Delete = false;
-                        newDevs.Add(discoveredDev);
-                        foundChange = true;
-                    }
-                }
+                HandleChangedManagement(discoveredMgmt, existMgmtDisregardingUid, deltaManagements);
+            }
+        }
 
-                // deleted devices in existing management
-                foreach (Device existDev in existMgmtDisregardingUid.Devices)
+        private static void HandleChangedManagement(Management discoveredMgmt, Management existMgmtDisregardingUid, List<Management> deltaManagements)
+        {
+            Management changedMgmt = existMgmtDisregardingUid;
+            changedMgmt.Delete = false;
+            bool foundChange = false;
+            List<Device> newDevs = [];
+            // new devices in existing management
+            foreach (Device discoveredDev in discoveredMgmt.Devices)
+            {
+                if (CheckDeviceNotInMgmt(discoveredDev, existMgmtDisregardingUid) || discoveredDev.ImportDisabled)
                 {
-                    if (CheckDeviceNotInMgmt(existDev, discoveredMgmt) && !existDev.ImportDisabled)
-                    {
-                        existDev.Delete = true;
-                        newDevs.Add(existDev);
-                        foundChange = true;
-                    }
+                    discoveredDev.Delete = false;
+                    newDevs.Add(discoveredDev);
+                    foundChange = true;
                 }
-                changedMgmt.Devices = newDevs.ToArray();
+            }
 
-                if (foundChange || changedMgmt.ImportDisabled)
+            // deleted devices in existing management
+            foreach (Device existDev in existMgmtDisregardingUid.Devices)
+            {
+                if (CheckDeviceNotInMgmt(existDev, discoveredMgmt) && !existDev.ImportDisabled)
                 {
-                    deltaManagements.Add(changedMgmt);
+                    existDev.Delete = true;
+                    newDevs.Add(existDev);
+                    foundChange = true;
                 }
+            }
+            changedMgmt.Devices = newDevs.ToArray();
+
+            if (foundChange || changedMgmt.ImportDisabled)
+            {
+                deltaManagements.Add(changedMgmt);
             }
         }
 
@@ -301,7 +306,6 @@ namespace FWO.DeviceAutoDiscovery
                 }
             }
         }
-
     }
 }
 

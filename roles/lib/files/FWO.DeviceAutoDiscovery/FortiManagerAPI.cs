@@ -66,7 +66,7 @@ namespace FWO.DeviceAutoDiscovery
             Log.WriteDebug("Autodiscovery", $"using FortiManager REST API call with body='{body.ToString()}' and paramList='{paramList.ToString()}'");
             await restClient.ExecuteAsync<FmApiTopLevelHelper>(request);
             
-            return "dummy-uid"; // replace by "Serial Number" from response?;
+            return "dummy-uid";
         }
 
         public async Task<RestResponse<FmApiTopLevelHelper>> GetAdoms(string sessionId)

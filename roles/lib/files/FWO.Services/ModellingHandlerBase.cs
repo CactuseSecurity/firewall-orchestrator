@@ -1,4 +1,4 @@
-﻿using FWO.Config.Api;
+using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Modelling;
 using FWO.Api.Client;
@@ -375,7 +375,17 @@ namespace FWO.Services
             }
             names.AddRange(nwGroups.ConvertAll(s => s.DisplayWithIcon(conn.DstFromInterface)));
 
-            names.AddRange(ModellingAppRoleWrapper.Resolve(conn.DestinationAppRoles).ToList().ConvertAll(s => s.DisplayWithIcon(conn.DstFromInterface)));
+            foreach(ModellingAppRole appRole in ModellingAppRoleWrapper.Resolve(conn.DestinationAppRoles))
+            {
+                if(appRole.AppServers.Count > 0)
+                {
+                    names.Add(appRole.DisplayWithIcon(conn.DstFromInterface));
+                }
+                else
+                {
+                    names.Add(appRole.DisplayProblematicWithIcon());
+                }
+            }
 
             List<ModellingAppServer> appServers = [.. ModellingAppServerWrapper.Resolve(conn.DestinationAppServers)];
             foreach(var appServer in appServers)
@@ -393,8 +403,23 @@ namespace FWO.Services
                 return [DisplayReqInt(userConfig, conn.TicketId, conn.InterfaceIsRequested, 
                     conn.GetBoolProperty(ConState.Rejected.ToString()) || conn.GetBoolProperty(ConState.InterfaceRejected.ToString()))];
             }
-            List<string> names = ModellingServiceGroupWrapper.Resolve(conn.ServiceGroups).ToList().ConvertAll(s => s.DisplayWithIcon(conn.UsedInterfaceId != null));
+
+            List<string> names = [];
+
+            foreach(ModellingServiceGroup svcGrp in ModellingServiceGroupWrapper.Resolve(conn.ServiceGroups))
+            {
+                if(svcGrp.Services.Count > 0)
+                {
+                    names.Add(svcGrp.DisplayWithIcon());
+                }
+                else
+                {
+                    names.Add(svcGrp.DisplayProblematicWithIcon());
+                }
+            }
+
             names.AddRange(ModellingServiceWrapper.Resolve(conn.Services).ToList().ConvertAll(s => s.DisplayWithIcon(conn.UsedInterfaceId != null)));
+            
             return names;
         }
 

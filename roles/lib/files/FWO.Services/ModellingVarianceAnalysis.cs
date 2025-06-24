@@ -100,7 +100,7 @@ namespace FWO.Services
             {
                 foreach(var conn in connections.Where(c => !c.IsInterface).OrderBy(c => c.Id))
                 {
-                    AnalyseRules(conn, fullAnalysis);
+                    await AnalyseRules(conn, fullAnalysis);
                 }
             }
             return varianceResult;
@@ -132,7 +132,7 @@ namespace FWO.Services
                     AnalyseServicesForRequest(conn);
                     if (elements.Count > 0)
                     {
-                        AnalyseConnectionForRequest(mgt, conn);
+                        await AnalyseConnectionForRequest(mgt, conn);
                     }
                 }
                 await AnalyseDeletedConnsForRequest(mgt);

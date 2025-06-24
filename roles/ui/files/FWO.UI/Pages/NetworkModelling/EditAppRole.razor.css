@@ -4,11 +4,11 @@
 }
 
 .appserver-right-scrollable {
-    height: calc(100vh - 731px);
+    height: calc(100vh - 715px);
     overflow-y: auto;
 }
 
 .appserver-right-scrollable-networkarea {
-    height: calc(100vh - 770px);
+    height: calc(100vh - 756px);
     overflow-y: auto;
 }

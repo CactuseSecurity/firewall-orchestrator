@@ -11,7 +11,7 @@
 @if(AppRoleHandler != null && Display)
 {
     <PopUp Title="@(AppRoleHandler.ReadOnly ? "" : (AppRoleHandler.AddMode ? userConfig.GetText("add_app_role") : userConfig.GetText("edit_app_role")))"
-           Size="@(AppRoleHandler.ReadOnly? PopupSize.Medium: PopupSize.Large)" Show="@Display" OnClose="Close">
+           Size="@(AppRoleHandler.ReadOnly? PopupSize.Medium: PopupSize.Large)" Show="@Display" OnClose="Close" FooterCssClass="d-flex justify-content-between">
         <Body>
             @if(AppRoleHandler.NamingConvention.NetworkAreaRequired)
             {
@@ -116,7 +116,7 @@
         </Body>
         <Footer>
             <div>                    
-                <label class="text-secondary d-inline me-2 col-sm-12 small mt-2">@(userConfig.GetText("created_by")): @(AppRoleHandler.ActAppRole.Creator), @(userConfig.GetText("creation_date")): @(AppRoleHandler.ActAppRole.CreationDate)</label>
+                <label class="text-secondary me-2 col-sm-12 small mt-2">@(userConfig.GetText("created_by")): @(AppRoleHandler.ActAppRole.Creator), @(userConfig.GetText("creation_date")): @(AppRoleHandler.ActAppRole.CreationDate)</label>
             </div>
             <div class="btn-group">
                 @if(AppRoleHandler.ReadOnly)

@@ -18,7 +18,7 @@
                 {
                     <div class="custom-modal-footer">
                         <hr>
-                        <div class="modal-footer">
+                        <div class="@FooterCssClass">
                             @Footer
                         </div>
                     </div>
@@ -50,6 +50,9 @@
 
     [Parameter]
     public Action OnClose { get; set; } = new Action(() => { });
+
+    [Parameter]
+    public string FooterCssClass { get; set; } = "modal-footer";
         
     private string SizeClass()
     {

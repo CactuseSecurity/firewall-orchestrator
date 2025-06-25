@@ -83,7 +83,7 @@ def get_config(nativeConfig: json, importState: ImportStateController) -> tuple[
 
     normalizedConfig = normalize_config(importState, nativeConfig, parsing_config_only, sid)
     logger.info("completed getting config")
-    return 0, normalizedConfig.ManagerSet
+    return 0, normalizedConfig
 
 
 def initialize_native_config(nativeConfig, importState):
@@ -107,7 +107,7 @@ def initialize_native_config(nativeConfig, importState):
             'gateways': []})
 
 
-def normalize_config(import_state, native_config: json, parsing_config_only: bool, sid: str) -> FwConfigManagerList:
+def normalize_config(import_state, native_config: json, parsing_config_only: bool, sid: str) -> FwConfigManagerListController:
 
     manager_list = FwConfigManagerListController()
 

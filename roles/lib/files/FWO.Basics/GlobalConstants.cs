@@ -16,8 +16,10 @@ namespace FWO.Basics
         public const int kGlobLibraryWidth = kSidebarLeftWidth + 400;
         public const int kObjLibraryWidth = kSidebarLeftWidth + 300;
         public const int kSidebarRightWidth = 300;
+        public const int kDaysToMilliseconds = 86400000;
         public const int kHoursToMilliseconds = 3600000;
         public const int kMinutesToMilliseconds = 60000;
+        public const int kSecondsToMilliseconds = 1000;
         public const int kMaxPortNumber = 65535;
 
         public const string kHtml = "html";
@@ -38,6 +40,7 @@ namespace FWO.Basics
         public const string kDoku_ = "Doku_";
         public const string k_user = "_user";
         public const string k_user2 = "-user";
+        public const string k_demo = "_demo";
 
         public const char kAppIdSeparator = '-'; // hard-coded could be moved to settings
         public const string kModellerGroup = "ModellerGroup_";
@@ -60,6 +63,8 @@ namespace FWO.Basics
         public const string ChromeBinPathLinux = "/usr/local/fworch/bin";
         public const string TestPDFFilePath = "pdffile.pdf";
         public const string TestPDFHtmlTemplate = "<html><body><h1>test</h1><h2>test mit puppteer</h2></body></html>";
+
+        public const int MaxUploadFileSize = 5 * 1024 * 1024; // 5 MB
     }
 
     public struct PageName
@@ -82,5 +87,12 @@ namespace FWO.Basics
         public const string Group = "group";
         public const string SimpleService = "simple";
         public const string Rpc = "rpc";
+    }
+
+    public struct MarkerLocation
+    {
+        public const string Rulename = "rulename";
+        public const string Comment = "comment";
+        public const string Customfields = "customfields";
     }
 }

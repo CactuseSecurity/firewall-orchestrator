@@ -35,7 +35,7 @@ namespace FWO.Ui.Auth
 
 			if (apiAuthResponse.StatusCode == HttpStatusCode.OK)
 			{
-				string jwtString = apiAuthResponse.Data ?? throw new Exception("no response data");
+				string jwtString = apiAuthResponse.Data ?? throw new ArgumentException("no response data");
 				await Authenticate(jwtString, apiConnection, middlewareClient, globalConfig, userConfig, circuitHandler, sessionStorage);
 				Log.WriteAudit("AuthenticateUser", $"user {username} successfully authenticated");
 			}
@@ -113,7 +113,7 @@ namespace FWO.Ui.Auth
 
 		public void ConfirmPasswordChanged()
 		{
-			NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(user ?? throw new Exception("Password cannot be changed because user was not authenticated"))));
+			NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(user ?? throw new AuthenticationException("Password cannot be changed because user was not authenticated"))));
 		}
 
 		// public async Task<int> GetTenantId(string jwtString)

@@ -5,7 +5,7 @@ using FWO.Data.Modelling;
 using FWO.Data.Report;
 using FWO.Data.Workflow;
 using FWO.Services;
-using System.Text;
+using FWO.Basics;
 
 namespace FWO.Test
 {
@@ -91,6 +91,16 @@ namespace FWO.Test
                             new(){ ExtraConfigType = "IDA_user", ExtraConfigText = "SpecObj2" } ]
         };
 
+        static readonly ModellingConnection Connection6 = new()
+        {
+            Id = 6,
+            Name = "Conn6",
+            SourceAppRoles = [ new(){ Content = AR1 } ],
+            DestinationAppServers = [ new(){ Content = AS1 } ],
+            Services = [ new(){Content = Svc1 } ],
+            ExtraConfigs = [ new(){ ExtraConfigType = "NAT", ExtraConfigText = "To x.x.x.x" } ]
+        };
+
 
 
         [SetUp]
@@ -101,11 +111,11 @@ namespace FWO.Test
         [Test]
         public async Task TestAnalyseModelledConnectionsForRequest()
         {
-            List<ModellingConnection> Connections = [ Connection1 ];
+            List<ModellingConnection> Connections = [ Connection1, Connection6 ];
             ModellingVarianceAnalysis varianceAnalysis = new (varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
             List<WfReqTask> TaskList = await varianceAnalysis.AnalyseModelledConnectionsForRequest(Connections);
 
-            ClassicAssert.AreEqual(6, TaskList.Count);
+            ClassicAssert.AreEqual(10, TaskList.Count);
 
             ClassicAssert.AreEqual(WfTaskType.group_modify.ToString(), TaskList[0].TaskType);
             ClassicAssert.AreEqual("{\"GrpName\":\"AZ4711\",\"AppRoleId\":\"3\"}", TaskList[0].AdditionalInfo);
@@ -167,78 +177,78 @@ namespace FWO.Test
             ClassicAssert.AreEqual("addAfterCreation", TaskList[2].Elements[0].RequestAction);
 
             ClassicAssert.AreEqual(WfTaskType.access.ToString(), TaskList[3].TaskType);
-            ClassicAssert.AreEqual("{\"ConnId\":\"1\"}", TaskList[3].AdditionalInfo);
+            ClassicAssert.AreEqual("{\"ConnId\":\"6\"}", TaskList[3].AdditionalInfo);
+            ClassicAssert.AreEqual(1, TaskList[3].Comments.Count);
+            ClassicAssert.AreEqual("FWOC6, Implementation Instructions: NAT: To x.x.x.x", TaskList[3].Comments[0].Comment.CommentText);
             ClassicAssert.AreEqual("create", TaskList[3].RequestAction);
             ClassicAssert.AreEqual(4, TaskList[3].TaskNumber);
-            ClassicAssert.AreEqual("New Connection: Conn1", TaskList[3].Title);
+            ClassicAssert.AreEqual("New Connection: Conn6", TaskList[3].Title);
             ClassicAssert.AreEqual(1, TaskList[3].Owners.Count);
             ClassicAssert.AreEqual("App1", TaskList[3].Owners[0].Owner.Name);
-            ClassicAssert.AreEqual(5, TaskList[3].Elements.Count);
+            ClassicAssert.AreEqual(3, TaskList[3].Elements.Count);
             ClassicAssert.AreEqual(null, TaskList[3].Elements[0].Name);
             ClassicAssert.AreEqual("AR504711-001", TaskList[3].Elements[0].GroupName);
             ClassicAssert.AreEqual(null, TaskList[3].Elements[0].IpString);
             ClassicAssert.AreEqual("source", TaskList[3].Elements[0].Field);
             ClassicAssert.AreEqual("create", TaskList[3].Elements[0].RequestAction);
-
-            ClassicAssert.AreEqual(null, TaskList[3].Elements[1].Name);
-            ClassicAssert.AreEqual("AR504711-002", TaskList[3].Elements[1].GroupName);
+            ClassicAssert.AreEqual("AppServerUnchanged", TaskList[3].Elements[1].Name);
+            ClassicAssert.AreEqual(null, TaskList[3].Elements[1].GroupName);
+            ClassicAssert.AreEqual("1.2.3.4", TaskList[3].Elements[1].IpString);
             ClassicAssert.AreEqual("destination", TaskList[3].Elements[1].Field);
             ClassicAssert.AreEqual("create", TaskList[3].Elements[1].RequestAction);
-
-            ClassicAssert.AreEqual("AppServerUnchanged", TaskList[3].Elements[2].Name);
+            ClassicAssert.AreEqual("Service1", TaskList[3].Elements[2].Name);
             ClassicAssert.AreEqual(null, TaskList[3].Elements[2].GroupName);
-            ClassicAssert.AreEqual("1.2.3.4", TaskList[3].Elements[2].IpString);
-            ClassicAssert.AreEqual("destination", TaskList[3].Elements[2].Field);
+            ClassicAssert.AreEqual(6, TaskList[3].Elements[2].ProtoId);
+            ClassicAssert.AreEqual(1000, TaskList[3].Elements[2].Port);
+            ClassicAssert.AreEqual(2000, TaskList[3].Elements[2].PortEnd);
+            ClassicAssert.AreEqual("service", TaskList[3].Elements[2].Field);
             ClassicAssert.AreEqual("create", TaskList[3].Elements[2].RequestAction);
 
-            ClassicAssert.AreEqual("Service2", TaskList[3].Elements[3].Name);
-            ClassicAssert.AreEqual(null, TaskList[3].Elements[3].GroupName);
-            ClassicAssert.AreEqual(6, TaskList[3].Elements[3].ProtoId);
-            ClassicAssert.AreEqual(4000, TaskList[3].Elements[3].Port);
-            ClassicAssert.AreEqual("service", TaskList[3].Elements[3].Field);
-            ClassicAssert.AreEqual("create", TaskList[3].Elements[3].RequestAction);
-            ClassicAssert.AreEqual("Service1", TaskList[3].Elements[4].Name);
-            ClassicAssert.AreEqual(null, TaskList[3].Elements[4].GroupName);
-            ClassicAssert.AreEqual(6, TaskList[3].Elements[4].ProtoId);
-            ClassicAssert.AreEqual(1000, TaskList[3].Elements[4].Port);
-            ClassicAssert.AreEqual(2000, TaskList[3].Elements[4].PortEnd);
-            ClassicAssert.AreEqual("service", TaskList[3].Elements[4].Field);
-            ClassicAssert.AreEqual("create", TaskList[3].Elements[4].RequestAction);
+            ClassicAssert.AreEqual(WfTaskType.rule_modify.ToString(), TaskList[4].TaskType);
+            ClassicAssert.AreEqual("Change Rule: FWOC1", TaskList[4].Title);
+            ClassicAssert.AreEqual(WfTaskType.rule_modify.ToString(), TaskList[5].TaskType);
+            ClassicAssert.AreEqual("Change Rule: FWOC1again", TaskList[5].Title);
 
-            ClassicAssert.AreEqual("{\"GrpName\":\"AZ4711\",\"AppRoleId\":\"3\"}", TaskList[4].AdditionalInfo);
-            ClassicAssert.AreEqual("modify", TaskList[4].RequestAction);
-            ClassicAssert.AreEqual(4, TaskList[4].Elements.Count);
-            ClassicAssert.AreEqual("AppServerOld", TaskList[4].Elements[0].Name);
-            ClassicAssert.AreEqual("delete", TaskList[4].Elements[0].RequestAction);
-            ClassicAssert.AreEqual("AppServerUnchanged", TaskList[4].Elements[1].Name);
-            ClassicAssert.AreEqual("unchanged", TaskList[4].Elements[1].RequestAction);
-            ClassicAssert.AreEqual("AppServerNew1_32", TaskList[4].Elements[2].Name);
-            ClassicAssert.AreEqual("unchanged", TaskList[4].Elements[2].RequestAction);
-            ClassicAssert.AreEqual("AppServerNew2", TaskList[4].Elements[3].Name);
+            ClassicAssert.AreEqual(WfTaskType.rule_delete.ToString(), TaskList[6].TaskType);
+            ClassicAssert.AreEqual("Delete Rule: xxxFWOC2yyy", TaskList[6].Title);
+            ClassicAssert.AreEqual(WfTaskType.rule_delete.ToString(), TaskList[7].TaskType);
+            ClassicAssert.AreEqual("Delete Rule: FWOC4", TaskList[7].Title);
 
-            ClassicAssert.AreEqual(WfTaskType.group_modify.ToString(), TaskList[5].TaskType);
-            ClassicAssert.AreEqual("{\"GrpName\":\"AR504711-001\",\"AppRoleId\":\"1\"}", TaskList[5].AdditionalInfo);
-            ClassicAssert.AreEqual("modify", TaskList[5].RequestAction);
-            ClassicAssert.AreEqual(6, TaskList[5].TaskNumber);
-            ClassicAssert.AreEqual("Update AppRole: AR504711-001: Remove Members", TaskList[5].Title);
-            ClassicAssert.AreEqual(1, TaskList[5].ManagementId);
-            ClassicAssert.AreEqual("Checkpoint1", TaskList[5].OnManagement?.Name);
-            ClassicAssert.AreEqual(3, TaskList[5].Elements.Count);
-            ClassicAssert.AreEqual("AppServerOld", TaskList[5].Elements[0].Name);
-            ClassicAssert.AreEqual("AR504711-001", TaskList[5].Elements[0].GroupName);
-            ClassicAssert.AreEqual("1.0.0.0", TaskList[5].Elements[0].IpString);
-            ClassicAssert.AreEqual("source", TaskList[5].Elements[0].Field);
-            ClassicAssert.AreEqual("delete", TaskList[5].Elements[0].RequestAction);
-            ClassicAssert.AreEqual("AppServerUnchanged", TaskList[5].Elements[1].Name);
-            ClassicAssert.AreEqual("AR504711-001", TaskList[5].Elements[1].GroupName);
-            ClassicAssert.AreEqual("1.2.3.4", TaskList[5].Elements[1].IpString);
-            ClassicAssert.AreEqual("source", TaskList[5].Elements[1].Field);
-            ClassicAssert.AreEqual("unchanged", TaskList[5].Elements[1].RequestAction);
-            ClassicAssert.AreEqual("AppServerNew1/32", TaskList[5].Elements[2].Name);
-            ClassicAssert.AreEqual("AR504711-001", TaskList[5].Elements[2].GroupName);
-            ClassicAssert.AreEqual("1.1.1.1", TaskList[5].Elements[2].IpString);
-            ClassicAssert.AreEqual("source", TaskList[5].Elements[2].Field);
-            ClassicAssert.AreEqual("unchanged", TaskList[5].Elements[2].RequestAction);
+            ClassicAssert.AreEqual(WfTaskType.group_modify.ToString(), TaskList[8].TaskType);
+            ClassicAssert.AreEqual("{\"GrpName\":\"AZ4711\",\"AppRoleId\":\"3\"}", TaskList[8].AdditionalInfo);
+            ClassicAssert.AreEqual("modify", TaskList[8].RequestAction);
+            ClassicAssert.AreEqual(4, TaskList[8].Elements.Count);
+            ClassicAssert.AreEqual("AppServerOld", TaskList[8].Elements[0].Name);
+            ClassicAssert.AreEqual("delete", TaskList[8].Elements[0].RequestAction);
+            ClassicAssert.AreEqual("AppServerUnchanged", TaskList[8].Elements[1].Name);
+            ClassicAssert.AreEqual("unchanged", TaskList[8].Elements[1].RequestAction);
+            ClassicAssert.AreEqual("AppServerNew1_32", TaskList[8].Elements[2].Name);
+            ClassicAssert.AreEqual("unchanged", TaskList[8].Elements[2].RequestAction);
+            ClassicAssert.AreEqual("AppServerNew2", TaskList[8].Elements[3].Name);
+
+            ClassicAssert.AreEqual(WfTaskType.group_modify.ToString(), TaskList[9].TaskType);
+            ClassicAssert.AreEqual("{\"GrpName\":\"AR504711-001\",\"AppRoleId\":\"1\"}", TaskList[9].AdditionalInfo);
+            ClassicAssert.AreEqual("modify", TaskList[9].RequestAction);
+            ClassicAssert.AreEqual(10, TaskList[9].TaskNumber);
+            ClassicAssert.AreEqual("Update AppRole: AR504711-001: Remove Members", TaskList[9].Title);
+            ClassicAssert.AreEqual(1, TaskList[9].ManagementId);
+            ClassicAssert.AreEqual("Checkpoint1", TaskList[9].OnManagement?.Name);
+            ClassicAssert.AreEqual(3, TaskList[9].Elements.Count);
+            ClassicAssert.AreEqual("AppServerOld", TaskList[9].Elements[0].Name);
+            ClassicAssert.AreEqual("AR504711-001", TaskList[9].Elements[0].GroupName);
+            ClassicAssert.AreEqual("1.0.0.0", TaskList[9].Elements[0].IpString);
+            ClassicAssert.AreEqual("source", TaskList[9].Elements[0].Field);
+            ClassicAssert.AreEqual("delete", TaskList[9].Elements[0].RequestAction);
+            ClassicAssert.AreEqual("AppServerUnchanged", TaskList[9].Elements[1].Name);
+            ClassicAssert.AreEqual("AR504711-001", TaskList[9].Elements[1].GroupName);
+            ClassicAssert.AreEqual("1.2.3.4", TaskList[9].Elements[1].IpString);
+            ClassicAssert.AreEqual("source", TaskList[9].Elements[1].Field);
+            ClassicAssert.AreEqual("unchanged", TaskList[9].Elements[1].RequestAction);
+            ClassicAssert.AreEqual("AppServerNew1/32", TaskList[9].Elements[2].Name);
+            ClassicAssert.AreEqual("AR504711-001", TaskList[9].Elements[2].GroupName);
+            ClassicAssert.AreEqual("1.1.1.1", TaskList[9].Elements[2].IpString);
+            ClassicAssert.AreEqual("source", TaskList[9].Elements[2].Field);
+            ClassicAssert.AreEqual("unchanged", TaskList[9].Elements[2].RequestAction);
         }
 
         [Test]
@@ -249,14 +259,17 @@ namespace FWO.Test
             ModellingVarianceAnalysis varianceAnalysis = new (varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
             List<WfReqTask> TaskList = await varianceAnalysis.AnalyseModelledConnectionsForRequest(Connections);
 
-            ClassicAssert.AreEqual(7, TaskList.Count);
+            ClassicAssert.AreEqual(10, TaskList.Count);
             ClassicAssert.AreEqual(WfTaskType.group_modify.ToString(), TaskList[0].TaskType);
             ClassicAssert.AreEqual(WfTaskType.group_modify.ToString(), TaskList[1].TaskType);
             ClassicAssert.AreEqual(WfTaskType.group_create.ToString(), TaskList[2].TaskType);
             ClassicAssert.AreEqual(WfTaskType.group_create.ToString(), TaskList[3].TaskType);
-            ClassicAssert.AreEqual(WfTaskType.access.ToString(), TaskList[4].TaskType);
-            ClassicAssert.AreEqual(WfTaskType.group_modify.ToString(), TaskList[5].TaskType);
-            ClassicAssert.AreEqual(WfTaskType.group_modify.ToString(), TaskList[6].TaskType);
+            ClassicAssert.AreEqual(WfTaskType.rule_modify.ToString(), TaskList[4].TaskType);
+            ClassicAssert.AreEqual(WfTaskType.rule_modify.ToString(), TaskList[5].TaskType);
+            ClassicAssert.AreEqual(WfTaskType.rule_delete.ToString(), TaskList[6].TaskType);
+            ClassicAssert.AreEqual(WfTaskType.rule_delete.ToString(), TaskList[7].TaskType);
+            ClassicAssert.AreEqual(WfTaskType.group_modify.ToString(), TaskList[8].TaskType);
+            ClassicAssert.AreEqual(WfTaskType.group_modify.ToString(), TaskList[9].TaskType);
 
             ClassicAssert.AreEqual("{\"GrpName\":\"SvcGrp1\",\"SvcGrpId\":\"1\"}", TaskList[3].AdditionalInfo);
             ClassicAssert.AreEqual("create", TaskList[3].RequestAction);
@@ -284,7 +297,7 @@ namespace FWO.Test
 
             ClassicAssert.AreEqual(1, result.UnModelledRules.Count);
             ClassicAssert.AreEqual(1, result.UnModelledRules[1].Count);
-            ClassicAssert.AreEqual("NonModelledRule", result.UnModelledRules[1].First().Name);
+            ClassicAssert.AreEqual("NonModelledRule", result.UnModelledRules[1][0].Name);
 
             ClassicAssert.AreEqual(1, result.ConnsNotImplemented.Count);
             ClassicAssert.AreEqual(3, result.ConnsNotImplemented[0].Id);
@@ -294,7 +307,7 @@ namespace FWO.Test
             ClassicAssert.AreEqual("Conn1", result.RuleDifferences[0].ModelledConnection.Name);
             ClassicAssert.AreEqual(2, result.RuleDifferences[0].ImplementedRules.Count);
             ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules[0].DisregardedFroms.Length);
-            ClassicAssert.AreEqual("AppRole1 (AR504711-001)", result.RuleDifferences[0].ImplementedRules[0].DisregardedFroms[0].Object.Name);
+            ClassicAssert.AreEqual("AR504711-001", result.RuleDifferences[0].ImplementedRules[0].DisregardedFroms[0].Object.Name);
             ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules[0].DisregardedTos.Length);
             ClassicAssert.AreEqual("AppServerUnchanged", result.RuleDifferences[0].ImplementedRules[0].DisregardedTos[0].Object.Name);
             ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules[0].DisregardedServices.Length);
@@ -322,16 +335,16 @@ namespace FWO.Test
 
             ClassicAssert.AreEqual(1, result.DifferingAppRoles.Count);
             ClassicAssert.AreEqual(1, result.DifferingAppRoles[1].Count);
-            ClassicAssert.AreEqual("AR504711-001", result.DifferingAppRoles[1].First().IdString);
-            ClassicAssert.AreEqual(1, result.DifferingAppRoles[1].First().SurplusAppServers.Count);
-            ClassicAssert.AreEqual("AppServerOld", result.DifferingAppRoles[1].First().SurplusAppServers[0].Content.Name);
-            ClassicAssert.AreEqual("1.0.0.0", result.DifferingAppRoles[1].First().SurplusAppServers[0].Content.Ip);
-            ClassicAssert.AreEqual(2, result.DifferingAppRoles[1].First().AppServers.Count);
-            ClassicAssert.AreEqual("AppServerUnchanged", result.DifferingAppRoles[1].First().AppServers[0].Content.Name);
-            ClassicAssert.AreEqual("1.2.3.4", result.DifferingAppRoles[1].First().AppServers[0].Content.Ip);
-            ClassicAssert.AreEqual(false, result.DifferingAppRoles[1].First().AppServers[0].Content.NotImplemented);
-            ClassicAssert.AreEqual("AppServerNew1/32", result.DifferingAppRoles[1].First().AppServers[1].Content.Name);
-            ClassicAssert.AreEqual(true, result.DifferingAppRoles[1].First().AppServers[1].Content.NotImplemented);
+            ClassicAssert.AreEqual("AR504711-001", result.DifferingAppRoles[1][0].IdString);
+            ClassicAssert.AreEqual(1, result.DifferingAppRoles[1][0].SurplusAppServers.Count);
+            ClassicAssert.AreEqual("AppServerOld", result.DifferingAppRoles[1][0].SurplusAppServers[0].Content.Name);
+            ClassicAssert.AreEqual("1.0.0.0", result.DifferingAppRoles[1][0].SurplusAppServers[0].Content.Ip);
+            ClassicAssert.AreEqual(2, result.DifferingAppRoles[1][0].AppServers.Count);
+            ClassicAssert.AreEqual("AppServerUnchanged", result.DifferingAppRoles[1][0].AppServers[0].Content.Name);
+            ClassicAssert.AreEqual("1.2.3.4", result.DifferingAppRoles[1][0].AppServers[0].Content.Ip);
+            ClassicAssert.AreEqual(false, result.DifferingAppRoles[1][0].AppServers[0].Content.NotImplemented);
+            ClassicAssert.AreEqual("AppServerNew1/32", result.DifferingAppRoles[1][0].AppServers[1].Content.Name);
+            ClassicAssert.AreEqual(true, result.DifferingAppRoles[1][0].AppServers[1].Content.NotImplemented);
         }
 
         [Test]
@@ -357,7 +370,7 @@ namespace FWO.Test
             ClassicAssert.AreEqual("SpecObj2", result.RuleDifferences[0].ImplementedRules[0].Tos[0].Object.Name);
             ClassicAssert.AreEqual(false, result.RuleDifferences[0].ImplementedRules[0].Tos[0].Object.IsSurplus);
             ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules[0].UnusedSpecialUserObjects.Count);
-            ClassicAssert.AreEqual("specobj3", result.RuleDifferences[0].ImplementedRules[0].UnusedSpecialUserObjects.First());
+            ClassicAssert.AreEqual("specobj3", result.RuleDifferences[0].ImplementedRules[0].UnusedSpecialUserObjects[0]);
 
             userConfig.RuleRecognitionOption = grpNameRecogOpt;
             varianceAnalysis = new (varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
@@ -373,12 +386,12 @@ namespace FWO.Test
             ClassicAssert.AreEqual("SpecObj1", result.RuleDifferences[0].ImplementedRules[0].Froms[0].Object.Name);
             ClassicAssert.AreEqual(false, result.RuleDifferences[0].ImplementedRules[0].Froms[0].Object.IsSurplus);
             ClassicAssert.AreEqual("AR504711-001", result.RuleDifferences[0].ImplementedRules[0].Froms[1].Object.Name);
-            ClassicAssert.AreEqual(true, result.RuleDifferences[0].ImplementedRules[0].Froms[1].Object.IsSurplus);
+            ClassicAssert.AreEqual(false, result.RuleDifferences[0].ImplementedRules[0].Froms[1].Object.IsSurplus);
             ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules[0].Tos.Length);
             ClassicAssert.AreEqual("SpecObj2", result.RuleDifferences[0].ImplementedRules[0].Tos[0].Object.Name);
             ClassicAssert.AreEqual(false, result.RuleDifferences[0].ImplementedRules[0].Tos[0].Object.IsSurplus);
             ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules[0].UnusedSpecialUserObjects.Count);
-            ClassicAssert.AreEqual("specobj3", result.RuleDifferences[0].ImplementedRules[0].UnusedSpecialUserObjects.First());
+            ClassicAssert.AreEqual("specobj3", result.RuleDifferences[0].ImplementedRules[0].UnusedSpecialUserObjects[0]);
 
             userConfig.RuleRecognitionOption = stdRecogOpt;
         }
@@ -394,7 +407,7 @@ namespace FWO.Test
 
             ClassicAssert.AreEqual(1, result.UnModelledRules.Count);
             ClassicAssert.AreEqual(1, result.UnModelledRules[1].Count);
-            ClassicAssert.AreEqual("NonModelledRule", result.UnModelledRules[1].First().Name);
+            ClassicAssert.AreEqual("NonModelledRule", result.UnModelledRules[1][0].Name);
 
             ClassicAssert.AreEqual(1, result.ConnsNotImplemented.Count);
             ClassicAssert.AreEqual(3, result.ConnsNotImplemented[0].Id);
@@ -431,7 +444,7 @@ namespace FWO.Test
         {
             List<ModellingConnection> Connections = [ Connection1, Connection2, Connection3 ];
             userConfig.ModModelledMarker = "XXX";
-            userConfig.ModModelledMarkerLocation = "comment";
+            userConfig.ModModelledMarkerLocation = MarkerLocation.Comment;
             ModellingVarianceAnalysis varianceAnalysis = new (varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
             ModellingFilter modellingFilter = new(){ AnalyseRemainingRules = true };
             ModellingVarianceResult result = await varianceAnalysis.AnalyseRulesVsModelledConnections(Connections, modellingFilter);
@@ -446,7 +459,29 @@ namespace FWO.Test
             ClassicAssert.AreEqual("FWOC1", result.UnModelledRules[1][0].Name);
             ClassicAssert.AreEqual("xxxFWOC2yyy", result.UnModelledRules[1][1].Name);
             userConfig.ModModelledMarker = "FWOC";
-            userConfig.ModModelledMarkerLocation = "rulename";
+            userConfig.ModModelledMarkerLocation = MarkerLocation.Rulename;
+        }
+
+        [Test]
+        public async Task TestAnalyseRulesToReport()
+        {
+            List<ModellingConnection> Connections = [ Connection1 ];
+            ModellingVarianceAnalysis varianceAnalysis = new (varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
+            ModellingFilter modellingFilter = new();
+            ModellingVarianceResult result = await varianceAnalysis.AnalyseRulesVsModelledConnections(Connections, modellingFilter);
+
+            ClassicAssert.AreEqual(1, result.UnModelledRules.Count);
+            ClassicAssert.AreEqual("NonModelledRule", result.UnModelledRules[1][0].Name);
+
+            List<ManagementReport> reports = result.MgtDataToReport();
+
+            ClassicAssert.AreEqual(1, reports.Count);
+            ClassicAssert.AreEqual(1, reports[0].Devices.Length);
+            ClassicAssert.AreEqual(1, reports[0].Devices[0].Rules?.Length);
+            ClassicAssert.AreEqual("NonModelledRule", reports[0].Devices[0].Rules?[0].Name);
+            ClassicAssert.AreEqual("XXX3", reports[0].Devices[0].Rules?[0].Comment);
+            ClassicAssert.AreEqual(1, reports[0].Devices[0].Rules?[0].Froms.Length);
+            ClassicAssert.AreEqual("AppServerUnchanged", reports[0].Devices[0].Rules?[0].Froms[0].Object.Name);
         }
 
         [Test]
@@ -459,7 +494,7 @@ namespace FWO.Test
 
             ClassicAssert.AreEqual(1, result.UnModelledRules.Count);
             ClassicAssert.AreEqual(1, result.UnModelledRules[1].Count);
-            ClassicAssert.AreEqual("NonModelledRule", result.UnModelledRules[1].First().Name);
+            ClassicAssert.AreEqual("NonModelledRule", result.UnModelledRules[1][0].Name);
             ClassicAssert.AreEqual(1, result.ConnsNotImplemented.Count);
             ClassicAssert.AreEqual(3, result.ConnsNotImplemented[0].Id);
             ClassicAssert.AreEqual("Conn3", result.ConnsNotImplemented[0].Name);
@@ -502,12 +537,12 @@ namespace FWO.Test
             ClassicAssert.AreEqual("SpecObj1", result.RuleDifferences[0].ImplementedRules[0].Froms[0].Object.Name);
             ClassicAssert.AreEqual(false, result.RuleDifferences[0].ImplementedRules[0].Froms[0].Object.IsSurplus);
             ClassicAssert.AreEqual("AR504711-001", result.RuleDifferences[0].ImplementedRules[0].Froms[1].Object.Name);
-            ClassicAssert.AreEqual(true, result.RuleDifferences[0].ImplementedRules[0].Froms[1].Object.IsSurplus);
+            ClassicAssert.AreEqual(false, result.RuleDifferences[0].ImplementedRules[0].Froms[1].Object.IsSurplus);
             ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules[0].Tos.Length);
             ClassicAssert.AreEqual("SpecObj2", result.RuleDifferences[0].ImplementedRules[0].Tos[0].Object.Name);
             ClassicAssert.AreEqual(false, result.RuleDifferences[0].ImplementedRules[0].Tos[0].Object.IsSurplus);
             ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules[0].UnusedSpecialUserObjects.Count);
-            ClassicAssert.AreEqual("specobj3", result.RuleDifferences[0].ImplementedRules[0].UnusedSpecialUserObjects.First());
+            ClassicAssert.AreEqual("specobj3", result.RuleDifferences[0].ImplementedRules[0].UnusedSpecialUserObjects[0]);
 
             userConfig.RuleRecognitionOption = stdRecogOpt;
         }

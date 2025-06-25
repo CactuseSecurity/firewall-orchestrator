@@ -456,3 +456,4 @@ ON CONFLICT DO NOTHING;
 insert into stm_link_type (id, name) VALUES (2, 'ordered');
 insert into stm_link_type (id, name) VALUES (3, 'inline');
 insert into stm_link_type (id, name) VALUES (4, 'concatenated');
+insert into stm_link_type (id, name) VALUES (5, 'domain');

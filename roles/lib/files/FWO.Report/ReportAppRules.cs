@@ -51,65 +51,71 @@ namespace FWO.Report
             foreach(var mgt in managementData)
             {
                 ManagementReport relevantMgt = new() { Name = mgt.Name, Id = mgt.Id, Import = mgt.Import };
-                foreach (DeviceReportController dev in mgt.Devices)
+                foreach (DeviceReportController dev in mgt.Devices.Cast<DeviceReportController>())
                 {
-                    DeviceReportController relevantDevice = new(dev);
-                    var rbLink = dev.RulebaseLinks.FirstOrDefault(r => r.IsInitialRulebase());
-                    RulebaseReport? rb = mgt.Rulebases.FirstOrDefault(r => r.Id == rbLink?.NextRulebaseId);
-                    if (rb?.Rules != null)
-                    {
-                        foreach (var rule in rb.Rules)
-                        {
-                            RulebaseLink relevantRulebase = new();
-                            if (modellingFilter.ShowDropRules || !rule.IsDropRule())
-                            {
-                                List<NetworkLocation> relevantFroms = [];
-                                List<NetworkLocation> disregardedFroms = [.. rule.Froms];
-                                if (modellingFilter.ShowSourceMatch)
-                                {
-                                    (relevantFroms, disregardedFroms) = CheckNetworkObjects(rule.Froms, rule.SourceNegated, modellingFilter, ownerIps);
-                                }
-                                List<NetworkLocation> relevantTos = [];
-                                List<NetworkLocation> disregardedTos = [.. rule.Tos];
-                                if (modellingFilter.ShowDestinationMatch)
-                                {
-                                    (relevantTos, disregardedTos) = CheckNetworkObjects(rule.Tos, rule.DestinationNegated, modellingFilter, ownerIps);
-                                }
-
-                                if (relevantFroms.Count > 0 || relevantTos.Count > 0)
-                                {
-                                    rule.Froms = [.. relevantFroms];
-                                    rule.Tos = [.. relevantTos];
-                                    rule.DisregardedFroms = [.. disregardedFroms];
-                                    rule.DisregardedTos = [.. disregardedTos];
-                                    rule.ShowDisregarded = modellingFilter.ShowFullRules;
-                                    // if (relevantRulebase.NextRulebase != null)
-                                    // {
-                                    //     relevantRulebase.NextRulebase.Rules = [.. relevantRulebase.NextRulebase.Rules, rule];
-                                    //     relevantMgt.ReportedRuleIds.Add(rule.Id);
-                                    //     // relevantDevice.Rulebases = [.. relevantDevice.Rulebases, relevantRulebase];
-                                    // }
-                                }
-                            }
-                        }
-                        if (relevantDevice.ContainsRules())
-                        {
-                            relevantMgt.Devices = [.. relevantMgt.Devices, relevantDevice];
-                        }
-                    }
+                    PrepareDevice(dev, modellingFilter, relevantMgt, ownerIps);
                 }
                 if (relevantMgt.Devices.Length > 0)
                 {
-                    relevantMgt.ReportedRuleIds = relevantMgt.ReportedRuleIds.Distinct().ToList();
+                    relevantMgt.ReportedRuleIds = [.. relevantMgt.ReportedRuleIds.Distinct()];
                     relevantData.Add(relevantMgt);
                 }
             }
             return relevantData;
         }
 
+         private static void PrepareDevice(DeviceReport dev, ModellingFilter modellingFilter, ManagementReport relevantMgt, List<IPAddressRange> ownerIps)
+        {
+            DeviceReport relevantDevice = new(){ Name = dev.Name, Id = dev.Id };
+            List<Rule> deviceRules = dev.GetRuleList();
+            if (deviceRules != null)
+            {
+                // relevantDevice.Rules = [];
+                foreach (var rule in deviceRules)
+                {
+                    PrepareRule(rule, modellingFilter, relevantMgt, relevantDevice, ownerIps);
+                }
+                if (relevantDevice.GetNumerOfRules() > 0)
+                {
+                    relevantMgt.Devices = [.. relevantMgt.Devices, relevantDevice];
+                }
+            }
+        }
+
+
+        private static void PrepareRule(Rule rule, ModellingFilter modellingFilter, ManagementReport relevantMgt, DeviceReport relevantDevice, List<IPAddressRange> ownerIps)
+        {
+            if (modellingFilter.ShowDropRules || !rule.IsDropRule())
+            {
+                List<NetworkLocation> relevantFroms = [];
+                List<NetworkLocation> disregardedFroms = [.. rule.Froms];
+                if (modellingFilter.ShowSourceMatch)
+                {
+                    (relevantFroms, disregardedFroms) = CheckNetworkObjects(rule.Froms, rule.SourceNegated, modellingFilter, ownerIps);
+                }
+                List<NetworkLocation> relevantTos = [];
+                List<NetworkLocation> disregardedTos = [.. rule.Tos];
+                if (modellingFilter.ShowDestinationMatch)
+                {
+                    (relevantTos, disregardedTos) = CheckNetworkObjects(rule.Tos, rule.DestinationNegated, modellingFilter, ownerIps);
+                }
+
+                if (relevantFroms.Count > 0 || relevantTos.Count > 0)
+                {
+                    rule.Froms = [.. relevantFroms];
+                    rule.Tos = [.. relevantTos];
+                    rule.DisregardedFroms = [.. disregardedFroms];
+                    rule.DisregardedTos = [.. disregardedTos];
+                    rule.ShowDisregarded = modellingFilter.ShowFullRules;
+                    relevantDevice.AddRule(rule);
+                    relevantMgt.ReportedRuleIds.Add(rule.Id);
+                }
+            }
+        }
+
         private static async Task<List<IPAddressRange>> GetAppServers(ApiConnection apiConnection, int? ownerId)
         {
-            List<ModellingAppServer> appServers = await apiConnection.SendQueryAsync<List<ModellingAppServer>>(ModellingQueries.getAppServersForOwner, 
+            List<ModellingAppServer> appServers = await apiConnection.SendQueryAsync<List<ModellingAppServer>>(ModellingQueries.getAppServersForOwner,
                 new { appId = ownerId });
             return [.. appServers.ConvertAll(s => new IPAddressRange(IPAddress.Parse(s.Ip.StripOffNetmask()),
                 IPAddress.Parse((s.IpEnd != "" ? s.IpEnd : s.Ip).StripOffNetmask())))];
@@ -134,31 +140,36 @@ namespace FWO.Report
                 }
                 else
                 {
-                    bool found = false;
-                    if (obj.Object.Type.Name == ObjectType.Group)
-                    {
-                        foreach (var grpobj in obj.Object.ObjectGroupFlats)
-                        {
-                            if(grpobj.Object != null && CheckObj(grpobj.Object, negated, ownerIps))
-                             {
-                                relevantObjects.Add(obj);
-                                found = true;
-                                break;
-                            }
-                        }
-                    }
-                    else if(CheckObj(obj.Object, negated, ownerIps))
-                    {
-                        relevantObjects.Add(obj);
-                        found = true;
-                    }
-                    if (!found)
-                    {
-                        disregardedObjects.Add(obj);
-                    }
+                    CheckSpecificObj(obj, negated, ownerIps, relevantObjects, disregardedObjects);
                 }
             }
             return (relevantObjects, disregardedObjects);
+        }
+
+        private static void CheckSpecificObj(NetworkLocation obj, bool negated, List<IPAddressRange> ownerIps, List<NetworkLocation> relevantObjects, List<NetworkLocation> disregardedObjects)
+        {
+            bool found = false;
+            if(obj.Object.Type.Name == ObjectType.Group)
+            {
+                foreach(var grpobj in obj.Object.ObjectGroupFlats.Select(o => o.Object))
+                {
+                    if(grpobj != null && CheckObj(grpobj, negated, ownerIps))
+                    {
+                        relevantObjects.Add(obj);
+                        found = true;
+                        break;
+                    }
+                }
+            }
+            else if(CheckObj(obj.Object, negated, ownerIps))
+            {
+                relevantObjects.Add(obj);
+                found = true;
+            }
+            if(!found)
+            {
+                disregardedObjects.Add(obj);
+            }
         }
 
         private static bool CheckObj(NetworkObject obj, bool negated, List<IPAddressRange> ownerIps)
@@ -189,66 +200,47 @@ namespace FWO.Report
             return false;
         }
 
-        private void PrepareFilter(ManagementReport mgt, List<IPAddressRange> ownerIps)
+        private static void PrepareFilter(ManagementReport mgt, List<IPAddressRange> ownerIps)
         {
             mgt.RelevantObjectIds = [];
             mgt.HighlightedObjectIds = [];
             foreach (EnforcingDevice dev in mgt.Devices.Cast<EnforcingDevice>())
             {
                 List<Rule> allDeviceRules = dev.GetRuleListForDevice();
-                if (allDeviceRules.Count()>0)
+                if (allDeviceRules.Count() > 0)
                 {
                     foreach (var rule in allDeviceRules)
                     {
-                        foreach (var from in rule.Froms)
-                        {
-                            mgt.RelevantObjectIds.Add(from.Object.Id);
-                            mgt.HighlightedObjectIds.Add(from.Object.Id);
-                            if (from.Object.Type.Name == ObjectType.Group)
-                            {
-                                foreach (var grpobj in from.Object.ObjectGroupFlats)
-                                {
-                                    if (grpobj.Object != null && CheckObj(grpobj.Object, rule.SourceNegated, ownerIps))
-                                    {
-                                        mgt.HighlightedObjectIds.Add(grpobj.Object.Id);
-                                    }
-                                }
-                            }
-                        }
-                        if (rule.Froms.Length == 0)
-                        {
-                            foreach (var from in rule.DisregardedFroms)
-                            {
-                                mgt.RelevantObjectIds.Add(from.Object.Id);
-                            }
-                        }
-                        foreach (var to in rule.Tos)
-                        {
-                            mgt.RelevantObjectIds.Add(to.Object.Id);
-                            mgt.HighlightedObjectIds.Add(to.Object.Id);
-                            if (to.Object.Type.Name == ObjectType.Group)
-                            {
-                                foreach (var grpobj in to.Object.ObjectGroupFlats)
-                                {
-                                    if (grpobj.Object != null && CheckObj(grpobj.Object, rule.DestinationNegated, ownerIps))
-                                    {
-                                        mgt.HighlightedObjectIds.Add(grpobj.Object.Id);
-                                    }
-                                }
-                            }
-                        }
-                        if (rule.Tos.Length == 0)
-                        {
-                            foreach (var to in rule.DisregardedTos)
-                            {
-                                mgt.RelevantObjectIds.Add(to.Object.Id);
-                            }
-                        }
+                        PrepareObjects(rule.Froms, rule.SourceNegated, rule.DisregardedFroms, mgt, ownerIps);
+                        PrepareObjects(rule.Tos, rule.DestinationNegated, rule.DisregardedTos, mgt, ownerIps);
                     }
                 }
             }
-            mgt.RelevantObjectIds = mgt.RelevantObjectIds.Distinct().ToList();
-            mgt.HighlightedObjectIds = mgt.HighlightedObjectIds.Distinct().ToList();
+            mgt.RelevantObjectIds = [.. mgt.RelevantObjectIds.Distinct()];
+            mgt.HighlightedObjectIds = [.. mgt.HighlightedObjectIds.Distinct()];
+        }
+
+        private static void PrepareObjects(NetworkLocation[] networkLocations, bool negated, NetworkLocation[] disregardedLocations, ManagementReport mgt, List<IPAddressRange> ownerIps)
+        {
+            foreach(var from in networkLocations.Select(f => f.Object))
+            {
+                mgt.RelevantObjectIds.Add(from.Id);
+                mgt.HighlightedObjectIds.Add(from.Id);
+                if(from.Type.Name == ObjectType.Group)
+                {
+                    foreach(var grpobj in from.ObjectGroupFlats.Select(g => g.Object).Where(gr => gr != null && CheckObj(gr, negated, ownerIps)))
+                    {
+                        mgt.HighlightedObjectIds.Add(grpobj!.Id);
+                    }
+                }
+            }
+            if(networkLocations.Length == 0)
+            {
+                foreach(var from in disregardedLocations)
+                {
+                    mgt.RelevantObjectIds.Add(from.Object.Id);
+                }
+            }
         }
 
         private static void PrepareRsbOutput(ManagementReport mgt)
@@ -258,19 +250,13 @@ namespace FWO.Report
                 obj.Highlighted = mgt.HighlightedObjectIds.Contains(obj.Id) || obj.IsAnyObject();
                 if (obj.Type.Name == ObjectType.Group)
                 {
-                    foreach (var grpobj in obj.ObjectGroupFlats)
+                    foreach(var grpobj in obj.ObjectGroupFlats.Select(g => g.Object).Where(g => g != null))
                     {
-                        if (grpobj.Object != null)
-                        {
-                            grpobj.Object.Highlighted = mgt.HighlightedObjectIds.Contains(grpobj.Object.Id) || grpobj.Object.IsAnyObject();
-                        }
+                        grpobj!.Highlighted = mgt.HighlightedObjectIds.Contains(grpobj.Id) || grpobj.IsAnyObject();
                     }
-                    foreach (var grpobj in obj.ObjectGroups)
+                    foreach(var grpobj in obj.ObjectGroups.Select(g => g.Object).Where(g => g != null))
                     {
-                        if (grpobj.Object != null)
-                        {
-                            grpobj.Object.Highlighted = mgt.HighlightedObjectIds.Contains(grpobj.Object.Id) || grpobj.Object.IsAnyObject();
-                        }
+                        grpobj!.Highlighted = mgt.HighlightedObjectIds.Contains(grpobj.Id) || grpobj.IsAnyObject();
                     }
                 }
             }

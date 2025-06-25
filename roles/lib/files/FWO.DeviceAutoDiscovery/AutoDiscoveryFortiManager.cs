@@ -1,162 +1,178 @@
-﻿using System.Net;
-using RestSharp;
-using FWO.Basics;
-using FWO.Data;
-using FWO.Api.Client;
-using FWO.Logging;
-using FWO.Rest.Client;
+﻿using FWO.Api.Client;
 using FWO.Api.Client.Queries;
+using FWO.Data;
+using FWO.Logging;
+using MailKit.Security;
+using RestSharp;
+using System.Net;
+
 
 namespace FWO.DeviceAutoDiscovery
 {
     public class AutoDiscoveryFortiManager : AutoDiscoveryBase
     {
+        private readonly List<string> PredefinedAdoms = // TODO: move this to config file
+            ["FortiAnalyzer", "FortiAuthenticator", "FortiCache", "FortiCarrier", "FortiClient",
+                "FortiDDoS", "FortiDeceptor", "FortiFirewall", "FortiMail", "FortiManager", "FortiNAC", "FortiProxy",
+                "FortiSandbox", "FortiWeb", "Syslog", "Unmanaged_Devices", "others", "rootp"];
+
+        private readonly string Autodiscovery = "Autodiscovery";
+
         public AutoDiscoveryFortiManager(Management superManagement, ApiConnection apiConn) : base(superManagement, apiConn) { }
         
         public override async Task<List<Management>> Run()
         {
             List<Management> discoveredDevices = [];
-            Log.WriteAudit("Autodiscovery", $"starting discovery for {superManagement.Name} (id={superManagement.Id})");
+            Log.WriteAudit(Autodiscovery, $"starting discovery for {SuperManagement.Name} (id={SuperManagement.Id})");
             // #if DEBUG
             //      discoveredDevices = fillTestDevices();
             // #endif
-            if (superManagement.DeviceType.Name == "FortiManager")
+            if (SuperManagement.DeviceType.Name == "FortiManager")
             {
-                List<Adom> customAdoms = [];
-                List<string> predefinedAdoms = // TODO: move this to config file
-                    ["FortiAnalyzer", "FortiAuthenticator", "FortiCache", "FortiCarrier", "FortiClient",
-                        "FortiDDoS", "FortiDeceptor", "FortiFirewall", "FortiMail", "FortiManager", "FortiNAC", "FortiProxy",
-                        "FortiSandbox", "FortiWeb", "Syslog", "Unmanaged_Devices", "others", "rootp"];
-                Log.WriteDebug("Autodiscovery", $"discovering FortiManager adoms, vdoms, devices");
-                FortiManagerClient restClientFM = new (superManagement);
+                Log.WriteDebug(Autodiscovery, $"discovering FortiManager adoms, vdoms, devices");
+                FortiManagerClient restClientFM = new (SuperManagement);
 
-                RestResponse<SessionAuthInfo> sessionResponse = await restClientFM.AuthenticateUser(superManagement.ImportCredential.ImportUser, superManagement.ImportCredential.Secret);
+                RestResponse<SessionAuthInfo> sessionResponse = await restClientFM.AuthenticateUser(SuperManagement.ImportCredential.ImportUser, SuperManagement.ImportCredential.Secret);
                 if (sessionResponse.StatusCode == HttpStatusCode.OK && sessionResponse.IsSuccessful && !string.IsNullOrEmpty(sessionResponse?.Data?.SessionId))
                 {
                     string sessionId = sessionResponse.Data.SessionId;
-                    Log.WriteDebug("Autodiscovery", $"successful FortiManager login, got SessionID: {sessionId}");
-
+                    Log.WriteDebug(Autodiscovery, $"successful FortiManager login, got SessionID: {sessionId}");
 
                     // when passing sessionId, we always need to use @ verbatim identifier for special chars in sessionId
-                    if (string.IsNullOrEmpty(superManagement.Uid))  // pre v9 managements might not have a UID
+                    if (string.IsNullOrEmpty(SuperManagement.Uid))  // pre v9 managements might not have a UID
                     {
                         // update manager UID in existing management; typically triggered in daily scheduler
                         // this update happens only once when AutoDiscovery v9.0 is run for the first time
-                        superManagement.Uid = await GetFortiManagerUid(restClientFM, sessionId, superManagement.Name);
-                        var vars = new { id = superManagement.Id, uid = superManagement.Uid };
+                        SuperManagement.Uid = await GetFortiManagerUid(restClientFM, sessionId, SuperManagement.Name);
+                        var vars = new { id = SuperManagement.Id, uid = SuperManagement.Uid };
                         _ = (await apiConnection.SendQueryAsync<ReturnId>(DeviceQueries.updateManagementUid, vars)).UpdatedId;
                         // TODO: also add UIDs in gateways?
                     }
 
-
-                    RestResponse<FmApiTopLevelHelper> adomResponse = await restClientFM.GetAdoms(sessionId);
-                    if (adomResponse.StatusCode == HttpStatusCode.OK && adomResponse.IsSuccessful)
-                    {
-                        List<Adom>? adomList = adomResponse?.Data?.Result[0]?.AdomList;
-                        if (adomList?.Count > 0)
-
-                        {
-                            Log.WriteDebug("Autodiscovery", $"found a total of {adomList.Count} adoms");
-                            foreach (Adom adom in adomList)
-                            {
-                                Log.WriteDebug("Autodiscovery", $"found adom {adom.Name}");
-                                if (!predefinedAdoms.Contains(adom.Name))
-                                {
-                                    Log.WriteDebug("Autodiscovery", $"found non-predefined adom {adom.Name}");
-                                    customAdoms.Add(adom);
-                                }
-                            }
-                            customAdoms.Add(new Adom { Name = "global" }); // adding global adom
-                        }
-                        else
-                            Log.WriteWarning("Autodiscovery", $"found no adoms at all!");
-                    }
-                    else
-                        Log.WriteWarning("AutoDiscovery", $"error while getting ADOM list: {adomResponse.ErrorMessage}");
-
-                    RestResponse<FmApiTopLevelHelperDev> deviceResponse = await restClientFM.GetDevices(@sessionId);
-                    if (deviceResponse.StatusCode == HttpStatusCode.OK && deviceResponse.IsSuccessful)
-                    {
-                        if(deviceResponse.Data != null && deviceResponse.Data.Result.Count > 0)
-                        {
-                            List<FortiGate> fortigateList = deviceResponse.Data.Result[0].DeviceList;
-                            foreach (FortiGate fg in fortigateList)
-                            {
-                                Log.WriteDebug("Autodiscovery", $"found device {fg.Name} belonging to management VDOM {fg.MgtVdom}");
-                                foreach (Vdom vdom in fg.VdomList)
-                                {
-                                    Log.WriteDebug("Autodiscovery", $"found vdom {vdom.Name} belonging to device {fg.Name}");
-                                }
-                            }
-                        }
-                        foreach (Adom adom in customAdoms)
-                        {
-                            Management currentManagement = CreateManagement(superManagement, adom.Name, adom.Uid);
-                            RestResponse<FmApiTopLevelHelperAssign> assignResponse = await restClientFM.GetPackageAssignmentsPerAdom(@sessionId, adom.Name);
-                            if (assignResponse.StatusCode == HttpStatusCode.OK && assignResponse.IsSuccessful)
-                            {
-                                if(assignResponse.Data != null && assignResponse.Data.Result.Count > 0)
-                                {
-                                    List<Assignment> assignmentList = assignResponse.Data.Result[0].AssignmentList;
-                                    foreach (Assignment assign in assignmentList)
-                                    {
-                                        Device devFound = new();
-                                        Log.WriteDebug("Autodiscovery", $"found assignment1 in ADOM {adom.Name}: package {assign.PackageName} assigned to device {assign.RulebaseName}, vdom: {assign.VdomName} ");
-                                        if (assign.RulebaseName != null)
-                                        {
-                                            Log.WriteDebug("Autodiscovery", $"found assignment2 (device<>null) in ADOM {adom.Name}: package {assign.PackageName} assigned to device {assign.RulebaseName}, vdom: {assign.VdomName} ");
-                                            if (assign.RulebaseName != "")
-                                            {
-                                                Log.WriteDebug("Autodiscovery", $"found assignment3 (non-device-empty-string) in ADOM {adom.Name}: package {assign.PackageName} assigned to device {assign.RulebaseName}, vdom: {assign.VdomName} ");
-                                                string devName = assign.RulebaseName;
-                                                if (assign.VdomName != null && assign.VdomName != "")
-                                                    devName += "_" + assign.VdomName;
-                                                devFound = new Device
-                                                {
-                                                    Name = devName,
-                                                    // LocalRulebase = assign.PackageName,
-                                                    // Package = assign.PackageName,
-                                                    DeviceType = new DeviceType { Id = 10 } // fortiGate
-                                                };
-                                                // handle global vs. local based on VdomName?
-                                                Log.WriteDebug("Autodiscovery", $"assignment devFound Name = {devFound.Name}");
-                                                Log.WriteDebug("Autodiscovery", $"assignment currentManagement before Append contains {currentManagement.Devices.Length} devices");
-                                                currentManagement.Devices = currentManagement.Devices.Append(devFound).ToArray();
-                                                Log.WriteDebug("Autodiscovery", $"assignment currentManagement after Append contains {currentManagement.Devices.Length} devices");
-                                            }
-                                        }
-                                        adom.Assignments.Add(assign);
-                                    }
-                                }
-                            }
-                            discoveredDevices.Add(currentManagement); // add discovered adom including devices
-                        }
-                    }
-                    else
-                        Log.WriteWarning("AutoDiscovery", $"error while getting device/fortigate list: {deviceResponse.ErrorMessage}");
+                    await CollectDevices(sessionId, restClientFM, discoveredDevices);
 
                     sessionResponse = await restClientFM.DeAuthenticateUser(sessionId);
                     if (sessionResponse.StatusCode == HttpStatusCode.OK)
-                        Log.WriteDebug("Autodiscovery", $"successful FortiManager logout");
+                    {
+                        Log.WriteDebug(Autodiscovery, $"successful FortiManager logout");
+                    }
                     else
-                        Log.WriteWarning("Autodiscovery", $"error while logging out from FortiManager: {sessionResponse.ErrorMessage}");
+                    {
+                        Log.WriteWarning(Autodiscovery, $"error while logging out from FortiManager: {sessionResponse.ErrorMessage}");
+                    }
                 }
                 else
                 {
-                    string errorTxt = $"error while logging in to FortiManager: {sessionResponse?.ErrorMessage} ";
-                    if (sessionResponse?.Data?.SessionId == "")
+                    string errorTxt = $"error while logging in to FortiManager: {sessionResponse.ErrorMessage} ";
+                    if (sessionResponse.Data?.SessionId == "")
+                    {
                         errorTxt += "could not authenticate to FortiManager - got empty session ID";
-                    Log.WriteWarning("AutoDiscovery", errorTxt);
-                    throw new Exception(errorTxt);
+                    }
+                    Log.WriteWarning(Autodiscovery, errorTxt);
+                    throw new AuthenticationException(errorTxt);
                 }
             }
             return await GetDeltas(discoveredDevices);
         }
 
+        private async Task CollectDevices(string sessionId, FortiManagerClient restClientFM, List<Management> discoveredDevices)
+        {
+            List<Adom> customAdoms = [];
+            await GetAdoms(sessionId, customAdoms, restClientFM);
+
+            RestResponse<FmApiTopLevelHelperDev> deviceResponse = await restClientFM.GetDevices(@sessionId);
+            if (deviceResponse.StatusCode == HttpStatusCode.OK && deviceResponse.IsSuccessful)
+            {
+                LogDeviceResponse(deviceResponse);
+                foreach (Adom adom in customAdoms)
+                {
+                    discoveredDevices.Add(await CreateManagementFromAdom(adom, sessionId, restClientFM));
+                }
+            }
+            else
+            {
+                Log.WriteWarning(Autodiscovery, $"error while getting device/fortigate list: {deviceResponse.ErrorMessage}");
+            }
+        }
+
+        private void LogDeviceResponse(RestResponse<FmApiTopLevelHelperDev> deviceResponse)
+        {
+            if (deviceResponse.Data != null && deviceResponse.Data.Result.Count > 0)
+            {
+                List<FortiGate> fortigateList = deviceResponse.Data.Result[0].DeviceList;
+                foreach (FortiGate fg in fortigateList)
+                {
+                    Log.WriteDebug(Autodiscovery, $"found device {fg.Name} belonging to management VDOM {fg.MgtVdom}");
+                    foreach (Vdom vdom in fg.VdomList)
+                    {
+                        Log.WriteDebug(Autodiscovery, $"found vdom {vdom.Name} belonging to device {fg.Name}");
+                    }
+                }
+            }
+        }
+
+        private async Task GetAdoms(string sessionId, List<Adom> customAdoms, FortiManagerClient restClientFM)
+        {
+            RestResponse<FmApiTopLevelHelper> adomResponse = await restClientFM.GetAdoms(sessionId);
+            if (adomResponse.StatusCode == HttpStatusCode.OK && adomResponse.IsSuccessful)
+            {
+                List<Adom>? adomList = adomResponse.Data?.Result[0]?.AdomList;
+                if (adomList?.Count > 0)
+                {
+                    Log.WriteDebug(Autodiscovery, $"found a total of {adomList.Count} adoms");
+                    foreach (Adom adom in adomList)
+                    {
+                        Log.WriteDebug(Autodiscovery, $"found adom {adom.Name}");
+                        if (!PredefinedAdoms.Contains(adom.Name))
+                        {
+                            Log.WriteDebug(Autodiscovery, $"found non-predefined adom {adom.Name}");
+                            customAdoms.Add(adom);
+                        }
+                    }
+                    customAdoms.Add(new Adom { Name = "global" }); // adding global adom
+                }
+                else
+                {
+                    Log.WriteWarning(Autodiscovery, $"found no adoms at all!");
+                }
+            }
+            else
+            {
+                Log.WriteWarning(Autodiscovery, $"error while getting ADOM list: {adomResponse.ErrorMessage}");
+            }
+        }
+
+        private async Task<Management> CreateManagementFromAdom(Adom adom, string sessionId, FortiManagerClient restClientFM)
+        {
+            Management currentManagement = CreateManagement(SuperManagement, adom.Name, adom.Uid);
+            RestResponse<FmApiTopLevelHelperAssign> assignResponse = await restClientFM.GetPackageAssignmentsPerAdom(@sessionId, adom.Name);
+            if (assignResponse.StatusCode == HttpStatusCode.OK && assignResponse.IsSuccessful && assignResponse.Data != null && assignResponse.Data.Result.Count > 0)
+            {
+                List<Assignment> assignmentList = assignResponse.Data.Result[0].AssignmentList;
+                foreach (Assignment assign in assignmentList)
+                {
+                    Log.WriteDebug(Autodiscovery, $"found assignment1 in ADOM {adom.Name}: package {assign.PackageName} assigned to device {assign.RulebaseName}, vdom: {assign.VdomName} ");
+                    if (assign.RulebaseName != null)
+                    {
+                        Log.WriteDebug(Autodiscovery, $"found assignment2 (device<>null) in ADOM {adom.Name}: package {assign.PackageName} assigned to device {assign.RulebaseName}, vdom: {assign.VdomName} ");
+                        if (assign.RulebaseName != "")
+                        {
+                            Log.WriteDebug(Autodiscovery, $"found assignment3 (non-device-empty-string) in ADOM {adom.Name}: package {assign.PackageName} assigned to device {assign.RulebaseName}, vdom: {assign.VdomName} ");
+                            Log.WriteDebug(Autodiscovery, $"assignment currentManagement before Append contains {currentManagement.Devices.Length} devices");
+                            currentManagement.Devices = [.. currentManagement.Devices, CreateDeviceFromAssignment(assign)];
+                            Log.WriteDebug(Autodiscovery, $"assignment currentManagement after Append contains {currentManagement.Devices.Length} devices");
+                        }
+                    }
+                    adom.Assignments.Add(assign);
+                }
+            }
+            return currentManagement;
+        }
+
         override protected Management CreateManagement(Management superManagement, string domainName, string domainUid)
         {
             // create object from discovered adom
-            Management currentManagement = new Management
+            Management currentManagement = new()
             {
                 Name = superManagement.Name + "__" + domainName,
                 Uid = domainUid,
@@ -174,6 +190,25 @@ namespace FWO.DeviceAutoDiscovery
                 Devices = []
             };
             return currentManagement;
+        }
+
+        private Device CreateDeviceFromAssignment(Assignment assign)
+        {
+            string devName = assign.RulebaseName;
+            if (assign.VdomName != null && assign.VdomName != "")
+            {
+                devName += "_" + assign.VdomName;
+            }
+            Device devFound = new()
+            {
+                Name = devName,
+                // LocalRulebase = assign.PackageName,
+                // Package = assign.PackageName,
+                DeviceType = new DeviceType { Id = 10 } // fortiGate
+            };
+            // handle global vs. local based on VdomName?
+            Log.WriteDebug(Autodiscovery, $"assignment devFound Name = {devFound.Name}");
+            return devFound;
         }
 
         protected static async Task<string> GetFortiManagerUid(FortiManagerClient restClient, string sessionIdPerDomain, string mgmName)

@@ -183,7 +183,7 @@ namespace FWO.Test
             ClassicAssert.AreEqual("FWOC6, Implementation Instructions: NAT: To x.x.x.x", TaskList[3].Comments[0].Comment.CommentText);
             ClassicAssert.AreEqual("create", TaskList[3].RequestAction);
             ClassicAssert.AreEqual(4, TaskList[3].TaskNumber);
-            ClassicAssert.AreEqual("New Connection: Conn6", TaskList[3].Title);
+            ClassicAssert.AreEqual("New Connection: Conn6 (FWOC6)", TaskList[3].Title);
             ClassicAssert.AreEqual(1, TaskList[3].Owners.Count);
             ClassicAssert.AreEqual("App1", TaskList[3].Owners[0].Owner.Name);
             ClassicAssert.AreEqual(3, TaskList[3].Elements.Count);

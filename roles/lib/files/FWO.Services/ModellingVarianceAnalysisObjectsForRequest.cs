@@ -132,7 +132,7 @@ namespace FWO.Services
             Dictionary<string, string>? addInfo = new() { { AdditionalInfoKeys.ConnId, conn.Id.ToString() } };
             return new()
             {
-                Title = ConstructTitle(conn),
+                Title = ConstructCreateTaskTitle(conn),
                 TaskType = WfTaskType.access.ToString(),
                 ManagementId = mgt.Id,
                 OnManagement = mgt,
@@ -144,7 +144,7 @@ namespace FWO.Services
             };
         }
 
-        private string ConstructTitle(ModellingConnection conn)
+        private string ConstructCreateTaskTitle(ModellingConnection conn)
         {
             string commentString = $" ({ userConfig.ModModelledMarker + conn.Id.ToString() })";
             return (conn.IsCommonService ? userConfig.GetText("new_common_service") : userConfig.GetText("new_connection")) + ": " + (conn.Name ?? "") + commentString;

@@ -126,11 +126,10 @@ namespace FWO.Report
         }
 
 
-        protected string GenerateHtmlFrame(string title, string filter, DateTime date, StringBuilder htmlReport)
+        protected string GenerateHtmlFrame(string title, string filter, DateTime date, StringBuilder htmlReport, TimeFilter? timefilter = null)
         {
-            return GenerateHtmlFrameBase(title, filter, date, htmlReport,
-                string.Join("; ", Array.ConvertAll(ReportData.ManagementData.Where(mgt => !mgt.Ignore).ToArray(), m => m.NameAndDeviceNames())),
-                Query.SelectedOwner?.Name);
+            string deviceFilter = string.Join("; ", Array.ConvertAll(ReportData.ManagementData.Where(mgt => !mgt.Ignore).ToArray(), m => m.NameAndDeviceNames()));
+            return GenerateHtmlFrameBase(title, filter, date, htmlReport, deviceFilter, Query.SelectedOwner?.Name, timefilter);
         }
     }
 }

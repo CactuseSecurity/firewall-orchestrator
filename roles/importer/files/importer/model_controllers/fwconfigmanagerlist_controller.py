@@ -41,6 +41,19 @@ class FwConfigManagerListController(FwConfigManagerList):
         if self.ConfigFormat==conf2.ConfigFormat:
             self.ManagerSet.extend(conf2.ManagerSet)
 
+    def generate_empty_config(self, is_super_manager=False):
+        """
+        Generates an empty FwConfigManagerListController with a single empty FwConfigManager.
+        """
+        empty_config = FwConfigManagerListController()
+        empty_config.ConfigFormat = ConfFormat.NORMALIZED
+        empty_manager = FwConfigManager(ManagerUid=calcManagerUidHash(ManagementDetails()),
+                                        IsSuperManager=is_super_manager,
+                                        SubManagerIds=[],
+                                        Configs=[])
+        empty_config.addManager(empty_manager)
+        return empty_config
+
 # to be re-written:
     def toJsonLegacy(self):
         return deserializeClassToDictRecursively(self)

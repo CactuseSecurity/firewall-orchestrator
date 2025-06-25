@@ -55,6 +55,8 @@ def find_rulebase_to_parse(rulebase_list, rulebase_uid):
             for section in chunk['rulebase']:
                 if section['uid'] == rulebase_uid:
                     return section, True
+    # TODO: need to make sure that we handle the case where a rulebase is not found! 
+    # currently this will return None, False and cause an exception
                     
 def initialize_normalized_rulebase(rulebase_to_parse, mgm_uid):
     rulebaseName = rulebase_to_parse['name']

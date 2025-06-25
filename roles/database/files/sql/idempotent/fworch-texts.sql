@@ -1511,6 +1511,8 @@ INSERT INTO txt VALUES ('predef_services',      'German', 	'Vordefinierte Dienst
 INSERT INTO txt VALUES ('predef_services',      'English', 	'Predefined Services');
 INSERT INTO txt VALUES ('common_areas',         'German', 	'Gemeinsame Netzwerkareas');
 INSERT INTO txt VALUES ('common_areas',         'English', 	'Common Network Areas');
+INSERT INTO txt VALUES ('special_user_areas',   'German', 	'Netzwerkareas f&uuml;r Nutzer');
+INSERT INTO txt VALUES ('special_user_areas',   'English', 	'Network Areas for Users');
 INSERT INTO txt VALUES ('search_interface',     'German', 	'Schnittstelle suchen');
 INSERT INTO txt VALUES ('search_interface',     'English', 	'Search Interface');
 INSERT INTO txt VALUES ('used_interface',       'German', 	'Genutzte Schnittstelle');
@@ -3242,7 +3244,7 @@ INSERT INTO txt VALUES ('E5423', 'English', 'IP Address/IP Range malformed');
 INSERT INTO txt VALUES ('E5430', 'German',  'Hochgeladener Dateityp ist nicht erlaubt');
 INSERT INTO txt VALUES ('E5430', 'English', 'Uploaded Filetype is not allowed');
 
-INSERT INTO txt VALUES ('E5431', 'German',  'Hochgeladene Dateit überschreitet maximum');
+INSERT INTO txt VALUES ('E5431', 'German',  'Hochgeladene Datei &uuml;berschreitet Maximum');
 INSERT INTO txt VALUES ('E5431', 'English', 'Uploaded File exceeds the allowed maximum');
 
 INSERT INTO txt VALUES ('E6001', 'German', 	'Der Re-Login war nicht erfolgreich. Haben Sie ein falsches Passwort eingegeben? Schauen Sie f&uuml;r Details bitte in die Logs.');
@@ -3356,7 +3358,7 @@ INSERT INTO txt VALUES ('E9301', 'English', 'Template File not found!');
 INSERT INTO txt VALUES ('E9302', 'German',  'HTML ist nicht valide!');
 INSERT INTO txt VALUES ('E9302', 'English', 'HTML is invalid!');
 
-INSERT INTO txt VALUES ('E9400', 'German',  'Leere Datei hochgeladen/keine Änderungen wurden vorgenommen');
+INSERT INTO txt VALUES ('E9400', 'German',  'Leere Datei hochgeladen/keine &Auml;nderungen wurden vorgenommen');
 INSERT INTO txt VALUES ('E9400', 'English', 'Empty file provided/no changes where applied');
 
 -- errors from Api
@@ -5443,11 +5445,11 @@ INSERT INTO txt VALUES ('H5636', 'German',  'App Zonen erstellen: Wenn dieses Fl
 INSERT INTO txt VALUES ('H5636', 'English', 'Create app zones: If this flag is set, app zones are created.');
 INSERT INTO txt VALUES ('H5637', 'German',  'Hier werden die m&ouml;glichen Werte f&uuml;r Sonderkonfigurationstypen gesetzt, z.B. NAT. Ein Pr&auml;fix "Doku_" (welches in der Benutzeroberfl&auml;che nicht dargestellt wird) bewirkt die Markierung einer Verbindung als nur zu Dokumentationszwecken.
     Sie wird dann bei der Beantragung und dem Soll-Ist-Abgleich nicht ber&uuml;cksichtigt. Endet der Feldinhalt mit dem String "_user" oder "-user" (Case-insensitiv), so wird in den Produktionsdaten mindestens ein Objekt mit dem im zugeh&ouml;rigen Text angegebenen Namen erwartet.
-    In diesem werden dann alle (mindestens eines) nicht anderweitig zuzuordnenden modellierten Objekte als enthalten angenommen.
+    Diesem werden dann alle (mindestens eines) nicht anderweitig zuzuordnenden modellierten Objekte aus der Spezielle-Nutzer-Liste als enthalten angenommen.
 ');
 INSERT INTO txt VALUES ('H5637', 'English', 'Set here the possible values for extra configuration types, e.g. NAT. A prefix "Doku_" (which is then not displayed in the UI) leads to marking the connection as for documentation only.
     It will not be regarded in the requesting process and Variance Analysis. If the field content ends with "_user" or "-user"(case insensitive), an object with the name given in the extra configuration text is expected to be found in the production data.
-    This object is assumed to contain all modelled objects (at least one), which could not be matched so far.
+    This object is assumed to contain all modelled objects (at least one) from the special user list, which could not be matched so far.
 ');
 INSERT INTO txt VALUES ('H5638', 'German',  'Hier wird der Anweisungstext f&uuml;r Sonderkonfigurationen eingetragen.');
 INSERT INTO txt VALUES ('H5638', 'English', 'Insert text for extra configurations.');
@@ -5501,6 +5503,8 @@ INSERT INTO txt VALUES ('H5653', 'German',  'Soll-Ist-Abgleich-Start: Legt eine 
 INSERT INTO txt VALUES ('H5653', 'English', 'Variance Analysis start at: Defines a referential time from which the Variance Analysis intervals are calculated.');
 INSERT INTO txt VALUES ('H5654', 'German',  'Soll-Ist-Abgleich auf Schaltfl&auml;che: Es wird eine Schaltfl&auml;che angeboten, um den Status der Verbindungen mittels Soll-Ist-Abgleich synchron zu ermitteln.');
 INSERT INTO txt VALUES ('H5654', 'English', 'Variance Analysis Refresh Button: A button is offered to calculate the state of the connections synchroneously via Variance Analysis.');
+INSERT INTO txt VALUES ('H5655', 'German',  'Netzwerkareas f&uuml;r Nutzer: Vom Administrator vorgegebene Netzwerkareas, welche f&uuml;r die Zuordnung &uuml;ber die Sonderkonfiguration genutzt werden d&uuml;rfen. Die beiden Auswahlfelder "in Quelle" und "in Ziel" legen fest, wo die Netzwerkarea genutzt werden darf.');
+INSERT INTO txt VALUES ('H5655', 'English', 'Network Areas for Users: Network areas defined by the administrator, which are permitted to be used for assignment via the Extra Configurations. The flags "in Source" and "in Destination" determine, where the Network Areas are allowed to be used.');
 
 INSERT INTO txt VALUES ('H5701', 'German',  'Die in der Datenbank hinterlegten sprachabh&auml;ngigen Texte k&ouml;nnen individuell &uuml;berschrieben werden.
     Dabei werden die vom System vorgegebenen Texte nicht ge&auml;ndert, sondern nur durch die hier definierten Texte - falls vorhanden - &uuml;berblendet.

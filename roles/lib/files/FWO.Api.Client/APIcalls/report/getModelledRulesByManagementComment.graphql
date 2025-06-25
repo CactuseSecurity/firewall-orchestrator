@@ -1,9 +1,8 @@
 query getModelledRulesByManagementComment (
   $mgmId: Int!
-  $relevantImportId: bigint
   $active: Boolean
-  $import_id_start: bigint # needed for fragments
-  $import_id_end: bigint # todo: should use here instead of relevantImportId? to show correct flats
+  $import_id_start: bigint
+  $import_id_end: bigint
   $marker: String
 ) {
   rule (
@@ -14,7 +13,7 @@ query getModelledRulesByManagementComment (
     rule_head_text: { _is_null: true }
     rule_disabled: { _eq: false }
     action_id: { _nin: [2,3,7] }
-    import_control: { control_id: {_lte: $relevantImportId } }, importControlByRuleLastSeen: { control_id: {_gte: $relevantImportId }}
+    import_control: { control_id: {_lte: $import_id_end } }, importControlByRuleLastSeen: { control_id: {_gte: $import_id_start } }
     rule_comment: { _ilike: $marker }
   }
   order_by: { rule_num_numeric: asc }){

@@ -49,7 +49,7 @@ namespace FWO.Test
         {
             Name = "FWOC4",
             MgmtId = 1,
-            Froms = [ new(new(), SpecObj1), new(new(), Nwgroup1) ],
+            Froms = [ new(new(), SpecObj1), new(new(), NwObj1) ],
             Tos = [ new(new(), SpecObj2) ],
             Services = [ new(){ Content = Svc1 } ]
         };
@@ -65,7 +65,7 @@ namespace FWO.Test
         {
             Name = "FWOC5",
             MgmtId = 1,
-            Froms = [ new(new(), SpecObj1), new(new(), Nwgroup1) ],
+            Froms = [ new(new(), SpecObj1), new(new(), NwObj1) ],
             Tos = [ new(new(), SpecObj2) ],
             Services = [ new(){ Content = Svc1 } ]
         };
@@ -152,6 +152,11 @@ namespace FWO.Test
                     throw new ArgumentException($"ConnId {connId} is not valid");
                 }
                 throw new ArgumentException($"No Variables");
+            }
+            else if (responseType == typeof(List<ModellingNetworkArea>))
+            {
+                GraphQLResponse<dynamic> response = new() { Data = new List<ModellingNetworkArea>() { new(){ Id = 1 } ,new(){ Id = 3 }} };
+                return response.Data;
             }
 
             throw new NotImplementedException();

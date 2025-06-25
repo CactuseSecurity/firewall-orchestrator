@@ -65,6 +65,10 @@ class TestFwoConfigImportConsistency(unittest.TestCase):
         mock_api = import_state.api_connection
         config_from_api = mock_api.build_config_from_db(import_state, config.rulebases[0].mgm_uid, config.gateways)
 
+        service_provider.dispose_service(Services.GLOBAL_STATE)
+        service_provider.dispose_service(Services.GROUP_FLATS_MAPPER)
+        service_provider.dispose_service(Services.UID2ID_MAPPER)
+
         # check if config objects are equal, if a field is not equal, it will raise an AssertionError
         self.assertEqual(config, config_from_api, 
                          f"Config objects are not equal: {find_first_diff(config.dict(), config_from_api.dict())}")
@@ -109,6 +113,10 @@ class TestFwoConfigImportConsistency(unittest.TestCase):
                 self.fail(f"Member ID {member_id} not found in UID2ID mapper.")
             member_uids_db[uid].add(member_uid_db)
         
+        service_provider.dispose_service(Services.GLOBAL_STATE)
+        service_provider.dispose_service(Services.GROUP_FLATS_MAPPER)
+        service_provider.dispose_service(Services.UID2ID_MAPPER)
+
         self.assertEqual(member_uids_config, member_uids_db,
                             f"Member UIDs in config and DB do not match: {find_first_diff(member_uids_config, member_uids_db)}")
         #TODO: check flat groups as well

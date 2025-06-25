@@ -1,8 +1,8 @@
 from typing import List, Optional
 from fwo_log import getFwoLogger
 from model_controllers.import_state_controller import ImportStateController
-from importer.services.service_provider import ServiceProvider
-from importer.services.enums import Services
+from services.service_provider import ServiceProvider
+from services.enums import Services
 
 
 class Uid2IdMapper:

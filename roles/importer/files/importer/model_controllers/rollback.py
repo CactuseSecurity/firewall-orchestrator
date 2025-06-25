@@ -3,8 +3,8 @@ import fwo_const
 from fwo_log import getFwoLogger
 from fwo_api import get_graphql_code
 from model_controllers.import_state_controller import ImportStateController
-from importer.services.service_provider import ServiceProvider
-from importer.services.enums import Services
+from services.service_provider import ServiceProvider
+from services.enums import Services
 
 # this class is used for rolling back an import
 class FwConfigImportRollback():

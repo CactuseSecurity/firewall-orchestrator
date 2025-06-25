@@ -143,7 +143,7 @@ class ImportStateController(ImportState):
         return result 
 
 
-    def call(self, query, queryVariables="", debug_level=0, analyze_payload=False):
+    def call(self, query, queryVariables={}, debug_level=0, analyze_payload=False):
         """
         Call the FWO API with the given query and query variables.
         This method is a wrapper around the FwoApi class to make it easier to call the API.
@@ -214,7 +214,7 @@ class ImportStateController(ImportState):
     def SetLinkTypeMap(self):
         query = "query getLinkType { stm_link_type { id name } }"
         try:
-            result = self.call(query=query, queryVariables="")
+            result = self.call(query=query, queryVariables={})
         except Exception:
             logger = getFwoLogger()
             logger.error("Error while getting stm_link_type")

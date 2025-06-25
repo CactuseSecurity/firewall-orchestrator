@@ -5,7 +5,6 @@ from importer.models.rulebase import Rulebase
 from importer.models.serviceobject import ServiceObject
 from importer.models.rule import RuleNormalized
 from test.mocking.mock_config import MockFwConfigNormalizedBuilder
-import pprint
 
 TABLE_IDENTIFIERS = {
     "stm_change_type": "change_type_id",
@@ -162,7 +161,6 @@ class MockFwoApi(FwoApi):
             self.tables[table_name] = {row[TABLE_IDENTIFIERS[table_name]]: row for row in rows}
 
     def call(self, query, queryVariables="", debug_level=0, analyze_payload=False):
-        print(query)
         ast = parse(query)
         # Find the first operation definition
         op_def = next((d for d in ast.definitions if hasattr(d, "operation")), None)
@@ -183,7 +181,7 @@ class MockFwoApi(FwoApi):
         result = {"data": {}}
         for sel in op_def.selection_set.selections:
             field = sel.name.value
-            pprint.pprint(object_to_dict(sel))
+            # pprint.pprint(object_to_dict(sel))
             if field.startswith("insert_"):
                 table = field[len("insert_"):]
                 # Find the argument name for objects

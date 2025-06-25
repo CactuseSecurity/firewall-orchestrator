@@ -6,9 +6,9 @@ from model_controllers.fwconfig_normalized_controller import FwConfigNormalized
 from fwo_log import getFwoLogger
 from model_controllers.rulebase_link_controller import RulebaseLinkController
 from models.rulebase_link import RulebaseLink
-from importer.services.service_provider import ServiceProvider
-from importer.services.global_state import GlobalState
-from importer.services.enums import Services
+from services.service_provider import ServiceProvider
+from services.global_state import GlobalState
+from services.enums import Services
 # from model_controllers.rulebase_link_uid_based_controller import RulebaseLink, RulebaseLinkUidBasedController
 
 # this class is used for importing a config into the FWO API

@@ -18,9 +18,9 @@ from models.rule_to import RuleTo
 from models.rule_service import RuleService
 from model_controllers.fwconfig_import_ruleorder import RuleOrderService
 from models.rule import RuleNormalized
-from importer.services.enums import Services
-from importer.services.uid2id_mapper import Uid2IdMapper
-from importer.services.service_provider import ServiceProvider
+from services.enums import Services
+from services.uid2id_mapper import Uid2IdMapper
+from services.service_provider import ServiceProvider
 
 
 # this class is used for importing rules and rule refs into the FWO API

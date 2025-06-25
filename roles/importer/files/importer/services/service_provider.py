@@ -1,5 +1,5 @@
 from typing import Callable, Any
-from importer.services.enums import Services, Lifetime
+from services.enums import Services, Lifetime
 
 
 class ServiceProvider:

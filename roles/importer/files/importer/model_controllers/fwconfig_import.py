@@ -12,9 +12,9 @@ from model_controllers.fwconfig_import_object import FwConfigImportObject
 from model_controllers.fwconfig_import_rule import FwConfigImportRule
 from model_controllers.fwconfig_import_gateway import FwConfigImportGateway
 from model_controllers.rule_enforced_on_gateway_controller import RuleEnforcedOnGatewayController
-from importer.services.service_provider import ServiceProvider
-from importer.services.global_state import GlobalState
-from importer.services.enums import Services
+from services.service_provider import ServiceProvider
+from services.global_state import GlobalState
+from services.enums import Services
 
 
 # this class is used for importing a config into the FWO API

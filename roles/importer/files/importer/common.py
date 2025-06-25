@@ -10,8 +10,8 @@ import importlib.util
 from fwo_config import readConfig
 from fwo_const import fwo_config_filename, importer_user_name, importer_base_dir
 from pathlib import Path
-from importer.services.service_provider import ServiceProvider
-from importer.services.enums import Services
+from services.service_provider import ServiceProvider
+from services.enums import Services
 if importer_base_dir not in sys.path:
     sys.path.append(importer_base_dir) # adding absolute path here once
 import fwo_api
@@ -34,11 +34,11 @@ from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerList
 from model_controllers.check_consistency import FwConfigImportCheckConsistency
 from model_controllers.rollback import FwConfigImportRollback
 import fwo_signalling
-from importer.services.service_provider import ServiceProvider
-from importer.services.uid2id_mapper import Uid2IdMapper
-from importer.services.group_flats_mapper import GroupFlatsMapper
-from importer.services.global_state import GlobalState
-from importer.services.enums import Services, Lifetime
+from services.service_provider import ServiceProvider
+from services.uid2id_mapper import Uid2IdMapper
+from services.group_flats_mapper import GroupFlatsMapper
+from services.global_state import GlobalState
+from services.enums import Services, Lifetime
 
 """  
     import_management: import a single management (if no import for it is running)

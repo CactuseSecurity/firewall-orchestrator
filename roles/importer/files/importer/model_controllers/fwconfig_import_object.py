@@ -9,8 +9,8 @@ from model_controllers.fwconfig_normalized_controller import FwConfigNormalized
 from models.networkobject import NetworkObjectForImport
 from models.serviceobject import ServiceObjectForImport
 import fwo_const
-from importer.services.service_provider import ServiceProvider
-from importer.services.enums import Services
+from services.service_provider import ServiceProvider
+from services.enums import Services
 
 # this class is used for importing a config into the FWO API
 class FwConfigImportObject():

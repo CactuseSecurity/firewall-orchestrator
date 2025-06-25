@@ -5,11 +5,11 @@ import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '../importer'))
 
 from importer import fwo_const
-from importer.services.group_flats_mapper import GroupFlatsMapper
-from importer.services.uid2id_mapper import Uid2IdMapper
-from importer.services.global_state import GlobalState
-from importer.services.service_provider import ServiceProvider
-from importer.services.enums import Lifetime, Services
+from services.group_flats_mapper import GroupFlatsMapper # type: ignore
+from services.uid2id_mapper import Uid2IdMapper # type: ignore
+from services.global_state import GlobalState # type: ignore
+from services.service_provider import ServiceProvider # type: ignore
+from services.enums import Lifetime, Services # type: ignore
 from importer.model_controllers.fwconfig_import import FwConfigImport
 from test.mocking.mock_import_state import MockImportStateController
 from test.tools.set_up_test import set_up_config_for_import_consistency_test

@@ -11,11 +11,11 @@ import fwo_const
 def normalize_network_objects(full_config, config2import, import_id, mgm_id=0):
     nw_objects = []
     logger = getFwoLogger()
-    global_domain = initialize_global_domain(full_config['object_domains'])
+    global_domain = initialize_global_domain(full_config['objects'])
     
-    for domain in full_config['object_domains']:
-        for obj_table in domain['object_types']:
-            collect_nw_objects(obj_table, nw_objects, global_domain, mgm_id=mgm_id)
+    for obj_dict in full_config['objects']:
+        collect_nw_objects(obj_dict, nw_objects, global_domain, mgm_id=mgm_id)
+        
         for nw_obj in nw_objects:
             nw_obj.update({'control_id': import_id})
             if nw_obj['obj_typ'] == 'interoperable-device':
@@ -38,12 +38,21 @@ def set_dummy_ip_for_object_without_ip(nw_obj):
         nw_obj.update({'obj_ip': fwo_const.dummy_ip})
         nw_obj.update({'obj_ip_end': fwo_const.dummy_ip})
 
-def initialize_global_domain(object_domains : list[dict]):
+def initialize_global_domain(objects : list[dict]):
     """Returns CP Global Domain for MDS and standalone domain otherwise
     """
+
+    if  len(objects) == 0:
+        getFwoLogger().warning("No objects found in full config, cannot initialize global domain")
+        return {}
+    
+    if 'domain_uid' not in objects[0] or 'domain_name' not in objects[0]:
+        getFwoLogger().debug("No domain information found in objects, this seems to be a standalone management")
+        return {}
+    
     global_domain = {'domain': {
-        'uid': object_domains[0]['domain_uid'],
-        'name': object_domains[0]['domain_name']}}
+        'uid': objects[0]['domain_uid'],
+        'name': objects[0]['domain_name']}}
 
     return global_domain
 
@@ -52,24 +61,36 @@ def collect_nw_objects(object_table, nw_objects, global_domain, mgm_id=0):
     """Collect nw_objects from object tables and write them into global nw_objects dict
     """
 
-    if object_table['type'] in cp_const.nw_obj_table_names:
-        for chunk in object_table['chunks']:
-            if 'objects' in chunk:
-                for obj in chunk['objects']:
-                    obj_type = 'undef'
+    if object_table['type'] not in cp_const.nw_obj_table_names:
+        return
+    for chunk in object_table['chunks']:
+        if 'objects' in chunk:
+            for obj in chunk['objects']:
+                obj_type = 'undef'
 
-                    obj_type = account_for_updateable_objects(obj, obj_type, global_domain)
-                    if is_obj_already_collected(nw_objects, obj):
-                        continue
-                    member_refs, member_names = handle_members(obj)  
-                    ip_addr = get_ip_of_obj(obj, mgm_id=mgm_id)
-                    obj_type, first_ip, last_ip = handle_object_type_and_ip(obj, obj_type, ip_addr)  
-                    comments = get_comment_and_color_of_obj(obj)
+                obj_type = account_for_updateable_objects(obj, obj_type, global_domain)
+                if is_obj_already_collected(nw_objects, obj):
+                    continue
+                member_refs, member_names = handle_members(obj)  
+                ip_addr = get_ip_of_obj(obj, mgm_id=mgm_id)
+                obj_type, first_ip, last_ip = handle_object_type_and_ip(obj, obj_type, ip_addr)  
+                comments = get_comment_and_color_of_obj(obj)
 
-                    nw_objects.append({'obj_uid': obj['uid'], 'obj_name': obj['name'], 'obj_color': obj['color'],
-                                        'obj_comment': comments, 'obj_domain': obj['domain']['uid'],
-                                        'obj_typ': obj_type, 'obj_ip': first_ip, 'obj_ip_end': last_ip,
-                                        'obj_member_refs': member_refs, 'obj_member_names': member_names})
+                nw_objects.append({'obj_uid': obj['uid'], 'obj_name': obj['name'], 'obj_color': obj['color'],
+                                    'obj_comment': comments, 'obj_domain': get_domain_uid(obj, global_domain),
+                                    'obj_typ': obj_type, 'obj_ip': first_ip, 'obj_ip_end': last_ip,
+                                    'obj_member_refs': member_refs, 'obj_member_names': member_names})
+
+def get_domain_uid(obj, global_domain):
+    """Returns the domain UID for the given object.
+    If the object has a 'domain' key with a 'uid', it returns that UID.
+    Otherwise, it returns the global domain UID.
+    """
+    if 'domain' not in obj or 'uid' not in obj['domain']:
+        return obj.update({'domain': global_domain})
+    else:
+        return obj['domain']['uid']
+
 
 def account_for_updateable_objects(obj, obj_type, global_domain):
     """Updateable objects get type group global domain
@@ -77,9 +98,9 @@ def account_for_updateable_objects(obj, obj_type, global_domain):
     if 'uid-in-updatable-objects-repository' in obj:
         obj_type = 'group'
         obj['name'] = obj['name-in-updatable-objects-repository']
-        if not 'uid' in obj:
+        if 'uid' not in obj:
             obj.update({'uid': 'uid-in-updatable-objects-repository'})
-        if not 'domain' in obj:
+        if 'domain' not in obj:
             obj.update(global_domain)
 
     return obj_type

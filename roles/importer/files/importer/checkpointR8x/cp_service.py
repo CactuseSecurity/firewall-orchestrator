@@ -17,7 +17,7 @@ def collect_svc_objects(object_table, svc_objects):
                     collect_single_svc_object(obj)
                     svc_objects.append({'svc_uid': obj['uid'], 'svc_name': obj['name'], 'svc_color': obj['color'],
                                             'svc_comment': obj['comments'], 'svc_domain': obj['domain_uid'],
-                                            'svc_typ': typ, 'svc_port': obj['svc_port'], 'svc_port_end': obj['svc_port_end'],
+                                            'svc_typ': typ, 'svc_port': obj['port'], 'svc_port_end': obj['port_end'],
                                             'svc_member_refs': obj['svc_member_refs'],
                                             'svc_member_names': None,
                                             'ip_proto': obj['proto'],
@@ -65,7 +65,7 @@ def collect_single_svc_object(obj):
         rpc_nr = obj['program-number']
     obj['rpc_nr'] = rpc_nr
 
-    obj['svc_port'], obj['svc_port_end'] = normalize_port(obj)
+    obj['port'], obj['port_end'] = normalize_port(obj)
 
     if 'color' not in obj:
         obj['color'] = 'black'
@@ -78,10 +78,9 @@ def normalize_port(obj) -> tuple[str, str]:
     """
     Normalizes the port information in the given object.
     If the 'port' key exists, it processes the port value to handle ranges and special cases.
-    The normalized port and port_end are stored back in the object.
     """
-    port = ''
-    port_end = ''
+    port = None
+    port_end = None
     if 'port' in obj:
         port = str(obj['port'])
         pattern = re.compile(r'^\>(\d+)$')

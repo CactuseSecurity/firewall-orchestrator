@@ -83,12 +83,12 @@ def collect_svc_objects(object_table, svc_objects):
                         # rpc, group - setting ports to 0
                         port = None
                         port_end = None
-                    if not 'color' in obj:
+                    if 'color' not in obj:
                         obj['color'] = 'black'
-                    if not 'comments' in obj or obj['comments'] == '':
+                    if 'comments' not in obj or obj['comments'] == '':
                         obj['comments'] = None
                     svc_objects.append({'svc_uid': obj['uid'], 'svc_name': obj['name'], 'svc_color': obj['color'],
-                                        'svc_comment': obj['comments'], 'svc_domain': obj['domain']['uid'],
+                                        'svc_comment': obj['comments'], 'svc_domain': get_obj_domain_uid(obj),
                                         'svc_typ': typ, 'svc_port': port, 'svc_port_end': port_end,
                                         'svc_member_refs': member_refs,
                                         'svc_member_names': None,
@@ -97,6 +97,17 @@ def collect_svc_objects(object_table, svc_objects):
                                         'rpc_nr': rpc_nr
                                         })
 
+def get_obj_domain_uid(obj):
+    """
+    Returns the domain UID for the given object.
+    If the object has a 'domain' key with a 'uid', it returns that UID.
+    Otherwise, it returns the global domain UID.
+    """
+    if 'domain' in obj and 'uid' in obj['domain']:
+        return obj['domain']['uid']
+    else:
+        return "DUMMY" # TODO: set domain uid correctly
+    
 
 # return name of nw_objects element where obj_uid = uid
 def resolve_svc_uid_to_name(uid, svc_objects):
@@ -122,9 +133,10 @@ def add_member_names_for_svc_group(idx, svc_objects):
 
 def normalize_service_objects(full_config, config2import, import_id, debug_level=0):
     svc_objects = []
-    for domain in full_config['object_domains']:
-        for svc_table in domain['object_types']:
-            collect_svc_objects(svc_table, svc_objects)
+    # for domain in full_config['object_domains']:
+    #     for svc_table in domain['object_types']:
+    for obj_dict in full_config['objects']:
+            collect_svc_objects(obj_dict, svc_objects)
     for obj in svc_objects:
         obj.update({'control_id': import_id})
     for idx in range(0, len(svc_objects)-1):

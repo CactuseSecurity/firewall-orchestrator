@@ -42,6 +42,7 @@ from services.enums import Services, Lifetime
 
 """  
     import_management: import a single management (if no import for it is running)
+    if mgmId is that of a super management, it will import all submanagements as well
     lock mgmt for import via FWORCH API call, generating new import_id y
     check if we need to import (no md5, api call if anything has changed since last import)
     get complete config (get, enrich, parse)
@@ -106,35 +107,50 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
                 logger.debug("import_management - getting config total duration " + str(int(time.time()) - importState.StartTime) + "s")
 
                 if config_changed_since_last_import or importState.ForceImport:
-                    # for config_chunk in split_config(importState, configNormalized):
-                    
                     try:
-                        for managerSet in configNormalized.ManagerSet:
-                            for config in managerSet.Configs:
+                        inconsistencies = []
+                        # TODO: migrate checkConsistency to set level
+                        # configChecker = FwConfigCheckConsistency(importState, configNormalized.ManagerSet)
+                        # inconsistencies = configChecker.checkConfigConsistency()
+                        if len(inconsistencies)>0:
+                            # If there are inconsistencies, we log them and raise an exception
+                            logger.error(f"Inconsistencies found in the configuration: {inconsistencies}")
+                            importState.addError("Inconsistencies found in the configuration: " + str(inconsistencies))
+                            raise fwo_exceptions.FwoImporterError("Inconsistencies found in the configuration.")
+                        # TODO: make sure to start with super manager
+                        # for now assuming that the first manager is the super manager
+                        for manager in configNormalized:
+                            # the following loop is a preparation for future functionality
+                            # we might add support for multiple configs per manager
+                            # e.g. one config only adds data, one only deletes data, etc.
+                            # currently we always only have one config per manager
+                            for config in manager.Configs:
                                 try:
-
                                     # Make sure service provider's internal references to state and config are set correctly.
-
                                     global_state = service_provider.get_service(Services.GLOBAL_STATE)
                                     global_state.import_state = importState
                                     global_state.normalized_config = config
 
                                     configImporter = FwConfigImport()
-                                    configChecker = FwConfigImportCheckConsistency(configImporter)
-                                    if len(configChecker.checkConfigConsistency())==0:
-                                        configImporter.importConfig()
-                                        if importState.Stats.ErrorCount>0:
-                                            raise fwo_exceptions.FwoImporterError("Import failed due to errors.")
-                                        else:
-                                            configImporter.storeLatestConfig()
+                                    configImporter.importConfig()
+                                    if importState.Stats.ErrorCount>0:
+                                        raise fwo_exceptions.FwoImporterError("Import failed due to errors.")
+                                    else:
+                                        configImporter.storeLatestConfig()
                                 except Exception:
                                     importState.addError(str(traceback.format_exc()))
                                     raise
                                 fwo_api.update_hit_counter(importState, config)
 
-                    finally:
-                         # Writes full config to file (for debugging). In case of exception writes the file after error handling here, but before roleback.
-                        configNormalized.storeFullNormalizedConfigToFile(importState)
+                    except fwo_exceptions.FwoImporterError as e:
+                        logger.error(f"FwoImporterError during import: {str(e)}")
+                        importState.addError("FwoImporterError during import: " + str(e))
+                        raise
+                    # TODO: fix error AttributeError: 'list' object has no attribute 'storeFullNormalizedConfigToFile'
+                    # finally:
+                        # Writes full config to file (for debugging). In case of exception writes the file after error handling here, but before roleback.
+                        # configNormalized.storeFullNormalizedConfigToFile(importState)
+                    fwo_api.update_hit_counter(importState, config)
 
             if not clearManagementData and importState.DataRetentionDays<importState.DaysSinceLastFullImport:
                 configImporter.deleteOldImports() # delete all imports of the current management before the last but one full import
@@ -246,7 +262,7 @@ def rollBackExceptionHandler(importState, configImporter=None, exc=None, errorTe
     except Exception as rollbackError:
         logger.error(f"Error during rollback: {type(rollbackError).__name__} - {rollbackError}")
 
-def importFromFile(importState: ImportStateController, fileName: str = "", gateways: List[Gateway] = []):
+def importFromFile(importState: ImportStateController, fileName: str = "", gateways: List[Gateway] = []) -> tuple[bool, FwConfigManagerList]:
 
     logger = getFwoLogger(debug_level=importState.DebugLevel)
     logger.debug("import_management - not getting config from API but from file: " + fileName)
@@ -266,9 +282,9 @@ def importFromFile(importState: ImportStateController, fileName: str = "", gatew
     if configFromFile.IsLegacy():
         if isinstance(configFromFile, FwConfig):
             if configFromFile.ConfigFormat == 'NORMALIZED_LEGACY':
-                configNormalized = FwConfigManagerList(ConfigFormat=configFromFile.ConfigFormat)
-                configNormalized.addManager(manager=FwConfigManager(calcManagerUidHash(importState.MgmDetails), importState.MgmDetails.Name))
-                configNormalized.ManagerSet[0].Configs.append(FwConfigNormalized(ConfigAction.INSERT, 
+                normalized_config_list = FwConfigManagerList(ConfigFormat=configFromFile.ConfigFormat)
+                normalized_config_list.addManager(manager=FwConfigManager(calcManagerUidHash(importState.MgmDetails), importState.MgmDetails.Name))
+                normalized_config_list.ManagerSet[0].Configs.append(FwConfigNormalized(ConfigAction.INSERT, 
                                                                                 configFromFile.Config['network_objects'],
                                                                                 configFromFile.Config['service_objects'],
                                                                                 configFromFile.Config['user_objects'],
@@ -278,28 +294,28 @@ def importFromFile(importState: ImportStateController, fileName: str = "", gatew
                                                                                 ))
             elif configFromFile.ConfigFormat == 'NORMALIZED':
                 # ideally just import from json
-                configNormalized = FwConfigManagerList.fromJson(configFromFile)
+                normalized_config_list = FwConfigManagerList.fromJson(configFromFile)
         else: ### just parsing the native config, note: we need to run get_config_from_api here to do this
             if isinstance(configFromFile, FwConfigManagerList):
                 for mgr in configFromFile.ManagerSet:
                     for conf in mgr.Configs:
                         # need to decide how to deal with the multiple results of this loop here!
-                        config_changed_since_last_import, configNormalized = get_config_from_api(importState, conf)
+                        config_changed_since_last_import, normalized_config_list = get_config_from_api(importState, conf)
             else: 
-                config_changed_since_last_import, configNormalized = get_config_from_api(importState, configFromFile)
+                config_changed_since_last_import, normalized_config_list = get_config_from_api(importState, configFromFile)
     else:
-        configNormalized = configFromFile
+        normalized_config_list = configFromFile
 
-    return config_changed_since_last_import, configNormalized
+    return config_changed_since_last_import, normalized_config_list
 
 
-def get_config_from_api(importState: ImportStateController, configNative, import_tmp_path=import_tmp_path, limit=150) -> FwConfigManagerList:
+def get_config_from_api(importState: ImportStateController, configNative, import_tmp_path=import_tmp_path, limit=150) -> tuple[bool, FwConfigManagerList]:
     logger = getFwoLogger(debug_level=importState.DebugLevel)
 
     try: # pick product-specific importer:
         pkg_name = importState.MgmDetails.DeviceTypeName.lower().replace(' ', '') + \
             importState.MgmDetails.DeviceTypeVersion.replace(' ', '').replace('MDS', '')
-        if not f"{importer_base_dir}/{pkg_name}" in sys.path:
+        if f"{importer_base_dir}/{pkg_name}" not in sys.path:
             sys.path.append(f"{importer_base_dir}/{pkg_name}")
         fw_module = importlib.import_module("." + fw_module_name, pkg_name)
     except Exception:
@@ -316,29 +332,18 @@ def get_config_from_api(importState: ImportStateController, configNative, import
 
     if config_changed_since_last_import or importState.ForceImport:
         # get config from product-specific FW API
-        _, configNormalized = fw_module.get_config(configNative, importState)
+        _, normalized_config_list = fw_module.get_config(configNative, importState)
     else:
-        # returning empty config
-        emptyConfigDict = {
-                                'action': ConfigAction.INSERT,
-                                'network_objects': {},
-                                'service_objects': {},
-                                'users': {},
-                                'zone_objects': {},
-                                'rules': [],
-                                'gateways': [],
-                                'ConfigFormat': ConfFormat.NORMALIZED
-                            }
-        configNormalized = FwConfigNormalized(**emptyConfigDict)
+        normalized_config_list = FwConfigManagerListController.generate_empty_config(importState.MgmDetails.IsSuperManager)
 
-    writeNativeConfigToFile(importState, configNative)
+    write_native_config_to_file(importState, configNative)
 
     logger.debug("import_management: get_config completed (including normalization), duration: " + str(int(time.time()) - importState.StartTime) + "s") 
 
-    return config_changed_since_last_import, configNormalized
+    return config_changed_since_last_import, normalized_config_list
 
 
-def writeNativeConfigToFile(importState, configNative):
+def write_native_config_to_file(importState, configNative):
     if importState.DebugLevel>6:
         logger = getFwoLogger(debug_level=importState.DebugLevel)
         debug_start_time = int(time.time())

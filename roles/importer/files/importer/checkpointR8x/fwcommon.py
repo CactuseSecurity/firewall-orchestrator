@@ -43,7 +43,6 @@ def has_config_changed (full_config, importState: ImportState, force=False):
 def get_config(nativeConfig: json, importState: ImportStateController) -> tuple[int, FwConfigManagerList]:
 
     logger = getFwoLogger()
-    normalizedConfigDict = fwo_const.emptyNormalizedFwConfigJsonDict
     logger.debug ( "starting checkpointR8x/get_config" )
 
     if nativeConfig == {}:   # no native config was passed in, so getting it from FW-Manager
@@ -54,48 +53,49 @@ def get_config(nativeConfig: json, importState: ImportStateController) -> tuple[
     if not parsing_config_only: # get config from cp fw mgr
         starttime = int(time.time())
 
-        initialize_nativ_config(nativeConfig, importState)
+        initialize_native_config(nativeConfig, importState)
 
         # delete_v: brauchen wir users?
         # if 'users' not in nativeConfig:
         #     nativeConfig.update({'users': {}})
 
-        starttimeTemp = int(time.time())
+        start_time_temp = int(time.time())
         logger.debug ( "checkpointR8x/get_config/getting objects ...")
 
         result_get_objects = get_objects(nativeConfig, importState)
         if result_get_objects>0:
             logger.warning ( "checkpointR8x/get_config/error while gettings objects")
             return result_get_objects
-        logger.debug ( "checkpointR8x/get_config/fetched objects in " + str(int(time.time()) - starttimeTemp) + "s")
+        logger.debug ( "checkpointR8x/get_config/fetched objects in " + str(int(time.time()) - start_time_temp) + "s")
 
-        starttimeTemp = int(time.time())
+        start_time_temp = int(time.time())
         logger.debug ( "checkpointR8x/get_config/getting rules ...")
         result_get_rules = get_rules (nativeConfig, importState)
         if result_get_rules>0:
             logger.warning ( "checkpointR8x/get_config/error while gettings rules")
             return result_get_rules
-        logger.debug ( "checkpointR8x/get_config/fetched rules in " + str(int(time.time()) - starttimeTemp) + "s")
+        logger.debug ( "checkpointR8x/get_config/fetched rules in " + str(int(time.time()) - start_time_temp) + "s")
 
         duration = int(time.time()) - starttime
         logger.debug ( "checkpointR8x/get_config - fetch duration: " + str(duration) + "s" )
 
     sid = loginCp(importState.MgmDetails)
-    normalizedConfig = normalizeConfig(nativeConfig, normalizedConfigDict, importState, parsing_config_only, sid)
 
-    manager = FwConfigManager(ManagerUid=calcManagerUidHash(importState.MgmDetails),
-                              ManagerName=importState.MgmDetails.Name,
-                              IsGlobal=False, 
-                              DependantManagerUids=[], 
-                              Configs=[normalizedConfig])
-    
-    listOfManagers = FwConfigManagerListController()
-    listOfManagers.addManager(manager)
-    logger.info("completed getting config")
-    
-    return 0, listOfManagers
+    normalizedConfig = normalize_config(importState, nativeConfig, parsing_config_only, sid)
 
-def initialize_nativ_config(nativeConfig, importState):
+    # manager = FwConfigManager(ManagerUid=calcManagerUidHash(importState.MgmDetails),
+    #                           ManagerName=importState.MgmDetails.Name,
+    #                           IsGlobal=False, 
+    #                           DependantManagerUids=[], 
+    #                           Configs=[normalizedConfig])
+    
+    # listOfManagers = FwConfigManagerListController()
+    # listOfManagers.addManager(manager)
+    # logger.info("completed getting config")
+    return 0, normalizedConfig.ManagerSet
+
+
+def initialize_native_config(nativeConfig, importState):
     """
     create domain structure in nativeConfig
     """
@@ -116,7 +116,28 @@ def initialize_nativ_config(nativeConfig, importState):
             'gateways': []})
 
 
-def normalizeConfig(nativeConfig: json, normalizedConfigDict, importState: ImportStateController, parsing_config_only: bool, sid: str) -> tuple[int, FwConfigManagerList]:
+def normalize_config(import_state, native_config: json, parsing_config_only: bool, sid: str) -> FwConfigManagerList:
+
+    manager_list = FwConfigManagerListController()
+
+    if 'domains' not in native_config:
+        getFwoLogger().error("No domains found in native config. Cannot normalize config.")
+        raise ImportInterruption("No domains found in native config. Cannot normalize config.")
+    
+    for native_conf in native_config['domains']:
+        normalizedConfigDict = fwo_const.emptyNormalizedFwConfigJsonDict
+        normalized_config = normalize_single_manager_config(native_conf, normalizedConfigDict, import_state, parsing_config_only, sid)
+        manager = FwConfigManager(ManagerUid=calcManagerUidHash(import_state.MgmDetails),
+                                    ManagerName=import_state.MgmDetails.Name,
+                                    IsGlobal=import_state.MgmDetails.IsSuperManager, 
+                                    DependantManagerUids=[], 
+                                    Configs=[normalized_config])
+        manager_list.addManager(manager)
+
+    return manager_list
+
+
+def normalize_single_manager_config(nativeConfig: json, normalizedConfigDict, importState: ImportStateController, parsing_config_only: bool, sid: str) -> tuple[int, FwConfigManagerList]:
     logger = getFwoLogger()
     cp_network.normalize_network_objects(nativeConfig, normalizedConfigDict, importState.ImportId, mgm_id=importState.MgmDetails.Id)
     logger.info("completed normalizing network objects")
@@ -137,6 +158,7 @@ def normalizeConfig(nativeConfig: json, normalizedConfigDict, importState: Impor
         rulebases=normalizedConfigDict['policies'],
         gateways=normalizedConfigDict['gateways']
     )
+
 
 def get_rules(nativeConfig: dict, importState: ImportStateController) -> int:
     """

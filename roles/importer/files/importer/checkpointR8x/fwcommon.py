@@ -82,16 +82,7 @@ def get_config(nativeConfig: json, importState: ImportStateController) -> tuple[
     sid = loginCp(importState.MgmDetails)
 
     normalizedConfig = normalize_config(importState, nativeConfig, parsing_config_only, sid)
-
-    # manager = FwConfigManager(ManagerUid=calcManagerUidHash(importState.MgmDetails),
-    #                           ManagerName=importState.MgmDetails.Name,
-    #                           IsGlobal=False, 
-    #                           DependantManagerUids=[], 
-    #                           Configs=[normalizedConfig])
-    
-    # listOfManagers = FwConfigManagerListController()
-    # listOfManagers.addManager(manager)
-    # logger.info("completed getting config")
+    logger.info("completed getting config")
     return 0, normalizedConfig.ManagerSet
 
 

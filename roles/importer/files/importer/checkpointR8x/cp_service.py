@@ -133,8 +133,6 @@ def add_member_names_for_svc_group(idx, svc_objects):
 
 def normalize_service_objects(full_config, config2import, import_id, debug_level=0):
     svc_objects = []
-    # for domain in full_config['object_domains']:
-    #     for svc_table in domain['object_types']:
     for obj_dict in full_config['objects']:
             collect_svc_objects(obj_dict, svc_objects)
     for obj in svc_objects:

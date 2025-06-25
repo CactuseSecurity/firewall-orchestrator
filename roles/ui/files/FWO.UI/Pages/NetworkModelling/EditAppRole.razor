@@ -109,15 +109,18 @@
                                     </EditList>
                                 </div>
                             }
-                        </div>                        
+                        </div>
                     </div>
                 </div>
             </div>
         </Body>
         <Footer>
-            <div>                    
-                <label class="text-secondary me-2 col-sm-12 small mt-2">@(userConfig.GetText("created_by")): @(AppRoleHandler.ActAppRole.Creator), @(userConfig.GetText("creation_date")): @(AppRoleHandler.ActAppRole.CreationDate)</label>
-            </div>
+            @if(!AppRoleHandler.AddMode)
+            {
+                <div>
+                    <label class="text-secondary me-2 col-sm-12 small mt-2">@(userConfig.GetText("created_by")): @(AppRoleHandler.ActAppRole.Creator), @(userConfig.GetText("creation_date")): @(AppRoleHandler.ActAppRole.CreationDate)</label>
+                </div>
+            }
             <div class="btn-group">
                 @if(AppRoleHandler.ReadOnly)
                 {

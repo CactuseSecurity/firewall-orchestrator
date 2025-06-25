@@ -1,4 +1,3 @@
-import unittest
 import sys
 import os
 import copy
@@ -19,6 +18,7 @@ def set_up_config_for_import_consistency_test():
             "user_config": 10
         }
     )
+    config_builder.add_rule_with_nested_groups(config)
 
     return config
 

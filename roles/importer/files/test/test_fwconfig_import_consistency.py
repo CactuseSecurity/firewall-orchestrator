@@ -4,6 +4,7 @@ import os
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '../importer'))
 
+from importer import fwo_const
 from importer.services.group_flats_mapper import GroupFlatsMapper
 from importer.services.uid2id_mapper import Uid2IdMapper
 from importer.services.global_state import GlobalState
@@ -68,3 +69,49 @@ class TestFwoConfigImportConsistency(unittest.TestCase):
         self.assertEqual(config, config_from_api, 
                          f"Config objects are not equal: {find_first_diff(config.dict(), config_from_api.dict())}")
 
+
+    def test_fwconfig_check_db_member_tables(self):
+        
+        # Arrange
+        service_provider = ServiceProvider()
+
+        import_state = MockImportStateController()
+        config = set_up_config_for_import_consistency_test()
+
+        global_state = GlobalState()
+        global_state.import_state = import_state
+        global_state.normalized_config = config
+
+        service_provider.register(Services.GLOBAL_STATE, lambda: global_state, Lifetime.SINGLETON)
+        service_provider.register(Services.GROUP_FLATS_MAPPER, lambda: GroupFlatsMapper(), Lifetime.TRANSIENT)
+        service_provider.register(Services.UID2ID_MAPPER, lambda: Uid2IdMapper(), Lifetime.SINGLETON)
+
+        config_importer = FwConfigImport()
+
+        # Act
+        config_importer.importConfig()
+        mock_api = import_state.api_connection
+        uid2id_mapper = service_provider.get_service(Services.UID2ID_MAPPER)
+
+        member_uids_config = {obj.obj_uid: set(obj.obj_member_refs.split(fwo_const.list_delimiter)) 
+                              for obj in config.network_objects.values() if obj.obj_member_refs}
+        member_uids_db = {}
+        for objgrp in mock_api.get_table("objgrp").values():
+            objgrp_id = objgrp["objgrp_id"]
+            uid = next((uid for uid, id in uid2id_mapper.nwobj_uid2id.items() if id == objgrp_id), None)
+            if uid is None:
+                self.fail(f"Object group ID {objgrp_id} not found in UID2ID mapper.")
+            if uid not in member_uids_db:
+                member_uids_db[uid] = set()
+            member_id = objgrp["objgrp_member_id"]
+            member_uid_db = next((uid for uid, id in uid2id_mapper.nwobj_uid2id.items() if id == member_id), None)
+            if member_uid_db is None:
+                self.fail(f"Member ID {member_id} not found in UID2ID mapper.")
+            member_uids_db[uid].add(member_uid_db)
+        
+        self.assertEqual(member_uids_config, member_uids_db,
+                            f"Member UIDs in config and DB do not match: {find_first_diff(member_uids_config, member_uids_db)}")
+        #TODO: check flat groups as well
+        
+
+    #TODO: add tests for import with changed config (changed ip in member obj in nested group)

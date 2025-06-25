@@ -18,25 +18,25 @@ TABLE_IDENTIFIERS = {
     "object": "obj_id",
     "service": "svc_id",
     "usr": "user_id",
-    "rulebase": "id"
+    "rulebase": "id",
 }
 
-STM_TABLES = [
-    ("stm_change_type", [
+STM_TABLES = {
+    "stm_change_type": [
         {"change_type_id": 1, "change_type_name": "factory settings"},
         {"change_type_id": 2, "change_type_name": "initial import"},
         {"change_type_id": 3, "change_type_name": "in operation"}
-    ]),
-    ("stm_usr_typ", [
+    ],
+    "stm_usr_typ": [
         {"usr_typ_id": 1, "usr_typ_name": "group"},
         {"usr_typ_id": 2, "usr_typ_name": "simple"}
-    ]),
-    ("stm_svc_typ", [
+    ],
+    "stm_svc_typ": [
         {"svc_typ_id": 1, "svc_typ_name": "simple", "svc_typ_comment": "standard services"},
         {"svc_typ_id": 2, "svc_typ_name": "group", "svc_typ_comment": "groups of services"},
         {"svc_typ_id": 3, "svc_typ_name": "rpc", "svc_typ_comment": "special services, here: RPC"}
-    ]),
-    ("stm_obj_typ", [
+    ],
+    "stm_obj_typ": [
         {"obj_typ_id": i, "obj_typ_name": name} for i, name in enumerate([
             'network', 'group', 'host', 'machines_range', 'dynamic_net_obj',
             'sofaware_profiles_security_level', 'gateway', 'cluster_member',
@@ -45,8 +45,8 @@ STM_TABLES = [
             'voip_sip', 'simple-gateway', 'external-gateway', 'voip',
             'access-role'
         ], start=1)
-    ]),
-    ("stm_action", [
+    ],
+    "stm_action": [
         {"action_id": i, "action_name": name, "allowed": allowed} for i, (name, allowed) in enumerate([
             ('accept', True), ('drop', False), ('deny', False), ('access', True),
             ('client encrypt', True), ('client auth', True), ('reject', False),
@@ -62,8 +62,8 @@ STM_TABLES = [
             ('NAT src, svc', False), ('NAT', False),
             ('inform', True)
         ], start=1)
-    ]),
-    ("stm_track", [
+    ],
+    "stm_track": [
         {"track_id": i, "track_name": name} for i, name in enumerate([
             'log', 'none', 'alert', 'userdefined', 'mail', 'account',
             'userdefined 1', 'userdefined 2', 'userdefined 3', 'snmptrap',
@@ -74,8 +74,8 @@ STM_TABLES = [
             'all', 'all start', 'utm', 'network log',
             'utm start', 'detailed log'
         ], start=1)
-    ]),
-    ("stm_dev_typ", [
+    ],
+    "stm_dev_typ": [
         {"dev_typ_id": i, "dev_typ_name": name, "dev_typ_version": version,
          "dev_typ_manufacturer": manufacturer, "dev_typ_predef_svc": predef_svc,
          "dev_typ_is_mgmt": is_mgmt, "dev_typ_is_multi_mgmt": is_multi_mgmt,
@@ -125,8 +125,8 @@ STM_TABLES = [
             ('Fortinet FortiOS Gateway','REST','Fortinet','',
              False,False,False)
         ], start=1)
-    ])
-]
+    ]
+}
 
 def object_to_dict(obj, max_depth=10):
     """
@@ -158,7 +158,7 @@ class MockFwoApi(FwoApi):
         super().__init__(ApiUri, Jwt)
         self.tables = {}  # {table_name: {pk: row_dict}}
         # Initialize with some standard tables
-        for table_name, rows in STM_TABLES:
+        for table_name, rows in STM_TABLES.items():
             self.tables[table_name] = {row[TABLE_IDENTIFIERS[table_name]]: row for row in rows}
 
     def call(self, query, queryVariables="", debug_level=0, analyze_payload=False):
@@ -195,7 +195,8 @@ class MockFwoApi(FwoApi):
                 for obj in objects:
                     pk = len(self.tables[table]) + 1
                     obj = dict(obj)  # copy
-                    obj[TABLE_IDENTIFIERS.get(table, f"{table}_id")] = pk
+                    if table not in ["objgrp", "svcgrp", "usergrp"]: # using pair of reference ids as primary key
+                        obj[TABLE_IDENTIFIERS.get(table, f"{table}_id")] = pk
                     self.tables[table][pk] = obj
                     returning.append(obj)
                 result["data"][field] = {
@@ -423,7 +424,10 @@ class MockFwoApi(FwoApi):
                     if rulebase:
                         rulebase.Rules[row['rule_uid']] = RuleNormalized.parse_obj(rule)
 
-        
-        
-
         return config
+
+    def get_table(self, table_name):
+        """
+        Returns the table data for the given table name.
+        """
+        return self.tables.get(table_name, {})

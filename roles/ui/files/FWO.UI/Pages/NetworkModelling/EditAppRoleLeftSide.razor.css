@@ -1,0 +1,9 @@
+.appserver-left-scrollable {
+    height: calc(100vh - 580px);
+    overflow-y: auto;
+}
+
+.appserver-left-scrollable-networkarea {
+    height: calc(100vh - 620px);
+    overflow-y: auto;
+}

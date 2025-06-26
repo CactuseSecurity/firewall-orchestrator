@@ -44,11 +44,12 @@ namespace FWO.Test
         readonly DynGraphqlQuery query = new("TestFilter")
         {
             ReportTimeString = "2023-04-20T17:50:04",
-            QueryVariables = new Dictionary<string, object>()
-            {
-                {"start","2023-04-19T17:00:04"},
-                {"stop","2023-04-20T17:00:04"}
-            }
+        };
+        readonly TimeFilter timeFilter = new()
+        {
+            TimeRangeType = TimeRangeType.Fixeddates,
+            StartTime = DateTime.Parse("2023-04-19T17:00:04"),
+            EndTime = DateTime.Parse("2023-04-20T17:00:04")
         };
 
         [SetUp]
@@ -175,7 +176,7 @@ namespace FWO.Test
         public void ChangesGenerateHtml()
         {
             Log.WriteInfo("Test Log", "starting changes report html generation");
-            ReportChanges reportChanges = new(query, userConfig, ReportType.Changes, new TimeFilter())
+            ReportChanges reportChanges = new(query, userConfig, ReportType.Changes, timeFilter)
             {
                 ReportData = ConstructChangeReport(false)
             };
@@ -194,7 +195,7 @@ namespace FWO.Test
         public void ResolvedChangesGenerateHtml()
         {
             Log.WriteInfo("Test Log", "starting changes report resolved html generation");
-            ReportChanges reportChanges = new(query, userConfig, ReportType.ResolvedChanges, new TimeFilter())
+            ReportChanges reportChanges = new(query, userConfig, ReportType.ResolvedChanges, timeFilter)
             {
                 ReportData = ConstructChangeReport(true)
             };
@@ -213,7 +214,7 @@ namespace FWO.Test
         public void ResolvedChangesTechGenerateHtml()
         {
             Log.WriteInfo("Test Log", "starting changes report tech html generation");
-            ReportChanges reportChanges = new(query, userConfig, ReportType.ResolvedChangesTech, new TimeFilter())
+            ReportChanges reportChanges = new(query, userConfig, ReportType.ResolvedChangesTech, timeFilter)
             {
                 ReportData = ConstructChangeReport(true)
             };

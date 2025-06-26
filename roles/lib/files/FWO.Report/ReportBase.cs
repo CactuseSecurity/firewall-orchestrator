@@ -183,7 +183,7 @@ namespace FWO.Report
             return $"<span class=\"{symbol}\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"{linkAddress}\" target=\"_top\" style=\"{style}\">{name}</a>";
         }
 
-        protected string GenerateHtmlFrameBase(string title, string filter, DateTime date, StringBuilder htmlReport, string? deviceFilter = null, string? ownerFilter = null)
+        protected string GenerateHtmlFrameBase(string title, string filter, DateTime date, StringBuilder htmlReport, string? deviceFilter = null, string? ownerFilter = null, TimeFilter? timeFilter = null)
         {
             if (string.IsNullOrEmpty(htmlExport))
             {
@@ -200,9 +200,10 @@ namespace FWO.Report
                 HtmlTemplate = HtmlTemplate.Replace("##Date##", date.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssK"));
                 if (ReportType.IsChangeReport())
                 {
+                    (string startTime, string stopTime) = DynGraphqlQuery.ResolveTimeRange(timeFilter!);
                     string timeRange = $"{userConfig.GetText("change_time")}: " +
-                        $"{userConfig.GetText("from")}: {ToUtcString(Query.QueryVariables["start"]?.ToString())}, " +
-                        $"{userConfig.GetText("until")}: {ToUtcString(Query.QueryVariables["stop"]?.ToString())}";
+                        $"{userConfig.GetText("from")}: {ToUtcString(startTime)}, " +
+                        $"{userConfig.GetText("until")}: {ToUtcString(stopTime)}";
                     HtmlTemplate = HtmlTemplate.Replace("##Date-of-Config##: ##GeneratedFor##", timeRange);
                 }
                 else if (ReportType.IsRuleReport() || ReportType == ReportType.Statistics)

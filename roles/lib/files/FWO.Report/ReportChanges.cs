@@ -283,7 +283,7 @@ namespace FWO.Report
                     report.AppendLine("<hr>");
                 }
             }
-            return GenerateHtmlFrame(userConfig.GetText(ReportType.ToString()), Query.RawFilter, DateTime.Now, report);
+            return GenerateHtmlFrame(userConfig.GetText(ReportType.ToString()), Query.RawFilter, DateTime.Now, report, timeFilter);
         }
 
         public override string ExportToJson()

@@ -80,7 +80,7 @@ namespace FWO.Data.Modelling
 
         public override string DisplayProblematicWithIcon()
         {
-            return $"<b class=\"text-danger\">&nbsp;!&nbsp;</b><span class=\"{Icons.AppRole}\"></span> <span class=\"text-danger\">" + DisplayHtml() + "</span>";
+            return $"<b class=\"text-danger\">&nbsp;!&nbsp;</b><span class=\"{Icons.AppRole}\"></span> " + DisplayHtml();
         }
 
         public override NetworkObject ToNetworkObjectGroup(bool IdAsName = false, bool ListMembers = true)

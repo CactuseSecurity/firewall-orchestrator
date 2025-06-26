@@ -50,7 +50,7 @@ namespace FWO.Data.Modelling
 
         public virtual string DisplayProblematicWithIcon()
         {
-            return $"<b class=\"text-danger\">&nbsp;!&nbsp;</b><span class=\"{Icons.ModObject}\"></span> <span class=\"text-danger\">" + DisplayHtml() + "</span>";
+            return $"<b class=\"text-danger\">&nbsp;!&nbsp;</b><span class=\"{Icons.ModObject}\"></span> " + DisplayHtml();
         }
 
         public virtual string DisplayWithIcon(bool displayGrey)

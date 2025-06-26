@@ -2393,6 +2393,8 @@ INSERT INTO txt VALUES ('modRolloutResolveServiceGroups','German','Servicegruppe
 INSERT INTO txt VALUES ('modRolloutResolveServiceGroups','English','Resolve service groups');
 INSERT INTO txt VALUES ('modRolloutBundleTasks','German',   'Tasks zusammenfassen');
 INSERT INTO txt VALUES ('modRolloutBundleTasks','English',  'Bundle tasks');
+INSERT INTO txt VALUES ('modRolloutNatHeuristic',	'German','NAT Heuristik');
+INSERT INTO txt VALUES ('modRolloutNatHeuristic',	'English','NAT Heuristic');
 INSERT INTO txt VALUES ('modRolloutErrorText',  'German',   'Fehlertext');
 INSERT INTO txt VALUES ('modRolloutErrorText',  'English',  'Error text');
 INSERT INTO txt VALUES ('modelledMarker',       'German',   'Markierung Modelliert');
@@ -5505,6 +5507,8 @@ INSERT INTO txt VALUES ('H5654', 'German',  'Soll-Ist-Abgleich auf Schaltfl&auml
 INSERT INTO txt VALUES ('H5654', 'English', 'Variance Analysis Refresh Button: A button is offered to calculate the state of the connections synchroneously via Variance Analysis.');
 INSERT INTO txt VALUES ('H5655', 'German',  'Netzwerkareas f&uuml;r Nutzer: Vom Administrator vorgegebene Netzwerkareas, welche f&uuml;r die Zuordnung &uuml;ber die Sonderkonfiguration genutzt werden d&uuml;rfen. Die beiden Auswahlfelder "in Quelle" und "in Ziel" legen fest, wo die Netzwerkarea genutzt werden darf.');
 INSERT INTO txt VALUES ('H5655', 'English', 'Network Areas for Users: Network areas defined by the administrator, which are permitted to be used for assignment via the Extra Configurations. The flags "in Source" and "in Destination" determine, where the Network Areas are allowed to be used.');
+INSERT INTO txt VALUES ('H5656', 'German',  'NAT Heuristik: Wenn die Sonderkonfiguration NAT gesetzt ist, wird, sobald mindestens eine zur Modellierung passend umgesetzte Regel gefunden wird, davon ausgegangen, dass die anderen Regeln mit NAT transformierte Regeln sind und nur auf die Objektzahl geprüft.');
+INSERT INTO txt VALUES ('H5656', 'English', 'NAT Heuristic: When extra config NAT is set, if at least one rule is found fitting to the modelling: the other rules are assumed to be NAT translated and are only checked for object numbers.');
 
 INSERT INTO txt VALUES ('H5701', 'German',  'Die in der Datenbank hinterlegten sprachabh&auml;ngigen Texte k&ouml;nnen individuell &uuml;berschrieben werden.
     Dabei werden die vom System vorgegebenen Texte nicht ge&auml;ndert, sondern nur durch die hier definierten Texte - falls vorhanden - &uuml;berblendet.

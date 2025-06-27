@@ -16,7 +16,7 @@ if __name__ == '__main__': # for usage as executable script
             os.path.join(os.path.dirname(__file__), '../../')
         )
     )
-    from uid_manager import UidManager
+    from .uid_manager import UidManager
     from models.fwconfig_normalized import FwConfigNormalized
     from pydantic import PrivateAttr
     from models.rule import RuleNormalized, RuleAction, RuleTrack, RuleType
@@ -26,7 +26,7 @@ if __name__ == '__main__': # for usage as executable script
     from fwo_const import rule_num_numeric_steps, dummy_ip, list_delimiter, user_delimiter
     from fwo_globals import setGlobalValues
     from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
-    from mock_import_state import MockImportStateController
+    from .mock_import_state import MockImportStateController
     from model_controllers.fwconfigmanager_controller import FwConfigManager
     from models.gateway import Gateway
     from models.rulebase_link import RulebaseLinkUidBased

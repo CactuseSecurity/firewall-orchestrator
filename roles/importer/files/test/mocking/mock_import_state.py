@@ -3,12 +3,12 @@ from importer.model_controllers.import_statistics_controller import ImportStatis
 from importer.model_controllers.fworch_config_controller import FworchConfigController
 from importer.models.track import Track
 from importer.models.action import Action
-from test.mocking.mock_fwo_api_oo import MockFwoApi
+from .mock_fwo_api_oo import MockFwoApi
 
 try:
     from mock_management_details_controller import MockManagementDetailsController
 except ModuleNotFoundError:
-    from test.mocking.mock_management_details_controller import MockManagementDetailsController
+    from .mock_management_details_controller import MockManagementDetailsController
 
 
 def make_hashable(obj):

@@ -4,7 +4,7 @@ from importer.models.networkobject import NetworkObject
 from importer.models.rulebase import Rulebase
 from importer.models.serviceobject import ServiceObject
 from importer.models.rule import RuleNormalized
-from test.mocking.mock_config import MockFwConfigNormalizedBuilder
+from .mock_config import MockFwConfigNormalizedBuilder
 
 TABLE_IDENTIFIERS = {
     "stm_change_type": "change_type_id",

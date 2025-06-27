@@ -342,7 +342,17 @@ namespace FWO.Services
             }
             names.AddRange(nwGroups.ConvertAll(s => s.DisplayWithIcon(conn.SrcFromInterface)));
 
-            names.AddRange(ModellingAppRoleWrapper.Resolve(conn.SourceAppRoles).ToList().ConvertAll(s => s.DisplayWithIcon(conn.SrcFromInterface)));
+            foreach(ModellingAppRole appRole in ModellingAppRoleWrapper.Resolve(conn.SourceAppRoles))
+            {
+                if(appRole.AppServers.Count > 0)
+                {
+                    names.Add(appRole.DisplayWithIcon(conn.DstFromInterface));
+                }
+                else
+                {
+                    names.Add(appRole.DisplayProblematicWithIcon());
+                }
+            }
 
             List<ModellingAppServer> appServers = [.. ModellingAppServerWrapper.Resolve(conn.SourceAppServers)];
             foreach(var appServer in appServers)

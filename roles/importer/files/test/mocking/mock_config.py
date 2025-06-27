@@ -1,7 +1,7 @@
-import json
-import uuid
-from typing import List, Union, Dict
+from typing import List, Dict, Optional
 import secrets
+
+from netaddr import IPNetwork
 
 if __name__ == '__main__': # for usage as executable script
     import sys
@@ -16,34 +16,36 @@ if __name__ == '__main__': # for usage as executable script
             os.path.join(os.path.dirname(__file__), '../../')
         )
     )
-    from uid_manager import UidManager
-    from mock_rulebase import MockRulebase
+    from .uid_manager import UidManager
     from models.fwconfig_normalized import FwConfigNormalized
     from pydantic import PrivateAttr
-    from models.rule import Rule
+    from models.rule import RuleNormalized, RuleAction, RuleTrack, RuleType
     from models.networkobject import NetworkObject
     from models.serviceobject import ServiceObject
     from models.rulebase import Rulebase
-    from fwo_const import rule_num_numeric_steps, dummy_ip
+    from fwo_const import rule_num_numeric_steps, dummy_ip, list_delimiter, user_delimiter
     from fwo_globals import setGlobalValues
     from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
-    from mock_import_state import MockImportStateController
+    from .mock_import_state import MockImportStateController
     from model_controllers.fwconfigmanager_controller import FwConfigManager
     from models.gateway import Gateway
-    from models.rulebase_link import RulebaseLink, RulebaseLinkUidBased
+    from models.rulebase_link import RulebaseLinkUidBased
 else: # for usage in unit tests
     from . uid_manager import UidManager
-    from . mock_rulebase import MockRulebase
     from importer.models.fwconfig_normalized import FwConfigNormalized
     from importer.models.rulebase import Rulebase
-    from importer.models.rule import Rule
+    from importer.models.rule import RuleNormalized, RuleAction, RuleTrack, RuleType
     from pydantic import PrivateAttr
-    from importer.fwo_const import rule_num_numeric_steps
+    from importer.fwo_const import rule_num_numeric_steps, dummy_ip, list_delimiter, user_delimiter
     from importer.models.networkobject import NetworkObject
     from importer.models.serviceobject import ServiceObject
+    from importer.models.gateway import Gateway
+    from importer.models.rulebase_link import RulebaseLinkUidBased
 
 
-class MockFwConfigNormalized(FwConfigNormalized):
+DUMMY_IP = IPNetwork(dummy_ip)
+
+class MockFwConfigNormalizedBuilder():
     """
         A mock subclass of FwConfigNormalized for testing purposes.
 
@@ -52,23 +54,35 @@ class MockFwConfigNormalized(FwConfigNormalized):
     """
 
     _uid_manager: UidManager = PrivateAttr()
+    _seed: int = 42  # Seed for reproducibility in tests
+
+    def __init__(self):
+        """
+            Initializes the mock configuration builder with an internal UID manager.
+        """
+        self._uid_manager = UidManager()
 
     @property
     def uid_manager(self) -> UidManager:
         """Returns the internal UID manager."""
         return self._uid_manager
-    
 
-    def __init__(self, **kwargs):
+    @staticmethod
+    def empty_config() -> FwConfigNormalized:
         """
-            Initializes the mock configuration with default action and an empty gateway list.
+            Returns an empty FwConfigNormalized object with no rulebases or rules.
         """
+        return FwConfigNormalized(
+            action='INSERT', # type: ignore
+            gateways=[],
+            network_objects={},
+            service_objects={},
+            users={},
+            rulebases=[]
+        )
 
-        super().__init__(action="INSERT", gateways=[], **kwargs)
-        self._uid_manager = UidManager()
 
-
-    def initialize_config(self, mock_config: Dict):
+    def build_config(self, mock_config: Dict):
         """
             Initializes the mock configuration with rulebases and rules.
 
@@ -77,11 +91,15 @@ class MockFwConfigNormalized(FwConfigNormalized):
                     - "rule_config": List of integers, each representing the number of rules per rulebase.
                     - "initialize_rule_num_numeric": Optional boolean, if True assigns incremental numeric rule numbers.
         """
+        config = self.empty_config()
 
         mock_mgm_uid = self.uid_manager.create_uid()
         created_rule_counter = 1
 
         # Add network objects.
+
+        # TODO: test various object types
+        # obj_types = [entry["obj_typ_name"] for entry in mock_fwo_api_oo.STM_TABLES["stm_obj_typ"]]
 
         for index in range(mock_config["network_object_config"]):
 
@@ -89,14 +107,14 @@ class MockFwConfigNormalized(FwConfigNormalized):
 
             new_network_object = NetworkObject(
                 obj_uid = new_network_object_uid,
-                obj_ip = dummy_ip,
-                obj_ip_end = dummy_ip,
+                obj_ip = DUMMY_IP,
+                obj_ip_end = DUMMY_IP,
                 obj_name = f"Network Object {index}",
                 obj_color = "black",
                 obj_typ = "group"
             )
             
-            self.network_objects[new_network_object_uid] = new_network_object
+            config.network_objects[new_network_object_uid] = new_network_object
 
         # Add users.
 
@@ -106,14 +124,14 @@ class MockFwConfigNormalized(FwConfigNormalized):
 
             new_user = NetworkObject(
                 obj_uid = new_user_uid,
-                obj_ip = dummy_ip,
-                obj_ip_end = dummy_ip,
+                obj_ip = DUMMY_IP,
+                obj_ip_end = DUMMY_IP,
                 obj_name = f"IA_{index}",
                 obj_color = "black",
                 obj_typ = "access-role"
             )
             
-            self.network_objects[new_user_uid] = new_user
+            config.network_objects[new_user_uid] = new_user
 
         # Add services.
 
@@ -128,7 +146,7 @@ class MockFwConfigNormalized(FwConfigNormalized):
                 svc_typ = "group"
             )
             
-            self.service_objects[new_service_uid] = new_service
+            config.service_objects[new_service_uid] = new_service
 
         # Add rules and rulebases.
             
@@ -140,16 +158,17 @@ class MockFwConfigNormalized(FwConfigNormalized):
             new_rulebase = Rulebase(
                 uid = new_rulebase_uid,
                 name = f"Rulebase {new_rulebase_uid}",
-                mgm_uid = mock_mgm_uid
+                mgm_uid = mock_mgm_uid,
+                id=None
             )
-            self.rulebases.append(new_rulebase)
+            config.rulebases.append(new_rulebase)
 
             for i in range(number_of_rules):
 
                 # Add a new rule to the rulebase.
 
-                new_rule = self.add_rule_to_rulebase(new_rulebase_uid)
-                self.add_references_to_rule(new_rule)
+                new_rule = self.add_rule_to_rulebase(config, new_rulebase_uid)
+                self.add_references_to_rule(config, new_rule)
 
                 if mock_config.get("initialize_rule_num_numeric"):
                     new_rule.rule_num_numeric = created_rule_counter * rule_num_numeric_steps
@@ -157,22 +176,79 @@ class MockFwConfigNormalized(FwConfigNormalized):
 
         # Add Gateway.
 
-        self.gateways.append(
+        gateway_uid = self.uid_manager.create_uid() if not mock_config.get("gateway_uid") else mock_config["gateway_uid"]
+        gateway_name = f"Gateway {gateway_uid}" if not mock_config.get("gateway_name") else mock_config["gateway_name"]
+        config.gateways.append(
             Gateway(
-                Uid = mock_config["gateway_uid"],
-                Name = mock_config["gateway_name"],
-                RulebaseLinks = self.create_rulebase_links()
+                Uid = gateway_uid,
+                Name = gateway_name,
+                RulebaseLinks = self.create_rulebase_links(config)
             )
         )
 
+        return config
+    
+    def add_rule_with_nested_groups(self, config: FwConfigNormalized):
+        """
+        Adds a rule with highest possible reference complexity for testing correctness
+        of reference imports
+        """
+        # create basic objects
+        host_objects = []
+        for i in range(5):
+            new_network_object = NetworkObject(
+                obj_uid = self.uid_manager.create_uid(),
+                obj_ip = DUMMY_IP,
+                obj_ip_end = DUMMY_IP,
+                obj_name = f"Network Object {i}",
+                obj_color = "black",
+                obj_typ = "host"
+            )
+            host_objects.append(new_network_object)
+            config.network_objects[new_network_object.obj_uid] = new_network_object
         
-    def create_rulebase_links(self):
+        inner_group_objects = []
+        for i in range(2):
+            inner_group = NetworkObject(
+                obj_uid = self.uid_manager.create_uid(),
+                obj_ip = DUMMY_IP,
+                obj_ip_end = DUMMY_IP,
+                obj_name = f"Inner Group {i}",
+                obj_color = "black",
+                obj_typ = "group",
+                obj_member_names = list_delimiter.join([host_objects[i].obj_name for i in range(i, i + 2)]),
+                obj_member_refs = list_delimiter.join([host_objects[i].obj_uid for i in range(i, i + 2)])
+            )
+            inner_group_objects.append(inner_group)
+            config.network_objects[inner_group.obj_uid] = inner_group
+        
+        outer_group = NetworkObject(
+            obj_uid = self.uid_manager.create_uid(),
+            obj_ip = DUMMY_IP,
+            obj_ip_end = DUMMY_IP,
+            obj_name = "Outer Group",
+            obj_color = "black",
+            obj_typ = "group",
+            obj_member_names = list_delimiter.join([inner_group.obj_name for inner_group in inner_group_objects]),
+            obj_member_refs = list_delimiter.join([inner_group.obj_uid for inner_group in inner_group_objects])
+        )
+        config.network_objects[outer_group.obj_uid] = outer_group
+        
+        rulebase = config.rulebases[0]
+        self.add_rule_to_rulebase(
+            config,
+            rulebase.uid,
+            src_objs=[outer_group],
+            dst_objs=[outer_group]
+        )
 
+        
+    def create_rulebase_links(self, config: FwConfigNormalized) -> List[RulebaseLinkUidBased]:
         rulebase_links = []
 
         # Add initial link.
 
-        initial_rulebase_uid = self.rulebases[0].uid
+        initial_rulebase_uid = config.rulebases[0].uid
         rulebase_links.append(
             RulebaseLinkUidBased(
                 from_rulebase_uid = "",
@@ -187,7 +263,7 @@ class MockFwConfigNormalized(FwConfigNormalized):
 
         # Add remaining links.
         
-        for index, rulebase in enumerate(self.rulebases):
+        for index, rulebase in enumerate(config.rulebases):
 
             # Skip first rulebase.
 
@@ -196,13 +272,13 @@ class MockFwConfigNormalized(FwConfigNormalized):
 
             # Create ordered rulebase link.
             
-            current_from_rulebase_uid = self.rulebases[index - 1].uid
-            current_from_rule_uid = list(self.rulebases[index - 1].Rules.values())[-1].rule_uid
+            current_from_rulebase_uid = config.rulebases[index - 1].uid
+            current_from_rule_uid = list(config.rulebases[index - 1].Rules.values())[-1].rule_uid
             rulebase_links.append(
                 RulebaseLinkUidBased(
                     from_rulebase_uid = current_from_rulebase_uid,
                     from_rule_uid = current_from_rule_uid,
-                    to_rulebase_uid = self.rulebases[index].uid,
+                    to_rulebase_uid = config.rulebases[index].uid,
                     link_type = "ordered",
                     is_initial = False,
                     is_global = False,
@@ -213,7 +289,8 @@ class MockFwConfigNormalized(FwConfigNormalized):
         return rulebase_links
     
 
-    def add_rule_to_rulebase(self, rulebase_uid: str) -> Rule:
+    def add_rule_to_rulebase(self, config: FwConfigNormalized, rulebase_uid: str, src_objs: Optional[List[NetworkObject]] = None,
+                             dst_objs: Optional[List[NetworkObject]] = None, svc_objs: Optional[List[ServiceObject]] = None) -> RuleNormalized:
         """
         Adds a new rule to the rulebase identified by the given UID.
 
@@ -223,66 +300,89 @@ class MockFwConfigNormalized(FwConfigNormalized):
         Returns:
             Rule: The newly created rule.
         """
-        rulebase = next(rb for rb in self.rulebases if rb.uid == rulebase_uid)
+        rulebase = next(rb for rb in config.rulebases if rb.uid == rulebase_uid)
 
-        new_rule = Rule(
-            action_id=0,
-            mgm_id=0,
-            rule_action="accept",
-            rule_create=0,
-            rule_disabled=False,
-            rule_dst="",
-            rule_dst_neg=False,
-            rule_dst_refs="",
-            rule_last_seen=0,
-            rule_num=0,
-            rule_num_numeric=0,
-            rule_src="",
-            rule_src_neg=False,
-            rule_src_refs="",
-            rule_svc="",
-            rule_svc_neg=False,
-            rule_svc_refs="",
-            rule_time="",
-            track_id=0,
-            rule_track="none",
-            rule_uid=self.uid_manager.create_uid(),
-            rule_installon=""
+        if not src_objs:
+            src_objs = secrets.SystemRandom(self._seed).sample(
+                list(config.network_objects.values()), 
+                k=secrets.SystemRandom(self._seed).randint(1, 5)
+            )
+        if not dst_objs:
+            dst_objs = secrets.SystemRandom(self._seed).sample(
+                list(config.network_objects.values()), 
+                k=secrets.SystemRandom(self._seed).randint(1, 5)
+            )
+        if not svc_objs:
+            svc_objs = secrets.SystemRandom(self._seed).sample(
+                list(config.service_objects.values()), 
+                k=secrets.SystemRandom(self._seed).randint(1, 5)
+            )
+
+        new_rule = RuleNormalized(
+            rule_disabled = False,
+            rule_src_neg = False,
+            rule_src = list_delimiter.join(obj.obj_name for obj in src_objs),
+            rule_src_refs = list_delimiter.join(obj.obj_uid for obj in src_objs),
+            rule_dst_neg = False,
+            rule_dst = list_delimiter.join(obj.obj_name for obj in dst_objs),
+            rule_dst_refs = list_delimiter.join(obj.obj_uid for obj in dst_objs),
+            rule_svc_neg = False,
+            rule_svc = list_delimiter.join(svc.svc_name for svc in svc_objs),
+            rule_svc_refs = list_delimiter.join(svc.svc_uid for svc in svc_objs),
+            rule_action = RuleAction.ACCEPT,
+            rule_track = RuleTrack.NONE,
+            rule_installon = "",
+            rule_time = "always",
+            rule_name = f"Rule {self.uid_manager.create_uid()}",
+            rule_uid = self.uid_manager.create_uid(),
+            rule_custom_fields = None,
+            rule_implied = False,
+            rule_type = RuleType.SECTIONHEADER,
+            rule_last_change_admin = None,
+            parent_rule_uid = None,
+            last_hit = None,
+            rule_comment = None,
+            rule_src_zone = None,
+            rule_dst_zone = None,
+            rule_head_text = None,
+            rule_num = 0,
+            rule_num_numeric = 0.0
         )
         rulebase.Rules[new_rule.rule_uid] = new_rule
 
         return new_rule
         
 
-    def add_references_to_rule(self, rule: Rule):
+    def add_references_to_rule(self, config: FwConfigNormalized, rule: RuleNormalized, num_src: int = 1, num_dst: int = 1, num_svc: int = 1):
         network_objects = [
-            network_object for network_object in self.network_objects.values()
+            network_object for network_object in config.network_objects.values()
             if network_object.obj_typ == "group"
         ]
-        src_network_object = secrets.choice(network_objects)
-        dst_network_object = secrets.choice(network_objects)
+        src_network_objects = secrets.SystemRandom(self._seed).sample(network_objects, k=min(num_src, len(network_objects)))
+        dst_network_objects = secrets.SystemRandom(self._seed).sample(network_objects, k=min(num_dst, len(network_objects)))
 
-        service_objects = list(self.service_objects.values())
-        service = secrets.choice(service_objects)
+        service_objects = list(config.service_objects.values())
+        
+        svcs = secrets.SystemRandom(self._seed).sample(service_objects, k=min(num_svc, len(service_objects)))
 
         users = [
-            user for user in self.network_objects.values()
+            user for user in config.network_objects.values()
             if user.obj_typ == "access-role"
         ]
         src_user = secrets.choice(users)
         dst_user = secrets.choice(users)
 
-        rule.rule_dst = f"{dst_network_object.obj_name}|{dst_user.obj_name}"
-        rule.rule_dst_refs = f"{dst_network_object.obj_uid}|{dst_user.obj_uid}"
-        rule.rule_src = f"{src_network_object.obj_name}|{src_user.obj_name}"
-        rule.rule_src_refs = f"{src_network_object.obj_uid}|{src_user.obj_uid}"
-        rule.rule_svc = service.svc_name
-        rule.rule_svc_refs = service.svc_uid
+        rule.rule_dst = list_delimiter.join([f"{obj.obj_name}{user_delimiter}{src_user.obj_name}" for obj in dst_network_objects])
+        rule.rule_dst_refs = list_delimiter.join([f"{obj.obj_uid}{user_delimiter}{src_user.obj_uid}" for obj in dst_network_objects])
+        rule.rule_src = list_delimiter.join([f"{obj.obj_name}{user_delimiter}{dst_user.obj_name}" for obj in src_network_objects])
+        rule.rule_src_refs = list_delimiter.join([f"{obj.obj_uid}{user_delimiter}{dst_user.obj_uid}" for obj in src_network_objects])
+        rule.rule_svc = list_delimiter.join([svc.svc_name for svc in svcs])
+        rule.rule_svc_refs = list_delimiter.join([svc.svc_uid for svc in svcs])
 
 
 if __name__ == '__main__':
-    mock_config = MockFwConfigNormalized()
-    mock_config.initialize_config(
+    mock_config_builder = MockFwConfigNormalizedBuilder()
+    mock_config = mock_config_builder.build_config(
         {
             "rule_config": [10,10,10],
             "network_object_config": 10,

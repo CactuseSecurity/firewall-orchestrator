@@ -1,5 +1,6 @@
 import time
 from datetime import datetime
+from typing import Optional
 import requests, requests.packages
 
 from fwo_log import getFwoLogger
@@ -142,7 +143,7 @@ class ImportStateController(ImportState):
         return result 
 
 
-    def call(self, query, queryVariables="", debug_level=0, analyze_payload=False):
+    def call(self, query, queryVariables={}, debug_level=0, analyze_payload=False):
         """
         Call the FWO API with the given query and query variables.
         This method is a wrapper around the FwoApi class to make it easier to call the API.
@@ -216,7 +217,7 @@ class ImportStateController(ImportState):
             result = self.call(query=query, queryVariables={})
         except Exception:
             logger = getFwoLogger()
-            logger.error(f'Error while getting stm_link_type')
+            logger.error("Error while getting stm_link_type")
             return {}
         
         map = {}
@@ -249,7 +250,7 @@ class ImportStateController(ImportState):
             result = self.call(query=query, queryVariables= {"mgmId": self.MgmDetails.Id})
         except Exception:
             logger = getFwoLogger()
-            logger.error(f'Error while getting rulebases')
+            logger.error("Error while getting rulebases")
             self.RulebaseMap = {}
             return
         
@@ -264,18 +265,18 @@ class ImportStateController(ImportState):
     # creats a dict with key = rule.uid and value = rule.id 
     # should be called sparsely, as there might be a lot of rules for a mgmt
     def SetRuleMap(self):
-        query = """query getRuleMap($mgmId: Int) { rule(where:{mgm_id: {_eq: $mgmId}, removed:{_is_null:true }}) { id: rule_id uid: rule_uid } }"""
+        query = """query getRuleMap($mgmId: Int) { rule(where:{mgm_id: {_eq: $mgmId}, removed:{_is_null:true }}) { rule_id rule_uid } }"""
         try:
             result = self.call(query=query, queryVariables= {"mgmId": self.MgmDetails.Id})
         except Exception:
             logger = getFwoLogger()
-            logger.error(f'Error while getting rules')
+            logger.error("Error while getting rules")
             self.RuleMap = {}
             return
         
         map = {}
         for rule in result['data']['rule']:
-            map.update({rule['uid']: rule['id']})
+            map.update({rule['rule_uid']: rule['rule_id']})
         self.RuleMap = map
 
     # getting all gateways (not limitited to the current mgm_id) to support super managements
@@ -285,9 +286,9 @@ class ImportStateController(ImportState):
         query = """
             query getGatewayMap($mgmId: Int) {
                 device {
-                    id:dev_id
-                    name:dev_name
-                    uid: dev_uid
+                    dev_id
+                    dev_name
+                    dev_uid
                 }
             }
     """
@@ -295,14 +296,14 @@ class ImportStateController(ImportState):
             result = self.call(query=query, queryVariables= {})
         except Exception:
             logger = getFwoLogger()
-            logger.error(f'Error while getting gateways')
+            logger.error("Error while getting gateways")
             self.GatewayMap = {}
             return
         
         map = {}
         for gw in result['data']['device']:
-            map.update({gw['name']: gw['id']})
-            map.update({gw['uid']: gw['id']})
+            map.update({gw['dev_name']: gw['dev_id']})
+            map.update({gw['dev_uid']: gw['dev_id']})
         self.GatewayMap = map
     
     def lookupRule(self, ruleUid):

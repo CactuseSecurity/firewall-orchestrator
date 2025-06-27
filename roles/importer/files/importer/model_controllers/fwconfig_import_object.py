@@ -17,15 +17,6 @@ class FwConfigImportObject():
 
     ImportDetails: ImportStateController
     NormalizedConfig: FwConfigNormalized
-
-    # @root_validator(pre=True)
-    # def custom_initialization(cls, values):
-    #     values['NetworkObjectTypeMap'] = cls.GetNetworkObjTypeMap()
-    #     values['ServiceObjectTypeMap'] = cls.GetServiceObjTypeMap()
-    #     values['UserObjectTypeMap'] = cls.GetUserObjTypeMap()
-    #     values['ProtocolMap'] = cls.GetProtocolMap()
-    #     values['ColorMap'] = cls.GetColorMap()
-    #     return values
     
     def __init__(self):
 
@@ -48,7 +39,6 @@ class FwConfigImportObject():
         self.ServiceObjectTypeMap = self.GetServiceObjTypeMap()
         self.UserObjectTypeMap = self.GetUserObjTypeMap()
         self.ProtocolMap = self.GetProtocolMap()
-        self.ColorMap = self.GetColorMap()
 
 
     def updateObjectDiffs(self, prevConfig: FwConfigNormalized):
@@ -213,23 +203,6 @@ class FwConfigImportObject():
             map.update({proto['ip_proto_name'].lower(): proto['ip_proto_id']})
         return map
 
-    def GetColorMap(self):
-        query = "query getColorMap { stm_color { color_name color_id } }"
-        try:
-            result = self.ImportDetails.call(query=query, queryVariables={})
-        except Exception:
-            logger = getFwoLogger()
-            logger.error("Error while getting stm_color")
-            return {}
-        
-
-        map = {}
-
-        for color in result['data']['stm_color']:
-            map.update({color['color_name']: color['color_id']})
-        return map
-
-
     def updateObjectsViaApi(self, newNwObjectUids, newSvcObjectUids, removedNwObjectUids, removedSvcObjectUids):
         # here we also mark old objects removed before adding the new versions
         logger = getFwoLogger(debug_level=self.ImportDetails.DebugLevel)
@@ -240,7 +213,7 @@ class FwConfigImportObject():
         removedNwObjIds = []
         removedNwSvcIds = []
         import_mutation = """mutation updateObjects($mgmId: Int!, $importId: bigint!, $removedNwObjectUids: [String!]!, $removedSvcObjectUids: [String!]!, $newNwObjects: [object_insert_input!]!, $newSvcObjects: [service_insert_input!]!) {
-                update_removed_obj: update_object(where: {mgm_id: {_eq: $mgmId}, obj_uid: {_in: $removedNwObjectUids}, removed: {_is_null: true}},
+                update_object(where: {mgm_id: {_eq: $mgmId}, obj_uid: {_in: $removedNwObjectUids}, removed: {_is_null: true}},
                     _set: {
                         removed: $importId,
                         active: false
@@ -253,7 +226,7 @@ class FwConfigImportObject():
                         obj_typ_id
                     }
                 }
-                update_removed_svc: update_service(where: {mgm_id: {_eq: $mgmId}, svc_uid: {_in: $removedSvcObjectUids}, removed: {_is_null: true}},
+                update_service(where: {mgm_id: {_eq: $mgmId}, svc_uid: {_in: $removedSvcObjectUids}, removed: {_is_null: true}},
                     _set: {
                         removed: $importId,
                         active: false
@@ -299,12 +272,12 @@ class FwConfigImportObject():
             else:
                 changes = int(import_result['data']['insert_object']['affected_rows']) + \
                     int(import_result['data']['insert_service']['affected_rows']) + \
-                    int(import_result['data']['update_removed_obj']['affected_rows']) + \
-                    int(import_result['data']['update_removed_svc']['affected_rows'])
+                    int(import_result['data']['update_object']['affected_rows']) + \
+                    int(import_result['data']['update_service']['affected_rows'])
                 newNwObjIds = import_result['data']['insert_object']['returning']
                 newNwSvcIds = import_result['data']['insert_service']['returning']
-                removedNwObjIds = import_result['data']['update_removed_obj']['returning']
-                removedNwSvcIds = import_result['data']['update_removed_svc']['returning']
+                removedNwObjIds = import_result['data']['update_object']['returning']
+                removedNwSvcIds = import_result['data']['update_service']['returning']
         except Exception:
             logger.exception(f"failed to update objects: {str(traceback.format_exc())}")
             errors = 1
@@ -317,7 +290,7 @@ class FwConfigImportObject():
             newNwObj = NetworkObjectForImport(nwObject=self.NormalizedConfig.network_objects[nwobjUid],
                                                     mgmId=self.ImportDetails.MgmDetails.Id, 
                                                     importId=self.ImportDetails.ImportId, 
-                                                    colorId=self.lookupColor(self.NormalizedConfig.network_objects[nwobjUid].obj_color), 
+                                                    colorId=self.ImportDetails.lookupColorId(self.NormalizedConfig.network_objects[nwobjUid].obj_color), 
                                                     typId=self.lookupObjType(self.NormalizedConfig.network_objects[nwobjUid].obj_typ))
             newNwObjDict = newNwObj.toDict()
             newNwObjs.append(newNwObjDict)
@@ -335,7 +308,7 @@ class FwConfigImportObject():
             newObjs.append(ServiceObjectForImport(svcObject=self.NormalizedConfig.service_objects[uid],
                                         mgmId=self.ImportDetails.MgmDetails.Id, 
                                         importId=self.ImportDetails.ImportId, 
-                                        colorId=self.lookupColor(self.NormalizedConfig.service_objects[uid].svc_color), 
+                                        colorId=self.ImportDetails.lookupColorId(self.NormalizedConfig.service_objects[uid].svc_color), 
                                         typId=self.lookupSvcType(self.NormalizedConfig.service_objects[uid].svc_typ),
                                         ).toDict())
 
@@ -806,9 +779,6 @@ class FwConfigImportObject():
 
     def lookupSvcIdToUidAndPolicyName(self, svcId: int):
         return str(svcId) # mock
-
-    def lookupColor(self, colorString):
-        return self.ColorMap.get(colorString, None)
 
     def lookupProtoNameToId(self, protoString):
         if isinstance(protoString, int):

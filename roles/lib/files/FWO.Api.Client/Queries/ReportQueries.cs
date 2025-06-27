@@ -64,11 +64,11 @@ namespace FWO.Api.Client.Queries
                 // note: currently we only check for rule changes, but this should be extended to other changes in the future
                 // getImportsToNotify = File.ReadAllText(QueryPath + "report/getImportsToNotifyForAnyChanges.phql");
                 getImportsToNotify = File.ReadAllText(QueryPath + "report/getImportsToNotifyForRuleChanges.graphql");
-
+                setImportsNotified = File.ReadAllText(QueryPath + "report/setImportsNotified.graphql");
             }
             catch (Exception exception)
             {
-                Log.WriteError("Initialize Api Queries", "Api ReportQueries could not be loaded." , exception);
+                Log.WriteError("Initialize Api Queries", "Api ReportQueries could not be loaded.", exception);
                 Environment.Exit(-1);
             }
         }

@@ -397,6 +397,12 @@
             "type": "coreclr",
             "request": "attach",
             "processId": "${command:pickProcess}"
+        },
+        {
+            "name": "Create mock_config",
+            "type": "python",
+            "request": "launch",
+            "module": "roles.importer.files.test.mocking.mock_config"
         }
     ]
 }

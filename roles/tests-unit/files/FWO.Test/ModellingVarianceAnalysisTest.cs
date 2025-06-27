@@ -118,6 +118,14 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task TestGetSuccessfulRequestState()
+        {
+            ModellingVarianceAnalysis varianceAnalysis = new(varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
+            
+            ClassicAssert.AreEqual("Last successful: 1967-01-10 08:00:00, Implemented: 2025-06-26 08:00:00, Walter", await varianceAnalysis.GetSuccessfulRequestState());
+        }
+        
+        [Test]
         public async Task TestAnalyseModelledConnectionsForRequest()
         {
             List<ModellingConnection> Connections = [Connection1, Connection6];

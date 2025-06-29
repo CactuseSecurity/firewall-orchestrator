@@ -102,24 +102,73 @@ class TestFwoConfigImportConsistency(unittest.TestCase):
         member_uids_db = {}
         for objgrp in mock_api.get_table("objgrp").values():
             objgrp_id = objgrp["objgrp_id"]
-            uid = next((uid for uid, id in uid2id_mapper.nwobj_uid2id.items() if id == objgrp_id), None)
+            uid = mock_api.get_nwobj_uid(objgrp_id)
             if uid is None:
-                self.fail(f"Object group ID {objgrp_id} not found in UID2ID mapper.")
+                self.fail(f"Object group ID {objgrp_id} not found in database.")
             if uid not in member_uids_db:
                 member_uids_db[uid] = set()
             member_id = objgrp["objgrp_member_id"]
-            member_uid_db = next((uid for uid, id in uid2id_mapper.nwobj_uid2id.items() if id == member_id), None)
+            member_uid_db = mock_api.get_nwobj_uid(member_id)
             if member_uid_db is None:
-                self.fail(f"Member ID {member_id} not found in UID2ID mapper.")
+                self.fail(f"Member ID {member_id} not found in database.")
             member_uids_db[uid].add(member_uid_db)
         
+        group_flats_mapper = service_provider.get_service(Services.GROUP_FLATS_MAPPER)
+        flat_member_uids_config = {obj.obj_uid: set(group_flats_mapper.get_network_object_flats([obj.obj_uid])) 
+                                   for obj in config.network_objects.values() if obj.obj_member_refs}
+
+        flat_member_uids_db = {}
+        for objgrp_flat in mock_api.get_table("objgrp_flat").values():
+            objgrp_flat_id = objgrp_flat["objgrp_flat_id"]
+            uid = mock_api.get_nwobj_uid(objgrp_flat_id)
+            if uid is None:
+                self.fail(f"Object group flat ID {objgrp_flat_id} not found in database.")
+            if uid not in flat_member_uids_db:
+                flat_member_uids_db[uid] = set()
+            member_id = objgrp_flat["objgrp_flat_member_id"]
+            member_uid_db = mock_api.get_nwobj_uid(member_id)
+            if member_uid_db is None:
+                self.fail(f"Member ID {member_id} not found in database.")
+            flat_member_uids_db[uid].add(member_uid_db)
+        
+        rule_froms_config = {rule.rule_uid: set(rule.rule_src_refs.split(fwo_const.list_delimiter))
+                             for rulebase in config.rulebases for rule in rulebase.Rules.values()}
+        
+        rule_froms_db = {}
+        for rule_from in mock_api.get_table("rule_from").values():
+            rule_id = rule_from["rule_id"]
+            uid = mock_api.get_rule_uid(rule_id)
+            if uid is None:
+                self.fail(f"Rule ID {rule_id} not found in database.")
+            if uid not in rule_froms_db:
+                rule_froms_db[uid] = set()
+            obj_id = rule_from["obj_id"]
+            obj_uid = mock_api.get_nwobj_uid(obj_id)
+            member_string_db = obj_uid
+            if obj_uid is None:
+                self.fail(f"Member ID {member_id} not found in database.")
+            user_id = rule_from["user_id"]
+            if user_id is not None:
+                user_uid = mock_api.get_user_uid(user_id)
+                if user_uid is None:
+                    self.fail(f"User ID {user_id} not found in database.")
+                member_string_db += fwo_const.user_delimiter + user_uid
+            
+            rule_froms_db[uid].add(member_string_db)
+
+
         service_provider.dispose_service(Services.GLOBAL_STATE)
         service_provider.dispose_service(Services.GROUP_FLATS_MAPPER)
         service_provider.dispose_service(Services.UID2ID_MAPPER)
 
         self.assertEqual(member_uids_config, member_uids_db,
                             f"Member UIDs in config and DB do not match: {find_first_diff(member_uids_config, member_uids_db)}")
-        #TODO: check flat groups as well
+        
+        self.assertEqual(flat_member_uids_config, flat_member_uids_db,
+                            f"Flat member UIDs in config and DB do not match: {find_first_diff(flat_member_uids_config, flat_member_uids_db)}")
+        
+        self.assertEqual(rule_froms_config, rule_froms_db,
+                            f"Rule froms in config and DB do not match: {find_first_diff(rule_froms_config, rule_froms_db)}")
         
 
     #TODO: add tests for import with changed config (changed ip in member obj in nested group)

@@ -1,7 +1,7 @@
 from typing import List, Dict, Optional
 import secrets
 
-from netaddr import IPNetwork
+from netaddr import IPAddress, IPNetwork
 
 if __name__ == '__main__': # for usage as executable script
     import sys
@@ -122,7 +122,7 @@ class MockFwConfigNormalizedBuilder():
 
             new_user_uid = self.uid_manager.create_uid()
 
-            new_user = NetworkObject(
+            new_user_obj = NetworkObject(
                 obj_uid = new_user_uid,
                 obj_ip = DUMMY_IP,
                 obj_ip_end = DUMMY_IP,
@@ -130,8 +130,15 @@ class MockFwConfigNormalizedBuilder():
                 obj_color = "black",
                 obj_typ = "access-role"
             )
+
+            new_user = {
+                "user_uid": new_user_uid,
+                "user_name": f"IA_{index}",
+                "usr_typ": "simple"
+            }
             
-            config.network_objects[new_user_uid] = new_user
+            config.network_objects[new_user_uid] = new_user_obj
+            config.users[new_user_uid] = new_user
 
         # Add services.
 
@@ -195,54 +202,92 @@ class MockFwConfigNormalizedBuilder():
         """
         # create basic objects
         host_objects = []
-        for i in range(5):
+        svc_objects = []
+        uid = "complex-rule-"
+        for i in range(6):
             new_network_object = NetworkObject(
-                obj_uid = self.uid_manager.create_uid(),
+                obj_uid = f"{uid}nwobj-{i+1}",
                 obj_ip = DUMMY_IP,
                 obj_ip_end = DUMMY_IP,
-                obj_name = f"Network Object {i}",
+                obj_name = f"Network Object {i+1}",
                 obj_color = "black",
                 obj_typ = "host"
             )
             host_objects.append(new_network_object)
             config.network_objects[new_network_object.obj_uid] = new_network_object
+            new_svc_object = ServiceObject(
+                svc_uid = f"{uid}svc-{i+1}",
+                svc_name = f"Service {i+1}",
+                svc_color = "black",
+                svc_typ = "simple",
+                svc_port = 80,
+                svc_port_end = 80,
+                ip_proto=6  # TCP
+            )
         
-        inner_group_objects = []
-        for i in range(2):
+        inner_group_nwobjs = []
+        inner_group_svcs = []
+        uid = "complex-rule-inner-group-"
+        for i in range(4):
             inner_group = NetworkObject(
-                obj_uid = self.uid_manager.create_uid(),
+                obj_uid = f"{uid}nwobj-{i+1}",
                 obj_ip = DUMMY_IP,
                 obj_ip_end = DUMMY_IP,
-                obj_name = f"Inner Group {i}",
+                obj_name = f"Inner NwObj Group {i+1}",
                 obj_color = "black",
                 obj_typ = "group",
                 obj_member_names = list_delimiter.join([host_objects[i].obj_name for i in range(i, i + 2)]),
                 obj_member_refs = list_delimiter.join([host_objects[i].obj_uid for i in range(i, i + 2)])
             )
-            inner_group_objects.append(inner_group)
+            inner_group_nwobjs.append(inner_group)
             config.network_objects[inner_group.obj_uid] = inner_group
+            inner_group_svc = ServiceObject(
+                svc_uid = f"{uid}svc-{i+1}",
+                svc_name = f"Inner Svc Group {i+1}",
+                svc_color = "black",
+                svc_typ = "group"
+            )
+            inner_group_svcs.append(inner_group_svc)
+            config.service_objects[inner_group_svc.svc_uid] = inner_group_svc
         
-        outer_group = NetworkObject(
-            obj_uid = self.uid_manager.create_uid(),
-            obj_ip = DUMMY_IP,
-            obj_ip_end = DUMMY_IP,
-            obj_name = "Outer Group",
-            obj_color = "black",
-            obj_typ = "group",
-            obj_member_names = list_delimiter.join([inner_group.obj_name for inner_group in inner_group_objects]),
-            obj_member_refs = list_delimiter.join([inner_group.obj_uid for inner_group in inner_group_objects])
-        )
-        config.network_objects[outer_group.obj_uid] = outer_group
+        outer_group_nwobjs = []
+        outer_group_svcs = []
+        uid = "complex-rule-outer-group-"
+        for i in range(2):
+            outer_group = NetworkObject(
+                obj_uid = f"{uid}nwobj-{i+1}",
+                obj_ip = DUMMY_IP,
+                obj_ip_end = DUMMY_IP,
+                obj_name = f"Outer NwObj Group {i+1}",
+                obj_color = "black",
+                obj_typ = "group",
+                obj_member_names = list_delimiter.join([inner_group.obj_name for inner_group in inner_group_nwobjs[i*2:i*2+2]]),
+                obj_member_refs = list_delimiter.join([inner_group.obj_uid for inner_group in inner_group_nwobjs[i*2:i*2+2]])
+            )
+            outer_group_nwobjs.append(outer_group)
+            config.network_objects[outer_group.obj_uid] = outer_group
+            outer_group_svc = ServiceObject(
+                svc_uid = f"{uid}svc-{i+1}",
+                svc_name = f"Outer Svc Group {i+1}",
+                svc_color = "black",
+                svc_typ = "group",
+                svc_member_names= list_delimiter.join([inner_group_svc.svc_name for inner_group_svc in inner_group_svcs[i*2:i*2+2]]),
+                svc_member_refs= list_delimiter.join([inner_group_svc.svc_uid for inner_group_svc in inner_group_svcs[i*2:i*2+2]])
+            )
+            outer_group_svcs.append(outer_group_svc)
+            config.service_objects[outer_group_svc.svc_uid] = outer_group_svc
         
         rulebase = config.rulebases[0]
         self.add_rule_to_rulebase(
             config,
             rulebase.uid,
-            src_objs=[outer_group],
-            dst_objs=[outer_group]
+            rule_uid="complex-rule",
+            src_objs=outer_group_nwobjs,
+            dst_objs=[host_objects[5]],
+            svc_objs=outer_group_svcs
         )
 
-        
+
     def create_rulebase_links(self, config: FwConfigNormalized) -> List[RulebaseLinkUidBased]:
         rulebase_links = []
 
@@ -289,7 +334,7 @@ class MockFwConfigNormalizedBuilder():
         return rulebase_links
     
 
-    def add_rule_to_rulebase(self, config: FwConfigNormalized, rulebase_uid: str, src_objs: Optional[List[NetworkObject]] = None,
+    def add_rule_to_rulebase(self, config: FwConfigNormalized, rulebase_uid: str, rule_uid: Optional[str] = None, src_objs: Optional[List[NetworkObject]] = None,
                              dst_objs: Optional[List[NetworkObject]] = None, svc_objs: Optional[List[ServiceObject]] = None) -> RuleNormalized:
         """
         Adds a new rule to the rulebase identified by the given UID.
@@ -334,7 +379,7 @@ class MockFwConfigNormalizedBuilder():
             rule_installon = "",
             rule_time = "always",
             rule_name = f"Rule {self.uid_manager.create_uid()}",
-            rule_uid = self.uid_manager.create_uid(),
+            rule_uid = rule_uid if rule_uid else self.uid_manager.create_uid(),
             rule_custom_fields = None,
             rule_implied = False,
             rule_type = RuleType.SECTIONHEADER,
@@ -378,6 +423,32 @@ class MockFwConfigNormalizedBuilder():
         rule.rule_src_refs = list_delimiter.join([f"{obj.obj_uid}{user_delimiter}{dst_user.obj_uid}" for obj in src_network_objects])
         rule.rule_svc = list_delimiter.join([svc.svc_name for svc in svcs])
         rule.rule_svc_refs = list_delimiter.join([svc.svc_uid for svc in svcs])
+
+    def change_network_object_subtle(self, config, obj_uid):
+        """
+        Changes a network object in a subtle way (excluding name and UID) to test
+        if the import process detects changes correctly, esp. in nested groups.
+        """
+        if obj_uid not in config.network_objects:
+            raise ValueError(f"Object with UID {obj_uid} not found in config.")
+
+        obj = config.network_objects[obj_uid]
+        # Change the IP address slightly
+        new_ip = IPNetwork(str(IPAddress(DUMMY_IP.first + 1)) + '/' + str(DUMMY_IP.prefixlen))
+        obj.obj_ip = new_ip
+        obj.obj_ip_end = new_ip
+    
+    def change_service_object_subtle(self, config, svc_uid):
+        """
+        Changes a service object in a subtle way (excluding name and UID) to test
+        if the import process detects changes correctly.
+        """
+        if svc_uid not in config.service_objects:
+            raise ValueError(f"Service with UID {svc_uid} not found in config.")
+
+        svc = config.service_objects[svc_uid]
+        # Change the service protocol slightly
+        svc.svc_port = 6 if svc.svc_port == 17 else 17  # Toggle between TCP (6) and UDP (17)
 
 
 if __name__ == '__main__':

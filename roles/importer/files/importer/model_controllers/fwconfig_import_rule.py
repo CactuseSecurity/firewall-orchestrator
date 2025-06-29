@@ -11,7 +11,7 @@ from models.rulebase import Rulebase, RulebaseForImport
 from model_controllers.import_state_controller import ImportStateController
 from model_controllers.fwconfig_normalized_controller import FwConfigNormalized
 from fwo_log import ChangeLogger, getFwoLogger
-from typing import Dict, List
+from typing import Dict, List, Tuple
 from datetime import datetime
 from models.rule_from import RuleFrom
 from models.rule_to import RuleTo
@@ -155,43 +155,44 @@ class FwConfigImportRule():
 
         # TODO: need to make sure that the references do not already exist!
 
-        ruleRefs = {}
+        ruleFroms = []
+        ruleTos = []
+        ruleSvcs = []
+
         # now add the references to the rules
         for rule in newRules:
-            ruleFromRefs = []
-            ruleToRefs = []
-            ruleSvcRefs = []
-            ruleFromUserRefs = []
-            ruleToUserRefs = []
-
             for srcRef in rule['rule_src_refs'].split(fwo_const.list_delimiter):
-                if fwo_const.user_delimiter in srcRef:
-                    userRef, nwRef = srcRef.split(fwo_const.user_delimiter)
-                    ruleFromUserRefs.append(self.uid2id_mapper.get_user_id(userRef))
-                    srcRef = nwRef
-                ruleFromRefs.append(self.uid2id_mapper.get_network_object_id(srcRef))
+                srcRef, userRef = srcRef.split(fwo_const.user_delimiter) if fwo_const.user_delimiter in srcRef else (srcRef, None)
+                ruleFroms.append(RuleFrom(
+                    rule_id=rule['rule_id'], 
+                    obj_id=self.uid2id_mapper.get_network_object_id(srcRef),
+                    user_id=self.uid2id_mapper.get_user_id(userRef) if userRef else None,
+                    rf_create=self.ImportDetails.ImportId,
+                    rf_last_seen=self.ImportDetails.ImportId, #TODO: to be removed in the future
+                    negated=rule['rule_src_neg']
+                ).dict())
             for dstRef in rule['rule_dst_refs'].split(fwo_const.list_delimiter):
-                if fwo_const.user_delimiter in dstRef:
-                    userRef, nwRef = dstRef.split(fwo_const.user_delimiter)
-                    ruleToUserRefs.append(self.uid2id_mapper.get_user_id(userRef))
-                    dstRef = nwRef
-                ruleToRefs.append(self.uid2id_mapper.get_network_object_id(dstRef))
+                dstRef, userRef = dstRef.split(fwo_const.user_delimiter) if fwo_const.user_delimiter in dstRef else (dstRef, None)
+                ruleTos.append(RuleTo(
+                    rule_id=rule['rule_id'],
+                    obj_id=self.uid2id_mapper.get_network_object_id(dstRef),
+                    user_id=self.uid2id_mapper.get_user_id(userRef) if userRef else None,
+                    rt_create=self.ImportDetails.ImportId,
+                    rt_last_seen=self.ImportDetails.ImportId, #TODO: to be removed in the future
+                    negated=rule['rule_dst_neg']
+                ).dict())
             for svcRef in rule['rule_svc_refs'].split(fwo_const.list_delimiter):
-                ruleSvcRefs.append(self.uid2id_mapper.get_service_object_id(svcRef))
-            ruleRefs.update({ rule['rule_id']: { 
-                'from': ruleFromRefs, 
-                'to': ruleToRefs, 
-                'svc': ruleSvcRefs, 
-                'from_negated': rule['rule_src_neg'], 
-                'to_negated': rule['rule_src_neg'],
-                'svc_negated': rule['rule_svc_neg']
-                } })
-
-        # TODO: we need to also add info on negation and user references!
-        self.addRuleNwObjRefs(ruleRefs)
+                ruleSvcs.append(RuleService(
+                    rule_id=rule['rule_id'],
+                    svc_id=self.uid2id_mapper.get_service_object_id(svcRef),
+                    rs_create=self.ImportDetails.ImportId,
+                    rs_last_seen=self.ImportDetails.ImportId, #TODO: to be removed in the future
+                    negated=rule['rule_svc_neg']
+                ).dict())
+        self.addRuleNwObjRefs(ruleFroms, ruleTos, ruleSvcs)
 
 
-    def addRuleNwObjRefs(self, ruleRefs):
+    def addRuleNwObjRefs(self, ruleFroms: list, ruleTos: list, ruleSvcs: list) -> Tuple[int, int]:
         """
         Adds network object references for firewall rules.
 
@@ -199,58 +200,17 @@ class FwConfigImportRule():
         to insert the data into the API.
 
         Args:
-            ruleRefs (dict): A dictionary containing rule IDs and associated network objects.
+            ruleFroms (list): List of RuleFrom.dict() objects representing source references.
+            ruleTos (list): List of RuleTo.dict() objects representing destination references.
+            ruleSvcs (list): List of RuleService.dict() objects representing service references.
 
         Returns:
             tuple: (errors, changes), where errors is 1 if an error occurred, otherwise 0, 
                    and changes is 1 if modifications were made, otherwise 0.
         """
 
-        logger = getFwoLogger()
         errors = 0
         changes = 0
-        ruleFroms = []
-        ruleTos = []
-        ruleSvcs = []
-
-        # loop over all ruleRefs items
-        for ruleId, ruleData in ruleRefs.items():
-            negatedFrom = ruleData['from_negated']
-            negatedTo = ruleData['to_negated']
-            negatedSvc = ruleData['svc_negated']
-
-            # append rule froms
-            for srcObjId in ruleData['from']:
-                            ruleFroms.append(RuleFrom(
-                                rule_id=ruleId, 
-                                obj_id=srcObjId,
-                                user_id=None,   # TODO: implement getting user information
-                                rf_create=self.ImportDetails.ImportId, 
-                                rf_last_seen=self.ImportDetails.ImportId,
-                                negated=negatedFrom
-                            ).dict())
-
-            # append rule tos            
-            for dstObjId in ruleData['to']:
-                ruleTos.append(RuleTo(
-                    rule_id=ruleId, 
-                    obj_id=dstObjId,
-                    user_id=None,   # TODO: implement getting user information
-                    rt_create=self.ImportDetails.ImportId, 
-                    rt_last_seen=self.ImportDetails.ImportId,
-                    negated=negatedTo
-                ).dict())
-
-            # append services         
-            for svcObjId in ruleData['svc']:
-                ruleSvcs.append(RuleService(
-                    rule_id=ruleId, 
-                    svc_id=svcObjId,
-                    user_id=None,   # TODO: implement getting user information
-                    rs_create=self.ImportDetails.ImportId, 
-                    rs_last_seen=self.ImportDetails.ImportId,
-                    negated=negatedSvc # TODO: Set properly
-                ).dict())
         
         # build mutation
         addNewRuleNwObjAndSvcRefsMutation = fwo_api.get_graphql_code([fwo_const.graphqlQueryPath + "rule/insertRuleRefs.graphql"])

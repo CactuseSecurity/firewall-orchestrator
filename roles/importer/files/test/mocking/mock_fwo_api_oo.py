@@ -4,6 +4,7 @@ from importer.models.networkobject import NetworkObject
 from importer.models.rulebase import Rulebase
 from importer.models.serviceobject import ServiceObject
 from importer.models.rule import RuleNormalized
+from importer import fwo_const
 from .mock_config import MockFwConfigNormalizedBuilder
 
 TABLE_IDENTIFIERS = {
@@ -193,7 +194,7 @@ class MockFwoApi(FwoApi):
                 for obj in objects:
                     pk = len(self.tables[table]) + 1
                     obj = dict(obj)  # copy
-                    if table not in ["objgrp", "svcgrp", "usergrp"]: # using pair of reference ids as primary key
+                    if table not in ["objgrp", "svcgrp", "usergrp", "objgrp_flat", "svcgrp_flat", "usergrp_flat"]: # using pair of reference ids as primary key
                         obj[TABLE_IDENTIFIERS.get(table, f"{table}_id")] = pk
                     self.tables[table][pk] = obj
                     returning.append(obj)
@@ -429,3 +430,190 @@ class MockFwoApi(FwoApi):
         Returns the table data for the given table name.
         """
         return self.tables.get(table_name, {})
+
+    def get_nwobj_uid(self, obj_id):
+        """
+        Returns the UID of a network object by its ID.
+        """
+        return self.tables.get("object", {}).get(obj_id, {}).get("obj_uid", None)
+    
+    def get_svc_uid(self, svc_id):
+        """
+        Returns the UID of a service object by its ID.
+        """
+        return self.tables.get("service", {}).get(svc_id, {}).get("svc_uid", None)
+    
+    def get_user_uid(self, user_id):
+        """
+        Returns the UID of a user by its ID.
+        """
+        return self.tables.get("usr", {}).get(user_id, {}).get("user_uid", None)
+    
+    def get_rule_uid(self, rule_id):
+        """
+        Returns the UID of a rule by its ID.
+        """
+        return self.tables.get("rule", {}).get(rule_id, {}).get("rule_uid", None)
+
+    def get_nwobj_member_mappings(self):
+        member_uids_db = {}
+        for objgrp in self.get_table("objgrp").values():
+            objgrp_id = objgrp["objgrp_id"]
+            uid = self.get_nwobj_uid(objgrp_id)
+            if uid is None:
+                raise Exception(f"Object group ID {objgrp_id} not found in database.")
+            if uid not in member_uids_db:
+                member_uids_db[uid] = set()
+            member_id = objgrp["objgrp_member_id"]
+            member_uid_db = self.get_nwobj_uid(member_id)
+            if member_uid_db is None:
+                raise Exception(f"Member ID {member_id} not found in database.")
+            member_uids_db[uid].add(member_uid_db)
+        return member_uids_db
+
+    def get_svc_member_mappings(self):
+        member_uids_db = {}
+        for svcgrp in self.get_table("svcgrp").values():
+            svcgrp_id = svcgrp["svcgrp_id"]
+            uid = self.get_svc_uid(svcgrp_id)
+            if uid is None:
+                raise Exception(f"Service group ID {svcgrp_id} not found in database.")
+            if uid not in member_uids_db:
+                member_uids_db[uid] = set()
+            member_id = svcgrp["svcgrp_member_id"]
+            member_uid_db = self.get_svc_uid(member_id)
+            if member_uid_db is None:
+                raise Exception(f"Member ID {member_id} not found in database.")
+            member_uids_db[uid].add(member_uid_db)
+        return member_uids_db
+    
+    def get_user_member_mappings(self):
+        member_uids_db = {}
+        for usergrp in self.get_table("usergrp").values():
+            usergrp_id = usergrp["usergrp_id"]
+            uid = self.get_user_uid(usergrp_id)
+            if uid is None:
+                raise Exception(f"User group ID {usergrp_id} not found in database.")
+            if uid not in member_uids_db:
+                member_uids_db[uid] = set()
+            member_id = usergrp["usergrp_member_id"]
+            member_uid_db = self.get_user_uid(member_id)
+            if member_uid_db is None:
+                raise Exception(f"Member ID {member_id} not found in database.")
+            member_uids_db[uid].add(member_uid_db)
+        return member_uids_db
+    
+    def get_nwobj_flat_member_mappings(self):
+        flat_member_uids_db = {}
+        for objgrp_flat in self.get_table("objgrp_flat").values():
+            objgrp_flat_id = objgrp_flat["objgrp_flat_id"]
+            uid = self.get_nwobj_uid(objgrp_flat_id)
+            if uid is None:
+                raise Exception(f"Object group flat ID {objgrp_flat_id} not found in database.")
+            if uid not in flat_member_uids_db:
+                flat_member_uids_db[uid] = set()
+            member_id = objgrp_flat["objgrp_flat_member_id"]
+            member_uid_db = self.get_nwobj_uid(member_id)
+            if member_uid_db is None:
+                raise Exception(f"Member ID {member_id} not found in database.")
+            flat_member_uids_db[uid].add(member_uid_db)
+
+        return flat_member_uids_db
+    
+    def get_svc_flat_member_mappings(self):
+        flat_member_uids_db = {}
+        for svcgrp_flat in self.get_table("svcgrp_flat").values():
+            svcgrp_flat_id = svcgrp_flat["svcgrp_flat_id"]
+            uid = self.get_svc_uid(svcgrp_flat_id)
+            if uid is None:
+                raise Exception(f"Service group flat ID {svcgrp_flat_id} not found in database.")
+            if uid not in flat_member_uids_db:
+                flat_member_uids_db[uid] = set()
+            member_id = svcgrp_flat["svcgrp_flat_member_id"]
+            member_uid_db = self.get_svc_uid(member_id)
+            if member_uid_db is None:
+                raise Exception(f"Member ID {member_id} not found in database.")
+            flat_member_uids_db[uid].add(member_uid_db)
+
+        return flat_member_uids_db
+    
+    def get_user_flat_member_mappings(self):
+        flat_member_uids_db = {}
+        for usergrp_flat in self.get_table("usergrp_flat").values():
+            usergrp_flat_id = usergrp_flat["usergrp_flat_id"]
+            uid = self.get_user_uid(usergrp_flat_id)
+            if uid is None:
+                raise Exception(f"User group flat ID {usergrp_flat_id} not found in database.")
+            if uid not in flat_member_uids_db:
+                flat_member_uids_db[uid] = set()
+            member_id = usergrp_flat["usergrp_flat_member_id"]
+            member_uid_db = self.get_user_uid(member_id)
+            if member_uid_db is None:
+                raise Exception(f"Member ID {member_id} not found in database.")
+            flat_member_uids_db[uid].add(member_uid_db)
+
+        return flat_member_uids_db
+    
+    def get_rule_from_mappings(self):
+        rule_froms_db = {}
+        for rule_from in self.get_table("rule_from").values():
+            rule_id = rule_from["rule_id"]
+            uid = self.get_rule_uid(rule_id)
+            if uid is None:
+                raise Exception(f"Rule ID {rule_id} not found in database.")
+            if uid not in rule_froms_db:
+                rule_froms_db[uid] = set()
+            obj_id = rule_from["obj_id"]
+            obj_uid = self.get_nwobj_uid(obj_id)
+            if obj_uid is None:
+                raise Exception(f"From Obj ID {obj_id} not found in database.")
+            member_string_db = obj_uid
+            user_id = rule_from["user_id"]
+            if user_id is not None:
+                user_uid = self.get_user_uid(user_id)
+                if user_uid is None:
+                    raise Exception(f"From User ID {user_id} not found in database.")
+                member_string_db += fwo_const.user_delimiter + user_uid
+            
+            rule_froms_db[uid].add(member_string_db)
+        return rule_froms_db
+    
+    def get_rule_to_mappings(self):
+        rule_tos_db = {}
+        for rule_to in self.get_table("rule_to").values():
+            rule_id = rule_to["rule_id"]
+            uid = self.get_rule_uid(rule_id)
+            if uid is None:
+                raise Exception(f"Rule ID {rule_id} not found in database.")
+            if uid not in rule_tos_db:
+                rule_tos_db[uid] = set()
+            obj_id = rule_to["obj_id"]
+            obj_uid = self.get_nwobj_uid(obj_id)
+            if obj_uid is None:
+                raise Exception(f"To Obj ID {obj_id} not found in database.")
+            member_string_db = obj_uid
+            user_id = rule_to["user_id"]
+            if user_id is not None:
+                user_uid = self.get_user_uid(user_id)
+                if user_uid is None:
+                    raise Exception(f"To User ID {user_id} not found in database.")
+                member_string_db += fwo_const.user_delimiter + user_uid
+            
+            rule_tos_db[uid].add(member_string_db)
+        return rule_tos_db
+    
+    def get_rule_svc_mappings(self):
+        rule_svcs_db = {}
+        for rule_svc in self.get_table("rule_svc").values():
+            rule_id = rule_svc["rule_id"]
+            uid = self.get_rule_uid(rule_id)
+            if uid is None:
+                raise Exception(f"Rule ID {rule_id} not found in database.")
+            if uid not in rule_svcs_db:
+                rule_svcs_db[uid] = set()
+            svc_id = rule_svc["svc_id"]
+            svc_uid = self.get_svc_uid(svc_id)
+            if svc_uid is None:
+                raise Exception(f"Service ID {svc_id} not found in database.")
+            rule_svcs_db[uid].add(svc_uid)
+        return rule_svcs_db

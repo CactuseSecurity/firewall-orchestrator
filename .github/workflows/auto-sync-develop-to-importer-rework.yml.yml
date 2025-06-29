@@ -20,11 +20,15 @@ jobs:
 
       - name: Ensure "automation" label exists
         run: |
-            LABEL_EXISTS=$(gh label list --json name --jq '.[].name' | grep -Fx automation || true)
-            if [ -z "$LABEL_EXISTS" ]; then
-            gh label create automation --color "0e8a16" --description "Automatically created for syncing branches"
-            else
+            echo "Checking for existing label..."
+            LABEL_LIST=$(gh label list --json name --jq '.[].name' || echo "")
+            echo "Labels found: $LABEL_LIST"
+            
+            if echo "$LABEL_LIST" | grep -qx "automation"; then
             echo "Label 'automation' already exists. Skipping creation."
+            else
+            echo "Creating label 'automation'..."
+            gh label create automation --color "0e8a16" --description "Automatically created for syncing branches"
             fi
         env:
             GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

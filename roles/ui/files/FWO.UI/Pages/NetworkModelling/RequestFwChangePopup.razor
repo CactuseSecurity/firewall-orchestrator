@@ -213,7 +213,8 @@
                 "<br>" + userConfig.GetText("service") + ": " + DisplayServices(task) +
                 "<br>" + userConfig.GetText("destination") + ": " + DisplayNwObjects(task, ElemFieldType.destination.ToString()) +
                 (task.TaskType == WfTaskType.rule_delete.ToString() && task.Elements.Where(e => e.Field == ElemFieldType.modelled_destination.ToString()).ToList().Count > 0 ?
-                    "<br>" + userConfig.GetText("modelled_destination") + ": " + DisplayNwObjects(task, ElemFieldType.modelled_source.ToString()) : "");
+                    "<br>" + userConfig.GetText("modelled_destination") + ": " + DisplayNwObjects(task, ElemFieldType.modelled_source.ToString()) : "") +
+                (task.Comments.Count > 0 ? "<br>" + userConfig.GetText("comment") + ": " + task.Comments.First().Comment.CommentText : "");
         }
         else if (task.TaskType == WfTaskType.group_create.ToString() || task.TaskType == WfTaskType.group_modify.ToString())
         {

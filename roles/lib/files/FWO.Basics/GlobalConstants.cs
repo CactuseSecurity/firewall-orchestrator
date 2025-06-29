@@ -40,6 +40,7 @@ namespace FWO.Basics
         public const string kDoku_ = "Doku_";
         public const string k_user = "_user";
         public const string k_user2 = "-user";
+		public const string kNAT = "NAT";
         public const string k_demo = "_demo";
 
         public const char kAppIdSeparator = '-'; // hard-coded could be moved to settings

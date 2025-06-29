@@ -10,7 +10,6 @@ using FWO.Basics;
 namespace FWO.Test
 {
     [TestFixture]
-    [Parallelizable]
     internal class ModellingVarianceAnalysisTest
     {
         const string stdRecogOpt = "{\"nwRegardIp\":true,\"nwRegardName\":false,\"nwRegardGroupName\":false,\"nwResolveGroup\":false,\"nwSeparateGroupAnalysis\":true,\"svcRegardPortAndProt\":true,\"svcRegardName\":false,\"svcRegardGroupName\":false,\"svcResolveGroup\":true,\"svcSplitPortRanges\":true}";
@@ -23,59 +22,59 @@ namespace FWO.Test
             ModRolloutResolveServiceGroups = true,
             CreateAppZones = true,
             RuleRecognitionOption = stdRecogOpt,
-            ModSpecUserAreas = "[{\"area_id\":1,\"use_in_src\":true,\"use_in_dst\":false}, {\"area_id\":3,\"use_in_src\":true,\"use_in_dst\":true}]"
+            ModSpecUserAreas = "[{\"area_id\":1,\"use_in_src\":true,\"use_in_dst\":false}, {\"area_id\":3,\"use_in_src\":true,\"use_in_dst\":true}]",
+            ModRolloutNatHeuristic = false
         };
         static readonly ModellingVarianceAnalysisTestApiConn varianceAnalysisApiConnection = new();
         static readonly ExtStateTestApiConn extStateApiConnection = new();
         readonly ExtStateHandler extStateHandler = new(extStateApiConnection);
-    
         static readonly FwoOwner Application = new() { Id = 1, Name = "App1" };
 
-        static readonly ModellingAppServer AS1 = new() {Id = 1, Name = "AppServerUnchanged", Ip = "1.2.3.4" };
-        static readonly ModellingAppServer AS2 = new() {Id = 2, Name = "AppServerNew1/32", Ip = "1.1.1.1", IpEnd = "1.1.1.1" };
-        static readonly ModellingAppServer AS3 = new() {Id = 3, Name = "AppServerNew2", Ip = "2.2.2.2", IpEnd = "2.2.2.2" };
+        static readonly ModellingAppServer AS1 = new() { Id = 1, Name = "AppServerUnchanged", Ip = "1.2.3.4" };
+        static readonly ModellingAppServer AS2 = new() { Id = 2, Name = "AppServerNew1/32", Ip = "1.1.1.1", IpEnd = "1.1.1.1" };
+        static readonly ModellingAppServer AS3 = new() { Id = 3, Name = "AppServerNew2", Ip = "2.2.2.2", IpEnd = "2.2.2.2" };
 
-        static readonly ModellingAppRole AR1 = new() { Id = 1, Name = "AppRole1", IdString = "AR504711-001", AppServers = [ new(){Content = AS1}, new(){Content = AS2} ]};
-        static readonly ModellingAppRole AR2 = new() { Id = 2, Name = "AppRole2", IdString = "AR504711-002", AppServers = [ new(){Content = AS3} ]};
-        static readonly ModellingAppRole AR3 = new() { Id = 3, Name = "AppRole3", IdString = "AR504711-003", AppServers = [ new(){Content = AS1} ]};
+        static readonly ModellingAppRole AR1 = new() { Id = 1, Name = "AppRole1", IdString = "AR504711-001", AppServers = [new() { Content = AS1 }, new() { Content = AS2 }] };
+        static readonly ModellingAppRole AR2 = new() { Id = 2, Name = "AppRole2", IdString = "AR504711-002", AppServers = [new() { Content = AS3 }] };
+        static readonly ModellingAppRole AR3 = new() { Id = 3, Name = "AppRole3", IdString = "AR504711-003", AppServers = [new() { Content = AS1 }] };
 
         static readonly ModellingService Svc1 = new() { Id = 1, Name = "Service1", Port = 1000, PortEnd = 2000, ProtoId = 6 };
         static readonly ModellingService Svc2 = new() { Id = 2, Name = "Service2", Port = 4000, ProtoId = 6 };
 
-        static readonly ModellingServiceGroup SvcGrp1 = new(){ Id = 1, Name = "SvcGrp1", Services = [ new(){ Content = Svc2 } ]};
+        static readonly ModellingServiceGroup SvcGrp1 = new() { Id = 1, Name = "SvcGrp1", Services = [new() { Content = Svc2 }] };
 
         static readonly ModellingConnection Connection1 = new()
         {
             Id = 1,
             Name = "Conn1",
-            SourceAppRoles = [ new(){ Content = AR1 } ],
-            DestinationAppRoles = [ new(){ Content = AR2 } ],
-            DestinationAppServers = [ new(){ Content = AS1 } ],
-            ServiceGroups = [ new(){ Content = SvcGrp1 } ],
-            Services = [ new(){Content = Svc1 } ]
+            SourceAppRoles = [new() { Content = AR1 }],
+            DestinationAppRoles = [new() { Content = AR2 }],
+            DestinationAppServers = [new() { Content = AS1 }],
+            ServiceGroups = [new() { Content = SvcGrp1 }],
+            Services = [new() { Content = Svc1 }]
         };
         static readonly ModellingConnection Connection2 = new()
         {
             Id = 2,
             Name = "Conn2",
-            SourceAppServers = [ new(){ Content = AS1 } ],
-            DestinationAppRoles = [ new(){ Content = AR3 } ],
-            Services = [ new(){Content = Svc1 } ]
+            SourceAppServers = [new() { Content = AS1 }],
+            DestinationAppRoles = [new() { Content = AR3 }],
+            Services = [new() { Content = Svc1 }]
         };
         static readonly ModellingConnection Connection3 = new()
         {
             Id = 3,
             Name = "Conn3",
-            Services = [ new(){Content = Svc2 } ]
+            Services = [new() { Content = Svc2 }]
         };
         static readonly ModellingConnection Connection4 = new()
         {
             Id = 4,
             Name = "Conn4",
-            SourceAppRoles = [ new(){ Content = AR1 } ],
-            SourceAppServers = [ new(){ Content = AS1 } ],
-            DestinationAppRoles = [ new(){ Content = AR3 } ],
-            Services = [ new(){Content = Svc1 } ],
+            SourceAppRoles = [new() { Content = AR1 }],
+            SourceAppServers = [new() { Content = AS1 }],
+            DestinationAppRoles = [new() { Content = AR3 }],
+            Services = [new() { Content = Svc1 }],
             ExtraConfigs = [ new(){ ExtraConfigType = "IDA_user", ExtraConfigText = "SpecObj1" },
                             new(){ ExtraConfigType = "IDA_user", ExtraConfigText = "SpecObj2" },
                             new(){ ExtraConfigType = "IDA_user", ExtraConfigText = "SpecObj3" } ]
@@ -84,10 +83,10 @@ namespace FWO.Test
         {
             Id = 5,
             Name = "Conn5",
-            SourceAppRoles = [ new(){ Content = AR1 } ],
-            SourceAppServers = [ new(){ Content = AS1 } ],
-            DestinationAppRoles = [ new(){ Content = AR3 } ],
-            Services = [ new(){Content = Svc1 } ],
+            SourceAppRoles = [new() { Content = AR1 }],
+            SourceAppServers = [new() { Content = AS1 }],
+            DestinationAppRoles = [new() { Content = AR3 }],
+            Services = [new() { Content = Svc1 }],
             ExtraConfigs = [ new(){ ExtraConfigType = "IDA-user", ExtraConfigText = "SpecObj1" },
                             new(){ ExtraConfigType = "IDA_user", ExtraConfigText = "SpecObj2" } ]
         };
@@ -96,12 +95,21 @@ namespace FWO.Test
         {
             Id = 6,
             Name = "Conn6",
-            SourceAppRoles = [ new(){ Content = AR1 } ],
-            DestinationAppServers = [ new(){ Content = AS1 } ],
-            Services = [ new(){Content = Svc1 } ],
-            ExtraConfigs = [ new(){ ExtraConfigType = "NAT", ExtraConfigText = "To x.x.x.x" } ]
+            SourceAppRoles = [new() { Content = AR1 }],
+            DestinationAppServers = [new() { Content = AS1 }],
+            Services = [new() { Content = Svc1 }],
+            ExtraConfigs = [new() { ExtraConfigType = "NAT", ExtraConfigText = "To x.x.x.x" }]
         };
 
+        static readonly ModellingConnection Connection7 = new()
+        {
+            Id = 7,
+            Name = "Conn7",
+            SourceAppRoles = [new() { Content = AR1 }],
+            DestinationAppServers = [new() { Content = AS1 }],
+            Services = [new() { Content = Svc1 }],
+            ExtraConfigs = [new() { ExtraConfigType = "NAT", ExtraConfigText = "To x.x.x.x" }]
+        };
 
 
         [SetUp]
@@ -110,10 +118,18 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task TestGetSuccessfulRequestState()
+        {
+            ModellingVarianceAnalysis varianceAnalysis = new(varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
+            
+            ClassicAssert.AreEqual("Last successful: 1967-01-10 08:00:00, Implemented: 2025-06-26 08:00:00, Walter", await varianceAnalysis.GetSuccessfulRequestState());
+        }
+        
+        [Test]
         public async Task TestAnalyseModelledConnectionsForRequest()
         {
-            List<ModellingConnection> Connections = [ Connection1, Connection6 ];
-            ModellingVarianceAnalysis varianceAnalysis = new (varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
+            List<ModellingConnection> Connections = [Connection1, Connection6];
+            ModellingVarianceAnalysis varianceAnalysis = new(varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
             List<WfReqTask> TaskList = await varianceAnalysis.AnalyseModelledConnectionsForRequest(Connections);
 
             ClassicAssert.AreEqual(10, TaskList.Count);
@@ -183,7 +199,7 @@ namespace FWO.Test
             ClassicAssert.AreEqual("FWOC6, Implementation Instructions: NAT: To x.x.x.x", TaskList[3].Comments[0].Comment.CommentText);
             ClassicAssert.AreEqual("create", TaskList[3].RequestAction);
             ClassicAssert.AreEqual(4, TaskList[3].TaskNumber);
-            ClassicAssert.AreEqual("New Connection: Conn6", TaskList[3].Title);
+            ClassicAssert.AreEqual("New Connection: Conn6 (FWOC6)", TaskList[3].Title);
             ClassicAssert.AreEqual(1, TaskList[3].Owners.Count);
             ClassicAssert.AreEqual("App1", TaskList[3].Owners[0].Owner.Name);
             ClassicAssert.AreEqual(3, TaskList[3].Elements.Count);
@@ -255,9 +271,9 @@ namespace FWO.Test
         [Test]
         public async Task TestAnalyseModelledConnectionsForRequestWithServiceGroups()
         {
-            List<ModellingConnection> Connections = [ Connection1 ];
+            List<ModellingConnection> Connections = [Connection1];
             userConfig.ModRolloutResolveServiceGroups = false;
-            ModellingVarianceAnalysis varianceAnalysis = new (varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
+            ModellingVarianceAnalysis varianceAnalysis = new(varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
             List<WfReqTask> TaskList = await varianceAnalysis.AnalyseModelledConnectionsForRequest(Connections);
 
             ClassicAssert.AreEqual(10, TaskList.Count);
@@ -291,8 +307,8 @@ namespace FWO.Test
         {
             // open: NA, Enabled, Negated, DropRule
 
-            List<ModellingConnection> Connections = [ Connection1, Connection2, Connection3 ];
-            ModellingVarianceAnalysis varianceAnalysis = new (varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
+            List<ModellingConnection> Connections = [Connection1, Connection2, Connection3];
+            ModellingVarianceAnalysis varianceAnalysis = new(varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
             ModellingFilter modellingFilter = new();
             ModellingVarianceResult result = await varianceAnalysis.AnalyseRulesVsModelledConnections(Connections, modellingFilter);
 
@@ -303,6 +319,11 @@ namespace FWO.Test
             ClassicAssert.AreEqual(1, result.ConnsNotImplemented.Count);
             ClassicAssert.AreEqual(3, result.ConnsNotImplemented[0].Id);
             ClassicAssert.AreEqual("Conn3", result.ConnsNotImplemented[0].Name);
+
+            ClassicAssert.AreEqual(1, result.OkRules.Count);
+            ClassicAssert.AreEqual("Conn2", result.OkRules[0].ModelledConnection.Name);
+            ClassicAssert.AreEqual(1, result.OkRules[0].ImplementedRules.Count);
+            ClassicAssert.AreEqual("xxxFWOC2yyy", result.OkRules[0].ImplementedRules[0].Name);
 
             ClassicAssert.AreEqual(1, result.RuleDifferences.Count);
             ClassicAssert.AreEqual("Conn1", result.RuleDifferences[0].ModelledConnection.Name);
@@ -351,8 +372,8 @@ namespace FWO.Test
         [Test]
         public async Task TestAnalyseRulesSpecialUserObjects()
         {
-            List<ModellingConnection> Connections = [ Connection4 ];
-            ModellingVarianceAnalysis varianceAnalysis = new (varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
+            List<ModellingConnection> Connections = [Connection4];
+            ModellingVarianceAnalysis varianceAnalysis = new(varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
             ModellingFilter modellingFilter = new();
             ModellingVarianceResult result = await varianceAnalysis.AnalyseRulesVsModelledConnections(Connections, modellingFilter);
 
@@ -374,7 +395,7 @@ namespace FWO.Test
             ClassicAssert.AreEqual("specobj3", result.RuleDifferences[0].ImplementedRules[0].UnusedSpecialUserObjects[0]);
 
             userConfig.RuleRecognitionOption = grpNameRecogOpt;
-            varianceAnalysis = new (varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
+            varianceAnalysis = new(varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
             result = await varianceAnalysis.AnalyseRulesVsModelledConnections(Connections, modellingFilter);
 
             ClassicAssert.AreEqual(0, result.ConnsNotImplemented.Count);
@@ -400,9 +421,9 @@ namespace FWO.Test
         [Test]
         public async Task TestAnalyseRulesOppositeRecogOptions()
         {
-            List<ModellingConnection> Connections = [ Connection1, Connection2, Connection3 ];
+            List<ModellingConnection> Connections = [Connection1, Connection2, Connection3];
             userConfig.RuleRecognitionOption = oppRecogOpt;
-            ModellingVarianceAnalysis varianceAnalysis = new (varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
+            ModellingVarianceAnalysis varianceAnalysis = new(varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
             ModellingFilter modellingFilter = new();
             ModellingVarianceResult result = await varianceAnalysis.AnalyseRulesVsModelledConnections(Connections, modellingFilter);
 
@@ -443,11 +464,11 @@ namespace FWO.Test
         [Test]
         public async Task TestAnalyseRulesOtherMarkerLocation()
         {
-            List<ModellingConnection> Connections = [ Connection1, Connection2, Connection3 ];
+            List<ModellingConnection> Connections = [Connection1, Connection2, Connection3];
             userConfig.ModModelledMarker = "XXX";
             userConfig.ModModelledMarkerLocation = MarkerLocation.Comment;
-            ModellingVarianceAnalysis varianceAnalysis = new (varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
-            ModellingFilter modellingFilter = new(){ AnalyseRemainingRules = true };
+            ModellingVarianceAnalysis varianceAnalysis = new(varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
+            ModellingFilter modellingFilter = new() { AnalyseRemainingRules = true };
             ModellingVarianceResult result = await varianceAnalysis.AnalyseRulesVsModelledConnections(Connections, modellingFilter);
 
             ClassicAssert.AreEqual(2, result.ConnsNotImplemented.Count);
@@ -456,7 +477,7 @@ namespace FWO.Test
             ClassicAssert.AreEqual(1, result.RuleDifferences.Count);
             ClassicAssert.AreEqual("Conn3", result.RuleDifferences[0].ModelledConnection.Name);
             ClassicAssert.AreEqual(1, result.UnModelledRules.Count);
-            ClassicAssert.AreEqual(5, result.UnModelledRules[1].Count);
+            ClassicAssert.AreEqual(8, result.UnModelledRules[1].Count);
             ClassicAssert.AreEqual("FWOC1", result.UnModelledRules[1][0].Name);
             ClassicAssert.AreEqual("xxxFWOC2yyy", result.UnModelledRules[1][1].Name);
             userConfig.ModModelledMarker = "FWOC";
@@ -466,8 +487,8 @@ namespace FWO.Test
         [Test]
         public async Task TestAnalyseRulesToReport()
         {
-            List<ModellingConnection> Connections = [ Connection1 ];
-            ModellingVarianceAnalysis varianceAnalysis = new (varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
+            List<ModellingConnection> Connections = [Connection1];
+            ModellingVarianceAnalysis varianceAnalysis = new(varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
             ModellingFilter modellingFilter = new();
             ModellingVarianceResult result = await varianceAnalysis.AnalyseRulesVsModelledConnections(Connections, modellingFilter);
 
@@ -488,8 +509,8 @@ namespace FWO.Test
         [Test]
         public async Task TestAnalyseRuleStatus()
         {
-            List<ModellingConnection> Connections = [ Connection1, Connection2, Connection3 ];
-            ModellingVarianceAnalysis varianceAnalysis = new (varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
+            List<ModellingConnection> Connections = [Connection1, Connection2, Connection3];
+            ModellingVarianceAnalysis varianceAnalysis = new(varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
             ModellingFilter modellingFilter = new();
             ModellingVarianceResult result = await varianceAnalysis.AnalyseRulesVsModelledConnections(Connections, modellingFilter, false);
 
@@ -508,8 +529,8 @@ namespace FWO.Test
         [Test]
         public async Task TestAnalyseRuleStatusSpecialUserObjects()
         {
-            List<ModellingConnection> Connections = [ Connection4 ];
-            ModellingVarianceAnalysis varianceAnalysis = new (varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
+            List<ModellingConnection> Connections = [Connection4];
+            ModellingVarianceAnalysis varianceAnalysis = new(varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
             ModellingFilter modellingFilter = new();
             ModellingVarianceResult result = await varianceAnalysis.AnalyseRulesVsModelledConnections(Connections, modellingFilter, false);
 
@@ -525,7 +546,7 @@ namespace FWO.Test
             ClassicAssert.AreEqual(0, result.RuleDifferences[0].ImplementedRules[0].UnusedSpecialUserObjects.Count);
 
             userConfig.RuleRecognitionOption = grpNameRecogOpt;
-            varianceAnalysis = new (varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
+            varianceAnalysis = new(varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
             result = await varianceAnalysis.AnalyseRulesVsModelledConnections(Connections, modellingFilter);
 
             ClassicAssert.AreEqual(0, result.ConnsNotImplemented.Count);
@@ -551,8 +572,8 @@ namespace FWO.Test
         [Test]
         public async Task TestAnalyseRuleStatusAsync()
         {
-            List<ModellingConnection> Connections = [ new(Connection1), new(Connection2), new(Connection3), new(Connection4), new(Connection5)];
-            ModellingVarianceAnalysis varianceAnalysis = new (varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
+            List<ModellingConnection> Connections = [new(Connection1), new(Connection2), new(Connection3), new(Connection4), new(Connection5)];
+            ModellingVarianceAnalysis varianceAnalysis = new(varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
             await varianceAnalysis.AnalyseConnsForStatusAsync(Connections);
 
             ClassicAssert.AreEqual(true, Connections[0].Props?.ContainsKey(ConState.VarianceChecked.ToString()));
@@ -574,6 +595,39 @@ namespace FWO.Test
             ClassicAssert.AreEqual(true, Connections[4].Props?.ContainsKey(ConState.VarianceChecked.ToString()));
             ClassicAssert.AreEqual(false, Connections[4].Props?.ContainsKey(ConState.VarianceFound.ToString()));
             ClassicAssert.AreEqual(false, Connections[4].Props?.ContainsKey(ConState.NotImplemented.ToString()));
+        }
+
+        [Test]
+        public async Task TestNATHeuristic()
+        {
+            List<ModellingConnection> Connections = [Connection7];
+            userConfig.ModRolloutNatHeuristic = true;
+
+            ModellingVarianceAnalysis varianceAnalysis = new(varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
+            ModellingFilter modellingFilter = new();
+            ModellingVarianceResult result = await varianceAnalysis.AnalyseRulesVsModelledConnections(Connections, modellingFilter);
+
+            ClassicAssert.AreEqual(0, result.ConnsNotImplemented.Count);
+            ClassicAssert.AreEqual(1, result.OkRules.Count);
+            ClassicAssert.AreEqual("FWOC7_mgt1", result.OkRules[0].ImplementedRules[0].Name);
+            ClassicAssert.AreEqual(1, result.RuleDifferences.Count);
+            ClassicAssert.AreEqual("Conn7", result.RuleDifferences[0].ModelledConnection.Name);
+            ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules.Count);
+            ClassicAssert.AreEqual("FWOC7_mgt3", result.RuleDifferences[0].ImplementedRules[0].Name);
+ 
+            userConfig.ModRolloutNatHeuristic = false;
+
+            varianceAnalysis = new(varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
+            result = await varianceAnalysis.AnalyseRulesVsModelledConnections(Connections, modellingFilter);
+
+            ClassicAssert.AreEqual(0, result.ConnsNotImplemented.Count);
+            ClassicAssert.AreEqual(1, result.OkRules.Count);
+            ClassicAssert.AreEqual("FWOC7_mgt1", result.OkRules[0].ImplementedRules[0].Name);
+            ClassicAssert.AreEqual(1, result.RuleDifferences.Count);
+            ClassicAssert.AreEqual("Conn7", result.RuleDifferences[0].ModelledConnection.Name);
+            ClassicAssert.AreEqual(2, result.RuleDifferences[0].ImplementedRules.Count);
+            ClassicAssert.AreEqual("FWOC7_mgt2", result.RuleDifferences[0].ImplementedRules[0].Name);
+            ClassicAssert.AreEqual("FWOC7_mgt3", result.RuleDifferences[0].ImplementedRules[1].Name);
         }
     }
 }

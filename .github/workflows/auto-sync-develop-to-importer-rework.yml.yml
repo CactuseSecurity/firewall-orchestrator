@@ -20,11 +20,14 @@ jobs:
 
       - name: Ensure "automation" label exists
         run: |
-          if ! gh label list --json name --jq '.[].name' | grep -qx automation; then
+            LABEL_EXISTS=$(gh label list --json name --jq '.[].name' | grep -Fx automation || true)
+            if [ -z "$LABEL_EXISTS" ]; then
             gh label create automation --color "0e8a16" --description "Automatically created for syncing branches"
-          fi
+            else
+            echo "Label 'automation' already exists. Skipping creation."
+            fi
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Fetch all branches
         run: git fetch origin importer-rework

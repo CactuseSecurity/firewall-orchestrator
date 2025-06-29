@@ -20,8 +20,8 @@ jobs:
 
       - name: Ensure "automation" label exists
         run: |
-          if ! gh label list --json name | grep -q automation; then
-          gh label create automation --color "0e8a16" --description "Automatically created for syncing branches"
+          if ! gh label list --json name --jq '.[].name' | grep -qx automation; then
+            gh label create automation --color "0e8a16" --description "Automatically created for syncing branches"
           fi
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

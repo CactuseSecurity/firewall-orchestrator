@@ -19,7 +19,7 @@ namespace FWO.DeviceAutoDiscovery
         private readonly string Autodiscovery = "Autodiscovery";
 
         public AutoDiscoveryFortiManager(Management superManagement, ApiConnection apiConn) : base(superManagement, apiConn) { }
-        
+
         public override async Task<List<Management>> Run()
         {
             List<Management> discoveredDevices = [];
@@ -30,12 +30,34 @@ namespace FWO.DeviceAutoDiscovery
             if (SuperManagement.DeviceType.Name == "FortiManager")
             {
                 Log.WriteDebug(Autodiscovery, $"discovering FortiManager adoms, vdoms, devices");
-                FortiManagerClient restClientFM = new (SuperManagement);
+                FortiManagerClient restClientFM = new(SuperManagement);
 
                 RestResponse<SessionAuthInfo> sessionResponse = await restClientFM.AuthenticateUser(SuperManagement.ImportCredential.ImportUser, SuperManagement.ImportCredential.Secret);
                 if (sessionResponse.StatusCode == HttpStatusCode.OK && sessionResponse.IsSuccessful && !string.IsNullOrEmpty(sessionResponse?.Data?.SessionId))
                 {
-                    string sessionId = sessionResponse.Data.SessionId;
+                    await DiscoverySession(discoveredDevices);
+                }
+            }
+        }
+
+        private async Task DiscoverySession(List<Management> discoveredDevices)
+        {
+            Log.WriteDebug(Autodiscovery, $"discovering FortiManager adoms, vdoms, devices");
+            FortiManagerClient restClientFM = new(SuperManagement);
+
+            RestResponse<SessionAuthInfo> sessionResponse = await restClientFM.AuthenticateUser(SuperManagement.ImportCredential.ImportUser, SuperManagement.ImportCredential.Secret);
+            if (sessionResponse.StatusCode == HttpStatusCode.OK && sessionResponse.IsSuccessful && !string.IsNullOrEmpty(sessionResponse.Data?.SessionId))
+            {
+                string sessionId = sessionResponse.Data.SessionId;
+                Log.WriteDebug(Autodiscovery, $"successful FortiManager login, got SessionID: {sessionId}");
+                // need to use @ verbatim identifier for special chars in sessionId
+
+                await CollectDevices(sessionId, restClientFM, discoveredDevices);
+
+                sessionResponse = await restClientFM.DeAuthenticateUser(sessionId);
+                if (sessionResponse.StatusCode == HttpStatusCode.OK)
+                {
+                    sessionId = sessionResponse.Data.SessionId;
                     Log.WriteDebug(Autodiscovery, $"successful FortiManager login, got SessionID: {sessionId}");
 
                     // when passing sessionId, we always need to use @ verbatim identifier for special chars in sessionId
@@ -72,7 +94,7 @@ namespace FWO.DeviceAutoDiscovery
                     throw new AuthenticationException(errorTxt);
                 }
             }
-            return await GetDeltas(discoveredDevices);
+            await GetDeltas(discoveredDevices);
         }
 
         private async Task CollectDevices(string sessionId, FortiManagerClient restClientFM, List<Management> discoveredDevices)

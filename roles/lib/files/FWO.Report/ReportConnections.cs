@@ -284,7 +284,8 @@ namespace FWO.Report
 
         private static string ConstructOutput(ModellingObject inputObj, string type, int chapterNumber, long objId)
         {
-            return ConstructLink(type, "", chapterNumber, objId, inputObj.Display(), OutputLocation.export, $"a{inputObj.AppId}", "");
+            string linkAddress = GetLinkAddress(OutputLocation.export, $"a{inputObj.AppId}", type, chapterNumber, objId, ReportType.Connections);
+            return ConstructLink("", inputObj.Display(), "", linkAddress);
         }
     }
 }

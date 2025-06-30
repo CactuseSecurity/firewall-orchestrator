@@ -309,6 +309,9 @@ namespace FWO.Config.Api.Data
 		[JsonProperty("modCommonAreas"), JsonPropertyName("modCommonAreas")]
 		public string ModCommonAreas { get; set; } = "";
 
+		[JsonProperty("modSpecUserAreas"), JsonPropertyName("modSpecUserAreas")]
+		public string ModSpecUserAreas { get; set; } = "";
+
 		[JsonProperty("modAppServerTypes"), JsonPropertyName("modAppServerTypes")]
 		public string ModAppServerTypes { get; set; } = "";
 
@@ -341,6 +344,9 @@ namespace FWO.Config.Api.Data
 
 		[JsonProperty("modRolloutBundleTasks"), JsonPropertyName("modRolloutBundleTasks")]
 		public bool ModRolloutBundleTasks { get; set; } = false;
+
+		[JsonProperty("modRolloutNatHeuristic"), JsonPropertyName("modRolloutNatHeuristic")]
+		public bool ModRolloutNatHeuristic { get; set; } = false;
 
 		[JsonProperty("modRolloutErrorText"), JsonPropertyName("modRolloutErrorText")]
 		public string ModRolloutErrorText { get; set; } = "";

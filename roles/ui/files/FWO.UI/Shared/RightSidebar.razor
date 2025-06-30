@@ -144,7 +144,7 @@
     private string rsbTimeEnd = "";
     private Dictionary<int, long> import_id_start = new(); // import id matching rsbTimeStart for each management
     private Dictionary<int, long> import_id_end = new(); // import id matching rsbTimeEnd for each management
-    private ReportBase? previousReport = null;
+    private List<ManagementReport>? previousReportData = null;
 
     private int intWidth { get { return Width; } set { Width = value; WidthChanged.InvokeAsync(Width); } }
 
@@ -164,9 +164,9 @@
         bool timeChanged = setRSBTime();
         if (AllTabVisible && timeChanged)
             await ResetAllTabMgts();
-        if (CurrentReport != previousReport)
+        if (CurrentReport?.ReportData.ManagementData != previousReportData)
         {
-            previousReport = CurrentReport;
+            previousReportData = CurrentReport?.ReportData.ManagementData;
             ResetReportState();
         }
         foreach (Rule rule in SelectedRules)
@@ -299,7 +299,7 @@
                             query = ObjectQueries.getNetworkObjectDetails;
                             break;
                         case ObjCategory.nsrv:
-                            query = ObjectQueries.getNetworkServiceObjectDetails;
+                            query = ObjectQueries.getNetworkServiceDetails;
                             break;
                         case ObjCategory.user:
                             query = ObjectQueries.getUserDetails;
@@ -409,11 +409,13 @@
         try
         {
             List<ContentType> updatedContent = new();
-            bool newObjects = true;
+            //bool newObjects = true;
+            ReportData reportData = new();
+            bool keepFetching = true;
             int fetchCount = 0;
             int elementsPerFetch = userConfig.ElementsPerFetch;
 
-            while (newObjects && (++fetchCount <= userConfig.MaxInitialFetchesRightSidebar || userConfig.AutoFillRightSidebar))
+            while (keepFetching && (++fetchCount <= userConfig.MaxInitialFetchesRightSidebar || userConfig.AutoFillRightSidebar))
             {
                 List<ContentType> currentFetch = await apiConnection.SendQueryAsync<List<ContentType>>(query, queryVars);
                 if (fetchCount == 1)
@@ -422,14 +424,9 @@
                 }
                 else
                 {
-                    switch (currentFetch)
-                    {
-                        case List<ManagementReport> mgmData when updatedContent is List<ManagementReport> updatedMgm:
-                            newObjects = updatedMgm.Merge(mgmData);
-                            break;
-                        case List<Rule> ruleData:
-                            return;
-                    }
+                    (bool newObjects, Dictionary<string, int> maxAddedCounts) = reportData.ManagementData.Merge(managementsCurrentFetch);
+                    // new objects might have been added, but if none reached the limit of elementsPerFetch, we can stop fetching
+                    keepFetching = newObjects && maxAddedCounts.Values.Any(v => v >= elementsPerFetch);
                 }
 
                 if (queryVars.ContainsKey("offset"))

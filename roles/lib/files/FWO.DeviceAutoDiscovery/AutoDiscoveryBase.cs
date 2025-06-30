@@ -274,7 +274,7 @@ namespace FWO.DeviceAutoDiscovery
                         Supermanager = SuperManagement.Name,
                         ActionType = ActionCode.DeleteGateway.ToString(),
                         ManagementId = changedMgmt.Id,
-                        DeviceId = dev?.Id,
+                        DeviceId = dev.Id,
                         JsonData = null
                     });
                 }

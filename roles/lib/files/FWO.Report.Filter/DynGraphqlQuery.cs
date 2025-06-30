@@ -28,8 +28,6 @@ namespace FWO.Report.Filter
             " $limit: Int ",
             " $offset: Int ",
             " $active: Boolean ",
-            " $import_id_start: bigint ", // TODO: refactor to use instead of import_id
-            " $import_id_end: bigint ",
         ];
 
         public string ReportTimeString { get; set; } = "";
@@ -211,44 +209,50 @@ namespace FWO.Report.Filter
 
         private static string ConstructChangesQuery(DynGraphqlQuery query, string paramString, ReportTemplate filter)
         {
+            // was:                             devices ({devWhereString})                           
+
             return $@"
-                {(filter.Detailed ? RuleQueries.ruleDetailsForReportFragments : RuleQueries.ruleOverviewFragments)}
-                query changeReport({paramString}) 
-                {{
-                    management(where: {{ hide_in_gui: {{_eq: false }} stm_dev_typ: {{dev_typ_is_multi_mgmt: {{_eq: false}} is_pure_routing_device: {{_eq: false}} }} }} order_by: {{mgm_name: asc}}) 
+                    {(filter.Detailed ? RuleQueries.ruleDetailsForChangeReportFragments : RuleQueries.ruleOverviewForChangeReportFragments)}
+                    query changeReport({paramString}) 
                     {{
-                        id: mgm_id
-                        name: mgm_name
-                        devices ({devWhereStringDefault})                           
+                        management(where: {{
+                            hide_in_gui: {{_eq: false }}
+                            stm_dev_typ: {{dev_typ_is_multi_mgmt: {{_eq: false}} is_pure_routing_device: {{_eq: false}} }}
+                            mgm_id: {{_in: $mgmId }}
+                        }} order_by: {{mgm_name: asc}}) 
                         {{
-                            id: dev_id
-                            name: dev_name
-                            {query.OpenChangeLogRulesTable}
-                                {limitOffsetString} 
-                                where: {{ 
-                                    _or:[
-                                            {{_and: [{{change_action:{{_eq:""I""}}}}, {{rule: {{access_rule:{{_eq:true}}}}}}]}}, 
-                                            {{_and: [{{change_action:{{_eq:""D""}}}}, {{ruleByOldRuleId: {{access_rule:{{_eq:true}}}}}}]}},
-                                            {{_and: [{{change_action:{{_eq:""C""}}}}, {{rule: {{access_rule:{{_eq:true}}}}}}, {{ruleByOldRuleId: {{access_rule:{{_eq:true}}}}}}]}}
-                                        ]                                        
-                                    {query.RuleWhereStatement} 
-                                }}
-                                order_by: {{ control_id: asc }}
-                            ) 
+                            id: mgm_id
+                            name: mgm_name
+                            devices
                             {{
-                                import: import_control {{ time: stop_time }}
-                                change_action
-                                old: ruleByOldRuleId {{
-                                mgm_id: mgm_id
-                                ...{(filter.Detailed ? "ruleDetails" : "ruleOverview")}
-                                }}
-                                new: rule {{
-                                mgm_id: mgm_id
-                                ...{(filter.Detailed ? "ruleDetails" : "ruleOverview")}
+                                id: dev_id
+                                name: dev_name
+                                {query.OpenChangeLogRulesTable}
+                                    {limitOffsetString} 
+                                    where: {{ 
+                                        _or:[
+                                                {{_and: [{{change_action:{{_eq:""I""}}}}, {{rule: {{access_rule:{{_eq:true}}}}}}]}}, 
+                                                {{_and: [{{change_action:{{_eq:""D""}}}}, {{ruleByOldRuleId: {{access_rule:{{_eq:true}}}}}}]}},
+                                                {{_and: [{{change_action:{{_eq:""C""}}}}, {{rule: {{access_rule:{{_eq:true}}}}}}, {{ruleByOldRuleId: {{access_rule:{{_eq:true}}}}}}]}}
+                                            ]                                        
+                                        {query.RuleWhereStatement} 
+                                    }}
+                                    order_by: {{ control_id: asc }}
+                                ) 
+                                {{
+                                    import: import_control {{ time: stop_time }}
+                                    change_action
+                                    old: ruleByOldRuleId {{
+                                    mgm_id: mgm_id
+                                    ...{(filter.Detailed ? "ruleDetailsChangesOld" : "ruleOverviewChangesOld")}
+                                    }}
+                                    new: rule {{
+                                    mgm_id: mgm_id
+                                    ...{(filter.Detailed ? "ruleDetailsChangesNew" : "ruleOverviewChangesNew")}
+                                    }}
                                 }}
                             }}
                         }}
-                    }}
                 }}";
         }
 
@@ -333,7 +337,8 @@ namespace FWO.Report.Filter
 
         private static void SetFixedFilters(ref DynGraphqlQuery query, ReportTemplate reportParams)
         {
-            if (((ReportType)reportParams.ReportParams.ReportType).IsRuleReport() || reportParams.ReportParams.ReportType == (int)ReportType.Statistics)
+            ReportType reportType = (ReportType)reportParams.ReportParams.ReportType;
+            if (reportType.IsRuleReport() || reportType.IsChangeReport() || reportType == ReportType.Statistics)
             {
                 query.QueryParameters.Add("$mgmId: [Int!] ");
             }
@@ -422,28 +427,38 @@ namespace FWO.Report.Filter
                                     rule_create: {{_lte: $relevantImportId}}, 
                                     _or: [{{removed: {{_gt: $relevantImportId}} }}, {{removed: {{_is_null: true}} }}],
                         ";
+                        // TODO: merge this properly
+                        // query.QueryParameters.Add("$import_id_start: bigint ");
+                        // query.QueryParameters.Add("$import_id_end: bigint ");
+                        // query.RuleWhereStatement +=
+                        //     $"import_control: {{ control_id: {{_lte: $import_id_end }} }}, " +
+                        //     $"importControlByRuleLastSeen: {{ control_id: {{_gte: $import_id_start }} }}";
+                        // query.NwObjWhereStatement +=
+                        //     $"import_control: {{ control_id: {{_lte: $import_id_end }} }}, " +
+                        //     $"importControlByObjLastSeen: {{ control_id: {{_gte: $import_id_start }} }}";
+                        // query.SvcObjWhereStatement +=
+                        //     $"import_control: {{ control_id: {{_lte: $import_id_end }} }}, " +
+                        //     $"importControlBySvcLastSeen: {{ control_id: {{_gte: $import_id_start }} }}";
+                        // query.UserObjWhereStatement +=
+                        //     $"import_control: {{ control_id: {{_lte: $import_id_end }} }}, " +
+                        //     $"importControlByUserLastSeen: {{ control_id: {{_gte: $import_id_start }} }}";
                         query.ReportTimeString = timeFilter.IsShortcut ?
                             DateTime.Now.ToString(fullTimeFormat) : timeFilter.ReportTime.ToString(fullTimeFormat);
                         break;
                     case ReportType.Changes:
                     case ReportType.ResolvedChanges:
                     case ReportType.ResolvedChangesTech:
-                        (string start, string stop) = ResolveTimeRange(timeFilter);
-                        query.QueryVariables["start"] = start;
-                        query.QueryVariables["stop"] = stop;
-                        query.QueryParameters.Add("$start: timestamp! ");
-                        query.QueryParameters.Add("$stop: timestamp! ");
-                        query.QueryParameters.Add("$relevantImportId: bigint ");
+                        query.QueryParameters.Add("$import_id_old: bigint ");
+                        query.QueryParameters.Add("$import_id_new: bigint ");
 
                         query.RuleWhereStatement += $@"
-                        _and: [
-                            {{ import_control: {{ stop_time: {{ _gte: $start }} }} }}
-                            {{ import_control: {{ stop_time: {{ _lte: $stop }} }} }}
-                        ]
+                        control_id: {{ _eq: $import_id_new }}
                         change_type_id: {{ _eq: 3 }}
                         security_relevant: {{ _eq: true }}";
                         break;
                     case ReportType.Recertification:
+                        query.QueryParameters.Add("$import_id_start: bigint ");
+                        query.QueryParameters.Add("$import_id_end: bigint ");
                         query.NwObjWhereStatement += "{}";
                         query.SvcObjWhereStatement += "{}";
                         query.UserObjWhereStatement += "{}";

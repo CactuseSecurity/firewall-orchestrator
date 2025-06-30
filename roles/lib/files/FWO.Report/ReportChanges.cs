@@ -1,6 +1,8 @@
-﻿using FWO.Api.Client;
+using FWO.Api.Client;
+using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Config.Api;
+using FWO.Data;
 using FWO.Data.Report;
 using FWO.Logging;
 using FWO.Report.Filter;
@@ -8,6 +10,7 @@ using FWO.Ui.Display;
 using Newtonsoft.Json;
 using System.Text;
 using System.Text.Json;
+using System.Threading.Tasks;
 
 namespace FWO.Report
 {
@@ -15,27 +18,136 @@ namespace FWO.Report
     {
         private const int ColumnCount = 13;
 
-        public ReportChanges(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType) : base(query, userConfig, reportType) {}
+        private readonly TimeFilter timeFilter;
+
+        public ReportChanges(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType, TimeFilter timeFilter) : base(query, userConfig, reportType)
+        {
+            this.timeFilter = timeFilter;
+        }
 
         public override async Task Generate(int changesPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback, CancellationToken ct)
         {
             Query.QueryVariables["limit"] = changesPerFetch;
             Query.QueryVariables["offset"] = 0;
-            bool gotNewObjects = true;
 
-            ReportData.ManagementData = await apiConnection.SendQueryAsync<List<ManagementReport>>(Query.FullQuery, Query.QueryVariables);
+            (string startTime, string stopTime) = DynGraphqlQuery.ResolveTimeRange(timeFilter);
+            Dictionary<int, List<long>> managementImportIds = [];
+            int queriesNeeded = 0;
 
-            while (gotNewObjects)
+            queriesNeeded += await FetchInitialManagementData(apiConnection, startTime, stopTime, managementImportIds);
+
+            queriesNeeded += await FetchAdditionalChanges(apiConnection, managementImportIds, changesPerFetch, callback, queriesNeeded, ct);
+
+            Log.WriteDebug("Generate Changes Report", $"Finished generating changes report with {queriesNeeded} queries.");
+        }
+
+        private async Task<int> FetchInitialManagementData(ApiConnection apiConnection, string startTime, string stopTime, Dictionary<int, List<long>> managementImportIds)
+        {
+            int queriesNeeded = 0;
+            foreach (int mgmId in Query.RelevantManagementIds)
             {
-                if (ct.IsCancellationRequested)
+                List<long> importIdLastBeforeRange = await GetRelevantImportIds(apiConnection, startTime, mgmId);
+                List<long> importIdsInRange = await GetImportIdsInTimeRange(apiConnection, startTime, stopTime, mgmId, ruleChangeRequired: true);
+                List<long> relevantImportIds = [.. importIdLastBeforeRange, .. importIdsInRange];
+                if (relevantImportIds.Count == 0)
                 {
-                    Log.WriteDebug("Generate Changes Report", "Task cancelled");
-                    ct.ThrowIfCancellationRequested();
+                    Log.WriteDebug("Generate Changes Report", $"No relevant import IDs found in time range for management ID {mgmId}");
+                    continue;
                 }
-                Query.QueryVariables["offset"] = (int)Query.QueryVariables["offset"] + changesPerFetch;
-                gotNewObjects = ReportData.ManagementData.Merge(await apiConnection.SendQueryAsync<List<ManagementReport>>(Query.FullQuery, Query.QueryVariables));
-                await callback(ReportData);
+                SetMgtQueryVars(mgmId, relevantImportIds[0], relevantImportIds[1]);
+                ManagementReport managementReport = (await apiConnection.SendQueryAsync<List<ManagementReport>>(Query.FullQuery, Query.QueryVariables)).First();
+                queriesNeeded += 1;
+                ReportData.ManagementData.Add(managementReport);
+                managementImportIds.Add(mgmId, relevantImportIds);
             }
+            return queriesNeeded;
+        }
+
+        private async Task<int> FetchAdditionalChanges(ApiConnection apiConnection, Dictionary<int, List<long>> managementImportIds, int changesPerFetch,
+            Func<ReportData, Task> callback, int queriesNeeded, CancellationToken ct)
+        {
+            Query.QueryVariables["offset"] = changesPerFetch;
+            int maxImports = managementImportIds.Values.Select(v => v.Count).Max();
+
+            for (int i = 1; i < maxImports; i++)
+            {
+                bool continueFetching = true;
+                while (continueFetching)
+                {
+                    if (ct.IsCancellationRequested)
+                    {
+                        Log.WriteDebug("Generate Changes Report", "Task cancelled");
+                        ct.ThrowIfCancellationRequested();
+                    }
+
+                    (bool anyContinue, int queries) = await ProcessManagementsForAdditionalChanges(
+                        apiConnection, managementImportIds, i, changesPerFetch);
+
+                    queriesNeeded += queries;
+                    continueFetching = anyContinue;
+
+                    await callback(ReportData);
+                    Query.QueryVariables["offset"] = (int)Query.QueryVariables["offset"] + changesPerFetch;
+                }
+                Query.QueryVariables["offset"] = 0;
+            }
+            return queriesNeeded;
+        }
+
+        private async Task<(bool anyContinue, int queries)> ProcessManagementsForAdditionalChanges(ApiConnection apiConnection, Dictionary<int, List<long>> managementImportIds, int i, int changesPerFetch)
+        {
+            bool anyContinue = false;
+            int queries = 0;
+
+            foreach (var management in ReportData.ManagementData)
+            {
+                if (managementImportIds[management.Id].Count <= i)
+                    continue;
+
+                long importIdOld = managementImportIds[management.Id][i - 1];
+                long importIdNew = managementImportIds[management.Id][i];
+                SetMgtQueryVars(management.Id, importIdOld, importIdNew);
+
+                ManagementReport newData = (await apiConnection.SendQueryAsync<List<ManagementReport>>(Query.FullQuery, Query.QueryVariables)).First();
+                (bool newObjects, Dictionary<string, int> maxAddedCounts) = management.Merge(newData);
+                queries++;
+
+                if (newObjects && maxAddedCounts.Values.Any(v => v >= changesPerFetch))
+                    anyContinue = true;
+            }
+
+            return (anyContinue, queries);
+        }
+
+        private void SetMgtQueryVars(int mgmId, long importIdOld, long importIdNew)
+        {
+            Query.QueryVariables["mgmId"] = mgmId;
+            Query.QueryVariables[$"import_id_old"] = importIdOld;
+            Query.QueryVariables[$"import_id_new"] = importIdNew;
+        }
+
+        public static async Task<List<long>> GetImportIdsInTimeRange(ApiConnection apiConnection, string startTime, string stopTime, int mgmId, bool? ruleChangeRequired = null)
+        {
+            var queryVariables = new
+            {
+                start_time = startTime,
+                end_time = stopTime,
+                mgmIds = mgmId,
+                ruleChangesFound = ruleChangeRequired
+            };
+            List<ImportControl> importControls = await apiConnection.SendQueryAsync<List<ImportControl>>(ReportQueries.getRelevantImportIdsInTimeRange, queryVariables);
+            return [.. importControls.Select(ic => ic.ControlId)];
+        }
+
+        public static async Task<List<long>> GetRelevantImportIds(ApiConnection apiConnection, string starttime, int mgmId)
+        {
+            var queryVariables = new
+            {
+                time = starttime,
+                mgmIds = mgmId
+            };
+            List<ManagementReport> managementReports = await apiConnection.SendQueryAsync<List<ManagementReport>>(ReportQueries.getRelevantImportIdsAtTime, queryVariables);
+            return [.. managementReports.Select(mr => mr.Import.ImportAggregate.ImportAggregateMax.RelevantImportId ?? -1)];
         }
 
         public override Task<bool> GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, ObjCategory objects, int maxFetchCycles, ApiConnection apiConnection, Func<ReportData, Task> callback)
@@ -65,8 +177,8 @@ namespace FWO.Report
         {
             if (ReportType.IsResolvedReport())
             {
-                StringBuilder report = new ();
-                RuleChangeDisplayCsv ruleChangeDisplayCsv = new (userConfig);
+                StringBuilder report = new();
+                RuleChangeDisplayCsv ruleChangeDisplayCsv = new(userConfig);
 
                 report.Append(DisplayReportHeaderCsv());
                 report.AppendLine($"\"management-name\",\"device-name\",\"change-time\",\"change-type\",\"rule-name\",\"source-zone\",\"source\",\"destination-zone\",\"destination\",\"service\",\"action\",\"track\",\"rule-enabled\",\"rule-uid\",\"rule-comment\"");
@@ -111,8 +223,8 @@ namespace FWO.Report
 
         public override string ExportToHtml()
         {
-            StringBuilder report = new ();
-            RuleChangeDisplayHtml ruleChangeDisplayHtml = new (userConfig);
+            StringBuilder report = new();
+            RuleChangeDisplayHtml ruleChangeDisplayHtml = new(userConfig);
 
             foreach (var management in ReportData.ManagementData.Where(mgt => !mgt.Ignore && mgt.Devices != null &&
                     Array.Exists(mgt.Devices, device => device.RuleChanges != null && device.RuleChanges.Length > 0)))
@@ -171,7 +283,7 @@ namespace FWO.Report
                     report.AppendLine("<hr>");
                 }
             }
-            return GenerateHtmlFrame(userConfig.GetText(ReportType.ToString()), Query.RawFilter, DateTime.Now, report);
+            return GenerateHtmlFrame(userConfig.GetText(ReportType.ToString()), Query.RawFilter, DateTime.Now, report, timeFilter);
         }
 
         public override string ExportToJson()
@@ -192,10 +304,10 @@ namespace FWO.Report
 
         private string ExportResolvedChangesToJson()
         {
-            StringBuilder report = new ("{");
+            StringBuilder report = new("{");
             report.Append(DisplayReportHeaderJson());
             report.AppendLine("\"managements\": [");
-            RuleChangeDisplayJson ruleChangeDisplayJson = new (userConfig);
+            RuleChangeDisplayJson ruleChangeDisplayJson = new(userConfig);
             foreach (var management in ReportData.ManagementData.Where(mgt => !mgt.Ignore && mgt.Devices != null &&
                     Array.Exists(mgt.Devices, device => device.RuleChanges != null && device.RuleChanges.Length > 0)))
             {
@@ -248,7 +360,7 @@ namespace FWO.Report
             {
                 Formatting = Formatting.Indented
             };
-            return JsonConvert.SerializeObject(json, settings);            
+            return JsonConvert.SerializeObject(json, settings);
         }
     }
 }

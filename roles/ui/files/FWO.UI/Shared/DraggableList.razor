@@ -1,8 +1,8 @@
-﻿@using FWO.Ui.Data
+@using FWO.Ui.Data
 @typeparam ElementType
 @inject KeyboardInputService keyboardInputService
 
-<div class="bg-secondary col-sm-12 border" style="overflow-x:clip; overflow-y:auto; max-height: calc( @(MaxHeight) * 1vh);"
+<div class="bg-secondary col-sm-12 border @CssClass" style="max-height: calc( @(MaxHeight) * 1vh);"
 	 tabindex="0">
 	@for (int i = 0; i < AllElements.Count; i++)
 	{
@@ -36,7 +36,10 @@
 	public int MaxHeight { get; set; } = 50;
 
 	[Parameter]
-	public bool Multiselect { get; set; } = true;
+    public bool Multiselect { get; set; } = true;
+
+    [Parameter]
+    public string CssClass { get; set; } = "overflow-x-clip overflow-y-auto";
 
 	private int? lastSelected;
 	private List<int> lastSelectedRange = new();

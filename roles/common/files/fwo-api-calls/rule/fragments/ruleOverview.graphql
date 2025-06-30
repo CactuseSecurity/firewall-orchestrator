@@ -36,7 +36,14 @@ fragment ruleOverview on rule {
   access_rule
   nat_rule
   xlate_rule
+<<<<<<< HEAD:roles/common/files/fwo-api-calls/rule/fragments/ruleOverview.graphql
   rule_froms(order_by:{ object: { obj_name: asc } }) {
+=======
+  rule_froms(where: {
+    rf_last_seen: { _gte: $import_id_start }
+    rf_create: { _lte: $import_id_end }
+  }, order_by:{ object: { obj_name: asc } }) {
+>>>>>>> 4a0711c09321b48006af6f7daaca19cef6d9235f:roles/lib/files/FWO.Api.Client/APIcalls/rule/fragments/ruleOverview.graphql
     usr {
       ...userOverview
     }
@@ -48,7 +55,14 @@ fragment ruleOverview on rule {
     zone_name
     zone_id
   }
+<<<<<<< HEAD:roles/common/files/fwo-api-calls/rule/fragments/ruleOverview.graphql
   rule_tos(order_by:{ object: { obj_name: asc } } ) {
+=======
+  rule_tos(where: {
+    rt_last_seen: { _gte: $import_id_start }
+    rt_create: { _lte: $import_id_end }
+  }, order_by:{ object: { obj_name: asc } }) {
+>>>>>>> 4a0711c09321b48006af6f7daaca19cef6d9235f:roles/lib/files/FWO.Api.Client/APIcalls/rule/fragments/ruleOverview.graphql
     usr {
       ...userOverview
     }
@@ -56,7 +70,14 @@ fragment ruleOverview on rule {
       ...networkObjectOverview
     }
   }
+<<<<<<< HEAD:roles/common/files/fwo-api-calls/rule/fragments/ruleOverview.graphql
   rule_services(order_by:{ service: { svc_name: asc } }) {
+=======
+  rule_services(where: {
+    rs_last_seen: { _gte: $import_id_start }
+    rs_create: { _lte: $import_id_end }
+  }, order_by:{ service: { svc_name: asc } }) {
+>>>>>>> 4a0711c09321b48006af6f7daaca19cef6d9235f:roles/lib/files/FWO.Api.Client/APIcalls/rule/fragments/ruleOverview.graphql
     service {
       ...networkServiceOverview
     }

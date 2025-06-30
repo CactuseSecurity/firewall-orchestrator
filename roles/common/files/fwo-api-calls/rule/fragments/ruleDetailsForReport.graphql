@@ -35,7 +35,14 @@
   access_rule
   nat_rule
   xlate_rule  
+<<<<<<< HEAD:roles/common/files/fwo-api-calls/rule/fragments/ruleDetailsForReport.graphql
   rule_froms {
+=======
+  rule_froms(where: {
+    rf_last_seen: { _gte: $import_id_start }
+    rf_create: { _lte: $import_id_end }
+  }, order_by: { object: { obj_name: asc } }) {
+>>>>>>> 4a0711c09321b48006af6f7daaca19cef6d9235f:roles/lib/files/FWO.Api.Client/APIcalls/rule/fragments/ruleDetailsForReport.graphql
     usr {
       ...userDetails
     }
@@ -47,7 +54,14 @@
     zone_name
     zone_id
   }
+<<<<<<< HEAD:roles/common/files/fwo-api-calls/rule/fragments/ruleDetailsForReport.graphql
   rule_tos {
+=======
+  rule_tos(where: {
+    rt_last_seen: { _gte: $import_id_start }
+    rt_create: { _lte: $import_id_end }
+  }, order_by: { object: { obj_name: asc } }) {
+>>>>>>> 4a0711c09321b48006af6f7daaca19cef6d9235f:roles/lib/files/FWO.Api.Client/APIcalls/rule/fragments/ruleDetailsForReport.graphql
     usr {
       ...userDetails
     }
@@ -55,7 +69,14 @@
       ...networkObjectDetails
     }
   }
+<<<<<<< HEAD:roles/common/files/fwo-api-calls/rule/fragments/ruleDetailsForReport.graphql
   rule_services {
+=======
+  rule_services(where: {
+    rs_last_seen: { _gte: $import_id_start }
+    rs_create: { _lte: $import_id_end }
+  }, order_by: { service: { svc_name: asc } }) {
+>>>>>>> 4a0711c09321b48006af6f7daaca19cef6d9235f:roles/lib/files/FWO.Api.Client/APIcalls/rule/fragments/ruleDetailsForReport.graphql
     service {
       ...networkServiceDetails
     }

@@ -20,15 +20,15 @@ namespace FWO.Report
             this.modellingFilter = modellingFilter;
         }
 
-        public override async Task Generate(int rulesPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback, CancellationToken ct)
+        public override async Task Generate(int elementsPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback, CancellationToken ct)
         {
-            await base.Generate(rulesPerFetch, apiConnection, callback, ct);
+            await base.Generate(elementsPerFetch, apiConnection, callback, ct);
             ReportData.ManagementData = await PrepareAppRulesReport(ReportData.ManagementData, modellingFilter, apiConnection, Query.SelectedOwner?.Id);
         }
 
         public override async Task<bool> GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, ObjCategory objects, int maxFetchCycles, ApiConnection apiConnection, Func<ReportData, Task> callback)
         {
-            int mid = (int)objQueryVariables.GetValueOrDefault("mgmIds")!;
+            int mid = (int)objQueryVariables.GetValueOrDefault(QueryVar.MgmIds)!;
             ManagementReport managementReport = ReportData.ManagementData.FirstOrDefault(m => m.Id == mid) ?? throw new ArgumentException("Given management id does not exist for this report");
             PrepareFilter(managementReport, await GetAppServers(apiConnection, Query.SelectedOwner?.Id));
             UseAdditionalFilter = !modellingFilter.ShowFullRules;

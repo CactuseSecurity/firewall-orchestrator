@@ -94,6 +94,22 @@ namespace FWO.Basics
         public const string Customfields = "customfields";
     }
 
+    public struct QueryVar
+    {
+        public const string Limit = "limit";
+        public const string Offset = "offset";
+        public const string Time = "time";
+        public const string ImportIdStart = "import_id_start";
+        public const string ImportIdEnd = "import_id_end";
+        public const string ImportIdOld = "import_id_old";
+        public const string ImportIdNew = "import_id_new";
+        public const string MgmIds = "mgmIds";
+        public const string MgmId = "mgmId";
+        public const string ManagementId = "management_id";
+        public const string RuleIds = "ruleIds";
+        public const string RuleId = "rule_id";
+    }
+
     public struct Placeholder
     {
         public const string ExternalAppId = "@@ExternalAppId@@";

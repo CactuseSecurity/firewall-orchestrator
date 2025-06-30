@@ -16,6 +16,11 @@ namespace FWO.Api.Client
         private readonly GraphQLRequest request;
         private readonly Action<Exception> internalExceptionHandler;
 
+        public void Initialize()
+        {
+            CreateSubscription();
+        }
+
         public GraphQlApiSubscription(ApiConnection apiConnection, GraphQLHttpClient graphQlClient, GraphQLRequest request, Action<Exception> exceptionHandler, SubscriptionUpdate OnUpdate)
         {
             this.OnUpdate = OnUpdate;
@@ -35,7 +40,7 @@ namespace FWO.Api.Client
                 exceptionHandler(exception);
             };
 
-            CreateSubscription();
+            Initialize();
 
             apiConnection.OnAuthHeaderChanged += ApiConnectionOnAuthHeaderChanged;
         }

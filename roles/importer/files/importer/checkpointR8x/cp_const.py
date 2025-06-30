@@ -4,6 +4,8 @@ details_level_group_objects = "full"
 use_object_dictionary = True
 with_hits = True
 
+dummy_ip = '0.0.0.0/32'
+
 # the following is the static across all installations unique any obj uid
 # cannot fetch the Any object via API (<=1.7) at the moment
 # therefore we have a workaround adding the object manually (as svc and nw)

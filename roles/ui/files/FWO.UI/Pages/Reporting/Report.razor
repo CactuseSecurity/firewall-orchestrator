@@ -71,7 +71,7 @@
         @* ==== Filter line ==== *@
         <form class="m-1" @onsubmit="GenerateReport">
             <input style="position:relative; z-index:1; background-color:rgba(0,0,0,0);" translate="no" autocapitalize="off"
-                    class="form-control" spellcheck="false" placeholder="Filter" @oninput="TryFilter" @bind="filterInput" />
+                    class="form-control" spellcheck="false" placeholder="@(PlaceholderFilter())" @oninput="TryFilter" @bind="filterInput" />
             <div style="left:0px; top:0px; color:rgba(0,0,0,0); user-select:none;" translate="no" autocapitalize="off"
                     class="form-control position-absolute whitespace-div" spellcheck="false">
                 <span>@filterFeedbackStart</span><span class="error-underline">@filterFeedbackError</span><span>@filterFeedbackEnd</span>
@@ -234,7 +234,7 @@
         {
             availableReportTypes = CustomSortReportType(
                 JsonSerializer.Deserialize<List<ReportType>>(string.IsNullOrEmpty(userConfig.AvailableReportTypes) ? "[]" : userConfig.AvailableReportTypes)
-                ?? throw new Exception("Config data could not be parsed."));
+                ?? throw new JsonException("Config data could not be parsed."));
             SetProperRoleForReport();
             actReportFilters.DeviceFilter.Managements = await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement);
             if(int.TryParse(AppId, out int appId))
@@ -458,30 +458,38 @@
         DisplayMessageInUi(null, userConfig.GetText("report_data_fetch"), userConfig.GetText("E1003"), true);
     }
 
-    private ReportTemplate ConstructReportTemplate()
+    private ReportTemplate ConstructReportTemplate(string? tempFilter = null)
     {
-        return new ReportTemplate(filterInput, actReportFilters.ToReportParams());
+        return new ReportTemplate(tempFilter ?? filterInput, actReportFilters.ToReportParams());
+    }
+
+    private string PlaceholderFilter()
+    {
+        return userConfig.GetText(actReportFilters.ReportType == ReportType.VarianceAnalysis ? "U1001" : "filter");
     }
 
     private void TryFilter(ChangeEventArgs changeArgs)
     {
-        string input = (changeArgs.Value ?? "").ToString() ?? "";
         try
         {
-            DynGraphqlQuery query = Compiler.Compile(ConstructReportTemplate());
+            string input = (changeArgs.Value ?? "").ToString() ?? "";
+            try
+            {
+                DynGraphqlQuery query = Compiler.Compile(ConstructReportTemplate(input));
 
-            filterFeedbackStart = input;
-            filterFeedbackError = "";
-            filterFeedbackEnd = "";
-        }
-        catch (FilterException filterError)
-        {
-            int errorStart = filterError.ErrorPosition.Start.Value;
-            int errorEnd = filterError.ErrorPosition.End.Value;
+                filterFeedbackStart = input;
+                filterFeedbackError = "";
+                filterFeedbackEnd = "";
+            }
+            catch (FilterException filterError)
+            {
+                int errorStart = filterError.ErrorPosition.Start.Value;
+                int errorEnd = filterError.ErrorPosition.End.Value;
 
-            filterFeedbackStart = input[..errorStart];
-            filterFeedbackError = input[errorStart..errorEnd];
-            filterFeedbackEnd = input[errorEnd..];
+                filterFeedbackStart = input[..errorStart];
+                filterFeedbackError = input[errorStart..errorEnd];
+                filterFeedbackEnd = input[errorEnd..];
+            }
         }
         catch (Exception unexpectedError)
         {

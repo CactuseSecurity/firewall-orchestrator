@@ -1,6 +1,7 @@
 ﻿using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
+using FWO.Basics.Exceptions;
 using FWO.Data;
 using FWO.Data.Report;
 using FWO.Config.Api;
@@ -12,7 +13,7 @@ using FWO.Services;
 using Newtonsoft.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
-using PuppeteerSharp.Media;
+using System.Text;
 
 namespace FWO.Middleware.Server
 {
@@ -62,6 +63,7 @@ namespace FWO.Middleware.Server
         private readonly DeviceFilter deviceFilter = new();
         private List<int> importedManagements = [];
         private readonly UserConfig userConfig;
+        private const string LogMessageTitle = "Import Change Notifier";
 
 
         /// <summary>
@@ -77,7 +79,7 @@ namespace FWO.Middleware.Server
         /// <summary>
         /// Run the Import Change Notifier
         /// </summary>
-        public async Task<bool> Run()
+        public async Task Run()
         {
             try
             {
@@ -96,25 +98,20 @@ namespace FWO.Middleware.Server
                     WorkInProgress = false;
                 }
             }
-            catch (Exception exception)
+            catch (Exception)
             {
-                Log.WriteError("Import Change Notification", $"Runs into exception: ", exception);
                 WorkInProgress = false;
-                return false;
+                throw;
             }
-            return true;
         }
 
         private async Task<bool> NewImportFound()
         {
             importsToNotify = await apiConnection.SendQueryAsync<List<ImportToNotify>>(ReportQueries.getImportsToNotify);
             importedManagements = [];
-            foreach (var imp in importsToNotify)
+            foreach (var impMgt in importsToNotify.Select(i => i.MgmtId).Where(m => !importedManagements.Contains(m)))
             {
-                if (!importedManagements.Contains(imp.MgmtId))
-                {
-                    importedManagements.Add(imp.MgmtId);
-                }
+                importedManagements.Add(impMgt);
             }
             return importsToNotify.Count > 0;
         }
@@ -127,14 +124,13 @@ namespace FWO.Middleware.Server
             }
             catch (Exception exception)
             {
-                Log.WriteError("Import Change Notifier", $"Report generation leads to exception.", exception);
+                Log.WriteError(LogMessageTitle, $"Report generation leads to exception.", exception);
             }
         }
 
         private async Task<ReportParams> SetFilters()
         {
-            deviceFilter.Managements = ( await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement) )
-                .Where(x => importedManagements.Contains(x.Id)).ToList();
+            deviceFilter.Managements = [.. ( await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement)).Where(x => importedManagements.Contains(x.Id))];
             deviceFilter.ApplyFullDeviceSelection(true);
 
             return new((int)ReportType.Changes, deviceFilter)
@@ -142,8 +138,8 @@ namespace FWO.Middleware.Server
                 TimeFilter = new()
                 {
                     TimeRangeType = TimeRangeType.Fixeddates,
-                    StartTime = importsToNotify.First().StopTime,
-                    EndTime = importsToNotify.Last().StopTime.AddSeconds(1)
+                    StartTime = importsToNotify[0].StopTime,
+                    EndTime = importsToNotify[^1].StopTime.AddSeconds(1)
                 }
             };
         }
@@ -158,7 +154,7 @@ namespace FWO.Middleware.Server
             }
             catch (Exception exception)
             {
-                Log.WriteError("Import Change Notifier", $"Could not decrypt mailserver password.", exception);
+                Log.WriteError(LogMessageTitle, $"Could not decrypt mailserver password.", exception);
             }
 
             EmailConnection emailConnection = new(globalConfig.EmailServerAddress, globalConfig.EmailPort,
@@ -188,7 +184,7 @@ namespace FWO.Middleware.Server
                         string? pdfData = await changeReport.ToPdf(html);
 
                         if (string.IsNullOrWhiteSpace(pdfData))
-                            throw new Exception("No Pdf generated.");
+                            throw new ProcessingFailedException("No Pdf generated.");
 
                         attachment = CreateAttachment(pdfData, GlobalConst.kPdf);
                         break;
@@ -215,7 +211,7 @@ namespace FWO.Middleware.Server
 
         private string CreateBody()
         {
-            string body = globalConfig.ImpChangeNotifyBody;
+            StringBuilder body = new(globalConfig.ImpChangeNotifyBody);
             foreach (var mgmtId in importedManagements)
             {
                 int mgmtCounter = 0;
@@ -223,10 +219,10 @@ namespace FWO.Middleware.Server
                 {
                     mgmtCounter += imp.RelevantChanges;
                 }
-                body += globalConfig.ImpChangeNotifyType == (int)ImpChangeNotificationType.HtmlInBody ? "<br>" : "\r\n\r\n";
-                body += $"{importsToNotify.FirstOrDefault(x => x.MgmtId == mgmtId).Mgmt.MgmtName} (id={mgmtId}): {mgmtCounter} {userConfig.GetText("changes")}";
+                body.Append(globalConfig.ImpChangeNotifyType == (int)ImpChangeNotificationType.HtmlInBody ? "<br>" : "\r\n\r\n");
+                body.Append($"{importsToNotify.FirstOrDefault(x => x.MgmtId == mgmtId).Mgmt.MgmtName} (id={mgmtId}): {mgmtCounter} {userConfig.GetText("changes")}");
             }
-            return body;
+            return body.ToString();
         }
 
         private FormFile? CreateAttachment(string? content, string fileFormat)
@@ -275,7 +271,7 @@ namespace FWO.Middleware.Server
             }
             catch (Exception exception)
             {
-                Log.WriteError("Import Change Notifier", $"Could not mark imports as notified.", exception);
+                Log.WriteError(LogMessageTitle, $"Could not mark imports as notified.", exception);
             }
         }
     }

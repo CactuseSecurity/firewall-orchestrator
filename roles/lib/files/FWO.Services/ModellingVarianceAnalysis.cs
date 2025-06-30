@@ -22,11 +22,13 @@ namespace FWO.Services
             JsonSerializer.Deserialize<RuleRecognitionOption>(userConfig.RuleRecognitionOption) ?? new();
         private readonly ModellingAppZoneHandler AppZoneHandler = new(apiConnection, userConfig, owner, displayMessageInUi);
         private AppServerComparer appServerComparer = new(new());
-        private List<Management> RelevantManagements = [];
+        private List<Management> RelevantManagements {get; set; } = [];
 
         private List<WfReqTask> TaskList = [];
-        private List<WfReqTask> AccessTaskList = [];
-        private List<WfReqTask> DeleteTasksList = [];
+        private List<WfReqTask> AddAccessTaskList = [];
+        private List<WfReqTask> ChangeAccessTaskList = [];
+        private List<WfReqTask> DeleteAccessTaskList = [];
+        private List<WfReqTask> DeleteObjectTasksList = [];
         private int taskNumber = 0;
         private List<WfReqElement> elements = [];
 
@@ -39,7 +41,7 @@ namespace FWO.Services
         private readonly Dictionary<int, List<ModellingAppServer>> allExistingAppServers = [];
         private readonly Dictionary<int, List<ModellingAppServer>> alreadyCreatedAppServers = [];
 
-        public ModellingAppZone? PlannedAppZoneDbUpdate = default;
+        public ModellingAppZone? PlannedAppZoneDbUpdate {get; set; } = default;
 
         public async Task AnalyseConnsForStatus(List<ModellingConnection> connections)
         {
@@ -98,7 +100,7 @@ namespace FWO.Services
             {
                 foreach(var conn in connections.Where(c => !c.IsInterface).OrderBy(c => c.Id))
                 {
-                    AnalyseRules(conn, fullAnalysis);
+                    await AnalyseRules(conn, fullAnalysis);
                 }
             }
             return varianceResult;
@@ -109,11 +111,14 @@ namespace FWO.Services
             // later: get rules + compare, bundle requests
             appServerComparer = new (namingConvention);
             await InitManagements();
+            await GetModelledRulesProductionState(new() { AnalyseRemainingRules = false });
             await GetNwObjectsProductionState();
 
             TaskList = [];
-            AccessTaskList = [];
-            DeleteTasksList = [];
+            AddAccessTaskList = [];
+            ChangeAccessTaskList = [];
+            DeleteAccessTaskList = [];
+            DeleteObjectTasksList = [];
             foreach (Management mgt in RelevantManagements)
             {
                 await AnalyseAppZone(mgt);
@@ -127,24 +132,15 @@ namespace FWO.Services
                     AnalyseServicesForRequest(conn);
                     if (elements.Count > 0)
                     {
-                        Dictionary<string, string>? addInfo = new() { { AdditionalInfoKeys.ConnId, conn.Id.ToString() } };
-                        AccessTaskList.Add(new()
-                        {
-                            Title = ( conn.IsCommonService ? userConfig.GetText("new_common_service") : userConfig.GetText("new_connection") ) + ": " + conn.Name ?? "",
-                            TaskType = WfTaskType.access.ToString(),
-                            ManagementId = mgt.Id,
-                            OnManagement = mgt,
-                            Elements = elements,
-                            RuleAction = 1,  // Todo ??
-                            Tracking = 1,  // Todo ??
-                            AdditionalInfo = JsonSerializer.Serialize(addInfo),
-                            Comments = [new() { Comment = new() { CommentText = ConstructComment(conn) } }]
-                        });
+                        await AnalyseConnectionForRequest(mgt, conn);
                     }
                 }
+                await AnalyseDeletedConnsForRequest(mgt);
             }
-            TaskList.AddRange(AccessTaskList);
-            TaskList.AddRange(DeleteTasksList);
+            TaskList.AddRange(AddAccessTaskList);
+            TaskList.AddRange(ChangeAccessTaskList);
+            TaskList.AddRange(DeleteAccessTaskList);
+            TaskList.AddRange(DeleteObjectTasksList);
             taskNumber = 1;
             foreach (WfReqTask task in TaskList)
             {
@@ -197,9 +193,9 @@ namespace FWO.Services
                 }
             }
             varianceResult.AppRoleStats.ModelledAppRolesCount = allModelledAppRoles.Count;
-            varianceResult.AppRoleStats.AppRolesOk = allModelledAppRoles.Where(a => !a.IsMissing && !a.HasDifference).Count();
-            varianceResult.AppRoleStats.AppRolesMissingCount = allModelledAppRoles.Where(a => a.IsMissing).Count();
-            varianceResult.AppRoleStats.AppRolesDifferenceCount = allModelledAppRoles.Where(a => a.HasDifference).Count();
+            varianceResult.AppRoleStats.AppRolesOk = allModelledAppRoles.Count(a => !a.IsMissing && !a.HasDifference);
+            varianceResult.AppRoleStats.AppRolesMissingCount = allModelledAppRoles.Count(a => a.IsMissing);
+            varianceResult.AppRoleStats.AppRolesDifferenceCount = allModelledAppRoles.Count(a => a.HasDifference);
         }
 
         private void CollectModelledAppRoles(List<ModellingConnection> connections)
@@ -216,7 +212,7 @@ namespace FWO.Services
                     allModelledAppRoles.Add(modelledAppRole);
                 }
             }
-            allModelledAppRoles = [.. allModelledAppRoles.Distinct(appRoleComparer)];
+            allModelledAppRoles = [.. allModelledAppRoles.Distinct(appRoleComparer).OrderBy(a => a.Id)];
         }
 
         private void AnalyseAppRole(ModellingAppRole modelledAppRole, Management mgt)
@@ -230,9 +226,9 @@ namespace FWO.Services
             {
                 modelledAppRole.HasDifference = true;
                 ModellingAppRole changedAppRole = new(modelledAppRole){ ManagementName = mgt.Name, SurplusAppServers = deletedAppServers};
-                foreach(var appServer in changedAppRole.AppServers)
+                foreach(var appServer in changedAppRole.AppServers.Select(a => a.Content))
                 {
-                    appServer.Content.NotImplemented = newAppServers.FirstOrDefault(a => a.Content.Id == appServer.Content.Id) != null;
+                    appServer.NotImplemented = newAppServers.FirstOrDefault(a => a.Content.Id == appServer.Id) != null;
                 }
                 varianceResult.DifferingAppRoles[mgt.Id].Add(changedAppRole);
             }

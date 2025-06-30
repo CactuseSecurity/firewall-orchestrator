@@ -1,5 +1,14 @@
 .dropzone-scrollable {
-    height: 200px;
     overflow-y: auto;
     overflow-x: hidden;
+}
+
+.appserver-right-scrollable {
+    height: calc(100vh - 715px);
+    overflow-y: auto;
+}
+
+.appserver-right-scrollable-networkarea {
+    height: calc(100vh - 756px);
+    overflow-y: auto;
 }

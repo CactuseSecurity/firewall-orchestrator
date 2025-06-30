@@ -10,7 +10,7 @@ using FWO.Services;
 
 namespace FWO.Report
 {
-    public class ReportGenerator
+    public static class ReportGenerator
     {
         public static async Task<ReportBase?> Generate(ReportTemplate reportTemplate, ApiConnection apiConnection, UserConfig userConfig, Action<Exception?, string, string, bool> displayMessageInUi, CancellationToken? token = null)
         {
@@ -67,7 +67,7 @@ namespace FWO.Report
             List<ModellingAppRole> dummyAppRoles = await apiConnection.SendQueryAsync<List<ModellingAppRole>>(ModellingQueries.getDummyAppRole);
             if(dummyAppRoles.Count > 0)
             {
-                dummyAppRole = dummyAppRoles.First();
+                dummyAppRole = dummyAppRoles[0];
             }
             foreach(var selectedOwner in reportTemplate.ReportParams.ModellingFilter.SelectedOwners)
             {
@@ -76,7 +76,7 @@ namespace FWO.Report
                 await report.Generate(userConfig.ElementsPerFetch, apiConnection,
                     rep =>
                     {
-                        actOwnerData.Connections = rep.OwnerData.First().Connections;
+                        actOwnerData.Connections = rep.OwnerData[0].Connections;
                         return Task.CompletedTask;
                     }, token);
                 await PrepareConnReportData(selectedOwner, actOwnerData, report.ReportType, reportTemplate.ReportParams.ModellingFilter, apiConnection, userConfig, displayMessageInUi);
@@ -104,9 +104,9 @@ namespace FWO.Report
                 await PrepareVarianceData(ownerReport, modellingFilter, apiConnection, userConfig, displayMessageInUi);
             }
             ownerReport.Name = selectedOwner.Name;
-            ownerReport.RegularConnections = [.. ownerReport.Connections.Where(x => !x.IsInterface && !x.IsCommonService)];
-            ownerReport.Interfaces = [.. ownerReport.Connections.Where(x => x.IsInterface)];
-            ownerReport.CommonServices = [.. ownerReport.Connections.Where(x => !x.IsInterface && x.IsCommonService)];
+            ownerReport.RegularConnections = [.. ownerReport.Connections.Where(x => !x.IsInterface && !x.IsCommonService && !x.GetBoolProperty(ConState.InterfaceRejected.ToString()))];
+            ownerReport.Interfaces = [.. ownerReport.Connections.Where(x => x.IsInterface && !x.GetBoolProperty(ConState.Rejected.ToString()))];
+            ownerReport.CommonServices = [.. ownerReport.Connections.Where(x => !x.IsInterface && x.IsCommonService && !x.GetBoolProperty(ConState.InterfaceRejected.ToString()))];
         }
 
         private static async Task PrepareVarianceData(OwnerReport ownerReport, ModellingFilter modellingFilter, ApiConnection apiConnection,
@@ -115,7 +115,7 @@ namespace FWO.Report
             ownerReport.ExtractConnectionsToAnalyse();
             ExtStateHandler extStateHandler = new(apiConnection);
             ModellingVarianceAnalysis varianceAnalysis = new(apiConnection, extStateHandler, userConfig, ownerReport.Owner, displayMessageInUi);
-            ModellingVarianceResult result = await varianceAnalysis.AnalyseRulesVsModelledConnections([.. ownerReport.Connections.Where(x => !x.IsDocumentationOnly())], modellingFilter);
+            ModellingVarianceResult result = await varianceAnalysis.AnalyseRulesVsModelledConnections(ownerReport.Connections, modellingFilter);
             ownerReport.Connections = result.ConnsNotImplemented;
             ownerReport.RuleDifferences = result.RuleDifferences;
             ownerReport.MissingAppRoles = result.MissingAppRoles;
@@ -148,24 +148,18 @@ namespace FWO.Report
                 }, token);
         }
 
-        private static bool PrepareMetadata(List<ManagementReport> ManagementReports, UserConfig userConfig)
+        private static void PrepareMetadata(List<ManagementReport> ManagementReports, UserConfig userConfig)
         {
-            bool rulesFound = false;
             foreach (var managementReport in ManagementReports)
             {
-                foreach (var device in managementReport.Devices)
+                foreach (var device in managementReport.Devices.Where(d => d.ContainsRules()))
                 {
-                    if (device.ContainsRules())
-                    {
-                        rulesFound = true;
-                        foreach (var rule in device.Rules!)
-                        {
-                            rule.Metadata.UpdateRecertPeriods(userConfig.RecertificationPeriod, userConfig.RecertificationNoticePeriod);
-                        }
-                    }
+					foreach (var rule in device.Rules!)
+					{
+						rule.Metadata.UpdateRecertPeriods(userConfig.RecertificationPeriod, userConfig.RecertificationNoticePeriod);
+					}
                 }
             }
-            return rulesFound;
         }
 
         private static void SetRelevantManagements(ref List<ManagementReport> managementsReport, DeviceFilter deviceFilter)

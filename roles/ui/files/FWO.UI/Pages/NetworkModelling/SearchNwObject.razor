@@ -12,7 +12,7 @@
         {
             <div class="form-group row col-sm-12">
                 <label class="col-form-label col-sm-4">@(userConfig.GetText("object_type")):</label>
-                @if(singleType || CommonAreaMode)
+                @if(singleType || CommonAreaMode || SpecUserMode)
                 {
                     <label class="col-form-label text-primary col-sm-8">@userConfig.GetText(selectedType.ToString())</label>
                 }
@@ -47,7 +47,7 @@
         <div class="btn-group">
             @if(selectedObject != null)
             {
-                <AuthorizeView Roles="@(CommonAreaMode ? Roles.Admin : Roles.Modeller)">
+                <AuthorizeView Roles="@(CommonAreaMode || SpecUserMode ? Roles.Admin : Roles.Modeller)">
                     <Authorized>
                         <button type="button" class="btn btn-sm btn-success" @onclick="AddObject">@(userConfig.GetText("select"))</button>
                     </Authorized>
@@ -91,6 +91,9 @@
     [Parameter]
     public bool CommonAreaMode { get; set; } = false;
 
+    [Parameter]
+    public bool SpecUserMode { get; set; } = false;
+
 
     private List<ModellingTypes.ModObjectType> availableTypes = new(){ ModellingTypes.ModObjectType.NetworkArea };
     private ModellingTypes.ModObjectType selectedType = ModellingTypes.ModObjectType.NetworkArea;
@@ -129,10 +132,15 @@
                 grpType = (int)selectedType
             };
             List<ModellingNwGroup> allNwObjects = await apiConnection.SendQueryAsync<List<ModellingNwGroup>>(ModellingQueries.getNwGroupObjects, Variables);
-            if(userConfig.ModCommonAreas != "")
+            if(CommonAreaMode && userConfig.ModCommonAreas != "")
             {
                 List<long> commonAreaIds = JsonSerializer.Deserialize<List<CommonAreaConfig>>(userConfig.ModCommonAreas)?.ConvertAll(x => x.AreaId) ?? new();
                 allNwObjects = allNwObjects.Where(o => !commonAreaIds.Contains(o.Id)).ToList();
+            }
+            else if(SpecUserMode && userConfig.ModSpecUserAreas != "")
+            {
+                List<long> SpecAreaIds = JsonSerializer.Deserialize<List<CommonAreaConfig>>(userConfig.ModSpecUserAreas)?.ConvertAll(x => x.AreaId) ?? new();
+                allNwObjects = allNwObjects.Where(o => !SpecAreaIds.Contains(o.Id)).ToList();
             }
             remainingNwObjects = allNwObjects.Where(o => ObjectList.FirstOrDefault(sel => sel.Content.Id == o.Id) == null).ToList();
             typeSelected = true;
@@ -149,7 +157,7 @@
         {
             if(selectedObject != null)
             {
-                if(!CommonAreaMode)
+                if(!CommonAreaMode && !SpecUserMode)
                 {
                     var Variables = new
                     {
@@ -158,7 +166,7 @@
                     };
                     await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.addSelectedNwGroupObject, Variables);
                 }
-                ObjectList.Add(new ModellingNwGroupWrapper(){ Content = selectedObject ?? throw new Exception("No Object selected.") });
+                ObjectList.Add(new ModellingNwGroupWrapper(){ Content = selectedObject ?? throw new ArgumentException("No Object selected.") });
                 await ObjectListChanged.InvokeAsync(ObjectList);
                 Add(selectedObject);
                 Refresh();

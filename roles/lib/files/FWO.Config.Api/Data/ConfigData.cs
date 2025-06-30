@@ -1,4 +1,4 @@
-﻿using Newtonsoft.Json;
+using Newtonsoft.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using FWO.Basics;
@@ -31,7 +31,13 @@ namespace FWO.Config.Api.Data
 		[JsonProperty("welcomeMessage"), JsonPropertyName("welcomeMessage")]
 		public string WelcomeMessage { get; set; } = "";
 
-		[JsonProperty("maxMessages"), JsonPropertyName("maxMessages"), UserConfigData]
+        [JsonProperty("useCustomLogo"), JsonPropertyName("useCustomLogo")]
+        public bool UseCustomLogo { get; set; }
+
+        [JsonProperty("customLogoData"), JsonPropertyName("customLogoData")]
+        public string CustomLogoData { get; set; }
+
+        [JsonProperty("maxMessages"), JsonPropertyName("maxMessages"), UserConfigData]
 		public int MaxMessages { get; set; } = 3;
 
 		[JsonProperty("elementsPerFetch"), JsonPropertyName("elementsPerFetch"), UserConfigData]
@@ -303,6 +309,9 @@ namespace FWO.Config.Api.Data
 		[JsonProperty("modCommonAreas"), JsonPropertyName("modCommonAreas")]
 		public string ModCommonAreas { get; set; } = "";
 
+		[JsonProperty("modSpecUserAreas"), JsonPropertyName("modSpecUserAreas")]
+		public string ModSpecUserAreas { get; set; } = "";
+
 		[JsonProperty("modAppServerTypes"), JsonPropertyName("modAppServerTypes")]
 		public string ModAppServerTypes { get; set; } = "";
 
@@ -336,6 +345,9 @@ namespace FWO.Config.Api.Data
 		[JsonProperty("modRolloutBundleTasks"), JsonPropertyName("modRolloutBundleTasks")]
 		public bool ModRolloutBundleTasks { get; set; } = false;
 
+		[JsonProperty("modRolloutNatHeuristic"), JsonPropertyName("modRolloutNatHeuristic")]
+		public bool ModRolloutNatHeuristic { get; set; } = false;
+
 		[JsonProperty("modRolloutErrorText"), JsonPropertyName("modRolloutErrorText")]
 		public string ModRolloutErrorText { get; set; } = "";
 
@@ -352,7 +364,7 @@ namespace FWO.Config.Api.Data
 		public string ModModelledMarker { get; set; } = "FWOC";
 
 		[JsonProperty("modModelledMarkerLocation"), JsonPropertyName("modModelledMarkerLocation")]
-		public string ModModelledMarkerLocation { get; set; } = "rulename";
+		public string ModModelledMarkerLocation { get; set; } = MarkerLocation.Rulename;
 
 		[JsonProperty("ruleRecognitionOption"), JsonPropertyName("ruleRecognitionOption")]
 		public string RuleRecognitionOption { get; set; } = "";

@@ -1,5 +1,6 @@
 ﻿using FWO.Api.Client;
 using FWO.Basics;
+using FWO.Basics.Exceptions;
 using FWO.Config.Api;
 using FWO.Data.Report;
 using FWO.Logging;
@@ -92,10 +93,10 @@ namespace FWO.Report
 
         public readonly DynGraphqlQuery Query;
         protected UserConfig userConfig;
-        public ReportType ReportType;
-        public ReportData ReportData = new();
-        public int CustomWidth = 0;
-        public int CustomHeight = 0;
+        public ReportType ReportType { get; set; }
+        public ReportData ReportData { get; set; } = new();
+        public int CustomWidth { get; set; } = 0;
+        public int CustomHeight { get; set; } = 0;
 
         protected string htmlExport = "";
 
@@ -149,9 +150,9 @@ namespace FWO.Report
                 ReportType.Rules => new ReportRules(query, userConfig, repType),
                 ReportType.ResolvedRules => new ReportRules(query, userConfig, repType),
                 ReportType.ResolvedRulesTech => new ReportRules(query, userConfig, repType),
-                ReportType.Changes => new ReportChanges(query, userConfig, repType),
-                ReportType.ResolvedChanges => new ReportChanges(query, userConfig, repType),
-                ReportType.ResolvedChangesTech => new ReportChanges(query, userConfig, repType),
+                ReportType.Changes => new ReportChanges(query, userConfig, repType, reportFilter.ReportParams.TimeFilter),
+                ReportType.ResolvedChanges => new ReportChanges(query, userConfig, repType, reportFilter.ReportParams.TimeFilter),
+                ReportType.ResolvedChangesTech => new ReportChanges(query, userConfig, repType, reportFilter.ReportParams.TimeFilter),
                 ReportType.NatRules => new ReportNatRules(query, userConfig, repType),
                 ReportType.Recertification => new ReportRules(query, userConfig, repType),
                 ReportType.UnusedRules => new ReportRules(query, userConfig, repType),
@@ -162,14 +163,27 @@ namespace FWO.Report
             };
         }
 
-        public static string ConstructLink(string type, string symbol, int chapterNumber, long id, string name, OutputLocation location, string reportId, string style)
+        public static string GetLinkAddress(OutputLocation location, string reportId, string type, int chapterNumber, long id, ReportType reportType)
         {
             string page = location == OutputLocation.report ? PageName.ReportGeneration : PageName.Certification;
-            string link = location == OutputLocation.export ? $"#" : $"{page}#goto-report-{reportId}-";
-            return $"<span class=\"{symbol}\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"{link}{type}{chapterNumber}x{id}\" target=\"_top\" style=\"{style}\">{name}</a>";
+            string link;
+            if (reportType.IsChangeReport())
+            {
+                link = location == OutputLocation.export ? $"#" : $"{page}#goto-all-{reportId}-";
+            }
+            else
+            {
+                link = location == OutputLocation.export ? $"#" : $"{page}#goto-report-{reportId}-";
+            }
+            return $"{link}{type}{chapterNumber}x{id}";
         }
 
-        protected string GenerateHtmlFrameBase(string title, string filter, DateTime date, StringBuilder htmlReport, string? deviceFilter = null, string? ownerFilter = null)
+        public static string ConstructLink(string symbol, string name, string style, string linkAddress)
+        {
+            return $"<span class=\"{symbol}\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"{linkAddress}\" target=\"_top\" style=\"{style}\">{name}</a>";
+        }
+
+        protected string GenerateHtmlFrameBase(string title, string filter, DateTime date, StringBuilder htmlReport, string? deviceFilter = null, string? ownerFilter = null, TimeFilter? timeFilter = null)
         {
             if (string.IsNullOrEmpty(htmlExport))
             {
@@ -186,9 +200,10 @@ namespace FWO.Report
                 HtmlTemplate = HtmlTemplate.Replace("##Date##", date.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssK"));
                 if (ReportType.IsChangeReport())
                 {
+                    (string startTime, string stopTime) = DynGraphqlQuery.ResolveTimeRange(timeFilter!);
                     string timeRange = $"{userConfig.GetText("change_time")}: " +
-                        $"{userConfig.GetText("from")}: {ToUtcString(Query.QueryVariables["start"]?.ToString())}, " +
-                        $"{userConfig.GetText("until")}: {ToUtcString(Query.QueryVariables["stop"]?.ToString())}";
+                        $"{userConfig.GetText("from")}: {ToUtcString(startTime)}, " +
+                        $"{userConfig.GetText("until")}: {ToUtcString(stopTime)}";
                     HtmlTemplate = HtmlTemplate.Replace("##Date-of-Config##: ##GeneratedFor##", timeRange);
                 }
                 else if (ReportType.IsRuleReport() || ReportType == ReportType.Statistics)
@@ -277,7 +292,7 @@ namespace FWO.Report
 
             if (installedBrowser == null)
             {
-                throw new Exception($"Browser {wantedBrowser} is not installed!");
+                throw new EnvironmentException($"Browser {wantedBrowser} is not installed!");
             }
 
             using IBrowser? browser = await Puppeteer.LaunchAsync(new LaunchOptions
@@ -291,7 +306,7 @@ namespace FWO.Report
                 using IPage page = await browser.NewPageAsync();
                 await page.SetContentAsync(html);
 
-                PuppeteerSharp.Media.PaperFormat? pupformat = GetPuppeteerPaperFormat(format) ?? throw new Exception();
+                PuppeteerSharp.Media.PaperFormat? pupformat = GetPuppeteerPaperFormat(format) ?? throw new KeyNotFoundException();
 
                 PdfOptions pdfOptions = new() { Outline = true, DisplayHeaderFooter = false, Landscape = true, PrintBackground = true, Format = pupformat, MarginOptions = new MarginOptions { Top = "1cm", Bottom = "1cm", Left = "1cm", Right = "1cm" } };
                 byte[]? pdfData = await page.PdfDataAsync(pdfOptions);
@@ -300,7 +315,7 @@ namespace FWO.Report
             }
             catch (Exception)
             {
-                throw new Exception("This paper kind is currently not supported. Please choose another one or \"Custom\" for a custom size.");
+                throw new NotSupportedException("This paper kind is currently not supported. Please choose another one or \"Custom\" for a custom size.");
             }
             finally
             {
@@ -313,10 +328,7 @@ namespace FWO.Report
             HtmlDocument doc = new();
             doc.LoadHtml(html);
 
-            List<HtmlNode>? headings = doc.DocumentNode.Descendants()
-                            .Where(n => n.Name.StartsWith('h') && n.Name.Length == 2 && n.Name != "hr")
-                            .ToList();
-
+            List<HtmlNode>? headings = [.. doc.DocumentNode.Descendants().Where(n => n.Name.StartsWith('h') && n.Name.Length == 2 && n.Name != "hr")];
             List<ToCHeader> tocs = [];
 
             int i = 0;
@@ -331,11 +343,11 @@ namespace FWO.Report
                 }
                 else if (heading.Name == "h5" && tocs.Count > 0 && tocs[i - 1].Items.Count > 0)
                 {
-                    tocs[i - 1].Items.Last().SubItems.Add(new ToCItem(headText, heading.Id));
+                    tocs[i - 1].Items[^1].SubItems.Add(new ToCItem(headText, heading.Id));
                 }
-                else if (heading.Name == "h6" && tocs.Count > 0 && tocs[i - 1].Items.Count > 0 && tocs[i - 1].Items.Last().SubItems.Count > 0)
+                else if (heading.Name == "h6" && tocs.Count > 0 && tocs[i - 1].Items.Count > 0 && tocs[i - 1].Items[^1].SubItems.Count > 0)
                 {
-                    tocs[i - 1].Items.Last().SubItems.Last().SubItems.Add(new ToCItem(headText, heading.Id));
+                    tocs[i - 1].Items[^1].SubItems[^1].SubItems.Add(new ToCItem(headText, heading.Id));
                 }
                 else
                 {
@@ -352,7 +364,7 @@ namespace FWO.Report
 
             if (!tocTemplateValid)
             {
-                throw new Exception(userConfig.GetText("E9302"));
+                throw new ArgumentException(userConfig.GetText("E9302"));
             }
 
             List<ToCHeader>? tocHeaders = CreateTOCContent(html);
@@ -360,51 +372,63 @@ namespace FWO.Report
             TocHTMLTemplate = TocHTMLTemplate.Replace("##ToCHeader##", userConfig.GetText("tableofcontent"));
 
             StringBuilder sb = new();
-
             foreach (ToCHeader toCHeader in tocHeaders)
             {
-                sb.AppendLine($"<li><a href=\"#{toCHeader.Id}\">{toCHeader.Title}</a></li>");
-
-                if (toCHeader.Items.Count > 0)
-                {
-                    sb.AppendLine("<ul>");
-
-                    foreach (ToCItem tocItem in toCHeader.Items)
-                    {
-                        sb.AppendLine($"<li class=\"subli\"><a href=\"#{tocItem.Id}\">{tocItem.Title}</a></li>");
-                        if (tocItem.SubItems.Count > 0)
-                        {
-                            sb.AppendLine("<ul>");
-                            foreach (ToCItem subItem in tocItem.SubItems)
-                            {
-                                sb.AppendLine($"<li class=\"subli\"><a href=\"#{subItem.Id}\">{subItem.Title}</a></li>");
-                                if (subItem.SubItems.Count > 0)
-                                {
-                                    sb.AppendLine("<ul>");
-                                    foreach (ToCItem subsubItem in subItem.SubItems)
-                                    {
-                                        sb.AppendLine($"<li class=\"subli\"><a href=\"#{subsubItem.Id}\">{subsubItem.Title}</a></li>");
-                                    }
-                                    sb.AppendLine("</ul>");
-                                }
-                            }
-                            sb.AppendLine("</ul>");
-                        }
-                    }
-                    sb.AppendLine("</ul>");
-                }
+				AppendHeader(sb, toCHeader);
             }
 
             TocHTMLTemplate = TocHTMLTemplate.Replace("##ToCList##", sb.ToString());
-
             bool tocValidHTML = IsValidHTML(TocHTMLTemplate);
-
             if (!tocValidHTML)
             {
-                throw new Exception(userConfig.GetText("E9302"));
+                throw new ArgumentException(userConfig.GetText("E9302"));
             }
 
             return TocHTMLTemplate;
+        }
+
+		private static void AppendHeader( StringBuilder sb, ToCHeader toCHeader)
+		{
+            sb.AppendLine($"<li><a href=\"#{toCHeader.Id}\">{toCHeader.Title}</a></li>");
+
+            if (toCHeader.Items.Count > 0)
+            {
+                sb.AppendLine("<ul>");
+
+                foreach (ToCItem tocItem in toCHeader.Items)
+                {
+					AppendItem(sb, tocItem);
+                }
+                sb.AppendLine("</ul>");
+            }
+		}
+
+		private static void AppendItem( StringBuilder sb, ToCItem tocItem)
+		{
+            sb.AppendLine($"<li class=\"subli\"><a href=\"#{tocItem.Id}\">{tocItem.Title}</a></li>");
+            if (tocItem.SubItems.Count > 0)
+            {
+                sb.AppendLine("<ul>");
+                foreach (ToCItem subItem in tocItem.SubItems)
+                {
+					AppendSubItem(sb, subItem);
+                }
+                sb.AppendLine("</ul>");
+             }
+		}
+
+		private static void AppendSubItem( StringBuilder sb, ToCItem subItem)
+		{
+            sb.AppendLine($"<li class=\"subli\"><a href=\"#{subItem.Id}\">{subItem.Title}</a></li>");
+            if (subItem.SubItems.Count > 0)
+            {
+                sb.AppendLine("<ul>");
+                foreach (ToCItem subsubItem in subItem.SubItems)
+                {
+                    sb.AppendLine($"<li class=\"subli\"><a href=\"#{subsubItem.Id}\">{subsubItem.Title}</a></li>");
+                }
+                sb.AppendLine("</ul>");
+            }
         }
 
         public static bool IsValidHTML(string html)

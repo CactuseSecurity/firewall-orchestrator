@@ -1,4 +1,8 @@
-query getRelevantImportIdsAtTime($time: timestamp!, $mgmIds: [Int!]) {
+query getRelevantImportIdsAtTime(
+  $time: timestamp!
+  $mgmIds: [Int!]
+  $ruleChangesFound: Boolean
+) {
   management(where: {
     hide_in_gui: {_eq: false}
     mgm_id: {_in: $mgmIds}
@@ -9,7 +13,12 @@ query getRelevantImportIdsAtTime($time: timestamp!, $mgmIds: [Int!]) {
   } order_by: {mgm_name: asc}) {
     Name: mgm_name
     id: mgm_id
-    import: import_controls_aggregate(where: {stop_time: {_lte: $time}, successful_import: {_eq: true}, changes_found: {_eq: true}}) {
+    import: import_controls_aggregate(where: {
+      stop_time: {_lte: $time}
+      successful_import: {_eq: true}
+      any_changes_found: {_eq: true}
+      rule_changes_found: {_eq: $ruleChangesFound}
+    }) {
       aggregate {
         max {
           id: control_id

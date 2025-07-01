@@ -103,14 +103,9 @@ namespace FWO.Report.Filter
                         services_aggregate(where: {{ {query.SvcObjWhereStatement} }}) {{ aggregate {{ count }} }}
                         usrs_aggregate(where: {{ {query.UserObjWhereStatement} }}) {{ aggregate {{ count }} }}
                         rules_aggregate(where: {{ {query.RuleWhereStatement} }}) {{ aggregate {{ count }} }}
-                        devices({devWhereStringDefault})
-                        {{
-                            name: dev_name
-                            id: dev_id
-                            rules_aggregate(where: {{ {query.RuleWhereStatement} }}) {{ aggregate {{ count }} }}
-                        }}
                     }}
                 }}";
+                //TODO: show number of rulebase links per gateway ?
         }
 
         private static string ConstructRulesQuery(DynGraphqlQuery query, string paramString, ReportTemplate filter)
@@ -411,26 +406,20 @@ namespace FWO.Report.Filter
                     case ReportType.NatRules:
                     case ReportType.UnusedRules:
                     case ReportType.AppRules:
-                        query.QueryParameters.Add("$relevantImportId: bigint ");
                         query.QueryParameters.Add("$import_id_start: bigint ");
                         query.QueryParameters.Add("$import_id_end: bigint ");
-                        query.RuleWhereStatement += $@"
-                                    rule_create: {{_lte: $relevantImportId}}, 
-                                    _or: [{{removed: {{_gt: $relevantImportId}} }}, {{removed: {{_is_null: true}} }}],
-                        ";
-                        // TODO: merge this properly
-                        // query.RuleWhereStatement +=
-                        //     $"import_control: {{ control_id: {{_lte: $import_id_end }} }}, " +
-                        //     $"importControlByRuleLastSeen: {{ control_id: {{_gte: $import_id_start }} }}";
-                        // query.NwObjWhereStatement +=
-                        //     $"import_control: {{ control_id: {{_lte: $import_id_end }} }}, " +
-                        //     $"importControlByObjLastSeen: {{ control_id: {{_gte: $import_id_start }} }}";
-                        // query.SvcObjWhereStatement +=
-                        //     $"import_control: {{ control_id: {{_lte: $import_id_end }} }}, " +
-                        //     $"importControlBySvcLastSeen: {{ control_id: {{_gte: $import_id_start }} }}";
-                        // query.UserObjWhereStatement +=
-                        //     $"import_control: {{ control_id: {{_lte: $import_id_end }} }}, " +
-                        //     $"importControlByUserLastSeen: {{ control_id: {{_gte: $import_id_start }} }}";
+                        query.RuleWhereStatement +=
+                            $"rule_create: {{_lte: $import_id_end}}" +
+                            $"_or: [{{removed: {{_gt: $import_id_start}} }}, {{removed: {{_is_null: true}} }}]";
+                        query.NwObjWhereStatement +=
+                            $"obj_create: {{_lte: $import_id_end }}" +
+                            $"_or: [{{removed: {{_gt: $import_id_start}} }}, {{removed: {{_is_null: true}} }}]";
+                        query.SvcObjWhereStatement +=
+                            $"svc_create: {{_lte: $import_id_end }}" +
+                            $"_or: [{{removed: {{_gt: $import_id_start}} }}, {{removed: {{_is_null: true}} }}]";
+                        query.UserObjWhereStatement +=
+                            $"user_create: {{_lte: $import_id_end }}" +
+                            $"_or: [{{removed: {{_gt: $import_id_start}} }}, {{removed: {{_is_null: true}} }}]";
                         query.ReportTimeString = timeFilter.IsShortcut ?
                             DateTime.Now.ToString(fullTimeFormat) : timeFilter.ReportTime.ToString(fullTimeFormat);
                         break;

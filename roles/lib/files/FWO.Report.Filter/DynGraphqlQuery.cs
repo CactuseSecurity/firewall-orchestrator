@@ -103,14 +103,9 @@ namespace FWO.Report.Filter
                         services_aggregate(where: {{ {query.SvcObjWhereStatement} }}) {{ aggregate {{ count }} }}
                         usrs_aggregate(where: {{ {query.UserObjWhereStatement} }}) {{ aggregate {{ count }} }}
                         rules_aggregate(where: {{ {query.RuleWhereStatement} }}) {{ aggregate {{ count }} }}
-                        devices({devWhereStringDefault})
-                        {{
-                            name: dev_name
-                            id: dev_id
-                            rules_aggregate(where: {{ {query.RuleWhereStatement} }}) {{ aggregate {{ count }} }}
-                        }}
                     }}
                 }}";
+                //TODO: show number of rulebase links per gateway ?
         }
 
         private static string ConstructRulesQuery(DynGraphqlQuery query, string paramString, ReportTemplate filter)

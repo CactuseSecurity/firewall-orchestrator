@@ -35,7 +35,6 @@ namespace FWO.Report.Filter
 
         public ReportType ReportType { get; set; } = ReportType.Rules;
         public FwoOwner? SelectedOwner { get; set; }
-        // public DynGraphqlQuery(string rawInput) { RawFilter = rawInput; }
         public const string fullTimeFormat = "yyyy-MM-dd HH:mm:ss";
         public const string dateFormat = "yyyy-MM-dd";
         public const int layerRecursionLevel = 2;
@@ -70,16 +69,6 @@ namespace FWO.Report.Filter
             query.FullQuery = Regex.Replace(query.FullQuery, pattern, "");
             pattern = @"\s+";
             query.FullQuery = Regex.Replace(query.FullQuery, pattern, " ");
-
-            // // query debugging
-            // Log.WriteDebug("Filter", $"FullQuery = {query.FullQuery}");
-            // string queryVars = "";
-            // foreach ((string k, object o) in query.QueryVariables)
-            // {
-            //     queryVars += $"\"{k}\": {o.ToString()}, ";
-            // }
-            // Log.WriteDebug("Filter", $"Variables = {queryVars}");
-
             return query;
         }
 
@@ -95,7 +84,7 @@ namespace FWO.Report.Filter
 
             // now we convert the ast into a graphql query:
             ast?.Extract(ref query, (ReportType)filter.ReportParams.ReportType);
-            // TODO: remvoe rule dev filtering for rework 
+            // TODO: remove rule dev filtering for rework 
 
             query.RuleWhereStatement += "}] ";
             query.ConnectionWhereStatement += "}] ";
@@ -423,13 +412,13 @@ namespace FWO.Report.Filter
                     case ReportType.UnusedRules:
                     case ReportType.AppRules:
                         query.QueryParameters.Add("$relevantImportId: bigint ");
+                        query.QueryParameters.Add("$import_id_start: bigint ");
+                        query.QueryParameters.Add("$import_id_end: bigint ");
                         query.RuleWhereStatement += $@"
                                     rule_create: {{_lte: $relevantImportId}}, 
                                     _or: [{{removed: {{_gt: $relevantImportId}} }}, {{removed: {{_is_null: true}} }}],
                         ";
                         // TODO: merge this properly
-                        // query.QueryParameters.Add("$import_id_start: bigint ");
-                        // query.QueryParameters.Add("$import_id_end: bigint ");
                         // query.RuleWhereStatement +=
                         //     $"import_control: {{ control_id: {{_lte: $import_id_end }} }}, " +
                         //     $"importControlByRuleLastSeen: {{ control_id: {{_gte: $import_id_start }} }}";

@@ -38,6 +38,7 @@ namespace FWO.DeviceAutoDiscovery
                     await DiscoverySession(discoveredDevices);
                 }
             }
+            return discoveredDevices;
         }
 
         private async Task DiscoverySession(List<Management> discoveredDevices)

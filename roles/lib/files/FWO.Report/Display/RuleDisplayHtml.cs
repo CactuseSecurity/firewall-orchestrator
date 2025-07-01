@@ -126,8 +126,10 @@ namespace FWO.Ui.Display
         }
         protected static string EnforcingGatewayToHtml(Device gateway, int mgmtId, int chapterNumber, OutputLocation location, string style, ReportType reportType)
         {
-            return DisplayGateway(gateway, reportType, reportType.IsResolvedReport() ? null : 
-                ReportDevicesBase.ConstructLink(ObjCatString.Svc, Icons.Host, chapterNumber, gateway.Id, gateway.Name, location, mgmtId, style)).ToString();
+            string gwLink = ReportDevicesBase.GetReportDevicesLinkAddress(location, mgmtId, ObjCatString.NwObj, chapterNumber, gateway.Id, reportType);
+
+            return DisplayGateway(gateway, reportType, reportType.IsResolvedReport() ? null :
+                ReportBase.ConstructLink(ReportBase.GetIconClass(ObjCategory.nsrv, "Gateway"), gateway.Name, style, gwLink)).ToString();
         }
 
         private string DisplaySourceOrDestination(Rule rule, int chapterNumber, OutputLocation location, ReportType reportType, string style, bool isSource)

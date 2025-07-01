@@ -267,133 +267,18 @@
 
         try
         {
-            string query = "";
-            Dictionary<String, object> queryVars = new()
-            {
-                { "limit", userConfig.ElementsPerFetch },
-                { "offset", 0 }
-            };
-            bool gotAllObjects = true;
-
             switch (rsbTab)
             {
                 case RsbTab.all:
-                    ManagementReport? mgt = managementsAllObjects.FirstOrDefault(m => m.Id == id);
-                    if (mgt == null) break;
-
-                    if (objType == ObjCategory.all)
-                        mgt.Detailed = [true, true, true];
-                    else
-                        mgt.Detailed[(int)objType - 1] = true;
-
-                    queryVars.Add("management_id", (int)id);
-                    queryVars.Add("import_id_start", import_id_start.GetValueOrDefault((int)id, 0));
-                    queryVars.Add("import_id_end", import_id_end.GetValueOrDefault((int)id, 0));
-
-                    switch (objType)
-                    {
-                        case ObjCategory.all:
-                            query = ObjectQueries.getAllObjectDetails;
-                            break;
-                        case ObjCategory.nobj:
-                            query = ObjectQueries.getNetworkObjectDetails;
-                            break;
-                        case ObjCategory.nsrv:
-                            query = ObjectQueries.getNetworkServiceDetails;
-                            break;
-                        case ObjCategory.user:
-                            query = ObjectQueries.getUserDetails;
-                            break;
-                    }
-
-                    await FetchObjects<ManagementReport>(query, queryVars, managementsUpdate =>
-                    {
-                        ManagementReport? mgtUpdated = managementsUpdate.FirstOrDefault(m => m.Id == id);
-                        if (mgt != null && mgtUpdated != null)
-                        {
-                            if (objType == ObjCategory.all || objType == ObjCategory.nobj)
-                            {
-                                mgt.Objects = mgtUpdated.Objects;
-                                mgt.ReportObjects = mgtUpdated.ReportObjects;
-                            }
-                            if (objType == ObjCategory.all || objType == ObjCategory.nsrv)
-                            {
-                                mgt.Services = mgtUpdated.Services;
-                                mgt.ReportServices = mgtUpdated.ReportServices;
-                            }
-                            if (objType == ObjCategory.all || objType == ObjCategory.user)
-                            {
-                                mgt.Users = mgtUpdated.Users;
-                                mgt.ReportUsers = mgtUpdated.ReportUsers;
-                            }
-                        }
-                        return hasChangedCallback();
-                    });
-
+                    await FetchAllTabContent(objType, hasChangedCallback, id);
                     break;
+
                 case RsbTab.report:
-                    ManagementReport? mgtReport = CurrentReport?.ReportData.ManagementData.FirstOrDefault(m => m.Id == id && m.Devices.Any(d => d.RulebaseLinks != null && d.RulebaseLinks.Any(rb => rb.NextRulebaseId != null)));
-
-                    queryVars.Add("mgmIds", (int)id);
-                    if (mgtReport != null)
-                    {
-                        if (objType == ObjCategory.all)
-                            mgtReport.Detailed = [true, true, true];
-                        else
-                            mgtReport.Detailed[(int)objType - 1] = true;
-
-                        gotAllObjects = await CurrentReport!.GetObjectsForManagementInReport(queryVars, objType,
-                            userConfig.AutoFillRightSidebar ? int.MaxValue : userConfig.MaxInitialFetchesRightSidebar, apiConnection, managementsUpdate =>
-                        {
-                            ManagementReport? mgtUpdated = managementsUpdate.ManagementData.FirstOrDefault(m => m.Id == id);
-                            if (mgtReport != null && mgtUpdated != null)
-                            {
-                                if (objType == ObjCategory.all || objType == ObjCategory.nobj)
-                                {
-                                    mgtReport.ReportObjects = mgtUpdated.ReportObjects;
-                                }
-                                if (objType == ObjCategory.all || objType == ObjCategory.nsrv)
-                                {
-                                    mgtReport.ReportServices = mgtUpdated.ReportServices;
-                                }
-                                if (objType == ObjCategory.all || objType == ObjCategory.user)
-                                {
-                                    mgtReport.ReportUsers = mgtUpdated.ReportUsers;
-                                }
-                            }
-                            return hasChangedCallback();
-                        });
-                    }
-                    if (!gotAllObjects)
-                    {
-                        DisplayMessageInUi(null, userConfig.GetText("object_fetch_warning"), userConfig.GetText("E0021"), true);
-                    }
+                    await FetchReportTabContent(objType, hasChangedCallback, id);
                     break;
+
                 case RsbTab.rule:
-                    Rule? rule = selectedRulesDetailed.FirstOrDefault(r => r.Id == id);
-                    if (rule == null) break;
-
-                    rule.Detailed = true;
-
-                    queryVars.Add("import_id_start", import_id_start.GetValueOrDefault((int)rule.MgmtId, 0));
-                    queryVars.Add("import_id_end", import_id_end.GetValueOrDefault((int)rule.MgmtId, 0));
-                    queryVars.Add("rule_id", id);
-                    query = nat ? RuleQueries.getNatRuleDetails : RuleQueries.getRuleDetails;
-
-                    await FetchObjects<Rule>(query, queryVars, rulesUpdate =>
-                    {
-                        Rule? ruleUpdated = rulesUpdate.Where(r => r.Id == id).FirstOrDefault();
-                        if (ruleUpdated != null)
-                        {
-                            rule.Froms = ruleUpdated.Froms;
-                            rule.Tos = ruleUpdated.Tos;
-                            rule.NatData.TranslatedFroms = ruleUpdated.NatData.TranslatedFroms;
-                            rule.NatData.TranslatedTos = ruleUpdated.NatData.TranslatedTos;
-                            rule.Services = ruleUpdated.Services;
-                            rule.NatData.TranslatedServices = ruleUpdated.NatData.TranslatedServices;
-                        }
-                        return hasChangedCallback();
-                    });
+                    await FetchRuleTabContent(objType, hasChangedCallback, id, nat);
                     break;
             }
         }
@@ -403,13 +288,150 @@
         }
     }
 
-    private async Task FetchObjects<ContentType>(string query, Dictionary<string, object> queryVars, Func<List<ContentType>, Task> callback)
+    private async Task FetchAllTabContent(ObjCategory objType, Func<Task> hasChangedCallback, long id)
+    {
+        var mgt = managementsAllObjects.FirstOrDefault(m => m.Id == id);
+        if (mgt == null) return;
+
+        if (objType == ObjCategory.all)
+            mgt.Detailed = [true, true, true];
+        else
+            mgt.Detailed[(int)objType - 1] = true;
+
+        var queryVars = new Dictionary<string, object>
+        {
+            { "limit", userConfig.ElementsPerFetch },
+            { "offset", 0 },
+            { "management_id", (int)id },
+            { "import_id_start", import_id_start.GetValueOrDefault((int)id, 0) },
+            { "import_id_end", import_id_end.GetValueOrDefault((int)id, 0) }
+        };
+
+        string query = objType switch
+        {
+            ObjCategory.all => ObjectQueries.getAllObjectDetails,
+            ObjCategory.nobj => ObjectQueries.getNetworkObjectDetails,
+            ObjCategory.nsrv => ObjectQueries.getNetworkServiceDetails,
+            ObjCategory.user => ObjectQueries.getUserDetails,
+            _ => ""
+        };
+
+        await FetchObjects(query, queryVars, async managementsUpdate =>
+        {
+            var mgtUpdated = managementsUpdate.ManagementData.FirstOrDefault(m => m.Id == id);
+            if (mgtUpdated != null)
+            {
+                if (objType == ObjCategory.all || objType == ObjCategory.nobj)
+                {
+                    mgt.Objects = mgtUpdated.Objects;
+                    mgt.ReportObjects = mgtUpdated.ReportObjects;
+                }
+                if (objType == ObjCategory.all || objType == ObjCategory.nsrv)
+                {
+                    mgt.Services = mgtUpdated.Services;
+                    mgt.ReportServices = mgtUpdated.ReportServices;
+                }
+                if (objType == ObjCategory.all || objType == ObjCategory.user)
+                {
+                    mgt.Users = mgtUpdated.Users;
+                    mgt.ReportUsers = mgtUpdated.ReportUsers;
+                }
+            }
+            await hasChangedCallback();
+        });
+    }
+
+    private async Task FetchReportTabContent(ObjCategory objType, Func<Task> hasChangedCallback, long id)
+    {
+        var mgtReport = managementsReportObjects.FirstOrDefault(m => m.Id == id);
+        if (mgtReport == null) return;
+
+        if (objType == ObjCategory.all)
+            mgtReport.Detailed = [true, true, true];
+        else
+            mgtReport.Detailed[(int)objType - 1] = true;
+
+        var queryVars = new Dictionary<string, object>
+        {
+            { "limit", userConfig.ElementsPerFetch },
+            { "offset", 0 },
+            { "mgmIds", (int)id }
+        };
+
+        bool gotAllObjects = await CurrentReport!.GetObjectsForManagementInReport(
+            queryVars, objType,
+            userConfig.AutoFillRightSidebar ? int.MaxValue : userConfig.MaxInitialFetchesRightSidebar,
+            apiConnection,
+            async managementsUpdate =>
+            {
+                var mgtUpdated = managementsUpdate.ManagementData.FirstOrDefault(m => m.Id == id);
+                if (mgtUpdated != null)
+                {
+                    if (objType == ObjCategory.all || objType == ObjCategory.nobj)
+                        mgtReport.ReportObjects = mgtUpdated.ReportObjects;
+
+                    if (objType == ObjCategory.all || objType == ObjCategory.nsrv)
+                        mgtReport.ReportServices = mgtUpdated.ReportServices;
+
+                    if (objType == ObjCategory.all || objType == ObjCategory.user)
+                        mgtReport.ReportUsers = mgtUpdated.ReportUsers;
+                }
+                await hasChangedCallback();
+            });
+
+        if (!gotAllObjects)
+        {
+            DisplayMessageInUi(null, userConfig.GetText("object_fetch_warning"), userConfig.GetText("E0021"), true);
+        }
+    }
+
+    private async Task FetchRuleTabContent(ObjCategory objType, Func<Task> hasChangedCallback, long id, bool nat)
+    {
+        var rule = selectedRulesDetailed.FirstOrDefault(r => r.Id == id);
+        if (rule == null) return;
+
+        rule.Detailed = true;
+
+        var queryVars = new Dictionary<string, object>
+        {
+            { "limit", userConfig.ElementsPerFetch },
+            { "offset", 0 },
+            { "import_id_start", import_id_start.GetValueOrDefault((int)rule.MgmtId, 0) },
+            { "import_id_end", import_id_end.GetValueOrDefault((int)rule.MgmtId, 0) },
+            { "rule_id", id }
+        };
+
+        string query = nat ? RuleQueries.getNatRuleDetails : RuleQueries.getRuleDetails;
+
+        await FetchObjects(query, queryVars, async managementsUpdate =>
+        {
+            @* ReportRules reportRules = new ReportRules(CurrentReport?.ReportData.ManagementData.FirstOrDefault(m => m.Id == rule.MgmtId));
+            DeviceReportController deviceReport = reportRules.(rule.DeviceName, rule.MgmtId);
+            var ruleUpdated = 
+                
+                reportRules.GetAllRulesOfGateway(deviceReport, managementsUpdate.ManagementData);
+
+                .FirstOrDefault();
+
+            if (ruleUpdated != null)
+            {
+                rule.Froms = ruleUpdated.Froms;
+                rule.Tos = ruleUpdated.Tos;
+                rule.NatData.TranslatedFroms = ruleUpdated.NatData.TranslatedFroms;
+                rule.NatData.TranslatedTos = ruleUpdated.NatData.TranslatedTos;
+                rule.Services = ruleUpdated.Services;
+                rule.NatData.TranslatedServices = ruleUpdated.NatData.TranslatedServices;
+            } *@
+
+            await hasChangedCallback();
+        });
+    }
+
+    private async Task FetchObjects(string query, Dictionary<string, object> queryVars, Func<ReportData, Task> callback)
     {
         // lazy fetch all objects for right sidebar
         try
         {
-            List<ContentType> updatedContent = new();
-            //bool newObjects = true;
             ReportData reportData = new();
             bool keepFetching = true;
             int fetchCount = 0;
@@ -417,10 +439,10 @@
 
             while (keepFetching && (++fetchCount <= userConfig.MaxInitialFetchesRightSidebar || userConfig.AutoFillRightSidebar))
             {
-                List<ContentType> currentFetch = await apiConnection.SendQueryAsync<List<ContentType>>(query, queryVars);
+                List<ManagementReport> managementsCurrentFetch = await apiConnection.SendQueryAsync<List<ManagementReport>>(query, queryVars);
                 if (fetchCount == 1)
                 {
-                    updatedContent = currentFetch;
+                    reportData.ManagementData = managementsCurrentFetch;
                 }
                 else
                 {
@@ -431,7 +453,7 @@
 
                 if (queryVars.ContainsKey("offset"))
                     queryVars["offset"] = (int)queryVars["offset"] + elementsPerFetch;
-                await callback(updatedContent);
+                await callback(reportData);
             }
 
             Log.WriteDebug("Lazy Fetch", $"Fetched sidebar objects in {fetchCount - 1} cycle(s) ({elementsPerFetch} at a time)");

@@ -55,30 +55,30 @@ namespace FWO.Data.Report
                 { "RuleChanges", 0 },
             };
 
-            for (int i = 0; i < devices.Length && i < devicesToMerge.Length; i++)
-            {
-                if (devices[i].Id != devicesToMerge[i].Id)
-                {
-                    throw new NotSupportedException("Devices have to be in the same order in oder to merge.");
-                }
+            // for (int i = 0; i < devices.Length && i < devicesToMerge.Length; i++)
+            // {
+            //     if (devices[i].Id != devicesToMerge[i].Id)
+            //     {
+            //         throw new NotSupportedException("Devices have to be in the same order in oder to merge.");
+            //     }
 
-                if (devices[i].Rules != null && devicesToMerge[i].Rules?.Length > 0)
-                {
-                    devices[i].Rules = [.. devices[i].Rules!, .. devicesToMerge[i].Rules!];
-                    newObjects = true;
-                    addedCounts["Rules"] = Math.Max(addedCounts["Rules"], devicesToMerge[i].Rules!.Length);
-                }
-                if (devices[i].RuleChanges != null && devicesToMerge[i].RuleChanges?.Length > 0)
-                {
-                    devices[i].RuleChanges = [.. devices[i].RuleChanges!, .. devicesToMerge[i].RuleChanges!];
-                    newObjects = true;
-                    addedCounts["RuleChanges"] = Math.Max(addedCounts["RuleChanges"], devicesToMerge[i].RuleChanges!.Length);
-                }
-                if (devices[i].RuleStatistics != null && devicesToMerge[i].RuleStatistics != null)
-                {
-                    devices[i].RuleStatistics.ObjectAggregate.ObjectCount += devicesToMerge[i].RuleStatistics.ObjectAggregate.ObjectCount; // TODO: correct ??
-                }
-            }
+            //     if (devices[i].Rules != null && devicesToMerge[i].Rules?.Length > 0)
+            //     {
+            //         devices[i].Rules = [.. devices[i].Rules!, .. devicesToMerge[i].Rules!];
+            //         newObjects = true;
+            //         addedCounts["Rules"] = Math.Max(addedCounts["Rules"], devicesToMerge[i].Rules!.Length);
+            //     }
+            //     if (devices[i].RuleChanges != null && devicesToMerge[i].RuleChanges?.Length > 0)
+            //     {
+            //         devices[i].RuleChanges = [.. devices[i].RuleChanges!, .. devicesToMerge[i].RuleChanges!];
+            //         newObjects = true;
+            //         addedCounts["RuleChanges"] = Math.Max(addedCounts["RuleChanges"], devicesToMerge[i].RuleChanges!.Length);
+            //     }
+            //     if (devices[i].RuleStatistics != null && devicesToMerge[i].RuleStatistics != null)
+            //     {
+            //         devices[i].RuleStatistics.ObjectAggregate.ObjectCount += devicesToMerge[i].RuleStatistics.ObjectAggregate.ObjectCount; // TODO: correct ??
+            //     }
+            // }
             return (newObjects, addedCounts);
         }
     }

@@ -3,7 +3,6 @@ using FWO.Data;
 using FWO.Config.Api;
 using System.Text;
 using FWO.Report;
-using FWO.Report.Filter;
 
 namespace FWO.Ui.Display
 {
@@ -42,7 +41,7 @@ namespace FWO.Ui.Display
             return result.ToString();
         }
 
-        public string DisplayEnabled(Rule rule, OutputLocation location)
+        public static string DisplayEnabled(Rule rule, OutputLocation location)
         {
             if (location == OutputLocation.export)
             {
@@ -54,25 +53,25 @@ namespace FWO.Ui.Display
             }
         }
 
-        public string DisplayNextRecert(Rule rule)
+        public static string DisplayNextRecert(Rule rule)
         {
             int count = 0;
             return string.Join("", Array.ConvertAll<Recertification, string>(rule.Metadata.RuleRecertification.ToArray(), recert => GetNextRecertDateString(CountString(rule.Metadata.RuleRecertification.Count > 1, ++count), recert).ToString()));
         }
 
-        public string DisplayOwner(Rule rule)
+        public static string DisplayOwner(Rule rule)
         {
             int count = 0;
             return string.Join("", Array.ConvertAll<Recertification, string>(rule.Metadata.RuleRecertification.ToArray(), recert => GetOwnerDisplayString(CountString(rule.Metadata.RuleRecertification.Count > 1, ++count), recert).ToString()));
         }
 
-        public string DisplayRecertIpMatches(Rule rule)
+        public static string DisplayRecertIpMatches(Rule rule)
         {
             int count = 0;
             return string.Join("", Array.ConvertAll<Recertification, string>(rule.Metadata.RuleRecertification.ToArray(), recert => GetIpMatchDisplayString(CountString(rule.Metadata.RuleRecertification.Count > 1, ++count), recert).ToString()));
         }
 
-        public string DisplayLastHit(Rule rule)
+        public static string DisplayLastHit(Rule rule)
         {
             if (rule.Metadata.LastHit == null)
                 return "";
@@ -80,10 +79,10 @@ namespace FWO.Ui.Display
                 return DateOnly.FromDateTime((DateTime)rule.Metadata.LastHit).ToString("yyyy-MM-dd");  //rule.Metadata.LastHit.ToString("yyyy-MM-dd");
         }
 
-        public string DisplayLastRecertifier(Rule rule)
+        public static string DisplayLastRecertifier(Rule rule)
         {
             int count = 0;
-            return string.Join("", Array.ConvertAll<Recertification, string>(rule.Metadata.RuleRecertification.ToArray(), 
+            return string.Join("", Array.ConvertAll<Recertification, string>([.. rule.Metadata.RuleRecertification], 
                 recert => GetLastRecertifierDisplayString(CountString(rule.Metadata.RuleRecertification.Count > 1, ++count), recert).ToString()));
         }
 
@@ -147,34 +146,40 @@ namespace FWO.Ui.Display
             }
             if (reportType == ReportType.AppRules)
             {
-                if (!rule.ShowDisregarded &&
-                    ((isSource && rule.Froms.Length > 0 && rule.DisregardedFroms.Length > 0) ||
-                    (!isSource && rule.Tos.Length > 0 && rule.DisregardedTos.Length > 0)))
-                {
-                    result.Append($"<br><span class=\"text-secondary\">... ({(isSource ? rule.DisregardedFroms.Length : rule.DisregardedTos.Length)} {userConfig.GetText("more")})</span>");
-                }
-                else
-                {
-                    if (result.Length > 0)
-                    {
-                        result.Append("<br>");
-                    }
-                    result.AppendJoin("<br>", Array.ConvertAll(isSource ? rule.DisregardedFroms : rule.DisregardedTos,
-                        nwLoc => NetworkLocationToHtml(nwLoc, rule.MgmtId, chapterNumber, location, nwLoc.Object.IsAnyObject() ? highlightedStyle : style, reportType)));
-                }
+                result.Append(DisplayAppRuleSourceOrDestination(rule, chapterNumber, location, reportType, style, highlightedStyle, isSource));
             }
-
             return result.ToString();
         }
 
-        private static string GetNextRecertDateString (string countString, Recertification recert)
+        private string DisplayAppRuleSourceOrDestination(Rule rule, int chapterNumber, OutputLocation location, ReportType reportType, string style, string highlightedStyle, bool isSource)
+        {
+            StringBuilder result = new();
+            if (!rule.ShowDisregarded &&
+                ((isSource && rule.Froms.Length > 0 && rule.DisregardedFroms.Length > 0) ||
+                (!isSource && rule.Tos.Length > 0 && rule.DisregardedTos.Length > 0)))
+            {
+                result.Append($"<br><span class=\"text-secondary\">... ({(isSource ? rule.DisregardedFroms.Length : rule.DisregardedTos.Length)} {userConfig.GetText("more")})</span>");
+            }
+            else
+            {
+                if (result.Length > 0)
+                {
+                    result.Append("<br>");
+                }
+                result.AppendJoin("<br>", Array.ConvertAll(isSource ? rule.DisregardedFroms : rule.DisregardedTos,
+                    nwLoc => NetworkLocationToHtml(nwLoc, rule.MgmtId, chapterNumber, location, nwLoc.Object.IsAnyObject() ? highlightedStyle : style, reportType)));
+            }
+            return result.ToString();
+        }
+
+        private static string GetNextRecertDateString(string countString, Recertification recert)
         {
             string color = "";
             string dateOnly = "-";
             if (recert.NextRecertDate != null)
             {
                 dateOnly = DateOnly.FromDateTime((DateTime)recert.NextRecertDate).ToString("yyyy-MM-dd");
-                if(recert.NextRecertDate < DateTime.Now)
+                if (recert.NextRecertDate < DateTime.Now)
                 {
                     color = $" style=\"{GlobalConst.kStyleHighlightedRed}\"";
                 }

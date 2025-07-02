@@ -5,10 +5,10 @@ namespace FWO.Data.Report
 {
     public class ConnectionReport
     {
-        public string Name = "";
+        public string Name { get; set; } = "";
 
-        public List<NetworkObject> AllObjects = [];
-        public List<NetworkService> AllServices = [];
+        public List<NetworkObject> AllObjects { get; set; } = [];
+        public List<NetworkService> AllServices { get; set; } = [];
 
         public ConnectionReport()
         {}
@@ -32,9 +32,9 @@ namespace FWO.Data.Report
         public void PrepareObjectData(bool resolveNetworkAreas)
         {
             AllObjects = GetAllNetworkObjects(true, resolveNetworkAreas);
-            SetObjectNumbers(ref AllObjects);
+            SetObjectNumbers(AllObjects);
             AllServices = GetAllServices(true);
-            SetSvcNumbers(ref AllServices);
+            SetSvcNumbers(AllServices);
         }
 
         public virtual List<NetworkObject> GetAllNetworkObjects(bool resolved = false, bool resolveNetworkAreas = false)
@@ -47,7 +47,7 @@ namespace FWO.Data.Report
             return [];
         }
 
-        public static void SetSvcNumbers(ref List<NetworkService> svcList)
+        public static void SetSvcNumbers(List<NetworkService> svcList)
         {
             long number = 1;
             foreach(var svc in svcList)
@@ -56,7 +56,7 @@ namespace FWO.Data.Report
             }
         }
 
-        public static void SetObjectNumbers(ref List<NetworkObject> objList)
+        public static void SetObjectNumbers(List<NetworkObject> objList)
         {
             long number = 1;
             foreach(var obj in objList)
@@ -71,18 +71,15 @@ namespace FWO.Data.Report
             foreach(var conn in connections)
             {
                 List<NetworkService> svcList = [];
-                foreach (var svcGrp in conn.ServiceGroups)
+                foreach (var svcGrp in conn.ServiceGroups.Select(s => s.Content))
                 {
-                    NetworkService serviceGroup = svcGrp.Content.ToNetworkServiceGroup();
-                    svcList.Add(svcGrp.Content.ToNetworkServiceGroup());
+                    NetworkService serviceGroup = svcGrp.ToNetworkServiceGroup();
+                    svcList.Add(svcGrp.ToNetworkServiceGroup());
                     if(resolved)
                     {
-                        foreach(var svc in serviceGroup.ServiceGroups)
+                        foreach(var svc in serviceGroup.ServiceGroups.Where(s => s.Object != null))
                         {
-                            if(svc.Object != null)
-                            {
-                                svcList.Add(svc.Object);
-                            }
+                            svcList.Add(svc.Object!);
                         }
                     }
                 }
@@ -138,17 +135,14 @@ namespace FWO.Data.Report
 
         private static void GetObjectsFromAreas(List<ModellingNetworkAreaWrapper> areas, ref List<NetworkObject> objectList, bool resolved = false, bool resolveNetworkAreas = false)
         {
-            foreach (var areaWrapper in areas)
+            foreach (var areaWrapper in areas.Select(a => a.Content))
             {
-                objectList.Add(areaWrapper.Content.ToNetworkObjectGroup(false, resolveNetworkAreas));
+                objectList.Add(areaWrapper.ToNetworkObjectGroup(false, resolveNetworkAreas));
                 if(resolved && resolveNetworkAreas)
                 {
-                    foreach(var obj in areaWrapper.Content.ToNetworkObjectGroup().ObjectGroups)
+                    foreach(var obj in areaWrapper.ToNetworkObjectGroup().ObjectGroups.Where(o => o.Object != null))
                     {
-                        if(obj.Object != null)
-                        {
-                            objectList.Add(obj.Object);
-                        }
+                        objectList.Add(obj.Object!);
                     }
                 }
             }
@@ -156,17 +150,14 @@ namespace FWO.Data.Report
 
         private static void GetObjectsFromOtherGroups(List<ModellingNwGroupWrapper> nwGroups, ref List<NetworkObject> objectList, bool resolved = false)
         {
-            foreach (var nwGrpWrapper in nwGroups)
+            foreach (var nwGrpWrapper in nwGroups.Select(n => n.Content))
             {
-                objectList.Add(nwGrpWrapper.Content.ToNetworkObjectGroup());
+                objectList.Add(nwGrpWrapper.ToNetworkObjectGroup());
                 if(resolved)
                 {
-                    foreach(var obj in nwGrpWrapper.Content.ToNetworkObjectGroup().ObjectGroups)
+                    foreach(var obj in nwGrpWrapper.ToNetworkObjectGroup().ObjectGroups.Where(o => o.Object != null))
                     {
-                        if(obj.Object != null)
-                        {
-                            objectList.Add(obj.Object);
-                        }
+                        objectList.Add(obj.Object!);
                     }
                 }
             }
@@ -174,19 +165,16 @@ namespace FWO.Data.Report
 
         private static void GetObjectsFromAR(List<ModellingAppRoleWrapper> appRoles, ref List<NetworkObject> objectList, bool resolved = false, long dummyARid = 0)
         {
-            foreach (var aRWrapper in appRoles.Where(a => a.Content.Id != dummyARid))
+            foreach (var aRWrapper in appRoles.Select(w => w.Content).Where(a => a.Id != dummyARid))
             {
-                objectList.Add(aRWrapper.Content.ToNetworkObjectGroup());
+                objectList.Add(aRWrapper.ToNetworkObjectGroup());
                 if(resolved)
                 {
-                    foreach(var obj in aRWrapper.Content.ToNetworkObjectGroup().ObjectGroups)
+                    foreach(var obj in aRWrapper.ToNetworkObjectGroup().ObjectGroups.Where(o => o.Object != null))
                     {
-                        if(obj.Object != null)
-                        {
-                            objectList.Add(obj.Object);
-                        }
+                        objectList.Add(obj.Object!);
                     }
-                }
+                 }
             }
         }
 

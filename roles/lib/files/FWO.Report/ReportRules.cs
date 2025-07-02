@@ -427,14 +427,14 @@ namespace FWO.Report
                 report.AppendLine($"<td>{ruleDisplayHtml.DisplayNumber(rule)}</td>");
                 if(ReportType == ReportType.Recertification)
                 {
-                    report.AppendLine($"<td>{ruleDisplayHtml.DisplayNextRecert(rule)}</td>");
-                    report.AppendLine($"<td>{ruleDisplayHtml.DisplayOwner(rule)}</td>");
-                    report.AppendLine($"<td>{ruleDisplayHtml.DisplayRecertIpMatches(rule)}</td>");
-                    report.AppendLine($"<td>{ruleDisplayHtml.DisplayLastHit(rule)}</td>");
+                    report.AppendLine($"<td>{RuleDisplayHtml.DisplayNextRecert(rule)}</td>");
+                    report.AppendLine($"<td>{RuleDisplayHtml.DisplayOwner(rule)}</td>");
+                    report.AppendLine($"<td>{RuleDisplayHtml.DisplayRecertIpMatches(rule)}</td>");
+                    report.AppendLine($"<td>{RuleDisplayHtml.DisplayLastHit(rule)}</td>");
                 }
                 if(ReportType == ReportType.UnusedRules || ReportType == ReportType.AppRules)
                 {
-                    report.AppendLine($"<td>{ruleDisplayHtml.DisplayLastHit(rule)}</td>");
+                    report.AppendLine($"<td>{RuleDisplayHtml.DisplayLastHit(rule)}</td>");
                 }
                 report.AppendLine($"<td>{ruleDisplayHtml.DisplayName(rule)}</td>");
                 report.AppendLine($"<td>{ruleDisplayHtml.DisplaySourceZone(rule)}</td>");
@@ -444,7 +444,7 @@ namespace FWO.Report
                 report.AppendLine($"<td>{ruleDisplayHtml.DisplayServices(rule, OutputLocation.export, ReportType, chapterNumber)}</td>");
                 report.AppendLine($"<td>{RuleDisplayBase.DisplayAction(rule)}</td>");
                 report.AppendLine($"<td>{RuleDisplayBase.DisplayTrack(rule)}</td>");
-                report.AppendLine($"<td>{ruleDisplayHtml.DisplayEnabled(rule, OutputLocation.export)}</td>");
+                report.AppendLine($"<td>{RuleDisplayHtml.DisplayEnabled(rule, OutputLocation.export)}</td>");
                 report.AppendLine($"<td>{RuleDisplayBase.DisplayUid(rule)}</td>");
                 report.AppendLine($"<td>{RuleDisplayBase.DisplayComment(rule)}</td>");
                 report.AppendLine("</tr>");
@@ -464,7 +464,7 @@ namespace FWO.Report
             AppendUsersForManagementHtml(ref report, chapterNumber, managementReport);
         }
 
-        private void AppendNetworkObjectsForManagementHtml(ref StringBuilder report, int chapterNumber, ManagementReport managementReport)
+        protected void AppendNetworkObjectsForManagementHtml(ref StringBuilder report, int chapterNumber, ManagementReport managementReport)
         {
             if (managementReport.ReportObjects != null && managementReport.ReportObjects.Length > 0 && !ReportType.IsResolvedReport())
             {
@@ -497,7 +497,7 @@ namespace FWO.Report
             }
         }
 
-        private void AppendNetworkServicesForManagementHtml(ref StringBuilder report, int chapterNumber, ManagementReport managementReport)
+        protected void AppendNetworkServicesForManagementHtml(ref StringBuilder report, int chapterNumber, ManagementReport managementReport)
         {
             if (managementReport.ReportServices != null && managementReport.ReportServices.Length > 0 && !ReportType.IsResolvedReport())
             {
@@ -544,7 +544,7 @@ namespace FWO.Report
             report.AppendLine("</tr>");
         }
 
-        private void AppendUsersForManagementHtml(ref StringBuilder report, int chapterNumber, ManagementReport managementReport)
+        protected void AppendUsersForManagementHtml(ref StringBuilder report, int chapterNumber, ManagementReport managementReport)
         {
             if (managementReport.ReportUsers != null && managementReport.ReportUsers.Length > 0 && !ReportType.IsResolvedReport())
             {

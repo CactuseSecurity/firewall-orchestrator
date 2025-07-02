@@ -39,11 +39,11 @@ class FwConfigImportGateway:
             if gw not in self._global_state.previous_config.gateways:   # this check finds all changes in gateway (including rulebase link changes)
                 if self._global_state.import_state.DebugLevel>3:
                     logger.debug(f"gateway {str(gw)} NOT found in previous config")
-                gwId = self._global_state.import_state.lookupGatewayId(gw.Uid)
-                if gwId is None or gwId == '' or gwId == 'none':
+                gw_id = self._global_state.import_state.lookupGatewayId(gw.Uid)
+                if gw_id is None or gw_id == '' or gw_id == 'none':
                     logger.warning(f"did not find a gwId for UID {gw.Uid}")
                 for link in gw.RulebaseLinks:
-                    self.add_single_link(rb_link_list, link, gwId, logger)
+                    self.add_single_link(rb_link_list, link, gw_id, logger)
         rb_link_controller = RulebaseLinkController()
         rb_link_controller.insert_rulebase_links(self._global_state.import_state, rb_link_list) 
         

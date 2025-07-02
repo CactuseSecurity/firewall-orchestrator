@@ -528,7 +528,7 @@ def resolve_ref_from_object_dictionary(id, objDict, nativeConfigDomain={}):
 
     matched_obj = find_element_by_uid(objDict, id)
 
-    if matched_obj is None: # object not in dict - neet to fetch it from API
+    if matched_obj is None: # object not in dict - need to fetch it from API
         logger.warning(f"did not find object with uid {id} in object dictionary")
         return None
     else:
@@ -538,7 +538,7 @@ def resolve_ref_from_object_dictionary(id, objDict, nativeConfigDomain={}):
             logger.info(f"adding voip domain '{matched_obj['name']}' object manually, because it is not retrieved by show objects API command")
             color = matched_obj.get('color', 'black')
             nativeConfigDomain['objects'].append({ 
-                "type": "network", "chunks": [ {
+                "type": matched_obj['type'], "chunks": [ {
                 "objects": [ {
                 'uid': matched_obj['uid'], 'name': matched_obj['name'], 'color': color,
                 'type': matched_obj['type'], 'domain': matched_obj['domain']

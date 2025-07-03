@@ -7,14 +7,14 @@ namespace FWO.Api.Client.Queries
         public static readonly string networkObjectDetailsFragment;
         public static readonly string getNetworkObjectDetails;
         public static readonly string getNetworkObjectsForManagement;
-        public static readonly string networkServiceObjectDetailsFragment;
-        public static readonly string getNetworkServiceObjectDetails;
+        public static readonly string networkServiceDetailsFragment;
+        public static readonly string getNetworkServiceDetails;
         public static readonly string userDetailsFragment;
         public static readonly string getUserDetails;
         public static readonly string getAllObjectDetails;
         public static readonly string getReportFilteredObjectDetails;
         public static readonly string getReportFilteredNetworkObjectDetails;
-        public static readonly string getReportFilteredNetworkServiceObjectDetails;
+        public static readonly string getReportFilteredNetworkServiceDetails;
         public static readonly string getReportFilteredUserDetails;
 
         static ObjectQueries() 
@@ -32,11 +32,11 @@ namespace FWO.Api.Client.Queries
                     networkObjectDetailsFragment +
                     File.ReadAllText(QueryPath + "networkObject/getNetworkObjectsForManagement.graphql");
 
-                networkServiceObjectDetailsFragment =
+                networkServiceDetailsFragment =
                     File.ReadAllText(QueryPath + "networkService/fragments/networkServiceDetails.graphql");
 
-                getNetworkServiceObjectDetails =
-                    networkServiceObjectDetailsFragment +
+                getNetworkServiceDetails =
+                    networkServiceDetailsFragment +
                     File.ReadAllText(QueryPath + "networkService/getNetworkServiceDetails.graphql");
 
                 userDetailsFragment = File.ReadAllText(QueryPath + "user/fragments/userDetails.graphql");
@@ -48,28 +48,28 @@ namespace FWO.Api.Client.Queries
                 // used for right side bar objects
                 getAllObjectDetails =
                     userDetailsFragment +
-                    networkServiceObjectDetailsFragment +
+                    networkServiceDetailsFragment +
                     networkObjectDetailsFragment +
                     File.ReadAllText(QueryPath + "allObjects/getAllObjectDetails.graphql");
 
                 // for rule export and RSB obj filtering per report
                 getReportFilteredObjectDetails = 
                     userDetailsFragment +
-                    networkServiceObjectDetailsFragment +
+                    networkServiceDetailsFragment +
                     networkObjectDetailsFragment +
-                    File.ReadAllText(QueryPath + "report/getAllObjectDetailsInReport.graphql");
+                    File.ReadAllText(QueryPath + "report/getReportFilteredObjectDetails.graphql");
 
                 getReportFilteredNetworkObjectDetails =
                     networkObjectDetailsFragment +
-                    File.ReadAllText(QueryPath + "report/getNetworkObjectDetailsInReport.graphql");
+                    File.ReadAllText(QueryPath + "report/getReportFilteredNetworkObjectDetails.graphql");
 
-                getReportFilteredNetworkServiceObjectDetails =
-                    networkServiceObjectDetailsFragment +
-                    File.ReadAllText(QueryPath + "report/getNetworkServiceDetailsInReport.graphql");
+                getReportFilteredNetworkServiceDetails =
+                    networkServiceDetailsFragment +
+                    File.ReadAllText(QueryPath + "report/getReportFilteredNetworkServiceDetails.graphql");
 
                 getReportFilteredUserDetails =
                     userDetailsFragment +
-                    File.ReadAllText(QueryPath + "report/getUserDetailsInReport.graphql");
+                    File.ReadAllText(QueryPath + "report/getReportFilteredUserDetails.graphql");
             }
             catch (Exception exception)
             {

@@ -28,7 +28,7 @@ fragment ruleDetails on rule {
     active: { _eq: $active }
     rf_last_seen: { _gte: $import_id_start }
     rf_create: { _lte: $import_id_end }
-  }) {
+  }, order_by:{ object: { obj_name: asc } }) {
     usr {
       ...userDetails
     }
@@ -44,7 +44,7 @@ fragment ruleDetails on rule {
     active: { _eq: $active }
     rt_last_seen: { _gte: $import_id_start }
     rt_create: { _lte: $import_id_end }
-  }) {
+  }, order_by:{ object: { obj_name: asc } }) {
     usr {
       ...userDetails
     }
@@ -57,7 +57,7 @@ fragment ruleDetails on rule {
     active: { _eq: $active }
     rs_last_seen: { _gte: $import_id_start }
     rs_create: { _lte: $import_id_end }
-  }) {
+  }, order_by:{ service: { svc_name: asc } }) {
     service {
       ...networkServiceDetails
     }

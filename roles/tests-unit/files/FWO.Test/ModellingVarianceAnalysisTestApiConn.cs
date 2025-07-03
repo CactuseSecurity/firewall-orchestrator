@@ -4,6 +4,7 @@ using FWO.Basics;
 using FWO.Services;
 using FWO.Data;
 using FWO.Data.Modelling;
+using FWO.Data.Workflow;
 
 namespace FWO.Test
 {
@@ -49,7 +50,7 @@ namespace FWO.Test
         {
             Name = "FWOC4",
             MgmtId = 1,
-            Froms = [ new(new(), SpecObj1), new(new(), Nwgroup1) ],
+            Froms = [ new(new(), SpecObj1), new(new(), NwObj1) ],
             Tos = [ new(new(), SpecObj2) ],
             Services = [ new(){ Content = Svc1 } ]
         };
@@ -65,8 +66,32 @@ namespace FWO.Test
         {
             Name = "FWOC5",
             MgmtId = 1,
-            Froms = [ new(new(), SpecObj1), new(new(), Nwgroup1) ],
+            Froms = [ new(new(), SpecObj1), new(new(), NwObj1) ],
             Tos = [ new(new(), SpecObj2) ],
+            Services = [ new(){ Content = Svc1 } ]
+        };
+        static readonly Rule Rule7 = new()
+        {
+            Name = "FWOC7_mgt1",
+            MgmtId = 1,
+            Froms = [ new(new(), Nwgroup1) ],
+            Tos = [ new(new(), NwObj1) ],
+            Services = [ new(){ Content = Svc1 } ]
+        };
+        static readonly Rule Rule8 = new()
+        {
+            Name = "FWOC7_mgt2",
+            MgmtId = 2,
+            Froms = [ new(new(), Nwgroup1) ],
+            Tos = [ new(new(), NwObj2) ],
+            Services = [ new(){ Content = Svc1 } ]
+        };
+        static readonly Rule Rule9 = new()
+        {
+            Name = "FWOC7_mgt3",
+            MgmtId = 3,
+            Froms = [ new(new(), Nwgroup1) ],
+            Tos = [ new(new(), NwObj1), new(new(), NwObj2) ],
             Services = [ new(){ Content = Svc1 } ]
         };
 
@@ -78,7 +103,7 @@ namespace FWO.Test
             {
                 if (query == ReportQueries.getRelevantImportIdsAtTime)
                 {
-                    GraphQLResponse<dynamic> response = new() { Data = new List<Management>(){ new() { Import = new() { ImportAggregate = new(){ ImportAggregateMax = new(){ RelevantImportId = 1 } } } } }};
+                    GraphQLResponse<dynamic> response = new() { Data = new List<Management>() { new() { Import = new() { ImportAggregate = new() { ImportAggregateMax = new() { RelevantImportId = 1 } } } } } };
                     return response.Data;
                 }
                 else
@@ -99,7 +124,7 @@ namespace FWO.Test
                     if (variables != null)
                     {
                         var objTypeIds = variables.GetType().GetProperties().First(o => o.Name == "objTypeIds").GetValue(variables, null);
-                        if (objTypeIds != null && ( (int[])objTypeIds )[0] == 2)
+                        if (objTypeIds != null && ((int[])objTypeIds)[0] == 2)
                         {
                             nwObjects =
                             [
@@ -130,21 +155,21 @@ namespace FWO.Test
             }
             else if (responseType == typeof(List<Rule>))
             {
-                GraphQLResponse<dynamic> response = new() { Data = new List<Rule>() { new(Rule1), new(Rule2), new(Rule3), new(Rule4), new(Rule5), new(Rule6) } };
+                GraphQLResponse<dynamic> response = new() { Data = new List<Rule>() { new(Rule1), new(Rule2), new(Rule3), new(Rule4), new(Rule5), new(Rule6), new(Rule7), new(Rule8), new(Rule9) } };
                 return response.Data;
             }
             else if (responseType == typeof(List<ModellingConnection>))
             {
-                GraphQLResponse<dynamic> response = new() { Data = new List<ModellingConnection>() { new(){ Id = 2 } ,new(){ Id = 4 }} };
+                GraphQLResponse<dynamic> response = new() { Data = new List<ModellingConnection>() { new() { Id = 2 }, new() { Id = 4 } } };
                 return response.Data;
             }
             else if (responseType == typeof(ReturnId) && query == ModellingQueries.updateConnectionProperties)
             {
-                if(variables != null)
+                if (variables != null)
                 {
-                    List<int> connIds = [1,2,3,4,5,6];
+                    List<int> connIds = [1, 2, 3, 4, 5, 6, 7, 8, 9];
                     var connId = variables.GetType().GetProperties().First(o => o.Name == "id").GetValue(variables, null);
-                    if(connId != null && connIds.Contains((int)connId))
+                    if (connId != null && connIds.Contains((int)connId))
                     {
                         GraphQLResponse<dynamic> response = new();
                         return response.Data;
@@ -152,6 +177,21 @@ namespace FWO.Test
                     throw new ArgumentException($"ConnId {connId} is not valid");
                 }
                 throw new ArgumentException($"No Variables");
+            }
+            else if (responseType == typeof(List<ModellingNetworkArea>))
+            {
+                GraphQLResponse<dynamic> response = new() { Data = new List<ModellingNetworkArea>() { new() { Id = 1 }, new() { Id = 3 } } };
+                return response.Data;
+            }
+            else if (responseType == typeof(List<TicketId>))
+            {
+                GraphQLResponse<dynamic> response = new() { Data = new List<TicketId>() { new() { Id = 1 } } };
+                return response.Data;
+            }
+            else if (responseType == typeof(WfTicket))
+            {
+                GraphQLResponse<dynamic> response = new() { Data = new WfTicket() { StateId = 631, CreationDate = new(1967,1,10,8,0,0, DateTimeKind.Utc), CompletionDate = new(2025,6,26,8,0,0, DateTimeKind.Utc), Requester = new(){Name = "Walter"}} };
+                return response.Data;
             }
 
             throw new NotImplementedException();

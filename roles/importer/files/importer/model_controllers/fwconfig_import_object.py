@@ -36,9 +36,6 @@ class FwConfigImportObject():
         self.prev_group_flats_mapper = service_provider.get_service(Services.GROUP_FLATS_MAPPER)
         self.uid2id_mapper = service_provider.get_service(Services.UID2ID_MAPPER, self.ImportDetails.ImportId)
 
-
-
-
         # Create maps.
         
         self.NetworkObjectTypeMap = self.GetNetworkObjTypeMap()

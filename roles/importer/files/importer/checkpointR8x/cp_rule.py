@@ -36,8 +36,11 @@ def normalizeRulebases (nativeConfig, importState, normalizedConfig):
     fetched_links = []
     for gateway in nativeConfig['gateways']:
         for rulebase_link in gateway['rulebase_links']:
-            if rulebase_link['to_rulebase_uid'] not in fetched_links:
+            if rulebase_link['to_rulebase_uid'] not in fetched_links and rulebase_link['to_rulebase_uid'] != '':
                 rulebase_to_parse, is_section = find_rulebase_to_parse(nativeConfig['rulebases'], rulebase_link['to_rulebase_uid'])
+                if rulebase_to_parse == {}:
+                    logger.warning('found to_rulebase link without rulebase in nativeConfig: ' + str(rulebase_link))
+                    continue
                 rulebase_link['is_section'] = is_section
                 normalized_rulebase = initialize_normalized_rulebase(rulebase_to_parse, importState.MgmDetails.Uid)
                 parse_rulebase(rulebase_to_parse, is_section, normalized_rulebase)
@@ -55,8 +58,9 @@ def find_rulebase_to_parse(rulebase_list, rulebase_uid):
             for section in chunk['rulebase']:
                 if section['uid'] == rulebase_uid:
                     return section, True
-    # TODO: need to make sure that we handle the case where a rulebase is not found! 
-    # currently this will return None, False and cause an exception
+    
+    # handle case: no rulebase found
+    return {}, False
                     
 def initialize_normalized_rulebase(rulebase_to_parse, mgm_uid):
     rulebaseName = rulebase_to_parse['name']
@@ -125,8 +129,6 @@ def parseRulePart (objects, part='source'):
         else:
             for obj in objects:
                 if obj is not None:
-                    # if 'name' in obj:
-                    #     logger.debug(f"handling obj without uid {obj['name']}, part={part}")
                     if 'chunks' in obj:
                         addressObjects.update(parseRulePart(obj['chunks'], part=part)) # need to parse chunk first
                     elif 'objects' in obj:

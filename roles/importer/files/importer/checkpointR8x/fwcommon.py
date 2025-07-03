@@ -317,6 +317,7 @@ def define_global_rulebase_link(deviceConfig, globalOrderedLayerUids, orderedLay
 
                 if placeholder_rule_uid:
                     orderedLayerUid =  ''
+                    # we might find more than one placeholder, may be unequal to number of domain ordered layers
                     if len(orderedLayerUids) > placeholder_link_index:
                         orderedLayerUid = orderedLayerUids[placeholder_link_index]
 

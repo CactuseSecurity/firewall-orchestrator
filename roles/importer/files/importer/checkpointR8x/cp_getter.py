@@ -534,8 +534,8 @@ def resolve_ref_from_object_dictionary(id, objDict, nativeConfigDomain={}):
     else:
         # there are some objects (at least CpmiVoipSipDomain) which are not API-gettable with show-objects (only with show-object "UID")
         # these must be added to the (network) objects tables
-        if matched_obj['type'] in ['CpmiVoipSipDomain', 'CpmiVoipMgcpDomain']:
-            logger.info(f"adding voip domain '{matched_obj['name']}' object manually, because it is not retrieved by show objects API command")
+        if matched_obj['type'] in ['CpmiVoipSipDomain', 'CpmiVoipMgcpDomain', 'gsn_handover_group']:
+            logger.info(f"adding {matched_obj['type']} '{matched_obj['name']}' object manually, because it is not retrieved by show objects API command")
             color = matched_obj.get('color', 'black')
             nativeConfigDomain['objects'].append({ 
                 "type": matched_obj['type'], "chunks": [ {
@@ -623,11 +623,11 @@ def getObjectDetailsFromApi(uid_missing_obj, sid='', apiurl=''):
                         'comments': obj['comments'], 'type': 'host', 'ipv4-address': fwo_const.any_ip_ipv4,
                         'domain': obj['domain']
                         } ] } ] }
-                elif (obj['type'] in [ 'updatable-object', 'CpmiVoipSipDomain', 'CpmiVoipMgcpDomain' ]):
+                elif (obj['type'] in [ 'updatable-object', 'CpmiVoipSipDomain', 'CpmiVoipMgcpDomain', 'gsn_handover_group' ]):
                     return {"type": "hosts", "chunks": [ {
                         "objects": [ {
                         'uid': obj['uid'], 'name': obj['name'], 'color': color,
-                        'comments': obj['comments'], 'type': 'group',
+                        'comments': obj['comments'], 'type': 'host',
                         'domain': obj['domain']
                         } ] } ] }
                 elif (obj['type'] in ['Internet', 'security-zone']):

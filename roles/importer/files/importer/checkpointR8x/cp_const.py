@@ -21,7 +21,10 @@ nw_obj_table_names = [
     'hosts', 'networks', 'groups', 'address-ranges', 'multicast-address-ranges', 'groups-with-exclusion',
     'gateways-and-servers', 'simple-gateways',
     'dns-domains', 'updatable-objects-repository-content',
-    'interoperable-devices', 'security-zones', 'Global', 'access-roles', 'updatable-objects', 'dynamic-objects', 'CpmiVoipSipDomain', 'CpmiVoipMgcpDomain',
+    'interoperable-devices', 'security-zones', 
+#    'Global', 
+    'access-roles', 'updatable-objects', 'dynamic-objects',
+    'CpmiVoipSipDomain', 'CpmiVoipMgcpDomain', 'gsn_handover_group'
 ]
 
 # simple as in: no groups

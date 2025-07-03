@@ -430,12 +430,19 @@ def section_traversal_and_links(section, current_rulebase_uid, deviceConfig, is_
 
     # if no section is used, create dummy section
     dummy_section = False
+    is_section = True
     if section['type'] != 'access-section':
         section = {
             'type': 'access-section',
+            'uid': section['uid'],
             'rulebase': [section]
             }
         dummy_section = True
+
+    # define placeholder rules as concatenated rulebase
+    if dummy_section and section['rulebase'][0]['type'] == 'place-holder':
+        dummy_section = False
+        is_section = False
 
     # define section chain
     if not dummy_section:
@@ -446,7 +453,7 @@ def section_traversal_and_links(section, current_rulebase_uid, deviceConfig, is_
             'type': 'concatenated',
             'is_global': is_global,
             'is_initial': False,
-            'is_section': True
+            'is_section': is_section
         })
         current_rulebase_uid = section['uid']
 

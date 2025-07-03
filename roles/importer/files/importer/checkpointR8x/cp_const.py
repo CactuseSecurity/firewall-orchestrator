@@ -22,7 +22,6 @@ nw_obj_table_names = [
     'gateways-and-servers', 'simple-gateways',
     'dns-domains', 'updatable-objects-repository-content',
     'interoperable-devices', 'security-zones', 
-#    'Global', 
     'access-roles', 'updatable-objects', 'dynamic-objects',
     'CpmiVoipSipDomain', 'CpmiVoipMgcpDomain', 'gsn_handover_group'
 ]

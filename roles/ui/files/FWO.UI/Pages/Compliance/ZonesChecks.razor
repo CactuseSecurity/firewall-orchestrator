@@ -77,7 +77,7 @@
 		if (sourceIpRange != null && destinationIpRange != null)
 		{
 			displayOutput = true;
-			ComplianceCheck complianceCheck = new ComplianceCheck(userConfig);
+			ComplianceCheck complianceCheck = new ComplianceCheck(userConfig, null);
 			forbiddenCommunicationsOutput = complianceCheck.CheckIpRangeInputCompliance(sourceIpRange, destinationIpRange, networkZoneService.NetworkZones);
 			compliant = forbiddenCommunicationsOutput.Count == 0;
 		}

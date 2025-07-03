@@ -1,12 +1,11 @@
-﻿using FWO.Basics;
-using FWO.Data;
+﻿using FWO.Data;
 using NetTools;
 
 namespace FWO.Ui.Services
 {
 	public class NetworkZoneService
 	{
-		public ComplianceNetworkZone[] NetworkZones { get; set; } = new ComplianceNetworkZone[0];
+		public ComplianceNetworkZone[] NetworkZones { get; set; } = [];
 
 		public delegate void ZoneAddEventArgs();
 		public delegate void ZoneModificationEventArgs(ComplianceNetworkZone networkZone);

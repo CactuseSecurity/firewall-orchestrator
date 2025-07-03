@@ -196,6 +196,14 @@ class MockFwoApi(FwoApi):
                     obj = dict(obj)  # copy
                     if table not in ["objgrp", "svcgrp", "usergrp", "objgrp_flat", "svcgrp_flat", "usergrp_flat"]: # using pair of reference ids as primary key
                         obj[TABLE_IDENTIFIERS.get(table, f"{table}_id")] = pk
+                    if any(("create" in key for key in obj.keys())):
+                        obj["removed"] = None
+                        obj["active"] = True
+                    if table == "rulebase":
+                        obj.pop("rules", None)  # remove rules from rulebase insert. why are they even there?
+                        if any((row["mgm_id"] == obj["mgm_id"] and 
+                                row["uid"] == obj["uid"] for row in self.tables.get("rulebase", {}).values())):
+                            continue  # mock unique_rulebase_mgm_id_uid constraint
                     self.tables[table][pk] = obj
                     returning.append(obj)
                 result["data"][field] = {
@@ -284,6 +292,14 @@ class MockFwoApi(FwoApi):
                     elif op == "_in":
                         if row.get(key) not in op_val:
                             return False
+                    elif op == "_is_null":
+                        if op_val and row.get(key) is not None:
+                            return False
+                        elif not op_val and row.get(key) is None:
+                            return False
+                    elif op == "_neq":
+                        if row.get(key) == op_val:
+                            return False
                     else:
                         raise ValueError(f"Unsupported operator '{op}' in where clause.")
         return True
@@ -344,8 +360,11 @@ class MockFwoApi(FwoApi):
         config = MockFwConfigNormalizedBuilder.empty_config()
 
         config.gateways = gateways
+        import_id = import_state.ImportId
 
         def obj_dict_from_row(row):
+            if row['obj_create'] > import_id or row.get('removed') and row['removed'] <= import_id:
+                return None
             dict = {}
             for key, value in row.items():
                 if key == 'obj_id':
@@ -354,9 +373,12 @@ class MockFwoApi(FwoApi):
                     dict['obj_color'] = import_state.lookupColorStr(value)
                 elif key == 'obj_typ_id':
                     dict['obj_typ'] = self.tables['stm_obj_typ'].get(value, {}).get('obj_typ_name', 'unknown')
-                dict[key] = value
+                else:
+                    dict[key] = value
             return dict
         def service_dict_from_row(row):
+            if row['svc_create'] > import_id or row.get('removed') and row['removed'] <= import_id:
+                return None
             dict = {}
             for key, value in row.items():
                 if key == 'svc_id':
@@ -365,16 +387,28 @@ class MockFwoApi(FwoApi):
                     dict['svc_color'] = import_state.lookupColorStr(value)
                 elif key == 'svc_typ_id':
                     dict['svc_typ'] = self.tables['stm_svc_typ'].get(value, {}).get('svc_typ_name', 'unknown')
-                dict[key] = value
+                elif key == 'ip_proto_id':
+                    dict['ip_proto'] = row['ip_proto_id']
+                else:
+                    dict[key] = value
             return dict
         def user_dict_from_row(row):
+            if row['user_create'] > import_id or row.get('removed') and row['removed'] <= import_id:
+                return None
             dict = {}
             for key, value in row.items():
-                if key == 'user_id':
+                if key in ['user_id', 'mgm_id', 'user_create', 'user_last_seen', 'active', 'removed']:
                     continue
-                dict[key] = value
+                elif key == 'usr_typ_id':
+                    dict['user_typ'] = self.tables['stm_usr_typ'].get(value, {}).get('usr_typ_name', 'unknown')
+                elif value is None:
+                    continue
+                else:
+                    dict[key] = value
             return dict
         def rulebase_dict_from_row(row):
+            if row.get('created') and row['created'] > import_id or row.get('removed') and row['removed'] <= import_id:
+                return None
             dict = {}
             for key, value in row.items():
                 if key == 'id':
@@ -385,6 +419,8 @@ class MockFwoApi(FwoApi):
             dict['rules'] = {}
             return dict
         def rule_dict_from_row(row):
+            if row['rule_create'] > import_id or row.get('removed') and row['removed'] <= import_id:
+                return None
             dict = {}
             for key, value in row.items():
                 if key == 'rule_id':
@@ -394,33 +430,35 @@ class MockFwoApi(FwoApi):
                 dict[key] = value
             return dict
         for table_name, rows in self.tables.items():
-            if table_name == "object":
-                for row in rows.values():
+            for row in rows.values():
+                if row.get('active', True) is False:
+                    continue
+                if table_name == "object":
                     # create new dict without the primary key
-                    obj = NetworkObject.parse_obj(obj_dict_from_row(row))
-                    config.network_objects[row['obj_uid']] = obj
-            elif table_name == "service":
-                for row in rows.values():
+                    obj = obj_dict_from_row(row)
+                    if obj:
+                        config.network_objects[row['obj_uid']] = NetworkObject.parse_obj(obj)
+                elif table_name == "service":
                     # create new dict without the primary key
-                    svc = ServiceObject.parse_obj(service_dict_from_row(row))
-                    config.service_objects[row['svc_uid']] = svc
-            elif table_name == "usr":
-                for row in rows.values():
+                    svc = service_dict_from_row(row)
+                    if svc:
+                        config.service_objects[row['svc_uid']] = ServiceObject.parse_obj(svc)
+                elif table_name == "usr":
                     # create new dict without the primary key
                     user = user_dict_from_row(row)
-                    config.users[row['user_uid']] = user
-            elif table_name == "rulebase":
-                for row in rows.values():
+                    if user:
+                        config.users[row['user_uid']] = user
+                elif table_name == "rulebase":
                     # create new dict without the primary key
                     rulebase = rulebase_dict_from_row(row)
-                    config.rulebases.append(Rulebase.parse_obj(rulebase))
-            elif table_name == "rule":
-                for row in rows.values():
+                    if rulebase:
+                        config.rulebases.append(Rulebase.parse_obj(rulebase))
+                elif table_name == "rule":
                     # create new dict without the primary key
                     rule = rule_dict_from_row(row)
                     # find the rulebase by uid
-                    rulebase = next((rb for rb in config.rulebases if import_state.RulebaseMap[rb.uid] == row['rulebase_id']), None)
-                    if rulebase:
+                    rulebase = next((rb for rb in config.rulebases if next((rb_db["uid"] for rb_db in self.tables.get("rulebase", {}).values() if rb_db["id"] == row['rulebase_id']), None) == rb.uid), None)
+                    if rulebase and rule:
                         rulebase.Rules[row['rule_uid']] = RuleNormalized.parse_obj(rule)
 
         return config
@@ -435,87 +473,91 @@ class MockFwoApi(FwoApi):
         """
         Returns the UID of a network object by its ID.
         """
-        return self.tables.get("object", {}).get(obj_id, {}).get("obj_uid", None)
+        nwobj_uid = self.tables.get("object", {}).get(obj_id, {}).get("obj_uid", None)
+        if nwobj_uid is None:
+            raise Exception(f"Network object ID {obj_id} not found in database.")
+        return nwobj_uid
     
     def get_svc_uid(self, svc_id):
         """
         Returns the UID of a service object by its ID.
         """
-        return self.tables.get("service", {}).get(svc_id, {}).get("svc_uid", None)
+        svc_uid = self.tables.get("service", {}).get(svc_id, {}).get("svc_uid", None)
+        if svc_uid is None:
+            raise Exception(f"Service ID {svc_id} not found in database.")
+        return svc_uid
     
     def get_user_uid(self, user_id):
         """
         Returns the UID of a user by its ID.
         """
-        return self.tables.get("usr", {}).get(user_id, {}).get("user_uid", None)
+        user_uid = self.tables.get("usr", {}).get(user_id, {}).get("user_uid", None)
+        if user_uid is None:
+            raise Exception(f"User ID {user_id} not found in database.")
+        return user_uid
     
     def get_rule_uid(self, rule_id):
         """
         Returns the UID of a rule by its ID.
         """
-        return self.tables.get("rule", {}).get(rule_id, {}).get("rule_uid", None)
+        rule_uid = self.tables.get("rule", {}).get(rule_id, {}).get("rule_uid", None)
+        if rule_uid is None:
+            raise Exception(f"Rule ID {rule_id} not found in database.")
+        return rule_uid
 
     def get_nwobj_member_mappings(self):
         member_uids_db = {}
         for objgrp in self.get_table("objgrp").values():
+            if not objgrp.get("active", True):
+                continue
             objgrp_id = objgrp["objgrp_id"]
             uid = self.get_nwobj_uid(objgrp_id)
-            if uid is None:
-                raise Exception(f"Object group ID {objgrp_id} not found in database.")
             if uid not in member_uids_db:
                 member_uids_db[uid] = set()
             member_id = objgrp["objgrp_member_id"]
             member_uid_db = self.get_nwobj_uid(member_id)
-            if member_uid_db is None:
-                raise Exception(f"Member ID {member_id} not found in database.")
             member_uids_db[uid].add(member_uid_db)
         return member_uids_db
 
     def get_svc_member_mappings(self):
         member_uids_db = {}
         for svcgrp in self.get_table("svcgrp").values():
+            if not svcgrp.get("active", True):
+                continue
             svcgrp_id = svcgrp["svcgrp_id"]
             uid = self.get_svc_uid(svcgrp_id)
-            if uid is None:
-                raise Exception(f"Service group ID {svcgrp_id} not found in database.")
             if uid not in member_uids_db:
                 member_uids_db[uid] = set()
             member_id = svcgrp["svcgrp_member_id"]
             member_uid_db = self.get_svc_uid(member_id)
-            if member_uid_db is None:
-                raise Exception(f"Member ID {member_id} not found in database.")
             member_uids_db[uid].add(member_uid_db)
         return member_uids_db
     
     def get_user_member_mappings(self):
         member_uids_db = {}
         for usergrp in self.get_table("usergrp").values():
+            if not usergrp.get("active", True):
+                continue
             usergrp_id = usergrp["usergrp_id"]
             uid = self.get_user_uid(usergrp_id)
-            if uid is None:
-                raise Exception(f"User group ID {usergrp_id} not found in database.")
             if uid not in member_uids_db:
                 member_uids_db[uid] = set()
             member_id = usergrp["usergrp_member_id"]
             member_uid_db = self.get_user_uid(member_id)
-            if member_uid_db is None:
-                raise Exception(f"Member ID {member_id} not found in database.")
             member_uids_db[uid].add(member_uid_db)
         return member_uids_db
     
     def get_nwobj_flat_member_mappings(self):
         flat_member_uids_db = {}
         for objgrp_flat in self.get_table("objgrp_flat").values():
+            if not objgrp_flat.get("active", True):
+                continue
             objgrp_flat_id = objgrp_flat["objgrp_flat_id"]
             uid = self.get_nwobj_uid(objgrp_flat_id)
-            if uid is None:
-                raise Exception(f"Object group flat ID {objgrp_flat_id} not found in database.")
             if uid not in flat_member_uids_db:
                 flat_member_uids_db[uid] = set()
             member_id = objgrp_flat["objgrp_flat_member_id"]
             member_uid_db = self.get_nwobj_uid(member_id)
-            if member_uid_db is None:
-                raise Exception(f"Member ID {member_id} not found in database.")
             flat_member_uids_db[uid].add(member_uid_db)
 
         return flat_member_uids_db
@@ -523,16 +565,14 @@ class MockFwoApi(FwoApi):
     def get_svc_flat_member_mappings(self):
         flat_member_uids_db = {}
         for svcgrp_flat in self.get_table("svcgrp_flat").values():
+            if not svcgrp_flat.get("active", True):
+                continue
             svcgrp_flat_id = svcgrp_flat["svcgrp_flat_id"]
             uid = self.get_svc_uid(svcgrp_flat_id)
-            if uid is None:
-                raise Exception(f"Service group flat ID {svcgrp_flat_id} not found in database.")
             if uid not in flat_member_uids_db:
                 flat_member_uids_db[uid] = set()
             member_id = svcgrp_flat["svcgrp_flat_member_id"]
             member_uid_db = self.get_svc_uid(member_id)
-            if member_uid_db is None:
-                raise Exception(f"Member ID {member_id} not found in database.")
             flat_member_uids_db[uid].add(member_uid_db)
 
         return flat_member_uids_db
@@ -540,16 +580,14 @@ class MockFwoApi(FwoApi):
     def get_user_flat_member_mappings(self):
         flat_member_uids_db = {}
         for usergrp_flat in self.get_table("usergrp_flat").values():
+            if not usergrp_flat.get("active", True):
+                continue
             usergrp_flat_id = usergrp_flat["usergrp_flat_id"]
             uid = self.get_user_uid(usergrp_flat_id)
-            if uid is None:
-                raise Exception(f"User group flat ID {usergrp_flat_id} not found in database.")
             if uid not in flat_member_uids_db:
                 flat_member_uids_db[uid] = set()
             member_id = usergrp_flat["usergrp_flat_member_id"]
             member_uid_db = self.get_user_uid(member_id)
-            if member_uid_db is None:
-                raise Exception(f"Member ID {member_id} not found in database.")
             flat_member_uids_db[uid].add(member_uid_db)
 
         return flat_member_uids_db
@@ -557,22 +595,18 @@ class MockFwoApi(FwoApi):
     def get_rule_from_mappings(self):
         rule_froms_db = {}
         for rule_from in self.get_table("rule_from").values():
+            if not rule_from.get("active", True):
+                continue
             rule_id = rule_from["rule_id"]
             uid = self.get_rule_uid(rule_id)
-            if uid is None:
-                raise Exception(f"Rule ID {rule_id} not found in database.")
             if uid not in rule_froms_db:
                 rule_froms_db[uid] = set()
             obj_id = rule_from["obj_id"]
             obj_uid = self.get_nwobj_uid(obj_id)
-            if obj_uid is None:
-                raise Exception(f"From Obj ID {obj_id} not found in database.")
             member_string_db = obj_uid
             user_id = rule_from["user_id"]
             if user_id is not None:
                 user_uid = self.get_user_uid(user_id)
-                if user_uid is None:
-                    raise Exception(f"From User ID {user_id} not found in database.")
                 member_string_db += fwo_const.user_delimiter + user_uid
             
             rule_froms_db[uid].add(member_string_db)
@@ -581,22 +615,18 @@ class MockFwoApi(FwoApi):
     def get_rule_to_mappings(self):
         rule_tos_db = {}
         for rule_to in self.get_table("rule_to").values():
+            if not rule_to.get("active", True):
+                continue
             rule_id = rule_to["rule_id"]
             uid = self.get_rule_uid(rule_id)
-            if uid is None:
-                raise Exception(f"Rule ID {rule_id} not found in database.")
             if uid not in rule_tos_db:
                 rule_tos_db[uid] = set()
             obj_id = rule_to["obj_id"]
             obj_uid = self.get_nwobj_uid(obj_id)
-            if obj_uid is None:
-                raise Exception(f"To Obj ID {obj_id} not found in database.")
             member_string_db = obj_uid
             user_id = rule_to["user_id"]
             if user_id is not None:
                 user_uid = self.get_user_uid(user_id)
-                if user_uid is None:
-                    raise Exception(f"To User ID {user_id} not found in database.")
                 member_string_db += fwo_const.user_delimiter + user_uid
             
             rule_tos_db[uid].add(member_string_db)
@@ -604,16 +634,56 @@ class MockFwoApi(FwoApi):
     
     def get_rule_svc_mappings(self):
         rule_svcs_db = {}
-        for rule_svc in self.get_table("rule_svc").values():
+        for rule_svc in self.get_table("rule_service").values():
+            if not rule_svc.get("active", True):
+                continue
             rule_id = rule_svc["rule_id"]
             uid = self.get_rule_uid(rule_id)
-            if uid is None:
-                raise Exception(f"Rule ID {rule_id} not found in database.")
             if uid not in rule_svcs_db:
                 rule_svcs_db[uid] = set()
             svc_id = rule_svc["svc_id"]
             svc_uid = self.get_svc_uid(svc_id)
-            if svc_uid is None:
-                raise Exception(f"Service ID {svc_id} not found in database.")
             rule_svcs_db[uid].add(svc_uid)
         return rule_svcs_db
+    
+    def get_rule_nwobj_resolved_mappings(self):
+        rule_nwobj_resolved_db = {}
+        for rule_nwobj in self.get_table("rule_nwobj_resolved").values():
+            if not rule_nwobj.get("active", True):
+                continue
+            rule_id = rule_nwobj["rule_id"]
+            uid = self.get_rule_uid(rule_id)
+            if uid not in rule_nwobj_resolved_db:
+                rule_nwobj_resolved_db[uid] = set()
+            obj_id = rule_nwobj["obj_id"]
+            obj_uid = self.get_nwobj_uid(obj_id)
+            rule_nwobj_resolved_db[uid].add(obj_uid)
+        return rule_nwobj_resolved_db
+    
+    def get_rule_svc_resolved_mappings(self):
+        rule_svc_resolved_db = {}
+        for rule_svc_resolved in self.get_table("rule_svc_resolved").values():
+            if not rule_svc_resolved.get("active", True):
+                continue
+            rule_id = rule_svc_resolved["rule_id"]
+            uid = self.get_rule_uid(rule_id)
+            if uid not in rule_svc_resolved_db:
+                rule_svc_resolved_db[uid] = set()
+            svc_id = rule_svc_resolved["svc_id"]
+            svc_uid = self.get_svc_uid(svc_id)
+            rule_svc_resolved_db[uid].add(svc_uid)
+        return rule_svc_resolved_db
+    
+    def store_latest_config(self, config, import_state):
+        """
+        Stores the latest configuration in the mock database.
+        """
+        if not "latest_config" in self.tables:
+            self.tables["latest_config"] = {}
+        import_id = import_state.ImportId
+        mgm_id = import_state.MgmDetails.Id
+        self.tables["latest_config"][import_id] = {
+            "import_id": import_id,
+            "mgm_id": mgm_id,
+            "config": config.json(),
+        }

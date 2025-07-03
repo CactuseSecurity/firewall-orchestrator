@@ -30,6 +30,7 @@ if __name__ == '__main__': # for usage as executable script
     from model_controllers.fwconfigmanager_controller import FwConfigManager
     from models.gateway import Gateway
     from models.rulebase_link import RulebaseLinkUidBased
+    from fwo_const import list_delimiter, user_delimiter
 else: # for usage in unit tests
     from . uid_manager import UidManager
     from importer.models.fwconfig_normalized import FwConfigNormalized
@@ -41,6 +42,7 @@ else: # for usage in unit tests
     from importer.models.serviceobject import ServiceObject
     from importer.models.gateway import Gateway
     from importer.models.rulebase_link import RulebaseLinkUidBased
+    from importer.fwo_const import list_delimiter, user_delimiter
 
 
 DUMMY_IP = IPNetwork(dummy_ip)
@@ -134,7 +136,7 @@ class MockFwConfigNormalizedBuilder():
             new_user = {
                 "user_uid": new_user_uid,
                 "user_name": f"IA_{index}",
-                "usr_typ": "simple"
+                "user_typ": "simple"
             }
             
             config.network_objects[new_user_uid] = new_user_obj
@@ -174,7 +176,7 @@ class MockFwConfigNormalizedBuilder():
 
                 # Add a new rule to the rulebase.
 
-                new_rule = self.add_rule_to_rulebase(config, new_rulebase_uid)
+                new_rule = self.add_rule(config, new_rulebase_uid)
                 self.add_references_to_rule(config, new_rule)
 
                 if mock_config.get("initialize_rule_num_numeric"):
@@ -200,92 +202,184 @@ class MockFwConfigNormalizedBuilder():
         Adds a rule with highest possible reference complexity for testing correctness
         of reference imports
         """
-        # create basic objects
-        host_objects = []
-        svc_objects = []
-        uid = "complex-rule-"
-        for i in range(6):
-            new_network_object = NetworkObject(
-                obj_uid = f"{uid}nwobj-{i+1}",
-                obj_ip = DUMMY_IP,
-                obj_ip_end = DUMMY_IP,
-                obj_name = f"Network Object {i+1}",
-                obj_color = "black",
-                obj_typ = "host"
-            )
-            host_objects.append(new_network_object)
-            config.network_objects[new_network_object.obj_uid] = new_network_object
-            new_svc_object = ServiceObject(
-                svc_uid = f"{uid}svc-{i+1}",
-                svc_name = f"Service {i+1}",
-                svc_color = "black",
-                svc_typ = "simple",
-                svc_port = 80,
-                svc_port_end = 80,
-                ip_proto=6  # TCP
-            )
-        
-        inner_group_nwobjs = []
-        inner_group_svcs = []
-        uid = "complex-rule-inner-group-"
-        for i in range(4):
-            inner_group = NetworkObject(
-                obj_uid = f"{uid}nwobj-{i+1}",
-                obj_ip = DUMMY_IP,
-                obj_ip_end = DUMMY_IP,
-                obj_name = f"Inner NwObj Group {i+1}",
-                obj_color = "black",
-                obj_typ = "group",
-                obj_member_names = list_delimiter.join([host_objects[i].obj_name for i in range(i, i + 2)]),
-                obj_member_refs = list_delimiter.join([host_objects[i].obj_uid for i in range(i, i + 2)])
-            )
-            inner_group_nwobjs.append(inner_group)
-            config.network_objects[inner_group.obj_uid] = inner_group
-            inner_group_svc = ServiceObject(
-                svc_uid = f"{uid}svc-{i+1}",
-                svc_name = f"Inner Svc Group {i+1}",
-                svc_color = "black",
-                svc_typ = "group"
-            )
-            inner_group_svcs.append(inner_group_svc)
-            config.service_objects[inner_group_svc.svc_uid] = inner_group_svc
-        
-        outer_group_nwobjs = []
-        outer_group_svcs = []
-        uid = "complex-rule-outer-group-"
-        for i in range(2):
-            outer_group = NetworkObject(
-                obj_uid = f"{uid}nwobj-{i+1}",
-                obj_ip = DUMMY_IP,
-                obj_ip_end = DUMMY_IP,
-                obj_name = f"Outer NwObj Group {i+1}",
-                obj_color = "black",
-                obj_typ = "group",
-                obj_member_names = list_delimiter.join([inner_group.obj_name for inner_group in inner_group_nwobjs[i*2:i*2+2]]),
-                obj_member_refs = list_delimiter.join([inner_group.obj_uid for inner_group in inner_group_nwobjs[i*2:i*2+2]])
-            )
-            outer_group_nwobjs.append(outer_group)
-            config.network_objects[outer_group.obj_uid] = outer_group
-            outer_group_svc = ServiceObject(
-                svc_uid = f"{uid}svc-{i+1}",
-                svc_name = f"Outer Svc Group {i+1}",
-                svc_color = "black",
-                svc_typ = "group",
-                svc_member_names= list_delimiter.join([inner_group_svc.svc_name for inner_group_svc in inner_group_svcs[i*2:i*2+2]]),
-                svc_member_refs= list_delimiter.join([inner_group_svc.svc_uid for inner_group_svc in inner_group_svcs[i*2:i*2+2]])
-            )
-            outer_group_svcs.append(outer_group_svc)
-            config.service_objects[outer_group_svc.svc_uid] = outer_group_svc
-        
         rulebase = config.rulebases[0]
-        self.add_rule_to_rulebase(
-            config,
-            rulebase.uid,
-            rule_uid="complex-rule",
-            src_objs=outer_group_nwobjs,
-            dst_objs=[host_objects[5]],
-            svc_objs=outer_group_svcs
-        )
+        config_objs = {
+            "rules": [
+                {
+                    "rule_uid": "cpr",
+                    "rule_src": f"cpr-from1{list_delimiter}cpr-from2",
+                    "rule_src_refs": f"cpr-from1{list_delimiter}cpr-from2",
+                    "rule_dst": "cpr-to1",
+                    "rule_dst_refs": "cpr-to1",
+                    "rule_svc": "cpr-svc1",
+                    "rule_svc_refs": "cpr-svc1",
+                }
+            ],
+            "network_objects": [
+                {
+                    "obj_uid": "cpr-from1",
+                    "obj_name": "cpr-from1",
+                    "obj_member_names": f"cpr-from1-member1{list_delimiter}cpr-from1-member2",
+                    "obj_member_refs": f"cpr-from1-member1{list_delimiter}cpr-from1-member2",
+                },
+                {
+                    "obj_uid": "cpr-from1-member1",
+                    "obj_name": "cpr-from1-member1",
+                    "obj_member_names": f"cpr-from1-member1-member1{list_delimiter}cpr-from1-member1-member2",
+                    "obj_member_refs": f"cpr-from1-member1-member1{list_delimiter}cpr-from1-member1-member2",
+                },
+                {
+                    "obj_uid": "cpr-from1-member2",
+                    "obj_name": "cpr-from1-member2",
+                    "obj_member_names": "cpr-from1-member1-member2",
+                    "obj_member_refs": "cpr-from1-member1-member2",
+                },
+                {
+                    "obj_uid": "cpr-from1-member1-member1",
+                    "obj_name": "cpr-from1-member1-member1",
+                    "obj_typ": "host",
+                },
+                {
+                    "obj_uid": "cpr-from1-member1-member2",
+                    "obj_name": "cpr-from1-member1-member2",
+                    "obj_typ": "host",
+                },
+                {
+                    "obj_uid": "cpr-from2",
+                    "obj_name": "cpr-from2",
+                    "obj_member_names": "cpr-from1-member2",
+                    "obj_member_refs": "cpr-from1-member2",
+                },
+                {
+                    "obj_uid": "cpr-to1",
+                    "obj_name": "cpr-to1",
+                    "obj_typ": "host"
+                }
+            ],
+            "service_objects": [
+                {
+                    "svc_uid": "cpr-svc1",
+                    "svc_name": "cpr-svc1",
+                    "svc_member_names": "cpr-svc1-member1",
+                    "svc_member_refs": "cpr-svc1-member1",
+                },
+                {
+                    "svc_uid": "cpr-svc1-member1",
+                    "svc_name": "cpr-svc1-member1",
+                }
+            ]
+        }
+
+        for rule in config_objs["rules"]:
+            self.add_rule(config, rulebase.uid, rule)
+        for obj in config_objs["network_objects"]:
+            self.add_network_object(config, obj)
+        for svc in config_objs["service_objects"]:
+            self.add_service_object(config, svc)
+        
+    
+    def change_rule_with_nested_groups(self, config: FwConfigNormalized, change_type: str = "change",
+                                       change_obj: str = "from"):
+        """
+        Changes a rule with nested groups in a subtle way to test if the import process detects changes correctly.
+        Args:
+            config (FwConfigNormalized): The configuration to change.
+            change_type (str): The type of change to apply. Can be "change", "add", or "remove".
+            change_obj (str): The object to change. Can be "from", "svc", "member", "member_svc", "nested_member", or "nested_member_svc".
+        """
+        rulebase = config.rulebases[0]
+        rule = rulebase.Rules.get("cpr")
+        if not rule:
+            raise ValueError("Rule 'cpr' not found in the rulebase.")
+        if change_type == "change":
+            if change_obj == "from":
+                self.change_network_object_subtle(config, "cpr-from1")
+            elif change_obj == "svc":
+                self.change_service_object_subtle(config, "cpr-svc1")
+            elif change_obj == "member":
+                self.change_network_object_subtle(config, "cpr-from1-member1")
+            elif change_obj == "member_svc":
+                self.change_service_object_subtle(config, "cpr-svc1-member1")
+            elif change_obj == "nested_member":
+                self.change_network_object_subtle(config, "cpr-from1-member1-member1")
+            elif change_obj == "nested_member_svc":
+                self.change_service_object_subtle(config, "cpr-svc1-member1")
+        elif change_type == "add":
+            if change_obj == "from":
+                self.add_network_object(config, {
+                    "obj_uid": "cpr-from-new",
+                    "obj_name": "cpr-from-new",
+                    "obj_typ": "host"
+                })
+                rule.rule_src += list_delimiter + "cpr-from-new"
+                rule.rule_src_refs += list_delimiter + "cpr-from-new"
+            elif change_obj == "svc":
+                self.add_service_object(config, {
+                    "svc_uid": "cpr-svc-new",
+                    "svc_name": "cpr-svc-new",
+                    "svc_typ": "simple"
+                })
+                rule.rule_svc += list_delimiter + "cpr-svc-new"
+                rule.rule_svc_refs += list_delimiter + "cpr-svc-new"
+            elif change_obj == "member":
+                from_obj = config.network_objects.get("cpr-from1")
+                self.add_network_object(config, {
+                    "obj_uid": "cpr-from-member-new",
+                    "obj_name": "cpr-from-member-new",
+                    "obj_typ": "host"
+                })
+                from_obj.obj_member_names += list_delimiter + "cpr-from-member-new"
+                from_obj.obj_member_refs += list_delimiter + "cpr-from-member-new"
+            elif change_obj == "member_svc":
+                svc_obj = config.service_objects.get("cpr-svc1")
+                self.add_service_object(config, {
+                    "svc_uid": "cpr-svc-member-new",
+                    "svc_name": "cpr-svc-member-new",
+                    "svc_typ": "simple"
+                })
+                svc_obj.svc_member_names += list_delimiter + "cpr-svc-member-new"
+                svc_obj.svc_member_refs += list_delimiter + "cpr-svc-member-new"
+            elif change_obj == "nested_member":
+                member = config.network_objects.get("cpr-from1-member1")
+                self.add_network_object(config, {
+                    "obj_uid": "cpr-from-member1-member-new",
+                    "obj_name": "cpr-from-member1-member-new",
+                    "obj_typ": "host"
+                })
+                member.obj_member_names += list_delimiter + "cpr-from-member1-member-new"
+                member.obj_member_refs += list_delimiter + "cpr-from-member1-member-new"
+            elif change_obj == "nested_member_svc":
+                member_svc = config.service_objects.get("cpr-svc1-member1")
+                self.add_service_object(config, {
+                    "svc_uid": "cpr-svc-member1-member-new",
+                    "svc_name": "cpr-svc-member1-member-new",
+                    "svc_typ": "simple"
+                })
+                member_svc.svc_member_names = "cpr-svc-member1-member-new"
+                member_svc.svc_member_refs = "cpr-svc-member1-member-new"
+        elif change_type == "remove":
+            if change_obj == "from":
+                rule.rule_src = rule.rule_src.replace("cpr-from1", "").strip(list_delimiter)
+                rule.rule_src_refs = rule.rule_src_refs.replace("cpr-from1", "").strip(list_delimiter)
+            elif change_obj == "svc":
+                rule.rule_svc = rule.rule_svc.replace("cpr-svc1", "").strip(list_delimiter)
+                rule.rule_svc_refs = rule.rule_svc_refs.replace("cpr-svc1", "").strip(list_delimiter)
+            elif change_obj == "member":
+                from_obj = config.network_objects.get("cpr-from1")
+                from_obj.obj_member_names = from_obj.obj_member_names.replace("cpr-from1-member1", "").strip(list_delimiter)
+                from_obj.obj_member_refs = from_obj.obj_member_refs.replace("cpr-from1-member1", "").strip(list_delimiter)
+            elif change_obj == "member_svc":
+                svc_obj = config.service_objects.get("cpr-svc1")
+                svc_obj.svc_member_names = svc_obj.svc_member_names.replace("cpr-svc1-member1", "").strip(list_delimiter)
+                svc_obj.svc_member_refs = svc_obj.svc_member_refs.replace("cpr-svc1-member1", "").strip(list_delimiter)
+            elif change_obj == "nested_member":
+                from_obj = config.network_objects.get("cpr-from1-member1")
+                from_obj.obj_member_names = from_obj.obj_member_names.replace("cpr-from1-member1-member2", "").strip(list_delimiter)
+                from_obj.obj_member_refs = from_obj.obj_member_refs.replace("cpr-from1-member1-member2", "").strip(list_delimiter)
+            elif change_obj == "nested_member_svc":
+                svc_obj = config.service_objects.get("cpr-svc1-member1")
+                svc_obj.svc_member_names = svc_obj.svc_member_names.replace("cpr-svc1-member1-member1", "").strip(list_delimiter)
+                svc_obj.svc_member_refs = svc_obj.svc_member_refs.replace("cpr-svc1-member1-member1", "").strip(list_delimiter)
 
 
     def create_rulebase_links(self, config: FwConfigNormalized) -> List[RulebaseLinkUidBased]:
@@ -333,9 +427,42 @@ class MockFwConfigNormalizedBuilder():
 
         return rulebase_links
     
+    def add_network_object(self, config: FwConfigNormalized, obj_dict: Dict):
+        uid = obj_dict.get("obj_uid", self.uid_manager.create_uid())
+        dummy_ip = DUMMY_IP if obj_dict.get("obj_typ", "group") != "group" else None
+        new_network_object = NetworkObject(
+            obj_uid = uid,
+            obj_ip = obj_dict.get("obj_ip", dummy_ip),
+            obj_ip_end = obj_dict.get("obj_ip_end", dummy_ip),
+            obj_name = obj_dict.get("obj_name", f"Network Object {uid}"),
+            obj_color = obj_dict.get("obj_color", "black"),
+            obj_typ = obj_dict.get("obj_typ", "group"),
+            obj_member_names = obj_dict.get("obj_member_names", ""),
+            obj_member_refs = obj_dict.get("obj_member_refs", "")
+        )
+        config.network_objects[new_network_object.obj_uid] = new_network_object
+        return new_network_object
+    
+    def add_service_object(self, config: FwConfigNormalized, svc_dict: Dict):
+        uid = svc_dict.get("svc_uid", self.uid_manager.create_uid())
+        default_port = 80 if svc_dict.get("svc_typ", "group") != "group" else None
+        default_proto = 6 if svc_dict.get("svc_typ", "group") != "group" else None
+        new_service_object = ServiceObject(
+            svc_uid = uid,
+            svc_name = svc_dict.get("svc_name", f"Service {uid}"),
+            svc_color = svc_dict.get("svc_color", "black"),
+            svc_typ = svc_dict.get("svc_typ", "group"),
+            svc_port = svc_dict.get("svc_port", default_port),
+            svc_port_end = svc_dict.get("svc_port_end", default_port),
+            ip_proto = svc_dict.get("ip_proto", default_proto),
+            svc_member_names = svc_dict.get("svc_member_names", ""),
+            svc_member_refs = svc_dict.get("svc_member_refs", "")
+        )
+        config.service_objects[new_service_object.svc_uid] = new_service_object
+        return new_service_object
+    
 
-    def add_rule_to_rulebase(self, config: FwConfigNormalized, rulebase_uid: str, rule_uid: Optional[str] = None, src_objs: Optional[List[NetworkObject]] = None,
-                             dst_objs: Optional[List[NetworkObject]] = None, svc_objs: Optional[List[ServiceObject]] = None) -> RuleNormalized:
+    def add_rule(self, config: FwConfigNormalized, rulebase_uid: str, rule_dict: Dict = {}) -> RuleNormalized:
         """
         Adds a new rule to the rulebase identified by the given UID.
 
@@ -347,51 +474,52 @@ class MockFwConfigNormalizedBuilder():
         """
         rulebase = next(rb for rb in config.rulebases if rb.uid == rulebase_uid)
 
-        if not src_objs:
+        src_objs, dst_objs, svc_objs = [], [], []
+        if "rule_src" not in rule_dict:
             src_objs = secrets.SystemRandom(self._seed).sample(
                 list(config.network_objects.values()), 
                 k=secrets.SystemRandom(self._seed).randint(1, 5)
             )
-        if not dst_objs:
+        if "rule_dst" not in rule_dict:
             dst_objs = secrets.SystemRandom(self._seed).sample(
                 list(config.network_objects.values()), 
                 k=secrets.SystemRandom(self._seed).randint(1, 5)
             )
-        if not svc_objs:
+        if "rule_svc" not in rule_dict:
             svc_objs = secrets.SystemRandom(self._seed).sample(
                 list(config.service_objects.values()), 
                 k=secrets.SystemRandom(self._seed).randint(1, 5)
             )
-
+        uid = rule_dict.get("rule_uid", self.uid_manager.create_uid())
         new_rule = RuleNormalized(
-            rule_disabled = False,
-            rule_src_neg = False,
-            rule_src = list_delimiter.join(obj.obj_name for obj in src_objs),
-            rule_src_refs = list_delimiter.join(obj.obj_uid for obj in src_objs),
-            rule_dst_neg = False,
-            rule_dst = list_delimiter.join(obj.obj_name for obj in dst_objs),
-            rule_dst_refs = list_delimiter.join(obj.obj_uid for obj in dst_objs),
-            rule_svc_neg = False,
-            rule_svc = list_delimiter.join(svc.svc_name for svc in svc_objs),
-            rule_svc_refs = list_delimiter.join(svc.svc_uid for svc in svc_objs),
-            rule_action = RuleAction.ACCEPT,
-            rule_track = RuleTrack.NONE,
-            rule_installon = "",
-            rule_time = "always",
-            rule_name = f"Rule {self.uid_manager.create_uid()}",
-            rule_uid = rule_uid if rule_uid else self.uid_manager.create_uid(),
-            rule_custom_fields = None,
-            rule_implied = False,
-            rule_type = RuleType.SECTIONHEADER,
-            rule_last_change_admin = None,
-            parent_rule_uid = None,
-            last_hit = None,
-            rule_comment = None,
-            rule_src_zone = None,
-            rule_dst_zone = None,
-            rule_head_text = None,
-            rule_num = 0,
-            rule_num_numeric = 0.0
+            rule_disabled = rule_dict.get("rule_disabled", False),
+            rule_src_neg = rule_dict.get("rule_src_neg", False),
+            rule_src = rule_dict.get("rule_src", list_delimiter.join(obj.obj_name for obj in src_objs)),
+            rule_src_refs = rule_dict.get("rule_src_refs", list_delimiter.join(obj.obj_uid for obj in src_objs)),
+            rule_dst_neg = rule_dict.get("rule_dst_neg", False),
+            rule_dst = rule_dict.get("rule_dst", list_delimiter.join(obj.obj_name for obj in dst_objs)),  
+            rule_dst_refs = rule_dict.get("rule_dst_refs", list_delimiter.join(obj.obj_uid for obj in dst_objs)),
+            rule_svc_neg = rule_dict.get("rule_svc_neg", False),
+            rule_svc = rule_dict.get("rule_svc", list_delimiter.join(svc.svc_name for svc in svc_objs)),
+            rule_svc_refs = rule_dict.get("rule_svc_refs", list_delimiter.join(svc.svc_uid for svc in svc_objs)),
+            rule_action = rule_dict.get("rule_action", RuleAction.ACCEPT),
+            rule_track = rule_dict.get("rule_track", RuleTrack.NONE),
+            rule_installon = rule_dict.get("rule_installon", ""),
+            rule_time = rule_dict.get("rule_time", "always"),
+            rule_name = rule_dict.get("rule_name", f"Rule {uid}"),
+            rule_uid = uid,
+            rule_custom_fields = rule_dict.get("rule_custom_fields", None),
+            rule_implied = rule_dict.get("rule_implied", False),
+            rule_type = rule_dict.get("rule_type", RuleType.SECTIONHEADER),
+            rule_last_change_admin = rule_dict.get("rule_last_change_admin", None),
+            parent_rule_uid = rule_dict.get("parent_rule_uid", None),
+            last_hit = rule_dict.get("last_hit", None),
+            rule_comment = rule_dict.get("rule_comment", None),
+            rule_src_zone = rule_dict.get("rule_src_zone", None),
+            rule_dst_zone = rule_dict.get("rule_dst_zone", None),
+            rule_head_text = rule_dict.get("rule_head_text", None),
+            rule_num = rule_dict.get("rule_num", 0),
+            rule_num_numeric = rule_dict.get("rule_num_numeric", 0.0),
         )
         rulebase.Rules[new_rule.rule_uid] = new_rule
 

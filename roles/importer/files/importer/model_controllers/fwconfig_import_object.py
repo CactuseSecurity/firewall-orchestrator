@@ -100,9 +100,9 @@ class FwConfigImportObject():
 
         # need to do this first, since we need the old object IDs for the group memberships
         #TODO: computationally expensive? Even without changes, all group objects and their members are compared to the previous config.
-        errors, changes, changedNwObjMembers, changedNwObjFlats = self.removeOutdatedMemberships(prevConfig, Type.NETWORK_OBJECT)
-        errors, changes, changedSvcObjMembers, changedSvcObjFlats = self.removeOutdatedMemberships(prevConfig, Type.SERVICE_OBJECT)
-        errors, changes, changedUserObjMembers, changedUserObjFlats = self.removeOutdatedMemberships(prevConfig, Type.USER)
+        errors, changes = self.removeOutdatedMemberships(prevConfig, Type.NETWORK_OBJECT)
+        errors, changes = self.removeOutdatedMemberships(prevConfig, Type.SERVICE_OBJECT)
+        errors, changes = self.removeOutdatedMemberships(prevConfig, Type.USER)
 
         # add newly created objects
         errors, changes, newNwObjIds, newNwSvcIds, newUserIds, removedNwObjIds, removedNwSvcIds, removedUserIds =  \
@@ -113,9 +113,9 @@ class FwConfigImportObject():
         self.uid2id_mapper.add_user_mappings(newUserIds)
 
         # insert new and updated group memberships
-        errors, changes = self.addGroupMemberships(prevConfig, Type.NETWORK_OBJECT, changedNwObjMembers, changedNwObjFlats)
-        errors, changes = self.addGroupMemberships(prevConfig, Type.SERVICE_OBJECT, changedSvcObjMembers, changedSvcObjFlats)
-        errors, changes = self.addGroupMemberships(prevConfig, Type.USER, changedUserObjMembers, changedUserObjFlats)
+        errors, changes = self.addGroupMemberships(prevConfig, Type.NETWORK_OBJECT)
+        errors, changes = self.addGroupMemberships(prevConfig, Type.SERVICE_OBJECT)
+        errors, changes = self.addGroupMemberships(prevConfig, Type.USER)
 
         # these objects have really been deleted so there should be no refs to them anywhere! verify this
 
@@ -357,7 +357,7 @@ class FwConfigImportObject():
                 'mgm_id': self.ImportDetails.MgmDetails.Id,
                 'user_create': self.ImportDetails.ImportId,
                 'user_last_seen': self.ImportDetails.ImportId,
-                'user_typ_id': self.lookupUserType(self.NormalizedConfig.users[uid]['usr_typ']),
+                'usr_typ_id': self.lookupUserType(self.NormalizedConfig.users[uid]['user_typ']),
                 'user_name': self.NormalizedConfig.users[uid]['user_name'],
             })
         return newObjs
@@ -370,26 +370,47 @@ class FwConfigImportObject():
         if type == Type.USER:
             return prevConfig.users, self.NormalizedConfig.users
 
-    def get_id(self, type, uid):
+    def get_id(self, type, uid, before_update = False):
         if type == Type.NETWORK_OBJECT:
-            return self.uid2id_mapper.get_network_object_id(uid)
+            return self.uid2id_mapper.get_network_object_id(uid, before_update)
         if type == Type.SERVICE_OBJECT:
-            return self.uid2id_mapper.get_service_object_id(uid)
-        return self.uid2id_mapper.get_user_id(uid)
+            return self.uid2id_mapper.get_service_object_id(uid, before_update)
+        return self.uid2id_mapper.get_user_id(uid, before_update)
+    
+    def is_group(self, type: Type, obj):
+        if type == Type.NETWORK_OBJECT:
+            return obj.obj_typ == "group"
+        if type == Type.SERVICE_OBJECT:
+            return obj.svc_typ == "group"
+        if type == Type.USER:
+            return obj.get('user_typ', None) == "group"
 
-    def get_refs(self, type, obj):
+
+    def get_refs(self, type: Type, obj):
         if type == Type.NETWORK_OBJECT:
             return obj.obj_member_refs
         if type == Type.SERVICE_OBJECT:
             return obj.svc_member_refs
         return obj.get('user_member_refs', None)
+    
+    def get_members(self, type, refs) -> List[str]:
+        if type == Type.NETWORK_OBJECT:
+            return [member.split(fwo_const.user_delimiter)[0] for member in refs.split(fwo_const.list_delimiter) if member] if refs else []
+        return refs.split(fwo_const.list_delimiter) if refs else []
 
     def get_flats(self, type, uid):
         if type == Type.NETWORK_OBJECT:
             return self.group_flats_mapper.get_network_object_flats([uid])
         if type == Type.SERVICE_OBJECT:
             return self.group_flats_mapper.get_service_object_flats([uid])
-        return self.group_flats_mapper.get_user_object_flats([uid])
+        return self.group_flats_mapper.get_user_flats([uid])
+    
+    def get_prev_flats(self, type, uid):
+        if type == Type.NETWORK_OBJECT:
+            return self.prev_group_flats_mapper.get_network_object_flats([uid])
+        if type == Type.SERVICE_OBJECT:
+            return self.prev_group_flats_mapper.get_service_object_flats([uid])
+        return self.prev_group_flats_mapper.get_user_flats([uid])
     
     def get_prefix(self, type: Type):
         if type == Type.NETWORK_OBJECT:
@@ -399,60 +420,50 @@ class FwConfigImportObject():
         return "usrgrp"
 
 
-    def removeOutdatedMemberships(self, prevConfig: FwConfigNormalized, type: Type):
+    def removeOutdatedMemberships(self, prev_config: FwConfigNormalized, type: Type):
         errors = 0
         changes = 0
-        removedMembers = []
-        changedMembers = []
-        removedFlats = []
-        changedFlats = []
+        removed_members = []
+        removed_flats = []
 
-        prev_config_objects, current_config_objects = self.get_config_objects(type, prevConfig)
+        prev_config_objects, current_config_objects = self.get_config_objects(type, prev_config)
         prefix = self.get_prefix(type)
 
         for uid in prev_config_objects.keys():
-            refs = self.get_refs(type, prev_config_objects[uid])
-            if refs is not None:
-                id = self.get_id(type, uid)
-                prevMemberUIds = refs.split(fwo_const.list_delimiter)
-                prevFlatMemberUIds = self.get_flats(type, uid)
-                memberUIds = []  # all members need to be removed if group deleted or changed
-                flatMemberUIds = []
-                if uid in current_config_objects:  # group not removed
-                    if not current_config_objects[uid] != prev_config_objects[uid]:
-                        # group not changed -> check for changes in members
-                        memberUIds = self.get_refs(type, current_config_objects[uid]).split(fwo_const.list_delimiter)
-                        flatMemberUIds = self.get_flats(type, uid)
-                for prevMemberUId in prevMemberUIds:
-                    removed = prevMemberUId not in memberUIds
-                    if not removed:
-                        if current_config_objects[prevMemberUId] != prev_config_objects[prevMemberUId]:
-                            removed = True
-                            changedMembers.append([uid, prevMemberUId])
-                    if removed:
-                        prevMemberId = self.get_id(type, prevMemberUId)
-                        removedMembers.append({
-                            "_and": [
-                                {f"{prefix}_id": {"_eq": id}},
-                                {f"{prefix}_member_id": {"_eq": prevMemberId}},
-                            ]
-                        })
-                for prevFlatMemberUId in prevFlatMemberUIds:
-                    removed = prevFlatMemberUId not in flatMemberUIds
-                    if not removed:
-                        if current_config_objects[prevFlatMemberUId] != prev_config_objects[prevFlatMemberUId]:
-                            removed = True
-                            changedFlats.append([uid, prevFlatMemberUId])
-                    if removed:
-                        prevFlatMemberId = self.get_id(type, prevFlatMemberUId)
-                        removedFlats.append({
-                            "_and": [
-                                {f"{prefix}_flat_id": {"_eq": id}},
-                                {f"{prefix}_flat_member_id": {"_eq": prevFlatMemberId}},
-                            ]
-                        })
+            if not self.is_group(type, prev_config_objects[uid]):
+                continue
+            id = self.get_id(type, uid, before_update=True)
+            prev_member_uids = self.get_members(type, self.get_refs(type, prev_config_objects[uid]))
+            prev_flat_member_uids = self.get_prev_flats(type, uid)
+            member_uids = []  # all members need to be removed if group deleted or changed
+            flat_member_uids = []
+            if uid in current_config_objects:  # group not removed
+                if current_config_objects[uid] == prev_config_objects[uid]:
+                    # group not changed -> check for changes in members
+                    member_uids = self.get_members(type, self.get_refs(type, current_config_objects[uid]))
+                    flat_member_uids = self.get_flats(type, uid)
+            for prev_member_uid in prev_member_uids:
+                if prev_member_uid in member_uids and current_config_objects[prev_member_uid] == prev_config_objects[prev_member_uid]:
+                    continue # member was not removed or changed
+                prev_member_id = self.get_id(type, prev_member_uid, before_update=True)
+                removed_members.append({
+                    "_and": [
+                        {f"{prefix}_id": {"_eq": id}},
+                        {f"{prefix}_member_id": {"_eq": prev_member_id}},
+                    ]
+                })
+            for prev_flat_member_uid in prev_flat_member_uids:
+                if prev_flat_member_uid in flat_member_uids and current_config_objects[prev_flat_member_uid] == prev_config_objects[prev_flat_member_uid]:
+                    continue # flat member was not removed or changed
+                prev_flat_member_id = self.get_id(type, prev_flat_member_uid, before_update=True)
+                removed_flats.append({
+                    "_and": [
+                        {f"{prefix}_flat_id": {"_eq": id}},
+                        {f"{prefix}_flat_member_id": {"_eq": prev_flat_member_id}},
+                    ]
+                })
         # remove outdated group memberships
-        if len(removedMembers) > 0:
+        if len(removed_members) > 0:
             import_mutation = f"""
                 mutation removeOutdated{prefix.capitalize()}Memberships($importId: bigint!, $removedMembers: [{prefix}_bool_exp!]!, $removedFlats: [{prefix}_flat_bool_exp!]!) {{
                     update_{prefix}(where: {{_and: [{{_or: $removedMembers}}, {{removed: {{_is_null: true}}}}]}},
@@ -473,13 +484,13 @@ class FwConfigImportObject():
                     }}
                 }}
             """
-            queryVariables = {
+            query_variables = {
                 'importId': self.ImportDetails.ImportId,
-                'removedMembers': removedMembers,
-                'removedFlats': removedFlats
+                'removedMembers': removed_members,
+                'removedFlats': removed_flats
             }
             try:
-                import_result = self.ImportDetails.call(import_mutation, queryVariables=queryVariables, analyze_payload=True)
+                import_result = self.ImportDetails.call(import_mutation, queryVariables=query_variables, analyze_payload=True)
                 if 'errors' in import_result:
                     logger = getFwoLogger()
                     logger.exception(f"fwo_api:importNwObject - error in removeOutdated{prefix.capitalize()}Memberships: {str(import_result['errors'])}")
@@ -491,70 +502,58 @@ class FwConfigImportObject():
                 logger.exception(f"failed to remove outdated group memberships for {type}: {str(traceback.format_exc())}")
                 errors = 1
 
-        return errors, changes, changedMembers, changedFlats
+        return errors, changes
 
 
-    def addGroupMemberships(self, prevConfig, type: Type, outdatedMembers, outdatedFlats):
+    def addGroupMemberships(self, prev_config, type: Type):
         """
         This function is used to update group memberships for nwobjs, services or users in the database.
         It adds group memberships and flats for new and updated members.
         Args:
-            prevConfig (FwConfigNormalized): The previous configuration.
-            outdatedMembers (List[Tuple[string, string]]): List of tuples containing the group UIDs and member UIDs of outdated members.
-            outdatedFlats (List[Tuple[string, string]]): List of tuples containing the group UIDs and flat member UIDs of outdated flats.
+            prev_config (FwConfigNormalized): The previous normalized config.
         """
         logger = getFwoLogger()
         errors = 0
         changes = 0
-        newGroupMembers = []
-        newGroupMemberFlats = []
-        prev_config_objects, current_config_objects = self.get_config_objects(type, prevConfig)
+        new_group_members = []
+        new_group_member_flats = []
+        prev_config_objects, current_config_objects = self.get_config_objects(type, prev_config)
         prefix = self.get_prefix(type)
         for uid in current_config_objects.keys():
-            if self.get_refs(type, current_config_objects[uid]) is not None:
-                memberUids = self.get_refs(type, current_config_objects[uid]).split(fwo_const.list_delimiter)
-                if uid in prev_config_objects:
-                    # group not added
-                    if not current_config_objects[uid] != prev_config_objects[uid]:
-                        # group not changed -> if exist, changed members are handled below
-                        continue
-                groupId = self.get_id(type, uid)
-                for memberUId in memberUids:
-                    memberId = self.get_id(type, memberUId)
-                    newGroupMembers.append({
-                        f"{prefix}_id": groupId,
-                        f"{prefix}_member_id": memberId,
-                        "import_created": self.ImportDetails.ImportId,
-                        "import_last_seen": self.ImportDetails.ImportId # to be removed in the future
-                    })
-                flatMemberUids = self.get_flats(type, uid)
-                for flatMemberUid in flatMemberUids:
-                    flatMemberId = self.get_id(type, flatMemberUid)
-                    newGroupMemberFlats.append({
-                        f"{prefix}_flat_id": groupId,
-                        f"{prefix}_flat_member_id": flatMemberId,
-                        "import_created": self.ImportDetails.ImportId,
-                        "import_last_seen": self.ImportDetails.ImportId # to be removed in the future
-                    })
-        for changedObj in outdatedMembers: # readd changed members
-            groupId = self.get_id(type, changedObj[0])
-            memberId = self.get_id(type, changedObj[1])
-            newGroupMembers.append({
-                f"{prefix}_id": groupId,
-                f"{prefix}_member_id": memberId,
-                "import_created": self.ImportDetails.ImportId,
-                "import_last_seen": self.ImportDetails.ImportId # to be removed in the future
-            })
-        for changedObj in outdatedFlats: # readd changed flats
-            groupId = self.get_id(type, changedObj[0])
-            memberId = self.get_id(type, changedObj[1])
-            newGroupMemberFlats.append({
-                f"{prefix}_flat_id": groupId,
-                f"{prefix}_flat_member_id": memberId,
-                "import_created": self.ImportDetails.ImportId,
-                "import_last_seen": self.ImportDetails.ImportId # to be removed in the future
-            })
-        if len(newGroupMembers) > 0:
+            if not self.is_group(type, current_config_objects[uid]):
+                continue
+            member_uids = self.get_members(type, self.get_refs(type, current_config_objects[uid]))
+            prev_member_uids = []  # all members need to be added if group added or changed
+            prev_flat_member_uids = []
+            if uid in prev_config_objects:
+                # group not added
+                if current_config_objects[uid] == prev_config_objects[uid]:
+                    # group not changed -> check for changes in members
+                    prev_member_uids = self.get_members(type, self.get_refs(type, prev_config_objects[uid]))
+                    prev_flat_member_uids = self.get_prev_flats(type, uid)
+            group_id = self.get_id(type, uid)
+            for member_uid in member_uids:
+                if member_uid in prev_member_uids and prev_config_objects[member_uid] == current_config_objects[member_uid]:
+                    continue # member was not added or changed
+                memberId = self.get_id(type, member_uid)
+                new_group_members.append({
+                    f"{prefix}_id": group_id,
+                    f"{prefix}_member_id": memberId,
+                    "import_created": self.ImportDetails.ImportId,
+                    "import_last_seen": self.ImportDetails.ImportId # to be removed in the future
+                })
+            flat_member_uids = self.get_flats(type, uid)
+            for flat_member_uid in flat_member_uids:
+                if flat_member_uid in prev_flat_member_uids and prev_config_objects[flat_member_uid] == current_config_objects[flat_member_uid]:
+                    continue # flat member was not added or changed
+                flat_member_id = self.get_id(type, flat_member_uid)
+                new_group_member_flats.append({
+                    f"{prefix}_flat_id": group_id,
+                    f"{prefix}_flat_member_id": flat_member_id,
+                    "import_created": self.ImportDetails.ImportId,
+                    "import_last_seen": self.ImportDetails.ImportId # to be removed in the future
+                })
+        if len(new_group_members) > 0:
             import_mutation = f"""
                 mutation update{prefix.capitalize()}Groups($groups: [{prefix}_insert_input!]!, $groupFlats: [{prefix}_flat_insert_input!]!) {{
                     insert_{prefix}(objects: $groups) {{
@@ -565,12 +564,12 @@ class FwConfigImportObject():
                     }}
                 }}
             """
-            queryVariables = {
-                'groups': newGroupMembers,
-                'groupFlats': newGroupMemberFlats
+            query_variables = {
+                'groups': new_group_members,
+                'groupFlats': new_group_member_flats
             }
             try:
-                import_result = self.ImportDetails.call(import_mutation, queryVariables=queryVariables, analyze_payload=True)
+                import_result = self.ImportDetails.call(import_mutation, queryVariables=query_variables, analyze_payload=True)
                 if 'errors' in import_result:
                     logger.exception(f"fwo_api:importNwObject - error in addGroupMemberships: {str(import_result['errors'])}")
                     errors = 1

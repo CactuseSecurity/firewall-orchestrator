@@ -27,7 +27,7 @@
         {
             <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("last_hit"))" Field="@(r => r.Metadata.LastHit)" Sortable="false" Filterable="false">
                 <Template>
-                    @((MarkupString)ruleDisplay.DisplayLastHit(rule))
+                    @((MarkupString)RuleDisplayHtml.DisplayLastHit(rule))
                 </Template>
             </Column>
         }
@@ -35,22 +35,22 @@
         {
             <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("next_recert"))" Field="@(r => r.Metadata.RuleRecertification)" Sortable="false" Filterable="false">
                 <Template>
-                    @((MarkupString)ruleDisplay.DisplayNextRecert(rule))
+                    @((MarkupString)RuleDisplayHtml.DisplayNextRecert(rule))
                 </Template>
             </Column>
             <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("owner"))" Field="@(r => r.Metadata.RuleRecertification)" Sortable="false" Filterable="false">
                 <Template>
-                    @((MarkupString)ruleDisplay.DisplayOwner(rule))
+                    @((MarkupString)RuleDisplayHtml.DisplayOwner(rule))
                 </Template>
             </Column>
             <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("ip_matches"))" Field="@(r => r.Metadata.RuleRecertification)" Sortable="false" Filterable="false">
                 <Template>
-                    @((MarkupString)ruleDisplay.DisplayRecertIpMatches(rule))
+                    @((MarkupString)RuleDisplayHtml.DisplayRecertIpMatches(rule))
                 </Template>
             </Column>
             <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("last_hit"))" Field="@(r => r.Metadata.LastHit)" Sortable="false" Filterable="false">
                 <Template>
-                    @((MarkupString)ruleDisplay.DisplayLastHit(rule))
+                    @((MarkupString)RuleDisplayHtml.DisplayLastHit(rule))
                 </Template>
             </Column>
             @if(Recertification && RecertificationHistory)
@@ -58,7 +58,7 @@
                 // TODO: implement 2nd recert report containing latest recerts
                 <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("last_recertifier"))" Field="@(r => r.Metadata.RuleRecertification)" Sortable="false" Filterable="true">
                     <Template>
-                        @((MarkupString)ruleDisplay.DisplayLastRecertifier(rule))
+                        @((MarkupString)RuleDisplayHtml.DisplayLastRecertifier(rule))
                     </Template>
                 </Column>
             }
@@ -151,7 +151,7 @@
         }
         <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("enabled"))" Field="@(r => r.Disabled)" Sortable="true" Filterable="false" Hideable="true">
             <Template>
-                @((MarkupString)ruleDisplay.DisplayEnabled(rule, getActLocation()))
+                @((MarkupString)RuleDisplayHtml.DisplayEnabled(rule, getActLocation()))
             </Template>
         </Column>
         <Column TableItem="Rule" Title="@(userConfig.GetText("uid"))" Field="@(r => r.Uid)" Sortable="true" Filterable="false" Hideable="true" />
@@ -210,7 +210,7 @@
     public List<Rule> SelectedRules { get; set; } = [];
 
     [Parameter]
-    public int RulesPerPage { get; set; }
+    public int RulesPerPage { get; set; } = 0;
 
     [Parameter]
     public Rule[]? Rules { get; set; } = [];

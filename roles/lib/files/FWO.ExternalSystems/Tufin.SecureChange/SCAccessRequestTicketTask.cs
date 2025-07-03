@@ -1,6 +1,7 @@
 using FWO.Data;
 using FWO.Data.Workflow;
 using FWO.Data.Modelling;
+using FWO.Basics;
 
 namespace FWO.ExternalSystems.Tufin.SecureChange
 {
@@ -38,12 +39,12 @@ namespace FWO.ExternalSystems.Tufin.SecureChange
 			ExtMgtData extMgt = ReqTask.OnManagement != null && ReqTask.OnManagement?.ExtMgtData != null ?
 				System.Text.Json.JsonSerializer.Deserialize<ExtMgtData>(ReqTask.OnManagement?.ExtMgtData ?? "{}") : new();
 			TaskText = template.TasksTemplate
-				.Replace("@@ORDERNAME@@", "AR"+ ReqTask.TaskNumber.ToString())
-				.Replace("@@TASKCOMMENT@@", ReqTask.GetFirstCommentText())
-				.Replace("@@ACTION@@", MapActionType(ReqTask))
-				.Replace("@@SOURCES@@", ConvertNetworkElems(template, UseModelled() ? ElemFieldType.modelled_source : ElemFieldType.source, extMgt.ExtName))
-				.Replace("@@DESTINATIONS@@", ConvertNetworkElems(template, UseModelled() ? ElemFieldType.modelled_destination : ElemFieldType.destination, extMgt.ExtName))
-				.Replace("@@SERVICES@@", ConvertServiceElems(template));
+				.Replace(Placeholder.ORDERNAME, "AR"+ ReqTask.TaskNumber.ToString())
+				.Replace(Placeholder.TASKCOMMENT, ReqTask.GetFirstCommentText())
+				.Replace(Placeholder.ACTION, MapActionType(ReqTask))
+				.Replace(Placeholder.SOURCES, ConvertNetworkElems(template, UseModelled() ? ElemFieldType.modelled_source : ElemFieldType.source, extMgt.ExtName))
+				.Replace(Placeholder.DESTINATIONS, ConvertNetworkElems(template, UseModelled() ? ElemFieldType.modelled_destination : ElemFieldType.destination, extMgt.ExtName))
+				.Replace(Placeholder.SERVICES, ConvertServiceElems(template));
 		}
 
 		private static string MapActionType(WfReqTask reqTask)

@@ -105,14 +105,14 @@ namespace FWO.Report
         public bool GotObjectsInReport { get; protected set; } = false;
 
 
-        public ReportBase(DynGraphqlQuery query, UserConfig UserConfig, ReportType reportType)
+        protected ReportBase(DynGraphqlQuery query, UserConfig UserConfig, ReportType reportType)
         {
             Query = query;
             userConfig = UserConfig;
             ReportType = reportType;
         }
 
-        public abstract Task Generate(int rulesPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback, CancellationToken ct);
+        public abstract Task Generate(int elementsPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback, CancellationToken ct);
 
         public virtual async Task<bool> GetObjectsInReport(int objectsPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback)
         {

@@ -10,7 +10,6 @@ using FWO.Ui.Display;
 using Newtonsoft.Json;
 using System.Text;
 using System.Text.Json;
-using System.Threading.Tasks;
 
 namespace FWO.Report
 {
@@ -25,10 +24,10 @@ namespace FWO.Report
             this.timeFilter = timeFilter;
         }
 
-        public override async Task Generate(int changesPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback, CancellationToken ct)
+        public override async Task Generate(int elementsPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback, CancellationToken ct)
         {
-            Query.QueryVariables["limit"] = changesPerFetch;
-            Query.QueryVariables["offset"] = 0;
+            Query.QueryVariables[QueryVar.Limit] = elementsPerFetch;
+            Query.QueryVariables[QueryVar.Offset] = 0;
 
             (string startTime, string stopTime) = DynGraphqlQuery.ResolveTimeRange(timeFilter);
             Dictionary<int, List<long>> managementImportIds = [];
@@ -36,7 +35,7 @@ namespace FWO.Report
 
             queriesNeeded += await FetchInitialManagementData(apiConnection, startTime, stopTime, managementImportIds);
 
-            queriesNeeded += await FetchAdditionalChanges(apiConnection, managementImportIds, changesPerFetch, callback, queriesNeeded, ct);
+            queriesNeeded += await FetchAdditionalChanges(apiConnection, managementImportIds, elementsPerFetch, callback, queriesNeeded, ct);
 
             Log.WriteDebug("Generate Changes Report", $"Finished generating changes report with {queriesNeeded} queries.");
         }
@@ -63,10 +62,10 @@ namespace FWO.Report
             return queriesNeeded;
         }
 
-        private async Task<int> FetchAdditionalChanges(ApiConnection apiConnection, Dictionary<int, List<long>> managementImportIds, int changesPerFetch,
+        private async Task<int> FetchAdditionalChanges(ApiConnection apiConnection, Dictionary<int, List<long>> managementImportIds, int elementsPerFetch,
             Func<ReportData, Task> callback, int queriesNeeded, CancellationToken ct)
         {
-            Query.QueryVariables["offset"] = changesPerFetch;
+            Query.QueryVariables[QueryVar.Offset] = elementsPerFetch;
             int maxImports = managementImportIds.Values.Select(v => v.Count).Max();
 
             for (int i = 1; i < maxImports; i++)
@@ -81,20 +80,20 @@ namespace FWO.Report
                     }
 
                     (bool anyContinue, int queries) = await ProcessManagementsForAdditionalChanges(
-                        apiConnection, managementImportIds, i, changesPerFetch);
+                        apiConnection, managementImportIds, i, elementsPerFetch);
 
                     queriesNeeded += queries;
                     continueFetching = anyContinue;
 
                     await callback(ReportData);
-                    Query.QueryVariables["offset"] = (int)Query.QueryVariables["offset"] + changesPerFetch;
+                    Query.QueryVariables[QueryVar.Offset] = (int)Query.QueryVariables[QueryVar.Offset] + elementsPerFetch;
                 }
-                Query.QueryVariables["offset"] = 0;
+                Query.QueryVariables[QueryVar.Offset] = 0;
             }
             return queriesNeeded;
         }
 
-        private async Task<(bool anyContinue, int queries)> ProcessManagementsForAdditionalChanges(ApiConnection apiConnection, Dictionary<int, List<long>> managementImportIds, int i, int changesPerFetch)
+        private async Task<(bool anyContinue, int queries)> ProcessManagementsForAdditionalChanges(ApiConnection apiConnection, Dictionary<int, List<long>> managementImportIds, int i, int elementsPerFetch)
         {
             bool anyContinue = false;
             int queries = 0;
@@ -112,7 +111,7 @@ namespace FWO.Report
                 (bool newObjects, Dictionary<string, int> maxAddedCounts) = management.Merge(newData);
                 queries++;
 
-                if (newObjects && maxAddedCounts.Values.Any(v => v >= changesPerFetch))
+                if (newObjects && maxAddedCounts.Values.Any(v => v >= elementsPerFetch))
                     anyContinue = true;
             }
 
@@ -121,9 +120,9 @@ namespace FWO.Report
 
         private void SetMgtQueryVars(int mgmId, long importIdOld, long importIdNew)
         {
-            Query.QueryVariables["mgmId"] = mgmId;
-            Query.QueryVariables[$"import_id_old"] = importIdOld;
-            Query.QueryVariables[$"import_id_new"] = importIdNew;
+            Query.QueryVariables[QueryVar.MgmId] = mgmId;
+            Query.QueryVariables[QueryVar.ImportIdOld] = importIdOld;
+            Query.QueryVariables[QueryVar.ImportIdNew] = importIdNew;
         }
 
         public static async Task<List<long>> GetImportIdsInTimeRange(ApiConnection apiConnection, string startTime, string stopTime, int mgmId, bool? ruleChangeRequired = null)
@@ -186,30 +185,27 @@ namespace FWO.Report
                 foreach (var management in ReportData.ManagementData.Where(mgt => !mgt.Ignore && mgt.Devices != null &&
                         Array.Exists(mgt.Devices, device => device.RuleChanges != null && device.RuleChanges.Length > 0)))
                 {
-                    foreach (var gateway in management.Devices)
+                    foreach (var gateway in management.Devices.Where(g => g.RuleChanges != null && g.RuleChanges.Length > 0))
                     {
-                        if (gateway.RuleChanges != null && gateway.RuleChanges.Length > 0)
+                        foreach (var ruleChange in gateway.RuleChanges!)
                         {
-                            foreach (var ruleChange in gateway.RuleChanges)
-                            {
-                                report.Append(ruleChangeDisplayCsv.OutputCsv(management.Name));
-                                report.Append(ruleChangeDisplayCsv.OutputCsv(gateway.Name));
-                                report.Append(ruleChangeDisplayCsv.DisplayChangeTime(ruleChange));
-                                report.Append(ruleChangeDisplayCsv.DisplayChangeAction(ruleChange));
-                                report.Append(ruleChangeDisplayCsv.DisplayName(ruleChange));
-                                report.Append(ruleChangeDisplayCsv.DisplaySourceZone(ruleChange));
-                                report.Append(ruleChangeDisplayCsv.DisplaySource(ruleChange, ReportType));
-                                report.Append(ruleChangeDisplayCsv.DisplayDestinationZone(ruleChange));
-                                report.Append(ruleChangeDisplayCsv.DisplayDestination(ruleChange, ReportType));
-                                report.Append(ruleChangeDisplayCsv.DisplayServices(ruleChange, ReportType));
-                                report.Append(ruleChangeDisplayCsv.DisplayAction(ruleChange));
-                                report.Append(ruleChangeDisplayCsv.DisplayTrack(ruleChange));
-                                report.Append(ruleChangeDisplayCsv.DisplayEnabled(ruleChange));
-                                report.Append(ruleChangeDisplayCsv.DisplayUid(ruleChange));
-                                report.Append(ruleChangeDisplayCsv.DisplayComment(ruleChange));
-                                report = RuleDisplayBase.RemoveLastChars(report, 1); // remove last chars (comma)
-                                report.AppendLine("");
-                            }
+                            report.Append(ruleChangeDisplayCsv.OutputCsv(management.Name));
+                            report.Append(ruleChangeDisplayCsv.OutputCsv(gateway.Name));
+                            report.Append(ruleChangeDisplayCsv.DisplayChangeTime(ruleChange));
+                            report.Append(ruleChangeDisplayCsv.DisplayChangeAction(ruleChange));
+                            report.Append(ruleChangeDisplayCsv.DisplayName(ruleChange));
+                            report.Append(ruleChangeDisplayCsv.DisplaySourceZone(ruleChange));
+                            report.Append(ruleChangeDisplayCsv.DisplaySource(ruleChange, ReportType));
+                            report.Append(ruleChangeDisplayCsv.DisplayDestinationZone(ruleChange));
+                            report.Append(ruleChangeDisplayCsv.DisplayDestination(ruleChange, ReportType));
+                            report.Append(ruleChangeDisplayCsv.DisplayServices(ruleChange, ReportType));
+                            report.Append(ruleChangeDisplayCsv.DisplayAction(ruleChange));
+                            report.Append(ruleChangeDisplayCsv.DisplayTrack(ruleChange));
+                            report.Append(ruleChangeDisplayCsv.DisplayEnabled(ruleChange));
+                            report.Append(ruleChangeDisplayCsv.DisplayUid(ruleChange));
+                            report.Append(ruleChangeDisplayCsv.DisplayComment(ruleChange));
+                            report = RuleDisplayBase.RemoveLastChars(report, 1); // remove last chars (comma)
+                            report.AppendLine("");
                         }
                     }
                 }

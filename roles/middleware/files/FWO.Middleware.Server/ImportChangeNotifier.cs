@@ -13,6 +13,7 @@ using FWO.Services;
 using Newtonsoft.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
+using System.Text;
 
 namespace FWO.Middleware.Server
 {
@@ -210,7 +211,7 @@ namespace FWO.Middleware.Server
 
         private string CreateBody()
         {
-            string body = globalConfig.ImpChangeNotifyBody;
+            StringBuilder body = new(globalConfig.ImpChangeNotifyBody);
             foreach (var mgmtId in importedManagements)
             {
                 int mgmtCounter = 0;
@@ -218,10 +219,10 @@ namespace FWO.Middleware.Server
                 {
                     mgmtCounter += imp.RelevantChanges;
                 }
-                body += globalConfig.ImpChangeNotifyType == (int)ImpChangeNotificationType.HtmlInBody ? "<br>" : "\r\n\r\n";
-                body += $"{importsToNotify.FirstOrDefault(x => x.MgmtId == mgmtId).Mgmt.MgmtName} (id={mgmtId}): {mgmtCounter} {userConfig.GetText("changes")}";
+                body.Append(globalConfig.ImpChangeNotifyType == (int)ImpChangeNotificationType.HtmlInBody ? "<br>" : "\r\n\r\n");
+                body.Append($"{importsToNotify.FirstOrDefault(x => x.MgmtId == mgmtId).Mgmt.MgmtName} (id={mgmtId}): {mgmtCounter} {userConfig.GetText("changes")}");
             }
-            return body;
+            return body.ToString();
         }
 
         private FormFile? CreateAttachment(string? content, string fileFormat)

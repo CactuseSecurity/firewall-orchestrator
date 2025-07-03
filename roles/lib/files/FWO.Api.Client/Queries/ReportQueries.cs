@@ -1,4 +1,4 @@
-﻿using FWO.Logging;
+using FWO.Logging;
 
 namespace FWO.Api.Client.Queries
 {
@@ -21,6 +21,7 @@ namespace FWO.Api.Client.Queries
 
         public static readonly string getReportsById;
         public static readonly string getRelevantImportIdsAtTime;
+        public static readonly string getRelevantImportIdsInTimeRange;
         public static readonly string statisticsReportCurrent;
 
         public static readonly string subscribeGeneratedReportsChanges;
@@ -48,6 +49,7 @@ namespace FWO.Api.Client.Queries
                 getReportsById = File.ReadAllText(QueryPath + "report/getReportById.graphql");
                 getReportTemplates = File.ReadAllText(QueryPath + "report/getReportTemplates.graphql");
                 getRelevantImportIdsAtTime = File.ReadAllText(QueryPath + "report/getRelevantImportIdsAtTime.graphql");
+                getRelevantImportIdsInTimeRange = File.ReadAllText(QueryPath + "report/getRelevantImportIdsInTimeRange.graphql");
                 statisticsReportCurrent = File.ReadAllText(QueryPath + "report/statisticsCurrent.graphql");
                 statisticsReportCurrent = File.ReadAllText(QueryPath + "report/statisticsCurrentOverall.graphql");
                 updateReportTemplate = File.ReadAllText(QueryPath + "report/updateReportTemplate.graphql");
@@ -62,11 +64,11 @@ namespace FWO.Api.Client.Queries
                 // note: currently we only check for rule changes, but this should be extended to other changes in the future
                 // getImportsToNotify = File.ReadAllText(QueryPath + "report/getImportsToNotifyForAnyChanges.phql");
                 getImportsToNotify = File.ReadAllText(QueryPath + "report/getImportsToNotifyForRuleChanges.graphql");
-
+                setImportsNotified = File.ReadAllText(QueryPath + "report/setImportsNotified.graphql");
             }
             catch (Exception exception)
             {
-                Log.WriteError("Initialize Api Queries", "Api ReportQueries could not be loaded." , exception);
+                Log.WriteError("Initialize Api Queries", "Api ReportQueries could not be loaded.", exception);
                 Environment.Exit(-1);
             }
         }

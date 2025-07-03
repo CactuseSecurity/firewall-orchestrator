@@ -3,9 +3,11 @@ from importer.model_controllers.management_details_controller import ManagementD
 
 
 class MockManagementDetailsController(ManagementDetailsController):
-    def __init__(self):
+    def __init__(self, is_super_manager: bool = False):
         """
             Initializes without calling base init.
         """
 
         self.Id = 3
+        self.Name = "Mock Management"
+        self.IsSuperManager = is_super_manager

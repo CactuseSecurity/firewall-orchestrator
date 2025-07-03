@@ -1,18 +1,32 @@
-import unittest
 import sys
 import os
 import copy
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '../importer'))
 
-from test.mocking.mock_config import MockFwConfigNormalized
+from test.mocking.mock_config import MockFwConfigNormalizedBuilder
 from test.mocking.mock_fwconfig_import_rule import MockFwConfigImportRule
+
+def set_up_config_for_import_consistency_test():
+
+    config_builder = MockFwConfigNormalizedBuilder()
+    config = config_builder.build_config(
+        {
+            "rule_config": [10, 10, 10],
+            "network_object_config": 10,
+            "service_config": 10,
+            "user_config": 10
+        }
+    )
+    config_builder.add_rule_with_nested_groups(config)
+
+    return config
 
 
 def set_up_test_for_ruleorder_test_with_defaults():
 
-    previous_config = MockFwConfigNormalized()
-    previous_config.initialize_config(
+    config_builder = MockFwConfigNormalizedBuilder()
+    previous_config = config_builder.build_config(
         {
             "rule_config": [10,10,10],
             "network_object_config": 10,

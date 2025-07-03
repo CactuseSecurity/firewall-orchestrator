@@ -334,13 +334,16 @@ namespace FWO.Data.Modelling
         public bool IsDocumentationOnly()
             => ExtraConfigs.Any(_ => _.ExtraConfigType.StartsWith(GlobalConst.kDoku_));
 
+        public bool IsNat()
+            => ExtraConfigs.Any(_ => _.ExtraConfigType.ToUpper() == GlobalConst.kNAT);
+
         public Dictionary<string, bool> GetSpecialUserObjectNames()
         {
             Dictionary<string, bool> userObjectNames = [];
-            foreach(var extraConfig in ExtraConfigs.Where(e => e.ExtraConfigType.ToLower().EndsWith(GlobalConst.k_user)
+            foreach (var extraConfig in ExtraConfigs.Where(e => e.ExtraConfigType.ToLower().EndsWith(GlobalConst.k_user)
                                                             || e.ExtraConfigType.ToLower().EndsWith(GlobalConst.k_user2)))
             {
-                userObjectNames.Add(extraConfig.ExtraConfigText.ToLower(),false);
+                userObjectNames.Add(extraConfig.ExtraConfigText.ToLower(), false);
             }
             return userObjectNames;
         }

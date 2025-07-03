@@ -11,6 +11,7 @@ using AngleSharp.Dom;
 using AngleSharp.Css.Dom;
 using System.Text.RegularExpressions;
 using FWO.Logging;
+using System.Threading.Tasks;
 
 namespace FWO.Test
 {
@@ -25,7 +26,7 @@ namespace FWO.Test
         static readonly ReportBase currentReport = SimulatedReport.DetailedReport();
 
         [Test]
-        public void ObjShouldBeVisibleAfterNavigation()
+        public async Task ObjShouldBeVisibleAfterNavigation()
         {
             // Arrange
             Services.AddSingleton(userConfig);
@@ -33,8 +34,7 @@ namespace FWO.Test
             Services.AddLocalization();
 
             var objToFind = currentReport.ReportData.ManagementData[0].Objects[1];
-            var simObjHtml = ReportDevicesBase.ConstructLink(ObjCatString.NwObj, "", 0, objToFind.Id, objToFind.Name, OutputLocation.report, currentReport.ReportData.ManagementData[0].Id, "");
-            var hrefValue = Regex.Match(simObjHtml, "href=\"([^\"]*)\"").Groups[1].Value;
+            var hrefValue = ReportDevicesBase.GetReportDevicesLinkAddress(OutputLocation.report, currentReport.ReportData.ManagementData[0].Id, ObjCatString.NwObj, 0, objToFind.Id, currentReport.ReportType);
             var link = $"https://localhost/{hrefValue}";
 
             var navigationManager = Services.GetRequiredService<FakeNavigationManager>();
@@ -49,6 +49,15 @@ namespace FWO.Test
             var cut = RenderComponent<RightSidebar>(parameters => parameters
                 .Add(p => p.CurrentReport, currentReport));
 
+            // manually trigger 
+            var anchorNavToRSB = cut.FindComponent<AnchorNavToRSB>();
+            Task timeout = Task.Delay(2000);
+            Task scrollTask = anchorNavToRSB.InvokeAsync(() => anchorNavToRSB.Instance.ScrollToFragment());
+            Task completedTask = await Task.WhenAny(scrollTask, timeout);
+            if (completedTask == timeout)
+            {
+                Log.WriteDebug("Test UI RSB", "scrollToFragment does not complete timely (circle dependency through state changes?)");
+            }
             // Assert
             Assert.That(scrollIntoRSBViewInvocation.Invocations, Is.Not.Empty, "scrollIntoRSBView should have been called");
             var invocation = scrollIntoRSBViewInvocation.Invocations.First();
@@ -56,18 +65,16 @@ namespace FWO.Test
             Assert.That(parameter, Is.Not.Null, "scrollIntoRSBView was called with a null parameter");
             Assert.That(parameter, Is.InstanceOf<string>(), "scrollIntoRSBView was called with a non-string parameter");
             Assert.That((string)parameter!, Is.Not.Empty, "scrollIntoRSBView was called with an empty string");
-
-            // TODO: rework this
-            // var element = cut.Find($"#{parameter}");
-            // Assert.That(element, Is.Not.Null, "Element with id {parameter} not found in right sidebar");
-            // Assert.That(IsElementVisible(element), Is.True, "Element is not visible (might be incorrect tab or uncollapsed)");
+            var element = cut.Find($"#{parameter}");
+            Assert.That(IsElementVisible(element), Is.True, "Element is not visible (might be incorrect tab or collapsed)");
         }
 
         private bool IsElementVisible(IElement? element)
         {
             while (element != null)
             {
-                var display = element.GetStyle().GetPropertyValue("display");
+                var computedStyle = element.Owner?.DefaultView?.GetComputedStyle(element);
+                var display = computedStyle?.GetPropertyValue("display");
                 if (display == "none")
                 {
                     Log.WriteError("Test UI RSB", $"Element {element.TagName} is not visible");

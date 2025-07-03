@@ -88,58 +88,80 @@ namespace FWO.Ui.Display
 
         protected static string NetworkLocationToHtml(NetworkLocation networkLocation, int mgmtId, int chapterNumber, OutputLocation location, string style, ReportType reportType)
         {
-            string nwLocation = DisplayNetworkLocation(networkLocation, reportType, 
-                reportType.IsResolvedReport() || reportType == ReportType.VarianceAnalysis || networkLocation.User == null ? null :
-                ReportDevicesBase.ConstructLink(ObjCatString.User, ReportBase.GetIconClass(ObjCategory.user, networkLocation.User?.Type.Name),
-                    chapterNumber, networkLocation.User!.Id, networkLocation.User.Name, location, mgmtId, style),
-                reportType.IsResolvedReport() || reportType == ReportType.VarianceAnalysis ? null :
-                ReportDevicesBase.ConstructLink(ObjCatString.NwObj, ReportBase.GetIconClass(ObjCategory.nobj, networkLocation.Object.Type.Name),
-                    chapterNumber, networkLocation.Object.Id, networkLocation.Object.Name, location, mgmtId, style)
-                ).ToString();
+            // Determine if links should be constructed
+            bool isResolved = reportType.IsResolvedReport() || reportType == ReportType.VarianceAnalysis;
+
+            string? userOutput = null;
+            if (!isResolved && networkLocation.User != null)
+            {
+                string userLink = ReportDevicesBase.GetReportDevicesLinkAddress(location, mgmtId, ObjCatString.User, chapterNumber, networkLocation.User.Id, reportType);
+                userOutput = ReportBase.ConstructLink(ReportBase.GetIconClass(ObjCategory.user, networkLocation.User.Type.Name), networkLocation.User.Name, style, userLink);
+            }
+
+            string? objectLink = null;
+            if (!isResolved)
+            {
+                string objLink = ReportDevicesBase.GetReportDevicesLinkAddress(location, mgmtId, ObjCatString.NwObj, chapterNumber, networkLocation.Object.Id, reportType);
+                objectLink = ReportBase.ConstructLink(ReportBase.GetIconClass(ObjCategory.nobj, networkLocation.Object.Type.Name), networkLocation.Object.Name, style, objLink);
+            }
+
+            string nwLocation = DisplayNetworkLocation( networkLocation, reportType, userOutput, objectLink).ToString();
+
             return reportType.IsRuleReport() ? $"<span style=\"{style}\">{nwLocation}</span>" : nwLocation;
         }
 
         protected static string ServiceToHtml(NetworkService service, int mgmtId, int chapterNumber, OutputLocation location, string style, ReportType reportType)
         {
-            return DisplayService(service, reportType, reportType.IsResolvedReport() || reportType == ReportType.VarianceAnalysis ? null : 
-                ReportDevicesBase.ConstructLink(ObjCatString.Svc, ReportBase.GetIconClass(ObjCategory.nsrv, service.Type.Name), chapterNumber, service.Id, service.Name, location, mgmtId, style)).ToString();
+            if (reportType.IsResolvedReport() || reportType == ReportType.VarianceAnalysis)
+            {
+                return DisplayService(service, reportType, null).ToString();
+            }
+            else
+            {
+                // Construct link for unresolved report types
+                string serviceLink = ReportDevicesBase.GetReportDevicesLinkAddress(location, mgmtId, ObjCatString.Svc, chapterNumber, service.Id, reportType);
+                string serviceName = ReportBase.ConstructLink(ReportBase.GetIconClass(ObjCategory.nsrv, service.Type.Name), service.Name, style, serviceLink);
+                return DisplayService(service, reportType, serviceName).ToString();
+            }
         }
         protected static string EnforcingGatewayToHtml(Device gateway, int mgmtId, int chapterNumber, OutputLocation location, string style, ReportType reportType)
         {
-            return DisplayGateway(gateway, reportType, reportType.IsResolvedReport() ? null : 
-                ReportDevicesBase.ConstructLink(ObjCatString.Svc, Icons.Host, chapterNumber, gateway.Id, gateway.Name, location, mgmtId, style)).ToString();
+            string gwLink = ReportDevicesBase.GetReportDevicesLinkAddress(location, mgmtId, ObjCatString.NwObj, chapterNumber, gateway.Id, reportType);
+
+            return DisplayGateway(gateway, reportType, reportType.IsResolvedReport() ? null :
+                ReportBase.ConstructLink(ReportBase.GetIconClass(ObjCategory.nsrv, "Gateway"), gateway.Name, style, gwLink)).ToString();
         }
 
         private string DisplaySourceOrDestination(Rule rule, int chapterNumber, OutputLocation location, ReportType reportType, string style, bool isSource)
         {
             StringBuilder result = new();
-            if ((isSource && rule.SourceNegated) ||(!isSource && rule.DestinationNegated))
+            if ((isSource && rule.SourceNegated) || (!isSource && rule.DestinationNegated))
             {
                 result.AppendLine(userConfig.GetText("negated") + "<br>");
             }
             string highlightedStyle = style + (reportType == ReportType.AppRules ? " " + GlobalConst.kStyleHighlightedRed : "");
 
-            if(reportType.IsResolvedReport())
+            if (reportType.IsResolvedReport())
             {
                 NetworkLocation[] userNwObjects = [.. GetNetworkLocations(isSource ? rule.Froms : rule.Tos)];
                 result.AppendJoin("<br>", Array.ConvertAll(userNwObjects, networkLocation => NetworkLocationToHtml(networkLocation, rule.MgmtId, chapterNumber, location, highlightedStyle, reportType)));
             }
             else
             {
-                result.AppendJoin("<br>", Array.ConvertAll(isSource ? rule.Froms : rule.Tos, 
+                result.AppendJoin("<br>", Array.ConvertAll(isSource ? rule.Froms : rule.Tos,
                     nwLoc => NetworkLocationToHtml(nwLoc, rule.MgmtId, chapterNumber, location, highlightedStyle, reportType)));
             }
-            if(reportType == ReportType.AppRules)
+            if (reportType == ReportType.AppRules)
             {
-                if(!rule.ShowDisregarded &&
-                    ((isSource && rule.Froms.Length > 0 && rule.DisregardedFroms.Length > 0) || 
+                if (!rule.ShowDisregarded &&
+                    ((isSource && rule.Froms.Length > 0 && rule.DisregardedFroms.Length > 0) ||
                     (!isSource && rule.Tos.Length > 0 && rule.DisregardedTos.Length > 0)))
                 {
                     result.Append($"<br><span class=\"text-secondary\">... ({(isSource ? rule.DisregardedFroms.Length : rule.DisregardedTos.Length)} {userConfig.GetText("more")})</span>");
                 }
                 else
                 {
-                    if(result.Length > 0)
+                    if (result.Length > 0)
                     {
                         result.Append("<br>");
                     }

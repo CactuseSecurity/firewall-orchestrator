@@ -27,8 +27,8 @@ class ImportState():
     LastSuccessfulImport: Optional[str] = None
     IsFullImport: bool
     IsInitialImport: bool = False
-    Actions: Dict[str, Action]
-    Tracks: Dict[str, Track]
+    Actions: Dict[str, int]
+    Tracks: Dict[str, int]
     LinkTypes: Dict[str, int]
     RulebaseMap: Dict[str, int]
     RuleMap: Dict[str, int]

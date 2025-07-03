@@ -10,6 +10,7 @@ from model_controllers.fwconfig_normalized_controller import FwConfigNormalized
 from models.networkobject import NetworkObjectForImport
 from models.serviceobject import ServiceObjectForImport
 import fwo_const
+import fwo_api
 from services.service_provider import ServiceProvider
 from services.enums import Services
 
@@ -225,68 +226,7 @@ class FwConfigImportObject():
         removedNwObjIds = []
         removedNwSvcIds = []
         removedUserIds = []
-        import_mutation = """mutation updateObjects($mgmId: Int!, $importId: bigint!, $removedNwObjectUids: [String!]!, $removedSvcObjectUids: [String!]!, $newNwObjects: [object_insert_input!]!, $newSvcObjects: [service_insert_input!]!) {
-                update_object(where: {mgm_id: {_eq: $mgmId}, obj_uid: {_in: $removedNwObjectUids}, removed: {_is_null: true}},
-                    _set: {
-                        removed: $importId,
-                        active: false
-                    }
-                ) {
-                    affected_rows
-                    returning {
-                        obj_id
-                        obj_uid
-                        obj_typ_id
-                    }
-                }
-                update_service(where: {mgm_id: {_eq: $mgmId}, svc_uid: {_in: $removedSvcObjectUids}, removed: {_is_null: true}},
-                    _set: {
-                        removed: $importId,
-                        active: false
-                    }
-                ) {
-                    affected_rows
-                    returning {
-                        svc_id
-                        svc_uid
-                    }
-                }
-                update_usr(where: {mgm_id: {_eq: $mgmId}, user_uid: {_in: $removedUserUids}, removed: {_is_null: true}},
-                    _set: {
-                        removed: $importId,
-                        active: false
-                    }
-                ) {
-                    affected_rows
-                    returning {
-                        user_id
-                        user_uid
-                    }
-                }
-                insert_object(objects: $newNwObjects) {
-                    affected_rows
-                    returning {
-                        obj_id
-                        obj_uid
-                        obj_typ_id
-                    }
-                }
-                insert_service(objects: $newSvcObjects) {
-                    affected_rows
-                    returning {
-                        svc_id
-                        svc_uid
-                    }
-                }
-                insert_usr(objects: $newUsers) {
-                    affected_rows
-                    returning {
-                        user_id
-                        user_uid
-                    }
-                }
-            }
-        """
+        import_mutation = fwo_api.get_graphql_code([fwo_const.graphqlQueryPath + "allObjects/upsertObjects.graphql"])
         queryVariables = {
             'mgmId': self.ImportDetails.MgmDetails.Id,
             'importId': self.ImportDetails.ImportId,

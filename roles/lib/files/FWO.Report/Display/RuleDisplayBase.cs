@@ -4,34 +4,41 @@ using FWO.Data;
 using FWO.Config.Api;
 using FWO.Report;
 using FWO.Report.Filter;
+using FWO.Report;
 
 namespace FWO.Ui.Display
 {
-    public class RuleDisplayBase
+    public class RuleDisplayBase(UserConfig userConfig)
     {
-        protected UserConfig userConfig;
+        protected UserConfig userConfig = userConfig;
 
-        public RuleDisplayBase(UserConfig userConfig)
+        public static string DisplayNumber(Rule rule)
         {
-            this.userConfig = userConfig;
+            return rule.DisplayOrderNumberString;
         }
 
-        public string DisplayNumber(Rule rule)
+        public static string DisplayEnabled(Rule rule, OutputLocation location)
         {
-            return rule.DisplayOrderNumber.ToString();
+            if (location == OutputLocation.export)
+            {
+                return $"<b>{(rule.Disabled ? "N" : "Y")}</b>";
+            }
+            else
+            {
+                return $"<div class=\"oi {(rule.Disabled ? "oi-x" : "oi-check")}\"></div>";
+            }
         }
-
-        public string DisplayName(Rule rule)
+        public static string DisplayName(Rule rule)
         {
             return rule.Name ?? "";
         }
 
-        public string DisplaySourceZone(Rule rule)
+        public static string DisplaySourceZone(Rule rule)
         {
             return rule.SourceZone != null ? rule.SourceZone.Name : "";
         }
 
-        public string DisplayDestinationZone(Rule rule)
+        public static string DisplayDestinationZone(Rule rule)
         {
             return rule.DestinationZone != null ? rule.DestinationZone.Name : "";
         }
@@ -85,6 +92,10 @@ namespace FWO.Ui.Display
         {
             StringBuilder result = DisplayBase.DisplayService(service, reportType.IsTechReport(), serviceName);
             return reportType == ReportType.VarianceAnalysis ? DisplayWithIcon(result, ObjCategory.nsrv, service.Type.Name) : result;
+        }
+        public static StringBuilder DisplayGateway(Device gateway, ReportType reportType, string? gatewayName = null)
+        {
+            return DisplayBase.DisplayGateway(gateway, reportType.IsTechReport(), gatewayName);
         }
 
         public static StringBuilder RemoveLastChars(StringBuilder s, int count)

@@ -5,7 +5,10 @@ import argparse
 import requests, requests.packages
 from common import importer_base_dir, import_management
 import fwo_globals, fwo_config
-sys.path.append(importer_base_dir)
+
+
+if importer_base_dir not in sys.path:
+    sys.path.append(importer_base_dir)
 
 
 if __name__ == "__main__": 
@@ -52,12 +55,19 @@ if __name__ == "__main__":
 
     try:
         error_count = import_management(
-            mgmId=args.mgmId, in_file=args.in_file, debug_level_in=args.debug, ssl_verification=args.verify_certificates,
-            force=args.force, limit=args.limit, clearManagementData=args.clear, suppress_cert_warnings_in=args.suppress_certificate_warnings)
+            mgmId=args.mgmId, 
+            in_file=args.in_file, 
+            debug_level_in=args.debug, 
+            ssl_verification=args.verify_certificates,
+            force=args.force, 
+            limit=args.limit, 
+            clearManagementData=args.clear, 
+            suppress_cert_warnings_in=args.suppress_certificate_warnings,
+            version=fwo_config['fwo_major_version']
+        )
     except SystemExit:
-        logger.error("import-mgm - error while importing mgmId=" + str(args.mgmId)  + ": " + str(traceback.format_exc()))
-        error_count = 1
-    except:
+        error_count = 0
+    except Exception:
         logger.error("import-mgm - error while importing mgmId=" + str(args.mgmId) + ": " + str(traceback.format_exc()))
         error_count = 1
 

@@ -1,13 +1,13 @@
 import copy
 import jsonpickle
-from fwo_const import list_delimiter, nat_postfix
+from fwo_const import list_delimiter, nat_postfix, dummy_ip
 from fwo_base import extend_string_list
 from fmgr_service import create_svc_object
 from fmgr_network import create_network_object, get_first_ip_of_destination
 import fmgr_zone, fmgr_getter
 from fmgr_gw_networking import get_device_from_package
 from fwo_log import getFwoLogger
-from fwo_data_networking import get_matching_route_obj, get_ip_of_interface_obj
+from model_controllers.interface_controller import get_matching_route_obj, get_ip_of_interface_obj
 import ipaddress
 from fmgr_network import resolve_objects, resolve_raw_objects
 import time
@@ -120,6 +120,9 @@ def getNatPolicy(sid, fm_api_url, raw_config, adom_name, device, limit):
         fmgr_getter.update_config_with_fortinet_api_call(
             raw_config['rules_adom_nat'], sid, fm_api_url, "/pm/config/" + scope + "/pkg/" + pkg + '/' + nat_type, device['local_rulebase_name'], limit=limit)
 
+
+# delete_v: versuch das von cp_rule zu kopieren
+#def normalizeRulebases (nativeConfig, importState, normalizedConfig):
 
 def normalize_access_rules(full_config, config2import, import_id, mgm_details={}, jwt=None):
     logger = getFwoLogger()
@@ -419,7 +422,7 @@ def handle_combined_nat_rule(rule, rule_orig, config2import, nat_rule_number, im
                     elif destination_interface_ip is not None and type(ipaddress.ip_address(str(destination_interface_ip))) is ipaddress.IPv4Address:
                         HideNatIp = str(destination_interface_ip) + '/32'
                     else:
-                        HideNatIp = '0.0.0.0/32'
+                        HideNatIp = dummy_ip
                         logger.warning('found invalid HideNatIP ' + str(destination_interface_ip))
                     obj = create_network_object(import_id, obj_name, 'host', HideNatIp, obj_name, 'black', obj_comment, 'global')
                     if obj not in config2import['network_objects']:

@@ -21,7 +21,9 @@ nw_obj_table_names = [
     'hosts', 'networks', 'groups', 'address-ranges', 'multicast-address-ranges', 'groups-with-exclusion',
     'gateways-and-servers', 'simple-gateways',
     'dns-domains', 'updatable-objects-repository-content',
-    'interoperable-devices', 'security-zones', 'Global', 'access-roles', 'updatable-objects'
+    'interoperable-devices', 'security-zones', 
+    'access-roles', 'updatable-objects', 'dynamic-objects',
+    'CpmiVoipSipDomain', 'CpmiVoipMgcpDomain', 'gsn_handover_group'
 ]
 
 # simple as in: no groups
@@ -30,13 +32,10 @@ simple_svc_obj_types = ['services-tcp', 'services-udp', 'services-dce-rpc', 'ser
 group_svc_obj_types = ['service-groups', 'application-site-categories', 'application-sites']
 
 svc_obj_table_names = group_svc_obj_types + simple_svc_obj_types + [ 'CpmiAnyObject' ]
-# usr_obj_table_names : do not exist yet - not fetchable via API
 
-simple_user_obj_types = ['users']
+api_obj_types = nw_obj_table_names + svc_obj_table_names # all obj table names to look at during import
 
-api_obj_types = nw_obj_table_names + svc_obj_table_names + simple_user_obj_types # all obj table names to look at during import
-
-obj_types_full_fetch_needed = ['groups', 'groups-with-exclusion', 'updatable-objects', 'gateways-and-servers'] + group_svc_obj_types
+obj_types_full_fetch_needed = ['access-roles', 'groups', 'groups-with-exclusion', 'updatable-objects', 'gateways-and-servers'] + group_svc_obj_types
 
 cp_specific_object_types = [    # used for fetching enrichment data via "get object" separately (no specific API call)
     'simple-gateway', 'simple-cluster', 'CpmiVsClusterNetobj', 'CpmiVsxClusterNetobj', 'CpmiVsxClusterMember', 'CpmiVsNetobj',

@@ -1,16 +1,17 @@
-import sys
-from common import importer_base_dir
-sys.path.append(importer_base_dir + '/fortiadom5ff')
+# import sys
+# from common import importer_base_dir
+# sys.path.append(importer_base_dir + '/fortiadom5ff')
+from curses import raw
+
 import fmgr_user
 import fmgr_service
 import fmgr_zone
 import fmgr_rule
 import fmgr_network
 import fmgr_getter
-from curses import raw
 from fwo_log import getFwoLogger
 from fmgr_gw_networking import getInterfacesAndRouting, normalize_network_data
-from fwo_data_networking import get_ip_of_interface_obj
+from model_controllers.interface_controller import get_ip_of_interface_obj
 
 scope = ['global', 'adom']
 nw_obj_types = ['firewall/address', 'firewall/address6', 'firewall/addrgrp',
@@ -76,7 +77,7 @@ def get_config(config2import, full_config, current_import_id, mgm_details, limit
             try:  # logout of fortimanager API
                 fmgr_getter.logout(
                     fm_api_url, sid)
-            except:
+            except Exception:
                 logger.warning("logout exception probably due to timeout - irrelevant, so ignoring it")
 
         # now we normalize relevant parts of the raw config and write the results to config2import dict

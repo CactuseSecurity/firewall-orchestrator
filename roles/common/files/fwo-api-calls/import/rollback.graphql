@@ -1,0 +1,41 @@
+mutation rollbackCurrentImport($importId: bigint!) {
+    delete_rule(where: {rule_create: {_eq: $importId}}) { affected_rows }
+    delete_rulebase(where: {created: {_eq: $importId}}) { affected_rows }
+    delete_object(where: {obj_create: {_eq: $importId}}) { affected_rows }
+    delete_service(where: {svc_create: {_eq: $importId}}) { affected_rows }
+    delete_usr(where: {user_create: {_eq: $importId}}) { affected_rows }
+    delete_zone(where: {zone_create: {_eq: $importId}}) { affected_rows }
+    delete_objgrp(where: {import_created: {_eq: $importId}}) { affected_rows }
+    delete_svcgrp(where: {import_created: {_eq: $importId}}) { affected_rows }
+    delete_usergrp(where: {import_created: {_eq: $importId}}) { affected_rows }
+    delete_objgrp_flat(where: {import_created: {_eq: $importId}}) { affected_rows }
+    delete_svcgrp_flat(where: {import_created: {_eq: $importId}}) { affected_rows }
+    delete_usergrp_flat(where: {import_created: {_eq: $importId}}) { affected_rows }
+    delete_rule_to(where: {rt_create: {_eq: $importId}}) { affected_rows }
+    delete_rule_from(where: {rf_create: {_eq: $importId}}) { affected_rows }
+    delete_rule_service(where: {rs_create: {_eq: $importId}}) { affected_rows }
+    delete_rule_nwobj_resolved(where: {created: {_eq: $importId}}) { affected_rows }
+    delete_rule_svc_resolved(where: {created: {_eq: $importId}}) { affected_rows }
+    delete_rule_user_resolved(where: {created: {_eq: $importId}}) { affected_rows }
+    delete_rule_enforced_on_gateway(where: {created: {_eq: $importId}}) { affected_rows }
+    update_rule(where: {removed: {_eq: $importId}}, _set: {removed: null}) { affected_rows }
+    update_rulebase(where: {removed: {_eq: $importId}}, _set: {removed: null}) { affected_rows }
+    update_object(where: {removed: {_eq: $importId}}, _set: {removed: null}) { affected_rows }
+    update_service(where: {removed: {_eq: $importId}}, _set: {removed: null}) { affected_rows }
+    update_usr(where: {removed: {_eq: $importId}}, _set: {removed: null}) { affected_rows }
+    update_zone(where: {removed: {_eq: $importId}}, _set: {removed: null}) { affected_rows }
+    update_objgrp(where: {removed: {_eq: $importId}}, _set: {removed: null}) { affected_rows }
+    update_svcgrp(where: {removed: {_eq: $importId}}, _set: {removed: null}) { affected_rows }
+    update_usergrp(where: {removed: {_eq: $importId}}, _set: {removed: null}) { affected_rows }
+    update_objgrp_flat(where: {removed: {_eq: $importId}}, _set: {removed: null}) { affected_rows }
+    update_svcgrp_flat(where: {removed: {_eq: $importId}}, _set: {removed: null}) { affected_rows }
+    update_usergrp_flat(where: {removed: {_eq: $importId}}, _set: {removed: null}) { affected_rows }
+    update_rule_to(where: {removed: {_eq: $importId}}, _set: {removed: null}) { affected_rows }
+    update_rule_from(where: {removed: {_eq: $importId}}, _set: {removed: null}) { affected_rows }
+    update_rule_service(where: {removed: {_eq: $importId}}, _set: {removed: null}) { affected_rows }
+    update_rule_nwobj_resolved(where: {removed: {_eq: $importId}}, _set: {removed: null}) { affected_rows }
+    update_rule_svc_resolved(where: {removed: {_eq: $importId}}, _set: {removed: null}) { affected_rows }
+    update_rule_user_resolved(where: {removed: {_eq: $importId}}, _set: {removed: null}) { affected_rows }
+    update_rule_enforced_on_gateway(where: {removed: {_eq: $importId}}, _set: {removed: null}) { affected_rows }
+    delete_import_control(where: {control_id: {_eq: $importId}}) { affected_rows }            
+}

@@ -1,0 +1,30 @@
+query getRuleDetails(
+  $rule_id: [bigint!]
+  $rule_uid: [String!]
+  $ruleSrcName: [String!]
+  $ruleSrcIp: [cidr!]
+  $active: Boolean
+  $import_id: bigint
+  $import_id_start: bigint
+  $import_id_end: bigint
+  $limit: Int
+  $offset: Int
+) {
+  rule(
+    limit: $limit
+    offset: $offset
+    where: {
+      rule_id: { _in: $rule_id }
+      rule_uid: { _in: $rule_uid }
+      rule_last_seen: { _gte: $import_id }
+      rule_create: { _lte: $import_id }
+      rule_src: { _in: $ruleSrcName }
+      rule_froms: { object: { obj_ip: { _in: $ruleSrcIp } } }
+      access_rule: { _eq: true }
+    }
+    order_by: { rule_num_numeric: asc }
+  ) {
+    mgm_id: mgm_id
+    ...ruleDetails
+  }
+}

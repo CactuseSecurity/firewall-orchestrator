@@ -6,10 +6,10 @@ using FWO.Report;
 
 namespace FWO.Ui.Display
 {
-    public class RuleDisplayHtml: RuleDisplayBase
+    public class RuleDisplayHtml(UserConfig userConfig) : RuleDisplayBase(userConfig)
     {
-        public RuleDisplayHtml(UserConfig userConfig) : base(userConfig)
-        {}
+        // public RuleDisplayHtml(UserConfig userConfig) : base(userConfig)
+        // {}
 
         public string DisplaySource(Rule rule, OutputLocation location, ReportType reportType, int chapterNumber = 0, string style = "")
         {
@@ -41,49 +41,48 @@ namespace FWO.Ui.Display
             return result.ToString();
         }
 
-        public static string DisplayEnabled(Rule rule, OutputLocation location)
+        public string DisplayEnforcingGateways(Rule rule, OutputLocation location, ReportType reportType, int chapterNumber = 0, string style = "")
         {
-            if (location == OutputLocation.export)
-            {
-                return $"<b>{(rule.Disabled ? "N" : "Y")}</b>";
-            }
-            else
-            {
-                return $"<div class=\"oi {(rule.Disabled ? "oi-x" : "oi-check")}\"></div>";
-            }
+            StringBuilder result = new ();
+            result.AppendJoin("<br>", Array.ConvertAll(rule.EnforcingGateways, gw => EnforcingGatewayToHtml(gw.Content, rule.MgmtId, chapterNumber, location, style, reportType)));
+            return result.ToString();
+        }
+        public static string DisplaySectionHeader(Rule rule, int ColumnCount)
+        {
+            return $"<tr><td class=\"bg-gray\" colspan=\"{ColumnCount}\"><b>{rule.SectionHeader}</b></td></tr>";
         }
 
-        public static string DisplayNextRecert(Rule rule)
+        public static string DisplayNextRecert(RuleMetadata rule)
         {
             int count = 0;
-            return string.Join("", Array.ConvertAll<Recertification, string>(rule.Metadata.RuleRecertification.ToArray(), recert => GetNextRecertDateString(CountString(rule.Metadata.RuleRecertification.Count > 1, ++count), recert).ToString()));
+            return string.Join("", Array.ConvertAll<Recertification, string>(rule.RuleRecertification.ToArray(), recert => GetNextRecertDateString(CountString(rule.RuleRecertification.Count > 1, ++count), recert).ToString()));
         }
 
-        public static string DisplayOwner(Rule rule)
+        public static string DisplayOwner(RuleMetadata rule)
         {
             int count = 0;
-            return string.Join("", Array.ConvertAll<Recertification, string>(rule.Metadata.RuleRecertification.ToArray(), recert => GetOwnerDisplayString(CountString(rule.Metadata.RuleRecertification.Count > 1, ++count), recert).ToString()));
+            return string.Join("", Array.ConvertAll<Recertification, string>(rule.RuleRecertification.ToArray(), recert => GetOwnerDisplayString(CountString(rule.RuleRecertification.Count > 1, ++count), recert).ToString()));
         }
 
-        public static string DisplayRecertIpMatches(Rule rule)
+        public static string DisplayRecertIpMatches(RuleMetadata rule)
         {
             int count = 0;
-            return string.Join("", Array.ConvertAll<Recertification, string>(rule.Metadata.RuleRecertification.ToArray(), recert => GetIpMatchDisplayString(CountString(rule.Metadata.RuleRecertification.Count > 1, ++count), recert).ToString()));
+            return string.Join("", Array.ConvertAll<Recertification, string>(rule.RuleRecertification.ToArray(), recert => GetIpMatchDisplayString(CountString(rule.RuleRecertification.Count > 1, ++count), recert).ToString()));
         }
 
-        public static string DisplayLastHit(Rule rule)
+        public static string DisplayLastHit(RuleMetadata rule)
         {
-            if (rule.Metadata.LastHit == null)
+            if (rule.LastHit == null)
                 return "";
             else
-                return DateOnly.FromDateTime((DateTime)rule.Metadata.LastHit).ToString("yyyy-MM-dd");  //rule.Metadata.LastHit.ToString("yyyy-MM-dd");
+                return DateOnly.FromDateTime((DateTime)rule.LastHit).ToString("yyyy-MM-dd");  //rule.Metadata.LastHit.ToString("yyyy-MM-dd");
         }
 
-        public static string DisplayLastRecertifier(Rule rule)
+        public static string DisplayLastRecertifier(RuleMetadata rule)
         {
             int count = 0;
-            return string.Join("", Array.ConvertAll<Recertification, string>([.. rule.Metadata.RuleRecertification], 
-                recert => GetLastRecertifierDisplayString(CountString(rule.Metadata.RuleRecertification.Count > 1, ++count), recert).ToString()));
+            return string.Join("", Array.ConvertAll<Recertification, string>(rule.RuleRecertification.ToArray(), 
+                recert => GetLastRecertifierDisplayString(CountString(rule.RuleRecertification.Count > 1, ++count), recert).ToString()));
         }
 
         protected static string NetworkLocationToHtml(NetworkLocation networkLocation, int mgmtId, int chapterNumber, OutputLocation location, string style, ReportType reportType)
@@ -123,6 +122,13 @@ namespace FWO.Ui.Display
                 string serviceName = ReportBase.ConstructLink(ReportBase.GetIconClass(ObjCategory.nsrv, service.Type.Name), service.Name, style, serviceLink);
                 return DisplayService(service, reportType, serviceName).ToString();
             }
+        }
+        protected static string EnforcingGatewayToHtml(Device gateway, int mgmtId, int chapterNumber, OutputLocation location, string style, ReportType reportType)
+        {
+            string gwLink = ReportDevicesBase.GetReportDevicesLinkAddress(location, mgmtId, ObjCatString.NwObj, chapterNumber, gateway.Id, reportType);
+
+            return DisplayGateway(gateway, reportType, reportType.IsResolvedReport() ? null :
+                ReportBase.ConstructLink(ReportBase.GetIconClass(ObjCategory.nsrv, "Gateway"), gateway.Name, style, gwLink)).ToString();
         }
 
         private string DisplaySourceOrDestination(Rule rule, int chapterNumber, OutputLocation location, ReportType reportType, string style, bool isSource)

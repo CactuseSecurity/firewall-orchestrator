@@ -114,7 +114,7 @@
                         case ReportType.UnusedRules:
                         case ReportType.NatRules:
                         case ReportType.AppRules:
-                            <RulesReport Managements="currentReport.ReportData.ManagementData" SelectedReportType="actReportFilters.ReportType" RulesPerPage="rulesPerPage" 
+                            <RulesReport Managements="currentReport.ReportData.ManagementData" SelectedReportType="actReportFilters.ReportType" RulesPerPage="rulesPerPage"
                                 @bind-SelectedRules="selectedItemsRuleReportTable" />
                             break;
 
@@ -158,10 +158,10 @@
 
     @* ==== RIGHT SIDEBAR ==== *@
     <RightSidebar @bind-Width="sidebarRightWidth" CurrentReport="currentReport"
-        @bind-SelectedRules="selectedItemsRuleReportTable" 
-        AllTabVisible="(tenantFilteringAllowed && actReportFilters.SelectedTenant == null)"
-        SelectedReportType="actReportFilters.ReportType"
-        LSBTime="actReportFilters.TimeFilter"/>
+                  @bind-SelectedRules="selectedItemsRuleReportTable"
+                  AllTabVisible="(tenantFilteringAllowed && actReportFilters.SelectedTenant == null)"
+                  SelectedReportType="actReportFilters.ReportType"
+                  LSBTime="actReportFilters.TimeFilter" />
 }
 
 @* ==== POPUPS ==== *@
@@ -206,7 +206,9 @@
 
     private ReportBase? currentReport;
 
+    private FWO.Ui.Shared.TabSet rsbTabset;
     private Sidebar? deviceSelectionSidebar;
+    private FWO.Ui.Shared.AnchorNavToRSB anchorNavToRSB;
 
     private string filterFeedbackStart = "";
     private string filterFeedbackError = "";

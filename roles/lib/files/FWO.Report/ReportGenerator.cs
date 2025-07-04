@@ -154,10 +154,14 @@ namespace FWO.Report
             {
                 foreach (var device in managementReport.Devices.Where(d => d.ContainsRules()))
                 {
-					foreach (var rule in device.Rules!)
-					{
-						rule.Metadata.UpdateRecertPeriods(userConfig.RecertificationPeriod, userConfig.RecertificationNoticePeriod);
-					}
+                    if (device.ContainsRules())
+                    {
+                        // rulesFound = true;
+                        foreach (var rulebaseLink in device.RulebaseLinks)
+                        {
+                            // rule.Metadata.UpdateRecertPeriods(userConfig.RecertificationPeriod, userConfig.RecertificationNoticePeriod);
+                        }
+                    }
                 }
             }
         }

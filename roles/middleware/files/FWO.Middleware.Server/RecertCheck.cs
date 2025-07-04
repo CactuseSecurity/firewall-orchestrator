@@ -192,11 +192,14 @@ namespace FWO.Middleware.Server
                 {
                     foreach (var device in management.Devices.Where(d => d.ContainsRules()))
                     {
-                        foreach (var rule in device.Rules!)
+                        foreach (var rbLink in device.RulebaseLinks!)
                         {
-                            rule.Metadata.UpdateRecertPeriods(owner.RecertInterval ?? globalConfig.RecertificationPeriod, 0);
-                            rule.DeviceName = device.Name ?? "";
-                            rules.Add(rule);
+                            foreach (var rule in management.Rulebases[rbLink.NextRulebaseId].Rules)
+                            {
+                                rule.Metadata.UpdateRecertPeriods(owner.RecertInterval ?? globalConfig.RecertificationPeriod, 0);
+                                rule.DeviceName = device.Name ?? "";
+                                rules.Add(rule);
+                            }
                         }
                     }
                 }
@@ -235,7 +238,7 @@ namespace FWO.Middleware.Server
         {
             Recertification? nextRecert = rule.Metadata.RuleRecertification.FirstOrDefault(x => x.RecertDate == null);
             return (nextRecert != null && nextRecert.NextRecertDate != null ? DateOnly.FromDateTime((DateTime)nextRecert.NextRecertDate) : "") + ": " 
-                    + rule.DeviceName + ": " + rule.Name + ":" + rule.Uid + "\r\n\r\n";  // link ?
+                    + rule.RulebaseName + ": " + rule.Name + ":" + rule.Uid + "\r\n\r\n";  // link ?
         }
 
         private List<string> CollectEmailAddresses(FwoOwner owner)

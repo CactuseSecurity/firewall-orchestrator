@@ -5,7 +5,7 @@ import requests.packages
 import requests
 import json
 import fwo_globals
-from fwo_exception import FwLoginFailed
+from fwo_exceptions import FwLoginFailed
 
 
 def api_call(url, command, json_payload, sid, show_progress=False, method=''):
@@ -77,20 +77,20 @@ def logout(v_url, sid, method='exec'):
                             "api call: url: " + str(v_url) + ",  + payload: " + str(payload))
 
 
-def set_api_url(base_url, testmode, api_supported, hostname):
-    url = ''
-    if testmode == 'off':
-        url = base_url
-    else:
-        if re.search(r'^\d+[\.\d+]+$', testmode) or re.search(r'^\d+$', testmode):
-            if testmode in api_supported:
-                url = base_url + 'v' + testmode + '/'
-            else:
-                raise Exception("api version " + testmode +
-                             " is not supported by the manager " + hostname + " - Import is canceled")
-        else:
-            raise Exception("\"" + testmode + "\" - not a valid version")
-    return url
+# def set_api_url(base_url, testmode, api_supported, hostname):
+#     url = ''
+#     if testmode == 'off':
+#         url = base_url
+#     else:
+#         if re.search(r'^\d+[\.\d+]+$', testmode) or re.search(r'^\d+$', testmode):
+#             if testmode in api_supported:
+#                 url = base_url + 'v' + testmode + '/'
+#             else:
+#                 raise Exception("api version " + testmode +
+#                              " is not supported by the manager " + hostname + " - Import is canceled")
+#         else:
+#             raise Exception("\"" + testmode + "\" - not a valid version")
+#     return url
 
 
 def update_config_with_fortinet_api_call(config_json, sid, api_base_url, api_path, result_name, payload={}, options=[], show_progress=False, limit=150, method="get"):

@@ -260,7 +260,7 @@ bugfix release:
 
 # 8.7.1 - 05.03.2025 DEVELOP
 - ldap writepath for groups
-
+ demo data (major versions only)
 # 8.7.2 - 20.03.2025 DEVELOP
 - new config values
 - external request: attempt counter
@@ -277,3 +277,8 @@ bugfix release:
 # 8.8.5 - 17.06.2025 DEVELOP
 - new enum values for Request Element Field Types
 - hotfix change recognition: separate rule changes and "all changes" to make object version handling work properly
+
+# 9.0 - 30.06.2025 DEVELOP
+- rule to gateway mapping 1:n
+- add report output for rule to gw mapping
+- cleanup/rework of main import function

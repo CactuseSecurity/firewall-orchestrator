@@ -6,7 +6,7 @@ import requests.packages
 import requests
 import json
 import fwo_globals
-from fwo_exception import FwLoginFailed
+from fwo_exceptions import FwLoginFailed
 
 auth_token = ""
 

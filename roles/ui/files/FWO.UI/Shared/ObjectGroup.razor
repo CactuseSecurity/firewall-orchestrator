@@ -15,7 +15,7 @@
             @if (typeof(InputDataType) == typeof(Rule))
             {
                 Rule rule = (Rule)(Object)Content;
-                @($"{rule.DeviceName} - {userConfig.GetText("rule")} ")
+                @($"{rule.RulebaseName} - {userConfig.GetText("rule")} ")
                 if (rule.Uid != null)
                 {
                     if (rule.Uid.Length > 5)

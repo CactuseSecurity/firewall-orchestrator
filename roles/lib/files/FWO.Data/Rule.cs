@@ -46,7 +46,7 @@ namespace FWO.Data
 
         [JsonProperty("rule_froms"), JsonPropertyName("rule_froms")]
         public NetworkLocation[] Froms { get; set; } = [];
-      
+
         [JsonProperty("rule_dst_neg"), JsonPropertyName("rule_dst_neg")]
         public bool DestinationNegated { get; set; }
 
@@ -83,17 +83,27 @@ namespace FWO.Data
         [JsonProperty("matches"), JsonPropertyName("matches")]
         public string IpMatch {get; set;} = "";
 
-        [JsonProperty("dev_id"), JsonPropertyName("dev_id")]
-        public int DeviceId { get; set; }
+        // [JsonProperty("dev_id"), JsonPropertyName("dev_id")]
+        // public int DeviceId { get; set; }
 
         [JsonProperty("rule_custom_fields"), JsonPropertyName("rule_custom_fields")]
         public string CustomFields { get; set; } = "";
 
+        [JsonProperty("rulebase_id"), JsonPropertyName("rulebase_id")]
+        public int RulebaseId { get; set; }
 
+        [JsonProperty("rule_num"), JsonPropertyName("rule_num")]
+        public int RuleOrderNumber { get; set; }
+
+        [JsonProperty("rule_enforced_on_gateways"), JsonPropertyName("rule_enforced_on_gateways")]
+        public DeviceWrapper[] EnforcingGateways { get; set; } = [];
+
+        public string DisplayOrderNumberString { get; set; } = "";
         public int DisplayOrderNumber { get; set; }
         public bool Certified { get; set; }
         public string ManagementName = "";
         public string DeviceName { get; set; } = "";
+        public string RulebaseName { get; set; } = "";
         public NetworkLocation[] DisregardedFroms { get; set; } = [];
         public NetworkLocation[] DisregardedTos { get; set; } = [];
         public NetworkService[] DisregardedServices { get; set; } = [];
@@ -135,7 +145,6 @@ namespace FWO.Data
             OwnerName = rule.OwnerName;
             OwnerId = rule.OwnerId;
             IpMatch = rule.IpMatch;
-            DeviceId = rule.DeviceId;
             CustomFields = rule.CustomFields;
             DisplayOrderNumber = rule.DisplayOrderNumber;
             Certified = rule.Certified;
@@ -155,6 +164,17 @@ namespace FWO.Data
         public bool IsDropRule()
         {
             return Action == "drop" || Action == "reject" || Action == "deny";
+        }
+
+        /// <summary>
+        /// Creates an exact copy of this rule. Returns new rule on fail.
+        /// </summary>
+        public Rule CreateClone()
+        {
+            var json = JsonConvert.SerializeObject(this);
+            Rule rule = JsonConvert.DeserializeObject<Rule>(json) ?? new();
+
+            return rule;
         }
     }
 }

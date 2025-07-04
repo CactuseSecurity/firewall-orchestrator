@@ -47,8 +47,7 @@ namespace FWO.Test
 
             // Act
             var cut = RenderComponent<RightSidebar>(parameters => parameters
-                .Add(p => p.CurrentReport, currentReport)
-                .Add(p => p.SelectedRules, [currentReport.ReportData.ManagementData[0].Devices[0].Rules![0]]));
+                .Add(p => p.CurrentReport, currentReport));
 
             // manually trigger 
             var anchorNavToRSB = cut.FindComponent<AnchorNavToRSB>();

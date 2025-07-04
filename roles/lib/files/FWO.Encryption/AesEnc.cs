@@ -9,9 +9,17 @@ namespace FWO.Encryption
 	{
 		public static string GetMainKey()
 		{
-			string mainKey = File.ReadAllText(GlobalConst.kMainKeyFile);
-			mainKey = mainKey.TrimEnd('\n');    // remove linke break
-			return mainKey;
+			try
+			{
+				string mainKey = File.ReadAllText(GlobalConst.kMainKeyFile);
+				mainKey = mainKey.TrimEnd();    // remove trailing whitespace
+				return mainKey;
+			}
+			catch (Exception e)
+			{
+				Log.WriteError("Main Key File", "Main key file could not be read.", e);
+				throw;
+			}
 		}
 
 		public static string Encrypt(string plaintext, string key)
@@ -30,14 +38,14 @@ namespace FWO.Encryption
 			catch
 			{
 				throw new ArgumentException("Could not decrypt.");
-            // catch (Exception decryptException)
-			// {
-			// 	// throw new ArgumentException("Could not decrypt.");
-			// 	Log.WriteWarning("AesEnc", $"Could not decrypt.");
+				// catch (Exception decryptException)
+				// {
+				// 	// throw new ArgumentException("Could not decrypt.");
+				// 	Log.WriteWarning("AesEnc", $"Could not decrypt.");
 			}
 			// return encryptedDataString;
 		}
-		
+
 		public static string CustomAesCbcEncryptBase64(string plaintext, string key)
 		{
 			using (Aes aes = Aes.Create())

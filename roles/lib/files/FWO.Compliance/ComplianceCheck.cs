@@ -6,7 +6,7 @@ using FWO.Data;
 using NetTools;
 
 
-namespace FWO.Services
+namespace FWO.Compliance
 {
     public class ComplianceCheck(UserConfig userConfig, ApiConnection? apiConnection = null)
     {

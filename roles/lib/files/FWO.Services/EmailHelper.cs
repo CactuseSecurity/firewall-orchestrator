@@ -82,10 +82,9 @@ namespace FWO.Services
         {
             EmailConnection emailConnection = new(userConfig.EmailServerAddress, userConfig.EmailPort,
                 userConfig.EmailTls, userConfig.EmailUser, userConfig.EmailPassword, userConfig.EmailSenderAddress);
-            MailKitMailer mailer = new(emailConnection);
-            tos = tos.Where(t => t != "").ToList();
+            tos = [.. tos.Where(t => t != "")];
             ccs = ccs?.Where(c => c != "").ToList();
-            return await mailer.SendAsync(new MailData(tos, subject, body, null, null, null, null, null, ccs), emailConnection, new CancellationToken(), true);
+            return await MailKitMailer.SendAsync(new MailData(tos, subject){ Body = body, Cc = ccs ?? [] }, emailConnection, true, new CancellationToken());
         }
 
         private List<string> GetRecipients(EmailRecipientOption recipientOption, WfStatefulObject? statefulObject, FwoOwner? owner, string? scopedUser)

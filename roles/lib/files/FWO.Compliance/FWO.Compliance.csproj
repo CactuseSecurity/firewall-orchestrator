@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FWO.Basics\FWO.Basics.csproj" />
+    <ProjectReference Include="..\FWO.Logging\FWO.Logging.csproj" />
+	<ProjectReference Include="..\FWO.Api.Client\FWO.Api.Client.csproj" />
+    <ProjectReference Include="..\FWO.Config.Api\FWO.Config.Api.csproj" />
+  </ItemGroup>
+</Project>

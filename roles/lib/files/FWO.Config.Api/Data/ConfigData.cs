@@ -388,7 +388,7 @@ namespace FWO.Config.Api.Data
 		public int ComplianceCheckSleepTime { get; set; } = 0;
 
 		[JsonProperty("complianceCheckStartAt"), JsonPropertyName("complianceCheckStartAt")]
-		public DateTime ComplianceCheckStartAt { get; set; } = new DateTime();
+		public DateTime ComplianceCheckStartAt { get; set; } = DateTime.Now;
 
         public ConfigData(bool editable = false)
 		{

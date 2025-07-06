@@ -20,15 +20,15 @@ namespace FWO.Test
             bool isValidHtml = ReportBase.IsValidHTML(GlobalConst.TestPDFHtmlTemplate);
             ClassicAssert.IsTrue(isValidHtml);
 
-            string? sudoUser = Environment.GetEnvironmentVariable("SUDO_USER");
+            //string? sudoUser = Environment.GetEnvironmentVariable("SUDO_USER");
 
-            bool isGitHubActions = sudoUser is not null && sudoUser.Equals("runner");
+            //bool isGitHubActions = sudoUser is not null && sudoUser.Equals("runner");
 
-            if(isGitHubActions)
-            {
-                Log.WriteInfo("Test Log", $"PDF Test skipping: Test is running on Github actions.");
-                return;
-            }
+            //if(isGitHubActions)
+            //{
+            //    Log.WriteInfo("Test Log", $"PDF Test skipping: Test is running on Github actions.");
+            //    return;
+            //}
 
             if(File.Exists(GlobalConst.TestPDFFilePath))
                 File.Delete(GlobalConst.TestPDFFilePath);
@@ -60,9 +60,17 @@ namespace FWO.Test
 
             if(allInstalledBrowsers is null || !allInstalledBrowsers.Any())
             {
-                Log.WriteAlert("Test Log", $"Found no installed {wantedBrowser} instances!");
-                return;
-            }
+                if(os.Platform == PlatformID.Win32NT)
+                {
+                    Log.WriteInfo("Browser", $"Browser not found for Windows! Trying to download...");
+                    await browserFetcher.DownloadAsync();
+                    allInstalledBrowsers = browserFetcher.GetInstalledBrowsers().Where(_ => _.Browser == wantedBrowser);
+                }
+                else
+                {
+                    throw new Exception($"Found no installed {wantedBrowser} instances!");
+                }
+            }            
 
             foreach(InstalledBrowser instBrowser in allInstalledBrowsers)
             {
@@ -85,7 +93,7 @@ namespace FWO.Test
                 return;
             }
 
-            Log.WriteInfo("Test Log", $"Selecting latest installed {wantedBrowser}({latestInstalledBrowser}) at: {latestInstalledBrowser.GetExecutablePath()}");
+            Log.WriteInfo("Test Log", $"Selecting latest installed {wantedBrowser}({latestInstalledBrowser.BuildId}) at: {latestInstalledBrowser.GetExecutablePath()}");
 
             IBrowser? browser;
 
@@ -95,8 +103,6 @@ namespace FWO.Test
                 {
                     ExecutablePath = latestInstalledBrowser.GetExecutablePath(),
                     Headless = true,
-                    DumpIO = isGitHubActions, // Enables debug logs
-                    Args = new[] { "--database=/tmp", "--no-sandbox" }
                 });
             }
             catch(Exception)
@@ -121,6 +127,7 @@ namespace FWO.Test
             try
             {
                 await browser.CloseAsync();
+                browser.Dispose();
             }
             catch(Exception)
             {

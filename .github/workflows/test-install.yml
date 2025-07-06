@@ -34,7 +34,7 @@ jobs:
         os: [ubuntu-latest, ubuntu-22.04]
     steps:    
     - uses: actions/checkout@v4
-    - uses: actions/setup-dotnet@v4
+    - uses: actions/setup-dotnet@v4    
     - name: do test install in case of merged pull request
       run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator && ansible-playbook -e force_install=true site.yml -K
     - name: Running in GitHub actions requires testing puppeteer pdf creation separately 

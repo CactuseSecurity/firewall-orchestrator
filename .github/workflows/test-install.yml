@@ -9,6 +9,7 @@ on:
     branches:
     - main
     - develop
+    - pdf_unit_test
     paths-ignore:
     - 'documentation/**'
     - 'design/**'

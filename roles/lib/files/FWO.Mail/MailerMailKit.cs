@@ -87,18 +87,7 @@ namespace FWO.Mail
                 }
                 if (emailConn.User != null && emailConn.User != "")
                 {
-                    string mainKey = AesEnc.GetMainKey();
-                    string decryptedSecret = emailConn.Password ?? "";
-                    try
-                    {
-                        decryptedSecret = AesEnc.Decrypt(emailConn.Password ?? "", mainKey);
-                    }
-                    catch (Exception)
-                    {
-                        // decryption failed, password is assumed to be uncrypted
-                    }
-
-                    await smtp.AuthenticateAsync(emailConn.User, decryptedSecret, ct);
+                    await smtp.AuthenticateAsync(emailConn.User, AesEnc.TryDecrypt(emailConn.Password ?? "", true), ct);
                 }
                 await smtp.SendAsync(mail, ct);
                 await smtp.DisconnectAsync(true, ct);

@@ -84,7 +84,7 @@ namespace FWO.Compliance
                MailData mailData = new(EmailHelper.CollectRecipientsFromConfig(userConfig, userConfig.ComplianceCheckMailRecipients), subject){ Body = body };
             if (ComplianceReport != null)
             {
-                 FormFile? attachment = EmailHelper.CreateAttachment(ComplianceReport?.ExportToCsv(), GlobalConst.kCsv, subject);
+                FormFile? attachment = EmailHelper.CreateAttachment(ComplianceReport?.ExportToCsv(), GlobalConst.kCsv, subject);
                 if (attachment != null)
                 {
                     mailData.Attachments = new FormFileCollection() { attachment };

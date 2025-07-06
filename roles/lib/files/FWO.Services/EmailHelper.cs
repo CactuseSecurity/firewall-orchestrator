@@ -5,6 +5,7 @@ using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Workflow;
 using FWO.Mail;
+using FWO.Logging;
 using FWO.Middleware.Client;
 using Microsoft.AspNetCore.Http;
 using Newtonsoft.Json;
@@ -209,7 +210,7 @@ namespace FWO.Services
         {
             if (content != null)
             {
-                string fileName = $"{Regex.Replace(subject, @"\s", "")}_{DateTime.Now.ToUniversalTime().ToString("yyyy-MM-ddTHH-mm-ssK")}.{fileFormat}";
+                string fileName = ConstructFileName(subject, fileFormat);
 
                 MemoryStream memoryStream;
                 string contentType;
@@ -232,6 +233,20 @@ namespace FWO.Services
                 };
             }
             return null;
+        }
+
+        private static string ConstructFileName(string input, string fileFormat)
+        {
+            try
+            {
+                Regex regex = new (@"\s", RegexOptions.None, TimeSpan.FromMilliseconds(500));
+                return $"{regex.Replace(input, "")}_{DateTime.Now.ToUniversalTime().ToString("yyyy-MM-ddTHH-mm-ssK")}.{fileFormat}";
+            }
+            catch (RegexMatchTimeoutException)
+            {
+                Log.WriteWarning("Construct File Name", "Timeout when constructing file name. Taking input.");
+                return input;
+            }
         }
     }
 }

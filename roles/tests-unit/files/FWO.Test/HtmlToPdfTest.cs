@@ -20,9 +20,9 @@ namespace FWO.Test
             bool isValidHtml = ReportBase.IsValidHTML(GlobalConst.TestPDFHtmlTemplate);
             ClassicAssert.IsTrue(isValidHtml);
 
-            //string? sudoUser = Environment.GetEnvironmentVariable("SUDO_USER");
+            string? sudoUser = Environment.GetEnvironmentVariable("SUDO_USER");
 
-            //bool isGitHubActions = sudoUser is not null && sudoUser.Equals("runner");
+            bool isGitHubActions = sudoUser is not null && sudoUser.Equals("runner");
 
             //if(isGitHubActions)
             //{
@@ -103,6 +103,8 @@ namespace FWO.Test
                 {
                     ExecutablePath = latestInstalledBrowser.GetExecutablePath(),
                     Headless = true,
+                    DumpIO = isGitHubActions,
+                    Args = isGitHubActions ? ["--database=/tmp", "--no-sandbox"] : []
                 });
             }
             catch(Exception)

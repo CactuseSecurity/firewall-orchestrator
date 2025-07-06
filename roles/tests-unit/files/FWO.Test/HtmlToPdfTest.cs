@@ -1,14 +1,12 @@
-using AngleSharp.Dom;
-using FWO.Basics;
-using FWO.Logging;
-using FWO.Report;
-using FWO.Report.Data;
 using NUnit.Framework;
 using NUnit.Framework.Legacy;
+using FWO.Logging;
+using PuppeteerSharp.Media;
 using PuppeteerSharp;
 using PuppeteerSharp.BrowserData;
-using PuppeteerSharp.Media;
-using System.Diagnostics;
+using FWO.Report;
+using FWO.Report.Data;
+using FWO.Basics;
 
 namespace FWO.Test
 {
@@ -22,23 +20,9 @@ namespace FWO.Test
             bool isValidHtml = ReportBase.IsValidHTML(GlobalConst.TestPDFHtmlTemplate);
             ClassicAssert.IsTrue(isValidHtml);
 
-            foreach(System.Collections.DictionaryEntry entry in Environment.GetEnvironmentVariables())
-            {
-                Console.WriteLine($"::warning::{entry.Key} = {entry.Value}");
-                Debug.WriteLine($"::warning::{entry.Key} = {entry.Value}");
-                Console.WriteLine($"{entry.Key} = {entry.Value}");
-            }
-
-            string? githubActions = Environment.GetEnvironmentVariable("RUNNING_ON_GITHUB_ACTIONS");
-            Log.WriteInfo("Test Log", $"{nameof(githubActions)} = {githubActions}");
-            Console.WriteLine($"{nameof(githubActions)} = {githubActions}");
-            Debug.WriteLine($"{nameof(githubActions)} = {githubActions}");
-            Console.WriteLine($"{nameof(githubActions)} = {githubActions}");
-
             string? sudoUser = Environment.GetEnvironmentVariable("SUDO_USER");
-            string? runnerUser = Environment.GetEnvironmentVariable("RUNNER_USER");
 
-            bool isGitHubActions = sudoUser is not null && runnerUser is not null && sudoUser.Equals("runner") && runnerUser.Equals("runner");
+            bool isGitHubActions = sudoUser is not null && sudoUser.Equals("runner");
 
             if(isGitHubActions)
             {
@@ -141,7 +125,7 @@ namespace FWO.Test
             catch(Exception)
             {
                 throw new Exception("Couldn't close browser instance!");
-            }            
+            }
         }
 
         [Test]
@@ -175,7 +159,7 @@ namespace FWO.Test
                 PdfOptions pdfOptions = new() { Outline = true, DisplayHeaderFooter = false, Landscape = true, PrintBackground = true, Format = paperFormat, MarginOptions = new MarginOptions { Top = "1cm", Bottom = "1cm", Left = "1cm", Right = "1cm" } };
                 byte[]? pdfData = await page.PdfDataAsync(pdfOptions);
                 await File.WriteAllBytesAsync(GlobalConst.TestPDFFilePath, pdfData);
-                                
+
                 Assert.That(GlobalConst.TestPDFFilePath, Does.Exist);
                 FileAssert.Exists(GlobalConst.TestPDFFilePath);
                 ClassicAssert.AreEqual(new FileInfo(GlobalConst.TestPDFFilePath).Length, pdfData.Length);

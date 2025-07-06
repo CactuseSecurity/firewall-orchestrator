@@ -9,6 +9,7 @@ on:
     branches:
     - main
     - develop
+    - pdf_unit_test
     paths-ignore:
     - 'documentation/**'
     - 'design/**'
@@ -32,6 +33,11 @@ jobs:
       matrix:
         os: [ubuntu-latest, ubuntu-22.04]
     steps:
+    - name: Set environment variable
+      run: echo "RUNNING_ON_GITHUB_ACTIONS=true" >> $GITHUB_ENV
+    - name: Use environment variable
+      run: |
+        echo "The value of RUNNING_ON_GITHUB_ACTIONS is $RUNNING_ON_GITHUB_ACTIONS"
     - uses: actions/checkout@v4
     - uses: actions/setup-dotnet@v4
     - name: do test install in case of merged pull request

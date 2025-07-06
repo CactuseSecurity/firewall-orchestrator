@@ -1,12 +1,14 @@
-using NUnit.Framework;
-using NUnit.Framework.Legacy;
+using AngleSharp.Dom;
+using FWO.Basics;
 using FWO.Logging;
-using PuppeteerSharp.Media;
-using PuppeteerSharp;
-using PuppeteerSharp.BrowserData;
 using FWO.Report;
 using FWO.Report.Data;
-using FWO.Basics;
+using NUnit.Framework;
+using NUnit.Framework.Legacy;
+using PuppeteerSharp;
+using PuppeteerSharp.BrowserData;
+using PuppeteerSharp.Media;
+using System.Diagnostics;
 
 namespace FWO.Test
 {
@@ -22,11 +24,16 @@ namespace FWO.Test
 
             foreach(System.Collections.DictionaryEntry entry in Environment.GetEnvironmentVariables())
             {
-                Log.WriteWarning("Test Log", $"{entry.Key} = {entry.Value}");
+                Console.WriteLine($"::warning::{entry.Key} = {entry.Value}");
+                Debug.WriteLine($"::warning::{entry.Key} = {entry.Value}");
+                Console.WriteLine($"{entry.Key} = {entry.Value}");
             }
 
             string? githubActions = Environment.GetEnvironmentVariable("RUNNING_ON_GITHUB_ACTIONS");
             Log.WriteInfo("Test Log", $"{nameof(githubActions)} = {githubActions}");
+            Console.WriteLine($"{nameof(githubActions)} = {githubActions}");
+            Debug.WriteLine($"{nameof(githubActions)} = {githubActions}");
+            Console.WriteLine($"{nameof(githubActions)} = {githubActions}");
 
             string? sudoUser = Environment.GetEnvironmentVariable("SUDO_USER");
             string? runnerUser = Environment.GetEnvironmentVariable("RUNNER_USER");

@@ -109,25 +109,9 @@ namespace FWO.Test
             }
             catch(Exception)
             {
-                Log.WriteAlert("Test Log", $"Couldn't start {wantedBrowser} instance! Trying symlink path: {GlobalConst.ChromeBinPathLinux}");
-                //throw new Exception($"Couldn't start {wantedBrowser} instance!");
-            }
-
-            try
-            {
-                browser = await Puppeteer.LaunchAsync(new LaunchOptions
-                {
-                    ExecutablePath = GlobalConst.ChromeBinPathLinux,
-                    Headless = true,
-                    DumpIO = isGitHubActions,
-                    Args = isGitHubActions ? ["--database=/tmp", "--no-sandbox"] : []
-                });
-            }
-            catch(Exception)
-            {
                 Log.WriteAlert("Test Log", $"Couldn't start {wantedBrowser} instance!");
                 throw new Exception($"Couldn't start {wantedBrowser} instance!");
-            }
+            }            
 
             await TryCreatePDF(browser, PuppeteerSharp.Media.PaperFormat.A0);
             await TryCreatePDF(browser, PuppeteerSharp.Media.PaperFormat.A1);

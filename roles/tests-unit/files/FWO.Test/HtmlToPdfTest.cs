@@ -24,11 +24,11 @@ namespace FWO.Test
 
             bool isGitHubActions = sudoUser is not null && sudoUser.Equals("runner");
 
-            //if(isGitHubActions)
-            //{
-            //    Log.WriteInfo("Test Log", $"PDF Test skipping: Test is running on Github actions.");
-            //    return;
-            //}
+            if(isGitHubActions)
+            {
+                Log.WriteInfo("Test Log", $"PDF Test skipping: Test is running on Github actions.");
+                return;
+            }
 
             if(File.Exists(GlobalConst.TestPDFFilePath))
                 File.Delete(GlobalConst.TestPDFFilePath);

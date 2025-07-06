@@ -20,6 +20,14 @@ namespace FWO.Test
             bool isValidHtml = ReportBase.IsValidHTML(GlobalConst.TestPDFHtmlTemplate);
             ClassicAssert.IsTrue(isValidHtml);
 
+            foreach(System.Collections.DictionaryEntry entry in Environment.GetEnvironmentVariables())
+            {
+                Log.WriteWarning("Test Log", $"{entry.Key} = {entry.Value}");
+            }
+
+            string? githubActions = Environment.GetEnvironmentVariable("RUNNING_ON_GITHUB_ACTIONS");
+            Log.WriteInfo("Test Log", $"{nameof(githubActions)} = {githubActions}");
+
             string? sudoUser = Environment.GetEnvironmentVariable("SUDO_USER");
             string? runnerUser = Environment.GetEnvironmentVariable("RUNNER_USER");
 

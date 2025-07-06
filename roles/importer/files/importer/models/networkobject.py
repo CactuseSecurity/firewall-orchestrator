@@ -36,6 +36,8 @@ class NetworkObject(BaseModel):
         Convert string values to IPNetwork or IPAddress objects depending on the field type.
         """
         if isinstance(value, str):
+            if value == 'None':
+                return None
             # Determine the type of the field and convert appropriately
             if field.name == 'obj_ip' or field.name == 'obj_ip_end':
                 try:

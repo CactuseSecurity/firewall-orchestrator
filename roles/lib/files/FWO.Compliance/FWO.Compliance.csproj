@@ -1,15 +1,21 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
-  </PropertyGroup>
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+    </PropertyGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\FWO.Basics\FWO.Basics.csproj" />
-    <ProjectReference Include="..\FWO.Logging\FWO.Logging.csproj" />
-	<ProjectReference Include="..\FWO.Api.Client\FWO.Api.Client.csproj" />
-    <ProjectReference Include="..\FWO.Config.Api\FWO.Config.Api.csproj" />
-  </ItemGroup>
+    <ItemGroup>
+        <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\FWO.Basics\FWO.Basics.csproj" />
+        <ProjectReference Include="..\FWO.Logging\FWO.Logging.csproj" />
+        <ProjectReference Include="..\FWO.Api.Client\FWO.Api.Client.csproj" />
+        <ProjectReference Include="..\FWO.Config.Api\FWO.Config.Api.csproj" />
+        <ProjectReference Include="..\FWO.Report\FWO.Report.csproj" />
+        <ProjectReference Include="..\FWO.Services\FWO.Services.csproj" />
+    </ItemGroup>
 </Project>

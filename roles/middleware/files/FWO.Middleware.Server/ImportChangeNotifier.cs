@@ -12,7 +12,6 @@ using FWO.Report;
 using FWO.Services;
 using Newtonsoft.Json;
 using System.Text.Json.Serialization;
-using System.Text.RegularExpressions;
 using System.Text;
 
 namespace FWO.Middleware.Server
@@ -189,7 +188,7 @@ namespace FWO.Middleware.Server
                         break;
                 }
             }
-            MailData mailData = new(CollectRecipients(), subject){ Body = body };
+            MailData mailData = new(EmailHelper.CollectRecipientsFromConfig(userConfig, globalConfig.ImpChangeNotifyRecipients), subject){ Body = body };
             if (attachment != null)
             {
                 mailData.Attachments = new FormFileCollection() { attachment };
@@ -215,40 +214,7 @@ namespace FWO.Middleware.Server
 
         private FormFile? CreateAttachment(string? content, string fileFormat)
         {
-            if (content != null)
-            {
-                string fileName = $"{Regex.Replace(globalConfig.ImpChangeNotifySubject, @"\s", "")}_{DateTime.Now.ToUniversalTime().ToString("yyyy-MM-ddTHH-mm-ssK")}.{fileFormat}";
-
-                MemoryStream memoryStream;
-                string contentType;
-
-                if (fileFormat == GlobalConst.kPdf)
-                {
-                    memoryStream = new(Convert.FromBase64String(content));
-                    contentType = "application/octet-stream";
-                }
-                else
-                {
-                    memoryStream = new(System.Text.Encoding.UTF8.GetBytes(content));
-                    contentType = $"application/{fileFormat}";
-                }
-
-                return new(memoryStream, 0, memoryStream.Length, "FWO-Report-Attachment", fileName)
-                {
-                    Headers = new HeaderDictionary(),
-                    ContentType = contentType
-                };
-            }
-            return null;
-        }
-        private List<string> CollectRecipients()
-        {
-            if (globalConfig.UseDummyEmailAddress)
-            {
-                return [globalConfig.DummyEmailAddress];
-            }
-            string[] separatingStrings = [",", ";", "|"];
-            return globalConfig.ImpChangeNotifyRecipients.Split(separatingStrings, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries).ToList();
+            return EmailHelper.CreateAttachment(content, fileFormat, globalConfig.ImpChangeNotifySubject);
         }
 
         private async Task SetImportsNotified()

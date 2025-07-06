@@ -390,10 +390,19 @@ namespace FWO.Config.Api.Data
 		[JsonProperty("complianceCheckStartAt"), JsonPropertyName("complianceCheckStartAt")]
 		public DateTime ComplianceCheckStartAt { get; set; } = DateTime.Now;
 
+		[JsonProperty("complianceCheckMailRecipients"), JsonPropertyName("complianceCheckMailRecipients")]
+		public string ComplianceCheckMailRecipients { get; set; } = "";
+
+		[JsonProperty("complianceCheckMailSubject"), JsonPropertyName("complianceCheckMailSubject")]
+		public string ComplianceCheckMailSubject { get; set; } = "";
+
+		[JsonProperty("complianceCheckMailBody"), JsonPropertyName("complianceCheckMailBody")]
+		public string ComplianceCheckMailBody { get; set; } = "";
+
         public ConfigData(bool editable = false)
-		{
-			Editable = editable;
-		}
+        {
+            Editable = editable;
+        }
 
 		public object Clone()
 		{

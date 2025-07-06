@@ -1,13 +1,15 @@
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
+using FWO.Basics;
+using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Workflow;
-using FWO.Config.Api;
-using FWO.Middleware.Client;
 using FWO.Mail;
-using System.Text.Json.Serialization;
+using FWO.Middleware.Client;
+using Microsoft.AspNetCore.Http;
 using Newtonsoft.Json;
-
+using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
 
 namespace FWO.Services
 {
@@ -51,7 +53,7 @@ namespace FWO.Services
 
         public async Task Init(string? scopedUserTo = null, string? scopedUserCc = null)
         {
-            if(!useInMwServer && middlewareClient != null)
+            if (!useInMwServer && middlewareClient != null)
             {
                 ownerGroups = await GroupAccess.GetGroupsFromInternalLdap(middlewareClient, userConfig, displayMessageInUi, true);
             }
@@ -84,7 +86,7 @@ namespace FWO.Services
                 userConfig.EmailTls, userConfig.EmailUser, userConfig.EmailPassword, userConfig.EmailSenderAddress);
             tos = [.. tos.Where(t => t != "")];
             ccs = ccs?.Where(c => c != "").ToList();
-            return await MailKitMailer.SendAsync(new MailData(tos, subject){ Body = body, Cc = ccs ?? [] }, emailConnection, true, new CancellationToken());
+            return await MailKitMailer.SendAsync(new MailData(tos, subject) { Body = body, Cc = ccs ?? [] }, emailConnection, true, new CancellationToken());
         }
 
         private List<string> GetRecipients(EmailRecipientOption recipientOption, WfStatefulObject? statefulObject, FwoOwner? owner, string? scopedUser)
@@ -191,6 +193,45 @@ namespace FWO.Services
                 return uiuser.Email;
             }
             return "";
+        }
+
+        public static List<string> CollectRecipientsFromConfig(UserConfig userConfig, string configValue)
+        {
+            if (userConfig.UseDummyEmailAddress)
+            {
+                return [userConfig.DummyEmailAddress];
+            }
+            string[] separatingStrings = [",", ";", "|"];
+            return [.. configValue.Split(separatingStrings, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)];
+        }
+
+        public static FormFile? CreateAttachment(string? content, string fileFormat, string subject)
+        {
+            if (content != null)
+            {
+                string fileName = $"{Regex.Replace(subject, @"\s", "")}_{DateTime.Now.ToUniversalTime().ToString("yyyy-MM-ddTHH-mm-ssK")}.{fileFormat}";
+
+                MemoryStream memoryStream;
+                string contentType;
+
+                if (fileFormat == GlobalConst.kPdf)
+                {
+                    memoryStream = new(Convert.FromBase64String(content));
+                    contentType = "application/octet-stream";
+                }
+                else
+                {
+                    memoryStream = new(System.Text.Encoding.UTF8.GetBytes(content));
+                    contentType = $"application/{fileFormat}";
+                }
+
+                return new(memoryStream, 0, memoryStream.Length, "FWO-Report-Attachment", fileName)
+                {
+                    Headers = new HeaderDictionary(),
+                    ContentType = contentType
+                };
+            }
+            return null;
         }
     }
 }

@@ -3,8 +3,11 @@
         {config_key: {_eq: "importCheckCertificates"}}, 
         {config_key: {_eq: "importSuppressCertificateWarnings"}},
         {config_key: {_eq: "complianceCheckSleepTime"}}, 
-        {config_key: {_eq: "complianceCheckStartAt"}}
-    ]}, limit: 4) {
+        {config_key: {_eq: "complianceCheckStartAt"}},
+		{config_key: {_eq: "complianceCheckMailRecipients"}}, 
+		{config_key: {_eq: "complianceCheckMailSubject"}}, 
+		{config_key: {_eq: "complianceCheckMailBody"}},
+    ]}, limit: 7) {
     config_key
     config_value
   }

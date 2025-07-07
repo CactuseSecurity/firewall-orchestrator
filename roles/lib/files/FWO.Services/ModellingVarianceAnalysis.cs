@@ -12,8 +12,8 @@ using System.Text.Json;
 namespace FWO.Services
 {
     /// <summary>
-	/// Variance Analysis Class
-	/// </summary>
+    /// Variance Analysis Class
+    /// </summary>
     public partial class ModellingVarianceAnalysis(ApiConnection apiConnection, ExtStateHandler extStateHandler,
             UserConfig userConfig, FwoOwner owner, Action<Exception?, string, string, bool> displayMessageInUi)
     {
@@ -100,7 +100,7 @@ namespace FWO.Services
             {
                 foreach(var conn in connections.Where(c => !c.IsInterface).OrderBy(c => c.Id))
                 {
-                    AnalyseRules(conn, fullAnalysis);
+                    await AnalyseRules(conn, fullAnalysis);
                 }
             }
             return varianceResult;
@@ -132,7 +132,7 @@ namespace FWO.Services
                     AnalyseServicesForRequest(conn);
                     if (elements.Count > 0)
                     {
-                        AnalyseConnectionForRequest(mgt, conn);
+                        await AnalyseConnectionForRequest(mgt, conn);
                     }
                 }
                 await AnalyseDeletedConnsForRequest(mgt);
@@ -220,15 +220,15 @@ namespace FWO.Services
             if (ResolveProdAppRole(modelledAppRole, mgt) == null)
             {
                 modelledAppRole.IsMissing = true;
-                varianceResult.MissingAppRoles[mgt.Id].Add(new(modelledAppRole){ ManagementName = mgt.Name });
+                varianceResult.MissingAppRoles[mgt.Id].Add(new(modelledAppRole) { ManagementName = mgt.Name });
             }
             else if (AppRoleChanged(modelledAppRole))
             {
                 modelledAppRole.HasDifference = true;
-                ModellingAppRole changedAppRole = new(modelledAppRole){ ManagementName = mgt.Name, SurplusAppServers = deletedAppServers};
-                foreach(var appServer in changedAppRole.AppServers.Select(a => a.Content))
+                ModellingAppRole changedAppRole = new(modelledAppRole) { ManagementName = mgt.Name, SurplusAppServers = deletedAppServers };
+                foreach (var appServer in changedAppRole.AppServers.Select(a => a.Content))
                 {
-                    appServer.NotImplemented = newAppServers.FirstOrDefault(a => a.Content.Id == appServer.Id) != null;
+                    appServer.NotImplemented = newAppServers.FirstOrDefault(a => appServerComparer.Equals(a.Content, appServer)) != null;
                 }
                 varianceResult.DifferingAppRoles[mgt.Id].Add(changedAppRole);
             }

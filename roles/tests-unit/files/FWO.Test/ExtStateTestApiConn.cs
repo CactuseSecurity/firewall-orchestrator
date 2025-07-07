@@ -13,10 +13,11 @@ namespace FWO.Test
             Type responseType = typeof(QueryResponseType);
             if(responseType == typeof(List<WfExtState>))
             {
-                List<WfExtState>? extStates = 
+                List<WfExtState>? extStates =
                 [
                     new(){ Id = 1, Name = "ExtReqInitialized", StateId = 1 },
-                    new(){ Id = 2, Name = "ExtReqRequested", StateId = 2 }
+                    new(){ Id = 2, Name = "ExtReqRequested", StateId = 2 },
+                    new(){ Id = 3, Name = "ExtReqDone", StateId = 631 }
                 ];
                 GraphQLResponse<dynamic> response = new(){ Data = extStates };
                 return response.Data;

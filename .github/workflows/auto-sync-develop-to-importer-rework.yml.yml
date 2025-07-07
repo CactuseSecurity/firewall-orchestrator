@@ -1,0 +1,74 @@
+name: Sync develop to importer-rework
+
+on:
+  push:
+    branches:
+      - develop
+
+jobs:
+  sync-branches:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Ensure "automation" label exists (create or update)
+        run: |
+            gh label create automation \
+            --color "0e8a16" \
+            --description "Automatically created for syncing branches" \
+            --force
+        env:
+            GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Fetch all branches
+        run: git fetch origin importer-rework
+
+      - name: Check if develop is ahead of importer-rework
+        id: ahead_check
+        run: |
+          git fetch origin
+          git rev-list --left-right --count origin/importer-rework...origin/develop > counts.txt
+          ahead=$(cut -f2 counts.txt)
+          echo "ahead_count=$ahead" >> $GITHUB_OUTPUT
+
+      - name: Check for existing PR
+        id: pr_check
+        run: |
+          existing_pr=$(gh pr list \
+            --base importer-rework \
+            --head develop \
+            --state open \
+            --json number \
+            --jq '.[0].number')
+
+          echo "existing_pr=$existing_pr" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create PR from develop to importer-rework
+        if: steps.ahead_check.outputs.ahead_count != '0' && steps.pr_check.outputs.existing_pr == ''
+        run: |
+          gh pr create \
+            --base importer-rework \
+            --head develop \
+            --title "Sync develop → importer-rework" \
+            --body "This PR was auto-created to sync changes from \`develop\` into \`importer-rework\`." \
+            --label automation \
+            --repo ${{ github.repository }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # OPTIONAL: Automatically merge the PR if all checks pass
+      # - name: Auto-merge PR
+      #   if: steps.pr_check.outputs.existing_pr != ''
+      #   run: |
+      #     gh pr merge "${{ steps.pr_check.outputs.existing_pr }}" --merge --admin
+      #   env:
+      #     GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

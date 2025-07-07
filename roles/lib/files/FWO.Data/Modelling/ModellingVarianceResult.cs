@@ -20,8 +20,9 @@ namespace FWO.Data.Modelling
     {
         public List<ModellingConnection> ConnsNotImplemented { get; set; } = [];
         public List<ModProdDifference> RuleDifferences { get; set; } = [];
+        public List<ModProdDifference> OkRules { get; set; } = [];
         public Dictionary<int, List<Rule>> UnModelledRules { get; set; } = [];
-        public int ModelledCount = 0;
+        public int ModelledCount { get; set; } = 0;
         public List<Management> Managements { get; set; } = [];
 
         public Dictionary<int, List<ModellingAppRole>> MissingAppRoles { get; set; } = [];
@@ -43,32 +44,42 @@ namespace FWO.Data.Modelling
             }
         }
 
+        public void AddOkRule(ModellingConnection conn, Rule rule)
+        {
+            ModProdDifference? diff = OkRules.FirstOrDefault(d => d.ModelledConnection.Id == conn.Id);
+            if (diff == null)
+            {
+                OkRules.Add(new(){ModelledConnection = conn, ImplementedRules = [rule]});
+            }
+            else
+            {
+                diff.ImplementedRules.Add(rule);
+            }
+        }
+
         public List<ManagementReport> MgtDataToReport()
         {
             List<ManagementReport> managementReports = [];
-            foreach(var mgtId in UnModelledRules.Keys)
+            foreach (var mgtId in UnModelledRules.Keys.Where(m => UnModelledRules[m].Count > 0))
             {
-                if (UnModelledRules[mgtId].Count > 0)
+                Management? mgt = Managements.FirstOrDefault(m => m.Id == mgtId);
+                ManagementReport managementReport = new() { Id = mgtId, Name = mgt?.Name ?? "" };
+                List<DeviceReport> deviceReports = [];
+                foreach (var rule in UnModelledRules[mgtId])
                 {
-                    Management? mgt = Managements.FirstOrDefault(m => m.Id == mgtId);
-                    ManagementReport managementReport = new(){ Id = mgtId, Name = mgt?.Name ?? ""};
-                    List<DeviceReport> deviceReports = [];
-                    foreach(var rule in UnModelledRules[mgtId])
+                    DeviceReport? existingDev = deviceReports.FirstOrDefault(d => d.Id == rule.DeviceId);
+                    if (existingDev != null)
                     {
-                        DeviceReport? existingDev = deviceReports.FirstOrDefault(d => d.Id == rule.DeviceId);
-                        if(existingDev != null)
-                        {
-                            existingDev.Rules = existingDev.Rules?.Append(rule).ToArray();
-                        }
-                        else
-                        {
-                            string devName = mgt == null ? "" : mgt.Devices.FirstOrDefault(d => d.Id == rule.DeviceId)?.Name ?? "";
-                            deviceReports.Add(new(){ Id = rule.DeviceId, Name = devName, Rules = [rule]});
-                        }
+                        existingDev.Rules = existingDev.Rules?.Append(rule).ToArray();
                     }
-                    managementReport.Devices = [.. deviceReports];
-                    managementReports.Add(managementReport);
+                    else
+                    {
+                        string devName = mgt == null ? "" : mgt.Devices.FirstOrDefault(d => d.Id == rule.DeviceId)?.Name ?? "";
+                        deviceReports.Add(new() { Id = rule.DeviceId, Name = devName, Rules = [rule] });
+                    }
                 }
+                managementReport.Devices = [.. deviceReports];
+                managementReports.Add(managementReport);
             }
             return managementReports;
         }

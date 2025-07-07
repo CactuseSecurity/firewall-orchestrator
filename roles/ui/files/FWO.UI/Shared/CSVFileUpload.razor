@@ -24,9 +24,7 @@
                 <button type="button" disabled="@(Loading || UploadDisabled)" class="btn btn-sm @(UploadDisabled ? "btn-primary" : "btn-success") mt-2 w-100" @onclick="ImportCSV">
                     @if(Loading)
                     {
-                        <div class="spinner-border spinner-border-sm" role="status">
-                            <span class="visually-hidden">@(UserConfig.GetText("loading"))</span>
-                        </div>
+                        <Loading/>
                     }
                     <span class="ms-1">@(UserConfig.GetText("import"))</span>
                 </button>

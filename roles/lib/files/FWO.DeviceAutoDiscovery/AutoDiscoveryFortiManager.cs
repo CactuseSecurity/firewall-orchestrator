@@ -38,7 +38,7 @@ namespace FWO.DeviceAutoDiscovery
             FortiManagerClient restClientFM = new(SuperManagement);
 
             RestResponse<SessionAuthInfo> sessionResponse = await restClientFM.AuthenticateUser(SuperManagement.ImportCredential.ImportUser, SuperManagement.ImportCredential.Secret);
-            if (sessionResponse.StatusCode == HttpStatusCode.OK && sessionResponse.IsSuccessful && !string.IsNullOrEmpty(sessionResponse?.Data?.SessionId))
+            if (sessionResponse.StatusCode == HttpStatusCode.OK && sessionResponse.IsSuccessful && !string.IsNullOrEmpty(sessionResponse.Data?.SessionId))
             {
                 string sessionId = sessionResponse.Data.SessionId;
                 Log.WriteDebug(Autodiscovery, $"successful FortiManager login, got SessionID: {sessionId}");
@@ -94,7 +94,7 @@ namespace FWO.DeviceAutoDiscovery
             RestResponse<FmApiTopLevelHelper> adomResponse = await restClientFM.GetAdoms(sessionId);
             if (adomResponse.StatusCode == HttpStatusCode.OK && adomResponse.IsSuccessful)
             {
-                List<Adom>? adomList = adomResponse?.Data?.Result[0]?.AdomList;
+                List<Adom>? adomList = adomResponse.Data?.Result[0]?.AdomList;
                 if (adomList?.Count > 0)
                 {
                     Log.WriteDebug(Autodiscovery, $"found a total of {adomList.Count} adoms");

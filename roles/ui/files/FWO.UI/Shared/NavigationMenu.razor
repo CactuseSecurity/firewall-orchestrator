@@ -1,4 +1,4 @@
-﻿@inject GlobalConfig globalConfig
+@inject GlobalConfig globalConfig
 @inject UserConfig userConfig
 @inject ApiConnection apiConnection
 @inject IJSRuntime jsRuntime
@@ -8,7 +8,15 @@
 {
     <nav class="navbar navbar-expand-xl navbar-dark bg-blue shadow w-100">
         <a class="navbar-brand pad-10" href="#">
-            <img src="/images/FWO_logo_navbar.png">&nbsp;@userConfig.GetText("fworch_long")&nbsp;v@(globalConfig.ProductVersion)
+            @if(globalConfig.UseCustomLogo)
+            {
+                <img src="data:image/png;base64, @(globalConfig.CustomLogoData)" class="rounded cl-fixed-size" alt="">
+            }
+            else
+            {
+                <img src="/images/FWO_logo_navbar.png">
+            }
+            &nbsp;@userConfig.GetText("fworch_long")&nbsp;v@(globalConfig.ProductVersion)
         </a>
 
         <button class="navbar-toggler" type="button" @onclick="ToggleNavMenu">

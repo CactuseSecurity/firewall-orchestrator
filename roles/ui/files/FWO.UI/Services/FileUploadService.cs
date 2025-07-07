@@ -28,9 +28,9 @@ namespace FWO.Ui.Services
         private readonly string AllowedFileFormats;
 
         private readonly IEventMediator EventMediator;
-        private FileUploadEvent CustomLogoUploadEvent;
-        private FileUploadEvent FileUploadEvent;
-        private AppServerImportEvent AppServerImportEvent;
+        private readonly FileUploadEvent CustomLogoUploadEvent;
+        private readonly FileUploadEvent FileUploadEvent;
+        private readonly AppServerImportEvent AppServerImportEvent;
 
         public FileUploadService(ApiConnection apiConnection, UserConfig userConfig, string allowedFileFormats, GlobalConfig globalConfig, IEventMediator eventMediator)
         {

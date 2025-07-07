@@ -6,7 +6,7 @@ import fwo_alert, fwo_api
 import ipaddress 
 
 
-def normalize_network_objects(full_config, config2import, import_id, mgm_id=0, debug_level=0):
+def normalize_network_objects(full_config, config2import, import_id, mgm_id=0):
     nw_objects = []
     logger = getFwoLogger()
 

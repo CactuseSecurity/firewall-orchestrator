@@ -1,3 +1,4 @@
+using FWO.Basics;
 using FWO.Basics.Exceptions;
 using FWO.Data;
 using FWO.Data.Modelling;
@@ -108,7 +109,7 @@ namespace FWO.ExternalSystems.Tufin.SecureChange
 		{
 			CreateTicketTasks(tasks, ipProtos, namingConvention);
 			await CreateTicketText(tasks.FirstOrDefault());
-			if (TicketText.Contains("@@"))
+			if (TicketText.Contains(GlobalConst.kPlaceholderMarker))
 			{
 				throw new ConfigException("Template error. Unhandled placeholder found.");
 			}
@@ -269,12 +270,12 @@ namespace FWO.ExternalSystems.Tufin.SecureChange
 			string appId = reqTask != null && reqTask.Owners.Count > 0 ? reqTask.Owners[0]?.Owner.ExtAppId ?? "" : "";
 			string onBehalf = TicketSystem.LookupRequesterId ? (await LookupRequesterId(Requester)).ToString() : Requester;
 			TicketText = actTicketTemplate
-				.Replace("@@TICKET_SUBJECT@@", Subject)
-				.Replace("@@PRIORITY@@", Priority)
-				.Replace("@@ONBEHALF@@", onBehalf)
-				.Replace("@@REASON@@", reqTask?.Reason ?? DefaultReason)
-				.Replace("@@APPID@@", appId)
-				.Replace("@@TASKS@@", string.Join(",", TicketTasks));
+				.Replace(Placeholder.TICKET_SUBJECT, Subject)
+				.Replace(Placeholder.PRIORITY, Priority)
+				.Replace(Placeholder.ONBEHALF, onBehalf)
+				.Replace(Placeholder.REASON, reqTask?.Reason ?? DefaultReason)
+				.Replace(Placeholder.APPID, appId)
+				.Replace(Placeholder.TASKS, string.Join(",", TicketTasks));
 			bool shortened = false;
 			TicketText = Sanitizer.SanitizeEolMand(TicketText, ref shortened);
 			CheckForProperJson(TicketText);

@@ -114,9 +114,8 @@ def parseRulePart (objects, part='source'):
     addressObjects = {}
 
     if objects is None:
-        logger.debug(f"rule part {part} is None: {str(objects)}, which is normal for inline layer guards")
+        logger.debug(f"rule part {part} is None: {str(objects)}, which is normal for track field in inline layer guards")
         return None
-        # raise fwo_exceptions.FwoNativeConfigFetchError("rule part " + part + " is None: " + str(objects))
 
     if 'chunks' in objects:  # for chunks of actions?!
         return addressObjects.update(parseRulePart(objects['chunks'], part=part)) # need to parse chunk first

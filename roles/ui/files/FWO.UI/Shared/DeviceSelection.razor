@@ -129,9 +129,9 @@
         {
             await jsRuntime.InvokeVoidAsync("setProperty", element, property, value);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            Debug.WriteLine(expandAllText.ToString());
+            Debug.WriteLine(ex.ToString());
         }
         
     }

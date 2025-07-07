@@ -43,7 +43,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 	ProjectSection(SolutionItems) = preProject
 		.editorconfig = .editorconfig
 	EndProjectSection
-EndProjectProject("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FWO.ExternalSystems", "lib\files\FWO.ExternalSystems\FWO.ExternalSystems.csproj", "{072AE48C-2B5E-49A6-81AF-32F6C941655D}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "files", "files", "{5603A4C9-96C7-439B-B587-FF58B1ECE052}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FWO.Compliance", "lib\files\FWO.Compliance\FWO.Compliance.csproj", "{A22D31CE-BAC6-4708-8B34-BCD46972F2F6}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -123,6 +126,10 @@ Global
 		{072AE48C-2B5E-49A6-81AF-32F6C941655D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{072AE48C-2B5E-49A6-81AF-32F6C941655D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{072AE48C-2B5E-49A6-81AF-32F6C941655D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A22D31CE-BAC6-4708-8B34-BCD46972F2F6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A22D31CE-BAC6-4708-8B34-BCD46972F2F6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A22D31CE-BAC6-4708-8B34-BCD46972F2F6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A22D31CE-BAC6-4708-8B34-BCD46972F2F6}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

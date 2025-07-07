@@ -384,6 +384,12 @@ namespace FWO.Config.Api.Data
 		[JsonProperty("resolveNetworkAreas"), JsonPropertyName("resolveNetworkAreas")]
 		public bool ResolveNetworkAreas { get; set; } = false;
 
+		[JsonProperty("complianceCheckSleepTime"), JsonPropertyName("complianceCheckSleepTime")]
+		public int ComplianceCheckSleepTime { get; set; } = 0;
+
+		[JsonProperty("complianceCheckStartAt"), JsonPropertyName("complianceCheckStartAt")]
+		public DateTime ComplianceCheckStartAt { get; set; } = DateTime.Now;
+
         public ConfigData(bool editable = false)
 		{
 			Editable = editable;

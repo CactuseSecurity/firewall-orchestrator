@@ -13,6 +13,13 @@ class FwLogoutFailed(Exception):
         self.message = message
         super().__init__(self.message)
 
+class FwoNativeConfigFetchError(Exception):
+    """Raised when getting native config from FW management fails, no rollback necessary"""
+
+    def __init__(self, message="Login to FW management failed"):
+        self.message = message
+        super().__init__(self.message)
+
 class SecretDecryptionFailed(Exception):
     """Raised when the attempt to decrypt a secret with the given key fails"""
 

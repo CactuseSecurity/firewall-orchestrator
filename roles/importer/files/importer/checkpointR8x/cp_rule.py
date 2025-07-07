@@ -6,6 +6,7 @@ import json
 import cp_const
 import fwo_const
 import fwo_globals
+import fwo_exceptions
 from fwo_const import list_delimiter, default_section_header_text
 from fwo_base import sanitize
 from fwo_exceptions import ImportRecursionLimitReached
@@ -111,6 +112,11 @@ def acceptMalformedParts(objects, part=''):
 
 def parseRulePart (objects, part='source'):
     addressObjects = {}
+
+    if objects is None:
+        logger.debug(f"rule part {part} is None: {str(objects)}, which is normal for inline layer guards")
+        return None
+        # raise fwo_exceptions.FwoNativeConfigFetchError("rule part " + part + " is None: " + str(objects))
 
     if 'chunks' in objects:  # for chunks of actions?!
         return addressObjects.update(parseRulePart(objects['chunks'], part=part)) # need to parse chunk first

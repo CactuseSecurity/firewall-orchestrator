@@ -159,12 +159,10 @@ namespace FWO.Middleware.Server
 
             EmailConnection emailConnection = new(globalConfig.EmailServerAddress, globalConfig.EmailPort,
                 globalConfig.EmailTls, globalConfig.EmailUser, decryptedSecret, globalConfig.EmailSenderAddress);
-            MailKitMailer mailer = new(emailConnection);
 
             MailData? mail = await PrepareEmail();
 
-            await mailer.SendAsync(mail, emailConnection, new CancellationToken(),
-                globalConfig.ImpChangeNotifyType == (int)ImpChangeNotificationType.HtmlInBody);
+            await MailKitMailer.SendAsync(mail, emailConnection, globalConfig.ImpChangeNotifyType == (int)ImpChangeNotificationType.HtmlInBody, new CancellationToken());
         }
 
         private async Task<MailData> PrepareEmail()
@@ -201,7 +199,7 @@ namespace FWO.Middleware.Server
                         break;
                 }
             }
-            MailData mailData = new(CollectRecipients(), subject, body);
+            MailData mailData = new(CollectRecipients(), subject){ Body = body };
             if (attachment != null)
             {
                 mailData.Attachments = new FormFileCollection() { attachment };

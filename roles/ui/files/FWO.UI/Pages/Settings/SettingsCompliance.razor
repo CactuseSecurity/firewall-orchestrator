@@ -1,0 +1,99 @@
+@page "/settings/compliance"
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
+
+@using FWO.Services.EventMediator.Events
+@using FWO.Services.EventMediator.Interfaces
+@using FWO.Ui.Data
+@inject ApiConnection apiConnection
+@inject GlobalConfig globalConfig
+@inject UserConfig userConfig
+@inject IEventMediator EventMediator
+
+<div class="input-group">
+    <h3>@(userConfig.GetText("compliance"))</h3>
+    <HelpLink Page="settings/compliance" />
+</div>
+@(userConfig.GetText("U5324"))
+<hr />
+
+@if(configData != null)
+{
+    <form onsubmit="return false">
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5801"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("complianceCheckSleepTime")):</label>
+            <div class="col-sm-2">
+                <input type="number" min="0" @bind="configData!.ComplianceCheckSleepTime" />
+            </div>
+        </div>
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5802"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("complianceCheckStartAt")):</label>
+            <div class="col-sm-4">
+                <div class="row">
+                    <input type="time" step="60" class="ml-13 col-sm-5" @bind="complianceCheckStartTime" />
+                    <input type="date" class="col-sm-5" @bind="complianceCheckStartDate" />
+                </div>
+            </div>
+        </div>
+    </form>
+    <hr />
+    <AuthorizeView Roles="@Roles.Admin">
+        <Authorized>
+            <button type="button" class="btn btn-sm btn-primary" @onclick="Save" @onclick:preventDefault>@(userConfig.GetText("save"))</button>
+        </Authorized>
+        <NotAuthorized>
+            <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+        </NotAuthorized>
+    </AuthorizeView>
+ }
+else
+{
+    <div class="spinner-border" role="status">
+        <span class="visually-hidden">@(userConfig.GetText("loading"))</span>
+    </div>
+}
+
+
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    private ConfigData? configData;
+    private DateTime complianceCheckStartDate = DateTime.Today;
+    private DateTime complianceCheckStartTime = DateTime.Now.AddSeconds(-DateTime.Now.Second);
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            configData = await globalConfig.GetEditableConfig();
+            complianceCheckStartDate = complianceCheckStartTime = configData.ComplianceCheckStartAt;
+        }
+        catch(Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("read_config"), userConfig.GetText("E5301"), false);
+        }
+    }
+
+    private async Task Save()
+    {
+        try
+        {
+            if(configData != null)
+            {
+                configData.ComplianceCheckStartAt = complianceCheckStartDate.Date.Add(complianceCheckStartTime.TimeOfDay);
+                await globalConfig.WriteToDatabase(configData, apiConnection);
+                DisplayMessageInUi(null, userConfig.GetText("change_default"), userConfig.GetText("U5301"), false);
+            }
+            else
+            {
+                throw new ArgumentException("Data saved before loaded. This should be impossible.");
+            }
+        }
+        catch(Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("change_default"), "", true);
+        }
+    }
+}

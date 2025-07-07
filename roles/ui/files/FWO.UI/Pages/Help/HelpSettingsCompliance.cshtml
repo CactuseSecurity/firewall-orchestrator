@@ -1,0 +1,22 @@
+﻿@page "/help/settings/compliance"
+@model FWO.Ui.Pages.Help.MainModel
+@{
+    Layout = "HelpLayout";
+}
+@section sidebar{
+    @{ 
+        await Html.RenderPartialAsync("HelpSettingsSidebar.cshtml"); 
+    }
+}
+@using FWO.Config.Api
+@inject UserConfig userConfig
+
+<div class="p-2">
+    <h3>@(userConfig.GetText("compliance"))</h3>
+    @(Html.Raw(userConfig.GetText("H5803")))
+    <br><br>
+    <ul>
+        <li>@(Html.Raw(userConfig.GetText("H5801")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5802")))</li>
+    </ul>
+</div>

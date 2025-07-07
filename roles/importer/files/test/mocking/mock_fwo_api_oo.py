@@ -1,4 +1,5 @@
-from graphql import ArgumentNode, BooleanValueNode, IntValueNode, ListValueNode, ObjectValueNode, OperationDefinitionNode, StringValueNode, VariableNode, parse, OperationType
+from typing import List
+from graphql import ArgumentNode, BooleanValueNode, IntValueNode, ListValueNode, ObjectFieldNode, ObjectValueNode, OperationDefinitionNode, StringValueNode, VariableNode, parse, OperationType
 from importer.fwo_api_oo import FwoApi
 from importer.models.networkobject import NetworkObject
 from importer.models.rulebase import Rulebase
@@ -14,6 +15,7 @@ TABLE_IDENTIFIERS = {
     "stm_obj_typ": "obj_typ_id",
     "stm_action": "action_id",
     "stm_track": "track_id",
+    "stm_color": "color_id",
     "stm_dev_typ": "dev_typ_id",
     "object": "obj_id",
     "service": "svc_id",
@@ -125,7 +127,26 @@ STM_TABLES = {
             ('Fortinet FortiOS Gateway','REST','Fortinet','',
              False,False,False)
         ], start=1)
-    ]
+    ],
+    "stm_color": [
+        {"color_id": 0, "color_name": "black"},
+        {"color_id": 1, "color_name": "blue"},
+    ],
+}
+
+INSERT_UNIQUE_PK_CONSTRAINTS = {
+    "rule_from": ["rule_id", "obj_id", "user_id"],
+    "rule_to": ["rule_id", "obj_id", "user_id"],
+    "rule_svc": ["rule_id", "svc_id"],
+    "rule_nwobj_resolved": ["rule_id", "obj_id", "user_id"],
+    "rule_svc_resolved": ["rule_id", "svc_id"],
+    "rule_user_resolved": ["rule_id", "user_id"],
+    "objgrp": ["objgrp_id", "objgrp_member_id"],
+    "svcgrp": ["svcgrp_id", "svcgrp_member_id"],
+    "usergrp": ["usergrp_id", "usergrp_member_id"],
+    "objgrp_flat": ["objgrp_flat_id", "objgrp_flat_member_id"],
+    "svcgrp_flat": ["svcgrp_flat_id", "svcgrp_flat_member_id"],
+    "usergrp_flat": ["usergrp_flat_id", "usergrp_flat_member_id"],
 }
 
 def object_to_dict(obj, max_depth=10):
@@ -186,8 +207,13 @@ class MockFwoApi(FwoApi):
             if field.startswith("insert_"):
                 table = field[len("insert_"):]
                 # Find the argument name for objects
-                arg_name = next((a.value.name.value for a in sel.arguments if a.name.value == "objects"), None)
-                objects = variables.get(arg_name, [])
+                try:
+                    arg_name = next((a.value.name.value for a in sel.arguments if a.name.value == "objects"), None)
+                    objects = variables.get(arg_name, [])
+                except AttributeError:
+                    objects = [{
+                        field.name.value: variables.get(field.value.name.value, None) for field in sel.arguments[0].value.fields
+                    }]
                 if table not in self.tables:
                     self.tables[table] = {}
                 returning = []
@@ -203,7 +229,13 @@ class MockFwoApi(FwoApi):
                         obj.pop("rules", None)  # remove rules from rulebase insert. why are they even there?
                         if any((row["mgm_id"] == obj["mgm_id"] and 
                                 row["uid"] == obj["uid"] for row in self.tables.get("rulebase", {}).values())):
-                            continue  # mock unique_rulebase_mgm_id_uid constraint
+                            continue  # mock on_conflict unique_rulebase_mgm_id_uid constraint
+                    if table in INSERT_UNIQUE_PK_CONSTRAINTS:
+                        # Check for unique constraints
+                        unique_keys = INSERT_UNIQUE_PK_CONSTRAINTS[table]
+                        if any(all(row.get(key) == obj.get(key) for key in unique_keys)
+                               for row in self.tables[table].values()):
+                            raise ValueError(f"Unique constraint violation for {table} with keys {unique_keys}.")
                     self.tables[table][pk] = obj
                     returning.append(obj)
                 result["data"][field] = {
@@ -224,6 +256,25 @@ class MockFwoApi(FwoApi):
                             self._update_row(row, set_arg, variables)
                             returning.append(row)
                             affected += 1
+                result["data"][field] = {
+                    "affected_rows": affected,
+                    "returning": returning
+                }
+            elif field.startswith("delete_"):
+                table = field[len("delete_"):]
+                returning = []
+                affected = 0
+                # Find argument name for where
+                where_arg = next((a for a in sel.arguments if a.name.value == "where"), None)
+                if where_arg:
+                    to_delete = []
+                    for pk, row in self.tables.get(table, {}).items():
+                        if self._row_matches_where(row, where_arg, variables):
+                            returning.append(row)
+                            to_delete.append(pk)
+                            affected += 1
+                    for pk in to_delete:
+                        del self.tables[table][pk]
                 result["data"][field] = {
                     "affected_rows": affected,
                     "returning": returning
@@ -256,9 +307,14 @@ class MockFwoApi(FwoApi):
         Recursively checks if a row matches the where clause AST.
         Supports _and, _or, _not, and flat field checks.
         """
-        if not isinstance(where_node.value, ObjectValueNode):
-            raise ValueError("Expected ObjectValueNode for where clause value.")
-        where_value: ObjectValueNode = where_node.value
+        where_value: ObjectValueNode
+        if isinstance(where_node, ObjectValueNode):
+            where_value = where_node
+        elif isinstance(where_node.value, ObjectValueNode):
+            try:
+                where_value = where_node.value
+            except AttributeError:
+                where_value = where_node.fields[0]
 
         for field in where_value.fields:
             key = field.name.value
@@ -270,10 +326,15 @@ class MockFwoApi(FwoApi):
                 if not all(self._row_matches_where(row, v, variables) for v in value.values):
                     return False
             elif key == "_or":
-                if not isinstance(value, ListValueNode):
-                    raise ValueError("_or must be a list")
-                if not any(self._row_matches_where(row, v, variables) for v in value.values):
-                    return False
+                if isinstance(value, ListValueNode):
+                    if not any(self._row_matches_where(row, v, variables) for v in value.values): # type: ignore
+                        return False
+                elif isinstance(value, VariableNode):
+                    or_values = variables.get(value.name.value, [])
+                    if not isinstance(or_values, list):
+                        raise ValueError(f"Expected list for '_or' variable '{value.name.value}', got {type(or_values)}.")
+                    if not self._row_matches_where_bool_exp(row, or_values):
+                        return False
             elif key == "_not":
                 if self._row_matches_where(row, value, variables):
                     return False
@@ -303,6 +364,25 @@ class MockFwoApi(FwoApi):
                     else:
                         raise ValueError(f"Unsupported operator '{op}' in where clause.")
         return True
+
+    def _row_matches_where_bool_exp(self, row, or_values):
+        """
+        Checks if a row matches any of the boolean expressions in or_values.
+        """
+        for v in or_values: # v = {'_and': [{'field1: {'_eq': 'value1'}}, {'field2': {'_eq': 'value2'}}]}
+            fields = v['_and'] # [{'field1': {'_eq': 'value1'}}, {'field2': {'_eq': 'value2'}}]
+            for field in fields: # {'field1': {'_eq': 'value1'}}
+                field_name, value = next(iter(field.items())) # name = 'field1', value = {'_eq': 'value1'}
+                key, value = next(iter(value.items())) # key = '_eq', value = 'value1'
+                if key == "_eq":
+                    if row.get(field_name) != value:
+                        return False
+                else:
+                    raise ValueError(f"Unsupported operator '{key}' in where clause.")
+        return True
+                    
+
+
 
 
     def _update_row(self, row, set_node: ArgumentNode, variables):

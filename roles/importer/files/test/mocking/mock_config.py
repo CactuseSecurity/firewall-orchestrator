@@ -302,8 +302,6 @@ class MockFwConfigNormalizedBuilder():
                 self.change_service_object_subtle(config, "cpr-svc1-member1")
             elif change_obj == "nested_member":
                 self.change_network_object_subtle(config, "cpr-from1-member1-member1")
-            elif change_obj == "nested_member_svc":
-                self.change_service_object_subtle(config, "cpr-svc1-member1")
         elif change_type == "add":
             if change_obj == "from":
                 self.add_network_object(config, {
@@ -561,10 +559,11 @@ class MockFwConfigNormalizedBuilder():
             raise ValueError(f"Object with UID {obj_uid} not found in config.")
 
         obj = config.network_objects[obj_uid]
-        # Change the IP address slightly
-        new_ip = IPNetwork(str(IPAddress(DUMMY_IP.first + 1)) + '/' + str(DUMMY_IP.prefixlen))
-        obj.obj_ip = new_ip
-        obj.obj_ip_end = new_ip
+        # # Change the IP address slightly
+        # new_ip = IPNetwork(str(IPAddress(DUMMY_IP.first + 1)) + '/' + str(DUMMY_IP.prefixlen))
+        # obj.obj_ip = new_ip
+        # obj.obj_ip_end = new_ip
+        obj.obj_color = "blue" if obj.obj_color == "black" else "black"  # Toggle color for subtle change
     
     def change_service_object_subtle(self, config, svc_uid):
         """
@@ -575,8 +574,9 @@ class MockFwConfigNormalizedBuilder():
             raise ValueError(f"Service with UID {svc_uid} not found in config.")
 
         svc = config.service_objects[svc_uid]
-        # Change the service protocol slightly
-        svc.svc_port = 6 if svc.svc_port == 17 else 17  # Toggle between TCP (6) and UDP (17)
+        # # Change the service protocol slightly
+        # svc.svc_port = 6 if svc.svc_port == 17 else 17  # Toggle between TCP (6) and UDP (17)
+        svc.svc_color = "blue" if svc.svc_color == "black" else "black"  # Toggle color for subtle change
 
 
 if __name__ == '__main__':

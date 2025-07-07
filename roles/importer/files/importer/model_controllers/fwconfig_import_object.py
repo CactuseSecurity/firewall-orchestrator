@@ -117,9 +117,6 @@ class FwConfigImportObject():
 
         # these objects have really been deleted so there should be no refs to them anywhere! verify this
 
-        # update all references to objects marked as removed
-        self.markObjectRefsRemoved(removedNwObjIds, removedNwSvcIds)
-
         # TODO: calculate user diffs
         # TODO: calculate zone diffs
 
@@ -519,64 +516,6 @@ class FwConfigImportObject():
             
         return errors, changes
 
-
-    def markObjectRefsRemoved(self, removedNwObjectIds, removedSvcObjectIds):
-        # object refs are not deleted but marked as removed
-        logger = getFwoLogger()
-        errors = 0
-        changes = 0
-        removedNwObjIds = []
-        removedNwSvcIds = []
-        removeMutation = """
-            mutation updateObjects($importId: bigint!, $removedNwObjectIds: [bigint!]!, $removedSvcObjectIds: [bigint!]!) {
-                update_rule_from(where: {obj_id: {_in: $removedNwObjectIds}, removed: {_is_null: true}}, _set: {removed: $importId, active: false}) {
-                    affected_rows
-                }
-                update_rule_to(where: {obj_id: {_in: $removedNwObjectIds}, removed: {_is_null: true}}, _set: {removed: $importId, active: false}) {
-                    affected_rows
-                }
-                update_rule_service(where: {svc_id: {_in: $removedSvcObjectIds}, removed: {_is_null: true}}, _set: {removed: $importId, active: false}) {
-                    affected_rows
-                }
-                update_rule_nwobj_resolved(where: {obj_id: {_in: $removedNwObjectIds}, removed: {_is_null: true}}, _set: {removed: $importId}) {
-                    affected_rows
-                }
-                update_rule_svc_resolved(where: {svc_id: {_in: $removedSvcObjectIds}, removed: {_is_null: true}}, _set: {removed: $importId}) {
-                    affected_rows
-                }
-            }
-        """
-
-        plainRemovedNwObjIds = []
-        for obj in removedNwObjectIds:
-            plainRemovedNwObjIds.append(obj['obj_id'])
-        plainRemovedSvcObjIds = []
-        for obj in removedSvcObjectIds:
-            plainRemovedSvcObjIds.append(obj['svc_id'])
-
-        queryVariables = {
-            'importId': self.ImportDetails.ImportId,
-            'removedNwObjectIds': plainRemovedNwObjIds,
-            'removedSvcObjectIds': plainRemovedSvcObjIds
-        }
-        
-        try:
-            removeResult = self.ImportDetails.call(removeMutation, queryVariables=queryVariables, analyze_payload=True)
-            if 'errors' in removeResult:
-                logger.exception(f"error while marking objects as removed: {str(removeResult['errors'])}")
-                errors = 1
-            else:
-                changes = int(removeResult['data']['update_rule_from']['affected_rows']) + \
-                    int(removeResult['data']['update_rule_to']['affected_rows']) + \
-                    int(removeResult['data']['update_rule_service']['affected_rows']) + \
-                    int(removeResult['data']['update_rule_nwobj_resolved']['affected_rows']) + \
-                    int(removeResult['data']['update_rule_svc_resolved']['affected_rows'])
-                    
-        except Exception:
-            logger.exception(f"fatal error while marking objects as removed: {str(traceback.format_exc())}")
-            errors = 1
-        
-        return errors, changes, removedNwObjIds, removedNwSvcIds
 
     def lookupObjType(self, objTypeString):
         # TODO: might check for miss here as this is a mandatory field!

@@ -48,7 +48,6 @@ class MockImportStateController(ImportStateController):
         self.IsFullImport = True
         self.setCoreData()
 
-        self.color_id_map = {}
         self.track_id_map = {}
         self.action_id_map = {}
         self.service_id_map = {}
@@ -124,14 +123,9 @@ class MockImportStateController(ImportStateController):
             if id_ == gwId:
                 return gwUid
         return None
-    
-    def lookupColorId(self, color_str):
-        if color_str not in self.color_id_map:
-            self.color_id_map[color_str] = len(self.color_id_map) + 1
-        return self.color_id_map[color_str]
-    
+
     def lookupColorStr(self, color_id):
-        for color_str, id_ in self.color_id_map.items():
+        for color_str, id_ in self.ColorMap.items():
             if id_ == color_id:
                 return color_str
         return None

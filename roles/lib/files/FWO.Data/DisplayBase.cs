@@ -251,7 +251,7 @@ namespace FWO.Data
             return result;
         }
 
-        public static string DisplayPort(int? port, int? portEnd, bool inBrackets = false)
+        public static string DisplayPort(int? port, int? portEnd, bool inBrackets = false, string? proto = null)
         {
             string result = "";
             if (port != null)
@@ -265,6 +265,7 @@ namespace FWO.Data
                 {
                     result += $"{port}-{portEnd}";
                 }
+                result += proto != null ? $"/{proto}" : "";
                 result += inBrackets ? ")" : "";
             }
             return result;

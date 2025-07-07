@@ -90,9 +90,11 @@
 
             bool foundObj = await JSRuntime.InvokeAsync<bool>("scrollIntoRSBView", elementId);
 
-            
-            // remove #goto-{obj-link} fragment from uri
-            await JSRuntime.InvokeVoidAsync("removeUrlFragment");
+            if (foundObj)
+            {
+                // remove #goto-{obj-link} fragment from uri
+                await JSRuntime.InvokeVoidAsync("removeUrlFragment");
+            }
         }
     }
 }

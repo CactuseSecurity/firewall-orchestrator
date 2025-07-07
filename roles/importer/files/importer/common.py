@@ -2,11 +2,8 @@ import importlib
 import traceback
 import sys, time
 import json
-
-import importlib
 from socket import gethostname
 from typing import List
-import importlib.util
 from fwo_config import readConfig
 from fwo_const import fwo_config_filename, importer_user_name, importer_base_dir
 from pathlib import Path

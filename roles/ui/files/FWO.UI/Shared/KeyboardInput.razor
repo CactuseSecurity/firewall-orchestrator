@@ -1,4 +1,5 @@
 @using FWO.Ui.Data
+@using System.Diagnostics
 @inject IJSRuntime JSRuntime
 @inject KeyboardInputService keyboardInputService
 
@@ -16,7 +17,14 @@
         if (firstRender)
         {
             dotNetRef = DotNetObjectReference.Create(this);
-            await JSRuntime.InvokeVoidAsync("globalKeyboardListener.init", dotNetRef);
+            try
+            {
+                await JSRuntime.InvokeVoidAsync("globalKeyboardListener.init", dotNetRef);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine(ex.ToString());
+            }            
         }
     }
 
@@ -80,9 +88,16 @@
     {
         if (dotNetRef is not null)
         {
-            await JSRuntime.InvokeVoidAsync("globalKeyboardListener.dispose"); // Remove JS listener
-            dotNetRef.Dispose();
-            dotNetRef = null;
+            try
+            {
+                await JSRuntime.InvokeVoidAsync("globalKeyboardListener.dispose"); // Remove JS listener
+                dotNetRef.Dispose();
+                dotNetRef = null;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine(ex.ToString());
+            }            
         }
     }
 }

@@ -5,6 +5,7 @@
 
 @inject DomEventService eventService
 @inject IJSRuntime jsRuntime
+@implements IDisposable
 
 <div id="@($"dropdown-{Id}")" class="input-group @(Small ? "input-group-sm" : "")">
     <label id="@($"dropdown-input-prepend-{Id}")" class="input-group-text d-flex justify-content-center" style="width: 40px;" for="@($"dropdown-input-{Id}")">
@@ -51,6 +52,7 @@
 {
     private int xPositionDropdown;
     private int yPositionDropdown;
+    private bool JsDisposed { get; set; }
 
     [Parameter]
     public string Id { get; set; }
@@ -181,13 +183,35 @@
 
     private async void OnGlobalScroll(string elementId)
     {
-        if (!await jsRuntime.InvokeAsync<bool>("isChild", elementId, $"dropdown-{Id}") &&
-            !await jsRuntime.InvokeAsync<bool>("isChild", elementId, $"dropdown-menu-{Id}"))
+        try
         {
-            Toggled = true;
-            DisplaySelection(SelectedElements);
-            await InvokeAsync(StateHasChanged);
+            if(jsRuntime == null || JsDisposed)
+            {
+                throw new ObjectDisposedException(nameof(jsRuntime));                
+            }
+
+            if(!await jsRuntime.InvokeAsync<bool>("isChild", elementId, $"dropdown-{Id}") && !await jsRuntime.InvokeAsync<bool>("isChild", elementId, $"dropdown-menu-{Id}"))
+            {
+                Toggled = true;
+                DisplaySelection(SelectedElements);
+                await InvokeAsync(StateHasChanged);
+            }
         }
+        catch(TaskCanceledException ex)
+        {
+            Console.WriteLine(ex.ToString());                }
+        catch(JSDisconnectedException ex)
+        {
+            Console.WriteLine(ex.ToString());
+        }
+        catch(ObjectDisposedException ex)
+        {
+            Console.WriteLine(ex.ToString());
+        }
+        catch(Exception ex)
+        {
+            Console.WriteLine(ex.ToString());
+        }       
     }
 
     private async void OnGlobalClick(string elementId)
@@ -295,5 +319,21 @@
         // Reset display
         DisplaySelection(SelectedElements);
         await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        if(eventService is not null && eventService.Initialized)
+        {
+            eventService.OnGlobalResize -= OnGlobalResize;
+            eventService.OnGlobalScroll -= OnGlobalScroll;
+            eventService.OnGlobalClick -= OnGlobalClick;
+        }
+
+        if (jsRuntime is not null)
+        {
+            jsRuntime = null;
+            JsDisposed = true;
+        }
     }
 }

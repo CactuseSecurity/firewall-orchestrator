@@ -1405,13 +1405,18 @@ create table compliance.network_zone
 	name VARCHAR NOT NULL,
 	description VARCHAR NOT NULL,
 	super_network_zone_id bigint,
-	owner_id bigint
+	owner_id bigint,
+	removed timestamp with time zone,
+	created timestamp with time zone
 );
 
 create table compliance.network_zone_communication
 (
+	criterion_id bigint,
     from_network_zone_id bigint NOT NULL,
-	to_network_zone_id bigint NOT NULL
+	to_network_zone_id bigint NOT NULL,
+    removed timestamp with time zone,
+	created timestamp with time zone
 );
 
 create table compliance.ip_range
@@ -1419,9 +1424,46 @@ create table compliance.ip_range
     network_zone_id bigint NOT NULL,
 	ip_range_start inet NOT NULL,
 	ip_range_end inet NOT NULL,
-	PRIMARY KEY(network_zone_id, ip_range_start, ip_range_end)
+	PRIMARY KEY(network_zone_id, ip_range_start, ip_range_end, created),
+	removed timestamp with time zone,
+	created timestamp with time zone
 );
 
+create table compliance.policy
+(
+    id BIGSERIAL PRIMARY KEY,
+	name Varchar,
+	created_date timestamp default now(),
+	disabled bool
+);
+
+create table compliance.policy_criterion
+(
+    policy_id bigint NOT NULL,
+	criterion_id bigint NOT NULL
+    removed timestamp with time zone
+	created timestamp with time zone
+);
+
+create table compliance.criterion
+(
+    id BIGSERIAL PRIMARY KEY,
+	name Varchar,
+	criterion_type Varchar,
+	content Varchar
+);
+
+create table compliance.violation
+(
+    id BIGSERIAL PRIMARY KEY,
+	rule_id bigint NOT NULL,
+	found_date timestamp default now(),
+	removed_date timestamp with time zone,
+	details Varchar,
+	risk_score real,
+	policy_id bigint NOT NULL,
+	criterion_id bigint NOT NULL
+);
 
 --- Network modelling ---
 create schema modelling;

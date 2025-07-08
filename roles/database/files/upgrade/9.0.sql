@@ -878,6 +878,57 @@ BEGIN
 END
 $$;
 
+-- add new compliance tables
+
+create table compliance.policy  
+(
+    id BIGSERIAL PRIMARY KEY,
+	name Varchar,
+	created_date timestamp default now(),
+	disabled bool
+);
+
+create table compliance.policy_criterion
+(
+    policy_id bigint NOT NULL,
+	criterion_id bigint NOT NULL
+    removed timestamp with timezone
+	created timestamp with timezone
+);
+
+create table compliance.criterion
+(
+    id BIGSERIAL PRIMARY KEY,
+	name Varchar,
+	criterion_type Varchar,
+	content Varchar
+);
+
+create table compliance.violation
+(
+    id BIGSERIAL PRIMARY KEY,
+	rule_id bigint NOT NULL,
+	found_date timestamp default now(),
+	removed_date timestamp with timezone,
+	details Varchar,
+	risk_score real,
+	policy_id bigint NOT NULL,
+	criterion_id bigint NOT NULL
+);
+
+-- alter existing compliance tables
+
+ALTER TABLE compliance.network_zone ADD COLUMN IF NOT EXISTS "created" TIMESTAMP WITH TIME ZONE;
+ALTER TABLE compliance.network_zone ADD COLUMN IF NOT EXISTS "removed" TIMESTAMP WITH TIME ZONE;
+ALTER TABLE compliance.network_zone_communication ADD COLUMN IF NOT EXISTS "created" TIMESTAMP WITH TIME ZONE;
+ALTER TABLE compliance.network_zone_communication ADD COLUMN IF NOT EXISTS "removed" TIMESTAMP WITH TIME ZONE;
+ALTER TABLE compliance.network_zone_communication ADD COLUMN IF NOT EXISTS "criterion_id" BIGINT;
+ALTER TABLE compliance.ip_range ADD COLUMN IF NOT EXISTS "created" TIMESTAMP WITH TIME ZONE;
+ALTER TABLE compliance.ip_range ADD COLUMN IF NOT EXISTS "removed" TIMESTAMP WITH TIME ZONE;
+ALTER TABLE compliance.ip_range DROP CONSTRAINT ip_range_pkey;
+ALTER TABLE compliance.ip_range ADD PRIMARY KEY ip_range_pkey (network_zone_id, ip_range_start, ip_range_end, created);
+
+
 -- adding labels (simple version without mapping tables and without foreign keys)
 
 -- CREATE TABLE label (

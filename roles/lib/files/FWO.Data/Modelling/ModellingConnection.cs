@@ -219,7 +219,6 @@ namespace FWO.Data.Modelling
         public bool IsRelevantForVarianceAnalysis(long dummyAppRoleId)
         {
             return !(IsInterface ||
-                IsDocumentationOnly() ||
                 GetBoolProperty(ConState.InterfaceRequested.ToString()) ||
                 GetBoolProperty(ConState.InterfaceRejected.ToString()) || 
                 EmptyAppRolesFound(dummyAppRoleId) ||

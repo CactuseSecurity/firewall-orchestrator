@@ -39,15 +39,15 @@ namespace FWO.Services
             }
         }
 
-        private async Task AnalyseDeletedConnsForRequest(Management mgt)
+        private void AnalyseDeletedConnsForRequest(Management mgt, List<ModellingConnection> dokuOnlyConnections)
         {
-            List<ModellingConnection> deletedConns = await GetDeletedConnections();
-            List<int> DeletedConnectionIds = deletedConns.ConvertAll(c => c.Id);
+            List<ModellingConnection> RegardedAsDeletedConns = [.. DeletedConns, .. dokuOnlyConnections];
+            List<int> RegardedDeletedConnectionIds = RegardedAsDeletedConns.ConvertAll(c => c.Id);
             foreach (var rule in allModelledRules[mgt.Id].Where(r => !r.ModellFound))
             {
-                if (int.TryParse(FindModelledMarker(rule), out int connId) && DeletedConnectionIds.Contains(connId))
+                if (int.TryParse(FindModelledMarker(rule), out int connId) && RegardedDeletedConnectionIds.Contains(connId))
                 {
-                    ModellingConnection deletedConn = deletedConns.FirstOrDefault(c => c.Id == connId) ?? throw new KeyNotFoundException("Connection not found.");
+                    ModellingConnection deletedConn = RegardedAsDeletedConns.FirstOrDefault(c => c.Id == connId) ?? throw new KeyNotFoundException("Connection not found.");
                     DeleteAccessTaskList.Add(ConstructRuleTask(mgt, rule, deletedConn, true, GetElementsFromRule(rule, deletedConn)));
                 }
             }

@@ -925,8 +925,13 @@ ALTER TABLE compliance.network_zone_communication ADD COLUMN IF NOT EXISTS "remo
 ALTER TABLE compliance.network_zone_communication ADD COLUMN IF NOT EXISTS "criterion_id" BIGINT;
 ALTER TABLE compliance.ip_range ADD COLUMN IF NOT EXISTS "created" TIMESTAMP WITH TIME ZONE;
 ALTER TABLE compliance.ip_range ADD COLUMN IF NOT EXISTS "removed" TIMESTAMP WITH TIME ZONE;
+
+-- alter ip_range's PK
+
 ALTER TABLE compliance.ip_range DROP CONSTRAINT ip_range_pkey;
-ALTER TABLE compliance.ip_range ADD PRIMARY KEY ip_range_pkey (network_zone_id, ip_range_start, ip_range_end, created);
+ALTER TABLE compliance.ip_range
+ADD CONSTRAINT ip_range_pkey
+PRIMARY KEY (network_zone_id, ip_range_start, ip_range_end, created);
 
 
 -- adding labels (simple version without mapping tables and without foreign keys)

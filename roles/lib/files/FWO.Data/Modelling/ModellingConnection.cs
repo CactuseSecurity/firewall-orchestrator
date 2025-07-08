@@ -348,6 +348,16 @@ namespace FWO.Data.Modelling
             return userObjectNames;
         }
 
+        public Dictionary<string, bool> GetUpdateableObjectNames()
+        {
+            Dictionary<string, bool> updateableObjectNames = [];
+            foreach (var extraConfig in ExtraConfigs.Where(e => e.ExtraConfigType.ToLower().StartsWith(GlobalConst.kUpdateable)))
+            {
+                updateableObjectNames.Add(extraConfig.ExtraConfigText.ToLower(), false);
+            }
+            return updateableObjectNames;
+        }
+
         public bool DeletedObjectsFound()
         {
             return SourceAreas.Any(a => a.Content.IsDeleted) ||

@@ -1515,6 +1515,8 @@ INSERT INTO txt VALUES ('common_areas',         'German', 	'Gemeinsame Netzwerka
 INSERT INTO txt VALUES ('common_areas',         'English', 	'Common Network Areas');
 INSERT INTO txt VALUES ('special_user_areas',   'German', 	'Netzwerkareas f&uuml;r Nutzer');
 INSERT INTO txt VALUES ('special_user_areas',   'English', 	'Network Areas for Users');
+INSERT INTO txt VALUES ('updateable_obj_areas', 'German', 	'Netzwerkareas f&uuml;r Updateable Objects');
+INSERT INTO txt VALUES ('updateable_obj_areas', 'English', 	'Network Areas for Updateable Objects');
 INSERT INTO txt VALUES ('search_interface',     'German', 	'Schnittstelle suchen');
 INSERT INTO txt VALUES ('search_interface',     'English', 	'Search Interface');
 INSERT INTO txt VALUES ('used_interface',       'German', 	'Genutzte Schnittstelle');
@@ -2403,6 +2405,10 @@ INSERT INTO txt VALUES ('modelledMarker',       'German',   'Markierung Modellie
 INSERT INTO txt VALUES ('modelledMarker',       'English',  'Modelled marker');
 INSERT INTO txt VALUES ('modelledMarkerLocation','German',  'Ort Markierung');
 INSERT INTO txt VALUES ('modelledMarkerLocation','English', 'Marker Location');
+INSERT INTO txt VALUES ('modRecertActive',      'German',   'Integrierte Rezertifizierung aktivieren');
+INSERT INTO txt VALUES ('modRecertActive',      'English',  'Activate Integrated Recertification');
+INSERT INTO txt VALUES ('modRecertText',        'German',   'Rezertifizierungstext');
+INSERT INTO txt VALUES ('modRecertText',        'English',  'Recertification Text');
 INSERT INTO txt VALUES ('fixedPartLength',      'German',   'L&auml;nge fixer Teil');
 INSERT INTO txt VALUES ('fixedPartLength',      'English',  'Fixed Part Length');
 INSERT INTO txt VALUES ('freePartLength',       'German',   'L&auml;nge freier Teil');
@@ -3009,6 +3015,12 @@ INSERT INTO txt VALUES ('U9025', 'German',  'Sind sie sicher, dass sie folgendes
 INSERT INTO txt VALUES ('U9025', 'English', 'Are you sure you want to close the following ticket as rejected: ');
 INSERT INTO txt VALUES ('U9026', 'German',  'Nichts zu beantragen!');
 INSERT INTO txt VALUES ('U9026', 'English', 'Nothing to request!');
+INSERT INTO txt VALUES ('U9027', 'German',  'Keine Verbindungen zu rezertifizieren!');
+INSERT INTO txt VALUES ('U9027', 'English', 'No connections to recertify!');
+INSERT INTO txt VALUES ('U9028', 'German',  'Folgende Verbindungen sind noch nicht korrekt modelliert und verhindern die Rezertifizierung:');
+INSERT INTO txt VALUES ('U9028', 'English', 'Following connections are not properly modelled and impede recertification: ');
+INSERT INTO txt VALUES ('U9029', 'German',  'Bei folgenden Verbindungen stimmt der Produktionsstand nicht mit dem modellierten &uuml;berein und verhindern die Rezertifizierung:');
+INSERT INTO txt VALUES ('U9029', 'English', 'For following connections are production state does not fit modelled state and impede recertification: ');
 
 -- error messages
 INSERT INTO txt VALUES ('E0001', 'German',  'Nicht klassifizierter Fehler: ');
@@ -5509,8 +5521,14 @@ INSERT INTO txt VALUES ('H5654', 'German',  'Soll-Ist-Abgleich auf Schaltfl&auml
 INSERT INTO txt VALUES ('H5654', 'English', 'Variance Analysis Refresh Button: A button is offered to calculate the state of the connections synchroneously via Variance Analysis.');
 INSERT INTO txt VALUES ('H5655', 'German',  'Netzwerkareas f&uuml;r Nutzer: Vom Administrator vorgegebene Netzwerkareas, welche f&uuml;r die Zuordnung &uuml;ber die Sonderkonfiguration genutzt werden d&uuml;rfen. Die beiden Auswahlfelder "in Quelle" und "in Ziel" legen fest, wo die Netzwerkarea genutzt werden darf.');
 INSERT INTO txt VALUES ('H5655', 'English', 'Network Areas for Users: Network areas defined by the administrator, which are permitted to be used for assignment via the Extra Configurations. The flags "in Source" and "in Destination" determine, where the Network Areas are allowed to be used.');
-INSERT INTO txt VALUES ('H5656', 'German',  'NAT Heuristik: Wenn die Sonderkonfiguration NAT gesetzt ist, wird, sobald mindestens eine zur Modellierung passend umgesetzte Regel gefunden wird, davon ausgegangen, dass die anderen Regeln mit NAT transformierte Regeln sind und nur auf die Objektzahl geprüft.');
+INSERT INTO txt VALUES ('H5656', 'German',  'NAT Heuristik: Wenn die Sonderkonfiguration NAT gesetzt ist, wird, sobald mindestens eine zur Modellierung passend umgesetzte Regel gefunden wird, davon ausgegangen, dass die anderen Regeln mit NAT transformierte Regeln sind und nur auf die Objektzahl gepr&uuml;ft.');
 INSERT INTO txt VALUES ('H5656', 'English', 'NAT Heuristic: When extra config NAT is set, if at least one rule is found fitting to the modelling: the other rules are assumed to be NAT translated and are only checked for object numbers.');
+INSERT INTO txt VALUES ('H5657', 'German',  'Integrierte Rezertifizierung aktivieren: Erm&ouml;glicht die Rezertifizierung der Regeln direkt aus der Modellierung.');
+INSERT INTO txt VALUES ('H5657', 'English', 'Activate Integrated Recertification: Enables the recertification directly from Modelling.');
+INSERT INTO txt VALUES ('H5658', 'German',  'Rezertifizierungstext: Text, der zur Best&auml;tigung der Rezertifizierung angezeigt werden soll. Enth&auml;lt der Text einen Platzhalter "@@APPNAME@@", so wird dieser durch den App-Namen ersetzt.');
+INSERT INTO txt VALUES ('H5658', 'English', 'Recertification Text: Text to be shown to confirm recertification. If the text contains a placeholder "@@APPNAME@@", it is replaced by the app name.');
+INSERT INTO txt VALUES ('H5659', 'German',  'Netzwerkareas f&uuml;r Updateable Objects: Vom Administrator vorgegebene Netzwerkareas, welche f&uuml;r die Zuordnung &uuml;ber die Sonderkonfiguration "Updateable Objects" genutzt werden d&uuml;rfen. Die beiden Auswahlfelder "in Quelle" und "in Ziel" legen fest, wo die Netzwerkarea genutzt werden darf.');
+INSERT INTO txt VALUES ('H5659', 'English', 'Network Areas for Updateable Objects: Network areas defined by the administrator, which are permitted to be used for assignment via the Extra Configurations "Updateable Objects". The flags "in Source" and "in Destination" determine, where the Network Areas are allowed to be used.');
 
 INSERT INTO txt VALUES ('H5701', 'German',  'Die in der Datenbank hinterlegten sprachabh&auml;ngigen Texte k&ouml;nnen individuell &uuml;berschrieben werden.
     Dabei werden die vom System vorgegebenen Texte nicht ge&auml;ndert, sondern nur durch die hier definierten Texte - falls vorhanden - &uuml;berblendet.

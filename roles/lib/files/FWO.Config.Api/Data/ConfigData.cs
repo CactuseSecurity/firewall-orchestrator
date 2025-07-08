@@ -3,7 +3,6 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using FWO.Basics;
 using FWO.Data;
-using FWO.Data.Modelling;
 using FWO.Data.Workflow;
 using FWO.Mail;
 
@@ -35,7 +34,7 @@ namespace FWO.Config.Api.Data
         public bool UseCustomLogo { get; set; }
 
         [JsonProperty("customLogoData"), JsonPropertyName("customLogoData")]
-        public string CustomLogoData { get; set; }
+        public string CustomLogoData { get; set; } = "";
 
         [JsonProperty("maxMessages"), JsonPropertyName("maxMessages"), UserConfigData]
 		public int MaxMessages { get; set; } = 3;
@@ -74,7 +73,7 @@ namespace FWO.Config.Api.Data
 		public int AutoDiscoverSleepTime { get; set; } = 24;
 
 		[JsonProperty("autoDiscoverStartAt"), JsonPropertyName("autoDiscoverStartAt")]
-		public DateTime AutoDiscoverStartAt { get; set; } = new();
+		public DateTime AutoDiscoverStartAt { get; set; } = DateTime.Now;
 
 		[JsonProperty("fwApiElementsPerFetch"), JsonPropertyName("fwApiElementsPerFetch")]
 		public int FwApiElementsPerFetch { get; set; } = 150;
@@ -98,13 +97,13 @@ namespace FWO.Config.Api.Data
 		public int ImpChangeNotifySleepTime { get; set; } = 60;
 
 		[JsonProperty("impChangeNotifyStartAt"), JsonPropertyName("impChangeNotifyStartAt")]
-		public DateTime ImpChangeNotifyStartAt { get; set; } = new();
+		public DateTime ImpChangeNotifyStartAt { get; set; } = DateTime.Now;
 
 		[JsonProperty("externalRequestSleepTime"), JsonPropertyName("externalRequestSleepTime")]
 		public int ExternalRequestSleepTime { get; set; } = 60;
 
 		[JsonProperty("externalRequestStartAt"), JsonPropertyName("externalRequestStartAt")]
-		public DateTime ExternalRequestStartAt { get; set; } = new();
+		public DateTime ExternalRequestStartAt { get; set; } = DateTime.Now;
 
 
 		[JsonProperty("recertificationPeriod"), JsonPropertyName("recertificationPeriod")]
@@ -210,7 +209,7 @@ namespace FWO.Config.Api.Data
 		public int MessageViewTime { get; set; } = 7;
 
 		[JsonProperty("dailyCheckStartAt"), JsonPropertyName("dailyCheckStartAt")]
-		public DateTime DailyCheckStartAt { get; set; } = new();
+		public DateTime DailyCheckStartAt { get; set; } = DateTime.Now;
 
 		[JsonProperty("maxImportDuration"), JsonPropertyName("maxImportDuration")]
 		public int MaxImportDuration { get; set; } = 4;
@@ -280,7 +279,7 @@ namespace FWO.Config.Api.Data
 		public int ImportAppDataSleepTime { get; set; } = 24;
 
 		[JsonProperty("importAppDataStartAt"), JsonPropertyName("importAppDataStartAt")]
-		public DateTime ImportAppDataStartAt { get; set; } = new DateTime();
+		public DateTime ImportAppDataStartAt { get; set; } = DateTime.Now;
 
 		[JsonProperty("ownerLdapId"), JsonPropertyName("ownerLdapId")]
 		public int OwnerLdapId { get; set; } = GlobalConst.kLdapInternalId;
@@ -298,7 +297,7 @@ namespace FWO.Config.Api.Data
 		public int ImportSubnetDataSleepTime { get; set; } = 24;
 
 		[JsonProperty("importSubnetDataStartAt"), JsonPropertyName("importSubnetDataStartAt")]
-		public DateTime ImportSubnetDataStartAt { get; set; } = new DateTime();
+		public DateTime ImportSubnetDataStartAt { get; set; } = DateTime.Now;
 
 		[JsonProperty("modNamingConvention"), JsonPropertyName("modNamingConvention")]
 		public string ModNamingConvention { get; set; } = "";
@@ -311,6 +310,9 @@ namespace FWO.Config.Api.Data
 
 		[JsonProperty("modSpecUserAreas"), JsonPropertyName("modSpecUserAreas")]
 		public string ModSpecUserAreas { get; set; } = "";
+
+		[JsonProperty("modUpdateableObjAreas"), JsonPropertyName("modUpdateableObjAreas")]
+		public string ModUpdateableObjAreas { get; set; } = "";
 
 		[JsonProperty("modAppServerTypes"), JsonPropertyName("modAppServerTypes")]
 		public string ModAppServerTypes { get; set; } = "";
@@ -351,6 +353,12 @@ namespace FWO.Config.Api.Data
 		[JsonProperty("modRolloutErrorText"), JsonPropertyName("modRolloutErrorText")]
 		public string ModRolloutErrorText { get; set; } = "";
 
+		[JsonProperty("modRecertActive"), JsonPropertyName("modRecertActive")]
+		public bool ModRecertActive { get; set; } = false;
+
+		[JsonProperty("modRecertText"), JsonPropertyName("modRecertText")]
+		public string ModRecertText { get; set; } = "";
+
 		[JsonProperty("externalRequestWaitCycles"), JsonPropertyName("externalRequestWaitCycles")]
 		public int ExternalRequestWaitCycles { get; set; } = 0;
 
@@ -373,7 +381,7 @@ namespace FWO.Config.Api.Data
 		public int VarianceAnalysisSleepTime { get; set; } = 0;
 
 		[JsonProperty("varianceAnalysisStartAt"), JsonPropertyName("varianceAnalysisStartAt")]
-		public DateTime VarianceAnalysisStartAt { get; set; } = new DateTime();
+		public DateTime VarianceAnalysisStartAt { get; set; } = DateTime.Now;
 
 		[JsonProperty("varianceAnalysisSync"), JsonPropertyName("varianceAnalysisSync")]
 		public bool VarianceAnalysisSync { get; set; } = false;

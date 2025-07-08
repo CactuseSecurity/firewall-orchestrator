@@ -56,8 +56,9 @@ namespace FWO.Services
         private List<WfReqElement> GetElementsFromRule(Rule rule, ModellingConnection deletedConn)
         {
             List<WfReqElement> ruleElements = [];
-             Dictionary<string, bool> specialUserObjects = deletedConn.GetSpecialUserObjectNames();
-            if (specialUserObjects.Count > 0)
+            Dictionary<string, bool> specialUserObjects = deletedConn.GetSpecialUserObjectNames();
+            Dictionary<string, bool> updateableObjects = deletedConn.GetUpdateableObjectNames();
+            if (specialUserObjects.Count > 0 || updateableObjects.Count > 0)
             {
                 // Get from deleted conn as modelled objects are expected instead of specUser (Then deletion of links is suppressed in this case)
                 ruleElements.AddRange(GetNwObjElementsFromConn(deletedConn));
@@ -153,7 +154,7 @@ namespace FWO.Services
         private WfReqTask ConstructRuleTask(Management mgt, Rule rule, ModellingConnection conn, bool delete, List<WfReqElement> elements)
         {
             Dictionary<string, string>? addInfo = new() { { AdditionalInfoKeys.ConnId, conn.Id.ToString() } };
-			List<WfReqElement> ruleElements =
+            List<WfReqElement> ruleElements =
             [
                 .. elements,
                 new()

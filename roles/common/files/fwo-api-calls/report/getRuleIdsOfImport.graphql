@@ -5,8 +5,11 @@ query getRuleIdsOfImport(
 ) {
   rule(
     where: {
-      rule_last_seen: { _gte: $import_id_start }
       rule_create: { _lte: $import_id_end }
+      _or: [
+        { removed: { _is_null: true } }
+        { removed: { _gt: $import_id_start } }
+      ]
       dev_id: { _in: $devIds }
     }
   ) {

@@ -54,6 +54,7 @@ class FwConfigImport():
 
     def updateDiffs(self, previousConfig: FwConfigNormalized):
         self._fw_config_import_object.updateObjectDiffs(previousConfig)
+
         if fwo_globals.shutdown_requested:
             # self.ImportDetails.addError("shutdown requested, aborting import")
             raise ImportInterruption("Shutdown requested during updateObjectDiffs.")
@@ -67,13 +68,8 @@ class FwConfigImport():
         self.ImportDetails.SetRuleMap() # update all rule entries (from currently running import for rulebase_links)
         self._fw_config_import_gateway.update_gateway_diffs()
 
-        # raise NotImplementedError("just testing")
-
         # get new rules details from API (for obj refs as well as enforcing gateways)
         errors, changes, newRules = self._fw_config_import_rule.getRulesByIdWithRefUids(newRuleIds)
-
-        self._fw_config_import_rule.addNewRule2ObjRefs(newRules)
-        #TODO: self.addNewRule2SvcRefs(newRules)
 
         enforcingController = RuleEnforcedOnGatewayController(self.ImportDetails)
         ids = enforcingController.add_new_rule_enforced_on_gateway_refs(newRules, self.ImportDetails)

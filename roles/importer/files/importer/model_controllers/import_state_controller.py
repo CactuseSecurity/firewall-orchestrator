@@ -143,7 +143,7 @@ class ImportStateController(ImportState):
         return result 
 
 
-    def call(self, query, queryVariables={}, debug_level=0, analyze_payload=False):
+    def call(self, query, queryVariables={}, debug_level=0, analyze_payload=False) -> dict:
         """
         Call the FWO API with the given query and query variables.
         This method is a wrapper around the FwoApi class to make it easier to call the API.
@@ -189,10 +189,10 @@ class ImportStateController(ImportState):
             result = self.call(query=query, queryVariables={})
         except Exception:
             logger = getFwoLogger()
-            logger.error(f'Error while getting stm_action')
+            logger.error('Error while getting stm_action')
             return {}
         
-        map = {}
+        map: dict[str, int] = {}
         for action in result['data']['stm_action']:
             map.update({action['action_name']: action['action_id']})
         self.Actions = map
@@ -203,10 +203,10 @@ class ImportStateController(ImportState):
             result = self.call(query=query, queryVariables={})
         except Exception:
             logger = getFwoLogger()
-            logger.error(f'Error while getting stm_track')
+            logger.error('Error while getting stm_track')
             return {}
         
-        map = {}
+        map: dict[str, int] = {}
         for track in result['data']['stm_track']:
             map.update({track['track_name']: track['track_id']})
         self.Tracks = map
@@ -220,7 +220,7 @@ class ImportStateController(ImportState):
             logger.error("Error while getting stm_link_type")
             return {}
         
-        map = {}
+        map: dict[str, int] = {}
         for track in result['data']['stm_link_type']:
             map.update({track['name']: track['id']})
         self.LinkTypes = map
@@ -235,7 +235,7 @@ class ImportStateController(ImportState):
             logger.error('Error while getting stm_color')
             return {}
         
-        color_map = {}
+        color_map: dict[str, int] = {}
         for color in result['data']['stm_color']:
             color_map.update({color['color_name']: color['color_id']})
         self.ColorMap = color_map

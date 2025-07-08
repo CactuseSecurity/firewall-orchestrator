@@ -33,8 +33,11 @@ fragment ruleOverviewChangesOld on rule {
   xlate_rule
   rule_froms(where: {
     active: { _eq: $active }
-    rf_last_seen: { _gte: $import_id_old }
     rf_create: { _lte: $import_id_old }
+    _or: [
+      { removed: { _is_null: true } }
+      { removed: { _gt: $import_id_old } }
+    ]
   }, order_by: { object: { obj_name: asc } }) {
     usr {
       ...userOverview
@@ -49,8 +52,11 @@ fragment ruleOverviewChangesOld on rule {
   }
   rule_tos(where: {
     active: { _eq: $active }
-    rt_last_seen: { _gte: $import_id_old }
     rt_create: { _lte: $import_id_old }
+    _or: [
+      { removed: { _is_null: true } }
+      { removed: { _gt:$import_id_old } }
+    ]
   }, order_by: { object: { obj_name: asc } }) {
     usr {
       ...userOverview
@@ -61,8 +67,11 @@ fragment ruleOverviewChangesOld on rule {
   }
   rule_services(where: {
     active: { _eq: $active }
-    rs_last_seen: { _gte: $import_id_old }
     rs_create: { _lte: $import_id_old }
+    _or: [
+      { removed: { _is_null: true } }
+      { removed: { _gt:$import_id_old } }
+    ]
   }, order_by: { service: { svc_name: asc } }) {
     service {
       ...networkServiceOverview

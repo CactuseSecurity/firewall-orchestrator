@@ -388,9 +388,14 @@
     private async Task FetchRuleTabContent(ObjCategory objType, Func<Task> hasChangedCallback, long id, bool nat)
     {
         var rule = selectedRulesDetailed.FirstOrDefault(r => r.Id == id);
-        if (rule == null) return;
-
-        rule.Detailed = true;
+        if (rule == null)
+        {
+            return;
+        }
+        if (rule.Detailed)
+        {
+            return; // already fetched
+        }
 
         var queryVars = new Dictionary<string, object>
         {
@@ -403,28 +408,31 @@
 
         string query = nat ? RuleQueries.getNatRuleDetails : RuleQueries.getRuleDetails;
 
-        await FetchObjects(query, queryVars, async managementsUpdate =>
+        try
         {
-            @* ReportRules reportRules = new ReportRules(CurrentReport?.ReportData.ManagementData.FirstOrDefault(m => m.Id == rule.MgmtId));
-            DeviceReportController deviceReport = reportRules.(rule.DeviceName, rule.MgmtId);
-            var ruleUpdated = 
-                
-                reportRules.GetAllRulesOfGateway(deviceReport, managementsUpdate.ManagementData);
-
-                .FirstOrDefault();
-
-            if (ruleUpdated != null)
+            List<Rule> rules = await apiConnection.SendQueryAsync<List<Rule>>(query, queryVars);
+            Rule? ruleUpdated = rules.FirstOrDefault(r => r.Id == id);
+            if (ruleUpdated == null)
             {
-                rule.Froms = ruleUpdated.Froms;
-                rule.Tos = ruleUpdated.Tos;
-                rule.NatData.TranslatedFroms = ruleUpdated.NatData.TranslatedFroms;
-                rule.NatData.TranslatedTos = ruleUpdated.NatData.TranslatedTos;
-                rule.Services = ruleUpdated.Services;
-                rule.NatData.TranslatedServices = ruleUpdated.NatData.TranslatedServices;
-            } *@
+                DisplayMessageInUi(null, userConfig.GetText("object_fetch"), "", true);
+                return;
+            }
+
+            rule.Froms = rule.Froms.Concat(ruleUpdated?.Froms ?? []).ToArray();
+            rule.Tos = rule.Tos.Concat(ruleUpdated?.Tos ?? []).ToArray();
+            rule.NatData.TranslatedFroms = rule.NatData.TranslatedFroms.Concat(ruleUpdated?.NatData.TranslatedFroms ?? []).ToArray();
+            rule.NatData.TranslatedTos = rule.NatData.TranslatedTos.Concat(ruleUpdated?.NatData.TranslatedTos ?? []).ToArray();
+            rule.Services = rule.Services.Concat(ruleUpdated?.Services ?? []).ToArray();
+            rule.NatData.TranslatedServices = rule.NatData.TranslatedServices.Concat(ruleUpdated?.NatData.TranslatedServices ?? []).ToArray();
+
+            rule.Detailed = true;
 
             await hasChangedCallback();
-        });
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("object_fetch"), "", true);
+        }
     }
 
     private async Task FetchObjects(string query, Dictionary<string, object> queryVars, Func<ReportData, Task> callback)

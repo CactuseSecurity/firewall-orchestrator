@@ -95,12 +95,12 @@
                     }
                     </h5>
                 </div>
-                <div class="m-2 vheight75">
+                <div class="mx-2 mt-2">
                     <TabSet WholeWidth="false" DarkMode="false" KeepPanelsAlive="false" @ref="appHandler!.tabset">
                         <Tab Title="@(userConfig.GetText("connections"))" Position=0>
                             <button type="button" class="btn btn-sm btn-success mb-2" @onclick="appHandler!.AddConnection">
                                 @(appHandler!.DisplayButton("add_connection", Icons.Add))
-                            </button>
+                            </button>                            
                             <ConnectionTable ShowPageSizeInput="true" Connections="@appHandler!.GetRegularConnections()" @bind-AppHandler="appHandler" AppActive="appActive" ShowModellingState="true" ShowProductionState="true" />
                         </Tab>
                         <Tab Title="@(userConfig.GetText("provided_interfaces"))" Position=1>
@@ -119,7 +119,7 @@
                                     </Authorized>
                                 </AuthorizeView>
                             </div>
-                            <ConnectionTable ShowPageSizeInput="true" Connections="@appHandler!.GetInterfaces(showRejected)" @bind-AppHandler="appHandler" AppActive="appActive" ShowModellingState="true" />
+                            <ConnectionTable ShowPageSizeInput="true" Connections="@appHandler!.GetInterfaces(showRejected)" @bind-AppHandler="appHandler" AppActive="appActive" ShowModellingState="true" />                            
                         </Tab>
                         @if (selectedApp.CommSvcPossible)
                         {

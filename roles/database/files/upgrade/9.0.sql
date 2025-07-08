@@ -892,8 +892,8 @@ create table compliance.policy_criterion
 (
     policy_id bigint NOT NULL,
 	criterion_id bigint NOT NULL,
-    removed timestamp with time zone,
-	created timestamp with time zone
+    removed timestamp with time zone default now(),
+	created timestamp with time zone default now()
 );
 
 create table compliance.criterion
@@ -909,7 +909,7 @@ create table compliance.violation
     id BIGSERIAL PRIMARY KEY,
 	rule_id bigint NOT NULL,
 	found_date timestamp default now(),
-	removed_date timestamp with time zone,
+	removed_date timestamp with time zone default now(),
 	details Varchar,
 	risk_score real,
 	policy_id bigint NOT NULL,
@@ -918,13 +918,13 @@ create table compliance.violation
 
 -- alter existing compliance tables
 
-ALTER TABLE compliance.network_zone ADD COLUMN IF NOT EXISTS "created" TIMESTAMP WITH TIME ZONE;
-ALTER TABLE compliance.network_zone ADD COLUMN IF NOT EXISTS "removed" TIMESTAMP WITH TIME ZONE;
-ALTER TABLE compliance.network_zone_communication ADD COLUMN IF NOT EXISTS "created" TIMESTAMP WITH TIME ZONE;
-ALTER TABLE compliance.network_zone_communication ADD COLUMN IF NOT EXISTS "removed" TIMESTAMP WITH TIME ZONE;
+ALTER TABLE compliance.network_zone ADD COLUMN IF NOT EXISTS "created" TIMESTAMP WITH TIME ZONE DEFAULT NOW();
+ALTER TABLE compliance.network_zone ADD COLUMN IF NOT EXISTS "removed" TIMESTAMP WITH TIME ZONE DEFAULT NOW();
+ALTER TABLE compliance.network_zone_communication ADD COLUMN IF NOT EXISTS "created" TIMESTAMP WITH TIME ZONE DEFAULT NOW();
+ALTER TABLE compliance.network_zone_communication ADD COLUMN IF NOT EXISTS "removed" TIMESTAMP WITH TIME ZONE DEFAULT NOW();
 ALTER TABLE compliance.network_zone_communication ADD COLUMN IF NOT EXISTS "criterion_id" BIGINT;
-ALTER TABLE compliance.ip_range ADD COLUMN IF NOT EXISTS "created" TIMESTAMP WITH TIME ZONE;
-ALTER TABLE compliance.ip_range ADD COLUMN IF NOT EXISTS "removed" TIMESTAMP WITH TIME ZONE;
+ALTER TABLE compliance.ip_range ADD COLUMN IF NOT EXISTS "created" TIMESTAMP WITH TIME ZONE DEFAULT NOW();
+ALTER TABLE compliance.ip_range ADD COLUMN IF NOT EXISTS "removed" TIMESTAMP WITH TIME ZONE DEFAULT NOW();
 
 -- alter ip_range's PK
 

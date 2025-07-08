@@ -1,5 +1,4 @@
 ﻿using FWO.Api.Client;
-using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Compliance;
@@ -35,7 +34,7 @@ namespace FWO.Middleware.Server.Controllers
                 UserConfig userConfig = new(GlobalConfig, apiConnection, new(){ Language = GlobalConst.kEnglish });
 
                 ComplianceCheck complianceCheck = new(userConfig, apiConnection);
-                List<(ComplianceNetworkZone, ComplianceNetworkZone)> forbiddenCommunicationsOutput = await complianceCheck.CheckApps(parameters.AppIds);
+                List<(ComplianceNetworkZone, ComplianceNetworkZone)> forbiddenCommunicationsOutput = (await complianceCheck.CreateComplianceReport(parameters.ManagementIds)).Results;
                 return ConvertOutput(forbiddenCommunicationsOutput);
             }
             catch (Exception exception)

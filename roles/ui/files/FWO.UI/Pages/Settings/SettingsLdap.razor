@@ -444,28 +444,10 @@
 
     private void EncryptPasswords()
     {
-        string mainKey = AesEnc.GetMainKey();
-
-        // only encrypt secret if it was not already encrypted
-        try
-        {
-            AesEnc.Decrypt(actLdapConnection.SearchUserPwd, mainKey);
-        }
-        catch (Exception)
-        {
-            actLdapConnection.SearchUserPwd = AesEnc.Encrypt(actLdapConnection.SearchUserPwd, mainKey);
-        }
-        
+        actLdapConnection.SearchUserPwd = AesEnc.TryEncrypt(actLdapConnection.SearchUserPwd);
         if (actLdapConnection.WriteUserPwd != null)
         {
-            try
-            {
-                AesEnc.Decrypt(actLdapConnection.WriteUserPwd, mainKey);
-            }
-            catch (Exception)
-            {
-                actLdapConnection.WriteUserPwd = AesEnc.Encrypt(actLdapConnection.WriteUserPwd, mainKey);
-            }
+            actLdapConnection.WriteUserPwd = AesEnc.TryEncrypt(actLdapConnection.WriteUserPwd);
         }
     }
 

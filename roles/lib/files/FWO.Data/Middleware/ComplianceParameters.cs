@@ -2,6 +2,6 @@
 {
     public class ComplianceReportParameters
     {
-        public List<int> AppIds { get; set; } = [];
+        public List<int> ManagementIds { get; set; } = [];
     }
 }

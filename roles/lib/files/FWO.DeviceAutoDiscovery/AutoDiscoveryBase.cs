@@ -14,24 +14,11 @@ namespace FWO.DeviceAutoDiscovery
         public AutoDiscoveryBase(Management mgm, ApiConnection apiConn)
         {
             SuperManagement = mgm;
-
-            string mainKey = AesEnc.GetMainKey();
-
-            string decryptedSecret = SuperManagement.ImportCredential.Secret;
-
-            // try to decrypt secret, keep it as is if failing
-            try
-            {
-                decryptedSecret = AesEnc.Decrypt(SuperManagement.ImportCredential.Secret, mainKey);
-            }
-            catch (Exception)
-            {
-                Log.WriteWarning("AutoDiscovery", $"Could not decrypt secret in credential named '{SuperManagement.ImportCredential.Name}'.");
-            }
-
-            SuperManagement.ImportCredential.Secret = decryptedSecret;
+            SuperManagement.ImportCredential.Secret = AesEnc.TryDecrypt(SuperManagement.ImportCredential.Secret, true,
+                "AutoDiscovery", $"Could not decrypt secret in credential named '{SuperManagement.ImportCredential.Name}'.", true);
             apiConnection = apiConn;
         }
+
         public virtual Task<List<Management>> Run()
         {
             return SuperManagement.DeviceType.Name switch

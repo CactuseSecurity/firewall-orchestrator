@@ -66,17 +66,7 @@ namespace FWO.Middleware.Server
 			}
 			else
 			{
-				string decryptedPassword = password;
-				try
-				{
-					decryptedPassword = AesEnc.Decrypt(password, AesEnc.GetMainKey());
-				}
-				catch
-				{
-					Log.WriteDebug("TryBind", $"Could not decrypt password");
-					// assuming we already have an unencrypted password, trying this
-				}
-				await connection.BindAsync(user, decryptedPassword);
+				await connection.BindAsync(user, AesEnc.TryDecrypt(password, true));
 			}
 			return connection.Bound;
 		}

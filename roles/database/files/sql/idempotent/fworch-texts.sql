@@ -2485,6 +2485,12 @@ INSERT INTO txt VALUES ('complianceCheckSleepTime','German','Compliance-Check-In
 INSERT INTO txt VALUES ('complianceCheckSleepTime','English','Compliance Check sleep time (in minutes)');
 INSERT INTO txt VALUES ('complianceCheckStartAt','German',  'Compliance-Check-Start');
 INSERT INTO txt VALUES ('complianceCheckStartAt','English',' Compliance Check start at');
+INSERT INTO txt VALUES ('complianceCheckMailRecipients','German','Empf&auml;nger-Email-Adressen f&uuml;r Benachrichtigungen');
+INSERT INTO txt VALUES ('complianceCheckMailRecipients','English','Recipient email addresses for notifications');
+INSERT INTO txt VALUES ('complianceCheckMailSubject','German','Titel der Benachrichtigung');
+INSERT INTO txt VALUES ('complianceCheckMailSubject','English','Subject of notification emails');
+INSERT INTO txt VALUES ('complianceCheckMailBody','German', 'Text der Benachrichtigung');
+INSERT INTO txt VALUES ('complianceCheckMailBody','English','Body of notification emails');
 
 
 -- monitoring
@@ -5558,6 +5564,12 @@ INSERT INTO txt VALUES ('H5802', 'German',  'Compliance-Check-Start: legt eine B
 INSERT INTO txt VALUES ('H5802', 'English', 'Compliance Check start at: defines a referential time from which the Compliance Check intervals are calculated.');
 INSERT INTO txt VALUES ('H5803', 'German',  'Hier werden alle Einstellungen rund um den Compliance-Check verwaltet.');
 INSERT INTO txt VALUES ('H5803', 'English', 'Here all settings around the Compliance Check are administrated.');
+INSERT INTO txt VALUES ('H5804', 'German',  'Empf&auml;nger-Email-Adressen f&uuml;r Benachrichtigungen: Komma-separierte Liste von Email-Adressen, die bei Compliance-Verst&ouml;ssen benachrichtigt werden. Default-Wert = "leer".');
+INSERT INTO txt VALUES ('H5804', 'English', 'Recipient email addresses for change notifications: A comma-separated list of email addresses, which will be informed in the case of compliance issues. Default value = "empty".');
+INSERT INTO txt VALUES ('H5805', 'German',  'Titel der Benachrichtigung: Betreffzeile der Benachrichtigungs-Email. Default-Wert = "leer".');
+INSERT INTO txt VALUES ('H5805', 'English', 'Subject of notification emails: Subject line for notification emails. Default value = "empty".');
+INSERT INTO txt VALUES ('H5806', 'German',  'Text der Benachrichtigung: Email-Text f&uuml;r die Benachrichtigung. Der Email wird ein Compliance-Report angeh&auml;ngt. Default-Wert = "leer".');
+INSERT INTO txt VALUES ('H5806', 'English', 'Body of notification emails: Email text for the notification. A Compliance report will be attached to the email. Default value = "empty".');
 
 INSERT INTO txt VALUES ('H6001', 'German',  'Firewall Orchestrator verf&uuml;gt &uuml;ber zwei APIs:
     <ul>

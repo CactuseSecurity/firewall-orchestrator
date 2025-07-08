@@ -49,6 +49,7 @@ namespace FWO.Middleware.Server
             {
                 ComplianceCheck complianceCheck = new(new(globalConfig));
                 await complianceCheck.CheckAll();
+                await complianceCheck.SendComplianceCheckEmail();
             }
             catch (Exception exc)
             {

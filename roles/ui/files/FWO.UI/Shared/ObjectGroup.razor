@@ -158,7 +158,7 @@
                                                 }
                                                 @if (member.DestinationPort != null)
                                                 {
-                                                    <span>∟ @(userConfig.GetText("destination_port")): @DisplayBase.DisplayPort(member.DestinationPort, member.DestinationPortEnd)</span>
+                                                    <span>∟ @(userConfig.GetText("destination_port")): @DisplayBase.DisplayPort(member.DestinationPort, member.DestinationPortEnd, false, member.Protocol.Name)</span>
                                                 }
                                                 <br>
                                             }

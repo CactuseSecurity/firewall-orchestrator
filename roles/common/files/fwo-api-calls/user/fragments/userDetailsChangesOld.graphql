@@ -16,7 +16,14 @@ fragment userDetailsChangesOld on usr {
   }
   user_member_names
   user_member_refs
-  usergrps(order_by: { usergrp_member_id: asc }) {
+  usergrps(where: {
+    active: { _eq: $active }
+    import_created: { _lte: $import_id_old }
+    _or: [
+      { removed: { _is_null: true } }
+      { removed: { _gt: $import_id_old } }
+    ]
+  } order_by: { usergrp_member_id: asc }) {
     id: usergrp_id
     byId: usrByUsergrpMemberId {
       user_id
@@ -28,8 +35,11 @@ fragment userDetailsChangesOld on usr {
   }
   usergrp_flats(where: {
     active: { _eq: $active }
-    import_last_seen: { _gte: $import_id_old }
     import_created: { _lte: $import_id_old }
+    _or: [
+      { removed: { _is_null: true } }
+      { removed: { _gt: $import_id_old } }
+    ]
   } order_by: { usergrp_flat_member_id: asc }) {
     flat_id: usergrp_flat_id
     byFlatId: usrByUsergrpFlatMemberId {

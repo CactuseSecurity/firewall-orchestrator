@@ -891,9 +891,9 @@ create table compliance.policy
 create table compliance.policy_criterion
 (
     policy_id bigint NOT NULL,
-	criterion_id bigint NOT NULL
-    removed timestamp with timezone
-	created timestamp with timezone
+	criterion_id bigint NOT NULL,
+    removed timestamp with time zone,
+	created timestamp with time zone
 );
 
 create table compliance.criterion
@@ -909,7 +909,7 @@ create table compliance.violation
     id BIGSERIAL PRIMARY KEY,
 	rule_id bigint NOT NULL,
 	found_date timestamp default now(),
-	removed_date timestamp with timezone,
+	removed_date timestamp with time zone,
 	details Varchar,
 	risk_score real,
 	policy_id bigint NOT NULL,

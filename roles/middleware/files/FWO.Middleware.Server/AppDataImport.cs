@@ -87,9 +87,9 @@ namespace FWO.Middleware.Server
             else
             {
                 allGroups = await ownerGroupLdap.GetAllGroupObjects(globalConfig.OwnerLdapGroupNames.
-                    Replace(GlobalConst.kAppIdPlaceholder, "*").
-                    Replace(GlobalConst.kFullAppIdPlaceholder, "*").
-                    Replace(GlobalConst.kAppPrefixPlaceholder, "*"));
+                    Replace(Placeholder.AppId, "*").
+                    Replace(Placeholder.ExternalAppId, "*").
+                    Replace(Placeholder.AppPrefix, "*"));
             }
 		}
 
@@ -121,10 +121,10 @@ namespace FWO.Middleware.Server
 			int deleteCounter = 0;
 			int deleteFailCounter = 0;
 
-			if (!(globalConfig.OwnerLdapGroupNames.Contains(GlobalConst.kAppIdPlaceholder) ||
-                globalConfig.OwnerLdapGroupNames.Contains(GlobalConst.kFullAppIdPlaceholder)))
+			if (!(globalConfig.OwnerLdapGroupNames.Contains(Placeholder.AppId) ||
+                globalConfig.OwnerLdapGroupNames.Contains(Placeholder.ExternalAppId)))
             {
-                Log.WriteWarning(LogMessageTitle, $"Owner group pattern does not contain any of the placeholders {GlobalConst.kAppIdPlaceholder} or {GlobalConst.kFullAppIdPlaceholder}.");
+                Log.WriteWarning(LogMessageTitle, $"Owner group pattern does not contain any of the placeholders {Placeholder.AppId} or {Placeholder.ExternalAppId}.");
 			}
 			else
 			{
@@ -281,21 +281,21 @@ namespace FWO.Middleware.Server
 		{
             // hard-coded GlobalConst.kAppIdSeparator could be moved to settings
 
-            if (globalConfig.OwnerLdapGroupNames.Contains(GlobalConst.kFullAppIdPlaceholder))
+            if (globalConfig.OwnerLdapGroupNames.Contains(Placeholder.ExternalAppId))
             {
-    			return globalConfig.OwnerLdapGroupNames.Replace(GlobalConst.kFullAppIdPlaceholder, extAppIdString);
+    			return globalConfig.OwnerLdapGroupNames.Replace(Placeholder.ExternalAppId, extAppIdString);
             }
             
-            if (globalConfig.OwnerLdapGroupNames.Contains(GlobalConst.kAppPrefixPlaceholder) && 
-                globalConfig.OwnerLdapGroupNames.Contains(GlobalConst.kAppIdPlaceholder))
+            if (globalConfig.OwnerLdapGroupNames.Contains(Placeholder.AppPrefix) && 
+                globalConfig.OwnerLdapGroupNames.Contains(Placeholder.AppId))
             {
 				string[] parts = extAppIdString.Split(GlobalConst.kAppIdSeparator);
 				string appPrefix = parts.Length > 0 ? parts[0] : "";
 				string appId = parts.Length > 1 ? parts[1] : "";
-				return globalConfig.OwnerLdapGroupNames.Replace(GlobalConst.kAppPrefixPlaceholder, appPrefix).Replace(GlobalConst.kAppIdPlaceholder, appId);
+				return globalConfig.OwnerLdapGroupNames.Replace(Placeholder.AppPrefix, appPrefix).Replace(Placeholder.AppId, appId);
 			}
 			Log.WriteInfo(LogMessageTitle, $"Could not find ayn placeholders in group name pattern \"{globalConfig.OwnerLdapGroupNames}\" " +
-				$"({GlobalConst.kFullAppIdPlaceholder}, {GlobalConst.kAppPrefixPlaceholder}, {GlobalConst.kAppIdPlaceholder} ");
+				$"({Placeholder.ExternalAppId}, {Placeholder.AppPrefix}, {Placeholder.AppId} ");
 			return globalConfig.OwnerLdapGroupNames;
 		}
 

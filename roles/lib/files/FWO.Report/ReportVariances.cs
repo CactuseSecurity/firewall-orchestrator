@@ -263,9 +263,9 @@ namespace FWO.Report
         {
             List<ModellingConnection> relevantConns = CollectObjectsInReport(ownerReport).Connections;
             ownerReport.AllObjects = ConnectionReport.GetAllNetworkObjects(relevantConns, true, userConfig.ResolveNetworkAreas);
-            ConnectionReport.SetObjectNumbers(ref ownerReport.AllObjects);
+            ConnectionReport.SetObjectNumbers(ownerReport.AllObjects);
             ownerReport.AllServices = ConnectionReport.GetAllServices(relevantConns, true);
-            ConnectionReport.SetSvcNumbers(ref ownerReport.AllServices);
+            ConnectionReport.SetSvcNumbers(ownerReport.AllServices);
             AppendNetworkObjectsHtml(ownerReport.AllObjects, chapterNumber, ref report);
             AppendNetworkServicesHtml(ownerReport.AllServices, chapterNumber, ref report);
         }

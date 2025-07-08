@@ -105,14 +105,14 @@ namespace FWO.Report
         public bool GotObjectsInReport { get; protected set; } = false;
 
 
-        public ReportBase(DynGraphqlQuery query, UserConfig UserConfig, ReportType reportType)
+        protected ReportBase(DynGraphqlQuery query, UserConfig UserConfig, ReportType reportType)
         {
             Query = query;
             userConfig = UserConfig;
             ReportType = reportType;
         }
 
-        public abstract Task Generate(int rulesPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback, CancellationToken ct);
+        public abstract Task Generate(int elementsPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback, CancellationToken ct);
 
         public virtual async Task<bool> GetObjectsInReport(int objectsPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback)
         {
@@ -150,9 +150,9 @@ namespace FWO.Report
                 ReportType.Rules => new ReportRules(query, userConfig, repType),
                 ReportType.ResolvedRules => new ReportRules(query, userConfig, repType),
                 ReportType.ResolvedRulesTech => new ReportRules(query, userConfig, repType),
-                ReportType.Changes => new ReportChanges(query, userConfig, repType),
-                ReportType.ResolvedChanges => new ReportChanges(query, userConfig, repType),
-                ReportType.ResolvedChangesTech => new ReportChanges(query, userConfig, repType),
+                ReportType.Changes => new ReportChanges(query, userConfig, repType, reportFilter.ReportParams.TimeFilter),
+                ReportType.ResolvedChanges => new ReportChanges(query, userConfig, repType, reportFilter.ReportParams.TimeFilter),
+                ReportType.ResolvedChangesTech => new ReportChanges(query, userConfig, repType, reportFilter.ReportParams.TimeFilter),
                 ReportType.NatRules => new ReportNatRules(query, userConfig, repType),
                 ReportType.Recertification => new ReportRules(query, userConfig, repType),
                 ReportType.UnusedRules => new ReportRules(query, userConfig, repType),
@@ -163,14 +163,27 @@ namespace FWO.Report
             };
         }
 
-        public static string ConstructLink(string type, string symbol, int chapterNumber, long id, string name, OutputLocation location, string reportId, string style)
+        public static string GetLinkAddress(OutputLocation location, string reportId, string type, int chapterNumber, long id, ReportType reportType)
         {
             string page = location == OutputLocation.report ? PageName.ReportGeneration : PageName.Certification;
-            string link = location == OutputLocation.export ? $"#" : $"{page}#goto-report-{reportId}-";
-            return $"<span class=\"{symbol}\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"{link}{type}{chapterNumber}x{id}\" target=\"_top\" style=\"{style}\">{name}</a>";
+            string link;
+            if (reportType.IsChangeReport())
+            {
+                link = location == OutputLocation.export ? $"#" : $"{page}#goto-all-{reportId}-";
+            }
+            else
+            {
+                link = location == OutputLocation.export ? $"#" : $"{page}#goto-report-{reportId}-";
+            }
+            return $"{link}{type}{chapterNumber}x{id}";
         }
 
-        protected string GenerateHtmlFrameBase(string title, string filter, DateTime date, StringBuilder htmlReport, string? deviceFilter = null, string? ownerFilter = null)
+        public static string ConstructLink(string symbol, string name, string style, string linkAddress)
+        {
+            return $"<span class=\"{symbol}\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"{linkAddress}\" target=\"_top\" style=\"{style}\">{name}</a>";
+        }
+
+        protected string GenerateHtmlFrameBase(string title, string filter, DateTime date, StringBuilder htmlReport, string? deviceFilter = null, string? ownerFilter = null, TimeFilter? timeFilter = null)
         {
             if (string.IsNullOrEmpty(htmlExport))
             {
@@ -187,9 +200,10 @@ namespace FWO.Report
                 HtmlTemplate = HtmlTemplate.Replace("##Date##", date.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssK"));
                 if (ReportType.IsChangeReport())
                 {
+                    (string startTime, string stopTime) = DynGraphqlQuery.ResolveTimeRange(timeFilter!);
                     string timeRange = $"{userConfig.GetText("change_time")}: " +
-                        $"{userConfig.GetText("from")}: {ToUtcString(Query.QueryVariables["start"]?.ToString())}, " +
-                        $"{userConfig.GetText("until")}: {ToUtcString(Query.QueryVariables["stop"]?.ToString())}";
+                        $"{userConfig.GetText("from")}: {ToUtcString(startTime)}, " +
+                        $"{userConfig.GetText("until")}: {ToUtcString(stopTime)}";
                     HtmlTemplate = HtmlTemplate.Replace("##Date-of-Config##: ##GeneratedFor##", timeRange);
                 }
                 else if (ReportType.IsRuleReport() || ReportType == ReportType.Statistics)

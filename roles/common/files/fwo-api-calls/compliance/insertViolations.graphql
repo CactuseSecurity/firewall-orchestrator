@@ -1,0 +1,9 @@
+mutation insertViolations($violations: [violation_insert_input!]!) {
+    insert_violation(
+        objects: $violations
+    ) {
+        affected_rows
+        returning { id }
+        
+    }
+}

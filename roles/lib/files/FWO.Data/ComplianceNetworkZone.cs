@@ -34,6 +34,14 @@ namespace FWO.Data
             ItemConverterParameters = ["to_network_zone"]), JsonPropertyName("network_zone_communication_destinations")]
         public ComplianceNetworkZone[] AllowedCommunicationDestinations { get; set; } = [];
 
+        [JsonProperty("created"), JsonPropertyName("created")]
+        public DateTime Created { get; set; }
+
+        [JsonProperty("removed"), JsonPropertyName("removed")]
+        public DateTime Removed { get; set; }
+
+        
+
 
         public bool CommunicationAllowedFrom(ComplianceNetworkZone from)
         {

@@ -231,7 +231,7 @@ namespace FWO.Middleware.Server
 				int waitCycles = GetWaitCycles(nextTask.TaskType, oldRequest);
 				if(nextTask.TaskType == WfTaskType.access.ToString() || nextTask.TaskType == WfTaskType.rule_modify.ToString() || nextTask.TaskType == WfTaskType.rule_delete.ToString())
 				{
-					List<WfReqTask> bundledTasks = [nextTask];
+					List<WfReqTask> bundledTasks = [];
 					List<WfReqTask> handledTasks = [nextTask];
 					BundleTasks(ticket, lastTaskNumber, nextTask, bundledTasks, handledTasks);
 					await CreateExtRequest(ticket, bundledTasks, handledTasks, waitCycles);
@@ -249,24 +249,31 @@ namespace FWO.Middleware.Server
 		{
 			int actTaskNumber = lastTaskNumber + 2;
 			bool taskFound = true;
-			while(taskFound && bundledTasks.Count < actSystem.MaxBundledTasks())
+			WfReqTask? actBundledTask = nextTask;
+			while (taskFound && bundledTasks.Count < actSystem.MaxBundledTasks())
 			{
 				WfReqTask? furtherTask = ticket.Tasks.FirstOrDefault(ta => ta.TaskNumber == actTaskNumber);
-				if(furtherTask != null && furtherTask.TaskType == nextTask.TaskType)
+				if (furtherTask != null && furtherTask.TaskType == nextTask.TaskType)
 				{
-					if(actSystem.BundleGateways() && actSystem.TaskTypesToBundleGateways().Contains(nextTask.TaskType) && IsSameRuleOnDiffGw(nextTask, furtherTask))
+					actBundledTask ??= new(furtherTask);
+					if (actSystem.BundleGateways() && actSystem.TaskTypesToBundleGateways().Contains(nextTask.TaskType) && IsSameRuleOnDiffGw(actBundledTask, furtherTask))
 					{
-						nextTask.Elements.AddRange(furtherTask.GetRuleElements().ConvertAll(e => e.ToReqElement()));
+						actBundledTask.Elements.AddRange(furtherTask.GetRuleElements().ConvertAll(e => e.ToReqElement()));
 					}
-					else if(UserConfig.ModRolloutBundleTasks)
+					else if (UserConfig.ModRolloutBundleTasks)
 					{
-						bundledTasks.Add(furtherTask);
+						bundledTasks.Add(actBundledTask);
+						actBundledTask = null;
 					}
 					handledTasks.Add(furtherTask);
 					actTaskNumber++;
 				}
 				else
 				{
+					if (actBundledTask != null)
+					{
+						bundledTasks.Add(actBundledTask);
+					}
 					taskFound = false;
 				}
 			}

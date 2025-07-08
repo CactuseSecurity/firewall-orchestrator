@@ -150,16 +150,20 @@ namespace FWO.Services
             return (conn.IsCommonService ? userConfig.GetText("new_common_service") : userConfig.GetText("new_connection")) + ": " + (conn.Name ?? "") + commentString;
         }
 
-        private WfReqTask ConstructRuleTask(Management mgt, Rule rule, ModellingConnection conn, bool delete, List<WfReqElement> ruleElements)
+        private WfReqTask ConstructRuleTask(Management mgt, Rule rule, ModellingConnection conn, bool delete, List<WfReqElement> elements)
         {
             Dictionary<string, string>? addInfo = new() { { AdditionalInfoKeys.ConnId, conn.Id.ToString() } };
-            ruleElements.Add(new()
-            {
-                Field = ElemFieldType.rule.ToString(),
-                RuleUid = rule.Uid,
-                DeviceId = rule.DeviceId,
-                Name = rule.Name
-            });
+			List<WfReqElement> ruleElements =
+            [
+                .. elements,
+                new()
+                {
+                    Field = ElemFieldType.rule.ToString(),
+                    RuleUid = rule.Uid,
+                    DeviceId = rule.DeviceId,
+                    Name = rule.Name
+                }
+            ];
             WfReqTask ruleTask = new()
             {
                 Title = (delete ? userConfig.GetText("delete_rule") : userConfig.GetText("change_rule")) + ": " + (rule.Name ?? ""),

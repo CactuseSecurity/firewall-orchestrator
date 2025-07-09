@@ -28,6 +28,19 @@ namespace FWO.Ui.Display
                 return $"<div class=\"oi {(rule.Disabled ? "oi-x" : "oi-check")}\"></div>";
             }
         }
+
+        public static string DisplayIsCompliant(Rule rule, OutputLocation location)
+        {
+            if (location == OutputLocation.export)
+            {
+                return $"<b>{(rule.IsCompliant ? "Y" : "N")}</b>";
+            }
+            else
+            {
+                return $"<div class=\"oi {(rule.IsCompliant ? "oi-check" : "oi-x")}\"></div>";
+            }
+        }
+
         public static string DisplayName(Rule rule)
         {
             return rule.Name ?? "";

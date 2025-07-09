@@ -131,7 +131,7 @@ insert into config (config_key, config_value, config_user) VALUES ('manageOwnerL
 insert into config (config_key, config_value, config_user) VALUES ('modModelledMarker', 'FWOC', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modModelledMarkerLocation', 'rulename', 0);
 insert into config (config_key, config_value, config_user) VALUES ('ruleRecognitionOption', '{"nwRegardIp":true,"nwRegardName":false,"nwRegardGroupName":false,"nwResolveGroup":false,"svcRegardPortAndProt":true,"svcRegardName":false,"svcRegardGroupName":false,"svcResolveGroup":true,"svcSplitPortRanges":false}', 0);
-insert into config (config_key, config_value, config_user) VALUES ('availableReportTypes', '[1,2,3,4,5,6,7,8,9,10,21,22]', 0);
+insert into config (config_key, config_value, config_user) VALUES ('availableReportTypes', '[1,2,3,4,5,6,7,8,9,10,21,22,31,32]', 0);
 insert into config (config_key, config_value, config_user) VALUES ('varianceAnalysisSleepTime', '0', 0);
 insert into config (config_key, config_value, config_user) VALUES ('varianceAnalysisStartAt', '00:00:00', 0);
 insert into config (config_key, config_value, config_user) VALUES ('varianceAnalysisSync', 'false', 0);
@@ -143,7 +143,7 @@ insert into config (config_key, config_value, config_user) VALUES ('complianceCh
 insert into config (config_key, config_value, config_user) VALUES ('complianceCheckMailSubject', '', 0);
 insert into config (config_key, config_value, config_user) VALUES ('complianceCheckMailBody', '', 0);
 
-INSERT INTO "report_format" ("report_format_name") VALUES ('json');
+INSERT INTO "_format" ("report_format_name") VALUES ('json');
 INSERT INTO "report_format" ("report_format_name") VALUES ('pdf');
 INSERT INTO "report_format" ("report_format_name") VALUES ('csv');
 INSERT INTO "report_format" ("report_format_name") VALUES ('html');

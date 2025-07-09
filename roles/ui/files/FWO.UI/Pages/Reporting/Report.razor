@@ -114,6 +114,8 @@
                         case ReportType.UnusedRules:
                         case ReportType.NatRules:
                         case ReportType.AppRules:
+                        case ReportType.Compliance:
+                        case ReportType.ComplianceDiff:
                             <RulesReport Managements="currentReport.ReportData.ManagementData" SelectedReportType="actReportFilters.ReportType" RulesPerPage="rulesPerPage"
                                 @bind-SelectedRules="selectedItemsRuleReportTable" />
                             break;
@@ -442,7 +444,7 @@
 
             if(actReportFilters.ReportType.IsDeviceRelatedReport() && currentReport.NoRuleFound())
             {
-                if(currentReport is ReportRules || currentReport is ReportNatRules)
+                if(currentReport is ReportRules || currentReport is ReportNatRules || currentReport is ReportCompliance)
                 {
                     DisplayMessageInUi(null, userConfig.GetText("generate_report"), userConfig.GetText("E4002"), true);
                 }

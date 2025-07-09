@@ -8,7 +8,7 @@
     <PageSizeComponent PageSizeCallback="UpdatePageSize"></PageSizeComponent>
 }
 <div class="@(UseResponsiveTable ? "connectiontable-responsive" : "")">
-    <Table class="table table-bordered th-bg-secondary sticky-header table-responsive connectiontable" TableItem="ModellingConnection"
+    <Table class="@GetTableClass()" TableItem="ModellingConnection"
            Items="Connections" PageSize="PageSize" ColumnReorder="true" TableRowClass="@(con => getTableRowClass(con))"
            SelectedItems="SelectedConns" RowClickAction="@(conn => ToggleSelection(conn))">
         @if(!Readonly && !SelectInterfaceView && AppHandler != null)
@@ -199,6 +199,11 @@
     {
         PageSize = pageSize;
         PageSizeCallback.InvokeAsync(pageSize);
+    }
+
+    private string GetTableClass()
+    {
+        return $"table table-bordered th-bg-secondary sticky-header table-responsive {(UseResponsiveTable ? "connectiontable-responsive" : "")}";
     }
 
     private void ToggleSelection(ModellingConnection conn)

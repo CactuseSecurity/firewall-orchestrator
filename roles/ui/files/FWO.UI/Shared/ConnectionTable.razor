@@ -7,7 +7,7 @@
 {
     <PageSizeComponent PageSizeCallback="UpdatePageSize"></PageSizeComponent>
 }
-<div class="connectiontable-responsive">
+<div class="@(UseResponsiveTable ? "connectiontable-responsive" : "")">
     <Table class="table table-bordered th-bg-secondary sticky-header table-responsive connectiontable" TableItem="ModellingConnection"
            Items="Connections" PageSize="PageSize" ColumnReorder="true" TableRowClass="@(con => getTableRowClass(con))"
            SelectedItems="SelectedConns" RowClickAction="@(conn => ToggleSelection(conn))">
@@ -189,6 +189,9 @@
 
     [Parameter]
     public bool ShowProductionState { get; set; } = false;
+
+    [Parameter]
+    public bool UseResponsiveTable { get; set; } = false;
 
     private int PageSize { get; set; }
 

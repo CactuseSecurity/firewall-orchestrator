@@ -80,6 +80,8 @@ class GroupFlatsMapper:
         if nwobj.obj_member_refs is None or nwobj.obj_member_refs == '':
             return members
         for memberUid in nwobj.obj_member_refs.split(fwo_const.list_delimiter):
+            if fwo_const.user_delimiter in memberUid:
+                memberUid = memberUid.split(fwo_const.user_delimiter)[0]  # remove user delimiter if present
             flatMembers = self.flat_nwobj_members_recursive(memberUid, recursionLevel + 1)
             if flatMembers is None:
                 continue
@@ -157,7 +159,7 @@ class GroupFlatsMapper:
             self.log_error(f"object with uid {groupUid} not found in users of config")
             return None
         members: set = {groupUid}
-        if user['user_member_refs'] is None or user['user_member_refs'] == '':
+        if "user_member_refs" not in user or user['user_member_refs'] is None or user['user_member_refs'] == '':
             return members
         for memberUid in user['user_member_refs'].split(fwo_const.list_delimiter): #TODO: adjust when/if users are refactored into objects
             flatMembers = self.flat_user_members_recursive(memberUid, recursionLevel + 1)

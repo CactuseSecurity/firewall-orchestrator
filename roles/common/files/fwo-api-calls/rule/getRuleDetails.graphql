@@ -16,8 +16,11 @@ query getRuleDetails(
     where: {
       rule_id: { _in: $rule_id }
       rule_uid: { _in: $rule_uid }
-      rule_last_seen: { _gte: $import_id }
       rule_create: { _lte: $import_id }
+      _or: [
+        { removed: { _is_null: true } }
+        { removed: { _gt: $import_id_start } }
+      ]
       rule_src: { _in: $ruleSrcName }
       rule_froms: { object: { obj_ip: { _in: $ruleSrcIp } } }
       access_rule: { _eq: true }

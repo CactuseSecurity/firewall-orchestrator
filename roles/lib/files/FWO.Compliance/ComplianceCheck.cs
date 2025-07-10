@@ -3,34 +3,103 @@ using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Data;
+using FWO.Report;
+using FWO.Encryption;
+using FWO.Mail;
+using FWO.Services;
 using NetTools;
-
+using Microsoft.AspNetCore.Http;
 
 namespace FWO.Compliance
 {
     public class ComplianceCheck(UserConfig userConfig, ApiConnection? apiConnection = null)
     {
         ComplianceNetworkZone[] NetworkZones = [];
+        ReportCompliance? ComplianceReport = null;
 
+        /// <summary>
+        /// Full compliance check to be called by scheduler
+        /// </summary>
+        /// <returns></returns>
         public async Task CheckAll()
         {
             if (apiConnection != null)
             {
-                List<FwoOwner> owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
-                // get NetworkZones
-                // checkApps
+                // something like this
+                List<int> managementIds = [.. (await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames)).Select(m => m.Id)];
+                await CreateComplianceReport(managementIds);
+                
                 // write result to database
             }
         }
 
-        public async Task<List<(ComplianceNetworkZone, ComplianceNetworkZone)>> CheckApps(List<int> appsIds)
+        /// <summary>
+        /// Create compliance report for given Managements
+        /// </summary>
+        /// <param name="mgmIds"></param>
+        /// <returns></returns>
+        public async Task<ReportCompliance> CreateComplianceReport(List<int> mgmIds)
         {
-            List<(ComplianceNetworkZone, ComplianceNetworkZone)> result = [];
+            ComplianceReport = new();
 
-
-            return result;
+            // ToDo: create real report with different parameters
+            if (apiConnection != null)
+            {
+                foreach (var mgtId in mgmIds)
+                {
+                    Management mgt = new(); // await apiConnection.SendQueryAsync<Management>(DeviceQueries.getSingleManagementDetails);
+                    foreach (var rulebase in mgt.Rulebases)
+                    {
+                        foreach (var rule in rulebase.Rules)
+                        {
+                            CheckRuleCompliance(rule, out List<(ComplianceNetworkZone, ComplianceNetworkZone)> result);
+                            ComplianceReport.Results.AddRange(result);
+                        }
+                    }
+                }
+            }
+            // Filter out duplicates ?
+            return ComplianceReport;
         }
 
+        /// <summary>
+        /// Send Email with compliance report to all recipients defined in compliance settings
+        /// </summary>
+        /// <returns></returns>
+        public async Task SendComplianceCheckEmail()
+        {
+            string decryptedSecret = AesEnc.TryDecrypt(userConfig.EmailPassword, false, "Compliance Check", "Could not decrypt mailserver password.");
+            EmailConnection emailConnection = new(userConfig.EmailServerAddress, userConfig.EmailPort,
+                userConfig.EmailTls, userConfig.EmailUser, decryptedSecret, userConfig.EmailSenderAddress);
+
+            MailData? mail = PrepareEmail();
+
+            await MailKitMailer.SendAsync(mail, emailConnection, false, new CancellationToken());
+        }
+
+        private MailData PrepareEmail()
+        {
+            string subject = userConfig.ComplianceCheckMailSubject;
+            string body = userConfig.ComplianceCheckMailBody;
+               MailData mailData = new(EmailHelper.CollectRecipientsFromConfig(userConfig, userConfig.ComplianceCheckMailRecipients), subject){ Body = body };
+            if (ComplianceReport != null)
+            {
+                FormFile? attachment = EmailHelper.CreateAttachment(ComplianceReport?.ExportToCsv(), GlobalConst.kCsv, subject);
+                if (attachment != null)
+                {
+                    mailData.Attachments = new FormFileCollection() { attachment };
+                }
+            }
+            return mailData;
+        }
+
+        /// <summary>
+        /// Compliance check used in current UI implementation
+        /// </summary>
+        /// <param name="sourceIpRange"></param>
+        /// <param name="destinationIpRange"></param>
+        /// <param name="networkZones"></param>
+        /// <returns></returns>
         public List<(ComplianceNetworkZone, ComplianceNetworkZone)> CheckIpRangeInputCompliance(IPAddressRange? sourceIpRange, IPAddressRange? destinationIpRange, ComplianceNetworkZone[] networkZones)
         {
             NetworkZones = networkZones;

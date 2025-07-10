@@ -28,8 +28,12 @@ fragment networkServiceDetailsChangesNew on service {
   svc_member_names
   svc_member_refs
   svcgrps(where: {
-    import_last_seen: { _gte: $import_id_new }
+    active: { _eq: $active }
     import_created: { _lte: $import_id_new }
+    _or: [
+      {removed: {_is_null: true}}
+      {removed: {_gt: $import_id_new}}
+    ]
   } order_by: { svcgrp_member_id: asc }) {
     id: svcgrp_member_id
     byId: serviceBySvcgrpMemberId {
@@ -42,6 +46,11 @@ fragment networkServiceDetailsChangesNew on service {
   }
   svcgrp_flats(where: {
     active: { _eq: $active }
+    import_created: { _lte: $import_id_new }
+    _or: [
+      {removed: {_is_null: true}}
+      {removed: {_gt: $import_id_new}}
+    ]
   } order_by: { svcgrp_flat_member_id: asc }) {
     flat_id: svcgrp_flat_id
     byFlatId: serviceBySvcgrpFlatMemberId {

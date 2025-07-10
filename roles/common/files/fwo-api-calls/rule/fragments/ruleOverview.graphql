@@ -37,8 +37,11 @@ fragment ruleOverview on rule {
   nat_rule
   xlate_rule
   rule_froms(where: {
-    rf_last_seen: { _gte: $import_id_start }
     rf_create: { _lte: $import_id_end }
+    _or: [
+      { removed: { _is_null: true } }
+      { removed: { _gt: $import_id_start } }
+    ]
   }, order_by:{ object: { obj_name: asc } }) {
     usr {
       ...userOverview
@@ -52,8 +55,11 @@ fragment ruleOverview on rule {
     zone_id
   }
   rule_tos(where: {
-    rt_last_seen: { _gte: $import_id_start }
     rt_create: { _lte: $import_id_end }
+    _or: [
+      { removed: { _is_null: true } }
+      { removed: { _gt: $import_id_start } }
+    ]
   }, order_by:{ object: { obj_name: asc } }) {
     usr {
       ...userOverview
@@ -63,8 +69,11 @@ fragment ruleOverview on rule {
     }
   }
   rule_services(where: {
-    rs_last_seen: { _gte: $import_id_start }
     rs_create: { _lte: $import_id_end }
+    _or: [
+      { removed: { _is_null: true } }
+      { removed: { _gt: $import_id_start } }
+    ]
   }, order_by:{ service: { svc_name: asc } }) {
     service {
       ...networkServiceOverview

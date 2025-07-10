@@ -330,6 +330,7 @@ insert into stm_action (action_id,action_name) VALUES (28,'NAT') ON CONFLICT DO 
 insert into stm_action (action_id,action_name) VALUES (29,'inform'); -- cp DLP
 insert into stm_action (action_id,action_name) VALUES (30,'ask'); -- cp DLP
 
+-- checkpoint old:
 insert into stm_track (track_id,track_name) VALUES (1,'log');
 insert into stm_track (track_id,track_name) VALUES (2,'none');
 insert into stm_track (track_id,track_name) VALUES (3,'alert');
@@ -353,7 +354,11 @@ insert into stm_track (track_id,track_name) VALUES (18,'all');
 insert into stm_track (track_id,track_name) VALUES (19,'all start');
 insert into stm_track (track_id,track_name) VALUES (20,'utm');
 insert into stm_track (track_id,track_name) VALUES (22,'utm start');
+
+-- new mixed:
 insert into stm_track (track_id,track_name) VALUES (21,'network log'); -- check point R8x:
+insert into stm_track (track_id,track_name) VALUES (23,'detailed log') ON CONFLICT DO NOTHING; -- check point R8x:
+insert into stm_track (track_id,track_name) VALUES (24,'extended log') ON CONFLICT DO NOTHING; -- check point R8x:
 
 insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufacturer,dev_typ_predef_svc,dev_typ_is_mgmt,is_pure_routing_device)
     VALUES (2,'Netscreen','5.x-6.x','Netscreen', '', true,false);

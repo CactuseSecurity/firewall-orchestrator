@@ -904,25 +904,6 @@
                     "foreign_key_constraint_on": "rule_id"
                   }
                 }
-              ],
-              "insert_permissions": [
-                {
-                  "role": "importer",
-                  "permission": {
-                    "check": {},
-                    "columns": [
-                      "criterion_id",
-                      "id",
-                      "policy_id",
-                      "rule_id",
-                      "details",
-                      "risk_score",
-                      "found_date",
-                      "removed_date"
-                    ]
-                  },
-                  "comment": ""
-                }
               ]
             },            
             {

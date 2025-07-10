@@ -138,6 +138,7 @@ namespace FWO.Basics
         public const string PORT = "@@PORT@@";
         public const string PRIORITY = "@@PRIORITY@@";
         public const string PROTOCOLNAME = "@@PROTOCOLNAME@@";
+        public const string PROTOCOLID = "@@PROTOCOLID@@";
         public const string REASON = "@@REASON@@";
         public const string SERVICENAME = "@@SERVICENAME@@";
         public const string SERVICES = "@@SERVICES@@";

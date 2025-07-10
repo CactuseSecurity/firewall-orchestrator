@@ -83,15 +83,19 @@ namespace FWO.ExternalSystems.Tufin.SecureChange
 		{
 			List<NwServiceElement> nwServiceElements = ReqTask.GetServiceElements();
 			List<string> convertedObjects = [];
-			foreach(var svc in nwServiceElements)
+			foreach (var svc in nwServiceElements)
 			{
-				if(svc.ProtoId == 1) // ICMP
+				if (svc.ProtoId == 1) // ICMP
 				{
 					convertedObjects.Add(FillIcmpTemplate(template, svc.Name ?? ""));
 				}
-				else
+				else if (svc.ProtoId == 6 || svc.ProtoId == 17) // TCP, UDP
 				{
 					convertedObjects.Add(FillServiceTemplate(template, IpProtos.FirstOrDefault(x => x.Id == svc.ProtoId)?.Name ?? svc.ProtoId.ToString(), DisplayPortRange(svc.Port, svc.PortEnd), svc.Name ?? ""));
+				}
+				else
+				{
+					convertedObjects.Add(FillIpProtocolTemplate(template, IpProtos.FirstOrDefault(x => x.Id == svc.ProtoId)?.Name ?? svc.ProtoId.ToString(), svc.ProtoId.ToString()));
 				}
 			}
 			return "[" + string.Join(",", convertedObjects) + "]";

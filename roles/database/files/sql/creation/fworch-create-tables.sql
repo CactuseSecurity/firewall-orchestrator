@@ -1412,7 +1412,7 @@ create table compliance.network_zone
 
 create table compliance.network_zone_communication
 (
-	criterion_id bigint,
+	criterion_id INT,
     from_network_zone_id bigint NOT NULL,
 	to_network_zone_id bigint NOT NULL,
     removed timestamp with time zone default now(),
@@ -1431,26 +1431,26 @@ create table compliance.ip_range
 
 create table compliance.policy
 (
-    id BIGSERIAL PRIMARY KEY,
-	name Varchar,
+    id SERIAL PRIMARY KEY,
+	name TEXT,
 	created_date timestamp default now(),
 	disabled bool
 );
 
 create table compliance.policy_criterion
 (
-    policy_id bigint NOT NULL,
-	criterion_id bigint NOT NULL,
+    policy_id INT NOT NULL,
+	criterion_id INT NOT NULL,
     removed timestamp with time zone default now(),
 	created timestamp with time zone default now()
 );
 
 create table compliance.criterion
 (
-    id BIGSERIAL PRIMARY KEY,
-	name Varchar,
-	criterion_type Varchar,
-	content Varchar
+    id SERIAL PRIMARY KEY,
+	name TEXT,
+	criterion_type TEXT,
+	content TEXT
 );
 
 create table compliance.violation
@@ -1459,10 +1459,10 @@ create table compliance.violation
 	rule_id bigint NOT NULL,
 	found_date timestamp default now(),
 	removed_date timestamp with time zone default now(),
-	details Varchar,
+	details TEXT,
 	risk_score real,
-	policy_id bigint NOT NULL,
-	criterion_id bigint NOT NULL
+	policy_id INT NOT NULL,
+	criterion_id INT NOT NULL
 );
 
 --- Network modelling ---

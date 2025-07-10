@@ -81,24 +81,6 @@
 			ComplianceCheck complianceCheck = new ComplianceCheck(userConfig, null);
 			forbiddenCommunicationsOutput = complianceCheck.CheckIpRangeInputCompliance(sourceIpRange, destinationIpRange, networkZoneService.NetworkZones);
 			compliant = forbiddenCommunicationsOutput.Count == 0;
-
-			List<ComplianceViolation> violations = new();
-			foreach ((ComplianceNetworkZone, ComplianceNetworkZone) forbiddenCommunication in forbiddenCommunicationsOutput)
-			{
-				string violationDetails = $"{forbiddenCommunication.Item1.Name} ({sourceIpRange.ToString()}) TO {forbiddenCommunication.Item2.Name} ({destinationIpRange.ToString()})";
-				ComplianceViolation violation = new();
-				violation.Details = violationDetails;
-				violations.Add(violation);
-			}
-			if(violations.Count > 0)
-			{
-				var variables = new
-				{
-					violations
-				};
-				apiConnection.SendQueryAsync<dynamic>(ComplianceQueries.insertViolations, variables);
-			}
-			
 		}
 	}
 }

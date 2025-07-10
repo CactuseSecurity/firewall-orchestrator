@@ -493,6 +493,10 @@ thead {
     background-color: #a4d7f5;
 }
 
+.table-responsive:has(.connectiontable) {
+    overflow-x: visible;
+}
+
 .table-responsive:has(.popover, .bs-popover-bottom, .show) {
     overflow-x: visible;
 }

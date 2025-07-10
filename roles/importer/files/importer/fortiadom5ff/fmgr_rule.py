@@ -19,34 +19,34 @@ rule_nat_scope = ['rules_global_nat', 'rules_adom_nat']
 rule_scope = rule_access_scope + rule_nat_scope
 
 
-def initializeRulebases(raw_config):
+def initializeRulebases(nativeConfig):
     # initialize access rules
-    if 'rules_global_header_v4' not in raw_config:
-        raw_config.update({'rules_global_header_v4': {}})
-    if 'rules_global_header_v6' not in raw_config:
-        raw_config.update({'rules_global_header_v6': {}})
-    if 'rules_adom_v4' not in raw_config:
-        raw_config.update({'rules_adom_v4': {}})
-    if 'rules_adom_v6' not in raw_config:
-        raw_config.update({'rules_adom_v6': {}})
-    if 'rules_global_footer_v4' not in raw_config:
-        raw_config.update({'rules_global_footer_v4': {}})
-    if 'rules_global_footer_v6' not in raw_config:
-        raw_config.update({'rules_global_footer_v6': {}})
+    if 'rules_global_header_v4' not in nativeConfig:
+        nativeConfig.update({'rules_global_header_v4': {}})
+    if 'rules_global_header_v6' not in nativeConfig:
+        nativeConfig.update({'rules_global_header_v6': {}})
+    if 'rules_adom_v4' not in nativeConfig:
+        nativeConfig.update({'rules_adom_v4': {}})
+    if 'rules_adom_v6' not in nativeConfig:
+        nativeConfig.update({'rules_adom_v6': {}})
+    if 'rules_global_footer_v4' not in nativeConfig:
+        nativeConfig.update({'rules_global_footer_v4': {}})
+    if 'rules_global_footer_v6' not in nativeConfig:
+        nativeConfig.update({'rules_global_footer_v6': {}})
 
     # initialize nat rules
-    if 'rules_global_nat' not in raw_config:
-        raw_config.update({'rules_global_nat': {}})
-    if 'rules_adom_nat' not in raw_config:
-        raw_config.update({'rules_adom_nat': {}})
+    if 'rules_global_nat' not in nativeConfig:
+        nativeConfig.update({'rules_global_nat': {}})
+    if 'rules_adom_nat' not in nativeConfig:
+        nativeConfig.update({'rules_adom_nat': {}})
     
     # new in v8.3.1:
     # initialize hitcounts
-    if 'rules_hitcount' not in raw_config:
-        raw_config.update({'rules_hitcount': {}})
+    if 'rules_hitcount' not in nativeConfig:
+        nativeConfig.update({'rules_hitcount': {}})
 
 
-def getAccessPolicy(sid, fm_api_url, raw_config, adom_name, device, limit):
+def getAccessPolicy(sid, fm_api_url, nativeConfig, adom_name, device, limit):
     consolidated = '' # '/consolidated'
     logger = getFwoLogger()
 
@@ -75,22 +75,22 @@ def getAccessPolicy(sid, fm_api_url, raw_config, adom_name, device, limit):
         logger.debug('no global rulebase name defined in fortimanager, ADOM=' + adom_name + ', local_package=' + local_pkg_name)
     else:
         fmgr_getter.update_config_with_fortinet_api_call(
-            raw_config['rules_global_header_v4'], sid, fm_api_url, "/pm/config/global/pkg/" + global_pkg_name + "/global/header" + consolidated + "/policy", local_pkg_name, limit=limit)
+            nativeConfig['rules_global_header_v4'], sid, fm_api_url, "/pm/config/global/pkg/" + global_pkg_name + "/global/header" + consolidated + "/policy", local_pkg_name, limit=limit)
         fmgr_getter.update_config_with_fortinet_api_call(
-            raw_config['rules_global_header_v6'], sid, fm_api_url, "/pm/config/global/pkg/" + global_pkg_name + "/global/header" + consolidated + "/policy6", local_pkg_name, limit=limit)
+            nativeConfig['rules_global_header_v6'], sid, fm_api_url, "/pm/config/global/pkg/" + global_pkg_name + "/global/header" + consolidated + "/policy6", local_pkg_name, limit=limit)
     
     # get local rulebase
     fmgr_getter.update_config_with_fortinet_api_call(
-        raw_config['rules_adom_v4'], sid, fm_api_url, "/pm/config/adom/" + adom_name + "/pkg/" + local_pkg_name + "/firewall" + consolidated + "/policy", local_pkg_name, options=options, limit=limit)
+        nativeConfig['rules_adom_v4'], sid, fm_api_url, "/pm/config/adom/" + adom_name + "/pkg/" + local_pkg_name + "/firewall" + consolidated + "/policy", local_pkg_name, options=options, limit=limit)
     fmgr_getter.update_config_with_fortinet_api_call(
-        raw_config['rules_adom_v6'], sid, fm_api_url, "/pm/config/adom/" + adom_name + "/pkg/" + local_pkg_name + "/firewall" + consolidated + "/policy6", local_pkg_name, limit=limit)
+        nativeConfig['rules_adom_v6'], sid, fm_api_url, "/pm/config/adom/" + adom_name + "/pkg/" + local_pkg_name + "/firewall" + consolidated + "/policy6", local_pkg_name, limit=limit)
 
     # get global footer rulebase:
     if device['global_rulebase_name'] != None and device['global_rulebase_name'] != '':
         fmgr_getter.update_config_with_fortinet_api_call(
-            raw_config['rules_global_footer_v4'], sid, fm_api_url, "/pm/config/global/pkg/" + global_pkg_name + "/global/footer" + consolidated + "/policy", local_pkg_name, limit=limit)
+            nativeConfig['rules_global_footer_v4'], sid, fm_api_url, "/pm/config/global/pkg/" + global_pkg_name + "/global/footer" + consolidated + "/policy", local_pkg_name, limit=limit)
         fmgr_getter.update_config_with_fortinet_api_call(
-            raw_config['rules_global_footer_v6'], sid, fm_api_url, "/pm/config/global/pkg/" + global_pkg_name + "/global/footer" + consolidated + "/policy6", local_pkg_name, limit=limit)
+            nativeConfig['rules_global_footer_v6'], sid, fm_api_url, "/pm/config/global/pkg/" + global_pkg_name + "/global/footer" + consolidated + "/policy6", local_pkg_name, limit=limit)
 
     # execute hitcount task
     hitcount_payload = {
@@ -103,22 +103,22 @@ def getAccessPolicy(sid, fm_api_url, raw_config, adom_name, device, limit):
         ]
     }
     fmgr_getter.update_config_with_fortinet_api_call(
-        raw_config['rules_hitcount'], sid, fm_api_url, "/sys/task/result", local_pkg_name, payload=hitcount_payload, limit=limit)
+        nativeConfig['rules_hitcount'], sid, fm_api_url, "/sys/task/result", local_pkg_name, payload=hitcount_payload, limit=limit)
 
 
-def getNatPolicy(sid, fm_api_url, raw_config, adom_name, device, limit):
+def getNatPolicy(sid, fm_api_url, nativeConfig, adom_name, device, limit):
     scope = 'global'
     pkg = device['global_rulebase_name']
     if pkg is not None and pkg != '':   # only read global rulebase if it exists
         for nat_type in ['central/dnat', 'central/dnat6', 'firewall/central-snat-map']:
             fmgr_getter.update_config_with_fortinet_api_call(
-                raw_config['rules_global_nat'], sid, fm_api_url, "/pm/config/" + scope + "/pkg/" + pkg + '/' + nat_type, device['local_rulebase_name'], limit=limit)
+                nativeConfig['rules_global_nat'], sid, fm_api_url, "/pm/config/" + scope + "/pkg/" + pkg + '/' + nat_type, device['local_rulebase_name'], limit=limit)
 
     scope = 'adom/'+adom_name
     pkg = device['local_rulebase_name']
     for nat_type in ['central/dnat', 'central/dnat6', 'firewall/central-snat-map']:
         fmgr_getter.update_config_with_fortinet_api_call(
-            raw_config['rules_adom_nat'], sid, fm_api_url, "/pm/config/" + scope + "/pkg/" + pkg + '/' + nat_type, device['local_rulebase_name'], limit=limit)
+            nativeConfig['rules_adom_nat'], sid, fm_api_url, "/pm/config/" + scope + "/pkg/" + pkg + '/' + nat_type, device['local_rulebase_name'], limit=limit)
 
 
 # delete_v: versuch das von cp_rule zu kopieren

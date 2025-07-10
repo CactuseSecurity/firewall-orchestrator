@@ -61,7 +61,7 @@ def login(user, password, base_url):
     except Exception:
         raise FwLoginFailed("FortiManager login ERROR: url=" + base_url) from None
     if "session" not in response:   # leaving out payload as it contains pwd
-        raise FwLoginFailed("FortiManager login ERROR: url=" + base_url) from None
+        raise FwLoginFailed("FortiManager login ERROR (no sid): url=" + base_url) from None
     return response["session"]
 
 
@@ -75,22 +75,6 @@ def logout(v_url, sid, method='exec'):
     else:
         raise Exception( "fmgr_getter ERROR: did not get status code 0 when logging out, " + 
                             "api call: url: " + str(v_url) + ",  + payload: " + str(payload))
-
-
-# def set_api_url(base_url, testmode, api_supported, hostname):
-#     url = ''
-#     if testmode == 'off':
-#         url = base_url
-#     else:
-#         if re.search(r'^\d+[\.\d+]+$', testmode) or re.search(r'^\d+$', testmode):
-#             if testmode in api_supported:
-#                 url = base_url + 'v' + testmode + '/'
-#             else:
-#                 raise Exception("api version " + testmode +
-#                              " is not supported by the manager " + hostname + " - Import is canceled")
-#         else:
-#             raise Exception("\"" + testmode + "\" - not a valid version")
-#     return url
 
 
 def update_config_with_fortinet_api_call(config_json, sid, api_base_url, api_path, result_name, payload={}, options=[], show_progress=False, limit=150, method="get"):

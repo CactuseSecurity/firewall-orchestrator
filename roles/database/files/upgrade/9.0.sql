@@ -880,7 +880,7 @@ $$;
 
 -- add new compliance tables
 
-create table compliance.policy  
+CREATE TABLE IF NOT EXISTS compliance.policy  
 (
     id SERIAL PRIMARY KEY,
 	name TEXT,
@@ -888,7 +888,7 @@ create table compliance.policy
 	disabled bool
 );
 
-create table compliance.policy_criterion
+CREATE TABLE IF NOT EXISTS compliance.policy_criterion
 (
     policy_id INT NOT NULL,
 	criterion_id INT NOT NULL,
@@ -896,7 +896,7 @@ create table compliance.policy_criterion
 	created timestamp with time zone default now()
 );
 
-create table compliance.criterion
+CREATE TABLE IF NOT EXISTS compliance.criterion
 (
     id SERIAL PRIMARY KEY,
 	name TEXT,
@@ -904,7 +904,7 @@ create table compliance.criterion
 	content TEXT
 );
 
-create table compliance.violation
+CREATE TABLE IF NOT EXISTS compliance.violation
 (
     id BIGSERIAL PRIMARY KEY,
 	rule_id bigint NOT NULL,

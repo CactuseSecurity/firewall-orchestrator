@@ -311,8 +311,8 @@ namespace FWO.Config.Api.Data
 		[JsonProperty("modSpecUserAreas"), JsonPropertyName("modSpecUserAreas")]
 		public string ModSpecUserAreas { get; set; } = "";
 
-		[JsonProperty("modUpdateableObjAreas"), JsonPropertyName("modUpdateableObjAreas")]
-		public string ModUpdateableObjAreas { get; set; } = "";
+		[JsonProperty("modUpdatableObjAreas"), JsonPropertyName("modUpdatableObjAreas")]
+		public string ModUpdatableObjAreas { get; set; } = "";
 
 		[JsonProperty("modAppServerTypes"), JsonPropertyName("modAppServerTypes")]
 		public string ModAppServerTypes { get; set; } = "";

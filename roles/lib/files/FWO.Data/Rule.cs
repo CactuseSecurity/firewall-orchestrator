@@ -103,7 +103,7 @@ namespace FWO.Data
         public bool ModellOk = false;
         public bool Detailed = false;
         public List<string> UnusedSpecialUserObjects = [];
-        public List<string> UnusedUpdateableObjects = [];
+        public List<string> UnusedUpdatableObjects = [];
 
         public Rule()
         { }
@@ -151,7 +151,7 @@ namespace FWO.Data
             ModellOk = rule.ModellOk;
             Detailed = rule.Detailed;
             UnusedSpecialUserObjects = rule.UnusedSpecialUserObjects;
-            UnusedUpdateableObjects = rule.UnusedUpdateableObjects;
+            UnusedUpdatableObjects = rule.UnusedUpdatableObjects;
         }
 
         public bool IsDropRule()

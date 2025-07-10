@@ -145,9 +145,9 @@
                 List<long> SpecAreaIds = JsonSerializer.Deserialize<List<CommonAreaConfig>>(userConfig.ModSpecUserAreas)?.ConvertAll(x => x.AreaId) ?? new();
                 allNwObjects = allNwObjects.Where(o => !SpecAreaIds.Contains(o.Id)).ToList();
             }
-            else if(UpdObjMode && userConfig.ModUpdateableObjAreas != "")
+            else if(UpdObjMode && userConfig.ModUpdatableObjAreas != "")
             {
-                List<long> UpdObjAreaIds = JsonSerializer.Deserialize<List<CommonAreaConfig>>(userConfig.ModUpdateableObjAreas)?.ConvertAll(x => x.AreaId) ?? new();
+                List<long> UpdObjAreaIds = JsonSerializer.Deserialize<List<CommonAreaConfig>>(userConfig.ModUpdatableObjAreas)?.ConvertAll(x => x.AreaId) ?? new();
                 allNwObjects = allNwObjects.Where(o => !UpdObjAreaIds.Contains(o.Id)).ToList();
             }
             remainingNwObjects = allNwObjects.Where(o => ObjectList.FirstOrDefault(sel => sel.Content.Id == o.Id) == null).ToList();

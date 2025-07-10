@@ -220,7 +220,7 @@ namespace FWO.Report
                 report.AppendLine($"<h4 id=\"{Guid.NewGuid()}\">{userConfig.GetText("connections_with_diffs")}</h4>");
                 foreach(var difference in ownerReport.RuleDifferences)
                 {
-                    bool anyUnusedObjects = difference.ImplementedRules.Any(r => r.UnusedSpecialUserObjects.Count > 0 || r.UnusedUpdateableObjects.Count > 0);
+                    bool anyUnusedObjects = difference.ImplementedRules.Any(r => r.UnusedSpecialUserObjects.Count > 0 || r.UnusedUpdatableObjects.Count > 0);
                     report.AppendLine($"<h5 id=\"{Guid.NewGuid()}\">{difference.ModelledConnection.Name}</h5>");
                     AppendConnectionsGroupHtml([difference.ModelledConnection], ownerReport, chapterNumber, ref report, false, false, true);
                     report.AppendLine("<table>");
@@ -246,7 +246,7 @@ namespace FWO.Report
                         report.AppendLine($"<td>{ruleDiffDisplay.DisplayDestinationDiff(diff, OutputLocation.export, ReportType)}</td>");
                         if(anyUnusedObjects)
                         {
-                            List<string> unusedObjects = [.. diff.UnusedSpecialUserObjects, .. diff.UnusedUpdateableObjects];
+                            List<string> unusedObjects = [.. diff.UnusedSpecialUserObjects, .. diff.UnusedUpdatableObjects];
                             report.AppendLine($"<td style=\"{GlobalConst.kStyleHighlightedRed}\">{string.Join(", ", unusedObjects)}</td>");
                         }
                         report.AppendLine("</tr>");

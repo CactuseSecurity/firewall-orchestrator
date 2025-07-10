@@ -1515,8 +1515,8 @@ INSERT INTO txt VALUES ('common_areas',         'German', 	'Gemeinsame Netzwerka
 INSERT INTO txt VALUES ('common_areas',         'English', 	'Common Network Areas');
 INSERT INTO txt VALUES ('special_user_areas',   'German', 	'Netzwerkareas f&uuml;r Nutzer');
 INSERT INTO txt VALUES ('special_user_areas',   'English', 	'Network Areas for Users');
-INSERT INTO txt VALUES ('updateable_obj_areas', 'German', 	'Netzwerkareas f&uuml;r Updateable Objects');
-INSERT INTO txt VALUES ('updateable_obj_areas', 'English', 	'Network Areas for Updateable Objects');
+INSERT INTO txt VALUES ('updatable_obj_areas', 'German', 	'Netzwerkareas f&uuml;r Updatable Objects');
+INSERT INTO txt VALUES ('updatable_obj_areas', 'English', 	'Network Areas for Updatable Objects');
 INSERT INTO txt VALUES ('search_interface',     'German', 	'Schnittstelle suchen');
 INSERT INTO txt VALUES ('search_interface',     'English', 	'Search Interface');
 INSERT INTO txt VALUES ('used_interface',       'German', 	'Genutzte Schnittstelle');
@@ -5527,8 +5527,8 @@ INSERT INTO txt VALUES ('H5657', 'German',  'Integrierte Rezertifizierung aktivi
 INSERT INTO txt VALUES ('H5657', 'English', 'Activate Integrated Recertification: Enables the recertification directly from Modelling.');
 INSERT INTO txt VALUES ('H5658', 'German',  'Rezertifizierungstext: Text, der zur Best&auml;tigung der Rezertifizierung angezeigt werden soll. Enth&auml;lt der Text einen Platzhalter "@@APPNAME@@", so wird dieser durch den App-Namen ersetzt.');
 INSERT INTO txt VALUES ('H5658', 'English', 'Recertification Text: Text to be shown to confirm recertification. If the text contains a placeholder "@@APPNAME@@", it is replaced by the app name.');
-INSERT INTO txt VALUES ('H5659', 'German',  'Netzwerkareas f&uuml;r Updateable Objects: Vom Administrator vorgegebene Netzwerkareas, welche f&uuml;r die Zuordnung &uuml;ber die Sonderkonfiguration "Updateable Objects" genutzt werden d&uuml;rfen. Die beiden Auswahlfelder "in Quelle" und "in Ziel" legen fest, wo die Netzwerkarea genutzt werden darf.');
-INSERT INTO txt VALUES ('H5659', 'English', 'Network Areas for Updateable Objects: Network areas defined by the administrator, which are permitted to be used for assignment via the Extra Configurations "Updateable Objects". The flags "in Source" and "in Destination" determine, where the Network Areas are allowed to be used.');
+INSERT INTO txt VALUES ('H5659', 'German',  'Netzwerkareas f&uuml;r Updatable Objects: Vom Administrator vorgegebene Netzwerkareas, welche f&uuml;r die Zuordnung &uuml;ber die Sonderkonfiguration "Updatable Objects" genutzt werden d&uuml;rfen. Die beiden Auswahlfelder "in Quelle" und "in Ziel" legen fest, wo die Netzwerkarea genutzt werden darf.');
+INSERT INTO txt VALUES ('H5659', 'English', 'Network Areas for Updatable Objects: Network areas defined by the administrator, which are permitted to be used for assignment via the Extra Configurations "Updatable Objects". The flags "in Source" and "in Destination" determine, where the Network Areas are allowed to be used.');
 
 INSERT INTO txt VALUES ('H5701', 'German',  'Die in der Datenbank hinterlegten sprachabh&auml;ngigen Texte k&ouml;nnen individuell &uuml;berschrieben werden.
     Dabei werden die vom System vorgegebenen Texte nicht ge&auml;ndert, sondern nur durch die hier definierten Texte - falls vorhanden - &uuml;berblendet.

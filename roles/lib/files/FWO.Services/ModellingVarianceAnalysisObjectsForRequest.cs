@@ -57,8 +57,8 @@ namespace FWO.Services
         {
             List<WfReqElement> ruleElements = [];
             Dictionary<string, bool> specialUserObjects = deletedConn.GetSpecialUserObjectNames();
-            Dictionary<string, bool> updateableObjects = deletedConn.GetUpdateableObjectNames();
-            if (specialUserObjects.Count > 0 || updateableObjects.Count > 0)
+            Dictionary<string, bool> updatableObjects = deletedConn.GetUpdatableObjectNames();
+            if (specialUserObjects.Count > 0 || updatableObjects.Count > 0)
             {
                 // Get from deleted conn as modelled objects are expected instead of specUser (Then deletion of links is suppressed in this case)
                 ruleElements.AddRange(GetNwObjElementsFromConn(deletedConn));

@@ -119,7 +119,7 @@
         </div>
         <hr />
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5659"))">
-            <label class="col-form-label col-sm-4">@userConfig.GetText("updateable_obj_areas"):</label>
+            <label class="col-form-label col-sm-4">@userConfig.GetText("updatable_obj_areas"):</label>
             <CommonAreaSelection CommonAreas="UpdObjAreas" CommAreasToDelete="UpdObjAreasToDelete" SearchCommonArea="SearchUpdObjArea"/>
         </div>
         <hr />
@@ -562,7 +562,7 @@ else
                 new { grpType = (int)ModellingTypes.ModObjectType.NetworkArea });
             CommonAreas = RefreshAreas(configData.ModCommonAreas);
             SpecUserAreas = RefreshAreas(configData.ModSpecUserAreas);
-            UpdObjAreas = RefreshAreas(configData.ModUpdateableObjAreas);
+            UpdObjAreas = RefreshAreas(configData.ModUpdatableObjAreas);
             appDataDate = appDataTime = configData.ImportAppDataStartAt;
             subnetDataDate = subnetDataTime = configData.ImportSubnetDataStartAt;
             varAnalysisDate = varAnalysisTime = configData.VarianceAnalysisStartAt;
@@ -710,7 +710,7 @@ else
                 ExtraConfigsToDelete = [];
                 CommonAreas = RefreshAreas(configData.ModCommonAreas);
                 SpecUserAreas = RefreshAreas(configData.ModSpecUserAreas);
-                UpdObjAreas = RefreshAreas(configData.ModUpdateableObjAreas);
+                UpdObjAreas = RefreshAreas(configData.ModUpdatableObjAreas);
                 DisplayMessageInUi(null, userConfig.GetText("modelling_settings"), userConfig.GetText("U5301"), false);
             }
             else
@@ -733,7 +733,7 @@ else
         PrepareAppServerTypes();
         configData!.ModCommonAreas = PrepareAreas(CommonAreas, CommAreasToDelete);
         configData!.ModSpecUserAreas = PrepareAreas(SpecUserAreas, SpecUserAreasToDelete);
-        configData!.ModUpdateableObjAreas = PrepareAreas(UpdObjAreas, UpdObjAreasToDelete);
+        configData!.ModUpdatableObjAreas = PrepareAreas(UpdObjAreas, UpdObjAreasToDelete);
         configData!.ImportAppDataStartAt = appDataDate.Date.Add(appDataTime.TimeOfDay);
         configData!.ImportSubnetDataStartAt = subnetDataDate.Date.Add(subnetDataTime.TimeOfDay);
         configData!.VarianceAnalysisStartAt = varAnalysisDate.Date.Add(varAnalysisTime.TimeOfDay);

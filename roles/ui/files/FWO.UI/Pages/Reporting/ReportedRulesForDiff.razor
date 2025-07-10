@@ -85,12 +85,12 @@
 
     protected override void OnParametersSet()
     {
-        anyUnusedObjects = Difference.ImplementedRules.Any(r => r.UnusedSpecialUserObjects.Count > 0 || r.UnusedUpdateableObjects.Count > 0);
+        anyUnusedObjects = Difference.ImplementedRules.Any(r => r.UnusedSpecialUserObjects.Count > 0 || r.UnusedUpdatableObjects.Count > 0);
     }
 
     private string ListUnusedObjects(Rule rule)
     {
-        return string.Join(", ", [.. rule.UnusedSpecialUserObjects, .. rule.UnusedUpdateableObjects]);
+        return string.Join(", ", [.. rule.UnusedSpecialUserObjects, .. rule.UnusedUpdatableObjects]);
     }
 
     private string GetHistoryString(Recertification recert)

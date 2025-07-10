@@ -347,14 +347,14 @@ namespace FWO.Data.Modelling
             return userObjectNames;
         }
 
-        public Dictionary<string, bool> GetUpdateableObjectNames()
+        public Dictionary<string, bool> GetUpdatableObjectNames()
         {
-            Dictionary<string, bool> updateableObjectNames = [];
-            foreach (var extraConfig in ExtraConfigs.Where(e => e.ExtraConfigType.ToLower().StartsWith(GlobalConst.kUpdateable)))
+            Dictionary<string, bool> updatableObjectNames = [];
+            foreach (var extraConfig in ExtraConfigs.Where(e => e.ExtraConfigType.ToLower().StartsWith(GlobalConst.kUpdatable)))
             {
-                updateableObjectNames.Add(extraConfig.ExtraConfigText.ToLower(), false);
+                updatableObjectNames.Add(extraConfig.ExtraConfigText.ToLower(), false);
             }
-            return updateableObjectNames;
+            return updatableObjectNames;
         }
 
         public bool DeletedObjectsFound()

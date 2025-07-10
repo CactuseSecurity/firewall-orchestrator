@@ -293,7 +293,7 @@ namespace FWO.Services
             {
                 List<NetworkLocation> surplusSpecUserLocations = [.. networkLocations.Where(n => n.Object.IsSurplus && specialUserObjects.ContainsKey(n.Object.Name.ToLower()))];
                 List<NetworkLocation> remainingPossibleSpecObj = GetPossibleSpecObjects(disregardedLocations, source);
-                if (surplusSpecUserLocations.Count > 0 && remainingPossibleSpecObj.Count > 0 && surplusSpecUserLocations.Count <= remainingPossibleSpecObj.Count)
+                if (surplusSpecUserLocations.Count == remainingPossibleSpecObj.Count)
                 {
                     foreach (var location in remainingPossibleSpecObj)
                     {
@@ -319,7 +319,7 @@ namespace FWO.Services
             {
                 List<NetworkLocation> surplusUpdObjLocations = [.. networkLocations.Where(n => n.Object.IsSurplus && updatableObjects.ContainsKey(n.Object.Name.ToLower()))];
                 List<NetworkLocation> remainingPossibleUpdatableObj = GetPossibleUpdatableObjects(disregardedLocations, source);
-                if (surplusUpdObjLocations.Count > 0 && remainingPossibleUpdatableObj.Count > 0 && surplusUpdObjLocations.Count <= remainingPossibleUpdatableObj.Count)
+                if (surplusUpdObjLocations.Count == remainingPossibleUpdatableObj.Count)
                 {
                     foreach (var location in remainingPossibleUpdatableObj)
                     {

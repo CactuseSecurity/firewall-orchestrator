@@ -940,7 +940,7 @@ ALTER TABLE compliance.policy_criterion ADD CONSTRAINT compliance_policy_policy_
 ALTER TABLE compliance.policy_criterion ADD CONSTRAINT compliance_criterion_policy_criterion_foreign_key FOREIGN KEY (criterion_id) REFERENCES compliance.criterion(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE compliance.violation ADD CONSTRAINT compliance_policy_violation_foreign_key FOREIGN KEY (policy_id) REFERENCES compliance.policy(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE compliance.violation ADD CONSTRAINT compliance_criterion_violation_foreign_key FOREIGN KEY (criterion_id) REFERENCES compliance.criterion(id) ON UPDATE RESTRICT ON DELETE CASCADE;
-ALTER TABLE compliance.violation ADD CONSTRAINT compliance_rule_violation_foreign_key FOREIGN KEY (rule_id) REFERENCES public.rule(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE compliance.violation ADD CONSTRAINT compliance_rule_violation_foreign_key FOREIGN KEY (rule_id) REFERENCES public.rule(rule_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 
 
 

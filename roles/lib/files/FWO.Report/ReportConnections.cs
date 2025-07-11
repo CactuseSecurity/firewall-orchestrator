@@ -12,10 +12,21 @@ namespace FWO.Report
 {
     public class ReportConnections(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType) : ReportOwnersBase(query, userConfig, reportType)
     {
+        public struct ConnDisplayFlags
+        {
+            public bool IsInterface { get; set; } = false;
+            public bool IsGlobalComSvc { get; set; } = false;
+            public bool WithoutLinks { get; set; } = false;
+            public bool WithoutNumber { get; set; } = false;
+
+            public ConnDisplayFlags()
+            { }
+        }
+
         public override async Task Generate(int elementsPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback, CancellationToken ct)
         {
             List<ModellingConnection> conns = await apiConnection.SendQueryAsync<List<ModellingConnection>>(Query.FullQuery, Query.QueryVariables);
-            ReportData reportData = new() { OwnerData = [new(){ Connections = conns }] };
+            ReportData reportData = new() { OwnerData = [new() { Connections = conns }] };
             await callback(reportData);
         }
 
@@ -46,7 +57,7 @@ namespace FWO.Report
                 chapterNumber++;
                 ReportData.GlobalComSvc[0].PrepareObjectData(userConfig.ResolveNetworkAreas);
                 report.AppendLine($"<h3 id=\"{Guid.NewGuid()}\">{userConfig.GetText("global_common_services")}</h3>");
-                AppendConnectionsGroupHtml(ReportData.GlobalComSvc[0].GlobalComSvcs, ReportData.GlobalComSvc[0], chapterNumber, ref report, false, true);
+                AppendConnectionsGroupHtml(ReportData.GlobalComSvc[0].GlobalComSvcs, ReportData.GlobalComSvc[0], chapterNumber, ref report, new(){ IsGlobalComSvc = true });
                 report.AppendLine("<hr>");
                 AppendNetworkObjectsHtml(ReportData.GlobalComSvc[0].AllObjects, chapterNumber, ref report);
                 AppendNetworkServicesHtml(ReportData.GlobalComSvc[0].AllServices, chapterNumber, ref report);
@@ -60,7 +71,7 @@ namespace FWO.Report
             if(ownerReport.RegularConnections.Count > 0)
             {
                 report.AppendLine($"<h4 id=\"{Guid.NewGuid()}\">{userConfig.GetText("connections")}</h4>");
-                AppendConnectionsGroupHtml(ownerReport.RegularConnections, ownerReport, chapterNumber, ref report);
+                AppendConnectionsGroupHtml(ownerReport.RegularConnections, ownerReport, chapterNumber, ref report, new());
                 report.AppendLine("<hr>");
                 
             }
@@ -68,13 +79,13 @@ namespace FWO.Report
             {
                 report.AppendLine($"<h4 id=\"{Guid.NewGuid()}\">{userConfig.GetText("interfaces")}</h4>");
                 ownerReport.Interfaces.Sort((ModellingConnection a, ModellingConnection b) => a.CompareTo(b));
-                AppendConnectionsGroupHtml(ownerReport.Interfaces, ownerReport, chapterNumber, ref report, true);
+                AppendConnectionsGroupHtml(ownerReport.Interfaces, ownerReport, chapterNumber, ref report, new(){ IsInterface = true });
                 report.AppendLine("<hr>");
             }
             if(ownerReport.CommonServices.Count > 0)
             {
                 report.AppendLine($"<h4 id=\"{Guid.NewGuid()}\">{userConfig.GetText("own_common_services")}</h4>");
-                AppendConnectionsGroupHtml(ownerReport.CommonServices, ownerReport, chapterNumber, ref report);
+                AppendConnectionsGroupHtml(ownerReport.CommonServices, ownerReport, chapterNumber, ref report, new());
                 report.AppendLine("<hr>");
             }
             AppendNetworkObjectsHtml(ownerReport.AllObjects, chapterNumber, ref report);
@@ -82,48 +93,51 @@ namespace FWO.Report
         }
 
         protected void AppendConnectionsGroupHtml(List<ModellingConnection> connections, ConnectionReport connReport, int chapterNumber,
-            ref StringBuilder report, bool isInterface = false, bool isGlobalComSvc = false, bool withoutLinks = false)
+            ref StringBuilder report, ConnDisplayFlags flags)
         {
             ConnectionReport.AssignConnectionNumbers(connections);
             report.AppendLine("<table>");
-            AppendConnectionHeadlineHtml(ref report, isGlobalComSvc, isInterface);
+            AppendConnectionHeadlineHtml(ref report, flags);
             foreach (var connection in connections)
             {
-                AppendConnectionHtml(connection, connReport, chapterNumber, ref report, isInterface, isGlobalComSvc, withoutLinks);
+                AppendConnectionHtml(connection, connReport, chapterNumber, ref report, flags);
             }
             report.AppendLine("</table>");
         }
 
         protected void AppendConnectionHtml(ModellingConnection connection, ConnectionReport connReport, int chapterNumber,
-            ref StringBuilder report, bool isInterface = false, bool isGlobalComSvc = false, bool withoutLinks = false)
+            ref StringBuilder report, ConnDisplayFlags flags)
         {
             report.AppendLine("<tr>");
-            report.AppendLine($"<td>{connection.OrderNumber}</td>");
+            if (!flags.WithoutNumber)
+            {
+                report.AppendLine($"<td>{connection.OrderNumber}</td>");
+            }
             report.AppendLine($"<td>{connection.Id}</td>");
-            if(isInterface)
+            if(flags.IsInterface)
             {
                 report.AppendLine($"<td>{connection.IsPublished.ShowAsHtml()}</td>");
             }
-            if(isGlobalComSvc)
+            if(flags.IsGlobalComSvc)
             {
                 report.AppendLine($"<td>{connection.App.Name}</td>");
             }
             report.AppendLine($"<td>{connection.Name}</td>");
             report.AppendLine($"<td>{connection.Reason}</td>");
-            AppendSourcesHtml(connection, connReport, chapterNumber, ref report, isGlobalComSvc, withoutLinks);
-            AppendServicesHtml(connection, connReport, chapterNumber, ref report, isGlobalComSvc, withoutLinks);
-            AppendDestinationsHtml(connection, connReport, chapterNumber, ref report, isGlobalComSvc, withoutLinks);
+            AppendSourcesHtml(connection, connReport, chapterNumber, ref report, flags);
+            AppendServicesHtml(connection, connReport, chapterNumber, ref report, flags);
+            AppendDestinationsHtml(connection, connReport, chapterNumber, ref report, flags);
         }
 
         protected void AppendSourcesHtml(ModellingConnection connection, ConnectionReport connReport, int chapterNumber,
-            ref StringBuilder report, bool isGlobalComSvc = false, bool withoutLinks = false)
+            ref StringBuilder report, ConnDisplayFlags flags)
         {
-            if(!isGlobalComSvc && ((connection.InterfaceIsRequested && connection.SrcFromInterface) || (connection.IsRequested && connection.SourceFilled())))
+            if(!flags.IsGlobalComSvc && ((connection.InterfaceIsRequested && connection.SrcFromInterface) || (connection.IsRequested && connection.SourceFilled())))
             {
                 report.AppendLine($"<td>{ModellingHandlerBase.DisplayReqInt(userConfig, connection.TicketId, connection.InterfaceIsRequested, 
                     connection.GetBoolProperty(ConState.Rejected.ToString()) || connection.GetBoolProperty(ConState.InterfaceRejected.ToString()))}</td>");
             }
-            else if(withoutLinks)
+            else if(flags.WithoutLinks)
             {
                 report.AppendLine($"<td>{string.Join("<br>", GetPlainSrcNames(connection))}</td>");
             }
@@ -134,14 +148,14 @@ namespace FWO.Report
         }
 
         protected void AppendServicesHtml(ModellingConnection connection, ConnectionReport connReport, int chapterNumber,
-            ref StringBuilder report, bool isGlobalComSvc = false, bool withoutLinks = false)
+            ref StringBuilder report, ConnDisplayFlags flags)
         {
-            if (!isGlobalComSvc && (connection.InterfaceIsRequested || connection.IsRequested))
+            if (!flags.IsGlobalComSvc && (connection.InterfaceIsRequested || connection.IsRequested))
             {
                 report.AppendLine($"<td>{ModellingHandlerBase.DisplayReqInt(userConfig, connection.TicketId, connection.InterfaceIsRequested,
                     connection.GetBoolProperty(ConState.Rejected.ToString()) || connection.GetBoolProperty(ConState.InterfaceRejected.ToString()))}</td>");
             }
-            else if (withoutLinks)
+            else if (flags.WithoutLinks)
             {
                 report.AppendLine($"<td>{string.Join("<br>", GetPlainSvcNames(connection))}</td>");
             }
@@ -152,14 +166,14 @@ namespace FWO.Report
         }
 
         protected void AppendDestinationsHtml(ModellingConnection connection, ConnectionReport connReport, int chapterNumber,
-            ref StringBuilder report, bool isGlobalComSvc = false, bool withoutLinks = false)
+            ref StringBuilder report, ConnDisplayFlags flags)
         {
-            if(!isGlobalComSvc && ((connection.InterfaceIsRequested && connection.DstFromInterface) || (connection.IsRequested && connection.DestinationFilled())))
+            if(!flags.IsGlobalComSvc && ((connection.InterfaceIsRequested && connection.DstFromInterface) || (connection.IsRequested && connection.DestinationFilled())))
             {
                 report.AppendLine($"<td>{ModellingHandlerBase.DisplayReqInt(userConfig, connection.TicketId, connection.InterfaceIsRequested,
                     connection.GetBoolProperty(ConState.Rejected.ToString()) || connection.GetBoolProperty(ConState.InterfaceRejected.ToString()))}</td>");
             }
-            else if(withoutLinks)
+            else if(flags.WithoutLinks)
             {
                 report.AppendLine($"<td>{string.Join("<br>", GetPlainDstNames(connection))}</td>");
             }
@@ -169,21 +183,24 @@ namespace FWO.Report
             }
         }
 
-        private void AppendConnectionHeadlineHtml(ref StringBuilder report, bool showOwnerName, bool isInterface = false)
+        private void AppendConnectionHeadlineHtml(ref StringBuilder report, ConnDisplayFlags flags)
         {
             report.AppendLine("<tr>");
-            report.AppendLine($"<th>{userConfig.GetText("number")}</th>");
+            if (!flags.WithoutNumber)
+            {
+                report.AppendLine($"<th>{userConfig.GetText("number")}</th>");
+            }
             report.AppendLine($"<th>{userConfig.GetText("id")}</th>");
-            if (isInterface)
+            if (flags.IsInterface)
             {
                 report.AppendLine($"<th>{userConfig.GetText("published")}</th>");
             }
-            if (showOwnerName)
+            if (flags.IsGlobalComSvc)
             {
                 report.AppendLine($"<th>{userConfig.GetText("owner")}</th>");
             }
             report.AppendLine($"<th>{userConfig.GetText("name")}</th>");
-            report.AppendLine($"<th>{(isInterface ? userConfig.GetText("interface_description") : userConfig.GetText("func_reason"))}</th>");
+            report.AppendLine($"<th>{(flags.IsInterface ? userConfig.GetText("interface_description") : userConfig.GetText("func_reason"))}</th>");
             report.AppendLine($"<th>{userConfig.GetText("source")}</th>");
             report.AppendLine($"<th>{userConfig.GetText("services")}</th>");
             report.AppendLine($"<th>{userConfig.GetText("destination")}</th>");

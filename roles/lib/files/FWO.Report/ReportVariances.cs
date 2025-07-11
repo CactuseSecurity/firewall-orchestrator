@@ -202,12 +202,12 @@ namespace FWO.Report
                 if(ownerReport.RegularConnections.Count > 0)
                 {
                     report.AppendLine($"<h5 id=\"{Guid.NewGuid()}\">{userConfig.GetText("connections")}</h5>");
-                    AppendConnectionsGroupHtml(ownerReport.RegularConnections, ownerReport, chapterNumber, ref report, false, false, true);
+                    AppendConnectionsGroupHtml(ownerReport.RegularConnections, ownerReport, chapterNumber, ref report, new(){ WithoutLinks = true });
                 }
                 if(ownerReport.CommonServices.Count > 0)
                 {
                     report.AppendLine($"<h5 id=\"{Guid.NewGuid()}\">{userConfig.GetText("own_common_services")}</h5>");
-                    AppendConnectionsGroupHtml(ownerReport.CommonServices, ownerReport, chapterNumber, ref report, false, false, true);
+                    AppendConnectionsGroupHtml(ownerReport.CommonServices, ownerReport, chapterNumber, ref report, new(){ WithoutLinks = true });
                 }
                 report.AppendLine("<hr>");
             }
@@ -222,7 +222,7 @@ namespace FWO.Report
                 {
                     bool anyUnusedObjects = difference.ImplementedRules.Any(r => r.UnusedSpecialUserObjects.Count > 0 || r.UnusedUpdatableObjects.Count > 0);
                     report.AppendLine($"<h5 id=\"{Guid.NewGuid()}\">{difference.ModelledConnection.Name}</h5>");
-                    AppendConnectionsGroupHtml([difference.ModelledConnection], ownerReport, chapterNumber, ref report, false, false, true);
+                    AppendConnectionsGroupHtml([difference.ModelledConnection], ownerReport, chapterNumber, ref report, new(){ WithoutLinks = true, WithoutNumber = true });
                     report.AppendLine("<table>");
                     report.AppendLine("<tr>");
                     report.AppendLine($"<th>{userConfig.GetText("management")}</th>");

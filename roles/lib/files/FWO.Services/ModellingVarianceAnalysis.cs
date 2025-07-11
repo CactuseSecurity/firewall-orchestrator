@@ -40,8 +40,9 @@ namespace FWO.Services
         private readonly Dictionary<int, List<ModellingAppRole>> allProdAppRoles = [];
         private readonly Dictionary<int, List<ModellingAppServer>> allExistingAppServers = [];
         private readonly Dictionary<int, List<ModellingAppServer>> alreadyCreatedAppServers = [];
+        private List<ModellingConnection> DeletedConns = [];
 
-        public ModellingAppZone? PlannedAppZoneDbUpdate {get; set; } = default;
+        public ModellingAppZone? PlannedAppZoneDbUpdate { get; set; } = default;
 
         public async Task AnalyseConnsForStatus(List<ModellingConnection> connections)
         {
@@ -108,11 +109,11 @@ namespace FWO.Services
 
         public async Task<List<WfReqTask>> AnalyseModelledConnectionsForRequest(List<ModellingConnection> connections)
         {
-            // later: get rules + compare, bundle requests
             appServerComparer = new (namingConvention);
             await InitManagements();
             await GetModelledRulesProductionState(new() { AnalyseRemainingRules = false });
             await GetNwObjectsProductionState();
+            await GetDeletedConnections();
 
             TaskList = [];
             AddAccessTaskList = [];
@@ -135,7 +136,7 @@ namespace FWO.Services
                         await AnalyseConnectionForRequest(mgt, conn);
                     }
                 }
-                await AnalyseDeletedConnsForRequest(mgt);
+                AnalyseDeletedConnsForRequest(mgt, [.. connections.Where(c => c.IsDocumentationOnly())]);
             }
             TaskList.AddRange(AddAccessTaskList);
             TaskList.AddRange(ChangeAccessTaskList);

@@ -39,15 +39,15 @@ namespace FWO.Services
             }
         }
 
-        private async Task AnalyseDeletedConnsForRequest(Management mgt)
+        private void AnalyseDeletedConnsForRequest(Management mgt, List<ModellingConnection> dokuOnlyConnections)
         {
-            List<ModellingConnection> deletedConns = await GetDeletedConnections();
-            List<int> DeletedConnectionIds = deletedConns.ConvertAll(c => c.Id);
+            List<ModellingConnection> RegardedAsDeletedConns = [.. DeletedConns, .. dokuOnlyConnections];
+            List<int> RegardedDeletedConnectionIds = RegardedAsDeletedConns.ConvertAll(c => c.Id);
             foreach (var rule in allModelledRules[mgt.Id].Where(r => !r.ModellFound))
             {
-                if (int.TryParse(FindModelledMarker(rule), out int connId) && DeletedConnectionIds.Contains(connId))
+                if (int.TryParse(FindModelledMarker(rule), out int connId) && RegardedDeletedConnectionIds.Contains(connId))
                 {
-                    ModellingConnection deletedConn = deletedConns.FirstOrDefault(c => c.Id == connId) ?? throw new KeyNotFoundException("Connection not found.");
+                    ModellingConnection deletedConn = RegardedAsDeletedConns.FirstOrDefault(c => c.Id == connId) ?? throw new KeyNotFoundException("Connection not found.");
                     DeleteAccessTaskList.Add(ConstructRuleTask(mgt, rule, deletedConn, true, GetElementsFromRule(rule, deletedConn)));
                 }
             }
@@ -56,8 +56,9 @@ namespace FWO.Services
         private List<WfReqElement> GetElementsFromRule(Rule rule, ModellingConnection deletedConn)
         {
             List<WfReqElement> ruleElements = [];
-             Dictionary<string, bool> specialUserObjects = deletedConn.GetSpecialUserObjectNames();
-            if (specialUserObjects.Count > 0)
+            Dictionary<string, bool> specialUserObjects = deletedConn.GetSpecialUserObjectNames();
+            Dictionary<string, bool> updatableObjects = deletedConn.GetUpdatableObjectNames();
+            if (specialUserObjects.Count > 0 || updatableObjects.Count > 0)
             {
                 // Get from deleted conn as modelled objects are expected instead of specUser (Then deletion of links is suppressed in this case)
                 ruleElements.AddRange(GetNwObjElementsFromConn(deletedConn));
@@ -150,16 +151,20 @@ namespace FWO.Services
             return (conn.IsCommonService ? userConfig.GetText("new_common_service") : userConfig.GetText("new_connection")) + ": " + (conn.Name ?? "") + commentString;
         }
 
-        private WfReqTask ConstructRuleTask(Management mgt, Rule rule, ModellingConnection conn, bool delete, List<WfReqElement> ruleElements)
+        private WfReqTask ConstructRuleTask(Management mgt, Rule rule, ModellingConnection conn, bool delete, List<WfReqElement> elements)
         {
             Dictionary<string, string>? addInfo = new() { { AdditionalInfoKeys.ConnId, conn.Id.ToString() } };
-            ruleElements.Add(new()
-            {
-                Field = ElemFieldType.rule.ToString(),
-                RuleUid = rule.Uid,
-                DeviceId = rule.DeviceId,
-                Name = rule.Name
-            });
+            List<WfReqElement> ruleElements =
+            [
+                .. elements,
+                new()
+                {
+                    Field = ElemFieldType.rule.ToString(),
+                    RuleUid = rule.Uid,
+                    DeviceId = rule.DeviceId,
+                    Name = rule.Name
+                }
+            ];
             WfReqTask ruleTask = new()
             {
                 Title = (delete ? userConfig.GetText("delete_rule") : userConfig.GetText("change_rule")) + ": " + (rule.Name ?? ""),

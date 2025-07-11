@@ -27,11 +27,11 @@
                 @((MarkupString)ruleDiffDisplay.DisplayDestinationDiff(rule, OutputLocation.report, ReportType.VarianceAnalysis))
             </Template>
         </Column>
-        @if(anyUnusedSpecialUsers)
+        @if(anyUnusedObjects)
         {
             <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("missing_objects"))" Field="@(r => r.Name)" Sortable="true" Filterable="false" Hideable="true">
                 <Template>
-                    <span class="text-danger">@(ListUnusedSpecialUsers(rule))</span>
+                    <span class="text-danger">@(ListUnusedObjects(rule))</span>
                 </Template>
             </Column>
         }
@@ -56,7 +56,11 @@
                 <Detail Title="@(userConfig.GetText("decert_date"))" Data="@context.Metadata?.DecertificationDate?.ToString()" />
                 <Detail Title="@(userConfig.GetText("recert_comment"))" Data="@context.Metadata?.Comment?.ToString()" />
                 <Detail Title="@(userConfig.GetText("recert_history"))" Data="@(context.Metadata?.RecertHistory.Count > 0 ? ":" : "")" />
-            }
+                @foreach(var recert in context.Metadata!.RecertHistory)
+                {
+                    <Detail Title="@(recert.RecertDate.ToString())" Data="@(GetHistoryString(recert))" />
+                }
+          }
         </DetailTemplate>
         <Pager ShowPageNumber="true" ShowTotalCount="true" />
     </Table>
@@ -71,7 +75,7 @@
     public ModProdDifference Difference { get; set; } = new();
 
     RuleDifferenceDisplayHtml? ruleDiffDisplay;
-    private bool anyUnusedSpecialUsers = false;
+    private bool anyUnusedObjects = false;
 
     
     protected override void OnInitialized()
@@ -81,11 +85,18 @@
 
     protected override void OnParametersSet()
     {
-        anyUnusedSpecialUsers = Difference.ImplementedRules.Any(r => r.UnusedSpecialUserObjects.Count > 0);
+        anyUnusedObjects = Difference.ImplementedRules.Any(r => r.UnusedSpecialUserObjects.Count > 0 || r.UnusedUpdatableObjects.Count > 0);
     }
 
-    private string ListUnusedSpecialUsers(Rule rule)
+    private string ListUnusedObjects(Rule rule)
     {
-        return string.Join(", ", rule.UnusedSpecialUserObjects);
+        return string.Join(", ", [.. rule.UnusedSpecialUserObjects, .. rule.UnusedUpdatableObjects]);
+    }
+
+    private string GetHistoryString(Recertification recert)
+    {
+        string username = new DistName(recert.UserDn).UserName;
+        return $"{userConfig.GetText(recert.Recertified ? "recertified_by" : "decertified_by")} {username} " +
+            $"{userConfig.GetText("as_owner")} {recert.FwoOwner?.Name} {userConfig.GetText("comment")}: {recert.Comment}";
     }
 }

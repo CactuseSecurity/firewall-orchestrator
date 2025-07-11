@@ -124,11 +124,14 @@ namespace FWO.Data
 		[JsonProperty(nameof(IcmpTemplate)), JsonPropertyName(nameof(IcmpTemplate))]
 		public string IcmpTemplate { get; set; } = "";
 
+		[JsonProperty(nameof(IpProtocolTemplate)), JsonPropertyName(nameof(IpProtocolTemplate))]
+		public string IpProtocolTemplate { get; set; } = "";
+
 
 		public bool Sanitize()
-        {
-            bool shortened = false;
-            TaskType = Sanitizer.SanitizeMand(TaskType, ref shortened);
+		{
+			bool shortened = false;
+			TaskType = Sanitizer.SanitizeMand(TaskType, ref shortened);
 			TicketTemplate = Sanitizer.SanitizeJsonMand(TicketTemplate, ref shortened);
 			TasksTemplate = Sanitizer.SanitizeJsonMand(TasksTemplate, ref shortened);
 			ObjectTemplate = Sanitizer.SanitizeJsonMand(ObjectTemplate, ref shortened);
@@ -137,7 +140,8 @@ namespace FWO.Data
 			NwObjGroupTemplate = Sanitizer.SanitizeJsonMand(NwObjGroupTemplate, ref shortened);
 			ServiceTemplate = Sanitizer.SanitizeJsonMand(ServiceTemplate, ref shortened);
 			IcmpTemplate = Sanitizer.SanitizeJsonMand(IcmpTemplate, ref shortened);
-            return shortened;
-        }
+			IpProtocolTemplate = Sanitizer.SanitizeJsonMand(IpProtocolTemplate, ref shortened);
+			return shortened;
+		}
 	}
 }

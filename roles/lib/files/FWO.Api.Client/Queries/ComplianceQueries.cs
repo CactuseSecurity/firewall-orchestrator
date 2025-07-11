@@ -9,6 +9,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string getNetworkZones;
         public static readonly string updateNetworkZones;
         public static readonly string modifyNetworkZoneCommunication;
+        public static readonly string insertViolations;
 
         static ComplianceQueries()
         {
@@ -19,6 +20,7 @@ namespace FWO.Api.Client.Queries
                 getNetworkZones = File.ReadAllText(QueryPath + "compliance/getNetworkZones.graphql");
                 updateNetworkZones = File.ReadAllText(QueryPath + "compliance/updateNetworkZone.graphql");
                 modifyNetworkZoneCommunication = File.ReadAllText(QueryPath + "compliance/updateNetworkZoneCommunication.graphql");
+                insertViolations = File.ReadAllText(QueryPath + "compliance/insertViolations.graphql");
             }
             catch (Exception exception)
             {

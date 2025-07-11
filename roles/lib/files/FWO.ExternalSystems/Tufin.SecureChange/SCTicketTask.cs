@@ -136,9 +136,9 @@ namespace FWO.ExternalSystems.Tufin.SecureChange
 			return template.IcmpTemplate.Replace(Placeholder.SERVICENAME, serviceName);
 		}
 
-		protected static string FillIpProtocolTemplate(ExternalTicketTemplate template, string protocolName, string protocolId)
+		protected static string FillIpProtocolTemplate(ExternalTicketTemplate template, string protocolName, string protocolId, string serviceName)
 		{
-			return template.IpProtocolTemplate.Replace(Placeholder.PROTOCOLNAME, protocolName).Replace(Placeholder.PROTOCOLID, protocolId);
+			return template.IpProtocolTemplate.Replace(Placeholder.PROTOCOLNAME, protocolName).Replace(Placeholder.PROTOCOLID, protocolId).Replace(Placeholder.SERVICENAME, serviceName);
 		}
 
 		protected static string FillNwObjGroupTemplate(ExternalTicketTemplate template, string groupName, string mgtName)

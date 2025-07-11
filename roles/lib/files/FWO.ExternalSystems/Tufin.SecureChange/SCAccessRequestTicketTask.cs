@@ -95,7 +95,7 @@ namespace FWO.ExternalSystems.Tufin.SecureChange
 				}
 				else
 				{
-					convertedObjects.Add(FillIpProtocolTemplate(template, IpProtos.FirstOrDefault(x => x.Id == svc.ProtoId)?.Name ?? svc.ProtoId.ToString(), svc.ProtoId.ToString()));
+					convertedObjects.Add(FillIpProtocolTemplate(template, IpProtos.FirstOrDefault(x => x.Id == svc.ProtoId)?.Name ?? svc.ProtoId.ToString(), svc.ProtoId.ToString(), svc.Name ?? ""));
 				}
 			}
 			return "[" + string.Join(",", convertedObjects) + "]";

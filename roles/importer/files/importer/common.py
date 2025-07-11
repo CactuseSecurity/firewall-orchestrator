@@ -108,10 +108,12 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
 
                 if config_changed_since_last_import or importState.ForceImport:
                     try:
+                        # Make sure service provider's internal references to state and config are set correctly.
+                        global_state = service_provider.get_service(Services.GLOBAL_STATE)
+                        global_state.import_state = importState
                         inconsistencies = []
-                        # TODO: migrate checkConsistency to set level
-                        # configChecker = FwConfigCheckConsistency(importState, configNormalized.ManagerSet)
-                        # inconsistencies = configChecker.checkConfigConsistency()
+                        configChecker = FwConfigImportCheckConsistency(importState, configNormalized)
+                        inconsistencies = configChecker.checkConfigConsistency(configNormalized)
                         if len(inconsistencies)>0:
                             # If there are inconsistencies, we log them and raise an exception
                             logger.error(f"Inconsistencies found in the configuration: {inconsistencies}")
@@ -127,8 +129,8 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
                             for config in manager.Configs:
                                 try:
                                     # Make sure service provider's internal references to state and config are set correctly.
-                                    global_state = service_provider.get_service(Services.GLOBAL_STATE)
-                                    global_state.import_state = importState
+                                    # global_state = service_provider.get_service(Services.GLOBAL_STATE)
+                                    # global_state.import_state = importState
                                     global_state.normalized_config = config
 
                                     configImporter = FwConfigImport()

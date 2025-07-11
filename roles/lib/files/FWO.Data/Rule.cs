@@ -99,7 +99,7 @@ namespace FWO.Data
         public DeviceWrapper[] EnforcingGateways { get; set; } = [];
 
         public bool IsCompliant { get; set; } = true;
-        public string ViolationDetails { get; set; } = "no violations";
+        public string ViolationDetails { get; set; } = "";
 
         public string DisplayOrderNumberString { get; set; } = "";
         public int DisplayOrderNumber { get; set; }

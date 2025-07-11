@@ -143,7 +143,7 @@ insert into config (config_key, config_value, config_user) VALUES ('complianceCh
 insert into config (config_key, config_value, config_user) VALUES ('complianceCheckMailSubject', '', 0);
 insert into config (config_key, config_value, config_user) VALUES ('complianceCheckMailBody', '', 0);
 
-INSERT INTO "_format" ("report_format_name") VALUES ('json');
+INSERT INTO "report_format" ("report_format_name") VALUES ('json');
 INSERT INTO "report_format" ("report_format_name") VALUES ('pdf');
 INSERT INTO "report_format" ("report_format_name") VALUES ('csv');
 INSERT INTO "report_format" ("report_format_name") VALUES ('html');

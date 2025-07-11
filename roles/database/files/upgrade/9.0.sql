@@ -110,8 +110,8 @@ ALTER TYPE rule_field_enum ADD VALUE IF NOT EXISTS 'modelled_source';
 ALTER TYPE rule_field_enum ADD VALUE IF NOT EXISTS 'modelled_destination';
 
 -- 8.8.6
-insert into stm_track (track_id,track_name) VALUES (23,'detailed log') ON CONFLICT DO NOTHING; -- check point R8x:
-insert into stm_track (track_id,track_name) VALUES (24,'extended log') ON CONFLICT DO NOTHING; -- check point R8x:
+insert into stm_track (track_id,track_name) VALUES (23,'detailed log') ON CONFLICT DO NOTHING; -- check point R8x
+insert into stm_track (track_id,track_name) VALUES (24,'extended log') ON CONFLICT DO NOTHING; -- check point R8x
 
 -- rename changes_found column to rule_changes_found in import_control table
 DO $$

@@ -928,19 +928,55 @@ ALTER TABLE compliance.ip_range ADD COLUMN IF NOT EXISTS "removed" TIMESTAMP WIT
 
 -- alter ip_range's PK
 
-ALTER TABLE compliance.ip_range DROP CONSTRAINT ip_range_pkey;
+ALTER TABLE compliance.ip_range DROP CONSTRAINT IF EXISTS ip_range_pkey;
 ALTER TABLE compliance.ip_range
 ADD CONSTRAINT ip_range_pkey
 PRIMARY KEY (network_zone_id, ip_range_start, ip_range_end, created);
 
 -- add FKs
 
-ALTER TABLE compliance.network_zone_communication ADD CONSTRAINT compliance_criterion_network_zone_communication_foreign_key FOREIGN KEY (criterion_id) REFERENCES compliance.criterion(id) ON UPDATE RESTRICT ON DELETE CASCADE;
-ALTER TABLE compliance.policy_criterion ADD CONSTRAINT compliance_policy_policy_criterion_foreign_key FOREIGN KEY (policy_id) REFERENCES compliance.policy(id) ON UPDATE RESTRICT ON DELETE CASCADE;
-ALTER TABLE compliance.policy_criterion ADD CONSTRAINT compliance_criterion_policy_criterion_foreign_key FOREIGN KEY (criterion_id) REFERENCES compliance.criterion(id) ON UPDATE RESTRICT ON DELETE CASCADE;
-ALTER TABLE compliance.violation ADD CONSTRAINT compliance_policy_violation_foreign_key FOREIGN KEY (policy_id) REFERENCES compliance.policy(id) ON UPDATE RESTRICT ON DELETE CASCADE;
-ALTER TABLE compliance.violation ADD CONSTRAINT compliance_criterion_violation_foreign_key FOREIGN KEY (criterion_id) REFERENCES compliance.criterion(id) ON UPDATE RESTRICT ON DELETE CASCADE;
-ALTER TABLE compliance.violation ADD CONSTRAINT compliance_rule_violation_foreign_key FOREIGN KEY (rule_id) REFERENCES public.rule(rule_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE compliance.network_zone_communication 
+DROP CONSTRAINT IF EXISTS compliance_criterion_network_zone_communication_foreign_key;
+ALTER TABLE compliance.network_zone_communication 
+ADD CONSTRAINT compliance_criterion_network_zone_communication_foreign_key 
+FOREIGN KEY (criterion_id) REFERENCES compliance.criterion(id) 
+ON UPDATE RESTRICT ON DELETE CASCADE;
+
+ALTER TABLE compliance.policy_criterion 
+DROP CONSTRAINT IF EXISTS compliance_policy_policy_criterion_foreign_key;
+ALTER TABLE compliance.policy_criterion 
+ADD CONSTRAINT compliance_policy_policy_criterion_foreign_key 
+FOREIGN KEY (policy_id) REFERENCES compliance.policy(id) 
+ON UPDATE RESTRICT ON DELETE CASCADE;
+
+ALTER TABLE compliance.policy_criterion 
+DROP CONSTRAINT IF EXISTS compliance_criterion_policy_criterion_foreign_key;
+ALTER TABLE compliance.policy_criterion 
+ADD CONSTRAINT compliance_criterion_policy_criterion_foreign_key 
+FOREIGN KEY (criterion_id) REFERENCES compliance.criterion(id) 
+ON UPDATE RESTRICT ON DELETE CASCADE;
+
+ALTER TABLE compliance.violation 
+DROP CONSTRAINT IF EXISTS compliance_policy_violation_foreign_key;
+ALTER TABLE compliance.violation 
+ADD CONSTRAINT compliance_policy_violation_foreign_key 
+FOREIGN KEY (policy_id) REFERENCES compliance.policy(id) 
+ON UPDATE RESTRICT ON DELETE CASCADE;
+
+ALTER TABLE compliance.violation 
+DROP CONSTRAINT IF EXISTS compliance_criterion_violation_foreign_key;
+ALTER TABLE compliance.violation 
+ADD CONSTRAINT compliance_criterion_violation_foreign_key 
+FOREIGN KEY (criterion_id) REFERENCES compliance.criterion(id) 
+ON UPDATE RESTRICT ON DELETE CASCADE;
+
+ALTER TABLE compliance.violation 
+DROP CONSTRAINT IF EXISTS compliance_rule_violation_foreign_key;
+ALTER TABLE compliance.violation 
+ADD CONSTRAINT compliance_rule_violation_foreign_key 
+FOREIGN KEY (rule_id) REFERENCES public.rule(rule_id) 
+ON UPDATE RESTRICT ON DELETE CASCADE;
+
 
 
 

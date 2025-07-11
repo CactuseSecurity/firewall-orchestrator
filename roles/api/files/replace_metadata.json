@@ -11,6 +11,12 @@
           "tables": [
             {
               "table": {
+                "name": "criterion",
+                "schema": "compliance"
+              }
+            },
+            {
+              "table": {
                 "name": "ip_range",
                 "schema": "compliance"
               },
@@ -608,6 +614,12 @@
               },
               "object_relationships": [
                 {
+                  "name": "criterion",
+                  "using": {
+                    "foreign_key_constraint_on": "criterion_id"
+                  }
+                },
+                {
                   "name": "from_network_zone",
                   "using": {
                     "foreign_key_constraint_on": "from_network_zone_id"
@@ -842,6 +854,58 @@
                 }
               ]
             },
+            {
+              "table": {
+                "name": "policy",
+                "schema": "compliance"
+              }
+            },
+            {
+              "table": {
+                "name": "policy_criterion",
+                "schema": "compliance"
+              },
+              "object_relationships": [
+                {
+                  "name": "criterion",
+                  "using": {
+                    "foreign_key_constraint_on": "criterion_id"
+                  }
+                },
+                {
+                  "name": "policy",
+                  "using": {
+                    "foreign_key_constraint_on": "policy_id"
+                  }
+                }
+              ]
+            },
+            {
+              "table": {
+                "name": "violation",
+                "schema": "compliance"
+              },
+              "object_relationships": [
+                {
+                  "name": "criterion",
+                  "using": {
+                    "foreign_key_constraint_on": "criterion_id"
+                  }
+                },
+                {
+                  "name": "policy",
+                  "using": {
+                    "foreign_key_constraint_on": "policy_id"
+                  }
+                },
+                {
+                  "name": "rule",
+                  "using": {
+                    "foreign_key_constraint_on": "rule_id"
+                  }
+                }
+              ]
+            },            
             {
               "table": {
                 "name": "change_history",

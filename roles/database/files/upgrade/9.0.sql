@@ -878,6 +878,108 @@ BEGIN
 END
 $$;
 
+-- add new compliance tables
+
+CREATE TABLE IF NOT EXISTS compliance.policy  
+(
+    id SERIAL PRIMARY KEY,
+	name TEXT,
+	created_date timestamp default now(),
+	disabled bool
+);
+
+CREATE TABLE IF NOT EXISTS compliance.policy_criterion
+(
+    policy_id INT NOT NULL,
+	criterion_id INT NOT NULL,
+    removed timestamp with time zone default now(),
+	created timestamp with time zone default now()
+);
+
+CREATE TABLE IF NOT EXISTS compliance.criterion
+(
+    id SERIAL PRIMARY KEY,
+	name TEXT,
+	criterion_type TEXT,
+	content TEXT
+);
+
+CREATE TABLE IF NOT EXISTS compliance.violation
+(
+    id BIGSERIAL PRIMARY KEY,
+	rule_id bigint NOT NULL,
+	found_date timestamp default now(),
+	removed_date timestamp with time zone default now(),
+	details TEXT,
+	risk_score real,
+	policy_id INT NOT NULL,
+	criterion_id INT NOT NULL
+);
+
+-- add columns in existing compliance tables
+
+ALTER TABLE compliance.network_zone ADD COLUMN IF NOT EXISTS "created" TIMESTAMP WITH TIME ZONE DEFAULT NOW();
+ALTER TABLE compliance.network_zone ADD COLUMN IF NOT EXISTS "removed" TIMESTAMP WITH TIME ZONE DEFAULT NOW();
+ALTER TABLE compliance.network_zone_communication ADD COLUMN IF NOT EXISTS "created" TIMESTAMP WITH TIME ZONE DEFAULT NOW();
+ALTER TABLE compliance.network_zone_communication ADD COLUMN IF NOT EXISTS "removed" TIMESTAMP WITH TIME ZONE DEFAULT NOW();
+ALTER TABLE compliance.network_zone_communication ADD COLUMN IF NOT EXISTS "criterion_id" INT;
+ALTER TABLE compliance.ip_range ADD COLUMN IF NOT EXISTS "created" TIMESTAMP WITH TIME ZONE DEFAULT NOW();
+ALTER TABLE compliance.ip_range ADD COLUMN IF NOT EXISTS "removed" TIMESTAMP WITH TIME ZONE DEFAULT NOW();
+
+-- alter ip_range's PK
+
+ALTER TABLE compliance.ip_range DROP CONSTRAINT IF EXISTS ip_range_pkey;
+ALTER TABLE compliance.ip_range
+ADD CONSTRAINT ip_range_pkey
+PRIMARY KEY (network_zone_id, ip_range_start, ip_range_end, created);
+
+-- add FKs
+
+ALTER TABLE compliance.network_zone_communication 
+DROP CONSTRAINT IF EXISTS compliance_criterion_network_zone_communication_foreign_key;
+ALTER TABLE compliance.network_zone_communication 
+ADD CONSTRAINT compliance_criterion_network_zone_communication_foreign_key 
+FOREIGN KEY (criterion_id) REFERENCES compliance.criterion(id) 
+ON UPDATE RESTRICT ON DELETE CASCADE;
+
+ALTER TABLE compliance.policy_criterion 
+DROP CONSTRAINT IF EXISTS compliance_policy_policy_criterion_foreign_key;
+ALTER TABLE compliance.policy_criterion 
+ADD CONSTRAINT compliance_policy_policy_criterion_foreign_key 
+FOREIGN KEY (policy_id) REFERENCES compliance.policy(id) 
+ON UPDATE RESTRICT ON DELETE CASCADE;
+
+ALTER TABLE compliance.policy_criterion 
+DROP CONSTRAINT IF EXISTS compliance_criterion_policy_criterion_foreign_key;
+ALTER TABLE compliance.policy_criterion 
+ADD CONSTRAINT compliance_criterion_policy_criterion_foreign_key 
+FOREIGN KEY (criterion_id) REFERENCES compliance.criterion(id) 
+ON UPDATE RESTRICT ON DELETE CASCADE;
+
+ALTER TABLE compliance.violation 
+DROP CONSTRAINT IF EXISTS compliance_policy_violation_foreign_key;
+ALTER TABLE compliance.violation 
+ADD CONSTRAINT compliance_policy_violation_foreign_key 
+FOREIGN KEY (policy_id) REFERENCES compliance.policy(id) 
+ON UPDATE RESTRICT ON DELETE CASCADE;
+
+ALTER TABLE compliance.violation 
+DROP CONSTRAINT IF EXISTS compliance_criterion_violation_foreign_key;
+ALTER TABLE compliance.violation 
+ADD CONSTRAINT compliance_criterion_violation_foreign_key 
+FOREIGN KEY (criterion_id) REFERENCES compliance.criterion(id) 
+ON UPDATE RESTRICT ON DELETE CASCADE;
+
+ALTER TABLE compliance.violation 
+DROP CONSTRAINT IF EXISTS compliance_rule_violation_foreign_key;
+ALTER TABLE compliance.violation 
+ADD CONSTRAINT compliance_rule_violation_foreign_key 
+FOREIGN KEY (rule_id) REFERENCES public.rule(rule_id) 
+ON UPDATE RESTRICT ON DELETE CASCADE;
+
+
+
+
 -- adding labels (simple version without mapping tables and without foreign keys)
 
 -- CREATE TABLE label (

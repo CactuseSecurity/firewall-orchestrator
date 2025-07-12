@@ -366,7 +366,7 @@ class FwConfigImportObject():
         for uid in prev_config_objects.keys():
             if not self.is_group(type, prev_config_objects[uid]):
                 continue
-            id = self.get_id(type, uid, before_update=True)
+            db_id = self.get_id(type, uid, before_update=True)
             prev_member_uids = self.get_members(type, self.get_refs(type, prev_config_objects[uid]))
             prev_flat_member_uids = self.get_prev_flats(type, uid)
             member_uids = []  # all members need to be removed if group deleted or changed
@@ -382,7 +382,7 @@ class FwConfigImportObject():
                 prev_member_id = self.get_id(type, prev_member_uid, before_update=True)
                 removed_members.append({
                     "_and": [
-                        {f"{prefix}_id": {"_eq": id}},
+                        {f"{prefix}_id": {"_eq": db_id}},
                         {f"{prefix}_member_id": {"_eq": prev_member_id}},
                     ]
                 })
@@ -392,7 +392,7 @@ class FwConfigImportObject():
                 prev_flat_member_id = self.get_id(type, prev_flat_member_uid, before_update=True)
                 removed_flats.append({
                     "_and": [
-                        {f"{prefix}_flat_id": {"_eq": id}},
+                        {f"{prefix}_flat_id": {"_eq": db_id}},
                         {f"{prefix}_flat_member_id": {"_eq": prev_flat_member_id}},
                     ]
                 })

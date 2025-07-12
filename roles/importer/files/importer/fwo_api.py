@@ -1,5 +1,4 @@
 # library for FWORCH API calls
-import re
 import traceback
 import requests
 import json
@@ -18,6 +17,7 @@ from fwo_const import fwo_api_http_import_timeout
 from fwo_exceptions import FwoApiServiceUnavailable, FwoApiTimeout, FwoApiLoginFailed, \
     SecretDecryptionFailed, FwoApiFailedLockImport
 from fwo_encrypt import decrypt
+from model_controllers.import_state_controller import ImportStateController
 
 
 def read_clean_text(filePath):
@@ -324,7 +324,7 @@ def unlock_import(import_state: "ImportStateController") -> int:
 
 
 # this effectively clears the management!
-def delete_import(import_state):
+def delete_import(import_state: ImportStateController):
     logger = getFwoLogger()
     query_variables = {"importId": import_state.ImportId}
 
@@ -334,14 +334,14 @@ def delete_import(import_state):
         }"""
 
     try:
-        result = call(import_state.FwoConfig['fwo_api_base_url'], import_state.Jwt, delete_import_mutation,
+        result = call(import_state.api_connection.FwoApiUrl, import_state.Jwt, delete_import_mutation,
                       query_variables=query_variables, role='importer')
         api_changes = result['data']['delete_import_control']['affected_rows']
     except:
         logger.exception(
             "fwo_api: failed to unlock import for import id " + str(import_state.ImportId))
         return 1  # signaling an error
-    logger.info(f"removed import with id {str(importState.ImportId)} completely")
+    logger.info(f"removed import with id {str(import_state.ImportId)} completely")
     if api_changes == 1:
         return 0        # return code 0 is ok
     else:
@@ -634,7 +634,7 @@ def complete_import(importState: "ImportStateController"):
             ", rule change count: " + str(importState.Stats.getRuleChangeNumber()) + \
             ", duration: " + str(int(time.time()) - importState.StartTime) + "s" 
     import_result += ", ERRORS: " + importState.getErrorString() if importState.Stats.ErrorCount > 0 else ""
-    if importState.Stats.getChangeDetails() != {} and importState.DebugLevel>3:
+    if importState.Stats.getChangeDetails() != {} and importState.DebugLevel>3 and len(importState.getErrors()) == 0:
         import_result += ", change details: " + str(importState.Stats.getChangeDetails())
     if importState.Stats.ErrorCount>0:
         create_data_issue(importState.FwoConfig.FwoApiUri, importState.Jwt, import_id=importState.ImportId, severity=1, description=importState.getErrorString())

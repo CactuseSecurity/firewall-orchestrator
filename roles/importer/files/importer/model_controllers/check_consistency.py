@@ -57,53 +57,57 @@ class FwConfigImportCheckConsistency(FwConfigImport):
 
     def checkNetworkObjectConsistency(self, config: FwConfigNormalized = None):
         # check if all uid refs are valid
-        allUsedObjRefs = []
+        all_used_obj_refs = []
         # add all new obj refs from all rules
 
         for mgr in config.ManagerSet:
             for single_config in mgr.Configs:
 
                 for rb in single_config.rulebases:
-                    allUsedObjRefs = self._collect_all_used_objects_from_rules(rb)
+                    all_used_obj_refs = self._collect_all_used_objects_from_rules(rb)
                 
-                allUsedObjRefs += self._collect_all_used_objects_from_groups(single_config)
+                all_used_obj_refs += self._collect_all_used_objects_from_groups(single_config)
 
                 # now make list unique and get all refs not contained in network_objects
-                allUsedObjRefsUnique = list(set(allUsedObjRefs))
+                all_used_obj_refs = list(set(all_used_obj_refs))
 
-                unresolvableNwObRefs = allUsedObjRefsUnique - single_config.network_objects.keys()
-                if len(unresolvableNwObRefs)>0:
-                    self.issues.update({'unresolvableNwObRefs': list(unresolvableNwObRefs)})
+                # TODO: do not check against single_config.network_objects but against all obj below super manager
+                unresolvable_nw_obj_refs = all_used_obj_refs - single_config.network_objects.keys()
+                if len(unresolvable_nw_obj_refs)>0:
+                    self.issues.update({'unresolvableNwObRefs': list(unresolvable_nw_obj_refs)})
 
-                # check that all obj_typ exist 
-                allUsedObjTypes = set()
-                for objId in single_config.network_objects:
-                    allUsedObjTypes.add(single_config.network_objects[objId].obj_typ)
-                allUsedObjTypes = list(set(allUsedObjTypes))
-                missingNwObjTypes = allUsedObjTypes - self.maps.NetworkObjectTypeMap.keys()
-                if len(missingNwObjTypes)>0:
-                    self.issues.update({'unresolvableNwObjTypes': list(missingNwObjTypes)})
-
+                self._check_network_object_types_exist(single_config)
                 self._check_objects_with_missing_ips(single_config)
+
+
+    def _check_network_object_types_exist(self, single_config):
+        allUsedObjTypes = set()
+        for objId in single_config.network_objects:
+            allUsedObjTypes.add(single_config.network_objects[objId].obj_typ)
+        allUsedObjTypes = list(set(allUsedObjTypes))
+        missingNwObjTypes = allUsedObjTypes - self.maps.NetworkObjectTypeMap.keys()
+        if len(missingNwObjTypes)>0:
+            self.issues.update({'unresolvableNwObjTypes': list(missingNwObjTypes)})
+
 
     @staticmethod
     def _collect_all_used_objects_from_groups(single_config):
-        allUsedObjRefs = []
+        all_used_obj_refs = []
         # add all nw obj refs from groups
-        for objId in single_config.network_objects:
-            if single_config.network_objects[objId].obj_typ=='group':
-                if single_config.network_objects[objId].obj_member_refs is not None:
-                    allUsedObjRefs += single_config.network_objects[objId].obj_member_refs.split(fwo_const.list_delimiter)
-        return allUsedObjRefs
+        for obj_id in single_config.network_objects:
+            if single_config.network_objects[obj_id].obj_typ=='group':
+                if single_config.network_objects[obj_id].obj_member_refs is not None:
+                    all_used_obj_refs += single_config.network_objects[obj_id].obj_member_refs.split(fwo_const.list_delimiter)
+        return all_used_obj_refs
     
 
     def _collect_all_used_objects_from_rules(self, rb):
-        allUsedObjRefs = []
-        for ruleId in rb.Rules:
-            allUsedObjRefs += rb.Rules[ruleId].rule_src_refs.split(fwo_const.list_delimiter)
-            allUsedObjRefs += rb.Rules[ruleId].rule_dst_refs.split(fwo_const.list_delimiter)
+        all_used_obj_refs = []
+        for rule_id in rb.Rules:
+            all_used_obj_refs += rb.Rules[rule_id].rule_src_refs.split(fwo_const.list_delimiter)
+            all_used_obj_refs += rb.Rules[rule_id].rule_dst_refs.split(fwo_const.list_delimiter)
         
-        return allUsedObjRefs
+        return all_used_obj_refs
 
 
     def _check_objects_with_missing_ips(self, single_config):
@@ -121,29 +125,33 @@ class FwConfigImportCheckConsistency(FwConfigImport):
 
     def checkServiceObjectConsistency(self, config: FwConfigNormalized = None):
         # check if all uid refs are valid
-        allUsedObjRefs = []
+        all_used_obj_refs = []
 
         for mgr in config.ManagerSet:
             for single_config in mgr.Configs:
-                allUsedObjRefs += self._collect_service_object_refs_from_rules(single_config)
 
-                # add all svc obj refs from groups
-                allUsedObjRefs += self._collect_all_service_object_refs_from_groups(single_config)
+                all_used_obj_refs += self._collect_service_object_refs_from_rules(single_config)
+
+                all_used_obj_refs += self._collect_all_service_object_refs_from_groups(single_config)
 
                 # now make list unique and get all refs not contained in service_objects
-                allUsedObjRefsUnique = list(set(allUsedObjRefs))
+                allUsedObjRefsUnique = list(set(all_used_obj_refs))
                 unresolvableObRefs = allUsedObjRefsUnique - single_config.service_objects.keys()
                 if len(unresolvableObRefs)>0:
                     self.issues.update({'unresolvableSvcObRefs': list(unresolvableObRefs)})
 
-                # check that all obj_typ exist 
-                allUsedObjTypes = set()
-                for objId in single_config.service_objects:
-                    allUsedObjTypes.add(single_config.service_objects[objId].svc_typ)
-                allUsedObjTypes = list(set(allUsedObjTypes))
-                missingObjTypes = allUsedObjTypes - self.maps.ServiceObjectTypeMap.keys()
-                if len(missingObjTypes)>0:
-                    self.issues.update({'unresolvableSvcObjTypes': list(missingObjTypes)})
+                self._check_service_object_types_exist(single_config)
+
+
+    def _check_service_object_types_exist(self, single_config):
+        # check that all obj_typ exist 
+        all_used_obj_types = set()
+        for obj_id in single_config.service_objects:
+            all_used_obj_types.add(single_config.service_objects[obj_id].svc_typ)
+        all_used_obj_types = list(set(all_used_obj_types))
+        missing_obj_types = all_used_obj_types - self.maps.ServiceObjectTypeMap.keys()
+        if len(missing_obj_types)>0:
+            self.issues.update({'unresolvableSvcObjTypes': list(missing_obj_types)})
 
     @staticmethod
     def _collect_all_service_object_refs_from_groups(single_config):
@@ -259,7 +267,8 @@ class FwConfigImportCheckConsistency(FwConfigImport):
                         {'nwObjColors': unresolvableNwObjColors, 'svcColors': unresolvableSvcColors, 'userColors': unresolvableUserColors}})
 
 
-    def _collect_all_used_colors(self, single_config):
+    @staticmethod
+    def _collect_all_used_colors(single_config):
         allUsedNwObjColorRefSet = set()
         allUsedSvcColorRefSet = set()
         allUsedUserColorRefSet = set()
@@ -301,8 +310,8 @@ class FwConfigImportCheckConsistency(FwConfigImport):
         
         return unresolvableNwObjColors, unresolvableSvcColors, unresolvableUserColors
 
-
-    def _fix_colors(self, config, unresolvable_nw_obj_colors, unresolvable_svc_colors, unresolvable_user_colors):
+    @staticmethod
+    def _fix_colors(config, unresolvable_nw_obj_colors, unresolvable_svc_colors, unresolvable_user_colors):
         for color_string in unresolvable_nw_obj_colors:
             # replace with default color
             for uid in config.network_objects:

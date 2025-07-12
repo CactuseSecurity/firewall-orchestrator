@@ -113,8 +113,7 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
 
                     FwConfigImportCheckConsistency(importState, configNormalized).checkConfigConsistency(configNormalized)
 
-                    # TODO: make sure to start with super manager, for now assuming that the first manager is the super manager
-                    for manager in configNormalized.ManagerSet:
+                    for manager in sorted(configNormalized.ManagerSet, key=lambda m: not getattr(m, 'IsSuperManager', False)):
                         # the following loop is a preparation for future functionality
                         # we might add support for multiple configs per manager
                         # e.g. one config only adds data, one only deletes data, etc.

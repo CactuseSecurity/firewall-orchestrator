@@ -55,7 +55,7 @@ class FwConfigImportCheckConsistency(FwConfigImport):
             getFwoLogger().info("Consistency check completed without issues.")
 
 
-    def checkNetworkObjectConsistency(self, config: FwConfigNormalized = None):
+    def checkNetworkObjectConsistency(self, config: FwConfigManagerListController = None):
         # check if all uid refs are valid
         all_used_obj_refs = []
         # add all new obj refs from all rules
@@ -69,10 +69,10 @@ class FwConfigImportCheckConsistency(FwConfigImport):
                 all_used_obj_refs += self._collect_all_used_objects_from_groups(single_config)
 
                 # now make list unique and get all refs not contained in network_objects
-                all_used_obj_refs = list(set(all_used_obj_refs))
+                all_used_obj_refs = set(all_used_obj_refs)
 
                 # TODO: do not check against single_config.network_objects but against all obj below super manager
-                unresolvable_nw_obj_refs = all_used_obj_refs - single_config.network_objects.keys()
+                unresolvable_nw_obj_refs = all_used_obj_refs - config.get_all_network_object_uids()
                 if len(unresolvable_nw_obj_refs)>0:
                     self.issues.update({'unresolvableNwObRefs': list(unresolvable_nw_obj_refs)})
 
@@ -123,7 +123,7 @@ class FwConfigImportCheckConsistency(FwConfigImport):
             self.issues.update({'non-group network object with undefined IP addresse(s)': list(nonGroupNwObjWithMissingIps)})
 
 
-    def checkServiceObjectConsistency(self, config: FwConfigNormalized = None):
+    def checkServiceObjectConsistency(self, config: FwConfigManagerListController = None):
         # check if all uid refs are valid
         all_used_obj_refs = []
 
@@ -135,8 +135,8 @@ class FwConfigImportCheckConsistency(FwConfigImport):
                 all_used_obj_refs += self._collect_all_service_object_refs_from_groups(single_config)
 
                 # now make list unique and get all refs not contained in service_objects
-                allUsedObjRefsUnique = list(set(all_used_obj_refs))
-                unresolvableObRefs = allUsedObjRefsUnique - single_config.service_objects.keys()
+                allUsedObjRefsUnique = set(all_used_obj_refs)
+                unresolvableObRefs = allUsedObjRefsUnique - config.get_all_service_object_uids()
                 if len(unresolvableObRefs)>0:
                     self.issues.update({'unresolvableSvcObRefs': list(unresolvableObRefs)})
 
@@ -171,7 +171,7 @@ class FwConfigImportCheckConsistency(FwConfigImport):
         return allUsedObjRefs
 
 
-    def checkUserObjectConsistency(self, config: FwConfigNormalized = None):
+    def checkUserObjectConsistency(self, config: FwConfigManagerListController = None):
         allUsedObjRefs = []
         # add all user refs from all rules
         for mgr in config.ManagerSet:
@@ -185,8 +185,8 @@ class FwConfigImportCheckConsistency(FwConfigImport):
                 self._collect_users_from_groups(single_config, allUsedObjRefs)
 
                 # now make list unique and get all refs not contained in users
-                allUsedObjRefsUnique = list(set(allUsedObjRefs))
-                unresolvableObRefs = allUsedObjRefsUnique - single_config.users.keys()
+                allUsedObjRefsUnique = set(allUsedObjRefs)
+                unresolvableObRefs = allUsedObjRefsUnique - config.get_all_user_object_uids()
                 if len(unresolvableObRefs)>0:
                     self.issues.update({'unresolvableUserObRefs': list(unresolvableObRefs)})
 
@@ -220,30 +220,37 @@ class FwConfigImportCheckConsistency(FwConfigImport):
         return userRefs
 
     
-    def checkZoneObjectConsistency(self, config: FwConfigNormalized = None):
-        # check if all uid refs are valid
-        allUsedObjRefs = []
-
+    def checkZoneObjectConsistency(self, config: FwConfigManagerListController = None):
+        all_used_zone_refs = set()
         for mgr in config.ManagerSet:
             for single_config in mgr.Configs:
-                # add all zone refs from all rules
-                for rb in single_config.rulebases:
-                    for ruleId in rb.Rules:
-                        if rb.Rules[ruleId].rule_src_zone is not None:
-                            allUsedObjRefs += rb.Rules[ruleId].rule_src_zone
-                        if rb.Rules[ruleId].rule_dst_zone is not None:
-                            allUsedObjRefs += rb.Rules[ruleId].rule_dst_zone
+                all_used_zone_refs = all_used_zone_refs.union(self._collect_zone_refs_from_rules(single_config))
 
                 # we currently do not have zone groups - skipping group ref handling
-
-                # now make list unique and get all refs not contained in zone_objects
-                allUsedObjRefsUnique = list(set(allUsedObjRefs))
-                unresolvableObRefs = allUsedObjRefsUnique - single_config.zone_objects.keys()
-                if len(unresolvableObRefs)>0:
-                    self.issues.update({'unresolvableZoneObRefs': list(unresolvableObRefs)})
-
                 # we currently do not have zone types - skipping type handling
+
+        self._check_zone_refs(single_config, all_used_zone_refs, config.get_all_zone_uids())
+
+
+    def _check_zone_refs(self, single_config, all_used_zone_refs, all_zone_uids):
+        # now make list unique and get all refs not contained in zone_objects
+        all_used_zone_refs = set(all_used_zone_refs)
+        unresolvable_zone_refs = all_used_zone_refs - all_zone_uids
+        if len(unresolvable_zone_refs)>0:
+            self.issues.update({'unresolvableZoneRefs': list(unresolvable_zone_refs)})
     
+    @staticmethod
+    def _collect_zone_refs_from_rules(single_config):
+        all_used_zones_refs = []
+        for rb in single_config.rulebases:
+            for ruleId in rb.Rules:
+                if rb.Rules[ruleId].rule_src_zone is not None:
+                    all_used_zones_refs += rb.Rules[ruleId].rule_src_zone
+                if rb.Rules[ruleId].rule_dst_zone is not None:
+                    all_used_zones_refs += rb.Rules[ruleId].rule_dst_zone
+        return set(all_used_zones_refs)
+
+
     # check if all color refs are valid (in the DB)
     # fix=True means that missing color refs will be replaced by the default color (black)
     def checkColorConsistency(self, config: FwConfigNormalized, fix=True):

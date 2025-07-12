@@ -634,7 +634,7 @@ def complete_import(importState: "ImportStateController"):
             ", rule change count: " + str(importState.Stats.getRuleChangeNumber()) + \
             ", duration: " + str(int(time.time()) - importState.StartTime) + "s" 
     import_result += ", ERRORS: " + importState.getErrorString() if importState.Stats.ErrorCount > 0 else ""
-    if importState.Stats.getChangeDetails() != {} and importState.DebugLevel>3:
+    if importState.Stats.getChangeDetails() != {} and importState.DebugLevel>3 and len(importState.getErrors()) == 0:
         import_result += ", change details: " + str(importState.Stats.getChangeDetails())
     if importState.Stats.ErrorCount>0:
         create_data_issue(importState.FwoConfig.FwoApiUri, importState.Jwt, import_id=importState.ImportId, severity=1, description=importState.getErrorString())

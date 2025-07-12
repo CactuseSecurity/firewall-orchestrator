@@ -120,7 +120,8 @@ def normalize_config(import_state, native_config: json, parsing_config_only: boo
         normalized_config = normalize_single_manager_config(native_conf, normalizedConfigDict, import_state, parsing_config_only, sid)
         manager = FwConfigManager(ManagerUid=calcManagerUidHash(import_state.MgmDetails),
                                     ManagerName=import_state.MgmDetails.Name,
-                                    IsGlobal=import_state.MgmDetails.IsSuperManager, 
+                                    IsGlobal=native_conf['is-super-manger'],
+                                    IsSuperManager=native_conf['is-super-manger'],
                                     DependantManagerUids=[], 
                                     Configs=[normalized_config])
         manager_list.addManager(manager)

@@ -48,17 +48,12 @@ class FwConfigImportCheckConsistency(FwConfigImport):
         self.check_rulebase_link_consistency(config)
 
         if len(self.issues)>0:
-            logger = getFwoLogger()
-            logger.warning(f'config not imported due to the following inconsistencies: {json.dumps(self.issues, indent=3)}')
-            self.import_state.increaseErrorCounterByOne()
-
-        if len(self.issues)>0:
-            # If there are inconsistencies, we log them and raise an exception
-            # logger.error(f"Inconsistencies found in the configuration: {self.issues}")
             self.import_state.addError("Inconsistencies found in the configuration: " + str(self.issues))
             raise fwo_exceptions.FwoImporterErrorInconsistencies("Inconsistencies found in the configuration.")
 
-        return self.issues
+        if self.import_state.DebugLevel >= 1:
+            getFwoLogger().info("Consistency check completed without issues.")
+
 
     def checkNetworkObjectConsistency(self, config: FwConfigNormalized = None):
         # check if all uid refs are valid
@@ -159,15 +154,6 @@ class FwConfigImportCheckConsistency(FwConfigImport):
     
     def checkUserObjectConsistency(self, config: FwConfigNormalized = None):
 
-        def collectUsersFromRule(listOfElements):
-            userRefs = []
-            for el in listOfElements:
-                splitResult = el.split(fwo_const.user_delimiter)
-                if len(splitResult)==2:
-                    allUsedObjRefs.append(splitResult[0])
-            return userRefs
-
-        # check if all uid refs are valid
         allUsedObjRefs = []
         # add all user refs from all rules
         for mgr in config.ManagerSet:
@@ -175,14 +161,10 @@ class FwConfigImportCheckConsistency(FwConfigImport):
                 for rb in single_config.rulebases:
                     for ruleId in rb.Rules:
                         if fwo_const.user_delimiter in rb.Rules[ruleId].rule_src_refs:
-                            allUsedObjRefs += collectUsersFromRule(rb.Rules[ruleId].rule_src_refs.split(fwo_const.list_delimiter))
-                            allUsedObjRefs += collectUsersFromRule(rb.Rules[ruleId].rule_dst_refs.split(fwo_const.list_delimiter))
+                            allUsedObjRefs += self._collectUsersFromRule(rb.Rules[ruleId].rule_src_refs.split(fwo_const.list_delimiter))
+                            allUsedObjRefs += self._collectUsersFromRule(rb.Rules[ruleId].rule_dst_refs.split(fwo_const.list_delimiter))
 
-                # add all user obj refs from groups
-                for objId in single_config.users:
-                    if self.users[objId].user_typ=='group':
-                        if self.users[objId].user_member_refs is not None:
-                            allUsedObjRefs += self.users[objId].user_member_refs.split(fwo_const.list_delimiter)
+                self._collect_users_from_groups(single_config, allUsedObjRefs)
 
                 # now make list unique and get all refs not contained in users
                 allUsedObjRefsUnique = list(set(allUsedObjRefs))
@@ -190,14 +172,34 @@ class FwConfigImportCheckConsistency(FwConfigImport):
                 if len(unresolvableObRefs)>0:
                     self.issues.update({'unresolvableUserObRefs': list(unresolvableObRefs)})
 
-                # check that all obj_typ exist 
-                allUsedObjTypes = set()
-                for objId in single_config.users:
-                    allUsedObjTypes.add(single_config.users[objId].user_typ)
-                allUsedObjTypes = list(set(allUsedObjTypes))    # make list unique
-                missingObjTypes = allUsedObjTypes - self.maps.UserObjectTypeMap.keys()
-                if len(missingObjTypes)>0:
-                    self.issues.update({'unresolvableUserObjTypes': list(missingObjTypes)})
+                self._check_user_types_exist(single_config)
+
+    def _collect_users_from_groups(self, single_config, allUsedObjRefs):
+        for objId in single_config.users:
+            if self.users[objId].user_typ=='group':
+                if self.users[objId].user_member_refs is not None:
+                    allUsedObjRefs += self.users[objId].user_member_refs.split(fwo_const.list_delimiter)
+
+
+    def _check_user_types_exist(self, single_config):
+        # check that all obj_typ exist 
+        allUsedObjTypes = set()
+        for objId in single_config.users:
+            allUsedObjTypes.add(single_config.users[objId].user_typ)
+        allUsedObjTypes = list(set(allUsedObjTypes))    # make list unique
+        missingObjTypes = allUsedObjTypes - self.maps.UserObjectTypeMap.keys()
+        if len(missingObjTypes)>0:
+            self.issues.update({'unresolvableUserObjTypes': list(missingObjTypes)})
+
+
+    @staticmethod
+    def _collectUsersFromRule(listOfElements):
+        userRefs = []
+        for el in listOfElements:
+            splitResult = el.split(fwo_const.user_delimiter)
+            if len(splitResult)==2:
+                userRefs.append(splitResult[0])
+        return userRefs
 
     
     def checkZoneObjectConsistency(self, config: FwConfigNormalized = None):

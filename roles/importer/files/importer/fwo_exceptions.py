@@ -1,3 +1,5 @@
+rollback_string = "Operation interrupted. Rollback required."
+
 
 class FwLoginFailed(Exception):
     """Raised when login to FW management failed"""
@@ -85,17 +87,17 @@ class ImportRecursionLimitReached(Exception):
 
 class ImportInterruption(Exception):
     """Custom exception to signal an interrupted call requiring rollback."""
-    def __init__(self, message="Operation interrupted. Rollback required."):
+    def __init__(self, message=rollback_string):
         super().__init__(message)
 
 class FwoImporterError(Exception):
     """Custom exception to signal a failed import attempt."""
-    def __init__(self, message="Operation interrupted. Rollback required."):
+    def __init__(self, message=rollback_string):
         super().__init__(message)
 
 class FwoImporterErrorInconsistencies(Exception):
     """Custom exception to signal a failed import attempt."""
-    def __init__(self, message="Operation interrupted. Rollback required."):
+    def __init__(self, message=rollback_string):
         super().__init__(message)
 
 class RollbackNecessary(Exception):

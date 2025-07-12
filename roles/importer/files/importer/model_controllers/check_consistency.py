@@ -10,8 +10,8 @@ from model_controllers.fwconfig_import_object import FwConfigImportObject
 from models.fwconfig_normalized import FwConfigNormalized
 from fwo_base import ConfFormat
 from services.service_provider import ServiceProvider
-from services.global_state import GlobalState
 from services.enums import Services
+import fwo_exceptions
 
 
 # this class is used for importing a config into the FWO API
@@ -43,12 +43,20 @@ class FwConfigImportCheckConsistency(FwConfigImport):
         self.checkServiceObjectConsistency(config)
         self.checkUserObjectConsistency(config)
         self.checkZoneObjectConsistency(config)
-        self.checkRuleConsistency(config)
-        self.checkGatewayConsistency(config)
+        self.check_rulebase_consistency(config)
+        self.check_gateway_consistency(config)
+        self.check_rulebase_link_consistency(config)
+        
         if len(self.issues)>0:
             logger = getFwoLogger()
             logger.warning(f'config not imported due to the following inconsistencies: {json.dumps(self.issues, indent=3)}')
             self.import_state.increaseErrorCounterByOne()
+
+        if len(self.issues)>0:
+            # If there are inconsistencies, we log them and raise an exception
+            logger.error(f"Inconsistencies found in the configuration: {self.issues}")
+            self.import_state.addError("Inconsistencies found in the configuration: " + str(self.issues))
+            raise fwo_exceptions.FwoImporterError("Inconsistencies found in the configuration.")
 
         return self.issues
 
@@ -69,8 +77,6 @@ class FwConfigImportCheckConsistency(FwConfigImport):
                     if single_config.network_objects[objId].obj_typ=='group':
                         if single_config.network_objects[objId].obj_member_refs is not None:
                             allUsedObjRefs += single_config.network_objects[objId].obj_member_refs.split(fwo_const.list_delimiter)
-
-                    # TODO: also check color
 
                 # now make list unique and get all refs not contained in network_objects
                 allUsedObjRefsUnique = list(set(allUsedObjRefs))
@@ -265,12 +271,43 @@ class FwConfigImportCheckConsistency(FwConfigImport):
                     self.issues.update({ 'unresolvableColorRefs': 
                         {'nwObjColors': unresolvableNwObjColors, 'svcColors': unresolvableSvcColors, 'userColors': unresolvableUserColors}})
 
-    # e.g. check rule to rule refs
-    def checkRuleConsistency(self, config: FwConfigNormalized = None):
+    @staticmethod
+    def _extract_rule_track_n_action_refs(rulebases):
+        track_refs = []
+        action_refs = []
+        for rb in rulebases:
+            track_refs.extend(rule.rule_track for rule in rb.Rules.values())
+            action_refs.extend(rule.rule_action for rule in rb.Rules.values())
+        return track_refs, action_refs
+
+
+    def check_rulebase_consistency(self, config: FwConfigNormalized = None):
+        all_used_track_refs = []
+        all_used_action_refs = []
+
+        for mgr in config.ManagerSet:
+            for single_config in mgr.Configs:
+                track_refs, action_refs = self._extract_rule_track_n_action_refs(single_config.rulebases)
+                all_used_track_refs.extend(track_refs)
+                all_used_action_refs.extend(action_refs)
+
+                all_used_track_refs = list(set(all_used_track_refs))
+                all_used_action_refs = list(set(all_used_action_refs))
+
+                unresolvable_tracks = all_used_track_refs - self.import_state.Tracks.keys()
+                if unresolvable_tracks:
+                    self.issues.update({'unresolvableRuleTracks': list(unresolvable_tracks)})
+
+                unresolvable_actions = all_used_action_refs - self.import_state.Actions.keys()
+                if unresolvable_actions:
+                    self.issues.update({'unresolvableRuleActions': list(unresolvable_actions)})
+
+        # e.g. check routing, interfaces refs
+    def check_gateway_consistency(self, config: FwConfigNormalized = None):
         # TODO: implement
         pass
 
     # e.g. check rule to rule refs
-    def checkGatewayConsistency(self, config: FwConfigNormalized = None):
+    def check_rulebase_link_consistency(self, config: FwConfigNormalized = None):
         # TODO: implement
         pass

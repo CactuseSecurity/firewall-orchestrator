@@ -58,7 +58,11 @@ class FwoApi():
                     started = time.time()
                     return_object = self._call_chunked(session, query, queryVariables, debug_level)
                     elapsed_time = time.time() - started
-                    affected_rows = sum(obj["affected_rows"] for obj in return_object["data"].values())
+                    affected_rows = 0
+                    if 'data' in return_object.keys():
+                        # If the return object contains data, we can log the affected rows.
+                        if 'affected_rows' in return_object['data'].keys():
+                            affected_rows = sum(obj["affected_rows"] for obj in return_object["data"].values())
                     logger.debug(f"Chunked API call ({self.query_info['query_name']}) processed in {elapsed_time:.4f} s. Affected rows: {affected_rows}.")
                     self.query_info = {}
                 else:
@@ -156,14 +160,20 @@ class FwoApi():
         else:
             new_return = response
             for new_return_object_type, new_return_object in new_return["data"].items():
-                if not isinstance(return_object["data"].get(new_return_object_type), dict):
-                    return_object["data"][new_return_object_type] = {}
-                    return_object["data"][new_return_object_type]["affected_rows"] = 0
-                    return_object["data"][new_return_object_type]["returning"] = []
-                return_object["data"][new_return_object_type]["affected_rows"] += new_return_object["affected_rows"]
-                if "returning" in return_object["data"][new_return_object_type].keys():
-                    return_object["data"][new_return_object_type]["returning"].extend(new_return_object["returning"])
-
+                if 'data' in return_object.keys():
+                    if not isinstance(return_object["data"].get(new_return_object_type), dict):
+                        return_object["data"][new_return_object_type] = {}
+                        return_object["data"][new_return_object_type]["affected_rows"] = 0
+                        return_object["data"][new_return_object_type]["returning"] = []
+                    return_object["data"][new_return_object_type]["affected_rows"] += new_return_object["affected_rows"]
+                    if "returning" in return_object["data"][new_return_object_type].keys():
+                        return_object["data"][new_return_object_type]["returning"].extend(new_return_object["returning"])
+                else:
+                    if 'affected_rows' not in new_return_object:
+                        getFwoLogger().warning(f"no data found: {return_object} not found in return_object['data'].")
+                    else:
+                        if new_return_object["affected_rows"] == 0:
+                            getFwoLogger().warning(f"no data found: {new_return_object} not found in return_object['data'].")
         return return_object
 
 

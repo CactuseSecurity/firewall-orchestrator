@@ -111,16 +111,10 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
                         # Make sure service provider's internal references to state and config are set correctly.
                         global_state = service_provider.get_service(Services.GLOBAL_STATE)
                         global_state.import_state = importState
-                        inconsistencies = []
-                        configChecker = FwConfigImportCheckConsistency(importState, configNormalized)
-                        inconsistencies = configChecker.checkConfigConsistency(configNormalized)
-                        if len(inconsistencies)>0:
-                            # If there are inconsistencies, we log them and raise an exception
-                            logger.error(f"Inconsistencies found in the configuration: {inconsistencies}")
-                            importState.addError("Inconsistencies found in the configuration: " + str(inconsistencies))
-                            raise fwo_exceptions.FwoImporterError("Inconsistencies found in the configuration.")
-                        # TODO: make sure to start with super manager
-                        # for now assuming that the first manager is the super manager
+
+                        FwConfigImportCheckConsistency(importState, configNormalized).checkConfigConsistency(configNormalized)
+
+                        # TODO: make sure to start with super manager, for now assuming that the first manager is the super manager
                         for manager in configNormalized.ManagerSet:
                             # the following loop is a preparation for future functionality
                             # we might add support for multiple configs per manager
@@ -133,12 +127,12 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
                                     # global_state.import_state = importState
                                     global_state.normalized_config = config
 
-                                    configImporter = FwConfigImport()
-                                    configImporter.importConfig()
+                                    config_importer = FwConfigImport()
+                                    config_importer.importConfig()
                                     if importState.Stats.ErrorCount>0:
                                         raise fwo_exceptions.FwoImporterError("Import failed due to errors.")
                                     else:
-                                        configImporter.storeLatestConfig()
+                                        config_importer.storeLatestConfig()
                                 except Exception:
                                     importState.addError(str(traceback.format_exc()))
                                     raise
@@ -155,7 +149,7 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
                     fwo_api.update_hit_counter(importState, config)
 
             if not clearManagementData and importState.DataRetentionDays<importState.DaysSinceLastFullImport:
-                configImporter.deleteOldImports() # delete all imports of the current management before the last but one full import
+                config_importer.deleteOldImports() # delete all imports of the current management before the last but one full import
 
         # Set the result based on the error count
         if hasattr(importState, 'Stats') and hasattr(importState.Stats, 'ErrorCount'):
@@ -168,17 +162,17 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
         fwo_api.delete_import(importState) # delete whole import
         importState.addError("ImportRecursionLimitReached - aborting import")
     except (KeyboardInterrupt, fwo_exceptions.ImportInterruption) as e:
-        rollBackExceptionHandler(importState, configImporter=configImporter, exc=e, errorText="shutdown requested")
+        rollBackExceptionHandler(importState, configImporter=config_importer, exc=e, errorText="shutdown requested")
         raise
     except (fwo_exceptions.FwoApiWriteError, fwo_exceptions.FwoImporterError) as e:
         importState.addError("FwoApiWriteError or FwoImporterError - aborting import")
-        rollBackExceptionHandler(importState, configImporter=configImporter, exc=e, errorText="")
+        rollBackExceptionHandler(importState, configImporter=config_importer, exc=e, errorText="")
         raise
     except Exception as e:
         if 'importState' in locals() and importState is not None:
             importState.addError("Unexpected exception in import process - aborting " + traceback.format_exc())
-            if 'configImporter' in locals() and configImporter is not None:
-                rollBackExceptionHandler(importState, configImporter=configImporter, exc=e)
+            if 'configImporter' in locals() and config_importer is not None:
+                rollBackExceptionHandler(importState, configImporter=config_importer, exc=e)
         raise
     finally:
         try:

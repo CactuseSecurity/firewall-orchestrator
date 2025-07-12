@@ -56,7 +56,6 @@ class GroupFlatsMapper:
         Returns:
             List[str]: The flattened network object UIDs.
         """
-        # if self.normalized_config is None:
         if self.global_state.normalized_config is None:
             self.log_error(f"{CONFIG_NOT_SET_MESSAGE}-networks")
             return []
@@ -73,7 +72,6 @@ class GroupFlatsMapper:
             return None
         if groupUid in self.network_object_flats:
             return self.network_object_flats[groupUid]
-        # nwobj = self.normalized_config.network_objects.get(groupUid, None)
         nwobj = self.global_state.normalized_config.network_objects.get(groupUid, None)
         if nwobj is None:
             self.log_error(f"object with uid {groupUid} not found in network objects of config")
@@ -100,7 +98,6 @@ class GroupFlatsMapper:
         Returns:
             List[str]: The flattened service object UIDs.
         """
-        # if self.normalized_config is None:
         if self.global_state.normalized_config is None:
             self.log_error(f"{CONFIG_NOT_SET_MESSAGE}-services")
             return []
@@ -141,7 +138,6 @@ class GroupFlatsMapper:
         Returns:
             List[str]: The flattened user UIDs.
         """
-        # if self.normalized_config is None:
         if self.global_state.normalized_config is None:
             self.log_error(f"{CONFIG_NOT_SET_MESSAGE}-users")
             return []

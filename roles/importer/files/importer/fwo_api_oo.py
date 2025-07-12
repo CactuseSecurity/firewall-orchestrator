@@ -156,24 +156,23 @@ class FwoApi():
 
     def _handle_chunked_calls_response(self, return_object, response):
         if return_object == {}:
-            return_object = response
-        else:
-            new_return = response
-            for new_return_object_type, new_return_object in new_return["data"].items():
-                if 'data' in return_object.keys():
-                    if not isinstance(return_object["data"].get(new_return_object_type), dict):
-                        return_object["data"][new_return_object_type] = {}
-                        return_object["data"][new_return_object_type]["affected_rows"] = 0
-                        return_object["data"][new_return_object_type]["returning"] = []
-                    return_object["data"][new_return_object_type]["affected_rows"] += new_return_object["affected_rows"]
-                    if "returning" in return_object["data"][new_return_object_type].keys():
-                        return_object["data"][new_return_object_type]["returning"].extend(new_return_object["returning"])
+            return response
+        
+        for new_return_object_type, new_return_object in response["data"].items():
+            if 'data' in return_object.keys():
+                if not isinstance(return_object["data"].get(new_return_object_type), dict):
+                    return_object["data"][new_return_object_type] = {}
+                    return_object["data"][new_return_object_type]["affected_rows"] = 0
+                    return_object["data"][new_return_object_type]["returning"] = []
+                return_object["data"][new_return_object_type]["affected_rows"] += new_return_object["affected_rows"]
+                if "returning" in return_object["data"][new_return_object_type].keys():
+                    return_object["data"][new_return_object_type]["returning"].extend(new_return_object["returning"])
+            else:
+                if 'affected_rows' not in new_return_object:
+                    getFwoLogger().warning(f"no data found: {return_object} not found in return_object['data'].")
                 else:
-                    if 'affected_rows' not in new_return_object:
-                        getFwoLogger().warning(f"no data found: {return_object} not found in return_object['data'].")
-                    else:
-                        if new_return_object["affected_rows"] == 0:
-                            getFwoLogger().warning(f"no data found: {new_return_object} not found in return_object['data'].")
+                    if new_return_object["affected_rows"] == 0:
+                        getFwoLogger().warning(f"no data found: {new_return_object} not found in return_object['data'].")
         return return_object
 
 

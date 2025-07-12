@@ -125,16 +125,10 @@ class FwConfigImportCheckConsistency(FwConfigImport):
 
         for mgr in config.ManagerSet:
             for single_config in mgr.Configs:
-                # add all new obj refs from all rules
-                for rb in single_config.rulebases:
-                    for ruleId in rb.Rules:
-                        allUsedObjRefs += rb.Rules[ruleId].rule_svc_refs.split(fwo_const.list_delimiter)
+                allUsedObjRefs += self._collect_service_object_refs_from_rules(single_config)
 
                 # add all svc obj refs from groups
-                for objId in single_config.service_objects:
-                    if single_config.service_objects[objId].svc_typ=='group':
-                        if single_config.service_objects[objId].svc_member_refs is not None:
-                            allUsedObjRefs += single_config.service_objects[objId].svc_member_refs.split(fwo_const.list_delimiter)
+                allUsedObjRefs += self._collect_all_service_object_refs_from_groups(single_config)
 
                 # now make list unique and get all refs not contained in service_objects
                 allUsedObjRefsUnique = list(set(allUsedObjRefs))
@@ -151,9 +145,25 @@ class FwConfigImportCheckConsistency(FwConfigImport):
                 if len(missingObjTypes)>0:
                     self.issues.update({'unresolvableSvcObjTypes': list(missingObjTypes)})
 
-    
-    def checkUserObjectConsistency(self, config: FwConfigNormalized = None):
+    @staticmethod
+    def _collect_all_service_object_refs_from_groups(single_config):
+        allUsedObjRefs = []
+        for objId in single_config.service_objects:
+            if single_config.service_objects[objId].svc_typ=='group':
+                if single_config.service_objects[objId].svc_member_refs is not None:
+                    allUsedObjRefs += single_config.service_objects[objId].svc_member_refs.split(fwo_const.list_delimiter)
+        return allUsedObjRefs
 
+    @staticmethod
+    def _collect_service_object_refs_from_rules(single_config):
+        allUsedObjRefs = []
+        for rb in single_config.rulebases:
+            for ruleId in rb.Rules:
+                allUsedObjRefs += rb.Rules[ruleId].rule_svc_refs.split(fwo_const.list_delimiter)
+        return allUsedObjRefs
+
+
+    def checkUserObjectConsistency(self, config: FwConfigNormalized = None):
         allUsedObjRefs = []
         # add all user refs from all rules
         for mgr in config.ManagerSet:

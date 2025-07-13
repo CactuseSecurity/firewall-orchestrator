@@ -53,6 +53,7 @@ class FwConfigImport():
         return
 
     def updateDiffs(self, previousConfig: FwConfigNormalized):
+        
         self._fw_config_import_object.updateObjectDiffs(previousConfig)
 
         if fwo_globals.shutdown_requested:

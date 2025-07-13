@@ -126,6 +126,8 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
                                 global_state.normalized_config = config
 
                                 config_importer = FwConfigImport()
+                                # TODO: move previous config writing outside the manager loop
+                                # TODO: move config comparison outside the manager loop
                                 config_importer.importConfig()
                                 if importState.Stats.ErrorCount>0:
                                     raise fwo_exceptions.FwoImporterError("Import failed due to errors.")

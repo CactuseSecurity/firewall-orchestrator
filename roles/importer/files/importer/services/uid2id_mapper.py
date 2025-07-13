@@ -3,6 +3,8 @@ from fwo_log import getFwoLogger
 from model_controllers.import_state_controller import ImportStateController
 from services.service_provider import ServiceProvider
 from services.enums import Services
+from fwo_api import get_graphql_code
+import fwo_const
 
 
 class Uid2IdMapper:
@@ -227,15 +229,8 @@ class Uid2IdMapper:
         Returns:
             bool: True if the mapping was updated successfully, False otherwise.
         """
-        # TODO: remove active filter later
-        query = """
-            query getMapOfUid2Id($uids: [String!], $mgmId: Int!) {
-                object(where: {obj_uid: {_in: $uids}, mgm_id: {_eq: $mgmId}, removed: {_is_null: true}, active: {_eq: true}}) {
-                    obj_id
-                    obj_uid
-                }
-            }
-            """
+        query = get_graphql_code([fwo_const.graphqlQueryPath + "networkObject/getmapOfUid2Id.graphql"])
+
         if uids is not None:
             if len(uids) == 0:
                 self.log_debug("Network object mapping updated for 0 objects")
@@ -252,8 +247,10 @@ class Uid2IdMapper:
             if 'errors' in response:
                 self.log_error(f"Error updating network object mapping: {response['errors']}")
                 return False
-            for obj in response['data']['object']:
-                self.nwobj_uid2id[obj['obj_uid']] = obj['obj_id']
+            self.nwobj_uid2id.update({
+                obj['obj_uid']: obj['obj_id']
+                for obj in response['data']['object']
+            })
             self.log_debug(f"Network object mapping updated for {len(response['data']['object'])} objects")
             return True
         except Exception as e:
@@ -270,15 +267,7 @@ class Uid2IdMapper:
         Returns:
             bool: True if the mapping was updated successfully, False otherwise.
         """
-        # TODO: remove active filter later
-        query = """
-            query getMapOfUid2Id($uids: [String!], $mgmId: Int!) {
-                service(where: {svc_uid: {_in: $uids}, mgm_id: {_eq: $mgmId}, removed: {_is_null: true}, active: {_eq: true}}) {
-                    svc_id
-                    svc_uid
-                }
-            }
-            """
+        query = get_graphql_code([fwo_const.graphqlQueryPath + "networkService/getmapOfUid2Id.graphql"])
         if uids is not None:
             if len(uids) == 0:
                 self.log_debug("Service object mapping updated for 0 objects")
@@ -313,15 +302,7 @@ class Uid2IdMapper:
         Returns:
             bool: True if the mapping was updated successfully, False otherwise.
         """
-        # TODO: remove active filter later
-        query = """
-            query getMapOfUid2Id($uids: [String!], $mgmId: Int!) {
-                usr(where: {user_uid: {_in: $uids}, mgm_id: {_eq: $mgmId}, removed: {_is_null: true}, active: {_eq: true}}) {
-                    user_id
-                    user_uid
-                }
-            }
-            """
+        query = get_graphql_code([fwo_const.graphqlQueryPath + "user/getmapOfUid2Id.graphql"])
         if uids is not None:
             if len(uids) == 0:
                 self.log_debug("User mapping updated for 0 objects")
@@ -356,14 +337,7 @@ class Uid2IdMapper:
         Returns:
             bool: True if the mapping was updated successfully, False otherwise.
         """
-        query = """
-            query getMapOfUid2Id($uids: [String!], $mgmId: Int!) {
-                rule(where: {rule_uid: {_in: $uids}, mgm_id: {_eq: $mgmId}, removed: {_is_null: true}}) {
-                    rule_id
-                    rule_uid
-                }
-            }
-            """
+        query = get_graphql_code([fwo_const.graphqlQueryPath + "rule/getmapOfUid2Id.graphql"])
         if uids is not None:
             if len(uids) == 0:
                 self.log_debug("Rule mapping updated for 0 objects")

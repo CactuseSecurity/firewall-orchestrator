@@ -160,13 +160,7 @@ class FwoApi():
         
         for new_return_object_type, new_return_object in response["data"].items():
             if 'data' in return_object.keys():
-                if not isinstance(return_object["data"].get(new_return_object_type), dict):
-                    return_object["data"][new_return_object_type] = {}
-                    return_object["data"][new_return_object_type]["affected_rows"] = 0
-                    return_object["data"][new_return_object_type]["returning"] = []
-                return_object["data"][new_return_object_type]["affected_rows"] += new_return_object["affected_rows"]
-                if "returning" in return_object["data"][new_return_object_type].keys():
-                    return_object["data"][new_return_object_type]["returning"].extend(new_return_object["returning"])
+                self._handle_chunked_calls_response_with_return_data(return_object, new_return_object_type, new_return_object)
             else:
                 if 'affected_rows' not in new_return_object:
                     getFwoLogger().warning(f"no data found: {return_object} not found in return_object['data'].")
@@ -175,6 +169,14 @@ class FwoApi():
                         getFwoLogger().warning(f"no data found: {new_return_object} not found in return_object['data'].")
         return return_object
 
+    def _handle_chunked_calls_response_with_return_data(self, return_object, new_return_object_type, new_return_object):
+        if not isinstance(return_object["data"].get(new_return_object_type), dict):
+            return_object["data"][new_return_object_type] = {}
+            return_object["data"][new_return_object_type]["affected_rows"] = 0
+            return_object["data"][new_return_object_type]["returning"] = []
+        return_object["data"][new_return_object_type]["affected_rows"] += new_return_object["affected_rows"]
+        if "returning" in return_object["data"][new_return_object_type].keys():
+            return_object["data"][new_return_object_type]["returning"].extend(new_return_object["returning"])
 
     def _post_query(self, session, query_payload):
         """

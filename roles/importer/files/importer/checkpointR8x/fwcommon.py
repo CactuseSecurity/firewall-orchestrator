@@ -467,7 +467,7 @@ def get_objects(nativeConfig: dict, importState: ImportStateController) -> int:
         
         # getting Original (NAT) object (both for networks and services)
         sid = loginCp(managerDetails)
-        if manager_index == 0:
+        if managerDetails.IsSuperManager:
             origObj = cp_getter.getObjectDetailsFromApi(cp_const.original_obj_uid, sid=sid, apiurl=cpManagerApiBaseUrl)['chunks'][0]
             anyObj = cp_getter.getObjectDetailsFromApi(cp_const.any_obj_uid, sid=sid, apiurl=cpManagerApiBaseUrl)['chunks'][0]
             noneObj = cp_getter.getObjectDetailsFromApi(cp_const.none_obj_uid, sid=sid, apiurl=cpManagerApiBaseUrl)['chunks'][0]

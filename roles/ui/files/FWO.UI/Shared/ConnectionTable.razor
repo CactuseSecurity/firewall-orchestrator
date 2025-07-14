@@ -203,7 +203,7 @@
 
     private string GetTableClass()
     {
-        return $"table table-bordered th-bg-secondary sticky-header table-responsive {(UseResponsiveTable ? "connectiontable-responsive" : "")}";
+        return $"table table-bordered th-bg-secondary sticky-header table-responsive {(UseResponsiveTable ? "connectiontable" : "")}";
     }
 
     private void ToggleSelection(ModellingConnection conn)

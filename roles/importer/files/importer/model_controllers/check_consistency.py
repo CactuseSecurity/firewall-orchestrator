@@ -3,255 +3,382 @@ import json
 import fwo_const
 from fwo_log import getFwoLogger
 from model_controllers.fwconfig_import import FwConfigImport
+from model_controllers.import_state_controller import ImportStateController
+from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
+from model_controllers.fwconfig_normalized_controller import FwConfigNormalizedController
 from model_controllers.fwconfig_import_object import FwConfigImportObject
+from models.fwconfig_normalized import FwConfigNormalized
+from fwo_base import ConfFormat
+from services.service_provider import ServiceProvider
+from services.enums import Services
+import fwo_exceptions
 
 
 # this class is used for importing a config into the FWO API
 class FwConfigImportCheckConsistency(FwConfigImport):
+    issues: dict = {}
+    maps: FwConfigImportObject # = FwConfigImportObject()
+    config: FwConfigNormalizedController = FwConfigNormalizedController(ConfFormat.NORMALIZED, FwConfigNormalized())
+
+    # merges all configs in the set together to prepare for consistency checks
+    def __init__(self, import_details: ImportStateController, config_list: FwConfigManagerListController):
+        service_provider = ServiceProvider()
+        self._global_state = service_provider.get_service(Services.GLOBAL_STATE)
+        self.import_state = import_details
+        self.maps = FwConfigImportObject()
+        
+        for mgr in config_list.ManagerSet:
+            for cfg in mgr.Configs:
+                import_worker = FwConfigImport()
+                self.config.merge(cfg)
+                self.maps.NetworkObjectTypeMap.update(import_worker.fwconfig_import_object.NetworkObjectTypeMap)
+                self.maps.ServiceObjectTypeMap.update(import_worker.fwconfig_import_object.ServiceObjectTypeMap)
+                self.maps.UserObjectTypeMap.update(import_worker.fwconfig_import_object.UserObjectTypeMap)
+
+
+    # pre-flight checks
+    def checkConfigConsistency(self, config: FwConfigNormalized = None):
+        self.checkColorConsistency(config, fix=True)
+        self.checkNetworkObjectConsistency(config)
+        self.checkServiceObjectConsistency(config)
+        self.checkUserObjectConsistency(config)
+        self.checkZoneObjectConsistency(config)
+        self.check_rulebase_consistency(config)
+        self.check_gateway_consistency(config)
+        self.check_rulebase_link_consistency(config)
+
+        if len(self.issues)>0:
+            self.import_state.addError("Inconsistencies found in the configuration: " + str(self.issues))
+            raise fwo_exceptions.FwoImporterErrorInconsistencies("Inconsistencies found in the configuration.")
+
+        if self.import_state.DebugLevel >= 1:
+            getFwoLogger().info("Consistency check completed without issues.")
+
+
+    def checkNetworkObjectConsistency(self, config: FwConfigManagerListController = None):
+        # check if all uid refs are valid
+        all_used_obj_refs = []
+        # add all new obj refs from all rules
+
+        for mgr in config.ManagerSet:
+            for single_config in mgr.Configs:
+
+                for rb in single_config.rulebases:
+                    all_used_obj_refs = self._collect_all_used_objects_from_rules(rb)
+                
+                all_used_obj_refs += self._collect_all_used_objects_from_groups(single_config)
+
+                # now make list unique and get all refs not contained in network_objects
+                all_used_obj_refs = set(all_used_obj_refs)
+
+            # TODO: do not check against single_config.network_objects but against all obj below super manager
+            unresolvable_nw_obj_refs = all_used_obj_refs - config.get_all_network_object_uids(mgr.ManagerUid)
+            if len(unresolvable_nw_obj_refs)>0:
+                self.issues.update({'unresolvableNwObRefs': list(unresolvable_nw_obj_refs)})
+
+            self._check_network_object_types_exist(single_config)
+            self._check_objects_with_missing_ips(single_config)
+
+
+    def _check_network_object_types_exist(self, single_config):
+        allUsedObjTypes = set()
+        for objId in single_config.network_objects:
+            allUsedObjTypes.add(single_config.network_objects[objId].obj_typ)
+        allUsedObjTypes = list(set(allUsedObjTypes))
+        missingNwObjTypes = allUsedObjTypes - self.maps.NetworkObjectTypeMap.keys()
+        if len(missingNwObjTypes)>0:
+            self.issues.update({'unresolvableNwObjTypes': list(missingNwObjTypes)})
+
+
+    @staticmethod
+    def _collect_all_used_objects_from_groups(single_config):
+        all_used_obj_refs = []
+        # add all nw obj refs from groups
+        for obj_id in single_config.network_objects:
+            if single_config.network_objects[obj_id].obj_typ=='group':
+                if single_config.network_objects[obj_id].obj_member_refs is not None:
+                    all_used_obj_refs += single_config.network_objects[obj_id].obj_member_refs.split(fwo_const.list_delimiter)
+        return all_used_obj_refs
     
 
-    def __init__(self, config: FwConfigImport):
-        self.ImportDetails = config.ImportDetails
-        self.NormalizedConfig = config.NormalizedConfig
-        self.NetworkObjectTypeMap = config.fwconfig_import_object.NetworkObjectTypeMap
-        self.ServiceObjectTypeMap = config.fwconfig_import_object.ServiceObjectTypeMap
-        self.UserObjectTypeMap = config.fwconfig_import_object.UserObjectTypeMap
-
+    def _collect_all_used_objects_from_rules(self, rb):
+        all_used_obj_refs = []
+        for rule_id in rb.Rules:
+            all_used_obj_refs += rb.Rules[rule_id].rule_src_refs.split(fwo_const.list_delimiter)
+            all_used_obj_refs += rb.Rules[rule_id].rule_dst_refs.split(fwo_const.list_delimiter)
         
-    # pre-flight checks
-    def checkConfigConsistency(self):
-        issues = {}
-        issues.update(self.checkColorConsistency(fix=True))
-        issues.update(self.checkNetworkObjectConsistency())
-        issues.update(self.checkServiceObjectConsistency())
-        issues.update(self.checkUserObjectConsistency())
-        issues.update(self.checkZoneObjectConsistency())
-        issues.update(self.checkRuleConsistency())
-        issues.update(self.checkGatewayConsistency())
-        if len(issues)>0:
-            logger = getFwoLogger()
-            logger.warning(f'config not imported due to the following inconsistencies: {json.dumps(issues, indent=3)}')
-            self.ImportDetails.increaseErrorCounterByOne()
-
-        return issues
-
-    def checkNetworkObjectConsistency(self):
-        issues = {}
-        # check if all uid refs are valid
-        allUsedObjRefs = []
-        # add all new obj refs from all rules
-        for rb in self.NormalizedConfig.rulebases:
-            for ruleId in rb.Rules:
-                allUsedObjRefs += rb.Rules[ruleId].rule_src_refs.split(fwo_const.list_delimiter)
-                allUsedObjRefs += rb.Rules[ruleId].rule_dst_refs.split(fwo_const.list_delimiter)
-
-        # add all nw obj refs from groups
-        for objId in self.NormalizedConfig.network_objects:
-            if self.NormalizedConfig.network_objects[objId].obj_typ=='group':
-                if self.NormalizedConfig.network_objects[objId].obj_member_refs is not None:
-                    allUsedObjRefs += self.NormalizedConfig.network_objects[objId].obj_member_refs.split(fwo_const.list_delimiter)
-
-            # TODO: also check color
-
-        # now make list unique and get all refs not contained in network_objects
-        allUsedObjRefsUnique = list(set(allUsedObjRefs))
-        unresolvableNwObRefs = allUsedObjRefsUnique - self.NormalizedConfig.network_objects.keys()
-        if len(unresolvableNwObRefs)>0:
-            issues.update({'unresolvableNwObRefs': list(unresolvableNwObRefs)})
-
-        # check that all obj_typ exist 
-        allUsedObjTypes = set()
-        for objId in self.NormalizedConfig.network_objects:
-            allUsedObjTypes.add(self.NormalizedConfig.network_objects[objId].obj_typ)
-        allUsedObjTypes = list(set(allUsedObjTypes))
-        missingNwObjTypes = allUsedObjTypes - self.NetworkObjectTypeMap.keys()
-        if len(missingNwObjTypes)>0:
-            issues.update({'unresolvableNwObjTypes': list(missingNwObjTypes)})
+        return all_used_obj_refs
 
 
+    def _check_objects_with_missing_ips(self, single_config):
         # check if there are any objects with obj_typ<>group and empty ip addresses (breaking constraint)
         nonGroupNwObjWithMissingIps = []
-        for objId in self.NormalizedConfig.network_objects:
-            if self.NormalizedConfig.network_objects[objId].obj_typ!='group':
-                ip1 = self.NormalizedConfig.network_objects[objId].obj_ip
-                ip2 = self.NormalizedConfig.network_objects[objId].obj_ip_end
+        for objId in single_config.network_objects:
+            if single_config.network_objects[objId].obj_typ!='group':
+                ip1 = single_config.network_objects[objId].obj_ip
+                ip2 = single_config.network_objects[objId].obj_ip_end
                 if ip1==None or ip2==None:
-                    nonGroupNwObjWithMissingIps.append(self.NormalizedConfig.network_objects[objId])
+                    nonGroupNwObjWithMissingIps.append(single_config.network_objects[objId])
         if len(nonGroupNwObjWithMissingIps)>0:
-            issues.update({'non-group network object with undefined IP addresse(s)': list(nonGroupNwObjWithMissingIps)})
+            self.issues.update({'non-group network object with undefined IP addresse(s)': list(nonGroupNwObjWithMissingIps)})
 
-        return issues
-    
-    def checkServiceObjectConsistency(self):
-        issues = {}
+
+    def checkServiceObjectConsistency(self, config: FwConfigManagerListController = None):
         # check if all uid refs are valid
+        all_used_obj_refs = []
+
+        for mgr in config.ManagerSet:
+            for single_config in mgr.Configs:
+
+                all_used_obj_refs += self._collect_service_object_refs_from_rules(single_config)
+
+                all_used_obj_refs += self._collect_all_service_object_refs_from_groups(single_config)
+
+                self._check_service_object_types_exist(single_config)
+
+            # now make list unique and get all refs not contained in service_objects
+            allUsedObjRefsUnique = set(all_used_obj_refs)
+            unresolvableObRefs = allUsedObjRefsUnique - config.get_all_service_object_uids(mgr.ManagerUid)
+            if len(unresolvableObRefs)>0:
+                self.issues.update({'unresolvableSvcObRefs': list(unresolvableObRefs)})
+
+
+
+    def _check_service_object_types_exist(self, single_config):
+        # check that all obj_typ exist 
+        all_used_obj_types = set()
+        for obj_id in single_config.service_objects:
+            all_used_obj_types.add(single_config.service_objects[obj_id].svc_typ)
+        all_used_obj_types = list(set(all_used_obj_types))
+        missing_obj_types = all_used_obj_types - self.maps.ServiceObjectTypeMap.keys()
+        if len(missing_obj_types)>0:
+            self.issues.update({'unresolvableSvcObjTypes': list(missing_obj_types)})
+
+    @staticmethod
+    def _collect_all_service_object_refs_from_groups(single_config):
         allUsedObjRefs = []
-        # add all new obj refs from all rules
-        for rb in self.NormalizedConfig.rulebases:
+        for objId in single_config.service_objects:
+            if single_config.service_objects[objId].svc_typ=='group':
+                if single_config.service_objects[objId].svc_member_refs is not None:
+                    allUsedObjRefs += single_config.service_objects[objId].svc_member_refs.split(fwo_const.list_delimiter)
+        return allUsedObjRefs
+
+    @staticmethod
+    def _collect_service_object_refs_from_rules(single_config):
+        allUsedObjRefs = []
+        for rb in single_config.rulebases:
             for ruleId in rb.Rules:
                 allUsedObjRefs += rb.Rules[ruleId].rule_svc_refs.split(fwo_const.list_delimiter)
+        return allUsedObjRefs
 
-        # add all svc obj refs from groups
-        for objId in self.NormalizedConfig.service_objects:
-            if self.NormalizedConfig.service_objects[objId].svc_typ=='group':
-                if self.NormalizedConfig.service_objects[objId].svc_member_refs is not None:
-                    allUsedObjRefs += self.NormalizedConfig.service_objects[objId].svc_member_refs.split(fwo_const.list_delimiter)
 
-        # now make list unique and get all refs not contained in service_objects
-        allUsedObjRefsUnique = list(set(allUsedObjRefs))
-        unresolvableObRefs = allUsedObjRefsUnique - self.NormalizedConfig.service_objects.keys()
-        if len(unresolvableObRefs)>0:
-            issues.update({'unresolvableSvcObRefs': list(unresolvableObRefs)})
-
-        # check that all obj_typ exist 
-        allUsedObjTypes = set()
-        for objId in self.NormalizedConfig.service_objects:
-            allUsedObjTypes.add(self.NormalizedConfig.service_objects[objId].svc_typ)
-        allUsedObjTypes = list(set(allUsedObjTypes))
-        missingObjTypes = allUsedObjTypes - self.ServiceObjectTypeMap.keys()
-        if len(missingObjTypes)>0:
-            issues.update({'unresolvableSvcObjTypes': list(missingObjTypes)})
-
-        return issues
-    
-    def checkUserObjectConsistency(self):
-
-        def collectUsersFromRule(listOfElements):
-            userRefs = []
-            for el in listOfElements:
-                splitResult = el.split(fwo_const.user_delimiter)
-                if len(splitResult)==2:
-                    allUsedObjRefs.append(splitResult[0])
-            return userRefs
-
-        issues = {}
-        # check if all uid refs are valid
+    def checkUserObjectConsistency(self, config: FwConfigManagerListController = None):
         allUsedObjRefs = []
         # add all user refs from all rules
-        for rb in self.NormalizedConfig.rulebases:
+        for mgr in config.ManagerSet:
+            for single_config in mgr.Configs:
+                allUsedObjRefs += self._collect_users_from_rules(single_config)
+                self._collect_users_from_groups(single_config, allUsedObjRefs)
+                self._check_user_types_exist(single_config)
+
+            # now make list unique and get all refs not contained in users
+            allUsedObjRefsUnique = set(allUsedObjRefs)
+            unresolvableObRefs = allUsedObjRefsUnique - config.get_all_user_object_uids(mgr.ManagerUid)
+            if len(unresolvableObRefs)>0:
+                self.issues.update({'unresolvableUserObRefs': list(unresolvableObRefs)})
+
+
+    def _collect_users_from_rules(self, single_config):
+        allUsedObjRefs = []
+        for rb in single_config.rulebases:
             for ruleId in rb.Rules:
                 if fwo_const.user_delimiter in rb.Rules[ruleId].rule_src_refs:
-                    allUsedObjRefs += collectUsersFromRule(rb.Rules[ruleId].rule_src_refs.split(fwo_const.list_delimiter))
-                    allUsedObjRefs += collectUsersFromRule(rb.Rules[ruleId].rule_dst_refs.split(fwo_const.list_delimiter))
+                    allUsedObjRefs += self._collectUsersFromRule(rb.Rules[ruleId].rule_src_refs.split(fwo_const.list_delimiter))
+                    allUsedObjRefs += self._collectUsersFromRule(rb.Rules[ruleId].rule_dst_refs.split(fwo_const.list_delimiter))
+        return allUsedObjRefs
 
-        # add all user obj refs from groups
-        for objId in self.NormalizedConfig.users:
+
+    def _collect_users_from_groups(self, single_config, allUsedObjRefs):
+        for objId in single_config.users:
             if self.users[objId].user_typ=='group':
                 if self.users[objId].user_member_refs is not None:
                     allUsedObjRefs += self.users[objId].user_member_refs.split(fwo_const.list_delimiter)
 
-        # now make list unique and get all refs not contained in users
-        allUsedObjRefsUnique = list(set(allUsedObjRefs))
-        unresolvableObRefs = allUsedObjRefsUnique - self.NormalizedConfig.users.keys()
-        if len(unresolvableObRefs)>0:
-            issues.update({'unresolvableUserObRefs': list(unresolvableObRefs)})
 
+    def _check_user_types_exist(self, single_config):
         # check that all obj_typ exist 
         allUsedObjTypes = set()
-        for objId in self.NormalizedConfig.users:
-            allUsedObjTypes.add(self.NormalizedConfig.users[objId].user_typ)
+        for objId in single_config.users:
+            allUsedObjTypes.add(single_config.users[objId].user_typ)
         allUsedObjTypes = list(set(allUsedObjTypes))    # make list unique
-        missingObjTypes = allUsedObjTypes - self.UserObjectTypeMap.keys()
+        missingObjTypes = allUsedObjTypes - self.maps.UserObjectTypeMap.keys()
         if len(missingObjTypes)>0:
-            issues.update({'unresolvableUserObjTypes': list(missingObjTypes)})
+            self.issues.update({'unresolvableUserObjTypes': list(missingObjTypes)})
 
-        return issues
+
+    @staticmethod
+    def _collectUsersFromRule(listOfElements):
+        userRefs = []
+        for el in listOfElements:
+            splitResult = el.split(fwo_const.user_delimiter)
+            if len(splitResult)==2:
+                userRefs.append(splitResult[0])
+        return userRefs
+
     
-    def checkZoneObjectConsistency(self):
-        issues = {}
-        # check if all uid refs are valid
-        allUsedObjRefs = []
-        # add all zone refs from all rules
-        for rb in self.NormalizedConfig.rulebases:
+    def checkZoneObjectConsistency(self, config: FwConfigManagerListController = None):
+        all_used_zone_refs = set()
+        for mgr in config.ManagerSet:
+            for single_config in mgr.Configs:
+                all_used_zone_refs = all_used_zone_refs.union(self._collect_zone_refs_from_rules(single_config))
+
+                # we currently do not have zone groups - skipping group ref handling
+                # we currently do not have zone types - skipping type handling
+
+            self._check_zone_refs(single_config, all_used_zone_refs, config.get_all_zone_uids(mgr.ManagerUid))
+
+
+    def _check_zone_refs(self, single_config, all_used_zone_refs, all_zone_uids):
+        # now make list unique and get all refs not contained in zone_objects
+        all_used_zone_refs = set(all_used_zone_refs)
+        unresolvable_zone_refs = all_used_zone_refs - all_zone_uids
+        if len(unresolvable_zone_refs)>0:
+            self.issues.update({'unresolvableZoneRefs': list(unresolvable_zone_refs)})
+    
+    @staticmethod
+    def _collect_zone_refs_from_rules(single_config):
+        all_used_zones_refs = []
+        for rb in single_config.rulebases:
             for ruleId in rb.Rules:
                 if rb.Rules[ruleId].rule_src_zone is not None:
-                    allUsedObjRefs += rb.Rules[ruleId].rule_src_zone
+                    all_used_zones_refs += rb.Rules[ruleId].rule_src_zone
                 if rb.Rules[ruleId].rule_dst_zone is not None:
-                    allUsedObjRefs += rb.Rules[ruleId].rule_dst_zone
+                    all_used_zones_refs += rb.Rules[ruleId].rule_dst_zone
+        return set(all_used_zones_refs)
 
-        # we currently do not have zone groups - skipping group ref handling
 
-        # now make list unique and get all refs not contained in zone_objects
-        allUsedObjRefsUnique = list(set(allUsedObjRefs))
-        unresolvableObRefs = allUsedObjRefsUnique - self.NormalizedConfig.zone_objects.keys()
-        if len(unresolvableObRefs)>0:
-            issues.update({'unresolvableZoneObRefs': list(unresolvableObRefs)})
-
-        # we currently do not have zone types - skipping type handling
-        return issues
-    
     # check if all color refs are valid (in the DB)
     # fix=True means that missing color refs will be replaced by the default color (black)
-    def checkColorConsistency(self, fix=True):
-        issues = {}
+    def checkColorConsistency(self, config: FwConfigNormalized, fix=True):
+        self.import_state.SetColorRefMap()
+        
+        # collect all colors
+
+        for mgr in config.ManagerSet:
+            for single_config in mgr.Configs:
+
+                allUsedNwObjColorRefSet, allUsedSvcColorRefSet, allUsedUserColorRefSet = \
+                    self._collect_all_used_colors(single_config)
+ 
+                unresolvableNwObjColors, unresolvableSvcColors, unresolvableUserColors = \
+                    self._check_resolvability_of_used_colors(allUsedNwObjColorRefSet, allUsedSvcColorRefSet, allUsedUserColorRefSet)
+
+                if fix:
+                    self._fix_colors(single_config, unresolvableNwObjColors, unresolvableSvcColors, unresolvableUserColors)
+                elif len(unresolvableNwObjColors)>0 or len(unresolvableSvcColors)>0 or len(unresolvableUserColors)>0:
+                    self.issues.update({ 'unresolvableColorRefs': 
+                        {'nwObjColors': unresolvableNwObjColors, 'svcColors': unresolvableSvcColors, 'userColors': unresolvableUserColors}})
+
+
+    @staticmethod
+    def _collect_all_used_colors(single_config):
         allUsedNwObjColorRefSet = set()
         allUsedSvcColorRefSet = set()
         allUsedUserColorRefSet = set()
+
+        for uid in single_config.network_objects:
+            if single_config.network_objects[uid].obj_color is not None:
+                allUsedNwObjColorRefSet.add(single_config.network_objects[uid].obj_color)
+        for uid in single_config.service_objects:
+            if single_config.service_objects[uid].svc_color is not None:
+                allUsedSvcColorRefSet.add(single_config.service_objects[uid].svc_color)
+        for uid in single_config.users:
+            if single_config.users[uid].user_color is not None:
+                allUsedUserColorRefSet.add(single_config.users[uid].user_color)
+
+        return allUsedNwObjColorRefSet, allUsedSvcColorRefSet, allUsedUserColorRefSet
+
+
+    def _check_resolvability_of_used_colors(self, allUsedNwObjColorRefSet, allUsedSvcColorRefSet, allUsedUserColorRefSet):
         unresolvableNwObjColors = []
         unresolvableSvcColors = []
         unresolvableUserColors = []
-
-        self.ImportDetails.SetColorRefMap()
-        
-        # collect all colors
-        for uid in self.NormalizedConfig.network_objects:
-            if self.NormalizedConfig.network_objects[uid].obj_color is not None:
-                allUsedNwObjColorRefSet.add(self.NormalizedConfig.network_objects[uid].obj_color)
-        for uid in self.NormalizedConfig.service_objects:
-            if self.NormalizedConfig.service_objects[uid].svc_color is not None:
-                allUsedSvcColorRefSet.add(self.NormalizedConfig.service_objects[uid].svc_color)
-        for uid in self.NormalizedConfig.users:
-            if self.NormalizedConfig.users[uid].user_color is not None:
-                allUsedUserColorRefSet.add(self.NormalizedConfig.users[uid].user_color)
+        # check all nwobj color refs
+        for color_string in allUsedNwObjColorRefSet:
+            color_id = self.import_state.lookupColorId(color_string)
+            if color_id is None:
+                unresolvableNwObjColors.append(color_string)
 
         # check all nwobj color refs
-        for colorString in allUsedNwObjColorRefSet:
-            colorId = self.ImportDetails.lookupColorId(colorString)
-            if colorId is None:
-                unresolvableNwObjColors.append(colorString)
-
-        # check all nwobj color refs
-        for colorString in allUsedSvcColorRefSet:
-            colorId = self.ImportDetails.lookupColorId(colorString)
-            if colorId is None:
-                unresolvableSvcColors.append(colorString)
+        for color_string in allUsedSvcColorRefSet:
+            color_id = self.import_state.lookupColorId(color_string)
+            if color_id is None:
+                unresolvableSvcColors.append(color_string)
 
         # check all user color refs
-        for colorString in allUsedUserColorRefSet:
-            colorId = self.ImportDetails.lookupColorId(colorString)
-            if colorId is None:
-                unresolvableUserColors.append(colorString)
+        for color_string in allUsedUserColorRefSet:
+            color_id = self.import_state.lookupColorId(color_string)
+            if color_id is None:
+                unresolvableUserColors.append(color_string)
+        
+        return unresolvableNwObjColors, unresolvableSvcColors, unresolvableUserColors
 
-        if fix:
-            for colorString in unresolvableNwObjColors:
-                # replace with default color
-                for uid in self.NormalizedConfig.network_objects:
-                    if self.NormalizedConfig.network_objects[uid].obj_color==colorString:
-                        self.NormalizedConfig.network_objects[uid].obj_color = fwo_const.defaultColor
-            for colorString in unresolvableSvcColors:
-                # replace with default color
-                for uid in self.NormalizedConfig.service_objects:
-                    if self.NormalizedConfig.service_objects[uid].svc_color==colorString:
-                        self.NormalizedConfig.service_objects[uid].svc_color = fwo_const.defaultColor
-            for colorString in unresolvableUserColors:
-                # replace with default color
-                for uid in self.NormalizedConfig.users:
-                    if self.NormalizedConfig.users[uid].user_color==colorString:
-                        self.NormalizedConfig.users[uid].user_color = fwo_const.defaultColor
 
-        elif len(unresolvableNwObjColors)>0 or len(unresolvableSvcColors)>0 or len(unresolvableUserColors)>0:
-            issues.update({ 'unresolvableColorRefs': 
-                {'nwObjColors': unresolvableNwObjColors, 'svcColors': unresolvableSvcColors, 'userColors': unresolvableUserColors}})
-        return issues
+    @staticmethod
+    def _fix_colors(config, unresolvable_nw_obj_colors, unresolvable_svc_colors, unresolvable_user_colors):
+        # Replace unresolvable network object colors
+        for obj in config.network_objects.values():
+            if obj.obj_color in unresolvable_nw_obj_colors:
+                obj.obj_color = fwo_const.defaultColor
+        # Replace unresolvable service object colors
+        for obj in config.service_objects.values():
+            if obj.svc_color in unresolvable_svc_colors:
+                obj.svc_color = fwo_const.defaultColor
+        # Replace unresolvable user object colors
+        for obj in config.users.values():
+            if obj.user_color in unresolvable_user_colors:
+                obj.user_color = fwo_const.defaultColor
+
+
+    @staticmethod
+    def _extract_rule_track_n_action_refs(rulebases):
+        track_refs = []
+        action_refs = []
+        for rb in rulebases:
+            track_refs.extend(rule.rule_track for rule in rb.Rules.values())
+            action_refs.extend(rule.rule_action for rule in rb.Rules.values())
+        return track_refs, action_refs
+
+
+    def check_rulebase_consistency(self, config: FwConfigNormalized = None):
+        all_used_track_refs = []
+        all_used_action_refs = []
+
+        for mgr in config.ManagerSet:
+            for single_config in mgr.Configs:
+                track_refs, action_refs = self._extract_rule_track_n_action_refs(single_config.rulebases)
+                all_used_track_refs.extend(track_refs)
+                all_used_action_refs.extend(action_refs)
+
+                all_used_track_refs = list(set(all_used_track_refs))
+                all_used_action_refs = list(set(all_used_action_refs))
+
+                unresolvable_tracks = all_used_track_refs - self.import_state.Tracks.keys()
+                if unresolvable_tracks:
+                    self.issues.update({'unresolvableRuleTracks': list(unresolvable_tracks)})
+
+                unresolvable_actions = all_used_action_refs - self.import_state.Actions.keys()
+                if unresolvable_actions:
+                    self.issues.update({'unresolvableRuleActions': list(unresolvable_actions)})
+
+
+        # e.g. check routing, interfaces refs
+    def check_gateway_consistency(self, config: FwConfigNormalized = None):
+        # TODO: implement
+        pass
+
 
     # e.g. check rule to rule refs
-    def checkRuleConsistency(self):
-        issues = {}
+    def check_rulebase_link_consistency(self, config: FwConfigNormalized = None):
         # TODO: implement
-        return issues
-
-    # e.g. check rule to rule refs
-    def checkGatewayConsistency(self):
-        issues = {}
-        # TODO: implement
-        return issues
+        pass

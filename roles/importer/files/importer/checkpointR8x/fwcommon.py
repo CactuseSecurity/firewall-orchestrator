@@ -118,10 +118,13 @@ def normalize_config(import_state, native_config: json, parsing_config_only: boo
     for native_conf in native_config['domains']:
         normalizedConfigDict = fwo_const.emptyNormalizedFwConfigJsonDict
         normalized_config = normalize_single_manager_config(native_conf, normalizedConfigDict, import_state, parsing_config_only, sid)
-        manager = FwConfigManager(ManagerUid=calcManagerUidHash(import_state.MgmDetails),
-                                    ManagerName=import_state.MgmDetails.Name,
-                                    IsGlobal=import_state.MgmDetails.IsSuperManager, 
+        manager = FwConfigManager(  ManagerName=native_conf['management_name'],
+                                    ManagerUid=native_conf['management_uid'],
+                                    IsGlobal=native_conf['is-super-manger'],
+                                    IsSuperManager=native_conf['is-super-manger'],
                                     DependantManagerUids=[], 
+                                    DomainName=native_conf['domain_name'],
+                                    DomainUid=native_conf['domain_uid'],
                                     Configs=[normalized_config])
         manager_list.addManager(manager)
 
@@ -466,7 +469,7 @@ def get_objects(nativeConfig: dict, importState: ImportStateController) -> int:
         
         # getting Original (NAT) object (both for networks and services)
         sid = loginCp(managerDetails)
-        if manager_index == 0:
+        if managerDetails.IsSuperManager or len(manager_details_list) == 1:
             origObj = cp_getter.getObjectDetailsFromApi(cp_const.original_obj_uid, sid=sid, apiurl=cpManagerApiBaseUrl)['chunks'][0]
             anyObj = cp_getter.getObjectDetailsFromApi(cp_const.any_obj_uid, sid=sid, apiurl=cpManagerApiBaseUrl)['chunks'][0]
             noneObj = cp_getter.getObjectDetailsFromApi(cp_const.none_obj_uid, sid=sid, apiurl=cpManagerApiBaseUrl)['chunks'][0]

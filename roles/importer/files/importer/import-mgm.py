@@ -67,6 +67,7 @@ if __name__ == "__main__":
         )
     except SystemExit:
         error_count = 0
+        raise
     except Exception:
         logger.error("import-mgm - error while importing mgmId=" + str(args.mgmId) + ": " + str(traceback.format_exc()))
         error_count = 1

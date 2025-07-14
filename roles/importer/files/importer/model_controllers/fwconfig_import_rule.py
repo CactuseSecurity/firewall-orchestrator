@@ -303,6 +303,10 @@ class FwConfigImportRule():
     def get_ref_add_statement(self, ref_type, rule, ref_uid):
         if ref_type == RefType.SRC:
             nwobj_uid, user_uid = ref_uid
+            obj_id = self.uid2id_mapper.get_network_object_id(nwobj_uid)
+            if obj_id is None:
+                self.import_details.Stats.addError(f"Network object {nwobj_uid} not found for rule {rule.rule_uid}")
+                raise fwo_exceptions.FwoImporterError(f"Network object {nwobj_uid} not found for rule {rule.rule_uid}")
             new_ref_dict = RuleFrom(
                 rule_id=self.uid2id_mapper.get_rule_id(rule.rule_uid),
                 obj_id=self.uid2id_mapper.get_network_object_id(nwobj_uid),

@@ -37,15 +37,6 @@ class FwConfigNormalizedController():
     def __str__(self):
         return f"{self.action}({str(self.network_objects)})"
 
-    # def stripUnusedElements(self):
-    #     for rb in self.rulebases:
-    #         deleteDictElements(self.rulebases[rb].Rules, ['control_id', 'rulebase_name'])
-
-    #     FwConfigNormalized.deleteControlIdFromDictList(self.network_objects)
-    #     FwConfigNormalized.deleteControlIdFromDictList(self.service_objects)
-    #     FwConfigNormalized.deleteControlIdFromDictList(self.users)
-    #     FwConfigNormalized.deleteControlIdFromDictList(self.zone_objects)
-
     @staticmethod
     def deleteControlIdFromDictList(dictListInOut: dict):
         if isinstance(dictListInOut, List): 
@@ -84,61 +75,16 @@ class FwConfigNormalizedController():
         #                  None  # TODO: global policy UID
         #                  )
 
-    # def writeNormalizedConfigToFile(self, importState):
-    #     if not self == {}:
-    #         logger = getFwoLogger()
-    #         debug_start_time = int(time.time())
-    #         try:
-    #             if fwo_globals.debug_level>5:
-    #                 normalized_config_filename = f"{import_tmp_path}/mgm_id_{str(importState.MgmDetails.Id)}_config_normalized.json"
-    #                 with open(normalized_config_filename, "w") as json_data:
-    #                     if importState.ImportVersion>8:
-    #                         json_data.write(self.toJsonString(prettyPrint=True))
-    #                     else:
-    #                         json_data.write(self.toJsonStringLegacy(prettyPrint=True))
-    #         except Exception:
-    #             logger.error(f"import_management - unspecified error while dumping normalized config to json file: {str(traceback.format_exc())}")
-    #             raise
-
-    #         time_write_debug_json = int(time.time()) - debug_start_time
-    #         logger.debug(f"writeNormalizedConfigToFile - writing normalized config json files duration {str(time_write_debug_json)}s")
-
-
-class FwConfigManager():
-    def __init__(self, ManagerUid: str, IsGlobal: bool=False, DependantManagerUids: List[str]=[], Configs: List[FwConfigNormalized]=[]):
+    
+    def merge(self, config: FwConfigNormalized):
         """
-            mandatory parameter: ManagerUid, 
+        Merges the given config into this config.
         """
-        self.ManagerUid = ManagerUid
-        self.IsGlobal = IsGlobal
-        self.DependantManagerUids = DependantManagerUids
-        self.Configs = Configs
-
-    @classmethod
-    def fromJson(cls, jsonDict):
-        ManagerUid = jsonDict['manager_uid']
-        IsGlobal = jsonDict['is_global']
-        DependantManagerUids = jsonDict['dependant_manager_uids']
-        Configs = jsonDict['configs']
-        return cls(ManagerUid, IsGlobal, DependantManagerUids, Configs)
-
-    def __str__(self):
-        return f"{self.ManagerUid}({str(self.Configs)})"
-
-def deleteDictElements(dictIn: dict, attrNames: List[str]):
-    logger = getFwoLogger()
-    for dName in dictIn:
-        for attr in attrNames:
-            try:
-                del dictIn[dName][attr]
-            except KeyError as e:
-                logger.warning(f"trying to remove element from dict that does not exist: {e}")
-
-def deleteListDictElements(listIn: dict, attrNames: List[str]):
-    logger = getFwoLogger()
-    for element in listIn:
-        for attr in attrNames:
-            try:
-                del element[attr]
-            except KeyError as e:
-                logger.warning(f"trying to remove element from dict that does not exist: {e}")
+        self.NormalizedConfig.action = config.action
+        self.NormalizedConfig.network_objects.update(config.network_objects)
+        self.NormalizedConfig.service_objects.update(config.service_objects)
+        self.NormalizedConfig.users.update(config.users)
+        self.NormalizedConfig.zone_objects.update(config.zone_objects)
+        self.NormalizedConfig.rulebases.extend(config.rulebases)
+        self.NormalizedConfig.gateways.extend(config.gateways)
+        

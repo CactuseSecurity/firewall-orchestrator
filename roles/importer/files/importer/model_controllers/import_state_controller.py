@@ -255,12 +255,12 @@ class ImportStateController(ImportState):
             self.RulebaseMap = {}
             return
         
-        map = {}
+        m = {}
         for rulebase in result['data']['rulebase']:
             rbid = rulebase['id']
-            map.update({rulebase['name']: rbid})
-            map.update({rulebase['uid']: rbid})
-        self.RulebaseMap = map
+            m.update({rulebase['name']: rbid})
+            m.update({rulebase['uid']: rbid})
+        self.RulebaseMap = m
 
     # limited to the current mgm_id
     # creats a dict with key = rule.uid and value = rule.id 
@@ -275,10 +275,10 @@ class ImportStateController(ImportState):
             self.RuleMap = {}
             return
         
-        map = {}
+        m = {}
         for rule in result['data']['rule']:
-            map.update({rule['rule_uid']: rule['rule_id']})
-        self.RuleMap = map
+            m.update({rule['rule_uid']: rule['rule_id']})
+        self.RuleMap = m
 
     # getting all gateways (not limitited to the current mgm_id) to support super managements
     # creates a dict with key = gateway.uid  and value = gateway.id
@@ -301,11 +301,11 @@ class ImportStateController(ImportState):
             self.GatewayMap = {}
             return
         
-        map = {}
+        m = {}
         for gw in result['data']['device']:
-            map.update({gw['dev_name']: gw['dev_id']})
-            map.update({gw['dev_uid']: gw['dev_id']})
-        self.GatewayMap = map
+            m.update({gw['dev_name']: gw['dev_id']})
+            m.update({gw['dev_uid']: gw['dev_id']})
+        self.GatewayMap = m
 
     # getting all managements (not limitited to the current mgm_id) to support super managements
     # creates a dict with key = management.uid  and value = management.id
@@ -330,13 +330,13 @@ class ImportStateController(ImportState):
             self.ManagementMap = {}
             return
         
-        map = {}
+        m = {}
         mgm = result['data']['management'][0]
-        map.update({mgm['mgm_uid']: mgm['mgm_id']})
+        m.update({mgm['mgm_uid']: mgm['mgm_id']})
         for sub_mgr in mgm['sub_managers']:
-            map.update({sub_mgr['mgm_uid']: sub_mgr['mgm_id']})
+            m.update({sub_mgr['mgm_uid']: sub_mgr['mgm_id']})
 
-        self.ManagementMap = map
+        self.ManagementMap = m
 
     def lookupRule(self, ruleUid):
         return self.RuleMap.get(ruleUid, None)

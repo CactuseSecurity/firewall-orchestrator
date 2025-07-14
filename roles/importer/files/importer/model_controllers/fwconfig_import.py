@@ -79,7 +79,6 @@ class FwConfigImport():
                 global_state.normalized_config = config
                 if manager.IsSuperManager:
                     global_state.global_normalized_config = config
-                #fwo_api.update_hit_counter(global_state, config)
                 config_importer = FwConfigImport()
                 config_importer.import_single_config(manager)  #                mgm_id=import_state.lookupManagementId(manager.ManagerUid))
 
@@ -290,4 +289,4 @@ class FwConfigImport():
             return prev_config
         except Exception:
             logger.exception(f"failed to get latest normalized config for mgm id {str(self.import_state.MgmDetails.Id)}: {str(traceback.format_exc())}")
-            raise Exception("error while trying to get the previous config")
+            raise fwo_exceptions.FwoImporterError("error while trying to get the previous config")

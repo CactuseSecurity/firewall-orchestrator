@@ -143,6 +143,7 @@ class Uid2IdMapper:
             self.log_error(f"Rule UID '{uid}' not found in mapping.")
         return rule_id
     
+
     def add_network_object_mappings(self, mappings: List[dict], is_global=False) -> bool:
         """
         Add network object mappings to the internal mapping dictionary.
@@ -154,26 +155,21 @@ class Uid2IdMapper:
         Returns:
             bool: True if the mappings were added successfully, False otherwise.
         """
+        main_map = self.global_nwobj_uid2id if is_global else self.nwobj_uid2id
+        outdated_map = self.outdated_nwobj_uid2id
 
-        if is_global:
-            for mapping in mappings:
-                if 'obj_uid' not in mapping or 'obj_id' not in mapping:
-                    self.log_error("Invalid mapping format. Each mapping must contain 'obj_uid' and 'obj_id'.")
-                    return False
-                if mapping['obj_uid'] in self.global_nwobj_uid2id:
-                    self.outdated_nwobj_uid2id[mapping['obj_uid']] = self.global_nwobj_uid2id[mapping['obj_uid']]
-                self.global_nwobj_uid2id[mapping['obj_uid']] = mapping['obj_id']
-            self.log_debug(f"Added {len(mappings)} global network object mappings.")
-        else:
-            for mapping in mappings:
-                if 'obj_uid' not in mapping or 'obj_id' not in mapping:
-                    self.log_error("Invalid mapping format. Each mapping must contain 'obj_uid' and 'obj_id'.")
-                    return False
-                if mapping['obj_uid'] in self.nwobj_uid2id:
-                    self.outdated_nwobj_uid2id[mapping['obj_uid']] = self.nwobj_uid2id[mapping['obj_uid']]
-                self.nwobj_uid2id[mapping['obj_uid']] = mapping['obj_id']
-            self.log_debug(f"Added {len(mappings)} network object mappings.")
+        for mapping in mappings:
+            if 'obj_uid' not in mapping or 'obj_id' not in mapping:
+                self.log_error("Invalid mapping format. Each mapping must contain 'obj_uid' and 'obj_id'.")
+                return False
+            if mapping['obj_uid'] in main_map:
+                outdated_map[mapping['obj_uid']] = main_map[mapping['obj_uid']]
+            main_map[mapping['obj_uid']] = mapping['obj_id']
+
+        msg = f"Added {len(mappings)} {'global ' if is_global else ''}network object mappings."
+        self.log_debug(msg)
         return True
+
 
     def add_service_object_mappings(self, mappings: List[dict], is_global=False) -> bool:
         """
@@ -186,29 +182,24 @@ class Uid2IdMapper:
         Returns:
             bool: True if the mappings were added successfully, False otherwise.
         """
-        if is_global:
-            for mapping in mappings:
-                if 'svc_uid' not in mapping or 'svc_id' not in mapping:
-                    self.log_error("Invalid mapping format. Each mapping must contain 'svc_uid' and 'svc_id'.")
-                    return False
-                if mapping['svc_uid'] in self.global_svc_uid2id:
-                    self.outdated_svc_uid2id[mapping['svc_uid']] = self.svc_uid2id[mapping['svc_uid']]
-                self.global_svc_uid2id[mapping['svc_uid']] = mapping['svc_id']
-            self.log_debug(f"Added {len(mappings)} service object mappings.")
-        else:
-            for mapping in mappings:
-                if 'svc_uid' not in mapping or 'svc_id' not in mapping:
-                    self.log_error("Invalid mapping format. Each mapping must contain 'svc_uid' and 'svc_id'.")
-                    return False
-                if mapping['svc_uid'] in self.svc_uid2id:
-                    self.outdated_svc_uid2id[mapping['svc_uid']] = self.svc_uid2id[mapping['svc_uid']]
-                self.svc_uid2id[mapping['svc_uid']] = mapping['svc_id']
-            self.log_debug(f"Added {len(mappings)} service object mappings.")
+        main_map = self.global_svc_uid2id if is_global else self.svc_uid2id
+        outdated_map = self.outdated_svc_uid2id
+
+        for mapping in mappings:
+            if 'svc_uid' not in mapping or 'svc_id' not in mapping:
+                self.log_error("Invalid mapping format. Each mapping must contain 'svc_uid' and 'svc_id'.")
+                return False
+            if mapping['svc_uid'] in main_map:
+                outdated_map[mapping['svc_uid']] = main_map[mapping['svc_uid']]
+            main_map[mapping['svc_uid']] = mapping['svc_id']
+
+        self.log_debug(f"Added {len(mappings)} service object mappings.")
         return True
 
-    def add_user_mappings(self, mappings: List[dict]) -> bool:
+
+    def add_user_mappings(self, mappings: List[dict], is_global=False) -> bool:
         """
-        Add user mappings to the internal mapping dictionary.
+        Add user object mappings to the internal mapping dictionary.
 
         Args:
             mappings (List[dict]): A list of dictionaries containing UID and ID mappings.
@@ -217,15 +208,20 @@ class Uid2IdMapper:
         Returns:
             bool: True if the mappings were added successfully, False otherwise.
         """
+        main_map = self.global_user_uid2id if is_global else self.user_uid2id
+        outdated_map = self.outdated_user_uid2id
+
         for mapping in mappings:
             if 'user_uid' not in mapping or 'user_id' not in mapping:
                 self.log_error("Invalid mapping format. Each mapping must contain 'user_uid' and 'user_id'.")
                 return False
-            if mapping['user_uid'] in self.user_uid2id:
-                self.outdated_user_uid2id[mapping['user_uid']] = self.user_uid2id[mapping['user_uid']]
-            self.user_uid2id[mapping['user_uid']] = mapping['user_id']
-        self.log_debug(f"Added {len(mappings)} user mappings.")
+            if mapping['user_uid'] in main_map:
+                outdated_map[mapping['user_uid']] = main_map[mapping['user_uid']]
+            main_map[mapping['user_uid']] = mapping['user_id']
+
+        self.log_debug(f"Added {len(mappings)} service object mappings.")
         return True
+    
 
     def add_rule_mappings(self, mappings: List[dict]) -> bool:
         """
@@ -247,6 +243,7 @@ class Uid2IdMapper:
             self.rule_uid2id[mapping['rule_uid']] = mapping['rule_id']
         self.log_debug(f"Added {len(mappings)} rule mappings.")
         return True
+
 
     def update_network_object_mapping(self, uids: Optional[List[str]] = None) -> bool:
         """

@@ -191,9 +191,7 @@ class GroupFlatsMapper:
 
 
     def get_user(self, group_uid):
-        user = self.global_state.normalized_config.users.get(groupUid, None)
+        user = self.global_state.normalized_config.users.get(group_uid, None)
         if user is None:
-            user = self.global_state.global_normalized_config.users.get(groupUid, None)
-            pass
+            user = self.global_state.global_normalized_config.users.get(group_uid, None)
         return user
-

@@ -5,6 +5,8 @@
 @using FWO.Services.EventMediator.Events
 @using FWO.Services.EventMediator.Interfaces
 @using FWO.Ui.Data
+@using System.Text.Json
+
 @inject ApiConnection apiConnection
 @inject GlobalConfig globalConfig
 @inject UserConfig userConfig
@@ -17,7 +19,7 @@
 @(userConfig.GetText("U5311"))
 <hr />
 
-@if(configData != null)
+@if(configData != null && InitComplete)
 {
     <form onsubmit="return false">
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5411"))">
@@ -179,6 +181,19 @@
                 </Dropdown>
             </div>
         </div>
+        <hr />
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5457"))">
+            <label class="col-form-label col-sm-3">@(userConfig.GetText("availableModules")):</label>
+            <div class="form-group row col-sm-9">
+                @foreach (Module module in Enum.GetValues(typeof(Module)))
+                {
+                    <div class="form-group col-sm-3">
+                        <input id="cbx_@module.ToString()" type="checkbox" @bind="modulesVisibleDict[module]" />
+                        <label for="cbx_@module.ToString()" class="col-form-label">@(module.ToString())</label>
+                    </div>
+                }
+            </div>
+        </div>
     </form>
     <hr />
     <AuthorizeView Roles="@Roles.Admin">
@@ -209,6 +224,9 @@ else
     private Language selectedLanguage = new Language();
     private DateTime autoDiscStartDate = DateTime.Today;
     private DateTime autoDiscStartTime = DateTime.Now.AddSeconds(-DateTime.Now.Second);
+    private List<Module> availableModules { get; set; } = [];
+    private Dictionary<Module, bool> modulesVisibleDict = [];
+    private bool InitComplete = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -221,6 +239,13 @@ else
             configData = await globalConfig.GetEditableConfig();
             selectedLanguage = globalConfig.UiLanguages.FirstOrDefault(l => l.Name == configData.DefaultLanguage) ?? new Language();
             autoDiscStartDate = autoDiscStartTime = configData.AutoDiscoverStartAt;
+            availableModules = JsonSerializer.Deserialize<List<Module>>(string.IsNullOrEmpty(configData.AvailableModules) ? ModuleGroups.AllModulesNumList() : configData.AvailableModules) ?? throw new JsonException("Config data could not be parsed.");
+            modulesVisibleDict = [];
+            foreach(Module module in Enum.GetValues(typeof(Module)).Cast<Module>())
+            {
+                modulesVisibleDict.Add(module, availableModules.Contains(module));
+            }
+            InitComplete = true;
         }
         catch(Exception exception)
         {
@@ -236,6 +261,16 @@ else
             {
                 configData.DefaultLanguage = selectedLanguage.Name;
                 configData.AutoDiscoverStartAt = autoDiscStartDate.Date.Add(autoDiscStartTime.TimeOfDay);
+                availableModules = [];
+                foreach(Module module in modulesVisibleDict.Keys)
+                {
+                    if (modulesVisibleDict[module])
+                    {
+                        availableModules.Add(module);
+                    }
+                }
+                configData.AvailableModules = JsonSerializer.Serialize(availableModules);
+
                 await globalConfig.WriteToDatabase(configData, apiConnection);
                 DisplayMessageInUi(null, userConfig.GetText("change_default"), userConfig.GetText("U5301"), false);
             }

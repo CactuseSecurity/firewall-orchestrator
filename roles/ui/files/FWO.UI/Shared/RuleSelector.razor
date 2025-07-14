@@ -57,16 +57,16 @@
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     [Parameter]
-    public List<Rule> SelectedRules { get; set; } = new List<Rule>();
+    public List<Rule> SelectedRules { get; set; } = [];
 
     [Parameter]
-    public List<Rule> RulesToAdd { get; set; } = new List<Rule>();
+    public List<Rule> RulesToAdd { get; set; } = [];
 
     [Parameter]
     public EventCallback<List<Rule>> RulesToAddChanged { get; set; }
 
     [Parameter]
-    public List<Rule> RulesToDelete { get; set; } = new List<Rule>();
+    public List<Rule> RulesToDelete { get; set; } = [];
 
     [Parameter]
     public EventCallback<List<Rule>> RulesToDeleteChanged { get; set; }
@@ -74,10 +74,10 @@
     [Parameter]
     public bool Readonly { get; set; } = false;
 
-    private List<Device> Devices = new List<Device>();
-    private Device actDevice = new Device();
-    private List<Rule> allRulesOfDevice = new List<Rule>();
-    private Rule actRule = new Rule();
+    private List<Device> Devices = [];
+    private Device actDevice = new();
+    private List<Rule> allRulesOfDevice = [];
+    private Rule actRule = new();
 
 
     protected override async Task OnInitializedAsync()
@@ -88,7 +88,7 @@
             // Devices = await apiConnection.SendQueryAsync<List<Device>>(AuthQueries.getVisibleDeviceIdsPerTenant, new { tenantId = userConfig.User.Tenant?.Id }, "getVisibleDeviceIdsPerTenant");
             if(Devices.Count > 0)
             {
-                await DeviceChanged(Devices.First());
+                await DeviceChanged(Devices[0]);
             }
         }
         catch (Exception exception)
@@ -110,14 +110,17 @@
             List<Management> managementsWithRelevantImportId =
                 await apiConnection.SendQueryAsync<List<Management>>(ReportQueries.getRelevantImportIdsAtTime, Variables);
             
-            var RuleVariables = new
+            if(managementsWithRelevantImportId.Count > 0)
             {
-                devId = newDevice.Id,
-                import_id_start = managementsWithRelevantImportId.First().Import.ImportAggregate.ImportAggregateMax.RelevantImportId,
-                import_id_end   = managementsWithRelevantImportId.First().Import.ImportAggregate.ImportAggregateMax.RelevantImportId
-            };
-            allRulesOfDevice = await apiConnection.SendQueryAsync<List<Rule>>(FWO.Api.Client.Queries.RuleQueries.getRuleUidsOfDevice, RuleVariables);
-            actRule = allRulesOfDevice.FirstOrDefault() ?? new Rule();
+                var RuleVariables = new
+                {
+                    devId = newDevice.Id,
+                    import_id_start = managementsWithRelevantImportId[0].Import.ImportAggregate.ImportAggregateMax.RelevantImportId,
+                    import_id_end   = managementsWithRelevantImportId[0].Import.ImportAggregate.ImportAggregateMax.RelevantImportId
+                };
+                allRulesOfDevice = await apiConnection.SendQueryAsync<List<Rule>>(FWO.Api.Client.Queries.RuleQueries.getRuleUidsOfDevice, RuleVariables);
+            }
+            actRule = allRulesOfDevice.FirstOrDefault() ?? new();
         }
         catch (Exception exception)
         {
@@ -126,7 +129,7 @@
     }
 
     private void AddRule()
-	{
+    {
         RulesToAdd.Add(actRule);
-	}    
+    }    
 }

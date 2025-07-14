@@ -11,9 +11,11 @@ namespace FWO.Data.Workflow
         [JsonProperty("comments"), JsonPropertyName("comments")]
         public List<WfCommentDataHelper> Comments { get; set; } = [];
 
+        public bool Editable { get; set; } = true;
+
 
         public WfTicket()
-        {}
+        { }
 
         public WfTicket(WfTicket ticket) : base(ticket)
         {
@@ -24,12 +26,9 @@ namespace FWO.Data.Workflow
         public int HighestTaskNumber()
         {
             int highestNumber = 0;
-            foreach(var reqtask in Tasks)
+            foreach (var tasknumber in Tasks.Select(r => r.TaskNumber).Where(t => t > highestNumber))
             {
-                if (reqtask.TaskNumber > highestNumber)
-                {
-                    highestNumber = reqtask.TaskNumber;
-                }
+                highestNumber = tasknumber;
             }
             return highestNumber;
         }
@@ -37,7 +36,7 @@ namespace FWO.Data.Workflow
         public int NumberImplTasks()
         {
             int numberImplTasks = 0;
-            foreach(var reqtask in Tasks)
+            foreach (var reqtask in Tasks)
             {
                 numberImplTasks += reqtask.ImplementationTasks.Count;
             }
@@ -48,7 +47,7 @@ namespace FWO.Data.Workflow
         {
             foreach (WfReqTask reqtask in Tasks)
             {
-                foreach(WfReqElement elem in reqtask.Elements)
+                foreach (WfReqElement elem in reqtask.Elements)
                 {
                     elem.IpString = elem.Cidr != null && elem.Cidr.Valid ? elem.Cidr.CidrString : null;
                     elem.IpEnd = elem.CidrEnd != null && elem.CidrEnd.Valid ? elem.CidrEnd.CidrString : null;
@@ -60,7 +59,7 @@ namespace FWO.Data.Workflow
         {
             foreach (WfReqTask reqtask in Tasks)
             {
-                foreach(WfReqElement elem in reqtask.Elements)
+                foreach (WfReqElement elem in reqtask.Elements)
                 {
                     if (elem.IpString != null)
                     {
@@ -71,21 +70,36 @@ namespace FWO.Data.Workflow
                         elem.CidrEnd = new Cidr(elem.IpEnd);
                     }
                 }
-                foreach(WfImplTask implTask in reqtask.ImplementationTasks)
+                UpdateCidrsInImplTaskElements(reqtask.ImplementationTasks);
+            }
+        }
+
+        public static void UpdateCidrsInImplTaskElements(List<WfImplTask> implementationTasks)
+        {
+            foreach (WfImplTask implTask in implementationTasks)
+            {
+                foreach (WfImplElement elem in implTask.ImplElements)
                 {
-                    foreach(WfImplElement elem in implTask.ImplElements)
+                    if (elem.IpString != null)
                     {
-                        if (elem.IpString != null)
-                        {
-                            elem.Cidr = new Cidr(elem.IpString);
-                        }
-                        if (elem.IpEnd != null)
-                        {
-                            elem.CidrEnd = new Cidr(elem.IpEnd);
-                        }
+                        elem.Cidr = new Cidr(elem.IpString);
+                    }
+                    if (elem.IpEnd != null)
+                    {
+                        elem.CidrEnd = new Cidr(elem.IpEnd);
                     }
                 }
             }
+        }
+
+        public bool IsEditableForOwner(List<long> ticketIds, List<int> ownerIds, int requesterId)
+        {
+            return ticketIds.Contains(Id) || Tasks.Any(ta => ta.Owners.Any(ow => ownerIds.Contains(ow.Owner.Id))) || Requester?.DbId == requesterId;
+        }
+
+        public bool IsVisibleForOwner(List<long> ticketIds, List<int> ownerIds, int requesterId)
+        {
+            return IsEditableForOwner(ticketIds, ownerIds, requesterId) || Tasks.Any(ta => ownerIds.Contains(ta.GetAddInfoIntValueOrZero(AdditionalInfoKeys.ReqOwner)));
         }
     }
 }

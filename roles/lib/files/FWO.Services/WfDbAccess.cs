@@ -6,22 +6,8 @@ using FWO.Api.Client.Queries;
 
 namespace FWO.Services
 {
-    public class WfDbAccess
+    public class WfDbAccess(Action<Exception?, string, string, bool> DisplayMessageInUi, UserConfig UserConfig, ApiConnection ApiConnection, ActionHandler ActionHandler, bool AsAdmin)
     {
-        private Action<Exception?, string, string, bool> DisplayMessageInUi = DefaultInit.DoNothing;
-        private readonly UserConfig UserConfig;
-        private readonly ApiConnection ApiConnection;
-        private readonly ActionHandler ActionHandler;
-
-
-        public WfDbAccess(Action<Exception?, string, string, bool> displayMessageInUi, UserConfig userConfig, ApiConnection apiConnection, ActionHandler actionHandler)
-        {
-            DisplayMessageInUi = displayMessageInUi;
-            UserConfig = userConfig;
-            ApiConnection = apiConnection;
-            ActionHandler = actionHandler;
-        }
-
         public async Task<List<WfTicket>> FetchTickets(StateMatrix stateMatrix, List<int>? ownerIds = null, bool allStates = false, bool fullTickets = false)
         {
             List<WfTicket> tickets = [];
@@ -33,9 +19,9 @@ namespace FWO.Services
 
                 var Variables = new { fromState, toState };
                 tickets = await ApiConnection.SendQueryAsync<List<WfTicket>>(fullTickets ? RequestQueries.getFullTickets : RequestQueries.getTickets, Variables);
-                if(UserConfig.ReqOwnerBased && ownerIds != null)
+                if(UserConfig.ReqOwnerBased && !AsAdmin)
                 {
-                    tickets = FilterWrongOwnersOut(tickets, ownerIds);
+                    tickets = await FilterWrongOwnersOut(tickets, ownerIds);
                 }
                 if(fullTickets)
                 {
@@ -58,9 +44,9 @@ namespace FWO.Services
             try
             {
                 ticket = await GetTicket(ticketId);
-                if(UserConfig.ReqOwnerBased && ownerIds != null)
+                if(UserConfig.ReqOwnerBased && !AsAdmin)
                 {
-                    ticket = FilterWrongOwnersOut([ticket], ownerIds).FirstOrDefault();
+                    ticket = (await FilterWrongOwnersOut([ticket], ownerIds)).FirstOrDefault();
                 }
             }
             catch (Exception exception)
@@ -70,29 +56,18 @@ namespace FWO.Services
             return ticket;
         }
 
-        private static List<WfTicket> FilterWrongOwnersOut(List<WfTicket> ticketsIn, List<int> ownerIds)
+        private async Task<List<WfTicket>> FilterWrongOwnersOut(List<WfTicket> ticketsIn, List<int>? ownerIds)
         {
-            List<WfTicket> ticketsOut = [];
-            foreach(var ticket in ticketsIn)
+            if (ownerIds == null || ownerIds.Count == 0)
             {
-                if(ticket.Tasks.FirstOrDefault(ta => ta.TaskType != WfTaskType.new_interface.ToString()) != null
-                    || ticket.Tasks.FirstOrDefault(ta => ta.Owners.Count == 0) != null)
-                {
-                    ticketsOut.Add(ticket);
-                }
-                else
-                {
-                    foreach(var task in ticket.Tasks)
-                    {
-                        if(task.Owners.FirstOrDefault(x => ownerIds.Contains(x.Owner.Id)) != null)
-                        {
-                            ticketsOut.Add(ticket);
-                            break;
-                        }
-                    }
-                }
+                return [];
             }
-            return ticketsOut;
+            List<long> registeredTickets = (await ApiConnection.SendQueryAsync<List<TicketId>>(RequestQueries.getOwnerTicketIds, new { ownerIds })).ConvertAll(t => t.Id);
+            foreach (var ticket in ticketsIn.Where(ti => !ti.IsEditableForOwner(registeredTickets, ownerIds, UserConfig.UserId)))
+            {
+                ticket.Editable = false;
+            }
+            return [.. ticketsIn.Where(ti => ti.IsVisibleForOwner(registeredTickets, ownerIds, UserConfig.UserId))];
         }
 
         public async Task<WfTicket> GetTicket(long id)

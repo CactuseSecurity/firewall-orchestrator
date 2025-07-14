@@ -8,6 +8,7 @@ from fwo_log import ChangeLogger, getFwoLogger
 from model_controllers.import_state_controller import ImportStateController
 from model_controllers.fwconfig_normalized_controller import FwConfigNormalized
 from models.networkobject import NetworkObjectForImport
+from models.fwconfigmanager import FwConfigManager
 from models.serviceobject import ServiceObjectForImport
 import fwo_const
 import fwo_api
@@ -45,7 +46,7 @@ class FwConfigImportObject():
         self.ProtocolMap = self.GetProtocolMap()
 
 
-    def updateObjectDiffs(self, prevConfig: FwConfigNormalized):
+    def updateObjectDiffs(self, prevConfig: FwConfigNormalized, single_manager: FwConfigManager):
 
         # calculate network object diffs
         # here we are handling the previous config as a dict for a while
@@ -98,22 +99,22 @@ class FwConfigImportObject():
 
         # need to do this first, since we need the old object IDs for the group memberships
         #TODO: computationally expensive? Even without changes, all group objects and their members are compared to the previous config.
-        errors, changes = self.removeOutdatedMemberships(prevConfig, Type.NETWORK_OBJECT)
-        errors, changes = self.removeOutdatedMemberships(prevConfig, Type.SERVICE_OBJECT)
-        errors, changes = self.removeOutdatedMemberships(prevConfig, Type.USER)
+        self.removeOutdatedMemberships(prevConfig, Type.NETWORK_OBJECT)
+        self.removeOutdatedMemberships(prevConfig, Type.SERVICE_OBJECT)
+        self.removeOutdatedMemberships(prevConfig, Type.USER)
 
         # add newly created objects
         errors, changes, newNwObjIds, newNwSvcIds, newUserIds, removedNwObjIds, removedNwSvcIds, removedUserIds =  \
             self.updateObjectsViaApi(newNwobjUids, newSvcObjUids, newUserUids, deletedNwobjUids, deletedSvcObjUids, deletedUserUids)
         
-        self.uid2id_mapper.add_network_object_mappings(newNwObjIds)
-        self.uid2id_mapper.add_service_object_mappings(newNwSvcIds)
+        self.uid2id_mapper.add_network_object_mappings(newNwObjIds, is_global=single_manager.IsSuperManager)
+        self.uid2id_mapper.add_service_object_mappings(newNwSvcIds, is_global=single_manager.IsSuperManager)
         self.uid2id_mapper.add_user_mappings(newUserIds)
 
         # insert new and updated group memberships
-        errors, changes = self.addGroupMemberships(prevConfig, Type.NETWORK_OBJECT)
-        errors, changes = self.addGroupMemberships(prevConfig, Type.SERVICE_OBJECT)
-        errors, changes = self.addGroupMemberships(prevConfig, Type.USER)
+        self.addGroupMemberships(prevConfig, Type.NETWORK_OBJECT)
+        self.addGroupMemberships(prevConfig, Type.SERVICE_OBJECT)
+        self.addGroupMemberships(prevConfig, Type.USER)
 
         # these objects have really been deleted so there should be no refs to them anywhere! verify this
 

@@ -17,11 +17,13 @@ class GroupFlatsMapper:
 
     import_state: ImportStateController = None
     normalized_config: FwConfigNormalized = None
+    global_normalized_config: FwConfigNormalized = None
 
     def __init__(self):
         self.global_state = ServiceProvider().get_service(Services.GLOBAL_STATE)
         self.import_state = self.global_state.import_state
         self.normalized_config = self.global_state.normalized_config
+        self.global_normalized_config = self.global_state.global_normalized_config
         self.logger = getFwoLogger()
         self.network_object_flats = {}
         self.service_object_flats = {}
@@ -72,7 +74,7 @@ class GroupFlatsMapper:
             return None
         if groupUid in self.network_object_flats:
             return self.network_object_flats[groupUid]
-        nwobj = self.global_state.normalized_config.network_objects.get(groupUid, None)
+        nwobj = self.get_nwobj(groupUid)
         if nwobj is None:
             self.log_error(f"object with uid {groupUid} not found in network objects of config")
             return None
@@ -88,6 +90,14 @@ class GroupFlatsMapper:
             members.update(flatMembers)
         self.network_object_flats[groupUid] = members
         return members
+
+
+    def get_nwobj(self, group_uid):
+        nwobj = self.global_state.normalized_config.network_objects.get(group_uid, None)
+        if nwobj is None:
+            nwobj = self.global_state.global_normalized_config.network_objects.get(group_uid, None)
+        return nwobj
+
 
     def get_service_object_flats(self, uids: List[str]) -> List[str]:
         """
@@ -114,7 +124,7 @@ class GroupFlatsMapper:
             return None
         if groupUid in self.service_object_flats:
             return self.service_object_flats[groupUid]
-        svcobj = self.global_state.normalized_config.service_objects.get(groupUid, None)
+        svcobj = self.get_svcobj(groupUid)
         if svcobj is None:
             self.log_error(f"object with uid {groupUid} not found in service objects of config")
             return None
@@ -129,6 +139,15 @@ class GroupFlatsMapper:
         self.service_object_flats[groupUid] = members
         return members
     
+
+    def get_svcobj(self, group_uid):
+        svcobj = self.global_state.normalized_config.service_objects.get(group_uid, None)
+        if svcobj is None:
+            svcobj = self.global_state.global_normalized_config.service_objects.get(group_uid, None)
+            pass
+        return svcobj
+
+
     def get_user_flats(self, uids: List[str]) -> List[str]:
         """
         Flatten the user UIDs to all members, including groups, and the top-level group itself.
@@ -154,7 +173,8 @@ class GroupFlatsMapper:
             return None
         if groupUid in self.user_flats:
             return self.user_flats[groupUid]
-        user = self.global_state.normalized_config.users.get(groupUid, None)
+
+        user = self.get_user(groupUid)
         if user is None:
             self.log_error(f"object with uid {groupUid} not found in users of config")
             return None
@@ -168,4 +188,12 @@ class GroupFlatsMapper:
             members.update(flatMembers)
         self.user_flats[groupUid] = members
         return members
-    
+
+
+    def get_user(self, group_uid):
+        user = self.global_state.normalized_config.users.get(groupUid, None)
+        if user is None:
+            user = self.global_state.global_normalized_config.users.get(groupUid, None)
+            pass
+        return user
+

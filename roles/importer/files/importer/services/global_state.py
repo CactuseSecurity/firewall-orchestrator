@@ -7,9 +7,11 @@ class GlobalState:
     import_state: ImportStateController
     previous_config: FwConfigNormalized
     normalized_config: FwConfigNormalized
+    global_normalized_config: FwConfigNormalized
 
     def __init__(self):
         self.import_state = None
         self.previous_config = None
         self.normalized_config = None
+        self.global_normalized_config = None
 

@@ -18,7 +18,6 @@ import fwo_globals
 import fwo_exceptions
 from fwo_base import stringIsUri, ConfigAction, ConfFormat
 import fwo_file_import
-from model_controllers.management_details_controller import ManagementDetailsController
 from model_controllers.fworch_config_controller import FworchConfigController
 from model_controllers.import_state_controller import ImportStateController
 from models.fwconfig_normalized import FwConfig, FwConfigNormalized
@@ -32,10 +31,12 @@ from model_controllers.check_consistency import FwConfigImportCheckConsistency
 from model_controllers.rollback import FwConfigImportRollback
 import fwo_signalling
 from services.service_provider import ServiceProvider
-from services.uid2id_mapper import Uid2IdMapper
-from services.group_flats_mapper import GroupFlatsMapper
 from services.global_state import GlobalState
 from services.enums import Services, Lifetime
+from services.uid2id_mapper import Uid2IdMapper
+from services.group_flats_mapper import GroupFlatsMapper
+from services.enums import Services, Lifetime
+
 
 """  
     import_management: import a single management (if no import for it is running)
@@ -55,92 +56,45 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
     fwo_signalling.registerSignallingHandlers()
     logger = getFwoLogger(debug_level=debug_level_in)
     config_changed_since_last_import = True
-    time_get_config = 0
-    verifyCerts = (ssl_verification is not None)
+    verify_certs = (ssl_verification is not None)
     result = 1  # Default result in case of an error
 
     try:
-        # Register Services.
-
-        service_provider = ServiceProvider()
-        service_provider.register(Services.GLOBAL_STATE, lambda: GlobalState(), Lifetime.SINGLETON)
-        service_provider.register(Services.GROUP_FLATS_MAPPER, lambda: GroupFlatsMapper(), Lifetime.IMPORT)
-        service_provider.register(Services.PREV_GROUP_FLATS_MAPPER, lambda: GroupFlatsMapper(), Lifetime.IMPORT)
-        service_provider.register(Services.UID2ID_MAPPER, lambda: Uid2IdMapper(), Lifetime.IMPORT)
-
+        service_provider = register_services()
+        global_state = service_provider.get_service(Services.GLOBAL_STATE)
         importState = ImportStateController.initializeImport(mgmId, debugLevel=debug_level_in, 
                                                 force=force, version=version, 
-                                                isClearingImport=clearManagementData, isFullImport=False, sslVerification=verifyCerts)
-        if not clearManagementData and importState.DataRetentionDays<importState.DaysSinceLastFullImport:
-            # run clear import; this makes sure the following import is a full one
-            import_management(mgmId=mgmId, ssl_verification=ssl_verification, debug_level_in=debug_level_in, 
-                limit=limit, force=True, clearManagementData=True, suppress_cert_warnings_in=suppress_cert_warnings_in,
-                in_file=in_file, version=version)
-            importState.IsFullImport = True # the now following import is a full one
+                                                isClearingImport=clearManagementData, isFullImport=False, sslVerification=verify_certs)
+        global_state.import_state = importState
 
         if importState.MgmDetails.ImportDisabled and not importState.ForceImport:
             logger.info(f"import_management - import disabled for mgm  {str(mgmId)} - skipping")
-            result = 0
-        else:
-            Path(import_tmp_path).mkdir(parents=True, exist_ok=True)  # make sure tmp path exists
-            gateways = GatewayController.buildGatewayList(importState.MgmDetails)
+            return 0
+        if importState.MgmDetails.ImporterHostname != gethostname() and not importState.ForceImport:
+            logger.info("import_management - this host (" + gethostname() + ") is not responsible for importing management " + str(mgmId))
+            return 0
+        
+        Path(import_tmp_path).mkdir(parents=True, exist_ok=True)  # make sure tmp path exists
+        gateways = GatewayController.buildGatewayList(importState.MgmDetails)
+        logger.info("starting import of management " + importState.MgmDetails.Name + '(' + str(mgmId) + "), import_id=" + str(importState.ImportId))
+        config_importer = FwConfigImport()
 
-            # only run if this is the correct import module
-            if importState.MgmDetails.ImporterHostname != gethostname() and not importState.ForceImport:
-                logger.info("import_management - this host (" + gethostname() + ") is not responsible for importing management " + str(mgmId))
-                result = 0
-            else:
-                fwo_api.setImportLock(importState)
-                logger.info("starting import of management " + importState.MgmDetails.Name + '(' + str(mgmId) + "), import_id=" + str(importState.ImportId))
+        fwo_api.setImportLock(importState)
+        if clearManagementData:
+            config_normalized = config_importer.clear_management(importState)
 
-                if clearManagementData:
-                    configNormalized = clearManagement(importState)
-                if in_file is not None or stringIsUri(importState.MgmDetails.Hostname):                          ### geting config from file ######################
-                    config_changed_since_last_import, configNormalized = \
-                        import_from_file(importState, in_file, gateways)
-                else:
-                    config_changed_since_last_import, configNormalized = get_config_from_api(importState, {})    ### getting config from firewall manager API ######
+        config_changed_since_last_import, config_normalized = get_config_top_level(importState, in_file, gateways)
 
-                configNormalized.storeFullNormalizedConfigToFile(importState)
+        config_normalized.storeFullNormalizedConfigToFile(importState)
+        logger.debug("import_management - getting config total duration " + str(int(time.time()) - importState.StartTime) + "s")
 
-                time_get_config = int(time.time()) - importState.StartTime
-                logger.debug("import_management - getting config total duration " + str(int(time.time()) - importState.StartTime) + "s")
+        if config_changed_since_last_import or importState.ForceImport:
+            FwConfigImportCheckConsistency(importState, config_normalized).checkConfigConsistency(config_normalized)
+            config_importer.import_management_set(importState, service_provider, config_normalized.ManagerSet)
+            fwo_api.update_hit_counter(importState, config_normalized)
 
-                if config_changed_since_last_import or importState.ForceImport:
-                    # Make sure service provider's internal references to state and config are set correctly.
-                    global_state = service_provider.get_service(Services.GLOBAL_STATE)
-                    global_state.import_state = importState
-
-                    FwConfigImportCheckConsistency(importState, configNormalized).checkConfigConsistency(configNormalized)
-
-                    for manager in sorted(configNormalized.ManagerSet, key=lambda m: not getattr(m, 'IsSuperManager', False)):
-                        # the following loop is a preparation for future functionality
-                        # we might add support for multiple configs per manager
-                        # e.g. one config only adds data, one only deletes data, etc.
-                        # currently we always only have one config per manager
-                        for config in manager.Configs:
-                            try:
-                                # Make sure service provider's internal references to state and config are set correctly.
-                                # global_state = service_provider.get_service(Services.GLOBAL_STATE)
-                                # global_state.import_state = importState
-                                global_state.normalized_config = config
-
-                                config_importer = FwConfigImport()
-                                # TODO: move previous config writing outside the manager loop
-                                # TODO: move config comparison outside the manager loop
-                                config_importer.importConfig()
-                                if importState.Stats.ErrorCount>0:
-                                    raise fwo_exceptions.FwoImporterError("Import failed due to errors.")
-                                else:
-                                    config_importer.storeLatestConfig()
-                            except Exception:
-                                importState.addError(str(traceback.format_exc()))
-                                raise
-                            fwo_api.update_hit_counter(importState, config)
-                    fwo_api.update_hit_counter(importState, config)
-
-            if not clearManagementData and importState.DataRetentionDays<importState.DaysSinceLastFullImport:
-                config_importer.deleteOldImports() # delete all imports of the current management before the last but one full import
+        if not clearManagementData and importState.DataRetentionDays<importState.DaysSinceLastFullImport:
+            config_importer.deleteOldImports() # delete all imports of the current management before the last but one full import
 
         # Set the result based on the error count
         if hasattr(importState, 'Stats') and hasattr(importState.Stats, 'ErrorCount'):
@@ -160,11 +114,11 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
         rollBackExceptionHandler(importState, configImporter=config_importer, exc=e, errorText="")
     except fwo_exceptions.FwoImporterErrorInconsistencies:
         fwo_api.delete_import(importState) # delete whole import
+    except ValueError:
+        importState.addError("ValueError - aborting import")
+        raise
     except Exception as e:
-        if 'importState' in locals() and importState is not None:
-            importState.addError("Unexpected exception in import process - aborting " + traceback.format_exc())
-            if 'configImporter' in locals() and config_importer is not None:
-                rollBackExceptionHandler(importState, configImporter=config_importer, exc=e)
+        handle_unexpected_exception(importState=importState, config_importer=config_importer)
     finally:
         try:
             fwo_api.complete_import(importState)
@@ -174,59 +128,12 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
 
     return result
 
-def clearManagement(importState: ImportStateController) -> FwConfigNormalized:
-    logger = getFwoLogger(debug_level=importState.DebugLevel)
-    logger.info('this import run will reset the configuration of this management to "empty"')
-    configNormalized = FwConfigManagerListController()
-    # Reset management
-    configNormalized.addManager(
-        manager=FwConfigManager(
-            ManagerUid=calcManagerUidHash(importState.MgmDetails),
-            ManagerName=importState.MgmDetails.Name,
-            IsSuperManager=importState.MgmDetails.IsSuperManager,
-            SubManagerIds=importState.MgmDetails.SubManagerIds,
-            Configs=[]
-        ))
-    if len(importState.MgmDetails.SubManagerIds)>0:
-        # Read config
-        fwoConfig = FworchConfigController.fromJson(readConfig(fwo_config_filename))
-        fwo_api_base_url = fwoConfig['fwo_api_base_url']
-        # Authenticate to get JWT
-        try:
-            jwt = fwo_api.login(importer_user_name, fwoConfig.ImporterPassword, fwoConfig.FwoUserMgmtApiUri)
-        except Exception as e:
-            logger.error(str(e))
-            raise             
-        # Reset submanagement
-        for subManagerId in importState.MgmDetails.SubManagerIds:
-            # Fetch sub management details
-            mgm_details_raw = fwo_api.get_mgm_details(fwo_api_base_url, jwt, {"mgmId": subManagerId})
-            mgm_details = ManagementDetailsController.fromJson(mgm_details_raw)
-            configNormalized.addManager(
-                manager=FwConfigManager(
-                    ManagerUid=calcManagerUidHash(mgm_details_raw),
-                    ManagerName=mgm_details.Name,
-                    IsSuperManager=mgm_details.IsSuperManager,
-                    SubManagerIds=mgm_details.SubManagerIds,
-                    Configs=[]
-                )
-            )
-    # Reset objects
-    for management in configNormalized.ManagerSet:
-        management.Configs.append(
-            FwConfigNormalized(
-                action=ConfigAction.INSERT, 
-                network_objects=[], 
-                service_objects=[], 
-                users=[], 
-                zone_objects=[], 
-                rulebases=[],
-                gateways=[]
-            )
-        )
-    importState.IsClearingImport = True # the now following import is a full one
-    
-    return configNormalized
+
+def handle_unexpected_exception(importState=None, config_importer=None):
+    if 'importState' in locals() and importState is not None:
+        importState.addError("Unexpected exception in import process - aborting " + traceback.format_exc())
+        if 'configImporter' in locals() and config_importer is not None:
+            rollBackExceptionHandler(importState, configImporter=config_importer, exc=e)
 
 
 def rollBackExceptionHandler(importState, configImporter=None, exc=None, errorText=""):
@@ -248,6 +155,25 @@ def rollBackExceptionHandler(importState, configImporter=None, exc=None, errorTe
         fwo_api.delete_import(importState) # delete whole import
     except Exception as rollbackError:
         logger.error(f"Error during rollback: {type(rollbackError).__name__} - {rollbackError}")
+
+
+def register_services():
+    service_provider = ServiceProvider()
+    service_provider.register(Services.GLOBAL_STATE, lambda: GlobalState(), Lifetime.SINGLETON)
+    service_provider.register(Services.GROUP_FLATS_MAPPER, lambda: GroupFlatsMapper(), Lifetime.IMPORT)
+    service_provider.register(Services.PREV_GROUP_FLATS_MAPPER, lambda: GroupFlatsMapper(), Lifetime.IMPORT)
+    service_provider.register(Services.UID2ID_MAPPER, lambda: Uid2IdMapper(), Lifetime.IMPORT)
+    return service_provider
+
+
+def get_config_top_level(importState: ImportStateController, in_file: str = None, gateways: List[Gateway] = []) -> tuple[bool, FwConfigManagerList]:
+    if in_file is not None or stringIsUri(importState.MgmDetails.Hostname):
+        ### geting config from file ######################
+        return import_from_file(importState, in_file, gateways)
+    else:
+        ### getting config from firewall manager API ######
+        return get_config_from_api(importState, {})    
+
 
 def import_from_file(importState: ImportStateController, fileName: str = "", gateways: List[Gateway] = []) -> tuple[bool, FwConfigManagerList]:
 
@@ -287,17 +213,7 @@ def import_from_file(importState: ImportStateController, fileName: str = "", gat
                 # need to decide how to deal with the multiple results of this loop here!
                 config_changed_since_last_import, normalized_config_list = get_config_from_api(importState, conf)
 
-    return config_changed_since_last_import, normalized_config_list
-
-
-def set_filename(import_state: ImportStateController, file_name: str = ''):
-    # set file name in importState
-    if file_name == '' or file_name is None: 
-        # if the host name is an URI, do not connect to an API but simply read the config from this URI
-        if stringIsUri(import_state.MgmDetails.Hostname):
-            import_state.setImportFileName(import_state.MgmDetails.Hostname)
-    else:
-        import_state.setImportFileName(file_name)    
+    return config_changed_since_last_import, normalized_config_list  
 
 
 def get_config_from_api(importState: ImportStateController, configNative) -> tuple[bool, FwConfigManagerList]:
@@ -332,6 +248,16 @@ def get_config_from_api(importState: ImportStateController, configNative) -> tup
     logger.debug("import_management: get_config completed (including normalization), duration: " + str(int(time.time()) - importState.StartTime) + "s") 
 
     return config_changed_since_last_import, normalized_config_list
+
+
+def set_filename(import_state: ImportStateController, file_name: str = ''):
+    # set file name in importState
+    if file_name == '' or file_name is None: 
+        # if the host name is an URI, do not connect to an API but simply read the config from this URI
+        if stringIsUri(import_state.MgmDetails.Hostname):
+            import_state.setImportFileName(import_state.MgmDetails.Hostname)
+    else:
+        import_state.setImportFileName(file_name)  
 
 
 def write_native_config_to_file(importState, configNative):

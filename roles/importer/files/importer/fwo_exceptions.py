@@ -119,3 +119,9 @@ class FwApiResponseDecodingError(Exception):
     """Custom exception to signal a failure during decoding checkpoint api response to JSON."""
     def __init__(self, message="Error while trying to decode firewall management API response into JSON."):
         super().__init__(message)
+
+
+class FwoApiFailedDeleteOldImports(Exception):
+    """Custom exception to signal a failure during deletion of old import data."""
+    def __init__(self, message="Error while trying to remove old import data."):
+        super().__init__(message)

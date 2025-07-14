@@ -177,6 +177,7 @@ class ImportStateController(ImportState):
         self.SetActionMap()
         self.SetLinkTypeMap()
         self.SetGatewayMap()
+        self.SetManagementMap()
         self.SetColorRefMap()
 
         # the following maps will be empty when starting first import of a management
@@ -305,7 +306,38 @@ class ImportStateController(ImportState):
             map.update({gw['dev_name']: gw['dev_id']})
             map.update({gw['dev_uid']: gw['dev_id']})
         self.GatewayMap = map
-    
+
+    # getting all managements (not limitited to the current mgm_id) to support super managements
+    # creates a dict with key = management.uid  and value = management.id
+    def SetManagementMap(self):
+        query = """
+            query getManagementMap($mgmId: Int!) {
+                management(where: {mgm_id: {_eq: $mgmId}}) {
+                    mgm_id
+                    mgm_uid
+                    sub_managers: managementByMultiDeviceManagerId {
+                        mgm_id
+                        mgm_uid
+                    }
+                }
+            }
+        """
+        try:
+            result = self.call(query=query, queryVariables= {"mgmId": self.MgmDetails.Id})
+        except Exception:
+            logger = getFwoLogger()
+            logger.error("Error while getting managements")
+            self.ManagementMap = {}
+            return
+        
+        map = {}
+        mgm = result['data']['management'][0]
+        map.update({mgm['mgm_uid']: mgm['mgm_id']})
+        for sub_mgr in mgm['sub_managers']:
+            map.update({sub_mgr['mgm_uid']: sub_mgr['mgm_id']})
+
+        self.ManagementMap = map
+
     def lookupRule(self, ruleUid):
         return self.RuleMap.get(ruleUid, None)
 
@@ -327,6 +359,9 @@ class ImportStateController(ImportState):
 
     def lookupGatewayId(self, gwUid):
         return self.GatewayMap.get(gwUid, None)
+
+    def lookupManagementId(self, mgmUid):
+        return self.ManagementMap.get(mgmUid, None)
 
     def lookupColorId(self, color_str):
         return self.ColorMap.get(color_str, None)

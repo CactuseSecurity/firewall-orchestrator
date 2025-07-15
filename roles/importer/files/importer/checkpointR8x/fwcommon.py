@@ -115,9 +115,24 @@ def normalize_config(import_state, native_config: json, parsing_config_only: boo
         getFwoLogger().error("No domains found in native config. Cannot normalize config.")
         raise ImportInterruption("No domains found in native config. Cannot normalize config.")
     
+    native_config_global = {
+        'domain_name': 'dummy_global_domain',
+        'domain_uid': 'dummy_global_domain',
+        'is-super-manger': False,
+        'management_name': 'dummy_global_domain',
+        'management_uid': 'dummy_global_domain',
+        'objects': [],
+        'rulebases': [],
+        'nat_rulebases': [],
+        'gateways': []}
+    for native_config_index in len(native_config['domains']):
+        if native_config['domains'][native_config_index]['is-super-manger']:
+            native_config_global = native_config['domains'][native_config_index]
+            break
+    
     for native_conf in native_config['domains']:
         normalizedConfigDict = fwo_const.emptyNormalizedFwConfigJsonDict
-        normalized_config = normalize_single_manager_config(native_conf, normalizedConfigDict, import_state, parsing_config_only, sid)
+        normalized_config = normalize_single_manager_config(native_conf, native_config_global, normalizedConfigDict, import_state, parsing_config_only, sid)
         manager = FwConfigManager(  ManagerName=native_conf['management_name'],
                                     ManagerUid=native_conf['management_uid'],
                                     IsGlobal=native_conf['is-super-manger'],
@@ -131,14 +146,14 @@ def normalize_config(import_state, native_config: json, parsing_config_only: boo
     return manager_list
 
 
-def normalize_single_manager_config(nativeConfig: json, normalizedConfigDict, importState: ImportStateController, parsing_config_only: bool, sid: str) -> tuple[int, FwConfigManagerList]:
+def normalize_single_manager_config(nativeConfig: json, native_config_global : json, normalizedConfigDict, importState: ImportStateController, parsing_config_only: bool, sid: str) -> tuple[int, FwConfigManagerList]:
     logger = getFwoLogger()
     cp_network.normalize_network_objects(nativeConfig, normalizedConfigDict, importState.ImportId, mgm_id=importState.MgmDetails.Id)
     logger.info("completed normalizing network objects")
     cp_service.normalize_service_objects(nativeConfig, normalizedConfigDict, importState.ImportId)
     logger.info("completed normalizing service objects")
     cp_gateway.normalizeGateways(nativeConfig, importState, normalizedConfigDict)
-    cp_rule.normalizeRulebases(nativeConfig, importState, normalizedConfigDict)
+    cp_rule.normalizeRulebases(nativeConfig, native_config_global, importState, normalizedConfigDict)
     if not parsing_config_only: # get config from cp fw mgr
         logout_cp(importState.MgmDetails.buildFwApiString(), sid)
     logger.info("completed normalizing rulebases")

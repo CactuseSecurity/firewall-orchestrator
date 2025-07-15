@@ -25,7 +25,7 @@ uid_to_name_map = {}
     - migrate section headers from rule to ordering element 
     ...
 """
-def normalizeRulebases (nativeConfig, importState, normalizedConfig):
+def normalizeRulebases (nativeConfig, native_config_global, importState, normalizedConfig):
     if fwo_globals.debug_level>0:
         logger = getFwoLogger()
     normalizedConfig['policies'] = []
@@ -38,7 +38,7 @@ def normalizeRulebases (nativeConfig, importState, normalizedConfig):
     for gateway in nativeConfig['gateways']:
         for rulebase_link in gateway['rulebase_links']:
             if rulebase_link['to_rulebase_uid'] not in fetched_links and rulebase_link['to_rulebase_uid'] != '':
-                rulebase_to_parse, is_section = find_rulebase_to_parse(nativeConfig['rulebases'], rulebase_link['to_rulebase_uid'])
+                rulebase_to_parse, is_section = find_rulebase_to_parse(nativeConfig['rulebases'] + native_config_global['rulebases'], rulebase_link['to_rulebase_uid'])
                 if rulebase_to_parse == {}:
                     logger.warning('found to_rulebase link without rulebase in nativeConfig: ' + str(rulebase_link))
                     continue

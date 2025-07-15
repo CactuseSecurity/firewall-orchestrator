@@ -30,13 +30,14 @@
             <Authorized>
                 @if (!recertCalcInProgress)
                 {
-                    <button type="button" class="btn btn-sm btn-info" @onclick:preventDefault="true" @onclick="@( async () => { 
-                        recertCalcInProgress = true; 
+                    <button type="button" class="btn btn-sm btn-info" @onclick:preventDefault="true" @onclick="@( async () => {
+                        recertCalcInProgress = true;
                         if (await RecertRefresh.RecalcRecerts(apiConnection))
                         {
                             DisplayMessageInUi(null, userConfig.GetText("fetch_data"), "Error during recertification refresh", true);
                         }
-                        recertCalcInProgress = false; 
+                        recertCalcInProgress = false;
+                        Log.WriteAudit($"Owners Settings", $"Recertification started.");
                     })">@(userConfig.GetText("recalc_recerts"))</button>
                 }
                 else
@@ -46,7 +47,7 @@
             </Authorized>
             <NotAuthorized>
                 <button type="button" disabled class="btn btn-sm btn-info">@(userConfig.GetText("recalc_recerts"))</button>
-            </NotAuthorized> 
+            </NotAuthorized>
         </AuthorizeView>
 
         @if (showCleanupButton)
@@ -55,7 +56,7 @@
         }
         <br><br>
     </div>
-    
+
     <div class="m-2 vheight75">
         <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="FwoOwner" Items="owners" PageSize="0" ColumnReorder="true">
             <Column TableItem="FwoOwner" Title="@(userConfig.GetText("owners"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
@@ -73,7 +74,7 @@
                                 </Authorized>
                                 <NotAuthorized>
                                     <button type="button" disabled class="btn btn-sm btn-danger">@(userConfig.GetText("delete"))</button>
-                                </NotAuthorized> 
+                                </NotAuthorized>
                             </AuthorizeView>
                         }
                     }
@@ -305,7 +306,7 @@
                         </Authorized>
                         <NotAuthorized>
                             <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
-                        </NotAuthorized> 
+                        </NotAuthorized>
                     </AuthorizeView>
                 }
                 <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
@@ -562,7 +563,7 @@ else
             var Variables = new
             {
                 ownerId = actOwner.Id,
-                ip = (ipAdd.Cidr != null && ipAdd.Cidr.Valid ? ipAdd.IpString : null), 
+                ip = (ipAdd.Cidr != null && ipAdd.Cidr.Valid ? ipAdd.IpString : null),
                 ip_end = (ipAdd.IpEndString != null && ipAdd.Cidr != null && ipAdd.Cidr.Valid  && ipAdd.IpEndString != "" ? ipAdd.IpEndString : null)
             };
             await apiConnection.SendQueryAsync<ReturnIdWrapper>(OwnerQueries.newNetworkOwnership, Variables);

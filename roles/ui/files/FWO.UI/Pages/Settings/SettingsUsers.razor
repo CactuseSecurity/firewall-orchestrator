@@ -441,6 +441,7 @@
         await SynchronizeUsers();
 
         await SynchronizeGroupsAndRoles();
+        Log.WriteAudit($"Users Settings", $"LDAP re-sync started.");
     }
 
     private async Task SynchronizeUsers()

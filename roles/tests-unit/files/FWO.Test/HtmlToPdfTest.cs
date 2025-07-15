@@ -21,9 +21,8 @@ namespace FWO.Test
             ClassicAssert.IsTrue(isValidHtml);
 
             string? sudoUser = Environment.GetEnvironmentVariable("SUDO_USER");
-            string? runnerUser = Environment.GetEnvironmentVariable("RUNNER_USER");
 
-            bool isGitHubActions = sudoUser is not null && runnerUser is not null && sudoUser.Equals("runner") && runnerUser.Equals("runner");
+            bool isGitHubActions = sudoUser is not null && sudoUser.Equals("runner");
 
             if(isGitHubActions)
             {
@@ -61,9 +60,17 @@ namespace FWO.Test
 
             if(allInstalledBrowsers is null || !allInstalledBrowsers.Any())
             {
-                Log.WriteAlert("Test Log", $"Found no installed {wantedBrowser} instances!");
-                return;
-            }
+                if(os.Platform == PlatformID.Win32NT)
+                {
+                    Log.WriteInfo("Browser", $"Browser not found for Windows! Trying to download...");
+                    await browserFetcher.DownloadAsync();
+                    allInstalledBrowsers = browserFetcher.GetInstalledBrowsers().Where(_ => _.Browser == wantedBrowser);
+                }
+                else
+                {
+                    throw new Exception($"Found no installed {wantedBrowser} instances!");
+                }
+            }            
 
             foreach(InstalledBrowser instBrowser in allInstalledBrowsers)
             {
@@ -86,7 +93,7 @@ namespace FWO.Test
                 return;
             }
 
-            Log.WriteInfo("Test Log", $"Selecting latest installed {wantedBrowser}({latestInstalledBrowser}) at: {latestInstalledBrowser.GetExecutablePath()}");
+            Log.WriteInfo("Test Log", $"Selecting latest installed {wantedBrowser}({latestInstalledBrowser.BuildId}) at: {latestInstalledBrowser.GetExecutablePath()}");
 
             IBrowser? browser;
 
@@ -96,15 +103,15 @@ namespace FWO.Test
                 {
                     ExecutablePath = latestInstalledBrowser.GetExecutablePath(),
                     Headless = true,
-                    DumpIO = isGitHubActions, // Enables debug logs
-                    Args = new[] { "--database=/tmp", "--no-sandbox" }
+                    DumpIO = isGitHubActions,
+                    Args = isGitHubActions ? ["--database=/tmp", "--no-sandbox"] : []
                 });
             }
             catch(Exception)
             {
                 Log.WriteAlert("Test Log", $"Couldn't start {wantedBrowser} instance!");
                 throw new Exception($"Couldn't start {wantedBrowser} instance!");
-            }
+            }            
 
             await TryCreatePDF(browser, PuppeteerSharp.Media.PaperFormat.A0);
             await TryCreatePDF(browser, PuppeteerSharp.Media.PaperFormat.A1);
@@ -122,11 +129,12 @@ namespace FWO.Test
             try
             {
                 await browser.CloseAsync();
+                browser.Dispose();
             }
             catch(Exception)
             {
                 throw new Exception("Couldn't close browser instance!");
-            }            
+            }
         }
 
         [Test]
@@ -160,7 +168,7 @@ namespace FWO.Test
                 PdfOptions pdfOptions = new() { Outline = true, DisplayHeaderFooter = false, Landscape = true, PrintBackground = true, Format = paperFormat, MarginOptions = new MarginOptions { Top = "1cm", Bottom = "1cm", Left = "1cm", Right = "1cm" } };
                 byte[]? pdfData = await page.PdfDataAsync(pdfOptions);
                 await File.WriteAllBytesAsync(GlobalConst.TestPDFFilePath, pdfData);
-                                
+
                 Assert.That(GlobalConst.TestPDFFilePath, Does.Exist);
                 FileAssert.Exists(GlobalConst.TestPDFFilePath);
                 ClassicAssert.AreEqual(new FileInfo(GlobalConst.TestPDFFilePath).Length, pdfData.Length);

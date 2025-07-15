@@ -1,4 +1,5 @@
-﻿@using System.Text
+@using System.Text
+@using System.Diagnostics
 
 @inject UserConfig userConfig
 @inject IJSRuntime JSRuntime
@@ -80,13 +81,20 @@
     {
         await Task.Run(async () =>
         {
-            if (ReportFile != null)
+            try
             {
-                Downloading = true;
-                await InvokeAsync(StateHasChanged);
-                await JSRuntime.InvokeVoidAsync("DownloadFile", fileName, contentType, data);
-                Downloading = false;
+                if(ReportFile != null)
+                {
+                    Downloading = true;
+                    await InvokeAsync(StateHasChanged);
+                    await JSRuntime.InvokeVoidAsync("DownloadFile", fileName, contentType, data);
+                    Downloading = false;
+                }
             }
+            catch (Exception ex)
+            {
+                Debug.WriteLine(ex.ToString());
+            }            
         });
     }
 }

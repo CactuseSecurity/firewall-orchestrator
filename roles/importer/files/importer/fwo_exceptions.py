@@ -125,3 +125,9 @@ class FwoApiFailedDeleteOldImports(Exception):
     """Custom exception to signal a failure during deletion of old import data."""
     def __init__(self, message="Error while trying to remove old import data."):
         super().__init__(message)
+
+
+class FwoDuplicateKeyViolation(Exception):
+    """Custom exception to signal a duplicate key violation during import."""
+    def __init__(self, message="Error while trying to add data with duplicate keys"):
+        super().__init__(message)

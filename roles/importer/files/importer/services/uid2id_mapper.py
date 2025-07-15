@@ -59,7 +59,7 @@ class Uid2IdMapper:
         """
         self.logger.debug(message)
 
-    def get_network_object_id(self, uid: str, before_update: bool = False) -> int:
+    def get_network_object_id(self, uid: str, before_update: bool = False, local_only: bool = False) -> int:
         """
         Get the ID for a given network object UID.
         
@@ -74,14 +74,14 @@ class Uid2IdMapper:
             nwobj_id = self.outdated_nwobj_uid2id.get(uid)
             if nwobj_id is not None:
                 return nwobj_id
-        nwobj_id = self.global_nwobj_uid2id.get(uid)
+        nwobj_id = self.nwobj_uid2id.get(uid)
+        if not local_only and nwobj_id is None:
+            nwobj_id = self.global_nwobj_uid2id.get(uid)
         if nwobj_id is None:
-            nwobj_id = self.nwobj_uid2id.get(uid)
-            if nwobj_id is None:
-                self.log_error(f"Network object UID '{uid}' not found in mapping.")
+            self.log_error(f"Network object UID '{uid}' not found in mapping.")
         return nwobj_id
     
-    def get_service_object_id(self, uid: str, before_update: bool = False) -> int:
+    def get_service_object_id(self, uid: str, before_update: bool = False, local_only: bool = False) -> int:
         """
         Get the ID for a given service object UID.
         
@@ -96,14 +96,15 @@ class Uid2IdMapper:
             svc_id = self.outdated_svc_uid2id.get(uid)
             if svc_id is not None:
                 return svc_id
-        svc_id = self.global_svc_uid2id.get(uid)
+
+        svc_id = self.svc_uid2id.get(uid)
+        if not local_only and svc_id is None:
+            svc_id = self.global_svc_uid2id.get(uid)
         if svc_id is None:
-            svc_id = self.svc_uid2id.get(uid)
-            if svc_id is None:
-                self.log_error(f"Service object UID '{uid}' not found in mapping.")
+            self.log_error(f"Service object UID '{uid}' not found in mapping.")
         return svc_id
     
-    def get_user_id(self, uid: str, before_update: bool = False) -> int:
+    def get_user_id(self, uid: str, before_update: bool = False, local_only: bool = False) -> int:
         """
         Get the ID for a given user UID.
         
@@ -119,6 +120,8 @@ class Uid2IdMapper:
             if usr_id is not None:
                 return usr_id
         usr_id = self.user_uid2id.get(uid)
+        if not local_only and usr_id is None:
+            usr_id = self.global_user_uid2id.get(uid)
         if usr_id is None:
             self.log_error(f"User UID '{uid}' not found in mapping.")
         return usr_id

@@ -62,7 +62,6 @@ class FwConfigImport():
         self._global_state.previous_config = previousConfig
         # calculate differences and write them to the database via API
         self.updateDiffs(previousConfig, single_manager)
-        return
 
 
     def import_management_set(self, import_state: ImportStateController, service_provider: ServiceProvider, mgr_set: FwConfigManagerList):

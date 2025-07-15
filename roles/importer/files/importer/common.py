@@ -103,6 +103,7 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
     except (fwo_exceptions.FwLoginFailed) as e:
         fwo_api.delete_import(importState) # delete whole import
         importState.addError("Login to FW manager failed")
+        rollBackExceptionHandler(importState, configImporter=config_importer, exc=e, errorText="")
     except (fwo_exceptions.ImportRecursionLimitReached) as e:
         fwo_api.delete_import(importState) # delete whole import
         importState.addError("ImportRecursionLimitReached - aborting import")

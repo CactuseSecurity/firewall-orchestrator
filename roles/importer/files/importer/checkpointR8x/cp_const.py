@@ -48,6 +48,8 @@ local_api_obj_types = local_nw_obj_table_names + local_svc_obj_table_names # all
 global_api_obj_types = global_nw_obj_table_names + svc_obj_table_names # all obj table names to look at during import
 api_obj_types = nw_obj_table_names + svc_obj_table_names # all obj table names to look at during import
 
+types_to_remove_globals_from = ['service-groups']
+
 obj_types_full_fetch_needed = ['access-roles', 'groups', 'groups-with-exclusion', 'updatable-objects', 'gateways-and-servers'] + group_svc_obj_types
 
 cp_specific_object_types = [    # used for fetching enrichment data via "get object" separately (no specific API call)

@@ -116,7 +116,8 @@ def is_obj_already_collected(nw_objects, obj):
                     already_collected = True
                     break
         else:
-            logger.warning("found nw_object without domain: " + obj['uid'])
+            if 'uid-in-updatable-objects-repository' not in obj:
+                logger.warning("found nw_object without domain: " + obj['uid'])
     else:
         logger.warning("found nw_object without uid: " + str(obj))
 

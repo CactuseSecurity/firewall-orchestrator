@@ -761,6 +761,7 @@
                         uiUsers.Add(actUser);
                         await AddUserToGroupsInLdap(actUser);
                         await AddUserToRolesInLdap(actUser);
+                        Log.WriteAudit($"Users Settings(Mode: {(AddMode ? "Add" : "Edit")})", $"User ID: {actUser.DbId}, Name: {actUser.Name} was {(AddMode ? "added" : "edited")}.");
                         AddMode = false;
                         EditMode = false;
                     }
@@ -778,9 +779,13 @@
                 else
                 {
                     uiUsers[uiUsers.FindIndex(x => x.DbId == actUser.DbId)].Email = actUser.Email;
+                    Log.WriteAudit($"Users Settings(Mode: {(AddMode ? "Add" : "Edit")})", $"User ID: {actUser.DbId}, Name: {actUser.Name} was {(AddMode ? "added" : "edited")}.");
                     EditMode = false;
                 }
             }
+
+            
+
             AnalyseSampleUsers();
         }
         catch (Exception exception)
@@ -907,6 +912,7 @@
             {
                 uiUsers.Remove(actUser);
                 DeleteMode = false;
+                Log.WriteAudit($"Users Settings", $"User Name: {actUser.Name}, ID: {actUser.DbId} was deleted.");
             }
         }
         catch (Exception exception)
@@ -983,6 +989,7 @@
                     {
                         DisplayMessageInUi(null, userConfig.GetText("reset_password"), errorMsg, true);
                     }
+                    Log.WriteAudit($"Users Settings", $"User Name: {actUser.Name}, ID: {actUser.DbId} password reset.");
                 }
                 ResetPasswordMode = false;
             }

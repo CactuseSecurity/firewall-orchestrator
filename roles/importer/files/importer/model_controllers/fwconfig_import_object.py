@@ -449,84 +449,97 @@ class FwConfigImportObject():
         return errors, changes
 
 
-    def addGroupMemberships(self, prev_config, type: Type):
+    def addGroupMemberships(self, prev_config, obj_type: Type):
         """
         This function is used to update group memberships for nwobjs, services or users in the database.
         It adds group memberships and flats for new and updated members.
         Args:
             prev_config (FwConfigNormalized): The previous normalized config.
         """
-        logger = getFwoLogger()
         errors = 0
         changes = 0
         new_group_members = []
         new_group_member_flats = []
-        prev_config_objects, current_config_objects = self.get_config_objects(type, prev_config)
-        prefix = self.get_prefix(type)
+        prev_config_objects, current_config_objects = self.get_config_objects(obj_type, prev_config)
+        prefix = self.get_prefix(obj_type)
         for uid in current_config_objects.keys():
-            if not self.is_group(type, current_config_objects[uid]):
+            if not self.is_group(obj_type, current_config_objects[uid]):
                 continue
-            member_uids = self.get_members(type, self.get_refs(type, current_config_objects[uid]))
+            member_uids = self.get_members(obj_type, self.get_refs(obj_type, current_config_objects[uid]))
             prev_member_uids = []  # all members need to be added if group added or changed
             prev_flat_member_uids = []
             if uid in prev_config_objects:
                 # group not added
                 if current_config_objects[uid] == prev_config_objects[uid]:
                     # group not changed -> check for changes in members
-                    prev_member_uids = self.get_members(type, self.get_refs(type, prev_config_objects[uid]))
-                    prev_flat_member_uids = self.get_prev_flats(type, uid)
-            group_id = self.get_id(type, uid)
-            for member_uid in member_uids:
-                if member_uid in prev_member_uids and prev_config_objects[member_uid] == current_config_objects[member_uid]:
-                    continue # member was not added or changed
-                memberId = self.get_id(type, member_uid)
-                new_group_members.append({
-                    f"{prefix}_id": group_id,
-                    f"{prefix}_member_id": memberId,
-                    "import_created": self.ImportDetails.ImportId,
-                    "import_last_seen": self.ImportDetails.ImportId # to be removed in the future
-                })
-            flat_member_uids = self.get_flats(type, uid)
+                    prev_member_uids = self.get_members(obj_type, self.get_refs(obj_type, prev_config_objects[uid]))
+                    prev_flat_member_uids = self.get_prev_flats(obj_type, uid)
+
+            group_id = self.get_id(obj_type, uid)
+            self.collect_group_members(group_id, current_config_objects, new_group_members, member_uids, obj_type, prefix, prev_member_uids, prev_config_objects)
+
+            flat_member_uids = self.get_flats(obj_type, uid)
             for flat_member_uid in flat_member_uids:
                 if flat_member_uid in prev_flat_member_uids and prev_config_objects[flat_member_uid] == current_config_objects[flat_member_uid]:
                     continue # flat member was not added or changed
-                flat_member_id = self.get_id(type, flat_member_uid)
+                flat_member_id = self.get_id(obj_type, flat_member_uid)
                 new_group_member_flats.append({
                     f"{prefix}_flat_id": group_id,
                     f"{prefix}_flat_member_id": flat_member_id,
                     "import_created": self.ImportDetails.ImportId,
                     "import_last_seen": self.ImportDetails.ImportId # to be removed in the future
                 })
-        if len(new_group_members) > 0:
-            import_mutation = f"""
-                mutation update{prefix.capitalize()}Groups($groups: [{prefix}_insert_input!]!, $groupFlats: [{prefix}_flat_insert_input!]!) {{
-                    insert_{prefix}(objects: $groups) {{
-                        affected_rows
-                    }}
-                    insert_{prefix}_flat(objects: $groupFlats) {{
-                        affected_rows
-                    }}
-                }}
-            """
-            query_variables = {
-                'groups': new_group_members,
-                'groupFlats': new_group_member_flats
-            }
-            try:
-                import_result = self.ImportDetails.call(import_mutation, queryVariables=query_variables, analyze_payload=True)
-                if 'errors' in import_result:
-                    logger.exception(f"fwo_api:addGroupMemberships: {str(import_result['errors'])}")
-                    errors = 1
-                    if import_result['errors'].contains('duplicate'):
-                        raise fwo_exceptions.FwoDuplicateKeyViolation(str(import_result['errors']))
-                    # TODO: try to add groups separately to find the culprit
-                else:
-                    changes = int(import_result['data'][f'insert_{prefix}']['affected_rows']) + \
-                        int(import_result['data'][f'insert_{prefix}_flat']['affected_rows'])
-            except Exception:
-                logger.exception(f"failed to write new objects: {str(traceback.format_exc())}")
-                errors = 1
+
+        if len(new_group_members)==0:
+            return errors, 0
+        
+        return self.write_member_updates(new_group_members, new_group_member_flats, prefix, errors)
             
+
+    def collect_group_members(self, group_id, current_config_objects, new_group_members, member_uids, obj_type, prefix, prev_member_uids, prev_config_objects):
+        for member_uid in member_uids:
+            if member_uid in prev_member_uids and prev_config_objects[member_uid] == current_config_objects[member_uid]:
+                continue # member was not added or changed
+            member_id = self.get_id(obj_type, member_uid)
+            new_group_members.append({
+                f"{prefix}_id": group_id,
+                f"{prefix}_member_id": member_id,
+                "import_created": self.ImportDetails.ImportId,
+                "import_last_seen": self.ImportDetails.ImportId # to be removed in the future
+            })
+
+
+    def write_member_updates(self, new_group_members, new_group_member_flats, prefix, errors):
+        logger = getFwoLogger()
+        changes = 0
+        import_mutation = f"""
+            mutation update{prefix.capitalize()}Groups($groups: [{prefix}_insert_input!]!, $groupFlats: [{prefix}_flat_insert_input!]!) {{
+                insert_{prefix}(objects: $groups) {{
+                    affected_rows
+                }}
+                insert_{prefix}_flat(objects: $groupFlats) {{
+                    affected_rows
+                }}
+            }}
+        """
+        query_variables = {
+            'groups': new_group_members,
+            'groupFlats': new_group_member_flats
+        }
+        try:
+            import_result = self.ImportDetails.call(import_mutation, queryVariables=query_variables, analyze_payload=True)
+            if 'errors' in import_result:
+                logger.exception(f"fwo_api:addGroupMemberships: {str(import_result['errors'])}")
+                errors = 1
+                if import_result['errors'].contains('duplicate'):
+                    raise fwo_exceptions.FwoDuplicateKeyViolation(str(import_result['errors']))
+            else:
+                changes = int(import_result['data'][f'insert_{prefix}']['affected_rows']) + \
+                    int(import_result['data'][f'insert_{prefix}_flat']['affected_rows'])
+        except Exception:
+            logger.exception(f"failed to write new objects: {str(traceback.format_exc())}")
+            errors = 1
+
         return errors, changes
 
 

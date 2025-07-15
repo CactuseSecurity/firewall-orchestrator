@@ -108,20 +108,21 @@ def account_for_updateable_objects(obj, obj_type, global_domain):
 def is_obj_already_collected(nw_objects, obj):
     logger = getFwoLogger()
     already_collected = False
-    if 'uid' in obj:
-        if 'domain' in obj:
-
-            for already_collected_obj in nw_objects:
-                if obj['uid'] == already_collected_obj['obj_uid'] and obj['domain']['uid'] == already_collected_obj['obj_domain']:
-                    already_collected = True
-                    break
-        else:
-            if 'uid-in-updatable-objects-repository' not in obj:
-                logger.warning("found nw_object without domain: " + obj['uid'])
-    else:
+    if 'uid' not in obj:
         logger.warning("found nw_object without uid: " + str(obj))
+        return already_collected
+
+    if 'domain' in obj:
+        for already_collected_obj in nw_objects:
+            if obj['uid'] == already_collected_obj['obj_uid'] and obj['domain']['uid'] == already_collected_obj['obj_domain']:
+                already_collected = True
+                break
+    else:
+        if 'uid-in-updatable-objects-repository' not in obj:
+            logger.warning("found nw_object without domain: " + obj['uid'])
 
     return already_collected
+
 
 def handle_members(obj):
     """Gets group member uids, currently no member_names

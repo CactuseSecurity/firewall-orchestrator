@@ -17,41 +17,38 @@ namespace FWO.Report
         public List<ComplianceViolation> Violations { get; set; } = [];
         public List<Rule> Rules { get; set; } = [];
 
+        private bool _includeHeaderInExport = true;
+        private char _separator = ';';
+        private List<string> _columnsToExport = new List<string>
+        {
+            "Id",
+            "Name",
+            "Comment",
+            "Source",
+            "Destination",
+            "Action",
+            "IsCompliant",
+            "ViolationDetails"
+        };
+
         public override string ExportToCsv()
         {
             string csvString = "";
 
             if (Rules.Count > 0)
             {
-                // Set export configuration
-
-                bool includeHeader = true;
-                char separator = ',';
-
-                List<string> columnsToExport = new List<string>
-                {
-                    "Id",
-                    "Name",
-                    "Comment",
-                    "Source",
-                    "Destination",
-                    "Action",
-                    "IsCompliant",
-                    "ViolationDetails"
-                };
-
                 // Create export string
 
                 StringBuilder sb = new StringBuilder();
                 Type type = typeof(Rule);
-                List<PropertyInfo?> properties = columnsToExport
+                List<PropertyInfo?> properties = _columnsToExport
                                                     .Select(name => type.GetProperty(name, BindingFlags.Public | BindingFlags.Instance))
                                                     .Where(p => p != null)
                                                     .ToList();
 
-                if (includeHeader)
+                if (_includeHeaderInExport)
                 {
-                    sb.AppendLine(string.Join(separator, properties.Select(property => property?.Name)));
+                    sb.AppendLine(string.Join(_separator, properties.Select(property => property?.Name)));
                 }
 
                 foreach (Rule rule in Rules)
@@ -62,11 +59,11 @@ namespace FWO.Report
                         if (value == null)
                             return "";
                         if (value is string s)
-                            return Escape(s, separator);
-                        return Escape(value.ToString()!, separator);
+                            return Escape(s, _separator);
+                        return Escape(value.ToString()!, _separator);
                     });
 
-                    sb.AppendLine(string.Join(separator, values));
+                    sb.AppendLine(string.Join(_separator, values));
                 }
 
                 return sb.ToString();
@@ -103,7 +100,7 @@ namespace FWO.Report
             await SetComplianceData();
         }
 
-        private async Task SetComplianceData() // We will deal with the warning (CS1998) when we are ready for performance optimization 
+        private async Task SetComplianceData() 
         {
             Rules.Clear();
 
@@ -115,29 +112,33 @@ namespace FWO.Report
                     {
                         if (rule is Rule currentRule)
                         {
-                            rule.Violations.Clear();
-                            rule.ViolationDetails = "";
-
-                            foreach (var violation in Violations.Where(violation => violation.RuleId == currentRule.Id))
-                            {
-                                if (rule.ViolationDetails != "")
-                                {
-                                    rule.ViolationDetails += "\n";
-                                }
-
-                                rule.IsCompliant = false;
-                                rule.ViolationDetails += violation.Details;
-                                rule.Violations.Add(violation);
-                            }
-
-                            if (!Rules.Contains(rule))
-                            {
-                                Rules.Add(rule);
-                            }
-
+                            await SetComplianceDataForRule(currentRule, Violations);
                         }
                     }
                 }
+            }
+        }
+
+        private async Task SetComplianceDataForRule(Rule rule, List<ComplianceViolation> violations) // We will deal with the warning (CS1998) when we are ready for performance optimization 
+        {
+            rule.Violations.Clear();
+            rule.ViolationDetails = "";
+
+            foreach (var violation in violations.Where(v => v.RuleId == rule.Id))
+            {
+                if (rule.ViolationDetails != "")
+                {
+                    rule.ViolationDetails += "\n";
+                }
+
+                rule.IsCompliant = false;
+                rule.ViolationDetails += violation.Details;
+                rule.Violations.Add(violation);
+            }
+
+            if (!Rules.Contains(rule))
+            {
+                Rules.Add(rule);
             }
         }
     }

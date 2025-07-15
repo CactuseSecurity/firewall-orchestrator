@@ -224,14 +224,10 @@ namespace FWO.Compliance
 
     }
     
-    public class ReportCompliance //: ReportRules
+    public class ReportCompliance
     {
-		// Todo: move deeper into ReportData
 		public List<(ComplianceNetworkZone, ComplianceNetworkZone)> Results { get; set; } = [];
 
-        //public ReportCompliance(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType) : base(query, userConfig, reportType) { }
-
-		//public override string ExportToCsv()
 		public string ExportToCsv()
 		{
 			return "";

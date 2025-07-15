@@ -385,7 +385,7 @@
         watch.Stop();
         reportGenerationDuration = watch.ElapsedMilliseconds/1000.0;
         await InvokeAsync(StateHasChanged);
-        Log.WriteDebug("Report Generation", $"Generation Time: {reportGenerationDuration} s.");
+        Log.WriteDebug("Report Generation", $"Generation Time: {reportGenerationDuration} s.");        
     }
 
     private async Task ProcessReportGeneration(CancellationToken token)

@@ -41,6 +41,27 @@ namespace FWO.Ui.Display
             }
         }
 
+        public static string DisplayViolationDetails(Rule rule)
+        {
+            string violationDetails = "<p>";
+            bool notFirst = false;
+
+            foreach (ComplianceViolation violation in rule.Violations)
+            {
+                if (notFirst)
+                {
+                    violationDetails += "<br>";
+                }
+
+                violationDetails += violation.Details;
+                notFirst = true;
+            }
+
+            violationDetails += "</p>";
+
+            return violationDetails;
+        }
+
         public static string DisplayName(Rule rule)
         {
             return rule.Name ?? "";

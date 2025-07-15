@@ -83,9 +83,6 @@ namespace FWO.Data
         [JsonProperty("matches"), JsonPropertyName("matches")]
         public string IpMatch {get; set;} = "";
 
-        // [JsonProperty("dev_id"), JsonPropertyName("dev_id")]
-        // public int DeviceId { get; set; }
-
         [JsonProperty("rule_custom_fields"), JsonPropertyName("rule_custom_fields")]
         public string CustomFields { get; set; } = "";
 
@@ -100,6 +97,7 @@ namespace FWO.Data
 
         public bool IsCompliant { get; set; } = true;
         public string ViolationDetails { get; set; } = "";
+        public List<ComplianceViolation> Violations { get; set; } = [];
 
         public string DisplayOrderNumberString { get; set; } = "";
         public int DisplayOrderNumber { get; set; }

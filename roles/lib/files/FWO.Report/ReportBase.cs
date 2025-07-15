@@ -159,8 +159,7 @@ namespace FWO.Report
                 ReportType.Connections => new ReportConnections(query, userConfig, repType),
                 ReportType.AppRules => new ReportAppRules(query, userConfig, repType, reportFilter.ReportParams.ModellingFilter),
                 ReportType.VarianceAnalysis => new ReportVariances(query, userConfig, repType),
-                ReportType.Compliance => new ReportCompliancePoc(query, userConfig, repType),
-                ReportType.ComplianceDiff => new ReportCompliancePoc(query, userConfig, repType),
+                ReportType.Compliance => new ReportCompliance(query, userConfig, repType),
                 _ => throw new NotSupportedException("Report Type is not supported."),
             };
         }

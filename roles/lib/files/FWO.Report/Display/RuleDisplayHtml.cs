@@ -9,9 +9,6 @@ namespace FWO.Ui.Display
 {
     public class RuleDisplayHtml(UserConfig userConfig) : RuleDisplayBase(userConfig)
     {
-        // public RuleDisplayHtml(UserConfig userConfig) : base(userConfig)
-        // {}
-
         public string DisplaySource(Rule rule, OutputLocation location, ReportType reportType, int chapterNumber = 0, string style = "")
         {
             return DisplaySourceOrDestination(rule, chapterNumber, location, reportType, style, true);

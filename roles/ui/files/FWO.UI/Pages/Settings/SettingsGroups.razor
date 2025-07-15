@@ -1,4 +1,4 @@
-﻿@using FWO.Data.Middleware
+@using FWO.Data.Middleware
 @using FWO.Middleware.Client
 @using FWO.Ui.Services
 @using RestSharp
@@ -265,6 +265,7 @@
                         actGroup.Name = newGroupName;
                         groups.Add(actGroup);
                         await AddGroupToRolesInLdap(actGroup);
+                        Log.WriteAudit($"Groups Settings(Mode: {(AddGroupMode ? "Add" : "Edit")})", $"Group Name: {actGroup.Name} with Roles: {string.Join(", ", actGroup.Roles)} was {(AddGroupMode ? "added" : "edited")}.");
                         AddGroupMode = false;
                         EditGroupMode = false;
                     }
@@ -285,6 +286,7 @@
                         int changedGroup = groups.FindIndex(x => x.Dn == actGroup.Dn);
                         groups[changedGroup].Dn = newDn;
                         groups[changedGroup].Name = newGroupName;
+                        Log.WriteAudit($"Groups Settings(Mode: {(AddGroupMode ? "Add" : "Edit")})", $"Group Name: {actGroup.Name} with Roles: {string.Join(", ", actGroup.Roles)} was {(AddGroupMode ? "added" : "edited")}.");
                         EditGroupMode = false;
                     }
                 }
@@ -367,6 +369,7 @@
             {
                 groups.Remove(actGroup);
                 DeleteGroupMode = false;
+                Log.WriteAudit($"Groups Settings", $"Group Name: {actGroup.Name} with Roles: {string.Join(", ", actGroup.Roles)} was deleted.");
             }
         }
         catch (Exception exception)
@@ -414,6 +417,7 @@
                     actGroup.Users.Add(selectedUser);
                     groups[groups.FindIndex(x => x.Name == actGroup.Name)] = actGroup;
                     AddUserMode = false;
+                    Log.WriteAudit($"Groups Settings", $"Added User ID: {selectedUser.DbId}, Name: {selectedUser.Name} to Group Name: {actGroup.Name}.");
                 }
             }
             catch (System.Exception exception)
@@ -441,6 +445,7 @@
                     actGroup.Users.Remove(selectedUserToDelete);
                     groups[groups.FindIndex(x => x.Name == actGroup.Name)] = actGroup;
                     RemoveUserMode = false;
+                    Log.WriteAudit($"Groups Settings", $"Removed User ID: {selectedUserToDelete.DbId}, Name: {selectedUserToDelete.Name} from Group Name: {actGroup.Name}.");
                 }
             }
             catch (System.Exception exception)

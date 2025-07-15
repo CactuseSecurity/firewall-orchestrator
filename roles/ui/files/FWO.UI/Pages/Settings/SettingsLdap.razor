@@ -1,4 +1,4 @@
-﻿@using FWO.Data.Middleware
+@using FWO.Data.Middleware
 @using FWO.Encryption
 @using FWO.Middleware.Client
 @using RestSharp
@@ -282,7 +282,7 @@
         selectedTenant = tenants.FirstOrDefault(x => x.Id == actLdapConnection.TenantId);
         selectedType = (LdapType)actLdapConnection.Type;
         wasActive = ldapConnection.Active;
-        EditMode = true;
+        EditMode = true;        
     }
 
     private void RequestDelete(UiLdapConnection ldapConnection)
@@ -322,6 +322,8 @@
                     DeleteMode = false;
                 }
             }
+
+            Log.WriteAudit($"LDAP Connection Settings", $"LDAP NAME: {actLdapConnection.Name} was deleted.");
         }
         catch (Exception exception)
         {
@@ -434,6 +436,8 @@
                         connectedLdaps[connectedLdaps.FindIndex(x => x.Id == actLdapConnection.Id)] = actLdapConnection;
                     }
                 }
+
+                Log.WriteAudit($"LDAP Connection Settings(Mode: {(AddMode ? "Add" : "Edit")})", $"LDAP NAME: {actLdapConnection.Name} was {(AddMode ? "added" : "edited")}.");
             }
         }
         catch (Exception exception)

@@ -409,7 +409,6 @@ namespace FWO.Report.Filter
                     case ReportType.UnusedRules:
                     case ReportType.AppRules:
                     case ReportType.Compliance:
-                    case ReportType.ComplianceDiff:
                         query.QueryParameters.Add("$import_id_start: bigint ");
                         query.QueryParameters.Add("$import_id_end: bigint ");
                         query.RuleWhereStatement +=

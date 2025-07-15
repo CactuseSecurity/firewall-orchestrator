@@ -129,8 +129,6 @@ INSERT INTO txt VALUES ('AppRules', 	        'German', 	'App-Regel-Report');
 INSERT INTO txt VALUES ('AppRules', 		    'English', 	'App Rules Report');
 INSERT INTO txt VALUES ('Compliance', 	        'German', 	'Compliance-Report');
 INSERT INTO txt VALUES ('Compliance', 		    'English', 	'Compliance Report');
-INSERT INTO txt VALUES ('ComplianceDiff', 	    'German', 	'Compliance-Diff-Report');
-INSERT INTO txt VALUES ('ComplianceDiff', 		'English', 	'Compliance Diff Report');
 INSERT INTO txt VALUES ('VarianceAnalysis', 	'German', 	'Soll-Ist-Report');
 INSERT INTO txt VALUES ('VarianceAnalysis',     'English', 	'Variance Report');
 INSERT INTO txt VALUES ('mixed', 	            'German', 	'Gemischt');

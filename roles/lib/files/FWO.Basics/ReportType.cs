@@ -17,8 +17,7 @@ namespace FWO.Basics
         AppRules = 22,
         VarianceAnalysis = 23,
 
-        Compliance = 31,
-        ComplianceDiff = 32
+        Compliance = 31
     }
 
     public static class ReportTypeGroups
@@ -34,7 +33,6 @@ namespace FWO.Basics
                 ReportType.Recertification or
                 ReportType.UnusedRules or
                 ReportType.Compliance or
-                ReportType.ComplianceDiff or
                 ReportType.AppRules => true,
                 _ => false,
             };

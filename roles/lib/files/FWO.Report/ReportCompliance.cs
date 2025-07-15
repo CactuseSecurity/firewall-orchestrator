@@ -18,7 +18,7 @@ namespace FWO.Report
         public List<Rule> Rules { get; set; } = [];
 
         private readonly bool _includeHeaderInExport = true;
-        private readonly char _separator = ';';
+        private readonly char _separator = '#';
         private readonly List<string> _columnsToExport = new List<string>
         {
             "Id",
@@ -100,7 +100,7 @@ namespace FWO.Report
             await SetComplianceData();
         }
 
-        private async Task SetComplianceData() 
+        public async Task SetComplianceData() 
         {
             Rules.Clear();
 

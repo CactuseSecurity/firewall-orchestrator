@@ -9,6 +9,9 @@ using FWO.Mail;
 using FWO.Services;
 using NetTools;
 using Microsoft.AspNetCore.Http;
+using System.Diagnostics;
+using FWO.Data.Report;
+using FWO.Report.Filter.FilterTypes;
 
 namespace FWO.Compliance
 {
@@ -16,6 +19,10 @@ namespace FWO.Compliance
     {
         ComplianceNetworkZone[] NetworkZones = [];
         ReportCompliance? ComplianceReport = null;
+        public List<(Rule, (ComplianceNetworkZone, ComplianceNetworkZone))> Results { get; set; } = [];
+        private ReportBase? currentReport;
+        Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+        ReportFilters reportFilters = new();
 
         /// <summary>
         /// Full compliance check to be called by scheduler
@@ -23,15 +30,139 @@ namespace FWO.Compliance
         /// <returns></returns>
         public async Task CheckAll()
         {
+            await SetUpReportFilters();
+            ReportTemplate template = new ReportTemplate("", reportFilters.ToReportParams());
+            currentReport = await ReportGenerator.Generate(template, apiConnection, userConfig, DisplayMessageInUi);
+
+            Results.Clear();
+
             if (apiConnection != null)
             {
-                // something like this
-                List<int> managementIds = [.. (await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames)).Select(m => m.Id)];
-                await CreateComplianceReport(managementIds);
+                foreach (var management in currentReport.ReportData.ManagementData)
+                {
+                    foreach (var rulebase in management.Rulebases)
+                    {
+                        foreach (var rule in rulebase.Rules)
+                        {
 
-                // write result to database
+                            rule.IsCompliant = CheckRuleCompliance(rule, out List<(ComplianceNetworkZone, ComplianceNetworkZone)> result);
+                            if (!rule.IsCompliant)
+                            {
+                                foreach (var item in result)
+                                {
+                                    Results.Add((rule, item));
+
+                                }
+
+                            }
+
+                        }
+                    }
+                }
+
+                if (Results.Any())  
+                {
+                    if (currentReport is ReportCompliance complianceReport)
+                    {
+                        complianceReport.Violations.Clear();
+
+                        foreach (var item in Results)
+                        {
+                            ComplianceViolation violation = new();
+                            violation.RuleId = (int)item.Item1.Id;
+                            violation.Details = $"Matrix violation: {item.Item2.Item1.Name} -> {item.Item2.Item2.Name}";
+                            complianceReport.Violations.Add(violation);
+                        }
+
+                        await complianceReport.SetComplianceData();
+                        await SendComplianceCheckEmail();
+                    }
+                    
+                }
             }
         }
+
+        public bool CheckRuleCompliance(Rule rule, out List<(ComplianceNetworkZone, ComplianceNetworkZone)> forbiddenCommunication)
+        {
+            List<IPAddressRange> froms = [];
+            List<IPAddressRange> tos = [];
+
+            foreach (NetworkLocation networkLocation in rule.Froms)
+            {
+                // Determine all source ip ranges
+                froms.AddRange(ParseIpRange(networkLocation.Object));
+            }
+            foreach (NetworkLocation networkLocation in rule.Tos)
+            {
+                // Determine all destination ip ranges
+                tos.AddRange(ParseIpRange(networkLocation.Object));
+            }
+
+            return CheckCompliance(froms, tos, out forbiddenCommunication);
+        }
+
+
+        private static List<IPAddressRange> ParseIpRange(NetworkObject networkObject)
+        {
+            List<IPAddressRange> ranges = [];
+
+            try
+            {
+                if (networkObject.Type == new NetworkObjectType() { Name = ObjectType.IPRange })
+                {
+                    ranges.Add(IPAddressRange.Parse($"{networkObject.IP}-{networkObject.IpEnd}"));
+                }
+                else if (networkObject.Type != new NetworkObjectType() { Name = ObjectType.Group } && networkObject.ObjectGroupFlats.Length > 0)
+                {
+                    for (int j = 0; j < networkObject.ObjectGroupFlats.Length; j++)
+                    {
+                        if (networkObject.ObjectGroupFlats[j].Object != null)
+                        {
+                            ranges.AddRange(ParseIpRange(networkObject.ObjectGroupFlats[j].Object!));
+                        }
+                    }
+                }
+                else
+                {
+                    if (networkObject.IP != null)
+                    {
+                        // CIDR notation or single (host) IP can be parsed directly
+                        ranges.Add(IPAddressRange.Parse(networkObject.IP));                        
+                    }
+                }                
+            }
+            catch (System.Exception e)
+            {
+                
+                throw;
+            }
+
+
+
+            return ranges;
+        }
+
+        private async Task SetUpReportFilters()
+        {
+            reportFilters = new();
+            reportFilters.ReportType = ReportType.Compliance;
+            reportFilters.DeviceFilter.Managements = await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement);
+            foreach (var management in reportFilters.DeviceFilter.Managements)
+            {
+                management.Selected = true;
+                foreach (var device in management.Devices)
+                {
+                    device.Selected = true;
+                }
+            }
+        }
+
+
+
+
+
+
+
 
         /// <summary>
         /// Create compliance report for given Managements
@@ -40,25 +171,12 @@ namespace FWO.Compliance
         /// <returns></returns>
         public async Task<ReportCompliance> CreateComplianceReport(List<int> mgmIds)
         {
-            ComplianceReport = new();
+            await SetUpReportFilters();
+            
+            ReportTemplate template = new ReportTemplate("", reportFilters.ToReportParams());
+            currentReport = await ReportGenerator.Generate(template, apiConnection, userConfig, DisplayMessageInUi);
+            ComplianceReport = currentReport as ReportCompliance;
 
-            // ToDo: create real report with different parameters
-            if (apiConnection != null)
-            {
-                foreach (var mgtId in mgmIds)
-                {
-                    Management mgt = new(); // await apiConnection.SendQueryAsync<Management>(DeviceQueries.getSingleManagementDetails);
-                    foreach (var rulebase in mgt.Rulebases)
-                    {
-                        foreach (var rule in rulebase.Rules)
-                        {
-                            CheckRuleCompliance(rule, out List<(ComplianceNetworkZone, ComplianceNetworkZone)> result);
-                            ComplianceReport.Results.AddRange(result);
-                        }
-                    }
-                }
-            }
-            // Filter out duplicates ?
             return ComplianceReport;
         }
 
@@ -74,17 +192,17 @@ namespace FWO.Compliance
 
             MailData? mail = PrepareEmail();
 
-            await MailKitMailer.SendAsync(mail, emailConnection, false, new CancellationToken());
+            bool success = await MailKitMailer.SendAsync(mail, emailConnection, false, new CancellationToken());
         }
 
         private MailData PrepareEmail()
         {
             string subject = userConfig.ComplianceCheckMailSubject;
             string body = userConfig.ComplianceCheckMailBody;
-            MailData mailData = new(EmailHelper.CollectRecipientsFromConfig(userConfig, userConfig.ComplianceCheckMailRecipients), subject) { Body = body };
-            if (ComplianceReport != null)
+               MailData mailData = new(EmailHelper.CollectRecipientsFromConfig(userConfig, userConfig.ComplianceCheckMailRecipients), subject){ Body = body };
+            if (currentReport is ReportCompliance complianceReport)
             {
-                FormFile? attachment = EmailHelper.CreateAttachment(ComplianceReport?.ExportToCsv(), GlobalConst.kCsv, subject);
+                FormFile? attachment = EmailHelper.CreateAttachment(complianceReport.ExportToCsv(), GlobalConst.kCsv, subject);
                 if (attachment != null)
                 {
                     mailData.Attachments = new FormFileCollection() { attachment };
@@ -114,25 +232,6 @@ namespace FWO.Compliance
                 );
             }
             return forbiddenCommunicationsOutput;
-        }
-
-        public bool CheckRuleCompliance(Rule rule, out List<(ComplianceNetworkZone, ComplianceNetworkZone)> forbiddenCommunication)
-        {
-            List<IPAddressRange> froms = [];
-            List<IPAddressRange> tos = [];
-
-            foreach (NetworkLocation networkLocation in rule.Froms)
-            {
-                // Determine all source ip ranges
-                froms.AddRange(ParseIpRange(networkLocation.Object));
-            }
-            foreach (NetworkLocation networkLocation in rule.Tos)
-            {
-                // Determine all destination ip ranges
-                tos.AddRange(ParseIpRange(networkLocation.Object));
-            }
-
-            return CheckCompliance(froms, tos, out forbiddenCommunication);
         }
 
         private bool CheckCompliance(List<IPAddressRange> source, List<IPAddressRange> destination, out List<(ComplianceNetworkZone, ComplianceNetworkZone)> forbiddenCommunication)
@@ -194,43 +293,6 @@ namespace FWO.Compliance
             return result;
         }
 
-        private static List<IPAddressRange> ParseIpRange(NetworkObject networkObject)
-        {
-            List<IPAddressRange> ranges = [];
-
-            if (networkObject.Type == new NetworkObjectType() { Name = ObjectType.IPRange })
-            {
-                ranges.Add(IPAddressRange.Parse($"{networkObject.IP}-{networkObject.IpEnd}"));
-            }
-            else if (networkObject.Type != new NetworkObjectType() { Name = ObjectType.Group })
-            {
-                for (int j = 0; j < networkObject.ObjectGroupFlats.Length; j++)
-                {
-                    if (networkObject.ObjectGroupFlats[j].Object != null)
-                    {
-                        ranges.AddRange(ParseIpRange(networkObject.ObjectGroupFlats[j].Object!));
-                    }
-                }
-            }
-            else
-            {
-                // CIDR notation or single (host) IP can be parsed directly
-                ranges.Add(IPAddressRange.Parse(networkObject.IP));
-            }
-
-            return ranges;
-        }
-
-
     }
-    
-    public class ReportCompliance
-    {
-		public List<(ComplianceNetworkZone, ComplianceNetworkZone)> Results { get; set; } = [];
 
-		public string ExportToCsv()
-		{
-			return "";
-		}
-    }
 }

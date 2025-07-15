@@ -15,11 +15,11 @@
         <Body>
             @if(AppRoleHandler.NamingConvention.NetworkAreaRequired)
             {
-                <div class="mt-2">
+                <div class="d-inline-flex mt-2 col-sm-6">
                     <label class="d-inline-flex pe-3">@(userConfig.GetText("area"))*:</label>
                     @if(AppRoleHandler.AddMode && !AppRoleHandler.ReadOnly)
                     {
-                        <div class="d-inline-flex p-1">
+                        <div class="d-inline-flex p-1 flex-grow-1">
                             <Dropdown ElementType="ModellingNetworkArea" SelectedElement="AppRoleHandler.ActAppRole.Area" ElementToString="@(a => a.Display() + DisplayObjectCount(a))"
                                       SelectedElementChanged="OnSelectedAreaChanged" Elements="areas" Nullable="true">
                                 <ElementTemplate Context="area">

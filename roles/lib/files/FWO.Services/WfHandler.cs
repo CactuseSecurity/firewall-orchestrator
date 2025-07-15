@@ -156,7 +156,7 @@ namespace FWO.Services
                     }
                     ActionHandler = new (apiConnection, this, UserGroups, usedInMwServer);
                     await ActionHandler.Init();
-                    dbAcc = new WfDbAccess(DisplayMessageInUi, userConfig, apiConnection, ActionHandler){};
+                    dbAcc = new WfDbAccess(DisplayMessageInUi, userConfig, apiConnection, ActionHandler, AuthUser == null || AuthUser.IsInRole(Roles.Admin)){};
                     Devices = await apiConnection.SendQueryAsync<List<Device>>(DeviceQueries.getDeviceDetails);
                     AllOwners = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
                     await stateMatrixDict.Init(Phase, apiConnection);

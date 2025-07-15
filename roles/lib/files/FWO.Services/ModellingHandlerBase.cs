@@ -346,11 +346,11 @@ namespace FWO.Services
             {
                 if(appRole.AppServers.Count > 0 && !appRole.AppServers.Any(_ => _.Content.IsDeleted))
                 {
-                    names.Add(appRole.DisplayWithIcon(conn.DstFromInterface));
+                    names.Add(appRole.DisplayWithIcon(conn.SrcFromInterface));
                 }
                 else
                 {
-                    names.Add(appRole.DisplayProblematicWithIcon());
+                    names.Add(appRole.DisplayProblematicWithIcon(conn.SrcFromInterface));
                 }
             }
 
@@ -393,7 +393,7 @@ namespace FWO.Services
                 }
                 else
                 {
-                    names.Add(appRole.DisplayProblematicWithIcon());
+                    names.Add(appRole.DisplayProblematicWithIcon(conn.DstFromInterface));
                 }
             }
 
@@ -420,11 +420,11 @@ namespace FWO.Services
             {
                 if(svcGrp.Services.Count > 0)
                 {
-                    names.Add(svcGrp.DisplayWithIcon());
+                    names.Add(svcGrp.DisplayWithIcon(conn.UsedInterfaceId != null));
                 }
                 else
                 {
-                    names.Add(svcGrp.DisplayProblematicWithIcon());
+                    names.Add(svcGrp.DisplayProblematicWithIcon(conn.UsedInterfaceId != null));
                 }
             }
 

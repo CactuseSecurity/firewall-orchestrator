@@ -1,4 +1,4 @@
-﻿@using FWO.Data.Middleware
+@using FWO.Data.Middleware
 @using FWO.Logging
 @using FWO.Middleware.Client
 @using FWO.Recert
@@ -492,6 +492,7 @@ else
             await addRuleOwners();
             await addNetworkOwners();
             owners.Add(actOwner);
+            Log.WriteAudit($"Owners Settings", $"Added Owner ID: {actOwner.Id}, Name: {actOwner.Name}, Group DN: {actOwner.GroupDn}.");
         }
     }
 
@@ -522,6 +523,7 @@ else
             await deleteNetworkOwners();
             await addNetworkOwners();
             owners[owners.FindIndex(x => x.Id == actOwner.Id)] = actOwner;
+            Log.WriteAudit($"Owners Settings", $"Edited Owner ID: {actOwner.Id}, Name: {actOwner.Name}, Group DN: {actOwner.GroupDn}.");
         }
     }
 
@@ -604,6 +606,7 @@ else
             await apiConnection.SendQueryAsync<ReturnId>(OwnerQueries.deleteOwner, new { id = actOwner.Id });
             owners.Remove(actOwner);
             DeleteOwnerMode = false;
+            Log.WriteAudit($"Owners Settings", $"Deleted Owner ID: {actOwner.Id}, Name: {actOwner.Name}, Group DN: {actOwner.GroupDn}.");
         }
         catch (Exception exception)
         {

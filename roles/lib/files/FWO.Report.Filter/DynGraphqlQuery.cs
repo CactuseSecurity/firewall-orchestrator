@@ -296,7 +296,6 @@ namespace FWO.Report.Filter
                 case ReportType.UnusedRules:
                 case ReportType.AppRules:
                 case ReportType.Compliance:
-                case ReportType.ComplianceDiff:
                     query.FullQuery = Queries.Compact(ConstructRulesQuery(query, paramString, filter));
                     break;
 

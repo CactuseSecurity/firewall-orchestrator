@@ -17,6 +17,7 @@ from fwo_log import getFwoLogger
 from fmgr_gw_networking import getInterfacesAndRouting, normalize_network_data
 from model_controllers.interface_controller import get_ip_of_interface_obj
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
+from model_controllers.management_details_controller import ManagementDetailsController
 
 
 scope = ['global', 'adom']
@@ -45,6 +46,7 @@ def has_config_changed(full_config, mgm_details, force=False):
 def get_config(nativeConfig: json, importState: ImportStateController):
     logger = getFwoLogger()
     if nativeConfig == {}:   # no native config was passed in, so getting it from FW-Manager
+        nativeConfig.update({'domains': []})
         parsing_config_only = False
     else:
         parsing_config_only = True
@@ -53,12 +55,16 @@ def get_config(nativeConfig: json, importState: ImportStateController):
         sid = get_sid(importState)
         limit = importState.FwoConfig.ApiFetchSize
         fm_api_url = importState.MgmDetails.buildFwApiString()
+        #delete_v hier weiter arbeiten, verwandel gerade nativ conf in domain toplevel struktur
+        nativ_config_do = initialize_nativ_config_domain(nativeConfig, importState.MgmDetails)
 
         # get globals in first adom loop iteration
         fetched_global = False
 
         for adom in build_adom_list(importState):
             adom_name = adom.MgmDetails.DomainName
+            initialize_nativ_config_domain(nativeConfig, adom.MgmDetails)
+
 
             get_objects(sid, fm_api_url, nativeConfig, adom_name, limit, scope, nw_obj_types, svc_obj_types, fetched_global)
             # currently reading zone from objects/rules for backward compat with FortiManager 6.x
@@ -103,6 +109,19 @@ def get_config(nativeConfig: json, importState: ImportStateController):
         full_config, config2import, current_import_id, jwt=jwt)
     fmgr_network.remove_nat_ip_entries(config2import)
     return 0
+
+def initialize_nativ_config_domain(nativeConfig : dict, mgm_details : ManagementDetailsController):
+    return {
+        'domain_name': mgm_details.DomainName,
+        'domain_uid': mgm_details.DomainUid,
+        'is-super-manger': mgm_details.IsSuperManager,
+        'management_name': mgm_details.Name,
+        'management_uid': mgm_details.Uid,
+        'objects': [],
+        'rulebases': [],
+        'nat_rulebases': [],
+        'gateways': []}
+
 
 # delete_v: einfach kopiert von cp
 def normalize_config(import_state, native_config: json, parsing_config_only: bool, sid: str) -> FwConfigManagerListController:

@@ -1,4 +1,4 @@
-﻿@using FWO.Data.Middleware
+@using FWO.Data.Middleware
 @using FWO.Middleware.Client
 @using RestSharp
 @using System.Net
@@ -426,6 +426,7 @@
             }
             DeleteTenantMode = false;
             EditTenantMode = false;
+            Log.WriteAudit($"Tenants Settings", $"Tenant \"{actTenant.Name}\" was deleted.");
         }
         catch (Exception exception)
         {
@@ -539,6 +540,7 @@
                 tenants.Add(actTenant);
                 AddTenantMode = false;
                 EditTenantMode = false;
+                Log.WriteAudit($"Tenants Settings", $"Tenant \"{actTenant.Name}\" was added.");
             }
         }
     }
@@ -555,6 +557,7 @@
             await deleteTenantNetworks();
             await addTenantNetworks();
             EditTenantMode = false;
+            Log.WriteAudit($"Tenants Settings", $"Tenant \"{actTenant.Name}\" was edited.");
         }
     }
 

@@ -27,7 +27,7 @@
         </Authorized>
         <NotAuthorized>
             <button type="button" class="btn btn-sm btn-info" disabled>@(userConfig.GetText("synchronize"))</button>
-        </NotAuthorized> 
+        </NotAuthorized>
     </AuthorizeView>
     @if (showSampleRemoveButton)
     {
@@ -64,10 +64,10 @@
         <Column TableItem="UiUser" Title="@(userConfig.GetText("tenant"))" Field="@(x => x.Tenant)" Sortable="true">
             <Template>
                 <div data-toggle="tooltip" title="@(userConfig.PureLine("H5273"))">
-                    @(context.Tenant != null ? (context.Tenant.Id == GlobalConst.kTenant0Id && context.LdapConnection.GlobalTenantName != null && 
+                    @(context.Tenant != null ? (context.Tenant.Id == GlobalConst.kTenant0Id && context.LdapConnection.GlobalTenantName != null &&
                         context.LdapConnection.GlobalTenantName != "" ? context.LdapConnection.GlobalTenantName : context.Tenant.Name) : "" )
                 </div>
-            </Template>       
+            </Template>
         </Column>
         <Column TableItem="UiUser" Title="@(userConfig.GetText("email"))" Field="@(x => x.Email)" Sortable="true" Filterable="true" />
         <Column TableItem="UiUser" Title="@(userConfig.GetText("language"))" Field="@(x => x.Language)" Sortable="true" Filterable="true" >
@@ -237,7 +237,7 @@
                 </Authorized>
                 <NotAuthorized>
                     <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
-                </NotAuthorized> 
+                </NotAuthorized>
             </AuthorizeView>
             <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
         </div>
@@ -270,7 +270,7 @@
                 </Authorized>
                 <NotAuthorized>
                     <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("set"))</button>
-                </NotAuthorized> 
+                </NotAuthorized>
             </AuthorizeView>
             <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
         </div>
@@ -502,13 +502,13 @@
                 foreach (var user in middlewareServerResponse.Data)
                 {
                     DistName distname = new DistName(user.UserDn);
-                    UiUser newUser = new UiUser() 
-                    { 
-                        Dn = user.UserDn, 
-                        Name = distname.UserName, 
-                        Email = user.Email, 
-                        Firstname = user.Firstname, 
-                        Lastname = user.Lastname, 
+                    UiUser newUser = new UiUser()
+                    {
+                        Dn = user.UserDn,
+                        Name = distname.UserName,
+                        Email = user.Email,
+                        Firstname = user.Firstname,
+                        Lastname = user.Lastname,
                         PasswordMustBeChanged = false,
                         LdapConnection = internalLdap
                     };
@@ -704,7 +704,7 @@
             user.LdapConnection = selectedLdap;
             user.Tenant = (selectedLdap.TenantLevel > 0 ? selectedTenant : null);
             // todo: further dn specification maybe in ldapconnection?
-            user.Dn = (selectedLdap.Type == (int)LdapType.ActiveDirectory ? "cn=": "uid=") + user.Name + 
+            user.Dn = (selectedLdap.Type == (int)LdapType.ActiveDirectory ? "cn=": "uid=") + user.Name +
                 (selectedLdap.TenantLevel > 0 ? ",ou=" + (selectedTenant?.Id == GlobalConst.kTenant0Id && selectedLdap.GlobalTenantName != null && selectedLdap.GlobalTenantName != "" ? selectedLdap.GlobalTenantName : selectedTenant?.Name) : "") + "," + selectedLdap.UserSearchPath;
         }
         user.Groups = [];
@@ -734,18 +734,18 @@
             }
             if (AddMode)
             {
-                SynchronizeUserData(actUser); 
+                SynchronizeUserData(actUser);
 
                 if (CheckValues())
                 {
                     // insert new user to ldap
                     UserAddParameters parameters = new UserAddParameters
                     {
-                        Email = actUser.Email, 
-                        Firstname = actUser.Firstname, 
-                        Lastname = actUser.Lastname, 
-                        LdapId = actUser.LdapConnection.Id, 
-                        Password = actUser.Password, 
+                        Email = actUser.Email,
+                        Firstname = actUser.Firstname,
+                        Lastname = actUser.Lastname,
+                        LdapId = actUser.LdapConnection.Id,
+                        Password = actUser.Password,
                         UserDn = actUser.Dn,
                         TenantId = (actUser.Tenant != null ? actUser.Tenant.Id : 0),
                         PwChangeRequired = actUser.PasswordMustBeChanged
@@ -761,7 +761,7 @@
                         uiUsers.Add(actUser);
                         await AddUserToGroupsInLdap(actUser);
                         await AddUserToRolesInLdap(actUser);
-                        Log.WriteAudit($"Users Settings(Mode: {(AddMode ? "Add" : "Edit")})", $"User ID: {actUser.DbId}, Name: {actUser.Name} was {(AddMode ? "added" : "edited")}.");
+                        Log.WriteAudit($"Users Settings(Mode: Add)", $"User ID: {actUser.DbId}, Name: {actUser.Name} was added.");
                         AddMode = false;
                         EditMode = false;
                     }
@@ -779,12 +779,12 @@
                 else
                 {
                     uiUsers[uiUsers.FindIndex(x => x.DbId == actUser.DbId)].Email = actUser.Email;
-                    Log.WriteAudit($"Users Settings(Mode: {(AddMode ? "Add" : "Edit")})", $"User ID: {actUser.DbId}, Name: {actUser.Name} was {(AddMode ? "added" : "edited")}.");
+                    Log.WriteAudit($"Users Settings(Mode: Edit)", $"User ID: {actUser.DbId}, Name: {actUser.Name} was edited.");
                     EditMode = false;
                 }
             }
 
-            
+
 
             AnalyseSampleUsers();
         }
@@ -899,7 +899,7 @@
         {
             // delete user from Ldap
             UserDeleteParameters parameters = new UserDeleteParameters
-            { 
+            {
                 LdapId = actUser.LdapConnection.Id,
                 UserId = actUser.DbId
             };
@@ -968,10 +968,10 @@
             }
             else
             {
-                UserResetPasswordParameters parameters = new UserResetPasswordParameters 
-                { 
-                    LdapId = actUser.LdapConnection.Id, 
-                    NewPassword = actUser.Password, 
+                UserResetPasswordParameters parameters = new UserResetPasswordParameters
+                {
+                    LdapId = actUser.LdapConnection.Id,
+                    NewPassword = actUser.Password,
                     UserId = actUser.DbId
                 };
                 RestResponse<string> middlewareServerResponse = await middlewareClient.SetPassword(parameters);
@@ -989,7 +989,7 @@
                     {
                         DisplayMessageInUi(null, userConfig.GetText("reset_password"), errorMsg, true);
                     }
-                    Log.WriteAudit($"Users Settings", $"User Name: {actUser.Name}, ID: {actUser.DbId} password reset.");
+                    Log.WriteAudit($"Users Settings", $"User Name: {actUser.Name}, ID: {actUser.DbId} password was reset.");
                 }
                 ResetPasswordMode = false;
             }

@@ -35,9 +35,9 @@ namespace FWO.Data.Modelling
             return $"<span class=\"{Icons.ServiceGroup}\"></span> " + DisplayHtml();
         }
 
-        public override string DisplayProblematicWithIcon(bool displayGrey)
+        public override string DisplayProblematicWithIcon()
         {
-            return $"<b class=\"text-danger\">&nbsp;!&nbsp;</b><span class=\"{Icons.ServiceGroup} {(displayGrey ? "text-secondary" : "")}\"></span> " + DisplayHtml();
+            return $"<b class=\"text-danger\">&nbsp;!&nbsp;</b><span class=\"{Icons.ServiceGroup}\"></span> " + DisplayHtml();
         }
 
         public NetworkService ToNetworkServiceGroup()

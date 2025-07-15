@@ -78,9 +78,9 @@ namespace FWO.Data.Modelling
             return $"<span class=\"{Icons.AppRole}\"></span> " + DisplayHtml();
         }
 
-        public override string DisplayProblematicWithIcon(bool displayGrey)
+        public override string DisplayProblematicWithIcon()
         {
-            return $"<b class=\"text-danger\">&nbsp;!&nbsp;</b><span class=\"{Icons.AppRole} {(displayGrey ? "text-secondary" : "")}\"></span> " + DisplayHtml();
+            return $"<b class=\"text-danger\">&nbsp;!&nbsp;</b><span class=\"{Icons.AppRole}\"></span> " + DisplayHtml();
         }
 
         public override NetworkObject ToNetworkObjectGroup(bool IdAsName = false, bool ListMembers = true)

@@ -67,45 +67,53 @@ class FwConfigManagerListController(FwConfigManagerList):
             return json.dumps(jsonDict, cls=FwoEncoder)
 
 
-    # def toJsonStringFull(self):
-    #     return jsonpickle.encode(self, indent=2)
+    def get_all_zone_uids(self, mgr_uid):
+        """
+        Returns a list of all zone UIDs in the configuration.
+        """
+        all_zone_uids = []
+        for mgr in self.ManagerSet:
+            if mgr.IsSuperManager or mgr.ManagerUid==mgr_uid:
+                for single_config in mgr.Configs:
+                    all_zone_uids.extend(single_config.zone_objects.keys())
+        return set(all_zone_uids)
+    
 
-    # def toJsonString(self, prettyPrint=False):
-    #     if prettyPrint:
-    #         return json.dumps(deserializeClassToDictRecursively(self), indent=2, cls=FwoEncoder)
-    #         # return json.dumps(self.toJson(), indent=2, cls=EnumEncoder)
-    #     else:
-    #         return json.dumps(self.toJson(), cls=FwoEncoder)
+    def get_all_network_object_uids(self, mgr_uid):
+        """
+        Returns a list of all network objects in the configuration.
+        """
+        all_network_objects = []
+        for mgr in self.ManagerSet:
+            if mgr.IsSuperManager or mgr.ManagerUid==mgr_uid:
+                for single_config in mgr.Configs:
+                    all_network_objects.extend(single_config.network_objects.keys())
+        return set(all_network_objects)
+    
 
-    # def toJson(self):
-    #     mgrSet = []
-    #     for mgr in self.ManagerSet:
-    #         configsJson =  {}
-    #         for config in mgr.Configs:
-    #             configsJson.update(config.toJson())
-    #         mgrSet.append( { 
-    #             'ManagerUid': mgr.ManagerUid,
-    #             'ManagerName': mgr.ManagerName,
-    #             'IsGlobal': mgr.IsGlobal,
-    #             'Configs': configsJson,
-    #             'DependantManagerUids': mgr.DependantManagerUids
-    #         })
+    def get_all_service_object_uids(self, mgr_uid):
+        """
+        Returns a list of all service objects in the configuration.
+        """
+        all_service_objects = []
+        for mgr in self.ManagerSet:
+            if mgr.IsSuperManager or mgr.ManagerUid==mgr_uid:
+                for single_config in mgr.Configs:
+                    all_service_objects.extend(single_config.service_objects.keys())
+        return set(all_service_objects)
+    
 
-    #     return {
-    #         'ConfigFormat': self.ConfigFormat,
-    #         'ManagerSet': mgrSet
-    #     } 
-
-    # def toJsonStringLegacy(self, prettyPrint=True):
-    #     configOut = {}
-    #     for mgr in self.ManagerSet:
-    #         for config in mgr.Configs:
-    #             configOut.update(config.toJsonLegacy(withAction=False))
-
-    #     if prettyPrint:
-    #         return json.dumps(configOut, indent=2)
-    #     else:
-    #         return json.dumps(configOut)
+    def get_all_user_object_uids(self, mgr_uid):
+        """
+        Returns a list of all user objects in the configuration.
+        """
+        all_user_objects = []
+        for mgr in self.ManagerSet:
+            if mgr.IsSuperManager or mgr.ManagerUid==mgr_uid:
+                for single_config in mgr.Configs:
+                    all_user_objects.extend(single_config.users.keys())
+        return set(all_user_objects)
+    
 
     def addManager(self, manager):
         self.ManagerSet.append(manager)

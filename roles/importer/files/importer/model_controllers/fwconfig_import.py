@@ -20,7 +20,7 @@ from services.enums import Services
 # this class is used for importing a config into the FWO API
 class FwConfigImport():
 
-    ImportDetails: ImportStateController
+    import_state: ImportStateController
     NormalizedConfig: FwConfigNormalized
 
     _fw_config_import_rule: FwConfigImportRule
@@ -36,7 +36,7 @@ class FwConfigImport():
         service_provider = ServiceProvider()
         self._global_state = service_provider.get_service(Services.GLOBAL_STATE)
 
-        self.ImportDetails = self._global_state.import_state
+        self.import_state = self._global_state.import_state
         self.NormalizedConfig = self._global_state.normalized_config
 
         self._fw_config_import_object = FwConfigImportObject()
@@ -53,6 +53,7 @@ class FwConfigImport():
         return
 
     def updateDiffs(self, previousConfig: FwConfigNormalized):
+        
         self._fw_config_import_object.updateObjectDiffs(previousConfig)
 
         if fwo_globals.shutdown_requested:
@@ -65,30 +66,30 @@ class FwConfigImport():
             # self.ImportDetails.addError("shutdown requested, aborting import")
             raise ImportInterruption("Shutdown requested during updateRulebaseDiffs.")
 
-        self.ImportDetails.SetRuleMap() # update all rule entries (from currently running import for rulebase_links)
+        self.import_state.SetRuleMap() # update all rule entries (from currently running import for rulebase_links)
         self._fw_config_import_gateway.update_gateway_diffs()
 
         # get new rules details from API (for obj refs as well as enforcing gateways)
         errors, changes, newRules = self._fw_config_import_rule.getRulesByIdWithRefUids(newRuleIds)
 
-        enforcingController = RuleEnforcedOnGatewayController(self.ImportDetails)
-        ids = enforcingController.add_new_rule_enforced_on_gateway_refs(newRules, self.ImportDetails)
+        enforcingController = RuleEnforcedOnGatewayController(self.import_state)
+        ids = enforcingController.add_new_rule_enforced_on_gateway_refs(newRules, self.import_state)
         
 
     # cleanup configs which do not need to be retained according to data retention time
     def deleteOldImports(self) -> None:
         logger = getFwoLogger()
-        mgmId = int(self.ImportDetails.MgmDetails.Id)
+        mgmId = int(self.import_state.MgmDetails.Id)
         delete_mutation = fwo_api.get_graphql_code([fwo_const.graphqlQueryPath + "import/deleteOldImports.graphql"])
 
         try:
-            deleteResult = self.ImportDetails.call(delete_mutation, query_variables={"mgmId": mgmId, "is_full_import": self.ImportDetails.IsFullImport })
+            deleteResult = self.import_state.call(delete_mutation, query_variables={"mgmId": mgmId, "is_full_import": self.import_state.IsFullImport })
             if deleteResult['data']['delete_import_control']['returning']['control_id']:
                 importsDeleted = len(deleteResult['data']['delete_import_control']['returning']['control_id'])
                 if importsDeleted>0:
                     logger.info(f"deleted {str(importsDeleted)} imports which passed the retention time of {ImportStateController.DataRetentionDays} days")
         except Exception:
-            logger.error(f"error while trying to delete old imports for mgm {str(self.ImportDetails.MgmDetails.Id)}")
+            logger.error(f"error while trying to delete old imports for mgm {str(self.import_state.MgmDetails.Id)}")
             # create_data_issue(importState.FwoConfig.FwoApiUri, importState.Jwt, mgm_id=int(importState.MgmDetails.Id), severity=1, 
             #     description="failed to get import lock for management id " + str(mgmId))
             # setAlert(url, importState.Jwt, import_id=importState.ImportId, title="import error", mgm_id=str(mgmId), severity=1, role='importer', \
@@ -112,11 +113,11 @@ class FwConfigImport():
 
     def storeLatestConfig(self):
 
-        logger = getFwoLogger(debug_level=self.ImportDetails.DebugLevel)
+        logger = getFwoLogger(debug_level=self.import_state.DebugLevel)
         changes = 0
         errorsFound = 0
 
-        if self.ImportDetails.ImportVersion>8:
+        if self.import_state.ImportVersion>8:
             # convert FwConfigImport to FwConfigNormalized
             self.NormalizedConfig = FwConfigNormalized(action=self.NormalizedConfig.action, 
                                     network_objects=self.NormalizedConfig.network_objects, 
@@ -129,23 +130,23 @@ class FwConfigImport():
         
             errorsFound = self.deleteLatestConfig()
             if errorsFound:
-                getFwoLogger().warning(f"error while trying to delete latest config for mgm_id: {self.ImportDetails.ImportId}")
+                getFwoLogger().warning(f"error while trying to delete latest config for mgm_id: {self.import_state.ImportId}")
             insertMutation = fwo_api.get_graphql_code([fwo_const.graphqlQueryPath + "import/storeLatestConfig.graphql"])
             try:
                 queryVariables = {
-                    'mgmId': self.ImportDetails.MgmDetails.Id,
-                    'importId': self.ImportDetails.ImportId,
+                    'mgmId': self.import_state.MgmDetails.Id,
+                    'importId': self.import_state.ImportId,
                     'config': self.NormalizedConfig.json()
                 }
-                import_result = self.ImportDetails.call(insertMutation, queryVariables=queryVariables)
+                import_result = self.import_state.call(insertMutation, queryVariables=queryVariables)
                 if 'errors' in import_result:
                     logger.exception("fwo_api:storeLatestConfig - error while writing importable config for mgm id " +
-                                    str(self.ImportDetails.MgmDetails.Id) + ": " + str(import_result['errors']))
+                                    str(self.import_state.MgmDetails.Id) + ": " + str(import_result['errors']))
                     errorsFound = 1 # error
                 else:
                     changes = import_result['data']['insert_latest_config']['affected_rows']
             except Exception:
-                logger.exception(f"failed to write latest normalized config for mgm id {str(self.ImportDetails.MgmDetails.Id)}: {str(traceback.format_exc())}")
+                logger.exception(f"failed to write latest normalized config for mgm id {str(self.import_state.MgmDetails.Id)}: {str(traceback.format_exc())}")
                 errorsFound = 1 # error
             
             if changes==1:
@@ -154,23 +155,23 @@ class FwConfigImport():
                 errorsFound = 1
 
             if errorsFound:
-                getFwoLogger().warning(f"error while writing latest config for mgm_id: {self.ImportDetails.ImportId}")        
+                getFwoLogger().warning(f"error while writing latest config for mgm_id: {self.import_state.ImportId}")        
 
         
     def deleteLatestConfig(self) -> int:
         logger = getFwoLogger()
         deleteMutation = fwo_api.get_graphql_code([fwo_const.graphqlQueryPath + "import/deleteLatestConfig.graphql"])
         try:
-            queryVariables = { 'mgmId': self.ImportDetails.MgmDetails.Id }
-            import_result = self.ImportDetails.call(deleteMutation, queryVariables=queryVariables)
+            queryVariables = { 'mgmId': self.import_state.MgmDetails.Id }
+            import_result = self.import_state.call(deleteMutation, queryVariables=queryVariables)
             if 'errors' in import_result:
                 logger.exception("fwo_api:import_latest_config - error while deleting last config for mgm id " +
-                                str(self.ImportDetails.MgmDetails.Id) + ": " + str(import_result['errors']))
+                                str(self.import_state.MgmDetails.Id) + ": " + str(import_result['errors']))
                 return 1 # error
             else:
                 changes = import_result['data']['delete_latest_config']['affected_rows']
         except Exception:
-            logger.exception(f"failed to delete latest normalized config for mgm id {str(self.ImportDetails.MgmDetails.Id)}: {str(traceback.format_exc())}")
+            logger.exception(f"failed to delete latest normalized config for mgm id {str(self.import_state.MgmDetails.Id)}: {str(traceback.format_exc())}")
             return 1 # error
         
         if changes<=1:  # if nothing was changed, we are also happy (assuming this to be the first config of the current management)
@@ -180,14 +181,14 @@ class FwConfigImport():
 
     # return previous config or empty config if there is none
     def getPreviousConfig(self) -> FwConfigNormalized:
-        logger = getFwoLogger(debug_level=self.ImportDetails.DebugLevel)
+        logger = getFwoLogger(debug_level=self.import_state.DebugLevel)
         query = fwo_api.get_graphql_code([fwo_const.graphqlQueryPath + "import/getLatestConfig.graphql"])
-        queryVariables = { 'mgmId': self.ImportDetails.MgmDetails.Id }
+        queryVariables = { 'mgmId': self.import_state.MgmDetails.Id }
         try:
-            queryResult = self.ImportDetails.call(query, queryVariables=queryVariables)
+            queryResult = self.import_state.call(query, queryVariables=queryVariables)
             if 'errors' in queryResult:
                 logger.exception("fwo_api:import_latest_config - error while deleting last config for mgm id " +
-                                str(self.ImportDetails.MgmDetails.Id) + ": " + str(queryResult['errors']))
+                                str(self.import_state.MgmDetails.Id) + ": " + str(queryResult['errors']))
                 return 1 # error
             else:
                 if len(queryResult['data']['latest_config'])>0: # do we have a prev config?
@@ -206,6 +207,6 @@ class FwConfigImport():
                     prevConfig = FwConfigNormalized(**prevConfigDict)
                 return prevConfig
         except Exception:
-            logger.exception(f"failed to get latest normalized config for mgm id {str(self.ImportDetails.MgmDetails.Id)}: {str(traceback.format_exc())}")
+            logger.exception(f"failed to get latest normalized config for mgm id {str(self.import_state.MgmDetails.Id)}: {str(traceback.format_exc())}")
             raise Exception(f"error while trying to get the previous config")
 

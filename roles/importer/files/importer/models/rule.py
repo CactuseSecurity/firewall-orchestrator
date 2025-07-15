@@ -23,6 +23,7 @@ class RuleTrack(CaseInsensitiveEnum):
     LOG = 'log'
     ALERT = 'alert'
     DETAILEDLOG = 'detailed log'
+    EXTENDEDLOG = 'extended log'
     USERDEFINED = 'userdefined'
     MAIL = 'mail'
     ACCOUNT = 'account'

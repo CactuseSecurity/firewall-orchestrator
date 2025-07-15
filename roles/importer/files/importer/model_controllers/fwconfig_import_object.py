@@ -477,24 +477,27 @@ class FwConfigImportObject():
 
             group_id = self.get_id(obj_type, uid)
             self.collect_group_members(group_id, current_config_objects, new_group_members, member_uids, obj_type, prefix, prev_member_uids, prev_config_objects)
-
             flat_member_uids = self.get_flats(obj_type, uid)
-            for flat_member_uid in flat_member_uids:
-                if flat_member_uid in prev_flat_member_uids and prev_config_objects[flat_member_uid] == current_config_objects[flat_member_uid]:
-                    continue # flat member was not added or changed
-                flat_member_id = self.get_id(obj_type, flat_member_uid)
-                new_group_member_flats.append({
-                    f"{prefix}_flat_id": group_id,
-                    f"{prefix}_flat_member_id": flat_member_id,
-                    "import_created": self.ImportDetails.ImportId,
-                    "import_last_seen": self.ImportDetails.ImportId # to be removed in the future
-                })
+            self.collect_flat_group_members(group_id, current_config_objects, new_group_member_flats, flat_member_uids, obj_type, prefix, prev_flat_member_uids, prev_config_objects)
 
         if len(new_group_members)==0:
             return errors, 0
         
         return self.write_member_updates(new_group_members, new_group_member_flats, prefix, errors)
-            
+
+
+    def collect_flat_group_members(self, group_id, current_config_objects, new_group_member_flats, flat_member_uids, obj_type, prefix, prev_flat_member_uids, prev_config_objects):
+        for flat_member_uid in flat_member_uids:
+            if flat_member_uid in prev_flat_member_uids and prev_config_objects[flat_member_uid] == current_config_objects[flat_member_uid]:
+                continue # flat member was not added or changed
+            flat_member_id = self.get_id(obj_type, flat_member_uid)
+            new_group_member_flats.append({
+                f"{prefix}_flat_id": group_id,
+                f"{prefix}_flat_member_id": flat_member_id,
+                "import_created": self.ImportDetails.ImportId,
+                "import_last_seen": self.ImportDetails.ImportId # to be removed in the future
+            })
+
 
     def collect_group_members(self, group_id, current_config_objects, new_group_members, member_uids, obj_type, prefix, prev_member_uids, prev_config_objects):
         for member_uid in member_uids:
@@ -531,8 +534,10 @@ class FwConfigImportObject():
             if 'errors' in import_result:
                 logger.exception(f"fwo_api:addGroupMemberships: {str(import_result['errors'])}")
                 errors = 1
-                if import_result['errors'].contains('duplicate'):
+                if 'duplicate' in import_result['errors']:
                     raise fwo_exceptions.FwoDuplicateKeyViolation(str(import_result['errors']))
+                else:
+                    raise fwo_exceptions.FwoImporterError(str(import_result['errors']))
             else:
                 changes = int(import_result['data'][f'insert_{prefix}']['affected_rows']) + \
                     int(import_result['data'][f'insert_{prefix}_flat']['affected_rows'])

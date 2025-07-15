@@ -980,8 +980,9 @@ ADD CONSTRAINT compliance_rule_violation_foreign_key
 FOREIGN KEY (rule_id) REFERENCES public.rule(rule_id) 
 ON UPDATE RESTRICT ON DELETE CASCADE;
 
+-- add report type Compliance
 
-
+UPDATE config SET config_value = '[1,2,3,4,5,6,7,8,9,10,21,22,31]' WHERE config_key = 'availableReportTypes';
 
 -- adding labels (simple version without mapping tables and without foreign keys)
 

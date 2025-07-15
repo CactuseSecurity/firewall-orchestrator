@@ -28,7 +28,7 @@ namespace FWO.Compliance
                 // something like this
                 List<int> managementIds = [.. (await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames)).Select(m => m.Id)];
                 await CreateComplianceReport(managementIds);
-                
+
                 // write result to database
             }
         }
@@ -81,7 +81,7 @@ namespace FWO.Compliance
         {
             string subject = userConfig.ComplianceCheckMailSubject;
             string body = userConfig.ComplianceCheckMailBody;
-               MailData mailData = new(EmailHelper.CollectRecipientsFromConfig(userConfig, userConfig.ComplianceCheckMailRecipients), subject){ Body = body };
+            MailData mailData = new(EmailHelper.CollectRecipientsFromConfig(userConfig, userConfig.ComplianceCheckMailRecipients), subject) { Body = body };
             if (ComplianceReport != null)
             {
                 FormFile? attachment = EmailHelper.CreateAttachment(ComplianceReport?.ExportToCsv(), GlobalConst.kCsv, subject);
@@ -220,5 +220,17 @@ namespace FWO.Compliance
 
             return ranges;
         }
+
+
+    }
+    
+    public class ReportCompliance
+    {
+		public List<(ComplianceNetworkZone, ComplianceNetworkZone)> Results { get; set; } = [];
+
+		public string ExportToCsv()
+		{
+			return "";
+		}
     }
 }

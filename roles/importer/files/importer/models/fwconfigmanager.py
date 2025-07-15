@@ -6,6 +6,8 @@ class FwConfigManager(BaseModel):
     ManagerUid: str
     ManagerName: str
     IsSuperManager: bool = False
+    DomainUid: str
+    DomainName: str
     SubManagerIds: List[int] = []
     Configs: List[FwConfigNormalized] = []
 

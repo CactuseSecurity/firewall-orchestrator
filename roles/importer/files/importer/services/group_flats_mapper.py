@@ -56,8 +56,8 @@ class GroupFlatsMapper:
         Returns:
             List[str]: The flattened network object UIDs.
         """
-        if self.normalized_config is None:
-            self.log_error(CONFIG_NOT_SET_MESSAGE)
+        if self.global_state.normalized_config is None:
+            self.log_error(f"{CONFIG_NOT_SET_MESSAGE}-networks")
             return []
         all_members = set()
         for uid in uids:
@@ -72,7 +72,7 @@ class GroupFlatsMapper:
             return None
         if groupUid in self.network_object_flats:
             return self.network_object_flats[groupUid]
-        nwobj = self.normalized_config.network_objects.get(groupUid, None)
+        nwobj = self.global_state.normalized_config.network_objects.get(groupUid, None)
         if nwobj is None:
             self.log_error(f"object with uid {groupUid} not found in network objects of config")
             return None
@@ -80,6 +80,8 @@ class GroupFlatsMapper:
         if nwobj.obj_member_refs is None or nwobj.obj_member_refs == '':
             return members
         for memberUid in nwobj.obj_member_refs.split(fwo_const.list_delimiter):
+            if fwo_const.user_delimiter in memberUid:
+                memberUid = memberUid.split(fwo_const.user_delimiter)[0]  # remove user delimiter if present
             flatMembers = self.flat_nwobj_members_recursive(memberUid, recursionLevel + 1)
             if flatMembers is None:
                 continue
@@ -96,8 +98,8 @@ class GroupFlatsMapper:
         Returns:
             List[str]: The flattened service object UIDs.
         """
-        if self.normalized_config is None:
-            self.log_error(CONFIG_NOT_SET_MESSAGE)
+        if self.global_state.normalized_config is None:
+            self.log_error(f"{CONFIG_NOT_SET_MESSAGE}-services")
             return []
         all_members = set()
         for uid in uids:
@@ -112,7 +114,7 @@ class GroupFlatsMapper:
             return None
         if groupUid in self.service_object_flats:
             return self.service_object_flats[groupUid]
-        svcobj = self.normalized_config.service_objects.get(groupUid, None)
+        svcobj = self.global_state.normalized_config.service_objects.get(groupUid, None)
         if svcobj is None:
             self.log_error(f"object with uid {groupUid} not found in service objects of config")
             return None
@@ -136,8 +138,8 @@ class GroupFlatsMapper:
         Returns:
             List[str]: The flattened user UIDs.
         """
-        if self.normalized_config is None:
-            self.log_error(CONFIG_NOT_SET_MESSAGE)
+        if self.global_state.normalized_config is None:
+            self.log_error(f"{CONFIG_NOT_SET_MESSAGE}-users")
             return []
         all_members = set()
         for uid in uids:
@@ -152,12 +154,12 @@ class GroupFlatsMapper:
             return None
         if groupUid in self.user_flats:
             return self.user_flats[groupUid]
-        user = self.normalized_config.users.get(groupUid, None)
+        user = self.global_state.normalized_config.users.get(groupUid, None)
         if user is None:
             self.log_error(f"object with uid {groupUid} not found in users of config")
             return None
         members: set = {groupUid}
-        if user['user_member_refs'] is None or user['user_member_refs'] == '':
+        if "user_member_refs" not in user or user['user_member_refs'] is None or user['user_member_refs'] == '':
             return members
         for memberUid in user['user_member_refs'].split(fwo_const.list_delimiter): #TODO: adjust when/if users are refactored into objects
             flatMembers = self.flat_user_members_recursive(memberUid, recursionLevel + 1)

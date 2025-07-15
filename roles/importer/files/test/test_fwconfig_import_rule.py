@@ -22,9 +22,9 @@ class TestFwoConfigImportRule(unittest.TestCase):
 
         # Assert
 
-        self.assertEqual(rule_uids, list(fwconfig_import_rule.NormalizedConfig.rulebases[0].Rules.keys())) # The order of the entries in the dictionary
+        self.assertEqual(rule_uids, list(fwconfig_import_rule.normalized_config.rulebases[0].Rules.keys())) # The order of the entries in the dictionary
 
-        sorted_rulebase_rules = sorted(list(fwconfig_import_rule.NormalizedConfig.rulebases[0].Rules.values()), key=lambda r: r.rule_num_numeric)
+        sorted_rulebase_rules = sorted(list(fwconfig_import_rule.normalized_config.rulebases[0].Rules.values()), key=lambda r: r.rule_num_numeric)
         sorted_rulebase_rules_uids = [r.rule_uid for r in sorted_rulebase_rules]
 
         self.assertEqual(rule_uids, sorted_rulebase_rules_uids) # The sequence of the rule_num_numeric values

@@ -20,7 +20,14 @@ fragment networkObjectDetailsChangesOld on object {
   obj_comment
   obj_member_names
   obj_member_refs
-  objgrps(order_by: {objgrp_member_id: asc}) {
+  objgrps(where: {
+    active: { _eq: $active }
+    import_created: { _lte: $import_id_old }
+    _or: [
+      {removed: {_is_null: true}}
+      {removed: {_gt: $import_id_old}}
+    ]
+  } order_by: {objgrp_member_id: asc}) {
     id: objgrp_member_id
     byId: objectByObjgrpMemberId { 
       obj_id
@@ -32,8 +39,11 @@ fragment networkObjectDetailsChangesOld on object {
   }
   objgrp_flats(where: {
     active: { _eq: $active }
-    import_last_seen: { _gte: $import_id_old }
     import_created: { _lte: $import_id_old }
+    _or: [
+      {removed: {_is_null: true}}
+      {removed: {_gt: $import_id_old}}
+    ]
   } order_by: {objgrp_flat_member_id: asc}) {
     id_flat: objgrp_flat_id
     byFlatId: objectByObjgrpFlatMemberId {

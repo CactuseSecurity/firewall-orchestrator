@@ -137,6 +137,11 @@ insert into config (config_key, config_value, config_user) VALUES ('varianceAnal
 insert into config (config_key, config_value, config_user) VALUES ('varianceAnalysisSync', 'false', 0);
 insert into config (config_key, config_value, config_user) VALUES ('varianceAnalysisRefresh', 'false', 0);
 insert into config (config_key, config_value, config_user) VALUES ('resolveNetworkAreas', 'False', 0);
+insert into config (config_key, config_value, config_user) VALUES ('complianceCheckSleepTime', '0', 0);
+insert into config (config_key, config_value, config_user) VALUES ('complianceCheckStartAt', '00:00:00', 0);
+insert into config (config_key, config_value, config_user) VALUES ('complianceCheckMailRecipients', '', 0);
+insert into config (config_key, config_value, config_user) VALUES ('complianceCheckMailSubject', '', 0);
+insert into config (config_key, config_value, config_user) VALUES ('complianceCheckMailBody', '', 0);
 
 INSERT INTO "report_format" ("report_format_name") VALUES ('json');
 INSERT INTO "report_format" ("report_format_name") VALUES ('pdf');

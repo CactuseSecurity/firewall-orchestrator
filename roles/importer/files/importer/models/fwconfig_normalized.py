@@ -46,7 +46,7 @@ class FwConfig(BaseModel):
 
 """
 class FwConfigNormalized(FwConfig):
-    action: ConfigAction
+    action: ConfigAction = ConfigAction.INSERT
     network_objects: Dict[str, NetworkObject] = {}
     service_objects: Dict[str, ServiceObject] = {}
     users: dict = {}

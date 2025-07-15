@@ -16,6 +16,8 @@ def make_hashable(obj):
         return tuple(sorted((k, make_hashable(v)) for k, v in obj.items()))
     elif isinstance(obj, (list, set)):
         return tuple(make_hashable(i) for i in obj)
+    elif isinstance(obj, tuple):
+        return tuple(make_hashable(i) for i in obj)
     else:
         return obj
 class MockImportStateController(ImportStateController):
@@ -46,7 +48,6 @@ class MockImportStateController(ImportStateController):
         self.IsFullImport = True
         self.setCoreData()
 
-        self.color_id_map = {}
         self.track_id_map = {}
         self.action_id_map = {}
         self.service_id_map = {}
@@ -57,7 +58,7 @@ class MockImportStateController(ImportStateController):
     def call(self, *args, **kwargs):
 
         self.call_log.append((args, kwargs))
-        key = (args, make_hashable(kwargs))
+        key = (make_hashable(args), make_hashable(kwargs))
 
         if key in self.stub_responses:
             return self.stub_responses[key]
@@ -122,14 +123,9 @@ class MockImportStateController(ImportStateController):
             if id_ == gwId:
                 return gwUid
         return None
-    
-    def lookupColorId(self, color_str):
-        if color_str not in self.color_id_map:
-            self.color_id_map[color_str] = len(self.color_id_map) + 1
-        return self.color_id_map[color_str]
-    
+
     def lookupColorStr(self, color_id):
-        for color_str, id_ in self.color_id_map.items():
+        for color_str, id_ in self.ColorMap.items():
             if id_ == color_id:
                 return color_str
         return None

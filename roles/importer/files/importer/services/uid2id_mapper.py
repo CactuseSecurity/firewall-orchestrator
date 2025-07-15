@@ -3,6 +3,8 @@ from fwo_log import getFwoLogger
 from model_controllers.import_state_controller import ImportStateController
 from services.service_provider import ServiceProvider
 from services.enums import Services
+from fwo_api import get_graphql_code
+import fwo_const
 
 
 class Uid2IdMapper:
@@ -27,9 +29,11 @@ class Uid2IdMapper:
         self.nwobj_uid2id = {}
         self.svc_uid2id = {}
         self.user_uid2id = {}
+        self.rule_uid2id = {}
         self.outdated_nwobj_uid2id = {}
         self.outdated_svc_uid2id = {}
         self.outdated_user_uid2id = {}
+        self.outdated_rule_uid2id = {}
 
     def log_error(self, message: str):
         """
@@ -111,6 +115,26 @@ class Uid2IdMapper:
             self.log_error(f"User UID '{uid}' not found in mapping.")
         return usr_id
     
+    def get_rule_id(self, uid: str, before_update: bool = False) -> int:
+        """
+        Get the ID for a given rule UID.
+        
+        Args:
+            uid (str): The UID of the rule.
+            before_update (bool): If True, use the outdated mapping if available.
+        
+        Returns:
+            int: The ID of the rule.
+        """
+        if before_update:
+            rule_id = self.outdated_rule_uid2id.get(uid)
+            if rule_id is not None:
+                return rule_id
+        rule_id = self.rule_uid2id.get(uid)
+        if rule_id is None:
+            self.log_error(f"Rule UID '{uid}' not found in mapping.")
+        return rule_id
+    
     def add_network_object_mappings(self, mappings: List[dict]) -> bool:
         """
         Add network object mappings to the internal mapping dictionary.
@@ -126,6 +150,8 @@ class Uid2IdMapper:
             if 'obj_uid' not in mapping or 'obj_id' not in mapping:
                 self.log_error("Invalid mapping format. Each mapping must contain 'obj_uid' and 'obj_id'.")
                 return False
+            if mapping['obj_uid'] in self.nwobj_uid2id:
+                self.outdated_nwobj_uid2id[mapping['obj_uid']] = self.nwobj_uid2id[mapping['obj_uid']]
             self.nwobj_uid2id[mapping['obj_uid']] = mapping['obj_id']
         self.log_debug(f"Added {len(mappings)} network object mappings.")
         return True
@@ -145,6 +171,8 @@ class Uid2IdMapper:
             if 'svc_uid' not in mapping or 'svc_id' not in mapping:
                 self.log_error("Invalid mapping format. Each mapping must contain 'svc_uid' and 'svc_id'.")
                 return False
+            if mapping['svc_uid'] in self.svc_uid2id:
+                self.outdated_svc_uid2id[mapping['svc_uid']] = self.svc_uid2id[mapping['svc_uid']]
             self.svc_uid2id[mapping['svc_uid']] = mapping['svc_id']
         self.log_debug(f"Added {len(mappings)} service object mappings.")
         return True
@@ -164,10 +192,33 @@ class Uid2IdMapper:
             if 'user_uid' not in mapping or 'user_id' not in mapping:
                 self.log_error("Invalid mapping format. Each mapping must contain 'user_uid' and 'user_id'.")
                 return False
+            if mapping['user_uid'] in self.user_uid2id:
+                self.outdated_user_uid2id[mapping['user_uid']] = self.user_uid2id[mapping['user_uid']]
             self.user_uid2id[mapping['user_uid']] = mapping['user_id']
         self.log_debug(f"Added {len(mappings)} user mappings.")
         return True
-    
+
+    def add_rule_mappings(self, mappings: List[dict]) -> bool:
+        """
+        Add rule mappings to the internal mapping dictionary.
+
+        Args:
+            mappings (List[dict]): A list of dictionaries containing UID and ID mappings.
+                    Each dictionary should have 'rule_uid' and 'rule_id' keys.
+
+        Returns:
+            bool: True if the mappings were added successfully, False otherwise.
+        """
+        for mapping in mappings:
+            if 'rule_uid' not in mapping or 'rule_id' not in mapping:
+                self.log_error("Invalid mapping format. Each mapping must contain 'rule_uid' and 'rule_id'.")
+                return False
+            if mapping['rule_uid'] in self.rule_uid2id:
+                self.outdated_rule_uid2id[mapping['rule_uid']] = self.rule_uid2id[mapping['rule_uid']]
+            self.rule_uid2id[mapping['rule_uid']] = mapping['rule_id']
+        self.log_debug(f"Added {len(mappings)} rule mappings.")
+        return True
+
     def update_network_object_mapping(self, uids: Optional[List[str]] = None) -> bool:
         """
         Update the mapping for network objects based on the provided UIDs.
@@ -178,15 +229,8 @@ class Uid2IdMapper:
         Returns:
             bool: True if the mapping was updated successfully, False otherwise.
         """
-        # TODO: remove active filter later
-        query = """
-            query getMapOfUid2Id($uids: [String!], $mgmId: Int!) {
-                object(where: {obj_uid: {_in: $uids}, mgm_id: {_eq: $mgmId}, removed: {_is_null: true}, active: {_eq: true}}) {
-                    obj_id
-                    obj_uid
-                }
-            }
-            """
+        query = get_graphql_code([fwo_const.graphqlQueryPath + "networkObject/getmapOfUid2Id.graphql"])
+
         if uids is not None:
             if len(uids) == 0:
                 self.log_debug("Network object mapping updated for 0 objects")
@@ -203,8 +247,10 @@ class Uid2IdMapper:
             if 'errors' in response:
                 self.log_error(f"Error updating network object mapping: {response['errors']}")
                 return False
-            for obj in response['data']['object']:
-                self.nwobj_uid2id[obj['obj_uid']] = obj['obj_id']
+            self.nwobj_uid2id.update({
+                obj['obj_uid']: obj['obj_id']
+                for obj in response['data']['object']
+            })
             self.log_debug(f"Network object mapping updated for {len(response['data']['object'])} objects")
             return True
         except Exception as e:
@@ -221,15 +267,7 @@ class Uid2IdMapper:
         Returns:
             bool: True if the mapping was updated successfully, False otherwise.
         """
-        # TODO: remove active filter later
-        query = """
-            query getMapOfUid2Id($uids: [String!], $mgmId: Int!) {
-                service(where: {svc_uid: {_in: $uids}, mgm_id: {_eq: $mgmId}, removed: {_is_null: true}, active: {_eq: true}}) {
-                    svc_id
-                    svc_uid
-                }
-            }
-            """
+        query = get_graphql_code([fwo_const.graphqlQueryPath + "networkService/getmapOfUid2Id.graphql"])
         if uids is not None:
             if len(uids) == 0:
                 self.log_debug("Service object mapping updated for 0 objects")
@@ -264,15 +302,7 @@ class Uid2IdMapper:
         Returns:
             bool: True if the mapping was updated successfully, False otherwise.
         """
-        # TODO: remove active filter later
-        query = """
-            query getMapOfUid2Id($uids: [String!], $mgmId: Int!) {
-                usr(where: {user_uid: {_in: $uids}, mgm_id: {_eq: $mgmId}, removed: {_is_null: true}, active: {_eq: true}}) {
-                    user_id
-                    user_uid
-                }
-            }
-            """
+        query = get_graphql_code([fwo_const.graphqlQueryPath + "user/getmapOfUid2Id.graphql"])
         if uids is not None:
             if len(uids) == 0:
                 self.log_debug("User mapping updated for 0 objects")
@@ -295,4 +325,39 @@ class Uid2IdMapper:
             return True
         except Exception as e:
             self.log_error(f"Error updating user mapping: {e}")
+            return False
+
+    def update_rule_mapping(self, uids: Optional[List[str]] = None) -> bool:
+        """
+        Update the mapping for rules based on the provided UIDs.
+        
+        Args:
+            uids (List[str]): A list of UIDs to update the mapping for. If None, all UIDs for the Management will be fetched.
+        
+        Returns:
+            bool: True if the mapping was updated successfully, False otherwise.
+        """
+        query = get_graphql_code([fwo_const.graphqlQueryPath + "rule/getmapOfUid2Id.graphql"])
+        if uids is not None:
+            if len(uids) == 0:
+                self.log_debug("Rule mapping updated for 0 objects")
+                return True
+            variables = {'uids': uids}
+        else:
+            # If no UIDs are provided, fetch all UIDs for the Management
+            variables = {'mgmId': self.import_state.MgmDetails.Id}
+        try:
+            response = self.import_state.api_connection.call(query, variables)
+            if response is None:
+                self.log_error("Error updating rule mapping: No response from API")
+                return False
+            if 'errors' in response:
+                self.log_error(f"Error updating rule mapping: {response['errors']}")
+                return False
+            for obj in response['data']['rule']:
+                self.rule_uid2id[obj['rule_uid']] = obj['rule_id']
+            self.log_debug(f"Rule mapping updated for {len(response['data']['rule'])} objects")
+            return True
+        except Exception as e:
+            self.log_error(f"Error updating rule mapping: {e}")
             return False

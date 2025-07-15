@@ -46,19 +46,9 @@ namespace FWO.Middleware.Server
             try
             {
                 await InitEnv();
-                string decryptedSecret = "";
-                try
-                {
-                    string mainKey = AesEnc.GetMainKey();
-                    decryptedSecret = AesEnc.Decrypt(globalConfig.EmailPassword, mainKey);
-                }
-                catch (Exception exception)
-                {
-                    Log.WriteError(LogMessageTitle, $"Could not decrypt mailserver password.", exception);				
-                }
+                string decryptedSecret = AesEnc.TryDecrypt(globalConfig.EmailPassword, false, LogMessageTitle, "Could not decrypt mailserver password.");
                 EmailConnection emailConnection = new(globalConfig.EmailServerAddress, globalConfig.EmailPort,
                     globalConfig.EmailTls, globalConfig.EmailUser, decryptedSecret, globalConfig.EmailSenderAddress);
-                MailKitMailer mailer = new(emailConnection);
                 JwtWriter jwtWriter = new(ConfigFile.JwtPrivateKey);
                 ApiConnection apiConnectionReporter = new GraphQlApiConnection(ConfigFile.ApiServerUri ?? throw new ArgumentException("Missing api server url on startup."), jwtWriter.CreateJWTReporterViewall());
 
@@ -70,7 +60,7 @@ namespace FWO.Middleware.Server
 
                     if(upcomingRecerts.Count > 0 || overdueRecerts.Count > 0)
                     {
-                        await mailer.SendAsync(PrepareEmail(owner, upcomingRecerts, overdueRecerts), emailConnection, new CancellationToken());
+                        await MailKitMailer.SendAsync(PrepareEmail(owner, upcomingRecerts, overdueRecerts), emailConnection, false, new CancellationToken());
                         emailsSent++;
                     }
                     await SetOwnerLastCheck(owner);
@@ -231,7 +221,7 @@ namespace FWO.Middleware.Server
                     body += PrepareLine(rule);
                 }
             }
-            return new MailData(CollectEmailAddresses(owner), subject, body);
+            return new MailData(CollectEmailAddresses(owner), subject){ Body = body };
         }
 
         private static string PrepareLine(Rule rule)

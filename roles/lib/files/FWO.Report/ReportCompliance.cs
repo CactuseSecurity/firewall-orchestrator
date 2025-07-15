@@ -17,9 +17,9 @@ namespace FWO.Report
         public List<ComplianceViolation> Violations { get; set; } = [];
         public List<Rule> Rules { get; set; } = [];
 
-        private bool _includeHeaderInExport = true;
-        private char _separator = ';';
-        private List<string> _columnsToExport = new List<string>
+        private readonly bool _includeHeaderInExport = true;
+        private readonly char _separator = ';';
+        private readonly List<string> _columnsToExport = new List<string>
         {
             "Id",
             "Name",

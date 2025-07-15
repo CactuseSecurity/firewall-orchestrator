@@ -562,7 +562,7 @@
 
         if((resolvedNwObject is not null && resolvedNwObject is ModellingAppRole) && (!((ModellingAppRole)resolvedNwObject).AppServers.Any() || ((ModellingAppRole)resolvedNwObject).AppServers.Any(_ => _.Content.IsDeleted)))
         {
-            return resolvedNwObject.DisplayProblematicWithIcon();
+            return resolvedNwObject.DisplayProblematicWithIcon(false);
         }
 
         return resolvedNwObject?.DisplayWithIcon() ?? "";
@@ -574,7 +574,7 @@
 
         if(resolvedSvcObject is not null && resolvedSvcObject is ModellingServiceGroup && !((ModellingServiceGroup)resolvedSvcObject).Services.Any())
         {
-            return resolvedSvcObject.DisplayProblematicWithIcon();
+            return resolvedSvcObject.DisplayProblematicWithIcon(false);
         }
 
         return resolvedSvcObject?.DisplayWithIcon() ?? "";

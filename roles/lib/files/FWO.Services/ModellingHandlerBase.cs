@@ -350,7 +350,7 @@ namespace FWO.Services
                 }
                 else
                 {
-                    names.Add(appRole.DisplayProblematicWithIcon());
+                    names.Add(appRole.DisplayProblematicWithIcon(conn.DstFromInterface));
                 }
             }
 
@@ -393,7 +393,7 @@ namespace FWO.Services
                 }
                 else
                 {
-                    names.Add(appRole.DisplayProblematicWithIcon());
+                    names.Add(appRole.DisplayProblematicWithIcon(conn.DstFromInterface));
                 }
             }
 
@@ -424,7 +424,7 @@ namespace FWO.Services
                 }
                 else
                 {
-                    names.Add(svcGrp.DisplayProblematicWithIcon());
+                    names.Add(svcGrp.DisplayProblematicWithIcon(false));
                 }
             }
 

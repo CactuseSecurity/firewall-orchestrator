@@ -9,13 +9,12 @@ using FWO.Mail;
 using FWO.Services;
 using NetTools;
 using Microsoft.AspNetCore.Http;
-using System.Diagnostics;
 using FWO.Data.Report;
 using FWO.Report.Filter.FilterTypes;
 
 namespace FWO.Compliance
 {
-    public class ComplianceCheck(UserConfig userConfig, ApiConnection? apiConnection = null)
+    public class ComplianceCheck
     {
         ComplianceNetworkZone[] NetworkZones = [];
         ReportCompliance? ComplianceReport = null;
@@ -23,6 +22,19 @@ namespace FWO.Compliance
         private ReportBase? currentReport;
         Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
         ReportFilters reportFilters = new();
+        private readonly UserConfig _userConfig;
+        private readonly ApiConnection _apiConnection;
+
+        /// <summary>
+        /// Constructor for compliance check
+        /// </summary>
+        /// <param name="userConfig">User configuration</param>
+        /// <param name="apiConnection">Api connection</param>
+        public ComplianceCheck(UserConfig userConfig, ApiConnection apiConnection)
+        {
+            _userConfig = userConfig;
+            _apiConnection = apiConnection;
+        }
 
         /// <summary>
         /// Full compliance check to be called by scheduler
@@ -30,14 +42,14 @@ namespace FWO.Compliance
         /// <returns></returns>
         public async Task CheckAll()
         {
-            NetworkZones = await apiConnection.SendQueryAsync<ComplianceNetworkZone[]>(ComplianceQueries.getNetworkZones);
+            NetworkZones = await _apiConnection.SendQueryAsync<ComplianceNetworkZone[]>(ComplianceQueries.getNetworkZones);
             await SetUpReportFilters();
             ReportTemplate template = new ReportTemplate("", reportFilters.ToReportParams());
-            currentReport = await ReportGenerator.Generate(template, apiConnection, userConfig, DisplayMessageInUi);
+            currentReport = await ReportGenerator.Generate(template, _apiConnection, _userConfig, DisplayMessageInUi);
 
             Results.Clear();
 
-            if (apiConnection != null)
+            if (_apiConnection != null)
             {
                 foreach (var management in currentReport.ReportData.ManagementData)
                 {
@@ -61,7 +73,7 @@ namespace FWO.Compliance
                     }
                 }
 
-                if (Results.Any())  
+                if (Results.Any())
                 {
                     if (currentReport is ReportCompliance complianceReport)
                     {
@@ -76,9 +88,8 @@ namespace FWO.Compliance
                         }
 
                         await complianceReport.SetComplianceData();
-                        await SendComplianceCheckEmail();
                     }
-                    
+
                 }
             }
         }
@@ -101,7 +112,6 @@ namespace FWO.Compliance
 
             return CheckCompliance(froms, tos, out forbiddenCommunication);
         }
-
 
         private static List<IPAddressRange> ParseIpRange(NetworkObject networkObject)
         {
@@ -138,8 +148,6 @@ namespace FWO.Compliance
                 throw;
             }
 
-
-
             return ranges;
         }
 
@@ -147,7 +155,7 @@ namespace FWO.Compliance
         {
             reportFilters = new();
             reportFilters.ReportType = ReportType.Compliance;
-            reportFilters.DeviceFilter.Managements = await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement);
+            reportFilters.DeviceFilter.Managements = await _apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement);
             foreach (var management in reportFilters.DeviceFilter.Managements)
             {
                 management.Selected = true;
@@ -157,13 +165,6 @@ namespace FWO.Compliance
                 }
             }
         }
-
-
-
-
-
-
-
 
         /// <summary>
         /// Create compliance report for given Managements
@@ -175,7 +176,7 @@ namespace FWO.Compliance
             await SetUpReportFilters();
             
             ReportTemplate template = new ReportTemplate("", reportFilters.ToReportParams());
-            currentReport = await ReportGenerator.Generate(template, apiConnection, userConfig, DisplayMessageInUi);
+            currentReport = await ReportGenerator.Generate(template, _apiConnection, _userConfig, DisplayMessageInUi);
             ComplianceReport = currentReport as ReportCompliance;
 
             return ComplianceReport;
@@ -187,20 +188,27 @@ namespace FWO.Compliance
         /// <returns></returns>
         public async Task SendComplianceCheckEmail()
         {
-            string decryptedSecret = AesEnc.TryDecrypt(userConfig.EmailPassword, false, "Compliance Check", "Could not decrypt mailserver password.");
-            EmailConnection emailConnection = new(userConfig.EmailServerAddress, userConfig.EmailPort,
-                userConfig.EmailTls, userConfig.EmailUser, decryptedSecret, userConfig.EmailSenderAddress);
+            string decryptedSecret = AesEnc.TryDecrypt( _userConfig.GlobalConfig.EmailPassword, false, "Compliance Check", "Could not decrypt mailserver password.");
+
+            EmailConnection emailConnection = new(
+                 _userConfig.GlobalConfig.EmailServerAddress,
+                 _userConfig.GlobalConfig.EmailPort,
+                 _userConfig.GlobalConfig.EmailTls,
+                 _userConfig.GlobalConfig.EmailUser,
+                decryptedSecret,
+                 _userConfig.GlobalConfig.EmailSenderAddress
+            );
 
             MailData? mail = PrepareEmail();
 
-            bool success = await MailKitMailer.SendAsync(mail, emailConnection, false, new CancellationToken());
+            await MailKitMailer.SendAsync(mail, emailConnection, false, new CancellationToken());
         }
 
         private MailData PrepareEmail()
         {
-            string subject = userConfig.ComplianceCheckMailSubject;
-            string body = userConfig.ComplianceCheckMailBody;
-               MailData mailData = new(EmailHelper.CollectRecipientsFromConfig(userConfig, userConfig.ComplianceCheckMailRecipients), subject){ Body = body };
+            string subject =  _userConfig.GlobalConfig.ComplianceCheckMailSubject;
+            string body =  _userConfig.GlobalConfig.ComplianceCheckMailBody;
+               MailData mailData = new(EmailHelper.CollectRecipientsFromConfig(_userConfig,  _userConfig.GlobalConfig.ComplianceCheckMailRecipients), subject){ Body = body };
             if (currentReport is ReportCompliance complianceReport)
             {
                 FormFile? attachment = EmailHelper.CreateAttachment(complianceReport.ExportToCsv(), GlobalConst.kCsv, subject);
@@ -286,7 +294,7 @@ namespace FWO.Compliance
                 (
                     new ComplianceNetworkZone()
                     {
-                        Name = userConfig.GetText("internet_local_zone"),
+                        Name =  _userConfig.GetText("internet_local_zone"),
                     }
                 );
             }

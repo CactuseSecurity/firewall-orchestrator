@@ -47,20 +47,11 @@ namespace FWO.Middleware.Server
         {
             try
             {
-                var userConfig = new UserConfig(globalConfig);
-
-                userConfig.EmailServerAddress = globalConfig.EmailServerAddress;
-                userConfig.EmailPort = globalConfig.EmailPort;
-                userConfig.EmailTls = userConfig.EmailTls;
-                userConfig.EmailUser = globalConfig.EmailUser;
-                userConfig.EmailSenderAddress = globalConfig.EmailSenderAddress;
-                userConfig.ComplianceCheckMailSubject = globalConfig.ComplianceCheckMailSubject;
-                userConfig.ComplianceCheckMailBody = globalConfig.ComplianceCheckMailBody;
-                userConfig.ComplianceCheckMailRecipients = globalConfig.ComplianceCheckMailRecipients;
-
+                UserConfig userConfig = new(globalConfig);
                 ComplianceCheck complianceCheck = new(userConfig, apiConnection);
-                
+
                 await complianceCheck.CheckAll();
+                await complianceCheck.SendComplianceCheckEmail();
             }
             catch (Exception exc)
             {

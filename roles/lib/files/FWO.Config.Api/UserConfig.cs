@@ -15,6 +15,7 @@ namespace FWO.Config.Api
     /// </summary>
     public class UserConfig : Config, IDisposable
     {
+        public GlobalConfig GlobalConfig => globalConfig ?? throw new NullReferenceException("GlobalConfig is not set.");
         private readonly GlobalConfig? globalConfig;
         private bool disposedValue;
 
@@ -22,6 +23,8 @@ namespace FWO.Config.Api
         public Dictionary<string, string> Overwrite { get; set; } = [];
 
         public UiUser User { private set; get; }
+
+        
 
         public static async Task<UserConfig> ConstructAsync(GlobalConfig globalConfig, ApiConnection apiConnection, int userId)
         {

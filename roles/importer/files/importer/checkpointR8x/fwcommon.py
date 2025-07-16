@@ -550,7 +550,7 @@ def add_special_objects_to_global_domain(object_table, manager_index, obj_type,
                                          origObj, anyObj, noneObj, internetObj):
     """Appends special objects Original, Any, None and Internet to global domain
     """
-    # todo: this expects the first manager to be supermanager, improve!
+    # global manager is always the first
     if manager_index == 0:
         if obj_type == 'networks':
             object_table['chunks'].append(origObj)

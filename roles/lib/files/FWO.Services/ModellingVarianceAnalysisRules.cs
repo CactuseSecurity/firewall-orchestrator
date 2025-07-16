@@ -14,6 +14,8 @@ namespace FWO.Services
     {
         private List<long> AllowedSrcSpecUserAreas { get; set; } = [];
         private List<long> AllowedDestSpecUserAreas { get; set; } = [];
+        private List<long> AllowedSrcUpdatableObjAreas { get; set; } = [];
+        private List<long> AllowedDestUpdatableObjAreas { get; set; } = [];
         private NetworkObjectComparer networkObjectComparer = new(new());
         private NetworkObjectGroupFlatComparer networkObjectGroupComparer = new(new());
         private NetworkServiceComparer networkServiceComparer = new(new());
@@ -24,6 +26,7 @@ namespace FWO.Services
         {
             FullAnalysis = fullAnalysis;
             await GetAllowedSpecUserAreas();
+            await GetAllowedUpdatableObjAreas();
             networkObjectComparer = new(ruleRecognitionOption);
             networkObjectGroupComparer = new(ruleRecognitionOption);
             networkServiceComparer = new(ruleRecognitionOption);
@@ -90,6 +93,28 @@ namespace FWO.Services
             }
         }
 
+        private async Task GetAllowedUpdatableObjAreas()
+        {
+            AllowedSrcUpdatableObjAreas = [];
+            AllowedDestUpdatableObjAreas = [];
+            if (userConfig.ModUpdatableObjAreas != "" && userConfig.ModUpdatableObjAreas != "[]")
+            {
+                List<ModellingNetworkArea> allAreas = await apiConnection.SendQueryAsync<List<ModellingNetworkArea>>(ModellingQueries.getNwGroupObjects, new { grpType = (int)ModellingTypes.ModObjectType.NetworkArea });
+                List<CommonAreaConfig> configItems = JsonSerializer.Deserialize<List<CommonAreaConfig>>(userConfig.ModUpdatableObjAreas) ?? [];
+                foreach (var configItem in configItems.Where(c => allAreas.FirstOrDefault(a => a.Id == c.AreaId) != null))
+                {
+                    if (configItem.UseInSrc)
+                    {
+                        AllowedSrcUpdatableObjAreas.Add(configItem.AreaId);
+                    }
+                    if (configItem.UseInDst)
+                    {
+                        AllowedDestUpdatableObjAreas.Add(configItem.AreaId);
+                    }
+                }
+            }
+        }
+        
         private bool CompareRuleToConn(Rule rule, ModellingConnection conn)
         {
             if (rule.ConnId == conn.Id)
@@ -114,6 +139,7 @@ namespace FWO.Services
         {
             bool isImpl = !rule.IsDropRule() && !rule.Disabled && !rule.SourceNegated && !rule.DestinationNegated;
             Dictionary<string, bool> SpecialUserObjects = conn.GetSpecialUserObjectNames();
+            Dictionary<string, bool> UpdatableObjects = conn.GetUpdatableObjectNames();
             List<NetworkLocation> disregardedFroms = [];
             List<NetworkLocation> disregardedTos = [];
             List<NetworkService> disregardedServices = [];
@@ -121,8 +147,8 @@ namespace FWO.Services
 
             if (FullAnalysis)
             {
-                isImpl &= IsNwImplementation(rule.Froms, SpecialUserObjects, conn, true, ref disregardedFroms);
-                isImpl &= IsNwImplementation(rule.Tos, SpecialUserObjects, conn, false, ref disregardedTos);
+                isImpl &= IsNwImplementation(rule.Froms, SpecialUserObjects, UpdatableObjects, conn, true, ref disregardedFroms);
+                isImpl &= IsNwImplementation(rule.Tos, SpecialUserObjects, UpdatableObjects, conn, false, ref disregardedTos);
                 bool isSvcImpl = IsSvcImplementation(normRuleSvc, normConnSvc, normConnSvcGrp, disregardedServices);
                 isImpl &= isSvcImpl;
                 if (!isSvcImpl && ruleRecognitionOption.SvcSplitPortRanges)
@@ -134,12 +160,13 @@ namespace FWO.Services
                 rule.DisregardedTos = [.. disregardedTos];
                 rule.DisregardedServices = [.. disregardedServices];
                 rule.UnusedSpecialUserObjects = [.. SpecialUserObjects.Keys.Where(x => !SpecialUserObjects[x])];
-                isImpl &= rule.UnusedSpecialUserObjects.Count == 0;
+                rule.UnusedUpdatableObjects = [.. UpdatableObjects.Keys.Where(x => !UpdatableObjects[x])];
+                isImpl &= rule.UnusedSpecialUserObjects.Count == 0 && rule.UnusedUpdatableObjects.Count == 0;
             }
             else if (isImpl)
             {
-                isImpl = IsNwImplementation(rule.Froms, SpecialUserObjects, conn, true, ref disregardedFroms)
-                    && IsNwImplementation(rule.Tos, SpecialUserObjects, conn, false, ref disregardedTos)
+                isImpl = IsNwImplementation(rule.Froms, SpecialUserObjects, UpdatableObjects, conn, true, ref disregardedFroms)
+                    && IsNwImplementation(rule.Tos, SpecialUserObjects, UpdatableObjects, conn, false, ref disregardedTos)
                     && IsSvcImplementation(normRuleSvc, normConnSvc, normConnSvcGrp, [])
                     && !SpecialUserObjects.Any(x => !x.Value);
             }
@@ -166,12 +193,9 @@ namespace FWO.Services
                 if(svc.Type.Name == ObjectType.Group)
                 {
                     List<NetworkService> grpMembers = [];
-                    foreach(var member in svc.ServiceGroupFlats.Select(m => m.Object))
+                    foreach(var member in svc.ServiceGroupFlats.Select(m => m.Object).Where(m => m != null))
                     {
-                        if (member != null)
-                        {
-                            grpMembers.AddRange(SplitPortRange(member));
-                        }
+                        grpMembers.AddRange(SplitPortRange(member!));
                     }
                     svc.ServiceGroupFlats = Array.ConvertAll(grpMembers.ToArray(), o => new GroupFlat<NetworkService>() { Object = o });
                     servicesOut.Add(svc);
@@ -234,13 +258,13 @@ namespace FWO.Services
         }
 
         private bool IsNwImplementation(NetworkLocation[] networkLocations, Dictionary<string, bool> specialUserObjects,
-            ModellingConnection conn, bool source, ref List<NetworkLocation> disregardedLocations)
+            Dictionary<string, bool> updatableObjects, ModellingConnection conn, bool source, ref List<NetworkLocation> disregardedLocations)
         {
             List<ModellingAppServerWrapper> appServers = source ? conn.SourceAppServers : conn.DestinationAppServers;
             List<ModellingAppRoleWrapper> appRoles = source ? conn.SourceAppRoles : conn.DestinationAppRoles;
             List<ModellingNetworkAreaWrapper> areas = source ? conn.SourceAreas : conn.DestinationAreas;
             List<ModellingNwGroupWrapper> otherGroups = source ? conn.SourceOtherGroups : conn.DestinationOtherGroups;
-            bool continueAnalysis = FullAnalysis || specialUserObjects.Count > 0 || conn.IsNat();
+            bool continueAnalysis = FullAnalysis || specialUserObjects.Count > 0 || updatableObjects.Count > 0 || conn.IsNat();
 
             foreach (var loc in networkLocations)
             {
@@ -259,6 +283,7 @@ namespace FWO.Services
                 return false;
             }
             AdjustWithSpecialUserObjects(networkLocations, specialUserObjects, source, ref disregardedLocations);
+            AdjustWithUpdatableObjects(networkLocations, updatableObjects, source, ref disregardedLocations);
             return disregardedLocations.Count == 0 && networkLocations.Where(n => n.Object.IsSurplus).ToList().Count == 0;
         }
 
@@ -267,8 +292,8 @@ namespace FWO.Services
             if(specialUserObjects.Count > 0 && disregardedLocations.Count > 0)
             {
                 List<NetworkLocation> surplusSpecUserLocations = [.. networkLocations.Where(n => n.Object.IsSurplus && specialUserObjects.ContainsKey(n.Object.Name.ToLower()))];
-                List<NetworkLocation> remainingPossibleSpecObj = GetPossibleSpecobjects(disregardedLocations, source);
-                if (surplusSpecUserLocations.Count > 0 && remainingPossibleSpecObj.Count > 0 && surplusSpecUserLocations.Count <= remainingPossibleSpecObj.Count)
+                List<NetworkLocation> remainingPossibleSpecObj = GetPossibleSpecObjects(disregardedLocations, source);
+                if (surplusSpecUserLocations.Count == remainingPossibleSpecObj.Count)
                 {
                     foreach (var location in remainingPossibleSpecObj)
                     {
@@ -283,9 +308,35 @@ namespace FWO.Services
             }
         }
 
-        private List<NetworkLocation> GetPossibleSpecobjects(List<NetworkLocation> disregardedLocations, bool source)
+        private List<NetworkLocation> GetPossibleSpecObjects(List<NetworkLocation> disregardedLocations, bool source)
         {
             return [.. disregardedLocations.Where(l => l.Object.Type.Name == ObjectType.Group && (source ? AllowedSrcSpecUserAreas.Contains(l.Object.Id) : AllowedDestSpecUserAreas.Contains(l.Object.Id)))];
+        }
+
+        private void AdjustWithUpdatableObjects(NetworkLocation[] networkLocations, Dictionary<string, bool> updatableObjects, bool source, ref List<NetworkLocation> disregardedLocations)
+        {
+            if(updatableObjects.Count > 0 && disregardedLocations.Count > 0)
+            {
+                List<NetworkLocation> surplusUpdObjLocations = [.. networkLocations.Where(n => n.Object.IsSurplus && updatableObjects.ContainsKey(n.Object.Name.ToLower()))];
+                List<NetworkLocation> remainingPossibleUpdatableObj = GetPossibleUpdatableObjects(disregardedLocations, source);
+                if (surplusUpdObjLocations.Count == remainingPossibleUpdatableObj.Count)
+                {
+                    foreach (var location in remainingPossibleUpdatableObj)
+                    {
+                        disregardedLocations.Remove(location);
+                    }
+                    foreach (var updObj in surplusUpdObjLocations.Select(s => s.Object))
+                    {
+                        updObj.IsSurplus = false;
+                        updatableObjects[updObj.Name.ToLower()] = true;
+                    }
+                }
+            }
+        }
+
+        private List<NetworkLocation> GetPossibleUpdatableObjects(List<NetworkLocation> disregardedLocations, bool source)
+        {
+            return [.. disregardedLocations.Where(l => l.Object.Type.Name == ObjectType.Group && (source ? AllowedSrcUpdatableObjAreas.Contains(l.Object.Id) : AllowedDestUpdatableObjAreas.Contains(l.Object.Id)))];
         }
 
         private bool CompareNwAreas(NetworkLocation[] networkLocations, List<ModellingNetworkAreaWrapper> areas, List<NetworkLocation> disregardedLocations, bool continueAnalysis)

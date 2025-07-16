@@ -10,6 +10,7 @@ from fwo_log import getFwoLogger
 from fwo_const import fwo_api_http_import_timeout
 from fwo_exceptions import FwoApiServiceUnavailable, FwoApiTimeout
 from query_analyzer import QueryAnalyzer
+from fwo_exceptions import FwoImporterError
 
 
 # this class is used for making calls to the FWO API (will supersede fwo_api.py)
@@ -157,6 +158,11 @@ class FwoApi():
     def _handle_chunked_calls_response(self, return_object, response):
         if return_object == {}:
             return response
+        
+        if 'errors' in response:
+            error_txt = f"encountered error while handling chunked call: {str(response['errors'])}"
+            getFwoLogger().error(error_txt)
+            raise FwoImporterError(error_txt)
         
         for new_return_object_type, new_return_object in response["data"].items():
             if 'data' in return_object.keys():

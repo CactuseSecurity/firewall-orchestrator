@@ -163,7 +163,7 @@ class TestFwoConfigImportConsistency(unittest.TestCase):
         service_provider = ServiceProvider()
 
         # Act
-        config_importer.importConfig()
+        config_importer.import_single_config()
         mock_api = import_state.api_connection
         config_from_api = mock_api.build_config_from_db(
             import_state, config.rulebases[0].mgm_uid, config.gateways)
@@ -187,7 +187,7 @@ class TestFwoConfigImportConsistency(unittest.TestCase):
         service_provider = ServiceProvider()
 
         # Act
-        config_importer.importConfig()
+        config_importer.import_single_config()
         mock_api = import_state.api_connection
 
         group_flats_mapper = service_provider.get_service(
@@ -244,7 +244,7 @@ class TestFwoConfigImportConsistency(unittest.TestCase):
         service_provider = ServiceProvider()
 
         # Act
-        config_importer.importConfig()
+        config_importer.import_single_config()
         config_importer.storeLatestConfig()
         mock_api = import_state.api_connection
 
@@ -255,7 +255,7 @@ class TestFwoConfigImportConsistency(unittest.TestCase):
                                                       change_obj="from")
         config_importer, import_state = reset_importer_with_new_config(
             config, mock_api, import_id=0)
-        config_importer.importConfig()
+        config_importer.import_single_config()
         config_importer.storeLatestConfig()
 
         config_builder.change_rule_with_nested_groups(config,
@@ -263,7 +263,7 @@ class TestFwoConfigImportConsistency(unittest.TestCase):
                                                       change_obj="svc")
         config_importer, import_state = reset_importer_with_new_config(
             config, mock_api, import_id=1)
-        config_importer.importConfig()
+        config_importer.import_single_config()
         config_importer.storeLatestConfig()
 
         config_builder.change_rule_with_nested_groups(config,
@@ -271,7 +271,7 @@ class TestFwoConfigImportConsistency(unittest.TestCase):
                                                       change_obj="member")
         config_importer, import_state = reset_importer_with_new_config(
             config, mock_api, import_id=2)
-        config_importer.importConfig()
+        config_importer.import_single_config()
         config_importer.storeLatestConfig()
 
         config_builder.change_rule_with_nested_groups(config,
@@ -279,14 +279,14 @@ class TestFwoConfigImportConsistency(unittest.TestCase):
                                                       change_obj="member_svc")
         config_importer, import_state = reset_importer_with_new_config(
             config, mock_api, import_id=3)
-        config_importer.importConfig()
+        config_importer.import_single_config()
         config_importer.storeLatestConfig()
 
         config_builder.change_rule_with_nested_groups(
             config, change_type="delete", change_obj="nested_member")
         config_importer, import_state = reset_importer_with_new_config(
             config, mock_api, import_id=4)
-        config_importer.importConfig()
+        config_importer.import_single_config()
         config_importer.storeLatestConfig()
 
         group_flats_mapper = service_provider.get_service(
@@ -373,7 +373,7 @@ class TestFwoConfigImportConsistency(unittest.TestCase):
         service_provider = ServiceProvider()
 
         # Act
-        config_importer.importConfig()
+        config_importer.import_single_config()
         config_importer.storeLatestConfig()
         mock_api = import_state.api_connection
 
@@ -384,7 +384,7 @@ class TestFwoConfigImportConsistency(unittest.TestCase):
                                                       change_obj="from")
         config_importer, import_state = reset_importer_with_new_config(
             config, mock_api, import_id=1)
-        config_importer.importConfig()
+        config_importer.import_single_config()
         config_importer.storeLatestConfig()
 
         config_builder.change_rule_with_nested_groups(config,
@@ -392,7 +392,7 @@ class TestFwoConfigImportConsistency(unittest.TestCase):
                                                       change_obj="svc")
         config_importer, import_state = reset_importer_with_new_config(
             config, mock_api, import_id=2)
-        config_importer.importConfig()
+        config_importer.import_single_config()
         config_importer.storeLatestConfig()
 
         config_builder.change_rule_with_nested_groups(config,
@@ -400,7 +400,7 @@ class TestFwoConfigImportConsistency(unittest.TestCase):
                                                       change_obj="member")
         config_importer, import_state = reset_importer_with_new_config(
             config, mock_api, import_id=3)
-        config_importer.importConfig()
+        config_importer.import_single_config()
         config_importer.storeLatestConfig()
 
         config_builder.change_rule_with_nested_groups(config,
@@ -408,21 +408,21 @@ class TestFwoConfigImportConsistency(unittest.TestCase):
                                                       change_obj="member_svc")
         config_importer, import_state = reset_importer_with_new_config(
             config, mock_api, import_id=4)
-        config_importer.importConfig()
+        config_importer.import_single_config()
         config_importer.storeLatestConfig()
 
         config_builder.change_rule_with_nested_groups(
             config, change_type="add", change_obj="nested_member")
         config_importer, import_state = reset_importer_with_new_config(
             config, mock_api, import_id=5)
-        config_importer.importConfig()
+        config_importer.import_single_config()
         config_importer.storeLatestConfig()
 
         config_builder.change_rule_with_nested_groups(
             config, change_type="add", change_obj="nested_member_svc")
         config_importer, import_state = reset_importer_with_new_config(
             config, mock_api, import_id=6)
-        config_importer.importConfig()
+        config_importer.import_single_config()
         config_importer.storeLatestConfig()
 
         group_flats_mapper = service_provider.get_service(
@@ -510,7 +510,7 @@ class TestFwoConfigImportConsistency(unittest.TestCase):
         # Act
         mock_api = import_state.api_connection
 
-        config_importer.importConfig()
+        config_importer.import_single_config()
         config_importer.storeLatestConfig()
 
         config_builder = MockFwConfigNormalizedBuilder()
@@ -520,40 +520,40 @@ class TestFwoConfigImportConsistency(unittest.TestCase):
                                                       change_obj="from")
         config_importer, import_state = reset_importer_with_new_config(
             config, mock_api, import_id=1)
-        config_importer.importConfig()
+        config_importer.import_single_config()
         config_importer.storeLatestConfig()
         config_builder.change_rule_with_nested_groups(config,
                                                       change_type="change",
                                                       change_obj="svc")
         config_importer, import_state = reset_importer_with_new_config(
             config, mock_api, import_id=2)
-        config_importer.importConfig()
+        config_importer.import_single_config()
         config_importer.storeLatestConfig()
         config_builder.change_rule_with_nested_groups(config,
                                                       change_type="change",
                                                       change_obj="member")
         config_importer, import_state = reset_importer_with_new_config(
             config, mock_api, import_id=3)
-        config_importer.importConfig()
+        config_importer.import_single_config()
         config_importer.storeLatestConfig()
         config_builder.change_rule_with_nested_groups(config,
                                                       change_type="change",
                                                       change_obj="member_svc")
         config_importer, import_state = reset_importer_with_new_config(
             config, mock_api, import_id=4)
-        config_importer.importConfig()
+        config_importer.import_single_config()
         config_importer.storeLatestConfig()
         config_builder.change_rule_with_nested_groups(
             config, change_type="change", change_obj="nested_member")
         config_importer, import_state = reset_importer_with_new_config(
             config, mock_api, import_id=5)
-        config_importer.importConfig()
+        config_importer.import_single_config()
         config_importer.storeLatestConfig()
         config_builder.change_rule_with_nested_groups(
             config, change_type="change", change_obj="member_svc") # change again
         config_importer, import_state = reset_importer_with_new_config(
             config, mock_api, import_id=6)
-        config_importer.importConfig()
+        config_importer.import_single_config()
         config_importer.storeLatestConfig()
         group_flats_mapper = service_provider.get_service(
             Services.GROUP_FLATS_MAPPER)

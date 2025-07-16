@@ -464,27 +464,45 @@ def get_objects(nativeConfig: dict, importState: ImportStateController) -> int:
             
     # loop over sub-managers in case of mds
     manager_index = 0
-    for managerDetails in manager_details_list:
-        cpManagerApiBaseUrl = importState.MgmDetails.buildFwApiString()
+    for manager_details in manager_details_list:
+        cp_api_url = importState.MgmDetails.buildFwApiString()
         
         # getting Original (NAT) object (both for networks and services)
-        sid = loginCp(managerDetails)
-        if managerDetails.IsSuperManager or len(manager_details_list) == 1:
-            origObj = cp_getter.getObjectDetailsFromApi(cp_const.original_obj_uid, sid=sid, apiurl=cpManagerApiBaseUrl)['chunks'][0]
-            anyObj = cp_getter.getObjectDetailsFromApi(cp_const.any_obj_uid, sid=sid, apiurl=cpManagerApiBaseUrl)['chunks'][0]
-            noneObj = cp_getter.getObjectDetailsFromApi(cp_const.none_obj_uid, sid=sid, apiurl=cpManagerApiBaseUrl)['chunks'][0]
-            internetObj = cp_getter.getObjectDetailsFromApi(cp_const.internet_obj_uid, sid=sid, apiurl=cpManagerApiBaseUrl)['chunks'][0]
+        sid = loginCp(manager_details)
+        if manager_details.IsSuperManager or len(manager_details_list) == 1:
+            origObj = cp_getter.getObjectDetailsFromApi(cp_const.original_obj_uid, sid=sid, apiurl=cp_api_url)['chunks'][0]
+            anyObj = cp_getter.getObjectDetailsFromApi(cp_const.any_obj_uid, sid=sid, apiurl=cp_api_url)['chunks'][0]
+            noneObj = cp_getter.getObjectDetailsFromApi(cp_const.none_obj_uid, sid=sid, apiurl=cp_api_url)['chunks'][0]
+            internetObj = cp_getter.getObjectDetailsFromApi(cp_const.internet_obj_uid, sid=sid, apiurl=cp_api_url)['chunks'][0]
 
         # get all objects
-        for obj_type in cp_const.api_obj_types:
-            object_table = get_objects_per_type(obj_type, show_params_objs, sid, cpManagerApiBaseUrl)
+        if manager_details.IsSuperManager or len(manager_details_list) == 1:
+            obj_type_array = cp_const.api_obj_types
+        else:
+            obj_type_array = cp_const.local_api_obj_types
+
+        for obj_type in obj_type_array:
+            object_table = get_objects_per_type(obj_type, show_params_objs, sid, cp_api_url)
             add_special_objects_to_global_domain(object_table, manager_index, obj_type,
                                                  origObj, anyObj, noneObj, internetObj)
-
+            remove_predefined_objects_for_domains(object_table, manager_index)
             nativeConfig['domains'][manager_index]['objects'].append(object_table)
         manager_index += 1
 
     return 0
+
+
+def remove_predefined_objects_for_domains(object_table, manager_index):
+    if not (manager_index>0 and 'chunks' in object_table and 'type' in object_table and \
+        object_table['type'] in cp_const.types_to_remove_globals_from):
+        return
+    
+    for chunk in object_table['chunks']:
+        if 'objects' in chunk:
+            for obj in chunk['objects']:
+                domain_type = obj.get("domain", {}).get("domain-type", "")
+                if domain_type != "domain":
+                    chunk['objects'].remove(obj)
 
 
 def get_objects_per_type(obj_type, show_params_objs, sid, cpManagerApiBaseUrl):

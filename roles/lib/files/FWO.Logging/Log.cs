@@ -145,6 +145,16 @@ namespace FWO.Logging
             WriteLog("Error", Title, DisplayText, callerName, callerFile, callerLineNumber, ConsoleColor.Red);
         }
 
+        /// <summary>
+        /// Writes an audit log entry with the specified title and text.
+        /// Optionally appends a separator line to the log entry.
+        /// </summary>
+        /// <param name="Title">The title of the audit log entry.</param>
+        /// <param name="Text">The content of the audit log entry.</param>
+        /// <param name="callerName">The name of the calling method (automatically supplied).</param>
+        /// <param name="callerFile">The file path of the calling method (automatically supplied).</param>
+        /// <param name="callerLineNumber">The line number in the source file at which the method is called (automatically supplied).</param>
+        /// <param name="WithSeparatorLine">Whether to append a separator line to the log entry. Default is true.</param>
         public static void WriteAudit(string Title, string Text, [CallerMemberName] string callerName = "", [CallerFilePath] string callerFile = "", [CallerLineNumber] int callerLineNumber = 0, bool WithSeparatorLine = true)
         {
             if(WithSeparatorLine)
@@ -155,6 +165,18 @@ namespace FWO.Logging
             WriteLog("Audit", Title, Text, callerName, callerFile, callerLineNumber, ConsoleColor.Yellow);
         }
 
+        /// <summary>
+        /// Writes an audit log entry with the specified title, text, user name, and user distinguished name (DN).
+        /// Optionally appends a separator line to the log entry.
+        /// </summary>
+        /// <param name="Title">The title of the audit log entry.</param>
+        /// <param name="Text">The content of the audit log entry.</param>
+        /// <param name="UserName">The name of the user performing the action.</param>
+        /// <param name="UserDN">The distinguished name (DN) of the user.</param>
+        /// <param name="callerName">The name of the calling method (automatically supplied).</param>
+        /// <param name="callerFile">The file path of the calling method (automatically supplied).</param>
+        /// <param name="callerLineNumber">The line number in the source file at which the method is called (automatically supplied).</param>
+        /// <param name="WithSeparatorLine">Whether to append a separator line to the log entry. Default is true.</param>
         public static void WriteAudit(string Title, string Text, string UserName, string UserDN, [CallerMemberName] string callerName = "", [CallerFilePath] string callerFile = "", [CallerLineNumber] int callerLineNumber = 0, bool WithSeparatorLine = true)
         {
             if(!string.IsNullOrEmpty(UserName))
@@ -163,7 +185,7 @@ namespace FWO.Logging
             }
 
             if(!string.IsNullOrEmpty(UserDN))
-            { 
+            {
                 Text += $" (DN: {UserDN})";
             }
 
@@ -174,7 +196,6 @@ namespace FWO.Logging
 
             WriteLog("Audit", Title, Text, callerName, callerFile, callerLineNumber, ConsoleColor.Yellow);
         }
-
 
         private static void WriteLog(string LogType, string Title, string Text, string Method, string Path, int Line, ConsoleColor? ForegroundColor = null, ConsoleColor? BackgroundColor = null)
         {

@@ -742,7 +742,7 @@
         await InvokeAsync(StateHasChanged);
     }
 
-    private async void OnSearchNwObjectClose()
+    private async Task OnSearchNwObjectClose()
     {
         await LoadNwElements(); //no need to refresh, as the searchNwObject component already does that
     }

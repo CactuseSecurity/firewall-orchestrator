@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
@@ -145,10 +145,36 @@ namespace FWO.Logging
             WriteLog("Error", Title, DisplayText, callerName, callerFile, callerLineNumber, ConsoleColor.Red);
         }
 
-        public static void WriteAudit(string Title, string Text, [CallerMemberName] string callerName = "", [CallerFilePath] string callerFile = "", [CallerLineNumber] int callerLineNumber = 0)
+        public static void WriteAudit(string Title, string Text, [CallerMemberName] string callerName = "", [CallerFilePath] string callerFile = "", [CallerLineNumber] int callerLineNumber = 0, bool WithSeparatorLine = true)
         {
+            if(WithSeparatorLine)
+            {
+                Text += $"{Environment.NewLine}----{Environment.NewLine}";
+            }
+
             WriteLog("Audit", Title, Text, callerName, callerFile, callerLineNumber, ConsoleColor.Yellow);
         }
+
+        public static void WriteAudit(string Title, string Text, string UserName, string UserDN, [CallerMemberName] string callerName = "", [CallerFilePath] string callerFile = "", [CallerLineNumber] int callerLineNumber = 0, bool WithSeparatorLine = true)
+        {
+            if(!string.IsNullOrEmpty(UserName))
+            {
+                Text += $" by User: {UserName}";
+            }
+
+            if(!string.IsNullOrEmpty(UserDN))
+            { 
+                Text += $" (DN: {UserDN})";
+            }
+
+            if(WithSeparatorLine)
+            {
+                Text += $"{Environment.NewLine}----{Environment.NewLine}";
+            }
+
+            WriteLog("Audit", Title, Text, callerName, callerFile, callerLineNumber, ConsoleColor.Yellow);
+        }
+
 
         private static void WriteLog(string LogType, string Title, string Text, string Method, string Path, int Line, ConsoleColor? ForegroundColor = null, ConsoleColor? BackgroundColor = null)
         {

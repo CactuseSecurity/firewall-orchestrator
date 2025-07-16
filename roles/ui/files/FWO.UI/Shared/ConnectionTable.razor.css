@@ -1,3 +1,64 @@
-.show-scrollbar .table-responsive {
+.connectiontable-responsive {
+    max-height: 40vh;
     overflow: scroll;
+}
+
+@media(height < 700px) {
+    .connectiontable-responsive {
+        max-height: 30vh;
+    }
+}
+
+@media(height > 700px) and (height < 800px) and (width > 700px) {
+    .connectiontable-responsive {
+        max-height: 45vh;
+    }
+}
+
+@media(height > 800px) and (width > 700px) {
+    .connectiontable-responsive {
+        max-height: 45vh;
+    }
+}
+
+@media(height > 900px) and (width > 800px) {
+    .connectiontable-responsive {
+        max-height: 50vh;
+    }
+}
+
+@media(height > 1000px) and (width > 800px) {
+    .connectiontable-responsive {
+        max-height: 55vh;
+    }
+}
+
+@media(height > 1100px) and (width > 800px) {
+    .connectiontable-responsive {
+        max-height: 60vh;
+    }
+}
+
+@media(height > 900px) and (width > 1200px) {
+    .connectiontable-responsive {
+        max-height: 55vh;
+    }
+}
+
+@media(height > 1100px) and (width > 1200px) {
+    .connectiontable-responsive {
+        max-height: 60vh;
+    }
+}
+
+@media(height > 1200px) and (width > 1600px) {
+    .connectiontable-responsive {
+        max-height: 64vh;
+    }
+}
+
+@media(height > 1200px) and (width < 1100px) {
+    .connectiontable-responsive {
+        max-height: 72vh;
+    }
 }

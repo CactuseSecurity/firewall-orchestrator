@@ -57,26 +57,13 @@ namespace FWO.Compliance
                     {
                         foreach (var rule in rulebase.Rules)
                         {
-
                             rule.IsCompliant = CheckRuleCompliance(rule, out List<(ComplianceNetworkZone, ComplianceNetworkZone)> result);
-                            if (!rule.IsCompliant)
-                            {
-                                foreach (var item in result)
-                                {
-                                    Results.Add((rule, item));
-
-                                }
-
-                            }
-
                         }
                     }
                 }
 
-                if (Results.Any())
+                if (Results.Any() && currentReport is ReportCompliance complianceReport)
                 {
-                    if (currentReport is ReportCompliance complianceReport)
-                    {
                         complianceReport.Violations.Clear();
 
                         foreach (var item in Results)
@@ -88,8 +75,6 @@ namespace FWO.Compliance
                         }
 
                         await complianceReport.SetComplianceData();
-                    }
-
                 }
             }
         }
@@ -110,7 +95,14 @@ namespace FWO.Compliance
                 tos.AddRange(ParseIpRange(networkLocation.Object));
             }
 
-            return CheckCompliance(froms, tos, out forbiddenCommunication);
+            bool ruleIsCompliant = CheckCompliance(froms, tos, out forbiddenCommunication);
+
+            foreach (var item in forbiddenCommunication)
+            {
+                Results.Add((rule, item));
+            }
+
+            return ruleIsCompliant;
         }
 
         private static List<IPAddressRange> ParseIpRange(NetworkObject networkObject)

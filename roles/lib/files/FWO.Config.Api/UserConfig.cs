@@ -15,7 +15,7 @@ namespace FWO.Config.Api
     /// </summary>
     public class UserConfig : Config, IDisposable
     {
-        public GlobalConfig GlobalConfig => globalConfig ?? throw new NullReferenceException("GlobalConfig is not set.");
+        public GlobalConfig? GlobalConfig => globalConfig;
         private readonly GlobalConfig? globalConfig;
         private bool disposedValue;
 

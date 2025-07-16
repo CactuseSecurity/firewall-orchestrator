@@ -115,23 +115,13 @@ def normalize_config(import_state, native_config: json, parsing_config_only: boo
     if 'domains' not in native_config:
         getFwoLogger().error("No domains found in native config. Cannot normalize config.")
         raise ImportInterruption("No domains found in native config. Cannot normalize config.")
-    
-    native_config_global = {
-        'domain_name': 'dummy_global_domain',
-        'domain_uid': 'dummy_global_domain',
-        'is-super-manger': False,
-        'management_name': 'dummy_global_domain',
-        'management_uid': 'dummy_global_domain',
-        'objects': [],
-        'rulebases': [],
-        'nat_rulebases': [],
-        'gateways': []}
 
     # in case of mds, first nativ config domain is global
     is_global_loop_iteration = False
+    native_config_global = None
     normalized_config_global = None
-    if native_config[0]['is-super-manger']:
-        native_config_global = native_config[0]
+    if native_config['domains'][0]['is-super-manger']:
+        native_config_global = native_config['domains'][0]
         is_global_loop_iteration = True
     
     # first loop to create normalized config as dict

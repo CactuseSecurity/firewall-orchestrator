@@ -42,7 +42,7 @@ def normalizeRulebases (nativeConfig, native_config_global, importState, normali
                     nativeConfig['rulebases'], rulebase_link['to_rulebase_uid'])
                 # search in global rulebase
                 found_rulebase_in_global = False
-                if rulebase_to_parse == {} and is_global_loop_iteration:
+                if rulebase_to_parse == {} and not is_global_loop_iteration and native_config_global is not None:
                     rulebase_to_parse, is_section, is_placeholder = find_rulebase_to_parse(
                         native_config_global['rulebases'], rulebase_link['to_rulebase_uid']
                         )

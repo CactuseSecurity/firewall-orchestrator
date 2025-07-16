@@ -1,4 +1,4 @@
-﻿@using System.Text.Json
+@using System.Text.Json
 @using FWO.Config.Api.Data
 
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.Modeller}")]
@@ -53,7 +53,7 @@
                     </Authorized>
                     <NotAuthorized>
                         <button type="button" class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("select"))</button>
-                    </NotAuthorized> 
+                    </NotAuthorized>
                 </AuthorizeView>
             }
             <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(userConfig.GetText("cancel"))</button>
@@ -79,7 +79,7 @@
     [Parameter]
     public EventCallback<List<ModellingNwGroupWrapper> > ObjectListChanged { get; set; }
 
-    [Parameter] 
+    [Parameter]
     public FwoOwner Application { get; set; } = new();
 
     [Parameter]
@@ -94,6 +94,8 @@
     [Parameter]
     public bool SpecUserMode { get; set; } = false;
 
+    [Parameter]
+    public EventCallback OnClose { get; set; }
 
     private List<ModellingTypes.ModObjectType> availableTypes = new(){ ModellingTypes.ModObjectType.NetworkArea };
     private ModellingTypes.ModObjectType selectedType = ModellingTypes.ModObjectType.NetworkArea;
@@ -185,5 +187,6 @@
         FirstTry = true;
         Display = false;
         DisplayChanged.InvokeAsync(Display);
+        OnClose.InvokeAsync();
     }
 }

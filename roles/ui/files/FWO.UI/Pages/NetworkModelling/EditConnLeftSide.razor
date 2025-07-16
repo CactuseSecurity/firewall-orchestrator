@@ -19,7 +19,7 @@
             <h5>@(userConfig.GetText("network_objects"))</h5>
             <div class="form-group row">
                 <div class="@ColWidthClass()">
-                    <DraggableList AllElements="AvailableNwElements" @bind-SelectedElements="selectedNwElems" 
+                    <DraggableList AllElements="AvailableNwElements" @bind-SelectedElements="selectedNwElems"
                     HandleDragStart="HandleNwDragStart" Display="@DisplayNwObject" MaxHeight="25"/>
                 </div>
                 @if(!OverviewMode)
@@ -54,10 +54,10 @@
                     {
                         if(!(ResolveAppRole(selectedNwElems[0].Value)?.IsDeleted ?? true))
                         {
-                            <button type="button" class="btn btn-sm btn-warning" @onclick="async () => 
+                            <button type="button" class="btn btn-sm btn-warning" @onclick="async () =>
                                 {ConnHandler.EditAppRole(ResolveAppRole(selectedNwElems[0].Value)); await ResetNw();}">
                                 @(ConnHandler.DisplayButton("edit", Icons.Edit))</button>
-                            <button type="button" class="btn btn-sm btn-danger" @onclick="async () => 
+                            <button type="button" class="btn btn-sm btn-danger" @onclick="async () =>
                                 {await ConnHandler.RequestDeleteAppRole(ResolveAppRole(selectedNwElems[0].Value)); await ResetNw();}">
                                 @(ConnHandler.DisplayButton("delete", Icons.Delete))</button>
                         }
@@ -67,7 +67,7 @@
                         ModellingNetworkArea? area = ResolveArea(selectedNwElems[0].Value);
                         if(area != null && !area.IsDeleted && ConnHandler.AvailableCommonAreas.FirstOrDefault(x => x.Content.Id == area.Id) == null)
                         {
-                            <button type="button" class="btn btn-sm btn-danger" @onclick="async () => 
+                            <button type="button" class="btn btn-sm btn-danger" @onclick="async () =>
                                 {ConnHandler.RequestRemoveNwGrpObject(area); await ResetNw();}">
                                 @(ConnHandler.DisplayButton("remove", Icons.Delete))</button>
                         }
@@ -77,7 +77,7 @@
                         ModellingNwGroup? nwGroup = ResolveNwGroupObject(selectedNwElems[0].Value);
                         if(nwGroup != null && !nwGroup.IsDeleted && ConnHandler.AvailableNwGroups.FirstOrDefault(x => x.Content.Id == nwGroup.Id) == null)
                         {
-                            <button type="button" class="btn btn-sm btn-danger" @onclick="async () => 
+                            <button type="button" class="btn btn-sm btn-danger" @onclick="async () =>
                                 {ConnHandler.RequestRemoveNwGrpObject(nwGroup); await ResetNw();}">
                                 @(ConnHandler.DisplayButton("remove", Icons.Delete))</button>
                         }
@@ -90,7 +90,7 @@
                 <h5>@(userConfig.GetText("services"))</h5>
                 <div class="form-group row">
                     <div class="@ColWidthClass()">
-                        <DraggableList AllElements="ConnHandler.AvailableSvcElems" @bind-SelectedElements="selectedSvcElems" 
+                        <DraggableList AllElements="ConnHandler.AvailableSvcElems" @bind-SelectedElements="selectedSvcElems"
                         HandleDragStart="HandleSvcDragStart" Display="@DisplaySvcObject" MaxHeight="25"/>
                     </div>
                     @if(!OverviewMode)
@@ -154,7 +154,7 @@
                 <h5>@(userConfig.GetText("interfaces"))</h5>
                 <div class="form-group row">
                     <div class="@ColWidthClass()">
-                        <DraggableList AllElements="ConnHandler.PreselectedInterfaces" @bind-SelectedElements="selectedInterfaces" 
+                        <DraggableList AllElements="ConnHandler.PreselectedInterfaces" @bind-SelectedElements="selectedInterfaces"
                         HandleDragStart="HandleConnDragStart" Display="@DisplayInterfaceWithIcon" MaxHeight="15" Multiselect="false"/>
                     </div>
                     @if(!OverviewMode)
@@ -173,7 +173,7 @@
                         @(ConnHandler.DisplayButton("search", Icons.Search))</button>
                     @if(selectedInterfaces.Count == 1)
                     {
-                        <button type="button" class="btn btn-sm btn-danger" @onclick="async () => 
+                        <button type="button" class="btn btn-sm btn-danger" @onclick="async () =>
                             {ConnHandler.RequestRemovePreselectedInterface(selectedInterfaces[0]); await ResetInt();}">
                             @(ConnHandler.DisplayButton("remove", Icons.Delete))</button>
                         <button type="button" class="btn btn-sm btn-primary" @onclick="async () =>
@@ -192,7 +192,7 @@
                 <h5>@(userConfig.GetText("own_interfaces"))</h5>
                 <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("C9010"))">
                     <div class="col-sm-10">
-                        <DraggableList AllElements="ConnHandler.Connections.Where(c => c.IsInterface && !c.IsRequested).ToList()" @bind-SelectedElements="selectedInterfaces" 
+                        <DraggableList AllElements="ConnHandler.Connections.Where(c => c.IsInterface && !c.IsRequested).ToList()" @bind-SelectedElements="selectedInterfaces"
                         HandleDragStart="HandleConnDragStart" Display="@DisplayInterfaceWithIcon" MaxHeight="15" Multiselect="false"/>
                     </div>
                     <div class="col-sm-2">
@@ -224,10 +224,10 @@
     <ConfirmDelete @bind-Display="ConnHandler.DeleteServiceMode" PerformAction="async () => await WrapAsync(ConnHandler.DeleteService)"
     Title="@userConfig.GetText("delete_service")" DeleteMessage="@ConnHandler.Message" AllowedRoles="@Roles.Modeller" DeleteAllowed="ConnHandler.DeleteAllowed" Enabled="ConnHandler.IsOwner"/>
     <SearchInterface @bind-Display="SearchInterfaceMode" @bind-PreselectedInterfaces="ConnHandler.PreselectedInterfaces" Application="ConnHandler.Application"/>
-    <ConfirmDelete @bind-Display="ConnHandler.RemovePreselectedInterfaceMode" PerformAction="async () => await WrapAsync(ConnHandler.RemovePreselectedInterface)" 
+    <ConfirmDelete @bind-Display="ConnHandler.RemovePreselectedInterfaceMode" PerformAction="async () => await WrapAsync(ConnHandler.RemovePreselectedInterface)"
     Title="@userConfig.GetText("remove_connection")" DeleteMessage="@ConnHandler.Message" AllowedRoles="@Roles.Modeller" Remove="true" Enabled="ConnHandler.IsOwner"/>
     <SearchNwObject @bind-Display="SearchNwObjectMode" @bind-ObjectList="ConnHandler.AvailableSelectedObjects"
-    Application="ConnHandler.Application" Refresh="ConnHandler.RefreshSelectableNwObjects"/>
+                    Application="ConnHandler.Application" Refresh="ConnHandler.RefreshSelectableNwObjects" OnClose="OnSearchNwObjectClose" />
     <ConfirmDelete @bind-Display="ConnHandler.RemoveNwObjectMode" PerformAction="async () => await WrapAsync(ConnHandler.RemoveNwGrpObject)"
     Title="@userConfig.GetText("remove_nw_object")" DeleteMessage="@ConnHandler.Message" AllowedRoles="@Roles.Modeller" Remove="true" Enabled="ConnHandler.IsOwner"/>
     <RequestInterfacePopup @bind-Display="SelectAppMode" Apps="ConnHandler.AllApps" RequestingOwner="ConnHandler.Application" RefreshParent="async () => await WrapAsync(ConnHandler.RefreshPreselectedInterfaces)"/>
@@ -239,7 +239,7 @@
     [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
-    [Parameter] 
+    [Parameter]
     public ModellingDnDContainer Container { get; set; } = new();
 
     [Parameter]
@@ -312,7 +312,7 @@
     {
         if (ConnHandler is not null && !ConnHandler.InterfaceAllowedWithNetworkArea(interf))
         {
-            DisplayMessageInUi(default, userConfig.GetText("edit_connection"), userConfig.GetText("U9024"), true);           
+            DisplayMessageInUi(default, userConfig.GetText("edit_connection"), userConfig.GetText("U9024"), true);
             return false;
         }
 
@@ -716,7 +716,7 @@
     {
         if(ConnHandler is null)
         {
-            return; 
+            return;
         }
 
         if (refresh)
@@ -724,8 +724,13 @@
             await ConnHandler.RefreshObjects();
         }
 
-        AvailableNwElements = ConnHandler.AvailableNwElems;        
+        AvailableNwElements = ConnHandler.AvailableNwElems;
         await InvokeAsync(StateHasChanged);
+    }
+
+    private async void OnSearchNwObjectClose()
+    {
+        await LoadNwElements(); //no need to refresh, as the searchNwObject component already does that
     }
 
     public void Dispose()

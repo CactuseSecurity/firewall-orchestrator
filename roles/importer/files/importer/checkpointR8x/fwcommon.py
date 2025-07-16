@@ -476,7 +476,7 @@ def get_objects(nativeConfig: dict, importState: ImportStateController) -> int:
             internetObj = cp_getter.getObjectDetailsFromApi(cp_const.internet_obj_uid, sid=sid, apiurl=cp_api_url)['chunks'][0]
 
         # get all objects
-        if manager_index==0:
+        if manager_details.IsSuperManager or len(manager_details_list) == 1:
             obj_type_array = cp_const.api_obj_types
         else:
             obj_type_array = cp_const.local_api_obj_types

@@ -34,7 +34,6 @@ nw_obj_table_names = local_nw_obj_table_names + global_nw_obj_table_names
 # simple as in: no groups
 simple_svc_obj_types = ['services-tcp', 'services-udp', 'services-dce-rpc', 'services-rpc', 'services-other',
                         'services-icmp', 'services-icmp6', 'services-sctp', 'services-gtp']
-group_svc_obj_types = ['service-groups', 'application-site-categories', 'application-sites']
 
 local_group_svc_obj_types = ['service-groups']
 global_group_svc_obj_types = ['application-site-categories', 'application-sites']

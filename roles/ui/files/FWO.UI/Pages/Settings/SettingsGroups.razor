@@ -265,15 +265,14 @@
                         actGroup.Name = newGroupName;
                         groups.Add(actGroup);
                         await AddGroupToRolesInLdap(actGroup);
+                        AddGroupMode = false;
+                        EditGroupMode = false;
 
                         Log.WriteAudit(
                             Title: $"Groups Settings",
                             Text: $"Group: {actGroup.Name} (DN: {actGroup.Dn}) with Roles: {string.Join(", ", actGroup.Roles)} was added",
                             UserName: userConfig.User.Name,
                             UserDN: userConfig.User.Dn);
-
-                        AddGroupMode = false;
-                        EditGroupMode = false;
                     }
                 }
                 else
@@ -292,14 +291,13 @@
                         int changedGroup = groups.FindIndex(x => x.Dn == actGroup.Dn);
                         groups[changedGroup].Dn = newDn;
                         groups[changedGroup].Name = newGroupName;
+                        EditGroupMode = false;
 
                         Log.WriteAudit(
                             Title: $"Groups Settings",
                             Text: $"Group: {actGroup.Name} (DN: {actGroup.Dn}) with Roles: {string.Join(", ", actGroup.Roles)} was edited",
                             UserName: userConfig.User.Name,
                             UserDN: userConfig.User.Dn);
-
-                        EditGroupMode = false;
                     }
                 }
                 CollectSampleGroups();

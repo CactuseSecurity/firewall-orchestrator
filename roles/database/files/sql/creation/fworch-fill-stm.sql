@@ -354,9 +354,10 @@ insert into stm_track (track_id,track_name) VALUES (17,'count alarm');
 insert into stm_track (track_id,track_name) VALUES (18,'all');
 insert into stm_track (track_id,track_name) VALUES (19,'all start');
 insert into stm_track (track_id,track_name) VALUES (20,'utm');
-insert into stm_track (track_id,track_name) VALUES (21,'network log'); -- check point R8x:
+-- mixed (continuous):
+insert into stm_track (track_id,track_name) VALUES (21,'network log'); -- check point R8x
 insert into stm_track (track_id,track_name) VALUES (22,'utm start'); -- fortinet
-insert into stm_track (track_id,track_name) VALUES (23,'detailed log'); -- check point R8x:
+insert into stm_track (track_id,track_name) VALUES (23,'detailed log'); -- check point R8x
 insert into stm_track (track_id,track_name) VALUES (24,'extended log'); -- check point R8x
 
 -- insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufacturer,dev_typ_predef_svc,dev_typ_is_mgmt,is_pure_routing_device)

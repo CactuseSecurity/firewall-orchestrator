@@ -94,6 +94,9 @@ namespace FWO.Data
 
         [JsonProperty("rule_enforced_on_gateways"), JsonPropertyName("rule_enforced_on_gateways")]
         public DeviceWrapper[] EnforcingGateways { get; set; } = [];
+        
+        [JsonProperty("rule_installon"), JsonPropertyName("rule_installon")]
+        public string InstallOn { get; set; } = "";
 
         public bool IsCompliant { get; set; } = true;
         public string ViolationDetails { get; set; } = "";

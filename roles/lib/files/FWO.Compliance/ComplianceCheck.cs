@@ -30,6 +30,7 @@ namespace FWO.Compliance
         /// <returns></returns>
         public async Task CheckAll()
         {
+            NetworkZones = await apiConnection.SendQueryAsync<ComplianceNetworkZone[]>(ComplianceQueries.getNetworkZones);
             await SetUpReportFilters();
             ReportTemplate template = new ReportTemplate("", reportFilters.ToReportParams());
             currentReport = await ReportGenerator.Generate(template, apiConnection, userConfig, DisplayMessageInUi);

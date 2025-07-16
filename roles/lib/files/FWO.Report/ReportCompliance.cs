@@ -21,12 +21,17 @@ namespace FWO.Report
         private readonly char _separator = '#';
         private readonly List<string> _columnsToExport = new List<string>
         {
-            "Id",
+            "MgmtId",
+            "Uid",
             "Name",
             "Comment",
             "Source",
             "Destination",
+            "Services",
             "Action",
+            "MetaData",
+            "CustomFields",
+            "InstallOn",
             "IsCompliant",
             "ViolationDetails"
         };

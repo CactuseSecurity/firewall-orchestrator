@@ -24,14 +24,25 @@ namespace FWO.Services
             return (!option.SvcRegardPortAndProt || service1.ProtoId == service2.ProtoId
                     && service1.DestinationPort == service2.DestinationPort
                     && destPortEnd1 == destPortEnd2)
-                && (!option.SvcRegardName || service1.Name == service2.Name);
+                && (!option.SvcRegardName || service1.Name == service2.Name || CompareProtTypes(service1, service2));
         }
 
         public int GetHashCode(NetworkService service)
         {
             int destPortEnd = service.DestinationPortEnd ?? service.DestinationPort ?? 0;
+            string relevantName = IsProtType(service.ProtoId) ? service.Protocol.Name : service.Name;
             return (option.SvcRegardPortAndProt ? HashCode.Combine(service.ProtoId, service.DestinationPort, destPortEnd) : 0)
-                ^ (option.SvcRegardName ? HashCode.Combine(service.Name) : 0);
+                ^ (option.SvcRegardName ? HashCode.Combine(relevantName) : 0);
+        }
+
+        private static bool IsProtType(int? protoId)
+        {
+            return protoId != 1 && protoId != 6 && protoId != 17;
+        }
+
+        private static bool CompareProtTypes(NetworkService service1, NetworkService service2)
+        {
+            return IsProtType(service1.Protocol.Id) && IsProtType(service2.Protocol.Id) && service1.Protocol.Name == service2.Protocol.Name;
         }
     }
 
@@ -57,18 +68,18 @@ namespace FWO.Services
                 return false;
             }
 
-            return service1.ServiceGroupFlats.ToList().ConvertAll(g => g.Object).ToList()
+            return service1.ServiceGroupFlats.ToList().ConvertAll(g => g.Object)
                     .Except([.. service2.ServiceGroupFlats.ToList().ConvertAll(g => g.Object)], networkServiceComparer).ToList().Count == 0 
-                && service2.ServiceGroupFlats.ToList().ConvertAll(g => g.Object).ToList()
+                && service2.ServiceGroupFlats.ToList().ConvertAll(g => g.Object)
                     .Except([.. service1.ServiceGroupFlats.ToList().ConvertAll(g => g.Object)], networkServiceComparer).ToList().Count == 0;
         }
 
         public int GetHashCode(NetworkService serviceGrp)
         {
             int hashCode = 0;
-            foreach(var svc in serviceGrp.ServiceGroupFlats.Where(s => s.Object?.Type.Name != ServiceType.Group).ToList())
+            foreach(var svc in serviceGrp.ServiceGroupFlats.Select(sg => sg.Object).Where(s => s?.Type.Name != ServiceType.Group).ToList())
             {
-                hashCode ^= (svc.Object != null ? networkServiceComparer.GetHashCode(svc.Object) : 0);
+                hashCode ^= svc != null ? networkServiceComparer.GetHashCode(svc) : 0;
             }
             return hashCode ^ (option.SvcRegardGroupName ? HashCode.Combine(serviceGrp.Name) : 0);
         }

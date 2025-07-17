@@ -1,7 +1,6 @@
 using FWO.Basics;
 using System.Text;
 using FWO.Report.Filter;
-using FWO.Ui.Display;
 using FWO.Config.Api;
 using FWO.Data;
 using FWO.Api.Client;
@@ -18,15 +17,20 @@ namespace FWO.Report
         public List<Rule> Rules { get; set; } = [];
 
         private readonly bool _includeHeaderInExport = true;
-        private readonly char _separator = ';';
+        private readonly char _separator = '#';
         private readonly List<string> _columnsToExport = new List<string>
         {
-            "Id",
+            "MgmtId",
+            "Uid",
             "Name",
             "Comment",
             "Source",
             "Destination",
+            "Services",
             "Action",
+            "MetaData",
+            "CustomFields",
+            "InstallOn",
             "IsCompliant",
             "ViolationDetails"
         };
@@ -100,7 +104,7 @@ namespace FWO.Report
             await SetComplianceData();
         }
 
-        private async Task SetComplianceData() 
+        public async Task SetComplianceData() 
         {
             Rules.Clear();
 

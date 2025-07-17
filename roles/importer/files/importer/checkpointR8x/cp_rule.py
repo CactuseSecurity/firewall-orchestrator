@@ -25,9 +25,8 @@ uid_to_name_map = {}
     - migrate section headers from rule to ordering element 
     ...
 """
-def normalizeRulebases (nativeConfig, native_config_global, importState, normalized_config_dict, normalized_config_global, is_global_loop_iteration):
-    if fwo_globals.debug_level>0:
-        logger = getFwoLogger()
+def normalize_rulebases (nativeConfig, native_config_global, importState, normalized_config_dict, normalized_config_global, is_global_loop_iteration):
+    
     normalized_config_dict['policies'] = []
 
     # fill uid_to_name_map:
@@ -36,31 +35,38 @@ def normalizeRulebases (nativeConfig, native_config_global, importState, normali
 
     fetched_links = []
     for gateway in nativeConfig['gateways']:
-        for rulebase_link in gateway['rulebase_links']:
-            if rulebase_link['to_rulebase_uid'] not in fetched_links and rulebase_link['to_rulebase_uid'] != '':
-                rulebase_to_parse, is_section, is_placeholder = find_rulebase_to_parse(
-                    nativeConfig['rulebases'], rulebase_link['to_rulebase_uid'])
-                # search in global rulebase
-                found_rulebase_in_global = False
-                if rulebase_to_parse == {} and not is_global_loop_iteration and native_config_global is not None:
-                    rulebase_to_parse, is_section, is_placeholder = find_rulebase_to_parse(
-                        native_config_global['rulebases'], rulebase_link['to_rulebase_uid']
-                        )
-                    found_rulebase_in_global = True
-                if rulebase_to_parse == {}:
-                    logger.warning('found to_rulebase link without rulebase in nativeConfig: ' + str(rulebase_link))
-                    continue
-                rulebase_link['is_section'] = is_section
-                normalized_rulebase = initialize_normalized_rulebase(rulebase_to_parse, importState.MgmDetails.Uid)
-                parse_rulebase(rulebase_to_parse, is_section, is_placeholder, normalized_rulebase)
-                fetched_links.append(rulebase_link['to_rulebase_uid'])
-
-                if found_rulebase_in_global:
-                    normalized_config_global['policies'].append(normalized_rulebase)
-                else:
-                    normalized_config_dict['policies'].append(normalized_rulebase)
+        normalize_rulebases_for_each_link_destination(
+            gateway, fetched_links, nativeConfig, native_config_global,
+            is_global_loop_iteration, importState, normalized_config_dict,
+            normalized_config_global)
 
     # todo: parse nat rulebase here
+
+def normalize_rulebases_for_each_link_destination(gateway, fetched_links, nativeConfig, native_config_global, is_global_loop_iteration, importState, normalized_config_dict, normalized_config_global):
+    logger = getFwoLogger()
+    for rulebase_link in gateway['rulebase_links']:
+        if rulebase_link['to_rulebase_uid'] not in fetched_links and rulebase_link['to_rulebase_uid'] != '':
+            rulebase_to_parse, is_section, is_placeholder = find_rulebase_to_parse(
+                nativeConfig['rulebases'], rulebase_link['to_rulebase_uid'])
+            # search in global rulebase
+            found_rulebase_in_global = False
+            if rulebase_to_parse == {} and not is_global_loop_iteration and native_config_global is not None:
+                rulebase_to_parse, is_section, is_placeholder = find_rulebase_to_parse(
+                    native_config_global['rulebases'], rulebase_link['to_rulebase_uid']
+                    )
+                found_rulebase_in_global = True
+            if rulebase_to_parse == {}:
+                logger.warning('found to_rulebase link without rulebase in nativeConfig: ' + str(rulebase_link))
+                continue
+            rulebase_link['is_section'] = is_section
+            normalized_rulebase = initialize_normalized_rulebase(rulebase_to_parse, importState.MgmDetails.Uid)
+            parse_rulebase(rulebase_to_parse, is_section, is_placeholder, normalized_rulebase)
+            fetched_links.append(rulebase_link['to_rulebase_uid'])
+
+            if found_rulebase_in_global:
+                normalized_config_global['policies'].append(normalized_rulebase)
+            else:
+                normalized_config_dict['policies'].append(normalized_rulebase)
 
 def find_rulebase_to_parse(rulebase_list, rulebase_uid):
     """
@@ -69,15 +75,21 @@ def find_rulebase_to_parse(rulebase_list, rulebase_uid):
     for rulebase in rulebase_list:
         if rulebase['uid'] == rulebase_uid:
             return rulebase, False, False
-        for chunk in rulebase['chunks']:
-            for section in chunk['rulebase']:
-                if section['uid'] == rulebase_uid:
-                    if section['type'] == 'place-holder':
-                        return section, False, True
-                    else:
-                        return section, True, False
+        rulebase_to_parse, is_section, is_placeholder = find_rulebase_to_parse_in_case_of_chunk(rulebase, rulebase_uid)
+        if rulebase_to_parse != {}:
+            return rulebase_to_parse, is_section, is_placeholder
     
     # handle case: no rulebase found
+    return {}, False, False
+
+def find_rulebase_to_parse_in_case_of_chunk(rulebase, rulebase_uid):
+    for chunk in rulebase['chunks']:
+        for section in chunk['rulebase']:
+            if section['uid'] == rulebase_uid:
+                if section['type'] == 'place-holder':
+                    return section, False, True
+                else:
+                    return section, True, False
     return {}, False, False
                     
 def initialize_normalized_rulebase(rulebase_to_parse, mgm_uid):
@@ -103,11 +115,18 @@ def parse_rulebase(rulebase_to_parse, is_section, is_placeholder, normalized_rul
     elif is_placeholder:
         rule_num = parse_single_rule(rulebase_to_parse, normalized_rulebase, normalized_rulebase.uid, None, rule_num, None, None)
     else:
-        for chunk in rulebase_to_parse['chunks']:
-            for rule in chunk['rulebase']:
-                if 'rule-number' in rule:
-                    rule_num = parse_single_rule(rule, normalized_rulebase, normalized_rulebase.uid, None, rule_num, None, None)
-                    
+        rule_num = parse_rulebase_chunk(rulebase_to_parse, normalized_rulebase, rule_num)                    
+
+def parse_rulebase_chunk(rulebase_to_parse, normalized_rulebase, rule_num):
+    logger = getFwoLogger()
+    for chunk in rulebase_to_parse['chunks']:
+        for rule in chunk['rulebase']:
+            if 'rule-number' in rule:
+                rule_num = parse_single_rule(rule, normalized_rulebase, normalized_rulebase.uid, None, rule_num, None, None)
+            else:
+                logger.debug("found unparsable rulebase: " + str(rulebase_to_parse))
+    return rule_num
+ 
 
 def acceptMalformedParts(objects, part=''):
     # logger.debug('about to accept malformed rule part (' + part + '): ' + str(objects))

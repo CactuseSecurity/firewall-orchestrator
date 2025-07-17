@@ -171,7 +171,7 @@ def normalize_single_manager_config(nativeConfig: json, native_config_global: js
     cp_service.normalize_service_objects(nativeConfig, normalized_config_dict, importState.ImportId)
     logger.info("completed normalizing service objects")
     cp_gateway.normalizeGateways(nativeConfig, importState, normalized_config_dict)
-    cp_rule.normalizeRulebases(nativeConfig, native_config_global, importState, normalized_config_dict, normalized_config_global, is_global_loop_iteration)
+    cp_rule.normalize_rulebases(nativeConfig, native_config_global, importState, normalized_config_dict, normalized_config_global, is_global_loop_iteration)
     if not parsing_config_only: # get config from cp fw mgr
         logout_cp(importState.MgmDetails.buildFwApiString(), sid)
     logger.info("completed normalizing rulebases")

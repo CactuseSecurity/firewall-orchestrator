@@ -91,9 +91,18 @@ namespace FWO.Data.Workflow
             return null;
         }
 
+        public int GetAddInfoIntValueOrZero(string key)
+        {
+            if(int.TryParse(GetAddInfoValue(key), out int value))
+            {
+                return value;
+            }
+            return 0;
+        }
+
         public long? GetAddInfoLongValue(string key)
         {
-            if(long.TryParse(GetAddInfoValue(key), out long value))
+            if (long.TryParse(GetAddInfoValue(key), out long value))
             {
                 return value;
             }

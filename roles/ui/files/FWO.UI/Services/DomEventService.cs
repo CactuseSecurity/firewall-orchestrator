@@ -1,4 +1,5 @@
-﻿using Microsoft.JSInterop;
+using Microsoft.JSInterop;
+using System.Diagnostics;
 
 namespace FWO.Ui.Services
 {
@@ -32,10 +33,17 @@ namespace FWO.Ui.Services
 		{
 			if (!Initialized)
 			{
-				await runtime.InvokeVoidAsync("globalScroll", DotNetObjectReference.Create(this));
-				await runtime.InvokeVoidAsync("globalResize", DotNetObjectReference.Create(this));
-				await runtime.InvokeVoidAsync("globalClick", DotNetObjectReference.Create(this));
-				Initialized = true;
+                try
+                {
+                    await runtime.InvokeVoidAsync("globalScroll", DotNetObjectReference.Create(this));
+                    await runtime.InvokeVoidAsync("globalResize", DotNetObjectReference.Create(this));
+                    await runtime.InvokeVoidAsync("globalClick", DotNetObjectReference.Create(this));
+                    Initialized = true;
+                }
+                catch(Exception ex)
+                {
+                    Debug.WriteLine(ex.ToString());
+                }				
 			}
 		}
 	}

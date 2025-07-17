@@ -1,4 +1,4 @@
-﻿using NUnit.Framework;
+using NUnit.Framework;
 using NUnit.Framework.Legacy;
 using FWO.Data;
 using FWO.Data.Modelling;
@@ -121,12 +121,15 @@ namespace FWO.Test
                 Services = [new(){ Content = new(){ Name = "Svc1", Port = 1111, Protocol = new(){ Name = "UDP"}} }]
             };
             List<string> expectedSrc = [$"<span class=\"\"><span class=\"{Icons.NwGroup}\"></span> <span><b><span class=\"\" ><span class=\"\">Area1 (NA50)</span></span></b></span></span>",
-                                        $"<span class=\"\"><span class=\"{Icons.AppRole}\"></span> <span><b><span class=\"text-danger\" ><i><span class=\"\">!AppRole1 (AR5000001)</span></i></span></b></span></span>",
-                                        $"<span class=\"\"><span class=\"{Icons.Host}\"></span> <span class=\"\" ><span class=\"\" ><span class=\"\">AppServerInside1 (10.0.0.0)</span></span></span></span>",
-                                        $"<span class=\"\"><span class=\"{Icons.Host}\"></span> <span class=\"\" ><span class=\"\" ><span class=\"\">AppServerInside2 (10.0.0.5)</span></span></span></span>"];
+                                                  $"<span class=\"\"><b class=\"text-danger\">&nbsp;!&nbsp;</b><span class=\"{Icons.AppRole}\"></span> <span><b><span class=\"text-danger\" ><i><span class=\"\">!AppRole1 (AR5000001)</span></i></span></b></span></span>",
+                                                  $"<span class=\"\"><span class=\"{Icons.Host}\"></span> <span class=\"\" ><span class=\"\" ><span class=\"\">AppServerInside1 (10.0.0.0)</span></span></span></span>",
+                                                  $"<span class=\"\"><span class=\"{Icons.Host}\"></span> <span class=\"\" ><span class=\"\" ><span class=\"\">AppServerInside2 (10.0.0.5)</span></span></span></span>"];
+
             List<string> expectedDst = [$"<span class=\"text-secondary\"><span class=\"{Icons.Host}\"></span> <span class=\"\" ><span class=\"\" ><span class=\"\">AppServerInside3 (11.0.0.1)</span></span></span></span>"];
-            List<string> expectedSvc = [$"<span class=\"text-secondary\"><span class=\"{Icons.ServiceGroup}\"></span> <span><b>SvcGroup1</b></span></span>",
-                                        $"<span class=\"text-secondary\"><span class=\"{Icons.Service}\"></span> <span>Svc1 (1111/UDP)</span></span>"];
+
+            List<string> expectedSvc = [$"<span class=\"text-secondary\"><b class=\"text-danger\">&nbsp;!&nbsp;</b><span class=\"{Icons.ServiceGroup}\"></span> <span><b>SvcGroup1</b></span></span>",
+                                                  $"<span class=\"text-secondary\"><span class=\"{Icons.Service}\"></span> <span>Svc1 (1111/UDP)</span></span>"];
+
             ClassicAssert.AreEqual(expectedSrc, ModellingHandlerBase.GetSrcNames(conn, userConfig));
             ClassicAssert.AreEqual(expectedDst, ModellingHandlerBase.GetDstNames(conn, userConfig));
             ClassicAssert.AreEqual(expectedSvc, ModellingHandlerBase.GetSvcNames(conn, userConfig));

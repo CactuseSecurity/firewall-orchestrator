@@ -219,7 +219,6 @@ namespace FWO.Data.Modelling
         public bool IsRelevantForVarianceAnalysis(long dummyAppRoleId)
         {
             return !(IsInterface ||
-                IsDocumentationOnly() ||
                 GetBoolProperty(ConState.InterfaceRequested.ToString()) ||
                 GetBoolProperty(ConState.InterfaceRejected.ToString()) || 
                 EmptyAppRolesFound(dummyAppRoleId) ||
@@ -346,6 +345,16 @@ namespace FWO.Data.Modelling
                 userObjectNames.Add(extraConfig.ExtraConfigText.ToLower(), false);
             }
             return userObjectNames;
+        }
+
+        public Dictionary<string, bool> GetUpdatableObjectNames()
+        {
+            Dictionary<string, bool> updatableObjectNames = [];
+            foreach (var extraConfig in ExtraConfigs.Where(e => e.ExtraConfigType.ToLower().StartsWith(GlobalConst.kUpdatable)))
+            {
+                updatableObjectNames.Add(extraConfig.ExtraConfigText.ToLower(), false);
+            }
+            return updatableObjectNames;
         }
 
         public bool DeletedObjectsFound()

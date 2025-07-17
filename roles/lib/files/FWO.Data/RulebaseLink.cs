@@ -30,7 +30,7 @@ namespace FWO.Data
         public int NextRulebaseId = new();
 
         [JsonProperty("created"), JsonPropertyName("created")]
-        public long Created;
+        public long? Created;
 
         [JsonProperty("removed"), JsonPropertyName("removed")]
         public long? Removed;

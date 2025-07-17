@@ -904,6 +904,44 @@
                     "foreign_key_constraint_on": "rule_id"
                   }
                 }
+              ],
+              "insert_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "id",
+                      "rule_id",
+                      "criterion_id",
+                      "policy_id",
+                      "risk_score",
+                      "details",
+                      "found_date",
+                      "removed_date"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "rule_id",
+                      "criterion_id",
+                      "policy_id",
+                      "risk_score",
+                      "details",
+                      "found_date",
+                      "removed_date"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
               ]
             },            
             {
@@ -14200,45 +14238,47 @@
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
-                      "parent_rule_id",
-                      "rule_create",
-                      "rule_id",
-                      "rule_last_seen",
-                      "xlate_rule",
                       "access_rule",
-                      "active",
-                      "nat_rule",
-                      "rule_disabled",
-                      "rule_dst_neg",
-                      "rule_implied",
-                      "rule_src_neg",
-                      "rule_svc_neg",
-                      "rule_installon",
-                      "rule_name",
-                      "rule_ruleid",
-                      "rule_time",
                       "action_id",
+                      "active",
                       "dev_id",
                       "last_change_admin",
                       "mgm_id",
-                      "rule_from_zone",
-                      "rule_num",
-                      "rule_to_zone",
-                      "track_id",
-                      "rule_custom_fields",
-                      "rule_num_numeric",
+                      "nat_rule",
+                      "parent_rule_id",
                       "parent_rule_type",
+                      "removed",
                       "rule_action",
                       "rule_comment",
+                      "rule_create",
+                      "rule_custom_fields",
+                      "rule_disabled",
                       "rule_dst",
+                      "rule_dst_neg",
                       "rule_dst_refs",
+                      "rule_from_zone",
                       "rule_head_text",
+                      "rule_id",
+                      "rule_implied",
+                      "rule_installon",
+                      "rule_last_seen",
+                      "rule_name",
+                      "rule_num",
+                      "rule_num_numeric",
+                      "rule_ruleid",
                       "rule_src",
+                      "rule_src_neg",
                       "rule_src_refs",
                       "rule_svc",
+                      "rule_svc_neg",
                       "rule_svc_refs",
+                      "rule_time",
+                      "rule_to_zone",
                       "rule_track",
-                      "rule_uid"
+                      "rule_uid",
+                      "rulebase_id",
+                      "track_id",
+                      "xlate_rule"
                     ],
                     "computed_fields": [
                       "rule_relevant_for_tenant"
@@ -14831,14 +14871,15 @@
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
+                      "active",
+                      "negated",
                       "obj_id",
+                      "removed",
                       "rf_create",
                       "rf_last_seen",
                       "rule_from_id",
                       "rule_id",
-                      "user_id",
-                      "active",
-                      "negated"
+                      "user_id"
                     ],
                     "filter": {}
                   },
@@ -15664,12 +15705,13 @@
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
+                      "active",
+                      "negated",
+                      "removed",
                       "rs_create",
                       "rs_last_seen",
                       "rule_id",
-                      "svc_id",
-                      "active",
-                      "negated"
+                      "svc_id"
                     ],
                     "filter": {}
                   },
@@ -16076,6 +16118,7 @@
                       "active",
                       "negated",
                       "obj_id",
+                      "removed",
                       "rt_create",
                       "rt_last_seen",
                       "rule_id",
@@ -16534,6 +16577,22 @@
                     "allow_aggregations": true
                   },
                   "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "created",
+                      "removed",
+                      "is_global",
+                      "name",
+                      "uid",
+                      "id",
+                      "mgm_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
                 }
               ],
               "update_permissions": [
@@ -16655,6 +16714,26 @@
                     ],
                     "filter": {},
                     "allow_aggregations": true
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "created",
+                      "from_rule_id",
+                      "removed",
+                      "is_global",
+                      "is_initial",
+                      "is_section",
+                      "from_rulebase_id",
+                      "gw_id",
+                      "id",
+                      "link_type",
+                      "to_rulebase_id"
+                    ],
+                    "filter": {}
                   },
                   "comment": ""
                 }
@@ -18978,7 +19057,7 @@
                   }
                 },
                 {
-                  "role": "middleware-server",
+                  "role": "importer",
                   "permission": {
                     "columns": [
                       "import_created",
@@ -18994,7 +19073,7 @@
                   "comment": ""
                 },
                 {
-                  "role": "importer",
+                  "role": "middleware-server",
                   "permission": {
                     "columns": [
                       "import_created",
@@ -21489,7 +21568,7 @@
                   }
                 },
                 {
-                  "role": "middleware-server",
+                  "role": "importer",
                   "permission": {
                     "columns": [
                       "import_created",
@@ -21505,7 +21584,7 @@
                   "comment": ""
                 },
                 {
-                  "role": "importer",
+                  "role": "middleware-server",
                   "permission": {
                     "columns": [
                       "import_created",

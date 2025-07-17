@@ -615,6 +615,10 @@
                 }
             }
             discoveredDevice.Relevant = false;
+            if (managementsToDisplay.Count()==0)
+            {
+                return;
+            }
             Management mgmtToIgnore = managementsToDisplay[managementsToDisplay.FindIndex(x => x.Id == discoveredDevice.Management.Id)];
             if(mgmtToIgnore.Devices.FirstOrDefault(y => y.Relevant == true) == null)
             {

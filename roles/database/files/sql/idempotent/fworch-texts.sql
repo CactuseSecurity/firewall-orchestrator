@@ -1256,6 +1256,8 @@ INSERT INTO txt VALUES ('ext_service_template', 'German',	'Template Dienst');
 INSERT INTO txt VALUES ('ext_service_template', 'English',	'Template service');
 INSERT INTO txt VALUES ('ext_icmp_template',    'German',	'Template ICMP');
 INSERT INTO txt VALUES ('ext_icmp_template',    'English',	'Template ICMP');
+INSERT INTO txt VALUES ('ext_ip_protocol_template','German','Template Ip-Protokoll');
+INSERT INTO txt VALUES ('ext_ip_protocol_template','English','Template Ip Protocol');
 INSERT INTO txt VALUES ('ext_ticket_template_ph','German',	'Ticket Template im JSON-Format, Bspw. f&uuml;r Tufin Secure Change:
 {
 	"ticket": {
@@ -1515,6 +1517,8 @@ INSERT INTO txt VALUES ('common_areas',         'German', 	'Gemeinsame Netzwerka
 INSERT INTO txt VALUES ('common_areas',         'English', 	'Common Network Areas');
 INSERT INTO txt VALUES ('special_user_areas',   'German', 	'Netzwerkareas f&uuml;r Nutzer');
 INSERT INTO txt VALUES ('special_user_areas',   'English', 	'Network Areas for Users');
+INSERT INTO txt VALUES ('updatable_obj_areas', 'German', 	'Netzwerkareas f&uuml;r Updatable Objects');
+INSERT INTO txt VALUES ('updatable_obj_areas', 'English', 	'Network Areas for Updatable Objects');
 INSERT INTO txt VALUES ('search_interface',     'German', 	'Schnittstelle suchen');
 INSERT INTO txt VALUES ('search_interface',     'English', 	'Search Interface');
 INSERT INTO txt VALUES ('used_interface',       'German', 	'Genutzte Schnittstelle');
@@ -2407,6 +2411,10 @@ INSERT INTO txt VALUES ('modelledMarker',       'German',   'Markierung Modellie
 INSERT INTO txt VALUES ('modelledMarker',       'English',  'Modelled marker');
 INSERT INTO txt VALUES ('modelledMarkerLocation','German',  'Ort Markierung');
 INSERT INTO txt VALUES ('modelledMarkerLocation','English', 'Marker Location');
+INSERT INTO txt VALUES ('modRecertActive',      'German',   'Integrierte Rezertifizierung aktivieren');
+INSERT INTO txt VALUES ('modRecertActive',      'English',  'Activate Integrated Recertification');
+INSERT INTO txt VALUES ('modRecertText',        'German',   'Rezertifizierungstext');
+INSERT INTO txt VALUES ('modRecertText',        'English',  'Recertification Text');
 INSERT INTO txt VALUES ('fixedPartLength',      'German',   'L&auml;nge fixer Teil');
 INSERT INTO txt VALUES ('fixedPartLength',      'English',  'Fixed Part Length');
 INSERT INTO txt VALUES ('freePartLength',       'German',   'L&auml;nge freier Teil');
@@ -2493,6 +2501,8 @@ INSERT INTO txt VALUES ('complianceCheckMailSubject','German','Titel der Benachr
 INSERT INTO txt VALUES ('complianceCheckMailSubject','English','Subject of notification emails');
 INSERT INTO txt VALUES ('complianceCheckMailBody','German', 'Text der Benachrichtigung');
 INSERT INTO txt VALUES ('complianceCheckMailBody','English','Body of notification emails');
+INSERT INTO txt VALUES ('availableModules',     'German', 	'Verf&uuml;gbare Module');
+INSERT INTO txt VALUES ('availableModules',     'English', 	'Available Modules');
 
 
 -- monitoring
@@ -3027,6 +3037,12 @@ INSERT INTO txt VALUES ('U9025', 'German',  'Sind sie sicher, dass sie folgendes
 INSERT INTO txt VALUES ('U9025', 'English', 'Are you sure you want to close the following ticket as rejected: ');
 INSERT INTO txt VALUES ('U9026', 'German',  'Nichts zu beantragen!');
 INSERT INTO txt VALUES ('U9026', 'English', 'Nothing to request!');
+INSERT INTO txt VALUES ('U9027', 'German',  'Keine Verbindungen zu rezertifizieren!');
+INSERT INTO txt VALUES ('U9027', 'English', 'No connections to recertify!');
+INSERT INTO txt VALUES ('U9028', 'German',  'Folgende Verbindungen sind noch nicht korrekt modelliert und verhindern die Rezertifizierung:');
+INSERT INTO txt VALUES ('U9028', 'English', 'Following connections are not properly modelled and impede recertification: ');
+INSERT INTO txt VALUES ('U9029', 'German',  'Bei folgenden Verbindungen stimmt der Produktionsstand nicht mit dem modellierten &uuml;berein und verhindern die Rezertifizierung:');
+INSERT INTO txt VALUES ('U9029', 'English', 'For following connections are production state does not fit modelled state and impede recertification: ');
 
 -- error messages
 INSERT INTO txt VALUES ('E0001', 'German',  'Nicht klassifizierter Fehler: ');
@@ -4970,7 +4986,8 @@ INSERT INTO txt VALUES ('H5455', 'German',  'Verf&uuml;gbare Reporttypen: Es kan
 INSERT INTO txt VALUES ('H5455', 'English', 'Available Report Types: It can be selected, which of the technically available report types should be offered for use in the UI. The List of offered report types to the user can be shorter depending on the respective role.');
 INSERT INTO txt VALUES ('H5456', 'German',  'Netzbereiche aufl&ouml;sen: Darstellung aller Elemente eines Netzbereichs in Verbindungs-orientierten Reports');
 INSERT INTO txt VALUES ('H5456', 'English', 'Resolve Network Areas: Display of all elements of a network area in connection related reports.');
-
+INSERT INTO txt VALUES ('H5457', 'German',  'Verf&uuml;gbare Module: Es kann ausgew&auml;hlt werden, welche der technisch vorhandenen Module zur Verwendung in der Oberfl&auml;che angeboten werden sollen. Die Anzahl der angebotenen Module beim Nutzer kann je nach Rolle geringer sein.');
+INSERT INTO txt VALUES ('H5457', 'English', 'Available Modules: It can be selected, which of the technically available modules should be offered for use in the UI. The number of offered modules to the user can be smaller depending on the respective role.');
 INSERT INTO txt VALUES ('H5461', 'German',  'Jeder Nutzer kann seine eigene bevorzugte Sprache f&uuml;r die Anwendung einstellen.<br>
     Alle Texte werden in dieser Sprache dargestellt, soweit verf&uuml;gbar. Wenn nicht, wird die Standardsprache verwendet. Wenn der Text auch dort nicht verf&uuml;gbar ist, wird Englisch genutzt.
     Die Standardsprache beim ersten Anmelden kann vom Admin f&uuml;r alle Nutzer in den <a href="/help/settings/defaults">Standardeinstellungen</a> definiert werden.<br><br>
@@ -5315,6 +5332,8 @@ INSERT INTO txt VALUES ('H5596e', 'German', 'Template Dienst: Template pro Diens
 INSERT INTO txt VALUES ('H5596e', 'English','Template service: Template for service. Available placeholders: @@PROTOCOLNAME@@, @@PORT@@, @@SERVICENAME@@.');
 INSERT INTO txt VALUES ('H5596f', 'German', 'Template ICMP: spezielles Template f&uuml;r den Protokolltyp ICMP. Verf&uuml;gbare Platzhalter: @@SERVICENAME@@.');
 INSERT INTO txt VALUES ('H5596f', 'English','Template ICMP: Special template for protocol type ICMP. Available placeholders: @@SERVICENAME@@.');
+INSERT INTO txt VALUES ('H5596g', 'German', 'Template Ip-Protokoll: Template f&uuml;r alle Protokolltypen ausser TCP, UDP, ICMP, z.B. ESP. Verf&uuml;gbare Platzhalter: @@PROTOCOLNAME@@, @@PROTOCOLID@@, @@SERVICENAME@@.');
+INSERT INTO txt VALUES ('H5596g', 'English','Template Ip-Protokoll: Template for protocol types not TCP, UDP, ICMP, e.g. ESP. Available placeholders: @@PROTOCOLNAME@@, @@PROTOCOLID@@, @@SERVICENAME@@.');
 INSERT INTO txt VALUES ('H5597', 'German',  'Typ des externen Ticketing Systems: Aktuell wird nur TufinSecureChange unterst&uuml;tzt.');
 INSERT INTO txt VALUES ('H5597', 'English', 'Type of external ticketing system: Currently only TufinSecureChange is supported.');
 INSERT INTO txt VALUES ('H5598', 'German',  'Hier werden die Einstellungen f&uuml;r die Anbindung an externe Ticket-Systeme verwaltet.');
@@ -5533,8 +5552,14 @@ INSERT INTO txt VALUES ('H5654', 'German',  'Soll-Ist-Abgleich auf Schaltfl&auml
 INSERT INTO txt VALUES ('H5654', 'English', 'Variance Analysis Refresh Button: A button is offered to calculate the state of the connections synchroneously via Variance Analysis.');
 INSERT INTO txt VALUES ('H5655', 'German',  'Netzwerkareas f&uuml;r Nutzer: Vom Administrator vorgegebene Netzwerkareas, welche f&uuml;r die Zuordnung &uuml;ber die Sonderkonfiguration genutzt werden d&uuml;rfen. Die beiden Auswahlfelder "in Quelle" und "in Ziel" legen fest, wo die Netzwerkarea genutzt werden darf.');
 INSERT INTO txt VALUES ('H5655', 'English', 'Network Areas for Users: Network areas defined by the administrator, which are permitted to be used for assignment via the Extra Configurations. The flags "in Source" and "in Destination" determine, where the Network Areas are allowed to be used.');
-INSERT INTO txt VALUES ('H5656', 'German',  'NAT Heuristik: Wenn die Sonderkonfiguration NAT gesetzt ist, wird, sobald mindestens eine zur Modellierung passend umgesetzte Regel gefunden wird, davon ausgegangen, dass die anderen Regeln mit NAT transformierte Regeln sind und nur auf die Objektzahl geprüft.');
+INSERT INTO txt VALUES ('H5656', 'German',  'NAT Heuristik: Wenn die Sonderkonfiguration NAT gesetzt ist, wird, sobald mindestens eine zur Modellierung passend umgesetzte Regel gefunden wird, davon ausgegangen, dass die anderen Regeln mit NAT transformierte Regeln sind und nur auf die Objektzahl gepr&uuml;ft.');
 INSERT INTO txt VALUES ('H5656', 'English', 'NAT Heuristic: When extra config NAT is set, if at least one rule is found fitting to the modelling: the other rules are assumed to be NAT translated and are only checked for object numbers.');
+INSERT INTO txt VALUES ('H5657', 'German',  'Integrierte Rezertifizierung aktivieren: Erm&ouml;glicht die Rezertifizierung der Regeln direkt aus der Modellierung.');
+INSERT INTO txt VALUES ('H5657', 'English', 'Activate Integrated Recertification: Enables the recertification directly from Modelling.');
+INSERT INTO txt VALUES ('H5658', 'German',  'Rezertifizierungstext: Text, der zur Best&auml;tigung der Rezertifizierung angezeigt werden soll. Enth&auml;lt der Text einen Platzhalter "@@APPNAME@@", so wird dieser durch den App-Namen ersetzt.');
+INSERT INTO txt VALUES ('H5658', 'English', 'Recertification Text: Text to be shown to confirm recertification. If the text contains a placeholder "@@APPNAME@@", it is replaced by the app name.');
+INSERT INTO txt VALUES ('H5659', 'German',  'Netzwerkareas f&uuml;r Updatable Objects: Vom Administrator vorgegebene Netzwerkareas, welche f&uuml;r die Zuordnung &uuml;ber die Sonderkonfiguration "Updatable Objects" genutzt werden d&uuml;rfen. Die beiden Auswahlfelder "in Quelle" und "in Ziel" legen fest, wo die Netzwerkarea genutzt werden darf.');
+INSERT INTO txt VALUES ('H5659', 'English', 'Network Areas for Updatable Objects: Network areas defined by the administrator, which are permitted to be used for assignment via the Extra Configurations "Updatable Objects". The flags "in Source" and "in Destination" determine, where the Network Areas are allowed to be used.');
 
 INSERT INTO txt VALUES ('H5701', 'German',  'Die in der Datenbank hinterlegten sprachabh&auml;ngigen Texte k&ouml;nnen individuell &uuml;berschrieben werden.
     Dabei werden die vom System vorgegebenen Texte nicht ge&auml;ndert, sondern nur durch die hier definierten Texte - falls vorhanden - &uuml;berblendet.

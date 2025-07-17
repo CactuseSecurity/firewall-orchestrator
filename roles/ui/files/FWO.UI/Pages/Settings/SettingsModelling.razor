@@ -118,6 +118,11 @@
             <CommonAreaSelection CommonAreas="SpecUserAreas" CommAreasToDelete="SpecUserAreasToDelete" SearchCommonArea="SearchSpecUserArea"/>
         </div>
         <hr />
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5659"))">
+            <label class="col-form-label col-sm-4">@userConfig.GetText("updatable_obj_areas"):</label>
+            <CommonAreaSelection CommonAreas="UpdObjAreas" CommAreasToDelete="UpdObjAreasToDelete" SearchCommonArea="SearchUpdObjArea"/>
+        </div>
+        <hr />
         <div class="form-group row">
             <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5606"))">
                 <label for="cbx_network_area_required" class="col-form-label col-sm-8">@(userConfig.GetText("networkAreaRequired")):</label>
@@ -326,7 +331,7 @@
                 </div>
             </div>
         </div>
-		<div class="form-group row mt-2">
+        <div class="form-group row mt-2">
             <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5656"))">
                 <label for="cbx_request_nat" class="col-form-label col-sm-8">@(userConfig.GetText("modRolloutNatHeuristic")):</label>
                 <div class="col-sm-2">
@@ -377,6 +382,19 @@
             <input type="date" class="col-sm-2" @bind="varAnalysisDate" />
         </div>
         <hr />
+        <div class="form-group row mt-2">
+            <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5657"))">
+                <label for="cbx_recert_active" class="col-form-label col-sm-8">@(userConfig.GetText("modRecertActive")):</label>
+                <div class="col-sm-2">
+                    <input id="cbx_recert_active" type="checkbox" class="w-100" @bind="configData!.ModRecertActive">
+                </div>
+            </div>
+        </div>
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5658"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("modRecertText")):</label>
+            <textarea class="col-sm-7 mt-2" rows="4" name="text" @bind="configData!.ModRecertText"></textarea>
+        </div>
+        <hr />
     </form>
     <AuthorizeView Roles="@Roles.Admin">
         <Authorized>
@@ -394,13 +412,12 @@
 }
 else
 {
-    <div class="spinner-border" role="status">
-        <span class="visually-hidden">@(userConfig.GetText("loading"))</span>
-    </div>
+    <Loading/>
 }
 <PredefServices @bind-Display="predefServices" />
 <SearchNwObject @bind-Display="searchCommonArea" ObjectList="CommonAreas.ConvertAll(x => x.Area)" Add="AddCommonArea" CommonAreaMode="true" />
 <SearchNwObject @bind-Display="searchSpecUserArea" ObjectList="SpecUserAreas.ConvertAll(x => x.Area)" Add="AddSpecUserArea" SpecUserMode="true"/>
+<SearchNwObject @bind-Display="searchUpdObjArea" ObjectList="UpdObjAreas.ConvertAll(x => x.Area)" Add="AddUpdObjArea" UpdObjMode="true"/>
 <PopUp Title="@(userConfig.GetText("appserver_import"))" Show="@ShowCSVImportPopUp" Size=PopupSize.Large OnClose="() => ShowCSVImportPopUp = false">
     <Body>
         @if(Appserver is not null && Appserver.Count > 0)
@@ -470,9 +487,12 @@ else
     private List<CommonArea> CommAreasToDelete = [];
     private List<CommonArea> SpecUserAreas = [];
     private List<CommonArea> SpecUserAreasToDelete = [];
+    private List<CommonArea> UpdObjAreas = [];
+    private List<CommonArea> UpdObjAreasToDelete = [];
     private bool predefServices = false;
     private bool searchCommonArea = false;
     private bool searchSpecUserArea = false;
+    private bool searchUpdObjArea = false;
     private ModellingNamingConvention namingConvention = new();
     private DateTime appDataDate = DateTime.Today;
     private DateTime appDataTime = DateTime.Now.AddSeconds(-DateTime.Now.Second);
@@ -542,6 +562,7 @@ else
                 new { grpType = (int)ModellingTypes.ModObjectType.NetworkArea });
             CommonAreas = RefreshAreas(configData.ModCommonAreas);
             SpecUserAreas = RefreshAreas(configData.ModSpecUserAreas);
+            UpdObjAreas = RefreshAreas(configData.ModUpdatableObjAreas);
             appDataDate = appDataTime = configData.ImportAppDataStartAt;
             subnetDataDate = subnetDataTime = configData.ImportSubnetDataStartAt;
             varAnalysisDate = varAnalysisTime = configData.VarianceAnalysisStartAt;
@@ -591,6 +612,12 @@ else
     public bool AddSpecUserArea(ModellingNwGroup area)
     {
         SpecUserAreas.Add(new() { Area = new() { Content = area } });
+        return true;
+    }
+
+    public bool AddUpdObjArea(ModellingNwGroup area)
+    {
+        UpdObjAreas.Add(new() { Area = new() { Content = area } });
         return true;
     }
 
@@ -651,6 +678,13 @@ else
         return true;
     }
 
+    private bool SearchUpdObjArea()
+    {
+        searchUpdObjArea = true;
+        StateHasChanged();
+        return true;
+    }
+
     private void VarianceOptions()
     {
         varOptMode = true;
@@ -676,6 +710,7 @@ else
                 ExtraConfigsToDelete = [];
                 CommonAreas = RefreshAreas(configData.ModCommonAreas);
                 SpecUserAreas = RefreshAreas(configData.ModSpecUserAreas);
+                UpdObjAreas = RefreshAreas(configData.ModUpdatableObjAreas);
                 DisplayMessageInUi(null, userConfig.GetText("modelling_settings"), userConfig.GetText("U5301"), false);
             }
             else
@@ -698,6 +733,7 @@ else
         PrepareAppServerTypes();
         configData!.ModCommonAreas = PrepareAreas(CommonAreas, CommAreasToDelete);
         configData!.ModSpecUserAreas = PrepareAreas(SpecUserAreas, SpecUserAreasToDelete);
+        configData!.ModUpdatableObjAreas = PrepareAreas(UpdObjAreas, UpdObjAreasToDelete);
         configData!.ImportAppDataStartAt = appDataDate.Date.Add(appDataTime.TimeOfDay);
         configData!.ImportSubnetDataStartAt = subnetDataDate.Date.Add(subnetDataTime.TimeOfDay);
         configData!.VarianceAnalysisStartAt = varAnalysisDate.Date.Add(varAnalysisTime.TimeOfDay);

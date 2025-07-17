@@ -201,7 +201,7 @@
                 <NotAuthorized>
                     <button type="button" class="btn btn-sm btn-dark" disabled>@(userConfig.GetText("test_connection"))</button>
                     <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
-                </NotAuthorized> 
+                </NotAuthorized>
             </AuthorizeView>
             <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
         </div>
@@ -282,7 +282,7 @@
         selectedTenant = tenants.FirstOrDefault(x => x.Id == actLdapConnection.TenantId);
         selectedType = (LdapType)actLdapConnection.Type;
         wasActive = ldapConnection.Active;
-        EditMode = true;        
+        EditMode = true;
     }
 
     private void RequestDelete(UiLdapConnection ldapConnection)
@@ -323,7 +323,11 @@
                 }
             }
 
-            Log.WriteAudit($"LDAP Connection Settings", $"LDAP NAME: {actLdapConnection.Name} was deleted.");
+            Log.WriteAudit(
+                Title: $"LDAP Connection Settings",
+                Text: $"LDAP NAME: {actLdapConnection.Name} (Address: {actLdapConnection.Address}) was deleted",
+                UserName: userConfig.User.Name,
+                UserDN: userConfig.User.Dn);
         }
         catch (Exception exception)
         {
@@ -366,19 +370,19 @@
             {
                 switch (middlewareServerResponse.Data)
                 {
-                    case 0: 
+                    case 0:
                         DisplayMessageInUi(null, userConfig.GetText("test_connection"), userConfig.GetText("E5266"), false);
                         break;
-                    case 1: 
+                    case 1:
                         DisplayMessageInUi(null, userConfig.GetText("test_connection"), userConfig.GetText("E5268"), true);
                         break;
-                    case 2: 
+                    case 2:
                         DisplayMessageInUi(null, userConfig.GetText("test_connection"), userConfig.GetText("E5269"), true);
                         break;
-                    case 3: 
+                    case 3:
                         DisplayMessageInUi(null, userConfig.GetText("test_connection"), userConfig.GetText("E5270"), true);
                         break;
-                    default: 
+                    default:
                         DisplayMessageInUi(null, userConfig.GetText("test_connection"), userConfig.GetText("E5267"), true);
                         break;
                 }
@@ -420,6 +424,12 @@
                         connectedLdaps.Add(actLdapConnection);
                         AddMode = false;
                         EditMode = false;
+
+                        Log.WriteAudit(
+                            Title: $"LDAP Connection Settings",
+                            Text: $"LDAP NAME: {actLdapConnection.Name} (Address: {actLdapConnection.Address}) was added",
+                            UserName: userConfig.User.Name,
+                            UserDN: userConfig.User.Dn);
                     }
                 }
                 else
@@ -434,10 +444,14 @@
                         int udId = ldapMiddlewareServerResponse.Data;
                         EditMode = (udId == actLdapConnection.Id ? false : true);
                         connectedLdaps[connectedLdaps.FindIndex(x => x.Id == actLdapConnection.Id)] = actLdapConnection;
+
+                        Log.WriteAudit(
+                            Title: $"LDAP Connection Settings",
+                            Text: $"LDAP NAME: {actLdapConnection.Name} (Address: {actLdapConnection.Address}) was edited",
+                            UserName: userConfig.User.Name,
+                            UserDN: userConfig.User.Dn);
                     }
                 }
-
-                Log.WriteAudit($"LDAP Connection Settings(Mode: {(AddMode ? "Add" : "Edit")})", $"LDAP NAME: {actLdapConnection.Name} was {(AddMode ? "added" : "edited")}.");
             }
         }
         catch (Exception exception)
@@ -459,7 +473,7 @@
         {
             actLdapConnection.SearchUserPwd = AesEnc.Encrypt(actLdapConnection.SearchUserPwd, mainKey);
         }
-        
+
         if (actLdapConnection.WriteUserPwd != null)
         {
             try

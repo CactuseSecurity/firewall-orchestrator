@@ -57,29 +57,34 @@ namespace FWO.Compliance
                     {
                         foreach (var rule in rulebase.Rules)
                         {
-                            rule.IsCompliant = CheckRuleCompliance(rule, out List<(ComplianceNetworkZone, ComplianceNetworkZone)> result);
+                            rule.IsCompliant = CheckRuleCompliance(rule);
                         }
                     }
                 }
 
-                if (Results.Any() && currentReport is ReportCompliance complianceReport)
-                {
-                        complianceReport.Violations.Clear();
-
-                        foreach (var item in Results)
-                        {
-                            ComplianceViolation violation = new();
-                            violation.RuleId = (int)item.Item1.Id;
-                            violation.Details = $"Matrix violation: {item.Item2.Item1.Name} -> {item.Item2.Item2.Name}";
-                            complianceReport.Violations.Add(violation);
-                        }
-
-                        await complianceReport.SetComplianceData();
-                }
+                await GatherCheckResults();
             }
         }
 
-        public bool CheckRuleCompliance(Rule rule, out List<(ComplianceNetworkZone, ComplianceNetworkZone)> forbiddenCommunication)
+        private async Task GatherCheckResults()
+        {
+            if (Results.Any() && currentReport is ReportCompliance complianceReport)
+            {
+                    complianceReport.Violations.Clear();
+
+                    foreach (var item in Results)
+                    {
+                        ComplianceViolation violation = new();
+                        violation.RuleId = (int)item.Item1.Id;
+                        violation.Details = $"Matrix violation: {item.Item2.Item1.Name} -> {item.Item2.Item2.Name}";
+                        complianceReport.Violations.Add(violation);
+                    }
+
+                    await complianceReport.SetComplianceData();
+            }
+        }
+
+        public bool CheckRuleCompliance(Rule rule)
         {
             List<IPAddressRange> froms = [];
             List<IPAddressRange> tos = [];
@@ -95,7 +100,7 @@ namespace FWO.Compliance
                 tos.AddRange(ParseIpRange(networkLocation.Object));
             }
 
-            bool ruleIsCompliant = CheckCompliance(froms, tos, out forbiddenCommunication);
+            bool ruleIsCompliant = CheckCompliance(froms, tos, out List<(ComplianceNetworkZone, ComplianceNetworkZone)> forbiddenCommunication);
 
             foreach (var item in forbiddenCommunication)
             {
@@ -109,36 +114,28 @@ namespace FWO.Compliance
         {
             List<IPAddressRange> ranges = [];
 
-            try
+            if (networkObject.Type == new NetworkObjectType() { Name = ObjectType.IPRange })
             {
-                if (networkObject.Type == new NetworkObjectType() { Name = ObjectType.IPRange })
+                ranges.Add(IPAddressRange.Parse($"{networkObject.IP}-{networkObject.IpEnd}"));
+            }
+            else if (networkObject.Type != new NetworkObjectType() { Name = ObjectType.Group } && networkObject.ObjectGroupFlats.Length > 0)
+            {
+                for (int j = 0; j < networkObject.ObjectGroupFlats.Length; j++)
                 {
-                    ranges.Add(IPAddressRange.Parse($"{networkObject.IP}-{networkObject.IpEnd}"));
-                }
-                else if (networkObject.Type != new NetworkObjectType() { Name = ObjectType.Group } && networkObject.ObjectGroupFlats.Length > 0)
-                {
-                    for (int j = 0; j < networkObject.ObjectGroupFlats.Length; j++)
+                    if (networkObject.ObjectGroupFlats[j].Object != null)
                     {
-                        if (networkObject.ObjectGroupFlats[j].Object != null)
-                        {
-                            ranges.AddRange(ParseIpRange(networkObject.ObjectGroupFlats[j].Object!));
-                        }
+                        ranges.AddRange(ParseIpRange(networkObject.ObjectGroupFlats[j].Object!));
                     }
                 }
-                else
-                {
-                    if (networkObject.IP != null)
-                    {
-                        // CIDR notation or single (host) IP can be parsed directly
-                        ranges.Add(IPAddressRange.Parse(networkObject.IP));                        
-                    }
-                }                
             }
-            catch (System.Exception e)
+            else
             {
-                
-                throw;
-            }
+                if (networkObject.IP != null)
+                {
+                    // CIDR notation or single (host) IP can be parsed directly
+                    ranges.Add(IPAddressRange.Parse(networkObject.IP));                        
+                }
+            }                
 
             return ranges;
         }

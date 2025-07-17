@@ -12,6 +12,7 @@ using PuppeteerSharp;
 using PuppeteerSharp.Media;
 using PuppeteerSharp.BrowserData;
 using HtmlAgilityPack;
+using System.Runtime.InteropServices;
 
 namespace FWO.Report
 {
@@ -281,7 +282,7 @@ namespace FWO.Report
 
             IEnumerable<InstalledBrowser>? allInstalledBrowsers = browserFetcher.GetInstalledBrowsers().Where(_ => _.Browser == wantedBrowser);
 
-            if(allInstalledBrowsers is null || !allInstalledBrowsers.Any())
+            if(!allInstalledBrowsers.Any())
             {
                 if(os.Platform == PlatformID.Win32NT)
                 {
@@ -291,7 +292,7 @@ namespace FWO.Report
                 }
                 else
                 {
-                    throw new Exception($"Found no installed {wantedBrowser} instances!");
+                    throw new ExternalException($"Found no installed {wantedBrowser} instances!");
                 } 
             }
 
@@ -299,11 +300,11 @@ namespace FWO.Report
 
             if(string.IsNullOrWhiteSpace(newestBuildId))
             {
-                throw new Exception($"Invalid build ID!");
+                throw new ExternalException($"Invalid build ID!");
             }
 
             InstalledBrowser? latestInstalledBrowser = allInstalledBrowsers.Single(_ => _.BuildId == newestBuildId) ??
-                throw new Exception($"Found no installed {wantedBrowser} instances with a valid build ID!");
+                throw new ExternalException($"Found no installed {wantedBrowser} instances with a valid build ID!");
 
             Log.WriteInfo("Test Log", $"Selecting latest installed {wantedBrowser}({latestInstalledBrowser.BuildId}) at: {latestInstalledBrowser.GetExecutablePath()}");
 
@@ -320,7 +321,7 @@ namespace FWO.Report
             catch(Exception)
             {
                 Log.WriteAlert("Test Log", $"Couldn't start {wantedBrowser} instance!");
-                throw new Exception($"Couldn't start {wantedBrowser} instance!");
+                throw new ExternalException($"Couldn't start {wantedBrowser} instance!");
             }            
 
             try

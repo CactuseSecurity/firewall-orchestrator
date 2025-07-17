@@ -49,24 +49,6 @@ class NetworkObject(BaseModel):
                         raise ValueError(f"Invalid network format: {value}") from e
         return value
     
-    # @root_validator(pre=True)
-    # def validate_ip_addresses(cls, values):
-
-    #     obj_ip = values.get("obj_ip")
-    #     obj_ip_end = values.get("obj_ip_end")
-
-    #     # for groups we ignore ip addresses
-    #     if values.get('obj_typ') == 'group':
-    #         return values
-    #     else:
-    #         try:
-    #             if IPNetwork(obj_ip) and IPNetwork(obj_ip_end):
-    #                 return values
-    #         except AddrFormatError as e:
-    #             raise ValueError(f"Invalid network address format: {obj_ip}") from e
-
-    #     return values
-
 
     class Config:
         arbitrary_types_allowed = True

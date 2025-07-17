@@ -386,10 +386,27 @@ class FwConfigImportCheckConsistency(FwConfigImport):
     #       - the super manager but not another sub manager
     def check_rulebase_link_consistency(self, config: FwConfigNormalized = None):
         broken_rulebase_links = []
+
+        all_rulebase_uids, all_rule_uids = self._collect_uids(config)
+
+        # check consistency of links
+        for mgr in config.ManagerSet:
+            for single_config in mgr.Configs:        
+                # now check rblinks for all gateways
+                for gw in single_config.gateways:
+                    for rbl in gw.RulebaseLinks:
+                        self._check_rulebase_link(gw, rbl, broken_rulebase_links, all_rule_uids, all_rulebase_uids)
+
+        if len(broken_rulebase_links)>0:
+            self.issues.update({'brokenRulebaseLinks': broken_rulebase_links})
+
+
+    def _collect_uids(self, config):
         all_rulebase_uids = set()
         all_rule_uids = set()
-
         for mgr in config.ManagerSet:
+            if self.import_state.MgmDetails.ImportDisabled: # only the super manager can be checked
+                continue
             for single_config in mgr.Configs:        
                 # collect rulebase UIDs
                 for rb in single_config.rulebases:
@@ -397,29 +414,21 @@ class FwConfigImportCheckConsistency(FwConfigImport):
                     # collect rule UIDs
                     for rule_uid in rb.Rules:
                         all_rule_uids.add(rule_uid)
+        return all_rulebase_uids, all_rule_uids
 
-        for mgr in config.ManagerSet:
-            for single_config in mgr.Configs:        
-                # now check rblinks for all gateways
-                for gw in single_config.gateways:
-                    for rbl in gw.RulebaseLinks:
-                        self._check_rulebase_link(rbl, broken_rulebase_links, all_rule_uids, all_rulebase_uids)
 
-        if len(broken_rulebase_links)>0:
-            self.issues.update({'brokenRulebaseLinks': broken_rulebase_links})
-
+    def _check_rulebase_link(self, gw, rbl, broken_rulebase_links, all_rule_uids, all_rulebase_uids):
+        if rbl.from_rulebase_uid is not None and rbl.from_rulebase_uid != '' and rbl.from_rulebase_uid not in all_rulebase_uids:
+            self._add_issue(broken_rulebase_links, rbl, gw, 'from_rulebase_uid broken')
+        if rbl.to_rulebase_uid is not None and rbl.to_rulebase_uid != '' and rbl.to_rulebase_uid not in all_rulebase_uids:
+            self._add_issue(broken_rulebase_links, rbl, gw, 'to_rulebase_uid broken')
+        if rbl.from_rule_uid is not None and rbl.from_rule_uid != '' and rbl.from_rule_uid not in all_rule_uids:
+            self._add_issue(broken_rulebase_links, rbl, gw, 'from_rule_uid broken')
 
     @staticmethod
-    def _check_rulebase_link(rbl, broken_rulebase_links, all_rule_uids, all_rulebase_uids):
-        if rbl.from_rulebase_uid is not None and rbl.from_rulebase_uid != '' and rbl.from_rulebase_uid not in all_rulebase_uids:
+    def _add_issue(broken_rulebase_links, rbl, gw, error_txt):
             rbl_dict = rbl.toDict()
-            rbl_dict.update({'error': 'from_rulebase_uid broken'})
-            broken_rulebase_links.append(rbl_dict)
-        if rbl.to_rulebase_uid is not None and rbl.to_rulebase_uid != '' and rbl.to_rulebase_uid not in all_rulebase_uids:
-            rbl_dict = rbl.toDict()
-            rbl_dict.update({'error': 'to_rulebase_uid broken'})
-            broken_rulebase_links.append(rbl_dict)
-        if rbl.from_rule_uid is not None and rbl.from_rule_uid != '' and rbl.from_rule_uid not in all_rule_uids:
-            rbl_dict = rbl.toDict()
-            rbl_dict.update({'error': 'from_rule_uid broken'})
-            broken_rulebase_links.append(rbl_dict)
+            rbl_dict.update({'error': error_txt})
+            rbl_dict.update({'gw': f'{gw.Name} ({gw.Uid})'})
+            if rbl_dict not in broken_rulebase_links:
+                broken_rulebase_links.append(rbl_dict)

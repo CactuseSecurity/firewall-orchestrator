@@ -124,9 +124,8 @@ def normalize_config(import_state, native_config: json, parsing_config_only: boo
         native_config_global = native_config['domains'][0]
         is_global_loop_iteration = True
     
-    # first loop to create normalized config as dict
     for native_conf in native_config['domains']:
-        normalized_config_dict = fwo_const.emptyNormalizedFwConfigJsonDict
+        normalized_config_dict = deepcopy(fwo_const.emptyNormalizedFwConfigJsonDict)
         normalize_single_manager_config(
             native_conf, native_config_global, normalized_config_dict, normalized_config_global,
             import_state, parsing_config_only, sid, is_global_loop_iteration
@@ -135,11 +134,9 @@ def normalize_config(import_state, native_config: json, parsing_config_only: boo
         normalized_config_dict_list.append(normalized_config_dict)
 
         if is_global_loop_iteration:
-            normalized_config_global = normalized_config_dict
+            normalized_config_global = deepcopy(normalized_config_dict)
             is_global_loop_iteration = False
 
-    # second loop to create normalized config as instance of FwConfigNormalized
-    for normalized_config_dict in normalized_config_dict_list:
         normalized_config = FwConfigNormalized(
             action=ConfigAction.INSERT, 
             network_objects=FwConfigNormalizedController.convertListToDict(normalized_config_dict['network_objects'], 'obj_uid'),
@@ -491,8 +488,10 @@ def get_objects(nativeConfig: dict, importState: ImportStateController) -> int:
     # loop over sub-managers in case of mds
     manager_index = 0
     for manager_details in manager_details_list:
+        if manager_details.ImportDisabled:
+            continue
+
         cp_api_url = importState.MgmDetails.buildFwApiString()
-        
         # getting Original (NAT) object (both for networks and services)
         sid = loginCp(manager_details)
         if manager_details.IsSuperManager or len(manager_details_list) == 1:

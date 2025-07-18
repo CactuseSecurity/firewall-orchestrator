@@ -13,6 +13,19 @@ class RulebaseLinkUidBased(BaseModel, ImportStateController):
     is_global: bool
     is_section: bool
 
+
+    def toDict(self):
+        return {
+            "from_rule_uid": self.from_rule_uid,
+            "from_rulebase_uid": self.from_rulebase_uid,
+            "to_rulebase_uid": self.to_rulebase_uid,
+            "link_type": self.link_type,
+            "is_initial": self.is_initial,
+            "is_global": self.is_global,
+            "is_section": self.is_section
+    }
+
+
 class RulebaseLink(BaseModel):
     id: Optional[int] = None    # will be created during db import
     gw_id: int

@@ -63,6 +63,28 @@ namespace FWO.Compliance
                 }
 
                 await GatherCheckResults();
+
+                if (_userConfig.GlobalConfig.ComplianceCheckPersistData)
+                {
+                    List<ComplianceViolationBase> violationsForInsert = ComplianceReport.Violations
+                    .Select(v => new ComplianceViolationBase
+                    {
+                        RuleId = v.RuleId,
+                        Details = v.Details,
+                        FoundDate = v.FoundDate,
+                        RemovedDate = v.RemovedDate,
+                        RiskScore = v.RiskScore,
+                        PolicyId = v.PolicyId,
+                        CriterionId = v.CriterionId
+                    })
+                    .ToList();
+                    var variables = new
+                    {
+                        violations = violationsForInsert
+                    };
+                    await _apiConnection.SendQueryAsync<ComplianceNetworkZone[]>(ComplianceQueries.addViolations, variables );
+                }
+
             }
         }
 
@@ -70,17 +92,18 @@ namespace FWO.Compliance
         {
             if (Results.Any() && currentReport is ReportCompliance complianceReport)
             {
-                    complianceReport.Violations.Clear();
+                complianceReport.Violations.Clear();
 
-                    foreach (var item in Results)
-                    {
-                        ComplianceViolation violation = new();
-                        violation.RuleId = (int)item.Item1.Id;
-                        violation.Details = $"Matrix violation: {item.Item2.Item1.Name} -> {item.Item2.Item2.Name}";
-                        complianceReport.Violations.Add(violation);
-                    }
+                foreach (var item in Results)
+                {
+                    ComplianceViolation violation = new();
+                    violation.RuleId = (int)item.Item1.Id;
+                    violation.Details = $"Matrix violation: {item.Item2.Item1.Name} -> {item.Item2.Item2.Name}";
+                    complianceReport.Violations.Add(violation);
+                }
 
-                    await complianceReport.SetComplianceData();
+                await complianceReport.SetComplianceData();
+                ComplianceReport = complianceReport;
             }
         }
 
@@ -100,7 +123,7 @@ namespace FWO.Compliance
                 tos.AddRange(ParseIpRange(networkLocation.Object));
             }
 
-            bool ruleIsCompliant = CheckCompliance(froms, tos, out List<(ComplianceNetworkZone, ComplianceNetworkZone)> forbiddenCommunication);
+            bool ruleIsCompliant = CheckMatrixCompliance(froms, tos, out List<(ComplianceNetworkZone, ComplianceNetworkZone)> forbiddenCommunication);
 
             foreach (var item in forbiddenCommunication)
             {
@@ -222,7 +245,7 @@ namespace FWO.Compliance
             List<(ComplianceNetworkZone, ComplianceNetworkZone)> forbiddenCommunicationsOutput = [];
             if (sourceIpRange != null && destinationIpRange != null)
             {
-                CheckCompliance
+                CheckMatrixCompliance
                 (
                     [sourceIpRange],
                     [destinationIpRange],
@@ -232,7 +255,7 @@ namespace FWO.Compliance
             return forbiddenCommunicationsOutput;
         }
 
-        private bool CheckCompliance(List<IPAddressRange> source, List<IPAddressRange> destination, out List<(ComplianceNetworkZone, ComplianceNetworkZone)> forbiddenCommunication)
+        private bool CheckMatrixCompliance(List<IPAddressRange> source, List<IPAddressRange> destination, out List<(ComplianceNetworkZone, ComplianceNetworkZone)> forbiddenCommunication)
         {
             // Determine all matching source zones
             List<ComplianceNetworkZone> sourceZones = DetermineZones(source);

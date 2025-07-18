@@ -18,5 +18,9 @@
       "./roles/importer/files/test"
     ],
     "python.testing.pytestEnabled": false,
-    "python.testing.unittestEnabled": true
+    "python.testing.unittestEnabled": true,
+    "sonarlint.connectedMode.project": {
+        "connectionId": "cactusesecurity",
+        "projectKey": "CactuseSecurity_firewall-orchestrator"
+    }
 }

@@ -441,7 +441,12 @@
         await SynchronizeUsers();
 
         await SynchronizeGroupsAndRoles();
-        Log.WriteAudit($"Users Settings", $"LDAP re-sync started.");
+
+        Log.WriteAudit(
+            Title: $"Users Settings",
+            Text: $"LDAP re-sync started",
+            UserName: userConfig.User.Name,
+            UserDN: userConfig.User.Dn);
     }
 
     private async Task SynchronizeUsers()
@@ -762,9 +767,14 @@
                         uiUsers.Add(actUser);
                         await AddUserToGroupsInLdap(actUser);
                         await AddUserToRolesInLdap(actUser);
-                        Log.WriteAudit($"Users Settings(Mode: Add)", $"User ID: {actUser.DbId}, Name: {actUser.Name} was added.");
                         AddMode = false;
                         EditMode = false;
+
+                        Log.WriteAudit(
+                            Title: $"Users Settings",
+                            Text: $"Added User: {actUser.Name} (DN: {actUser.Dn})",
+                            UserName: userConfig.User.Name,
+                            UserDN: userConfig.User.Dn);
                     }
                 }
             }
@@ -780,8 +790,13 @@
                 else
                 {
                     uiUsers[uiUsers.FindIndex(x => x.DbId == actUser.DbId)].Email = actUser.Email;
-                    Log.WriteAudit($"Users Settings(Mode: Edit)", $"User ID: {actUser.DbId}, Name: {actUser.Name} was edited.");
                     EditMode = false;
+
+                    Log.WriteAudit(
+                        Title: $"Users Settings",
+                        Text: $"Edited User: {actUser.Name} (DN: {actUser.Dn})",
+                        UserName: userConfig.User.Name,
+                        UserDN: userConfig.User.Dn);
                 }
             }
 
@@ -913,7 +928,12 @@
             {
                 uiUsers.Remove(actUser);
                 DeleteMode = false;
-                Log.WriteAudit($"Users Settings", $"User Name: {actUser.Name}, ID: {actUser.DbId} was deleted.");
+
+                Log.WriteAudit(
+                    Title: $"Users Settings",
+                    Text: $"Deleted User: {actUser.Name} (DN: {actUser.Dn})",
+                    UserName: userConfig.User.Name,
+                    UserDN: userConfig.User.Dn);
             }
         }
         catch (Exception exception)
@@ -990,7 +1010,12 @@
                     {
                         DisplayMessageInUi(null, userConfig.GetText("reset_password"), errorMsg, true);
                     }
-                    Log.WriteAudit($"Users Settings", $"User Name: {actUser.Name}, ID: {actUser.DbId} password was reset.");
+
+                    Log.WriteAudit(
+                        Title: $"Users Settings",
+                        Text: $"Password reset User: {actUser.Name} (DN: {actUser.Dn})",
+                        UserName: userConfig.User.Name,
+                        UserDN: userConfig.User.Dn);
                 }
                 ResetPasswordMode = false;
             }

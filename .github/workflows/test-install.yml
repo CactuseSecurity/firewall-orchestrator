@@ -22,7 +22,6 @@ jobs:
   deploy:    
     name: test build on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
-    environment: ttest
     env:
         RUNNING_ON_GITHUB_ACTIONS: true
     strategy:

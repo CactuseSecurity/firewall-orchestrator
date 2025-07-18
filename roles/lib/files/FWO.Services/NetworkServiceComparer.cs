@@ -18,31 +18,39 @@ namespace FWO.Services
                 return false;
             }
 
+            if (CompareProtTypes(service1, service2))
+            {
+                return true;
+            }
+
             int destPortEnd1 = service1.DestinationPortEnd ?? service1.DestinationPort ?? 0;
             int destPortEnd2 = service2.DestinationPortEnd ?? service2.DestinationPort ?? 0;
 
-            return (!option.SvcRegardPortAndProt || service1.ProtoId == service2.ProtoId
-                    && service1.DestinationPort == service2.DestinationPort
-                    && destPortEnd1 == destPortEnd2)
-                && (!option.SvcRegardName || service1.Name == service2.Name || CompareProtTypes(service1, service2));
+            return (!option.SvcRegardPortAndProt || (service1.ProtoId == service2.ProtoId &&
+                    service1.DestinationPort == service2.DestinationPort && destPortEnd1 == destPortEnd2))
+                && (!option.SvcRegardName || service1.Name == service2.Name);
         }
 
         public int GetHashCode(NetworkService service)
         {
+            if (IsProtType(service.ProtoId))
+            {
+                return (option.SvcRegardPortAndProt ? HashCode.Combine(service.ProtoId) : 0)
+                    ^ (option.SvcRegardName ? HashCode.Combine(service.Name) : 0);
+            }
             int destPortEnd = service.DestinationPortEnd ?? service.DestinationPort ?? 0;
-            string relevantName = IsProtType(service.ProtoId) ? service.Protocol.Name : service.Name;
             return (option.SvcRegardPortAndProt ? HashCode.Combine(service.ProtoId, service.DestinationPort, destPortEnd) : 0)
-                ^ (option.SvcRegardName ? HashCode.Combine(relevantName) : 0);
+                ^ (option.SvcRegardName ? HashCode.Combine(service.Name) : 0);
         }
 
         private static bool IsProtType(int? protoId)
         {
-            return protoId != 1 && protoId != 6 && protoId != 17;
+            return protoId != null && protoId != 1 && protoId != 6 && protoId != 17;
         }
 
         private static bool CompareProtTypes(NetworkService service1, NetworkService service2)
         {
-            return IsProtType(service1.Protocol.Id) && IsProtType(service2.Protocol.Id) && service1.Protocol.Name == service2.Protocol.Name;
+            return IsProtType(service1.ProtoId) && IsProtType(service2.ProtoId) && service1.ProtoId == service2.ProtoId;
         }
     }
 

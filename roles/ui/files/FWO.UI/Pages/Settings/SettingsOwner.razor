@@ -37,7 +37,13 @@
                             DisplayMessageInUi(null, userConfig.GetText("fetch_data"), "Error during recertification refresh", true);
                         }
                         recertCalcInProgress = false;
-                        Log.WriteAudit($"Owners Settings", $"Recertification started.");
+
+                        Log.WriteAudit(
+                            Title: $"Owners Settings",
+                            Text: $"Recertification started",
+                            UserName: userConfig.User.Name,
+                            UserDN: userConfig.User.Dn);
+
                     })">@(userConfig.GetText("recalc_recerts"))</button>
                 }
                 else
@@ -493,7 +499,12 @@ else
             await addRuleOwners();
             await addNetworkOwners();
             owners.Add(actOwner);
-            Log.WriteAudit($"Owners Settings", $"Added Owner ID: {actOwner.Id}, Name: {actOwner.Name}, Group DN: {actOwner.GroupDn}.");
+
+            Log.WriteAudit(
+                Title: $"Owners Settings",
+                Text: $"Added Owner: {actOwner.Name} (DN: {actOwner.Dn})",
+                UserName: userConfig.User.Name,
+                UserDN: userConfig.User.Dn);
         }
     }
 
@@ -524,7 +535,12 @@ else
             await deleteNetworkOwners();
             await addNetworkOwners();
             owners[owners.FindIndex(x => x.Id == actOwner.Id)] = actOwner;
-            Log.WriteAudit($"Owners Settings", $"Edited Owner ID: {actOwner.Id}, Name: {actOwner.Name}, Group DN: {actOwner.GroupDn}.");
+
+            Log.WriteAudit(
+                Title: $"Owners Settings",
+                Text: $"Edited Owner: {actOwner.Name} (DN: {actOwner.Dn})",
+                UserName: userConfig.User.Name,
+                UserDN: userConfig.User.Dn);
         }
     }
 
@@ -607,7 +623,12 @@ else
             await apiConnection.SendQueryAsync<ReturnId>(OwnerQueries.deleteOwner, new { id = actOwner.Id });
             owners.Remove(actOwner);
             DeleteOwnerMode = false;
-            Log.WriteAudit($"Owners Settings", $"Deleted Owner ID: {actOwner.Id}, Name: {actOwner.Name}, Group DN: {actOwner.GroupDn}.");
+
+            Log.WriteAudit(
+                Title: $"Owners Settings",
+                Text: $"Deleted Owner: {actOwner.Name} (DN: {actOwner.Dn})",
+                UserName: userConfig.User.Name,
+                UserDN: userConfig.User.Dn);
         }
         catch (Exception exception)
         {

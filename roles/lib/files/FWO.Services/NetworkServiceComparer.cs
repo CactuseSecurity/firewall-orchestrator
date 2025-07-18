@@ -33,6 +33,7 @@ namespace FWO.Services
 
         public int GetHashCode(NetworkService service)
         {
+            SyncProtFields(service);
             if (IsProtType(service.ProtoId))
             {
                 return (option.SvcRegardPortAndProt ? HashCode.Combine(service.ProtoId) : 0)
@@ -45,12 +46,22 @@ namespace FWO.Services
 
         private static bool IsProtType(int? protoId)
         {
-            return protoId != null && protoId != 1 && protoId != 6 && protoId != 17;
+            return protoId != null && protoId != 6 && protoId != 17;
         }
 
         private static bool CompareProtTypes(NetworkService service1, NetworkService service2)
         {
+            SyncProtFields(service1);
+            SyncProtFields(service2);
             return IsProtType(service1.ProtoId) && IsProtType(service2.ProtoId) && service1.ProtoId == service2.ProtoId;
+        }
+
+        private static void SyncProtFields(NetworkService service)
+        {
+            if (service.ProtoId == null && service.Protocol != null)
+            {
+                service.ProtoId = service.Protocol.Id;
+            }
         }
     }
 

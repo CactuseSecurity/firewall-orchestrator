@@ -41,7 +41,7 @@ namespace FWO.Test
         static readonly NetworkObject NwGrp6 = new() { Name = "NwGrp1", ObjectGroupFlats = [ new GroupFlat<NetworkObject>(){ Object = NwObj1 }, new GroupFlat<NetworkObject>(){ Object = NwObj3 }]};
         
         static readonly NetworkService Svc1 = new() { Name = "Svc1", DestinationPort = 1234, DestinationPortEnd = 1235, ProtoId = 6, Protocol = new() { Id = 6, Name = "TCP"} };
-        static readonly NetworkService Svc2 = new() { Name = "Svc2", DestinationPort = 1234, DestinationPortEnd = 1235, ProtoId = 6, Protocol = new() { Id = 6, Name = "TCP"} };
+        static readonly NetworkService Svc2 = new() { Name = "Svc2", DestinationPort = 1234, DestinationPortEnd = 1235, Protocol = new() { Id = 6, Name = "TCP"} };
         static readonly NetworkService Svc3 = new() { Name = "Svc3", DestinationPort = 1234, DestinationPortEnd = 1236, ProtoId = 6, Protocol = new() { Id = 6, Name = "TCP"} };
         static readonly NetworkService Svc4 = new() { Name = "Svc4", DestinationPort = 1235, DestinationPortEnd = 1235, ProtoId = 6, Protocol = new() { Id = 6, Name = "TCP"} };
         static readonly NetworkService Svc5 = new() { Name = "Svc5", DestinationPort = 1234, DestinationPortEnd = 1235, ProtoId = 12, Protocol = new() { Id = 12, Name = "PUP"} };

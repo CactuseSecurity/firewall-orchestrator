@@ -22,8 +22,8 @@ namespace FWO.Test
         static readonly string ip12 = ":a:/128";
         static readonly string ip13 = ":a:/111";
 
-        static readonly NetworkService serv1 = new(){ Name = "Serv1", DestinationPort = 1000, Protocol = new(){ Name="TCP" }};
-        static readonly NetworkService serv2 = new(){ Name = "Serv2", DestinationPort = 1000, DestinationPortEnd = 2000, Protocol = new(){ Name="UDP" }};
+        static readonly NetworkService serv1 = new(){ Name = "Serv1", DestinationPort = 1000, Protocol = new(){ Id = 6, Name = "TCP" }};
+        static readonly NetworkService serv2 = new(){ Name = "Serv2", DestinationPort = 1000, DestinationPortEnd = 2000, Protocol = new(){ Id = 17, Name = "UDP" }};
         static readonly NetworkService serv3 = new(){ Name = "Serv3", Protocol = new(){ Name="ESP" }};
 
         [SetUp]

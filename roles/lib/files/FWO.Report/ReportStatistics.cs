@@ -32,8 +32,9 @@ namespace FWO.Report
                 }
 
                 // setting mgmt and relevantImporId QueryVariables 
-                Query.QueryVariables["mgmId"] = relevantMgmt.Id;
-                Query.QueryVariables["relevantImportId"] = relevantMgmt.Import.ImportAggregate.ImportAggregateMax.RelevantImportId ?? -1 /* managment was not yet imported at that time */;
+                Query.QueryVariables[QueryVar.MgmId] = relevantMgmt.Id;
+                Query.QueryVariables[QueryVar.ImportIdStart] = relevantMgmt.Import.ImportAggregate.ImportAggregateMax.RelevantImportId ?? -1 /* managment was not yet imported at that time */;
+                Query.QueryVariables[QueryVar.ImportIdEnd]   = relevantMgmt.Import.ImportAggregate.ImportAggregateMax.RelevantImportId ?? -1 /* managment was not yet imported at that time */;
                 ReportData.ManagementData.Add((await apiConnection.SendQueryAsync<List<ManagementReport>>(Query.FullQuery, Query.QueryVariables))[0]);
             }
             await callback(ReportData);
@@ -62,16 +63,6 @@ namespace FWO.Report
 
         public override string ExportToCsv()
         {
-            StringBuilder csvBuilder = new ();
-
-            foreach (ManagementReport managementReport in ReportData.ManagementData.Where(mgt => !mgt.Ignore))
-            {
-                //foreach (var item in collection)
-                //{
-
-                //}
-            }
-
             throw new NotImplementedException();
         }
 

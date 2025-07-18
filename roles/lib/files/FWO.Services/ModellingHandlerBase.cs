@@ -1,4 +1,4 @@
-﻿using FWO.Config.Api;
+using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Modelling;
 using FWO.Api.Client;
@@ -167,6 +167,37 @@ namespace FWO.Services
             return true;
         }
 
+        protected async Task<bool> DeleteConnection(ModellingConnection ConnToDelete, bool removeObjectLinks = false)
+        {
+            try
+            {
+                if(ConnToDelete.RequestedOnFw || ConnToDelete.IsPublished)
+                {
+                    if ((await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateConnectionRemove, new { id = ConnToDelete.Id, removalDate = DateTime.Now })).UpdatedId == ConnToDelete.Id)
+                    {
+                        if (removeObjectLinks)
+                        {
+                            await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.removeAllNwGroupsFromConnection, new { id = ConnToDelete.Id });
+                            await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.removeAllAppServersFromConnection, new { id = ConnToDelete.Id });
+                            await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.removeAllServiceGroupsFromConnection, new { id = ConnToDelete.Id });
+                            await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.removeAllServicesFromConnection, new { id = ConnToDelete.Id });
+                        }
+                        await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.removeSelectedConnection, new { connectionId = ConnToDelete.Id });
+                        return true;
+                    }
+                }
+                else
+                {
+                    return (await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.deleteConnection, new { id = ConnToDelete.Id })).DeletedId == ConnToDelete.Id;
+                }
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("delete_connection"), "", true);
+            }
+            return false;
+        }
+
         public async Task<string> ExtractUsedInterface(ModellingConnection conn)
         {
             string interfaceName = "";
@@ -187,24 +218,7 @@ namespace FWO.Services
                         }
                         else
                         {
-                            interfaceName = interf[0].Name ?? "";
-                            if(interf[0].SourceFilled())
-                            {
-                                conn.SourceAppServers = interf[0].SourceAppServers;
-                                conn.SourceAppRoles = interf[0].SourceAppRoles;
-                                conn.SourceAreas = interf[0].SourceAreas;
-                                conn.SourceOtherGroups = interf[0].SourceOtherGroups;
-                            }
-                            if(interf[0].DestinationFilled())
-                            {
-                                conn.DestinationAppServers = interf[0].DestinationAppServers;
-                                conn.DestinationAppRoles = interf[0].DestinationAppRoles;
-                                conn.DestinationAreas = interf[0].DestinationAreas;
-                                conn.DestinationOtherGroups = interf[0].DestinationOtherGroups;
-                            }
-                            conn.Services = interf[0].Services;
-                            conn.ServiceGroups = interf[0].ServiceGroups;
-                            conn.ExtraConfigsFromInterface = interf[0].ExtraConfigs;
+                            interfaceName = ExtractFullInterface(conn, interf[0]);
                         }
                         if(interf[0].GetBoolProperty(ConState.Rejected.ToString()))
                         {
@@ -222,6 +236,28 @@ namespace FWO.Services
                 DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
             }
             return interfaceName;
+        }
+
+        private static string ExtractFullInterface(ModellingConnection conn, ModellingConnection interf)
+        {
+            if (interf.SourceFilled())
+            {
+                conn.SourceAppServers = interf.SourceAppServers;
+                conn.SourceAppRoles = interf.SourceAppRoles;
+                conn.SourceAreas = interf.SourceAreas;
+                conn.SourceOtherGroups = interf.SourceOtherGroups;
+            }
+            if (interf.DestinationFilled())
+            {
+                conn.DestinationAppServers = interf.DestinationAppServers;
+                conn.DestinationAppRoles = interf.DestinationAppRoles;
+                conn.DestinationAreas = interf.DestinationAreas;
+                conn.DestinationOtherGroups = interf.DestinationOtherGroups;
+            }
+            conn.Services = interf.Services;
+            conn.ServiceGroups = interf.ServiceGroups;
+            conn.ExtraConfigsFromInterface = interf.ExtraConfigs;
+            return interf.Name ?? "";
         }
 
         public async Task<ModellingConnection?> GetUsedInterface(ModellingConnection conn)
@@ -306,7 +342,17 @@ namespace FWO.Services
             }
             names.AddRange(nwGroups.ConvertAll(s => s.DisplayWithIcon(conn.SrcFromInterface)));
 
-            names.AddRange(ModellingAppRoleWrapper.Resolve(conn.SourceAppRoles).ToList().ConvertAll(s => s.DisplayWithIcon(conn.SrcFromInterface)));
+            foreach(ModellingAppRole appRole in ModellingAppRoleWrapper.Resolve(conn.SourceAppRoles))
+            {
+                if(appRole.AppServers.Count > 0 && !appRole.AppServers.Any(_ => _.Content.IsDeleted))
+                {
+                    names.Add(appRole.DisplayWithIcon(conn.SrcFromInterface));
+                }
+                else
+                {
+                    names.Add(appRole.DisplayProblematicWithIcon(conn.SrcFromInterface));
+                }
+            }
 
             List<ModellingAppServer> appServers = [.. ModellingAppServerWrapper.Resolve(conn.SourceAppServers)];
             foreach(var appServer in appServers)
@@ -339,7 +385,17 @@ namespace FWO.Services
             }
             names.AddRange(nwGroups.ConvertAll(s => s.DisplayWithIcon(conn.DstFromInterface)));
 
-            names.AddRange(ModellingAppRoleWrapper.Resolve(conn.DestinationAppRoles).ToList().ConvertAll(s => s.DisplayWithIcon(conn.DstFromInterface)));
+            foreach(ModellingAppRole appRole in ModellingAppRoleWrapper.Resolve(conn.DestinationAppRoles))
+            {
+                if(appRole.AppServers.Count > 0 && !appRole.AppServers.Any(_ => _.Content.IsDeleted))
+                {
+                    names.Add(appRole.DisplayWithIcon(conn.DstFromInterface));
+                }
+                else
+                {
+                    names.Add(appRole.DisplayProblematicWithIcon(conn.DstFromInterface));
+                }
+            }
 
             List<ModellingAppServer> appServers = [.. ModellingAppServerWrapper.Resolve(conn.DestinationAppServers)];
             foreach(var appServer in appServers)
@@ -357,8 +413,23 @@ namespace FWO.Services
                 return [DisplayReqInt(userConfig, conn.TicketId, conn.InterfaceIsRequested, 
                     conn.GetBoolProperty(ConState.Rejected.ToString()) || conn.GetBoolProperty(ConState.InterfaceRejected.ToString()))];
             }
-            List<string> names = ModellingServiceGroupWrapper.Resolve(conn.ServiceGroups).ToList().ConvertAll(s => s.DisplayWithIcon(conn.UsedInterfaceId != null));
+
+            List<string> names = [];
+
+            foreach(ModellingServiceGroup svcGrp in ModellingServiceGroupWrapper.Resolve(conn.ServiceGroups))
+            {
+                if(svcGrp.Services.Count > 0)
+                {
+                    names.Add(svcGrp.DisplayWithIcon(conn.UsedInterfaceId != null));
+                }
+                else
+                {
+                    names.Add(svcGrp.DisplayProblematicWithIcon(conn.UsedInterfaceId != null));
+                }
+            }
+
             names.AddRange(ModellingServiceWrapper.Resolve(conn.Services).ToList().ConvertAll(s => s.DisplayWithIcon(conn.UsedInterfaceId != null)));
+            
             return names;
         }
 

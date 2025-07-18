@@ -178,7 +178,7 @@ namespace FWO.Services
                 WfTaskType.group_modify => "reqGrpModStateMatrix",
                 WfTaskType.group_delete => "reqGrpDelStateMatrix",
                 WfTaskType.new_interface => "reqNewIntStateMatrix",
-                _ => throw new Exception($"Error: wrong task type:" + taskType.ToString()),
+                _ => throw new NotSupportedException($"Error: wrong task type:" + taskType.ToString()),
             };
 
             if(reset)
@@ -187,7 +187,7 @@ namespace FWO.Services
             }
 
             List<GlobalStateMatrixHelper> confData = await apiConnection.SendQueryAsync<List<GlobalStateMatrixHelper>>(ConfigQueries.getConfigItemByKey, new { key = matrixKey });
-            GlobalStateMatrix glbStateMatrix = System.Text.Json.JsonSerializer.Deserialize<GlobalStateMatrix>(confData[0].ConfData) ?? throw new Exception("Config data could not be parsed.");
+            GlobalStateMatrix glbStateMatrix = System.Text.Json.JsonSerializer.Deserialize<GlobalStateMatrix>(confData[0].ConfData) ?? throw new JsonException("Config data could not be parsed.");
             GlobalMatrix = glbStateMatrix.GlobalMatrix;
         }
     }

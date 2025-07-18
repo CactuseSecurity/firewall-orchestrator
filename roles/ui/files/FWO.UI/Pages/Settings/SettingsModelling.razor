@@ -1,13 +1,17 @@
-﻿@using System.Text.Json
+@using System.Text.Json
+@using FWO.Services.EventMediator.Events
+@using FWO.Services.EventMediator.Interfaces
 @using FWO.Ui.Data
 @using FWO.Ui.Pages.NetworkModelling
 
 @page "/settings/modelling"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
 
+@implements IDisposable
 @inject ApiConnection apiConnection
 @inject GlobalConfig globalConfig
 @inject UserConfig userConfig
+@inject IEventMediator EventMediator
 
 <div class="input-group">
     <h3>@(userConfig.GetText("modelling_settings"))</h3>
@@ -83,42 +87,13 @@
         <div class="form-group row mt-4" data-toggle="tooltip" title="@(userConfig.PureLine("H9055"))">
             <label class="col-form-label col-sm-4">@userConfig.GetText("import_app_server"):</label>
             <div class="row col-sm-6">
-                <FileUpload SupportedFileFormats=".csv" AuthorizedRoles="@Roles.Admin" OnImportSuccess="OnAppServerImportSuccess" OnAddAppServerError="OnAddAppServerError" TImportResult="CSVFileUploadErrorModel" OnAfterImportResults="OnAfterImportResults"></FileUpload>
+                <CSVFileUpload SupportedFileFormats=".csv" AuthorizedRoles="@Roles.Admin"></CSVFileUpload>
             </div>
         </div>
         <hr />
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5620"))">
             <label class="col-form-label col-sm-4">@userConfig.GetText("common_areas"):</label>
-            <div class="col-sm-6">
-                <EditList ElementType="CommonArea" Elements="commonAreas.ToArray()" ElementsToDelete="AreasToDelete" StdLayout="false">
-                    <Display>
-                        <div class="row align-items-center">
-                            <div class="col-sm-4 border bg-transparent">@((MarkupString)context.Area.Content.DisplayHtml())</div>
-                            <div class="col-sm-4">
-                                <div class="row align-items-center">
-                                    <div class="col-form-label col-sm-8" @onclick="() => context.UseInSrc = !context.UseInSrc">@(userConfig.GetText("use_in_src")):</div>
-                                    <div class="col-sm-3">
-                                        <input id="cbx_use_in_src" type="checkbox" class="w-100" @bind="context.UseInSrc">
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-sm-4">
-                                <div class="row align-items-center">
-                                    <div class="col-form-label col-sm-8" @onclick="() => context.UseInDst = !context.UseInDst">@(userConfig.GetText("use_in_dst")):</div>
-                                    <div class="col-sm-3">
-                                        <input id="cbx_use_in_dst" type="checkbox" class="w-100" @bind="context.UseInDst">
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </Display>
-                </EditList>
-                <div class="row col-sm-12 mt-1">
-                    <button type="button" class="col-sm-2 btn btn-sm btn-primary" @onclick="SearchArea" @onclick:preventDefault>
-                        @(ModellingHandlerBase.DisplayButton(userConfig, "add", Icons.Add))
-                    </button>
-                </div>
-            </div>
+            <CommonAreaSelection CommonAreas="CommonAreas" CommAreasToDelete="CommAreasToDelete" SearchCommonArea="SearchCommonArea"/>
         </div>
         <hr />
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5637"))">
@@ -136,6 +111,16 @@
                     <button type="button" class="col-sm-2 btn btn-sm btn-primary" @onclick="AddExtraConfig" @onclick:preventDefault>@(ModellingHandlerBase.DisplayButton(userConfig, "add", Icons.Add))</button>
                 </div>
             </div>
+        </div>
+        <hr />
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5655"))">
+            <label class="col-form-label col-sm-4">@userConfig.GetText("special_user_areas"):</label>
+            <CommonAreaSelection CommonAreas="SpecUserAreas" CommAreasToDelete="SpecUserAreasToDelete" SearchCommonArea="SearchSpecUserArea"/>
+        </div>
+        <hr />
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5659"))">
+            <label class="col-form-label col-sm-4">@userConfig.GetText("updatable_obj_areas"):</label>
+            <CommonAreaSelection CommonAreas="UpdObjAreas" CommAreasToDelete="UpdObjAreasToDelete" SearchCommonArea="SearchUpdObjArea"/>
         </div>
         <hr />
         <div class="form-group row">
@@ -346,6 +331,14 @@
                 </div>
             </div>
         </div>
+        <div class="form-group row mt-2">
+            <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5656"))">
+                <label for="cbx_request_nat" class="col-form-label col-sm-8">@(userConfig.GetText("modRolloutNatHeuristic")):</label>
+                <div class="col-sm-2">
+                    <input id="cbx_request_nat" type="checkbox" class="w-100" @bind="configData!.ModRolloutNatHeuristic">
+                </div>
+            </div>
+        </div>
         <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5639"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("modRolloutErrorText")):</label>
             <input type="text" class="col-sm-6" @bind="configData!.ModRolloutErrorText" />
@@ -389,6 +382,19 @@
             <input type="date" class="col-sm-2" @bind="varAnalysisDate" />
         </div>
         <hr />
+        <div class="form-group row mt-2">
+            <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5657"))">
+                <label for="cbx_recert_active" class="col-form-label col-sm-8">@(userConfig.GetText("modRecertActive")):</label>
+                <div class="col-sm-2">
+                    <input id="cbx_recert_active" type="checkbox" class="w-100" @bind="configData!.ModRecertActive">
+                </div>
+            </div>
+        </div>
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5658"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("modRecertText")):</label>
+            <textarea class="col-sm-7 mt-2" rows="4" name="text" @bind="configData!.ModRecertText"></textarea>
+        </div>
+        <hr />
     </form>
     <AuthorizeView Roles="@Roles.Admin">
         <Authorized>
@@ -406,25 +412,25 @@
 }
 else
 {
-    <div class="spinner-border" role="status">
-        <span class="visually-hidden">@(userConfig.GetText("loading"))</span>
-    </div>
+    <Loading/>
 }
 <PredefServices @bind-Display="predefServices" />
-<SearchNwObject @bind-Display="searchArea" ObjectList="pureAreaList" Add="AddArea" CommonAreaMode="true" />
+<SearchNwObject @bind-Display="searchCommonArea" ObjectList="CommonAreas.ConvertAll(x => x.Area)" Add="AddCommonArea" CommonAreaMode="true" />
+<SearchNwObject @bind-Display="searchSpecUserArea" ObjectList="SpecUserAreas.ConvertAll(x => x.Area)" Add="AddSpecUserArea" SpecUserMode="true"/>
+<SearchNwObject @bind-Display="searchUpdObjArea" ObjectList="UpdObjAreas.ConvertAll(x => x.Area)" Add="AddUpdObjArea" UpdObjMode="true"/>
 <PopUp Title="@(userConfig.GetText("appserver_import"))" Show="@ShowCSVImportPopUp" Size=PopupSize.Large OnClose="() => ShowCSVImportPopUp = false">
     <Body>
-        @if(CSVImportSuccess is not null && CSVImportSuccess.Count > 0)
+        @if(Appserver is not null && Appserver.Count > 0)
         {
             <div class="mt-3">
-                <Collapse StartToggled="true" Style="success" Title="@(userConfig.GetText("success"))">
-                    <Table PageSize="0" TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="string" Items="CSVImportSuccess">
+                <Collapse StartToggled="false" Style="success" Title="@(userConfig.GetText("success"))">
+                    <Table PageSize="0" TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="string" Items="Appserver">
                         <Column TableItem="string" Title="@(userConfig.GetText("entrydata"))" Type="typeof(string)" Field="@(_ => new string(_))" Sortable="true" Filterable="true" />
                     </Table>
                 </Collapse>
             </div>
         }
-        @if(CSVImportErrors is not null && CSVImportErrors.Count > 0)
+       @if(CSVImportErrors is not null && CSVImportErrors.Count > 0)
         {
             <div class="mt-1">
                 <Collapse StartToggled="false" Style="danger" Title="@(userConfig.GetText("errors"))">
@@ -434,6 +440,12 @@ else
                         <Column TableItem="CSVFileUploadErrorModel" Title="@(userConfig.GetText("type"))" Field="@(_ => _.MessageType)" Sortable="true" />
                     </Table>
                 </Collapse>
+            </div>
+        }
+        @if(Appserver is not null && Appserver.Count == 0 && CSVImportErrors is not null && CSVImportErrors.Count == 0)
+        {
+            <div class="alert alert-info mt-3" role="alert">
+                @(userConfig.GetText("E9400"))
             </div>
         }
     </Body>
@@ -471,12 +483,16 @@ else
     private string actExtraConfig = "";
 
     private List<ModellingNwGroup> allAreas = [];
-    private List<ModellingNwGroupWrapper> pureAreaList = [];
-    private List<CommonAreaConfig> commAreaConfigItems = [];
-    private List<CommonArea> commonAreas = [];
-    private List<CommonArea> AreasToDelete = [];
+    private List<CommonArea> CommonAreas = [];
+    private List<CommonArea> CommAreasToDelete = [];
+    private List<CommonArea> SpecUserAreas = [];
+    private List<CommonArea> SpecUserAreasToDelete = [];
+    private List<CommonArea> UpdObjAreas = [];
+    private List<CommonArea> UpdObjAreasToDelete = [];
     private bool predefServices = false;
-    private bool searchArea = false;
+    private bool searchCommonArea = false;
+    private bool searchSpecUserArea = false;
+    private bool searchUpdObjArea = false;
     private ModellingNamingConvention namingConvention = new();
     private DateTime appDataDate = DateTime.Today;
     private DateTime appDataTime = DateTime.Now.AddSeconds(-DateTime.Now.Second);
@@ -495,23 +511,34 @@ else
     private bool varOptMode = false;
     private bool ShowCSVImportPopUp { get; set; }
     private List<CSVFileUploadErrorModel>? CSVImportErrors;
-    private List<string>? CSVImportSuccess;
+    private List<string>? Appserver;
 
-    private void OnAddAppServerError((Exception Exception, string Message) error)
+    private void OnFileUploadEvent(FileUploadEventArgs? e)
     {
-        DisplayMessageInUi(error.Exception, userConfig.GetText("add_app_server"), error.Message, false);
+        if(e is null)
+        {
+            return;
+        }
+
+        if(!e.Success && e.Error is not null)
+        {
+            DisplayMessageInUi(e.Error.InternalException, userConfig.GetText("modelling_settings"), e.Error.Message ?? "", true);
+            return;
+        }
     }
 
-    private void OnAfterImportResults((List<string>? Success, List<CSVFileUploadErrorModel>? Errors) importResult)
+    private void OnCSVAppServerImportEvent(AppServerImportEventArgs? e)
     {
-        CSVImportSuccess = importResult.Success;
-        CSVImportErrors = importResult.Errors;
+        if(e is null)
+        {
+            return;
+        }
+
+        CSVImportErrors = e.Errors;
+        Appserver = e.Appserver;
 
         ShowCSVImportPopUp = true;
-    }
-    private void OnAppServerImportSuccess()
-    {
-        DisplayMessageInUi(null, userConfig.GetText("import_app_server"), userConfig.GetText("importAppServerDataSuccess"), false);
+        StateHasChanged();
     }
 
     protected override async Task OnInitializedAsync()
@@ -533,7 +560,9 @@ else
             }
             allAreas = await apiConnection.SendQueryAsync<List<ModellingNwGroup>>(ModellingQueries.getNwGroupObjects,
                 new { grpType = (int)ModellingTypes.ModObjectType.NetworkArea });
-            RefreshAreas();
+            CommonAreas = RefreshAreas(configData.ModCommonAreas);
+            SpecUserAreas = RefreshAreas(configData.ModSpecUserAreas);
+            UpdObjAreas = RefreshAreas(configData.ModUpdatableObjAreas);
             appDataDate = appDataTime = configData.ImportAppDataStartAt;
             subnetDataDate = subnetDataTime = configData.ImportSubnetDataStartAt;
             varAnalysisDate = varAnalysisTime = configData.VarianceAnalysisStartAt;
@@ -546,6 +575,10 @@ else
 
             ruleRecognitionOption = string.IsNullOrEmpty(configData.RuleRecognitionOption) ? new() : JsonSerializer.Deserialize<RuleRecognitionOption>(configData.RuleRecognitionOption) ?? new();
             initComplete = true;
+
+            // subscribe to events for file upload and import
+            EventMediator.Subscribe<FileUploadEvent>(nameof(FileUploadService.ReadFileToBytes), _ => OnFileUploadEvent(_.EventArgs));
+            EventMediator.Subscribe<AppServerImportEvent>(nameof(FileUploadService.ImportAppServersFromCSV), _ => OnCSVAppServerImportEvent(_.EventArgs));
         }
         catch (Exception exception)
         {
@@ -553,27 +586,38 @@ else
         }
     }
 
-    private void RefreshAreas()
+    private List<CommonArea> RefreshAreas(string configItem)
     {
-        if (configData != null && configData.ModCommonAreas != "")
+        List<CommonArea> areas = [];
+        if (configData != null && configItem != "")
         {
-            commAreaConfigItems = JsonSerializer.Deserialize<List<CommonAreaConfig>>(configData.ModCommonAreas) ?? new();
-        }
-        commonAreas = new();
-        foreach (var areaInfo in commAreaConfigItems)
-        {
-            ModellingNwGroup? area = allAreas.FirstOrDefault(a => a.Id == areaInfo.AreaId);
-            if (area != null)
+             foreach (var areaInfo in JsonSerializer.Deserialize<List<CommonAreaConfig>>(configItem) ?? [])
             {
-                commonAreas.Add(new() { Area = new() { Content = area }, UseInSrc = areaInfo.UseInSrc, UseInDst = areaInfo.UseInDst });
+                ModellingNwGroup? area = allAreas.FirstOrDefault(a => a.Id == areaInfo.AreaId);
+                if (area != null)
+                {
+                    areas.Add(new() { Area = new() { Content = area }, UseInSrc = areaInfo.UseInSrc, UseInDst = areaInfo.UseInDst });
+                }
             }
         }
-        pureAreaList = commonAreas.ConvertAll(x => x.Area);
+        return areas;
     }
 
-    public bool AddArea(ModellingNwGroup area)
+    public bool AddCommonArea(ModellingNwGroup area)
     {
-        commonAreas.Add(new() { Area = new() { Content = area } });
+        CommonAreas.Add(new() { Area = new() { Content = area } });
+        return true;
+    }
+
+    public bool AddSpecUserArea(ModellingNwGroup area)
+    {
+        SpecUserAreas.Add(new() { Area = new() { Content = area } });
+        return true;
+    }
+
+    public bool AddUpdObjArea(ModellingNwGroup area)
+    {
+        UpdObjAreas.Add(new() { Area = new() { Content = area } });
         return true;
     }
 
@@ -620,9 +664,25 @@ else
         predefServices = true;
     }
 
-    private void SearchArea()
+    private bool SearchCommonArea()
     {
-        searchArea = true;
+        searchCommonArea = true;
+        StateHasChanged();
+        return true;
+    }
+
+    private bool SearchSpecUserArea()
+    {
+        searchSpecUserArea = true;
+        StateHasChanged();
+        return true;
+    }
+
+    private bool SearchUpdObjArea()
+    {
+        searchUpdObjArea = true;
+        StateHasChanged();
+        return true;
     }
 
     private void VarianceOptions()
@@ -643,17 +703,19 @@ else
                 PathsToAdd = [];
                 PathsToDeleteSubnet = [];
                 PathsToAddSubnet = [];
-                AreasToDelete = [];
+                CommAreasToDelete = [];
                 appServerTypesToAdd = [];
                 appServerTypesToDelete = [];
                 ExtraConfigsToAdd = [];
                 ExtraConfigsToDelete = [];
-                RefreshAreas();
+                CommonAreas = RefreshAreas(configData.ModCommonAreas);
+                SpecUserAreas = RefreshAreas(configData.ModSpecUserAreas);
+                UpdObjAreas = RefreshAreas(configData.ModUpdatableObjAreas);
                 DisplayMessageInUi(null, userConfig.GetText("modelling_settings"), userConfig.GetText("U5301"), false);
             }
             else
             {
-                throw new Exception("Data saved before loaded. This should be impossible.");
+                throw new ArgumentException("Data saved before loaded. This should be impossible.");
             }
         }
         catch (Exception exception)
@@ -669,7 +731,9 @@ else
         PrepareExtraConfigs();
         configData!.ModNamingConvention = JsonSerializer.Serialize(namingConvention);
         PrepareAppServerTypes();
-        PrepareCommonAreas();
+        configData!.ModCommonAreas = PrepareAreas(CommonAreas, CommAreasToDelete);
+        configData!.ModSpecUserAreas = PrepareAreas(SpecUserAreas, SpecUserAreasToDelete);
+        configData!.ModUpdatableObjAreas = PrepareAreas(UpdObjAreas, UpdObjAreasToDelete);
         configData!.ImportAppDataStartAt = appDataDate.Date.Add(appDataTime.TimeOfDay);
         configData!.ImportSubnetDataStartAt = subnetDataDate.Date.Add(subnetDataTime.TimeOfDay);
         configData!.VarianceAnalysisStartAt = varAnalysisDate.Date.Add(varAnalysisTime.TimeOfDay);
@@ -703,10 +767,10 @@ else
         configData!.ImportSubnetDataPath = JsonSerializer.Serialize(SubnetDataPaths);
     }
 
-    private void PrepareCommonAreas()
+    private string PrepareAreas(List<CommonArea> areas, List<CommonArea> areasToDelete)
     {
-        commAreaConfigItems = commonAreas.ConvertAll(x => x.ToConfigItem());
-        foreach (var area in AreasToDelete)
+        List<CommonAreaConfig> commAreaConfigItems = areas.ConvertAll(x => x.ToConfigItem());
+        foreach (var area in areasToDelete)
         {
             CommonAreaConfig? existingItem = commAreaConfigItems.FirstOrDefault(x => x.AreaId == area.Area.Content.Id);
             if (existingItem != null)
@@ -714,7 +778,7 @@ else
                 commAreaConfigItems.Remove(existingItem);
             }
         }
-        configData!.ModCommonAreas = JsonSerializer.Serialize(commAreaConfigItems);
+        return JsonSerializer.Serialize(commAreaConfigItems);
     }
 
     private void PrepareAppServerTypes()
@@ -750,5 +814,14 @@ else
             ExtraConfigs.Add(config);
         }
         configData!.ModExtraConfigs = JsonSerializer.Serialize(ExtraConfigs);
+    }
+
+    /// <summary>
+    /// Unsubscribes from file upload events when the component is disposed.
+    /// </summary>
+    public void Dispose()
+    {
+        EventMediator.Unsubscribe<FileUploadEvent>(nameof(FileUploadService.ReadFileToBytes));
+        EventMediator.Unsubscribe<AppServerImportEvent>(nameof(FileUploadService.ImportAppServersFromCSV));
     }
 }

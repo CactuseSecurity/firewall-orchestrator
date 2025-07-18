@@ -37,6 +37,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string getConnections;
         public static readonly string getConnectionsResolved;
         public static readonly string getConnectionsByTicketId;
+        public static readonly string getDeletedConnections;
         public static readonly string getInterfaceUsers;
         public static readonly string getCommonServices;
         public static readonly string newConnection;
@@ -45,16 +46,22 @@ namespace FWO.Api.Client.Queries
         public static readonly string updateConnectionPublish;
         public static readonly string updateConnectionProperties;
         public static readonly string replaceUsedInterface;
+        public static readonly string updateConnectionFwRequested;
+        public static readonly string updateConnectionRemove;
         public static readonly string deleteConnection;
         public static readonly string addAppServerToConnection;
         public static readonly string removeAppServerFromConnection;
+        public static readonly string removeAllAppServersFromConnection;
         public static readonly string updateNwObjectInConnection;
         public static readonly string addNwGroupToConnection;
         public static readonly string removeNwGroupFromConnection;
+        public static readonly string removeAllNwGroupsFromConnection;
         public static readonly string addServiceToConnection;
         public static readonly string removeServiceFromConnection;
+        public static readonly string removeAllServicesFromConnection;
         public static readonly string addServiceGroupToConnection;
         public static readonly string removeServiceGroupFromConnection;
+        public static readonly string removeAllServiceGroupsFromConnection;
         public static readonly string getConnectionIdsForService;
         public static readonly string getConnectionIdsForServiceGroup;
 
@@ -142,6 +149,7 @@ namespace FWO.Api.Client.Queries
                 getConnections = connectionDetailsFragment + File.ReadAllText(QueryPath + "modelling/getConnections.graphql");
                 getConnectionsResolved = connectionResolvedDetailsFragment + File.ReadAllText(QueryPath + "modelling/getConnectionsResolved.graphql");
                 getConnectionsByTicketId = connectionDetailsFragment + File.ReadAllText(QueryPath + "modelling/getConnectionsByTicketId.graphql");
+                getDeletedConnections = connectionDetailsFragment + File.ReadAllText(QueryPath + "modelling/getDeletedConnections.graphql");
                 getInterfaceUsers = File.ReadAllText(QueryPath + "modelling/getInterfaceUsers.graphql");
                 getCommonServices = connectionDetailsFragment + File.ReadAllText(QueryPath + "modelling/getCommonServices.graphql");
                 newConnection = File.ReadAllText(QueryPath + "modelling/newConnection.graphql");
@@ -150,16 +158,22 @@ namespace FWO.Api.Client.Queries
                 updateConnectionPublish = File.ReadAllText(QueryPath + "modelling/updateConnectionPublish.graphql");
                 updateConnectionProperties = File.ReadAllText(QueryPath + "modelling/updateConnectionProperties.graphql");
                 replaceUsedInterface = File.ReadAllText(QueryPath + "modelling/replaceUsedInterface.graphql");
+                updateConnectionFwRequested = File.ReadAllText(QueryPath + "modelling/updateConnectionFwRequested.graphql");
+                updateConnectionRemove = File.ReadAllText(QueryPath + "modelling/updateConnectionRemove.graphql");
                 deleteConnection = File.ReadAllText(QueryPath + "modelling/deleteConnection.graphql");
                 addAppServerToConnection = File.ReadAllText(QueryPath + "modelling/addAppServerToConnection.graphql");
                 removeAppServerFromConnection = File.ReadAllText(QueryPath + "modelling/removeAppServerFromConnection.graphql");
+                removeAllAppServersFromConnection = File.ReadAllText(QueryPath + "modelling/removeAllAppServersFromConnection.graphql");
                 updateNwObjectInConnection = File.ReadAllText(QueryPath + "modelling/updateNwObjectInConnection.graphql");
                 addNwGroupToConnection = File.ReadAllText(QueryPath + "modelling/addNwGroupToConnection.graphql");
                 removeNwGroupFromConnection = File.ReadAllText(QueryPath + "modelling/removeNwGroupFromConnection.graphql");
+                removeAllNwGroupsFromConnection = File.ReadAllText(QueryPath + "modelling/removeAllNwGroupsFromConnection.graphql");
                 addServiceToConnection = File.ReadAllText(QueryPath + "modelling/addServiceToConnection.graphql");
                 removeServiceFromConnection = File.ReadAllText(QueryPath + "modelling/removeServiceFromConnection.graphql");
+                removeAllServicesFromConnection = File.ReadAllText(QueryPath + "modelling/removeAllServicesFromConnection.graphql");
                 addServiceGroupToConnection = File.ReadAllText(QueryPath + "modelling/addServiceGroupToConnection.graphql");
                 removeServiceGroupFromConnection = File.ReadAllText(QueryPath + "modelling/removeServiceGroupFromConnection.graphql");
+                removeAllServiceGroupsFromConnection = File.ReadAllText(QueryPath + "modelling/removeAllServiceGroupsFromConnection.graphql");
                 getConnectionIdsForService = File.ReadAllText(QueryPath + "modelling/getConnectionIdsForService.graphql");
                 getConnectionIdsForServiceGroup = File.ReadAllText(QueryPath + "modelling/getConnectionIdsForServiceGroup.graphql");
 

@@ -1,4 +1,5 @@
 @using FWO.Services
+@using System.Text.Json
 
 @inject GlobalConfig globalConfig
 @inject UserConfig userConfig
@@ -40,12 +41,17 @@
     [Parameter]
     public string? AppId { get; set; }
 
+    private List<Module> availableModules { get; set; } = [];
+
     protected override async Task OnInitializedAsync()
     {
         uiUserDbId = userConfig.User.DbId;
         authenticationState = await authenticationStateTask!;
+        availableModules = string.IsNullOrEmpty(userConfig.AvailableModules) ? [.. Enum.GetValues(typeof(Module)).Cast<Module>()]
+                : JsonSerializer.Deserialize<List<Module>>(userConfig.AvailableModules) ?? throw new JsonException("Config data could not be parsed.");
+ 
 
-        if(authenticationState.User.IsInRole(Roles.Modeller))
+        if(authenticationState.User.IsInRole(Roles.Modeller) && availableModules.Contains(Module.Modelling))
         {
             NavigationManager.NavigateTo($"/networkmodelling/{AppId ?? ""}");
         }

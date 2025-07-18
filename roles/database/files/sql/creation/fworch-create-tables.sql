@@ -595,7 +595,8 @@ Create table "import_control"
 	"mgm_id" Integer NOT NULL,
 	"last_change_in_config" Timestamp,
 	"successful_import" Boolean NOT NULL Default FALSE,
-	"changes_found" Boolean NOT NULL Default FALSE,
+	"any_changes_found" Boolean NOT NULL Default FALSE,
+	"rule_changes_found" Boolean NOT NULL Default FALSE,
 	"import_errors" Varchar,
 	"notification_done" Boolean NOT NULL Default FALSE,
 	"security_relevant_changes_counter" INTEGER NOT NULL Default 0,
@@ -1122,7 +1123,7 @@ create table ext_request
 -- create schema
 create schema request;
 
-CREATE TYPE rule_field_enum AS ENUM ('source', 'destination', 'service', 'rule');
+CREATE TYPE rule_field_enum AS ENUM ('source', 'destination', 'service', 'rule', 'modelled_source', 'modelled_destination');
 CREATE TYPE action_enum AS ENUM ('create', 'delete', 'modify', 'unchanged', 'addAfterCreation');
 
 -- create tables
@@ -1385,7 +1386,10 @@ create table modelling.connection
 	creator Varchar,
 	creation_date timestamp default now(),
 	conn_prop Varchar,
-	extra_params Varchar
+	extra_params Varchar,
+	requested_on_fw boolean default false,
+	removed boolean default false,
+	removal_date timestamp
 );
 
 create table modelling.selected_objects

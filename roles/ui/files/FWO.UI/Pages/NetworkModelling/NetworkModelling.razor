@@ -1,12 +1,11 @@
-@using FWO.Ui.Display
 @using FWO.Data.Workflow
-@using FWO.Tufin.SecureChange
-@using FWO.Rest.Client
 @using FWO.Middleware.Client
+@using FWO.ExternalSystems
+@using FWO.Ui.Display
+@using RestSharp
+@using System.Net
 @using System.Text.Json
 @using System.Text.Json.Serialization
-@using System.Net
-@using RestSharp
 
 @implements IDisposable
 
@@ -88,7 +87,7 @@
                             &nbsp;
                             @if(userConfig.VarianceAnalysisRefresh)
                             {
-                                <button type="button" class="btn btn-sm btn-primary" @onclick="async() => await appHandler.AnalyseStatus(appHandler.Connections)">
+                                <button type="button" class="btn btn-sm btn-primary" @onclick="RefreshState">
                                     @(appHandler!.DisplayButton("refresh_state", Icons.Refresh, "state"))
                                 </button>
                             }
@@ -96,13 +95,13 @@
                     }
                     </h5>
                 </div>
-                <div class="m-2 vheight75">
+                <div class="mx-2 mt-2">
                     <TabSet WholeWidth="false" DarkMode="false" KeepPanelsAlive="false" @ref="appHandler!.tabset">
                         <Tab Title="@(userConfig.GetText("connections"))" Position=0>
                             <button type="button" class="btn btn-sm btn-success mb-2" @onclick="appHandler!.AddConnection">
                                 @(appHandler!.DisplayButton("add_connection", Icons.Add))
-                            </button>
-                            <ConnectionTable ShowPageSizeInput="true" Connections="@appHandler!.GetRegularConnections()" @bind-AppHandler="appHandler" AppActive="appActive" ShowModellingState="true" ShowProductionState="true" />
+                            </button>                            
+                            <ConnectionTable UseResponsiveTable="true" ShowPageSizeInput="true" Connections="@appHandler!.GetRegularConnections()" @bind-AppHandler="appHandler" AppActive="appActive" ShowModellingState="true" ShowProductionState="true" />
                         </Tab>
                         <Tab Title="@(userConfig.GetText("provided_interfaces"))" Position=1>
                             <div class="d-flex justify-content-between">
@@ -115,12 +114,12 @@
                                     <Authorized>
                                         <div>
                                             <input id="cbx_show_rejected" type="checkbox" @bind="showRejected">
-                                            <label for="cbx_show_rejected" class="col-form-label">@(userConfig.GetText("displayRejected")):</label>
+                                            <label for="cbx_show_rejected" class="col-form-label">@(userConfig.GetText("displayRejected"))</label>
                                         </div>
                                     </Authorized>
                                 </AuthorizeView>
                             </div>
-                            <ConnectionTable ShowPageSizeInput="true" Connections="@appHandler!.GetInterfaces(showRejected)" @bind-AppHandler="appHandler" AppActive="appActive" ShowModellingState="true" />
+                            <ConnectionTable UseResponsiveTable="true" ShowPageSizeInput="true" Connections="@appHandler!.GetInterfaces(showRejected)" @bind-AppHandler="appHandler" AppActive="appActive" ShowModellingState="true" />
                         </Tab>
                         @if (selectedApp.CommSvcPossible)
                         {
@@ -128,7 +127,7 @@
                                 <button type="button" class="btn btn-sm btn-success mb-2"
                                     @onclick="appHandler!.AddCommonService">@(appHandler!.DisplayButton("add_common_service", Icons.Add))
                                 </button>
-                                <ConnectionTable Connections="@appHandler!.GetCommonServices()" @bind-AppHandler="appHandler" AppActive="appActive" ShowModellingState="true" ShowProductionState="true" />
+                                <ConnectionTable UseResponsiveTable="true" Connections="@appHandler!.GetCommonServices()" @bind-AppHandler="appHandler" AppActive="appActive" ShowModellingState="true" ShowProductionState="true" />
                             </Tab>
                         }
                     </TabSet>
@@ -353,6 +352,23 @@ else
     private void RequestFwChange()
     {
         showFwChange = true;
+    }
+
+    private async Task RefreshState()
+    {
+        if (appHandler != null)
+        {
+            try
+            {
+                workInProgress = true;
+                await appHandler.AnalyseStatus(appHandler.Connections);
+                workInProgress = false;
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("refresh_state"), "", true);
+            }
+        }
     }
 
     private async Task SetChangeStatus()

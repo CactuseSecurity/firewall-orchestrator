@@ -1,4 +1,6 @@
 ﻿using FWO.Api.Client;
+using GraphQL;
+using GraphQL.Client.Http;
 
 namespace FWO.Test
 {
@@ -15,38 +17,34 @@ namespace FWO.Test
         }
 
         public override void SetAuthHeader(string jwt)
-        {
-            throw new NotImplementedException();
-        }
+        {}
 
         public override void SetRole(string role)
-        {
-            throw new NotImplementedException();
-        }
+        {}
 
         public override void SetBestRole(System.Security.Claims.ClaimsPrincipal user, List<string> targetRoleList)
-        {
-            throw new NotImplementedException();
-        }
+        {}
 
         public override void SetProperRole(System.Security.Claims.ClaimsPrincipal user, List<string> targetRoleList)
-        {
-            throw new NotImplementedException();
-        }
+        {}
 
         public override void SwitchBack()
-        {
-            throw new NotImplementedException();
-        }
+        {}
 
         protected override void Dispose(bool disposing)
-        {
-            throw new NotImplementedException();
-        }
+        {}
 
         public override void DisposeSubscriptions<T>()
-        {
-            throw new NotImplementedException();
-        }
+        {}
+    }
+
+    internal class SimulatedApiSubscription<SubscriptionResponseType> : GraphQlApiSubscription<SubscriptionResponseType>
+    {
+        public SimulatedApiSubscription(ApiConnection apiConnection, GraphQLHttpClient graphQlClient, GraphQLRequest request, Action<Exception> exceptionHandler, SubscriptionUpdate OnUpdate)
+         : base(apiConnection, graphQlClient, request, exceptionHandler, OnUpdate)
+        { }
+        
+        protected override void CreateSubscription()
+        { }
     }
 }

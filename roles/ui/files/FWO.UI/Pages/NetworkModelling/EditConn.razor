@@ -392,7 +392,7 @@
 					@if(ConnHandler.ActConn.IsRequested)
 					{
 						<button type="button" class="btn btn-sm btn-dark" @onclick="DisplayTicket">@(ConnHandler.DisplayButton("display_ticket", Icons.Display, userConfig.GetText("ticket")))</button>
-						@if(!ConnHandler.ReadOnly)
+						@if(!ConnHandler.ReadOnly && availableModules.Contains(Module.Workflow))
 						{
 							<button type="button" class="btn btn-sm btn-dark" @onclick="GotoTicket">@(ConnHandler.DisplayButton("edit_ticket", Icons.Edit, userConfig.GetText("ticket")))</button>
 						}
@@ -480,12 +480,15 @@
     private bool RejectInterfaceMode = false;
 
     private List<string> availableExtraConfigs = [];
+	private List<Module> availableModules { get; set; } = [];
 
 
     protected override void OnInitialized()
     {
         sidebarLeftWidth = sidebarInitWidth;
         availableExtraConfigs = JsonSerializer.Deserialize<List<string>>(userConfig.ModExtraConfigs) ?? new();
+		availableModules = string.IsNullOrEmpty(userConfig.AvailableModules) ? [.. Enum.GetValues(typeof(Module)).Cast<Module>()]
+            : JsonSerializer.Deserialize<List<Module>>(userConfig.AvailableModules) ?? throw new JsonException("Config data could not be parsed.");
     }
 
     protected override void OnParametersSet()

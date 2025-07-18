@@ -1,11 +1,13 @@
-﻿using FWO.Data;
-using FWO.Data.Workflow;
-using FWO.Config.Api;
-using FWO.Api.Client;
+﻿using FWO.Api.Client;
 using FWO.Api.Client.Queries;
-using FWO.Middleware.Client;
-using FWO.Logging;
 using FWO.Basics;
+using FWO.Config.Api;
+using FWO.Data;
+using FWO.Data.Workflow;
+using FWO.Logging;
+using FWO.Middleware.Client;
+using System.Security.Authentication;
+using System.Text.Json; 
 
 namespace FWO.Services
 {
@@ -150,11 +152,11 @@ namespace FWO.Services
                     }
                     else
                     {
-                        throw new Exception("No AuthUser set");
+                        throw new AuthenticationException("No AuthUser set");
                     }
                     ActionHandler = new (apiConnection, this, UserGroups, usedInMwServer);
                     await ActionHandler.Init();
-                    dbAcc = new WfDbAccess(DisplayMessageInUi, userConfig, apiConnection, ActionHandler){};
+                    dbAcc = new WfDbAccess(DisplayMessageInUi, userConfig, apiConnection, ActionHandler, AuthUser == null || AuthUser.IsInRole(Roles.Admin) || AuthUser.IsInRole(Roles.Auditor)){};
                     Devices = await apiConnection.SendQueryAsync<List<Device>>(DeviceQueries.getDeviceDetails);
                     AllOwners = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
                     await stateMatrixDict.Init(Phase, apiConnection);
@@ -164,7 +166,7 @@ namespace FWO.Services
                         TicketList = await dbAcc.FetchTickets(MasterStateMatrix, ownerIds, allStates, fullTickets);
                     }
                     ReloadTasks = !fullTickets;
-                    PrioList = System.Text.Json.JsonSerializer.Deserialize<List<WfPriority>>(userConfig.ReqPriorities) ?? throw new Exception("Config data could not be parsed.");
+                    PrioList = System.Text.Json.JsonSerializer.Deserialize<List<WfPriority>>(userConfig.ReqPriorities) ?? throw new JsonException("Config data could not be parsed.");
                     apiConnection.SwitchBack();
                     Log.WriteDebug("Init stop:   ", $"{DateTime.Now:hh:mm:ss,fff}");
                     InitOngoing = false;
@@ -264,12 +266,12 @@ namespace FWO.Services
 
         // Tickets
 
-        public async Task<WfTicket?> ResolveTicket(long ticketId, bool checkOwner = false)
+        public async Task<WfTicket?> ResolveTicket(long ticketId)
         {
             WfTicket? ticket = null;
             if(dbAcc != null)
             {
-                ticket = await dbAcc.FetchTicket(ticketId, checkOwner ? AllOwners.ConvertAll(x => x.Id) : null);
+                ticket = await dbAcc.FetchTicket(ticketId, userConfig.ReqOwnerBased ? AllOwners.ConvertAll(x => x.Id) : null);
                 if(ticket != null)
                 {
                     SetTicketEnv(ticket);
@@ -756,7 +758,7 @@ namespace FWO.Services
                 PathAnalysisActionParams pathAnalysisParams = new ();
                 if(extParams != "")
                 {
-                    pathAnalysisParams = System.Text.Json.JsonSerializer.Deserialize<PathAnalysisActionParams>(extParams) ?? throw new Exception("Extparams could not be parsed.");
+                    pathAnalysisParams = System.Text.Json.JsonSerializer.Deserialize<PathAnalysisActionParams>(extParams) ?? throw new JsonException("Extparams could not be parsed.");
                 }
 
                 switch(pathAnalysisParams.Option)
@@ -821,7 +823,7 @@ namespace FWO.Services
             ApprovalParams approvalParams = new ();
             if(extParams != "")
             {
-                approvalParams = System.Text.Json.JsonSerializer.Deserialize<ApprovalParams>(extParams) ?? throw new Exception("Extparams could not be parsed.");
+                approvalParams = System.Text.Json.JsonSerializer.Deserialize<ApprovalParams>(extParams) ?? throw new JsonException("Extparams could not be parsed.");
             }
 
             DateTime? deadline = null;

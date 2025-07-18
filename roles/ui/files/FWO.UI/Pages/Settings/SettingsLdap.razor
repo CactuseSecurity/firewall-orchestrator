@@ -325,7 +325,7 @@
 
             Log.WriteAudit(
                 Title: $"LDAP Connection Settings",
-                Text: $"LDAP NAME: {actLdapConnection.Name} (Address: {actLdapConnection.Address}) was deleted",
+                Text: $"Deleted LDAP: {actLdapConnection.Name} (Address: {actLdapConnection.Address})",
                 UserName: userConfig.User.Name,
                 UserDN: userConfig.User.Dn);
         }
@@ -427,7 +427,7 @@
 
                         Log.WriteAudit(
                             Title: $"LDAP Connection Settings",
-                            Text: $"LDAP NAME: {actLdapConnection.Name} (Address: {actLdapConnection.Address}) was added",
+                            Text: $"Added LDAP: {actLdapConnection.Name} (Address: {actLdapConnection.Address})",
                             UserName: userConfig.User.Name,
                             UserDN: userConfig.User.Dn);
                     }
@@ -447,7 +447,7 @@
 
                         Log.WriteAudit(
                             Title: $"LDAP Connection Settings",
-                            Text: $"LDAP NAME: {actLdapConnection.Name} (Address: {actLdapConnection.Address}) was edited",
+                            Text: $"Edited LDAP: {actLdapConnection.Name} (Address: {actLdapConnection.Address})",
                             UserName: userConfig.User.Name,
                             UserDN: userConfig.User.Dn);
                     }

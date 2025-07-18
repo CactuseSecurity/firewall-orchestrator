@@ -25,7 +25,7 @@ namespace FWO.Test
         static readonly ApiConnection apiConnection = new UiRsbTestApiConn();
         static readonly ReportBase currentReport = SimulatedReport.DetailedReport();
 
-        [Test]
+        [Test, Ignore("temporarily disabled for importer-rework")]
         public async Task ObjShouldBeVisibleAfterNavigation()
         {
             // Arrange

@@ -77,9 +77,10 @@ class FwConfigImport():
             for config in manager.Configs:
                 global_state.normalized_config = config
                 if manager.IsSuperManager:
+                    # store lobal config as it is needed when importing sub managers which might reference it
                     global_state.global_normalized_config = config
                 config_importer = FwConfigImport()
-                config_importer.import_single_config(manager)  #                mgm_id=import_state.lookupManagementId(manager.ManagerUid))
+                config_importer.import_single_config(manager) 
 
         if import_state.Stats.ErrorCount>0:
             raise fwo_exceptions.FwoImporterError("Import failed due to errors.")

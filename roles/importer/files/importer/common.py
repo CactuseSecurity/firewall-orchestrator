@@ -83,22 +83,23 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
         if clearManagementData:
             config_normalized = config_importer.clear_management(importState)
 
+        # get config
         config_changed_since_last_import, config_normalized = get_config_top_level(importState, in_file, gateways)
 
+        # write normalized config to file
         config_normalized.storeFullNormalizedConfigToFile(importState)
         logger.debug("import_management - getting config total duration " + str(int(time.time()) - importState.StartTime) + "s")
 
+        # check config consistency and import it
         if config_changed_since_last_import or importState.ForceImport:
             FwConfigImportCheckConsistency(importState, config_normalized).checkConfigConsistency(config_normalized)
             config_importer.import_management_set(importState, service_provider, config_normalized.ManagerSet)
             fwo_api.update_hit_counter(importState, config_normalized)
 
+        # delete data that has passed the retention time
+        # TODO: replace by deletion of old data with removed date > retention?
         if not clearManagementData and importState.DataRetentionDays<importState.DaysSinceLastFullImport:
             config_importer.deleteOldImports() # delete all imports of the current management before the last but one full import
-
-        # Set the result based on the error count
-        if hasattr(importState, 'Stats') and hasattr(importState.Stats, 'ErrorCount'):
-            result = importState.Stats.ErrorCount
 
     except (fwo_exceptions.FwLoginFailed) as e:
         fwo_api.delete_import(importState) # delete whole import
@@ -127,7 +128,10 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
         except Exception as e:
             logger.error(f"Error during import completion: {str(e)}")
 
-    return result
+    if hasattr(importState, 'Stats') and hasattr(importState.Stats, 'ErrorCount'):
+        return importState.Stats.ErrorCount
+    else:
+        return 1
 
 
 def handle_unexpected_exception(importState=None, config_importer=None):

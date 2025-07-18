@@ -1,11 +1,8 @@
 
-name: Build
+name: do test install
 
 on:
-
   push:
-    # branches-ignore:
-    # - importer-rework
     branches:
     - main
     - develop
@@ -21,11 +18,11 @@ on:
     - 'documentation/**'
     - 'design/**'
 
-
 jobs:
-  test_install:    
+  deploy:    
     name: test build on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
+    environment: ttest
     env:
         RUNNING_ON_GITHUB_ACTIONS: true
     strategy:
@@ -37,5 +34,5 @@ jobs:
     - name: do test install in case of merged pull request
       run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator && ansible-playbook -e force_install=true site.yml -K
     - name: Running in GitHub actions requires testing puppeteer pdf creation separately 
-      if: ${{ env.RUNNING_ON_GITHUB_ACTIONS }} == true   
+      if: ${{ env.RUNNING_ON_GITHUB_ACTIONS }} == 'true'
       run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator/roles/tests-unit/files/FWO.Test && dotnet restore && dotnet build && dotnet test --filter "Name=HtmlToPdfTest"     

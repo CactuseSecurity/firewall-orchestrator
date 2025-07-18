@@ -12,8 +12,8 @@ on:
 
   pull_request:
     types: [ ready_for_review, review_requested ]
-    branches-ignore:
-        - importer-rework
+    # branches-ignore:
+    #     - importer-rework
     paths-ignore:
     - 'documentation/**'
     - 'design/**'

@@ -10,5 +10,10 @@ namespace FWO.Data
 
         [JsonProperty("ip_proto_name"), JsonPropertyName("ip_proto_name")]
         public string Name { get; set; } = "";
+
+        public bool HasPorts()
+        {
+            return Id == 6 || Id == 17;
+        }
     }
 }

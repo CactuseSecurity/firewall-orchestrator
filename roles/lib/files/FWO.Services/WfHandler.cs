@@ -156,7 +156,7 @@ namespace FWO.Services
                     }
                     ActionHandler = new (apiConnection, this, UserGroups, usedInMwServer);
                     await ActionHandler.Init();
-                    dbAcc = new WfDbAccess(DisplayMessageInUi, userConfig, apiConnection, ActionHandler, AuthUser == null || AuthUser.IsInRole(Roles.Admin)){};
+                    dbAcc = new WfDbAccess(DisplayMessageInUi, userConfig, apiConnection, ActionHandler, AuthUser == null || AuthUser.IsInRole(Roles.Admin) || AuthUser.IsInRole(Roles.Auditor)){};
                     Devices = await apiConnection.SendQueryAsync<List<Device>>(DeviceQueries.getDeviceDetails);
                     AllOwners = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
                     await stateMatrixDict.Init(Phase, apiConnection);
@@ -266,12 +266,12 @@ namespace FWO.Services
 
         // Tickets
 
-        public async Task<WfTicket?> ResolveTicket(long ticketId, bool checkOwner = false)
+        public async Task<WfTicket?> ResolveTicket(long ticketId)
         {
             WfTicket? ticket = null;
             if(dbAcc != null)
             {
-                ticket = await dbAcc.FetchTicket(ticketId, checkOwner ? AllOwners.ConvertAll(x => x.Id) : null);
+                ticket = await dbAcc.FetchTicket(ticketId, userConfig.ReqOwnerBased ? AllOwners.ConvertAll(x => x.Id) : null);
                 if(ticket != null)
                 {
                     SetTicketEnv(ticket);

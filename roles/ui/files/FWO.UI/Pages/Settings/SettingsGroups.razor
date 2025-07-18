@@ -270,7 +270,7 @@
 
                         Log.WriteAudit(
                             Title: $"Groups Settings",
-                            Text: $"Group: {actGroup.Name} (DN: {actGroup.Dn}) with Roles: {string.Join(", ", actGroup.Roles)} was added",
+                            Text: $"Added Group: {actGroup.Name} (DN: {actGroup.Dn}) with Roles: {string.Join(", ", actGroup.Roles)}",
                             UserName: userConfig.User.Name,
                             UserDN: userConfig.User.Dn);
                     }
@@ -295,7 +295,7 @@
 
                         Log.WriteAudit(
                             Title: $"Groups Settings",
-                            Text: $"Group: {actGroup.Name} (DN: {actGroup.Dn}) with Roles: {string.Join(", ", actGroup.Roles)} was edited",
+                            Text: $"Edited Group: {actGroup.Name} (DN: {actGroup.Dn}) with Roles: {string.Join(", ", actGroup.Roles)}",
                             UserName: userConfig.User.Name,
                             UserDN: userConfig.User.Dn);
                     }
@@ -382,7 +382,7 @@
 
                 Log.WriteAudit(
                     Title: $"Groups Settings",
-                    Text: $"Group: {actGroup.Name} (DN: {actGroup.Dn}) with Roles: {string.Join(", ", actGroup.Roles)} was deleted",
+                    Text: $"Deleted Group: {actGroup.Name} (DN: {actGroup.Dn}) with Roles: {string.Join(", ", actGroup.Roles)}",
                     UserName: userConfig.User.Name,
                     UserDN: userConfig.User.Dn);
             }

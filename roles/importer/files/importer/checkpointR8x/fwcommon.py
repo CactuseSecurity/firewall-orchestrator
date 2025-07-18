@@ -109,7 +109,7 @@ def initialize_native_config(nativeConfig, importState):
 
 def normalize_config(import_state, native_config: json, parsing_config_only: bool, sid: str) -> FwConfigManagerListController:
 
-    normalized_config_dict_list = []
+    nativ_and_normalized_config_dict_list = []
     manager_list = FwConfigManagerListController()
 
     if 'domains' not in native_config:
@@ -131,27 +131,28 @@ def normalize_config(import_state, native_config: json, parsing_config_only: boo
             import_state, parsing_config_only, sid, is_global_loop_iteration
         )
 
-        normalized_config_dict_list.append(normalized_config_dict)
+        nativ_and_normalized_config_dict_list.append({'native': native_conf, 'normalized': normalized_config_dict})
 
         if is_global_loop_iteration:
-            normalized_config_global = deepcopy(normalized_config_dict)
+            normalized_config_global = normalized_config_dict
             is_global_loop_iteration = False
 
+    for nativ_and_normalized_config_dict in nativ_and_normalized_config_dict_list:
         normalized_config = FwConfigNormalized(
             action=ConfigAction.INSERT, 
-            network_objects=FwConfigNormalizedController.convertListToDict(normalized_config_dict['network_objects'], 'obj_uid'),
-            service_objects=FwConfigNormalizedController.convertListToDict(normalized_config_dict['service_objects'], 'svc_uid'),
-            zone_objects=normalized_config_dict['zone_objects'],
-            rulebases=normalized_config_dict['policies'],
-            gateways=normalized_config_dict['gateways']
+            network_objects=FwConfigNormalizedController.convertListToDict(nativ_and_normalized_config_dict['normalized']['network_objects'], 'obj_uid'),
+            service_objects=FwConfigNormalizedController.convertListToDict(nativ_and_normalized_config_dict['normalized']['service_objects'], 'svc_uid'),
+            zone_objects=nativ_and_normalized_config_dict['normalized']['zone_objects'],
+            rulebases=nativ_and_normalized_config_dict['normalized']['policies'],
+            gateways=nativ_and_normalized_config_dict['normalized']['gateways']
         )
-        manager = FwConfigManager(  ManagerName=native_conf['management_name'],
-            ManagerUid=native_conf['management_uid'],
-            IsGlobal=native_conf['is-super-manger'],
-            IsSuperManager=native_conf['is-super-manger'],
+        manager = FwConfigManager(  ManagerName=nativ_and_normalized_config_dict['native']['management_name'],
+            ManagerUid=nativ_and_normalized_config_dict['native']['management_uid'],
+            IsGlobal=nativ_and_normalized_config_dict['native']['is-super-manger'],
+            IsSuperManager=nativ_and_normalized_config_dict['native']['is-super-manger'],
             DependantManagerUids=[], 
-            DomainName=native_conf['domain_name'],
-            DomainUid=native_conf['domain_uid'],
+            DomainName=nativ_and_normalized_config_dict['native']['domain_name'],
+            DomainUid=nativ_and_normalized_config_dict['native']['domain_uid'],
             Configs=[normalized_config]
         )
         manager_list.addManager(manager)

@@ -1,4 +1,6 @@
-﻿@page "/settings/statedefinitions"
+﻿@using System.Text.Json
+
+@page "/settings/statedefinitions"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
 
 @inject ApiConnection apiConnection
@@ -140,9 +142,7 @@
 }
 else
 {
-    <div class="spinner-border" role="status">
-        <span class="visually-hidden">@(userConfig.GetText("loading"))</span>
-    </div>
+    <Loading/>
 }
 
 @code
@@ -226,7 +226,7 @@ else
                 {
                     try
                     {
-                        usedStateIds.Add((System.Text.Json.JsonSerializer.Deserialize<ApprovalParams>(action.ExternalParams) ?? throw new Exception("Extparams could not be parsed.")).StateId);
+                        usedStateIds.Add((System.Text.Json.JsonSerializer.Deserialize<ApprovalParams>(action.ExternalParams) ?? throw new JsonException("Extparams could not be parsed.")).StateId);
                     }
                     catch(Exception)
                     {}
@@ -326,7 +326,7 @@ else
             {
                 await apiConnection.SendQueryAsync<object>(RequestQueries.addStateAction, new { stateId = actState.Id, actionId = selectedAction?.Id ?? 0});
             }
-            actState.Actions.Add(new WfStateActionDataHelper(){ Action = selectedAction ?? throw new Exception("no action selected") });
+            actState.Actions.Add(new WfStateActionDataHelper(){ Action = selectedAction ?? throw new ArgumentException("no action selected") });
             SelectActionMode = false;
         }
         catch (Exception exception)

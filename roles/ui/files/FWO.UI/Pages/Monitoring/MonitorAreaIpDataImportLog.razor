@@ -1,0 +1,57 @@
+﻿@inject ApiConnection apiConnection
+@inject UserConfig userConfig
+
+@page "/monitoring/area_ip_data_import_logs"
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Auditor}")]
+
+<h3>@(userConfig.GetText("area_ip_data_import_logs"))</h3>
+@(userConfig.GetText("U7201"))
+<hr />
+
+@if(InitComplete)
+{
+    <div class="vheight75">
+        <PageSizeComponent PageSizeCallback="UpdatePageSize"></PageSizeComponent>
+        <Table PageSize="PageSize" TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="LogEntry" Items="logEntrys">
+            <Column TableItem="LogEntry" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true"/>
+            <Column TableItem="LogEntry" Title="@(userConfig.GetText("severity"))" Field="@(x => x.Severity)" Sortable="true" Filterable="true"/>
+            <Column TableItem="LogEntry" Title="@(userConfig.GetText("suspected_cause"))" Field="@(x => x.SuspectedCause)" Sortable="true" Filterable="true"/>
+            <Column TableItem="LogEntry" Title="@(userConfig.GetText("description"))" Field="@(x => x.Description)" Sortable="true" Filterable="true"/>
+            <Column TableItem="LogEntry" Title="@(userConfig.GetText("timestamp"))" Field="@(x => x.Timestamp)" Sortable="true" Filterable="true"/>
+            <Pager ShowPageNumber="true" ShowTotalCount="true" />
+        </Table>
+    </div>
+}
+else
+{
+    <Loading/>
+}
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    private List<LogEntry> logEntrys = new List<LogEntry>();
+    private bool InitComplete = false;
+
+    private int PageSize { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            logEntrys = await apiConnection.SendQueryAsync<List<LogEntry>>(MonitorQueries.getDataImportLogEntrys, new { source = GlobalConst.kImportAreaSubnetData });
+            InitComplete = true;
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_log_entrys"), "", true);
+        }
+    }
+
+    private void UpdatePageSize(int pageSize)
+    {
+        PageSize = pageSize;
+    }
+}

@@ -1,11 +1,10 @@
-using FWO.Report.Filter.Ast;
-using FWO.Basics;
 using FWO.Data.Report;
 using FWO.Logging;
+using FWO.Report.Filter.Ast;
 
 namespace FWO.Report.Filter
 {
-    public class Compiler
+    public static class Compiler
     {
         public static AstNode? CompileToAst(string input)
         {
@@ -19,10 +18,10 @@ namespace FWO.Report.Filter
             else return null;
         }
 
-        public static DynGraphqlQuery Compile(ReportTemplate filter)
+        public static DynGraphqlQuery Compile(ReportTemplate template)
         {
-            Log.WriteDebug("Filter", $"Input: \"{filter.Filter}\", Report Type: \"${filter.ReportParams.ReportType}\", Device Filter: \"{filter.ReportParams.DeviceFilter}\"");
-            return DynGraphqlQuery.GenerateQuery(filter, CompileToAst(filter.Filter));
+            Log.WriteDebug("Filter", $"Input: \"{template.Filter}\", Report Type: \"${template.ReportParams.ReportType}\", Device Filter: \"{template.ReportParams.DeviceFilter}\"");
+            return DynGraphqlQuery.GenerateQuery(template, CompileToAst(template.Filter));
         }
     }
 }

@@ -1,9 +1,11 @@
+using FWO.Data;
 using FWO.Services.EventMediator.Interfaces;
 
 namespace FWO.Services.EventMediator.Events
 {
-    public class CollectionChangedEventArgs(IEnumerable<dynamic> collection) : IEventArgs
+    public class CollectionChangedEventArgs(IEnumerable<dynamic>? collection = default, ErrorBaseModel? error = default) : IEventArgs
     {
-        IEnumerable<dynamic> Collection { get; } = collection;
+        public ErrorBaseModel? Error { get; set; } = error ?? new ErrorBaseModel();
+        IEnumerable<dynamic> Collection { get; } = collection ?? [];
     }
 }

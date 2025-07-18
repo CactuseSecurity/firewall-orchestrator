@@ -45,7 +45,7 @@
                                 <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="() => ShowApprovals(implTask)">
                                     @(userConfig.GetText("approvals"))</button>
                             }
-                            @if (!WfHandler.ReadOnlyMode)
+                            @if (!WfHandler.ReadOnlyMode && IsEditable(implTask))
                             {
                                 @if (WfHandler.PlanReqTaskMode && implTask.StateId < WfHandler.StateMatrix(implTask.TaskType).LowestEndState)
                                 {
@@ -229,6 +229,16 @@
             }
         }
         return null;
+    }
+
+    private bool IsEditable(WfImplTask implTask)
+    {
+        if(userConfig.ReqOwnerBased)
+        {
+            WfTicket? ticket = ResolveTicket(implTask);
+            return ticket != null && ticket.Editable;
+        }
+        return true;
     }
 
     private string GetOwnerName(WfImplTask implTask)

@@ -1,6 +1,7 @@
-﻿@inject ApiConnection apiConnection
-@inject UserConfig userConfig
+﻿@using System.Security.Authentication
 
+@inject ApiConnection apiConnection
+@inject UserConfig userConfig
 
 <div class="p-3">
     <h5 class="text-left">@(userConfig.GetText("owner"))</h5>
@@ -86,7 +87,7 @@
     {
         try
         {
-            ownerList = await ModellingHandlerBase.GetOwnApps(authenticationStateTask ?? throw new Exception("Authentication missing"), userConfig, apiConnection, DisplayMessageInUi);
+            ownerList = await ModellingHandlerBase.GetOwnApps(authenticationStateTask ?? throw new AuthenticationException("Authentication missing"), userConfig, apiConnection, DisplayMessageInUi);
             if(ownerList.Count > 0)
             {
                 ModellingFilter.SelectedOwner = InjectedAppId == null ? ownerList.First() : ownerList.FirstOrDefault(o => o.Id == InjectedAppId) ?? ownerList.First();

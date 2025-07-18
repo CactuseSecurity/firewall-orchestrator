@@ -249,14 +249,7 @@
 
     private void AnalyseSampleTenants()
     {
-        sampleTenants = [];
-        foreach (var tenant in tenants)
-        {
-            if (tenant.Name.EndsWith("_demo"))
-            {
-                sampleTenants.Add(tenant);
-            }
-        }
+        sampleTenants = [.. tenants.Where(t => t.Name.EndsWith(GlobalConst.k_demo))];
         showCleanupButton = (sampleTenants.Count > 0);
     }
 

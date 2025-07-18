@@ -1060,21 +1060,24 @@
                       ]
                     },
                     "columns": [
-                      "app_id",
+                      "ticket_id",
                       "common_service",
-                      "conn_prop",
-                      "creation_date",
-                      "creator",
-                      "extra_params",
-                      "id",
                       "is_interface",
                       "is_published",
                       "is_requested",
+                      "removed",
+                      "requested_on_fw",
+                      "conn_prop",
+                      "creator",
+                      "extra_params",
                       "name",
+                      "app_id",
+                      "id",
                       "proposed_app_id",
+                      "used_interface_id",
                       "reason",
-                      "ticket_id",
-                      "used_interface_id"
+                      "creation_date",
+                      "removal_date"
                     ]
                   },
                   "comment": ""
@@ -1085,21 +1088,24 @@
                   "role": "auditor",
                   "permission": {
                     "columns": [
-                      "app_id",
+                      "ticket_id",
                       "common_service",
-                      "conn_prop",
-                      "creation_date",
-                      "creator",
-                      "extra_params",
-                      "id",
                       "is_interface",
                       "is_published",
                       "is_requested",
+                      "removed",
+                      "requested_on_fw",
+                      "conn_prop",
+                      "creator",
+                      "extra_params",
                       "name",
+                      "app_id",
+                      "id",
                       "proposed_app_id",
+                      "used_interface_id",
                       "reason",
-                      "ticket_id",
-                      "used_interface_id"
+                      "creation_date",
+                      "removal_date"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -1115,6 +1121,8 @@
                       "is_interface",
                       "is_published",
                       "is_requested",
+                      "removed",
+                      "requested_on_fw",
                       "conn_prop",
                       "creator",
                       "extra_params",
@@ -1124,7 +1132,8 @@
                       "proposed_app_id",
                       "used_interface_id",
                       "reason",
-                      "creation_date"
+                      "creation_date",
+                      "removal_date"
                     ],
                     "filter": {}
                   },
@@ -1134,21 +1143,24 @@
                   "role": "modeller",
                   "permission": {
                     "columns": [
-                      "app_id",
+                      "ticket_id",
                       "common_service",
-                      "conn_prop",
-                      "creation_date",
-                      "creator",
-                      "extra_params",
-                      "id",
                       "is_interface",
                       "is_published",
                       "is_requested",
+                      "removed",
+                      "requested_on_fw",
+                      "conn_prop",
+                      "creator",
+                      "extra_params",
                       "name",
+                      "app_id",
+                      "id",
                       "proposed_app_id",
+                      "used_interface_id",
                       "reason",
-                      "ticket_id",
-                      "used_interface_id"
+                      "creation_date",
+                      "removal_date"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -1183,21 +1195,24 @@
                   "role": "modeller",
                   "permission": {
                     "columns": [
-                      "app_id",
+                      "ticket_id",
                       "common_service",
-                      "conn_prop",
-                      "creation_date",
-                      "creator",
-                      "extra_params",
-                      "id",
                       "is_interface",
                       "is_published",
                       "is_requested",
+                      "removed",
+                      "requested_on_fw",
+                      "conn_prop",
+                      "creator",
+                      "extra_params",
                       "name",
+                      "app_id",
+                      "id",
                       "proposed_app_id",
+                      "used_interface_id",
                       "reason",
-                      "ticket_id",
-                      "used_interface_id"
+                      "creation_date",
+                      "removal_date"
                     ],
                     "filter": {},
                     "check": {}
@@ -6336,18 +6351,21 @@
                     "check": {},
                     "columns": [
                       "control_id",
-                      "start_time",
-                      "stop_time",
+                      "any_changes_found",
                       "is_initial_import",
-                      "delimiter_group",
-                      "delimiter_zone",
-                      "delimiter_user",
-                      "delimiter_list",
-                      "mgm_id",
-                      "last_change_in_config",
+                      "notification_done",
+                      "rule_changes_found",
                       "successful_import",
-                      "changes_found",
-                      "import_errors"
+                      "delimiter_group",
+                      "delimiter_list",
+                      "delimiter_user",
+                      "delimiter_zone",
+                      "import_errors",
+                      "mgm_id",
+                      "security_relevant_changes_counter",
+                      "last_change_in_config",
+                      "start_time",
+                      "stop_time"
                     ]
                   }
                 }
@@ -6358,18 +6376,21 @@
                   "permission": {
                     "columns": [
                       "control_id",
-                      "start_time",
-                      "stop_time",
+                      "any_changes_found",
                       "is_initial_import",
-                      "delimiter_group",
-                      "delimiter_zone",
-                      "delimiter_user",
-                      "delimiter_list",
-                      "mgm_id",
-                      "last_change_in_config",
+                      "notification_done",
+                      "rule_changes_found",
                       "successful_import",
-                      "changes_found",
-                      "import_errors"
+                      "delimiter_group",
+                      "delimiter_list",
+                      "delimiter_user",
+                      "delimiter_zone",
+                      "import_errors",
+                      "mgm_id",
+                      "security_relevant_changes_counter",
+                      "last_change_in_config",
+                      "start_time",
+                      "stop_time"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -6380,8 +6401,10 @@
                   "permission": {
                     "columns": [
                       "control_id",
-                      "changes_found",
+                      "any_changes_found",
                       "is_initial_import",
+                      "notification_done",
+                      "rule_changes_found",
                       "successful_import",
                       "delimiter_group",
                       "delimiter_list",
@@ -6389,6 +6412,7 @@
                       "delimiter_zone",
                       "import_errors",
                       "mgm_id",
+                      "security_relevant_changes_counter",
                       "last_change_in_config",
                       "start_time",
                       "stop_time"
@@ -6401,21 +6425,22 @@
                   "role": "importer",
                   "permission": {
                     "columns": [
-                      "changes_found",
                       "control_id",
+                      "any_changes_found",
+                      "is_initial_import",
+                      "notification_done",
+                      "rule_changes_found",
+                      "successful_import",
                       "delimiter_group",
                       "delimiter_list",
                       "delimiter_user",
                       "delimiter_zone",
                       "import_errors",
-                      "is_initial_import",
-                      "last_change_in_config",
                       "mgm_id",
-                      "notification_done",
                       "security_relevant_changes_counter",
+                      "last_change_in_config",
                       "start_time",
-                      "stop_time",
-                      "successful_import"
+                      "stop_time"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -6425,21 +6450,22 @@
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
-                      "changes_found",
                       "control_id",
+                      "any_changes_found",
+                      "is_initial_import",
+                      "notification_done",
+                      "rule_changes_found",
+                      "successful_import",
                       "delimiter_group",
                       "delimiter_list",
                       "delimiter_user",
                       "delimiter_zone",
                       "import_errors",
-                      "is_initial_import",
-                      "last_change_in_config",
                       "mgm_id",
-                      "notification_done",
                       "security_relevant_changes_counter",
+                      "last_change_in_config",
                       "start_time",
-                      "stop_time",
-                      "successful_import"
+                      "stop_time"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -6449,19 +6475,22 @@
                   "role": "modeller",
                   "permission": {
                     "columns": [
-                      "changes_found",
-                      "is_initial_import",
-                      "successful_import",
-                      "mgm_id",
                       "control_id",
-                      "last_change_in_config",
-                      "start_time",
-                      "stop_time",
+                      "any_changes_found",
+                      "is_initial_import",
+                      "notification_done",
+                      "rule_changes_found",
+                      "successful_import",
                       "delimiter_group",
                       "delimiter_list",
                       "delimiter_user",
                       "delimiter_zone",
-                      "import_errors"
+                      "import_errors",
+                      "mgm_id",
+                      "security_relevant_changes_counter",
+                      "last_change_in_config",
+                      "start_time",
+                      "stop_time"
                     ],
                     "filter": {
                       "mgm_id": {
@@ -6475,19 +6504,22 @@
                   "role": "recertifier",
                   "permission": {
                     "columns": [
-                      "changes_found",
-                      "is_initial_import",
-                      "successful_import",
-                      "mgm_id",
                       "control_id",
-                      "last_change_in_config",
-                      "start_time",
-                      "stop_time",
+                      "any_changes_found",
+                      "is_initial_import",
+                      "notification_done",
+                      "rule_changes_found",
+                      "successful_import",
                       "delimiter_group",
                       "delimiter_list",
                       "delimiter_user",
                       "delimiter_zone",
-                      "import_errors"
+                      "import_errors",
+                      "mgm_id",
+                      "security_relevant_changes_counter",
+                      "last_change_in_config",
+                      "start_time",
+                      "stop_time"
                     ],
                     "filter": {
                       "mgm_id": {
@@ -6501,19 +6533,22 @@
                   "role": "reporter",
                   "permission": {
                     "columns": [
-                      "changes_found",
-                      "is_initial_import",
-                      "successful_import",
-                      "mgm_id",
                       "control_id",
-                      "last_change_in_config",
-                      "start_time",
-                      "stop_time",
+                      "any_changes_found",
+                      "is_initial_import",
+                      "notification_done",
+                      "rule_changes_found",
+                      "successful_import",
                       "delimiter_group",
                       "delimiter_list",
                       "delimiter_user",
                       "delimiter_zone",
-                      "import_errors"
+                      "import_errors",
+                      "mgm_id",
+                      "security_relevant_changes_counter",
+                      "last_change_in_config",
+                      "start_time",
+                      "stop_time"
                     ],
                     "filter": {
                       "mgm_id": {
@@ -6528,18 +6563,21 @@
                   "permission": {
                     "columns": [
                       "control_id",
-                      "start_time",
-                      "stop_time",
+                      "any_changes_found",
                       "is_initial_import",
-                      "delimiter_group",
-                      "delimiter_zone",
-                      "delimiter_user",
-                      "delimiter_list",
-                      "mgm_id",
-                      "last_change_in_config",
+                      "notification_done",
+                      "rule_changes_found",
                       "successful_import",
-                      "changes_found",
-                      "import_errors"
+                      "delimiter_group",
+                      "delimiter_list",
+                      "delimiter_user",
+                      "delimiter_zone",
+                      "import_errors",
+                      "mgm_id",
+                      "security_relevant_changes_counter",
+                      "last_change_in_config",
+                      "start_time",
+                      "stop_time"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -6551,21 +6589,22 @@
                   "role": "importer",
                   "permission": {
                     "columns": [
-                      "changes_found",
                       "control_id",
+                      "any_changes_found",
+                      "is_initial_import",
+                      "notification_done",
+                      "rule_changes_found",
+                      "successful_import",
                       "delimiter_group",
                       "delimiter_list",
                       "delimiter_user",
                       "delimiter_zone",
                       "import_errors",
-                      "is_initial_import",
-                      "last_change_in_config",
                       "mgm_id",
-                      "notification_done",
                       "security_relevant_changes_counter",
+                      "last_change_in_config",
                       "start_time",
-                      "stop_time",
-                      "successful_import"
+                      "stop_time"
                     ],
                     "filter": {},
                     "check": {}
@@ -10442,6 +10481,17 @@
               ],
               "select_permissions": [
                 {
+                  "role": "approver",
+                  "permission": {
+                    "columns": [
+                      "ticket_id",
+                      "owner_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "auditor",
                   "permission": {
                     "columns": [
@@ -10453,7 +10503,62 @@
                   "comment": ""
                 },
                 {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "ticket_id",
+                      "owner_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "implementer",
+                  "permission": {
+                    "columns": [
+                      "ticket_id",
+                      "owner_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "ticket_id",
+                      "owner_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "planner",
+                  "permission": {
+                    "columns": [
+                      "ticket_id",
+                      "owner_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "requester",
+                  "permission": {
+                    "columns": [
+                      "ticket_id",
+                      "owner_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reviewer",
                   "permission": {
                     "columns": [
                       "ticket_id",

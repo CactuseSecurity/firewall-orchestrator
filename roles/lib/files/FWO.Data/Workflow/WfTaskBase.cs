@@ -70,21 +70,21 @@ namespace FWO.Data.Workflow
         public WfTaskBase()
         { }
 
-        public WfTaskBase(WfTaskBase reqtask) : base(reqtask)
+        public WfTaskBase(WfTaskBase task) : base(task)
         {
-            Title = reqtask.Title;
-            TaskNumber = reqtask.TaskNumber;
-            TaskType = reqtask.TaskType;
-            RuleAction = reqtask.RuleAction;
-            Tracking = reqtask.Tracking;
-            Start = reqtask.Start;
-            Stop = reqtask.Stop;
-            ServiceGroupId = reqtask.ServiceGroupId;
-            NetworkGroupId = reqtask.NetworkGroupId;
-            UserGroupId = reqtask.UserGroupId;
-            FreeText = reqtask.FreeText;
-            TargetBeginDate = reqtask.TargetBeginDate;
-            TargetEndDate = reqtask.TargetEndDate;
+            Title = task.Title;
+            TaskNumber = task.TaskNumber;
+            TaskType = task.TaskType;
+            RuleAction = task.RuleAction;
+            Tracking = task.Tracking;
+            Start = task.Start;
+            Stop = task.Stop;
+            ServiceGroupId = task.ServiceGroupId;
+            NetworkGroupId = task.NetworkGroupId;
+            UserGroupId = task.UserGroupId;
+            FreeText = task.FreeText;
+            TargetBeginDate = task.TargetBeginDate;
+            TargetEndDate = task.TargetEndDate;
         }
 
         public override bool Sanitize()

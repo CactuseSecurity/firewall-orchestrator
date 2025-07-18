@@ -35,7 +35,10 @@ namespace FWO.Middleware.Server
 		private List<GroupGetReturnParameters> allInternalGroups = [];
 		private ModellingNamingConvention NamingConvention = new();
 		private UserConfig userConfig = new();
-	
+		private const string LogMessageTitle = "Import App Data";
+		private const string LevelFile = "Import File";
+		private const string LevelApp = "App";
+		private const string LevelAppServer = "App Server";
 
 		/// <summary>
 		/// Constructor for App Data Import
@@ -46,31 +49,24 @@ namespace FWO.Middleware.Server
 		/// <summary>
 		/// Run the App Data Import
 		/// </summary>
-		public async Task<bool> Run()
+		public async Task<List<string>> Run()
 		{
-			try
+			NamingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(globalConfig.ModNamingConvention) ?? new();
+			List<string> importfilePathAndNames = JsonSerializer.Deserialize<List<string>>(globalConfig.ImportAppDataPath) ?? throw new JsonException("Config Data could not be deserialized.");
+			userConfig = new(globalConfig);
+			userConfig.User.Name = Roles.MiddlewareServer;
+			userConfig.AutoReplaceAppServer = globalConfig.AutoReplaceAppServer;
+			await InitLdap();
+			List<string> failedImports = [];
+			foreach (var importfilePathAndName in importfilePathAndNames)
 			{
-				NamingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(globalConfig.ModNamingConvention) ?? new();
-				List<string> importfilePathAndNames = JsonSerializer.Deserialize<List<string>>(globalConfig.ImportAppDataPath) ?? throw new JsonException("Config Data could not be deserialized.");
-				userConfig = new(globalConfig);
-				userConfig.User.Name = Roles.MiddlewareServer;
-                userConfig.AutoReplaceAppServer = globalConfig.AutoReplaceAppServer;
-				await InitLdap();
-				foreach (var importfilePathAndName in importfilePathAndNames)
+				if (!RunImportScript(importfilePathAndName + ".py"))
 				{
-					if (!RunImportScript(importfilePathAndName + ".py"))
-					{
-						Log.WriteInfo("Import App Data", $"Script {importfilePathAndName}.py failed but trying to import from existing file.");
-					}
-					await ImportSingleSource(importfilePathAndName + ".json");
+					Log.WriteInfo(LogMessageTitle, $"Script {importfilePathAndName}.py failed but trying to import from existing file.");
 				}
+				await ImportSingleSource(importfilePathAndName + ".json", failedImports);
 			}
-			catch (Exception exc)
-			{
-				Log.WriteError("Import App Data", $"Import could not be processed.", exc);
-				return false;
-			}
-			return true;
+			return failedImports;
 		}
 
 		private async Task InitLdap()
@@ -91,13 +87,13 @@ namespace FWO.Middleware.Server
             else
             {
                 allGroups = await ownerGroupLdap.GetAllGroupObjects(globalConfig.OwnerLdapGroupNames.
-                    Replace(GlobalConst.kAppIdPlaceholder, "*").
-                    Replace(GlobalConst.kFullAppIdPlaceholder, "*").
-                    Replace(GlobalConst.kAppPrefixPlaceholder, "*"));
+                    Replace(Placeholder.AppId, "*").
+                    Replace(Placeholder.ExternalAppId, "*").
+                    Replace(Placeholder.AppPrefix, "*"));
             }
 		}
 
-		private async Task<bool> ImportSingleSource(string importfileName)
+		private async Task ImportSingleSource(string importfileName, List<string> failedImports)
 		{
 			try
 			{
@@ -111,10 +107,11 @@ namespace FWO.Middleware.Server
 			}
 			catch (Exception exc)
 			{
-				Log.WriteError("Import App Data", $"File {importfileName} could not be processed.", exc);
-				return false;
+				string errorText = $"File {importfileName} could not be processed.";
+				Log.WriteError(LogMessageTitle, errorText, exc);
+				await AddLogEntry(2, LevelFile, errorText);
+				failedImports.Add(importfileName);
 			}
-			return true;
 		}
 
 		private async Task ImportApps(string importfileName)
@@ -124,10 +121,10 @@ namespace FWO.Middleware.Server
 			int deleteCounter = 0;
 			int deleteFailCounter = 0;
 
-			if (!(globalConfig.OwnerLdapGroupNames.Contains(GlobalConst.kAppIdPlaceholder) ||
-                globalConfig.OwnerLdapGroupNames.Contains(GlobalConst.kFullAppIdPlaceholder)))
+			if (!(globalConfig.OwnerLdapGroupNames.Contains(Placeholder.AppId) ||
+                globalConfig.OwnerLdapGroupNames.Contains(Placeholder.ExternalAppId)))
             {
-                Log.WriteWarning("Import App Data", $"Owner group pattern does not contain any of the placeholders {GlobalConst.kAppIdPlaceholder} or {GlobalConst.kFullAppIdPlaceholder}.");
+                Log.WriteWarning(LogMessageTitle, $"Owner group pattern does not contain any of the placeholders {Placeholder.AppId} or {Placeholder.ExternalAppId}.");
 			}
 			else
 			{
@@ -161,7 +158,9 @@ namespace FWO.Middleware.Server
 						}
 					}
 				}
-				Log.WriteInfo("Import App Data", $"Imported from {importfileName}: {successCounter} apps, {failCounter} failed. Deactivated {deleteCounter} apps, {deleteFailCounter} failed.");
+				string messageText = $"Imported from {importfileName}: {successCounter} apps, {failCounter} failed. Deactivated {deleteCounter} apps, {deleteFailCounter} failed.";
+				Log.WriteInfo(LogMessageTitle, messageText);
+				await AddLogEntry(0, LevelFile, messageText);
 			}
 		}
 
@@ -185,7 +184,9 @@ namespace FWO.Middleware.Server
 			}
 			catch (Exception exc)
 			{
-				Log.WriteError("Import App Data", $"App {incomingApp.Name} could not be processed.", exc);
+				string errorText = $"App {incomingApp.Name} could not be processed.";
+				Log.WriteError(LogMessageTitle, errorText, exc);
+				await AddLogEntry(2, LevelApp, errorText);
 				return false;
 			}
 			return true;
@@ -193,8 +194,7 @@ namespace FWO.Middleware.Server
 
 		private async Task<string> NewApp(ModellingImportAppData incomingApp)
 		{
-			string userGroupDn;
-			userGroupDn = globalConfig.ManageOwnerLdapGroups ? await CreateUserGroup(incomingApp) : GetGroupDn(incomingApp.ExtAppId);
+			string userGroupDn = globalConfig.ManageOwnerLdapGroups ? await CreateUserGroup(incomingApp) : GetGroupDn(incomingApp.ExtAppId);
 
 			var variables = new
 			{
@@ -232,7 +232,7 @@ namespace FWO.Middleware.Server
 					string newDn = await CreateUserGroup(incomingApp);
 					if(newDn != userGroupDn) // may this happen?
 					{
-						Log.WriteInfo("Import App Data", $"New UserGroup DN {newDn} differs from settings value {userGroupDn}.");
+						Log.WriteInfo(LogMessageTitle, $"New UserGroup DN {newDn} differs from settings value {userGroupDn}.");
 						userGroupDn = newDn;
 					}
 				}
@@ -269,7 +269,9 @@ namespace FWO.Middleware.Server
 			}
 			catch (Exception exc)
 			{
-				Log.WriteError("Import App Data", $"Outdated App {app.Name} could not be deactivated.", exc);
+				string errorText = $"Outdated App {app.Name} could not be deactivated.";
+				Log.WriteError(LogMessageTitle, errorText, exc);
+				await AddLogEntry(1, LevelApp, errorText);
 				return false;
 			}
 			return true;
@@ -279,22 +281,22 @@ namespace FWO.Middleware.Server
 		{
             // hard-coded GlobalConst.kAppIdSeparator could be moved to settings
 
-            if (globalConfig.OwnerLdapGroupNames.Contains(GlobalConst.kFullAppIdPlaceholder))
+            if (globalConfig.OwnerLdapGroupNames.Contains(Placeholder.ExternalAppId))
             {
-    			return globalConfig.OwnerLdapGroupNames.Replace(GlobalConst.kFullAppIdPlaceholder, extAppIdString);
+    			return globalConfig.OwnerLdapGroupNames.Replace(Placeholder.ExternalAppId, extAppIdString);
             }
             
-            if (globalConfig.OwnerLdapGroupNames.Contains(GlobalConst.kAppPrefixPlaceholder) && 
-                globalConfig.OwnerLdapGroupNames.Contains(GlobalConst.kAppIdPlaceholder))
+            if (globalConfig.OwnerLdapGroupNames.Contains(Placeholder.AppPrefix) && 
+                globalConfig.OwnerLdapGroupNames.Contains(Placeholder.AppId))
             {
 				string[] parts = extAppIdString.Split(GlobalConst.kAppIdSeparator);
 				string appPrefix = parts.Length > 0 ? parts[0] : "";
 				string appId = parts.Length > 1 ? parts[1] : "";
-    			return globalConfig.OwnerLdapGroupNames.Replace(GlobalConst.kAppPrefixPlaceholder, appPrefix).Replace(GlobalConst.kAppIdPlaceholder, appId);
-            }
-            Log.WriteInfo("Import App Data", $"Could not find ayn placeholders in group name pattern \"{globalConfig.OwnerLdapGroupNames}\" " +
-                $"({GlobalConst.kFullAppIdPlaceholder}, {GlobalConst.kAppPrefixPlaceholder}, {GlobalConst.kAppIdPlaceholder} ");
-            return globalConfig.OwnerLdapGroupNames;
+				return globalConfig.OwnerLdapGroupNames.Replace(Placeholder.AppPrefix, appPrefix).Replace(Placeholder.AppId, appId);
+			}
+			Log.WriteInfo(LogMessageTitle, $"Could not find ayn placeholders in group name pattern \"{globalConfig.OwnerLdapGroupNames}\" " +
+				$"({Placeholder.ExternalAppId}, {Placeholder.AppPrefix}, {Placeholder.AppId} ");
+			return globalConfig.OwnerLdapGroupNames;
 		}
 
 		private string GetGroupDn(string extAppIdString)
@@ -318,7 +320,7 @@ namespace FWO.Middleware.Server
 			{
 				foreach (string memberDn in await ldap.GetGroupMembers(userGroupDn))
 				{
-					UiUser? uiUser = await ConvertLdapToUiUser(apiConnection, memberDn);
+					UiUser? uiUser = await ConvertLdapToUiUser(memberDn);
 					if(uiUser != null)
 					{
 						await UiUserHandler.UpsertUiUser(apiConnection, uiUser, false);
@@ -327,7 +329,7 @@ namespace FWO.Middleware.Server
 			}
 		}
 
-		private async Task<UiUser?> ConvertLdapToUiUser(ApiConnection apiConnection, string userDn)
+		private async Task<UiUser?> ConvertLdapToUiUser(string userDn)
 		{
 			// add the modelling user to local uiuser table for later ref to email address
 			// find the user in all connected ldaps
@@ -336,7 +338,7 @@ namespace FWO.Middleware.Server
 				if (!string.IsNullOrEmpty(ldap.UserSearchPath) && userDn.ToLower().Contains(ldap.UserSearchPath!.ToLower()))
 				{
 					LdapEntry? ldapUser = await ldap.GetUserDetailsFromLdap(userDn);
-					
+
 					if (ldapUser != null)
 					{
 						// add data from ldap entry to uiUser
@@ -344,10 +346,10 @@ namespace FWO.Middleware.Server
 						{
 							LdapConnection = new UiLdapConnection(){ Id = ldap.Id },
 							Dn = ldapUser.Dn,
-							Name = ldap.GetName(ldapUser),
-							Firstname = ldap.GetFirstName(ldapUser),
-							Lastname = ldap.GetLastName(ldapUser),
-							Email = ldap.GetEmail(ldapUser),
+							Name = Ldap.GetName(ldapUser),
+							Firstname = Ldap.GetFirstName(ldapUser),
+							Lastname = Ldap.GetLastName(ldapUser),
+							Email = Ldap.GetEmail(ldapUser),
 							Tenant = await DeriveTenantFromLdap(ldap, ldapUser)							
 						};
 					}
@@ -426,26 +428,8 @@ namespace FWO.Middleware.Server
 		private async Task<string> UpdateUserGroup(ModellingImportAppData incomingApp, string groupDn)
 		{
 			List<string> existingMembers = (allGroups.FirstOrDefault(x => x.GroupDn == groupDn) ?? throw new KeyNotFoundException($"Group with DN '{groupDn}' could not be found.")).Members;
-			if (incomingApp.Modellers != null)
-			{
-				foreach (var modeller in incomingApp.Modellers)
-				{
-					if (existingMembers.FirstOrDefault(x => x.Equals(modeller, StringComparison.OrdinalIgnoreCase)) == null)
-					{
-                        await internalLdap.AddUserToEntry(modeller, groupDn);
-					}
-				}
-			}
-			if (incomingApp.ModellerGroups != null)
-			{
-				foreach (var modellerGrp in incomingApp.ModellerGroups)
-				{
-					if (existingMembers.FirstOrDefault(x => x.Equals(modellerGrp, StringComparison.OrdinalIgnoreCase)) == null)
-					{
-						await internalLdap.AddUserToEntry(modellerGrp, groupDn);
-					}
-				}
-			}
+			await AddUsersToEntry(incomingApp.Modellers, existingMembers, groupDn);
+			await AddUsersToEntry(incomingApp.ModellerGroups, existingMembers, groupDn);
 			foreach (var member in existingMembers)
 			{
 				if ((incomingApp.Modellers == null || incomingApp.Modellers.FirstOrDefault(x => x.Equals(member, StringComparison.OrdinalIgnoreCase)) == null)
@@ -458,22 +442,36 @@ namespace FWO.Middleware.Server
 			return groupDn;
 		}
 
+		private async Task AddUsersToEntry(List<string>? members, List<string> existingMembers, string groupDn)
+		{
+			if (members != null)
+			{
+				foreach (var member in members)
+				{
+					if (existingMembers.FirstOrDefault(x => x.Equals(member, StringComparison.OrdinalIgnoreCase)) == null)
+					{
+						await internalLdap.AddUserToEntry(member, groupDn);
+					}
+				}
+			}
+		}
+
 		private async Task UpdateRoles(string dn)
 		{
 			List<string> roles = await internalLdap.GetRoles([dn]);
-			if(!roles.Contains(Roles.Modeller))
+			if (!roles.Contains(Roles.Modeller))
 			{
 				await internalLdap.AddUserToEntry(dn, modellerRoleDn);
 			}
-			if(!roles.Contains(Roles.Requester))
+			if (!roles.Contains(Roles.Requester))
 			{
 				await internalLdap.AddUserToEntry(dn, requesterRoleDn);
 			}
-			if(!roles.Contains(Roles.Implementer))
+			if (!roles.Contains(Roles.Implementer))
 			{
 				await internalLdap.AddUserToEntry(dn, implementerRoleDn);
 			}
-			if(!roles.Contains(Roles.Reviewer))
+			if (!roles.Contains(Roles.Reviewer))
 			{
 				await internalLdap.AddUserToEntry(dn, reviewerRoleDn);
 			}
@@ -517,7 +515,7 @@ namespace FWO.Middleware.Server
 					}
 				}
 			}
-			Log.WriteDebug($"Import App Server Data for App {incomingApp.Name}", $"Imported {successCounter} app servers, {failCounter} failed. {deleteCounter} app servers marked as deleted, {deleteFailCounter} failed.");
+			Log.WriteDebug(LogMessageTitle, $"for App {incomingApp.Name}: Imported {successCounter} app servers, {failCounter} failed. {deleteCounter} app servers marked as deleted, {deleteFailCounter} failed.");
 		}
 
 		private async Task<bool> SaveAppServer(ModellingImportAppServer incomingAppServer, int appID, string impSource)
@@ -541,7 +539,7 @@ namespace FWO.Middleware.Server
 				if (existingAppServer.IsDeleted)
 				{
 					if (!await ReactivateAppServer(existingAppServer))
-					{	
+					{
 						return false;
 					}
 				}
@@ -553,14 +551,14 @@ namespace FWO.Middleware.Server
 				if (!existingAppServer.Name.Equals(incomingAppServer.Name))
 				{
 					if (!await UpdateAppServerName(existingAppServer, incomingAppServer.Name))
-					{	
+					{
 						return false;
 					}
 				}
 				if (existingAppServer.CustomType == null)
 				{
 					if (!await UpdateAppServerType(existingAppServer))
-					{	
+					{
 						return false;
 					}
 				}
@@ -568,7 +566,9 @@ namespace FWO.Middleware.Server
 			}
 			catch (Exception exc)
 			{
-				Log.WriteError("Import App Server Data", $"App Server {incomingAppServer.Name} could not be processed.", exc);
+				string errorText = $"App Server {incomingAppServer.Name} could not be processed.";
+				Log.WriteError(LogMessageTitle, errorText, exc);
+				await AddLogEntry(1, LevelAppServer, errorText);
 				return false;
 			}
 		}
@@ -581,7 +581,9 @@ namespace FWO.Middleware.Server
 			}
 			catch (Exception exc)
 			{
-				Log.WriteError("Import App Server Data", $"App Server name {appServer.Name} could not be set according to naming conventions.", exc);
+				string errorText = $"App Server name {appServer.Name} could not be set according to naming conventions.";
+				Log.WriteError(LogMessageTitle, errorText, exc);
+				await AddLogEntry(1, LevelAppServer, errorText);
 			}
 			return appServer.Name;
 		}
@@ -610,7 +612,9 @@ namespace FWO.Middleware.Server
 			}
 			catch (Exception exc)
 			{
-				Log.WriteError("Import App Server Data", $"App Server {incomingAppServer.Name} could not be processed.", exc);
+				string errorText = $"App Server {incomingAppServer.Name} could not be processed.";
+				Log.WriteError(LogMessageTitle, errorText, exc);
+				await AddLogEntry(1, LevelAppServer, errorText);
 				return false;
 			}
 			return true;
@@ -632,7 +636,9 @@ namespace FWO.Middleware.Server
 			}
 			catch (Exception exc)
 			{
-				Log.WriteError("Import App Server Data", $"App Server {appServer.Name} could not be reactivated.", exc);
+				string errorText = $"App Server {appServer.Name} could not be reactivated.";
+				Log.WriteError(LogMessageTitle, errorText, exc);
+				await AddLogEntry(1, LevelAppServer, errorText);
 				return false;
 			}
 			return true;
@@ -653,7 +659,9 @@ namespace FWO.Middleware.Server
 			}
 			catch (Exception exc)
 			{
-				Log.WriteError("Import App Server Data", $"Type of App Server {appServer.Name} could not be set.", exc);
+				string errorText = $"Type of App Server {appServer.Name} could not be set.";
+				Log.WriteError(LogMessageTitle, errorText, exc);
+				await AddLogEntry(1, LevelAppServer, errorText);
 				return false;
 			}
 			return true;
@@ -673,11 +681,13 @@ namespace FWO.Middleware.Server
 					await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.setAppServerName, Variables);
 					await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.Update, ModellingTypes.ModObjectType.AppServer, appServer.Id,
                     	$"Update App Server Name: {appServer.Display()}", apiConnection, userConfig, appServer.AppId, DefaultInit.DoNothing, null, appServer.ImportSource);
-					Log.WriteWarning("Import App Server Data", $"Name of App Server changed from {appServer.Name} changed to {newName}");
+					Log.WriteWarning(LogMessageTitle, $"Name of App Server changed from {appServer.Name} changed to {newName}");
 				}
 				catch (Exception exc)
 				{
-					Log.WriteError("Import App Server Data", $"Name of App Server {appServer.Name} could not be set to {newName}.", exc);
+					string errorText = $"Name of App Server {appServer.Name} could not be set to {newName}.";
+					Log.WriteError(LogMessageTitle, errorText, exc);
+					await AddLogEntry(1, LevelAppServer, errorText);
 					return false;
 				}
 			}
@@ -700,10 +710,36 @@ namespace FWO.Middleware.Server
 			}
 			catch (Exception exc)
 			{
-				Log.WriteError("Import AppServer Data", $"Outdated AppServer {appServer.Name} could not be marked as deleted.", exc);
+				string errorText = $"Outdated AppServer {appServer.Name} could not be marked as deleted.";
+				Log.WriteError(LogMessageTitle, errorText, exc);
+				await AddLogEntry(1, LevelAppServer, errorText);
 				return false;
 			}
 			return true;
 		}
+		
+		private async Task AddLogEntry(int severity, string level, string description)
+	    {
+	        try
+	        {
+	            var Variables = new
+	            {
+					user = 0,
+					source = GlobalConst.kImportAppData,
+	                severity = severity,
+	                suspectedCause = level,
+	                description = description
+	            };
+	            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(MonitorQueries.addDataImportLogEntry, Variables)).ReturnIds;
+	            if (returnIds == null)
+	            {
+	                Log.WriteError("Write Log", "Log could not be written to database");
+	            }
+	        }
+	        catch (Exception exc)
+	        {
+	            Log.WriteError("Write Log", $"Could not write log: ", exc);
+	        }
+	    }
 	}
 }

@@ -54,12 +54,7 @@ namespace FWO.Data.Report
 
         public void ExtractConnectionsToAnalyse()
         {
-            Connections = [.. Connections.Where(x => !(x.IsInterface ||
-                x.GetBoolProperty(ConState.InterfaceRequested.ToString()) ||
-                x.GetBoolProperty(ConState.InterfaceRejected.ToString()) || 
-                x.EmptyAppRolesFound(DummyARid) ||
-                x.DeletedObjectsFound()
-                )).OrderByDescending(y => y.IsCommonService)];
+            Connections = [.. Connections.Where(x => x.IsRelevantForVarianceAnalysis(DummyARid)).OrderByDescending(y => y.IsCommonService)];
             ModelledConnectionsCount = Connections.Count;
         }
     }

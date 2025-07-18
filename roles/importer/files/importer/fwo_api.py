@@ -252,7 +252,7 @@ def count_rule_changes_per_import(fwo_api_base_url, jwt, import_id):
     return rule_changes_in_import
 
 
-def count_changes_per_import(fwo_api_base_url, jwt, import_id):
+def count_any_changes_per_import(fwo_api_base_url, jwt, import_id):
     logger = getFwoLogger()
     change_count_query = """
         query count_changes($importId: bigint!) {
@@ -266,41 +266,41 @@ def count_changes_per_import(fwo_api_base_url, jwt, import_id):
         changes_in_import = int(count_result['data']['changelog_object_aggregate']['aggregate']['count']) + \
             int(count_result['data']['changelog_service_aggregate']['aggregate']['count']) + \
             int(count_result['data']['changelog_user_aggregate']['aggregate']['count']) + \
-            int(count_result['data']['changelog_rule_aggregate']
-                ['aggregate']['count'])
+            int(count_result['data']['changelog_rule_aggregate']['aggregate']['count'])
     except:
         logger.exception("failed to count changes for import id " + str(import_id))
         changes_in_import = 0
     return changes_in_import
 
 
-def unlock_import(importState):
+def unlock_import(import_state):
     logger = getFwoLogger()
     error_during_import_unlock = 0
-    query_variables = {"stopTime": datetime.datetime.now().isoformat(), "importId": importState.ImportId,
-                       "success": importState.ErrorCount == 0, "changesFound": importState.ChangeCount > 0, "changeNumber": importState.ChangeCount}
+    query_variables = {"stopTime": datetime.datetime.now().isoformat(), "importId": import_state.ImportId,
+                       "success": import_state.ErrorCount == 0, "anyChangesFound": import_state.AnyChangeCount > 0, 
+                       "ruleChangesFound": import_state.RuleChangeCount > 0, "changeNumber": import_state.RuleChangeCount}
 
     unlock_mutation = """
-        mutation unlockImport($importId: bigint!, $stopTime: timestamp!, $success: Boolean, $changesFound: Boolean!, $changeNumber: Int!) {
-            update_import_control(where: {control_id: {_eq: $importId}}, _set: {stop_time: $stopTime, successful_import: $success, changes_found: $changesFound, security_relevant_changes_counter: $changeNumber}) {
+        mutation unlockImport($importId: bigint!, $stopTime: timestamp!, $success: Boolean, $anyChangesFound: Boolean!, $ruleChangesFound: Boolean!, $changeNumber: Int!) {
+            update_import_control(where: {control_id: {_eq: $importId}}, _set: {stop_time: $stopTime, successful_import: $success, any_changes_found: $anyChangesFound, rule_changes_found: $ruleChangesFound, security_relevant_changes_counter: $changeNumber}) {
                 affected_rows
             }
         }"""
 
     try:
-        unlock_result = call(importState.FwoConfig['fwo_api_base_url'], importState.Jwt, unlock_mutation,
+        unlock_result = call(import_state.FwoConfig['fwo_api_base_url'], import_state.Jwt, unlock_mutation,
                              query_variables=query_variables, role='importer')
         changes_in_import_control = unlock_result['data']['update_import_control']['affected_rows']
     except:
-        logger.exception("failed to unlock import for management id " + str(importState.MgmDetails.Id))
+        logger.exception("failed to unlock import for management id " + str(import_state.MgmDetails.Id))
         error_during_import_unlock = 1
     return error_during_import_unlock
 
 
 # this effectively clears the management!
-def delete_import(importState):
+def delete_import(import_state):
     logger = getFwoLogger()
-    query_variables = {"importId": importState.ImportId}
+    query_variables = {"importId": import_state.ImportId}
 
     delete_import_mutation = """
         mutation deleteImport($importId: bigint!) {
@@ -308,12 +308,12 @@ def delete_import(importState):
         }"""
 
     try:
-        result = call(importState.FwoConfig['fwo_api_base_url'], importState.Jwt, delete_import_mutation,
+        result = call(import_state.FwoConfig['fwo_api_base_url'], import_state.Jwt, delete_import_mutation,
                       query_variables=query_variables, role='importer')
         api_changes = result['data']['delete_import_control']['affected_rows']
     except:
         logger.exception(
-            "fwo_api: failed to unlock import for import id " + str(importState.ImportId))
+            "fwo_api: failed to unlock import for import id " + str(import_state.ImportId))
         return 1  # signaling an error
     if api_changes == 1:
         return 0        # return code 0 is ok
@@ -677,7 +677,8 @@ def complete_import(importState):
     import_result = "import_management: import no. " + str(importState.ImportId) + \
             " for management " + importState.MgmDetails.Name + ' (id=' + str(importState.MgmDetails.Id) + ")" + \
             str(" threw errors," if importState.ErrorCount else " successful,") + \
-            " change_count: " + str(importState.ChangeCount) + \
+            " total change count: " + str(importState.AnyChangeCount) + \
+            ", rule change count: " + str(importState.RuleChangeCount) + \
             ", duration: " + str(int(time.time()) - importState.StartTime) + "s" 
     import_result += ", ERRORS: " + importState.ErrorString if len(importState.ErrorString) > 0 else ""
     

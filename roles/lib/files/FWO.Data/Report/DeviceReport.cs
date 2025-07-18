@@ -59,40 +59,41 @@ namespace FWO.Data.Report
     public static class DeviceUtility
     {
         // adding rules fetched in slices
-        public static bool Merge(this DeviceReport[] devices, DeviceReport[] devicesToMerge)
+        public static (bool, Dictionary<string, int>) Merge(this DeviceReport[] devices, DeviceReport[] devicesToMerge)
         {
             bool newObjects = false;
 
+            Dictionary<string, int> addedCounts = new()
+            {
+                { "Rules", 0 },
+                { "RuleChanges", 0 },
+            };
+
             for (int i = 0; i < devices.Length && i < devicesToMerge.Length; i++)
             {
-                if (devices[i].Id == devicesToMerge[i].Id)
-                {
-                    try
-                    {
-                        if (devices[i].Rules != null && devicesToMerge[i].Rules != null && devicesToMerge[i].Rules?.Length > 0)
-                        {
-                            devices[i].Rules = devices[i].Rules?.Concat(devicesToMerge[i].Rules!).ToArray();
-                            newObjects = true;
-                        }
-                        if (devices[i].RuleChanges != null && devicesToMerge[i].RuleChanges != null && devicesToMerge[i].RuleChanges?.Length > 0)
-                        {
-                            devices[i].RuleChanges = devices[i].RuleChanges!.Concat(devicesToMerge[i].RuleChanges!).ToArray();
-                            newObjects = true;
-                        }
-                        if (devices[i].RuleStatistics != null && devicesToMerge[i].RuleStatistics != null)
-                            devices[i].RuleStatistics.ObjectAggregate.ObjectCount += devicesToMerge[i].RuleStatistics.ObjectAggregate.ObjectCount; // correct ??
-                    }
-                    catch (NullReferenceException)
-                    {
-                        throw new ArgumentNullException("Rules is null");
-                    }
-                }
-                else
+                if (devices[i].Id != devicesToMerge[i].Id)
                 {
                     throw new NotSupportedException("Devices have to be in the same order in oder to merge.");
                 }
+
+                if (devices[i].Rules != null && devicesToMerge[i].Rules?.Length > 0)
+                {
+                    devices[i].Rules = [.. devices[i].Rules!, .. devicesToMerge[i].Rules!];
+                    newObjects = true;
+                    addedCounts["Rules"] = Math.Max(addedCounts["Rules"], devicesToMerge[i].Rules!.Length);
+                }
+                if (devices[i].RuleChanges != null && devicesToMerge[i].RuleChanges?.Length > 0)
+                {
+                    devices[i].RuleChanges = [.. devices[i].RuleChanges!, .. devicesToMerge[i].RuleChanges!];
+                    newObjects = true;
+                    addedCounts["RuleChanges"] = Math.Max(addedCounts["RuleChanges"], devicesToMerge[i].RuleChanges!.Length);
+                }
+                if (devices[i].RuleStatistics != null && devicesToMerge[i].RuleStatistics != null)
+                {
+                    devices[i].RuleStatistics.ObjectAggregate.ObjectCount += devicesToMerge[i].RuleStatistics.ObjectAggregate.ObjectCount; // TODO: correct ??
+                }
             }
-            return newObjects;
+            return (newObjects, addedCounts);
         }
     }
 }

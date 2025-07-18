@@ -302,9 +302,7 @@
 }
 else
 {
-    <div class="spinner-border" role="status">
-        <span class="visually-hidden">@(userConfig.GetText("loading"))</span>
-    </div>
+    <Loading/>
 }
 
 @code
@@ -350,7 +348,7 @@ else
             states = await apiConnection.SendQueryAsync<List<WfState>>(RequestQueries.getStates);
             statesPlus = new List<WfState>(states);
             statesPlus.Add(AutomaticState);
-            availableTaskTypes = System.Text.Json.JsonSerializer.Deserialize<List<WfTaskType>>(userConfig.ReqAvailableTaskTypes) ?? throw new Exception("Config data could not be parsed.");
+            availableTaskTypes = System.Text.Json.JsonSerializer.Deserialize<List<WfTaskType>>(userConfig.ReqAvailableTaskTypes) ?? throw new JsonException("Config data could not be parsed.");
             userAndGroupList = await RoleAccess.GetRoleMembers(middlewareClient, Roles.Approver);
         }
         catch (Exception exception)
@@ -387,16 +385,16 @@ else
                     toState = Convert.ToInt32(action.ExternalParams);
                     break;
                 case nameof(StateActionTypes.AddApproval):
-                    actApprovalParams = System.Text.Json.JsonSerializer.Deserialize<ApprovalParams>(action.ExternalParams) ?? throw new Exception("Extparams could not be parsed.");
+                    actApprovalParams = System.Text.Json.JsonSerializer.Deserialize<ApprovalParams>(action.ExternalParams) ?? throw new JsonException("Extparams could not be parsed.");
                     break;
                 case nameof(StateActionTypes.SetAlert):
                     message = actAction.ExternalParams;
                     break;
                 case nameof(StateActionTypes.TrafficPathAnalysis):
-                    actPathAnalysisParams = System.Text.Json.JsonSerializer.Deserialize<PathAnalysisActionParams>(action.ExternalParams) ?? throw new Exception("Extparams could not be parsed.");
+                    actPathAnalysisParams = System.Text.Json.JsonSerializer.Deserialize<PathAnalysisActionParams>(action.ExternalParams) ?? throw new JsonException("Extparams could not be parsed.");
                     break;
                 case nameof(StateActionTypes.SendEmail):
-                    actEmailActionParams = System.Text.Json.JsonSerializer.Deserialize<EmailActionParams>(action.ExternalParams) ?? throw new Exception("Extparams could not be parsed.");
+                    actEmailActionParams = System.Text.Json.JsonSerializer.Deserialize<EmailActionParams>(action.ExternalParams) ?? throw new JsonException("Extparams could not be parsed.");
                     break;
                 default:
                     break;

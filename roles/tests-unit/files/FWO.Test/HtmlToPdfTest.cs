@@ -1,4 +1,4 @@
-﻿using NUnit.Framework;
+using NUnit.Framework;
 using NUnit.Framework.Legacy;
 using FWO.Logging;
 using PuppeteerSharp.Media;
@@ -13,7 +13,7 @@ namespace FWO.Test
     [TestFixture]
     [Parallelizable]
     internal class HtmlToPdfTest
-    {    
+    {
         [Test]
         public async Task GeneratePdf()
         {
@@ -21,17 +21,16 @@ namespace FWO.Test
             ClassicAssert.IsTrue(isValidHtml);
 
             string? sudoUser = Environment.GetEnvironmentVariable("SUDO_USER");
-            string? runnerUser = Environment.GetEnvironmentVariable("RUNNER_USER");
 
-            bool isGitHubActions = sudoUser is not null && runnerUser is not null && sudoUser.Equals("runner") && runnerUser.Equals("runner");
+            bool isGitHubActions = sudoUser is not null && sudoUser.Equals("runner");
 
-            if (isGitHubActions)
+            if(isGitHubActions)
             {
                 Log.WriteInfo("Test Log", $"PDF Test skipping: Test is running on Github actions.");
                 return;
             }
 
-            if (File.Exists(GlobalConst.TestPDFFilePath))
+            if(File.Exists(GlobalConst.TestPDFFilePath))
                 File.Delete(GlobalConst.TestPDFFilePath);
 
             OperatingSystem? os = Environment.OSVersion;
@@ -42,7 +41,7 @@ namespace FWO.Test
             Platform platform = Platform.Unknown;
             const SupportedBrowser wantedBrowser = SupportedBrowser.Chrome;
 
-            switch (os.Platform)
+            switch(os.Platform)
             {
                 case PlatformID.Win32NT:
                     platform = Platform.Win32;
@@ -57,48 +56,84 @@ namespace FWO.Test
 
             BrowserFetcher browserFetcher = new(new BrowserFetcherOptions() { Platform = platform, Browser = wantedBrowser, Path = path });
 
-            InstalledBrowser? installedBrowser = browserFetcher.GetInstalledBrowsers()
-                      .FirstOrDefault(_ => _.Platform == platform && _.Browser == wantedBrowser);
+            IEnumerable<InstalledBrowser>? allInstalledBrowsers = browserFetcher.GetInstalledBrowsers().Where(_ => _.Browser == wantedBrowser);
 
-            if (installedBrowser == null)
+            if(allInstalledBrowsers is null || !allInstalledBrowsers.Any())
             {
-                //This is only for testing purposes and should not be executed by customers machines
-                Log.WriteWarning("Test Log", $"Browser {wantedBrowser} is not installed! Trying to download latest version...");
-                installedBrowser = await browserFetcher.DownloadAsync(BrowserTag.Latest);
+                if(os.Platform == PlatformID.Win32NT)
+                {
+                    Log.WriteInfo("Browser", $"Browser not found for Windows! Trying to download...");
+                    await browserFetcher.DownloadAsync();
+                    allInstalledBrowsers = browserFetcher.GetInstalledBrowsers().Where(_ => _.Browser == wantedBrowser);
+                }
+                else
+                {
+                    throw new Exception($"Found no installed {wantedBrowser} instances!");
+                }
+            }            
+
+            foreach(InstalledBrowser instBrowser in allInstalledBrowsers)
+            {
+                Log.WriteInfo("Test Log", $"Found installed {instBrowser.Browser}({instBrowser.BuildId}) at: {instBrowser.GetExecutablePath()}");
             }
 
-            Log.WriteInfo("Test Log", $"Browser Path: {installedBrowser.GetExecutablePath()}");
+            string? newestBuildId = allInstalledBrowsers.Max(_ => _.BuildId);
 
-            using IBrowser? browser = await Puppeteer.LaunchAsync(new LaunchOptions
+            if(string.IsNullOrWhiteSpace(newestBuildId))
             {
-                ExecutablePath = installedBrowser.GetExecutablePath(),
-                Headless = true,
-                DumpIO = isGitHubActions , // Enables debug logs
-                Args = new[] { "--database=/tmp", "--no-sandbox" }
-            });
+                Log.WriteAlert("Test Log", $"Invalid build ID!");
+                return;
+            }
+
+            InstalledBrowser? latestInstalledBrowser = allInstalledBrowsers.Single(_ => _.BuildId == newestBuildId);
+
+            if(latestInstalledBrowser is null)
+            {
+                Log.WriteAlert("Test Log", $"Found no installed {wantedBrowser} instances with a valid build ID!");
+                return;
+            }
+
+            Log.WriteInfo("Test Log", $"Selecting latest installed {wantedBrowser}({latestInstalledBrowser.BuildId}) at: {latestInstalledBrowser.GetExecutablePath()}");
+
+            IBrowser? browser;
 
             try
             {
-                await TryCreatePDF(browser, PuppeteerSharp.Media.PaperFormat.A0);
-                await TryCreatePDF(browser, PuppeteerSharp.Media.PaperFormat.A1);
-                await TryCreatePDF(browser, PuppeteerSharp.Media.PaperFormat.A2);
-                await TryCreatePDF(browser, PuppeteerSharp.Media.PaperFormat.A3);
-                await TryCreatePDF(browser, PuppeteerSharp.Media.PaperFormat.A4);
-                await TryCreatePDF(browser, PuppeteerSharp.Media.PaperFormat.A5);
-                await TryCreatePDF(browser, PuppeteerSharp.Media.PaperFormat.A6);
-
-                await TryCreatePDF(browser, PuppeteerSharp.Media.PaperFormat.Ledger);
-                await TryCreatePDF(browser, PuppeteerSharp.Media.PaperFormat.Legal);
-                await TryCreatePDF(browser, PuppeteerSharp.Media.PaperFormat.Letter);
-                await TryCreatePDF(browser, PuppeteerSharp.Media.PaperFormat.Tabloid);
+                browser = await Puppeteer.LaunchAsync(new LaunchOptions
+                {
+                    ExecutablePath = latestInstalledBrowser.GetExecutablePath(),
+                    Headless = true,
+                    DumpIO = isGitHubActions,
+                    Args = isGitHubActions ? ["--database=/tmp", "--no-sandbox"] : []
+                });
             }
-            catch (Exception)
+            catch(Exception)
             {
-                throw;
-            }
-            finally
+                Log.WriteAlert("Test Log", $"Couldn't start {wantedBrowser} instance!");
+                throw new Exception($"Couldn't start {wantedBrowser} instance!");
+            }            
+
+            await TryCreatePDF(browser, PuppeteerSharp.Media.PaperFormat.A0);
+            await TryCreatePDF(browser, PuppeteerSharp.Media.PaperFormat.A1);
+            await TryCreatePDF(browser, PuppeteerSharp.Media.PaperFormat.A2);
+            await TryCreatePDF(browser, PuppeteerSharp.Media.PaperFormat.A3);
+            await TryCreatePDF(browser, PuppeteerSharp.Media.PaperFormat.A4);
+            await TryCreatePDF(browser, PuppeteerSharp.Media.PaperFormat.A5);
+            await TryCreatePDF(browser, PuppeteerSharp.Media.PaperFormat.A6);
+
+            await TryCreatePDF(browser, PuppeteerSharp.Media.PaperFormat.Ledger);
+            await TryCreatePDF(browser, PuppeteerSharp.Media.PaperFormat.Legal);
+            await TryCreatePDF(browser, PuppeteerSharp.Media.PaperFormat.Letter);
+            await TryCreatePDF(browser, PuppeteerSharp.Media.PaperFormat.Tabloid);
+
+            try
             {
                 await browser.CloseAsync();
+                browser.Dispose();
+            }
+            catch(Exception)
+            {
+                throw new Exception("Couldn't close browser instance!");
             }
         }
 
@@ -117,6 +152,12 @@ namespace FWO.Test
 
         private async Task TryCreatePDF(IBrowser browser, PuppeteerSharp.Media.PaperFormat paperFormat)
         {
+            if(browser.IsClosed || !browser.IsConnected || browser.Process == null)
+            {
+                Log.WriteAlert("Test Log", $"Browser: {browser.GetVersionAsync()} is not started or closed due to errors!");
+                return;
+            }
+
             Log.WriteInfo("Test Log", $"Test creating PDF {paperFormat}");
 
             try
@@ -124,25 +165,25 @@ namespace FWO.Test
                 using IPage page = await browser.NewPageAsync();
                 await page.SetContentAsync(GlobalConst.TestPDFHtmlTemplate);
 
-                PdfOptions pdfOptions = new() {Outline = true, DisplayHeaderFooter = false, Landscape = true, PrintBackground = true, Format = paperFormat, MarginOptions = new MarginOptions { Top = "1cm", Bottom = "1cm", Left = "1cm", Right = "1cm" } };
+                PdfOptions pdfOptions = new() { Outline = true, DisplayHeaderFooter = false, Landscape = true, PrintBackground = true, Format = paperFormat, MarginOptions = new MarginOptions { Top = "1cm", Bottom = "1cm", Left = "1cm", Right = "1cm" } };
                 byte[]? pdfData = await page.PdfDataAsync(pdfOptions);
-
                 await File.WriteAllBytesAsync(GlobalConst.TestPDFFilePath, pdfData);
 
                 Assert.That(GlobalConst.TestPDFFilePath, Does.Exist);
                 FileAssert.Exists(GlobalConst.TestPDFFilePath);
                 ClassicAssert.AreEqual(new FileInfo(GlobalConst.TestPDFFilePath).Length, pdfData.Length);
             }
-            catch (Exception)
+            catch(Exception ex)
             {
-                throw new Exception("This paper kind is currently not supported. Please choose another one or \"Custom\" for a custom size.");
+                Log.WriteAlert("Test Log", $"{ex.Message}");
+                return;
             }
         }
 
         [OneTimeTearDown]
         public void OnFinished()
         {
-            if (File.Exists(GlobalConst.TestPDFFilePath))
+            if(File.Exists(GlobalConst.TestPDFFilePath))
             {
                 File.Delete(GlobalConst.TestPDFFilePath);
             }

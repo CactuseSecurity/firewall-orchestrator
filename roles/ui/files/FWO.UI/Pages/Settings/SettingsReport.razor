@@ -64,9 +64,7 @@
 }
 else
 {
-    <div class="spinner-border" role="status">
-        <span class="visually-hidden">@(userConfig.GetText("loading"))</span>
-    </div>
+    <Loading/>
 }
 
 
@@ -101,7 +99,7 @@ else
             }
             else
             {
-                throw new Exception("Data saved before loaded. This should be impossible.");
+                throw new ArgumentException("Data saved before loaded. This should be impossible.");
             }
         }
         catch (Exception exception)

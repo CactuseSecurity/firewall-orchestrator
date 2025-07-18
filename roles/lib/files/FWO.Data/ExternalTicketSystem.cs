@@ -1,4 +1,6 @@
-﻿using Newtonsoft.Json;
+﻿using FWO.Basics;
+using FWO.Data.Workflow;
+using Newtonsoft.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -51,6 +53,33 @@ namespace FWO.Data
 		[JsonProperty(nameof(CyclesBetweenAttempts)), JsonPropertyName(nameof(CyclesBetweenAttempts))]
 		public int CyclesBetweenAttempts { get; set; } = 5;
 
+		public int MaxBundledTasks()
+		{
+			return Type switch
+			{
+				ExternalTicketSystemType.TufinSecureChange => SCConstants.SCMaxBundledTasks,
+                _ => 1
+			};
+		}
+
+		public bool BundleGateways()
+		{
+			return Type switch
+			{
+				ExternalTicketSystemType.TufinSecureChange => SCConstants.SCBundleGateways,
+                _ => false
+			};
+		}
+		
+		public List<string> TaskTypesToBundleGateways()
+		{
+			return Type switch
+			{
+				ExternalTicketSystemType.TufinSecureChange => [WfTaskType.rule_modify.ToString(), WfTaskType.rule_delete.ToString()],
+                _ => []
+			};
+		}
+
 		public bool Sanitize()
         {
             bool shortened = false;
@@ -95,11 +124,14 @@ namespace FWO.Data
 		[JsonProperty(nameof(IcmpTemplate)), JsonPropertyName(nameof(IcmpTemplate))]
 		public string IcmpTemplate { get; set; } = "";
 
+		[JsonProperty(nameof(IpProtocolTemplate)), JsonPropertyName(nameof(IpProtocolTemplate))]
+		public string IpProtocolTemplate { get; set; } = "";
+
 
 		public bool Sanitize()
-        {
-            bool shortened = false;
-            TaskType = Sanitizer.SanitizeMand(TaskType, ref shortened);
+		{
+			bool shortened = false;
+			TaskType = Sanitizer.SanitizeMand(TaskType, ref shortened);
 			TicketTemplate = Sanitizer.SanitizeJsonMand(TicketTemplate, ref shortened);
 			TasksTemplate = Sanitizer.SanitizeJsonMand(TasksTemplate, ref shortened);
 			ObjectTemplate = Sanitizer.SanitizeJsonMand(ObjectTemplate, ref shortened);
@@ -108,7 +140,8 @@ namespace FWO.Data
 			NwObjGroupTemplate = Sanitizer.SanitizeJsonMand(NwObjGroupTemplate, ref shortened);
 			ServiceTemplate = Sanitizer.SanitizeJsonMand(ServiceTemplate, ref shortened);
 			IcmpTemplate = Sanitizer.SanitizeJsonMand(IcmpTemplate, ref shortened);
-            return shortened;
-        }
+			IpProtocolTemplate = Sanitizer.SanitizeJsonMand(IpProtocolTemplate, ref shortened);
+			return shortened;
+		}
 	}
 }

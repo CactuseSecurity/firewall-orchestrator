@@ -87,9 +87,7 @@
     }
     else
     {
-        <div class="spinner-border" role="status">
-            <span class="visually-hidden">@(userConfig.GetText("loading"))</span>
-        </div>
+        <Loading/>
     }
 </AuthorizeView>
 
@@ -200,8 +198,9 @@
     {
         try
         {
-            actMgmtId = alert.ManagementId ?? throw new Exception($"Missing ManagementId!");
-            LastIncompleteImport = JsonSerializer.Deserialize<ImportControl[]?>(( alert.JsonData ?? throw new Exception($"Missing Import Data!") ).ToString() ?? throw new Exception($"Could not convert Import Data to string!"));
+            actMgmtId = alert.ManagementId ?? throw new ArgumentException($"Missing ManagementId!");
+            LastIncompleteImport = JsonSerializer.Deserialize<ImportControl[]?>(( alert.JsonData ?? throw new ArgumentException($"Missing Import Data!") ).ToString()
+				?? throw new FormatException($"Could not convert Import Data to string!"));
             RollbackMode = true;
         }
         catch (Exception exception)
@@ -214,7 +213,8 @@
     {
         try
         {
-            actStatus = JsonSerializer.Deserialize<ImportStatus>(( alert.JsonData ?? throw new Exception($"Missing Import Data!") ).ToString() ?? throw new Exception($"Could not convert Import Data to string!")) ?? throw new Exception($"Import Data not converted!");
+            actStatus = JsonSerializer.Deserialize<ImportStatus>(( alert.JsonData ?? throw new ArgumentException($"Missing Import Data!") ).ToString() 
+				?? throw new FormatException($"Could not convert Import Data to string!")) ?? throw new JsonException($"Import Data not converted!");
             DetailsMode = true;
         }
         catch (Exception exception)
@@ -264,14 +264,11 @@
         }
 
         deletedSampleManagements = 0;
-        foreach (var management in managements)
+        foreach (var management in managements.Where(m => m.Name.EndsWith(GlobalConst.k_demo)))
         {
-            if (management.Name.EndsWith("_demo"))
+            if (await DeleteManagement(management))
             {
-                if (await DeleteManagement(management))
-                {
-                    deletedSampleManagements++;
-                }
+                deletedSampleManagements++;
             }
         }
     }
@@ -298,14 +295,11 @@
     {
         List<ImportCredential> credentials = await apiConnection.SendQueryAsync<List<ImportCredential>>(DeviceQueries.getCredentials);
         deletedSampleCredentials = 0;
-        foreach (var credential in credentials)
+        foreach (var credential in credentials.Where(c => c.Name.EndsWith(GlobalConst.k_demo)))
         {
-            if (credential.Name.EndsWith("_demo"))
+            if (await DeleteCredential(credential))
             {
-                if (await DeleteCredential(credential))
-                {
-                    deletedSampleCredentials++;
-                }
+                deletedSampleCredentials++;
             }
         }
     }
@@ -332,14 +326,11 @@
     {
         List<UiUser> users = await apiConnection.SendQueryAsync<List<UiUser>>(AuthQueries.getUsers);
         deletedSampleUsers = 0;
-        foreach (var user in users)
+        foreach (var user in users.Where(u => u.Name.EndsWith(GlobalConst.k_demo)))
         {
-            if (user.Name.EndsWith("_demo"))
+            if (await DeleteUser(user))
             {
-                if (await DeleteUser(user))
-                {
-                    deletedSampleUsers++;
-                }
+                deletedSampleUsers++;
             }
         }
     }
@@ -374,14 +365,11 @@
     {
         List<Tenant> tenants = await apiConnection.SendQueryAsync<List<Tenant>>(AuthQueries.getTenants);
         deletedSampleTenants = 0;
-        foreach (var tenant in tenants)
+        foreach (var tenant in tenants.Where(t => t.Name.EndsWith(GlobalConst.k_demo)))
         {
-            if (tenant.Name.EndsWith("_demo"))
+            if (await DeleteTenant(tenant))
             {
-                if (await DeleteTenant(tenant))
-                {
-                    deletedSampleTenants++;
-                }
+                deletedSampleTenants++;
             }
         }
     }
@@ -417,7 +405,7 @@
             foreach (var ldapUserGroup in middlewareServerResponse.Data)
             {
                 string groupName = ( new DistName(ldapUserGroup.GroupDn) ).Group;
-                if (groupName.EndsWith("_demo"))
+                if (groupName.EndsWith(GlobalConst.k_demo))
                 {
                     if (await DeleteGroup(groupName))
                     {
@@ -454,14 +442,11 @@
     {
         List<FwoOwner> owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
         deletedSampleOwners = 0;
-        foreach (var owner in owners)
+        foreach (var owner in owners.Where(o => o.Name.EndsWith(GlobalConst.k_demo)))
         {
-            if (owner.Name.EndsWith("_demo"))
+            if (await DeleteOwner(owner))
             {
-                if (await DeleteOwner(owner))
-                {
-                    deletedSampleOwners++;
-                }
+                deletedSampleOwners++;
             }
         }
     }

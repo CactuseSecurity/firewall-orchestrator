@@ -7,6 +7,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string commentDetailsFragment;
         public static readonly string implTaskDetailsFragment;
         public static readonly string reqTaskDetailsFragment;
+        public static readonly string reqElementDetailsFragment;
         public static readonly string ticketDetailsFragment;
         public static readonly string reqTaskOverviewFragment;
         public static readonly string ticketOverviewFragment;
@@ -14,7 +15,7 @@ namespace FWO.Api.Client.Queries
 
         public static readonly string getTickets;
         public static readonly string getFullTickets;
-        // public static readonly string getTicketsByOwners;
+        public static readonly string getOwnerTicketIds;
         public static readonly string getTicketById;
         public static readonly string newTicket;
         public static readonly string updateTicket;
@@ -65,7 +66,8 @@ namespace FWO.Api.Client.Queries
             {
                 commentDetailsFragment = File.ReadAllText(QueryPath + "request/fragments/commentDetails.graphql");
                 implTaskDetailsFragment = commentDetailsFragment + File.ReadAllText(QueryPath + "request/fragments/implTaskDetails.graphql");
-                reqTaskDetailsFragment = OwnerQueries.ownerDetailsFragment + implTaskDetailsFragment + File.ReadAllText(QueryPath + "request/fragments/reqTaskDetails.graphql");
+                reqElementDetailsFragment = File.ReadAllText(QueryPath + "request/fragments/reqElementDetails.graphql");
+                reqTaskDetailsFragment = OwnerQueries.ownerDetailsFragment + reqElementDetailsFragment + implTaskDetailsFragment + File.ReadAllText(QueryPath + "request/fragments/reqTaskDetails.graphql");
                 ticketDetailsFragment = reqTaskDetailsFragment + File.ReadAllText(QueryPath + "request/fragments/ticketDetails.graphql");
                 reqTaskOverviewFragment = OwnerQueries.ownerDetailsFragment + File.ReadAllText(QueryPath + "request/fragments/reqTaskOverview.graphql");
                 ticketOverviewFragment = reqTaskOverviewFragment + File.ReadAllText(QueryPath + "request/fragments/ticketOverview.graphql");
@@ -73,13 +75,13 @@ namespace FWO.Api.Client.Queries
 
                 getTickets = ticketDetailsReqTaskOverviewFragment + File.ReadAllText(QueryPath + "request/getTickets.graphql");
                 getFullTickets = ticketDetailsFragment + File.ReadAllText(QueryPath + "request/getFullTickets.graphql");
-                // getTicketsByOwners = ticketDetailsFragment + File.ReadAllText(QueryPath + "request/getTicketsByOwners.graphql");
+                getOwnerTicketIds = File.ReadAllText(QueryPath + "monitor/getOwnerTicketIds.graphql");
                 getTicketById = ticketDetailsFragment + File.ReadAllText(QueryPath + "request/getTicketById.graphql");
                 newTicket = File.ReadAllText(QueryPath + "request/newTicket.graphql");
                 updateTicket = File.ReadAllText(QueryPath + "request/updateTicket.graphql");
                 updateTicketState = File.ReadAllText(QueryPath + "request/updateTicketState.graphql");
                 subscribeTicketStateChanges = File.ReadAllText(QueryPath + "request/subscribeTicketStateChanges.graphql");
-                subscribeTaskChanges = File.ReadAllText(QueryPath + "request/subscribeTaskChanges.graphql");
+                subscribeTaskChanges = reqElementDetailsFragment + File.ReadAllText(QueryPath + "request/subscribeTaskChanges.graphql");
                 newRequestTask = File.ReadAllText(QueryPath + "request/newRequestTask.graphql");
                 updateRequestTask = File.ReadAllText(QueryPath + "request/updateRequestTask.graphql");
                 updateRequestTaskState = File.ReadAllText(QueryPath + "request/updateRequestTaskState.graphql");

@@ -1,6 +1,7 @@
-﻿@using FWO.Ui.Data
+@using FWO.Ui.Data
 @using FWO.Data.Workflow
 @using FWO.Data.Report
+@using System.Diagnostics
 
 
 @inject UserConfig userConfig
@@ -121,10 +122,18 @@
             }
         }
     }
-    
+
     public async Task SetElementProperty(ElementReference element, string property, object value)
     {
-        await jsRuntime.InvokeVoidAsync("setProperty", element, property, value);
+        try
+        {
+            await jsRuntime.InvokeVoidAsync("setProperty", element, property, value);
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine(ex.ToString());
+        }
+        
     }
 
     private async Task SetSelectAll()

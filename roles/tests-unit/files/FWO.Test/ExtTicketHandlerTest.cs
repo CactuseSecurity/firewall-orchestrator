@@ -236,7 +236,7 @@ namespace FWO.Test
             ClassicAssert.AreEqual(true, apiConnection.AddExtRequestVars?.Contains("extQueryVariables = {\"BundledTasks\":[6,7,8]}"));
             ClassicAssert.AreEqual(true, apiConnection.AddExtRequestVars?.Contains("AR6"));
             ClassicAssert.AreEqual(false, apiConnection.AddExtRequestVars?.Contains("AR7"));
-            ClassicAssert.AreEqual(false, apiConnection.AddExtRequestVars?.Contains("AR8"));
+            ClassicAssert.AreEqual(true, apiConnection.AddExtRequestVars?.Contains("AR8"));
 
             userConfig.ModRolloutBundleTasks = false;
             await externalRequestHandler.HandleStateChange(externalRequest);

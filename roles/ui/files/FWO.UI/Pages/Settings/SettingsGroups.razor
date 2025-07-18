@@ -1,4 +1,4 @@
-﻿@using FWO.Data.Middleware
+@using FWO.Data.Middleware
 @using FWO.Middleware.Client
 @using FWO.Ui.Services
 @using RestSharp
@@ -117,7 +117,7 @@
                 </Authorized>
                 <NotAuthorized>
                     <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
-                </NotAuthorized> 
+                </NotAuthorized>
             </AuthorizeView>
             <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
         </div>
@@ -164,7 +164,7 @@
     protected override async Task OnInitializedAsync()
     {
         try
-        { 
+        {
             groups = await GroupAccess.GetGroupsFromInternalLdap(middlewareClient, userConfig, DisplayMessageInUi);
             CollectSampleGroups();
 
@@ -254,7 +254,7 @@
                     // insert new group to ldap
                     GroupAddDeleteParameters addGroupParameters = new GroupAddDeleteParameters { GroupName = newGroupName, OwnerGroup = actGroup.OwnerGroup };
                     RestResponse<string> middlewareServerResponse = await middlewareClient.AddGroup(addGroupParameters);
-                    
+
                     if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == null || middlewareServerResponse.Data == "")
                     {
                         DisplayMessageInUi(null, userConfig.GetText("add_new_group"), userConfig.GetText("E5236"), true);
@@ -267,6 +267,12 @@
                         await AddGroupToRolesInLdap(actGroup);
                         AddGroupMode = false;
                         EditGroupMode = false;
+
+                        Log.WriteAudit(
+                            Title: $"Groups Settings",
+                            Text: $"Added Group: {actGroup.Name} (DN: {actGroup.Dn}) with Roles: {string.Join(", ", actGroup.Roles)}",
+                            UserName: userConfig.User.Name,
+                            UserDN: userConfig.User.Dn);
                     }
                 }
                 else
@@ -286,6 +292,12 @@
                         groups[changedGroup].Dn = newDn;
                         groups[changedGroup].Name = newGroupName;
                         EditGroupMode = false;
+
+                        Log.WriteAudit(
+                            Title: $"Groups Settings",
+                            Text: $"Edited Group: {actGroup.Name} (DN: {actGroup.Dn}) with Roles: {string.Join(", ", actGroup.Roles)}",
+                            UserName: userConfig.User.Name,
+                            UserDN: userConfig.User.Dn);
                     }
                 }
                 CollectSampleGroups();
@@ -367,6 +379,12 @@
             {
                 groups.Remove(actGroup);
                 DeleteGroupMode = false;
+
+                Log.WriteAudit(
+                    Title: $"Groups Settings",
+                    Text: $"Deleted Group: {actGroup.Name} (DN: {actGroup.Dn}) with Roles: {string.Join(", ", actGroup.Roles)}",
+                    UserName: userConfig.User.Name,
+                    UserDN: userConfig.User.Dn);
             }
         }
         catch (Exception exception)
@@ -414,6 +432,12 @@
                     actGroup.Users.Add(selectedUser);
                     groups[groups.FindIndex(x => x.Name == actGroup.Name)] = actGroup;
                     AddUserMode = false;
+
+                    Log.WriteAudit(
+                        Title: $"Groups Settings",
+                        Text: $"Added User: {selectedUser.Name} (DN: {selectedUser.Dn}) to Group: {actGroup.Name} (DN: {actGroup.Dn})",
+                        UserName: userConfig.User.Name,
+                        UserDN: userConfig.User.Dn);
                 }
             }
             catch (System.Exception exception)
@@ -441,6 +465,12 @@
                     actGroup.Users.Remove(selectedUserToDelete);
                     groups[groups.FindIndex(x => x.Name == actGroup.Name)] = actGroup;
                     RemoveUserMode = false;
+
+                    Log.WriteAudit(
+                        Title: $"Groups Settings",
+                        Text: $"Removed User: {selectedUserToDelete.Name} (DN: {selectedUserToDelete.Dn}) from Group: {actGroup.Name} (DN: {actGroup.Dn})",
+                        UserName: userConfig.User.Name,
+                        UserDN: userConfig.User.Dn);
                 }
             }
             catch (System.Exception exception)

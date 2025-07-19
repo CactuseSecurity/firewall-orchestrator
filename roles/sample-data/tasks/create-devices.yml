@@ -50,7 +50,7 @@
 
 
 - block: # demo only
-    - name: insert demo check point R81 management {{ sample_checkpoint_name }}
+    - name: insert demo check point R8x management {{ sample_checkpoint_name }}
       postgresql_query:
         db: "{{ fworch_db_name }}"
         query: >
@@ -62,7 +62,7 @@
             END IF;
           END $do$ 
 
-    - name: insert demo check point R81 gateway {{ sample_checkpoint_name }}
+    - name: insert demo check point R8x gateway {{ sample_checkpoint_name }}
       postgresql_query:
         db: "{{ fworch_db_name }}"
         query: >

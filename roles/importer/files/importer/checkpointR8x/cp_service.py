@@ -21,6 +21,8 @@ def collect_svc_objects(object_table, svc_objects):
         for chunk in object_table['object_chunks']:
             if 'objects' in chunk:
                 for obj in chunk['objects']:
+                    if 'type' in obj and obj['type'] in ['service-dce-rpc', 'service-rpc']:
+                        typ = 'rpc'
                     if 'type' in obj and obj['type'] in proto_map:
                         proto = proto_map[obj['type']]
                     elif 'ip-protocol' in obj:

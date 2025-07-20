@@ -58,7 +58,7 @@
             IF NOT EXISTS (SELECT * FROM management WHERE mgm_name='{{ sample_checkpoint_name }}') THEN 
               insert into management 
                 (dev_typ_id,mgm_name,import_credential_id,ssh_hostname,do_not_import,importer_hostname, mgm_uid) 
-                VALUES (9,'{{ sample_checkpoint_name }}',{{ credential_id }},'{{ demo_cpr8x_uri }}',{{ do_not_import }},'{{ importer_hostname }}','{{ demo_cpr8x_uri }}'); 
+                VALUES (9,'{{ sample_checkpoint_name }}',{{ credential_id }},'{{ demo_cpr8x_uri }}',{{ do_not_import }},'{{ importer_hostname }}','{{ demo_cpr8x_mgm_uid }}'); 
             END IF;
           END $do$ 
 

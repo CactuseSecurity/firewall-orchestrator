@@ -191,7 +191,7 @@ class ImportStateController(ImportState):
         except Exception:
             logger = getFwoLogger()
             logger.error('Error while getting stm_action')
-            return {}
+            raise
         
         map: dict[str, int] = {}
         for action in result['data']['stm_action']:
@@ -205,8 +205,8 @@ class ImportStateController(ImportState):
         except Exception:
             logger = getFwoLogger()
             logger.error('Error while getting stm_track')
-            return {}
-        
+            raise
+
         map: dict[str, int] = {}
         for track in result['data']['stm_track']:
             map.update({track['track_name']: track['track_id']})
@@ -219,7 +219,7 @@ class ImportStateController(ImportState):
         except Exception:
             logger = getFwoLogger()
             logger.error("Error while getting stm_link_type")
-            return {}
+            raise
         
         map: dict[str, int] = {}
         for track in result['data']['stm_link_type']:
@@ -234,7 +234,7 @@ class ImportStateController(ImportState):
         except Exception:
             logger = getFwoLogger()
             logger.error('Error while getting stm_color')
-            return {}
+            raise
         
         color_map: dict[str, int] = {}
         for color in result['data']['stm_color']:
@@ -253,7 +253,7 @@ class ImportStateController(ImportState):
             logger = getFwoLogger()
             logger.error("Error while getting rulebases")
             self.RulebaseMap = {}
-            return
+            raise
         
         m = {}
         for rulebase in result['data']['rulebase']:
@@ -273,7 +273,7 @@ class ImportStateController(ImportState):
             logger = getFwoLogger()
             logger.error("Error while getting rules")
             self.RuleMap = {}
-            return
+            raise
         
         m = {}
         for rule in result['data']['rule']:
@@ -299,7 +299,7 @@ class ImportStateController(ImportState):
             logger = getFwoLogger()
             logger.error("Error while getting gateways")
             self.GatewayMap = {}
-            return
+            raise
         
         m = {}
         for gw in result['data']['device']:
@@ -328,7 +328,7 @@ class ImportStateController(ImportState):
             logger = getFwoLogger()
             logger.error("Error while getting managements")
             self.ManagementMap = {}
-            return
+            raise
         
         m = {}
         mgm = result['data']['management'][0]

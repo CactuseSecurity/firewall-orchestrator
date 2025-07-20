@@ -5,7 +5,6 @@ import traceback
 import time
 
 import fwo_globals
-
 from fwo_log import getFwoLogger
 from fwo_const import fwo_api_http_import_timeout
 from fwo_exceptions import FwoApiServiceUnavailable, FwoApiTimeout
@@ -76,6 +75,14 @@ class FwoApi():
 
             except requests.exceptions.RequestException as e: 
                 self._handle_request_exception(e, full_query, request_headers)
+            except FwoImporterError as e:
+                # Handle FwoImporterError specifically, logging it and re-raising.
+                logger.error(f"FwoImporterError during API call: {str(e)}")
+                raise
+            except Exception as e:
+                # Catch all other exceptions and log them.
+                logger.error(f"Unexpected error during API call: {str(e)}")
+                raise FwoImporterError(f"Unexpected error during API call: {str(e)}")
 
     
     def _handle_request_exception(self, exception, query_payload, headers):

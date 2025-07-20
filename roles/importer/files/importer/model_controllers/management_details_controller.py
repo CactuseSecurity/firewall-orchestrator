@@ -1,6 +1,6 @@
 from typing import List, Dict
 from models.management_details import ManagementDetails
-import fwo_exceptions
+from fwo_exceptions import FwLoginFailed
 
 class ManagementDetailsController(ManagementDetails):
 
@@ -68,7 +68,7 @@ class ManagementDetailsController(ManagementDetails):
         elif self.DeviceTypeName == 'PaloAltoLegacy':
             return f"https://{self.Hostname}:{str(self.Port)}/restapi/v10.0/"
         else:
-            raise fwo_exceptions.FwLoginFailed(f"Unsupported device type: {self.DeviceTypeName}")
+            raise FwLoginFailed(f"Unsupported device type: {self.DeviceTypeName}")
 
 
     def getDomainString(self):

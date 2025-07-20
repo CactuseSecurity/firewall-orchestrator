@@ -7,7 +7,7 @@ import cp_rule
 import cp_const, cp_network, cp_service
 import cp_getter
 import cp_gateway
-import fwo_exceptions
+from fwo_exceptions import FwLoginFailed
 from fwconfig_base import calcManagerUidHash
 from models.fwconfigmanagerlist import FwConfigManagerList, FwConfigManager
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
@@ -468,7 +468,7 @@ def loginCp(mgm_details, ssl_verification=True):
         login_result = cp_getter.login(mgm_details)
         return login_result
     except Exception:
-        raise fwo_exceptions.FwLoginFailed
+        raise FwLoginFailed
     
 
 def logout_cp(url, sid):

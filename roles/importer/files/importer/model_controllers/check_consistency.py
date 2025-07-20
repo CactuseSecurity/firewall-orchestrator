@@ -1,4 +1,3 @@
-import json
 
 import fwo_const
 from fwo_log import getFwoLogger
@@ -13,7 +12,7 @@ from models.fwconfig_normalized import FwConfigNormalized
 from fwo_base import ConfFormat
 from services.service_provider import ServiceProvider
 from services.enums import Services
-import fwo_exceptions
+from fwo_exceptions import FwoImporterErrorInconsistencies
 
 
 # this class is used for importing a config into the FWO API
@@ -51,7 +50,7 @@ class FwConfigImportCheckConsistency(FwConfigImport):
 
         if len(self.issues)>0:
             self.import_state.addError("Inconsistencies found in the configuration: " + str(self.issues))
-            raise fwo_exceptions.FwoImporterErrorInconsistencies("Inconsistencies found in the configuration.")
+            raise FwoImporterErrorInconsistencies("Inconsistencies found in the configuration.")
 
         if self.import_state.DebugLevel >= 1:
             getFwoLogger().info("Consistency check completed without issues.")
@@ -391,9 +390,13 @@ class FwConfigImportCheckConsistency(FwConfigImport):
 
         # check consistency of links
         for mgr in config.ManagerSet:
+            if self.import_state.MgmDetails.ImportDisabled: # only the super manager can be checked
+                continue
             for single_config in mgr.Configs:        
                 # now check rblinks for all gateways
                 for gw in single_config.gateways:
+                    if gw.ImportDisabled: # only the super manager can be checked
+                        continue
                     for rbl in gw.RulebaseLinks:
                         self._check_rulebase_link(gw, rbl, broken_rulebase_links, all_rule_uids, all_rulebase_uids)
 

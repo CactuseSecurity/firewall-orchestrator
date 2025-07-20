@@ -23,6 +23,11 @@
   become: true
   become_user: "{{ fworch_user }}"
   environment: "{{ proxy_env }}"
+  register: test_checkpoint_import_result
+
+- name: show checkpoint import result
+  debug:
+    var: test_checkpoint_import_result
 
 # - name: make test fortigate import
 #   command: "python3 ./import-mgm.py -f -s -m{{ test_fortigate_mgm_id.query_result.0.mgm_id }}"

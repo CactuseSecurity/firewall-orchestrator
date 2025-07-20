@@ -58,7 +58,7 @@ class FwConfigImport():
         
     def import_single_config(self, single_manager: FwConfigManager):
         # current implementation restriction: assuming we always get the full config (only inserts) from API
-        previousConfig = self.getPreviousConfig(mgm_id=self.import_state.lookupManagementId(single_manager.ManagerUid))
+        previousConfig = self.getLatestConfig(mgm_id=self.import_state.lookupManagementId(single_manager.ManagerUid))
         self._global_state.previous_config = previousConfig
         # calculate differences and write them to the database via API
         self.updateDiffs(previousConfig, single_manager)
@@ -81,11 +81,12 @@ class FwConfigImport():
                     global_state.global_normalized_config = config
                 config_importer = FwConfigImport()
                 config_importer.import_single_config(manager) 
+                if import_state.Stats.ErrorCount>0:
+                    raise FwoImporterError("Import failed due to errors.")
+                else:
+                    config_importer.storeLatestConfig()
 
-        if import_state.Stats.ErrorCount>0:
-            raise FwoImporterError("Import failed due to errors.")
-        else:
-            config_importer.storeLatestConfig()
+
 
 
     def clear_management(self, import_state: ImportStateController) -> FwConfigNormalized:
@@ -258,7 +259,7 @@ class FwConfigImport():
 
 
     # return previous config or empty config if there is none; only returns the config of a single management
-    def getPreviousConfig(self, mgm_id: int = None) -> FwConfigNormalized:
+    def getLatestConfig(self, mgm_id: int = None) -> FwConfigNormalized:
         prev_config = FwConfigNormalized(**{
                                 'action': ConfigAction.INSERT,
                                 'network_objects': {},

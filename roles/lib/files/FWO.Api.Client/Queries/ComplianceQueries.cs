@@ -9,7 +9,9 @@ namespace FWO.Api.Client.Queries
         public static readonly string getNetworkZones;
         public static readonly string getNetworkZonesForMatrix;
         public static readonly string updateNetworkZones;
+
         public static readonly string modifyNetworkZoneCommunication;
+
         public static readonly string addViolations;
         public static readonly string getViolations;
         public static readonly string addPolicy;
@@ -28,7 +30,9 @@ namespace FWO.Api.Client.Queries
                 getNetworkZones = File.ReadAllText(QueryPath + "compliance/getNetworkZones.graphql");
                 getNetworkZonesForMatrix = File.ReadAllText(QueryPath + "compliance/getNetworkZonesForMatrix.graphql");
                 updateNetworkZones = File.ReadAllText(QueryPath + "compliance/updateNetworkZone.graphql");
+
                 modifyNetworkZoneCommunication = File.ReadAllText(QueryPath + "compliance/updateNetworkZoneCommunication.graphql");
+
                 addViolations = File.ReadAllText(QueryPath + "compliance/addViolations.graphql");
                 getViolations = File.ReadAllText(QueryPath + "compliance/getViolations.graphql");
                 addPolicy = File.ReadAllText(QueryPath + "compliance/addPolicy.graphql");

@@ -1,14 +1,16 @@
 mutation update_compliance_network_zone ($network_zone_id: bigint!, $name: String!, $description: String!, $super_network_zone_id: bigint,
   $add_ip_ranges: [compliance_ip_range_insert_input!]!, $delete_ip_ranges_exp: [compliance_ip_range_bool_exp!]!,
   $add_zone_communication: [compliance_network_zone_communication_insert_input!]!, $delete_zone_communication_exp: [compliance_network_zone_communication_bool_exp!]!,
-  $add_sub_zones_exp: [compliance_network_zone_bool_exp!]!, $delete_sub_zones_exp: [compliance_network_zone_bool_exp!]!) 
+  $add_sub_zones_exp: [compliance_network_zone_bool_exp!]!, $delete_sub_zones_exp: [compliance_network_zone_bool_exp!]!,
+  $criterion_id: Int) 
 {   
   update_compliance_network_zone (
     where: {id: {_eq: $network_zone_id}}
     _set: {
       name: $name,
       description: $description,   
-      super_network_zone_id: $super_network_zone_id
+      super_network_zone_id: $super_network_zone_id,
+      criterion_id: $criterion_id
     }
   ) {
     affected_rows

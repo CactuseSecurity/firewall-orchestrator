@@ -189,6 +189,41 @@ else
     {
         try
         {
+            // Setting default policy and criterion if necessary. This code will be deprecated once it is possible for the user to set up policies and criteria.
+
+            @* CompliancePolicy[]? policies = await apiConnection.SendQueryAsync<CompliancePolicy[]>(ComplianceQueries.getPolicies);
+            CompliancePolicy? defaultPolicy = policies?.FirstOrDefault();
+
+            if (defaultPolicy == null)
+            {
+                CompliancePolicy newPolicy = new CompliancePolicy
+                {
+                    Name = "Default Policy",
+                    CreatedDate = DateTime.UtcNow,
+                    Disabled = false
+                };
+                
+                await apiConnection.SendQueryAsync<CompliancePolicy>(ComplianceQueries.addPolicy, new { policy = newPolicy });
+            }
+
+            ComplianceCriterion[]? criteria = await apiConnection.SendQueryAsync<ComplianceCriterion[]>(ComplianceQueries.getCriteria );
+            ComplianceCriterion? defaultCriterion = criteria?.FirstOrDefault();
+            
+            if (defaultCriterion == null)
+            {
+                ComplianceCriterion newCriterion = new ComplianceCriterion
+                {
+                    Name = "Default Matrix",
+                    CriterionType = "matrix",
+                    Content = "Matrix communication",
+                    Created = DateTime.UtcNow
+                };
+                
+                await apiConnection.SendQueryAsync<ComplianceCriterion>(ComplianceQueries.addCriterion, new { criterion = newCriterion });
+            } *@
+
+            // Prepare the variables for the API call
+
             var variables = new
             {
                 add_zone_communication = addCommunication.ConvertAll(zones =>

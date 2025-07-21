@@ -1761,6 +1761,8 @@ INSERT INTO txt VALUES ('policies',      		'German', 	'Policies');
 INSERT INTO txt VALUES ('policies',      		'English', 	'Policies');
 INSERT INTO txt VALUES ('edit_policy',      	'German', 	'Policy bearbeiten');
 INSERT INTO txt VALUES ('edit_policy',      	'English', 	'Edit Policy');
+INSERT INTO txt VALUES ('edit_fix_crit',      	'German', 	'Feste Kriterien bearbeiten');
+INSERT INTO txt VALUES ('edit_fix_crit',      	'English', 	'Edit Fixed Criteria');
 
 -- settings
 INSERT INTO txt VALUES ('devices',				'German', 	'Ger&auml;te');

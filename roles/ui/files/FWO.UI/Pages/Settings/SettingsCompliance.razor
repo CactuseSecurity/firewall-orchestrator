@@ -87,7 +87,6 @@ else
     private ConfigData? configData;
     private DateTime complianceCheckStartDate = DateTime.Today;
     private DateTime complianceCheckStartTime = DateTime.Now.AddSeconds(-DateTime.Now.Second);
-    private bool _persistData = false;
 
     protected override async Task OnInitializedAsync()
     {

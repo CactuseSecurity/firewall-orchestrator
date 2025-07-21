@@ -10,13 +10,14 @@ namespace FWO.Services
 {
     public class ModellingServiceHandler : ModellingHandlerBase
     {
-        public ModellingService ActService { get; set; } = new();
-        private ModellingService ActServiceOrig { get; set; } = new();
+        public ModellingService ActService { get; set; }
+        private ModellingService ActServiceOrig { get; set; }
+        private static readonly string EditService = "edit_service";
 
 
-        public ModellingServiceHandler(ApiConnection apiConnection, UserConfig userConfig, FwoOwner application, 
+        public ModellingServiceHandler(ApiConnection apiConnection, UserConfig userConfig, FwoOwner application,
             ModellingService service, List<ModellingService> availableServices, List<KeyValuePair<int, int>> availableSvcElems, bool addMode, Action<Exception?, string, string, bool> displayMessageInUi, bool isOwner = true)
-            : base (apiConnection, userConfig, application, addMode, displayMessageInUi, false, isOwner)
+            : base(apiConnection, userConfig, application, addMode, displayMessageInUi, false, isOwner)
         {
             ActService = service;
             AvailableServices = availableServices;
@@ -48,7 +49,7 @@ namespace FWO.Services
             }
             catch (Exception exception)
             {
-                DisplayMessageInUi(exception, userConfig.GetText("edit_service"), "", true);
+                DisplayMessageInUi(exception, userConfig.GetText(EditService), "", true);
             }
             return false;
         }
@@ -66,32 +67,32 @@ namespace FWO.Services
         {
             if(ActService.Protocol == null || ActService.Protocol.Id == 0)
             {
-                DisplayMessageInUi(null, userConfig.GetText("edit_service"), userConfig.GetText("E5102"), true);
+                DisplayMessageInUi(null, userConfig.GetText(EditService), userConfig.GetText("E5102"), true);
                 return false;
             }
             if(ActService.PortEnd == null)
             {
                 ActService.PortEnd = ActService.Port;
             }
-            if(ActService.Protocol.Name.ToLower().StartsWith("esp"))
+            if(!ActService.Protocol.HasPorts())
             {
                 ActService.Port = null;
                 ActService.PortEnd = null;
             }
             else if(ActService.Port == null)
             {
-                DisplayMessageInUi(null, userConfig.GetText("edit_service"), userConfig.GetText("E5102"), true);
+                DisplayMessageInUi(null, userConfig.GetText(EditService), userConfig.GetText("E5102"), true);
                 return false;
             }
             if(ActService.Port < 1 || ActService.Port > GlobalConst.kMaxPortNumber ||
                 (ActService.PortEnd != null &&  (ActService.PortEnd < 1 || ActService.PortEnd > GlobalConst.kMaxPortNumber)))
             {
-                DisplayMessageInUi(null, userConfig.GetText("edit_service"), userConfig.GetText("E5103"), true);
+                DisplayMessageInUi(null, userConfig.GetText(EditService), userConfig.GetText("E5103"), true);
                 return false;
             }
             if(ActService.PortEnd != null && (ActService.PortEnd < ActService.Port))
             {
-                DisplayMessageInUi(null, userConfig.GetText("edit_service"), userConfig.GetText("E5118"), true);
+                DisplayMessageInUi(null, userConfig.GetText(EditService), userConfig.GetText("E5118"), true);
                 return false;
             }
             return true;
@@ -145,7 +146,7 @@ namespace FWO.Services
             }
             catch (Exception exception)
             {
-                DisplayMessageInUi(exception, userConfig.GetText("edit_service"), "", true);
+                DisplayMessageInUi(exception, userConfig.GetText(EditService), "", true);
             }
         }
     }

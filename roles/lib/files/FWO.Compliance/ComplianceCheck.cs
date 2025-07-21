@@ -82,7 +82,7 @@ namespace FWO.Compliance
                     {
                         violations = violationsForInsert
                     };
-                    await _apiConnection.SendQueryAsync<ComplianceNetworkZone[]>(ComplianceQueries.addViolations, variables );
+                    await _apiConnection.SendQueryAsync<dynamic>(ComplianceQueries.addViolations, variables );
                 }
 
             }

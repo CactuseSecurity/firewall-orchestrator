@@ -390,7 +390,7 @@ class FwConfigImportCheckConsistency(FwConfigImport):
 
         # check consistency of links
         for mgr in config.ManagerSet:
-            if self.import_state.MgmDetails.ImportDisabled: # only the super manager can be checked
+            if self.import_state.MgmDetails.ImportDisabled:
                 continue
             for single_config in mgr.Configs:        
                 # now check rblinks for all gateways
@@ -402,7 +402,7 @@ class FwConfigImportCheckConsistency(FwConfigImport):
 
 
     def _check_rulebase_links_for_gateway(self, gw, broken_rulebase_links, all_rule_uids, all_rulebase_uids):
-        if not gw.ImportDisabled: # only the super manager can be checked
+        if not gw.ImportDisabled:
             for rbl in gw.RulebaseLinks:
                 self._check_rulebase_link(gw, rbl, broken_rulebase_links, all_rule_uids, all_rulebase_uids)
 
@@ -411,7 +411,7 @@ class FwConfigImportCheckConsistency(FwConfigImport):
         all_rulebase_uids = set()
         all_rule_uids = set()
         for mgr in config.ManagerSet:
-            if self.import_state.MgmDetails.ImportDisabled: # only the super manager can be checked
+            if self.import_state.MgmDetails.ImportDisabled:
                 continue
             for single_config in mgr.Configs:        
                 # collect rulebase UIDs

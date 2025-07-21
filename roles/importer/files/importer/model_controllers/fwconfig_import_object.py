@@ -2,6 +2,7 @@ from enum import Enum
 from typing import Dict, List
 import traceback
 import time, datetime
+import json
 
 from fwo_log import ChangeLogger, getFwoLogger
 from model_controllers.import_state_controller import ImportStateController
@@ -236,7 +237,12 @@ class FwConfigImportObject():
             'removedSvcObjectUids': removedSvcObjectUids,
             'removedUserUids': removedUserUids
         }
-        
+
+        if self.ImportDetails.DebugLevel>8:
+            logger.debug(f"fwo_api:importNwObject - import_mutation: {import_mutation}")
+            # Save the query variables to a file for debugging purposes.
+            json.dump(queryVariables, open(f"/usr/local/fworch/tmp/import/mgm_id_{self.ImportDetails.MgmDetails.Id}_queryVariables.json", "w"), indent=4)
+
         try:
             import_result = self.ImportDetails.call(import_mutation, queryVariables=queryVariables, debug_level=self.ImportDetails.DebugLevel, analyze_payload=True)
             if 'errors' in import_result:

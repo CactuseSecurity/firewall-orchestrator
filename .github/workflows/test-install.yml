@@ -1,36 +1,46 @@
-
 name: do test install
 
 on:
   push:
     branches:
-    - main
-    - develop
-    - importer-rework
+      - main
+      - develop
+      - importer-rework
     paths-ignore:
-    - 'documentation/**'
-    - 'design/**'
+      - 'documentation/**'
+      - 'design/**'
 
   pull_request:
-    types: [ ready_for_review, review_requested ]
     paths-ignore:
-    - 'documentation/**'
-    - 'design/**'
+      - 'documentation/**'
+      - 'design/**'
 
 jobs:
-  deploy:    
-    name: test build on ${{ matrix.os }}
+  test-install:
+    name: Test install on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     env:
-        RUNNING_ON_GITHUB_ACTIONS: true
+      RUNNING_ON_GITHUB_ACTIONS: true
     strategy:
       matrix:
-        os: [ubuntu-latest, ubuntu-22.04]
-    steps:    
-    - uses: actions/checkout@v4
-    - uses: actions/setup-dotnet@v4    
-    - name: do test install in case of merged pull request
-      run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator && ansible-playbook -e force_install=true site.yml -K
-    - name: Running in GitHub actions requires testing puppeteer pdf creation separately 
-      if: ${{ env.RUNNING_ON_GITHUB_ACTIONS }} == 'true'
-      run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator/roles/tests-unit/files/FWO.Test && dotnet restore && dotnet build && dotnet test --filter "Name=HtmlToPdfTest"
+        os: [ubuntu-latest]
+        # os: [ubuntu-latest, ubuntu-22.04]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Run Ansible test install
+        run: |
+          cd /home/runner/work/firewall-orchestrator/firewall-orchestrator
+          ansible-playbook -e force_install=true site.yml -K
+
+      - name: Running in GitHub actions requires testing puppeteer pdf creation separately
+        if: ${{ env.RUNNING_ON_GITHUB_ACTIONS }} == 'true'
+        run: |
+          cd /home/runner/work/firewall-orchestrator/firewall-orchestrator/roles/tests-unit/files/FWO.Test
+          dotnet restore
+          dotnet build
+          dotnet test --filter "Name=HtmlToPdfTest"

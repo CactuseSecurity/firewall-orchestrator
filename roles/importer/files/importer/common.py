@@ -15,7 +15,7 @@ import fwo_api
 from fwo_log import getFwoLogger
 from fwo_const import fw_module_name, import_tmp_path
 import fwo_globals
-import fwo_exceptions
+from fwo_exceptions import FwoImporterError, FwLoginFailed, ImportRecursionLimitReached, FwoApiWriteError, FwoImporterErrorInconsistencies, ImportInterruption
 from fwo_base import stringIsUri, ConfigAction, ConfFormat
 import fwo_file_import
 from model_controllers.fworch_config_controller import FworchConfigController
@@ -70,13 +70,14 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
         if importState.MgmDetails.ImportDisabled and not importState.ForceImport:
             logger.info(f"import_management - import disabled for mgm  {str(mgmId)} - skipping")
             return 0
+        
         if importState.MgmDetails.ImporterHostname != gethostname() and not importState.ForceImport:
-            logger.info("import_management - this host (" + gethostname() + ") is not responsible for importing management " + str(mgmId))
+            logger.info(f"import_management - this host ( {gethostname()}) is not responsible for importing management  {str(mgmId)}")
             return 0
         
         Path(import_tmp_path).mkdir(parents=True, exist_ok=True)  # make sure tmp path exists
         gateways = GatewayController.buildGatewayList(importState.MgmDetails)
-        logger.info("starting import of management " + importState.MgmDetails.Name + '(' + str(mgmId) + "), import_id=" + str(importState.ImportId))
+        logger.info(f"starting import of management {importState.MgmDetails.Name} ({str(mgmId)}), import_id= {str(importState.ImportId)}")
         config_importer = FwConfigImport()
 
         fwo_api.setImportLock(importState)
@@ -101,20 +102,20 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
         if not clearManagementData and importState.DataRetentionDays<importState.DaysSinceLastFullImport:
             config_importer.deleteOldImports() # delete all imports of the current management before the last but one full import
 
-    except (fwo_exceptions.FwLoginFailed) as e:
+    except (FwLoginFailed) as e:
         fwo_api.delete_import(importState) # delete whole import
         importState.addError("Login to FW manager failed")
         rollBackExceptionHandler(importState, configImporter=config_importer, exc=e, errorText="")
-    except (fwo_exceptions.ImportRecursionLimitReached) as e:
+    except (ImportRecursionLimitReached) as e:
         fwo_api.delete_import(importState) # delete whole import
         importState.addError("ImportRecursionLimitReached - aborting import")
-    except (KeyboardInterrupt, fwo_exceptions.ImportInterruption) as e:
+    except (KeyboardInterrupt, ImportInterruption) as e:
         rollBackExceptionHandler(importState, configImporter=config_importer, exc=e, errorText="shutdown requested")
         raise
-    except (fwo_exceptions.FwoApiWriteError, fwo_exceptions.FwoImporterError) as e:
+    except (FwoApiWriteError, FwoImporterError) as e:
         importState.addError("FwoApiWriteError or FwoImporterError - aborting import")
         rollBackExceptionHandler(importState, configImporter=config_importer, exc=e, errorText="")
-    except fwo_exceptions.FwoImporterErrorInconsistencies:
+    except FwoImporterErrorInconsistencies:
         fwo_api.delete_import(importState) # delete whole import
     except ValueError:
         importState.addError("ValueError - aborting import")
@@ -174,6 +175,8 @@ def register_services():
 def get_config_top_level(importState: ImportStateController, in_file: str = None, gateways: List[Gateway] = []) -> tuple[bool, FwConfigManagerList]:
     if in_file is not None or stringIsUri(importState.MgmDetails.Hostname):
         ### geting config from file ######################
+        if in_file is None:
+            in_file = importState.MgmDetails.Hostname
         return import_from_file(importState, in_file, gateways)
     else:
         ### getting config from firewall manager API ######
@@ -183,7 +186,7 @@ def get_config_top_level(importState: ImportStateController, in_file: str = None
 def import_from_file(importState: ImportStateController, fileName: str = "", gateways: List[Gateway] = []) -> tuple[bool, FwConfigManagerList]:
 
     logger = getFwoLogger(debug_level=importState.DebugLevel)
-    logger.debug("import_management - not getting config from API but from file: " + fileName)
+    logger.debug(f"import_management - not getting config from API but from file: {fileName}")
 
     config_changed_since_last_import = True
     

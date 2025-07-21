@@ -37,12 +37,15 @@ def collect_single_svc_object(obj):
         'service-icmp': 1
     }
 
+    proto = None
+
     if 'type' in obj and obj['type'] in proto_map:
         proto = proto_map[obj['type']]
     elif 'ip-protocol' in obj:
         proto = obj['ip-protocol']
-    else:
+    if proto is not None and proto<0:
         proto = None
+
     obj['proto'] = proto
     
     rpc_nr = None

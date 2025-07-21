@@ -5,7 +5,6 @@ import traceback
 import time
 
 import fwo_globals
-
 from fwo_log import getFwoLogger
 from fwo_const import fwo_api_http_import_timeout
 from fwo_exceptions import FwoApiServiceUnavailable, FwoApiTimeout
@@ -47,14 +46,14 @@ class FwoApi():
             # self._analyze_payload(query, queryVariables)
             self.query_info = self.query_analyzer.analyze_payload(query, queryVariables)
 
-        with requests.Session() as session:
-            if fwo_globals.verify_certs is None:    # only for first FWO API call (getting info on cert verification)
-                session.verify = False
-            else: 
-                session.verify = fwo_globals.verify_certs
-            session.headers = request_headers
+        try: 
+            with requests.Session() as session:
+                if fwo_globals.verify_certs is None:    # only for first FWO API call (getting info on cert verification)
+                    session.verify = False
+                else: 
+                    session.verify = fwo_globals.verify_certs
+                session.headers = request_headers
 
-            try: 
                 if analyze_payload and self.query_info["chunking_info"]["needs_chunking"]:
                     started = time.time()
                     return_object = self._call_chunked(session, query, queryVariables, debug_level)
@@ -74,8 +73,16 @@ class FwoApi():
 
                 return return_object
 
-            except requests.exceptions.RequestException as e: 
-                self._handle_request_exception(e, full_query, request_headers)
+        except requests.exceptions.RequestException as e: 
+            self._handle_request_exception(e, full_query, request_headers)
+        except FwoImporterError as e:
+            # Handle FwoImporterError specifically, logging it and re-raising.
+            logger.error(f"FwoImporterError during API call: {str(e)}")
+            raise
+        except Exception as e:
+            # Catch all other exceptions and log them.
+            logger.error(f"Unexpected error during API call: {str(e)}")
+            raise FwoImporterError(f"Unexpected error during API call: {str(e)}")
 
     
     def _handle_request_exception(self, exception, query_payload, headers):

@@ -19,11 +19,15 @@ namespace FWO.Compliance
         ComplianceNetworkZone[] NetworkZones = [];
         ReportCompliance? ComplianceReport = null;
         public List<(Rule, (ComplianceNetworkZone, ComplianceNetworkZone))> Results { get; set; } = [];
+        public List<ComplianceViolation> RestrictedServiceViolations { get; set; } = [];
         private ReportBase? currentReport;
         Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
         ReportFilters reportFilters = new();
         private readonly UserConfig _userConfig;
         private readonly ApiConnection _apiConnection;
+        private readonly List<string> _restrictedServices = ["97aeb369-9aea-11d5-bd16-0090272ccb30"];
+        private bool _checkRestrictedServices = true;
+
 
         /// <summary>
         /// Constructor for compliance check
@@ -48,6 +52,7 @@ namespace FWO.Compliance
             currentReport = await ReportGenerator.Generate(template, _apiConnection, _userConfig, DisplayMessageInUi);
 
             Results.Clear();
+            RestrictedServiceViolations.Clear();
 
             if (_apiConnection != null)
             {
@@ -84,7 +89,7 @@ namespace FWO.Compliance
             }
         }
 
-        public bool CheckRuleCompliance(Rule rule)
+        public async Task<bool> CheckRuleCompliance(Rule rule)
         {
             List<IPAddressRange> froms = [];
             List<IPAddressRange> tos = [];
@@ -105,6 +110,14 @@ namespace FWO.Compliance
             foreach (var item in forbiddenCommunication)
             {
                 Results.Add((rule, item));
+            }
+
+            List<ComplianceViolation> serviceViolations = await TryGetRestrictedServiceViolation(rule);
+
+            if (serviceViolations.Count > 0)
+            {
+                ruleIsCompliant = false;
+                RestrictedServiceViolations.AddRange(serviceViolations);
             }
 
             return ruleIsCompliant;
@@ -155,6 +168,29 @@ namespace FWO.Compliance
             }
         }
 
+        public async Task<List<ComplianceViolation>> TryGetRestrictedServiceViolation(Rule rule)
+        {
+            List<ComplianceViolation> violations = [];
+
+            if (_checkRestrictedServices)
+            {
+                foreach (var service in rule.Services)
+                {
+                    if (_restrictedServices.Contains(service.Content.Uid))
+                    {
+                        ComplianceViolation violation = new()
+                        {
+                            RuleId = (int)rule.Id,
+                            Details = $"Restricted service used: {service.Content.Name}"
+                        };
+                        RestrictedServiceViolations.Add(violation);
+                        violations.Add(violation);
+                    }
+                }
+            }
+            return violations;
+        }
+
         /// <summary>
         /// Create compliance report for given Managements
         /// </summary>
@@ -163,7 +199,7 @@ namespace FWO.Compliance
         public async Task<ReportCompliance> CreateComplianceReport(List<int> mgmIds)
         {
             await SetUpReportFilters();
-            
+
             ReportTemplate template = new ReportTemplate("", reportFilters.ToReportParams());
             currentReport = await ReportGenerator.Generate(template, _apiConnection, _userConfig, DisplayMessageInUi);
             ComplianceReport = currentReport as ReportCompliance;

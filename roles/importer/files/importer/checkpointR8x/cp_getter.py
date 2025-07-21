@@ -536,7 +536,12 @@ def resolve_ref_from_object_dictionary(uid, objDict, native_config_domain={}, fi
     matched_obj = find_element_by_uid(objDict, uid)
         
     if matched_obj is None: # object not in dict - need to fetch it from API
-        if field_name is None or field_name != 'track':
+        if field_name != 'track' and uid != '29e53e3d-23bf-48fe-b6b1-d59bd88036f9':
+            # 29e53e3d-23bf-48fe-b6b1-d59bd88036f9 is a track object uid (track None) which is not in the object dictionary, but used in some rules
+            if field_name is None:
+                field_name = 'unknown'
+            if uid is None:
+                uid = 'unknown'
             logger.warning(f"object of type {field_name} with uid {uid} not found in object dictionary")
         return None
     else:
@@ -579,7 +584,7 @@ def categorize_value_for_resolve_ref(rule, value, objDict, nativeConfigDomain):
             rule[value] = resolve_ref_from_object_dictionary(rule[value]['type'], objDict, native_config_domain=nativeConfigDomain, field_name=value)
         else:   # assuming list of rules
             for id in rule[value]:
-                value_list.append(resolve_ref_from_object_dictionary(id, objDict, native_config_domain=nativeConfigDomain), field_name=value)
+                value_list.append(resolve_ref_from_object_dictionary(id, objDict, native_config_domain=nativeConfigDomain, field_name=value)
             rule[value] = value_list # replace ref list with object list
 
 
@@ -609,13 +614,15 @@ def getObjectDetailsFromApi(uid_missing_obj, sid='', apiurl=''):
                             'type': 'network', 'ipv4-address': fwo_const.any_ip_ipv4,
                             'domain': obj['domain']
                             } ] } ] }
-                    elif (obj['name'] == 'None'):
+                    elif (obj['name'] == 'None' and obj['type']=='Track'):
                         return  { "type": "hosts", "chunks": [ {
                             "objects": [ {
                             'uid': obj['uid'], 'name': obj['name'], 'color': color,
                             'comments': 'none nw object checkpoint (hard coded)',
                             'type': 'group', 'domain': obj['domain']
                             } ] } ] }
+                    elif (obj['name'] == 'None'):
+                        pass
                 elif (obj['type'] in [ 'simple-gateway', 'CpmiGatewayPlain', 'interop', 'multicast-address-range',
                                       'CpmiVsClusterMember', 'CpmiVsxClusterMember', 'CpmiVsxNetobj' ]):
                     return { "type": "hosts", "chunks": [ {

@@ -500,13 +500,11 @@ def get_objects(nativeConfig: dict, importState: ImportStateController) -> int:
             anyObj = cp_getter.getObjectDetailsFromApi(cp_const.any_obj_uid, sid=sid, apiurl=cp_api_url)['chunks'][0]
             noneObj = cp_getter.getObjectDetailsFromApi(cp_const.none_obj_uid, sid=sid, apiurl=cp_api_url)['chunks'][0]
             internetObj = cp_getter.getObjectDetailsFromApi(cp_const.internet_obj_uid, sid=sid, apiurl=cp_api_url)['chunks'][0]
-
-        # get all objects
-        if manager_details.IsSuperManager or len(manager_details_list) == 1:
             obj_type_array = cp_const.api_obj_types
         else:
             obj_type_array = cp_const.local_api_obj_types
 
+        # get all objects
         for obj_type in obj_type_array:
             object_table = get_objects_per_type(obj_type, show_params_objs, sid, cp_api_url)
             add_special_objects_to_global_domain(object_table, manager_index, obj_type,

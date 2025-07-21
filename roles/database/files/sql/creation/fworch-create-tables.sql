@@ -1406,8 +1406,9 @@ create table compliance.network_zone
 	description VARCHAR NOT NULL,
 	super_network_zone_id bigint,
 	owner_id bigint,
-	removed timestamp with time zone default now(),
-	created timestamp with time zone default now()
+	removed timestamp with time zone,
+	created timestamp with time zone default now(),
+	criterion_id INT
 );
 
 create table compliance.network_zone_communication
@@ -1415,7 +1416,7 @@ create table compliance.network_zone_communication
 	criterion_id INT,
     from_network_zone_id bigint NOT NULL,
 	to_network_zone_id bigint NOT NULL,
-    removed timestamp with time zone default now(),
+    removed timestamp with time zone,
 	created timestamp with time zone default now()
 );
 
@@ -1425,8 +1426,9 @@ create table compliance.ip_range
 	ip_range_start inet NOT NULL,
 	ip_range_end inet NOT NULL,
 	PRIMARY KEY(network_zone_id, ip_range_start, ip_range_end, created),
-	removed timestamp with time zone default now(),
-	created timestamp with time zone default now()
+	removed timestamp with time zone,
+	created timestamp with time zone default now(),
+	criterion_id INT
 );
 
 create table compliance.policy
@@ -1441,7 +1443,7 @@ create table compliance.policy_criterion
 (
     policy_id INT NOT NULL,
 	criterion_id INT NOT NULL,
-    removed timestamp with time zone default now(),
+    removed timestamp with time zone,
 	created timestamp with time zone default now()
 );
 
@@ -1450,7 +1452,9 @@ create table compliance.criterion
     id SERIAL PRIMARY KEY,
 	name TEXT,
 	criterion_type TEXT,
-	content TEXT
+	content TEXT,
+	removed timestamp with time zone,
+	created timestamp with time zone default now()
 );
 
 create table compliance.violation
@@ -1458,7 +1462,7 @@ create table compliance.violation
     id BIGSERIAL PRIMARY KEY,
 	rule_id bigint NOT NULL,
 	found_date timestamp default now(),
-	removed_date timestamp with time zone default now(),
+	removed_date timestamp with time zone,
 	details TEXT,
 	risk_score real,
 	policy_id INT NOT NULL,

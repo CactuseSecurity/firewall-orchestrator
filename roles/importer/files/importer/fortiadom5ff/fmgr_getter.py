@@ -101,10 +101,7 @@ def update_config_with_fortinet_api_call(config_json, sid, api_base_url, api_pat
         if len(result)<limit:
             returned_new_objects = False
 
-    if result_name in config_json:  # data already exists - extend
-        config_json[result_name].extend(full_result)
-    else:
-        config_json.update({result_name: full_result})
+    config_json.append({'type': result_name, 'data': full_result})
 
 
 def fortinet_api_call(sid, api_base_url, api_path, payload={}, show_progress=False, method="get"):
@@ -119,3 +116,5 @@ def fortinet_api_call(sid, api_base_url, api_path, payload={}, show_progress=Fal
     else:
         result = []
     return result
+
+

@@ -290,7 +290,7 @@ namespace FWO.Report
                 }
                 else
                 {
-                    throw new Exception($"Found no installed {wantedBrowser} instances!");
+                    throw new EnvironmentException($"Found no installed {wantedBrowser} instances!");
                 } 
             }
 

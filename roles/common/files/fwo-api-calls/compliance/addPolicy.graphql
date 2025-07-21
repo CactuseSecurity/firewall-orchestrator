@@ -1,0 +1,8 @@
+mutation addPolicy($policy: compliance_policy_insert_input!) {
+  insert_compliance_policy_one(object: $policy) {
+    id
+    name
+    created_date
+    disabled
+  }
+}

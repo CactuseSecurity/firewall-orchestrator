@@ -1753,6 +1753,14 @@ INSERT INTO txt VALUES ('file_upload_failed',   'German', 	'Datei hochladen ist 
 INSERT INTO txt VALUES ('file_upload_failed',   'English',  'File upload failed.');
 INSERT INTO txt VALUES ('wrong_input_data',     'German',   'Falsche Eingabedaten');
 INSERT INTO txt VALUES ('wrong_input_data',     'English',  'Wrong input data');
+INSERT INTO txt VALUES ('add_matrix',     		'German',   'Matrix hinzuf&uuml;gen');
+INSERT INTO txt VALUES ('add_matrix',     		'English',  'Add Matrix');
+INSERT INTO txt VALUES ('policy',      			'German', 	'Policy');
+INSERT INTO txt VALUES ('policy',      			'English', 	'Policy');
+INSERT INTO txt VALUES ('policies',      		'German', 	'Policies');
+INSERT INTO txt VALUES ('policies',      		'English', 	'Policies');
+INSERT INTO txt VALUES ('edit_policy',      	'German', 	'Policy bearbeiten');
+INSERT INTO txt VALUES ('edit_policy',      	'English', 	'Edit Policy');
 
 -- settings
 INSERT INTO txt VALUES ('devices',				'German', 	'Ger&auml;te');

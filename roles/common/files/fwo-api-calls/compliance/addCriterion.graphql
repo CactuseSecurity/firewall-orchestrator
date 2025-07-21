@@ -1,0 +1,13 @@
+mutation addCriterion(
+  $name: String!
+  $criterionType: String!
+  ) {
+  insert_compliance_criterion(objects: {
+    name: $name
+    criterion_type: $criterionType
+  }) {
+    returning {
+      insertedId: id
+    }
+  }
+}

@@ -1,0 +1,17 @@
+query getPolicies {
+  compliance_policy(where: {disabled: {_eq: false}}) {
+    id
+    name
+    created_date
+    disabled
+    criteria: policy_criterions {
+      criterion: criterion {
+        content
+        criterion_type
+        id
+        name
+      }
+    }
+  }
+}
+ 

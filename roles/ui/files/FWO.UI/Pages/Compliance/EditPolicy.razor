@@ -1,0 +1,152 @@
+﻿@using System.Text.Json
+
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Auditor}")]
+
+@inject UserConfig userConfig
+@inject ApiConnection apiConnection
+
+<PopUp Title="@(userConfig.GetText("edit_policy"))" Size=PopupSize.Small Show="@Display" OnClose="Cancel">
+    <Body>
+        @if(Display)
+        {
+            <div class="col-sm-11">
+                <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
+                @if(AddMode)
+                {
+                    <input type="text" class="col-sm-8" @bind="Policy.Name" />
+                }
+                else
+                {
+                    <label class="col-sm-8 col-form-label col-form-label-sm"><b>@(Policy.Name)</b></label>
+                }
+            </div>
+            <br>
+            <EditList ElementType="ComplianceCriterion" Elements="Policy.Criteria.Select(c => c.Content).ToArray()" ElementsToAdd="CriteriaToAdd" ElementsToDelete="CriteriaToDelete" StdLayout="false">
+                <Display>
+                    <div class="col-sm-9 border bg-transparent">@context.Name</div>
+                </Display>
+            </EditList>
+            <div class="col-sm-12 mt-1">
+                <div class="form-group row me-auto">
+                    <div class="col-sm-9">
+                        <Dropdown ElementType="ComplianceCriterion" ElementToString="@(r => r.Name)" @bind-SelectedElement="ActCrit" Elements="AllCriteria">
+                            <ElementTemplate Context="crit">
+                                @(crit.Name)
+                            </ElementTemplate>
+                        </Dropdown>
+                    </div>
+                    <button @onclick="AddCrit" type="button" class="col-sm-2 btn btn-sm btn-success" id="addCrit">@userConfig.GetText("add")</button>
+                </div>
+            </div>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}")">
+                <Authorized>
+                    <button type="button" class="btn btn-sm btn-danger" @onclick="Save">@(userConfig.GetText("save"))</button>
+                </Authorized>
+                <NotAuthorized>
+                    <button type="button" class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("save"))</button>
+                </NotAuthorized> 
+            </AuthorizeView>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
+        </div>
+    </Footer>
+</PopUp>
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    [Parameter]
+    public bool Display { get; set; } = false;
+
+    [Parameter]
+    public EventCallback<bool> DisplayChanged { get; set; }
+
+    [Parameter]
+    public CompliancePolicy Policy { get; set; } = new();
+
+    [Parameter]
+    public EventCallback<CompliancePolicy> PolicyChanged { get; set; }
+
+    [Parameter]
+    public List<CompliancePolicy> Policies { get; set; } = [];
+
+    [Parameter]
+    public EventCallback<List<CompliancePolicy>> PoliciesChanged { get; set; }
+
+    [Parameter]
+    public bool AddMode { get; set; } = false;
+
+    private List<ComplianceCriterion> AllCriteria = [];
+    private List<ComplianceCriterion> CriteriaToAdd = [];
+    private List<ComplianceCriterion> CriteriaToDelete = [];
+    ComplianceCriterion ActCrit = new();
+
+
+    protected async override Task OnInitializedAsync()
+    {
+        try
+        {
+            AllCriteria = await apiConnection.SendQueryAsync<List<ComplianceCriterion>>(ComplianceQueries.getCriteria);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("object_fetch"), "", true);
+        }
+    }
+
+    protected override void OnParametersSet()
+    {
+        if(Display && AllCriteria.Count > 0)
+        {
+            CriteriaToAdd = [];
+            CriteriaToDelete = [];
+        }
+    }
+
+    private void AddCrit()
+    {
+        CriteriaToAdd.Add(ActCrit);
+    }
+
+    private void Cancel()
+    {
+        Close();
+    }
+
+    private async Task Save()
+    {
+        try
+        {
+            if(AddMode)
+            {
+                ReturnId[]? returnIds =(await apiConnection.SendQueryAsync<ReturnIdWrapper>(ComplianceQueries.addPolicy, new{ name = Policy.Name })).ReturnIds;
+                if (returnIds != null)
+                {
+                    int policyId = returnIds[0].InsertedId;
+                    foreach(var crit in CriteriaToAdd)
+                    {
+                        await apiConnection.SendQueryAsync<ReturnId>(ComplianceQueries.addCritToPolicy, new{ policyId = policyId, criterionId = crit.Id });
+                        Policy.Criteria.Add(new(){ Content = crit});
+                    }
+                }
+                Policies.Add(Policy);
+            }
+            Close();
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("edit_policy"), "", true);
+        }
+    }
+
+    private void Close()
+    {
+        Display = false;
+        DisplayChanged.InvokeAsync(Display);
+    }
+}

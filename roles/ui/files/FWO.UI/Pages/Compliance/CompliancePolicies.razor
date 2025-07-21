@@ -1,0 +1,90 @@
+﻿@page "/compliance/policies"
+
+@layout ComplianceLayout
+
+@inject ApiConnection apiConnection
+@inject UserConfig userConfig
+
+<div class="input-group">
+    <h3>@(userConfig.GetText("policies"))</h3>
+    @* <HelpLink Page="compliance/policies"/> *@
+</div>
+<hr />
+<button type="button" class="btn btn-sm btn-success m-1" @onclick="AddPolicy">@(userConfig.GetText("add"))</button>
+
+<div class="m-2 vheight75">
+    <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="CompliancePolicy" Items="policies" PageSize="0" ColumnReorder="true">
+        <Column TableItem="CompliancePolicy" Title="@(userConfig.GetText("actions"))" Field="@(x => x.Id)" Sortable="false" Filterable="false">
+            <Template>
+                <div class="btn-group">
+                    <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditPolicy(context)">@(userConfig.GetText("edit"))</button>
+                    <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestDelete(context)">@(userConfig.GetText("delete"))</button>
+                </div>
+            </Template>
+        </Column>
+        <Column TableItem="CompliancePolicy" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
+        <Column TableItem="CompliancePolicy" Title="@(userConfig.GetText("creation_date"))" Field="@(x => x.CreatedDate)" Sortable="true" />
+        <Column TableItem="CompliancePolicy" Title="@(userConfig.GetText("criteria"))" Field="@(x => x.Criteria)" Sortable="true" Filterable="true" >
+            <Template>
+                @(ListCriteria(context))
+            </Template>
+        </Column>
+    </Table>
+</div>
+
+<EditPolicy @bind-Display="EditMode" @bind-Policy="SelectedPolicy" @bind-Policies="policies" AddMode="AddMode"/>
+
+
+@code
+{
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationStateTask { get; set; }
+
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    private CompliancePolicy SelectedPolicy = new();
+    private List<CompliancePolicy> policies = [];
+    private bool matrixLoaded = false;
+    private bool AddMode = false;
+    private bool EditMode = false;
+    private bool DeleteMode = false;
+
+
+    protected async override Task OnInitializedAsync()
+    {
+        try
+        {
+            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Admin, Roles.FwAdmin, Roles.Auditor ]);
+            policies = await apiConnection.SendQueryAsync<List<CompliancePolicy>>(ComplianceQueries.getPolicies);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("object_fetch"), "", true);
+        }
+    }
+
+    private string ListCriteria(CompliancePolicy policy)
+    {
+        return string.Join(", ", policy.Criteria.Select(c => c.Content.Name));
+    }
+
+    private void AddPolicy()
+    {
+        AddMode = true;
+        SelectedPolicy = new();
+        EditMode = true;
+    }
+
+    private void EditPolicy(CompliancePolicy policy)
+    {
+        AddMode = false;
+        SelectedPolicy = policy;
+        EditMode = true;
+    }
+
+    private void RequestDelete(CompliancePolicy policy)
+    {
+        DeleteMode = true;
+    }
+}

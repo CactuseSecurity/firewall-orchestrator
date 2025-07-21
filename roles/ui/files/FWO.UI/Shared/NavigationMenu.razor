@@ -1,3 +1,5 @@
+@using System.Text.Json
+
 @inject GlobalConfig globalConfig
 @inject UserConfig userConfig
 @inject ApiConnection apiConnection
@@ -25,48 +27,66 @@
 
         <div class="navbar-collapse @NavMenuCollapseClass">
             <ul class="@NavPaddingCollapseClass d-flex flex-wrap navbar-nav align-items-start flex-row">
-                <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Auditor}, {Roles.Modeller}")">
-                    <li class="nav-item px-2">
-                        <a href="@("/" + PageName.ReportGeneration)" class="nav-link @(navigationManager.Uri.Contains("/report/") ? "active" : "")">
-                            <span class="@Icons.Reporting"></span> @(userConfig.GetText("reporting"))
-                        </a>
-                    </li>
-                </AuthorizeView>
-                <AuthorizeView Roles="@($"{Roles.Admin}, {WorkflowRoles()}, {Roles.FwAdmin}, {Roles.Auditor}")">
-                    <li class="nav-item px-2">
-                        <NavLink class="nav-link" href="@firstWorkflowPage">
-                            <span class="@Icons.Workflow"></span> @(userConfig.GetText("workflow"))
-                        </NavLink>
-                    </li>
-                </AuthorizeView>
-                <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Recertifier}, {Roles.Auditor}")">
-                    <li class="nav-item px-2">
-                        <NavLink class="nav-link" href="@("/" + PageName.Certification)">
-                            <span class="@Icons.Recertification"></span> @(userConfig.GetText("recertification"))
-                        </NavLink>
-                    </li>
-                </AuthorizeView>
-                <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Modeller}, {Roles.Auditor}")">
-                    <li class="nav-item px-2">
-                        <NavLink class="nav-link" href="/networkmodelling">
-                            <span class="@Icons.Modelling"></span> @(userConfig.GetText("modelling"))
-                        </NavLink>
-                    </li>
-                </AuthorizeView>
-                <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Planner}, {Roles.Auditor}")">
-                    <li class="nav-item px-2">
-                        <NavLink class="nav-link" href="/network_analysis">
-                            <span class="@Icons.NetworkAnalysis"></span> @(userConfig.GetText("network_analysis"))
-                        </NavLink>
-                    </li>
-                </AuthorizeView>
-                <AuthorizeView Roles="@($"{ComplianceRoles()}")">
-                    <li class="nav-item px-2">
-                        <NavLink class="nav-link" href="/compliance/zones/matrix">
-                            <span class="@Icons.Compliance"></span> @(userConfig.GetText("compliance"))
-                        </NavLink>
-                    </li>
-                </AuthorizeView>                
+                @if(availableModules.Contains(Module.Report))
+                {
+                    <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Auditor}, {Roles.Modeller}")">
+                        <li class="nav-item px-2">
+                            <a href="@("/" + PageName.ReportGeneration)" class="nav-link @(navigationManager.Uri.Contains("/report/") ? "active" : "")">
+                                <span class="@Icons.Reporting"></span> @(userConfig.GetText("reporting"))
+                            </a>
+                        </li>
+                    </AuthorizeView>
+                }
+                @if(availableModules.Contains(Module.Workflow))
+                {
+                    <AuthorizeView Roles="@($"{Roles.Admin}, {WorkflowRoles()}, {Roles.FwAdmin}, {Roles.Auditor}")">
+                        <li class="nav-item px-2">
+                            <NavLink class="nav-link" href="@firstWorkflowPage">
+                                <span class="@Icons.Workflow"></span> @(userConfig.GetText("workflow"))
+                            </NavLink>
+                        </li>
+                    </AuthorizeView>
+                }
+                @if(availableModules.Contains(Module.Recertification))
+                {
+                    <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Recertifier}, {Roles.Auditor}")">
+                        <li class="nav-item px-2">
+                            <NavLink class="nav-link" href="@("/" + PageName.Certification)">
+                                <span class="@Icons.Recertification"></span> @(userConfig.GetText("recertification"))
+                            </NavLink>
+                        </li>
+                    </AuthorizeView>
+                }
+                @if(availableModules.Contains(Module.Modelling))
+                {
+                    <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Modeller}, {Roles.Auditor}")">
+                        <li class="nav-item px-2">
+                            <NavLink class="nav-link" href="/networkmodelling">
+                                <span class="@Icons.Modelling"></span> @(userConfig.GetText("modelling"))
+                            </NavLink>
+                        </li>
+                    </AuthorizeView>
+                }
+                @if(availableModules.Contains(Module.NetworkAnalysis))
+                {
+                    <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Planner}, {Roles.Auditor}")">
+                        <li class="nav-item px-2">
+                            <NavLink class="nav-link" href="/network_analysis">
+                                <span class="@Icons.NetworkAnalysis"></span> @(userConfig.GetText("network_analysis"))
+                            </NavLink>
+                        </li>
+                    </AuthorizeView>
+                }
+                @if(availableModules.Contains(Module.Compliance))
+                {
+                    <AuthorizeView Roles="@($"{ComplianceRoles()}")">
+                        <li class="nav-item px-2">
+                            <NavLink class="nav-link" href="/compliance/zones/matrix">
+                                <span class="@Icons.Compliance"></span> @(userConfig.GetText("compliance"))
+                            </NavLink>
+                        </li>
+                    </AuthorizeView> 
+                }               
             </ul>
             <ul class="@NavPaddingCollapseClass d-flex flex-wrap navbar-nav align-items-end ms-auto flex-row">
                 <li class="nav-item px-2">
@@ -119,7 +139,8 @@
     string NavPaddingCollapseClass => (collapseNavMenu ? "" : " px-3 py-1");
 
     string firstWorkflowPage = "";
-    private StateMatrix stateMatrix = new StateMatrix();
+    private StateMatrix stateMatrix = new();
+    private List<Module> availableModules { get; set; } = [];
     private bool InitComplete = false;
 
 
@@ -156,6 +177,9 @@
             {
                 firstWorkflowPage = "/request/reviews";
             }
+
+            availableModules = string.IsNullOrEmpty(userConfig.AvailableModules) ? [.. Enum.GetValues(typeof(Module)).Cast<Module>()]
+                : JsonSerializer.Deserialize<List<Module>>(userConfig.AvailableModules) ?? throw new JsonException("Config data could not be parsed.");
         }
         catch (Exception exception)
         {

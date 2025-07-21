@@ -34,7 +34,8 @@ namespace FWO.Middleware.Server.Controllers
                 UserConfig userConfig = new(GlobalConfig, apiConnection, new(){ Language = GlobalConst.kEnglish });
 
                 ComplianceCheck complianceCheck = new(userConfig, apiConnection);
-                List<(ComplianceNetworkZone, ComplianceNetworkZone)> forbiddenCommunicationsOutput = (await complianceCheck.CreateComplianceReport(parameters.ManagementIds)).Results;
+                await complianceCheck.CheckAll();
+                List<(Rule, (ComplianceNetworkZone, ComplianceNetworkZone))> forbiddenCommunicationsOutput = complianceCheck.Results;
                 return ConvertOutput(forbiddenCommunicationsOutput);
             }
             catch (Exception exception)
@@ -44,7 +45,7 @@ namespace FWO.Middleware.Server.Controllers
             return "";
         }
 
-        private static string ConvertOutput(List<(ComplianceNetworkZone, ComplianceNetworkZone)> forbiddenCommunicationsOutput)
+        private static string ConvertOutput(List<(Rule, (ComplianceNetworkZone, ComplianceNetworkZone))> forbiddenCommunicationsOutput)
         {
             return JsonSerializer.Serialize(forbiddenCommunicationsOutput);
         }

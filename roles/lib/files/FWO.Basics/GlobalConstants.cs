@@ -40,7 +40,8 @@ namespace FWO.Basics
         public const string kDoku_ = "Doku_";
         public const string k_user = "_user";
         public const string k_user2 = "-user";
-		public const string kNAT = "NAT";
+        public const string kUpdatable = "updatable";
+        public const string kNAT = "NAT";
         public const string k_demo = "_demo";
 
         public const char kAppIdSeparator = '-'; // hard-coded could be moved to settings
@@ -96,5 +97,60 @@ namespace FWO.Basics
         public const string Rulename = "rulename";
         public const string Comment = "comment";
         public const string Customfields = "customfields";
+    }
+
+    public struct QueryVar
+    {
+        public const string Limit = "limit";
+        public const string Offset = "offset";
+        public const string Time = "time";
+        public const string ImportIdStart = "import_id_start";
+        public const string ImportIdEnd = "import_id_end";
+        public const string ImportIdOld = "import_id_old";
+        public const string ImportIdNew = "import_id_new";
+        public const string MgmIds = "mgmIds";
+        public const string MgmId = "mgmId";
+        public const string ManagementId = "management_id";
+        public const string RuleIds = "ruleIds";
+        public const string RuleId = "rule_id";
+    }
+
+    public struct Placeholder
+    {
+        public const string ExternalAppId = "@@ExternalAppId@@";
+        public const string AppId = "@@AppId@@";
+        public const string AppPrefix = "@@AppPrefix@@";
+
+        public const string APPNAME = "@@APPNAME@@";
+        public const string APPID = "@@APPID@@";
+
+        public const string ACTION = "@@ACTION@@";
+        public const string CHANGEACTION = "@@CHANGEACTION@@";
+        public const string COMMENT = "@@COMMENT@@";
+        public const string DESTINATIONS = "@@DESTINATIONS@@";
+        public const string GROUPNAME = "@@GROUPNAME@@";
+        public const string IP = "@@IP@@";
+        public const string MANAGEMENT_ID = "@@MANAGEMENT_ID@@";
+        public const string MANAGEMENT_NAME = "@@MANAGEMENT_NAME@@";
+        public const string MEMBERS = "@@MEMBERS@@";
+        public const string OBJECT_DETAILS = "@@OBJECT_DETAILS@@";
+        public const string OBJECTNAME = "@@OBJECTNAME@@";
+        public const string OBJECT_TYPE = "@@OBJECT_TYPE@@";
+        public const string OBJUPDSTATUS = "@@OBJUPDSTATUS@@";
+        public const string ONBEHALF = "@@ONBEHALF@@";
+        public const string ORDERNAME = "@@ORDERNAME@@";
+        public const string PORT = "@@PORT@@";
+        public const string PRIORITY = "@@PRIORITY@@";
+        public const string PROTOCOLNAME = "@@PROTOCOLNAME@@";
+        public const string PROTOCOLID = "@@PROTOCOLID@@";
+        public const string REASON = "@@REASON@@";
+        public const string SERVICENAME = "@@SERVICENAME@@";
+        public const string SERVICES = "@@SERVICES@@";
+        public const string SOURCES = "@@SOURCES@@";
+        public const string STATUS = "@@STATUS@@";
+        public const string TASKCOMMENT = "@@TASKCOMMENT@@";
+        public const string TASKS = "@@TASKS@@";
+        public const string TICKET_SUBJECT = "@@TICKET_SUBJECT@@";
+        public const string TYPE = "@@TYPE@@";
     }
 }

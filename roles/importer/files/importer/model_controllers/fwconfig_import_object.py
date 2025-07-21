@@ -8,9 +8,11 @@ from fwo_log import ChangeLogger, getFwoLogger
 from model_controllers.import_state_controller import ImportStateController
 from model_controllers.fwconfig_normalized_controller import FwConfigNormalized
 from models.networkobject import NetworkObjectForImport
+from models.fwconfigmanager import FwConfigManager
 from models.serviceobject import ServiceObjectForImport
 import fwo_const
 import fwo_api
+import fwo_exceptions
 from services.service_provider import ServiceProvider
 from services.enums import Services
 
@@ -45,7 +47,7 @@ class FwConfigImportObject():
         self.ProtocolMap = self.GetProtocolMap()
 
 
-    def updateObjectDiffs(self, prevConfig: FwConfigNormalized):
+    def updateObjectDiffs(self, prevConfig: FwConfigNormalized, single_manager: FwConfigManager):
 
         # calculate network object diffs
         # here we are handling the previous config as a dict for a while
@@ -98,22 +100,22 @@ class FwConfigImportObject():
 
         # need to do this first, since we need the old object IDs for the group memberships
         #TODO: computationally expensive? Even without changes, all group objects and their members are compared to the previous config.
-        errors, changes = self.removeOutdatedMemberships(prevConfig, Type.NETWORK_OBJECT)
-        errors, changes = self.removeOutdatedMemberships(prevConfig, Type.SERVICE_OBJECT)
-        errors, changes = self.removeOutdatedMemberships(prevConfig, Type.USER)
+        self.removeOutdatedMemberships(prevConfig, Type.NETWORK_OBJECT)
+        self.removeOutdatedMemberships(prevConfig, Type.SERVICE_OBJECT)
+        self.removeOutdatedMemberships(prevConfig, Type.USER)
 
         # add newly created objects
         errors, changes, newNwObjIds, newNwSvcIds, newUserIds, removedNwObjIds, removedNwSvcIds, removedUserIds =  \
-            self.updateObjectsViaApi(newNwobjUids, newSvcObjUids, newUserUids, deletedNwobjUids, deletedSvcObjUids, deletedUserUids)
+            self.updateObjectsViaApi(single_manager, newNwobjUids, newSvcObjUids, newUserUids, deletedNwobjUids, deletedSvcObjUids, deletedUserUids)
         
-        self.uid2id_mapper.add_network_object_mappings(newNwObjIds)
-        self.uid2id_mapper.add_service_object_mappings(newNwSvcIds)
+        self.uid2id_mapper.add_network_object_mappings(newNwObjIds, is_global=single_manager.IsSuperManager)
+        self.uid2id_mapper.add_service_object_mappings(newNwSvcIds, is_global=single_manager.IsSuperManager)
         self.uid2id_mapper.add_user_mappings(newUserIds)
 
         # insert new and updated group memberships
-        errors, changes = self.addGroupMemberships(prevConfig, Type.NETWORK_OBJECT)
-        errors, changes = self.addGroupMemberships(prevConfig, Type.SERVICE_OBJECT)
-        errors, changes = self.addGroupMemberships(prevConfig, Type.USER)
+        self.addGroupMemberships(prevConfig, Type.NETWORK_OBJECT)
+        self.addGroupMemberships(prevConfig, Type.SERVICE_OBJECT)
+        self.addGroupMemberships(prevConfig, Type.USER)
 
         # these objects have really been deleted so there should be no refs to them anywhere! verify this
 
@@ -212,7 +214,7 @@ class FwConfigImportObject():
             map.update({proto['ip_proto_name'].lower(): proto['ip_proto_id']})
         return map
 
-    def updateObjectsViaApi(self, newNwObjectUids, newSvcObjectUids, newUserUids, removedNwObjectUids, removedSvcObjectUids, removedUserUids):
+    def updateObjectsViaApi(self, single_manager, newNwObjectUids, newSvcObjectUids, newUserUids, removedNwObjectUids, removedSvcObjectUids, removedUserUids):
         # here we also mark old objects removed before adding the new versions
         logger = getFwoLogger(debug_level=self.ImportDetails.DebugLevel)
         errors = 0
@@ -223,13 +225,14 @@ class FwConfigImportObject():
         removedNwObjIds = []
         removedNwSvcIds = []
         removedUserIds = []
+        this_managements_id = self.ImportDetails.lookupManagementId(single_manager.ManagerUid)
         import_mutation = fwo_api.get_graphql_code([fwo_const.graphqlQueryPath + "allObjects/upsertObjects.graphql"])
         queryVariables = {
-            'mgmId': self.ImportDetails.MgmDetails.Id,
+            'mgmId': this_managements_id,
             'importId': self.ImportDetails.ImportId,
-            'newNwObjects': self.prepareNewNwObjects(newNwObjectUids),
-            'newSvcObjects': self.prepareNewSvcObjects(newSvcObjectUids),
-            'newUsers': self.prepareNewUserObjects(newUserUids),
+            'newNwObjects': self.prepareNewNwObjects(newNwObjectUids, this_managements_id),
+            'newSvcObjects': self.prepareNewSvcObjects(newSvcObjectUids, this_managements_id),
+            'newUsers': self.prepareNewUserObjects(newUserUids, this_managements_id),
             'removedNwObjectUids': removedNwObjectUids,
             'removedSvcObjectUids': removedSvcObjectUids,
             'removedUserUids': removedUserUids
@@ -259,11 +262,11 @@ class FwConfigImportObject():
         return errors, changes, newNwObjIds, newNwSvcIds, newUserIds, removedNwObjIds, removedNwSvcIds, removedUserIds
     
 
-    def prepareNewNwObjects(self, newNwobjUids):
+    def prepareNewNwObjects(self, newNwobjUids, mgm_id):
         newNwObjs = []
         for nwobjUid in newNwobjUids:
             newNwObj = NetworkObjectForImport(nwObject=self.NormalizedConfig.network_objects[nwobjUid],
-                                                    mgmId=self.ImportDetails.MgmDetails.Id, 
+                                                    mgmId=mgm_id, 
                                                     importId=self.ImportDetails.ImportId, 
                                                     colorId=self.ImportDetails.lookupColorId(self.NormalizedConfig.network_objects[nwobjUid].obj_color), 
                                                     typId=self.lookupObjType(self.NormalizedConfig.network_objects[nwobjUid].obj_typ))
@@ -272,23 +275,23 @@ class FwConfigImportObject():
         return newNwObjs
 
 
-    def prepareNewSvcObjects(self, newSvcobjUids):
+    def prepareNewSvcObjects(self, newSvcobjUids, mgm_id):
         newObjs = []
         for uid in newSvcobjUids:
             newObjs.append(ServiceObjectForImport(svcObject=self.NormalizedConfig.service_objects[uid],
-                                        mgmId=self.ImportDetails.MgmDetails.Id, 
+                                        mgmId=mgm_id, 
                                         importId=self.ImportDetails.ImportId, 
                                         colorId=self.ImportDetails.lookupColorId(self.NormalizedConfig.service_objects[uid].svc_color), 
                                         typId=self.lookupSvcType(self.NormalizedConfig.service_objects[uid].svc_typ),
                                         ).toDict())
         return newObjs
     
-    def prepareNewUserObjects(self, newUserUids):
+    def prepareNewUserObjects(self, newUserUids, mgm_id):
         newObjs = []
         for uid in newUserUids:
             newObjs.append({
                 'user_uid': uid,
-                'mgm_id': self.ImportDetails.MgmDetails.Id,
+                'mgm_id': mgm_id,
                 'user_create': self.ImportDetails.ImportId,
                 'user_last_seen': self.ImportDetails.ImportId,
                 'usr_typ_id': self.lookupUserType(self.NormalizedConfig.users[uid]['user_typ']),
@@ -310,7 +313,14 @@ class FwConfigImportObject():
         if type == Type.SERVICE_OBJECT:
             return self.uid2id_mapper.get_service_object_id(uid, before_update)
         return self.uid2id_mapper.get_user_id(uid, before_update)
-    
+
+    def get_local_id(self, type, uid, before_update = False):
+        if type == Type.NETWORK_OBJECT:
+            return self.uid2id_mapper.get_network_object_id(uid, before_update, local_only=True)
+        if type == Type.SERVICE_OBJECT:
+            return self.uid2id_mapper.get_service_object_id(uid, before_update, local_only=True)
+        return self.uid2id_mapper.get_user_id(uid, before_update, local_only=True)
+
     def is_group(self, type: Type, obj):
         if type == Type.NETWORK_OBJECT:
             return obj.obj_typ == "group"
@@ -439,81 +449,102 @@ class FwConfigImportObject():
         return errors, changes
 
 
-    def addGroupMemberships(self, prev_config, type: Type):
+    def addGroupMemberships(self, prev_config, obj_type: Type):
         """
         This function is used to update group memberships for nwobjs, services or users in the database.
         It adds group memberships and flats for new and updated members.
         Args:
             prev_config (FwConfigNormalized): The previous normalized config.
         """
-        logger = getFwoLogger()
         errors = 0
         changes = 0
         new_group_members = []
         new_group_member_flats = []
-        prev_config_objects, current_config_objects = self.get_config_objects(type, prev_config)
-        prefix = self.get_prefix(type)
+        prev_config_objects, current_config_objects = self.get_config_objects(obj_type, prev_config)
+        prefix = self.get_prefix(obj_type)
         for uid in current_config_objects.keys():
-            if not self.is_group(type, current_config_objects[uid]):
+            if not self.is_group(obj_type, current_config_objects[uid]):
                 continue
-            member_uids = self.get_members(type, self.get_refs(type, current_config_objects[uid]))
+            member_uids = self.get_members(obj_type, self.get_refs(obj_type, current_config_objects[uid]))
             prev_member_uids = []  # all members need to be added if group added or changed
             prev_flat_member_uids = []
             if uid in prev_config_objects:
                 # group not added
                 if current_config_objects[uid] == prev_config_objects[uid]:
                     # group not changed -> check for changes in members
-                    prev_member_uids = self.get_members(type, self.get_refs(type, prev_config_objects[uid]))
-                    prev_flat_member_uids = self.get_prev_flats(type, uid)
-            group_id = self.get_id(type, uid)
-            for member_uid in member_uids:
-                if member_uid in prev_member_uids and prev_config_objects[member_uid] == current_config_objects[member_uid]:
-                    continue # member was not added or changed
-                memberId = self.get_id(type, member_uid)
-                new_group_members.append({
-                    f"{prefix}_id": group_id,
-                    f"{prefix}_member_id": memberId,
-                    "import_created": self.ImportDetails.ImportId,
-                    "import_last_seen": self.ImportDetails.ImportId # to be removed in the future
-                })
-            flat_member_uids = self.get_flats(type, uid)
-            for flat_member_uid in flat_member_uids:
-                if flat_member_uid in prev_flat_member_uids and prev_config_objects[flat_member_uid] == current_config_objects[flat_member_uid]:
-                    continue # flat member was not added or changed
-                flat_member_id = self.get_id(type, flat_member_uid)
-                new_group_member_flats.append({
-                    f"{prefix}_flat_id": group_id,
-                    f"{prefix}_flat_member_id": flat_member_id,
-                    "import_created": self.ImportDetails.ImportId,
-                    "import_last_seen": self.ImportDetails.ImportId # to be removed in the future
-                })
-        if len(new_group_members) > 0:
-            import_mutation = f"""
-                mutation update{prefix.capitalize()}Groups($groups: [{prefix}_insert_input!]!, $groupFlats: [{prefix}_flat_insert_input!]!) {{
-                    insert_{prefix}(objects: $groups) {{
-                        affected_rows
-                    }}
-                    insert_{prefix}_flat(objects: $groupFlats) {{
-                        affected_rows
-                    }}
+                    prev_member_uids = self.get_members(obj_type, self.get_refs(obj_type, prev_config_objects[uid]))
+                    prev_flat_member_uids = self.get_prev_flats(obj_type, uid)
+
+            group_id = self.get_id(obj_type, uid)
+            self.collect_group_members(group_id, current_config_objects, new_group_members, member_uids, obj_type, prefix, prev_member_uids, prev_config_objects)
+            flat_member_uids = self.get_flats(obj_type, uid)
+            self.collect_flat_group_members(group_id, current_config_objects, new_group_member_flats, flat_member_uids, obj_type, prefix, prev_flat_member_uids, prev_config_objects)
+
+        if len(new_group_members)==0:
+            return errors, 0
+        
+        return self.write_member_updates(new_group_members, new_group_member_flats, prefix, errors)
+
+
+    def collect_flat_group_members(self, group_id, current_config_objects, new_group_member_flats, flat_member_uids, obj_type, prefix, prev_flat_member_uids, prev_config_objects):
+        for flat_member_uid in flat_member_uids:
+            if flat_member_uid in prev_flat_member_uids and prev_config_objects[flat_member_uid] == current_config_objects[flat_member_uid]:
+                continue # flat member was not added or changed
+            flat_member_id = self.get_id(obj_type, flat_member_uid)
+            new_group_member_flats.append({
+                f"{prefix}_flat_id": group_id,
+                f"{prefix}_flat_member_id": flat_member_id,
+                "import_created": self.ImportDetails.ImportId,
+                "import_last_seen": self.ImportDetails.ImportId # to be removed in the future
+            })
+
+
+    def collect_group_members(self, group_id, current_config_objects, new_group_members, member_uids, obj_type, prefix, prev_member_uids, prev_config_objects):
+        for member_uid in member_uids:
+            if member_uid in prev_member_uids and prev_config_objects[member_uid] == current_config_objects[member_uid]:
+                continue # member was not added or changed
+            member_id = self.get_id(obj_type, member_uid)
+            new_group_members.append({
+                f"{prefix}_id": group_id,
+                f"{prefix}_member_id": member_id,
+                "import_created": self.ImportDetails.ImportId,
+                "import_last_seen": self.ImportDetails.ImportId # to be removed in the future
+            })
+
+
+    def write_member_updates(self, new_group_members, new_group_member_flats, prefix, errors):
+        logger = getFwoLogger()
+        changes = 0
+        import_mutation = f"""
+            mutation update{prefix.capitalize()}Groups($groups: [{prefix}_insert_input!]!, $groupFlats: [{prefix}_flat_insert_input!]!) {{
+                insert_{prefix}(objects: $groups) {{
+                    affected_rows
                 }}
-            """
-            query_variables = {
-                'groups': new_group_members,
-                'groupFlats': new_group_member_flats
-            }
-            try:
-                import_result = self.ImportDetails.call(import_mutation, queryVariables=query_variables, analyze_payload=True)
-                if 'errors' in import_result:
-                    logger.exception(f"fwo_api:importNwObject - error in addGroupMemberships: {str(import_result['errors'])}")
-                    errors = 1
-                else:
-                    changes = int(import_result['data'][f'insert_{prefix}']['affected_rows']) + \
-                        int(import_result['data'][f'insert_{prefix}_flat']['affected_rows'])
-            except Exception:
-                logger.exception(f"failed to write new objects: {str(traceback.format_exc())}")
+                insert_{prefix}_flat(objects: $groupFlats) {{
+                    affected_rows
+                }}
+            }}
+        """
+        query_variables = {
+            'groups': new_group_members,
+            'groupFlats': new_group_member_flats
+        }
+        try:
+            import_result = self.ImportDetails.call(import_mutation, queryVariables=query_variables, analyze_payload=True)
+            if 'errors' in import_result:
+                logger.exception(f"fwo_api:addGroupMemberships: {str(import_result['errors'])}")
                 errors = 1
-            
+                if 'duplicate' in import_result['errors']:
+                    raise fwo_exceptions.FwoDuplicateKeyViolation(str(import_result['errors']))
+                else:
+                    raise fwo_exceptions.FwoImporterError(str(import_result['errors']))
+            else:
+                changes = int(import_result['data'][f'insert_{prefix}']['affected_rows']) + \
+                    int(import_result['data'][f'insert_{prefix}_flat']['affected_rows'])
+        except Exception:
+            logger.exception(f"failed to write new objects: {str(traceback.format_exc())}")
+            errors = 1
+
         return errors, changes
 
 

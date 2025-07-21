@@ -47,7 +47,9 @@ namespace FWO.Middleware.Server
         {
             try
             {
-                ComplianceCheck complianceCheck = new(new(globalConfig));
+                UserConfig userConfig = new(globalConfig);
+                ComplianceCheck complianceCheck = new(userConfig, apiConnection);
+
                 await complianceCheck.CheckAll();
                 await complianceCheck.SendComplianceCheckEmail();
             }

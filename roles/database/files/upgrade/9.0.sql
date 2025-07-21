@@ -895,7 +895,7 @@ CREATE TABLE IF NOT EXISTS compliance.policy_criterion
 (
     policy_id INT NOT NULL,
 	criterion_id INT NOT NULL,
-    removed timestamp with time zone default now(),
+    removed timestamp with time zone,
 	created timestamp with time zone default now()
 );
 
@@ -904,7 +904,9 @@ CREATE TABLE IF NOT EXISTS compliance.criterion
     id SERIAL PRIMARY KEY,
 	name TEXT,
 	criterion_type TEXT,
-	content TEXT
+	content TEXT,
+	removed timestamp with time zone,
+	created timestamp with time zone default now()
 );
 
 CREATE TABLE IF NOT EXISTS compliance.violation
@@ -912,7 +914,7 @@ CREATE TABLE IF NOT EXISTS compliance.violation
     id BIGSERIAL PRIMARY KEY,
 	rule_id bigint NOT NULL,
 	found_date timestamp default now(),
-	removed_date timestamp with time zone default now(),
+	removed_date timestamp with time zone,
 	details TEXT,
 	risk_score real,
 	policy_id INT NOT NULL,
@@ -922,12 +924,24 @@ CREATE TABLE IF NOT EXISTS compliance.violation
 -- add columns in existing compliance tables
 
 ALTER TABLE compliance.network_zone ADD COLUMN IF NOT EXISTS "created" TIMESTAMP WITH TIME ZONE DEFAULT NOW();
-ALTER TABLE compliance.network_zone ADD COLUMN IF NOT EXISTS "removed" TIMESTAMP WITH TIME ZONE DEFAULT NOW();
+ALTER TABLE compliance.network_zone ADD COLUMN IF NOT EXISTS "removed" TIMESTAMP WITH TIME ZONE;
+ALTER TABLE compliance.network_zone ADD COLUMN IF NOT EXISTS "criterion_id" INT;
 ALTER TABLE compliance.network_zone_communication ADD COLUMN IF NOT EXISTS "created" TIMESTAMP WITH TIME ZONE DEFAULT NOW();
-ALTER TABLE compliance.network_zone_communication ADD COLUMN IF NOT EXISTS "removed" TIMESTAMP WITH TIME ZONE DEFAULT NOW();
+ALTER TABLE compliance.network_zone_communication ADD COLUMN IF NOT EXISTS "removed" TIMESTAMP WITH TIME ZONE;
 ALTER TABLE compliance.network_zone_communication ADD COLUMN IF NOT EXISTS "criterion_id" INT;
 ALTER TABLE compliance.ip_range ADD COLUMN IF NOT EXISTS "created" TIMESTAMP WITH TIME ZONE DEFAULT NOW();
-ALTER TABLE compliance.ip_range ADD COLUMN IF NOT EXISTS "removed" TIMESTAMP WITH TIME ZONE DEFAULT NOW();
+ALTER TABLE compliance.ip_range ADD COLUMN IF NOT EXISTS "removed" TIMESTAMP WITH TIME ZONE;
+ALTER TABLE compliance.ip_range ADD COLUMN IF NOT EXISTS "criterion_id" INT;
+
+-- tables altered inside this version
+
+ALTER TABLE compliance.criterion ADD COLUMN IF NOT EXISTS "created" TIMESTAMP WITH TIME ZONE DEFAULT NOW();
+ALTER TABLE compliance.criterion ADD COLUMN IF NOT EXISTS "removed" TIMESTAMP WITH TIME ZONE;
+ALTER TABLE compliance.network_zone ALTER COLUMN "removed" DROP DEFAULT;
+ALTER TABLE compliance.network_zone_communication ALTER COLUMN "removed" DROP DEFAULT;
+ALTER TABLE compliance.ip_range ALTER COLUMN "removed" DROP DEFAULT;
+ALTER TABLE compliance.policy_criterion ALTER COLUMN "removed" DROP DEFAULT;
+ALTER TABLE compliance.violation ALTER COLUMN "removed_date" DROP DEFAULT;
 
 -- alter ip_range's PK
 
@@ -937,6 +951,20 @@ ADD CONSTRAINT ip_range_pkey
 PRIMARY KEY (network_zone_id, ip_range_start, ip_range_end, created);
 
 -- add FKs
+
+ALTER TABLE compliance.network_zone 
+DROP CONSTRAINT IF EXISTS compliance_criterion_network_zone_foreign_key;
+ALTER TABLE compliance.network_zone 
+ADD CONSTRAINT compliance_criterion_network_zone_foreign_key 
+FOREIGN KEY (criterion_id) REFERENCES compliance.criterion(id) 
+ON UPDATE RESTRICT ON DELETE CASCADE;
+
+ALTER TABLE compliance.ip_range 
+DROP CONSTRAINT IF EXISTS compliance_criterion_ip_range_foreign_key;
+ALTER TABLE compliance.ip_range 
+ADD CONSTRAINT compliance_criterion_ip_range_foreign_key 
+FOREIGN KEY (criterion_id) REFERENCES compliance.criterion(id) 
+ON UPDATE RESTRICT ON DELETE CASCADE;
 
 ALTER TABLE compliance.network_zone_communication 
 DROP CONSTRAINT IF EXISTS compliance_criterion_network_zone_communication_foreign_key;
@@ -980,8 +1008,9 @@ ADD CONSTRAINT compliance_rule_violation_foreign_key
 FOREIGN KEY (rule_id) REFERENCES public.rule(rule_id) 
 ON UPDATE RESTRICT ON DELETE CASCADE;
 
+-- add report type Compliance
 
-
+UPDATE config SET config_value = '[1,2,3,4,5,6,7,8,9,10,21,22,31]' WHERE config_key = 'availableReportTypes';
 
 -- adding labels (simple version without mapping tables and without foreign keys)
 

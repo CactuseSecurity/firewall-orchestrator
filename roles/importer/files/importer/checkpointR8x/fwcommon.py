@@ -91,7 +91,7 @@ def initialize_native_config(nativeConfig, importState):
     create domain structure in nativeConfig
     """
 
-    manager_details_list = enrich_submanager_details(importState)
+    manager_details_list = create_ordered_manager_list(importState)
     nativeConfig.update({'domains': []})
     for managerDetails in manager_details_list:
 
@@ -109,50 +109,71 @@ def initialize_native_config(nativeConfig, importState):
 
 def normalize_config(import_state, native_config: json, parsing_config_only: bool, sid: str) -> FwConfigManagerListController:
 
+    nativ_and_normalized_config_dict_list = []
     manager_list = FwConfigManagerListController()
 
     if 'domains' not in native_config:
         getFwoLogger().error("No domains found in native config. Cannot normalize config.")
         raise ImportInterruption("No domains found in native config. Cannot normalize config.")
+
+    # in case of mds, first nativ config domain is global
+    is_global_loop_iteration = False
+    native_config_global = None
+    normalized_config_global = None
+    if native_config['domains'][0]['is-super-manger']:
+        native_config_global = native_config['domains'][0]
+        is_global_loop_iteration = True
     
     for native_conf in native_config['domains']:
-        normalizedConfigDict = fwo_const.emptyNormalizedFwConfigJsonDict
-        normalized_config = normalize_single_manager_config(native_conf, normalizedConfigDict, import_state, parsing_config_only, sid)
-        manager = FwConfigManager(  ManagerName=native_conf['management_name'],
-                                    ManagerUid=native_conf['management_uid'],
-                                    IsGlobal=native_conf['is-super-manger'],
-                                    IsSuperManager=native_conf['is-super-manger'],
-                                    DependantManagerUids=[], 
-                                    DomainName=native_conf['domain_name'],
-                                    DomainUid=native_conf['domain_uid'],
-                                    Configs=[normalized_config])
+        normalized_config_dict = deepcopy(fwo_const.emptyNormalizedFwConfigJsonDict)
+        normalize_single_manager_config(
+            native_conf, native_config_global, normalized_config_dict, normalized_config_global,
+            import_state, parsing_config_only, sid, is_global_loop_iteration
+        )
+
+        nativ_and_normalized_config_dict_list.append({'native': native_conf, 'normalized': normalized_config_dict})
+
+        if is_global_loop_iteration:
+            normalized_config_global = normalized_config_dict
+            is_global_loop_iteration = False
+
+    for nativ_and_normalized_config_dict in nativ_and_normalized_config_dict_list:
+        normalized_config = FwConfigNormalized(
+            action=ConfigAction.INSERT, 
+            network_objects=FwConfigNormalizedController.convertListToDict(nativ_and_normalized_config_dict['normalized']['network_objects'], 'obj_uid'),
+            service_objects=FwConfigNormalizedController.convertListToDict(nativ_and_normalized_config_dict['normalized']['service_objects'], 'svc_uid'),
+            zone_objects=nativ_and_normalized_config_dict['normalized']['zone_objects'],
+            rulebases=nativ_and_normalized_config_dict['normalized']['policies'],
+            gateways=nativ_and_normalized_config_dict['normalized']['gateways']
+        )
+        manager = FwConfigManager(  ManagerName=nativ_and_normalized_config_dict['native']['management_name'],
+            ManagerUid=nativ_and_normalized_config_dict['native']['management_uid'],
+            IsGlobal=nativ_and_normalized_config_dict['native']['is-super-manger'],
+            IsSuperManager=nativ_and_normalized_config_dict['native']['is-super-manger'],
+            DependantManagerUids=[], 
+            DomainName=nativ_and_normalized_config_dict['native']['domain_name'],
+            DomainUid=nativ_and_normalized_config_dict['native']['domain_uid'],
+            Configs=[normalized_config]
+        )
         manager_list.addManager(manager)
 
     return manager_list
 
 
-def normalize_single_manager_config(nativeConfig: json, normalizedConfigDict, importState: ImportStateController, parsing_config_only: bool, sid: str) -> tuple[int, FwConfigManagerList]:
+def normalize_single_manager_config(nativeConfig: json, native_config_global: json, normalized_config_dict: dict,
+                                    normalized_config_global: dict, importState: ImportStateController,
+                                    parsing_config_only: bool, sid: str, is_global_loop_iteration: bool):
     logger = getFwoLogger()
-    cp_network.normalize_network_objects(nativeConfig, normalizedConfigDict, importState.ImportId, mgm_id=importState.MgmDetails.Id)
+    cp_network.normalize_network_objects(nativeConfig, normalized_config_dict, importState.ImportId, mgm_id=importState.MgmDetails.Id)
     logger.info("completed normalizing network objects")
-    cp_service.normalize_service_objects(nativeConfig, normalizedConfigDict, importState.ImportId)
+    cp_service.normalize_service_objects(nativeConfig, normalized_config_dict, importState.ImportId)
     logger.info("completed normalizing service objects")
-    cp_gateway.normalizeGateways(nativeConfig, importState, normalizedConfigDict)
-    cp_rule.normalizeRulebases(nativeConfig, importState, normalizedConfigDict)
+    cp_gateway.normalizeGateways(nativeConfig, importState, normalized_config_dict)
+    cp_rule.normalize_rulebases(nativeConfig, native_config_global, importState, normalized_config_dict, normalized_config_global, is_global_loop_iteration)
     if not parsing_config_only: # get config from cp fw mgr
         logout_cp(importState.MgmDetails.buildFwApiString(), sid)
     logger.info("completed normalizing rulebases")
     
-    # put dicts into object of class FwConfigManager
-    return FwConfigNormalized(
-        action=ConfigAction.INSERT, 
-        network_objects=FwConfigNormalizedController.convertListToDict(normalizedConfigDict['network_objects'], 'obj_uid'),
-        service_objects=FwConfigNormalizedController.convertListToDict(normalizedConfigDict['service_objects'], 'svc_uid'),
-        zone_objects=normalizedConfigDict['zone_objects'],
-        rulebases=normalizedConfigDict['policies'],
-        gateways=normalizedConfigDict['gateways']
-    )
-
 
 def get_rules(nativeConfig: dict, importState: ImportStateController) -> int:
     """
@@ -164,7 +185,7 @@ def get_rules(nativeConfig: dict, importState: ImportStateController) -> int:
     }
 
     globalAssignments, globalPolicyStructure, globalDomain, globalSid = None, None, None, None
-    manager_details_list = enrich_submanager_details(importState)
+    manager_details_list = create_ordered_manager_list(importState)
     manager_index = 0
     for managerDetails in manager_details_list:
         cpManagerApiBaseUrl = importState.MgmDetails.buildFwApiString()
@@ -188,12 +209,15 @@ def get_rules(nativeConfig: dict, importState: ImportStateController) -> int:
     return 0    
 
 
-def enrich_submanager_details(importState):
-    managerDetailsList = [deepcopy(importState.MgmDetails)]
+def create_ordered_manager_list(importState):
+    """
+    creates list of manager details, supermanager is first
+    """
+    manager_details_list = [deepcopy(importState.MgmDetails)]
     if importState.MgmDetails.IsSuperManager:
         for subManager in importState.MgmDetails.SubManagers:
-            managerDetailsList.append(deepcopy(subManager))
-    return managerDetailsList
+            manager_details_list.append(deepcopy(subManager))
+    return manager_details_list
 
 
 def handle_super_manager(managerDetails, cpManagerApiBaseUrl, show_params_policy_structure):
@@ -460,31 +484,51 @@ def logout_cp(url, sid):
 def get_objects(nativeConfig: dict, importState: ImportStateController) -> int:
 
     show_params_objs = {'limit': importState.FwoConfig.ApiFetchSize}
-    manager_details_list = enrich_submanager_details(importState)
+    manager_details_list = create_ordered_manager_list(importState)
             
     # loop over sub-managers in case of mds
     manager_index = 0
-    for managerDetails in manager_details_list:
-        cpManagerApiBaseUrl = importState.MgmDetails.buildFwApiString()
-        
+    for manager_details in manager_details_list:
+        if manager_details.ImportDisabled:
+            continue
+
+        cp_api_url = importState.MgmDetails.buildFwApiString()
         # getting Original (NAT) object (both for networks and services)
-        sid = loginCp(managerDetails)
-        if managerDetails.IsSuperManager or len(manager_details_list) == 1:
-            origObj = cp_getter.getObjectDetailsFromApi(cp_const.original_obj_uid, sid=sid, apiurl=cpManagerApiBaseUrl)['chunks'][0]
-            anyObj = cp_getter.getObjectDetailsFromApi(cp_const.any_obj_uid, sid=sid, apiurl=cpManagerApiBaseUrl)['chunks'][0]
-            noneObj = cp_getter.getObjectDetailsFromApi(cp_const.none_obj_uid, sid=sid, apiurl=cpManagerApiBaseUrl)['chunks'][0]
-            internetObj = cp_getter.getObjectDetailsFromApi(cp_const.internet_obj_uid, sid=sid, apiurl=cpManagerApiBaseUrl)['chunks'][0]
+        sid = loginCp(manager_details)
+        if manager_details.IsSuperManager or len(manager_details_list) == 1:
+            origObj = cp_getter.getObjectDetailsFromApi(cp_const.original_obj_uid, sid=sid, apiurl=cp_api_url)['chunks'][0]
+            anyObj = cp_getter.getObjectDetailsFromApi(cp_const.any_obj_uid, sid=sid, apiurl=cp_api_url)['chunks'][0]
+            noneObj = cp_getter.getObjectDetailsFromApi(cp_const.none_obj_uid, sid=sid, apiurl=cp_api_url)['chunks'][0]
+            internetObj = cp_getter.getObjectDetailsFromApi(cp_const.internet_obj_uid, sid=sid, apiurl=cp_api_url)['chunks'][0]
 
         # get all objects
-        for obj_type in cp_const.api_obj_types:
-            object_table = get_objects_per_type(obj_type, show_params_objs, sid, cpManagerApiBaseUrl)
+        if manager_details.IsSuperManager or len(manager_details_list) == 1:
+            obj_type_array = cp_const.api_obj_types
+        else:
+            obj_type_array = cp_const.local_api_obj_types
+
+        for obj_type in obj_type_array:
+            object_table = get_objects_per_type(obj_type, show_params_objs, sid, cp_api_url)
             add_special_objects_to_global_domain(object_table, manager_index, obj_type,
                                                  origObj, anyObj, noneObj, internetObj)
-
+            remove_predefined_objects_for_domains(object_table, manager_index)
             nativeConfig['domains'][manager_index]['objects'].append(object_table)
         manager_index += 1
 
     return 0
+
+
+def remove_predefined_objects_for_domains(object_table, manager_index):
+    if not (manager_index>0 and 'chunks' in object_table and 'type' in object_table and \
+        object_table['type'] in cp_const.types_to_remove_globals_from):
+        return
+    
+    for chunk in object_table['chunks']:
+        if 'objects' in chunk:
+            for obj in chunk['objects']:
+                domain_type = obj.get("domain", {}).get("domain-type", "")
+                if domain_type != "domain":
+                    chunk['objects'].remove(obj)
 
 
 def get_objects_per_type(obj_type, show_params_objs, sid, cpManagerApiBaseUrl):
@@ -524,6 +568,7 @@ def add_special_objects_to_global_domain(object_table, manager_index, obj_type,
                                          origObj, anyObj, noneObj, internetObj):
     """Appends special objects Original, Any, None and Internet to global domain
     """
+    # global manager is always the first
     if manager_index == 0:
         if obj_type == 'networks':
             object_table['chunks'].append(origObj)

@@ -278,6 +278,9 @@ bugfix release:
 - new enum values for Request Element Field Types
 - hotfix change recognition: separate rule changes and "all changes" to make object version handling work properly
 
+# 8.8.6 - 08.07.2025 DEVELOP
+- hotfix CP importer new stm_track: "extended log" and "detailed log"
+
 # 9.0 - 30.06.2025 DEVELOP
 - rule to gateway mapping 1:n
 - add report output for rule to gw mapping

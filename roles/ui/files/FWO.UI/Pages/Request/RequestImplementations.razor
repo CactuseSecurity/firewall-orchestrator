@@ -53,6 +53,7 @@ else
     private bool DisplayTickets = true;
     private Device selectedDeviceOpt = new ();
     private FwoOwner selectedOwnerOpt = new (){ Id = -1 };
+    private bool JumpedIn = false;
 
 
     protected override async Task OnInitializedAsync()
@@ -71,9 +72,16 @@ else
             await HandleTicketId();
             await Select();
             wfHandler.SetContinueEnv(ObjAction.implement);
-            if(wfHandler.ActTicket.Tasks.Count >= 1 && wfHandler.ActTicket.Tasks.First().ImplementationTasks.Count >= 1)
+            if(wfHandler.ActTicket.Tasks.Count > 0 && wfHandler.ActTicket.Tasks[0].ImplementationTasks.Count > 0)
             {
-                await wfHandler.ContinueImplPhase(wfHandler.ActTicket.Tasks.First().ImplementationTasks.First());
+                if(JumpedIn && authenticationStateTask!.Result.User.IsInRole(Roles.Admin) || authenticationStateTask!.Result.User.IsInRole(Roles.Auditor))
+                {
+                    wfHandler.SelectImplTask(wfHandler.ActTicket.Tasks[0].ImplementationTasks[0], ObjAction.display);
+                }
+                else
+                {
+                    await wfHandler.ContinueImplPhase(wfHandler.ActTicket.Tasks[0].ImplementationTasks[0]);
+                }
             }
             InitComplete = true;
         }
@@ -91,6 +99,10 @@ else
             if(newPhase != "")
             {
                 NavigationManager.NavigateTo($"/request/{newPhase.ToString()}s/{TicketId}");
+            }
+            else
+            {
+                JumpedIn = true;
             }
         }
     }

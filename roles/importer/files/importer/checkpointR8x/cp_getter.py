@@ -612,7 +612,7 @@ def getObjectDetailsFromApi(uid_missing_obj, sid='', apiurl=''):
                         return  { "type": "hosts", "chunks": [ {
                             "objects": [ {
                             'uid': obj['uid'], 'name': obj['name'], 'color': color,
-                            'comments': 'any nw object checkpoint (hard coded)',
+                            'comments': 'none nw object checkpoint (hard coded)',
                             'type': 'group', 'domain': obj['domain']
                             } ] } ] }
                 elif (obj['type'] in [ 'simple-gateway', 'CpmiGatewayPlain', 'interop', 'multicast-address-range',

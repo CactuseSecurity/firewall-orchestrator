@@ -100,6 +100,8 @@ insert into config (config_key, config_value, config_user) VALUES ('modRolloutRe
 insert into config (config_key, config_value, config_user) VALUES ('modRolloutBundleTasks', 'false', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modRolloutNatHeuristic', 'false', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modRolloutErrorText', 'Error during external request', 0);
+insert into config (config_key, config_value, config_user) VALUES ('modRecertActive', 'false', 0);
+insert into config (config_key, config_value, config_user) VALUES ('modRecertText', '', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modIconify', 'True', 0);
 insert into config (config_key, config_value, config_user) VALUES ('reducedProtocolSet', 'True', 0);
 insert into config (config_key, config_value, config_user) VALUES ('overviewDisplayLines', '3', 0);
@@ -120,6 +122,8 @@ insert into config (config_key, config_value, config_user) VALUES ('externalRequ
 insert into config (config_key, config_value, config_user) VALUES ('externalRequestStartAt', '00:00:00', 0);
 insert into config (config_key, config_value, config_user) VALUES ('externalRequestWaitCycles', '0', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modExtraConfigs', '[]', 0);
+insert into config (config_key, config_value, config_user) VALUES ('modSpecUserAreas', '[]', 0);
+insert into config (config_key, config_value, config_user) VALUES ('modUpdatableObjAreas', '[]', 0);
 insert into config (config_key, config_value, config_user) VALUES ('extTicketSystems', '[{"Url":"","TicketTemplate":"{\"ticket\":{\"subject\":\"@@TICKET_SUBJECT@@\",\"priority\":\"@@PRIORITY@@\",\"requester\":\"@@ONBEHALF@@\",\"domain_name\":\"\",\"workflow\":{\"name\":\"@@WORKFLOW_NAME@@\"},\"steps\":{\"step\":[{\"name\":\"Erfassung des Antrags\",\"tasks\":{\"task\":{\"fields\":{\"field\":[@@TASKS@@]}}}}]}}}","TasksTemplate":"{\"@xsi.type\":\"multi_access_request\",\"name\":\"GewünschterZugang\",\"read_only\":false,\"access_request\":{\"order\":\"AR1\",\"verifier_result\":{\"status\":\"notrun\"},\"use_topology\":true,\"targets\":{\"target\":{\"@type\":\"ANY\"}},\"users\":{\"user\":@@USERS@@},\"sources\":{\"source\":@@SOURCES@@},\"destinations\":{\"destination\":@@DESTINATIONS@@},\"services\":{\"service\":@@SERVICES@@},\"action\":\"@@ACTION@@\",\"labels\":\"\"}},{\"@xsi.type\":\"text_area\",\"name\":\"Grund für den Antrag\",\"read_only\":false,\"text\":\"@@REASON@@\"},{\"@xsi.type\":\"drop_down_list\",\"name\":\"Regel Log aktivieren?\",\"selection\":\"@@LOGGING@@\"},{\"@xsi.type\":\"date\",\"name\":\"Regel befristen bis:\"},{\"@xsi.type\":\"text_field\",\"name\":\"Anwendungs-ID\",\"text\":\"@@APPID@@\"},{\"@xsi.type\":\"checkbox\",\"name\":\"Die benötigte Kommunikationsverbindung ist im Kommunikationsprofil nach IT-Sicherheitsstandard hinterlegt\",\"value\":@@COM_DOCUMENTED@@},{\"@xsi.type\":\"drop_down_list\",\"name\":\"Expertenmodus: Exakt wie beantragt implementieren (Designervorschlag ignorieren)\",\"selection\":\"Nein\"}"}]', 0);
 insert into config (config_key, config_value, config_user) VALUES ('welcomeMessage', '', 0);
 insert into config (config_key, config_value, config_user) VALUES ('dnsLookup', 'False', 0);
@@ -131,7 +135,7 @@ insert into config (config_key, config_value, config_user) VALUES ('manageOwnerL
 insert into config (config_key, config_value, config_user) VALUES ('modModelledMarker', 'FWOC', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modModelledMarkerLocation', 'rulename', 0);
 insert into config (config_key, config_value, config_user) VALUES ('ruleRecognitionOption', '{"nwRegardIp":true,"nwRegardName":false,"nwRegardGroupName":false,"nwResolveGroup":false,"svcRegardPortAndProt":true,"svcRegardName":false,"svcRegardGroupName":false,"svcResolveGroup":true,"svcSplitPortRanges":false}', 0);
-insert into config (config_key, config_value, config_user) VALUES ('availableReportTypes', '[1,2,3,4,5,6,7,8,9,10,21,22]', 0);
+insert into config (config_key, config_value, config_user) VALUES ('availableReportTypes', '[1,2,3,4,5,6,7,8,9,10,21,22,31]', 0);
 insert into config (config_key, config_value, config_user) VALUES ('varianceAnalysisSleepTime', '0', 0);
 insert into config (config_key, config_value, config_user) VALUES ('varianceAnalysisStartAt', '00:00:00', 0);
 insert into config (config_key, config_value, config_user) VALUES ('varianceAnalysisSync', 'false', 0);
@@ -142,6 +146,7 @@ insert into config (config_key, config_value, config_user) VALUES ('complianceCh
 insert into config (config_key, config_value, config_user) VALUES ('complianceCheckMailRecipients', '', 0);
 insert into config (config_key, config_value, config_user) VALUES ('complianceCheckMailSubject', '', 0);
 insert into config (config_key, config_value, config_user) VALUES ('complianceCheckMailBody', '', 0);
+insert into config (config_key, config_value, config_user) VALUES ('availableModules', '[1,2,3,4,5,6]', 0);
 
 INSERT INTO "report_format" ("report_format_name") VALUES ('json');
 INSERT INTO "report_format" ("report_format_name") VALUES ('pdf');
@@ -332,6 +337,7 @@ insert into stm_action (action_id,action_name) VALUES (28,'NAT') ON CONFLICT DO 
 insert into stm_action (action_id,action_name) VALUES (29,'inform'); -- cp DLP
 insert into stm_action (action_id,action_name) VALUES (30,'ask'); -- cp DLP
 
+-- checkpoint old:
 insert into stm_track (track_id,track_name) VALUES (1,'log');
 insert into stm_track (track_id,track_name) VALUES (2,'none');
 insert into stm_track (track_id,track_name) VALUES (3,'alert');
@@ -354,9 +360,11 @@ insert into stm_track (track_id,track_name) VALUES (17,'count alarm');
 insert into stm_track (track_id,track_name) VALUES (18,'all');
 insert into stm_track (track_id,track_name) VALUES (19,'all start');
 insert into stm_track (track_id,track_name) VALUES (20,'utm');
-insert into stm_track (track_id,track_name) VALUES (21,'network log'); -- check point R8x:
+-- mixed (continuous):
+insert into stm_track (track_id,track_name) VALUES (21,'network log'); -- check point R8x
 insert into stm_track (track_id,track_name) VALUES (22,'utm start'); -- fortinet
-insert into stm_track (track_id,track_name) VALUES (23,'detailed log'); -- check point R8x:
+insert into stm_track (track_id,track_name) VALUES (23,'detailed log'); -- check point R8x
+insert into stm_track (track_id,track_name) VALUES (24,'extended log'); -- check point R8x
 
 -- insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufacturer,dev_typ_predef_svc,dev_typ_is_mgmt,is_pure_routing_device)
 --     VALUES (2,'Netscreen','5.x-6.x','Netscreen', '', true,false);

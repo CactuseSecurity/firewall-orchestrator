@@ -100,6 +100,20 @@
                                 <Column TableItem="Rule" Title="@(userConfig.GetText("recert_comment"))" Field="@(rule => rule.Metadata.Comment)" Sortable="true" Filterable="false" />
                             }
 
+                            @if(SelectedReportType == ReportType.Compliance)
+                            {
+                                <Column TableItem="Rule" Context="rule" Title="IsCompliant" Field="@(rChange => rChange.IsCompliant)" Sortable="true" Filterable="true" Hideable="true">
+                                    <Template>
+                                        @((MarkupString)RuleDisplayHtml.DisplayIsCompliant(rule, getActLocation()))
+                                    </Template>
+                                </Column>
+                                <Column TableItem="Rule" Context="rule" Title="Violation Details" Field="@(rChange => rChange.ViolationDetails)" Sortable="true" Filterable="true" Hideable="true">
+                                    <Template>
+                                        @((MarkupString)RuleDisplayHtml.DisplayViolationDetails(rule))
+                                    </Template>
+                                </Column>
+                            }
+
                             @if (EmptyColumns[1] == false)
                             {
                                 <Column TableItem="Rule" Title="@(userConfig.GetText("name"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true" />

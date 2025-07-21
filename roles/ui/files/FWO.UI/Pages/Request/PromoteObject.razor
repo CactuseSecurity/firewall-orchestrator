@@ -50,6 +50,9 @@
     [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationStateTask { get; set; }
+
     [Parameter]
     public bool Promote { get; set; } = false;
 
@@ -91,7 +94,7 @@
         if (Promote)
         {
             possibleStates = StateMatrix.getAllowedTransitions(StatefulObject.StateId);
-            if(possibleStates.Count == 1)
+            if(possibleStates.Count == 1 && !authenticationStateTask!.Result.User.IsInRole(Roles.Auditor))
             {
                 int oldState = StatefulObject.StateId;
                 StatefulObject.StateId = possibleStates[0];

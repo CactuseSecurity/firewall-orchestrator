@@ -37,7 +37,7 @@ class FwConfigImportGateway:
         rb_link_list = []
         for gw in self._global_state.normalized_config.gateways:
             if gw not in self._global_state.previous_config.gateways:   # this check finds all changes in gateway (including rulebase link changes)
-                if self._global_state.import_state.DebugLevel>3:
+                if self._global_state.import_state.DebugLevel>8:
                     logger.debug(f"gateway {str(gw)} NOT found in previous config")
                 gw_id = self._global_state.import_state.lookupGatewayId(gw.Uid)
                 if gw_id is None or gw_id == '' or gw_id == 'none':
@@ -60,7 +60,6 @@ class FwConfigImportGateway:
             return
         link_type_id = self._global_state.import_state.lookupLinkType(link.link_type)
         if link_type_id is None or type(link_type_id) is not int:
-            logger = getFwoLogger()
             logger.warning(f"did not find a link_type_id for link_type {link.link_type}")
         rb_link_list.append(RulebaseLink(gw_id=gw_id, 
                                 from_rule_id=from_rule_id,
@@ -71,7 +70,9 @@ class FwConfigImportGateway:
                                 is_section = link.is_section,
                                 from_rulebase_id=from_rulebase_id,
                                 created=self._global_state.import_state.ImportId).toDict())
-        logger.debug(f"link {link} was added")
+        
+        if self._global_state.import_state.DebugLevel > 8:
+            logger.debug(f"link {link} was added")
 
         # TODO: check for changed rbLink
         # for prev_gw in prevConfig.gateways:

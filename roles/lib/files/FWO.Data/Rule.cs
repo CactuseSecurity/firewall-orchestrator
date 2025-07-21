@@ -83,9 +83,6 @@ namespace FWO.Data
         [JsonProperty("matches"), JsonPropertyName("matches")]
         public string IpMatch {get; set;} = "";
 
-        // [JsonProperty("dev_id"), JsonPropertyName("dev_id")]
-        // public int DeviceId { get; set; }
-
         [JsonProperty("rule_custom_fields"), JsonPropertyName("rule_custom_fields")]
         public string CustomFields { get; set; } = "";
 
@@ -97,6 +94,13 @@ namespace FWO.Data
 
         [JsonProperty("rule_enforced_on_gateways"), JsonPropertyName("rule_enforced_on_gateways")]
         public DeviceWrapper[] EnforcingGateways { get; set; } = [];
+        
+        [JsonProperty("rule_installon"), JsonPropertyName("rule_installon")]
+        public string InstallOn { get; set; } = "";
+
+        public bool IsCompliant { get; set; } = true;
+        public string ViolationDetails { get; set; } = "";
+        public List<ComplianceViolation> Violations { get; set; } = [];
 
         public string DisplayOrderNumberString { get; set; } = "";
         public int DisplayOrderNumber { get; set; }
@@ -113,9 +117,10 @@ namespace FWO.Data
         public bool ModellOk = false;
         public bool Detailed = false;
         public List<string> UnusedSpecialUserObjects = [];
+        public List<string> UnusedUpdatableObjects = [];
 
         public Rule()
-        {}
+        { }
 
         public Rule(Rule rule)
         {
@@ -159,6 +164,7 @@ namespace FWO.Data
             ModellOk = rule.ModellOk;
             Detailed = rule.Detailed;
             UnusedSpecialUserObjects = rule.UnusedSpecialUserObjects;
+            UnusedUpdatableObjects = rule.UnusedUpdatableObjects;
         }
 
         public bool IsDropRule()

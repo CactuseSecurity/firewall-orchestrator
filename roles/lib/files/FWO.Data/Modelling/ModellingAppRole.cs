@@ -1,4 +1,4 @@
-﻿using System.Text.Json.Serialization; 
+using System.Text.Json.Serialization; 
 using Newtonsoft.Json;
 using FWO.Basics;
 
@@ -76,6 +76,11 @@ namespace FWO.Data.Modelling
         public override string DisplayWithIcon()
         {
             return $"<span class=\"{Icons.AppRole}\"></span> " + DisplayHtml();
+        }
+
+        public override string DisplayProblematicWithIcon()
+        {
+            return $"<b class=\"text-danger\">&nbsp;!&nbsp;</b><span class=\"{Icons.AppRole}\"></span> " + DisplayHtml();
         }
 
         public override NetworkObject ToNetworkObjectGroup(bool IdAsName = false, bool ListMembers = true)

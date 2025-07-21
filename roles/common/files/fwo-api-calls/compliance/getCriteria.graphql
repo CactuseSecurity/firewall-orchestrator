@@ -1,0 +1,8 @@
+query getCriteria {
+  compliance_criterion {
+    id
+    name
+    criterion_type
+    content
+  }
+}

@@ -1,15 +1,20 @@
-using FWO.Basics;
-using NetTools;
 using Newtonsoft.Json;
-using System.Net;
 using System.Text.Json.Serialization;
 
 namespace FWO.Data
 {
-    public class ComplianceViolation
+    public class ComplianceViolation : ComplianceViolationBase
     {
         [JsonProperty("id"), JsonPropertyName("id")]
         public int Id { get; set; }
+    }
+
+    /// <summary>
+    /// Insertable base class for compliance violations.
+    /// This class is used to insert new compliance violations into the database.
+    /// </summary>
+    public class ComplianceViolationBase
+    {
         [JsonProperty("rule_id"), JsonPropertyName("rule_id")]
         public int RuleId { get; set; }
         [JsonProperty("found_date"), JsonPropertyName("found_date")]
@@ -24,6 +29,5 @@ namespace FWO.Data
         public int PolicyId { get; set; }
         [JsonProperty("criterion_id"), JsonPropertyName("criterion_id")]
         public int CriterionId { get; set; }
-        
     }
 }

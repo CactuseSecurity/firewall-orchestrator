@@ -1,8 +1,9 @@
 mutation addCriterion($criterion: compliance_criterion_insert_input!) {
-  insert_compliance_criterion_one(object: $policy) {
+  insert_compliance_criterion_one(object: $criterion) {
     id
     name
     criterion_type
-    disabled
+    content
+    created
   }
 }

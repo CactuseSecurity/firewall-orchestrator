@@ -39,6 +39,9 @@ namespace FWO.Data
 
         [JsonProperty("removed"), JsonPropertyName("removed")]
         public DateTime Removed { get; set; }
+        
+        [JsonProperty("criterion_id"), JsonPropertyName("criterion_id")]
+        public int CriterionId { get; set; } = 0;
 
         
 

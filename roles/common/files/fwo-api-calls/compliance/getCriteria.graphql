@@ -1,5 +1,5 @@
 query getCriteria {
-  compliance_criteria {
+  compliance_criterion {
     id
     name
     criterion_type

@@ -531,12 +531,13 @@ def find_element_by_uid(array, uid):
     return None
 
 
-def resolve_ref_from_object_dictionary(id, objDict, nativeConfigDomain={}):
+def resolve_ref_from_object_dictionary(uid, objDict, native_config_domain={}, field_name=None):
 
-    matched_obj = find_element_by_uid(objDict, id)
-
+    matched_obj = find_element_by_uid(objDict, uid)
+        
     if matched_obj is None: # object not in dict - need to fetch it from API
-        logger.warning(f"did not find object with uid {id} in object dictionary")
+        if field_name is None or field_name != 'track':
+            logger.warning(f"object of type {field_name} with uid {uid} not found in object dictionary")
         return None
     else:
         # there are some objects (at least CpmiVoipSipDomain) which are not API-gettable with show-objects (only with show-object "UID")
@@ -544,7 +545,7 @@ def resolve_ref_from_object_dictionary(id, objDict, nativeConfigDomain={}):
         if matched_obj['type'] in ['CpmiVoipSipDomain', 'CpmiVoipMgcpDomain', 'gsn_handover_group']:
             logger.info(f"adding {matched_obj['type']} '{matched_obj['name']}' object manually, because it is not retrieved by show objects API command")
             color = matched_obj.get('color', 'black')
-            nativeConfigDomain['objects'].append({ 
+            native_config_domain['objects'].append({ 
                 "type": matched_obj['type'], "chunks": [ {
                 "objects": [ {
                 'uid': matched_obj['uid'], 'name': matched_obj['name'], 'color': color,
@@ -572,13 +573,13 @@ def resolve_ref_list_from_object_dictionary(rulebase, value, objDict={}, nativeC
 def categorize_value_for_resolve_ref(rule, value, objDict, nativeConfigDomain):
     value_list = []
     if isinstance(rule[value], str): # assuming single uid
-        rule[value] = resolve_ref_from_object_dictionary(rule[value], objDict, nativeConfigDomain=nativeConfigDomain)
+        rule[value] = resolve_ref_from_object_dictionary(rule[value], objDict, native_config_domain=nativeConfigDomain, field_name=value)
     else:
         if 'type' in rule[value]:   # e.g. track
-            rule[value] = resolve_ref_from_object_dictionary(rule[value]['type'], objDict, nativeConfigDomain=nativeConfigDomain)
+            rule[value] = resolve_ref_from_object_dictionary(rule[value]['type'], objDict, native_config_domain=nativeConfigDomain, field_name=value)
         else:   # assuming list of rules
             for id in rule[value]:
-                value_list.append(resolve_ref_from_object_dictionary(id, objDict, nativeConfigDomain=nativeConfigDomain))
+                value_list.append(resolve_ref_from_object_dictionary(id, objDict, native_config_domain=nativeConfigDomain), field_name=value)
             rule[value] = value_list # replace ref list with object list
 
 

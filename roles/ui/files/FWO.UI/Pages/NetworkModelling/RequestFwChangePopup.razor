@@ -264,7 +264,9 @@
             }
             else
             {
-                services.Add(SCAccessRequestTicketTask.DisplayPortRange(elem.Port ?? 0, elem.PortEnd) + "/" + ipProtos.Find(x => x.Id == elem.ProtoId)?.Name);
+                IpProtocol? ipProtocol = ipProtos.Find(x => x.Id == elem.ProtoId);
+                string portRange = ipProtocol != null && (bool)ipProtocol.HasPorts() ? SCAccessRequestTicketTask.DisplayPortRange(elem.Port ?? 0, elem.PortEnd) + "/" : "";
+                services.Add(portRange + ipProtocol?.Name ?? "");
             }
         }
         return string.Join(", ", services);

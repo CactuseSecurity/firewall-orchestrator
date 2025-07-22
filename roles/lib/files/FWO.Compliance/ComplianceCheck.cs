@@ -25,7 +25,7 @@ namespace FWO.Compliance
         ReportFilters reportFilters = new();
         private readonly UserConfig _userConfig;
         private readonly ApiConnection _apiConnection;
-        private readonly List<string> _restrictedServices = ["97aeb369-9aea-11d5-bd16-0090272ccb30"];
+        private List<string> _restrictedServices = [];
         private bool _checkRestrictedServices = true;
 
 
@@ -53,43 +53,52 @@ namespace FWO.Compliance
 
             Results.Clear();
             RestrictedServiceViolations.Clear();
+            _restrictedServices.Clear();
 
-            if (_apiConnection != null && currentReport is ReportCompliance complianceReport)
+            if (_userConfig.GlobalConfig is GlobalConfig globalConfig)
             {
-                foreach (var management in complianceReport.ReportData.ManagementData)
+                _restrictedServices = globalConfig.ComplianceCheckRestrictedServices
+                    .Split(',')
+                    .Select(s => s.Trim())
+                    .Where(s => !string.IsNullOrEmpty(s))
+                    .ToList();
+
+                if (_apiConnection != null && currentReport is ReportCompliance complianceReport)
                 {
-                    foreach (var rulebase in management.Rulebases)
+                    foreach (var management in complianceReport.ReportData.ManagementData)
                     {
-                        foreach (var rule in rulebase.Rules)
+                        foreach (var rulebase in management.Rulebases)
                         {
-                            rule.IsCompliant = await CheckRuleCompliance(rule);
+                            foreach (var rule in rulebase.Rules)
+                            {
+                                rule.IsCompliant = await CheckRuleCompliance(rule);
+                            }
                         }
                     }
-                }
 
-                await GatherCheckResults();
+                    await GatherCheckResults();
 
-                if (_userConfig.GlobalConfig is GlobalConfig globalConfig && globalConfig.ComplianceCheckPersistData)
-                {
-                    List<ComplianceViolationBase> violationsForInsert = complianceReport.Violations
-                    .Select(v => new ComplianceViolationBase
+                    if (globalConfig.ComplianceCheckPersistData)
                     {
-                        RuleId = v.RuleId,
-                        Details = v.Details,
-                        FoundDate = v.FoundDate,
-                        RemovedDate = v.RemovedDate,
-                        RiskScore = v.RiskScore,
-                        PolicyId = v.PolicyId,
-                        CriterionId = v.CriterionId
-                    })
-                    .ToList();
-                    var variables = new
-                    {
-                        violations = violationsForInsert
-                    };
-                    await _apiConnection.SendQueryAsync<dynamic>(ComplianceQueries.addViolations, variables );
+                        List<ComplianceViolationBase> violationsForInsert = complianceReport.Violations
+                        .Select(v => new ComplianceViolationBase
+                        {
+                            RuleId = v.RuleId,
+                            Details = v.Details,
+                            FoundDate = v.FoundDate,
+                            RemovedDate = v.RemovedDate,
+                            RiskScore = v.RiskScore,
+                            PolicyId = v.PolicyId,
+                            CriterionId = v.CriterionId
+                        })
+                        .ToList();
+                        var variables = new
+                        {
+                            violations = violationsForInsert
+                        };
+                        await _apiConnection.SendQueryAsync<dynamic>(ComplianceQueries.addViolations, variables);
+                    }
                 }
-
             }
         }
 
@@ -197,7 +206,7 @@ namespace FWO.Compliance
         {
             List<ComplianceViolation> violations = [];
 
-            if (_checkRestrictedServices)
+            if (_restrictedServices.Count > 0)
             {
                 foreach (var service in rule.Services)
                 {
@@ -213,6 +222,7 @@ namespace FWO.Compliance
                     }
                 }
             }
+
             return violations;
         }
 

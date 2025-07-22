@@ -62,7 +62,7 @@ namespace FWO.Compliance
                     {
                         foreach (var rule in rulebase.Rules)
                         {
-                            rule.IsCompliant = CheckRuleCompliance(rule);
+                            rule.IsCompliant = await CheckRuleCompliance(rule);
                         }
                     }
                 }
@@ -106,6 +106,8 @@ namespace FWO.Compliance
                     violation.Details = $"Matrix violation: {item.Item2.Item1.Name} -> {item.Item2.Item2.Name}";
                     complianceReport.Violations.Add(violation);
                 }
+
+                complianceReport.Violations.AddRange(RestrictedServiceViolations);
 
                 await complianceReport.SetComplianceData();
                 ComplianceReport = complianceReport;

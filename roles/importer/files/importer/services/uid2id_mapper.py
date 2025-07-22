@@ -284,7 +284,7 @@ class Uid2IdMapper:
             return True
         except Exception as e:
             self.log_error(f"Error updating network object mapping: {e}")
-            return False
+            return False # raise
     
     def update_service_object_mapping(self, uids: Optional[List[str]] = None) -> bool:
         """
@@ -319,7 +319,7 @@ class Uid2IdMapper:
             return True
         except Exception as e:
             self.log_error(f"Error updating service object mapping: {e}")
-            return False
+            return False # raise
         
     def update_user_mapping(self, uids: Optional[List[str]] = None) -> bool:
         """
@@ -354,7 +354,7 @@ class Uid2IdMapper:
             return True
         except Exception as e:
             self.log_error(f"Error updating user mapping: {e}")
-            return False
+            return False # raise
 
     def update_rule_mapping(self, uids: Optional[List[str]] = None) -> bool:
         """
@@ -389,4 +389,4 @@ class Uid2IdMapper:
             return True
         except Exception as e:
             self.log_error(f"Error updating rule mapping: {e}")
-            return False
+            return False # raise

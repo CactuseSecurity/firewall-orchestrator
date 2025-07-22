@@ -7,6 +7,7 @@ import fwo_globals
 class LogLock:
     semaphore = threading.Semaphore()
 
+    @staticmethod
     def handle_log_lock():
         # Initialize values
         lock_file_path = "/var/fworch/lock/importer_api_log.lock"

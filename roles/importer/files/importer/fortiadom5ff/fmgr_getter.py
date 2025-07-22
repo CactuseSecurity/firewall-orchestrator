@@ -5,79 +5,79 @@ import requests.packages
 import requests
 import json
 import fwo_globals
-from fwo_exceptions import FwLoginFailed
+from fwo_exceptions import FwLoginFailed, FwoUnknownDeviceForManager
 
 
 def api_call(url, command, json_payload, sid, show_progress=False, method=''):
     logger = getFwoLogger()
     request_headers = {'Content-Type': 'application/json'}
     if sid != '':
-        json_payload.update({"session": sid})
+        json_payload.update({'session': sid})
     if command != '':
         for p in json_payload['params']:
-            p.update({"url": command})
+            p.update({'url': command})
     if method == '':
         method = 'get'
-    json_payload.update({"method": method})
+    json_payload.update({'method': method})
 
     r = requests.post(url, data=json.dumps(json_payload), headers=request_headers, verify=fwo_globals.verify_certs)
     if r is None:
         if 'pass' in json.dumps(json_payload):
-            exception_text = "error while sending api_call containing credential information to url '" + str(url)
+            exception_text = 'error while sending api_call containing credential information to url ' + str(url)
         else:
-            exception_text = "error while sending api_call to url '" + str(url) + "' with payload '" + json.dumps(json_payload, indent=2) + "' and  headers: '" + json.dumps(request_headers, indent=2)
+            exception_text = 'error while sending api_call to url ' + str(url) + ' with payload ' + json.dumps(json_payload, indent=2) + ' and  headers: ' + json.dumps(request_headers, indent=2)
         raise Exception(exception_text)
     result_json = r.json()
     if 'result' not in result_json or len(result_json['result'])<1:
         if 'pass' in json.dumps(json_payload):
-            raise Exception("error while sending api_call containing credential information to url '" + str(url))
+            raise Exception('error while sending api_call containing credential information to url ' + str(url))
         else:
             if 'status' in result_json['result'][0]:
-                raise Exception("error while sending api_call to url '" + str(url) + "' with payload '" +
-                        json.dumps(json_payload, indent=2) + "' and  headers: '" + json.dumps(request_headers, indent=2) + ', result=' + json.dumps(r.json()['result'][0]['status'], indent=2))
+                raise Exception('error while sending api_call to url ' + str(url) + ' with payload ' +
+                        json.dumps(json_payload, indent=2) + ' and  headers: ' + json.dumps(request_headers, indent=2) + ', result=' + json.dumps(r.json()['result'][0]['status'], indent=2))
             else:
-                raise Exception("error while sending api_call to url '" + str(url) + "' with payload '" +
-                        json.dumps(json_payload, indent=2) + "' and  headers: '" + json.dumps(request_headers, indent=2) + ', result=' + json.dumps(r.json()['result'][0], indent=2))
+                raise Exception('error while sending api_call to url ' + str(url) + ' with payload ' +
+                        json.dumps(json_payload, indent=2) + ' and  headers: ' + json.dumps(request_headers, indent=2) + ', result=' + json.dumps(r.json()['result'][0], indent=2))
     if 'status' not in result_json['result'][0] or 'code' not in result_json['result'][0]['status'] or result_json['result'][0]['status']['code'] != 0:
         # trying to ignore empty results as valid
         pass # logger.warning('received empty result')
     if fwo_globals.debug_level>2:
         if 'pass' in json.dumps(json_payload):
-            logger.debug("api_call containing credential information to url '" + str(url) + " - not logging query")
+            logger.debug('api_call containing credential information to url ' + str(url) + ' - not logging query')
         else:
-            logger.debug("api_call to url '" + str(url) + "' with payload '" + json.dumps(
-                json_payload, indent=2) + "' and  headers: '" + json.dumps(request_headers, indent=2))
+            logger.debug('api_call to url ' + str(url) + ' with payload ' + json.dumps(
+                json_payload, indent=2) + ' and  headers: ' + json.dumps(request_headers, indent=2))
 
     return result_json
 
 
 def login(user, password, base_url):
     payload = {
-        "id": 1,
-        "params": [ { "data": [ { "user": user, "passwd": password, } ] } ]
+        'id': 1,
+        'params': [ { 'data': [ { 'user': user, 'passwd': password, } ] } ]
     }
     try:
-       response = api_call(base_url, 'sys/login/user', payload, '', method="exec")
+       response = api_call(base_url, 'sys/login/user', payload, '', method='exec')
     except Exception:
-        raise FwLoginFailed("FortiManager login ERROR: url=" + base_url) from None
-    if "session" not in response:   # leaving out payload as it contains pwd
-        raise FwLoginFailed("FortiManager login ERROR (no sid): url=" + base_url) from None
-    return response["session"]
+        raise FwLoginFailed('FortiManager login ERROR: url=' + base_url) from None
+    if 'session' not in response:   # leaving out payload as it contains pwd
+        raise FwLoginFailed('FortiManager login ERROR (no sid): url=' + base_url) from None
+    return response['session']
 
 
 def logout(v_url, sid, method='exec'):
     logger = getFwoLogger()
-    payload = {"params": [{}]}
+    payload = {'params': [{}]}
 
     response = api_call(v_url, 'sys/logout', payload, sid, method=method)
-    if "result" in response and "status" in response["result"][0] and "code" in response["result"][0]["status"] and response["result"][0]["status"]["code"] == 0:
-        logger.debug("successfully logged out")
+    if 'result' in response and 'status' in response['result'][0] and 'code' in response['result'][0]['status'] and response['result'][0]['status']['code'] == 0:
+        logger.debug('successfully logged out')
     else:
-        raise Exception( "fmgr_getter ERROR: did not get status code 0 when logging out, " + 
-                            "api call: url: " + str(v_url) + ",  + payload: " + str(payload))
+        raise Exception( 'fmgr_getter ERROR: did not get status code 0 when logging out, ' + 
+                            'api call: url: ' + str(v_url) + ',  + payload: ' + str(payload))
 
 
-def update_config_with_fortinet_api_call(config_json, sid, api_base_url, api_path, result_name, payload={}, options=[], show_progress=False, limit=150, method="get"):
+def update_config_with_fortinet_api_call(config_json, sid, api_base_url, api_path, result_name, payload={}, options=[], show_progress=False, limit=150, method='get'):
     offset = 0
     limit = int(limit)
     returned_new_objects = True
@@ -85,7 +85,7 @@ def update_config_with_fortinet_api_call(config_json, sid, api_base_url, api_pat
     while returned_new_objects:
         range = [offset, limit]
         if payload == {}:
-            payload = {"params": [{'range': range}]}
+            payload = {'params': [{'range': range}]}
         else:
             if 'params' in payload and len(payload['params'])>0:
                 payload['params'][0].update({'range': range})
@@ -104,17 +104,32 @@ def update_config_with_fortinet_api_call(config_json, sid, api_base_url, api_pat
     config_json.append({'type': result_name, 'data': full_result})
 
 
-def fortinet_api_call(sid, api_base_url, api_path, payload={}, show_progress=False, method="get"):
+def fortinet_api_call(sid, api_base_url, api_path, payload={}, show_progress=False, method='get'):
     if payload == {}:
-        payload = {"params": [{}]}
+        payload = {'params': [{}]}
     result = api_call(api_base_url, api_path, payload, sid, method=method)
-    plain_result = result["result"][0]
-    if "data" in plain_result:
-        result = plain_result["data"]
+    plain_result = result['result'][0]
+    if 'data' in plain_result:
+        result = plain_result['data']
         if isinstance(result, dict):  # code implicitly expects result to be a list, but some fmgr data results are dicts
             result = [result]
     else:
         result = []
     return result
 
+def get_devices_from_manager(adom_mgm_details, sid, fm_api_url):
+    fmgr_devices = []
 
+    device_results = fortinet_api_call(sid, fm_api_url, '/dvmdb/adom/' + adom_mgm_details.DomainName + '/device')
+    for device in adom_mgm_details.Devices:
+        found_fmgr_device = False
+        for fmgr_device in device_results:
+            if device == fmgr_device['name']:
+                fmgr_devices.append(fmgr_device)
+                found_fmgr_device = True
+                break
+        if not found_fmgr_device:
+            raise FwoUnknownDeviceForManager('Could not find ' + device + ' in Fortimanager Config') from None
+        
+    return fmgr_devices
+            

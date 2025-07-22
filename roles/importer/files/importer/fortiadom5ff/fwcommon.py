@@ -57,7 +57,7 @@ def get_config(nativeConfig: json, importState: ImportStateController):
         fm_api_url = importState.MgmDetails.buildFwApiString()
         nativ_config_global = initialize_nativ_config_domain(importState.MgmDetails)
         adom_list = build_adom_list(importState)
-        adom_device_vdom_structure = build_adom_device_vdom_structure(adom_list)
+        adom_device_vdom_structure = build_adom_device_vdom_structure(adom_list, sid, fm_api_url)
 
         # get globals
         # delete_v: fetched_global löschen
@@ -157,14 +157,22 @@ def build_adom_list(importState : ImportStateController):
             adom_list.append(deepcopy(subManager))
     return adom_list
 
-def build_adom_device_vdom_structure(adom_list):
+def build_adom_device_vdom_structure(adom_list, sid, fm_api_url):
     adom_device_vdom_structure = {}
     for adom in adom_list:
         adom_device_vdom_structure.update({adom.MgmDetails.DomainName: {}})
         if len(adom.MgmDetails.Devices) > 0:
-            get_devices_from_manager()
-            for device in adom.MgmDetails.Devices:
-                adom_device_vdom_structure[adom.MgmDetails.DomainName].update({device['name']: []})
+            fmgr_devices = fmgr_getter.get_devices_from_manager(adom.MgmDetails, sid, fm_api_url)
+            for fmgr_device in fmgr_devices:
+                device_vdom_dict = parse_device_and_vdom(fmgr_device)
+                adom_device_vdom_structure[adom.MgmDetails.DomainName].update(device_vdom_dict)
+
+def parse_device_and_vdom(fmgr_device):
+    device_vdom_dict = {fmgr_device: []}
+    if 'vdom' in fmgr_device:
+        for vdom in fmgr_device['vdom']:
+            device_vdom_dict[fmgr_device].append(vdom['name'])
+    return device_vdom_dict
 
 def get_sid(importState: ImportStateController):
     fm_api_url = 'https://' + \

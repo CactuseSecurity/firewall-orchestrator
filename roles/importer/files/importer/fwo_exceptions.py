@@ -131,3 +131,9 @@ class FwoDuplicateKeyViolation(Exception):
     """Custom exception to signal a duplicate key violation during import."""
     def __init__(self, message="Error while trying to add data with duplicate keys"):
         super().__init__(message)
+
+
+class FwoUnknownDeviceForManager(Exception):
+    """Custom exception to signal an unknown device during import."""
+    def __init__(self, message="Could not find device in manager config"):
+        super().__init__(message)

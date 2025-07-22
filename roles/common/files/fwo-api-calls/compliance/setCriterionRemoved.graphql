@@ -1,0 +1,12 @@
+mutation setCriterionRemoved(
+  $id: Int!
+  $removed: timestamptz
+) {
+  update_compliance_criterion_by_pk(
+    pk_columns: { id: $id }
+    _set: {
+    removed: $removed
+  }) {
+    updatedId: id
+  }
+}

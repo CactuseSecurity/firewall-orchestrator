@@ -106,12 +106,20 @@
                 if(FixCriteria.FirstOrDefault(x => x.CriterionType == crit.CriterionType) == null)
                 {
                     ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(ComplianceQueries.addCriterion,
-                        new { CriterionType = crit.CriterionType, name = crit.Name })).ReturnIds;
+                        new { criterionType = crit.CriterionType, name = crit.Name })).ReturnIds;
                     if (returnIds != null)
                     {
                         crit.Id = returnIds[0].InsertedId;
                         FixCriteria.Add(crit);
                     }
+                }
+            }
+            foreach(var crit in CriteriaToDelete)
+            {
+                if (crit.Removed == null && (await apiConnection.SendQueryAsync<ReturnId>(ComplianceQueries.setCriterionRemoved,
+                    new { id = crit.Id, removed = DateTime.UtcNow })).UpdatedId == crit.Id)
+                {
+                    FixCriteria.Remove(crit);
                 }
             }
             Close();

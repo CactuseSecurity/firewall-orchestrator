@@ -33,7 +33,7 @@
 </div>
 
 <EditPolicy @bind-Display="EditMode" @bind-Policy="SelectedPolicy" @bind-Policies="policies" AddMode="AddMode"/>
-
+<ConfirmDelete @bind-Display="DeleteMode" PerformAction="DeletePolicy" Title="@userConfig.GetText("delete_policy")" DeleteMessage="@(deleteMessage)" />
 
 @code
 {
@@ -49,6 +49,7 @@
     private bool AddMode = false;
     private bool EditMode = false;
     private bool DeleteMode = false;
+    private string deleteMessage = "";
 
 
     protected async override Task OnInitializedAsync()
@@ -85,6 +86,21 @@
 
     private void RequestDelete(CompliancePolicy policy)
     {
+        SelectedPolicy = policy;
+        deleteMessage = $"{userConfig.GetText("U4001")}: {policy.Name}?";
         DeleteMode = true;
+    }
+
+    private async Task DeletePolicy()
+    {
+        try
+        {
+            await apiConnection.SendQueryAsync<ReturnId>(ComplianceQueries.disablePolicy, new{ id = SelectedPolicy.Id });
+            policies.Remove(SelectedPolicy);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("delete_policy"), "", true);
+        }
     }
 }

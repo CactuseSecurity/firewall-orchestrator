@@ -27,6 +27,9 @@ namespace FWO.Data
 
         [JsonProperty("created"), JsonPropertyName("created")]
         public DateTime Created { get; set; } = DateTime.UtcNow;
+
+        [JsonProperty("removed"), JsonPropertyName("removed")]
+        public DateTime? Removed { get; set; }
     }
 
     public class ComplianceCriterionWrapper

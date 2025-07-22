@@ -1761,6 +1761,8 @@ INSERT INTO txt VALUES ('policies',      		'German', 	'Policies');
 INSERT INTO txt VALUES ('policies',      		'English', 	'Policies');
 INSERT INTO txt VALUES ('edit_policy',      	'German', 	'Policy bearbeiten');
 INSERT INTO txt VALUES ('edit_policy',      	'English', 	'Edit Policy');
+INSERT INTO txt VALUES ('delete_policy',      	'German', 	'Policy l&ouml;schen');
+INSERT INTO txt VALUES ('delete_policy',      	'English', 	'Delete Policy');
 INSERT INTO txt VALUES ('edit_fix_crit',      	'German', 	'Feste Kriterien bearbeiten');
 INSERT INTO txt VALUES ('edit_fix_crit',      	'English', 	'Edit Fixed Criteria');
 
@@ -2786,7 +2788,7 @@ INSERT INTO txt VALUES ('import_app_server',    'English',  'Import app servers'
 -- 1000-1999: Reporting
 -- 2000-2999: Scheduling
 -- 3000-3999: Archive
--- 4000-4999: Recertification
+-- 4000-4999: Recertification + Compliance
 -- 5000-5999: Settings
 --            5000-5099: general
 --            5100-5199: devices
@@ -2829,6 +2831,9 @@ INSERT INTO txt VALUES ('U2002', 'English', 'Do you really want to delete report
 
 INSERT INTO txt VALUES ('U3002', 'German',  'Sind sie sicher, dass sie folgenden Report l&ouml;schen wollen: ');
 INSERT INTO txt VALUES ('U3002', 'English', 'Do you really want to delete generated report ');
+
+INSERT INTO txt VALUES ('U4001', 'German',  'Sind sie sicher, dass sie folgende Policy l&ouml;schen wollen: ');
+INSERT INTO txt VALUES ('U4001', 'English', 'Are you sure you want to delete policy: ');
 
 INSERT INTO txt VALUES ('U5001', 'German',  'Setup und Verwaltung des Firewall Orchestrator. Bitte eine Einstellung in der linken Randleiste ausw&auml;hlen.');
 INSERT INTO txt VALUES ('U5001', 'English', 'Setup and administration of Firewall Orchestrator. Please choose a setting in the left sidebar.');

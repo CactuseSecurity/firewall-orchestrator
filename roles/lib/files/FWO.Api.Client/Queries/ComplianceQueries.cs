@@ -14,12 +14,18 @@ namespace FWO.Api.Client.Queries
 
         public static readonly string addViolations;
         public static readonly string getViolations;
+
         public static readonly string addPolicy;
+        public static readonly string disablePolicy;
         public static readonly string getPolicies;
+
         public static readonly string addCriterion;
+        public static readonly string setCriterionRemoved;
         public static readonly string getCriteria;
         public static readonly string getMatrices;
+        
         public static readonly string addCritToPolicy;
+        public static readonly string removeCritFromPolicy;
 
         static ComplianceQueries()
         {
@@ -35,12 +41,18 @@ namespace FWO.Api.Client.Queries
 
                 addViolations = File.ReadAllText(QueryPath + "compliance/addViolations.graphql");
                 getViolations = File.ReadAllText(QueryPath + "compliance/getViolations.graphql");
+
                 addPolicy = File.ReadAllText(QueryPath + "compliance/addPolicy.graphql");
+                disablePolicy = File.ReadAllText(QueryPath + "compliance/disablePolicy.graphql");
                 getPolicies = File.ReadAllText(QueryPath + "compliance/getPolicies.graphql");
+
                 addCriterion = File.ReadAllText(QueryPath + "compliance/addCriterion.graphql");
+                setCriterionRemoved = File.ReadAllText(QueryPath + "compliance/setCriterionRemoved.graphql");
                 getCriteria = File.ReadAllText(QueryPath + "compliance/getCriteria.graphql");
                 getMatrices = File.ReadAllText(QueryPath + "compliance/getMatrices.graphql");
+
                 addCritToPolicy = File.ReadAllText(QueryPath + "compliance/addCritToPolicy.graphql");
+                removeCritFromPolicy = File.ReadAllText(QueryPath + "compliance/removeCritFromPolicy.graphql");
             }
             catch (Exception exception)
             {

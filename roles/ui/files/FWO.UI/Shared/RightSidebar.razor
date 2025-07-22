@@ -198,10 +198,10 @@
             import_id_end = await GetImportIds(rsbTimeEnd);
             Dictionary<string, object> queryVars = new()
             {
-                ["limit"] = 1,
-                ["offset"] = 0,
-                ["import_id_start"] = import_id_start.Values.Any(v => v > 0) ? import_id_start.Values.Where(v => v > 0).Min() : 0,
-                ["import_id_end"] = import_id_end.Values.Max(),
+                [QueryVar.Limit] = 1,
+                [QueryVar.Offset] = 0,
+                [QueryVar.ImportIdStart] = import_id_start.Values.Any(v => v > 0) ? import_id_start.Values.Where(v => v > 0).Min() : 0,
+                [QueryVar.ImportIdEnd] = import_id_end.Values.Max(),
             };
             var mgmResult = await apiConnection.SendQueryAsync<List<ManagementReport>>(ObjectQueries.getAllObjectDetails, queryVars);
             managementsAllObjects = mgmResult.Where(m => m.Objects.Count() > 0 || m.Services.Count() > 0 || m.Users.Count() > 0).ToList();
@@ -248,10 +248,10 @@
     {
         Dictionary<string, object> queryVars = new()
         {
-            ["time"] = time != "" ? time : DateTime.Now.ToString(DynGraphqlQuery.fullTimeFormat),
+            [QueryVar.Time] = time != "" ? time : DateTime.Now.ToString(DynGraphqlQuery.fullTimeFormat),
         };
         if (mgmId != null)
-            queryVars.Add("mgmIds", mgmId);
+            queryVars.Add(QueryVar.MgmIds, mgmId);
         List<ManagementReport> result = await apiConnection.SendQueryAsync<List<ManagementReport>>(ReportQueries.getRelevantImportIdsAtTime, queryVars);
         Dictionary<int, long> importIds = new();
         foreach (ManagementReport mgm in result)
@@ -300,11 +300,11 @@
 
         var queryVars = new Dictionary<string, object>
         {
-            { "limit", userConfig.ElementsPerFetch },
-            { "offset", 0 },
-            { "management_id", (int)id },
-            { "import_id_start", import_id_start.GetValueOrDefault((int)id, 0) },
-            { "import_id_end", import_id_end.GetValueOrDefault((int)id, 0) }
+            { QueryVar.Limit, userConfig.ElementsPerFetch },
+            { QueryVar.Offset, 0 },
+            { QueryVar.ManagementId, (int)id },
+            { QueryVar.ImportIdStart, import_id_start.GetValueOrDefault((int)id, 0) },
+            { QueryVar.ImportIdEnd, import_id_end.GetValueOrDefault((int)id, 0) }
         };
 
         string query = objType switch
@@ -353,9 +353,9 @@
 
         var queryVars = new Dictionary<string, object>
         {
-            { "limit", userConfig.ElementsPerFetch },
-            { "offset", 0 },
-            { "mgmIds", (int)id }
+            { QueryVar.Limit, userConfig.ElementsPerFetch },
+            { QueryVar.Offset, 0 },
+            { QueryVar.MgmIds, (int)id }
         };
 
         bool gotAllObjects = await CurrentReport!.GetObjectsForManagementInReport(
@@ -399,11 +399,11 @@
 
         var queryVars = new Dictionary<string, object>
         {
-            { "limit", userConfig.ElementsPerFetch },
-            { "offset", 0 },
-            { "import_id_start", import_id_start.GetValueOrDefault((int)rule.MgmtId, 0) },
-            { "import_id_end", import_id_end.GetValueOrDefault((int)rule.MgmtId, 0) },
-            { "rule_id", id }
+            { QueryVar.Limit, userConfig.ElementsPerFetch },
+            { QueryVar.Offset, 0 },
+            { QueryVar.ImportIdStart, import_id_start.GetValueOrDefault((int)rule.MgmtId, 0) },
+            { QueryVar.ImportIdEnd, import_id_end.GetValueOrDefault((int)rule.MgmtId, 0) },
+            { QueryVar.RuleId, id }
         };
 
         string query = nat ? RuleQueries.getNatRuleDetails : RuleQueries.getRuleDetails;
@@ -459,8 +459,8 @@
                     keepFetching = newObjects && maxAddedCounts.Values.Any(v => v >= elementsPerFetch);
                 }
 
-                if (queryVars.ContainsKey("offset"))
-                    queryVars["offset"] = (int)queryVars["offset"] + elementsPerFetch;
+                if (queryVars.ContainsKey(QueryVar.Offset))
+                    queryVars[QueryVar.Offset] = (int)queryVars[QueryVar.Offset] + elementsPerFetch;
                 await callback(reportData);
             }
 

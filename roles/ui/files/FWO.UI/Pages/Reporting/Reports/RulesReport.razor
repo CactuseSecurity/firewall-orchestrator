@@ -196,7 +196,7 @@
                             {
                                 <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("enforcing_devices"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true">
                                     <Template>
-                                        @((MarkupString)ruleDisplay.DisplayEnforcingGateways(rule, getActLocation(), SelectedReportType))
+                                        @((MarkupString)RuleDisplayHtml.DisplayEnforcingGateways(rule, getActLocation(), SelectedReportType))
                                     </Template>
                                 </Column>
                             }

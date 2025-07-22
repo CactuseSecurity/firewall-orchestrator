@@ -11,15 +11,15 @@ namespace FWO.Report
 {
     public abstract class ReportDevicesBase : ReportBase
     {
-        public ReportDevicesBase(DynGraphqlQuery query, UserConfig UserConfig, ReportType reportType) : base (query, UserConfig, reportType)
+        protected ReportDevicesBase(DynGraphqlQuery query, UserConfig UserConfig, ReportType reportType) : base (query, UserConfig, reportType)
         {}
 
         public async Task<List<ManagementReport>> GetRelevantImportIds(ApiConnection apiConnection, string? timestamp = null)
         {
             Dictionary<string, object> ImpIdQueryVariables = new()
             {
-                ["time"] = timestamp ?? (Query.ReportTimeString != "" ? Query.ReportTimeString : DateTime.Now.ToString(DynGraphqlQuery.fullTimeFormat)),
-                ["mgmIds"] = Query.RelevantManagementIds
+                [QueryVar.Time] = timestamp ?? (Query.ReportTimeString != "" ? Query.ReportTimeString : DateTime.Now.ToString(DynGraphqlQuery.fullTimeFormat)),
+                [QueryVar.MgmIds] = Query.RelevantManagementIds
             };
             return await apiConnection.SendQueryAsync<List<ManagementReport>>(ReportQueries.getRelevantImportIdsAtTime, ImpIdQueryVariables);
         }

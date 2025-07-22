@@ -44,12 +44,10 @@ namespace FWO.Basics
         public const string kNAT = "NAT";
         public const string k_demo = "_demo";
 
+        public const string kPlaceholderMarker = "@@";
         public const char kAppIdSeparator = '-'; // hard-coded could be moved to settings
         public const string kModellerGroup = "ModellerGroup_";
-        public const string kFullAppIdPlaceholder = "@@ExternalAppId@@";
-        public const string kAppIdPlaceholder = "@@AppId@@";
-        public const string kAppPrefixPlaceholder = "@@AppPrefix@@";
-        public const string kLdapGroupPattern = kModellerGroup + kAppIdPlaceholder;
+        public const string kLdapGroupPattern = kModellerGroup + Placeholder.AppId;
         public const string kImportChangeNotify = "importChangeNotify";
 		public const string kExternalRequest = "externalRequest";
         public const string kComplianceCheck = "complianceCheck";

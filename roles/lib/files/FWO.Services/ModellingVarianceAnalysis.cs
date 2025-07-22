@@ -12,8 +12,8 @@ using System.Text.Json;
 namespace FWO.Services
 {
     /// <summary>
-	/// Variance Analysis Class
-	/// </summary>
+    /// Variance Analysis Class
+    /// </summary>
     public partial class ModellingVarianceAnalysis(ApiConnection apiConnection, ExtStateHandler extStateHandler,
             UserConfig userConfig, FwoOwner owner, Action<Exception?, string, string, bool> displayMessageInUi)
     {
@@ -40,8 +40,9 @@ namespace FWO.Services
         private readonly Dictionary<int, List<ModellingAppRole>> allProdAppRoles = [];
         private readonly Dictionary<int, List<ModellingAppServer>> allExistingAppServers = [];
         private readonly Dictionary<int, List<ModellingAppServer>> alreadyCreatedAppServers = [];
+        private List<ModellingConnection> DeletedConns = [];
 
-        public ModellingAppZone? PlannedAppZoneDbUpdate {get; set; } = default;
+        public ModellingAppZone? PlannedAppZoneDbUpdate { get; set; } = default;
 
         public async Task AnalyseConnsForStatus(List<ModellingConnection> connections)
         {
@@ -108,11 +109,11 @@ namespace FWO.Services
 
         public async Task<List<WfReqTask>> AnalyseModelledConnectionsForRequest(List<ModellingConnection> connections)
         {
-            // later: get rules + compare, bundle requests
             appServerComparer = new (namingConvention);
             await InitManagements();
             await GetModelledRulesProductionState(new() { AnalyseRemainingRules = false });
             await GetNwObjectsProductionState();
+            await GetDeletedConnections();
 
             TaskList = [];
             AddAccessTaskList = [];
@@ -135,7 +136,7 @@ namespace FWO.Services
                         await AnalyseConnectionForRequest(mgt, conn);
                     }
                 }
-                await AnalyseDeletedConnsForRequest(mgt);
+                AnalyseDeletedConnsForRequest(mgt, [.. connections.Where(c => c.IsDocumentationOnly())]);
             }
             TaskList.AddRange(AddAccessTaskList);
             TaskList.AddRange(ChangeAccessTaskList);
@@ -220,15 +221,15 @@ namespace FWO.Services
             if (ResolveProdAppRole(modelledAppRole, mgt) == null)
             {
                 modelledAppRole.IsMissing = true;
-                varianceResult.MissingAppRoles[mgt.Id].Add(new(modelledAppRole){ ManagementName = mgt.Name });
+                varianceResult.MissingAppRoles[mgt.Id].Add(new(modelledAppRole) { ManagementName = mgt.Name });
             }
             else if (AppRoleChanged(modelledAppRole))
             {
                 modelledAppRole.HasDifference = true;
-                ModellingAppRole changedAppRole = new(modelledAppRole){ ManagementName = mgt.Name, SurplusAppServers = deletedAppServers};
-                foreach(var appServer in changedAppRole.AppServers.Select(a => a.Content))
+                ModellingAppRole changedAppRole = new(modelledAppRole) { ManagementName = mgt.Name, SurplusAppServers = deletedAppServers };
+                foreach (var appServer in changedAppRole.AppServers.Select(a => a.Content))
                 {
-                    appServer.NotImplemented = newAppServers.FirstOrDefault(a => a.Content.Id == appServer.Id) != null;
+                    appServer.NotImplemented = newAppServers.FirstOrDefault(a => appServerComparer.Equals(a.Content, appServer)) != null;
                 }
                 varianceResult.DifferingAppRoles[mgt.Id].Add(changedAppRole);
             }

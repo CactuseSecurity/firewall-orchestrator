@@ -94,14 +94,14 @@ namespace FWO.ExternalSystems.Tufin.SecureChange
 		{
 			bool shortened = false;
 			return template.ObjectTemplate
-				.Replace("@@TYPE@@", type)
-				.Replace("@@OBJECTNAME@@", Sanitizer.SanitizeJsonFieldMand(objInfo.Name, ref shortened))
-				.Replace("@@OBJECT_TYPE@@", objInfo.Type)
-				.Replace("@@OBJECT_DETAILS@@", objInfo.Details)
-				.Replace("@@COMMENT@@", objInfo.Comment)
-				.Replace("@@STATUS@@", objInfo.Status)
-				.Replace("@@OBJUPDSTATUS@@", objInfo.UpdateStatus)
-				.Replace("@@MANAGEMENT_ID@@", mgmId);
+				.Replace(Placeholder.TYPE, type)
+				.Replace(Placeholder.OBJECTNAME, Sanitizer.SanitizeJsonFieldMand(objInfo.Name, ref shortened))
+				.Replace(Placeholder.OBJECT_TYPE, objInfo.Type)
+				.Replace(Placeholder.OBJECT_DETAILS, objInfo.Details)
+				.Replace(Placeholder.COMMENT, objInfo.Comment)
+				.Replace(Placeholder.STATUS, objInfo.Status)
+				.Replace(Placeholder.OBJUPDSTATUS, objInfo.UpdateStatus)
+				.Replace(Placeholder.MANAGEMENT_ID, mgmId);
 		}
 
 		/// 	{
@@ -115,30 +115,35 @@ namespace FWO.ExternalSystems.Tufin.SecureChange
 		{
 			bool shortened = false;
 			return template.ObjectTemplateShort
-				.Replace("@@OBJECTNAME@@", Sanitizer.SanitizeJsonFieldMand(objName, ref shortened))
-				.Replace("@@STATUS@@", status)
-				.Replace("@@OBJUPDSTATUS@@", objUpdStatus)
-				.Replace("@@MANAGEMENT_ID@@", mgmId);
+				.Replace(Placeholder.OBJECTNAME, Sanitizer.SanitizeJsonFieldMand(objName, ref shortened))
+				.Replace(Placeholder.STATUS, status)
+				.Replace(Placeholder.OBJUPDSTATUS, objUpdStatus)
+				.Replace(Placeholder.MANAGEMENT_ID, mgmId);
 		}
 
 		protected static string FillIpTemplate(ExternalTicketTemplate template, string ipString)
 		{
-			return template.IpTemplate.Replace("@@IP@@", ipString);
+			return template.IpTemplate.Replace(Placeholder.IP, ipString);
 		}
 
 		protected static string FillServiceTemplate(ExternalTicketTemplate template, string protocolName, string port, string serviceName)
 		{
-			return template.ServiceTemplate.Replace("@@PROTOCOLNAME@@", protocolName).Replace("@@PORT@@", port).Replace("@@SERVICENAME@@", serviceName);
+			return template.ServiceTemplate.Replace(Placeholder.PROTOCOLNAME, protocolName).Replace(Placeholder.PORT, port).Replace(Placeholder.SERVICENAME, serviceName);
 		}
 
 		protected static string FillIcmpTemplate(ExternalTicketTemplate template, string serviceName)
 		{
-			return template.IcmpTemplate.Replace("@@SERVICENAME@@", serviceName);
+			return template.IcmpTemplate.Replace(Placeholder.SERVICENAME, serviceName);
+		}
+
+		protected static string FillIpProtocolTemplate(ExternalTicketTemplate template, string protocolName, string protocolId, string serviceName)
+		{
+			return template.IpProtocolTemplate.Replace(Placeholder.PROTOCOLNAME, protocolName).Replace(Placeholder.PROTOCOLID, protocolId).Replace(Placeholder.SERVICENAME, serviceName);
 		}
 
 		protected static string FillNwObjGroupTemplate(ExternalTicketTemplate template, string groupName, string mgtName)
 		{
-			return template.NwObjGroupTemplate.Replace("@@GROUPNAME@@", groupName).Replace("@@MANAGEMENT_NAME@@", mgtName);
+			return template.NwObjGroupTemplate.Replace(Placeholder.GROUPNAME, groupName).Replace(Placeholder.MANAGEMENT_NAME, mgtName);
 		}
 
 		protected string ConvertNetworkObjects(ExternalTicketTemplate template, string? mgmId, ModellingNamingConvention? namingConvention)

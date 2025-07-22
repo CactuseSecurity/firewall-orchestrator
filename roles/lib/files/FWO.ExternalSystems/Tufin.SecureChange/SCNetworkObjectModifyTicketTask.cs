@@ -1,3 +1,4 @@
+using FWO.Basics;
 using FWO.Data;
 using FWO.Data.Workflow;
 using FWO.Data.Modelling;
@@ -34,11 +35,11 @@ namespace FWO.ExternalSystems.Tufin.SecureChange
 				System.Text.Json.JsonSerializer.Deserialize<ExtMgtData>(ReqTask.OnManagement?.ExtMgtData ?? "{}") : new();
 			bool shortened = false;
 			TaskText = template.TasksTemplate
-				.Replace("@@GROUPNAME@@", Sanitizer.SanitizeJsonFieldMand(ReqTask.GetAddInfoValue(AdditionalInfoKeys.GrpName), ref shortened))
-				.Replace("@@MANAGEMENT_ID@@", extMgt.ExtId ?? "0")
-				.Replace("@@MANAGEMENT_NAME@@", extMgt.ExtName)
-				.Replace("@@CHANGEACTION@@", ChangeAction)
-				.Replace("@@MEMBERS@@", ConvertNetworkObjects(template, extMgt.ExtId, NamingConvention));
+				.Replace(Placeholder.GROUPNAME, Sanitizer.SanitizeJsonFieldMand(ReqTask.GetAddInfoValue(AdditionalInfoKeys.GrpName), ref shortened))
+				.Replace(Placeholder.MANAGEMENT_ID, extMgt.ExtId ?? "0")
+				.Replace(Placeholder.MANAGEMENT_NAME, extMgt.ExtName)
+				.Replace(Placeholder.CHANGEACTION, ChangeAction)
+				.Replace(Placeholder.MEMBERS, ConvertNetworkObjects(template, extMgt.ExtId, NamingConvention));
 		}
 	}
 }

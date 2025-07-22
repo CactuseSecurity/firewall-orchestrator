@@ -49,6 +49,7 @@ fragment networkServiceDetailsChangesNew on service {
       svc_name
       svc_port
       svc_port_end
+	  ip_proto_id
       protocol_name: stm_ip_proto {
         id: ip_proto_id
         name: ip_proto_name

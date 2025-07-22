@@ -584,7 +584,7 @@ def categorize_value_for_resolve_ref(rule, value, objDict, nativeConfigDomain):
             rule[value] = resolve_ref_from_object_dictionary(rule[value]['type'], objDict, native_config_domain=nativeConfigDomain, field_name=value)
         else:   # assuming list of rules
             for id in rule[value]:
-                value_list.append(resolve_ref_from_object_dictionary(id, objDict, native_config_domain=nativeConfigDomain, field_name=value)
+                value_list.append(resolve_ref_from_object_dictionary(id, objDict, native_config_domain=nativeConfigDomain, field_name=value))
             rule[value] = value_list # replace ref list with object list
 
 
@@ -614,15 +614,13 @@ def getObjectDetailsFromApi(uid_missing_obj, sid='', apiurl=''):
                             'type': 'network', 'ipv4-address': fwo_const.any_ip_ipv4,
                             'domain': obj['domain']
                             } ] } ] }
-                    elif (obj['name'] == 'None' and obj['type']=='Track'):
+                    elif (obj['name'] == 'None'): # None service or network object
                         return  { "type": "hosts", "chunks": [ {
                             "objects": [ {
                             'uid': obj['uid'], 'name': obj['name'], 'color': color,
                             'comments': 'none nw object checkpoint (hard coded)',
                             'type': 'group', 'domain': obj['domain']
                             } ] } ] }
-                    elif (obj['name'] == 'None'):
-                        pass
                 elif (obj['type'] in [ 'simple-gateway', 'CpmiGatewayPlain', 'interop', 'multicast-address-range',
                                       'CpmiVsClusterMember', 'CpmiVsxClusterMember', 'CpmiVsxNetobj' ]):
                     return { "type": "hosts", "chunks": [ {

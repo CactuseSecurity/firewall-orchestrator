@@ -292,7 +292,7 @@ namespace FWO.Report
                 }
                 else
                 {
-                    throw new ExternalException($"Found no installed {wantedBrowser} instances!");
+                    throw new EnvironmentException($"Found no installed {wantedBrowser} instances!");
                 } 
             }
 
@@ -300,11 +300,11 @@ namespace FWO.Report
 
             if(string.IsNullOrWhiteSpace(newestBuildId))
             {
-                throw new ExternalException($"Invalid build ID!");
+                throw new EnvironmentException($"Invalid build ID!");
             }
 
             InstalledBrowser? latestInstalledBrowser = allInstalledBrowsers.Single(_ => _.BuildId == newestBuildId) ??
-                throw new ExternalException($"Found no installed {wantedBrowser} instances with a valid build ID!");
+                throw new EnvironmentException($"Found no installed {wantedBrowser} instances with a valid build ID!");
 
             Log.WriteInfo("Test Log", $"Selecting latest installed {wantedBrowser}({latestInstalledBrowser.BuildId}) at: {latestInstalledBrowser.GetExecutablePath()}");
 
@@ -321,7 +321,7 @@ namespace FWO.Report
             catch(Exception)
             {
                 Log.WriteAlert("Test Log", $"Couldn't start {wantedBrowser} instance!");
-                throw new ExternalException($"Couldn't start {wantedBrowser} instance!");
+                throw new EnvironmentException($"Couldn't start {wantedBrowser} instance!");
             }            
 
             try

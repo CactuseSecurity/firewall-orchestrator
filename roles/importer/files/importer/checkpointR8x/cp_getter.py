@@ -614,13 +614,6 @@ def getObjectDetailsFromApi(uid_missing_obj, sid='', apiurl=''):
                             'type': 'network', 'ipv4-address': fwo_const.any_ip_ipv4,
                             'domain': obj['domain']
                             } ] } ] }
-                    # elif (obj['name'] == 'None' and obj['type']=='Track'):
-                    #     return  { "type": "track", "chunks": [ {
-                    #         "objects": [ {
-                    #         'uid': obj['uid'], 'name': obj['name'], 'color': color,
-                    #         'comments': 'none nw object checkpoint (hard coded)',
-                    #         'type': 'group', 'domain': obj['domain']
-                    #         } ] } ] }
                     elif (obj['name'] == 'None'): # None service or network object
                         return  { "type": "hosts", "chunks": [ {
                             "objects": [ {

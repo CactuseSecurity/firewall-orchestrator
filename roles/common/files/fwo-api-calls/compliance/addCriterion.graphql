@@ -1,0 +1,9 @@
+mutation addCriterion($criterion: compliance_criterion_insert_input!) {
+  insert_compliance_criterion_one(object: $criterion) {
+    id
+    name
+    criterion_type
+    content
+    created
+  }
+}

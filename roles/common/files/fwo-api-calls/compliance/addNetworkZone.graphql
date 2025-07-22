@@ -1,6 +1,6 @@
 mutation insert_compliance_network_zone ($name: String!, $description: String!, $ip_ranges: [compliance_ip_range_insert_input!]!, $super_network_zone_id: bigint,
 $communication_sources: [compliance_network_zone_communication_insert_input!]!, $communication_destinations: [compliance_network_zone_communication_insert_input!]!, 
-$sub_network_zones: [compliance_network_zone_insert_input!]!) {
+$sub_network_zones: [compliance_network_zone_insert_input!]!, $criterion_id: Int) {
   insert_compliance_network_zone_one (
     object: {
       super_network_zone_id: $super_network_zone_id,
@@ -18,6 +18,7 @@ $sub_network_zones: [compliance_network_zone_insert_input!]!) {
       sub_network_zones: {
         data: $sub_network_zones
       }
+      criterion_id: $criterion_id
     }
   ) {
     id

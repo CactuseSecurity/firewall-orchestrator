@@ -54,9 +54,9 @@ namespace FWO.Compliance
             Results.Clear();
             RestrictedServiceViolations.Clear();
 
-            if (_apiConnection != null)
+            if (_apiConnection != null && currentReport is ReportCompliance complianceReport)
             {
-                foreach (var management in currentReport.ReportData.ManagementData)
+                foreach (var management in complianceReport.ReportData.ManagementData)
                 {
                     foreach (var rulebase in management.Rulebases)
                     {
@@ -68,6 +68,28 @@ namespace FWO.Compliance
                 }
 
                 await GatherCheckResults();
+
+                if (_userConfig.GlobalConfig is GlobalConfig globalConfig && globalConfig.ComplianceCheckPersistData)
+                {
+                    List<ComplianceViolationBase> violationsForInsert = complianceReport.Violations
+                    .Select(v => new ComplianceViolationBase
+                    {
+                        RuleId = v.RuleId,
+                        Details = v.Details,
+                        FoundDate = v.FoundDate,
+                        RemovedDate = v.RemovedDate,
+                        RiskScore = v.RiskScore,
+                        PolicyId = v.PolicyId,
+                        CriterionId = v.CriterionId
+                    })
+                    .ToList();
+                    var variables = new
+                    {
+                        violations = violationsForInsert
+                    };
+                    await _apiConnection.SendQueryAsync<dynamic>(ComplianceQueries.addViolations, variables );
+                }
+
             }
         }
 
@@ -75,17 +97,18 @@ namespace FWO.Compliance
         {
             if (Results.Any() && currentReport is ReportCompliance complianceReport)
             {
-                    complianceReport.Violations.Clear();
+                complianceReport.Violations.Clear();
 
-                    foreach (var item in Results)
-                    {
-                        ComplianceViolation violation = new();
-                        violation.RuleId = (int)item.Item1.Id;
-                        violation.Details = $"Matrix violation: {item.Item2.Item1.Name} -> {item.Item2.Item2.Name}";
-                        complianceReport.Violations.Add(violation);
-                    }
+                foreach (var item in Results)
+                {
+                    ComplianceViolation violation = new();
+                    violation.RuleId = (int)item.Item1.Id;
+                    violation.Details = $"Matrix violation: {item.Item2.Item1.Name} -> {item.Item2.Item2.Name}";
+                    complianceReport.Violations.Add(violation);
+                }
 
-                    await complianceReport.SetComplianceData();
+                await complianceReport.SetComplianceData();
+                ComplianceReport = complianceReport;
             }
         }
 
@@ -105,7 +128,7 @@ namespace FWO.Compliance
                 tos.AddRange(ParseIpRange(networkLocation.Object));
             }
 
-            bool ruleIsCompliant = CheckCompliance(froms, tos, out List<(ComplianceNetworkZone, ComplianceNetworkZone)> forbiddenCommunication);
+            bool ruleIsCompliant = CheckMatrixCompliance(froms, tos, out List<(ComplianceNetworkZone, ComplianceNetworkZone)> forbiddenCommunication);
 
             foreach (var item in forbiddenCommunication)
             {
@@ -192,57 +215,58 @@ namespace FWO.Compliance
         }
 
         /// <summary>
-        /// Create compliance report for given Managements
-        /// </summary>
-        /// <param name="mgmIds"></param>
-        /// <returns></returns>
-        public async Task<ReportCompliance> CreateComplianceReport(List<int> mgmIds)
-        {
-            await SetUpReportFilters();
-
-            ReportTemplate template = new ReportTemplate("", reportFilters.ToReportParams());
-            currentReport = await ReportGenerator.Generate(template, _apiConnection, _userConfig, DisplayMessageInUi);
-            ComplianceReport = currentReport as ReportCompliance;
-
-            return ComplianceReport;
-        }
-
-        /// <summary>
         /// Send Email with compliance report to all recipients defined in compliance settings
         /// </summary>
         /// <returns></returns>
         public async Task SendComplianceCheckEmail()
         {
-            string decryptedSecret = AesEnc.TryDecrypt( _userConfig.GlobalConfig.EmailPassword, false, "Compliance Check", "Could not decrypt mailserver password.");
+            if (_userConfig.GlobalConfig is GlobalConfig globalConfig)
+            {
+                string decryptedSecret = AesEnc.TryDecrypt(globalConfig.EmailPassword, false, "Compliance Check", "Could not decrypt mailserver password.");
 
-            EmailConnection emailConnection = new(
-                 _userConfig.GlobalConfig.EmailServerAddress,
-                 _userConfig.GlobalConfig.EmailPort,
-                 _userConfig.GlobalConfig.EmailTls,
-                 _userConfig.GlobalConfig.EmailUser,
-                decryptedSecret,
-                 _userConfig.GlobalConfig.EmailSenderAddress
-            );
+                EmailConnection emailConnection = new(
+                    globalConfig.EmailServerAddress,
+                    globalConfig.EmailPort,
+                    globalConfig.EmailTls,
+                    globalConfig.EmailUser,
+                    decryptedSecret,
+                    globalConfig.EmailSenderAddress
+                );
 
-            MailData? mail = PrepareEmail();
+                MailData? mail = PrepareEmail();
 
-            await MailKitMailer.SendAsync(mail, emailConnection, false, new CancellationToken());
+                if (mail != null)
+                {
+                    await MailKitMailer.SendAsync(mail, emailConnection, false, new CancellationToken());
+                }
+                
+            }
+
         }
 
-        private MailData PrepareEmail()
+        private MailData? PrepareEmail()
         {
-            string subject =  _userConfig.GlobalConfig.ComplianceCheckMailSubject;
-            string body =  _userConfig.GlobalConfig.ComplianceCheckMailBody;
-               MailData mailData = new(EmailHelper.CollectRecipientsFromConfig(_userConfig,  _userConfig.GlobalConfig.ComplianceCheckMailRecipients), subject){ Body = body };
-            if (currentReport is ReportCompliance complianceReport)
+            if (_userConfig.GlobalConfig is GlobalConfig globalConfig)
             {
-                FormFile? attachment = EmailHelper.CreateAttachment(complianceReport.ExportToCsv(), GlobalConst.kCsv, subject);
-                if (attachment != null)
+                string subject = globalConfig.ComplianceCheckMailSubject;
+                string body = globalConfig.ComplianceCheckMailBody;
+                MailData mailData = new(EmailHelper.CollectRecipientsFromConfig(_userConfig, globalConfig.ComplianceCheckMailRecipients), subject) { Body = body };
+
+                if (currentReport is ReportCompliance complianceReport)
                 {
-                    mailData.Attachments = new FormFileCollection() { attachment };
+                    FormFile? attachment = EmailHelper.CreateAttachment(complianceReport.ExportToCsv(), GlobalConst.kCsv, subject);
+                    if (attachment != null)
+                    {
+                        mailData.Attachments = new FormFileCollection() { attachment };
+                    }
                 }
+
+                return mailData;
             }
-            return mailData;
+            else
+            {
+                return null;
+            }
         }
 
         /// <summary>
@@ -258,7 +282,7 @@ namespace FWO.Compliance
             List<(ComplianceNetworkZone, ComplianceNetworkZone)> forbiddenCommunicationsOutput = [];
             if (sourceIpRange != null && destinationIpRange != null)
             {
-                CheckCompliance
+                CheckMatrixCompliance
                 (
                     [sourceIpRange],
                     [destinationIpRange],
@@ -268,7 +292,7 @@ namespace FWO.Compliance
             return forbiddenCommunicationsOutput;
         }
 
-        private bool CheckCompliance(List<IPAddressRange> source, List<IPAddressRange> destination, out List<(ComplianceNetworkZone, ComplianceNetworkZone)> forbiddenCommunication)
+        private bool CheckMatrixCompliance(List<IPAddressRange> source, List<IPAddressRange> destination, out List<(ComplianceNetworkZone, ComplianceNetworkZone)> forbiddenCommunication)
         {
             // Determine all matching source zones
             List<ComplianceNetworkZone> sourceZones = DetermineZones(source);

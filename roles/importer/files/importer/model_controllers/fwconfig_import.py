@@ -4,7 +4,7 @@ import fwo_const
 from fwo_const import fwo_config_filename, importer_user_name, importer_base_dir
 import fwo_api
 import fwo_globals
-import fwo_exceptions
+from fwo_exceptions import FwoImporterError, FwoApiFailedDeleteOldImports
 from fwo_config import readConfig
 from fwo_exceptions import ImportInterruption
 from fwo_log import getFwoLogger
@@ -58,7 +58,7 @@ class FwConfigImport():
         
     def import_single_config(self, single_manager: FwConfigManager):
         # current implementation restriction: assuming we always get the full config (only inserts) from API
-        previousConfig = self.getPreviousConfig(mgm_id=self.import_state.lookupManagementId(single_manager.ManagerUid))
+        previousConfig = self.getLatestConfig(mgm_id=self.import_state.lookupManagementId(single_manager.ManagerUid))
         self._global_state.previous_config = previousConfig
         # calculate differences and write them to the database via API
         self.updateDiffs(previousConfig, single_manager)
@@ -81,11 +81,12 @@ class FwConfigImport():
                     global_state.global_normalized_config = config
                 config_importer = FwConfigImport()
                 config_importer.import_single_config(manager) 
+                if import_state.Stats.ErrorCount>0:
+                    raise FwoImporterError("Import failed due to errors.")
+                else:
+                    config_importer.storeLatestConfig()
 
-        if import_state.Stats.ErrorCount>0:
-            raise fwo_exceptions.FwoImporterError("Import failed due to errors.")
-        else:
-            config_importer.storeLatestConfig()
+
 
 
     def clear_management(self, import_state: ImportStateController) -> FwConfigNormalized:
@@ -185,7 +186,7 @@ class FwConfigImport():
                  description="failed to get import lock for management id " + str(mgmId))
             fwo_api.setAlert(self.import_state.FwoConfig.FwoApiUri, self.import_state.Jwt, import_id=self.import_state.ImportId, title="import error", mgm_id=str(mgmId), severity=1, role='importer', \
                  description="fwo_api: failed to get import lock", source='import', alertCode=15, mgm_details=self.import_state.MgmDetails)
-            raise fwo_exceptions.FwoApiFailedDeleteOldImports(f"management id: {mgmId}") from None
+            raise FwoApiFailedDeleteOldImports(f"management id: {mgmId}") from None
 
 
     def storeLatestConfig(self):
@@ -224,7 +225,8 @@ class FwConfigImport():
             except Exception:
                 logger.exception(f"failed to write latest normalized config for mgm id {str(self.import_state.MgmDetails.Id)}: {str(traceback.format_exc())}")
                 errorsFound = 1 # error
-            
+                self.import_state.addError("error while trying to write latest config for management id " + str(self.import_state.MgmDetails.Id))
+                raise
             if changes==1:
                 errorsFound = 0
             else:
@@ -247,7 +249,7 @@ class FwConfigImport():
             else:
                 changes = import_result['data']['delete_latest_config']['affected_rows']
         except Exception:
-            logger.exception(f"failed to delete latest normalized config for mgm id {str(self.import_state.MgmDetails.Id)}: {str(traceback.format_exc())}")
+            self.import_state.addError(f"failed to delete latest normalized config for mgm id {str(self.import_state.MgmDetails.Id)}: {str(traceback.format_exc())}")
             return 1 # error
         
         if changes<=1:  # if nothing was changed, we are also happy (assuming this to be the first config of the current management)
@@ -257,7 +259,7 @@ class FwConfigImport():
 
 
     # return previous config or empty config if there is none; only returns the config of a single management
-    def getPreviousConfig(self, mgm_id: int = None) -> FwConfigNormalized:
+    def getLatestConfig(self, mgm_id: int = None) -> FwConfigNormalized:
         prev_config = FwConfigNormalized(**{
                                 'action': ConfigAction.INSERT,
                                 'network_objects': {},
@@ -289,4 +291,4 @@ class FwConfigImport():
             return prev_config
         except Exception:
             logger.exception(f"failed to get latest normalized config for mgm id {str(self.import_state.MgmDetails.Id)}: {str(traceback.format_exc())}")
-            raise fwo_exceptions.FwoImporterError("error while trying to get the previous config")
+            raise FwoImporterError("error while trying to get the previous config")

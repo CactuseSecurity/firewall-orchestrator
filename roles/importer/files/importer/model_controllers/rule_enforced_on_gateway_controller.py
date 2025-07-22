@@ -106,6 +106,7 @@ class RuleEnforcedOnGatewayController:
             logger.exception(f"Failed to write new rules: {str(format_exc())}")
             self.import_details.increaseErrorCounterByOne()
             self.import_details.appendErrorString(f"Failed to write new rules: {str(format_exc())}")
+            raise
 
     def insert_rules_enforced_on_gateway(self, enforcements: List[dict]):
         """

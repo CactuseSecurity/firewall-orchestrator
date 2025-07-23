@@ -52,13 +52,7 @@ def get_config(nativeConfig: json, importState: ImportStateController) -> tuple[
 
     if not parsing_config_only: # get config from cp fw mgr
         starttime = int(time.time())
-
         initialize_native_config(nativeConfig, importState)
-
-        # delete_v: brauchen wir users?
-        # if 'users' not in nativeConfig:
-        #     nativeConfig.update({'users': {}})
-
         start_time_temp = int(time.time())
         logger.debug ( "checkpointR8x/get_config/getting objects ...")
 

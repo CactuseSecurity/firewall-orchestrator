@@ -57,7 +57,6 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
     logger = getFwoLogger(debug_level=debug_level_in)
     config_changed_since_last_import = True
     verify_certs = (ssl_verification is not None)
-    result = 1  # Default result in case of an error
 
     try:
         service_provider = register_services()

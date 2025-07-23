@@ -20,7 +20,7 @@ def normalize_users(full_config, config2import, import_id, user_scope):
                 name = str(user_orig['name'])
             if 'comment' in user_orig:
                 comment = str(user_orig['comment'])
-            if 'color' in user_orig and str(user_orig['color']) != 0:
+            if 'color' in user_orig and str(user_orig['color']) != "0":
                 color = str(user_orig['color'])
 
             users.extend([{'user_typ': type,

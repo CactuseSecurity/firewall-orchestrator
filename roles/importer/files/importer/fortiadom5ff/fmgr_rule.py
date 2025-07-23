@@ -11,6 +11,7 @@ from model_controllers.interface_controller import get_matching_route_obj, get_i
 import ipaddress
 from fmgr_network import resolve_objects, resolve_raw_objects
 import time
+from fwo_exceptions import FwoDeviceWithoutLocalPackage
 
 rule_access_scope_v4 = ['rules_global_header_v4', 'rules_adom_v4', 'rules_global_footer_v4']
 rule_access_scope_v6 = ['rules_global_header_v6', 'rules_adom_v6', 'rules_global_footer_v6']
@@ -19,7 +20,7 @@ rule_nat_scope = ['rules_global_nat', 'rules_adom_nat']
 rule_scope = rule_access_scope + rule_nat_scope
 
 
-def initialize_rulebases(nativ_config_rulebase):
+def initialize_rulebases(native_config_rulebase):
 #delete_v: hier auf native_config_domain umschreiben, die Dinger bei rulebases, bzw nat_rulebases einsortieren
     # initialize access rules
     if 'rules_global_header_v4' not in nativeConfig:
@@ -47,12 +48,13 @@ def initialize_rulebases(nativ_config_rulebase):
         nativeConfig.update({'rules_hitcount': {}})
 
 
-def getAccessPolicy(sid, fm_api_url, nativeConfig, adom_name, device, limit):
+def getAccessPolicy(sid, fm_api_url, native_config_domain, adom_device_vdom_policy_package_structure, adom_name, mgm_details_device, limit):
     consolidated = '' # '/consolidated'
     logger = getFwoLogger()
 
-    local_pkg_name = device['local_rulebase_name']
-    global_pkg_name = device['global_rulebase_name']
+    local_pkg_name = find_local_pkg(adom_device_vdom_policy_package_structure, adom_name, mgm_details_device)
+    # delete_v: hier global_pkg_name später
+    #global_pkg_name = device['global_rulebase_name']
     options = ['extra info', 'scope member', 'get meta']
     # pkg_name = device['package_name'] pkg_name is not used at all
 
@@ -71,27 +73,29 @@ def getAccessPolicy(sid, fm_api_url, nativeConfig, adom_name, device, limit):
         sid, fm_api_url, "/sys/hitcount", payload=hitcount_payload, method="get")
     time.sleep(2)
 
+    # delete_v: hier initial link wenn global header existiert
     # get global header rulebase:
-    if device['global_rulebase_name'] is None or device['global_rulebase_name'] == '':
-        logger.debug('no global rulebase name defined in fortimanager, ADOM=' + adom_name + ', local_package=' + local_pkg_name)
-    else:
-        fmgr_getter.update_config_with_fortinet_api_call(
-            nativeConfig['rules_global_header_v4'], sid, fm_api_url, "/pm/config/global/pkg/" + global_pkg_name + "/global/header" + consolidated + "/policy", local_pkg_name, limit=limit)
-        fmgr_getter.update_config_with_fortinet_api_call(
-            nativeConfig['rules_global_header_v6'], sid, fm_api_url, "/pm/config/global/pkg/" + global_pkg_name + "/global/header" + consolidated + "/policy6", local_pkg_name, limit=limit)
+    # if device['global_rulebase_name'] is None or device['global_rulebase_name'] == '':
+    #     logger.debug('no global rulebase name defined in fortimanager, ADOM=' + adom_name + ', local_package=' + local_pkg_name)
+    # else:
+    #     fmgr_getter.update_config_with_fortinet_api_call(
+    #         nativeConfig['rules_global_header_v4'], sid, fm_api_url, "/pm/config/global/pkg/" + global_pkg_name + "/global/header" + consolidated + "/policy", local_pkg_name, limit=limit)
+    #     fmgr_getter.update_config_with_fortinet_api_call(
+    #         nativeConfig['rules_global_header_v6'], sid, fm_api_url, "/pm/config/global/pkg/" + global_pkg_name + "/global/header" + consolidated + "/policy6", local_pkg_name, limit=limit)
     
+    # delete_v: hier initial link wenn global header nicht existiert, sonst link von global header
     # get local rulebase
     fmgr_getter.update_config_with_fortinet_api_call(
-        nativeConfig['rules_adom_v4'], sid, fm_api_url, "/pm/config/adom/" + adom_name + "/pkg/" + local_pkg_name + "/firewall" + consolidated + "/policy", local_pkg_name, options=options, limit=limit)
+        native_config_domain['rulebases'], sid, fm_api_url, "/pm/config/adom/" + adom_name + "/pkg/" + local_pkg_name + "/firewall" + consolidated + "/policy", 'rules_adom_v4_' + local_pkg_name, options=options, limit=limit)
     fmgr_getter.update_config_with_fortinet_api_call(
-        nativeConfig['rules_adom_v6'], sid, fm_api_url, "/pm/config/adom/" + adom_name + "/pkg/" + local_pkg_name + "/firewall" + consolidated + "/policy6", local_pkg_name, limit=limit)
+        native_config_domain['rulebases'], sid, fm_api_url, "/pm/config/adom/" + adom_name + "/pkg/" + local_pkg_name + "/firewall" + consolidated + "/policy6", 'rules_adom_v6_' + local_pkg_name, limit=limit)
 
     # get global footer rulebase:
-    if device['global_rulebase_name'] != None and device['global_rulebase_name'] != '':
-        fmgr_getter.update_config_with_fortinet_api_call(
-            nativeConfig['rules_global_footer_v4'], sid, fm_api_url, "/pm/config/global/pkg/" + global_pkg_name + "/global/footer" + consolidated + "/policy", local_pkg_name, limit=limit)
-        fmgr_getter.update_config_with_fortinet_api_call(
-            nativeConfig['rules_global_footer_v6'], sid, fm_api_url, "/pm/config/global/pkg/" + global_pkg_name + "/global/footer" + consolidated + "/policy6", local_pkg_name, limit=limit)
+    # if device['global_rulebase_name'] != None and device['global_rulebase_name'] != '':
+    #     fmgr_getter.update_config_with_fortinet_api_call(
+    #         nativeConfig['rules_global_footer_v4'], sid, fm_api_url, "/pm/config/global/pkg/" + global_pkg_name + "/global/footer" + consolidated + "/policy", local_pkg_name, limit=limit)
+    #     fmgr_getter.update_config_with_fortinet_api_call(
+    #         nativeConfig['rules_global_footer_v6'], sid, fm_api_url, "/pm/config/global/pkg/" + global_pkg_name + "/global/footer" + consolidated + "/policy6", local_pkg_name, limit=limit)
 
     # execute hitcount task
     hitcount_payload = {
@@ -104,7 +108,14 @@ def getAccessPolicy(sid, fm_api_url, nativeConfig, adom_name, device, limit):
         ]
     }
     fmgr_getter.update_config_with_fortinet_api_call(
-        nativeConfig['rules_hitcount'], sid, fm_api_url, "/sys/task/result", local_pkg_name, payload=hitcount_payload, limit=limit)
+        native_config_domain['rules_hitcount'], sid, fm_api_url, "/sys/task/result", local_pkg_name, payload=hitcount_payload, limit=limit)
+
+def find_local_pkg(adom_device_vdom_policy_package_structure, adom_name, mgm_details_device):
+    for device in adom_device_vdom_policy_package_structure[adom_name]:
+        for vdom in adom_device_vdom_policy_package_structure[adom_name][device]:
+            if mgm_details_device['name'] == device + '_' + vdom:
+                return adom_device_vdom_policy_package_structure[adom_name][device][vdom]
+    raise FwoDeviceWithoutLocalPackage('Could not find local package for ' + mgm_details_device['name'] + ' in Fortimanager Config') from None
 
 
 def getNatPolicy(sid, fm_api_url, nativeConfig, adom_name, device, limit):

@@ -118,20 +118,29 @@ def fortinet_api_call(sid, api_base_url, api_path, payload={}, show_progress=Fal
     return result
 
 def get_devices_from_manager(adom_mgm_details, sid, fm_api_url):
-    fmgr_devices = []
+    device_vdom_dict = {}
 
     device_results = fortinet_api_call(sid, fm_api_url, '/dvmdb/adom/' + adom_mgm_details.DomainName + '/device')
-    for device in adom_mgm_details.Devices:
-        found_fmgr_device = False
-        for fmgr_device in device_results:
-            if device == fmgr_device['name']:
-                fmgr_devices.append(fmgr_device)
-                found_fmgr_device = True
-                break
-        if not found_fmgr_device:
-            raise FwoUnknownDeviceForManager('Could not find ' + device + ' in Fortimanager Config') from None
+    for mgm_details_device in adom_mgm_details.Devices:
+        if not mgm_details_device['importDisabled']:
+            found_fmgr_device = False
+            for fmgr_device in device_results:
+                found_fmgr_device = parse_device_and_vdom(fmgr_device, mgm_details_device, device_vdom_dict)
+            if not found_fmgr_device:
+                raise FwoUnknownDeviceForManager('Could not find ' + mgm_details_device['name'] + ' in Fortimanager Config') from None
         
-    return fmgr_devices
+    return device_vdom_dict
+
+def parse_device_and_vdom(fmgr_device, mgm_details_device, device_vdom_dict, found_fmgr_device):
+    if 'vdom' in fmgr_device:
+        for fmgr_vdom in fmgr_device['vdom']:
+            if mgm_details_device['name'] == fmgr_device['name'] + '_' + fmgr_vdom['name']:
+                found_fmgr_device = True
+                if fmgr_device['name'] in device_vdom_dict:
+                    device_vdom_dict[fmgr_device['name']].update({fmgr_vdom['name']: ''})
+                else:
+                    device_vdom_dict.update({fmgr_device['name']: {fmgr_vdom['name']: ''}})
+    return found_fmgr_device
             
 def get_policy_packages_from_manager(adom, sid, fm_api_url):
 

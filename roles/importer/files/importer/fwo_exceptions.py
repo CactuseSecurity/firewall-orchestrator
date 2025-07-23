@@ -137,3 +137,8 @@ class FwoUnknownDeviceForManager(Exception):
     """Custom exception to signal an unknown device during import."""
     def __init__(self, message="Could not find device in manager config"):
         super().__init__(message)
+
+class FwoDeviceWithoutLocalPackage(Exception):
+    """Custom exception to signal a device without local package."""
+    def __init__(self, message="Could not local package for device in manager config"):
+        super().__init__(message)

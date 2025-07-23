@@ -112,6 +112,11 @@ def _import_management(service_provider=None, importState=None, config_importer=
     logger = getFwoLogger(debug_level=debug_level_in)
     config_changed_since_last_import = True
 
+    if importState.DebugLevel > 8:
+        logger.debug(f"import_management - ssl_verification: {ssl_verification}")
+        logger.debug(f"import_management - suppress_cert_warnings_in: {suppress_cert_warnings_in}")
+        logger.debug(f"import_management - limit: {limit}")
+
     if importState.MgmDetails.ImportDisabled and not importState.ForceImport:
         logger.info(f"import_management - import disabled for mgm  {str(mgmId)} - skipping")
         return 0

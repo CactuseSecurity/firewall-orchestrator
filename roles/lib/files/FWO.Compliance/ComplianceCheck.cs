@@ -26,7 +26,6 @@ namespace FWO.Compliance
         private readonly UserConfig _userConfig;
         private readonly ApiConnection _apiConnection;
         private List<string> _restrictedServices = [];
-        private bool _checkRestrictedServices = true;
 
 
         /// <summary>
@@ -125,36 +124,40 @@ namespace FWO.Compliance
 
         public async Task<bool> CheckRuleCompliance(Rule rule)
         {
-            List<IPAddressRange> froms = [];
-            List<IPAddressRange> tos = [];
+            Task<List<IPAddressRange>> fromsTask = GetIpRangesFromNetworkObjects(rule.Froms.Select(nl => nl.Object).ToList());
+            Task<List<IPAddressRange>> tosTask = GetIpRangesFromNetworkObjects(rule.Tos.Select(nl => nl.Object).ToList());
 
-            foreach (NetworkLocation networkLocation in rule.Froms)
-            {
-                // Determine all source ip ranges
-                froms.AddRange(ParseIpRange(networkLocation.Object));
-            }
-            foreach (NetworkLocation networkLocation in rule.Tos)
-            {
-                // Determine all destination ip ranges
-                tos.AddRange(ParseIpRange(networkLocation.Object));
-            }
+            await Task.WhenAll(fromsTask, tosTask);
+
+            List<IPAddressRange> froms = fromsTask.Result;
+            List<IPAddressRange> tos = tosTask.Result;
 
             bool ruleIsCompliant = CheckMatrixCompliance(froms, tos, out List<(ComplianceNetworkZone, ComplianceNetworkZone)> forbiddenCommunication);
 
-            foreach (var item in forbiddenCommunication)
+            foreach ((ComplianceNetworkZone, ComplianceNetworkZone) item in forbiddenCommunication)
             {
-                Results.Add((rule, item));
+            Results.Add((rule, item));
             }
 
-            List<ComplianceViolation> serviceViolations = await TryGetRestrictedServiceViolation(rule);
+            List<ComplianceViolation> serviceViolations = TryGetRestrictedServiceViolation(rule);
 
             if (serviceViolations.Count > 0)
             {
-                ruleIsCompliant = false;
-                RestrictedServiceViolations.AddRange(serviceViolations);
+            ruleIsCompliant = false;
+            RestrictedServiceViolations.AddRange(serviceViolations);
             }
 
             return ruleIsCompliant;
+        }
+        
+        private Task<List<IPAddressRange>> GetIpRangesFromNetworkObjects(List<NetworkObject> networkObjects)
+        {
+            List<IPAddressRange> ranges = [];
+            foreach (NetworkObject networkObject in networkObjects)
+            {
+            ranges.AddRange(ParseIpRange(networkObject));
+            }
+            return Task.FromResult(ranges);
         }
 
         private static List<IPAddressRange> ParseIpRange(NetworkObject networkObject)
@@ -180,9 +183,9 @@ namespace FWO.Compliance
                 if (networkObject.IP != null)
                 {
                     // CIDR notation or single (host) IP can be parsed directly
-                    ranges.Add(IPAddressRange.Parse(networkObject.IP));                        
+                    ranges.Add(IPAddressRange.Parse(networkObject.IP));
                 }
-            }                
+            }
 
             return ranges;
         }
@@ -202,7 +205,7 @@ namespace FWO.Compliance
             }
         }
 
-        public async Task<List<ComplianceViolation>> TryGetRestrictedServiceViolation(Rule rule)
+        public List<ComplianceViolation> TryGetRestrictedServiceViolation(Rule rule)
         {
             List<ComplianceViolation> violations = [];
 

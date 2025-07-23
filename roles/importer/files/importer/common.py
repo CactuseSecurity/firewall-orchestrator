@@ -58,48 +58,20 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
     config_changed_since_last_import = True
     verify_certs = (ssl_verification is not None)
 
+    service_provider = register_services()
+    global_state = service_provider.get_service(Services.GLOBAL_STATE)
+    importState = ImportStateController.initializeImport(mgmId, debugLevel=debug_level_in, 
+                                            force=force, version=version, 
+                                            isClearingImport=clearManagementData, isFullImport=False, sslVerification=verify_certs)
+    global_state.import_state = importState
+
+    config_importer = FwConfigImport()
+
     try:
-        service_provider = register_services()
-        global_state = service_provider.get_service(Services.GLOBAL_STATE)
-        importState = ImportStateController.initializeImport(mgmId, debugLevel=debug_level_in, 
-                                                force=force, version=version, 
-                                                isClearingImport=clearManagementData, isFullImport=False, sslVerification=verify_certs)
-        global_state.import_state = importState
-
-        if importState.MgmDetails.ImportDisabled and not importState.ForceImport:
-            logger.info(f"import_management - import disabled for mgm  {str(mgmId)} - skipping")
-            return 0
-        
-        if importState.MgmDetails.ImporterHostname != gethostname() and not importState.ForceImport:
-            logger.info(f"import_management - this host ( {gethostname()}) is not responsible for importing management  {str(mgmId)}")
-            return 0
-        
-        Path(import_tmp_path).mkdir(parents=True, exist_ok=True)  # make sure tmp path exists
-        gateways = GatewayController.buildGatewayList(importState.MgmDetails)
-        logger.info(f"starting import of management {importState.MgmDetails.Name} ({str(mgmId)}), import_id= {str(importState.ImportId)}")
-        config_importer = FwConfigImport()
-
-        fwo_api.setImportLock(importState)
-        if clearManagementData:
-            config_normalized = config_importer.clear_management(importState)
-
-        # get config
-        config_changed_since_last_import, config_normalized = get_config_top_level(importState, in_file, gateways)
-
-        # write normalized config to file
-        config_normalized.storeFullNormalizedConfigToFile(importState)
-        logger.debug("import_management - getting config total duration " + str(int(time.time()) - importState.StartTime) + "s")
-
-        # check config consistency and import it
-        if config_changed_since_last_import or importState.ForceImport:
-            FwConfigImportCheckConsistency(importState, config_normalized).checkConfigConsistency(config_normalized)
-            config_importer.import_management_set(importState, service_provider, config_normalized.ManagerSet)
-            fwo_api.update_hit_counter(importState, config_normalized)
-
-        # delete data that has passed the retention time
-        # TODO: replace by deletion of old data with removed date > retention?
-        if not clearManagementData and importState.DataRetentionDays<importState.DaysSinceLastFullImport:
-            config_importer.deleteOldImports() # delete all imports of the current management before the last but one full import
+        _import_management(service_provider=service_provider, importState=importState, config_importer=config_importer,
+                           mgmId=mgmId, ssl_verification=ssl_verification, debug_level_in=debug_level_in,
+            limit=limit, clearManagementData=clearManagementData,
+            suppress_cert_warnings_in=suppress_cert_warnings_in, in_file=in_file)
 
     except (FwLoginFailed) as e:
         fwo_api.delete_import(importState) # delete whole import
@@ -132,6 +104,48 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
         return importState.Stats.ErrorCount
     else:
         return 1
+
+
+def _import_management(service_provider=None, importState=None, config_importer=None, mgmId=None, ssl_verification=None, debug_level_in=0,
+        limit=150, clearManagementData=False, suppress_cert_warnings_in=None, in_file=None) -> int:
+
+    logger = getFwoLogger(debug_level=debug_level_in)
+    config_changed_since_last_import = True
+
+    if importState.MgmDetails.ImportDisabled and not importState.ForceImport:
+        logger.info(f"import_management - import disabled for mgm  {str(mgmId)} - skipping")
+        return 0
+    
+    if importState.MgmDetails.ImporterHostname != gethostname() and not importState.ForceImport:
+        logger.info(f"import_management - this host ( {gethostname()}) is not responsible for importing management  {str(mgmId)}")
+        return 0
+    
+    Path(import_tmp_path).mkdir(parents=True, exist_ok=True)  # make sure tmp path exists
+    gateways = GatewayController.buildGatewayList(importState.MgmDetails)
+    logger.info(f"starting import of management {importState.MgmDetails.Name} ({str(mgmId)}), import_id= {str(importState.ImportId)}")
+
+    fwo_api.setImportLock(importState)
+    if clearManagementData:
+        config_normalized = config_importer.clear_management(importState)
+    else:
+        # get config
+        config_changed_since_last_import, config_normalized = get_config_top_level(importState, in_file, gateways)
+
+        # write normalized config to file
+        config_normalized.storeFullNormalizedConfigToFile(importState)
+        logger.debug("import_management - getting config total duration " + str(int(time.time()) - importState.StartTime) + "s")
+
+    # check config consistency and import it
+    if config_changed_since_last_import or importState.ForceImport:
+        FwConfigImportCheckConsistency(importState, config_normalized).checkConfigConsistency(config_normalized)
+        config_importer.import_management_set(importState, service_provider, config_normalized.ManagerSet)
+        fwo_api.update_hit_counter(importState, config_normalized)
+
+    # delete data that has passed the retention time
+    # TODO: replace by deletion of old data with removed date > retention?
+    if not clearManagementData and importState.DataRetentionDays<importState.DaysSinceLastFullImport:
+        config_importer.deleteOldImports() # delete all imports of the current management before the last but one full import
+
 
 
 def handle_unexpected_exception(importState=None, config_importer=None):

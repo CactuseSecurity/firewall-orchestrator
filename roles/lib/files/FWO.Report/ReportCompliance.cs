@@ -57,34 +57,45 @@ namespace FWO.Report
 
                 foreach (Rule rule in Rules)
                 {
-                    var values = properties.Select(p =>
-                    {
-                        if (p.Name != "Services")
-                        {
-                            var value = p!.GetValue(rule);
-                            if (value == null)
-                                return "";
-                            if (value is string s)
-                                return Escape(s, _separator);
-                            return Escape(value.ToString()!, _separator);
-                        }
-                        else
-                        {
-                            // Handle Services separately to join them with a pipe character
-
-                            var services = rule.Services.Select(s => s.Content.Name).ToList();
-                            return Escape(string.Join(" | ", services), _separator);                            
-                        }
-
-                    });
-
-                    sb.AppendLine(string.Join(_separator, values));
+                    sb.AppendLine(GetLineForRule(rule, properties));
                 }
 
                 return sb.ToString();
             }
 
             return csvString;
+        }
+
+        private string GetLineForRule(Rule rule, List<PropertyInfo?> properties)
+        {
+            IEnumerable<string> values = properties.Select(p =>
+            {
+                if (p is PropertyInfo propertyInfo)
+                {
+                    if (p.Name != "Services")
+                    {
+                        var value = p!.GetValue(rule);
+                        if (value == null)
+                            return "";
+                        if (value is string s)
+                            return Escape(s, _separator);
+                        return Escape(value.ToString()!, _separator);
+                    }
+                    else
+                    {
+                        // Handle Services separately to join them with a pipe character
+
+                        var services = rule.Services.Select(s => s.Content.Name).ToList();
+                        return Escape(string.Join(" | ", services), _separator);
+                    }
+                }
+                else
+                {
+                    return "";
+                }
+            });
+            
+            return string.Join(_separator, values);
         }
 
         private string Escape(string input, char separator)

@@ -66,13 +66,7 @@ namespace FWO.Compliance
                 {
                     foreach (var management in complianceReport.ReportData.ManagementData)
                     {
-                        foreach (var rulebase in management.Rulebases)
-                        {
-                            foreach (var rule in rulebase.Rules)
-                            {
-                                rule.IsCompliant = await CheckRuleCompliance(rule);
-                            }
-                        }
+                        await CheckRuleCompliancePerManagement(management);
                     }
 
                     await GatherCheckResults();
@@ -99,6 +93,20 @@ namespace FWO.Compliance
                     }
                 }
             }
+        }
+
+        private async Task CheckRuleCompliancePerManagement(ManagementReport management)
+        {
+            await Parallel.ForEachAsync( // Use Parallel.ForEachAsync to process rules concurrently.
+                management.Rulebases
+                    .SelectMany(rb => rb.Rules) // Flatten the list to a list containing all rules of all rulebases of the management
+                    .Distinct(), // Prevent race conditions by ensuring each rule is only processed once
+                new ParallelOptions { MaxDegreeOfParallelism = 10 }, // Limit the number of concurrent tasks
+                async (rule, _) =>
+                {
+                    rule.IsCompliant = await CheckRuleCompliance(rule);
+                }
+            );
         }
 
         private async Task GatherCheckResults()

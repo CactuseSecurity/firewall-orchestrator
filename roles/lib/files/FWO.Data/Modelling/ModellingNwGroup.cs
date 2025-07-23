@@ -47,7 +47,7 @@ namespace FWO.Data.Modelling
 
         public override string DisplayWithIcon(int iconPaddingStart = 0)
         {
-            return $"<span class=\"{(iconPaddingStart > 0 ? $"ps-{iconPaddingStart}" : "")} {Icons.NwGroup}\"></span> " + DisplayHtml();
+            return $"<span class=\"{(iconPaddingStart > 0 ? $"ps-{iconPaddingStart} " : "")}{Icons.NwGroup}\"></span> " + DisplayHtml();
         }
 
         public virtual NetworkObject ToNetworkObjectGroup(bool IdAsName = false, bool ListMembers = true)

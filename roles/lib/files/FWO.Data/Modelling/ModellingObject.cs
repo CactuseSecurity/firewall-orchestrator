@@ -45,7 +45,7 @@ namespace FWO.Data.Modelling
 
         public virtual string DisplayWithIcon(int iconPaddingStart = 0)
         {
-            return $"<span class=\"{(iconPaddingStart > 0 ? $"ps-{iconPaddingStart}" : "")} {Icons.ModObject}\"></span> " + DisplayHtml();
+            return $"<span class=\"{(iconPaddingStart > 0 ? $"ps-{iconPaddingStart} " : "")}{Icons.ModObject}\"></span> " + DisplayHtml();
         }
 
         public virtual string DisplayProblematicWithIcon()

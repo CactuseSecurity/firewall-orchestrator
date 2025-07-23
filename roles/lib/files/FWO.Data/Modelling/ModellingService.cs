@@ -37,7 +37,7 @@ namespace FWO.Data.Modelling
 
         public override string DisplayWithIcon(int iconPaddingStart = 0)
         {
-            return $"<span class=\"{(iconPaddingStart > 0 ? $"ps-{iconPaddingStart}" : "")} {Icons.Service}\"></span> " + DisplayHtml();
+            return $"<span class=\"{(iconPaddingStart > 0 ? $"ps-{iconPaddingStart} " : "")}{Icons.Service}\"></span> " + DisplayHtml();
         }
 
         public static NetworkService ToNetworkService(ModellingService service)

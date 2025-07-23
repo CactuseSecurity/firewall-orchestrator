@@ -133,3 +133,8 @@ def get_devices_from_manager(adom_mgm_details, sid, fm_api_url):
         
     return fmgr_devices
             
+def get_policy_packages_from_manager(adom, sid, fm_api_url):
+
+    policy_packages_result = fortinet_api_call(sid, fm_api_url, '/pm/pkg/adom/' + adom)
+
+    return policy_packages_result

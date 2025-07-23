@@ -19,7 +19,8 @@ rule_nat_scope = ['rules_global_nat', 'rules_adom_nat']
 rule_scope = rule_access_scope + rule_nat_scope
 
 
-def initializeRulebases(nativeConfig):
+def initialize_rulebases(nativ_config_rulebase):
+#delete_v: hier auf native_config_domain umschreiben, die Dinger bei rulebases, bzw nat_rulebases einsortieren
     # initialize access rules
     if 'rules_global_header_v4' not in nativeConfig:
         nativeConfig.update({'rules_global_header_v4': {}})

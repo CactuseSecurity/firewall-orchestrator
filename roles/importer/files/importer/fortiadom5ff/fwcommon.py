@@ -58,18 +58,20 @@ def get_config(nativeConfig: json, importState: ImportStateController):
         nativ_config_global = initialize_nativ_config_domain(importState.MgmDetails)
         adom_list = build_adom_list(importState)
         adom_device_vdom_structure = build_adom_device_vdom_structure(adom_list, sid, fm_api_url)
+        arbitrary_vdom_for_updateable_objects = get_arbitrary_vdom(adom_device_vdom_structure)
+        adom_device_vdom_policy_package_structure = add_policy_package_to_vdoms(adom_device_vdom_structure, sid, fm_api_url)
+        # adom_device_vdom_policy_package_structure = {adom: {device: {vdom1: pol_pkg1}, {vdom2: pol_pkg2}}}
+        #delete_v: später hier globale pol_pgk holen mit /pm/pkg/global
 
         # get globals
-        # delete_v: fetched_global löschen
-        fetched_global = False
-        get_objects(sid, fm_api_url, nativ_config_global, nativ_config_global, '', limit, nw_obj_types, svc_obj_types, 'global')
+        get_objects(sid, fm_api_url, nativ_config_global, nativ_config_global, '', limit, nw_obj_types, svc_obj_types, 'global', arbitrary_vdom_for_updateable_objects)
 
         for adom in adom_list:
             adom_name = adom.MgmDetails.DomainName
             nativ_config_adom = initialize_nativ_config_domain(adom.MgmDetails)
 
             adom_scope = 'adom/'+adom_name
-            get_objects(sid, fm_api_url, nativ_config_adom, nativ_config_global, adom_name, limit, nw_obj_types, svc_obj_types, adom_scope)
+            get_objects(sid, fm_api_url, nativ_config_adom, nativ_config_global, adom_name, limit, nw_obj_types, svc_obj_types, adom_scope, arbitrary_vdom_for_updateable_objects)
             # currently reading zone from objects/rules for backward compat with FortiManager 6.x
             # getZones(sid, fm_api_url, full_config, adom_name, limit, debug_level)
             
@@ -78,10 +80,10 @@ def get_config(nativeConfig: json, importState: ImportStateController):
             #    sid, fm_api_url, nativeConfig, adom_name, adom.MgmDetails.Devices, limit)
 
             # initialize all rule dicts
-            fmgr_rule.initializeRulebases(nativeConfig, adom_name)
+            fmgr_rule.initialize_rulebases(nativ_config_adom, adom_name)
             for dev in adom.MgmDetails.Devices:
                 fmgr_rule.getAccessPolicy(
-                    sid, fm_api_url, nativeConfig, adom_name, dev, limit)
+                    sid, fm_api_url, nativeConfig, adom_device_vdom_structure, adom_name, dev, limit)
                 fmgr_rule.getNatPolicy(
                     sid, fm_api_url, nativeConfig, adom_name, dev, limit)
                 
@@ -127,6 +129,12 @@ def initialize_nativ_config_domain(mgm_details : ManagementDetailsController):
         'nat_rulebases': [],
         'gateways': []}
 
+def get_arbitrary_vdom(adom_device_vdom_structure):
+    for adom in adom_device_vdom_structure:
+        for device in adom_device_vdom_structure[adom]:
+            for vdom in adom_device_vdom_structure[adom][device]:
+                return {'adom': adom, 'device': device, 'vdom': vdom}
+
 
 # delete_v: einfach kopiert von cp
 def normalize_config(import_state, native_config: json, parsing_config_only: bool, sid: str) -> FwConfigManagerListController:
@@ -168,11 +176,26 @@ def build_adom_device_vdom_structure(adom_list, sid, fm_api_url):
                 adom_device_vdom_structure[adom.MgmDetails.DomainName].update(device_vdom_dict)
 
 def parse_device_and_vdom(fmgr_device):
-    device_vdom_dict = {fmgr_device: []}
+    device_vdom_dict = {fmgr_device: {}}
     if 'vdom' in fmgr_device:
         for vdom in fmgr_device['vdom']:
-            device_vdom_dict[fmgr_device].append(vdom['name'])
+            device_vdom_dict[fmgr_device].update({vdom['name']: ''})
     return device_vdom_dict
+
+def add_policy_package_to_vdoms(adom_device_vdom_structure, sid, fm_api_url):
+    for adom in adom_device_vdom_structure:
+        policy_packages_result = fmgr_getter.get_policy_packages_from_manager(adom, sid, fm_api_url)
+        for policy_package in policy_packages_result:
+            if 'scope member' in policy_package:
+                parse_policy_package(policy_package, adom_device_vdom_structure, adom)
+
+def parse_policy_package(policy_package, adom_device_vdom_structure, adom):
+    for scope_member in policy_package['scope member']:
+        for device in adom_device_vdom_structure[adom]:
+            if device == scope_member['name']:
+                for vdom in adom_device_vdom_structure[adom][device]:
+                    if vdom == scope_member['vdom']:
+                        adom_device_vdom_structure[adom][device].update({vdom: policy_package['name']})
 
 def get_sid(importState: ImportStateController):
     fm_api_url = 'https://' + \
@@ -184,36 +207,29 @@ def get_sid(importState: ImportStateController):
     return sid
 
 
-def get_objects(sid, fm_api_url, nativ_config_domain, nativ_config_global, adom_name, limit, nw_obj_types, svc_obj_types, adom_scope):
-    logger = getFwoLogger()
+def get_objects(sid, fm_api_url, nativ_config_domain, nativ_config_global, adom_name, limit, nw_obj_types, svc_obj_types, adom_scope, arbitrary_vdom_for_updateable_objects):
     # get those objects that exist globally and on adom level
 
     # get network objects:
     for object_type in nw_obj_types:
         fmgr_getter.update_config_with_fortinet_api_call(
-            nativ_config_domain, sid, fm_api_url, "/pm/config/"+adom_scope+"/obj/" + object_type, "nw_obj_" + adom_scope + "_" + object_type, limit=limit)
+            nativ_config_domain['objects'], sid, fm_api_url, "/pm/config/"+adom_scope+"/obj/" + object_type, "nw_obj_" + adom_scope + "_" + object_type, limit=limit)
 
     # get service objects:
     # service/custom is an undocumented API call!
     for object_type in svc_obj_types:
         fmgr_getter.update_config_with_fortinet_api_call(
-            nativ_config_domain, sid, fm_api_url, "/pm/config/"+adom_scope+"/obj/" + object_type, "svc_obj_" + adom_scope + "_" + object_type, limit=limit)
+            nativ_config_domain['objects'], sid, fm_api_url, "/pm/config/"+adom_scope+"/obj/" + object_type, "svc_obj_" + adom_scope + "_" + object_type, limit=limit)
 
     # user: /pm/config/global/obj/user/local, /pm/config/global/obj/user/group
     # get user objects:
     for object_type in user_obj_types:
         fmgr_getter.update_config_with_fortinet_api_call(
-            nativ_config_domain, sid, fm_api_url, "/pm/config/"+adom_scope+"/obj/" + object_type, "user_obj_" + adom_scope + "_" + object_type, limit=limit)
+            nativ_config_domain['objects'], sid, fm_api_url, "/pm/config/"+adom_scope+"/obj/" + object_type, "user_obj_" + adom_scope + "_" + object_type, limit=limit)
             
     # get one arbitrary device and vdom to get dynamic objects
     # they are equal across all adoms, vdoms, devices
-    if adom_scope != 'global':
-        devices = fmgr_getter.fortinet_api_call(sid, fm_api_url, '/dvmdb/adom/' + adom_name + '/device')
-        if len(devices)>0 and 'name' in devices[0] and 'vdom' in devices[0] and 'name' in devices[0]['vdom'][0]:
-            arbitraryDevice = devices[0]['name']
-            arbitraryVdom = devices[0]['vdom'][0]['name']
-        else:
-            logger.error('no device or vdom info for adom: ' + adom_name)
+    if arbitrary_vdom_for_updateable_objects['adom'] == adom_name:
 
         # get dynamic objects
         payload = {
@@ -221,16 +237,16 @@ def get_objects(sid, fm_api_url, nativ_config_domain, nativ_config_global, adom_
                 {
                     'data': {
                         'action': 'get',
-                        'resource': '/api/v2/monitor/firewall/internet-service-basic?vdom=' + arbitraryVdom,
+                        'resource': '/api/v2/monitor/firewall/internet-service-basic?vdom=' + arbitrary_vdom_for_updateable_objects['vdom'],
                         'target': [
-                            'adom/' + adom_name + '/device/' + arbitraryDevice
+                            'adom/' + adom_name + '/device/' + arbitrary_vdom_for_updateable_objects['device']
                         ]
                     }
                 }
             ]
         }
         fmgr_getter.update_config_with_fortinet_api_call(
-            nativ_config_global, sid, fm_api_url, "sys/proxy/json", "nw_obj_global_firewall/internet-service-basic", limit=limit, payload=payload, method='exec')
+            nativ_config_global['objects'], sid, fm_api_url, "sys/proxy/json", "nw_obj_global_firewall/internet-service-basic", limit=limit, payload=payload, method='exec')
 
 
 

@@ -35,9 +35,9 @@ namespace FWO.Data.Modelling
             return DisplayBase.DisplayService(ToNetworkService(this), false, Name).ToString();
         }
 
-        public override string DisplayWithIcon()
+        public override string DisplayWithIcon(int iconPaddingStart = 0)
         {
-            return $"<span class=\"{Icons.Service}\"></span> " + DisplayHtml();
+            return $"<span class=\"{(iconPaddingStart > 0 ? $"ps-{iconPaddingStart}" : "")} {Icons.Service}\"></span> " + DisplayHtml();
         }
 
         public static NetworkService ToNetworkService(ModellingService service)

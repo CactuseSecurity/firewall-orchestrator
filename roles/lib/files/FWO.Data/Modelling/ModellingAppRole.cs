@@ -73,14 +73,14 @@ namespace FWO.Data.Modelling
             };
         }
 
-        public override string DisplayWithIcon()
+        public override string DisplayWithIcon(int iconPaddingStart = 0)
         {
-            return $"<span class=\"{Icons.AppRole}\"></span> " + DisplayHtml();
+            return $"<span class=\"{(iconPaddingStart > 0 ? $"ps-{iconPaddingStart}" : "")} {Icons.AppRole}\"></span> " + DisplayHtml();
         }
 
         public override string DisplayProblematicWithIcon()
         {
-            return $"<b class=\"text-danger\">&nbsp;!&nbsp;</b><span class=\"{Icons.AppRole}\"></span> " + DisplayHtml();
+            return $"<span class=\"text-danger {Icons.Warning}\"></span><span class=\"{Icons.AppRole}\"></span> " + DisplayHtml();
         }
 
         public override NetworkObject ToNetworkObjectGroup(bool IdAsName = false, bool ListMembers = true)

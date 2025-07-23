@@ -333,20 +333,20 @@ namespace FWO.Services
             {
                 area.TooltipText = userConfig.GetText("C9001");
             }
-            List<string> names = areas.ConvertAll(s => s.DisplayWithIcon(conn.SrcFromInterface));
+            List<string> names = areas.ConvertAll(s => s.DisplayWithIcon(conn.SrcFromInterface, 3));
 
             List<ModellingNwGroup> nwGroups = [.. ModellingNwGroupWrapper.Resolve(conn.SourceOtherGroups)];
             foreach(var nwGroup in nwGroups)
             {
                 nwGroup.TooltipText = userConfig.GetText("C9001");
             }
-            names.AddRange(nwGroups.ConvertAll(s => s.DisplayWithIcon(conn.SrcFromInterface)));
+            names.AddRange(nwGroups.ConvertAll(s => s.DisplayWithIcon(conn.SrcFromInterface, 3)));
 
             foreach(ModellingAppRole appRole in ModellingAppRoleWrapper.Resolve(conn.SourceAppRoles))
             {
                 if(appRole.AppServers.Count > 0 && !appRole.AppServers.Any(_ => _.Content.IsDeleted))
                 {
-                    names.Add(appRole.DisplayWithIcon(conn.SrcFromInterface));
+                    names.Add(appRole.DisplayWithIcon(conn.SrcFromInterface, 3));
                 }
                 else
                 {
@@ -359,7 +359,7 @@ namespace FWO.Services
             {
                 appServer.TooltipText = userConfig.GetText("C9001");
             }
-            names.AddRange(appServers.ConvertAll(s => s.DisplayWithIcon(conn.SrcFromInterface)));
+            names.AddRange(appServers.ConvertAll(s => s.DisplayWithIcon(conn.SrcFromInterface, 3)));
             return names;
         }
 
@@ -376,20 +376,20 @@ namespace FWO.Services
             {
                 area.TooltipText = userConfig.GetText("C9001");
             }
-            List<string> names = areas.ConvertAll(s => s.DisplayWithIcon(conn.DstFromInterface));
+            List<string> names = areas.ConvertAll(s => s.DisplayWithIcon(conn.DstFromInterface, 3));
 
             List<ModellingNwGroup> nwGroups = [.. ModellingNwGroupWrapper.Resolve(conn.DestinationOtherGroups)];
             foreach(var nwGroup in nwGroups)
             {
                 nwGroup.TooltipText = userConfig.GetText("C9001");
             }
-            names.AddRange(nwGroups.ConvertAll(s => s.DisplayWithIcon(conn.DstFromInterface)));
+            names.AddRange(nwGroups.ConvertAll(s => s.DisplayWithIcon(conn.DstFromInterface, 3)));
 
             foreach(ModellingAppRole appRole in ModellingAppRoleWrapper.Resolve(conn.DestinationAppRoles))
             {
                 if(appRole.AppServers.Count > 0 && !appRole.AppServers.Any(_ => _.Content.IsDeleted))
                 {
-                    names.Add(appRole.DisplayWithIcon(conn.DstFromInterface));
+                    names.Add(appRole.DisplayWithIcon(conn.DstFromInterface, 3));
                 }
                 else
                 {
@@ -402,7 +402,7 @@ namespace FWO.Services
             {
                 appServer.TooltipText = userConfig.GetText("C9001");
             }
-            names.AddRange(appServers.ConvertAll(s => s.DisplayWithIcon(conn.DstFromInterface)));
+            names.AddRange(appServers.ConvertAll(s => s.DisplayWithIcon(conn.DstFromInterface, 3)));
             return names;
         }
 
@@ -420,7 +420,7 @@ namespace FWO.Services
             {
                 if(svcGrp.Services.Count > 0)
                 {
-                    names.Add(svcGrp.DisplayWithIcon(conn.UsedInterfaceId != null));
+                    names.Add(svcGrp.DisplayWithIcon(conn.UsedInterfaceId != null, 3));
                 }
                 else
                 {
@@ -428,7 +428,7 @@ namespace FWO.Services
                 }
             }
 
-            names.AddRange(ModellingServiceWrapper.Resolve(conn.Services).ToList().ConvertAll(s => s.DisplayWithIcon(conn.UsedInterfaceId != null)));
+            names.AddRange(ModellingServiceWrapper.Resolve(conn.Services).ToList().ConvertAll(s => s.DisplayWithIcon(conn.UsedInterfaceId != null, 3)));
             
             return names;
         }

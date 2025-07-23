@@ -43,14 +43,14 @@ namespace FWO.Data.Modelling
             return $"<span class=\"\">{Display()}</span>";
         }
 
-        public virtual string DisplayWithIcon()
+        public virtual string DisplayWithIcon(int iconPaddingStart = 0)
         {
-            return $"<span class=\"{Icons.ModObject}\"></span> " + DisplayHtml();
+            return $"<span class=\"{(iconPaddingStart > 0 ? $"ps-{iconPaddingStart}" : "")} {Icons.ModObject}\"></span> " + DisplayHtml();
         }
 
         public virtual string DisplayProblematicWithIcon()
         {
-            return $"<b class=\"text-danger\">&nbsp;!&nbsp;</b><span class=\"{Icons.ModObject}\"></span> " + DisplayHtml();
+            return $"<span class=\"text-danger {Icons.Warning}\"></span><span class=\"{Icons.ModObject}\"></span> " + DisplayHtml();
         }
 
         public virtual string DisplayProblematicWithIcon(bool displayGrey)
@@ -58,9 +58,9 @@ namespace FWO.Data.Modelling
             return $"<span class=\"{(displayGrey ? "text-secondary" : "")}\">{DisplayProblematicWithIcon()}</span>";
         }
 
-        public virtual string DisplayWithIcon(bool displayGrey)
+        public virtual string DisplayWithIcon(bool displayGrey, int iconPaddingStart = 0)
         {
-            return $"<span class=\"{(displayGrey ? "text-secondary" : "")}\">{DisplayWithIcon()}</span>";
+            return $"<span class=\"{(displayGrey ? "text-secondary" : "")}\">{DisplayWithIcon(iconPaddingStart)}</span>";
         }
 
         public virtual bool Sanitize()

@@ -144,15 +144,15 @@ namespace FWO.Compliance
 
             foreach ((ComplianceNetworkZone, ComplianceNetworkZone) item in forbiddenCommunication)
             {
-            Results.Add((rule, item));
+                Results.Add((rule, item));
             }
 
             List<ComplianceViolation> serviceViolations = TryGetRestrictedServiceViolation(rule);
 
             if (serviceViolations.Count > 0)
             {
-            ruleIsCompliant = false;
-            RestrictedServiceViolations.AddRange(serviceViolations);
+                ruleIsCompliant = false;
+                RestrictedServiceViolations.AddRange(serviceViolations);
             }
 
             return ruleIsCompliant;
@@ -228,7 +228,7 @@ namespace FWO.Compliance
                             RuleId = (int)rule.Id,
                             Details = $"Restricted service used: {service.Content.Name}"
                         };
-                        RestrictedServiceViolations.Add(violation);
+                        
                         violations.Add(violation);
                     }
                 }

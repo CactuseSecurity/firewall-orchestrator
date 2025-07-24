@@ -135,7 +135,7 @@ class FwoApi():
             self.query_info["chunking_info"]["adjusted_chunk_size"] = self.query_analyzer.get_adjusted_chunk_size(chunkable_variables)
 
             if fwo_globals.debug_level > 8:
-                logger.debug(f"Chunk {chunk_number}:  Chunk size adjusted\n{self.query_info["chunking_info"]["adjusted_chunk_size"]}")
+                logger.debug(f"Chunk {chunk_number}:  Chunk size adjusted\n{self.query_info['chunking_info']['adjusted_chunk_size']}")
 
             total_chunk_elements = self._update_query_variables_by_chunk(query_variables, chunkable_variables)
 

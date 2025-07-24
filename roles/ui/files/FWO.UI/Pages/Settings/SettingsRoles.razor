@@ -1,4 +1,4 @@
-﻿@using FWO.Data.Middleware
+@using FWO.Data.Middleware
 @using FWO.Middleware.Client
 @using FWO.Ui.Services
 @using RestSharp
@@ -139,6 +139,12 @@
                     roles[roles.FindIndex(x => x.Name == actRole.Name)] = actRole;
                     AddMode = false;
                     JwtEventService.PermissionsChanged(user.Dn);
+
+                    Log.WriteAudit(
+                        Title: $"Roles Settings",
+                        Text: $"Added User/Group: {user.Name} (DN: {user.Dn}) to Role: {actRole.Name} (DN: {actRole.Dn})",
+                        UserName: userConfig.User.Name,
+                        UserDN: userConfig.User.Dn);
                 }
             }
             catch (System.Exception exception)
@@ -172,6 +178,12 @@
                         actRole.Users.Remove(selectedUserToRemove);
                         roles[roles.FindIndex(x => x.Name == actRole.Name)] = actRole;
                         RemoveUserMode = false;
+
+                        Log.WriteAudit(
+                            Title: $"Roles Settings",
+                            Text: $"Removed User/Group: {selectedUserToRemove.Name} (DN: {selectedUserToRemove.Dn}) from Role: {actRole.Name} (DN: {actRole.Dn})",
+                            UserName: userConfig.User.Name,
+                            UserDN: userConfig.User.Dn);
                     }
                 }
                 catch (System.Exception exception)

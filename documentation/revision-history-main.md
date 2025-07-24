@@ -542,5 +542,13 @@ Hotfix for network modelling:
 * feat(ui rsb): show ip/port of flat members by @Y4nnikH in https://github.com/CactuseSecurity/firewall-orchestrator/pull/3172
 * fix(ui report): ip filter on negated rule to/from by @Y4nnikH in https://github.com/CactuseSecurity/firewall-orchestrator/pull/3173
 
-# 8.8.1 28.04.2025 MAIN
+# 8.8.1 - 28.04.2025 MAIN
 - fix owner group DN for App Data Import module
+
+# 8.8.6 - 22.07.2025 MAIN
+hotfix release
+- CP importer new 
+  - stm_track: "extended log" and "detailed log"
+  - fixing services-other ip proto import
+- improved quality control with stricter automated checks
+- various fixes in modelling module

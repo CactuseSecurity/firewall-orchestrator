@@ -151,11 +151,11 @@ namespace FWO.Logging
         /// </summary>
         /// <param name="Title">The title of the audit log entry.</param>
         /// <param name="Text">The content of the audit log entry.</param>
+        /// <param name="WithSeparatorLine">Whether to append a separator line to the log entry. Default is true.</param>
         /// <param name="callerName">The name of the calling method (automatically supplied).</param>
         /// <param name="callerFile">The file path of the calling method (automatically supplied).</param>
         /// <param name="callerLineNumber">The line number in the source file at which the method is called (automatically supplied).</param>
-        /// <param name="WithSeparatorLine">Whether to append a separator line to the log entry. Default is true.</param>
-        public static void WriteAudit(string Title, string Text, [CallerMemberName] string callerName = "", [CallerFilePath] string callerFile = "", [CallerLineNumber] int callerLineNumber = 0, bool WithSeparatorLine = true)
+        public static void WriteAudit(string Title, string Text, bool WithSeparatorLine = true, [CallerMemberName] string callerName = "", [CallerFilePath] string callerFile = "", [CallerLineNumber] int callerLineNumber = 0)
         {
             if(WithSeparatorLine)
             {
@@ -173,11 +173,11 @@ namespace FWO.Logging
         /// <param name="Text">The content of the audit log entry.</param>
         /// <param name="UserName">The name of the user performing the action.</param>
         /// <param name="UserDN">The distinguished name (DN) of the user.</param>
+        /// <param name="WithSeparatorLine">Whether to append a separator line to the log entry. Default is true.</param>
         /// <param name="callerName">The name of the calling method (automatically supplied).</param>
         /// <param name="callerFile">The file path of the calling method (automatically supplied).</param>
         /// <param name="callerLineNumber">The line number in the source file at which the method is called (automatically supplied).</param>
-        /// <param name="WithSeparatorLine">Whether to append a separator line to the log entry. Default is true.</param>
-        public static void WriteAudit(string Title, string Text, string UserName, string UserDN, [CallerMemberName] string callerName = "", [CallerFilePath] string callerFile = "", [CallerLineNumber] int callerLineNumber = 0, bool WithSeparatorLine = true)
+        public static void WriteAudit(string Title, string Text, string UserName, string UserDN, bool WithSeparatorLine = true, [CallerMemberName] string callerName = "", [CallerFilePath] string callerFile = "", [CallerLineNumber] int callerLineNumber = 0)
         {
             if(!string.IsNullOrEmpty(UserName))
             {

@@ -202,6 +202,10 @@ class FwoApi():
                 else:
                     if new_return_object["affected_rows"] == 0:
                         logger.warning(f"no data found: {new_return_object} not found in return_object['data'].")
+
+        if int(fwo_globals.debug_level) > 8:
+            logger.debug(f"Returning object after handling chunked calls response: {pformat(return_object)}")
+
         return return_object
 
     def _handle_chunked_calls_response_with_return_data(self, return_object, new_return_object_type, new_return_object):
@@ -215,6 +219,10 @@ class FwoApi():
             return_object["data"][new_return_object_type] = {}
             return_object["data"][new_return_object_type]["affected_rows"] = 0
             return_object["data"][new_return_object_type]["returning"] = []
+
+            if int(fwo_globals.debug_level) > 8:
+                logger.debug(f"Initialized return_object['data']['{new_return_object_type}'] as an empty dict: {pformat(return_object['data'][new_return_object_type])}")
+
         return_object["data"][new_return_object_type]["affected_rows"] += new_return_object["affected_rows"]
         if "returning" in return_object["data"][new_return_object_type].keys():
 

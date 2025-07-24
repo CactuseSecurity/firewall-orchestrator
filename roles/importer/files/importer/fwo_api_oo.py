@@ -203,6 +203,10 @@ class FwoApi():
             logger.debug (self.showImportApiCallInfo(self.FwoApiUrl, query_payload, session.headers, typ='debug', show_query_info=True))
 
         r = session.post(self.FwoApiUrl, data=json.dumps(query_payload), timeout=int(fwo_api_http_import_timeout))
+        
+        if int(fwo_globals.debug_level) > 9:
+            logger.debug ("API response: " + pformat(r.json(), indent=2))
+
         r.raise_for_status()
 
         return r.json() if r is not None else None

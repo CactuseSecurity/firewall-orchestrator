@@ -3,6 +3,7 @@ import requests
 import json
 import traceback
 import time
+from pprint import pformat
 
 import fwo_globals
 from fwo_log import getFwoLogger
@@ -111,7 +112,7 @@ class FwoApi():
         total_processed_elements = 0
         return_object = {}
         logger = getFwoLogger(debug_level=debug_level)
-        logger.debug(f"Processing chunked API call ({self.query_info['query_name']})...")
+        logger.info(f"Processing chunked API call ({self.query_info['query_name']})...")
 
         # Separate chunkable variables.
 
@@ -196,13 +197,18 @@ class FwoApi():
             Posts the given payload to the api endpoint. Returns the response as json or None if the response object is None.
         """
 
+        logger = getFwoLogger(debug_level=int(fwo_globals.debug_level))
+
+        if int(fwo_globals.debug_level) > 8:
+            logger.debug (self.showImportApiCallInfo(self.FwoApiUrl, query_payload, session.headers, typ='debug', show_query_info=True))
+
         r = session.post(self.FwoApiUrl, data=json.dumps(query_payload), timeout=int(fwo_api_http_import_timeout))
         r.raise_for_status()
 
         return r.json() if r is not None else None
 
 
-    def showImportApiCallInfo(self, api_url, query, headers, typ='debug'):
+    def showImportApiCallInfo(self, api_url, query, headers, typ='debug', show_query_info=False):
         max_query_size_to_display = 1000
         query_string = json.dumps(query, indent=2)
         header_string = json.dumps(headers, indent=2)
@@ -220,5 +226,9 @@ class FwoApi():
             result += str(query)[:round(max_query_size_to_display/2)] +   "\n ... [snip] ... \n" + \
                 query_string[query_size-round(max_query_size_to_display/2):] + " (total query size=" + str(query_size) + " bytes)"
         result += "\n and  headers: \n" + header_string + ", api_url: " + api_url
+
+        if show_query_info and self.query_info:
+            result += "\nQuery Info: \n" + pformat(self.query_info)
+
         return result
 

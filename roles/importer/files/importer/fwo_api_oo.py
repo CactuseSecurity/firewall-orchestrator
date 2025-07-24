@@ -86,6 +86,7 @@ class FwoApi():
 
             if int(fwo_globals.debug_level) > 8:
                 logger.debug(pformat(return_object))
+                logger.debug(pformat(self.query_info))
 
             raise FwoImporterError(f"Unexpected error during API call: {str(e)}")
 
@@ -219,7 +220,7 @@ class FwoApi():
 
             if int(fwo_globals.debug_level) > 8:
                 logger.debug(f"Extending return_object['data']['{new_return_object_type}']['returning'] with new data: {pformat(new_return_object['returning'])}")
-                
+
             return_object["data"][new_return_object_type]["returning"].extend(new_return_object["returning"])
 
     def _post_query(self, session, query_payload):

@@ -178,12 +178,18 @@ class FwoApi():
 
 
     def _handle_chunked_calls_response(self, return_object, response):
+        logger = getFwoLogger(debug_level=int(fwo_globals.debug_level))
+
         if return_object == {}:
+
+            if fwo_globals.debug_level > 8:
+                logger.debug(f"Return object is empty, initializing with response data: {pformat(response)}")
+
             return response
         
         if 'errors' in response:
             error_txt = f"encountered error while handling chunked call: {str(response['errors'])}"
-            getFwoLogger().error(error_txt)
+            logger.error(error_txt)
             raise FwoImporterError(error_txt)
         
         for new_return_object_type, new_return_object in response["data"].items():
@@ -191,19 +197,29 @@ class FwoApi():
                 self._handle_chunked_calls_response_with_return_data(return_object, new_return_object_type, new_return_object)
             else:
                 if 'affected_rows' not in new_return_object:
-                    getFwoLogger().warning(f"no data found: {return_object} not found in return_object['data'].")
+                    logger.warning(f"no data found: {return_object} not found in return_object['data'].")
                 else:
                     if new_return_object["affected_rows"] == 0:
-                        getFwoLogger().warning(f"no data found: {new_return_object} not found in return_object['data'].")
+                        logger.warning(f"no data found: {new_return_object} not found in return_object['data'].")
         return return_object
 
     def _handle_chunked_calls_response_with_return_data(self, return_object, new_return_object_type, new_return_object):
+        logger = getFwoLogger(debug_level=int(fwo_globals.debug_level))
+
         if not isinstance(return_object["data"].get(new_return_object_type), dict):
+
+            if int(fwo_globals.debug_level) > 8:
+                logger.debug(f"Initializing return_object['data']['{new_return_object_type}'] as an empty dict.")
+
             return_object["data"][new_return_object_type] = {}
             return_object["data"][new_return_object_type]["affected_rows"] = 0
             return_object["data"][new_return_object_type]["returning"] = []
         return_object["data"][new_return_object_type]["affected_rows"] += new_return_object["affected_rows"]
         if "returning" in return_object["data"][new_return_object_type].keys():
+
+            if int(fwo_globals.debug_level) > 8:
+                logger.debug(f"Extending return_object['data']['{new_return_object_type}']['returning'] with new data: {pformat(new_return_object['returning'])}")
+                
             return_object["data"][new_return_object_type]["returning"].extend(new_return_object["returning"])
 
     def _post_query(self, session, query_payload):

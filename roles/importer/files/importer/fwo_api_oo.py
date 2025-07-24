@@ -211,6 +211,9 @@ class FwoApi():
     def _handle_chunked_calls_response_with_return_data(self, return_object, new_return_object_type, new_return_object):
         logger = getFwoLogger(debug_level=int(fwo_globals.debug_level))
 
+        if int(fwo_globals.debug_level) > 8:
+            logger.debug(f"Handling chunked calls response for type '{new_return_object_type}' with data: {pformat(new_return_object)}")
+            
         if not isinstance(return_object["data"].get(new_return_object_type), dict):
 
             if int(fwo_globals.debug_level) > 8:

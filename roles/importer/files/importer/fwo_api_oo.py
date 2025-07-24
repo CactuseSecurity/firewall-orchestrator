@@ -83,6 +83,10 @@ class FwoApi():
         except Exception as e:
             # Catch all other exceptions and log them.
             logger.error(f"Unexpected error during API call: {str(e)}")
+
+            if int(fwo_globals.debug_level) > 8:
+                logger.debug(pformat(return_object))
+
             raise FwoImporterError(f"Unexpected error during API call: {str(e)}")
 
     
@@ -129,11 +133,21 @@ class FwoApi():
             # Updates query variables to the current chunks data.
 
             self.query_info["chunking_info"]["adjusted_chunk_size"] = self.query_analyzer.get_adjusted_chunk_size(chunkable_variables)
+
+            if fwo_globals.debug_level > 8:
+                logger.debug(f"Chunk {chunk_number}:  Chunk size adjusted\n{self.query_info["chunking_info"]["adjusted_chunk_size"]}")
+
             total_chunk_elements = self._update_query_variables_by_chunk(query_variables, chunkable_variables)
+
+            if fwo_globals.debug_level > 8:
+                logger.debug(f"Chunk {chunk_number}:  Query variables updated\n{pformat(query_variables)}")
 
             # Post query.
 
             response = self._post_query(session, {"query": query, "variables": query_variables})
+
+            if fwo_globals.debug_level > 8:
+                logger.debug(f"Chunk {chunk_number}:  Query posted")
 
             # Gather and merge returning data.
 

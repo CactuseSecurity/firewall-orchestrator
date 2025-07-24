@@ -344,7 +344,7 @@ def define_global_rulebase_link(deviceConfig, globalOrderedLayerUids, orderedLay
 
                     deviceConfig['rulebase_links'].append({
                         'from_rulebase_uid': placeholder_rulebase_uid,
-                        'from_rule_uid': placeholder_rule_uid,
+                        'from_rule_uid': '',
                         'to_rulebase_uid': orderedLayerUid,
                         'type': 'domain',
                         'is_global': False,
@@ -421,7 +421,7 @@ def add_ordered_layers_to_native_config(orderedLayerUids, show_params_rules,
                     
         # link to next ordered layer
         # in case of mds: domain ordered layers are linked once there is no global ordered layer counterpart
-        if is_global or orderedLayerIndex > global_ordered_layer_count - 1:
+        if is_global or orderedLayerIndex >= global_ordered_layer_count - 1:
             if orderedLayerIndex < len(orderedLayerUids) - 1:
                 deviceConfig['rulebase_links'].append({
                     'from_rulebase_uid': orderedLayerUid,

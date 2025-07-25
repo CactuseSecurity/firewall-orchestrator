@@ -1,4 +1,4 @@
-mutation setCriterionRemoved(
+mutation removeCriterion(
   $id: Int!
   $removed: timestamptz
 ) {

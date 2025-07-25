@@ -6,6 +6,7 @@
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
+@inject NetworkZoneService networkZoneService
 
 <div class="ms-2 mb-3">
     <h3>@userConfig.GetText("zone_comm_matrix")</h3>
@@ -30,7 +31,21 @@
         <div class="col-sm-1">
             <button type="button" class="btn btn-sm btn-success" @onclick="AddMatrix">@(userConfig.GetText("add"))</button>
         </div>
-        @if (matrixLoaded && zones.Count > 0)
+    </div>
+</div>
+<hr />
+
+<Collapse Title="@userConfig.GetText("network_zone_config")" Style="@("primary")" StartToggled="true">
+    @if(matrixLoaded)
+    {
+        <ZonesConfiguration SelectedMatrix="selectedMatrix"/>
+    }
+</Collapse>
+<hr />
+
+<Collapse Title="@userConfig.GetText("zone_comm_matrix")" Style="@("primary")" StartToggled="false">
+    <div class="form-group row">
+        @if (matrixLoaded && networkZoneService.NetworkZones.Count > 0)
         {
             <div class="col-sm-3">
             @if (editMode)
@@ -50,72 +65,71 @@
             else
             {
                 <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Auditor}")">
-                    <button type="button" class="btn btn-sm btn-primary" @onclick="() => ToggleEditMode(true)">@userConfig.GetText("edit")</button>
+                    <button type="button" class="btn btn-sm btn-warning" @onclick="() => ToggleEditMode(true)">@userConfig.GetText("edit")</button>
                 </AuthorizeView>
             }
             </div>
         }
     </div>
-</div>
-<hr />
 
-@if (matrixLoaded && zones.Count > 0)
-{
-    <table>
-        <tr>
-            <td></td>
-            <td>
-                <div class="direction-info">@(userConfig.GetText("destination"))</div>
-            </td>
-        </tr>
-        <tr>
-            <td>
-                <div class="ms-3"></div> @*Hacky fix because of a firefox display bug
-            resulting in the text being diplayed inside of the table.*@
-                <div class="direction-info text-rotated">@(userConfig.GetText("source"))</div>
-            </td>
-            <td>
-                <table class="communication-matrix">
-                    <thead>
-                        <tr>
-                            <th></th>
-                            @foreach (var destinationZone in zones)
-                            {
-                                <th @onclick="() => ExecuteZoneAction(destinationZone)" class="zone-header-rotated">
-                                    <div class="zone-name text-rotated">@(destinationZone.Name)</div>
-                                </th>
-                            }
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var sourceZone in zones)
-                        {
+    @if (matrixLoaded && networkZoneService.NetworkZones.Count > 0)
+    {
+        <table>
+            <tr>
+                <td></td>
+                <td>
+                    <div class="direction-info">@(userConfig.GetText("destination"))</div>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <div class="ms-3"></div> @*Hacky fix because of a firefox display bug
+                resulting in the text being diplayed inside of the table.*@
+                    <div class="direction-info text-rotated">@(userConfig.GetText("source"))</div>
+                </td>
+                <td>
+                    <table class="communication-matrix">
+                        <thead>
                             <tr>
-                                <th @onclick="() => ExecuteZoneAction(sourceZone)" class="zone-header">
-                                    <div class="zone-name">@(sourceZone.Name)</div>
-                                </th>
-                                @foreach (var destinationZone in zones)
+                                <th></th>
+                                @foreach (var destinationZone in networkZoneService.NetworkZones)
                                 {
-                                    var allowed = sourceZone.CommunicationAllowedTo(destinationZone);
-                                    var allowed_in_edit = addCommunication.Contains((sourceZone, destinationZone));
-                                    var disallowed_in_edit = deleteCommunication.Contains((sourceZone, destinationZone));
-                                    <td @onclick="() => ExecuteCommunicationAction(sourceZone, destinationZone)"
-                                        class="communication-cell @(allowed_in_edit ? "allowed-in-edit" : "")
-                                        @(disallowed_in_edit ? "disallowed-in-edit" : "")
-                                        @(allowed && !allowed_in_edit && !disallowed_in_edit ? "allowed" : "disallowed")" />
+                                    <th @onclick="() => ExecuteZoneAction(destinationZone)" class="zone-header-rotated">
+                                        <div class="zone-name text-rotated">@(destinationZone.Name)</div>
+                                    </th>
                                 }
                             </tr>
-                        }
-                    </tbody>
-                </table>
-            </td>
-        </tr>
-    </table>
-}
-else
-{
-    @(userConfig.GetText("no_network_zones"))
-}
+                        </thead>
+                        <tbody>
+                            @foreach (var sourceZone in networkZoneService.NetworkZones)
+                            {
+                                <tr>
+                                    <th @onclick="() => ExecuteZoneAction(sourceZone)" class="zone-header">
+                                        <div class="zone-name">@(sourceZone.Name)</div>
+                                    </th>
+                                    @foreach (var destinationZone in networkZoneService.NetworkZones)
+                                    {
+                                        var allowed = sourceZone.CommunicationAllowedTo(destinationZone);
+                                        var allowed_in_edit = addCommunication.Contains((sourceZone, destinationZone));
+                                        var disallowed_in_edit = deleteCommunication.Contains((sourceZone, destinationZone));
+                                        <td @onclick="() => ExecuteCommunicationAction(sourceZone, destinationZone)"
+                                            class="communication-cell @(allowed_in_edit ? "allowed-in-edit" : "")
+                                            @(disallowed_in_edit ? "disallowed-in-edit" : "")
+                                            @(allowed && !allowed_in_edit && !disallowed_in_edit ? "allowed" : "disallowed")" />
+                                    }
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </td>
+            </tr>
+        </table>
+    }
+    else
+    {
+        @(userConfig.GetText("no_network_zones"))
+    }
+</Collapse>
 <AddMatrix @bind-Display="addMatrixMode"/>
 
 
@@ -133,7 +147,6 @@ else
     private bool matrixLoaded = false;
     private bool addMatrixMode = false;
 
-    private List<ComplianceNetworkZone> zones = [];
     private List<(ComplianceNetworkZone, ComplianceNetworkZone)> addCommunication = [];
     private List<(ComplianceNetworkZone, ComplianceNetworkZone)> deleteCommunication = [];
 
@@ -167,8 +180,7 @@ else
     {
         if(matrix.Id > 0)
         {
-            zones = await apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(ComplianceQueries.getNetworkZonesForMatrix, new { criterionId = matrix.Id });
-            //zones = await apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(ComplianceQueries.getNetworkZones);
+            networkZoneService.NetworkZones = await apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(ComplianceQueries.getNetworkZonesForMatrix, new { criterionId = matrix.Id });
             matrixLoaded = true;
         }
     }
@@ -189,39 +201,6 @@ else
     {
         try
         {
-            // Setting default policy and criterion if necessary. This code will be deprecated once it is possible for the user to set up policies and criteria.
-
-            @* CompliancePolicy[]? policies = await apiConnection.SendQueryAsync<CompliancePolicy[]>(ComplianceQueries.getPolicies);
-            CompliancePolicy? defaultPolicy = policies?.FirstOrDefault();
-
-            if (defaultPolicy == null)
-            {
-                CompliancePolicy newPolicy = new CompliancePolicy
-                {
-                    Name = "Default Policy",
-                    CreatedDate = DateTime.UtcNow,
-                    Disabled = false
-                };
-                
-                await apiConnection.SendQueryAsync<CompliancePolicy>(ComplianceQueries.addPolicy, new { policy = newPolicy });
-            }
-
-            ComplianceCriterion[]? criteria = await apiConnection.SendQueryAsync<ComplianceCriterion[]>(ComplianceQueries.getCriteria );
-            ComplianceCriterion? defaultCriterion = criteria?.FirstOrDefault();
-            
-            if (defaultCriterion == null)
-            {
-                ComplianceCriterion newCriterion = new ComplianceCriterion
-                {
-                    Name = "Default Matrix",
-                    CriterionType = "matrix",
-                    Content = "Matrix communication",
-                    Created = DateTime.UtcNow
-                };
-                
-                await apiConnection.SendQueryAsync<ComplianceCriterion>(ComplianceQueries.addCriterion, new { criterion = newCriterion });
-            } *@
-
             // Prepare the variables for the API call
 
             var variables = new
@@ -237,14 +216,16 @@ else
                 delete_zone_communication_exp = deleteCommunication.ConvertAll(zones =>
                     new
                     {
-                        criterion_id = selectedMatrix.Id,
+                        criterion_id = new { _eq = selectedMatrix.Id },
                         from_network_zone_id = new { _eq = zones.Item1.Id },
                         to_network_zone_id = new { _eq = zones.Item2.Id }
                     }
-                )
+                ),
+                removed = DateTime.UtcNow
             };
-            await apiConnection.SendQueryAsync<dynamic>(ComplianceQueries.modifyNetworkZoneCommunication, variables);
-            zones = await apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(ComplianceQueries.getNetworkZones);
+            await apiConnection.SendQueryAsync<dynamic>(ComplianceQueries.updateNetworkZoneCommunication, variables);
+            await LoadMatrix(selectedMatrix);
+ 
             ToggleEditMode(false);
             DisplayMessageInUi(null, userConfig.GetText("U0012"), userConfig.GetText("U0013"), false);
         }

@@ -116,7 +116,7 @@
             }
             foreach(var crit in CriteriaToDelete)
             {
-                if (crit.Removed == null && (await apiConnection.SendQueryAsync<ReturnId>(ComplianceQueries.setCriterionRemoved,
+                if (crit.Removed == null && (await apiConnection.SendQueryAsync<ReturnId>(ComplianceQueries.removeCriterion,
                     new { id = crit.Id, removed = DateTime.UtcNow })).UpdatedId == crit.Id)
                 {
                     FixCriteria.Remove(crit);

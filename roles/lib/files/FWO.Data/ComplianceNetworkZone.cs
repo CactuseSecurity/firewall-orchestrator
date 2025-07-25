@@ -118,28 +118,29 @@ namespace FWO.Data
                 ipRangesClone[i] = new IPAddressRange(IPRanges[i].Begin, IPRanges[i].End);
             }
 
-			return new ComplianceNetworkZone()
+            return new ComplianceNetworkZone()
             {
                 Id = Id,
                 Superzone = (ComplianceNetworkZone?)Superzone?.Clone(),
                 Name = Name,
                 Description = Description,
                 IPRanges = ipRangesClone,
+                CriterionId = CriterionId,
                 Subzones = CloneArray(Subzones),
-				AllowedCommunicationSources = CloneArray(AllowedCommunicationSources),
-				AllowedCommunicationDestinations = CloneArray(AllowedCommunicationDestinations)
+                AllowedCommunicationSources = CloneArray(AllowedCommunicationSources),
+                AllowedCommunicationDestinations = CloneArray(AllowedCommunicationDestinations)
             };
         }
 
         private static ComplianceNetworkZone[] CloneArray(ComplianceNetworkZone[] array)
         {
-			ComplianceNetworkZone[] arrayClone = new ComplianceNetworkZone[array.Length];
-			for (int i = 0; i < array.Length; i++)
-			{
-				arrayClone[i] = (ComplianceNetworkZone)array[i].Clone();
-			}
+            ComplianceNetworkZone[] arrayClone = new ComplianceNetworkZone[array.Length];
+            for (int i = 0; i < array.Length; i++)
+            {
+                arrayClone[i] = (ComplianceNetworkZone)array[i].Clone();
+            }
             return arrayClone;
-		}
+        }
 
         public override bool Equals(object? obj)
         {
@@ -147,9 +148,9 @@ namespace FWO.Data
             return ((ComplianceNetworkZone)obj).Id == Id;
         }
 
-		public override int GetHashCode()
-		{
-			return HashCode.Combine(Id);
-		}
-	}
+        public override int GetHashCode()
+        {
+            return HashCode.Combine(Id);
+        }
+    }
 }

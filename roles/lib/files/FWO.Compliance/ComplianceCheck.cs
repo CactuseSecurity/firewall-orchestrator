@@ -16,7 +16,7 @@ namespace FWO.Compliance
 {
     public class ComplianceCheck
     {
-        ComplianceNetworkZone[] NetworkZones = [];
+        List<ComplianceNetworkZone> NetworkZones = [];
         ReportCompliance? ComplianceReport = null;
         public List<(Rule, (ComplianceNetworkZone, ComplianceNetworkZone))> Results { get; set; } = [];
         private ReportBase? currentReport;
@@ -42,7 +42,8 @@ namespace FWO.Compliance
         /// <returns></returns>
         public async Task CheckAll()
         {
-            NetworkZones = await _apiConnection.SendQueryAsync<ComplianceNetworkZone[]>(ComplianceQueries.getNetworkZones);
+			// todo: get actual matrix + await _apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(ComplianceQueries.getNetworkZonesForMatrix, new { criterionId = matrix.Id });
+            NetworkZones = await _apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(ComplianceQueries.getNetworkZones);
             await SetUpReportFilters();
             ReportTemplate template = new ReportTemplate("", reportFilters.ToReportParams());
             currentReport = await ReportGenerator.Generate(template, _apiConnection, _userConfig, DisplayMessageInUi);
@@ -240,7 +241,7 @@ namespace FWO.Compliance
         /// <param name="destinationIpRange"></param>
         /// <param name="networkZones"></param>
         /// <returns></returns>
-        public List<(ComplianceNetworkZone, ComplianceNetworkZone)> CheckIpRangeInputCompliance(IPAddressRange? sourceIpRange, IPAddressRange? destinationIpRange, ComplianceNetworkZone[] networkZones)
+        public List<(ComplianceNetworkZone, ComplianceNetworkZone)> CheckIpRangeInputCompliance(IPAddressRange? sourceIpRange, IPAddressRange? destinationIpRange, List<ComplianceNetworkZone> networkZones)
         {
             NetworkZones = networkZones;
             List<(ComplianceNetworkZone, ComplianceNetworkZone)> forbiddenCommunicationsOutput = [];

@@ -6,7 +6,7 @@ namespace FWO.Data
     public enum CriterionType
     {
         Matrix = 1,
-        NoAnySource = 10
+        NoAnyService = 10
         
         // ...
     }

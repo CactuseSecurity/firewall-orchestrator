@@ -3,6 +3,7 @@ query getNetworkZonesForMatrix ($criterionId: Int!){
     id
     name
     description
+	criterion_id
     ip_ranges {
       ip_range_start
       ip_range_end
@@ -11,7 +12,7 @@ query getNetworkZonesForMatrix ($criterionId: Int!){
       id
       name
     }
-    sub_network_zones {
+    sub_network_zones (where: { removed: {_is_null: true} }){
       id
       name
     }

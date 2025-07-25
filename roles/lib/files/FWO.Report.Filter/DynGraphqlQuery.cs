@@ -74,7 +74,6 @@ namespace FWO.Report.Filter
             return Regex.Replace(cleanQuery, pattern, " ", RegexOptions.None, timeout);
         }
 
-
         private static void ConstructWhereStatements(DynGraphqlQuery query, ReportTemplate filter, AstNode? ast)
         {
             query.RuleWhereStatement += "_and: [";

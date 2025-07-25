@@ -73,9 +73,9 @@ namespace FWO.Data.Modelling
             };
         }
 
-        public override string DisplayWithIcon(int iconPaddingStart = 0)
+        public override string DisplayWithIcon()
         {
-            return $"<span class=\"{(iconPaddingStart > 0 ? $"ps-{iconPaddingStart} " : "")}{Icons.AppRole}\"></span> " + DisplayHtml();
+            return $"<span class=\"{Icons.AppRole}\"></span> " + DisplayHtml();
         }
 
         public override string DisplayProblematicWithIcon()

@@ -34,9 +34,9 @@ namespace FWO.Data.Modelling
             return $"<span class=\"{(InUse ? "" : "text-success")}\" {(!InUse && TooltipText != "" ? tooltip : "")}>{base.DisplayHtml()}</span>";
         }
 
-        public override string DisplayWithIcon(int iconPaddingStart = 0)
+        public override string DisplayWithIcon()
         {
-            return $"<span class=\"{(iconPaddingStart > 0 ? $"ps-{iconPaddingStart} " : "")}{Icons.Host}\"></span> " + DisplayHtml();
+            return $"<span class=\"{Icons.Host}\"></span> " + DisplayHtml();
         }
 
         public override bool Sanitize()

@@ -30,9 +30,9 @@ namespace FWO.Data.Modelling
             Services = svcGroup.Services;
         }
 
-        public override string DisplayWithIcon(int iconPaddingStart = 0)
+        public override string DisplayWithIcon()
         {
-            return $"<span class=\"{(iconPaddingStart > 0 ? $"ps-{iconPaddingStart} " : "")}{Icons.ServiceGroup}\"></span> " + DisplayHtml();
+            return $"<span class=\"{Icons.ServiceGroup}\"></span> " + DisplayHtml();
         }
 
         public override string DisplayProblematicWithIcon()

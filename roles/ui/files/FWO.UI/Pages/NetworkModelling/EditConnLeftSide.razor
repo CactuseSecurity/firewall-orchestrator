@@ -299,7 +299,7 @@
 
     private string DisplayInterfaceWithIcon(ModellingConnection interf)
     {
-        return $"<span class=\"ps-3 {Icons.Interface}\"></span> " + ConnHandler?.DisplayInterface(interf);
+        return $"<span class=\"{Icons.Interface}\"></span> " + ConnHandler?.DisplayInterface(interf);
     }
 
     private async Task ReplaceInterface()
@@ -565,7 +565,7 @@
             return resolvedNwObject.DisplayProblematicWithIcon();
         }
 
-        return resolvedNwObject?.DisplayWithIcon(iconPaddingStart: 3) ?? "";
+        return resolvedNwObject?.DisplayWithIcon() ?? "";
     }
 
     public string DisplaySvcObject(KeyValuePair<int, int> svcObject)
@@ -577,7 +577,7 @@
             return resolvedSvcObject.DisplayProblematicWithIcon();
         }
 
-        return resolvedSvcObject?.DisplayWithIcon(iconPaddingStart: 3) ?? "";
+        return resolvedSvcObject?.DisplayWithIcon() ?? "";
     }
 
     private ModellingNwObject? ResolveNwObject(KeyValuePair<int, long> selectedObj)

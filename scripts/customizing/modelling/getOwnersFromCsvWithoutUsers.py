@@ -77,7 +77,7 @@ def readConfig(configFilename, keyToGet):
             customConfig = json.loads(customConfigFH.read())
         return customConfig[keyToGet]
 
-    except:
+    except Exception:
         logger.error("could not read key '" + keyToGet + "' from config file " + configFilename + ", Exception: " + str(traceback.format_exc()))
         sys.exit(1)
 
@@ -141,7 +141,7 @@ def extractAppDataFromCsvFile(csvFile: str, appData: dict, containsIp: bool):
         with open(csvFile, newline='') as csvFile:
             reader = csv.reader(csvFile)
             appDataFromCsv += list(reader)[1:]# Skip headers in first line
-    except:
+    except Exception:
         logger.error("error while trying to read csv file '" + csvFile + "', exception: " + str(traceback.format_exc()))
         sys.exit(1)
 
@@ -233,12 +233,28 @@ if __name__ == "__main__":
     for csvFile in csvAppServerFiles:
         extractAppDataFromCsvFile(csvFile, appData, True)
 
+    owner_data = { "owners": [] } 
+
+    for appId in appData:
+        if appData[appId]['app_id_external'] != '':
+            owner_data['owners'].append({
+                "name": appData[appId]['name'],
+                "app_id_external": appData[appId]['app_id_external'],
+                "main_user": appData[appId]['main_user'],
+                "modellers": appData[appId]['modellers'],
+                "criticality": appData[appId]['criticality'] if 'criticality' in appData[appId] else None,
+                "import_source": appData[appId]['import_source'],
+                "app_servers": appData[appId]['app_servers']
+            })
+        else:
+            logger.warning(f"App {appId} has no external app id, skipping...")
+
     #############################################    
     # 3. write owners to json file
     path = os.path.dirname(__file__)
     fileOut = path + '/' + Path(os.path.basename(__file__)).stem + ".json"
     with open(fileOut, "w") as outFH:
-        json.dump(appData, outFH, indent=3)
+        json.dump(owner_data, outFH, indent=3)
         
     #############################################    
     # 4. Some statistics

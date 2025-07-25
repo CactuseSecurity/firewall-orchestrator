@@ -230,7 +230,7 @@ namespace FWO.Middleware.Server
 				if (string.IsNullOrEmpty(existingApp.GroupDn) && allGroups.FirstOrDefault(x => x.GroupDn == userGroupDn) == null)
 				{
 					string newDn = await CreateUserGroup(incomingApp);
-					if(newDn != userGroupDn) // may this happen?
+					if (newDn != userGroupDn) // may this happen?
 					{
 						Log.WriteInfo(LogMessageTitle, $"New UserGroup DN {newDn} differs from settings value {userGroupDn}.");
 						userGroupDn = newDn;
@@ -240,6 +240,14 @@ namespace FWO.Middleware.Server
 				{
 					await UpdateUserGroup(incomingApp, userGroupDn);
 				}
+			}
+			else
+			{
+				// add necessary roles for user group
+				await internalLdap.AddUserToEntry(userGroupDn, modellerRoleDn);
+				// await internalLdap.AddUserToEntry(userGroupDn, requesterRoleDn);
+				// await internalLdap.AddUserToEntry(userGroupDn, implementerRoleDn);
+				// await internalLdap.AddUserToEntry(userGroupDn, reviewerRoleDn);
 			}
 
 			var Variables = new

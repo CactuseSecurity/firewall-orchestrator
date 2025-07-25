@@ -225,30 +225,32 @@ namespace FWO.Middleware.Server
 		private async Task<string> UpdateApp(ModellingImportAppData incomingApp, FwoOwner existingApp)
 		{
 			string userGroupDn = GetGroupDn(incomingApp.ExtAppId);
-			if (globalConfig.ManageOwnerLdapGroups)
-			{
-				if (string.IsNullOrEmpty(existingApp.GroupDn) && allGroups.FirstOrDefault(x => x.GroupDn == userGroupDn) == null)
-				{
-					string newDn = await CreateUserGroup(incomingApp);
-					if (newDn != userGroupDn) // may this happen?
-					{
-						Log.WriteInfo(LogMessageTitle, $"New UserGroup DN {newDn} differs from settings value {userGroupDn}.");
-						userGroupDn = newDn;
-					}
-				}
-				else
-				{
-					await UpdateUserGroup(incomingApp, userGroupDn);
-				}
-			}
-			else
-			{
-				// add necessary roles for user group
-				await internalLdap.AddUserToEntry(userGroupDn, modellerRoleDn);
-				// await internalLdap.AddUserToEntry(userGroupDn, requesterRoleDn);
-				// await internalLdap.AddUserToEntry(userGroupDn, implementerRoleDn);
-				// await internalLdap.AddUserToEntry(userGroupDn, reviewerRoleDn);
-			}
+            if (globalConfig.ManageOwnerLdapGroups)
+            {
+                if (string.IsNullOrEmpty(existingApp.GroupDn) && allGroups.FirstOrDefault(x => x.GroupDn == userGroupDn) == null)
+                {
+                    string newDn = await CreateUserGroup(incomingApp);
+                    if (newDn != userGroupDn) // may this happen?
+                    {
+                        Log.WriteInfo(LogMessageTitle, $"New UserGroup DN {newDn} differs from settings value {userGroupDn}.");
+                        userGroupDn = newDn;
+                    }
+                }
+                else
+                {
+                    await UpdateUserGroup(incomingApp, userGroupDn);
+                }
+            }
+            else
+            {
+                // add necessary roles for user group
+                await internalLdap.AddUserToEntry(userGroupDn, modellerRoleDn);
+
+                // TODO: analysis: are these roles still needed?
+                //  requesterRoleDn
+                //  implementerRoleDn
+                //  reviewerRoleDn
+            }
 
 			var Variables = new
 			{

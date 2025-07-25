@@ -1,15 +1,16 @@
+using FWO.Api.Client;
+using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Config.Api.Data;
 using FWO.Data;
 using FWO.Data.Modelling;
-using FWO.Api.Client;
-using FWO.Api.Client.Queries;
-using System.Text.Json;
-using Microsoft.AspNetCore.Components.Authorization;
 using FWO.Middleware.Client;
-using System.Data;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Authorization;
+using System;
+using System.Data;
+using System.Text.Json;
 
 
 namespace FWO.Services
@@ -368,6 +369,22 @@ namespace FWO.Services
             }
 
             reason.Text = userConfig.GetText("U9023");
+            return false;
+        }
+
+        public bool ComSvcContainsCommonNetworkArea()
+        {
+            List<ModellingNetworkArea> srcAreas = [.. ModellingNetworkAreaWrapper.Resolve(ActConn.SourceAreas)];
+            List<ModellingNetworkArea> destAreas = [.. ModellingNetworkAreaWrapper.Resolve(ActConn.DestinationAreas)];
+
+            if(HasCommonNetworkAreas(srcAreas) ||
+                HasCommonNetworkAreas(SrcAreasToAdd) ||
+                HasCommonNetworkAreas(destAreas) ||
+                HasCommonNetworkAreas(DstAreasToAdd))
+            {
+                return true;
+            }
+
             return false;
         }
 
@@ -1189,6 +1206,12 @@ namespace FWO.Services
 
         public async Task<bool> Save(bool noCheck = false)
         {
+            if(ActConn.IsCommonService && ComSvcContainsCommonNetworkArea())
+            {
+                DisplayMessageInUi(default, userConfig.GetText("edit_common_service") , userConfig.GetText("U9030"), true);
+                return false;
+            }
+
             try
             {
                 if (ActConn.Sanitize())
@@ -1233,7 +1256,7 @@ namespace FWO.Services
         }
 
         public bool CheckConn()
-        {
+        {            
             if (ActConn.Name == null || ActConn.Name == "" || ActConn.Reason == null || ActConn.Reason == "")
             {
                 DisplayMessageInUi(null, userConfig.GetText(EditConnection), userConfig.GetText("E5102"), true);

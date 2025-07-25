@@ -387,6 +387,42 @@ namespace FWO.Services
 
             return false;
         }
+       
+        public bool ComSvcContainsOnlyNetworkAreasInDirection(Direction direction, List<ModellingAppRole> selectedAppRoles)
+        {
+            List<ModellingNetworkArea> areas = [];
+            List<ModellingAppRole> roles = [];
+
+            roles.AddRange(selectedAppRoles);
+
+            if(direction == Direction.Source)
+            {
+                areas.AddRange([.. ModellingNetworkAreaWrapper.Resolve(ActConn.SourceAreas)]);
+                areas.AddRange(SrcAreasToAdd);
+
+                roles.AddRange([.. ModellingAppRoleWrapper.Resolve(ActConn.SourceAppRoles)]);
+                roles.AddRange(SrcAppRolesToAdd);
+            }
+            else if(direction == Direction.Destination)
+            {
+                areas.AddRange([.. ModellingNetworkAreaWrapper.Resolve(ActConn.DestinationAreas)]);
+                areas.AddRange(DstAreasToAdd);
+
+                roles.AddRange([.. ModellingAppRoleWrapper.Resolve(ActConn.DestinationAppRoles)]);
+                roles.AddRange(DstAppRolesToAdd);
+            }
+            else
+            {
+                throw new ArgumentException($"{nameof(direction)} not implemented");
+            }
+
+            if(areas.Count > 0 && roles.Count > 0)
+            {
+                return false;
+            }
+
+            return true;
+        }
 
         /// <summary>
         /// Checks the given list of network areas against common network area settings.

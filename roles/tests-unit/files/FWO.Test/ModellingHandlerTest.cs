@@ -118,7 +118,7 @@ namespace FWO.Test
                 DestinationAppRoles = [],
                 DestinationOtherGroups = [],
                 ServiceGroups = [new(){ Content = new(){ Name = "SvcGroup1", IsGlobal = true}}],
-                Services = [new(){ Content = new(){ Name = "Svc1", Port = 1111, Protocol = new(){ Name = "UDP"}} }]
+                Services = [new(){ Content = new(){ Name = "Svc1", Port = 1111, Protocol = new(){ Id = 17, Name = "UDP"}} }]
             };
             List<string> expectedSrc = [$"<span class=\"\"><span class=\"{Icons.NwGroup}\"></span> <span><b><span class=\"\" ><span class=\"\">Area1 (NA50)</span></span></b></span></span>",
                                                   $"<span class=\"\"><span class=\"{Icons.AppRole}\"></span> <span><b><span class=\"text-danger\" ><i><span class=\"\">!AppRole1 (AR5000001)</span></i></span></b></span><span class=\"ps-1 text-danger {Icons.Warning}\"></span></span>",

@@ -149,6 +149,7 @@ insert into config (config_key, config_value, config_user) VALUES ('complianceCh
 insert into config (config_key, config_value, config_user) VALUES ('complianceCheckPersistData', 'true', 0);
 insert into config (config_key, config_value, config_user) VALUES ('complianceCheckRestrictedServices', '', 0);
 insert into config (config_key, config_value, config_user) VALUES ('availableModules', '[1,2,3,4,5,6]', 0);
+insert into config (config_key, config_value, config_user) VALUES ('debugLevel', '8', 0);
 
 INSERT INTO "report_format" ("report_format_name") VALUES ('json');
 INSERT INTO "report_format" ("report_format_name") VALUES ('pdf');

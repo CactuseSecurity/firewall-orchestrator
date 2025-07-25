@@ -1018,6 +1018,10 @@ INSERT INTO config (config_key, config_value, config_user)
 VALUES ('complianceCheckRestrictedServices', '', 0)
 ON CONFLICT (config_key, config_user) DO NOTHING;
 
+INSERT INTO config (config_key, config_value, config_user)
+VALUES ('debugLevel', '8', 0)
+ON CONFLICT (config_key, config_user) DO NOTHING;
+
 -- adding labels (simple version without mapping tables and without foreign keys)
 
 -- CREATE TABLE label (

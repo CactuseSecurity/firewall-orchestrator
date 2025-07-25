@@ -1012,6 +1012,12 @@ ON UPDATE RESTRICT ON DELETE CASCADE;
 
 UPDATE config SET config_value = '[1,2,3,4,5,6,7,8,9,10,21,22,31]' WHERE config_key = 'availableReportTypes';
 
+-- add config parameter checkComplianceRestrictedServices if not exists
+
+INSERT INTO config (config_key, config_value, config_user)
+VALUES ('complianceCheckRestrictedServices', '', 0)
+ON CONFLICT (config_key, config_user) DO NOTHING;
+
 -- adding labels (simple version without mapping tables and without foreign keys)
 
 -- CREATE TABLE label (

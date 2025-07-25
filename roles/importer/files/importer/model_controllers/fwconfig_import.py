@@ -100,6 +100,8 @@ class FwConfigImport():
                 ManagerName=import_state.MgmDetails.Name,
                 IsSuperManager=import_state.MgmDetails.IsSuperManager,
                 SubManagerIds=import_state.MgmDetails.SubManagerIds,
+                DomainName=import_state.MgmDetails.DomainName,
+                DomainUid=import_state.MgmDetails.DomainUid,
                 Configs=[]
             ))
         if len(import_state.MgmDetails.SubManagerIds)>0:
@@ -123,6 +125,8 @@ class FwConfigImport():
                         ManagerName=mgm_details.Name,
                         IsSuperManager=mgm_details.IsSuperManager,
                         SubManagerIds=mgm_details.SubManagerIds,
+                        DomainName= mgm_details.DomainName,
+                        DomainUid=mgm_details.DomainUid,
                         Configs=[]
                     )
                 )

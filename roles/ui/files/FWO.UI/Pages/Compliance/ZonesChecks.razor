@@ -7,6 +7,7 @@
 
 @inject UserConfig userConfig
 @inject NetworkZoneService networkZoneService
+@inject ApiConnection _apiConnection
 
 <h3>@userConfig.GetText("network_zone_check")</h3>
 
@@ -70,6 +71,12 @@
 	bool displayOutput = false;
 	bool compliant = false;
 	List<(ComplianceNetworkZone, ComplianceNetworkZone)> forbiddenCommunicationsOutput = [];
+
+	protected override async Task OnInitializedAsync()
+	{
+		await base.OnInitializedAsync();
+		networkZoneService.NetworkZones = await _apiConnection.SendQueryAsync<ComplianceNetworkZone[]>(ComplianceQueries.getNetworkZones);
+	}
 
 	private void CheckIpRangeInputCompliance()
 	{

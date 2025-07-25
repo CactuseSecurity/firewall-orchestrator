@@ -375,26 +375,18 @@ INSERT INTO txt VALUES ('whats_new_in_version',	'German', 	'Was ist neu in Firew
 INSERT INTO txt VALUES ('whats_new_in_version',	'English', 	'Release notes Firewall Orchestrator version');
 INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
 <ul>
-    <li>Modellierung von Soll-Kommunikationsprofilen z.B. nach Anwendung getrennt (Know Your Application)</li>
-    <li>UI: In der Weboberfl&auml;che des Modellierungsmoduls k&ouml;nnen die Bedienfl&ouml;chen wahlweise als Texte oder Icons angezeigt werden (konfigurierbar pro Nutzer)</li>
-    <li>Importer: Erste (PoC-)Version des VMware NSX Import-Moduls</li>
-    <li>API: Neues Customizing-Skript f&uuml;r Bulk-Konfiguration via API</li>
-    <li>Datenbanksicherheit: Alle Passw&ouml;rter in der Datenbank sind nun verschl&uuml;sselt. Breaking change (nur f&uuml;r Entwickler): Zum Debuggen muss die folgende Datei lokal auf dem vscode-System angelegt werden (bei Verwendung von "-e testkeys=true":
-      /etc/fworch/secrets/main_key - Inhalt: "not4production..not4production.."</li>
-    <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/tree/main/documentation/revision-history-main.md">
-        https://github.com/CactuseSecurity/firewall-orchestrator/tree/main/documentation/revision-history-main.md</li>
+    <li>Das Modellierungsmodul enth&auml;t nun einen Soll/Ist-Abgleich mit dem Firewall-Regelwerk.</li>
+    <li>Das Modellierungsmodul enth&auml;t ein Antragsmodul zur Beauftragung von Firewall-&Auml;nderungen &uuml;ber externe Systeme.</li>
+    <li>Das FWO-Logo kann durch ein eigenes Logo ersetzt werden.</li>
+    <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
 </ul>
 ');
 INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
 <ul>
-    <li>Modelling module for defining target communication profiles for segregated networks (e.g. per application: Know Your Application)</li>
-    <li>UI: iconifying modelling UI buttons (can now use icons instead of text buttons - configurable per user)</li>
-    <li>Importer: first version of VMware NSX import module</li>
-    <li>API: adding customizing script for bulk configs via API</li>
-    <li>Database security: all credentials in the database are now encrypted - breaking change (for developer debugging only): add the following local file when using -e testkeys=true:
-      /etc/fworch/secrets/main_key with content "not4production..not4production.."</li>
-    <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/tree/main/documentation/revision-history-main.md">
-        https://github.com/CactuseSecurity/firewall-orchestrator/tree/main/documentation/revision-history-main.md</li>
+    <li>The modelling module now includes a variance analysis (target/actual comparison) with the firewall rulebase</li>
+    <li>The modelling module now includes a request module for submitting firewall change requests via external systems</li>
+    <li>You now can insert your own logo in the UI</li>
+    <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
 </ul>
 ');
 
@@ -2517,6 +2509,8 @@ INSERT INTO txt VALUES ('complianceCheckPersistData','German', 'Daten persistier
 INSERT INTO txt VALUES ('complianceCheckPersistData','English','Persist Data');
 INSERT INTO txt VALUES ('complianceMatrixAllowNetworkZones','German', 'Netzwerkzonen erlauben');
 INSERT INTO txt VALUES ('complianceMatrixAllowNetworkZones','English','Allow Network Zones');
+INSERT INTO txt VALUES ('complianceCheckRestrictedServices','German', 'Eingeschr&auml;nkte Dienste');
+INSERT INTO txt VALUES ('complianceCheckRestrictedServices','English','Restricted Services');
 INSERT INTO txt VALUES ('availableModules',     'German', 	'Verf&uuml;gbare Module');
 INSERT INTO txt VALUES ('availableModules',     'English', 	'Available Modules');
 
@@ -2960,6 +2954,8 @@ INSERT INTO txt VALUES ('U5323', 'German',  'Verwaltung der Voreinstellungen f&u
 INSERT INTO txt VALUES ('U5323', 'English', 'Administration of default settings for reporting');
 INSERT INTO txt VALUES ('U5324', 'German',  'Verwaltung der Compliance-Voreinstellungen f&uuml;r alle Nutzer');
 INSERT INTO txt VALUES ('U5324', 'English', 'Administration of compliance settings for all users');
+INSERT INTO txt VALUES ('U5325', 'German',  'Mehrere Service-Uids mit Komma trennen');
+INSERT INTO txt VALUES ('U5325', 'English', 'Multiple service uids can be separated by using commas');
 
 INSERT INTO txt VALUES ('U5401', 'German',  'Passwort ge&auml;ndert.');
 INSERT INTO txt VALUES ('U5401', 'English', 'Password changed.');
@@ -5618,8 +5614,10 @@ INSERT INTO txt VALUES ('H5806', 'German',  'Text der Benachrichtigung: Email-Te
 INSERT INTO txt VALUES ('H5806', 'English', 'Body of notification emails: Email text for the notification. A Compliance report will be attached to the email. Default value = "empty".');
 INSERT INTO txt VALUES ('H5807', 'German',  'Wenn aktiviert, werden die durch die Compliance-Prüfung erzeugten Daten in der Datenbank gespeichert.');
 INSERT INTO txt VALUES ('H5807', 'English', 'If checked, the data that is generated by the compliance check will be persisted in the database.');
-INSERT INTO txt VALUES ('H5808', 'German',  'Wenn aktiviert, wird beim Erstellen der Compliance-Matrix eine Schachtelung der Netzwerk-Zonen erm&ouml;glicht.');
-INSERT INTO txt VALUES ('H5808', 'English', 'If checked, the use of nested network zones for compliance matrices is enabled.');
+INSERT INTO txt VALUES ('H5808', 'German',  'Hier werden die Dienste definiert, die bei der Compliance-Prüfung ber&uuml;cksichtigt werden sollen. Wenn dieses Feld leer ist, werden keine Dienste eingeschr&auml;nkt.');
+INSERT INTO txt VALUES ('H5808', 'English', 'Sets up services that should be checked for during compliance check. If this field is empty, no service will be restricted.');
+INSERT INTO txt VALUES ('H5809', 'German',  'Wenn aktiviert, wird beim Erstellen der Compliance-Matrix eine Schachtelung der Netzwerk-Zonen erm&ouml;glicht.');
+INSERT INTO txt VALUES ('H5809', 'English', 'If checked, the use of nested network zones for compliance matrices is enabled.');
 
 INSERT INTO txt VALUES ('H6001', 'German',  'Firewall Orchestrator verf&uuml;gt &uuml;ber zwei APIs:
     <ul>

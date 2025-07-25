@@ -50,6 +50,7 @@ namespace FWO.Report.Filter
         const string limitOffsetString = $@"limit: $limit 
                                         offset: $offset ";
 
+
         public static DynGraphqlQuery GenerateQuery(ReportTemplate filter, AstNode? ast)
         {
             DynGraphqlQuery query = new(filter.Filter);
@@ -60,35 +61,18 @@ namespace FWO.Report.Filter
             }
             ConstructFullQuery(query, filter);
             OverwriteMissingTenantFilters(ref query, filter);
-            string pattern = "";
-
-            // remove comment lines (#) before joining lines!
-            // Regex.Replace("10, 20, 30", @"(\d+)$",match => (int.Parse(match.Value)+1).ToString())
-            // Regex.Replace(query.FullQuery, pattern, m => variablesDictionary[m.Value]);
-            // Regex pattern = new Regex(@"#(.*?)\n");
-
-            // TODO: get this working
-            // pattern = @"""[^""\\]*(?:\\[\W\w][^""\\]*)*""|(\#.*)";
-            // string pattern = @"(.*?)(#.*?)\n(.*?)";
-            // query.FullQuery = Regex.Replace(query.FullQuery, pattern, "");
-
-            // remove line breaks and duplicate whitespaces
-            pattern = @"\n";
-            query.FullQuery = Regex.Replace(query.FullQuery, pattern, "");
-            pattern = @"\s+";
-            query.FullQuery = Regex.Replace(query.FullQuery, pattern, " ");
-
-            // // query debugging
-            // Log.WriteDebug("Filter", $"FullQuery = {query.FullQuery}");
-            // string queryVars = "";
-            // foreach ((string k, object o) in query.QueryVariables)
-            // {
-            //     queryVars += $"\"{k}\": {o.ToString()}, ";
-            // }
-            // Log.WriteDebug("Filter", $"Variables = {queryVars}");
-
+            query.FullQuery = RemoveUnnecessaryWhitespaces(query.FullQuery);
             return query;
         }
+
+        private static string RemoveUnnecessaryWhitespaces(string queryString)
+        {
+            string pattern = @"\n";
+            string cleanQuery = Regex.Replace(queryString, pattern, "");
+            pattern = @"\s+";
+            return Regex.Replace(cleanQuery, pattern, " ");
+        }
+
 
         private static void ConstructWhereStatements(DynGraphqlQuery query, ReportTemplate filter, AstNode? ast)
         {

@@ -68,9 +68,10 @@ namespace FWO.Report.Filter
         private static string RemoveUnnecessaryWhitespaces(string queryString)
         {
             string pattern = @"\n";
-            string cleanQuery = Regex.Replace(queryString, pattern, "");
+            TimeSpan timeout = TimeSpan.FromSeconds(1);
+            string cleanQuery = Regex.Replace(queryString, pattern, "", RegexOptions.None, timeout);
             pattern = @"\s+";
-            return Regex.Replace(cleanQuery, pattern, " ");
+            return Regex.Replace(cleanQuery, pattern, " ", RegexOptions.None, timeout);
         }
 
 

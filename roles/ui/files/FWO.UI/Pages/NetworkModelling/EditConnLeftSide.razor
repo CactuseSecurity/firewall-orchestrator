@@ -386,7 +386,7 @@
 
         if(areas.Count > 0)
         {
-            if(ConnHandler is not null && ConnHandler.ActConn.IsCommonService && !ConnHandler.ComSvcContainsOnlyNetworkAreasInDirection(direction, []))
+            if(ConnHandler is not null && ConnHandler.ActConn.IsCommonService && !ConnHandler.ComSvcContainsOnlyNetworkAreasInDirection(direction, areas))
             {
                 DisplayMessageInUi(default, userConfig.GetText("edit_connection"), userConfig.GetText("U9031"), true);
                 selectedNwElems = new();

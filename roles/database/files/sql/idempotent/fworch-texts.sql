@@ -3028,7 +3028,7 @@ INSERT INTO txt VALUES ('U9029', 'English', 'For following connections are produ
 INSERT INTO txt VALUES ('U9030', 'German',  'Ein gemeinsamer Dienst muss mindestens eine nicht gemeinsam genutzten Netzwerkbereich enthalten.');
 INSERT INTO txt VALUES ('U9030', 'English', 'A common service must contain at least one non-shared network area.');
 INSERT INTO txt VALUES ('U9031', 'German',  'Gemeinsame Dienste dürfen nur Netzwerkbereichsobjekte in einer Richtung enthalten.');
-INSERT INTO txt VALUES ('U9031', 'English', 'Common services must contain only network area objects in on direction.');
+INSERT INTO txt VALUES ('U9031', 'English', 'Common services must contain only network area objects in direction.');
 
 -- error messages
 INSERT INTO txt VALUES ('E0001', 'German',  'Nicht klassifizierter Fehler: ');

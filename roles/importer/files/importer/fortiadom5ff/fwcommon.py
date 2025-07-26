@@ -146,28 +146,28 @@ def get_arbitrary_vdom(adom_device_vdom_structure):
                 return {'adom': adom, 'device': device, 'vdom': vdom}
 
 
-# delete_v: einfach kopiert von cp
 def normalize_config(import_state, native_config: json, parsing_config_only: bool, sid: str) -> FwConfigManagerListController:
 
     raise NotImplementedError("normalize_config not implemented for FortiManager 5.x")
-    manager_list = FwConfigManagerListController()
+    # delete_v: einfach kopiert von cp
+    # manager_list = FwConfigManagerListController()
 
-    if 'domains' not in native_config:
-        logger = getFwoLogger()
-        logger.error("No domains found in native config. Cannot normalize config.")
-        raise ImportInterruption("No domains found in native config. Cannot normalize config.")
+    # if 'domains' not in native_config:
+    #     logger = getFwoLogger()
+    #     logger.error("No domains found in native config. Cannot normalize config.")
+    #     raise ImportInterruption("No domains found in native config. Cannot normalize config.")
     
-    for native_conf in native_config['domains']:
-        normalizedConfigDict = fwo_const.emptyNormalizedFwConfigJsonDict
-        normalized_config = normalize_single_manager_config(native_conf, normalizedConfigDict, import_state, parsing_config_only, sid)
-        manager = FwConfigManager(ManagerUid=calcManagerUidHash(import_state.MgmDetails),
-                                    ManagerName=import_state.MgmDetails.Name,
-                                    IsGlobal=import_state.MgmDetails.IsSuperManager, 
-                                    DependantManagerUids=[], 
-                                    Configs=[normalized_config])
-        manager_list.addManager(manager)
+    # for native_conf in native_config['domains']:
+    #     normalizedConfigDict = fwo_const.emptyNormalizedFwConfigJsonDict
+    #     normalized_config = normalize_single_manager_config(native_conf, normalizedConfigDict, import_state, parsing_config_only, sid)
+    #     manager = FwConfigManager(ManagerUid=calcManagerUidHash(import_state.MgmDetails),
+    #                                 ManagerName=import_state.MgmDetails.Name,
+    #                                 IsGlobal=import_state.MgmDetails.IsSuperManager, 
+    #                                 DependantManagerUids=[], 
+    #                                 Configs=[normalized_config])
+    #     manager_list.addManager(manager)
 
-    return manager_list
+    # return manager_list
 
 
 def build_adom_list(importState : ImportStateController):

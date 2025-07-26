@@ -4,18 +4,20 @@
 from curses import raw
 
 import json
+import fwo_const
 from copy import deepcopy
 from model_controllers.import_state_controller import ImportStateController
-import fwo_exceptions
+from fwo_exceptions import ImportInterruption, FwLoginFailed, FwLogoutFailed
 import fmgr_user
 import fmgr_service
 import fmgr_zone
+from fwo_base import write_native_config_to_file
 import fmgr_rule
 import fmgr_network
 import fmgr_getter
 from fwo_log import getFwoLogger
 from fmgr_gw_networking import getInterfacesAndRouting, normalize_network_data
-from model_controllers.interface_controller import get_ip_of_interface_obj
+from model_controllers.route_controller import get_ip_of_interface_obj
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
 from model_controllers.management_details_controller import ManagementDetailsController
 
@@ -98,8 +100,10 @@ def get_config(nativeConfig: json, importState: ImportStateController):
             fmgr_getter.logout(
                 fm_api_url, sid)
         except Exception:
-            raise fwo_exceptions.FwLogoutFailed("logout exception probably due to timeout - irrelevant, so ignoring it")
-        
+            raise FwLogoutFailed("logout exception probably due to timeout - irrelevant, so ignoring it")
+
+    write_native_config_to_file(importState, nativeConfig)
+
     # delete_v: brauchen wir hier wirklich sid, dann muss die auch für parsing_config_only TRUE erzeugt werden
     normalizedConfig = normalize_config(importState, nativeConfig, parsing_config_only, sid)
     logger.info("completed getting config")
@@ -145,10 +149,12 @@ def get_arbitrary_vdom(adom_device_vdom_structure):
 # delete_v: einfach kopiert von cp
 def normalize_config(import_state, native_config: json, parsing_config_only: bool, sid: str) -> FwConfigManagerListController:
 
+    raise NotImplementedError("normalize_config not implemented for FortiManager 5.x")
     manager_list = FwConfigManagerListController()
 
     if 'domains' not in native_config:
-        getFwoLogger().error("No domains found in native config. Cannot normalize config.")
+        logger = getFwoLogger()
+        logger.error("No domains found in native config. Cannot normalize config.")
         raise ImportInterruption("No domains found in native config. Cannot normalize config.")
     
     for native_conf in native_config['domains']:
@@ -209,7 +215,7 @@ def get_sid(importState: ImportStateController):
         str(importState.MgmDetails.Port) + '/jsonrpc'
     sid = fmgr_getter.login(importState.MgmDetails.ImportUser, importState.MgmDetails.Secret, fm_api_url)
     if sid is None:
-        raise fwo_exceptions.FwLoginFailed('did not succeed in logging in to FortiManager API, no sid returned')
+        raise FwLoginFailed('did not succeed in logging in to FortiManager API, no sid returned')
     return sid
 
 
@@ -235,8 +241,12 @@ def get_objects(sid, fm_api_url, native_config_domain, native_config_global, ado
             
     # get one arbitrary device and vdom to get dynamic objects
     # they are equal across all adoms, vdoms, devices
+    if arbitrary_vdom_for_updateable_objects is None:
+        logger = getFwoLogger()
+        logger.error("arbitrary_vdom_for_updateable_objects is None, cannot get dynamic objects")
+        return
+        # raise FwoImporterError("arbitrary_vdom_for_updateable_objects is None, cannot get dynamic objects")
     if arbitrary_vdom_for_updateable_objects['adom'] == adom_name:
-
         # get dynamic objects
         payload = {
             'params': [

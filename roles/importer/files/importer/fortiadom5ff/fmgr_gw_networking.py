@@ -5,8 +5,8 @@ from functools import cmp_to_key
 import traceback
 import fmgr_getter
 import fwo_globals
-from model_controllers.interface_controller import Route, Interface
-from model_controllers.interface_controller import getRouteDestination
+from model_controllers.interface_controller import Interface
+from model_controllers.route_controller import Route, getRouteDestination
 
 def normalize_network_data(native_config, normalized_config, mgm_details):
 

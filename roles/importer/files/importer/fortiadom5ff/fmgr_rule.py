@@ -7,7 +7,7 @@ from fmgr_network import create_network_object, get_first_ip_of_destination
 import fmgr_zone, fmgr_getter
 from fmgr_gw_networking import get_device_from_package
 from fwo_log import getFwoLogger
-from model_controllers.interface_controller import get_matching_route_obj, get_ip_of_interface_obj
+from model_controllers.route_controller import get_matching_route_obj, get_ip_of_interface_obj
 import ipaddress
 from fmgr_network import resolve_objects, resolve_raw_objects
 import time

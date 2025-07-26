@@ -20,32 +20,32 @@ rule_nat_scope = ['rules_global_nat', 'rules_adom_nat']
 rule_scope = rule_access_scope + rule_nat_scope
 
 
-def initialize_rulebases(native_config_rulebase):
+def initialize_rulebases(native_config):
 #delete_v: hier auf native_config_domain umschreiben, die Dinger bei rulebases, bzw nat_rulebases einsortieren
     # initialize access rules
-    if 'rules_global_header_v4' not in nativeConfig:
-        nativeConfig.update({'rules_global_header_v4': {}})
-    if 'rules_global_header_v6' not in nativeConfig:
-        nativeConfig.update({'rules_global_header_v6': {}})
-    if 'rules_adom_v4' not in nativeConfig:
-        nativeConfig.update({'rules_adom_v4': {}})
-    if 'rules_adom_v6' not in nativeConfig:
-        nativeConfig.update({'rules_adom_v6': {}})
-    if 'rules_global_footer_v4' not in nativeConfig:
-        nativeConfig.update({'rules_global_footer_v4': {}})
-    if 'rules_global_footer_v6' not in nativeConfig:
-        nativeConfig.update({'rules_global_footer_v6': {}})
+    if 'rules_global_header_v4' not in native_config:
+        native_config.update({'rules_global_header_v4': {}})
+    if 'rules_global_header_v6' not in native_config:
+        native_config.update({'rules_global_header_v6': {}})
+    if 'rules_adom_v4' not in native_config:
+        native_config.update({'rules_adom_v4': {}})
+    if 'rules_adom_v6' not in native_config:
+        native_config.update({'rules_adom_v6': {}})
+    if 'rules_global_footer_v4' not in native_config:
+        native_config.update({'rules_global_footer_v4': {}})
+    if 'rules_global_footer_v6' not in native_config:
+        native_config.update({'rules_global_footer_v6': {}})
 
     # initialize nat rules
-    if 'rules_global_nat' not in nativeConfig:
-        nativeConfig.update({'rules_global_nat': {}})
-    if 'rules_adom_nat' not in nativeConfig:
-        nativeConfig.update({'rules_adom_nat': {}})
+    if 'rules_global_nat' not in native_config:
+        native_config.update({'rules_global_nat': {}})
+    if 'rules_adom_nat' not in native_config:
+        native_config.update({'rules_adom_nat': {}})
     
     # new in v8.3.1:
     # initialize hitcounts
-    if 'rules_hitcount' not in nativeConfig:
-        nativeConfig.update({'rules_hitcount': {}})
+    if 'rules_hitcount' not in native_config:
+        native_config.update({'rules_hitcount': {}})
 
 
 def getAccessPolicy(sid, fm_api_url, native_config_domain, adom_device_vdom_policy_package_structure, adom_name, mgm_details_device, device_config, limit):

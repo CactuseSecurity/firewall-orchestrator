@@ -109,22 +109,22 @@ def get_config(nativeConfig: json, importState: ImportStateController):
     logger.info("completed getting config")
     return 0, normalizedConfig
         
-    normalize_network_data(full_config, config2import, mgm_details)
+    # normalize_network_data(full_config, config2import, mgm_details)
 
-    fmgr_user.normalize_users(
-        full_config, config2import, current_import_id, user_scope)
-    fmgr_network.normalize_nwobjects(
-        full_config, config2import, current_import_id, nw_obj_scope, jwt=jwt, mgm_id=mgm_details['id'])
-    fmgr_service.normalize_svcobjects(
-        full_config, config2import, current_import_id, svc_obj_scope)
-    fmgr_user.normalize_users(
-        full_config, config2import, current_import_id, user_scope)
-    fmgr_rule.normalize_access_rules(
-        full_config, config2import, current_import_id, mgm_details=mgm_details, jwt=jwt)
-    fmgr_rule.normalize_nat_rules(
-        full_config, config2import, current_import_id, jwt=jwt)
-    fmgr_network.remove_nat_ip_entries(config2import)
-    return 0
+    # fmgr_user.normalize_users(
+    #     full_config, config2import, current_import_id, user_scope)
+    # fmgr_network.normalize_nwobjects(
+    #     full_config, config2import, current_import_id, nw_obj_scope, jwt=jwt, mgm_id=mgm_details['id'])
+    # fmgr_service.normalize_svcobjects(
+    #     full_config, config2import, current_import_id, svc_obj_scope)
+    # fmgr_user.normalize_users(
+    #     full_config, config2import, current_import_id, user_scope)
+    # fmgr_rule.normalize_access_rules(
+    #     full_config, config2import, current_import_id, mgm_details=mgm_details, jwt=jwt)
+    # fmgr_rule.normalize_nat_rules(
+    #     full_config, config2import, current_import_id, jwt=jwt)
+    # fmgr_network.remove_nat_ip_entries(config2import)
+    # return 0
 
 def initialize_native_config_domain(mgm_details : ManagementDetailsController):
     return {
@@ -245,7 +245,6 @@ def get_objects(sid, fm_api_url, native_config_domain, native_config_global, ado
         logger = getFwoLogger()
         logger.error("arbitrary_vdom_for_updateable_objects is None, cannot get dynamic objects")
         return
-        # raise FwoImporterError("arbitrary_vdom_for_updateable_objects is None, cannot get dynamic objects")
     if arbitrary_vdom_for_updateable_objects['adom'] == adom_name:
         # get dynamic objects
         payload = {

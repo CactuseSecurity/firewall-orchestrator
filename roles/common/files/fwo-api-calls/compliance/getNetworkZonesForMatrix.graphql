@@ -4,7 +4,7 @@ query getNetworkZonesForMatrix ($criterionId: Int!){
     name
     description
 	criterion_id
-    ip_ranges {
+    ip_ranges (where: { removed: {_is_null: true} }){
       ip_range_start
       ip_range_end
     }

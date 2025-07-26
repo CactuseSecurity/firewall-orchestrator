@@ -21,21 +21,28 @@
                 }
             </div>
             <br>
-            <EditList ElementType="ComplianceCriterion" Elements="Policy.Criteria.Select(c => c.Content).ToArray()" ElementsToAdd="CriteriaToAdd" ElementsToDelete="CriteriaToDelete" StdLayout="false">
-                <Display>
-                    <div class="col-sm-9 border bg-transparent">@context.Name</div>
-                </Display>
-            </EditList>
-            <div class="col-sm-12 mt-1">
+            <div class="col-sm-11">
                 <div class="form-group row me-auto">
-                    <div class="col-sm-9">
-                        <Dropdown ElementType="ComplianceCriterion" ElementToString="@(r => r.Name)" @bind-SelectedElement="ActCrit" Elements="AllCriteria">
-                            <ElementTemplate Context="crit">
-                                @(crit.Name)
-                            </ElementTemplate>
-                        </Dropdown>
+                <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("criteria"))*:</label>
+                <div class="col-sm-9">
+                    <EditList ElementType="ComplianceCriterion" Elements="Policy.Criteria.Select(c => c.Content).ToArray()" ElementsToAdd="CriteriaToAdd" ElementsToDelete="CriteriaToDelete" StdLayout="false">
+                        <Display>
+                            <div class="col-sm-12 border bg-transparent">@context.Name</div>
+                        </Display>
+                    </EditList>
+                    <div class="col-sm-12 mt-1">
+                        <div class="form-group row me-auto">
+                            <div class="col-sm-10">
+                                <Dropdown ElementType="ComplianceCriterion" ElementToString="@(r => r.Name)" @bind-SelectedElement="ActCrit" Elements="AllCriteria">
+                                    <ElementTemplate Context="crit">
+                                        @(crit.Name)
+                                    </ElementTemplate>
+                                </Dropdown>
+                            </div>
+                            <button @onclick="AddCrit" type="button" class="col-sm-2 btn btn-sm btn-success" id="addCrit">@userConfig.GetText("add")</button>
+                        </div>
                     </div>
-                    <button @onclick="AddCrit" type="button" class="col-sm-2 btn btn-sm btn-success" id="addCrit">@userConfig.GetText("add")</button>
+                </div>
                 </div>
             </div>
         }

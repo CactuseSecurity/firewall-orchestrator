@@ -17,7 +17,7 @@ namespace FWO.Compliance
     public class ComplianceCheck
     {
         List<ComplianceNetworkZone> NetworkZones = [];
-        ReportCompliance? ComplianceReport = null;
+        // ReportCompliance? ComplianceReport = null;
         public List<(Rule, (ComplianceNetworkZone, ComplianceNetworkZone))> Results { get; set; } = [];
         public List<ComplianceViolation> RestrictedServiceViolations { get; set; } = [];
         private ReportBase? currentReport;
@@ -26,6 +26,7 @@ namespace FWO.Compliance
         private readonly UserConfig _userConfig;
         private readonly ApiConnection _apiConnection;
         private List<string> _restrictedServices = [];
+        CompliancePolicy? Policy = null;
 
 
         /// <summary>
@@ -45,10 +46,10 @@ namespace FWO.Compliance
         /// <returns></returns>
         public async Task CheckAll()
         {
-			// todo: get actual matrix + await _apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(ComplianceQueries.getNetworkZonesForMatrix, new { criterionId = matrix.Id });
-            NetworkZones = await _apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(ComplianceQueries.getNetworkZones);
+            Policy = await _apiConnection.SendQueryAsync<CompliancePolicy>(ComplianceQueries.getPolicyById, new { id = _userConfig.ComplianceCheckPolicyId });
+            await LoadNetworkZones();
             await SetUpReportFilters();
-            ReportTemplate template = new ReportTemplate("", reportFilters.ToReportParams());
+            ReportTemplate template = new("", reportFilters.ToReportParams());
             currentReport = await ReportGenerator.Generate(template, _apiConnection, _userConfig, DisplayMessageInUi);
 
             Results.Clear();
@@ -74,26 +75,44 @@ namespace FWO.Compliance
 
                     if (globalConfig.ComplianceCheckPersistData)
                     {
-                        List<ComplianceViolationBase> violationsForInsert = complianceReport.Violations
-                        .Select(v => new ComplianceViolationBase
-                        {
-                            RuleId = v.RuleId,
-                            Details = v.Details,
-                            FoundDate = v.FoundDate,
-                            RemovedDate = v.RemovedDate,
-                            RiskScore = v.RiskScore,
-                            PolicyId = v.PolicyId,
-                            CriterionId = v.CriterionId
-                        })
-                        .ToList();
-                        var variables = new
-                        {
-                            violations = violationsForInsert
-                        };
-                        await _apiConnection.SendQueryAsync<dynamic>(ComplianceQueries.addViolations, variables);
+                        await PersistData(complianceReport);
                     }
                 }
             }
+        }
+
+        private async Task LoadNetworkZones()
+        {
+            if (Policy != null)
+            {
+                // ToDo later: work with several matrices?
+                int? matrixId = Policy.Criteria.FirstOrDefault(c => c.Content.CriterionType == CriterionType.Matrix.ToString())?.Content.Id;
+                if (matrixId != null)
+                {
+                    NetworkZones = await _apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(ComplianceQueries.getNetworkZonesForMatrix, new { criterionId = matrixId });
+                }
+            }
+        }
+
+        private async Task PersistData(ReportCompliance complianceReport)
+        {
+            List<ComplianceViolationBase> violationsForInsert = complianceReport.Violations
+            .Select(v => new ComplianceViolationBase
+            {
+                RuleId = v.RuleId,
+                Details = v.Details,
+                FoundDate = v.FoundDate,
+                RemovedDate = v.RemovedDate,
+                RiskScore = v.RiskScore,
+                PolicyId = v.PolicyId,
+                CriterionId = v.CriterionId
+            })
+            .ToList();
+            var variables = new
+            {
+                violations = violationsForInsert
+            };
+            await _apiConnection.SendQueryAsync<dynamic>(ComplianceQueries.addViolations, variables);
         }
 
         private async Task CheckRuleCompliancePerManagement(ManagementReport management)
@@ -115,20 +134,40 @@ namespace FWO.Compliance
 
                 foreach (var item in Results)
                 {
-                    ComplianceViolation violation = new();
-                    violation.RuleId = (int)item.Item1.Id;
-                    violation.Details = $"Matrix violation: {item.Item2.Item1.Name} -> {item.Item2.Item2.Name}";
+                    ComplianceViolation violation = new()
+                    {
+                        RuleId = (int)item.Item1.Id,
+                        Details = $"Matrix violation: {item.Item2.Item1.Name} -> {item.Item2.Item2.Name}"
+                    };
                     complianceReport.Violations.Add(violation);
                 }
 
                 complianceReport.Violations.AddRange(RestrictedServiceViolations);
 
                 await complianceReport.SetComplianceData();
-                ComplianceReport = complianceReport;
+                // ComplianceReport = complianceReport;
             }
         }
 
         public async Task<bool> CheckRuleCompliance(Rule rule)
+        {
+            bool ruleIsCompliant = true;
+            foreach (var criterion in Policy?.Criteria ?? [])
+            {
+                switch (criterion.Content.CriterionType)
+                {
+                    case nameof(CriterionType.Matrix):
+                        ruleIsCompliant &= await CheckAgainstMatrix(rule);
+                        break;
+                    case nameof(CriterionType.NoAnyService):
+                        ruleIsCompliant &= CheckForAnyService(rule);
+                        break;
+                }
+            }
+            return ruleIsCompliant;
+        }
+
+        private async Task<bool> CheckAgainstMatrix(Rule rule)
         {
             Task<List<IPAddressRange>> fromsTask = GetIpRangesFromNetworkObjects(rule.Froms.Select(nl => nl.Object).ToList());
             Task<List<IPAddressRange>> tosTask = GetIpRangesFromNetworkObjects(rule.Tos.Select(nl => nl.Object).ToList());
@@ -144,24 +183,26 @@ namespace FWO.Compliance
             {
                 Results.Add((rule, item));
             }
+            return ruleIsCompliant;
+        }
 
+        private bool CheckForAnyService(Rule rule)
+        {
             List<ComplianceViolation> serviceViolations = TryGetRestrictedServiceViolation(rule);
 
             if (serviceViolations.Count > 0)
             {
-                ruleIsCompliant = false;
                 RestrictedServiceViolations.AddRange(serviceViolations);
             }
-
-            return ruleIsCompliant;
+            return serviceViolations.Count == 0;
         }
-        
-        private Task<List<IPAddressRange>> GetIpRangesFromNetworkObjects(List<NetworkObject> networkObjects)
+
+        private static Task<List<IPAddressRange>> GetIpRangesFromNetworkObjects(List<NetworkObject> networkObjects)
         {
             List<IPAddressRange> ranges = [];
             foreach (NetworkObject networkObject in networkObjects)
             {
-            ranges.AddRange(ParseIpRange(networkObject));
+                ranges.AddRange(ParseIpRange(networkObject));
             }
             return Task.FromResult(ranges);
         }
@@ -198,8 +239,10 @@ namespace FWO.Compliance
 
         private async Task SetUpReportFilters()
         {
-            reportFilters = new();
-            reportFilters.ReportType = ReportType.Compliance;
+            reportFilters = new()
+            {
+                ReportType = ReportType.Compliance
+            };
             reportFilters.DeviceFilter.Managements = await _apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement);
             foreach (var management in reportFilters.DeviceFilter.Managements)
             {
@@ -217,17 +260,14 @@ namespace FWO.Compliance
 
             if (_restrictedServices.Count > 0)
             {
-                foreach (var service in rule.Services)
+                foreach (var service in rule.Services.Where(s =>_restrictedServices.Contains(s.Content.Uid)))
                 {
-                    if (_restrictedServices.Contains(service.Content.Uid))
+                    ComplianceViolation violation = new()
                     {
-                        ComplianceViolation violation = new()
-                        {
-                            RuleId = (int)rule.Id,
-                            Details = $"Restricted service used: {service.Content.Name}"
-                        };
-                        violations.Add(violation);
-                    }
+                        RuleId = (int)rule.Id,
+                        Details = $"Restricted service used: {service.Content.Name}"
+                    };
+                    violations.Add(violation);
                 }
             }
 
@@ -370,7 +410,5 @@ namespace FWO.Compliance
 
             return result;
         }
-
     }
-
 }

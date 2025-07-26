@@ -6,7 +6,6 @@ namespace FWO.Api.Client.Queries
     {
         public static readonly string addNetworkZone;
         public static readonly string removeNetworkZone;
-        public static readonly string getNetworkZones;
         public static readonly string getNetworkZonesForMatrix;
         public static readonly string updateNetworkZone;
 
@@ -18,6 +17,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string addPolicy;
         public static readonly string disablePolicy;
         public static readonly string getPolicies;
+        public static readonly string getPolicyById;
 
         public static readonly string addCriterion;
         public static readonly string removeCriterion;
@@ -33,7 +33,6 @@ namespace FWO.Api.Client.Queries
             {
                 addNetworkZone = File.ReadAllText(QueryPath + "compliance/addNetworkZone.graphql");
                 removeNetworkZone = File.ReadAllText(QueryPath + "compliance/removeNetworkZone.graphql");
-                getNetworkZones = File.ReadAllText(QueryPath + "compliance/getNetworkZones.graphql");
                 getNetworkZonesForMatrix = File.ReadAllText(QueryPath + "compliance/getNetworkZonesForMatrix.graphql");
                 updateNetworkZone = File.ReadAllText(QueryPath + "compliance/updateNetworkZone.graphql");
 
@@ -45,6 +44,7 @@ namespace FWO.Api.Client.Queries
                 addPolicy = File.ReadAllText(QueryPath + "compliance/addPolicy.graphql");
                 disablePolicy = File.ReadAllText(QueryPath + "compliance/disablePolicy.graphql");
                 getPolicies = File.ReadAllText(QueryPath + "compliance/getPolicies.graphql");
+                getPolicyById = File.ReadAllText(QueryPath + "compliance/getPolicyById.graphql");
 
                 addCriterion = File.ReadAllText(QueryPath + "compliance/addCriterion.graphql");
                 removeCriterion = File.ReadAllText(QueryPath + "compliance/removeCriterion.graphql");

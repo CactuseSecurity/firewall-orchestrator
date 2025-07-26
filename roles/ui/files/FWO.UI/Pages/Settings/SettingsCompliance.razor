@@ -43,7 +43,17 @@
                 <input type="text" @bind="configData!.ComplianceCheckMailRecipients" />
             </div>
         </div>
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5805"))">
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5810"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("policy"))*:</label>
+            <div class="col-sm-2">
+                <Dropdown ElementType="CompliancePolicy" ElementToString="@(p => p.Name)" @bind-SelectedElement="actPolicy" Elements="policies">
+                    <ElementTemplate Context="policy">
+                        @policy.Name
+                    </ElementTemplate>
+                </Dropdown>
+            </div>
+        </div>
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5805"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("complianceCheckMailSubject")):</label>
             <div class="col-sm-7">
                 <input type="text" @bind="configData!.ComplianceCheckMailSubject" />
@@ -102,6 +112,8 @@ else
     private DateTime complianceCheckStartDate = DateTime.Today;
     private DateTime complianceCheckStartTime = DateTime.Now.AddSeconds(-DateTime.Now.Second);
     private bool EditFixCritMode = false;
+    private List<CompliancePolicy> policies = [];
+    private CompliancePolicy? actPolicy;
 
     protected override async Task OnInitializedAsync()
     {
@@ -109,6 +121,11 @@ else
         {
             configData = await globalConfig.GetEditableConfig();
             complianceCheckStartDate = complianceCheckStartTime = configData.ComplianceCheckStartAt;
+            policies = await apiConnection.SendQueryAsync<List<CompliancePolicy>>(ComplianceQueries.getPolicies);
+            if(configData.ComplianceCheckPolicyId > 0)
+            {
+                actPolicy = policies.FirstOrDefault(p => p.Id == configData.ComplianceCheckPolicyId);
+            }
         }
         catch(Exception exception)
         {
@@ -128,6 +145,7 @@ else
             if(configData != null)
             {
                 configData.ComplianceCheckStartAt = complianceCheckStartDate.Date.Add(complianceCheckStartTime.TimeOfDay);
+                configData.ComplianceCheckPolicyId = actPolicy?.Id ?? 0;
                 await globalConfig.WriteToDatabase(configData, apiConnection);
                 DisplayMessageInUi(null, userConfig.GetText("change_default"), userConfig.GetText("U5301"), false);
             }

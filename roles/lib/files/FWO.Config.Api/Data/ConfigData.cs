@@ -401,6 +401,9 @@ namespace FWO.Config.Api.Data
         [JsonProperty("complianceCheckStartAt"), JsonPropertyName("complianceCheckStartAt")]
         public DateTime ComplianceCheckStartAt { get; set; } = DateTime.Now;
 
+        [JsonProperty("complianceCheckPolicy"), JsonPropertyName("complianceCheckPolicy")]
+        public int ComplianceCheckPolicyId { get; set; } = 0;
+
         [JsonProperty("complianceCheckMailRecipients"), JsonPropertyName("complianceCheckMailRecipients")]
         public string ComplianceCheckMailRecipients { get; set; } = "";
 

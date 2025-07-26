@@ -1,7 +1,7 @@
 ﻿@using FWO.Compliance
 @using NetTools
 
-@page "/compliance/zones/checks"
+@page "/compliance/checks"
 
 @layout ComplianceLayout
 
@@ -75,7 +75,19 @@
 	protected override async Task OnInitializedAsync()
 	{
 		await base.OnInitializedAsync();
-		networkZoneService.NetworkZones = await _apiConnection.SendQueryAsync<ComplianceNetworkZone[]>(ComplianceQueries.getNetworkZones);
+		// ToDo later: select between several policies/matrices?
+		if(userConfig.ComplianceCheckPolicyId > 0)
+		{
+			CompliancePolicy? Policy = await _apiConnection.SendQueryAsync<CompliancePolicy>(ComplianceQueries.getPolicyById, new { id = userConfig.ComplianceCheckPolicyId });
+			if (Policy != null)
+			{
+				int? matrixId = Policy.Criteria.FirstOrDefault(c => c.Content.CriterionType == CriterionType.Matrix.ToString())?.Content.Id;
+				if (matrixId != null)
+				{
+					networkZoneService.NetworkZones = await _apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(ComplianceQueries.getNetworkZonesForMatrix, new { criterionId = matrixId });
+				}
+			}
+		}
 	}
 
 	private void CheckIpRangeInputCompliance()

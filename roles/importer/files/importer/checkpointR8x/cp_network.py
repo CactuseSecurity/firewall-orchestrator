@@ -21,7 +21,7 @@ def normalize_network_objects(full_config, config2import, import_id, mgm_id=0):
             if nw_obj['obj_typ'] == 'interoperable-device':
                 nw_obj.update({'obj_typ': 'external-gateway'})
             if nw_obj['obj_typ'] == 'CpmiVoipSipDomain':
-                logger.info(f"found VOIP object - tranforming to empty group")
+                logger.info("found VOIP object - tranforming to empty group")
                 nw_obj.update({'obj_typ': 'group'})
             set_dummy_ip_for_object_without_ip(nw_obj)
 
@@ -80,6 +80,7 @@ def collect_nw_objects(object_table, nw_objects, global_domain, mgm_id=0):
                                     'obj_comment': comments, 'obj_domain': get_domain_uid(obj, global_domain),
                                     'obj_typ': obj_type, 'obj_ip': first_ip, 'obj_ip_end': last_ip,
                                     'obj_member_refs': member_refs, 'obj_member_names': member_names})
+
 
 def get_domain_uid(obj, global_domain):
     """Returns the domain UID for the given object.

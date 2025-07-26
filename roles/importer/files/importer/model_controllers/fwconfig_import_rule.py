@@ -4,7 +4,7 @@ from difflib import ndiff
 
 import fwo_const
 import fwo_api
-import fwo_exceptions
+from fwo_exceptions import FwoApiWriteError, FwoImporterError
 from models.rule import Rule
 from models.rule_metadatum import RuleMetadatum
 from models.rulebase import Rulebase, RulebaseForImport
@@ -292,7 +292,7 @@ class FwConfigImportRule():
         try:
             import_result = self.import_details.call(import_mutation, queryVariables=query_variables)
             if 'errors' in import_result:
-                raise fwo_exceptions.FwoApiWriteError(f"failed to remove outdated rule references: {str(import_result['errors'])}")
+                raise FwoApiWriteError(f"failed to remove outdated rule references: {str(import_result['errors'])}")
             else:
                 return 0, sum((import_result['data'][f"update_{ref_type.value}"].get('affected_rows', 0) for ref_type in RefType))
         except Exception:
@@ -306,7 +306,7 @@ class FwConfigImportRule():
             obj_id = self.uid2id_mapper.get_network_object_id(nwobj_uid)
             if obj_id is None:
                 self.import_details.Stats.addError(f"Network object {nwobj_uid} not found for rule {rule.rule_uid}")
-                raise fwo_exceptions.FwoImporterError(f"Network object {nwobj_uid} not found for rule {rule.rule_uid}")
+                raise FwoImporterError(f"Network object {nwobj_uid} not found for rule {rule.rule_uid}")
             new_ref_dict = RuleFrom(
                 rule_id=self.uid2id_mapper.get_rule_id(rule.rule_uid),
                 obj_id=self.uid2id_mapper.get_network_object_id(nwobj_uid),
@@ -410,7 +410,7 @@ class FwConfigImportRule():
         try:
             import_result = self.import_details.call(import_mutation, queryVariables=query_variables)
             if 'errors' in import_result:
-                raise fwo_exceptions.FwoApiWriteError(f"failed to add new rule references: {str(import_result['errors'])}")
+                raise FwoApiWriteError(f"failed to add new rule references: {str(import_result['errors'])}")
             else:
                 return 0, sum((import_result['data'][f"insert_{ref_type.value}"].get('affected_rows', 0) for ref_type in RefType))
         except Exception:
@@ -528,7 +528,7 @@ class FwConfigImportRule():
                     for rule_metadata_id in import_result['data']['insert_rule_metadata']['returning']:
                         newRuleMetaDataIds.append(rule_metadata_id)
         except Exception:
-            raise fwo_exceptions.FwoApiWriteError(f"failed to write new RulesMetadata: {str(traceback.format_exc())}")
+            raise FwoApiWriteError(f"failed to write new RulesMetadata: {str(traceback.format_exc())}")
         
         return errors, changes, newRuleIds
 
@@ -562,7 +562,7 @@ class FwConfigImportRule():
                     # do not count last hit changes as changes here
             except Exception:
                 errors = 1
-                raise fwo_exceptions.FwoApiWriteError(f"failed to update RuleMetadata last hit info: {str(traceback.format_exc())}")
+                raise FwoApiWriteError(f"failed to update RuleMetadata last hit info: {str(traceback.format_exc())}")
         
         return errors, changes
 
@@ -610,7 +610,7 @@ class FwConfigImportRule():
                     self.import_details.SetRulebaseMap() 
                 return 0, changes, newRulebaseIds
         except Exception:
-            raise fwo_exceptions.FwoApiWriteError(f"failed to write new rulebases: {str(traceback.format_exc())}")
+            raise FwoApiWriteError(f"failed to write new rulebases: {str(traceback.format_exc())}")
         
     # as we cannot add the rules for all rulebases in one go (using a constraint from the rule table), 
     # we need to add them per rulebase separately
@@ -644,7 +644,7 @@ class FwConfigImportRule():
                         if changesForThisRulebase>0:
                             changes += changesForThisRulebase
                 except Exception:
-                    raise fwo_exceptions.FwoApiWriteError(f"failed to write new rulebases: {str(traceback.format_exc())}")
+                    raise FwoApiWriteError(f"failed to write new rulebases: {str(traceback.format_exc())}")
         return errors, changes, newRuleIds
 
     # adds only new rules to the database

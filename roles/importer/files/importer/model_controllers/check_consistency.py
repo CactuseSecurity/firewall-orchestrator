@@ -1,4 +1,3 @@
-import json
 
 import fwo_const
 from fwo_log import getFwoLogger
@@ -13,7 +12,7 @@ from models.fwconfig_normalized import FwConfigNormalized
 from fwo_base import ConfFormat
 from services.service_provider import ServiceProvider
 from services.enums import Services
-import fwo_exceptions
+from fwo_exceptions import FwoImporterErrorInconsistencies
 
 
 # this class is used for importing a config into the FWO API
@@ -51,7 +50,7 @@ class FwConfigImportCheckConsistency(FwConfigImport):
 
         if len(self.issues)>0:
             self.import_state.addError("Inconsistencies found in the configuration: " + str(self.issues))
-            raise fwo_exceptions.FwoImporterErrorInconsistencies("Inconsistencies found in the configuration.")
+            raise FwoImporterErrorInconsistencies("Inconsistencies found in the configuration.")
 
         if self.import_state.DebugLevel >= 1:
             getFwoLogger().info("Consistency check completed without issues.")
@@ -59,22 +58,23 @@ class FwConfigImportCheckConsistency(FwConfigImport):
 
     def checkNetworkObjectConsistency(self, config: FwConfigManagerListController = None):
         # check if all uid refs are valid
-        all_used_obj_refs = []
+        global_objects = set()
+
         # add all new obj refs from all rules
-
-        for mgr in config.ManagerSet:
+        for mgr in sorted(config.ManagerSet, key=lambda m: not getattr(m, 'IsSuperManager', False)):
+            if mgr.IsSuperManager:
+                global_objects = config.get_all_network_object_uids(mgr.ManagerUid)
+            all_used_obj_refs = []
             for single_config in mgr.Configs:
-
                 for rb in single_config.rulebases:
-                    all_used_obj_refs = self._collect_all_used_objects_from_rules(rb)
+                    all_used_obj_refs += self._collect_all_used_objects_from_rules(rb)
                 
                 all_used_obj_refs += self._collect_all_used_objects_from_groups(single_config)
 
-                # now make list unique and get all refs not contained in network_objects
-                all_used_obj_refs = set(all_used_obj_refs)
+            # now make list unique and get all refs not contained in network_objects
+            all_used_obj_refs = set(all_used_obj_refs)
 
-            # TODO: do not check against single_config.network_objects but against all obj below super manager
-            unresolvable_nw_obj_refs = all_used_obj_refs - config.get_all_network_object_uids(mgr.ManagerUid)
+            unresolvable_nw_obj_refs = all_used_obj_refs - config.get_all_network_object_uids(mgr.ManagerUid) - global_objects
             if len(unresolvable_nw_obj_refs)>0:
                 self.issues.update({'unresolvableNwObRefs': list(unresolvable_nw_obj_refs)})
 
@@ -127,20 +127,21 @@ class FwConfigImportCheckConsistency(FwConfigImport):
 
     def checkServiceObjectConsistency(self, config: FwConfigManagerListController = None):
         # check if all uid refs are valid
-        all_used_obj_refs = []
+        global_objects = set()
 
-        for mgr in config.ManagerSet:
+        for mgr in sorted(config.ManagerSet, key=lambda m: not getattr(m, 'IsSuperManager', False)):
+            if mgr.IsSuperManager:
+                global_objects = config.get_all_service_object_uids(mgr.ManagerUid)
+            all_used_obj_refs = []
             for single_config in mgr.Configs:
-
                 all_used_obj_refs += self._collect_service_object_refs_from_rules(single_config)
-
                 all_used_obj_refs += self._collect_all_service_object_refs_from_groups(single_config)
-
                 self._check_service_object_types_exist(single_config)
+                # now make list unique 
+                all_used_obj_refs = set(all_used_obj_refs)
+                # and get all refs not contained in serivce_objects
 
-            # now make list unique and get all refs not contained in service_objects
-            allUsedObjRefsUnique = set(all_used_obj_refs)
-            unresolvableObRefs = allUsedObjRefsUnique - config.get_all_service_object_uids(mgr.ManagerUid)
+            unresolvableObRefs = all_used_obj_refs - config.get_all_service_object_uids(mgr.ManagerUid) - global_objects
             if len(unresolvableObRefs)>0:
                 self.issues.update({'unresolvableSvcObRefs': list(unresolvableObRefs)})
 
@@ -158,53 +159,56 @@ class FwConfigImportCheckConsistency(FwConfigImport):
 
     @staticmethod
     def _collect_all_service_object_refs_from_groups(single_config):
-        allUsedObjRefs = []
+        all_used_obj_refs = []
         for objId in single_config.service_objects:
             if single_config.service_objects[objId].svc_typ=='group':
                 if single_config.service_objects[objId].svc_member_refs is not None:
-                    allUsedObjRefs += single_config.service_objects[objId].svc_member_refs.split(fwo_const.list_delimiter)
-        return allUsedObjRefs
+                    all_used_obj_refs += single_config.service_objects[objId].svc_member_refs.split(fwo_const.list_delimiter)
+        return all_used_obj_refs
 
     @staticmethod
     def _collect_service_object_refs_from_rules(single_config):
-        allUsedObjRefs = []
+        all_used_obj_refs = []
         for rb in single_config.rulebases:
             for ruleId in rb.Rules:
-                allUsedObjRefs += rb.Rules[ruleId].rule_svc_refs.split(fwo_const.list_delimiter)
-        return allUsedObjRefs
+                all_used_obj_refs += rb.Rules[ruleId].rule_svc_refs.split(fwo_const.list_delimiter)
+        return all_used_obj_refs
 
 
     def checkUserObjectConsistency(self, config: FwConfigManagerListController = None):
-        allUsedObjRefs = []
+        global_objects = set()
         # add all user refs from all rules
-        for mgr in config.ManagerSet:
+        for mgr in sorted(config.ManagerSet, key=lambda m: not getattr(m, 'IsSuperManager', False)):
+            all_used_obj_refs = []
+            if mgr.IsSuperManager:
+                global_objects = config.get_all_user_object_uids(mgr.ManagerUid)
             for single_config in mgr.Configs:
-                allUsedObjRefs += self._collect_users_from_rules(single_config)
-                self._collect_users_from_groups(single_config, allUsedObjRefs)
+                all_used_obj_refs += self._collect_users_from_rules(single_config)
+                self._collect_users_from_groups(single_config, all_used_obj_refs)
                 self._check_user_types_exist(single_config)
 
             # now make list unique and get all refs not contained in users
-            allUsedObjRefsUnique = set(allUsedObjRefs)
-            unresolvableObRefs = allUsedObjRefsUnique - config.get_all_user_object_uids(mgr.ManagerUid)
-            if len(unresolvableObRefs)>0:
-                self.issues.update({'unresolvableUserObRefs': list(unresolvableObRefs)})
+            all_used_obj_refs = set(all_used_obj_refs)
+            unresolvable_obj_refs = all_used_obj_refs - config.get_all_user_object_uids(mgr.ManagerUid) - global_objects
+            if len(unresolvable_obj_refs)>0:
+                self.issues.update({'unresolvableUserObjRefs': list(unresolvable_obj_refs)})
 
 
     def _collect_users_from_rules(self, single_config):
-        allUsedObjRefs = []
+        all_used_obj_refs = []
         for rb in single_config.rulebases:
             for ruleId in rb.Rules:
                 if fwo_const.user_delimiter in rb.Rules[ruleId].rule_src_refs:
-                    allUsedObjRefs += self._collectUsersFromRule(rb.Rules[ruleId].rule_src_refs.split(fwo_const.list_delimiter))
-                    allUsedObjRefs += self._collectUsersFromRule(rb.Rules[ruleId].rule_dst_refs.split(fwo_const.list_delimiter))
-        return allUsedObjRefs
+                    all_used_obj_refs += self._collectUsersFromRule(rb.Rules[ruleId].rule_src_refs.split(fwo_const.list_delimiter))
+                    all_used_obj_refs += self._collectUsersFromRule(rb.Rules[ruleId].rule_dst_refs.split(fwo_const.list_delimiter))
+        return all_used_obj_refs
 
 
-    def _collect_users_from_groups(self, single_config, allUsedObjRefs):
+    def _collect_users_from_groups(self, single_config, all_used_obj_refs):
         for objId in single_config.users:
             if self.users[objId].user_typ=='group':
                 if self.users[objId].user_member_refs is not None:
-                    allUsedObjRefs += self.users[objId].user_member_refs.split(fwo_const.list_delimiter)
+                    all_used_obj_refs += self.users[objId].user_member_refs.split(fwo_const.list_delimiter)
 
 
     def _check_user_types_exist(self, single_config):
@@ -391,21 +395,28 @@ class FwConfigImportCheckConsistency(FwConfigImport):
 
         # check consistency of links
         for mgr in config.ManagerSet:
+            if self.import_state.MgmDetails.ImportDisabled:
+                continue
             for single_config in mgr.Configs:        
                 # now check rblinks for all gateways
                 for gw in single_config.gateways:
-                    for rbl in gw.RulebaseLinks:
-                        self._check_rulebase_link(gw, rbl, broken_rulebase_links, all_rule_uids, all_rulebase_uids)
+                    self._check_rulebase_links_for_gateway(gw, broken_rulebase_links, all_rule_uids, all_rulebase_uids)
 
         if len(broken_rulebase_links)>0:
             self.issues.update({'brokenRulebaseLinks': broken_rulebase_links})
+
+
+    def _check_rulebase_links_for_gateway(self, gw, broken_rulebase_links, all_rule_uids, all_rulebase_uids):
+        if not gw.ImportDisabled:
+            for rbl in gw.RulebaseLinks:
+                self._check_rulebase_link(gw, rbl, broken_rulebase_links, all_rule_uids, all_rulebase_uids)
 
 
     def _collect_uids(self, config):
         all_rulebase_uids = set()
         all_rule_uids = set()
         for mgr in config.ManagerSet:
-            if self.import_state.MgmDetails.ImportDisabled: # only the super manager can be checked
+            if self.import_state.MgmDetails.ImportDisabled:
                 continue
             for single_config in mgr.Configs:        
                 # collect rulebase UIDs

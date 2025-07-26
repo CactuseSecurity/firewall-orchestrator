@@ -12,7 +12,7 @@ from models.fwconfigmanager import FwConfigManager
 from models.serviceobject import ServiceObjectForImport
 import fwo_const
 import fwo_api
-import fwo_exceptions
+from fwo_exceptions import FwoDuplicateKeyViolation, FwoImporterError
 from services.service_provider import ServiceProvider
 from services.enums import Services
 
@@ -237,7 +237,12 @@ class FwConfigImportObject():
             'removedSvcObjectUids': removedSvcObjectUids,
             'removedUserUids': removedUserUids
         }
-        
+
+        if self.ImportDetails.DebugLevel>8:
+            logger.debug(f"fwo_api:importNwObject - import_mutation: {import_mutation}")
+            # Save the query variables to a file for debugging purposes.
+            json.dump(queryVariables, open(f"/usr/local/fworch/tmp/import/mgm_id_{self.ImportDetails.MgmDetails.Id}_queryVariables.json", "w"), indent=4)
+
         try:
             import_result = self.ImportDetails.call(import_mutation, queryVariables=queryVariables, debug_level=self.ImportDetails.DebugLevel, analyze_payload=True)
             if 'errors' in import_result:
@@ -535,16 +540,16 @@ class FwConfigImportObject():
                 logger.exception(f"fwo_api:addGroupMemberships: {str(import_result['errors'])}")
                 errors = 1
                 if 'duplicate' in import_result['errors']:
-                    raise fwo_exceptions.FwoDuplicateKeyViolation(str(import_result['errors']))
+                    raise FwoDuplicateKeyViolation(str(import_result['errors']))
                 else:
-                    raise fwo_exceptions.FwoImporterError(str(import_result['errors']))
+                    raise FwoImporterError(str(import_result['errors']))
             else:
                 changes = int(import_result['data'][f'insert_{prefix}']['affected_rows']) + \
                     int(import_result['data'][f'insert_{prefix}_flat']['affected_rows'])
         except Exception:
             logger.exception(f"failed to write new objects: {str(traceback.format_exc())}")
-            errors = 1
-
+            raise
+        
         return errors, changes
 
 

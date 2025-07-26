@@ -410,6 +410,12 @@ namespace FWO.Config.Api.Data
 		[JsonProperty("complianceCheckMailBody"), JsonPropertyName("complianceCheckMailBody")]
 		public string ComplianceCheckMailBody { get; set; } = "";
 
+        [JsonProperty("complianceCheckPersistData"), JsonPropertyName("complianceCheckPersistData")]
+        public bool ComplianceCheckPersistData { get; set; } = false;
+
+        [JsonProperty("complianceCheckRestrictedServices"), JsonPropertyName("complianceCheckRestrictedServices")]
+        public string ComplianceCheckRestrictedServices { get; set; } = "";
+
         public ConfigData(bool editable = false)
         {
             Editable = editable;

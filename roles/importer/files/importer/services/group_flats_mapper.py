@@ -94,7 +94,7 @@ class GroupFlatsMapper:
 
     def get_nwobj(self, group_uid):
         nwobj = self.global_state.normalized_config.network_objects.get(group_uid, None)
-        if nwobj is None:
+        if nwobj is None and self.global_state.global_normalized_config is not None:
             nwobj = self.global_state.global_normalized_config.network_objects.get(group_uid, None)
         return nwobj
 
@@ -142,9 +142,9 @@ class GroupFlatsMapper:
 
     def get_svcobj(self, group_uid):
         svcobj = self.global_state.normalized_config.service_objects.get(group_uid, None)
-        if svcobj is None:
+        if svcobj is None and self.global_state.global_normalized_config is not None:
+            # try to get from global normalized config if not found in current normalized config
             svcobj = self.global_state.global_normalized_config.service_objects.get(group_uid, None)
-            pass
         return svcobj
 
 
@@ -192,6 +192,7 @@ class GroupFlatsMapper:
 
     def get_user(self, group_uid):
         user = self.global_state.normalized_config.users.get(group_uid, None)
-        if user is None:
+        if user is None and self.global_state.global_normalized_config is not None:
+            # try to get from global normalized config if not found in current normalized config
             user = self.global_state.global_normalized_config.users.get(group_uid, None)
         return user

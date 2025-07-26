@@ -1,0 +1,8 @@
+query getPolicies {
+  compliance_policy {
+    id
+    name
+    created_date
+    disabled
+  }
+}

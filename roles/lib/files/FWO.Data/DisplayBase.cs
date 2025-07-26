@@ -20,28 +20,22 @@ namespace FWO.Data
             StringBuilder result = new ();
             string ports = service.DestinationPortEnd == null || service.DestinationPortEnd == 0 || service.DestinationPort == service.DestinationPortEnd ?
                 $"{service.DestinationPort}" : $"{service.DestinationPort}-{service.DestinationPortEnd}";
+            bool displayPorts = service.Protocol != null && service.Protocol.HasPorts() && service.DestinationPort != null;
             if (isTechReport)
             {
-                if (service.DestinationPort == null)
+                if (displayPorts)
                 {
-                    if (service.Protocol?.Name != null)
-                    {
-                        result.Append($"{service.Protocol?.Name}");
-                    }
-                    else
-                    {
-                        result.Append($"{service.Name}");
-                    }
+                    result.Append($"{ports}/{service.Protocol?.Name}");
                 }
                 else
                 {
-                    result.Append($"{ports}/{service.Protocol?.Name}");
+                    result.Append(service.Protocol?.Name != null ? $"{service.Protocol?.Name}" : $"{service.Name}");
                 }
             }
             else
             {
                 result.Append($"{serviceName ?? service.Name}");
-                if (service.DestinationPort != null)
+                if (displayPorts)
                 {
                     result.Append($" ({ports}/{service.Protocol?.Name})");
                 }
@@ -86,12 +80,9 @@ namespace FWO.Data
                 ListOut.Add(icmp);
                 ListIn.Remove(icmp);
             }
-            foreach(var proto in ListIn.OrderBy(x => x.Name).ToList())
+            foreach(var proto in ListIn.Where(p => p.Name.ToLower() != "unassigned").OrderBy(x => x.Name).ToList())
             {
-                if (proto.Name.ToLower() != "unassigned")
-                {
-                    ListOut.Add(proto);
-                }
+                ListOut.Add(proto);
             }
             return ListOut;
         }

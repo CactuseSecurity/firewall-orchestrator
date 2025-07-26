@@ -7,7 +7,7 @@ import cp_rule
 import cp_const, cp_network, cp_service
 import cp_getter
 import cp_gateway
-import fwo_exceptions
+from fwo_exceptions import FwLoginFailed
 from fwconfig_base import calcManagerUidHash
 from models.fwconfigmanagerlist import FwConfigManagerList, FwConfigManager
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
@@ -52,13 +52,7 @@ def get_config(nativeConfig: json, importState: ImportStateController) -> tuple[
 
     if not parsing_config_only: # get config from cp fw mgr
         starttime = int(time.time())
-
         initialize_native_config(nativeConfig, importState)
-
-        # delete_v: brauchen wir users?
-        # if 'users' not in nativeConfig:
-        #     nativeConfig.update({'users': {}})
-
         start_time_temp = int(time.time())
         logger.debug ( "checkpointR8x/get_config/getting objects ...")
 
@@ -350,7 +344,7 @@ def define_global_rulebase_link(deviceConfig, globalOrderedLayerUids, orderedLay
 
                     deviceConfig['rulebase_links'].append({
                         'from_rulebase_uid': placeholder_rulebase_uid,
-                        'from_rule_uid': placeholder_rule_uid,
+                        'from_rule_uid': '',
                         'to_rulebase_uid': orderedLayerUid,
                         'type': 'domain',
                         'is_global': False,
@@ -427,7 +421,7 @@ def add_ordered_layers_to_native_config(orderedLayerUids, show_params_rules,
                     
         # link to next ordered layer
         # in case of mds: domain ordered layers are linked once there is no global ordered layer counterpart
-        if is_global or orderedLayerIndex > global_ordered_layer_count - 1:
+        if is_global or orderedLayerIndex >= global_ordered_layer_count - 1:
             if orderedLayerIndex < len(orderedLayerUids) - 1:
                 deviceConfig['rulebase_links'].append({
                     'from_rulebase_uid': orderedLayerUid,
@@ -469,7 +463,7 @@ def loginCp(mgm_details, ssl_verification=True):
         login_result = cp_getter.login(mgm_details)
         return login_result
     except Exception:
-        raise fwo_exceptions.FwLoginFailed
+        raise FwLoginFailed
     
 
 def logout_cp(url, sid):
@@ -482,7 +476,6 @@ def logout_cp(url, sid):
 
 
 def get_objects(nativeConfig: dict, importState: ImportStateController) -> int:
-
     show_params_objs = {'limit': importState.FwoConfig.ApiFetchSize}
     manager_details_list = create_ordered_manager_list(importState)
             
@@ -492,35 +485,45 @@ def get_objects(nativeConfig: dict, importState: ImportStateController) -> int:
         if manager_details.ImportDisabled:
             continue
 
-        cp_api_url = importState.MgmDetails.buildFwApiString()
-        # getting Original (NAT) object (both for networks and services)
-        sid = loginCp(manager_details)
-        if manager_details.IsSuperManager or len(manager_details_list) == 1:
-            origObj = cp_getter.getObjectDetailsFromApi(cp_const.original_obj_uid, sid=sid, apiurl=cp_api_url)['chunks'][0]
-            anyObj = cp_getter.getObjectDetailsFromApi(cp_const.any_obj_uid, sid=sid, apiurl=cp_api_url)['chunks'][0]
-            noneObj = cp_getter.getObjectDetailsFromApi(cp_const.none_obj_uid, sid=sid, apiurl=cp_api_url)['chunks'][0]
-            internetObj = cp_getter.getObjectDetailsFromApi(cp_const.internet_obj_uid, sid=sid, apiurl=cp_api_url)['chunks'][0]
-
-        # get all objects
-        if manager_details.IsSuperManager or len(manager_details_list) == 1:
+        is_stand_alone_manager = (len(manager_details_list) == 1)
+        if manager_details.IsSuperManager or is_stand_alone_manager:
             obj_type_array = cp_const.api_obj_types
         else:
             obj_type_array = cp_const.local_api_obj_types
 
-        for obj_type in obj_type_array:
-            object_table = get_objects_per_type(obj_type, show_params_objs, sid, cp_api_url)
-            add_special_objects_to_global_domain(object_table, manager_index, obj_type,
-                                                 origObj, anyObj, noneObj, internetObj)
-            remove_predefined_objects_for_domains(object_table, manager_index)
-            nativeConfig['domains'][manager_index]['objects'].append(object_table)
-        manager_index += 1
+        if manager_details.IsSuperManager:
+            # for super managers we need to get both the global domain data and the Check Point Data (perdefined objects)
 
+            # Check Point Data (perdefined objects)
+            manager_details.DomainName = '' 
+            manager_details.DomainUid = '' # Check Point Data 
+            get_objects_per_domain(manager_details, nativeConfig['domains'][0], obj_type_array, show_params_objs, is_stand_alone_manager=is_stand_alone_manager)
+            
+            # global domain containing the manually added global objects
+            manager_details.DomainName = 'Global' 
+            manager_details.DomainUid = 'Global'  
+            get_objects_per_domain(manager_details, nativeConfig['domains'][0], obj_type_array, show_params_objs, is_stand_alone_manager=is_stand_alone_manager)
+        else:
+            get_objects_per_domain(manager_details, nativeConfig['domains'][manager_index], obj_type_array, show_params_objs, is_stand_alone_manager=is_stand_alone_manager)
+
+        manager_index += 1
     return 0
 
 
-def remove_predefined_objects_for_domains(object_table, manager_index):
-    if not (manager_index>0 and 'chunks' in object_table and 'type' in object_table and \
-        object_table['type'] in cp_const.types_to_remove_globals_from):
+def get_objects_per_domain(manager_details, native_domain, obj_type_array, show_params_objs, is_stand_alone_manager=True):
+    sid = loginCp(manager_details)
+    cp_url = manager_details.buildFwApiString()
+    for obj_type in obj_type_array:
+        object_table = get_objects_per_type(obj_type, show_params_objs, sid, cp_url)
+        add_special_objects_to_global_domain(object_table, obj_type, sid, cp_api_url=cp_url)
+        if not is_stand_alone_manager and not manager_details.IsSuperManager:
+            remove_predefined_objects_for_domains(object_table)
+        native_domain['objects'].append(object_table)
+
+
+def remove_predefined_objects_for_domains(object_table):
+    if 'chunks' in object_table and 'type' in object_table and \
+        object_table['type'] in cp_const.types_to_remove_globals_from:
         return
     
     for chunk in object_table['chunks']:
@@ -564,18 +567,21 @@ def get_objects_per_type(obj_type, show_params_objs, sid, cpManagerApiBaseUrl):
 
     return object_table
 
-def add_special_objects_to_global_domain(object_table, manager_index, obj_type,
-                                         origObj, anyObj, noneObj, internetObj):
+def add_special_objects_to_global_domain(object_table, obj_type, sid, cp_api_url):
     """Appends special objects Original, Any, None and Internet to global domain
     """
-    # global manager is always the first
-    if manager_index == 0:
-        if obj_type == 'networks':
-            object_table['chunks'].append(origObj)
-            object_table['chunks'].append(anyObj)
-            object_table['chunks'].append(noneObj)
-            object_table['chunks'].append(internetObj)
-        if obj_type == 'services-other':
-            object_table['chunks'].append(origObj)
-            object_table['chunks'].append(anyObj)
-            object_table['chunks'].append(noneObj)
+    # getting Original (NAT) object (both for networks and services)
+    origObj = cp_getter.getObjectDetailsFromApi(cp_const.original_obj_uid, sid=sid, apiurl=cp_api_url)['chunks'][0]
+    anyObj = cp_getter.getObjectDetailsFromApi(cp_const.any_obj_uid, sid=sid, apiurl=cp_api_url)['chunks'][0]
+    noneObj = cp_getter.getObjectDetailsFromApi(cp_const.none_obj_uid, sid=sid, apiurl=cp_api_url)['chunks'][0]
+    internetObj = cp_getter.getObjectDetailsFromApi(cp_const.internet_obj_uid, sid=sid, apiurl=cp_api_url)['chunks'][0]
+
+    if obj_type == 'networks':
+        object_table['chunks'].append(origObj)
+        object_table['chunks'].append(anyObj)
+        object_table['chunks'].append(noneObj)
+        object_table['chunks'].append(internetObj)
+    if obj_type == 'services-other':
+        object_table['chunks'].append(origObj)
+        object_table['chunks'].append(anyObj)
+        object_table['chunks'].append(noneObj)

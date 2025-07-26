@@ -10,6 +10,7 @@ namespace FWO.Basics
         public const string Security = "oi oi-shield";
         public const string FurtherReading = "oi oi-external-link";
         public const string Clipboard = "oi oi-clipboard";
+        public const string Warning = "oi oi-warning";
 
         // Actions
         public const string Add = "oi oi-plus";

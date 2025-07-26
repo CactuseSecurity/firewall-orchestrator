@@ -184,7 +184,7 @@ def get_all_dev_names(devices):
 
 
 # get network information (currently only used for source nat)
-def getInterfacesAndRouting(sid, fm_api_url, raw_config, adom_name, devices, limit):
+def getInterfacesAndRouting(sid, fm_api_url, nativeConfig, adom_name, devices, limit):
 
     logger = getFwoLogger()
     # strip off vdom names, just deal with the plain device
@@ -263,7 +263,7 @@ def getInterfacesAndRouting(sid, fm_api_url, raw_config, adom_name, devices, lim
         # }
         try:    # get interfaces from top level device (not vdom)
             fmgr_getter.update_config_with_fortinet_api_call(
-                raw_config, sid, fm_api_url, "/pm/config/device/" + plain_dev_name + "/global/system/interface",
+                nativeConfig, sid, fm_api_url, "/pm/config/device/" + plain_dev_name + "/global/system/interface",
                 "interfaces_per_device/" + full_vdom_name, payload=all_interfaces_payload, limit=limit, method="get")
         except Exception:
             logger.warning("error while getting interfaces of device " + plain_vdom_name + ", vdom=" + plain_vdom_name + ", ignoring, traceback: " + str(traceback.format_exc()))
@@ -294,7 +294,7 @@ def getInterfacesAndRouting(sid, fm_api_url, raw_config, adom_name, devices, lim
                 routing_table = []
 
             # now storing the routing table:
-            raw_config.update({"routing-table-" + ip_version + '/' + full_vdom_name: routing_table})
+            nativeConfig.update({"routing-table-" + ip_version + '/' + full_vdom_name: routing_table})
 
 
 def get_device_from_package(package_name, mgm_details):

@@ -19,24 +19,24 @@ from model_controllers.interface_controller import get_ip_of_interface_obj
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
 from model_controllers.management_details_controller import ManagementDetailsController
 
-
-scope = ['global', 'adom']
+# delete_v: brauchen scope nicht mehr?
+#scope = ['global', 'adom']
 nw_obj_types = ['firewall/address', 'firewall/address6', 'firewall/addrgrp',
                 'firewall/addrgrp6', 'firewall/ippool', 'firewall/vip', 'system/external-resource']
 svc_obj_types = ['application/list', 'application/group', 'application/categories',
                  'application/custom', 'firewall/service/custom', 'firewall/service/group']
 
 # build the product of all scope/type combinations
-nw_obj_scope = ['nw_obj_' + s1 + '_' +
-                s2 for s1 in scope for s2 in nw_obj_types]
-svc_obj_scope = ['svc_obj_' + s1 + '_' +
-                 s2 for s1 in scope for s2 in svc_obj_types]
+#nw_obj_scope = ['nw_obj_' + s1 + '_' +
+#                s2 for s1 in scope for s2 in nw_obj_types]
+#svc_obj_scope = ['svc_obj_' + s1 + '_' +
+#                 s2 for s1 in scope for s2 in svc_obj_types]
 
 # zone_types = ['zones_global', 'zones_adom']
 
 user_obj_types = ['user/local', 'user/group']
-user_scope = ['user_obj_' + s1 + '_' +
-                s2 for s1 in scope for s2 in user_obj_types]
+#user_scope = ['user_obj_' + s1 + '_' +
+#                s2 for s1 in scope for s2 in user_obj_types]
 
 
 def has_config_changed(full_config, mgm_details, force=False):
@@ -56,6 +56,7 @@ def get_config(nativeConfig: json, importState: ImportStateController):
         limit = importState.FwoConfig.ApiFetchSize
         fm_api_url = importState.MgmDetails.buildFwApiString()
         native_config_global = initialize_native_config_domain(importState.MgmDetails)
+        nativeConfig['domains'].append(native_config_global)
         adom_list = build_adom_list(importState)
         adom_device_vdom_structure = build_adom_device_vdom_structure(adom_list, sid, fm_api_url)
         arbitrary_vdom_for_updateable_objects = get_arbitrary_vdom(adom_device_vdom_structure)
@@ -69,6 +70,7 @@ def get_config(nativeConfig: json, importState: ImportStateController):
         for adom in adom_list:
             adom_name = adom.MgmDetails.DomainName
             native_config_adom = initialize_native_config_domain(adom.MgmDetails)
+            nativeConfig['domains'].append(native_config_adom)
 
             adom_scope = 'adom/'+adom_name
             get_objects(sid, fm_api_url, native_config_adom, native_config_global, adom_name, limit, nw_obj_types, svc_obj_types, adom_scope, arbitrary_vdom_for_updateable_objects)
@@ -82,13 +84,13 @@ def get_config(nativeConfig: json, importState: ImportStateController):
             # initialize all rule dicts
             fmgr_rule.initialize_rulebases(native_config_adom, adom_name)
             for mgm_details_device in adom.MgmDetails.Devices:
+                device_config = initialize_device_config(mgm_details_device)
                 fmgr_rule.getAccessPolicy(
-                    sid, fm_api_url, native_config_adom, adom_device_vdom_policy_package_structure, adom_name, mgm_details_device, limit)
-                fmgr_rule.getNatPolicy(
-                    sid, fm_api_url, nativeConfig, adom_name, mgm_details_device, limit)
-                
-            fetched_global = True
-                
+                    sid, fm_api_url, native_config_adom, adom_device_vdom_policy_package_structure, adom_name, mgm_details_device, device_config, limit)
+                # delete_v: nat später
+                #fmgr_rule.getNatPolicy(
+                #    sid, fm_api_url, nativeConfig, adom_name, mgm_details_device, limit)
+                                
         try:  # logout of fortimanager API
             fmgr_getter.logout(
                 fm_api_url, sid)
@@ -188,6 +190,12 @@ def parse_policy_package(policy_package, adom_device_vdom_structure, adom):
                 for vdom in adom_device_vdom_structure[adom][device]:
                     if vdom == scope_member['vdom']:
                         adom_device_vdom_structure[adom][device].update({vdom: policy_package['name']})
+
+def initialize_device_config(mgm_details_device):
+    device_config = {'name': mgm_details_device['name'],
+                     'uid': mgm_details_device['uid'],
+                     'rulebase_links': []}
+    return device_config
 
 def get_sid(importState: ImportStateController):
     fm_api_url = 'https://' + \

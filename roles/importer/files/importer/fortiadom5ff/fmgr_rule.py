@@ -48,7 +48,7 @@ def initialize_rulebases(native_config_rulebase):
         nativeConfig.update({'rules_hitcount': {}})
 
 
-def getAccessPolicy(sid, fm_api_url, native_config_domain, adom_device_vdom_policy_package_structure, adom_name, mgm_details_device, limit):
+def getAccessPolicy(sid, fm_api_url, native_config_domain, adom_device_vdom_policy_package_structure, adom_name, mgm_details_device, device_config, limit):
     consolidated = '' # '/consolidated'
     logger = getFwoLogger()
 
@@ -84,6 +84,8 @@ def getAccessPolicy(sid, fm_api_url, native_config_domain, adom_device_vdom_poli
     #         nativeConfig['rules_global_header_v6'], sid, fm_api_url, "/pm/config/global/pkg/" + global_pkg_name + "/global/header" + consolidated + "/policy6", local_pkg_name, limit=limit)
     
     # delete_v: hier initial link wenn global header nicht existiert, sonst link von global header
+    is_global = False
+    link_initial_rulebase(device_config, local_pkg_name, is_global)
     # get local rulebase
     fmgr_getter.update_config_with_fortinet_api_call(
         native_config_domain['rulebases'], sid, fm_api_url, "/pm/config/adom/" + adom_name + "/pkg/" + local_pkg_name + "/firewall" + consolidated + "/policy", 'rules_adom_v4_' + local_pkg_name, options=options, limit=limit)
@@ -117,6 +119,16 @@ def find_local_pkg(adom_device_vdom_policy_package_structure, adom_name, mgm_det
                 return adom_device_vdom_policy_package_structure[adom_name][device][vdom]
     raise FwoDeviceWithoutLocalPackage('Could not find local package for ' + mgm_details_device['name'] + ' in Fortimanager Config') from None
 
+def link_initial_rulebase(device_config, local_pkg_name, is_global):
+    device_config['rulebase_links'].append({
+        'from_rulebase_uid': '',
+        'from_rule_uid': '',
+        'to_rulebase_uid': local_pkg_name,
+        'type': 'concatenated',
+        'is_global': is_global,
+        'is_initial': True,
+        'is_section': False
+    })
 
 def getNatPolicy(sid, fm_api_url, nativeConfig, adom_name, device, limit):
     scope = 'global'

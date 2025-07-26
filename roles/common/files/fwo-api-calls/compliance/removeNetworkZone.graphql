@@ -1,0 +1,39 @@
+mutation removeNetworkZone (
+  $id: bigint!
+  $removed: timestamptz
+  $delete_ip_ranges_exp: [compliance_ip_range_bool_exp!]!
+  $delete_zone_communication_exp: [compliance_network_zone_communication_bool_exp!]!
+) {
+  update_compliance_network_zone_by_pk (
+    pk_columns: { id: $id }
+    _set: {
+      removed: $removed
+  }) {
+    updatedId: id
+  }
+
+  update_compliance_ip_range (
+    where: {
+      network_zone_id: {_eq: $network_zone_id},
+      _or: $delete_ip_ranges_exp
+      removed: {_is_null: true}
+    }
+    _set: {
+      removed: $removed
+    }
+  ) {
+    affected_rows
+  }
+
+  update_compliance_network_zone_communication (
+    where: {
+      _or: $delete_zone_communication_exp
+      removed: {_is_null: true}
+    },
+    _set: {
+      removed: $removed
+    }
+  ) {
+    affected_rows
+  }
+}

@@ -1,5 +1,5 @@
-query getPolicies {
-  compliance_policy(where: {disabled: {_eq: false}}) {
+query getPolicyById ($id: Int!){
+  compliance_policy_by_pk(id: $id) {
     id
     name
     created_date
@@ -14,4 +14,3 @@ query getPolicies {
     }
   }
 }
- 

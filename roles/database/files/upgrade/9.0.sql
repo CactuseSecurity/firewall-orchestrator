@@ -1018,6 +1018,15 @@ INSERT INTO config (config_key, config_value, config_user)
 VALUES ('complianceCheckRestrictedServices', '', 0)
 ON CONFLICT (config_key, config_user) DO NOTHING;
 
+--- prevent overlapping active ip address ranges in the same zone
+ALTER TABLE compliance.ip_range DROP CONSTRAINT IF EXISTS exclude_overlapping_ip_ranges;
+ALTER TABLE compliance.ip_range ADD CONSTRAINT exclude_overlapping_ip_ranges
+EXCLUDE USING gist (
+    network_zone_id WITH =,
+    numrange(ip_range_start - '0.0.0.0'::inet, ip_range_end - '0.0.0.0'::inet, '[]') WITH &&
+)
+WHERE (removed IS NULL);
+
 -- adding labels (simple version without mapping tables and without foreign keys)
 
 -- CREATE TABLE label (

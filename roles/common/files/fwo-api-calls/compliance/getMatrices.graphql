@@ -1,0 +1,6 @@
+query getMatrices {
+  compliance_criterion (where: { criterion_type: {_eq: "Matrix"}, removed: {_is_null: true} }){
+    id
+    name
+  }
+}

@@ -1,9 +1,13 @@
-mutation addCriterion($criterion: compliance_criterion_insert_input!) {
-  insert_compliance_criterion_one(object: $criterion) {
-    id
-    name
-    criterion_type
-    content
-    created
+mutation addCriterion(
+  $name: String!
+  $criterionType: String!
+  ) {
+  insert_compliance_criterion(objects: {
+    name: $name
+    criterion_type: $criterionType
+  }) {
+    returning {
+      insertedId: id
+    }
   }
 }

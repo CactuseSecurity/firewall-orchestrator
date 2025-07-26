@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 # reads the main app data from multiple csv files contained in a git repo
-# users will reside in ldap groups with standardized names
+# users will reside in external ldap groups with standardized names
 # only the main responsible person per app is taken from the csv files
 # this does not use Tufin RLM any longer as a source
 # here app servers will only have ip addresses (no names)
@@ -41,34 +41,6 @@ baseDirEtc = baseDir + "etc/"
 repoTargetDir = baseDirEtc + "cmdb-repo"
 defaultConfigFileName = baseDirEtc + "secrets/customizingConfig.json"
 importSourceString = "tufinRlm" # change this to "cmdb-csv-export"? or will this break anything?
-
-class ApiLoginFailed(Exception):
-    """Raised when login to API failed"""
-
-    def __init__(self, message="Login to API failed"):
-            self.message = message
-            super().__init__(self.message)
-
-class ApiFailure(Exception):
-    """Raised for any other Api call exceptions"""
-
-    def __init__(self, message="There was an unclassified error while executing an API call"):
-            self.message = message
-            super().__init__(self.message)
-
-class ApiTimeout(Exception):
-    """Raised for 502 http error with proxy due to timeout"""
-
-    def __init__(self, message="reverse proxy timeout error during API call - try increasing the reverse proxy timeout"):
-            self.message = message
-            super().__init__(self.message)
-
-class ApiServiceUnavailable(Exception):
-    """Raised for 503 http error Service unavailable"""
-
-    def __init__(self, message="API unavailable"):
-            self.message = message
-            super().__init__(self.message)
 
 
 def readConfig(configFilename, keyToGet):

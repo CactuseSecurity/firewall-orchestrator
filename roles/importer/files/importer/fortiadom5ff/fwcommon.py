@@ -68,7 +68,7 @@ def get_config(nativeConfig: json, importState: ImportStateController):
         get_objects(sid, fm_api_url, native_config_global, native_config_global, '', limit, nw_obj_types, svc_obj_types, 'global', arbitrary_vdom_for_updateable_objects)
 
         for adom in adom_list:
-            adom_name = adom.MgmDetails.DomainName
+            adom_name = adom.DomainName
             native_config_adom = initialize_native_config_domain(adom.MgmDetails)
             nativeConfig['domains'].append(native_config_adom)
 
@@ -200,7 +200,7 @@ def initialize_device_config(mgm_details_device):
 def get_sid(importState: ImportStateController):
     fm_api_url = 'https://' + \
         importState.MgmDetails.Hostname + ':' + \
-        importState.MgmDetails.Port + '/jsonrpc'
+        str(importState.MgmDetails.Port) + '/jsonrpc'
     sid = fmgr_getter.login(importState.MgmDetails.ImportUser, importState.MgmDetails.Secret, fm_api_url)
     if sid is None:
         raise fwo_exceptions.FwLoginFailed('did not succeed in logging in to FortiManager API, no sid returned')

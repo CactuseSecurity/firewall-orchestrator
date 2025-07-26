@@ -125,7 +125,7 @@ def get_devices_from_manager(adom_mgm_details, sid, fm_api_url):
         if not mgm_details_device['importDisabled']:
             found_fmgr_device = False
             for fmgr_device in device_results:
-                found_fmgr_device = parse_device_and_vdom(fmgr_device, mgm_details_device, device_vdom_dict)
+                found_fmgr_device = parse_device_and_vdom(fmgr_device, mgm_details_device, device_vdom_dict, found_fmgr_device)
             if not found_fmgr_device:
                 raise FwoUnknownDeviceForManager('Could not find ' + mgm_details_device['name'] + ' in Fortimanager Config') from None
         

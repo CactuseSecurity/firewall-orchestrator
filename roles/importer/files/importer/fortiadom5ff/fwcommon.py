@@ -69,22 +69,25 @@ def get_config(nativeConfig: json, importState: ImportStateController):
 
         for adom in adom_list:
             adom_name = adom.DomainName
-            native_config_adom = initialize_native_config_domain(adom.MgmDetails)
+            native_config_adom = initialize_native_config_domain(adom)
             nativeConfig['domains'].append(native_config_adom)
 
             adom_scope = 'adom/'+adom_name
+            # delete_v: objekte werden auch importiert wenn es kein device gibt, ist das gewollt?
             get_objects(sid, fm_api_url, native_config_adom, native_config_global, adom_name, limit, nw_obj_types, svc_obj_types, adom_scope, arbitrary_vdom_for_updateable_objects)
             # currently reading zone from objects/rules for backward compat with FortiManager 6.x
             # getZones(sid, fm_api_url, full_config, adom_name, limit, debug_level)
             
             # todo: bring interfaces and routing in new domain native config format
             #getInterfacesAndRouting(
-            #    sid, fm_api_url, nativeConfig, adom_name, adom.MgmDetails.Devices, limit)
+            #    sid, fm_api_url, nativeConfig, adom_name, adom.Devices, limit)
 
             # initialize all rule dicts
-            fmgr_rule.initialize_rulebases(native_config_adom, adom_name)
-            for mgm_details_device in adom.MgmDetails.Devices:
+            # delete_v: wenn initialize_rulebases wirklich überflüssig, dann in fmgr_getter löschen
+            #fmgr_rule.initialize_rulebases(native_config_adom, adom_name)
+            for mgm_details_device in adom.Devices:
                 device_config = initialize_device_config(mgm_details_device)
+                native_config_adom['gateways'].append(device_config)
                 fmgr_rule.getAccessPolicy(
                     sid, fm_api_url, native_config_adom, adom_device_vdom_policy_package_structure, adom_name, mgm_details_device, device_config, limit)
                 # delete_v: nat später
@@ -171,25 +174,28 @@ def build_adom_list(importState : ImportStateController):
 def build_adom_device_vdom_structure(adom_list, sid, fm_api_url):
     adom_device_vdom_structure = {}
     for adom in adom_list:
-        adom_device_vdom_structure.update({adom.MgmDetails.DomainName: {}})
-        if len(adom.MgmDetails.Devices) > 0:
-            device_vdom_dict = fmgr_getter.get_devices_from_manager(adom.MgmDetails, sid, fm_api_url)
-            adom_device_vdom_structure[adom.MgmDetails.DomainName].update(device_vdom_dict)
+        adom_device_vdom_structure.update({adom.DomainName: {}})
+        if len(adom.Devices) > 0:
+            device_vdom_dict = fmgr_getter.get_devices_from_manager(adom, sid, fm_api_url)
+            adom_device_vdom_structure[adom.DomainName].update(device_vdom_dict)
+    return adom_device_vdom_structure
 
 def add_policy_package_to_vdoms(adom_device_vdom_structure, sid, fm_api_url):
-    for adom in adom_device_vdom_structure:
+    adom_device_vdom_policy_package_structure = deepcopy(adom_device_vdom_structure)
+    for adom in adom_device_vdom_policy_package_structure:
         policy_packages_result = fmgr_getter.get_policy_packages_from_manager(adom, sid, fm_api_url)
         for policy_package in policy_packages_result:
             if 'scope member' in policy_package:
-                parse_policy_package(policy_package, adom_device_vdom_structure, adom)
+                parse_policy_package(policy_package, adom_device_vdom_policy_package_structure, adom)
+    return adom_device_vdom_policy_package_structure
 
-def parse_policy_package(policy_package, adom_device_vdom_structure, adom):
+def parse_policy_package(policy_package, adom_device_vdom_policy_package_structure, adom):
     for scope_member in policy_package['scope member']:
-        for device in adom_device_vdom_structure[adom]:
+        for device in adom_device_vdom_policy_package_structure[adom]:
             if device == scope_member['name']:
-                for vdom in adom_device_vdom_structure[adom][device]:
+                for vdom in adom_device_vdom_policy_package_structure[adom][device]:
                     if vdom == scope_member['vdom']:
-                        adom_device_vdom_structure[adom][device].update({vdom: policy_package['name']})
+                        adom_device_vdom_policy_package_structure[adom][device].update({vdom: policy_package['name']})
 
 def initialize_device_config(mgm_details_device):
     device_config = {'name': mgm_details_device['name'],

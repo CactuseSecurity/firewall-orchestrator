@@ -416,6 +416,9 @@ namespace FWO.Config.Api.Data
         [JsonProperty("complianceCheckRestrictedServices"), JsonPropertyName("complianceCheckRestrictedServices")]
         public string ComplianceCheckRestrictedServices { get; set; } = "";
 
+        [JsonProperty("debugLevel"), JsonPropertyName("debugLevel")]
+        public int DebugLevel { get; set; } = 0;
+
         public ConfigData(bool editable = false)
         {
             Editable = editable;

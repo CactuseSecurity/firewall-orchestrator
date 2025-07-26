@@ -101,7 +101,7 @@ class FwConfigImportRule():
 
         # update rule_metadata before adding rules
         errorCountAdd, numberOfAddedMetaRules, newRuleMetadataIds = self.addNewRuleMetadata(newRulebases)
-        _, _ = self.update_rule_metadata_last_hit(new_hit_information)
+        # _, _ = self.update_rule_metadata_last_hit(new_hit_information)
 
         # # now update the database with all rule diffs
         self.uid2id_mapper.update_rule_mapping()

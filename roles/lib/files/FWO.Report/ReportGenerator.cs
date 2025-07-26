@@ -42,13 +42,19 @@ namespace FWO.Report
                 }
                 else
                 {
+                    if ( userConfig.DebugLevel >= 8)
+                    {
+                        displayMessageInUi(null, userConfig.GetText("generate_report"), $"Query: {report.Query.FullQuery} with variables: {System.Text.Json.JsonSerializer.Serialize(report.Query.QueryVariables)}", true);
+
+                    }
+
                     await report.Generate(userConfig.ElementsPerFetch, apiConnection,
                         rep =>
                         {
                             report.ReportData.ManagementData = rep.ManagementData;
                             SetRelevantManagements(ref report.ReportData.ManagementData, reportTemplate.ReportParams.DeviceFilter);
                             return Task.CompletedTask;
-                    }, token);
+                        }, token);
                     if (report.ReportType == ReportType.Recertification)
                     {
                         PrepareMetadata(report.ReportData.ManagementData, userConfig);

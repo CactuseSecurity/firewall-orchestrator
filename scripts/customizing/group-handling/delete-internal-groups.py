@@ -54,13 +54,10 @@ def get_jwt_token(user, password, api_url=default_api_url):
             logger.error(f"api: error during login to url: {endpoint} with user {user}")
             sys.exit(1)
 
-
         if response.text is not None and response.status_code==200:
             return response.text
         else:
-            logger.error(f"FWO api: ERROR: did not receive JWT" + \
-                            ", endpoint: " + endpoint + \
-                            ", status code: " + str(response))
+            logger.error(f"FWO api: ERROR: did not receive JWT, endpoint: {endpoint}, status code: {str(response)}")
             sys.exit(1)
 
 

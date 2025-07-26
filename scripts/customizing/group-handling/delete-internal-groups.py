@@ -121,15 +121,6 @@ if __name__ == "__main__":
 
         print(f"Deleted {group_delete_counter} out of {len(group_common_names_to_delete)} groups.")
 
-
-    except ApiLoginFailed as e:
-        print(f"Login failed: {e.message}")
-    except ApiFailure as e:
-        print(f"API failure: {e.message}")
-    except ApiTimeout as e:
-        print(f"API timeout: {e.message}")
-    except ApiServiceUnavailable as e:
-        print(f"API service unavailable: {e.message}")
     except Exception as e:
         print(f"An unexpected error occurred: {str(e)}")
         sys.exit(1)

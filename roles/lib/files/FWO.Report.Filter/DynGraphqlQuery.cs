@@ -52,6 +52,7 @@ namespace FWO.Report.Filter
         const string limitOffsetString = $@"limit: $limit 
                                         offset: $offset ";
 
+
         public static DynGraphqlQuery GenerateQuery(ReportTemplate filter, AstNode? ast)
         {
             DynGraphqlQuery query = new(filter.Filter);
@@ -62,14 +63,17 @@ namespace FWO.Report.Filter
             }
             ConstructFullQuery(query, filter);
             OverwriteMissingTenantFilters(ref query, filter);
-            string pattern = "";
-
-            // remove line breaks and duplicate whitespaces
-            pattern = @"\n";
-            query.FullQuery = Regex.Replace(query.FullQuery, pattern, "");
-            pattern = @"\s+";
-            query.FullQuery = Regex.Replace(query.FullQuery, pattern, " ");
+            query.FullQuery = RemoveUnnecessaryWhitespaces(query.FullQuery);
             return query;
+        }
+
+        private static string RemoveUnnecessaryWhitespaces(string queryString)
+        {
+            string pattern = @"\n";
+            TimeSpan timeout = TimeSpan.FromSeconds(1);
+            string cleanQuery = Regex.Replace(queryString, pattern, "", RegexOptions.None, timeout);
+            pattern = @"\s+";
+            return Regex.Replace(cleanQuery, pattern, " ", RegexOptions.None, timeout);
         }
 
         private static void ConstructWhereStatements(DynGraphqlQuery query, ReportTemplate filter, AstNode? ast)

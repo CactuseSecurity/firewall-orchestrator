@@ -103,10 +103,10 @@ def delete_groups_from_roles(groups_to_delete, roles=[]):
     for role in roles:
         for group in groups_to_delete:
             delete_response = fwo_rest_api_call(
-                args.api_url, jwt, "Role/User", HttpCommand.DELETE.value, payload={"Role": role, "UserDn": group['GroupDn']})        
+                args.api_url, jwt, "Role/User", HttpCommand.DELETE.value, payload={"Role": role, "UserDn": group})        
             if not delete_response:
                 error_counter += 1
-                logger.warning(f"Failed to delete group {group['GroupDn']} from role {role}")
+                logger.warning(f"Failed to delete group {group} from role {role}")
             else: 
                 from_role_delete_counter += 1
     print(f"Deleted {from_role_delete_counter} groups from roles. Errors: {error_counter}")
@@ -134,11 +134,7 @@ if __name__ == "__main__":
     try:
         jwt = get_jwt_token(args.user, args.password, args.api_url)
         group_dns_to_delete = get_matching_groups(jwt, args.group_name, args.api_url)
-
         group_common_names_to_delete = extract_common_names(group_dns_to_delete)
-
-        # first we need to remove the groups from all roles to be able to delete them
-        delete_groups_from_roles(group_common_names_to_delete, roles = ['Modeller', 'Requester', 'Reviewer', 'Implementer'])
 
         group_delete_counter = 0
         for group in group_common_names_to_delete:

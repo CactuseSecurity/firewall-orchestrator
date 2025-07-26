@@ -12,34 +12,6 @@ import urllib3
 default_api_url = 'https://localhost:8888/api/'
 
 
-class ApiLoginFailed(Exception):
-    """Raised when login to API failed"""
-
-    def __init__(self, message="Login to API failed"):
-            self.message = message
-            super().__init__(self.message)
-
-class ApiFailure(Exception):
-    """Raised for any other Api call exceptions"""
-
-    def __init__(self, message="There was an unclassified error while executing an API call"):
-            self.message = message
-            super().__init__(self.message)
-
-class ApiTimeout(Exception):
-    """Raised for 502 http error with proxy due to timeout"""
-
-    def __init__(self, message="reverse proxy timeout error during API call - try increasing the reverse proxy timeout"):
-            self.message = message
-            super().__init__(self.message)
-
-class ApiServiceUnavailable(Exception):
-    """Raised for 503 http error Service unavailable"""
-
-    def __init__(self, message="API unavailable"):
-            self.message = message
-            super().__init__(self.message)
-
 class HttpCommand(Enum):
     GET = 'get'
     POST = 'post'
@@ -62,7 +34,8 @@ def fwo_rest_api_call(api_url, jwt, endpoint_name, command='get', payload={}):
         if response.status_code == 200:
             return response.json()
         else:
-            raise ApiFailure(f"API call failed with status code {response.status_code}: {response.text}")
+            logger.error(f"API call failed with status code {response.status_code}: {response.text}")
+            sys.exit(1)
 
 
 # get JWT token from FWO REST API
@@ -78,14 +51,17 @@ def get_jwt_token(user, password, api_url=default_api_url):
             urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
             response = session.post(endpoint, json=payload, headers=headers)
         except exceptions.RequestException:
-            raise ApiFailure (f"api: error during login to url: {endpoint} with user {user}") from None
+            logger.error(f"api: error during login to url: {endpoint} with user {user}")
+            sys.exit(1)
+
 
         if response.text is not None and response.status_code==200:
             return response.text
         else:
-            raise ApiLoginFailed("FWO api: ERROR: did not receive JWT" + \
+            logger.error(f"FWO api: ERROR: did not receive JWT" + \
                             ", endpoint: " + endpoint + \
                             ", status code: " + str(response))
+            sys.exit(1)
 
 
 def get_matching_groups(jwt, group_pattern, api_url=None):

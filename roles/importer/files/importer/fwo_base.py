@@ -4,6 +4,8 @@ import re
 from enum import Enum
 from typing import Any, get_type_hints
 import ipaddress 
+import traceback
+import time
 
 import fwo_globals
 from fwo_const import csv_delimiter, apostrophe, line_delimiter
@@ -406,3 +408,20 @@ def compute_min_moves(source, target):
         "reposition_moves": reposition_moves
     }
 
+
+
+def write_native_config_to_file(importState, configNative):
+    from fwo_const import import_tmp_path
+    if importState.DebugLevel>6:
+        logger = getFwoLogger(debug_level=importState.DebugLevel)
+        debug_start_time = int(time.time())
+        try:
+                full_native_config_filename = f"{import_tmp_path}/mgm_id_{str(importState.MgmDetails.Id)}_config_native.json"
+                with open(full_native_config_filename, "w") as json_data:
+                    json_data.write(json.dumps(configNative, indent=2))
+        except Exception:
+            logger.error(f"import_management - unspecified error while dumping config to json file: {str(traceback.format_exc())}")
+            raise
+
+        time_write_debug_json = int(time.time()) - debug_start_time
+        logger.debug(f"import_management - writing debug config json files duration {str(time_write_debug_json)}s")

@@ -15,6 +15,7 @@ import fwo_api
 from fwo_log import getFwoLogger
 from fwo_const import fw_module_name, import_tmp_path
 import fwo_globals
+from fwo_base import write_native_config_to_file
 from fwo_exceptions import FwoImporterError, FwLoginFailed, ImportRecursionLimitReached, FwoApiWriteError, FwoImporterErrorInconsistencies, ImportInterruption
 from fwo_base import stringIsUri, ConfigAction, ConfFormat
 import fwo_file_import
@@ -84,7 +85,7 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
         rollBackExceptionHandler(importState, configImporter=config_importer, exc=e, errorText="shutdown requested")
         raise
     except (FwoApiWriteError, FwoImporterError) as e:
-        importState.addError("FwoApiWriteError or FwoImporterError - aborting import")
+        importState.addError(f"FwoApiWriteError or FwoImporterError: {str(e.args)} - aborting import")
         rollBackExceptionHandler(importState, configImporter=config_importer, exc=e, errorText="")
     except FwoImporterErrorInconsistencies:
         fwo_api.delete_import(importState) # delete whole import
@@ -246,8 +247,7 @@ def get_config_from_api(importState: ImportStateController, configNative) -> tup
     logger = getFwoLogger(debug_level=importState.DebugLevel)
 
     try: # pick product-specific importer:
-        pkg_name = importState.MgmDetails.DeviceTypeName.lower().replace(' ', '') + \
-            importState.MgmDetails.DeviceTypeVersion.replace(' ', '').replace('MDS', '')
+        pkg_name = get_module_package_name(importState)
         if f"{importer_base_dir}/{pkg_name}" not in sys.path:
             sys.path.append(f"{importer_base_dir}/{pkg_name}")
         fw_module = importlib.import_module("." + fw_module_name, pkg_name)
@@ -276,6 +276,20 @@ def get_config_from_api(importState: ImportStateController, configNative) -> tup
     return config_changed_since_last_import, normalized_config_list
 
 
+# transform device name and type to correct package name
+def get_module_package_name(import_state: ImportStateController):
+    if import_state.MgmDetails.DeviceTypeName.lower() == 'checkpoint':
+        pkg_name = import_state.MgmDetails.DeviceTypeName.lower().replace(' ', '') +\
+            import_state.MgmDetails.DeviceTypeVersion.replace(' ', '').replace('MDS', '')
+    elif import_state.MgmDetails.DeviceTypeName.lower() == 'fortimanager':
+        pkg_name = import_state.MgmDetails.DeviceTypeName.lower().replace(' ', '').replace('fortimanager', 'FortiAdom').lower() +\
+            import_state.MgmDetails.DeviceTypeVersion.replace(' ', '').lower()
+    else:
+        pkg_name = f"{import_state.MgmDetails.DeviceTypeName.lower}{import_state.MgmDetails.DeviceTypeVersion}"
+
+    return pkg_name
+
+
 def set_filename(import_state: ImportStateController, file_name: str = ''):
     # set file name in importState
     if file_name == '' or file_name is None: 
@@ -284,19 +298,3 @@ def set_filename(import_state: ImportStateController, file_name: str = ''):
             import_state.setImportFileName(import_state.MgmDetails.Hostname)
     else:
         import_state.setImportFileName(file_name)  
-
-
-def write_native_config_to_file(importState, configNative):
-    if importState.DebugLevel>6:
-        logger = getFwoLogger(debug_level=importState.DebugLevel)
-        debug_start_time = int(time.time())
-        try:
-                full_native_config_filename = f"{import_tmp_path}/mgm_id_{str(importState.MgmDetails.Id)}_config_native.json"
-                with open(full_native_config_filename, "w") as json_data:
-                    json_data.write(json.dumps(configNative, indent=2))
-        except Exception:
-            logger.error(f"import_management - unspecified error while dumping config to json file: {str(traceback.format_exc())}")
-            raise
-
-        time_write_debug_json = int(time.time()) - debug_start_time
-        logger.debug(f"import_management - writing debug config json files duration {str(time_write_debug_json)}s")

@@ -58,7 +58,7 @@
 								<IpAddressInput @bind-IpRange="ipRangeToAdd" />
 								<button @onclick="AddIpRange" type="button" class="btn btn-success" id="addIpAddress">@userConfig.GetText("add")</button>
 							</div>
-							<EditList ElementType="IPAddressRange" Elements="networkZoneInEdit.IPRanges" ElementsToAdd="ipRangesToAdd" ElementsToDelete="ipRangesToDelete">
+							<EditList ElementType="IPAddressRange" Elements="networkZoneInEdit?.IPRanges" ElementsToAdd="ipRangesToAdd" ElementsToDelete="ipRangesToDelete">
 								<Display>
 									@NetworkZoneService.DisplayIpRange(context)
 								</Display>
@@ -73,17 +73,17 @@
 							{
 								<div class="mb-2">
 									<Dropdown Nullable="true" Small="false" ElementToString="@(e => e?.Name ?? "")" InputClass="@subzoneInputClass"
-										  Elements="networkZoneService.NetworkZones" @bind-SelectedElement="subzoneToAdd" AppendWidth="50">
+										  Elements="networkZoneService.NetworkZones" @bind-SelectedElement="subzoneToAdd" AppendWidth="60">
 										<ElementTemplate>
 											@(context?.Name ?? "")
 										</ElementTemplate>
 										<Append>
 											<button @onclick="() => AddCommunicationZone(subzonesToAdd, ref subzoneToAdd, ref subzoneInputClass)"
-												type="button" style="width: 50px" class="btn btn-success">@userConfig.GetText("add")</button>
+												type="button" style="width: 60px" class="btn btn-success">@userConfig.GetText("add")</button>
 										</Append>
 									</Dropdown>
 								</div>
-								<EditList ElementType="ComplianceNetworkZone" Elements="networkZoneInEdit.Subzones"
+								<EditList ElementType="ComplianceNetworkZone" Elements="networkZoneInEdit?.Subzones"
 									  ElementsToAdd="subzonesToAdd" ElementsToDelete="subzonesToDelete">
 									<Display>
 										@context.Name
@@ -96,19 +96,19 @@
 						<label>@userConfig.GetText("allowed_comm_srcs")</label>
 						<div class="mb-2">
 							<Dropdown Nullable="true" Small="false" ElementToString="@(e => e?.Name ?? "")" InputClass="@sourceZoneInputClass"
-									  Elements="networkZoneService.NetworkZones" @bind-SelectedElement="sourceZoneToAdd" AppendWidth="50">
+									  Elements="networkZoneService.NetworkZones" @bind-SelectedElement="sourceZoneToAdd" AppendWidth="60">
 								<ElementTemplate>
 									@(context?.Name ?? "")
 								</ElementTemplate>
 								<Append>
 									<button @onclick="() => AddCommunicationZone(sourceZonesToAdd, ref sourceZoneToAdd, ref sourceZoneInputClass)"
-											type="button" class="btn btn-success" style="width: 50px">
+											type="button" class="btn btn-success" style="width: 60px">
 										@userConfig.GetText("add")
 									</button>
 								</Append>
 							</Dropdown>
 						</div>
-						<EditList ElementType="ComplianceNetworkZone" Elements="networkZoneInEdit.AllowedCommunicationSources"
+						<EditList ElementType="ComplianceNetworkZone" Elements="networkZoneInEdit?.AllowedCommunicationSources"
 							  ElementsToAdd="sourceZonesToAdd" ElementsToDelete="sourceZonesToDelete">
 							<Display>
 								@context.Name
@@ -119,17 +119,17 @@
 						<label>@userConfig.GetText("allowed_comm_dests")</label>
 						<div class="mb-2">
 							<Dropdown Nullable="true" Small="false" ElementToString="@(e => e?.Name ?? "")" InputClass="@destinationZoneInputClass"
-									  Elements="networkZoneService.NetworkZones" @bind-SelectedElement="destinationZoneToAdd" AppendWidth="50">
+									  Elements="networkZoneService.NetworkZones" @bind-SelectedElement="destinationZoneToAdd" AppendWidth="60">
 								<ElementTemplate>
 									@(context?.Name ?? "")
 								</ElementTemplate>
 								<Append>
 									<button @onclick="() => AddCommunicationZone(destinationZonesToAdd, ref destinationZoneToAdd, ref destinationZoneInputClass)"
-										type="button" class="btn btn-success" style="width: 50px">@userConfig.GetText("add")</button>
+										type="button" class="btn btn-success" style="width: 60px">@userConfig.GetText("add")</button>
 								</Append>
 							</Dropdown>
 						</div>
-						<EditList ElementType="ComplianceNetworkZone" Elements="networkZoneInEdit.AllowedCommunicationDestinations"
+						<EditList ElementType="ComplianceNetworkZone" Elements="networkZoneInEdit?.AllowedCommunicationDestinations"
 								  ElementsToAdd="destinationZonesToAdd" ElementsToDelete="destinationZonesToDelete">
 							<Display>
 								@context.Name
@@ -165,6 +165,9 @@
 
 	[Parameter]
 	public ComplianceCriterion SelectedMatrix { get; set; } = new();
+
+	[Parameter]
+	public Func<Task> ConfigChanged { get; set; } = DefaultInit.DoNothing;
 
 	bool editMode = false;
 	bool deleteMode = false;
@@ -268,7 +271,7 @@
 			}
 
 			editMode = false;
-			await ReloadZones();
+			await ConfigChanged();
 			StateHasChanged();
 		}
 		catch (Exception exception)
@@ -448,7 +451,7 @@
 					removed = DateTime.UtcNow
 				};
 				await apiConnection.SendQueryAsync<dynamic>(ComplianceQueries.removeNetworkZone, variables);
-				await ReloadZones();
+				await ConfigChanged();
 				DisplayMessageInUi(null, userConfig.GetText("U0014"), userConfig.GetText("U0015"), false);
 			}
 			catch (Exception exception)
@@ -458,11 +461,6 @@
 		}
 		deleteMode = false;
 		StateHasChanged();
-	}
-
-	private async Task ReloadZones()
-	{
-		networkZoneService.NetworkZones = await apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(ComplianceQueries.getNetworkZonesForMatrix, new { criterionId = SelectedMatrix.Id });
 	}
 
 	private void CancelModifications()

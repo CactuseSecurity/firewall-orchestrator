@@ -38,7 +38,12 @@
 <Collapse Title="@userConfig.GetText("network_zone_config")" Style="@("primary")" StartToggled="true">
     @if(matrixLoaded)
     {
-        <ZonesConfiguration SelectedMatrix="selectedMatrix"/>
+        <ZonesConfiguration SelectedMatrix="selectedMatrix" ConfigChanged="LoadMatrix"/>
+    }
+    else
+    {
+        <div class="spinner-border" role="status"><span class="visually-hidden">@(userConfig.GetText("loading"))</span></div>
+        @* <Loading/> *@
     }
 </Collapse>
 <hr />
@@ -82,7 +87,8 @@
     }
     else
     {
-        <Loading/>
+        <div class="spinner-border" role="status"><span class="visually-hidden">@(userConfig.GetText("loading"))</span></div>
+        @* <Loading/> *@
     }
 </Collapse>
 <AddMatrix @bind-Display="addMatrixMode"/>
@@ -116,7 +122,6 @@
             if(matrices.Count > 0)
             {
                 selectedMatrix = matrices[0];
-                await LoadMatrix(selectedMatrix);
             }
         }
         catch (Exception exception)
@@ -128,18 +133,18 @@
     private async Task OnMatrixChanged(ComplianceCriterion newMatrix)
     {
         selectedMatrix = newMatrix;
-        await LoadMatrix(newMatrix);
+        await LoadMatrix();
     }
 
-    private async Task LoadMatrix(ComplianceCriterion matrix)
+    private async Task LoadMatrix()
     {
-        if(matrix.Id > 0)
+        if(selectedMatrix.Id > 0)
         {
             matrixLoaded = false;
-            await InvokeAsync(StateHasChanged);
-            networkZoneService.NetworkZones = await apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(ComplianceQueries.getNetworkZonesForMatrix, new { criterionId = matrix.Id });
+            StateHasChanged();
+            networkZoneService.NetworkZones = await apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(ComplianceQueries.getNetworkZonesForMatrix, new { criterionId = selectedMatrix.Id });
             matrixLoaded = true;
-            await InvokeAsync(StateHasChanged);
+            StateHasChanged();
         }
     }
 
@@ -160,7 +165,6 @@
         try
         {
             // Prepare the variables for the API call
-
             var variables = new
             {
                 add_zone_communication = addCommunication.ConvertAll(zones =>
@@ -182,7 +186,7 @@
                 removed = DateTime.UtcNow
             };
             await apiConnection.SendQueryAsync<dynamic>(ComplianceQueries.updateNetworkZoneCommunication, variables);
-            await LoadMatrix(selectedMatrix);
+            await LoadMatrix();
  
             ToggleEditMode(false);
             DisplayMessageInUi(null, userConfig.GetText("U0012"), userConfig.GetText("U0013"), false);

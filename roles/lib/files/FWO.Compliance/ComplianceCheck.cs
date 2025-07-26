@@ -17,8 +17,7 @@ namespace FWO.Compliance
     public class ComplianceCheck
     {
         List<ComplianceNetworkZone> NetworkZones = [];
-        // ReportCompliance? ComplianceReport = null;
-        public List<(Rule, (ComplianceNetworkZone, ComplianceNetworkZone))> Results { get; set; } = [];
+         public List<(Rule, (ComplianceNetworkZone, ComplianceNetworkZone))> Results { get; set; } = [];
         public List<ComplianceViolation> RestrictedServiceViolations { get; set; } = [];
         private ReportBase? currentReport;
         Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
@@ -145,7 +144,6 @@ namespace FWO.Compliance
                 complianceReport.Violations.AddRange(RestrictedServiceViolations);
 
                 await complianceReport.SetComplianceData();
-                // ComplianceReport = complianceReport;
             }
         }
 
@@ -299,9 +297,7 @@ namespace FWO.Compliance
                 {
                     await MailKitMailer.SendAsync(mail, emailConnection, false, new CancellationToken());
                 }
-                
             }
-
         }
 
         private MailData? PrepareEmail()
@@ -364,12 +360,9 @@ namespace FWO.Compliance
 
             foreach (ComplianceNetworkZone sourceZone in sourceZones)
             {
-                foreach (ComplianceNetworkZone destinationZone in destinationZones)
+                foreach (ComplianceNetworkZone destinationZone in destinationZones.Where(d => !sourceZone.CommunicationAllowedTo(d)))
                 {
-                    if (!sourceZone.CommunicationAllowedTo(destinationZone))
-                    {
-                        forbiddenCommunication.Add((sourceZone, destinationZone));
-                    }
+                    forbiddenCommunication.Add((sourceZone, destinationZone));
                 }
             }
 

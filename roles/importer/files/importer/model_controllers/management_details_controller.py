@@ -63,6 +63,10 @@ class ManagementDetailsController(ManagementDetails):
             return f"https://{self.Hostname}:{str(self.Port)}/api/fmc_platform/v1/"
         elif self.DeviceTypeName == 'Fortinet':
             return f"https://{self.Hostname}:{str(self.Port)}/api/v2/"
+        elif self.DeviceTypeName == 'FortiAdom':
+            return f"https://{self.Hostname}:{str(self.Port)}/jsonrpc"
+        elif self.DeviceTypeName == 'FortiManager':
+            return f"https://{self.Hostname}:{str(self.Port)}/jsonrpc"
         elif self.DeviceTypeName == 'PaloAlto':
             return f"https://{self.Hostname}:{str(self.Port)}/restapi/v10.0/"
         elif self.DeviceTypeName == 'PaloAltoLegacy':

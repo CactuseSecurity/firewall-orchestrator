@@ -1,0 +1,179 @@
+﻿@using System.Text.Json
+
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Auditor}")]
+
+@inject UserConfig userConfig
+@inject ApiConnection apiConnection
+
+<PopUp Title="@(userConfig.GetText("edit_fix_crit"))" Size=PopupSize.Small Show="@Display" OnClose="Cancel">
+    <Body>
+        @if(Display)
+        {
+            <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5512"))">
+                <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
+                <input type="text" class="col-sm-9" @bind="SelectedCriterion.Name" />
+            </div>
+            <div class="form-group row mt-2">
+                <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("type"))*:</label>
+                <div class="col-sm-9">
+                    <Dropdown ElementType="string" @bind-SelectedElement="SelectedCriterion.CriterionType" 
+							Elements="Enum.GetNames(typeof(CriterionType)).Where(c => c != CriterionType.Matrix.ToString())" >
+                        <ElementTemplate Context="crittype">
+                            @(crittype)
+                        </ElementTemplate>
+                    </Dropdown>
+                </div>
+            </div>
+ 
+			@if(SelectedCriterion.CriterionType == CriterionType.ForbiddenService.ToString())
+			{
+				<div class="form-group row me-auto mt-2">
+	                <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("elements")):</label>
+	                <div class="col-sm-10">
+		                <EditList ElementType="string" Elements="ActElements.ToArray()" ElementsToAdd="ForbiddenElementsToAdd"
+								ElementsToDelete="ForbiddenElementsToDelete" StdLayout="false">
+		                    <Display>
+		                        <div class="row">
+		                            <div class="col-sm-12 border bg-transparent">@context</div>
+		                        </div>
+		                    </Display>
+		                </EditList>
+		                <div class="row col-sm-12 mt-1">
+		                    <input type="text" class="col-sm-10" @bind="ActForbiddenElement" />
+		                    <button type="button" class="col-sm-2 btn btn-sm btn-primary" @onclick="AddForbiddenElement"
+								@onclick:preventDefault>@(ModellingHandlerBase.DisplayButton(userConfig, "add", Icons.Add))</button>
+		                </div>
+					</div>
+				</div>
+			}
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}")">
+                <Authorized>
+                    <button type="button" class="btn btn-sm btn-danger" @onclick="Save">@(userConfig.GetText("save"))</button>
+                </Authorized>
+                <NotAuthorized>
+                    <button type="button" class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("save"))</button>
+                </NotAuthorized> 
+            </AuthorizeView>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
+        </div>
+    </Footer>
+</PopUp>
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    [Parameter]
+    public bool Display { get; set; } = false;
+
+    [Parameter]
+    public EventCallback<bool> DisplayChanged { get; set; }
+
+    [Parameter]
+    public ComplianceCriterion SelectedCriterion { get; set; } = new();
+
+    [Parameter]
+    public EventCallback<ComplianceCriterion> SelectedCriterionChanged { get; set; }
+
+    [Parameter]
+    public bool AddMode { get; set; } = false;
+
+	[Parameter]
+	public List<ComplianceCriterion> CriteriaList { get; set; } = [];
+
+    [Parameter]
+    public EventCallback<List<ComplianceCriterion>> CriteriaListChanged { get; set; }
+
+
+	private List<string> ForbiddenElementsToAdd = [];
+    private List<string> ForbiddenElementsToDelete = [];
+    private string ActForbiddenElement = "";
+	private List<string> ActElements = [];
+
+
+	protected override void OnParametersSet()
+	{
+		if(Display)
+        {
+			ActElements = [.. SelectedCriterion.Content.Split(',').Select(s => s.Trim())
+                    .Where(s => !string.IsNullOrEmpty(s))];
+        }
+	}
+
+    private void AddForbiddenElement()
+    {
+        if (ActForbiddenElement != "")
+        {
+            ForbiddenElementsToAdd.Add(ActForbiddenElement);
+            ActForbiddenElement = "";
+        }
+    }
+
+    private void Cancel()
+    {
+        Close();
+    }
+
+    private async Task Save()
+    {
+        try
+        {
+			if(ForbiddenElementsToAdd.Count > 0 || ForbiddenElementsToDelete.Count > 0)
+			{
+				foreach(var elem in ForbiddenElementsToDelete)
+				{
+					ActElements.Remove(elem);
+				}
+				ActElements.AddRange(ForbiddenElementsToAdd);
+				SelectedCriterion.Content = string.Join(",", ActElements);
+
+				if(!AddMode)
+				{
+					await RemoveCriterion(SelectedCriterion);
+				}
+				await AddCriterion();
+				if(AddMode)
+				{
+					CriteriaList.Add(SelectedCriterion);
+				}
+			}
+            Close();
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("edit_fix_crit"), "", true);
+        }
+    }
+
+	private async Task AddCriterion()
+	{
+        ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(ComplianceQueries.addCriterion,
+            new { name = SelectedCriterion.Name, CriterionType = SelectedCriterion.CriterionType, content = SelectedCriterion.Content })).ReturnIds;
+		if(returnIds != null && returnIds.Length > 0)
+		{
+			SelectedCriterion.Id = returnIds[0].InsertedId;
+		}
+	}
+
+	private async Task RemoveCriterion(ComplianceCriterion criterion)
+	{
+        if(criterion.Removed == null)
+		{
+			await apiConnection.SendQueryAsync<ReturnId>(ComplianceQueries.removeCriterion,
+	            new { id = criterion.Id, removed = DateTime.UtcNow });
+		}
+	}
+
+    private void Close()
+    {
+		ForbiddenElementsToAdd = [];
+        ForbiddenElementsToDelete = [];
+        Display = false;
+        DisplayChanged.InvokeAsync(Display);
+    }
+}

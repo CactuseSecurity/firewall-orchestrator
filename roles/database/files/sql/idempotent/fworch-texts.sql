@@ -1755,8 +1755,10 @@ INSERT INTO txt VALUES ('edit_policy',      	'German', 	'Policy bearbeiten');
 INSERT INTO txt VALUES ('edit_policy',      	'English', 	'Edit Policy');
 INSERT INTO txt VALUES ('delete_policy',      	'German', 	'Policy l&ouml;schen');
 INSERT INTO txt VALUES ('delete_policy',      	'English', 	'Delete Policy');
-INSERT INTO txt VALUES ('edit_fix_crit',      	'German', 	'Feste Kriterien bearbeiten');
-INSERT INTO txt VALUES ('edit_fix_crit',      	'English', 	'Edit Fixed Criteria');
+INSERT INTO txt VALUES ('fix_criteria',      	'German', 	'Feste Kriterien');
+INSERT INTO txt VALUES ('fix_criteria',      	'English', 	'Fixed Criteria');
+INSERT INTO txt VALUES ('edit_fix_crit',      	'German', 	'Festes Kriteriium bearbeiten');
+INSERT INTO txt VALUES ('edit_fix_crit',      	'English', 	'Edit Fixed Criterion');
 INSERT INTO txt VALUES ('criteria',      		'German', 	'Kriterien');
 INSERT INTO txt VALUES ('criteria',      		'English', 	'Criteria');
 
@@ -2511,8 +2513,6 @@ INSERT INTO txt VALUES ('complianceCheckPersistData','German', 'Daten persistier
 INSERT INTO txt VALUES ('complianceCheckPersistData','English','Persist Data');
 INSERT INTO txt VALUES ('complianceMatrixAllowNetworkZones','German', 'Netzwerkzonen erlauben');
 INSERT INTO txt VALUES ('complianceMatrixAllowNetworkZones','English','Allow Network Zones');
-INSERT INTO txt VALUES ('complianceCheckRestrictedServices','German', 'Eingeschr&auml;nkte Dienste');
-INSERT INTO txt VALUES ('complianceCheckRestrictedServices','English','Restricted Services');
 INSERT INTO txt VALUES ('availableModules',     'German', 	'Verf&uuml;gbare Module');
 INSERT INTO txt VALUES ('availableModules',     'English', 	'Available Modules');
 
@@ -2832,6 +2832,8 @@ INSERT INTO txt VALUES ('U3002', 'English', 'Do you really want to delete genera
 
 INSERT INTO txt VALUES ('U4001', 'German',  'Sind sie sicher, dass sie folgende Policy l&ouml;schen wollen: ');
 INSERT INTO txt VALUES ('U4001', 'English', 'Are you sure you want to delete policy: ');
+INSERT INTO txt VALUES ('U4002', 'German',  'Sind sie sicher, dass sie folgendes Fixes Kriterium l&ouml;schen wollen: ');
+INSERT INTO txt VALUES ('U4002', 'English', 'Are you sure you want to delete fix criterion: ');
 
 INSERT INTO txt VALUES ('U5001', 'German',  'Setup und Verwaltung des Firewall Orchestrator. Bitte eine Einstellung in der linken Randleiste ausw&auml;hlen.');
 INSERT INTO txt VALUES ('U5001', 'English', 'Setup and administration of Firewall Orchestrator. Please choose a setting in the left sidebar.');

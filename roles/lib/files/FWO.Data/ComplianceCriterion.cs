@@ -6,9 +6,10 @@ namespace FWO.Data
     public enum CriterionType
     {
         Matrix = 1,
-        NoAnyService = 10
-        
-        // ...
+        ForbiddenService = 10,
+        ForbiddenSource = 11,
+        ForbiddenDestination = 12,
+        ForbiddenTrack = 13
     }
 
     public class ComplianceCriterion

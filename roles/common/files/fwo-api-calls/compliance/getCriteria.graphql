@@ -3,5 +3,6 @@ query getCriteria {
     id
     name
     criterion_type
+    content
   }
 }

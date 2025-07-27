@@ -1012,12 +1012,6 @@ ON UPDATE RESTRICT ON DELETE CASCADE;
 
 UPDATE config SET config_value = '[1,2,3,4,5,6,7,8,9,10,21,22,31]' WHERE config_key = 'availableReportTypes';
 
--- add config parameter checkComplianceRestrictedServices if not exists
-
-INSERT INTO config (config_key, config_value, config_user)
-VALUES ('complianceCheckRestrictedServices', '', 0)
-ON CONFLICT (config_key, config_user) DO NOTHING;
-
 --- prevent overlapping active ip address ranges in the same zone
 ALTER TABLE compliance.ip_range DROP CONSTRAINT IF EXISTS exclude_overlapping_ip_ranges;
 ALTER TABLE compliance.ip_range ADD CONSTRAINT exclude_overlapping_ip_ranges

@@ -416,9 +416,6 @@ namespace FWO.Config.Api.Data
         [JsonProperty("complianceCheckPersistData"), JsonPropertyName("complianceCheckPersistData")]
         public bool ComplianceCheckPersistData { get; set; } = false;
 
-        [JsonProperty("complianceCheckRestrictedServices"), JsonPropertyName("complianceCheckRestrictedServices")]
-        public string ComplianceCheckRestrictedServices { get; set; } = "";
-
         [JsonProperty("complianceMatrixAllowNetworkZones"), JsonPropertyName("complianceMatrixAllowNetworkZones")]
         public bool ComplianceMatrixAllowNetworkZones { get; set; } = false;
 

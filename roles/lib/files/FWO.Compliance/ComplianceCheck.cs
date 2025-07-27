@@ -24,7 +24,6 @@ namespace FWO.Compliance
         ReportFilters reportFilters = new();
         private readonly UserConfig _userConfig;
         private readonly ApiConnection _apiConnection;
-        private List<string> _restrictedServices = [];
         CompliancePolicy? Policy = null;
 
 
@@ -53,29 +52,19 @@ namespace FWO.Compliance
 
             Results.Clear();
             RestrictedServiceViolations.Clear();
-            _restrictedServices.Clear();
 
-            if (_userConfig.GlobalConfig is GlobalConfig globalConfig)
+            if (_userConfig.GlobalConfig is GlobalConfig globalConfig && _apiConnection != null && currentReport is ReportCompliance complianceReport)
             {
-                _restrictedServices = globalConfig.ComplianceCheckRestrictedServices
-                    .Split(',')
-                    .Select(s => s.Trim())
-                    .Where(s => !string.IsNullOrEmpty(s))
-                    .ToList();
-
-                if (_apiConnection != null && currentReport is ReportCompliance complianceReport)
+                foreach (var management in complianceReport.ReportData.ManagementData)
                 {
-                    foreach (var management in complianceReport.ReportData.ManagementData)
-                    {
-                        await CheckRuleCompliancePerManagement(management);
-                    }
+                    await CheckRuleCompliancePerManagement(management);
+                }
 
-                    await GatherCheckResults();
+                await GatherCheckResults();
 
-                    if (globalConfig.ComplianceCheckPersistData)
-                    {
-                        await PersistData(complianceReport);
-                    }
+                if (globalConfig.ComplianceCheckPersistData)
+                {
+                    await PersistData(complianceReport);
                 }
             }
         }
@@ -127,7 +116,7 @@ namespace FWO.Compliance
 
         private async Task GatherCheckResults()
         {
-            if (Results.Any() && currentReport is ReportCompliance complianceReport)
+            if (Results.Count > 0 && currentReport is ReportCompliance complianceReport)
             {
                 complianceReport.Violations.Clear();
 
@@ -150,15 +139,17 @@ namespace FWO.Compliance
         public async Task<bool> CheckRuleCompliance(Rule rule)
         {
             bool ruleIsCompliant = true;
-            foreach (var criterion in Policy?.Criteria ?? [])
+            foreach (var criterion in (Policy?.Criteria ?? []).Select(c => c.Content))
             {
-                switch (criterion.Content.CriterionType)
+                switch (criterion.CriterionType)
                 {
                     case nameof(CriterionType.Matrix):
                         ruleIsCompliant &= await CheckAgainstMatrix(rule);
                         break;
-                    case nameof(CriterionType.NoAnyService):
-                        ruleIsCompliant &= CheckForAnyService(rule);
+                    case nameof(CriterionType.ForbiddenService):
+                        ruleIsCompliant &= CheckForForbiddenService(rule, criterion);
+                        break;
+                    default:
                         break;
                 }
             }
@@ -167,8 +158,8 @@ namespace FWO.Compliance
 
         private async Task<bool> CheckAgainstMatrix(Rule rule)
         {
-            Task<List<IPAddressRange>> fromsTask = GetIpRangesFromNetworkObjects(rule.Froms.Select(nl => nl.Object).ToList());
-            Task<List<IPAddressRange>> tosTask = GetIpRangesFromNetworkObjects(rule.Tos.Select(nl => nl.Object).ToList());
+            Task<List<IPAddressRange>> fromsTask = GetIpRangesFromNetworkObjects([.. rule.Froms.Select(nl => nl.Object)]);
+            Task<List<IPAddressRange>> tosTask = GetIpRangesFromNetworkObjects([.. rule.Tos.Select(nl => nl.Object)]);
 
             await Task.WhenAll(fromsTask, tosTask);
 
@@ -184,9 +175,9 @@ namespace FWO.Compliance
             return ruleIsCompliant;
         }
 
-        private bool CheckForAnyService(Rule rule)
+        private bool CheckForForbiddenService(Rule rule, ComplianceCriterion criterion)
         {
-            List<ComplianceViolation> serviceViolations = TryGetRestrictedServiceViolation(rule);
+            List<ComplianceViolation> serviceViolations = TryGetRestrictedServiceViolation(rule, criterion);
 
             if (serviceViolations.Count > 0)
             {
@@ -252,13 +243,15 @@ namespace FWO.Compliance
             }
         }
 
-        public List<ComplianceViolation> TryGetRestrictedServiceViolation(Rule rule)
+        public static List<ComplianceViolation> TryGetRestrictedServiceViolation(Rule rule, ComplianceCriterion criterion)
         {
             List<ComplianceViolation> violations = [];
+            List<string> restrictedServices = [.. criterion.Content.Split(',').Select(s => s.Trim())
+                    .Where(s => !string.IsNullOrEmpty(s))];
 
-            if (_restrictedServices.Count > 0)
+            if (restrictedServices.Count > 0)
             {
-                foreach (var service in rule.Services.Where(s =>_restrictedServices.Contains(s.Content.Uid)))
+                foreach (var service in rule.Services.Where(s => restrictedServices.Contains(s.Content.Uid)))
                 {
                     ComplianceViolation violation = new()
                     {

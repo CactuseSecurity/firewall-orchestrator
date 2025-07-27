@@ -71,12 +71,6 @@
                 <input type="checkbox" @bind="configData!.ComplianceCheckPersistData"/>
             </div>
         </div>
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5808"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("complianceCheckRestrictedServices")):</label>
-            <div class="col-sm-7" data-toggle="tooltip" title="@(userConfig.GetText("U5320"))">
-                <input type="text" @bind="configData!.ComplianceCheckRestrictedServices"/>
-            </div>
-        </div>
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5809"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("complianceMatrixAllowNetworkZones"))</label>
             <div class="col-sm-7">
@@ -100,7 +94,7 @@ else
         <span class="visually-hidden">@(userConfig.GetText("loading"))</span>
     </div>
 }
-<EditFixCriteria @bind-Display="EditFixCritMode" />
+<ComplianceFixCriteria @bind-Display="EditFixCritMode" />
 
 
 @code

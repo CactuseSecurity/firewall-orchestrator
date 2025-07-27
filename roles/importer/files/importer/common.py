@@ -199,7 +199,8 @@ def get_config_top_level(importState: ImportStateController, in_file: str = None
             in_file = importState.MgmDetails.Hostname
         _, config_from_file = import_from_file(importState, in_file, gateways)
         if not config_from_file.is_native():
-            return config_from_file
+            config_has_changes=True
+            return config_has_changes, config_from_file
         # else we feed the native config back into the importer process for normalization
     ### getting config from firewall manager API ######
     return get_config_from_api(importState, config_from_file)    
@@ -214,7 +215,7 @@ def import_from_file(importState: ImportStateController, fileName: str = "", gat
     
     set_filename(importState, file_name=fileName)
 
-    configFromFile = fwo_file_import.readJsonConfigFromFile(importState)
+    configFromFile = fwo_file_import.read_json_config_from_file(importState)
 
     if configFromFile.is_native():
         return config_changed_since_last_import, configFromFile

@@ -81,7 +81,7 @@ from model_controllers.import_state_controller import ImportStateController
 
 
 ################# MAIN FUNC #########################
-def readJsonConfigFromFile(importState: ImportStateController) -> FwConfigManagerList:
+def read_json_config_from_file(importState: ImportStateController) -> FwConfigManagerList:
 
     configJson = readFile(importState)
     logger = getFwoLogger(debug_level=importState.DebugLevel)
@@ -109,7 +109,7 @@ def detectLegacyFormat(importState, configJson) -> ConfFormat:
         result = ConfFormat.CHECKPOINT_LEGACY
     elif 'domains' in configJson:
         result = ConfFormat.FORTIMANAGER
-        
+
     return result
 
 

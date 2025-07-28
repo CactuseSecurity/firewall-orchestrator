@@ -192,14 +192,18 @@ def register_services():
 
 
 def get_config_top_level(importState: ImportStateController, in_file: str = None, gateways: List[Gateway] = []) -> tuple[bool, FwConfigManagerList]:
+    config_from_file = {}
     if in_file is not None or stringIsUri(importState.MgmDetails.Hostname):
         ### geting config from file ######################
         if in_file is None:
             in_file = importState.MgmDetails.Hostname
-        return import_from_file(importState, in_file, gateways)
-    else:
-        ### getting config from firewall manager API ######
-        return get_config_from_api(importState, {})    
+        _, config_from_file = import_from_file(importState, in_file, gateways)
+        if not config_from_file.is_native():
+            config_has_changes=True
+            return config_has_changes, config_from_file
+        # else we feed the native config back into the importer process for normalization
+    ### getting config from firewall manager API ######
+    return get_config_from_api(importState, config_from_file)    
 
 
 def import_from_file(importState: ImportStateController, fileName: str = "", gateways: List[Gateway] = []) -> tuple[bool, FwConfigManagerList]:
@@ -211,36 +215,13 @@ def import_from_file(importState: ImportStateController, fileName: str = "", gat
     
     set_filename(importState, file_name=fileName)
 
-    configFromFile = fwo_file_import.readJsonConfigFromFile(importState)
+    configFromFile = fwo_file_import.read_json_config_from_file(importState)
+
+    if configFromFile.is_native():
+        return config_changed_since_last_import, configFromFile
 
     if not configFromFile.IsLegacy():
         return config_changed_since_last_import, configFromFile
-
-    if isinstance(configFromFile, FwConfig):
-        if configFromFile.ConfigFormat == 'NORMALIZED_LEGACY':
-            normalized_config_list = FwConfigManagerList(ConfigFormat=configFromFile.ConfigFormat)
-            normalized_config_list.addManager(manager=FwConfigManager(calcManagerUidHash(importState.MgmDetails), importState.MgmDetails.Name))
-            normalized_config_list.ManagerSet[0].Configs.append(FwConfigNormalized(ConfigAction.INSERT, 
-                                                                            configFromFile.Config['network_objects'],
-                                                                            configFromFile.Config['service_objects'],
-                                                                            configFromFile.Config['user_objects'],
-                                                                            configFromFile.Config['zone_objects'],
-                                                                            configFromFile.Config['rules'],
-                                                                            gateways
-                                                                            ))
-        elif configFromFile.ConfigFormat == 'NORMALIZED':
-            normalized_config_list = FwConfigManagerList.fromJson(configFromFile)  # ideally just import from json
-
-    else: ### just parsing the native config, note: we need to run get_config_from_api here to do this
-        if not isinstance(configFromFile, FwConfigManagerList):
-            return get_config_from_api(importState, configFromFile)
-
-        for mgr in configFromFile.ManagerSet:
-            for conf in mgr.Configs:
-                # need to decide how to deal with the multiple results of this loop here!
-                config_changed_since_last_import, normalized_config_list = get_config_from_api(importState, conf)
-
-    return config_changed_since_last_import, normalized_config_list  
 
 
 def get_config_from_api(importState: ImportStateController, configNative) -> tuple[bool, FwConfigManagerList]:
@@ -254,7 +235,7 @@ def get_config_from_api(importState: ImportStateController, configNative) -> tup
     except Exception:
         logger.exception("import_management - error while loading product specific fwcommon module", traceback.format_exc())        
         raise
-    
+
     # check for changes from product-specific FW API, if we are importing from file we assume config changes
     config_changed_since_last_import = importState.ImportFileName != None or \
         fw_module.has_config_changed(configNative, importState, force=importState.ForceImport)
@@ -269,7 +250,9 @@ def get_config_from_api(importState: ImportStateController, configNative) -> tup
     else:
         normalized_config_list = FwConfigManagerListController.generate_empty_config(importState.MgmDetails.IsSuperManager)
 
-    write_native_config_to_file(importState, configNative)
+    # if we already have a native config (read from file) we do not bother to dump it again
+    if len(configNative.keys()) > 0:
+        write_native_config_to_file(importState, configNative)
 
     logger.debug("import_management: get_config completed (including normalization), duration: " + str(int(time.time()) - importState.StartTime) + "s") 
 
@@ -278,14 +261,14 @@ def get_config_from_api(importState: ImportStateController, configNative) -> tup
 
 # transform device name and type to correct package name
 def get_module_package_name(import_state: ImportStateController):
-    if import_state.MgmDetails.DeviceTypeName.lower() == 'checkpoint':
+    if import_state.MgmDetails.DeviceTypeName.lower().replace(' ', '') == 'checkpoint':
         pkg_name = import_state.MgmDetails.DeviceTypeName.lower().replace(' ', '') +\
             import_state.MgmDetails.DeviceTypeVersion.replace(' ', '').replace('MDS', '')
     elif import_state.MgmDetails.DeviceTypeName.lower() == 'fortimanager':
         pkg_name = import_state.MgmDetails.DeviceTypeName.lower().replace(' ', '').replace('fortimanager', 'FortiAdom').lower() +\
             import_state.MgmDetails.DeviceTypeVersion.replace(' ', '').lower()
     else:
-        pkg_name = f"{import_state.MgmDetails.DeviceTypeName.lower}{import_state.MgmDetails.DeviceTypeVersion}"
+        pkg_name = f"{import_state.MgmDetails.DeviceTypeName.lower().replace(' ', '')}{import_state.MgmDetails.DeviceTypeVersion}"
 
     return pkg_name
 

@@ -150,6 +150,11 @@ class FwConfigManagerListController(FwConfigManagerList):
                                     ConfFormat.CISCOFIREPOWER_LEGACY, ConfFormat.FORTINET_LEGACY, 
                                     ConfFormat.PALOALTO_LEGACY]
 
+
+    def is_native(self):
+        return self.ConfigFormat in [ConfFormat.FORTINET, ConfFormat.CHECKPOINT, ConfFormat.FORTIMANAGER]
+
+
     def convertLegacyConfig(self, legacyConfig: dict, mgmDetails: ManagementDetails):
         if 'networkobjects' in legacyConfig:
             mgr = FwConfigManager(ManagerUid=calcManagerUidHash(mgmDetails.MgmDetails),

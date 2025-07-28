@@ -53,7 +53,9 @@ def get_config(nativeConfig: json, importState: ImportStateController):
     else:
         parsing_config_only = True
 
-    if not parsing_config_only:   # no native config was passed in, so getting it from FortiManager
+    if parsing_config_only:
+        sid = None  
+    else: # no native config was passed in, so getting it from FortiManager
         sid = get_sid(importState)
         limit = importState.FwoConfig.ApiFetchSize
         fm_api_url = importState.MgmDetails.buildFwApiString()
@@ -102,10 +104,10 @@ def get_config(nativeConfig: json, importState: ImportStateController):
         except Exception:
             raise FwLogoutFailed("logout exception probably due to timeout - irrelevant, so ignoring it")
 
-    write_native_config_to_file(importState, nativeConfig)
+        write_native_config_to_file(importState, nativeConfig)
 
     # delete_v: brauchen wir hier wirklich sid, dann muss die auch für parsing_config_only TRUE erzeugt werden
-    normalizedConfig = normalize_config(importState, nativeConfig, parsing_config_only, sid)
+    normalizedConfig = normalize_config(importState, nativeConfig.native_config, parsing_config_only, sid)
     logger.info("completed getting config")
     return 0, normalizedConfig
         
@@ -148,26 +150,26 @@ def get_arbitrary_vdom(adom_device_vdom_structure):
 
 def normalize_config(import_state, native_config: json, parsing_config_only: bool, sid: str) -> FwConfigManagerListController:
 
-    raise NotImplementedError("normalize_config not implemented for FortiManager 5.x")
+    # raise NotImplementedError("normalize_config not implemented for FortiManager 5ff")
     # delete_v: einfach kopiert von cp
-    # manager_list = FwConfigManagerListController()
+    manager_list = FwConfigManagerListController()
 
-    # if 'domains' not in native_config:
-    #     logger = getFwoLogger()
-    #     logger.error("No domains found in native config. Cannot normalize config.")
-    #     raise ImportInterruption("No domains found in native config. Cannot normalize config.")
+    if 'domains' not in native_config:
+        logger = getFwoLogger()
+        logger.error("No domains found in native config. Cannot normalize config.")
+        raise ImportInterruption("No domains found in native config. Cannot normalize config.")
     
-    # for native_conf in native_config['domains']:
-    #     normalizedConfigDict = fwo_const.emptyNormalizedFwConfigJsonDict
-    #     normalized_config = normalize_single_manager_config(native_conf, normalizedConfigDict, import_state, parsing_config_only, sid)
-    #     manager = FwConfigManager(ManagerUid=calcManagerUidHash(import_state.MgmDetails),
-    #                                 ManagerName=import_state.MgmDetails.Name,
-    #                                 IsGlobal=import_state.MgmDetails.IsSuperManager, 
-    #                                 DependantManagerUids=[], 
-    #                                 Configs=[normalized_config])
-    #     manager_list.addManager(manager)
+    for native_conf in native_config['domains']:
+        normalizedConfigDict = fwo_const.emptyNormalizedFwConfigJsonDict
+        normalized_config = normalize_single_manager_config(native_conf, normalizedConfigDict, import_state, parsing_config_only, sid)
+        manager = FwConfigManager(ManagerUid=calcManagerUidHash(import_state.MgmDetails),
+                                    ManagerName=import_state.MgmDetails.Name,
+                                    IsGlobal=import_state.MgmDetails.IsSuperManager, 
+                                    DependantManagerUids=[], 
+                                    Configs=[normalized_config])
+        manager_list.addManager(manager)
 
-    # return manager_list
+    return manager_list
 
 
 def build_adom_list(importState : ImportStateController):

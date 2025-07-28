@@ -1018,6 +1018,12 @@ INSERT INTO config (config_key, config_value, config_user)
 VALUES ('complianceCheckRestrictedServices', '', 0)
 ON CONFLICT (config_key, config_user) DO NOTHING;
 
+-- add config parameter debugConfig if not exists
+
+INSERT INTO config (config_key, config_value, config_user) 
+VALUES ('debugConfig', '{"debugLevel":8, "extendedLogComplianceCheck":true, "extendedLogReportGeneration":true, "extendedLogScheduler":true}', 0)
+ON CONFLICT (config_key, config_user) DO NOTHING;
+
 -- adding labels (simple version without mapping tables and without foreign keys)
 
 -- CREATE TABLE label (

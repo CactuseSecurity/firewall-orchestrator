@@ -69,8 +69,7 @@ class FwoApi():
                 else:
                     return_object = self._post_query(session, full_query)
 
-                if int(fwo_globals.debug_level) > 8:
-                    logger.debug (self.showImportApiCallInfo(self.FwoApiUrl, full_query, request_headers, typ='debug'))
+                self._try_show_api_call_info(full_query, request_headers, debug_level)
 
                 return return_object
 
@@ -83,10 +82,8 @@ class FwoApi():
         except Exception as e:
             # Catch all other exceptions and log them.
             logger.error(f"Unexpected error during API call: {str(e)}")
-
-            if int(fwo_globals.debug_level) > 8:
-                logger.debug(pformat(return_object))
-                logger.debug(pformat(self.query_info))
+            logger.debug(pformat(return_object))
+            logger.debug(pformat(self.query_info))
 
             raise FwoImporterError(f"Unexpected error during API call: {str(e)}")
 
@@ -208,26 +205,21 @@ class FwoApi():
 
         return return_object
 
+
     def _handle_chunked_calls_response_with_return_data(self, return_object, new_return_object_type, new_return_object):
 
         total_affected_rows = 0
         returning_data = []
         logger = getFwoLogger(debug_level=int(fwo_globals.debug_level))
 
-        if int(fwo_globals.debug_level) > 8:
-            logger.debug(f"Handling chunked calls response for type '{new_return_object_type}' with data: {pformat(new_return_object)}")
+        self._try_write_extended_log(debug_level=9, message=f"Handling chunked calls response for type '{new_return_object_type}' with data: {pformat(new_return_object)}")
             
         if not isinstance(return_object["data"].get(new_return_object_type), dict):
-
-            if int(fwo_globals.debug_level) > 8:
-                logger.debug(f"Initializing return_object['data']['{new_return_object_type}'] as an empty dict.")
-
             return_object["data"][new_return_object_type] = {}
             return_object["data"][new_return_object_type]["affected_rows"] = 0
             return_object["data"][new_return_object_type]["returning"] = []
 
-            if int(fwo_globals.debug_level) > 8:
-                logger.debug(f"Initialized return_object['data']['{new_return_object_type}'] as an empty dict: {pformat(return_object['data'][new_return_object_type])}")
+            self._try_write_extended_log(debug_level=9, message=f"Initialized return_object['data']['{new_return_object_type}'] as an empty dict: {pformat(return_object['data'][new_return_object_type])}")
 
         # If the return object is a list we need to sum the affected rows and accumuluate the returning data, else we can set the values directly.
 
@@ -242,10 +234,10 @@ class FwoApi():
 
         if "returning" in return_object["data"][new_return_object_type].keys() and len(returning_data) > 0:
 
-            if int(fwo_globals.debug_level) > 8:
-                logger.debug(f"Extending return_object['data']['{new_return_object_type}']['returning'] with new data: {pformat(returning_data)}")
+            self._try_write_extended_log(debug_level=9, message=f"Extending return_object['data']['{new_return_object_type}']['returning'] with new data: {pformat(returning_data)}")
 
             return_object["data"][new_return_object_type]["returning"].extend(returning_data)
+
 
     def _post_query(self, session, query_payload):
         """
@@ -265,6 +257,24 @@ class FwoApi():
         r.raise_for_status()
 
         return r.json() if r is not None else None
+    
+
+    def _try_show_api_call_info(self, full_query, request_headers, debug_level):
+        """
+            Tries to show the API call info if the debug level is high enough.
+        """
+        if int(fwo_globals.debug_level) > int(debug_level):
+            logger = getFwoLogger(debug_level=debug_level)
+            logger.debug(self.showImportApiCallInfo(self.FwoApiUrl, full_query, request_headers, typ='debug', show_query_info=True))
+
+
+    def _try_write_extended_log(self, debug_level, message):
+            """
+                Writes an extended log message if the debug level is high enough.
+            """
+            if int(fwo_globals.debug_level) > int(debug_level):
+                logger = getFwoLogger(debug_level=debug_level)
+                logger.debug(message)
 
 
     def showImportApiCallInfo(self, api_url, query, headers, typ='debug', show_query_info=False):

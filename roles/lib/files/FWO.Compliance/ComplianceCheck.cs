@@ -13,6 +13,7 @@ using FWO.Data.Report;
 using FWO.Report.Filter.FilterTypes;
 using FWO.Data.Middleware;
 using System.Text.Json;
+using FWO.Logging;
 
 namespace FWO.Compliance
 {
@@ -58,6 +59,11 @@ namespace FWO.Compliance
         /// <returns></returns>
         public async Task CheckAll()
         {
+            if (_debugConfig.ExtendedLogComplianceCheck)
+            {
+                Log.WriteInfo("Compliance Check", "Starting compliance check");
+            }
+            
             NetworkZones = await _apiConnection.SendQueryAsync<ComplianceNetworkZone[]>(ComplianceQueries.getNetworkZones);
             await SetUpReportFilters();
             ReportTemplate template = new ReportTemplate("", reportFilters.ToReportParams());
@@ -69,12 +75,17 @@ namespace FWO.Compliance
 
             if (_userConfig.GlobalConfig is GlobalConfig globalConfig)
             {
+                if (_debugConfig.ExtendedLogComplianceCheck)
+                {
+                    Log.WriteInfo("Compliance Check", "Using restricted services: " + globalConfig.ComplianceCheckRestrictedServices);
+                }
+
                 _restrictedServices = globalConfig.ComplianceCheckRestrictedServices
                     .Split(',')
                     .Select(s => s.Trim())
                     .Where(s => !string.IsNullOrEmpty(s))
                     .ToList();
-
+            
                 if (_apiConnection != null && currentReport is ReportCompliance complianceReport)
                 {
                     foreach (var management in complianceReport.ReportData.ManagementData)

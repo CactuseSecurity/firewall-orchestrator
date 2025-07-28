@@ -7,7 +7,7 @@ from enum import Enum
 import json, requests, requests.packages
 from fwo_log import getFwoLogger
 import fwo_globals
-from fwo_exceptions import ConfigFileNotFound
+from fwo_exceptions import ConfigFileNotFound, FwoImporterError
 from fwo_api import complete_import
 from models.fwconfigmanagerlist import FwConfigManagerList
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
@@ -81,49 +81,23 @@ from model_controllers.import_state_controller import ImportStateController
 
 
 ################# MAIN FUNC #########################
-def readJsonConfigFromFile(importState: ImportStateController) -> FwConfigController:
+def read_json_config_from_file(importState: ImportStateController) -> FwConfigManagerList:
+
     configJson = readFile(importState)
-    config = None
     logger = getFwoLogger(debug_level=importState.DebugLevel)
 
-    # now try to convert to config object
+    # try to convert normalized config from file to config object
     try:
         managerList = FwConfigManagerListController(**configJson)
-
-        # managerList = serializeDictToClassRecursively(configJson, FwConfigManagerList)
         if len(managerList.ManagerSet)==0:
-            logger.warning(f'read a config file without managersets from {importState.ImportFileName}')
+            logger.warning(f'read a config file without manager sets from {importState.ImportFileName}, trying native config')
+            managerList.native_config = configJson
+            managerList.ConfigFormat = detectLegacyFormat(importState, configJson)
         return managerList
-    # except ValidationError as e:
-    #     print("Validation Error:")
-    #     # Print the error details
-    #     for error in e.errors():
-    #         print(f"Field: {error['loc']}, Error: {error['msg']}") 
-
     except Exception: # legacy stuff from here
         logger.info(f"could not serialize config {str(traceback.format_exc())}")
-        if 'ConfigFormat' in configJson:
-            if configJson['ConfigFormat']=='NORMALIZED':
-                try:
-                    config = FwConfigManagerList.FromJson(configJson)
-                    # FwConfigManagerList.ConvertFromLegacyNormalizedConfig(configJson, importState.MgmDetails)
-                except Exception: 
-                    handleErrorOnConfigFileSerialization(importState, exception=Exception)
-            elif configJson['ConfigFormat']=='NORMALIZED_LEGACY':
-                try:
-                    config = FwConfig.fromJson(config)
-                except Exception: 
-                    handleErrorOnConfigFileSerialization(importState, exception=Exception)
-        else:
-            addWrapperForLegacyConfig(configJson, detectLegacyFormat(importState, configJson))
+        raise FwoImporterError(f"could not serialize config {importState.ImportFileName} - trying legacy formats")
 
-            config = convertFromLegacyNormalizedToNormalized(importState, configJson)
-
-        # IsLegacyConfigFormat(string)
-        if config.IsLegacy():
-            config = replaceOldIdsInLegacyFormats(importState, config)
-
-    return config
 
 ########### HELPERS ##################
 
@@ -133,7 +107,8 @@ def detectLegacyFormat(importState, configJson) -> ConfFormat:
 
     if 'object_tables' in configJson:
         result = ConfFormat.CHECKPOINT_LEGACY
-    # elif ...
+    elif 'domains' in configJson:
+        result = ConfFormat.FORTIMANAGER
 
     return result
 

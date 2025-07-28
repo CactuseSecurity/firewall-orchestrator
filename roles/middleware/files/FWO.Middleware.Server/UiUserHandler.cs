@@ -6,6 +6,8 @@ using FWO.Basics;
 using FWO.Data;
 using System.Text.Json.Serialization;
 using Newtonsoft.Json;
+using FWO.Services;
+using FWO.Config.Api.Data;
 
 namespace FWO.Middleware.Server
 {
@@ -118,13 +120,10 @@ namespace FWO.Middleware.Server
 					foreach (var grp in user.Groups)
 					{
 						string grpName = new DistName(grp).Group;
-						if (grpName.Contains(GlobalConst.kModellerGroup))
+						FwoOwner? owner = FindOwnerWithMatchingGroupName(grpName, apps);
+						if (owner != null)
 						{
-							FwoOwner? owner = apps.FirstOrDefault(x => x.ExtAppId == grpName.Substring(GlobalConst.kModellerGroup.Length));	// TODO: use pattern matching
-							if (owner != null)
-							{
-								user.Ownerships.Add(owner.Id);
-							}
+							user.Ownerships.Add(owner.Id);
 						}
 					}
 				}
@@ -133,6 +132,26 @@ namespace FWO.Middleware.Server
 			{
 				Log.WriteError("Get ownerships", $"Ownerships could not be detemined for User {user.Name}.", exeption);
 			}
+		}
+
+		private static FwoOwner? FindOwnerWithMatchingGroupName(string groupName, List<FwoOwner> apps)
+		{
+			foreach (var app in apps)
+			{
+				string[] groupDnParts = app.GroupDn.Split(',', StringSplitOptions.RemoveEmptyEntries);
+				if (groupDnParts.Length == 0)
+				{
+					continue;
+				}
+				string groupCnPart = groupDnParts[0];
+				string[] cnParts = groupCnPart.Split('=', StringSplitOptions.RemoveEmptyEntries);
+				// note: this only works for flat groups! TODO: make this unversal by checking group membership 
+				if (cnParts.Length == 2 && cnParts[1] == groupName)
+				{
+					return app;
+				}
+			}
+			return null;
 		}
 
 		/// <summary>

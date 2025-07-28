@@ -97,6 +97,9 @@
         {
             await apiConnection.SendQueryAsync<ReturnId>(ComplianceQueries.disablePolicy, new{ id = SelectedPolicy.Id });
             policies.Remove(SelectedPolicy);
+            SelectedPolicy = new();
+            DeleteMode = false;
+            StateHasChanged();
         }
         catch (Exception exception)
         {

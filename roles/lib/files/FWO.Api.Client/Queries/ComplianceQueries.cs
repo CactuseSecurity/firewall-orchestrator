@@ -26,6 +26,7 @@ namespace FWO.Api.Client.Queries
         
         public static readonly string addCritToPolicy;
         public static readonly string removeCritFromPolicy;
+        public static readonly string getPolicyIdsForCrit;
 
         static ComplianceQueries()
         {
@@ -53,6 +54,7 @@ namespace FWO.Api.Client.Queries
 
                 addCritToPolicy = File.ReadAllText(QueryPath + "compliance/addCritToPolicy.graphql");
                 removeCritFromPolicy = File.ReadAllText(QueryPath + "compliance/removeCritFromPolicy.graphql");
+                getPolicyIdsForCrit = File.ReadAllText(QueryPath + "compliance/getPolicyIdsForCrit.graphql");
             }
             catch (Exception exception)
             {

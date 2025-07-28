@@ -134,8 +134,8 @@
                 ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(ComplianceQueries.addPolicy, new{ name = Policy.Name })).ReturnIds;
                 if (returnIds != null)
                 {
-                    int policyId = returnIds[0].InsertedId;
-                    await AddCriteriaToPolicy(policyId);
+                    Policy.Id = returnIds[0].InsertedId;
+                    await AddCriteriaToPolicy(Policy.Id);
                 }
                 Policies.Add(Policy);
             }

@@ -1278,7 +1278,7 @@ namespace FWO.Services
 
         public async Task<bool> Save(bool noCheck = false)
         {
-            if(ActConn.IsCommonService && ComSvcContainsCommonNetworkArea())
+            if(ActConn.IsCommonService && !ComSvcContainsCommonNetworkArea())
             {
                 DisplayMessageInUi(default, userConfig.GetText("edit_common_service") , userConfig.GetText("U9030"), true);
                 return false;

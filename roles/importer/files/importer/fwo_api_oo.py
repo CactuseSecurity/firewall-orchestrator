@@ -236,7 +236,7 @@ class FwoApi():
             total_affected_rows = sum(obj.get("affected_rows", 0) for obj in new_return_object)
         else:
             total_affected_rows = new_return_object.get("affected_rows", 0)
-            returning_data = new_return_object["returning"]
+            returning_data = new_return_object.get("returning", [])
 
         return_object["data"][new_return_object_type]["affected_rows"] += total_affected_rows
 

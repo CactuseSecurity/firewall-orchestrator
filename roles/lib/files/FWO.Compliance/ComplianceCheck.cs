@@ -11,6 +11,8 @@ using NetTools;
 using Microsoft.AspNetCore.Http;
 using FWO.Data.Report;
 using FWO.Report.Filter.FilterTypes;
+using FWO.Data.Middleware;
+using System.Text.Json;
 
 namespace FWO.Compliance
 {
@@ -23,9 +25,11 @@ namespace FWO.Compliance
         private ReportBase? currentReport;
         Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
         ReportFilters reportFilters = new();
+        private List<string> _restrictedServices = [];
+
         private readonly UserConfig _userConfig;
         private readonly ApiConnection _apiConnection;
-        private List<string> _restrictedServices = [];
+        private readonly DebugConfig _debugConfig;
 
 
         /// <summary>
@@ -37,6 +41,15 @@ namespace FWO.Compliance
         {
             _userConfig = userConfig;
             _apiConnection = apiConnection;
+
+            if (userConfig.GlobalConfig is GlobalConfig globalConfig && !string.IsNullOrEmpty(globalConfig.DebugConfig))
+            {
+                _debugConfig = JsonSerializer.Deserialize<DebugConfig>(globalConfig.DebugConfig) ?? new();
+            }
+            else
+            {
+                _debugConfig = new();
+            }
         }
 
         /// <summary>

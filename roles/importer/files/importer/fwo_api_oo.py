@@ -180,8 +180,7 @@ class FwoApi():
 
         if return_object == {}:
 
-            if fwo_globals.debug_level > 8:
-                logger.debug(f"Return object is empty, initializing with response data: {pformat(response)}")
+            self._try_write_extended_log(debug_level=9, message=f"Return object is empty, initializing with response data: {pformat(response)}")
 
             return response
         
@@ -200,8 +199,7 @@ class FwoApi():
                     if new_return_object["affected_rows"] == 0:
                         logger.warning(f"no data found: {new_return_object} not found in return_object['data'].")
 
-        if int(fwo_globals.debug_level) > 8:
-            logger.debug(f"Returning object after handling chunked calls response: {pformat(return_object)}")
+        self._try_write_extended_log(debug_level=9, message=f"Returning object after handling chunked calls response: {pformat(return_object)}")
 
         return return_object
 

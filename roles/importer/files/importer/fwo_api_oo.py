@@ -209,6 +209,9 @@ class FwoApi():
         return return_object
 
     def _handle_chunked_calls_response_with_return_data(self, return_object, new_return_object_type, new_return_object):
+
+        total_affected_rows = 0
+        returning_data = []
         logger = getFwoLogger(debug_level=int(fwo_globals.debug_level))
 
         if int(fwo_globals.debug_level) > 8:
@@ -226,13 +229,23 @@ class FwoApi():
             if int(fwo_globals.debug_level) > 8:
                 logger.debug(f"Initialized return_object['data']['{new_return_object_type}'] as an empty dict: {pformat(return_object['data'][new_return_object_type])}")
 
-        return_object["data"][new_return_object_type]["affected_rows"] += new_return_object["affected_rows"]
-        if "returning" in return_object["data"][new_return_object_type].keys():
+        # If the return object is a list we need to sum the affected rows and accumuluate the returning data, else we can set the values directly.
+
+        if isinstance(new_return_object, list):
+            returning_data = [obj.get("returning", []) for obj in new_return_object if "returning" in obj]
+            total_affected_rows = sum(obj.get("affected_rows", 0) for obj in new_return_object)
+        else:
+            total_affected_rows = new_return_object.get("affected_rows", 0)
+            returning_data = new_return_object["returning"]
+
+        return_object["data"][new_return_object_type]["affected_rows"] += total_affected_rows
+
+        if "returning" in return_object["data"][new_return_object_type].keys() and len(returning_data) > 0:
 
             if int(fwo_globals.debug_level) > 8:
-                logger.debug(f"Extending return_object['data']['{new_return_object_type}']['returning'] with new data: {pformat(new_return_object['returning'])}")
+                logger.debug(f"Extending return_object['data']['{new_return_object_type}']['returning'] with new data: {pformat(returning_data)}")
 
-            return_object["data"][new_return_object_type]["returning"].extend(new_return_object["returning"])
+            return_object["data"][new_return_object_type]["returning"].extend(returning_data)
 
     def _post_query(self, session, query_payload):
         """

@@ -103,12 +103,44 @@ namespace FWO.Data.Modelling
         {
             get
             {
-                return NamingConvention.UseAppPart && AppPartExisting() ? IdString.Substring(AppPartEnd() + 1) : IdString.Substring(NamingConvention.FixedPartLength);
+                if (NamingConvention.UseAppPart && AppPartExisting())
+                {
+                    int appPartEnd = AppPartEnd();
+                    int startIndex = appPartEnd + 1;
+                    if (startIndex >= 0 && startIndex < IdString.Length)
+                    {
+                        return IdString.Substring(startIndex);
+                    }
+                    else
+                    {
+                        return string.Empty;
+                    }
+                }
+                else
+                {
+                    int startIndex = NamingConvention.FixedPartLength;
+                    if (startIndex >= 0 && startIndex < IdString.Length)
+                    {
+                        return IdString.Substring(startIndex);
+                    }
+                    else
+                    {
+                        return string.Empty;
+                    }
+                }
             }
             set
             {
                 IdString = FillFixedIfNecessary(IdString);
-                IdString = IdString.Substring(0, AppPartExisting() ? AppPartEnd() + 1 : NamingConvention.FixedPartLength) + value;
+                int insertIndex = AppPartExisting() ? AppPartEnd() + 1 : NamingConvention.FixedPartLength;
+                if (insertIndex >= 0 && insertIndex <= IdString.Length)
+                {
+                    IdString = IdString.Substring(0, insertIndex) + value;
+                }
+                else
+                {
+                    IdString += value;
+                }
             }
         }
 

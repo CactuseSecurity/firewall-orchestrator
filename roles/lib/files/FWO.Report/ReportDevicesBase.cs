@@ -6,13 +6,27 @@ using FWO.Report.Filter;
 using FWO.Basics;
 using FWO.Config.Api;
 using System.Text;
+using FWO.Data.Middleware;
+using System.Text.Json;
+using FWO.Logging;
 
 namespace FWO.Report
 {
     public abstract class ReportDevicesBase : ReportBase
     {
-        public ReportDevicesBase(DynGraphqlQuery query, UserConfig UserConfig, ReportType reportType) : base (query, UserConfig, reportType)
-        {}
+        private readonly DebugConfig _debugConfig;
+
+        public ReportDevicesBase(DynGraphqlQuery query, UserConfig UserConfig, ReportType reportType) : base(query, UserConfig, reportType)
+        {
+            if (userConfig.GlobalConfig is GlobalConfig globalConfig && !string.IsNullOrEmpty(globalConfig.DebugConfig))
+            {
+                _debugConfig = JsonSerializer.Deserialize<DebugConfig>(globalConfig.DebugConfig) ?? new();
+            }
+            else
+            {
+                _debugConfig = new();
+            }
+        }
 
         public async Task<List<ManagementReport>> GetRelevantImportIds(ApiConnection apiConnection, string? timestamp = null)
         {
@@ -27,7 +41,7 @@ namespace FWO.Report
         public static async Task<(List<string> unsupportedList, DeviceFilter reducedDeviceFilter)> GetUsageDataUnsupportedDevices(ApiConnection apiConnection, DeviceFilter deviceFilter)
         {
             List<string> unsupportedList = [];
-            DeviceFilter reducedDeviceFilter = new (deviceFilter);
+            DeviceFilter reducedDeviceFilter = new(deviceFilter);
             foreach (ManagementSelect management in reducedDeviceFilter.Managements)
             {
                 foreach (DeviceSelect device in management.Devices)
@@ -38,14 +52,14 @@ namespace FWO.Report
                         device.Selected = false;
                     }
                 }
-                if(!DeviceFilter.IsSelectedManagement(management))
+                if (!DeviceFilter.IsSelectedManagement(management))
                 {
                     management.Selected = false;
                 }
             }
             return (unsupportedList, reducedDeviceFilter);
         }
-        
+
         private static async Task<bool> UsageDataAvailable(ApiConnection apiConnection, int devId)
         {
             try
@@ -54,8 +68,8 @@ namespace FWO.Report
                 // return (await apiConnection.SendQueryAsync<List<AggregateCountLastHit>>(ReportQueries.getUsageDataCount, new { devId })
                 //     )[0].RulebasesOnGateway[0].Rulebase.RulesWithHits.Aggregate.Count > 0;
                 return false;   // TODO: implement
-           }
-            catch(Exception)
+            }
+            catch (Exception)
             {
                 return false;
             }
@@ -63,21 +77,35 @@ namespace FWO.Report
 
         public override bool NoRuleFound()
         {
-            foreach(var mgmt in ReportData.ManagementData)
+            TryWriteExtendedLog("Checking if rules were found in device report.", _debugConfig.ExtendedLogComplianceCheck);
+
+            foreach (var mgmt in ReportData.ManagementData)
             {
-                foreach(var dev in mgmt.Devices)
+                TryWriteExtendedLog($"Checking if rules were found in management {mgmt.Id} ({mgmt.Name}).", _debugConfig.ExtendedLogComplianceCheck);
+
+                foreach (var dev in mgmt.Devices)
                 {
-                    if (dev != null && dev.RulebaseLinks != null && dev.RulebaseLinks.Length > 0) 
+                    TryWriteExtendedLog($"Checking if rules were found in device {dev.Id} ({dev.Name}).", _debugConfig.ExtendedLogComplianceCheck);
+
+                    if (dev != null && dev.RulebaseLinks != null && dev.RulebaseLinks.Length > 0)
                     {
                         int? nextRulebaseId = dev.RulebaseLinks.FirstOrDefault(_ => _.IsInitialRulebase())?.NextRulebaseId;
                         if (nextRulebaseId != null && mgmt.Rulebases.FirstOrDefault(_ => _.Id == nextRulebaseId)?.Rules.Length > 0)
                         {
+                            TryWriteExtendedLog($"Found rules in device {dev.Id} ({dev.Name}).", _debugConfig.ExtendedLogComplianceCheck);
+
                             return false;
                         }
+
+                        TryWriteExtendedLog($"No rules found in device {dev.Id} ({dev.Name}).", _debugConfig.ExtendedLogComplianceCheck);
+
                         return true;
                     }
                 }
             }
+
+            TryWriteExtendedLog("No rules found in any device.", _debugConfig.ExtendedLogComplianceCheck);
+
             return true;
         }
 
@@ -93,10 +121,10 @@ namespace FWO.Report
 
         public string DisplayReportHeaderJson()
         {
-            StringBuilder report = new ();
+            StringBuilder report = new();
             report.AppendLine($"\"report type\": \"{userConfig.GetText(ReportType.ToString())}\",");
             report.AppendLine($"\"report generation date\": \"{DateTime.Now.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssK")} (UTC)\",");
-            if(!ReportType.IsChangeReport())
+            if (!ReportType.IsChangeReport())
             {
                 report.AppendLine($"\"date of configuration shown\": \"{DateTime.Parse(Query.ReportTimeString).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssK")} (UTC)\",");
             }
@@ -109,10 +137,10 @@ namespace FWO.Report
 
         public string DisplayReportHeaderCsv()
         {
-            StringBuilder report = new ();
+            StringBuilder report = new();
             report.AppendLine($"# report type: {userConfig.GetText(ReportType.ToString())}");
             report.AppendLine($"# report generation date: {DateTime.Now.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssK")} (UTC)");
-            if(!ReportType.IsChangeReport())
+            if (!ReportType.IsChangeReport())
             {
                 report.AppendLine($"# date of configuration shown: {DateTime.Parse(Query.ReportTimeString).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssK")} (UTC)");
             }
@@ -137,6 +165,14 @@ namespace FWO.Report
             //     Query.SelectedOwner?.Name);
             string deviceFilter = string.Join("; ", Array.ConvertAll(ReportData.ManagementData.Where(mgt => !mgt.Ignore).ToArray(), m => m.NameAndDeviceNames()));
             return GenerateHtmlFrameBase(title, filter, date, htmlReport, deviceFilter, Query.SelectedOwner?.Name, timefilter);
+        }
+
+        private void TryWriteExtendedLog(string message, bool condition)
+        {
+            if (condition && _debugConfig.ExtendedLogReportGeneration)
+            {
+                Log.WriteInfo("Device Report", message);
+            }
         }
     }
 }

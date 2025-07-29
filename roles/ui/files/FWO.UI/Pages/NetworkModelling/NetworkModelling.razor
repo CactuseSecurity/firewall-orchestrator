@@ -22,10 +22,11 @@
 {
     @if (!appHandler?.EditConnMode ?? true)
     {
-        @if(appHandler != null && appHandler.overviewConnHandler != null && appSelected)
+        @if(appHandler != null && appHandler.OverviewConnHandler != null && appSelected)
         {
-            <EditConnLeftSide @bind-Width="sidebarLeftWidth" @bind-ConnHandler="appHandler.overviewConnHandler" OverviewMode="true"/>
+            <EditConnLeftSide @bind-Width="sidebarLeftWidth" @bind-ConnHandler="appHandler.OverviewConnHandler" OverviewMode="true"/>
             <RequestFwChangePopup @bind-Display="showFwChange" SelectedApp="@selectedApp" Connections="appHandler.GetConnectionsToRequest()" RefreshParent="SubscribeAndSetStatusFromTicket"/>
+            <RequestRecertPopup @bind-Display="showRecert" AppHandler="@appHandler"/>
         }
         <div style="margin-left: @($"{sidebarLeftWidth + 10}px");">
             <div class="input-group">
@@ -45,23 +46,43 @@
                         <button type="button" class="btn btn-sm btn-dark" @onclick="ShowHistory">
                             @(userConfig.GetText("show_history"))
                         </button>
-                        <AuthorizeView Roles="@($"{Roles.Requester}, {Roles.Implementer}, {Roles.Admin}, {Roles.Auditor}")">
-                            <Authorized>
-                                <button type="button" class="ms-5 btn btn-sm btn-primary" disabled=@(!userConfig.ModRolloutActive) @onclick="RequestFwChange">
-                                    @(userConfig.GetText("request_fw_change"))
-                                </button>
-                            </Authorized>
-                            <NotAuthorized>
-                                <div data-toggle="tooltip" title="@(userConfig.PureLine("C9012"))">
-                                    <button type="button" class="ms-5 btn btn-sm btn-primary" disabled>
+                        @if(userConfig.ModRolloutActive)
+                        {
+                            <AuthorizeView Roles="@($"{Roles.Requester}, {Roles.Implementer}, {Roles.Admin}, {Roles.Auditor}")">
+                                <Authorized>
+                                    <button type="button" class="ms-5 btn btn-sm btn-primary" @onclick="RequestFwChange">
                                         @(userConfig.GetText("request_fw_change"))
                                     </button>
-                                </div>
-                            </NotAuthorized>
-                        </AuthorizeView>
-                        <div class="ms-2">
-                            <label>@((MarkupString)ChangeStatus)</label>
-                        </div>
+                                </Authorized>
+                                <NotAuthorized>
+                                    <div data-toggle="tooltip" title="@(userConfig.PureLine("C9012"))">
+                                        <button type="button" class="ms-5 btn btn-sm btn-primary" disabled>
+                                            @(userConfig.GetText("request_fw_change"))
+                                        </button>
+                                    </div>
+                                </NotAuthorized>
+                            </AuthorizeView>
+                            <div class="ms-2">
+                                <label>@((MarkupString)ChangeStatus)</label>
+                            </div>
+                        }
+                        @if(userConfig.ModRecertActive)
+                        {
+                            <AuthorizeView Roles="@($"{Roles.Requester}, {Roles.Implementer}, {Roles.Admin}, {Roles.Auditor}")">
+                                <Authorized>
+                                    <button type="button" class="ms-5 btn btn-sm btn-primary" @onclick="Recertify">
+                                        @(userConfig.GetText("recertify"))
+                                    </button>
+                                </Authorized>
+                                <NotAuthorized>
+                                    <div data-toggle="tooltip" title="@(userConfig.PureLine("C9012"))">
+                                        <button type="button" class="ms-5 btn btn-sm btn-primary" disabled>
+                                            @(userConfig.GetText("recertify"))
+                                        </button>
+                                    </div>
+                                </NotAuthorized>
+                            </AuthorizeView>
+                        }
                     </div>
                 </div>
             </div>
@@ -96,7 +117,7 @@
                     </h5>
                 </div>
                 <div class="mx-2 mt-2">
-                    <TabSet WholeWidth="false" DarkMode="false" KeepPanelsAlive="false" @ref="appHandler!.tabset">
+                    <TabSet WholeWidth="false" DarkMode="false" KeepPanelsAlive="false" @ref="appHandler!.Tabset">
                         <Tab Title="@(userConfig.GetText("connections"))" Position=0>
                             <button type="button" class="btn btn-sm btn-success mb-2" @onclick="appHandler!.AddConnection">
                                 @(appHandler!.DisplayButton("add_connection", Icons.Add))
@@ -141,7 +162,7 @@
     }
     else if(appHandler != null)
     {
-        <EditConn @bind-Display="appHandler.EditConnMode" ConnHandler="appHandler.connHandler" ClosingAction="PrepareRestore" />
+        <EditConn @bind-Display="appHandler.EditConnMode" ConnHandler="appHandler.ConnHandler" ClosingAction="PrepareRestore" />
     }
 }
 else
@@ -181,6 +202,7 @@ else
     private bool showHistory = false;
     private bool shareLink = false;
     private bool showFwChange = false;
+    private bool showRecert = false;
     private int sidebarLeftWidth = GlobalConst.kGlobLibraryWidth;
     private bool firstInit = true;
     private string ChangeStatus = "";
@@ -190,6 +212,7 @@ else
     private bool firstErrorMessage = true;
     private bool workInProgress = false;
     private bool InitDone = false;
+    
 
     protected override async Task OnInitializedAsync()
     {
@@ -220,9 +243,9 @@ else
 
     private bool PrepareRestore()
     {
-        lastConn = appHandler?.connHandler?.ActConn;
+        lastConn = appHandler?.ConnHandler?.ActConn;
         restoreTab = true;
-        sidebarLeftWidth = appHandler?.overviewConnHandler?.LastWidth ?? GlobalConst.kGlobLibraryWidth;
+        sidebarLeftWidth = appHandler?.OverviewConnHandler?.LastWidth ?? GlobalConst.kGlobLibraryWidth;
         return true;
     }
 
@@ -350,6 +373,11 @@ else
     private void RequestFwChange()
     {
         showFwChange = true;
+    }
+
+    private void Recertify()
+    {
+        showRecert = true;
     }
 
     private async Task RefreshState()

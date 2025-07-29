@@ -1,0 +1,16 @@
+mutation setOwnerLastRecert(
+  $id: Int!
+  $lastRecert: timestamp
+  $lastRecertifierId: int
+  $lastRecertifierDn: string
+  ) {
+  update_owner_by_pk(
+    pk_columns: { id: $id }
+    _set: {
+      last_certified: $lastRecert
+      last_certifier: $lastRecertifierId
+      last_certifier_dn: $lastRecertifierDn
+  }) {
+    updatedId: id
+  }
+}

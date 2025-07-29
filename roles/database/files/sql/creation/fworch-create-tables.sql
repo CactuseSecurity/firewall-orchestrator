@@ -1047,7 +1047,10 @@ create table owner
 	criticality Varchar,
 	active boolean default true,
 	import_source Varchar,
-	common_service_possible boolean default false
+	common_service_possible boolean default false,
+	last_certified Timestamp,
+	last_certifier int,
+	last_certifier_dn Varchar
 );
 
 create table owner_network
@@ -1084,6 +1087,17 @@ create table recertification
 	rule_id bigint NOT NULL,
 	ip_match varchar,
     owner_id int,
+	user_dn varchar,
+	recertified boolean default false,
+	recert_date Timestamp,
+	comment varchar,
+	next_recert_date Timestamp
+);
+
+create table owner_recertification
+(
+	id BIGSERIAL PRIMARY KEY,
+    owner_id int NOT NULL,
 	user_dn varchar,
 	recertified boolean default false,
 	recert_date Timestamp,

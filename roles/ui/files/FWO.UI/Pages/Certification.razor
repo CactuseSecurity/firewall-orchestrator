@@ -1,13 +1,14 @@
+@using FWO.Data.Report
+@using FWO.Middleware.Client
+@using FWO.Recert
+@using FWO.Report
+@using FWO.Report.Filter
+@using FWO.Services
+@using FWO.Ui.Data
+@using FWO.Ui.Pages.Reporting.Reports
 @using System
 @using System.Threading
 @using System.Text.RegularExpressions
-@using FWO.Ui.Data
-@using FWO.Report
-@using FWO.Report.Filter
-@using FWO.Ui.Pages.Reporting.Reports
-@using FWO.Data.Report
-@using FWO.Middleware.Client
-@using FWO.Services
 
 @page "/certification"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Recertifier}, {Roles.Auditor}")]
@@ -147,7 +148,6 @@
     private List<FwoOwner> userOwnerships = [];
     private List<FwoOwner> groupOwnerships = [];
     private List<FwoOwner> collectedOwnerships = [];
-    private Dictionary<int, int> recertInterval = [];
     private DeviceFilter deviceFilter = new ();
     private List<Rule> selectedRules = [];
     private bool collapseDevices = false;
@@ -209,14 +209,12 @@
         foreach(var owner in userOwnerships)
         {
             collectedOwnerships.Add(owner);
-            recertInterval.Add(owner.Id, owner.RecertInterval ?? userConfig.RecertificationPeriod);
         }
         foreach(var owner in groupOwnerships)
         {
             if(collectedOwnerships.FirstOrDefault(x => x.Id == owner.Id) == null)
             {
                 collectedOwnerships.Add(owner);
-                recertInterval.Add(owner.Id, owner.RecertInterval ?? userConfig.RecertificationPeriod);
             }
         }
         if(collectedOwnerships.Count > 0)
@@ -231,12 +229,8 @@
         readonlyMode = !authenticationStateTask!.Result.User.IsInRole(Roles.Recertifier) || selectedOwner == null;
         selectedRules.Clear();
 
-        List<ManagementReport> managementsOrig = managementsReport;
         try
         {
-            tokenSource = new CancellationTokenSource();
-            var token = tokenSource.Token;
-
             if (!deviceFilter.IsAnyDeviceFilterSet())  // display pop-up with warning
             {
                 DisplayMessageInUi(null, userConfig.GetText("no_device_selected"), userConfig.GetText("E1001"), true);
@@ -244,24 +238,10 @@
                 return;
             }
 
-            prepareReport();
-            managementsReport = new (); // reset management data when switching between reports
-
-            try
+            currentReport = await ReportGenerator.Generate(new ReportTemplate("", prepareReportParams()), apiConnection, userConfig, DisplayMessageInUi);
+            if(currentReport != null)
             {
-                if(currentReport != null)
-                {
-                    await currentReport.Generate(userConfig.ElementsPerFetch, apiConnection,
-                    managementsReportIntermediate =>
-                    {
-                        managementsReport = managementsReportIntermediate.ManagementData;
-                        return InvokeAsync(StateHasChanged);
-                    }, token);
-                }
-            }
-            catch (OperationCanceledException e)
-            {
-                Log.WriteDebug("Generate Report", $"Cancelled: {e.Message}");
+                managementsReport = currentReport?.ReportData.ManagementData ?? new();
             }
 
             postProcessReport();
@@ -276,8 +256,6 @@
         catch (Exception exception)
         {
             processing = false;
-            managementsReport = managementsOrig;
-            StateHasChanged();
             DisplayMessageInUi(exception, userConfig.GetText("generate_report"), "", true);
         }
     }
@@ -288,7 +266,7 @@
         DisplayMessageInUi(null, userConfig.GetText("report_data_fetch"), userConfig.GetText("E1003"), true);
     }
 
-    private void prepareReport()
+    private ReportParams prepareReportParams()
     {
         List<int> ownerList = [];
         if (selectedOwner != null)
@@ -296,14 +274,15 @@
             ownerList.Add(selectedOwner.Id);
         }
 
-        ReportParams reportParams = new ((int) ReportType.Recertification, deviceFilter);
-        reportParams.RecertFilter = new()
+        return new ((int) ReportType.Recertification, deviceFilter)
         {
-            RecertOwnerList = ownerList,
-            RecertShowAnyMatch = true,
-            RecertificationDisplayPeriod = recertLookAheadDays
+            RecertFilter = new()
+            {
+                RecertOwnerList = ownerList,
+                RecertShowAnyMatch = true,
+                RecertificationDisplayPeriod = recertLookAheadDays
+            }
         };
-        currentReport = ReportBase.ConstructReport(new ReportTemplate("", reportParams), userConfig);
     }
 
     private void postProcessReport()
@@ -380,18 +359,12 @@
 
         foreach (var management in managementsReport)
         {
-            foreach (var device in management.Devices)
+            foreach (var device in management.Devices.Where(d => d.Rules != null))
             {
-                if(device.Rules != null)
+                foreach (var rule in device.Rules!.Where(r => r.Metadata.Recert || r.Metadata.ToBeRemoved))
                 {
-                    foreach (var rule in device.Rules)
-                    {
-                        if(rule.Metadata.Recert || rule.Metadata.ToBeRemoved)
-                        {
-                            rule.DeviceId = device.Id;
-                            Certifications.Add(rule);
-                        }
-                    }
+                    rule.DeviceId = device.Id;
+                    Certifications.Add(rule);
                 }
             }
         }
@@ -401,13 +374,14 @@
     {
         int recerts = 0;
         int decerts = 0;
-        deleteList = new Dictionary<int, List<string>>();
+        deleteList = [];
 
         if (Certifications.Count > 0)
         {
+			RecertHandler recertHandler = new(apiConnection, userConfig, DisplayMessageInUi);
             foreach(var certRule in Certifications)
             {
-                if(await Recertify(certRule))
+                if(await recertHandler.RecertifySingleRule(certRule, selectedOwner, actComment))
                 {
                     if(certRule.Metadata.Recert)
                     {
@@ -441,44 +415,5 @@
             ruleId = rule.Id,
         };
         return ((await apiConnection.SendQueryAsync<List<Recertification>>(RecertQueries.getOpenRecertsForRule, variables)).Count == 0);
-    }
-
-    private async Task<bool> Recertify(Rule rule)
-    {
-        var variables = new
-        {
-            ruleId = rule.Id,
-            ownerId = (selectedOwner ?? throw new Exception("Recertification without owner not allowed.")).Id,
-            userDn = userConfig.User.Dn,
-            recertified = rule.Metadata.Recert,
-            recertDate = DateTime.Now,
-            comment = actComment
-        };
-        bool recertOk = (await apiConnection.SendQueryAsync<ReturnId>(RecertQueries.recertify, variables)).AffectedRows > 0;
-        if(recertOk && rule.Metadata.Recert)
-        {
-            await InitRecert(rule);
-        }
-        return recertOk;
-    }
-
-    private async Task InitRecert(Rule rule)
-    {
-        if (recertInterval != null && selectedOwner != null && recertInterval.ContainsKey(selectedOwner.Id))
-        {
-            var prepvariables = new
-            {
-                ruleMetadataId = rule.Metadata.Id,
-                ruleId = rule.Id,
-                ipMatch = rule.IpMatch != "" ? rule.IpMatch : null,
-                ownerId = (selectedOwner ?? throw new Exception("Recertification without owner not allowed.")).Id,
-                nextRecertDate = DateTime.Now.AddDays(recertInterval[selectedOwner.Id])
-            };
-            await apiConnection.SendQueryAsync<object>(RecertQueries.prepareNextRecertification, prepvariables);
-        }
-        else
-        {
-            DisplayMessageInUi(null, userConfig.GetText("execute_selected"), userConfig.GetText("missing_owner_id"), true);
-        }
     }
 }

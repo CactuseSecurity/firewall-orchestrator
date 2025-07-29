@@ -1,0 +1,246 @@
+@using FWO.Data.Middleware
+@using FWO.Data.Workflow
+@using FWO.ExternalSystems.Tufin.SecureChange
+@using FWO.Middleware.Client
+@using FWO.Recert
+@using FWO.Report
+@using FWO.Ui.Pages.Reporting
+@using Newtonsoft.Json
+@using RestSharp
+@using System.Net
+@using System.Text.Json.Serialization
+
+
+@inject ApiConnection apiConnection
+@inject UserConfig userConfig
+@inject MiddlewareClient middlewareClient
+
+@if (Display && AppHandler != null)
+{
+    <PopUp Title="@(GetTitle())" Show="@Display" Size=PopupSize.XLarge OnClose="Close">
+        <Body>
+            @if(RecertPossible)
+            {
+                // Display all rules to recertify (name, last recert, ...)
+                <br>
+                @((MarkupString)userConfig.ModRecertText.Replace(Placeholder.APPNAME, AppHandler.DisplayApp(AppHandler.Application)))
+            }
+            else if(ModellingError)
+            {
+                @if(ModelledConnections.Count == 0)
+                {
+                    <br>
+                    <b>@(userConfig.GetText("U9027"))</b>
+                }
+                else
+                {
+                    // Display modelling errors
+                    <br>
+                    @(userConfig.GetText("U9028"))
+                    <br><br>
+                    <ConnectionTable Connections="ModellingErrors" @bind-AppHandler="AppHandler" Readonly="true"/>
+                }
+            }
+            else if(ImplementationError)
+            {
+                // Display implementation errors
+                <br>
+                @(userConfig.GetText("U9029"))
+                <br>
+                @if(MissingAppRoles.Count > 0)
+                {
+                    <br>
+                    <h5>@(userConfig.GetText("app_roles_not_implemented"))</h5>
+                    <AppRoleTable AppRoles="MissingAppRoles" DiffMode="false" Split="false"/>
+                }
+                @if(DifferingAppRoles.Count > 0)
+                {
+                    <br>
+                    <h5>@(userConfig.GetText("app_roles_with_diffs"))</h5>
+                    <AppRoleTable AppRoles="DifferingAppRoles" DiffMode="false" Split="false"/>
+                }
+                @if(VarianceResult.ConnsNotImplemented.Count > 0)
+                {
+                    <br>
+                    <h5>@(userConfig.GetText("connections_not_implemented"))</h5>
+                    <ConnectionTable Connections="VarianceResult.ConnsNotImplemented" @bind-AppHandler="AppHandler" Readonly="true"/>
+                }
+                @if(VarianceResult.RuleDifferences.Count > 0)
+                {
+                    <br>
+                    <h5>@(userConfig.GetText("connections_with_diffs"))</h5>
+                    <ConnectionTable Connections="VarianceResult.RuleDifferences.Select(d => d.ModelledConnection).ToList()" @bind-AppHandler="AppHandler" Readonly="true"/>
+                }
+                @if(UnmodelledRules.Count > 0)
+                {
+                    <br>
+                    <h5>@(userConfig.GetText("rules_not_modelled"))</h5>
+                    <ReportedRules ReadonlyMode="true" Rules="UnmodelledRules.ToArray()" SelectedReportType="ReportType.VarianceAnalysis"/>
+                }
+            }
+        </Body>
+        <Footer>
+            @if (!WorkInProgress && RecertPossible)
+            {
+                <AuthorizeView Roles="@Roles.Modeller">
+                    <Authorized>
+                        @if (userConfig.User.Ownerships.Contains(AppHandler.Application.Id))
+                        {
+                            <button type="button" class="btn btn-sm btn-primary" @onclick="StartRecert">@(userConfig.GetText("recertify"))</button>
+                        }
+                        else
+                        {
+                            <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("recertify"))</button>
+                        }
+                    </Authorized>
+                    <NotAuthorized>
+                        <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("recertify"))</button>
+                    </NotAuthorized>
+                </AuthorizeView>
+            }
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(userConfig.GetText("cancel"))</button>
+        </Footer>
+    </PopUp>
+}
+
+<InProgress Display="WorkInProgress" />
+
+
+@code
+{
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationStateTask { get; set; }
+
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    [Parameter]
+    public bool Display { get; set; } = false;
+
+    [Parameter]
+    public EventCallback<bool> DisplayChanged { get; set; }
+
+    [Parameter]
+    public ModellingAppHandler? AppHandler { get; set; }
+
+
+    private bool WorkInProgress = false;
+    private bool FirstTry = true;
+    private bool RecertPossible = false;
+    private bool ModellingError = false;
+    private bool ImplementationError = false;
+    private ModellingVarianceResult VarianceResult = new();
+    private List<ModellingConnection> ModelledConnections = [];
+    private List<ModellingConnection> ModellingErrors = [];
+    private List<ModellingAppRole> MissingAppRoles = [];
+    private List<ModellingAppRole> DifferingAppRoles = [];
+    private List<Rule> UnmodelledRules = [];
+
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Display && AppHandler != null && FirstTry)
+        {
+            FirstTry = false;
+            ModellingError = false;
+            ImplementationError = false;
+            RecertPossible = false;
+            WorkInProgress = true;
+            await Task.Yield();
+            StateHasChanged();
+
+            await CheckRecertPossible();
+            WorkInProgress = false;
+        }
+    }
+
+    private string GetTitle()
+    {
+        return (userConfig.GetText("recertification") + ": " + AppHandler?.Application.Name);
+    }
+
+    private async Task CheckRecertPossible()
+    {
+        if (!CheckModelling())
+        {
+            ModellingError = true;
+            return;
+        }
+        if (!await CheckImplementation())
+        {
+            ImplementationError= true;
+            return;
+        }
+        RecertPossible = true;
+    }
+
+    private bool CheckModelling()
+    {
+        ModelledConnections = [.. AppHandler!.Connections.Where(x => !x.IsInterface && !x.IsDocumentationOnly())];
+        if (ModelledConnections.Count == 0)
+        {
+            return false;
+        }
+        ModellingErrors = [.. ModelledConnections.Where(c => AppHandler!.HasModellingIssues(c))];
+        return ModellingErrors.Count == 0;
+    }
+
+    private async Task<bool> CheckImplementation()
+    {
+        ExtStateHandler extStateHandler = new(apiConnection);
+        ModellingVarianceAnalysis varianceAnalysis = new(apiConnection, extStateHandler, userConfig, AppHandler!.Application, DisplayMessageInUi);
+        VarianceResult = await varianceAnalysis.AnalyseRulesVsModelledConnections(AppHandler!.Connections, new(){ AnalyseRemainingRules = true });
+        MissingAppRoles = [];
+        foreach(var mgt in VarianceResult.MissingAppRoles.Keys)
+        {
+            MissingAppRoles.AddRange(VarianceResult.MissingAppRoles[mgt]);
+        }
+        MissingAppRoles = [.. MissingAppRoles.Distinct()];
+        DifferingAppRoles = [];
+        foreach(var mgt in VarianceResult.DifferingAppRoles.Keys)
+        {
+            DifferingAppRoles.AddRange(VarianceResult.DifferingAppRoles[mgt]);
+        }
+        DifferingAppRoles = [.. DifferingAppRoles.Distinct()];
+        UnmodelledRules = [];
+        foreach(var mgt in VarianceResult.UnModelledRules.Keys)
+        {
+            UnmodelledRules.AddRange(VarianceResult.UnModelledRules[mgt]);
+        }
+
+        return MissingAppRoles.Count == 0 && DifferingAppRoles.Count == 0 && UnmodelledRules.Count == 0
+            && VarianceResult.ConnsNotImplemented.Count == 0 && VarianceResult.RuleDifferences.Count == 0;
+    }
+
+    private async Task StartRecert()
+    {
+        try
+        {
+               WorkInProgress = true;
+            await DoRecertification();
+            WorkInProgress = false;
+            Close();
+        }
+        catch (Exception exception)
+        {
+            WorkInProgress = false;
+            DisplayMessageInUi(exception, userConfig.GetText("recertify"), "", true);
+        }
+    }
+
+    private async Task DoRecertification()
+    {
+        if(AppHandler != null)
+        {
+            RecertHandler recertHandler = new(apiConnection, userConfig, DisplayMessageInUi);
+            await recertHandler.RecertifyOwnerWithRules(AppHandler.Application, VarianceResult.GetAllOkRules());
+        }
+    }
+
+    private void Close()
+    {
+        FirstTry = true;
+        Display = false;
+        DisplayChanged.InvokeAsync(Display);
+    }
+}

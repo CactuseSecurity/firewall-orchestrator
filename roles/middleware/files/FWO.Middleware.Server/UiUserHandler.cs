@@ -8,6 +8,7 @@ using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 using FWO.Services;
 using FWO.Config.Api.Data;
+using System.Text.RegularExpressions;
 
 namespace FWO.Middleware.Server
 {
@@ -86,7 +87,7 @@ namespace FWO.Middleware.Server
 				{
 					Log.WriteDebug("User not found", $"Couldn't find {user.Name} in internal database");
 				}
-				await GetOwnerships(apiConn, user);
+				await GetOwnershipsFromOwnerLdap(apiConn, user);
 			}
 			catch (Exception exeption)
 			{
@@ -101,58 +102,117 @@ namespace FWO.Middleware.Server
 			return user;
 		}
 
+
+
 		/// <summary>
 		/// add the ownerships to the given user
 		/// </summary>
-		public static async Task GetOwnerships(ApiConnection apiConn, UiUser user)
+		public static async Task GetOwnershipsFromOwnerLdap(ApiConnection apiConn, UiUser user)
 		{
-			try
-			{
-				List<FwoOwner> dirOwnerships = await apiConn.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnersForUser, new { userDn = user.Dn });
-				foreach (var owner in dirOwnerships)
-				{
-					user.Ownerships.Add(owner.Id);
-				}
+            try
+            {
+                // if the user logging in is the main user for an application, add the ownerships
+                List<FwoOwner> directOwnerships = await apiConn.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnersForUser, new { userDn = user.Dn });
+                foreach (var owner in directOwnerships)
+                {
+                    user.Ownerships.Add(owner.Id);
+                }
 
-				if (user.Groups != null)
-				{
-					List<FwoOwner> apps = await apiConn.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
-					foreach (var grp in user.Groups)
+                // now handle memberships via groups
+                List<FwoOwner> allOwners = await apiConn.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
+                List<ConfigItem> configResult;
+                configResult = await apiConn.SendQueryAsync<List<ConfigItem>>(ConfigQueries.getConfigItemByKey,
+                    new { key = "ownerLdapGroupNames" });
+                string? namingConvention = configResult.Count > 0 ? configResult[0].Value : string.Empty;
+
+
+                // get the if of the ldap, the ownergroups are defined in 
+                configResult = await apiConn.SendQueryAsync<List<ConfigItem>>(ConfigQueries.getConfigItemByKey,
+                    new { key = "ownerLdapId" });
+                int ownerLdapId = 1;  // default ldap id is 1 (internal LDAP)
+                if (configResult.Count > 0 && int.TryParse(configResult[0].Value, out int parsed) && parsed > 0)
+                {
+                    ownerLdapId = parsed;
+                }
+
+                // create ldap connection for owner groups
+                List<Ldap> connectedLdaps = await apiConn.SendQueryAsync<List<Ldap>>(AuthQueries.getLdapConnections);
+                Ldap ownerGroupLdap = connectedLdaps.FirstOrDefault(x => x.Id == ownerLdapId) ?? throw new KeyNotFoundException("Ldap for owner groups found.");
+
+                List<string> groupsOfUser = await ownerGroupLdap.GetGroupsOfUser(user.Name);
+
+                foreach (var group in groupsOfUser)
+                {
+                    string groupName = new DistName(group).Group;
+                    if (!MatchesNamingConvention(groupName, namingConvention))
 					{
-						string grpName = new DistName(grp).Group;
-						FwoOwner? owner = FindOwnerWithMatchingGroupName(grpName, apps);
-						if (owner != null)
-						{
-							user.Ownerships.Add(owner.Id);
-						}
+						continue; // skip groups that do not match the naming convention
 					}
-				}
-			}
-			catch (Exception exeption)
-			{
-				Log.WriteError("Get ownerships", $"Ownerships could not be detemined for User {user.Name}.", exeption);
-			}
+                    FwoOwner? owner = FindOwnerWithMatchingGroupName(groupName, allOwners);
+
+                    if (owner != null)
+                    {
+                        user.Ownerships.Add(owner.Id);
+                    }
+                }
+            }
+            catch (Exception exeption)
+            {
+                Log.WriteError("Get ownerships", $"Ownerships could not be detemined for User {user.Name}.", exeption);
+            }
 		}
 
-		private static FwoOwner? FindOwnerWithMatchingGroupName(string groupName, List<FwoOwner> apps)
-		{
-			foreach (var app in apps)
+        private static bool MatchesNamingConvention(string userIn, string? namingConvention)
+        {
+            if (string.IsNullOrEmpty(namingConvention))
+            {
+                return true; // no naming convention defined, so all cn match
+            }
+			string regexPattern = ReplacePlaceholdersWithPattern(namingConvention);
+			string cn = userIn;
+			
+			if (userIn.Contains(','))
 			{
-				string[] groupDnParts = app.GroupDn.Split(',', StringSplitOptions.RemoveEmptyEntries);
-				if (groupDnParts.Length == 0)
-				{
-					continue;
-				}
-				string groupCnPart = groupDnParts[0];
-				string[] cnParts = groupCnPart.Split('=', StringSplitOptions.RemoveEmptyEntries);
-				// note: this only works for flat groups! TODO: make this unversal by checking group membership 
-				if (cnParts.Length == 2 && cnParts[1] == groupName)
-				{
-					return app;
-				}
+				cn = userIn.ExtractCommonNameFromDn();
 			}
-			return null;
-		}
+
+            // turn naming convention into a regex pattern
+			if (Regex.IsMatch(cn, regexPattern, RegexOptions.IgnoreCase))
+			{
+				return true; // cn matches the naming convention
+			}
+            return false; // cn does not match the naming convention
+        }
+
+        private static string ReplacePlaceholdersWithPattern(string input)
+        {
+            // Pattern: finds @@...@@ – non-greedy
+            string pattern = "@@(.*?)@@";
+
+            // Replaces each match with the regex expression
+            string replaced = Regex.Replace(input, pattern, "(.*?)");
+
+            return replaced;
+        }
+        private static FwoOwner? FindOwnerWithMatchingGroupName(string groupName, List<FwoOwner> apps)
+        {
+            foreach (var app in apps)
+            {
+                string[] groupDnParts = app.GroupDn.Split(',', StringSplitOptions.RemoveEmptyEntries);
+                if (groupDnParts.Length == 0)
+                {
+                    continue;
+                }
+                string groupCnPart = groupDnParts[0];
+                string[] cnParts = groupCnPart.Split('=', StringSplitOptions.RemoveEmptyEntries);
+                // note: this only works for flat groups! TODO: make this unversal by checking group membership 
+                if (cnParts.Length == 2 && cnParts[1] == groupName)
+                {
+                    return app;
+                }
+            }
+            return null;
+        }
 
 		/// <summary>
 		/// add user to uiuser - either with or without current login time

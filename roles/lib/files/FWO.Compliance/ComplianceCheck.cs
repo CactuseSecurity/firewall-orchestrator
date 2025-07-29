@@ -11,6 +11,9 @@ using NetTools;
 using Microsoft.AspNetCore.Http;
 using FWO.Data.Report;
 using FWO.Report.Filter.FilterTypes;
+using FWO.Data.Middleware;
+using System.Text.Json;
+using FWO.Logging;
 
 namespace FWO.Compliance
 {
@@ -23,9 +26,11 @@ namespace FWO.Compliance
         private ReportBase? currentReport;
         Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
         ReportFilters reportFilters = new();
+        private List<string> _restrictedServices = [];
+
         private readonly UserConfig _userConfig;
         private readonly ApiConnection _apiConnection;
-        private List<string> _restrictedServices = [];
+        private readonly DebugConfig _debugConfig;
 
 
         /// <summary>
@@ -37,6 +42,15 @@ namespace FWO.Compliance
         {
             _userConfig = userConfig;
             _apiConnection = apiConnection;
+
+            if (userConfig.GlobalConfig is GlobalConfig globalConfig && !string.IsNullOrEmpty(globalConfig.DebugConfig))
+            {
+                _debugConfig = JsonSerializer.Deserialize<DebugConfig>(globalConfig.DebugConfig) ?? new();
+            }
+            else
+            {
+                _debugConfig = new();
+            }
         }
 
         /// <summary>
@@ -45,6 +59,11 @@ namespace FWO.Compliance
         /// <returns></returns>
         public async Task CheckAll()
         {
+            if (_debugConfig.ExtendedLogComplianceCheck)
+            {
+                Log.WriteInfo("Compliance Check", "Starting compliance check");
+            }
+            
             NetworkZones = await _apiConnection.SendQueryAsync<ComplianceNetworkZone[]>(ComplianceQueries.getNetworkZones);
             await SetUpReportFilters();
             ReportTemplate template = new ReportTemplate("", reportFilters.ToReportParams());
@@ -56,12 +75,17 @@ namespace FWO.Compliance
 
             if (_userConfig.GlobalConfig is GlobalConfig globalConfig)
             {
+                if (_debugConfig.ExtendedLogComplianceCheck)
+                {
+                    Log.WriteInfo("Compliance Check", "Using restricted services: " + globalConfig.ComplianceCheckRestrictedServices);
+                }
+
                 _restrictedServices = globalConfig.ComplianceCheckRestrictedServices
                     .Split(',')
                     .Select(s => s.Trim())
                     .Where(s => !string.IsNullOrEmpty(s))
                     .ToList();
-
+            
                 if (_apiConnection != null && currentReport is ReportCompliance complianceReport)
                 {
                     foreach (var management in complianceReport.ReportData.ManagementData)

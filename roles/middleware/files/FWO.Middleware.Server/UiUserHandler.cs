@@ -173,11 +173,12 @@ namespace FWO.Middleware.Server
 			
 			if (userIn.Contains(','))
 			{
+                // the userIn is a DN, so extract the CN part
 				cn = userIn.ExtractCommonNameFromDn();
 			}
 
             // turn naming convention into a regex pattern
-			if (Regex.IsMatch(cn, regexPattern, RegexOptions.IgnoreCase))
+			if (Regex.IsMatch(cn, regexPattern, RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(100)))
 			{
 				return true; // cn matches the naming convention
 			}
@@ -190,7 +191,7 @@ namespace FWO.Middleware.Server
             string pattern = "@@(.*?)@@";
 
             // Replaces each match with the regex expression
-            string replaced = Regex.Replace(input, pattern, "(.*?)");
+            string replaced = Regex.Replace(input, pattern, "(.*?)", RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(100));
 
             return replaced;
         }

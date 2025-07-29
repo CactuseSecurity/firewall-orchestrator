@@ -42,7 +42,7 @@ namespace FWO.Middleware.Server
                 string value = match.Groups[2].Value; // RDN value
 
                 // Convert hex-escaped commas to commas
-                value = Regex.Replace(value, @"\\2c", "\\,");
+                value = Regex.Replace(value, @"\\2c", "\\,", RegexOptions.None, TimeSpan.FromMilliseconds(100));
 
                 return $"{attribute}={value}";
             });

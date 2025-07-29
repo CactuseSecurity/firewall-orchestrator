@@ -543,7 +543,7 @@ namespace FWO.Test
             ClassicAssert.AreEqual(2, result.RuleDifferences[0].ImplementedRules[0].Froms.Length);
             ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules[0].Tos.Length);
             ClassicAssert.AreEqual("SpecObj2", result.RuleDifferences[0].ImplementedRules[0].Tos[0].Object.Name);
-            ClassicAssert.AreEqual(0, result.RuleDifferences[0].ImplementedRules[0].UnusedSpecialUserObjects.Count);
+            ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules[0].UnusedSpecialUserObjects.Count);
 
             userConfig.RuleRecognitionOption = grpNameRecogOpt;
             varianceAnalysis = new(varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);

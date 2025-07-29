@@ -98,8 +98,6 @@ namespace FWO.Report
                         }
 
                         TryWriteExtendedLog($"No rules found in device {dev.Id} ({dev.Name}).", _debugConfig.ExtendedLogComplianceCheck);
-
-                        return true;
                     }
                 }
             }

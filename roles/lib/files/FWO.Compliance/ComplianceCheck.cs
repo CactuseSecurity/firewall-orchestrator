@@ -62,7 +62,13 @@ namespace FWO.Compliance
             {
                 Log.WriteInfo("Compliance Check", "Starting compliance check");
             }
-            Policy = await _apiConnection.SendQueryAsync<CompliancePolicy>(ComplianceQueries.getPolicyById, new { id = _userConfig.ComplianceCheckPolicyId });
+            int? policyId = _userConfig.GlobalConfig?.ComplianceCheckPolicyId;
+            if (policyId == null || policyId == 0)
+            {
+                Log.WriteInfo("Compliance Check", "No Policy defined");
+                return;
+            }
+            Policy = await _apiConnection.SendQueryAsync<CompliancePolicy>(ComplianceQueries.getPolicyById, new { id = policyId });
             await LoadNetworkZones();
             await SetUpReportFilters();
             ReportTemplate template = new("", reportFilters.ToReportParams());

@@ -77,43 +77,43 @@ namespace FWO.Report
 
         public override bool NoRuleFound()
         {
-            TryWriteExtendedLog("Checking if rules were found in device report.", _debugConfig.ExtendedLogComplianceCheck);
+            Log.TryWriteLog(LogType.Info, "Device Report", "Checking if rules were found in device report.", _debugConfig.ExtendedLogReportGeneration);
 
             foreach (ManagementReport mgmt in ReportData.ManagementData)
             {
-                TryWriteExtendedLog($"Checking if rules were found in management {mgmt.Id} ({mgmt.Name}).", _debugConfig.ExtendedLogComplianceCheck);
+                Log.TryWriteLog(LogType.Info, "Device Report", $"Checking if rules were found in management {mgmt.Id} ({mgmt.Name}).", _debugConfig.ExtendedLogReportGeneration);
 
                 foreach (DeviceReport dev in mgmt.Devices)
                 {
-                    TryWriteExtendedLog($"Checking if rules were found in device {dev.Id} ({dev.Name}).", _debugConfig.ExtendedLogComplianceCheck);
+                    Log.TryWriteLog(LogType.Info, "Device Report", $"Checking if rules were found in device {dev.Id} ({dev.Name}).", _debugConfig.ExtendedLogReportGeneration);
 
                     if (dev.RulebaseLinks.Length > 0)
                     {
                         int? nextRulebaseId = dev.RulebaseLinks.FirstOrDefault(_ => _.IsInitialRulebase())?.NextRulebaseId;
                         if (nextRulebaseId != null)
                         {
-                            TryWriteExtendedLog("Found initial rulebase", _debugConfig.ExtendedLogComplianceCheck);
+                            Log.TryWriteLog(LogType.Info, "Device Report", "Found initial rulebase", _debugConfig.ExtendedLogReportGeneration);
 
                             foreach (RulebaseLink link in dev.RulebaseLinks)
                             {
                                 if (mgmt.Rulebases.FirstOrDefault(rulebase => rulebase.Id == link.NextRulebaseId) is RulebaseReport rulebase && rulebase.Rules.Length > 0)
                                 {
-                                    TryWriteExtendedLog($"Found rules in rulebase {rulebase.Id} ({rulebase.Name}) of device {dev.Id} ({dev.Name}).", _debugConfig.ExtendedLogComplianceCheck);
+                                    Log.TryWriteLog(LogType.Info, "Device Report", $"Found rules in rulebase {rulebase.Id} ({rulebase.Name}) of device {dev.Id} ({dev.Name}).", _debugConfig.ExtendedLogReportGeneration);
                                     return false;
                                 }                       
                             }
                         }
                         else
                         {
-                            TryWriteExtendedLog("No initial rulebase found.", _debugConfig.ExtendedLogComplianceCheck);
+                            Log.TryWriteLog(LogType.Info, "Device Report", "No initial rulebase found.", _debugConfig.ExtendedLogReportGeneration);
                         }
 
-                        TryWriteExtendedLog($"No rules found in device {dev.Id} ({dev.Name}).", _debugConfig.ExtendedLogComplianceCheck);
+                        Log.TryWriteLog(LogType.Info, "Device Report", $"No rules found in device {dev.Id} ({dev.Name}).", _debugConfig.ExtendedLogReportGeneration);
                     }
                 }
             }
 
-            TryWriteExtendedLog("No rules found in any device.", _debugConfig.ExtendedLogComplianceCheck);
+            Log.TryWriteLog(LogType.Info, "Device Report", "No rules found in any device.", _debugConfig.ExtendedLogReportGeneration);
 
             return true;
         }
@@ -176,12 +176,6 @@ namespace FWO.Report
             return GenerateHtmlFrameBase(title, filter, date, htmlReport, deviceFilter, Query.SelectedOwner?.Name, timefilter);
         }
 
-        private void TryWriteExtendedLog(string message, bool condition)
-        {
-            if (condition && _debugConfig.ExtendedLogReportGeneration)
-            {
-                Log.WriteInfo("Device Report", message);
-            }
-        }
+
     }
 }

@@ -87,7 +87,7 @@ namespace FWO.Report
                 {
                     TryWriteExtendedLog($"Checking if rules were found in device {dev.Id} ({dev.Name}).", _debugConfig.ExtendedLogComplianceCheck);
 
-                    if (dev != null && dev.RulebaseLinks != null && dev.RulebaseLinks.Length > 0)
+                    if (dev.RulebaseLinks.Length > 0)
                     {
                         int? nextRulebaseId = dev.RulebaseLinks.FirstOrDefault(_ => _.IsInitialRulebase())?.NextRulebaseId;
                         if (nextRulebaseId != null && mgmt.Rulebases.FirstOrDefault(_ => _.Id == nextRulebaseId)?.Rules.Length > 0)
@@ -96,14 +96,11 @@ namespace FWO.Report
 
                             foreach (RulebaseLink link in dev.RulebaseLinks)
                             {
-                                if (mgmt.Rulebases.FirstOrDefault(rulebase => rulebase.Id == link.NextRulebaseId) is RulebaseReport rulebase &&
-                                    rulebase.Rules != null && rulebase.Rules.Length > 0)
+                                if (mgmt.Rulebases.FirstOrDefault(rulebase => rulebase.Id == link.NextRulebaseId) is RulebaseReport rulebase && rulebase.Rules.Length > 0)
                                 {
                                     TryWriteExtendedLog($"Found rules in rulebase {rulebase.Id} ({rulebase.Name}) of device {dev.Id} ({dev.Name}).", _debugConfig.ExtendedLogComplianceCheck);
                                     return false;
-                                }
-
-                                return false;                          
+                                }                       
                             }
                         }
 

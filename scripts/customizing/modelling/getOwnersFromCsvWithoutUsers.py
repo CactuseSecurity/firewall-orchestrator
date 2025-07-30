@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 # reads the main app data from multiple csv files contained in a git repo
-# users will reside in ldap groups with standardized names
+# users will reside in external ldap groups with standardized names
 # only the main responsible person per app is taken from the csv files
 # this does not use Tufin RLM any longer as a source
 # here app servers will only have ip addresses (no names)
@@ -42,34 +42,6 @@ repoTargetDir = baseDirEtc + "cmdb-repo"
 defaultConfigFileName = baseDirEtc + "secrets/customizingConfig.json"
 importSourceString = "tufinRlm" # change this to "cmdb-csv-export"? or will this break anything?
 
-class ApiLoginFailed(Exception):
-    """Raised when login to API failed"""
-
-    def __init__(self, message="Login to API failed"):
-            self.message = message
-            super().__init__(self.message)
-
-class ApiFailure(Exception):
-    """Raised for any other Api call exceptions"""
-
-    def __init__(self, message="There was an unclassified error while executing an API call"):
-            self.message = message
-            super().__init__(self.message)
-
-class ApiTimeout(Exception):
-    """Raised for 502 http error with proxy due to timeout"""
-
-    def __init__(self, message="reverse proxy timeout error during API call - try increasing the reverse proxy timeout"):
-            self.message = message
-            super().__init__(self.message)
-
-class ApiServiceUnavailable(Exception):
-    """Raised for 503 http error Service unavailable"""
-
-    def __init__(self, message="API unavailable"):
-            self.message = message
-            super().__init__(self.message)
-
 
 def readConfig(configFilename, keyToGet):
     try:
@@ -77,7 +49,7 @@ def readConfig(configFilename, keyToGet):
             customConfig = json.loads(customConfigFH.read())
         return customConfig[keyToGet]
 
-    except:
+    except Exception:
         logger.error("could not read key '" + keyToGet + "' from config file " + configFilename + ", Exception: " + str(traceback.format_exc()))
         sys.exit(1)
 
@@ -141,7 +113,7 @@ def extractAppDataFromCsvFile(csvFile: str, appData: dict, containsIp: bool):
         with open(csvFile, newline='') as csvFile:
             reader = csv.reader(csvFile)
             appDataFromCsv += list(reader)[1:]# Skip headers in first line
-    except:
+    except Exception:
         logger.error("error while trying to read csv file '" + csvFile + "', exception: " + str(traceback.format_exc()))
         sys.exit(1)
 
@@ -233,12 +205,28 @@ if __name__ == "__main__":
     for csvFile in csvAppServerFiles:
         extractAppDataFromCsvFile(csvFile, appData, True)
 
+    owner_data = { "owners": [] } 
+
+    for appId in appData:
+        if appData[appId]['app_id_external'] != '':
+            owner_data['owners'].append({
+                "name": appData[appId]['name'],
+                "app_id_external": appData[appId]['app_id_external'],
+                "main_user": appData[appId]['main_user'],
+                "modellers": appData[appId]['modellers'],
+                "criticality": appData[appId]['criticality'] if 'criticality' in appData[appId] else None,
+                "import_source": appData[appId]['import_source'],
+                "app_servers": appData[appId]['app_servers']
+            })
+        else:
+            logger.warning(f"App {appId} has no external app id, skipping...")
+
     #############################################    
     # 3. write owners to json file
     path = os.path.dirname(__file__)
     fileOut = path + '/' + Path(os.path.basename(__file__)).stem + ".json"
     with open(fileOut, "w") as outFH:
-        json.dump(appData, outFH, indent=3)
+        json.dump(owner_data, outFH, indent=3)
         
     #############################################    
     # 4. Some statistics

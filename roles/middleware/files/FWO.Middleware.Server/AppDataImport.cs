@@ -225,22 +225,30 @@ namespace FWO.Middleware.Server
 		private async Task<string> UpdateApp(ModellingImportAppData incomingApp, FwoOwner existingApp)
 		{
 			string userGroupDn = GetGroupDn(incomingApp.ExtAppId);
-			if (globalConfig.ManageOwnerLdapGroups)
-			{
-				if (string.IsNullOrEmpty(existingApp.GroupDn) && allGroups.FirstOrDefault(x => x.GroupDn == userGroupDn) == null)
+            if (globalConfig.ManageOwnerLdapGroups)
+            {
+                if (string.IsNullOrEmpty(existingApp.GroupDn) && allGroups.FirstOrDefault(x => x.GroupDn == userGroupDn) == null)
+                {
+                    string newDn = await CreateUserGroup(incomingApp);
+                    if (newDn != userGroupDn) // may this happen?
+                    {
+                        Log.WriteInfo(LogMessageTitle, $"New UserGroup DN {newDn} differs from settings value {userGroupDn}.");
+                        userGroupDn = newDn;
+                    }
+                }
+                else
+                {
+                    await UpdateUserGroup(incomingApp, userGroupDn);
+                }
+            }
+            else
+            {
+                // add necessary roles for user group
+				foreach (string role in new List<string> { modellerRoleDn, requesterRoleDn, implementerRoleDn, reviewerRoleDn })
 				{
-					string newDn = await CreateUserGroup(incomingApp);
-					if(newDn != userGroupDn) // may this happen?
-					{
-						Log.WriteInfo(LogMessageTitle, $"New UserGroup DN {newDn} differs from settings value {userGroupDn}.");
-						userGroupDn = newDn;
-					}
+					await internalLdap.AddUserToEntry(userGroupDn, role);
 				}
-				else
-				{
-					await UpdateUserGroup(incomingApp, userGroupDn);
-				}
-			}
+            }
 
 			var Variables = new
 			{

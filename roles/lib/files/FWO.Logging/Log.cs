@@ -6,9 +6,9 @@ namespace FWO.Logging
 {
     public static class Log
     {
-        private static SemaphoreSlim semaphore = new (1, 1);
+        private static SemaphoreSlim semaphore = new(1, 1);
         private static readonly string lockFilePath = $"/var/fworch/lock/{Assembly.GetEntryAssembly()?.GetName().Name}_log.lock";
-        private static readonly Random random = new ();
+        private static readonly Random random = new();
 
         static Log()
         {
@@ -16,7 +16,7 @@ namespace FWO.Logging
             {
                 // log switch - log file locking
                 bool logOwnedByExternal = false;
-                Stopwatch stopwatch = new ();
+                Stopwatch stopwatch = new();
 
                 while (true)
                 {
@@ -25,13 +25,13 @@ namespace FWO.Logging
                         // Open file
                         using FileStream file = await GetFile(lockFilePath);
                         // Read file content
-                        using StreamReader reader = new (file);
+                        using StreamReader reader = new(file);
                         string lockFileContent = (await reader.ReadToEndAsync()).Trim();
 
                         // Forcefully release lock after timeout
                         if (logOwnedByExternal && stopwatch.ElapsedMilliseconds > 10_000)
                         {
-                            using StreamWriter writer = new (file);
+                            using StreamWriter writer = new(file);
                             await writer.WriteLineAsync("FORCEFULLY RELEASED");
                             stopwatch.Reset();
                             semaphore.Release();
@@ -59,14 +59,14 @@ namespace FWO.Logging
                                 stopwatch.Restart();
                                 logOwnedByExternal = true;
                             }
-                            using StreamWriter writer = new (file);
+                            using StreamWriter writer = new(file);
                             await writer.WriteLineAsync("GRANTED");
                         }
                         // RELEASED - lock was released by log swap process
                         else if (lockFileContent.EndsWith("RELEASED"))
                         {
                             // only release lock if it was formerly requested by us
-                            if (logOwnedByExternal) 
+                            if (logOwnedByExternal)
                             {
                                 stopwatch.Reset();
                                 semaphore.Release();
@@ -91,8 +91,8 @@ namespace FWO.Logging
                 {
                     return File.Open(path, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
                 }
-                catch (Exception) 
-                { 
+                catch (Exception)
+                {
                     //WriteDebug("Log file locking", $"Could not access log lock file: {e.Message}.");
                 }
                 await Task.Delay(random.Next(100));
@@ -172,6 +172,31 @@ namespace FWO.Logging
             Console.Out.WriteLine(Text); // TODO: async method ?
             Console.ResetColor();
             semaphore.Release();
+        }
+        
+        public static void TryWriteLog(LogType logType, string title, string text, bool condition)
+        {
+            if (condition)
+            {
+                switch (logType)
+                {
+                    case LogType.Debug:
+                        WriteDebug(title, text);
+                        break;
+                    case LogType.Info:
+                        WriteInfo(title, text);
+                        break;
+                    case LogType.Warning:
+                        WriteWarning(title, text);
+                        break;
+                    case LogType.Error:
+                        WriteError(title, text);
+                        break;
+                    case LogType.Audit:
+                        WriteAudit(title, text);
+                        break;
+                }
+            }
         }
     }
 }

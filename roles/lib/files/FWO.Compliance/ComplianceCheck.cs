@@ -75,7 +75,7 @@ namespace FWO.Compliance
             {
                 if (_debugConfig.ExtendedLogComplianceCheck)
                 {
-                    Log.WriteInfo("Compliance Check", "Using restricted services: " + Policy.Criteria.FirstOrDefault(x => x.Content.CriterionType == CriterionType.ForbiddenService.ToString())?.Content.Content ?? "");
+                    Log.WriteInfo("Compliance Check", "Using restricted services: " + Policy.Criteria.FirstOrDefault(x => x.Content.CriterionType == CriterionType.ForbiddenService.ToString())?.Content.Content);
                 }
 
                 foreach (var management in complianceReport.ReportData.ManagementData)

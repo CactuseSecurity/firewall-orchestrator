@@ -354,9 +354,20 @@ def normalize_rule(rule_orig, rules, native_config, rule_table, localPkgName, ru
     # new in v8.0.3:
     if 'meta fields' in rule_orig:
         rule.update({ 'rule_custom_fields': rule_orig['meta fields']})
+
     if '_last-modified-by' in rule_orig:
         rule.update({ 'rule_last_change_admin': rule_orig['_last-modified-by']})
 
+    update_hit_counters(native_config, rule_table, rule_orig, rule, localPkgName, rule_access_scope_v4, rule_access_scope_v6)
+
+    xlate_rule = handle_combined_nat_rule(rule, rule_orig, normalized_config_dict, nat_rule_number, import_id, localPkgName, dev_id)
+    rules.append(rule)
+    if xlate_rule is not None:
+        rules.append(xlate_rule)
+    rule_number += 1    # nat rules have their own numbering
+
+
+def update_hit_counters(native_config, rule_table, rule_orig, rule, localPkgName, rule_access_scope_v4, rule_access_scope_v6):
     if rule_table in rule_access_scope_v4 and len(native_config['rules_hitcount'][localPkgName])>0:
         for hitcount_config in native_config['rules_hitcount'][localPkgName][0]['firewall policy']:
             if rule_orig['policyid'] == hitcount_config['last_hit']:
@@ -367,13 +378,6 @@ def normalize_rule(rule_orig, rules, native_config, rule_table, localPkgName, ru
                 rule.update({ 'last_hit': time.strftime("%Y-%m-%dT%H:%M:%S%z", time.localtime(hitcount_config['policyid']))})
     else:
         rule.update({ 'last_hit': None})
-
-    xlate_rule = handle_combined_nat_rule(rule, rule_orig, normalized_config_dict, nat_rule_number, import_id, localPkgName, dev_id)
-    rules.append(rule)
-    if xlate_rule is not None:
-        rules.append(xlate_rule)
-    rule_number += 1    # nat rules have their own numbering
-
 
 # pure nat rules 
 def normalize_nat_rules(full_config, config2import, import_id, jwt=None):

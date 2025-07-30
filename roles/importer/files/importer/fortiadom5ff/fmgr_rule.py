@@ -13,6 +13,9 @@ from fwo_log import getFwoLogger
 from model_controllers.route_controller import get_matching_route_obj, get_ip_of_interface_obj
 from fwo_exceptions import FwoDeviceWithoutLocalPackage
 from fmgr_base import resolve_raw_objects, resolve_objects
+from models.rule import Rule
+from models.rulebase import Rulebase
+from fwo_globals import debug_level
 
 
 rule_access_scope_v4 = ['rules_global_header_v4', 'rules_adom_v4', 'rules_global_footer_v4']
@@ -24,7 +27,7 @@ rule_scope = rule_access_scope + rule_nat_scope
 uid_to_name_map = {}
 
 
-def normalize_rulebases (nativeConfig, native_config_global, importState, normalized_config_dict, normalized_config_global, is_global_loop_iteration):
+def normalize_rulebases (import_state, nativeConfig, native_config_global, importState, normalized_config_dict, normalized_config_global, is_global_loop_iteration):
     
     normalized_config_dict['policies'] = []
 
@@ -32,11 +35,11 @@ def normalize_rulebases (nativeConfig, native_config_global, importState, normal
     for nw_obj in normalized_config_dict['network_objects']:
         uid_to_name_map[nw_obj['obj_uid']] = nw_obj['obj_name']
 
-    raise NotImplementedError("This function is not implemented yet. Please implement the logic to normalize rulebases.")
+    # raise NotImplementedError("This function is not implemented yet.")
 
     fetched_rulebase_uids = []
     if normalized_config_global is not None:
-        for normalized_rulebase_global in normalized_config_global['policies']:
+        for normalized_rulebase_global in normalized_config_global.get('policies', []):
             fetched_rulebase_uids.append(normalized_rulebase_global.uid)
     for gateway in nativeConfig['gateways']:
         normalize_rulebases_for_each_link_destination(
@@ -77,7 +80,7 @@ def find_rulebase_to_parse(rulebase_list, rulebase_uid):
     decide if input rulebase is true rulebase, section or placeholder
     """
     for rulebase in rulebase_list:
-        if rulebase['uid'] == rulebase_uid:
+        if rulebase['type'].endswith(rulebase_uid):
             return rulebase, False, False
         rulebase_to_parse, is_section, is_placeholder = find_rulebase_to_parse_in_case_of_chunk(rulebase, rulebase_uid)
         if rulebase_to_parse != {}:
@@ -87,18 +90,11 @@ def find_rulebase_to_parse(rulebase_list, rulebase_uid):
     return {}, False, False
 
 def find_rulebase_to_parse_in_case_of_chunk(rulebase, rulebase_uid):
-    for chunk in rulebase['chunks']:
-        for section in chunk['rulebase']:
-            if section['uid'] == rulebase_uid:
-                if section['type'] == 'place-holder':
-                    return section, False, True
-                else:
-                    return section, True, False
     return {}, False, False
                     
 def initialize_normalized_rulebase(rulebase_to_parse, mgm_uid):
-    rulebaseName = rulebase_to_parse['name']
-    rulebaseUid = rulebase_to_parse['uid']
+    rulebaseName = rulebase_to_parse['type']
+    rulebaseUid = rulebase_to_parse['type']
     normalized_rulebase = Rulebase(uid=rulebaseUid, name=rulebaseName, mgm_uid=mgm_uid, Rules=[])
     return normalized_rulebase
 
@@ -113,7 +109,7 @@ def parse_rulebase(rulebase_to_parse, is_section, is_placeholder, normalized_rul
             # delte_v sind import_id, parent_uid, config2import wirklich egal? Dann können wir diese argumente löschen - NAT ACHTUNG
             rule_num = parse_single_rule(rule, normalized_rulebase, normalized_rulebase.uid, None, rule_num, None, None)
 
-        if fwo_globals.debug_level>3:
+        if debug_level>3:
             logger.debug("parsed rulebase " + normalized_rulebase.uid)
         return rule_num
     elif is_placeholder:
@@ -123,15 +119,15 @@ def parse_rulebase(rulebase_to_parse, is_section, is_placeholder, normalized_rul
 
 def parse_rulebase_chunk(rulebase_to_parse, normalized_rulebase, rule_num):
     logger = getFwoLogger()
-    for chunk in rulebase_to_parse['chunks']:
-        for rule in chunk['rulebase']:
-            if 'rule-number' in rule:
-                rule_num = parse_single_rule(rule, normalized_rulebase, normalized_rulebase.uid, None, rule_num, None, None)
-            else:
-                logger.debug("found unparsable rulebase: " + str(rulebase_to_parse))
+    for rule in rulebase_to_parse['data']:
+        rule_num = parse_single_rule(rule, normalized_rulebase, normalized_rulebase.uid, None, rule_num, None, None)
     return rule_num
  
 
+def parse_single_rule(nativeRule, rulebase, layer_name, import_id, rule_num, parent_uid, config2import, debug_level=0):
+    logger = getFwoLogger()
+    # TODO: implement
+    return 0
 
 
 def initialize_rulebases(native_config):
@@ -290,8 +286,7 @@ def normalize_rule(rule_orig, rules, native_config, rule_table, localPkgName, ru
     rule.update({ 'rule_ruleid': rule_orig['policyid']})
     rule.update({ 'rule_uid': rule_orig['uuid']})
     rule.update({ 'rule_num': rule_number})
-    if 'name' in rule_orig:
-        rule.update({ 'rule_name': rule_orig['name']})
+    rule.update({ 'rule_name': rule_orig.get('name', None)})
     if 'scope member' in rule_orig:
         installon_target = []
         for vdom in rule_orig['scope member']:
@@ -304,10 +299,7 @@ def normalize_rule(rule_orig, rules, native_config, rule_table, localPkgName, ru
     rule.update({ 'rule_type': 'access' })
     rule.update({ 'parent_rule_id': None })
 
-    if 'comments' in rule_orig:
-        rule.update({ 'rule_comment': rule_orig['comments']})
-    else:
-        rule.update({ 'rule_comment': None })
+    rule.update({ 'rule_comment': rule_orig.get('comments', None)})
     if rule_orig['action']==0:
         rule.update({ 'rule_action': 'Drop' })
     else:
@@ -345,9 +337,9 @@ def normalize_rule(rule_orig, rules, native_config, rule_table, localPkgName, ru
         rule.update({ 'rule_svc_neg': rule_orig['service-negate']=='disable'})
 
     rule.update({ 'rule_src_refs': resolve_raw_objects(rule['rule_src'], list_delimiter, native_config, 'name', 'uuid', \
-        rule_type=rule_table, jwt=jwt, import_id=import_id, rule_uid=rule_orig['uuid'], object_type='network object', mgm_id=mgm_details['id']) })
+        rule_type=rule_table, jwt=None, import_id=None, rule_uid=rule_orig['uuid'], object_type='network object', mgm_id=mgm_details['id']) })
     rule.update({ 'rule_dst_refs': resolve_raw_objects(rule['rule_dst'], list_delimiter, native_config, 'name', 'uuid', \
-        rule_type=rule_table, jwt=jwt, import_id=import_id, rule_uid=rule_orig['uuid'], object_type='network object', mgm_id=mgm_details['id']) })
+        rule_type=rule_table, jwt=None, import_id=None, rule_uid=rule_orig['uuid'], object_type='network object', mgm_id=mgm_details['id']) })
     rule.update({ 'rule_svc_refs': rule['rule_svc'] }) # services do not have uids, so using name instead
     add_users_to_rule(rule_orig, rule)
 

@@ -17,7 +17,7 @@ def normalize_service_objects(import_state: ImportStateController, native_config
             normalize_service_object(obj_orig, svc_objects)
     # finally add "Original" service object for natting
     original_obj_name = 'Original'
-    svc_objects.append(create_svc_object(name=original_obj_name, proto=0, port=None,\
+    svc_objects.append(create_svc_object(name=original_obj_name, proto=0, color='1', port=None,\
         comment='"original" service object created by FWO importer for NAT purposes'))
 
     normalized_config.update({'service_objects': svc_objects})
@@ -36,9 +36,7 @@ def normalize_service_object(obj_orig, svc_objects):
     if 'name' in obj_orig:
         name = str(obj_orig['name'])
 
-    color = obj_orig.get('color', None)
-    if color is not None:
-        color = str(color)
+    color = str(obj_orig.get('color', 1))
     
     session_timeout = None   # todo: find the right timer
 
@@ -149,12 +147,13 @@ def extractPorts(port_ranges):
     return ports, port_ends
 
 
-def create_svc_object(name, proto, port, comment):
+def create_svc_object(name, proto, color, port, comment):
     return {
         'svc_name': name,
         'svc_typ': 'simple',
         'svc_port': port,
         'ip_proto': proto,
+        'svc_color': color,
         'svc_uid': name,    # services have no uid in fortimanager
         'svc_comment': comment
     }

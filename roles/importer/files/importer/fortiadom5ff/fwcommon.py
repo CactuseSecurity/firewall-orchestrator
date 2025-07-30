@@ -14,6 +14,7 @@ from fwo_log import getFwoLogger
 from fmgr_gw_networking import getInterfacesAndRouting, normalize_network_data
 from model_controllers.route_controller import get_ip_of_interface_obj
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
+from model_controllers.fwconfig_normalized_controller import FwConfigNormalizedController
 from models.fwconfigmanager import FwConfigManager
 from model_controllers.management_details_controller import ManagementDetailsController
 from fwconfig_base import calcManagerUidHash
@@ -21,6 +22,8 @@ from fmgr_network import normalize_network_objects
 from fmgr_service import normalize_service_objects
 from fmgr_rule import normalize_rulebases, initialize_rulebases, getAccessPolicy
 from fmgr_consts import nw_obj_types, svc_obj_types, user_obj_types
+from fwo_base import ConfigAction
+from models.fwconfig_normalized import FwConfigNormalized
 
 
 def has_config_changed(full_config, mgm_details, force=False):
@@ -148,13 +151,27 @@ def normalize_config(import_state, native_config: json) -> FwConfigManagerListCo
     for native_conf in native_config['domains']:
         normalized_config_dict = fwo_const.emptyNormalizedFwConfigJsonDict
 
-        normalized_config = normalize_single_manager_config(native_conf, native_config_global, normalized_config_dict, normalized_config_global, 
+        normalize_single_manager_config(native_conf, native_config_global, normalized_config_dict, normalized_config_global, 
                                                             import_state, is_global_loop_iteration=False)
+
+        normalized_config = FwConfigNormalized(
+            action=ConfigAction.INSERT, 
+            network_objects=FwConfigNormalizedController.convertListToDict(normalized_config_dict.get('network_objects', []), 'obj_uid'),
+            service_objects=FwConfigNormalizedController.convertListToDict(normalized_config_dict.get('service_objects', []), 'svc_uid'),
+            zone_objects=FwConfigNormalizedController.convertListToDict(normalized_config_dict.get('zone_objects', []), 'zone_uid'),
+            rulebases=normalized_config_dict.get('rules', []),
+            gateways=normalized_config_dict.get('gateways', [])
+        )
+
         manager = FwConfigManager(ManagerUid=calcManagerUidHash(import_state.MgmDetails),
                                     ManagerName=import_state.MgmDetails.Name,
-                                    IsGlobal=import_state.MgmDetails.IsSuperManager, 
+                                    IsGlobal=import_state.MgmDetails.IsSuperManager,
+                                    IsSuperManager=native_conf.get('is-super-manager', False),
+                                    DomainName=native_conf.get('domain_name', ''),
+                                    DomainUid=native_conf.get('domain_uid', ''),
                                     DependantManagerUids=[], 
                                     Configs=[normalized_config])
+
         manager_list.addManager(manager)
 
     return manager_list
@@ -197,7 +214,8 @@ def normalize_single_manager_config(native_config: json, native_config_global: j
     #fmgr_gateway.normalizeGateways(native_conf, import_state, normalized_config_dict)
 
     # initialize_rulebases(native_config)
-    normalize_rulebases(native_config, native_config_global, import_state, normalized_config_dict, normalized_config_global, is_global_loop_iteration)
+    normalize_rulebases(import_state, native_config, native_config_global, import_state, normalized_config_dict, normalized_config_global, 
+                        is_global_loop_iteration)
     # if not parsing_config_only: # logout with fortiManager
     #     logout_fmgr(import_state.MgmDetails.buildFwApiString(), sid)
     logger.info("completed normalizing rulebases")

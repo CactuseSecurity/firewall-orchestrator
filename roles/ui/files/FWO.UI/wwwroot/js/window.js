@@ -1,4 +1,4 @@
-﻿function newWindow (link) {
+function newWindow (link) {
     window.open(link, "name", "width=1300,height=800");
 }
 
@@ -13,6 +13,25 @@ function globalResize(dotNetHelper) {
 function globalClick(dotNetHelper) {
     window.addEventListener("click", function (event) { dotNetHelper.invokeMethodAsync('InvokeOnGlobalClick', event.target.id); }, true);
 }
+
+function observeNavbarHeight(dotNetHelper) {
+    const selector = ".navbar";
+    const navbar = document.querySelector(selector);
+    if (!navbar) {
+        console.error("Navbar not found for selector:", selector);
+        return;
+    }
+
+    const measure = () => Math.round(navbar.getBoundingClientRect().height);
+    const send = () => dotNetHelper.invokeMethodAsync("InvokeNavbarHeightChanged", measure());
+
+    // Send initial height
+    send();
+
+    // Observe changes to the navbar height and send the update
+    const resize_observer = new ResizeObserver(send);
+    resize_observer.observe(navbar);
+};
 
 function isChild(childId, parentId) {
     const parent = document.getElementById(parentId);    

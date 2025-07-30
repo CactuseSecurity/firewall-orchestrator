@@ -8,8 +8,9 @@ namespace FWO.Ui.Services
 		public event Action<string>? OnGlobalScroll;
 		public event Action<string>? OnGlobalClick;
 		public event Action? OnGlobalResize;
+        public event Action<int>? OnNavbarHeightChanged;
 
-		public bool Initialized { get; private set; } = false;
+        public bool Initialized { get; private set; } = false;
 
 		[JSInvokable]
 		public void InvokeOnGlobalScroll(string elementId)
@@ -29,7 +30,13 @@ namespace FWO.Ui.Services
 			OnGlobalClick?.Invoke(elementId ?? "");
 		}
 
-		public async Task Initialize(IJSRuntime runtime)
+        [JSInvokable]
+        public void InvokeNavbarHeightChanged(int height)
+        {
+            OnNavbarHeightChanged?.Invoke(height);
+        }
+
+        public async Task Initialize(IJSRuntime runtime)
 		{
 			if (!Initialized)
 			{
@@ -38,6 +45,7 @@ namespace FWO.Ui.Services
                     await runtime.InvokeVoidAsync("globalScroll", DotNetObjectReference.Create(this));
                     await runtime.InvokeVoidAsync("globalResize", DotNetObjectReference.Create(this));
                     await runtime.InvokeVoidAsync("globalClick", DotNetObjectReference.Create(this));
+                    await runtime.InvokeVoidAsync("observeNavbarHeight", DotNetObjectReference.Create(this));
                     Initialized = true;
                 }
                 catch(Exception ex)

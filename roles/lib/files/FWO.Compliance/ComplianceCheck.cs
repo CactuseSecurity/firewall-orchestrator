@@ -11,6 +11,9 @@ using NetTools;
 using Microsoft.AspNetCore.Http;
 using FWO.Data.Report;
 using FWO.Report.Filter.FilterTypes;
+using FWO.Data.Middleware;
+using System.Text.Json;
+using FWO.Logging;
 
 namespace FWO.Compliance
 {
@@ -22,9 +25,11 @@ namespace FWO.Compliance
         private ReportBase? currentReport;
         Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
         ReportFilters reportFilters = new();
+
         private readonly UserConfig _userConfig;
         private readonly ApiConnection _apiConnection;
         CompliancePolicy? Policy = null;
+        private readonly DebugConfig _debugConfig;
 
 
         /// <summary>
@@ -36,6 +41,15 @@ namespace FWO.Compliance
         {
             _userConfig = userConfig;
             _apiConnection = apiConnection;
+
+            if (userConfig.GlobalConfig is GlobalConfig globalConfig && !string.IsNullOrEmpty(globalConfig.DebugConfig))
+            {
+                _debugConfig = JsonSerializer.Deserialize<DebugConfig>(globalConfig.DebugConfig) ?? new();
+            }
+            else
+            {
+                _debugConfig = new();
+            }
         }
 
         /// <summary>
@@ -44,6 +58,10 @@ namespace FWO.Compliance
         /// <returns></returns>
         public async Task CheckAll()
         {
+            if (_debugConfig.ExtendedLogComplianceCheck)
+            {
+                Log.WriteInfo("Compliance Check", "Starting compliance check");
+            }
             Policy = await _apiConnection.SendQueryAsync<CompliancePolicy>(ComplianceQueries.getPolicyById, new { id = _userConfig.ComplianceCheckPolicyId });
             await LoadNetworkZones();
             await SetUpReportFilters();
@@ -55,6 +73,11 @@ namespace FWO.Compliance
 
             if (_userConfig.GlobalConfig is GlobalConfig globalConfig && _apiConnection != null && currentReport is ReportCompliance complianceReport)
             {
+                if (_debugConfig.ExtendedLogComplianceCheck)
+                {
+                    Log.WriteInfo("Compliance Check", "Using restricted services: " + Policy.Criteria.FirstOrDefault(x => x.Content.CriterionType == CriterionType.ForbiddenService.ToString())?.Content.Content ?? "");
+                }
+
                 foreach (var management in complianceReport.ReportData.ManagementData)
                 {
                     await CheckRuleCompliancePerManagement(management);

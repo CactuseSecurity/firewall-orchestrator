@@ -120,6 +120,7 @@
             if(matrices.Count > 0)
             {
                 selectedMatrix = matrices[0];
+                await LoadMatrix();
             }
         }
         catch (Exception exception)
@@ -130,8 +131,11 @@
 
     private async Task OnMatrixChanged(ComplianceCriterion newMatrix)
     {
-        selectedMatrix = newMatrix;
-        await LoadMatrix();
+        if(selectedMatrix.Id != newMatrix.Id)
+        {
+            selectedMatrix = newMatrix;
+            await LoadMatrix();
+        }
     }
 
     private async Task LoadMatrix()

@@ -419,6 +419,9 @@ namespace FWO.Config.Api.Data
         [JsonProperty("complianceMatrixAllowNetworkZones"), JsonPropertyName("complianceMatrixAllowNetworkZones")]
         public bool ComplianceMatrixAllowNetworkZones { get; set; } = false;
 
+        [JsonProperty("debugConfig"), JsonPropertyName("debugConfig")]
+        public string DebugConfig { get; set; } = "";
+
         public ConfigData(bool editable = false)
         {
             Editable = editable;

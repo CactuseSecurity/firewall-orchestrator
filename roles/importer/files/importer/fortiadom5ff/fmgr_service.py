@@ -14,84 +14,97 @@ def normalize_service_objects(import_state: ImportStateController, native_config
         if not(current_obj_type in svc_obj_types and 'data' in native_config['objects'][current_obj_type]):
             continue
         for obj_orig in native_config['objects'][current_obj_type]['data']:
-            member_names = ''
-            if 'member' in obj_orig:
-                svc_type = 'group'
-                for member in obj_orig['member']:
-                    member_names += member + list_delimiter
-                member_names = member_names[:-1]
-            else:
-                svc_type = 'simple'
-
-            name = None
-            if 'name' in obj_orig:
-                name = str(obj_orig['name'])
-
-            color = None
-            if 'color' in obj_orig and obj_orig['color'] is not None and 'color' in obj_orig and str(obj_orig['color']) != '0':
-                color = str(obj_orig['color'])
-            else: 
-                color = '0'
-            
-            session_timeout = None   # todo: find the right timer
-    #        if 'udp-idle-timer' in obj_orig and str(obj_orig['udp-idle-timer']) != 0:
-    #            session_timeout = str(obj_orig['udp-idle-timer'])
-
-            proto = 0
-            range_names = ''
-            if 'protocol' in obj_orig:
-                added_svc_obj = 0
-                if obj_orig['protocol'] == 1:
-                    add_object(svc_objects, svc_type, name, color, 1, None, None, session_timeout)
-                    added_svc_obj += 1
-                elif obj_orig['protocol'] == 2:
-                    if 'protocol-number' in obj_orig:
-                        proto = obj_orig['protocol-number']
-                    add_object(svc_objects, svc_type, name, color, proto, None, None, session_timeout)
-                    added_svc_obj += 1
-                elif  obj_orig['protocol'] == 5 or obj_orig['protocol'] == 11:
-                    split = check_split(obj_orig)
-                    if "tcp-portrange" in obj_orig and len(obj_orig['tcp-portrange']) > 0:
-                        tcpname = name
-                        if split:
-                            tcpname += "_tcp"
-                            range_names += tcpname + list_delimiter
-                        add_object(svc_objects, svc_type, tcpname, color, 6, obj_orig['tcp-portrange'], None, session_timeout)
-                        added_svc_obj += 1
-                    if "udp-portrange" in obj_orig and len(obj_orig['udp-portrange']) > 0:
-                        udpname = name
-                        if split:
-                            udpname += "_udp"
-                            range_names += udpname + list_delimiter
-                        add_object(svc_objects, svc_type, udpname, color, 17, obj_orig['udp-portrange'], None, session_timeout)
-                        added_svc_obj += 1
-                    if "sctp-portrange" in obj_orig and len(obj_orig['sctp-portrange']) > 0:
-                        sctpname = name
-                        if split:
-                            sctpname += "_sctp"
-                            range_names += sctpname + list_delimiter
-                        add_object(svc_objects, svc_type, sctpname, color, 132, obj_orig['sctp-portrange'], None, session_timeout)
-                        added_svc_obj += 1
-                    if split:
-                        range_names = range_names[:-1]
-                        add_object(svc_objects, 'group', name, color, 0, None, range_names, session_timeout)
-                        added_svc_obj += 1
-                    if added_svc_obj==0: # assuming RPC service which here has no properties at all
-                        add_object(svc_objects, 'rpc', name, color, 0, None, None, None)
-                        added_svc_obj += 1
-                elif  obj_orig['protocol'] == 6:
-                    add_object(svc_objects, svc_type, name, color, 58, None, None, session_timeout)
-            elif svc_type == 'group':
-                add_object(svc_objects, svc_type, name, color, 0, None, member_names, session_timeout)
-            else:
-                add_object(svc_objects, svc_type, name, color, 0, None, None, session_timeout)
-
+            normalize_service_object(import_state, obj_orig, svc_objects)
     # finally add "Original" service object for natting
     original_obj_name = 'Original'
     svc_objects.append(create_svc_object(name=original_obj_name, proto=0, port=None,\
         comment='"original" service object created by FWO importer for NAT purposes'))
 
     normalized_config.update({'service_objects': svc_objects})
+
+def normalize_service_object(obj_orig, svc_objects):
+    member_names = ''
+    if 'member' in obj_orig:
+        svc_type = 'group'
+        for member in obj_orig['member']:
+            member_names += member + list_delimiter
+        member_names = member_names[:-1]
+    else:
+        svc_type = 'simple'
+
+    name = None
+    if 'name' in obj_orig:
+        name = str(obj_orig['name'])
+
+    color = obj_orig.get('color', None)
+    if color is not None:
+        color = str(color)
+    
+    session_timeout = None   # todo: find the right timer
+
+    if 'protocol' in obj_orig:
+        handle_svc_protocol(obj_orig, svc_objects, svc_type, name, color, session_timeout)
+    else:
+        if svc_type == 'group':
+            add_object(svc_objects, svc_type, name, color, 0, None, member_names, session_timeout)
+        else:
+            add_object(svc_objects, svc_type, name, color, 0, None, None, session_timeout)
+
+
+def handle_svc_protocol(obj_orig, svc_objects, svc_type, name, color, session_timeout):
+    proto = 0
+    range_names = ''
+    added_svc_obj = 0
+
+    # forti uses strange protocol numbers, so we need to map them
+
+    match obj_orig['protocol']:
+        case 1:
+            add_object(svc_objects, svc_type, name, color, 1, None, None, session_timeout)
+            added_svc_obj += 1
+        case 2:
+            if 'protocol-number' in obj_orig:
+                proto = obj_orig['protocol-number']
+            add_object(svc_objects, svc_type, name, color, proto, None, None, session_timeout)
+            added_svc_obj += 1
+        case 5 | 11:
+            parse_standard_protocols_with_ports(obj_orig, svc_objects, svc_type, name, color, session_timeout, range_names, added_svc_obj)
+        case 6:
+            add_object(svc_objects, svc_type, name, color, 58, None, None, session_timeout)
+        case _:
+            pass # not doing anything for other protocols, e.g. GRE, ESP, ...
+
+
+def parse_standard_protocols_with_ports(obj_orig, svc_objects, svc_type, name, color, session_timeout, range_names, added_svc_obj):
+    split = check_split(obj_orig)
+    if "tcp-portrange" in obj_orig and len(obj_orig['tcp-portrange']) > 0:
+        tcpname = name
+        if split:
+            tcpname += "_tcp"
+            range_names += tcpname + list_delimiter
+        add_object(svc_objects, svc_type, tcpname, color, 6, obj_orig['tcp-portrange'], None, session_timeout)
+        added_svc_obj += 1
+    if "udp-portrange" in obj_orig and len(obj_orig['udp-portrange']) > 0:
+        udpname = name
+        if split:
+            udpname += "_udp"
+            range_names += udpname + list_delimiter
+        add_object(svc_objects, svc_type, udpname, color, 17, obj_orig['udp-portrange'], None, session_timeout)
+        added_svc_obj += 1
+    if "sctp-portrange" in obj_orig and len(obj_orig['sctp-portrange']) > 0:
+        sctpname = name
+        if split:
+            sctpname += "_sctp"
+            range_names += sctpname + list_delimiter
+        add_object(svc_objects, svc_type, sctpname, color, 132, obj_orig['sctp-portrange'], None, session_timeout)
+        added_svc_obj += 1
+    if split:
+        range_names = range_names[:-1]
+        add_object(svc_objects, 'group', name, color, 0, None, range_names, session_timeout)
+        added_svc_obj += 1
+    if added_svc_obj==0: # assuming RPC service which here has no properties at all
+        add_object(svc_objects, 'rpc', name, color, 0, None, None, None)
+        added_svc_obj += 1
 
 
 def check_split(obj_orig):

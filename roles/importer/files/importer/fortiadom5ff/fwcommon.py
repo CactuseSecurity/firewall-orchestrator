@@ -130,7 +130,7 @@ def get_arbitrary_vdom(adom_device_vdom_structure):
                 return {'adom': adom, 'device': device, 'vdom': vdom}
 
 
-def normalize_config(import_state, native_config: json, parsing_config_only: bool, sid: str) -> FwConfigManagerListController:
+def normalize_config(import_state, native_config: json) -> FwConfigManagerListController:
 
     # delete_v: einfach kopiert von cp
     manager_list = FwConfigManagerListController()
@@ -149,8 +149,7 @@ def normalize_config(import_state, native_config: json, parsing_config_only: boo
         normalized_config_dict = fwo_const.emptyNormalizedFwConfigJsonDict
 
         normalized_config = normalize_single_manager_config(native_conf, native_config_global, normalized_config_dict, normalized_config_global, 
-                                                            import_state, parsing_config_only, sid, is_global_loop_iteration=False)
-        # raise NotImplementedError("normalize_config not implemented for FortiManager 5ff")
+                                                            import_state, is_global_loop_iteration=False)
         manager = FwConfigManager(ManagerUid=calcManagerUidHash(import_state.MgmDetails),
                                     ManagerName=import_state.MgmDetails.Name,
                                     IsGlobal=import_state.MgmDetails.IsSuperManager, 
@@ -179,7 +178,7 @@ def rewrite_native_config_obj_type_as_key(native_config):
 
 def normalize_single_manager_config(native_config: json, native_config_global: json, normalized_config_dict: dict,
                                     normalized_config_global: dict, import_state: ImportStateController,
-                                    parsing_config_only: bool, sid: str, is_global_loop_iteration: bool):
+                                    is_global_loop_iteration: bool):
 
     current_nw_obj_types = deepcopy(nw_obj_types)
     if native_config['is-super-manger']:

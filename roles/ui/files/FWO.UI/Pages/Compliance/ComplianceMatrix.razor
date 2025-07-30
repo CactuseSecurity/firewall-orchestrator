@@ -141,9 +141,9 @@
             matrixLoaded = false;
             StateHasChanged();
             networkZoneService.NetworkZones = await apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(ComplianceQueries.getNetworkZonesForMatrix, new { criterionId = selectedMatrix.Id });
-            matrixLoaded = true;
-            StateHasChanged();
         }
+        matrixLoaded = true;
+        StateHasChanged();
     }
 
     private void AddMatrix()

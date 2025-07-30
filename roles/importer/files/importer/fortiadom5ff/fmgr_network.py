@@ -6,12 +6,19 @@ from fmgr_zone import add_zone_if_missing
 from fwo_config import readConfig
 from fwo_const import fwo_config_filename
 from fwo_api import setAlert, create_data_issue
+from model_controllers.import_state_controller import ImportStateController
 
-def normalize_nwobjects(full_config, config2import, import_id, nw_obj_types, jwt=None, mgm_id=None):
+
+def normalize_network_objects(import_state: ImportStateController, native_config, native_config_global, normalized_config, normalized_config_global, nw_obj_types):
     logger = getFwoLogger()
     nw_objects = []
-    for obj_type in nw_obj_types:
-        for obj_orig in full_config[obj_type]:
+    
+    if 'objects' not in native_config:
+        return # no objects to normalize
+    for current_obj_type in native_config['objects']:
+        if not(current_obj_type in nw_obj_types and 'data' in native_config['objects'][current_obj_type]):
+            continue
+        for obj_orig in native_config['objects'][current_obj_type]['data']:
             obj_zone = 'global'
             obj = {}
             obj.update({'obj_name': obj_orig['name']})
@@ -32,7 +39,7 @@ def normalize_nwobjects(full_config, config2import, import_id, nw_obj_types, jwt
             elif 'member' in obj_orig: # addrgrp4 / addrgrp6
                 obj.update({ 'obj_typ': 'group' })
                 obj.update({ 'obj_member_names' : list_delimiter.join(obj_orig['member']) })
-                obj.update({ 'obj_member_refs' : resolve_objects(obj['obj_member_names'], list_delimiter, full_config, 'name', 'uuid', jwt=jwt, import_id=import_id)}, mgm_id=mgm_id)
+                obj.update({ 'obj_member_refs' : None}) # TODO: decide how to implement this # resolve_objects(obj['obj_member_names'], list_delimiter, native_config, 'name', 'uuid', jwt=import_state.Jwt, import_id=import_state.ImportId)}, mgm_id=import_state.MgmDetails.Id)
             elif 'startip' in obj_orig: # ippool object
                 obj.update({ 'obj_typ': 'ip_range' })
                 obj.update({ 'obj_ip': obj_orig['startip'] })
@@ -76,7 +83,7 @@ def normalize_nwobjects(full_config, config2import, import_id, nw_obj_types, jwt
                 if 'associated-interface' in obj_orig and len(obj_orig['associated-interface'])>0: # and obj_orig['associated-interface'][0] != 'any':
                     obj_zone = obj_orig['associated-interface'][0]
                 nat_obj.update({'obj_zone': obj_zone })
-                nat_obj.update({'control_id': import_id})
+                # nat_obj.update({'control_id': import_state.ImportId})
                 if nat_obj not in nw_objects:   # rare case when a destination nat is down for two different orig ips to the same dest ip
                     nw_objects.append(nat_obj)
                 else:
@@ -97,35 +104,35 @@ def normalize_nwobjects(full_config, config2import, import_id, nw_obj_types, jwt
             if 'associated-interface' in obj_orig and len(obj_orig['associated-interface'])>0: # and obj_orig['associated-interface'][0] != 'any':
                 obj_zone = obj_orig['associated-interface'][0]
                 # adding zone if it not yet exists
-                obj_zone = add_zone_if_missing (config2import, obj_zone, import_id)
+                obj_zone = add_zone_if_missing (normalized_config, obj_zone, import_state.ImportId)
             obj.update({'obj_zone': obj_zone })
             
-            obj.update({'control_id': import_id})
+            #obj.update({'control_id': import_state.ImportId})
             nw_objects.append(obj)
 
     # dynamic objects have different return structure
-    if 'response' in full_config['nw_obj_global_firewall/internet-service-basic'][0] and 'results' in full_config['nw_obj_global_firewall/internet-service-basic'][0]['response']:
-        for obj_orig in full_config['nw_obj_global_firewall/internet-service-basic'][0]['response']['results']:
-            if 'name' in obj_orig and 'q_origin_key' in obj_orig:
-                obj = {
-                    'obj_name': obj_orig['name'],
-                    'obj_typ': 'network',
-                    'obj_ip': '0.0.0.0/0',
-                    'obj_uid': 'q_origin_key_' + str(obj_orig['q_origin_key']),
-                    'control_id': import_id,
-                    'obj_zone': 'global'
-                    }
-                nw_objects.append(obj)
-    else:
-        logger.warning("internet service objects return format broken")
+    # if 'response' in native_config['nw_obj_global_firewall/internet-service-basic'][0] and 'results' in native_config['nw_obj_global_firewall/internet-service-basic'][0]['response']:
+    #     for obj_orig in native_config['nw_obj_global_firewall/internet-service-basic'][0]['response']['results']:
+    #         if 'name' in obj_orig and 'q_origin_key' in obj_orig:
+    #             obj = {
+    #                 'obj_name': obj_orig['name'],
+    #                 'obj_typ': 'network',
+    #                 'obj_ip': '0.0.0.0/0',
+    #                 'obj_uid': 'q_origin_key_' + str(obj_orig['q_origin_key']),
+    #                 'control_id': import_id,
+    #                 'obj_zone': 'global'
+    #                 }
+    #             nw_objects.append(obj)
+    # else:
+    #     logger.warning("internet service objects return format broken")
 
     # finally add "Original" network object for natting
     original_obj_name = 'Original'
     original_obj_uid = 'Original'
-    nw_objects.append(create_network_object(import_id=import_id, name=original_obj_name, type='network', ip='0.0.0.0/0',\
+    nw_objects.append(create_network_object(name=original_obj_name, type='network', ip='0.0.0.0/0',\
         uid=original_obj_uid, zone='global', color='black', comment='"original" network object created by FWO importer for NAT purposes'))
 
-    config2import.update({'network_objects': nw_objects})
+    normalized_config.update({'network_objects': nw_objects})
 
 
 def set_ip_in_obj(nw_obj, ip): # add start and end ip in nw_obj if it is a range, otherwise do nothing
@@ -164,11 +171,10 @@ def add_member_names_for_nw_group(idx, nw_objects):
     nw_objects.insert(idx, group)
 
 
-def create_network_object(import_id, name, type, ip, uid, color, comment, zone):
+def create_network_object(name, type, ip, uid, color, comment, zone):
     # if zone is None or zone == '':
     #     zone = 'global'
     return {
-        'control_id': import_id,
         'obj_name': name,
         'obj_typ': type,
         'obj_ip': ip,
@@ -227,53 +233,53 @@ def resolve_raw_objects (obj_name_string_list, delimiter, obj_dict, name_key, ui
     objects_not_found = []
     for el in obj_name_string_list.split(delimiter):
         found = False
-        if rule_type is not None:
-            if obj_type == 'network':
-                if 'v4' in rule_type and 'global' in rule_type:
-                    object_tables = [obj_dict['nw_obj_global_firewall/address'], obj_dict['nw_obj_global_firewall/addrgrp'], obj_dict['nw_obj_global_firewall/internet-service-basic'][0]['response']['results']]
-                elif 'v6' in rule_type and 'global' in rule_type:
-                    object_tables = [obj_dict['nw_obj_global_firewall/address6'], obj_dict['nw_obj_global_firewall/addrgrp6']]
-                elif 'v4' in rule_type and 'adom' in rule_type:
-                    object_tables = [obj_dict['nw_obj_adom_firewall/address'], obj_dict['nw_obj_adom_firewall/addrgrp'], \
-                        obj_dict['nw_obj_global_firewall/address'], obj_dict['nw_obj_global_firewall/addrgrp'], \
-                        obj_dict['nw_obj_adom_firewall/vip'], obj_dict['nw_obj_adom_system/external-resource'], \
-                        obj_dict['nw_obj_global_firewall/internet-service-basic'][0]['response']['results'] ]
-                elif 'v6' in rule_type and 'adom' in rule_type:
-                    object_tables = [obj_dict['nw_obj_adom_firewall/address6'], obj_dict['nw_obj_adom_firewall/addrgrp6'], \
-                        obj_dict['nw_obj_global_firewall/address6'], obj_dict['nw_obj_global_firewall/addrgrp6']]
-                elif 'nat' in rule_type and 'adom' in rule_type:
-                    object_tables = [obj_dict['nw_obj_adom_firewall/address'], obj_dict['nw_obj_adom_firewall/addrgrp'], \
-                        obj_dict['nw_obj_global_firewall/address'], obj_dict['nw_obj_global_firewall/addrgrp']]
-                elif 'nat' in rule_type and 'global' in rule_type:
-                    object_tables = [obj_dict['nw_obj_global_firewall/address'], obj_dict['nw_obj_global_firewall/addrgrp']]
+        if rule_type is None:
+            continue
+        if obj_type == 'network':
+            if 'v4' in rule_type and 'global' in rule_type:
+                object_tables = [obj_dict['nw_obj_global_firewall/address'], obj_dict['nw_obj_global_firewall/addrgrp'],
+                                 obj_dict['nw_obj_global_firewall/internet-service-basic'][0]['response']['results']]
+            elif 'v6' in rule_type and 'global' in rule_type:
+                object_tables = [obj_dict['nw_obj_global_firewall/address6'], obj_dict['nw_obj_global_firewall/addrgrp6']]
+            elif 'v4' in rule_type and 'adom' in rule_type:
+                object_tables = [obj_dict['nw_obj_adom_firewall/address'], obj_dict['nw_obj_adom_firewall/addrgrp'], \
+                    obj_dict['nw_obj_global_firewall/address'], obj_dict['nw_obj_global_firewall/addrgrp'], \
+                    obj_dict['nw_obj_adom_firewall/vip'], obj_dict['nw_obj_adom_system/external-resource'], \
+                    obj_dict['nw_obj_global_firewall/internet-service-basic'][0]['response']['results'] ]
+            elif 'v6' in rule_type and 'adom' in rule_type:
+                object_tables = [obj_dict['nw_obj_adom_firewall/address6'], obj_dict['nw_obj_adom_firewall/addrgrp6'], \
+                    obj_dict['nw_obj_global_firewall/address6'], obj_dict['nw_obj_global_firewall/addrgrp6']]
+            elif 'nat' in rule_type and 'adom' in rule_type:
+                object_tables = [obj_dict['nw_obj_adom_firewall/address'], obj_dict['nw_obj_adom_firewall/addrgrp'], \
+                    obj_dict['nw_obj_global_firewall/address'], obj_dict['nw_obj_global_firewall/addrgrp']]
+            elif 'nat' in rule_type and 'global' in rule_type:
+                object_tables = [obj_dict['nw_obj_global_firewall/address'], obj_dict['nw_obj_global_firewall/addrgrp']]
+            else:
+                object_tables = []
+            break_flag = False # if we find a match we stop the two inner for-loops
+            for tab in object_tables:
+                if break_flag:
+                    found = True
+                    break
                 else:
-                    object_tables = []
-                break_flag = False # if we find a match we stop the two inner for-loops
-                for tab in object_tables:
-                    if break_flag:
-                        found = True
-                        break
-                    else:
-                        for obj in tab:
-                            if obj[name_key] == el:
-                                if uid_key in obj:
-                                    ref_list.append(obj[uid_key])
-                                # in case of internet-service-object we find no uid field, but custom q_origin_key_
-                                elif 'q_origin_key' in obj:
-                                    ref_list.append('q_origin_key_' + str(obj['q_origin_key']))
-                                else:
-                                    logger.error('found object without expected uid')
-                                break_flag = True
-                                found = True
-                                break
-            elif obj_type == 'service':
-                logger.warning('todo later')
-        else:
-            logger.warning('decide what to do')
+                    for obj in tab:
+                        if obj[name_key] == el:
+                            if uid_key in obj:
+                                ref_list.append(obj[uid_key])
+                            # in case of internet-service-object we find no uid field, but custom q_origin_key_
+                            elif 'q_origin_key' in obj:
+                                ref_list.append('q_origin_key_' + str(obj['q_origin_key']))
+                            else:
+                                logger.error('found object without expected uid')
+                            break_flag = True
+                            found = True
+                            break
+        elif obj_type == 'service':
+            logger.warning('todo later')
         if not found:
             objects_not_found.append(el)
-    for obj in objects_not_found:
 
+    for obj in objects_not_found:
         if obj != 'all' and obj != 'Original':
             if not create_data_issue(fwo_config['fwo_api_base_url'], jwt, import_id=import_id, obj_name=obj, severity=1, rule_uid=rule_uid, mgm_id=mgm_id, object_type=object_type):
                 logger.warning("resolve_raw_objects: encountered error while trying to log an import data issue using create_data_issue")

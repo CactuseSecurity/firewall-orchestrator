@@ -8,18 +8,18 @@ import fwo_const
 from copy import deepcopy
 from model_controllers.import_state_controller import ImportStateController
 from fwo_exceptions import ImportInterruption, FwLoginFailed, FwLogoutFailed
-import fmgr_user
-import fmgr_service
-import fmgr_zone
 from fwo_base import write_native_config_to_file
-import fmgr_rule
-import fmgr_network
 import fmgr_getter
 from fwo_log import getFwoLogger
 from fmgr_gw_networking import getInterfacesAndRouting, normalize_network_data
 from model_controllers.route_controller import get_ip_of_interface_obj
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
+from models.fwconfigmanager import FwConfigManager
 from model_controllers.management_details_controller import ManagementDetailsController
+from fwconfig_base import calcManagerUidHash
+from fmgr_network import normalize_network_objects
+from fmgr_service import normalize_service_objects
+from fmgr_rule import normalize_rulebases, initialize_rulebases
 
 # delete_v: brauchen scope nicht mehr?
 #scope = ['global', 'adom']
@@ -150,18 +150,25 @@ def get_arbitrary_vdom(adom_device_vdom_structure):
 
 def normalize_config(import_state, native_config: json, parsing_config_only: bool, sid: str) -> FwConfigManagerListController:
 
-    # raise NotImplementedError("normalize_config not implemented for FortiManager 5ff")
     # delete_v: einfach kopiert von cp
     manager_list = FwConfigManagerListController()
+
+    native_config_global = {} # TODO: implement reading for FortiManager 5ff
+    normalized_config_global = {} # TODO: implement reading for FortiManager 5ff
 
     if 'domains' not in native_config:
         logger = getFwoLogger()
         logger.error("No domains found in native config. Cannot normalize config.")
         raise ImportInterruption("No domains found in native config. Cannot normalize config.")
-    
+
+    rewrite_native_config_obj_type_as_key(native_config) # for easier accessability of objects in normalization process
+
     for native_conf in native_config['domains']:
-        normalizedConfigDict = fwo_const.emptyNormalizedFwConfigJsonDict
-        normalized_config = normalize_single_manager_config(native_conf, normalizedConfigDict, import_state, parsing_config_only, sid)
+        normalized_config_dict = fwo_const.emptyNormalizedFwConfigJsonDict
+
+        normalized_config = normalize_single_manager_config(native_conf, native_config_global, normalized_config_dict, normalized_config_global, 
+                                                            import_state, parsing_config_only, sid, is_global_loop_iteration=False)
+        # raise NotImplementedError("normalize_config not implemented for FortiManager 5ff")
         manager = FwConfigManager(ManagerUid=calcManagerUidHash(import_state.MgmDetails),
                                     ManagerName=import_state.MgmDetails.Name,
                                     IsGlobal=import_state.MgmDetails.IsSuperManager, 
@@ -171,6 +178,49 @@ def normalize_config(import_state, native_config: json, parsing_config_only: boo
 
     return manager_list
 
+
+def rewrite_native_config_obj_type_as_key(native_config):
+    # rewrite native config objects to have the object type as key
+    # this is needed for the normalization process
+
+    for domain in native_config['domains']:
+        if 'objects' not in domain:
+            continue
+        obj_dict = {}
+        for obj_chunk in domain['objects']:
+            if 'type' not in obj_chunk:
+                continue
+            obj_type = obj_chunk['type']
+            obj_dict.update({obj_type: obj_chunk})
+        domain['objects'] = obj_dict
+
+
+def normalize_single_manager_config(native_config: json, native_config_global: json, normalized_config_dict: dict,
+                                    normalized_config_global: dict, import_state: ImportStateController,
+                                    parsing_config_only: bool, sid: str, is_global_loop_iteration: bool):
+
+    current_nw_obj_types = deepcopy(nw_obj_types)
+    if native_config['is-super-manger']:
+        current_nw_obj_types = ["nw_obj_global_" + t for t in nw_obj_types]
+
+    current_svc_obj_types = deepcopy(svc_obj_types)
+    if native_config['is-super-manger']:
+        current_svc_obj_types = ["svc_obj_global_" + t for t in svc_obj_types]
+    logger = getFwoLogger()
+    normalize_network_objects(import_state, native_config, native_config_global, normalized_config_dict, normalized_config_global, 
+                                           current_nw_obj_types)
+    logger.info("completed normalizing network objects")
+    normalize_service_objects(import_state, native_config, native_config_global, normalized_config_dict, normalized_config_global, 
+                                           current_svc_obj_types)
+    logger.info("completed normalizing service objects")
+    #fmgr_gateway.normalizeGateways(native_conf, import_state, normalized_config_dict)
+
+    # initialize_rulebases(native_config)
+    normalize_rulebases(native_config, native_config_global, import_state, normalized_config_dict, normalized_config_global, is_global_loop_iteration)
+    # if not parsing_config_only: # logout with fortiManager
+    #     logout_fmgr(import_state.MgmDetails.buildFwApiString(), sid)
+    logger.info("completed normalizing rulebases")
+    
 
 def build_adom_list(importState : ImportStateController):
     adom_list = []

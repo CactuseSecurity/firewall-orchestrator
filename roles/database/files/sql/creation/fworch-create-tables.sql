@@ -1048,9 +1048,9 @@ create table owner
 	active boolean default true,
 	import_source Varchar,
 	common_service_possible boolean default false,
-	last_certified Timestamp,
-	last_certifier int,
-	last_certifier_dn Varchar
+	last_recertified Timestamp,
+	last_recertifier int,
+	last_recertifier_dn Varchar
 );
 
 create table owner_network

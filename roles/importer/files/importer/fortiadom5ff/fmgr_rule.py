@@ -340,11 +340,8 @@ def normalize_rule(rule_orig, rules, native_config, rule_table, localPkgName, ru
     add_users_to_rule(rule_orig, rule)
 
     # new in v8.0.3:
-    if 'meta fields' in rule_orig:
-        rule.update({ 'rule_custom_fields': rule_orig['meta fields']})
-
-    if '_last-modified-by' in rule_orig:
-        rule.update({ 'rule_last_change_admin': rule_orig['_last-modified-by']})
+    rule.update({ 'rule_custom_fields': rule_orig.get('meta fields', None) })
+    rule.update({ 'rule_last_change_admin': rule_orig.get('_last-modified-by',None) })
 
     update_hit_counters(native_config, rule_table, rule_orig, rule, localPkgName, rule_access_scope_v4, rule_access_scope_v6)
 

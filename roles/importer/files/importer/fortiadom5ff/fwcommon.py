@@ -19,7 +19,7 @@ from model_controllers.management_details_controller import ManagementDetailsCon
 from fwconfig_base import calcManagerUidHash
 from fmgr_network import normalize_network_objects
 from fmgr_service import normalize_service_objects
-from fmgr_rule import normalize_rulebases, initialize_rulebases
+from fmgr_rule import normalize_rulebases, initialize_rulebases, getAccessPolicy
 from fmgr_consts import nw_obj_types, svc_obj_types, user_obj_types
 
 
@@ -74,7 +74,7 @@ def get_config(nativeConfig: json, importState: ImportStateController):
             for mgm_details_device in adom.Devices:
                 device_config = initialize_device_config(mgm_details_device)
                 native_config_adom['gateways'].append(device_config)
-                fmgr_rule.getAccessPolicy(
+                getAccessPolicy(
                     sid, fm_api_url, native_config_adom, adom_device_vdom_policy_package_structure, adom_name, mgm_details_device, device_config, limit)
                 # delete_v: nat später
                 #fmgr_rule.getNatPolicy(
@@ -89,7 +89,7 @@ def get_config(nativeConfig: json, importState: ImportStateController):
         write_native_config_to_file(importState, nativeConfig)
 
     # delete_v: brauchen wir hier wirklich sid, dann muss die auch für parsing_config_only TRUE erzeugt werden
-    normalizedConfig = normalize_config(importState, nativeConfig.native_config, parsing_config_only, sid)
+    normalizedConfig = normalize_config(importState, nativeConfig.native_config)
     logger.info("completed getting config")
     return 0, normalizedConfig
         
@@ -331,3 +331,5 @@ def get_objects(sid, fm_api_url, native_config_domain, native_config_global, ado
 #                     for dyn_mapping in mapping['platform_mapping']:
 #                         if 'intf-zone' in dyn_mapping and not dyn_mapping['intf-zone'] in nativeConfig['zones']['zone_list']:
 #                             nativeConfig['zones']['zone_list'].append(dyn_mapping['intf-zone'])
+
+

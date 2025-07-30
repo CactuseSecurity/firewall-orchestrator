@@ -6,6 +6,7 @@ from fmgr_zone import add_zone_if_missing
 from fwo_config import readConfig
 from fwo_const import fwo_config_filename
 from fwo_api import setAlert, create_data_issue
+from fmgr_base import resolve_raw_objects
 from model_controllers.import_state_controller import ImportStateController
 from fmgr_consts import v4_object_types, v6_object_types
 
@@ -90,7 +91,7 @@ def normalize_network_object(obj_orig, nw_objects, normalized_config, import_sta
     if 'associated-interface' in obj_orig and len(obj_orig['associated-interface'])>0: # and obj_orig['associated-interface'][0] != 'any':
         obj_zone = obj_orig['associated-interface'][0]
         # adding zone if it not yet exists
-        obj_zone = add_zone_if_missing (normalized_config, obj_zone, import_state.ImportId)
+        obj_zone = add_zone_if_missing (normalized_config, obj_zone)
     obj.update({'obj_zone': obj_zone })
     
     #obj.update({'control_id': import_state.ImportId})

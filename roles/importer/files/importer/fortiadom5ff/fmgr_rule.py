@@ -1,17 +1,19 @@
 import copy
 import jsonpickle
+import ipaddress
+import time
 from fwo_const import list_delimiter, nat_postfix, dummy_ip
 from fwo_base import extend_string_list
 from fmgr_service import create_svc_object
 from fmgr_network import create_network_object, get_first_ip_of_destination
-import fmgr_zone, fmgr_getter
+from fmgr_zone import add_zone_if_missing
+from fmgr_getter import fortinet_api_call
 from fmgr_gw_networking import get_device_from_package
 from fwo_log import getFwoLogger
 from model_controllers.route_controller import get_matching_route_obj, get_ip_of_interface_obj
-import ipaddress
-from fmgr_network import resolve_objects, resolve_raw_objects
-import time
 from fwo_exceptions import FwoDeviceWithoutLocalPackage
+from fmgr_base import resolve_raw_objects, resolve_objects
+
 
 rule_access_scope_v4 = ['rules_global_header_v4', 'rules_adom_v4', 'rules_global_footer_v4']
 rule_access_scope_v6 = ['rules_global_header_v6', 'rules_adom_v6', 'rules_global_footer_v6']
@@ -275,98 +277,102 @@ def normalize_access_rules(native_config, native_config_global, import_state, no
                 rule_number, first_v4, first_v6 = insert_headers(rule_table, first_v6, first_v4, native_config, rules, import_id, localPkgName,src_ref_all,dst_ref_all,rule_number)
 
                 for rule_orig in native_config[rule_table][localPkgName]:
-                    rule = {'rule_src': '', 'rule_dst': '', 'rule_svc': ''}
-                    xlate_rule = None
-                    rule.update({ 'control_id': import_id})
-                    rule.update({ 'rulebase_name': localPkgName})    # the rulebase_name will be set to the pkg_name as there is no rulebase_name in FortiMangaer
-                    rule.update({ 'rule_ruleid': rule_orig['policyid']})
-                    rule.update({ 'rule_uid': rule_orig['uuid']})
-                    rule.update({ 'rule_num': rule_number})
-                    if 'name' in rule_orig:
-                        rule.update({ 'rule_name': rule_orig['name']})
-                    if 'scope member' in rule_orig:
-                        installon_target = []
-                        for vdom in rule_orig['scope member']:
-                            installon_target.append(vdom['name'] + '_' + vdom['vdom'])
-                        rule.update({ 'rule_installon': '|'.join(installon_target)})
-                    else:
-                        rule.update({ 'rule_installon': localPkgName })
-                    rule.update({ 'rule_implied': False })
-                    rule.update({ 'rule_time': None })
-                    rule.update({ 'rule_type': 'access' })
-                    rule.update({ 'parent_rule_id': None })
 
-                    if 'comments' in rule_orig:
-                        rule.update({ 'rule_comment': rule_orig['comments']})
-                    else:
-                        rule.update({ 'rule_comment': None })
-                    if rule_orig['action']==0:
-                        rule.update({ 'rule_action': 'Drop' })
-                    else:
-                        rule.update({ 'rule_action': 'Accept' })
-                    if 'status' in rule_orig and (rule_orig['status']=='enable' or rule_orig['status']==1):
-                        rule.update({ 'rule_disabled': False })
-                    else:
-                        rule.update({ 'rule_disabled': True })
-                    if rule_orig['logtraffic'] == 'disable':
-                        rule.update({ 'rule_track': 'None'})
-                    else:
-                        rule.update({ 'rule_track': 'Log'})
-
-                    rule['rule_src'] = extend_string_list(rule['rule_src'], rule_orig, 'srcaddr', list_delimiter, jwt=jwt, import_id=import_id)
-                    rule['rule_dst'] = extend_string_list(rule['rule_dst'], rule_orig, 'dstaddr', list_delimiter, jwt=jwt, import_id=import_id)
-                    rule['rule_svc'] = extend_string_list(rule['rule_svc'], rule_orig, 'service', list_delimiter, jwt=jwt, import_id=import_id)
-                    rule['rule_src'] = extend_string_list(rule['rule_src'], rule_orig, 'srcaddr6', list_delimiter, jwt=jwt, import_id=import_id)
-                    rule['rule_dst'] = extend_string_list(rule['rule_dst'], rule_orig, 'dstaddr6', list_delimiter, jwt=jwt, import_id=import_id)
-                    rule['rule_src'] = extend_string_list(rule['rule_src'], rule_orig, 'internet-service-src-name', list_delimiter, jwt=jwt, import_id=import_id)
-
-                    if len(rule_orig['srcintf'])>0:
-                        src_obj_zone = fmgr_zone.add_zone_if_missing (normalized_config_dict, rule_orig['srcintf'][0], import_id)
-                        rule.update({ 'rule_from_zone': src_obj_zone }) # todo: currently only using the first zone
-                    if len(rule_orig['dstintf'])>0:
-                        dst_obj_zone = fmgr_zone.add_zone_if_missing (normalized_config_dict, rule_orig['dstintf'][0], import_id)
-                        rule.update({ 'rule_to_zone': dst_obj_zone }) # todo: currently only using the first zone
-
-                    if 'srcaddr-negate' in rule_orig:
-                        rule.update({ 'rule_src_neg': rule_orig['srcaddr-negate']=='disable'})
-                    elif 'internet-service-src-negate' in rule_orig:
-                        rule.update({ 'rule_src_neg': rule_orig['internet-service-src-negate']=='disable'})
-                    if 'dstaddr-negate' in rule_orig:
-                        rule.update({ 'rule_dst_neg': rule_orig['dstaddr-negate']=='disable'})
-                    if 'service-negate' in rule_orig:
-                        rule.update({ 'rule_svc_neg': rule_orig['service-negate']=='disable'})
-
-                    rule.update({ 'rule_src_refs': resolve_raw_objects(rule['rule_src'], list_delimiter, native_config, 'name', 'uuid', \
-                        rule_type=rule_table, jwt=jwt, import_id=import_id, rule_uid=rule_orig['uuid'], object_type='network object', mgm_id=mgm_details['id']) })
-                    rule.update({ 'rule_dst_refs': resolve_raw_objects(rule['rule_dst'], list_delimiter, native_config, 'name', 'uuid', \
-                        rule_type=rule_table, jwt=jwt, import_id=import_id, rule_uid=rule_orig['uuid'], object_type='network object', mgm_id=mgm_details['id']) })
-                    rule.update({ 'rule_svc_refs': rule['rule_svc'] }) # services do not have uids, so using name instead
-                    add_users_to_rule(rule_orig, rule)
-
-                    # new in v8.0.3:
-                    if 'meta fields' in rule_orig:
-                        rule.update({ 'rule_custom_fields': rule_orig['meta fields']})
-                    if '_last-modified-by' in rule_orig:
-                        rule.update({ 'rule_last_change_admin': rule_orig['_last-modified-by']})
-
-                    if rule_table in rule_access_scope_v4 and len(native_config['rules_hitcount'][localPkgName])>0:
-                        for hitcount_config in native_config['rules_hitcount'][localPkgName][0]['firewall policy']:
-                            if rule_orig['policyid'] == hitcount_config['last_hit']:
-                                rule.update({ 'last_hit': time.strftime("%Y-%m-%dT%H:%M:%S%z", time.localtime(hitcount_config['policyid']))})
-                    elif rule_table in rule_access_scope_v6 and len(native_config['rules_hitcount'][localPkgName])>0:
-                        for hitcount_config in native_config['rules_hitcount'][localPkgName][0]['firewall policy6']:
-                            if rule_orig['policyid'] == hitcount_config['last_hit']:
-                                rule.update({ 'last_hit': time.strftime("%Y-%m-%dT%H:%M:%S%z", time.localtime(hitcount_config['policyid']))})
-                    else:
-                        rule.update({ 'last_hit': None})
-
-                    xlate_rule = handle_combined_nat_rule(rule, rule_orig, normalized_config_dict, nat_rule_number, import_id, localPkgName, dev_id)
-                    rules.append(rule)
-                    if xlate_rule is not None:
-                        rules.append(xlate_rule)
-                    rule_number += 1    # nat rules have their own numbering
+                    normalize_rule(rule_orig, rules, native_config, rule_table, localPkgName, rule_number, src_ref_all, dst_ref_all, normalized_config_dict)
 
     normalized_config_dict.update({'rules': rules})
+
+def normalize_rule(rule_orig, rules, native_config, rule_table, localPkgName, rule_number, src_ref_all, dst_ref_all, normalized_config_dict):
+    rule = {'rule_src': '', 'rule_dst': '', 'rule_svc': ''}
+    xlate_rule = None
+    # rule.update({ 'control_id': import_id})
+    rule.update({ 'rulebase_name': localPkgName})    # the rulebase_name will be set to the pkg_name as there is no rulebase_name in FortiMangaer
+    rule.update({ 'rule_ruleid': rule_orig['policyid']})
+    rule.update({ 'rule_uid': rule_orig['uuid']})
+    rule.update({ 'rule_num': rule_number})
+    if 'name' in rule_orig:
+        rule.update({ 'rule_name': rule_orig['name']})
+    if 'scope member' in rule_orig:
+        installon_target = []
+        for vdom in rule_orig['scope member']:
+            installon_target.append(vdom['name'] + '_' + vdom['vdom'])
+        rule.update({ 'rule_installon': '|'.join(installon_target)})
+    else:
+        rule.update({ 'rule_installon': localPkgName })
+    rule.update({ 'rule_implied': False })
+    rule.update({ 'rule_time': None })
+    rule.update({ 'rule_type': 'access' })
+    rule.update({ 'parent_rule_id': None })
+
+    if 'comments' in rule_orig:
+        rule.update({ 'rule_comment': rule_orig['comments']})
+    else:
+        rule.update({ 'rule_comment': None })
+    if rule_orig['action']==0:
+        rule.update({ 'rule_action': 'Drop' })
+    else:
+        rule.update({ 'rule_action': 'Accept' })
+    if 'status' in rule_orig and (rule_orig['status']=='enable' or rule_orig['status']==1):
+        rule.update({ 'rule_disabled': False })
+    else:
+        rule.update({ 'rule_disabled': True })
+    if rule_orig['logtraffic'] == 'disable':
+        rule.update({ 'rule_track': 'None'})
+    else:
+        rule.update({ 'rule_track': 'Log'})
+
+    rule['rule_src'] = extend_string_list(rule['rule_src'], rule_orig, 'srcaddr', list_delimiter)
+    rule['rule_dst'] = extend_string_list(rule['rule_dst'], rule_orig, 'dstaddr', list_delimiter)
+    rule['rule_svc'] = extend_string_list(rule['rule_svc'], rule_orig, 'service', list_delimiter)
+    rule['rule_src'] = extend_string_list(rule['rule_src'], rule_orig, 'srcaddr6', list_delimiter)
+    rule['rule_dst'] = extend_string_list(rule['rule_dst'], rule_orig, 'dstaddr6', list_delimiter)
+    rule['rule_src'] = extend_string_list(rule['rule_src'], rule_orig, 'internet-service-src-name', list_delimiter)
+
+    if len(rule_orig['srcintf'])>0:
+        src_obj_zone = add_zone_if_missing (normalized_config_dict, rule_orig['srcintf'][0])
+        rule.update({ 'rule_from_zone': src_obj_zone }) # todo: currently only using the first zone
+    if len(rule_orig['dstintf'])>0:
+        dst_obj_zone = add_zone_if_missing (normalized_config_dict, rule_orig['dstintf'][0])
+        rule.update({ 'rule_to_zone': dst_obj_zone }) # todo: currently only using the first zone
+
+    if 'srcaddr-negate' in rule_orig:
+        rule.update({ 'rule_src_neg': rule_orig['srcaddr-negate']=='disable'})
+    elif 'internet-service-src-negate' in rule_orig:
+        rule.update({ 'rule_src_neg': rule_orig['internet-service-src-negate']=='disable'})
+    if 'dstaddr-negate' in rule_orig:
+        rule.update({ 'rule_dst_neg': rule_orig['dstaddr-negate']=='disable'})
+    if 'service-negate' in rule_orig:
+        rule.update({ 'rule_svc_neg': rule_orig['service-negate']=='disable'})
+
+    rule.update({ 'rule_src_refs': resolve_raw_objects(rule['rule_src'], list_delimiter, native_config, 'name', 'uuid', \
+        rule_type=rule_table, jwt=jwt, import_id=import_id, rule_uid=rule_orig['uuid'], object_type='network object', mgm_id=mgm_details['id']) })
+    rule.update({ 'rule_dst_refs': resolve_raw_objects(rule['rule_dst'], list_delimiter, native_config, 'name', 'uuid', \
+        rule_type=rule_table, jwt=jwt, import_id=import_id, rule_uid=rule_orig['uuid'], object_type='network object', mgm_id=mgm_details['id']) })
+    rule.update({ 'rule_svc_refs': rule['rule_svc'] }) # services do not have uids, so using name instead
+    add_users_to_rule(rule_orig, rule)
+
+    # new in v8.0.3:
+    if 'meta fields' in rule_orig:
+        rule.update({ 'rule_custom_fields': rule_orig['meta fields']})
+    if '_last-modified-by' in rule_orig:
+        rule.update({ 'rule_last_change_admin': rule_orig['_last-modified-by']})
+
+    if rule_table in rule_access_scope_v4 and len(native_config['rules_hitcount'][localPkgName])>0:
+        for hitcount_config in native_config['rules_hitcount'][localPkgName][0]['firewall policy']:
+            if rule_orig['policyid'] == hitcount_config['last_hit']:
+                rule.update({ 'last_hit': time.strftime("%Y-%m-%dT%H:%M:%S%z", time.localtime(hitcount_config['policyid']))})
+    elif rule_table in rule_access_scope_v6 and len(native_config['rules_hitcount'][localPkgName])>0:
+        for hitcount_config in native_config['rules_hitcount'][localPkgName][0]['firewall policy6']:
+            if rule_orig['policyid'] == hitcount_config['last_hit']:
+                rule.update({ 'last_hit': time.strftime("%Y-%m-%dT%H:%M:%S%z", time.localtime(hitcount_config['policyid']))})
+    else:
+        rule.update({ 'last_hit': None})
+
+    xlate_rule = handle_combined_nat_rule(rule, rule_orig, normalized_config_dict, nat_rule_number, import_id, localPkgName, dev_id)
+    rules.append(rule)
+    if xlate_rule is not None:
+        rules.append(xlate_rule)
+    rule_number += 1    # nat rules have their own numbering
 
 
 # pure nat rules 

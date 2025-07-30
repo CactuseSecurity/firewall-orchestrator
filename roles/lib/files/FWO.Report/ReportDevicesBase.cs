@@ -79,11 +79,11 @@ namespace FWO.Report
         {
             TryWriteExtendedLog("Checking if rules were found in device report.", _debugConfig.ExtendedLogComplianceCheck);
 
-            foreach (var mgmt in ReportData.ManagementData)
+            foreach (ManagementReport mgmt in ReportData.ManagementData)
             {
                 TryWriteExtendedLog($"Checking if rules were found in management {mgmt.Id} ({mgmt.Name}).", _debugConfig.ExtendedLogComplianceCheck);
 
-                foreach (var dev in mgmt.Devices)
+                foreach (DeviceReport dev in mgmt.Devices)
                 {
                     TryWriteExtendedLog($"Checking if rules were found in device {dev.Id} ({dev.Name}).", _debugConfig.ExtendedLogComplianceCheck);
 
@@ -92,9 +92,19 @@ namespace FWO.Report
                         int? nextRulebaseId = dev.RulebaseLinks.FirstOrDefault(_ => _.IsInitialRulebase())?.NextRulebaseId;
                         if (nextRulebaseId != null && mgmt.Rulebases.FirstOrDefault(_ => _.Id == nextRulebaseId)?.Rules.Length > 0)
                         {
-                            TryWriteExtendedLog($"Found rules in device {dev.Id} ({dev.Name}).", _debugConfig.ExtendedLogComplianceCheck);
+                            TryWriteExtendedLog("Found initial rulebase", _debugConfig.ExtendedLogComplianceCheck);
 
-                            return false;
+                            foreach (RulebaseLink link in dev.RulebaseLinks)
+                            {
+                                if (mgmt.Rulebases.FirstOrDefault(rulebase => rulebase.Id == link.NextRulebaseId) is RulebaseReport rulebase &&
+                                    rulebase.Rules != null && rulebase.Rules.Length > 0)
+                                {
+                                    TryWriteExtendedLog($"Found rules in rulebase {rulebase.Id} ({rulebase.Name}) of device {dev.Id} ({dev.Name}).", _debugConfig.ExtendedLogComplianceCheck);
+                                    return false;
+                                }
+
+                                return false;                          
+                            }
                         }
 
                         TryWriteExtendedLog($"No rules found in device {dev.Id} ({dev.Name}).", _debugConfig.ExtendedLogComplianceCheck);

@@ -85,35 +85,49 @@ namespace FWO.Report
 
                 foreach (DeviceReport dev in mgmt.Devices)
                 {
-                    Log.TryWriteLog(LogType.Info, "Device Report", $"Checking if rules were found in device {dev.Id} ({dev.Name}).", _debugConfig.ExtendedLogReportGeneration);
-
-                    if (dev.RulebaseLinks.Length > 0)
+                    if (!CheckDeviceHasNoRules(mgmt, dev))
                     {
-                        int? nextRulebaseId = dev.RulebaseLinks.FirstOrDefault(_ => _.IsInitialRulebase())?.NextRulebaseId;
-                        if (nextRulebaseId != null)
-                        {
-                            Log.TryWriteLog(LogType.Info, "Device Report", "Found initial rulebase", _debugConfig.ExtendedLogReportGeneration);
-
-                            foreach (RulebaseLink link in dev.RulebaseLinks)
-                            {
-                                if (mgmt.Rulebases.FirstOrDefault(rulebase => rulebase.Id == link.NextRulebaseId) is RulebaseReport rulebase && rulebase.Rules.Length > 0)
-                                {
-                                    Log.TryWriteLog(LogType.Info, "Device Report", $"Found rules in rulebase {rulebase.Id} ({rulebase.Name}) of device {dev.Id} ({dev.Name}).", _debugConfig.ExtendedLogReportGeneration);
-                                    return false;
-                                }                       
-                            }
-                        }
-                        else
-                        {
-                            Log.TryWriteLog(LogType.Info, "Device Report", "No initial rulebase found.", _debugConfig.ExtendedLogReportGeneration);
-                        }
-
-                        Log.TryWriteLog(LogType.Info, "Device Report", $"No rules found in device {dev.Id} ({dev.Name}).", _debugConfig.ExtendedLogReportGeneration);
+                        return false;
                     }
                 }
             }
 
             Log.TryWriteLog(LogType.Info, "Device Report", "No rules found in any device.", _debugConfig.ExtendedLogReportGeneration);
+
+            return true;
+        }
+
+        private bool CheckDeviceHasNoRules(ManagementReport mgmt, DeviceReport dev)
+        {
+            Log.TryWriteLog(LogType.Info, "Device Report", $"Checking if rules were found in device {dev.Id} ({dev.Name}).", _debugConfig.ExtendedLogReportGeneration);
+
+            if (dev.RulebaseLinks.Length > 0)
+            {
+                int? nextRulebaseId = dev.RulebaseLinks.FirstOrDefault(_ => _.IsInitialRulebase())?.NextRulebaseId;
+                if (nextRulebaseId != null)
+                {
+                    Log.TryWriteLog(LogType.Info, "Device Report", "Found initial rulebase", _debugConfig.ExtendedLogReportGeneration);
+
+                    foreach (RulebaseLink link in dev.RulebaseLinks)
+                    {
+                        if (mgmt.Rulebases.FirstOrDefault(rulebase => rulebase.Id == link.NextRulebaseId) is RulebaseReport rulebase && rulebase.Rules.Length > 0)
+                        {
+                            Log.TryWriteLog(LogType.Info, "Device Report", $"Found rules in rulebase {rulebase.Id} ({rulebase.Name}) of device {dev.Id} ({dev.Name}).", _debugConfig.ExtendedLogReportGeneration);
+                            return false;
+                        }
+                    }
+                }
+                else
+                {
+                    Log.TryWriteLog(LogType.Info, "Device Report", "No initial rulebase found.", _debugConfig.ExtendedLogReportGeneration);
+                }
+
+                Log.TryWriteLog(LogType.Info, "Device Report", $"No rules found in device {dev.Id} ({dev.Name}).", _debugConfig.ExtendedLogReportGeneration);
+            }
+            else
+            {
+                Log.TryWriteLog(LogType.Info, "Device Report", $"No rulebase links found in device {dev.Id} ({dev.Name}).", _debugConfig.ExtendedLogReportGeneration);
+            }
 
             return true;
         }

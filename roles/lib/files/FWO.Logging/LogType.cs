@@ -1,8 +1,11 @@
-public enum LogType
+namespace FWO.Logging
 {
-    Debug,
-    Info,
-    Warning,
-    Error,
-    Audit
+    public enum LogType
+    {
+        Debug,
+        Info,
+        Warning,
+        Error,
+        Audit
+    }
 }

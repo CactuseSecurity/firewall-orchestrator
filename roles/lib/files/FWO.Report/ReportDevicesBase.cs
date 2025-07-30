@@ -90,7 +90,7 @@ namespace FWO.Report
                     if (dev.RulebaseLinks.Length > 0)
                     {
                         int? nextRulebaseId = dev.RulebaseLinks.FirstOrDefault(_ => _.IsInitialRulebase())?.NextRulebaseId;
-                        if (nextRulebaseId != null && mgmt.Rulebases.FirstOrDefault(_ => _.Id == nextRulebaseId)?.Rules.Length > 0)
+                        if (nextRulebaseId != null)
                         {
                             TryWriteExtendedLog("Found initial rulebase", _debugConfig.ExtendedLogComplianceCheck);
 
@@ -102,6 +102,10 @@ namespace FWO.Report
                                     return false;
                                 }                       
                             }
+                        }
+                        else
+                        {
+                            TryWriteExtendedLog("No initial rulebase found.", _debugConfig.ExtendedLogComplianceCheck);
                         }
 
                         TryWriteExtendedLog($"No rules found in device {dev.Id} ({dev.Name}).", _debugConfig.ExtendedLogComplianceCheck);

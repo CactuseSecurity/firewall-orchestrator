@@ -42,7 +42,7 @@ namespace FWO.Middleware.Server
                 string value = match.Groups[2].Value; // RDN value
 
                 // Convert hex-escaped commas to commas
-                value = Regex.Replace(value, @"\\2c", "\\,");
+                value = Regex.Replace(value, @"\\2c", "\\,", RegexOptions.None, TimeSpan.FromMilliseconds(100));
 
                 return $"{attribute}={value}";
             });
@@ -308,7 +308,7 @@ namespace FWO.Middleware.Server
 		{
 			List<string> allMembers = [];
 
-			if (!string.IsNullOrEmpty(GroupSearchPath) && groupDn.Contains(GroupSearchPath))
+			if (!string.IsNullOrEmpty(GroupSearchPath) && groupDn.EndsWith(GroupSearchPath, StringComparison.OrdinalIgnoreCase))
 			{
 				try
 				{
@@ -337,34 +337,99 @@ namespace FWO.Middleware.Server
 			return allMembers;
 		}
 
-		/// <summary>
-		/// Add new group
-		/// </summary>
-		/// <returns>group DN if user added</returns>
-		public async Task<string> AddGroup(string groupName, bool ownerGroup)
-		{
-			Log.WriteInfo("Add Group", $"Trying to add Group: \"{groupName}\"");
-			bool groupAdded = false;
-			string groupDn = groupName;
-			try
-			{
+        /// <summary>
+        /// Get all groups, the user is member of
+        /// </summary>
+        /// <param name="userToSearch">user to search</param>
+        /// <returns>list of groups</returns>
+        /// <remarks>
+        /// This method is used to get the groups of a user in the LDAP directory.
+        /// It connects to the LDAP server, binds with the search user, and searches for the user in the specified search path.
+        /// If the user is found, it retrieves the "memberOf" attribute, which contains the groups the user is a member of.
+        /// The method returns a list of group names that the user belongs to.
+        /// </remarks>
+        public async Task<List<string>> GetGroupsOfUser(string userToSearch)
+        {
+            List<string> userGroups = [];
+            try
+            {
+                using LdapConnection connection = await Connect();
+                await TryBind(connection, SearchUser, SearchUserPwd);
+
+                // Suchfilter für Benutzer
+				string searchFilter = $"(|(cn={userToSearch})(sAMAccountName={userToSearch}))";
+
+                var searchResults = await connection.SearchAsync(
+                    UserSearchPath,
+                    LdapConnection.ScopeSub,
+                    searchFilter,
+                    new[] { "memberOf" },
+                    false
+                );
+
+                if (await searchResults.HasMoreAsync())
+                {
+                    var entry = await searchResults.NextAsync();
+                    var memberOfAttrs = entry.Get("memberOf");
+
+                    if (memberOfAttrs != null)
+                    {
+                        foreach (var group in memberOfAttrs.StringValueArray)
+                        {
+                            userGroups.Add(group);
+                        }
+                    }
+                    else
+                    {
+                        Log.WriteWarning("GetGroupsOfUser", $"User does not have any groups \"{userToSearch}\"");
+                    }
+                }
+                else
+                {
+                    Log.WriteWarning("GetGroupsOfUser", $"Could not find user \"{userToSearch}\"");
+                }
+            }
+            catch (LdapException e)
+            {
+                Log.WriteError("GetGroupsOfUser LDAP error", e.LdapErrorMessage);
+            }
+            catch (Exception ex)
+            {
+                Log.WriteError("GetGroupsOfUser error", ex.Message);
+            }
+            return userGroups;
+        }
+
+
+
+        /// <summary>
+        /// Add new group
+        /// </summary>
+        /// <returns>group DN if user added</returns>
+        public async Task<string> AddGroup(string groupName, bool ownerGroup)
+        {
+            Log.WriteInfo("Add Group", $"Trying to add Group: \"{groupName}\"");
+            bool groupAdded = false;
+            string groupDn = groupName;
+            try
+            {
                 using LdapConnection connection = await Connect();
                 // Authenticate as write user
                 await TryBind(connection, WriteUser, WriteUserPwd);
 
-				if (!IsFullyQualifiedDn(groupDn))
-				{
-					groupDn = $"cn={groupName},{GroupWritePath}";
-				}
-				LdapAttributeSet attributeSet = new ();
-				attributeSet.Add(new LdapAttribute("objectclass", "groupofuniquenames"));
-				attributeSet.Add(new LdapAttribute("uniqueMember", ""));
-				if (ownerGroup)
-				{
-					attributeSet.Add(new LdapAttribute("businessCategory", "ownergroup"));
-				}
+                if (!IsFullyQualifiedDn(groupDn))
+                {
+                    groupDn = $"cn={groupName},{GroupWritePath}";
+                }
+                LdapAttributeSet attributeSet = new();
+                attributeSet.Add(new LdapAttribute("objectclass", "groupofuniquenames"));
+                attributeSet.Add(new LdapAttribute("uniqueMember", ""));
+                if (ownerGroup)
+                {
+                    attributeSet.Add(new LdapAttribute("businessCategory", "ownergroup"));
+                }
 
-                LdapEntry newEntry = new (groupDn, attributeSet);
+                LdapEntry newEntry = new(groupDn, attributeSet);
 
                 try
                 {
@@ -378,12 +443,12 @@ namespace FWO.Middleware.Server
                     Log.WriteInfo("Add Group", $"couldn't add group to LDAP {Address}:{Port}: {exception}");
                 }
             }
-			catch (Exception exception)
-			{
-				Log.WriteError($"Non-LDAP exception {Address}:{Port}", "Unexpected error while trying to add group", exception);
-			}
-			return groupAdded ? groupDn : "";
-		}
+            catch (Exception exception)
+            {
+                Log.WriteError($"Non-LDAP exception {Address}:{Port}", "Unexpected error while trying to add group", exception);
+            }
+            return groupAdded ? groupDn : "";
+        }
 
 		/// <summary>
 		/// Update group name

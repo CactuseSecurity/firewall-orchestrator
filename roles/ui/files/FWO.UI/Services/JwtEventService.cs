@@ -1,4 +1,4 @@
-﻿using FWO.Basics;
+﻿﻿using FWO.Basics;
 using FWO.Config.Api;
 
 namespace FWO.Ui.Services
@@ -11,9 +11,9 @@ namespace FWO.Ui.Services
 
         public static event EventHandler<string>? OnJwtExpired;
 
-        private static readonly Dictionary<string, Timer> jwtAboutToExpireTimers = new Dictionary<string, Timer>();
+        private static readonly Dictionary<string, Timer> jwtAboutToExpireTimers = new();
 
-        private static readonly Dictionary<string, Timer> jwtExpiredTimers = new Dictionary<string, Timer>();
+        private static readonly Dictionary<string, Timer> jwtExpiredTimers = new();
 
         public static void PermissionsChanged(string userDn)
         {
@@ -33,14 +33,8 @@ namespace FWO.Ui.Services
         public static void AddJwtTimers(string userDn, int timeUntilyExpiry, int notificationTime)
         {
             // Dispose old timer (if existing)
-            if (jwtAboutToExpireTimers.ContainsKey(userDn))
-            {
-                jwtAboutToExpireTimers[userDn].Dispose();
-            }
-            if (jwtExpiredTimers.ContainsKey(userDn))
-            {
-                jwtExpiredTimers[userDn].Dispose();
-            }
+            RemoveJwtTimers(userDn);
+
             // Create new timers
             if (notificationTime > 0 && timeUntilyExpiry - notificationTime > 0)
             {
@@ -49,6 +43,21 @@ namespace FWO.Ui.Services
             if (timeUntilyExpiry > 0)
             {
                 jwtExpiredTimers[userDn] = new Timer(_ => JwtExpired(userDn), null, timeUntilyExpiry, int.MaxValue);
+            }
+        }
+
+        public static void RemoveJwtTimers(string userDn)
+        {
+            if (jwtAboutToExpireTimers.TryGetValue(userDn, out Timer? aboutToExpire))
+            {
+                aboutToExpire.Dispose();
+                jwtAboutToExpireTimers.Remove(userDn);
+            }
+
+            if (jwtExpiredTimers.TryGetValue(userDn, out Timer? expired))
+            {
+                expired.Dispose();
+                jwtExpiredTimers.Remove(userDn);
             }
         }
     }

@@ -1,4 +1,4 @@
-﻿@using FWO.Data.Middleware
+@using FWO.Data.Middleware
 @using FWO.Middleware.Client
 @using RestSharp
 @using System.Net
@@ -270,7 +270,7 @@
             }
             else
             {
-                actIpAddresses = await apiConnection.SendQueryAsync<List<NwObjectElement>>(AuthQueries.getTenantNetworks, 
+                actIpAddresses = await apiConnection.SendQueryAsync<List<NwObjectElement>>(AuthQueries.getTenantNetworks,
                     new { tenantId = actTenant.Id });
             }
             ipsToAdd.Clear();
@@ -337,7 +337,7 @@
                     mgm.Visible = true;
                     mgm.Shared = tenMgm.Shared;
                 }
-            }            
+            }
         }
         // set explicit gateway visibilities from tenant_to_device table
         foreach (TenantGateway tenGw in tenantDevices.TenantGateways)
@@ -426,6 +426,13 @@
             }
             DeleteTenantMode = false;
             EditTenantMode = false;
+
+            Log.WriteAudit(
+                Title: $"Tenants Settings",
+                Text: $"Deleted Tenant: {actTenant.Name} (ID: {actTenant.Id})",
+                UserName: userConfig.User.Name,
+                UserDN: userConfig.User.Dn);
+
         }
         catch (Exception exception)
         {
@@ -539,6 +546,12 @@
                 tenants.Add(actTenant);
                 AddTenantMode = false;
                 EditTenantMode = false;
+
+                Log.WriteAudit(
+                    Title: $"Tenants Settings",
+                    Text: $"Added Tenant: {actTenant.Name} (ID: {actTenant.Id})",
+                    UserName: userConfig.User.Name,
+                    UserDN: userConfig.User.Dn);
             }
         }
     }
@@ -555,6 +568,12 @@
             await deleteTenantNetworks();
             await addTenantNetworks();
             EditTenantMode = false;
+
+            Log.WriteAudit(
+                Title: $"Tenants Settings",
+                Text: $"Edited Tenant: {actTenant.Name} (ID: {actTenant.Id})",
+                UserName: userConfig.User.Name,
+                UserDN: userConfig.User.Dn);
         }
     }
 

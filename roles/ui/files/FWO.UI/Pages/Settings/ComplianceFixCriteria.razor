@@ -1,0 +1,128 @@
+﻿@using FWO.Ui.Data
+@using System.Text.Json
+
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Auditor}")]
+
+@inject UserConfig userConfig
+@inject ApiConnection apiConnection
+
+<PopUp Title="@(userConfig.GetText("fix_criteria"))" Size=PopupSize.Medium Show="@Display" OnClose="Cancel">
+    <Body>
+        @if(Display)
+        {
+			<button type="button" class="btn btn-sm btn-success" data-toggle="tooltip" title="@(userConfig.PureLine("H5501"))" 
+        		@onclick="AddCriterion">@(userConfig.GetText("add"))</button>
+    		<br><br>
+
+			<Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="ComplianceCriterion" Items="FixCriteria" PageSize="0" ColumnReorder="true">
+	            <Column TableItem="ComplianceCriterion" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
+	                <Template>
+	                    <div class="btn-group">
+	                        <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditCriterion(context)">@(userConfig.GetText("edit"))</button>
+	                        <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestDeleteCriterion(context)">@(userConfig.GetText("delete"))</button>
+	                    </div>
+	                </Template>
+	            </Column>
+	            <Column TableItem="ComplianceCriterion" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
+	            <Column TableItem="ComplianceCriterion" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
+	            <Column TableItem="ComplianceCriterion" Title="@(userConfig.GetText("type"))" Field="@(x => x.CriterionType)" Sortable="true" Filterable="true" />
+	        </Table>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("ok"))</button>
+        </div>
+    </Footer>
+</PopUp>
+<EditFixCriterion @bind-Display="EditCritMode" @bind-SelectedCriterion="ActCrit" AddMode="AddCritMode" @bind-CriteriaList="FixCriteria"/>
+<ConfirmDelete @bind-Display="DeleteCritMode" PerformAction="RemoveCriterion" Title="@userConfig.GetText("delete")" DeleteMessage="@(DeleteMessage)" />
+
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    [Parameter]
+    public bool Display { get; set; } = false;
+
+    [Parameter]
+    public EventCallback<bool> DisplayChanged { get; set; }
+
+
+    private List<ComplianceCriterion> FixCriteria = [];
+    private ComplianceCriterion ActCrit = new();
+	private bool AddCritMode = false;
+	private bool EditCritMode = false;
+	private bool DeleteCritMode = false;
+	private string DeleteMessage = "";
+ 
+
+    protected async override Task OnInitializedAsync()
+    {
+        try
+        {
+            FixCriteria = [.. (await apiConnection.SendQueryAsync<List<ComplianceCriterion>>(ComplianceQueries.getCriteria)).Where(c => c.CriterionType != CriterionType.Matrix.ToString())];
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("object_fetch"), "", true);
+        }
+    }
+
+	private void AddCriterion()
+    {
+        ActCrit = new();
+		AddCritMode = true;
+		EditCritMode = true;
+    }
+
+    private void EditCriterion(ComplianceCriterion criterion)
+    {
+        ActCrit = criterion;
+		AddCritMode = false;
+		EditCritMode = true;
+    }
+	
+    private void RequestDeleteCriterion(ComplianceCriterion criterion)
+    {
+        ActCrit = criterion;
+		DeleteMessage = $"{userConfig.GetText("U4002")}: {criterion.Name}?";
+		DeleteCritMode = true;
+    }
+
+	private async Task RemoveCriterion()
+	{
+        try
+        {
+	        if(ActCrit.Removed == null)
+			{
+				await apiConnection.SendQueryAsync<ReturnId>(ComplianceQueries.removeCriterion,
+	            	new { id = ActCrit.Id, removed = DateTime.UtcNow });
+				FixCriteria.Remove(ActCrit);
+				ActCrit = new();
+				DeleteCritMode = false;
+				StateHasChanged();
+			}
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("edit_fix_crit"), "", true);
+        }
+	}
+
+    private void Cancel()
+    {
+        Close();
+    }
+
+    private void Close()
+    {
+		AddCritMode = false;
+		EditCritMode = false;
+		DeleteCritMode = false;
+        Display = false;
+        DisplayChanged.InvokeAsync(Display);
+    }
+}

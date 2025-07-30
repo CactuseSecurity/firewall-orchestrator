@@ -1,0 +1,5 @@
+@inject UserConfig userConfig
+
+<div class="spinner-border spinner-border-sm" role="status">
+    <span class="visually-hidden">@(userConfig.GetText("loading"))</span>
+</div>

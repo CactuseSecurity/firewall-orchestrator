@@ -395,26 +395,29 @@ namespace FWO.Config.Api.Data
         [JsonProperty("resolveNetworkAreas"), JsonPropertyName("resolveNetworkAreas")]
         public bool ResolveNetworkAreas { get; set; } = false;
 
-		[JsonProperty("complianceCheckSleepTime"), JsonPropertyName("complianceCheckSleepTime")]
-		public int ComplianceCheckSleepTime { get; set; } = 0;
+        [JsonProperty("complianceCheckSleepTime"), JsonPropertyName("complianceCheckSleepTime")]
+        public int ComplianceCheckSleepTime { get; set; } = 0;
 
-		[JsonProperty("complianceCheckStartAt"), JsonPropertyName("complianceCheckStartAt")]
-		public DateTime ComplianceCheckStartAt { get; set; } = DateTime.Now;
+        [JsonProperty("complianceCheckStartAt"), JsonPropertyName("complianceCheckStartAt")]
+        public DateTime ComplianceCheckStartAt { get; set; } = DateTime.Now;
 
-		[JsonProperty("complianceCheckMailRecipients"), JsonPropertyName("complianceCheckMailRecipients")]
-		public string ComplianceCheckMailRecipients { get; set; } = "";
+        [JsonProperty("complianceCheckPolicy"), JsonPropertyName("complianceCheckPolicy")]
+        public int ComplianceCheckPolicyId { get; set; } = 0;
 
-		[JsonProperty("complianceCheckMailSubject"), JsonPropertyName("complianceCheckMailSubject")]
-		public string ComplianceCheckMailSubject { get; set; } = "";
+        [JsonProperty("complianceCheckMailRecipients"), JsonPropertyName("complianceCheckMailRecipients")]
+        public string ComplianceCheckMailRecipients { get; set; } = "";
 
-		[JsonProperty("complianceCheckMailBody"), JsonPropertyName("complianceCheckMailBody")]
-		public string ComplianceCheckMailBody { get; set; } = "";
+        [JsonProperty("complianceCheckMailSubject"), JsonPropertyName("complianceCheckMailSubject")]
+        public string ComplianceCheckMailSubject { get; set; } = "";
+
+        [JsonProperty("complianceCheckMailBody"), JsonPropertyName("complianceCheckMailBody")]
+        public string ComplianceCheckMailBody { get; set; } = "";
 
         [JsonProperty("complianceCheckPersistData"), JsonPropertyName("complianceCheckPersistData")]
         public bool ComplianceCheckPersistData { get; set; } = false;
 
-        [JsonProperty("complianceCheckRestrictedServices"), JsonPropertyName("complianceCheckRestrictedServices")]
-        public string ComplianceCheckRestrictedServices { get; set; } = "";
+        [JsonProperty("complianceMatrixAllowNetworkZones"), JsonPropertyName("complianceMatrixAllowNetworkZones")]
+        public bool ComplianceMatrixAllowNetworkZones { get; set; } = false;
 
         [JsonProperty("debugConfig"), JsonPropertyName("debugConfig")]
         public string DebugConfig { get; set; } = "";

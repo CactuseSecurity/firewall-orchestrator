@@ -106,6 +106,36 @@
                     "filter": {}
                   },
                   "comment": ""
+                },
+                {
+                  "role": "importer",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "content",
+                      "criterion_type",
+                      "name",
+                      "created",
+                      "removed"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "content",
+                      "criterion_type",
+                      "name",
+                      "created",
+                      "removed"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
                 }
               ]
             },
@@ -1107,6 +1137,19 @@
                     "filter": {}
                   },
                   "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "disabled",
+                      "id",
+                      "name",
+                      "created_date"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
                 }
               ]
             },
@@ -1145,6 +1188,19 @@
                 },
                 {
                   "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "criterion_id",
+                      "policy_id",
+                      "created",
+                      "removed"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
                   "permission": {
                     "columns": [
                       "criterion_id",

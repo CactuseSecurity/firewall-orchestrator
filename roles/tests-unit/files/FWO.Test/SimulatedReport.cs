@@ -74,7 +74,7 @@ namespace FWO.Test
             return Task.FromResult(true);
         }
 
-        override public Task Generate(int rulesPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback, CancellationToken ct)
+        override public Task Generate(int elementsPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback, CancellationToken ct)
         {
             return Task.CompletedTask;
         }

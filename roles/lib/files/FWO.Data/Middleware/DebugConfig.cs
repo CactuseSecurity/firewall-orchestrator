@@ -7,7 +7,7 @@ namespace FWO.Data.Middleware
     {
         [JsonProperty("debugLevel"), JsonPropertyName("debugLevel")]
         public int DebugLevel { get; set; } = 0;
-        
+
         [JsonProperty("extendedLogComplianceCheck"), JsonPropertyName("extendedLogComplianceCheck")]
         public bool ExtendedLogComplianceCheck { get; set; } = false;
 
@@ -16,5 +16,6 @@ namespace FWO.Data.Middleware
 
         [JsonProperty("extendedLogScheduler"), JsonPropertyName("extendedLogScheduler")]
         public bool ExtendedLogScheduler { get; set; } = false;
+
     }
 }

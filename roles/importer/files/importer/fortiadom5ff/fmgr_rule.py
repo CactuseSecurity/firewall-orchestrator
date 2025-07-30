@@ -17,7 +17,7 @@ from models.rule import Rule
 from models.rulebase import Rulebase
 from fwo_globals import debug_level
 
-
+NETWORK_OBJECT='network_object'
 rule_access_scope_v4 = ['rules_global_header_v4', 'rules_adom_v4', 'rules_global_footer_v4']
 rule_access_scope_v6 = ['rules_global_header_v6', 'rules_adom_v6', 'rules_global_footer_v6']
 rule_access_scope = rule_access_scope_v6 + rule_access_scope_v4
@@ -333,9 +333,9 @@ def normalize_rule(rule_orig, rules, native_config, rule_table, localPkgName, ru
         rule.update({ 'rule_svc_neg': rule_orig['service-negate']=='disable'})
 
     rule.update({ 'rule_src_refs': resolve_raw_objects(rule['rule_src'], list_delimiter, native_config, 'name', 'uuid', \
-        rule_type=rule_table, jwt=None, import_id=None, rule_uid=rule_orig['uuid'], object_type='network object', mgm_id=mgm_details['id']) })
+        rule_type=rule_table, jwt=None, import_id=None, rule_uid=rule_orig['uuid'], object_type=NETWORK_OBJECT, mgm_id=mgm_details['id']) })
     rule.update({ 'rule_dst_refs': resolve_raw_objects(rule['rule_dst'], list_delimiter, native_config, 'name', 'uuid', \
-        rule_type=rule_table, jwt=None, import_id=None, rule_uid=rule_orig['uuid'], object_type='network object', mgm_id=mgm_details['id']) })
+        rule_type=rule_table, jwt=None, import_id=None, rule_uid=rule_orig['uuid'], object_type=NETWORK_OBJECT, mgm_id=mgm_details['id']) })
     rule.update({ 'rule_svc_refs': rule['rule_svc'] }) # services do not have uids, so using name instead
     add_users_to_rule(rule_orig, rule)
 
@@ -424,9 +424,9 @@ def normalize_nat_rules(full_config, config2import, import_id, jwt=None):
                     rule.update({ 'rule_dst_neg': False})
                     rule.update({ 'rule_svc_neg': False})
                     rule.update({ 'rule_src_refs': resolve_raw_objects(rule['rule_src'], list_delimiter, full_config, 'name', 'uuid', rule_type=rule_table) }, \
-                        jwt=jwt, import_id=import_id, rule_uid=rule_orig['uuid'], object_type='network object')
+                        jwt=jwt, import_id=import_id, rule_uid=rule_orig['uuid'], object_type=NETWORK_OBJECT)
                     rule.update({ 'rule_dst_refs': resolve_raw_objects(rule['rule_dst'], list_delimiter, full_config, 'name', 'uuid', rule_type=rule_table) }, \
-                        jwt=jwt, import_id=import_id, rule_uid=rule_orig['uuid'], object_type='network object')
+                        jwt=jwt, import_id=import_id, rule_uid=rule_orig['uuid'], object_type=NETWORK_OBJECT)
                     # services do not have uids, so using name instead
                     rule.update({ 'rule_svc_refs': rule['rule_svc'] })
                     rule.update({ 'rule_type': 'original' })

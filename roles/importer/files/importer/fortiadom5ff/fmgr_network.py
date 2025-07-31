@@ -43,7 +43,7 @@ def normalize_network_objects(import_state: ImportStateController, native_config
     # finally add "Original" network object for natting
     original_obj_name = 'Original'
     original_obj_uid = 'Original'
-    nw_objects.append(create_network_object(name=original_obj_name, type='network', ip='0.0.0.0/0',\
+    nw_objects.append(create_network_object(name=original_obj_name, type='network', ip='0.0.0.0', ip_end='255.255.255.255',\
         uid=original_obj_uid, zone='global', color='black', comment='"original" network object created by FWO importer for NAT purposes'))
 
     normalized_config.update({'network_objects': nw_objects})
@@ -59,7 +59,8 @@ def normalize_network_object(obj_orig, nw_objects, normalized_config, import_sta
             obj.update({ 'obj_typ': 'network' })
         else:
             obj.update({ 'obj_typ': 'host' })
-        obj.update({ 'obj_ip': ipa.with_prefixlen })
+        obj.update({ 'obj_ip': str(ipa.network_address) })
+        obj.update({ 'obj_ip_end': str(ipa.broadcast_address) })
     elif 'ip6' in obj_orig: # ipv6 object
         normalize_network_object_ipv6(obj_orig, obj)
     elif 'member' in obj_orig: # addrgrp4 / addrgrp6
@@ -78,7 +79,8 @@ def normalize_network_object(obj_orig, nw_objects, normalized_config, import_sta
         normalize_vip_object(obj_orig, obj, nw_objects)
     else: # 'fqdn' in obj_orig: # "fully qualified domain name address" // other unknown types
         obj.update({ 'obj_typ': 'network' })
-        obj.update({ 'obj_ip': '0.0.0.0/0'})
+        obj.update({ 'obj_ip': '0.0.0.0'})
+        obj.update({ 'obj_ip_end': '255.255.255.255'})
 
     obj.update({'obj_comment': obj_orig.get('comment', None)})
     if 'color' in obj_orig and obj_orig['color']==0:
@@ -98,12 +100,13 @@ def normalize_network_object(obj_orig, nw_objects, normalized_config, import_sta
     nw_objects.append(obj)
 
 def normalize_network_object_ipv6(obj_orig, obj):
-    ipa = ipaddress.ip_network(str(obj_orig['ip6']).replace("\\", ""))
+    ipa = ipaddress.ip_network(obj_orig['ip6'])
     if ipa.num_addresses > 1:
         obj.update({ 'obj_typ': 'network' })
     else:
         obj.update({ 'obj_typ': 'host' })
-    obj.update({ 'obj_ip': ipa.with_prefixlen })
+    obj.update({ 'obj_ip': str(ipa.network_address) })
+    obj.update({ 'obj_ip_end': str(ipa.broadcast_address) })
 
 def normalize_vip_object(obj_orig, obj, nw_objects):
     obj.update({ 'obj_typ': 'host' })
@@ -185,13 +188,14 @@ def add_member_names_for_nw_group(idx, nw_objects):
     nw_objects.insert(idx, group)
 
 
-def create_network_object(name, type, ip, uid, color, comment, zone):
+def create_network_object(name, type, ip, ip_end, uid, color, comment, zone):
     # if zone is None or zone == '':
     #     zone = 'global'
     return {
         'obj_name': name,
         'obj_typ': type,
         'obj_ip': ip,
+        'obj_ip_end': ip_end,
         'obj_uid': uid,
         'obj_color': color,
         'obj_comment': comment,

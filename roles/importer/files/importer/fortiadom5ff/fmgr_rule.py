@@ -560,7 +560,7 @@ def handle_combined_nat_rule(rule, rule_orig, config2import, nat_rule_number, im
                     else:
                         HideNatIp = dummy_ip
                         logger.warning('found invalid HideNatIP ' + str(destination_interface_ip))
-                    obj = create_network_object(obj_name, 'host', HideNatIp, obj_name, 'black', obj_comment, 'global')
+                    obj = create_network_object(obj_name, 'host', HideNatIp, HideNatIp, obj_name, 'black', obj_comment, 'global')
                     if obj not in config2import['network_objects']:
                         config2import['network_objects'].append(obj)
                     xlate_rule['rule_src'] = obj_name

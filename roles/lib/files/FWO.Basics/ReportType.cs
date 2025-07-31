@@ -2,6 +2,8 @@ namespace FWO.Basics
 {
     public enum ReportType
     {
+        Undefined = 0,
+
         Rules = 1,
         Changes = 2,
         Statistics = 3,
@@ -90,6 +92,11 @@ namespace FWO.Basics
                 ReportType.VarianceAnalysis => true,
                 _ => false,
             };
+        }
+
+        public static bool IsComplianceReport(this ReportType reportType)
+        {
+            return reportType == ReportType.Compliance;
         }
     }
 }

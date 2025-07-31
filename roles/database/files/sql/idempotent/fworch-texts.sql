@@ -375,26 +375,18 @@ INSERT INTO txt VALUES ('whats_new_in_version',	'German', 	'Was ist neu in Firew
 INSERT INTO txt VALUES ('whats_new_in_version',	'English', 	'Release notes Firewall Orchestrator version');
 INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
 <ul>
-    <li>Modellierung von Soll-Kommunikationsprofilen z.B. nach Anwendung getrennt (Know Your Application)</li>
-    <li>UI: In der Weboberfl&auml;che des Modellierungsmoduls k&ouml;nnen die Bedienfl&ouml;chen wahlweise als Texte oder Icons angezeigt werden (konfigurierbar pro Nutzer)</li>
-    <li>Importer: Erste (PoC-)Version des VMware NSX Import-Moduls</li>
-    <li>API: Neues Customizing-Skript f&uuml;r Bulk-Konfiguration via API</li>
-    <li>Datenbanksicherheit: Alle Passw&ouml;rter in der Datenbank sind nun verschl&uuml;sselt. Breaking change (nur f&uuml;r Entwickler): Zum Debuggen muss die folgende Datei lokal auf dem vscode-System angelegt werden (bei Verwendung von "-e testkeys=true":
-      /etc/fworch/secrets/main_key - Inhalt: "not4production..not4production.."</li>
-    <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/tree/main/documentation/revision-history-main.md">
-        https://github.com/CactuseSecurity/firewall-orchestrator/tree/main/documentation/revision-history-main.md</li>
+    <li>Das Modellierungsmodul enth&auml;t nun einen Soll/Ist-Abgleich mit dem Firewall-Regelwerk.</li>
+    <li>Das Modellierungsmodul enth&auml;t ein Antragsmodul zur Beauftragung von Firewall-&Auml;nderungen &uuml;ber externe Systeme.</li>
+    <li>Das FWO-Logo kann durch ein eigenes Logo ersetzt werden.</li>
+    <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
 </ul>
 ');
 INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
 <ul>
-    <li>Modelling module for defining target communication profiles for segregated networks (e.g. per application: Know Your Application)</li>
-    <li>UI: iconifying modelling UI buttons (can now use icons instead of text buttons - configurable per user)</li>
-    <li>Importer: first version of VMware NSX import module</li>
-    <li>API: adding customizing script for bulk configs via API</li>
-    <li>Database security: all credentials in the database are now encrypted - breaking change (for developer debugging only): add the following local file when using -e testkeys=true:
-      /etc/fworch/secrets/main_key with content "not4production..not4production.."</li>
-    <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/tree/main/documentation/revision-history-main.md">
-        https://github.com/CactuseSecurity/firewall-orchestrator/tree/main/documentation/revision-history-main.md</li>
+    <li>The modelling module now includes a variance analysis (target/actual comparison) with the firewall rulebase</li>
+    <li>The modelling module now includes a request module for submitting firewall change requests via external systems</li>
+    <li>You now can insert your own logo in the UI</li>
+    <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
 </ul>
 ');
 

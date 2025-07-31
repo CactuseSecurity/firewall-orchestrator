@@ -19,16 +19,18 @@ namespace FWO.Compliance
 {
     public class ComplianceCheck
     {
+        public ReportCompliance? ComplianceReport { get; set; } = null;
+
         List<ComplianceNetworkZone> NetworkZones = [];
          public List<(Rule, (ComplianceNetworkZone, ComplianceNetworkZone))> Results { get; set; } = [];
         public List<ComplianceViolation> RestrictedServiceViolations { get; set; } = [];
-        private ReportBase? currentReport;
+
         Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
         ReportFilters reportFilters = new();
 
         private readonly UserConfig _userConfig;
         private readonly ApiConnection _apiConnection;
-        CompliancePolicy? Policy = null;
+        private CompliancePolicy? _policy = null;
         private readonly DebugConfig _debugConfig;
 
 
@@ -62,26 +64,31 @@ namespace FWO.Compliance
             {
                 Log.WriteInfo("Compliance Check", "Starting compliance check");
             }
+
             int? policyId = _userConfig.GlobalConfig?.ComplianceCheckPolicyId;
+
             if (policyId == null || policyId == 0)
             {
                 Log.WriteInfo("Compliance Check", "No Policy defined");
                 return;
             }
-            Policy = await _apiConnection.SendQueryAsync<CompliancePolicy>(ComplianceQueries.getPolicyById, new { id = policyId });
+
+            _policy = await _apiConnection.SendQueryAsync<CompliancePolicy>(ComplianceQueries.getPolicyById, new { id = policyId });
             await LoadNetworkZones();
             await SetUpReportFilters();
             ReportTemplate template = new("", reportFilters.ToReportParams());
-            currentReport = await ReportGenerator.Generate(template, _apiConnection, _userConfig, DisplayMessageInUi);
+            ReportBase? currentReport = await ReportGenerator.Generate(template, _apiConnection, _userConfig, DisplayMessageInUi);
 
             Results.Clear();
             RestrictedServiceViolations.Clear();
 
             if (_userConfig.GlobalConfig is GlobalConfig globalConfig && _apiConnection != null && currentReport is ReportCompliance complianceReport)
             {
+                ComplianceReport = complianceReport;
+
                 if (_debugConfig.ExtendedLogComplianceCheck)
                 {
-                    Log.WriteInfo("Compliance Check", "Using restricted services: " + Policy.Criteria.FirstOrDefault(x => x.Content.CriterionType == CriterionType.ForbiddenService.ToString())?.Content.Content);
+                    Log.WriteInfo("Compliance Check", "Using restricted services: " + _policy.Criteria.FirstOrDefault(x => x.Content.CriterionType == CriterionType.ForbiddenService.ToString())?.Content.Content);
                 }
 
                 foreach (var management in complianceReport.ReportData.ManagementData)
@@ -90,20 +97,15 @@ namespace FWO.Compliance
                 }
 
                 await GatherCheckResults();
-
-                if (globalConfig.ComplianceCheckPersistData)
-                {
-                    await PersistData(complianceReport);
-                }
             }
         }
 
         private async Task LoadNetworkZones()
         {
-            if (Policy != null)
+            if (_policy != null)
             {
                 // ToDo later: work with several matrices?
-                int? matrixId = Policy.Criteria.FirstOrDefault(c => c.Content.CriterionType == CriterionType.Matrix.ToString())?.Content.Id;
+                int? matrixId = _policy.Criteria.FirstOrDefault(c => c.Content.CriterionType == CriterionType.Matrix.ToString())?.Content.Id;
                 if (matrixId != null)
                 {
                     NetworkZones = await _apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(ComplianceQueries.getNetworkZonesForMatrix, new { criterionId = matrixId });
@@ -111,25 +113,31 @@ namespace FWO.Compliance
             }
         }
 
-        private async Task PersistData(ReportCompliance complianceReport)
+        public async Task PersistData()
         {
-            List<ComplianceViolationBase> violationsForInsert = complianceReport.Violations
-            .Select(v => new ComplianceViolationBase
+            if(ComplianceReport is ReportCompliance complianceReport)
             {
-                RuleId = v.RuleId,
-                Details = v.Details,
-                FoundDate = v.FoundDate,
-                RemovedDate = v.RemovedDate,
-                RiskScore = v.RiskScore,
-                PolicyId = v.PolicyId,
-                CriterionId = v.CriterionId
-            })
-            .ToList();
-            var variables = new
-            {
-                violations = violationsForInsert
-            };
-            await _apiConnection.SendQueryAsync<dynamic>(ComplianceQueries.addViolations, variables);
+                List<ComplianceViolationBase> violationsForInsert = complianceReport.Violations
+                .Select(v => new ComplianceViolationBase
+                {
+                    RuleId = v.RuleId,
+                    Details = v.Details,
+                    FoundDate = v.FoundDate,
+                    RemovedDate = v.RemovedDate,
+                    RiskScore = v.RiskScore,
+                    PolicyId = v.PolicyId,
+                    CriterionId = v.CriterionId
+                })
+                .ToList();
+
+                var variables = new
+                {
+                    violations = violationsForInsert
+                };
+                
+                await _apiConnection.SendQueryAsync<dynamic>(ComplianceQueries.addViolations, variables);
+            }
+
         }
 
         private async Task CheckRuleCompliancePerManagement(ManagementReport management)
@@ -145,7 +153,7 @@ namespace FWO.Compliance
 
         private async Task GatherCheckResults()
         {
-            if (Results.Count > 0 && currentReport is ReportCompliance complianceReport)
+            if (Results.Count > 0 && ComplianceReport is ReportCompliance complianceReport)
             {
                 complianceReport.Violations.Clear();
 
@@ -168,7 +176,7 @@ namespace FWO.Compliance
         public async Task<bool> CheckRuleCompliance(Rule rule)
         {
             bool ruleIsCompliant = true;
-            foreach (var criterion in (Policy?.Criteria ?? []).Select(c => c.Content))
+            foreach (var criterion in (_policy?.Criteria ?? []).Select(c => c.Content))
             {
                 switch (criterion.CriterionType)
                 {
@@ -330,7 +338,7 @@ namespace FWO.Compliance
                 string body = globalConfig.ComplianceCheckMailBody;
                 MailData mailData = new(EmailHelper.CollectRecipientsFromConfig(_userConfig, globalConfig.ComplianceCheckMailRecipients), subject) { Body = body };
 
-                if (currentReport is ReportCompliance complianceReport)
+                if (ComplianceReport is ReportCompliance complianceReport)
                 {
                     FormFile? attachment = EmailHelper.CreateAttachment(complianceReport.ExportToCsv(), GlobalConst.kCsv, subject);
                     if (attachment != null)

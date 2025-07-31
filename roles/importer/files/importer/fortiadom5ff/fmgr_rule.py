@@ -17,6 +17,7 @@ from models.rule import Rule
 from models.rulebase import Rulebase
 from fwo_globals import debug_level
 
+
 NETWORK_OBJECT='network_object'
 rule_access_scope_v4 = ['rules_global_header_v4', 'rules_adom_v4', 'rules_global_footer_v4']
 rule_access_scope_v6 = ['rules_global_header_v6', 'rules_adom_v6', 'rules_global_footer_v6']

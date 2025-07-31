@@ -35,8 +35,6 @@ def normalize_rulebases (import_state, nativeConfig, native_config_global, impor
     for nw_obj in normalized_config_dict['network_objects']:
         uid_to_name_map[nw_obj['obj_uid']] = nw_obj['obj_name']
 
-    # raise NotImplementedError("This function is not implemented yet.")
-
     fetched_rulebase_uids = []
     if normalized_config_global is not None:
         for normalized_rulebase_global in normalized_config_global.get('policies', []):

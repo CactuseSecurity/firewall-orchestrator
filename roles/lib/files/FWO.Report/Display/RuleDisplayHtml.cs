@@ -3,7 +3,6 @@ using FWO.Data;
 using FWO.Config.Api;
 using System.Text;
 using FWO.Report;
-using FWO.Report.Filter;
 
 namespace FWO.Ui.Display
 {
@@ -39,7 +38,7 @@ namespace FWO.Ui.Display
             return result.ToString();
         }
 
-        public string DisplayEnforcingGateways(Rule rule, OutputLocation location, ReportType reportType, int chapterNumber = 0, string style = "")
+        public static string DisplayEnforcingGateways(Rule rule, OutputLocation location, ReportType reportType, int chapterNumber = 0, string style = "")
         {
             StringBuilder result = new ();
             result.AppendJoin("<br>", Array.ConvertAll(rule.EnforcingGateways, gw => EnforcingGatewayToHtml(gw.Content, rule.MgmtId, chapterNumber, location, style, reportType)));
@@ -150,34 +149,40 @@ namespace FWO.Ui.Display
             }
             if (reportType == ReportType.AppRules)
             {
-                if (!rule.ShowDisregarded &&
-                    ((isSource && rule.Froms.Length > 0 && rule.DisregardedFroms.Length > 0) ||
-                    (!isSource && rule.Tos.Length > 0 && rule.DisregardedTos.Length > 0)))
-                {
-                    result.Append($"<br><span class=\"text-secondary\">... ({(isSource ? rule.DisregardedFroms.Length : rule.DisregardedTos.Length)} {userConfig.GetText("more")})</span>");
-                }
-                else
-                {
-                    if (result.Length > 0)
-                    {
-                        result.Append("<br>");
-                    }
-                    result.AppendJoin("<br>", Array.ConvertAll(isSource ? rule.DisregardedFroms : rule.DisregardedTos,
-                        nwLoc => NetworkLocationToHtml(nwLoc, rule.MgmtId, chapterNumber, location, nwLoc.Object.IsAnyObject() ? highlightedStyle : style, reportType)));
-                }
+                result.Append(DisplayAppRuleSourceOrDestination(rule, chapterNumber, location, reportType, style, highlightedStyle, isSource));
             }
-
             return result.ToString();
         }
 
-        private static string GetNextRecertDateString (string countString, Recertification recert)
+        private string DisplayAppRuleSourceOrDestination(Rule rule, int chapterNumber, OutputLocation location, ReportType reportType, string style, string highlightedStyle, bool isSource)
+        {
+            StringBuilder result = new();
+            if (!rule.ShowDisregarded &&
+                ((isSource && rule.Froms.Length > 0 && rule.DisregardedFroms.Length > 0) ||
+                (!isSource && rule.Tos.Length > 0 && rule.DisregardedTos.Length > 0)))
+            {
+                result.Append($"<br><span class=\"text-secondary\">... ({(isSource ? rule.DisregardedFroms.Length : rule.DisregardedTos.Length)} {userConfig.GetText("more")})</span>");
+            }
+            else
+            {
+                if (result.Length > 0)
+                {
+                    result.Append("<br>");
+                }
+                result.AppendJoin("<br>", Array.ConvertAll(isSource ? rule.DisregardedFroms : rule.DisregardedTos,
+                    nwLoc => NetworkLocationToHtml(nwLoc, rule.MgmtId, chapterNumber, location, nwLoc.Object.IsAnyObject() ? highlightedStyle : style, reportType)));
+            }
+            return result.ToString();
+        }
+
+        private static string GetNextRecertDateString(string countString, Recertification recert)
         {
             string color = "";
             string dateOnly = "-";
             if (recert.NextRecertDate != null)
             {
                 dateOnly = DateOnly.FromDateTime((DateTime)recert.NextRecertDate).ToString("yyyy-MM-dd");
-                if(recert.NextRecertDate < DateTime.Now)
+                if (recert.NextRecertDate < DateTime.Now)
                 {
                     color = $" style=\"{GlobalConst.kStyleHighlightedRed}\"";
                 }

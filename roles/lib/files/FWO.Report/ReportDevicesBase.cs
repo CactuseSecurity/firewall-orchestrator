@@ -32,8 +32,8 @@ namespace FWO.Report
         {
             Dictionary<string, object> ImpIdQueryVariables = new()
             {
-                ["time"] = timestamp ?? (Query.ReportTimeString != "" ? Query.ReportTimeString : DateTime.Now.ToString(DynGraphqlQuery.fullTimeFormat)),
-                ["mgmIds"] = Query.RelevantManagementIds
+                [QueryVar.Time] = timestamp ?? (Query.ReportTimeString != "" ? Query.ReportTimeString : DateTime.Now.ToString(DynGraphqlQuery.fullTimeFormat)),
+                [QueryVar.MgmIds] = Query.RelevantManagementIds
             };
             return await apiConnection.SendQueryAsync<List<ManagementReport>>(ReportQueries.getRelevantImportIdsAtTime, ImpIdQueryVariables);
         }

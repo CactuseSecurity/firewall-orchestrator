@@ -1,0 +1,32 @@
+query getNetworkZonesForMatrix ($criterionId: Int!){
+  compliance_network_zone (where: { criterion_id: {_eq: $criterionId}, removed: {_is_null: true} } order_by: {name: asc}) {
+    id
+    name
+    description
+	criterion_id
+    ip_ranges (where: { removed: {_is_null: true} }){
+      ip_range_start
+      ip_range_end
+    }
+    super_network_zone {
+      id
+      name
+    }
+    sub_network_zones (where: { removed: {_is_null: true} }){
+      id
+      name
+    }
+    network_zone_communication_destinations (where: { criterion_id: {_eq: $criterionId}, removed: {_is_null: true} }){
+      to_network_zone {
+        id
+        name
+      }
+    }
+    network_zone_communication_sources (where: { criterion_id: {_eq: $criterionId}, removed: {_is_null: true} }){
+      from_network_zone {
+        id
+        name
+      }
+    }
+  }
+}

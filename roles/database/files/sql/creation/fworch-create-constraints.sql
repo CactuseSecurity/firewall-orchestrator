@@ -55,5 +55,6 @@ ALTER TABLE compliance.ip_range ADD CONSTRAINT "exclude_overlapping_ip_ranges"
 EXCLUDE USING gist (
     network_zone_id WITH =,
     numrange(ip_range_start - '0.0.0.0'::inet, ip_range_end - '0.0.0.0'::inet, '[]') WITH &&
-);
+)
+WHERE (removed IS NULL);
 

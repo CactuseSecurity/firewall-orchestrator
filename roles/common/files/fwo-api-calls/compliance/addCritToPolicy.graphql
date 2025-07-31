@@ -1,0 +1,13 @@
+mutation addCritToPolicy(
+  $policyId: Int!
+  $criterionId: Int!
+  ) {
+  insert_compliance_policy_criterion(objects: {
+    policy_id: $policyId
+    criterion_id: $criterionId
+  }) {
+    returning {
+      insertedId: criterion_id
+    }
+  }
+}

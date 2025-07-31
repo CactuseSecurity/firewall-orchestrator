@@ -48,6 +48,7 @@ def normalize_rulebases (import_state, nativeConfig, native_config_global, impor
 
     # todo: parse nat rulebase here
 
+
 def normalize_rulebases_for_each_link_destination(gateway, fetched_rulebase_uids, nativeConfig, native_config_global, is_global_loop_iteration, importState, normalized_config_dict, normalized_config_global):
     logger = getFwoLogger()
     for rulebase_link in gateway['rulebase_links']:

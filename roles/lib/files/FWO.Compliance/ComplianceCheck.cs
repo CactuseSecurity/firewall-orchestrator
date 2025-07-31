@@ -302,58 +302,58 @@ namespace FWO.Compliance
             return violations;
         }
 
-        /// <summary>
-        /// Send Email with compliance report to all recipients defined in compliance settings
-        /// </summary>
-        /// <returns></returns>
-        public async Task SendComplianceCheckEmail()
-        {
-            if (_userConfig.GlobalConfig is GlobalConfig globalConfig)
-            {
-                string decryptedSecret = AesEnc.TryDecrypt(globalConfig.EmailPassword, false, "Compliance Check", "Could not decrypt mailserver password.");
+        // /// <summary>
+        // /// Send Email with compliance report to all recipients defined in compliance settings
+        // /// </summary>
+        // /// <returns></returns>
+        // public async Task SendComplianceCheckEmail()
+        // {
+        //     if (_userConfig.GlobalConfig is GlobalConfig globalConfig)
+        //     {
+        //         string decryptedSecret = AesEnc.TryDecrypt(globalConfig.EmailPassword, false, "Compliance Check", "Could not decrypt mailserver password.");
 
-                EmailConnection emailConnection = new(
-                    globalConfig.EmailServerAddress,
-                    globalConfig.EmailPort,
-                    globalConfig.EmailTls,
-                    globalConfig.EmailUser,
-                    decryptedSecret,
-                    globalConfig.EmailSenderAddress
-                );
+        //         EmailConnection emailConnection = new(
+        //             globalConfig.EmailServerAddress,
+        //             globalConfig.EmailPort,
+        //             globalConfig.EmailTls,
+        //             globalConfig.EmailUser,
+        //             decryptedSecret,
+        //             globalConfig.EmailSenderAddress
+        //         );
 
-                MailData? mail = PrepareEmail();
+        //         MailData? mail = PrepareEmail();
 
-                if (mail != null)
-                {
-                    await MailKitMailer.SendAsync(mail, emailConnection, false, new CancellationToken());
-                }
-            }
-        }
+        //         if (mail != null)
+        //         {
+        //             await MailKitMailer.SendAsync(mail, emailConnection, false, new CancellationToken());
+        //         }
+        //     }
+        // }
 
-        private MailData? PrepareEmail()
-        {
-            if (_userConfig.GlobalConfig is GlobalConfig globalConfig)
-            {
-                string subject = globalConfig.ComplianceCheckMailSubject;
-                string body = globalConfig.ComplianceCheckMailBody;
-                MailData mailData = new(EmailHelper.CollectRecipientsFromConfig(_userConfig, globalConfig.ComplianceCheckMailRecipients), subject) { Body = body };
+        // private MailData? PrepareEmail()
+        // {
+        //     if (_userConfig.GlobalConfig is GlobalConfig globalConfig)
+        //     {
+        //         string subject = globalConfig.ComplianceCheckMailSubject;
+        //         string body = globalConfig.ComplianceCheckMailBody;
+        //         MailData mailData = new(EmailHelper.CollectRecipientsFromConfig(_userConfig, globalConfig.ComplianceCheckMailRecipients), subject) { Body = body };
 
-                if (ComplianceReport is ReportCompliance complianceReport)
-                {
-                    FormFile? attachment = EmailHelper.CreateAttachment(complianceReport.ExportToCsv(), GlobalConst.kCsv, subject);
-                    if (attachment != null)
-                    {
-                        mailData.Attachments = new FormFileCollection() { attachment };
-                    }
-                }
+        //         if (ComplianceReport is ReportCompliance complianceReport)
+        //         {
+        //             FormFile? attachment = EmailHelper.CreateAttachment(complianceReport.ExportToCsv(), GlobalConst.kCsv, subject);
+        //             if (attachment != null)
+        //             {
+        //                 mailData.Attachments = new FormFileCollection() { attachment };
+        //             }
+        //         }
 
-                return mailData;
-            }
-            else
-            {
-                return null;
-            }
-        }
+        //         return mailData;
+        //     }
+        //     else
+        //     {
+        //         return null;
+        //     }
+        // }
 
         /// <summary>
         /// Compliance check used in current UI implementation

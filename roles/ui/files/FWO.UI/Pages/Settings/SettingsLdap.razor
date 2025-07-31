@@ -1,4 +1,4 @@
-﻿@using FWO.Data.Middleware
+@using FWO.Data.Middleware
 @using FWO.Encryption
 @using FWO.Middleware.Client
 @using RestSharp
@@ -201,7 +201,7 @@
                 <NotAuthorized>
                     <button type="button" class="btn btn-sm btn-dark" disabled>@(userConfig.GetText("test_connection"))</button>
                     <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
-                </NotAuthorized> 
+                </NotAuthorized>
             </AuthorizeView>
             <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
         </div>
@@ -322,6 +322,12 @@
                     DeleteMode = false;
                 }
             }
+
+            Log.WriteAudit(
+                Title: $"LDAP Connection Settings",
+                Text: $"Deleted LDAP: {actLdapConnection.Name} (Address: {actLdapConnection.Address})",
+                UserName: userConfig.User.Name,
+                UserDN: userConfig.User.Dn);
         }
         catch (Exception exception)
         {
@@ -364,19 +370,19 @@
             {
                 switch (middlewareServerResponse.Data)
                 {
-                    case 0: 
+                    case 0:
                         DisplayMessageInUi(null, userConfig.GetText("test_connection"), userConfig.GetText("E5266"), false);
                         break;
-                    case 1: 
+                    case 1:
                         DisplayMessageInUi(null, userConfig.GetText("test_connection"), userConfig.GetText("E5268"), true);
                         break;
-                    case 2: 
+                    case 2:
                         DisplayMessageInUi(null, userConfig.GetText("test_connection"), userConfig.GetText("E5269"), true);
                         break;
-                    case 3: 
+                    case 3:
                         DisplayMessageInUi(null, userConfig.GetText("test_connection"), userConfig.GetText("E5270"), true);
                         break;
-                    default: 
+                    default:
                         DisplayMessageInUi(null, userConfig.GetText("test_connection"), userConfig.GetText("E5267"), true);
                         break;
                 }
@@ -418,6 +424,12 @@
                         connectedLdaps.Add(actLdapConnection);
                         AddMode = false;
                         EditMode = false;
+
+                        Log.WriteAudit(
+                            Title: $"LDAP Connection Settings",
+                            Text: $"Added LDAP: {actLdapConnection.Name} (Address: {actLdapConnection.Address})",
+                            UserName: userConfig.User.Name,
+                            UserDN: userConfig.User.Dn);
                     }
                 }
                 else
@@ -432,6 +444,12 @@
                         int udId = ldapMiddlewareServerResponse.Data;
                         EditMode = (udId == actLdapConnection.Id ? false : true);
                         connectedLdaps[connectedLdaps.FindIndex(x => x.Id == actLdapConnection.Id)] = actLdapConnection;
+
+                        Log.WriteAudit(
+                            Title: $"LDAP Connection Settings",
+                            Text: $"Edited LDAP: {actLdapConnection.Name} (Address: {actLdapConnection.Address})",
+                            UserName: userConfig.User.Name,
+                            UserDN: userConfig.User.Dn);
                     }
                 }
             }

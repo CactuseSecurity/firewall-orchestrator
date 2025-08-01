@@ -157,7 +157,7 @@ namespace FWO.Compliance
             {
                 var variables = new
                 {
-                    violations = CreateViolationInsertObjects()
+                    violations = await CreateViolationInsertObjectsAsync()
                 };
                 
                 await _apiConnection.SendQueryAsync<dynamic>(ComplianceQueries.addViolations, variables);                
@@ -168,12 +168,23 @@ namespace FWO.Compliance
             }            
         }
 
-        private List<ComplianceViolationBase>? CreateViolationInsertObjects()
+        private async Task<List<ComplianceViolationBase>> CreateViolationInsertObjectsAsync()
         {
+            List<ComplianceViolationBase> violationsForInsert = [];
+
             if (ComplianceReport is ReportCompliance complianceReport)
             {
-                List<ComplianceViolationBase> violationsForInsert = complianceReport
+                var existingViolations = await _apiConnection.SendQueryAsync<List<ComplianceViolation>>(ComplianceQueries.getViolations);
+
+                // Create Hashset with a unique 'check sum' as key
+
+                var existingKeys = existingViolations
+                    .Select(ev => $"{ev.RuleId}_{ev.PolicyId}_{ev.CriterionId}_{ev.Details}")
+                    .ToHashSet();
+
+                violationsForInsert = complianceReport
                     .Violations
+                    .Where(v => !existingKeys.Contains($"{v.RuleId}_{v.PolicyId}_{v.CriterionId}_{v.Details}"))
                     .Select(v => new ComplianceViolationBase
                     {
                         RuleId = v.RuleId,
@@ -185,14 +196,11 @@ namespace FWO.Compliance
                         CriterionId = v.CriterionId
                     })
                     .ToList();
+            }
 
-                return violationsForInsert;
-            }
-            else
-            {
-                return null;
-            }
+            return violationsForInsert;
         }
+
 
         private async Task CheckRuleCompliancePerManagement(ManagementReport management)
         {
@@ -232,6 +240,7 @@ namespace FWO.Compliance
         public async Task<bool> CheckRuleCompliance(Rule rule)
         {
             bool ruleIsCompliant = true;
+
             foreach (var criterion in (_policy?.Criteria ?? []).Select(c => c.Content))
             {
                 switch (criterion.CriterionType)
@@ -246,6 +255,7 @@ namespace FWO.Compliance
                         break;
                 }
             }
+
             return ruleIsCompliant;
         }
 

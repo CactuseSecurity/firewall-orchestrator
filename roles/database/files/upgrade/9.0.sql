@@ -1039,6 +1039,22 @@ INSERT INTO config (config_key, config_value, config_user)
 VALUES ('complianceCheckPersistData', 'true', 0)
 ON CONFLICT (config_key, config_user) DO NOTHING;
 
+-- add unique constraint for report_template_name
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'unique_report_template_name'
+    ) THEN
+        ALTER TABLE report_template
+        ADD CONSTRAINT unique_report_template_name UNIQUE (report_template_name);
+    END IF;
+END$$;
+
+-- add new report template for compliance: unresolved violations
+
 INSERT INTO "report_template" ("report_filter","report_template_name","report_template_comment","report_template_owner", "report_parameters") 
 VALUES ('',
     'Compliance: Unresolved violations','T0108', 0, 

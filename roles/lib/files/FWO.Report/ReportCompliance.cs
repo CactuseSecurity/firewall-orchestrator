@@ -7,34 +7,55 @@ using FWO.Api.Client;
 using FWO.Data.Report;
 using FWO.Api.Client.Queries;
 using System.Reflection;
+using System.Text.Json;
+using FWO.Data.Middleware;
+using FWO.Logging;
 
 namespace FWO.Report
 {
     public class ReportCompliance : ReportRules
     {
-        public ReportCompliance(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType) : base(query, userConfig, reportType) { }
         public List<ComplianceViolation> Violations { get; set; } = [];
-        public List<ComplianceViolation> NewViolations { get; set; } = [];
         public List<Rule> Rules { get; set; } = [];
 
-        private readonly bool _includeHeaderInExport = true;
-        private readonly char _separator = '#';
-        private readonly List<string> _columnsToExport = new List<string>
+        private readonly bool _includeHeaderInExport;
+        private readonly char _separator;
+        private readonly List<string> _columnsToExport;
+        private readonly DebugConfig _debugConfig;
+
+
+        public ReportCompliance(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType) : base(query, userConfig, reportType)
         {
-            "MgmtId",
-            "Uid",
-            "Name",
-            "Comment",
-            "Source",
-            "Destination",
-            "Services",
-            "Action",
-            "MetaData",
-            "CustomFields",
-            "InstallOn",
-            "IsCompliant",
-            "ViolationDetails"
-        };
+            _includeHeaderInExport = true;
+            _separator = '#';
+            _columnsToExport = new List<string>
+            {
+                "MgmtId",
+                "Uid",
+                "Name",
+                "Comment",
+                "Source",
+                "Destination",
+                "Services",
+                "Action",
+                "MetaData",
+                "CustomFields",
+                "InstallOn",
+                "IsCompliant",
+                "ViolationDetails"
+            };
+
+            if (userConfig.GlobalConfig is GlobalConfig globalConfig && !string.IsNullOrEmpty(globalConfig.DebugConfig))
+            {
+                _debugConfig = JsonSerializer.Deserialize<DebugConfig>(globalConfig.DebugConfig) ?? new();
+            }
+            else
+            {
+                Log.WriteWarning("Compliance Report", "No debug config found, using default values.");
+
+                _debugConfig = new();
+            }
+        }
 
         public override string ExportToCsv()
         {
@@ -67,6 +88,21 @@ namespace FWO.Report
             return csvString;
         }
 
+        public override string SetDescription()
+        {
+            try
+            {
+                return base.SetDescription();
+            }
+            catch (Exception e)
+            {
+                Log.TryWriteLog(LogType.Error, "Compliance Report", "Error while setting description: " + e.Message, _debugConfig.ExtendedLogReportGeneration);
+                Log.TryWriteLog(LogType.Debug, "Compliance Report", $"Report Data: {JsonSerializer.Serialize(ReportData)}", _debugConfig.ExtendedLogReportGeneration);
+
+                return "Compliance Report";
+            }
+        }
+
         private string GetLineForRule(Rule rule, List<PropertyInfo?> properties)
         {
             IEnumerable<string> values = properties.Select(p =>
@@ -95,7 +131,7 @@ namespace FWO.Report
                     return "";
                 }
             });
-            
+
             return string.Join(_separator, values);
         }
 

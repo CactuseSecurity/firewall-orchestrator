@@ -155,6 +155,14 @@ namespace FWO.Compliance
         {
             try
             {
+                List<ComplianceViolationBase> violations = await CreateViolationInsertObjectsAsync();
+
+                if (violations.Count == 0)
+                {
+                    Log.TryWriteLog(LogType.Info, "Compliance Check", "No new violations to persist", _debugConfig.ExtendedLogComplianceCheck);
+                    return;
+                }
+
                 var variables = new
                 {
                     violations = await CreateViolationInsertObjectsAsync()

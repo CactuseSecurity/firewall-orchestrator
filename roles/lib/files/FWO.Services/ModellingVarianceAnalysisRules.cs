@@ -144,11 +144,12 @@ namespace FWO.Services
             List<NetworkLocation> disregardedTos = [];
             List<NetworkService> disregardedServices = [];
             (List<NetworkService> normConnSvc, List<NetworkService> normConnSvcGrp, List<NetworkService> normRuleSvc) = NormalizeServices(rule, conn);
+            bool continueAnalysis = FullAnalysis || SpecialUserObjects.Count > 0 || UpdatableObjects.Count > 0 || conn.IsNat();
 
-            if (FullAnalysis)
+            if (continueAnalysis)
             {
-                isImpl &= IsNwImplementation(rule.Froms, SpecialUserObjects, UpdatableObjects, conn, true, ref disregardedFroms);
-                isImpl &= IsNwImplementation(rule.Tos, SpecialUserObjects, UpdatableObjects, conn, false, ref disregardedTos);
+                isImpl &= IsNwImplementation(rule.Froms, SpecialUserObjects, UpdatableObjects, conn, true, ref disregardedFroms, continueAnalysis);
+                isImpl &= IsNwImplementation(rule.Tos, SpecialUserObjects, UpdatableObjects, conn, false, ref disregardedTos, continueAnalysis);
                 bool isSvcImpl = IsSvcImplementation(normRuleSvc, normConnSvc, normConnSvcGrp, disregardedServices);
                 isImpl &= isSvcImpl;
                 if (!isSvcImpl && ruleRecognitionOption.SvcSplitPortRanges)
@@ -165,8 +166,8 @@ namespace FWO.Services
             }
             else if (isImpl)
             {
-                isImpl = IsNwImplementation(rule.Froms, SpecialUserObjects, UpdatableObjects, conn, true, ref disregardedFroms)
-                    && IsNwImplementation(rule.Tos, SpecialUserObjects, UpdatableObjects, conn, false, ref disregardedTos)
+                isImpl = IsNwImplementation(rule.Froms, SpecialUserObjects, UpdatableObjects, conn, true, ref disregardedFroms, continueAnalysis)
+                    && IsNwImplementation(rule.Tos, SpecialUserObjects, UpdatableObjects, conn, false, ref disregardedTos, continueAnalysis)
                     && IsSvcImplementation(normRuleSvc, normConnSvc, normConnSvcGrp, [])
                     && !SpecialUserObjects.Any(x => !x.Value);
             }
@@ -258,13 +259,12 @@ namespace FWO.Services
         }
 
         private bool IsNwImplementation(NetworkLocation[] networkLocations, Dictionary<string, bool> specialUserObjects,
-            Dictionary<string, bool> updatableObjects, ModellingConnection conn, bool source, ref List<NetworkLocation> disregardedLocations)
+            Dictionary<string, bool> updatableObjects, ModellingConnection conn, bool source, ref List<NetworkLocation> disregardedLocations, bool continueAnalysis)
         {
             List<ModellingAppServerWrapper> appServers = source ? conn.SourceAppServers : conn.DestinationAppServers;
             List<ModellingAppRoleWrapper> appRoles = source ? conn.SourceAppRoles : conn.DestinationAppRoles;
             List<ModellingNetworkAreaWrapper> areas = source ? conn.SourceAreas : conn.DestinationAreas;
             List<ModellingNwGroupWrapper> otherGroups = source ? conn.SourceOtherGroups : conn.DestinationOtherGroups;
-            bool continueAnalysis = FullAnalysis || specialUserObjects.Count > 0 || updatableObjects.Count > 0 || conn.IsNat();
 
             foreach (var loc in networkLocations)
             {

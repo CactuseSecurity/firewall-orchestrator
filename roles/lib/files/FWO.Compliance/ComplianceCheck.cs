@@ -183,13 +183,17 @@ namespace FWO.Compliance
 
                 if (violationsForRemoveTask.Result.Count == 0)
                 {
-                    Log.TryWriteLog(LogType.Info, "Compliance Check", "No violations to remove", _debugConfig.ExtendedLogComplianceCheck);
+                    Log.TryWriteLog(LogType.Info, "Compliance Check", "No violations to remove.", _debugConfig.ExtendedLogComplianceCheck);
+                }
+                else
+                {
+                    Log.TryWriteLog(LogType.Info, "Compliance Check", $"{violationsForRemoveTask.Result.Count} violations to remove.", _debugConfig.ExtendedLogComplianceCheck);
                 }
 
-                foreach ((int, ComplianceViolation) ruleIdAndViolation in violationsForRemoveTask.Result)
+                foreach ((int, ComplianceViolationBase) ruleIdAndViolation in violationsForRemoveTask.Result)
                 {
                     int id = ruleIdAndViolation.Item1;
-                    ComplianceViolation changes = ruleIdAndViolation.Item2;
+                    ComplianceViolationBase changes = ruleIdAndViolation.Item2;
 
                     object variablesUpdate = new
                     {

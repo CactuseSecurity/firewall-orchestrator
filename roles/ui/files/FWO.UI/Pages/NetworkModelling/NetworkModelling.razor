@@ -25,7 +25,8 @@
         @if(appHandler != null && appHandler.OverviewConnHandler != null && appSelected)
         {
             <EditConnLeftSide @bind-Width="sidebarLeftWidth" @bind-ConnHandler="appHandler.OverviewConnHandler" OverviewMode="true"/>
-            <RequestFwChangePopup @bind-Display="showFwChange" SelectedApp="@selectedApp" Connections="appHandler.GetConnectionsToRequest()" RefreshParent="SubscribeAndSetStatusFromTicket"/>
+            <RequestFwChangePopup @bind-Display="showFwChange" SelectedApp="@selectedApp" Connections="appHandler.GetConnectionsToRequest()"
+                RefreshParent="SubscribeAndSetStatusFromTicket" ChangeStatus="@ChangeStatus" LastRequestDate="@LastRequestDate"/>
             <RequestRecertPopup @bind-Display="showRecert" AppHandler="@appHandler"/>
         }
         <div style="margin-left: @($"{sidebarLeftWidth + 10}px");">
@@ -50,9 +51,11 @@
                         {
                             <AuthorizeView Roles="@($"{Roles.Requester}, {Roles.Implementer}, {Roles.Admin}, {Roles.Auditor}")">
                                 <Authorized>
-                                    <button type="button" class="ms-5 btn btn-sm btn-primary" @onclick="RequestFwChange">
-                                        @(userConfig.GetText("request_fw_change"))
-                                    </button>
+                                    <div data-toggle="tooltip" title="@(UserConfig.PureLineStat(ChangeStatus))">
+                                        <button type="button" class="ms-5 btn btn-sm btn-primary" @onclick="RequestFwChange">
+                                            @(userConfig.GetText("request_fw_change"))
+                                        </button>
+                                    </div>
                                 </Authorized>
                                 <NotAuthorized>
                                     <div data-toggle="tooltip" title="@(userConfig.PureLine("C9012"))">
@@ -62,9 +65,9 @@
                                     </div>
                                 </NotAuthorized>
                             </AuthorizeView>
-                            <div class="ms-2">
+                            @* <div class="ms-2">
                                 <label>@((MarkupString)ChangeStatus)</label>
-                            </div>
+                            </div> *@
                         }
                         @if(userConfig.ModRecertActive)
                         {
@@ -206,6 +209,7 @@ else
     private int sidebarLeftWidth = GlobalConst.kGlobLibraryWidth;
     private bool firstInit = true;
     private string ChangeStatus = "";
+    private string LastRequestDate = "";
     private GraphQlApiSubscription<List<WfTicket>>? actTicketSubscription;
     private ExtStateHandler? extStateHandler;
     private WfStateDict states = new();
@@ -327,6 +331,7 @@ else
             appSelected = true;
             tabSelected = false;
             await SetChangeStatus();
+            await SetRecertStatus();
             await InitConn();
         }
         catch (Exception exception)
@@ -399,19 +404,23 @@ else
 
     private async Task SetChangeStatus()
     {
-        apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Modeller, Roles.Admin, Roles.Auditor ]);
-        List<TicketId> ticketIds = await apiConnection.SendQueryAsync<List<TicketId>>(ExtRequestQueries.getLatestTicketId, new{ownerId = selectedApp.Id});
-        if(ticketIds.Count == 0)
+        if(userConfig.ModRolloutActive)
         {
-            ChangeStatus = userConfig.GetText("never_requested");
-        }
-        else
-        {
-            WfTicket? intTicket = await apiConnection.SendQueryAsync<WfTicket>(RequestQueries.getTicketById, new { ticketIds.First().Id });
             apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Modeller, Roles.Admin, Roles.Auditor ]);
-            if(intTicket != null)
+            List<TicketId> ticketIds = await apiConnection.SendQueryAsync<List<TicketId>>(ExtRequestQueries.getLatestTicketIds, new{ownerId = selectedApp.Id});
+            if(ticketIds.Count == 0)
             {
-                await SubscribeAndSetStatusFromTicket(intTicket);
+                ChangeStatus = userConfig.GetText("never_requested");
+                LastRequestDate = "-";
+            }
+            else
+            {
+                WfTicket? intTicket = await apiConnection.SendQueryAsync<WfTicket>(RequestQueries.getTicketById, new { ticketIds.First().Id });
+                apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Modeller, Roles.Admin, Roles.Auditor ]);
+                if(intTicket != null)
+                {
+                    await SubscribeAndSetStatusFromTicket(intTicket);
+                }
             }
         }
     }
@@ -428,6 +437,7 @@ else
         {
             if(extStateHandler!= null && intTicket.Id > 0)
             {
+                LastRequestDate = intTicket.CreationDate.Date.ToString("dd.MM.yyyy");
                 if(extStateHandler.IsDone(intTicket.StateId))
                 {
                     ChangeStatus = $"{userConfig.GetText("last_successful")}: {intTicket.CreationDate.ToString("yyyy-MM-dd HH:mm:ss")}, {userConfig.GetText("implemented")}: {intTicket.CompletionDate?.ToString("yyyy-MM-dd HH:mm:ss")}, {intTicket.Requester?.Name}";
@@ -440,7 +450,8 @@ else
                         if(lastResponse != null && IsTempError(lastResponse))
                         {
                             string tooltip = userConfig.GetText("temp_error_extended") + ": " + lastResponse;
-                            ChangeStatus = $"<div data-toggle=\"tooltip\" title=\"{tooltip}\">{userConfig.GetText("temp_error")}</div>";
+                            //ChangeStatus = $"<div data-toggle=\"tooltip\" title=\"{tooltip}\">{userConfig.GetText("temp_error")}</div>";
+                            ChangeStatus = $"{userConfig.GetText("temp_error")}: {tooltip}</div>";
                         }
                         else
                         {
@@ -452,7 +463,8 @@ else
                         if(lastResponse != null)
                         {
                             string tooltip = states.Name[intTicket.StateId] + ": " + lastResponse;
-                            ChangeStatus = $"<div data-toggle=\"tooltip\" title=\"{tooltip}\">{userConfig.GetText("implementation_error")}</div>";
+                            //ChangeStatus = $"<div data-toggle=\"tooltip\" title=\"{tooltip}\">{userConfig.GetText("implementation_error")}</div>";
+                            ChangeStatus = $"{userConfig.GetText("implementation_error")}: {tooltip}</div>";
                         }
                         else
                         {
@@ -514,6 +526,14 @@ else
         {
             await SetStatusFromTicket(tickets.First());
             await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task SetRecertStatus()
+    {
+        if(userConfig.ModRecertActive)
+        {
+            
         }
     }
 }

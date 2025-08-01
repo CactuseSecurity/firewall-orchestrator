@@ -155,7 +155,12 @@ namespace FWO.Config.Api
 
         public string PureLine(string text)
         {
-            string output = RemoveLinks(Regex.Replace(GetText(text).Trim(), @"\s", " "));
+            return PureLineStat(GetText(text));
+        }
+
+        public static string PureLineStat(string text)
+        {
+            string output = RemoveLinks(Regex.Replace(text.Trim(), @"\s", " "));
             output = ReplaceListElems(output);
             bool cont = true;
             while(cont)

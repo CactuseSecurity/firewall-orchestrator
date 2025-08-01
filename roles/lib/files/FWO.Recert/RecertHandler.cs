@@ -19,13 +19,14 @@ namespace FWO.Recert
         public async Task RecertifyOwner(FwoOwner owner, string? comment = "")
         {
             DateTime recertDate = DateTime.Now;
+            DateTime? nextRecertDate = owner.RecertInterval != null ? recertDate.AddDays((double)owner.RecertInterval) : (DateTime?)null;
             var recertVariables = new
             {
                 ownerId = owner.Id,
                 userDn = userConfig.User.Dn,
                 recertified = true,
                 recertDate = recertDate,
-                next_recert_date = owner.RecertInterval != null ? recertDate.AddDays((double)owner.RecertInterval) : (DateTime?)null,
+                nextRecertDate = nextRecertDate,
                 comment = comment
             };
             if((await apiConnection.SendQueryAsync<ReturnId>(RecertQueries.recertifyOwner, recertVariables)).AffectedRows > 0)
@@ -34,7 +35,8 @@ namespace FWO.Recert
                 {
                     lastRecert = recertDate,
                     lastRecertifierId = userConfig.User.DbId,
-                    lastRecertifierDn = userConfig.User.Dn
+                    lastRecertifierDn = userConfig.User.Dn,
+                    nextRecertDate = nextRecertDate
                 };
                 await apiConnection.SendQueryAsync<ReturnId>(OwnerQueries.setOwnerLastRecert, ownerVariables);
             }

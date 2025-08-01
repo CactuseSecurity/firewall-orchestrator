@@ -1,6 +1,7 @@
 using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Modelling;
+using FWO.Data.Workflow;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Services;
@@ -90,6 +91,16 @@ namespace FWO.Ui.Services
             ExtStateHandler extStateHandler = new(apiConnection);
             ModellingVarianceAnalysis varianceAnalysis = new(apiConnection, extStateHandler, userConfig, Application, DisplayMessageInUi);
             await varianceAnalysis.AnalyseConnsForStatus([.. connections.Where(x => !x.IsDocumentationOnly())]);
+        }
+
+        public static async Task<WfTicket?> GetLatestFWRequestTicket(FwoOwner application, ApiConnection apiConnection)
+        {
+            List<TicketId> ticketIds = await apiConnection.SendQueryAsync<List<TicketId>>(ExtRequestQueries.getLatestTicketIds, new { ownerId = application.Id });
+            if (ticketIds.Count > 0)
+            {
+                return await apiConnection.SendQueryAsync<WfTicket>(RequestQueries.getTicketById, new { ticketIds[0].Id });
+            }
+            return null;
         }
 
         public async Task ReInit()

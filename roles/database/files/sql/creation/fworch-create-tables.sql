@@ -1050,7 +1050,8 @@ create table owner
 	common_service_possible boolean default false,
 	last_recertified Timestamp,
 	last_recertifier int,
-	last_recertifier_dn Varchar
+	last_recertifier_dn Varchar,
+	next_recert_date Timestamp
 );
 
 create table owner_network

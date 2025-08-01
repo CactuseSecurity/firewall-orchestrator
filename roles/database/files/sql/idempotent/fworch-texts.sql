@@ -1685,6 +1685,9 @@ INSERT INTO txt VALUES ('modelled_source', 		'German', 	'Modellierte Quelle');
 INSERT INTO txt VALUES ('modelled_source', 		'English', 	'Modelled Source');
 INSERT INTO txt VALUES ('modelled_destination', 'German', 	'Modelliertes Ziel');
 INSERT INTO txt VALUES ('modelled_destination', 'English', 	'Modelled Destination');
+INSERT INTO txt VALUES ('last_requested',		'German', 	'Letzte Beantragung');
+INSERT INTO txt VALUES ('last_requested',		'English', 	'Last Requested');
+
 
 -- compliance
 INSERT INTO txt VALUES ('compliance',			'German', 	'Compliance');
@@ -3017,6 +3020,8 @@ INSERT INTO txt VALUES ('U9028', 'German',  'Folgende Verbindungen sind noch nic
 INSERT INTO txt VALUES ('U9028', 'English', 'Following connections are not properly modelled and impede recertification: ');
 INSERT INTO txt VALUES ('U9029', 'German',  'Bei folgenden Verbindungen stimmt der Produktionsstand nicht mit dem modellierten &uuml;berein und verhindern die Rezertifizierung:');
 INSERT INTO txt VALUES ('U9029', 'English', 'For following connections are production state does not fit modelled state and impede recertification: ');
+INSERT INTO txt VALUES ('U9030', 'German',  'Es ist noch ein Firewall-&Auml;nderungsantrag in Bearbeitung!');
+INSERT INTO txt VALUES ('U9030', 'English', 'A Firewall Change request is running!');
 
 -- error messages
 INSERT INTO txt VALUES ('E0001', 'German',  'Nicht klassifizierter Fehler: ');

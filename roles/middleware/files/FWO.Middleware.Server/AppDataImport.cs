@@ -245,12 +245,10 @@ namespace FWO.Middleware.Server
             else
             {
                 // add necessary roles for user group
-                await internalLdap.AddUserToEntry(userGroupDn, modellerRoleDn);
-
-                // TODO: analysis: are these roles still needed?
-                //  requesterRoleDn
-                //  implementerRoleDn
-                //  reviewerRoleDn
+				foreach (string role in new List<string> { modellerRoleDn, requesterRoleDn, implementerRoleDn, reviewerRoleDn })
+				{
+					await internalLdap.AddUserToEntry(userGroupDn, role);
+				}
             }
 
 			var Variables = new

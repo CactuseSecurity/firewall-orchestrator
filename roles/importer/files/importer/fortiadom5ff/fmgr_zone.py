@@ -10,7 +10,7 @@ def normalize_zones(full_config, config2import, import_id):
     config2import.update({'zone_objects': zones})
 
 
-def add_zone_if_missing (config2import, zone_string, import_id):
+def add_zone_if_missing (config2import, zone_string):
     # adding zone if it not yet exists
 
     # also transforming any into global (normalized global zone)
@@ -24,6 +24,6 @@ def add_zone_if_missing (config2import, zone_string, import_id):
             if zone_string == zone['zone_name']:
                 zone_exists = True
         if not zone_exists:
-            config2import['zone_objects'].append({'zone_name': zone_string, 'control_id': import_id})
+            config2import['zone_objects'].append({'zone_name': zone_string})
     return zone_string
     

@@ -243,12 +243,11 @@ namespace FWO.Middleware.Server
             }
             else
             {
-                // add necessary roles for user group; TODO: are these roles all still needed?
-                foreach (var roleDn in new[] { modellerRoleDn, requesterRoleDn, implementerRoleDn, reviewerRoleDn })
-                {
-                    await internalLdap.AddUserToEntry(userGroupDn, roleDn);
-                }
-                await internalLdap.AddUserToEntry(userGroupDn, modellerRoleDn);
+                // add necessary roles for user group
+				foreach (string role in new List<string> { modellerRoleDn, requesterRoleDn, implementerRoleDn, reviewerRoleDn })
+				{
+					await internalLdap.AddUserToEntry(userGroupDn, role);
+				}
             }
 
 			var Variables = new

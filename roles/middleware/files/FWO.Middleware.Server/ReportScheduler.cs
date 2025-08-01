@@ -187,7 +187,7 @@ namespace FWO.Middleware.Server
             if (((ReportType)reportSchedule.Template.ReportParams.ReportType).IsModellingReport())
             {
                 _userConfig.User.Groups = reportSchedule.ScheduleOwningUser.Groups;
-                await UiUserHandler.GetOwnerships(apiConnectionUserContext, _userConfig.User);
+                await UiUserHandler.GetOwnershipsFromOwnerLdap(apiConnectionUserContext, _userConfig.User);
                 if (!_userConfig.User.Ownerships.Contains(reportSchedule.Template.ReportParams.ModellingFilter.SelectedOwner.Id))
                 {
                     Log.WriteInfo(LogMessageTitle, "Report not generated as owner is not valid anymore.");

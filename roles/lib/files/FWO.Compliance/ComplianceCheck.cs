@@ -155,26 +155,30 @@ namespace FWO.Compliance
         {
             try
             {
+                Log.TryWriteLog(LogType.Info, "Compliance Check", "Persisting violations...", _debugConfig.ExtendedLogComplianceCheck);
+
                 List<ComplianceViolation> existingViolations = await _apiConnection.SendQueryAsync<List<ComplianceViolation>>(ComplianceQueries.getViolations);
 
-                List<ComplianceViolationBase> violationsForInsert = await CreateViolationInsertObjectsAsync(existingViolations);
+                Log.TryWriteLog(LogType.Info, "Compliance Check", $"Found {existingViolations.Count} existing violations", _debugConfig.ExtendedLogComplianceCheck);
+
+                List<ComplianceViolationBase> violations = await CreateViolationInsertObjectsAsync(existingViolations);
                 Task<List<(int, ComplianceViolationBase)>> violationsForRemoveTask = GetViolationsForRemoveAsync(existingViolations);
 
 
-                if (violationsForInsert.Count == 0)
+                if (violations.Count == 0)
                 {
                     Log.TryWriteLog(LogType.Info, "Compliance Check", "No new violations to persist", _debugConfig.ExtendedLogComplianceCheck);
                 }
                 else
                 {
-                    var variablesAdd = new
+                    object variablesAdd = new
                     {
-                        violationsForInsert
+                        violations
                     };
 
                     await _apiConnection.SendQueryAsync<dynamic>(ComplianceQueries.addViolations, variablesAdd);
 
-                    Log.TryWriteLog(LogType.Info, "Compliance Check", $"Persisted {violationsForInsert.Count} new violations", _debugConfig.ExtendedLogComplianceCheck);                    
+                    Log.TryWriteLog(LogType.Info, "Compliance Check", $"Persisted {violations.Count} new violations", _debugConfig.ExtendedLogComplianceCheck);                    
                 }
 
                 if (violationsForRemoveTask.Result.Count == 0)
@@ -182,12 +186,15 @@ namespace FWO.Compliance
                     Log.TryWriteLog(LogType.Info, "Compliance Check", "No violations to remove", _debugConfig.ExtendedLogComplianceCheck);
                 }
 
-                foreach ((int ruleId, ComplianceViolation violation) ruleIdAndViolation in violationsForRemoveTask.Result)
+                foreach ((int, ComplianceViolation) ruleIdAndViolation in violationsForRemoveTask.Result)
                 {
-                    var variablesUpdate = new
+                    int id = ruleIdAndViolation.Item1;
+                    ComplianceViolation changes = ruleIdAndViolation.Item2;
+
+                    object variablesUpdate = new
                     {
-                        ruleIdAndViolation.ruleId,
-                        ruleIdAndViolation.violation
+                        id,
+                        changes
                     };
 
                     await _apiConnection.SendQueryAsync<dynamic>(ComplianceQueries.updateViolationById, variablesUpdate);
@@ -208,14 +215,17 @@ namespace FWO.Compliance
 
             if (ComplianceReport is ReportCompliance complianceReport)
             {
-                
-
-                // Create Hashset with a unique 'check sum' as key
-
-                var existingKeys = existingViolations
+                List<ComplianceViolation> unremovedViolations = existingViolations
                     .Where(ev => ev.RemovedDate == null)
+                    .ToList();
+
+                Log.TryWriteLog(LogType.Info, "Compliance Check", $"Found {unremovedViolations.Count} unremoved existing violations", _debugConfig.ExtendedLogComplianceCheck);
+
+                HashSet<string> existingKeys = existingViolations
                     .Select(ev => $"{ev.RuleId}_{ev.PolicyId}_{ev.CriterionId}_{ev.Details}")
                     .ToHashSet();
+
+                Log.TryWriteLog(LogType.Info, "Compliance Check", $"Found {existingKeys.Count} unique existing violation keys", _debugConfig.ExtendedLogComplianceCheck);
 
                 violationsForInsert = complianceReport
                     .Violations
@@ -231,6 +241,8 @@ namespace FWO.Compliance
                         CriterionId = v.CriterionId
                     })
                     .ToList();
+
+                Log.TryWriteLog(LogType.Info, "Compliance Check", $"Prepared {violationsForInsert.Count} new violations for insert", _debugConfig.ExtendedLogComplianceCheck);
             }
 
             return violationsForInsert;
@@ -264,11 +276,13 @@ namespace FWO.Compliance
             return violationsForUpdate;
         }
 
-            
+
 
 
         private async Task CheckRuleCompliancePerManagement(ManagementReport management)
         {
+            int notCompliantRules = 0;
+
             Log.TryWriteLog(LogType.Info, "Compliance Check", $"Checking compliance for management {management.Id} '{management.Name}'", _debugConfig.ExtendedLogComplianceCheck);
 
             foreach (var rulebase in management.Rulebases)
@@ -276,8 +290,15 @@ namespace FWO.Compliance
                 foreach (var rule in rulebase.Rules)
                 {
                     rule.IsCompliant = await CheckRuleCompliance(rule);
+
+                    if (!rule.IsCompliant)
+                    {
+                        notCompliantRules++;
+                    }
                 }
             }
+            
+            Log.TryWriteLog(LogType.Info, "Compliance Check", $"Checked compliance for management {management.Id} '{management.Name}' and found {notCompliantRules} non-compliant rules", _debugConfig.ExtendedLogComplianceCheck);
         }
 
         private async Task GatherCheckResults()

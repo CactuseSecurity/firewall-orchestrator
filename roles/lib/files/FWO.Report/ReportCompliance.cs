@@ -159,7 +159,7 @@ namespace FWO.Report
 
             await Task.WhenAll(baseTask, violationsTask);
 
-            Violations = violationsTask.Result;
+            Violations = violationsTask.Result.Where(v => v.RemovedDate == null).ToList();
             await SetComplianceData();
         }
 

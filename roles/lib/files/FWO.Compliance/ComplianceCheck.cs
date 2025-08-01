@@ -155,20 +155,44 @@ namespace FWO.Compliance
         {
             try
             {
-                List<ComplianceViolationBase> violations = await CreateViolationInsertObjectsAsync();
+                var existingViolations = await _apiConnection.SendQueryAsync<List<ComplianceViolation>>(ComplianceQueries.getViolations);
 
-                if (violations.Count == 0)
+                List<ComplianceViolationBase> violationsForInsert = await CreateViolationInsertObjectsAsync(existingViolations);
+                Task<List<(int, ComplianceViolationBase)>> violationsForRemoveTask = GetViolationsForRemoveAsync(existingViolations);
+
+
+                if (violationsForInsert.Count == 0)
                 {
                     Log.TryWriteLog(LogType.Info, "Compliance Check", "No new violations to persist", _debugConfig.ExtendedLogComplianceCheck);
-                    return;
                 }
 
-                var variables = new
+                var variablesAdd = new
                 {
-                    violations = await CreateViolationInsertObjectsAsync()
+                    violationsForInsert
                 };
-                
-                await _apiConnection.SendQueryAsync<dynamic>(ComplianceQueries.addViolations, variables);                
+
+                await _apiConnection.SendQueryAsync<dynamic>(ComplianceQueries.addViolations, variablesAdd);
+
+                Log.TryWriteLog(LogType.Info, "Compliance Check", $"Persisted {violationsForInsert.Count} new violations", _debugConfig.ExtendedLogComplianceCheck);
+
+                if (violationsForRemoveTask.Result.Count == 0)
+                {
+                    Log.TryWriteLog(LogType.Info, "Compliance Check", "No violations to remove", _debugConfig.ExtendedLogComplianceCheck);
+                }
+
+                foreach (var violation in violationsForRemoveTask.Result)
+                {
+                    var variablesUpdate = new
+                    {
+                        id = violation.Item1,
+                        violation = violation.Item2
+                    };
+
+                    await _apiConnection.SendQueryAsync<dynamic>(ComplianceQueries.updateViolationById, variablesUpdate);
+                }
+
+                Log.TryWriteLog(LogType.Info, "Compliance Check", $"Removed {violationsForRemoveTask.Result.Count} violations", _debugConfig.ExtendedLogComplianceCheck && violationsForRemoveTask.Result.Count > 0);
+
             }
             catch (System.Exception e)
             {
@@ -176,17 +200,18 @@ namespace FWO.Compliance
             }            
         }
 
-        private async Task<List<ComplianceViolationBase>> CreateViolationInsertObjectsAsync()
+        private async Task<List<ComplianceViolationBase>> CreateViolationInsertObjectsAsync(List<ComplianceViolation> existingViolations)
         {
             List<ComplianceViolationBase> violationsForInsert = [];
 
             if (ComplianceReport is ReportCompliance complianceReport)
             {
-                var existingViolations = await _apiConnection.SendQueryAsync<List<ComplianceViolation>>(ComplianceQueries.getViolations);
+                
 
                 // Create Hashset with a unique 'check sum' as key
 
                 var existingKeys = existingViolations
+                    .Where(ev => ev.RemovedDate == null)
                     .Select(ev => $"{ev.RuleId}_{ev.PolicyId}_{ev.CriterionId}_{ev.Details}")
                     .ToHashSet();
 
@@ -208,6 +233,36 @@ namespace FWO.Compliance
 
             return violationsForInsert;
         }
+
+        private async Task<List<(int, ComplianceViolationBase)>> GetViolationsForRemoveAsync(List<ComplianceViolation> existingViolations)
+        {
+            List<(int, ComplianceViolationBase)> violationsForUpdate = [];
+
+            if (ComplianceReport is ReportCompliance complianceReport)
+            {
+                foreach (var violation in complianceReport.Violations)
+                {
+                    var existingViolation = existingViolations.FirstOrDefault(ev => ev.RuleId == violation.RuleId && ev.PolicyId == violation.PolicyId && ev.CriterionId == violation.CriterionId && ev.Details == violation.Details);
+                    if (existingViolation != null)
+                    {
+                        violationsForUpdate.Add((existingViolation.Id, new ComplianceViolationBase
+                        {
+                            RuleId = violation.RuleId,
+                            Details = violation.Details,
+                            FoundDate = violation.FoundDate,
+                            RemovedDate = DateTime.Now,
+                            RiskScore = violation.RiskScore,
+                            PolicyId = violation.PolicyId,
+                            CriterionId = violation.CriterionId
+                        }));
+                    }
+                }
+            }
+
+            return violationsForUpdate;
+        }
+
+            
 
 
         private async Task CheckRuleCompliancePerManagement(ManagementReport management)

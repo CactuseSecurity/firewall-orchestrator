@@ -14,6 +14,7 @@ namespace FWO.Report
     {
         public ReportCompliance(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType) : base(query, userConfig, reportType) { }
         public List<ComplianceViolation> Violations { get; set; } = [];
+        public List<ComplianceViolation> NewViolations { get; set; } = [];
         public List<Rule> Rules { get; set; } = [];
 
         private readonly bool _includeHeaderInExport = true;

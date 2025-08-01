@@ -86,7 +86,9 @@
     [Parameter]
     public List<string> LdapGroups { get; set; } = new();
 
-    private bool Loading { get; set; } = true;
+    [Parameter]
+    public bool Loading { get; set; }
+
     private UiUser selectedLdapUser = new();
     private string selectedLdapGroup = "";
 
@@ -101,6 +103,7 @@
 
     private void Close()
     {
+        Loading = false;
         Display = false;
         DisplayChanged.InvokeAsync(Display);
     }

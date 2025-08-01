@@ -19,11 +19,28 @@
 {
     <PopUp Title="@(GetTitle())" Show="@Display" Size=PopupSize.XLarge OnClose="Close">
         <Body>
+            <div class="form-group row">
+                <div class="col-sm-2">@(userConfig.GetText("last_recertified")): </div>
+                <div class="col-sm-10">@(AppHandler?.Application.LastRecertified?.ToString("dd.MM.yyyy"))</div>
+            </div>
+            <div class="form-group row">
+                <div class="col-sm-2">@(userConfig.GetText("last_recertifier")): </div>
+                <div class="col-sm-10">@(new DistName(AppHandler?.Application.LastRecertifierDn).UserName)</div>
+            </div>
+            <div class="form-group row">
+                <div class="col-sm-2">@(userConfig.GetText("next_recertification")): </div>
+                <div class="col-sm-10">@(AppHandler?.Application.NextRecertDate?.ToString("dd.MM.yyyy"))</div>
+            </div>
             @if(RecertPossible)
             {
                 // Display all rules to recertify (name, last recert, ...)
                 <br>
                 @((MarkupString)userConfig.ModRecertText.Replace(Placeholder.APPNAME, AppHandler.DisplayApp(AppHandler.Application)))
+            }
+            else if(RequestRunning)
+            {
+                <br>
+                <b>@(userConfig.GetText("U9030"))</b>
             }
             else if(ModellingError)
             {
@@ -127,6 +144,7 @@
     private bool WorkInProgress = false;
     private bool FirstTry = true;
     private bool RecertPossible = false;
+    private bool RequestRunning = false;
     private bool ModellingError = false;
     private bool ImplementationError = false;
     private ModellingVarianceResult VarianceResult = new();
@@ -142,6 +160,7 @@
         if (Display && AppHandler != null && FirstTry)
         {
             FirstTry = false;
+            RequestRunning = false;
             ModellingError = false;
             ImplementationError = false;
             RecertPossible = false;
@@ -161,6 +180,11 @@
 
     private async Task CheckRecertPossible()
     {
+        if(await CheckRequestRunning())
+        {
+            RequestRunning = true;
+            return;
+        }
         if (!CheckModelling())
         {
             ModellingError = true;
@@ -172,6 +196,17 @@
             return;
         }
         RecertPossible = true;
+    }
+
+    private async Task<bool> CheckRequestRunning()
+    {
+        WfTicket? intTicket = await ModellingAppHandler.GetLatestFWRequestTicket(AppHandler!.Application, apiConnection);
+        if(intTicket != null)
+        {
+           ExtStateHandler extStateHandler = new(apiConnection);
+           return extStateHandler.IsInProgress(intTicket.StateId) && intTicket.Tasks.Any(t => extStateHandler.IsInProgress(t.StateId));
+        }
+        return false;
     }
 
     private bool CheckModelling()
@@ -216,7 +251,7 @@
     {
         try
         {
-               WorkInProgress = true;
+            WorkInProgress = true;
             await DoRecertification();
             WorkInProgress = false;
             Close();

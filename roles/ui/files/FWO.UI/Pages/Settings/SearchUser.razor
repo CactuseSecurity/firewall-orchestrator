@@ -46,7 +46,7 @@
                                 </Authorized>
                                 <NotAuthorized>
                                     <button type="button" class="btn btn-sm btn-success" disabled>@(userConfig.GetText("assign"))</button>
-                                </NotAuthorized> 
+                                </NotAuthorized>
                             </AuthorizeView>
                         </div>
                     </form>
@@ -65,7 +65,7 @@
                                 </Authorized>
                                 <NotAuthorized>
                                     <button type="button" class="btn btn-sm btn-success" disabled>@(userConfig.GetText("assign"))</button>
-                                </NotAuthorized> 
+                                </NotAuthorized>
                             </AuthorizeView>
                         </div>
                     </form>
@@ -102,7 +102,7 @@
 
     [Parameter]
     public bool UserSearchMode { get; set; } = false;
-    
+
     [Parameter]
     public bool GroupSearchMode { get; set; } = false;
 
@@ -111,8 +111,6 @@
 
     [Parameter]
     public bool OwnerGroupsOnly { get; set; } = false;
-
-
 
     private List<UserGroup> internalGroups = [];
     private List<UiUser> uiUsers = [];
@@ -226,8 +224,8 @@
             if (tenants.Count() == 0)
             {
                 // tenant unknown: create in db
-                var Variables = new 
-                { 
+                var Variables = new
+                {
                     name = tenantName,
                     project = "",
                     comment = "",

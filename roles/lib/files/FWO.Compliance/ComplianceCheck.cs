@@ -155,7 +155,7 @@ namespace FWO.Compliance
         {
             try
             {
-                var existingViolations = await _apiConnection.SendQueryAsync<List<ComplianceViolation>>(ComplianceQueries.getViolations);
+                List<ComplianceViolation> existingViolations = await _apiConnection.SendQueryAsync<List<ComplianceViolation>>(ComplianceQueries.getViolations);
 
                 List<ComplianceViolationBase> violationsForInsert = await CreateViolationInsertObjectsAsync(existingViolations);
                 Task<List<(int, ComplianceViolationBase)>> violationsForRemoveTask = GetViolationsForRemoveAsync(existingViolations);
@@ -165,27 +165,29 @@ namespace FWO.Compliance
                 {
                     Log.TryWriteLog(LogType.Info, "Compliance Check", "No new violations to persist", _debugConfig.ExtendedLogComplianceCheck);
                 }
-
-                var variablesAdd = new
+                else
                 {
-                    violationsForInsert
-                };
+                    var variablesAdd = new
+                    {
+                        violationsForInsert
+                    };
 
-                await _apiConnection.SendQueryAsync<dynamic>(ComplianceQueries.addViolations, variablesAdd);
+                    await _apiConnection.SendQueryAsync<dynamic>(ComplianceQueries.addViolations, variablesAdd);
 
-                Log.TryWriteLog(LogType.Info, "Compliance Check", $"Persisted {violationsForInsert.Count} new violations", _debugConfig.ExtendedLogComplianceCheck);
+                    Log.TryWriteLog(LogType.Info, "Compliance Check", $"Persisted {violationsForInsert.Count} new violations", _debugConfig.ExtendedLogComplianceCheck);                    
+                }
 
                 if (violationsForRemoveTask.Result.Count == 0)
                 {
                     Log.TryWriteLog(LogType.Info, "Compliance Check", "No violations to remove", _debugConfig.ExtendedLogComplianceCheck);
                 }
 
-                foreach (var violation in violationsForRemoveTask.Result)
+                foreach ((int ruleId, ComplianceViolation violation) ruleIdAndViolation in violationsForRemoveTask.Result)
                 {
                     var variablesUpdate = new
                     {
-                        id = violation.Item1,
-                        violation = violation.Item2
+                        ruleIdAndViolation.ruleId,
+                        ruleIdAndViolation.violation
                     };
 
                     await _apiConnection.SendQueryAsync<dynamic>(ComplianceQueries.updateViolationById, variablesUpdate);

@@ -1094,10 +1094,14 @@ INSERT INTO txt VALUES ('execute_selected',		'German', 	'Ausgew&auml;hlte Aktion
 INSERT INTO txt VALUES ('execute_selected',		'English', 	'Execute Selected Actions');
 INSERT INTO txt VALUES ('missing_owner_id',		'German', 	'Fehlende Eigent&uuml;mer ID');
 INSERT INTO txt VALUES ('missing_owner_id',		'English', 	'missing owner id');
-INSERT INTO txt VALUES ('next_recert',		    'German', 	'Datum n&auml;chste Rezertifizierung');
-INSERT INTO txt VALUES ('next_recert',		    'English', 	'Next Recertification Date');
+INSERT INTO txt VALUES ('next_recert_date',		'German', 	'Datum n&auml;chste Rezertifizierung');
+INSERT INTO txt VALUES ('next_recert_date',		'English', 	'Next Recertification Date');
 INSERT INTO txt VALUES ('last_recertifier',		'German', 	'Letzter Rezertifizierer');
-INSERT INTO txt VALUES ('last_recertifier',		'English', 	'Last Recertifier Name');
+INSERT INTO txt VALUES ('last_recertifier',		'English', 	'Last Recertifier');
+INSERT INTO txt VALUES ('last_recertified',		'German', 	'Letzte Rezertifizierung');
+INSERT INTO txt VALUES ('last_recertified',		'English', 	'Last Recertification');
+INSERT INTO txt VALUES ('next_recertification',	'German', 	'N&auml;chste Rezertifizierung');
+INSERT INTO txt VALUES ('next_recertification',	'English', 	'Next Recertification');
 INSERT INTO txt VALUES ('unknown',		        'German', 	'(unbekannt)');
 INSERT INTO txt VALUES ('unknown',		        'English', 	'(unknown)');
 INSERT INTO txt VALUES ('recerts_executed',		'German', 	'Durchgef&uuml;hrte Rezertifizierungen: ');

@@ -73,10 +73,12 @@
                         {
                             <AuthorizeView Roles="@($"{Roles.Requester}, {Roles.Implementer}, {Roles.Admin}, {Roles.Auditor}")">
                                 <Authorized>
-                                    <button type="button" class="ms-5 btn btn-sm btn-primary" @onclick="Recertify">
-                                        @(userConfig.GetText("recertify"))
-                                    </button>
-                                </Authorized>
+                                    <div data-toggle="tooltip" title="@(UserConfig.PureLineStat(RecertStatus))">
+                                        <button type="button" class="ms-5 btn btn-sm btn-primary" @onclick="Recertify">
+                                            @(userConfig.GetText("recertify"))
+                                        </button>
+                                    </div>
+                                 </Authorized>
                                 <NotAuthorized>
                                     <div data-toggle="tooltip" title="@(userConfig.PureLine("C9012"))">
                                         <button type="button" class="ms-5 btn btn-sm btn-primary" disabled>
@@ -210,6 +212,7 @@ else
     private bool firstInit = true;
     private string ChangeStatus = "";
     private string LastRequestDate = "";
+    private string RecertStatus = "";
     private GraphQlApiSubscription<List<WfTicket>>? actTicketSubscription;
     private ExtStateHandler? extStateHandler;
     private WfStateDict states = new();
@@ -331,7 +334,7 @@ else
             appSelected = true;
             tabSelected = false;
             await SetChangeStatus();
-            await SetRecertStatus();
+            SetRecertStatus();
             await InitConn();
         }
         catch (Exception exception)
@@ -529,11 +532,13 @@ else
         }
     }
 
-    private async Task SetRecertStatus()
+    private void SetRecertStatus()
     {
         if(userConfig.ModRecertActive)
         {
-            
+            RecertStatus = $"{userConfig.GetText("last_recertified")}: {selectedApp.LastRecertified?.ToString("dd.MM.yyyy") ?? "-"}, " +
+                $"{userConfig.GetText("last_recertifier")}: {new DistName(selectedApp.LastRecertifierDn).UserName}, " +
+                $"{userConfig.GetText("next_recertification")}: {selectedApp.NextRecertDate?.ToString("dd.MM.yyyy") ?? "-"}";
         }
     }
 }

@@ -1,4 +1,4 @@
-mutation updateViolation($id: Int!, $changes: compliance_violation_set_input!) {
+mutation updateViolation($id: bigint!, $changes: compliance_violation_set_input!) {
   update_compliance_violation_by_pk(
     pk_columns: { id: $id },
     _set: $changes

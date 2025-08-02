@@ -260,7 +260,7 @@ namespace FWO.Compliance
 
             if (ComplianceReport is ReportCompliance complianceReport)
             {
-                foreach (ComplianceViolation existingViolation in existingViolations)
+                foreach (ComplianceViolation existingViolation in existingViolations.Where(ev => ev.RemovedDate == null).ToList())
                 {
                     ComplianceViolation? validatedViolation = complianceReport.Violations.FirstOrDefault(v =>
                                                                 v.RuleId == existingViolation.RuleId &&

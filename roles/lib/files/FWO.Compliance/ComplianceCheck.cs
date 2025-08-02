@@ -188,23 +188,25 @@ namespace FWO.Compliance
                 else
                 {
                     Log.TryWriteLog(LogType.Info, "Compliance Check", $"{violationsForRemoveTask.Result.Count} violations to remove.", _debugConfig.ExtendedLogComplianceCheck);
-                }
 
-                foreach ((int, ComplianceViolationBase) ruleIdAndViolation in violationsForRemoveTask.Result)
-                {
-                    int id = ruleIdAndViolation.Item1;
-                    ComplianceViolationBase changes = ruleIdAndViolation.Item2;
-
-                    object variablesUpdate = new
+                    foreach ((int, ComplianceViolationBase) ruleIdAndViolation in violationsForRemoveTask.Result)
                     {
-                        id,
-                        changes
-                    };
+                        int id = ruleIdAndViolation.Item1;
+                        ComplianceViolationBase changes = ruleIdAndViolation.Item2;
 
-                    await _apiConnection.SendQueryAsync<dynamic>(ComplianceQueries.updateViolationById, variablesUpdate);
+                        object variablesUpdate = new
+                        {
+                            id,
+                            changes
+                        };
+
+                        await _apiConnection.SendQueryAsync<dynamic>(ComplianceQueries.updateViolationById, variablesUpdate);
+                    }
+
+                    Log.TryWriteLog(LogType.Info, "Compliance Check", $"Removed {violationsForRemoveTask.Result.Count} violations", _debugConfig.ExtendedLogComplianceCheck && violationsForRemoveTask.Result.Count > 0);                    
                 }
 
-                Log.TryWriteLog(LogType.Info, "Compliance Check", $"Removed {violationsForRemoveTask.Result.Count} violations", _debugConfig.ExtendedLogComplianceCheck && violationsForRemoveTask.Result.Count > 0);
+
 
             }
             catch (System.Exception e)
@@ -312,7 +314,8 @@ namespace FWO.Compliance
 
         private async Task GatherCheckResults()
         {
-            if (Results.Count > 0 && ComplianceReport is ReportCompliance complianceReport)
+            
+            if (ComplianceReport is ReportCompliance complianceReport)
             {
                 complianceReport.Violations.Clear();
 
@@ -325,9 +328,12 @@ namespace FWO.Compliance
                     };
                     complianceReport.Violations.Add(violation);
                 }
-
-                complianceReport.Violations.AddRange(RestrictedServiceViolations);
-
+                
+                if (RestrictedServiceViolations.Count > 0)
+                {
+                   complianceReport.Violations.AddRange(RestrictedServiceViolations); 
+                }
+                
                 await complianceReport.SetComplianceData();
             }
         }

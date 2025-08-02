@@ -258,20 +258,25 @@ namespace FWO.Compliance
 
             if (ComplianceReport is ReportCompliance complianceReport)
             {
-                foreach (var violation in complianceReport.Violations)
+                foreach (ComplianceViolation existingViolation in existingViolations)
                 {
-                    var existingViolation = existingViolations.FirstOrDefault(ev => ev.RuleId == violation.RuleId && ev.PolicyId == violation.PolicyId && ev.CriterionId == violation.CriterionId && ev.Details == violation.Details);
-                    if (existingViolation != null)
+                    ComplianceViolation? validatedViolation = complianceReport.Violations.FirstOrDefault(v =>
+                                                                v.RuleId == existingViolation.RuleId &&
+                                                                v.PolicyId == existingViolation.PolicyId &&
+                                                                v.CriterionId == existingViolation.CriterionId &&
+                                                                v.Details == existingViolation.Details);
+                                                                
+                    if (validatedViolation == null)
                     {
                         violationsForUpdate.Add((existingViolation.Id, new ComplianceViolationBase
                         {
-                            RuleId = violation.RuleId,
-                            Details = violation.Details,
-                            FoundDate = violation.FoundDate,
+                            RuleId = existingViolation.RuleId,
+                            Details = existingViolation.Details,
+                            FoundDate = existingViolation.FoundDate,
                             RemovedDate = DateTime.Now,
-                            RiskScore = violation.RiskScore,
-                            PolicyId = violation.PolicyId,
-                            CriterionId = violation.CriterionId
+                            RiskScore = existingViolation.RiskScore,
+                            PolicyId = existingViolation.PolicyId,
+                            CriterionId = existingViolation.CriterionId
                         }));
                     }
                 }

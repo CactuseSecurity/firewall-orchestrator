@@ -100,7 +100,7 @@ class ManagementController(Management):
     @classmethod
     def calcManagerUidHash(cls, mgm_details):
         combination = f"""
-            {replaceNoneWithEmpty(Hostname)}
+            {replaceNoneWithEmpty(mgm_details.Hostname)}
             {replaceNoneWithEmpty(mgm_details.Port)}
             {replaceNoneWithEmpty(mgm_details.DomainUid)}
             {replaceNoneWithEmpty(mgm_details.DomainName)}

@@ -15,10 +15,12 @@ def normalize_service_objects(import_state: ImportStateController, native_config
             continue
         for obj_orig in native_config['objects'][current_obj_type]['data']:
             normalize_service_object(obj_orig, svc_objects)
-    # finally add "Original" service object for natting
-    original_obj_name = 'Original'
-    svc_objects.append(create_svc_object(name=original_obj_name, proto=0, color='1', port=None,\
-        comment='"original" service object created by FWO importer for NAT purposes'))
+
+    if native_config.get('is-super-manager', False):
+        # finally add "Original" service object for natting (global domain only)
+        original_obj_name = 'Original'
+        svc_objects.append(create_svc_object(name=original_obj_name, proto=0, color='1', port=None,\
+            comment='"original" service object created by FWO importer for NAT purposes'))
 
     normalized_config.update({'service_objects': svc_objects})
 

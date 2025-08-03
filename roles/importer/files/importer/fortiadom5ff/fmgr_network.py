@@ -9,6 +9,7 @@ from fwo_api import setAlert, create_data_issue
 from fmgr_base import resolve_raw_objects
 from model_controllers.import_state_controller import ImportStateController
 from fmgr_consts import v4_object_types, v6_object_types
+from copy import deepcopy
 
 
 def normalize_network_objects(import_state: ImportStateController, native_config, native_config_global, normalized_config, normalized_config_global, nw_obj_types):
@@ -91,7 +92,7 @@ def normalize_network_object(obj_orig, nw_objects, normalized_config, import_sta
 
     # here only picking first associated interface as zone:
     if 'associated-interface' in obj_orig and len(obj_orig['associated-interface'])>0: # and obj_orig['associated-interface'][0] != 'any':
-        obj_zone = obj_orig['associated-interface'][0]
+        obj_zone = deepcopy(obj_orig['associated-interface'][0])
         # adding zone if it not yet exists
         obj_zone = add_zone_if_missing (normalized_config, obj_zone)
     obj.update({'obj_zone': obj_zone })

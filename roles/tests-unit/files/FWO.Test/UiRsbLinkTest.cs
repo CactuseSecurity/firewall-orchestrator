@@ -30,10 +30,14 @@ namespace FWO.Test
         [Test]
         public async Task ObjShouldBeVisibleAfterNavigation()
         {
+            // Event Service
+            DomEventService eventService = new DomEventService();
+            eventService.InvokeNavbarHeightChanged(50); // Simulate initial navbar height change
+
             // Arrange
             Services.AddSingleton(userConfig);
             Services.AddSingleton(apiConnection);
-            Services.AddSingleton(new DomEventService());
+            Services.AddSingleton(eventService);
             Services.AddScoped(_ => JSInterop.JSRuntime);
             Services.AddLocalization();
 

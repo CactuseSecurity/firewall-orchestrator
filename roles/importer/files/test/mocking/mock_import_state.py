@@ -1,14 +1,14 @@
-from importer.model_controllers.import_state_controller import ImportStateController
-from importer.model_controllers.import_statistics_controller import ImportStatisticsController
-from importer.model_controllers.fworch_config_controller import FworchConfigController
-from importer.models.track import Track
-from importer.models.action import Action
+from model_controllers.import_state_controller import ImportStateController
+from model_controllers.import_statistics_controller import ImportStatisticsController
+from model_controllers.fworch_config_controller import FworchConfigController
+from models.track import Track
+from models.action import Action
 from .mock_fwo_api_oo import MockFwoApi
 
 try:
-    from mock_management_details_controller import MockManagementDetailsController
+    from roles.importer.files.test.mocking.mock_management_controller import MockManagementDetailsController
 except ModuleNotFoundError:
-    from .mock_management_details_controller import MockManagementDetailsController
+    from .mock_management_controller import MockManagementDetailsController
 
 
 def make_hashable(obj):

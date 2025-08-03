@@ -8,7 +8,6 @@ import cp_const, cp_network, cp_service
 import cp_getter
 import cp_gateway
 from fwo_exceptions import FwLoginFailed
-from fwconfig_base import calcManagerUidHash
 from models.fwconfigmanagerlist import FwConfigManagerList, FwConfigManager
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
 from models.fwconfig_normalized import FwConfigNormalized
@@ -18,7 +17,7 @@ import fwo_const
 import fwo_globals
 from model_controllers.fwconfig_normalized_controller import FwConfigNormalizedController
 from fwo_exceptions import ImportInterruption
-from models.management_details import ManagementDetails
+from models.management import Management
 from models.import_state import ImportState
 
 
@@ -92,7 +91,7 @@ def initialize_native_config(nativeConfig, importState):
         nativeConfig['domains'].append({
             'domain_name': managerDetails.DomainName,
             'domain_uid': managerDetails.DomainUid,
-            'is-super-manger': managerDetails.IsSuperManager,
+            'is-super-manager': managerDetails.IsSuperManager,
             'management_name': managerDetails.Name,
             'management_uid': managerDetails.Uid,
             'objects': [],
@@ -114,7 +113,7 @@ def normalize_config(import_state, native_config: json, parsing_config_only: boo
     is_global_loop_iteration = False
     native_config_global = None
     normalized_config_global = None
-    if native_config['domains'][0]['is-super-manger']:
+    if native_config['domains'][0]['is-super-manager']:
         native_config_global = native_config['domains'][0]
         is_global_loop_iteration = True
     
@@ -142,8 +141,8 @@ def normalize_config(import_state, native_config: json, parsing_config_only: boo
         )
         manager = FwConfigManager(  ManagerName=nativ_and_normalized_config_dict['native']['management_name'],
             ManagerUid=nativ_and_normalized_config_dict['native']['management_uid'],
-            IsGlobal=nativ_and_normalized_config_dict['native']['is-super-manger'],
-            IsSuperManager=nativ_and_normalized_config_dict['native']['is-super-manger'],
+            IsGlobal=nativ_and_normalized_config_dict['native']['is-super-manager'],
+            IsSuperManager=nativ_and_normalized_config_dict['native']['is-super-manager'],
             DependantManagerUids=[], 
             DomainName=nativ_and_normalized_config_dict['native']['domain_name'],
             DomainUid=nativ_and_normalized_config_dict['native']['domain_uid'],

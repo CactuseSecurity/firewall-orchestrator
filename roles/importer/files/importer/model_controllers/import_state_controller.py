@@ -12,7 +12,7 @@ from fwo_exceptions import FwoApiLoginFailed
 import fwo_globals
 from models.import_state import ImportState
 from model_controllers.fworch_config_controller import FworchConfigController
-from model_controllers.management_details_controller import ManagementDetailsController
+from model_controllers.management_controller import ManagementController
 from model_controllers.import_statistics_controller import ImportStatisticsController
 
 """Used for storing state during import process per management"""
@@ -26,7 +26,7 @@ class ImportStateController(ImportState):
         self.VerifyCerts = verifyCerts
         self.ConfigChangedSinceLastImport = configChangedSinceLastImport
         self.FwoConfig = fwoConfig
-        self.MgmDetails = ManagementDetailsController.fromJson(mgmDetails)
+        self.MgmDetails = ManagementController.fromJson(mgmDetails)
         self.ImportId = None
         self.Jwt = jwt
         self.api_connection = FwoApi(fwoConfig.FwoApiUri, jwt)
@@ -361,6 +361,9 @@ class ImportStateController(ImportState):
         return self.GatewayMap.get(gwUid, None)
 
     def lookupManagementId(self, mgmUid):
+        if not self.ManagementMap.get(mgmUid, None):
+            logger = getFwoLogger()
+            logger.error(f"fwo_api:import_latest_config - no mgm id found for current manager uid '{mgmUid}'")
         return self.ManagementMap.get(mgmUid, None)
 
     def lookupColorId(self, color_str):

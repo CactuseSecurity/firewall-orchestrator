@@ -1,7 +1,7 @@
 from typing import List, Dict, Tuple, Any
 
-from importer.model_controllers.fwconfig_import_rule import FwConfigImportRule
-from importer.models.rulebase import Rulebase
+from model_controllers.fwconfig_import_rule import FwConfigImportRule
+from models.rulebase import Rulebase
 from test.mocking.mock_import_state import MockImportStateController
 
 

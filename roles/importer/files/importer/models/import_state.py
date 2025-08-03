@@ -6,7 +6,7 @@ from fwo_api_oo import FwoApi
 from models.action import Action
 from models.track import Track
 from model_controllers.fworch_config_controller import FworchConfigController
-from model_controllers.management_details_controller import ManagementDetailsController
+from model_controllers.management_controller import ManagementController
 
 """Used for storing state during import process per management"""
 class ImportState():
@@ -16,7 +16,7 @@ class ImportState():
     VerifyCerts: bool = False
     ConfigChangedSinceLastImport: bool
     FwoConfig: FworchConfigController
-    MgmDetails: ManagementDetailsController
+    MgmDetails: ManagementController
     ImportId: int
     ImportFileName: str
     ForceImport: str

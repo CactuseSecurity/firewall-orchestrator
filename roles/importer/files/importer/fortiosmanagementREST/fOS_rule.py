@@ -8,7 +8,7 @@ import fOS_zone, fOS_getter
 #from fOS_gw_networking import get_device_from_package
 from fwo_log import getFwoLogger
 from model_controllers.interface_controller import get_matching_route_obj, get_ip_of_interface_obj
-from models.management_details import ManagementDetails
+from models.management import Management
 import ipaddress
 from fOS_common import resolve_objects
 import time
@@ -50,7 +50,7 @@ def getNatPolicy(sid, fm_api_url, raw_config, adom_name, device, limit):
             raw_config['rules_adom_nat'], sid, fm_api_url, "/pm/config/" + scope + "/pkg/" + pkg + '/' + nat_type, device['local_rulebase_name'], limit=limit)
 
 
-def normalize_access_rules(full_config, config2import, import_id, mgm_details: ManagementDetails, jwt=None):
+def normalize_access_rules(full_config, config2import, import_id, mgm_details: Management, jwt=None):
     logger = getFwoLogger()
     rules = []
     rule_number = 0

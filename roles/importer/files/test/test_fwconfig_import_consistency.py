@@ -11,7 +11,7 @@ from services.uid2id_mapper import Uid2IdMapper  # type: ignore
 from services.global_state import GlobalState  # type: ignore
 from services.service_provider import ServiceProvider  # type: ignore
 from services.enums import Lifetime, Services  # type: ignore
-from importer.model_controllers.fwconfig_import import FwConfigImport
+from model_controllers.fwconfig_import import FwConfigImport
 from test.mocking.mock_import_state import MockImportStateController
 from test.tools.set_up_test import set_up_config_for_import_consistency_test
 from test.mocking.mock_config import MockFwConfigNormalizedBuilder

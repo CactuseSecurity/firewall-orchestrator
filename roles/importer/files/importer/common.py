@@ -1,11 +1,9 @@
 import importlib
 import traceback
 import sys, time
-import json
 from socket import gethostname
 from typing import List
-from fwo_config import readConfig
-from fwo_const import fwo_config_filename, importer_user_name, importer_base_dir
+from fwo_const import importer_base_dir
 from pathlib import Path
 from services.service_provider import ServiceProvider
 from services.enums import Services
@@ -17,16 +15,13 @@ from fwo_const import fw_module_name, import_tmp_path
 import fwo_globals
 from fwo_base import write_native_config_to_file
 from fwo_exceptions import FwoImporterError, FwLoginFailed, ImportRecursionLimitReached, FwoApiWriteError, FwoImporterErrorInconsistencies, ImportInterruption
-from fwo_base import stringIsUri, ConfigAction, ConfFormat
+from fwo_base import stringIsUri
 import fwo_file_import
-from model_controllers.fworch_config_controller import FworchConfigController
 from model_controllers.import_state_controller import ImportStateController
-from models.fwconfig_normalized import FwConfig, FwConfigNormalized
-from models.fwconfigmanagerlist import FwConfigManagerList, FwConfigManager
+from models.fwconfigmanagerlist import FwConfigManagerList
 from models.gateway import Gateway
-from fwconfig_base import calcManagerUidHash
 from model_controllers.fwconfig_import import FwConfigImport
-from model_controllers.gateway_controller import GatewayController
+from model_controllers.management_controller import ManagementController
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
 from model_controllers.check_consistency import FwConfigImportCheckConsistency
 from model_controllers.rollback import FwConfigImportRollback
@@ -127,7 +122,7 @@ def _import_management(service_provider=None, importState=None, config_importer=
         return 0
     
     Path(import_tmp_path).mkdir(parents=True, exist_ok=True)  # make sure tmp path exists
-    gateways = GatewayController.buildGatewayList(importState.MgmDetails)
+    gateways = ManagementController.buildGatewayList(importState.MgmDetails)
     logger.info(f"starting import of management {importState.MgmDetails.Name} ({str(mgmId)}), import_id= {str(importState.ImportId)}")
 
     fwo_api.setImportLock(importState)
@@ -250,9 +245,7 @@ def get_config_from_api(importState: ImportStateController, configNative) -> tup
     else:
         normalized_config_list = FwConfigManagerListController.generate_empty_config(importState.MgmDetails.IsSuperManager)
 
-    # if we already have a native config (read from file) we do not bother to dump it again
-    if len(configNative.native_config.keys()) > 0:
-        write_native_config_to_file(importState, configNative.native_config)
+    write_native_config_to_file(importState, configNative.native_config)
 
     logger.debug("import_management: get_config completed (including normalization), duration: " + str(int(time.time()) - importState.StartTime) + "s") 
 

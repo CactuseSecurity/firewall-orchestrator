@@ -16,8 +16,7 @@ from model_controllers.route_controller import get_ip_of_interface_obj
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
 from model_controllers.fwconfig_normalized_controller import FwConfigNormalizedController
 from models.fwconfigmanager import FwConfigManager
-from model_controllers.management_details_controller import ManagementDetailsController
-from fwconfig_base import calcManagerUidHash
+from model_controllers.management_controller import ManagementController
 from fmgr_network import normalize_network_objects
 from fmgr_service import normalize_service_objects
 from fmgr_rule import normalize_rulebases, initialize_rulebases, getAccessPolicy
@@ -113,11 +112,11 @@ def get_config(nativeConfig: json, importState: ImportStateController):
     # fmgr_network.remove_nat_ip_entries(config2import)
     # return 0
 
-def initialize_native_config_domain(mgm_details : ManagementDetailsController):
+def initialize_native_config_domain(mgm_details : ManagementController):
     return {
         'domain_name': mgm_details.DomainName,
         'domain_uid': mgm_details.DomainUid,
-        'is-super-manger': mgm_details.IsSuperManager,
+        'is-super-manager': mgm_details.IsSuperManager,
         'management_name': mgm_details.Name,
         'management_uid': mgm_details.Uid,
         'objects': [],
@@ -163,9 +162,12 @@ def normalize_config(import_state, native_config: json) -> FwConfigManagerListCo
             gateways=normalized_config_dict.get('gateways', [])
         )
 
-        manager = FwConfigManager(ManagerUid=calcManagerUidHash(import_state.MgmDetails),
-                                    ManagerName=import_state.MgmDetails.Name,
-                                    IsGlobal=import_state.MgmDetails.IsSuperManager,
+        # TODO: identify the correct manager
+
+        # manager = FwConfigManager(ManagerUid=ManagementController.calcManagerUidHash(import_state.MgmDetails),
+        manager = FwConfigManager(ManagerUid=native_conf.get('management_uid',''),
+                                    ManagerName=native_conf.get('management_name', ''),
+                                    IsGlobal=native_conf.get('is-super-manager', False),
                                     IsSuperManager=native_conf.get('is-super-manager', False),
                                     DomainName=native_conf.get('domain_name', ''),
                                     DomainUid=native_conf.get('domain_uid', ''),
@@ -198,11 +200,11 @@ def normalize_single_manager_config(native_config: json, native_config_global: j
                                     is_global_loop_iteration: bool):
 
     current_nw_obj_types = deepcopy(nw_obj_types)
-    if native_config['is-super-manger']:
+    if native_config['is-super-manager']:
         current_nw_obj_types = ["nw_obj_global_" + t for t in nw_obj_types]
 
     current_svc_obj_types = deepcopy(svc_obj_types)
-    if native_config['is-super-manger']:
+    if native_config['is-super-manager']:
         current_svc_obj_types = ["svc_obj_global_" + t for t in svc_obj_types]
     logger = getFwoLogger()
     normalize_network_objects(import_state, native_config, native_config_global, normalized_config_dict, normalized_config_global, 

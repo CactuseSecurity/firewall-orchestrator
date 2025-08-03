@@ -1,14 +1,21 @@
 from typing import List, Dict
-from models.management_details import ManagementDetails
-from fwo_exceptions import FwLoginFailed
+import hashlib
 
-class ManagementDetailsController(ManagementDetails):
+from models.management import Management
+from fwo_exceptions import FwLoginFailed
+from models.gateway import Gateway
+from fwconfig_base import replaceNoneWithEmpty
+
+
+class ManagementController(Management):
 
     def __init__(self, hostname: str, id: int, uid: str, importDisabled: bool, devices: Dict, 
                  importerHostname: str, name: str, deviceTypeName: str, deviceTypeVersion: str, 
                  port: int = 443, secret: str = '', importUser: str = '', isSuperManager: bool = False, 
-                 subManagerIds: List[int] = [], subManagers: List['ManagementDetails'] = [],
+                 subManagerIds: List[int] = [], subManagers: List['Management'] = [],
                  domainName: str = '', domainUid: str = ''):
+        
+        subManagers: List['Management'] = []
         self.Hostname = hostname
         self.Id = id
         self.Uid = uid
@@ -77,3 +84,25 @@ class ManagementDetailsController(ManagementDetails):
 
     def getDomainString(self):
         return self.DomainUid if self.DomainUid != None else self.DomainName
+
+
+    @classmethod
+    def buildGatewayList(cls, mgmDetails: Management) -> List['Gateway']:
+        devs = []
+        for dev in mgmDetails.Devices:
+            # check if gateway import is enabled
+            if 'do_not_import' in dev and dev['do_not_import']: # TODO: get this key from the device
+                continue
+            devs.append(Gateway(Name = dev['name'], Uid = f"{dev['name']}/{cls.calcManagerUidHash(mgmDetails)}"))
+        return devs
+
+
+    @classmethod
+    def calcManagerUidHash(cls, mgm_details):
+        combination = f"""
+            {replaceNoneWithEmpty(Hostname)}
+            {replaceNoneWithEmpty(mgm_details.Port)}
+            {replaceNoneWithEmpty(mgm_details.DomainUid)}
+            {replaceNoneWithEmpty(mgm_details.DomainName)}
+        """
+        return hashlib.sha256(combination.encode()).hexdigest()

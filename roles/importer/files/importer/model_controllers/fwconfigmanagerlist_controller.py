@@ -11,13 +11,13 @@ from fwo_base import split_list, serializeDictToClassRecursively, deserializeCla
 from fwo_const import max_objs_per_chunk, import_tmp_path
 
 from model_controllers.import_state_controller import ImportStateController
-from model_controllers.management_details_controller import ManagementDetails
+from model_controllers.management_controller import Management
 from models.fwconfig_normalized import FwConfig, FwConfigNormalized
-from fwo_base import ConfFormat
-from fwconfig_base import calcManagerUidHash
+# from model_controllers.management_controller import ManagementController
 from models.fwconfigmanagerlist import FwConfigManagerList
 from models.fwconfigmanager import FwConfigManager
 from model_controllers.fwconfig_controller import FwoEncoder
+from fwo_base import ConfFormat
 
 """
     a list of normalized configuratons of a firewall management to import
@@ -47,7 +47,7 @@ class FwConfigManagerListController(FwConfigManagerList):
         """
         empty_config = FwConfigManagerListController()
         empty_config.ConfigFormat = ConfFormat.NORMALIZED
-        empty_manager = FwConfigManager(ManagerUid=calcManagerUidHash(ManagementDetails()),
+        empty_manager = FwConfigManager(ManagerUid=calcManagerUidHash(Management()),
                                         IsSuperManager=is_super_manager,
                                         SubManagerIds=[],
                                         Configs=[])
@@ -133,7 +133,7 @@ class FwConfigManagerListController(FwConfigManagerList):
         return rb_name
     
     @classmethod
-    def ConvertFromLegacyNormalizedConfig(cls, legacyConfig: dict, mgmDetails: ManagementDetails) -> 'FwConfigManagerList':
+    def ConvertFromLegacyNormalizedConfig(cls, legacyConfig: dict, mgmDetails: Management) -> 'FwConfigManagerList':
         if 'ConfigFormat' in legacyConfig and legacyConfig['ConfigFormat'] == 'NORMALIZED':
             legacyConfig['ManagerSet'][0]['Configs']= [ FwConfigNormalized.fromJson(legacyConfig) ]
             return FwConfigManagerList.FromJson(legacyConfig)
@@ -155,7 +155,7 @@ class FwConfigManagerListController(FwConfigManagerList):
         return self.ConfigFormat in [ConfFormat.FORTINET, ConfFormat.CHECKPOINT, ConfFormat.FORTIMANAGER]
 
 
-    def convertLegacyConfig(self, legacyConfig: dict, mgmDetails: ManagementDetails):
+    def convertLegacyConfig(self, legacyConfig: dict, mgmDetails: Management):
         if 'networkobjects' in legacyConfig:
             mgr = FwConfigManager(ManagerUid=calcManagerUidHash(mgmDetails.MgmDetails),
                                   IsSuperManager=False,

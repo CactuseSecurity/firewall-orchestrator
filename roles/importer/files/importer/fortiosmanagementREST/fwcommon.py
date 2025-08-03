@@ -10,13 +10,11 @@ import fOS_zone
 import fOS_rule
 import fOS_network
 import fOS_getter
-from fwo_base import calcManagerUidHash, ConfigAction
+from fwo_base import ConfigAction
 from fwo_log import getFwoLogger
 # from fOS_gw_networking import getInterfacesAndRouting, normalize_network_data
 from model_controllers.interface_controller import get_ip_of_interface_obj
 from model_controllers.import_state_controller import ImportStateController
-from model_controllers.management_details_controller import ManagementDetailsController
-#from fwconfig import FwConfigManager, FwConfigManagerList, FwConfigNormalized
 from models.fwconfigmanagerlist import FwConfigManagerList
 from models.fwconfigmanager import FwConfigManager
 from models.fwconfig_normalized import FwConfigNormalized

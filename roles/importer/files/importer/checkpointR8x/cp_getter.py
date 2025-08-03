@@ -12,7 +12,7 @@ import cp_network
 import cp_const
 import fwo_const
 from fwo_exceptions import ImportInterruption
-from model_controllers.management_details_controller import ManagementDetailsController
+from model_controllers.management_controller import ManagementController
 
 
 def cp_api_call(url, command, json_payload, sid, show_progress=False):
@@ -44,7 +44,7 @@ def cp_api_call(url, command, json_payload, sid, show_progress=False):
     return json_response
 
 
-def login(mgm_details: ManagementDetailsController):
+def login(mgm_details: ManagementController):
     logger = getFwoLogger()
     payload = {'user': mgm_details.ImportUser, 'password': mgm_details.Secret}
     domain = mgm_details.getDomainString()

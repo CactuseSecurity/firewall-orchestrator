@@ -386,7 +386,7 @@ class FwConfigImportCheckConsistency(FwConfigImport):
 
     # e.g. check rule to rule refs
     # TODO: check if the rule & rulebases referenced belong to either 
-    #       - the same submanger or 
+    #       - the same submanager or 
     #       - the super manager but not another sub manager
     def check_rulebase_link_consistency(self, config: FwConfigNormalized = None):
         broken_rulebase_links = []

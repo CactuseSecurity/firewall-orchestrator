@@ -19,12 +19,12 @@ from services.service_provider import ServiceProvider
 from services.global_state import GlobalState
 from services.enums import Services
 from models.fwconfigmanagerlist import FwConfigManagerList, FwConfigManager
-from model_controllers.management_details_controller import ManagementDetailsController
+from model_controllers.management_controller import ManagementController
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
 from services.global_state import GlobalState
 from services.service_provider import ServiceProvider
 from services.enums import Services
-from fwconfig_base import calcManagerUidHash
+from model_controllers.management_controller import ManagementController
 from model_controllers.import_state_controller import ImportStateController
 from model_controllers.fworch_config_controller import FworchConfigController
 
@@ -96,7 +96,7 @@ class FwConfigImport():
         # Reset management
         configNormalized.addManager(
             manager=FwConfigManager(
-                ManagerUid=calcManagerUidHash(import_state.MgmDetails),
+                ManagerUid=ManagementController.calcManagerUidHash(import_state.MgmDetails),
                 ManagerName=import_state.MgmDetails.Name,
                 IsSuperManager=import_state.MgmDetails.IsSuperManager,
                 SubManagerIds=import_state.MgmDetails.SubManagerIds,
@@ -118,10 +118,10 @@ class FwConfigImport():
             for subManagerId in import_state.MgmDetails.SubManagerIds:
                 # Fetch sub management details
                 mgm_details_raw = fwo_api.get_mgm_details(fwo_api_base_url, jwt, {"mgmId": subManagerId})
-                mgm_details = ManagementDetailsController.fromJson(mgm_details_raw)
+                mgm_details = ManagementController.fromJson(mgm_details_raw)
                 configNormalized.addManager(
                     manager=FwConfigManager(
-                        ManagerUid=calcManagerUidHash(mgm_details_raw),
+                        ManagerUid=ManagementController.calcManagerUidHash(mgm_details_raw),
                         ManagerName=mgm_details.Name,
                         IsSuperManager=mgm_details.IsSuperManager,
                         SubManagerIds=mgm_details.SubManagerIds,
@@ -277,7 +277,7 @@ class FwConfigImport():
         logger = getFwoLogger(debug_level=self.import_state.DebugLevel)
 
         if not mgm_id:
-            logger.error("fwo_api:import_latest_config - no mgm id found")
+            logger.error("fwo_api:import_latest_config - no mgm id found for current manager uid")
             return prev_config
         
         query = fwo_api.get_graphql_code([fwo_const.graphqlQueryPath + "import/getLatestConfig.graphql"])

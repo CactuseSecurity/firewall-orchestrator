@@ -33,16 +33,16 @@ if __name__ == '__main__': # for usage as executable script
     from fwo_const import list_delimiter, user_delimiter
 else: # for usage in unit tests
     from . uid_manager import UidManager
-    from importer.models.fwconfig_normalized import FwConfigNormalized
-    from importer.models.rulebase import Rulebase
-    from importer.models.rule import RuleNormalized, RuleAction, RuleTrack, RuleType
+    from models.fwconfig_normalized import FwConfigNormalized
+    from models.rulebase import Rulebase
+    from models.rule import RuleNormalized, RuleAction, RuleTrack, RuleType
     from pydantic import PrivateAttr
-    from importer.fwo_const import rule_num_numeric_steps, dummy_ip, list_delimiter, user_delimiter
-    from importer.models.networkobject import NetworkObject
-    from importer.models.serviceobject import ServiceObject
-    from importer.models.gateway import Gateway
-    from importer.models.rulebase_link import RulebaseLinkUidBased
-    from importer.fwo_const import list_delimiter, user_delimiter
+    from fwo_const import rule_num_numeric_steps, dummy_ip, list_delimiter, user_delimiter
+    from models.networkobject import NetworkObject
+    from models.serviceobject import ServiceObject
+    from models.gateway import Gateway
+    from models.rulebase_link import RulebaseLinkUidBased
+    from fwo_const import list_delimiter, user_delimiter
 
 
 DUMMY_IP = IPNetwork(dummy_ip)

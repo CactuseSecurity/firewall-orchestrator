@@ -148,7 +148,7 @@ def normalize_config(import_state, native_config: json) -> FwConfigManagerListCo
     rewrite_native_config_obj_type_as_key(native_config) # for easier accessability of objects in normalization process
 
     for native_conf in native_config['domains']:
-        normalized_config_dict = fwo_const.emptyNormalizedFwConfigJsonDict
+        normalized_config_dict = deepcopy(fwo_const.emptyNormalizedFwConfigJsonDict)
 
         normalize_single_manager_config(native_conf, native_config_global, normalized_config_dict, normalized_config_global, 
                                                             import_state, is_global_loop_iteration=False)
@@ -200,12 +200,14 @@ def normalize_single_manager_config(native_config: json, native_config_global: j
                                     is_global_loop_iteration: bool):
 
     current_nw_obj_types = deepcopy(nw_obj_types)
-    if native_config['is-super-manager']:
-        current_nw_obj_types = ["nw_obj_global_" + t for t in nw_obj_types]
-
     current_svc_obj_types = deepcopy(svc_obj_types)
     if native_config['is-super-manager']:
+        current_nw_obj_types = ["nw_obj_global_" + t for t in nw_obj_types]
         current_svc_obj_types = ["svc_obj_global_" + t for t in svc_obj_types]
+    else:
+        current_nw_obj_types = [f"nw_obj_adom/{native_config.get('domain_name','')}_{t}" for t in nw_obj_types]
+        current_svc_obj_types = [f"svc_obj_adom/{native_config.get('domain_name','')}_{t}" for t in svc_obj_types]
+
     logger = getFwoLogger()
     normalize_network_objects(import_state, native_config, native_config_global, normalized_config_dict, normalized_config_global, 
                                            current_nw_obj_types)

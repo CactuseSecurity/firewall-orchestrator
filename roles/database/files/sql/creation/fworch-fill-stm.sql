@@ -291,7 +291,7 @@ INSERT INTO "report_template" ("report_filter","report_template_name","report_te
                 "isDiffReport": false,
                 "diffReferenceInDays: 0,
                 "showCompliantRules: false,
-                "excludedRuleActions": ["inner layer", "drop"]}');
+                "excludedRuleActions": ["inner layer", "drop"]}}');
 
 insert into parent_rule_type (id, name) VALUES (1, 'section');          -- do not restart numbering
 insert into parent_rule_type (id, name) VALUES (2, 'guarded-layer');    -- restart numbering, rule restrictions are ANDed to all rules below it, layer is not entered if guard does not apply

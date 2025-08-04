@@ -162,7 +162,7 @@ namespace FWO.Compliance
                 Log.TryWriteLog(LogType.Info, "Compliance Check", $"Found {existingViolations.Count} existing violations", _debugConfig.ExtendedLogComplianceCheck);
 
                 List<ComplianceViolationBase> violations = await CreateViolationInsertObjectsAsync(existingViolations);
-                Task<List<(int, ComplianceViolationBase)>> violationsForRemoveTask = GetViolationsForRemoveAsync(existingViolations);
+                Task<List<int>> violationsForRemoveTask = GetViolationsForRemoveAsync(existingViolations);
 
 
                 if (violations.Count == 0)
@@ -189,19 +189,14 @@ namespace FWO.Compliance
                 {
                     Log.TryWriteLog(LogType.Info, "Compliance Check", $"{violationsForRemoveTask.Result.Count} violations to remove.", _debugConfig.ExtendedLogComplianceCheck);
 
-                    foreach ((int, ComplianceViolationBase) ruleIdAndViolation in violationsForRemoveTask.Result)
+                    List<int> ids = violationsForRemoveTask.Result;
+
+                    object varioablesRemove = new
                     {
-                        int id = ruleIdAndViolation.Item1;
-                        ComplianceViolationBase changes = ruleIdAndViolation.Item2;
+                        ids
+                    };
 
-                        object variablesUpdate = new
-                        {
-                            id,
-                            changes
-                        };
-
-                        await _apiConnection.SendQueryAsync<dynamic>(ComplianceQueries.updateViolationById, variablesUpdate);
-                    }
+                    await _apiConnection.SendQueryAsync<dynamic>(ComplianceQueries.removeViolations, varioablesRemove);
 
                     Log.TryWriteLog(LogType.Info, "Compliance Check", $"Removed {violationsForRemoveTask.Result.Count} violations", _debugConfig.ExtendedLogComplianceCheck && violationsForRemoveTask.Result.Count > 0);                    
                 }
@@ -254,9 +249,9 @@ namespace FWO.Compliance
             return violationsForInsert;
         }
 
-        private async Task<List<(int, ComplianceViolationBase)>> GetViolationsForRemoveAsync(List<ComplianceViolation> existingViolations)
+        private async Task<List<int>> GetViolationsForRemoveAsync(List<ComplianceViolation> existingViolations)
         {
-            List<(int, ComplianceViolationBase)> violationsForUpdate = [];
+            List<int> violationsForUpdate = [];
 
             if (ComplianceReport is ReportCompliance complianceReport)
             {
@@ -270,16 +265,7 @@ namespace FWO.Compliance
                                                                 
                     if (validatedViolation == null)
                     {
-                        violationsForUpdate.Add((existingViolation.Id, new ComplianceViolationBase
-                        {
-                            RuleId = existingViolation.RuleId,
-                            Details = existingViolation.Details,
-                            FoundDate = existingViolation.FoundDate,
-                            RemovedDate = DateTime.Now,
-                            RiskScore = existingViolation.RiskScore,
-                            PolicyId = existingViolation.PolicyId,
-                            CriterionId = existingViolation.CriterionId
-                        }));
+                        violationsForUpdate.Add(existingViolation.Id);
                     }
                 }
             }

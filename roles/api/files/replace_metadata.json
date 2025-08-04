@@ -1316,13 +1316,6 @@
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
-                      "id",
-                      "rule_id",
-                      "criterion_id",
-                      "policy_id",
-                      "risk_score",
-                      "details",
-                      "found_date",
                       "removed_date"
                     ],
                     "filter": {},

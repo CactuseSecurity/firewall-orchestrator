@@ -1,0 +1,8 @@
+mutation removeViolations($ids: [Int!]!) {
+  update_compliance_violation(
+    where: { id: { _in: $ids } },
+    _set: { removed_date: now() }
+  ) {
+    affected_rows
+  }
+}

@@ -10,18 +10,23 @@ using System.Reflection;
 using System.Text.Json;
 using FWO.Data.Middleware;
 using FWO.Logging;
+using FWO.Basics.Comparer;
 
 namespace FWO.Report
 {
     public class ReportCompliance : ReportRules
     {
         public List<ComplianceViolation> Violations { get; set; } = [];
+        Dictionary<ComplianceViolation, char> ViolationDiffs = new();
         public List<Rule> Rules { get; set; } = [];
+        public bool IsDiffReport { get; set; } = false;
+        public int DiffReferenceInDays { get; set; } = 0;
 
         private readonly bool _includeHeaderInExport;
         private readonly char _separator;
         private readonly List<string> _columnsToExport;
         private readonly DebugConfig _debugConfig;
+        
 
 
         public ReportCompliance(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType) : base(query, userConfig, reportType)
@@ -55,6 +60,7 @@ namespace FWO.Report
 
                 _debugConfig = new();
             }
+
         }
 
         public override string ExportToCsv()
@@ -155,15 +161,58 @@ namespace FWO.Report
         public override async Task Generate(int rulesPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback, CancellationToken ct)
         {
             var baseTask = base.Generate(rulesPerFetch, apiConnection, callback, ct);
-            var violationsTask = apiConnection.SendQueryAsync<List<ComplianceViolation>>(ComplianceQueries.getViolations);
+            var violationsTask = apiConnection.SendQueryAsync<List<ComplianceViolation>>(ComplianceQueries.getViolations); // TODO: move in DynQuery
 
             await Task.WhenAll(baseTask, violationsTask);
 
-            Violations = violationsTask.Result.Where(v => v.RemovedDate == null).ToList();
+            List<ComplianceViolation> violationsTaskResult = violationsTask.Result;
+            Violations = violationsTaskResult.Where(v => v.RemovedDate == null).ToList();
+            
+            if (IsDiffReport && DiffReferenceInDays > 0)
+            {
+                ViolationDiffs = await GetViolationDiffs(violationsTaskResult);
+                Violations = ViolationDiffs.Keys.ToList();
+            }
+
             await SetComplianceData();
         }
+        
+        public async Task<Dictionary<ComplianceViolation, char>> GetViolationDiffs(List<ComplianceViolation> allViolations)
+        {
+                DateTime referenceDate = DateTime.Now.AddDays(-DiffReferenceInDays);
 
-        public async Task SetComplianceData() 
+                List<ComplianceViolation> referenceViolations = allViolations
+                                                                    .Where(violation => violation.FoundDate <= referenceDate)
+                                                                    .Where(violation => violation.RemovedDate == null || violation.RemovedDate >= referenceDate)
+                                                                    .ToList();
+
+                Dictionary<ComplianceViolation, char> violationDiffs = new();
+                ComplianceViolationComparer comparer = new();
+
+                List<ComplianceViolation> removedViolations = referenceViolations
+                                                                .Except(Violations, comparer)
+                                                                .Cast<ComplianceViolation>()
+                                                                .ToList();
+
+                List<ComplianceViolation> addedViolations = Violations
+                                                                .Except(referenceViolations, comparer)
+                                                                .Cast<ComplianceViolation>()
+                                                                .ToList();
+
+                foreach (var v in removedViolations)
+                {
+                    violationDiffs[v] = '-';
+                }
+
+                foreach (var v in addedViolations)
+                {
+                    violationDiffs[v] = '+';                    
+                }
+
+                return violationDiffs;    
+        }
+
+        public async Task SetComplianceData()
         {
             Rules.Clear();
 

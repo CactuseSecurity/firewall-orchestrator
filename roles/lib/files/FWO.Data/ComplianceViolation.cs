@@ -1,12 +1,28 @@
+using FWO.Basics.Interfaces;
 using Newtonsoft.Json;
 using System.Text.Json.Serialization;
 
 namespace FWO.Data
 {
-    public class ComplianceViolation : ComplianceViolationBase
+    public class ComplianceViolation : ComplianceViolationBase, IComplianceViolation
     {
         [JsonProperty("id"), JsonPropertyName("id")]
         public int Id { get; set; }
+
+        public static ComplianceViolation Copy(ComplianceViolation violation)
+        {
+            return new()
+            {
+                Id = violation.Id,
+                RuleId = violation.RuleId,
+                FoundDate = violation.FoundDate,
+                RemovedDate = violation.RemovedDate,
+                Details = violation.Details,
+                RiskScore = violation.RiskScore,
+                PolicyId = violation.PolicyId,
+                CriterionId = violation.CriterionId
+            };
+        }
     }
 
     /// <summary>

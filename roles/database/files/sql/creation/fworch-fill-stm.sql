@@ -289,8 +289,8 @@ INSERT INTO "report_template" ("report_filter","report_template_name","report_te
                 "open_end": false},
             "compliance_filter": {
                 "isDiffReport": false,
-                "diffReferenceInDays: 0,
-                "showCompliantRules: false,
+                "diffReferenceInDays": 0,
+                "showCompliantRules": false,
                 "excludedRuleActions": ["inner layer", "drop"]}}');
 
 insert into parent_rule_type (id, name) VALUES (1, 'section');          -- do not restart numbering

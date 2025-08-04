@@ -286,7 +286,7 @@ INSERT INTO "report_template" ("report_filter","report_template_name","report_te
                 "start_time": "2022-01-01T00:00:00.0000000+01:00",
                 "end_time": "2022-01-01T00:00:00.0000000+01:00",
                 "open_start": false,
-                "open_end": false}},
+                "open_end": false},
             "compliance_filter": {
                 "isDiffReport": false,
                 "diffReferenceInDays: 0,

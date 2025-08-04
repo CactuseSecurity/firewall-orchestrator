@@ -324,8 +324,13 @@ namespace FWO.Compliance
                     ComplianceViolation violation = new()
                     {
                         RuleId = (int)item.Item1.Id,
-                        Details = $"Matrix violation: {item.Item2.Item1.Name} -> {item.Item2.Item2.Name}"
+                        Details = $"Matrix violation: {item.Item2.Item1.Name} -> {item.Item2.Item2.Name}",
+                        CriterionId = _policy?.Criteria
+                                                .FirstOrDefault(criterionWrapper => criterionWrapper.Content.CriterionType == "Matrix")?
+                                                .Content.Id ?? 0,
+                        PolicyId = _policy?.Id ?? 0
                     };
+
                     complianceReport.Violations.Add(violation);
                 }
                 
@@ -451,7 +456,7 @@ namespace FWO.Compliance
             }
         }
 
-        public static List<ComplianceViolation> TryGetRestrictedServiceViolation(Rule rule, ComplianceCriterion criterion)
+        public List<ComplianceViolation> TryGetRestrictedServiceViolation(Rule rule, ComplianceCriterion criterion)
         {
             List<ComplianceViolation> violations = [];
             List<string> restrictedServices = [.. criterion.Content.Split(',').Select(s => s.Trim())
@@ -464,7 +469,9 @@ namespace FWO.Compliance
                     ComplianceViolation violation = new()
                     {
                         RuleId = (int)rule.Id,
-                        Details = $"Restricted service used: {service.Content.Name}"
+                        Details = $"Restricted service used: {service.Content.Name}",
+                        CriterionId = criterion.Id,
+                        PolicyId = _policy?.Id ?? 0
                     };
                     violations.Add(violation);
                 }

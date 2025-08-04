@@ -286,7 +286,10 @@ INSERT INTO "report_template" ("report_filter","report_template_name","report_te
                 "start_time": "2022-01-01T00:00:00.0000000+01:00",
                 "end_time": "2022-01-01T00:00:00.0000000+01:00",
                 "open_start": false,
-                "open_end": false}}');
+                "open_end": false}}'),
+            "compliance_filter": {
+                ""
+            };
 
 insert into parent_rule_type (id, name) VALUES (1, 'section');          -- do not restart numbering
 insert into parent_rule_type (id, name) VALUES (2, 'guarded-layer');    -- restart numbering, rule restrictions are ANDed to all rules below it, layer is not entered if guard does not apply

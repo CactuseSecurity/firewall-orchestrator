@@ -1033,12 +1033,6 @@ INSERT INTO config (config_key, config_value, config_user)
 VALUES ('complianceCheckPolicy', '0', 0)
 ON CONFLICT (config_key, config_user) DO NOTHING;
 
--- add config parameter complianceCheckPersistData if not exists
-
-INSERT INTO config (config_key, config_value, config_user) 
-VALUES ('complianceCheckPersistData', 'true', 0)
-ON CONFLICT (config_key, config_user) DO NOTHING;
-
 -- add unique constraint for report_template_name
 
 DO $$

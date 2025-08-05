@@ -2511,8 +2511,6 @@ INSERT INTO txt VALUES ('complianceCheckMailSubject','German','Titel der Benachr
 INSERT INTO txt VALUES ('complianceCheckMailSubject','English','Subject of notification emails');
 INSERT INTO txt VALUES ('complianceCheckMailBody','German', 'Text der Benachrichtigung');
 INSERT INTO txt VALUES ('complianceCheckMailBody','English','Body of notification emails');
-INSERT INTO txt VALUES ('complianceCheckPersistData','German', 'Daten persistieren');
-INSERT INTO txt VALUES ('complianceCheckPersistData','English','Persist Data');
 INSERT INTO txt VALUES ('complianceMatrixAllowNetworkZones','German', 'Netzwerkzonenverschachtelung erlauben');
 INSERT INTO txt VALUES ('complianceMatrixAllowNetworkZones','English','Nested Network Zones allowed');
 INSERT INTO txt VALUES ('availableModules',     'German', 	'Verf&uuml;gbare Module');

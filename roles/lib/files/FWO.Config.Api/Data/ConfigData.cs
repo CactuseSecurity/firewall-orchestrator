@@ -413,9 +413,6 @@ namespace FWO.Config.Api.Data
         [JsonProperty("complianceCheckMailBody"), JsonPropertyName("complianceCheckMailBody")]
         public string ComplianceCheckMailBody { get; set; } = "";
 
-        [JsonProperty("complianceCheckPersistData"), JsonPropertyName("complianceCheckPersistData")]
-        public bool ComplianceCheckPersistData { get; set; } = false;
-
         [JsonProperty("complianceMatrixAllowNetworkZones"), JsonPropertyName("complianceMatrixAllowNetworkZones")]
         public bool ComplianceMatrixAllowNetworkZones { get; set; } = false;
 

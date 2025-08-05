@@ -55,7 +55,7 @@
     </Table>
 </div>
 
-<PopUp Size=PopupSize.Large Title="@(_userConfig.GetText("report_schedule"))" Show="@(ShowAddReportScheduleDialog || ShowEditReportScheduleDialog)">
+<PopUp Size=PopupSize.XLarge Title="@(_userConfig.GetText("report_schedule"))" Show="@(ShowAddReportScheduleDialog || ShowEditReportScheduleDialog)">
     <Body>
         <div>
             <div class="form-group row">
@@ -105,7 +105,7 @@
             <div class="form-group row mt-2">
                 <label for="scheduleOutputFormat" class="col-sm-3 col-form-label col-form-label-sm">@(_userConfig.GetText("output_format")):</label>
                 <div class="col-sm-8">
-                    <div class="form-inline justify-content-between">
+                    <div class="d-flex flex-wrap gap-3">
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" id="outputFormatHtml" value="Html"
                                    checked="@(reportScheduleInEdit.OutputFormat.Exists(format => format.Name == GlobalConst.kHtml))"
@@ -137,46 +137,62 @@
                         {
                             reportScheduleInEdit.OutputFormat.Remove(GlobalConst.kCsv);
                         }
-
-                        @if (reportScheduleInEdit.Template.ReportParams != null && GetReportType().IsComplianceReport()) @* Restriction on compliance report solely while development. Dont have the time to verify, wether this works for every report type *@
-                        {
-                            <div class="form-group row mt-2" data-toggle="tooltip" title="@(_userConfig.PureLine("H5810"))">
-                                <label class="col-form-label col-sm-4">@(_userConfig.GetText("policy"))*:</label>
-                                <div class="col-sm-2">
-                                    <Dropdown ElementType="CompliancePolicy" ElementToString="@(p => p.Name)" @bind-SelectedElement="_actPolicy" Elements="_policies">
-                                        <ElementTemplate Context="policy">
-                                            @policy.Name
-                                        </ElementTemplate>
-                                    </Dropdown>
-                                </div>
-                            </div>
-                        }
-
-                        @* Mail config *@
-                        @if (reportScheduleInEdit.Template.ReportParams != null && GetReportType().IsComplianceReport()) @* Restriction on compliance report solely while development. Dont have the time to verify, wether this works for every report type *@
-                        {
-                            <div class="form-group row" data-toggle="tooltip" title="@(_userConfig.PureLine("H5804"))">
-                                <label class="col-form-label col-sm-4">@(_userConfig.GetText("complianceCheckMailRecipients")):</label>
-                                <div class="col-sm-7" data-toggle="tooltip" title="@(_userConfig.GetText("U5320"))">
-                                    <input type="text" @bind="_configData!.ComplianceCheckMailRecipients" />
-                                </div>
-                            </div>
-                            <div class="form-group row mt-2" data-toggle="tooltip" title="@(_userConfig.PureLine("H5805"))">
-                                <label class="col-form-label col-sm-4">@(_userConfig.GetText("complianceCheckMailSubject")):</label>
-                                <div class="col-sm-7">
-                                    <input type="text" @bind="_configData!.ComplianceCheckMailSubject" />
-                                </div>
-                            </div>
-                            <div class="form-group row" data-toggle="tooltip" title="@(_userConfig.PureLine("H5806"))">
-                                <label class="col-form-label col-sm-4">@(_userConfig.GetText("complianceCheckMailBody")):</label>
-                                <div class="col-sm-7">
-                                    <textarea rows="6" cols="60" name="text" placeholder=@(_userConfig.GetText("complianceCheckMailBody")) @bind="_configData!.ComplianceCheckMailBody"></textarea>
-                                </div>
-                            </div>
-                        }
                     </div>
                 </div>
             </div>
+
+            
+            @if (reportScheduleInEdit.Template.ReportParams != null && GetReportType().IsComplianceReport())
+            {
+                @* Mail config *@
+
+                <div class="form-group row mt-2" data-toggle="tooltip" title="@(_userConfig.PureLine("H5804"))">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(_userConfig.GetText("complianceCheckMailRecipients")):</label>
+                    <div class="col-sm-8" data-toggle="tooltip" title="@(_userConfig.GetText("U5320"))">
+                        <input type="text" @bind="_configData!.ComplianceCheckMailRecipients" class="form-control form-control-sm"/>
+                    </div>
+                </div>
+                <div class="form-group row mt-2" data-toggle="tooltip" title="@(_userConfig.PureLine("H5805"))">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(_userConfig.GetText("complianceCheckMailSubject")):</label>
+                    <div class="col-sm-8">
+                        <input type="text" @bind="_configData!.ComplianceCheckMailSubject" class="form-control form-control-sm"/>
+                    </div>
+                </div>
+                <div class="form-group row mt-2" data-toggle="tooltip" title="@(_userConfig.PureLine("H5806"))">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(_userConfig.GetText("complianceCheckMailBody")):</label>
+                    <div class="col-sm-8">
+                        <textarea rows="6" cols="60" name="text" placeholder=@(_userConfig.GetText("complianceCheckMailBody")) @bind="_configData!.ComplianceCheckMailBody" class="form-control form-control-sm"></textarea>
+                    </div>
+                </div>
+
+                @* Compliance specific *@
+
+                <div class="form-group row mt-2" data-toggle="tooltip" title="@(_userConfig.PureLine("H5810"))">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(_userConfig.GetText("policy"))*:</label>
+                    <div class="col-sm-8">
+                        <Dropdown ElementType="CompliancePolicy" ElementToString="@(p => p.Name)" @bind-SelectedElement="_actPolicy" Elements="_policies">
+                            <ElementTemplate Context="policy">
+                                @policy.Name
+                            </ElementTemplate>
+                        </Dropdown>
+                    </div>
+                </div>
+
+                <div class="form-group row mt-2">
+                    <div class="col-sm-6 d-flex align-items-center">
+                        <label for="scheduleActive" class="col-sm-3 col-form-label col-form-label-sm">Diff-Report:</label>
+                        <div class="col-sm-8" style="padding-top: calc(0.25rem + 1px);">
+                            <input id="scheduleActive" type="checkbox" style="max-height: 22px;" @bind="reportScheduleInEdit.Template.ReportParams.ComplianceFilter.IsDiffReport" />
+                        </div>
+                    </div>
+                    <div class="col-sm-6 d-flex align-items-center">
+                        <label for="intervalDays" class="col-sm-3 col-form-label col-form-label-sm">Diff interval (in days):</label>
+                        <input id="intervalDays" type="number" class="form-control form-control-sm" style="width: 80px;" min="1" max="365" @bind="reportScheduleInEdit.Template.ReportParams.ComplianceFilter.DiffReferenceInDays"/> 
+                    </div>
+                </div>
+            }
+
+
             <div class="form-group row mt-2">
                 <label for="scheduleActive" class="col-sm-3 col-form-label col-form-label-sm">@(_userConfig.GetText("active")):</label>
                 <div class="col-sm-8" style="padding-top: calc(0.25rem + 1px);">
@@ -342,6 +358,10 @@
                 reportScheduleInEdit.Id = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(ReportQueries.addReportSchedule, queryVariablesReportSchedule)).ReturnIds[0].NewId;
 
                 ShowAddReportScheduleDialog = false;
+
+                // update config
+
+                await _globalConfig.WriteToDatabase(_configData, apiConnection);
             }
         }
         catch (Exception exception)
@@ -380,6 +400,10 @@
                 await apiConnection.SendQueryAsync<object>(ReportQueries.editReportSchedule, queryVariables);
 
                 ShowEditReportScheduleDialog = false;
+
+                // update config
+
+                await _globalConfig.WriteToDatabase(_configData, apiConnection);
             }
         }
         catch (Exception exception)

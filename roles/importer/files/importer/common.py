@@ -251,8 +251,7 @@ def get_config_from_api(importState: ImportStateController, configNative) -> tup
         normalized_config_list = FwConfigManagerListController.generate_empty_config(importState.MgmDetails.IsSuperManager)
 
     # if we already have a native config (read from file) we do not bother to dump it again
-    if len(configNative.native_config.keys()) > 0:
-        write_native_config_to_file(importState, configNative.native_config)
+    write_native_config_to_file(importState, configNative.native_config)
 
     logger.debug("import_management: get_config completed (including normalization), duration: " + str(int(time.time()) - importState.StartTime) + "s") 
 

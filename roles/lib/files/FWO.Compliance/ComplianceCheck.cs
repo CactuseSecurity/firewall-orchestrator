@@ -190,13 +190,15 @@ namespace FWO.Compliance
                     Log.TryWriteLog(LogType.Info, "Compliance Check", $"{violationsForRemoveTask.Result.Count} violations to remove.", _debugConfig.ExtendedLogComplianceCheck);
 
                     List<int> ids = violationsForRemoveTask.Result;
+                    DateTime removedAt = DateTime.UtcNow;
 
-                    object varioablesRemove = new
+                    object variablesRemove = new
                     {
-                        ids
+                        ids,
+                        removedAt
                     };
 
-                    await _apiConnection.SendQueryAsync<dynamic>(ComplianceQueries.removeViolations, varioablesRemove);
+                    await _apiConnection.SendQueryAsync<dynamic>(ComplianceQueries.removeViolations, variablesRemove);
 
                     Log.TryWriteLog(LogType.Info, "Compliance Check", $"Removed {violationsForRemoveTask.Result.Count} violations", _debugConfig.ExtendedLogComplianceCheck && violationsForRemoveTask.Result.Count > 0);                    
                 }

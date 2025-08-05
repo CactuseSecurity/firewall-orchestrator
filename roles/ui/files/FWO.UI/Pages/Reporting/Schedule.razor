@@ -453,9 +453,14 @@
     {
         if (reportScheduleInEdit.Template.ReportParams.ReportType == (int) ReportType.Compliance)
         {
-            if (_userConfig.GlobalConfig is GlobalConfig globalConfig && !string.IsNullOrEmpty(globalConfig.ComplianceCheckScheduledDiffReportsIntervals))
+            if (_userConfig.GlobalConfig is GlobalConfig globalConfig)
             {
-                _complianceDiffReportConfig = JsonSerializer.Deserialize<ScheduledComplianceDiffReportConfig>(globalConfig.ComplianceCheckScheduledDiffReportsIntervals) ?? new();
+                _complianceDiffReportConfig = new();
+
+                if(!string.IsNullOrEmpty(globalConfig.ComplianceCheckScheduledDiffReportsIntervals))
+                {
+                    _complianceDiffReportConfig.ScheduledDiffReportsIntervals = JsonSerializer.Deserialize<Dictionary<int, int>>(globalConfig.ComplianceCheckScheduledDiffReportsIntervals) ?? new();
+                }
 
                 if (_complianceDiffReportConfig.ScheduledDiffReportsIntervals.Keys.Any(scheduledReportId => scheduledReportId == reportScheduleInEdit.Id))
                 {

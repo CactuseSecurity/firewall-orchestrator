@@ -181,21 +181,16 @@ namespace FWO.Report
         {
                 DateTime referenceDate = DateTime.Now.AddDays(-DiffReferenceInDays);
 
-                List<ComplianceViolation> referenceViolations = allViolations
-                                                                    .Where(violation => violation.FoundDate <= referenceDate)
-                                                                    .Where(violation => violation.RemovedDate == null || violation.RemovedDate >= referenceDate)
-                                                                    .ToList();
-
                 Dictionary<ComplianceViolation, char> violationDiffs = new();
                 ComplianceViolationComparer comparer = new();
 
-                List<ComplianceViolation> removedViolations = referenceViolations
-                                                                .Except(Violations, comparer)
+                List<ComplianceViolation> removedViolations = allViolations
+                                                                .Where(violation => violation.RemovedDate is DateTime removedDate && removedDate >= referenceDate)
                                                                 .Cast<ComplianceViolation>()
                                                                 .ToList();
 
-                List<ComplianceViolation> addedViolations = Violations
-                                                                .Except(referenceViolations, comparer)
+                List<ComplianceViolation> addedViolations = allViolations
+                                                                .Where(violation => violation.FoundDate >= referenceDate)
                                                                 .Cast<ComplianceViolation>()
                                                                 .ToList();
 
@@ -238,6 +233,14 @@ namespace FWO.Report
 
             foreach (var violation in violations.Where(v => v.RuleId == rule.Id))
             {
+                if (IsDiffReport)
+                {
+                    if (ViolationDiffs.TryGetValue(violation, out char changeSign))
+                    {
+                        violation.Details = $"({changeSign}) {violation.Details}";
+                    }
+                }
+                
                 if (rule.ViolationDetails != "")
                 {
                     rule.ViolationDetails += "\n";

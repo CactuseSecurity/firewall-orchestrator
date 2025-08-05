@@ -153,7 +153,8 @@ namespace FWO.Middleware.Server
                     {
                         if (_userConfig.GlobalConfig is GlobalConfig globalConfig && !string.IsNullOrEmpty(globalConfig.ComplianceCheckScheduledDiffReportsIntervals))
                         {
-                            ScheduledComplianceDiffReportConfig complianceDiffReportConfig = JsonSerializer.Deserialize<ScheduledComplianceDiffReportConfig>(globalConfig.ComplianceCheckScheduledDiffReportsIntervals) ?? new();
+                            ScheduledComplianceDiffReportConfig complianceDiffReportConfig = new();
+                            complianceDiffReportConfig.ScheduledDiffReportsIntervals = JsonSerializer.Deserialize<Dictionary<int,int>>(globalConfig.ComplianceCheckScheduledDiffReportsIntervals) ?? new();
 
                             if (complianceDiffReportConfig.ScheduledDiffReportsIntervals.Keys.Any(scheduledReportId => scheduledReportId == reportSchedule.Id))
                             {

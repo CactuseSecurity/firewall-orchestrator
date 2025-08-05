@@ -416,6 +416,9 @@ namespace FWO.Config.Api.Data
         [JsonProperty("complianceMatrixAllowNetworkZones"), JsonPropertyName("complianceMatrixAllowNetworkZones")]
         public bool ComplianceMatrixAllowNetworkZones { get; set; } = false;
 
+        [JsonProperty("complianceCheckScheduledDiffReportsIntervals"), JsonPropertyName("complianceCheckScheduledDiffReportsIntervals")]
+        public string ComplianceCheckScheduledDiffReportsIntervals { get; set; } = "";
+
         [JsonProperty("debugConfig"), JsonPropertyName("debugConfig")]
         public string DebugConfig { get; set; } = "";
 

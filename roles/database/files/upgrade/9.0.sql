@@ -1067,6 +1067,17 @@ VALUES ('',
             "open_end": false}}')
 ON CONFLICT (report_template_name) DO NOTHING;
 
+-- add compliance diff report parameters to config
+
+INSERT INTO config (config_key, config_value, config_user) 
+VALUES ('complianceCheckScheduledDiffReportConfig', '[]', 0) 
+ON CONFLICT (config_key, config_user) DO NOTHING;
+
+INSERT INTO config (config_key, config_value, config_user) 
+VALUES ('complianceCheckDiffReferenceInterval', '0', 0) 
+ON CONFLICT (config_key, config_user) DO NOTHING;
+
+
 -- adding labels (simple version without mapping tables and without foreign keys)
 
 -- CREATE TABLE label (

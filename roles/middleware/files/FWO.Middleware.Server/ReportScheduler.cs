@@ -14,6 +14,7 @@ using FWO.Config.File;
 using System.Collections.Concurrent;
 using FWO.Encryption;
 using FWO.Mail;
+using System.Text.Json;
 
 namespace FWO.Middleware.Server
 {
@@ -147,6 +148,20 @@ namespace FWO.Middleware.Server
 
                     await apiConnectionUserContext.SendQueryAsync<object>(ReportQueries.countReportSchedule, new { report_schedule_id = reportSchedule.Id });
                     await AdaptDeviceFilter(reportSchedule.Template.ReportParams, apiConnectionUserContext);
+                    
+                    if (reportSchedule.Template.ReportParams.ReportType == (int) ReportType.Compliance)
+                    {
+                        if (_userConfig.GlobalConfig is GlobalConfig globalConfig && !string.IsNullOrEmpty(globalConfig.ComplianceCheckScheduledDiffReportsIntervals))
+                        {
+                            ScheduledComplianceDiffReportConfig complianceDiffReportConfig = JsonSerializer.Deserialize<ScheduledComplianceDiffReportConfig>(globalConfig.ComplianceCheckScheduledDiffReportsIntervals) ?? new();
+
+                            if (complianceDiffReportConfig.ScheduledDiffReportsIntervals.Keys.Any(scheduledReportId => scheduledReportId == reportSchedule.Id))
+                            {
+                                reportSchedule.Template.ReportParams.ComplianceFilter.IsDiffReport = true;
+                                reportSchedule.Template.ReportParams.ComplianceFilter.DiffReferenceInDays = complianceDiffReportConfig.ScheduledDiffReportsIntervals[reportSchedule.Id];
+                            }
+                        }
+                    }
 
                     _report = await ReportGenerator.Generate(reportSchedule.Template, apiConnectionUserContext, _userConfig, DefaultInit.DoNothing, token);
                     if (_report != null)

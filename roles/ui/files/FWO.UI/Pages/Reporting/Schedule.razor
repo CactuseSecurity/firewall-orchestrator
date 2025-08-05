@@ -1,5 +1,6 @@
 ﻿@using FWO.Config.Api.Data
 @using FWO.Report.Filter
+@using System.Text.Json;
 
 @implements IDisposable
 
@@ -12,7 +13,7 @@
 
 <ReportTabset/>
 
-<button type="button" class="btn btn-sm btn-success mb-1" @onclick="() => { reportScheduleInEdit = new ReportSchedule() { RepeatInterval = SchedulerInterval.Never }; ShowAddReportScheduleDialog = true; }">@(_userConfig.GetText("add"))</button>
+<button type="button" class="btn btn-sm btn-success mb-1" @onclick="OnAddReportScheduleButtonClick">@(_userConfig.GetText("add"))</button>
 
 <div class="vheight75">
     <Table TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="ReportSchedule" Items="reportSchedules" PageSize="0">
@@ -21,7 +22,7 @@
                 @if (context.ScheduleOwningUser.DbId == uiUserDbId || authenticationState != null && authenticationState.User.IsInRole(Roles.Admin))
                 {
                     <div class="btn-group">
-                        <button type="button" class="btn btn-sm btn-warning" @onclick="() => { reportScheduleInEdit = context; actDate = actTime = context.StartTime; ShowEditReportScheduleDialog = true; }">@(_userConfig.GetText("edit"))</button>
+                        <button type="button" class="btn btn-sm btn-warning" @onclick="() => OnEditReportScheduleButtonClick(context)">@(_userConfig.GetText("edit"))</button>
                         <button type="button" class="btn btn-sm btn-danger" @onclick="() => { reportScheduleInEdit = context; ShowDeleteReportScheduleDialog = true; }">@(_userConfig.GetText("delete"))</button>
                     </div>
                 }
@@ -256,28 +257,8 @@
     private List<CompliancePolicy> _policies = [];
     private CompliancePolicy? _actPolicy;
     private ConfigData? _configData;
+    private ScheduledComplianceDiffReportConfig? _complianceDiffReportConfig = null;
 
-@* 
-
-    protected override async Task OnInitializedAsync()
-    {
-        try
-        {
-            configData = await globalConfig.GetEditableConfig();
-            complianceCheckStartDate = complianceCheckStartTime = configData.ComplianceCheckStartAt;
-            policies = await apiConnection.SendQueryAsync<List<CompliancePolicy>>(ComplianceQueries.getPolicies);
-            if(configData.ComplianceCheckPolicyId > 0)
-            {
-                actPolicy = policies.FirstOrDefault(p => p.Id == configData.ComplianceCheckPolicyId);
-            }
-        }
-        catch(Exception exception)
-        {
-            DisplayMessageInUi(exception, _userConfig.GetText("read_config"), _userConfig.GetText("E5301"), false);
-        }
-    }
-
- *@
     protected override async Task OnInitializedAsync()
     {
         try
@@ -312,6 +293,21 @@
         }
     }
 
+    private async Task OnAddReportScheduleButtonClick()
+    {
+        reportScheduleInEdit = new ReportSchedule() { RepeatInterval = SchedulerInterval.Never };
+        await LoadComplianceReportParamsFromConfig();
+        ShowAddReportScheduleDialog = true;
+    }
+
+    private async Task OnEditReportScheduleButtonClick(ReportSchedule context)
+    {
+        reportScheduleInEdit = context; 
+        actDate = actTime = context.StartTime;
+        await LoadComplianceReportParamsFromConfig();
+        ShowEditReportScheduleDialog = true; 
+    }
+
     private async void HandleSubscriptionError(Exception exception)
     {
         await InvokeAsync(() => DisplayMessageInUi(exception, _userConfig.GetText("schedule_tile"), _userConfig.GetText("schedule_upd_err_msg"), true));
@@ -328,13 +324,6 @@
     {
         try
         {
-            //$report_schedule_name: String!
-            //$report_schedule_owner_id: Int!
-            //$report_schedule_template_id: Int!
-            //$report_schedule_start_time: timestamp!
-            //$report_schedule_repeat: Int! # 0 do not repeat, 2 daily, 2 weekly, 3 monthly, 4 yearly
-            //$report_schedule_every: Int! # every x days/weeks/months/years
-            //$report_schedule_active: Boolean!
 
             reportScheduleInEdit.StartTime = actDate.Date.Add(actTime.TimeOfDay);
             if (reportScheduleInEdit.Sanitize())
@@ -359,9 +348,7 @@
 
                 ShowAddReportScheduleDialog = false;
 
-                // update config
-
-                await _globalConfig.WriteToDatabase(_configData, apiConnection);
+                await UpdateConfig();
             }
         }
         catch (Exception exception)
@@ -401,9 +388,7 @@
 
                 ShowEditReportScheduleDialog = false;
 
-                // update config
-
-                await _globalConfig.WriteToDatabase(_configData, apiConnection);
+                await UpdateConfig();
             }
         }
         catch (Exception exception)
@@ -451,6 +436,34 @@
         }
 
         return ReportType.Undefined;
+    }
+
+    private async Task UpdateConfig()
+    {
+        if(_complianceDiffReportConfig is ScheduledComplianceDiffReportConfig complianceDiffReportConfig && reportScheduleInEdit.Template.ReportParams.ComplianceFilter.IsDiffReport)
+        {
+            complianceDiffReportConfig.ScheduledDiffReportsIntervals[reportScheduleInEdit.Id] = reportScheduleInEdit.Template.ReportParams.ComplianceFilter.DiffReferenceInDays;
+            _configData.ComplianceCheckScheduledDiffReportsIntervals = JsonSerializer.Serialize(complianceDiffReportConfig.ScheduledDiffReportsIntervals);
+        }
+
+        await _globalConfig.WriteToDatabase(_configData, apiConnection);
+    }
+
+    private async Task LoadComplianceReportParamsFromConfig()
+    {
+        if (reportScheduleInEdit.Template.ReportParams.ReportType == (int) ReportType.Compliance)
+        {
+            if (_userConfig.GlobalConfig is GlobalConfig globalConfig && !string.IsNullOrEmpty(globalConfig.ComplianceCheckScheduledDiffReportsIntervals))
+            {
+                _complianceDiffReportConfig = JsonSerializer.Deserialize<ScheduledComplianceDiffReportConfig>(globalConfig.ComplianceCheckScheduledDiffReportsIntervals) ?? new();
+
+                if (_complianceDiffReportConfig.ScheduledDiffReportsIntervals.Keys.Any(scheduledReportId => scheduledReportId == reportScheduleInEdit.Id))
+                {
+                    reportScheduleInEdit.Template.ReportParams.ComplianceFilter.IsDiffReport = true;
+                    reportScheduleInEdit.Template.ReportParams.ComplianceFilter.DiffReferenceInDays = _complianceDiffReportConfig.ScheduledDiffReportsIntervals[reportScheduleInEdit.Id];
+                }
+            }
+        }
     }
 
     public void Dispose()

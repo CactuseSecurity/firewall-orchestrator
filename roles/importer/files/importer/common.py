@@ -2,7 +2,6 @@ import importlib
 import traceback
 import sys, time
 from socket import gethostname
-from typing import List
 
 from fwo_const import importer_base_dir, fwo_config_filename
 from pathlib import Path
@@ -139,9 +138,10 @@ def _import_management(service_provider, importState: ImportStateController, con
     
     Path(import_tmp_path).mkdir(parents=True, exist_ok=True)  # make sure tmp path exists
     gateways = ManagementController.buildGatewayList(importState.MgmDetails)
-    logger.info(f"starting import of management {importState.MgmDetails.Name} ({str(mgmId)}), import_id= {str(importState.ImportId)}")
 
     importState.ImportId = importState.api_call.setImportLock(importState.MgmDetails, importState.IsFullImport, importState.IsInitialImport, fwo_globals.debug_level)
+    logger.info(f"starting import of management {importState.MgmDetails.Name} ({str(mgmId)}), import_id={str(importState.ImportId)}")
+
     if clearManagementData:
         config_normalized = config_importer.clear_management()
     else:
@@ -193,7 +193,7 @@ def rollBackExceptionHandler(importState, configImporter=None, exc=None, errorTe
         logger.error(f"Error during rollback: {type(rollbackError).__name__} - {rollbackError}")
 
 
-def get_config_top_level(importState: ImportStateController, in_file: str = None, gateways: List[Gateway] = []) -> tuple[bool, FwConfigManagerList]:
+def get_config_top_level(importState: ImportStateController, in_file: str = None, gateways: list[Gateway] = []) -> tuple[bool, FwConfigManagerList]:
     config_from_file = {}
     if in_file is not None or stringIsUri(importState.MgmDetails.Hostname):
         ### geting config from file ######################
@@ -208,7 +208,7 @@ def get_config_top_level(importState: ImportStateController, in_file: str = None
     return get_config_from_api(importState, config_from_file)    
 
 
-def import_from_file(importState: ImportStateController, fileName: str = "", gateways: List[Gateway] = []) -> tuple[bool, FwConfigManagerList]:
+def import_from_file(importState: ImportStateController, fileName: str = "", gateways: list[Gateway] = []) -> tuple[bool, FwConfigManagerList]:
 
     logger = getFwoLogger(debug_level=importState.DebugLevel)
     logger.debug(f"import_management - not getting config from API but from file: {fileName}")

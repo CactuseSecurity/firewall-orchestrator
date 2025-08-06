@@ -1,11 +1,10 @@
-from typing import List
 from graphql import ArgumentNode, BooleanValueNode, IntValueNode, ListValueNode, ObjectFieldNode, ObjectValueNode, OperationDefinitionNode, StringValueNode, VariableNode, parse, OperationType
-from fwo_api_oo import FwoApi
 from models.networkobject import NetworkObject
 from models.rulebase import Rulebase
 from models.serviceobject import ServiceObject
 from models.rule import RuleNormalized
 from importer import fwo_const
+from importer.fwo_api import FwoApi
 from .mock_config import MockFwConfigNormalizedBuilder
 
 TABLE_IDENTIFIERS = {

@@ -1,16 +1,7 @@
-from typing import List
-import json
-import time
-import traceback
-
 from fwo_log import getFwoLogger
 from model_controllers.import_state_controller import ImportStateController
 from models.gateway import Gateway
 from fwo_base import ConfFormat
-
-from fwo_base import deserializeClassToDictRecursively
-from fwo_const import import_tmp_path
-import fwo_globals
 from models.fwconfig_normalized import FwConfigNormalized
 
 
@@ -23,7 +14,7 @@ class FwConfigNormalizedController():
         self.NormalizedConfig = fwConfig
 
     @staticmethod
-    def convertListToDict(listIn: List, idField: str) -> dict:
+    def convertListToDict(listIn: list, idField: str) -> dict:
         logger = getFwoLogger()
         result = {}
         for item in listIn:
@@ -39,7 +30,7 @@ class FwConfigNormalizedController():
 
     @staticmethod
     def deleteControlIdFromDictList(dictListInOut: dict):
-        if isinstance(dictListInOut, List): 
+        if isinstance(dictListInOut, list): 
             deleteListDictElements(dictListInOut, ['control_id'])
         elif isinstance(dictListInOut, dict): 
             deleteDictElements(dictListInOut, ['control_id'])
@@ -63,7 +54,7 @@ class FwConfigNormalizedController():
         self.rulebases += config.Policies
         self.gateways += config.Gateways
 
-    def fillGateways(self, importState: ImportStateController, gateways:List[Gateway]):      
+    def fillGateways(self, importState: ImportStateController, gateways:list[Gateway]):      
         self.gateways = gateways
         # for dev in importState.MgmDetails.Devices:
         #     gw = Gateway(f"{dev['name']}_{dev['local_rulebase_name']}",

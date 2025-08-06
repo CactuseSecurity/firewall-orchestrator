@@ -1,15 +1,13 @@
-# from pydantic import BaseModel
-from typing import List
+from fwo_log import getFwoLogger
 from models.rulebase_link import RulebaseLink
 from model_controllers.import_state_controller import ImportStateController
-from fwo_log import getFwoLogger
 from models.import_state import ImportState
 from model_controllers.import_statistics_controller import ImportStatisticsController
 
 class RulebaseLinkMap():
 
 
-    def getRulebaseLinks(self, importState: ImportStateController, gwIds: List[int] = []):
+    def getRulebaseLinks(self, importState: ImportStateController, gwIds: list[int] = []):
         logger = getFwoLogger()
         query_variables = { "gwIds": gwIds}
 

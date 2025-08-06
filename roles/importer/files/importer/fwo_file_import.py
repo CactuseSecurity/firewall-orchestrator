@@ -1,15 +1,13 @@
 """
     read config from file and convert to non-legacy format (in case of legacy input)
 """
-from typing import List, Any, get_type_hints
+from typing import Any, get_type_hints
 from enum import Enum
 import json, requests, requests.packages
 
 from fwo_log import getFwoLogger
 import fwo_globals
 from fwo_exceptions import ConfigFileNotFound, FwoImporterError
-# from fwo_api import FwoApi
-# from fwo_api_call import FwoApiCall
 from models.fwconfigmanagerlist import FwConfigManagerList
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
 from models.fwconfig import FwConfig

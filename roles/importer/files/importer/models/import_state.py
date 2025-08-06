@@ -1,5 +1,3 @@
-from typing import Dict, Optional
-
 from model_controllers.import_statistics_controller import ImportStatisticsController
 from model_controllers.fworch_config_controller import FworchConfigController
 from model_controllers.management_controller import ManagementController

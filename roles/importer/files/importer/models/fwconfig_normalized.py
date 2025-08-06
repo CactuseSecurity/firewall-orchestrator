@@ -1,4 +1,3 @@
-from typing import List, Dict
 from pydantic import BaseModel
 
 from fwo_base import ConfigAction, ConfFormat
@@ -47,12 +46,12 @@ class FwConfig(BaseModel):
 """
 class FwConfigNormalized(FwConfig):
     action: ConfigAction = ConfigAction.INSERT
-    network_objects: Dict[str, NetworkObject] = {}
-    service_objects: Dict[str, ServiceObject] = {}
+    network_objects: dict[str, NetworkObject] = {}
+    service_objects: dict[str, ServiceObject] = {}
     users: dict = {}
     zone_objects: dict = {}
-    rulebases: List[Rulebase] = []
-    gateways: List[Gateway] = []
+    rulebases: list[Rulebase] = []
+    gateways: list[Gateway] = []
     ConfigFormat: ConfFormat = ConfFormat.NORMALIZED_LEGACY
 
     class Config:
@@ -71,7 +70,7 @@ class FwConfigNormalized(FwConfig):
         return Rulebase(uid='', name='', mgm_uid='')
 
 
-    def getOrderedRuleList(self, policyUid: str) -> List[dict]:
+    def getOrderedRuleList(self, policyUid: str) -> list[dict]:
         """
         get the policy with a specific uid as an ordered list (ordered by rule_num)
         :param policyUid: The UID of the relevant policy.

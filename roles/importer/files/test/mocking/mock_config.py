@@ -1,4 +1,3 @@
-from typing import List, Dict, Optional
 import secrets
 
 from netaddr import IPAddress, IPNetwork
@@ -84,14 +83,14 @@ class MockFwConfigNormalizedBuilder():
         )
 
 
-    def build_config(self, mock_config: Dict):
+    def build_config(self, mock_config: dict):
         """
             Initializes the mock configuration with rulebases and rules.
 
             Args:
                 mock_config (dict): A dictionary with configuration values. Expected keys:
-                    - "rule_config": List of integers, each representing the number of rules per rulebase.
-                    - "initialize_rule_num_numeric": Optional boolean, if True assigns incremental numeric rule numbers.
+                    - "rule_config": list of integers, each representing the number of rules per rulebase.
+                    - "initialize_rule_num_numeric": optional boolean, if True assigns incremental numeric rule numbers.
         """
         config = self.empty_config()
 
@@ -380,7 +379,7 @@ class MockFwConfigNormalizedBuilder():
                 svc_obj.svc_member_refs = svc_obj.svc_member_refs.replace("cpr-svc1-member1-member1", "").strip(list_delimiter)
 
 
-    def create_rulebase_links(self, config: FwConfigNormalized) -> List[RulebaseLinkUidBased]:
+    def create_rulebase_links(self, config: FwConfigNormalized) -> list[RulebaseLinkUidBased]:
         rulebase_links = []
 
         # Add initial link.
@@ -425,7 +424,7 @@ class MockFwConfigNormalizedBuilder():
 
         return rulebase_links
     
-    def add_network_object(self, config: FwConfigNormalized, obj_dict: Dict):
+    def add_network_object(self, config: FwConfigNormalized, obj_dict: dict):
         uid = obj_dict.get("obj_uid", self.uid_manager.create_uid())
         dummy_ip = DUMMY_IP if obj_dict.get("obj_typ", "group") != "group" else None
         new_network_object = NetworkObject(
@@ -441,7 +440,7 @@ class MockFwConfigNormalizedBuilder():
         config.network_objects[new_network_object.obj_uid] = new_network_object
         return new_network_object
     
-    def add_service_object(self, config: FwConfigNormalized, svc_dict: Dict):
+    def add_service_object(self, config: FwConfigNormalized, svc_dict: dict):
         uid = svc_dict.get("svc_uid", self.uid_manager.create_uid())
         default_port = 80 if svc_dict.get("svc_typ", "group") != "group" else None
         default_proto = 6 if svc_dict.get("svc_typ", "group") != "group" else None
@@ -460,7 +459,7 @@ class MockFwConfigNormalizedBuilder():
         return new_service_object
     
 
-    def add_rule(self, config: FwConfigNormalized, rulebase_uid: str, rule_dict: Dict = {}) -> RuleNormalized:
+    def add_rule(self, config: FwConfigNormalized, rulebase_uid: str, rule_dict: dict = {}) -> RuleNormalized:
         """
         Adds a new rule to the rulebase identified by the given UID.
 

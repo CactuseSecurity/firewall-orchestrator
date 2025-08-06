@@ -1,4 +1,3 @@
-from typing import Optional
 from pydantic import BaseModel
 from model_controllers.import_state_controller import ImportStateController
 
@@ -13,8 +12,8 @@ class RuleEnforcedOnGateway(BaseModel):
 	# "removed" BIGINT
     rule_id: int
     dev_id: int
-    created: Optional[int]
-    removed: Optional[int] 
+    created: int|None
+    removed: int|None 
 
 
     def to_dict(self):

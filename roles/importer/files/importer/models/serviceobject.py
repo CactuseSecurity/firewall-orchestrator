@@ -1,21 +1,20 @@
 from pydantic import BaseModel
-from typing import Optional
 import json
 
 
 class ServiceObject(BaseModel):
     svc_uid: str
     svc_name: str
-    svc_port: Optional[int] = None
-    svc_port_end: Optional[int] = None
+    svc_port: int|None = None
+    svc_port_end: int|None = None
     svc_color: str
     svc_typ: str        # TODO: ENUM
-    ip_proto: Optional[int] = None
-    svc_member_refs: Optional[str] = None
-    svc_member_names: Optional[str] = None
-    svc_comment: Optional[str] = None
-    svc_timeout: Optional[int] = None
-    rpc_nr: Optional[str] = None
+    ip_proto: int|None = None
+    svc_member_refs: str|None = None
+    svc_member_names: str|None = None
+    svc_comment: str|None = None
+    svc_timeout: int|None = None
+    rpc_nr: str|None = None
 
     # class Config:
     #     arbitrary_types_allowed = True
@@ -23,20 +22,20 @@ class ServiceObject(BaseModel):
 class ServiceObjectForImport():
     svc_uid: str
     svc_name: str
-    svc_port: Optional[int] = None
-    svc_port_end: Optional[int] = None
-    svc_color_id: Optional[int] = None
+    svc_port: int|None = None
+    svc_port_end: int|None = None
+    svc_color_id: int|None = None
     svc_typ: str # TODO: ENUM
-    ip_proto_id: Optional[int] = None
-    svc_member_refs: Optional[str] = None
-    svc_member_names: Optional[str] = None
-    svc_comment: Optional[str] = None
-    svc_timeout: Optional[int] = None
-    svc_rpcnr: Optional[str] = None
+    ip_proto_id: int|None = None
+    svc_member_refs: str|None = None
+    svc_member_names: str|None = None
+    svc_comment: str|None = None
+    svc_timeout: int|None = None
+    svc_rpcnr: str|None = None
     mgm_id: int
     svc_create: int
     svc_last_seen: int
-    svc_removed: Optional[int] = None
+    svc_removed: int|None = None
     svc_typ_id: int
 
 

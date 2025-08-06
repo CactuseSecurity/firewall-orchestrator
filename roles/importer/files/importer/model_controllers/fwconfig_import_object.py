@@ -1,5 +1,4 @@
 from enum import Enum
-from typing import Dict, List
 import traceback
 import time, datetime
 import json
@@ -342,7 +341,7 @@ class FwConfigImportObject():
             return obj.svc_member_refs
         return obj.get('user_member_refs', None)
     
-    def get_members(self, type, refs) -> List[str]:
+    def get_members(self, type, refs) -> list[str]:
         if type == Type.NETWORK_OBJECT:
             return [member.split(fwo_const.user_delimiter)[0] for member in refs.split(fwo_const.list_delimiter) if member] if refs else []
         return refs.split(fwo_const.list_delimiter) if refs else []

@@ -31,6 +31,7 @@ def getFwoJwt(importUser, importPwd, userManagementApi) -> tuple [str, bool]:
     except Exception:
         logger.error("import-main-loop - unspecified error during FWO API login - skipping: " + str(traceback.format_exc()))
         skipping = True
+        return "", skipping
     return jwt, skipping
 
 

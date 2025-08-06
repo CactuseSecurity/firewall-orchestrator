@@ -12,7 +12,7 @@ def api_call(url, show_progress=False):
     logger = getFwoLogger()
     request_headers = {'Content-Type': 'application/json'}
 
-    r = requests.get(url, headers=request_headers, verify=verify_certs)
+    r = requests.get(url, headers=request_headers, verify=fwo_globals.verify_certs)
     if r is None:
         exception_text = "error while sending api_call to url '" + str(url) + "' with headers: '" + json.dumps(request_headers, indent=2)
         raise Exception(exception_text)

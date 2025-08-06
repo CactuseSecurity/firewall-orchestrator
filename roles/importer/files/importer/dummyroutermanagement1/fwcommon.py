@@ -28,7 +28,7 @@ def get_config(config2import, _, current_import_id, mgm_details, limit=100, forc
     try:
         session = requests.Session()
         #session.headers = { 'Content-Type': 'application/json' }
-        session.verify=verify_certs
+        session.verify=fwo_globals.verify_certs
         r = session.get(router_file_url, )
         r.raise_for_status()
         cfg = json.loads(r.content)

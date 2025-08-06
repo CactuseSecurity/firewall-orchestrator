@@ -1,4 +1,3 @@
-from typing import Tuple
 import unittest
 import sys
 import os
@@ -36,7 +35,7 @@ def find_first_diff(a, b, path="root"):
             if res:
                 return res
         if len(a) != len(b):
-            return f"List length mismatch at {path}: {len(a)} != {len(b)}"
+            return f"list length mismatch at {path}: {len(a)} != {len(b)}"
     else:
         if a != b:
             return f"Value mismatch at {path}: {a} != {b}"
@@ -47,7 +46,7 @@ def reset_importer_with_new_config(
     config,
     mock_api,
     import_id=0
-) -> Tuple[FwConfigImport, MockImportStateController]:  # noqa: F821
+) -> tuple[FwConfigImport, MockImportStateController]:  # noqa: F821
     service_provider = ServiceProvider()
 
     import_state = MockImportStateController(import_id)

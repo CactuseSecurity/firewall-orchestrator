@@ -1,5 +1,3 @@
-from typing import List, Dict, Tuple, Any
-
 from model_controllers.fwconfig_import_rule import FwConfigImportRule
 from models.rulebase import Rulebase
 from test.mocking.mock_import_state import MockImportStateController
@@ -94,7 +92,7 @@ class MockFwConfigImportRule(FwConfigImportRule):
         self._stub_moveRules = value
 
 
-    def markRulesRemoved(self, removedRuleUids: Dict[str, List[str]]) -> Tuple[int, int, Dict[str, List[str]]]:
+    def markRulesRemoved(self, removedRuleUids: dict[str, list[str]]) -> tuple[int, int, dict[str, list[str]]]:
         """
             Simulates marking rules as removed. Can delegate to the base class if not stubbed.
 
@@ -117,18 +115,18 @@ class MockFwConfigImportRule(FwConfigImportRule):
         return errors, changes, collectedRemovedRuleIds
 
 
-    def getRules(self, ruleUids: List[str]) -> List[Rulebase]:
+    def getRules(self, ruleUids: list[str]) -> list[Rulebase]:
         """
             Simulates returning rules by UID. Delegates to base if not stubbed.
 
             Args:
-                ruleUids (list): List of rule UIDs to fetch.
+                ruleUids (list): list of rule UIDs to fetch.
 
             Returns:
-                list: List of Rulebase instances containing the rules.
+                list: list of Rulebase instances containing the rules.
         """
 
-        rulebases: List[Rulebase] = []
+        rulebases: list[Rulebase] = []
 
         if not self.stub_getRules:
             rulebases = super().getRules(ruleUids)
@@ -136,12 +134,12 @@ class MockFwConfigImportRule(FwConfigImportRule):
         return rulebases
 
 
-    def addNewRuleMetadata(self, newRules: List[Rulebase]) -> Tuple[int, int, List[int]]:
+    def addNewRuleMetadata(self, newRules: list[Rulebase]) -> tuple[int, int, list[int]]:
         """
             Simulates adding metadata for new rules. Delegates to base if not stubbed.
 
             Args:
-                newRules (list): List of Rulebase objects with new rules.
+                newRules (list): list of Rulebase objects with new rules.
 
             Returns:
                 tuple: (errors, changes, newRuleIds)
@@ -149,7 +147,7 @@ class MockFwConfigImportRule(FwConfigImportRule):
 
         errors = 0
         changes = 0
-        newRuleIds: List[int] = []
+        newRuleIds: list[int] = []
 
         if not self.stub_addNewRuleMetadata:
             errors, changes, newRuleIds = super().addNewRuleMetadata(newRules)
@@ -157,12 +155,12 @@ class MockFwConfigImportRule(FwConfigImportRule):
         return errors, changes, newRuleIds
 
 
-    def addNewRules(self, newRules: List[Rulebase]) -> Tuple[int, int, List[int]]:
+    def addNewRules(self, newRules: list[Rulebase]) -> tuple[int, int, list[int]]:
         """
             Simulates adding new rules to db and returning their ids. Delegates to base if not stubbed.
 
             Args:
-                newRules (list): List of Rulebase objects with new rules.
+                newRules (list): list of Rulebase objects with new rules.
 
             Returns:
                 tuple: (errors, changes, newRuleIds)
@@ -170,7 +168,7 @@ class MockFwConfigImportRule(FwConfigImportRule):
 
         errors = 0
         changes = 0
-        newRuleIds: List[int] = []
+        newRuleIds: list[int] = []
 
         for rulebase in newRules:
             for rule in rulebase.Rules:
@@ -183,7 +181,7 @@ class MockFwConfigImportRule(FwConfigImportRule):
         return errors, changes, newRuleIds
 
 
-    def moveRules(self, moved_rule_uids: Dict[str, List[str]]) -> Tuple[int, int, List[int]]:
+    def moveRules(self, moved_rule_uids: dict[str, list[str]]) -> tuple[int, int, list[int]]:
         """
             Simulates moving rules to a new location.  Delegates to base if not stubbed.
 
@@ -195,7 +193,7 @@ class MockFwConfigImportRule(FwConfigImportRule):
 
         errors = 0
         changes = 0
-        moved_rule_ids: List[int] = []
+        moved_rule_ids: list[int] = []
 
         for rulebase in moved_rule_uids.keys():
             for _ in moved_rule_uids[rulebase]:

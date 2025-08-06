@@ -1,8 +1,7 @@
 from asyncio.log import logger
-from typing import List
+import json
 
 from fwo_log import getFwoLogger
-import json
 import cp_const
 import fwo_const
 import fwo_globals
@@ -338,14 +337,14 @@ def parse_single_rule(nativeRule, rulebase, layer_name, import_id, rule_num, par
             return rule_num + 1
     return rule_num
 
-def parse_rule_enforced_on_gateway(native_rule: dict) -> List[RuleEnforcedOnGatewayNormalized]:
+def parse_rule_enforced_on_gateway(native_rule: dict) -> list[RuleEnforcedOnGatewayNormalized]:
     """Parse rule enforcement information from native rule.
     
     Args:
         nativeRule: The native rule dictionary containing install-on information
         
     Returns:
-        List of RuleEnforcedOnGatewayNormalized objects
+        list of RuleEnforcedOnGatewayNormalized objects
     
     Raises:
         ValueError: If nativeRule is None or empty

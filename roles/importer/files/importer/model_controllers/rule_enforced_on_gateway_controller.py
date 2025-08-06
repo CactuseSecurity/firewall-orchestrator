@@ -1,10 +1,9 @@
-# from pydantic import BaseModel
-from typing import List
+from traceback import format_exc
+
+import fwo_const
 from model_controllers.import_state_controller import ImportStateController
 from models.rule_enforced_on_gateway import RuleEnforcedOnGateway
 from fwo_log import getFwoLogger
-import fwo_const
-from traceback import format_exc
 from model_controllers.rulebase_link_controller import RulebaseLinkController
 from models.rule import Rule
 
@@ -56,7 +55,7 @@ class RuleEnforcedOnGatewayController:
     def handle_rule_with_no_installon(self, 
                                       rule: Rule, 
                                       rb_link_controller: RulebaseLinkController, 
-                                      rule_to_gw_refs: List[RuleEnforcedOnGateway]
+                                      rule_to_gw_refs: list[RuleEnforcedOnGateway]
                                     ):
         """
         Handle rules with no 'install on' setting by linking them to all gateways for the rulebase.
@@ -108,7 +107,7 @@ class RuleEnforcedOnGatewayController:
             self.import_details.appendErrorString(f"Failed to write new rules: {str(format_exc())}")
             raise
 
-    def insert_rules_enforced_on_gateway(self, enforcements: List[dict]):
+    def insert_rules_enforced_on_gateway(self, enforcements: list[dict]):
         """
         Insert rules enforced on gateways into the database.
         """

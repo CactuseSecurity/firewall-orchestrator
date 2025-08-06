@@ -1,4 +1,3 @@
-from typing import List, Dict
 import hashlib
 
 from models.management import Management
@@ -13,14 +12,14 @@ from fwo_exceptions import SecretDecryptionFailed, FwoApiFailure
 
 class ManagementController(Management):
 
-    def __init__(self, hostname: str, id: int, uid: str, devices: Dict,
+    def __init__(self, hostname: str, id: int, uid: str, devices: dict,
                  name: str, deviceTypeName: str, deviceTypeVersion: str,
                  importDisabled: bool = False, importerHostname: str = '',  
                  port: int = 443, secret: str = '', importUser: str = '', isSuperManager: bool = False, 
-                 subManagerIds: List[int] = [], subManagers: List['Management'] = [],
+                 subManagerIds: list[int] = [], subManagers: list['Management'] = [],
                  domainName: str = '', domainUid: str = ''):
         
-        subManagers: List['Management'] = []
+        subManagers: list['Management'] = []
         self.Hostname = hostname
         self.Id = id
         self.Uid = uid
@@ -40,7 +39,7 @@ class ManagementController(Management):
         self.DomainUid = domainUid
 
     @classmethod
-    def fromJson(cls, json_dict: Dict):
+    def fromJson(cls, json_dict: dict):
         Hostname = json_dict['hostname']
         Id = json_dict['id']
         Uid = json_dict['uid']
@@ -94,7 +93,7 @@ class ManagementController(Management):
 
 
     @classmethod
-    def buildGatewayList(cls, mgmDetails: Management) -> List['Gateway']:
+    def buildGatewayList(cls, mgmDetails: Management) -> list['Gateway']:
         devs = []
         for dev in mgmDetails.Devices:
             # check if gateway import is enabled

@@ -87,6 +87,7 @@ def normalize_network_object(obj_orig, nw_objects, normalized_config, import_sta
     #obj.update({'control_id': import_state.ImportId})
     nw_objects.append(obj)
 
+
 def normalize_network_object_ipv6(obj_orig, obj):
     ipa = ipaddress.ip_network(obj_orig['ip6'])
     if ipa.num_addresses > 1:

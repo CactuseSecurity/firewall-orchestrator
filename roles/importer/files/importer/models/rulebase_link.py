@@ -1,11 +1,10 @@
-from typing import Optional
 from pydantic import BaseModel
 
 
 # RulebaseLinkUidBased is the model for a rulebase_link (containing no DB IDs)
 class RulebaseLinkUidBased(BaseModel):
-    from_rulebase_uid: Optional[str] = None
-    from_rule_uid: Optional[str] = None
+    from_rulebase_uid: str|None = None
+    from_rule_uid: str|None = None
     to_rulebase_uid: str
     link_type: str = "section"
     is_initial: bool
@@ -26,17 +25,17 @@ class RulebaseLinkUidBased(BaseModel):
 
 
 class RulebaseLink(BaseModel):
-    id: Optional[int] = None    # will be created during db import
+    id: int|None = None    # will be created during db import
     gw_id: int
-    from_rule_id: Optional[int] = None  # null for initial rulebase
-    from_rulebase_id: Optional[int] = None  # either from_rule_id or from_rulebase_id must be set
+    from_rule_id: int|None = None  # null for initial rulebase
+    from_rulebase_id: int|None = None  # either from_rule_id or from_rulebase_id must be set
     to_rulebase_id: int
     link_type: int = 1
     is_initial: bool
     is_global: bool
     is_section: bool
     created: int
-    removed: Optional[int] = None
+    removed: int|None = None
 
 
     def toDict(self):

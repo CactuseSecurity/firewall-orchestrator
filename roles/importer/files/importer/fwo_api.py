@@ -4,7 +4,6 @@ import json
 import traceback
 import time
 from pprint import pformat
-from typing import List
 import string
 
 import fwo_globals
@@ -348,7 +347,7 @@ class FwoApi():
         return result
 
     @classmethod
-    def get_graphql_code(cls, file_list: List[str]) -> str:
+    def get_graphql_code(cls, file_list: list[str]) -> str:
         code = ""
 
         for file in file_list:

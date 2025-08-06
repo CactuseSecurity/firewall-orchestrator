@@ -1,18 +1,17 @@
 from pydantic import BaseModel, validator, root_validator
 from netaddr import IPAddress, IPNetwork, AddrFormatError
-from typing import List, Optional
 import json
 
 class NetworkObject(BaseModel):
     obj_uid: str
     obj_name: str
-    obj_ip: Optional[IPNetwork] = None
-    obj_ip_end: Optional[IPNetwork] = None
+    obj_ip: IPNetwork|None = None
+    obj_ip_end: IPNetwork|None = None
     obj_color: str
     obj_typ: str
-    obj_member_refs: Optional[str] = None
-    obj_member_names: Optional[str] = None
-    obj_comment: Optional[str] = None
+    obj_member_refs: str|None = None
+    obj_member_names: str|None = None
+    obj_comment: str|None = None
 
     # convert IPNetworks to strings
     def json(self, **kwargs):
@@ -57,16 +56,16 @@ class NetworkObject(BaseModel):
 class NetworkObjectForImport():
     obj_uid: str
     obj_name: str
-    obj_ip: Optional[IPNetwork] = None
-    obj_ip_end: Optional[IPNetwork] = None
-    obj_color_id: Optional[int]
-    obj_member_refs: Optional[str] = None
-    obj_member_names: Optional[str] = None
-    obj_comment: Optional[str] = None
+    obj_ip: IPNetwork|None = None
+    obj_ip_end: IPNetwork|None = None
+    obj_color_id: int|None
+    obj_member_refs: str|None = None
+    obj_member_names: str|None = None
+    obj_comment: str|None = None
     mgm_id: int
     obj_create: int
     obj_last_seen: int
-    obj_removed: Optional[int]
+    obj_removed: int
     obj_typ_id: int
 
     def __init__(self, nwObject: NetworkObject, mgmId: int, importId: int, colorId: int, typId: int):

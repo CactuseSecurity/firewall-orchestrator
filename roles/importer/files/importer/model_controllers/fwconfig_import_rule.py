@@ -11,7 +11,6 @@ from models.rulebase import Rulebase, RulebaseForImport
 from model_controllers.import_state_controller import ImportStateController
 from model_controllers.fwconfig_normalized_controller import FwConfigNormalized
 from fwo_log import ChangeLogger, getFwoLogger
-from typing import Dict, List, Optional, Tuple
 from datetime import datetime
 from models.rule_from import RuleFrom
 from models.rule_to import RuleTo
@@ -153,12 +152,12 @@ class FwConfigImportRule():
         return current_rule.last_hit != previous_rule.last_hit
     
 
-    def get_members(self, type, refs) -> List[str]:
-        if type == Type.NETWORK_OBJECT:
+    def get_members(self, type, refs) -> list[str]:
+        if type == type.NETWORK_OBJECT:
             return [member.split(fwo_const.user_delimiter)[0] for member in refs.split(fwo_const.list_delimiter) if member] if refs else []
         return refs.split(fwo_const.list_delimiter) if refs else []
 
-    def get_rule_refs(self, rule, is_prev=False) -> Dict[RefType, List[str]]:
+    def get_rule_refs(self, rule, is_prev=False) -> dict[RefType, list[str]]:
         froms = []
         tos = []
         users = []
@@ -240,7 +239,7 @@ class FwConfigImportRule():
             }
 
 
-    def get_outdated_refs_to_remove(self, prev_rule: RuleNormalized, rule: Optional[RuleNormalized], prev_config, remove_all):
+    def get_outdated_refs_to_remove(self, prev_rule: RuleNormalized, rule: RuleNormalized|None, prev_config, remove_all):
         """
         Get the references that need to be removed for a rule based on comparison with the previous rule.
         Args:
@@ -421,7 +420,7 @@ class FwConfigImportRule():
         return 1, 0
 
 
-    def getRulesByIdWithRefUids(self, ruleIds: List[int]) -> List[Rule]:
+    def getRulesByIdWithRefUids(self, ruleIds: list[int]) -> list[Rule]:
         logger = getFwoLogger()
         rulesToBeReferenced = {}
         getRuleUidRefsQuery = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "rule/getRulesByIdWithRefUids.graphql"])
@@ -438,7 +437,7 @@ class FwConfigImportRule():
             logger.exception(f"failed to get rules from API: {str(traceback.format_exc())}")
 
 
-    def getRules(self, ruleUids) -> List[Rulebase]:
+    def getRules(self, ruleUids) -> list[Rulebase]:
         rulebases = []
         for rb in self.normalized_config.rulebases:
             if rb.uid in ruleUids:
@@ -496,7 +495,7 @@ class FwConfigImportRule():
 
 
     # adds new rule_metadatum to the database
-    def addNewRuleMetadata(self, newRules: List[Rulebase]):
+    def addNewRuleMetadata(self, newRules: list[Rulebase]):
         logger = getFwoLogger()
         errors = 0
         changes = 0
@@ -513,7 +512,7 @@ class FwConfigImportRule():
         }
         """
 
-        addNewRuleMetadata: List[RuleMetadatum] = self.PrepareNewRuleMetadata(newRules)
+        addNewRuleMetadata: list[RuleMetadatum] = self.PrepareNewRuleMetadata(newRules)
         query_variables = { 'ruleMetadata': addNewRuleMetadata }
         
         # queryVarJson = json.dumps(query_variables)    # just for debugging purposes, remove in prod
@@ -537,7 +536,7 @@ class FwConfigImportRule():
 
     # collect new last hit information
     @staticmethod
-    def append_rule_metadata_last_hit (new_hit_information: List[dict], rule: RuleNormalized, mgm_id: int):
+    def append_rule_metadata_last_hit (new_hit_information: list[dict], rule: RuleNormalized, mgm_id: int):
         if new_hit_information is None:
             new_hit_information = []        
         new_hit_information.append({ 
@@ -547,7 +546,7 @@ class FwConfigImportRule():
 
 
     # adds new rule_metadatum to the database
-    def update_rule_metadata_last_hit (self, new_hit_information: List[dict]):
+    def update_rule_metadata_last_hit (self, new_hit_information: list[dict]):
         logger = getFwoLogger()
         errors = 0
         changes = 0
@@ -569,7 +568,7 @@ class FwConfigImportRule():
         return errors, changes
 
 
-    def addRulebasesWithoutRules(self, newRules: List[Rulebase]):
+    def addRulebasesWithoutRules(self, newRules: list[Rulebase]):
         logger = getFwoLogger()
         errors = 0
         changes = 0
@@ -594,7 +593,7 @@ class FwConfigImportRule():
             }
         """
 
-        newRulebasesForImport: List[RulebaseForImport] = self.PrepareNewRulebases(newRules, includeRules=False)
+        newRulebasesForImport: list[RulebaseForImport] = self.PrepareNewRulebases(newRules, includeRules=False)
         query_variables = { 'rulebases': newRulebasesForImport }
         
         try:
@@ -616,14 +615,14 @@ class FwConfigImportRule():
         
     # as we cannot add the rules for all rulebases in one go (using a constraint from the rule table), 
     # we need to add them per rulebase separately
-    def addRulesWithinRulebases(self, newRules: List[Rulebase]):
+    def addRulesWithinRulebases(self, newRules: list[Rulebase]):
         logger = getFwoLogger()
         errors = 0
         changes = 0
         newRuleIds = []
         # TODO: need to update the RulebaseMap here?!
 
-        newRulesForImport: List[RulebaseForImport] = self.PrepareNewRulebases(newRules)
+        newRulesForImport: list[RulebaseForImport] = self.PrepareNewRulebases(newRules)
         upsertRulebaseWithRules = """mutation upsertRules($rules: [rule_insert_input!]!) {
                 insert_rule(
                     objects: $rules,
@@ -651,7 +650,7 @@ class FwConfigImportRule():
 
     # adds only new rules to the database
     # unchanged or deleted rules are not touched here
-    def addNewRules(self, newRules: List[Rulebase]):
+    def addNewRules(self, newRules: list[Rulebase]):
         newRulebaseIds = []
         newRuleIds = []
 
@@ -662,8 +661,8 @@ class FwConfigImportRule():
 
 
     # creates a structure of rulebases optinally including rules for import
-    def PrepareNewRuleMetadata(self, newRules: List[Rulebase], includeRules: bool = True) -> List[RulebaseForImport]:
-        newRuleMetadata: List[RuleMetadatum] = []
+    def PrepareNewRuleMetadata(self, newRules: list[Rulebase], includeRules: bool = True) -> list[RulebaseForImport]:
+        newRuleMetadata: list[RuleMetadatum] = []
 
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         for rulebase in newRules:
@@ -678,8 +677,8 @@ class FwConfigImportRule():
         return newRuleMetadata    
 
     # creates a structure of rulebases optinally including rules for import
-    def PrepareNewRulebases(self, newRules: List[Rulebase], includeRules: bool = True) -> List[RulebaseForImport]:
-        newRulesForImport: List[RulebaseForImport] = []
+    def PrepareNewRulebases(self, newRules: list[Rulebase], includeRules: bool = True) -> list[RulebaseForImport]:
+        newRulesForImport: list[RulebaseForImport] = []
 
         for rulebase in newRules:
             rules = {"data": []}
@@ -1152,7 +1151,7 @@ class FwConfigImportRule():
         return self.import_details.api_call.call(mutation, query_variables=query_variables)
 
 
-    def PrepareRuleForImport(self, importDetails: ImportStateController, Rules, rulebaseUid: str) -> Dict[str, List[Rule]]:
+    def PrepareRuleForImport(self, importDetails: ImportStateController, Rules, rulebaseUid: str) -> dict[str, list[Rule]]:
         prepared_rules = []
 
         # get rulebase_id for rulebaseUid

@@ -1,5 +1,4 @@
 # from pydantic import BaseModel
-from typing import List
 from models.rulebase_link import RulebaseLink
 from model_controllers.import_state_controller import ImportStateController
 from fwo_log import getFwoLogger
@@ -10,7 +9,7 @@ class RulebaseLinkController():
 
     rulbase_to_gateway_map: dict = {}
 
-    def insert_rulebase_links(self, import_state: ImportStateController, rb_links: List[RulebaseLink]):
+    def insert_rulebase_links(self, import_state: ImportStateController, rb_links: list[RulebaseLink]):
         logger = getFwoLogger()
         query_variables = { "rulebaseLinks": rb_links }
         mutation = FwoApi.get_graphql_code([f"{fwo_const.graphql_query_path}rule/insertRulebaseLinks.graphql"])      
@@ -22,7 +21,7 @@ class RulebaseLinkController():
             changes = add_result['data']['insert_rulebase_link']['affected_rows']
             import_state.Stats.rulebase_add_count += changes
 
-    def get_rulebase_links(self, import_state: ImportStateController, gw_ids: List[int] = None):
+    def get_rulebase_links(self, import_state: ImportStateController, gw_ids: list[int] = []):
         logger = getFwoLogger()
         if gw_ids is None:
             gw_ids = []

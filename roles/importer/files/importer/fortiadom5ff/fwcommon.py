@@ -1,7 +1,6 @@
-# import sys
-# from common import importer_base_dir
-# sys.path.append(importer_base_dir + '/fortiadom5ff')
+
 from curses import raw
+from typing import Any
 
 import json
 import fwo_const
@@ -195,18 +194,18 @@ def rewrite_native_config_obj_type_as_key(native_config):
         domain['objects'] = obj_dict
 
 
-def normalize_single_manager_config(native_config: json, native_config_global: json, normalized_config_dict: dict,
+def normalize_single_manager_config(native_config: dict[str, Any], native_config_global: dict[str, Any], normalized_config_dict: dict,
                                     normalized_config_global: dict, import_state: ImportStateController,
                                     is_global_loop_iteration: bool):
 
     current_nw_obj_types = deepcopy(nw_obj_types)
     current_svc_obj_types = deepcopy(svc_obj_types)
     if native_config['is-super-manager']:
-        current_nw_obj_types = ["nw_obj_global_" + t for t in nw_obj_types]
-        current_svc_obj_types = ["svc_obj_global_" + t for t in svc_obj_types]
+        current_nw_obj_types = ["nw_obj_global_" + t for t in current_nw_obj_types]
+        current_svc_obj_types = ["svc_obj_global_" + t for t in current_svc_obj_types]
     else:
-        current_nw_obj_types = [f"nw_obj_adom/{native_config.get('domain_name','')}_{t}" for t in nw_obj_types]
-        current_svc_obj_types = [f"svc_obj_adom/{native_config.get('domain_name','')}_{t}" for t in svc_obj_types]
+        current_nw_obj_types = [f"nw_obj_adom/{native_config.get('domain_name','')}_{t}" for t in current_nw_obj_types]
+        current_svc_obj_types = [f"svc_obj_adom/{native_config.get('domain_name','')}_{t}" for t in current_svc_obj_types]
 
     logger = getFwoLogger()
     normalize_network_objects(import_state, native_config, native_config_global, normalized_config_dict, normalized_config_global, 

@@ -1,12 +1,9 @@
-# library for FWORCH API calls
+# library for all FWORCH API calls in importer module
 import traceback
 import requests
 import json
 import datetime
 import time
-from typing import TYPE_CHECKING
-# if TYPE_CHECKING: # prevents circular import problems
-#    from model_controllers.import_state_controller import ImportStateController
 
 import fwo_const
 import fwo_globals

@@ -31,23 +31,10 @@ class RulebaseLinkMap():
 
         rbLinks = links['data']['rulebase_link']
         return rbLinks
+    
+    
+    # TODO: implement SetMapOfAllEnforcingGatewayIdsForRulebaseId
 
-
-    # def SetMapOfAllEnforcingGatewayIdsForRulebaseId(self):
-    #     rbLinks = self.getRulebaseLinks()
-
-    #     for link in rbLinks:
-    #         rulebaseId = link['to_rulebase_id']
-    #         gwId = link['gw_id']
-    #         if rulebaseId not in self.RulebaseMap:
-    #             self.RulebaseMap.update({rulebaseId: []})
-    #         if gwId not in self.RulebaseMap[rulebaseId]:
-    #             self.RulebaseMap[rulebaseId].append(gwId)
-        
-        # for rulebaseId in self.RulebaseMap.values():
-        #     self.RulbaseToGatewayMap.update({rulebaseId: []})
-        #     # TODO: implement
-
-    def GetGwIdsForRulebaseId(self, rulebaseId):
-        return self.RulbaseToGatewayMap.get(rulebaseId, [])
+    def GetGwIdsForRulebaseId(self, rulebaseId, importState: ImportStateController):
+        return importState.RulbaseToGatewayMap.get(rulebaseId, [])
     

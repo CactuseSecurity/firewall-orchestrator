@@ -54,18 +54,6 @@ class FwConfigNormalizedController():
         self.rulebases += config.Policies
         self.gateways += config.Gateways
 
-    def fillGateways(self, importState: ImportStateController, gateways:list[Gateway]):      
-        self.gateways = gateways
-        # for dev in importState.MgmDetails.Devices:
-        #     gw = Gateway(f"{dev['name']}_{dev['local_rulebase_name']}",
-        #                  dev['name'],
-        #                  [],    # TODO: routing
-        #                  [],    # TODO: interfaces
-        #                  [dev['local_rulebase_name']],
-        #                  [dev['package_name']],
-        #                  None  # TODO: global policy UID
-        #                  )
-
     
     def merge(self, config: FwConfigNormalized):
         """

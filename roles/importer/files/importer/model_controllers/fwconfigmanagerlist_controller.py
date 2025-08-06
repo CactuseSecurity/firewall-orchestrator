@@ -13,10 +13,10 @@ from fwo_const import max_objs_per_chunk, import_tmp_path
 from model_controllers.import_state_controller import ImportStateController
 from model_controllers.management_controller import Management
 from models.fwconfig_normalized import FwConfig, FwConfigNormalized
-# from model_controllers.management_controller import ManagementController
 from models.fwconfigmanagerlist import FwConfigManagerList
 from models.fwconfigmanager import FwConfigManager
 from model_controllers.fwconfig_controller import FwoEncoder
+from model_controllers.management_controller import ManagementController
 from fwo_base import ConfFormat
 
 """
@@ -47,10 +47,14 @@ class FwConfigManagerListController(FwConfigManagerList):
         """
         empty_config = FwConfigManagerListController()
         empty_config.ConfigFormat = ConfFormat.NORMALIZED
-        empty_manager = FwConfigManager(ManagerUid=calcManagerUidHash(Management()),
+        empty_manager = FwConfigManager(ManagerUid=ManagementController.calcManagerUidHash(Management()),
                                         IsSuperManager=is_super_manager,
                                         SubManagerIds=[],
-                                        Configs=[])
+                                        Configs=[],
+                                        DomainName="",
+                                        DomainUid="",
+                                        ManagerName=""
+                                        )
         empty_config.addManager(empty_manager)
         return empty_config
 

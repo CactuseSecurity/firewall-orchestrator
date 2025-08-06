@@ -1,7 +1,9 @@
 from enum import Enum
 import traceback
 from difflib import ndiff
+import json
 
+import fwo_globals
 import fwo_const
 import fwo_api_call as fwo_api_call
 from fwo_exceptions import FwoApiWriteError, FwoImporterError
@@ -420,9 +422,9 @@ class FwConfigImportRule():
         return 1, 0
 
 
-    def getRulesByIdWithRefUids(self, ruleIds: list[int]) -> list[Rule]:
+    def getRulesByIdWithRefUids(self, ruleIds: list[int]) -> tuple[int, int, list[Rule]]:
         logger = getFwoLogger()
-        rulesToBeReferenced = {}
+        rulesToBeReferenced = []
         getRuleUidRefsQuery = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "rule/getRulesByIdWithRefUids.graphql"])
         query_variables = { 'ruleIds': ruleIds }
         
@@ -435,6 +437,7 @@ class FwConfigImportRule():
                 return 0, 0, import_result['data']['rule']
         except Exception:
             logger.exception(f"failed to get rules from API: {str(traceback.format_exc())}")
+            raise
 
 
     def getRules(self, ruleUids) -> list[Rulebase]:
@@ -515,7 +518,8 @@ class FwConfigImportRule():
         addNewRuleMetadata: list[RuleMetadatum] = self.PrepareNewRuleMetadata(newRules)
         query_variables = { 'ruleMetadata': addNewRuleMetadata }
         
-        # queryVarJson = json.dumps(query_variables)    # just for debugging purposes, remove in prod
+        if fwo_globals.debug_level>9:
+            logger.debug(json.dumps(query_variables))    # just for debugging purposes
 
         try:
             import_result = self.import_details.api_call.call(addNewRuleMetadataMutation, query_variables=query_variables, debug_level=self.import_details.DebugLevel, analyze_payload=True)
@@ -661,7 +665,7 @@ class FwConfigImportRule():
 
 
     # creates a structure of rulebases optinally including rules for import
-    def PrepareNewRuleMetadata(self, newRules: list[Rulebase], includeRules: bool = True) -> list[RulebaseForImport]:
+    def PrepareNewRuleMetadata(self, newRules: list[Rulebase]) -> list[RulebaseForImport]:
         newRuleMetadata: list[RuleMetadatum] = []
 
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")

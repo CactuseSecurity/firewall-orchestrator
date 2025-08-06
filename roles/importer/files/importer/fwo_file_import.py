@@ -113,24 +113,26 @@ def detectLegacyFormat(importState, configJson) -> ConfFormat:
 
 def readFile(importState: ImportStateController) -> dict:
     logger = getFwoLogger(debug_level=importState.DebugLevel)
+    configJson = {}
+    if importState.ImportFileName is None:
+        return configJson
     try:
-        if importState.ImportFileName is not None:
-            if importState.ImportFileName.startswith('http://') or importState.ImportFileName.startswith('https://'):   # get conf file via http(s)
-                session = requests.Session()
-                session.headers = { 'Content-Type': 'application/json' }
-                session.verify=fwo_globals.verify_certs
-                r = session.get(importState.ImportFileName, )
-                if r.ok:
-                    return json.loads(r.text)
-                else:
-                    r.raise_for_status()
-            else:   # reading from local file
-                if importState.ImportFileName.startswith('file://'):   # remove file uri identifier
-                    filename = importState.ImportFileName[7:]
-                else:
-                    filename = importState.ImportFileName
-                with open(filename, 'r') as json_file:
-                    configJson = json.load(json_file)
+        if importState.ImportFileName.startswith('http://') or importState.ImportFileName.startswith('https://'):   # get conf file via http(s)
+            session = requests.Session()
+            session.headers = { 'Content-Type': 'application/json' }
+            session.verify=fwo_globals.verify_certs
+            r = session.get(importState.ImportFileName, )
+            if r.ok:
+                return json.loads(r.text)
+            else:
+                r.raise_for_status()
+        else:   # reading from local file
+            if importState.ImportFileName.startswith('file://'):   # remove file uri identifier
+                filename = importState.ImportFileName[7:]
+            else:
+                filename = importState.ImportFileName
+            with open(filename, 'r') as json_file:
+                configJson = json.load(json_file)
     except requests.exceptions.RequestException:
         try:
             r # check if response "r" is defined
@@ -138,16 +140,15 @@ def readFile(importState: ImportStateController) -> dict:
         except NameError:
             importState.appendErrorString(f'got error while trying to read config file from URL {importState.ImportFileName}')
         importState.increaseErrorCounterByOne()
-        # api_call = FwoApiCall(FwoApi(ApiUri=importState.api_connection.FwoApiUri, Jwt=jwt))
 
-        importState.api_connection.complete_import(importState)
-        raise ConfigFileNotFound(importState.ErrorString) from None
+        importState.api_call.complete_import(importState)
+        raise ConfigFileNotFound(importState.getErrorString()) from None
     except Exception: 
         importState.appendErrorString(f"Could not read config file {importState.ImportFileName}")
         importState.increaseErrorCounterByOne()
         logger.error("unspecified error while reading config file: " + str(traceback.format_exc()))
-        complete_import(importState)
-        raise Exception(f"unspecified error while reading config file {importState.ImportFileName}")
+        importState.api_call.complete_import(importState)
+        raise ConfigFileNotFound(f"unspecified error while reading config file {importState.ImportFileName}")
 
     return configJson
 

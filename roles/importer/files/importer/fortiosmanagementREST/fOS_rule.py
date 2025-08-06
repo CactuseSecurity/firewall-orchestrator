@@ -67,7 +67,7 @@ def normalize_access_rules(full_config, config2import, import_id, mgm_details: M
         enrich_rule_with_addresses(rule, rule_orig)
         enrich_rule_with_zones(rule, rule_orig, config2import, import_id)
         enrich_rule_with_negation(rule, rule_orig)
-        enrich_rule_with_refs(rule, rule_orig, full_config['nw_obj_lookup_dict'], jwt)
+        enrich_rule_with_refs(rule, full_config['nw_obj_lookup_dict'], jwt)
         add_users_to_rule(rule_orig, rule)
         rules.append(rule)
         rule_number += 1
@@ -137,7 +137,7 @@ def enrich_rule_with_negation(rule, rule_orig):
     rule['rule_dst_neg'] = rule_orig.get('dstaddr-negate') != 'disable'
     rule['rule_svc_neg'] = rule_orig.get('service-negate') != 'disable'
 
-def enrich_rule_with_refs(rule, rule_orig, lookup_dict, jwt):
+def enrich_rule_with_refs(rule, lookup_dict, jwt):
     rule['rule_src_refs'] = join_refs(rule['rule_src'], lookup_dict, jwt)
     rule['rule_dst_refs'] = join_refs(rule['rule_dst'], lookup_dict, jwt)
     rule['rule_svc_refs'] = rule['rule_svc']  # For services, name == uid

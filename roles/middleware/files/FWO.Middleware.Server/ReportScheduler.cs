@@ -148,7 +148,7 @@ namespace FWO.Middleware.Server
 
                     await apiConnectionUserContext.SendQueryAsync<object>(ReportQueries.countReportSchedule, new { report_schedule_id = reportSchedule.Id });
                     await AdaptDeviceFilter(reportSchedule.Template.ReportParams, apiConnectionUserContext);
-                    await TryAdaptComplianceDiffReportConfig();
+                    await TryAdaptComplianceDiffReportConfig(reportSchedule);
 
                     _report = await ReportGenerator.Generate(reportSchedule.Template, apiConnectionUserContext, _userConfig, DefaultInit.DoNothing, token);
                     if (_report != null)

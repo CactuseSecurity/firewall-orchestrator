@@ -2511,8 +2511,6 @@ INSERT INTO txt VALUES ('complianceCheckMailSubject','German','Titel der Benachr
 INSERT INTO txt VALUES ('complianceCheckMailSubject','English','Subject of notification emails');
 INSERT INTO txt VALUES ('complianceCheckMailBody','German', 'Text der Benachrichtigung');
 INSERT INTO txt VALUES ('complianceCheckMailBody','English','Body of notification emails');
-INSERT INTO txt VALUES ('complianceCheckPersistData','German', 'Daten persistieren');
-INSERT INTO txt VALUES ('complianceCheckPersistData','English','Persist Data');
 INSERT INTO txt VALUES ('complianceMatrixAllowNetworkZones','German', 'Netzwerkzonenverschachtelung erlauben');
 INSERT INTO txt VALUES ('complianceMatrixAllowNetworkZones','English','Nested Network Zones allowed');
 INSERT INTO txt VALUES ('availableModules',     'German', 	'Verf&uuml;gbare Module');
@@ -3481,6 +3479,8 @@ INSERT INTO txt VALUES ('T0106', 'German',  'Aktuell aktive unbenutzte Regeln al
 INSERT INTO txt VALUES ('T0106', 'English', 'Currently active unused rules of all gateways');
 INSERT INTO txt VALUES ('T0107', 'German',  'Aktuell aktive Regeln, die zur Rezertifizierung anstehen');
 INSERT INTO txt VALUES ('T0107', 'English', 'Currently active rules with upcoming recertification');
+INSERT INTO txt VALUES ('T0108', 'German',  'Alle nicht gel&ouml;sten Compliance-Verletzungen');
+INSERT INTO txt VALUES ('T0108', 'English', 'All unresolved compliance violations');
 
 -- Contextual Info (Tooltips)
 INSERT INTO txt VALUES ('C9000', 'German',  'Dieses Objekt wurde deaktiviert und sollte von der App Rolle entfernt werden.');

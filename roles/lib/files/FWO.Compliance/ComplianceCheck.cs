@@ -19,16 +19,17 @@ namespace FWO.Compliance
 {
     public class ComplianceCheck
     {
-        List<ComplianceNetworkZone> NetworkZones = [];
-         public List<(Rule, (ComplianceNetworkZone, ComplianceNetworkZone))> Results { get; set; } = [];
+        public ReportCompliance? ComplianceReport { get; set; } = null;
+        
+        public List<(Rule, (ComplianceNetworkZone, ComplianceNetworkZone))> Results { get; set; } = [];
         public List<ComplianceViolation> RestrictedServiceViolations { get; set; } = [];
-        private ReportBase? currentReport;
-        Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
-        ReportFilters reportFilters = new();
+
+        private ReportFilters _reportFilters = new();
+        private CompliancePolicy? _policy = null;
+        private List<ComplianceNetworkZone> _networkZones = [];
 
         private readonly UserConfig _userConfig;
         private readonly ApiConnection _apiConnection;
-        CompliancePolicy? Policy = null;
         private readonly DebugConfig _debugConfig;
 
 
@@ -48,6 +49,8 @@ namespace FWO.Compliance
             }
             else
             {
+                Log.WriteWarning("Compliance Check", "No debug config found, using default values.");
+
                 _debugConfig = new();
             }
         }
@@ -58,31 +61,46 @@ namespace FWO.Compliance
         /// <returns></returns>
         public async Task CheckAll()
         {
-            if (_debugConfig.ExtendedLogComplianceCheck)
-            {
-                Log.WriteInfo("Compliance Check", "Starting compliance check");
-            }
+            Log.TryWriteLog(LogType.Info, "Compliance Check", "Starting compliance check", _debugConfig.ExtendedLogComplianceCheck);
+
             int? policyId = _userConfig.GlobalConfig?.ComplianceCheckPolicyId;
+
             if (policyId == null || policyId == 0)
             {
                 Log.WriteInfo("Compliance Check", "No Policy defined");
                 return;
             }
-            Policy = await _apiConnection.SendQueryAsync<CompliancePolicy>(ComplianceQueries.getPolicyById, new { id = policyId });
-            await LoadNetworkZones();
-            await SetUpReportFilters();
-            ReportTemplate template = new("", reportFilters.ToReportParams());
-            currentReport = await ReportGenerator.Generate(template, _apiConnection, _userConfig, DisplayMessageInUi);
-
-            Results.Clear();
-            RestrictedServiceViolations.Clear();
-
-            if (_userConfig.GlobalConfig is GlobalConfig globalConfig && _apiConnection != null && currentReport is ReportCompliance complianceReport)
+            else
             {
-                if (_debugConfig.ExtendedLogComplianceCheck)
-                {
-                    Log.WriteInfo("Compliance Check", "Using restricted services: " + Policy.Criteria.FirstOrDefault(x => x.Content.CriterionType == CriterionType.ForbiddenService.ToString())?.Content.Content);
-                }
+                Log.TryWriteLog(LogType.Info, "Compliance Check", $"Using policy {policyId}", _debugConfig.ExtendedLogComplianceCheck);
+            }
+
+            _policy = await _apiConnection.SendQueryAsync<CompliancePolicy>(ComplianceQueries.getPolicyById, new { id = policyId });
+
+            if (TryLogPolicyCriteria() == false)
+            {
+                Log.WriteError("Compliance Check", $"Policy with id {policyId} not found");
+                return;
+            }
+
+            Task loadNetworkZonesTask = LoadNetworkZones();
+            Task setUpReportFiltersTask = SetUpReportFilters();
+
+            await Task.WhenAll(loadNetworkZonesTask, setUpReportFiltersTask);
+
+            ReportTemplate template = new("", _reportFilters.ToReportParams());
+
+            ReportBase? currentReport = await ReportGenerator.Generate(template, _apiConnection, _userConfig, DefaultInit.DoNothing);
+
+            if (currentReport is ReportCompliance complianceReport)
+            {
+                ComplianceReport = complianceReport;
+                Log.TryWriteLog(LogType.Info, "Compliance Check", $"Compliance report generated with {complianceReport.ReportData.ManagementData.Count} managements", _debugConfig.ExtendedLogComplianceCheck);
+
+                Results.Clear();
+                RestrictedServiceViolations.Clear();
+
+                ComplianceReport = complianceReport;
 
                 foreach (var management in complianceReport.ReportData.ManagementData)
                 {
@@ -90,62 +108,202 @@ namespace FWO.Compliance
                 }
 
                 await GatherCheckResults();
+                
+            }
+            else
+            {
+                Log.WriteError("Compliance Check", "Could not generate compliance report");
+                return;
+            }
 
-                if (globalConfig.ComplianceCheckPersistData)
+
+        }
+
+        private bool TryLogPolicyCriteria()
+        {
+            if (_policy != null)
+            {
+                Log.TryWriteLog(LogType.Info, "Compliance Check", $"Policy criteria: {_policy.Criteria.Count} criteria found", _debugConfig.ExtendedLogComplianceCheck);
+
+                foreach (var criterion in _policy.Criteria)
                 {
-                    await PersistData(complianceReport);
+                    Log.TryWriteLog(LogType.Info, "Compliance Check", $"Criterion: {criterion.Content.Name} ({criterion.Content.CriterionType})", _debugConfig.ExtendedLogComplianceCheck);
                 }
+
+                return true;
+            }
+            else
+            {
+                return false;
             }
         }
 
         private async Task LoadNetworkZones()
         {
-            if (Policy != null)
+            if (_policy != null)
             {
                 // ToDo later: work with several matrices?
-                int? matrixId = Policy.Criteria.FirstOrDefault(c => c.Content.CriterionType == CriterionType.Matrix.ToString())?.Content.Id;
+                int? matrixId = _policy.Criteria.FirstOrDefault(c => c.Content.CriterionType == CriterionType.Matrix.ToString())?.Content.Id;
                 if (matrixId != null)
                 {
-                    NetworkZones = await _apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(ComplianceQueries.getNetworkZonesForMatrix, new { criterionId = matrixId });
+                    _networkZones = await _apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(ComplianceQueries.getNetworkZonesForMatrix, new { criterionId = matrixId });
                 }
             }
         }
 
-        private async Task PersistData(ReportCompliance complianceReport)
+        public async Task PersistDataAsync()
         {
-            List<ComplianceViolationBase> violationsForInsert = complianceReport.Violations
-            .Select(v => new ComplianceViolationBase
+            try
             {
-                RuleId = v.RuleId,
-                Details = v.Details,
-                FoundDate = v.FoundDate,
-                RemovedDate = v.RemovedDate,
-                RiskScore = v.RiskScore,
-                PolicyId = v.PolicyId,
-                CriterionId = v.CriterionId
-            })
-            .ToList();
-            var variables = new
+                Log.TryWriteLog(LogType.Info, "Compliance Check", "Persisting violations...", _debugConfig.ExtendedLogComplianceCheck);
+
+                List<ComplianceViolation> existingViolations = await _apiConnection.SendQueryAsync<List<ComplianceViolation>>(ComplianceQueries.getViolations);
+
+                Log.TryWriteLog(LogType.Info, "Compliance Check", $"Found {existingViolations.Count} existing violations", _debugConfig.ExtendedLogComplianceCheck);
+
+                List<ComplianceViolationBase> violations = await CreateViolationInsertObjectsAsync(existingViolations);
+                Task<List<int>> violationsForRemoveTask = GetViolationsForRemoveAsync(existingViolations);
+
+
+                if (violations.Count == 0)
+                {
+                    Log.TryWriteLog(LogType.Info, "Compliance Check", "No new violations to persist", _debugConfig.ExtendedLogComplianceCheck);
+                }
+                else
+                {
+                    object variablesAdd = new
+                    {
+                        violations
+                    };
+
+                    await _apiConnection.SendQueryAsync<dynamic>(ComplianceQueries.addViolations, variablesAdd);
+
+                    Log.TryWriteLog(LogType.Info, "Compliance Check", $"Persisted {violations.Count} new violations", _debugConfig.ExtendedLogComplianceCheck);                    
+                }
+
+                if (violationsForRemoveTask.Result.Count == 0)
+                {
+                    Log.TryWriteLog(LogType.Info, "Compliance Check", "No violations to remove.", _debugConfig.ExtendedLogComplianceCheck);
+                }
+                else
+                {
+                    Log.TryWriteLog(LogType.Info, "Compliance Check", $"{violationsForRemoveTask.Result.Count} violations to remove.", _debugConfig.ExtendedLogComplianceCheck);
+
+                    List<int> ids = violationsForRemoveTask.Result;
+                    DateTime removedAt = DateTime.UtcNow;
+
+                    object variablesRemove = new
+                    {
+                        ids,
+                        removedAt
+                    };
+
+                    await _apiConnection.SendQueryAsync<dynamic>(ComplianceQueries.removeViolations, variablesRemove);
+
+                    Log.TryWriteLog(LogType.Info, "Compliance Check", $"Removed {violationsForRemoveTask.Result.Count} violations", _debugConfig.ExtendedLogComplianceCheck && violationsForRemoveTask.Result.Count > 0);                    
+                }
+
+
+
+            }
+            catch (System.Exception e)
             {
-                violations = violationsForInsert
-            };
-            await _apiConnection.SendQueryAsync<dynamic>(ComplianceQueries.addViolations, variables);
+                Log.WriteError("Compliance Check", "Error while persisting compliance data", e);
+            }            
         }
+
+        private async Task<List<ComplianceViolationBase>> CreateViolationInsertObjectsAsync(List<ComplianceViolation> existingViolations)
+        {
+            List<ComplianceViolationBase> violationsForInsert = [];
+
+            if (ComplianceReport is ReportCompliance complianceReport)
+            {
+                List<ComplianceViolation> unremovedViolations = existingViolations
+                    .Where(ev => ev.RemovedDate == null)
+                    .ToList();
+
+                Log.TryWriteLog(LogType.Info, "Compliance Check", $"Found {unremovedViolations.Count} unremoved existing violations", _debugConfig.ExtendedLogComplianceCheck);
+
+                HashSet<string> existingKeys = existingViolations
+                    .Select(ev => $"{ev.RuleId}_{ev.PolicyId}_{ev.CriterionId}_{ev.Details}")
+                    .ToHashSet();
+
+                Log.TryWriteLog(LogType.Info, "Compliance Check", $"Found {existingKeys.Count} unique existing violation keys", _debugConfig.ExtendedLogComplianceCheck);
+
+                violationsForInsert = complianceReport
+                    .Violations
+                    .Where(v => !existingKeys.Contains($"{v.RuleId}_{v.PolicyId}_{v.CriterionId}_{v.Details}"))
+                    .Select(v => new ComplianceViolationBase
+                    {
+                        RuleId = v.RuleId,
+                        Details = v.Details,
+                        FoundDate = v.FoundDate,
+                        RemovedDate = v.RemovedDate,
+                        RiskScore = v.RiskScore,
+                        PolicyId = v.PolicyId,
+                        CriterionId = v.CriterionId
+                    })
+                    .ToList();
+
+                Log.TryWriteLog(LogType.Info, "Compliance Check", $"Prepared {violationsForInsert.Count} new violations for insert", _debugConfig.ExtendedLogComplianceCheck);
+            }
+
+            return violationsForInsert;
+        }
+
+        private async Task<List<int>> GetViolationsForRemoveAsync(List<ComplianceViolation> existingViolations)
+        {
+            List<int> violationsForUpdate = [];
+
+            if (ComplianceReport is ReportCompliance complianceReport)
+            {
+                foreach (ComplianceViolation existingViolation in existingViolations.Where(ev => ev.RemovedDate == null).ToList())
+                {
+                    ComplianceViolation? validatedViolation = complianceReport.Violations.FirstOrDefault(v =>
+                                                                v.RuleId == existingViolation.RuleId &&
+                                                                v.PolicyId == existingViolation.PolicyId &&
+                                                                v.CriterionId == existingViolation.CriterionId &&
+                                                                v.Details == existingViolation.Details);
+                                                                
+                    if (validatedViolation == null)
+                    {
+                        violationsForUpdate.Add(existingViolation.Id);
+                    }
+                }
+            }
+
+            return violationsForUpdate;
+        }
+
+
+
 
         private async Task CheckRuleCompliancePerManagement(ManagementReport management)
         {
+            int notCompliantRules = 0;
+
+            Log.TryWriteLog(LogType.Info, "Compliance Check", $"Checking compliance for management {management.Id} '{management.Name}'", _debugConfig.ExtendedLogComplianceCheck);
+
             foreach (var rulebase in management.Rulebases)
             {
                 foreach (var rule in rulebase.Rules)
                 {
                     rule.IsCompliant = await CheckRuleCompliance(rule);
+
+                    if (!rule.IsCompliant)
+                    {
+                        notCompliantRules++;
+                    }
                 }
             }
+            
+            Log.TryWriteLog(LogType.Info, "Compliance Check", $"Checked compliance for management {management.Id} '{management.Name}' and found {notCompliantRules} non-compliant rules", _debugConfig.ExtendedLogComplianceCheck);
         }
 
         private async Task GatherCheckResults()
         {
-            if (Results.Count > 0 && currentReport is ReportCompliance complianceReport)
+            
+            if (ComplianceReport is ReportCompliance complianceReport)
             {
                 complianceReport.Violations.Clear();
 
@@ -154,13 +312,21 @@ namespace FWO.Compliance
                     ComplianceViolation violation = new()
                     {
                         RuleId = (int)item.Item1.Id,
-                        Details = $"Matrix violation: {item.Item2.Item1.Name} -> {item.Item2.Item2.Name}"
+                        Details = $"Matrix violation: {item.Item2.Item1.Name} -> {item.Item2.Item2.Name}",
+                        CriterionId = _policy?.Criteria
+                                                .FirstOrDefault(criterionWrapper => criterionWrapper.Content.CriterionType == "Matrix")?
+                                                .Content.Id ?? 0,
+                        PolicyId = _policy?.Id ?? 0
                     };
+
                     complianceReport.Violations.Add(violation);
                 }
-
-                complianceReport.Violations.AddRange(RestrictedServiceViolations);
-
+                
+                if (RestrictedServiceViolations.Count > 0)
+                {
+                   complianceReport.Violations.AddRange(RestrictedServiceViolations); 
+                }
+                
                 await complianceReport.SetComplianceData();
             }
         }
@@ -168,7 +334,8 @@ namespace FWO.Compliance
         public async Task<bool> CheckRuleCompliance(Rule rule)
         {
             bool ruleIsCompliant = true;
-            foreach (var criterion in (Policy?.Criteria ?? []).Select(c => c.Content))
+
+            foreach (var criterion in (_policy?.Criteria ?? []).Select(c => c.Content))
             {
                 switch (criterion.CriterionType)
                 {
@@ -182,6 +349,7 @@ namespace FWO.Compliance
                         break;
                 }
             }
+
             return ruleIsCompliant;
         }
 
@@ -257,12 +425,16 @@ namespace FWO.Compliance
 
         private async Task SetUpReportFilters()
         {
-            reportFilters = new()
+            Log.TryWriteLog(LogType.Info, "Compliance Check", "Setting up report filters for compliance check", _debugConfig.ExtendedLogComplianceCheck);
+
+            _reportFilters = new()
             {
                 ReportType = ReportType.Compliance
             };
-            reportFilters.DeviceFilter.Managements = await _apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement);
-            foreach (var management in reportFilters.DeviceFilter.Managements)
+
+            _reportFilters.DeviceFilter.Managements = await _apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement);
+
+            foreach (var management in _reportFilters.DeviceFilter.Managements)
             {
                 management.Selected = true;
                 foreach (var device in management.Devices)
@@ -272,7 +444,7 @@ namespace FWO.Compliance
             }
         }
 
-        public static List<ComplianceViolation> TryGetRestrictedServiceViolation(Rule rule, ComplianceCriterion criterion)
+        public List<ComplianceViolation> TryGetRestrictedServiceViolation(Rule rule, ComplianceCriterion criterion)
         {
             List<ComplianceViolation> violations = [];
             List<string> restrictedServices = [.. criterion.Content.Split(',').Select(s => s.Trim())
@@ -285,66 +457,15 @@ namespace FWO.Compliance
                     ComplianceViolation violation = new()
                     {
                         RuleId = (int)rule.Id,
-                        Details = $"Restricted service used: {service.Content.Name}"
+                        Details = $"Restricted service used: {service.Content.Name}",
+                        CriterionId = criterion.Id,
+                        PolicyId = _policy?.Id ?? 0
                     };
                     violations.Add(violation);
                 }
             }
 
             return violations;
-        }
-
-        /// <summary>
-        /// Send Email with compliance report to all recipients defined in compliance settings
-        /// </summary>
-        /// <returns></returns>
-        public async Task SendComplianceCheckEmail()
-        {
-            if (_userConfig.GlobalConfig is GlobalConfig globalConfig)
-            {
-                string decryptedSecret = AesEnc.TryDecrypt(globalConfig.EmailPassword, false, "Compliance Check", "Could not decrypt mailserver password.");
-
-                EmailConnection emailConnection = new(
-                    globalConfig.EmailServerAddress,
-                    globalConfig.EmailPort,
-                    globalConfig.EmailTls,
-                    globalConfig.EmailUser,
-                    decryptedSecret,
-                    globalConfig.EmailSenderAddress
-                );
-
-                MailData? mail = PrepareEmail();
-
-                if (mail != null)
-                {
-                    await MailKitMailer.SendAsync(mail, emailConnection, false, new CancellationToken());
-                }
-            }
-        }
-
-        private MailData? PrepareEmail()
-        {
-            if (_userConfig.GlobalConfig is GlobalConfig globalConfig)
-            {
-                string subject = globalConfig.ComplianceCheckMailSubject;
-                string body = globalConfig.ComplianceCheckMailBody;
-                MailData mailData = new(EmailHelper.CollectRecipientsFromConfig(_userConfig, globalConfig.ComplianceCheckMailRecipients), subject) { Body = body };
-
-                if (currentReport is ReportCompliance complianceReport)
-                {
-                    FormFile? attachment = EmailHelper.CreateAttachment(complianceReport.ExportToCsv(), GlobalConst.kCsv, subject);
-                    if (attachment != null)
-                    {
-                        mailData.Attachments = new FormFileCollection() { attachment };
-                    }
-                }
-
-                return mailData;
-            }
-            else
-            {
-                return null;
-            }
         }
 
         /// <summary>
@@ -356,7 +477,7 @@ namespace FWO.Compliance
         /// <returns></returns>
         public List<(ComplianceNetworkZone, ComplianceNetworkZone)> CheckIpRangeInputCompliance(IPAddressRange? sourceIpRange, IPAddressRange? destinationIpRange, List<ComplianceNetworkZone> networkZones)
         {
-            NetworkZones = networkZones;
+            _networkZones = networkZones;
             List<(ComplianceNetworkZone, ComplianceNetworkZone)> forbiddenCommunicationsOutput = [];
             if (sourceIpRange != null && destinationIpRange != null)
             {
@@ -405,7 +526,7 @@ namespace FWO.Compliance
                 ]);
             }
 
-            foreach (ComplianceNetworkZone zone in NetworkZones.Where(z => z.OverlapExists(ranges, unseenIpAddressRanges)))
+            foreach (ComplianceNetworkZone zone in _networkZones.Where(z => z.OverlapExists(ranges, unseenIpAddressRanges)))
             {
                 result.Add(zone);
             }

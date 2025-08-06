@@ -13,6 +13,8 @@ namespace FWO.Api.Client.Queries
 
         public static readonly string addViolations;
         public static readonly string getViolations;
+        public static readonly string updateViolationById;
+        public static readonly string removeViolations;
 
         public static readonly string addPolicy;
         public static readonly string disablePolicy;
@@ -41,6 +43,8 @@ namespace FWO.Api.Client.Queries
 
                 addViolations = File.ReadAllText(QueryPath + "compliance/addViolations.graphql");
                 getViolations = File.ReadAllText(QueryPath + "compliance/getViolations.graphql");
+                updateViolationById = File.ReadAllText(QueryPath + "compliance/updateViolationById.graphql");
+                removeViolations = File.ReadAllText(QueryPath + "compliance/removeViolations.graphql");
 
                 addPolicy = File.ReadAllText(QueryPath + "compliance/addPolicy.graphql");
                 disablePolicy = File.ReadAllText(QueryPath + "compliance/disablePolicy.graphql");

@@ -1310,6 +1310,19 @@
                   },
                   "comment": ""
                 }
+              ],
+              "update_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "removed_date"
+                    ],
+                    "filter": {},
+                    "check": null
+                  },
+                  "comment": ""
+                }
               ]
             },
             {

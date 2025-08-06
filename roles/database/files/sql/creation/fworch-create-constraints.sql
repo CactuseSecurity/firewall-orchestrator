@@ -50,6 +50,7 @@ create unique index if not exists only_one_future_recert_per_owner_per_rule on r
     where recert_date IS NULL;
 
 --- compliance
+
 CREATE EXTENSION IF NOT EXISTS btree_gist;
 ALTER TABLE compliance.ip_range ADD CONSTRAINT "exclude_overlapping_ip_ranges"
 EXCLUDE USING gist (
@@ -57,4 +58,10 @@ EXCLUDE USING gist (
     numrange(ip_range_start - '0.0.0.0'::inet, ip_range_end - '0.0.0.0'::inet, '[]') WITH &&
 )
 WHERE (removed IS NULL);
+
+--- report template
+
+ALTER TABLE report_template
+ADD CONSTRAINT unique_report_template_name UNIQUE (report_template_name);
+
 

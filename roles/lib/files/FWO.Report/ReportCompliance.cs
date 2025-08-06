@@ -7,33 +7,61 @@ using FWO.Api.Client;
 using FWO.Data.Report;
 using FWO.Api.Client.Queries;
 using System.Reflection;
+using System.Text.Json;
+using FWO.Data.Middleware;
+using FWO.Logging;
+using FWO.Basics.Comparer;
 
 namespace FWO.Report
 {
     public class ReportCompliance : ReportRules
     {
-        public ReportCompliance(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType) : base(query, userConfig, reportType) { }
         public List<ComplianceViolation> Violations { get; set; } = [];
+        Dictionary<ComplianceViolation, char> ViolationDiffs = new();
         public List<Rule> Rules { get; set; } = [];
+        public bool IsDiffReport { get; set; } = false;
+        public int DiffReferenceInDays { get; set; } = 0;
 
-        private readonly bool _includeHeaderInExport = true;
-        private readonly char _separator = '#';
-        private readonly List<string> _columnsToExport = new List<string>
+        private readonly bool _includeHeaderInExport;
+        private readonly char _separator;
+        private readonly List<string> _columnsToExport;
+        private readonly DebugConfig _debugConfig;
+        
+
+
+        public ReportCompliance(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType) : base(query, userConfig, reportType)
         {
-            "MgmtId",
-            "Uid",
-            "Name",
-            "Comment",
-            "Source",
-            "Destination",
-            "Services",
-            "Action",
-            "MetaData",
-            "CustomFields",
-            "InstallOn",
-            "IsCompliant",
-            "ViolationDetails"
-        };
+            _includeHeaderInExport = true;
+            _separator = '#';
+            _columnsToExport = new List<string>
+            {
+                "MgmtId",
+                "Uid",
+                "Name",
+                "Comment",
+                "Source",
+                "Destination",
+                "Services",
+                "Action",
+                "MetaData",
+                "CustomFields",
+                "InstallOn",
+                "IsCompliant",
+                "ViolationDetails"
+            };
+
+            if (userConfig.GlobalConfig is GlobalConfig globalConfig && !string.IsNullOrEmpty(globalConfig.DebugConfig))
+            {
+                _debugConfig = JsonSerializer.Deserialize<DebugConfig>(globalConfig.DebugConfig) ?? new();
+            }
+            else
+            {
+                Log.WriteWarning("Compliance Report", "No debug config found, using default values.");
+
+                _debugConfig = new();
+            }
+
+        }
 
         public override string ExportToCsv()
         {
@@ -66,6 +94,21 @@ namespace FWO.Report
             return csvString;
         }
 
+        public override string SetDescription()
+        {
+            try
+            {
+                return base.SetDescription();
+            }
+            catch (Exception e)
+            {
+                Log.TryWriteLog(LogType.Error, "Compliance Report", "Error while setting description: " + e.Message, _debugConfig.ExtendedLogReportGeneration);
+                Log.TryWriteLog(LogType.Debug, "Compliance Report", $"Report Data: {JsonSerializer.Serialize(ReportData)}", _debugConfig.ExtendedLogReportGeneration);
+
+                return "Compliance Report";
+            }
+        }
+
         private string GetLineForRule(Rule rule, List<PropertyInfo?> properties)
         {
             IEnumerable<string> values = properties.Select(p =>
@@ -94,7 +137,7 @@ namespace FWO.Report
                     return "";
                 }
             });
-            
+
             return string.Join(_separator, values);
         }
 
@@ -118,15 +161,53 @@ namespace FWO.Report
         public override async Task Generate(int rulesPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback, CancellationToken ct)
         {
             var baseTask = base.Generate(rulesPerFetch, apiConnection, callback, ct);
-            var violationsTask = apiConnection.SendQueryAsync<List<ComplianceViolation>>(ComplianceQueries.getViolations);
+            var violationsTask = apiConnection.SendQueryAsync<List<ComplianceViolation>>(ComplianceQueries.getViolations); // TODO: move in DynQuery
 
             await Task.WhenAll(baseTask, violationsTask);
 
-            Violations = violationsTask.Result;
+            List<ComplianceViolation> violationsTaskResult = violationsTask.Result;
+            Violations = violationsTaskResult.Where(v => v.RemovedDate == null).ToList();
+            
+            if (IsDiffReport && DiffReferenceInDays > 0)
+            {
+                ViolationDiffs = await GetViolationDiffs(violationsTaskResult);
+                Violations = ViolationDiffs.Keys.ToList();
+            }
+
             await SetComplianceData();
         }
+        
+        public async Task<Dictionary<ComplianceViolation, char>> GetViolationDiffs(List<ComplianceViolation> allViolations)
+        {
+                DateTime referenceDate = DateTime.Now.AddDays(-DiffReferenceInDays);
 
-        public async Task SetComplianceData() 
+                Dictionary<ComplianceViolation, char> violationDiffs = new();
+                ComplianceViolationComparer comparer = new();
+
+                List<ComplianceViolation> removedViolations = allViolations
+                                                                .Where(violation => violation.RemovedDate is DateTime removedDate && removedDate >= referenceDate)
+                                                                .Cast<ComplianceViolation>()
+                                                                .ToList();
+
+                List<ComplianceViolation> addedViolations = allViolations
+                                                                .Where(violation => violation.FoundDate >= referenceDate)
+                                                                .Cast<ComplianceViolation>()
+                                                                .ToList();
+
+                foreach (var v in removedViolations)
+                {
+                    violationDiffs[v] = '-';
+                }
+
+                foreach (var v in addedViolations)
+                {
+                    violationDiffs[v] = '+';                    
+                }
+
+                return violationDiffs;    
+        }
+
+        public async Task SetComplianceData()
         {
             Rules.Clear();
 
@@ -152,6 +233,11 @@ namespace FWO.Report
 
             foreach (var violation in violations.Where(v => v.RuleId == rule.Id))
             {
+                if (IsDiffReport && ViolationDiffs.TryGetValue(violation, out char changeSign))
+                {
+                    violation.Details = $"({changeSign}) {violation.Details}";
+                }
+                
                 if (rule.ViolationDetails != "")
                 {
                     rule.ViolationDetails += "\n";

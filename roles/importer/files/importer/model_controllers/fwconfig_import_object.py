@@ -11,7 +11,7 @@ from models.networkobject import NetworkObjectForImport
 from models.fwconfigmanager import FwConfigManager
 from models.serviceobject import ServiceObjectForImport
 import fwo_const
-import fwo_api
+from fwo_api_call import FwoApiCall, FwoApi
 from fwo_exceptions import FwoDuplicateKeyViolation, FwoImporterError
 from services.service_provider import ServiceProvider
 from services.enums import Services
@@ -161,10 +161,10 @@ class FwConfigImportObject():
     def GetNetworkObjTypeMap(self):
         query = "query getNetworkObjTypeMap { stm_obj_typ { obj_typ_name obj_typ_id } }"
         try:
-            result = self.ImportDetails.call(query=query, queryVariables={})
-        except Exception:
+            result = self.ImportDetails.api_call.call(query=query, query_variables={})
+        except Exception as e:
             logger = getFwoLogger()
-            logger.error("Error while getting stm_obj_typ")
+            logger.error(f"Error while getting stm_obj_typ: str{e}")
             return {}
         
         map = {}
@@ -175,10 +175,10 @@ class FwConfigImportObject():
     def GetServiceObjTypeMap(self):
         query = "query getServiceObjTypeMap { stm_svc_typ { svc_typ_name svc_typ_id } }"
         try:
-            result = self.ImportDetails.call(query=query, queryVariables={})
-        except Exception:
+            result = self.ImportDetails.api_call.call(query=query, query_variables={})
+        except Exception as e:
             logger = getFwoLogger()
-            logger.error("Error while getting stm_svc_typ")
+            logger.error(f"Error while getting stm_svc_typ: {str(e)}")
             return {}
         
         map = {}
@@ -189,10 +189,10 @@ class FwConfigImportObject():
     def GetUserObjTypeMap(self):
         query = "query getUserObjTypeMap { stm_usr_typ { usr_typ_name usr_typ_id } }"
         try:
-            result = self.ImportDetails.call(query=query, queryVariables={})
-        except Exception:
+            result = self.ImportDetails.api_call.call(query=query, query_variables={})
+        except Exception as e:
             logger = getFwoLogger()
-            logger.error("Error while getting stm_usr_typ")
+            logger.error(f"Error while getting stm_usr_typ: {str(e)}")
             return {}
         
         map = {}
@@ -203,10 +203,10 @@ class FwConfigImportObject():
     def GetProtocolMap(self):
         query = "query getIpProtocols { stm_ip_proto { ip_proto_id ip_proto_name } }"
         try:
-            result = self.ImportDetails.call(query=query, queryVariables={})
-        except Exception:
+            result = self.ImportDetails.api_call.call(query=query, query_variables={})
+        except Exception as e:
             logger = getFwoLogger()
-            logger.error("Error while getting stm_ip_proto")
+            logger.error(f"Error while getting stm_ip_proto: {str(e)}")
             return {}
         
         map = {}
@@ -226,8 +226,8 @@ class FwConfigImportObject():
         removedNwSvcIds = []
         removedUserIds = []
         this_managements_id = self.ImportDetails.lookupManagementId(single_manager.ManagerUid)
-        import_mutation = fwo_api.get_graphql_code([fwo_const.graphqlQueryPath + "allObjects/upsertObjects.graphql"])
-        queryVariables = {
+        import_mutation = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "allObjects/upsertObjects.graphql"])
+        query_variables = {
             'mgmId': this_managements_id,
             'importId': self.ImportDetails.ImportId,
             'newNwObjects': self.prepareNewNwObjects(newNwObjectUids, this_managements_id),
@@ -241,10 +241,10 @@ class FwConfigImportObject():
         if self.ImportDetails.DebugLevel>8:
             logger.debug(f"fwo_api:importNwObject - import_mutation: {import_mutation}")
             # Save the query variables to a file for debugging purposes.
-            json.dump(queryVariables, open(f"/usr/local/fworch/tmp/import/mgm_id_{self.ImportDetails.MgmDetails.Id}_queryVariables.json", "w"), indent=4)
+            json.dump(query_variables, open(f"/usr/local/fworch/tmp/import/mgm_id_{self.ImportDetails.MgmDetails.Id}_queryVariables.json", "w"), indent=4)
 
         try:
-            import_result = self.ImportDetails.call(import_mutation, queryVariables=queryVariables, debug_level=self.ImportDetails.DebugLevel, analyze_payload=True)
+            import_result = self.ImportDetails.api_call.call(import_mutation, query_variables=query_variables, debug_level=self.ImportDetails.DebugLevel, analyze_payload=True)
             if 'errors' in import_result:
                 logger.exception(f"fwo_api:importNwObject - error in updateObjectsViaApi: {str(import_result['errors'])}")
                 errors = 1
@@ -439,7 +439,7 @@ class FwConfigImportObject():
                 'removedFlats': removed_flats
             }
             try:
-                import_result = self.ImportDetails.call(import_mutation, queryVariables=query_variables, analyze_payload=True)
+                import_result = self.ImportDetails.api_call.call(import_mutation, query_variables=query_variables, analyze_payload=True)
                 if 'errors' in import_result:
                     logger = getFwoLogger()
                     logger.exception(f"fwo_api:importNwObject - error in removeOutdated{prefix.capitalize()}Memberships: {str(import_result['errors'])}")
@@ -535,7 +535,7 @@ class FwConfigImportObject():
             'groupFlats': new_group_member_flats
         }
         try:
-            import_result = self.ImportDetails.call(import_mutation, queryVariables=query_variables, analyze_payload=True)
+            import_result = self.ImportDetails.api_call.call(import_mutation, query_variables=query_variables, analyze_payload=True)
             if 'errors' in import_result:
                 logger.exception(f"fwo_api:addGroupMemberships: {str(import_result['errors'])}")
                 errors = 1
@@ -642,14 +642,14 @@ class FwConfigImportObject():
             }
         """
 
-        queryVariables = {
+        query_variables = {
             'nwObjChanges': nwObjsChanged, 
             'svcObjChanges': svcObjsChanged
         }
 
         if len(nwObjsChanged) + len(svcObjsChanged)>0:
             try:
-                changelogResult = self.ImportDetails.call(changelogMutation, queryVariables=queryVariables, analyze_payload=True)
+                changelogResult = self.ImportDetails.api_call.call(changelogMutation, query_variables=query_variables, analyze_payload=True)
                 if 'errors' in changelogResult:
                     logger.exception(f"error while adding changelog entries for objects: {str(changelogResult['errors'])}")
                     errors = 1

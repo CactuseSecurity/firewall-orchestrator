@@ -3,9 +3,8 @@ from fwo_log import getFwoLogger
 from model_controllers.import_state_controller import ImportStateController
 from services.service_provider import ServiceProvider
 from services.enums import Services
-from fwo_api import get_graphql_code
 import fwo_const
-
+from fwo_api import FwoApi
 
 class Uid2IdMapper:
     """
@@ -258,7 +257,7 @@ class Uid2IdMapper:
         Returns:
             bool: True if the mapping was updated successfully, False otherwise.
         """
-        query = get_graphql_code([fwo_const.graphqlQueryPath + "networkObject/getmapOfUid2Id.graphql"])
+        query = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "networkObject/getmapOfUid2Id.graphql"])
 
         if uids is not None:
             if len(uids) == 0:
@@ -296,7 +295,7 @@ class Uid2IdMapper:
         Returns:
             bool: True if the mapping was updated successfully, False otherwise.
         """
-        query = get_graphql_code([fwo_const.graphqlQueryPath + "networkService/getmapOfUid2Id.graphql"])
+        query = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "networkService/getmapOfUid2Id.graphql"])
         if uids is not None:
             if len(uids) == 0:
                 self.log_debug("Service object mapping updated for 0 objects")
@@ -331,7 +330,7 @@ class Uid2IdMapper:
         Returns:
             bool: True if the mapping was updated successfully, False otherwise.
         """
-        query = get_graphql_code([fwo_const.graphqlQueryPath + "user/getmapOfUid2Id.graphql"])
+        query = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "user/getmapOfUid2Id.graphql"])
         if uids is not None:
             if len(uids) == 0:
                 self.log_debug("User mapping updated for 0 objects")
@@ -366,7 +365,7 @@ class Uid2IdMapper:
         Returns:
             bool: True if the mapping was updated successfully, False otherwise.
         """
-        query = get_graphql_code([fwo_const.graphqlQueryPath + "rule/getmapOfUid2Id.graphql"])
+        query = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "rule/getmapOfUid2Id.graphql"])
         if uids is not None:
             if len(uids) == 0:
                 self.log_debug("Rule mapping updated for 0 objects")

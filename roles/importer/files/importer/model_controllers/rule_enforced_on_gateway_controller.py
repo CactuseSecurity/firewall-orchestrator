@@ -120,4 +120,4 @@ class RuleEnforcedOnGatewayController:
                         affected_rows
                     }
                 }"""
-            return self.import_details.call(mutation, queryVariables=query_variables)
+            return self.import_details.api_call.call(mutation, query_variables=query_variables)

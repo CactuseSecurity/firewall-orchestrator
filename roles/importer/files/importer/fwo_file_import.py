@@ -3,15 +3,15 @@
 """
 from typing import List, Any, get_type_hints
 from enum import Enum
-
 import json, requests, requests.packages
+
 from fwo_log import getFwoLogger
 import fwo_globals
 from fwo_exceptions import ConfigFileNotFound, FwoImporterError
-from fwo_api import complete_import
+# from fwo_api import FwoApi
+# from fwo_api_call import FwoApiCall
 from models.fwconfigmanagerlist import FwConfigManagerList
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
-from model_controllers.fwconfig_controller import FwConfigController
 from models.fwconfig import FwConfig
 from fwconfig_base import ConfFormat
 
@@ -140,7 +140,9 @@ def readFile(importState: ImportStateController) -> dict:
         except NameError:
             importState.appendErrorString(f'got error while trying to read config file from URL {importState.ImportFileName}')
         importState.increaseErrorCounterByOne()
-        complete_import(importState)
+        # api_call = FwoApiCall(FwoApi(ApiUri=importState.api_connection.FwoApiUri, Jwt=jwt))
+
+        importState.api_connection.complete_import(importState)
         raise ConfigFileNotFound(importState.ErrorString) from None
     except Exception: 
         importState.appendErrorString(f"Could not read config file {importState.ImportFileName}")

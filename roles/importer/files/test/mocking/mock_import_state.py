@@ -6,9 +6,9 @@ from models.action import Action
 from .mock_fwo_api_oo import MockFwoApi
 
 try:
-    from roles.importer.files.test.mocking.mock_management_controller import MockManagementDetailsController
+    from .mock_management_controller import MockManagementController
 except ModuleNotFoundError:
-    from .mock_management_controller import MockManagementDetailsController
+    from .mock_management_controller import MockManagementController
 
 
 def make_hashable(obj):

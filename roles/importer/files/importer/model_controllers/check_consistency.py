@@ -266,7 +266,7 @@ class FwConfigImportCheckConsistency(FwConfigImport):
     # check if all color refs are valid (in the DB)
     # fix=True means that missing color refs will be replaced by the default color (black)
     def checkColorConsistency(self, config: FwConfigNormalized, fix=True):
-        self.import_state.SetColorRefMap()
+        self.import_state.SetColorRefMap(self.import_state.api_call)
         
         # collect all colors
 

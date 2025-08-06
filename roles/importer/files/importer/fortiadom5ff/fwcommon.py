@@ -52,7 +52,7 @@ def get_config(nativeConfig: json, importState: ImportStateController):
         # adom_device_vdom_policy_package_structure = {adom: {device: {vdom1: pol_pkg1}, {vdom2: pol_pkg2}}}
         #delete_v: später hier globale pol_pgk holen mit /pm/pkg/global
 
-        # get globals
+        # get global
         get_objects(sid, fm_api_url, native_config_global, native_config_global, '', limit, nw_obj_types, svc_obj_types, 'global', arbitrary_vdom_for_updateable_objects)
 
         for adom in adom_list:

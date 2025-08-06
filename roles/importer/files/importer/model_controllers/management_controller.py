@@ -5,12 +5,17 @@ from models.management import Management
 from fwo_exceptions import FwLoginFailed
 from models.gateway import Gateway
 from fwconfig_base import replaceNoneWithEmpty
-
+from fwo_const import graphql_query_path
+from fwo_api import FwoApi
+from services.service_provider import ServiceProvider, Services
+from fwo_encrypt import decrypt, read_main_key
+from fwo_exceptions import SecretDecryptionFailed, FwoApiFailure
 
 class ManagementController(Management):
 
-    def __init__(self, hostname: str, id: int, uid: str, importDisabled: bool, devices: Dict, 
-                 importerHostname: str, name: str, deviceTypeName: str, deviceTypeVersion: str, 
+    def __init__(self, hostname: str, id: int, uid: str, devices: Dict,
+                 name: str, deviceTypeName: str, deviceTypeVersion: str,
+                 importDisabled: bool = False, importerHostname: str = '',  
                  port: int = 443, secret: str = '', importUser: str = '', isSuperManager: bool = False, 
                  subManagerIds: List[int] = [], subManagers: List['Management'] = [],
                  domainName: str = '', domainUid: str = ''):
@@ -54,9 +59,11 @@ class ManagementController(Management):
         domainName = json_dict['configPath']
         domainUid = json_dict['domainUid']
 
-        return cls(Hostname, Id, Uid, ImportDisabled, Devices, ImporterHostname, Name, DeviceTypeName, DeviceTypeVersion,
-                    port=Port, importUser=ImportUser, secret=Secret, isSuperManager = IsSuperManager, subManagerIds = SubManagerIds, 
-                    subManagers = SubManagers, domainName = domainName, domainUid = domainUid)
+        return cls(hostname=Hostname, id=Id, uid=Uid, importDisabled=ImportDisabled, devices=Devices, 
+                   importerHostname=ImporterHostname, name=Name, deviceTypeName=DeviceTypeName, 
+                   deviceTypeVersion=DeviceTypeVersion, port=Port, importUser=ImportUser, secret=Secret, 
+                   isSuperManager = IsSuperManager, subManagerIds = SubManagerIds, 
+                   subManagers = SubManagers, domainName = domainName, domainUid = domainUid)
 
     def __str__(self):
         return f"{self.Hostname}({self.Id})"
@@ -106,3 +113,39 @@ class ManagementController(Management):
             {replaceNoneWithEmpty(mgm_details.DomainName)}
         """
         return hashlib.sha256(combination.encode()).hexdigest()
+
+
+    def get_mgm_details(self, api_conn, mgm_id, debug_level=0):
+
+        service_provider = ServiceProvider()
+        _global_state = service_provider.get_service(Services.GLOBAL_STATE)
+
+        getMgmDetailsQuery = FwoApi.get_graphql_code([
+                    graphql_query_path + "device/getSingleManagementDetails.graphql",
+                    graphql_query_path + "device/fragments/managementDetails.graphql",
+                    graphql_query_path + "device/fragments/deviceTypeDetails.graphql",
+                    graphql_query_path + "device/fragments/importCredentials.graphql"])
+
+        api_call_result = api_conn.call(getMgmDetailsQuery, query_variables={'mgmId': mgm_id })
+        if api_call_result is None or 'data' not in api_call_result or 'management' not in api_call_result['data'] or len(api_call_result['data']['management'])<1:
+            raise FwoApiFailure('did not succeed in getting management details from FWO API')
+
+        if not '://' in api_call_result['data']['management'][0]['hostname']:
+            # only decrypt if we have a real management and are not fetching the config from an URL
+            # decrypt secret read from API
+            try:
+                secret = api_call_result['data']['management'][0]['import_credential']['secret']
+                decryptedSecret = decrypt(secret, read_main_key())
+            except ():
+                raise SecretDecryptionFailed
+            api_call_result['data']['management'][0]['import_credential']['secret'] = decryptedSecret
+            if 'subManagers' in api_call_result['data']['management'][0]:
+                for subMgm in api_call_result['data']['management'][0]['subManagers']:
+                    try:
+                        secret = subMgm['import_credential']['secret']
+                        decryptedSecret = decrypt(secret, read_main_key())
+                    except ():
+                        raise SecretDecryptionFailed
+                    subMgm['import_credential']['secret'] = decryptedSecret
+        return api_call_result['data']['management'][0]
+

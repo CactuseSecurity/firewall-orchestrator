@@ -4,7 +4,7 @@ from models.rulebase_link import RulebaseLink
 from model_controllers.import_state_controller import ImportStateController
 from fwo_log import getFwoLogger
 import fwo_const
-from fwo_api import get_graphql_code
+from fwo_api import FwoApi
 
 class RulebaseLinkController():
 
@@ -13,8 +13,8 @@ class RulebaseLinkController():
     def insert_rulebase_links(self, import_state: ImportStateController, rb_links: List[RulebaseLink]):
         logger = getFwoLogger()
         query_variables = { "rulebaseLinks": rb_links }
-        mutation = get_graphql_code([f"{fwo_const.graphqlQueryPath}rule/insertRulebaseLinks.graphql"])      
-        add_result = import_state.call(mutation, queryVariables=query_variables)
+        mutation = FwoApi.get_graphql_code([f"{fwo_const.graphql_query_path}rule/insertRulebaseLinks.graphql"])      
+        add_result = import_state.api_call.call(mutation, query_variables=query_variables)
         if 'errors' in add_result:
             import_state.Stats.addError(f"fwo_api:insertRulebaseLinks - error while inserting: {str(add_result['errors'])}")
             logger.exception(f"fwo_api:insertRulebaseLinks - error while inserting: {str(add_result['errors'])}")
@@ -33,8 +33,8 @@ class RulebaseLinkController():
             # if gwIds are provided, use them to filter the rulebase links  
             query_variables = { "gwIds": gw_ids}
 
-        query = get_graphql_code([f"{fwo_const.graphqlQueryPath}rule/getRulebaseLinks.graphql"])
-        links = import_state.call(query, queryVariables=query_variables)
+        query = FwoApi.get_graphql_code([f"{fwo_const.graphql_query_path}rule/getRulebaseLinks.graphql"])
+        links = import_state.api_call.call(query, query_variables=query_variables)
         if 'errors' in links:
             import_state.Stats.addError(f"fwo_api:getRulebaseLinks - error while getting rulebaseLinks: {str(links['errors'])}")
             logger.exception(f"fwo_api:getRulebaseLinks - error while getting rulebaseLinks: {str(links['errors'])}")

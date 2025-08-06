@@ -6,7 +6,7 @@ import fwo_globals
     normalize all gateway details
 """
 def normalizeGateways (nativeConfig, importState, normalizedConfig):
-    if fwo_globals.debug_level>0:
+    if debug_level>0:
         logger = getFwoLogger()
     
     normalizedConfig['gateways'] = []

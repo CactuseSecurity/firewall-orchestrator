@@ -20,9 +20,9 @@ def api_call(url, params = {}, headers = {}, data = {}, key = '', show_progress=
         result_type='json'
 
     if method == "post":
-        response = requests.post(url, params=params, data=data, headers=request_headers, verify=fwo_globals.verify_certs)
+        response = requests.post(url, params=params, data=data, headers=request_headers, verify=verify_certs)
     elif method == "get":
-        response = requests.get(url, params=params, headers=request_headers, verify=fwo_globals.verify_certs)
+        response = requests.get(url, params=params, headers=request_headers, verify=verify_certs)
     else:
         raise Exception("unknown HTTP method found in palo_getter")
     

@@ -1,5 +1,5 @@
 import json
-from fwo_base import ConfFormat, ConfigAction
+from fwo_enums import ConfFormat, ConfigAction
 
 
 class FwoEncoder(json.JSONEncoder):

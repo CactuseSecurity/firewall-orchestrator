@@ -20,10 +20,10 @@ def api_call(url, params = {}, headers = {}, json_payload = {}, auth_token = '',
 
     if method == "post":
         response = requests.post(url, params=params, data=json.dumps(json_payload), headers=request_headers,
-                          verify=fwo_globals.verify_certs)
+                          verify=verify_certs)
     elif method == "get":
         response = requests.get(url, params=params, data=json.dumps(json_payload), headers=request_headers,
-                         verify=fwo_globals.verify_certs)
+                         verify=verify_certs)
     else:
         raise Exception("unknown HTTP method found in cifp_getter")
     

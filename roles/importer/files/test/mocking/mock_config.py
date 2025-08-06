@@ -24,7 +24,7 @@ if __name__ == '__main__': # for usage as executable script
     from models.serviceobject import ServiceObject
     from models.rulebase import Rulebase
     from fwo_const import rule_num_numeric_steps, dummy_ip, list_delimiter, user_delimiter
-    from fwo_globals import setGlobalValues
+    from fwo_globals import set_global_values
     from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
     from .mock_import_state import MockImportStateController
     from model_controllers.fwconfigmanager_controller import FwConfigManager
@@ -593,7 +593,7 @@ if __name__ == '__main__':
     )
 
     fw_mock_import_state = MockImportStateController()
-    setGlobalValues(debug_level_in = 8)
+    set_global_values(debug_level_in = 8)
     fw_config_manager_list_controller = FwConfigManagerListController()
     fw_config_manager = FwConfigManager(
         ManagerUid = "6ae3760206b9bfbd2282b5964f6ea07869374f427533c72faa7418c28f7a77f2",

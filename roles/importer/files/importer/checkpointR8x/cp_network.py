@@ -2,7 +2,7 @@ from fwo_log import getFwoLogger
 import json
 import cp_const
 from fwo_const import list_delimiter
-import fwo_alert, fwo_api
+import fwo_alert, fwo_api_call as fwo_api_call
 import ipaddress 
 import fwo_globals
 import fwo_const
@@ -255,9 +255,9 @@ def get_ip_of_obj(obj, mgm_id=None):
     elif not validate_ip_address(ip_addr):
         alerter = fwo_alert.getFwoAlerter()
         alert_description = "object is not a valid ip address (" + str(ip_addr) + ")"
-        fwo_api.create_data_issue(alerter['fwo_api_base_url'], alerter['jwt'], severity=2, obj_name=obj['name'], object_type=obj['type'], description=alert_description, mgm_id=mgm_id) 
+        fwo_api_call.create_data_issue(alerter['fwo_api_base_url'], alerter['jwt'], severity=2, obj_name=obj['name'], object_type=obj['type'], description=alert_description, mgm_id=mgm_id) 
         alert_description = "object '" + obj['name'] + "' (type=" + obj['type'] + ") is not a valid ip address (" + str(ip_addr) + ")"
-        fwo_api.setAlert(alerter['fwo_api_base_url'], alerter['jwt'], title="import error", severity=2, role='importer', \
+        fwo_api_call.setAlert(alerter['fwo_api_base_url'], alerter['jwt'], title="import error", severity=2, role='importer', \
             description=alert_description, source='import', alertCode=17, mgm_id=mgm_id)
         ip_addr = fwo_const.dummy_ip  # setting syntactically correct dummy ip
     return ip_addr

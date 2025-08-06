@@ -15,7 +15,7 @@ from fwo_exceptions import FwoDeviceWithoutLocalPackage
 from fmgr_base import resolve_raw_objects, resolve_objects
 from models.rule import Rule
 from models.rulebase import Rulebase
-from fwo_globals import debug_level
+import fwo_globals
 
 
 NETWORK_OBJECT='network_object'
@@ -109,7 +109,7 @@ def parse_rulebase(rulebase_to_parse, is_section, is_placeholder, normalized_rul
             # delte_v sind import_id, parent_uid, config2import wirklich egal? Dann können wir diese argumente löschen - NAT ACHTUNG
             rule_num = parse_single_rule(rule, normalized_rulebase, normalized_rulebase.uid, None, rule_num, None, None)
 
-        if debug_level>3:
+        if fwo_globals.debug_level>3:
             logger.debug("parsed rulebase " + normalized_rulebase.uid)
         return rule_num
     elif is_placeholder:

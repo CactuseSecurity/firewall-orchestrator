@@ -5,7 +5,7 @@ from fwo_const import list_delimiter, nat_postfix
 from fmgr_zone import add_zone_if_missing
 from fwo_config import readConfig
 from fwo_const import fwo_config_filename
-from fwo_api import setAlert, create_data_issue
+from fwo_api_call import setAlert, create_data_issue
 from fmgr_base import resolve_raw_objects
 from model_controllers.import_state_controller import ImportStateController
 from fmgr_consts import v4_object_types, v6_object_types

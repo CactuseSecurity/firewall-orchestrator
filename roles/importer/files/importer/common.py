@@ -3,18 +3,19 @@ import traceback
 import sys, time
 from socket import gethostname
 from typing import List
-from fwo_const import importer_base_dir
+
+from fwo_const import importer_base_dir, fwo_config_filename
 from pathlib import Path
-from services.service_provider import ServiceProvider
-from services.enums import Services
 if importer_base_dir not in sys.path:
     sys.path.append(importer_base_dir) # adding absolute path here once
-import fwo_api
+from fwo_api import FwoApi
+from fwo_api_call import FwoApiCall
+from fwo_base import register_services
 from fwo_log import getFwoLogger
-from fwo_const import fw_module_name, import_tmp_path
+from fwo_const import fw_module_name, import_tmp_path, importer_user_name
 import fwo_globals
 from fwo_base import write_native_config_to_file
-from fwo_exceptions import FwoImporterError, FwLoginFailed, ImportRecursionLimitReached, FwoApiWriteError, FwoImporterErrorInconsistencies, ImportInterruption
+from fwo_exceptions import FwoApiLoginFailed, FwoImporterError, FwLoginFailed, ImportRecursionLimitReached, FwoApiWriteError, FwoImporterErrorInconsistencies, ImportInterruption
 from fwo_base import stringIsUri
 import fwo_file_import
 from model_controllers.import_state_controller import ImportStateController
@@ -27,11 +28,9 @@ from model_controllers.check_consistency import FwConfigImportCheckConsistency
 from model_controllers.rollback import FwConfigImportRollback
 import fwo_signalling
 from services.service_provider import ServiceProvider
-from services.global_state import GlobalState
-from services.enums import Services, Lifetime
-from services.uid2id_mapper import Uid2IdMapper
-from services.group_flats_mapper import GroupFlatsMapper
-from services.enums import Services, Lifetime
+from services.enums import Services
+from model_controllers.fworch_config_controller import FworchConfigController
+from fwo_config import readConfig
 
 
 """  
@@ -47,17 +46,33 @@ from services.enums import Services, Lifetime
 """
 def import_management(mgmId=None, ssl_verification=None, debug_level_in=0, 
         limit=150, force=False, clearManagementData=False, suppress_cert_warnings_in=None,
-        in_file=None, version=8) -> int:
+        in_file=None, version=8, services_registered: bool = False) -> int:
 
     fwo_signalling.registerSignallingHandlers()
     logger = getFwoLogger(debug_level=debug_level_in)
     config_changed_since_last_import = True
     verify_certs = (ssl_verification is not None)
 
-    service_provider = register_services()
+    if services_registered:
+        service_provider = ServiceProvider()
+    else:
+        service_provider = register_services()
     global_state = service_provider.get_service(Services.GLOBAL_STATE)
-    importState = ImportStateController.initializeImport(mgmId, debugLevel=debug_level_in, 
-                                            force=force, version=version, 
+
+    fwoConfig = FworchConfigController.fromJson(readConfig(fwo_config_filename))
+
+    # authenticate to get JWT
+    try:
+        jwt = FwoApi.login(importer_user_name, fwoConfig.ImporterPassword, fwoConfig.FwoUserMgmtApiUri)
+        api_call = FwoApiCall(FwoApi(ApiUri=fwoConfig.FwoApiUri, Jwt=jwt))
+    except FwoApiLoginFailed as e:
+        logger.error(e.message)
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error during login: {str(e)}")
+        raise
+    importState = ImportStateController.initializeImport(mgmId, fwo_api_uri=fwoConfig.FwoApiUri, jwt=jwt, 
+                                            debugLevel=debug_level_in, force=force, version=version, 
                                             isClearingImport=clearManagementData, isFullImport=False, sslVerification=verify_certs)
     global_state.import_state = importState
 
@@ -70,11 +85,11 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
             suppress_cert_warnings_in=suppress_cert_warnings_in, in_file=in_file)
 
     except (FwLoginFailed) as e:
-        fwo_api.delete_import(importState) # delete whole import
+        importState.delete_import() # delete whole import
         importState.addError("Login to FW manager failed")
         rollBackExceptionHandler(importState, configImporter=config_importer, exc=e, errorText="")
     except (ImportRecursionLimitReached) as e:
-        fwo_api.delete_import(importState) # delete whole import
+        importState.delete_import() # delete whole import
         importState.addError("ImportRecursionLimitReached - aborting import")
     except (KeyboardInterrupt, ImportInterruption) as e:
         rollBackExceptionHandler(importState, configImporter=config_importer, exc=e, errorText="shutdown requested")
@@ -83,7 +98,7 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
         importState.addError(f"FwoApiWriteError or FwoImporterError: {str(e.args)} - aborting import")
         rollBackExceptionHandler(importState, configImporter=config_importer, exc=e, errorText="")
     except FwoImporterErrorInconsistencies:
-        fwo_api.delete_import(importState) # delete whole import
+        importState.delete_import() # delete whole import
     except ValueError:
         importState.addError("ValueError - aborting import")
         raise
@@ -91,7 +106,7 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
         handle_unexpected_exception(importState=importState, config_importer=config_importer)
     finally:
         try:
-            fwo_api.complete_import(importState)
+            api_call.complete_import(importState)
             ServiceProvider().dispose_service(Services.UID2ID_MAPPER, importState.ImportId)
         except Exception as e:
             logger.error(f"Error during import completion: {str(e)}")
@@ -102,8 +117,8 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
         return 1
 
 
-def _import_management(service_provider=None, importState=None, config_importer=None, mgmId=None, ssl_verification=None, debug_level_in=0,
-        limit=150, clearManagementData=False, suppress_cert_warnings_in=None, in_file=None) -> int:
+def _import_management(service_provider, importState: ImportStateController, config_importer=None, mgmId=None, ssl_verification=None, debug_level_in=0,
+        limit=150, clearManagementData=False, suppress_cert_warnings_in=None, in_file=None) -> None:
 
     logger = getFwoLogger(debug_level=debug_level_in)
     config_changed_since_last_import = True
@@ -115,19 +130,20 @@ def _import_management(service_provider=None, importState=None, config_importer=
 
     if importState.MgmDetails.ImportDisabled and not importState.ForceImport:
         logger.info(f"import_management - import disabled for mgm  {str(mgmId)} - skipping")
-        return 0
+        return
     
     if importState.MgmDetails.ImporterHostname != gethostname() and not importState.ForceImport:
         logger.info(f"import_management - this host ( {gethostname()}) is not responsible for importing management  {str(mgmId)}")
-        return 0
+        importState.responsible_for_importing = False
+        return
     
     Path(import_tmp_path).mkdir(parents=True, exist_ok=True)  # make sure tmp path exists
     gateways = ManagementController.buildGatewayList(importState.MgmDetails)
     logger.info(f"starting import of management {importState.MgmDetails.Name} ({str(mgmId)}), import_id= {str(importState.ImportId)}")
 
-    fwo_api.setImportLock(importState)
+    importState.ImportId = importState.api_call.setImportLock(importState.MgmDetails, importState.IsFullImport, importState.IsInitialImport, fwo_globals.debug_level)
     if clearManagementData:
-        config_normalized = config_importer.clear_management(importState)
+        config_normalized = config_importer.clear_management()
     else:
         # get config
         config_changed_since_last_import, config_normalized = get_config_top_level(importState, in_file, gateways)
@@ -140,7 +156,7 @@ def _import_management(service_provider=None, importState=None, config_importer=
     if config_changed_since_last_import or importState.ForceImport:
         FwConfigImportCheckConsistency(importState, config_normalized).checkConfigConsistency(config_normalized)
         config_importer.import_management_set(importState, service_provider, config_normalized.ManagerSet)
-        fwo_api.update_hit_counter(importState, config_normalized)
+        importState.api_call.update_hit_counter(importState, config_normalized)
 
     # delete data that has passed the retention time
     # TODO: replace by deletion of old data with removed date > retention?
@@ -172,18 +188,9 @@ def rollBackExceptionHandler(importState, configImporter=None, exc=None, errorTe
             FwConfigImportRollback().rollbackCurrentImport()
         else:
             logger.info("No configImporter found, skipping rollback.")
-        fwo_api.delete_import(importState) # delete whole import
+        importState.delete_import() # delete whole import
     except Exception as rollbackError:
         logger.error(f"Error during rollback: {type(rollbackError).__name__} - {rollbackError}")
-
-
-def register_services():
-    service_provider = ServiceProvider()
-    service_provider.register(Services.GLOBAL_STATE, lambda: GlobalState(), Lifetime.SINGLETON)
-    service_provider.register(Services.GROUP_FLATS_MAPPER, lambda: GroupFlatsMapper(), Lifetime.IMPORT)
-    service_provider.register(Services.PREV_GROUP_FLATS_MAPPER, lambda: GroupFlatsMapper(), Lifetime.IMPORT)
-    service_provider.register(Services.UID2ID_MAPPER, lambda: Uid2IdMapper(), Lifetime.IMPORT)
-    return service_provider
 
 
 def get_config_top_level(importState: ImportStateController, in_file: str = None, gateways: List[Gateway] = []) -> tuple[bool, FwConfigManagerList]:

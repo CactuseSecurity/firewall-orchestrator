@@ -2,8 +2,10 @@ query getLastImport($mgmId: Int!) {
     import_control(
         order_by: { control_id: desc }
         limit: 1
-        where: { mgm_id: { _eq: $mgmId } }
+        where: { mgm_id: { _eq: $mgmId },  stop_time: {_is_null: false}  }
     ) {
+        start_time
         control_id
     }
 }
+

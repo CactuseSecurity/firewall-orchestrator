@@ -51,7 +51,7 @@ def login(mgm_details: ManagementController):
     if domain is not None and domain != '':
         payload.update({'domain': domain})
     base_url = mgm_details.buildFwApiString()
-    if int(fwo_globals.debug_level)>2:
+    if int(debug_level)>2:
         logger.debug(f"login - login to url {base_url} with user {mgm_details.ImportUser}")
     response = cp_api_call(base_url, 'login', payload, '')
     if "sid" not in response:
@@ -62,7 +62,7 @@ def login(mgm_details: ManagementController):
 
 def logout(url, sid):
     logger = getFwoLogger()
-    if int(fwo_globals.debug_level)>2:
+    if int(debug_level)>2:
         logger.debug("logout from url " + url)
     response = cp_api_call(url, 'logout', {}, sid)
     return response

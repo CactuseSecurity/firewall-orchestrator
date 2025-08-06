@@ -24,9 +24,9 @@ def api_call(url, params = {}, headers = {}, data = {}, azure_jwt = '', show_pro
         data=data    
         
     if method == "post":
-        response = requests.post(url, params=params, data=data, headers=request_headers, verify=fwo_globals.verify_certs)
+        response = requests.post(url, params=params, data=data, headers=request_headers, verify=verify_certs)
     elif method == "get":
-        response = requests.get(url, params=params, headers=request_headers, verify=fwo_globals.verify_certs)
+        response = requests.get(url, params=params, headers=request_headers, verify=verify_certs)
     else:
         raise Exception("unknown HTTP method found in azure_getter")
     
@@ -51,7 +51,7 @@ def api_call(url, params = {}, headers = {}, data = {}, azure_jwt = '', show_pro
     # no errors found
     body_json = response.json()
         
-    if fwo_globals.debug_level > 5:
+    if debug_level > 5:
         if 'pass' in json.dumps(data):
             logger.debug("api_call containing credential information to url '" +
                          str(url) + " - not logging query")
@@ -81,7 +81,7 @@ def login(azure_user, azure_password, tenant_id, client_id, client_secret):
     if body.get("access_token") == None:   # leaving out payload as it contains pwd
         raise FwLoginFailed("Azure login ERROR for client_id=" + str(client_id) + " Message: " + str(e)) from None
     
-    if fwo_globals.debug_level > 2:
+    if debug_level > 2:
         logger = getFwoLogger()
         logger.debug("Login successful. Received JWT: " + body["access_token"])
 

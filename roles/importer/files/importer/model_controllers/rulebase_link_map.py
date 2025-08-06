@@ -11,7 +11,7 @@ class RulebaseLinkMap():
 
     def getRulebaseLinks(self, importState: ImportStateController, gwIds: List[int] = []):
         logger = getFwoLogger()
-        queryVariables = { "gwIds": gwIds}
+        query_variables = { "gwIds": gwIds}
 
         query = """
             query getRulebaseLinks($gwIds: [Int!]) {
@@ -23,7 +23,7 @@ class RulebaseLinkMap():
                 }
             }"""
         
-        links = importState.call(query, queryVariables=queryVariables)
+        links = importState.api_call.call(query, query_variables=query_variables)
         if 'errors' in links:
             importState.Stats.addError(f"fwo_api:getRulebaseLinks - error while getting rulebaseLinks: {str(links['errors'])}")
             logger.exception(f"fwo_api:getRulebaseLinks - error while getting rulebaseLinks: {str(links['errors'])}")

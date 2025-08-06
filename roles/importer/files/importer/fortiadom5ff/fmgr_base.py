@@ -1,4 +1,4 @@
-from fwo_api import setAlert, create_data_issue
+from fwo_api_call import setAlert, create_data_issue
 from fwo_config import readConfig
 from fwo_const import fwo_config_filename
 from fmgr_consts import v4_object_types, v6_object_types

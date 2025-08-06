@@ -2,7 +2,8 @@ import traceback
 
 import fwo_const
 from fwo_const import fwo_config_filename, importer_user_name, importer_base_dir
-import fwo_api
+from fwo_api_call import FwoApiCall
+from fwo_api import FwoApi
 import fwo_globals
 from fwo_exceptions import FwoImporterError, FwoApiFailedDeleteOldImports
 from fwo_config import readConfig
@@ -89,35 +90,35 @@ class FwConfigImport():
 
 
 
-    def clear_management(self, import_state: ImportStateController) -> FwConfigNormalized:
-        logger = getFwoLogger(debug_level=import_state.DebugLevel)
+    def clear_management(self) -> FwConfigNormalized:
+        logger = getFwoLogger(debug_level=self.import_state.DebugLevel)
         logger.info('this import run will reset the configuration of this management to "empty"')
         configNormalized = FwConfigManagerListController()
         # Reset management
         configNormalized.addManager(
             manager=FwConfigManager(
                 ManagerUid=ManagementController.calcManagerUidHash(import_state.MgmDetails),
-                ManagerName=import_state.MgmDetails.Name,
-                IsSuperManager=import_state.MgmDetails.IsSuperManager,
-                SubManagerIds=import_state.MgmDetails.SubManagerIds,
-                DomainName=import_state.MgmDetails.DomainName,
-                DomainUid=import_state.MgmDetails.DomainUid,
+                ManagerName=self.import_state.MgmDetails.Name,
+                IsSuperManager=self.import_state.MgmDetails.IsSuperManager,
+                SubManagerIds=self.import_state.MgmDetails.SubManagerIds,
+                DomainName=self.import_state.MgmDetails.DomainName,
+                DomainUid=self.import_state.MgmDetails.DomainUid,
                 Configs=[]
             ))
-        if len(import_state.MgmDetails.SubManagerIds)>0:
+        if len(self.import_state.MgmDetails.SubManagerIds)>0:
             # Read config
-            fwoConfig = FworchConfigController.fromJson(readConfig(fwo_config_filename))
-            fwo_api_base_url = fwoConfig['fwo_api_base_url']
-            # Authenticate to get JWT
-            try:
-                jwt = fwo_api.login(importer_user_name, fwoConfig.ImporterPassword, fwoConfig.FwoUserMgmtApiUri)
-            except Exception as e:
-                logger.error(str(e))
-                raise             
+            fwo_api = FwoApi(self.import_state.FwoConfig.FwoApiUri, self.import_state.Jwt)
+            fwo_api_call = FwoApiCall(fwo_api)
+            # # Authenticate to get JWT
+            # try:
+            #     jwt = fwo_api.login(importer_user_name, fwoConfig.ImporterPassword, fwoConfig.FwoUserMgmtApiUri)
+            # except Exception as e:
+            #     logger.error(str(e))
+            #     raise             
             # Reset submanagement
-            for subManagerId in import_state.MgmDetails.SubManagerIds:
+            for subManagerId in self.import_state.MgmDetails.SubManagerIds:
                 # Fetch sub management details
-                mgm_details_raw = fwo_api.get_mgm_details(fwo_api_base_url, jwt, {"mgmId": subManagerId})
+                mgm_details_raw = fwo_api_call.get_mgm_details({"mgmId": subManagerId})
                 mgm_details = ManagementController.fromJson(mgm_details_raw)
                 configNormalized.addManager(
                     manager=FwConfigManager(
@@ -143,7 +144,7 @@ class FwConfigImport():
                     gateways=[]
                 )
             )
-        import_state.IsClearingImport = True # the now following import is a full one
+        self.import_state.IsClearingImport = True # the now following import is a full one
         
         return configNormalized
     
@@ -162,7 +163,7 @@ class FwConfigImport():
             # self.ImportDetails.addError("shutdown requested, aborting import")
             raise ImportInterruption("Shutdown requested during updateRulebaseDiffs.")
 
-        self.import_state.SetRuleMap() # update all rule entries (from currently running import for rulebase_links)
+        self.import_state.SetRuleMap(self.import_state.api_call) # update all rule entries (from currently running import for rulebase_links)
         self._fw_config_import_gateway.update_gateway_diffs()
 
         # get new rules details from API (for obj refs as well as enforcing gateways)
@@ -176,19 +177,21 @@ class FwConfigImport():
     def deleteOldImports(self) -> None:
         logger = getFwoLogger()
         mgmId = int(self.import_state.MgmDetails.Id)
-        delete_mutation = fwo_api.get_graphql_code([fwo_const.graphqlQueryPath + "import/deleteOldImports.graphql"])
+        delete_mutation = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "import/deleteOldImports.graphql"])
 
         try:
-            deleteResult = self.import_state.call(delete_mutation, query_variables={"mgmId": mgmId, "is_full_import": self.import_state.IsFullImport })
+            deleteResult = self.import_state.api_call.call(delete_mutation, query_variables={"mgmId": mgmId, "is_full_import": self.import_state.IsFullImport })
             if deleteResult['data']['delete_import_control']['returning']['control_id']:
                 importsDeleted = len(deleteResult['data']['delete_import_control']['returning']['control_id'])
                 if importsDeleted>0:
                     logger.info(f"deleted {str(importsDeleted)} imports which passed the retention time of {ImportStateController.DataRetentionDays} days")
         except Exception:
+            fwo_api = FwoApi(self.import_state.FwoConfig.FwoApiUri, self.import_state.Jwt)
+            fwo_api_call = FwoApiCall(fwo_api)
             logger.error(f"error while trying to delete old imports for mgm {str(self.import_state.MgmDetails.Id)}")
-            fwo_api.create_data_issue(self.import_state.FwoConfig.FwoApiUri, self.import_state.Jwt, mgm_id=int(self.import_state.MgmDetails.Id), severity=1, 
+            fwo_api_call.create_data_issue(self.import_state.FwoConfig.FwoApiUri, self.import_state.Jwt, mgm_id=int(self.import_state.MgmDetails.Id), severity=1, 
                  description="failed to get import lock for management id " + str(mgmId))
-            fwo_api.setAlert(self.import_state.FwoConfig.FwoApiUri, self.import_state.Jwt, import_id=self.import_state.ImportId, title="import error", mgm_id=str(mgmId), severity=1, role='importer', \
+            fwo_api_call.setAlert(self.import_state.FwoConfig.FwoApiUri, self.import_state.Jwt, import_id=self.import_state.ImportId, title="import error", mgm_id=str(mgmId), severity=1, role='importer', \
                  description="fwo_api: failed to get import lock", source='import', alertCode=15, mgm_details=self.import_state.MgmDetails)
             raise FwoApiFailedDeleteOldImports(f"management id: {mgmId}") from None
 
@@ -212,14 +215,14 @@ class FwConfigImport():
             errorsFound = self.deleteLatestConfig()
             if errorsFound:
                 getFwoLogger().warning(f"error while trying to delete latest config for mgm_id: {self.import_state.ImportId}")
-            insertMutation = fwo_api.get_graphql_code([fwo_const.graphqlQueryPath + "import/storeLatestConfig.graphql"])
+            insertMutation = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "import/storeLatestConfig.graphql"])
             try:
-                queryVariables = {
+                query_variables = {
                     'mgmId': self.import_state.MgmDetails.Id,
                     'importId': self.import_state.ImportId,
                     'config': self.NormalizedConfig.json()
                 }
-                import_result = self.import_state.call(insertMutation, queryVariables=queryVariables)
+                import_result = self.import_state.api_call.call(insertMutation, query_variables=query_variables)
                 if 'errors' in import_result:
                     logger.exception("fwo_api:storeLatestConfig - error while writing importable config for mgm id " +
                                     str(self.import_state.MgmDetails.Id) + ": " + str(import_result['errors']))
@@ -242,10 +245,10 @@ class FwConfigImport():
         
     def deleteLatestConfig(self) -> int:
         logger = getFwoLogger()
-        deleteMutation = fwo_api.get_graphql_code([fwo_const.graphqlQueryPath + "import/deleteLatestConfig.graphql"])
+        deleteMutation = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "import/deleteLatestConfig.graphql"])
         try:
-            queryVariables = { 'mgmId': self.import_state.MgmDetails.Id }
-            import_result = self.import_state.call(deleteMutation, queryVariables=queryVariables)
+            query_variables = { 'mgmId': self.import_state.MgmDetails.Id }
+            import_result = self.import_state.api_call.call(deleteMutation, query_variables=query_variables)
             if 'errors' in import_result:
                 logger.exception("fwo_api:import_latest_config - error while deleting last config for mgm id " +
                                 str(self.import_state.MgmDetails.Id) + ": " + str(import_result['errors']))
@@ -280,10 +283,10 @@ class FwConfigImport():
             logger.error("fwo_api:import_latest_config - no mgm id found for current manager uid")
             return prev_config
         
-        query = fwo_api.get_graphql_code([fwo_const.graphqlQueryPath + "import/getLatestConfig.graphql"])
+        query = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "import/getLatestConfig.graphql"])
         query_variables = { 'mgmId': mgm_id }
         try:
-            query_result = self.import_state.call(query, queryVariables=query_variables)
+            query_result = self.import_state.api_connection.call(query, query_variables=query_variables)
             if 'errors' in query_result:
                 logger.exception("fwo_api:import_latest_config - error while deleting last config for mgm id " +
                                 str(self.import_state.MgmDetails.Id) + ": " + str(query_result['errors']))

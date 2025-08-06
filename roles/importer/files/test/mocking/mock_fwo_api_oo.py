@@ -182,7 +182,7 @@ class MockFwoApi(FwoApi):
         for table_name, rows in STM_TABLES.items():
             self.tables[table_name] = {row[TABLE_IDENTIFIERS[table_name]]: row for row in rows}
 
-    def call(self, query, queryVariables="", debug_level=0, analyze_payload=False):
+    def call(self, query, query_variables="", debug_level=0, analyze_payload=False):
         ast = parse(query)
         # Find the first operation definition
         op_def = next((d for d in ast.definitions if hasattr(d, "operation")), None)
@@ -193,9 +193,9 @@ class MockFwoApi(FwoApi):
             raise NotImplementedError("Only operation definitions supported in mock.")
         
         if op_def.operation == OperationType.MUTATION:
-            return self._handle_mutation(op_def, queryVariables)
+            return self._handle_mutation(op_def, query_variables)
         elif op_def.operation == OperationType.QUERY:
-            return self._handle_query(op_def, queryVariables)
+            return self._handle_query(op_def, query_variables)
         else:
             raise NotImplementedError("Only query and mutation supported in mock.")
 

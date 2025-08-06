@@ -30,13 +30,14 @@ namespace FWO.Middleware.Server.Controllers
         {
             try
             {
-                GlobalConfig GlobalConfig = await GlobalConfig.ConstructAsync(apiConnection, true);
-                UserConfig userConfig = new(GlobalConfig, apiConnection, new(){ Language = GlobalConst.kEnglish });
+                // GlobalConfig GlobalConfig = await GlobalConfig.ConstructAsync(apiConnection, true);
+                // UserConfig userConfig = new(GlobalConfig, apiConnection, new(){ Language = GlobalConst.kEnglish });
 
-                ComplianceCheck complianceCheck = new(userConfig, apiConnection);
-                await complianceCheck.CheckAll();
-                List<(Rule, (ComplianceNetworkZone, ComplianceNetworkZone))> forbiddenCommunicationsOutput = complianceCheck.Results;
-                return ConvertOutput(forbiddenCommunicationsOutput);
+                // ComplianceCheck complianceCheck = new(userConfig, apiConnection);
+                // await complianceCheck.CheckAll();
+                // List<(Rule, (ComplianceNetworkZone, ComplianceNetworkZone))> forbiddenCommunicationsOutput = complianceCheck.Results;
+                // return ConvertOutput(forbiddenCommunicationsOutput);
+                return "This controller is currently deprecated";
             }
             catch (Exception exception)
             {

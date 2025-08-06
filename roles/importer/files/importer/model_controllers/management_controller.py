@@ -16,7 +16,7 @@ class ManagementController(Management):
                  name: str, deviceTypeName: str, deviceTypeVersion: str,
                  importDisabled: bool = False, importerHostname: str = '',  
                  port: int = 443, secret: str = '', importUser: str = '', isSuperManager: bool = False, 
-                 subManagerIds: list[int] = [], subManagers: list['Management'] = [],
+                 subManagerIds: list[int]|None = None, subManagers: list['Management'] = [],
                  domainName: str = '', domainUid: str = ''):
         
         subManagers: list['Management'] = []
@@ -33,7 +33,10 @@ class ManagementController(Management):
         self.ImportUser = importUser
         self.Secret = secret
         self.IsSuperManager = isSuperManager
-        self.SubManagerIds = subManagerIds
+        if subManagerIds is None:
+            self.SubManagerIds = []
+        else:
+            self.SubManagerIds = subManagerIds
         self.SubManagers = subManagers
         self.DomainName = domainName
         self.DomainUid = domainUid

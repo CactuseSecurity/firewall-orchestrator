@@ -3,6 +3,7 @@ from models.rulebase_link import RulebaseLink
 from model_controllers.import_state_controller import ImportStateController
 from models.import_state import ImportState
 from model_controllers.import_statistics_controller import ImportStatisticsController
+from fwo_api_call import FwoApiCall
 
 class RulebaseLinkMap():
 
@@ -10,6 +11,7 @@ class RulebaseLinkMap():
     def getRulebaseLinks(self, importState: ImportStateController, gwIds: list[int] = []):
         logger = getFwoLogger()
         query_variables = { "gwIds": gwIds}
+        rbLinks = []
 
         query = """
             query getRulebaseLinks($gwIds: [Int!]) {
@@ -25,21 +27,22 @@ class RulebaseLinkMap():
         if 'errors' in links:
             importState.Stats.addError(f"fwo_api:getRulebaseLinks - error while getting rulebaseLinks: {str(links['errors'])}")
             logger.exception(f"fwo_api:getRulebaseLinks - error while getting rulebaseLinks: {str(links['errors'])}")
-        else:
-            rbLinks = links['data']['rulebase_link']
+            return rbLinks
+
+        rbLinks = links['data']['rulebase_link']
         return rbLinks
 
 
-    def SetMapOfAllEnforcingGatewayIdsForRulebaseId(self):
-        rbLinks = self.getRulebaseLinks()
+    # def SetMapOfAllEnforcingGatewayIdsForRulebaseId(self):
+    #     rbLinks = self.getRulebaseLinks()
 
-        for link in rbLinks:
-            rulebaseId = link['to_rulebase_id']
-            gwId = link['gw_id']
-            if rulebaseId not in self.RulebaseMap:
-                self.RulebaseMap.update({rulebaseId: []})
-            if gwId not in self.RulebaseMap[rulebaseId]:
-                self.RulebaseMap[rulebaseId].append(gwId)
+    #     for link in rbLinks:
+    #         rulebaseId = link['to_rulebase_id']
+    #         gwId = link['gw_id']
+    #         if rulebaseId not in self.RulebaseMap:
+    #             self.RulebaseMap.update({rulebaseId: []})
+    #         if gwId not in self.RulebaseMap[rulebaseId]:
+    #             self.RulebaseMap[rulebaseId].append(gwId)
         
         # for rulebaseId in self.RulebaseMap.values():
         #     self.RulbaseToGatewayMap.update({rulebaseId: []})

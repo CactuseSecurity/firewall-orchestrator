@@ -38,13 +38,7 @@ def normalize_network_object(obj_orig, nw_objects, normalized_config, import_sta
     obj = {}
     obj.update({'obj_name': obj_orig['name']})
     if 'subnet' in obj_orig: # ipv4 object
-        ipa = ipaddress.ip_network(str(obj_orig['subnet'][0]) + '/' + str(obj_orig['subnet'][1]))
-        if ipa.num_addresses > 1:
-            obj.update({ 'obj_typ': 'network' })
-        else:
-            obj.update({ 'obj_typ': 'host' })
-        obj.update({ 'obj_ip': str(ipa.network_address) })
-        obj.update({ 'obj_ip_end': str(ipa.broadcast_address) })
+        _parse_subnet(obj, obj_orig)
     elif 'ip6' in obj_orig: # ipv6 object
         normalize_network_object_ipv6(obj_orig, obj)
     elif 'member' in obj_orig: # addrgrp4 / addrgrp6
@@ -86,6 +80,16 @@ def normalize_network_object(obj_orig, nw_objects, normalized_config, import_sta
     
     #obj.update({'control_id': import_state.ImportId})
     nw_objects.append(obj)
+
+
+def _parse_subnet (obj, obj_orig):
+    ipa = ipaddress.ip_network(str(obj_orig['subnet'][0]) + '/' + str(obj_orig['subnet'][1]))
+    if ipa.num_addresses > 1:
+        obj.update({ 'obj_typ': 'network' })
+    else:
+        obj.update({ 'obj_typ': 'host' })
+    obj.update({ 'obj_ip': str(ipa.network_address) })
+    obj.update({ 'obj_ip_end': str(ipa.broadcast_address) })
 
 
 def normalize_network_object_ipv6(obj_orig, obj):

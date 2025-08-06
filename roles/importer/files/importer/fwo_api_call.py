@@ -275,12 +275,13 @@ class FwoApiCall(FwoApi):
             query_variables.update({"description": description})
 
         try:
-            import_result = self.call(create_data_issue_mutation, query_variables=query_variables, role=role)
-            changes = import_result['data']['insert_log_data_issue']['affected_rows']
-        except Exception:
-            logger.error("failed to create log_data_issue: " + json.dumps(query_variables))
+            result = self.call(create_data_issue_mutation, query_variables=query_variables)
+            changes = result['data']['insert_log_data_issue']['returning']
+        except Exception as e:
+            logger.error(f"failed to create log_data_issue: {json.dumps(query_variables)}: {str(e)}")
+            raise
             return False
-        return changes==1
+        return len(changes)==1
 
 
     def set_alert(self, import_id=None, title=None, mgm_id=None, dev_id=None, severity=1,
@@ -294,6 +295,39 @@ class FwoApiCall(FwoApi):
 
         query_variables = {"source": source }
 
+        self._set_alert_build_query_vars(query_variables, dev_id, user_id, mgm_id, refAlert, title, description, alertCode)
+
+        if jsonData is None:
+            jsonData = {}
+        if severity is not None:
+            jsonData.update({"severity": severity})
+        if import_id is not None:
+            jsonData.update({"import_id": import_id})
+        if mgm_details is not None:
+            jsonData.update({"mgm_name": mgm_details.Name})
+        query_variables.update({"jsonData": json.dumps(jsonData)})
+
+        try:
+            import_result = self.call(addAlert_mutation, query_variables=query_variables)
+            newAlertId = import_result['data']['insert_alert']['returning'][0]['newIdLong']
+            if alertCode is None or mgm_id is not None:
+                return True
+            # Acknowledge older alert for same problem on same management
+            query_variables = { "mgmId": mgm_id, "alertCode": alertCode, "currentAlertId": newAlertId }
+            existingUnacknowledgedAlerts = self.call(self, getAlert_query, query_variables=query_variables)
+            if 'data' not in existingUnacknowledgedAlerts or 'alert' not in existingUnacknowledgedAlerts['data']:
+                return False
+            for alert in existingUnacknowledgedAlerts['data']['alert']:
+                if 'alert_id' in alert:
+                    now = datetime.datetime.now().isoformat()
+                    query_variables = { "userId": 0, "alertId": alert['alert_id'], "ackTimeStamp": now }
+                    updateResult = self.call(ackAlert_mutation, query_variables=query_variables)
+        except Exception as e:
+            logger.error(f"failed to create alert entry: {json.dumps(query_variables)}; exception: {str(e)}")
+            raise
+        return True
+
+    def _set_alert_build_query_vars(self, query_variables, dev_id, user_id, mgm_id, refAlert, title, description, alertCode):
         if dev_id is not None:
             query_variables.update({"devId": dev_id})
         if user_id is not None:
@@ -309,41 +343,12 @@ class FwoApiCall(FwoApi):
         if alertCode is not None:
             query_variables.update({"alertCode": alertCode})
 
-        if jsonData is None:
-            jsonData = {}
-        if severity != None:
-            jsonData.update({"severity": severity})
-        if import_id != None:
-            jsonData.update({"import_id": import_id})
-        if mgm_details != None:
-            jsonData.update({"mgm_name": mgm_details.Name})
-        query_variables.update({"jsonData": json.dumps(jsonData)})
-
-        try:
-            import_result = self.call(addAlert_mutation, query_variables=query_variables, role=role)
-            newAlertId = import_result['data']['insert_alert']['returning'][0]['newIdLong']
-            if alertCode is None or mgm_id is not None:
-                return True
-            # Acknowledge older alert for same problem on same management
-            query_variables = { "mgmId": mgm_id, "alertCode": alertCode, "currentAlertId": newAlertId }
-            existingUnacknowledgedAlerts = call(self, getAlert_query, query_variables=query_variables, role=role)
-            if 'data' in existingUnacknowledgedAlerts and 'alert' in existingUnacknowledgedAlerts['data']:
-                for alert in existingUnacknowledgedAlerts['data']['alert']:
-                    if 'alert_id' in alert:
-                        now = datetime.datetime.now().isoformat()
-                        query_variables = { "userId": 0, "alertId": alert['alert_id'], "ackTimeStamp": now }
-                        updateResult = self.call(ackAlert_mutation, query_variables=query_variables, role=role)
-        except Exception:
-            logger.error("failed to create alert entry: " + json.dumps(query_variables))
-            return False
-        return True
-
 
     def complete_import(self, importState: "ImportStateController"):
         logger = getFwoLogger(debug_level=importState.DebugLevel)
         
         if fwo_globals.shutdown_requested:
-            self.addError("shutdown requested, aborting import")
+            importState.Stats.addError("shutdown requested, aborting import")
 
         if not importState.responsible_for_importing:
             return

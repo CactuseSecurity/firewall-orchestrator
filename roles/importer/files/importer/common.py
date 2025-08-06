@@ -219,11 +219,13 @@ def import_from_file(importState: ImportStateController, fileName: str = "", gat
 
     configFromFile = fwo_file_import.read_json_config_from_file(importState)
 
-    if configFromFile.is_native():
-        return config_changed_since_last_import, configFromFile
+    # if configFromFile.is_native():
+    #     return config_changed_since_last_import, configFromFile
 
-    if not configFromFile.IsLegacy():
-        return config_changed_since_last_import, configFromFile
+    # if not configFromFile.is_legacy():
+    #     return config_changed_since_last_import, configFromFile
+
+    return config_changed_since_last_import, configFromFile
 
 
 def get_config_from_api(importState: ImportStateController, configNative) -> tuple[bool, FwConfigManagerList]:

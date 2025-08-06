@@ -12,7 +12,7 @@ from models.fwconfigmanagerlist import FwConfigManagerList, FwConfigManager
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
 from models.fwconfig_normalized import FwConfigNormalized
 from model_controllers.import_state_controller import ImportStateController
-from fwo_base import ConfigAction
+from fwo_base import ConfigAction, ConfFormat
 import fwo_const
 import fwo_globals
 from model_controllers.fwconfig_normalized_controller import FwConfigNormalizedController
@@ -39,23 +39,23 @@ def has_config_changed (full_config, importState: ImportState, force=False):
     return result
 
 
-def get_config(nativeConfig: json, importState: ImportStateController) -> tuple[int, FwConfigManagerList]:
+def get_config(config_in: FwConfigManagerList, importState: ImportStateController) -> tuple[int, FwConfigManagerList]:
 
     logger = getFwoLogger()
     logger.debug ( "starting checkpointR8x/get_config" )
 
-    if nativeConfig == {}:   # no native config was passed in, so getting it from FW-Manager
+    if config_in == {}:   # no native config was passed in, so getting it from FW-Manager
         parsing_config_only = False
     else:
         parsing_config_only = True
 
     if not parsing_config_only: # get config from cp fw mgr
         starttime = int(time.time())
-        initialize_native_config(nativeConfig, importState)
+        initialize_native_config(config_in, importState)
         start_time_temp = int(time.time())
         logger.debug ( "checkpointR8x/get_config/getting objects ...")
 
-        result_get_objects = get_objects(nativeConfig, importState)
+        result_get_objects = get_objects(config_in.native_config, importState)
         if result_get_objects>0:
             logger.warning ( "checkpointR8x/get_config/error while gettings objects")
             return result_get_objects
@@ -63,7 +63,7 @@ def get_config(nativeConfig: json, importState: ImportStateController) -> tuple[
 
         start_time_temp = int(time.time())
         logger.debug ( "checkpointR8x/get_config/getting rules ...")
-        result_get_rules = get_rules (nativeConfig, importState)
+        result_get_rules = get_rules (config_in.native_config, importState)
         if result_get_rules>0:
             logger.warning ( "checkpointR8x/get_config/error while gettings rules")
             return result_get_rules
@@ -72,11 +72,14 @@ def get_config(nativeConfig: json, importState: ImportStateController) -> tuple[
         duration = int(time.time()) - starttime
         logger.debug ( "checkpointR8x/get_config - fetch duration: " + str(duration) + "s" )
 
-    sid = loginCp(importState.MgmDetails)
 
-    normalizedConfig = normalize_config(importState, nativeConfig, parsing_config_only, sid)
-    logger.info("completed getting config")
-    return 0, normalizedConfig
+    if not ConfFormat.IsLegacyConfigFormat(config_in.ConfigFormat):
+        return 0, config_in
+    else:
+        sid = loginCp(importState.MgmDetails)
+        normalizedConfig = normalize_config(importState, config_in, parsing_config_only, sid)
+        logger.info("completed getting config")
+        return 0, normalizedConfig
 
 
 def initialize_native_config(nativeConfig, importState):

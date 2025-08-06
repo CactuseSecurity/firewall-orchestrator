@@ -45,7 +45,6 @@ class FwoApi():
         logger = getFwoLogger(debug_level=debug_level)
 
         if analyze_payload:
-            # self._analyze_payload(query, query_variables)
             self.query_info = self.query_analyzer.analyze_payload(query, query_variables)
 
         try: 
@@ -61,10 +60,9 @@ class FwoApi():
                     return_object = self._call_chunked(session, query, query_variables, fwo_globals.debug_level)
                     elapsed_time = time.time() - started
                     affected_rows = 0
-                    if 'data' in return_object.keys():
+                    if 'data' in return_object.keys() and 'affected_rows' in return_object['data'].keys():
                         # If the return object contains data, we can log the affected rows.
-                        if 'affected_rows' in return_object['data'].keys():
-                            affected_rows = sum(obj["affected_rows"] for obj in return_object["data"].values())
+                        affected_rows = sum(obj["affected_rows"] for obj in return_object["data"].values())
                     logger.debug(f"Chunked API call ({self.query_info['query_name']}) processed in {elapsed_time:.4f} s. Affected rows: {affected_rows}.")
                     self.query_info = {}
                 else:

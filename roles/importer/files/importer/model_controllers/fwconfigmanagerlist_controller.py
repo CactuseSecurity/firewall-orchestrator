@@ -160,7 +160,10 @@ class FwConfigManagerListController(FwConfigManagerList):
             mgr = FwConfigManager(ManagerUid=calcManagerUidHash(mgmDetails.MgmDetails),
                                   IsSuperManager=False,
                                   SubManagerIds = [],
-                                  Configs=[])
+                                  Configs=[],
+                                  DomainName='',
+                                  DomainUid='',
+                                  ManagerName='')
             convertedConfig = FwConfig()
             mgr.Configs.append(convertedConfig)
             self.addManager(mgr)
@@ -185,6 +188,15 @@ class FwConfigManagerListController(FwConfigManagerList):
             except Exception:
                 logger.error(f"import_management - unspecified error while dumping normalized config to json file: {str(traceback.format_exc())}")
                 raise
+    
+
+    def is_native(self):
+        return self.native_config is None or self.native_config == {}
+
+
+    def is_legacy(self):
+        return self.ConfigFormat==ConfFormat.IsLegacyConfigFormat
+
 
 # split the config into chunks of max size "max_objs_per_chunk" to avoid 
 # timeout of import while writing data to import table

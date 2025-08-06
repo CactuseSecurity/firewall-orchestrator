@@ -1,6 +1,6 @@
 mutation addLogEntry(
   $source: String!
-  $discoverUser: Int!
+  $discoverUser: Int
   $severity: Int!
   $suspectedCause: String
   $description: String

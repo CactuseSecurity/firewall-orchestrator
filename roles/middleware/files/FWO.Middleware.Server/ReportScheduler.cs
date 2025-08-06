@@ -148,21 +148,7 @@ namespace FWO.Middleware.Server
 
                     await apiConnectionUserContext.SendQueryAsync<object>(ReportQueries.countReportSchedule, new { report_schedule_id = reportSchedule.Id });
                     await AdaptDeviceFilter(reportSchedule.Template.ReportParams, apiConnectionUserContext);
-                    
-                    if (reportSchedule.Template.ReportParams.ReportType == (int) ReportType.Compliance)
-                    {
-                        if (_userConfig.GlobalConfig is GlobalConfig globalConfig && !string.IsNullOrEmpty(globalConfig.ComplianceCheckScheduledDiffReportsIntervals))
-                        {
-                            ScheduledComplianceDiffReportConfig complianceDiffReportConfig = new();
-                            complianceDiffReportConfig.ScheduledDiffReportsIntervals = JsonSerializer.Deserialize<Dictionary<int,int>>(globalConfig.ComplianceCheckScheduledDiffReportsIntervals) ?? new();
-
-                            if (complianceDiffReportConfig.ScheduledDiffReportsIntervals.Keys.Any(scheduledReportId => scheduledReportId == reportSchedule.Id))
-                            {
-                                reportSchedule.Template.ReportParams.ComplianceFilter.IsDiffReport = true;
-                                reportSchedule.Template.ReportParams.ComplianceFilter.DiffReferenceInDays = complianceDiffReportConfig.ScheduledDiffReportsIntervals[reportSchedule.Id];
-                            }
-                        }
-                    }
+                    await TryAdaptComplianceDiffReportConfig();
 
                     _report = await ReportGenerator.Generate(reportSchedule.Template, apiConnectionUserContext, _userConfig, DefaultInit.DoNothing, token);
                     if (_report != null)
@@ -296,6 +282,23 @@ namespace FWO.Middleware.Server
         {
             long delta = dateTime.Ticks % roundInterval.Ticks;
             return new DateTime(dateTime.Ticks - delta);
+        }
+
+        private async Task TryAdaptComplianceDiffReportConfig(ReportSchedule reportSchedule)
+        {
+            if (reportSchedule.Template.ReportParams.ReportType == (int) ReportType.Compliance
+                    && _userConfig.GlobalConfig is GlobalConfig globalConfig
+                    && !string.IsNullOrEmpty(globalConfig.ComplianceCheckScheduledDiffReportsIntervals))
+            {
+                ScheduledComplianceDiffReportConfig complianceDiffReportConfig = new();
+                complianceDiffReportConfig.ScheduledDiffReportsIntervals = JsonSerializer.Deserialize<Dictionary<int,int>>(globalConfig.ComplianceCheckScheduledDiffReportsIntervals) ?? new();
+
+                if (complianceDiffReportConfig.ScheduledDiffReportsIntervals.Keys.Any(scheduledReportId => scheduledReportId == reportSchedule.Id))
+                {
+                    reportSchedule.Template.ReportParams.ComplianceFilter.IsDiffReport = true;
+                    reportSchedule.Template.ReportParams.ComplianceFilter.DiffReferenceInDays = complianceDiffReportConfig.ScheduledDiffReportsIntervals[reportSchedule.Id];
+                }  
+            }
         }
         
         /// <summary>

@@ -233,12 +233,9 @@ namespace FWO.Report
 
             foreach (var violation in violations.Where(v => v.RuleId == rule.Id))
             {
-                if (IsDiffReport)
+                if (IsDiffReport && ViolationDiffs.TryGetValue(violation, out char changeSign))
                 {
-                    if (ViolationDiffs.TryGetValue(violation, out char changeSign))
-                    {
-                        violation.Details = $"({changeSign}) {violation.Details}";
-                    }
+                    violation.Details = $"({changeSign}) {violation.Details}";
                 }
                 
                 if (rule.ViolationDetails != "")

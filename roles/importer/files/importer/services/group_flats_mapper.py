@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 import fwo_const
 from fwo_log import getFwoLogger
 from model_controllers.import_state_controller import ImportStateController
@@ -15,15 +15,13 @@ class GroupFlatsMapper:
     This class is responsible for mapping group objects to their fully resolved members.
     """
 
-    import_state: ImportStateController = None
-    normalized_config: FwConfigNormalized = None
-    global_normalized_config: FwConfigNormalized = None
+    import_state: ImportStateController
+    normalized_config: Optional[FwConfigNormalized] = None
+    global_normalized_config: Optional[FwConfigNormalized] = None
 
     def __init__(self):
-        self.global_state = ServiceProvider().get_service(Services.GLOBAL_STATE)
-        self.import_state = self.global_state.import_state
-        self.normalized_config = self.global_state.normalized_config
-        self.global_normalized_config = self.global_state.global_normalized_config
+        global_state = ServiceProvider().get_service(Services.GLOBAL_STATE)
+        self.import_state = global_state.import_state
         self.logger = getFwoLogger()
         self.network_object_flats = {}
         self.service_object_flats = {}
@@ -42,8 +40,9 @@ class GroupFlatsMapper:
         self.import_state.increaseErrorCounterByOne()
     
 
-    def init_config(self, normalized_config: FwConfigNormalized):
+    def init_config(self, normalized_config: FwConfigNormalized, global_normalized_config: Optional[FwConfigNormalized] = None):
         self.normalized_config = normalized_config
+        self.global_normalized_config = global_normalized_config
         self.network_object_flats = {}
         self.service_object_flats = {}
         self.user_flats = {}
@@ -58,7 +57,7 @@ class GroupFlatsMapper:
         Returns:
             List[str]: The flattened network object UIDs.
         """
-        if self.global_state.normalized_config is None:
+        if self.normalized_config is None:
             self.log_error(f"{CONFIG_NOT_SET_MESSAGE}-networks")
             return []
         all_members = set()
@@ -93,9 +92,11 @@ class GroupFlatsMapper:
 
 
     def get_nwobj(self, group_uid):
-        nwobj = self.global_state.normalized_config.network_objects.get(group_uid, None)
-        if nwobj is None and self.global_state.global_normalized_config is not None:
-            nwobj = self.global_state.global_normalized_config.network_objects.get(group_uid, None)
+        if not self.normalized_config:
+            return None
+        nwobj = self.normalized_config.network_objects.get(group_uid, None)
+        if nwobj is None and self.global_normalized_config is not None:
+            nwobj = self.global_normalized_config.network_objects.get(group_uid, None)
         return nwobj
 
 
@@ -108,7 +109,7 @@ class GroupFlatsMapper:
         Returns:
             List[str]: The flattened service object UIDs.
         """
-        if self.global_state.normalized_config is None:
+        if self.normalized_config is None:
             self.log_error(f"{CONFIG_NOT_SET_MESSAGE}-services")
             return []
         all_members = set()
@@ -141,10 +142,12 @@ class GroupFlatsMapper:
     
 
     def get_svcobj(self, group_uid):
-        svcobj = self.global_state.normalized_config.service_objects.get(group_uid, None)
-        if svcobj is None and self.global_state.global_normalized_config is not None:
+        if not self.normalized_config:
+            return None
+        svcobj = self.normalized_config.service_objects.get(group_uid, None)
+        if svcobj is None and self.global_normalized_config is not None:
             # try to get from global normalized config if not found in current normalized config
-            svcobj = self.global_state.global_normalized_config.service_objects.get(group_uid, None)
+            svcobj = self.global_normalized_config.service_objects.get(group_uid, None)
         return svcobj
 
 
@@ -157,7 +160,7 @@ class GroupFlatsMapper:
         Returns:
             List[str]: The flattened user UIDs.
         """
-        if self.global_state.normalized_config is None:
+        if self.normalized_config is None:
             self.log_error(f"{CONFIG_NOT_SET_MESSAGE}-users")
             return []
         all_members = set()
@@ -191,8 +194,10 @@ class GroupFlatsMapper:
 
 
     def get_user(self, group_uid):
-        user = self.global_state.normalized_config.users.get(group_uid, None)
-        if user is None and self.global_state.global_normalized_config is not None:
+        if not self.normalized_config:
+            return None
+        user = self.normalized_config.users.get(group_uid, None)
+        if user is None and self.global_normalized_config is not None:
             # try to get from global normalized config if not found in current normalized config
-            user = self.global_state.global_normalized_config.users.get(group_uid, None)
+            user = self.global_normalized_config.users.get(group_uid, None)
         return user

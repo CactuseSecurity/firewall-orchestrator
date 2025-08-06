@@ -1027,6 +1027,57 @@ INSERT INTO config (config_key, config_value, config_user)
 VALUES ('debugConfig', '{"debugLevel":8, "extendedLogComplianceCheck":true, "extendedLogReportGeneration":true, "extendedLogScheduler":true}', 0)
 ON CONFLICT (config_key, config_user) DO NOTHING;
 
+-- add config parameter complianceCheckPolicy if not exists
+
+INSERT INTO config (config_key, config_value, config_user) 
+VALUES ('complianceCheckPolicy', '0', 0)
+ON CONFLICT (config_key, config_user) DO NOTHING;
+
+-- add unique constraint for report_template_name
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'unique_report_template_name'
+    ) THEN
+        ALTER TABLE report_template
+        ADD CONSTRAINT unique_report_template_name UNIQUE (report_template_name);
+    END IF;
+END$$;
+
+-- add new report template for compliance: unresolved violations
+
+INSERT INTO "report_template" ("report_filter","report_template_name","report_template_comment","report_template_owner", "report_parameters") 
+VALUES ('',
+    'Compliance: Unresolved violations','T0108', 0, 
+    '{"report_type":31,"device_filter":{"management":[]},
+        "time_filter": {
+            "is_shortcut": true,
+            "shortcut": "now",
+            "report_time": "2022-01-01T00:00:00.0000000+01:00",
+            "timerange_type": "SHORTCUT",
+            "shortcut_range": "this year",
+            "offset": 0,
+            "interval": "DAYS",
+            "start_time": "2022-01-01T00:00:00.0000000+01:00",
+            "end_time": "2022-01-01T00:00:00.0000000+01:00",
+            "open_start": false,
+            "open_end": false}}')
+ON CONFLICT (report_template_name) DO NOTHING;
+
+-- add compliance diff report parameters to config
+
+INSERT INTO config (config_key, config_value, config_user) 
+VALUES ('complianceCheckScheduledDiffReportConfig', '[]', 0) 
+ON CONFLICT (config_key, config_user) DO NOTHING;
+
+INSERT INTO config (config_key, config_value, config_user) 
+VALUES ('complianceCheckDiffReferenceInterval', '0', 0) 
+ON CONFLICT (config_key, config_user) DO NOTHING;
+
+
 -- adding labels (simple version without mapping tables and without foreign keys)
 
 -- CREATE TABLE label (

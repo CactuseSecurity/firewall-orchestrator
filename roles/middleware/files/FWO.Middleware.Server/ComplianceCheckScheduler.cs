@@ -51,7 +51,7 @@ namespace FWO.Middleware.Server
                 ComplianceCheck complianceCheck = new(userConfig, apiConnection);
 
                 await complianceCheck.CheckAll();
-                await complianceCheck.SendComplianceCheckEmail();
+                await complianceCheck.PersistDataAsync();
             }
             catch (Exception exc)
             {

@@ -317,3 +317,7 @@ ALTER TABLE modelling.selected_objects ADD CONSTRAINT modelling_selected_objects
 ALTER TABLE modelling.selected_objects ADD CONSTRAINT modelling_selected_objects_nwgroup_foreign_key FOREIGN KEY (nwgroup_id) REFERENCES modelling.nwgroup(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE modelling.selected_connections ADD CONSTRAINT modelling_selected_connections_owner_foreign_key FOREIGN KEY (app_id) REFERENCES owner(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE modelling.selected_connections ADD CONSTRAINT modelling_selected_connections_connection_foreign_key FOREIGN KEY (connection_id) REFERENCES modelling.connection(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+
+-- notification
+ALTER TABLE notification ADD CONSTRAINT notification_owner_foreign_key FOREIGN KEY (owner_id) REFERENCES owner(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE notification ADD CONSTRAINT notification_user_foreign_key FOREIGN KEY (user_id) REFERENCES uiuser(uiuser_id) ON UPDATE RESTRICT ON DELETE CASCADE;

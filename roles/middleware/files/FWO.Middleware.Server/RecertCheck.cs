@@ -26,6 +26,7 @@ namespace FWO.Middleware.Server
         private List<UiUser> uiUsers = [];
         private RecertCheckParams? globCheckParams;
         private List<FwoOwner> owners = [];
+        private readonly List<UserGroup> OwnerGroups = [];
         private const string LogMessageTitle = "Recertification Check";
 
         /// <summary>
@@ -46,32 +47,31 @@ namespace FWO.Middleware.Server
             try
             {
                 await InitEnv();
-                string decryptedSecret = "";
-                try
-                {
-                    string mainKey = AesEnc.GetMainKey();
-                    decryptedSecret = AesEnc.Decrypt(globalConfig.EmailPassword, mainKey);
-                }
-                catch (Exception exception)
-                {
-                    Log.WriteError(LogMessageTitle, $"Could not decrypt mailserver password.", exception);				
-                }
+                string decryptedSecret = AesEnc.TryDecrypt(globalConfig.EmailPassword, false, LogMessageTitle, "Could not decrypt mailserver password.");
                 EmailConnection emailConnection = new(globalConfig.EmailServerAddress, globalConfig.EmailPort,
                     globalConfig.EmailTls, globalConfig.EmailUser, decryptedSecret, globalConfig.EmailSenderAddress);
-                MailKitMailer mailer = new(emailConnection);
                 JwtWriter jwtWriter = new(ConfigFile.JwtPrivateKey);
                 ApiConnection apiConnectionReporter = new GraphQlApiConnection(ConfigFile.ApiServerUri ?? throw new ArgumentException("Missing api server url on startup."), jwtWriter.CreateJWTReporterViewall());
+                
+                NotificationService notificationService = await NotificationService.CreateAsync(NotificationClient.Recertification, globalConfig, apiConnectionReporter, OwnerGroups);
 
-                foreach(var owner in owners.Where(o => IsCheckTime(o)))
+                foreach (var owner in owners.Where(o => IsCheckTime(o)))
                 {
                     // todo: refine handling
                     List<Rule> upcomingRecerts = await GenerateRecertificationReport(apiConnectionReporter, owner, false);
                     List<Rule> overdueRecerts = []; // await GenerateRecertificationReport(apiConnectionReporter, owner, true);
 
-                    if(upcomingRecerts.Count > 0 || overdueRecerts.Count > 0)
+                    if (upcomingRecerts.Count > 0 || overdueRecerts.Count > 0)
                     {
-                        await mailer.SendAsync(PrepareEmail(owner, upcomingRecerts, overdueRecerts), emailConnection, new CancellationToken());
-                        emailsSent++;
+                        if (globalConfig.RecertificationMode == RecertificationMode.RuleByRule)
+                        {
+                            await MailKitMailer.SendAsync(PrepareEmail(owner, upcomingRecerts, overdueRecerts), emailConnection, false, new());
+                            emailsSent++;
+                        }
+                        else
+                        {
+                            await notificationService.SendNotifications(owner, PrepareBody(upcomingRecerts, overdueRecerts));
+                        }
                     }
                     await SetOwnerLastCheck(owner);
                 }
@@ -211,6 +211,11 @@ namespace FWO.Middleware.Server
         private MailData PrepareEmail(FwoOwner owner, List<Rule> upcomingRecerts, List<Rule> overdueRecerts)
         {
             string subject = globalConfig.RecCheckEmailSubject + " " + owner.Name;
+            return new MailData(CollectEmailAddresses(owner), subject) { Body = PrepareBody(upcomingRecerts, overdueRecerts) };
+        }
+
+        private string PrepareBody(List<Rule> upcomingRecerts, List<Rule> overdueRecerts)
+        {
             string body = "";
             if(upcomingRecerts.Count > 0)
             {
@@ -228,13 +233,13 @@ namespace FWO.Middleware.Server
                     body += PrepareLine(rule);
                 }
             }
-            return new MailData(CollectEmailAddresses(owner), subject, body);
+            return body;
         }
 
         private static string PrepareLine(Rule rule)
         {
             Recertification? nextRecert = rule.Metadata.RuleRecertification.FirstOrDefault(x => x.RecertDate == null);
-            return (nextRecert != null && nextRecert.NextRecertDate != null ? DateOnly.FromDateTime((DateTime)nextRecert.NextRecertDate) : "") + ": " 
+            return (nextRecert != null && nextRecert.NextRecertDate != null ? DateOnly.FromDateTime((DateTime)nextRecert.NextRecertDate) : "") + ": "
                     + rule.DeviceName + ": " + rule.Name + ":" + rule.Uid + "\r\n\r\n";  // link ?
         }
 

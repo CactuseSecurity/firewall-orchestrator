@@ -1,7 +1,7 @@
 ﻿
 namespace FWO.Data
 {
-    public enum ImpChangeNotificationType
+    public enum NotificationLayout
     {
         SimpleText = 0,
         HtmlInBody = 1,

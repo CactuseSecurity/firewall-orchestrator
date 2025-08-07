@@ -108,6 +108,8 @@ namespace FWO.Config.Api.Data
         [JsonProperty("externalRequestStartAt"), JsonPropertyName("externalRequestStartAt")]
         public DateTime ExternalRequestStartAt { get; set; } = DateTime.Now;
 
+        [JsonProperty("recertificationMode"), JsonPropertyName("recertificationMode")]
+        public RecertificationMode RecertificationMode { get; set; } = RecertificationMode.RuleByRule;
 
         [JsonProperty("recertificationPeriod"), JsonPropertyName("recertificationPeriod")]
         public int RecertificationPeriod { get; set; } = 365;

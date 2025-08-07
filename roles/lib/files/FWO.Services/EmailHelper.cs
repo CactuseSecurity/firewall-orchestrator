@@ -1,13 +1,16 @@
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
+using FWO.Basics;
+using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Workflow;
-using FWO.Config.Api;
-using FWO.Middleware.Client;
 using FWO.Mail;
-using System.Text.Json.Serialization;
+using FWO.Logging;
+using FWO.Middleware.Client;
+using Microsoft.AspNetCore.Http;
 using Newtonsoft.Json;
-
+using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
 
 namespace FWO.Services
 {
@@ -51,7 +54,7 @@ namespace FWO.Services
 
         public async Task Init(string? scopedUserTo = null, string? scopedUserCc = null)
         {
-            if(!useInMwServer && middlewareClient != null)
+            if (!useInMwServer && middlewareClient != null)
             {
                 ownerGroups = await GroupAccess.GetGroupsFromInternalLdap(middlewareClient, userConfig, displayMessageInUi, true);
             }
@@ -82,13 +85,12 @@ namespace FWO.Services
         {
             EmailConnection emailConnection = new(userConfig.EmailServerAddress, userConfig.EmailPort,
                 userConfig.EmailTls, userConfig.EmailUser, userConfig.EmailPassword, userConfig.EmailSenderAddress);
-            MailKitMailer mailer = new(emailConnection);
-            tos = tos.Where(t => t != "").ToList();
+            tos = [.. tos.Where(t => t != "")];
             ccs = ccs?.Where(c => c != "").ToList();
-            return await mailer.SendAsync(new MailData(tos, subject, body, null, null, null, null, null, ccs), emailConnection, new CancellationToken(), true);
+            return await MailKitMailer.SendAsync(new MailData(tos, subject) { Body = body, Cc = ccs ?? [] }, emailConnection, true, new CancellationToken());
         }
 
-        private List<string> GetRecipients(EmailRecipientOption recipientOption, WfStatefulObject? statefulObject, FwoOwner? owner, string? scopedUser)
+        public List<string> GetRecipients(EmailRecipientOption recipientOption, WfStatefulObject? statefulObject, FwoOwner? owner, string? scopedUser)
         {
             List<string> recipients = [];
             switch (recipientOption)
@@ -193,5 +195,58 @@ namespace FWO.Services
             }
             return "";
         }
+
+        // public static List<string> CollectRecipientsFromConfig(UserConfig userConfig, string configValue)
+        // {
+        //     if (userConfig.UseDummyEmailAddress)
+        //     {
+        //         return [userConfig.DummyEmailAddress];
+        //     }
+        //     string[] separatingStrings = [",", ";", "|"];
+        //     return [.. configValue.Split(separatingStrings, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)];
+        // }
+
+        // public static FormFile? CreateAttachment(string? content, string fileFormat, string subject)
+        // {
+        //     if (content != null)
+        //     {
+        //         string fileName = ConstructFileName(subject, fileFormat);
+
+        //         MemoryStream memoryStream;
+        //         string contentType;
+
+        //         if (fileFormat == GlobalConst.kPdf)
+        //         {
+        //             memoryStream = new(Convert.FromBase64String(content));
+        //             contentType = "application/octet-stream";
+        //         }
+        //         else
+        //         {
+        //             memoryStream = new(System.Text.Encoding.UTF8.GetBytes(content));
+        //             contentType = $"application/{fileFormat}";
+        //         }
+
+        //         return new(memoryStream, 0, memoryStream.Length, "FWO-Report-Attachment", fileName)
+        //         {
+        //             Headers = new HeaderDictionary(),
+        //             ContentType = contentType
+        //         };
+        //     }
+        //     return null;
+        // }
+
+        // private static string ConstructFileName(string input, string fileFormat)
+        // {
+        //     try
+        //     {
+        //         Regex regex = new(@"\s", RegexOptions.None, TimeSpan.FromMilliseconds(500));
+        //         return $"{regex.Replace(input, "")}_{DateTime.Now.ToUniversalTime().ToString("yyyy-MM-ddTHH-mm-ssK")}.{fileFormat}";
+        //     }
+        //     catch (RegexMatchTimeoutException)
+        //     {
+        //         Log.WriteWarning("Construct File Name", "Timeout when constructing file name. Taking input.");
+        //         return input;
+        //     }
+        // }
     }
 }

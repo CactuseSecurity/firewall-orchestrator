@@ -996,6 +996,28 @@ Create table "report_template_viewable_by_user"
  	primary key ("uiuser_id","report_template_id")
 );
 
+create table notification
+(
+    id SERIAL PRIMARY KEY,
+	notification_client Varchar,
+	user_id int,
+	owner_id int,
+	channel Varchar,
+	recipient_to Varchar,
+    email_address_to Varchar,
+	recipient_cc Varchar,
+	email_address_cc Varchar,
+	email_subject Varchar,
+	layout Varchar,
+	deadline Varchar,
+	interval_before_deadline int,
+	offset_before_deadline int,
+	repeat_interval_after_deadline int,
+	repeat_offset_after_deadline int,
+	repetitions_after_deadline int,
+	last_sent Timestamp
+);
+
 -- configuration
 
 Create table "ldap_connection"

@@ -50,7 +50,7 @@
             <label class="col-form-label col-sm-4">@(userConfig.GetText("impChangeNotifyType")):</label>
             <div class="col-sm-2">
                 <Dropdown @bind-SelectedElement="selectedImpChgNotType" ElementToString="@(i => userConfig.GetText(i.ToString()))"
-                        Elements="Enum.GetValues(typeof(ImpChangeNotificationType)).Cast<ImpChangeNotificationType>()" >
+                        Elements="Enum.GetValues(typeof(NotificationLayout)).Cast<NotificationLayout>()" >
                     <ElementTemplate Context="type">
                         @(userConfig.GetText(type.ToString()))
                     </ElementTemplate>
@@ -115,7 +115,7 @@ else
 
     private ConfigData? configData;
     private Language selectedLanguage = new Language();
-    private ImpChangeNotificationType selectedImpChgNotType;
+    private NotificationLayout selectedImpChgNotType;
     private DateTime startDate = DateTime.Today;
     private DateTime startTime = DateTime.Now.AddSeconds(-DateTime.Now.Second);
 
@@ -125,7 +125,7 @@ else
         {
             configData = await globalConfig.GetEditableConfig();
             selectedLanguage = globalConfig.UiLanguages.FirstOrDefault(l => l.Name == configData.DefaultLanguage) ?? new Language();
-            selectedImpChgNotType = (ImpChangeNotificationType)configData.ImpChangeNotifyType;
+            selectedImpChgNotType = (NotificationLayout)configData.ImpChangeNotifyType;
             startDate = startTime = configData.ImpChangeNotifyStartAt;
         }
         catch (Exception exception)

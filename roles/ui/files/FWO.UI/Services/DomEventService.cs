@@ -1,14 +1,31 @@
 using Microsoft.JSInterop;
+using Newtonsoft.Json.Linq;
 using System.Diagnostics;
 
 namespace FWO.Ui.Services
 {
 	public class DomEventService
 	{
-		public event Action<string>? OnGlobalScroll;
+        public event Action<string>? OnGlobalScroll;
 		public event Action<string>? OnGlobalClick;
 		public event Action? OnGlobalResize;
-        public event Action<int>? OnNavbarHeightChanged;
+
+        private Action<int>? _navbarHeightSubscribers;
+        private int? _lastNavbarHeight;
+
+        public event Action<int>? OnNavbarHeightChanged
+        {
+            add
+            {
+                _navbarHeightSubscribers += value;
+                // Fire immediately (once) if we already have a cached value
+                if (_lastNavbarHeight.HasValue)
+                {
+                    value?.Invoke(_lastNavbarHeight.Value);
+                }
+            }
+            remove => _navbarHeightSubscribers -= value;
+        }
 
         public bool Initialized { get; private set; } = false;
 
@@ -33,7 +50,8 @@ namespace FWO.Ui.Services
         [JSInvokable]
         public void InvokeNavbarHeightChanged(int height)
         {
-            OnNavbarHeightChanged?.Invoke(height);
+            _lastNavbarHeight = height;
+            _navbarHeightSubscribers?.Invoke(height);
         }
 
         public async Task Initialize(IJSRuntime runtime)

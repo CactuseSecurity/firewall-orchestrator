@@ -30,7 +30,7 @@ class FwoApiCall(FwoApi):
         return self.call(mgm_query, query_variables=query_variables)['data']['management']
 
 
-    def get_config_value(self, key='limit'):
+    def get_config_value(self, key='limit') -> str|None:
         query_variables = {'key': key}
         cfg_query = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "config/getConfigValue.graphql"])
         
@@ -381,10 +381,10 @@ class FwoApiCall(FwoApi):
             importState.Stats.ErrorAlreadyLogged = True
 
 
-    def get_last_import(self, query_vars, debug_level=0):
-        mgm_query = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "import/getLastImport.graphql"])
-        lastFullImportDate = None
-        lastFullImportId = None
+    def get_last_complete_import(self, query_vars, debug_level=0) -> tuple[int, str]:
+        mgm_query = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "import/getLastCompleteImport.graphql"])
+        lastFullImportDate: str = ""
+        lastFullImportId: int = 0
         try:
             pastDetails = self.call(mgm_query, query_variables=query_vars)
             if len(pastDetails['data']['import_control'])>0:

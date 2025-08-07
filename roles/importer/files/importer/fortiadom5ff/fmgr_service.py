@@ -2,6 +2,7 @@ import re
 from fwo_const import list_delimiter
 from model_controllers.import_state_controller import ImportStateController
 from fwo_log import getFwoLogger
+from typing import Any
 
 def normalize_service_objects(import_state: ImportStateController, native_config, native_config_global, normalized_config, 
                               normalized_config_global, svc_obj_types):
@@ -107,7 +108,7 @@ def parse_standard_protocols_with_ports(obj_orig, svc_objects, svc_type, name, c
         added_svc_obj += 1
 
 
-def check_split(obj_orig):
+def check_split(obj_orig) -> bool:
     count = 0
     if "tcp-portrange" in obj_orig and len(obj_orig['tcp-portrange']) > 0:
         count += 1
@@ -118,7 +119,7 @@ def check_split(obj_orig):
     return (count > 1)
 
 
-def extractPorts(port_ranges):
+def extractPorts(port_ranges) -> tuple[list[Any], list[Any]]:
     ports = []
     port_ends = []
     if port_ranges is not None and len(port_ranges) > 0:
@@ -149,7 +150,7 @@ def extractPorts(port_ranges):
     return ports, port_ends
 
 
-def create_svc_object(name, proto, color, port, comment):
+def create_svc_object(name, proto, color, port, comment) -> dict[str, Any]:
     return {
         'svc_name': name,
         'svc_typ': 'simple',

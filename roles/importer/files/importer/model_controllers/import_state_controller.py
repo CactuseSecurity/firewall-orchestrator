@@ -112,7 +112,7 @@ class ImportStateController(ImportState):
             raise
 
         try: # get last import data
-            last_import_id, last_import_date = api_call.get_last_import({"mgmId": int(mgmId)}, debug_level=0)
+            last_import_id, last_import_date = api_call.get_last_complete_import({"mgmId": int(mgmId)}, debug_level=0)
         except Exception:
             logger.error("import_management - error while getting last import data for mgm=" + str(mgmId) )
             raise
@@ -127,7 +127,7 @@ class ImportStateController(ImportState):
             version = version,
             isClearingImport=isClearingImport,
             isFullImport=isFullImport,
-            isInitialImport=(last_import_date is None),
+            isInitialImport=(last_import_date == ""),
             verifyCerts=sslVerification,
             LastSuccessfulImport=last_import_date,
         )
@@ -146,14 +146,16 @@ class ImportStateController(ImportState):
         logger = getFwoLogger()
         api_call = FwoApiCall(FwoApi(ApiUri=self.FwoConfig.FwoApiUri, Jwt=self.Jwt))
         try: # get past import details (LastFullImport, ...):
-            self.DataRetentionDays = int(api_call.get_config_value(key='dataRetentionTime'))
+            day_string = api_call.get_config_value(key='dataRetentionTime')
+            if day_string:
+                self.DataRetentionDays = int(day_string)
             self.LastFullImportId, self.lastFullImportDate = \
-                api_call.get_last_import({"mgmId": int(self.MgmDetails.Id)}, self.DebugLevel) 
+                api_call.get_last_complete_import({"mgmId": int(self.MgmDetails.Id)}, self.DebugLevel) 
         except Exception:
             logger.error(f"import_management - error while getting past import details for mgm={str(self.MgmDetails.Id)}: {str(traceback.format_exc())}")
             raise
 
-        if self.lastFullImportDate is not None:
+        if self.lastFullImportDate != "":
             self.LastSuccessfulImport = self.lastFullImportDate
 
             # Convert the string to a datetime object

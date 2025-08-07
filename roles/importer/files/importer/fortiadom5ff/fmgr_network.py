@@ -4,11 +4,7 @@ from fwo_log import getFwoLogger
 from fwo_const import list_delimiter, nat_postfix
 from fmgr_zone import add_zone_if_missing
 from fwo_config import readConfig
-from fwo_const import fwo_config_filename
-from fwo_api_call import setAlert, create_data_issue
-from fmgr_base import resolve_raw_objects
 from model_controllers.import_state_controller import ImportStateController
-from fmgr_consts import v4_object_types, v6_object_types
 from copy import deepcopy
 
 
@@ -203,7 +199,6 @@ def create_network_object(name, type, ip, ip_end, uid, color, comment, zone):
     }
 
 
-# TODO: reduce commplexity if possible
 def get_nw_obj(nat_obj_name, nwobjects):
     for obj in nwobjects:
         if 'obj_name' in obj and obj['obj_name']==nat_obj_name:
@@ -220,7 +215,6 @@ def remove_nat_ip_entries(config2import):
 
 
 def get_first_ip_of_destination(obj_ref, config2import):
-
     logger = getFwoLogger()
     if list_delimiter in obj_ref:
         obj_ref = obj_ref.split(list_delimiter)[0]

@@ -8,6 +8,13 @@ class FwLoginFailed(Exception):
         self.message = message
         super().__init__(self.message)
 
+class FwApiCallFailed(Exception):
+    """Raised when FW management API call failed"""
+
+    def __init__(self, message="An API call to the FW management failed"):
+        self.message = message
+        super().__init__(self.message)
+
 class FwLogoutFailed(Exception):
     """Raised when logout from FW management failed"""
 

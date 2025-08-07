@@ -281,10 +281,7 @@ namespace FWO.Compliance
                                                                 
                     if (validatedViolation == null)
                     {
-                        if (existingViolation.Id is int id)
-                        {
-                            violationsForUpdate.Add(id);
-                        }
+                        violationsForUpdate.Add(existingViolation.Id);
                     }
                 }
             }

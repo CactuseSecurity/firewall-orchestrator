@@ -30,7 +30,13 @@ namespace FWO.Middleware.Server.Controllers
         {
             try
             {
-                throw new NotImplementedException("This feature is currently not supported.");
+                GlobalConfig GlobalConfig = await GlobalConfig.ConstructAsync(apiConnection, true);
+                UserConfig userConfig = new(GlobalConfig, apiConnection, new(){ Language = GlobalConst.kEnglish });
+
+                ComplianceCheck complianceCheck = new(userConfig, apiConnection);
+                await complianceCheck.CheckAll();
+
+                return complianceCheck.ComplianceReport!.ExportToCsv();
             }
             catch (Exception exception)
             {

@@ -1,7 +1,6 @@
 # import sys
 # from common import importer_base_dir
 # sys.path.append(importer_base_dir + '/fortiadom5ff')
-from curses import raw
 
 import json
 import fwo_const
@@ -159,11 +158,12 @@ def normalize_config(import_state, native_config: json) -> FwConfigManagerListCo
             network_objects=FwConfigNormalizedController.convertListToDict(normalized_config_dict.get('network_objects', []), 'obj_uid'),
             service_objects=FwConfigNormalizedController.convertListToDict(normalized_config_dict.get('service_objects', []), 'svc_uid'),
             zone_objects=FwConfigNormalizedController.convertListToDict(normalized_config_dict.get('zone_objects', []), 'zone_uid'),
-            rulebases=normalized_config_dict.get('rules', []),
+            rulebases=normalized_config_dict.get('policies', []),
             gateways=normalized_config_dict.get('gateways', [])
         )
 
-        manager = FwConfigManager(ManagerUid=calcManagerUidHash(import_state.MgmDetails),
+        #TODO: cannot use hash from MgmDetails here - mgm and super mgm will have the same hash
+        manager = FwConfigManager(ManagerUid=native_conf.get('management_uid', calcManagerUidHash(import_state.MgmDetails)),
                                     ManagerName=import_state.MgmDetails.Name,
                                     IsGlobal=import_state.MgmDetails.IsSuperManager,
                                     IsSuperManager=native_conf.get('is-super-manager', False),

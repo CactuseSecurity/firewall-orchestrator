@@ -1,10 +1,10 @@
+from services.service_provider import ServiceProvider
+from services.enums import Services
 from fwo_api_call import FwoApiCall, FwoApi
 from fwo_config import readConfig
 from fwo_const import fwo_config_filename
 from fmgr_consts import v4_object_types, v6_object_types
 from fwo_log import getFwoLogger
-from services.service_provider import ServiceProvider
-from services.enums import Services
 
 def resolve_objects (obj_name_string_list, delimiter, obj_dict, name_key, uid_key, rule_type=None, jwt=None, import_id=None, mgm_id=None):
     # guessing ipv4 and adom (to also search global objects)

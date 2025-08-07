@@ -1,0 +1,9 @@
+ansible>2.13
+pydantic>=2.0,<3.0
+jsonpickle>=3.0
+gnupg>=0.5
+pytest>=7.0
+graphql-core>=3.0
+requests>=2.0
+cryptography>=40.0
+netaddr>=1.0

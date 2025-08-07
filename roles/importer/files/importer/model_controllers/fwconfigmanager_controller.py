@@ -8,9 +8,11 @@ class FwConfigManagerController(FwConfigManager):
     DependantManagerUids: list[str] = []
     Configs: list[FwConfigNormalized] = []
 
-    class Config:
-        arbitrary_types_allowed = True
 
+    model_config = {
+        "arbitrary_types_allowed": True
+    }
+    
     @classmethod
     def fromJson(cls, jsonDict):
         ManagerUid = jsonDict['manager_uid']

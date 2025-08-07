@@ -54,9 +54,10 @@ class FwConfigNormalized(FwConfig):
     gateways: list[Gateway] = []
     ConfigFormat: ConfFormat = ConfFormat.NORMALIZED_LEGACY
 
-    class Config:
-        arbitrary_types_allowed = True
 
+    model_config = {
+        "arbitrary_types_allowed": True
+    }
 
     def getRulebase(self, rulebaseUid: str) -> Rulebase:
         """

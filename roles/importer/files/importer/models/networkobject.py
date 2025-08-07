@@ -1,4 +1,4 @@
-from pydantic import BaseModel, validator, root_validator
+from pydantic import BaseModel, field_validator
 from netaddr import IPAddress, IPNetwork, AddrFormatError
 import json
 
@@ -29,8 +29,8 @@ class NetworkObject(BaseModel):
         original_dict['obj_ip_end'] = str(self.obj_ip_end)  # Convert to string
         return original_dict
     
-    @validator('obj_ip', 'obj_ip_end', pre=True)
-    def convert_strings_to_ip_objects(cls, value, field):
+    @field_validator('obj_ip', 'obj_ip_end', mode='before')
+    def convert_strings_to_ip_objects(cls, value, info):
         """
         Convert string values to IPNetwork or IPAddress objects depending on the field type.
         """
@@ -38,7 +38,7 @@ class NetworkObject(BaseModel):
             if value == 'None':
                 return None
             # Determine the type of the field and convert appropriately
-            if field.name == 'obj_ip' or field.name == 'obj_ip_end':
+            if info.name == 'obj_ip' or info.name == 'obj_ip_end':
                 try:
                     return IPNetwork(value)
                 except AddrFormatError as e:
@@ -49,9 +49,10 @@ class NetworkObject(BaseModel):
         return value
     
 
-    class Config:
-        arbitrary_types_allowed = True
 
+    model_config = {
+        "arbitrary_types_allowed": True
+    }
 
 class NetworkObjectForImport():
     obj_uid: str

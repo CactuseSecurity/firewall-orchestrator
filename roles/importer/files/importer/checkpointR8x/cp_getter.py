@@ -13,7 +13,9 @@ import cp_const
 import fwo_const
 from fwo_exceptions import ImportInterruption
 from model_controllers.management_controller import ManagementController
-
+from services.service_provider import ServiceProvider
+from services.enums import Services
+from fwo_api_call import FwoApiCall, FwoApi
 
 def cp_api_call(url, command, json_payload, sid, show_progress=False):
     url += command
@@ -51,7 +53,7 @@ def login(mgm_details: ManagementController):
     if domain is not None and domain != '':
         payload.update({'domain': domain})
     base_url = mgm_details.buildFwApiString()
-    if int(debug_level)>2:
+    if int(fwo_globals.debug_level)>2:
         logger.debug(f"login - login to url {base_url} with user {mgm_details.ImportUser}")
     response = cp_api_call(base_url, 'login', payload, '')
     if "sid" not in response:
@@ -62,7 +64,7 @@ def login(mgm_details: ManagementController):
 
 def logout(url, sid):
     logger = getFwoLogger()
-    if int(debug_level)>2:
+    if int(fwo_globals.debug_level)>2:
         logger.debug("logout from url " + url)
     response = cp_api_call(url, 'logout', {}, sid)
     return response
@@ -157,12 +159,12 @@ def getPolicyStructure(api_v_url, sid, show_params_policy_structure, policyStruc
         # parse devices with ordered layers
         for package in packages['packages']:
             alreadyFetchedPackage = False
-
+            currentPackage = {}
             # parse package in case of supermanager
             if 'installation-targets' in package and package['installation-targets'] == 'all':
                 if not alreadyFetchedPackage:
                     
-                    currentPacakage = { 'name': package['name'],
+                    currentPackage = { 'name': package['name'],
                                         'uid': package['uid'],
                                         'targets': [{'name': 'all', 'uid': 'all'}],
                                         'access-layers': []}
@@ -174,13 +176,13 @@ def getPolicyStructure(api_v_url, sid, show_params_policy_structure, policyStruc
                     if 'target-name' in installationTarget and 'target-uid' in installationTarget:
 
                         if not alreadyFetchedPackage:
-                            currentPacakage = { 'name': package['name'],
+                            currentPackage = { 'name': package['name'],
                                                 'uid': package['uid'],
                                                 'targets': [],
                                                 'access-layers': []}
                             alreadyFetchedPackage = True
 
-                        currentPacakage['targets'].append({ 'name': installationTarget['target-name'],
+                        currentPackage['targets'].append({ 'name': installationTarget['target-name'],
                                                             'uid': installationTarget['target-uid']})
                     else:
                         logger.warning ( 'installation target in package: ' + package['uid'] + ' is missing name or uid')
@@ -190,14 +192,14 @@ def getPolicyStructure(api_v_url, sid, show_params_policy_structure, policyStruc
                 if 'access-layers' in package:
                     for accessLayer in package['access-layers']:
                         if 'name' in accessLayer and 'uid' in accessLayer:
-                            currentPacakage['access-layers'].append({ 'name': accessLayer['name'],
+                            currentPackage['access-layers'].append({ 'name': accessLayer['name'],
                                                                         'uid': accessLayer['uid'],
                                                                         'domain': accessLayer['domain']['uid']})
                         else:
                             logger.warning ( 'access layer in package: ' + package['uid'] + ' is missing name or uid')
                 # in future threat-layers may be fetched the same way as access-layers
                 
-                policyStructure.append(currentPacakage)
+                policyStructure.append(currentPackage)
 
     return 0
 
@@ -264,15 +266,15 @@ def get_rulebases(api_v_url, sid, show_params_rules, nativeConfigDomain, deviceC
     
     # access_type: access / nat
     logger = getFwoLogger()
+    nativeConfigRulebaseKey = 'rulebases'
+    current_rulebase = {}
 
     if nativeConfigDomain is None:
         nativeConfigDomain = {'rulebases': [], 'nat_rulebases': []}
     if deviceConfig is None:
         deviceConfig = {'rulebase_links': []}
 
-    if access_type == 'access':
-        nativeConfigRulebaseKey = 'rulebases'
-    elif access_type == 'nat':
+    if access_type == 'nat':
         nativeConfigRulebaseKey = 'nat_rulebases'
     else:
         logger.error('access_type is neither "access" nor "nat", but ' + access_type)
@@ -307,7 +309,7 @@ def get_rulebases(api_v_url, sid, show_params_rules, nativeConfigDomain, deviceC
 
 
 def get_uid_of_rulebase(rulebaseName, api_v_url, access_type, sid):
-
+    rulebaseUid = None
     get_rulebase_uid_params = {
         'name': rulebaseName,
         'limit': 1,
@@ -322,6 +324,7 @@ def get_uid_of_rulebase(rulebaseName, api_v_url, access_type, sid):
         logger.error("could not find uid for rulebase name=" + rulebaseName)
 
     return rulebaseUid
+
 
 def get_rulebases_in_chunks(rulebaseUid, show_params_rules, api_v_url, access_type, sid, nativeConfigDomain):
 
@@ -342,8 +345,13 @@ def get_rulebases_in_chunks(rulebaseUid, show_params_rules, api_v_url, access_ty
                 current_rulebase.update({'name': rulebase['name']})
         except Exception:
             logger.error("could not find rulebase uid=" + rulebaseUid)
-            # todo: need to get FWO API jwt here somehow:
-            # create_data_issue(fwo_api_base_url, jwt, severity=2, description="failed to get show-access-rulebase  " + rulebaseUid)
+
+            service_provider = ServiceProvider()
+            global_state = service_provider.get_service(Services.GLOBAL_STATE)
+            api_call = FwoApiCall(FwoApi(ApiUri=global_state.import_state.FwoConfig.FwoApiUri, Jwt=global_state.import_state.Jwt))
+            description = f"failed to get show-access-rulebase  {rulebaseUid}"
+            api_call.create_data_issue(severity=2, description=description)
+            raise FwApiError('')
 
         resolve_checkpoint_uids_via_object_dict(rulebase, nativeConfigDomain,
                                                 current_rulebase,
@@ -365,10 +373,13 @@ def resolve_checkpoint_uids_via_object_dict(rulebase, nativeConfigDomain,
                                                nativeConfigDomain=nativeConfigDomain)
         current_rulebase['chunks'].append(rulebase)
     except Exception:
-        logger.error("error while getting field " + ruleField + " of layer "
+        
+        logger.error("error while getting a field of layer "
                      + rulebaseUid + ", params: " + str(show_params_rules))
         
+
 def control_while_loop_in_get_rulebases_in_chunks(current_rulebase, rulebase, sid, api_v_url, show_params_rules):
+    total=0
     if 'total' in rulebase:
         total=rulebase['total']
     else:
@@ -388,6 +399,7 @@ def control_while_loop_in_get_rulebases_in_chunks(current_rulebase, rulebase, si
         else:
             raise Exception ( "get_nat_rules_from_api - rulebase does not contain to field, get_rulebase_chunk_from_api found garbled json " + str(rulebase))
     return total, current
+
 
 def get_inline_layers_recursively(current_rulebase, deviceConfig, nativeConfigDomain, api_v_url, sid, show_params_rules, is_global, policy_rulebases_uid_list):
     """Takes current_rulebase, splits sections into sub-rulebases and searches for layerguards to fetch
@@ -493,7 +505,6 @@ def assign_placeholder_uids(rulebase, section, rule, placeholder_rule_uid, place
     return placeholder_rule_uid, placeholder_rulebase_uid
     
                             
-
 def get_nat_rules_from_api_as_dict (api_v_url, sid, show_params_rules, nativeConfigDomain={}):
     logger = getFwoLogger()
     nat_rules = { "nat_rule_chunks": [] }

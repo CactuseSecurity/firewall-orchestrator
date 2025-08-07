@@ -1,4 +1,5 @@
-#!/usr/bin/python3
+#!/usr/local/fworch/venv/bin/python
+
 import sys, traceback
 from fwo_log import getFwoLogger
 import argparse

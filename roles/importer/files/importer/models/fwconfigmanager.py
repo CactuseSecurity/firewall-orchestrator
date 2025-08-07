@@ -10,5 +10,8 @@ class FwConfigManager(BaseModel):
     SubManagerIds: list[int] = []
     Configs: list[FwConfigNormalized] = []
 
-    class Config:
-        arbitrary_types_allowed = True
+
+    model_config = {
+        "arbitrary_types_allowed": True
+    }
+    

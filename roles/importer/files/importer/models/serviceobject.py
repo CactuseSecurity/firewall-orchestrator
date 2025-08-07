@@ -16,8 +16,6 @@ class ServiceObject(BaseModel):
     svc_timeout: int|None = None
     rpc_nr: str|None = None
 
-    # class Config:
-    #     arbitrary_types_allowed = True
 
 class ServiceObjectForImport():
     svc_uid: str

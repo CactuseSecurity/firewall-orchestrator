@@ -1,33 +1,35 @@
 from fwo_log import getFwoLogger
 import fwo_globals
+from typing import Any
 
 
 """
     normalize all gateway details
 """
-def normalizeGateways (nativeConfig, importState, normalizedConfig):
-    if debug_level>0:
+def normalize_gateways (nativeConfig, importState, normalizedConfig):
+    if fwo_globals.debug_level>0:
         logger = getFwoLogger()
     
     normalizedConfig['gateways'] = []
-    normalizeRulebaseLinks (nativeConfig, importState, normalizedConfig)
-    normalizeInterfaces (nativeConfig, importState, normalizedConfig)
-    normalizeRouting (nativeConfig, importState, normalizedConfig)
+    normalize_rulebase_links (nativeConfig, importState, normalizedConfig)
+    normalize_interfaces (nativeConfig, importState, normalizedConfig)
+    normalize_routing (nativeConfig, importState, normalizedConfig)
 
 
-def normalizeRulebaseLinks (nativeConfig, importState, normalizedConfig):
+def normalize_rulebase_links (nativeConfig, importState, normalizedConfig):
     gwRange = range(len(nativeConfig['gateways']))
     for gwId in gwRange:
         gwUid = nativeConfig['gateways'][gwId]['uid']
-        if not gwInNormalizedConfig(normalizedConfig, gwUid):
-            gwNormalized = createNormalizedGateway(nativeConfig, gwId)
+        if not gw_in_normalized_config(normalizedConfig, gwUid):
+            gwNormalized = create_normalized_gateway(nativeConfig, gwId)
             normalizedConfig['gateways'].append(gwNormalized)
         for gwNormalized in normalizedConfig['gateways']:
             if gwNormalized['Uid'] == gwUid:
-                gwNormalized['RulebaseLinks'] = getNormalizedRulebaseLink(nativeConfig, gwId)
+                gwNormalized['RulebaseLinks'] = get_normalized_rulebase_link(nativeConfig, gwId)
                 break
 
-def getNormalizedRulebaseLink(nativeConfig, gwId):
+
+def get_normalized_rulebase_link(nativeConfig, gwId):
     links = nativeConfig.get('gateways', {})[gwId].get('rulebase_links')
     for link in links:
         if 'type' in link:
@@ -45,7 +47,8 @@ def getNormalizedRulebaseLink(nativeConfig, gwId):
                 link['from_rule_uid'] = None
     return links
 
-def createNormalizedGateway(nativeConfig, gwId):
+
+def create_normalized_gateway(nativeConfig, gwId) -> dict[str, Any]:
     gw = {}
     gw['Uid'] = nativeConfig['gateways'][gwId]['uid']
     gw['Name'] = nativeConfig['gateways'][gwId]['name']
@@ -55,15 +58,17 @@ def createNormalizedGateway(nativeConfig, gwId):
     return gw
             
 
-def normalizeInterfaces (nativeConfig, importState, normalizedConfig):
+def normalize_interfaces (nativeConfig, importState, normalizedConfig):
     # TODO: Implement this
     pass
 
-def normalizeRouting (nativeConfig, importState, normalizedConfig):
+
+def normalize_routing (nativeConfig, importState, normalizedConfig):
     # TODO: Implement this
     pass
 
-def gwInNormalizedConfig(normalizedConfig, gwUid):
+
+def gw_in_normalized_config(normalizedConfig, gwUid) -> bool:
     for gw in normalizedConfig['gateways']:
         if gw['Uid'] == gwUid:
             return True

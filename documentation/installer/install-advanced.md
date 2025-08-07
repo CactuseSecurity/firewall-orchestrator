@@ -75,7 +75,7 @@ If you use authentication:
 
     Acquire::http::Proxy "http://user:password@proxy_server:port/";
 
-Note that the following domains must be reachable through the proxy:
+Note that the following domains (and their sub-domains) must be reachable through the proxy:
 
     cactus.de (only for downloading test data, not needed if run with "--skip-tags test")
     ubuntu.com
@@ -91,17 +91,12 @@ Note that the following domains must be reachable through the proxy:
     nuget.org
     googlechromelabs.github.io
     storage.googleapis.com
-  
-  Only for the initial setup of python venv
-  
     pypi.org
-    pythonhosted.org
+    pythonhosted.org (and sub-domains)
     snapcraft.io
     snapcraftcontent.com (and sub-domains)
+    visualstudio.com (for vscode-debugging only)
 
-NB: for vscode-debugging, you also need access to
-
-    visualstudio.com
 
 
 #### Pyhton proxy config

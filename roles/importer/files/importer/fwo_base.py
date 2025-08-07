@@ -48,13 +48,16 @@ def csv_add_field(content, no_csv_delimiter=False):
     return field_result
  
 
-def sanitize(content):
-    if content == None:
+def sanitize(content, lower: bool = False) -> None | str:
+    if content is None:
         return None
     result = str(content)
     result = result.replace(apostrophe,"")  # remove possibly contained apostrophe
     result = result.replace(line_delimiter," ")  # replace possibly contained CR with space
-    return result
+    if lower:
+        return result.lower()
+    else:
+        return result
 
 
 def extend_string_list(list_string, src_dict, key, delimiter, jwt=None, import_id=None):

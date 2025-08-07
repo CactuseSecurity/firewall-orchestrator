@@ -87,12 +87,9 @@ namespace FWO.Middleware.Server
         {
             globCheckParams = System.Text.Json.JsonSerializer.Deserialize<RecertCheckParams>(globalConfig.RecCheckParams);
             List<Ldap> connectedLdaps = apiConnectionMiddlewareServer.SendQueryAsync<List<Ldap>>(AuthQueries.getLdapConnections).Result;
-            foreach (Ldap currentLdap in connectedLdaps)
+            foreach (Ldap currentLdap in connectedLdaps.Where(l => l.IsInternal() && l.HasGroupHandling()))
             {
-                if (currentLdap.IsInternal() && currentLdap.HasGroupHandling())
-                {
-                    groups.AddRange(await currentLdap.GetAllInternalGroups());
-                }
+                groups.AddRange(await currentLdap.GetAllInternalGroups());
             }
             uiUsers = await apiConnectionMiddlewareServer.SendQueryAsync<List<UiUser>>(AuthQueries.getUsers);
             owners = await apiConnectionMiddlewareServer.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);

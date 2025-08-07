@@ -24,6 +24,7 @@
                 </div>
             </Template>
         </Column>
+        <Column TableItem="FwoNotification" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="false" />
         <Column TableItem="FwoNotification" Title="@(userConfig.GetText("notification"))" Field="@(x => x.Id)" Sortable="false" Filterable="false">
             <Template>
                 @(DisplayNotification(context))
@@ -290,6 +291,7 @@
 
     public string DisplayNotification(FwoNotification notification)
     {
+        // todo: change to name?
         return $"{notification.OffsetBeforeDeadline} {userConfig.GetText(notification.IntervalBeforeDeadline.ToString())}: {notification.RecipientTo.ToString()}";
     }
 
@@ -303,55 +305,62 @@
         try
         {
             SyncAddresses();
-            if(AddNotifMode)
+            if(CheckConsistency())
             {
-                var Variables = new
+                if(AddNotifMode)
                 {
-                    client = Client.ToString(),
-                    channel = actNotification.Channel.ToString(),
-                    recipientTo = actNotification.RecipientTo.ToString(),
-                    emailAddressTo = actNotification.EmailAddressTo,
-                    recipientCc = actNotification.RecipientCc.ToString(),
-                    emailAddressCc = actNotification.EmailAddressCc,
-                    subject = actNotification.EmailSubject,
-                    layout = actNotification.Layout.ToString(),
-                    deadline = actNotification.Deadline.ToString(),
-                    intervalBeforeDeadline = (int)actNotification.IntervalBeforeDeadline,
-                    offsetBeforeDeadline = actNotification.OffsetBeforeDeadline,
-                    intervalAfterDeadline = (int)actNotification.RepeatIntervalAfterDeadline,
-                    offsetAfterDeadline = actNotification.RepeatOffsetAfterDeadline,
-                    repetitionsAfterDeadline = actNotification.RepetitionsAfterDeadline
-                };
-                ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(NotificationQueries.addNotification, Variables)).ReturnIds;
-                if (returnIds != null)
-                {
-                    actNotification.Id = returnIds[0].NewId;
-                    Notifications.Add(actNotification);
+                    var Variables = new
+                    {
+                        client = Client.ToString(),
+                        channel = actNotification.Channel.ToString(),
+                        recipientTo = actNotification.RecipientTo.ToString(),
+                        emailAddressTo = actNotification.EmailAddressTo,
+                        recipientCc = actNotification.RecipientCc.ToString(),
+                        emailAddressCc = actNotification.EmailAddressCc,
+                        subject = actNotification.EmailSubject,
+                        layout = actNotification.Layout.ToString(),
+                        deadline = actNotification.Deadline.ToString(),
+                        intervalBeforeDeadline = (int)actNotification.IntervalBeforeDeadline,
+                        offsetBeforeDeadline = actNotification.OffsetBeforeDeadline,
+                        intervalAfterDeadline = (int)actNotification.RepeatIntervalAfterDeadline,
+                        offsetAfterDeadline = actNotification.RepeatOffsetAfterDeadline,
+                        repetitionsAfterDeadline = actNotification.RepetitionsAfterDeadline
+                    };
+                    ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(NotificationQueries.addNotification, Variables)).ReturnIds;
+                    if (returnIds != null)
+                    {
+                        actNotification.Id = returnIds[0].NewId;
+                        Notifications.Add(actNotification);
+                    }
                 }
+                else
+                {
+                    var Variables = new
+                    {
+                        id = actNotification.Id,
+                        channel = actNotification.Channel.ToString(),
+                        recipientTo = actNotification.RecipientTo.ToString(),
+                        emailAddressTo = actNotification.EmailAddressTo,
+                        recipientCc = actNotification.RecipientCc.ToString(),
+                        emailAddressCc = actNotification.EmailAddressCc,
+                        subject = actNotification.EmailSubject,
+                        layout = actNotification.Layout.ToString(),
+                        deadline = actNotification.Deadline.ToString(),
+                        intervalBeforeDeadline = (int)actNotification.IntervalBeforeDeadline,
+                        offsetBeforeDeadline = actNotification.OffsetBeforeDeadline,
+                        intervalAfterDeadline = (int)actNotification.RepeatIntervalAfterDeadline,
+                        offsetAfterDeadline = actNotification.RepeatOffsetAfterDeadline,
+                        repetitionsAfterDeadline = actNotification.RepetitionsAfterDeadline
+                    };
+                    await apiConnection.SendQueryAsync<ReturnIdWrapper>(NotificationQueries.updateNotification, Variables);
+                    Notifications[Notifications.FindIndex(x => x.Id == actNotification.Id)] = actNotification;
+                }
+                Close();
             }
             else
             {
-                var Variables = new
-                {
-                    id = actNotification.Id,
-                    channel = actNotification.Channel.ToString(),
-                    recipientTo = actNotification.RecipientTo.ToString(),
-                    emailAddressTo = actNotification.EmailAddressTo,
-                    recipientCc = actNotification.RecipientCc.ToString(),
-                    emailAddressCc = actNotification.EmailAddressCc,
-                    subject = actNotification.EmailSubject,
-                    layout = actNotification.Layout.ToString(),
-                    deadline = actNotification.Deadline.ToString(),
-                    intervalBeforeDeadline = (int)actNotification.IntervalBeforeDeadline,
-                    offsetBeforeDeadline = actNotification.OffsetBeforeDeadline,
-                    intervalAfterDeadline = (int)actNotification.RepeatIntervalAfterDeadline,
-                    offsetAfterDeadline = actNotification.RepeatOffsetAfterDeadline,
-                    repetitionsAfterDeadline = actNotification.RepetitionsAfterDeadline
-                };
-                await apiConnection.SendQueryAsync<ReturnIdWrapper>(NotificationQueries.updateNotification, Variables);
-                Notifications[Notifications.FindIndex(x => x.Id == actNotification.Id)] = actNotification;
+                DisplayMessageInUi(null, userConfig.GetText("edit_notification"), "Data not consistent", false);
             }
-              Close();
         }
         catch (Exception exception)
         {
@@ -376,12 +385,19 @@
         actNotification.EmailAddressCc = String.Join(",", CcAddresses);
     }
 
+    private bool CheckConsistency()
+    {
+        // Todo...
+        return true;
+    }
+
     private async Task Delete()
     {
         try
         {
             await apiConnection.SendQueryAsync<ReturnIdWrapper>(NotificationQueries.deleteNotification, new { id = actNotification.Id });
             Notifications.Remove(actNotification);
+            DeleteNotifMode = false;
             StateHasChanged();
         }
         catch (Exception exception)

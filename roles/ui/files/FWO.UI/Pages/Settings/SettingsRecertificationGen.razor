@@ -104,31 +104,36 @@
                 </div>
             </div>
         </div>
-
-        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5459"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("recCheckNotifications")):</label>
-            <div class="col-sm-8">
-                <EditNotifications Client="NotificationClient.Recertification"/>
+        @if(configData!.RecertificationMode == RecertificationMode.OwnersAndRules)
+        {
+            <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5459"))">
+                <label class="col-form-label col-sm-4">@(userConfig.GetText("recCheckNotifications")):</label>
+                <div class="col-sm-8">
+                    <EditNotifications Client="NotificationClient.Recertification"/>
+                </div>
             </div>
-        </div>
-        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5430"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("recCheckEmailSubject")):</label>
-            <div class="col-sm-8">
-                <input type="text" class="form-control form-control-sm w-100" @bind="configData!.RecCheckEmailSubject" />
+        }
+        else
+        {
+            <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5430"))">
+                <label class="col-form-label col-sm-4">@(userConfig.GetText("recCheckEmailSubject")):</label>
+                <div class="col-sm-8">
+                    <input type="text" class="form-control form-control-sm w-100" @bind="configData!.RecCheckEmailSubject" />
+                </div>
             </div>
-        </div>
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5446"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("recCheckEmailUpcomingText")):</label>
-            <div class="col-sm-8">
-                <input type="text" class="form-control form-control-sm w-100" @bind="configData!.RecCheckEmailUpcomingText" />
+            <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5446"))">
+                <label class="col-form-label col-sm-4">@(userConfig.GetText("recCheckEmailUpcomingText")):</label>
+                <div class="col-sm-8">
+                    <input type="text" class="form-control form-control-sm w-100" @bind="configData!.RecCheckEmailUpcomingText" />
+                </div>
             </div>
-        </div>
-            <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5432"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("recCheckEmailOverdueText")):</label>
-            <div class="col-sm-8">
-                <input type="text" class="form-control form-control-sm w-100" @bind="configData!.RecCheckEmailOverdueText" />
+                <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5432"))">
+                <label class="col-form-label col-sm-4">@(userConfig.GetText("recCheckEmailOverdueText")):</label>
+                <div class="col-sm-8">
+                    <input type="text" class="form-control form-control-sm w-100" @bind="configData!.RecCheckEmailOverdueText" />
+                </div>
             </div>
-        </div>
+        }
         <hr />
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5433"))">
             <label for="cbx_rec_auto_create_delete_ticket" class="col-form-label col-sm-4">@(userConfig.GetText("recAutocreateDeleteTicket")):</label>

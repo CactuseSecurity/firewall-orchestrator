@@ -123,11 +123,11 @@ namespace FWO.Middleware.Server
             DateTime nextCheck;
             if (checkParams.RecertCheckWeekday == null)
             {
-                nextCheck = lastCheck.AddDays(checkParams.RecertCheckOffset * 7);
+                nextCheck = lastCheck.AddDays(checkParams.RecertCheckOffset * GlobalConst.kDaysPerWeek);
             }
             else
             {
-                nextCheck = lastCheck.AddDays((checkParams.RecertCheckOffset - 1) * 7 + 1);
+                nextCheck = lastCheck.AddDays((checkParams.RecertCheckOffset - 1) * GlobalConst.kDaysPerWeek + 1);
                 int count = 0;
                 while (nextCheck.DayOfWeek != (DayOfWeek)checkParams.RecertCheckWeekday && count < 6)
                 {

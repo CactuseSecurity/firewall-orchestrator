@@ -217,7 +217,7 @@
     {
         try
         {
-            Notifications = await apiConnection.SendQueryAsync<List<FwoNotification>>(NotificationQueries.getNotifications, new { client = Client });
+            Notifications = await apiConnection.SendQueryAsync<List<FwoNotification>>(NotificationQueries.getNotifications, new { client = Client.ToString() });
             InitActNotification();
         }
         catch (Exception exception)
@@ -316,9 +316,9 @@
                     subject = actNotification.EmailSubject,
                     layout = actNotification.Layout.ToString(),
                     deadline = actNotification.Deadline.ToString(),
-                    intervalBeforeDeadline = actNotification.IntervalBeforeDeadline,
+                    intervalBeforeDeadline = (int)actNotification.IntervalBeforeDeadline,
                     offsetBeforeDeadline = actNotification.OffsetBeforeDeadline,
-                    intervalAfterDeadline = actNotification.RepeatIntervalAfterDeadline,
+                    intervalAfterDeadline = (int)actNotification.RepeatIntervalAfterDeadline,
                     offsetAfterDeadline = actNotification.RepeatOffsetAfterDeadline,
                     repetitionsAfterDeadline = actNotification.RepetitionsAfterDeadline
                 };
@@ -342,9 +342,9 @@
                     subject = actNotification.EmailSubject,
                     layout = actNotification.Layout.ToString(),
                     deadline = actNotification.Deadline.ToString(),
-                    intervalBeforeDeadline = actNotification.IntervalBeforeDeadline,
+                    intervalBeforeDeadline = (int)actNotification.IntervalBeforeDeadline,
                     offsetBeforeDeadline = actNotification.OffsetBeforeDeadline,
-                    intervalAfterDeadline = actNotification.RepeatIntervalAfterDeadline,
+                    intervalAfterDeadline = (int)actNotification.RepeatIntervalAfterDeadline,
                     offsetAfterDeadline = actNotification.RepeatOffsetAfterDeadline,
                     repetitionsAfterDeadline = actNotification.RepetitionsAfterDeadline
                 };
@@ -382,6 +382,7 @@
         {
             await apiConnection.SendQueryAsync<ReturnIdWrapper>(NotificationQueries.deleteNotification, new { id = actNotification.Id });
             Notifications.Remove(actNotification);
+            StateHasChanged();
         }
         catch (Exception exception)
         {

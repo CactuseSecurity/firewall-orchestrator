@@ -74,7 +74,7 @@ namespace FWO.Middleware.Server
                 var notifDate = notification.IntervalBeforeDeadline switch
                 {
                     SchedulerInterval.Days => deadline.AddDays(-notification.OffsetBeforeDeadline ?? 0),
-                    SchedulerInterval.Weeks => deadline.AddDays(-notification.OffsetBeforeDeadline * 7 ?? 0),
+                    SchedulerInterval.Weeks => deadline.AddDays(-notification.OffsetBeforeDeadline * GlobalConst.kDaysPerWeek ?? 0),
                     SchedulerInterval.Months => deadline.AddMonths(-notification.OffsetBeforeDeadline ?? 0),
                     _ => throw new NotSupportedException("Time interval is not supported.")
                 };
@@ -90,7 +90,7 @@ namespace FWO.Middleware.Server
                     nextNotifDate = notification.RepeatIntervalAfterDeadline switch
                     {
                         SchedulerInterval.Days => nextNotifDate.AddDays(notification.RepeatOffsetAfterDeadline ?? 0),
-                        SchedulerInterval.Weeks => nextNotifDate.AddDays(notification.RepeatOffsetAfterDeadline * 7 ?? 0),
+                        SchedulerInterval.Weeks => nextNotifDate.AddDays(notification.RepeatOffsetAfterDeadline * GlobalConst.kDaysPerWeek ?? 0),
                         SchedulerInterval.Months => nextNotifDate.AddMonths(notification.RepeatOffsetAfterDeadline ?? 0),
                         _ => throw new NotSupportedException("Time interval is not supported."),
                     };

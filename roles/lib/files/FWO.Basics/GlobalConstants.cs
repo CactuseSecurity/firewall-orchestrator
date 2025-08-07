@@ -20,6 +20,7 @@ namespace FWO.Basics
         public const int kHoursToMilliseconds = 3600000;
         public const int kMinutesToMilliseconds = 60000;
         public const int kSecondsToMilliseconds = 1000;
+		public const int kDaysPerWeek = 7;
         public const int kMaxPortNumber = 65535;
 
         public const string kHtml = "html";

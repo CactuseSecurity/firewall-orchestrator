@@ -41,6 +41,12 @@
     [Parameter]
     public EventCallback<bool> DisplayChanged { get; set; }
 
+    [Parameter]
+    public List<ComplianceCriterion> Matrices { get; set; } = [];
+
+    [Parameter]
+    public EventCallback<List<ComplianceCriterion>> MatricesChanged { get; set; }
+
     private string MatrixName { get; set; } = "";
 
     private void Cancel()
@@ -60,7 +66,11 @@
             }
             else if(MatrixName != "")
             {
-                await apiConnection.SendQueryAsync<ReturnId>(ComplianceQueries.addCriterion, new { name = MatrixName, criterionType = CriterionType.Matrix.ToString() });
+                ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(ComplianceQueries.addCriterion, new { name = MatrixName, criterionType = CriterionType.Matrix.ToString() })).ReturnIds;
+                if(returnIds != null && returnIds.Length > 0)
+                {
+                    Matrices.Add(new(){ Id = returnIds[0].InsertedId, Name = MatrixName, CriterionType = CriterionType.Matrix.ToString() });
+                }
                 Close();
             }
         }

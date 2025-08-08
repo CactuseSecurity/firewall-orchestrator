@@ -12,15 +12,20 @@ After=network.target remote-fs.target nss-lookup.target
 {%- endif %}
 
 [Service]
+Type=simple
 WorkingDirectory={{ importer_home }}
 ExecStartPre=/bin/sleep 10
-ExecStart={{ importer_home }}/import-main-loop.py
+ExecStart={{ importer_home }}/venv/bin/python {{ importer_home}}/import-main-loop.py
+Environment="PATH={{ importer_home }}/venv/bin"
+Environment="VIRTUAL_ENV={{ importer_home }}/venv"
 TimeoutStopSec=300min
 StandardOutput=journal
 StandardError=journal
 SyslogIdentifier={{ product_name }}-importer-api
 User={{ fworch_user }}
 KillSignal=SIGINT
+Group={{ fworch_group }}
+Restart=always
 
 [Install]
 WantedBy=multi-user.target

@@ -102,7 +102,7 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
         importState.addError("ValueError - aborting import")
         raise
     except Exception as e:
-        handle_unexpected_exception(importState=importState, config_importer=config_importer)
+        handle_unexpected_exception(importState=importState, config_importer=config_importer, e=e)
     finally:
         try:
             api_call.complete_import(importState)
@@ -118,6 +118,9 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
 
 def _import_management(service_provider, importState: ImportStateController, config_importer=None, mgmId=None, ssl_verification=None, debug_level_in=0,
         limit=150, clearManagementData=False, suppress_cert_warnings_in=None, in_file=None) -> None:
+
+    if config_importer is None:
+        config_importer = FwConfigImport()
 
     logger = getFwoLogger(debug_level=debug_level_in)
     config_changed_since_last_import = True
@@ -165,7 +168,7 @@ def _import_management(service_provider, importState: ImportStateController, con
 
 
 
-def handle_unexpected_exception(importState=None, config_importer=None):
+def handle_unexpected_exception(importState=None, config_importer=None, e=None):
     if 'importState' in locals() and importState is not None:
         importState.addError("Unexpected exception in import process - aborting " + traceback.format_exc())
         if 'configImporter' in locals() and config_importer is not None:
@@ -173,8 +176,8 @@ def handle_unexpected_exception(importState=None, config_importer=None):
 
 
 def rollBackExceptionHandler(importState, configImporter=None, exc=None, errorText=""):
+    logger = getFwoLogger()
     try:
-        logger = getFwoLogger()
         if fwo_globals.shutdown_requested:
             logger.warning("Shutdown requested.")
         elif errorText!="":
@@ -193,8 +196,10 @@ def rollBackExceptionHandler(importState, configImporter=None, exc=None, errorTe
         logger.error(f"Error during rollback: {type(rollbackError).__name__} - {rollbackError}")
 
 
-def get_config_top_level(importState: ImportStateController, in_file: str = None, gateways: list[Gateway] = []) -> tuple[bool, FwConfigManagerList]:
+def get_config_top_level(importState: ImportStateController, in_file: str|None = None, gateways: list[Gateway]|None = None) \
+    -> tuple[bool, FwConfigManagerListController]:
     config_from_file = {}
+    if gateways is None: gateways = []
     if in_file is not None or stringIsUri(importState.MgmDetails.Hostname):
         ### geting config from file ######################
         if in_file is None:
@@ -208,7 +213,7 @@ def get_config_top_level(importState: ImportStateController, in_file: str = None
     return get_config_from_api(importState, config_from_file)    
 
 
-def import_from_file(importState: ImportStateController, fileName: str = "", gateways: list[Gateway] = []) -> tuple[bool, FwConfigManagerList]:
+def import_from_file(importState: ImportStateController, fileName: str = "", gateways: list[Gateway] = []) -> tuple[bool, FwConfigManagerListController]:
 
     logger = getFwoLogger(debug_level=importState.DebugLevel)
     logger.debug(f"import_management - not getting config from API but from file: {fileName}")
@@ -222,7 +227,7 @@ def import_from_file(importState: ImportStateController, fileName: str = "", gat
     return config_changed_since_last_import, configFromFile
 
 
-def get_config_from_api(importState: ImportStateController, configNative) -> tuple[bool, FwConfigManagerList]:
+def get_config_from_api(importState: ImportStateController, configNative) -> tuple[bool, FwConfigManagerListController]:
     logger = getFwoLogger(debug_level=importState.DebugLevel)
 
     try: # pick product-specific importer:
@@ -250,7 +255,8 @@ def get_config_from_api(importState: ImportStateController, configNative) -> tup
 
     write_native_config_to_file(importState, configNative.native_config)
 
-    logger.debug("import_management: get_config completed (including normalization), duration: " + str(int(time.time()) - importState.StartTime) + "s") 
+    logger.debug("import_management: get_config completed (including normalization), duration: " 
+                 + str(int(time.time()) - importState.StartTime) + "s") 
 
     return config_changed_since_last_import, normalized_config_list
 

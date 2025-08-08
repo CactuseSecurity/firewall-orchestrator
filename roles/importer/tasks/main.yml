@@ -19,11 +19,20 @@
     delegate_to: "{{ inventory_hostname }}"
     when: importer_dir_check.stat.exists and installation_mode == "upgrade"
 
-  - name: remove importer dir
+  - name: remove importer dir for cleaning up all old code
     file:
       state: absent
       path: "{{ fworch_home }}/importer"
     when: installation_mode == "upgrade"
+
+  - name: copy importer files
+    synchronize:
+      src: "importer"
+      dest: "{{ fworch_home }}"
+      rsync_opts:
+        - "--chmod=0755"
+        - "--chown={{ fworch_user }}:{{ fworch_group }}"
+    tags: [ 'test' ]
 
   - name: Install importer perl modules 
     package: name={{ item }} state=present
@@ -36,28 +45,21 @@
       - libsys-syslog-perl 
       - libexpect-perl
       - libcgi-pm-perl
-      - python3-jsonpickle
-      - python3-gnupg
-      - python3-pytest
-      - python3-pydantic
-      - python3-graphql-core
 
-  - name: Install importer python modules
-    package: name={{ item }} state=present
-    loop:
-      - python3-netaddr
-      - python3-jsonpickle
-      - python3-gnupg
-      - python3-pydantic
+  - name: Install importer python3-venv package (for Ubuntu/Debian)
+    package:
+      name: python3-venv
+      state: present
 
-  - name: copy importer files
-    synchronize:
-      src: "importer"
-      dest: "{{ fworch_home }}"
-      rsync_opts:
-        - "--chmod=0755"
-        - "--chown={{ fworch_user }}:{{ fworch_group }}"
-    tags: [ 'test' ]
+  - name: Create Python virtual environment
+    ansible.builtin.command:
+      cmd: python3 -m venv {{ fworch_home }}/importer/venv
+      creates: "{{ fworch_home }}/importer/venv"
+
+  - name: Install Python packages from requirements.txt
+    ansible.builtin.pip:
+      requirements: "{{ fworch_home }}/importer/requirements.txt"
+      virtualenv: "{{ fworch_home }}/importer/venv"
 
   - name: set x-flag for importer executables (top level only)
     file:

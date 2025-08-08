@@ -90,14 +90,14 @@ class FwConfigImport():
 
 
 
-    def clear_management(self) -> FwConfigNormalized:
+    def clear_management(self) -> FwConfigManagerListController:
         logger = getFwoLogger(debug_level=self.import_state.DebugLevel)
         logger.info('this import run will reset the configuration of this management to "empty"')
         configNormalized = FwConfigManagerListController()
         # Reset management
         configNormalized.addManager(
             manager=FwConfigManager(
-                ManagerUid=ManagementController.calcManagerUidHash(import_state.MgmDetails),
+                ManagerUid=ManagementController.calcManagerUidHash(self.import_state.MgmDetails),
                 ManagerName=self.import_state.MgmDetails.Name,
                 IsSuperManager=self.import_state.MgmDetails.IsSuperManager,
                 SubManagerIds=self.import_state.MgmDetails.SubManagerIds,
@@ -136,10 +136,10 @@ class FwConfigImport():
             management.Configs.append(
                 FwConfigNormalized(
                     action=ConfigAction.INSERT, 
-                    network_objects=[], 
-                    service_objects=[], 
-                    users=[], 
-                    zone_objects=[], 
+                    network_objects={}, 
+                    service_objects={}, 
+                    users={}, 
+                    zone_objects={}, 
                     rulebases=[],
                     gateways=[]
                 )

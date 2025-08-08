@@ -50,6 +50,13 @@ class FwoApiFailedLockImport(Exception):
         self.message = message
         super().__init__(self.message)
 
+class FwoApiFailedUnLockImport(Exception):
+    """Raised when unable to remove import lock"""
+
+    def __init__(self, message="Unlocking import failed"):
+        self.message = message
+        super().__init__(self.message)
+
 class FwoApiWriteError(Exception):
     """Raised when an FWO API mutation fails"""
 

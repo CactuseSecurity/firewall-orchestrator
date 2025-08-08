@@ -52,21 +52,20 @@ def get_config(config_in: FwConfigManagerList, importState: ImportStateControlle
     if not parsing_config_only: # get config from cp fw mgr
         starttime = int(time.time())
         initialize_native_config(config_in, importState)
+
         start_time_temp = int(time.time())
         logger.debug ( "checkpointR8x/get_config/getting objects ...")
 
         result_get_objects = get_objects(config_in.native_config, importState)
         if result_get_objects>0:
-            logger.warning ( "checkpointR8x/get_config/error while gettings objects")
-            return result_get_objects
+            raise FwLoginFailed( "checkpointR8x/get_config/error while gettings objects")
         logger.debug ( "checkpointR8x/get_config/fetched objects in " + str(int(time.time()) - start_time_temp) + "s")
 
         start_time_temp = int(time.time())
         logger.debug ( "checkpointR8x/get_config/getting rules ...")
         result_get_rules = get_rules (config_in.native_config, importState)
         if result_get_rules>0:
-            logger.warning ( "checkpointR8x/get_config/error while gettings rules")
-            return result_get_rules
+            raise FwLoginFailed( "checkpointR8x/get_config/error while gettings rules")
         logger.debug ( "checkpointR8x/get_config/fetched rules in " + str(int(time.time()) - start_time_temp) + "s")
 
         duration = int(time.time()) - starttime
@@ -477,7 +476,7 @@ def logout_cp(url, sid):
         logger.warning("logout from CP management failed")
 
 
-def get_objects(nativeConfig: dict, importState: ImportStateController) -> int:
+def get_objects(native_config_dict: dict, importState: ImportStateController) -> int:
     show_params_objs = {'limit': importState.FwoConfig.ApiFetchSize}
     manager_details_list = create_ordered_manager_list(importState)
             
@@ -499,14 +498,14 @@ def get_objects(nativeConfig: dict, importState: ImportStateController) -> int:
             # Check Point Data (perdefined objects)
             manager_details.DomainName = '' 
             manager_details.DomainUid = '' # Check Point Data 
-            get_objects_per_domain(manager_details, nativeConfig['domains'][0], obj_type_array, show_params_objs, is_stand_alone_manager=is_stand_alone_manager)
+            get_objects_per_domain(manager_details, native_config_dict['domains'][0], obj_type_array, show_params_objs, is_stand_alone_manager=is_stand_alone_manager)
             
             # global domain containing the manually added global objects
             manager_details.DomainName = 'Global' 
             manager_details.DomainUid = 'Global'  
-            get_objects_per_domain(manager_details, nativeConfig['domains'][0], obj_type_array, show_params_objs, is_stand_alone_manager=is_stand_alone_manager)
+            get_objects_per_domain(manager_details, native_config_dict['domains'][0], obj_type_array, show_params_objs, is_stand_alone_manager=is_stand_alone_manager)
         else:
-            get_objects_per_domain(manager_details, nativeConfig['domains'][manager_index], obj_type_array, show_params_objs, is_stand_alone_manager=is_stand_alone_manager)
+            get_objects_per_domain(manager_details, native_config_dict['domains'][manager_index], obj_type_array, show_params_objs, is_stand_alone_manager=is_stand_alone_manager)
 
         manager_index += 1
     return 0

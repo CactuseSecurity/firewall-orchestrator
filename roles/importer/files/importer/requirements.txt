@@ -7,3 +7,4 @@ graphql-core>=3.0
 requests>=2.0
 cryptography>=40.0
 netaddr>=1.0
+urllib3>=2.0

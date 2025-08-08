@@ -1,6 +1,5 @@
 # library for all FWORCH API calls in importer module
 import traceback
-import requests
 import json
 import datetime
 import time
@@ -14,6 +13,7 @@ from query_analyzer import QueryAnalyzer
 from model_controllers.import_statistics_controller import ImportStatisticsController
 from models.management import Management
 
+# NOTE: we cannot import ImportState(Controller) here due to circular refs
 
 class FwoApiCall(FwoApi):
 
@@ -97,6 +97,8 @@ class FwoApiCall(FwoApi):
                 self.set_alert(import_id=import_id, title="import error", mgm_id=str(mgm_id), severity=1, \
                     description="fwo_api: failed to get import lock", source='import', alertCode=15, mgm_details=mgm_details)
                 raise FwoApiFailedLockImport("fwo_api: failed to get import lock for management id " + str(mgm_id)) from None
+            else:
+                return import_id
 
 
     def count_rule_changes_per_import(self, import_id):
@@ -137,6 +139,8 @@ class FwoApiCall(FwoApi):
 
         try:
             unlock_result = self.call(unlock_mutation, query_variables=query_variables)
+            if 'errors' in unlock_result:
+                raise FwoApiFailedLockImport(unlock_result['errors'])
             changes_in_import_control = unlock_result['data']['update_import_control']['affected_rows']
         except Exception as e:
             logger.exception("failed to unlock import for management id " + str(mgm_id))
@@ -218,14 +222,15 @@ class FwoApiCall(FwoApi):
 
 
     def update_hits_via_api(self, importState, last_hit_update_mutation, query_varsLocal):
+        logger = getFwoLogger()
         try:
             update_result = self.call(last_hit_update_mutation, query_variables=query_varsLocal)
             if 'errors' in update_result:
-                getFwoLogger().logger.exception("fwo_api:update_hit_counter - error while updating hit counters for mgm id " +
+                logger.exception("fwo_api:update_hit_counter - error while updating hit counters for mgm id " +
                                 str(importState.MgmDetails.Id) + ": " + str(update_result['errors']))
             update_counter = len(update_result['data']['update_rule_metadata_many'])
         except Exception:
-            getFwoLogger().logger.exception("failed to update hit counter for mgm id " + str(importState.MgmDetails.Id))
+            logger.exception("failed to update hit counter for mgm id " + str(importState.MgmDetails.Id))
             return 1 # error
         
         return 0
@@ -311,7 +316,7 @@ class FwoApiCall(FwoApi):
                 return True
             # Acknowledge older alert for same problem on same management
             query_variables = { "mgmId": mgm_id, "alertCode": alertCode, "currentAlertId": newAlertId }
-            existingUnacknowledgedAlerts = self.call(self, getAlert_query, query_variables=query_variables)
+            existingUnacknowledgedAlerts = self.call(getAlert_query, query_variables=query_variables)
             if 'data' not in existingUnacknowledgedAlerts or 'alert' not in existingUnacknowledgedAlerts['data']:
                 return False
             for alert in existingUnacknowledgedAlerts['data']['alert']:

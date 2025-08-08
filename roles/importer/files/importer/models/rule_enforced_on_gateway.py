@@ -29,3 +29,7 @@ class RuleEnforcedOnGatewayNormalized(BaseModel, ImportStateController):
     rule_uid: str
     dev_uid: str
 
+
+    model_config = {
+        "arbitrary_types_allowed": True
+    }

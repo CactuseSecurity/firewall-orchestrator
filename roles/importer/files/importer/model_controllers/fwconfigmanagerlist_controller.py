@@ -41,7 +41,8 @@ class FwConfigManagerListController(FwConfigManagerList):
         if self.ConfigFormat==conf2.ConfigFormat:
             self.ManagerSet.extend(conf2.ManagerSet)
 
-    def generate_empty_config(self, is_super_manager=False):
+    @staticmethod
+    def generate_empty_config(is_super_manager=False):
         """
         Generates an empty FwConfigManagerListController with a single empty FwConfigManager.
         """
@@ -56,6 +57,7 @@ class FwConfigManagerListController(FwConfigManagerList):
                                         ManagerName=""
                                         )
         empty_config.addManager(empty_manager)
+        empty_config.native_config = None
         return empty_config
 
 # to be re-written:
@@ -149,16 +151,6 @@ class FwConfigManagerListController(FwConfigManagerList):
     def FromJson(cls, jsonIn):
         return serializeDictToClassRecursively(jsonIn, cls)
 
-    def IsLegacy(self):
-        return self.ConfigFormat in [ConfFormat.NORMALIZED_LEGACY, ConfFormat.CHECKPOINT_LEGACY, 
-                                    ConfFormat.CISCOFIREPOWER_LEGACY, ConfFormat.FORTINET_LEGACY, 
-                                    ConfFormat.PALOALTO_LEGACY]
-
-
-    def is_native(self):
-        return self.ConfigFormat in [ConfFormat.FORTINET, ConfFormat.CHECKPOINT, ConfFormat.FORTIMANAGER]
-
-
     def convertLegacyConfig(self, legacyConfig: dict, mgmDetails: Management):
         if 'networkobjects' in legacyConfig:
             mgr = FwConfigManager(ManagerUid=calcManagerUidHash(mgmDetails.MgmDetails),
@@ -195,8 +187,7 @@ class FwConfigManagerListController(FwConfigManagerList):
     
 
     def is_native(self):
-        return self.native_config is None or self.native_config == {}
-
+        return not (self.native_config is None or self.native_config == {})
 
     def is_legacy(self):
         return self.ConfigFormat==ConfFormat.IsLegacyConfigFormat
@@ -273,4 +264,3 @@ def split_config(importState: ImportStateController, config2import: FwConfigMana
     if fwo_globals.debug_level>0 and len(config_split_with_metadata)>0:
         config_split_with_metadata[len(config_split_with_metadata)-1]["debug_mode"] = True
     return config_split_with_metadata
-

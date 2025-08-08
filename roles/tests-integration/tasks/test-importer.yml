@@ -17,8 +17,10 @@
   register: test_fortigate_mgm_id
 
 - name: make test checkpoint import
-  command: "python3 ./import-mgm.py -f -s -m{{ test_checkpoint_mgm_id.query_result.0.mgm_id }}"
-  args:
+  ansible.builtin.command:
+    cmd: >
+      {{ fworch_home }}/importer/venv/bin/python3
+      ./import-mgm.py -f -s -m{{ test_checkpoint_mgm_id.query_result.0.mgm_id }}
     chdir: "{{ fworch_home }}/importer"
   become: true
   become_user: "{{ fworch_user }}"

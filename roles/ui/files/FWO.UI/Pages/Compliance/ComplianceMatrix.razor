@@ -28,8 +28,11 @@
                 </Dropdown>
             </div>
         }
-        <div class="col-sm-1">
-            <button type="button" class="btn btn-sm btn-success" @onclick="AddMatrix">@(userConfig.GetText("add"))</button>
+        <div class="col-sm-2">
+            <div class="btn-group">
+                <button type="button" class="btn btn-sm btn-success" @onclick="AddMatrix">@(userConfig.GetText("add"))</button>
+                <button type="button" class="btn btn-sm btn-danger" @onclick="RequestDeleteMatrix">@(userConfig.GetText("delete"))</button>
+            </div>
         </div>
     </div>
 </div>
@@ -90,6 +93,9 @@
     }
 </Collapse>
 <AddMatrix @bind-Display="addMatrixMode" @bind-Matrices="matrices"/>
+<ConfirmDelete @bind-Display="deleteMatrixMode" PerformAction="DeleteMatrix" Title="@userConfig.GetText("delete_matrix")" 
+    DeleteAllowed="deleteAllowed" DeleteMessage="@(deleteMessage)" />
+
 
 
 @code
@@ -105,6 +111,9 @@
     private List<ComplianceCriterion> matrices = [];
     private bool matrixLoaded = false;
     private bool addMatrixMode = false;
+    private bool deleteMatrixMode = false;
+    private bool deleteAllowed = true;
+    private string deleteMessage = "";
 
     private List<(ComplianceNetworkZone, ComplianceNetworkZone)> addCommunication = [];
     private List<(ComplianceNetworkZone, ComplianceNetworkZone)> deleteCommunication = [];
@@ -153,6 +162,57 @@
     private void AddMatrix()
     {
         addMatrixMode = true;
+    }
+
+    private async Task RequestDeleteMatrix()
+    {
+        if(await CheckDeleteAllowed())
+        {
+            deleteMessage = $"{userConfig.GetText("U4503")}: {selectedMatrix.Name}?";
+            deleteAllowed = true;
+        }
+        else
+        {
+            deleteMessage = userConfig.GetText("U4504");
+            deleteAllowed = false;
+        }
+        deleteMatrixMode = true;
+    }
+
+    private async Task<bool> CheckDeleteAllowed()
+    {
+        try
+        {
+            return (await apiConnection.SendQueryAsync<List<LinkedPolicy>>(ComplianceQueries.getPolicyIdsForCrit, new{ critId = selectedMatrix.Id })).Count == 0;;
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("delete_matrix"), "", true);
+        }
+        return false;
+    }
+
+    private async Task DeleteMatrix()
+    {
+        try
+        {
+            if(selectedMatrix.Removed == null)
+            {
+                await apiConnection.SendQueryAsync<ReturnId>(ComplianceQueries.removeCriterion,
+                    new { id = selectedMatrix.Id, removed = DateTime.UtcNow });
+                matrices.Remove(selectedMatrix);
+                if(matrices.Count > 0)
+                {
+                    selectedMatrix = matrices[0];
+                    await LoadMatrix();
+                }
+                deleteMatrixMode = false;
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("delete_matrix"), "", true);
+        }
     }
 
     private void ToggleEditMode(bool editMode)

@@ -110,14 +110,7 @@
     private List<string> ForbiddenElementsToDelete = [];
     private string ActForbiddenElement = "";
     private List<string> ActElements = [];
-    private struct LinkedPolicy
-    {
-        [JsonProperty("criterion_id"), JsonPropertyName("criterion_id")]
-        public int CriterionId { get; set; }
 
-        [JsonProperty("policy_id"), JsonPropertyName("policy_id")]
-        public int PolicyId { get; set; }
-    }
 
     protected override void OnParametersSet()
     {

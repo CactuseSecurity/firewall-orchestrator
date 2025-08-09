@@ -355,8 +355,10 @@ namespace FWO.Compliance
 
         private async Task<bool> CheckAgainstMatrix(Rule rule)
         {
-            Task<List<IPAddressRange>> fromsTask = GetIpRangesFromNetworkObjects([.. rule.Froms.Select(nl => nl.Object)]);
-            Task<List<IPAddressRange>> tosTask = GetIpRangesFromNetworkObjects([.. rule.Tos.Select(nl => nl.Object)]);
+            List<NetworkObject> fromObjs = [.. rule.Froms.SelectMany(nl => nl.Object.GetFlatObjects())];
+            List<NetworkObject> toObjs = [.. rule.Tos.SelectMany(nl => nl.Object.GetFlatObjects())];
+            Task<List<IPAddressRange>> fromsTask = GetIpRangesFromNetworkObjects(fromObjs);
+            Task<List<IPAddressRange>> tosTask = GetIpRangesFromNetworkObjects(toObjs);
 
             await Task.WhenAll(fromsTask, tosTask);
 
@@ -452,12 +454,29 @@ namespace FWO.Compliance
 
             if (restrictedServices.Count > 0)
             {
-                foreach (var service in rule.Services.Where(s => restrictedServices.Contains(s.Content.Uid)))
+                foreach (var service in rule.Services)
                 {
+                    string details;
+                    if (restrictedServices.Contains(service.Content.Uid))
+                    {
+                        details = $"Restricted service used: {service.Content.Name}";
+                    }
+                    else
+                    {
+                        string? firstMatch = service.Content.ServiceGroupFlats.Where(ngf => ngf.Object != null && restrictedServices.Contains(ngf.Object.Uid)).
+                                            Select(ngf => ngf.Object!.Name)
+                                            .FirstOrDefault();
+                        if (firstMatch == null)
+                        {
+                            continue; // No match found, skip this service
+                        }
+                        details = $"Restricted service group used: {service.Content.Name} (contains {firstMatch})";
+                    }
+
                     ComplianceViolation violation = new()
                     {
                         RuleId = (int)rule.Id,
-                        Details = $"Restricted service used: {service.Content.Name}",
+                        Details = details,
                         CriterionId = criterion.Id,
                         PolicyId = _policy?.Id ?? 0
                     };

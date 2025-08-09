@@ -21,7 +21,7 @@ namespace FWO.Data
         public string Uid { get; set; } = "";
 
         [JsonProperty("zone"), JsonPropertyName("zone")]
-        public NetworkZone Zone { get; set; } = new ();
+        public NetworkZone Zone { get; set; } = new();
 
         [JsonProperty("active"), JsonPropertyName("active")]
         public bool Active { get; set; }
@@ -30,13 +30,13 @@ namespace FWO.Data
         public int Create { get; set; }
 
         [JsonProperty("obj_create_time"), JsonPropertyName("obj_create_time")]
-        public TimeWrapper CreateTime { get; set; } = new ();
+        public TimeWrapper CreateTime { get; set; } = new();
 
         [JsonProperty("obj_last_seen"), JsonPropertyName("obj_last_seen")]
         public int LastSeen { get; set; }
 
         [JsonProperty("type"), JsonPropertyName("type")]
-        public NetworkObjectType Type { get; set; } = new ();
+        public NetworkObjectType Type { get; set; } = new();
 
         [JsonProperty("obj_comment"), JsonPropertyName("obj_comment")]
         public string Comment { get; set; } = "";
@@ -87,6 +87,22 @@ namespace FWO.Data
         {
             return IP == "0.0.0.0/32" && IpEnd == "255.255.255.255/32" ||
                 IP == "::/128" && IpEnd == "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/128";
+        }
+
+        /// <summary>
+        /// Returns a list of all flat member network objects. For non-group objects, returns only the object itself
+        /// </summary>
+        /// <returns></returns>
+        public List<NetworkObject> GetFlatObjects()
+        {
+            if (ObjectGroupFlats != null && ObjectGroupFlats.Length > 0)
+            {
+                return [.. ObjectGroupFlats
+                    .Select(flat => flat.Object)
+                    .Where(obj => obj != null)
+                    .Cast<NetworkObject>()];
+            }
+            return [this];
         }
     }
 }

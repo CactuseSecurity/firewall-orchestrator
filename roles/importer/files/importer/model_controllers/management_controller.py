@@ -98,7 +98,7 @@ class ManagementController(Management):
 
 
     @classmethod
-    def buildGatewayList(cls, mgmDetails: Management) -> list['Gateway']:
+    def buildGatewayList(cls, mgmDetails: "ManagementController") -> list['Gateway']:
         devs = []
         for dev in mgmDetails.Devices:
             # check if gateway import is enabled

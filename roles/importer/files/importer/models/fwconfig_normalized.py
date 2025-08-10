@@ -59,6 +59,7 @@ class FwConfigNormalized(FwConfig):
         "arbitrary_types_allowed": True
     }
 
+
     def getRulebase(self, rulebaseUid: str) -> Rulebase:
         """
         get the policy with a specific uid  

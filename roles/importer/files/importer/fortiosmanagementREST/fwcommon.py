@@ -13,7 +13,7 @@ import fOS_getter
 from fwo_base import ConfigAction
 from fwo_log import getFwoLogger
 # from fOS_gw_networking import getInterfacesAndRouting, normalize_network_data
-from model_controllers.interface_controller import get_ip_of_interface_obj
+from model_controllers.interface_controller import Interface
 from model_controllers.import_state_controller import ImportStateController
 from models.fwconfigmanagerlist import FwConfigManagerList
 from models.fwconfigmanager import FwConfigManager
@@ -101,21 +101,25 @@ def get_config(full_config: json, importState: ImportStateController) -> tuple[i
     # fOS_network.remove_nat_ip_entries(config2import)
 
     # put dicts into object of class FwConfigManager
-    normalizedConfig = FwConfigNormalized(ConfigAction.INSERT, 
-                            config2import['network_objects'],
-                            config2import['service_objects'],
-                            config2import['users'],
-                            config2import['zone_objects'],
-                            config2import['rules'], stripFields=False
+    normalizedConfig = FwConfigNormalized(action=ConfigAction.INSERT, 
+                            network_objects=config2import['network_objects'],
+                            service_objects=config2import['service_objects'],
+                            users=config2import['users'],
+                            zone_objects=config2import['zone_objects'],
+                            rulebases=config2import['rules']
                             )
-    manager = FwConfigManager(ManagerUid=calcManagerUidHash(importState.MgmDetails), 
+    manager = FwConfigManager(ManagerUid=importState.MgmDetails.calcManagerUidHash(), 
                               IsSuperManager=False, 
                               SubManagerIds=[], 
-                              Configs=[normalizedConfig])
+                              Configs=[normalizedConfig],
+                              ManagerName="",
+                              DomainName="",
+                              DomainUid=""
+                            )
 
     listOfManagers = FwConfigManagerList()
 
-    listOfManagers.addManager(manager)
+    listOfManagers.ManagerSet.append(manager)
     
     return 0, listOfManagers
 

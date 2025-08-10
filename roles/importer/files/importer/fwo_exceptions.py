@@ -156,3 +156,6 @@ class FwoDeviceWithoutLocalPackage(Exception):
     """Custom exception to signal a device without local package."""
     def __init__(self, message="Could not local package for device in manager config"):
         super().__init__(message)
+
+class ShutdownRequested(Exception):
+    pass

@@ -28,10 +28,10 @@ def has_config_changed(full_config, mgm_details, force=False):
     # dummy - may be filled with real check later on
     return True
 
-def get_config(nativeConfig: json, importState: ImportStateController):
+def get_config(config_in: FwConfigManagerListController, importState: ImportStateController):
     logger = getFwoLogger()
-    if nativeConfig == {}:   # no native config was passed in, so getting it from FW-Manager
-        nativeConfig.update({'domains': []})
+    if config_in.has_empty_config and config_in.is_native():   # no native config was passed in, so getting it from FW-Manager
+        config_in.native_config.update({'domains': []})
         parsing_config_only = False
     else:
         parsing_config_only = True
@@ -43,7 +43,7 @@ def get_config(nativeConfig: json, importState: ImportStateController):
         limit = importState.FwoConfig.ApiFetchSize
         fm_api_url = importState.MgmDetails.buildFwApiString()
         native_config_global = initialize_native_config_domain(importState.MgmDetails)
-        nativeConfig['domains'].append(native_config_global)
+        config_in.native_config['domains'].append(native_config_global)
         adom_list = build_adom_list(importState)
         adom_device_vdom_structure = build_adom_device_vdom_structure(adom_list, sid, fm_api_url)
         arbitrary_vdom_for_updateable_objects = get_arbitrary_vdom(adom_device_vdom_structure)
@@ -57,7 +57,7 @@ def get_config(nativeConfig: json, importState: ImportStateController):
         for adom in adom_list:
             adom_name = adom.DomainName
             native_config_adom = initialize_native_config_domain(adom)
-            nativeConfig['domains'].append(native_config_adom)
+            config_in.native_config['domains'].append(native_config_adom)
 
             adom_scope = 'adom/'+adom_name
             # delete_v: objekte werden auch importiert wenn es kein device gibt, ist das gewollt?
@@ -87,10 +87,10 @@ def get_config(nativeConfig: json, importState: ImportStateController):
         except Exception:
             raise FwLogoutFailed("logout exception probably due to timeout - irrelevant, so ignoring it")
 
-        write_native_config_to_file(importState, nativeConfig)
+        write_native_config_to_file(importState, config_in)
 
     # delete_v: brauchen wir hier wirklich sid, dann muss die auch für parsing_config_only TRUE erzeugt werden
-    normalizedConfig = normalize_config(importState, nativeConfig.native_config)
+    normalizedConfig = normalize_config(importState, config_in.native_config)
     logger.info("completed getting config")
     return 0, normalizedConfig
         
@@ -131,7 +131,7 @@ def get_arbitrary_vdom(adom_device_vdom_structure):
                 return {'adom': adom, 'device': device, 'vdom': vdom}
 
 
-def normalize_config(import_state, native_config: json) -> FwConfigManagerListController:
+def normalize_config(import_state, native_config: dict[str,Any]) -> FwConfigManagerListController:
 
     # delete_v: einfach kopiert von cp
     manager_list = FwConfigManagerListController()
@@ -163,14 +163,12 @@ def normalize_config(import_state, native_config: json) -> FwConfigManagerListCo
 
         # TODO: identify the correct manager
 
-        # manager = FwConfigManager(ManagerUid=ManagementController.calcManagerUidHash(import_state.MgmDetails),
         manager = FwConfigManager(ManagerUid=native_conf.get('management_uid',''),
                                     ManagerName=native_conf.get('management_name', ''),
-                                    IsGlobal=native_conf.get('is-super-manager', False),
                                     IsSuperManager=native_conf.get('is-super-manager', False),
                                     DomainName=native_conf.get('domain_name', ''),
                                     DomainUid=native_conf.get('domain_uid', ''),
-                                    DependantManagerUids=[], 
+                                    SubManagerIds=[], 
                                     Configs=[normalized_config])
 
         manager_list.addManager(manager)

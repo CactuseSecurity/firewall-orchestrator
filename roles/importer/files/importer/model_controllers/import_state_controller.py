@@ -1,6 +1,6 @@
 import time
 from datetime import datetime
-import requests, requests.packages
+import urllib3
 import traceback
 
 import fwo_globals
@@ -99,7 +99,7 @@ class ImportStateController(ImportState):
         # set global https connection values
         fwo_globals.set_global_values (suppress_cert_warnings_in=suppressCertWarnings, verify_certs_in=sslVerification, debug_level_in=debugLevel)
         if fwo_globals.suppress_cert_warnings:
-            requests.packages.urllib3.disable_warnings()  # suppress ssl warnings only    
+            urllib3.disable_warnings()  # suppress ssl warnings only    
 
         try: # get mgm_details (fw-type, port, ip, user credentials):
             mgm_controller = ManagementController(
@@ -204,10 +204,10 @@ class ImportStateController(ImportState):
             logger.error('Error while getting stm_track')
             raise
 
-        map: dict[str, int] = {}
+        track_map: dict[str, int] = {}
         for track in result['data']['stm_track']:
-            map.update({track['track_name']: track['track_id']})
-        self.Tracks = map
+            track_map.update({track['track_name']: track['track_id']})
+        self.Tracks = track_map
 
     def SetLinkTypeMap(self, api_call):
         query = "query getLinkType { stm_link_type { id name } }"
@@ -218,10 +218,10 @@ class ImportStateController(ImportState):
             logger.error("Error while getting stm_link_type")
             raise
         
-        map: dict[str, int] = {}
+        link_map: dict[str, int] = {}
         for track in result['data']['stm_link_type']:
-            map.update({track['name']: track['id']})
-        self.LinkTypes = map
+            link_map.update({track['name']: track['id']})
+        self.LinkTypes = link_map
 
     def SetColorRefMap(self, api_call):
         get_colors_query = FwoApi.get_graphql_code([graphql_query_path + "stmTables/getColors.graphql"])

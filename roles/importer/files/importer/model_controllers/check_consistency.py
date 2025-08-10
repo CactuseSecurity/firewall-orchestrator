@@ -5,6 +5,7 @@ from model_controllers.fwconfig_import import FwConfigImport
 from model_controllers.import_state_controller import ImportStateController
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
 from model_controllers.fwconfig_normalized_controller import FwConfigNormalizedController
+from model_controllers.fwconfigmanager_controller import FwConfigManager
 from models.rulebase_link import RulebaseLink
 from model_controllers.rulebase_link_controller import RulebaseLinkController
 from model_controllers.fwconfig_import_object import FwConfigImportObject
@@ -38,7 +39,7 @@ class FwConfigImportCheckConsistency(FwConfigImport):
 
 
     # pre-flight checks
-    def checkConfigConsistency(self, config: FwConfigNormalized = None):
+    def checkConfigConsistency(self, config: FwConfigManagerListController):
         self.checkColorConsistency(config, fix=True)
         self.checkNetworkObjectConsistency(config)
         self.checkServiceObjectConsistency(config)
@@ -56,9 +57,10 @@ class FwConfigImportCheckConsistency(FwConfigImport):
             getFwoLogger().info("Consistency check completed without issues.")
 
 
-    def checkNetworkObjectConsistency(self, config: FwConfigManagerListController = None):
+    def checkNetworkObjectConsistency(self, config: FwConfigManagerListController):
         # check if all uid refs are valid
         global_objects = set()
+        single_config: FwConfigNormalized
 
         # add all new obj refs from all rules
         for mgr in sorted(config.ManagerSet, key=lambda m: not getattr(m, 'IsSuperManager', False)):
@@ -78,18 +80,19 @@ class FwConfigImportCheckConsistency(FwConfigImport):
             if len(unresolvable_nw_obj_refs)>0:
                 self.issues.update({'unresolvableNwObRefs': list(unresolvable_nw_obj_refs)})
 
-            self._check_network_object_types_exist(single_config)
-            self._check_objects_with_missing_ips(single_config)
+            self._check_network_object_types_exist(mgr)
+            self._check_objects_with_missing_ips(mgr)
 
 
-    def _check_network_object_types_exist(self, single_config):
-        allUsedObjTypes = set()
-        for objId in single_config.network_objects:
-            allUsedObjTypes.add(single_config.network_objects[objId].obj_typ)
-        allUsedObjTypes = list(set(allUsedObjTypes))
-        missingNwObjTypes = allUsedObjTypes - self.maps.NetworkObjectTypeMap.keys()
-        if len(missingNwObjTypes)>0:
-            self.issues.update({'unresolvableNwObjTypes': list(missingNwObjTypes)})
+    def _check_network_object_types_exist(self, mgr: FwConfigManager):
+        allUsedObjTypes: set = set()
+
+        for single_config in mgr.Configs:            
+            for objId in single_config.network_objects:
+                allUsedObjTypes.add(single_config.network_objects[objId].obj_typ)
+            missingNwObjTypes = allUsedObjTypes - self.maps.NetworkObjectTypeMap.keys()
+            if len(missingNwObjTypes)>0:
+                self.issues.update({'unresolvableNwObjTypes': list(missingNwObjTypes)})
 
 
     @staticmethod
@@ -115,27 +118,28 @@ class FwConfigImportCheckConsistency(FwConfigImport):
     def _check_objects_with_missing_ips(self, single_config):
         # check if there are any objects with obj_typ<>group and empty ip addresses (breaking constraint)
         nonGroupNwObjWithMissingIps = []
-        for objId in single_config.network_objects:
-            if single_config.network_objects[objId].obj_typ!='group':
-                ip1 = single_config.network_objects[objId].obj_ip
-                ip2 = single_config.network_objects[objId].obj_ip_end
-                if ip1==None or ip2==None:
-                    nonGroupNwObjWithMissingIps.append(single_config.network_objects[objId])
+        for conf in single_config.Configs:
+            for objId in conf.network_objects:
+                if conf.network_objects[objId].obj_typ!='group':
+                    ip1 = conf.network_objects[objId].obj_ip
+                    ip2 = conf.network_objects[objId].obj_ip_end
+                    if ip1==None or ip2==None:
+                        nonGroupNwObjWithMissingIps.append(conf.network_objects[objId])
         if len(nonGroupNwObjWithMissingIps)>0:
             self.issues.update({'non-group network object with undefined IP addresse(s)': list(nonGroupNwObjWithMissingIps)})
 
 
-    def checkServiceObjectConsistency(self, config: FwConfigManagerListController = None):
+    def checkServiceObjectConsistency(self, config: FwConfigManagerListController):
         # check if all uid refs are valid
         global_objects = set()
 
         for mgr in sorted(config.ManagerSet, key=lambda m: not getattr(m, 'IsSuperManager', False)):
             if mgr.IsSuperManager:
                 global_objects = config.get_all_service_object_uids(mgr.ManagerUid)
-            all_used_obj_refs = []
+            all_used_obj_refs: set[str] = set()
             for single_config in mgr.Configs:
-                all_used_obj_refs += self._collect_service_object_refs_from_rules(single_config)
-                all_used_obj_refs += self._collect_all_service_object_refs_from_groups(single_config)
+                all_used_obj_refs |= self._collect_service_object_refs_from_rules(single_config)
+                all_used_obj_refs |= self._collect_all_service_object_refs_from_groups(single_config)
                 self._check_service_object_types_exist(single_config)
                 # now make list unique 
                 all_used_obj_refs = set(all_used_obj_refs)
@@ -147,7 +151,7 @@ class FwConfigImportCheckConsistency(FwConfigImport):
 
 
 
-    def _check_service_object_types_exist(self, single_config):
+    def _check_service_object_types_exist(self, single_config: FwConfigNormalized):
         # check that all obj_typ exist 
         all_used_obj_types = set()
         for obj_id in single_config.service_objects:
@@ -157,25 +161,30 @@ class FwConfigImportCheckConsistency(FwConfigImport):
         if len(missing_obj_types)>0:
             self.issues.update({'unresolvableSvcObjTypes': list(missing_obj_types)})
 
+
     @staticmethod
-    def _collect_all_service_object_refs_from_groups(single_config):
-        all_used_obj_refs = []
+    def _collect_all_service_object_refs_from_groups(single_config: FwConfigNormalized) -> set[str]:
+        all_used_obj_refs: set[str] = set()
         for objId in single_config.service_objects:
             if single_config.service_objects[objId].svc_typ=='group':
                 if single_config.service_objects[objId].svc_member_refs is not None:
-                    all_used_obj_refs += single_config.service_objects[objId].svc_member_refs.split(fwo_const.list_delimiter)
+                    member_refs = single_config.service_objects[objId].svc_member_refs
+                    if member_refs is None:
+                        continue
+                    all_used_obj_refs |= set(member_refs.split(fwo_const.list_delimiter))
         return all_used_obj_refs
+
 
     @staticmethod
-    def _collect_service_object_refs_from_rules(single_config):
-        all_used_obj_refs = []
+    def _collect_service_object_refs_from_rules(single_config) -> set[str]:
+        all_used_obj_refs: set[str] = set()
         for rb in single_config.rulebases:
             for ruleId in rb.Rules:
-                all_used_obj_refs += rb.Rules[ruleId].rule_svc_refs.split(fwo_const.list_delimiter)
+                all_used_obj_refs |= set(rb.Rules[ruleId].rule_svc_refs.split(fwo_const.list_delimiter))
         return all_used_obj_refs
 
 
-    def checkUserObjectConsistency(self, config: FwConfigManagerListController = None):
+    def checkUserObjectConsistency(self, config: FwConfigManagerListController):
         global_objects = set()
         # add all user refs from all rules
         for mgr in sorted(config.ManagerSet, key=lambda m: not getattr(m, 'IsSuperManager', False)):
@@ -204,11 +213,8 @@ class FwConfigImportCheckConsistency(FwConfigImport):
         return all_used_obj_refs
 
 
-    def _collect_users_from_groups(self, single_config, all_used_obj_refs):
-        for objId in single_config.users:
-            if self.users[objId].user_typ=='group':
-                if self.users[objId].user_member_refs is not None:
-                    all_used_obj_refs += self.users[objId].user_member_refs.split(fwo_const.list_delimiter)
+    def _collect_users_from_groups(self, single_config: FwConfigNormalized, all_used_obj_refs):
+        return
 
 
     def _check_user_types_exist(self, single_config):
@@ -232,7 +238,7 @@ class FwConfigImportCheckConsistency(FwConfigImport):
         return userRefs
 
     
-    def checkZoneObjectConsistency(self, config: FwConfigManagerListController = None):
+    def checkZoneObjectConsistency(self, config: FwConfigManagerListController):
         all_used_zone_refs = set()
         for mgr in config.ManagerSet:
             for single_config in mgr.Configs:
@@ -241,10 +247,10 @@ class FwConfigImportCheckConsistency(FwConfigImport):
                 # we currently do not have zone groups - skipping group ref handling
                 # we currently do not have zone types - skipping type handling
 
-            self._check_zone_refs(single_config, all_used_zone_refs, config.get_all_zone_uids(mgr.ManagerUid))
+            self._check_zone_refs(all_used_zone_refs, config.get_all_zone_uids(mgr.ManagerUid))
 
 
-    def _check_zone_refs(self, single_config, all_used_zone_refs, all_zone_uids):
+    def _check_zone_refs(self, all_used_zone_refs, all_zone_uids):
         # now make list unique and get all refs not contained in zone_objects
         all_used_zone_refs = set(all_used_zone_refs)
         unresolvable_zone_refs = all_used_zone_refs - all_zone_uids
@@ -265,7 +271,7 @@ class FwConfigImportCheckConsistency(FwConfigImport):
 
     # check if all color refs are valid (in the DB)
     # fix=True means that missing color refs will be replaced by the default color (black)
-    def checkColorConsistency(self, config: FwConfigNormalized, fix=True):
+    def checkColorConsistency(self, config: FwConfigManagerListController, fix=True):
         self.import_state.SetColorRefMap(self.import_state.api_call)
         
         # collect all colors
@@ -356,7 +362,7 @@ class FwConfigImportCheckConsistency(FwConfigImport):
         return track_refs, action_refs
 
 
-    def check_rulebase_consistency(self, config: FwConfigNormalized = None):
+    def check_rulebase_consistency(self, config: FwConfigManagerListController):
         all_used_track_refs = []
         all_used_action_refs = []
 
@@ -379,7 +385,7 @@ class FwConfigImportCheckConsistency(FwConfigImport):
 
 
     # e.g. check routing, interfaces refs
-    def check_gateway_consistency(self, config: FwConfigNormalized = None):
+    def check_gateway_consistency(self, config: FwConfigManagerListController):
         # TODO: implement
         pass
 
@@ -388,7 +394,7 @@ class FwConfigImportCheckConsistency(FwConfigImport):
     # TODO: check if the rule & rulebases referenced belong to either 
     #       - the same submanager or 
     #       - the super manager but not another sub manager
-    def check_rulebase_link_consistency(self, config: FwConfigNormalized = None):
+    def check_rulebase_link_consistency(self, config: FwConfigManagerListController):
         broken_rulebase_links = []
 
         all_rulebase_uids, all_rule_uids = self._collect_uids(config)

@@ -35,7 +35,7 @@ def normalize_rulebases (nativeConfig, native_config_global, importState, normal
         uid_to_name_map[nw_obj['obj_uid']] = nw_obj['obj_name']
 
     fetched_rulebase_uids = []
-    if normalized_config_global is not None:
+    if normalized_config_global is not None and normalized_config_global != {}:
         for normalized_rulebase_global in normalized_config_global['policies']:
             fetched_rulebase_uids.append(normalized_rulebase_global.uid)
     for gateway in nativeConfig['gateways']:
@@ -155,7 +155,7 @@ def acceptMalformedParts(objects: dict, part: str ='') -> dict[str, Any]:
 
 
 def parseRulePart (objects: dict, part: str = 'source') -> dict[str, Any]:
-    addressObjects = {}
+    addressObjects: dict[str, Any] = {}
 
     if objects is None:
         logger.debug(f"rule part {part} is None: {str(objects)}, which is normal for track field in inline layer guards")
@@ -176,43 +176,42 @@ def parseRulePart (objects: dict, part: str = 'source') -> dict[str, Any]:
         if objects is None:
             logger.error("rule part " + part + " is None: " + str(objects))
             return None
-        else:
-            for obj in objects:
-                if obj is not None:
-                    if 'chunks' in obj:
-                        addressObjects.update(parseRulePart(obj['chunks'], part=part)) # need to parse chunk first
-                    elif 'objects' in obj:
-                        for o in obj['objects']:
-                            addressObjects.update(parseRulePart(o, part=part)) # need to parse chunk first
-                        return addressObjects
-                    else:
-                        if 'type' in obj: # found checkpoint object
-
-                            if obj['type'] == 'LegacyUserAtLocation':
-                                addressObjects[obj['uid']] = obj['name']
-
-                            elif obj['type'] == 'access-role':
-                                if 'networks' in obj:
-                                    if isinstance(obj['networks'], str):  # just a single source
-                                        if obj['networks'] == 'any':
-                                            addressObjects[obj['uid']] = obj['name'] + '@' + 'Any'
-                                        else:
-                                            addressObjects[obj['uid']] = obj['name'] + '@' + obj['networks']
-                                    else:  # more than one source
-                                        for nw in obj['networks']:
-                                            nw_resolved = resolveNwObjUidToName(nw)
-                                            if nw_resolved == "":
-                                                addressObjects[obj['uid']] = obj['name']
-                                            else:
-                                                addressObjects[obj['uid']] = obj['name'] + '@' + nw_resolved
-                                else:
-                                    addressObjects[obj['uid']] = obj['name'] # adding IA without IP info, TODO: get full networks details here!
-                            else:  # standard object
-                                addressObjects[obj['uid']] = obj['name']
-                        else:
-                            return acceptMalformedParts(objects, part=part)
+        for obj in objects:
+            if obj is not None:
+                if 'chunks' in obj:
+                    addressObjects.update(parseRulePart(obj['chunks'], part=part)) # need to parse chunk first
+                elif 'objects' in obj:
+                    for o in obj['objects']:
+                        addressObjects.update(parseRulePart(o, part=part)) # need to parse chunk first
+                    return addressObjects
                 else:
-                    logger.warning("found list with a single None obj")
+                    if 'type' in obj: # found checkpoint object
+
+                        if obj['type'] == 'LegacyUserAtLocation':
+                            addressObjects[obj['uid']] = obj['name']
+
+                        elif obj['type'] == 'access-role':
+                            if 'networks' in obj:
+                                if isinstance(obj['networks'], str):  # just a single source
+                                    if obj['networks'] == 'any':
+                                        addressObjects[obj['uid']] = obj['name'] + '@' + 'Any'
+                                    else:
+                                        addressObjects[obj['uid']] = obj['name'] + '@' + obj['networks']
+                                else:  # more than one source
+                                    for nw in obj['networks']:
+                                        nw_resolved = resolveNwObjUidToName(nw)
+                                        if nw_resolved == "":
+                                            addressObjects[obj['uid']] = obj['name']
+                                        else:
+                                            addressObjects[obj['uid']] = obj['name'] + '@' + nw_resolved
+                            else:
+                                addressObjects[obj['uid']] = obj['name'] # adding IA without IP info, TODO: get full networks details here!
+                        else:  # standard object
+                            addressObjects[obj['uid']] = obj['name']
+                    else:
+                        return acceptMalformedParts(objects, part=part)
+            else:
+                logger.warning("found list with a single None obj")
 
 
     if '' in addressObjects.values():

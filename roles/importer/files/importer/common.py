@@ -14,7 +14,7 @@ from fwo_log import getFwoLogger
 from fwo_const import fw_module_name, import_tmp_path, importer_user_name
 import fwo_globals
 from fwo_base import write_native_config_to_file
-from fwo_exceptions import FwoApiLoginFailed, FwoImporterError, FwLoginFailed, ImportRecursionLimitReached, FwoApiWriteError, FwoImporterErrorInconsistencies, ImportInterruption
+from fwo_exceptions import ShutdownRequested, FwoApiLoginFailed, FwoImporterError, FwLoginFailed, ImportRecursionLimitReached, FwoApiWriteError, FwoImporterErrorInconsistencies, ImportInterruption
 from fwo_base import stringIsUri
 import fwo_file_import
 from model_controllers.import_state_controller import ImportStateController
@@ -90,7 +90,7 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
     except (ImportRecursionLimitReached) as e:
         importState.delete_import() # delete whole import
         importState.addError("ImportRecursionLimitReached - aborting import")
-    except (KeyboardInterrupt, ImportInterruption) as e:
+    except (KeyboardInterrupt, ImportInterruption, ShutdownRequested) as e:
         rollBackExceptionHandler(importState, configImporter=config_importer, exc=e, errorText="shutdown requested")
         raise
     except (FwoApiWriteError, FwoImporterError) as e:
@@ -118,6 +118,8 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
 
 def _import_management(service_provider, importState: ImportStateController, config_importer=None, mgmId=None, ssl_verification=None, debug_level_in=0,
         limit=150, clearManagementData=False, suppress_cert_warnings_in=None, in_file=None) -> None:
+
+    config_normalized : FwConfigManagerListController
 
     if config_importer is None:
         config_importer = FwConfigImport()
@@ -158,7 +160,7 @@ def _import_management(service_provider, importState: ImportStateController, con
     # check config consistency and import it
     if config_changed_since_last_import or importState.ForceImport:
         FwConfigImportCheckConsistency(importState, config_normalized).checkConfigConsistency(config_normalized)
-        config_importer.import_management_set(importState, service_provider, config_normalized.ManagerSet)
+        config_importer.import_management_set(importState, service_provider, config_normalized)
         importState.api_call.update_hit_counter(importState, config_normalized)
 
     # delete data that has passed the retention time
@@ -198,7 +200,7 @@ def rollBackExceptionHandler(importState, configImporter=None, exc=None, errorTe
 
 def get_config_top_level(importState: ImportStateController, in_file: str|None = None, gateways: list[Gateway]|None = None) \
     -> tuple[bool, FwConfigManagerListController]:
-    config_from_file = {}
+    config_from_file = FwConfigManagerListController.generate_empty_config()
     if gateways is None: gateways = []
     if in_file is not None or stringIsUri(importState.MgmDetails.Hostname):
         ### geting config from file ######################
@@ -227,7 +229,7 @@ def import_from_file(importState: ImportStateController, fileName: str = "", gat
     return config_changed_since_last_import, configFromFile
 
 
-def get_config_from_api(importState: ImportStateController, configNative) -> tuple[bool, FwConfigManagerListController]:
+def get_config_from_api(importState: ImportStateController, config_in) -> tuple[bool, FwConfigManagerListController]:
     logger = getFwoLogger(debug_level=importState.DebugLevel)
 
     try: # pick product-specific importer:
@@ -241,7 +243,7 @@ def get_config_from_api(importState: ImportStateController, configNative) -> tup
 
     # check for changes from product-specific FW API, if we are importing from file we assume config changes
     config_changed_since_last_import = importState.ImportFileName != None or \
-        fw_module.has_config_changed(configNative, importState, force=importState.ForceImport)
+        fw_module.has_config_changed(config_in, importState, force=importState.ForceImport)
     if config_changed_since_last_import:
         logger.info ( "has_config_changed: changes found or forced mode -> go ahead with getting config, Force = " + str(importState.ForceImport))
     else:
@@ -249,16 +251,16 @@ def get_config_from_api(importState: ImportStateController, configNative) -> tup
 
     if config_changed_since_last_import or importState.ForceImport:
         # get config from product-specific FW API
-        _, normalized_config_list = fw_module.get_config(configNative, importState)
+        _, native_config = fw_module.get_config(config_in, importState)
     else:
-        normalized_config_list = FwConfigManagerListController.generate_empty_config(importState.MgmDetails.IsSuperManager)
+        native_config = FwConfigManagerListController.generate_empty_config(importState.MgmDetails.IsSuperManager)
 
-    write_native_config_to_file(importState, configNative.native_config)
+    write_native_config_to_file(importState, config_in.native_config)
 
     logger.debug("import_management: get_config completed (including normalization), duration: " 
                  + str(int(time.time()) - importState.StartTime) + "s") 
 
-    return config_changed_since_last_import, normalized_config_list
+    return config_changed_since_last_import, native_config
 
 
 # transform device name and type to correct package name

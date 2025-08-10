@@ -5,6 +5,7 @@ import traceback
 
 import fwo_globals
 from fwo_log import getFwoLogger
+from fwo_exceptions import FwoImporterError
 from model_controllers.interface_controller import InterfaceSerializable
 from model_controllers.route_controller import RouteSerializable
 from fwo_base import split_list, serializeDictToClassRecursively, deserializeClassToDictRecursively
@@ -48,7 +49,7 @@ class FwConfigManagerListController(FwConfigManagerList):
         """
         empty_config = FwConfigManagerListController()
         empty_config.ConfigFormat = ConfFormat.NORMALIZED
-        empty_manager = FwConfigManager(ManagerUid=ManagementController.calcManagerUidHash(Management()),
+        empty_manager = FwConfigManager(ManagerUid="",
                                         IsSuperManager=is_super_manager,
                                         SubManagerIds=[],
                                         Configs=[],
@@ -57,7 +58,7 @@ class FwConfigManagerListController(FwConfigManagerList):
                                         ManagerName=""
                                         )
         empty_config.addManager(empty_manager)
-        empty_config.native_config = None
+        empty_config.native_config = {}
         return empty_config
 
 # to be re-written:
@@ -139,34 +140,9 @@ class FwConfigManagerListController(FwConfigManagerList):
         return rb_name
     
     @classmethod
-    def ConvertFromLegacyNormalizedConfig(cls, legacyConfig: dict, mgmDetails: Management) -> 'FwConfigManagerList':
-        if 'ConfigFormat' in legacyConfig and legacyConfig['ConfigFormat'] == 'NORMALIZED':
-            legacyConfig['ManagerSet'][0]['Configs']= [ FwConfigNormalized.fromJson(legacyConfig) ]
-            return FwConfigManagerList.FromJson(legacyConfig)
-        else:
-            logger = getFwoLogger()
-            logger.error(f"found malformed legacy config: {str(legacyConfig)[:200]}")
-
-    @classmethod
     def FromJson(cls, jsonIn):
         return serializeDictToClassRecursively(jsonIn, cls)
 
-    def convertLegacyConfig(self, legacyConfig: dict, mgmDetails: Management):
-        if 'networkobjects' in legacyConfig:
-            mgr = FwConfigManager(ManagerUid=calcManagerUidHash(mgmDetails.MgmDetails),
-                                  IsSuperManager=False,
-                                  SubManagerIds = [],
-                                  Configs=[],
-                                  DomainName='',
-                                  DomainUid='',
-                                  ManagerName='')
-            convertedConfig = FwConfig()
-            mgr.Configs.append(convertedConfig)
-            self.addManager(mgr)
-        else:
-            logger = getFwoLogger()
-            logger.error(f"found malformed legacy config: {str(legacyConfig)}")
-        pass
 
     def storeFullNormalizedConfigToFile(self, importState: ImportStateController):
         if fwo_globals.debug_level>5:
@@ -186,11 +162,35 @@ class FwConfigManagerListController(FwConfigManagerList):
                 raise
     
 
-    def is_native(self):
+    def is_native(self) -> bool:
         return not (self.native_config is None or self.native_config == {})
 
-    def is_legacy(self):
+
+    def contains_only_native(self) -> bool:
+        return self.is_native() and (
+            len(self.ManagerSet)==0 or
+            len(self.ManagerSet)==1 and len(self.ManagerSet[0].Configs)==0
+        ) 
+
+
+    def native_config_is_empty(self) -> bool:
+        return (self.native_config is None or self.native_config == {})
+
+
+    def normalized_config_is_empty(self) -> bool:
+        return len(self.ManagerSet)==1 and len(self.ManagerSet[0].Configs)==0
+
+
+    def is_normalized(self) -> bool:
+        return not self.is_native()
+
+
+    def is_legacy(self) -> bool:
         return self.ConfigFormat==ConfFormat.IsLegacyConfigFormat
+
+
+    def has_empty_config(self) -> bool:
+        return self.native_config_is_empty() and self.normalized_config_is_empty() 
 
 
 # split the config into chunks of max size "max_objs_per_chunk" to avoid 

@@ -25,7 +25,7 @@ class RuleEnforcedOnGateway(BaseModel):
         }
 
 # normalized config without db ids
-class RuleEnforcedOnGatewayNormalized(BaseModel, ImportStateController):
+class RuleEnforcedOnGatewayNormalized(BaseModel):
     rule_uid: str
     dev_uid: str
 

@@ -1,4 +1,4 @@
-import json
+from typing import Any
 from fwo_log import getFwoLogger
 import time
 from copy import deepcopy
@@ -16,7 +16,7 @@ from fwo_base import ConfigAction, ConfFormat
 import fwo_const
 import fwo_globals
 from model_controllers.fwconfig_normalized_controller import FwConfigNormalizedController
-from fwo_exceptions import ImportInterruption
+from fwo_exceptions import ImportInterruption, FwoImporterError
 from models.management import Management
 from models.import_state import ImportState
 
@@ -39,12 +39,12 @@ def has_config_changed (full_config, importState: ImportState, force=False):
     return result
 
 
-def get_config(config_in: FwConfigManagerList, importState: ImportStateController) -> tuple[int, FwConfigManagerList]:
+def get_config(config_in: FwConfigManagerListController, importState: ImportStateController) -> tuple[int, FwConfigManagerList]:
 
     logger = getFwoLogger()
     logger.debug ( "starting checkpointR8x/get_config" )
 
-    if config_in == {}:   # no native config was passed in, so getting it from FW-Manager
+    if config_in.has_empty_config():   # no native config was passed in, so getting it from FW-Manager
         parsing_config_only = False
     else:
         parsing_config_only = True
@@ -71,26 +71,26 @@ def get_config(config_in: FwConfigManagerList, importState: ImportStateControlle
         duration = int(time.time()) - starttime
         logger.debug ( "checkpointR8x/get_config - fetch duration: " + str(duration) + "s" )
 
-
-    if not ConfFormat.IsLegacyConfigFormat(config_in.ConfigFormat):
-        return 0, config_in
-    else:
+    if config_in.contains_only_native():
         sid = loginCp(importState.MgmDetails)
         normalizedConfig = normalize_config(importState, config_in, parsing_config_only, sid)
         logger.info("completed getting config")
         return 0, normalizedConfig
+    else:
+        # we already have a native config (from file import) 
+        return 0, config_in
 
 
-def initialize_native_config(nativeConfig, importState):
+def initialize_native_config(config_in: FwConfigManagerListController, importState: ImportStateController) -> None:
     """
     create domain structure in nativeConfig
     """
 
     manager_details_list = create_ordered_manager_list(importState)
-    nativeConfig.update({'domains': []})
+    config_in.native_config.update({'domains': []})
     for managerDetails in manager_details_list:
 
-        nativeConfig['domains'].append({
+        config_in.native_config['domains'].append({
             'domain_name': managerDetails.DomainName,
             'domain_uid': managerDetails.DomainUid,
             'is-super-manager': managerDetails.IsSuperManager,
@@ -102,60 +102,61 @@ def initialize_native_config(nativeConfig, importState):
             'gateways': []})
 
 
-def normalize_config(import_state, native_config: json, parsing_config_only: bool, sid: str) -> FwConfigManagerListController:
+def normalize_config(import_state, config_in: FwConfigManagerListController, parsing_config_only: bool, sid: str) -> FwConfigManagerListController:
 
-    nativ_and_normalized_config_dict_list = []
-    manager_list = FwConfigManagerListController()
+    native_and_normalized_config_dict_list = []
 
-    if 'domains' not in native_config:
+    if config_in.native_config is None:
+        raise FwoImporterError("Did not get a native config to normalize.")
+
+    if 'domains' not in config_in.native_config:
         getFwoLogger().error("No domains found in native config. Cannot normalize config.")
-        raise ImportInterruption("No domains found in native config. Cannot normalize config.")
+        raise FwoImporterError("No domains found in native config. Cannot normalize config.")
 
     # in case of mds, first nativ config domain is global
     is_global_loop_iteration = False
-    native_config_global = None
-    normalized_config_global = None
-    if native_config['domains'][0]['is-super-manager']:
-        native_config_global = native_config['domains'][0]
+    native_config_global = {}
+    normalized_config_global = {}
+    if config_in.native_config['domains'][0]['is-super-manager']:
+        native_config_global = config_in.native_config['domains'][0]
         is_global_loop_iteration = True
     
-    for native_conf in native_config['domains']:
+    for native_conf in config_in.native_config['domains']:
         normalized_config_dict = deepcopy(fwo_const.emptyNormalizedFwConfigJsonDict)
         normalize_single_manager_config(
             native_conf, native_config_global, normalized_config_dict, normalized_config_global,
             import_state, parsing_config_only, sid, is_global_loop_iteration
         )
 
-        nativ_and_normalized_config_dict_list.append({'native': native_conf, 'normalized': normalized_config_dict})
+        native_and_normalized_config_dict_list.append({'native': native_conf, 'normalized': normalized_config_dict})
 
         if is_global_loop_iteration:
             normalized_config_global = normalized_config_dict
             is_global_loop_iteration = False
 
-    for nativ_and_normalized_config_dict in nativ_and_normalized_config_dict_list:
+    for native_and_normalized_config_dict in native_and_normalized_config_dict_list:
         normalized_config = FwConfigNormalized(
             action=ConfigAction.INSERT, 
-            network_objects=FwConfigNormalizedController.convertListToDict(nativ_and_normalized_config_dict['normalized']['network_objects'], 'obj_uid'),
-            service_objects=FwConfigNormalizedController.convertListToDict(nativ_and_normalized_config_dict['normalized']['service_objects'], 'svc_uid'),
-            zone_objects=FwConfigNormalizedController.convertListToDict(nativ_and_normalized_config_dict['normalized']['zone_objects'], 'zone_uid'),
-            rulebases=nativ_and_normalized_config_dict['normalized']['policies'],
-            gateways=nativ_and_normalized_config_dict['normalized']['gateways']
+            network_objects=FwConfigNormalizedController.convertListToDict(native_and_normalized_config_dict['normalized']['network_objects'], 'obj_uid'),
+            service_objects=FwConfigNormalizedController.convertListToDict(native_and_normalized_config_dict['normalized']['service_objects'], 'svc_uid'),
+            zone_objects=FwConfigNormalizedController.convertListToDict(native_and_normalized_config_dict['normalized']['zone_objects'], 'zone_uid'),
+            rulebases=native_and_normalized_config_dict['normalized']['policies'],
+            gateways=native_and_normalized_config_dict['normalized']['gateways']
         )
-        manager = FwConfigManager(  ManagerName=nativ_and_normalized_config_dict['native']['management_name'],
-            ManagerUid=nativ_and_normalized_config_dict['native']['management_uid'],
-            IsGlobal=nativ_and_normalized_config_dict['native']['is-super-manager'],
-            IsSuperManager=nativ_and_normalized_config_dict['native']['is-super-manager'],
-            DependantManagerUids=[], 
-            DomainName=nativ_and_normalized_config_dict['native']['domain_name'],
-            DomainUid=nativ_and_normalized_config_dict['native']['domain_uid'],
+        manager = FwConfigManager(  ManagerName=native_and_normalized_config_dict['native']['management_name'],
+            ManagerUid=native_and_normalized_config_dict['native']['management_uid'],
+            IsSuperManager=native_and_normalized_config_dict['native']['is-super-manager'],
+            SubManagerIds=[], 
+            DomainName=native_and_normalized_config_dict['native']['domain_name'],
+            DomainUid=native_and_normalized_config_dict['native']['domain_uid'],
             Configs=[normalized_config]
         )
-        manager_list.addManager(manager)
+        config_in.ManagerSet.append(manager)
 
-    return manager_list
+    return config_in
 
 
-def normalize_single_manager_config(nativeConfig: json, native_config_global: json, normalized_config_dict: dict,
+def normalize_single_manager_config(nativeConfig: dict, native_config_global: dict, normalized_config_dict: dict,
                                     normalized_config_global: dict, importState: ImportStateController,
                                     parsing_config_only: bool, sid: str, is_global_loop_iteration: bool):
     logger = getFwoLogger()
@@ -215,36 +216,33 @@ def create_ordered_manager_list(importState):
     return manager_details_list
 
 
-def handle_super_manager(managerDetails, cpManagerApiBaseUrl, show_params_policy_structure):
+def handle_super_manager(managerDetails, cpManagerApiBaseUrl, show_params_policy_structure):# -> tuple[list[Any], list[Any] | None, Any | Literal[''] | No...:
 
     logger = getFwoLogger()
 
     # global assignments are fetched from mds domain
     mdsSid = loginCp(managerDetails)
-    globalAssignments = []
-    cp_getter.getGlobalAssignments(
-        cpManagerApiBaseUrl, mdsSid, show_params_policy_structure, globalAssignments=globalAssignments
-    )
-
+    globalPolicyStructure = None
+    global_domain = None
+    global_assignments = cp_getter.get_global_assignments(cpManagerApiBaseUrl, mdsSid, show_params_policy_structure)
+    global_sid = None
     # import global policies if at least one global assignment exists
-    if len(globalAssignments) > 0:
 
-        if 'global-domain' in globalAssignments[0] and 'uid' in globalAssignments[0]['global-domain']:
-            global_domain = globalAssignments[0]['global-domain']['uid']
+    
+    if len(global_assignments) > 0:
+        if 'global-domain' in global_assignments[0] and 'uid' in global_assignments[0]['global-domain']:
+            global_domain = global_assignments[0]['global-domain']['uid']
 
             # policy structure is fetched from global domain
-            globalPolicyStructure = []
             managerDetails.DomainUid = global_domain
             global_sid = loginCp(managerDetails)
             cp_getter.getPolicyStructure(
                 cpManagerApiBaseUrl, global_sid, show_params_policy_structure, policyStructure=globalPolicyStructure
             )
         else:
-            logger.warning(f"Unexpected globalAssignments: {str(globalAssignments)}")
-    else:
-        globalPolicyStructure, global_domain, global_sid = None, None, None
+            raise FwoImporterError(f"Unexpected global assignments: {str(global_assignments)}")
 
-    return globalAssignments, globalPolicyStructure, global_domain, global_sid
+    return global_assignments, globalPolicyStructure, global_domain, global_sid
 
 
 def get_policy_structure(cpManagerApiBaseUrl, sid, show_params_policy_structure):
@@ -416,10 +414,7 @@ def add_ordered_layers_to_native_config(orderedLayerUids, show_params_rules,
             deviceConfig, policy_rulebases_uid_list,
             is_global=is_global, access_type='access',
             rulebaseUid=orderedLayerUid)
-        
-        if fwo_globals.shutdown_requested:
-            raise ImportInterruption("Shutdown requested during rulebase retrieval.")
-                    
+    
         # link to next ordered layer
         # in case of mds: domain ordered layers are linked once there is no global ordered layer counterpart
         if is_global or orderedLayerIndex >= global_ordered_layer_count - 1:
@@ -476,7 +471,7 @@ def logout_cp(url, sid):
         logger.warning("logout from CP management failed")
 
 
-def get_objects(native_config_dict: dict, importState: ImportStateController) -> int:
+def get_objects(native_config_dict: dict[str,Any], importState: ImportStateController) -> int:
     show_params_objs = {'limit': importState.FwoConfig.ApiFetchSize}
     manager_details_list = create_ordered_manager_list(importState)
             

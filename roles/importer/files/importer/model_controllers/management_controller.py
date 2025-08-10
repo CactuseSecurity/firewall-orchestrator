@@ -19,7 +19,6 @@ class ManagementController(Management):
                  subManagerIds: list[int]|None = None, subManagers: list['Management']|None = None,
                  domainName: str = '', domainUid: str = ''):
         
-        subManagers: list['Management'] = []
         self.Hostname = hostname
         self.Id = id
         self.Uid = uid
@@ -105,17 +104,16 @@ class ManagementController(Management):
             # check if gateway import is enabled
             if 'do_not_import' in dev and dev['do_not_import']: # TODO: get this key from the device
                 continue
-            devs.append(Gateway(Name = dev['name'], Uid = f"{dev['name']}/{cls.calcManagerUidHash(mgmDetails)}"))
+            devs.append(Gateway(Name = dev['name'], Uid = f"{dev['name']}/{mgmDetails.calcManagerUidHash()}"))
         return devs
 
 
-    @classmethod
-    def calcManagerUidHash(cls, mgm_details):
+    def calcManagerUidHash(self):
         combination = f"""
-            {replaceNoneWithEmpty(mgm_details.Hostname)}
-            {replaceNoneWithEmpty(mgm_details.Port)}
-            {replaceNoneWithEmpty(mgm_details.DomainUid)}
-            {replaceNoneWithEmpty(mgm_details.DomainName)}
+            {replaceNoneWithEmpty(self.Hostname)}
+            {replaceNoneWithEmpty(self.Port)}
+            {replaceNoneWithEmpty(self.DomainUid)}
+            {replaceNoneWithEmpty(self.DomainName)}
         """
         return hashlib.sha256(combination.encode()).hexdigest()
 

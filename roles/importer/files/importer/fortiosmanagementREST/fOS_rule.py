@@ -7,7 +7,8 @@ from fOS_network import create_network_object, get_first_ip_of_destination
 import fOS_zone, fOS_getter
 #from fOS_gw_networking import get_device_from_package
 from fwo_log import getFwoLogger
-from model_controllers.interface_controller import get_matching_route_obj, get_ip_of_interface_obj
+from model_controllers.interface_controller import get_ip_of_interface_obj
+from model_controllers.route_controller import get_matching_route_obj, get_ip_of_interface_obj
 from models.management import Management
 import ipaddress
 from fOS_common import resolve_objects

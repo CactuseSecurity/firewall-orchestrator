@@ -45,40 +45,40 @@ namespace FWO.Api.Client.Queries
         {
             try
             {
-                getTenantId = File.ReadAllText(QueryPath + "auth/getTenantId.graphql");
-                getTenants = File.ReadAllText(QueryPath + "auth/getTenants.graphql");
-                addTenant = File.ReadAllText(QueryPath + "auth/addTenant.graphql");
-                updateTenant = File.ReadAllText(QueryPath + "auth/updateTenant.graphql");
-                deleteTenant = File.ReadAllText(QueryPath + "auth/deleteTenant.graphql");
-                addDeviceToTenant = File.ReadAllText(QueryPath + "auth/addDeviceToTenant.graphql");
-                addTenantToManagement = File.ReadAllText(QueryPath + "auth/addTenantToManagement.graphql");
-                addTenantToGateway = File.ReadAllText(QueryPath + "auth/addTenantToGateway.graphql");
-                deleteAllGatewaysOfTenant = File.ReadAllText(QueryPath + "auth/deleteAllGatewaysOfTenant.graphql");
-                deleteAllManagementsOfTenant = File.ReadAllText(QueryPath + "auth/deleteAllManagementsOfTenant.graphql");
-                getVisibleDeviceIdsPerTenant = File.ReadAllText(QueryPath + "auth/getTenantVisibleDeviceIds.graphql");
-                getVisibleManagementIdsPerTenant = File.ReadAllText(QueryPath + "auth/getTenantVisibleManagementIds.graphql");
-                getTenantNetworks = File.ReadAllText(QueryPath + "auth/getTenantNetworks.graphql");
-                addTenantNetwork = File.ReadAllText(QueryPath + "auth/addTenantNetwork.graphql");
-                deleteTenantNetwork = File.ReadAllText(QueryPath + "auth/deleteTenantNetwork.graphql");
+                getTenantId = GetQueryText("auth/getTenantId.graphql");
+                getTenants = GetQueryText("auth/getTenants.graphql");
+                addTenant = GetQueryText("auth/addTenant.graphql");
+                updateTenant = GetQueryText("auth/updateTenant.graphql");
+                deleteTenant = GetQueryText("auth/deleteTenant.graphql");
+                addDeviceToTenant = GetQueryText("auth/addDeviceToTenant.graphql");
+                addTenantToManagement = GetQueryText("auth/addTenantToManagement.graphql");
+                addTenantToGateway = GetQueryText("auth/addTenantToGateway.graphql");
+                deleteAllGatewaysOfTenant = GetQueryText("auth/deleteAllGatewaysOfTenant.graphql");
+                deleteAllManagementsOfTenant = GetQueryText("auth/deleteAllManagementsOfTenant.graphql");
+                getVisibleDeviceIdsPerTenant = GetQueryText("auth/getTenantVisibleDeviceIds.graphql");
+                getVisibleManagementIdsPerTenant = GetQueryText("auth/getTenantVisibleManagementIds.graphql");
+                getTenantNetworks = GetQueryText("auth/getTenantNetworks.graphql");
+                addTenantNetwork = GetQueryText("auth/addTenantNetwork.graphql");
+                deleteTenantNetwork = GetQueryText("auth/deleteTenantNetwork.graphql");
 
-                getUsers = File.ReadAllText(QueryPath + "auth/getUsers.graphql");
-                getUserEmails = File.ReadAllText(QueryPath + "auth/getUserEmails.graphql");
-                getUserByDn = File.ReadAllText(QueryPath + "auth/getUserByDn.graphql");
-                getUserByDbId = File.ReadAllText(QueryPath + "auth/getUserByDbId.graphql");
-                upsertUiUser = File.ReadAllText(QueryPath + "auth/upsertUiUser.graphql");
-                updateUserEmail = File.ReadAllText(QueryPath + "auth/updateUserEmail.graphql");
-                updateUserLanguage = File.ReadAllText(QueryPath + "auth/updateUserLanguage.graphql");
-                updateUserLastLogin = File.ReadAllText(QueryPath + "auth/updateUserLastLogin.graphql");
-                updateUserPasswordChange = File.ReadAllText(QueryPath + "auth/updateUserPasswordChange.graphql");
-                deleteUser = File.ReadAllText(QueryPath + "auth/deleteUser.graphql");
-                assertUserExists = File.ReadAllText(QueryPath + "auth/assertUserExists.graphql");
+                getUsers = GetQueryText("auth/getUsers.graphql");
+                getUserEmails = GetQueryText("auth/getUserEmails.graphql");
+                getUserByDn = GetQueryText("auth/getUserByDn.graphql");
+                getUserByDbId = GetQueryText("auth/getUserByDbId.graphql");
+                upsertUiUser = GetQueryText("auth/upsertUiUser.graphql");
+                updateUserEmail = GetQueryText("auth/updateUserEmail.graphql");
+                updateUserLanguage = GetQueryText("auth/updateUserLanguage.graphql");
+                updateUserLastLogin = GetQueryText("auth/updateUserLastLogin.graphql");
+                updateUserPasswordChange = GetQueryText("auth/updateUserPasswordChange.graphql");
+                deleteUser = GetQueryText("auth/deleteUser.graphql");
+                assertUserExists = GetQueryText("auth/assertUserExists.graphql");
 
-                getLdapConnections = File.ReadAllText(QueryPath + "auth/getLdapConnections.graphql");
-                getAllLdapConnections = File.ReadAllText(QueryPath + "auth/getAllLdapConnections.graphql");
-                getLdapConnectionsSubscription = File.ReadAllText(QueryPath + "auth/getLdapConnectionsSubscription.graphql");
-                newLdapConnection = File.ReadAllText(QueryPath + "auth/newLdapConnection.graphql");
-                updateLdapConnection = File.ReadAllText(QueryPath + "auth/updateLdapConnection.graphql");
-                deleteLdapConnection = File.ReadAllText(QueryPath + "auth/deleteLdapConnection.graphql");
+                getLdapConnections = GetQueryText("auth/getLdapConnections.graphql");
+                getAllLdapConnections = GetQueryText("auth/getAllLdapConnections.graphql");
+                getLdapConnectionsSubscription = GetQueryText("auth/getLdapConnectionsSubscription.graphql");
+                newLdapConnection = GetQueryText("auth/newLdapConnection.graphql");
+                updateLdapConnection = GetQueryText("auth/updateLdapConnection.graphql");
+                deleteLdapConnection = GetQueryText("auth/deleteLdapConnection.graphql");
             }
             catch (Exception exception)
             {

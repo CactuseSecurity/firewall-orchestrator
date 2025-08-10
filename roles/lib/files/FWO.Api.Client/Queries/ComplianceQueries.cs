@@ -34,31 +34,31 @@ namespace FWO.Api.Client.Queries
         {
             try
             {
-                addNetworkZone = File.ReadAllText(QueryPath + "compliance/addNetworkZone.graphql");
-                removeNetworkZone = File.ReadAllText(QueryPath + "compliance/removeNetworkZone.graphql");
-                getNetworkZonesForMatrix = File.ReadAllText(QueryPath + "compliance/getNetworkZonesForMatrix.graphql");
-                updateNetworkZone = File.ReadAllText(QueryPath + "compliance/updateNetworkZone.graphql");
+                addNetworkZone = GetQueryText("compliance/addNetworkZone.graphql");
+                removeNetworkZone = GetQueryText("compliance/removeNetworkZone.graphql");
+                getNetworkZonesForMatrix = GetQueryText("compliance/getNetworkZonesForMatrix.graphql");
+                updateNetworkZone = GetQueryText("compliance/updateNetworkZone.graphql");
 
-                updateNetworkZoneCommunication = File.ReadAllText(QueryPath + "compliance/updateNetworkZoneCommunication.graphql");
+                updateNetworkZoneCommunication = GetQueryText("compliance/updateNetworkZoneCommunication.graphql");
 
-                addViolations = File.ReadAllText(QueryPath + "compliance/addViolations.graphql");
-                getViolations = File.ReadAllText(QueryPath + "compliance/getViolations.graphql");
-                updateViolationById = File.ReadAllText(QueryPath + "compliance/updateViolationById.graphql");
-                removeViolations = File.ReadAllText(QueryPath + "compliance/removeViolations.graphql");
+                addViolations = GetQueryText("compliance/addViolations.graphql");
+                getViolations = GetQueryText("compliance/getViolations.graphql");
+                updateViolationById = GetQueryText("compliance/updateViolationById.graphql");
+                removeViolations = GetQueryText("compliance/removeViolations.graphql");
 
-                addPolicy = File.ReadAllText(QueryPath + "compliance/addPolicy.graphql");
-                disablePolicy = File.ReadAllText(QueryPath + "compliance/disablePolicy.graphql");
-                getPolicies = File.ReadAllText(QueryPath + "compliance/getPolicies.graphql");
-                getPolicyById = File.ReadAllText(QueryPath + "compliance/getPolicyById.graphql");
+                addPolicy = GetQueryText("compliance/addPolicy.graphql");
+                disablePolicy = GetQueryText("compliance/disablePolicy.graphql");
+                getPolicies = GetQueryText("compliance/getPolicies.graphql");
+                getPolicyById = GetQueryText("compliance/getPolicyById.graphql");
 
-                addCriterion = File.ReadAllText(QueryPath + "compliance/addCriterion.graphql");
-                removeCriterion = File.ReadAllText(QueryPath + "compliance/removeCriterion.graphql");
-                getCriteria = File.ReadAllText(QueryPath + "compliance/getCriteria.graphql");
-                getMatrices = File.ReadAllText(QueryPath + "compliance/getMatrices.graphql");
+                addCriterion = GetQueryText("compliance/addCriterion.graphql");
+                removeCriterion = GetQueryText("compliance/removeCriterion.graphql");
+                getCriteria = GetQueryText("compliance/getCriteria.graphql");
+                getMatrices = GetQueryText("compliance/getMatrices.graphql");
 
-                addCritToPolicy = File.ReadAllText(QueryPath + "compliance/addCritToPolicy.graphql");
-                removeCritFromPolicy = File.ReadAllText(QueryPath + "compliance/removeCritFromPolicy.graphql");
-                getPolicyIdsForCrit = File.ReadAllText(QueryPath + "compliance/getPolicyIdsForCrit.graphql");
+                addCritToPolicy = GetQueryText("compliance/addCritToPolicy.graphql");
+                removeCritFromPolicy = GetQueryText("compliance/removeCritFromPolicy.graphql");
+                getPolicyIdsForCrit = GetQueryText("compliance/getPolicyIdsForCrit.graphql");
             }
             catch (Exception exception)
             {

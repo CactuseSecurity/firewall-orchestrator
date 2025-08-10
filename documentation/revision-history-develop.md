@@ -286,13 +286,20 @@ bugfix release:
 - add report output for rule to gw mapping
 - cleanup/rework of main import function
 
-breaking changes
-Due to introduction of venv for all imports, the following steps have to be taken to manually import a config:
+Breaking changes
+    Due to introduction of venv for all imports, the following steps have to be taken to manually import a config:
 
-  sudo -u fworch -i
-  cd importer
-  source venv/bin/activate
-  ./import-mgm.py -m xy -f -s -d 8 
-As we now need support for pip, in installations behind url filter, make sure that all sub-domains of
-pythonhosted.org
-are also allowed.
+    sudo -u fworch -i
+    cd importer
+    source venv/bin/activate
+    ./import-mgm.py -m xy -f -s -d 8 
+    As we now need support for pip, in installations behind url filter, make sure that all sub-domains of
+    pythonhosted.org
+    are also allowed.
+
+To initialize the venv (e.g. within your vscode environment) run
+
+    cd importer
+    python3 -m venv venv
+    source venv/bin/activate
+    pip install -r ../requirements.txt

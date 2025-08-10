@@ -94,23 +94,7 @@ def get_config(config_in: FwConfigManagerListController, importState: ImportStat
     normalizedConfig = normalize_config(importState, config_in.native_config)
     logger.info("completed getting config")
     return 0, normalizedConfig
-        
-    # normalize_network_data(full_config, config2import, mgm_details)
 
-    # fmgr_user.normalize_users(
-    #     full_config, config2import, current_import_id, user_scope)
-    # fmgr_network.normalize_nwobjects(
-    #     full_config, config2import, current_import_id, nw_obj_scope, jwt=jwt, mgm_id=mgm_details['id'])
-    # fmgr_service.normalize_svcobjects(
-    #     full_config, config2import, current_import_id, svc_obj_scope)
-    # fmgr_user.normalize_users(
-    #     full_config, config2import, current_import_id, user_scope)
-    # fmgr_rule.normalize_access_rules(
-    #     full_config, config2import, current_import_id, mgm_details=mgm_details, jwt=jwt)
-    # fmgr_rule.normalize_nat_rules(
-    #     full_config, config2import, current_import_id, jwt=jwt)
-    # fmgr_network.remove_nat_ip_entries(config2import)
-    # return 0
 
 def initialize_native_config_domain(mgm_details : ManagementController):
     return {
@@ -218,8 +202,7 @@ def normalize_single_manager_config(native_config: dict[str, Any], native_config
     # initialize_rulebases(native_config)
     normalize_rulebases(import_state, native_config, native_config_global, import_state, normalized_config_dict, normalized_config_global, 
                         is_global_loop_iteration)
-    # if not parsing_config_only: # logout with fortiManager
-    #     logout_fmgr(import_state.MgmDetails.buildFwApiString(), sid)
+
     logger.info("completed normalizing rulebases")
     
 

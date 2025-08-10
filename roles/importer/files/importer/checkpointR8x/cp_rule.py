@@ -135,23 +135,28 @@ def parse_rulebase_chunk(rulebase_to_parse, normalized_rulebase, rule_num):
  
 
 def acceptMalformedParts(objects: dict, part: str ='') -> dict[str, Any]:
-    # logger.debug('about to accept malformed rule part (' + part + '): ' + str(objects))
+    if fwo_globals.debug_level>9:
+        logger.debug(f'about to accept malformed rule part ({part}): {str(objects)}')
 
     # if we are dealing with a list with one element, resolve the list
     if isinstance(objects, list) and len(objects)==1:
         objects = objects[0]
 
-    if part == 'action' and 'name' in objects:
-        return { 'action': objects.get('name', None) }
-    elif part == 'install-on' and 'name' in objects:
-        return { 'install-on': objects['name'] }
-    elif part == 'time' and 'name' in objects:
-        return { 'time': objects['name'] }
-    elif part == 'track' and 'type' in objects and 'name' in objects['type']:
-        return { 'track': objects['type']['name'] }
+    if isinstance(objects, dict):
+        if part == 'action':
+            return { 'action': objects.get('name', None) }
+        elif part == 'install-on':
+            return { 'install-on': objects.get('name', None) }
+        elif part == 'time':
+            return { 'time': objects.get('name', None) }
+        elif part == 'track':
+            return { 'track': objects.get('type', {}).get('name', None) }
+        else:
+            logger.warning(f'found no uid or name in rule part ({part}): {str(objects)}')
+            return {}
     else:
-        logger.warning('found no uid or name in rule part (' + part + '): ' + str(objects))
-    return {}
+        logger.warning(f'objects is not a dictionary: {str(objects)}')
+        return {}
 
 
 def parseRulePart (objects: dict, part: str = 'source') -> dict[str, Any]:

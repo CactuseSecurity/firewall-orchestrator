@@ -114,7 +114,7 @@ def detect_legacy_format(configJson) -> ConfFormat:
 def read_file(importState: ImportStateController) -> dict:
     logger = getFwoLogger(debug_level=importState.DebugLevel)
     configJson = {}
-    if importState.ImportFileName is None:
+    if importState.ImportFileName=="":
         return configJson
     try:
         if importState.ImportFileName.startswith('http://') or importState.ImportFileName.startswith('https://'):   # get conf file via http(s)

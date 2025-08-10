@@ -1,4 +1,4 @@
-query getLastImport($mgmId: Int!) {
+query getLastCompleteImport($mgmId: Int!) {
     import_control(
         order_by: { control_id: desc }
         limit: 1

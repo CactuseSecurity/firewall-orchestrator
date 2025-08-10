@@ -32,9 +32,9 @@ class ImportStateController(ImportState):
         self.ConfigChangedSinceLastImport = configChangedSinceLastImport
         self.FwoConfig = fwoConfig
         self.MgmDetails = ManagementController.fromJson(mgmDetails)
-        self.ImportId = None
+        self.ImportId = -1
         self.Jwt = jwt
-        self.ImportFileName = None
+        self.ImportFileName = ""
         self.ForceImport = force
         self.ImportVersion = int(version)
         self.IsFullImport = isFullImport
@@ -46,7 +46,7 @@ class ImportStateController(ImportState):
         self.api_call = FwoApiCall(self.api_connection)
 
     def __str__(self):
-        return f"{str(self.ManagementDetails)}({self.age})"
+        return f"{str(self.MgmDetails)}(import_id={self.ImportId})"
     
     def setImportFileName(self, importFileName):
         self.ImportFileName = importFileName
@@ -353,7 +353,7 @@ class ImportStateController(ImportState):
         return rulebaseId
 
     def lookupLinkType(self, linkUid):
-        return self.LinkTypes.get(linkUid, None)
+        return self.LinkTypes.get(linkUid, -1)
 
     def lookupGatewayId(self, gwUid):
         return self.GatewayMap.get(gwUid, None)
@@ -366,7 +366,7 @@ class ImportStateController(ImportState):
 
 
     def lookupColorId(self, color_str):
-        return self.ColorMap.get(color_str, None)
+        return self.ColorMap.get(color_str, 1)  # 1 = forground color black
     
 
     def delete_import(self):

@@ -36,6 +36,7 @@ namespace FWO.Api.Client.Queries
                 getDevicesByManagement = GetQueryText("device/getDevicesByManagement.graphql");
                 getManagementNames = GetQueryText("device/getManagementNames.graphql");
                 getManagementsDetails = GetQueryText("device/getManagementsDetails.graphql")
+                                        + GetQueryText("device/fragments/subManagements.graphql")
                                         + GetQueryText("device/fragments/managementDetails.graphql")
                                         + GetQueryText("device/fragments/deviceTypeDetails.graphql")
                                         + GetQueryText("device/fragments/importCredentials.graphql");

@@ -30,7 +30,8 @@ def has_config_changed(full_config, mgm_details, force=False):
 
 def get_config(config_in: FwConfigManagerListController, importState: ImportStateController):
     logger = getFwoLogger()
-    if config_in.has_empty_config and config_in.is_native():   # no native config was passed in, so getting it from FW-Manager
+    
+    if config_in.has_empty_config() and config_in.is_native():   # no native config was passed in, so getting it from FW-Manager
         config_in.native_config.update({'domains': []})
         parsing_config_only = False
     else:

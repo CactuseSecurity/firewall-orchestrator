@@ -163,7 +163,7 @@ class FwConfigManagerListController(FwConfigManagerList):
     
 
     def is_native(self) -> bool:
-        return not (self.native_config is None or self.native_config == {})
+        return self.native_config is not None and self.native_config != {}
 
 
     def contains_only_native(self) -> bool:

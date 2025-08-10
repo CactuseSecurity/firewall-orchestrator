@@ -11,9 +11,7 @@ namespace FWO.Api.Client.Queries
 
         protected static string GetQueryText(string relativeQueryFileName)
         {
-            string query = " " + File.ReadAllText(QueryPath + relativeQueryFileName) + " ";
-            string compactedQuery = Compact(query);
-            return compactedQuery;
+            return Compact(" " + File.ReadAllText(QueryPath + relativeQueryFileName) + " ");
         }
         public static string Compact(string raw_query)
         {

@@ -162,51 +162,51 @@ def handle_error_on_config_file_serialization(importState: ImportStateController
     raise FwoImporterError from exception
 
 
-def serialize_dict_to_class_recursively(data: dict, cls: Any) -> Any:
-    try:
-        init_args = {}
-        type_hints = get_type_hints(cls)
+# def serialize_dict_to_class_recursively(data: dict, cls: Any) -> Any:
+#     try:
+#         init_args = {}
+#         type_hints = get_type_hints(cls)
 
-        if type_hints == {}:
-            raise ValueError(f"no type hints found, assuming dict '{str(cls)}")
+#         if type_hints == {}:
+#             raise ValueError(f"no type hints found, assuming dict '{str(cls)}")
 
-        for field, field_type in type_hints.items():
+#         for field, field_type in type_hints.items():
 
-            if field not in data:
-                continue
+#             if field not in data:
+#                 continue
 
-            value = data[field]
+#             value = data[field]
 
-            # Handle list types
-            if hasattr(field_type, '__origin__') and field_type.__origin__ == list:
-                inner_type = field_type.__args__[0]
-                if isinstance(value, list):
-                    init_args[field] = [
-                        serialize_dict_to_class_recursively(item, inner_type) if isinstance(item, dict) else item
-                        for item in value
-                    ]
-                else:
-                    raise ValueError(f"Expected a list for field '{field}', but got {type(value).__name__}")
+#             # Handle list types
+#             if hasattr(field_type, '__origin__') and field_type.__origin__ == list:
+#                 inner_type = field_type.__args__[0]
+#                 if isinstance(value, list):
+#                     init_args[field] = [
+#                         serialize_dict_to_class_recursively(item, inner_type) if isinstance(item, dict) else item
+#                         for item in value
+#                     ]
+#                 else:
+#                     raise ValueError(f"Expected a list for field '{field}', but got {type(value).__name__}")
 
-            # Handle dictionary (nested objects)
-            elif isinstance(value, dict):
-                init_args[field] = serialize_dict_to_class_recursively(value, field_type)
+#             # Handle dictionary (nested objects)
+#             elif isinstance(value, dict):
+#                 init_args[field] = serialize_dict_to_class_recursively(value, field_type)
 
-            # Handle Enum types
-            elif isinstance(field_type, type) and issubclass(field_type, Enum):
-                init_args[field] = field_type[value]
+#             # Handle Enum types
+#             elif isinstance(field_type, type) and issubclass(field_type, Enum):
+#                 init_args[field] = field_type[value]
 
-            # Direct assignment for basic types
-            else:
-                init_args[field] = value
+#             # Direct assignment for basic types
+#             else:
+#                 init_args[field] = value
 
-        # Create an instance of the class with the collected arguments
-        return cls(**init_args)
+#         # Create an instance of the class with the collected arguments
+#         return cls(**init_args)
 
-    except (TypeError, ValueError, KeyError) as e:
-        # If an error occurs, return the original dictionary as is
-        return data
+#     except (TypeError, ValueError, KeyError) as e:
+#         # If an error occurs, return the original dictionary as is
+#         return data
 
-    except Exception:
-        raise
+#     except Exception:
+#         raise
 

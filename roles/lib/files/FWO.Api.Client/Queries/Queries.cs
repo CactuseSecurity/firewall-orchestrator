@@ -24,20 +24,20 @@ namespace FWO.Api.Client.Queries
             for (int i = 0; i < lines.Length; i++)
             {
                 // Remove everything starting from '#' to the end of the line
-                lines[i] = Regex.Replace(lines[i], @"#.*", "").Trim();
+                lines[i] = Regex.Replace(lines[i], @"#.*", "", RegexOptions.None, TimeSpan.FromMilliseconds(100)).Trim();
             }
 
             // Rejoin the lines back into a single string
             raw_query = string.Join("\n", lines);
 
             // Replace tabs with a single space
-            raw_query = Regex.Replace(raw_query, @"\t+", " ").Trim();
+            raw_query = Regex.Replace(raw_query, @"\t+", " ", RegexOptions.None, TimeSpan.FromMilliseconds(100)).Trim();
 
             // Replace multiple spaces with a single space
-            raw_query = Regex.Replace(raw_query, @"\s+", " ");
+            raw_query = Regex.Replace(raw_query, @"\s+", " ", RegexOptions.None, TimeSpan.FromMilliseconds(100));
 
             // Remove remaining newline characters (if needed)
-            raw_query = Regex.Replace(raw_query, @"[\n]", "");
+            raw_query = Regex.Replace(raw_query, @"[\n]", "", RegexOptions.None, TimeSpan.FromMilliseconds(100));
 
             return raw_query;
         }

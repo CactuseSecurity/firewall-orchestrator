@@ -95,7 +95,7 @@ def find_rulebase_to_parse_in_case_of_chunk(rulebase, rulebase_uid):
 def initialize_normalized_rulebase(rulebase_to_parse, mgm_uid):
     rulebaseName = rulebase_to_parse['type']
     rulebaseUid = rulebase_to_parse['type']
-    normalized_rulebase = Rulebase(uid=rulebaseUid, name=rulebaseName, mgm_uid=mgm_uid, Rules=[])
+    normalized_rulebase = Rulebase(uid=rulebaseUid, name=rulebaseName, mgm_uid=mgm_uid, Rules={})
     return normalized_rulebase
 
 def parse_rulebase(rulebase_to_parse, is_section, is_placeholder, normalized_rulebase):

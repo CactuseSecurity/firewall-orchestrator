@@ -126,6 +126,7 @@ class ManagementController(Management):
         getMgmDetailsQuery = FwoApi.get_graphql_code([
                     graphql_query_path + "device/getSingleManagementDetails.graphql",
                     graphql_query_path + "device/fragments/managementDetails.graphql",
+                    graphql_query_path + "device/fragments/subManagements.graphql",
                     graphql_query_path + "device/fragments/deviceTypeDetails.graphql",
                     graphql_query_path + "device/fragments/importCredentials.graphql"])
 

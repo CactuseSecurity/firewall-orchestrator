@@ -297,9 +297,11 @@ Breaking changes
     pythonhosted.org
     are also allowed.
 
-To initialize the venv (e.g. within your vscode environment) run
+To initialize your venv locally (e.g. within your vscode environment) run
 
-    cd importer
+make sure to place your venv outside the repo, e.g. into /home/user/dev/venv
+
+    cd /home/user/dev
     python3 -m venv venv
     source venv/bin/activate
-    pip install -r ../requirements.txt
+    pip install -r path-to-repo/roles/importer/files/importer/requirements.txt

@@ -15,17 +15,17 @@ function globalClick(dotNetHelper) {
 }
 
 function observeNavbarHeight(dotNetHelper) {
-    const selector = ".navbar";
-    const navbar = document.querySelector(selector);
+    const selector = "navbar";
+    const navbar = document.getElementById(selector);
     if (!navbar) {
-        console.error("Navbar not found for selector:", selector);
-        return;
+        console.warn("Navbar not found for id:", selector);
+        return null;
     }
 
-    const measure = () => Math.round(navbar.getBoundingClientRect().height);
-    const send = () => dotNetHelper.invokeMethodAsync("InvokeNavbarHeightChanged", measure());
+    const send = () => dotNetHelper.invokeMethodAsync("InvokeNavbarHeightChanged",
+        Math.round(navbar.getBoundingClientRect().height));
 
-    // Send initial height
+    // Initial send of the navbar height
     send();
 
     // Observe changes to the navbar height and send the update

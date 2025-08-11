@@ -92,7 +92,7 @@
         <Loading/>
     }
 </Collapse>
-<AddMatrix @bind-Display="addMatrixMode" @bind-Matrices="matrices"/>
+<AddMatrix @bind-Display="addMatrixMode" RefreshParent="AddNewMatrix"/>
 <ConfirmDelete @bind-Display="deleteMatrixMode" PerformAction="DeleteMatrix" Title="@userConfig.GetText("delete_matrix")" 
     DeleteAllowed="deleteAllowed" DeleteMessage="@(deleteMessage)" />
 
@@ -131,10 +131,24 @@
                 selectedMatrix = matrices[0];
                 await LoadMatrix();
             }
+            else
+            {
+                networkZoneService.NetworkZones = [];
+                matrixLoaded = true;
+            }
         }
         catch (Exception exception)
         {
             DisplayMessageInUi(exception, userConfig.GetText("object_fetch"), "", true);
+        }
+    }
+
+    private async Task AddNewMatrix(ComplianceCriterion newMatrix)
+    {
+        matrices.Add(newMatrix);
+        if(matrices.Count == 1)
+        {
+            await OnMatrixChanged(newMatrix);
         }
     }
 
@@ -205,6 +219,12 @@
                 {
                     selectedMatrix = matrices[0];
                     await LoadMatrix();
+                }
+                else
+                {
+                    selectedMatrix = new();
+                    networkZoneService.NetworkZones = [];
+                    StateHasChanged();
                 }
                 deleteMatrixMode = false;
             }

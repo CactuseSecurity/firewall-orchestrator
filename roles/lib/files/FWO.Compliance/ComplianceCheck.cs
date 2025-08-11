@@ -11,6 +11,7 @@ using FWO.Report.Filter.FilterTypes;
 using FWO.Data.Middleware;
 using System.Text.Json;
 using FWO.Logging;
+using FWO.Ui.Display;
 
 namespace FWO.Compliance
 {
@@ -55,56 +56,63 @@ namespace FWO.Compliance
         /// <returns></returns>
         public async Task CheckAll()
         {
-            Log.TryWriteLog(LogType.Info, "Compliance Check", "Starting compliance check", _debugConfig.ExtendedLogComplianceCheck);
-
-            int? policyId = _userConfig.GlobalConfig?.ComplianceCheckPolicyId;
-
-            if (policyId == null || policyId == 0)
+            try
             {
-                Log.WriteInfo("Compliance Check", "No Policy defined");
-                return;
-            }
-            else
-            {
-                Log.TryWriteLog(LogType.Info, "Compliance Check", $"Using policy {policyId}", _debugConfig.ExtendedLogComplianceCheck);
-            }
+                Log.TryWriteLog(LogType.Info, "Compliance Check", "Starting compliance check", _debugConfig.ExtendedLogComplianceCheck);
 
-            _policy = await _apiConnection.SendQueryAsync<CompliancePolicy>(ComplianceQueries.getPolicyById, new { id = policyId });
+                int? policyId = _userConfig.GlobalConfig?.ComplianceCheckPolicyId;
 
-            if (TryLogPolicyCriteria() == false)
-            {
-                Log.WriteError("Compliance Check", $"Policy with id {policyId} not found");
-                return;
-            }
-
-            Task loadNetworkZonesTask = LoadNetworkZones();
-            Task setUpReportFiltersTask = SetUpReportFilters();
-
-            await Task.WhenAll(loadNetworkZonesTask, setUpReportFiltersTask);
-
-            ReportTemplate template = new("", _reportFilters.ToReportParams());
-
-            ReportBase? currentReport = await ReportGenerator.Generate(template, _apiConnection, _userConfig, DefaultInit.DoNothing);
-
-            if (currentReport is ReportCompliance complianceReport)
-            {
-                ComplianceReport = complianceReport;
-                Log.TryWriteLog(LogType.Info, "Compliance Check", $"Compliance report generated with {complianceReport.ReportData.ManagementData.Count} managements", _debugConfig.ExtendedLogComplianceCheck);
-
-                ComplianceReport = complianceReport;
-
-                ComplianceReport.Violations.Clear();
-
-                foreach (var management in complianceReport.ReportData.ManagementData)
+                if (policyId == null || policyId == 0)
                 {
-                    await CheckRuleCompliancePerManagement(management);
+                    Log.WriteInfo("Compliance Check", "No Policy defined");
+                    return;
                 }
+                else
+                {
+                    Log.TryWriteLog(LogType.Info, "Compliance Check", $"Using policy {policyId}", _debugConfig.ExtendedLogComplianceCheck);
+                }
+
+                _policy = await _apiConnection.SendQueryAsync<CompliancePolicy>(ComplianceQueries.getPolicyById, new { id = policyId });
+
+                if (TryLogPolicyCriteria() == false)
+                {
+                    Log.WriteError("Compliance Check", $"Policy with id {policyId} not found");
+                    return;
+                }
+
+                Task loadNetworkZonesTask = LoadNetworkZones();
+                Task setUpReportFiltersTask = SetUpReportFilters();
+
+                await Task.WhenAll(loadNetworkZonesTask, setUpReportFiltersTask);
+
+                ReportTemplate template = new("", _reportFilters.ToReportParams());
+
+                ReportBase? currentReport = await ReportGenerator.Generate(template, _apiConnection, _userConfig, DefaultInit.DoNothing);
+
+                if (currentReport is ReportCompliance complianceReport)
+                {
+                    ComplianceReport = complianceReport;
+                    Log.TryWriteLog(LogType.Info, "Compliance Check", $"Compliance report generated with {complianceReport.ReportData.ManagementData.Count} managements", _debugConfig.ExtendedLogComplianceCheck);
+
+                    ComplianceReport = complianceReport;
+
+                    ComplianceReport.Violations.Clear();
+
+                    foreach (var management in complianceReport.ReportData.ManagementData)
+                    {
+                        await CheckRuleCompliancePerManagement(management);
+                    }
+                }
+                else
+                {
+                    Log.WriteError("Compliance Check", "Could not generate compliance report");
+                }    
             }
-            else
+            catch (System.Exception e)
             {
-                Log.WriteError("Compliance Check", "Could not generate compliance report");
-                return;
+                Log.WriteError("Compliance Check", "Error while checking for compliance violations", e);
             }
+            
         }
 
         /// <summary>
@@ -362,17 +370,9 @@ namespace FWO.Compliance
                         {
                             if (!sourceNetworkZone.CommunicationAllowedTo(destinationNetworkZone))
                             {
-                                ComplianceViolation violation = new()
-                                {
-                                    RuleId = (int)rule.Id,
-                                    Details = $"Matrix violation: {sourceZone.networkObject.Name} (Uid: {sourceZone.networkObject.Uid} - Zone: {sourceNetworkZone.Id} - {sourceNetworkZone.Name}) ---> {destinationZone.networkObject.Name} (Uid: {destinationZone.networkObject.Uid} - Zone: {destinationNetworkZone.Id} - {destinationNetworkZone.Name})",
-                                    CriterionId = _policy?.Criteria
-                                                            .FirstOrDefault(criterionWrapper => criterionWrapper.Content.CriterionType == "Matrix")?
-                                                            .Content.Id ?? 0,
-                                    PolicyId = _policy?.Id ?? 0
-                                };
+                                ComplianceViolation? violation = TryCreateViolation(ComplianceViolationType.MatrixViolation, rule, source: sourceZone.networkObject, destination: destinationZone.networkObject);
 
-                                ComplianceReport!.Violations.Add(violation);
+                                ComplianceReport!.Violations.Add(violation!);
 
                                 ruleIsCompliant = false;
                             }
@@ -382,6 +382,68 @@ namespace FWO.Compliance
             }
 
             return ruleIsCompliant;
+        }
+
+        private ComplianceViolation? TryCreateViolation(ComplianceViolationType violationType, Rule rule, ComplianceCriterion? criterion = null, NetworkObject? source = null, NetworkObject? destination = null, NetworkService? service = null)
+        {
+            ComplianceViolation violation = new()
+            {
+                RuleId = (int)rule.Id,
+                PolicyId = _policy?.Id ?? 0
+            };
+
+            switch (violationType)
+            {
+                case ComplianceViolationType.MatrixViolation:
+
+                    if (source is NetworkObject s && destination is NetworkObject d)
+                    {
+                        // Workaround!! TODO: Check compliance per criterion and transfer criterion id through the methods
+                        violation.CriterionId = _policy?.Criteria
+                                                    .FirstOrDefault(criterionWrapper => criterionWrapper.Content.CriterionType == "Matrix")?
+                                                    .Content.Id ?? 0;
+                        string sourceString = GetNwObjectString(s);
+                        string destinationString = GetNwObjectString(d);
+                        violation.Details = $"Matrix violation: {sourceString} -> {destinationString}";
+
+                    }
+                    else
+                    {
+                        throw new ArgumentNullException("Both the 'source' and 'destination' arguments must be non-null when creating a matrix violation.");
+                    }
+
+                    break;
+
+                case ComplianceViolationType.ServiceViolation:
+
+                    if (service is NetworkService svc)
+                    {
+                        violation.CriterionId = criterion.Id;
+                        violation.Details = $"Restricted service used: {svc.Name}";
+                    }
+                    else
+                    {
+                        throw new ArgumentNullException("The service argument must be non-null when creating a service violation.");
+                    }
+
+                    break;
+
+                default:
+
+                    return null;
+            }
+
+            return violation;
+        }
+
+        private string GetNwObjectString(NetworkObject networkObject)
+        {
+            string networkObjectString = "";
+
+            networkObjectString += networkObject.Name;
+            networkObjectString += NwObjDisplay.DisplayIp(networkObject.IP, networkObject.IpEnd, networkObject.Type.Name, true);
+
+            return networkObjectString;
         }
 
         private bool CheckMatrixCompliance(List<IPAddressRange> source, List<IPAddressRange> destination, out List<(ComplianceNetworkZone, ComplianceNetworkZone)> forbiddenCommunication)

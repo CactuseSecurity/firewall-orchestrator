@@ -32,7 +32,7 @@ namespace FWO.Report
         public ReportCompliance(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType) : base(query, userConfig, reportType)
         {
             _includeHeaderInExport = true;
-            _separator = '#';
+            _separator = ';';
             _columnsToExport = new List<string>
             {
                 "MgmtId",
@@ -78,9 +78,19 @@ namespace FWO.Report
                                                     .Where(p => p != null)
                                                     .ToList();
 
+                List<string> propertyNames = [];
+
+                foreach (PropertyInfo? propertyInfo in properties)
+                {
+                    if (propertyInfo != null)
+                    {
+                        propertyNames.Add(propertyInfo!.Name);
+                    }
+                }
+
                 if (_includeHeaderInExport)
                 {
-                    sb.AppendLine(string.Join(_separator, properties.Select(property => property?.Name)));
+                    sb.AppendLine(string.Join(_separator, propertyNames.Select(p => $"\"{p}\"")));
                 }
 
                 foreach (Rule rule in Rules)
@@ -118,18 +128,21 @@ namespace FWO.Report
                     if (p.Name != "Services")
                     {
                         var value = p!.GetValue(rule);
+
                         if (value == null)
                             return "";
+
                         if (value is string s)
                             return Escape(s, _separator);
-                        return Escape(value.ToString()!, _separator);
+
+                        return $"{Escape(value.ToString()!, _separator)}";
                     }
                     else
                     {
                         // Handle Services separately to join them with a pipe character
 
                         var services = rule.Services.Select(s => s.Content.Name).ToList();
-                        return Escape(string.Join(" | ", services), _separator);
+                        return $"{Escape(string.Join(" | ", services), _separator)}";
                     }
                 }
                 else
@@ -138,7 +151,8 @@ namespace FWO.Report
                 }
             });
 
-            return string.Join(_separator, values);
+            return string.Join(_separator, values.Select(value => $"\"{value}\""));
+
         }
 
         private string Escape(string input, char separator)
@@ -147,14 +161,13 @@ namespace FWO.Report
 
             input = input.Replace("\r", " ").Replace("\n", " ");
 
-            if (input.Contains(separator) || input.Contains('"'))
+            if (input.Contains('"'))
             {
                 // Escape quotation marks
 
                 input = input.Replace("\"", "\"\"");
-
-                return $"\"{input}\"";
             }
+
             return input;
         }
 

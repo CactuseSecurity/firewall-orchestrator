@@ -117,8 +117,9 @@ In case of errors with existing pip config, do not use the script to create the 
 remove any local pip config and install manually:
     
     rm -f $HOME/.config/pip/pip.conf
-    python3 -m venv ansible-venv
-    source ansible-venv/bin/activate
+    python3 -m venv installer-venv
+    source installer-venv/bin/activate
+    pip install -r requirements.txt
     pip install ansible
 
 ### Parameter "api_no_metadata" to prevent meta data import

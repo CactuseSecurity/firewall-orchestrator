@@ -15,9 +15,9 @@ After=network.target remote-fs.target nss-lookup.target
 Type=simple
 WorkingDirectory={{ importer_home }}
 ExecStartPre=/bin/sleep 10
-ExecStart={{ importer_home }}/venv/bin/python {{ importer_home}}/import-main-loop.py
-Environment="PATH={{ importer_home }}/venv/bin"
-Environment="VIRTUAL_ENV={{ importer_home }}/venv"
+ExecStart={{ importer_venv_dir }}/bin/python {{ importer_home}}/import-main-loop.py
+Environment="PATH={{ importer_venv_dir }}/bin"
+Environment="VIRTUAL_ENV={{ importer_venv_dir }}"
 TimeoutStopSec=300min
 StandardOutput=journal
 StandardError=journal

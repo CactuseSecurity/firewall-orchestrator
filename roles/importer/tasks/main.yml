@@ -53,13 +53,13 @@
 
   - name: Create Python virtual environment
     ansible.builtin.command:
-      cmd: python3 -m venv {{ fworch_home }}/importer/venv
-      creates: "{{ fworch_home }}/importer/venv"
+      cmd: python3 -m venv {{ importer_venv_dir }}
+      creates: "{{ importer_venv_dir }}"
 
   - name: Install Python packages from requirements.txt
     ansible.builtin.pip:
       requirements: "{{ fworch_home }}/importer/requirements.txt"
-      virtualenv: "{{ fworch_home }}/importer/venv"
+      virtualenv: "{{ importer_venv_dir }}"
 
   - name: set x-flag for importer executables (top level only)
     file:

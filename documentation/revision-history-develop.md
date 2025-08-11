@@ -302,6 +302,6 @@ To initialize your venv locally (e.g. within your vscode environment) run
 make sure to place your venv outside the repo, e.g. into /home/user/dev/venv
 
     cd /home/user/dev
-    python3 -m venv venv
-    source venv/bin/activate
+    python3 -m venv installer-venv
+    source installer-venv/bin/activate
     pip install -r path-to-repo/roles/importer/files/importer/requirements.txt

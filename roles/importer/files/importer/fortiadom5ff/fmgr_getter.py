@@ -35,11 +35,13 @@ def api_call(url, command, json_payload, sid, show_progress=False, method=''):
             raise FwApiCallFailed(f'error while sending api_call containing credential information to url {str(url)}')
         else:
             if 'status' in result_json['result'][0]:
+                result_status = r.json()['result'][0]['status']
                 exception_text = f'error while sending api_call to url {str(url)} with payload {json.dumps(json_payload, indent=2)}  and  headers: '
-                exception_text += f'{json.dumps(request_headers, indent=2)}, result={json.dumps(r.json()['result'][0]['status'], indent=2)}'
+                exception_text += f'{json.dumps(request_headers, indent=2)}, result={json.dumps(result_status, indent=2)}'
             else:
+                result_data = r.json()['result'][0]
                 exception_text = f'error while sending api_call to url {str(url)} with payload {json.dumps(json_payload, indent=2)}'
-                exception_text += f' and  headers: {json.dumps(request_headers, indent=2)}, result={json.dumps(r.json()['result'][0], indent=2)}'
+                exception_text += f' and  headers: {json.dumps(request_headers, indent=2)}, result={json.dumps(result_data, indent=2)}'
             raise FwApiCallFailed(exception_text)
     if 'status' not in result_json['result'][0] or 'code' not in result_json['result'][0]['status'] or result_json['result'][0]['status']['code'] != 0:
         # trying to ignore empty results as valid

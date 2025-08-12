@@ -1,5 +1,5 @@
 ### general settings
-product_version: "8.8.7"
+product_version: "8.8.8"
 ansible_user: "{{ lookup('env', 'USER') }}"
 ansible_become_method: sudo
 ansible_python_interpreter: /usr/bin/python3
@@ -68,6 +68,7 @@ fworch_db_port: 5432
 fworch_db_name: fworchdb
 fworch_dbadmin_name: dbadmin
 dbadmin_password_file: "{{ fworch_secrets_dir }}/dbadmin_pwd"
+fwo_db_ro_user_password_file: "{{ fworch_secrets_dir }}/fwo_db_ro_pwd"
 fworch_db_password_file: "{{ fworch_secrets_dir }}/fworch_db_pwd"
 
 ###############################################################

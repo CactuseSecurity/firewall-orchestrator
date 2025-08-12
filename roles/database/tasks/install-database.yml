@@ -96,6 +96,10 @@
     become: true
     become_user: postgres
 
+  - name: create ro db user {{ fwo_db_ro_user }}
+    import_tasks: create-ro-user.yml
+    when: installation_mode == "new"
+
   - name: add colors to the database
     postgresql_copy:
       db: "{{ fworch_db_name }}"

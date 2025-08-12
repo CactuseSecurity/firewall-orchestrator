@@ -30,9 +30,15 @@
 
 - debug: 
     msg:
-      - "installed_version: {{ installed_version }}"
-      - "current_version: {{ current_version }}"
-      - "all_upgrades_available: {{ all_upgrades_available }}"
+        - "installed_version: {{ installed_version }}"
+        - "current_version: {{ current_version }}"
+        - "all_upgrades_available: {{ all_upgrades_available }}"
+
+- name: Read fwo_db_ro user password from file
+  slurp:
+    src: "{{ fwo_db_ro_user_password_file }}"
+  register: fwo_db_ro_pwd
+  when: installed_version is version('8.8.8', '<=') and current_version is version ('8.8.8', '>=')
 
 - name: Copy relevant upgrade files
   copy:
@@ -49,3 +55,5 @@
   become: true
   ignore_errors: false
   become_user: postgres
+  environment:
+    fwo_db_ro_user_pwd: "{{ fwo_db_ro_pwd }}"

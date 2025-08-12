@@ -4,7 +4,7 @@ query getPolicies {
     name
     created_date
     disabled
-    criteria: policy_criterions {
+    criteria: policy_criterions (where: {removed: {_is_null: true}}) {
       criterion: criterion {
         content
         criterion_type

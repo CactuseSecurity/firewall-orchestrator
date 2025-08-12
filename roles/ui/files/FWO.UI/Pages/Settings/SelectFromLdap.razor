@@ -1,8 +1,13 @@
-﻿@inject UserConfig userConfig
+@inject UserConfig userConfig
 
 <PopUp Title="@(userConfig.GetText("select_from_ldap") + ": " + LdapName)" Show="@Display" Size=PopupSize.Medium OnClose="Close">
     <Body>
-        @if (Display)
+        @if (Loading)
+        {
+            <div class="d-flex justify-content-center mt-5">
+                <Loading Size="Data.SpinnerSize.Medium" />
+            </div>
+        }else if (Display)
         {
             @if(UserSelect)
             {
@@ -21,7 +26,7 @@
                         </Authorized>
                         <NotAuthorized>
                             <button type="button" class="btn btn-sm btn-success col-sm-2" disabled>@(userConfig.GetText("assign"))</button>
-                        </NotAuthorized> 
+                        </NotAuthorized>
                     </AuthorizeView>
                 </div>
             }
@@ -38,7 +43,7 @@
                         </Authorized>
                         <NotAuthorized>
                             <button type="button" class="btn btn-sm btn-success col-sm-2" disabled>@(userConfig.GetText("assign"))</button>
-                        </NotAuthorized> 
+                        </NotAuthorized>
                     </AuthorizeView>
                 </div>
             }
@@ -81,6 +86,8 @@
     [Parameter]
     public List<string> LdapGroups { get; set; } = new();
 
+    [Parameter]
+    public bool Loading { get; set; }
 
     private UiUser selectedLdapUser = new();
     private string selectedLdapGroup = "";
@@ -92,10 +99,11 @@
             selectedLdapUser = (LdapUsers.Count == 0 ? new UiUser() : LdapUsers.First());
             selectedLdapGroup = (LdapGroups.Count == 0 ? "" : LdapGroups.First());
         }
-    }  
+    }
 
     private void Close()
     {
+        Loading = false;
         Display = false;
         DisplayChanged.InvokeAsync(Display);
     }

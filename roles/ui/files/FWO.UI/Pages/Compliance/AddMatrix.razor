@@ -41,6 +41,9 @@
     [Parameter]
     public EventCallback<bool> DisplayChanged { get; set; }
 
+    [Parameter]
+    public Func<ComplianceCriterion, Task> RefreshParent { get; set; } = DefaultInit.DoNothing;
+
     private string MatrixName { get; set; } = "";
 
     private void Cancel()
@@ -60,7 +63,11 @@
             }
             else if(MatrixName != "")
             {
-                await apiConnection.SendQueryAsync<ReturnId>(ComplianceQueries.addCriterion, new { name = MatrixName, criterionType = CriterionType.Matrix.ToString() });
+                ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(ComplianceQueries.addCriterion, new { name = MatrixName, criterionType = CriterionType.Matrix.ToString() })).ReturnIds;
+                if(returnIds != null && returnIds.Length > 0)
+                {
+                    RefreshParent(new(){ Id = returnIds[0].InsertedId, Name = MatrixName, CriterionType = CriterionType.Matrix.ToString() });
+                }
                 Close();
             }
         }
@@ -72,6 +79,7 @@
 
     private void Close()
     {
+        MatrixName = "";
         Display = false;
         DisplayChanged.InvokeAsync(Display);
     }

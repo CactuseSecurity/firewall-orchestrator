@@ -1749,6 +1749,8 @@ INSERT INTO txt VALUES ('wrong_input_data',     'German',   'Falsche Eingabedate
 INSERT INTO txt VALUES ('wrong_input_data',     'English',  'Wrong input data');
 INSERT INTO txt VALUES ('add_matrix',     		'German',   'Matrix hinzuf&uuml;gen');
 INSERT INTO txt VALUES ('add_matrix',     		'English',  'Add Matrix');
+INSERT INTO txt VALUES ('delete_matrix',     	'German',   'Matrix l&ouml;schen');
+INSERT INTO txt VALUES ('delete_matrix',     	'English',  'Delete Matrix');
 INSERT INTO txt VALUES ('policy',      			'German', 	'Policy');
 INSERT INTO txt VALUES ('policy',      			'English', 	'Policy');
 INSERT INTO txt VALUES ('policies',      		'German', 	'Policies');
@@ -2830,10 +2832,14 @@ INSERT INTO txt VALUES ('U2002', 'English', 'Do you really want to delete report
 INSERT INTO txt VALUES ('U3002', 'German',  'Sind sie sicher, dass sie folgenden Report l&ouml;schen wollen: ');
 INSERT INTO txt VALUES ('U3002', 'English', 'Do you really want to delete generated report ');
 
-INSERT INTO txt VALUES ('U4001', 'German',  'Sind sie sicher, dass sie folgende Policy l&ouml;schen wollen: ');
-INSERT INTO txt VALUES ('U4001', 'English', 'Are you sure you want to delete policy: ');
-INSERT INTO txt VALUES ('U4002', 'German',  'Sind sie sicher, dass sie folgendes Fixes Kriterium l&ouml;schen wollen: ');
-INSERT INTO txt VALUES ('U4002', 'English', 'Are you sure you want to delete fix criterion: ');
+INSERT INTO txt VALUES ('U4501', 'German',  'Sind sie sicher, dass sie folgende Policy l&ouml;schen wollen: ');
+INSERT INTO txt VALUES ('U4501', 'English', 'Are you sure you want to delete policy: ');
+INSERT INTO txt VALUES ('U4502', 'German',  'Sind sie sicher, dass sie folgendes Fixes Kriterium l&ouml;schen wollen: ');
+INSERT INTO txt VALUES ('U4502', 'English', 'Are you sure you want to delete fix criterion: ');
+INSERT INTO txt VALUES ('U4503', 'German',  'Sind sie sicher, dass sie folgende Matrix l&ouml;schen wollen: ');
+INSERT INTO txt VALUES ('U4503', 'English', 'Are you sure you want to delete matrix: ');
+INSERT INTO txt VALUES ('U4504', 'German',  'Die Matrix kann nicht gel&ouml;scht werden, da sie in mindestens einer aktiven Policy verwendet wird.');
+INSERT INTO txt VALUES ('U4504', 'English', 'Matrix cannot be deleted as it is used in at least one active Policy.');
 
 INSERT INTO txt VALUES ('U5001', 'German',  'Setup und Verwaltung des Firewall Orchestrator. Bitte eine Einstellung in der linken Randleiste ausw&auml;hlen.');
 INSERT INTO txt VALUES ('U5001', 'English', 'Setup and administration of Firewall Orchestrator. Please choose a setting in the left sidebar.');

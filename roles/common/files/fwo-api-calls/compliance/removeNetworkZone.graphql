@@ -14,7 +14,7 @@ mutation removeNetworkZone (
 
   update_compliance_ip_range (
     where: {
-      network_zone_id: {_eq: $network_zone_id},
+      network_zone_id: {_eq: $id},
       _or: $delete_ip_ranges_exp
       removed: {_is_null: true}
     }

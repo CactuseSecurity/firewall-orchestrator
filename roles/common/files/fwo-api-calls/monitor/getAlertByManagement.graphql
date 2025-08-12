@@ -1,0 +1,9 @@
+query getAlertByManagement($mgmId: Int!, $alertCode: Int!, $currentAlertId: bigint!) {
+    alert(where: {
+        alert_mgm_id: {_eq: $mgmId}, alert_code: {_eq: $alertCode}
+        ack_timestamp: {_is_null: true}
+        alert_id: {_neq: $currentAlertId}}) 
+    {
+        alert_id
+    }
+}

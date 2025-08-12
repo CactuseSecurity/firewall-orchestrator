@@ -1,4 +1,4 @@
-import fwo_api
+import fwo_api_call as fwo_api_call
 import json
 import fwo_const
 import fwo_log
@@ -21,7 +21,7 @@ def getFwoAlerter():
         logger.error("getFwoAlerter - error while reading importer pwd file")
         raise
 
-    jwt = fwo_api.login(fwo_const.importer_user_name, importer_pwd, user_management_api_base_url)
+    jwt = fwo_api_call.login(fwo_const.importer_user_name, importer_pwd, user_management_api_base_url)
 
     return { "fwo_api_base_url": fwo_api_base_url, "jwt": jwt }
 

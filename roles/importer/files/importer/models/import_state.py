@@ -1,12 +1,6 @@
-from typing import Dict, Optional
-
-from models.import_statistics import ImportStatistics
 from model_controllers.import_statistics_controller import ImportStatisticsController
-from fwo_api_oo import FwoApi
-from models.action import Action
-from models.track import Track
 from model_controllers.fworch_config_controller import FworchConfigController
-from model_controllers.management_details_controller import ManagementDetailsController
+from model_controllers.management_controller import ManagementController
 
 """Used for storing state during import process per management"""
 class ImportState():
@@ -16,7 +10,7 @@ class ImportState():
     VerifyCerts: bool = False
     ConfigChangedSinceLastImport: bool
     FwoConfig: FworchConfigController
-    MgmDetails: ManagementDetailsController
+    MgmDetails: ManagementController
     ImportId: int
     ImportFileName: str
     ForceImport: str
@@ -24,12 +18,12 @@ class ImportState():
     DataRetentionDays: int
     DaysSinceLastFullImport: int
     LastFullImportId: int
-    LastSuccessfulImport: Optional[str] = None
+    LastSuccessfulImport: str|None = None
     IsFullImport: bool
     IsInitialImport: bool = False
-    Actions: Dict[str, int]
-    Tracks: Dict[str, int]
-    LinkTypes: Dict[str, int]
-    RulebaseMap: Dict[str, int]
-    RuleMap: Dict[str, int]
-    
+    Actions: dict[str, int]
+    Tracks: dict[str, int]
+    LinkTypes: dict[str, int]
+    RulebaseMap: dict[str, int]
+    RuleMap: dict[str, int]
+    responsible_for_importing: bool = True

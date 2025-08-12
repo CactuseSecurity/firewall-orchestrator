@@ -14,10 +14,10 @@ namespace FWO.Api.Client.Queries
         {
             try
             {
-                deleteImport = File.ReadAllText(QueryPath + "import/deleteImport.graphql");
-                rollbackLastImport = File.ReadAllText(QueryPath + "import/rollback.graphql");
-                deleteLatestConfig = File.ReadAllText(QueryPath + "import/deleteLatestConfig.graphql");
-                getLastImport = File.ReadAllText(QueryPath + "import/getLastImport.graphql");
+                deleteImport = GetQueryText("import/deleteImport.graphql");
+                rollbackLastImport = GetQueryText("import/rollback.graphql");
+                deleteLatestConfig = GetQueryText("import/deleteLatestConfig.graphql");
+                getLastImport = GetQueryText("import/getLastImport.graphql");
 
             }
             catch (Exception exception)

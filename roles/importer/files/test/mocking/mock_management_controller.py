@@ -1,8 +1,8 @@
 
-from importer.model_controllers.management_details_controller import ManagementDetailsController
+from model_controllers.management_controller import ManagementController
 
 
-class MockManagementDetailsController(ManagementDetailsController):
+class MockManagementController(ManagementController):
     def __init__(self, is_super_manager: bool = False):
         """
             Initializes without calling base init.

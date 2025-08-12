@@ -4,7 +4,7 @@ import os
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '../importer'))
 
-from importer.fwo_base import compute_min_moves
+from fwo_base import compute_min_moves
 
 
 class TestFwoBase(unittest.TestCase):

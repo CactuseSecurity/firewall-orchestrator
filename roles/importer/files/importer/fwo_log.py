@@ -84,7 +84,7 @@ def getFwoLogger(debug_level=0):
     #log_handler = LogHandler(stream=sys.stdout)
     #log_filter = LogFilter()
 
-    log_format = "%(asctime)s [%(levelname)-5.5s] [%(filename)-10.10s:%(funcName)-10.10s:%(lineno)4d] %(message)s"
+    log_format = "%(asctime)s [%(levelname)-5.5s] [%(filename)-25.25s:%(funcName)-25.25s:%(lineno)4d] %(message)s"
     #log_handler.setLevel(log_level)
     #log_handler.addFilter(log_filter)
     #handlers = [log_handler]

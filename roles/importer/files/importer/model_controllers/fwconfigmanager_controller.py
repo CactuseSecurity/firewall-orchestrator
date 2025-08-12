@@ -1,4 +1,3 @@
-from typing import List
 from models.fwconfig_normalized import FwConfigNormalized
 from models.fwconfigmanager import FwConfigManager
 
@@ -6,24 +5,14 @@ class FwConfigManagerController(FwConfigManager):
     ManagerUid: str
     ManagerName: str
     IsGlobal: bool = False
-    DependantManagerUids: List[str] = []
-    Configs: List[FwConfigNormalized] = []
-
-    class Config:
-        arbitrary_types_allowed = True
+    DependantManagerUids: list[str] = []
+    Configs: list[FwConfigNormalized] = []
 
 
-    # def __init__(self, ManagerUid: str, ManagerName: str, IsGlobal: bool=False, DependantManagerUids: List[str]=[], Configs: List[FwConfigNormalized]=[]):
-    # def __init__(self, ManagerUid: str, ManagerName: str, IsGlobal: bool=False, DependantManagerUids: List[str]=[], Configs: List[dict]=[]):
-    #     """
-    #         mandatory parameter: ManagerUid, 
-    #     """
-    #     self.ManagerUid = ManagerUid
-    #     self.ManagerName = ManagerName
-    #     self.IsGlobal = IsGlobal
-    #     self.DependantManagerUids = DependantManagerUids
-    #     self.Configs = Configs
-
+    model_config = {
+        "arbitrary_types_allowed": True
+    }
+    
     @classmethod
     def fromJson(cls, jsonDict):
         ManagerUid = jsonDict['manager_uid']

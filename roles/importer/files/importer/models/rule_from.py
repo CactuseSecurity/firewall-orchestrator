@@ -1,4 +1,3 @@
-from typing import Optional
 from pydantic import BaseModel
 
 
@@ -10,6 +9,6 @@ class RuleFrom(BaseModel):
     obj_id: int
     rf_create: int
     rf_last_seen: int
-    removed: Optional[int] = None
-    user_id: Optional[int] = None
+    removed: int|None = None
+    user_id: int|None = None
     negated: bool = False

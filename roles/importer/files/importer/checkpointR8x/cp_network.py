@@ -2,10 +2,13 @@ from fwo_log import getFwoLogger
 import json
 import cp_const
 from fwo_const import list_delimiter
-import fwo_alert, fwo_api
+import fwo_alert, fwo_api_call as fwo_api_call
 import ipaddress 
 import fwo_globals
 import fwo_const
+from services.service_provider import ServiceProvider
+from services.enums import Services
+from fwo_api_call import FwoApiCall, FwoApi
 
 
 def normalize_network_objects(full_config, config2import, import_id, mgm_id=0):
@@ -253,17 +256,18 @@ def get_ip_of_obj(obj, mgm_id=None):
     if ip_addr is None or ('type' in obj and (obj['type'] == 'address-range' or obj['type'] == 'multicast-address-range')):
         pass   # ignore None and ranges here
     elif not validate_ip_address(ip_addr):
-        alerter = fwo_alert.getFwoAlerter()
         alert_description = "object is not a valid ip address (" + str(ip_addr) + ")"
-        fwo_api.create_data_issue(alerter['fwo_api_base_url'], alerter['jwt'], severity=2, obj_name=obj['name'], object_type=obj['type'], description=alert_description, mgm_id=mgm_id) 
+        service_provider = ServiceProvider()
+        global_state = service_provider.get_service(Services.GLOBAL_STATE)
+        api_call = FwoApiCall(FwoApi(ApiUri=global_state.import_state.FwoConfig.FwoApiUri, Jwt=global_state.import_state.Jwt))
+        api_call.create_data_issue(severity=2, obj_name=obj['name'], object_type=obj['type'], description=alert_description, mgm_id=mgm_id) 
         alert_description = "object '" + obj['name'] + "' (type=" + obj['type'] + ") is not a valid ip address (" + str(ip_addr) + ")"
-        fwo_api.setAlert(alerter['fwo_api_base_url'], alerter['jwt'], title="import error", severity=2, role='importer', \
-            description=alert_description, source='import', alertCode=17, mgm_id=mgm_id)
+        api_call.set_alert(title="import error", severity=2, description=alert_description, source='import', alertCode=17, mgm_id=mgm_id)
         ip_addr = fwo_const.dummy_ip  # setting syntactically correct dummy ip
     return ip_addr
 
 
-def make_host(ip_in):
+def make_host(ip_in) -> str | None:
     ip_obj = ipaddress.ip_address(ip_in)
     
     # If it's a valid address, append the appropriate CIDR notation
@@ -277,9 +281,6 @@ def cidrToRange(ip):
     logger = getFwoLogger()
 
     if isinstance(ip, str):
-        if ip.startswith('5002:abcd:1234:2800'):
-            logger.debug("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! found test ip " + ip)
-
         # dealing with ranges:
         if '-' in ip:
             return '-'.split(ip)
@@ -290,7 +291,7 @@ def cidrToRange(ip):
             return [ip]
         elif ipVersion=='IPv4':
             net = ipaddress.IPv4Network(ip)
-        elif ipVersion=='IPv6':
+        else:
             net = ipaddress.IPv6Network(ip)    
         return [make_host(str(net.network_address)), make_host(str(net.broadcast_address))]
             

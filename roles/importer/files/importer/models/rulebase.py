@@ -1,10 +1,9 @@
-from typing import List, Optional, Dict
 from models.rule import RuleNormalized, Rule
 from pydantic import BaseModel
 
 # Rulebase is the model for a rulebase (containing no DB IDs)
 class Rulebase(BaseModel):
-    id: Optional[int] # = None
+    id: int|None = None
     uid: str
     name: str
     mgm_uid: str
@@ -25,15 +24,14 @@ class Rulebase(BaseModel):
 	# "removed" BIGINT
 """
 class RulebaseForImport(BaseModel):
-    id: Optional[int] # = None
+    id: int|None = None
     name: str
     uid: str
     mgm_id: int
     is_global: bool = False
     created: int
-    removed: Optional[int] = None
-    # rules: Dict[RuleForImport] = {}
-    rules: Dict[str, List[Rule]] = {}
+    removed: int|None = None
+    rules: dict[str, list[Rule]] = {}
 
     def dict(self, **kwargs):
         return super().dict(by_alias=True, exclude_unset=True, **kwargs)

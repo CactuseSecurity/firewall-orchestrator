@@ -11,7 +11,7 @@ namespace FWO.Api.Client.Queries
             try
             {
                 pathAnalysis =
-                    File.ReadAllText(QueryPath + "networking/analyzePath.graphql");
+                    GetQueryText("networking/analyzePath.graphql");
 
             }
             catch (Exception exception)

@@ -5,7 +5,7 @@ from fwo_const import list_delimiter, nat_postfix
 from fOS_zone import add_zone_if_missing
 from fwo_config import readConfig
 from fwo_const import fwo_config_filename
-from fwo_api import setAlert, create_data_issue
+from fwo_api_call import setAlert, create_data_issue
 
 def normalize_nwobjects(full_config, config2import, import_id, nw_obj_types, jwt=None, mgm_id=None):
     logger = getFwoLogger()

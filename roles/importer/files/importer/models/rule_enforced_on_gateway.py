@@ -1,4 +1,3 @@
-from typing import Optional
 from pydantic import BaseModel
 from model_controllers.import_state_controller import ImportStateController
 
@@ -13,8 +12,8 @@ class RuleEnforcedOnGateway(BaseModel):
 	# "removed" BIGINT
     rule_id: int
     dev_id: int
-    created: Optional[int]
-    removed: Optional[int] 
+    created: int|None
+    removed: int|None 
 
 
     def to_dict(self):
@@ -26,7 +25,11 @@ class RuleEnforcedOnGateway(BaseModel):
         }
 
 # normalized config without db ids
-class RuleEnforcedOnGatewayNormalized(BaseModel, ImportStateController):
+class RuleEnforcedOnGatewayNormalized(BaseModel):
     rule_uid: str
     dev_uid: str
 
+
+    model_config = {
+        "arbitrary_types_allowed": True
+    }

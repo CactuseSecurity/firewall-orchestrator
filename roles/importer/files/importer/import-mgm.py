@@ -1,15 +1,16 @@
-#!/usr/bin/python3
+#!/usr/local/fworch/venv/bin/python
+
 import sys, traceback
 from fwo_log import getFwoLogger
 import argparse
-import requests, requests.packages
+import urllib3
 from common import importer_base_dir, import_management
-import fwo_globals, fwo_config
+import fwo_globals
+import fwo_config
 
 
 if importer_base_dir not in sys.path:
     sys.path.append(importer_base_dir)
-
 
 if __name__ == "__main__": 
     parser = argparse.ArgumentParser(
@@ -46,11 +47,11 @@ if __name__ == "__main__":
         sys.exit(1)
 
     fwo_config = fwo_config.readConfig()
-    fwo_globals.setGlobalValues(verify_certs_in=args.verify_certificates, 
+    fwo_globals.set_global_values(verify_certs_in=args.verify_certificates, 
         suppress_cert_warnings_in=args.suppress_certificate_warnings,
         debug_level_in=args.debug)
     if args.suppress_certificate_warnings:
-        requests.packages.urllib3.disable_warnings()
+        urllib3.disable_warnings()
     logger = getFwoLogger()
 
     try:

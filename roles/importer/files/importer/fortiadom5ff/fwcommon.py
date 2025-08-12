@@ -1,7 +1,6 @@
-# import sys
-# from common import importer_base_dir
-# sys.path.append(importer_base_dir + '/fortiadom5ff')
+
 from curses import raw
+from typing import Any
 
 import json
 import fwo_const
@@ -16,8 +15,7 @@ from model_controllers.route_controller import get_ip_of_interface_obj
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
 from model_controllers.fwconfig_normalized_controller import FwConfigNormalizedController
 from models.fwconfigmanager import FwConfigManager
-from model_controllers.management_details_controller import ManagementDetailsController
-from fwconfig_base import calcManagerUidHash
+from model_controllers.management_controller import ManagementController
 from fmgr_network import normalize_network_objects
 from fmgr_service import normalize_service_objects
 from fmgr_rule import normalize_rulebases, initialize_rulebases, getAccessPolicy
@@ -30,10 +28,11 @@ def has_config_changed(full_config, mgm_details, force=False):
     # dummy - may be filled with real check later on
     return True
 
-def get_config(nativeConfig: json, importState: ImportStateController):
+def get_config(config_in: FwConfigManagerListController, importState: ImportStateController):
     logger = getFwoLogger()
-    if nativeConfig == {}:   # no native config was passed in, so getting it from FW-Manager
-        nativeConfig.update({'domains': []})
+    
+    if config_in.has_empty_config() and config_in.is_native():   # no native config was passed in, so getting it from FW-Manager
+        config_in.native_config.update({'domains': []})
         parsing_config_only = False
     else:
         parsing_config_only = True
@@ -45,7 +44,7 @@ def get_config(nativeConfig: json, importState: ImportStateController):
         limit = importState.FwoConfig.ApiFetchSize
         fm_api_url = importState.MgmDetails.buildFwApiString()
         native_config_global = initialize_native_config_domain(importState.MgmDetails)
-        nativeConfig['domains'].append(native_config_global)
+        config_in.native_config['domains'].append(native_config_global)
         adom_list = build_adom_list(importState)
         adom_device_vdom_structure = build_adom_device_vdom_structure(adom_list, sid, fm_api_url)
         arbitrary_vdom_for_updateable_objects = get_arbitrary_vdom(adom_device_vdom_structure)
@@ -53,13 +52,13 @@ def get_config(nativeConfig: json, importState: ImportStateController):
         # adom_device_vdom_policy_package_structure = {adom: {device: {vdom1: pol_pkg1}, {vdom2: pol_pkg2}}}
         #delete_v: später hier globale pol_pgk holen mit /pm/pkg/global
 
-        # get globals
+        # get global
         get_objects(sid, fm_api_url, native_config_global, native_config_global, '', limit, nw_obj_types, svc_obj_types, 'global', arbitrary_vdom_for_updateable_objects)
 
         for adom in adom_list:
             adom_name = adom.DomainName
             native_config_adom = initialize_native_config_domain(adom)
-            nativeConfig['domains'].append(native_config_adom)
+            config_in.native_config['domains'].append(native_config_adom)
 
             adom_scope = 'adom/'+adom_name
             # delete_v: objekte werden auch importiert wenn es kein device gibt, ist das gewollt?
@@ -89,35 +88,19 @@ def get_config(nativeConfig: json, importState: ImportStateController):
         except Exception:
             raise FwLogoutFailed("logout exception probably due to timeout - irrelevant, so ignoring it")
 
-        write_native_config_to_file(importState, nativeConfig)
+        write_native_config_to_file(importState, config_in)
 
     # delete_v: brauchen wir hier wirklich sid, dann muss die auch für parsing_config_only TRUE erzeugt werden
-    normalizedConfig = normalize_config(importState, nativeConfig.native_config)
+    normalizedConfig = normalize_config(importState, config_in.native_config)
     logger.info("completed getting config")
     return 0, normalizedConfig
-        
-    # normalize_network_data(full_config, config2import, mgm_details)
 
-    # fmgr_user.normalize_users(
-    #     full_config, config2import, current_import_id, user_scope)
-    # fmgr_network.normalize_nwobjects(
-    #     full_config, config2import, current_import_id, nw_obj_scope, jwt=jwt, mgm_id=mgm_details['id'])
-    # fmgr_service.normalize_svcobjects(
-    #     full_config, config2import, current_import_id, svc_obj_scope)
-    # fmgr_user.normalize_users(
-    #     full_config, config2import, current_import_id, user_scope)
-    # fmgr_rule.normalize_access_rules(
-    #     full_config, config2import, current_import_id, mgm_details=mgm_details, jwt=jwt)
-    # fmgr_rule.normalize_nat_rules(
-    #     full_config, config2import, current_import_id, jwt=jwt)
-    # fmgr_network.remove_nat_ip_entries(config2import)
-    # return 0
 
-def initialize_native_config_domain(mgm_details : ManagementDetailsController):
+def initialize_native_config_domain(mgm_details : ManagementController):
     return {
         'domain_name': mgm_details.DomainName,
         'domain_uid': mgm_details.DomainUid,
-        'is-super-manger': mgm_details.IsSuperManager,
+        'is-super-manager': mgm_details.IsSuperManager,
         'management_name': mgm_details.Name,
         'management_uid': mgm_details.Uid,
         'objects': [],
@@ -133,7 +116,7 @@ def get_arbitrary_vdom(adom_device_vdom_structure):
                 return {'adom': adom, 'device': device, 'vdom': vdom}
 
 
-def normalize_config(import_state, native_config: json) -> FwConfigManagerListController:
+def normalize_config(import_state, native_config: dict[str,Any]) -> FwConfigManagerListController:
 
     # delete_v: einfach kopiert von cp
     manager_list = FwConfigManagerListController()
@@ -149,7 +132,7 @@ def normalize_config(import_state, native_config: json) -> FwConfigManagerListCo
     rewrite_native_config_obj_type_as_key(native_config) # for easier accessability of objects in normalization process
 
     for native_conf in native_config['domains']:
-        normalized_config_dict = fwo_const.emptyNormalizedFwConfigJsonDict
+        normalized_config_dict = deepcopy(fwo_const.emptyNormalizedFwConfigJsonDict)
 
         normalize_single_manager_config(native_conf, native_config_global, normalized_config_dict, normalized_config_global, 
                                                             import_state, is_global_loop_iteration=False)
@@ -163,13 +146,14 @@ def normalize_config(import_state, native_config: json) -> FwConfigManagerListCo
             gateways=normalized_config_dict.get('gateways', [])
         )
 
-        manager = FwConfigManager(ManagerUid=calcManagerUidHash(import_state.MgmDetails),
-                                    ManagerName=import_state.MgmDetails.Name,
-                                    IsGlobal=import_state.MgmDetails.IsSuperManager,
+        # TODO: identify the correct manager
+
+        manager = FwConfigManager(ManagerUid=native_conf.get('management_uid',''),
+                                    ManagerName=native_conf.get('management_name', ''),
                                     IsSuperManager=native_conf.get('is-super-manager', False),
                                     DomainName=native_conf.get('domain_name', ''),
                                     DomainUid=native_conf.get('domain_uid', ''),
-                                    DependantManagerUids=[], 
+                                    SubManagerIds=[], 
                                     Configs=[normalized_config])
 
         manager_list.addManager(manager)
@@ -193,17 +177,19 @@ def rewrite_native_config_obj_type_as_key(native_config):
         domain['objects'] = obj_dict
 
 
-def normalize_single_manager_config(native_config: json, native_config_global: json, normalized_config_dict: dict,
+def normalize_single_manager_config(native_config: dict[str, Any], native_config_global: dict[str, Any], normalized_config_dict: dict,
                                     normalized_config_global: dict, import_state: ImportStateController,
                                     is_global_loop_iteration: bool):
 
     current_nw_obj_types = deepcopy(nw_obj_types)
-    if native_config['is-super-manger']:
-        current_nw_obj_types = ["nw_obj_global_" + t for t in nw_obj_types]
-
     current_svc_obj_types = deepcopy(svc_obj_types)
-    if native_config['is-super-manger']:
-        current_svc_obj_types = ["svc_obj_global_" + t for t in svc_obj_types]
+    if native_config['is-super-manager']:
+        current_nw_obj_types = ["nw_obj_global_" + t for t in current_nw_obj_types]
+        current_svc_obj_types = ["svc_obj_global_" + t for t in current_svc_obj_types]
+    else:
+        current_nw_obj_types = [f"nw_obj_adom/{native_config.get('domain_name','')}_{t}" for t in current_nw_obj_types]
+        current_svc_obj_types = [f"svc_obj_adom/{native_config.get('domain_name','')}_{t}" for t in current_svc_obj_types]
+
     logger = getFwoLogger()
     normalize_network_objects(import_state, native_config, native_config_global, normalized_config_dict, normalized_config_global, 
                                            current_nw_obj_types)
@@ -216,8 +202,7 @@ def normalize_single_manager_config(native_config: json, native_config_global: j
     # initialize_rulebases(native_config)
     normalize_rulebases(import_state, native_config, native_config_global, import_state, normalized_config_dict, normalized_config_global, 
                         is_global_loop_iteration)
-    # if not parsing_config_only: # logout with fortiManager
-    #     logout_fmgr(import_state.MgmDetails.buildFwApiString(), sid)
+
     logger.info("completed normalizing rulebases")
     
 

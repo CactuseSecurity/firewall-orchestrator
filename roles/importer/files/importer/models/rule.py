@@ -1,4 +1,3 @@
-from typing import Optional
 from pydantic import BaseModel
 from models.caseinsensitiveenum import CaseInsensitiveEnum
 
@@ -50,18 +49,18 @@ class RuleNormalized(BaseModel):
     rule_track: RuleTrack
     rule_installon: str
     rule_time: str
-    rule_name: Optional[str] = None
+    rule_name: str|None = None
     rule_uid: str
-    rule_custom_fields: Optional[str] = None
+    rule_custom_fields: str|None = None
     rule_implied: bool
     rule_type: RuleType = RuleType.SECTIONHEADER
-    rule_last_change_admin: Optional[str] = None
-    parent_rule_uid: Optional[str] = None
-    last_hit: Optional[str] = None
-    rule_comment: Optional[str] = None
-    rule_src_zone: Optional[str] = None
-    rule_dst_zone: Optional[str] = None
-    rule_head_text: Optional[str] = None
+    rule_last_change_admin: str|None = None
+    parent_rule_uid: str|None = None
+    last_hit: str|None = None
+    rule_comment: str|None = None
+    rule_src_zone: str|None = None
+    rule_dst_zone: str|None = None
+    rule_head_text: str|None = None
 
     def __eq__(self, other):
         if not isinstance(other, RuleNormalized):
@@ -124,26 +123,26 @@ class Rule(BaseModel):
     access_rule: bool = True
     action_id: int
     is_global: bool = False
-    last_change_admin: Optional[int] = None
-    # last_hit: Optional[str] = None
+    last_change_admin: int|None = None
+    # last_hit: str|None = None
     mgm_id: int
     nat_rule: bool = False
-    parent_rule_id: Optional[int] = None
-    removed: Optional[int] = None
+    parent_rule_id: int|None = None
+    removed: int|None = None
     rule_action: str
-    rule_comment: Optional[str] = None
+    rule_comment: str|None = None
     rule_create: int
-    rule_custom_fields: Optional[str] = None
+    rule_custom_fields: str|None = None
     rule_disabled: bool
     rule_dst: str
     rule_dst_neg: bool
     rule_dst_refs: str
-    rule_from_zone: Optional[str] = None
-    rule_head_text: Optional[str] = None
+    rule_from_zone: str|None = None
+    rule_head_text: str|None = None
     rule_implied: bool = False
-    rule_installon: Optional[str] = None
+    rule_installon: str|None = None
     rule_last_seen: int
-    rule_name: Optional[str] = None
+    rule_name: str|None = None
     rule_num: int
     rule_num_numeric: float
     rule_src: str
@@ -153,10 +152,10 @@ class Rule(BaseModel):
     rule_svc_neg: bool
     rule_svc_refs: str
     rule_time: str
-    rule_to_zone: Optional[str] = None
+    rule_to_zone: str|None = None
     track_id: int
-    xlate_rule: Optional[int] = None
+    xlate_rule: int|None = None
     rule_track: str
     rule_uid: str
-    rulebase_id: Optional[int] # = None
+    rulebase_id: int|None # = None
 

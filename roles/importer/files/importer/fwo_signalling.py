@@ -1,11 +1,10 @@
 import signal
 import fwo_globals
-import fwo_log
+from fwo_exceptions import ShutdownRequested
 
 def handle_shutdown_signal(signum, frame):
     fwo_globals.shutdown_requested = True
-    logger = fwo_log.getFwoLogger()
-    logger.warning(f"Received shutdown signal: {signal.Signals(signum).name}. Performing cleanup...")
+    raise ShutdownRequested
 
 def registerSignallingHandlers():
     # Register signal handlers for system shutdown interrupts

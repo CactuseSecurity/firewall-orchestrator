@@ -39,8 +39,16 @@ namespace FWO.DeviceAutoDiscovery
                     // update manager Uid in existing management; typically triggered in daily scheduler
                     await UpdateMgmUids(SuperManagement, restClientCP, @sessionId);
                 }
+                List<Domain> domainList = [];
 
-                List<Domain> domainList = await restClientCP.GetDomains(@sessionId);
+                if (SuperManagement.DeviceType.Id == 13)    // 13=MDS
+                {
+                    domainList = await restClientCP.GetDomains(@sessionId);
+                }
+                else if (SuperManagement.DeviceType.Id == 9)    // 9=stand-alone manager
+                {
+                    domainList.Add(new Domain() { DomainType="standalone", Name="", Uid="" } );                 
+                }
                 discoveredDevices = await DiscoverDomainDevices(domainList, restClientCP);
                 await LogoutCp(restClientCP, @sessionId);
             }

@@ -1,6 +1,5 @@
 import json
-import hashlib
-from fwo_base import ConfFormat, ConfigAction
+from fwo_enums import ConfFormat, ConfigAction
 
 
 class FwoEncoder(json.JSONEncoder):
@@ -11,15 +10,6 @@ class FwoEncoder(json.JSONEncoder):
             return obj.name
         
         return json.JSONEncoder.default(self, obj)
-
-def calcManagerUidHash(mgm_details):
-    combination = f"""
-        {replaceNoneWithEmpty(mgm_details.Hostname)}
-        {replaceNoneWithEmpty(mgm_details.Port)}
-        {replaceNoneWithEmpty(mgm_details.DomainUid)}
-        {replaceNoneWithEmpty(mgm_details.DomainName)}
-    """
-    return hashlib.sha256(combination.encode()).hexdigest()
 
 
 def replaceNoneWithEmpty(s):

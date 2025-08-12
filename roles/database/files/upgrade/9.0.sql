@@ -291,11 +291,6 @@ ALTER TABLE "management" ADD COLUMN IF NOT EXISTS "is_super_manager" BOOLEAN DEF
 ALTER TABLE "rule" ADD COLUMN IF NOT EXISTS "is_global" BOOLEAN DEFAULT FALSE NOT NULL;
 ALTER TABLE "rule" ADD COLUMN IF NOT EXISTS "rulebase_id" INTEGER;
 
-Alter Table "rule" DROP Constraint IF EXISTS "rule_altkey";
-Alter Table "rule" DROP Constraint IF EXISTS "rule_unique_mgm_id_rule_uid_rule_create_xlate_rule";
-Alter Table "rule" ADD Constraint "rule_unique_mgm_id_rule_uid_rule_create_xlate_rule" UNIQUE ("mgm_id", "rule_uid","rule_create","xlate_rule");
-
-
 -- permanent table for storing latest config to calc diffs
 CREATE TABLE IF NOT EXISTS "latest_config" (
     "import_id" bigint NOT NULL,
@@ -407,8 +402,18 @@ Alter Table "rule_metadata" drop Constraint IF EXISTS "rule_metadata_alt_key";
 ALTER TABLE rule_metadata DROP Constraint IF EXISTS "rule_metadata_rule_uid_unique" CASCADE;
 ALTER TABLE rule_metadata ADD Constraint "rule_metadata_rule_uid_unique" unique ("rule_uid");
 Alter table "rule" DROP constraint IF EXISTS "rule_rule_metadata_rule_uid_f_key";
+
+-- wenn es regeln mit derselben uid gibt, funktioniert der folgende constraint nicht
+-- koennen wir dafuer sorgen, dass jede rule_uid nur exakt 1x in der datenbank steht?
+-- brauchen wir zusaetzlich die einschraenkung auf das mgm?
+-- mindestens gibt es ein Problem mit den (implicit) NAT Regeln: CP_default_Office_Mode_addresses_pool
+--  rule_id | last_change_admin | rule_name | mgm_id | parent_rule_id | parent_rule_type | active | rule_num | rule_num_numeric | rule_ruleid |               rule_uid               | rule_disabled | rule_src_neg | rule_dst_neg | rule_svc_neg | action_id | track_id |               rule_src                | rule_dst | rule_svc |            rule_src_refs             |            rule_dst_refs             |            rule_svc_refs             | rule_from_zone | rule_to_zone | rule_action | rule_track | rule_installon | rule_time | rule_comment | rule_head_text | rule_implied | rule_create | rule_last_seen | dev_id | rule_custom_fields | access_rule | nat_rule | xlate_rule
+-----------+-------------------+-----------+--------+----------------+------------------+--------+----------+------------------+-------------+--------------------------------------+---------------+--------------+--------------+--------------+-----------+----------+---------------------------------------+----------+----------+--------------------------------------+--------------------------------------+--------------------------------------+----------------+--------------+-------------+------------+----------------+-----------+--------------+----------------+--------------+-------------+----------------+--------+--------------------+-------------+----------+------------
+--     274 |                   |           |     19 |                |                  | t      |       10 |   17000.00000000 |             | dc1a7110-e431-4f56-a84a-31b17acf7ee7 | f             | f            | f            | f            |         2 |        2 | CP_default_Office_Mode_addresses_pool | Any      | Any      | e7c5a3b6-e20f-4756-bb56-f2b394baf7a9 | 97aeb369-9aea-11d5-bd16-0090272ccb30 | 97aeb369-9aea-11d5-bd16-0090272ccb30 |                |              | drop        | None       | Policy Targets | Any       |              |                | f            |          19 |             19 |     19 |                    | f           | t        |        261
+
 Alter table "rule" add constraint "rule_rule_metadata_rule_uid_f_key"
   foreign key ("rule_uid") references "rule_metadata" ("rule_uid") on update restrict on delete cascade;
+
 
 CREATE OR REPLACE VIEW v_rule_with_rule_owner AS
 	SELECT r.rule_id, ow.id as owner_id, ow.name as owner_name, 'rule' AS matches,
@@ -804,6 +809,12 @@ AS $function$
 $function$;
 
 SELECT * FROM migrateToRulebases();
+
+-- now we can set the new constraint on rule_uid:
+Alter Table "rule" DROP Constraint IF EXISTS "rule_altkey";
+Alter Table "rule" DROP Constraint IF EXISTS "rule_unique_mgm_id_rule_uid_rule_create_xlate_rule";
+Alter Table "rule" ADD Constraint "rule_unique_mgm_id_rule_uid_rule_create_xlate_rule" UNIQUE ("mgm_id", "rule_uid","rule_create","xlate_rule");
+
 
 -- rewrite get_rulebase_for_owner to work with rulebase instead of device
 CREATE OR REPLACE FUNCTION public.get_rulebase_for_owner(rulebase_row rulebase, ownerid integer)

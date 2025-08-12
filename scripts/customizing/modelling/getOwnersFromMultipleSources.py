@@ -343,7 +343,7 @@ if __name__ == "__main__":
             logger.error("error while trying to read owners from config file '" + rlmApiUrl + "', exception: " + str(traceback.format_exc()))
             sys.exit(1)
     else:
-        # get App List directly from RLM via API
+        # get app list directly from RLM via API
         try:
             oauthToken = rlmLogin(rlmUsername, rlmPassword, rlmApiUrl + api_url_path_rlm_login)
             # logger.debug("token for RLM: " + oauthToken)

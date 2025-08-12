@@ -1,4 +1,3 @@
-from typing import List, Dict, Optional
 import secrets
 
 from netaddr import IPAddress, IPNetwork
@@ -24,7 +23,7 @@ if __name__ == '__main__': # for usage as executable script
     from models.serviceobject import ServiceObject
     from models.rulebase import Rulebase
     from fwo_const import rule_num_numeric_steps, dummy_ip, list_delimiter, user_delimiter
-    from fwo_globals import setGlobalValues
+    from fwo_globals import set_global_values
     from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
     from .mock_import_state import MockImportStateController
     from model_controllers.fwconfigmanager_controller import FwConfigManager
@@ -33,16 +32,16 @@ if __name__ == '__main__': # for usage as executable script
     from fwo_const import list_delimiter, user_delimiter
 else: # for usage in unit tests
     from . uid_manager import UidManager
-    from importer.models.fwconfig_normalized import FwConfigNormalized
-    from importer.models.rulebase import Rulebase
-    from importer.models.rule import RuleNormalized, RuleAction, RuleTrack, RuleType
+    from models.fwconfig_normalized import FwConfigNormalized
+    from models.rulebase import Rulebase
+    from models.rule import RuleNormalized, RuleAction, RuleTrack, RuleType
     from pydantic import PrivateAttr
-    from importer.fwo_const import rule_num_numeric_steps, dummy_ip, list_delimiter, user_delimiter
-    from importer.models.networkobject import NetworkObject
-    from importer.models.serviceobject import ServiceObject
-    from importer.models.gateway import Gateway
-    from importer.models.rulebase_link import RulebaseLinkUidBased
-    from importer.fwo_const import list_delimiter, user_delimiter
+    from fwo_const import rule_num_numeric_steps, dummy_ip, list_delimiter, user_delimiter
+    from models.networkobject import NetworkObject
+    from models.serviceobject import ServiceObject
+    from models.gateway import Gateway
+    from models.rulebase_link import RulebaseLinkUidBased
+    from fwo_const import list_delimiter, user_delimiter
 
 
 DUMMY_IP = IPNetwork(dummy_ip)
@@ -84,14 +83,14 @@ class MockFwConfigNormalizedBuilder():
         )
 
 
-    def build_config(self, mock_config: Dict):
+    def build_config(self, mock_config: dict):
         """
             Initializes the mock configuration with rulebases and rules.
 
             Args:
                 mock_config (dict): A dictionary with configuration values. Expected keys:
-                    - "rule_config": List of integers, each representing the number of rules per rulebase.
-                    - "initialize_rule_num_numeric": Optional boolean, if True assigns incremental numeric rule numbers.
+                    - "rule_config": list of integers, each representing the number of rules per rulebase.
+                    - "initialize_rule_num_numeric": optional boolean, if True assigns incremental numeric rule numbers.
         """
         config = self.empty_config()
 
@@ -380,7 +379,7 @@ class MockFwConfigNormalizedBuilder():
                 svc_obj.svc_member_refs = svc_obj.svc_member_refs.replace("cpr-svc1-member1-member1", "").strip(list_delimiter)
 
 
-    def create_rulebase_links(self, config: FwConfigNormalized) -> List[RulebaseLinkUidBased]:
+    def create_rulebase_links(self, config: FwConfigNormalized) -> list[RulebaseLinkUidBased]:
         rulebase_links = []
 
         # Add initial link.
@@ -425,7 +424,7 @@ class MockFwConfigNormalizedBuilder():
 
         return rulebase_links
     
-    def add_network_object(self, config: FwConfigNormalized, obj_dict: Dict):
+    def add_network_object(self, config: FwConfigNormalized, obj_dict: dict):
         uid = obj_dict.get("obj_uid", self.uid_manager.create_uid())
         dummy_ip = DUMMY_IP if obj_dict.get("obj_typ", "group") != "group" else None
         new_network_object = NetworkObject(
@@ -441,7 +440,7 @@ class MockFwConfigNormalizedBuilder():
         config.network_objects[new_network_object.obj_uid] = new_network_object
         return new_network_object
     
-    def add_service_object(self, config: FwConfigNormalized, svc_dict: Dict):
+    def add_service_object(self, config: FwConfigNormalized, svc_dict: dict):
         uid = svc_dict.get("svc_uid", self.uid_manager.create_uid())
         default_port = 80 if svc_dict.get("svc_typ", "group") != "group" else None
         default_proto = 6 if svc_dict.get("svc_typ", "group") != "group" else None
@@ -460,7 +459,7 @@ class MockFwConfigNormalizedBuilder():
         return new_service_object
     
 
-    def add_rule(self, config: FwConfigNormalized, rulebase_uid: str, rule_dict: Dict = {}) -> RuleNormalized:
+    def add_rule(self, config: FwConfigNormalized, rulebase_uid: str, rule_dict: dict = {}) -> RuleNormalized:
         """
         Adds a new rule to the rulebase identified by the given UID.
 
@@ -593,7 +592,7 @@ if __name__ == '__main__':
     )
 
     fw_mock_import_state = MockImportStateController()
-    setGlobalValues(debug_level_in = 8)
+    set_global_values(debug_level_in = 8)
     fw_config_manager_list_controller = FwConfigManagerListController()
     fw_config_manager = FwConfigManager(
         ManagerUid = "6ae3760206b9bfbd2282b5964f6ea07869374f427533c72faa7418c28f7a77f2",

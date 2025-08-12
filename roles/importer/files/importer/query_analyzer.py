@@ -9,7 +9,7 @@ except ImportError:
     from graphql.language.visitor import Visitor
     from graphql.language.ast import Document, VariableDefinition, OperationDefinition
 
-from typing import Dict, Any, Optional
+from typing import Any
 
 from fwo_const import api_call_chunk_size
 
@@ -19,19 +19,19 @@ class QueryAnalyzer(Visitor):
         A class for analyzing GraphQL queries.
     """
     
-    _ast: Optional[Document]
-    _variable_definitions: Dict[str, Dict[str, Any]]
+    _ast: Document|None
+    _variable_definitions: dict[str, dict[str, Any]]
     _query_string: str
-    _query_variables: Dict[str, Any]
-    _query_info: Dict[str, Any]
+    _query_variables: dict[str, Any]
+    _query_info: dict[str, Any]
 
     @property
-    def variable_definitions(self) -> Dict[str, Dict[str, Any]]:
+    def variable_definitions(self) -> dict[str, dict[str, Any]]:
         """Returns the dictionary of extracted variable definitions."""
         return self._variable_definitions
     
     @property
-    def ast(self) -> Optional[Document]:
+    def ast(self) -> Document|None:
         """Returns the AST."""
         return self._ast
     
@@ -41,12 +41,12 @@ class QueryAnalyzer(Visitor):
         return self._query_string
     
     @property
-    def query_variables(self) -> Dict[str, Any]:
+    def query_variables(self) -> dict[str, Any]:
         """Returns the provided query variables."""
         return self._query_variables
     
     @property
-    def query_variables(self) -> Dict[str, Any]:
+    def query_variables(self) -> dict[str, Any]:
         """Returns a dictionary that provides all information about the query and the provided query variables."""
         return self._query_variables
 
@@ -61,7 +61,7 @@ class QueryAnalyzer(Visitor):
 
     
 
-    def analyze_payload(self, query_string: str, query_variables: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    def analyze_payload(self, query_string: str, query_variables: dict[str, Any]|None = None) -> dict[str, Any]:
         """
             Analyzes a GraphQL query and returns information about it.
         """

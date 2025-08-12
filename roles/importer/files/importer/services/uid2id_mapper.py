@@ -1,11 +1,9 @@
-from typing import List, Optional
 from fwo_log import getFwoLogger
 from model_controllers.import_state_controller import ImportStateController
 from services.service_provider import ServiceProvider
 from services.enums import Services
-from fwo_api import get_graphql_code
 import fwo_const
-
+from fwo_api import FwoApi
 
 class Uid2IdMapper:
     """
@@ -13,11 +11,14 @@ class Uid2IdMapper:
     This class is used to maintain a mapping between UID and relevant ID in the database.
     """
 
-    import_state: ImportStateController = None
+    import_state: ImportStateController|None = None
 
     @property
     def api_connection(self):
-        return self.import_state.api_connection
+        if self.import_state is None:
+            return None
+        else:
+            return self.import_state.api_connection
 
     def __init__(self):
         """
@@ -147,12 +148,12 @@ class Uid2IdMapper:
         return rule_id
     
 
-    def add_network_object_mappings(self, mappings: List[dict], is_global=False) -> bool:
+    def add_network_object_mappings(self, mappings: list[dict], is_global=False) -> bool:
         """
         Add network object mappings to the internal mapping dictionary.
 
         Args:
-            mappings (List[dict]): A list of dictionaries containing UID and ID mappings.
+            mappings (list[dict]): A list of dictionaries containing UID and ID mappings.
                     Each dictionary should have 'obj_uid' and 'obj_id' keys.
 
         Returns:
@@ -174,12 +175,12 @@ class Uid2IdMapper:
         return True
 
 
-    def add_service_object_mappings(self, mappings: List[dict], is_global=False) -> bool:
+    def add_service_object_mappings(self, mappings: list[dict], is_global=False) -> bool:
         """
         Add service object mappings to the internal mapping dictionary.
 
         Args:
-            mappings (List[dict]): A list of dictionaries containing UID and ID mappings.
+            mappings (list[dict]): A list of dictionaries containing UID and ID mappings.
                     Each dictionary should have 'svc_uid' and 'svc_id' keys.
 
         Returns:
@@ -200,12 +201,12 @@ class Uid2IdMapper:
         return True
 
 
-    def add_user_mappings(self, mappings: List[dict], is_global=False) -> bool:
+    def add_user_mappings(self, mappings: list[dict], is_global=False) -> bool:
         """
         Add user object mappings to the internal mapping dictionary.
 
         Args:
-            mappings (List[dict]): A list of dictionaries containing UID and ID mappings.
+            mappings (list[dict]): A list of dictionaries containing UID and ID mappings.
                     Each dictionary should have 'user_uid' and 'user_id' keys.
 
         Returns:
@@ -226,12 +227,12 @@ class Uid2IdMapper:
         return True
     
 
-    def add_rule_mappings(self, mappings: List[dict]) -> bool:
+    def add_rule_mappings(self, mappings: list[dict]) -> bool:
         """
         Add rule mappings to the internal mapping dictionary.
 
         Args:
-            mappings (List[dict]): A list of dictionaries containing UID and ID mappings.
+            mappings (list[dict]): A list of dictionaries containing UID and ID mappings.
                     Each dictionary should have 'rule_uid' and 'rule_id' keys.
 
         Returns:
@@ -248,17 +249,17 @@ class Uid2IdMapper:
         return True
 
 
-    def update_network_object_mapping(self, uids: Optional[List[str]] = None) -> bool:
+    def update_network_object_mapping(self, uids: list[str]|None = None) -> bool:
         """
         Update the mapping for network objects based on the provided UIDs.
         
         Args:
-            uids (List[str]): A list of UIDs to update the mapping for. If None, all UIDs for the Management will be fetched.
+            uids (list[str]): A list of UIDs to update the mapping for. If None, all UIDs for the Management will be fetched.
         
         Returns:
             bool: True if the mapping was updated successfully, False otherwise.
         """
-        query = get_graphql_code([fwo_const.graphqlQueryPath + "networkObject/getmapOfUid2Id.graphql"])
+        query = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "networkObject/getmapOfUid2Id.graphql"])
 
         if uids is not None:
             if len(uids) == 0:
@@ -286,17 +287,17 @@ class Uid2IdMapper:
             self.log_error(f"Error updating network object mapping: {e}")
             return False # raise
     
-    def update_service_object_mapping(self, uids: Optional[List[str]] = None) -> bool:
+    def update_service_object_mapping(self, uids: list[str]|None = None) -> bool:
         """
         Update the mapping for service objects based on the provided UIDs.
         
         Args:
-            uids (List[str]): A list of UIDs to update the mapping for. If None, all UIDs for the Management will be fetched.
+            uids (list[str]): A list of UIDs to update the mapping for. If None, all UIDs for the Management will be fetched.
         
         Returns:
             bool: True if the mapping was updated successfully, False otherwise.
         """
-        query = get_graphql_code([fwo_const.graphqlQueryPath + "networkService/getmapOfUid2Id.graphql"])
+        query = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "networkService/getmapOfUid2Id.graphql"])
         if uids is not None:
             if len(uids) == 0:
                 self.log_debug("Service object mapping updated for 0 objects")
@@ -321,17 +322,17 @@ class Uid2IdMapper:
             self.log_error(f"Error updating service object mapping: {e}")
             return False # raise
         
-    def update_user_mapping(self, uids: Optional[List[str]] = None) -> bool:
+    def update_user_mapping(self, uids: list[str]|None = None) -> bool:
         """
         Update the mapping for users based on the provided UIDs.
         
         Args:
-            uids (List[str]): A list of UIDs to update the mapping for. If None, all UIDs for the Management will be fetched.
+            uids (list[str]): A list of UIDs to update the mapping for. If None, all UIDs for the Management will be fetched.
         
         Returns:
             bool: True if the mapping was updated successfully, False otherwise.
         """
-        query = get_graphql_code([fwo_const.graphqlQueryPath + "user/getmapOfUid2Id.graphql"])
+        query = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "user/getmapOfUid2Id.graphql"])
         if uids is not None:
             if len(uids) == 0:
                 self.log_debug("User mapping updated for 0 objects")
@@ -356,17 +357,17 @@ class Uid2IdMapper:
             self.log_error(f"Error updating user mapping: {e}")
             return False # raise
 
-    def update_rule_mapping(self, uids: Optional[List[str]] = None) -> bool:
+    def update_rule_mapping(self, uids: list[str]|None = None) -> bool:
         """
         Update the mapping for rules based on the provided UIDs.
         
         Args:
-            uids (List[str]): A list of UIDs to update the mapping for. If None, all UIDs for the Management will be fetched.
+            uids (list[str]): A list of UIDs to update the mapping for. If None, all UIDs for the Management will be fetched.
         
         Returns:
             bool: True if the mapping was updated successfully, False otherwise.
         """
-        query = get_graphql_code([fwo_const.graphqlQueryPath + "rule/getmapOfUid2Id.graphql"])
+        query = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "rule/getmapOfUid2Id.graphql"])
         if uids is not None:
             if len(uids) == 0:
                 self.log_debug("Rule mapping updated for 0 objects")

@@ -1,7 +1,6 @@
-from typing import List
 from pydantic import Field
 
-class ManagementDetails():
+class Management():
     Id: int
     Name: str
     Uid: str
@@ -15,7 +14,7 @@ class ManagementDetails():
     ImportUser: str
     Secret: str
     IsSuperManager: bool
-    SubManagerIds: List[int] = []
+    SubManagerIds: list[int] = []
     DomainName: str = Field(alias='configPath', default='')
     DomainUid: str = Field(alias='domainUid', default='')
-    SubManagers: List['ManagementDetails'] = Field(default=[], alias='subManager')
+    SubManagers: list['Management'] = Field(default=[], alias='subManager')

@@ -77,7 +77,7 @@ def collect_single_svc_object(obj):
     obj['domain_uid'] = get_obj_domain_uid(obj)    
  
 
-def normalize_port(obj) -> tuple[str, str]:
+def normalize_port(obj) -> tuple[str|None, str|None]:
     """
     Normalizes the port information in the given object.
     If the 'port' key exists, it processes the port value to handle ranges and special cases.
@@ -97,7 +97,8 @@ def normalize_port(obj) -> tuple[str, str]:
         pattern = re.compile(r'^(\d+)\-(\d+)$')
         match = pattern.match(port)
         if match:
-            return match.group().split('-')
+            match_result_list = match.group().split('-')
+            return match_result_list[0], match_result_list[1]
 
         # standard port without "<>-"
         pattern = re.compile(r'^(\d+)$')

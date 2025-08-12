@@ -58,8 +58,7 @@ namespace FWO.Basics
                 ReportType.ResolvedRules or
                 ReportType.ResolvedRulesTech or
                 ReportType.ResolvedChanges or
-                ReportType.ResolvedChangesTech or
-                ReportType.Compliance => true,
+                ReportType.ResolvedChangesTech => true,
                 _ => false,
             };
         }

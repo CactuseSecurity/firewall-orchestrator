@@ -137,7 +137,14 @@
 
     private bool csvAvailable()
     {
-        return ReportToExport?.ReportType.IsResolvedReport() ?? false;
+        if(ReportToExport is ReportBase report && (report.ReportType.IsResolvedReport() || report.ReportType.IsResolvedReport() ))
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
     }
 
     private async Task Export()

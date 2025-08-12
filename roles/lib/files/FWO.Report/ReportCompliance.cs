@@ -46,7 +46,7 @@ namespace FWO.Report
                 "MetaData",
                 "CustomFields",
                 "InstallOn",
-                "IsCompliant",
+                "Compliance",
                 "ViolationDetails"
             };
 
@@ -125,24 +125,36 @@ namespace FWO.Report
             {
                 if (p is PropertyInfo propertyInfo)
                 {
-                    if (p.Name != "Services")
+                    switch (p.Name)
                     {
-                        var value = p!.GetValue(rule);
+                        case "Services":
+                            var services = rule.Services.Select(s => s.Content.Name).ToList();
+                            return $"{Escape(string.Join(" | ", services), _separator)}";
 
-                        if (value == null)
-                            return "";
+                        case "Compliance":
+                            if (rule.Compliance == ComplianceViolationType.NotEvaluable)
+                            {
+                                return "NOT EVALUABLE";   
+                            }
+                            else if (rule.Compliance == ComplianceViolationType.None)
+                            {
+                                return "TRUE";
+                            }
+                            else
+                            {
+                                return "FALSE";
+                            }
 
-                        if (value is string s)
-                            return Escape(s, _separator);
+                        default:
+                            var value = p!.GetValue(rule);
 
-                        return $"{Escape(value.ToString()!, _separator)}";
-                    }
-                    else
-                    {
-                        // Handle Services separately to join them with a pipe character
+                            if (value == null)
+                                return "";
 
-                        var services = rule.Services.Select(s => s.Content.Name).ToList();
-                        return $"{Escape(string.Join(" | ", services), _separator)}";
+                            if (value is string s)
+                                return Escape(s, _separator);
+
+                            return $"{Escape(value.ToString()!, _separator)}";
                     }
                 }
                 else
@@ -239,27 +251,40 @@ namespace FWO.Report
             }
         }
 
-        private async Task SetComplianceDataForRule(Rule rule, List<ComplianceViolation> violations) // We will deal with the warning (CS1998) when we are ready for performance optimization 
+        private async Task SetComplianceDataForRule(Rule rule, List<ComplianceViolation> violations)
         {
             rule.Violations.Clear();
             rule.ViolationDetails = "";
+            rule.Compliance = ComplianceViolationType.None;
 
-            foreach (var violation in violations.Where(v => v.RuleId == rule.Id))
+            if (await CheckEvaluability(rule))
             {
-                if (IsDiffReport && ViolationDiffs.TryGetValue(violation, out char changeSign))
+                foreach (var violation in violations.Where(v => v.RuleId == rule.Id))
                 {
-                    violation.Details = $"({changeSign}) {violation.Details}";
-                }
+                    if (IsDiffReport && ViolationDiffs.TryGetValue(violation, out char changeSign))
+                    {
+                        violation.Details = $"({changeSign}) {violation.Details}";
+                    }
 
-                if (rule.ViolationDetails != "")
-                {
-                    rule.ViolationDetails += "\n";
-                }
+                    if (rule.ViolationDetails != "")
+                    {
+                        rule.ViolationDetails += "\n";
+                    }
 
-                rule.IsCompliant = false;
-                rule.ViolationDetails += violation.Details;
-                rule.Violations.Add(violation);
+                    rule.ViolationDetails += violation.Details;
+                    rule.Violations.Add(violation);
+
+                    // No need to differentiate between different types of violations here at the moment.
+
+                    rule.Compliance = ComplianceViolationType.MultipleViolations;
+                }                
             }
+            else
+            {
+                rule.Compliance = ComplianceViolationType.NotEvaluable;
+            }
+
+
 
             if (!Rules.Contains(rule))
             {
@@ -276,7 +301,7 @@ namespace FWO.Report
                 internetZoneObjectUid = globalConfig.ComplianceCheckInternetZoneObject;
             }
 
-            return Task.FromResult(rule.Froms.Any(from => from.Object.Uid == internetZoneObjectUid) || rule.Tos.Any(to => to.Object.Uid == internetZoneObjectUid));
+            return Task.FromResult(!(rule.Froms.Any(from => from.Object.Uid == internetZoneObjectUid) || rule.Tos.Any(to => to.Object.Uid == internetZoneObjectUid)));
         }
     }
 }

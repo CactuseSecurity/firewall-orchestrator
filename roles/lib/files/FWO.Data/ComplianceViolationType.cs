@@ -1,4 +1,4 @@
-namespace FWO.Compliance
+namespace FWO.Data
 {
     public enum ComplianceViolationType
     {

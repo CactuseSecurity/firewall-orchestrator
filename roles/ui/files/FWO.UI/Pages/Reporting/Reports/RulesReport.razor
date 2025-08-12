@@ -102,7 +102,7 @@
 
                             @if(SelectedReportType == ReportType.Compliance)
                             {
-                                <Column TableItem="Rule" Context="rule" Title="IsCompliant" Field="@(rChange => rChange.IsCompliant)" Sortable="true" Filterable="true" Hideable="true">
+                                <Column TableItem="Rule" Context="rule" Title="Compliance" Field="@(rChange => rChange.Compliance)" Sortable="true" Filterable="true" Hideable="true">
                                     <Template>
                                         @((MarkupString)RuleDisplayHtml.DisplayIsCompliant(rule, getActLocation()))
                                     </Template>

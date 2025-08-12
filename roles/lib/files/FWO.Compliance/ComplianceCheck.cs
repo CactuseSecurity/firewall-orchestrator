@@ -22,6 +22,7 @@ namespace FWO.Compliance
         private ReportFilters _reportFilters = new();
         private CompliancePolicy? _policy = null;
         private List<ComplianceNetworkZone> _networkZones = [];
+        private List<Rule> _nonEvaluableRules = [];
 
         private readonly UserConfig _userConfig;
         private readonly ApiConnection _apiConnection;
@@ -91,12 +92,12 @@ namespace FWO.Compliance
 
                 if (currentReport is ReportCompliance complianceReport)
                 {
-                    ComplianceReport = complianceReport;
                     Log.TryWriteLog(LogType.Info, "Compliance Check", $"Compliance report generated with {complianceReport.ReportData.ManagementData.Count} managements", _debugConfig.ExtendedLogComplianceCheck);
 
                     ComplianceReport = complianceReport;
 
                     ComplianceReport.Violations.Clear();
+                    _nonEvaluableRules.Clear();
 
                     foreach (var management in complianceReport.ReportData.ManagementData)
                     {
@@ -125,6 +126,10 @@ namespace FWO.Compliance
                 Log.TryWriteLog(LogType.Info, "Compliance Check", "Persisting violations...", _debugConfig.ExtendedLogComplianceCheck);
 
                 List<ComplianceViolation> violationsInDb = await _apiConnection.SendQueryAsync<List<ComplianceViolation>>(ComplianceQueries.getViolations);
+
+                // Filter violations by non-valuable rules. If rules are not evaluable their violation status stays datawise the same until they are evaluable again. 
+
+                violationsInDb = violationsInDb.Where(violation => !_nonEvaluableRules.Any(nonEvaluableRule => nonEvaluableRule.Id == violation.RuleId)).ToList();
 
                 Task<List<int>> violationsForRemoveTask = GetViolationsForRemove(violationsInDb);
 
@@ -299,7 +304,8 @@ namespace FWO.Compliance
 
         private async Task CheckRuleCompliancePerManagement(ManagementReport management)
         {
-            int notCompliantRules = 0;
+            int nonCompliantRules = 0;
+            int nonEvaluableRules = 0;
 
             Log.TryWriteLog(LogType.Info, "Compliance Check", $"Checking compliance for management {management.Id} '{management.Name}'", _debugConfig.ExtendedLogComplianceCheck);
 
@@ -307,22 +313,37 @@ namespace FWO.Compliance
             {
                 foreach (var rule in rulebase.Rules)
                 {
-                    rule.IsCompliant = await CheckRuleCompliance(rule);
-
-                    if (!rule.IsCompliant)
+                    if (await ComplianceReport!.CheckEvaluability(rule))
                     {
-                        notCompliantRules++;
+                        bool ruleIsCompliant = await CheckRuleCompliance(rule);
+
+                        if (!ruleIsCompliant)
+                        {
+                            nonCompliantRules++;
+                        }
                     }
+                    else
+                    {
+                        // Set counter
+
+                        nonEvaluableRules++;
+
+                        // Add to control collection
+                        
+                        _nonEvaluableRules.Add(rule);
+                    }
+
+
                 }
             }
-            
-            Log.TryWriteLog(LogType.Info, "Compliance Check", $"Checked compliance for management {management.Id} '{management.Name}' and found {notCompliantRules} non-compliant rules", _debugConfig.ExtendedLogComplianceCheck);
+
+            Log.TryWriteLog(LogType.Info, "Compliance Check", $"Checked compliance for management {management.Id} '{management.Name}' and found {nonCompliantRules} non-compliant rules", _debugConfig.ExtendedLogComplianceCheck);
+            Log.TryWriteLog(LogType.Info, "Compliance Check", $"Checked compliance for management {management.Id} '{management.Name}' and found {nonEvaluableRules} non-evaluable rules", _debugConfig.ExtendedLogComplianceCheck);
         }
 
         public async Task<bool> CheckRuleCompliance(Rule rule)
         {
             bool ruleIsCompliant = true;
-            bool ruleIsEvaluable = await ComplianceReport!.CheckEvaluability(rule);
 
             foreach (var criterion in (_policy?.Criteria ?? []).Select(c => c.Content))
             {

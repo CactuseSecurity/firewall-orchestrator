@@ -322,7 +322,7 @@ namespace FWO.Compliance
         public async Task<bool> CheckRuleCompliance(Rule rule)
         {
             bool ruleIsCompliant = true;
-            bool ruleIsEvaluable = await CheckEvaluability(rule);
+            bool ruleIsEvaluable = await ComplianceReport!.CheckEvaluability(rule);
 
             foreach (var criterion in (_policy?.Criteria ?? []).Select(c => c.Content))
             {
@@ -340,18 +340,6 @@ namespace FWO.Compliance
             }
 
             return ruleIsCompliant;
-        }
-
-        private Task<bool> CheckEvaluability(Rule rule)
-        {
-            string internetZoneObjectUid = "";
-
-            if (_userConfig.GlobalConfig is GlobalConfig globalConfig)
-            {
-                internetZoneObjectUid = globalConfig.ComplianceCheckInternetZoneObject;
-            }
-
-            return Task.FromResult(rule.Froms.Any(from => from.Object.Uid == internetZoneObjectUid) || rule.Tos.Any(to => to.Object.Uid == internetZoneObjectUid));
         }
 
         private async Task<bool> CheckAgainstMatrix(Rule rule)

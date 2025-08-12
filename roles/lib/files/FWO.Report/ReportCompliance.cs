@@ -26,7 +26,7 @@ namespace FWO.Report
         private readonly char _separator;
         private readonly List<string> _columnsToExport;
         private readonly DebugConfig _debugConfig;
-        
+
 
 
         public ReportCompliance(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType) : base(query, userConfig, reportType)
@@ -180,7 +180,7 @@ namespace FWO.Report
 
             List<ComplianceViolation> violationsTaskResult = violationsTask.Result;
             Violations = violationsTaskResult.Where(v => v.RemovedDate == null).ToList();
-            
+
             if (IsDiffReport && DiffReferenceInDays > 0)
             {
                 ViolationDiffs = await GetViolationDiffs(violationsTaskResult);
@@ -189,35 +189,35 @@ namespace FWO.Report
 
             await SetComplianceData();
         }
-        
+
         public async Task<Dictionary<ComplianceViolation, char>> GetViolationDiffs(List<ComplianceViolation> allViolations)
         {
-                DateTime referenceDate = DateTime.Now.AddDays(-DiffReferenceInDays);
+            DateTime referenceDate = DateTime.Now.AddDays(-DiffReferenceInDays);
 
-                Dictionary<ComplianceViolation, char> violationDiffs = new();
-                ComplianceViolationComparer comparer = new();
+            Dictionary<ComplianceViolation, char> violationDiffs = new();
+            ComplianceViolationComparer comparer = new();
 
-                List<ComplianceViolation> removedViolations = allViolations
-                                                                .Where(violation => violation.RemovedDate is DateTime removedDate && removedDate >= referenceDate)
-                                                                .Cast<ComplianceViolation>()
-                                                                .ToList();
+            List<ComplianceViolation> removedViolations = allViolations
+                                                            .Where(violation => violation.RemovedDate is DateTime removedDate && removedDate >= referenceDate)
+                                                            .Cast<ComplianceViolation>()
+                                                            .ToList();
 
-                List<ComplianceViolation> addedViolations = allViolations
-                                                                .Where(violation => violation.FoundDate >= referenceDate)
-                                                                .Cast<ComplianceViolation>()
-                                                                .ToList();
+            List<ComplianceViolation> addedViolations = allViolations
+                                                            .Where(violation => violation.FoundDate >= referenceDate)
+                                                            .Cast<ComplianceViolation>()
+                                                            .ToList();
 
-                foreach (var v in removedViolations)
-                {
-                    violationDiffs[v] = '-';
-                }
+            foreach (var v in removedViolations)
+            {
+                violationDiffs[v] = '-';
+            }
 
-                foreach (var v in addedViolations)
-                {
-                    violationDiffs[v] = '+';                    
-                }
+            foreach (var v in addedViolations)
+            {
+                violationDiffs[v] = '+';
+            }
 
-                return violationDiffs;    
+            return violationDiffs;
         }
 
         public async Task SetComplianceData()
@@ -250,7 +250,7 @@ namespace FWO.Report
                 {
                     violation.Details = $"({changeSign}) {violation.Details}";
                 }
-                
+
                 if (rule.ViolationDetails != "")
                 {
                     rule.ViolationDetails += "\n";
@@ -265,6 +265,18 @@ namespace FWO.Report
             {
                 Rules.Add(rule);
             }
+        }
+        
+        public Task<bool> CheckEvaluability(Rule rule)
+        {
+            string internetZoneObjectUid = "";
+
+            if (userConfig.GlobalConfig is GlobalConfig globalConfig)
+            {
+                internetZoneObjectUid = globalConfig.ComplianceCheckInternetZoneObject;
+            }
+
+            return Task.FromResult(rule.Froms.Any(from => from.Object.Uid == internetZoneObjectUid) || rule.Tos.Any(to => to.Object.Uid == internetZoneObjectUid));
         }
     }
 }

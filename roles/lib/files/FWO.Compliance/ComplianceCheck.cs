@@ -410,7 +410,17 @@ namespace FWO.Compliance
                     }
                     else
                     {
-                        throw new ArgumentNullException("Both the 'source' and 'destination' arguments must be non-null when creating a matrix violation.");
+                        string nullArgumentExceptionMessage = "Both the 'source' and 'destination' arguments must be non-null when creating a matrix violation.";
+
+                        if (source == null)
+                        {
+                            throw new ArgumentNullException(paramName: "source", message: nullArgumentExceptionMessage);
+                        }
+
+                        if (destination == null)
+                        {
+                            throw new ArgumentNullException(paramName: "destination", message: nullArgumentExceptionMessage);
+                        }
                     }
 
                     break;

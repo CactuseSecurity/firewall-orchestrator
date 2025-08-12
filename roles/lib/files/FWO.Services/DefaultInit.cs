@@ -16,6 +16,7 @@ namespace FWO.Services
         public static async Task DoNothing(UiUser _) {await Task.CompletedTask; }
         public static async Task DoNothing(FwoOwner _) {await Task.CompletedTask; }
         public static async Task DoNothing(Device _) {await Task.CompletedTask; }
+        public static async Task DoNothing(ComplianceCriterion _) {await Task.CompletedTask; }
 
 
         public static bool DoNothingSync() { return false; }

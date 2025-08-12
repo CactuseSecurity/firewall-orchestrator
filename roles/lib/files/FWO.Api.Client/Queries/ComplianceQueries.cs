@@ -25,7 +25,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string removeCriterion;
         public static readonly string getCriteria;
         public static readonly string getManualMatrices;
-		public static readonly string getMatrixBySource;
+        public static readonly string getMatrixBySource;
         
         public static readonly string addCritToPolicy;
         public static readonly string removeCritFromPolicy;
@@ -33,40 +33,40 @@ namespace FWO.Api.Client.Queries
 
         static ComplianceQueries()
         {
-			try
-			{
-				addNetworkZone = GetQueryText("compliance/addNetworkZone.graphql");
-				removeNetworkZone = GetQueryText("compliance/removeNetworkZone.graphql");
-				getNetworkZonesForMatrix = GetQueryText("compliance/getNetworkZonesForMatrix.graphql");
-				updateNetworkZone = GetQueryText("compliance/updateNetworkZone.graphql");
+            try
+            {
+                addNetworkZone = GetQueryText("compliance/addNetworkZone.graphql");
+                removeNetworkZone = GetQueryText("compliance/removeNetworkZone.graphql");
+                getNetworkZonesForMatrix = GetQueryText("compliance/getNetworkZonesForMatrix.graphql");
+                updateNetworkZone = GetQueryText("compliance/updateNetworkZone.graphql");
 
-				updateNetworkZoneCommunication = GetQueryText("compliance/updateNetworkZoneCommunication.graphql");
+                updateNetworkZoneCommunication = GetQueryText("compliance/updateNetworkZoneCommunication.graphql");
 
-				addViolations = GetQueryText("compliance/addViolations.graphql");
-				getViolations = GetQueryText("compliance/getViolations.graphql");
-				updateViolationById = GetQueryText("compliance/updateViolationById.graphql");
-				removeViolations = GetQueryText("compliance/removeViolations.graphql");
+                addViolations = GetQueryText("compliance/addViolations.graphql");
+                getViolations = GetQueryText("compliance/getViolations.graphql");
+                updateViolationById = GetQueryText("compliance/updateViolationById.graphql");
+                removeViolations = GetQueryText("compliance/removeViolations.graphql");
 
-				addPolicy = GetQueryText("compliance/addPolicy.graphql");
-				disablePolicy = GetQueryText("compliance/disablePolicy.graphql");
-				getPolicies = GetQueryText("compliance/getPolicies.graphql");
-				getPolicyById = GetQueryText("compliance/getPolicyById.graphql");
+                addPolicy = GetQueryText("compliance/addPolicy.graphql");
+                disablePolicy = GetQueryText("compliance/disablePolicy.graphql");
+                getPolicies = GetQueryText("compliance/getPolicies.graphql");
+                getPolicyById = GetQueryText("compliance/getPolicyById.graphql");
 
-				addCriterion = GetQueryText("compliance/addCriterion.graphql");
-				removeCriterion = GetQueryText("compliance/removeCriterion.graphql");
-				getCriteria = GetQueryText("compliance/getCriteria.graphql");
-				getManualMatrices = GetQueryText("compliance/getManualMatrices.graphql");
-				getMatrixBySource = GetQueryText("compliance/getMatrixBySource.graphql");
+                addCriterion = GetQueryText("compliance/addCriterion.graphql");
+                removeCriterion = GetQueryText("compliance/removeCriterion.graphql");
+                getCriteria = GetQueryText("compliance/getCriteria.graphql");
+                getManualMatrices = GetQueryText("compliance/getManualMatrices.graphql");
+                getMatrixBySource = GetQueryText("compliance/getMatrixBySource.graphql");
 
-				addCritToPolicy = GetQueryText("compliance/addCritToPolicy.graphql");
-				removeCritFromPolicy = GetQueryText("compliance/removeCritFromPolicy.graphql");
-				getPolicyIdsForCrit = GetQueryText("compliance/getPolicyIdsForCrit.graphql");
+                addCritToPolicy = GetQueryText("compliance/addCritToPolicy.graphql");
+                removeCritFromPolicy = GetQueryText("compliance/removeCritFromPolicy.graphql");
+                getPolicyIdsForCrit = GetQueryText("compliance/getPolicyIdsForCrit.graphql");
             }
-			catch (Exception exception)
-			{
-				Log.WriteError("Initialize Compliance Queries", "Api compliance queries could not be loaded.", exception);
-				Environment.Exit(-1);
-			}
+            catch (Exception exception)
+            {
+                Log.WriteError("Initialize Compliance Queries", "Api compliance queries could not be loaded.", exception);
+                Environment.Exit(-1);
+            }
         }
     }
 }

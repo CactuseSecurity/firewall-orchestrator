@@ -939,10 +939,10 @@ CREATE TABLE IF NOT EXISTS compliance.violation
 ALTER TABLE compliance.network_zone ADD COLUMN IF NOT EXISTS "created" TIMESTAMP WITH TIME ZONE DEFAULT NOW();
 ALTER TABLE compliance.network_zone ADD COLUMN IF NOT EXISTS "removed" TIMESTAMP WITH TIME ZONE;
 ALTER TABLE compliance.network_zone ADD COLUMN IF NOT EXISTS "criterion_id" INT;
+ALTER TABLE compliance.network_zone ADD COLUMN IF NOT EXISTS "id_string" TEXT;
 ALTER TABLE compliance.network_zone_communication ADD COLUMN IF NOT EXISTS "created" TIMESTAMP WITH TIME ZONE DEFAULT NOW();
 ALTER TABLE compliance.network_zone_communication ADD COLUMN IF NOT EXISTS "removed" TIMESTAMP WITH TIME ZONE;
 ALTER TABLE compliance.network_zone_communication ADD COLUMN IF NOT EXISTS "criterion_id" INT;
-ALTER TABLE compliance.network_zone_communication ADD COLUMN IF NOT EXISTS  "id_string" TEXT;
 ALTER TABLE compliance.ip_range ADD COLUMN IF NOT EXISTS "created" TIMESTAMP WITH TIME ZONE DEFAULT NOW();
 ALTER TABLE compliance.ip_range ADD COLUMN IF NOT EXISTS "removed" TIMESTAMP WITH TIME ZONE;
 ALTER TABLE compliance.ip_range ADD COLUMN IF NOT EXISTS "criterion_id" INT;

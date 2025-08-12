@@ -20,6 +20,9 @@ namespace FWO.Data
         [JsonProperty("name"), JsonPropertyName("name")]
         public string Name { get; set; } = "";
 
+        [JsonProperty("import_source"), JsonPropertyName("import_source")]
+        public string ImportSource { get; set; } = "";
+
         [JsonProperty("criterion_type"), JsonPropertyName("criterion_type")]
         public string CriterionType { get; set; } = "";
 

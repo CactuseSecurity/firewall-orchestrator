@@ -62,10 +62,11 @@ namespace FWO.Services
         {
             var variables = new
             {
-                super_network_zone_id = networkZone.Superzone?.Id,
+                superNetworkZoneId = networkZone.Superzone?.Id,
                 name = networkZone.Name,
                 description = networkZone.Description,
-                ip_ranges = addDel.IpRangesToAdd.ConvertAll(range =>
+                idString = networkZone.IdString,
+                ipRanges = addDel.IpRangesToAdd.ConvertAll(range =>
                     new
                     {
                         ip_range_start = range.Begin.ToString(),
@@ -73,27 +74,27 @@ namespace FWO.Services
                         criterion_id = networkZone.CriterionId
                     }
                 ),
-                communication_sources = addDel.SourceZonesToAdd.ConvertAll(zone =>
+                communicationSources = addDel.SourceZonesToAdd.ConvertAll(zone =>
                     new
                     {
                         from_network_zone_id = zone.Id,
                         criterion_id = networkZone.CriterionId
                     }
                 ),
-                communication_destinations = addDel.DestinationZonesToAdd.ConvertAll(zone =>
+                communicationDestinations = addDel.DestinationZonesToAdd.ConvertAll(zone =>
                     new
                     {
                         to_network_zone_id = zone.Id,
                         criterion_id = networkZone.CriterionId
                     }
                 ),
-                sub_network_zones = addDel.SubzonesToAdd.ConvertAll(zone =>
+                subNetworkZones = addDel.SubzonesToAdd.ConvertAll(zone =>
                     new
                     {
                         id = zone.Id
                     }
                 ),
-                criterion_id = networkZone.CriterionId
+                criterionId = networkZone.CriterionId
             };
 
             await apiConnection.SendQueryAsync<dynamic>(ComplianceQueries.addNetworkZone, variables);
@@ -137,11 +138,11 @@ namespace FWO.Services
 
             var variables = new
             {
-                network_zone_id = networkZone.Id,
-                super_network_zone_id = networkZone.Superzone?.Id,
+                networkZoneId = networkZone.Id,
+                superNetworkZoneId = networkZone.Superzone?.Id,
                 name = networkZone.Name,
                 description = networkZone.Description,
-                add_ip_ranges = addDel.IpRangesToAdd.ConvertAll(range =>
+                addIpRanges = addDel.IpRangesToAdd.ConvertAll(range =>
                     new
                     {
                         network_zone_id = networkZone.Id,
@@ -150,7 +151,7 @@ namespace FWO.Services
                         criterion_id = networkZone.CriterionId
                     }
                 ),
-                delete_ip_ranges_exp = addDel.IpRangesToDelete.ConvertAll(range =>
+                deleteIpRangesExp = addDel.IpRangesToDelete.ConvertAll(range =>
                     new
                     {
                         ip_range_start = new { _eq = range.Begin.ToString() },
@@ -158,20 +159,20 @@ namespace FWO.Services
                         criterion_id = new { _eq = networkZone.CriterionId }
                     }
                 ),
-                add_sub_zones_exp = addDel.SubzonesToAdd.ConvertAll(zone =>
+                addSubZonesExp = addDel.SubzonesToAdd.ConvertAll(zone =>
                     new
                     {
                         id = new { _eq = zone.Id }
                     }
                 ),
-                delete_sub_zones_exp = addDel.SubzonesToDelete.ConvertAll(zone =>
+                deleteSubZonesExp = addDel.SubzonesToDelete.ConvertAll(zone =>
                     new
                     {
                         id = new { _eq = zone.Id }
                     }
                 ),
-                add_zone_communication = addZoneCommunication,
-                delete_zone_communication_exp = deleteZoneCommunicationExp,
+                addZoneCommunication = addZoneCommunication,
+                deleteZoneCommunicationExp = deleteZoneCommunicationExp,
                 removed = DateTime.UtcNow
             };
 
@@ -196,8 +197,8 @@ namespace FWO.Services
             ));
             var variables = new
             {
-                delete_zone_communication_exp = deleteZoneCommunicationExp,
-                delete_ip_ranges_exp = networkZone.IPRanges.ToList().ConvertAll(range =>
+                deleteZoneCommunicationExp = deleteZoneCommunicationExp,
+                deleteIpRangesExp = networkZone.IPRanges.ToList().ConvertAll(range =>
                     new
                     {
                         ip_range_start = new { _eq = range.Begin.ToString() },

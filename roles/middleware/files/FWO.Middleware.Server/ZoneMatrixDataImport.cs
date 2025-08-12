@@ -116,7 +116,7 @@ namespace FWO.Middleware.Server
             (MatrixId, ExistingZones) = await GetExistingMatrixWithZones(importfileName);
             if (MatrixId == 0)
             {
-                await CreateMatrix(importedMatrix.Name, importedMatrix.Comment);
+                await CreateMatrix(importedMatrix.Name, importfileName, importedMatrix.Comment);
             }
 
             foreach (var incomingZone in importedMatrix.NetworkZones)
@@ -169,10 +169,10 @@ namespace FWO.Middleware.Server
             return (0, []);
         }
 
-        private async Task CreateMatrix(string MatrixName, string? comment)
+        private async Task CreateMatrix(string MatrixName, string importfileName, string? comment)
         {
             ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(ComplianceQueries.addCriterion,
-                new { name = MatrixName, comment = comment, criterionType = CriterionType.Matrix.ToString() })).ReturnIds;
+                new { name = MatrixName, importSource = importfileName, comment = comment, criterionType = CriterionType.Matrix.ToString() })).ReturnIds;
             if (returnIds != null && returnIds.Length > 0)
             {
                 MatrixId = returnIds[0].InsertedId;

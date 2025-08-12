@@ -249,7 +249,7 @@
             // Prepare the variables for the API call
             var variables = new
             {
-                add_zone_communication = addCommunication.ConvertAll(zones =>
+                addZoneCommunication = addCommunication.ConvertAll(zones =>
                     new
                     {
                         criterion_id = selectedMatrix.Id,
@@ -257,7 +257,7 @@
                         to_network_zone_id = zones.Item2.Id
                     }
                 ),
-                delete_zone_communication_exp = deleteCommunication.ConvertAll(zones =>
+                deleteZoneCommunicationExp = deleteCommunication.ConvertAll(zones =>
                     new
                     {
                         criterion_id = new { _eq = selectedMatrix.Id },

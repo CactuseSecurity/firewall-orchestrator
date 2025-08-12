@@ -1408,7 +1408,8 @@ create table compliance.network_zone
 	owner_id bigint,
 	removed timestamp with time zone,
 	created timestamp with time zone default now(),
-	criterion_id INT
+	criterion_id INT,
+    id_string TEXT
 );
 
 create table compliance.network_zone_communication
@@ -1417,8 +1418,7 @@ create table compliance.network_zone_communication
     from_network_zone_id bigint NOT NULL,
 	to_network_zone_id bigint NOT NULL,
     removed timestamp with time zone,
-	created timestamp with time zone default now(),
-    id_string TEXT
+	created timestamp with time zone default now()
 );
 
 create table compliance.ip_range

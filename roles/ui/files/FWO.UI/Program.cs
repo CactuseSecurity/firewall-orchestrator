@@ -4,14 +4,15 @@ using FWO.Config.Api;
 using FWO.Config.File;
 using FWO.Logging;
 using FWO.Middleware.Client;
+using FWO.Services;
+using FWO.Services.EventMediator;
+using FWO.Services.EventMediator.Interfaces;
+using FWO.Services.RuleTreeBuilder;
 using FWO.Ui.Auth;
 using FWO.Ui.Services;
-using FWO.Services.RuleTreeBuilder;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server.Circuits;
 using RestSharp;
-using FWO.Services.EventMediator.Interfaces;
-using FWO.Services.EventMediator;
 
 
 // Implicitly call static constructor so background lock process is started

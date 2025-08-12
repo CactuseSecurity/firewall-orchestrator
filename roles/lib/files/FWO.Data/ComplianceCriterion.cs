@@ -26,6 +26,9 @@ namespace FWO.Data
         [JsonProperty("content"), JsonPropertyName("content")]
         public string Content { get; set; } = "";
 
+        [JsonProperty("comment"), JsonPropertyName("comment")]
+        public string? Comment { get; set; }
+
         [JsonProperty("created"), JsonPropertyName("created")]
         public DateTime Created { get; set; } = DateTime.UtcNow;
 

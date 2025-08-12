@@ -16,9 +16,20 @@
 </div>
 @(userConfig.GetText("U5324"))
 <hr />
-<button type="button" class="btn btn-sm btn-primary" @onclick="EditFixCrit">@(userConfig.GetText("edit_fix_crit"))</button>
+<div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5812"))">
+    <label class="col-form-label col-sm-4">@userConfig.GetText("fix_criteria"):</label>
+	<div class="col-sm-2">
+		<button type="button" class="btn btn-sm btn-primary" @onclick="EditFixCrit">@(userConfig.GetText("edit_fix_crit"))</button>
+	</div>
+</div>
 <hr />
-
+<div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5811"))">
+    <label class="col-form-label col-sm-4">@userConfig.GetText("import_matrix"):</label>
+    <div class="row col-sm-6">
+        <ImportFileUpload SupportedFileFormats=".json" AuthorizedRoles="@Roles.Admin" UploadCase="FileUploadCase.ImportComplianceMatrix"/>
+    </div>
+</div>
+<hr />
 @if(configData != null)
 {
     <form onsubmit="return false">
@@ -82,6 +93,8 @@ else
     private bool EditFixCritMode = false;
     private List<CompliancePolicy> policies = [];
     private CompliancePolicy? actPolicy;
+    private bool ShowImportPopUp { get; set; }
+    private ErrorBaseModel? ImportError;
 
     protected override async Task OnInitializedAsync()
     {
@@ -94,11 +107,38 @@ else
             {
                 actPolicy = policies.FirstOrDefault(p => p.Id == configData.ComplianceCheckPolicyId);
             }
+			EventMediator.Subscribe<FileUploadEvent>(nameof(FileUploadService.ReadFileToBytes), _ => OnFileUploadEvent(_.EventArgs));
+            EventMediator.Subscribe<FileUploadEvent>(nameof(FileUploadService.ImportComplianceMatrix), _ => OnComplianceMatrixImportEvent(_.EventArgs));
+
         }
         catch(Exception exception)
         {
             DisplayMessageInUi(exception, userConfig.GetText("read_config"), userConfig.GetText("E5301"), false);
         }
+    }
+
+    private void OnFileUploadEvent(FileUploadEventArgs? e)
+    {
+        if(e is null)
+        {
+            return;
+        }
+        if(!e.Success && e.Error is not null)
+        {
+            DisplayMessageInUi(e.Error.InternalException, userConfig.GetText("modelling_settings"), e.Error.Message ?? "", true);
+            return;
+        }
+    }
+
+    private void OnComplianceMatrixImportEvent(FileUploadEventArgs? e)
+    {
+        if(e is null)
+        {
+            return;
+        }
+        ImportError = e.Error;
+        ShowImportPopUp = true;
+        StateHasChanged();
     }
 
     private void EditFixCrit()

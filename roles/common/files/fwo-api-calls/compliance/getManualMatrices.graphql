@@ -1,0 +1,6 @@
+query getManualMatrices {
+  compliance_criterion (where: { criterion_type: {_eq: "Matrix"}, import_source: {_is_null: true}, removed: {_is_null: true} }){
+    id
+    name
+  }
+}

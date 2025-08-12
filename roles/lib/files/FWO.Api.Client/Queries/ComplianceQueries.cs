@@ -24,7 +24,8 @@ namespace FWO.Api.Client.Queries
         public static readonly string addCriterion;
         public static readonly string removeCriterion;
         public static readonly string getCriteria;
-        public static readonly string getMatrices;
+        public static readonly string getManualMatrices;
+		public static readonly string getMatrixBySource;
         
         public static readonly string addCritToPolicy;
         public static readonly string removeCritFromPolicy;
@@ -54,7 +55,8 @@ namespace FWO.Api.Client.Queries
                 addCriterion = File.ReadAllText(QueryPath + "compliance/addCriterion.graphql");
                 removeCriterion = File.ReadAllText(QueryPath + "compliance/removeCriterion.graphql");
                 getCriteria = File.ReadAllText(QueryPath + "compliance/getCriteria.graphql");
-                getMatrices = File.ReadAllText(QueryPath + "compliance/getMatrices.graphql");
+                getManualMatrices = File.ReadAllText(QueryPath + "compliance/getManualMatrices.graphql");
+				getMatrixBySource = File.ReadAllText(QueryPath + "compliance/getMatrixBySource.graphql");
 
                 addCritToPolicy = File.ReadAllText(QueryPath + "compliance/addCritToPolicy.graphql");
                 removeCritFromPolicy = File.ReadAllText(QueryPath + "compliance/removeCritFromPolicy.graphql");

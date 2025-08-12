@@ -4,4 +4,10 @@
     {
         public List<int> ManagementIds { get; set; } = [];
     }
+
+    public class ComplianceImportMatrixParameters
+    {
+        public string FileName { get; set; } = "";
+        public string Data { get; set; } = "";
+    }
 }

@@ -125,7 +125,7 @@
             apiConnection.SetProperRole(authenticationStateTask!.Result.User,
                 [ Roles.Admin, Roles.FwAdmin, Roles.ReporterViewAll, Roles.Reporter,
                 Roles.Requester, Roles.Approver, Roles.Planner, Roles.Implementer, Roles.Reviewer, Roles.Auditor ]);
-            matrices = await apiConnection.SendQueryAsync<List<ComplianceCriterion>>(ComplianceQueries.getMatrices);
+            matrices = await apiConnection.SendQueryAsync<List<ComplianceCriterion>>(ComplianceQueries.getManualMatrices);
             if(matrices.Count > 0)
             {
                 selectedMatrix = matrices[0];

@@ -140,7 +140,8 @@ namespace FWO.Ui.Display
             if (reportType.IsResolvedReport())
             {
                 NetworkLocation[] userNwObjects = [.. GetNetworkLocations(isSource ? rule.Froms : rule.Tos)];
-                result.AppendJoin("<br>", Array.ConvertAll(userNwObjects, networkLocation => NetworkLocationToHtml(networkLocation, rule.MgmtId, chapterNumber, location, highlightedStyle, reportType)));
+                result.AppendJoin("<br>", Array.ConvertAll(userNwObjects,
+                    nwLoc => NetworkLocationToHtml(nwLoc, rule.MgmtId, chapterNumber, location, highlightedStyle, reportType)));
             }
             else
             {

@@ -5,6 +5,7 @@ from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives import padding
 import traceback
 from fwo_log import getFwoLogger
+from fwo_const import mainKeyFile
 
 # can be used for decrypting text encrypted with C# (mw-server)
 def decrypt_aes_ciphertext(base64_encrypted_text, passphrase):
@@ -40,3 +41,9 @@ def decrypt(encrypted_data, passphrase):
     except Exception:
         logger.warning("Unspecified error while decrypting with AES: " + str(traceback.format_exc()))
         return encrypted_data
+
+
+def read_main_key(filePath=mainKeyFile):
+    with open(filePath, "r") as keyfile:
+        mainKey = keyfile.read().rstrip(' \n')
+    return mainKey

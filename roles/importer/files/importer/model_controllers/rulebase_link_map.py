@@ -1,17 +1,17 @@
-# from pydantic import BaseModel
-from typing import List
+from fwo_log import getFwoLogger
 from models.rulebase_link import RulebaseLink
 from model_controllers.import_state_controller import ImportStateController
-from fwo_log import getFwoLogger
 from models.import_state import ImportState
 from model_controllers.import_statistics_controller import ImportStatisticsController
+from fwo_api_call import FwoApiCall
 
 class RulebaseLinkMap():
 
 
-    def getRulebaseLinks(self, importState: ImportStateController, gwIds: List[int] = []):
+    def getRulebaseLinks(self, importState: ImportStateController, gwIds: list[int] = []):
         logger = getFwoLogger()
-        queryVariables = { "gwIds": gwIds}
+        query_variables = { "gwIds": gwIds}
+        rbLinks = []
 
         query = """
             query getRulebaseLinks($gwIds: [Int!]) {
@@ -23,30 +23,18 @@ class RulebaseLinkMap():
                 }
             }"""
         
-        links = importState.call(query, queryVariables=queryVariables)
+        links = importState.api_call.call(query, query_variables=query_variables)
         if 'errors' in links:
             importState.Stats.addError(f"fwo_api:getRulebaseLinks - error while getting rulebaseLinks: {str(links['errors'])}")
             logger.exception(f"fwo_api:getRulebaseLinks - error while getting rulebaseLinks: {str(links['errors'])}")
-        else:
-            rbLinks = links['data']['rulebase_link']
+            return rbLinks
+
+        rbLinks = links['data']['rulebase_link']
         return rbLinks
+    
+    
+    # TODO: implement SetMapOfAllEnforcingGatewayIdsForRulebaseId
 
-
-    def SetMapOfAllEnforcingGatewayIdsForRulebaseId(self):
-        rbLinks = self.getRulebaseLinks()
-
-        for link in rbLinks:
-            rulebaseId = link['to_rulebase_id']
-            gwId = link['gw_id']
-            if rulebaseId not in self.RulebaseMap:
-                self.RulebaseMap.update({rulebaseId: []})
-            if gwId not in self.RulebaseMap[rulebaseId]:
-                self.RulebaseMap[rulebaseId].append(gwId)
-        
-        # for rulebaseId in self.RulebaseMap.values():
-        #     self.RulbaseToGatewayMap.update({rulebaseId: []})
-        #     # TODO: implement
-
-    def GetGwIdsForRulebaseId(self, rulebaseId):
-        return self.RulbaseToGatewayMap.get(rulebaseId, [])
+    def GetGwIdsForRulebaseId(self, rulebaseId, importState: ImportStateController):
+        return importState.RulbaseToGatewayMap.get(rulebaseId, [])
     

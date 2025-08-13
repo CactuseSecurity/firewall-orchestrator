@@ -24,10 +24,3 @@ class FwoEncoder(json.JSONEncoder):
     could be normalized or native config
     management could be standard of super manager (MDS, fortimanager)
 """
-
-class FwConfigController(FwConfig):
-
-    def IsLegacy(self):
-        return self.ConfigFormat in [ConfFormat.NORMALIZED_LEGACY, ConfFormat.CHECKPOINT_LEGACY, 
-                                    ConfFormat.CISCOFIREPOWER_LEGACY, ConfFormat.FORTINET_LEGACY, 
-                                    ConfFormat.PALOALTO_LEGACY]

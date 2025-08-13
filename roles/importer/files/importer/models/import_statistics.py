@@ -1,8 +1,6 @@
-from typing import List
-
 class ImportStatistics:
     ErrorCount: int
-    ErrorDetails: List[str]
+    ErrorDetails: list[str]
     NetworkObjectAddCount: int
     NetworkObjectDeleteCount: int
     NetworkObjectChangeCount: int

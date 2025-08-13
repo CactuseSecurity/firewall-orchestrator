@@ -33,56 +33,56 @@ namespace FWO.Api.Client.Queries
             try
             {
                 ruleOverviewFragments =
-                    File.ReadAllText(QueryPath + "networkObject/fragments/networkObjectOverview.graphql") +
-                    File.ReadAllText(QueryPath + "networkService/fragments/networkServiceOverview.graphql") +
-                    File.ReadAllText(QueryPath + "user/fragments/userOverview.graphql") +
-                    File.ReadAllText(QueryPath + "rule/fragments/ruleOverview.graphql");
+                    GetQueryText("networkObject/fragments/networkObjectOverview.graphql") +
+                    GetQueryText("networkService/fragments/networkServiceOverview.graphql") +
+                    GetQueryText("user/fragments/userOverview.graphql") +
+                    GetQueryText("rule/fragments/ruleOverview.graphql");
                 ruleOverviewForChangeReportFragments =
-                    File.ReadAllText(QueryPath + "networkObject/fragments/networkObjectOverview.graphql") +
-                    File.ReadAllText(QueryPath + "networkService/fragments/networkServiceOverview.graphql") +
-                    File.ReadAllText(QueryPath + "user/fragments/userOverview.graphql") +
-                    File.ReadAllText(QueryPath + "rule/fragments/ruleOverviewChangesOld.graphql") +
-                    File.ReadAllText(QueryPath + "rule/fragments/ruleOverviewChangesNew.graphql");
+                    GetQueryText("networkObject/fragments/networkObjectOverview.graphql") +
+                    GetQueryText("networkService/fragments/networkServiceOverview.graphql") +
+                    GetQueryText("user/fragments/userOverview.graphql") +
+                    GetQueryText("rule/fragments/ruleOverviewChangesOld.graphql") +
+                    GetQueryText("rule/fragments/ruleOverviewChangesNew.graphql");
                 ruleDetailsFragments =
                     ObjectQueries.networkObjectDetailsFragment +
                     ObjectQueries.networkServiceDetailsFragment +
                     ObjectQueries.userDetailsFragment +
-                    File.ReadAllText(QueryPath + "rule/fragments/ruleDetails.graphql");
+                    GetQueryText("rule/fragments/ruleDetails.graphql");
                 ruleDetailsForReportFragments =
                     ObjectQueries.networkObjectDetailsFragment +
                     ObjectQueries.networkServiceDetailsFragment +
                     ObjectQueries.userDetailsFragment +
-                    File.ReadAllText(QueryPath + "rule/fragments/ruleDetailsForReport.graphql");
-                natRuleOverviewFragments = ruleOverviewFragments + File.ReadAllText(QueryPath + "rule/fragments/natRuleOverview.graphql");
-                natRuleDetailsFragments = ruleDetailsFragments + File.ReadAllText(QueryPath + "rule/fragments/natRuleDetails.graphql");
+                    GetQueryText("rule/fragments/ruleDetailsForReport.graphql");
+                natRuleOverviewFragments = ruleOverviewFragments + GetQueryText("rule/fragments/natRuleOverview.graphql");
+                natRuleDetailsFragments = ruleDetailsFragments + GetQueryText("rule/fragments/natRuleDetails.graphql");
                 natRuleDetailsForReportFragments =
                     ObjectQueries.networkObjectDetailsFragment +
                     ObjectQueries.networkServiceDetailsFragment +
                     ObjectQueries.userDetailsFragment +
-                    File.ReadAllText(QueryPath + "rule/fragments/natRuleDetailsForReport.graphql");
+                    GetQueryText("rule/fragments/natRuleDetailsForReport.graphql");
                 ruleDetailsForChangeReportFragments =
-                    File.ReadAllText(QueryPath + "networkObject/fragments/networkObjectDetailsChangesOld.graphql") +
-                    File.ReadAllText(QueryPath + "networkObject/fragments/networkObjectDetailsChangesNew.graphql") +
-                    File.ReadAllText(QueryPath + "networkService/fragments/networkServiceDetailsChangesOld.graphql") +
-                    File.ReadAllText(QueryPath + "networkService/fragments/networkServiceDetailsChangesNew.graphql") +
-                    File.ReadAllText(QueryPath + "user/fragments/userDetailsChangesOld.graphql") +
-                    File.ReadAllText(QueryPath + "user/fragments/userDetailsChangesNew.graphql") +
-                    File.ReadAllText(QueryPath + "rule/fragments/ruleDetailsChangesOld.graphql") +
-                    File.ReadAllText(QueryPath + "rule/fragments/ruleDetailsChangesNew.graphql");
+                    GetQueryText("networkObject/fragments/networkObjectDetailsChangesOld.graphql") +
+                    GetQueryText("networkObject/fragments/networkObjectDetailsChangesNew.graphql") +
+                    GetQueryText("networkService/fragments/networkServiceDetailsChangesOld.graphql") +
+                    GetQueryText("networkService/fragments/networkServiceDetailsChangesNew.graphql") +
+                    GetQueryText("user/fragments/userDetailsChangesOld.graphql") +
+                    GetQueryText("user/fragments/userDetailsChangesNew.graphql") +
+                    GetQueryText("rule/fragments/ruleDetailsChangesOld.graphql") +
+                    GetQueryText("rule/fragments/ruleDetailsChangesNew.graphql");
 
-                getRuleOverview = ruleOverviewFragments + File.ReadAllText(QueryPath + "rule/getRuleOverview.graphql");
-                getRuleDetails = ruleDetailsFragments + File.ReadAllText(QueryPath + "rule/getRuleDetails.graphql");
-                // getRuleDetailsForReport = ruleDetailsForReportFragments + File.ReadAllText(QueryPath + "rule/getRuleDetails.graphql");
-                getRuleByUid = File.ReadAllText(QueryPath + "rule/getRuleByUid.graphql");
+                getRuleOverview = ruleOverviewFragments + GetQueryText("rule/getRuleOverview.graphql");
+                getRuleDetails = ruleDetailsFragments + GetQueryText("rule/getRuleDetails.graphql");
+                // getRuleDetailsForReport = ruleDetailsForReportFragments + GetQueryText("rule/getRuleDetails.graphql");
+                getRuleByUid = GetQueryText("rule/getRuleByUid.graphql");
                 getRuleNetworkObjectDetails = ObjectQueries.networkObjectDetailsFragment;
-                getRuleIdsOfImport = File.ReadAllText(QueryPath + "report/getRuleIdsOfImport.graphql");
-                getRuleUidsOfDevice = File.ReadAllText(QueryPath + "report/getRuleUidsOfDevice.graphql");
-                getRulesByManagement = ruleDetailsFragments + File.ReadAllText(QueryPath + "report/getRulesByManagement.graphql");
-                getModelledRulesByManagementName = ruleDetailsFragments + File.ReadAllText(QueryPath + "report/getModelledRulesByManagementName.graphql");
-                getModelledRulesByManagementComment = ruleDetailsFragments + File.ReadAllText(QueryPath + "report/getModelledRulesByManagementComment.graphql");
-                getNatRuleOverview = natRuleOverviewFragments + File.ReadAllText(QueryPath + "rule/getNatRuleOverview.graphql");
-                getNatRuleDetails = natRuleDetailsFragments + File.ReadAllText(QueryPath + "rule/getNatRuleDetails.graphql");
-                // getNatRuleDetailsForReport = natRuleDetailsForReportFragments + File.ReadAllText(QueryPath + "rule/getNatRuleDetails.graphql");
+                getRuleIdsOfImport = GetQueryText("report/getRuleIdsOfImport.graphql");
+                getRuleUidsOfDevice = GetQueryText("report/getRuleUidsOfDevice.graphql");
+                getRulesByManagement = ruleDetailsFragments + GetQueryText("report/getRulesByManagement.graphql");
+                getModelledRulesByManagementName = ruleDetailsFragments + GetQueryText("report/getModelledRulesByManagementName.graphql");
+                getModelledRulesByManagementComment = ruleDetailsFragments + GetQueryText("report/getModelledRulesByManagementComment.graphql");
+                getNatRuleOverview = natRuleOverviewFragments + GetQueryText("rule/getNatRuleOverview.graphql");
+                getNatRuleDetails = natRuleDetailsFragments + GetQueryText("rule/getNatRuleDetails.graphql");
+                // getNatRuleDetailsForReport = natRuleDetailsForReportFragments + GetQueryText("rule/getNatRuleDetails.graphql");
             }
             catch (Exception exception)
             {

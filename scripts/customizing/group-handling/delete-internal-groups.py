@@ -96,7 +96,7 @@ if __name__ == "__main__":
     parser = ArgumentParser(description='Delete internal groups from FWO')
     parser.add_argument('-u', '--user', required=True, help='Username for FWO API')
     parser.add_argument('-p', '--password', required=True, help='Password for FWO API')
-    parser.add_argument('-a', '--api_url', default='https://', help='Base URL for FWO API (default: https://localhost:8888/)')
+    parser.add_argument('-a', '--api_url', default='https://', help='Base URL for FWO API (default: https://localhost:8888/api/)')
     parser.add_argument('-g', '--group_name', required=True, help='name of group to delete')
 
     args = parser.parse_args()

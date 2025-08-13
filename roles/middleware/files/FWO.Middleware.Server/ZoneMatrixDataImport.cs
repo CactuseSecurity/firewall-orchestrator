@@ -56,16 +56,13 @@ namespace FWO.Middleware.Server
 
         private async Task<string> ImportSingleMatrix(string importfileName, List<string> failedImports)
         {
-            string responsMessage = "";
+            string responsMessage;
             try
             {
-                ImportNwZoneMatrixData? importedZoneMatrixData = JsonSerializer.Deserialize<ImportNwZoneMatrixData>(importFile) ?? throw new JsonException("File could not be parsed.");
-                if (importedZoneMatrixData != null && importedZoneMatrixData.NetworkZones != null)
-                {
-                    CheckData(importedZoneMatrixData);
-                    (MatrixId, ExistingZones) = await GetExistingMatrixWithZones(importedZoneMatrixData.Name);
-                    responsMessage = await ImportMatrix(importedZoneMatrixData, importfileName);
-                }
+                ImportNwZoneMatrixData importedZoneMatrixData = JsonSerializer.Deserialize<ImportNwZoneMatrixData>(importFile) ?? throw new JsonException("File could not be parsed.");
+                CheckData(importedZoneMatrixData);
+                (MatrixId, ExistingZones) = await GetExistingMatrixWithZones(importedZoneMatrixData.Name);
+                responsMessage = await ImportMatrix(importedZoneMatrixData, importfileName);
             }
             catch (Exception exc)
             {

@@ -1,6 +1,7 @@
 ﻿using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Data;
+using FWO.Logging;
 using NetTools;
 
 namespace FWO.Services
@@ -54,7 +55,10 @@ namespace FWO.Services
                     return ipAddressRange.ToCidrString();
                 }
             }
-            catch (FormatException) { }
+            catch (FormatException)
+            {
+                Log.WriteDebug("DisplayIpRange", $"Display as CIDR not possible, so display as range");
+            }
             return ipAddressRange.ToString();
         }
 

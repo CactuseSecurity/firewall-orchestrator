@@ -26,20 +26,19 @@ namespace FWO.Middleware.Server.Controllers
         /// <returns>Failed import filenames</returns>
         [HttpPost("ImportMatrix")]
         [Authorize(Roles = $"{Roles.Admin}")]
-        public async Task<List<string>> Post([FromBody] ComplianceImportMatrixParameters parameters)
+        public async Task<string> Post([FromBody] ComplianceImportMatrixParameters parameters)
         {
             try
             {
                 GlobalConfig GlobalConfig = await GlobalConfig.ConstructAsync(apiConnection, true);
-                 ZoneMatrixDataImport matrixDataImport = new(apiConnection, GlobalConfig);
-                List<string> failedImports = await matrixDataImport.Run(parameters.FileName, parameters.Data);
-                return failedImports;
+                ZoneMatrixDataImport matrixDataImport = new(apiConnection, GlobalConfig);
+                return await matrixDataImport.Run(parameters.FileName, parameters.Data, parameters.UserName, parameters.UserDn);
             }
             catch (Exception exception)
             {
                 Log.WriteError("Import Compliance Matrix", "Error while importing matrix.", exception);
+                return exception.Message;
             }
-            return [];
         }
 
         /// <summary>

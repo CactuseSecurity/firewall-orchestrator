@@ -223,7 +223,7 @@
                   "permission": {
                     "columns": [
                       "comment",
-                      "name"
+                      "import_source"
                     ],
                     "filter": {},
                     "check": null

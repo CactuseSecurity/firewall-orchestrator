@@ -5,6 +5,7 @@
 @using FWO.Services.EventMediator.Interfaces
 @using FWO.Ui.Data
 
+@implements IDisposable
 @inject ApiConnection apiConnection
 @inject GlobalConfig globalConfig
 @inject UserConfig userConfig
@@ -81,6 +82,27 @@ else
 }
 <ComplianceFixCriteria @bind-Display="EditFixCritMode" />
 
+<PopUp Title="@(userConfig.GetText("import_matrix"))" Show="@ShowImportPopUp" Size=PopupSize.Small OnClose="() => ShowImportPopUp = false">
+    <Body>
+        @if(ImportSuccess)
+        {
+            <div class="mt-3">
+                @($"{userConfig.GetText("E9401")}: {ImportMessage}")
+            </div>
+        }
+		else
+		{
+            <div class="alert alert-info mt-3" role="alert">
+                @($"{userConfig.GetText("E9402")}: {ImportMessage}")
+            </div>
+		}
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <button type="button" class="btn btn-sm btn-primary" @onclick="() => ShowImportPopUp = false">@(userConfig.GetText("ok"))</button>
+        </div>
+    </Footer>
+</PopUp>
 
 @code
 {
@@ -95,6 +117,8 @@ else
     private CompliancePolicy? actPolicy;
     private bool ShowImportPopUp { get; set; }
     private ErrorBaseModel? ImportError;
+	private string ImportMessage = "";
+	private bool ImportSuccess = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -109,7 +133,6 @@ else
             }
 			EventMediator.Subscribe<FileUploadEvent>(nameof(FileUploadService.ReadFileToBytes), _ => OnFileUploadEvent(_.EventArgs));
             EventMediator.Subscribe<FileUploadEvent>(nameof(FileUploadService.ImportComplianceMatrix), _ => OnComplianceMatrixImportEvent(_.EventArgs));
-
         }
         catch(Exception exception)
         {
@@ -136,7 +159,9 @@ else
         {
             return;
         }
+		ImportSuccess = e.Success;
         ImportError = e.Error;
+		ImportMessage = e.Data?.ToString() ?? "";
         ShowImportPopUp = true;
         StateHasChanged();
     }
@@ -166,5 +191,14 @@ else
         {
             DisplayMessageInUi(exception, userConfig.GetText("change_default"), "", true);
         }
+    }
+
+	/// <summary>
+    /// Unsubscribes from file upload events when the component is disposed.
+    /// </summary>
+    public void Dispose()
+    {
+        EventMediator.Unsubscribe<FileUploadEvent>(nameof(FileUploadService.ReadFileToBytes));
+        EventMediator.Unsubscribe<AppServerImportEvent>(nameof(FileUploadService.ImportComplianceMatrix));
     }
 }

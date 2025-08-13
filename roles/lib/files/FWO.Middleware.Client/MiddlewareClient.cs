@@ -240,11 +240,11 @@ namespace FWO.Middleware.Client
             return await restClient.ExecuteAsync<string>(request);
         }
 
-        public async Task<RestResponse<List<string>>> ImportCompianceMatrix(ComplianceImportMatrixParameters parameters)
+        public async Task<RestResponse<string>> ImportCompianceMatrix(ComplianceImportMatrixParameters parameters)
         {
-            RestRequest request = new ("Compliance/ImportMatrix", Method.Post);
+            RestRequest request = new("Compliance/ImportMatrix", Method.Post);
             request.AddJsonBody(parameters);
-            return await restClient.ExecuteAsync<List<string>>(request);
+            return await restClient.ExecuteAsync<string>(request);
         }
 
         protected virtual void Dispose(bool disposing)

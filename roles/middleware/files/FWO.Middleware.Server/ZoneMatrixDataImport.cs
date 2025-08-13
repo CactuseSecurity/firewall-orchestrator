@@ -20,76 +20,59 @@ namespace FWO.Middleware.Server
         List<ComplianceNetworkZone> ExistingZones = [];
         readonly Dictionary<string, int> ZoneIds = [];
         int MatrixId = 0;
-        private const string LogMessageTitle = "Import Network Zone Data";
+        private const string LogMessageTitle = "Import Network Zone Matrix Data";
         private const string LevelFile = "Import File";
         private const string LevelZone = "Zone";
+        private struct Counters
+        {
+            public int NewZoneSuccess = 0;
+            public int UpdateZoneSuccess = 0;
+            public int ZoneFail = 0;
+            public int DeleteZoneSuccess = 0;
+            public int DeleteZoneFail = 0;
+            public int InsertConnection = 0;
+            public int RemoveConnection = 0;
+
+            public Counters() { }
+        }
+        Counters counters = new();
 
         /// <summary>
         /// Run a single Network Zone Matrix Data Import with uploaded data
         /// </summary>
-        public async Task<List<string>> Run(string importFileName, string importedData)
+        public async Task<string> Run(string importFileName, string importedData, string userName, string userDn)
         {
             List<string> FailedImports = [];
             importFile = importedData;
-            await ImportSingleMatrix(importFileName, FailedImports);
-            return FailedImports;
+            Log.WriteAudit(
+                Title: $"Compliance Matrix Import",
+                Text: $"Run import from {importFileName}",
+                UserName: userName,
+                UserDN: userDn);
+
+            return await ImportSingleMatrix(importFileName, FailedImports);
         }
 
-        /// <summary>
-        /// Run the Network Zone Matrix Data Import with a List of File paths to be read
-        /// </summary>
-        public async Task<List<string>> Run(List<string> importfilePathAndNames)
+        private async Task<string> ImportSingleMatrix(string importfileName, List<string> failedImports)
         {
-            //List<string> importfilePathAndNames = JsonSerializer.Deserialize<List<string>>(globalConfig.ImportSubnetDataPath) ?? throw new JsonException("Config Data could not be deserialized.");
-            List<string> FailedImports = [];
-
-            // iterate over all files
-            foreach (var importfilePathAndName in importfilePathAndNames)
-            {
-                // if (!RunImportScript(importfilePathAndName + ".py"))
-                // {
-                // 	Log.WriteInfo(LogMessageTitle, $"Script {importfilePathAndName}.py failed but trying to import from existing file.");
-                // }
-                await ImportSingleSource(importfilePathAndName, FailedImports);
-            }
-            return FailedImports;
-        }
-
-        private async Task ImportSingleSource(string importfileName, List<string> failedImports)
-        {
-            try
-            {
-                Log.WriteInfo(LogMessageTitle, $"Importing Area Network Data from file {importfileName}");
-                ReadFile(importfileName);
-                await ImportSingleMatrix(importfileName, failedImports);
-            }
-            catch (Exception exc)
-            {
-                string errorText = $"File {importfileName} could not be processed.";
-                Log.WriteError(LogMessageTitle, errorText, exc);
-                await AddLogEntry(GlobalConst.kImportNetorkZoneData, 2, LevelFile, errorText);
-                failedImports.Add(importfileName);
-            }
-        }
-
-        private async Task ImportSingleMatrix(string importfileName, List<string> failedImports)
-        {
+            string responsMessage = "";
             try
             {
                 ImportNwZoneMatrixData? importedZoneMatrixData = JsonSerializer.Deserialize<ImportNwZoneMatrixData>(importFile) ?? throw new JsonException("File could not be parsed.");
                 if (importedZoneMatrixData != null && importedZoneMatrixData.NetworkZones != null)
                 {
                     CheckData(importedZoneMatrixData);
-                    await ImportMatrix(importedZoneMatrixData, importfileName);
+                    responsMessage = await ImportMatrix(importedZoneMatrixData, importfileName);
                 }
             }
             catch (Exception exc)
             {
-                string errorText = $"File {importfileName} could not be processed.";
-                Log.WriteError(LogMessageTitle, errorText, exc);
-                await AddLogEntry(GlobalConst.kImportNetorkZoneData, 2, LevelFile, errorText);
+                responsMessage = $"File {importfileName} could not be processed: {exc.Message}";
+                Log.WriteError(LogMessageTitle, responsMessage);
+                await AddLogEntry(GlobalConst.kImportNetorkZoneData, 2, LevelFile, responsMessage);
                 failedImports.Add(importfileName);
             }
+            return responsMessage;
         }
 
         private static void CheckData(ImportNwZoneMatrixData importedZoneMatrixData)
@@ -100,47 +83,37 @@ namespace FWO.Middleware.Server
             }
             if (importedZoneMatrixData.NetworkZones.Select(z => z.Name).Distinct().ToList().Count != importedZoneMatrixData.NetworkZones.Count)
             {
-                throw new ArgumentException("Duplicate Zone names");
+                throw new ArgumentException("Duplicate Zone Names");
+            }
+            if (importedZoneMatrixData.NetworkZones.Select(z => z.IdString).Distinct().ToList().Count != importedZoneMatrixData.NetworkZones.Count)
+            {
+                throw new ArgumentException("Duplicate Zone IdStrings");
             }
         }
 
-        private async Task ImportMatrix(ImportNwZoneMatrixData importedMatrix, string importfileName)
+        private async Task<string> ImportMatrix(ImportNwZoneMatrixData importedMatrix, string importfileName)
         {
-            int successCounter = 0;
-            int failCounter = 0;
-            int insertConnectionCounter = 0;
-            int removeConnectionCounter = 0;
-            int deleteCounter = 0;
-            int deleteFailCounter = 0;
-
-            (MatrixId, ExistingZones) = await GetExistingMatrixWithZones(importfileName);
+            counters = new();
+            (MatrixId, ExistingZones) = await GetExistingMatrixWithZones(importedMatrix.Name);
             if (MatrixId == 0)
             {
                 await CreateMatrix(importedMatrix.Name, importfileName, importedMatrix.Comment);
             }
+            else
+            {
+                await UpdateMatrix(importfileName, importedMatrix.Comment);
+            }
 
             foreach (var incomingZone in importedMatrix.NetworkZones)
             {
-                if (await SaveZone(incomingZone))
-                {
-                    ++successCounter;
-                }
-                else
-                {
-                    ++failCounter;
-                }
+                await SaveZone(incomingZone);
             }
+
             foreach (var existingZone in ExistingZones.Where(z => importedMatrix.NetworkZones.FirstOrDefault(i => i.IdString == z.IdString) == null))
             {
-                if (await DeactivateZone(existingZone))
-                {
-                    ++deleteCounter;
-                }
-                else
-                {
-                    ++deleteFailCounter;
-                }
+                await DeactivateZone(existingZone);
             }
+
             // Reload existing zones with all Ids
             ExistingZones = await apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(ComplianceQueries.getNetworkZonesForMatrix, new { criterionId = MatrixId });
             foreach (var zone in ExistingZones)
@@ -150,17 +123,27 @@ namespace FWO.Middleware.Server
             foreach (var incomingZone in importedMatrix.NetworkZones)
             {
                 (int inserts, int removes) = await SaveZoneConnections(incomingZone);
-                insertConnectionCounter += inserts;
-                removeConnectionCounter += removes;
+                counters.InsertConnection += inserts;
+                counters.RemoveConnection += removes;
             }
-            string messageText = $"Imported from {importfileName}: {successCounter} network zones, {failCounter} failed. Deactivated {deleteCounter} network zones, {deleteFailCounter} failed. Inserted {insertConnectionCounter}, removed {removeConnectionCounter} connections.";
+
+            string messageText = ConstructMessageText(importfileName);
             Log.WriteInfo(LogMessageTitle, messageText);
             await AddLogEntry(GlobalConst.kImportNetorkZoneData, 0, LevelFile, messageText);
+            return messageText;
         }
 
-        private async Task<(int, List<ComplianceNetworkZone>)> GetExistingMatrixWithZones(string importfileName)
+        private string ConstructMessageText(string importfileName)
         {
-            List<ComplianceCriterion> existingMatrices = await apiConnection.SendQueryAsync<List<ComplianceCriterion>>(ComplianceQueries.getMatrixBySource, new { importSource = importfileName });
+            return $"Ok: Imported from {importfileName}: " +
+                $"new network zones: {counters.NewZoneSuccess}, updated network zones: {counters.UpdateZoneSuccess}, zones failed: {counters.ZoneFail}. " +
+                $"Deleted network zones: {counters.DeleteZoneSuccess}, failed deletions: {counters.DeleteZoneFail}. " +
+                $"Inserted connections: {counters.InsertConnection}, removed connections: {counters.RemoveConnection}.";
+        }
+
+        private async Task<(int, List<ComplianceNetworkZone>)> GetExistingMatrixWithZones(string matrixName)
+        {
+            List<ComplianceCriterion> existingMatrices = await apiConnection.SendQueryAsync<List<ComplianceCriterion>>(ComplianceQueries.getMatrixByName, new { name = matrixName });
             if (existingMatrices.Count > 0)
             {
                 int matrixId = existingMatrices[0].Id;
@@ -183,6 +166,12 @@ namespace FWO.Middleware.Server
             }
         }
 
+        private async Task UpdateMatrix(string importfileName, string? comment)
+        {
+            await apiConnection.SendQueryAsync<ReturnIdWrapper>(ComplianceQueries.updateCriterionMetadata,
+                new { id = MatrixId, importSource = importfileName, comment = comment });
+        }
+
         private async Task<bool> SaveZone(NetworkZoneData incomingZone)
         {
             try
@@ -202,6 +191,7 @@ namespace FWO.Middleware.Server
                 string errorText = $"Zone {incomingZone.Name}({incomingZone.IdString}) could not be processed.";
                 Log.WriteError(LogMessageTitle, errorText, exc);
                 await AddLogEntry(GlobalConst.kImportNetorkZoneData, 1, LevelZone, errorText);
+                counters.ZoneFail++;
                 return false;
             }
             return true;
@@ -220,6 +210,7 @@ namespace FWO.Middleware.Server
                 IpRangesToAdd = incomingZoneData.IpData.ConvertAll(i => ConvertIpDataToAddressRange(i))
             };
             await NetworkZoneService.AddZone(incomingZone, addDel, apiConnection);
+            counters.NewZoneSuccess++;
         }
 
         private async Task UpdateZone(NetworkZoneData incomingZoneData, ComplianceNetworkZone existingZone)
@@ -231,6 +222,7 @@ namespace FWO.Middleware.Server
                 IpRangesToDelete = [.. existingZone.IPRanges.Except(incomingRanges)]
             };
             await NetworkZoneService.UpdateZone(existingZone, addDel, apiConnection);
+            counters.UpdateZoneSuccess++;
         }
 
         private async Task<bool> DeactivateZone(ComplianceNetworkZone zone)
@@ -238,12 +230,14 @@ namespace FWO.Middleware.Server
             try
             {
                 await NetworkZoneService.RemoveZone(zone, apiConnection);
+                counters.DeleteZoneSuccess++;
             }
             catch (Exception exc)
             {
                 string errorText = $"Outdated Zone {zone.Name} could not be deleted.";
                 Log.WriteError(LogMessageTitle, errorText, exc);
                 await AddLogEntry(GlobalConst.kImportNetorkZoneData, 1, LevelZone, errorText);
+                counters.DeleteZoneFail++;
                 return false;
             }
             return true;
@@ -262,7 +256,7 @@ namespace FWO.Middleware.Server
                     DestinationZonesToDelete = existDestZoneIds.Except(incomingDestZoneIds).ToList().ConvertAll(i => new ComplianceNetworkZone(){ Id = i })
                 };
                 await NetworkZoneService.UpdateZone(existingZone, addDel, apiConnection);
-                return (addDel.DestinationZonesToAdd.Count, addDel.DestinationZonesToAdd.Count);
+                return (addDel.DestinationZonesToAdd.Count, addDel.DestinationZonesToDelete.Count);
             }
             return (0, 0);
         }

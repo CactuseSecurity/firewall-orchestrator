@@ -203,18 +203,19 @@ namespace FWO.Ui.Services
         public async Task ImportComplianceMatrix(string filename = "")
         {
             string data = System.Text.Encoding.UTF8.GetString(UploadedData);
-            ComplianceImportMatrixParameters importParams = new() { FileName = filename, Data = data };
-            RestResponse<List<string>> middlewareServerResponse = await MiddlewareClient.ImportCompianceMatrix(importParams);
+            ComplianceImportMatrixParameters importParams = new() { FileName = filename, Data = data, UserName = UserConfig.User.Name, UserDn = UserConfig.User.Dn };
+            RestResponse<string> middlewareServerResponse = await MiddlewareClient.ImportCompianceMatrix(importParams);
             if (ComplianceMatrixImportEvent.EventArgs is not null)
             {
-                if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse?.Data?.Count > 0)
+                if (middlewareServerResponse.StatusCode != HttpStatusCode.OK)
                 {
                     ComplianceMatrixImportEvent.EventArgs.Success = false;
-                    ComplianceMatrixImportEvent.EventArgs.Error = new() { MessageType = MessageType.Error };
+                    ComplianceMatrixImportEvent.EventArgs.Data = middlewareServerResponse.ErrorMessage;
                 }
                 else
                 {
-                    ComplianceMatrixImportEvent.EventArgs.Success = true;
+                    ComplianceMatrixImportEvent.EventArgs.Success = middlewareServerResponse.Data?.StartsWith("Ok") ?? false;
+                    ComplianceMatrixImportEvent.EventArgs.Data = middlewareServerResponse.Data;
                 }
                 EventMediator.Publish(nameof(ImportComplianceMatrix), ComplianceMatrixImportEvent);
             }

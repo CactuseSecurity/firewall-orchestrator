@@ -3427,6 +3427,10 @@ INSERT INTO txt VALUES ('E9302', 'English', 'HTML is invalid!');
 
 INSERT INTO txt VALUES ('E9400', 'German',  'Leere Datei hochgeladen/keine &Auml;nderungen wurden vorgenommen');
 INSERT INTO txt VALUES ('E9400', 'English', 'Empty file provided/no changes where applied');
+INSERT INTO txt VALUES ('E9401', 'German',  'Matrix erfolgreich importiert');
+INSERT INTO txt VALUES ('E9401', 'English', 'Matrix imported successfully');
+INSERT INTO txt VALUES ('E9402', 'German',  'Fehlr beim Import der Matrix');
+INSERT INTO txt VALUES ('E9402', 'English', 'Error importing matrix');
 
 -- errors from Api
 INSERT INTO txt VALUES ('A0001', 'German',  'Ung&uuml;ltige Anmeldedaten. Nutzername darf nicht leer sein');

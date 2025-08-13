@@ -122,7 +122,7 @@
         insertbefore: '# IPv4 local connections:'
         block: |
           host  all         dbadmin              127.0.0.0/8            md5
-          host  all         {{ fwo_db_ro_user }} 127.0.0.0/8            md5
+          host  all         {{ fwo_db_ro_user }} 127.0.0.0/8            trust
           host  all         {{ fworch_user }}    127.0.0.0/8            trust
           host  all         +dbbackupusers       127.0.0.0/8            trust
           host  all         confexporter         127.0.0.0/8            trust

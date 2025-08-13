@@ -1,21 +1,8 @@
-# add db users and assign groups
+# add db ro user and assign privileges
 
-- block:
-
-  - name: set {{ fwo_db_ro_user }} password randomly
-    set_fact:
-        fwo_db_ro_pwd: "{{ randomly_generated_pwd }}"
-
-  - name: write {{ fwo_db_ro_user }} password to secret directory
-    copy:
-        content: "{{ fwo_db_ro_pwd }}\n"
-        dest: "{{ fwo_db_ro_user_password_file }}"
-        mode: '0600'
-        owner: "{{ fworch_user }}"
-        group: "{{ fworch_group }}"
-
-  become: true
-  become_user: "{{ fworch_user }}"
+- name: create ro db user {{ fwo_db_ro_user }} pwd file
+  import_tasks: create-ro-pwd-file.yml
+  when: installation_mode == "new"
 
 - block:
     

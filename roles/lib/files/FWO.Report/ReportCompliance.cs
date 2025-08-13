@@ -48,8 +48,8 @@ namespace FWO.Report
                 "InstallOn",
                 "Compliance",
                 "ViolationDetails",
-                "Change-ID",
-                "AdoIT-ID"
+                "ChangeID",
+                "AdoITID"
             };
 
             if (userConfig.GlobalConfig is GlobalConfig globalConfig && !string.IsNullOrEmpty(globalConfig.DebugConfig))
@@ -148,11 +148,11 @@ namespace FWO.Report
                                 return "FALSE";
                             }
 
-                        case "Change-ID":
+                        case "ChangeID":
                             return GetFromCustomField(rule, "field-1");
 
-                        case "AdoIT-ID":
-                            return GetFromCustomField(rule, "field-1");
+                        case "AdoITID":
+                            return GetFromCustomField(rule, "field-3");
 
                         default:
                             var value = p!.GetValue(rule);
@@ -178,7 +178,8 @@ namespace FWO.Report
 
         private string GetFromCustomField(Rule rule, string field)
         {
-            Dictionary<string, string>? customFields = JsonSerializer.Deserialize<Dictionary<string, string>>(rule.CustomFields);
+            string customFieldsString = rule.CustomFields.Replace("'", "\"");
+            Dictionary<string, string>? customFields = JsonSerializer.Deserialize<Dictionary<string, string>>(customFieldsString);
             return customFields != null && customFields.TryGetValue(field, out string? value) ? value : "";
         }
 

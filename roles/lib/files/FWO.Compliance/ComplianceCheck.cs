@@ -129,7 +129,7 @@ namespace FWO.Compliance
 
                 // Filter violations by non-valuable rules. If rules are not evaluable their violation status stays datawise the same until they are evaluable again. 
 
-                violationsInDb = violationsInDb.Where(violation => !_nonEvaluableRules.Any(nonEvaluableRule => nonEvaluableRule.Id == violation.RuleId)).ToList();
+                // violationsInDb = violationsInDb.Where(violation => !_nonEvaluableRules.Any(nonEvaluableRule => nonEvaluableRule.Id == violation.RuleId)).ToList();
 
                 Task<List<int>> violationsForRemoveTask = GetViolationsForRemove(violationsInDb);
 

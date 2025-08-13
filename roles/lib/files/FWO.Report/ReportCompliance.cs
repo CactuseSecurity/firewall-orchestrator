@@ -291,7 +291,7 @@ namespace FWO.Report
                 Rules.Add(rule);
             }
         }
-        
+
         public Task<bool> CheckEvaluability(Rule rule)
         {
             string internetZoneObjectUid = "";
@@ -301,7 +301,16 @@ namespace FWO.Report
                 internetZoneObjectUid = globalConfig.ComplianceCheckInternetZoneObject;
             }
 
-            return Task.FromResult(!(rule.Froms.Any(from => from.Object.Uid == internetZoneObjectUid) || rule.Tos.Any(to => to.Object.Uid == internetZoneObjectUid)));
+            if (internetZoneObjectUid != "")
+            {
+                return Task.FromResult(!(rule.Froms.Any(from => from.Object.Uid == internetZoneObjectUid) || rule.Tos.Any(to => to.Object.Uid == internetZoneObjectUid)));
+            }
+            else
+            {
+                return Task.FromResult(true);
+            }
+
+            
         }
     }
 }

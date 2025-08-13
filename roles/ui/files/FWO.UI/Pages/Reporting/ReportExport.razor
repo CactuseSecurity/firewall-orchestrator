@@ -137,7 +137,7 @@
 
     private bool csvAvailable()
     {
-        if(ReportToExport is ReportBase report && (report.ReportType.IsResolvedReport() || report.ReportType.IsResolvedReport() ))
+        if(ReportToExport is ReportBase report && (report.ReportType.IsResolvedReport() || report.ReportType.IsComplianceReport() ))
         {
             return true;
         }

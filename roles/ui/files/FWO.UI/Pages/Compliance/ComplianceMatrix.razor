@@ -21,7 +21,7 @@
         {
             <div class="col-sm-3">
                 <Dropdown ElementType="ComplianceCriterion" ElementToString="@(a => a.Name)"
-                        SelectedElement="selectedMatrix" SelectedElementChanged="OnMatrixChanged" Elements="matrices" Nullable="true">
+                        SelectedElement="selectedMatrix" SelectedElementChanged="SelectMatrix" Elements="matrices" Nullable="true">
                     <ElementTemplate Context="matrix">
                         @(matrix.Name)
                     </ElementTemplate>
@@ -41,7 +41,7 @@
 <Collapse Title="@userConfig.GetText("network_zone_config")" Style="@("primary")" StartToggled="true">
     @if(matrixLoaded)
     {
-        <ZonesConfiguration SelectedMatrix="selectedMatrix" ConfigChanged="LoadMatrix"/>
+        <ZonesConfiguration SelectedMatrix="selectedMatrix" ConfigChanged="LoadMatrix" ReadonlyMode="readonlyMode"/>
     }
     else
     {
@@ -71,7 +71,7 @@
                         </AuthorizeView>
                     </div>
                 }
-                else
+                else if(!readonlyMode)
                 {
                     <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Auditor}")">
                         <button type="button" class="btn btn-sm btn-warning" @onclick="() => ToggleEditMode(true)">@userConfig.GetText("edit")</button>
@@ -107,6 +107,7 @@
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     private bool editMode = false;
+    private bool readonlyMode = false;
     private ComplianceCriterion selectedMatrix = new();
     private List<ComplianceCriterion> matrices = [];
     private bool matrixLoaded = false;
@@ -125,17 +126,8 @@
             apiConnection.SetProperRole(authenticationStateTask!.Result.User,
                 [ Roles.Admin, Roles.FwAdmin, Roles.ReporterViewAll, Roles.Reporter,
                 Roles.Requester, Roles.Approver, Roles.Planner, Roles.Implementer, Roles.Reviewer, Roles.Auditor ]);
-            matrices = await apiConnection.SendQueryAsync<List<ComplianceCriterion>>(ComplianceQueries.getManualMatrices);
-            if(matrices.Count > 0)
-            {
-                selectedMatrix = matrices[0];
-                await LoadMatrix();
-            }
-            else
-            {
-                networkZoneService.NetworkZones = [];
-                matrixLoaded = true;
-            }
+            matrices = await apiConnection.SendQueryAsync<List<ComplianceCriterion>>(ComplianceQueries.getMatrices);
+            await InitMatrix();
         }
         catch (Exception exception)
         {
@@ -143,19 +135,26 @@
         }
     }
 
-    private async Task AddNewMatrix(ComplianceCriterion newMatrix)
+    private async Task InitMatrix()
     {
-        matrices.Add(newMatrix);
-        if(matrices.Count == 1)
+        if(matrices.Count > 0)
         {
-            await OnMatrixChanged(newMatrix);
+            await SelectMatrix(matrices[0]);
+        }
+        else
+        {
+            selectedMatrix = new();
+            networkZoneService.NetworkZones = [];
+            matrixLoaded = true;
+            StateHasChanged();
         }
     }
 
-    private async Task OnMatrixChanged(ComplianceCriterion newMatrix)
+    private async Task SelectMatrix(ComplianceCriterion newMatrix)
     {
         if(selectedMatrix.Id != newMatrix.Id)
         {
+            readonlyMode = !string.IsNullOrEmpty(newMatrix.ImportSource);
             selectedMatrix = newMatrix;
             await LoadMatrix();
         }
@@ -178,9 +177,23 @@
         addMatrixMode = true;
     }
 
+    private async Task AddNewMatrix(ComplianceCriterion newMatrix)
+    {
+        matrices.Add(newMatrix);
+        if(matrices.Count == 1)
+        {
+            await SelectMatrix(newMatrix);
+        }
+    }
+
     private async Task RequestDeleteMatrix()
     {
-        if(await CheckDeleteAllowed())
+        if(readonlyMode)
+        {
+            deleteMessage = userConfig.GetText("U4505");
+            deleteAllowed = false;
+        }
+        else if(await CheckDeleteAllowed())
         {
             deleteMessage = $"{userConfig.GetText("U4503")}: {selectedMatrix.Name}?";
             deleteAllowed = true;
@@ -215,17 +228,7 @@
                 await apiConnection.SendQueryAsync<ReturnId>(ComplianceQueries.removeCriterion,
                     new { id = selectedMatrix.Id, removed = DateTime.UtcNow });
                 matrices.Remove(selectedMatrix);
-                if(matrices.Count > 0)
-                {
-                    selectedMatrix = matrices[0];
-                    await LoadMatrix();
-                }
-                else
-                {
-                    selectedMatrix = new();
-                    networkZoneService.NetworkZones = [];
-                    StateHasChanged();
-                }
+                await InitMatrix();
                 deleteMatrixMode = false;
             }
         }

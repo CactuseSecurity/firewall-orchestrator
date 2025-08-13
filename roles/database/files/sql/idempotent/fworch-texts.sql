@@ -2842,6 +2842,8 @@ INSERT INTO txt VALUES ('U4503', 'German',  'Sind sie sicher, dass sie folgende 
 INSERT INTO txt VALUES ('U4503', 'English', 'Are you sure you want to delete matrix: ');
 INSERT INTO txt VALUES ('U4504', 'German',  'Die Matrix kann nicht gel&ouml;scht werden, da sie in mindestens einer aktiven Policy verwendet wird.');
 INSERT INTO txt VALUES ('U4504', 'English', 'Matrix cannot be deleted as it is used in at least one active Policy.');
+INSERT INTO txt VALUES ('U4505', 'German',  'Die Matrix kann nicht gel&ouml;scht werden, da sie von einer anderen Quelle importiert wurde.');
+INSERT INTO txt VALUES ('U4505', 'English', 'Matrix cannot be deleted as it is imported from another source.');
 
 INSERT INTO txt VALUES ('U5001', 'German',  'Setup und Verwaltung des Firewall Orchestrator. Bitte eine Einstellung in der linken Randleiste ausw&auml;hlen.');
 INSERT INTO txt VALUES ('U5001', 'English', 'Setup and administration of Firewall Orchestrator. Please choose a setting in the left sidebar.');

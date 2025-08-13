@@ -25,6 +25,7 @@ namespace FWO.Middleware.Server
         private const string LevelZone = "Zone";
         private struct Counters
         {
+            public int AllZones = 0;
             public int NewZoneSuccess = 0;
             public int UpdateZoneSuccess = 0;
             public int ZoneFail = 0;
@@ -62,6 +63,7 @@ namespace FWO.Middleware.Server
                 if (importedZoneMatrixData != null && importedZoneMatrixData.NetworkZones != null)
                 {
                     CheckData(importedZoneMatrixData);
+                    (MatrixId, ExistingZones) = await GetExistingMatrixWithZones(importedZoneMatrixData.Name);
                     responsMessage = await ImportMatrix(importedZoneMatrixData, importfileName);
                 }
             }
@@ -93,8 +95,7 @@ namespace FWO.Middleware.Server
 
         private async Task<string> ImportMatrix(ImportNwZoneMatrixData importedMatrix, string importfileName)
         {
-            counters = new();
-            (MatrixId, ExistingZones) = await GetExistingMatrixWithZones(importedMatrix.Name);
+            counters = new(){ AllZones = importedMatrix.NetworkZones.Count };
             if (MatrixId == 0)
             {
                 await CreateMatrix(importedMatrix.Name, importfileName, importedMatrix.Comment);
@@ -135,9 +136,9 @@ namespace FWO.Middleware.Server
 
         private string ConstructMessageText(string importfileName)
         {
-            return $"Ok: Imported from {importfileName}: " +
-                $"new network zones: {counters.NewZoneSuccess}, updated network zones: {counters.UpdateZoneSuccess}, zones failed: {counters.ZoneFail}. " +
-                $"Deleted network zones: {counters.DeleteZoneSuccess}, failed deletions: {counters.DeleteZoneFail}. " +
+            return $"Ok: Imported from {importfileName}: Total number of network zones: {counters.AllZones}, " +
+                $"new: {counters.NewZoneSuccess}, updated: {counters.UpdateZoneSuccess}, failed: {counters.ZoneFail}. " +
+                $"Deleted: {counters.DeleteZoneSuccess}, failed deletions: {counters.DeleteZoneFail}. " +
                 $"Inserted connections: {counters.InsertConnection}, removed connections: {counters.RemoveConnection}.";
         }
 
@@ -146,6 +147,10 @@ namespace FWO.Middleware.Server
             List<ComplianceCriterion> existingMatrices = await apiConnection.SendQueryAsync<List<ComplianceCriterion>>(ComplianceQueries.getMatrixByName, new { name = matrixName });
             if (existingMatrices.Count > 0)
             {
+                if (string.IsNullOrEmpty(existingMatrices[0].ImportSource))
+                {
+                    throw new ArgumentException("Manually created matrix existing with same Name");
+                }
                 int matrixId = existingMatrices[0].Id;
                 return (matrixId, await apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(ComplianceQueries.getNetworkZonesForMatrix, new { criterionId = matrixId }));
             }
@@ -221,8 +226,12 @@ namespace FWO.Middleware.Server
                 IpRangesToAdd = [.. incomingRanges.Except(existingZone.IPRanges)],
                 IpRangesToDelete = [.. existingZone.IPRanges.Except(incomingRanges)]
             };
-            await NetworkZoneService.UpdateZone(existingZone, addDel, apiConnection);
-            counters.UpdateZoneSuccess++;
+            if (addDel.IpRangesToAdd.Count > 0 || addDel.IpRangesToDelete.Count > 0 || existingZone.Name != incomingZoneData.Name)
+            {
+                existingZone.Name = incomingZoneData.Name;
+                await NetworkZoneService.UpdateZone(existingZone, addDel, apiConnection);
+                counters.UpdateZoneSuccess++;
+            }
         }
 
         private async Task<bool> DeactivateZone(ComplianceNetworkZone zone)

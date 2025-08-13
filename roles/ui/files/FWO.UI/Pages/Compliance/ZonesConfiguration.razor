@@ -6,10 +6,13 @@
 @inject UserConfig userConfig
 @inject NetworkZoneService networkZoneService
 
-<button type="button" class="btn btn-sm btn-success mb-1" @onclick="OnAddZone">@(userConfig.GetText("add"))</button>
+@if(!ReadonlyMode)
+{
+	<button type="button" class="btn btn-sm btn-success mb-1" @onclick="OnAddZone">@(userConfig.GetText("add"))</button>
+}
 
 @*Show Top-Level Zones*@
-<ZoneTable Superzone="null" NetworkZones="networkZoneService.NetworkZones" />
+<ZoneTable Superzone="null" NetworkZones="networkZoneService.NetworkZones" ReadonlyMode="ReadonlyMode"/>
 
 @if (networkZoneInEdit != null)
 {
@@ -165,6 +168,9 @@
 
 	[Parameter]
 	public ComplianceCriterion SelectedMatrix { get; set; } = new();
+
+	[Parameter]
+	public bool ReadonlyMode { get; set; } = false;
 
 	[Parameter]
 	public Func<Task> ConfigChanged { get; set; } = DefaultInit.DoNothing;

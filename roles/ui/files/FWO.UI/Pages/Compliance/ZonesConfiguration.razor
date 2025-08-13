@@ -178,26 +178,13 @@
 	bool editMode = false;
 	bool deleteMode = false;
 	ComplianceNetworkZone? networkZoneInEdit = default!;
-
 	NetworkZoneService.AdditionsDeletions addDel = new();
-
-	//List<ComplianceNetworkZone> sourceZonesToAdd = [];
-	//List<ComplianceNetworkZone> sourceZonesToDelete = [];
 	ComplianceNetworkZone? sourceZoneToAdd;
 	string sourceZoneInputClass = "";
-
-	//List<ComplianceNetworkZone> destinationZonesToAdd = [];
-	//List<ComplianceNetworkZone> destinationZonesToDelete = [];
 	ComplianceNetworkZone? destinationZoneToAdd;
 	string destinationZoneInputClass = "";
-
-	//List<ComplianceNetworkZone> subzonesToAdd = [];
-	//List<ComplianceNetworkZone> subzonesToDelete = [];
 	ComplianceNetworkZone? subzoneToAdd;
 	string subzoneInputClass = "";
-
-	//List<IPAddressRange> ipRangesToDelete = [];
-	//List<IPAddressRange> ipRangesToAdd = [];
 	IPAddressRange? ipRangeToAdd;
 
 	protected override async Task OnInitializedAsync()

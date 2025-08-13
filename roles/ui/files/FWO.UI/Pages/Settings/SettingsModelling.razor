@@ -430,7 +430,7 @@ else
                 </Collapse>
             </div>
         }
-       @if(CSVImportErrors is not null && CSVImportErrors.Count > 0)
+        @if(CSVImportErrors is not null && CSVImportErrors.Count > 0)
         {
             <div class="mt-1">
                 <Collapse StartToggled="false" Style="danger" Title="@(userConfig.GetText("errors"))">

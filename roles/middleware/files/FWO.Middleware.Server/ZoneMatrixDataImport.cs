@@ -71,7 +71,7 @@ namespace FWO.Middleware.Server
             {
                 responsMessage = $"File {importfileName} could not be processed: {exc.Message}";
                 Log.WriteError(LogMessageTitle, responsMessage);
-                await AddLogEntry(GlobalConst.kImportNetorkZoneData, 2, LevelFile, responsMessage);
+                await AddLogEntry(GlobalConst.kImportZoneMatrixData, 2, LevelFile, responsMessage);
                 failedImports.Add(importfileName);
             }
             return responsMessage;
@@ -130,7 +130,7 @@ namespace FWO.Middleware.Server
 
             string messageText = ConstructMessageText(importfileName);
             Log.WriteInfo(LogMessageTitle, messageText);
-            await AddLogEntry(GlobalConst.kImportNetorkZoneData, 0, LevelFile, messageText);
+            await AddLogEntry(GlobalConst.kImportZoneMatrixData, 0, LevelFile, messageText);
             return messageText;
         }
 
@@ -195,7 +195,7 @@ namespace FWO.Middleware.Server
             {
                 string errorText = $"Zone {incomingZone.Name}({incomingZone.IdString}) could not be processed.";
                 Log.WriteError(LogMessageTitle, errorText, exc);
-                await AddLogEntry(GlobalConst.kImportNetorkZoneData, 1, LevelZone, errorText);
+                await AddLogEntry(GlobalConst.kImportZoneMatrixData, 1, LevelZone, errorText);
                 counters.ZoneFail++;
                 return false;
             }
@@ -245,7 +245,7 @@ namespace FWO.Middleware.Server
             {
                 string errorText = $"Outdated Zone {zone.Name} could not be deleted.";
                 Log.WriteError(LogMessageTitle, errorText, exc);
-                await AddLogEntry(GlobalConst.kImportNetorkZoneData, 1, LevelZone, errorText);
+                await AddLogEntry(GlobalConst.kImportZoneMatrixData, 1, LevelZone, errorText);
                 counters.DeleteZoneFail++;
                 return false;
             }

@@ -47,7 +47,9 @@ namespace FWO.Report
                 "CustomFields",
                 "InstallOn",
                 "Compliance",
-                "ViolationDetails"
+                "ViolationDetails",
+                "Change-ID",
+                "AdoIT-ID"
             };
 
             if (userConfig.GlobalConfig is GlobalConfig globalConfig && !string.IsNullOrEmpty(globalConfig.DebugConfig))
@@ -70,6 +72,7 @@ namespace FWO.Report
             if (Rules.Count > 0)
             {
                 // Create export string
+
 
                 StringBuilder sb = new StringBuilder();
                 Type type = typeof(Rule);
@@ -145,6 +148,12 @@ namespace FWO.Report
                                 return "FALSE";
                             }
 
+                        case "Change-ID":
+                            return GetFromCustomField(rule, "field-1");
+
+                        case "AdoIT-ID":
+                            return GetFromCustomField(rule, "field-1");
+
                         default:
                             var value = p!.GetValue(rule);
 
@@ -165,6 +174,12 @@ namespace FWO.Report
 
             return string.Join(_separator, values.Select(value => $"\"{value}\""));
 
+        }
+
+        private string GetFromCustomField(Rule rule, string field)
+        {
+            Dictionary<string, string>? customFields = JsonSerializer.Deserialize<Dictionary<string, string>>(rule.CustomFields);
+            return customFields != null && customFields.TryGetValue(field, out string? value) ? value : "";
         }
 
         private string Escape(string input, char separator)
@@ -283,8 +298,6 @@ namespace FWO.Report
             {
                 rule.Compliance = ComplianceViolationType.NotEvaluable;
             }
-
-
 
             if (!Rules.Contains(rule))
             {

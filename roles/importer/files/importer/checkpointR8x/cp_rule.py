@@ -546,3 +546,28 @@ def parse_nat_rule_transform(xlate_rule_in, rule_num):
         'rule_type': 'nat'
     }
     return (rule_match, rule_xlate)
+
+
+def ensure_json(raw: str) -> Any:
+    """
+    Tries to parse the given string as valid JSON.
+    Falls back to ast.literal_eval() if the JSON is using single quotes
+    or is otherwise not strictly compliant.
+    
+    Args:
+        raw: The input string containing JSON-like data.
+    
+    Returns:
+        The parsed Python object (e.g., dict, list, str, int, etc.).
+    
+    Raises:
+        ValueError: If neither JSON parsing nor literal_eval() succeed.
+    """
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError:
+        try:
+            return ast.literal_eval(raw)
+        except (ValueError, SyntaxError) as e:
+            raise ValueError(f"Invalid JSON or literal: {e}") from e
+        

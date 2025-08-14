@@ -22,8 +22,9 @@ namespace FWO.Compliance
         private ReportFilters _reportFilters = new();
         private CompliancePolicy? _policy = null;
         private List<ComplianceNetworkZone> _networkZones = [];
-        private List<Rule> _nonEvaluableRules = [];
 
+        private readonly List<Rule> _nonEvaluableRules = [];
+        
         private readonly UserConfig _userConfig;
         private readonly ApiConnection _apiConnection;
         private readonly DebugConfig _debugConfig;
@@ -129,8 +130,6 @@ namespace FWO.Compliance
 
                 // Filter violations by non-valuable rules. If rules are not evaluable their violation status stays datawise the same until they are evaluable again. 
 
-                // violationsInDb = violationsInDb.Where(violation => !_nonEvaluableRules.Any(nonEvaluableRule => nonEvaluableRule.Id == violation.RuleId)).ToList();
-
                 Task<List<int>> violationsForRemoveTask = GetViolationsForRemove(violationsInDb);
 
                 Log.TryWriteLog(LogType.Info, "Compliance Check", $"Found {violationsInDb.Count} rows in violations db table.", _debugConfig.ExtendedLogComplianceCheck);
@@ -176,7 +175,7 @@ namespace FWO.Compliance
                     Log.TryWriteLog(LogType.Info, "Compliance Check", $"Removed {ids.Count} violations", _debugConfig.ExtendedLogComplianceCheck && ids.Count > 0);
                 }
             }
-            catch (System.Exception e)
+            catch (Exception e)
             {
                 Log.WriteError("Compliance Check", "Error while persisting compliance data", e);
             }
@@ -437,8 +436,7 @@ namespace FWO.Compliance
                         {
                             throw new ArgumentNullException(paramName: "source", message: nullArgumentExceptionMessage);
                         }
-
-                        if (destination == null)
+                        else
                         {
                             throw new ArgumentNullException(paramName: "destination", message: nullArgumentExceptionMessage);
                         }
@@ -455,7 +453,7 @@ namespace FWO.Compliance
                     }
                     else
                     {
-                        throw new ArgumentNullException("The service argument must be non-null when creating a service violation.");
+                        throw new ArgumentNullException(paramName: "service", message: "The service argument must be non-null when creating a service violation.");
                     }
 
                     break;

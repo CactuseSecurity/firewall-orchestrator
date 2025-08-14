@@ -128,52 +128,48 @@ namespace FWO.Report
             {
                 if (p is PropertyInfo propertyInfo)
                 {
-                    switch (p.Name)
-                    {
-                        case "Services":
-                            var services = rule.Services.Select(s => s.Content.Name).ToList();
-                            return $"{Escape(string.Join(" | ", services), _separator)}";
-
-                        case "Compliance":
-                            if (rule.Compliance == ComplianceViolationType.NotEvaluable)
-                            {
-                                return "NOT EVALUABLE";   
-                            }
-                            else if (rule.Compliance == ComplianceViolationType.None)
-                            {
-                                return "TRUE";
-                            }
-                            else
-                            {
-                                return "FALSE";
-                            }
-
-                        case "ChangeID":
-                            return GetFromCustomField(rule, "field-1");
-
-                        case "AdoITID":
-                            return GetFromCustomField(rule, "field-3");
-
-                        default:
-                            var value = p!.GetValue(rule);
-
-                            if (value == null)
-                                return "";
-
-                            if (value is string s)
-                                return Escape(s, _separator);
-
-                            return $"{Escape(value.ToString()!, _separator)}";
-                    }
+                    return SerializeProperty(propertyInfo, rule);
                 }
-                else
-                {
-                    return "";
-                }
+                
+                return "";
             });
 
             return string.Join(_separator, values.Select(value => $"\"{value}\""));
+        }
 
+        private string SerializeProperty(PropertyInfo propertyInfo, Rule rule)
+        {
+            switch (propertyInfo.Name)
+            {
+                case "Services":
+                    var services = rule.Services.Select(s => s.Content.Name).ToList();
+                    return Escape(string.Join(" | ", services), _separator);
+
+                case "Compliance":
+                    return rule.Compliance switch
+                    {
+                        ComplianceViolationType.NotEvaluable => "NOT EVALUABLE",
+                        ComplianceViolationType.None        => "TRUE",
+                        _                                    => "FALSE"
+                    };
+
+                case "ChangeID":
+                    return GetFromCustomField(rule, "field-1");
+
+                case "AdoITID":
+                    return GetFromCustomField(rule, "field-3");
+
+                default:
+                    var value = propertyInfo.GetValue(rule);
+
+                    if (value == null)
+                        return "";
+
+                    if (value is string s)
+                        return Escape(s, _separator);
+
+                    return Escape(value.ToString()!, _separator);
+            }
         }
 
         private string GetFromCustomField(Rule rule, string field)

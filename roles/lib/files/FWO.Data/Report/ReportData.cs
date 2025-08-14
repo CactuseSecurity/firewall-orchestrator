@@ -6,10 +6,11 @@
         public List<OwnerReport> OwnerData = [];
         public List<GlobalCommonSvcReport> GlobalComSvc = [];
         public ManagementReport GlobalStats = new();
+        public List<Rule> RulesFlat = [];
 
 
         public ReportData()
-        {}
+        { }
 
         public ReportData(ReportData reportData)
         {

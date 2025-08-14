@@ -81,7 +81,7 @@ namespace FWO.Report
             SetReportedRuleIds();
         }
 
-        private void SetMgtQueryVars(ManagementReport management)
+        protected virtual void SetMgtQueryVars(ManagementReport management)
         {
             Query.QueryVariables[QueryVar.MgmId] = management.Id;
             Query.QueryVariables[QueryVar.ImportIdStart] = management.Import.ImportAggregate.ImportAggregateMax.RelevantImportId ?? -1; /* managment was not yet imported at that time */;
@@ -232,6 +232,11 @@ namespace FWO.Report
 
             return allRules.ToArray();
         }
+
+        public virtual List<Rule> GetRules()
+        {
+            return [];
+        }
         
         public static int GetRuleCount(ManagementReport mgmReport, RulebaseLink? currentRbLink, RulebaseLink[] rulebaseLinks)
         {
@@ -285,7 +290,7 @@ namespace FWO.Report
         }
 
         // here we can simply traverse all rulebases (disregarding any order) and add their ids to the list
-        private void SetReportedRuleIds()
+        protected void SetReportedRuleIds()
         {
             foreach (var mgt in ReportData.ManagementData)
             {

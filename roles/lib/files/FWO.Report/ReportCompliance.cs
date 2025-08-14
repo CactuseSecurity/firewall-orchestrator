@@ -17,7 +17,7 @@ namespace FWO.Report
     public class ReportCompliance : ReportRules
     {
         public List<ComplianceViolation> Violations { get; set; } = [];
-        Dictionary<ComplianceViolation, char> ViolationDiffs = new();
+        public Dictionary<ComplianceViolation, char> ViolationDiffs = new();
         public List<Rule> Rules { get; set; } = [];
         public bool IsDiffReport { get; set; } = false;
         public int DiffReferenceInDays { get; set; } = 0;
@@ -263,7 +263,7 @@ namespace FWO.Report
             }
         }
 
-        private async Task SetComplianceDataForRule(Rule rule, List<ComplianceViolation> violations)
+        protected async Task SetComplianceDataForRule(Rule rule, List<ComplianceViolation> violations)
         {
             rule.Violations.Clear();
             rule.ViolationDetails = "";

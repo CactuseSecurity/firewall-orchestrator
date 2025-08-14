@@ -119,6 +119,10 @@
                                 @bind-SelectedRules="selectedItemsRuleReportTable" />
                             break;
 
+                        case ReportType.ComplianceNew:
+                            <ComplianceReport ReportData="currentReport.ReportData" RulesPerPage="rulesPerPage" @bind-SelectedRules="selectedItemsRuleReportTable"/>
+                            break;
+
                         case ReportType.Changes:
                         case ReportType.ResolvedChanges:
                         case ReportType.ResolvedChangesTech:
@@ -154,6 +158,8 @@
             {
                 <small> @(userConfig.GetText("report_duration")) @((reportGenerationDuration/60.0).ToString("0.00")) @(userConfig.GetText("minutes")).</small>
             }
+
+            <small>Generated @currentReport.ReportData.RulesFlat.Count rules.</small>
         }
     </div>
 

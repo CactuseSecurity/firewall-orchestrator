@@ -6,6 +6,7 @@ import argparse
 import sys
 import time
 import requests, warnings
+import urllib3
 
 from fwo_api import FwoApi
 from fwo_api_call import FwoApiCall
@@ -20,10 +21,11 @@ from fwo_base import register_services
 from services.enums import Services
 
 
-def getFwoJwt(importUser, importPwd, userManagementApi) -> tuple [str, bool]:
+def get_fwo_jwt(importUser, importPwd, userManagementApi) -> tuple [str, bool]:
     skipping = False
     try:
         jwt = FwoApi.login(importUser, importPwd, userManagementApi)
+        return jwt, skipping
     except FwoApiLoginFailed as e:
         logger.error(e.message)
         skipping = True
@@ -31,7 +33,7 @@ def getFwoJwt(importUser, importPwd, userManagementApi) -> tuple [str, bool]:
         logger.error("import-main-loop - unspecified error during FWO API login - skipping: " + str(traceback.format_exc()))
         skipping = True
         return "", skipping
-    return jwt, skipping
+    return "", skipping
 
 
 if __name__ == '__main__':
@@ -58,7 +60,7 @@ if __name__ == '__main__':
     fwo_globals.set_global_values(verify_certs_in=args.verify_certificates, 
         suppress_cert_warnings_in=args.suppress_certificate_warnings,
         debug_level_in=args.debug)
-    if args.suppress_certificate_warnings: requests.packages.urllib3.disable_warnings()
+    if args.suppress_certificate_warnings: urllib3.disable_warnings()
 
     debug_level = int(args.debug)
     logger = getFwoLogger()
@@ -89,14 +91,14 @@ if __name__ == '__main__':
             logger.error("import-main-loop - error while reading importer pwd file")
             raise
 
-        jwt, skipping = getFwoJwt(importer_user_name, importer_pwd, user_management_api_base_url)
+        jwt, skipping = get_fwo_jwt(importer_user_name, importer_pwd, user_management_api_base_url)
         fwo_api = FwoApi(fwo_api_base_url, jwt)
         fwo_api_call = FwoApiCall(fwo_api)
 
         service_provider = register_services()
         global_state = service_provider.get_service(Services.GLOBAL_STATE)
 
-        requests.packages.urllib3.disable_warnings()  # suppress ssl warnings only
+        urllib3.disable_warnings()  # suppress ssl warnings only
         verify_certificates = fwo_api_call.get_config_value(key='importCheckCertificates')=='True'
         suppress_certificate_warnings = fwo_api_call.get_config_value(key='importSuppressCertificateWarnings')=='True'
         if not suppress_certificate_warnings:
@@ -109,6 +111,7 @@ if __name__ == '__main__':
             except Exception:
                 logger.error(f"import-main-loop - error while getting FW management ids: {str(traceback.format_exc())}")
                 skipping = True
+                continue
 
             api_fetch_limit = fwo_api_call.get_config_value(key='fwApiElementsPerFetch')
             sleep_timer = fwo_api_call.get_config_value(key='importSleepTime')
@@ -141,7 +144,7 @@ if __name__ == '__main__':
                         logger.debug("import-main-loop: starting import of mgm_id=" + str(import_state.MgmDetails.Id))
                         try:
                             import_result = import_management(mgmId=import_state.MgmDetails.Id, debug_level_in=debug_level, version=import_state.ImportVersion,
-                                clearManagementData=args.clear, force=args.force, limit=str(api_fetch_limit), services_registered=True)
+                                clearManagementData=args.clear, force=args.force, limit=int(api_fetch_limit), services_registered=True)
                         except (FwoApiFailedLockImport, FwLoginFailed) as e:
                             logger.info(f"import-main-loop - minor error while importing mgm_id={str(import_state.MgmDetails.Id)}, {str(traceback.format_exc())}") 
                             pass # minor errors for a single mgm, go to next one

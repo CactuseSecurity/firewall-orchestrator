@@ -1,6 +1,5 @@
-#!/usr/bin/python3
-# add main importer loop in python (also able to run distributed)
-#   run import loop every x seconds (adjust sleep time per management depending on the change frequency )
+# main importer loop in python (also able to run distributed)
+# run import loop every x seconds (adjust sleep time per management depending on the change frequency )
 
 import traceback
 import argparse

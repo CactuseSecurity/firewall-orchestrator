@@ -26,13 +26,13 @@ namespace FWO.Report
         private readonly char _separator;
         private readonly List<string> _columnsToExport;
         private readonly DebugConfig _debugConfig;
-        
+
 
 
         public ReportCompliance(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType) : base(query, userConfig, reportType)
         {
             _includeHeaderInExport = true;
-            _separator = '#';
+            _separator = ';';
             _columnsToExport = new List<string>
             {
                 "MgmtId",
@@ -46,8 +46,10 @@ namespace FWO.Report
                 "MetaData",
                 "CustomFields",
                 "InstallOn",
-                "IsCompliant",
-                "ViolationDetails"
+                "Compliance",
+                "ViolationDetails",
+                "ChangeID",
+                "AdoITID"
             };
 
             if (userConfig.GlobalConfig is GlobalConfig globalConfig && !string.IsNullOrEmpty(globalConfig.DebugConfig))
@@ -71,6 +73,7 @@ namespace FWO.Report
             {
                 // Create export string
 
+
                 StringBuilder sb = new StringBuilder();
                 Type type = typeof(Rule);
                 List<PropertyInfo?> properties = _columnsToExport
@@ -78,9 +81,19 @@ namespace FWO.Report
                                                     .Where(p => p != null)
                                                     .ToList();
 
+                List<string> propertyNames = [];
+
+                foreach (PropertyInfo? propertyInfo in properties)
+                {
+                    if (propertyInfo != null)
+                    {
+                        propertyNames.Add(propertyInfo!.Name);
+                    }
+                }
+
                 if (_includeHeaderInExport)
                 {
-                    sb.AppendLine(string.Join(_separator, properties.Select(property => property?.Name)));
+                    sb.AppendLine(string.Join(_separator, propertyNames.Select(p => $"\"{p}\"")));
                 }
 
                 foreach (Rule rule in Rules)
@@ -115,30 +128,55 @@ namespace FWO.Report
             {
                 if (p is PropertyInfo propertyInfo)
                 {
-                    if (p.Name != "Services")
-                    {
-                        var value = p!.GetValue(rule);
-                        if (value == null)
-                            return "";
-                        if (value is string s)
-                            return Escape(s, _separator);
-                        return Escape(value.ToString()!, _separator);
-                    }
-                    else
-                    {
-                        // Handle Services separately to join them with a pipe character
-
-                        var services = rule.Services.Select(s => s.Content.Name).ToList();
-                        return Escape(string.Join(" | ", services), _separator);
-                    }
+                    return SerializeProperty(propertyInfo, rule);
                 }
-                else
-                {
-                    return "";
-                }
+                
+                return "";
             });
 
-            return string.Join(_separator, values);
+            return string.Join(_separator, values.Select(value => $"\"{value}\""));
+        }
+
+        private string SerializeProperty(PropertyInfo propertyInfo, Rule rule)
+        {
+            switch (propertyInfo.Name)
+            {
+                case "Services":
+                    var services = rule.Services.Select(s => s.Content.Name).ToList();
+                    return Escape(string.Join(" | ", services), _separator);
+
+                case "Compliance":
+                    return rule.Compliance switch
+                    {
+                        ComplianceViolationType.NotEvaluable => "NOT EVALUABLE",
+                        ComplianceViolationType.None        => "TRUE",
+                        _                                    => "FALSE"
+                    };
+
+                case "ChangeID":
+                    return GetFromCustomField(rule, "field-1");
+
+                case "AdoITID":
+                    return GetFromCustomField(rule, "field-3");
+
+                default:
+                    var value = propertyInfo.GetValue(rule);
+
+                    if (value == null)
+                        return "";
+
+                    if (value is string s)
+                        return Escape(s, _separator);
+
+                    return Escape(value.ToString()!, _separator);
+            }
+        }
+
+        private string GetFromCustomField(Rule rule, string field)
+        {
+            string customFieldsString = rule.CustomFields.Replace("'", "\"");
+            Dictionary<string, string>? customFields = JsonSerializer.Deserialize<Dictionary<string, string>>(customFieldsString);
+            return customFields != null && customFields.TryGetValue(field, out string? value) ? value : "";
         }
 
         private string Escape(string input, char separator)
@@ -147,14 +185,13 @@ namespace FWO.Report
 
             input = input.Replace("\r", " ").Replace("\n", " ");
 
-            if (input.Contains(separator) || input.Contains('"'))
+            if (input.Contains('"'))
             {
                 // Escape quotation marks
 
                 input = input.Replace("\"", "\"\"");
-
-                return $"\"{input}\"";
             }
+
             return input;
         }
 
@@ -167,7 +204,7 @@ namespace FWO.Report
 
             List<ComplianceViolation> violationsTaskResult = violationsTask.Result;
             Violations = violationsTaskResult.Where(v => v.RemovedDate == null).ToList();
-            
+
             if (IsDiffReport && DiffReferenceInDays > 0)
             {
                 ViolationDiffs = await GetViolationDiffs(violationsTaskResult);
@@ -176,35 +213,35 @@ namespace FWO.Report
 
             await SetComplianceData();
         }
-        
+
         public async Task<Dictionary<ComplianceViolation, char>> GetViolationDiffs(List<ComplianceViolation> allViolations)
         {
-                DateTime referenceDate = DateTime.Now.AddDays(-DiffReferenceInDays);
+            DateTime referenceDate = DateTime.Now.AddDays(-DiffReferenceInDays);
 
-                Dictionary<ComplianceViolation, char> violationDiffs = new();
-                ComplianceViolationComparer comparer = new();
+            Dictionary<ComplianceViolation, char> violationDiffs = new();
+            ComplianceViolationComparer comparer = new();
 
-                List<ComplianceViolation> removedViolations = allViolations
-                                                                .Where(violation => violation.RemovedDate is DateTime removedDate && removedDate >= referenceDate)
-                                                                .Cast<ComplianceViolation>()
-                                                                .ToList();
+            List<ComplianceViolation> removedViolations = allViolations
+                                                            .Where(violation => violation.RemovedDate is DateTime removedDate && removedDate >= referenceDate)
+                                                            .Cast<ComplianceViolation>()
+                                                            .ToList();
 
-                List<ComplianceViolation> addedViolations = allViolations
-                                                                .Where(violation => violation.FoundDate >= referenceDate)
-                                                                .Cast<ComplianceViolation>()
-                                                                .ToList();
+            List<ComplianceViolation> addedViolations = allViolations
+                                                            .Where(violation => violation.FoundDate >= referenceDate)
+                                                            .Cast<ComplianceViolation>()
+                                                            .ToList();
 
-                foreach (var v in removedViolations)
-                {
-                    violationDiffs[v] = '-';
-                }
+            foreach (var v in removedViolations)
+            {
+                violationDiffs[v] = '-';
+            }
 
-                foreach (var v in addedViolations)
-                {
-                    violationDiffs[v] = '+';                    
-                }
+            foreach (var v in addedViolations)
+            {
+                violationDiffs[v] = '+';
+            }
 
-                return violationDiffs;    
+            return violationDiffs;
         }
 
         public async Task SetComplianceData()
@@ -226,32 +263,64 @@ namespace FWO.Report
             }
         }
 
-        private async Task SetComplianceDataForRule(Rule rule, List<ComplianceViolation> violations) // We will deal with the warning (CS1998) when we are ready for performance optimization 
+        private async Task SetComplianceDataForRule(Rule rule, List<ComplianceViolation> violations)
         {
             rule.Violations.Clear();
             rule.ViolationDetails = "";
+            rule.Compliance = ComplianceViolationType.None;
 
-            foreach (var violation in violations.Where(v => v.RuleId == rule.Id))
+            if (await CheckEvaluability(rule))
             {
-                if (IsDiffReport && ViolationDiffs.TryGetValue(violation, out char changeSign))
+                foreach (var violation in violations.Where(v => v.RuleId == rule.Id))
                 {
-                    violation.Details = $"({changeSign}) {violation.Details}";
-                }
-                
-                if (rule.ViolationDetails != "")
-                {
-                    rule.ViolationDetails += "\n";
-                }
+                    if (IsDiffReport && ViolationDiffs.TryGetValue(violation, out char changeSign))
+                    {
+                        violation.Details = $"({changeSign}) {violation.Details}";
+                    }
 
-                rule.IsCompliant = false;
-                rule.ViolationDetails += violation.Details;
-                rule.Violations.Add(violation);
+                    if (rule.ViolationDetails != "")
+                    {
+                        rule.ViolationDetails += "\n";
+                    }
+
+                    rule.ViolationDetails += violation.Details;
+                    rule.Violations.Add(violation);
+
+                    // No need to differentiate between different types of violations here at the moment.
+
+                    rule.Compliance = ComplianceViolationType.MultipleViolations;
+                }                
+            }
+            else
+            {
+                rule.Compliance = ComplianceViolationType.NotEvaluable;
             }
 
             if (!Rules.Contains(rule))
             {
                 Rules.Add(rule);
             }
+        }
+
+        public Task<bool> CheckEvaluability(Rule rule)
+        {
+            string internetZoneObjectUid = "";
+
+            if (userConfig.GlobalConfig is GlobalConfig globalConfig)
+            {
+                internetZoneObjectUid = globalConfig.ComplianceCheckInternetZoneObject;
+            }
+
+            if (internetZoneObjectUid != "")
+            {
+                return Task.FromResult(!(rule.Froms.Any(from => from.Object.Uid == internetZoneObjectUid) || rule.Tos.Any(to => to.Object.Uid == internetZoneObjectUid)));
+            }
+            else
+            {
+                return Task.FromResult(true);
+            }
+
+            
         }
     }
 }

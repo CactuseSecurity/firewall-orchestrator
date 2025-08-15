@@ -3,6 +3,7 @@ fragment networkObjectOverview on object {
   obj_ip_end
   obj_name
   obj_id
+  obj_uid
   type: stm_obj_typ {
     id: obj_typ_id
     name: obj_typ_name

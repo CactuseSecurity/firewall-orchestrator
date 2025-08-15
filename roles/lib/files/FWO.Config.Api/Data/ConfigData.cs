@@ -419,6 +419,9 @@ namespace FWO.Config.Api.Data
         [JsonProperty("complianceCheckScheduledDiffReportsIntervals"), JsonPropertyName("complianceCheckScheduledDiffReportsIntervals")]
         public string ComplianceCheckScheduledDiffReportsIntervals { get; set; } = "";
 
+        [JsonProperty("complianceCheckInternetZoneObject"), JsonPropertyName("complianceCheckInternetZoneObject")]
+        public string ComplianceCheckInternetZoneObject { get; set; } = "";
+
         [JsonProperty("debugConfig"), JsonPropertyName("debugConfig")]
         public string DebugConfig { get; set; } = "";
 

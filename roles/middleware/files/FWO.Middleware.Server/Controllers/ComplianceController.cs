@@ -35,8 +35,8 @@ namespace FWO.Middleware.Server.Controllers
 
                 ComplianceCheck complianceCheck = new(userConfig, apiConnection);
                 await complianceCheck.CheckAll();
-                List<(Rule, (ComplianceNetworkZone, ComplianceNetworkZone))> forbiddenCommunicationsOutput = complianceCheck.Results;
-                return ConvertOutput(forbiddenCommunicationsOutput);
+
+                return complianceCheck.ComplianceReport!.ExportToCsv();
             }
             catch (Exception exception)
             {

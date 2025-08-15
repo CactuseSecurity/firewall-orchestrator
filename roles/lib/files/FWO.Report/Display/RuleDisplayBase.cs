@@ -31,13 +31,27 @@ namespace FWO.Ui.Display
 
         public static string DisplayIsCompliant(Rule rule, OutputLocation location)
         {
-            if (location == OutputLocation.export)
+            if (rule.Compliance != ComplianceViolationType.NotEvaluable)
             {
-                return $"<b>{(rule.IsCompliant ? "Y" : "N")}</b>";
+                bool isCompliant = true;
+
+                if (rule.Compliance != ComplianceViolationType.None)
+                {
+                    isCompliant = false;
+                }
+
+                if (location == OutputLocation.export)
+                {
+                    return $"<b>{(isCompliant ? "Y" : "N")}</b>";
+                }
+                else
+                {
+                    return $"<div class=\"oi {(isCompliant ? "oi-check" : "oi-x")}\"></div>";
+                }                
             }
             else
             {
-                return $"<div class=\"oi {(rule.IsCompliant ? "oi-check" : "oi-x")}\"></div>";
+                return "Not Evaluable";
             }
         }
 

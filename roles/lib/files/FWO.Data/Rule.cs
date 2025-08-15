@@ -97,8 +97,10 @@ namespace FWO.Data
         
         [JsonProperty("rule_installon"), JsonPropertyName("rule_installon")]
         public string InstallOn { get; set; } = "";
+        public string ChangeID { get; set; } = "";
+        public string AdoITID { get; set; } = "";
 
-        public bool IsCompliant { get; set; } = true;
+        public ComplianceViolationType Compliance { get; set; } = ComplianceViolationType.None;
         public string ViolationDetails { get; set; } = "";
         public List<ComplianceViolation> Violations { get; set; } = [];
 

@@ -33,6 +33,8 @@ fragment ruleOverview on rule {
   rule_num_numeric
   rule_num
   rule_name
+  rule_custom_fields
+  rule_installon
   access_rule
   nat_rule
   xlate_rule

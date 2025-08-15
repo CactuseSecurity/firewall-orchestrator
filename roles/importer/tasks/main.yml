@@ -60,6 +60,7 @@
     ansible.builtin.pip:
       requirements: "{{ fworch_home }}/importer/requirements.txt"
       virtualenv: "{{ importer_venv_dir }}"
+    environment: "{{ proxy_env }}"
 
   - name: set x-flag for importer executables (top level only)
     file:

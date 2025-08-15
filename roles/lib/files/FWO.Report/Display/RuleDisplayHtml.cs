@@ -139,18 +139,18 @@ namespace FWO.Ui.Display
 
             if (reportType.IsResolvedReport())
             {
-                NetworkLocation[] userNwObjects = [.. GetNetworkLocations(isSource ? rule.Froms : rule.Tos)];
+                NetworkLocation[] userNwObjects = [.. GetResolvedNetworkLocations(isSource ? rule.Froms : rule.Tos)];
                 result.AppendJoin("<br>", Array.ConvertAll(userNwObjects,
                     nwLoc => NetworkLocationToHtml(nwLoc, rule.MgmtId, chapterNumber, location, highlightedStyle, reportType)));
+            }
+            else if (reportType == ReportType.AppRules)
+            {
+                result.Append(DisplayAppRuleSourceOrDestination(rule, chapterNumber, location, reportType, style, highlightedStyle, isSource));
             }
             else
             {
                 result.AppendJoin("<br>", Array.ConvertAll(isSource ? rule.Froms : rule.Tos,
                     nwLoc => NetworkLocationToHtml(nwLoc, rule.MgmtId, chapterNumber, location, highlightedStyle, reportType)));
-            }
-            if (reportType == ReportType.AppRules)
-            {
-                result.Append(DisplayAppRuleSourceOrDestination(rule, chapterNumber, location, reportType, style, highlightedStyle, isSource));
             }
             return result.ToString();
         }

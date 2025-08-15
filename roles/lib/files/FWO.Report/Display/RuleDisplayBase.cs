@@ -144,7 +144,7 @@ namespace FWO.Ui.Display
             return  $"\"{input ?? ""}\"";
         }
 
-        public static List<NetworkLocation> GetNetworkLocations(NetworkLocation[] locationArray)
+        public static List<NetworkLocation> GetResolvedNetworkLocations(NetworkLocation[] locationArray)
         {
             HashSet<NetworkLocation> collectedUserNetworkObjects = [];
             foreach (NetworkLocation networkObject in locationArray)

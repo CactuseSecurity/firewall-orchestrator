@@ -158,17 +158,24 @@ namespace FWO.Ui.Display
             return  $"\"{input ?? ""}\"";
         }
 
-        public static List<NetworkLocation> GetNetworkLocations(NetworkLocation[] locationArray)
+        public static List<NetworkLocation> GetResolvedNetworkLocations(NetworkLocation[] locationArray)
         {
             HashSet<NetworkLocation> collectedUserNetworkObjects = [];
             foreach (NetworkLocation networkObject in locationArray)
             {
-                foreach (GroupFlat<NetworkObject> nwObject in networkObject.Object.ObjectGroupFlats)
+                if (networkObject.Object.Type.Name == ObjectType.Group)
                 {
-                    if (nwObject.Object != null && nwObject.Object.Type.Name != ObjectType.Group)    // leave out group level altogether
+                    foreach (GroupFlat<NetworkObject> nwObject in networkObject.Object.ObjectGroupFlats)
                     {
-                        collectedUserNetworkObjects.Add(new NetworkLocation(networkObject.User, nwObject.Object));
+                        if (nwObject.Object != null && nwObject.Object.Type.Name != ObjectType.Group)    // leave out group level altogether
+                        {
+                            collectedUserNetworkObjects.Add(new NetworkLocation(networkObject.User, nwObject.Object));
+                        }
                     }
+                }
+                else
+                {
+                    collectedUserNetworkObjects.Add(networkObject);
                 }
             }
             List<NetworkLocation> userNwObjectList = [.. collectedUserNetworkObjects];

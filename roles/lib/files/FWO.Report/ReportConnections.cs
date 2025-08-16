@@ -135,7 +135,8 @@ namespace FWO.Report
             if(!flags.IsGlobalComSvc && ((connection.InterfaceIsRequested && connection.SrcFromInterface) || (connection.IsRequested && connection.SourceFilled())))
             {
                 report.AppendLine($"<td>{ModellingHandlerBase.DisplayReqInt(userConfig, connection.TicketId, connection.InterfaceIsRequested, 
-                    connection.GetBoolProperty(ConState.Rejected.ToString()) || connection.GetBoolProperty(ConState.InterfaceRejected.ToString()))}</td>");
+                    connection.GetBoolProperty(ConState.Rejected.ToString()) || connection.GetBoolProperty(ConState.InterfaceRejected.ToString()),
+                    connection.GetBoolProperty(ConState.Decommissioned.ToString()) || connection.GetBoolProperty(ConState.InterfaceDecommissioned.ToString()))}</td>");
             }
             else if(flags.WithoutLinks)
             {
@@ -153,7 +154,8 @@ namespace FWO.Report
             if (!flags.IsGlobalComSvc && (connection.InterfaceIsRequested || connection.IsRequested))
             {
                 report.AppendLine($"<td>{ModellingHandlerBase.DisplayReqInt(userConfig, connection.TicketId, connection.InterfaceIsRequested,
-                    connection.GetBoolProperty(ConState.Rejected.ToString()) || connection.GetBoolProperty(ConState.InterfaceRejected.ToString()))}</td>");
+                    connection.GetBoolProperty(ConState.Rejected.ToString()) || connection.GetBoolProperty(ConState.InterfaceRejected.ToString()),
+                    connection.GetBoolProperty(ConState.Decommissioned.ToString()) || connection.GetBoolProperty(ConState.InterfaceDecommissioned.ToString()))}</td>");
             }
             else if (flags.WithoutLinks)
             {
@@ -171,7 +173,8 @@ namespace FWO.Report
             if(!flags.IsGlobalComSvc && ((connection.InterfaceIsRequested && connection.DstFromInterface) || (connection.IsRequested && connection.DestinationFilled())))
             {
                 report.AppendLine($"<td>{ModellingHandlerBase.DisplayReqInt(userConfig, connection.TicketId, connection.InterfaceIsRequested,
-                    connection.GetBoolProperty(ConState.Rejected.ToString()) || connection.GetBoolProperty(ConState.InterfaceRejected.ToString()))}</td>");
+                    connection.GetBoolProperty(ConState.Rejected.ToString()) || connection.GetBoolProperty(ConState.InterfaceRejected.ToString()),
+                    connection.GetBoolProperty(ConState.Decommissioned.ToString()) || connection.GetBoolProperty(ConState.InterfaceDecommissioned.ToString()))}</td>");
             }
             else if(flags.WithoutLinks)
             {

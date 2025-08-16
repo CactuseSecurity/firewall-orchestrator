@@ -25,7 +25,8 @@
     {
         public static List<EmailRecipientOption> GetModellingOptions()
         {
-            return [ EmailRecipientOption.OwnerGroupOnly,
+            return [ EmailRecipientOption.None,
+                EmailRecipientOption.OwnerGroupOnly,
                 EmailRecipientOption.AllOwnerResponsibles,
                 EmailRecipientOption.OwnerMainResponsible,
                 EmailRecipientOption.FallbackToMainResponsibleIfOwnerGroupEmpty ];

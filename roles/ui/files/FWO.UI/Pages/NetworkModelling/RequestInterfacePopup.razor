@@ -148,7 +148,7 @@
             string subject = userConfig.ModReqEmailSubject;
             string body = $"{RequestingOwner.Name} {userConfig.ModReqEmailBody} {SelectedOwner.Name} <br>" +
                 $"<a target=\"_blank\" href=\"{interfaceUrl}\">{userConfig.GetText("interface")}: {InterfaceName}</a><br>"; 
-            if(await emailHelper.SendEmailToOwnerResponsibles(SelectedOwner, subject, body))
+            if(await emailHelper.SendEmailToOwnerResponsibles(SelectedOwner, subject, body, userConfig.ModReqEmailReceiver, userConfig.ModReqEmailRequesterInCc))
             {
                 DisplayMessageInUi(null, userConfig.GetText("send_email"), userConfig.GetText("U9011"), false);
             }

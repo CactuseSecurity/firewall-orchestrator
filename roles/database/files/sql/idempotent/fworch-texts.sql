@@ -1623,6 +1623,10 @@ INSERT INTO txt VALUES ('reject',               'German',   'Ablehnen');
 INSERT INTO txt VALUES ('reject',               'English',  'Reject');
 INSERT INTO txt VALUES ('reject_interface',     'German',   'Schnittstelle ablehnen');
 INSERT INTO txt VALUES ('reject_interface',     'English',  'Reject interface');
+INSERT INTO txt VALUES ('decommission',         'German',   'Stilllegen');
+INSERT INTO txt VALUES ('decommission',         'English',  'Decommission');
+INSERT INTO txt VALUES ('decomm_interface',     'German',   'Schnittstelle stilllegen');
+INSERT INTO txt VALUES ('decomm_interface',     'English',  'Decommission interface');
 INSERT INTO txt VALUES ('on',                   'German',   ' auf ');
 INSERT INTO txt VALUES ('on',                   'English',  ' on ');
 INSERT INTO txt VALUES ('create_rule',          'German',   'Regeln anlegen');
@@ -2420,14 +2424,20 @@ INSERT INTO txt VALUES ('modReqTicketTitle',    'German',   'Titel des Schnittst
 INSERT INTO txt VALUES ('modReqTicketTitle',    'English',  'Title of interface request ticket');
 INSERT INTO txt VALUES ('modReqTaskTitle',      'German',   'Titel des Schnittstellenauftrags');
 INSERT INTO txt VALUES ('modReqTaskTitle',      'English',  'Title of interface request task');
+INSERT INTO txt VALUES ('modDecommEmailReceiver','German',  'Empf&auml;nger der Stilllegungsbenachrichtigung');
+INSERT INTO txt VALUES ('modDecommEmailReceiver','English', 'Receiver of decommission email');
+INSERT INTO txt VALUES ('modDecommEmailSubject','German',   'Titel der Stilllegungsbenachrichtigung');
+INSERT INTO txt VALUES ('modDecommEmailSubject','English',  'Subject of decommission emails');
+INSERT INTO txt VALUES ('modDecommEmailBody',   'German',   'Text der Stilllegungsbenachrichtigung');
+INSERT INTO txt VALUES ('modDecommEmailBody',   'English',  'Body of decommission emails');
 INSERT INTO txt VALUES ('modRolloutActive',     'German',   'Automatische Firewallbeantragung aktivieren');
 INSERT INTO txt VALUES ('modRolloutActive',     'English',  'Activate automatic Firewall request');
 INSERT INTO txt VALUES ('modRolloutResolveServiceGroups','German','Servicegruppen aufl&ouml;sen');
 INSERT INTO txt VALUES ('modRolloutResolveServiceGroups','English','Resolve service groups');
 INSERT INTO txt VALUES ('modRolloutBundleTasks','German',   'Tasks zusammenfassen');
 INSERT INTO txt VALUES ('modRolloutBundleTasks','English',  'Bundle tasks');
-INSERT INTO txt VALUES ('modRolloutNatHeuristic',	'German','NAT Heuristik');
-INSERT INTO txt VALUES ('modRolloutNatHeuristic',	'English','NAT Heuristic');
+INSERT INTO txt VALUES ('modRolloutNatHeuristic','German',  'NAT Heuristik');
+INSERT INTO txt VALUES ('modRolloutNatHeuristic','English', 'NAT Heuristic');
 INSERT INTO txt VALUES ('modRolloutErrorText',  'German',   'Fehlertext');
 INSERT INTO txt VALUES ('modRolloutErrorText',  'English',  'Error text');
 INSERT INTO txt VALUES ('modelledMarker',       'German',   'Markierung Modelliert');
@@ -3063,6 +3073,12 @@ INSERT INTO txt VALUES ('U9029', 'German',  'Bei folgenden Verbindungen stimmt d
 INSERT INTO txt VALUES ('U9029', 'English', 'For following connections are production state does not fit modelled state and impede recertification: ');
 INSERT INTO txt VALUES ('U9030', 'German',  'Es ist noch ein Firewall-&Auml;nderungsantrag in Bearbeitung!');
 INSERT INTO txt VALUES ('U9030', 'English', 'A Firewall Change request is running!');
+INSERT INTO txt VALUES ('U9031', 'German',  'Sind sie sicher, dass sie folgende Schnittstelle stillegen wollen: ');
+INSERT INTO txt VALUES ('U9031', 'English', 'Are you sure you want to decommission following interface: ');
+INSERT INTO txt VALUES ('U9032', 'German',  'Sie wird von folgenden verbindungen genutzt: ');
+INSERT INTO txt VALUES ('U9032', 'English', 'It is used by following connections: ');
+INSERT INTO txt VALUES ('U9033', 'German',  '@@OK_NUMBER@@ Benachrichtigungen an App-Verantwortliche gesendet.');
+INSERT INTO txt VALUES ('U9033', 'English', '@@OK_NUMBER@@ emails sent to App responsibles.');
 
 -- error messages
 INSERT INTO txt VALUES ('E0001', 'German',  'Nicht klassifizierter Fehler: ');
@@ -3395,6 +3411,8 @@ INSERT INTO txt VALUES ('E9017', 'German',  'Schnittstelle kann die angeforderte
 INSERT INTO txt VALUES ('E9017', 'English', 'Interface cannot replace requested one: the directions of the interfaces do not match (one is a source interface, the other a destination interface).');
 INSERT INTO txt VALUES ('E9018', 'German',  'Name schon vergeben. Bitte einen anderen w&auml;hlen.');
 INSERT INTO txt VALUES ('E9018', 'English', 'Name already used. Please choose another.');
+INSERT INTO txt VALUES ('E9019', 'German',  'Benachrichtigungen an @@FAIL_NUMBER@@ App-Verantwortliche konnte nicht gesendet werden.');
+INSERT INTO txt VALUES ('E9019', 'English', 'Email could not be sent to @@FAIL_NUMBER@@ App responsibles.');
 INSERT INTO txt VALUES ('E9101', 'German',  'Fehler bei externer Auftragserzeugung.');
 INSERT INTO txt VALUES ('E9101', 'English', 'Error at external ticket creation.');
 INSERT INTO txt VALUES ('E9102', 'German',  'Fehler beim &Auml;ndern des externen Auftragsstatus.');
@@ -3540,6 +3558,8 @@ INSERT INTO txt VALUES ('C9024', 'German',  'Der Produktionsstand entspricht der
 INSERT INTO txt VALUES ('C9024', 'English', 'Production state fits to modelled connection.');
 INSERT INTO txt VALUES ('C9025', 'German',  'Asynchroner Soll-Ist-Abgleich wurde noch nicht durchgef&uuml;hrt.');
 INSERT INTO txt VALUES ('C9025', 'English', 'Asynchroneous Variance Analysis not performed yet.');
+INSERT INTO txt VALUES ('C9026', 'German',  'Schnittstelle wurde stillgelegt.');
+INSERT INTO txt VALUES ('C9026', 'English', 'Interface was decommissioned.');
 
 -- help pages
 INSERT INTO txt VALUES ('H0001', 'German',  'Firewall Orchestrator ist eine Anwendung zum Erzeugen und Verwalten von verschiedenen Reports aus Konfigurationsdaten verteilter Firewallsysteme.
@@ -5595,6 +5615,18 @@ INSERT INTO txt VALUES ('H5658', 'German',  'Rezertifizierungstext: Text, der zu
 INSERT INTO txt VALUES ('H5658', 'English', 'Recertification Text: Text to be shown to confirm recertification. If the text contains a placeholder "@@APPNAME@@", it is replaced by the app name.');
 INSERT INTO txt VALUES ('H5659', 'German',  'Netzwerkareas f&uuml;r Updatable Objects: Vom Administrator vorgegebene Netzwerkareas, welche f&uuml;r die Zuordnung &uuml;ber die Sonderkonfiguration "Updatable Objects" genutzt werden d&uuml;rfen. Die beiden Auswahlfelder "in Quelle" und "in Ziel" legen fest, wo die Netzwerkarea genutzt werden darf.');
 INSERT INTO txt VALUES ('H5659', 'English', 'Network Areas for Updatable Objects: Network areas defined by the administrator, which are permitted to be used for assignment via the Extra Configurations "Updatable Objects". The flags "in Source" and "in Destination" determine, where the Network Areas are allowed to be used.');
+INSERT INTO txt VALUES ('H5660', 'German',  'Empf&auml;nger der Stilllegungsbenachrichtigung: Auswahl, wem die Email mit der Stilllegungsbenachrichtigung geschickt werden soll: Der Eigent&uuml;mergruppe (Default), dem Hauptverantwortlichen oder beiden.');
+INSERT INTO txt VALUES ('H5660', 'English', 'Receiver of decommission emails: Selection to whom the decommission notification email should be sent: the Owner Group, the Owner Main Responsible or both.');
+INSERT INTO txt VALUES ('H5661', 'German',  'Titel der Stilllegungsbenachrichtigung: Betreff der Email-Benachrichtigung an die betroffenen Eigent&uuml;mer. Platzhalter @@INTERFACE_NAME@@ werden mit dem Namen der zu l&ouml;schenden Schnittstelle ersetzt.');
+INSERT INTO txt VALUES ('H5661', 'English', 'Subject of decommission emails: Subject of the email to the addressed owners. Placeholders @@INTERFACE_NAME@@ will be replaced by the name of the interface to be decommissioned.');
+INSERT INTO txt VALUES ('H5662', 'German',  'Text der Stilllegungsbenachrichtigung: Text der Email-Benachrichtigung an die Nutzer der Schnittstelle, gefolgt von der Liste der betroffenen Verbindungen. Es k&ouml;nnen folgende Platzhalter genutzt werden:
+    @@INTERFACE_NAME@@ wird durch den Namen der stillzulegenden Schnittstelle ersetzt, @@NEW_INTERFACE_NAME@@ mit dem Namen der vorgeschlagenen Ersatzschnittstelle, @@NEW_INTERFACE_LINK@@ mit einem Link auf diese, 
+	@@REASON@@ mit dem Begr&uuml;ndungstext, der im Stillegungsformular eingegeben wurde, @@USER_NAME@@ mit dem Nutzer, der die Stillegung veranlasst hat.
+');
+INSERT INTO txt VALUES ('H5662', 'English', 'Body of decommission emails: Text of the email notification to the addressed owners, followed by a list of the affected connections. Some placeholders can be used:
+    @@INTERFACE_NAME@@ will be replaced by the name of the interface to be decommissioned, @@NEW_INTERFACE_NAME@@ by the name of the proposed new interface, @@NEW_INTERFACE_LINK@@ by a link to this interface, 
+	@@REASON@@ by the reason text filled in the decommission form, @@USER_NAME@@ by the user initiating the decommissioning.
+');
 
 INSERT INTO txt VALUES ('H5701', 'German',  'Die in der Datenbank hinterlegten sprachabh&auml;ngigen Texte k&ouml;nnen individuell &uuml;berschrieben werden.
     Dabei werden die vom System vorgegebenen Texte nicht ge&auml;ndert, sondern nur durch die hier definierten Texte - falls vorhanden - &uuml;berblendet.

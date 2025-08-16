@@ -18,6 +18,7 @@ namespace FWO.Ui.Services
         public bool AddConnMode { get; set; } = false;
         public bool EditConnMode { get; set; } = false;
         public bool DeleteConnMode { get; set; } = false;
+        public bool DecommissionInterfaceMode { get; set; } = false;
 
         public Shared.TabSet Tabset { get; set; } = new();
         private Shared.Tab? ActTab;
@@ -160,8 +161,9 @@ namespace FWO.Ui.Services
 
         public List<ModellingConnection> GetInterfaces(bool showRejected = false)
         {
-            List<ModellingConnection> tmpList = Connections.Where(x => x.IsInterface && (showRejected || !x.GetBoolProperty(ConState.Rejected.ToString()))).ToList();
-            tmpList.Sort((ModellingConnection a, ModellingConnection b) => a.CompareTo(b));
+            List<ModellingConnection> tmpList = [.. Connections.Where(x => x.IsInterface &&
+                (showRejected || !(x.GetBoolProperty(ConState.Rejected.ToString()) || x.GetBoolProperty(ConState.Decommissioned.ToString()))))];
+            tmpList.Sort((a, b) => a.CompareTo(b));
             return tmpList;
         }
 
@@ -235,10 +237,15 @@ namespace FWO.Ui.Services
             ConnToDelete = conn;
             if(ConnToDelete.IsInterface)
             {
-                if(await CheckInterfaceInUse(ConnToDelete))
+                if (await CheckInterfaceInUse(ConnToDelete))
                 {
                     Message = userConfig.GetText("E9013") + ConnToDelete.Name;
-                    DeleteAllowed = false;
+                    ConnHandler = new ModellingConnectionHandler(apiConnection, userConfig, Application, Connections, conn, AddConnMode, 
+                        ReadOnly, DisplayMessageInUi, ReInit, IsOwner);
+                    await ConnHandler.Init();
+                    ConnHandler.UsingConnections = UsingConnections;
+                    DecommissionInterfaceMode = true;
+                    return;
                 }
                 else
                 {

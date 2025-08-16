@@ -311,6 +311,25 @@
             <input type="text" class="col-sm-6" @bind="configData!.ModReqTaskTitle" />
         </div>
         <hr />
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5660"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("modDecommEmailReceiver")):</label>
+            <div class="col-sm-3">
+                <Dropdown @bind-SelectedElement="configData!.ModDecommEmailReceiver" ElementToString="@(o => userConfig.GetText(o.ToString()))" Elements="EmailRecipientGroups.GetModellingOptions()">
+                    <ElementTemplate Context="opt">
+                        @(userConfig.GetText(opt.ToString()))
+                    </ElementTemplate>
+                </Dropdown>
+            </div>
+        </div>
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5661"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("modDecommEmailSubject")):</label>
+            <input type="text" class="col-sm-6" @bind="configData!.ModDecommEmailSubject" />
+        </div>
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5662"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("modDecommEmailBody")):</label>
+            <textarea class="col-sm-7 mt-2" rows="4" name="text" @bind="configData!.ModDecommEmailBody"></textarea>
+        </div>
+        <hr />
         <div class="form-group row mt-2">
             <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5634"))">
                 <label for="cbx_rollout_active" class="col-form-label col-sm-8">@(userConfig.GetText("modRolloutActive")):</label>

@@ -97,8 +97,8 @@ namespace FWO.Services
         private const string kConnection = "Connection";
         private const string kInterface = "Interface";
         private readonly string EditConnection = "edit_connection";
-		private readonly string InitEnvironment = "init_environment";
-		private readonly string InsertForbidden = "insert_forbidden";
+        private readonly string InitEnvironment = "init_environment";
+        private readonly string InsertForbidden = "insert_forbidden";
 
 
 
@@ -571,6 +571,7 @@ namespace FWO.Services
             ActConn.UsedInterfaceId = interf.Id;
             ActConn.InterfaceIsRequested = interf.IsRequested;
             ActConn.InterfaceIsRejected = interf.GetBoolProperty(ConState.Rejected.ToString());
+            ActConn.InterfaceIsDecommissioned = interf.GetBoolProperty(ConState.Decommissioned.ToString());
             ActConn.TicketId = interf.TicketId;
             if (SrcReadOnly)
             {
@@ -617,6 +618,7 @@ namespace FWO.Services
             ActConn.UsedInterfaceId = null;
             ActConn.InterfaceIsRequested = false;
             ActConn.InterfaceIsRejected = false;
+            ActConn.InterfaceIsDecommissioned = false;
             ActConn.TicketId = null;
             SrcReadOnly = false;
             DstReadOnly = false;
@@ -1187,7 +1189,7 @@ namespace FWO.Services
             }
         }
 
-        public async Task<bool> Save(bool noCheck = false)
+        public async Task<bool> Save(bool noCheck = false, bool decommInterface = false)
         {
             try
             {
@@ -1197,16 +1199,23 @@ namespace FWO.Services
                 }
                 if (noCheck || CheckConn())
                 {
-                    SyncChanges();
                     ActConn.SyncState(DummyAppRole.Id);
-                    if (AddMode)
-                    {
-                        await AddConnectionToDb();
-                    }
-                    else
-                    {
-                        await UpdateConnection();
-                    }
+					if (decommInterface)
+					{
+						await DecommInterface();
+					}
+					else
+					{
+						SyncChanges();
+						if (AddMode)
+						{
+							await AddConnectionToDb();
+						}
+						else
+						{
+							await UpdateConnection();
+						}
+					}
                     await ReInit();
                     Close();
                     return true;
@@ -1219,18 +1228,24 @@ namespace FWO.Services
             return false;
         }
 
+		private async Task DecommInterface()
+		{
+			await DecommInterfaceInDb();
+			await UpdateStatusInterfaceUsersDecomm(ActConn.Id);
+		}
+
         private async Task UpdateConnection()
-        {
-            if (userConfig.VarianceAnalysisSleepTime == 0 && (userConfig.VarianceAnalysisSync || userConfig.VarianceAnalysisRefresh))
-            {
-                ActConn.CleanUpVarianceResults();
-            }
-            await UpdateConnectionInDb();
-            if(ActConn.IsInterface && ActConn.IsPublished)
-            {
-                await UpdateStatusInterfaceUsers(ActConn.Id);
-            }
-        }
+		{
+			if (userConfig.VarianceAnalysisSleepTime == 0 && (userConfig.VarianceAnalysisSync || userConfig.VarianceAnalysisRefresh))
+			{
+				ActConn.CleanUpVarianceResults();
+			}
+			await UpdateConnectionInDb();
+			if (ActConn.IsInterface && ActConn.IsPublished)
+			{
+				await UpdateStatusInterfaceUsersPublished(ActConn.Id);
+			}
+		}
 
         public bool CheckConn()
         {
@@ -1276,7 +1291,7 @@ namespace FWO.Services
             return true;
         }
 
-        private async Task UpdateStatusInterfaceUsers(int interfaceId)
+        private async Task UpdateStatusInterfaceUsersPublished(int interfaceId)
         {
             try
             {
@@ -1293,21 +1308,38 @@ namespace FWO.Services
             }
         }
 
-        private void SyncChanges()
+        private async Task UpdateStatusInterfaceUsersDecomm(int interfaceId)
         {
-            if (!SrcReadOnly)
+            try
             {
-                SyncSrcChanges();
+                List<ModellingConnection> usingConnections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getInterfaceUsers, new { id = interfaceId });
+                foreach (var conn in usingConnections.Where(c => !c.GetBoolProperty(ConState.InterfaceDecommissioned.ToString())))
+                {
+                    conn.AddProperty(ConState.InterfaceDecommissioned.ToString());
+                    await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateConnectionProperties, new { id = conn.Id, connProp = conn.Properties });
+                }
             }
-            if (!DstReadOnly)
+            catch (Exception exception)
             {
-                SyncDstChanges();
-            }
-            if (!SvcReadOnly)
-            {
-                SyncSvcChanges();
+                DisplayMessageInUi(exception, userConfig.GetText("update_interf_user"), "", true);
             }
         }
+
+        private void SyncChanges()
+		{
+			if (!SrcReadOnly)
+			{
+				SyncSrcChanges();
+			}
+			if (!DstReadOnly)
+			{
+				SyncDstChanges();
+			}
+			if (!SvcReadOnly)
+			{
+				SyncSvcChanges();
+			}
+		}
 
         private void SyncSrcChanges()
         {
@@ -1417,67 +1449,94 @@ namespace FWO.Services
             }
         }
 
-        private async Task AddConnectionToDb(bool propose = false)
+        private async Task DecommInterfaceInDb()
         {
             try
             {
-                int? AppId = propose ? null : Application.Id;
-                int? ProposedAppId = propose ? Application.Id : null;
-
                 var Variables = new
-                {
-                    name = ActConn.Name,
-                    appId = AppId,
-                    proposedAppId = ProposedAppId,
-                    reason = ActConn.Reason,
-                    isInterface = ActConn.IsInterface,
-                    usedInterfaceId = ActConn.UsedInterfaceId,
-                    isRequested = ActConn.IsRequested,
-                    isPublished = ActConn.IsPublished,
-                    ticketId = ActConn.TicketId,
-                    creator = userConfig.User.Name,
-                    commonSvc = ActConn.IsCommonService,
-                    connProp = ActConn.Properties,
-                    extraParams = ActConn.ExtraParams
+				{
+					id = ActConn.Id,
+					reason = ActConn.Reason,
+					connProp = ActConn.Properties,
+					removalDate = DateTime.Now
                 };
-                ReturnId[]? returnIds = ( await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.newConnection, Variables) ).ReturnIds;
-                if (returnIds != null)
+                await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateConnectionDecommission, Variables);
+                await LogChange(ModellingTypes.ChangeType.Delete, ModellingTypes.ModObjectType.Connection, ActConn.Id,
+                    $"Decommissioned {kInterface}: {ActConn.Name}", Application.Id);
+
+                Connections[Connections.FindIndex(x => x.Id == ActConn.Id)] = ActConn;
+                foreach (var conn in Connections.Where(x => x.UsedInterfaceId == ActConn.Id))
                 {
-                    ActConn.Id = returnIds[0].NewId;
-                    await LogChange(ModellingTypes.ChangeType.Insert, ModellingTypes.ModObjectType.Connection, ActConn.Id,
-                        $"New {( ActConn.IsInterface ? kInterface : kConnection )}: {ActConn.Name}", AppId);
-                    if (ActConn.UsedInterfaceId == null || ActConn.DstFromInterface)
-                    {
-                        await AddNwObjects(ModellingAppServerWrapper.Resolve(ActConn.SourceAppServers).ToList(),
-                             ModellingAppRoleWrapper.Resolve(ActConn.SourceAppRoles).ToList(),
-                             ModellingNetworkAreaWrapper.Resolve(ActConn.SourceAreas).ToList(),
-                             ModellingNwGroupWrapper.Resolve(ActConn.SourceOtherGroups).ToList(),
-                             ModellingTypes.ConnectionField.Source);
-                    }
-                    if (ActConn.UsedInterfaceId == null || ActConn.SrcFromInterface)
-                    {
-                        await AddNwObjects(ModellingAppServerWrapper.Resolve(ActConn.DestinationAppServers).ToList(),
-                            ModellingAppRoleWrapper.Resolve(ActConn.DestinationAppRoles).ToList(),
-                            ModellingNetworkAreaWrapper.Resolve(ActConn.DestinationAreas).ToList(),
-                            ModellingNwGroupWrapper.Resolve(ActConn.DestinationOtherGroups).ToList(),
-                            ModellingTypes.ConnectionField.Destination);
-                    }
-                    if (ActConn.UsedInterfaceId == null)
-                    {
-                        await AddSvcObjects(ModellingServiceWrapper.Resolve(ActConn.Services).ToList(),
-                            ModellingServiceGroupWrapper.Resolve(ActConn.ServiceGroups).ToList());
-                    }
-                    ActConn.Creator = userConfig.User.Name;
-                    ActConn.CreationDate = DateTime.Now;
-                    Connections.Add(ActConn);
-                    Connections.Sort((ModellingConnection a, ModellingConnection b) => a?.CompareTo(b) ?? -1);
+                    await ExtractUsedInterface(conn);
                 }
             }
             catch (Exception exception)
             {
-                DisplayMessageInUi(exception, userConfig.GetText("add_connection"), "", true);
+                DisplayMessageInUi(exception, userConfig.GetText(EditConnection), "", true);
             }
         }
+
+        private async Task AddConnectionToDb(bool propose = false)
+		{
+			try
+			{
+				int? AppId = propose ? null : Application.Id;
+				int? ProposedAppId = propose ? Application.Id : null;
+
+				var Variables = new
+				{
+					name = ActConn.Name,
+					appId = AppId,
+					proposedAppId = ProposedAppId,
+					reason = ActConn.Reason,
+					isInterface = ActConn.IsInterface,
+					usedInterfaceId = ActConn.UsedInterfaceId,
+					isRequested = ActConn.IsRequested,
+					isPublished = ActConn.IsPublished,
+					ticketId = ActConn.TicketId,
+					creator = userConfig.User.Name,
+					commonSvc = ActConn.IsCommonService,
+					connProp = ActConn.Properties,
+					extraParams = ActConn.ExtraParams
+				};
+				ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.newConnection, Variables)).ReturnIds;
+				if (returnIds != null)
+				{
+					ActConn.Id = returnIds[0].NewId;
+					await LogChange(ModellingTypes.ChangeType.Insert, ModellingTypes.ModObjectType.Connection, ActConn.Id,
+						$"New {(ActConn.IsInterface ? kInterface : kConnection)}: {ActConn.Name}", AppId);
+					if (ActConn.UsedInterfaceId == null || ActConn.DstFromInterface)
+					{
+						await AddNwObjects(ModellingAppServerWrapper.Resolve(ActConn.SourceAppServers).ToList(),
+							 ModellingAppRoleWrapper.Resolve(ActConn.SourceAppRoles).ToList(),
+							 ModellingNetworkAreaWrapper.Resolve(ActConn.SourceAreas).ToList(),
+							 ModellingNwGroupWrapper.Resolve(ActConn.SourceOtherGroups).ToList(),
+							 ModellingTypes.ConnectionField.Source);
+					}
+					if (ActConn.UsedInterfaceId == null || ActConn.SrcFromInterface)
+					{
+						await AddNwObjects(ModellingAppServerWrapper.Resolve(ActConn.DestinationAppServers).ToList(),
+							ModellingAppRoleWrapper.Resolve(ActConn.DestinationAppRoles).ToList(),
+							ModellingNetworkAreaWrapper.Resolve(ActConn.DestinationAreas).ToList(),
+							ModellingNwGroupWrapper.Resolve(ActConn.DestinationOtherGroups).ToList(),
+							ModellingTypes.ConnectionField.Destination);
+					}
+					if (ActConn.UsedInterfaceId == null)
+					{
+						await AddSvcObjects(ModellingServiceWrapper.Resolve(ActConn.Services).ToList(),
+							ModellingServiceGroupWrapper.Resolve(ActConn.ServiceGroups).ToList());
+					}
+					ActConn.Creator = userConfig.User.Name;
+					ActConn.CreationDate = DateTime.Now;
+					Connections.Add(ActConn);
+					Connections.Sort((ModellingConnection a, ModellingConnection b) => a?.CompareTo(b) ?? -1);
+				}
+			}
+			catch (Exception exception)
+			{
+				DisplayMessageInUi(exception, userConfig.GetText("add_connection"), "", true);
+			}
+		}
 
         private async Task UpdateConnectionInDb()
         {

@@ -326,7 +326,7 @@ namespace FWO.Config.Api.Data
         public string ModReqInterfaceName { get; set; } = "";
 
         [JsonProperty("modReqEmailReceiver"), JsonPropertyName("modReqEmailReceiver")]
-        public EmailRecipientOption ModReqEmailReceiver { get; set; } = EmailRecipientOption.FallbackToMainResponsibleIfOwnerGroupEmpty;
+        public EmailRecipientOption ModReqEmailReceiver { get; set; } = EmailRecipientOption.None;
 
         [JsonProperty("modReqEmailRequesterInCc"), JsonPropertyName("modReqEmailRequesterInCc")]
         public bool ModReqEmailRequesterInCc { get; set; } = true;
@@ -342,6 +342,15 @@ namespace FWO.Config.Api.Data
 
         [JsonProperty("modReqTaskTitle"), JsonPropertyName("modReqTaskTitle")]
         public string ModReqTaskTitle { get; set; } = "";
+
+        [JsonProperty("modDecommEmailReceiver"), JsonPropertyName("modDecommEmailReceiver")]
+        public EmailRecipientOption ModDecommEmailReceiver { get; set; } = EmailRecipientOption.None;
+
+        [JsonProperty("modDecommEmailSubject"), JsonPropertyName("modDecommEmailSubject")]
+        public string ModDecommEmailSubject { get; set; } = "";
+
+        [JsonProperty("modDecommEmailBody"), JsonPropertyName("modDecommEmailBody")]
+        public string ModDecommEmailBody { get; set; } = "";
 
         [JsonProperty("modRolloutActive"), JsonPropertyName("modRolloutActive")]
         public bool ModRolloutActive { get; set; } = true;

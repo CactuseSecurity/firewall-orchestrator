@@ -20,7 +20,7 @@ namespace FWO.Basics
         public const int kHoursToMilliseconds = 3600000;
         public const int kMinutesToMilliseconds = 60000;
         public const int kSecondsToMilliseconds = 1000;
-		public const int kDaysPerWeek = 7;
+        public const int kDaysPerWeek = 7;
         public const int kMaxPortNumber = 65535;
 
         public const string kHtml = "html";
@@ -149,5 +149,11 @@ namespace FWO.Basics
         public const string TASKS = "@@TASKS@@";
         public const string TICKET_SUBJECT = "@@TICKET_SUBJECT@@";
         public const string TYPE = "@@TYPE@@";
+        public const string OK_NUMBER = "@@OK_NUMBER@@";
+        public const string FAIL_NUMBER = "@@FAIL_NUMBER@@";
+        public const string INTERFACE_NAME = "@@INTERFACE_NAME@@";
+        public const string NEW_INTERFACE_NAME = "@@NEW_INTERFACE_NAME@@";
+        public const string NEW_INTERFACE_LINK = "@@NEW_INTERFACE_LINK@@";
+        public const string USER_NAME = "@@USER_NAME@@";
     }
 }

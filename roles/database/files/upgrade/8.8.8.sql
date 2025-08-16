@@ -43,3 +43,7 @@ alter table owner add column if not exists next_recert_date Timestamp;
 
 alter table owner drop constraint if exists owner_last_recertifier_uiuser_uiuser_id_f_key;
 alter table owner add constraint owner_last_recertifier_uiuser_uiuser_id_f_key foreign key (last_recertifier) references uiuser (uiuser_id) on update restrict;
+
+insert into config (config_key, config_value, config_user) VALUES ('modDecommEmailReceiver', 'None', 0) ON CONFLICT DO NOTHING;
+insert into config (config_key, config_value, config_user) VALUES ('modDecommEmailSubject', '', 0) ON CONFLICT DO NOTHING;
+insert into config (config_key, config_value, config_user) VALUES ('modDecommEmailBody', '', 0) ON CONFLICT DO NOTHING;

@@ -17,7 +17,7 @@ namespace FWO.Services
     public class EmailActionParams
     {
         [JsonProperty("to"), JsonPropertyName("to")]
-        public EmailRecipientOption RecipientTo { get; set; } = EmailRecipientOption.Requester;
+        public EmailRecipientOption RecipientTo { get; set; } = EmailRecipientOption.None;
 
         [JsonProperty("cc"), JsonPropertyName("cc")]
         public EmailRecipientOption? RecipientCC { get; set; }
@@ -63,10 +63,10 @@ namespace FWO.Services
             ScopedUserCc = scopedUserCc;
         }
 
-        public async Task<bool> SendEmailToOwnerResponsibles(FwoOwner owner, string subject, string body)
+        public async Task<bool> SendEmailToOwnerResponsibles(FwoOwner owner, string subject, string body, EmailRecipientOption recOpt, bool reqInCc = false)
         {
-            List<string>? requester = userConfig.ModReqEmailRequesterInCc ? new() { GetEmailAddress(userConfig.User.Dn) } : null;
-            return await SendEmail(GetRecipients(userConfig.ModReqEmailReceiver, null, owner, null), subject, body, requester);
+            List<string>? requester = reqInCc ? new() { GetEmailAddress(userConfig.User.Dn) } : null;
+            return await SendEmail(GetRecipients(recOpt, null, owner, null), subject, body, requester);
         }
 
         public async Task<bool> SendOwnerEmailFromAction(EmailActionParams emailActionParams, WfStatefulObject statefulObject, FwoOwner? owner)

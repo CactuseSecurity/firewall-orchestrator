@@ -162,6 +162,8 @@
                     PerformAction="async () => {await appHandler!.DeleteConnection(); appHandler!.RestoreTab(); StateHasChanged();}"
                     Title="@userConfig.GetText(appHandler!.ConnToDelete.IsInterface ? "delete_interface" : "delete_connection")"
                     DeleteMessage="@appHandler!.Message" DeleteAllowed="appHandler!.DeleteAllowed" AllowedRoles="@Roles.Modeller" />
+                <DecommissionInterfacePopup @bind-Display="appHandler.DecommissionInterfaceMode" ConnHandler="appHandler.ConnHandler"
+                    PossibleInterfaces="appHandler.GetInterfaces()" RefreshParent="async () => {await DefaultInit.DoNothing();}" />
             }
         </div>
     }

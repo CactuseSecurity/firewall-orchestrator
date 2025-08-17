@@ -1,16 +1,16 @@
 mutation setOwnerLastRecert(
   $id: Int!
   $lastRecert: timestamp
-  $lastRecertifierId: int
-  $lastRecertifierDn: string
+  $lastRecertifierId: Int
+  $lastRecertifierDn: String
   $nextRecertDate: timestamp
   ) {
   update_owner_by_pk(
     pk_columns: { id: $id }
     _set: {
-      last_certified: $lastRecert
-      last_certifier: $lastRecertifierId
-      last_certifier_dn: $lastRecertifierDn
+      last_recertified: $lastRecert
+      last_recertifier: $lastRecertifierId
+      last_recertifier_dn: $lastRecertifierDn
       next_recert_date: $nextRecertDate
   }) {
     updatedId: id

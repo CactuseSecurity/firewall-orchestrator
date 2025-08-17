@@ -35,7 +35,7 @@
             {
                 // Display all rules to recertify (name, last recert, ...)
                 <br>
-                @((MarkupString)userConfig.ModRecertText.Replace(Placeholder.APPNAME, AppHandler.DisplayApp(AppHandler.Application)))
+                @((MarkupString)userConfig.ModRecertText.Replace(Placeholder.APPNAME, AppHandler!.DisplayApp(AppHandler.Application)))
             }
             else if(RequestRunning)
             {

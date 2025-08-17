@@ -29,10 +29,12 @@ namespace FWO.Recert
                 nextRecertDate = nextRecertDate,
                 comment = comment
             };
-            if((await apiConnection.SendQueryAsync<ReturnId>(RecertQueries.recertifyOwner, recertVariables)).AffectedRows > 0)
+            ReturnId []? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(RecertQueries.recertifyOwner, recertVariables)).ReturnIds;
+            if (returnIds != null && returnIds.Length > 0)
             {
                 var ownerVariables = new
                 {
+                    id = owner.Id,
                     lastRecert = recertDate,
                     lastRecertifierId = userConfig.User.DbId,
                     lastRecertifierDn = userConfig.User.Dn,

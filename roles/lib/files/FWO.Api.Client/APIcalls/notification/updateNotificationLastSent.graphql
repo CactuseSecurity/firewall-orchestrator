@@ -1,6 +1,6 @@
 mutation updateNotificationLastSent(
   $id: Int!
-  $lastSent: Timestamp
+  $lastSent: timestamp
   ) {
   update_notification_by_pk(
     pk_columns: { id: $id }

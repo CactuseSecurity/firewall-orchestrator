@@ -62,6 +62,17 @@ namespace FWO.Middleware.Server
             }
         }
 
+        /// <summary>
+        /// Split email addresses from string to list
+        /// </summary>
+        /// <param name="adrresslist"></param>
+        /// <returns></returns>
+        public static List<string> SplitAddresses(string adrresslist)
+        {
+            string[] separatingStrings = [",", ";", "|"];
+            return [.. adrresslist.Split(separatingStrings, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)];
+        }
+
         private static bool IsTimeToSend(FwoOwner owner, FwoNotification notification)
         {
             if (notification.Deadline == NotificationDeadline.None)
@@ -165,7 +176,7 @@ namespace FWO.Middleware.Server
                         break;
                 }
             }
-            MailData mailData = new(CollectRecipients(notification, owner), subject) { Body = body };
+            MailData mailData = new(await CollectRecipients(notification, owner), subject) { Body = body, Cc = await CollectRecipients(notification, owner, true) };
             if (attachment != null)
             {
                 mailData.Attachments = new FormFileCollection() { attachment };
@@ -221,14 +232,16 @@ namespace FWO.Middleware.Server
             }
         }
 
-        private List<string> CollectRecipients(FwoNotification notification, FwoOwner owner)
+        private async Task<List<string>> CollectRecipients(FwoNotification notification, FwoOwner owner, bool cc = false)
         {
             if (GlobalConfig.UseDummyEmailAddress)
             {
                 return [GlobalConfig.DummyEmailAddress];
             }
             EmailHelper emailHelper = new(ApiConnection, null, new(), DefaultInit.DoNothing, OwnerGroups);
-            return emailHelper.GetRecipients(notification.RecipientTo, null, owner, null);
+            await emailHelper.Init();
+            return emailHelper.GetRecipients(cc ? notification.RecipientCc : notification.RecipientTo, null, owner, null,
+                SplitAddresses(cc ? notification.EmailAddressCc : notification.EmailAddressTo));
         }
     }
 }

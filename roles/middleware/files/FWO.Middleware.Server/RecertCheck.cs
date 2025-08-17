@@ -26,7 +26,7 @@ namespace FWO.Middleware.Server
         private List<UiUser> uiUsers = [];
         private RecertCheckParams? globCheckParams;
         private List<FwoOwner> owners = [];
-        private readonly List<UserGroup> OwnerGroups = [];
+        private List<UserGroup> OwnerGroups = [];
         private const string LogMessageTitle = "Recertification Check";
 
         /// <summary>
@@ -52,8 +52,10 @@ namespace FWO.Middleware.Server
                     globalConfig.EmailTls, globalConfig.EmailUser, decryptedSecret, globalConfig.EmailSenderAddress);
                 JwtWriter jwtWriter = new(ConfigFile.JwtPrivateKey);
                 ApiConnection apiConnectionReporter = new GraphQlApiConnection(ConfigFile.ApiServerUri ?? throw new ArgumentException("Missing api server url on startup."), jwtWriter.CreateJWTReporterViewall());
-                
-                NotificationService notificationService = await NotificationService.CreateAsync(NotificationClient.Recertification, globalConfig, apiConnectionReporter, OwnerGroups);
+                OwnerGroups = await MiddlewareServerServices.GetInternalGroups(apiConnectionMiddlewareServer);
+
+                NotificationService notificationService = await NotificationService.CreateAsync(NotificationClient.Recertification, globalConfig,
+                    globalConfig.RecertificationMode == RecertificationMode.RuleByRule? apiConnectionReporter : apiConnectionMiddlewareServer, OwnerGroups);
 
                 foreach (var owner in owners.Where(o => IsCheckTime(o)))
                 {

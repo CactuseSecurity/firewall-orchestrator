@@ -241,8 +241,8 @@
     private void EditNotification(FwoNotification notification)
     {
         actNotification = notification;
-        ToAddresses = SplitAddresses(notification.EmailAddressTo);
-        CcAddresses = SplitAddresses(notification.EmailAddressCc);
+        ToAddresses = NotificationService.SplitAddresses(notification.EmailAddressTo);
+        CcAddresses = NotificationService.SplitAddresses(notification.EmailAddressCc);
         EditNotifMode = true;
     }
 
@@ -281,12 +281,6 @@
         {
             DisplayMessageInUi(null, userConfig.GetText("email_address"), userConfig.GetText("U0001"), true);
         }
-    }
-
-    public static List<string> SplitAddresses(string adrresslist)
-    {
-        string[] separatingStrings = [",", ";", "|"];
-        return [.. adrresslist.Split(separatingStrings, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)];
     }
 
     public string DisplayNotification(FwoNotification notification)

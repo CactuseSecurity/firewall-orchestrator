@@ -113,7 +113,7 @@ namespace FWO.Mail
             mail.Sender = new MailboxAddress(senderString, senderString);
 
             // Receiver
-            foreach (string mailAddress in mailData.To)
+            foreach (string mailAddress in mailData.To.Where(x => !string.IsNullOrWhiteSpace(x)))
             {
                 mail.To.Add(MailboxAddress.Parse(mailAddress));
             }

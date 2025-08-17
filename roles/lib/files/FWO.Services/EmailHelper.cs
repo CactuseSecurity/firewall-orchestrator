@@ -66,13 +66,13 @@ namespace FWO.Services
         public async Task<bool> SendEmailToOwnerResponsibles(FwoOwner owner, string subject, string body, EmailRecipientOption recOpt, bool reqInCc = false)
         {
             List<string>? requester = reqInCc ? new() { GetEmailAddress(userConfig.User.Dn) } : null;
-            return await SendEmail(GetRecipients(recOpt, null, owner, null), subject, body, requester);
+            return await SendEmail(GetRecipients(recOpt, null, owner, null, null), subject, body, requester);
         }
 
         public async Task<bool> SendOwnerEmailFromAction(EmailActionParams emailActionParams, WfStatefulObject statefulObject, FwoOwner? owner)
         {
-            List<string> tos = GetRecipients(emailActionParams.RecipientTo, statefulObject, owner, ScopedUserTo);
-            List<string>? ccs = emailActionParams.RecipientCC != null ? GetRecipients((EmailRecipientOption)emailActionParams.RecipientCC, statefulObject, owner, ScopedUserCc) : null;
+            List<string> tos = GetRecipients(emailActionParams.RecipientTo, statefulObject, owner, ScopedUserTo, null);
+            List<string>? ccs = emailActionParams.RecipientCC != null ? GetRecipients((EmailRecipientOption)emailActionParams.RecipientCC, statefulObject, owner, ScopedUserCc, null) : null;
             return await SendEmail(tos, emailActionParams.Subject, emailActionParams.Body, ccs);
         }
 
@@ -90,7 +90,7 @@ namespace FWO.Services
             return await MailKitMailer.SendAsync(new MailData(tos, subject) { Body = body, Cc = ccs ?? [] }, emailConnection, true, new CancellationToken());
         }
 
-        public List<string> GetRecipients(EmailRecipientOption recipientOption, WfStatefulObject? statefulObject, FwoOwner? owner, string? scopedUser)
+        public List<string> GetRecipients(EmailRecipientOption recipientOption, WfStatefulObject? statefulObject, FwoOwner? owner, string? scopedUser, List<string>? otherAddresses)
         {
             List<string> recipients = [];
             switch (recipientOption)
@@ -132,7 +132,12 @@ namespace FWO.Services
                     {
                         recipients.AddRange(ownerGroupAdresses);
                     }
-
+                    break;
+                case EmailRecipientOption.OtherAddresses:
+                    if (otherAddresses != null)
+                    {
+                        recipients.AddRange(otherAddresses);
+                    }
                     break;
                 default:
                     break;

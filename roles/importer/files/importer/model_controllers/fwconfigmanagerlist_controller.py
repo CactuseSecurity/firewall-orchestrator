@@ -2,6 +2,7 @@ import json
 import jsonpickle
 import time
 import traceback
+from copy import deepcopy
 
 import fwo_globals
 from fwo_log import getFwoLogger
@@ -150,11 +151,12 @@ class FwConfigManagerListController(FwConfigManagerList):
             debug_start_time = int(time.time())
             try:
                 normalized_config_filename = f"{import_tmp_path}/mgm_id_{str(importState.MgmDetails.Id)}_config_normalized.json"
+
+                config_copy_without_native= deepcopy(self)
+                config_copy_without_native.native_config = {}
+
                 with open(normalized_config_filename, "w") as json_data:
-                    if importState.ImportVersion>8:
-                        json_data.write(self.toJsonString(prettyPrint=True))
-                    else:
-                        json_data.write(self.toJsonStringLegacy(prettyPrint=True))
+                    json_data.write(config_copy_without_native.toJsonString(prettyPrint=True))
                 time_write_debug_json = int(time.time()) - debug_start_time
                 logger.debug(f"storeFullNormalizedConfigToFile - writing normalized config json files duration {str(time_write_debug_json)}s")
             except Exception:

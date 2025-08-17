@@ -1094,6 +1094,11 @@ INSERT INTO config (config_key, config_value, config_user)
 VALUES ('complianceCheckDiffReferenceInterval', '0', 0) 
 ON CONFLICT (config_key, config_user) DO NOTHING;
 
+-- add parameter to define network object that is treated as internet zone to config
+
+INSERT INTO config (config_key, config_value, config_user) 
+VALUES ('complianceCheckInternetZoneObject', '', 0)
+ON CONFLICT (config_key, config_user) DO NOTHING;
 
 -- adding labels (simple version without mapping tables and without foreign keys)
 

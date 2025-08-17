@@ -2515,6 +2515,8 @@ INSERT INTO txt VALUES ('complianceCheckMailBody','German', 'Text der Benachrich
 INSERT INTO txt VALUES ('complianceCheckMailBody','English','Body of notification emails');
 INSERT INTO txt VALUES ('complianceMatrixAllowNetworkZones','German', 'Netzwerkzonenverschachtelung erlauben');
 INSERT INTO txt VALUES ('complianceMatrixAllowNetworkZones','English','Nested Network Zones allowed');
+INSERT INTO txt VALUES ('complianceCheckInternetZoneObject','German', 'Internetzone');
+INSERT INTO txt VALUES ('complianceCheckInternetZoneObject','English','Internet zone');
 INSERT INTO txt VALUES ('availableModules',     'German', 	'Verf&uuml;gbare Module');
 INSERT INTO txt VALUES ('availableModules',     'English', 	'Available Modules');
 
@@ -5640,10 +5642,12 @@ INSERT INTO txt VALUES ('H5809', 'German',  'Wenn aktiviert, wird beim Erstellen
 INSERT INTO txt VALUES ('H5809', 'English', 'If checked, the use of nested network zones for compliance matrices is enabled.');
 INSERT INTO txt VALUES ('H5810', 'German',  'Die Policy, die f&uuml;r den termingesteuerten Compliance Check genutzt wird.');
 INSERT INTO txt VALUES ('H5810', 'English', 'Policy used for the scheduled compliance check.');
-INSERT INTO txt VALUES ('H5811', 'German',  'Importieren einer Matrix via JSON Datei. ');
-INSERT INTO txt VALUES ('H5811', 'English', 'Import of a matrix via JSON file. ');
-INSERT INTO txt VALUES ('H5812', 'German',  'Definition vom Kriterien mit fixem Inhalt');
-INSERT INTO txt VALUES ('H5812', 'English', 'Definition of Criteria with fixed content. ');
+INSERT INTO txt VALUES ('H5811', 'German',  'Das Netzwerkobjekt, dass die Netzwerkzone "Internet" darstellt.');
+INSERT INTO txt VALUES ('H5811', 'English', 'The network object that is taken for the network zone "Internet".');
+INSERT INTO txt VALUES ('H5812', 'German',  'Importieren einer Matrix via JSON Datei. ');
+INSERT INTO txt VALUES ('H5812', 'English', 'Import of a matrix via JSON file. ');
+INSERT INTO txt VALUES ('H5813', 'German',  'Definition vom Kriterien mit fixem Inhalt');
+INSERT INTO txt VALUES ('H5813', 'English', 'Definition of Criteria with fixed content. ');
 
 INSERT INTO txt VALUES ('H6001', 'German',  'Firewall Orchestrator verf&uuml;gt &uuml;ber zwei APIs:
     <ul>

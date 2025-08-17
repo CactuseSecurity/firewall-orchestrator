@@ -32,6 +32,8 @@
   rule_svc_neg
   rule_num_numeric
   rule_name
+  rule_installon
+  rule_custom_fields
   access_rule
   nat_rule
   xlate_rule  

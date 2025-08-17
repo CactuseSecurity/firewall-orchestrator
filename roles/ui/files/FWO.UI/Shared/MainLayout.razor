@@ -29,7 +29,7 @@
         <button type="button" @onclick="@(() => ShowMessage("warning", "warning", MessageType.Warning))">warning</button>
         <button type="button" @onclick="@(() => ShowMessage("error", "error", MessageType.Error))">error</button>
         <button type="button" @onclick="@(() => ShowMessage("success", "success", MessageType.Success))">success</button>
-        <button type="button" @onclick="@(() => {  UIMessageQue.Clear(); UIMessages.Clear(); })">clear</button> *@    
+        <button type="button" @onclick="@(() => {  UIMessageQue.Clear(); UIMessages.Clear(); })">clear</button> *@
         <CascadingValue Value="@DisplayMessageInUiFunction">
             @Body
         </CascadingValue>
@@ -120,8 +120,8 @@
         UIMessageQueTimer = new()
             {
                 AutoReset = true,
-                Enabled = true,
-                Interval = 150
+                Enabled = false,
+                Interval = 500
             };
 
         UIMessageQueTimer.Elapsed += OnUIMessageTimerTick;
@@ -252,6 +252,8 @@
             {
                 UIMessageQue.Enqueue(uiMessage);
             }
+
+            UIMessageQueTimer?.Start();
         }
     }
 
@@ -262,6 +264,17 @@
 
     private void OnUIMessageTimerTick(object? _, ElapsedEventArgs __)
     {
+        if(UIMessageQueTimer is null)
+        {
+            return;
+        }
+
+        if(UIMessageQue == null || UIMessageQue.Count == 0)
+        {
+            UIMessageQueTimer.Stop();
+            return;
+        }
+
         if (UIMessageQue.Count > 0 && UIMessages.Count < userConfig.MaxMessages)
         {
             UIMessage uiMessage = UIMessageQue.Dequeue();

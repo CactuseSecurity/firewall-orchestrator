@@ -104,47 +104,47 @@
         <div class="card me-1 ms-1 mb-1 shadow">
             <div class="card-body">
                 @if (currentReport != null)
-                {
-                    @switch (currentReport.ReportType)
-                    {
-                        case ReportType.Rules:
-                        case ReportType.ResolvedRules:
-                        case ReportType.ResolvedRulesTech:
-                        case ReportType.Recertification:
-                        case ReportType.UnusedRules:
-                        case ReportType.NatRules:
-                        case ReportType.AppRules:
-                        case ReportType.Compliance:
-                            <RulesReport Managements="currentReport.ReportData.ManagementData" SelectedReportType="actReportFilters.ReportType" RulesPerPage="rulesPerPage"
-                                @bind-SelectedRules="selectedItemsRuleReportTable" />
-                            break;
+                {   
+                        @switch (currentReport.ReportType)
+                        {
+                            case ReportType.Rules:
+                            case ReportType.ResolvedRules:
+                            case ReportType.ResolvedRulesTech:
+                            case ReportType.Recertification:
+                            case ReportType.UnusedRules:
+                            case ReportType.NatRules:
+                            case ReportType.AppRules:
+                            case ReportType.Compliance:
+                                <RulesReport Managements="currentReport.ReportData.ManagementData" SelectedReportType="actReportFilters.ReportType" RulesPerPage="rulesPerPage"
+                                    @bind-SelectedRules="selectedItemsRuleReportTable" />
+                                break;
 
-                        case ReportType.ComplianceNew:
-                            <ComplianceReport ReportData="currentReport.ReportData" RulesPerPage="rulesPerPage" @bind-SelectedRules="selectedItemsRuleReportTable"/>
-                            break;
+                            case ReportType.ComplianceNew:
+                                <ComplianceReport ReportData="currentReport.ReportData" RulesPerPage="rulesPerPage" @bind-SelectedRules="selectedItemsRuleReportTable"/>
+                                break;
 
-                        case ReportType.Changes:
-                        case ReportType.ResolvedChanges:
-                        case ReportType.ResolvedChangesTech:
-                            <ChangesReport Managements="currentReport.ReportData.ManagementData" SelectedReportType="actReportFilters.ReportType" RulesPerPage="rulesPerPage"
-                                @bind-SelectedRuleChanges="selectedItemsChangeReportTable" />
-                            break;
+                            case ReportType.Changes:
+                            case ReportType.ResolvedChanges:
+                            case ReportType.ResolvedChangesTech:
+                                <ChangesReport Managements="currentReport.ReportData.ManagementData" SelectedReportType="actReportFilters.ReportType" RulesPerPage="rulesPerPage"
+                                    @bind-SelectedRuleChanges="selectedItemsChangeReportTable" />
+                                break;
 
-                        case ReportType.Statistics:
-                            <StatisticsReport Managements="currentReport.ReportData.ManagementData" GlobalStats="currentReport.ReportData.GlobalStats"/>
-                            break;
+                            case ReportType.Statistics:
+                                <StatisticsReport Managements="currentReport.ReportData.ManagementData" GlobalStats="currentReport.ReportData.GlobalStats"/>
+                                break;
 
-                        case ReportType.Connections:
-                            <ConnectionsReport OwnerData="currentReport.ReportData.OwnerData" AllCommonServices="currentReport.ReportData.GlobalComSvc?.FirstOrDefault()?.GlobalComSvcs"/>
-                            break;
+                            case ReportType.Connections:
+                                <ConnectionsReport OwnerData="currentReport.ReportData.OwnerData" AllCommonServices="currentReport.ReportData.GlobalComSvc?.FirstOrDefault()?.GlobalComSvcs"/>
+                                break;
 
-                        case ReportType.VarianceAnalysis:
-                            <VariancesReport OwnerData="currentReport.ReportData.OwnerData"/>
-                            break;
+                            case ReportType.VarianceAnalysis:
+                                <VariancesReport OwnerData="currentReport.ReportData.OwnerData"/>
+                                break;
 
-                        default:
-                            break;
-                    }
+                            default:
+                                break;
+                        }
                 }
             </div>
         </div>
@@ -158,9 +158,13 @@
             {
                 <small> @(userConfig.GetText("report_duration")) @((reportGenerationDuration/60.0).ToString("0.00")) @(userConfig.GetText("minutes")).</small>
             }
-
-            <small>Generated @currentReport.ReportData.RulesFlat.Count rules.</small>
+        }   
+        @if (currentReport != null && currentReport.ReportType != ReportType.Statistics)
+        {
+            <small>@(userConfig.GetText("report_elements")): (@currentReport.ReportData.ElementsCount).</small>
         }
+            
+
     </div>
 
     @* ==== RIGHT SIDEBAR ==== *@
@@ -339,11 +343,11 @@
 
     private void ResetReport()
     {
-        // clear report data when switching reportType as we would be missing src/dst/svc information in some cases
         if (currentReport != null)
         {
             currentReport.ReportData = new ();
         }
+
         reportGenerationDuration = 0;
     }
 

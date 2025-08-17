@@ -660,6 +660,8 @@ INSERT INTO txt VALUES ('objects',		        'German', 	'Objekte');
 INSERT INTO txt VALUES ('objects',		        'English', 	'Objects');
 INSERT INTO txt VALUES ('report_duration',		'German', 	'Report-Generierung in');
 INSERT INTO txt VALUES ('report_duration',		'English', 	'Report generation took');
+INSERT INTO txt VALUES ('report_elements',       'German', 	'Ausgewertete Elemente');
+INSERT INTO txt VALUES ('report_elements',       'English', 'Evaluated elements');
 INSERT INTO txt VALUES ('seconds',		        'German', 	'Sekunden');
 INSERT INTO txt VALUES ('seconds',		        'English', 	'seconds');
 INSERT INTO txt VALUES ('minutes',		        'German', 	'Minuten');

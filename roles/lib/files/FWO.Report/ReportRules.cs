@@ -36,6 +36,7 @@ namespace FWO.Report
         private bool VarianceMode = false;
 
         private static IRuleTreeBuilder? _ruleTreeBuilder;
+        private static Dictionary<(int deviceId, int managementId), List<Rule>> _rulesCache = new();
 
         public ReportRules(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType) : base(query, userConfig, reportType) { }
 
@@ -65,7 +66,7 @@ namespace FWO.Report
                 }
                 keepFetching = false;
                 Query.QueryVariables[QueryVar.Offset] = (int)Query.QueryVariables[QueryVar.Offset] + elementsPerFetch;
-                foreach(var management in managementsWithRelevantImportId)
+                foreach (var management in managementsWithRelevantImportId)
                 {
                     SetMgtQueryVars(management);
                     ManagementReport? mgtToFill = ReportData.ManagementData.FirstOrDefault(m => m.Id == management.Id);
@@ -78,7 +79,30 @@ namespace FWO.Report
                 }
                 await callback(ReportData);
             }
+
             SetReportedRuleIds();
+            
+            int ruleCount = 0;
+
+            foreach (var managementReport in ReportData.ManagementData)
+            {
+                foreach (var deviceReport in managementReport.Devices)
+                {
+                    _ruleTreeBuilder = FWO.Services.ServiceProvider.UiServices.GetService<IRuleTreeBuilder>();
+
+                    List<Rule> allRules = new();
+
+                    if (_ruleTreeBuilder.BuildRulebaseLinkQueue(deviceReport.RulebaseLinks, managementReport.Rulebases) != null)
+                    {
+                        allRules = _ruleTreeBuilder.BuildRuleTree();
+                        ruleCount += allRules.Count;
+                    }
+
+                    _rulesCache[(deviceReport.Id, managementReport.Id)] = allRules;
+                }
+            }
+
+            ReportData.ElementsCount = ruleCount;
         }
 
         protected virtual void SetMgtQueryVars(ManagementReport management)
@@ -221,16 +245,14 @@ namespace FWO.Report
 
         public static Rule[] GetAllRulesOfGateway(DeviceReportController deviceReport, ManagementReport managementReport)
         {
-            _ruleTreeBuilder = FWO.Services.ServiceProvider.UiServices.GetService<IRuleTreeBuilder>();
-
-            List<Rule> allRules = new();
-
-            if (_ruleTreeBuilder.BuildRulebaseLinkQueue(deviceReport.RulebaseLinks, managementReport.Rulebases) != null)
+            if (_rulesCache.TryGetValue((deviceReport.Id, managementReport.Id), out List<Rule> allRules))
             {
-                allRules = _ruleTreeBuilder.BuildRuleTree(); 
+                return allRules.ToArray();
             }
-
-            return allRules.ToArray();
+            else
+            {
+                return [];
+            }
         }
 
         public virtual List<Rule> GetRules()

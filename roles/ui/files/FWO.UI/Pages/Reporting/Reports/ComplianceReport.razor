@@ -14,7 +14,7 @@
         PageSize="RulesPerPage" 
         ColumnReorder="true" 
         TableRowClass="@(rule => getTableRowClasses(rule))"
-        @ref="reportTable">
+        @ref="_reportTable">
 
 
         @if (EmptyColumns[0] == false)
@@ -144,7 +144,7 @@
 
         <CustomRow TableItem="Rule" IsActiveForItem="(rule => !String.IsNullOrEmpty(rule.SectionHeader))">
             <tr>
-                <td class="bg-light" colspan="@(reportTable?.Columns.Count + 1)">
+                <td class="bg-light" colspan="@(_reportTable?.Columns.Count + 1)">
                     <div class="font-weight-bold">@(context.SectionHeader)</div>
                 </td>
             </tr>
@@ -174,7 +174,7 @@
     [Parameter]
     public int Width { get; set; }
 
-    private ITable<Rule>? reportTable;
+    private ITable<Rule>? _reportTable;
     private Rule[] _rules = [];
     private const int ColumnsCount = 14;
     private bool[] EmptyColumns = new bool[ColumnsCount];

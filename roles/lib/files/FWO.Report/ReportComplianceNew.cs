@@ -97,6 +97,7 @@ namespace FWO.Report
             await Task.WhenAll(setComplianceDataForRuleTasks);
 
             ReportData.RulesFlat = Rules;
+            ReportData.ElementsCount = Rules.Count;
         }
 
         private bool CheckFetching(int rulesCount, int offset)

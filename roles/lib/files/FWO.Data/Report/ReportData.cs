@@ -7,6 +7,7 @@
         public List<GlobalCommonSvcReport> GlobalComSvc = [];
         public ManagementReport GlobalStats = new();
         public List<Rule> RulesFlat = [];
+        public int ElementsCount { get; set; }
 
 
         public ReportData()

@@ -1,15 +1,33 @@
 using Microsoft.JSInterop;
+using Newtonsoft.Json.Linq;
 using System.Diagnostics;
 
 namespace FWO.Ui.Services
 {
 	public class DomEventService
 	{
-		public event Action<string>? OnGlobalScroll;
+        public event Action<string>? OnGlobalScroll;
 		public event Action<string>? OnGlobalClick;
 		public event Action? OnGlobalResize;
 
-		public bool Initialized { get; private set; } = false;
+        private Action<int>? _navbarHeightSubscribers;
+        private int? _lastNavbarHeight;
+
+        public event Action<int>? OnNavbarHeightChanged
+        {
+            add
+            {
+                _navbarHeightSubscribers += value;
+                // Fire immediately (once) if we already have a cached value
+                if (_lastNavbarHeight.HasValue)
+                {
+                    value?.Invoke(_lastNavbarHeight.Value);
+                }
+            }
+            remove => _navbarHeightSubscribers -= value;
+        }
+
+        public bool Initialized { get; private set; } = false;
 
 		[JSInvokable]
 		public void InvokeOnGlobalScroll(string elementId)
@@ -29,7 +47,14 @@ namespace FWO.Ui.Services
 			OnGlobalClick?.Invoke(elementId ?? "");
 		}
 
-		public async Task Initialize(IJSRuntime runtime)
+        [JSInvokable]
+        public void InvokeNavbarHeightChanged(int height)
+        {
+            _lastNavbarHeight = height;
+            _navbarHeightSubscribers?.Invoke(height);
+        }
+
+        public async Task Initialize(IJSRuntime runtime)
 		{
 			if (!Initialized)
 			{
@@ -38,6 +63,7 @@ namespace FWO.Ui.Services
                     await runtime.InvokeVoidAsync("globalScroll", DotNetObjectReference.Create(this));
                     await runtime.InvokeVoidAsync("globalResize", DotNetObjectReference.Create(this));
                     await runtime.InvokeVoidAsync("globalClick", DotNetObjectReference.Create(this));
+                    await runtime.InvokeVoidAsync("observeNavbarHeight", DotNetObjectReference.Create(this));
                     Initialized = true;
                 }
                 catch(Exception ex)

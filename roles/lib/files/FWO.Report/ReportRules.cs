@@ -31,6 +31,8 @@ namespace FWO.Report
     
     public class ReportRules : ReportDevicesBase
     {
+        public bool BuildRuleTree = true;
+
         private const int ColumnCount = 12;
         protected bool UseAdditionalFilter = false;
         private bool VarianceMode = false;
@@ -82,20 +84,37 @@ namespace FWO.Report
 
             SetReportedRuleIds();
             
+        }
+
+        private void TryBuildRuleTree()
+        {
             int ruleCount = 0;
 
             foreach (var managementReport in ReportData.ManagementData)
             {
                 foreach (var deviceReport in managementReport.Devices)
                 {
-                    _ruleTreeBuilder = FWO.Services.ServiceProvider.UiServices.GetService<IRuleTreeBuilder>();
-
                     List<Rule> allRules = new();
-
-                    if (_ruleTreeBuilder.BuildRulebaseLinkQueue(deviceReport.RulebaseLinks, managementReport.Rulebases) != null)
+                    
+                    if (BuildRuleTree && FWO.Services.ServiceProvider.UiServices is IServiceProvider serviceProvider)
                     {
-                        allRules = _ruleTreeBuilder.BuildRuleTree();
-                        ruleCount += allRules.Count;
+                        _ruleTreeBuilder = serviceProvider.GetService<IRuleTreeBuilder>();
+
+                        if (_ruleTreeBuilder?.BuildRulebaseLinkQueue(deviceReport.RulebaseLinks, managementReport.Rulebases) != null)
+                        {
+                            allRules = _ruleTreeBuilder.BuildRuleTree();
+                            ruleCount += allRules.Count;
+                        }
+                    }
+                    else
+                    {
+                        // if we are not building the rule tree, we just collect all rules from the rulebases
+
+                        foreach (var rulebase in managementReport.Rulebases)
+                        {
+                            allRules.AddRange(rulebase.Rules);
+                            ruleCount += rulebase.Rules.Count();
+                        }
                     }
 
                     _rulesCache[(deviceReport.Id, managementReport.Id)] = allRules;
@@ -109,7 +128,7 @@ namespace FWO.Report
         {
             Query.QueryVariables[QueryVar.MgmId] = management.Id;
             Query.QueryVariables[QueryVar.ImportIdStart] = management.Import.ImportAggregate.ImportAggregateMax.RelevantImportId ?? -1; /* managment was not yet imported at that time */;
-            Query.QueryVariables[QueryVar.ImportIdEnd]   = management.Import.ImportAggregate.ImportAggregateMax.RelevantImportId ?? -1; /* managment was not yet imported at that time */;
+            Query.QueryVariables[QueryVar.ImportIdEnd] = management.Import.ImportAggregate.ImportAggregateMax.RelevantImportId ?? -1; /* managment was not yet imported at that time */;
         }
 
         public override async Task<bool> GetObjectsInReport(int objectsPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback) // to be called when exporting

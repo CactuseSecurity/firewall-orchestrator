@@ -20,7 +20,7 @@ namespace FWO.Report
             _semaphore = new SemaphoreSlim(_maxDegreeOfParallelism);
         }
 
-        public override async Task Generate(int elementsPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback, CancellationToken ct)
+        public override async Task Generate(int rulesPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback, CancellationToken ct)
         {
             // Get amount of rules to fetch.
 
@@ -29,7 +29,7 @@ namespace FWO.Report
 
             // Get data parallelized.
 
-            Rules = await GetDataParallelized<Rule>(rulesCount, elementsPerFetch, apiConnection, ct, RuleQueries.getRulesWithViolationsByChunk);
+            Rules = await GetDataParallelized<Rule>(rulesCount, rulesPerFetch, apiConnection, ct, RuleQueries.getRulesWithViolationsByChunk);
             Log.TryWriteLog(LogType.Debug, "Compliance Report Prototype", $"Fetched {Rules.Count} rules for compliance report.", DebugConfig.ExtendedLogReportGeneration);
 
             // Set compliance data.

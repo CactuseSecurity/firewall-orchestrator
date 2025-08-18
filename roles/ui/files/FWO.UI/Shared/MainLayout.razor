@@ -1,5 +1,8 @@
 @inherits LayoutComponentBase
 @using FWO.Middleware.Client
+@using FWO.Services.EventMediator
+@using FWO.Services.EventMediator.Events
+@using FWO.Services.EventMediator.Interfaces
 @using FWO.Ui.Auth
 @using FWO.Ui.Data
 @using FWO.Ui.Services
@@ -17,6 +20,9 @@
 @inject AuthenticationStateProvider authenticationProvider
 @inject ProtectedSessionStorage sessionStorage
 @inject CircuitHandler circuitHandler
+@inject IEventMediator EventMediator
+
+@implements IDisposable
 
 <NavigationMenu @bind-ShowAlert="showAlert" />
 
@@ -122,9 +128,20 @@
                 Interval = 500
             };
 
-        UIMessageQueTimer.Elapsed += OnUIMessageTimerTick;
+		UIMessageQueTimer.Elapsed += OnUIMessageTimerTick;
+
+		EventMediator.Subscribe<UserSessionClosedEvent>(nameof(CircuitHandlerService), _ => OnUserSessionClosedEvent(_.EventArgs));
     }
 
+	private void OnUserSessionClosedEvent(UserSessionClosedEventArgs? e)
+	{
+		if (e == null || string.IsNullOrEmpty(e.UserDn))
+		{
+			return;
+		}
+
+		JwtEventService.RemoveJwtTimers(e.UserDn);
+	}
 
     private async Task KeyHandler(KeyboardEventArgs ev)
     {
@@ -428,7 +445,7 @@
         {
             Log.WriteError("Write Alert", $"Could not write alert for user {userConfig.User.DbId}: ", exc);
         }
-    }
+    }    
 
     public async Task AcknowledgeAlert(long alertId)
     {
@@ -446,5 +463,10 @@
         {
             Log.WriteError("Acknowledge Alert", $"Could not acknowledge alert for ui: ", exception);
         }
-    }
+	}
+
+	public void Dispose()
+	{
+		EventMediator.Unsubscribe<UserSessionClosedEvent>(nameof(CircuitHandlerService));
+	}
 }

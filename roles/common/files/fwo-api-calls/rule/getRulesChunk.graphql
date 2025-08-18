@@ -1,5 +1,0 @@
-    query getRulesChank($limit: Int, $offset: Int, $active: Boolean, $import_id_start: bigint, $import_id_end: bigint) {
-      rule(limit: $limit, offset: $offset, order_by: { rule_id: asc }) {
-        ...ruleDetails
-      }
-    }

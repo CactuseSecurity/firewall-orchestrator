@@ -13,8 +13,6 @@ namespace FWO.Report
     {
         private readonly int _maxDegreeOfParallelism;
         private readonly SemaphoreSlim _semaphore;
-        private List<Dictionary<string, object>> _queryVariablesList = new();
-        private List<Task> _tasks = new();
 
         public ReportComplianceNew(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType) : base(query, userConfig, reportType)
         {
@@ -24,9 +22,6 @@ namespace FWO.Report
 
         public override async Task Generate(int elementsPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback, CancellationToken ct)
         {
-            _queryVariablesList.Clear();
-            _tasks.Clear();
-        
             // Get amount of rules to fetch.
 
             var result = await apiConnection.SendQueryAsync<AggregateCount>(RuleQueries.countRules);
@@ -34,11 +29,8 @@ namespace FWO.Report
 
             // Get data parallelized.
 
-            Rules = await GetDataParallelized<Rule>(rulesCount, elementsPerFetch, apiConnection, ct, RuleQueries.getRulesChunk);
+            Rules = await GetDataParallelized<Rule>(rulesCount, elementsPerFetch, apiConnection, ct, RuleQueries.getRulesWithViolationsByChunk);
             Log.TryWriteLog(LogType.Debug, "Compliance Report Prototype", $"Fetched {Rules.Count} rules for compliance report.", DebugConfig.ExtendedLogReportGeneration);
-
-            Violations = await GetDataParallelized<ComplianceViolation>(rulesCount, elementsPerFetch, apiConnection, ct, ComplianceQueries.getViolationsChunk);
-            Log.TryWriteLog(LogType.Debug, "Compliance Report Prototype", $"Fetched {Violations.Count} violations for compliance report.", DebugConfig.ExtendedLogReportGeneration);
 
             // Set compliance data.
 
@@ -52,6 +44,8 @@ namespace FWO.Report
 
         public async Task SetComplianceData(CancellationToken ct)
         {
+            List<Task> tasks = new();
+
             foreach (Rule rule in Rules)
             {
                 await _semaphore.WaitAsync(ct);
@@ -60,7 +54,7 @@ namespace FWO.Report
                 {
                     try
                     {
-                        await SetComplianceDataForRule(rule, Violations);
+                        await SetComplianceDataForRule(rule);
                     }
                     finally
                     {
@@ -68,28 +62,69 @@ namespace FWO.Report
                     }
                 }, ct);
 
-                _tasks.Add(task);
+                tasks.Add(task);
             }
 
-            await Task.WhenAll(_tasks);
+            await Task.WhenAll(tasks);
+        }
 
-            _tasks.Clear();
+        private async Task SetComplianceDataForRule(Rule rule)
+        {
+            try
+            {
+                rule.ViolationDetails = "";
+                rule.Compliance = ComplianceViolationType.None;
+
+                if (await CheckEvaluability(rule))
+                {
+                    foreach (var violation in rule.Violations)
+                    {
+                        if (IsDiffReport && ViolationDiffs.TryGetValue(violation, out char changeSign))
+                        {
+                            violation.Details = $"({changeSign}) {violation.Details}";
+                        }
+
+                        if (rule.ViolationDetails != "")
+                        {
+                            rule.ViolationDetails += "\n";
+                        }
+
+                        rule.ViolationDetails += violation.Details;
+
+                        // No need to differentiate between different types of violations here at the moment.
+
+                        rule.Compliance = ComplianceViolationType.MultipleViolations;
+                    }                
+                }
+                else
+                {
+                    rule.Compliance = ComplianceViolationType.NotEvaluable;
+                }
+            }
+            catch (System.Exception e)
+            {
+                Log.TryWriteLog(LogType.Error, "Compliance Report", $"Error while setting compliance data for rule {rule.Id}: {e.Message}", DebugConfig.ExtendedLogReportGeneration);
+                return;
+            }
+
         }
 
         private async Task<List<T>> GetDataParallelized<T>(int rulesCount, int elementsPerFetch, ApiConnection apiConnection, CancellationToken ct, string query)
         {
             List<T> allData = new();
+            List<Task<List<T>>> tasks = new();
+            List<Dictionary<string, object>> queryVariablesList = new();
 
             // Create query variables for fetching rules
 
             for (int offset = 0; offset < rulesCount; offset += elementsPerFetch)
             {
-                _queryVariablesList.Add(CreateQueryVariables(offset, elementsPerFetch, query));
+                queryVariablesList.Add(CreateQueryVariables(offset, elementsPerFetch, query));
             }
 
             // Start fetching fetching tasks
 
-            foreach (Dictionary<string, object> queryVariables in _queryVariablesList)
+            foreach (Dictionary<string, object> queryVariables in queryVariablesList)
             {
                 await _semaphore.WaitAsync(ct);
 
@@ -97,8 +132,7 @@ namespace FWO.Report
                 {
                     try
                     {
-                        List<T> fetchedData = await apiConnection.SendQueryAsync<List<T>>(query, queryVariables);
-                        allData.AddRange(fetchedData);
+                        return await apiConnection.SendQueryAsync<List<T>>(query, queryVariables);
                     }
                     finally
                     {
@@ -106,16 +140,23 @@ namespace FWO.Report
                     }
                 }, ct);
 
-                _tasks.Add(task);
+                tasks.Add(task);
             }
 
-            // Wait for all tasks to complete and clear task list and query variables list
+            // Wait for all tasks to complete and return the data
 
-            await Task.WhenAll(_tasks);
-            _tasks.Clear();
-            _queryVariablesList.Clear();
+            List<T>[]? chunks = await Task.WhenAll(tasks);
 
-            // Return all fetched data
+            if (chunks != null)
+            {
+                foreach (List<T> chunk in chunks)
+                {
+                    if (chunk != null)
+                    {
+                        allData.AddRange(chunk);
+                    }
+                }
+            }
 
             return allData;
         }

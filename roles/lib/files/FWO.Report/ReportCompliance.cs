@@ -267,41 +267,50 @@ namespace FWO.Report
 
         protected async Task SetComplianceDataForRule(Rule rule, List<ComplianceViolation> violations)
         {
-            rule.Violations.Clear();
-            rule.ViolationDetails = "";
-            rule.Compliance = ComplianceViolationType.None;
-
-            if (await CheckEvaluability(rule))
+            try
             {
-                foreach (var violation in violations.Where(v => v.RuleId == rule.Id))
+                rule.Violations.Clear();
+                rule.ViolationDetails = "";
+                rule.Compliance = ComplianceViolationType.None;
+
+                if (await CheckEvaluability(rule))
                 {
-                    if (IsDiffReport && ViolationDiffs.TryGetValue(violation, out char changeSign))
+                    foreach (var violation in violations.Where(v => v.RuleId == rule.Id))
                     {
-                        violation.Details = $"({changeSign}) {violation.Details}";
-                    }
+                        if (IsDiffReport && ViolationDiffs.TryGetValue(violation, out char changeSign))
+                        {
+                            violation.Details = $"({changeSign}) {violation.Details}";
+                        }
 
-                    if (rule.ViolationDetails != "")
-                    {
-                        rule.ViolationDetails += "\n";
-                    }
+                        if (rule.ViolationDetails != "")
+                        {
+                            rule.ViolationDetails += "\n";
+                        }
 
-                    rule.ViolationDetails += violation.Details;
-                    rule.Violations.Add(violation);
+                        rule.ViolationDetails += violation.Details;
+                        rule.Violations.Add(violation);
 
-                    // No need to differentiate between different types of violations here at the moment.
+                        // No need to differentiate between different types of violations here at the moment.
 
-                    rule.Compliance = ComplianceViolationType.MultipleViolations;
-                }                
+                        rule.Compliance = ComplianceViolationType.MultipleViolations;
+                    }                
+                }
+                else
+                {
+                    rule.Compliance = ComplianceViolationType.NotEvaluable;
+                }
+
+                if (!Rules.Contains(rule))
+                {
+                    Rules.Add(rule);
+                }
             }
-            else
+            catch (System.Exception e)
             {
-                rule.Compliance = ComplianceViolationType.NotEvaluable;
+                Log.TryWriteLog(LogType.Error, "Compliance Report", $"Error while setting compliance data for rule {rule.Id}: {e.Message}", DebugConfig.ExtendedLogReportGeneration);
+                return;
             }
 
-            if (!Rules.Contains(rule))
-            {
-                Rules.Add(rule);
-            }
         }
 
         public Task<bool> CheckEvaluability(Rule rule)

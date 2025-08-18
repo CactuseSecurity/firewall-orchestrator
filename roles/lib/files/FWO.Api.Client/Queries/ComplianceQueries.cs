@@ -48,7 +48,6 @@ namespace FWO.Api.Client.Queries
                 getViolations = GetQueryText("compliance/getViolations.graphql");
                 updateViolationById = GetQueryText("compliance/updateViolationById.graphql");
                 removeViolations = GetQueryText("compliance/removeViolations.graphql");
-                getViolationsChunk = GetQueryText("compliance/getViolationsChunk.graphql");
 
                 addPolicy = GetQueryText("compliance/addPolicy.graphql");
                 disablePolicy = GetQueryText("compliance/disablePolicy.graphql");
@@ -65,6 +64,8 @@ namespace FWO.Api.Client.Queries
                 addCritToPolicy = GetQueryText("compliance/addCritToPolicy.graphql");
                 removeCritFromPolicy = GetQueryText("compliance/removeCritFromPolicy.graphql");
                 getPolicyIdsForCrit = GetQueryText("compliance/getPolicyIdsForCrit.graphql");
+
+                getViolationsChunk = GetQueryText("compliance/getViolationsChunk.graphql");
             }
             catch (Exception exception)
             {

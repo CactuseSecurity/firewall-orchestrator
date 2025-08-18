@@ -42,8 +42,8 @@ class FwConfigImportObject():
         self.import_state = global_state.import_state
         self.normalized_config = global_state.normalized_config
         self.global_normalized_config = global_state.global_normalized_config
-        self.group_flats_mapper = service_provider.get_service(Services.GROUP_FLATS_MAPPER)
-        self.prev_group_flats_mapper = service_provider.get_service(Services.PREV_GROUP_FLATS_MAPPER)
+        self.group_flats_mapper = service_provider.get_service(Services.GROUP_FLATS_MAPPER, self.import_state.ImportId)
+        self.prev_group_flats_mapper = service_provider.get_service(Services.PREV_GROUP_FLATS_MAPPER, self.import_state.ImportId)
         self.uid2id_mapper = service_provider.get_service(Services.UID2ID_MAPPER, self.import_state.ImportId)
 
         # Create maps.

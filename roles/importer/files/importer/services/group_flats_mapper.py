@@ -57,7 +57,7 @@ class GroupFlatsMapper:
             list[str]: The flattened network object UIDs.
         """
         if self.normalized_config is None:
-            self.log_error(f"{CONFIG_NOT_SET_MESSAGE}-networks")
+            self.log_error(f"{CONFIG_NOT_SET_MESSAGE} - networks")
             return []
         all_members = set()
         for uid in uids:
@@ -109,7 +109,7 @@ class GroupFlatsMapper:
             list[str]: The flattened service object UIDs.
         """
         if self.normalized_config is None:
-            self.log_error(f"{CONFIG_NOT_SET_MESSAGE}-services")
+            self.log_error(f"{CONFIG_NOT_SET_MESSAGE} - services")
             return []
         all_members = set()
         for uid in uids:
@@ -160,7 +160,7 @@ class GroupFlatsMapper:
             list[str]: The flattened user UIDs.
         """
         if self.normalized_config is None:
-            self.log_error(f"{CONFIG_NOT_SET_MESSAGE}-users")
+            self.log_error(f"{CONFIG_NOT_SET_MESSAGE} - users")
             return []
         all_members = set()
         for uid in uids:

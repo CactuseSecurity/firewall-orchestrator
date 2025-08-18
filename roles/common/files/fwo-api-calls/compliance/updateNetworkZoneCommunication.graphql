@@ -1,12 +1,12 @@
 mutation updateNetworkZoneCommunication(
-  $delete_zone_communication_exp: [compliance_network_zone_communication_bool_exp!]!
-  $add_zone_communication: [compliance_network_zone_communication_insert_input!]!
+  $deleteZoneCommunicationExp: [compliance_network_zone_communication_bool_exp!]!
+  $addZoneCommunication: [compliance_network_zone_communication_insert_input!]!
   $removed: timestamptz
 )
 {
   update_compliance_network_zone_communication (
     where: {
-      _or: $delete_zone_communication_exp
+      _or: $deleteZoneCommunicationExp
       removed: {_is_null: true}
     },
     _set: {
@@ -17,7 +17,7 @@ mutation updateNetworkZoneCommunication(
   }
 
   insert_compliance_network_zone_communication (
-    objects: $add_zone_communication
+    objects: $addZoneCommunication
   ) {
     affected_rows
   }

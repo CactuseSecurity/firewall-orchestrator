@@ -4,5 +4,6 @@ query getCriteria {
     name
     criterion_type
     content
+	comment
   }
 }

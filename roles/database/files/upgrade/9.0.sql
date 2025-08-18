@@ -914,10 +914,12 @@ CREATE TABLE IF NOT EXISTS compliance.criterion
 (
     id SERIAL PRIMARY KEY,
 	name TEXT,
+	comment TEXT,
 	criterion_type TEXT,
 	content TEXT,
 	removed timestamp with time zone,
-	created timestamp with time zone default now()
+	created timestamp with time zone default now(),
+	import_source TEXT
 );
 
 CREATE TABLE IF NOT EXISTS compliance.violation
@@ -937,17 +939,21 @@ CREATE TABLE IF NOT EXISTS compliance.violation
 ALTER TABLE compliance.network_zone ADD COLUMN IF NOT EXISTS "created" TIMESTAMP WITH TIME ZONE DEFAULT NOW();
 ALTER TABLE compliance.network_zone ADD COLUMN IF NOT EXISTS "removed" TIMESTAMP WITH TIME ZONE;
 ALTER TABLE compliance.network_zone ADD COLUMN IF NOT EXISTS "criterion_id" INT;
+ALTER TABLE compliance.network_zone ADD COLUMN IF NOT EXISTS "id_string" TEXT;
 ALTER TABLE compliance.network_zone_communication ADD COLUMN IF NOT EXISTS "created" TIMESTAMP WITH TIME ZONE DEFAULT NOW();
 ALTER TABLE compliance.network_zone_communication ADD COLUMN IF NOT EXISTS "removed" TIMESTAMP WITH TIME ZONE;
 ALTER TABLE compliance.network_zone_communication ADD COLUMN IF NOT EXISTS "criterion_id" INT;
 ALTER TABLE compliance.ip_range ADD COLUMN IF NOT EXISTS "created" TIMESTAMP WITH TIME ZONE DEFAULT NOW();
 ALTER TABLE compliance.ip_range ADD COLUMN IF NOT EXISTS "removed" TIMESTAMP WITH TIME ZONE;
 ALTER TABLE compliance.ip_range ADD COLUMN IF NOT EXISTS "criterion_id" INT;
+ALTER TABLE compliance.ip_range ADD COLUMN IF NOT EXISTS "name" TEXT;
 
 -- tables altered inside this version
 
 ALTER TABLE compliance.criterion ADD COLUMN IF NOT EXISTS "created" TIMESTAMP WITH TIME ZONE DEFAULT NOW();
 ALTER TABLE compliance.criterion ADD COLUMN IF NOT EXISTS "removed" TIMESTAMP WITH TIME ZONE;
+ALTER TABLE compliance.criterion ADD COLUMN IF NOT EXISTS "import_source" TEXT;
+ALTER TABLE compliance.criterion ADD COLUMN IF NOT EXISTS "comment" TEXT;
 ALTER TABLE compliance.network_zone ALTER COLUMN "removed" DROP DEFAULT;
 ALTER TABLE compliance.network_zone_communication ALTER COLUMN "removed" DROP DEFAULT;
 ALTER TABLE compliance.ip_range ALTER COLUMN "removed" DROP DEFAULT;

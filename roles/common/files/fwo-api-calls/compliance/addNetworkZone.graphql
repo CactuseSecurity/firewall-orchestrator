@@ -1,29 +1,33 @@
-mutation insert_compliance_network_zone (
-  $name: String!, $description: String!
-  $ip_ranges: [compliance_ip_range_insert_input!]!
-  $super_network_zone_id: bigint
-  $communication_sources: [compliance_network_zone_communication_insert_input!]!
-  $communication_destinations: [compliance_network_zone_communication_insert_input!]!
-  $sub_network_zones: [compliance_network_zone_insert_input!]!, $criterion_id: Int
+mutation addNetworkZone (
+  $name: String!
+  $description: String!
+  $idString: String!
+  $ipRanges: [compliance_ip_range_insert_input!]!
+  $superNetworkZoneId: bigint
+  $communicationSources: [compliance_network_zone_communication_insert_input!]!
+  $communicationDestinations: [compliance_network_zone_communication_insert_input!]!
+  $subNetworkZones: [compliance_network_zone_insert_input!]!
+  $criterionId: Int
 ) {
   insert_compliance_network_zone_one (
     object: {
-      super_network_zone_id: $super_network_zone_id,
+      super_network_zone_id: $superNetworkZoneId,
       name: $name,
+	  id_string: $idString
       description: $description,    
       ip_ranges: {
-        data: $ip_ranges
+        data: $ipRanges
       },
       network_zone_communication_destinations: {
-        data: $communication_destinations
+        data: $communicationDestinations
       },
       network_zone_communication_sources: {
-        data: $communication_sources
+        data: $communicationSources
       },
       sub_network_zones: {
-        data: $sub_network_zones
+        data: $subNetworkZones
       }
-      criterion_id: $criterion_id
+      criterion_id: $criterionId
     }
   ) {
     id

@@ -6,10 +6,13 @@
 @inject UserConfig userConfig
 @inject NetworkZoneService networkZoneService
 
-<button type="button" class="btn btn-sm btn-success mb-1" @onclick="OnAddZone">@(userConfig.GetText("add"))</button>
+@if(!ReadonlyMode)
+{
+	<button type="button" class="btn btn-sm btn-success mb-1" @onclick="OnAddZone">@(userConfig.GetText("add"))</button>
+}
 
 @*Show Top-Level Zones*@
-<ZoneTable Superzone="null" NetworkZones="networkZoneService.NetworkZones" />
+<ZoneTable Superzone="null" NetworkZones="networkZoneService.NetworkZones" ReadonlyMode="ReadonlyMode"/>
 
 @if (networkZoneInEdit != null)
 {
@@ -58,7 +61,7 @@
 								<IpAddressInput @bind-IpRange="ipRangeToAdd" />
 								<button @onclick="AddIpRange" type="button" class="btn btn-success" id="addIpAddress">@userConfig.GetText("add")</button>
 							</div>
-							<EditList ElementType="IPAddressRange" Elements="networkZoneInEdit?.IPRanges" ElementsToAdd="ipRangesToAdd" ElementsToDelete="ipRangesToDelete">
+							<EditList ElementType="IPAddressRange" Elements="networkZoneInEdit?.IPRanges" ElementsToAdd="addDel.IpRangesToAdd" ElementsToDelete="addDel.IpRangesToDelete">
 								<Display>
 									@NetworkZoneService.DisplayIpRange(context)
 								</Display>
@@ -78,13 +81,13 @@
 											@(context?.Name ?? "")
 										</ElementTemplate>
 										<Append>
-											<button @onclick="() => AddCommunicationZone(subzonesToAdd, ref subzoneToAdd, ref subzoneInputClass)"
+											<button @onclick="() => AddCommunicationZone(addDel.SubzonesToAdd, ref subzoneToAdd, ref subzoneInputClass)"
 												type="button" style="width: 60px" class="btn btn-success">@userConfig.GetText("add")</button>
 										</Append>
 									</Dropdown>
 								</div>
 								<EditList ElementType="ComplianceNetworkZone" Elements="networkZoneInEdit?.Subzones"
-									  ElementsToAdd="subzonesToAdd" ElementsToDelete="subzonesToDelete">
+									  ElementsToAdd="addDel.SubzonesToAdd" ElementsToDelete="addDel.SubzonesToDelete">
 									<Display>
 										@context.Name
 									</Display>
@@ -101,7 +104,7 @@
 									@(context?.Name ?? "")
 								</ElementTemplate>
 								<Append>
-									<button @onclick="() => AddCommunicationZone(sourceZonesToAdd, ref sourceZoneToAdd, ref sourceZoneInputClass)"
+									<button @onclick="() => AddCommunicationZone(addDel.SourceZonesToAdd, ref sourceZoneToAdd, ref sourceZoneInputClass)"
 											type="button" class="btn btn-success" style="width: 60px">
 										@userConfig.GetText("add")
 									</button>
@@ -109,7 +112,7 @@
 							</Dropdown>
 						</div>
 						<EditList ElementType="ComplianceNetworkZone" Elements="networkZoneInEdit?.AllowedCommunicationSources"
-							  ElementsToAdd="sourceZonesToAdd" ElementsToDelete="sourceZonesToDelete">
+							  ElementsToAdd="addDel.SourceZonesToAdd" ElementsToDelete="addDel.SourceZonesToDelete">
 							<Display>
 								@context.Name
 							</Display>
@@ -124,13 +127,13 @@
 									@(context?.Name ?? "")
 								</ElementTemplate>
 								<Append>
-									<button @onclick="() => AddCommunicationZone(destinationZonesToAdd, ref destinationZoneToAdd, ref destinationZoneInputClass)"
+									<button @onclick="() => AddCommunicationZone(addDel.DestinationZonesToAdd, ref destinationZoneToAdd, ref destinationZoneInputClass)"
 										type="button" class="btn btn-success" style="width: 60px">@userConfig.GetText("add")</button>
 								</Append>
 							</Dropdown>
 						</div>
 						<EditList ElementType="ComplianceNetworkZone" Elements="networkZoneInEdit?.AllowedCommunicationDestinations"
-								  ElementsToAdd="destinationZonesToAdd" ElementsToDelete="destinationZonesToDelete">
+								  ElementsToAdd="addDel.DestinationZonesToAdd" ElementsToDelete="addDel.DestinationZonesToDelete">
 							<Display>
 								@context.Name
 							</Display>
@@ -167,29 +170,21 @@
 	public ComplianceCriterion SelectedMatrix { get; set; } = new();
 
 	[Parameter]
+	public bool ReadonlyMode { get; set; } = false;
+
+	[Parameter]
 	public Func<Task> ConfigChanged { get; set; } = DefaultInit.DoNothing;
 
 	bool editMode = false;
 	bool deleteMode = false;
 	ComplianceNetworkZone? networkZoneInEdit = default!;
-
-	List<ComplianceNetworkZone> sourceZonesToAdd = [];
-	List<ComplianceNetworkZone> sourceZonesToDelete = [];
+	NetworkZoneService.AdditionsDeletions addDel = new();
 	ComplianceNetworkZone? sourceZoneToAdd;
 	string sourceZoneInputClass = "";
-
-	List<ComplianceNetworkZone> destinationZonesToAdd = [];
-	List<ComplianceNetworkZone> destinationZonesToDelete = [];
 	ComplianceNetworkZone? destinationZoneToAdd;
 	string destinationZoneInputClass = "";
-
-	List<ComplianceNetworkZone> subzonesToAdd = [];
-	List<ComplianceNetworkZone> subzonesToDelete = [];
 	ComplianceNetworkZone? subzoneToAdd;
 	string subzoneInputClass = "";
-
-	List<IPAddressRange> ipRangesToDelete = [];
-	List<IPAddressRange> ipRangesToAdd = [];
 	IPAddressRange? ipRangeToAdd;
 
 	protected override async Task OnInitializedAsync()
@@ -218,12 +213,12 @@
 
 	private bool InsertIpPossible()
 	{
-		return networkZoneInEdit != null && networkZoneInEdit.Subzones.Length == 0 && subzonesToAdd.Count == 0;
+		return networkZoneInEdit != null && networkZoneInEdit.Subzones.Length == 0 && addDel.SubzonesToAdd.Count == 0;
 	}
 
 	private bool InsertSubzonePossible()
 	{
-		return networkZoneInEdit != null && networkZoneInEdit.IPRanges.Length == 0 && ipRangesToAdd.Count == 0;
+		return networkZoneInEdit != null && networkZoneInEdit.IPRanges.Length == 0 && addDel.IpRangesToAdd.Count == 0;
 	}
 
 	private async Task OpenClearEditForm()
@@ -231,17 +226,10 @@
 		editMode = true;
 
 		ipRangeToAdd = null;
-		ipRangesToDelete = [];
-		ipRangesToAdd = [];
-
+		addDel = new();
 		destinationZoneToAdd = null;
-		destinationZonesToAdd = [];
-		destinationZonesToDelete = [];
 		destinationZoneInputClass = "";
-
 		sourceZoneToAdd = null;
-		sourceZonesToAdd = [];
-		sourceZonesToDelete = [];
 		sourceZoneInputClass = "";
 
 		await InvokeAsync(StateHasChanged);
@@ -293,43 +281,7 @@
 	{
 		if(networkZoneInEdit != null)
 		{
-			var variables = new
-			{
-				super_network_zone_id = networkZoneInEdit.Superzone?.Id,
-				name = networkZoneInEdit.Name,
-				description = networkZoneInEdit.Description,
-				ip_ranges = ipRangesToAdd.ConvertAll(range =>
-					new
-					{
-						ip_range_start = range.Begin.ToString(),
-						ip_range_end = range.End.ToString(),
-						criterion_id = networkZoneInEdit.CriterionId
-					}
-				),
-				communication_sources = sourceZonesToAdd.ConvertAll(zone =>
-					new
-					{
-						from_network_zone_id = zone.Id,
-						criterion_id = networkZoneInEdit.CriterionId
-					}
-				),
-				communication_destinations = destinationZonesToAdd.ConvertAll(zone =>
-					new
-					{
-						to_network_zone_id = zone.Id,
-						criterion_id = networkZoneInEdit.CriterionId
-					}
-				),
-				sub_network_zones = subzonesToAdd.ConvertAll(zone =>
-					new
-					{
-						id = zone.Id
-					}
-				),
-				criterion_id = networkZoneInEdit.CriterionId
-			};
-
-			await apiConnection.SendQueryAsync<dynamic>(ComplianceQueries.addNetworkZone, variables);
+			await NetworkZoneService.AddZone(networkZoneInEdit, addDel, apiConnection);
 			DisplayMessageInUi(null, userConfig.GetText("U0010"), userConfig.GetText("U0011"), false);
 		}
 	}
@@ -338,81 +290,7 @@
 	{
 		if(networkZoneInEdit != null)
 		{
-			var addZoneCommunication = sourceZonesToAdd.ConvertAll(zone =>
-				new
-				{
-					from_network_zone_id = zone.Id,
-					to_network_zone_id = networkZoneInEdit.Id,
-					criterion_id = networkZoneInEdit.CriterionId
-				}
-			);
-			addZoneCommunication.AddRange(destinationZonesToAdd.ConvertAll(zone =>
-				new
-				{
-					from_network_zone_id = networkZoneInEdit.Id,
-					to_network_zone_id = zone.Id,
-					criterion_id = networkZoneInEdit.CriterionId
-				}
-			));
-
-			var deleteZoneCommunicationExp = sourceZonesToDelete.ConvertAll(zone =>
-				new
-				{
-					from_network_zone_id = new { _eq = zone.Id },
-					to_network_zone_id = new { _eq = networkZoneInEdit.Id },
-					criterion_id = new { _eq = networkZoneInEdit.CriterionId }
-				}
-			);
-			deleteZoneCommunicationExp.AddRange(destinationZonesToDelete.ConvertAll(zone =>
-				new
-				{
-					from_network_zone_id = new { _eq = networkZoneInEdit.Id },
-					to_network_zone_id = new { _eq = zone.Id },
-					criterion_id = new { _eq = networkZoneInEdit.CriterionId }
-				}
-			));
-
-			var variables = new
-			{
-				network_zone_id = networkZoneInEdit.Id,
-				super_network_zone_id = networkZoneInEdit.Superzone?.Id,
-				name = networkZoneInEdit.Name,
-				description = networkZoneInEdit.Description,
-				add_ip_ranges = ipRangesToAdd.ConvertAll(range =>
-					new
-					{
-						network_zone_id = networkZoneInEdit.Id,
-						ip_range_start = range.Begin.ToString(),
-						ip_range_end = range.End.ToString(),
-						criterion_id = networkZoneInEdit.CriterionId
-					} 
-				),
-				delete_ip_ranges_exp = ipRangesToDelete.ConvertAll(range =>
-					new
-					{
-						ip_range_start = new { _eq = range.Begin.ToString() },
-						ip_range_end = new { _eq = range.End.ToString() },
-						criterion_id = new { _eq = networkZoneInEdit.CriterionId }
-					}
-				),
-				add_sub_zones_exp = subzonesToAdd.ConvertAll(zone => 
-					new
-					{
-						id = new { _eq = zone.Id }
-					}
-				),
-				delete_sub_zones_exp = subzonesToDelete.ConvertAll(zone =>
-					new
-					{
-						id = new { _eq = zone.Id }
-					}
-				),
-				add_zone_communication = addZoneCommunication,
-				delete_zone_communication_exp = deleteZoneCommunicationExp,
-				removed = DateTime.UtcNow
-			};
-
-			await apiConnection.SendQueryAsync<dynamic>(ComplianceQueries.updateNetworkZone, variables);
+			await NetworkZoneService.UpdateZone(networkZoneInEdit, addDel, apiConnection);
 			DisplayMessageInUi(null, userConfig.GetText("U0012"), userConfig.GetText("U0013"), false);
 		}
 	}
@@ -423,34 +301,7 @@
 		{
 			try
 			{
-				var deleteZoneCommunicationExp = networkZoneInEdit.AllowedCommunicationSources.ToList().ConvertAll(zone =>
-					new
-					{
-						from_network_zone_id = new { _eq = zone.Id },
-						to_network_zone_id = new { _eq = networkZoneInEdit.Id }
-					}
-				);
-				deleteZoneCommunicationExp.AddRange(networkZoneInEdit.AllowedCommunicationDestinations.ToList().ConvertAll(zone =>
-					new
-					{
-						from_network_zone_id = new { _eq = networkZoneInEdit.Id },
-						to_network_zone_id = new { _eq = zone.Id }
-					}
-				));
-				var variables = new
-				{
-					delete_zone_communication_exp = deleteZoneCommunicationExp,
-					delete_ip_ranges_exp = networkZoneInEdit.IPRanges.ToList().ConvertAll(range =>
-						new
-						{
-							ip_range_start = new { _eq = range.Begin.ToString() },
-							ip_range_end = new { _eq = range.End.ToString() }
-						}
-					),
-					id = networkZoneInEdit.Id,
-					removed = DateTime.UtcNow
-				};
-				await apiConnection.SendQueryAsync<dynamic>(ComplianceQueries.removeNetworkZone, variables);
+				await NetworkZoneService.RemoveZone(networkZoneInEdit, apiConnection);
 				await ConfigChanged();
 				DisplayMessageInUi(null, userConfig.GetText("U0014"), userConfig.GetText("U0015"), false);
 			}
@@ -475,7 +326,7 @@
 		if (ipRangeToAdd != null)
 		{
 			// Insert at the beginning so that the newest ip range is always displayed at the top
-			ipRangesToAdd.Insert(0, ipRangeToAdd);
+			addDel.IpRangesToAdd.Insert(0, ipRangeToAdd);
 			ipRangeToAdd = null;
 		}
 	}

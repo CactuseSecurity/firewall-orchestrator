@@ -9,13 +9,12 @@
         style="font-size:small" 
         TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" 
         TableItem="Rule" 
-        Items="_rules" 
+        Items="_visibleRules" 
         ShowSearchBar="false"
         PageSize="RulesPerPage" 
         ColumnReorder="true" 
         TableRowClass="@(rule => getTableRowClasses(rule))"
         @ref="_reportTable">
-
 
         @if (EmptyColumns[0] == false)
         {
@@ -174,8 +173,12 @@
     [Parameter]
     public int Width { get; set; }
 
+    public bool ShowAnyRule { get; set; } = false;
+
     private ITable<Rule>? _reportTable;
     private Rule[] _rules = [];
+
+    private Rule[] _visibleRules = [];
     private const int ColumnsCount = 14;
     private bool[] EmptyColumns = new bool[ColumnsCount];
 
@@ -185,6 +188,7 @@
     {
         ruleDisplay = new NatRuleDisplayHtml(userConfig);
         _rules = ReportData.RulesFlat.ToArray();
+        UpdateVisibleRules(false);
     }
 
     private string getTableRowClasses(Rule rule)
@@ -207,5 +211,23 @@
         string username = new DistName(recert.UserDn).UserName;
         return $"{userConfig.GetText(recert.Recertified ? "recertified_by" : "decertified_by")} {username} " +
             $"{userConfig.GetText("as_owner")} {recert.FwoOwner?.Name} {userConfig.GetText("comment")}: {recert.Comment}";
+    }
+
+
+    public void UpdateVisibleRules(bool invokeStateHasChanged = true)
+    {
+        if (ShowAnyRule)
+        {
+            _visibleRules = _rules;
+        }
+        else
+        {
+            _visibleRules = _rules.Where(r => r.Compliance != ComplianceViolationType.None).ToArray();
+        }
+
+        if(invokeStateHasChanged)
+        {
+            StateHasChanged();
+        }
     }
 }

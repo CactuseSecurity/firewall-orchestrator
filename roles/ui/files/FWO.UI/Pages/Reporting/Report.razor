@@ -54,6 +54,14 @@
             </div>
         }
 
+        @if (actReportFilters.ReportType == ReportType.ComplianceNew)
+        {
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="complianceShowAnyRule" @bind="_showAnyRulesInComplianceReport" @oninput="UpdateComplianceShowAnyRules"/>
+                <label class="form-check-label text-white" for="complianceShowAnyRule">@(userConfig.GetText("show_any_match"))</label>
+            </div>
+        }
+
         @if (actReportFilters.ReportType.IsDeviceRelatedReport())
         {
             @if (actReportFilters.ReportType != ReportType.Statistics && actReportFilters.ReportType != ReportType.AppRules)
@@ -120,7 +128,7 @@
                                 break;
 
                             case ReportType.ComplianceNew:
-                                    <ComplianceReport ReportData="currentReport.ReportData" RulesPerPage="rulesPerPage" @bind-SelectedRules="selectedItemsRuleReportTable"/>
+                                    <ComplianceReport ReportData="currentReport.ReportData" RulesPerPage="rulesPerPage" @bind-SelectedRules="selectedItemsRuleReportTable" @ref="_complianceReport"/>
                                 break;
 
                             case ReportType.Changes:
@@ -239,6 +247,10 @@
     private bool showModellingReports => authenticationStateTask!.Result.User.IsInRole(Roles.Modeller)
         || authenticationStateTask!.Result.User.IsInRole(Roles.Admin)
         || authenticationStateTask!.Result.User.IsInRole(Roles.Auditor);
+
+    private bool _showAnyRulesInComplianceReport = false;
+
+    private ComplianceReport? _complianceReport;
 
 
     protected override async Task OnInitializedAsync()
@@ -549,5 +561,18 @@
         // finally add remaining report types
         ListOut.AddRange(ListIn);
         return ListOut;
+    }
+
+    private Task UpdateComplianceShowAnyRules()
+    {
+        if (_complianceReport is ComplianceReport complianceReport)
+        {
+            _showAnyRulesInComplianceReport = !_showAnyRulesInComplianceReport;
+            complianceReport.ShowAnyRule = _showAnyRulesInComplianceReport;
+            complianceReport.UpdateVisibleRules();
+            StateHasChanged();
+        }
+
+        return Task.CompletedTask; 
     }
 }

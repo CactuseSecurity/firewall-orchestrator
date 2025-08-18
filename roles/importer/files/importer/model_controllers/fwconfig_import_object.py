@@ -233,7 +233,7 @@ class FwConfigImportObject():
         removedNwSvcIds = []
         removedUserIds = []
         this_managements_id = self.import_state.lookupManagementId(single_manager.ManagerUid)
-        import_mutation = fwo_api.get_graphql_code([fwo_const.graphql_query_path + "allObjects/upsertObjects.graphql"])
+        import_mutation = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "allObjects/upsertObjects.graphql"])
         query_variables = {
             'mgmId': this_managements_id,
             'importId': self.import_state.ImportId,
@@ -277,11 +277,11 @@ class FwConfigImportObject():
     def prepareNewNwObjects(self, newNwobjUids, mgm_id):
         newNwObjs = []
         for nwobjUid in newNwobjUids:
-            newNwObj = NetworkObjectForImport(nwObject=self.NormalizedConfig.network_objects[nwobjUid],
+            newNwObj = NetworkObjectForImport(nwObject=self.normalized_config.network_objects[nwobjUid],
                                                     mgmId=mgm_id, 
                                                     importId=self.import_state.ImportId, 
-                                                    colorId=self.import_state.lookupColorId(self.NormalizedConfig.network_objects[nwobjUid].obj_color), 
-                                                    typId=self.lookupObjType(self.NormalizedConfig.network_objects[nwobjUid].obj_typ))
+                                                    colorId=self.import_state.lookupColorId(self.normalized_config.network_objects[nwobjUid].obj_color), 
+                                                    typId=self.lookupObjType(self.normalized_config.network_objects[nwobjUid].obj_typ))
             newNwObjDict = newNwObj.toDict()
             newNwObjs.append(newNwObjDict)
         return newNwObjs
@@ -290,11 +290,11 @@ class FwConfigImportObject():
     def prepareNewSvcObjects(self, newSvcobjUids, mgm_id):
         newObjs = []
         for uid in newSvcobjUids:
-            newObjs.append(ServiceObjectForImport(svcObject=self.NormalizedConfig.service_objects[uid],
+            newObjs.append(ServiceObjectForImport(svcObject=self.normalized_config.service_objects[uid],
                                         mgmId=mgm_id, 
                                         importId=self.import_state.ImportId, 
-                                        colorId=self.import_state.lookupColorId(self.NormalizedConfig.service_objects[uid].svc_color), 
-                                        typId=self.lookupSvcType(self.NormalizedConfig.service_objects[uid].svc_typ),
+                                        colorId=self.import_state.lookupColorId(self.normalized_config.service_objects[uid].svc_color), 
+                                        typId=self.lookupSvcType(self.normalized_config.service_objects[uid].svc_typ),
                                         ).toDict())
         return newObjs
     
@@ -306,18 +306,18 @@ class FwConfigImportObject():
                 'mgm_id': mgm_id,
                 'user_create': self.import_state.ImportId,
                 'user_last_seen': self.import_state.ImportId,
-                'usr_typ_id': self.lookupUserType(self.NormalizedConfig.users[uid]['user_typ']),
-                'user_name': self.NormalizedConfig.users[uid]['user_name'],
+                'usr_typ_id': self.lookupUserType(self.normalized_config.users[uid]['user_typ']),
+                'user_name': self.normalized_config.users[uid]['user_name'],
             })
         return newObjs
     
     def get_config_objects(self, type: Type, prevConfig: FwConfigNormalized):
         if type == Type.NETWORK_OBJECT:
-            return prevConfig.network_objects, self.NormalizedConfig.network_objects
+            return prevConfig.network_objects, self.normalized_config.network_objects
         if type == Type.SERVICE_OBJECT:
-            return prevConfig.service_objects, self.NormalizedConfig.service_objects
+            return prevConfig.service_objects, self.normalized_config.service_objects
         if type == Type.USER:
-            return prevConfig.users, self.NormalizedConfig.users
+            return prevConfig.users, self.normalized_config.users
 
     def get_id(self, type, uid, before_update = False):
         if type == Type.NETWORK_OBJECT:

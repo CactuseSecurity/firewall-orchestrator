@@ -83,6 +83,7 @@ namespace FWO.Report
             }
 
             SetReportedRuleIds();
+            TryBuildRuleTree();
             
         }
 

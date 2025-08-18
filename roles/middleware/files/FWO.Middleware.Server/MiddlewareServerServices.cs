@@ -9,7 +9,7 @@ namespace FWO.Middleware.Server
     /// <summary>
     /// Class to execute handling of external requests
     /// </summary>
-    public class MiddlewareServerServices
+    public static class MiddlewareServerServices
     {
         /// <summary>
         /// get user groups from ldap

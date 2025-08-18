@@ -62,17 +62,6 @@ namespace FWO.Middleware.Server
             }
         }
 
-        /// <summary>
-        /// Split email addresses from string to list
-        /// </summary>
-        /// <param name="adrresslist"></param>
-        /// <returns></returns>
-        public static List<string> SplitAddresses(string adrresslist)
-        {
-            string[] separatingStrings = [",", ";", "|"];
-            return [.. adrresslist.Split(separatingStrings, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)];
-        }
-
         private static bool IsTimeToSend(FwoOwner owner, FwoNotification notification)
         {
             if (notification.Deadline == NotificationDeadline.None)
@@ -152,7 +141,7 @@ namespace FWO.Middleware.Server
                 switch (notification.Layout)
                 {
                     case NotificationLayout.HtmlInBody:
-                        body += report?.ExportToHtml();
+                        body += report.ExportToHtml();
                         break;
                     case NotificationLayout.PdfAsAttachment:
                         string html = report.ExportToHtml();
@@ -166,9 +155,6 @@ namespace FWO.Middleware.Server
                     case NotificationLayout.HtmlAsAttachment:
                         attachment = CreateAttachment(report?.ExportToHtml(), GlobalConst.kHtml, subject);
                         break;
-                    // case nameof(NotificationLayout.CsvAsAttachment): // Currently not implemented
-                    //     attachment = CreateAttachment(report?.ExportToCsv(), GlobalConst.kCsv);
-                    //     break;
                     case NotificationLayout.JsonAsAttachment:
                         attachment = CreateAttachment(report?.ExportToJson(), GlobalConst.kJson, subject);
                         break;
@@ -183,11 +169,6 @@ namespace FWO.Middleware.Server
             }
             return mailData;
         }
-
-        // private static FormFile? CreateAttachment(string? content, string fileFormat, string subject)
-        // {
-        //     return EmailHelper.CreateAttachment(content, fileFormat, subject);
-        // }
 
         private static FormFile? CreateAttachment(string? content, string fileFormat, string subject)
         {
@@ -241,7 +222,7 @@ namespace FWO.Middleware.Server
             EmailHelper emailHelper = new(ApiConnection, null, new(), DefaultInit.DoNothing, OwnerGroups);
             await emailHelper.Init();
             return emailHelper.GetRecipients(cc ? notification.RecipientCc : notification.RecipientTo, null, owner, null,
-                SplitAddresses(cc ? notification.EmailAddressCc : notification.EmailAddressTo));
+                EmailHelper.SplitAddresses(cc ? notification.EmailAddressCc : notification.EmailAddressTo));
         }
     }
 }

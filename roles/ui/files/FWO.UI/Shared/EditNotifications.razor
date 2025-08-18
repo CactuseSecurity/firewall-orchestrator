@@ -241,8 +241,8 @@
     private void EditNotification(FwoNotification notification)
     {
         actNotification = notification;
-        ToAddresses = NotificationService.SplitAddresses(notification.EmailAddressTo);
-        CcAddresses = NotificationService.SplitAddresses(notification.EmailAddressCc);
+        ToAddresses = EmailHelper.SplitAddresses(notification.EmailAddressTo);
+        CcAddresses = EmailHelper.SplitAddresses(notification.EmailAddressCc);
         EditNotifMode = true;
     }
 
@@ -251,7 +251,7 @@
         actNotification = notification;
         DeleteNotifMode = true;
     }
-    
+
     private void AddNotification()
     {
         InitActNotification();

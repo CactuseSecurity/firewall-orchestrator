@@ -160,7 +160,8 @@ namespace FWO.Config.Api
 
         public static string PureLineStat(string text)
         {
-            string output = RemoveLinks(Regex.Replace(text.Trim(), @"\s", " "));
+			var regex = new Regex(@"\s", RegexOptions.None, TimeSpan.FromSeconds(1));
+			string output = RemoveLinks(regex.Replace(text.Trim(), " "));
             output = ReplaceListElems(output);
             bool cont = true;
             while(cont)

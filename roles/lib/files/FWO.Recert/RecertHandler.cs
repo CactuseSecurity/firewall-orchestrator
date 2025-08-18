@@ -50,7 +50,7 @@ namespace FWO.Recert
             {
                 ruleMetadataId = rule.Metadata.Id,
                 ruleId = rule.Id,
-                ownerId = (owner ?? throw new ArgumentException("Recertification without owner not allowed.")).Id,
+                ownerId = owner?.Id ?? 0,
                 userDn = userConfig.User.Dn,
                 recertified = rule.Metadata.Recert,
                 recertDate = DateTime.Now,
@@ -64,25 +64,18 @@ namespace FWO.Recert
             return recertOk;
         }
 
-        private async Task InitRuleRecert(Rule rule, FwoOwner owner)
+        private async Task InitRuleRecert(Rule rule, FwoOwner? owner)
         {
-            int recertInterval = owner.RecertInterval ?? userConfig.RecertificationPeriod;
-            if (owner != null)
+            int recertInterval = owner?.RecertInterval ?? userConfig.RecertificationPeriod;
+            var prepvariables = new
             {
-                var prepvariables = new
-                {
-                    ruleMetadataId = rule.Metadata.Id,
-                    ruleId = rule.Id,
-                    ipMatch = rule.IpMatch != "" ? rule.IpMatch : null,
-                    ownerId = (owner ?? throw new ArgumentException("Recertification without owner not allowed.")).Id,
-                    nextRecertDate = DateTime.Now.AddDays(recertInterval)
-                };
-                await apiConnection.SendQueryAsync<object>(RecertQueries.prepareNextRecertification, prepvariables);
-            }
-            else
-            {
-                DisplayMessageInUi(null, userConfig.GetText("execute_selected"), userConfig.GetText("missing_owner_id"), true);
-            }
+                ruleMetadataId = rule.Metadata.Id,
+                ruleId = rule.Id,
+                ipMatch = rule.IpMatch != "" ? rule.IpMatch : null,
+                ownerId = owner?.Id ?? 0,
+                nextRecertDate = DateTime.Now.AddDays(recertInterval)
+            };
+            await apiConnection.SendQueryAsync<object>(RecertQueries.prepareNextRecertification, prepvariables);
         }
     }
 }

@@ -1,6 +1,7 @@
-﻿@inject UserConfig userConfig
-@using FWO.Report
+﻿@using FWO.Report
 @using FWO.Ui.Display
+
+@inject UserConfig userConfig
 
 @foreach (var management in Managements.Select(mgt => new ManagementReportController(mgt)))
 {

@@ -1,0 +1,233 @@
+@using FWO.Report
+@using FWO.Ui.Display
+
+@inject UserConfig userConfig
+
+<Collapse Title="Compliance Report" Style="@("primary")" StartToggled="true">
+    <Table SelectedItems="SelectedRules"
+        RowClickAction="@(async rule => { if (!SelectedRules.Remove(rule)) SelectedRules.Add(rule); await SelectedRulesChanged.InvokeAsync(SelectedRules); })"
+        style="font-size:small" 
+        TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" 
+        TableItem="Rule" 
+        Items="_visibleRules" 
+        ShowSearchBar="false"
+        PageSize="RulesPerPage" 
+        ColumnReorder="true" 
+        TableRowClass="@(rule => getTableRowClasses(rule))"
+        @ref="_reportTable">
+
+        @if (EmptyColumns[0] == false)
+        {
+            <Column TableItem="Rule" Context="rule" Title="Compliance" Field="@(rChange => rChange.Compliance)" Sortable="true" Filterable="true" Hideable="true">
+                <Template>
+                    @((MarkupString)RuleDisplayHtml.DisplayIsCompliant(rule, getActLocation()))
+                </Template>
+            </Column>
+        }
+
+        @if (EmptyColumns[1] == false)
+        {
+            <Column TableItem="Rule" Context="rule" Title="Violation Details" Field="@(rChange => rChange.ViolationDetails)" Sortable="true" Filterable="true" Hideable="true">
+                <Template>
+                    @((MarkupString)RuleDisplayHtml.DisplayViolationDetails(rule))
+                </Template>
+            </Column>
+        }
+
+        @if (EmptyColumns[2] == false)
+        {
+            <Column TableItem="Rule" Title="@(userConfig.GetText("name"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true" />
+        }
+
+        @if (EmptyColumns[3] == false)
+        {
+            <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("source_zone"))" Field="@(rChange => rChange.SourceZone)" Sortable="true" Filterable="false" Hideable="true">
+                <Template>
+                    @((MarkupString)RuleDisplayHtml.DisplaySourceZone(rule))
+                </Template>
+            </Column>
+        }
+
+        @if (EmptyColumns[4] == false)
+        {
+        <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("source"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true">
+                <Template>
+                    @((MarkupString)ruleDisplay.DisplaySource(rule, getActLocation(), ReportType.ComplianceNew))
+                </Template>
+            </Column>
+        }
+
+        @if (EmptyColumns[5] == false)
+        {
+            <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("destination_zone"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true">
+                <Template>
+                    @((MarkupString)RuleDisplayHtml.DisplayDestinationZone(rule))
+                </Template>
+            </Column>
+        }
+
+        @if (EmptyColumns[6] == false)
+        {
+            <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("destination"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true">
+                <Template>
+                    @((MarkupString)ruleDisplay.DisplayDestination(rule, getActLocation(), ReportType.ComplianceNew))
+                </Template>
+            </Column>
+        }
+
+        @if (EmptyColumns[7] == false)
+        {
+            <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("services"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true">
+                <Template>
+                    @((MarkupString)ruleDisplay.DisplayServices(rule, getActLocation(), ReportType.ComplianceNew))
+                </Template>
+            </Column>
+        }
+
+        @if (EmptyColumns[8] == false)
+        {
+            <Column TableItem="Rule" Title="@(userConfig.GetText("action"))" Field="@(rChange => rChange.Action)" Sortable="true" Filterable="false" Hideable="true" />
+        }
+
+        @if (EmptyColumns[9] == false)
+        {
+            <Column TableItem="Rule" Title="@(userConfig.GetText("track"))" Field="@(rChange => rChange.Track)" Sortable="true" Filterable="false" Hideable="true" />
+        }
+
+        @if (EmptyColumns[10] == false)
+        {
+            <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("enabled"))" Field="@(rChange => rChange.Disabled)" Sortable="true" Filterable="false" Hideable="true">
+                <Template>
+                    @((MarkupString)RuleDisplayHtml.DisplayEnabled(rule, getActLocation()))
+                </Template>
+            </Column>
+        }
+
+        @if (EmptyColumns[11] == false)
+        {
+            <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("enforcing_devices"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true">
+                <Template>
+                    @((MarkupString)RuleDisplayHtml.DisplayEnforcingGateways(rule, getActLocation(), ReportType.ComplianceNew))
+                </Template>
+            </Column>
+        }
+
+        @if (EmptyColumns[12] == false)
+        {
+            <Column TableItem="Rule" Title="@(userConfig.GetText("uid"))" Field="@(rChange => rChange.Uid)" Sortable="true" Filterable="false" Hideable="true" />
+        }
+
+        @if (EmptyColumns[13] == false)
+        {
+            <Column TableItem="Rule" Title="@(userConfig.GetText("comment"))" Field="@(rChange => rChange.Comment)" Sortable="true" Filterable="false" Hideable="true" />
+        }
+
+        <DetailTemplate TableItem="Rule">
+            @if(context.Metadata != null)
+            {
+                <Detail Title="@(userConfig.GetText("created"))" Data="@context.Metadata?.Created?.ToString()" />
+                <Detail Title="@(userConfig.GetText("last_modified"))" Data="@context.Metadata?.LastModified?.ToString()" />
+                <Detail Title="@(userConfig.GetText("first_hit"))" Data="@context.Metadata?.FirstHit?.ToString()" />
+                <Detail Title="@(userConfig.GetText("last_hit"))" Data="@context.Metadata?.LastHit?.ToString()" />
+                <Detail Title="@(userConfig.GetText("last_certify_date"))" Data="@context.Metadata?.LastCertified?.ToString()" />
+                <Detail Title="@(userConfig.GetText("last_recertifier"))" Data="@context.Metadata?.LastCertifierDn?.ToString()" />
+                <Detail Title="@(userConfig.GetText("decert_date"))" Data="@context.Metadata?.DecertificationDate?.ToString()" />
+                <Detail Title="@(userConfig.GetText("recert_comment"))" Data="@context.Metadata?.Comment?.ToString()" />
+                <Detail Title="@(userConfig.GetText("recert_history"))" Data="@(context.Metadata?.RecertHistory.Count > 0 ? ":" : "")" />
+                @foreach(var recert in context.Metadata!.RecertHistory)
+                {
+                    <Detail Title="@(recert.RecertDate.ToString())" Data="@(getHistoryString(recert))" />
+                }
+            }
+        </DetailTemplate>
+
+        <CustomRow TableItem="Rule" IsActiveForItem="(rule => !String.IsNullOrEmpty(rule.SectionHeader))">
+            <tr>
+                <td class="bg-light" colspan="@(_reportTable?.Columns.Count + 1)">
+                    <div class="font-weight-bold">@(context.SectionHeader)</div>
+                </td>
+            </tr>
+        </CustomRow>
+
+        <Pager ShowPageNumber="true" ShowTotalCount="true" />
+    </Table>
+</Collapse>
+
+@code
+{
+    [Parameter]
+    public ReportData ReportData {get; set;} = new();
+
+    [Parameter]
+    public EventCallback<List<Rule>> SelectedRulesChanged { get; set; }
+
+    [Parameter]
+    public List<Rule> SelectedRules { get; set; } = [];
+
+    [Parameter]
+    public int RulesPerPage { get; set; }
+
+    [Parameter]
+    public EventCallback<int> WidthChanged { get; set; }
+
+    [Parameter]
+    public int Width { get; set; }
+
+    public bool ShowAnyRule { get; set; } = false;
+
+    private ITable<Rule>? _reportTable;
+    private Rule[] _rules = [];
+
+    private Rule[] _visibleRules = [];
+    private const int ColumnsCount = 14;
+    private bool[] EmptyColumns = new bool[ColumnsCount];
+
+    private NatRuleDisplayHtml? ruleDisplay;
+    
+    protected override void OnInitialized()
+    {
+        ruleDisplay = new NatRuleDisplayHtml(userConfig);
+        _rules = ReportData.RulesFlat.ToArray();
+        UpdateVisibleRules(false);
+    }
+
+    private string getTableRowClasses(Rule rule)
+    {
+        string classes = "";
+        if(rule.SectionHeader != null)
+        {
+            classes = "hide-all-but-second-child second-child-full-width ";
+        }
+        return classes;
+    }
+
+    private OutputLocation getActLocation()
+    {
+        return OutputLocation.report;
+    }
+
+    private string getHistoryString(Recertification recert)
+    {
+        string username = new DistName(recert.UserDn).UserName;
+        return $"{userConfig.GetText(recert.Recertified ? "recertified_by" : "decertified_by")} {username} " +
+            $"{userConfig.GetText("as_owner")} {recert.FwoOwner?.Name} {userConfig.GetText("comment")}: {recert.Comment}";
+    }
+
+
+    public void UpdateVisibleRules(bool invokeStateHasChanged = true)
+    {
+        if (ShowAnyRule)
+        {
+            _visibleRules = _rules;
+        }
+        else
+        {
+            _visibleRules = _rules.Where(r => r.Compliance != ComplianceViolationType.None).ToArray();
+        }
+
+        if(invokeStateHasChanged)
+        {
+            StateHasChanged();
+        }
+    }
+}

@@ -120,7 +120,7 @@
                                 break;
 
                             case ReportType.ComplianceNew:
-                                <ComplianceReport ReportData="currentReport.ReportData" RulesPerPage="rulesPerPage" @bind-SelectedRules="selectedItemsRuleReportTable"/>
+                                    <ComplianceReport ReportData="currentReport.ReportData" RulesPerPage="rulesPerPage" @bind-SelectedRules="selectedItemsRuleReportTable"/>
                                 break;
 
                             case ReportType.Changes:
@@ -288,17 +288,27 @@
 
     private void ReportTypeChanged(ReportType newReportType)
     {
-        if(injectedAppId != null)
+        try
         {
-            injectedAppId = null;
-            CleanUri();
+            if(injectedAppId != null)
+            {
+                injectedAppId = null;
+                CleanUri();
+            }
+            actReportFilters.ReportType = newReportType;
+            SetProperRoleForReport();
+            actReportFilters.SetDisplayedTimeSelection();
+            AdjustDeviceSelection();
+            ResetReport();
+            StateHasChanged();
         }
-        actReportFilters.ReportType = newReportType;
-        SetProperRoleForReport();
-        actReportFilters.SetDisplayedTimeSelection();
-        AdjustDeviceSelection();
-        ResetReport();
-        StateHasChanged();
+        catch (Exception e)
+        {
+            Log.TryWriteLog(LogType.Error, "Report Generation", "Error while changing report type: " + e.Message, true);
+            return;
+
+        }
+
     }
 
     public void CleanUri()

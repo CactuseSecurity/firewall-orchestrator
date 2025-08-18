@@ -3,7 +3,7 @@
 
 @inject UserConfig userConfig
 
-<Collapse Title="Compliance Report" Style="@("primary")" StartToggled="false">
+<Collapse Title="Compliance Report" Style="@("primary")" StartToggled="true">
     <Table SelectedItems="SelectedRules"
         RowClickAction="@(async rule => { if (!SelectedRules.Remove(rule)) SelectedRules.Add(rule); await SelectedRulesChanged.InvokeAsync(SelectedRules); })"
         style="font-size:small" 

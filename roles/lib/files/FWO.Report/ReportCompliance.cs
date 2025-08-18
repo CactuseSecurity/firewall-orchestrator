@@ -22,10 +22,12 @@ namespace FWO.Report
         public bool IsDiffReport { get; set; } = false;
         public int DiffReferenceInDays { get; set; } = 0;
 
+        protected readonly DebugConfig DebugConfig;
+
         private readonly bool _includeHeaderInExport;
         private readonly char _separator;
         private readonly List<string> _columnsToExport;
-        private readonly DebugConfig _debugConfig;
+        
 
 
 
@@ -54,13 +56,13 @@ namespace FWO.Report
 
             if (userConfig.GlobalConfig is GlobalConfig globalConfig && !string.IsNullOrEmpty(globalConfig.DebugConfig))
             {
-                _debugConfig = JsonSerializer.Deserialize<DebugConfig>(globalConfig.DebugConfig) ?? new();
+                DebugConfig = JsonSerializer.Deserialize<DebugConfig>(globalConfig.DebugConfig) ?? new();
             }
             else
             {
                 Log.WriteWarning("Compliance Report", "No debug config found, using default values.");
 
-                _debugConfig = new();
+                DebugConfig = new();
             }
 
         }
@@ -115,8 +117,8 @@ namespace FWO.Report
             }
             catch (Exception e)
             {
-                Log.TryWriteLog(LogType.Error, "Compliance Report", "Error while setting description: " + e.Message, _debugConfig.ExtendedLogReportGeneration);
-                Log.TryWriteLog(LogType.Debug, "Compliance Report", $"Report Data: {JsonSerializer.Serialize(ReportData)}", _debugConfig.ExtendedLogReportGeneration);
+                Log.TryWriteLog(LogType.Error, "Compliance Report", "Error while setting description: " + e.Message, DebugConfig.ExtendedLogReportGeneration);
+                Log.TryWriteLog(LogType.Debug, "Compliance Report", $"Report Data: {JsonSerializer.Serialize(ReportData)}", DebugConfig.ExtendedLogReportGeneration);
 
                 return "Compliance Report";
             }
@@ -244,7 +246,7 @@ namespace FWO.Report
             return violationDiffs;
         }
 
-        public async Task SetComplianceData()
+        public virtual async Task SetComplianceData()
         {
             Rules.Clear();
 

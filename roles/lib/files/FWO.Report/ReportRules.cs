@@ -254,11 +254,6 @@ namespace FWO.Report
                 return [];
             }
         }
-
-        public virtual List<Rule> GetRules()
-        {
-            return [];
-        }
         
         public static int GetRuleCount(ManagementReport mgmReport, RulebaseLink? currentRbLink, RulebaseLink[] rulebaseLinks)
         {

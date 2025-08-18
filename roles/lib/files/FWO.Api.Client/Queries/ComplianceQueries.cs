@@ -15,6 +15,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string getViolations;
         public static readonly string updateViolationById;
         public static readonly string removeViolations;
+        public static readonly string getViolationsChunk;
 
         public static readonly string addPolicy;
         public static readonly string disablePolicy;
@@ -47,6 +48,7 @@ namespace FWO.Api.Client.Queries
                 getViolations = GetQueryText("compliance/getViolations.graphql");
                 updateViolationById = GetQueryText("compliance/updateViolationById.graphql");
                 removeViolations = GetQueryText("compliance/removeViolations.graphql");
+                getViolationsChunk = GetQueryText("compliance/getViolationsChunk.graphql");
 
                 addPolicy = GetQueryText("compliance/addPolicy.graphql");
                 disablePolicy = GetQueryText("compliance/disablePolicy.graphql");

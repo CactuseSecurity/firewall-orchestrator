@@ -425,10 +425,8 @@ class FwConfigImportObject():
                     int(import_result['data'][f'update_{prefix}_flat']['affected_rows'])
         except Exception:
             logger = getFwoLogger()
-            logger.exception(f"fwo_api:importNwObject - error in removeOutdated{prefix.capitalize()}Memberships: {str(import_result['errors'])}")
-        else:
-            changes = int(import_result['data'][f'update_{prefix}']['affected_rows']) + \
-                int(import_result['data'][f'update_{prefix}_flat']['affected_rows'])
+            logger.exception(f"failed to remove outdated group memberships for {type}: {str(traceback.format_exc())}")
+            errors = 1
 
         return errors, changes
     

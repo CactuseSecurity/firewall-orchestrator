@@ -18,42 +18,33 @@ namespace FWO.Report
         public override async Task Generate(int elementsPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback, CancellationToken ct)
         {
             int maxDegreeOfParallelism = Environment.ProcessorCount;
-            var semaphoreGetRules = new SemaphoreSlim(maxDegreeOfParallelism);
-            var getRulesTasks = new List<Task>();
+            SemaphoreSlim? semaphoreGetRules = new SemaphoreSlim(maxDegreeOfParallelism);
+            List<Task> getRulesTasks = new List<Task>();
+            List<Dictionary<string, object>> QueryVariablesList = new List<Dictionary<string, object>>();
 
-            Query.QueryVariables[QueryVar.Limit] = elementsPerFetch;
-            Query.QueryVariables[QueryVar.Offset] = 0;
-
-            // Set necessary Management Data
-
-            List<ManagementReport> managementsWithRelevantImportId = await GetRelevantImportIds(apiConnection);
-
-            ReportData.ManagementData = [];
-            foreach (var management in managementsWithRelevantImportId)
-            {
-                SetMgtQueryVars(management);    // this includes mgm_id AND relevant import ID!
-                ManagementReport managementReport = (await apiConnection.SendQueryAsync<List<ManagementReport>>(Query.FullQuery, Query.QueryVariables))[0];
-                managementReport.Import = management.Import;
-                ReportData.ManagementData.Add(managementReport);
-            }
-
-            // Count rules
+            // Get amount of rules to fetch
 
             var result = await apiConnection.SendQueryAsync<AggregateCount>(RuleQueries.countRules);
             int rulesCount = result?.Aggregate?.Count ?? 0;
 
-            while (CheckFetching(rulesCount, int.Parse(Query.QueryVariables[QueryVar.Offset].ToString() ?? "0")))
+            // Create query variables for fetching rules
+
+            for (int offset = 0; offset < rulesCount; offset += elementsPerFetch)
             {
+                QueryVariablesList.Add(CreateQueryVariables(offset, elementsPerFetch));
+            }
 
+            // Start fetching rules in parallel
 
-                // Start task that gets chunk of rules
-
+            foreach (Dictionary<string, object> queryVariables in QueryVariablesList)
+            {
                 await semaphoreGetRules.WaitAsync(ct);
+
                 var task = Task.Run(async () =>
                 {
                     try
                     {
-                        List<Rule> fetchedRules = await apiConnection.SendQueryAsync<List<Rule>>(RuleQueries.getRulesChunk, Query.QueryVariables);
+                        List<Rule> fetchedRules = await apiConnection.SendQueryAsync<List<Rule>>(RuleQueries.getRulesChunk, queryVariables);
                         Rules.AddRange(fetchedRules);
                     }
                     finally
@@ -61,12 +52,8 @@ namespace FWO.Report
                         semaphoreGetRules.Release();
                     }
                 }, ct);
+
                 getRulesTasks.Add(task);
-
-                // Update offset
-
-                Query.QueryVariables[QueryVar.Offset] = int.Parse(Query.QueryVariables[QueryVar.Offset].ToString() ?? "0") + elementsPerFetch;
-
             }
 
             await Task.WhenAll(getRulesTasks);
@@ -100,28 +87,20 @@ namespace FWO.Report
             ReportData.ElementsCount = Rules.Count;
         }
 
-        private bool CheckFetching(int rulesCount, int offset)
-        {
-            bool keepFetching = false;
-
-            if (rulesCount > 0 && offset < rulesCount)
-            {
-                keepFetching = true;
-
-            }
-
-            return keepFetching;
-        }
-
         public override List<Rule> GetRules()
         {
             return Rules;
         }
 
-        protected override void SetMgtQueryVars(ManagementReport management)
+        private Dictionary<string, object> CreateQueryVariables(int offset, int limit)
         {
-            Query.QueryVariables[QueryVar.ImportIdStart] = management.Import.ImportAggregate.ImportAggregateMax.RelevantImportId ?? -1;
-            Query.QueryVariables[QueryVar.ImportIdEnd]   = management.Import.ImportAggregate.ImportAggregateMax.RelevantImportId ?? -1;
+            return new Dictionary<string, object>
+            {
+                { QueryVar.ImportIdStart, 0 },
+                { QueryVar.ImportIdEnd, int.MaxValue },
+                { QueryVar.Offset, offset },
+                { QueryVar.Limit, limit }
+            };
         }
     }
 }

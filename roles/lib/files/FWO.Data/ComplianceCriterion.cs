@@ -20,11 +20,17 @@ namespace FWO.Data
         [JsonProperty("name"), JsonPropertyName("name")]
         public string Name { get; set; } = "";
 
+        [JsonProperty("import_source"), JsonPropertyName("import_source")]
+        public string ImportSource { get; set; } = "";
+
         [JsonProperty("criterion_type"), JsonPropertyName("criterion_type")]
         public string CriterionType { get; set; } = "";
 
         [JsonProperty("content"), JsonPropertyName("content")]
         public string Content { get; set; } = "";
+
+        [JsonProperty("comment"), JsonPropertyName("comment")]
+        public string? Comment { get; set; }
 
         [JsonProperty("created"), JsonPropertyName("created")]
         public DateTime Created { get; set; } = DateTime.UtcNow;

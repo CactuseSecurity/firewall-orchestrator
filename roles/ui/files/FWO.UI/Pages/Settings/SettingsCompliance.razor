@@ -5,6 +5,7 @@
 @using FWO.Services.EventMediator.Interfaces
 @using FWO.Ui.Data
 
+@implements IDisposable
 @inject ApiConnection apiConnection
 @inject GlobalConfig globalConfig
 @inject UserConfig userConfig
@@ -16,9 +17,20 @@
 </div>
 @(userConfig.GetText("U5324"))
 <hr />
-<button type="button" class="btn btn-sm btn-primary" @onclick="EditFixCrit">@(userConfig.GetText("edit_fix_crit"))</button>
+<div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5813"))">
+    <label class="col-form-label col-sm-4">@userConfig.GetText("fix_criteria"):</label>
+	<div class="col-sm-2">
+		<button type="button" class="btn btn-sm btn-primary" @onclick="EditFixCrit">@(userConfig.GetText("edit_fix_crit"))</button>
+	</div>
+</div>
 <hr />
-
+<div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5812"))">
+    <label class="col-form-label col-sm-4">@userConfig.GetText("import_matrix"):</label>
+    <div class="row col-sm-6">
+        <ImportFileUpload SupportedFileFormats=".json" AuthorizedRoles="@Roles.Admin" UploadCase="FileUploadCase.ImportComplianceMatrix"/>
+    </div>
+</div>
+<hr />
 @if(configData != null)
 {
     <form onsubmit="return false">
@@ -76,6 +88,27 @@ else
 }
 <ComplianceFixCriteria @bind-Display="EditFixCritMode" />
 
+<PopUp Title="@(userConfig.GetText("import_matrix"))" Show="@ShowImportPopUp" Size=PopupSize.Small OnClose="() => ShowImportPopUp = false">
+    <Body>
+        @if(ImportSuccess)
+        {
+            <div class="mt-3">
+                @($"{userConfig.GetText("E9401")}: {ImportMessage}")
+            </div>
+        }
+		else
+		{
+            <div class="alert alert-info mt-3" role="alert">
+                @($"{userConfig.GetText("E9402")}: {ImportMessage}")
+            </div>
+		}
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <button type="button" class="btn btn-sm btn-primary" @onclick="() => ShowImportPopUp = false">@(userConfig.GetText("ok"))</button>
+        </div>
+    </Footer>
+</PopUp>
 
 @code
 {
@@ -88,6 +121,10 @@ else
     private bool EditFixCritMode = false;
     private List<CompliancePolicy> policies = [];
     private CompliancePolicy? actPolicy;
+    private bool ShowImportPopUp { get; set; }
+    private ErrorBaseModel? ImportError;
+	private string ImportMessage = "";
+	private bool ImportSuccess = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -100,11 +137,39 @@ else
             {
                 actPolicy = policies.FirstOrDefault(p => p.Id == configData.ComplianceCheckPolicyId);
             }
+			EventMediator.Subscribe<FileUploadEvent>(nameof(FileUploadService.ReadFileToBytes), _ => OnFileUploadEvent(_.EventArgs));
+            EventMediator.Subscribe<FileUploadEvent>(nameof(FileUploadService.ImportComplianceMatrix), _ => OnComplianceMatrixImportEvent(_.EventArgs));
         }
         catch(Exception exception)
         {
             DisplayMessageInUi(exception, userConfig.GetText("read_config"), userConfig.GetText("E5301"), false);
         }
+    }
+
+    private void OnFileUploadEvent(FileUploadEventArgs? e)
+    {
+        if(e is null)
+        {
+            return;
+        }
+        if(!e.Success && e.Error is not null)
+        {
+            DisplayMessageInUi(e.Error.InternalException, userConfig.GetText("modelling_settings"), e.Error.Message ?? "", true);
+            return;
+        }
+    }
+
+    private void OnComplianceMatrixImportEvent(FileUploadEventArgs? e)
+    {
+        if(e is null)
+        {
+            return;
+        }
+		ImportSuccess = e.Success;
+        ImportError = e.Error;
+		ImportMessage = e.Data?.ToString() ?? "";
+        ShowImportPopUp = true;
+        StateHasChanged();
     }
 
     private void EditFixCrit()
@@ -132,5 +197,14 @@ else
         {
             DisplayMessageInUi(exception, userConfig.GetText("change_default"), "", true);
         }
+    }
+
+	/// <summary>
+    /// Unsubscribes from file upload events when the component is disposed.
+    /// </summary>
+    public void Dispose()
+    {
+        EventMediator.Unsubscribe<FileUploadEvent>(nameof(FileUploadService.ReadFileToBytes));
+        EventMediator.Unsubscribe<AppServerImportEvent>(nameof(FileUploadService.ImportComplianceMatrix));
     }
 }

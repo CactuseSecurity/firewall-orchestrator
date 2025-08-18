@@ -1,11 +1,12 @@
 @using FWO.Data.Modelling
+@using FWO.Middleware.Client
 @using FWO.Services.EventMediator.Events
 @using FWO.Services.EventMediator.Interfaces
 @using FWO.Ui.Data
 @using System.Text.Json
 
 @inject UserConfig UserConfig
-@inject GlobalConfig GlobalConfig
+@inject MiddlewareClient middlewareClient
 @inject ApiConnection ApiConnection
 @inject IEventMediator EventMediator
 
@@ -21,7 +22,7 @@
                 {
                     <label class="d-inline">@InputFileChangeEventArgs.File.Name</label>
                 }
-                <button type="button" disabled="@(Loading || UploadDisabled)" class="btn btn-sm @(UploadDisabled ? "btn-primary" : "btn-success") mt-2 w-100" @onclick="ImportCSV">
+                <button type="button" disabled="@(Loading || UploadDisabled)" class="btn btn-sm @(UploadDisabled ? "btn-primary" : "btn-success") mt-2 w-100" @onclick="Import">
                     @if(Loading)
                     {
                         <Loading/>
@@ -49,6 +50,9 @@
 
     [Parameter, EditorRequired]
     required public string SupportedFileFormats { get; set; } = "";
+
+    [Parameter, EditorRequired]
+    required public FileUploadCase UploadCase { get; set; } = FileUploadCase.Undefined;
 
     private InputFileChangeEventArgs? InputFileChangeEventArgs;
     private bool UploadDisabled { get; set; } = true;
@@ -90,7 +94,7 @@
         UploadDisabled = false;
     }
 
-    private async Task ImportCSV()
+    private async Task Import()
     {
         if(UploadDisabled || InputFileChangeEventArgs is null)
             return;
@@ -100,18 +104,26 @@
 
         Loading = true;
 
-        FileUploadService fileUploadService = new(ApiConnection, UserConfig, SupportedFileFormats, GlobalConfig, EventMediator);
-
+        FileUploadService fileUploadService = new(ApiConnection, UserConfig, middlewareClient, SupportedFileFormats, EventMediator);
         FileUploadEventArgs fileUploadEventArgs = await fileUploadService.ReadFileToBytes(InputFileChangeEventArgs);
-
         if(!fileUploadEventArgs.Success)
         {
             Loading = false;
             return;
         }
 
-        await fileUploadService.ImportAppServersFromCSV(InputFileChangeEventArgs.File.Name ?? "noName");
-
+        switch (UploadCase)
+        {
+            case FileUploadCase.ImportAppServerFromCSV:
+                await fileUploadService.ImportAppServersFromCSV(InputFileChangeEventArgs.File.Name ?? "noName");
+                break;
+            case FileUploadCase.ImportComplianceMatrix:
+                await fileUploadService.ImportComplianceMatrix(InputFileChangeEventArgs.File.Name ?? "noName");
+                break;
+            default:
+                break;
+        }
+        
         Loading = false;
     }
 }

@@ -23,8 +23,10 @@ namespace FWO.Api.Client.Queries
 
         public static readonly string addCriterion;
         public static readonly string removeCriterion;
+        public static readonly string updateCriterionMetadata;
         public static readonly string getCriteria;
         public static readonly string getMatrices;
+        public static readonly string getMatrixByName;
         
         public static readonly string addCritToPolicy;
         public static readonly string removeCritFromPolicy;
@@ -53,8 +55,10 @@ namespace FWO.Api.Client.Queries
 
                 addCriterion = GetQueryText("compliance/addCriterion.graphql");
                 removeCriterion = GetQueryText("compliance/removeCriterion.graphql");
+                updateCriterionMetadata = GetQueryText("compliance/updateCriterionMetadata.graphql");
                 getCriteria = GetQueryText("compliance/getCriteria.graphql");
                 getMatrices = GetQueryText("compliance/getMatrices.graphql");
+                getMatrixByName = GetQueryText("compliance/getMatrixByName.graphql");
 
                 addCritToPolicy = GetQueryText("compliance/addCritToPolicy.graphql");
                 removeCritFromPolicy = GetQueryText("compliance/removeCritFromPolicy.graphql");

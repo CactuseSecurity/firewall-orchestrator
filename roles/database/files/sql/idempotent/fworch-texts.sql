@@ -2778,6 +2778,8 @@ INSERT INTO txt VALUES ('naming_convention',    'German',   'Namenskonvention');
 INSERT INTO txt VALUES ('naming_convention',    'English',  'Naming Convention');
 INSERT INTO txt VALUES ('import_app_server',    'German',   'App Server importieren');
 INSERT INTO txt VALUES ('import_app_server',    'English',  'Import app servers');
+INSERT INTO txt VALUES ('import_matrix',   		'German', 	'Matrix-Import');
+INSERT INTO txt VALUES ('import_matrix',   		'English', 	'Matrix Import');
 
 -- text codes (roughly) categorized: 
 -- U: user texts (explanation or confirmation texts)
@@ -2842,6 +2844,8 @@ INSERT INTO txt VALUES ('U4503', 'German',  'Sind sie sicher, dass sie folgende 
 INSERT INTO txt VALUES ('U4503', 'English', 'Are you sure you want to delete matrix: ');
 INSERT INTO txt VALUES ('U4504', 'German',  'Die Matrix kann nicht gel&ouml;scht werden, da sie in mindestens einer aktiven Policy verwendet wird.');
 INSERT INTO txt VALUES ('U4504', 'English', 'Matrix cannot be deleted as it is used in at least one active Policy.');
+INSERT INTO txt VALUES ('U4505', 'German',  'Die Matrix kann nicht gel&ouml;scht werden, da sie von einer anderen Quelle importiert wurde.');
+INSERT INTO txt VALUES ('U4505', 'English', 'Matrix cannot be deleted as it is imported from another source.');
 
 INSERT INTO txt VALUES ('U5001', 'German',  'Setup und Verwaltung des Firewall Orchestrator. Bitte eine Einstellung in der linken Randleiste ausw&auml;hlen.');
 INSERT INTO txt VALUES ('U5001', 'English', 'Setup and administration of Firewall Orchestrator. Please choose a setting in the left sidebar.');
@@ -3427,6 +3431,10 @@ INSERT INTO txt VALUES ('E9302', 'English', 'HTML is invalid!');
 
 INSERT INTO txt VALUES ('E9400', 'German',  'Leere Datei hochgeladen/keine &Auml;nderungen wurden vorgenommen');
 INSERT INTO txt VALUES ('E9400', 'English', 'Empty file provided/no changes where applied');
+INSERT INTO txt VALUES ('E9401', 'German',  'Matrix erfolgreich importiert');
+INSERT INTO txt VALUES ('E9401', 'English', 'Matrix imported successfully');
+INSERT INTO txt VALUES ('E9402', 'German',  'Fehlr beim Import der Matrix');
+INSERT INTO txt VALUES ('E9402', 'English', 'Error importing matrix');
 
 -- errors from Api
 INSERT INTO txt VALUES ('A0001', 'German',  'Ung&uuml;ltige Anmeldedaten. Nutzername darf nicht leer sein');
@@ -5636,6 +5644,10 @@ INSERT INTO txt VALUES ('H5810', 'German',  'Die Policy, die f&uuml;r den termin
 INSERT INTO txt VALUES ('H5810', 'English', 'Policy used for the scheduled compliance check.');
 INSERT INTO txt VALUES ('H5811', 'German',  'Das Netzwerkobjekt, dass die Netzwerkzone "Internet" darstellt.');
 INSERT INTO txt VALUES ('H5811', 'English', 'The network object that is taken for the network zone "Internet".');
+INSERT INTO txt VALUES ('H5812', 'German',  'Importieren einer Matrix via JSON Datei. ');
+INSERT INTO txt VALUES ('H5812', 'English', 'Import of a matrix via JSON file. ');
+INSERT INTO txt VALUES ('H5813', 'German',  'Definition vom Kriterien mit fixem Inhalt');
+INSERT INTO txt VALUES ('H5813', 'English', 'Definition of Criteria with fixed content. ');
 
 INSERT INTO txt VALUES ('H6001', 'German',  'Firewall Orchestrator verf&uuml;gt &uuml;ber zwei APIs:
     <ul>

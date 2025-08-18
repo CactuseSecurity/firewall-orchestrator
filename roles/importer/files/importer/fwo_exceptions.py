@@ -8,6 +8,13 @@ class FwLoginFailed(Exception):
         self.message = message
         super().__init__(self.message)
 
+class FwApiCallFailed(Exception):
+    """Raised when FW management API call failed"""
+
+    def __init__(self, message="An API call to the FW management failed"):
+        self.message = message
+        super().__init__(self.message)
+
 class FwLogoutFailed(Exception):
     """Raised when logout from FW management failed"""
 
@@ -40,6 +47,13 @@ class FwoApiFailedLockImport(Exception):
     """Raised when unable to lock import (import running?)"""
 
     def __init__(self, message="Locking import failed - already running?"):
+        self.message = message
+        super().__init__(self.message)
+
+class FwoApiFailedUnLockImport(Exception):
+    """Raised when unable to remove import lock"""
+
+    def __init__(self, message="Unlocking import failed"):
         self.message = message
         super().__init__(self.message)
 
@@ -142,3 +156,6 @@ class FwoDeviceWithoutLocalPackage(Exception):
     """Custom exception to signal a device without local package."""
     def __init__(self, message="Could not local package for device in manager config"):
         super().__init__(message)
+
+class ShutdownRequested(Exception):
+    pass

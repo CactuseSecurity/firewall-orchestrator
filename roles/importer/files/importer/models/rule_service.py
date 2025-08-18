@@ -1,4 +1,3 @@
-from typing import Optional
 from pydantic import BaseModel
 
 
@@ -8,5 +7,5 @@ class RuleService(BaseModel):
     svc_id: int
     rs_create: int
     rs_last_seen: int
-    removed: Optional[int] = None
+    removed: int|None = None
     negated: bool = False

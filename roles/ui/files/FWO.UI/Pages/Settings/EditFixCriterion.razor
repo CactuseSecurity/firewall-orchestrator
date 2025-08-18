@@ -110,14 +110,7 @@
     private List<string> ForbiddenElementsToDelete = [];
     private string ActForbiddenElement = "";
     private List<string> ActElements = [];
-    private struct LinkedPolicy
-    {
-        [JsonProperty("criterion_id"), JsonPropertyName("criterion_id")]
-        public int CriterionId { get; set; }
 
-        [JsonProperty("policy_id"), JsonPropertyName("policy_id")]
-        public int PolicyId { get; set; }
-    }
 
     protected override void OnParametersSet()
     {
@@ -146,29 +139,29 @@
     {
         try
         {
+            int oldCritId = SelectedCriterion.Id;
             if(ForbiddenElementsToAdd.Count > 0 || ForbiddenElementsToDelete.Count > 0)
             {
-                int oldCritId = SelectedCriterion.Id;
                 foreach(var elem in ForbiddenElementsToDelete)
                 {
                     ActElements.Remove(elem);
                 }
                 ActElements.AddRange(ForbiddenElementsToAdd);
                 SelectedCriterion.Content = string.Join(",", ActElements);
+            }
 
-                if(!AddMode)
-                {
-                    await RemoveCriterion(SelectedCriterion);
-                }
-                await AddCriterion();
-                if(AddMode)
-                {
-                    CriteriaList.Add(SelectedCriterion);
-                }
-                else
-                {
-                    await UpdateUsingPolicies(oldCritId);
-                }
+            if(!AddMode)
+            {
+                await RemoveCriterion(SelectedCriterion);
+            }
+            await AddCriterion();
+            if(AddMode)
+            {
+                CriteriaList.Add(SelectedCriterion);
+            }
+            else
+            {
+                await UpdateUsingPolicies(oldCritId);
             }
             Close();
         }

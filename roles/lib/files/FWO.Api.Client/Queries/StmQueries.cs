@@ -13,9 +13,9 @@ namespace FWO.Api.Client.Queries
         {
             try
             {
-                getIpProtocols = File.ReadAllText(QueryPath + "stmTables/getIpProtocols.graphql");
-                getRuleActions = File.ReadAllText(QueryPath + "stmTables/getRuleActions.graphql");
-                getTracking = File.ReadAllText(QueryPath + "stmTables/getTracking.graphql");
+                getIpProtocols = GetQueryText("stmTables/getIpProtocols.graphql");
+                getRuleActions = GetQueryText("stmTables/getRuleActions.graphql");
+                getTracking = GetQueryText("stmTables/getTracking.graphql");
             }
             catch (Exception exception)
             {

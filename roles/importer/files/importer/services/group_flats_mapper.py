@@ -1,4 +1,3 @@
-from typing import List, Optional
 import fwo_const
 from fwo_log import getFwoLogger
 from model_controllers.import_state_controller import ImportStateController
@@ -16,8 +15,8 @@ class GroupFlatsMapper:
     """
 
     import_state: ImportStateController
-    normalized_config: Optional[FwConfigNormalized] = None
-    global_normalized_config: Optional[FwConfigNormalized] = None
+    normalized_config: FwConfigNormalized|None = None
+    global_normalized_config: FwConfigNormalized|None = None
 
     def __init__(self):
         global_state = ServiceProvider().get_service(Services.GLOBAL_STATE)
@@ -40,22 +39,22 @@ class GroupFlatsMapper:
         self.import_state.increaseErrorCounterByOne()
     
 
-    def init_config(self, normalized_config: FwConfigNormalized, global_normalized_config: Optional[FwConfigNormalized] = None):
+    def init_config(self, normalized_config: FwConfigNormalized, global_normalized_config: FwConfigNormalized|None = None):
         self.normalized_config = normalized_config
         self.global_normalized_config = global_normalized_config
         self.network_object_flats = {}
         self.service_object_flats = {}
         self.user_flats = {}
 
-    def get_network_object_flats(self, uids: List[str]) -> List[str]:
+    def get_network_object_flats(self, uids: list[str]) -> list[str]:
         """
         Flatten the network object UIDs to all members, including group objects, and the top-level group object itself.
         Does not check if the given objects are group objects or not.
         Args:
-            uids (List[str]): The list of network object UIDs to flatten.
+            uids (list[str]): The list of network object UIDs to flatten.
         
         Returns:
-            List[str]: The flattened network object UIDs.
+            list[str]: The flattened network object UIDs.
         """
         if self.normalized_config is None:
             self.log_error(f"{CONFIG_NOT_SET_MESSAGE}-networks")
@@ -100,14 +99,14 @@ class GroupFlatsMapper:
         return nwobj
 
 
-    def get_service_object_flats(self, uids: List[str]) -> List[str]:
+    def get_service_object_flats(self, uids: list[str]) -> list[str]:
         """
         Flatten the service object UIDs to all members, including group objects, and the top-level group object itself.
         Does not check if the given objects are group objects or not.
         Args:
-            uids (List[str]): The list of service object UIDs to flatten.
+            uids (list[str]): The list of service object UIDs to flatten.
         Returns:
-            List[str]: The flattened service object UIDs.
+            list[str]: The flattened service object UIDs.
         """
         if self.normalized_config is None:
             self.log_error(f"{CONFIG_NOT_SET_MESSAGE}-services")
@@ -151,14 +150,14 @@ class GroupFlatsMapper:
         return svcobj
 
 
-    def get_user_flats(self, uids: List[str]) -> List[str]:
+    def get_user_flats(self, uids: list[str]) -> list[str]:
         """
         Flatten the user UIDs to all members, including groups, and the top-level group itself.
         Does not check if the given users are groups or not.
         Args:
-            uids (List[str]): The list of user UIDs to flatten.
+            uids (list[str]): The list of user UIDs to flatten.
         Returns:
-            List[str]: The flattened user UIDs.
+            list[str]: The flattened user UIDs.
         """
         if self.normalized_config is None:
             self.log_error(f"{CONFIG_NOT_SET_MESSAGE}-users")

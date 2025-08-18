@@ -1,3 +1,6 @@
+from fwo_log import getFwoLogger
+from netaddr import IPAddress, IPNetwork
+
 
 class Route:
     def __init__(self, device_id, target_gateway, destination, 

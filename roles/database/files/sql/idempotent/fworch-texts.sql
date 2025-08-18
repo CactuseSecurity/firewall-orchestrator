@@ -1749,6 +1749,8 @@ INSERT INTO txt VALUES ('wrong_input_data',     'German',   'Falsche Eingabedate
 INSERT INTO txt VALUES ('wrong_input_data',     'English',  'Wrong input data');
 INSERT INTO txt VALUES ('add_matrix',     		'German',   'Matrix hinzuf&uuml;gen');
 INSERT INTO txt VALUES ('add_matrix',     		'English',  'Add Matrix');
+INSERT INTO txt VALUES ('delete_matrix',     	'German',   'Matrix l&ouml;schen');
+INSERT INTO txt VALUES ('delete_matrix',     	'English',  'Delete Matrix');
 INSERT INTO txt VALUES ('policy',      			'German', 	'Policy');
 INSERT INTO txt VALUES ('policy',      			'English', 	'Policy');
 INSERT INTO txt VALUES ('policies',      		'German', 	'Policies');
@@ -2513,6 +2515,8 @@ INSERT INTO txt VALUES ('complianceCheckMailBody','German', 'Text der Benachrich
 INSERT INTO txt VALUES ('complianceCheckMailBody','English','Body of notification emails');
 INSERT INTO txt VALUES ('complianceMatrixAllowNetworkZones','German', 'Netzwerkzonenverschachtelung erlauben');
 INSERT INTO txt VALUES ('complianceMatrixAllowNetworkZones','English','Nested Network Zones allowed');
+INSERT INTO txt VALUES ('complianceCheckInternetZoneObject','German', 'Internetzone');
+INSERT INTO txt VALUES ('complianceCheckInternetZoneObject','English','Internet zone');
 INSERT INTO txt VALUES ('availableModules',     'German', 	'Verf&uuml;gbare Module');
 INSERT INTO txt VALUES ('availableModules',     'English', 	'Available Modules');
 
@@ -2830,10 +2834,14 @@ INSERT INTO txt VALUES ('U2002', 'English', 'Do you really want to delete report
 INSERT INTO txt VALUES ('U3002', 'German',  'Sind sie sicher, dass sie folgenden Report l&ouml;schen wollen: ');
 INSERT INTO txt VALUES ('U3002', 'English', 'Do you really want to delete generated report ');
 
-INSERT INTO txt VALUES ('U4001', 'German',  'Sind sie sicher, dass sie folgende Policy l&ouml;schen wollen: ');
-INSERT INTO txt VALUES ('U4001', 'English', 'Are you sure you want to delete policy: ');
-INSERT INTO txt VALUES ('U4002', 'German',  'Sind sie sicher, dass sie folgendes Fixes Kriterium l&ouml;schen wollen: ');
-INSERT INTO txt VALUES ('U4002', 'English', 'Are you sure you want to delete fix criterion: ');
+INSERT INTO txt VALUES ('U4501', 'German',  'Sind sie sicher, dass sie folgende Policy l&ouml;schen wollen: ');
+INSERT INTO txt VALUES ('U4501', 'English', 'Are you sure you want to delete policy: ');
+INSERT INTO txt VALUES ('U4502', 'German',  'Sind sie sicher, dass sie folgendes Fixes Kriterium l&ouml;schen wollen: ');
+INSERT INTO txt VALUES ('U4502', 'English', 'Are you sure you want to delete fix criterion: ');
+INSERT INTO txt VALUES ('U4503', 'German',  'Sind sie sicher, dass sie folgende Matrix l&ouml;schen wollen: ');
+INSERT INTO txt VALUES ('U4503', 'English', 'Are you sure you want to delete matrix: ');
+INSERT INTO txt VALUES ('U4504', 'German',  'Die Matrix kann nicht gel&ouml;scht werden, da sie in mindestens einer aktiven Policy verwendet wird.');
+INSERT INTO txt VALUES ('U4504', 'English', 'Matrix cannot be deleted as it is used in at least one active Policy.');
 
 INSERT INTO txt VALUES ('U5001', 'German',  'Setup und Verwaltung des Firewall Orchestrator. Bitte eine Einstellung in der linken Randleiste ausw&auml;hlen.');
 INSERT INTO txt VALUES ('U5001', 'English', 'Setup and administration of Firewall Orchestrator. Please choose a setting in the left sidebar.');
@@ -5626,6 +5634,8 @@ INSERT INTO txt VALUES ('H5809', 'German',  'Wenn aktiviert, wird beim Erstellen
 INSERT INTO txt VALUES ('H5809', 'English', 'If checked, the use of nested network zones for compliance matrices is enabled.');
 INSERT INTO txt VALUES ('H5810', 'German',  'Die Policy, die f&uuml;r den termingesteuerten Compliance Check genutzt wird.');
 INSERT INTO txt VALUES ('H5810', 'English', 'Policy used for the scheduled compliance check.');
+INSERT INTO txt VALUES ('H5811', 'German',  'Das Netzwerkobjekt, dass die Netzwerkzone "Internet" darstellt.');
+INSERT INTO txt VALUES ('H5811', 'English', 'The network object that is taken for the network zone "Internet".');
 
 INSERT INTO txt VALUES ('H6001', 'German',  'Firewall Orchestrator verf&uuml;gt &uuml;ber zwei APIs:
     <ul>

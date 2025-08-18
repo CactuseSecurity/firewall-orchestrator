@@ -1,6 +1,3 @@
-
-from typing import List
-
 from model_controllers.import_state_controller import ImportStateController
 from model_controllers.fwconfig_normalized_controller import FwConfigNormalized
 from fwo_log import getFwoLogger

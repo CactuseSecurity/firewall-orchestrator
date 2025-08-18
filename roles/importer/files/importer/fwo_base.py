@@ -7,38 +7,17 @@ import ipaddress
 import traceback
 import time
 
+
 import fwo_globals
 from fwo_const import csv_delimiter, apostrophe, line_delimiter
+from fwo_enums import ConfFormat, ConfigAction
 from fwo_log import getFwoLogger, getFwoAlertLogger
-
-
-class ConfigAction(Enum):
-    INSERT = 'INSERT'
-    UPDATE = 'UPDATE'
-    DELETE = 'DELETE'
-
-class ConfFormat(Enum):
-    # NORMALIZED = auto()
-    NORMALIZED = 'NORMALIZED'
-    
-    CHECKPOINT = 'CHECKPOINT'
-    FORTINET = 'FORTINET'
-    FORTIMANAGER = 'FORTIMANAGER'
-    PALOALTO = 'PALOALTO'
-    CISCOFIREPOWER = 'CISCOFIREPOWER'
-
-    NORMALIZED_LEGACY = 'NORMALIZED_LEGACY'
-
-    CHECKPOINT_LEGACY = 'CHECKPOINT_LEGACY'
-    FORTINET_LEGACY = 'FORTINET_LEGACY'
-    PALOALTO_LEGACY = 'PALOALTO_LEGACY'
-    CISCOFIREPOWER_LEGACY = 'CISCOFIREPOWER_LEGACY'
-
-    @staticmethod
-    def IsLegacyConfigFormat(confFormatString):
-        return ConfFormat(confFormatString) in [ConfFormat.NORMALIZED_LEGACY, ConfFormat.CHECKPOINT_LEGACY, 
-                                    ConfFormat.CISCOFIREPOWER_LEGACY, ConfFormat.FORTINET_LEGACY, 
-                                    ConfFormat.PALOALTO_LEGACY]
+from services.service_provider import ServiceProvider
+from services.global_state import GlobalState
+from services.enums import Services, Lifetime
+from services.uid2id_mapper import Uid2IdMapper
+from services.group_flats_mapper import GroupFlatsMapper
+from services.enums import Services, Lifetime
 
 
 def split_list(list_in, max_list_length):
@@ -69,13 +48,16 @@ def csv_add_field(content, no_csv_delimiter=False):
     return field_result
  
 
-def sanitize(content):
-    if content == None:
+def sanitize(content, lower: bool = False) -> None | str:
+    if content is None:
         return None
     result = str(content)
     result = result.replace(apostrophe,"")  # remove possibly contained apostrophe
     result = result.replace(line_delimiter," ")  # replace possibly contained CR with space
-    return result
+    if lower:
+        return result.lower()
+    else:
+        return result
 
 
 def extend_string_list(list_string, src_dict, key, delimiter, jwt=None, import_id=None):
@@ -410,7 +392,6 @@ def compute_min_moves(source, target):
     }
 
 
-
 def write_native_config_to_file(importState, configNative):
     from fwo_const import import_tmp_path
     if importState.DebugLevel>6:
@@ -426,3 +407,13 @@ def write_native_config_to_file(importState, configNative):
 
         time_write_debug_json = int(time.time()) - debug_start_time
         logger.debug(f"import_management - writing debug config json files duration {str(time_write_debug_json)}s")
+
+
+def register_services():
+    service_provider = ServiceProvider()
+    service_provider.register(Services.GLOBAL_STATE, lambda: GlobalState(), Lifetime.SINGLETON)
+    service_provider.register(Services.GROUP_FLATS_MAPPER, lambda: GroupFlatsMapper(), Lifetime.IMPORT)
+    service_provider.register(Services.PREV_GROUP_FLATS_MAPPER, lambda: GroupFlatsMapper(), Lifetime.IMPORT)
+    service_provider.register(Services.UID2ID_MAPPER, lambda: Uid2IdMapper(), Lifetime.IMPORT)
+    return service_provider
+

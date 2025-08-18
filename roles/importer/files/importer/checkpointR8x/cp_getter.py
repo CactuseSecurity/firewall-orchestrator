@@ -1,19 +1,21 @@
 # library for API get functions
 from asyncio.log import logger
 import json
-import requests, requests.packages
+import requests
 import time
 from datetime import datetime
+from typing import Any
 
-from fwo_exceptions import FwLoginFailed, FwApiError, FwApiResponseDecodingError
+from fwo_exceptions import FwLoginFailed, FwApiError, FwApiResponseDecodingError, FwoImporterError
 from fwo_log import getFwoLogger
 import fwo_globals
 import cp_network
 import cp_const
 import fwo_const
-from fwo_exceptions import ImportInterruption
-from model_controllers.management_details_controller import ManagementDetailsController
-
+from model_controllers.management_controller import ManagementController
+from services.service_provider import ServiceProvider
+from services.enums import Services
+from fwo_api_call import FwoApiCall, FwoApi
 
 def cp_api_call(url, command, json_payload, sid, show_progress=False):
     url += command
@@ -44,7 +46,7 @@ def cp_api_call(url, command, json_payload, sid, show_progress=False):
     return json_response
 
 
-def login(mgm_details: ManagementDetailsController):
+def login(mgm_details: ManagementController):
     logger = getFwoLogger()
     payload = {'user': mgm_details.ImportUser, 'password': mgm_details.Secret}
     domain = mgm_details.getDomainString()
@@ -116,9 +118,12 @@ def get_changes(sid,api_host,api_port,fromdate):
     return 0
 
 
-def getPolicyStructure(api_v_url, sid, show_params_policy_structure, policyStructure = []):
+def getPolicyStructure(api_v_url, sid, show_params_policy_structure, policyStructure = None):
 
     logger = getFwoLogger()
+
+    if policyStructure is None:
+        policyStructure = []
 
     current=0
     total=current+1
@@ -157,12 +162,12 @@ def getPolicyStructure(api_v_url, sid, show_params_policy_structure, policyStruc
         # parse devices with ordered layers
         for package in packages['packages']:
             alreadyFetchedPackage = False
-
+            currentPackage = {}
             # parse package in case of supermanager
             if 'installation-targets' in package and package['installation-targets'] == 'all':
                 if not alreadyFetchedPackage:
                     
-                    currentPacakage = { 'name': package['name'],
+                    currentPackage = { 'name': package['name'],
                                         'uid': package['uid'],
                                         'targets': [{'name': 'all', 'uid': 'all'}],
                                         'access-layers': []}
@@ -174,58 +179,59 @@ def getPolicyStructure(api_v_url, sid, show_params_policy_structure, policyStruc
                     if 'target-name' in installationTarget and 'target-uid' in installationTarget:
 
                         if not alreadyFetchedPackage:
-                            currentPacakage = { 'name': package['name'],
+                            currentPackage = { 'name': package['name'],
                                                 'uid': package['uid'],
                                                 'targets': [],
                                                 'access-layers': []}
                             alreadyFetchedPackage = True
 
-                        currentPacakage['targets'].append({ 'name': installationTarget['target-name'],
+                        currentPackage['targets'].append({ 'name': installationTarget['target-name'],
                                                             'uid': installationTarget['target-uid']})
                     else:
                         logger.warning ( 'installation target in package: ' + package['uid'] + ' is missing name or uid')
                 
             # add access-layers to current package, if at least one installation target was found
-            if alreadyFetchedPackage:
-                if 'access-layers' in package:
-                    for accessLayer in package['access-layers']:
-                        if 'name' in accessLayer and 'uid' in accessLayer:
-                            currentPacakage['access-layers'].append({ 'name': accessLayer['name'],
-                                                                        'uid': accessLayer['uid'],
-                                                                        'domain': accessLayer['domain']['uid']})
-                        else:
-                            logger.warning ( 'access layer in package: ' + package['uid'] + ' is missing name or uid')
-                # in future threat-layers may be fetched the same way as access-layers
-                
-                policyStructure.append(currentPacakage)
+            if not alreadyFetchedPackage:
+                continue
+            if 'access-layers' in package:
+                for accessLayer in package['access-layers']:
+                    if 'name' in accessLayer and 'uid' in accessLayer:
+                        currentPackage['access-layers'].append({ 'name': accessLayer['name'],
+                                                                    'uid': accessLayer['uid'],
+                                                                    'domain': accessLayer['domain']['uid']})
+                    else:
+                        logger.warning ( 'access layer in package: ' + package['uid'] + ' is missing name or uid')
+            # in future threat-layers may be fetched the same way as access-layers
+            
+            policyStructure.append(currentPackage)
 
     return 0
 
 
-def getGlobalAssignments(api_v_url, sid, show_params_policy_structure, globalAssignments = []):
+def get_global_assignments(api_v_url, sid, show_params_policy_structure) -> list[Any]:
     logger = getFwoLogger()
     current=0
     total=current+1
     show_params_policy_structure.update({'offset': current})
+    global_assignments = []
 
     while (current<total):
         try:
             assignments = cp_api_call(api_v_url, 'show-global-assignments', show_params_policy_structure, sid)
         except Exception:
             logger.error("could not return 'show-global-assignments'")
-            return 1
+            raise FwoImporterError( 'could not return "show-global-assignments"')
 
         if 'total' in assignments:
             total=assignments['total']
         else:
-            logger.error ( 'global assignments do not contain total field')
             logger.warning ( 'sid: ' + sid)
             logger.warning ( 'api_v_url: ' + api_v_url)
             for key, value in show_params_policy_structure.items():
                 logger.warning('show_params_policy_structure ' + key + ': ' + str(value))
             for key, value in assignments.items():
                 logger.warning('global assignments ' + key + ': ' + str(value))
-            return 1
+            raise FwoImporterError( 'global assignments do not contain "total" field')
         
         if total==0:
             current=0
@@ -233,37 +239,35 @@ def getGlobalAssignments(api_v_url, sid, show_params_policy_structure, globalAss
             if 'to' in assignments:
                 current=assignments['to']
             else:
-                logger.error ( 'global assignments do not contain to field')
-                return 1
+                raise FwoImporterError( 'global assignments do not contain "to" field')
 
         # parse global assignment
         for assignment in assignments['objects']:
-            if 'type' in assignment and assignment['type'] == 'global-assignment':
-                globalAssignment = {
-                    'uid': assignment['uid'],
-                    'global-domain': {
-                        'uid': assignment['global-domain']['uid'],
-                        'name': assignment['global-domain']['name']
-                    },
-                    'dependent-domain': {
-                        'uid': assignment['dependent-domain']['uid'],
-                        'name': assignment['dependent-domain']['name']
-                    },
-                    'global-access-policy': assignment['global-access-policy']
-                }
+            if 'type' not in assignment and assignment['type'] != 'global-assignment':
+                raise FwoImporterError ('global assignment with unexpected type')
+            global_assignment = {
+                'uid': assignment['uid'],
+                'global-domain': {
+                    'uid': assignment['global-domain']['uid'],
+                    'name': assignment['global-domain']['name']
+                },
+                'dependent-domain': {
+                    'uid': assignment['dependent-domain']['uid'],
+                    'name': assignment['dependent-domain']['name']
+                },
+                'global-access-policy': assignment['global-access-policy']
+            }
+            global_assignments.append(global_assignment)
 
-                globalAssignments.append(globalAssignment)
-
-            else:
-                logger.error ('global assignment with unexpected type')
-
-    return 0
+    return global_assignments
                         
 
 def get_rulebases(api_v_url, sid, show_params_rules, nativeConfigDomain, deviceConfig, policy_rulebases_uid_list, is_global=False, access_type='access', rulebaseUid=None, rulebaseName=None):
     
     # access_type: access / nat
     logger = getFwoLogger()
+    nativeConfigRulebaseKey = 'rulebases'
+    current_rulebase = {}
 
     if nativeConfigDomain is None:
         nativeConfigDomain = {'rulebases': [], 'nat_rulebases': []}
@@ -307,7 +311,7 @@ def get_rulebases(api_v_url, sid, show_params_rules, nativeConfigDomain, deviceC
 
 
 def get_uid_of_rulebase(rulebaseName, api_v_url, access_type, sid):
-
+    rulebaseUid = None
     get_rulebase_uid_params = {
         'name': rulebaseName,
         'limit': 1,
@@ -323,6 +327,7 @@ def get_uid_of_rulebase(rulebaseName, api_v_url, access_type, sid):
 
     return rulebaseUid
 
+
 def get_rulebases_in_chunks(rulebaseUid, show_params_rules, api_v_url, access_type, sid, nativeConfigDomain):
 
     current_rulebase = {'uid': rulebaseUid, 'name': '', 'chunks': []}
@@ -335,15 +340,18 @@ def get_rulebases_in_chunks(rulebaseUid, show_params_rules, api_v_url, access_ty
         show_params_rules.update({'offset': current})
     
         try:
-            rulebase = cp_api_call(api_v_url, 'show-' + access_type + '-rulebase', show_params_rules, sid)
-            if fwo_globals.shutdown_requested:
-                raise ImportInterruption("Shutdown requested during rulebase retrieval.")                
+            rulebase = cp_api_call(api_v_url, 'show-' + access_type + '-rulebase', show_params_rules, sid)               
             if current_rulebase['name'] == '' and 'name' in rulebase:
                 current_rulebase.update({'name': rulebase['name']})
         except Exception:
             logger.error("could not find rulebase uid=" + rulebaseUid)
-            # todo: need to get FWO API jwt here somehow:
-            # create_data_issue(fwo_api_base_url, jwt, severity=2, description="failed to get show-access-rulebase  " + rulebaseUid)
+
+            service_provider = ServiceProvider()
+            global_state = service_provider.get_service(Services.GLOBAL_STATE)
+            api_call = FwoApiCall(FwoApi(ApiUri=global_state.import_state.FwoConfig.FwoApiUri, Jwt=global_state.import_state.Jwt))
+            description = f"failed to get show-access-rulebase  {rulebaseUid}"
+            api_call.create_data_issue(severity=2, description=description)
+            raise FwApiError('')
 
         resolve_checkpoint_uids_via_object_dict(rulebase, nativeConfigDomain,
                                                 current_rulebase,
@@ -365,10 +373,13 @@ def resolve_checkpoint_uids_via_object_dict(rulebase, nativeConfigDomain,
                                                nativeConfigDomain=nativeConfigDomain)
         current_rulebase['chunks'].append(rulebase)
     except Exception:
-        logger.error("error while getting field " + ruleField + " of layer "
+        
+        logger.error("error while getting a field of layer "
                      + rulebaseUid + ", params: " + str(show_params_rules))
         
+
 def control_while_loop_in_get_rulebases_in_chunks(current_rulebase, rulebase, sid, api_v_url, show_params_rules):
+    total=0
     if 'total' in rulebase:
         total=rulebase['total']
     else:
@@ -388,6 +399,7 @@ def control_while_loop_in_get_rulebases_in_chunks(current_rulebase, rulebase, si
         else:
             raise Exception ( "get_nat_rules_from_api - rulebase does not contain to field, get_rulebase_chunk_from_api found garbled json " + str(rulebase))
     return total, current
+
 
 def get_inline_layers_recursively(current_rulebase, deviceConfig, nativeConfigDomain, api_v_url, sid, show_params_rules, is_global, policy_rulebases_uid_list):
     """Takes current_rulebase, splits sections into sub-rulebases and searches for layerguards to fetch
@@ -493,7 +505,6 @@ def assign_placeholder_uids(rulebase, section, rule, placeholder_rule_uid, place
     return placeholder_rule_uid, placeholder_rulebase_uid
     
                             
-
 def get_nat_rules_from_api_as_dict (api_v_url, sid, show_params_rules, nativeConfigDomain={}):
     logger = getFwoLogger()
     nat_rules = { "nat_rule_chunks": [] }
@@ -588,7 +599,7 @@ def categorize_value_for_resolve_ref(rule, value, objDict, nativeConfigDomain):
             rule[value] = value_list # replace ref list with object list
 
 
-def getObjectDetailsFromApi(uid_missing_obj, sid='', apiurl=''):
+def getObjectDetailsFromApi(uid_missing_obj, sid='', apiurl='') ->  dict[str, Any]:
     logger = getFwoLogger()
     if fwo_globals.debug_level>5:
         logger.debug(f"getting {uid_missing_obj} from API")
@@ -597,67 +608,68 @@ def getObjectDetailsFromApi(uid_missing_obj, sid='', apiurl=''):
     try:
         obj = cp_api_call(apiurl, 'show-object', show_params_host, sid)
     except Exception as e:
-        logger.exception(f"error while trying to get details for object with uid {uid_missing_obj}: {e}")
-        return None
+        raise FwoImporterError(f"error while trying to get details for object with uid {uid_missing_obj}: {e}")
     
+    if obj is None:
+        raise FwoImporterError(f"None received while trying to get details for object with uid {uid_missing_obj}")
+
+    if 'object' in obj:
+        obj = obj['object']
+        color = obj.get('color', 'black')
+        if (obj['type'] == 'CpmiAnyObject'):
+            if (obj['name'] == 'Any'):
+                return  { "type": "hosts", "chunks": [ {
+                    "objects": [ {
+                    'uid': obj['uid'], 'name': obj['name'], 'color': color,
+                    'comments': 'any nw object checkpoint (hard coded)',
+                    'type': 'network', 'ipv4-address': fwo_const.any_ip_ipv4,
+                    'domain': obj['domain']
+                    } ] } ] }
+            elif (obj['name'] == 'None'): # None service or network object
+                return  { "type": "hosts", "chunks": [ {
+                    "objects": [ {
+                    'uid': obj['uid'], 'name': obj['name'], 'color': color,
+                    'comments': 'none nw object checkpoint (hard coded)',
+                    'type': 'group', 'domain': obj['domain']
+                    } ] } ] }
+        elif (obj['type'] in [ 'simple-gateway', 'CpmiGatewayPlain', 'interop', 'multicast-address-range',
+                                'CpmiVsClusterMember', 'CpmiVsxClusterMember', 'CpmiVsxNetobj' ]):
+            return { "type": "hosts", "chunks": [ {
+                "objects": [ {
+                'uid': obj['uid'], 'name': obj['name'], 'color': color,
+                'comments': obj['comments'], 'type': 'host', 'ipv4-address': cp_network.get_ip_of_obj(obj),
+                'domain': obj['domain']
+                } ] } ] }
+        elif (obj['type'] == 'Global'):
+            return {"type": "hosts", "chunks": [ {
+                "objects": [ {
+                'uid': obj['uid'], 'name': obj['name'], 'color': color,
+                'comments': obj['comments'], 'type': 'host', 'ipv4-address': fwo_const.any_ip_ipv4,
+                'domain': obj['domain']
+                } ] } ] }
+        elif (obj['type'] in [ 'updatable-object', 'CpmiVoipSipDomain', 'CpmiVoipMgcpDomain', 'gsn_handover_group' ]):
+            return {"type": "hosts", "chunks": [ {
+                "objects": [ {
+                'uid': obj['uid'], 'name': obj['name'], 'color': color,
+                'comments': obj['comments'], 'type': 'host',
+                'domain': obj['domain']
+                } ] } ] }
+        elif (obj['type'] in ['Internet', 'security-zone']):
+            return {"type": "hosts", "chunks": [ {
+                "objects": [ {
+                'uid': obj['uid'], 'name': obj['name'], 'color': color,
+                'comments': obj['comments'], 'type': 'network', 'ipv4-address': fwo_const.any_ip_ipv4,
+                'domain': obj['domain']
+                } ] } ] }
+        elif (obj['type'] == 'access-role'):
+            return obj
+        elif obj['type'] in cp_const.api_obj_types:    # standard objects with proper ip
+            return obj
+        else:
+            logger.warning ( "missing nw obj of unexpected type '" + obj['type'] + "': " + uid_missing_obj )
     else:
-        if obj is not None:
-            if 'object' in obj:
-                obj = obj['object']
-                color = obj.get('color', 'black')
-                if (obj['type'] == 'CpmiAnyObject'):
-                    if (obj['name'] == 'Any'):
-                        return  { "type": "hosts", "chunks": [ {
-                            "objects": [ {
-                            'uid': obj['uid'], 'name': obj['name'], 'color': color,
-                            'comments': 'any nw object checkpoint (hard coded)',
-                            'type': 'network', 'ipv4-address': fwo_const.any_ip_ipv4,
-                            'domain': obj['domain']
-                            } ] } ] }
-                    elif (obj['name'] == 'None'): # None service or network object
-                        return  { "type": "hosts", "chunks": [ {
-                            "objects": [ {
-                            'uid': obj['uid'], 'name': obj['name'], 'color': color,
-                            'comments': 'none nw object checkpoint (hard coded)',
-                            'type': 'group', 'domain': obj['domain']
-                            } ] } ] }
-                elif (obj['type'] in [ 'simple-gateway', 'CpmiGatewayPlain', 'interop', 'multicast-address-range',
-                                      'CpmiVsClusterMember', 'CpmiVsxClusterMember', 'CpmiVsxNetobj' ]):
-                    return { "type": "hosts", "chunks": [ {
-                        "objects": [ {
-                        'uid': obj['uid'], 'name': obj['name'], 'color': color,
-                        'comments': obj['comments'], 'type': 'host', 'ipv4-address': cp_network.get_ip_of_obj(obj),
-                        'domain': obj['domain']
-                        } ] } ] }
-                elif (obj['type'] == 'Global'):
-                    return {"type": "hosts", "chunks": [ {
-                        "objects": [ {
-                        'uid': obj['uid'], 'name': obj['name'], 'color': color,
-                        'comments': obj['comments'], 'type': 'host', 'ipv4-address': fwo_const.any_ip_ipv4,
-                        'domain': obj['domain']
-                        } ] } ] }
-                elif (obj['type'] in [ 'updatable-object', 'CpmiVoipSipDomain', 'CpmiVoipMgcpDomain', 'gsn_handover_group' ]):
-                    return {"type": "hosts", "chunks": [ {
-                        "objects": [ {
-                        'uid': obj['uid'], 'name': obj['name'], 'color': color,
-                        'comments': obj['comments'], 'type': 'host',
-                        'domain': obj['domain']
-                        } ] } ] }
-                elif (obj['type'] in ['Internet', 'security-zone']):
-                    return {"type": "hosts", "chunks": [ {
-                        "objects": [ {
-                        'uid': obj['uid'], 'name': obj['name'], 'color': color,
-                        'comments': obj['comments'], 'type': 'network', 'ipv4-address': fwo_const.any_ip_ipv4,
-                        'domain': obj['domain']
-                        } ] } ] }
-                elif (obj['type'] == 'access-role'):
-                    return obj
-                elif obj['type'] in cp_const.api_obj_types:    # standard objects with proper ip
-                    return obj
-                else:
-                    logger.warning ( "missing nw obj of unexpected type '" + obj['type'] + "': " + uid_missing_obj )
-            else:
-                if 'code' in obj:
-                    logger.warning("broken ref in CP DB uid=" + uid_missing_obj + ": " + obj['code'])
-                else:
-                    logger.warning("broken ref in CP DB uid=" + uid_missing_obj)
+        if 'code' in obj:
+            logger.warning("broken ref in CP DB uid=" + uid_missing_obj + ": " + obj['code'])
+        else:
+            logger.warning("broken ref in CP DB uid=" + uid_missing_obj)
+    return {}

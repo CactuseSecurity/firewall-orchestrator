@@ -1,6 +1,5 @@
 # library for API get functions
 import base64
-from typing import Dict
 from fwo_log import getFwoLogger
 import requests.packages
 import requests

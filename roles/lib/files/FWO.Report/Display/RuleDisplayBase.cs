@@ -31,13 +31,27 @@ namespace FWO.Ui.Display
 
         public static string DisplayIsCompliant(Rule rule, OutputLocation location)
         {
-            if (location == OutputLocation.export)
+            if (rule.Compliance != ComplianceViolationType.NotEvaluable)
             {
-                return $"<b>{(rule.IsCompliant ? "Y" : "N")}</b>";
+                bool isCompliant = true;
+
+                if (rule.Compliance != ComplianceViolationType.None)
+                {
+                    isCompliant = false;
+                }
+
+                if (location == OutputLocation.export)
+                {
+                    return $"<b>{(isCompliant ? "Y" : "N")}</b>";
+                }
+                else
+                {
+                    return $"<div class=\"oi {(isCompliant ? "oi-check" : "oi-x")}\"></div>";
+                }                
             }
             else
             {
-                return $"<div class=\"oi {(rule.IsCompliant ? "oi-check" : "oi-x")}\"></div>";
+                return "Not Evaluable";
             }
         }
 
@@ -144,17 +158,24 @@ namespace FWO.Ui.Display
             return  $"\"{input ?? ""}\"";
         }
 
-        public static List<NetworkLocation> GetNetworkLocations(NetworkLocation[] locationArray)
+        public static List<NetworkLocation> GetResolvedNetworkLocations(NetworkLocation[] locationArray)
         {
             HashSet<NetworkLocation> collectedUserNetworkObjects = [];
             foreach (NetworkLocation networkObject in locationArray)
             {
-                foreach (GroupFlat<NetworkObject> nwObject in networkObject.Object.ObjectGroupFlats)
+                if (networkObject.Object.Type.Name == ObjectType.Group)
                 {
-                    if (nwObject.Object != null && nwObject.Object.Type.Name != ObjectType.Group)    // leave out group level altogether
+                    foreach (GroupFlat<NetworkObject> nwObject in networkObject.Object.ObjectGroupFlats)
                     {
-                        collectedUserNetworkObjects.Add(new NetworkLocation(networkObject.User, nwObject.Object));
+                        if (nwObject.Object != null && nwObject.Object.Type.Name != ObjectType.Group)    // leave out group level altogether
+                        {
+                            collectedUserNetworkObjects.Add(new NetworkLocation(networkObject.User, nwObject.Object));
+                        }
                     }
+                }
+                else
+                {
+                    collectedUserNetworkObjects.Add(networkObject);
                 }
             }
             List<NetworkLocation> userNwObjectList = [.. collectedUserNetworkObjects];

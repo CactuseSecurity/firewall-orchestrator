@@ -1,8 +1,8 @@
 from enum import Enum
-from typing import Dict, List, Optional
 import traceback
 import time, datetime
 import json
+from typing import Any
 
 from fwo_log import ChangeLogger, getFwoLogger
 from model_controllers.import_state_controller import ImportStateController
@@ -11,7 +11,7 @@ from models.networkobject import NetworkObjectForImport
 from models.fwconfigmanager import FwConfigManager
 from models.serviceobject import ServiceObjectForImport
 import fwo_const
-import fwo_api
+from fwo_api_call import FwoApiCall, FwoApi
 from fwo_exceptions import FwoDuplicateKeyViolation, FwoImporterError
 from services.group_flats_mapper import GroupFlatsMapper
 from services.uid2id_mapper import Uid2IdMapper
@@ -28,7 +28,7 @@ class FwConfigImportObject():
 
     import_state: ImportStateController
     normalized_config: FwConfigNormalized
-    global_normalized_config: Optional[FwConfigNormalized] = None
+    global_normalized_config: FwConfigNormalized|None = None
     group_flats_mapper: GroupFlatsMapper
     prev_group_flats_mapper: GroupFlatsMapper
     uid2id_mapper: Uid2IdMapper
@@ -107,9 +107,9 @@ class FwConfigImportObject():
 
         # need to do this first, since we need the old object IDs for the group memberships
         #TODO: computationally expensive? Even without changes, all group objects and their members are compared to the previous config.
-        self.removeOutdatedMemberships(prevConfig, Type.NETWORK_OBJECT)
-        self.removeOutdatedMemberships(prevConfig, Type.SERVICE_OBJECT)
-        self.removeOutdatedMemberships(prevConfig, Type.USER)
+        self.remove_outdated_memberships(prevConfig, Type.NETWORK_OBJECT)
+        self.remove_outdated_memberships(prevConfig, Type.SERVICE_OBJECT)
+        self.remove_outdated_memberships(prevConfig, Type.USER)
 
         # add newly created objects
         errors, changes, newNwObjIds, newNwSvcIds, newUserIds, removedNwObjIds, removedNwSvcIds, removedUserIds =  \
@@ -168,10 +168,10 @@ class FwConfigImportObject():
     def GetNetworkObjTypeMap(self):
         query = "query getNetworkObjTypeMap { stm_obj_typ { obj_typ_name obj_typ_id } }"
         try:
-            result = self.import_state.call(query=query, queryVariables={})
-        except Exception:
+            result = self.import_state.api_call.call(query=query, query_variables={})
+        except Exception as e:
             logger = getFwoLogger()
-            logger.error("Error while getting stm_obj_typ")
+            logger.error(f"Error while getting stm_obj_typ: str{e}")
             return {}
         
         map = {}
@@ -182,10 +182,10 @@ class FwConfigImportObject():
     def GetServiceObjTypeMap(self):
         query = "query getServiceObjTypeMap { stm_svc_typ { svc_typ_name svc_typ_id } }"
         try:
-            result = self.import_state.call(query=query, queryVariables={})
-        except Exception:
+            result = self.import_state.api_call.call(query=query, query_variables={})
+        except Exception as e:
             logger = getFwoLogger()
-            logger.error("Error while getting stm_svc_typ")
+            logger.error(f"Error while getting stm_svc_typ: {str(e)}")
             return {}
         
         map = {}
@@ -196,10 +196,10 @@ class FwConfigImportObject():
     def GetUserObjTypeMap(self):
         query = "query getUserObjTypeMap { stm_usr_typ { usr_typ_name usr_typ_id } }"
         try:
-            result = self.import_state.call(query=query, queryVariables={})
-        except Exception:
+            result = self.import_state.api_call.call(query=query, query_variables={})
+        except Exception as e:
             logger = getFwoLogger()
-            logger.error("Error while getting stm_usr_typ")
+            logger.error(f"Error while getting stm_usr_typ: {str(e)}")
             return {}
         
         map = {}
@@ -210,10 +210,10 @@ class FwConfigImportObject():
     def GetProtocolMap(self):
         query = "query getIpProtocols { stm_ip_proto { ip_proto_id ip_proto_name } }"
         try:
-            result = self.import_state.call(query=query, queryVariables={})
-        except Exception:
+            result = self.import_state.api_call.call(query=query, query_variables={})
+        except Exception as e:
             logger = getFwoLogger()
-            logger.error("Error while getting stm_ip_proto")
+            logger.error(f"Error while getting stm_ip_proto: {str(e)}")
             return {}
         
         map = {}
@@ -233,8 +233,8 @@ class FwConfigImportObject():
         removedNwSvcIds = []
         removedUserIds = []
         this_managements_id = self.import_state.lookupManagementId(single_manager.ManagerUid)
-        import_mutation = fwo_api.get_graphql_code([fwo_const.graphqlQueryPath + "allObjects/upsertObjects.graphql"])
-        queryVariables = {
+        import_mutation = fwo_api.get_graphql_code([fwo_const.graphql_query_path + "allObjects/upsertObjects.graphql"])
+        query_variables = {
             'mgmId': this_managements_id,
             'importId': self.import_state.ImportId,
             'newNwObjects': self.prepareNewNwObjects(newNwObjectUids, this_managements_id),
@@ -248,10 +248,10 @@ class FwConfigImportObject():
         if self.import_state.DebugLevel>8:
             logger.debug(f"fwo_api:importNwObject - import_mutation: {import_mutation}")
             # Save the query variables to a file for debugging purposes.
-            json.dump(queryVariables, open(f"/usr/local/fworch/tmp/import/mgm_id_{self.import_state.MgmDetails.Id}_queryVariables.json", "w"), indent=4)
+            json.dump(query_variables, open(f"/usr/local/fworch/tmp/import/mgm_id_{self.import_state.MgmDetails.Id}_queryVariables.json", "w"), indent=4)
 
         try:
-            import_result = self.import_state.call(import_mutation, queryVariables=queryVariables, debug_level=self.import_state.DebugLevel, analyze_payload=True)
+            import_result = self.import_state.api_call.call(import_mutation, query_variables=query_variables, debug_level=self.import_state.DebugLevel, analyze_payload=True)
             if 'errors' in import_result:
                 logger.exception(f"fwo_api:importNwObject - error in updateObjectsViaApi: {str(import_result['errors'])}")
                 errors = 1
@@ -349,7 +349,7 @@ class FwConfigImportObject():
             return obj.svc_member_refs
         return obj.get('user_member_refs', None)
     
-    def get_members(self, type, refs) -> List[str]:
+    def get_members(self, type, refs) -> list[str]:
         if type == Type.NETWORK_OBJECT:
             return [member.split(fwo_const.user_delimiter)[0] for member in refs.split(fwo_const.list_delimiter) if member] if refs else []
         return refs.split(fwo_const.list_delimiter) if refs else []
@@ -376,7 +376,7 @@ class FwConfigImportObject():
         return "usrgrp"
 
 
-    def removeOutdatedMemberships(self, prev_config: FwConfigNormalized, type: Type):
+    def remove_outdated_memberships(self, prev_config: FwConfigNormalized, type: Type):
         errors = 0
         changes = 0
         removed_members = []
@@ -386,79 +386,86 @@ class FwConfigImportObject():
         prefix = self.get_prefix(type)
 
         for uid in prev_config_objects.keys():
-            if not self.is_group(type, prev_config_objects[uid]):
-                continue
-            db_id = self.get_id(type, uid, before_update=True)
-            prev_member_uids = self.get_members(type, self.get_refs(type, prev_config_objects[uid]))
-            prev_flat_member_uids = self.get_prev_flats(type, uid)
-            member_uids = []  # all members need to be removed if group deleted or changed
-            flat_member_uids = []
-            if uid in current_config_objects:  # group not removed
-                if current_config_objects[uid] == prev_config_objects[uid]:
-                    # group not changed -> check for changes in members
-                    member_uids = self.get_members(type, self.get_refs(type, current_config_objects[uid]))
-                    flat_member_uids = self.get_flats(type, uid)
-            for prev_member_uid in prev_member_uids:
-                if prev_member_uid in member_uids and current_config_objects[prev_member_uid] == prev_config_objects[prev_member_uid]:
-                    continue # member was not removed or changed
-                prev_member_id = self.get_id(type, prev_member_uid, before_update=True)
-                removed_members.append({
-                    "_and": [
-                        {f"{prefix}_id": {"_eq": db_id}},
-                        {f"{prefix}_member_id": {"_eq": prev_member_id}},
-                    ]
-                })
-            for prev_flat_member_uid in prev_flat_member_uids:
-                if prev_flat_member_uid in flat_member_uids and current_config_objects[prev_flat_member_uid] == prev_config_objects[prev_flat_member_uid]:
-                    continue # flat member was not removed or changed
-                prev_flat_member_id = self.get_id(type, prev_flat_member_uid, before_update=True)
-                removed_flats.append({
-                    "_and": [
-                        {f"{prefix}_flat_id": {"_eq": db_id}},
-                        {f"{prefix}_flat_member_id": {"_eq": prev_flat_member_id}},
-                    ]
-                })
+            self.find_removed_objects(current_config_objects, prev_config_objects, removed_members, removed_flats, prefix, uid, type)
         # remove outdated group memberships
-        if len(removed_members) > 0:
-            import_mutation = f"""
-                mutation removeOutdated{prefix.capitalize()}Memberships($importId: bigint!, $removedMembers: [{prefix}_bool_exp!]!, $removedFlats: [{prefix}_flat_bool_exp!]!) {{
-                    update_{prefix}(where: {{_and: [{{_or: $removedMembers}}, {{removed: {{_is_null: true}}}}]}},
-                        _set: {{
-                            removed: $importId,
-                            active: false
-                        }}
-                    ) {{
-                        affected_rows
+        if len(removed_members) == 0:
+            return errors, changes
+
+        import_mutation = f"""
+            mutation removeOutdated{prefix.capitalize()}Memberships($importId: bigint!, $removedMembers: [{prefix}_bool_exp!]!, $removedFlats: [{prefix}_flat_bool_exp!]!) {{
+                update_{prefix}(where: {{_and: [{{_or: $removedMembers}}, {{removed: {{_is_null: true}}}}]}},
+                    _set: {{
+                        removed: $importId,
+                        active: false
                     }}
-                    update_{prefix}_flat(where: {{_and: [{{_or: $removedFlats}}, {{removed: {{_is_null: true}}}}]}},
-                        _set: {{
-                            removed: $importId,
-                            active: false
-                        }}
-                    ) {{
-                        affected_rows
+                ) {{
+                    affected_rows
+                }}
+                update_{prefix}_flat(where: {{_and: [{{_or: $removedFlats}}, {{removed: {{_is_null: true}}}}]}},
+                    _set: {{
+                        removed: $importId,
+                        active: false
                     }}
+                ) {{
+                    affected_rows
                 }}
             """
-            query_variables = {
-                'importId': self.import_state.ImportId,
-                'removedMembers': removed_members,
-                'removedFlats': removed_flats
-            }
-            try:
-                import_result = self.import_state.call(import_mutation, queryVariables=query_variables, analyze_payload=True)
-                if 'errors' in import_result:
-                    logger = getFwoLogger()
-                    logger.exception(f"fwo_api:importNwObject - error in removeOutdated{prefix.capitalize()}Memberships: {str(import_result['errors'])}")
-                else:
-                    changes = int(import_result['data'][f'update_{prefix}']['affected_rows']) + \
-                        int(import_result['data'][f'update_{prefix}_flat']['affected_rows'])
-            except Exception:
+        query_variables = {
+            'importId': self.import_state.ImportId,
+            'removedMembers': removed_members,
+            'removedFlats': removed_flats
+        }
+        try:
+            import_result = self.import_state.api_call.call(import_mutation, query_variables, analyze_payload=True)
+            if 'errors' in import_result:
                 logger = getFwoLogger()
-                logger.exception(f"failed to remove outdated group memberships for {type}: {str(traceback.format_exc())}")
-                errors = 1
+                logger.exception(f"fwo_api:importNwObject - error in removeOutdated{prefix.capitalize()}Memberships: {str(import_result['errors'])}")
+            else:
+                changes = int(import_result['data'][f'update_{prefix}']['affected_rows']) + \
+                    int(import_result['data'][f'update_{prefix}_flat']['affected_rows'])
+        except Exception:
+            logger = getFwoLogger()
+            logger.exception(f"fwo_api:importNwObject - error in removeOutdated{prefix.capitalize()}Memberships: {str(import_result['errors'])}")
+        else:
+            changes = int(import_result['data'][f'update_{prefix}']['affected_rows']) + \
+                int(import_result['data'][f'update_{prefix}_flat']['affected_rows'])
 
         return errors, changes
+    
+
+    def find_removed_objects(self, current_config_objects, prev_config_objects: dict[str,Any], removed_members:list, removed_flats: list, 
+                             prefix: str, uid: str, type: Type) -> None:
+        if not self.is_group(type, prev_config_objects[uid]):
+            return
+        db_id = self.get_id(type, uid, before_update=True)
+        prev_member_uids = self.get_members(type, self.get_refs(type, prev_config_objects[uid]))
+        prev_flat_member_uids = self.get_prev_flats(type, uid)
+        member_uids = []  # all members need to be removed if group deleted or changed
+        flat_member_uids = []
+        # group not removed and group not changed -> check for changes in members
+        if uid in current_config_objects and current_config_objects[uid] == prev_config_objects[uid]:
+            member_uids = self.get_members(type, self.get_refs(type, current_config_objects[uid]))
+            flat_member_uids = self.get_flats(type, uid)
+        for prev_member_uid in prev_member_uids:
+            if prev_member_uid in member_uids and current_config_objects[prev_member_uid] == prev_config_objects[prev_member_uid]:
+                continue # member was not removed or changed
+            prev_member_id = self.get_id(type, prev_member_uid, before_update=True)
+            removed_members.append({
+                "_and": [
+                    {f"{prefix}_id": {"_eq": db_id}},
+                    {f"{prefix}_member_id": {"_eq": prev_member_id}},
+                ]
+            })
+        for prev_flat_member_uid in prev_flat_member_uids:
+            if prev_flat_member_uid in flat_member_uids and current_config_objects[prev_flat_member_uid] == prev_config_objects[prev_flat_member_uid]:
+                continue # flat member was not removed or changed
+            prev_flat_member_id = self.get_id(type, prev_flat_member_uid, before_update=True)
+            removed_flats.append({
+                "_and": [
+                    {f"{prefix}_flat_id": {"_eq": db_id}},
+                    {f"{prefix}_flat_member_id": {"_eq": prev_flat_member_id}},
+                ]
+            })
 
 
     def addGroupMemberships(self, prev_config, obj_type: Type):
@@ -542,7 +549,7 @@ class FwConfigImportObject():
             'groupFlats': new_group_member_flats
         }
         try:
-            import_result = self.import_state.call(import_mutation, queryVariables=query_variables, analyze_payload=True)
+            import_result = self.import_state.api_call.call(import_mutation, query_variables=query_variables, analyze_payload=True)
             if 'errors' in import_result:
                 logger.exception(f"fwo_api:addGroupMemberships: {str(import_result['errors'])}")
                 errors = 1
@@ -560,18 +567,18 @@ class FwConfigImportObject():
         return errors, changes
 
 
-    def lookupObjType(self, objTypeString):
+    def lookupObjType(self, objTypeString):# -> Any:
         # TODO: might check for miss here as this is a mandatory field!
-        return self.NetworkObjectTypeMap.get(objTypeString, None)
+        return self.NetworkObjectTypeMap.get(objTypeString, -1)
 
     def lookupSvcType(self, svcTypeString):
         # TODO: might check for miss here as this is a mandatory field!
-        return self.ServiceObjectTypeMap.get(svcTypeString, None)
+        return self.ServiceObjectTypeMap.get(svcTypeString, -1)
     
     def lookupUserType(self, userTypeString):
-        return self.UserObjectTypeMap.get(userTypeString, None)
+        return self.UserObjectTypeMap.get(userTypeString, -1)
 
-    def lookupObjIdToUidAndPolicyName(self, objId: int):
+    def lookupObjIdToUidAndPolicyName(self, objId: int) -> str:
         return str(objId) # mock
         # CAST((COALESCE (rule.rule_ruleid, rule.rule_uid) || ', Rulebase: ' || device.local_rulebase_name) AS VARCHAR) AS unique_name,
         # return self.NetworkObjectIdMap.get(objId, None)
@@ -649,14 +656,14 @@ class FwConfigImportObject():
             }
         """
 
-        queryVariables = {
+        query_variables = {
             'nwObjChanges': nwObjsChanged, 
             'svcObjChanges': svcObjsChanged
         }
 
         if len(nwObjsChanged) + len(svcObjsChanged)>0:
             try:
-                changelogResult = self.import_state.call(changelogMutation, queryVariables=queryVariables, analyze_payload=True)
+                changelogResult = self.import_state.api_call.call(changelogMutation, query_variables=query_variables, analyze_payload=True)
                 if 'errors' in changelogResult:
                     logger.exception(f"error while adding changelog entries for objects: {str(changelogResult['errors'])}")
                     errors = 1

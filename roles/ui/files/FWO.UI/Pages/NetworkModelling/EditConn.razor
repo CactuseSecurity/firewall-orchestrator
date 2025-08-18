@@ -176,14 +176,14 @@
 								}
 							}
 						}
-						else 
+						else
 						{
-							<div class="@SrcClass()" 
+							<div class="@SrcClass()"
 							ondragover="event.preventDefault();"
 							ondragstart="event.dataTransfer.setData('', event.target.id);"
 							@ondrop="HandleSrcDrop">
 								<EditList ElementType="ModellingNetworkArea" Elements="ModellingNetworkAreaWrapper.Resolve(ConnHandler.ActConn.SourceAreas)"
-								ElementsToAdd="ConnHandler.SrcAreasToAdd" ElementsToDelete="ConnHandler.SrcAreasToDelete" StdLayout="false" 
+								ElementsToAdd="ConnHandler.SrcAreasToAdd" ElementsToDelete="ConnHandler.SrcAreasToDelete" StdLayout="false"
 								AfterRemoveAction="() => {ConnHandler.CalcVisibility(); StateHasChanged(); return true;}">
 									<Display>
 										<div class="row">
@@ -192,7 +192,7 @@
 									</Display>
 								</EditList>
 								<EditList ElementType="ModellingNwGroup" Elements="ModellingNwGroupWrapper.Resolve(ConnHandler.ActConn.SourceOtherGroups)"
-								ElementsToAdd="ConnHandler.SrcNwGroupsToAdd" ElementsToDelete="ConnHandler.SrcNwGroupsToDelete" StdLayout="false" 
+								ElementsToAdd="ConnHandler.SrcNwGroupsToAdd" ElementsToDelete="ConnHandler.SrcNwGroupsToDelete" StdLayout="false"
 								AfterRemoveAction="() => {ConnHandler.CalcVisibility(); StateHasChanged(); return true;}">
 									<Display>
 										<div class="row">
@@ -254,14 +254,14 @@
 								}
 							}
 						}
-						else 
+						else
 						{
-							<div class="@dropzoneClass" 
+							<div class="@dropzoneClass"
 							ondragover="event.preventDefault();"
 							ondragstart="event.dataTransfer.setData('', event.target.id);"
 							@ondrop="HandleSvcDrop">
 								<EditList ElementType="ModellingServiceGroup" Elements="ModellingServiceGroupWrapper.Resolve(ConnHandler.ActConn.ServiceGroups)"
-								ElementsToAdd="ConnHandler.SvcGrpToAdd" ElementsToDelete="ConnHandler.SvcGrpToDelete" StdLayout="false" 
+								ElementsToAdd="ConnHandler.SvcGrpToAdd" ElementsToDelete="ConnHandler.SvcGrpToDelete" StdLayout="false"
 								AfterRemoveAction="() => {ConnHandler.CalcVisibility(); StateHasChanged(); return true;}">
 									<Display>
 										<div class="row">
@@ -336,11 +336,11 @@
 						}
 						else
 						{
-							<div class="@DestClass()" 
+							<div class="@DestClass()"
 							ondragover="event.preventDefault();"
 							ondragstart="event.dataTransfer.setData('', event.target.id);"
 							@ondrop="HandleDstDrop">
-								<EditList ElementType="ModellingNwGroup" Elements="ModellingNwGroupWrapper.Resolve(ConnHandler.ActConn.DestinationOtherGroups)" 
+								<EditList ElementType="ModellingNwGroup" Elements="ModellingNwGroupWrapper.Resolve(ConnHandler.ActConn.DestinationOtherGroups)"
 								ElementsToAdd="ConnHandler.DstNwGroupsToAdd" ElementsToDelete="ConnHandler.DstNwGroupsToDelete" StdLayout="false"
 								AfterRemoveAction="() => {ConnHandler.CalcVisibility(); StateHasChanged(); return true;}">
 									<Display>
@@ -349,7 +349,7 @@
 										</div>
 									</Display>
 								</EditList>
-								<EditList ElementType="ModellingNetworkArea" Elements="ModellingNetworkAreaWrapper.Resolve(ConnHandler.ActConn.DestinationAreas)" 
+								<EditList ElementType="ModellingNetworkArea" Elements="ModellingNetworkAreaWrapper.Resolve(ConnHandler.ActConn.DestinationAreas)"
 								ElementsToAdd="ConnHandler.DstAreasToAdd" ElementsToDelete="ConnHandler.DstAreasToDelete" StdLayout="false"
 								AfterRemoveAction="() => {ConnHandler.CalcVisibility(); StateHasChanged(); return true;}">
 									<Display>
@@ -450,7 +450,7 @@
     [Parameter]
     public EventCallback<bool> DisplayChanged { get; set; }
 
-    [Parameter] 
+    [Parameter]
     public ModellingConnectionHandler? ConnHandler { get; set; }
 
     [Parameter]
@@ -518,16 +518,30 @@
             else
             {
                 ConnHandler?.InterfaceToConn(Container.ConnElement);
-            }  
+            }
         }
         else if(!ConnHandler!.SrcDropForbidden())
         {
             if(Container.AppRoleElements.Count > 0)
             {
-                ConnHandler?.AppRolesToSource(Container.AppRoleElements);
+                if(ConnHandler is not null && ConnHandler.ActConn.IsCommonService && !ConnHandler.ComSvcContainsOnlyNetworkAreasInDirection(Direction.Source, Container.AppRoleElements))
+                {
+                    DisplayMessageInUi(default, userConfig.GetText("edit_connection"), userConfig.GetText("U9031"), true);
+                    Container.Clear();
+                    return;
+                }
+
+                 ConnHandler?.AppRolesToSource(Container.AppRoleElements);
             }
             if(Container.AreaElements.Count > 0)
             {
+                if(ConnHandler is not null && ConnHandler.ActConn.IsCommonService && !ConnHandler.ComSvcContainsOnlyNetworkAreasInDirection(Direction.Source, Container.AreaElements))
+                {
+                    DisplayMessageInUi(default, userConfig.GetText("edit_connection"), userConfig.GetText("U9031"), true);
+                    Container.Clear();
+                    return;
+                }
+
                 if (ConnHandler is not null && !ConnHandler.IsNotInterfaceForeignToApp())
                 {
                     DisplayMessageInUi(default, userConfig.GetText("edit_connection"), userConfig.GetText("U9024"), true);
@@ -580,10 +594,24 @@
         {
             if(Container.AppRoleElements.Count > 0)
             {
+                if(ConnHandler is not null && ConnHandler.ActConn.IsCommonService && !ConnHandler.ComSvcContainsOnlyNetworkAreasInDirection(Direction.Destination, Container.AppRoleElements))
+                {
+                    DisplayMessageInUi(default, userConfig.GetText("edit_connection"), userConfig.GetText("U9031"), true);
+                    Container.Clear();
+                    return;
+                }
+
                 ConnHandler?.AppRolesToDestination(Container.AppRoleElements);
             }
             if(Container.AreaElements.Count > 0)
             {
+                if(ConnHandler is not null && ConnHandler.ActConn.IsCommonService && !ConnHandler.ComSvcContainsOnlyNetworkAreasInDirection(Direction.Destination, Container.AreaElements))
+                {
+                    DisplayMessageInUi(default, userConfig.GetText("edit_connection"), userConfig.GetText("U9031"), true);
+                    Container.Clear();
+                    return;
+                }
+
                 if (ConnHandler is not null && !ConnHandler.IsNotInterfaceForeignToApp())
                 {
                     DisplayMessageInUi(default, userConfig.GetText("edit_connection"), userConfig.GetText("U9024"), true);
@@ -602,7 +630,7 @@
             }
             if(Container.NwGroupElements.Count > 0)
             {
-                ConnHandler?.NwGroupToDestination(Container.NwGroupElements);                
+                ConnHandler?.NwGroupToDestination(Container.NwGroupElements);
             }
             if(Container.AppServerElements.Count > 0)
             {
@@ -625,7 +653,7 @@
                 ConnHandler?.InterfaceToConn(Container.ConnElement);
             }
         }
-        else 
+        else
         {
             if(Container.SvcElements.Count > 0)
             {
@@ -718,7 +746,7 @@
     private bool UnsavedChangesMade()
     {
         return unchangedConn.Name != ConnHandler?.ActConn.Name
-            || unchangedConn.Reason != ConnHandler?.ActConn.Reason 
+            || unchangedConn.Reason != ConnHandler?.ActConn.Reason
             || unchangedConn.IsPublished != ConnHandler?.ActConn.IsPublished
             || ConnHandler?.SrcAppServerToAdd.Count > 0
             || ConnHandler?.SrcAppServerToDelete.Count > 0
@@ -781,7 +809,7 @@
         Display = false;
         DisplayChanged.InvokeAsync(Display);
     }
-    
+
     private string SrcClass()
     {
         if(ConnHandler!.SrcDropForbidden())

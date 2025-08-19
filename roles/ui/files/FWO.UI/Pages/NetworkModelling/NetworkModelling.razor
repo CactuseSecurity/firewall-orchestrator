@@ -164,6 +164,7 @@
                     DeleteMessage="@appHandler!.Message" DeleteAllowed="appHandler!.DeleteAllowed" AllowedRoles="@Roles.Modeller" />
                 <DecommissionInterfacePopup @bind-Display="appHandler.DecommissionInterfaceMode" ConnHandler="appHandler.ConnHandler"
                     PossibleInterfaces="appHandler.GetInterfaces()" RefreshParent="async () => {await DefaultInit.DoNothing();}" />
+                <InterfaceUsersPopup @bind-Display="appHandler.ShowUsingConnectionsMode" InterfaceName="@(appHandler.InterfaceName)" UsingConnections="appHandler.UsingConnections"/>
             }
         </div>
     }

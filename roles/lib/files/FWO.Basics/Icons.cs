@@ -11,6 +11,7 @@ namespace FWO.Basics
         public const string FurtherReading = "oi oi-external-link";
         public const string Clipboard = "oi oi-clipboard";
         public const string Warning = "oi oi-warning";
+        public const string Question = "oi oi-question-mark";
 
         // Actions
         public const string Add = "oi oi-plus";

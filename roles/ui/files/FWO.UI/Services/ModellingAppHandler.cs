@@ -19,6 +19,8 @@ namespace FWO.Ui.Services
         public bool EditConnMode { get; set; } = false;
         public bool DeleteConnMode { get; set; } = false;
         public bool DecommissionInterfaceMode { get; set; } = false;
+        public bool ShowUsingConnectionsMode { get; set; } = false;
+        public string InterfaceName { get; set; } = "";
 
         public Shared.TabSet Tabset { get; set; } = new();
         private Shared.Tab? ActTab;
@@ -231,16 +233,26 @@ namespace FWO.Ui.Services
             EditConnMode = true;
         }
 
+        public async Task ShowUsingConnections(ModellingConnection conn)
+        {
+            if (conn.IsInterface)
+            {
+                InterfaceName = conn.Name ?? "";
+                await CheckInterfaceInUse(conn);
+            }
+            ShowUsingConnectionsMode = true;
+        }
+
         public async Task RequestDeleteConnection(ModellingConnection conn)
         {
             ActTab = Tabset.ActiveTab;
             ConnToDelete = conn;
-            if(ConnToDelete.IsInterface)
+            if (ConnToDelete.IsInterface)
             {
                 if (await CheckInterfaceInUse(ConnToDelete))
                 {
                     Message = userConfig.GetText("E9013") + ConnToDelete.Name;
-                    ConnHandler = new ModellingConnectionHandler(apiConnection, userConfig, Application, Connections, conn, AddConnMode, 
+                    ConnHandler = new ModellingConnectionHandler(apiConnection, userConfig, Application, Connections, conn, AddConnMode,
                         ReadOnly, DisplayMessageInUi, ReInit, IsOwner);
                     await ConnHandler.Init();
                     ConnHandler.UsingConnections = UsingConnections;

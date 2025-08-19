@@ -1569,6 +1569,10 @@ INSERT INTO txt VALUES ('regular_connection',   'German', 	'Standard-Verbindung'
 INSERT INTO txt VALUES ('regular_connection',   'English', 	'Regular Connection');
 INSERT INTO txt VALUES ('regular_connections', 	'German',	'Standard-Verbindungen');
 INSERT INTO txt VALUES ('regular_connections', 	'English',	'Regular Connections');
+INSERT INTO txt VALUES ('using_connections', 	'German',	'Nutzende Verbindungen von ');
+INSERT INTO txt VALUES ('using_connections', 	'English',	'Using Connections of ');
+INSERT INTO txt VALUES ('where_used',           'German', 	'Wo genutzt?');
+INSERT INTO txt VALUES ('where_used',           'English', 	'Where used?');
 INSERT INTO txt VALUES ('show_all',             'German', 	'Alle darstellen');
 INSERT INTO txt VALUES ('show_all',             'English', 	'Show all');
 INSERT INTO txt VALUES ('fetch_limit',          'German', 	'Limit');

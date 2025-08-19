@@ -153,10 +153,10 @@ namespace FWO.Middleware.Server
                         attachment = CreateAttachment(pdfData, GlobalConst.kPdf, subject);
                         break;
                     case NotificationLayout.HtmlAsAttachment:
-                        attachment = CreateAttachment(report?.ExportToHtml(), GlobalConst.kHtml, subject);
+                        attachment = CreateAttachment(report.ExportToHtml(), GlobalConst.kHtml, subject);
                         break;
                     case NotificationLayout.JsonAsAttachment:
-                        attachment = CreateAttachment(report?.ExportToJson(), GlobalConst.kJson, subject);
+                        attachment = CreateAttachment(report.ExportToJson(), GlobalConst.kJson, subject);
                         break;
                     default:
                         break;

@@ -33,6 +33,13 @@
                                 { await AppHandler.RequestDeleteConnection(context); await AppHandlerChanged.InvokeAsync(AppHandler); }">
                                 @(AppHandler.DisplayButton("delete", Icons.Delete))
                             </button>
+                            @if(context.IsInterface)
+                            {
+                                <button type="button" class="btn btn-sm btn-secondary" @onclick="async () =>
+                                    { await AppHandler.ShowUsingConnections(context); await AppHandlerChanged.InvokeAsync(AppHandler); }">
+                                    @(AppHandler.DisplayButton("where_used", Icons.Question))
+                                </button>
+                            }
                         }
                     </div>
                 </Template>

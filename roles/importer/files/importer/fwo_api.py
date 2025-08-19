@@ -111,7 +111,7 @@ class FwoApi():
             else:
                 error_txt = "fwo_api: ERROR: did not receive a JWT during login" + \
                                 ", api_url: " + str(user_management_api_base_url) + \
-                                ", ssl_verification: " + str(verify_certs)
+                                ", ssl_verification: " + str(fwo_globals.verify_certs)
                 raise FwoApiLoginFailed(error_txt)
 
     

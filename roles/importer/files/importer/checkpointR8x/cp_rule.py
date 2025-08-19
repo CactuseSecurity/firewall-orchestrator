@@ -90,7 +90,7 @@ def find_rulebase_to_parse(rulebase_list, rulebase_uid):
 
 def find_rulebase_to_parse_in_case_of_chunk(rulebase, rulebase_uid):
     is_section = False
-    rulebase_to_pars = {}
+    rulebase_to_parse = {}
     for chunk in rulebase['chunks']:
         for section in chunk['rulebase']:
             if section['uid'] == rulebase_uid:
@@ -98,7 +98,7 @@ def find_rulebase_to_parse_in_case_of_chunk(rulebase, rulebase_uid):
                     return section, False, True
                 else:
                     rulebase_to_parse, is_section = find_rulebase_to_parse_in_case_of_section(is_section, rulebase_to_parse, section)
-    return rulebase_to_pars, is_section, False
+    return rulebase_to_parse, is_section, False
 
 def find_rulebase_to_parse_in_case_of_section(is_section, rulebase_to_parse, section):
     if is_section:

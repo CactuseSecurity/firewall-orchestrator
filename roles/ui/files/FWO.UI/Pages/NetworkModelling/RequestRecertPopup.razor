@@ -267,8 +267,23 @@
     {
         if(AppHandler != null)
         {
-            RecertHandler recertHandler = new(apiConnection, userConfig, DisplayMessageInUi);
-            await recertHandler.RecertifyOwnerWithRules(AppHandler.Application, VarianceResult.GetAllOkRules());
+            try
+            {
+                RecertHandler recertHandler = new(apiConnection, userConfig, DisplayMessageInUi);
+                await recertHandler.RecertifyOwnerWithRules(AppHandler.Application, VarianceResult.GetAllOkRules());
+                await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.Recertify, ModellingTypes.ModObjectType.CommunicationProfile, 0,
+                    $"Recertified Application: {AppHandler.Application.Name} with {VarianceResult.GetAllOkRules().Count.ToString()} rules",
+                    apiConnection, userConfig, AppHandler.Application.Id, DisplayMessageInUi);
+
+                string recertText = userConfig.GetText("U4002")
+                    .Replace(Placeholder.APPNAME, AppHandler.Application.Name)
+                    .Replace(Placeholder.RULE_NUMBER, VarianceResult.GetAllOkRules().Count.ToString());
+                DisplayMessageInUi(null, userConfig.GetText("recertification_ok"), recertText, false);
+            }
+            catch(Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("recertification_error"), "", true);
+            }
         }
     }
 

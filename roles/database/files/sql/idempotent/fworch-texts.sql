@@ -1172,6 +1172,10 @@ INSERT INTO txt VALUES ('recipient_to',    		'German',   'Empf&auml;nger (To)');
 INSERT INTO txt VALUES ('recipient_to',    		'English',  'Recipient (To)');
 INSERT INTO txt VALUES ('recipient_cc',    		'German',   'Empf&auml;nger (Cc)');
 INSERT INTO txt VALUES ('recipient_cc',    		'English',  'Recipient (Cc)');
+INSERT INTO txt VALUES ('recertification_ok',   'German',   'Rezertifizierung Ok');
+INSERT INTO txt VALUES ('recertification_ok',   'English',  'Recertification Ok');
+INSERT INTO txt VALUES ('recertification_error','German',   'Rezertifizierungsfehler');
+INSERT INTO txt VALUES ('recertification_error','English',  'Recertification Error');
 
 -- network modelling
 INSERT INTO txt VALUES ('network_modelling', 	'German',	'Netzwerkmodellierung');
@@ -2851,6 +2855,8 @@ INSERT INTO txt VALUES ('U3002', 'English', 'Do you really want to delete genera
 
 INSERT INTO txt VALUES ('U4001', 'German',  'Sind sie sicher, dass sie folgende Benachrichtigung l&ouml;schen wollen: ');
 INSERT INTO txt VALUES ('U4001', 'English', 'Do you really want to delete notification ');
+INSERT INTO txt VALUES ('U4002', 'German',  'Die App @@APPNAME@@ mit @@RULE_NUMBER@@ Regeln wurde erfolgreich rezertifiziert.');
+INSERT INTO txt VALUES ('U4002', 'English', 'Recertified @@APPNAME@@ with @@RULE_NUMBER@@ rules successfully.');
 
 INSERT INTO txt VALUES ('U5001', 'German',  'Setup und Verwaltung des Firewall Orchestrator. Bitte eine Einstellung in der linken Randleiste ausw&auml;hlen.');
 INSERT INTO txt VALUES ('U5001', 'English', 'Setup and administration of Firewall Orchestrator. Please choose a setting in the left sidebar.');

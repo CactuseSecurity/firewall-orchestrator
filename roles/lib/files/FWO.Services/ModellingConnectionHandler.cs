@@ -1522,7 +1522,7 @@ namespace FWO.Services
                     removalDate = DateTime.Now
                 };
                 await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateConnectionDecommission, Variables);
-                await LogChange(ModellingTypes.ChangeType.Delete, ModellingTypes.ModObjectType.Connection, ActConn.Id,
+                await LogChange(ModellingTypes.ChangeType.Decommission, ModellingTypes.ModObjectType.Connection, ActConn.Id,
                     $"Decommissioned {kInterface}: {ActConn.Name}", Application.Id);
 
                 Connections[Connections.FindIndex(x => x.Id == ActConn.Id)] = ActConn;

@@ -107,7 +107,7 @@ def find_rulebase_to_parse_in_case_of_chunk(rulebase, rulebase_uid):
 
 def concatenat_sections_across_chunks(rulebase_to_parse, section):
     if 'to' in rulebase_to_parse and 'from' in section:
-        if rulebase_to_parse['to'] == section['from'] + 1:
+        if rulebase_to_parse['to'] + 1 == section['from']:
             if rulebase_to_parse['name'] == section['name']:
                 for rule in section['rulebase']:
                     rulebase_to_parse['rulebase'].append(rule)

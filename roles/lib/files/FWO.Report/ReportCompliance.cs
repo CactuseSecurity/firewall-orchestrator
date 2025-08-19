@@ -40,18 +40,16 @@ namespace FWO.Report
                 "MgmtId",
                 "Uid",
                 "Name",
-                "Comment",
                 "Source",
                 "Destination",
                 "Services",
                 "Action",
-                "MetaData",
-                "CustomFields",
                 "InstallOn",
                 "Compliance",
                 "ViolationDetails",
                 "ChangeID",
-                "AdoITID"
+                "AdoITID",
+                "Comment"
             };
 
             if (userConfig.GlobalConfig is GlobalConfig globalConfig && !string.IsNullOrEmpty(globalConfig.DebugConfig))
@@ -156,7 +154,7 @@ namespace FWO.Report
                     };
 
                 case "ChangeID":
-                    return GetFromCustomField(rule, "field-1");
+                    return GetFromCustomField(rule, "field-2");
 
                 case "AdoITID":
                     return GetFromCustomField(rule, "field-3");

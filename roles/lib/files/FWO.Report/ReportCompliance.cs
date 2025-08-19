@@ -17,15 +17,17 @@ namespace FWO.Report
     public class ReportCompliance : ReportRules
     {
         public List<ComplianceViolation> Violations { get; set; } = [];
-        Dictionary<ComplianceViolation, char> ViolationDiffs = new();
+        public Dictionary<ComplianceViolation, char> ViolationDiffs = new();
         public List<Rule> Rules { get; set; } = [];
         public bool IsDiffReport { get; set; } = false;
         public int DiffReferenceInDays { get; set; } = 0;
 
+        protected readonly DebugConfig DebugConfig;
+
         private readonly bool _includeHeaderInExport;
         private readonly char _separator;
         private readonly List<string> _columnsToExport;
-        private readonly DebugConfig _debugConfig;
+        
 
 
 
@@ -38,29 +40,27 @@ namespace FWO.Report
                 "MgmtId",
                 "Uid",
                 "Name",
-                "Comment",
                 "Source",
                 "Destination",
                 "Services",
                 "Action",
-                "MetaData",
-                "CustomFields",
                 "InstallOn",
                 "Compliance",
                 "ViolationDetails",
                 "ChangeID",
-                "AdoITID"
+                "AdoITID",
+                "Comment"
             };
 
             if (userConfig.GlobalConfig is GlobalConfig globalConfig && !string.IsNullOrEmpty(globalConfig.DebugConfig))
             {
-                _debugConfig = JsonSerializer.Deserialize<DebugConfig>(globalConfig.DebugConfig) ?? new();
+                DebugConfig = JsonSerializer.Deserialize<DebugConfig>(globalConfig.DebugConfig) ?? new();
             }
             else
             {
                 Log.WriteWarning("Compliance Report", "No debug config found, using default values.");
 
-                _debugConfig = new();
+                DebugConfig = new();
             }
 
         }
@@ -115,8 +115,8 @@ namespace FWO.Report
             }
             catch (Exception e)
             {
-                Log.TryWriteLog(LogType.Error, "Compliance Report", "Error while setting description: " + e.Message, _debugConfig.ExtendedLogReportGeneration);
-                Log.TryWriteLog(LogType.Debug, "Compliance Report", $"Report Data: {JsonSerializer.Serialize(ReportData)}", _debugConfig.ExtendedLogReportGeneration);
+                Log.TryWriteLog(LogType.Error, "Compliance Report", "Error while setting description: " + e.Message, DebugConfig.ExtendedLogReportGeneration);
+                Log.TryWriteLog(LogType.Debug, "Compliance Report", $"Report Data: {JsonSerializer.Serialize(ReportData)}", DebugConfig.ExtendedLogReportGeneration);
 
                 return "Compliance Report";
             }
@@ -154,7 +154,7 @@ namespace FWO.Report
                     };
 
                 case "ChangeID":
-                    return GetFromCustomField(rule, "field-1");
+                    return GetFromCustomField(rule, "field-2");
 
                 case "AdoITID":
                     return GetFromCustomField(rule, "field-3");
@@ -244,7 +244,7 @@ namespace FWO.Report
             return violationDiffs;
         }
 
-        public async Task SetComplianceData()
+        public virtual async Task SetComplianceData()
         {
             Rules.Clear();
 
@@ -263,43 +263,52 @@ namespace FWO.Report
             }
         }
 
-        private async Task SetComplianceDataForRule(Rule rule, List<ComplianceViolation> violations)
+        protected async Task SetComplianceDataForRule(Rule rule, List<ComplianceViolation> violations)
         {
-            rule.Violations.Clear();
-            rule.ViolationDetails = "";
-            rule.Compliance = ComplianceViolationType.None;
-
-            if (await CheckEvaluability(rule))
+            try
             {
-                foreach (var violation in violations.Where(v => v.RuleId == rule.Id))
+                rule.Violations.Clear();
+                rule.ViolationDetails = "";
+                rule.Compliance = ComplianceViolationType.None;
+
+                if (await CheckEvaluability(rule))
                 {
-                    if (IsDiffReport && ViolationDiffs.TryGetValue(violation, out char changeSign))
+                    foreach (var violation in violations.Where(v => v.RuleId == rule.Id))
                     {
-                        violation.Details = $"({changeSign}) {violation.Details}";
-                    }
+                        if (IsDiffReport && ViolationDiffs.TryGetValue(violation, out char changeSign))
+                        {
+                            violation.Details = $"({changeSign}) {violation.Details}";
+                        }
 
-                    if (rule.ViolationDetails != "")
-                    {
-                        rule.ViolationDetails += "\n";
-                    }
+                        if (rule.ViolationDetails != "")
+                        {
+                            rule.ViolationDetails += "\n";
+                        }
 
-                    rule.ViolationDetails += violation.Details;
-                    rule.Violations.Add(violation);
+                        rule.ViolationDetails += violation.Details;
+                        rule.Violations.Add(violation);
 
-                    // No need to differentiate between different types of violations here at the moment.
+                        // No need to differentiate between different types of violations here at the moment.
 
-                    rule.Compliance = ComplianceViolationType.MultipleViolations;
-                }                
+                        rule.Compliance = ComplianceViolationType.MultipleViolations;
+                    }                
+                }
+                else
+                {
+                    rule.Compliance = ComplianceViolationType.NotEvaluable;
+                }
+
+                if (!Rules.Contains(rule))
+                {
+                    Rules.Add(rule);
+                }
             }
-            else
+            catch (System.Exception e)
             {
-                rule.Compliance = ComplianceViolationType.NotEvaluable;
+                Log.TryWriteLog(LogType.Error, "Compliance Report", $"Error while setting compliance data for rule {rule.Id}: {e.Message}", DebugConfig.ExtendedLogReportGeneration);
+                return;
             }
 
-            if (!Rules.Contains(rule))
-            {
-                Rules.Add(rule);
-            }
         }
 
         public Task<bool> CheckEvaluability(Rule rule)

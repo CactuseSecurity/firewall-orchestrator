@@ -10,6 +10,11 @@ namespace FWO.Report
 {
     public class ReportVariances(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType) : ReportConnections(query, userConfig, reportType)
     {
+        public int MissConnCounter { get; private set; } = 0;
+        public int DiffConnCounter { get; private set; } = 0;
+        public int MissARCounter { get; private set; } = 0;
+        public int DiffARCounter { get; private set; } = 0;
+
         private RuleDifferenceDisplayHtml? ruleDiffDisplay;
 
         public override string ExportToHtml()
@@ -38,17 +43,33 @@ namespace FWO.Report
             return GenerateHtmlFrame(userConfig.GetText(ReportType.ToString()), Query.RawFilter, DateTime.Now, report);
         }
 
+        public void SetDifferenceCounters()
+        {
+            MissConnCounter = 0;
+            DiffConnCounter = 0;
+            MissARCounter = 0;
+            DiffARCounter = 0;
+
+            foreach (var ownerReport in ReportData.OwnerData)
+            {
+                MissConnCounter += ownerReport.RegularConnections.Count;
+                DiffConnCounter += ownerReport.RuleDifferences.Count;
+                MissARCounter += ownerReport.AppRoleStats.AppRolesMissingCount;
+                DiffARCounter += ownerReport.AppRoleStats.AppRolesDifferenceCount;
+            }
+        }
+
         public static OwnerReport CollectObjectsInReport(OwnerReport ownerReport)
         {
-            OwnerReport modifiedOwnerReport = new(){ Connections = [.. ownerReport.Connections] };
+            OwnerReport modifiedOwnerReport = new() { Connections = [.. ownerReport.Connections] };
             modifiedOwnerReport.Connections.AddRange(ownerReport.RuleDifferences.ConvertAll(o => o.ModelledConnection));
-            if(ownerReport.MissingAppRoles.Count > 0 || ownerReport.DifferingAppRoles.Count > 0)
+            if (ownerReport.MissingAppRoles.Count > 0 || ownerReport.DifferingAppRoles.Count > 0)
             {
                 ModellingConnection diffConn = new();
-                foreach(var mgt in ownerReport.MissingAppRoles.Keys)
+                foreach (var mgt in ownerReport.MissingAppRoles.Keys)
                 {
-                    diffConn.SourceAppRoles.AddRange(ownerReport.MissingAppRoles[mgt].ConvertAll(a => new ModellingAppRoleWrapper(){ Content = a }));
-                    diffConn.DestinationAppRoles.AddRange(ownerReport.DifferingAppRoles[mgt].ConvertAll(a => new ModellingAppRoleWrapper(){ Content = a }));
+                    diffConn.SourceAppRoles.AddRange(ownerReport.MissingAppRoles[mgt].ConvertAll(a => new ModellingAppRoleWrapper() { Content = a }));
+                    diffConn.DestinationAppRoles.AddRange(ownerReport.DifferingAppRoles[mgt].ConvertAll(a => new ModellingAppRoleWrapper() { Content = a }));
                 }
                 modifiedOwnerReport.Connections.Add(diffConn);
             }
@@ -57,19 +78,8 @@ namespace FWO.Report
 
         public override string SetDescription()
         {
-            int missConnCounter = 0;
-            int diffConnCounter = 0;
-            int missARCounter = 0;
-            int diffARCounter = 0;
-            foreach(var owner in ReportData.OwnerData)
-            {
-                missConnCounter += owner.Connections.Count;
-                diffConnCounter += owner.RuleDifferences.Count;
-                missARCounter += owner.AppRoleStats.AppRolesMissingCount;
-                diffARCounter += owner.AppRoleStats.AppRolesDifferenceCount;
-            }
-            string appRoles = $"{userConfig.GetText("app_roles")}: {missARCounter} {userConfig.GetText("not_implemented")}, {diffARCounter} {userConfig.GetText("with_diffs")}, ";
-            return $"{appRoles}{userConfig.GetText("connections")}.: {missConnCounter} {userConfig.GetText("not_implemented")}, {diffConnCounter} {userConfig.GetText("with_diffs")}";
+            string appRoles = $"{userConfig.GetText("app_roles")}: {MissARCounter} {userConfig.GetText("not_implemented")}, {DiffARCounter} {userConfig.GetText("with_diffs")}, ";
+            return $"{appRoles}{userConfig.GetText("connections")}.: {MissConnCounter} {userConfig.GetText("not_implemented")}, {DiffConnCounter} {userConfig.GetText("with_diffs")}";
         }
 
         private void AppendStats(ref StringBuilder report, OwnerReport ownerReport)

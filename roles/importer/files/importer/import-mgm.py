@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import sys, traceback
 from fwo_log import getFwoLogger
 import argparse

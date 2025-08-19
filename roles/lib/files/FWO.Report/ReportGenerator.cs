@@ -12,6 +12,9 @@ namespace FWO.Report
 {
     public static class ReportGenerator
     {
+
+        private static ReportBase? _currentReport;
+
         public static async Task<ReportBase?> Generate(ReportTemplate reportTemplate, ApiConnection apiConnection, UserConfig userConfig, Action<Exception?, string, string, bool> displayMessageInUi, CancellationToken? token = null)
         {
             try
@@ -64,6 +67,7 @@ namespace FWO.Report
 
         private static async Task GenerateOwnerRelatedReport(ReportBase report, ReportTemplate reportTemplate, ApiConnection apiConnection, UserConfig userConfig, Action<Exception?, string, string, bool> displayMessageInUi, CancellationToken token)
         {
+            _currentReport = report;
             ModellingAppRole dummyAppRole = new();
             List<ModellingAppRole> dummyAppRoles = await apiConnection.SendQueryAsync<List<ModellingAppRole>>(ModellingQueries.getDummyAppRole);
             if (dummyAppRoles.Count > 0)
@@ -127,6 +131,12 @@ namespace FWO.Report
             {
                 ownerReport.ManagementData = result.MgtDataToReport();
                 ownerReport.ManagementData = await ReportAppRules.PrepareAppRulesReport(ownerReport.ManagementData, modellingFilter, apiConnection, ownerReport.Owner.Id);
+            }
+
+            if (_currentReport is ReportVariances reportVariances)
+            {
+                reportVariances.SetDifferenceCounters();
+                reportVariances.ReportData.ElementsCount += reportVariances.MissARCounter + reportVariances.DiffARCounter + reportVariances.MissConnCounter + reportVariances.DiffConnCounter;
             }
         }
 

@@ -97,13 +97,16 @@ def find_rulebase_to_parse_in_case_of_chunk(rulebase, rulebase_uid):
                 if section['type'] == 'place-holder':
                     return section, False, True
                 else:
-                    if is_section:
-                        rulebase_to_parse = concatenat_sections_across_chunks(rulebase_to_parse, section)
-                    else:
-                        is_section = True
-                        rulebase_to_parse = section
-                    #return section, True, False
+                    rulebase_to_parse, is_section = find_rulebase_to_parse_in_case_of_section(is_section, rulebase_to_parse, section)
     return rulebase_to_pars, is_section, False
+
+def find_rulebase_to_parse_in_case_of_section(is_section, rulebase_to_parse, section):
+    if is_section:
+        rulebase_to_parse = concatenat_sections_across_chunks(rulebase_to_parse, section)
+    else:
+        is_section = True
+        rulebase_to_parse = section
+    return rulebase_to_parse, is_section
 
 def concatenat_sections_across_chunks(rulebase_to_parse, section):
     if 'to' in rulebase_to_parse and 'from' in section:

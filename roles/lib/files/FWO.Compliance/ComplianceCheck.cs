@@ -391,7 +391,16 @@ namespace FWO.Compliance
                         {
                             if (!sourceNetworkZone.CommunicationAllowedTo(destinationNetworkZone))
                             {
-                                ComplianceViolation? violation = TryCreateViolation(ComplianceViolationType.MatrixViolation, rule, source: sourceZone.networkObject, destination: destinationZone.networkObject);
+                                ComplianceCheckResult complianceCheckResult = new(rule, ComplianceViolationType.MatrixViolation)
+                                {
+                                    Criterion = _policy?.Criteria.FirstOrDefault(c => c.Content.CriterionType == CriterionType.Matrix.ToString())?.Content,
+                                    Source = sourceZone.networkObject,
+                                    SourceZone = sourceNetworkZone,
+                                    Destination = destinationZone.networkObject,
+                                    DestinationZone = destinationNetworkZone
+                                };
+
+                                ComplianceViolation? violation = TryCreateViolation(ComplianceViolationType.MatrixViolation, rule, complianceCheckResult);
 
                                 ComplianceReport!.Violations.Add(violation!);
 
@@ -405,7 +414,7 @@ namespace FWO.Compliance
             return ruleIsCompliant;
         }
 
-        private ComplianceViolation? TryCreateViolation(ComplianceViolationType violationType, Rule rule, ComplianceCriterion? criterion = null, NetworkObject? source = null, NetworkObject? destination = null, NetworkService? service = null)
+        private ComplianceViolation? TryCreateViolation(ComplianceViolationType violationType, Rule rule, ComplianceCheckResult complianceCheckResult)
         {
             ComplianceViolation violation = new()
             {
@@ -417,7 +426,7 @@ namespace FWO.Compliance
             {
                 case ComplianceViolationType.MatrixViolation:
 
-                    if (source is NetworkObject s && destination is NetworkObject d)
+                    if (complianceCheckResult.Source is NetworkObject s && complianceCheckResult.Destination is NetworkObject d)
                     {
                         // Workaround!! TODO: Check compliance per criterion and transfer criterion id through the methods
                         violation.CriterionId = _policy?.Criteria
@@ -425,20 +434,20 @@ namespace FWO.Compliance
                                                     .Content.Id ?? 0;
                         string sourceString = GetNwObjectString(s);
                         string destinationString = GetNwObjectString(d);
-                        violation.Details = $"Matrix violation: {sourceString} -> {destinationString}";
+                        violation.Details = $"Matrix violation: {sourceString} (Zone: {complianceCheckResult.SourceZone}) -> {destinationString} (Zone: {complianceCheckResult.DestinationZone})";
 
                     }
                     else
                     {
-                        string nullArgumentExceptionMessage = "Both the 'source' and 'destination' arguments must be non-null when creating a matrix violation.";
+                        string nullArgumentExceptionMessage = "Both the 'complianceCheckResult.Source' and 'complianceCheckResult.Destination' arguments must be non-null when creating a matrix violation.";
 
-                        if (source == null)
+                        if (complianceCheckResult.Source == null)
                         {
-                            throw new ArgumentNullException(paramName: "source", message: nullArgumentExceptionMessage);
+                            throw new ArgumentNullException(paramName: "complianceCheckResult.Source", message: nullArgumentExceptionMessage);
                         }
                         else
                         {
-                            throw new ArgumentNullException(paramName: "destination", message: nullArgumentExceptionMessage);
+                            throw new ArgumentNullException(paramName: "complianceCheckResult.Destination", message: nullArgumentExceptionMessage);
                         }
                     }
 
@@ -446,14 +455,14 @@ namespace FWO.Compliance
 
                 case ComplianceViolationType.ServiceViolation:
 
-                    if (service is NetworkService svc)
+                    if (complianceCheckResult.Service is NetworkService svc)
                     {
-                        violation.CriterionId = criterion.Id;
+                        violation.CriterionId = complianceCheckResult.Criterion?.Id ?? 0;
                         violation.Details = $"Restricted service used: {svc.Name}";
                     }
                     else
                     {
-                        throw new ArgumentNullException(paramName: "service", message: "The service argument must be non-null when creating a service violation.");
+                        throw new ArgumentNullException(paramName: "complianceCheckResult.Service", message: "The service argument must be non-null when creating a service violation.");
                     }
 
                     break;
@@ -529,15 +538,20 @@ namespace FWO.Compliance
             {
                 foreach (var service in rule.Services.Where(s => restrictedServices.Contains(s.Content.Uid)))
                 {
-                    ComplianceViolation violation = new()
+                    ComplianceCheckResult complianceCheckResult = new(rule, ComplianceViolationType.ServiceViolation)
                     {
-                        RuleId = (int)rule.Id,
-                        Details = $"Restricted service used: {service.Content.Name}",
-                        CriterionId = criterion.Id,
-                        PolicyId = _policy?.Id ?? 0
+                        Criterion = criterion,
+                        Service = service.Content
                     };
+
+                    ComplianceViolation? violation = TryCreateViolation(ComplianceViolationType.ServiceViolation, rule, complianceCheckResult);
+
+                    if (violation != null)
+                    {
+                        ComplianceReport!.Violations.Add(violation);
+                    }
                     
-                    ComplianceReport!.Violations.Add(violation);
+                    ruleIsCompliant = false;
                 }
             }
 

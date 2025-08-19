@@ -1027,7 +1027,7 @@ ON UPDATE RESTRICT ON DELETE CASCADE;
 
 -- add report type Compliance
 
-UPDATE config SET config_value = '[1,2,3,4,5,6,7,8,9,10,21,22,31]' WHERE config_key = 'availableReportTypes';
+UPDATE config SET config_value = '[1,2,3,4,5,6,7,8,9,10,21,22,31,32]' WHERE config_key = 'availableReportTypes';
 
 --- prevent overlapping active ip address ranges in the same zone
 ALTER TABLE compliance.ip_range DROP CONSTRAINT IF EXISTS exclude_overlapping_ip_ranges;

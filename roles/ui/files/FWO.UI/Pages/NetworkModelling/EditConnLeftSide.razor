@@ -363,8 +363,17 @@
             }
         }
 
+        Direction direction = toSource ? Direction.Source : Direction.Destination;
+
         if(appRoles.Count > 0)
         {
+            if(ConnHandler is not null && ConnHandler.ActConn.IsCommonService && !ConnHandler.ComSvcContainsOnlyNetworkAreasInDirection(direction, appRoles))
+            {
+                DisplayMessageInUi(default, userConfig.GetText("edit_connection"), userConfig.GetText("U9031"), true);
+                selectedNwElems = new();
+                return;
+            }
+
             if(toSource)
             {
                 ConnHandler?.AppRolesToSource(appRoles);
@@ -374,16 +383,22 @@
                 ConnHandler?.AppRolesToDestination(appRoles);
             }
         }
+
         if(areas.Count > 0)
         {
+            if(ConnHandler is not null && ConnHandler.ActConn.IsCommonService && !ConnHandler.ComSvcContainsOnlyNetworkAreasInDirection(direction, areas))
+            {
+                DisplayMessageInUi(default, userConfig.GetText("edit_connection"), userConfig.GetText("U9031"), true);
+                selectedNwElems = new();
+                return;
+            }
+
             if (ConnHandler is not null && !ConnHandler.IsNotInterfaceForeignToApp())
             {
                 DisplayMessageInUi(default, userConfig.GetText("edit_connection"), userConfig.GetText("U9024"), true);
                 selectedNwElems = new();
                 return;
             }
-
-            Direction direction = toSource ? Direction.Source : Direction.Destination;
 
             if (ConnHandler is not null && !ConnHandler.NetworkAreaUseAllowed(areas, direction, out (string Title, string Text) reason))
             {
@@ -401,6 +416,7 @@
                 ConnHandler?.AreasToDestination(areas);
             }
         }
+
         if(nwGroups.Count > 0)
         {
             if(toSource)

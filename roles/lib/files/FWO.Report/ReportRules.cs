@@ -35,7 +35,7 @@ namespace FWO.Report
         protected bool UseAdditionalFilter = false;
         private bool VarianceMode = false;
 
-        private static IRuleTreeBuilder? _ruleTreeBuilder;
+        private static Dictionary<(int deviceId, int managementId), List<Rule>> _rulesCache = new();
 
         public ReportRules(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType) : base(query, userConfig, reportType) { }
 
@@ -65,7 +65,7 @@ namespace FWO.Report
                 }
                 keepFetching = false;
                 Query.QueryVariables[QueryVar.Offset] = (int)Query.QueryVariables[QueryVar.Offset] + elementsPerFetch;
-                foreach(var management in managementsWithRelevantImportId)
+                foreach (var management in managementsWithRelevantImportId)
                 {
                     SetMgtQueryVars(management);
                     ManagementReport? mgtToFill = ReportData.ManagementData.FirstOrDefault(m => m.Id == management.Id);
@@ -78,14 +78,57 @@ namespace FWO.Report
                 }
                 await callback(ReportData);
             }
-            SetReportedRuleIds();
+
+            TryBuildRuleTree();
         }
 
-        private void SetMgtQueryVars(ManagementReport management)
+        private void TryBuildRuleTree()
+        {
+            int ruleCount = 0;
+
+            foreach (var managementReport in ReportData.ManagementData)
+            {
+                foreach (var deviceReport in managementReport.Devices)
+                {
+                    List<Rule> allRules = new();
+
+                    if (Services.ServiceProvider.UiServices?.GetService<IRuleTreeBuilder>() is IRuleTreeBuilder ruleTreeBuilder)
+                    {
+                        if (ruleTreeBuilder?.BuildRulebaseLinkQueue(deviceReport.RulebaseLinks, managementReport.Rulebases) != null)
+                        {
+                            allRules = ruleTreeBuilder.BuildRuleTree();
+                            ruleCount += allRules.Count;
+                        }
+                    }
+                    else
+                    {
+                        // if we are not building the rule tree, we just collect all rules from the rulebases
+
+                        foreach (var rulebase in managementReport.Rulebases)
+                        {
+                            allRules.AddRange(rulebase.Rules);
+                            ruleCount += rulebase.Rules.Count();
+                        }
+                    }
+
+                    _rulesCache[(deviceReport.Id, managementReport.Id)] = allRules;
+
+                    // Add all rule ids to ReportedRuleIds of management, that are not already in that list
+
+                    managementReport.ReportedRuleIds.AddRange(
+                        allRules.Select(r => r.Id).Except(managementReport.ReportedRuleIds)
+                    );
+                }
+            }
+
+            ReportData.ElementsCount = ruleCount;
+        }
+
+        protected virtual void SetMgtQueryVars(ManagementReport management)
         {
             Query.QueryVariables[QueryVar.MgmId] = management.Id;
             Query.QueryVariables[QueryVar.ImportIdStart] = management.Import.ImportAggregate.ImportAggregateMax.RelevantImportId ?? -1; /* managment was not yet imported at that time */;
-            Query.QueryVariables[QueryVar.ImportIdEnd]   = management.Import.ImportAggregate.ImportAggregateMax.RelevantImportId ?? -1; /* managment was not yet imported at that time */;
+            Query.QueryVariables[QueryVar.ImportIdEnd] = management.Import.ImportAggregate.ImportAggregateMax.RelevantImportId ?? -1; /* managment was not yet imported at that time */;
         }
 
         public override async Task<bool> GetObjectsInReport(int objectsPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback) // to be called when exporting
@@ -221,16 +264,14 @@ namespace FWO.Report
 
         public static Rule[] GetAllRulesOfGateway(DeviceReportController deviceReport, ManagementReport managementReport)
         {
-            _ruleTreeBuilder = FWO.Services.ServiceProvider.UiServices.GetService<IRuleTreeBuilder>();
-
-            List<Rule> allRules = new();
-
-            if (_ruleTreeBuilder.BuildRulebaseLinkQueue(deviceReport.RulebaseLinks, managementReport.Rulebases) != null)
+            if (_rulesCache.TryGetValue((deviceReport.Id, managementReport.Id), out List<Rule>? allRules))
             {
-                allRules = _ruleTreeBuilder.BuildRuleTree(); 
+                return allRules.ToArray();
             }
-
-            return allRules.ToArray();
+            else
+            {
+                return [];
+            }
         }
         
         public static int GetRuleCount(ManagementReport mgmReport, RulebaseLink? currentRbLink, RulebaseLink[] rulebaseLinks)
@@ -282,33 +323,6 @@ namespace FWO.Report
                 }
             }
             return $"{managementCounter} {userConfig.GetText("managements")}, {deviceCounter} {userConfig.GetText("gateways")}, {ruleCounter} {userConfig.GetText("rules")}";
-        }
-
-        // here we can simply traverse all rulebases (disregarding any order) and add their ids to the list
-        private void SetReportedRuleIds()
-        {
-            foreach (var mgt in ReportData.ManagementData)
-            {
-                foreach (var dev in mgt.Devices.Where(b => b.ContainsRules()))
-                {
-                    DeviceReportController deviceController = DeviceReportController.FromDeviceReport(dev);
-                    if (deviceController.RulebaseLinks != null)
-                    {
-                        foreach (var rbLink in deviceController.RulebaseLinks)
-                        {
-                            RulebaseReport? rulebase = mgt.Rulebases.FirstOrDefault(_ => _.Id == rbLink.NextRulebaseId);
-                            if (rulebase != null)
-                            {
-                                foreach (Rule rule in rulebase.Rules)
-                                {
-                                    mgt.ReportedRuleIds.Add(rule.Id);
-                                }
-                            }
-                        }
-                    }
-                }
-                mgt.ReportedRuleIds = mgt.ReportedRuleIds.Distinct().ToList();
-            }
         }
 
         private string ExportSingleRulebaseToCsv(StringBuilder report, RuleDisplayCsv ruleDisplayCsv, ManagementReport managementReport, DeviceReport gateway, RulebaseLink? rbLink)

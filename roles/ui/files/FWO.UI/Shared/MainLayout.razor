@@ -467,6 +467,7 @@
 
 	public void Dispose()
 	{
+		UIMessageQueTimer?.Dispose();
 		EventMediator.Unsubscribe<UserSessionClosedEvent>(nameof(CircuitHandlerService));
 	}
 }

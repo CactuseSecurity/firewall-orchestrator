@@ -9,7 +9,7 @@ import fwo_globals
 import fwo_exceptions
 from fwo_const import list_delimiter, default_section_header_text
 from fwo_base import sanitize
-from fwo_exceptions import ImportRecursionLimitReached
+from fwo_exceptions import ImportRecursionLimitReached, FwoImporterErrorInconsistencies
 from models.rulebase import Rulebase
 from models.rule import RuleNormalized
 from models.rule_enforced_on_gateway import RuleEnforcedOnGatewayNormalized
@@ -89,14 +89,37 @@ def find_rulebase_to_parse(rulebase_list, rulebase_uid):
     return {}, False, False
 
 def find_rulebase_to_parse_in_case_of_chunk(rulebase, rulebase_uid):
+    is_section = False
+    rulebase_to_pars = {}
     for chunk in rulebase['chunks']:
         for section in chunk['rulebase']:
             if section['uid'] == rulebase_uid:
                 if section['type'] == 'place-holder':
                     return section, False, True
                 else:
-                    return section, True, False
-    return {}, False, False
+                    if is_section:
+                        rulebase_to_parse = concatenat_sections_across_chunks(rulebase_to_parse, section)
+                    else:
+                        is_section = True
+                        rulebase_to_parse = section
+                    #return section, True, False
+    return rulebase_to_pars, is_section, False
+
+def concatenat_sections_across_chunks(rulebase_to_parse, section):
+    if 'to' in rulebase_to_parse and 'from' in section:
+        if rulebase_to_parse['to'] == section['from'] + 1:
+            if rulebase_to_parse['name'] == section['name']:
+                for rule in section['rulebase']:
+                    rulebase_to_parse['rulebase'].append(rule)
+                rulebase_to_parse['to'] = section['to']
+            else:
+                raise FwoImporterErrorInconsistencies("Inconsistent naming in Checkpoint Chunks.")
+        else:
+            raise FwoImporterErrorInconsistencies("Inconsistent numbering in Checkpoint Chunks.")
+    else:
+        raise FwoImporterErrorInconsistencies("Broken format in Checkpoint Chunks.")
+    return rulebase_to_parse
+
                     
 def initialize_normalized_rulebase(rulebase_to_parse, mgm_uid):
     rulebaseName = rulebase_to_parse['name']

@@ -546,11 +546,7 @@ namespace FWO.Compliance
 
                     ComplianceViolation? violation = TryCreateViolation(ComplianceViolationType.ServiceViolation, rule, complianceCheckResult);
 
-                    if (violation == null)
-                    {
-                        Log.WriteError("Compliance Check", "Could not create service violation for rule", new ArgumentNullException(nameof(violation)));
-                    }
-                    else
+                    if (violation != null)
                     {
                         ComplianceReport!.Violations.Add(violation);
                     }

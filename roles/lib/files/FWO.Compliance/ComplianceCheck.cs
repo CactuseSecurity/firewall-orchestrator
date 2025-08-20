@@ -60,13 +60,13 @@ namespace FWO.Compliance
         {
             try
             {
-                Log.TryWriteLog(LogType.Info, "Compliance Check", "Starting compliance check", _debugConfig.ExtendedLogComplianceCheck);
+                Log.TryWriteLog(LogType.Info, "Compliance Check", "Starting compliance check.", _debugConfig.ExtendedLogComplianceCheck);
 
                 int? policyId = _userConfig.GlobalConfig?.ComplianceCheckPolicyId;
 
                 if (policyId == null || policyId == 0)
                 {
-                    Log.WriteInfo("Compliance Check", "No Policy defined");
+                    Log.WriteInfo("Compliance Check", "No Policy defined.");
                     return;
                 }
                 else
@@ -78,7 +78,7 @@ namespace FWO.Compliance
 
                 if (TryLogPolicyCriteria() == false)
                 {
-                    Log.WriteError("Compliance Check", $"Policy with id {policyId} not found");
+                    Log.WriteError("Compliance Check", $"Policy with id {policyId} not found.");
                     return;
                 }
 
@@ -105,12 +105,12 @@ namespace FWO.Compliance
                 }
                 else
                 {
-                    Log.WriteError("Compliance Check", "Could not generate compliance report");
+                    Log.WriteError("Compliance Check", "Could not generate compliance report.");
                 }    
             }
             catch (System.Exception e)
             {
-                Log.WriteError("Compliance Check", "Error while checking for compliance violations", e);
+                Log.WriteError("Compliance Check", "Error while checking for compliance violations.", e);
             }
             
         }
@@ -136,7 +136,7 @@ namespace FWO.Compliance
 
                 if (violations.Count == 0)
                 {
-                    Log.TryWriteLog(LogType.Info, "Compliance Check", "No new violations to persist", _debugConfig.ExtendedLogComplianceCheck);
+                    Log.TryWriteLog(LogType.Info, "Compliance Check", "No new violations to persist.", _debugConfig.ExtendedLogComplianceCheck);
                 }
                 else
                 {
@@ -147,7 +147,7 @@ namespace FWO.Compliance
 
                     await _apiConnection.SendQueryAsync<dynamic>(ComplianceQueries.addViolations, variablesAdd);
 
-                    Log.TryWriteLog(LogType.Info, "Compliance Check", $"Persisted {violations.Count} new violations", _debugConfig.ExtendedLogComplianceCheck);
+                    Log.TryWriteLog(LogType.Info, "Compliance Check", $"Persisted {violations.Count} new violations.", _debugConfig.ExtendedLogComplianceCheck);
                 }
 
                 List<int> ids = await violationsForRemoveTask;
@@ -170,12 +170,12 @@ namespace FWO.Compliance
 
                     await _apiConnection.SendQueryAsync<dynamic>(ComplianceQueries.removeViolations, variablesRemove);
 
-                    Log.TryWriteLog(LogType.Info, "Compliance Check", $"Removed {ids.Count} violations", _debugConfig.ExtendedLogComplianceCheck && ids.Count > 0);
+                    Log.TryWriteLog(LogType.Info, "Compliance Check", $"Removed {ids.Count} violations.", _debugConfig.ExtendedLogComplianceCheck && ids.Count > 0);
                 }
             }
             catch (Exception e)
             {
-                Log.WriteError("Compliance Check", "Error while persisting compliance data", e);
+                Log.WriteError("Compliance Check", "Error while persisting compliance data.", e);
             }
         }
 

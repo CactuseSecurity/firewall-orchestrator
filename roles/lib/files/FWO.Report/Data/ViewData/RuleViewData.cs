@@ -35,7 +35,7 @@ namespace FWO.Report.Data.ViewData
             Name = rule.Name ?? "";
             Source = natRuleDisplayHtml.DisplaySource(rule, outputLocation, ReportType.ComplianceNew);
             Destination = natRuleDisplayHtml.DisplayDestination(rule, outputLocation, ReportType.ComplianceNew);
-            Services = natRuleDisplayHtml.DisplayServices(rule, outputLocation, ReportType.ComplianceNew);
+            Services = ResolveServices(rule);
             Action = rule.Action;
             InstallOn = ResolveInstallOn(rule, devices ?? []);
             Compliance = ResolveCompliance(rule.Compliance);
@@ -45,6 +45,12 @@ namespace FWO.Report.Data.ViewData
             Comment = rule.Comment ?? "";
             RulebaseId = rule.RulebaseId.ToString();
             Show = show;
+        }
+
+        private string ResolveServices(Rule rule)
+        {
+            var services = rule.Services.Select(s => s.Content.Name).ToList();
+            return string.Join(" | ", services);
         }
 
         private string ResolveCompliance(ComplianceViolationType complianceViolationType)

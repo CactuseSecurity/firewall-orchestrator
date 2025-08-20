@@ -1,24 +1,45 @@
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
+using FWO.Basics.Interfaces;
 using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Report;
 using FWO.Logging;
+using FWO.Report.Data.ViewData;
 using FWO.Report.Filter;
+using FWO.Ui.Display;
 
 namespace FWO.Report
 {
     public class ReportComplianceNew : ReportCompliance
     {
+        #region Properties
+
+        public List<RuleViewData> RuleViewData = [];
+
+        #endregion
+
+        #region Fields
+
         private readonly int _maxDegreeOfParallelism;
         private readonly SemaphoreSlim _semaphore;
+        private readonly NatRuleDisplayHtml _natRuleDisplayHtml;
+
+        #endregion
+
+        #region Constructor
 
         public ReportComplianceNew(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType) : base(query, userConfig, reportType)
         {
             _maxDegreeOfParallelism = Environment.ProcessorCount;
             _semaphore = new SemaphoreSlim(_maxDegreeOfParallelism);
+            _natRuleDisplayHtml = new NatRuleDisplayHtml(userConfig);
         }
+
+        #endregion
+
+        #region Methods - Overrides
 
         public override async Task Generate(int rulesPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback, CancellationToken ct)
         {
@@ -29,18 +50,31 @@ namespace FWO.Report
 
             // Get data parallelized.
 
-            Rules = await GetDataParallelized<Rule>(rulesCount, rulesPerFetch, apiConnection, ct, RuleQueries.getRulesWithViolationsByChunk);
-            Log.TryWriteLog(LogType.Debug, "Compliance Report Prototype", $"Fetched {Rules.Count} rules for compliance report.", DebugConfig.ExtendedLogReportGeneration);
+            List<Rule>[]? chunks = await GetDataParallelized<Rule>(rulesCount, rulesPerFetch, apiConnection, ct, RuleQueries.getRulesWithViolationsByChunk);
 
-            // Set compliance data.
 
-            await SetComplianceData(ct);
+            if (chunks != null)
+            {
+                RuleViewData.Clear();
+                Rules = await ProcessChunksParallelized(chunks, ct);
+                Log.TryWriteLog(LogType.Debug, "Compliance Report Prototype", $"Fetched {Rules.Count} rules for compliance report.", DebugConfig.ExtendedLogReportGeneration);
+            }
+            else
+            {
+                Log.TryWriteLog(LogType.Error, "Compliance Report Prototype", "Failed to fetch rules for compliance report.", DebugConfig.ExtendedLogReportGeneration);
+                return;
+            }
 
             // Set report data.
 
+            ReportData.RuleViewData = RuleViewData;
             ReportData.RulesFlat = Rules;
             ReportData.ElementsCount = Rules.Count;
         }
+
+        #endregion
+
+        #region Methods - Public
 
         public async Task SetComplianceData(CancellationToken ct)
         {
@@ -68,50 +102,12 @@ namespace FWO.Report
             await Task.WhenAll(tasks);
         }
 
-        private async Task SetComplianceDataForRule(Rule rule)
+        #endregion
+
+        #region Methods - Private
+
+        private async Task<List<T>[]?> GetDataParallelized<T>(int rulesCount, int elementsPerFetch, ApiConnection apiConnection, CancellationToken ct, string query)
         {
-            try
-            {
-                rule.ViolationDetails = "";
-                rule.Compliance = ComplianceViolationType.None;
-
-                if (await CheckEvaluability(rule))
-                {
-                    foreach (var violation in rule.Violations)
-                    {
-                        if (IsDiffReport && ViolationDiffs.TryGetValue(violation, out char changeSign))
-                        {
-                            violation.Details = $"({changeSign}) {violation.Details}";
-                        }
-
-                        if (rule.ViolationDetails != "")
-                        {
-                            rule.ViolationDetails += "\n";
-                        }
-
-                        rule.ViolationDetails += violation.Details;
-
-                        // No need to differentiate between different types of violations here at the moment.
-
-                        rule.Compliance = ComplianceViolationType.MultipleViolations;
-                    }                
-                }
-                else
-                {
-                    rule.Compliance = ComplianceViolationType.NotEvaluable;
-                }
-            }
-            catch (System.Exception e)
-            {
-                Log.TryWriteLog(LogType.Error, "Compliance Report", $"Error while setting compliance data for rule {rule.Id}: {e.Message}", DebugConfig.ExtendedLogReportGeneration);
-                return;
-            }
-
-        }
-
-        private async Task<List<T>> GetDataParallelized<T>(int rulesCount, int elementsPerFetch, ApiConnection apiConnection, CancellationToken ct, string query)
-        {
-            List<T> allData = new();
             List<Task<List<T>>> tasks = new();
             List<Dictionary<string, object>> queryVariablesList = new();
 
@@ -122,7 +118,7 @@ namespace FWO.Report
                 queryVariablesList.Add(CreateQueryVariables(offset, elementsPerFetch, query));
             }
 
-            // Start fetching fetching tasks
+            // Start fetching tasks
 
             foreach (Dictionary<string, object> queryVariables in queryVariablesList)
             {
@@ -143,22 +139,55 @@ namespace FWO.Report
                 tasks.Add(task);
             }
 
-            // Wait for all tasks to complete and return the data
+            // Wait for all tasks to complete and return fetched rules in chunks
 
-            List<T>[]? chunks = await Task.WhenAll(tasks);
+            return await Task.WhenAll(tasks);
+        }
 
-            if (chunks != null)
+        private async Task<List<Rule>> ProcessChunksParallelized(List<Rule>[] chunks, CancellationToken ct)
+        {
+            List<Task<List<Rule>>> tasks = new();
+
+            // Start chunk processing tasks
+
+            foreach (List<Rule> chunk in chunks)
             {
-                foreach (List<T> chunk in chunks)
+                await _semaphore.WaitAsync(ct);
+
+                var task = Task.Run(async () =>
                 {
-                    if (chunk != null)
+                    try
                     {
-                        allData.AddRange(chunk);
+                        foreach (Rule rule in chunk)
+                        {
+                            await SetComplianceDataForRule(rule);
+                            RuleViewData.Add(new RuleViewData(rule, _natRuleDisplayHtml, OutputLocation.report));
+                        }
+                        
+                        return chunk;
                     }
-                }
+                    finally
+                    {
+                        _semaphore.Release();
+                    }
+                }, ct);
+
+                tasks.Add(task);
+
             }
 
-            return allData;
+            // Wait for all tasks to complete and return processed rules
+
+            List<Rule>[] processedRules = await Task.WhenAll(tasks);
+
+            List<Rule> processedRulesFlat = new();
+
+            foreach (List<Rule> processedRulesChunk in processedRules)
+            {
+                processedRulesFlat.AddRange(processedRulesChunk);
+            }
+
+            return processedRulesFlat;
         }
 
         private Dictionary<string, object> CreateQueryVariables(int offset, int limit, string query)
@@ -187,5 +216,48 @@ namespace FWO.Report
 
             return queryVariables;
         }
+
+        private async Task SetComplianceDataForRule(Rule rule)
+        {
+            try
+            {
+                rule.ViolationDetails = "";
+                rule.Compliance = ComplianceViolationType.None;
+
+                if (await CheckEvaluability(rule))
+                {
+                    foreach (var violation in rule.Violations)
+                    {
+                        if (IsDiffReport && ViolationDiffs.TryGetValue(violation, out char changeSign))
+                        {
+                            violation.Details = $"({changeSign}) {violation.Details}";
+                        }
+
+                        if (rule.ViolationDetails != "")
+                        {
+                            rule.ViolationDetails += "\n";
+                        }
+
+                        rule.ViolationDetails += violation.Details;
+
+                        // No need to differentiate between different types of violations here at the moment.
+
+                        rule.Compliance = ComplianceViolationType.MultipleViolations;
+                    }
+                }
+                else
+                {
+                    rule.Compliance = ComplianceViolationType.NotEvaluable;
+                }
+            }
+            catch (System.Exception e)
+            {
+                Log.TryWriteLog(LogType.Error, "Compliance Report", $"Error while setting compliance data for rule {rule.Id}: {e.Message}", DebugConfig.ExtendedLogReportGeneration);
+                return;
+            }
+
+        }
+        
+        #endregion
     }
 }

@@ -1,4 +1,6 @@
-﻿namespace FWO.Data.Report
+﻿using FWO.Basics.Interfaces;
+
+namespace FWO.Data.Report
 {
     public class ReportData
     {

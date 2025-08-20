@@ -1,6 +1,7 @@
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
+using FWO.Basics.Interfaces;
 using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Report;
@@ -55,7 +56,7 @@ namespace FWO.Report
             if (chunks != null)
             {
                 RuleViewData.Clear();
-                Rules = await ProcessChunksParallelized(chunks, apiConnection, ct);
+                Rules = await ProcessChunksParallelized(chunks, ct);
                 Log.TryWriteLog(LogType.Debug, "Compliance Report Prototype", $"Fetched {Rules.Count} rules for compliance report.", DebugConfig.ExtendedLogReportGeneration);
             }
             else

@@ -60,6 +60,7 @@ namespace FWO.Basics
                 ReportType.ResolvedRulesTech or
                 ReportType.ResolvedChanges or
                 ReportType.ResolvedChangesTech or
+                ReportType.Compliance or
                 ReportType.ComplianceNew=> true,
                 _ => false,
             };

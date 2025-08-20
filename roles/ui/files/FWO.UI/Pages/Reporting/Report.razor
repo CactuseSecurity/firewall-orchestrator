@@ -1,5 +1,6 @@
 @using FWO.Data.Modelling
 @using FWO.Report
+@using FWO.Report.Data.ViewData
 @using FWO.Report.Filter
 @using FWO.Report.Filter.FilterTypes
 @using FWO.Report.Filter.Exceptions
@@ -128,7 +129,7 @@
                                 break;
 
                             case ReportType.ComplianceNew:
-                                    <ComplianceReport ReportData="currentReport.ReportData" RulesPerPage="rulesPerPage" @bind-SelectedRules="selectedItemsRuleReportTable" @ref="_complianceReport"/>
+                                    <ComplianceReport ReportData="currentReport.ReportData" RulesPerPage="rulesPerPage" @bind-SelectedRules="_selectedItemsComplianceReportTable" @ref="_complianceReport"/>
                                 break;
 
                             case ReportType.Changes:
@@ -206,6 +207,7 @@
 
     private List<Rule> selectedItemsRuleReportTable = [];
     private List<RuleChange> selectedItemsChangeReportTable = [];
+    private List<RuleViewData> _selectedItemsComplianceReportTable = [];
 
     private List<ReportType> availableReportTypes { get; set; } = [];
     private ReportFilters actReportFilters = new();
@@ -462,6 +464,7 @@
         // clear selected rules
         selectedItemsRuleReportTable.Clear();
         selectedItemsChangeReportTable.Clear();
+        _selectedItemsComplianceReportTable.Clear();
 
         // reset report data when switching between reports
         ResetReport();

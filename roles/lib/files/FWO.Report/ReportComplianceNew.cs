@@ -1,7 +1,6 @@
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
-using FWO.Basics.Interfaces;
 using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Report;
@@ -25,6 +24,7 @@ namespace FWO.Report
         private readonly int _maxDegreeOfParallelism;
         private readonly SemaphoreSlim _semaphore;
         private readonly NatRuleDisplayHtml _natRuleDisplayHtml;
+        private List<Device>? _devices;
 
         #endregion
 
@@ -43,9 +43,16 @@ namespace FWO.Report
 
         public override async Task Generate(int rulesPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback, CancellationToken ct)
         {
+            List<Device>? devices =  await apiConnection.SendQueryAsync<List<Device>>(DeviceQueries.getDeviceDetails);
+
+            if (devices != null)
+            {
+                _devices = devices;
+            }
+
             // Get amount of rules to fetch.
 
-            var result = await apiConnection.SendQueryAsync<AggregateCount>(RuleQueries.countRules);
+            AggregateCount? result = await apiConnection.SendQueryAsync<AggregateCount>(RuleQueries.countRules);
             int rulesCount = result?.Aggregate?.Count ?? 0;
 
             // Get data parallelized.
@@ -161,9 +168,9 @@ namespace FWO.Report
                         foreach (Rule rule in chunk)
                         {
                             await SetComplianceDataForRule(rule);
-                            RuleViewData.Add(new RuleViewData(rule, _natRuleDisplayHtml, OutputLocation.report));
+                            RuleViewData.Add(new RuleViewData(rule, _natRuleDisplayHtml, OutputLocation.report, ShowRule(rule), _devices ?? []));
                         }
-                        
+
                         return chunk;
                     }
                     finally
@@ -256,6 +263,16 @@ namespace FWO.Report
                 return;
             }
 
+        }
+        
+        private bool ShowRule(Rule rule)
+        {
+            if (rule.Compliance == ComplianceViolationType.None)
+            {
+                return false;
+            }
+
+            return true;
         }
         
         #endregion

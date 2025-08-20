@@ -294,6 +294,27 @@ INSERT INTO "report_template" ("report_filter","report_template_name","report_te
                 "diffReferenceInDays": 0,
                 "showCompliantRules": false,
                 "excludedRuleActions": ["inner layer", "drop"]}}');
+INSERT INTO "report_template" ("report_filter","report_template_name","report_template_comment","report_template_owner", "report_parameters") 
+    VALUES ('',
+        'Compliance: Unresolved violations (Prototype)','T0108', 0, 
+        '{"report_type":32,"device_filter":{"management":[]},
+            "time_filter": {
+                "is_shortcut": true,
+                "shortcut": "now",
+                "report_time": "2022-01-01T00:00:00.0000000+01:00",
+                "timerange_type": "SHORTCUT",
+                "shortcut_range": "this year",
+                "offset": 0,
+                "interval": "DAYS",
+                "start_time": "2022-01-01T00:00:00.0000000+01:00",
+                "end_time": "2022-01-01T00:00:00.0000000+01:00",
+                "open_start": false,
+                "open_end": false},
+            "compliance_filter": {
+                "isDiffReport": false,
+                "diffReferenceInDays": 0,
+                "showCompliantRules": false,
+                "excludedRuleActions": ["inner layer", "drop"]}}');
 
 insert into parent_rule_type (id, name) VALUES (1, 'section');          -- do not restart numbering
 insert into parent_rule_type (id, name) VALUES (2, 'guarded-layer');    -- restart numbering, rule restrictions are ANDed to all rules below it, layer is not entered if guard does not apply

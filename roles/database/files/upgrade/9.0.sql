@@ -1084,6 +1084,31 @@ VALUES ('',
             "open_end": false}}')
 ON CONFLICT (report_template_name) DO NOTHING;
 
+-- add new report template for compliance: unresolved violations prototype
+
+INSERT INTO "report_template" ("report_filter","report_template_name","report_template_comment","report_template_owner", "report_parameters") 
+    VALUES ('',
+        'Compliance: Unresolved violations','T0108', 0, 
+        '{"report_type":31,"device_filter":{"management":[]},
+            "time_filter": {
+                "is_shortcut": true,
+                "shortcut": "now",
+                "report_time": "2022-01-01T00:00:00.0000000+01:00",
+                "timerange_type": "SHORTCUT",
+                "shortcut_range": "this year",
+                "offset": 0,
+                "interval": "DAYS",
+                "start_time": "2022-01-01T00:00:00.0000000+01:00",
+                "end_time": "2022-01-01T00:00:00.0000000+01:00",
+                "open_start": false,
+                "open_end": false},
+            "compliance_filter": {
+                "isDiffReport": false,
+                "diffReferenceInDays": 0,
+                "showCompliantRules": false,
+                "excludedRuleActions": ["inner layer", "drop"]}}')
+ON CONFLICT (report_template_name) DO NOTHING;
+
 -- add compliance diff report parameters to config
 
 INSERT INTO config (config_key, config_value, config_user) 

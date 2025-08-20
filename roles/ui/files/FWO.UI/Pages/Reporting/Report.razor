@@ -250,7 +250,7 @@
         || authenticationStateTask!.Result.User.IsInRole(Roles.Admin)
         || authenticationStateTask!.Result.User.IsInRole(Roles.Auditor);
 
-    private bool _showAnyRulesInComplianceReport = false;
+    private bool _showAnyRulesInComplianceReport = true;
 
     private ComplianceReport? _complianceReport;
 

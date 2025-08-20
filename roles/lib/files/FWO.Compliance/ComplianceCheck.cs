@@ -91,19 +91,17 @@ namespace FWO.Compliance
 
                 ReportBase? currentReport = await ReportGenerator.Generate(template, _apiConnection, _userConfig, DefaultInit.DoNothing);
 
+
                 if (currentReport is ReportCompliance complianceReport)
                 {
-                    Log.TryWriteLog(LogType.Info, "Compliance Check", $"Compliance report generated with {complianceReport.ReportData.ManagementData.Count} managements", _debugConfig.ExtendedLogComplianceCheck);
+                    Log.TryWriteLog(LogType.Info, "Compliance Check", $"Compliance report generated for {complianceReport.ReportData.ElementsCount} rules.", _debugConfig.ExtendedLogComplianceCheck);
 
                     ComplianceReport = complianceReport;
 
                     ComplianceReport.Violations.Clear();
                     _nonEvaluableRules.Clear();
 
-                    foreach (var management in complianceReport.ReportData.ManagementData)
-                    {
-                        await CheckRuleCompliancePerManagement(management);
-                    }
+                    await CheckRuleComplianceForAllRules();
                 }
                 else
                 {
@@ -300,6 +298,40 @@ namespace FWO.Compliance
 
             return Task.FromResult(violationsForUpdate);
         }
+        
+        private async Task CheckRuleComplianceForAllRules()
+        {
+            int nonCompliantRules = 0;
+            int nonEvaluableRules = 0;
+
+            Log.TryWriteLog(LogType.Info, "Compliance Check", $"Checking compliance for every rule.", _debugConfig.ExtendedLogComplianceCheck);
+
+            foreach (Rule rule in ComplianceReport!.ReportData.RulesFlat)
+            {
+                if (await ComplianceReport!.CheckEvaluability(rule))
+                {
+                    bool ruleIsCompliant = await CheckRuleCompliance(rule);
+
+                    if (!ruleIsCompliant)
+                    {
+                        nonCompliantRules++;
+                    }
+                }
+                else
+                {
+                    // Set counter
+
+                    nonEvaluableRules++;
+
+                    // Add to control collection
+                    
+                    _nonEvaluableRules.Add(rule);
+                }
+            }
+
+            Log.TryWriteLog(LogType.Info, "Compliance Check", $"Checked compliance for every rule and found {nonCompliantRules} non-compliant rules", _debugConfig.ExtendedLogComplianceCheck);
+            Log.TryWriteLog(LogType.Info, "Compliance Check", $"Checked compliance for every rule and found {nonEvaluableRules} non-evaluable rules", _debugConfig.ExtendedLogComplianceCheck);
+        }
 
         private async Task CheckRuleCompliancePerManagement(ManagementReport management)
         {
@@ -328,7 +360,7 @@ namespace FWO.Compliance
                         nonEvaluableRules++;
 
                         // Add to control collection
-                        
+
                         _nonEvaluableRules.Add(rule);
                     }
 

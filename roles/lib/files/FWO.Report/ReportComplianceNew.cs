@@ -45,6 +45,8 @@ namespace FWO.Report
         {
             List<Device>? devices =  await apiConnection.SendQueryAsync<List<Device>>(DeviceQueries.getDeviceDetails);
 
+            Log.TryWriteLog(LogType.Debug, "Compliance Report Prototype", $"Fetched {devices?.Count() ?? 0} devices.", DebugConfig.ExtendedLogReportGeneration);
+
             if (devices != null)
             {
                 _devices = devices;

@@ -434,7 +434,7 @@ namespace FWO.Compliance
                                                     .Content.Id ?? 0;
                         string sourceString = GetNwObjectString(s);
                         string destinationString = GetNwObjectString(d);
-                        violation.Details = $"Matrix violation: {sourceString} (Zone: {complianceCheckResult.SourceZone}) -> {destinationString} (Zone: {complianceCheckResult.DestinationZone})";
+                        violation.Details = $"Matrix violation: {sourceString} (Zone: {complianceCheckResult.SourceZone?.Name ?? ""}) -> {destinationString} (Zone: {complianceCheckResult.DestinationZone?.Name ?? ""})";
 
                     }
                     else

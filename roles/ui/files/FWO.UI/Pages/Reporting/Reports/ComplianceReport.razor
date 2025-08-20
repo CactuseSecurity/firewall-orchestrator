@@ -6,11 +6,11 @@
 
 <Collapse Title="Compliance Report" Style="@("primary")" StartToggled="true">
     <Table SelectedItems="SelectedRules"
-        RowClickAction="@(async rule => { if (!SelectedRules.Remove(rule)) SelectedRules.Add(rule); await SelectedRulesChanged.InvokeAsync(SelectedRules); })"
+        RowClickAction="@(async rule => await OnRowSelected(rule))"
         style="font-size:small" 
         TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" 
         TableItem="RuleViewData" 
-        Items="_visibleRules" 
+        Items="_reportRules" 
         ShowSearchBar="false"
         PageSize="RulesPerPage" 
         ColumnReorder="true" 
@@ -21,7 +21,7 @@
         {
             <Column TableItem="RuleViewData" Context="rule" Title="MgmtId" Field="@(r => r.Compliance)" Sortable="true" Filterable="true" Hideable="true">
                 <Template>
-                    @((MarkupString)rule.MgmtId))
+                    @((MarkupString)rule.MgmtId)
                 </Template>
             </Column>
         }
@@ -30,7 +30,7 @@
         {
             <Column TableItem="RuleViewData" Context="rule" Title="Uid" Field="@(r => r.Uid)" Sortable="true" Filterable="true" Hideable="true">
                 <Template>
-                    @((MarkupString)rule.Uid))
+                    @((MarkupString)rule.Uid)
                 </Template>
             </Column>
         }
@@ -39,7 +39,7 @@
         {
             <Column TableItem="RuleViewData" Context="rule" Title="Name" Field="@(r => r.Name)" Sortable="true" Filterable="true" Hideable="true">
                 <Template>
-                    @((MarkupString)rule.Name))
+                    @((MarkupString)rule.Name)
                 </Template>
             </Column>
         }
@@ -48,7 +48,7 @@
         {
             <Column TableItem="RuleViewData" Context="rule" Title="Source" Field="@(r => r.Source)" Sortable="true" Filterable="true" Hideable="true">
                 <Template>
-                    @((MarkupString)rule.Source))
+                    @((MarkupString)rule.Source)
                 </Template>
             </Column>
         }
@@ -57,7 +57,7 @@
         {
             <Column TableItem="RuleViewData" Context="rule" Title="Destination" Field="@(r => r.Destination)" Sortable="true" Filterable="true" Hideable="true">
                 <Template>
-                    @((MarkupString)rule.Destination))
+                    @((MarkupString)rule.Destination)
                 </Template>
             </Column>
         }
@@ -75,7 +75,7 @@
         {
             <Column TableItem="RuleViewData" Context="rule" Title="Action" Field="@(r => r.Action)" Sortable="true" Filterable="true" Hideable="true">
                 <Template>
-                    @((MarkupString)rule.Action))
+                    @((MarkupString)rule.Action)
                 </Template>
             </Column>
         }
@@ -84,7 +84,7 @@
         {
             <Column TableItem="RuleViewData" Context="rule" Title="InstallOn" Field="@(r => r.InstallOn)" Sortable="true" Filterable="true" Hideable="true">
                 <Template>
-                    @((MarkupString)rule.InstallOn))
+                    @((MarkupString)rule.InstallOn)
                 </Template>
             </Column>
         }
@@ -93,7 +93,7 @@
         {
             <Column TableItem="RuleViewData" Context="rule" Title="Compliance" Field="@(r => r.Compliance)" Sortable="true" Filterable="true" Hideable="true">
                 <Template>
-                    @((MarkupString)rule.Compliance))
+                    @((MarkupString)rule.Compliance)
                 </Template>
             </Column>
         }
@@ -102,7 +102,7 @@
         {
             <Column TableItem="RuleViewData" Context="rule" Title="ViolationDetails" Field="@(r => r.ViolationDetails)" Sortable="true" Filterable="true" Hideable="true">
                 <Template>
-                    @((MarkupString)rule.ViolationDetails))
+                    @((MarkupString)rule.ViolationDetails)
                 </Template>
             </Column>
         }
@@ -111,7 +111,7 @@
         {
             <Column TableItem="RuleViewData" Context="rule" Title="ChangeID" Field="@(r => r.ChangeID)" Sortable="true" Filterable="true" Hideable="true">
                 <Template>
-                    @((MarkupString)rule.ChangeID))
+                    @((MarkupString)rule.ChangeID)
                 </Template>
             </Column>
         }
@@ -120,7 +120,7 @@
         {
             <Column TableItem="RuleViewData" Context="rule" Title="AdoITID" Field="@(r => r.AdoITID)" Sortable="true" Filterable="true" Hideable="true" DefaultSortColumn="true">
                 <Template>
-                    @((MarkupString)rule.AdoITID))
+                    @((MarkupString)rule.AdoITID)
                 </Template>
             </Column>
         }
@@ -129,7 +129,7 @@
         {
             <Column TableItem="RuleViewData" Context="rule" Title="Comment" Field="@(r => r.Comment)" Sortable="true" Filterable="true" Hideable="true">
                 <Template>
-                    @((MarkupString)rule.Comment))
+                    @((MarkupString)rule.Comment)
                 </Template>
             </Column>
         }
@@ -138,7 +138,7 @@
         {
             <Column TableItem="RuleViewData" Context="rule" Title="RulebaseId" Field="@(r => r.RulebaseId)" Sortable="true" Filterable="true" Hideable="true">
                 <Template>
-                    @((MarkupString)rule.RulebaseId))
+                    @((MarkupString)rule.RulebaseId)
                 </Template>
             </Column>
         }
@@ -197,9 +197,11 @@
     public bool ShowAnyRule { get; set; } = false;
 
     private ITable<RuleViewData>? _reportTable;
-    private RuleViewData[] _rules = [];
 
+    private RuleViewData[] _reportRules = [];
     private RuleViewData[] _visibleRules = [];
+    private RuleViewData[] _allRules = [];
+
     private const int ColumnsCount = 14;
     private bool[] EmptyColumns = new bool[ColumnsCount];
 
@@ -208,8 +210,23 @@
     protected override void OnInitialized()
     {
         ruleDisplay = new NatRuleDisplayHtml(userConfig);
-        _rules = ReportData.RuleViewData.Cast<RuleViewData>().ToArray();
-        UpdateVisibleRules(false);
+        _allRules = ReportData.RuleViewData.Cast<RuleViewData>().ToArray();
+        _visibleRules = _allRules.Where(r => r.Show).ToArray();
+        UpdateVisibleRules();
+    }
+
+    private async Task OnRowSelected(RuleViewData rule)
+    {
+        if (SelectedRules.Contains(rule))
+        {
+            SelectedRules.Remove(rule);
+        }
+        else
+        {
+            SelectedRules.Add(rule);
+        }
+        
+        await SelectedRulesChanged.InvokeAsync(SelectedRules);
     }
 
     private string getTableRowClasses(RuleViewData rule)
@@ -224,11 +241,6 @@
         return classes;
     }
 
-    private OutputLocation getActLocation()
-    {
-        return OutputLocation.report;
-    }
-
     private string getHistoryString(Recertification recert)
     {
         string username = new DistName(recert.UserDn).UserName;
@@ -237,20 +249,15 @@
     }
 
 
-    public void UpdateVisibleRules(bool invokeStateHasChanged = true)
+    public void UpdateVisibleRules()
     {
         if (ShowAnyRule)
         {
-            _visibleRules = _rules;
+            _reportRules = _allRules;
         }
         else
         {
-            _visibleRules = _rules.Where(r => r.Compliance != "TRUE").ToArray();
-        }
-
-        if(invokeStateHasChanged)
-        {
-            StateHasChanged();
+            _reportRules = _visibleRules;
         }
     }
 }

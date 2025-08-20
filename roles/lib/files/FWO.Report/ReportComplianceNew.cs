@@ -65,7 +65,7 @@ namespace FWO.Report
             }
 
             // Set report data.
-            
+
             ReportData.RuleViewData = RuleViewData;
             ReportData.RulesFlat = Rules;
             ReportData.ElementsCount = Rules.Count;
@@ -143,7 +143,7 @@ namespace FWO.Report
             return await Task.WhenAll(tasks);
         }
 
-        private async Task<List<Rule>> ProcessChunksParallelized(List<Rule>[] chunks, ApiConnection apiConnection, CancellationToken ct)
+        private async Task<List<Rule>> ProcessChunksParallelized(List<Rule>[] chunks, CancellationToken ct)
         {
             List<Task<List<Rule>>> tasks = new();
 
@@ -183,7 +183,7 @@ namespace FWO.Report
 
             foreach (List<Rule> processedRulesChunk in processedRules)
             {
-                processedRulesFlat.AddRange(processedRulesFlat);
+                processedRulesFlat.AddRange(processedRulesChunk);
             }
 
             return processedRulesFlat;

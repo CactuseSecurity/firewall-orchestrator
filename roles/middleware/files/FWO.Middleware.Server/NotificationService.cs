@@ -53,13 +53,16 @@ namespace FWO.Middleware.Server
         /// <param name="content"></param>
         /// <param name="report"></param>
         /// <returns></returns>
-        public async Task SendNotifications(FwoOwner owner, string content, ReportBase? report = null)
+        public async Task<int> SendNotifications(FwoOwner owner, string content, ReportBase? report = null)
         {
+            int emailsSent = 0;
             foreach (var notification in Notifications.Where(n => (n.OwnerId == null || n.OwnerId == owner.Id) && IsTimeToSend(owner, n)))
             {
                 await SendEmail(notification, content, owner, report);
                 await UpdateNotificationLastSent(notification, ApiConnection);
+                emailsSent++;
             }
+            return emailsSent;
         }
 
         private static bool IsTimeToSend(FwoOwner owner, FwoNotification notification)

@@ -11,14 +11,14 @@ using System.Timers;
 
 namespace FWO.Middleware.Server
 {
-	/// <summary>
-	/// Class handling the scheduler for the daily checks
-	/// </summary>
+    /// <summary>
+    /// Class handling the scheduler for the daily checks
+    /// </summary>
     public class DailyCheckScheduler : SchedulerBase
     {
         private const string LogMessageTitle = "Daily Check";
 
-		/// <summary>
+        /// <summary>
         /// Async Constructor needing the connection
         /// </summary>
         public static async Task<DailyCheckScheduler> CreateAsync(ApiConnection apiConnection)
@@ -38,9 +38,9 @@ namespace FWO.Middleware.Server
             }
         }
 
-		/// <summary>
-		/// set scheduling timer from fixed value
-		/// </summary>
+        /// <summary>
+        /// set scheduling timer from fixed value
+        /// </summary>
         protected override void OnGlobalConfigChange(List<ConfigItem> config)
         {
             ScheduleTimer.Stop();
@@ -81,6 +81,7 @@ namespace FWO.Middleware.Server
             {
                 RecertCheck recertCheck = new (apiConnection, globalConfig);
                 int emailsSent = await recertCheck.CheckRecertifications();
+                Log.WriteDebug(LogMessageTitle, $"Sent {emailsSent} emails.");
                 await AddLogEntry(0, globalConfig.GetText("daily_recert_check"), emailsSent + globalConfig.GetText("emails_sent"), GlobalConst.kDailyCheck);
             }
         }

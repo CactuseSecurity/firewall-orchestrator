@@ -49,7 +49,7 @@
                         </button>
                         @if(userConfig.ModRolloutActive)
                         {
-                            <AuthorizeView Roles="@($"{Roles.Requester}, {Roles.Implementer}, {Roles.Admin}, {Roles.Auditor}")">
+                            <AuthorizeView Roles="@($"{Roles.Modeller}, {Roles.Requester}, {Roles.Implementer}, {Roles.Admin}, {Roles.Auditor}")">
                                 <Authorized>
                                     <div data-toggle="tooltip" title="@(UserConfig.PureLineStat(ChangeStatus))">
                                         <button type="button" class="ms-5 btn btn-sm btn-primary" @onclick="RequestFwChange">
@@ -69,9 +69,9 @@
                                 <label>@((MarkupString)ChangeStatus)</label>
                             </div> *@
                         }
-                        @if(userConfig.ModRecertActive)
+                        @if(userConfig.ModRecertActive && appSelected && selectedApp.ConnectionCount.Aggregate.Count > 0)
                         {
-                            <AuthorizeView Roles="@($"{Roles.Requester}, {Roles.Implementer}, {Roles.Admin}, {Roles.Auditor}")">
+                            <AuthorizeView Roles="@($"{Roles.Modeller}, {Roles.Admin}, {Roles.Auditor}")">
                                 <Authorized>
                                     <div data-toggle="tooltip" title="@(UserConfig.PureLineStat(RecertStatus))">
                                         <button type="button" class="ms-5 btn btn-sm btn-primary" @onclick="Recertify">

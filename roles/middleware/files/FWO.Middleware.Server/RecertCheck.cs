@@ -59,21 +59,13 @@ namespace FWO.Middleware.Server
 
                 foreach (var owner in owners.Where(o => IsCheckTime(o)))
                 {
-                    // todo: refine handling
-                    List<Rule> upcomingRecerts = await GenerateRecertificationReport(apiConnectionReporter, owner, false);
-                    List<Rule> overdueRecerts = []; // await GenerateRecertificationReport(apiConnectionReporter, owner, true);
-
-                    if (upcomingRecerts.Count > 0 || overdueRecerts.Count > 0)
+                    if (globalConfig.RecertificationMode == RecertificationMode.RuleByRule)
                     {
-                        if (globalConfig.RecertificationMode == RecertificationMode.RuleByRule)
-                        {
-                            await MailKitMailer.SendAsync(PrepareEmail(owner, upcomingRecerts, overdueRecerts), emailConnection, false, new());
-                            emailsSent++;
-                        }
-                        else
-                        {
-                            await notificationService.SendNotifications(owner, PrepareBody(upcomingRecerts, overdueRecerts));
-                        }
+                        emailsSent += await CheckRuleByRule(owner, apiConnectionReporter, emailConnection);
+                    }
+                    else
+                    {
+                        emailsSent += await notificationService.SendNotifications(owner, PrepareOwnerBody(owner));
                     }
                     await SetOwnerLastCheck(owner);
                 }
@@ -108,7 +100,7 @@ namespace FWO.Middleware.Server
                 SchedulerInterval.Days => lastCheck.AddDays(checkParams.RecertCheckOffset),
                 SchedulerInterval.Weeks => CalcForWeeks(lastCheck, checkParams),
                 SchedulerInterval.Months => CalcForMonths(lastCheck, checkParams),
-                _ => throw new NotSupportedException("Time interval is not supported."),
+                _ => throw new NotSupportedException("Time interval is not supported.")
             };
             if (nextCheck <= DateTime.Today)
             {
@@ -163,7 +155,20 @@ namespace FWO.Middleware.Server
             return nextCheck;
         }
 
-        private async Task<List<Rule>> GenerateRecertificationReport(ApiConnection apiConnection, FwoOwner owner, bool overdueOnly)
+        private async Task<int> CheckRuleByRule(FwoOwner owner, ApiConnection apiConnection, EmailConnection emailConnection)
+        {
+            List<Rule> upcomingRecerts = await GenerateRulesRecertificationReport(apiConnection, owner, false);
+            List<Rule> overdueRecerts = []; // await GenerateRulesRecertificationReport(apiConnectionReporter, owner, true);
+
+            if (upcomingRecerts.Count > 0 || overdueRecerts.Count > 0)
+            {
+                await MailKitMailer.SendAsync(PrepareRulesEmail(owner, upcomingRecerts, overdueRecerts), emailConnection, false, new());
+                return 1;
+            }
+            return 0;
+        }
+
+        private async Task<List<Rule>> GenerateRulesRecertificationReport(ApiConnection apiConnection, FwoOwner owner, bool overdueOnly)
         {
             List<Rule> rules = [];
             try
@@ -207,13 +212,13 @@ namespace FWO.Middleware.Server
             return rules;
         }
 
-        private MailData PrepareEmail(FwoOwner owner, List<Rule> upcomingRecerts, List<Rule> overdueRecerts)
+        private MailData PrepareRulesEmail(FwoOwner owner, List<Rule> upcomingRecerts, List<Rule> overdueRecerts)
         {
             string subject = globalConfig.RecCheckEmailSubject + " " + owner.Name;
-            return new MailData(CollectEmailAddresses(owner), subject) { Body = PrepareBody(upcomingRecerts, overdueRecerts) };
+            return new MailData(CollectEmailAddresses(owner), subject) { Body = PrepareRulesBody(upcomingRecerts, overdueRecerts) };
         }
 
-        private string PrepareBody(List<Rule> upcomingRecerts, List<Rule> overdueRecerts)
+        private string PrepareRulesBody(List<Rule> upcomingRecerts, List<Rule> overdueRecerts)
         {
             string body = "";
             if(upcomingRecerts.Count > 0)
@@ -268,6 +273,12 @@ namespace FWO.Middleware.Server
                 }
             }
             return tos;
+        }
+
+        private string PrepareOwnerBody(FwoOwner owner)
+        {
+            string msgText = owner.NextRecertDate >= DateTime.Today ? globalConfig.RecCheckEmailUpcomingText : globalConfig.RecCheckEmailOverdueText;
+            return msgText.Replace(Placeholder.APPNAME, owner.Name);
         }
 
         private async Task SetOwnerLastCheck(FwoOwner owner)

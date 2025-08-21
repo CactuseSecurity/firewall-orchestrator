@@ -27,7 +27,7 @@ class FwConfig():
         if configFormat is not None:
             self.ConfigFormat = configFormat
         else:
-            self.ConfigFormat = None
+            self.ConfigFormat = "Normalized"  # default format
         if config is not None:
             self.Config = config
         else:
@@ -40,7 +40,7 @@ class FwConfig():
         return cls(ConfigFormat, Config)
 
     def __str__(self):
-        return f"{self.ConfigType}({str(self.Config)})"
+        return f"{self.ConfigFormat}({str(self.Config)})"
 
 class ManagementDetails():
     Id: int

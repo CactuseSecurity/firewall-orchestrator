@@ -16,6 +16,13 @@ class RuleEnforcedOnGateway(BaseModel):
     removed: int|None 
 
 
+    def __init__(self, rule_id: int, dev_id: int, created: int|None = None, removed: int|None = None) -> None:
+        self.rule_id=rule_id
+        self.dev_id=dev_id
+        self.created=created
+        self.removed=removed
+    
+
     def to_dict(self):
         return {
             "rule_id": self.rule_id,

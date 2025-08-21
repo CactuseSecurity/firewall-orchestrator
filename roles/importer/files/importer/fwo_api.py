@@ -53,7 +53,7 @@ class FwoApi():
                     session.verify = False
                 else: 
                     session.verify = fwo_globals.verify_certs
-                session.headers = request_headers
+                session.headers.update(request_headers)
 
                 if analyze_payload and self.query_info["chunking_info"]["needs_chunking"]:
                     started = time.time()
@@ -83,11 +83,10 @@ class FwoApi():
             logger.error(f"Unexpected error during API call: {str(e)}")
             logger.debug(pformat(self.query_info))
             try:
-               return_object
+                logger.debug(pformat(return_object))
             except NameError:
                 logger.error(f"Unexpected error during API call: {str(e)}")
                 raise FwoImporterError(f"return_object not defined. Error during API call: {str(e)}")
-            logger.debug(pformat(return_object))
             raise FwoImporterError(f"Unexpected error during API call: {str(e)}")
 
     @staticmethod
@@ -132,7 +131,7 @@ class FwoApi():
         raise exception
 
 
-    def _call_chunked(self, session, query, query_variables="", debug_level=0):
+    def _call_chunked(self, session, query, query_variables: dict = {}, debug_level=0):
         """
             Splits a defined query variable into chunks and posts the queries chunk by chunk.
         """
@@ -364,6 +363,6 @@ class FwoApi():
 
     @staticmethod
     def _read_clean_text_from_file(filePath: str) -> str:
-        printable_chars = set(str.printable)
+        printable_chars = set(string.printable)
         with open(filePath, "r", encoding="utf-8", errors="ignore") as f:
             return "".join(filter(printable_chars.__contains__, f.read()))

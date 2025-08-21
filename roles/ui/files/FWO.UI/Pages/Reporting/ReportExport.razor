@@ -35,7 +35,7 @@
                             {
                                 <div>
                                     @(userConfig.GetText("page_format")):
-                                    <Dropdown @bind-SelectedElement="SelectedPaperFormat" Elements="Enum.GetValues<PaperFormat>()"></Dropdown>
+                                    <Dropdown ElementType="PaperFormat" @bind-SelectedElement="SelectedPaperFormat" Elements="Enum.GetValues<PaperFormat>()"></Dropdown>
                                     @if (SelectedPaperFormat == PaperFormat.Custom)
                                     {
                                         <div class="input-group input-group-sm mb-2 mt-2">

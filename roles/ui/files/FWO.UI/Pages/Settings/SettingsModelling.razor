@@ -283,7 +283,8 @@
         <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5630"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("modReqEmailReceiver")):</label>
             <div class="col-sm-3">
-                <Dropdown @bind-SelectedElement="configData!.ModReqEmailReceiver" ElementToString="@(o => userConfig.GetText(o.ToString()))" Elements="EmailRecipientGroups.GetModellingOptions()">
+                <Dropdown ElementType="EmailRecipientOption" @bind-SelectedElement="configData!.ModReqEmailReceiver"
+                        ElementToString="@(o => userConfig.GetText(o.ToString()))" Elements="EmailRecipientGroups.GetModellingOptions()">
                     <ElementTemplate Context="opt">
                         @(userConfig.GetText(opt.ToString()))
                     </ElementTemplate>
@@ -314,7 +315,8 @@
         <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5660"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("modDecommEmailReceiver")):</label>
             <div class="col-sm-3">
-                <Dropdown @bind-SelectedElement="configData!.ModDecommEmailReceiver" ElementToString="@(o => userConfig.GetText(o.ToString()))" Elements="EmailRecipientGroups.GetModellingOptions()">
+                <Dropdown ElementType="EmailRecipientOption" @bind-SelectedElement="configData!.ModDecommEmailReceiver"
+                        ElementToString="@(o => userConfig.GetText(o.ToString()))" Elements="EmailRecipientGroups.GetModellingOptions()">
                     <ElementTemplate Context="opt">
                         @(userConfig.GetText(opt.ToString()))
                     </ElementTemplate>

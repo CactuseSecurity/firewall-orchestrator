@@ -43,7 +43,7 @@
                 <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H4101"))">
                     <label class="col-form-label col-sm-4">@(userConfig.GetText("channel")):</label>
                     <div class="col-sm-8">
-                        <Dropdown @bind-SelectedElement="actNotification.Channel" ElementToString="@(i => userConfig.GetText(i.ToString()))"
+                        <Dropdown ElementType="NotificationChannel" @bind-SelectedElement="actNotification.Channel" ElementToString="@(i => userConfig.GetText(i.ToString()))"
                                 Elements="Enum.GetValues(typeof(NotificationChannel)).Cast<NotificationChannel>()" >
                             <ElementTemplate Context="channel">
                                 @(userConfig.GetText(channel.ToString()))
@@ -55,7 +55,7 @@
             <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H4102"))">
                 <label class="col-form-label col-sm-4">@(userConfig.GetText("layout")):</label>
                 <div class="col-sm-8">
-                    <Dropdown @bind-SelectedElement="actNotification.Layout" ElementToString="@(i => userConfig.GetText(i.ToString()))"
+                    <Dropdown ElementType="NotificationLayout" @bind-SelectedElement="actNotification.Layout" ElementToString="@(i => userConfig.GetText(i.ToString()))"
                             Elements="Enum.GetValues(typeof(NotificationLayout)).Cast<NotificationLayout>()" >
                         <ElementTemplate Context="layout">
                             @(userConfig.GetText(layout.ToString()))
@@ -67,7 +67,7 @@
             <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H4103"))">
                 <label class="col-form-label col-sm-4">@(userConfig.GetText("deadline")):</label>
                 <div class="col-sm-8">
-                    <Dropdown @bind-SelectedElement="actNotification.Deadline" ElementToString="@(i => userConfig.GetText(i.ToString()))"
+                    <Dropdown ElementType="NotificationDeadline" @bind-SelectedElement="actNotification.Deadline" ElementToString="@(i => userConfig.GetText(i.ToString()))"
                             Elements="Enum.GetValues(typeof(NotificationDeadline)).Cast<NotificationDeadline>()" >
                         <ElementTemplate Context="deadline">
                             @(userConfig.GetText(deadline.ToString()))
@@ -84,7 +84,7 @@
                         <input type="number" class="form-control form-control-sm w-100" @bind="actNotification.OffsetBeforeDeadline" />
                     </div>
                     <div class="col-sm-2">
-                        <Dropdown @bind-SelectedElement="actNotification.IntervalBeforeDeadline" ElementToString="@(i => userConfig.GetText(i.ToString()))"
+                        <Dropdown ElementType="SchedulerInterval" @bind-SelectedElement="actNotification.IntervalBeforeDeadline" ElementToString="@(i => userConfig.GetText(i.ToString()))"
                                 Elements="Enum.GetValues(typeof(SchedulerInterval)).Cast<SchedulerInterval>().Where(x => x.OfferedForRecert())" >
                             <ElementTemplate Context="interval">
                                 @(userConfig.GetText(interval.ToString()))
@@ -98,7 +98,7 @@
                         <input type="number" class="form-control form-control-sm w-100" @bind="actNotification.RepeatOffsetAfterDeadline" />
                     </div>
                     <div class="col-sm-2">
-                        <Dropdown @bind-SelectedElement="actNotification.RepeatIntervalAfterDeadline" ElementToString="@(i => userConfig.GetText(i.ToString()))"
+                        <Dropdown ElementType="SchedulerInterval" @bind-SelectedElement="actNotification.RepeatIntervalAfterDeadline" ElementToString="@(i => userConfig.GetText(i.ToString()))"
                                 Elements="Enum.GetValues(typeof(SchedulerInterval)).Cast<SchedulerInterval>().Where(x => x.OfferedForRecert())" >
                             <ElementTemplate Context="interval">
                                 @(userConfig.GetText(interval.ToString()))
@@ -122,7 +122,7 @@
             <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H4107"))">
                 <label class="col-form-label col-sm-4">@(userConfig.GetText("recipient_to")):</label>
                 <div class="col-sm-8">
-                    <Dropdown @bind-SelectedElement="actNotification.RecipientTo" ElementToString="@(i => userConfig.GetText(i.ToString()))"
+                    <Dropdown ElementType="EmailRecipientOption" @bind-SelectedElement="actNotification.RecipientTo" ElementToString="@(i => userConfig.GetText(i.ToString()))"
                             Elements="Enum.GetValues(typeof(EmailRecipientOption)).Cast<EmailRecipientOption>()" >
                         <ElementTemplate Context="recip">
                             @(userConfig.GetText(recip.ToString()))
@@ -148,7 +148,7 @@
             <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H4108"))">
                 <label class="col-form-label col-sm-4">@(userConfig.GetText("recipient_cc")):</label>
                 <div class="col-sm-8">
-                    <Dropdown @bind-SelectedElement="actNotification.RecipientCc" ElementToString="@(i => userConfig.GetText(i.ToString()))"
+                    <Dropdown ElementType="EmailRecipientOption" @bind-SelectedElement="actNotification.RecipientCc" ElementToString="@(i => userConfig.GetText(i.ToString()))"
                             Elements="Enum.GetValues(typeof(EmailRecipientOption)).Cast<EmailRecipientOption>()" >
                         <ElementTemplate Context="recip">
                             @(userConfig.GetText(recip.ToString()))

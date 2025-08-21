@@ -49,7 +49,7 @@
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5484"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("impChangeNotifyType")):</label>
             <div class="col-sm-2">
-                <Dropdown @bind-SelectedElement="selectedImpChgNotType" ElementToString="@(i => userConfig.GetText(i.ToString()))"
+                <Dropdown ElementType="NotificationLayout" @bind-SelectedElement="selectedImpChgNotType" ElementToString="@(i => userConfig.GetText(i.ToString()))"
                         Elements="Enum.GetValues(typeof(NotificationLayout)).Cast<NotificationLayout>()" >
                     <ElementTemplate Context="type">
                         @(userConfig.GetText(type.ToString()))

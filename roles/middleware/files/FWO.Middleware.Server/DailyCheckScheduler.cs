@@ -81,7 +81,7 @@ namespace FWO.Middleware.Server
             {
                 RecertCheck recertCheck = new (apiConnection, globalConfig);
                 int emailsSent = await recertCheck.CheckRecertifications();
-                Log.WriteDebug(LogMessageTitle, $"Sent {emailsSent} emails.");
+                Log.WriteDebug(LogMessageTitle, $"Recert Check: Sent {emailsSent} emails.");
                 await AddLogEntry(0, globalConfig.GetText("daily_recert_check"), emailsSent + globalConfig.GetText("emails_sent"), GlobalConst.kDailyCheck);
             }
         }

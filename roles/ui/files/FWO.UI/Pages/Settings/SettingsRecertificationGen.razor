@@ -22,7 +22,7 @@
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5458"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("recertificationMode")):</label>
             <div class="col-sm-2">
-                <Dropdown @bind-SelectedElement="configData!.RecertificationMode" ElementToString="@(t => userConfig.GetText(t.ToString()))"
+                <Dropdown ElementType="RecertificationMode" @bind-SelectedElement="configData!.RecertificationMode" ElementToString="@(t => userConfig.GetText(t.ToString()))"
                         Elements="Enum.GetValues(typeof(RecertificationMode)).Cast<RecertificationMode>()" >
                     <ElementTemplate Context="recertMode">
                         @(userConfig.GetText(recertMode.ToString()))
@@ -78,7 +78,7 @@
                         <input type="number" min="1" class="form-control form-control-sm" @bind="recCheckParams.RecertCheckOffset" />
                     </div>
                     <div class="col-sm-4">
-                        <Dropdown @bind-SelectedElement="recCheckParams.RecertCheckInterval" ElementToString="@(i => userConfig.GetText(i.ToString()))"
+                        <Dropdown ElementType="SchedulerInterval" @bind-SelectedElement="recCheckParams.RecertCheckInterval" ElementToString="@(i => userConfig.GetText(i.ToString()))"
                                 Elements="Enum.GetValues(typeof(SchedulerInterval)).Cast<SchedulerInterval>().Where(x => x.OfferedForRecert())" >
                             <ElementTemplate Context="interval">
                                 @(userConfig.GetText(interval.ToString()))
@@ -266,8 +266,8 @@ else
         try
         {
             configData = await globalConfig.GetEditableConfig();
-            PrioList = System.Text.Json.JsonSerializer.Deserialize<List<WfPriority>>(userConfig.ReqPriorities) ?? throw new JsonException("Config data could not be parsed.");
-            recCheckParams = System.Text.Json.JsonSerializer.Deserialize<RecertCheckParams>(userConfig.RecCheckParams) ?? throw new JsonException("Config data could not be parsed.");
+            PrioList = System.Text.Json.JsonSerializer.Deserialize<List<WfPriority>>(configData.ReqPriorities) ?? throw new JsonException("Config data could not be parsed.");
+            recCheckParams = System.Text.Json.JsonSerializer.Deserialize<RecertCheckParams>(configData.RecCheckParams) ?? throw new JsonException("Config data could not be parsed.");
             states = await apiConnection.SendQueryAsync<List<WfState>>(FWO.Api.Client.Queries.RequestQueries.getStates);
             selectedDayOfWeek = (DayOfWeek?)recCheckParams.RecertCheckWeekday;
             selectedPriority = PrioList.FirstOrDefault(p => p.NumPrio == configData.RecDeleteRuleTicketPriority);

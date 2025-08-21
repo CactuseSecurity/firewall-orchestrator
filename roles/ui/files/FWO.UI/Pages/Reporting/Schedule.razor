@@ -81,7 +81,7 @@
                     <input id="scheduleRepeatEvery" type="number" min="1" class="form-control form-control-sm" @bind="reportScheduleInEdit.RepeatOffset" />
                 </div>
                 <div class="col-sm-5">
-                    <Dropdown @bind-SelectedElement="reportScheduleInEdit.RepeatInterval" ElementToString="@(i => userConfig.GetText(i.ToString()))"
+                    <Dropdown ElementType="SchedulerInterval" @bind-SelectedElement="reportScheduleInEdit.RepeatInterval" ElementToString="@(i => userConfig.GetText(i.ToString()))"
                             Elements="Enum.GetValues(typeof(SchedulerInterval)).Cast<SchedulerInterval>().Where(x => x.OfferedForReportOrNever())" >
                         <ElementTemplate Context="interval">
                             @(userConfig.GetText(interval.ToString()))

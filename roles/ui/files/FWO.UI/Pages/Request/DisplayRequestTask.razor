@@ -111,7 +111,7 @@
                                 <div class="col-sm-8">
                                     @if (WfHandler.EditReqTaskMode)
                                     {
-                                        <Dropdown SelectedElementsChanged="SetDevices" SelectedElementChanged="SetDevice" SelectedElements="selectedDevices" ElementType="Device" ElementToString="@(d => d.Name)" Elements="WfHandler.Devices" Multiselect="true">
+                                        <Dropdown ElementType="Device" SelectedElementsChanged="SetDevices" SelectedElementChanged="SetDevice" SelectedElements="selectedDevices" ElementToString="@(d => d.Name)" Elements="WfHandler.Devices" Multiselect="true">
                                             <ElementTemplate Context="device">
                                                 @device.Name
                                             </ElementTemplate>

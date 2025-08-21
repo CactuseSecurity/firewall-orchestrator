@@ -14,6 +14,9 @@ namespace FWO.Data
         [JsonProperty("name"), JsonPropertyName("name")]
         public string Name { get; set; } = "";
 
+        [JsonProperty("id_string"), JsonPropertyName("id_string")]
+        public string IdString { get; set; } = "";
+
         [JsonProperty("description"), JsonPropertyName("description")]
         public string Description { get; set; } = "";
 

@@ -15,6 +15,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string getViolations;
         public static readonly string updateViolationById;
         public static readonly string removeViolations;
+        public static readonly string getViolationsChunk;
 
         public static readonly string addPolicy;
         public static readonly string disablePolicy;
@@ -23,8 +24,10 @@ namespace FWO.Api.Client.Queries
 
         public static readonly string addCriterion;
         public static readonly string removeCriterion;
+        public static readonly string updateCriterionMetadata;
         public static readonly string getCriteria;
         public static readonly string getMatrices;
+        public static readonly string getMatrixByName;
         
         public static readonly string addCritToPolicy;
         public static readonly string removeCritFromPolicy;
@@ -53,12 +56,16 @@ namespace FWO.Api.Client.Queries
 
                 addCriterion = GetQueryText("compliance/addCriterion.graphql");
                 removeCriterion = GetQueryText("compliance/removeCriterion.graphql");
+                updateCriterionMetadata = GetQueryText("compliance/updateCriterionMetadata.graphql");
                 getCriteria = GetQueryText("compliance/getCriteria.graphql");
                 getMatrices = GetQueryText("compliance/getMatrices.graphql");
+                getMatrixByName = GetQueryText("compliance/getMatrixByName.graphql");
 
                 addCritToPolicy = GetQueryText("compliance/addCritToPolicy.graphql");
                 removeCritFromPolicy = GetQueryText("compliance/removeCritFromPolicy.graphql");
                 getPolicyIdsForCrit = GetQueryText("compliance/getPolicyIdsForCrit.graphql");
+
+                getViolationsChunk = GetQueryText("compliance/getViolationsChunk.graphql");
             }
             catch (Exception exception)
             {

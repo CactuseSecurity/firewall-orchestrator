@@ -2,11 +2,15 @@ mutation addCriterion(
   $name: String!
   $criterionType: String!
   $content: String
+  $comment: String
+  $importSource: String
   ) {
   insert_compliance_criterion(objects: {
     name: $name
     criterion_type: $criterionType
     content: $content
+	comment: $comment
+	import_source: $importSource
   }) {
     returning {
       insertedId: id

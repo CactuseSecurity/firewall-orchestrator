@@ -26,7 +26,7 @@ def has_config_changed (full_config, importState: ImportState, force=False):
     if full_config != {}:   # a config was passed in (read from file), so we assume that an import has to be done (simulating changes here)
         return 1
 
-    session_id = loginCp(importState.MgmDetails)
+    session_id: str = cp_getter.login(importState.MgmDetails)
 
     if importState.LastSuccessfulImport==None or importState.LastSuccessfulImport=='' or force:
         # if no last import time found or given or if force flag is set, do full import
@@ -34,7 +34,7 @@ def has_config_changed (full_config, importState: ImportState, force=False):
     else: # otherwise search for any changes since last import
         result = (cp_getter.get_changes(session_id, importState.MgmDetails.Hostname, str(importState.MgmDetails.Port),importState.LastSuccessfulImport) != 0)
 
-    logout_cp(importState.MgmDetails.buildFwApiString(), session_id)
+    cp_getter.logout(importState.MgmDetails.buildFwApiString(), session_id)
 
     return result
 
@@ -72,7 +72,7 @@ def get_config(config_in: FwConfigManagerListController, importState: ImportStat
         logger.debug ( "checkpointR8x/get_config - fetch duration: " + str(duration) + "s" )
 
     if config_in.contains_only_native():
-        sid = loginCp(importState.MgmDetails)
+        sid: str = cp_getter.login(importState.MgmDetails)
         normalizedConfig = normalize_config(importState, config_in, parsing_config_only, sid)
         logger.info("completed getting config")
         return 0, normalizedConfig
@@ -167,7 +167,7 @@ def normalize_single_manager_config(nativeConfig: dict, native_config_global: di
     cp_gateway.normalize_gateways(nativeConfig, importState, normalized_config_dict)
     cp_rule.normalize_rulebases(nativeConfig, native_config_global, importState, normalized_config_dict, normalized_config_global, is_global_loop_iteration)
     if not parsing_config_only: # get config from cp fw mgr
-        logout_cp(importState.MgmDetails.buildFwApiString(), sid)
+        cp_getter.logout(importState.MgmDetails.buildFwApiString(), sid)
     logger.info("completed normalizing rulebases")
     
 
@@ -191,7 +191,7 @@ def get_rules(nativeConfig: dict, importState: ImportStateController) -> int:
                 managerDetails, cpManagerApiBaseUrl, show_params_policy_structure
             )
 
-        sid = loginCp(managerDetails)
+        sid: str = cp_getter.login(managerDetails)
         policyStructure = get_policy_structure(cpManagerApiBaseUrl, sid, show_params_policy_structure)
 
         process_devices(
@@ -200,7 +200,6 @@ def get_rules(nativeConfig: dict, importState: ImportStateController) -> int:
             nativeConfig['domains'][0], importState
         )
         manager_index += 1
-
 
     return 0    
 
@@ -218,14 +217,12 @@ def create_ordered_manager_list(importState):
 
 def handle_super_manager(managerDetails, cpManagerApiBaseUrl, show_params_policy_structure):# -> tuple[list[Any], list[Any] | None, Any | Literal[''] | No...:
 
-    logger = getFwoLogger()
-
     # global assignments are fetched from mds domain
-    mdsSid = loginCp(managerDetails)
+    mdsSid: str = cp_getter.login(managerDetails)
     globalPolicyStructure = None
     global_domain = None
     global_assignments = cp_getter.get_global_assignments(cpManagerApiBaseUrl, mdsSid, show_params_policy_structure)
-    global_sid = None
+    global_sid = ""
     # import global policies if at least one global assignment exists
 
     
@@ -235,7 +232,7 @@ def handle_super_manager(managerDetails, cpManagerApiBaseUrl, show_params_policy
 
             # policy structure is fetched from global domain
             managerDetails.DomainUid = global_domain
-            global_sid = loginCp(managerDetails)
+            global_sid: str = cp_getter.login(managerDetails)
             cp_getter.getPolicyStructure(
                 cpManagerApiBaseUrl, global_sid, show_params_policy_structure, policyStructure=globalPolicyStructure
             )
@@ -257,14 +254,14 @@ def process_devices(
     managerDetails, policyStructure, globalAssignments, globalPolicyStructure,
     globalDomain, globalSid, cpManagerApiBaseUrl, sid, nativeConfigDomain,
     nativeConfigGlobalDomain, importState
-):
+) -> None:
     logger = getFwoLogger()
     for device in managerDetails.Devices:
-        deviceConfig = initialize_device_config(device)
+        deviceConfig: dict[str,Any] = initialize_device_config(device)
         if not deviceConfig:
             continue
 
-        orderedLayerUids = get_ordered_layer_uids(policyStructure, deviceConfig, managerDetails.getDomainString())
+        orderedLayerUids: list[str] = get_ordered_layer_uids(policyStructure, deviceConfig, managerDetails.getDomainString())
         if not orderedLayerUids:
             logger.warning(f"No ordered layers found for device: {deviceConfig['name']}")
             continue
@@ -287,12 +284,11 @@ def process_devices(
         nativeConfigDomain['gateways'].append(deviceConfig)
 
 
-def initialize_device_config(device):
+def initialize_device_config(device) -> dict[str, Any]:
     if 'name' in device and 'uid' in device:
         return {'name': device['name'], 'uid': device['uid'], 'rulebase_links': []}
-    logger = getFwoLogger()
-    logger.error(f"Device missing name or uid: {device}")
-    return None
+    else:
+        raise FwoImporterError(f"Device missing name or uid: {device}")
 
 
 def handle_global_rulebase_links(
@@ -449,27 +445,12 @@ def get_ordered_layer_uids(policyStructure, deviceConfig, domain) -> list[str]:
 
     return orderedLayerUids
 
+
 def append_access_layer_uid(policy, domain, orderedLayerUids):
     for accessLayer in policy['access-layers']:
         if accessLayer['domain'] == domain or domain == '':
             orderedLayerUids.append(accessLayer['uid'])
-
-def loginCp(mgm_details, ssl_verification=True):
-    try: # top level dict start, sid contains the domain information, so only sending domain during login
-        login_result = cp_getter.login(mgm_details)
-        return login_result
-    except Exception:
-        raise FwLoginFailed
     
-
-def logout_cp(url, sid):
-    try:
-        logout_result = cp_getter.logout(url, sid)
-        return logout_result
-    except Exception:
-        logger = getFwoLogger()
-        logger.warning("logout from CP management failed")
-
 
 def get_objects(native_config_dict: dict[str,Any], importState: ImportStateController) -> int:
     show_params_objs = {'limit': importState.FwoConfig.ApiFetchSize}
@@ -507,7 +488,7 @@ def get_objects(native_config_dict: dict[str,Any], importState: ImportStateContr
 
 
 def get_objects_per_domain(manager_details, native_domain, obj_type_array, show_params_objs, is_stand_alone_manager=True):
-    sid = loginCp(manager_details)
+    sid = cp_getter.login(manager_details)
     cp_url = manager_details.buildFwApiString()
     for obj_type in obj_type_array:
         object_table = get_objects_per_type(obj_type, show_params_objs, sid, cp_url)
@@ -562,6 +543,7 @@ def get_objects_per_type(obj_type, show_params_objs, sid, cpManagerApiBaseUrl):
             current = total
 
     return object_table
+
 
 def add_special_objects_to_global_domain(object_table, obj_type, sid, cp_api_url):
     """Appends special objects Original, Any, None and Internet to global domain

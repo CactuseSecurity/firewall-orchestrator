@@ -19,7 +19,8 @@ namespace FWO.Basics
         AppRules = 22,
         VarianceAnalysis = 23,
 
-        Compliance = 31
+        Compliance = 31,
+        ComplianceNew = 32
     }
 
     public static class ReportTypeGroups
@@ -58,7 +59,9 @@ namespace FWO.Basics
                 ReportType.ResolvedRules or
                 ReportType.ResolvedRulesTech or
                 ReportType.ResolvedChanges or
-                ReportType.ResolvedChangesTech => true,
+                ReportType.ResolvedChangesTech or
+                ReportType.Compliance or
+                ReportType.ComplianceNew=> true,
                 _ => false,
             };
         }
@@ -96,7 +99,7 @@ namespace FWO.Basics
 
         public static bool IsComplianceReport(this ReportType reportType)
         {
-            return reportType == ReportType.Compliance;
+            return reportType == ReportType.Compliance || reportType == ReportType.ComplianceNew;
         }
     }
 }

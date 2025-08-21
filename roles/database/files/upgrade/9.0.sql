@@ -914,10 +914,12 @@ CREATE TABLE IF NOT EXISTS compliance.criterion
 (
     id SERIAL PRIMARY KEY,
 	name TEXT,
+	comment TEXT,
 	criterion_type TEXT,
 	content TEXT,
 	removed timestamp with time zone,
-	created timestamp with time zone default now()
+	created timestamp with time zone default now(),
+	import_source TEXT
 );
 
 CREATE TABLE IF NOT EXISTS compliance.violation
@@ -937,17 +939,21 @@ CREATE TABLE IF NOT EXISTS compliance.violation
 ALTER TABLE compliance.network_zone ADD COLUMN IF NOT EXISTS "created" TIMESTAMP WITH TIME ZONE DEFAULT NOW();
 ALTER TABLE compliance.network_zone ADD COLUMN IF NOT EXISTS "removed" TIMESTAMP WITH TIME ZONE;
 ALTER TABLE compliance.network_zone ADD COLUMN IF NOT EXISTS "criterion_id" INT;
+ALTER TABLE compliance.network_zone ADD COLUMN IF NOT EXISTS "id_string" TEXT;
 ALTER TABLE compliance.network_zone_communication ADD COLUMN IF NOT EXISTS "created" TIMESTAMP WITH TIME ZONE DEFAULT NOW();
 ALTER TABLE compliance.network_zone_communication ADD COLUMN IF NOT EXISTS "removed" TIMESTAMP WITH TIME ZONE;
 ALTER TABLE compliance.network_zone_communication ADD COLUMN IF NOT EXISTS "criterion_id" INT;
 ALTER TABLE compliance.ip_range ADD COLUMN IF NOT EXISTS "created" TIMESTAMP WITH TIME ZONE DEFAULT NOW();
 ALTER TABLE compliance.ip_range ADD COLUMN IF NOT EXISTS "removed" TIMESTAMP WITH TIME ZONE;
 ALTER TABLE compliance.ip_range ADD COLUMN IF NOT EXISTS "criterion_id" INT;
+ALTER TABLE compliance.ip_range ADD COLUMN IF NOT EXISTS "name" TEXT;
 
 -- tables altered inside this version
 
 ALTER TABLE compliance.criterion ADD COLUMN IF NOT EXISTS "created" TIMESTAMP WITH TIME ZONE DEFAULT NOW();
 ALTER TABLE compliance.criterion ADD COLUMN IF NOT EXISTS "removed" TIMESTAMP WITH TIME ZONE;
+ALTER TABLE compliance.criterion ADD COLUMN IF NOT EXISTS "import_source" TEXT;
+ALTER TABLE compliance.criterion ADD COLUMN IF NOT EXISTS "comment" TEXT;
 ALTER TABLE compliance.network_zone ALTER COLUMN "removed" DROP DEFAULT;
 ALTER TABLE compliance.network_zone_communication ALTER COLUMN "removed" DROP DEFAULT;
 ALTER TABLE compliance.ip_range ALTER COLUMN "removed" DROP DEFAULT;
@@ -1021,7 +1027,7 @@ ON UPDATE RESTRICT ON DELETE CASCADE;
 
 -- add report type Compliance
 
-UPDATE config SET config_value = '[1,2,3,4,5,6,7,8,9,10,21,22,31]' WHERE config_key = 'availableReportTypes';
+UPDATE config SET config_value = '[1,2,3,4,5,6,7,8,9,10,21,22,31,32]' WHERE config_key = 'availableReportTypes';
 
 --- prevent overlapping active ip address ranges in the same zone
 ALTER TABLE compliance.ip_range DROP CONSTRAINT IF EXISTS exclude_overlapping_ip_ranges;
@@ -1076,6 +1082,31 @@ VALUES ('',
             "end_time": "2022-01-01T00:00:00.0000000+01:00",
             "open_start": false,
             "open_end": false}}')
+ON CONFLICT (report_template_name) DO NOTHING;
+
+-- add new report template for compliance: unresolved violations prototype
+
+INSERT INTO "report_template" ("report_filter","report_template_name","report_template_comment","report_template_owner", "report_parameters") 
+    VALUES ('',
+        'Compliance: Unresolved violations (prototype)','T0108', 0, 
+        '{"report_type":32,"device_filter":{"management":[]},
+            "time_filter": {
+                "is_shortcut": true,
+                "shortcut": "now",
+                "report_time": "2022-01-01T00:00:00.0000000+01:00",
+                "timerange_type": "SHORTCUT",
+                "shortcut_range": "this year",
+                "offset": 0,
+                "interval": "DAYS",
+                "start_time": "2022-01-01T00:00:00.0000000+01:00",
+                "end_time": "2022-01-01T00:00:00.0000000+01:00",
+                "open_start": false,
+                "open_end": false},
+            "compliance_filter": {
+                "isDiffReport": false,
+                "diffReferenceInDays": 0,
+                "showCompliantRules": false,
+                "excludedRuleActions": ["inner layer", "drop"]}}')
 ON CONFLICT (report_template_name) DO NOTHING;
 
 -- add compliance diff report parameters to config

@@ -9,7 +9,7 @@ import fwo_globals
 import fwo_exceptions
 from fwo_const import list_delimiter, default_section_header_text
 from fwo_base import sanitize
-from fwo_exceptions import ImportRecursionLimitReached
+from fwo_exceptions import ImportRecursionLimitReached, FwoImporterErrorInconsistencies
 from models.rulebase import Rulebase
 from models.rule import RuleNormalized
 from models.rule_enforced_on_gateway import RuleEnforcedOnGatewayNormalized
@@ -89,14 +89,40 @@ def find_rulebase_to_parse(rulebase_list, rulebase_uid):
     return {}, False, False
 
 def find_rulebase_to_parse_in_case_of_chunk(rulebase, rulebase_uid):
+    is_section = False
+    rulebase_to_parse = {}
     for chunk in rulebase['chunks']:
         for section in chunk['rulebase']:
             if section['uid'] == rulebase_uid:
                 if section['type'] == 'place-holder':
                     return section, False, True
                 else:
-                    return section, True, False
-    return {}, False, False
+                    rulebase_to_parse, is_section = find_rulebase_to_parse_in_case_of_section(is_section, rulebase_to_parse, section)
+    return rulebase_to_parse, is_section, False
+
+def find_rulebase_to_parse_in_case_of_section(is_section, rulebase_to_parse, section):
+    if is_section:
+        rulebase_to_parse = concatenat_sections_across_chunks(rulebase_to_parse, section)
+    else:
+        is_section = True
+        rulebase_to_parse = section
+    return rulebase_to_parse, is_section
+
+def concatenat_sections_across_chunks(rulebase_to_parse, section):
+    if 'to' in rulebase_to_parse and 'from' in section:
+        if rulebase_to_parse['to'] + 1 == section['from']:
+            if rulebase_to_parse['name'] == section['name']:
+                for rule in section['rulebase']:
+                    rulebase_to_parse['rulebase'].append(rule)
+                rulebase_to_parse['to'] = section['to']
+            else:
+                raise FwoImporterErrorInconsistencies("Inconsistent naming in Checkpoint Chunks.")
+        else:
+            raise FwoImporterErrorInconsistencies("Inconsistent numbering in Checkpoint Chunks.")
+    else:
+        raise FwoImporterErrorInconsistencies("Broken format in Checkpoint Chunks.")
+    return rulebase_to_parse
+
                     
 def initialize_normalized_rulebase(rulebase_to_parse, mgm_uid):
     rulebaseName = rulebase_to_parse['name']
@@ -546,3 +572,28 @@ def parse_nat_rule_transform(xlate_rule_in, rule_num):
         'rule_type': 'nat'
     }
     return (rule_match, rule_xlate)
+
+
+def ensure_json(raw: str) -> Any:
+    """
+    Tries to parse the given string as valid JSON.
+    Falls back to ast.literal_eval() if the JSON is using single quotes
+    or is otherwise not strictly compliant.
+    
+    Args:
+        raw: The input string containing JSON-like data.
+    
+    Returns:
+        The parsed Python object (e.g., dict, list, str, int, etc.).
+    
+    Raises:
+        ValueError: If neither JSON parsing nor literal_eval() succeed.
+    """
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError:
+        try:
+            return ast.literal_eval(raw)
+        except (ValueError, SyntaxError) as e:
+            raise ValueError(f"Invalid JSON or literal: {e}") from e
+        

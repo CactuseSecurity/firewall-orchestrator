@@ -47,27 +47,28 @@ namespace FWO.Middleware.Server
             try
             {
                 await InitEnv();
-                string decryptedSecret = AesEnc.TryDecrypt(globalConfig.EmailPassword, false, LogMessageTitle, "Could not decrypt mailserver password.");
-                EmailConnection emailConnection = new(globalConfig.EmailServerAddress, globalConfig.EmailPort,
-                    globalConfig.EmailTls, globalConfig.EmailUser, decryptedSecret, globalConfig.EmailSenderAddress);
-                JwtWriter jwtWriter = new(ConfigFile.JwtPrivateKey);
-                ApiConnection apiConnectionReporter = new GraphQlApiConnection(ConfigFile.ApiServerUri ?? throw new ArgumentException("Missing api server url on startup."), jwtWriter.CreateJWTReporterViewall());
-                OwnerGroups = await MiddlewareServerServices.GetInternalGroups(apiConnectionMiddlewareServer);
-
-                NotificationService notificationService = await NotificationService.CreateAsync(NotificationClient.Recertification, globalConfig,
-                    globalConfig.RecertificationMode == RecertificationMode.RuleByRule? apiConnectionReporter : apiConnectionMiddlewareServer, OwnerGroups);
-
-                foreach (var owner in owners.Where(o => IsCheckTime(o)))
+                if (globalConfig.RecertificationMode == RecertificationMode.RuleByRule)
                 {
-                    if (globalConfig.RecertificationMode == RecertificationMode.RuleByRule)
+                    string decryptedSecret = AesEnc.TryDecrypt(globalConfig.EmailPassword, false, LogMessageTitle, "Could not decrypt mailserver password.");
+                    EmailConnection emailConnection = new(globalConfig.EmailServerAddress, globalConfig.EmailPort,
+                        globalConfig.EmailTls, globalConfig.EmailUser, decryptedSecret, globalConfig.EmailSenderAddress);
+                    JwtWriter jwtWriter = new(ConfigFile.JwtPrivateKey);
+                    ApiConnection apiConnectionReporter = new GraphQlApiConnection(ConfigFile.ApiServerUri ?? throw new ArgumentException("Missing api server url on startup."), jwtWriter.CreateJWTReporterViewall());
+                    foreach (var owner in owners)
                     {
                         emailsSent += await CheckRuleByRule(owner, apiConnectionReporter, emailConnection);
+                        await SetOwnerLastCheck(owner);
                     }
-                    else
+                }
+                else
+                {
+                    OwnerGroups = await MiddlewareServerServices.GetInternalGroups(apiConnectionMiddlewareServer);
+                    NotificationService notificationService = await NotificationService.CreateAsync(NotificationClient.Recertification, globalConfig, apiConnectionMiddlewareServer, OwnerGroups);
+                    foreach (var owner in owners.Where(o => IsCheckTime(o)))
                     {
                         emailsSent += await notificationService.SendNotifications(owner, PrepareOwnerBody(owner));
+                        await SetOwnerLastCheck(owner);
                     }
-                    await SetOwnerLastCheck(owner);
                 }
             }
             catch(Exception exception)
@@ -157,9 +158,20 @@ namespace FWO.Middleware.Server
 
         private async Task<int> CheckRuleByRule(FwoOwner owner, ApiConnection apiConnection, EmailConnection emailConnection)
         {
-            List<Rule> upcomingRecerts = await GenerateRulesRecertificationReport(apiConnection, owner, false);
-            List<Rule> overdueRecerts = []; // await GenerateRulesRecertificationReport(apiConnectionReporter, owner, true);
-
+            List<Rule> openRecerts = await GenerateRulesRecertificationReport(apiConnection, owner);
+            List<Rule> upcomingRecerts = [];
+            List<Rule> overdueRecerts = [];
+            foreach (var rule in openRecerts)
+            {
+                if (rule.Metadata.NextRecert >= DateTime.Now)
+                {
+                    upcomingRecerts.Add(rule);
+                }
+                else
+                {
+                    overdueRecerts.Add(rule);
+                }
+            }
             if (upcomingRecerts.Count > 0 || overdueRecerts.Count > 0)
             {
                 await MailKitMailer.SendAsync(PrepareRulesEmail(owner, upcomingRecerts, overdueRecerts), emailConnection, false, new());
@@ -168,7 +180,7 @@ namespace FWO.Middleware.Server
             return 0;
         }
 
-        private async Task<List<Rule>> GenerateRulesRecertificationReport(ApiConnection apiConnection, FwoOwner owner, bool overdueOnly)
+        private async Task<List<Rule>> GenerateRulesRecertificationReport(ApiConnection apiConnection, FwoOwner owner)
         {
             List<Rule> rules = [];
             try
@@ -215,15 +227,15 @@ namespace FWO.Middleware.Server
         private MailData PrepareRulesEmail(FwoOwner owner, List<Rule> upcomingRecerts, List<Rule> overdueRecerts)
         {
             string subject = globalConfig.RecCheckEmailSubject + " " + owner.Name;
-            return new MailData(CollectEmailAddresses(owner), subject) { Body = PrepareRulesBody(upcomingRecerts, overdueRecerts) };
+            return new MailData(CollectEmailAddresses(owner), subject) { Body = PrepareRulesBody(upcomingRecerts, overdueRecerts, owner.Name) };
         }
 
-        private string PrepareRulesBody(List<Rule> upcomingRecerts, List<Rule> overdueRecerts)
+        private string PrepareRulesBody(List<Rule> upcomingRecerts, List<Rule> overdueRecerts, string ownerName)
         {
             string body = "";
             if(upcomingRecerts.Count > 0)
             {
-                body += globalConfig.RecCheckEmailUpcomingText + "\r\n\r\n";
+                body += globalConfig.RecCheckEmailUpcomingText.Replace(Placeholder.APPNAME, ownerName) + "\r\n\r\n";
                 foreach(var rule in upcomingRecerts)
                 {
                     body += PrepareLine(rule);
@@ -231,7 +243,7 @@ namespace FWO.Middleware.Server
             }
             if(overdueRecerts.Count > 0)
             {
-                body += globalConfig.RecCheckEmailOverdueText + "\r\n\r\n";
+                body += globalConfig.RecCheckEmailOverdueText.Replace(Placeholder.APPNAME, ownerName) + "\r\n\r\n";
                 foreach(var rule in overdueRecerts)
                 {
                     body += PrepareLine(rule);

@@ -92,12 +92,7 @@ class RuleEnforcedOnGatewayController:
             'created': self.import_details.ImportId,
             'removed': None
         }
-        # return RuleEnforcedOnGateway(
-        #     rule_id=rule['rule_id'],
-        #     dev_id=gw_id,
-        #     created=self.import_details.ImportId,
-        #     removed=None
-        # ).to_dict()
+    
 
     def insert_rule_to_gateway_references(self, rule_to_gw_refs):
         """

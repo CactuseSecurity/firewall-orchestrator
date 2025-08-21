@@ -72,23 +72,7 @@ namespace FWO.Report.Data.ViewData
 
         private string ResolveInstallOn(Rule rule, List<Device> devices)
         {
-            string resolvedInstallOn = rule.InstallOn;
-
-            foreach (string deviceId in rule.InstallOn.Split('|'))
-            {
-                Device? device = devices.FirstOrDefault(d => d.Id.ToString() == deviceId.Trim());
-                if (device != null)
-                {
-                    if (!string.IsNullOrEmpty(resolvedInstallOn))
-                    {
-                        resolvedInstallOn += ", ";
-                    }
-
-                    resolvedInstallOn += device.Name;
-                }
-            }
-            
-            return resolvedInstallOn;
+            return rule.InstallOn;
         }
     }
 }

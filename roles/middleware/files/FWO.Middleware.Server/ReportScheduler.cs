@@ -231,7 +231,6 @@ namespace FWO.Middleware.Server
                     case GlobalConst.kCsv:
                         reportFile.Csv = report.ExportToCsv();
                         break;
-
                     case GlobalConst.kHtml:
                         reportFile.Html = report.ExportToHtml();
                         break;

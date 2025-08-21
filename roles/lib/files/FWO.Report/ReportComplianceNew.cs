@@ -120,35 +120,41 @@ namespace FWO.Report
             {
                 // Create export string
 
-
-                StringBuilder sb = new StringBuilder();
-                Type type = typeof(RuleViewData);
-                List<PropertyInfo?> properties = _columnsToExport
-                                                    .Select(name => type.GetProperty(name, BindingFlags.Public | BindingFlags.Instance))
-                                                    .Where(p => p != null)
-                                                    .ToList();
-
-                List<string> propertyNames = [];
-
-                foreach (PropertyInfo? propertyInfo in properties)
+                try
                 {
-                    if (propertyInfo != null)
+                    StringBuilder sb = new StringBuilder();
+                    Type type = typeof(RuleViewData);
+                    List<PropertyInfo?> properties = _columnsToExport
+                                                        .Select(name => type.GetProperty(name, BindingFlags.Public | BindingFlags.Instance))
+                                                        .Where(p => p != null)
+                                                        .ToList();
+
+                    List<string> propertyNames = [];
+
+                    foreach (PropertyInfo? propertyInfo in properties)
                     {
-                        propertyNames.Add(propertyInfo!.Name);
+                        if (propertyInfo != null)
+                        {
+                            propertyNames.Add(propertyInfo!.Name);
+                        }
                     }
-                }
 
-                if (_includeHeaderInExport)
+                    if (_includeHeaderInExport)
+                    {
+                        sb.AppendLine(string.Join(_separator, propertyNames.Select(p => $"\"{p}\"")));
+                    }
+
+                    foreach (RuleViewData ruleViewData in RuleViewData)
+                    {
+                        sb.AppendLine(GetLineForRule(ruleViewData, properties));
+                    }
+
+                    return sb.ToString();
+                }
+                catch (System.Exception e)
                 {
-                    sb.AppendLine(string.Join(_separator, propertyNames.Select(p => $"\"{p}\"")));
+                    Log.TryWriteLog(LogType.Error, "Compliance Report Prototype", $"Error while exporting compliance report to CSV: {e.Message}", DebugConfig.ExtendedLogReportGeneration);
                 }
-
-                foreach (RuleViewData ruleViewData in RuleViewData)
-                {
-                    sb.AppendLine(GetLineForRule(ruleViewData, properties));
-                }
-
-                return sb.ToString();
             }
 
             return csvString;

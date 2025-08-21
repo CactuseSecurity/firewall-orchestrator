@@ -60,13 +60,13 @@ namespace FWO.Compliance
         {
             try
             {
-                Log.TryWriteLog(LogType.Info, "Compliance Check", "Starting compliance check", _debugConfig.ExtendedLogComplianceCheck);
+                Log.TryWriteLog(LogType.Info, "Compliance Check", "Starting compliance check.", _debugConfig.ExtendedLogComplianceCheck);
 
                 int? policyId = _userConfig.GlobalConfig?.ComplianceCheckPolicyId;
 
                 if (policyId == null || policyId == 0)
                 {
-                    Log.WriteInfo("Compliance Check", "No Policy defined");
+                    Log.WriteInfo("Compliance Check", "No Policy defined.");
                     return;
                 }
                 else
@@ -78,7 +78,7 @@ namespace FWO.Compliance
 
                 if (TryLogPolicyCriteria() == false)
                 {
-                    Log.WriteError("Compliance Check", $"Policy with id {policyId} not found");
+                    Log.WriteError("Compliance Check", $"Policy with id {policyId} not found.");
                     return;
                 }
 
@@ -91,28 +91,26 @@ namespace FWO.Compliance
 
                 ReportBase? currentReport = await ReportGenerator.Generate(template, _apiConnection, _userConfig, DefaultInit.DoNothing);
 
+
                 if (currentReport is ReportCompliance complianceReport)
                 {
-                    Log.TryWriteLog(LogType.Info, "Compliance Check", $"Compliance report generated with {complianceReport.ReportData.ManagementData.Count} managements", _debugConfig.ExtendedLogComplianceCheck);
+                    Log.TryWriteLog(LogType.Info, "Compliance Check", $"Compliance report generated for {complianceReport.ReportData.ElementsCount} rules.", _debugConfig.ExtendedLogComplianceCheck);
 
                     ComplianceReport = complianceReport;
 
                     ComplianceReport.Violations.Clear();
                     _nonEvaluableRules.Clear();
 
-                    foreach (var management in complianceReport.ReportData.ManagementData)
-                    {
-                        await CheckRuleCompliancePerManagement(management);
-                    }
+                    await CheckRuleComplianceForAllRules();
                 }
                 else
                 {
-                    Log.WriteError("Compliance Check", "Could not generate compliance report");
+                    Log.WriteError("Compliance Check", "Could not generate compliance report.");
                 }    
             }
             catch (System.Exception e)
             {
-                Log.WriteError("Compliance Check", "Error while checking for compliance violations", e);
+                Log.WriteError("Compliance Check", "Error while checking for compliance violations.", e);
             }
             
         }
@@ -138,7 +136,7 @@ namespace FWO.Compliance
 
                 if (violations.Count == 0)
                 {
-                    Log.TryWriteLog(LogType.Info, "Compliance Check", "No new violations to persist", _debugConfig.ExtendedLogComplianceCheck);
+                    Log.TryWriteLog(LogType.Info, "Compliance Check", "No new violations to persist.", _debugConfig.ExtendedLogComplianceCheck);
                 }
                 else
                 {
@@ -149,7 +147,7 @@ namespace FWO.Compliance
 
                     await _apiConnection.SendQueryAsync<dynamic>(ComplianceQueries.addViolations, variablesAdd);
 
-                    Log.TryWriteLog(LogType.Info, "Compliance Check", $"Persisted {violations.Count} new violations", _debugConfig.ExtendedLogComplianceCheck);
+                    Log.TryWriteLog(LogType.Info, "Compliance Check", $"Persisted {violations.Count} new violations.", _debugConfig.ExtendedLogComplianceCheck);
                 }
 
                 List<int> ids = await violationsForRemoveTask;
@@ -172,12 +170,12 @@ namespace FWO.Compliance
 
                     await _apiConnection.SendQueryAsync<dynamic>(ComplianceQueries.removeViolations, variablesRemove);
 
-                    Log.TryWriteLog(LogType.Info, "Compliance Check", $"Removed {ids.Count} violations", _debugConfig.ExtendedLogComplianceCheck && ids.Count > 0);
+                    Log.TryWriteLog(LogType.Info, "Compliance Check", $"Removed {ids.Count} violations.", _debugConfig.ExtendedLogComplianceCheck && ids.Count > 0);
                 }
             }
             catch (Exception e)
             {
-                Log.WriteError("Compliance Check", "Error while persisting compliance data", e);
+                Log.WriteError("Compliance Check", "Error while persisting compliance data.", e);
             }
         }
 
@@ -300,6 +298,40 @@ namespace FWO.Compliance
 
             return Task.FromResult(violationsForUpdate);
         }
+        
+        private async Task CheckRuleComplianceForAllRules()
+        {
+            int nonCompliantRules = 0;
+            int nonEvaluableRules = 0;
+
+            Log.TryWriteLog(LogType.Info, "Compliance Check", $"Checking compliance for every rule.", _debugConfig.ExtendedLogComplianceCheck);
+
+            foreach (Rule rule in ComplianceReport!.ReportData.RulesFlat)
+            {
+                if (await ComplianceReport!.CheckEvaluability(rule))
+                {
+                    bool ruleIsCompliant = await CheckRuleCompliance(rule);
+
+                    if (!ruleIsCompliant)
+                    {
+                        nonCompliantRules++;
+                    }
+                }
+                else
+                {
+                    // Set counter
+
+                    nonEvaluableRules++;
+
+                    // Add to control collection
+                    
+                    _nonEvaluableRules.Add(rule);
+                }
+            }
+
+            Log.TryWriteLog(LogType.Info, "Compliance Check", $"Checked compliance for every rule and found {nonCompliantRules} non-compliant rules", _debugConfig.ExtendedLogComplianceCheck);
+            Log.TryWriteLog(LogType.Info, "Compliance Check", $"Checked compliance for every rule and found {nonEvaluableRules} non-evaluable rules", _debugConfig.ExtendedLogComplianceCheck);
+        }
 
         private async Task CheckRuleCompliancePerManagement(ManagementReport management)
         {
@@ -328,7 +360,7 @@ namespace FWO.Compliance
                         nonEvaluableRules++;
 
                         // Add to control collection
-                        
+
                         _nonEvaluableRules.Add(rule);
                     }
 
@@ -434,7 +466,7 @@ namespace FWO.Compliance
                                                     .Content.Id ?? 0;
                         string sourceString = GetNwObjectString(s);
                         string destinationString = GetNwObjectString(d);
-                        violation.Details = $"Matrix violation: {sourceString} (Zone: {complianceCheckResult.SourceZone}) -> {destinationString} (Zone: {complianceCheckResult.DestinationZone})";
+                        violation.Details = $"Matrix violation: {sourceString} (Zone: {complianceCheckResult.SourceZone?.Name ?? ""}) -> {destinationString} (Zone: {complianceCheckResult.DestinationZone?.Name ?? ""})";
 
                     }
                     else
@@ -512,7 +544,7 @@ namespace FWO.Compliance
 
             _reportFilters = new()
             {
-                ReportType = ReportType.Compliance
+                ReportType = ReportType.ComplianceNew
             };
 
             _reportFilters.DeviceFilter.Managements = await _apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement);

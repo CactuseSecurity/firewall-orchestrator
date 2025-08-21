@@ -191,7 +191,7 @@ namespace FWO.Report
 
         private static void TrySetComplianceReportFilter(ReportBase report, ReportTemplate reportTemplate)
         {
-            if (report.ReportType == ReportType.Compliance)
+            if (report.ReportType == ReportType.Compliance || report.ReportType == ReportType.ComplianceNew)
             {
                 ReportCompliance complianceReport = (ReportCompliance)report;
                 complianceReport.IsDiffReport = reportTemplate.ReportParams.ComplianceFilter.IsDiffReport;

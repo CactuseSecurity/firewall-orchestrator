@@ -1,5 +1,6 @@
 @using FWO.Data.Modelling
 @using FWO.Report
+@using FWO.Report.Data.ViewData
 @using FWO.Report.Filter
 @using FWO.Report.Filter.FilterTypes
 @using FWO.Report.Filter.Exceptions
@@ -57,7 +58,7 @@
         @if (actReportFilters.ReportType == ReportType.ComplianceNew)
         {
             <div class="p-3">
-                <input class="form-check-input" type="checkbox" id="complianceShowAnyRule" @bind="_showAnyRulesInComplianceReport" @oninput="UpdateComplianceShowAnyRules"/>
+                <input class="form-check-input" type="checkbox" id="complianceShowAnyRule" checked="@_showAnyRulesInComplianceReport" @onchange="UpdateComplianceShowAnyRules"/>
                 <label class="form-check-label text-white" for="complianceShowAnyRule">@(userConfig.GetText("show_any_match"))</label>
             </div>
         }
@@ -128,7 +129,7 @@
                                 break;
 
                             case ReportType.ComplianceNew:
-                                    <ComplianceReport ReportData="currentReport.ReportData" RulesPerPage="rulesPerPage" @bind-SelectedRules="selectedItemsRuleReportTable" @ref="_complianceReport"/>
+                                    <ComplianceReport ReportData="currentReport.ReportData" RulesPerPage="rulesPerPage" @bind-SelectedRules="_selectedItemsComplianceReportTable" @ref="_complianceReport"/>
                                 break;
 
                             case ReportType.Changes:
@@ -167,9 +168,9 @@
                 <small> @(userConfig.GetText("report_duration")) @((reportGenerationDuration/60.0).ToString("0.00")) @(userConfig.GetText("minutes")).</small>
             }
         }   
-        @if (currentReport != null && currentReport.ReportType != ReportType.Statistics)
+        @if (currentReport != null && currentReport.ReportType != ReportType.Statistics && currentReport.ReportData.ElementsCount > 0)
         {
-            <small>@(userConfig.GetText("report_elements")): (@currentReport.ReportData.ElementsCount).</small>
+            <small>@(userConfig.GetText("report_elements")): @currentReport.ReportData.ElementsCount.</small>
         }
             
 
@@ -206,6 +207,7 @@
 
     private List<Rule> selectedItemsRuleReportTable = [];
     private List<RuleChange> selectedItemsChangeReportTable = [];
+    private List<RuleViewData> _selectedItemsComplianceReportTable = [];
 
     private List<ReportType> availableReportTypes { get; set; } = [];
     private ReportFilters actReportFilters = new();
@@ -248,7 +250,7 @@
         || authenticationStateTask!.Result.User.IsInRole(Roles.Admin)
         || authenticationStateTask!.Result.User.IsInRole(Roles.Auditor);
 
-    private bool _showAnyRulesInComplianceReport = false;
+    private bool _showAnyRulesInComplianceReport = true;
 
     private ComplianceReport? _complianceReport;
 
@@ -462,6 +464,7 @@
         // clear selected rules
         selectedItemsRuleReportTable.Clear();
         selectedItemsChangeReportTable.Clear();
+        _selectedItemsComplianceReportTable.Clear();
 
         // reset report data when switching between reports
         ResetReport();
@@ -563,16 +566,14 @@
         return ListOut;
     }
 
-    private Task UpdateComplianceShowAnyRules()
+    private void UpdateComplianceShowAnyRules(ChangeEventArgs e)
     {
+        _showAnyRulesInComplianceReport = (bool)e.Value!;
         if (_complianceReport is ComplianceReport complianceReport)
         {
-            _showAnyRulesInComplianceReport = !_showAnyRulesInComplianceReport;
             complianceReport.ShowAnyRule = _showAnyRulesInComplianceReport;
             complianceReport.UpdateVisibleRules();
-            StateHasChanged();
         }
-
-        return Task.CompletedTask; 
     }
+
 }

@@ -1,3 +1,4 @@
+using System.Text.Json;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
@@ -79,6 +80,11 @@ namespace FWO.Report
             ReportData.RuleViewData = RuleViewData;
             ReportData.RulesFlat = Rules;
             ReportData.ElementsCount = Rules.Count;
+        }
+
+        public override string ExportToJson()
+        {
+            return System.Text.Json.JsonSerializer.Serialize(ReportData.RuleViewData, new JsonSerializerOptions { WriteIndented = true });
         }
 
         #endregion

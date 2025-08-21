@@ -1,3 +1,5 @@
+using System.Reflection;
+using System.Text;
 using System.Text.Json;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
@@ -26,6 +28,10 @@ namespace FWO.Report
         private readonly SemaphoreSlim _semaphore;
         private readonly NatRuleDisplayHtml _natRuleDisplayHtml;
         private List<Device>? _devices;
+        private readonly List<string> _columnsToExport;
+        private readonly bool _includeHeaderInExport;
+        private readonly char _separator;
+
 
         #endregion
 
@@ -36,6 +42,25 @@ namespace FWO.Report
             _maxDegreeOfParallelism = Environment.ProcessorCount;
             _semaphore = new SemaphoreSlim(_maxDegreeOfParallelism);
             _natRuleDisplayHtml = new NatRuleDisplayHtml(userConfig);
+            _columnsToExport = new List<string>
+            {
+                "MgmtId",
+                "Uid",
+                "Name",
+                "Source",
+                "Destination",
+                "Services",
+                "Action",
+                "InstallOn",
+                "Compliance",
+                "ViolationDetails",
+                "ChangeID",
+                "AdoITID",
+                "Comment",
+                "RulebaseId"
+            };
+            _includeHeaderInExport = true;
+            _separator = ';';
         }
 
         #endregion
@@ -84,7 +109,94 @@ namespace FWO.Report
 
         public override string ExportToJson()
         {
-            return System.Text.Json.JsonSerializer.Serialize(ReportData.RuleViewData, new JsonSerializerOptions { WriteIndented = true });
+            return JsonSerializer.Serialize(ReportData.RuleViewData, new JsonSerializerOptions { WriteIndented = true });
+        }
+
+        public override string ExportToCsv()
+        {
+            string csvString = "";
+
+            if (RuleViewData.Count > 0)
+            {
+                // Create export string
+
+
+                StringBuilder sb = new StringBuilder();
+                Type type = typeof(RuleViewData);
+                List<PropertyInfo?> properties = _columnsToExport
+                                                    .Select(name => type.GetProperty(name, BindingFlags.Public | BindingFlags.Instance))
+                                                    .Where(p => p != null)
+                                                    .ToList();
+
+                List<string> propertyNames = [];
+
+                foreach (PropertyInfo? propertyInfo in properties)
+                {
+                    if (propertyInfo != null)
+                    {
+                        propertyNames.Add(propertyInfo!.Name);
+                    }
+                }
+
+                if (_includeHeaderInExport)
+                {
+                    sb.AppendLine(string.Join(_separator, propertyNames.Select(p => $"\"{p}\"")));
+                }
+
+                foreach (RuleViewData ruleViewData in RuleViewData)
+                {
+                    sb.AppendLine(GetLineForRule(ruleViewData, properties));
+                }
+
+                return sb.ToString();
+            }
+
+            return csvString;
+        }
+
+        private string GetLineForRule(RuleViewData rule, List<PropertyInfo?> properties)
+        {
+            IEnumerable<string> values = properties.Select(p =>
+            {
+                if (p is PropertyInfo propertyInfo)
+                {
+                    object? value = propertyInfo.GetValue(rule);
+
+                    if (value is string str)
+                    {
+                        str = str.Replace("\r", " ").Replace("\n", " ");
+
+                        if (str.Contains('"'))
+                        {
+                            // Escape quotation marks
+
+                            str = str.Replace("\"", "\"\"");
+                        }
+
+                        return str;
+                    }   
+                }
+
+                return "";
+            });
+
+            return string.Join(_separator, values.Select(value => $"\"{value}\""));
+        }
+
+        private string Escape(string input, char separator)
+        {
+            // Replace line breaks with space
+
+            input = input.Replace("\r", " ").Replace("\n", " ");
+
+            if (input.Contains('"'))
+            {
+                // Escape quotation marks
+
+                input = input.Replace("\"", "\"\"");
+            }
+
+            return input;
         }
 
         #endregion

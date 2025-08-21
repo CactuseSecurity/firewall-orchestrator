@@ -91,9 +91,9 @@ def get_config(config_in: FwConfigManagerListController, importState: ImportStat
         write_native_config_to_file(importState, config_in)
 
     # delete_v: brauchen wir hier wirklich sid, dann muss die auch für parsing_config_only TRUE erzeugt werden
-    normalizedConfig = normalize_config(importState, config_in.native_config)
+    normalized_managers = normalize_config(importState, config_in.native_config)
     logger.info("completed getting config")
-    return 0, normalizedConfig
+    return 0, normalized_managers
 
 
 def initialize_native_config_domain(mgm_details : ManagementController):
@@ -200,7 +200,7 @@ def normalize_single_manager_config(native_config: dict[str, Any], native_config
     #fmgr_gateway.normalizeGateways(native_conf, import_state, normalized_config_dict)
 
     # initialize_rulebases(native_config)
-    normalize_rulebases(import_state, native_config, native_config_global, import_state, normalized_config_dict, normalized_config_global, 
+    normalize_rulebases(import_state, native_config, native_config_global, normalized_config_dict, normalized_config_global, 
                         is_global_loop_iteration)
 
     logger.info("completed normalizing rulebases")

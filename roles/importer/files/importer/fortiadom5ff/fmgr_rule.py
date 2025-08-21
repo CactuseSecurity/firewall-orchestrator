@@ -34,7 +34,6 @@ def normalize_rulebases(
     import_state: ImportState,
     nativeConfig: dict,
     native_config_global: dict,
-    importState: object,
     normalized_config_dict: dict,
     normalized_config_global: dict,
     is_global_loop_iteration: bool
@@ -52,13 +51,13 @@ def normalize_rulebases(
     for gateway in nativeConfig['gateways']:
         normalize_rulebases_for_each_link_destination(
             gateway, fetched_rulebase_uids, nativeConfig, native_config_global,
-            is_global_loop_iteration, importState, normalized_config_dict,
+            is_global_loop_iteration, import_state, normalized_config_dict,
             normalized_config_global)
 
     # todo: parse nat rulebase here
 
 
-def normalize_rulebases_for_each_link_destination(gateway, fetched_rulebase_uids, nativeConfig, native_config_global, is_global_loop_iteration, importState, normalized_config_dict, normalized_config_global):
+def normalize_rulebases_for_each_link_destination(gateway, fetched_rulebase_uids, nativeConfig, native_config_global, is_global_loop_iteration, import_state, normalized_config_dict, normalized_config_global):
     logger = getFwoLogger()
     for rulebase_link in gateway['rulebase_links']:
         if rulebase_link['to_rulebase_uid'] not in fetched_rulebase_uids and rulebase_link['to_rulebase_uid'] != '':
@@ -75,7 +74,7 @@ def normalize_rulebases_for_each_link_destination(gateway, fetched_rulebase_uids
                 logger.warning('found to_rulebase link without rulebase in nativeConfig: ' + str(rulebase_link))
                 continue
             rulebase_link['is_section'] = is_section
-            normalized_rulebase = initialize_normalized_rulebase(rulebase_to_parse, importState.MgmDetails.Uid)
+            normalized_rulebase = initialize_normalized_rulebase(rulebase_to_parse, import_state.MgmDetails.Uid)
             parse_rulebase(normalized_config_dict, rulebase_to_parse, is_section, is_placeholder, normalized_rulebase)
             fetched_rulebase_uids.append(rulebase_link['to_rulebase_uid'])
 
@@ -206,8 +205,6 @@ def parse_single_rule(normalized_config, native_rule, rulebase: Rulebase, layer_
         rule_installon = list_delimiter.join([vdom['name'] + '_' + vdom['vdom'] for vdom in native_rule['scope_member']])
     else:
         rule_installon = rulebase.name
-    
-
 
     # Create the normalized rule
     rule_normalized = RuleNormalized(
@@ -374,7 +371,7 @@ def getNatPolicy(sid, fm_api_url, nativeConfig, adom_name, device, limit):
 
 
 # delete_v: versuch das von cp_rule zu kopieren
-#def normalizeRulebases (nativeConfig, importState, normalizedConfig):
+#def normalizeRulebases (nativeConfig, import_state, normalizedConfig):
 def normalize_access_rules(native_config, native_config_global, import_state, normalized_config_dict, normalized_config_global, is_global_loop_iteration):
     logger = getFwoLogger()
     rules = []

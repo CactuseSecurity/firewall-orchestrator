@@ -43,21 +43,23 @@ namespace FWO.Report
         private async Task<int> FetchInitialManagementData(ApiConnection apiConnection, string startTime, string stopTime, Dictionary<int, List<long>> managementImportIds)
         {
             int queriesNeeded = 0;
-            foreach (int mgmId in Query.RelevantManagementIds)
+            List<ManagementReport> managementsWithRelevantImportId = await GetRelevantImportIds(apiConnection, startTime);
+            List<ManagementReport> managementsWithImportIds = await GetImportIdsInTimeRange(apiConnection, startTime, stopTime, ruleChangeRequired: true);
+            foreach (var management in managementsWithRelevantImportId)
             {
-                List<long> importIdLastBeforeRange = await GetRelevantImportIds(apiConnection, startTime, mgmId);
-                List<long> importIdsInRange = await GetImportIdsInTimeRange(apiConnection, startTime, stopTime, mgmId, ruleChangeRequired: true);
+                List<long> importIdLastBeforeRange = [management.RelevantImportId ?? -1];
+                List<long> importIdsInRange = [.. managementsWithImportIds.Where(m => m.Id == management.Id).SelectMany(m => m.ImportControls).Select(ic => ic.ControlId)];
                 List<long> relevantImportIds = [.. importIdLastBeforeRange, .. importIdsInRange];
                 if (relevantImportIds.Count == 0)
                 {
-                    Log.WriteDebug("Generate Changes Report", $"No relevant import IDs found in time range for management ID {mgmId}");
+                    Log.WriteDebug("Generate Changes Report", $"No relevant import IDs found in time range for management ID {management.Id}");
                     continue;
                 }
-                SetMgtQueryVars(mgmId, relevantImportIds[0], relevantImportIds[1]);
+                SetMgtQueryVars(management.Id, relevantImportIds[0], relevantImportIds[1]);
                 ManagementReport managementReport = (await apiConnection.SendQueryAsync<List<ManagementReport>>(Query.FullQuery, Query.QueryVariables)).First();
                 queriesNeeded += 1;
                 ReportData.ManagementData.Add(managementReport);
-                managementImportIds.Add(mgmId, relevantImportIds);
+                managementImportIds.Add(management.Id, relevantImportIds);
             }
             return queriesNeeded;
         }
@@ -123,30 +125,6 @@ namespace FWO.Report
             Query.QueryVariables[QueryVar.MgmId] = mgmId;
             Query.QueryVariables[QueryVar.ImportIdOld] = importIdOld;
             Query.QueryVariables[QueryVar.ImportIdNew] = importIdNew;
-        }
-
-        public static async Task<List<long>> GetImportIdsInTimeRange(ApiConnection apiConnection, string startTime, string stopTime, int mgmId, bool? ruleChangeRequired = null)
-        {
-            var queryVariables = new
-            {
-                start_time = startTime,
-                end_time = stopTime,
-                mgmIds = mgmId,
-                ruleChangesFound = ruleChangeRequired
-            };
-            List<ImportControl> importControls = await apiConnection.SendQueryAsync<List<ImportControl>>(ReportQueries.getRelevantImportIdsInTimeRange, queryVariables);
-            return [.. importControls.Select(ic => ic.ControlId)];
-        }
-
-        public static async Task<List<long>> GetRelevantImportIds(ApiConnection apiConnection, string starttime, int mgmId)
-        {
-            var queryVariables = new
-            {
-                time = starttime,
-                mgmIds = mgmId
-            };
-            List<ManagementReport> managementReports = await apiConnection.SendQueryAsync<List<ManagementReport>>(ReportQueries.getRelevantImportIdsAtTime, queryVariables);
-            return [.. managementReports.Select(mr => mr.Import.ImportAggregate.ImportAggregateMax.RelevantImportId ?? -1)];
         }
 
         public override Task<bool> GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, ObjCategory objects, int maxFetchCycles, ApiConnection apiConnection, Func<ReportData, Task> callback)

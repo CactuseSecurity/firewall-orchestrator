@@ -409,6 +409,7 @@ class FwConfigImportObject():
                 ) {{
                     affected_rows
                 }}
+            }}
             """
         query_variables = {
             'importId': self.import_state.ImportId,

@@ -398,6 +398,36 @@ namespace FWO.Report
             return true;
         }
 
+        public async Task<Dictionary<ComplianceViolation, char>> GetViolationDiffs(List<ComplianceViolation> allViolations)
+        {
+            DateTime referenceDate = DateTime.Now.AddDays(-DiffReferenceInDays);
+
+            Dictionary<ComplianceViolation, char> violationDiffs = new();
+            ComplianceViolationComparer comparer = new();
+
+            List<ComplianceViolation> removedViolations = allViolations
+                                                            .Where(violation => violation.RemovedDate is DateTime removedDate && removedDate >= referenceDate)
+                                                            .Cast<ComplianceViolation>()
+                                                            .ToList();
+
+            List<ComplianceViolation> addedViolations = allViolations
+                                                            .Where(violation => violation.FoundDate >= referenceDate)
+                                                            .Cast<ComplianceViolation>()
+                                                            .ToList();
+
+            foreach (var v in removedViolations)
+            {
+                violationDiffs[v] = '-';
+            }
+
+            foreach (var v in addedViolations)
+            {
+                violationDiffs[v] = '+';
+            }
+
+            return violationDiffs;
+        }
+
         public override string ExportToHtml()
         {
             throw new NotImplementedException();

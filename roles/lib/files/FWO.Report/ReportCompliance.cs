@@ -44,7 +44,7 @@ namespace FWO.Report
 
         #endregion
 
-        #region Constructor
+        #region Constructors
 
         public ReportCompliance(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType) : base(query, userConfig, reportType)
         {
@@ -82,6 +82,13 @@ namespace FWO.Report
                 _debugConfig = new();
             }
         }
+        
+        public ReportCompliance(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType, ReportParams reportParams) : this(query, userConfig, reportType)
+        {
+            IsDiffReport = reportParams.ComplianceFilter.IsDiffReport;
+            DiffReferenceInDays = reportParams.ComplianceFilter.DiffReferenceInDays;
+        }
+
 
         #endregion
 
@@ -89,7 +96,7 @@ namespace FWO.Report
 
         public override async Task Generate(int rulesPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback, CancellationToken ct)
         {
-            List<Device>? devices =  await apiConnection.SendQueryAsync<List<Device>>(DeviceQueries.getDeviceDetails);
+            List<Device>? devices = await apiConnection.SendQueryAsync<List<Device>>(DeviceQueries.getDeviceDetails);
 
             Log.TryWriteLog(LogType.Debug, "Compliance Report Prototype", $"Fetched {devices?.Count() ?? 0} devices.", _debugConfig.ExtendedLogReportGeneration);
 
@@ -105,7 +112,9 @@ namespace FWO.Report
 
             // Get data parallelized.
 
-            List<Rule>[]? chunks = await GetDataParallelized<Rule>(rulesCount, rulesPerFetch, apiConnection, ct, RuleQueries.getRulesWithViolationsByChunk);
+            string query = IsDiffReport ? RuleQueries.getRulesWithViolationsInTimespanByChunk : RuleQueries.getRulesWithCurrentViolationsByChunk;
+
+            List<Rule>[]? chunks = await GetDataParallelized<Rule>(rulesCount, rulesPerFetch, apiConnection, ct, query);
 
 
             if (chunks != null)
@@ -344,6 +353,16 @@ namespace FWO.Report
                 queryVariables[QueryVar.Limit] = limit;
             }
 
+            if(query.Contains("from_date"))
+            {
+                queryVariables["from_date"] = DateTime.Now.AddDays(-DiffReferenceInDays);
+            }
+
+            if(query.Contains("to_date"))
+            {
+                queryVariables["to_date"] = DateTime.Now;
+            }
+
             return queryVariables;
         }
 
@@ -358,9 +377,9 @@ namespace FWO.Report
                 {
                     foreach (var violation in rule.Violations)
                     {
-                        if (IsDiffReport && ViolationDiffs.TryGetValue(violation, out char changeSign))
+                        if (IsDiffReport)
                         {
-                            violation.Details = $"({changeSign}) {violation.Details}";
+                            await TransformViolationDetailsToDiff(violation);
                         }
 
                         if (rule.ViolationDetails != "")
@@ -398,34 +417,25 @@ namespace FWO.Report
             return true;
         }
 
-        public async Task<Dictionary<ComplianceViolation, char>> GetViolationDiffs(List<ComplianceViolation> allViolations)
+        public Task TransformViolationDetailsToDiff(ComplianceViolation violation)
         {
             DateTime referenceDate = DateTime.Now.AddDays(-DiffReferenceInDays);
 
-            Dictionary<ComplianceViolation, char> violationDiffs = new();
-            ComplianceViolationComparer comparer = new();
+            string violationDetails = violation.Details;
+            string diffPrefix = "";
 
-            List<ComplianceViolation> removedViolations = allViolations
-                                                            .Where(violation => violation.RemovedDate is DateTime removedDate && removedDate >= referenceDate)
-                                                            .Cast<ComplianceViolation>()
-                                                            .ToList();
-
-            List<ComplianceViolation> addedViolations = allViolations
-                                                            .Where(violation => violation.FoundDate >= referenceDate)
-                                                            .Cast<ComplianceViolation>()
-                                                            .ToList();
-
-            foreach (var v in removedViolations)
+            if (violation.FoundDate >= referenceDate)
             {
-                violationDiffs[v] = '-';
+                violationDetails = $"+ ({violation:dd.MM.yyyy - hh:mm}) ";
+            }
+            if (violation.RemovedDate != null && violation.RemovedDate >= referenceDate)
+            {
+                diffPrefix += $"- ({violation.RemovedDate:dd.MM.yyyy - hh:mm}) ";
             }
 
-            foreach (var v in addedViolations)
-            {
-                violationDiffs[v] = '+';
-            }
+            violation.Details = $"{diffPrefix}: {violationDetails}";
 
-            return violationDiffs;
+            return Task.CompletedTask;
         }
 
         public override string ExportToHtml()
@@ -435,7 +445,7 @@ namespace FWO.Report
 
         public override string SetDescription()
         {
-            throw new NotImplementedException();
+            return "Compliance Report";
         }
 
         #endregion

@@ -926,7 +926,7 @@ CREATE TABLE IF NOT EXISTS compliance.violation
 (
     id BIGSERIAL PRIMARY KEY,
 	rule_id bigint NOT NULL,
-	found_date timestamp default now(),
+	found_date timestamp with time zone default now(),
 	removed_date timestamp with time zone,
 	details TEXT,
 	risk_score real,
@@ -959,6 +959,7 @@ ALTER TABLE compliance.network_zone_communication ALTER COLUMN "removed" DROP DE
 ALTER TABLE compliance.ip_range ALTER COLUMN "removed" DROP DEFAULT;
 ALTER TABLE compliance.policy_criterion ALTER COLUMN "removed" DROP DEFAULT;
 ALTER TABLE compliance.violation ALTER COLUMN "removed_date" DROP DEFAULT;
+ALTER TABLE compliance.violation ALTER COLUMN "found_date" TYPE TIMESTAMP WITH TIME ZONE; -- takes local timezone. can be set wxplicitly by "USING found_date AT TIME ZONE 'UTC'";
 
 -- alter ip_range's PK
 

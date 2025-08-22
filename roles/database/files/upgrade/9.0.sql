@@ -1085,7 +1085,7 @@ INSERT INTO "report_template" ("report_filter","report_template_name","report_te
             "compliance_filter": {
                 "isDiffReport": false,
                 "diffReferenceInDays": 0,
-                "showCompliantRules": true}}');
+                "showCompliantRules": true}}')
 ON CONFLICT (config_key, config_user) DO NOTHING; -- should be do nothing, so that customized reports are not overwritten, but we need to update the template for K001
 
 -- add compliance diff report parameters to config

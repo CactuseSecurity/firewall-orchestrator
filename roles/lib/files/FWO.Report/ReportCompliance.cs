@@ -379,7 +379,14 @@ namespace FWO.Report
                     {
                         if (IsDiffReport)
                         {
-                            await TransformViolationDetailsToDiff(violation);
+                            if (violation.FoundDate > DateTime.Now.AddDays(-DiffReferenceInDays) || (violation.RemovedDate != null && violation.RemovedDate > DateTime.Now.AddDays(-DiffReferenceInDays)))
+                            {
+                                await TransformViolationDetailsToDiff(violation);
+                            }
+                            else
+                            {
+                                continue; // Skip violations that are not relevant for the diff report
+                            }
                         }
 
                         if (rule.ViolationDetails != "")
@@ -421,19 +428,18 @@ namespace FWO.Report
         {
             DateTime referenceDate = DateTime.Now.AddDays(-DiffReferenceInDays);
 
-            string violationDetails = violation.Details;
             string diffPrefix = "";
 
             if (violation.FoundDate >= referenceDate)
             {
-                violationDetails = $"+ ({violation:dd.MM.yyyy - hh:mm}) ";
+                diffPrefix = $"+ ({violation.FoundDate:dd.MM.yyyy - hh:mm}) ";
             }
             if (violation.RemovedDate != null && violation.RemovedDate >= referenceDate)
             {
                 diffPrefix += $"- ({violation.RemovedDate:dd.MM.yyyy - hh:mm}) ";
             }
 
-            violation.Details = $"{diffPrefix}: {violationDetails}";
+            violation.Details = $"{diffPrefix}: {violation.Details}";
 
             return Task.CompletedTask;
         }

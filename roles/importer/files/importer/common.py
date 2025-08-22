@@ -35,13 +35,11 @@ from fwo_config import readConfig
 """  
     import_management: import a single management (if no import for it is running)
     if mgmId is that of a super management, it will import all submanagements as well
-    lock mgmt for import via FWORCH API call, generating new import_id y
+    lock mgmt for import via FWORCH API call, generating new import_id
     check if we need to import (no md5, api call if anything has changed since last import)
     get complete config (get, enrich, parse)
     write into json dict write json dict to new table (single entry for complete config)
-    trigger import from json into csv and from there into destination tables
-    release mgmt for import via FWORCH API call (also removing import_id y data from import_tables?)
-    no changes: remove import_control?
+    this top level function mainly deals with exception handling
 """
 def import_management(mgmId=None, ssl_verification=None, debug_level_in=0, 
         limit=150, force=False, clearManagementData=False, suppress_cert_warnings_in=None,

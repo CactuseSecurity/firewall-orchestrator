@@ -18,6 +18,8 @@ namespace FWO.Api.Client
 
         private string prevRole = "";
 
+#pragma warning disable CS8618 // C# does not notice that the constructor initializes these properties
+
         private void Initialize(string ApiServerUri)
         {
             // Save Server URI
@@ -41,6 +43,7 @@ namespace FWO.Api.Client
             graphQlClient.HttpClient.Timeout = new TimeSpan(1, 0, 0);
         }
 
+
         public GraphQlApiConnection(string ApiServerUri, string jwt)
         {
             Initialize(ApiServerUri);
@@ -51,6 +54,7 @@ namespace FWO.Api.Client
         {
             Initialize(ApiServerUri);
         }
+#pragma warning restore CS8618
 
         public override void SetAuthHeader(string jwt)
         {

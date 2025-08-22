@@ -85,13 +85,11 @@ class FwConfigImport():
                     # store lobal config as it is needed when importing sub managers which might reference it
                     global_state.global_normalized_config = config
                 config_importer = FwConfigImport()
-                config_importer.import_single_config(manager) 
+                config_importer.import_single_config(manager)
                 if import_state.Stats.ErrorCount>0:
                     raise FwoImporterError("Import failed due to errors.")
                 else:
-                    config_importer.storeLatestConfig()
-
-
+                    config_importer.write_latest_config()
 
 
     def clear_management(self) -> FwConfigManagerListController:
@@ -204,7 +202,7 @@ class FwConfigImport():
             raise FwoApiFailedDeleteOldImports(f"management id: {mgmId}") from None
 
 
-    def storeLatestConfig(self):
+    def write_latest_config(self):
         logger = getFwoLogger(debug_level=self.import_state.DebugLevel)
         changes = 0
         errorsFound = 0

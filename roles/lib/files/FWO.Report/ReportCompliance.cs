@@ -16,7 +16,7 @@ using FWO.Ui.Display;
 
 namespace FWO.Report
 {
-    public class ReportCompliance : ReportRules
+    public class ReportCompliance : ReportBase
     {
 
         #region Properties
@@ -397,7 +397,17 @@ namespace FWO.Report
 
             return true;
         }
-        
+
+        public override string ExportToHtml()
+        {
+            throw new NotImplementedException();
+        }
+
+        public override string SetDescription()
+        {
+            throw new NotImplementedException();
+        }
+
         #endregion
 
 

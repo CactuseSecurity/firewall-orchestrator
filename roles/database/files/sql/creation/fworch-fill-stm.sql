@@ -274,7 +274,7 @@ INSERT INTO "report_template" ("report_filter","report_template_name","report_te
                 "recertShowAnyMatch": true,
                 "recertificationDisplayPeriod": 30}}');
 INSERT INTO "report_template" ("report_filter","report_template_name","report_template_comment","report_template_owner", "report_parameters") 
-    VALUES ('action="accept"',
+    VALUES ('action=accept',
         'Compliance: Unresolved violations','T0108', 0, 
         '{"report_type":31,"device_filter":{"management":[]},
             "time_filter": {

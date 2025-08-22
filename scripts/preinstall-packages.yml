@@ -27,7 +27,6 @@
         - "{{ postgresql_c_client_library_header_files }}"
         - "{{ postgresql_package }}"
         - postgresql-client
-        - git
 
 ########## ldap ##################
 

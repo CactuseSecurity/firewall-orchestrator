@@ -33,8 +33,8 @@ namespace FWO.Report.Data.ViewData
             MgmtId = rule.MgmtId.ToString();
             Uid = rule.Uid ?? "";
             Name = rule.Name ?? "";
-            Source = natRuleDisplayHtml.DisplaySource(rule, outputLocation, ReportType.ComplianceNew);
-            Destination = natRuleDisplayHtml.DisplayDestination(rule, outputLocation, ReportType.ComplianceNew);
+            Source = natRuleDisplayHtml.DisplaySource(rule, outputLocation, ReportType.Compliance);
+            Destination = natRuleDisplayHtml.DisplayDestination(rule, outputLocation, ReportType.Compliance);
             Services = ResolveServices(rule);
             Action = rule.Action;
             InstallOn = ResolveInstallOn(rule, devices ?? []);

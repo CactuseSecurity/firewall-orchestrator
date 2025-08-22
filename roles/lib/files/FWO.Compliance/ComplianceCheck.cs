@@ -544,7 +544,7 @@ namespace FWO.Compliance
 
             _reportFilters = new()
             {
-                ReportType = ReportType.ComplianceNew
+                ReportType = ReportType.Compliance
             };
 
             _reportFilters.DeviceFilter.Managements = await _apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement);

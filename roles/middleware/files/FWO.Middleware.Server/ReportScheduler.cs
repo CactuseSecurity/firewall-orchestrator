@@ -363,7 +363,7 @@ namespace FWO.Middleware.Server
                             break;
 
                         case GlobalConst.kJson:
-                            attachment = null;
+                            attachment = EmailHelper.CreateAttachment(reportFile.Json, GlobalConst.kJson, subject);
                             break;
 
                         default:

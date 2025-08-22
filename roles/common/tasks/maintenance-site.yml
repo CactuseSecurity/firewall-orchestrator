@@ -20,6 +20,10 @@
       dest: "/var/www/html/men-at-work.jpg"
       mode: "0644"
 
+  - name: enable apache2 required modules
+    apache2_module: state=present name={{ item }}
+    loop: "{{ apache2_required_modules }}"
+
   - name: copy httpd maintenance config file to ui target
     template:
       src: "httpd-maintenance.conf"

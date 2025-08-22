@@ -136,6 +136,7 @@
     env:
       "{{ hasura_env }}"
     container_default_behavior: no_defaults
+    user: "1001:1001"  # hasura user and group id
   register: docker_return
   become: true
   become_user: "{{ fworch_user }}"

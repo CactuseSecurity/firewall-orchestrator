@@ -1,0 +1,47 @@
+- name: install apache and make all global configs (non-server dependent)
+  block:
+    - name: Install apache2
+      package:
+        name: "{{ webserver_package_name }}"
+        state: present
+        update_cache: yes
+
+    - name: Install wsgi module
+      package:
+        name: "{{ wsgi_package_name }}"
+        state: present
+        update_cache: yes
+
+    - name: edit conf file for global security settings - ServerTokens
+      lineinfile:
+        path: "{{ apache_global_settings_file }}"
+        line: ServerTokens Prod
+        regexp: '^\s*ServerTokens'
+        create: true
+        mode: "0644"
+
+    - name: edit conf file for global security settings - ServerSignature
+      lineinfile:
+        path: "{{ apache_global_settings_file }}"
+        line: ServerSignature Off
+        regexp: '^\s*ServerSignature'
+        create: true
+        mode: "0644"
+
+    - name: edit conf file for global security settings - TraceEnable
+      lineinfile:
+        path: "{{ apache_global_settings_file }}"
+        line: TraceEnable Off
+        regexp: '^\s*TraceEnable'
+        create: true
+        mode: "0644"
+
+    - name: enable global security settings
+      command: "a2enconf security"
+
+    - name: restart apache
+      service:
+        name: "{{ webserver_package_name }}"
+        state: restarted
+
+  become: true
